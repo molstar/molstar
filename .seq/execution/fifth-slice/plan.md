@@ -148,7 +148,7 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
 - [ ] **FX2** after stage 1's gate; **FX3** after stage 2's; **FX4** after stage 3's; **FX5** after stage 4's;
       **FX6** before M5 (the novice pass's and the use gates' findings that need no design). Taken early on the
       author's findings (2026-11-21): FX2 (`e678d2dbc`), FX3 (`ded361691`), FX4 (`5bfebf366`); the next fix lanes are
-      numbered on from FX5.
+      numbered on from FX5. **FX5** (2026-11-22, `briefs/fx5-small-fixes.md`, Sonnet) beside VC and RG: six items clear of RG's files.
 
 ### Stage 1: coordinates (strong, in order; the language one lane at a time)
 
@@ -191,8 +191,8 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
   - [x] **GG** (merged 2026-11-21, `9b8cf675b`) (`briefs/gg-gff.md`) GFF3 and GTF read whole: `assembleTranscripts`, `source.features`, `findNames`
         over both (GFF3's `Name`, `ID`, `Alias`; GTF's `gene_name`, `gene_id`, `transcript_name`, `transcript_id`);
         the ranges layer's `line: 'gene'`.
-  - [ ] **VC** (`briefs/vc-vcf.md`) VCF sites at level 1, extents by the index's rule, the anchor base kept.
-  - [ ] **GB** (added 2026-11-21, the author: "Add a GenBank lane"; `briefs/gb-genbank.md`; strong, untrusted input;
+  - [x] **VC** (merged 2026-11-22, `364acfb5e`) (`briefs/vc-vcf.md`) VCF sites at level 1, extents by the index's rule, the anchor base kept.
+  - [x] **GB** (merged 2026-11-22) (added 2026-11-21, the author: "Add a GenBank lane"; `briefs/gb-genbank.md`; strong, untrusted input;
         after VC, alone in the formats track) **GenBank read whole**: a short design section first (genome-formats.md,
         "GenBank", agreed in the brief: what the runtime answers and what it refuses), then `format: 'genbank'`: a
         file of one or more records, each a sequence (LOCUS's name, length and topology: `circular` a cyclic system;
@@ -206,7 +206,7 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
         download asked in the brief); fuzz and malformed-input tests as BE's and GG's. Its own size row (under 30 kB
         like the other runtimes). The story side: "Try pUC19.gb" loads it (fixes.md), and a plasmid story reads the
         GenBank file beside the GFF3 one, the two views equal.
-- [ ] **BS** (added 2026-11-22, the author: "keep it in core for now, but add a storybook example to features section
+- [x] **BS** (merged 2026-11-22, `5bf984d5b`) (added 2026-11-22, the author: "keep it in core for now, but add a storybook example to features section
       that showcases it"; `briefs/bs-builder-showcase.md`; fast, storybook only, beside any lane) **the builder
       showcased**: `Features/Builder`, each story the builder code shown beside the view it builds; the builder stays
       in `seqx-core/lang` (no package of its own for now).

@@ -46,5 +46,37 @@
     "bytesFixture": 15409,
     "sha256Download": "83fba3e9b03f0b8c958f3595c6c350adc55f468abf8b0e47b6d5284cfe13a453",
     "sha256Fixture": "50ccc1ff398cf5d593ad5e8f0b7a4eaad7e3b8546a77b4377ae1f2b62e6d2abf"
+  },
+  {
+    "file": "genomes/clinvar_20240107.vcf.gz.tbi.pages.json",
+    "entry": "NCBI ClinVar GRCh38 clinvar_20240107.vcf.gz.tbi: the tabix index of the sites file, whole",
+    "url": "https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/archive_2.0/2024/clinvar_20240107.vcf.gz.tbi",
+    "recorded": "2026-11-22",
+    "licence": [
+      "LicenseRef-NCBI-public-data"
+    ],
+    "attribution": "NCBI ClinVar, GRCh38 VCF archive of 2024-01-07 (Landrum et al. 2018), its tabix index. NCBI's terms page was not fetched when recorded (only the two approved files were downloaded); NCBI's policy as recalled: public data, no NCBI restriction on use or distribution, though submitters may hold rights in what they submitted. To be confirmed by the orchestrator.",
+    "trimmed": "none: every page (8 of 65536 bytes), byte for byte, as recorded pages",
+    "derived": "none",
+    "bytesDownloaded": 520374,
+    "bytesFixture": 694012,
+    "sha256Download": "6b00c74214287b72594c3252e8cceaea5a40034448aa0cf2a40c88ab562e0ff0",
+    "sha256Fixture": "45d5e1b4dd3403ce119cf78bd051a5a2795f7cbf708318a0b4049dc606339f11"
+  },
+  {
+    "file": "genomes/clinvar_20240107.vcf.gz.pages.json",
+    "entry": "NCBI ClinVar GRCh38 clinvar_20240107.vcf.gz (sites, BGZF): the header's page, TP53's chunks (17:7660000-7690000 read by region in 1,024-position tiles) and the EOF block's page",
+    "url": "https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/archive_2.0/2024/clinvar_20240107.vcf.gz",
+    "recorded": "2026-11-22",
+    "licence": [
+      "LicenseRef-NCBI-public-data"
+    ],
+    "attribution": "NCBI ClinVar, GRCh38 VCF archive of 2024-01-07 (Landrum et al. 2018). NCBI's terms page was not fetched when recorded (only the two approved files were downloaded); NCBI's policy as recalled: public data, no NCBI restriction on use or distribution, though submitters may hold rights in what they submitted. To be confirmed by the orchestrator.",
+    "trimmed": "pages 0, 1089, 1090, 1091, 1092, 1093, 1094, 1393 of 1394 (65536 bytes each), byte for byte; a read of another page fails naming it",
+    "derived": "none",
+    "bytesDownloaded": 91330038,
+    "bytesFixture": 663055,
+    "sha256Download": "30d43d65ca820af3e911fbcc566887a18f8b0348faa1533eb4f2c989b3456bcb",
+    "sha256Fixture": "f01017d9e1fcdb7774d0431e791e651025f5f79de882965a0ca2793071fc2263"
   }
 ]

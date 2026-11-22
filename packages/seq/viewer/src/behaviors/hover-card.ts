@@ -194,6 +194,7 @@ class HitIdentity {
   private target: string | undefined;
   private ySystem: string | undefined;
   private state: string | undefined;
+  private categories: string | undefined;
   private owner: string | undefined;
   private key: string | number | undefined;
   private members: unknown;
@@ -213,6 +214,7 @@ class HitIdentity {
       this.target === p.target &&
       this.ySystem === p.ySystem &&
       this.state === p.state &&
+      this.categories === p.categories &&
       this.members === p.members &&
       this.data === data &&
       this.owner === e?.owner &&
@@ -226,6 +228,7 @@ class HitIdentity {
     this.target = p.target;
     this.ySystem = p.ySystem;
     this.state = p.state;
+    this.categories = p.categories;
     this.members = p.members;
     this.data = data;
     this.owner = e?.owner;

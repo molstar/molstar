@@ -131,17 +131,17 @@ describe('the built-in entries: a slot, a menu item and the command alike', () =
     }
   });
 
-  it('seq:color: its slot opens the schemes, a scheme item runs layer.channel (one patch), previewed while hovered', async () => {
+  it('seq:color: one place, the menu (no slot); its submenu is the schemes, a scheme item runs layer.channel (one patch), previewed while hovered', async () => {
     const v = await make();
-    expect(clickPart(v, Letters, 'seq:color')).toBe(true);
-    const shown = headers(v).menu.value!;
-    const schemes = shown.menu.groups.flat();
+    expect(item(v, Letters, 'seq:color').slot).toBeFalsy();
+    expect(geo(v, Letters).slots.map((s) => s.name)).not.toContain('seq:color');
+    const schemes = item(v, Letters, 'seq:color').items!;
     expect(schemes.length).toBeGreaterThan(1);
     expect(schemes.every((s) => s.command === 'layer.channel')).toBe(true);
     // hovered: previewed, no step; closed without a choice: nothing
     expect(headers(v).preview(schemes[1])).toBe(true);
     expect(v.spec.preview.value).toBeDefined();
-    headers(v).closeMenu();
+    headers(v).cancelPreview();
     expect(v.spec.preview.value).toBeUndefined();
     const steps = stack(v).steps.value.length;
     await settled(headers(v).runItem(schemes[1]));
@@ -278,7 +278,7 @@ describe('a host’s entries', () => {
     undo();
     frames.flush();
     expect(items(v, More).map((i) => i.name)).not.toContain('myapp:pin');
-    expect(geo(v, More).slots.map((s) => s.name)).toEqual(['seq:hide', 'seq:color', 'seq:menu']);
+    expect(geo(v, More).slots.map((s) => s.name)).toEqual(['seq:hide', 'seq:menu']);
   });
 
   it('a conflict is refused whole: a name twice, no namespace, a command the viewer lacks', async () => {

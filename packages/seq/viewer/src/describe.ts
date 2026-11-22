@@ -76,6 +76,8 @@ export interface Place {
   readonly yBlock?: number | undefined;
   /** What a layer named within the position (a rows column cell: `title: value`). */
   readonly state?: string | undefined;
+  /** A merged run of mixed categories (a ranges layer's hit). */
+  readonly categories?: string | undefined;
   /** A ring's grouped label: the hits of the items it stands for (`target` `group`). */
   readonly members?: readonly { readonly element?: Key | undefined }[] | undefined;
   /** A run's blocks (`target` `run`). */
@@ -264,10 +266,13 @@ const ItemSection: CardSection = {
     const track = at.section.tracks.find((t) => t.layers.includes(l))?.track.label;
     if (track) out.row('Track', track);
     out.row('Extent', `${system} ${extentText(it)}`);
-    if (category) out.row('Category', category);
+    // a hit in a merged run of mixed categories lists them all (the hit's `categories`, in the legend's order)
+    const mixed = at.place.categories;
+    if (mixed) out.row('Categories', mixed);
+    else if (category) out.row('Category', category);
     if (strand) out.row('Strand', strand);
     out.words.push(
-      `${itemText(system, it)}${track ? `, ${track}` : ''}${category ? `, ${category}` : ''}${strand ? `, strand ${strand}` : ''}`,
+      `${itemText(system, it)}${track ? `, ${track}` : ''}${mixed ? `, ${mixed}` : category ? `, ${category}` : ''}${strand ? `, strand ${strand}` : ''}`,
     );
     out.whole = true;
   },

@@ -1284,6 +1284,12 @@ runtimes only).
   end by its `BSIZE`) to its newline, within `maxLineBytes`; what a format whose columns are told by its first line
   (BED's `N`) reads at open.
 - **Shared codes** (`issues.ts`): `seq.source.bgzf.eof` (warning: a BGZF file without its EOF block, read as it is).
+- **Shared helpers**: `causes.ts` (`Causes`: one issue a cause with its count and first ten places, EC-86; each format's
+  `BedCauses`, `GffCauses`, `VcfCauses` over its own codes), `answers.ts` (`failure` by kind, `refuse` at open,
+  `wholeSource` over what a whole read holds), `intervals.ts` (`intervalIndex`: the short intervals by start and the
+  long ones apart, `eachMeeting`), `items.ts` (items of pieces held by sequence: `systemItems`, `rowsIn` with span rows,
+  `rangesOf`, `fieldInfos`; the GFF and GenBank runtimes'). Why shared: one rule for issues and answers across the
+  formats.
 - **The first data line** reads past `track` and `browser` lines too, not only the index's meta lines: a file whose
   index's first chunk starts on one is told its columns by its first data line.
 - **Tests**: on files from the shared test-only writer (`@molstar/test-harness/genome/bgzf-writer`: BGZF blocks, TBI and
@@ -1365,9 +1371,10 @@ neither io's tabix nor the pairs index.
 `runtimes/gff.ts` (`@molstar/seqx-core/runtimes/gff`, opt in: `GffRuntime`, `gffRuntime(over)`, `GffOptions`,
 `DefaultGffOptions`, `GffFeatures`, `GffFormats`, `assembleTranscripts`, `Assembly`, `GffItem`, `AssembleOptions`,
 `DefaultTranscriptTypes`, `PieceTypes`, `parseGff`, `GffRow`, `GffFormat`, `GffIssues`, `GtfIssues`): `gff3` and `gtf`
-read whole; `gff-parse.ts` (the one line parser), `gff-assemble.ts` (the hierarchy), `gff-read.ts` (items by sequence,
-answers, the name index). `gff3` stays the records preset's (flat) unless a host composes this runtime with
-`withAdapter` (one adapter a format). Why opt in: the default viewer is at its size bound.
+read whole; `gff-parse.ts` (the one line parser), `gff-assemble.ts` (the hierarchy), `gff-read.ts` (the label rule, the
+name index; items by sequence and their answers `internal/items.ts`). `gff3` stays the records preset's (flat) unless a
+host composes this runtime with `withAdapter` (one adapter a format). Why opt in: the default viewer is at its size
+bound.
 
 - **Conventions fixed** (EC-195): base 1, ends inclusive, converted at the edge; `base` or `ends` not read, said once
   (`seq.source.gff.transform`). Bytes to text by magic (plain, gzip, BGZF) within `limits.maxBytes`; `#` lines read
@@ -1433,6 +1440,164 @@ answers, the name index). `gff3` stays the records preset's (flat) unless a host
 - **Performance**: 100,000 GFF3 lines assembled under 500 ms (heavy, `itWithin`), 10,000 in the quick lane;
   `features: rows` of 40,000 lines of one `ID` under 500 ms, 2,000 region reads beside a chromosome-long feature under
   200 ms, 50 lines of a million tabs refused under 200 ms (heavy). Size: its own row under 30 kB (24.3 kB minified, io's
+  BGZF reader in it); in no viewer bundle.
+
+### VCF
+
+`runtimes/vcf.ts` (`@molstar/seqx-core/runtimes/vcf`, opt in: `VcfRuntime`, `vcfRuntime(over)`, `VcfOptions`,
+`DefaultVcfOptions`, `VcfFormats`, `readVcfHeader`, `VcfHeader`, `VcfHeaderLimits`, `DefaultVcfHeaderLimits`,
+`VcfHeaderResult`, `VcfDeclaration`, `VcfContig`, `VcfType`, `VcfIssues`, `MissingInt`, `VcfCategories` (the `category`
+field's values, a palette's), `VcfSource`: an opened source with its `header`, what a host shows of the file):
+**sites**, `vcf` read whole or by region at level 1 over the internals above; `vcf-header.ts` (the header),
+`vcf-parse.ts` (the one line parser, rows and answers), `vcf-read.ts` (what whole and region reads share), and
+`vcf-indexed.ts` loaded when the first indexed source opens (io's tabix in it). Genotypes (the matrix, `samples`,
+genotype classes) are not read yet.
+
+- **Conventions fixed** (EC-195): base 1 (`POS − 1`), an extent by the index's rule; a source's `base` or `ends` is not
+  read, said once (`seq.source.vcf.transform`, info). Bytes to text by magic (plain, gzip, BGZF) within
+  `limits.maxBytes`; `samples` on a source is kept and said once (`.samples`, info: not read yet), never an error.
+- **Header** (`readVcfHeader(text, limits)`, pure, a host may call it on a file's head): `##fileformat`, `##contig`
+  (names and lengths: a system's length, EC-188; one past 2^31 − 1 refused by name, `seq.source.too_large`, the others
+  read), `##INFO` and `##FORMAT` (`ID`, `Number`, `Type`, `Description`; quoted values unescaped; the first of an `ID`
+  kept; one without `ID` or with a `Type` VCF has not counted, `.header`, info), the sample names of the `#CHROM` line.
+  A header without `#CHROM`, past `maxHeaderBytes`, or with more than `maxSamples` names (counted from its tabs before
+  they are split) is `malformed`. Read whole: the `#` lines at the top; by region: io's header lines.
+- **A row an ALT allele** (EC-196), every allele of a line with **the line's extent by the index's rule** (htslib's
+  `tbx_parse1`, io's `readRegion`): `POS − 1` to `INFO/END` when INFO starts with `END=` or holds `;END=` with a number
+  past `POS − 1` (whatever the alleles: an SNV's too), else `POS − 1 + len(REF)`; the anchor base kept. A long deletion
+  is one item across the SNVs it covers (EC-222, sites). **`id`** `pos:ref>alt` (POS as written), an allele past 32
+  characters `<length>:<FNV-1a hex>` (core's `hashFnv32a` over its bytes), `@<end>` after it when `END=` sets the extent
+  past REF's (two records differing only in `END` are two items, neither id depending on whether a region reads the
+  other), `#2`, `#3` … on a later identical key in file order (a duplicated record: one `POS` and one extent, so read
+  together and the suffix stable by region). ALT `.`, `*`, `<NON_REF>` and `<*>` are no item (`.allele`, info). A record
+  with more ALT alleles than `maxAlleles` is left out (`.alleles`, warning), counted from its commas before it is split.
+- **Fields**: `label` and `name` the VCF `ID` (`.` none; `label` is what a ranges layer labels by), `ref`, `alt`, `qual`
+  (float32, `.` NaN; a decimal float as VCF writes one, `Inf` and `NaN` too: never `` as 0 or `0x10` as 16, as every
+  `Float` cell), `filter` (category), `category` (`SNV`, `MNV`, `insertion`, `deletion`, `indel`, `structural` for
+  `<…>`, `breakend` for `]`, `[` and single breakends); then **INFO keys typed by the header**: `Integer` int32 and
+  `Float` float32 when one value an allele (`Number=1`, or `A` split by allele), `Flag` a category (`true`), every other
+  a category (`Number=R` the reference's and the allele's values, `r,a`; other numbers their text). A missing int32 is
+  `MissingInt` (−2^31, BCF's missing integer: int32 has no NaN). The keys the source's `fields` (a field's name to its
+  INFO key, EC-190) or `types` name first, then the header's order, at most `maxInfoFields`, the rest said once with
+  their count (`.info`); a key `fields` or `types` names that the header does not declare read as text; a key in a line
+  the header does not declare said once (`.info`, the keys its places); a key named as a fixed field said once and not
+  read (`.cell`); a cell its type cannot hold missing (`.cell`).
+- **Lines**: eight tab-separated columns at least (the samples' bytes never decoded), a `POS` a whole number to 2^31 −
+  1, a `REF`, an end to 2^31 − 1, else left out (`.line`, warning, with its line number). **A line costs its own
+  length**: its tab searches stay in it, an INFO field's `=` is looked for in that field, a `Number=A` or `R` value is
+  split once a line (a file of lines without tabs, or a line of a hundred thousand flags, is read in linear time). A row
+  starting past its contig's length is left out, one running past it clipped, both counted in one issue (`.range`,
+  EC-51). UTF-8, U+FFFD said once (`.encoding`).
+- **Whole or by region**: with an `index` (the source names it, never `<uri>.tbi`: EC-186) read by region at level 1
+  through `openIndexedLines`; without one read whole within `limits` and served at level 1 and at the level whose one
+  tile holds its longest system (`wholeLevel`). One parser either way, so a region read equals the whole read clipped
+  (the property test). The systems are the header's contigs, then those the file (or the index) names; a contig with no
+  line serves empty answers. A region's line issues are not said (no place in an answer); the whole read says them. Rows
+  are answered in order of start, then of the file; found by `intervalIndex`.
+- **Bounds**: a whole read's bytes (`limits.maxBytes`) and lines (`limits.maxRows`) before the lines are spanned; its
+  alleles (`limits.maxRows`); a region's lines and alleles within `limits.maxRows`; one line `maxLineBytes`; io's tabix
+  bounds by region (`VcfOptions.tabix`; its `maxLineBytes` and `maxHeaderBytes` the runtime's own).
+- **Configuration** (`vcfRuntime(over)`; `VcfRuntime` is `vcfRuntime()`):
+
+  | Item             | Default              | Why the default; the alternatives                                                                 |
+  | ---------------- | -------------------- | ------------------------------------------------------------------------------------------------- |
+  | `maxLineBytes`   | 16 MiB               | a line of 100,000 samples at about 160 bytes each (`GT:AD:DP:GQ:PL` of a multi-allelic site); any |
+  | `maxHeaderBytes` | 16 MiB               | gnomAD's header is a few hundred kB; any                                                          |
+  | `maxInfoFields`  | 256                  | bounded columns (gnomAD v4 declares about 900): the source's `fields`, `types` first; any         |
+  | `maxSamples`     | 100,000              | a biobank's `#CHROM` line within `maxLineBytes`; any                                              |
+  | `maxAlleles`     | 256                  | bounded rows a record; past it the record is left out (said); any                                 |
+  | `tabix`          | `DefaultTabixLimits` | io's other bounds of a read by region (`maxRegionBytes`, `maxInflatedBytes`, …); any              |
+
+- **Tests**: the source suite on generated files (plain, gzip, BGZF; whole and by region, with and without range reads)
+  and on the recorded real slice (TP53's region of NCBI ClinVar's GRCh38 `clinvar_20240107.vcf.gz`, examples'
+  `fixtures/genomes/`); a region read equal to the whole read clipped over generated files and random regions, and a
+  tiling deduped by id equal to the whole read; each line's extent equal to io's; ids of duplicates and long SVs,
+  categories, multi-allelic lines, INFO's types and `Number`s; the header; fuzzed and truncated files (whole and by
+  region) without a throw; each bound. Its synthetic twin is `delayedRuntime(VcfRuntime)`.
+- **Performance**: a region of 10,000 records decoded under 100 ms, sites (heavy, `itWithin`; about 30 ms measured),
+  1,000 in the quick lane; 40,000 lines without tabs under 500 ms and a line of 100,000 flags under 200 ms (heavy), the
+  bytes and characters their searches scan counted in the quick lane. Size: its own row under 30 kB (25.2 kB minified,
+  io's BGZF reader in it), its lazy chunk (by region with io's tabix, 14.8 kB) loaded on first use; in no viewer bundle.
+
+### GenBank
+
+`runtimes/genbank.ts` (`@molstar/seqx-core/runtimes/genbank`, opt in: `GenbankRuntime`, `genbankRuntime(over)`,
+`GenbankOptions`, `DefaultGenbankOptions`, `GenbankFormats`, `GenbankSource` (an opened source with its `records`: name,
+accession, DEFINITION, organism, molecule, length, topology, features; what a host shows of the file),
+`GenbankRecordInfo`, `GenbankItem`, `parseGenbank`, `GenbankRecord`, `GenbankFeature`, `GenbankFile`, `GenbankLimits`,
+`parseLocation`, `Location`, `MaxDepth`, `GenbankIssues`): `genbank` read whole; `genbank-parse.ts` (the records),
+`genbank-location.ts` (the location grammar), the items and their answers `internal/items.ts` (shared with GFF).
+
+- **Conventions fixed** (EC-195): base 1, ends inclusive, converted at the edge; `base` or `ends` not read, said once
+  (`.transform`). Bytes to text by magic (plain, gzip, BGZF) within `limits.maxBytes`.
+- **Records**: `LOCUS` … `//`, each a system: LOCUS's name (a repeated name's record not read, `.record`), its
+  `ACCESSION.VERSION` (VERSION's, else ACCESSION's first) an alias where it names no other record, `circular` a cyclic
+  system, the molecule its alphabet (`aa` protein, a type with `RNA` rna, else dna), its length ORIGIN's letters'
+  (digits and whitespace dropped, case kept as read) and LOCUS's without an ORIGIN (ranges only); letters that disagree
+  with LOCUS: the letters win (`.length`, warning). DEFINITION (its continuation lines) and SOURCE's ORGANISM are the
+  record's (`GenbankSource.records`: the protocol's `SystemInfo` has no description); REFERENCE, COMMENT, DBLINK,
+  KEYWORDS and every other header field skipped, one issue with its count (`.header`, info). Lines before the first
+  `LOCUS` and between records are read past. A record of a CONTIG, WGS, WGS_SCAFLD, TSA or TLS assembly of other records
+  is not read (`.record`, warning).
+- **Refused, the file** (`seq.source.malformed`): no `LOCUS` line; no complete record; a protein record's letters
+  outside the language's protein letters (`[A-Za-z*-]`). The last record cut short (no `//` at the end of the file) is
+  left out and said (`.record`), the records before it kept. A line from the first column ends a feature table, so a
+  quote never closed never takes the rest of the file.
+- **Features as ranges**: a feature a line indented less than 21 columns (its key, then its location), its qualifiers
+  `/name=value` or `/name` (the value `true`), a quoted value over lines joined by a space, `""` a quote; a line inside
+  quotes is its text whatever it starts with, but a line at the key's indent (under 21) with a key and a location's
+  start: the quote was left open, closed there with the text it has (`.feature`, warning, the qualifier's line), the
+  line a feature of its own (never swallowed up to the next qualifier's quote); a quote open at the table's end is
+  closed so too. Each feature an item: `category` its key, `label` `/label`, else `/gene`, else `/locus_tag`, else the
+  key; every other qualifier a category field by its name in order of first use, at most 256 names (`.names`; a
+  qualifier named as a fixed field is that field's), a name repeated in a feature joined by `; ` (its values each its
+  name in the index); `/translation` never held (`.translation`, info, counted); `partial_start`, `partial_end` (int8, 1
+  for a `<` or `>` anywhere in the location); `strand` from `complement` (all pieces −1, none 1, mixed 0; a protein's
+  0). **Identity** (EC-196): `<key>@<first>-<last>`, the hull from 1, ends inclusive (an origin join's last past the
+  length, as GFF3 writes it), `#2`, `#3` on a repeat in file order. Pieces, their item's extent on every row and span
+  rows as GFF3's (`internal/items.ts`).
+- **Locations** (`parseLocation(text, length, circular, maxPieces)`, whitespace dropped, one pass, never a throw):
+  `a..b`, a single base `a`, `a.b` read as its hull (`.approximate`, info), `<` and `>` partial ends, `complement(…)`,
+  `join(…)`, `order(…)` nested as INSDC writes them (`complement(join(…))`, `join(complement(…),…)`), at most 16
+  operators deep (`MaxDepth`; a 17th refused) and `maxLocationPieces` pieces, its text at most 64 characters a piece
+  before it is held. Pieces sorted, overlapping or touching ones one. **A join over a circular record's origin**
+  (`join(2600..2686,1..120)`, either strand's form): read in the numbering's direction, the pieces after a step back a
+  lap on, so the item is one piece `[2599, 2806)` past the length, which the row reader wraps (the cyclic system's wrap,
+  Records); more than one lap, or an end past 2^31 − 1, is refused. On a linear record the same text is two pieces where
+  they are. Only a `join` wraps: INSDC's `order(…)` says nothing of its pieces' order, so its pieces are where they are
+  on a circular record too (`order(50..60,10..20)` two pieces). **Refused per feature, never the file** (`.location`,
+  warning, its reason and line): a remote reference (`J00194.1:100..202`), a site `a^b`, a position past the record's
+  length (EC-51: never clipped into a wrong place), an end before its start, nested too deep, too many pieces, malformed
+  text (`gap(…)` too).
+- **Tables**: `letters` (level 1 only) and `ranges` lists at level 1 and at the level whose one tile holds the longest
+  record (`wholeLevel`; a coarse tile is its ranges alone).
+- **Names** (EC-228): `findNames` over `/label`, `/gene`, `/locus_tag` (a hit the item's `id` and extent) and the
+  records' LOCUS names and accessions (`locus`, `accession`: the whole sequence, no `id`), a map built once at open,
+  exact names first, then by prefix; `Coverage.names` those five fields.
+- **Bounds**: bytes (`limits.maxBytes`), features (`limits.maxRows`), records (`maxRecords`), a record's letters (2^31 −
+  1): the file refused (`seq.source.too_large`); a feature's qualifiers (`maxQualifiers`), a qualifier's text
+  (`maxQualifierBytes`, a repeated name's together, a DEFINITION's too: it stops growing there), a location's pieces
+  (`maxLocationPieces`) and nesting (16): the feature left out, said. Each counted before what it bounds is held; every
+  search stays in its line (counted in the quick lane).
+- **Configuration** (`genbankRuntime(over)`; `GenbankRuntime` is `genbankRuntime()`):
+
+  | Item                | Default | Why the default; the alternatives                                     |
+  | ------------------- | ------- | --------------------------------------------------------------------- |
+  | `maxRecords`        | 1,000   | a file of a genome's chromosomes and plasmids, a batch of clones; any |
+  | `maxQualifiers`     | 256     | GFF's attributes a row; NCBI writes a few tens at most; any           |
+  | `maxQualifierBytes` | 64 KiB  | the longest `/note` or `/product`; `/translation` is never held; any  |
+  | `maxLocationPieces` | 10,000  | a gene of thousands of exons (titin's 363); any                       |
+
+- **Tests**: the location grammar (every form, nesting, partial ends, the origin join on both strands, each refusal);
+  records (letters, alphabets, aliases, several records, a repeated name, no ORIGIN, a CONTIG); features (ids, labels,
+  qualifiers, strand, pieces); the name index; the examples' generated plasmid record
+  (`fixtures/plasmid/ pUC19c-rotated.gb`); fuzzed and truncated files without a throw (EC-40, EC-92); each bound; the
+  searches counted; the real record L09137.2 as NCBI GenBank serves it (`fixtures/plasmid/L09137.2.gb`: one cyclic
+  record SYNPUC19CV, its accession an alias, its letters the recorded FASTA's, its one `source` feature, found by name).
+  The generated record holds the GFF3's sites as `protein_bind` and wraps its qualifiers at spaces (read back
+  unchanged). Its synthetic twin is `delayedRuntime(GenbankRuntime)`.
+- **Performance**: 10,000 features opened under 100 ms (heavy, `itWithin`), 1,000 in the quick lane; 50 lines of a
+  million spaces in a quote never closed under 200 ms (heavy). Size: its own row under 30 kB (24.5 kB minified, io's
   BGZF reader in it); in no viewer bundle.
 
 ### mmCIF
@@ -2647,7 +2812,9 @@ in page coordinates: what crosses strips), `axes` (2: a second axis of its own, 
 - `ranges`: items in sticky lanes, carried onto the section along the layer's path (a domain on its gene: a piece an
   exon); labels inside marks 24 px or wider (faded past the mark), or inside a narrower one when they fit whole with 3
   px a side (a modified residue's code over its one position; none below 8 px), drawn in the `labels` pass. At `bars` a
-  lane's marks touching within a device pixel merge into a run; at `density`, or a density table, one heat strip, a
+  lane's marks touching within a device pixel merge into a run, drawn in the fill of its items' majority color group (a
+  palette's value, in the legend's order on a tie; never the neutral colour), and a hover over a run of several
+  categories lists them (`Hit.categories`, the card's "Categories"); at `density`, or a density table, one heat strip, a
   device column a pixel, except a list of few rows (at most one a CSS pixel of the band): those stay items, each its own
   mark, so a chromosome's bands at its fit keep their labels, hits and arrows. Items past the lanes collapse into a
   density row in the last lane, the rest drawn as items (`ranges.overflow: 'extra-lanes'`), or the whole layer becomes
@@ -3807,23 +3974,25 @@ rows over its columns, its own y inside its band (`axes: 2`).
   the column's own; the tree by branch lengths, else depth, a folded clade a wedge at its summary row, its geometry in
   display rows kept by the display's version (a pan makes nothing sized by the nodes). **The tree's look**: every branch
   one width, whole device pixels, its edges snapped to them (a branch runs half its width past each end, so it meets its
-  node's vertical square); a wedge a triangle from the clade's node to its deepest leaf's x (by branch length, 6 px at
-  least, started 6 px before its node at the tree's edge), its far side half the row high, its corners softened by the
-  shape rule, filled with a light tint of the branch ink (0.18 of its opacity, 0.36 hovered) and outlined in it at the
-  branches' width; its hit the summary row's middle 0.8 from the node to that x. Why: a 1 px rect centred on a
-  fractional x smeared over two device pixels, so widths varied, and the solid triangle at the tree's full width read as
-  a heavy blade. The tree is drawn down to the clades whose rows take `TreeMinPx` (4, fixed): a node's segments, the
-  branch to it and a folded clade's wedge only then (by its shown rows, kept with the geometry; a node's vertical spans
-  the node and its drawn children only, none when none is drawn), so zoomed out the deep clades end in their branch's
-  tip. Why: below it branches sit under 2 px apart, and 10,000 leaves at the band's whole zoom drew a solid dark slab
-  (every leaf's branch). Labels in the items' font (a row's label is data; a Pfam label, `NAME/1-147`, reads whole) from
-  `rows.labelMinPx` (8 px a row), the label column empty below it (no label, number, chip or icon a row), cut with an
-  ellipsis past their room, a summary row "first +n" (its first label cut, never its count: the count is what it says);
-  the first residue numbers right-aligned before the data box and the last after it, in a right gutter the view keeps
-  when a rows layer draws numbers (`numbers: gutters`): the numbers of the residues **in view** (the columns the cells
-  are drawn for: a pan and a zoom change them; a gap is never counted; a row with no residue in view has none), the
-  row's own at the fit view (kept per data, or per lazy row once). The right gutter is clipped to the band vertically,
-  as the labels and cells are: a partly shown last row ends at the band's foot on every side.
+  node's vertical square); the tree inset by half a branch each side, so every stroke lies inside the tree column (the
+  header's clip is the column's edge: a vertical centred on it drew half its width); a wedge a triangle from the clade's
+  node to its deepest leaf's x (by branch length, 6 px at least, started 6 px before its node at the tree's edge), its
+  far side half the row high, its corners softened by the shape rule, filled with a light tint of the branch ink (0.18
+  of its opacity, 0.36 hovered) and outlined in it at the branches' width; its hit the summary row's middle 0.8 from the
+  node to that x. Why: a 1 px rect centred on a fractional x smeared over two device pixels, so widths varied, and the
+  solid triangle at the tree's full width read as a heavy blade. The tree is drawn down to the clades whose rows take
+  `TreeMinPx` (4, fixed): a node's segments, the branch to it and a folded clade's wedge only then (by its shown rows,
+  kept with the geometry; a node's vertical spans the node and its drawn children only, none when none is drawn), so
+  zoomed out the deep clades end in their branch's tip. Why: below it branches sit under 2 px apart, and 10,000 leaves
+  at the band's whole zoom drew a solid dark slab (every leaf's branch). Labels in the items' font (a row's label is
+  data; a Pfam label, `NAME/1-147`, reads whole) from `rows.labelMinPx` (8 px a row), the label column empty below it
+  (no label, number, chip or icon a row), cut with an ellipsis past their room, a summary row "first +n" (its first
+  label cut, never its count: the count is what it says); the first residue numbers right-aligned before the data box
+  and the last after it, in a right gutter the view keeps when a rows layer draws numbers (`numbers: gutters`): the
+  numbers of the residues **in view** (the columns the cells are drawn for: a pan and a zoom change them; a gap is never
+  counted; a row with no residue in view has none), the row's own at the fit view (kept per data, or per lazy row once).
+  The right gutter is clipped to the band vertically, as the labels and cells are: a partly shown last row ends at the
+  band's foot on every side.
 - **Row columns** (`columns`: a list of `{ field, side, as, width, title }`, `rowColumnsOf`; `render/rows-columns.ts`):
   data columns beside each row's header. `left` (the default) in the header between the label and the first numbers, the
   label column widened by them (a text figure's too); `right` after the last numbers' gutter, the right gutter widened
@@ -4039,6 +4208,9 @@ under the point as the hit's `state`. It reads every row (a logo of the rows sho
   overlay and syncs its sources (let go at the end), lays out until its wants and the store's node version hold, waits
   for them to settle, and draws once more with the view settled. It waits for its view's wants alone, never their
   margins.
+- **A spec with an error** is drawn as the canvas draws it (what resolves), its errors said in the picture's `<desc>`
+  (`code at address: message`); a spec past the bounds (`seq.lang.bound.*`) stays a blank document with the issues, for
+  resolving it is what the bounds guard. Why: a picture of what a spec says beats none while the author fixes a mistake.
 - **One deadline** (`timeoutMs`, 10 s, on `clock`: real timers by default, a shared store's clock or a fake one) covers
   opening the sources and settling; past it the opens are aborted and the export is `seq.render.unsettled`. The model
   and view resolved again are taken only when the opening wins the race with the deadline: a source that opens later

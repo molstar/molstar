@@ -10,25 +10,16 @@ import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { Button } from '@molstar/ui/components/button/button';
 import { defineElements, onCleanup } from '@molstar/ui/dom';
 import { UiElement } from '@molstar/ui/elements/ui-element';
-import { DropRuntimes, droppedUri, refuseSize, specOfDropped } from '../../support/dropped-file.js';
+import { DropRuntimes, DropSamples, droppedUri, refuseSize, specOfDropped } from '../../support/dropped-file.js';
 
 // Your own file (examples.md, Showcases): drop a file onto the view, or pick one, and it is shown: `.seq`, FASTA, Stockholm,
-// aligned FASTA, TSV, CSV, JSON, MessagePack, GFF3 and mmCIF files; GenBank says it is not read yet. The page's assets port
-// answers the dropped bytes at one location and nothing else, so a file never leaves the page. The buttons load a sample
-// of each format from the examples' fixtures, as a dropped file.
+// aligned FASTA, TSV, CSV, JSON, MessagePack, GFF3, mmCIF and GenBank files. The page's assets port answers the dropped
+// bytes at one location and nothing else, so a file never leaves the page. The buttons load a sample of each format from
+// the examples' fixtures, as a dropped file (`DropSamples`).
 
 export interface DropStory {
   readonly hint: string;
 }
-
-const Samples: ReadonlyArray<readonly [name: string, file: string]> = [
-  ['2OCJ.seq', 'fixtures/p53/2OCJ.seq'],
-  ['1N8Z.fasta', 'fixtures/antibody/1N8Z.fasta'],
-  ['PF00042-seed.sto', 'fixtures/globins/PF00042-seed.sto'],
-  ['domains.tsv', 'fixtures/files/domains.tsv'],
-  ['2ocj.cif.gz', 'fixtures/structures/2OCJ.cif.gz'],
-  ['pUC19.gb', 'fixtures/structures/sources.json'],
-];
 
 class DropRoot extends UiElement<DropStory> {
   static readonly tag = 'seqx-drop-root';
@@ -132,7 +123,7 @@ class DropRoot extends UiElement<DropStory> {
       if (file) void showFile(file);
     });
     tools.append(input);
-    for (const [name, file] of Samples) {
+    for (const [name, file] of DropSamples) {
       const b = Button({
         children: `Try ${name}`,
         onClick: () => {

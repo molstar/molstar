@@ -33,7 +33,8 @@ function mountModel(element: HTMLElement, viewer: SeqViewer, model: NavigatorMod
   container.tabIndex = 0;
   container.setAttribute('role', 'slider');
   container.dataset.navigator = model.id;
-  Object.assign(container.style, { position: 'relative', outline: 'none', touchAction: 'none', overflow: 'hidden' });
+  // (no `overflow: hidden`: the readout may sit above or below the part, clear of the control in use)
+  Object.assign(container.style, { position: 'relative', outline: 'none', touchAction: 'none' });
   const base = doc.createElement('canvas');
   const overlay = doc.createElement('canvas');
   const labels = doc.createElement('canvas');
@@ -48,8 +49,9 @@ function mountModel(element: HTMLElement, viewer: SeqViewer, model: NavigatorMod
   readout.setAttribute('aria-live', 'off');
   Object.assign(readout.style, {
     position: 'absolute',
-    right: 'var(--msui-space-1, 4px)',
-    top: 'var(--msui-space-1, 4px)',
+    left: '0',
+    top: '0',
+    zIndex: '2',
     display: 'none',
     maxWidth: 'calc(100% - 2 * var(--msui-space-1, 4px))',
     boxSizing: 'border-box',
@@ -85,6 +87,12 @@ function mountModel(element: HTMLElement, viewer: SeqViewer, model: NavigatorMod
     readName.textContent = parts?.name ? `${parts.name}: ` : '';
     readValue.textContent = parts ? `${parts.value}${parts.rest}` : '';
     readout.style.display = parts && (parts.name || parts.value) ? 'flex' : 'none';
+    // never over the control in use: beside the window, else above or below the part (the model's rule)
+    if (readout.style.display !== 'none') {
+      const [left, top] = model.readoutAt(readout.offsetWidth, readout.offsetHeight);
+      readout.style.left = `${left}px`;
+      readout.style.top = `${top}px`;
+    }
     container.style.cursor = model.cursor;
   };
   const schedule = () => {

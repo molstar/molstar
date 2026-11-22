@@ -295,8 +295,9 @@ source's complex, the genome axis and layouts), on extension kinds.
 ## `@molstar/seqx-examples`, `@molstar/seqx-storybook`
 
 - **Watched at the gates' runs**: `@molstar/ui`'s `playback.test.tsx:112` failed once in a combined run (FX1's; 12 runs
-  green alone). The services story test (fixed by FX8) and Prism's `commands.test.ts` and `collapse.test.tsx` (6 of 6
-  green, FX1) are off the list. A second failure is a fix lane's item, with the load it ran at.
+  green alone); the VCF ClinVar story test (`vcf-stories.test.ts`) failed once under load during GB's run (2026-11-22),
+  then passed alone. The services story test (fixed by FX8) and Prism's `commands.test.ts` and `collapse.test.tsx` (6 of
+  6 green, FX1) are off the list. A second failure is a fix lane's item, with the load it ran at.
 
 - The Plasmid and the Complex are stand-ins (generated letters at the entries' lengths, features at the published
   layout's places, named as such): pUC19c and 1FIN recorded with their dataset lanes replace them, the ring's record

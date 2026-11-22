@@ -14,9 +14,10 @@ import type { SeqViewerSpec } from '@molstar/seqx-viewer/viewer-spec';
 import { defineElements, onCleanup } from '@molstar/ui/dom';
 import { UiElement } from '@molstar/ui/elements/ui-element';
 import { followSvg } from '../follow-svg.js';
+import { Box, PageGrid, pairGrid } from './example-layout.js';
 import { statusIssues } from './status-issues.js';
 import { withViewRegistry } from './view-registry.js';
-import { fileBytes, filesOf, fileHead, printSources } from '../features/files/file-head.js';
+import { filesOf, fileText, printSources } from '../features/files/file-head.js';
 
 // A story of an example view (examples-and-stories.md): the view's `build()` shown by a viewer composed from the default
 // spec, the canvas and the SVG of the same view side by side, and the spec as it prints, beside them (the SVG with the
@@ -48,7 +49,6 @@ type ExampleModel = ExampleView & {
   readonly behaviors?: SeqViewerSpec['behaviors'];
 };
 
-const Box = 'display: grid; gap: var(--msui-space-2); min-width: 0; align-content: start;';
 const Title =
   'margin: 0; font-size: var(--msui-text-sm); font-weight: var(--msui-weight-strong); color: var(--msui-text-muted);';
 
@@ -68,8 +68,7 @@ class ExampleRoot extends UiElement<ExampleModel> {
 
   protected render(view: ExampleModel): HTMLElement {
     const root = document.createElement('div');
-    root.style.cssText =
-      'display: grid; gap: var(--msui-space-5); padding: var(--msui-space-5); min-height: 100vh; background: var(--msui-bg); color: var(--msui-text); font: var(--msui-text-sm) / var(--msui-leading-sm) var(--msui-font-sans);';
+    root.style.cssText = `${PageGrid} background: var(--msui-bg); color: var(--msui-text); font: var(--msui-text-sm) / var(--msui-leading-sm) var(--msui-font-sans);`;
 
     const summary = document.createElement('p');
     summary.style.cssText = 'margin: 0; color: var(--msui-text-muted); max-width: 72ch;';
@@ -86,7 +85,7 @@ class ExampleRoot extends UiElement<ExampleModel> {
     status.style.cssText = 'margin: 0; color: var(--msui-text-muted);';
 
     const pair = document.createElement('div');
-    pair.style.cssText = `display: grid; grid-template-columns: ${view.stacked ? '1fr' : 'repeat(auto-fit, minmax(420px, 1fr))'}; gap: var(--msui-space-5);`;
+    pair.style.cssText = pairGrid(!!view.stacked);
     pair.append(section('Canvas', canvasHost), section('SVG', svgHost));
     const found = document.createElement('pre');
     const input = document.createElement('input');
@@ -192,12 +191,12 @@ function fileSections(spec: Parameters<typeof printSources>[0]): HTMLElement[] {
   const out = [section('Source node', pre(printSources(spec)))];
   for (const file of filesOf(spec)) {
     const head = pre('Reading…');
-    out.push(section(`File: ${file.uri}`, head));
+    out.push(section(file.format === 'vcf' ? `Header: ${file.uri}` : `File: ${file.uri}`, head));
     // read the way the viewer reads it: relative to the page, which serves the examples' fixtures (a recorded file from
-    // its pages, a gzip file inflated)
-    void fileBytes(pageReader, file.uri, new AbortController().signal)
-      .then((b) => {
-        head.textContent = fileHead(b, file.format);
+    // its pages, a gzip file inflated; a VCF's header by its index)
+    void fileText(pageReader, file, new AbortController().signal)
+      .then((text) => {
+        head.textContent = text;
       })
       .catch((e) => {
         head.textContent = `The file could not be read: ${e instanceof Error ? e.message : e}`;

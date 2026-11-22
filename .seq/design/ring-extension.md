@@ -5,7 +5,7 @@ Lane RN's design (the fifth slice, stage 0; agreed by the author 2026-11-21 and 
 exports, extension bindings), [layouts](layouts.md) (Rings: the hole's title as a spec param) and
 [themes](themes.md) (an extension's scheme); what it needs of the core is in GA's and RR's designs
 (`section.include`, `navigator.switch`, the `system` domain before `include`, `pairsLevels`' arguments, `coarsenBins`,
-a filter's rebuild). Built on Gate 0's answers as recommended ([plan](../execution/fifth-slice/plan.md)): its own package `packages/seq/ext-rondo` (3);
+a filter's rebuild). Built on Gate 0's answers as recommended (the fifth slice's plan): its own package `packages/seq/ext-rondo` (3);
 bundling over **core's pairs level** (4); ring zoom as **a cut** (5: `section.include` in place, a second section as the builder's option); cytobands synthetic in tests,
 UCSC's in the showcase if its licence allows, asked before the fetch (6); the navigator over several systems core's (8).
 Built on the four designs before it and taking what they decided: [genome-coordinates](genome-coordinates.md) (GA:

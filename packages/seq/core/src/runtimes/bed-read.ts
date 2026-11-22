@@ -6,11 +6,8 @@
 
 import { issueOf } from '@molstar/core/repr/tree';
 import type { TabixLimits } from '@molstar/io/common/tabix';
-import { SourceIssues } from '../data/issues.js';
 import type { Issue } from '@molstar/core/repr/tree';
 import {
-  abortError,
-  type Coverage,
   type FailureKind,
   type OpenContext,
   type OpenedSource,
@@ -36,6 +33,7 @@ import {
   rangesList,
   valuesIn,
 } from './bed-parse.js';
+import { failure } from './internal/answers.js';
 import { decodeText } from './internal/text.js';
 
 // What the BED family's whole and region reads share (_spec/README.md "Data", BED family): data lines into items or
@@ -65,30 +63,6 @@ export interface Opened {
   readonly options: BedOptions;
   readonly causes: BedCauses;
   readonly format: BedFormat;
-}
-
-export function failure(kind: FailureKind, message: string): RegionAnswer & { ok: false } {
-  const code =
-    kind === 'not-served'
-      ? 'seq.source.not_served'
-      : kind === 'malformed'
-        ? 'seq.source.malformed'
-        : kind === 'too-large'
-          ? 'seq.source.too_large'
-          : 'seq.source.failed';
-  return { ok: false, kind, issue: issueOf(SourceIssues, code, message) };
-}
-
-/** Index hint of a whole read past its bounds. */
-export const IndexHint = 'Read it by region: bgzip it and give its tabix index';
-
-export function refuse(
-  address: string,
-  code: 'seq.source.unreadable' | 'seq.source.malformed' | 'seq.source.too_large' | 'seq.source.no_data',
-  message: string,
-  hint?: string,
-): never {
-  throw new SourceOpenError([issueOf(SourceIssues, code, message, { address, ...(hint && { hint }) })]);
 }
 
 /** Refuses a source whose `fields` name no column (`seq.source.bed.field`). */
@@ -227,29 +201,6 @@ export interface BedpeSource extends OpenedSource {
   readonly summaryBytes: number;
   /** Rows with an end meeting `[start, end)` of `system`, each once, in file order (EC-208). */
   pairs(system: string, start: number, end: number, signal: AbortSignal): Promise<PairsAnswer>;
-}
-
-/** A source over what a whole read holds: a request answered from it, by system and level. */
-export function wholeSource(
-  coverage: Coverage,
-  issues: Issue[],
-  answer: (r: RegionRequest) => RegionAnswer,
-): OpenedSource {
-  return {
-    coverage,
-    issues,
-    read(request, signal) {
-      if (signal.aborted) return Promise.reject(abortError());
-      return Promise.resolve(
-        !coverage.systems.some((s) => s.name === request.system)
-          ? failure('not-served', `No sequence ${request.system}`)
-          : !coverage.levels.includes(request.level)
-            ? failure('not-served', `No level ${request.level}`)
-            : answer(request),
-      );
-    },
-    dispose() {},
-  };
 }
 
 /** The data lines' count and the first one's columns. */

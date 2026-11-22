@@ -7,7 +7,7 @@ sections and bridges; a third layer scope), [maps](maps.md) (a map's runs as a l
 [viewer-models](viewer-models.md) (a lock beside follows and scroll groups),
 [ux-foundations](ux-foundations.md) (the matrix's bridge rows) and
 [extension-openings](extension-openings.md) (the extension entry) (below, Consequences). Built on Gate
-0's answers as recommended ([plan](../execution/fifth-slice/plan.md)): the cut order puts contact maps before the liftover (1), so the
+0's answers as recommended (the fifth slice's plan): the cut order puts contact maps before the liftover (1), so the
 liftover figure is the part that goes last; public API changes stay in `packages/seq` (no `@molstar/core` or
 `@molstar/io` change). Built on the three designs before it and taking what they decided:
 [genome-coordinates](genome-coordinates.md) (GA: assemblies, blocks, `placesOf`, runs of small blocks, **a ribbon's

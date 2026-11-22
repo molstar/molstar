@@ -37,4 +37,13 @@ describe('stories files', () => {
     }
     expect(wrong).toEqual([]);
   });
+
+  it('export no function or class: Storybook lists it as a story too', () => {
+    const wrong: string[] = [];
+    for (const f of storiesFiles(root)) {
+      for (const m of readFileSync(f, 'utf8').matchAll(/^export (?:async )?(?:function\*?|class) (\w+)/gm))
+        wrong.push(`${f.slice(root.length + 1)}: ${m[1]}`);
+    }
+    expect(wrong).toEqual([]);
+  });
 });

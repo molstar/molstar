@@ -114,7 +114,7 @@ describe('the header menu’s overlay', () => {
     // the track's items, then the section's (a key quiet at the row's end)
     expect(labels.map((l) => l!.replace(/Shift\+\w$/, ''))).toEqual([
       'Hide track',
-      'Color ▸',
+      'Color',
       'Move up',
       'Reverse',
       'Collapse or expand hidden stretches',

@@ -4,7 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { defineIssues, type Issue, issueOf } from '@molstar/core/repr/tree';
+import { defineIssues, issueOf } from '@molstar/core/repr/tree';
+import { Causes } from './internal/causes.js';
 
 // The GFF3 and GTF codes (_spec/README.md "Data", GFF3 and GTF): one issue a cause, with its count and its first ten
 // places (EC-86), its severity the catalog's (EC-87). GFF3's under `seq.source.gff`, GTF's own under `seq.source.gtf`.
@@ -71,40 +72,16 @@ export const GtfIssues = defineIssues('seq.source.gtf', {
 
 export type GffCode = keyof typeof GffIssues.codes | keyof typeof GtfIssues.codes;
 
-/** Places an issue keeps. */
-const MaxPlaces = 10;
-
 /** The causes a read met, one issue each with its count and first places ("line 12"). */
-export class GffCauses {
-  private readonly byKey = new Map<string, { code: GffCode; message: string; count: number; places: string[] }>();
-
-  add(code: GffCode, message: string, place?: string) {
-    const key = `${code}|${message}`;
-    let c = this.byKey.get(key);
-    if (!c) {
-      c = { code, message, count: 0, places: [] };
-      this.byKey.set(key, c);
-    }
-    c.count++;
-    if (place !== undefined && c.places.length < MaxPlaces) c.places.push(place);
-  }
-
-  /** Whether a cause with `code` was said. */
-  has(code: GffCode): boolean {
-    for (const c of this.byKey.values()) if (c.code === code) return true;
-    return false;
-  }
-
-  issues(address: string): Issue[] {
-    return [...this.byKey.values()].map((c) => {
-      const where = c.places.length ? ` (${c.places.join(', ')}${c.count > c.places.length ? ', …' : ''})` : '';
-      const message = `${c.message}: ${c.count}${where}`;
-      if (c.code.startsWith('seq.source.gtf.')) {
-        const code = c.code as keyof typeof GtfIssues.codes;
+export class GffCauses extends Causes<GffCode> {
+  constructor() {
+    super((c, message, address) => {
+      if (c.startsWith('seq.source.gtf.')) {
+        const code = c as keyof typeof GtfIssues.codes;
         const hint = (GtfIssues.codes[code] as { hint?: string }).hint;
         return issueOf(GtfIssues, code, message, { address, ...(hint && { hint }) });
       }
-      const code = c.code as keyof typeof GffIssues.codes;
+      const code = c as keyof typeof GffIssues.codes;
       const hint = (GffIssues.codes[code] as { hint?: string }).hint;
       return issueOf(GffIssues, code, message, { address, ...(hint && { hint }) });
     });

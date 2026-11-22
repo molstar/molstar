@@ -61,16 +61,6 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   full selection resolved once on release. Bound each drag kind's frame to the budget at 0 bytes warm in the perf
   tier. A strong-model lane; it closes the PAE drag item and the 3,000-contig drag-select part below.
 
-- **"Try pUC19.gb" looks like it does nothing** (the author, 2026-11-21, Examples › Services › Your own file:
-  "pUC19.gb doesn't load anything"). By design today: GenBank is out of the slice's scope (plan, Out of scope), and
-  `dropped-file.ts:71` refuses `.gb`/`.gbk` with "GenBank files are not read yet"; the story's "Try pUC19.gb" button
-  (`drop-root.ts:30`, its sample in fact `sources.json`) exists to show that refusal. But the refusal is a small grey
-  line above the buttons and the box stays empty, so it reads as broken. Drop the "Try" button for a format that isn't
-  read (a Try button promises a load), keep the refusal for a dropped file of a format not read, shown as a notice in
-  the box (the file's name, why, the formats that are); a story test that every Try button loads a view. GenBank
-  itself comes into the slice (the author, 2026-11-21: "Add a GenBank lane"; plan, GB): after GB, "Try pUC19.gb"
-  loads the recorded GenBank file and `.gb` leaves the refused list; until then the button goes.
-
 - **The novice decisions, to build** (stage 1's gate, the author, 2026-11-21: "Yes, all five"; novice-findings.md):
   F3 the fake's "Within 5 Å" on a selection that is already the chain selects the residues of the other chains within
   5 Å (never the selection again), its card "n residues within 5 Å of chain A"; F9 the track the structure is coloured
@@ -106,12 +96,6 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   Tests: the density row's hover draws a mark; the card's box never intersects the hovered row; a range value on
   one line.
 
-- **The navigator's readout covers the control in use** (the author, 2026-11-21, BED cytobands: "the tooltip appears
-  on top of currently active control. quite disruptive"): while the window is dragged, its readout
-  ("chr17:36,190,896–62,395,127 of chr17") is drawn over the window and its grip. The readout never covers the window,
-  its grips or the pointer: placed beside the window on the side with room, else above or below the navigator's
-  strip. Test: during a drag the readout's box does not intersect the window's or the pointer's.
-
 - **The navigator's window and zoom strip look inconsistent and rough** (the author, 2026-11-21, a ring that switches:
   "i don't understand why chr6 gets a 'box' and the other 'sub-section'"; "the 'subsection visual' is really ugly,
   with different line thicknesses"). Why it differs: a window wider than `navigator.zoomStrip.minPx` (48 px) is drawn
@@ -121,37 +105,11 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   strip, the strip's fill and border from the same tokens as the window's (ux-foundations: the loudest mark at rest),
   the funnel thin and muted or dropped; its picture in navigators.md, then the fix.
 
-- **The square navigator's sweep has no feedback while dragging** (the author, 2026-11-21, the square over blocks ×
-  blocks): a drag across cells zooms both axes to the swept rectangle on release, but nothing is drawn during the
-  drag. Draw the sweep's rectangle live (as the linear navigator's sweep does), snapped to the cells it will fit, and
-  clear it on release or Escape. Test: a pointer down and move draws a sweep mark in the navigator's draw list at the
-  swept cells; release fits both axes to them; Escape cancels with no change.
-
-- **The palette control** (the author, 2026-11-21, Structure link › Hover both ways, the 2OCJ track):
-  - picking a palette does not always change the track (the residue letters keep their colours): the palette entry
-    shows only on a track whose layer reads a categorical palette (a ranges or category theme), never on one that
-    ignores it (a letters track coloured by chemistry);
-  - it shows twice, as the header's palette icon and as "Color ▸" in the "…" menu: one place, the menu (the icon goes,
-    or stays only where a host asks for it as a header part);
-  - a submenu's "▸" sits right after its label: right-align it at the menu's edge, as menus do.
-  - **a palette choice can break a track's colouring for good** (the author, Themes › Themes, the Variants track):
-    picking a palette turns every lollipop grey, and picking "Categories" again does not bring the colours back. A
-    palette change is a patch: undo restores it, and choosing the original entry restores the original colours exactly
-    (the theme's own domain and mapping, not a palette applied over a field it cannot read). Test: change and change
-    back, the draw list equal to the first; undo equal too.
-  Tests: a letters track's menu has no Color entry; the Variants round trip above; a ranges track's Color change redraws with the new palette; one
-  palette control a track; the arrow at the row's right edge (a jsdom layout check of the entry's parts).
-
-- **The vertical overview cut at the right on a wide page** (the author, 2026-11-21, Globins rows family-rail-pinned):
+- **The vertical overview cut at the right on a wide page** (FX5 2026-11-22: not reproduced at 960, 1600, 2200 px; the grids made shrinkable, `minmax(0, 1fr)`, as hardening; open until seen at a wide page) (the author, 2026-11-21, Globins rows family-rail-pinned):
   at full width the story's canvas runs past the page's right edge, so the vertical overview is clipped (a narrow
   page, where canvas and SVG stack differently, shows it whole). The story's layout gives the canvas its measured width
   at every page width, the overview inside it; a story-layout test at a wide and a narrow width that the overview's box
   lies inside the canvas and the canvas inside the page.
-
-- **The tree's leftmost vertical line is thinner** (the author, 2026-11-21, Globins rows family): the root's vertical
-  stroke at the tree column's left edge looks about half the width of the others, likely half of it clipped at the
-  column's edge (a stroke centred on x = 0). Inset the tree by half a stroke (or snap strokes inside the column); a twin
-  test that every vertical's stroke lies inside the tree column's box.
 
 - **A follower's rail turns a window over the cyclic origin into its complement** (the author, 2026-11-21, Files ›
   Plasmid GFF3, dragging the detail's rail: the bar leaves the pointer, grows to most of the axis, then jumps to the
@@ -292,7 +250,82 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   address reader turns `01` into 1 before Seq* sees it. Keeping the text would need a raw-token surface in core repr
   (allowed: repr's public API is open to this work); take it only if a real name set needs it.
 
+- **A VCF allele's hover card names the record, not the allele** (VC's look, 2026-11-22, kind: look; for the hover
+  contract's lane): hovering a ClinVar variant shows ClinVar's id, Track and Extent; it should name the allele
+  (`pos:ref>alt`), its category and its INFO fields, as the design's matrix row "a variant allele" implies.
+
+- **A click on one piece of a feature across a cyclic origin selects only that piece** (GB's look, 2026-11-22,
+  kind: bug; likely shared with the GFF3 plasmid, the same renderer): Features › Genome formats › GenBank › Plasmid,
+  bla (`complement(join(2312..2686,1..486))`): the hover names the whole item and lights both pieces, but a click on
+  the piece at 2,312–2,686 selects only that stretch. A click selects the item's extent across the origin (both
+  pieces), as the design's matrix row "an element: a transcript" says. Test on both plasmid views.
+
 ## Fixed
+
+- **"Try pUC19.gb" looks like it does nothing** (fixed by GB, merged 2026-11-22: the button loads the GenBank file) (the author, 2026-11-21, Examples › Services › Your own file:
+  "pUC19.gb doesn't load anything"). By design today: GenBank is out of the slice's scope (plan, Out of scope), and
+  `dropped-file.ts:71` refuses `.gb`/`.gbk` with "GenBank files are not read yet"; the story's "Try pUC19.gb" button
+  (`drop-root.ts:30`, its sample in fact `sources.json`) exists to show that refusal. But the refusal is a small grey
+  line above the buttons and the box stays empty, so it reads as broken. Drop the "Try" button for a format that isn't
+  read (a Try button promises a load), keep the refusal for a dropped file of a format not read, shown as a notice in
+  the box (the file's name, why, the formats that are); a story test that every Try button loads a view. GenBank
+  itself comes into the slice (the author, 2026-11-21: "Add a GenBank lane"; plan, GB): after GB, "Try pUC19.gb"
+  loads the recorded GenBank file and `.gb` leaves the refused list; until then the button goes.
+- **The SVG export blank on a spec with an error** (fixed by FX6, merged 2026-11-22) (drift svg-on-error, decided as recommended by the author,
+  2026-11-22: "go as recommended with the drifts"; kind: bug): `exportSvg` returns a blank picture when `checkSeqSpec`
+  finds an error (`packages/seq/core/src/render/export.ts`, about 435 and 441, `if (hasErrors(issues)) return
+  blank(true)`), while the canvas draws what resolves. Export what resolves, as the canvas draws it, the issues in the
+  picture's `<desc>`; viewer-composition.md says so. Tests: Features › Builder › Check's twin asserts the SVG equal to
+  the canvas's draw list (letters and an empty hits track) and the issue in `<desc>`; a spec with no errors exports
+  unchanged.
+
+- **A merged run of mixed categories drawn neutral** (fixed by FX6, merged 2026-11-22) (drift vcf-mixed-runs, decided as recommended by the author,
+  2026-11-22; kind: look): `render/ranges.ts` (about 508, VC's `-2 - item` encoding) and `ranges-draw.ts` (about 79)
+  paint a run whose items differ in fill in the neutral colour; ClinVar at TP53's fit is mostly grey. A mixed run takes
+  the majority fill among its items (ties by the legend's order); the hover over it lists the categories under the
+  pointer. Tests against the drawn lists: TP53's ClinVar band draws no neutral rect at the fit; a two-item tie picks
+  the legend's first; a single-category run unchanged.
+
+
+- **The navigator's readout covers the control in use** (fixed by FX5, merged 2026-11-22) (the author, 2026-11-21, BED cytobands: "the tooltip appears
+  on top of currently active control. quite disruptive"): while the window is dragged, its readout
+  ("chr17:36,190,896–62,395,127 of chr17") is drawn over the window and its grip. The readout never covers the window,
+  its grips or the pointer: placed beside the window on the side with room, else above or below the navigator's
+  strip. Test: during a drag the readout's box does not intersect the window's or the pointer's.
+
+- **The square navigator's sweep has no feedback while dragging** (fixed by FX5, merged 2026-11-22) (the author, 2026-11-21, the square over blocks ×
+  blocks): a drag across cells zooms both axes to the swept rectangle on release, but nothing is drawn during the
+  drag. Draw the sweep's rectangle live (as the linear navigator's sweep does), snapped to the cells it will fit, and
+  clear it on release or Escape. Test: a pointer down and move draws a sweep mark in the navigator's draw list at the
+  swept cells; release fits both axes to them; Escape cancels with no change.
+
+- **The palette control** (fixed by FX5, merged 2026-11-22) (the author, 2026-11-21, Structure link › Hover both ways, the 2OCJ track):
+  - picking a palette does not always change the track (the residue letters keep their colours): the palette entry
+    shows only on a track whose layer reads a categorical palette (a ranges or category theme), never on one that
+    ignores it (a letters track coloured by chemistry);
+  - it shows twice, as the header's palette icon and as "Color ▸" in the "…" menu: one place, the menu (the icon goes,
+    or stays only where a host asks for it as a header part);
+  - a submenu's "▸" sits right after its label: right-align it at the menu's edge, as menus do.
+  - **a palette choice can break a track's colouring for good** (the author, Themes › Themes, the Variants track):
+    picking a palette turns every lollipop grey, and picking "Categories" again does not bring the colours back. A
+    palette change is a patch: undo restores it, and choosing the original entry restores the original colours exactly
+    (the theme's own domain and mapping, not a palette applied over a field it cannot read). Test: change and change
+    back, the draw list equal to the first; undo equal too.
+  Tests: a letters track's menu has no Color entry; the Variants round trip above; a ranges track's Color change redraws with the new palette; one
+  palette control a track; the arrow at the row's right edge (a jsdom layout check of the entry's parts).
+
+- **The tree's leftmost vertical line is thinner** (fixed by FX5, merged 2026-11-22) (the author, 2026-11-21, Globins rows family): the root's vertical
+  stroke at the tree column's left edge looks about half the width of the others, likely half of it clipped at the
+  column's edge (a stroke centred on x = 0). Inset the tree by half a stroke (or snap strokes inside the column); a twin
+  test that every vertical's stroke lies inside the tree column's box.
+
+- **Three element classes exported from stories files show as stories** (fixed by FX5, merged 2026-11-22) (found by BS's guard, 2026-11-22, kind: look):
+  `LegendPlacementsRoot`, `ThemesEditingRoot`, `SchemesGalleryRoot` are `export class` in `*.stories.ts`, so Storybook
+  lists each as a story; their tests import them. Move each to a module of its own beside its story and drop it from
+  `story-exports.test.ts`'s `Known` list.
+
+
+
 
 - **The rail's place as a list, and a pinned place**: FX4, `railPlace` one place or a list; `pinned` at the
   frame's foot (story FamilyRailPinned).

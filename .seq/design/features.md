@@ -32,7 +32,7 @@ that shows it (dataset: view).
 |---|---|---|---|---|---|
 | One tree, one node shape | `{ kind, id, params, children }`, addresses, refs | done | [format](format.md) | 68–71, 77 | every view |
 | Language as data | one description: validation, defaults, builder types, docs, agent skill | building: description, validation, defaults, builder types; docs and agent skill not | [format](format.md) | 86–88 | — |
-| Typed builder | the main way to write a spec; misuse is a type error | done | [format](format.md) | — | every view |
+| Typed builder | the main way to write a spec; misuse is a type error | done | [format](format.md) | — | every view; Features › Builder (six stories, the code beside the view) |
 | S-expression printing and reading | inspection, docs, tests, agent input; never stored | done | [format](format.md) | — | every view (printed beside it) |
 | Validation, every issue | stable codes, hints, counts, severity with one meaning | building: codes, hints, severity; the Antibody view exists (DA), its invalid labels not shown; EC-88 and EC-89's outcomes not recorded | [format](format.md) | 6, 76–78, 86–89 | Antibody: invalid labels |
 | Versions and migrations | one semver, explicit migrations, lenient minors | building: the version gate only | [format](format.md) | 72–74, 235 | — |
@@ -72,7 +72,7 @@ that shows it (dataset: view).
 | Keyed tables and joins | rows keyed by id joined to items, rows, states | deferred | — | 106, 224 | trigger: the Genomes milestone ([version-1](version-1.md)) |
 | Gene hierarchies | gene, transcript, exon (several levels) | deferred | — | 227 | trigger: the Genomes milestone ([version-1](version-1.md)) |
 | Formats in the core | FASTA, aligned FASTA, A3M, Stockholm, Clustal, Newick, TSV, CSV, JSON | building: `seq`, FASTA with its index, aligned FASTA, Stockholm, Newick, records (TSV, CSV, JSON, MessagePack, GFF3; FS-A1, FS-A2); A3M and Clustal not | [sources](sources.md) | 38–40, 49, 50, 92 | every dataset |
-| More genome formats | 2bit, BigBed, VCF with tabix, PAF | deferred | [sources](sources.md) | 208 | trigger: the bigWig runtime done; each with the dataset that needs it |
+| More genome formats | 2bit, BigBed, VCF with tabix, PAF, GenBank | building: VCF sites with tabix (VC: Features › Genome formats › VCF); GenBank read whole (GB: Features › Genome formats › GenBank, Services › Your own file); 2bit, BigBed, PAF designed only (genome-formats.md appendix) | [sources](sources.md) | 208 | trigger: the bigWig runtime done; each with the dataset that needs it |
 | Services at the application layer | UniProt, PDBe (SIFTS), AlphaFold DB as runtimes an application composes, not in the core; recorded fixtures offline, live optional | building: UniProt, PDBe SIFTS and AlphaFold DB as runtimes from recorded fixtures with their licences, a dropped file (SV; Examples › Services); live not | [sources](sources.md) | 51 | Storybook: an application composing services |
 | Structure files at the application layer | mmCIF and BinaryCIF read (through Mol\*'s readers) for chains, `label` and `auth` numbering, insertion codes, observed residues | building: an opt-in mmCIF runtime (`runtimes/mmcif`: CIF to a structure description to molecules' nodes; 1EHZ, 1FIN, 4HHB, 3SGJ; MC), `io/structure` (DP); BinaryCIF and Mol\*'s readers not | [maps](maps.md) | 3–5, 118 | Storybook: predictions onto a structure |
 | Name index | open on a gene by name from a file read by region | deferred | — | 228 | trigger: the Genomes milestone ([version-1](version-1.md)) |

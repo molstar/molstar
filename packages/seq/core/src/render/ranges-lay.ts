@@ -76,6 +76,11 @@ export interface RangesLay extends ItemsBase {
   ends: number[];
   labels: (string | undefined)[];
   fills: number[];
+  /** Each item's color group: its legend's order for a palette's value (listed first), else a distinct fill's first appearance. */
+  group: number[];
+  /** The groups' ids by value (a palette's value or a fill), and a palette value's name by id: kept, cleared each read. */
+  groupIds: Map<string | number, number>;
+  groupNames: string[];
   /** Each item's size channel: a share of its lane's height (1 when unthemed); its hit box stays the lane's. */
   sizes: number[];
   /** The channels this layout read, and the datum they read each item through. */
@@ -129,6 +134,8 @@ export interface RangesLay extends ItemsBase {
     round: Uint8Array;
     radius: Float64Array;
     tip: Uint8Array;
+    /** A run's tally of its items by color group (zeroed after each run). */
+    count: Int32Array;
   };
   /** The heat strip's band: the whole box, or the bottom row past the lanes. */
   densityY: number;
@@ -206,6 +213,9 @@ export function newLay(ctx: LayoutContext, prep: RangesPrep): RangesLay {
     ends: base.rows.ends,
     labels: base.rows.labels,
     fills: [],
+    group: [],
+    groupIds: new Map(),
+    groupNames: [],
     sizes: [],
     datum: new RowDatum(),
     extents: new Extents(),
@@ -247,6 +257,7 @@ export function newLay(ctx: LayoutContext, prep: RangesPrep): RangesLay {
       round: new Uint8Array(0),
       radius: new Float64Array(0),
       tip: new Uint8Array(0),
+      count: new Int32Array(0),
     },
     densityY: 0,
     densityH: 0,

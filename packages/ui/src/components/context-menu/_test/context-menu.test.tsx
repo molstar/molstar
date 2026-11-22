@@ -224,6 +224,32 @@ describe('a submenu (a flyout)', () => {
   const key = (el: Element, k: string) =>
     el.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
 
+  it('a row with a submenu ends in its arrow (the label never carries one), the same last cell as a key or a check', () => {
+    const { color } = setup();
+    expect(color.textContent).toBe('Color');
+    const cells = [...color.children];
+    const last = cells[cells.length - 1];
+    expect(last.querySelector('svg')).not.toBeNull();
+    expect(last.hasAttribute('data-submenu-arrow')).toBe(true);
+    // the label is the row's first text cell: the arrow comes after it, at the row's end
+    expect(cells.indexOf(color.querySelector('span:not([data-submenu-arrow])')!)).toBeLessThan(cells.indexOf(last));
+  });
+
+  it('a row with a key and a submenu shows both: the key, then the arrow, in one trailing cell', () => {
+    const root = document.createElement('div');
+    document.body.append(root);
+    openContextMenu(root, { x: 0, y: 0 }, [
+      { id: 'a', label: 'Both', shortcut: 'K', run: () => {}, items: [{ id: 'b', label: 'Sub', run: () => {} }] },
+    ]);
+    const row = root.querySelector<HTMLElement>('[aria-haspopup="menu"]')!;
+    expect(row.children).toHaveLength(2);
+    const end = row.lastElementChild!;
+    expect(end.querySelector('kbd')?.textContent).toBe('K');
+    const arrow = end.querySelector('[data-submenu-arrow]')!;
+    expect(arrow.querySelector('svg')).not.toBeNull();
+    expect(end.lastElementChild).toBe(arrow);
+  });
+
   it('opens beside its row on a click, the menu staying, the row marked; a choice runs it and closes both', () => {
     const { pick, closed, menus, color } = setup();
     expect(color.getAttribute('aria-expanded')).toBe('false');

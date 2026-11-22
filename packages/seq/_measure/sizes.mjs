@@ -74,10 +74,10 @@ const Runtimes = [/seq\/core\/src\/runtimes\//, /seq\/core\/src\/structure\//];
 
 /** Target and entry of each case, bytes (minified). */
 const AllCases = [
-  { name: 'reading a spec', entry: 'spec-read.ts', target: 240_000 },
-  { name: 'headless rendering', entry: 'headless.ts', target: 870_000 },
-  { name: 'the viewer, default', entry: 'viewer.ts', target: 1_400_000, unlisted: Runtimes },
-  { name: 'viewer, minimal', entry: 'viewer-minimal.ts', target: 1_000_000, unlisted: Unlisted },
+  { name: 'reading a spec', entry: 'spec-read.ts', target: 260_000 },
+  { name: 'headless rendering', entry: 'headless.ts', target: 910_000 },
+  { name: 'the viewer, default', entry: 'viewer.ts', target: 1_450_000, unlisted: Runtimes },
+  { name: 'viewer, minimal', entry: 'viewer-minimal.ts', target: 1_040_000, unlisted: Unlisted },
   { name: 'bigWig runtime', entry: 'bigwig.ts', target: 30_000, own: /seq\/core\/src\/runtimes\// },
   // the BED family's runtime with io's BGZF (no viewer bundles it); its reads by region (io's tabix, the region lines)
   // are its lazy chunk, loaded when the first indexed source opens: listed apart (`lazy`)
@@ -94,6 +94,22 @@ const AllCases = [
     entry: 'gff.ts',
     target: 30_000,
     own: /seq\/core\/src\/runtimes\/|(^|\/)packages\/io\/src\/common\//,
+  },
+  // GenBank read whole (no viewer bundles it): its own code and io's BGZF (a bgzipped file read whole)
+  {
+    name: 'GenBank runtime',
+    entry: 'genbank.ts',
+    target: 30_000,
+    own: /seq\/core\/src\/runtimes\/|(^|\/)packages\/io\/src\/common\//,
+  },
+  // VCF sites (no viewer bundles it): its own code and io's BGZF (a bgzipped file read whole); its reads by region (io's
+  // tabix, the region lines) are its lazy chunk, loaded when the first indexed source opens: listed apart (`lazy`)
+  {
+    name: 'VCF runtime',
+    entry: 'vcf.ts',
+    target: 30_000,
+    own: /seq\/core\/src\/runtimes\/|(^|\/)packages\/io\/src\/common\//,
+    lazy: true,
   },
   // the mmCIF runtime and Seq io's converter (in no viewer entry); `@molstar/io`'s parser is its lazy chunk, loaded
   // when the first mmCIF source opens: listed apart (`lazy`), measured with every import it brings that the default

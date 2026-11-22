@@ -135,6 +135,9 @@ describe('the navigator part', () => {
     frames.flush();
     expect(readout.textContent).toMatch(/^p: [\d,]+$/);
     expect(readout.style.display).toBe('flex');
+    // placed by the model, clear of the window and the pointer (`readoutAt`), in the part's px
+    expect(readout.style.left).toMatch(/px$/);
+    expect(readout.style.top).toMatch(/px$/);
     // the surface's inset and backdrop (`msui-surface`), one line cut by an ellipsis, inside the part's box
     expect(readout.classList.contains('msui-surface')).toBe(true);
     expect(readout.style).toMatchObject({ whiteSpace: 'nowrap', overflow: 'hidden', display: 'flex' });

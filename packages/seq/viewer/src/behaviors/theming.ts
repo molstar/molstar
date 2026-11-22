@@ -170,6 +170,45 @@ export function themingBehavior(
     return name === undefined ? undefined : ({ kind: 'scheme', params: { name } } as unknown as Value);
   };
   /**
+   * The value a layer's channel is set to (_spec/README.md "Legends", the legend behavior's commands): a scheme chosen
+   * on a color that reads a field is that scheme over the layer's own field, never over the field a scheme names by
+   * default (`category`: a layer reading another field went grey, and its first entry could not bring it back). A color
+   * by a field with only a name and a palette is `(scheme :name .. :field ..)`; one with more (a scale, a domain, a
+   * mapping) keeps that form with the scheme's palette in it.
+   */
+  const valueFor = (layer: string, channel: string, args: CommandArgs, ctx: ThemingContext): Value | undefined => {
+    const v = channelValue(args, ctx);
+    if (channel !== 'color' || ctx.value !== undefined || !isNode(v) || v.kind !== 'scheme') return v;
+    const c = node(layer, 'layer')?.params?.color;
+    if (!isNode(c)) return v;
+    const name = v.params?.name;
+    if (c.kind === 'scheme' && typeof c.params?.field === 'string' && typeof name === 'string')
+      return { kind: 'scheme', params: { name, field: c.params.field } } as unknown as Value;
+    if (c.kind !== 'field') return v;
+    const field = typeof c.params?.name === 'string' ? c.params.name : 'value';
+    const own = Object.keys(c.params ?? {}).filter((k) => k !== 'name' && k !== 'palette');
+    const old = c.params?.palette;
+    // the values the form lists (their order is the mapping the colors follow): kept through a change of palette
+    const values = isNode(old) && old.kind === 'categorical' ? old.params?.values : undefined;
+    if (!own.length && values === undefined) return { kind: 'scheme', params: { name, field } } as unknown as Value;
+    const form = typeof name === 'string' ? schemes.get(name)?.expand({ field }) : undefined;
+    let palette = form?.kind === 'field' ? form.params?.palette : undefined;
+    if (palette === undefined) return v;
+    if (values !== undefined && isNode(palette) && palette.kind === 'categorical')
+      palette = { ...palette, params: { ...palette.params, values } } as typeof palette;
+    return { ...c, params: { ...c.params, palette } } as unknown as Value;
+  };
+  /** The fitting scheme whose palette a field form has (its listed values aside): the one a change to it chose. */
+  const paletteScheme = (c: Value | undefined, fit: readonly SchemeEntry[]): string | undefined => {
+    if (!isNode(c) || c.kind !== 'field' || !isNode(c.params?.palette)) return undefined;
+    const bare = (p: Node) => JSON.stringify({ ...p, params: { ...p.params, values: undefined } });
+    const have = bare(c.params.palette);
+    return fit.find((s) => {
+      const f = s.expand({ field: typeof c.params?.name === 'string' ? c.params.name : 'category' });
+      return f.kind === 'field' && isNode(f.params?.palette) && bare(f.params.palette) === have;
+    })?.name;
+  };
+  /**
    * `layer.channel`'s choices (_spec/README.md "Legends", the legend behavior's commands: the command owns them): on one
    * layer's color, its fitting schemes as one select param, `scheme`, its default the scheme the layer has (none: no
    * default, optional). What a header's menu (a submenu), a palette and an agent read. A literal, not `PD.Select`: the
@@ -183,7 +222,7 @@ export function themingBehavior(
     const scheme = {
       type: 'select',
       isOptional: true,
-      defaultValue: isNode(c) && c.kind === 'scheme' ? c.params?.name : undefined,
+      defaultValue: isNode(c) && c.kind === 'scheme' ? c.params?.name : paletteScheme(c, fit),
       options: fit.map((s) => [s.name, s.label]),
     } as PD.Select<string>;
     return { scheme };
@@ -259,7 +298,11 @@ export function themingBehavior(
     const type = n.params?.type;
     const data = n.params?.data;
     const target = typeof data === 'string' ? node(data, 'sequence') : undefined;
-    const alphabet = type === 'letters' ? (target?.params?.alphabet ?? letterAlphabet(spec, layer)) : undefined;
+    const lettered = type === 'letters' || type === 'logo';
+    const alphabet = lettered ? (target?.params?.alphabet ?? letterAlphabet(spec, layer)) : undefined;
+    // a layer of letters whose alphabet is not known reads no palette of categories: none offered (never a choice that
+    // changes nothing)
+    if (lettered && !alphabet) return [];
     const subject =
       alphabet === 'protein' ? 'protein' : alphabet ? 'nucleotide' : type === 'values' ? 'numbers' : 'categories';
     return schemes.fitting(subject);
@@ -281,13 +324,17 @@ export function themingBehavior(
       // a choice hovered in a menu: the gesture's preview (ended by the choice's patch, or by Esc)
       preview: (args, ctx) => {
         const ls = layers(ctx);
-        return ls.length === 1 && previewChannel(ls[0], ctx.channel ?? 'color', channelValue(args, ctx));
+        return (
+          ls.length === 1 &&
+          previewChannel(ls[0], ctx.channel ?? 'color', valueFor(ls[0], ctx.channel ?? 'color', args, ctx))
+        );
       },
       run: (args, ctx) => {
+        const channel = ctx.channel ?? 'color';
         const value = channelValue(args, ctx);
         return edit(
           'Theme a layer',
-          () => layers(ctx).map((a) => channelOp(a, ctx.channel ?? 'color', value)),
+          () => layers(ctx).map((a) => channelOp(a, channel, valueFor(a, channel, args, ctx))),
           ctx,
           value === undefined ? 'Default theme' : 'Themed',
         );

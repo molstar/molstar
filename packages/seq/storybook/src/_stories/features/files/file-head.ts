@@ -11,11 +11,13 @@ import type { Node } from '@molstar/core/repr/tree';
 import type { AssetReader } from '@molstar/seqx-core/data';
 import { SeqLanguage } from '@molstar/seqx-core/lang';
 import { RecordedFiles } from '@molstar/seqx-examples';
+import { genbankSummary } from '@molstar/seqx-examples/genomes/genbank';
+import { vcfHeaderSummary } from '@molstar/seqx-examples/genomes/vcf';
 import { recordedAssets } from '@molstar/seqx-examples/recorded-pages';
 
 // What the Files stories print beside a view: the head of the file the view reads (the text as it is, or a MessagePack
-// file decoded to the JSON it holds, a compact JSON file indented), and the `source` nodes of its spec: the file and
-// the transform that says what its columns mean. The story and its headless twin print the same text.
+// file decoded to the JSON it holds, a compact JSON file indented; a VCF's header summary), and the `source` nodes of
+// its spec: the file and the transform that says what its columns mean. The story and its headless twin print the same text.
 
 /** How many lines of a text file, and characters of a line, the head holds. */
 export const HeadLines = 14;
@@ -84,6 +86,8 @@ export function printSources(spec: Node): string {
 export interface FileOf {
   readonly uri: string;
   readonly format: string;
+  /** The index the source names (a tabix `.tbi`), when it reads the file by region. */
+  readonly index?: string;
 }
 
 /** The files the `source` nodes of a spec name by location. */
@@ -92,7 +96,23 @@ export function filesOf(spec: Node): FileOf[] {
   for (const n of sourceNodes(spec)) {
     const uri = n.params?.uri;
     const format = n.params?.format;
-    if (typeof uri === 'string' && typeof format === 'string') out.push({ uri, format });
+    const index = n.params?.index;
+    if (typeof uri === 'string' && typeof format === 'string')
+      out.push(typeof index === 'string' ? { uri, format, index } : { uri, format });
   }
   return out;
+}
+
+/**
+ * What a story prints of a file: a VCF's header summary (its sites are read by region: no head of them), a GenBank
+ * file's records and its head, else its head.
+ */
+export async function fileText(reader: AssetReader, file: FileOf, signal: AbortSignal): Promise<string> {
+  if (file.format === 'vcf') return vcfHeaderSummary(file.uri, file.index, reader, signal);
+  // a GenBank file's records as the runtime reads them, then its head
+  if (file.format === 'genbank') {
+    const head = fileHead(await fileBytes(reader, file.uri, signal), file.format);
+    return `${await genbankSummary(file.uri, reader, signal)}\n\n${head}`;
+  }
+  return fileHead(await fileBytes(reader, file.uri, signal), file.format);
 }

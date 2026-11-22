@@ -3,7 +3,7 @@
 Lane GA's design (the fifth slice, stage 0; agreed by the author 2026-11-21 and promoted from its draft in `execution/fifth-slice/drafts/`). It amends
 [axis](axis.md), [navigators](navigators.md), [layouts](layouts.md),
 [addressing](addressing.md) and [extension-openings](extension-openings.md) (below,
-Consequences). Built on Gate 0's answers as recommended ([plan](../execution/fifth-slice/plan.md)): the navigator over several systems is
+Consequences). Built on Gate 0's answers as recommended (the fifth slice's plan): the navigator over several systems is
 core's (8); a ring's zoom is a cut (5: `section.include`, or a second section); the ring extension is a package of its own on the
 public surface (3), so what it needs from coordinates is here, its pictures are RN's.
 
