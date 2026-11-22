@@ -3,7 +3,7 @@
 **Base**: `packages-seq` at the orchestrator's head (`git reset --hard packages-seq` first). Branch `seq/fx-13`. Model:
 strong (arc geometry and the pairs layer's culling and levels; the previous Seq* had the same bugs and fixed them).
 
-**Why**: the author, 2026-11-22 (Examples › Complex, the Contacts (≤ 4 Å) track over CDK2 (A) and cyclin A (B), the
+**Why**: the author, 2026-11-22 (`seq-next-examples-complex-pae-and-contacts--contacts`, the Contacts (≤ 4 Å) track over CDK2 (A) and cyclin A (B), the
 rail's window dragged): "the arc rendering doesn't really work when moving the rail. similar issues were present in
 packages/sequences too. bad these came back again." The screenshots: at one window every arc gone, only grey ticks at
 the band's foot where the partners were; at the next, arcs back; an arc whose partner is past the right edge drawn as
@@ -24,6 +24,8 @@ a long line rising off the band; the set of arcs changing as the window moves a 
    (rule 1), never a tick at the band's foot; the switch to bins (past the gate) is by the pairs in the reachable
    region at the level, not by how many have an end in the window, and does not flicker as the window moves.
 
+The author: "prolly a wide issue with arcs": check every arcs path, not only the complex's contacts (pairs over a
+sequence, held links, a source's items, junctions, the genome's links zoomed in), and the stories that draw them.
 Find which of these the new pairs layer (`core/src/render/pairs*.ts`; not `pairs-ribbons*`, LA2's) breaks, and fix it.
 
 **Tests** (port the three test files' cases to the new layer's fixtures: the complex's contacts, a junction track):
