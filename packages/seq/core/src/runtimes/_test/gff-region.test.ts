@@ -105,8 +105,8 @@ describe('GFF3 and GTF by region', () => {
           entry(format, { index: 'i', ...more }),
           context({ f: b.file, i: b.index }),
         );
-        for (const level of [1, 16, 256]) {
-          const width = level * 1024 * (level === 1 ? 4 : 1);
+        for (const level of [1, 16, 256, 4096]) {
+          const width = level * 1024;
           for (const system of names) {
             const tiles: Record<string, unknown>[] = [];
             for (let s = 0; s < 210_000; s += width) {
@@ -114,7 +114,7 @@ describe('GFF3 and GTF by region', () => {
                 system,
                 start: s,
                 end: s + width,
-                level: level === 1 ? 1 : level,
+                level,
                 shapes: ['ranges' as const],
               };
               const items = await region.read({ ...t, items: true }, signal);
