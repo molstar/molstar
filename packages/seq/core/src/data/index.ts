@@ -84,6 +84,7 @@ export {
   type ValuesBins,
   type ValuesPositions,
   type ValuesTable,
+  VcfFixedFieldNames,
   type WholeSystem,
 } from './protocol.js';
 export {

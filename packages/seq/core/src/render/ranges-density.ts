@@ -72,8 +72,11 @@ export function densityStrip(
       addToStrip(strip, src, axis, table.bin[i] * level, (table.bin[i] + 1) * level);
     }
   }
-  lay.density = paintStrip(strip, axis.columns, tokens, share);
+  lay.density = paintStrip(strip, axis.columns, tokens, share, axis);
 }
+
+/** A column's centre, held in an array (a fractional number passed to a call that is not inlined is boxed). */
+const GapAt = new Float64Array(1);
 
 /** A heat strip's buffers: counts by difference over the device columns, and the image they are painted into. */
 export interface StripBuffers {
@@ -98,15 +101,30 @@ export function resetStrip(strip: StripBuffers, cols: number) {
  * The strip's counts (`addToStrip` made them) painted low to high in the density tokens: its image. `share` is the part
  * of the ramp the busiest column reaches (1: the whole ramp; a thin band uses the light end, `ThinStripShare`).
  */
-export function paintStrip(strip: StripBuffers, cols: number, tokens: SeqTokens, share = 1): ImageData {
+export function paintStrip(
+  strip: StripBuffers,
+  cols: number,
+  tokens: SeqTokens,
+  share = 1,
+  axis?: AxisTransform,
+): ImageData {
   const { diff, counts } = strip;
   const data = strip.image!.data;
   let max = 0;
   let run = 0;
+  // a group's gap (a text's) holds no position: its columns stay clear, as the cells beside it leave it (every drawn
+  // column then has a position to hit, _spec/README.md "Render", Emphasis, The hover contract)
+  const gaps = axis !== undefined && axis.gsize > 0;
+  const dpr = axis?.dpr ?? 1;
+  const x0 = axis?.x0 ?? 0;
   for (let c = 0; c < cols; c++) {
     run += diff[c];
     counts[c] = run;
-    if (run > max) max = run;
+    if (gaps) {
+      GapAt[0] = x0 + (c + 0.5) / dpr;
+      if (axis!.inGapOf(GapAt)) counts[c] = 0;
+    }
+    if (counts[c] > max) max = counts[c];
   }
   const low = tokens.colors['seq-density-low'];
   const high = tokens.colors['seq-density-high'];

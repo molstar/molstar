@@ -125,10 +125,11 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
         item.id = `${idBase}-${items.length}`;
         item.setAttribute('aria-label', e.name);
         item.dataset.legend = row.key;
-        if (e.value !== undefined) item.dataset.value = e.value;
+        // an entry with an action alone is a target (its items lit, selected): a swatch alone keeps the default cursor
+        if (e.action && e.value !== undefined) item.dataset.value = e.value;
         // the compact form: the label on hover and in the name, never as text (a ramp's ends aside)
         if (compact) item.title = e.name;
-        item.style.cssText = `display: inline-flex; align-items: center; gap: 4px; cursor: ${e.value !== undefined ? 'pointer' : 'default'}; border-radius: 3px; padding: 0 2px;${e.hovered ? ' outline: 2px solid var(--msui-accent, currentColor);' : ''}`;
+        item.style.cssText = `display: inline-flex; align-items: center; gap: 4px; cursor: ${e.action ? 'pointer' : 'default'}; border-radius: 3px; padding: 0 2px;${e.hovered ? ' outline: 2px solid var(--msui-accent, currentColor);' : ''}`;
         const swatch = doc.createElement('span');
         // the swatches match the canvas: never forced (forced colors keep data colors)
         // a size key's mark is a circle, its size relative to the row's largest (14 px across, in a 14 px cell): the
@@ -138,7 +139,7 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
         if (!compact) item.append(swatch, doc.createTextNode(e.label));
         else if (e.ends) item.append(doc.createTextNode(e.ends[0]), swatch, doc.createTextNode(e.ends[1]));
         else item.append(swatch);
-        if (e.value !== undefined) {
+        if (e.action && e.value !== undefined) {
           const value = e.value;
           item.addEventListener(
             'click',
@@ -273,6 +274,8 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
     viewer.legends.legends.listen(draw),
     viewer.legends.hover.listen(draw),
     viewer.legends.cvdSafe.listen(draw),
+    // what is drawn moved (a pan, a tile arriving): an entry's action with it
+    viewer.legends.drawn.listen(draw),
     // a channel's place changing is no change of what the rows show; a theme's tokens change their colors
     viewer.highlight.version.listen(() => highlightKey() !== shownKey && draw()),
     viewer.tokensVersion.listen(() => highlightKey() !== shownKey && draw()),

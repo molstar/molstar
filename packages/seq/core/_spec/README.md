@@ -1546,7 +1546,8 @@ share), and two chunks loaded on first use: `vcf-indexed.ts` (the first indexed 
 - **Fields**: `label` and `name` the VCF `ID` (`.` none; `label` is what a ranges layer labels by), `ref`, `alt`, `qual`
   (float32, `.` NaN; a decimal float as VCF writes one, `Inf` and `NaN` too: never `` as 0 or `0x10` as 16, as every
   `Float` cell), `filter` (category), `category` (`SNV`, `MNV`, `insertion`, `deletion`, `indel`, `structural` for
-  `<…>`, `breakend` for `]`, `[` and single breakends); then **INFO keys typed by the header**: `Integer` int32 and
+  `<…>`, `breakend` for `]`, `[` and single breakends): the fixed fields, `VcfFixedFieldNames` in the protocol (a
+  describer tells INFO from them without the reader); then **INFO keys typed by the header**: `Integer` int32 and
   `Float` float32 when one value an allele (`Number=1`, or `A` split by allele), `Flag` a category (`true`), every other
   a category (`Number=R` the reference's and the allele's values, `r,a`; other numbers their text). A missing int32 is
   `MissingInt` (−2^31, BCF's missing integer: int32 has no NaN). The keys the source's `fields` (a field's name to its
@@ -2872,24 +2873,46 @@ strip's.
   outline under it, in the hover ink (`seq-hover`: dark on light, light on dark); `projected.hover` is drawn the same
   way at `emphasis.projected` on every section but `projected.hoverSection` (the hover's own section's address), so a
   hover from elsewhere (a structure, no layer) is drawn on every section (the `hover` pass); on the hover's own section
-  too when its layer is a ruler, which draws no mark of its own (a ring's or a row's own position box); a letters hit
-  lifted through a codon map (a residue over its codon) is drawn on its own section too, over each of its own-system
-  letters tracks (the DNA), never as a column, so a residue and its codon light together; an item through a path lights
-  its outline and its connector, nothing else. Every hover a squircle (Shapes): a cell's (letters, logo, values) by the
-  cell's size, square on a side the view cuts and below the minimum, its radius the cell's plus the offset; a letter's
-  codon parts round on the element's outer sides alone; a chip's concentric with its pill; the projected hover round
-  where its range really ends; a secondary structure's mark (its radius plus the offset, its round ends: a helix round,
-  a strand or a turn square), a band's (square at the view's edge), a rows cell's (square where the view or its band
-  cuts it); a grid's hovered or selected cell by its size, its crosshair's column and row square (they end at the plot:
-  a cut).
+  too when its layer drew no mark of its own for the hit (a ruler, a density bin, an empty band's position: a ring's or
+  a row's own position box; the hover contract below); a letters hit lifted through a codon map (a residue over its
+  codon) is drawn on its own section too, over each of its own-system letters tracks (the DNA), never as a column, so a
+  residue and its codon light together; an item through a path lights its outline and its connector, nothing else. Every
+  hover a squircle (Shapes): a cell's (letters, logo, values) by the cell's size, square on a side the view cuts and
+  below the minimum, its radius the cell's plus the offset; a letter's codon parts round on the element's outer sides
+  alone; a chip's concentric with its pill; the projected hover round where its range really ends; a secondary
+  structure's mark (its radius plus the offset, its round ends: a helix round, a strand or a turn square), a band's
+  (square at the view's edge), a rows cell's (square where the view or its band cuts it); a grid's hovered or selected
+  cell by its size, its crosshair's column and row square (they end at the plot: a cut).
 - **An extension's layer type** (`isExtensionName`: `<id>:<name>`) is given the hover's look by the view, not by a hook
   of its own: after its `draw`, the hovered item's mark (`LayerType.mark(lay, key, out)`: its bounds in the strip's
   frame, written into the view's one reused box, and the radius of its corners) is outlined `emphasis.hoverOffset`
   outside it and concentric (its radius plus the offset), in the hover ink; round on the sides the strip does not cut,
   square where the mark meets the strip's edge. Why: every layer type has the hover, as ux-foundations asks, and a warm
-  frame allocates nothing. A type with no `mark` gets none (its card and the projected hover remain); one that draws its
-  own hover in its `hover` pass sets `ownHover: true` and the view draws none, so it is never outlined twice. The
-  selection is the view's already (a Location's band column).
+  frame allocates nothing. A type with no `mark` gets the view's mark over what its hit covers (the hover contract); one
+  that draws its own hover in its `hover` pass sets `ownHover: true` and the view draws none, so it is never outlined
+  twice. The selection is the view's already (a Location's band column).
+- **The hover contract** (ux-foundations sections 6 and 9; the author: "we need a general rule for this and global
+  fix"): every drawn mark of every layer type, in every layout (tracks, text, rings, blocks, rows, grid, a bridge's
+  band) and at every step (an item, a lane's run, a density bin or band, a summary, a chip, a reduced tile), answers a
+  hover with the same three things. (1) **A hit** naming what is under the pointer: the item, else the bin's items or
+  stretch, else the position. A mark is drawn where a point hits it: inside its strip (a mark a device pixel wide at a
+  block's end widens inward, never into the gap after it); a group's gap (a text's) holds no position, so there an
+  element alone answers (an item drawn across it) and a density strip leaves its columns clear. (2) **A hover mark** in
+  the hovered section and in every section the hover is carried to with positions in view, reaching every layer the
+  covered positions reach (a pairs layer's arcs and carets with an end in a hovered item's extent, as hovering those
+  positions lights them; a grid's columns; a ring's position box): the layer's own, and where its layer drew none for
+  the hit, the view's (`drawOwnHover`: what the hover covers, drawn on its own section as one carried from a linked
+  section, at least a device pixel). (3) **A card** with the hit's fields (the viewer's hover card; a bridge's ribbon
+  its own card, its hit naming the bridge). A drag suspends the card. The one exception: a navigator's control over a
+  mark takes the hover as its own (the ruler rail's grab zone over the ruler: Navigators). A layer type that cannot is
+  refused at registration, never silent: one with no `hit` (`seq.render.layer.hover`, every offender in one error,
+  nothing registered). Why one rule: the same miss came back layer by layer (a ring's hover, a density row, a score box,
+  density bands); a rule over every type and layout, held by one sweep, closes the class. **The sweep** (the storybook's
+  `hover-contract.test.ts`, medium lane): every story's view settled as its story composes it, every layer instance,
+  points on its drawn marks read from its own data pass (never guessed), the pointer moved there; it asserts the hit, a
+  hover mark in the hovered section and each linked one (drawn by the canvas's backend and in the SVG's hover group) and
+  a card with words; it reaches every built-in layer type and layout, so a new one is swept by adding nothing. A quick
+  representative holds one view a layout.
 - `cursor`: a 1 px outline of its cell (`outline.cursor`) over the band, in a neutral ink (`emphasis.cursorInk`,
   `msui-text`), never the accent (the `cursor` pass); a squircle by the cell over the band, inside it by half its width
   (concentric), square on a side the view cuts. Whether it is shown is the caller's (a viewer shows it once the keyboard
@@ -4230,13 +4253,14 @@ pairs layer's prepared form and its region reader through the composition (`type
   nest: a self-pair, a duplicate and a shared end cross nothing (held against a brute force).
 - **Hit**: candidates by hull over the point's x, then distance to the curve (`pairs.hitPx`), and the carets by the
   distance to their boxes, a tie the later drawn (the carets after the arcs); the pair's element, its extent both ends.
-  **Hover**: the hovered pair; as arcs, every pair with an end at a hovered position (a base, or either position of a
-  cell) or in the hover projected onto the section; as dots, the pair at the hovered cell. **Highlight**: the pairs a
-  highlight channel lists by key (`EmphasisHighlight.elements`) drawn over in the channel's color in the `highlight`
-  pass, as the selection's in the accent (a pair two channels list: the later's); the pairs each channel lights are made
-  again only when the channels change (by identity), into a reused array. The pairs pass ignores
-  `EmphasisHighlight.style`: a pair is a stroke over its arc or dot in any style (a tint or a band has no room on a
-  curve).
+  **Hover**: the hovered pair alone (its arc and its caret); as arcs, every pair with an end at a hovered position (a
+  base, or either position of a cell) or in the hover projected onto the section, another layer's hovered item too (a
+  score box over a ligand lights the arcs its position lights: the hover contract, Emphasis); as dots, the pair at the
+  hovered cell. **Highlight**: the pairs a highlight channel lists by key (`EmphasisHighlight.elements`) drawn over in
+  the channel's color in the `highlight` pass, as the selection's in the accent (a pair two channels list: the later's);
+  the pairs each channel lights are made again only when the channels change (by identity), into a reused array. The
+  pairs pass ignores `EmphasisHighlight.style`: a pair is a stroke over its arc or dot in any style (a tint or a band
+  has no room on a curve).
 
 ### The grid layer
 
@@ -4706,7 +4730,8 @@ under the point as the hit's `state`. It reads every row (a logo of the rows sho
   `numbering.fallback`, `numbering.limit`, `numbering.source`, `numbering.rows`, `layer.type`, `layout`,
   `layer.letters`, `axis.pending` (info), `text.lines`, `follow.leader`, `follow.blocks`, `ring.image`, `follow.cycle`,
   `source`, `template.limit`, `unsettled`, `navigator.of`, `navigator.path`, `navigator.rows` (info), `navigator.layer`
-  (info), `navigator.export`; a test checks the catalog.
+  (info), `navigator.export`, `layer.hover` (refused at registration: Emphasis, The hover contract); a test checks the
+  catalog.
 
 ## Stories
 

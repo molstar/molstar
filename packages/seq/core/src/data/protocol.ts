@@ -146,6 +146,13 @@ export interface LettersTable {
   readonly alphabet?: string;
 }
 
+/**
+ * A VCF source's fixed fields, in order (_spec/README.md "Data", VCF, Fields): the label and `name` the VCF `ID`, the
+ * alleles and the record's; every other field of its rows is an INFO key. Here, not in the reader, so a describer reads
+ * them without the reader.
+ */
+export const VcfFixedFieldNames = ['label', 'name', 'ref', 'alt', 'qual', 'filter', 'category'] as const;
+
 /** A ranges field: a named column, one value a row (any name: `kind` and `$x` too). */
 export interface RangesField {
   readonly name: string;

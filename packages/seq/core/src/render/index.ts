@@ -98,6 +98,7 @@ export {
   type LayoutContext,
   type Overlay,
   type StoreReader,
+  refuseMuteTypes,
   sectionId,
 } from './layer-type.js';
 export { BlockMetrics, BlockPlacement } from './layout/blocks.js';

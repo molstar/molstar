@@ -377,7 +377,10 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
             let round = 0;
             if (!(axis.scut & Cut.left) && (axis.dir === -1 ? atHi : atLo)) round |= Round.left;
             if (!(axis.scut & Cut.right) && (axis.dir === -1 ? atLo : atHi)) round |= Round.right;
-            const x0 = axis.snap(axis.sx0);
+            // at least a device pixel, inside the strip's axis: a mark at its end widens leftward, never past it into
+            // the gap after a block, where no point hits it (_spec/README.md "Render", Emphasis, The hover contract)
+            const end = axis.x0 + axis.width;
+            const x0 = Math.min(axis.snap(axis.sx0), Math.max(axis.x0, end - px));
             const j = nextMark(lay);
             lay.mx0[j] = x0;
             lay.mx1[j] = Math.max(axis.snap(axis.sx1), x0 + px);

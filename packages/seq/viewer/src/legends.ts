@@ -6,6 +6,7 @@
 
 import { ReactiveModel, type ReadonlyState, State } from '@molstar/core/reactive';
 import { type RangesLay, resolveColor, type SeqTokens, type ViewLayout, viewLegends } from '@molstar/seqx-core/render';
+import { type Key, type Location, location } from '@molstar/seqx-core/query';
 import type { ViewerConfig } from './config.js';
 import { formatValue, type Legend, legendsEqual, legendTitle } from '@molstar/seqx-core/theme/index';
 
@@ -19,6 +20,25 @@ export interface LegendHover {
   readonly value?: string;
   readonly number?: number;
 }
+
+/**
+ * Each item drawn by a legend's ranges layers (their hit marks: inside a merged run too, never items read and out of
+ * view), over every strip's lays (a section of blocks has one a block) and its tracks' (the first strip's): an item
+ * twice is one key and one range once the set and the Location are made.
+ */
+function drawnOf(layout: ViewLayout, layers: readonly string[], f: (lay: RangesLay, item: number) => void): void {
+  for (const s of layout.sections)
+    for (const band of [...s.tracks.map((t) => t.layers), ...s.lays])
+      for (const l of band ?? []) {
+        if (l.type.name !== 'ranges' || !layers.includes(l.key)) continue;
+        const lay = l.lay as RangesLay;
+        for (let k = 0; k < lay.hn; k++)
+          if (lay.hitem[k] >= 0 && lay.painted[lay.hitem[k]] !== undefined) f(lay, lay.hitem[k]);
+      }
+}
+
+/** The items an entry names in view (`LegendModel.entryItems`). */
+export type EntryItems = { readonly elements: Key[]; readonly location: Location };
 
 export class LegendModel extends ReactiveModel {
   private readonly _legends = new State<readonly Legend[]>([], legendsEqual);
@@ -49,10 +69,72 @@ export class LegendModel extends ReactiveModel {
     this._cvdSafe.set(on);
   }
 
-  /** The legends of a settled layout, published when they differ. */
+  /** The legends of a settled layout, published when they differ; and the entries whose items it draws. */
   update(layout: ViewLayout): void {
     this.derived++;
+    this._layout = layout;
+    this._items.clear();
     this._legends.set(viewLegends(layout).legends);
+    // the entries with items drawn, read once a settled frame (never a frame, never a redraw of the part)
+    const drawn = new Set<string>();
+    for (const legend of this._legends.value)
+      drawnOf(layout, legend.layers, (lay, j) => drawn.add(`${legend.key}\u0000${lay.painted[j]}`));
+    this._drawnSet = drawn;
+    this._drawn.set([...drawn].sort().join('\n'));
+  }
+
+  private _layout: ViewLayout | undefined;
+  /** `entryItems` of the layout read (by legend and value; null for none): a hover again on an entry makes nothing. */
+  private readonly _items = new Map<string, EntryItems | null>();
+  private _drawnSet = new Set<string>();
+  private readonly _drawn = new State('');
+  /** The entries with items drawn at the last settled frame, as a key: a part redraws when it moves (a pan, tiles). */
+  readonly drawn: ReadonlyState<string> = this._drawn.asReadonly;
+
+  /**
+   * The items in view an entry names (_spec/README.md "Legends", both ways): the drawn items of the legend's ranges
+   * layers whose painted value is the entry's (what `updateHover` reads the other way), with their extents on their data's
+   * systems; undefined when none is drawn. What the entry's hover lights where its address names no items it holds (a
+   * source's rows, a derived table).
+   */
+  entryItems(layer: string, value: string): EntryItems | undefined {
+    const legend = this._legends.value.find((l) => l.layers.includes(layer));
+    const layout = this._layout;
+    if (!legend || !layout) return undefined;
+    const id = `${legend.key}\u0000${value}`;
+    const known = this._items.get(id);
+    if (known !== undefined) return known ?? undefined;
+    const items = this.readItems(layout, legend.layers, value);
+    this._items.set(id, items ?? null);
+    return items;
+  }
+
+  private readItems(layout: ViewLayout, layers: readonly string[], value: string): EntryItems | undefined {
+    const elements: Key[] = [];
+    const parts: { system: string; ranges: number[] }[] = [];
+    drawnOf(layout, layers, (lay, j) => {
+      if (lay.painted[j] !== value) return;
+      elements.push({ owner: lay.owner, key: lay.keys[j] });
+      parts.push({ system: lay.dataSystem, ranges: [lay.starts[j], Math.max(lay.ends[j], lay.starts[j] + 1)] });
+    });
+    if (!elements.length) return undefined;
+    return { elements, location: location({ parts }) };
+  }
+
+  /**
+   * Whether an address names an entry's items (the theming behavior's, where it is listed: a layer's data by its
+   * legend's field); none, only what is drawn is named (`entryItems`).
+   */
+  addressable: ((layer: string, value: string) => boolean) | undefined = undefined;
+
+  /**
+   * Whether an entry names items: by an address, or drawn at the last settled frame (a click selects them, a hover
+   * lights them); a lookup, never a walk of the layout.
+   */
+  names(layer: string, value: string): boolean {
+    if (this.addressable?.(layer, value) === true) return true;
+    const legend = this._legends.value.find((l) => l.layers.includes(layer));
+    return legend !== undefined && this._drawnSet.has(`${legend.key}\u0000${value}`);
   }
 
   /** The entry a hit is on: the item's painted value on its layer's legend (ranges), else none. */
@@ -60,6 +142,10 @@ export class LegendModel extends ReactiveModel {
     layout: ViewLayout | undefined,
     hit: { readonly layer?: string; readonly element?: { readonly key: string | number } } | undefined,
   ): void {
+    if (layout && layout !== this._layout) {
+      this._layout = layout;
+      this._items.clear();
+    }
     if (!layout || !hit?.element || hit.layer === undefined) return this._hover.set(undefined);
     const layer = hit.layer;
     const legend = this._legends.value.find((l) => l.layers.includes(layer));
@@ -94,6 +180,11 @@ export interface LegendEntryRow {
   readonly step?: true;
   /** The value a click or Enter selects (swatches). */
   readonly value?: string;
+  /**
+   * The entry names items (`LegendModel.names`): a hover lights them, a click selects them, and the pointer says so; an
+   * entry with no action (a swatch alone) is no target, the default cursor (_spec/README.md "Legends", both ways).
+   */
+  readonly action?: true;
   readonly hovered: boolean;
 }
 
@@ -133,6 +224,8 @@ export function selectLegends(all: readonly Legend[], { of, omit }: LegendSelect
  */
 export function legendRows(viewer: { readonly legends: LegendModel }, options: LegendSelection = {}): LegendRow[] {
   const hover = viewer.legends.hover.value;
+  const names = (layer: string, value: string | undefined) =>
+    value !== undefined && viewer.legends.names(layer, value) ? ({ action: true } as const) : {};
   const max = options.maxItems ?? 12;
   const out: LegendRow[] = [];
   for (const l of selectLegends(viewer.legends.legends.value, options)) {
@@ -145,6 +238,7 @@ export function legendRows(viewer: { readonly legends: LegendModel }, options: L
         name: `${legendTitle(l)}: ${i.label}`,
         color: i.color,
         ...(i.value !== undefined ? { value: i.value } : {}),
+        ...names(l.layers[0], i.value),
         hovered: hover?.key === l.key && hover.value === (i.value ?? i.label),
       }));
       if (entries.length > max) {
