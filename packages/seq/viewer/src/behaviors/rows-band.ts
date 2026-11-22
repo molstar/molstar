@@ -50,11 +50,21 @@ export function revealedTop(l: RowsLay, top: number, i: number): number {
   return Math.max(0, Math.min(next, l.maxTop(l.rowScale, l.display.count)));
 }
 
-/** The ranges layer `key`'s last layout in a layout (a lanes band). */
-export function lanesOf(layout: ViewLayout | undefined, key: string): RangesLay | undefined {
+/**
+ * The lanes band a key names, by its layer's key or its track's address (a hit on the lanes rail names the track), with
+ * its last layout and its track.
+ */
+export function lanesBand(
+  layout: ViewLayout | undefined,
+  key: string,
+): { readonly lay: RangesLay; readonly track: string } | undefined {
   for (const s of layout?.sections ?? [])
     for (const band of s.lays)
-      for (const l of band ?? []) if (l.key === key && l.type.name === 'ranges') return l.lay as RangesLay;
+      for (const l of band ?? []) {
+        if (l.type.name !== 'ranges') continue;
+        const track = l.key.slice(0, l.key.lastIndexOf('/'));
+        if (l.key === key || track === key) return { lay: l.lay as RangesLay, track };
+      }
   return undefined;
 }
 
@@ -63,7 +73,7 @@ export function pageLanes(l: RangesLay): number {
   return Math.max(1, Math.floor(l.room) - 1);
 }
 
-/** The lanes band's top (lanes) a page on, or at its first (`-Infinity`) or last (`Infinity`) lane: within its lanes. */
+/** The lanes band's top (lanes) moved by `by` lanes, within its lanes. */
 export function lanesTop(l: RangesLay, top: number, by: number): number {
   return Math.max(0, Math.min(l.scrollMax, top + by));
 }

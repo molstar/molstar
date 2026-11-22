@@ -187,8 +187,9 @@ export function windowBehavior(view: ViewModel, config: ViewerConfig = DefaultVi
         } else {
           // a pan: the window keeps its width and stops at the axis's ends (`setRange` would clip one end alone)
           const by = at - d.at0;
-          const lo = -d.start;
-          const hi = (d.limit ?? Infinity) - d.end;
+          // by the window as drawn (a floored one is wider than its truth): what the reader sees stays on the axis
+          const lo = -(d.drawn?.[0] ?? d.start);
+          const hi = (d.limit ?? Infinity) - (d.drawn?.[1] ?? d.end);
           d.moved = lo <= hi ? Math.max(lo, Math.min(hi, by)) : by;
         }
         return move(d.section, d.start + d.moved, d.end + d.moved);

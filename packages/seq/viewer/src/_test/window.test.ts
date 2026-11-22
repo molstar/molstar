@@ -59,6 +59,18 @@ describe('the window behavior', () => {
     w.end();
   });
 
+  it('a floored window (drawn wider than its truth) is stopped at the axis ends as drawn', () => {
+    const { view, w, range } = setup();
+    view.setRange(ProteinSection, 40, 42);
+    // drawn 10 units wide about the truth
+    w.begin(ProteinSection, 'body', 41, [36, 46]);
+    w.dragTo(41 + 200);
+    expect(range()).toEqual([90, 100]);
+    w.dragTo(41 - 200);
+    expect(range()).toEqual([0, 10]);
+    w.end();
+  });
+
   it('a drag on an end resizes about the other; the floor holds; the end of a drag says where it settled', () => {
     const { view, w, range } = setup();
     view.setRange(ProteinSection, 20, 40);

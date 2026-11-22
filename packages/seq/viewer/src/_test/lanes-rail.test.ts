@@ -20,7 +20,7 @@ import { type Frames, installFrames } from './frames.js';
 
 const Tall = '/views/v/s/tall';
 
-function spec(): Node {
+function spec(options: { second?: boolean; short?: boolean } = {}): Node {
   const b = createSeqSpec({ title: 'lanes' });
   const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT'.repeat(100) });
   const rows = {
@@ -32,6 +32,11 @@ function spec(): Node {
   b.views.view('v', (v) => {
     const sec = v.section('s', { of: s, heights: 'fixed' } as never);
     sec.track('tall', { height: 240 } as never).layer('l', { type: 'ranges', data: tall });
+    if (options.second) sec.track('tall2', { height: 240 } as never).layer('l', { type: 'ranges', data: tall });
+    if (options.short) {
+      const few = b.data.ranges('few', { target: s, rows: { start: [0, 1], end: [50, 60], id: ['a', 'b'] } });
+      sec.track('few', { height: 240 } as never).layer('l', { type: 'ranges', data: few });
+    }
   });
   return b.build();
 }
@@ -47,12 +52,12 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-async function make() {
+async function make(options: { second?: boolean; short?: boolean } = {}) {
   vi.useFakeTimers({ toFake: ['Date', 'performance'] });
   frames = installFrames();
   const v = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined, config: [[viewerItem('view.jumpMs'), 0]] });
   viewer = v;
-  await v.load(spec());
+  await v.load(spec(options));
   v.resize(600);
   await v.settle();
   frames.flush();
@@ -148,5 +153,53 @@ describe('the lanes rail by gesture', () => {
     expect(v.input.key({ key: 'PageDown' })).toBe(false);
     v.view.setBand(Tall, { bandTop: 0 });
     expect(v.input.key({ key: 'PageUp' })).toBe(false);
+  });
+
+  it('a press and a drag cancelled leave a band that had none unset', async () => {
+    const v = await make();
+    const r = rail(v);
+    const x = r.top + 6;
+    expect(v.view.band(Tall)).toBeUndefined();
+    v.input.down(x, yOf(r, 1));
+    v.input.move(x, yOf(r, 1) + 40);
+    expect(top(v)).toBeGreaterThan(0);
+    v.input.key({ key: 'Escape' });
+    expect(v.view.band(Tall)).toBeUndefined();
+  });
+
+  it('Page Down and the wheel with the pointer on the rail itself (its hit names the track) scroll the lanes', async () => {
+    const v = await make();
+    const r = rail(v);
+    const x = r.top + 6;
+    const y = yOf(r, 1);
+    v.input.move(x, y);
+    expect(v.hit(x, y)?.layer).toBe(Tall);
+    expect(v.input.key({ key: 'PageDown' })).toBe(true);
+    expect(top(v)).toBe(Math.floor(lay(v).room) - 1);
+    const before = top(v);
+    expect(v.input.wheel(x, y, { deltaX: 0, deltaY: 28, deltaMode: 0 })).toBe(true);
+    expect(top(v)).toBe(before + 2);
+  });
+
+  it('two lanes bands in a section: the key scrolls the one under the pointer', async () => {
+    const v = await make({ second: true });
+    const t2 = '/views/v/s/tall2';
+    const l2 = v.frame!.layout.sections[0].tracks.flatMap((t) => t.layers).find((l) => l.key.startsWith(t2))!
+      .lay as RangesLay;
+    v.input.move(l2.box.x + 20, l2.box.y + 30);
+    expect(v.input.key({ key: 'PageDown' })).toBe(true);
+    expect(v.view.band(t2)?.bandTop).toBeGreaterThan(0);
+    expect(v.view.band(Tall)).toBeUndefined();
+  });
+
+  it('a band that shows all its lanes beside one that scrolls: the key is the page’s there', async () => {
+    const v = await make({ short: true });
+    const few = v
+      .frame!.layout.sections[0].tracks.flatMap((t) => t.layers)
+      .find((l) => l.key.startsWith('/views/v/s/few'))!.lay as RangesLay;
+    v.input.move(few.box.x + 20, few.box.y + 10);
+    expect(v.input.key({ key: 'PageDown' })).toBe(false);
+    expect(v.view.band('/views/v/s/few')).toBeUndefined();
+    expect(v.view.band(Tall)).toBeUndefined();
   });
 });

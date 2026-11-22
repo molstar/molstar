@@ -11,7 +11,7 @@
 // one step of the view's history when it went farther than the rows in view or zoomed (`navigator.dragStep`). A
 // double-click on its window resets the rows' zoom (`resetZoom`); the vertical overview's grips are the same gesture.
 
-import { LanesRail, MaxRowScale, MinRowScale, type WindowPart } from '@molstar/seqx-core/render';
+import { type BandViewport, LanesRail, MaxRowScale, MinRowScale, type WindowPart } from '@molstar/seqx-core/render';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import type { ViewModel, ViewSnapshot } from '@molstar/seqx-viewer/models';
 
@@ -44,7 +44,9 @@ export class RowsRailGesture {
         total: number;
         area: number;
         lanes: boolean;
-        band: { bandTop: number; rowScale?: number };
+        band: BandViewport | undefined;
+        /** The rail as the frames draw it: its total changes when the lanes or the rows do. */
+        live: RowsRailWindow;
         before: ViewSnapshot;
       }
     | undefined;
@@ -71,7 +73,8 @@ export class RowsRailGesture {
       total: w.total,
       area: w.width,
       lanes: isLanes(w),
-      band: { bandTop: b?.bandTop ?? w.start, ...(b?.rowScale !== undefined ? { rowScale: b.rowScale } : {}) },
+      band: b,
+      live: w,
       before: this.view.snapshot(),
     };
     return true;
@@ -84,10 +87,21 @@ export class RowsRailGesture {
   dragTo(at: number): boolean {
     const p = this._press;
     if (!p || p.part === 'outside' || !Number.isFinite(at)) return false;
+    // the lanes or the rows grew or shrank under the press (a rail in the live frames): the press starts again where the
+    // pointer is, the band's own top and the rail's new window
+    if (p.live.total !== p.total) {
+      const top = this.view.band(p.track)?.bandTop ?? p.start;
+      const shown = p.live.end - p.live.start;
+      p.total = p.live.total;
+      p.area = p.live.width;
+      p.start = clamp(top, 0, Math.max(0, p.total - shown));
+      p.end = p.start + shown;
+      p.at0 = at;
+    }
     const d = at - p.at0;
     const shown = p.end - p.start;
     if (p.part === 'body' || p.lanes) {
-      this.view.setBand(p.track, { bandTop: clamp(p.start + d, 0, Math.max(0, p.total - shown)) });
+      this.scrollTo(p.track, p.start + d, p.total - shown);
       return true;
     }
     // the rows a grip leaves in view, within the zoom's bounds and the rows there are
@@ -110,7 +124,7 @@ export class RowsRailGesture {
     if (!p || p.part === 'outside' || p.lanes) return;
     const now = this.view.band(p.track);
     const far = Math.abs((now?.bandTop ?? p.start) - p.start) > p.end - p.start;
-    const zoomed = now?.rowScale !== p.band.rowScale;
+    const zoomed = now?.rowScale !== p.band?.rowScale;
     const step = this.config.navigator.dragStep;
     if (step === 'always' || (step === 'far' && (far || zoomed))) this.view.record(p.before);
   }
@@ -134,7 +148,7 @@ export class RowsRailGesture {
   cancel(): void {
     const p = this._press;
     this._press = undefined;
-    if (p && p.part !== 'outside') this.view.setBand(p.track, p.band);
+    if (p && p.part !== 'outside') this.view.restoreBand(p.track, p.band);
   }
 
   /**
@@ -145,24 +159,19 @@ export class RowsRailGesture {
     this._press = undefined;
     if (detail > 1 || part !== 'outside' || !Number.isFinite(at)) return false;
     const shown = w.end - w.start;
-    if (isLanes(w)) {
-      // a lanes band's scroll is session state (the wheel's): set, not a jump
-      const top = clamp(at - shown / 2, 0, Math.max(0, w.total - shown));
-      if (top === (this.view.band(track)?.bandTop ?? w.start)) return false;
-      this.view.setBand(track, { bandTop: top });
-      return true;
-    }
-    return (
-      this.view.jump(
-        () => {
-          const before = this.view.band(track)?.bandTop;
-          this.view.setBand(track, { bandTop: clamp(at - shown / 2, 0, Math.max(0, w.total - shown)) });
-          return this.view.band(track)?.bandTop !== before;
-        },
-        true,
-        'move',
-      ) === 'moved'
-    );
+    const to = (): boolean => this.scrollTo(track, at - shown / 2, w.total - shown);
+    // a lanes band's scroll is session state (the wheel's): set, not a jump
+    if (isLanes(w)) return to();
+    return this.view.jump(to, true, 'move') === 'moved';
+  }
+
+  /** The band's top at `top`, within `[0, max]` (the rows or lanes there are); false when it was there already. */
+  private scrollTo(track: string, top: number, max: number): boolean {
+    const was = this.view.band(track)?.bandTop;
+    const next = clamp(top, 0, Math.max(0, max));
+    if (next === was) return false;
+    this.view.setBand(track, { bandTop: next });
+    return was !== undefined || next !== 0;
   }
 }
 

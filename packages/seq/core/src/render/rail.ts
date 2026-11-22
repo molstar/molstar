@@ -281,8 +281,8 @@ function placeUpright(
 /**
  * A scrolled lanes band's rail (_spec/README.md "Render", Track heights): the rows rail's geometry upright at the band's
  * right edge, the whole of its lanes along the band, its window the lanes in view; pan only (no grips, its window's ends
- * are body), drawn as the rows rail is (a hairline at rest, grown while hovered or dragged). The wheel moves it, so does a drag, a press outside the
- * window and the Page keys (the rows rail's gesture, in lanes).
+ * are body), drawn as the rows rail is (a hairline at rest, grown while hovered or dragged). The wheel moves it, so
+ * do a drag, a press outside the window and the Page keys (the rows rail's gesture, in lanes).
  */
 export function placeLanesRail(
   rail: Rail,

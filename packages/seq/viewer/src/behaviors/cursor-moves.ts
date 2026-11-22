@@ -49,8 +49,17 @@ import {
   type ViewModel,
 } from '@molstar/seqx-viewer/models';
 import type { CursorBehavior, CursorContext } from './cursor.js';
-import { bandFolds, lanesOf, lanesTop, pagedTop, pageLanes, pageRows, revealedTop, setBandFolds } from './rows-band.js';
-import { type RowsOf, rowsOf as rowsIn, trackOfLayer, twoAxesLayer } from './two-axes.js';
+import {
+  bandFolds,
+  lanesBand,
+  lanesTop,
+  pagedTop,
+  pageLanes,
+  pageRows,
+  revealedTop,
+  setBandFolds,
+} from './rows-band.js';
+import { type RowsOf, rowsOf as rowsIn, twoAxesLayer } from './two-axes.js';
 
 /** The cursor less its row: a cell on the section's axis. */
 const plain = (section: string, system: string, position: number): Cursor => ({ section, system, position });
@@ -549,10 +558,9 @@ export function createCursor(
   };
   /** The overflowing lanes band under the pointer, with its track and stored top (lanes). */
   const lanesIn = (ctx: CursorContext) => {
-    const lay = ctx.layer === undefined ? undefined : lanesOf(layout(), ctx.layer);
-    if (!lay || !(lay.scrollMax > 0)) return undefined;
-    const track = trackOfLayer(ctx.layer!);
-    return { lay, track, top: view.band(track)?.bandTop ?? lay.top };
+    const b = ctx.layer === undefined ? undefined : lanesBand(layout(), ctx.layer);
+    if (!b || !(b.lay.scrollMax > 0)) return undefined;
+    return { lay: b.lay, track: b.track, top: view.band(b.track)?.bandTop ?? b.lay.top };
   };
   /** A shown cursor's rows, else undefined. */
   const shownOnRows = () => {
