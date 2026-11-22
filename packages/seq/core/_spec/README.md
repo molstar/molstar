@@ -4368,6 +4368,10 @@ band (EC-220 to EC-222), inline or a source's, read through the store either way
   bounded together (`readTiles`'s layer key: past them the band's "zoom in").
 - **Hit**: `target: 'cell'`, `position` on x, `ySystem` the states system, `yPosition` the state; `bin` at a coarse
   level.
+- **Emphasis** (`render/matrix-emphasis.ts`): a member of the states system selected (its own part, else the projected
+  one, lighter) lights its state's row across the band, a tint with an outline; a hover on another layer's hit naming
+  one (a kinship grid's label, an alignment's row) or a projected hover outlines it. Rows in view only, cut at the band.
+  Why: one rows system, one member, every layer of it (across-sections.md, Categorical grid axes; ux-foundations §6).
 
 ### Hover texts by region
 
