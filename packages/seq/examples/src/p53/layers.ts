@@ -5,8 +5,9 @@
  */
 
 import type { Node } from '@molstar/core/repr/tree';
-import { createSeqSpec } from '@molstar/seqx-core/lang';
+import { createSeqSpec, theme } from '@molstar/seqx-core/lang';
 import { addDomains, addSecondary, addVariants, conservation, GeneExons, geneLetters, P53 } from './data.js';
+import { confidence } from './themes.js';
 
 // The small layers' views (the Features stories of the layers): the ruler, secondary structure, variants, values as a
 // line and an area, ranges drawn as lines and with arrowheads, each on p53 and, where the axis matters, on its gene;
@@ -68,7 +69,10 @@ export function variants(): Node {
   return b.build();
 }
 
-/** The conservation as bars, a line and an area (two residues missing: the line breaks there). */
+/**
+ * The conservation as bars, a line and an area (two residues missing: the line breaks there) and as points, then a
+ * confidence colored by pLDDT's bands as a line (zoomed in to 6 px a residue, each value has its dot) and as points.
+ */
 export function valuesLine(): Node {
   const b = createSeqSpec({ title: 'p53 conservation as a line and an area' });
   const { p53 } = data(b);
@@ -79,6 +83,56 @@ export function valuesLine(): Node {
     s.track('bars', { label: 'Bars' }).layer('bars', { type: 'values', data: c });
     s.track('line', { label: 'Line' }).layer('line', { type: 'values', data: c, encoding: 'line' });
     s.track('area', { label: 'Area' }).layer('area', { type: 'values', data: c, encoding: 'area' });
+    s.track('points', { label: 'Points' }).layer('points', { type: 'values', data: c, encoding: 'points' });
+    const plddt = b.data.values('confidence', { target: p53, values: confidence() });
+    s.track('plddt-line', { label: 'pLDDT line' }).layer('plddt-line', {
+      type: 'values',
+      data: plddt,
+      encoding: 'line',
+      domain: [0, 100],
+      color: theme.scheme('plddt'),
+    });
+    s.track('plddt-points', { label: 'pLDDT points' }).layer('plddt-points', {
+      type: 'values',
+      data: plddt,
+      encoding: 'points',
+      domain: [0, 100],
+      color: theme.scheme('plddt'),
+    });
+  });
+  return b.build();
+}
+
+/**
+ * One confidence, uniform against colored by pLDDT's bands, as bars, a line and points (the Values looks story): the
+ * uniform series keeps the tints of its one color, the colored one draws each band as its legend does.
+ */
+export function valuesColors(): Node {
+  const b = createSeqSpec({ title: 'p53 confidence, uniform and by value' });
+  const { p53 } = data(b);
+  const plddt = b.data.values('confidence', { target: p53, values: confidence() });
+  b.views.view('main', (v) => {
+    const s = v.section('protein', { of: p53 });
+    s.track('ruler', { label: '' }).layer('ruler', { type: 'ruler' });
+    for (const [id, label, encoding] of [
+      ['bars', 'bars', 'bars'],
+      ['line', 'line', 'line'],
+      ['points', 'points', 'points'],
+    ] as const) {
+      s.track(`uniform-${id}`, { label: `Uniform ${label}` }).layer(`uniform-${id}`, {
+        type: 'values',
+        data: plddt,
+        encoding,
+        domain: [0, 100],
+      });
+      s.track(`value-${id}`, { label: `By value ${label}` }).layer(`value-${id}`, {
+        type: 'values',
+        data: plddt,
+        encoding,
+        domain: [0, 100],
+        color: theme.scheme('plddt'),
+      });
+    }
   });
   return b.build();
 }

@@ -39,8 +39,9 @@ export const SecondaryStructure: StoryObj = story('secondary');
 export const Variants: StoryObj = story('variants');
 
 /**
- * Values as bars, a line and an area: the line is held flat over half a cell at its ends and where residues 101 and
- * 102 are missing, where it breaks; the area is the line's, under it.
+ * Values as bars, a line, an area and points: the line is held flat over half a cell at its ends and where residues 101
+ * and 102 are missing, where it breaks; the area is the line's, under it; points are a dot a value. Below, a confidence
+ * in pLDDT's bands, drawn at full strength as a line and as points. Zoom in to 6 px a residue: a line shows its dots.
  */
 export const ValuesAsALineAndAnArea: StoryObj = story('values-line');
 

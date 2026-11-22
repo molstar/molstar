@@ -9,7 +9,7 @@ import { createSeqViewer } from '@molstar/seqx-viewer/viewer';
 import { defineElements, onCleanup } from '@molstar/ui/dom';
 import { UiElement } from '@molstar/ui/elements/ui-element';
 import { withViewRegistry } from '../../examples/view-registry.js';
-import { type CellEntry, Cells, zoomed } from './compose.js';
+import { AllCells, type CellEntry, zoomed } from './compose.js';
 
 // The values look story's element: the look in the light theme and the dark one side by
 // side, each a viewer of the examples' views per cell, live (hover, drag and the keys work in each). The theme is the
@@ -47,7 +47,7 @@ function theme(name: 'light' | 'dark', cells: readonly CellEntry[]): HTMLElement
   box.append(text('h5', name === 'light' ? 'Light' : 'Dark', Muted));
   for (const cell of cells) {
     const host = document.createElement('div');
-    host.style.cssText = 'min-width: 0; max-height: 300px; overflow: hidden;';
+    host.style.cssText = 'min-width: 0; max-height: 520px; overflow: hidden;';
     host.setAttribute('data-cell', cell.id);
     box.append(text('h6', cell.title, `${Muted} font-size: var(--msui-text-xs);`), host);
     mount(cell, host);
@@ -70,7 +70,7 @@ export class ValuesLooksRoot extends UiElement<readonly CellEntry[]> {
     root.append(
       text(
         'p',
-        'The values layer: below 4 px a value one stepped profile (the area at 35% under a 0.75 px line in the full color); from 4 px bars with a 1 px gap and rounded tops. The top tenth of the well is headroom, a hairline marks the baseline, a missing value is a gap. Each is live: hover a value to light it.',
+        'The values layer: below 4 px a value one stepped profile (the area at 35% under a 0.75 px line in the full color); from 4 px bars with a 1 px gap and rounded tops. The top tenth of the well is headroom, a hairline marks the baseline, a missing value is a gap. A color from the value (pLDDT’s bands) is drawn at full strength, the series color tinted; a line shows a dot a value from 6 px, and points are the dots alone. Each is live: hover a value to light it.',
         Muted,
       ),
       pair,
@@ -83,6 +83,6 @@ defineElements([ValuesLooksRoot]);
 
 export function valuesLooksStory(): HTMLElement {
   const el = document.createElement(ValuesLooksRoot.tag) as ValuesLooksRoot;
-  el.model = Cells;
+  el.model = AllCells;
   return el;
 }
