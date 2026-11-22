@@ -19,12 +19,12 @@ import { endsIn, type PairsPrep } from './pairs-lay.js';
 import { Gather, withData } from './pairs-region.js';
 
 // Held pairs by the pairs level (_spec/README.md "Render", The pairs layer: held pairs past the gate): a held table
-// (inline pairs, a small generated genome's links, inline links over an assembly on its blocks) whose pairs with an end
-// in view pass `pairs.maxArcs` is binned as the store's summaries bin a level-1 source's pairs: levels
+// (inline pairs, a small generated genome's links, inline links over an assembly on its blocks) whose pairs the arcs
+// reach (`inView`) pass `pairs.maxArcs` is binned as the store's summaries bin a level-1 source's pairs: levels
 // `summaries.factor` apart up to the longest system, each from the one below, only those that halve the rows below
 // kept; the level read the coarsest kept no wider than `pairs.binPx` device pixels, each bin pair one arc stroked by
-// its count. So a held table and the same pairs from a file are one picture. Over an assembly each end is on its
-// row's unit (a sequence), binned on it. The pyramid is a prep's (its filter's shown pairs, rebuilt with the prep), each
+// its count. So a held table and the same pairs from a file are one picture. Over an assembly each end is on its row's
+// unit (a sequence), binned on it. The pyramid is a prep's (its filter's shown pairs, rebuilt with the prep), each
 // level built when first read and kept, each level's prep once.
 
 interface HeldPyramid {
@@ -45,10 +45,18 @@ interface HeldPyramid {
 
 const Pyramids = new WeakMap<PairsPrep, HeldPyramid>();
 
-/** Pairs of `prep` with an end in the axis's window (a pair once), its filter's shown ones only. */
+/**
+ * Pairs of `prep` the arcs layout reaches at the axis's window (a pair once), its filter's shown ones only: an end in
+ * it, its ends on either side of it (an arc across the window), or both past one edge within `reach` of the window (in
+ * the arcs' scale before they show). So the gate counts what the layout draws, never fewer: a pair across the view
+ * never turns the items to device-column bins the gate did not ask for.
+ */
 function inView(prep: PairsPrep, ctx: LayoutContext, axis: AxisTransform): number {
   const ends = endsIn(prep, ctx.section, axis);
   const u = ends.u;
+  const r = prep.reach * (axis.u1 - axis.u0);
+  const lo = axis.u0 - r;
+  const hi = axis.u1 + r;
   let n = 0;
   let last = -1;
   for (let e = 0; e < ends.n; e++) {
@@ -56,7 +64,9 @@ function inView(prep: PairsPrep, ctx: LayoutContext, axis: AxisTransform): numbe
     if (k === last || !prep.shown[k]) continue;
     const a = u[2 * e];
     const b = u[2 * e + 1];
-    if ((a >= axis.u0 && a <= axis.u1) || (b >= axis.u0 && b <= axis.u1)) {
+    const inA = a >= lo && a <= hi;
+    const inB = b >= lo && b <= hi;
+    if (inA || inB || (a < axis.u0 && b > axis.u1) || (b < axis.u0 && a > axis.u1)) {
       n++;
       last = k;
     }

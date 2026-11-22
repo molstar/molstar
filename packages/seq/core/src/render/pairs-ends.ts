@@ -124,8 +124,9 @@ function onBlock(
     }
     // a chip is one unit: every residue of its molecule's ends at its middle
     if (b.form === 'whole') return b.offset + 0.5;
+    // a block's units are its positions times its scale (`ResolvedBlock.scale`)
     const c = centreOf(shape(b.axis), from, to);
-    return Number.isNaN(c) ? c : b.offset + c;
+    return Number.isNaN(c) ? c : b.offset + c * (b.scale ?? 1);
   }
   return Number.NaN;
 }

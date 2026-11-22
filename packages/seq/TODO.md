@@ -24,10 +24,16 @@ loaded when used, sections over a source's complex, the genome axis and layouts)
 - **A component query on a source-backed sequence** (`(elements :component X)`) is pending until the source's letters
   are read (EC-169); a format with a component index could answer it without the letters.
 
-- **Bridges' follow-ups** (LA, 2026-11-22; across-sections.md): over assemblies a bridge reads once, on side `a` (LA2);
-  grids over two sections, categorical axes, the liftover (LA3); the resize grip, bridge menus, a ribbon's double-click,
-  `bridge.pointer`; sections have no label, so a card names a side by its section id; Shift+A is the command's own
-  shortcut, not in `view.keys`; the bridge chunk is 23.5 of its 24 kB row (the design estimated 6).
+- **Arcs' follow-ups** (FX13, 2026-11-22): an end past the window on a stacked row or a text line is still a caret (only
+  one line of translate strips gets virtual ends); a ring's arcs are unchanged.
+
+- **Bridges' follow-ups** (LA, LA2, 2026-11-22; across-sections.md): grids over two sections, categorical axes, the
+  liftover (LA3); the resize grip, bridge menus, a ribbon's double-click, `bridge.pointer`; sections have no label, so a
+  card names a side by its section id; Shift+A is the command's own shortcut, not in `view.keys`; the bridge chunk is
+  25.2 of its 28 kB row (the design estimated 6). Left by LA2: the ribbons inside the SVG bridge group (the export still
+  draws them in the passes); the items gate per side after ownership (a side's bins counted before ownership); an
+  assembly side's pending hatch; a sided source on one sequence read sided only in a bridge; a bridge re-layout
+  allocates 486 kB (500 kB bound set to hold it, not a target).
 
 - **Region reads' follow-ups** (RG, 2026-11-22): sided pairs read on side `a` only (side `b` for a track on genome b,
   LA's); matrix state labels in the header, `order` and `hidden`; a pairs bin card's per-category breakdown;

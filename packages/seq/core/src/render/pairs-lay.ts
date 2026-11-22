@@ -247,7 +247,8 @@ export function prepare(layer: ResolvedLayer, model: StaticModel): PairsPrep {
   const src = !data && a?.shape === 'pairs' && a.access?.kind === 'source' ? layerSource(model, layer) : undefined;
   const bName = a?.ySystem ? model.systems.get(a.ySystem)?.name : undefined;
   // over an assembly: a read a block, each end on its sequence (`pairs-assembly.ts`)
-  const over = src && a?.bySystem ? assemblyRegion(a.bySystem, (s) => model.systems.get(s)?.length) : undefined;
+  const over =
+    src && a?.bySystem ? assemblyRegion(a.bySystem, (s) => model.systems.get(s)?.length, a.bySystemB) : undefined;
   const region = src
     ? { src, aName: src.system, bName: bName ?? src.system, ...(over ? { assembly: over } : {}) }
     : undefined;
