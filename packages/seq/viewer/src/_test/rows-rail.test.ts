@@ -166,6 +166,31 @@ describe('the rows rail', () => {
     expect(band(v)?.rowScale).toBeCloseTo(before, 6);
   });
 
+  it('with the inset (the well’s corner radius): a press in the inset zone maps to the end; a body drag maps unit-exact', async () => {
+    const v = await make(spec(60));
+    v.view.setBand(RowsTrack, { bandTop: 10 });
+    v.draw();
+    let r = rowsRail(v)!;
+    expect(r.inset).toBeGreaterThan(0);
+    const x = r.top + 6;
+    // a body drag of 10 rows' px moves the top exactly 10 rows
+    const mid = yOf(r, 12.5);
+    v.input.down(x, mid);
+    v.input.move(x, mid + (yOf(r, 20) - yOf(r, 10)));
+    expect(band(v)?.bandTop).toBeCloseTo(20, 6);
+    v.input.up();
+    v.draw();
+    // a click past the inset axis's end, inside the old extent: the rows centre at the end (clamped to the last rows)
+    r = rowsRail(v)!;
+    const past = r.x + r.width + r.inset / 2;
+    v.input.down(x, past);
+    v.input.up();
+    v.input.click(x, past);
+    v.draw();
+    r = rowsRail(v)!;
+    expect(r.end).toBeCloseTo(60, 6);
+  });
+
   it('a double-click on its window resets the rows’ zoom (a jump, the top row kept); outside it nothing', async () => {
     const v = await make(spec(60));
     v.view.setBand(RowsTrack, { bandTop: 10, rowScale: 4 });

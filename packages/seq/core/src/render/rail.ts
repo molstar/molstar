@@ -405,7 +405,7 @@ export function drawRail(
   // a place hovered outside the window (at the fit, its whole body): its position marked, the rail never grown or lit
   const place = lit === 'outside' && !dragged && !Number.isNaN(rail.markAt);
   const used = rail.active && ((lit !== undefined && !place) || dragged);
-  paint(rail, out, tokens, config, used, place, dragged ? d.part : lit);
+  paint(rail, out, tokens, config, used, dragged, place, dragged ? d.part : lit);
 }
 
 /** A color with its alpha set (0 to 1). */
@@ -476,6 +476,7 @@ function paint(
   tokens: SeqTokens,
   config: RenderConfig,
   used: boolean,
+  dragged: boolean,
   place: boolean,
   part: WindowPart | undefined,
 ): void {
@@ -527,13 +528,14 @@ function paint(
     pillOut(out, rail);
   }
   if (rail.hit.navigator === LanesRail) return;
-  // the knobs: a little taller than the segment (small at the fit), the hovered one and the dragged grown
+  // the knobs, circles centred on the window's true ends (a wrapped window's second piece ends before the axis's end):
+  // 5 px at rest (4 at the fit), 10 hovered, 12 dragged, the hovered end one more, each about its centre; they may
+  // overhang the slim row (nothing else is drawn on the rail's line, and the window pass is not clipped)
+  const wraps = rail.end > rail.total;
   for (let e = 0; e < 2; e++) {
     const end = part === (e === 0 ? 'start' : 'end');
-    // a circle centred on the window's end at every size: hover grows its radius about that centre, the ring included
-    // within the slim row (SlimRailPx)
-    const dia = Math.min(SlimRailPx - 2, (quiet ? 4 : t + 3) + (used && end ? 2 : 0));
-    const c = e === 0 ? a : b;
+    const dia = (quiet ? 4 : used ? (dragged ? 12 : 10) : 5) + (used && end ? 1 : 0);
+    const c = e === 0 ? a : wraps ? lo + ((rail.end - rail.total) / rail.total) * rail.width : b;
     Dk[0] = c;
     Dk[1] = dia + 2;
     Dk[2] = bg;
@@ -550,19 +552,20 @@ function paint(
  * at its true ends only.
  */
 export function hitRail(rail: Rail, px: number, py: number, config: RenderConfig, touch = false): Hit | undefined {
-  // along the rail and across it (upright: the page's y and x)
+  // along the rail and across it (upright: the page's y and x); the grab zone reaches the inset (the old extent), a press
+  // there is at the axis's end (the unit is clamped)
   const x = rail.vertical ? py : px;
   const y = rail.vertical ? px : py;
   if (!rail.active || !(rail.total > 0) || y < rail.top || y >= rail.bottom) return undefined;
   const c = config.navigator.window;
   windowEnds(rail, config);
-  let part = navigatorPart(x, Ends[0], Ends[1], rail.x, rail.x + rail.width, c, touch);
+  let part = navigatorPart(x, Ends[0], Ends[1], rail.x - rail.inset, rail.x + rail.width + rail.inset, c, touch);
   if (rail.end > rail.total) {
     // the first piece runs to the axis's end: its end there is body
     if (part === 'end') part = 'body';
     if (part === 'outside') {
       const b = rail.x + ((rail.end - rail.total) / rail.total) * rail.width;
-      part = navigatorPart(x, rail.x, b, rail.x, rail.x + rail.width, c, touch);
+      part = navigatorPart(x, rail.x, b, rail.x - rail.inset, rail.x + rail.width + rail.inset, c, touch);
       if (part === 'start') part = 'body';
     }
   }
