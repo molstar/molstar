@@ -88,6 +88,14 @@ const ParticleListFromPackStream = PluginStateTransform.BuiltIn({
         plugin.managers.asset,
         (m) => plugin.log.warn(`Particle pack: ${m}`),
       );
+      // no GPU cull to draw it by range (a session restored on WebGL, a canvas without one): read whole, as a pack
+      // opened without range reads is
+      if (!canCullOnGpu(plugin.canvas3d?.graphics)) {
+        plugin.log.warn('Particle pack: read whole, its templates not drawn by range without WebGPU');
+        const list = createParticleListFromPack(readParticlePack(await read.read(0, read.byteLength)));
+        const label = params.label || list.label || 'Particles';
+        return new SO.Particle.List(list, { label, description: 'Particle Pack' });
+      }
       const list = await openParticleListFromPackStream(await openParticlePackStream(read));
       const label = params.label || list.label || 'Particles';
       return new SO.Particle.List(list, { label, description: 'Particle Pack · read by range' });

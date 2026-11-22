@@ -596,6 +596,11 @@ export interface PagedCullView {
    */
   readonly pyramidToCome?: boolean;
   /**
+   * a second phase to follow a cull with a pyramid (`cullSecond`, Hi-Z's two phases on): none, the first's slots the
+   * frame's (its cursors read back, its fallback), its occluded left out
+   */
+  readonly secondPhase?: boolean;
+  /**
    * a copy drawn at its template's coarse level (`PagedEntryLevelShift`) where its template's spacing at its center's
    * distance is below `pixels` (a level coarser each halving: its sample's spacing twice its level's before): `scale`
    * pixels a unit at a distance of 1 (orthographic at any); none: every copy the template whole
@@ -641,6 +646,12 @@ export interface PagedCuller {
    * cursors from 0, `counts` the first's); false where nothing ran
    */
   cullSecond: (pyramid: OcclusionPyramid) => boolean;
+  /**
+   * The second phase of the last `cull` not to run (no pyramid of the frame, nothing drawn before it): the first's
+   * cursors read back (its rooms grown, the view culled again where they overflowed); its fallback not (its records
+   * dispatched before)
+   */
+  endFirst: () => void;
   /** the last select's entries in their order (`PagedCullOrderBuckets`): a page and its copy (`NoCopy` none) each */
   readSelectedEntries: () => Promise<{ page: number; copy: number }[]>;
   readonly counts: StorageBuffer;
@@ -2050,7 +2061,7 @@ export function createPagedCuller(
         this.sync(source, NoChanges, syncedReaches);
       }
       culled = activeCount > 0 && memberCount > 0;
-      culledWithPyramid = culled && !!pyramid;
+      culledWithPyramid = culled && !!pyramid && view.secondPhase !== false;
       pyramidToCome = !pyramid && !!view.pyramidToCome;
       if (!culled) return;
       // the frame's slots grown where a cull read back needed more (`readCursors`)
@@ -2159,13 +2170,21 @@ export function createPagedCuller(
       select();
       readWants();
       runPass('paged cull', true);
-      // with a pyramid or not: the survivors' room (`PagedCullGroupsKernel`)
-      readSelected(!!pyramid);
-      // no second phase to follow: this phase's slots the frame's (read before the fallback's)
+      // no second phase to follow: this phase's slots the frame's (read before the fallback's), its selected entries
+      // the survivors' room's (`PagedCullGroupsKernel`) and with a pyramid the bits'; else read where the phases end
+      // (one read at a time: the second's not made while the first's is on its way)
       if (!culledWithPyramid) {
+        readSelected(!!pyramid);
         readCursors(firstCounts, !pyramidToCome && !residencyChanged, false);
         fallback();
       }
+    },
+
+    endFirst() {
+      if (!culledWithPyramid) return;
+      culledWithPyramid = false;
+      readSelected(true);
+      readCursors(firstCounts, !residencyChanged, false);
     },
 
     cullSecond(pyramid) {
@@ -2181,8 +2200,9 @@ export function createPagedCuller(
       // the copies the first left out that the frame's pyramid shows, after the first's entries
       select(true);
       runPass('paged cull, second phase', false);
-      // the first's entries and those the second added: the survivors' room for both
-      readSelected(false);
+      // the first's entries and those the second added: the survivors' room for both, the bits' for the first's (the
+      // count of both: grown for a few more)
+      readSelected(true);
       readCursors(secondCounts, !residencyChanged, true);
       fallback();
       ValueCell.updateIfChanged(uniforms.uPhase, 0);

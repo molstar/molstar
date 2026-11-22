@@ -1094,6 +1094,8 @@ export function createPagedMergedCuller(
       dispatchVersion += 1;
       predictRecords(cameraPlane, frustum, rasterRegion ? raster : undefined, objectTransform);
       setAllRecords();
+      // the last cull's second phase not run (another view first): its cursors read, its rooms grown
+      if (secondPending) culler.endFirst();
       culler.cull(
         {
           frustum,
@@ -1105,6 +1107,7 @@ export function createPagedMergedCuller(
           raster,
           objectTransform,
           pyramidToCome: twoPhase && !pyramid,
+          secondPhase: twoPhase,
           coarse: getCoarse(lod),
         },
         pyramid,
@@ -1144,7 +1147,11 @@ export function createPagedMergedCuller(
     dispatchSecond(pyramid) {
       if (!secondPending) return false;
       secondPending = false;
-      if (!pyramid || !argsKernel || !culler.cullSecond(pyramid)) return false;
+      if (!pyramid || !argsKernel || !culler.cullSecond(pyramid)) {
+        // none to run: the first's cursors read (its rooms grown)
+        culler.endFirst();
+        return false;
+      }
       // the second's records: its regions' counts and bases into records of the same draws
       const bytes = writtenRecords.byteLength;
       if (secondArgs.byteLength < bytes) {

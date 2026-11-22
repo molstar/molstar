@@ -354,6 +354,27 @@ describe.skipIf(!WebGPU.module)('a page store culled on the GPU', () => {
       expect(small.cullSecond(pyramidOf(0))).toBe(true);
       expect(await total(small.secondCounts)).toBe(visible - unoccluded);
       small.destroy();
+
+      // no second phase to follow (Hi-Z's two phases off, a stereo eye): the first's count read where it culled, the
+      // bits grown, a cull again; then as with bits for all, its occluded left out
+      const single = createPagedCuller(compute, graphics.resources, { ...FullRooms, occlusionInitialEntries: 1 });
+      single.sync(store, { written: [], released: [], runs: [], extras: [], grown: false }, [2, 3, 1.5, 4]);
+      single.cull({ ...view, secondPhase: false }, pyramidOf(1));
+      expect(await total(single.counts)).toBe(first);
+      expect(single.cullSecond(pyramidOf(0))).toBe(false);
+      expect(await advancedPast(single, 0)).toBe(true);
+      single.cull({ ...view, secondPhase: false }, pyramidOf(1));
+      expect(await total(single.counts)).toBe(unoccluded);
+      single.destroy();
+
+      // a second phase to follow that does not run (no pyramid of the frame): the first's count read at its end
+      const dropped = createPagedCuller(compute, graphics.resources, { ...FullRooms, occlusionInitialEntries: 1 });
+      dropped.sync(store, { written: [], released: [], runs: [], extras: [], grown: false }, [2, 3, 1.5, 4]);
+      dropped.cull(view, pyramidOf(1));
+      dropped.endFirst();
+      expect(dropped.cullSecond(pyramidOf(0))).toBe(false);
+      expect(await advancedPast(dropped, 0)).toBe(true);
+      dropped.destroy();
       expect(graphics.takeErrors?.() ?? []).toEqual([]);
       culler.destroy();
     } finally {
