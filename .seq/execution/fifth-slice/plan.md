@@ -206,7 +206,7 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
         download asked in the brief); fuzz and malformed-input tests as BE's and GG's. Its own size row (under 30 kB
         like the other runtimes). The story side: "Try pUC19.gb" loads it (fixes.md), and a plasmid story reads the
         GenBank file beside the GFF3 one, the two views equal.
-- [ ] **BS** (added 2026-11-22, the author: "keep it in core for now, but add a storybook example to features section
+- [x] **BS** (merged 2026-11-22, `5bf984d5b`) (added 2026-11-22, the author: "keep it in core for now, but add a storybook example to features section
       that showcases it"; `briefs/bs-builder-showcase.md`; fast, storybook only, beside any lane) **the builder
       showcased**: `Features/Builder`, each story the builder code shown beside the view it builds; the builder stays
       in `seqx-core/lang` (no package of its own for now).

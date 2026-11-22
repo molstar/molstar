@@ -12,7 +12,7 @@ import { args, finish } from "../oz/_checks/lib.ts";
 
 const FEATURES = ".seq/design/features.md";
 const argv = process.argv.slice(2);
-let plan = ".seq/execution/fifth-slice/plan.md";
+let plan: string | undefined; // the slice's plan, always given: a check never names a work folder (§execution-unreferenced)
 const at = argv.indexOf("--plan");
 if (at >= 0) {
   const v = argv[at + 1];
@@ -22,6 +22,10 @@ if (at >= 0) {
   }
   plan = v;
   argv.splice(at, 2);
+}
+if (plan === undefined) {
+  console.error("usage: features-planned.ts --plan <the slice's plan.md>");
+  process.exit(2);
 }
 process.argv.splice(2, process.argv.length, ...argv);
 const { root: ROOT } = args();

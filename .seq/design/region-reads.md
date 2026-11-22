@@ -5,7 +5,7 @@ Lane RR's design (the fifth slice, stage 0; agreed by the author 2026-11-21 and 
 data rules, Tensions), [data-store](data-store.md) (summaries), [layouts](layouts.md)
 (an image on a ring), [performance](performance.md) (structures, scale) and
 [files](files.md) (held pairs from files) (below, Consequences). Built on Gate 0's answers as
-recommended ([plan](../execution/fifth-slice/plan.md)): bundling is **core's pairs level**, which the ring extension reads (4); MAF is cut
+recommended (the fifth slice's plan): bundling is **core's pairs level**, which the ring extension reads (4); MAF is cut
 (1), so wide alignments are not designed here; public API changes stay in `packages/seq` (no
 `@molstar/core` or `@molstar/io` change). Built on GA's design ([genome-coordinates](genome-coordinates.md)): assemblies,
 blocks, the places index (`placesOf`), runs of sub-pixel blocks, the twist rule, the square navigator's coordinates.

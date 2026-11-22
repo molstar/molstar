@@ -292,6 +292,11 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   address reader turns `01` into 1 before Seq* sees it. Keeping the text would need a raw-token surface in core repr
   (allowed: repr's public API is open to this work); take it only if a real name set needs it.
 
+- **Three element classes exported from stories files show as stories** (found by BS's guard, 2026-11-22, kind: look):
+  `LegendPlacementsRoot`, `ThemesEditingRoot`, `SchemesGalleryRoot` are `export class` in `*.stories.ts`, so Storybook
+  lists each as a story; their tests import them. Move each to a module of its own beside its story and drop it from
+  `story-exports.test.ts`'s `Known` list.
+
 ## Fixed
 
 - **The rail's place as a list, and a pinned place**: FX4, `railPlace` one place or a list; `pinned` at the

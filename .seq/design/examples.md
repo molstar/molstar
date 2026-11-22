@@ -528,7 +528,7 @@ runtimes' conformance suites (GF). Cut: 3 (the 1000 Genomes panel), 4 (bigBed), 
 
 ##### Decided by the author
 
-2026-11-21, as recommended (the author: "generally reasonable and we can fold in the reviews"; reviewed in [gd-review](../execution/fifth-slice/reviews/gd-review.md) before promotion, the whole-designs review's twelfth recommendation).
+2026-11-21, as recommended (the author: "generally reasonable and we can fold in the reviews"; reviewed before promotion (the fifth slice's GD review), the whole-designs review's twelfth recommendation).
 
 1. **Toy B unprefixed, toy A prefixed**, so the alias rule is exercised: **decided yes**.
 2. **The 12,000 links generated at load**, a 1,000-link BEDPE committed for the reader: **decided yes**.

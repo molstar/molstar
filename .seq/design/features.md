@@ -32,7 +32,7 @@ that shows it (dataset: view).
 |---|---|---|---|---|---|
 | One tree, one node shape | `{ kind, id, params, children }`, addresses, refs | done | [format](format.md) | 68–71, 77 | every view |
 | Language as data | one description: validation, defaults, builder types, docs, agent skill | building: description, validation, defaults, builder types; docs and agent skill not | [format](format.md) | 86–88 | — |
-| Typed builder | the main way to write a spec; misuse is a type error | done | [format](format.md) | — | every view |
+| Typed builder | the main way to write a spec; misuse is a type error | done | [format](format.md) | — | every view; Features › Builder (six stories, the code beside the view) |
 | S-expression printing and reading | inspection, docs, tests, agent input; never stored | done | [format](format.md) | — | every view (printed beside it) |
 | Validation, every issue | stable codes, hints, counts, severity with one meaning | building: codes, hints, severity; the Antibody view exists (DA), its invalid labels not shown; EC-88 and EC-89's outcomes not recorded | [format](format.md) | 6, 76–78, 86–89 | Antibody: invalid labels |
 | Versions and migrations | one semver, explicit migrations, lenient minors | building: the version gate only | [format](format.md) | 72–74, 235 | — |
