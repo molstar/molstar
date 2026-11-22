@@ -61,16 +61,6 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   full selection resolved once on release. Bound each drag kind's frame to the budget at 0 bytes warm in the perf
   tier. A strong-model lane; it closes the PAE drag item and the 3,000-contig drag-select part below.
 
-- **"Try pUC19.gb" looks like it does nothing** (the author, 2026-11-21, Examples › Services › Your own file:
-  "pUC19.gb doesn't load anything"). By design today: GenBank is out of the slice's scope (plan, Out of scope), and
-  `dropped-file.ts:71` refuses `.gb`/`.gbk` with "GenBank files are not read yet"; the story's "Try pUC19.gb" button
-  (`drop-root.ts:30`, its sample in fact `sources.json`) exists to show that refusal. But the refusal is a small grey
-  line above the buttons and the box stays empty, so it reads as broken. Drop the "Try" button for a format that isn't
-  read (a Try button promises a load), keep the refusal for a dropped file of a format not read, shown as a notice in
-  the box (the file's name, why, the formats that are); a story test that every Try button loads a view. GenBank
-  itself comes into the slice (the author, 2026-11-21: "Add a GenBank lane"; plan, GB): after GB, "Try pUC19.gb"
-  loads the recorded GenBank file and `.gb` leaves the refused list; until then the button goes.
-
 - **The novice decisions, to build** (stage 1's gate, the author, 2026-11-21: "Yes, all five"; novice-findings.md):
   F3 the fake's "Within 5 Å" on a selection that is already the chain selects the residues of the other chains within
   5 Å (never the selection again), its card "n residues within 5 Å of chain A"; F9 the track the structure is coloured
@@ -272,6 +262,15 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 
 ## Fixed
 
+- **"Try pUC19.gb" looks like it does nothing** (fixed by GB, merged 2026-11-22: the button loads the GenBank file) (the author, 2026-11-21, Examples › Services › Your own file:
+  "pUC19.gb doesn't load anything"). By design today: GenBank is out of the slice's scope (plan, Out of scope), and
+  `dropped-file.ts:71` refuses `.gb`/`.gbk` with "GenBank files are not read yet"; the story's "Try pUC19.gb" button
+  (`drop-root.ts:30`, its sample in fact `sources.json`) exists to show that refusal. But the refusal is a small grey
+  line above the buttons and the box stays empty, so it reads as broken. Drop the "Try" button for a format that isn't
+  read (a Try button promises a load), keep the refusal for a dropped file of a format not read, shown as a notice in
+  the box (the file's name, why, the formats that are); a story test that every Try button loads a view. GenBank
+  itself comes into the slice (the author, 2026-11-21: "Add a GenBank lane"; plan, GB): after GB, "Try pUC19.gb"
+  loads the recorded GenBank file and `.gb` leaves the refused list; until then the button goes.
 - **The SVG export blank on a spec with an error** (fixed by FX6, merged 2026-11-22) (drift svg-on-error, decided as recommended by the author,
   2026-11-22: "go as recommended with the drifts"; kind: bug): `exportSvg` returns a blank picture when `checkSeqSpec`
   finds an error (`packages/seq/core/src/render/export.ts`, about 435 and 441, `if (hasErrors(issues)) return

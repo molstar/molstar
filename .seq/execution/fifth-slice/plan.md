@@ -192,7 +192,7 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
         over both (GFF3's `Name`, `ID`, `Alias`; GTF's `gene_name`, `gene_id`, `transcript_name`, `transcript_id`);
         the ranges layer's `line: 'gene'`.
   - [x] **VC** (merged 2026-11-22, `364acfb5e`) (`briefs/vc-vcf.md`) VCF sites at level 1, extents by the index's rule, the anchor base kept.
-  - [ ] **GB** (added 2026-11-21, the author: "Add a GenBank lane"; `briefs/gb-genbank.md`; strong, untrusted input;
+  - [x] **GB** (merged 2026-11-22) (added 2026-11-21, the author: "Add a GenBank lane"; `briefs/gb-genbank.md`; strong, untrusted input;
         after VC, alone in the formats track) **GenBank read whole**: a short design section first (genome-formats.md,
         "GenBank", agreed in the brief: what the runtime answers and what it refuses), then `format: 'genbank'`: a
         file of one or more records, each a sequence (LOCUS's name, length and topology: `circular` a cyclic system;

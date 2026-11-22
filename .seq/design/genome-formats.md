@@ -373,6 +373,35 @@ export function readHeaderLines(reader: BgzfReader, index: TabixIndex, limits?: 
 - **One file a chromosome** (1000 Genomes, gnomAD) is one source a file this slice; a source over several files is
   open (Tensions).
 
+### GenBank (`runtimes/genbank`; added 2026-11-22, the author: "Add a GenBank lane")
+
+- **What it answers**: a file of one or more records (`LOCUS` … `//`), each **a sequence** named by LOCUS's name (its
+  `ACCESSION.VERSION` an alias by the names rule), its length LOCUS's, `circular` a cyclic system, the molecule type
+  (`DNA`, `RNA`, `mRNA`, `AA`) its alphabet, ORIGIN's letters (digits and spaces dropped, case kept); **its features as
+  ranges** on that sequence: the key the `category` (`source` an item too), the qualifiers fields (`/label`, `/gene`,
+  `/product`, `/note`, `/locus_tag`, any other by name as text; a flag qualifier `true`; a repeated qualifier joined by
+  `; `, each value a name; `/translation` dropped, counted, said once), strand from `complement`; `id`
+  `<key>@<start>-<end>` on the 1-based inclusive hull (an origin join `CDS@2312-3172`, as GFF3 writes it), `#2` … on a
+  repeat in file order; the label `/label`, else `/gene`, else `/locus_tag`, else the key. DEFINITION and ORGANISM are
+  kept on the opened source's records (the protocol has no description field: a question for a later slice).
+- **Locations**: `a..b`, `a`, `a.b` (its hull, said once), `complement`, `join`, `order` as pieces of one item, nesting
+  both ways, at most 16 operators deep; `<` and `>` partial ends as int8 fields `partial_start`, `partial_end`.
+  **Only `join` wraps a circular record's origin** (`join(2600..2686,1..120)` one item across it; more than one lap
+  refused; a wrapped end past 2^31 − 1 refused); `order` is unordered, its pieces where they are. **Refused per feature,
+  never the file** (`seq.source.genbank.location`): remote references (`J00194.1:100..202`), `a^b` sites, a location
+  past the record's length or malformed.
+- **An open quote**: a line at the feature-key indent with a key and a location start closes it, said
+  (`seq.source.genbank.feature`), and is read as a new feature; at the table's end it closes with its text.
+- **Skipped, said**: REFERENCE, COMMENT, DBLINK, KEYWORDS; CONTIG, WGS, WGS_SCAFLD, TSA and TLS records (the file
+  kept). **Refused, the file**: no `LOCUS` line; a truncated last record (the records before it kept, said).
+- **Names**: `findNames` over `/label`, `/gene`, `/locus_tag`, the LOCUS name and the accession, built once at open.
+- **Bounds**: read whole within `limits.maxBytes` and `maxRows`; `maxRecords` 1,000, `maxQualifiers` 256 a feature,
+  `maxQualifierBytes` 64 KiB, `maxLocationPieces` 10,000; ORIGIN letters that disagree with LOCUS's length: the letters
+  win, said.
+- **Fixtures**: the plasmid's derived features written as GenBank by `record.ts` (the restriction sites as
+  `protein_bind`, so it holds what the GFF3 holds; the two plasmid views draw equal lists), and NCBI's L09137.2 record
+  (fetched once by the orchestrator on the author's word, 2026-11-22; only a `source` feature).
+
 ### The `seq` runtime: sided pairs found from either end, a map's runs
 
 The dataset's synteny, dot plot and liftover views read their alignment from the `seq` format, written from the
@@ -525,7 +554,7 @@ they change:
 | `findNames`' `max`, `prefix` | option of the call | 20; false | a list a box shows; prefix for typing |
 | a format's base and ends; side `a` the map's from side; the anchor base kept; a line's extent by the index's rule | fixed | — | the reasons in the Decision |
 
-Not built: FR (the formats by region past level 1, VCF's matrix); BZ, BE, GG and VC built (GFF3 and GTF read whole; VCF sites whole and by region at level 1).
+Not built: FR (the formats by region past level 1, VCF's matrix); BZ, BE, GG, VC and GB built (GFF3, GTF and GenBank read whole; VCF sites whole and by region at level 1).
 
 ## Tensions
 
