@@ -50,6 +50,8 @@ function mountModel(element: HTMLElement, viewer: SeqViewer, model: NavigatorMod
   // the readout is the part's first line, one place: its top right corner, never moving with the window or the pointer
   // (navigators.md, "The window's look", 4). One line; the number is the information: the system's name shrinks to an
   // ellipsis, then to nothing, the value and what follows never do; a value wider than the part runs left (flex-end)
+  const nav = model.navigator;
+  const side = nav?.place === 'left' || nav?.place === 'right' || nav?.axes === 'rows';
   const readout = doc.createElement('div');
   readout.className = 'seqx-navigator-readout';
   readout.setAttribute('aria-live', 'off');
@@ -60,6 +62,9 @@ function mountModel(element: HTMLElement, viewer: SeqViewer, model: NavigatorMod
     height: `${ReadoutLinePx}px`,
     display: 'none',
     justifyContent: 'flex-end',
+    // within the part's width (a miniature's text is clipped at its start); a narrow rows overview's short form runs left
+    maxWidth: side ? 'none' : '100%',
+    overflow: side ? 'visible' : 'hidden',
     boxSizing: 'border-box',
     whiteSpace: 'nowrap',
     font: `var(--msui-text-xs, 11px) / ${ReadoutLinePx}px var(--msui-font-sans, sans-serif)`,

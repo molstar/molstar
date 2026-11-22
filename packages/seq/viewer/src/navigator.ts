@@ -572,7 +572,8 @@ export class NavigatorModel extends ReactiveModel {
 
   /** A window as the readout says it: its region (a rows-only overview the short form, `401–440 / 10,000`). */
   private windowParts(nav: ResolvedNavigator, w: NavigatorWindow): ReadoutParts {
-    if (nav.axes === 'rows') {
+    // a vertical overview is narrow: the rows alone
+    if (nav.axes === 'rows' || (nav.axes === 'both' && (nav.place === 'left' || nav.place === 'right'))) {
       const n = (x: number) => Math.round(x).toLocaleString('en-US');
       return { name: '', value: `${n(w.r0 + 1)}–${n(w.r1)} / ${n(w.rows)}`, rest: '' };
     }
