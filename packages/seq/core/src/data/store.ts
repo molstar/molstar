@@ -8,7 +8,7 @@ import { batch, KeyedState, ReactiveModel, type ReadonlyState, State } from '@mo
 import { type Issue, issueOf } from '@molstar/core/repr/tree';
 import { channelSource } from './channels.js';
 import { SourceIssues, StoreIssues } from './issues.js';
-import { nodeKey } from './keys.js';
+import { dataKey, nodeKey } from './keys.js';
 import {
   type Coverage,
   type DynamicNode,
@@ -330,8 +330,16 @@ export class DataStore extends ReactiveModel {
    * reader of the whole of a long system at a fine level does not build a key a tile.
    */
   keysOf(want: Want): string[] {
+    // a 1D want's keys straight from its tiles' range: a layout lists them every frame, no tile object made
+    if (!want.y) {
+      const t = this._tiles(want);
+      if (!t || t.count > this.settings.maxTilesPerWant) return [];
+      const parts = want.side !== undefined || want.items === true ? { side: want.side, items: want.items } : undefined;
+      const out: string[] = [];
+      for (let i = t.first; i <= t.last; i++) out.push(dataKey(want.source, t.system, t.level, i, parts));
+      return out;
+    }
     const tiles = this.tilesOf(want);
-    if (!want.y) return tiles.map((t) => t.key);
     // a symmetric grid's mirrored tiles share a key: each once
     return [...new Set(tiles.map((t) => t.key))];
   }

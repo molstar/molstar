@@ -351,23 +351,17 @@ export function readTiles(
   for (let i = 0; i + 1 < regions.length; i += 2) {
     const start = regions[i];
     const end = regions[i + 1];
-    // one shape for every want (no spreads): a layout allocates a bounded amount
-    const want: Want = {
-      source: src.source,
-      system: src.system,
-      start,
-      end,
-      level,
-      priority: 'view',
-      layer: extra?.layer ?? ctx.key,
-      items: extra?.items,
-    };
+    // a layout makes these every frame: the view's and its margins' each of one small shape (no spread, no absent
+    // member: an items want is the rare other shape)
+    const layer = extra?.layer ?? ctx.key;
+    const items = extra?.items === true;
+    const want = wantOf(src, start, end, level, 'view', layer, items);
     ctx.want(want);
     const m = Math.ceil((end - start) * ctx.config.margin);
     if (m > 0) {
       const max = src.length ?? Number.MAX_SAFE_INTEGER;
-      if (start > 0) ctx.want({ ...want, start: Math.max(0, start - m), end: start, priority: 'margin' });
-      if (end < max) ctx.want({ ...want, start: end, end: Math.min(max, end + m), priority: 'margin' });
+      if (start > 0) ctx.want(wantOf(src, Math.max(0, start - m), start, level, 'margin', layer, items));
+      if (end < max) ctx.want(wantOf(src, end, Math.min(max, end + m), level, 'margin', layer, items));
     }
     if (!known) {
       out.pending.push(start, end);
@@ -399,6 +393,21 @@ export function readTiles(
     }
   }
   return out;
+}
+
+/** A 1D want of a layer: one shape a kind (an items want's the other). */
+function wantOf(
+  src: LayerSource,
+  start: number,
+  end: number,
+  level: number,
+  priority: 'view' | 'margin',
+  layer: string | undefined,
+  items: boolean,
+): Want {
+  return items
+    ? { source: src.source, system: src.system, start, end, level, priority, layer, items: true }
+    : { source: src.source, system: src.system, start, end, level, priority, layer };
 }
 
 /** Placeholders' x extents: data positions carried onto the section and to x (`x0, x1, cut` triples), into `out`. */

@@ -344,7 +344,13 @@ export const MatrixType: LayerType<MatrixPrep, MatrixLay> = {
     if (pass !== 'data' || !lay.tokens || !lay.axis) return;
     const b = lay.box;
     // the states scrolled: what is past the band is cut
-    out.clip(b.x, b.y, b.width, b.height);
+    const g = out.args;
+    g[0] = b.x;
+    g[1] = b.y;
+    g[2] = b.width;
+    g[3] = b.height;
+    // through the args: numbers passed to a call that is not inlined are boxed (on a ring's warp writer)
+    out.clipArgs();
     if (lay.pend.length) {
       const pending = lay.tokens.colors['seq-pending'];
       for (let k = 0; k + 2 < lay.pend.length; k += 3) {
@@ -352,7 +358,6 @@ export const MatrixType: LayerType<MatrixPrep, MatrixLay> = {
         out.fill(x0, b.y, Math.abs(lay.pend[k + 1] - lay.pend[k]), b.height, pending);
       }
     }
-    const g = out.args;
     for (let k = 0; k < lay.images.length; k++) {
       g[0] = lay.ib[4 * k];
       g[1] = lay.ib[4 * k + 1];
