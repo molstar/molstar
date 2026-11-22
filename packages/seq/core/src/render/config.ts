@@ -328,7 +328,12 @@ export interface RenderConfig {
     readonly trackScale: number;
     readonly trackMinPx: number;
     readonly marks: readonly ('selection' | 'highlights' | 'cursor')[];
-    readonly rail: { readonly grownPx: number; readonly grabShare: number };
+    readonly rail: {
+      readonly grownPx: number;
+      readonly grabShare: number;
+      /** The rail's look (internal, the Rail looks story's: not in the spec until one is picked): `current` or a variant. */
+      readonly look: RailLook;
+    };
     readonly overview: { readonly minPlotPx: number; readonly minPx: number };
     /**
      * The square (two axes over blocks × blocks): past `maxCells` block (or run) pairs (4,096) its lattice's lines are
@@ -385,6 +390,9 @@ export interface RenderConfig {
     readonly heights: RenderConfig['heights'];
   };
 }
+
+/** The rail looks to pick from: today's, a capsule, a capsule in a groove, the groove quiet until hovered. */
+export type RailLook = 'current' | 'capsule' | 'groove' | 'quiet';
 
 export const DefaultRenderConfig: RenderConfig = {
   inset: 8,
@@ -487,7 +495,7 @@ export const DefaultRenderConfig: RenderConfig = {
     trackScale: 0.25,
     trackMinPx: 2,
     marks: ['selection', 'highlights', 'cursor'],
-    rail: { grownPx: 6, grabShare: 0.4 },
+    rail: { grownPx: 6, grabShare: 0.4, look: 'current' },
     overview: { minPlotPx: 160, minPx: 48 },
     square: { maxCells: 4096 },
   },

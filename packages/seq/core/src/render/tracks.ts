@@ -824,6 +824,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
           t.track.address,
           sectionId(section),
           width - config.inset - SlimRailPx,
+          config,
           input.figure === true,
         );
         (rowsRails ??= []).push(r);
@@ -845,6 +846,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
             lay.scrollMax + lay.room,
             lay.room,
             lay.top,
+            config,
           );
           (lanesRails ??= []).push(r);
           break;

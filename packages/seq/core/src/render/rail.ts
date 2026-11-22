@@ -15,7 +15,8 @@ import {
   type ResolvedView,
 } from '@molstar/seqx-core/view';
 import type { AxisTransform, Viewport } from './axis.js';
-import type { RenderConfig } from './config.js';
+import type { RailLook, RenderConfig } from './config.js';
+import { Round } from './draw-lists.js';
 import type { PassWriter } from './draw-lists.js';
 import type { Box, Emphasis, Hit, HitTarget } from './layer-type.js';
 import { collapsedSection } from './headers.js';
@@ -80,6 +81,8 @@ export class Rail {
   y = 0;
   top = 0;
   bottom = 0;
+  /** The ends' inset along the rail, px (a look's: the well's corner radius; 0 in today's look): already in `x` and `width`. */
+  inset = 0;
   /** A slim row of its own (no ruler shown). */
   slim = false;
   /** Pinned to the bottom edge of the view's visible frame (`pinned`), outside the section's rows. */
@@ -110,6 +113,18 @@ export class Rail {
     navigator: 'rail',
     position: 0,
   };
+}
+
+/**
+ * Sets the rail's axis along it: the data box's span, inset at both ends by a look's inset (the well's corner radius,
+ * never past its rounded corner; today's look none), so every reader of `x` and `width` (the drag, the hit, the draw)
+ * maps the same pixels.
+ */
+function setAlong(rail: Rail, x: number, width: number, config: RenderConfig): void {
+  const r = config.navigator.rail.look === 'current' ? 0 : Math.max(0, Math.min(config.squircleMax, width / 4));
+  rail.inset = r;
+  rail.x = x + r;
+  rail.width = width - 2 * r;
 }
 
 /** The rail's thickness: a line a hint, a figure's window a segment twice it (a usable rail's at rest is a line too). */
@@ -156,8 +171,7 @@ export function placeRail(
   rail.id = sectionId;
   rail.system = section.axis.system;
   rail.blocks = section.blocks;
-  rail.x = axis.x0;
-  rail.width = axis.width;
+  setAlong(rail, axis.x0, axis.width, config);
   rail.slim = !ruler;
   if (ruler) {
     // in the row just below the ruler's bottom border (its well grown by it), clear of its ticks and labels; the grab
@@ -212,7 +226,15 @@ export function placeRail(
  * Places a rows layer's rail (`track` its address): upright at `x` (its left side, `SlimRailPx` wide), along the band's
  * scrolled area (below the pinned rows), its window the rows in view, in display rows below the pinned band.
  */
-export function placeRowsRail(rail: Rail, lay: RowsLay, track: string, sectionId: string, x: number, figure = false) {
+export function placeRowsRail(
+  rail: Rail,
+  lay: RowsLay,
+  track: string,
+  sectionId: string,
+  x: number,
+  config: RenderConfig,
+  figure = false,
+) {
   const d = lay.display;
   const rows = Math.max(0, d.count - d.pinned);
   const area = Math.max(0, lay.box.height - lay.pinnedHeight);
@@ -231,6 +253,7 @@ export function placeRowsRail(rail: Rail, lay: RowsLay, track: string, sectionId
     rows,
     start,
     Math.max(start, Math.min(rows, lay.top + area / Math.max(1e-9, lay.rowScale))),
+    config,
   );
   // idle only when the window can neither move nor shrink: every row shown, and shown still at the zoom-in limit (as a
   // ruler rail's: the whole axis in view and the axis fitting at the most px a position)
@@ -252,6 +275,7 @@ function placeUpright(
   total: number,
   start: number,
   end: number,
+  config: RenderConfig,
 ) {
   rail.section = section;
   rail.key = track;
@@ -262,8 +286,7 @@ function placeUpright(
   rail.figure = figure;
   rail.id = sectionId;
   rail.system = system;
-  rail.x = y;
-  rail.width = area;
+  setAlong(rail, y, area, config);
   rail.slim = true;
   rail.top = x;
   rail.bottom = x + SlimRailPx;
@@ -292,6 +315,7 @@ export function placeLanesRail(
   lanes: number,
   room: number,
   top: number,
+  config: RenderConfig,
 ) {
   placeUpright(
     rail,
@@ -307,6 +331,7 @@ export function placeLanesRail(
     lanes,
     top,
     Math.min(lanes, top + room),
+    config,
   );
   // it exists only while its lanes overflow: always a target
   rail.active = true;
@@ -369,13 +394,14 @@ export function drawRail(
   const line = tokens.colors['msui-line'];
   if (rail.pinned) {
     // pinned over the frame's foot: its own ground, so what the frame clips never shows through it
-    g[0] = rail.x;
+    g[0] = rail.x - rail.inset;
     g[1] = rail.top;
-    g[2] = rail.width;
+    g[2] = rail.width + 2 * rail.inset;
     g[3] = rail.bottom - rail.top;
     g[4] = tokens.colors['msui-bg'];
     emit(out, false);
   }
+  if (config.navigator.rail.look !== 'current') return drawLook(rail, out, emphasis, tokens, config);
   g[0] = rail.x;
   g[1] = rail.y - Line / 2;
   g[2] = rail.width;
@@ -443,6 +469,94 @@ export function drawRail(
     g[3] = gh;
     g[4] = on ? ink : grip;
     emit(out, rail.vertical);
+  }
+}
+
+/** A color with its alpha set (0 to 1). */
+function withAlpha(color: number, a: number): number {
+  return ((color & 0xffffff00) | Math.round(a * 255)) >>> 0;
+}
+
+/** A capsule: `len` along the rail from `a`, `t` thick across, centred on the rail's line, round caps of half its thickness. */
+function pill(out: PassWriter, rail: Rail, a: number, len: number, t: number, fill: number): void {
+  if (!(len > 0) || !(t > 0)) return;
+  const g = out.args;
+  const c = rail.y - t / 2;
+  g[0] = rail.vertical ? c : a;
+  g[1] = rail.vertical ? a : c;
+  g[2] = rail.vertical ? t : len;
+  g[3] = rail.vertical ? len : t;
+  g[4] = fill;
+  g[5] = 0;
+  g[6] = 0;
+  g[7] = Math.min(t, len) / 2;
+  g[8] = Round.both;
+  out.rectArgs();
+}
+
+/**
+ * The rail looks of the Rail looks story (`navigator.rail.look`; not in the spec until one is picked), drawn by the one
+ * rail path (ruler, rows, lanes and text alike): `capsule`, the window a rounded pill in a soft fill, its ends the grips
+ * (no ticks; an end grows where the pointer can resize); `groove`, the same over a faint rounded groove the axis's
+ * length; `quiet`, the groove thin and low at rest, the thumb in full ink and `grownPx` while hovered or dragged, and at
+ * the fit the groove alone. Idle (the view cannot move): a quiet pill, no ends; a figure's: a plain pill.
+ */
+function drawLook(
+  rail: Rail,
+  out: PassWriter,
+  emphasis: Emphasis | undefined,
+  tokens: SeqTokens,
+  config: RenderConfig,
+): void {
+  const look: RailLook = config.navigator.rail.look;
+  const line = tokens.colors['msui-line'];
+  const ink = tokens.colors['seq-window'];
+  const grownPx = config.navigator.rail.grownPx;
+  const h = emphasis?.hover;
+  const d = emphasis?.drag;
+  const own = rail.hit.navigator;
+  const lit = h?.target === 'window' && h.navigator === own && h.layer === rail.key ? h.part : undefined;
+  const dragged = d !== undefined && d.navigator === own && d.layer === rail.key;
+  const place = lit === 'outside' && !dragged && !Number.isNaN(rail.markAt);
+  const used = rail.active && ((lit !== undefined && !place) || dragged);
+  const resting = look === 'quiet' && !used;
+  // the groove: faint, the axis's length, a little thicker than the thumb at its fullest (quiet: thin until used)
+  const gt = resting ? Rest * 2 : grownPx + 2;
+  if (look !== 'capsule') pill(out, rail, rail.x, rail.width, gt, withAlpha(line, resting ? 0.3 : 0.4));
+  if (!(rail.total > 0)) return;
+  for (let i = 0; i < rail.breaks.length; i++)
+    pill(out, rail, rail.x + (rail.breaks[i] / rail.total) * rail.width - 0.5, 1, 4, withAlpha(line, 0.6));
+  // the thumb: 4 px in a soft accent at rest, `grownPx` and strong while used; idle a quiet thin pill
+  let t = used ? grownPx : 4;
+  let fill = withAlpha(used ? ink : rail.active ? ink : line, used ? 0.85 : rail.active ? 0.4 : 0.3);
+  if (rail.figure) fill = withAlpha(ink, 0.6);
+  if (resting) {
+    t = Rest;
+    fill = withAlpha(line, rail.active ? 0.8 : 0.3);
+  }
+  if (!rail.active && !rail.figure) t = Rest;
+  windowEnds(rail, config);
+  const lo = rail.x;
+  const hi = rail.x + rail.width;
+  const a = Math.max(lo, Ends[0]);
+  const b = Math.min(hi, Ends[1]);
+  const fit = rail.start <= 0 && rail.end >= rail.total;
+  // the quiet rail at the fit: the groove alone
+  if (!(resting && fit)) {
+    pill(out, rail, a, b - a, t, fill);
+    // over a cyclic origin the second piece, from the axis's start to the window's true end
+    if (rail.end > rail.total) pill(out, rail, lo, ((rail.end - rail.total) / rail.total) * rail.width, t, fill);
+  }
+  if (!rail.active) return;
+  if (place) pill(out, rail, Math.max(lo, Math.min(hi, rail.markAt)) - 0.75, 1.5, gt + 2, ink);
+  // the ends are the grips (no ticks): where the window zooms, each takes the ink and grows while the pointer is on it
+  if (own === LanesRail || resting) return;
+  const part = dragged ? d.part : lit;
+  const cap = Math.min(config.navigator.window.handlePx * 2, (b - a) / 3);
+  for (let e = 0; e < 2; e++) {
+    const end = part === (e === 0 ? 'start' : 'end');
+    if (!end && part !== 'body') continue;
+    pill(out, rail, e === 0 ? a : b - cap, cap, t + (end ? 2 : 0), withAlpha(ink, 1));
   }
 }
 
