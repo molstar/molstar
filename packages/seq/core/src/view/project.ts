@@ -10,6 +10,7 @@
 // for a system no section shows (a structure's chain, an item system), along the model's static path. One Location keyed
 // by system: two sections on one system show the same.
 
+import { HalfOpenRanges } from '@molstar/core/data/int/half-open-ranges';
 import { EmptyLocation, type Location, type LocationPart, location } from '@molstar/seqx-core/query';
 import { type Path, projectRanges, type StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedView } from './view.js';
@@ -28,6 +29,25 @@ export interface ProjectOptions {
   readonly own?: boolean;
   /** Carry parts along links at all (true by default); false keeps the own parts alone. */
   readonly linked?: boolean;
+  /**
+   * What carries a part through a map read by region (a liftover's, EC-212), where no static link does: from the runs
+   * the store holds now (`regionProjector`, the render's). None: such parts are not carried.
+   */
+  readonly regions?: RegionProjector;
+}
+
+/**
+ * A part carried through a map read by region (_spec/README.md "Resolved view", Projection: a liftover), from the runs
+ * held now: what a viewer gives the projections so hover and selection reach across a liftover both ways (EC-20).
+ */
+export interface RegionProjector {
+  /** Moves when the runs it reads may have changed (the store's version): a projection kept is made again. */
+  readonly version: number;
+  /**
+   * `ranges` on `from` carried onto `to` through a map read by region joining them, every image appended to `out`
+   * (unsorted); false when no such map joins them.
+   */
+  project(model: StaticModel, from: string, ranges: ArrayLike<number>, to: string, out: number[]): boolean;
 }
 
 /**
@@ -63,6 +83,12 @@ export function projectOntoView(
       if (options.linked === false) continue;
       const path = pathOf(model, view, part, system);
       if (path) parts.push({ system, ranges: projectRanges(path, part.ranges, buffer).slice() });
+      else if (options.regions) {
+        // through a map read by region (a liftover): every image of the runs held now (EC-20)
+        buffer.length = 0;
+        if (options.regions.project(model, part.system, part.ranges, system, buffer) && buffer.length)
+          parts.push({ system, ranges: HalfOpenRanges.normalize(buffer) });
+      }
     }
   }
   return parts.length ? location({ parts }) : EmptyLocation;

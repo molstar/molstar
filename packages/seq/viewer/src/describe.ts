@@ -25,6 +25,7 @@ import {
 import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { AddressModel, Cursor, SpecModel, StoreModel, ViewModel } from '@molstar/seqx-viewer/models';
 import { BridgeView } from '@molstar/seqx-viewer/models/bridge-hooks';
+import { liftPlaces } from './describe-lift.js';
 import { chemistryRows } from './describe-molecules.js';
 import { regionHoverOf } from './describe-region.js';
 import type { HoverCard, HoverCardRow } from './hover-card.js';
@@ -274,8 +275,11 @@ const ItemSection: CardSection = {
     if (mixed) out.row('Categories', mixed);
     else if (category) out.row('Category', category);
     if (strand) out.row('Strand', strand);
+    // its images through a map read by region (a liftover's), when several (EC-20)
+    const places = at.words.places(it.system ?? l.layer.data?.system, it.start, it.end);
+    if (places) out.row('Places', places);
     out.words.push(
-      `${itemText(system, it)}${track ? `, ${track}` : ''}${mixed ? `, ${mixed}` : category ? `, ${category}` : ''}${strand ? `, strand ${strand}` : ''}`,
+      `${itemText(system, it)}${track ? `, ${track}` : ''}${mixed ? `, ${mixed}` : category ? `, ${category}` : ''}${strand ? `, strand ${strand}` : ''}${places ? `, in ${places}` : ''}`,
     );
     out.whole = true;
   },
@@ -591,6 +595,13 @@ class Words {
 
   systemName(system: string): string {
     return this._src.view.model.value.systems.get(system)?.name ?? system;
+  }
+
+  /** An item's images through a map read by region, when several (`describe-lift.ts`). */
+  places(system: string | undefined, start: number, end: number): string | undefined {
+    const view = this._src.view.resolved.value;
+    if (!view || system === undefined) return undefined;
+    return liftPlaces(this._src.view.model.value, view, this._src.store.regions, system, start, end);
   }
 
   itemsOf(l: LayerLayout): readonly ItemDescription[] {

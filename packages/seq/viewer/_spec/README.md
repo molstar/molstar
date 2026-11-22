@@ -321,7 +321,9 @@ past the new block's length, the new block whole. One rule for a click on the na
   residue and lifts to its codon, every piece over an intron, EC-30, EC-144), then each part is carried to the section's
   system along the view's link (paths found under the copy rule, EC-25); `hover.projectLinked` false keeps only the
   parts on the section's own system. `projectedAll()` is the same for every section at once (the core's
-  `projectOntoView`, one Location keyed by system), what the frame draws (Emphasis).
+  `projectOntoView`, one Location keyed by system), what the frame draws (Emphasis). Through a map read by region (a
+  liftover) a part is carried by the store's `regions` (StoreModel), the runs held now: the cache is kept for the
+  store's version too, so runs arriving carry it; the selection's projections (`Projector`) alike.
 
 - **Molecules** (`describe-molecules.ts`): `molecule()` is the molecule the hover is on (a molecule's residue or atom, a
   unit of one, a chip): its address, name, class, `identifiers` and unit, computed when asked and kept for the version;
@@ -454,7 +456,8 @@ then resolves.
 
 ### StoreModel
 
-`models/store.ts`: the viewer's one `DataStore`, made with `store.cacheBytes`, `store.inFlight`, `store.tileBins` and
+`models/store.ts` (`regions`: the core's `regionProjector` over the store, what hover and selection carry through a map
+read by region): the viewer's one `DataStore`, made with `store.cacheBytes`, `store.inFlight`, `store.tileBins` and
 timed by `DomHost` (`DomHostClock`). `sync(model, assets)` opens the static model's sources (each bound to a runtime,
 and each inline access plan, of a links' ends the ones built: core's `LinkEnds`) with the store's `limits` (its
 `maxRows` and `maxBytes`) and attaches them under their addresses; a source whose entry is the object it was opened from
@@ -707,6 +710,9 @@ param (`port`, a `HoverCardPortFactory` given the canvas's element, none headles
   (`pairsBinHover`, `gridCellHover`, `matrixCellHover`: core "Render", Hover texts by region), their rows the card's;
   first of the sections, the whole description. Why the core's: an export's accessible layer and a host's own card say a
   bin as the viewer does.
+- **A liftover's places** (`describe-lift.ts`): an item with at least two images through a map read by region (a
+  duplicated stretch, EC-20) has a row `Places` listing them (`2 places: chr1 62,001–68,000, chr2 62,001–68,000`, at
+  most four named), and its words say `in 2 places`. One image says nothing: it is the projected hover itself.
 - **A residue over its codon**: a hit on a letters layer whose data is on another system than its section's through a
   codon step (a protein's letters over its gene; an alignment row, an offset or a pairwise map keeps the place's card)
   is titled by the residue (`p 12`), with its `Index`, its letter and the codon's positions on the section's system, a

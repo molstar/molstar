@@ -11,8 +11,9 @@
 // part with several images is drawn at each (EC-20). Loaded with the genome chunk: a liftover is over assemblies.
 
 import { HalfOpenRanges } from '@molstar/core/data/int/half-open-ranges';
-import type { DataEntry, PairsList } from '@molstar/seqx-core/data';
-import { type Run, RunsLinear } from '@molstar/seqx-core/resolve';
+import type { DataEntry, PairsList, Want } from '@molstar/seqx-core/data';
+import { type AnnotationEntry, type Run, RunsLinear, type StaticModel } from '@molstar/seqx-core/resolve';
+import { regionMaps } from '@molstar/seqx-core/view';
 import {
   dataRegions,
   type LayerSource,
@@ -184,4 +185,67 @@ function carry(from: ItemRows, linear: RunsLinear, out: ItemRows, buf: number[],
       out.itemEnds[n] = -1;
     }
   }
+}
+
+/** What a projection through a region map reads of the store: the tiles held now, never a want. */
+export interface RegionReader {
+  coverage(source: string): { readonly levels?: readonly number[] } | undefined;
+  keysOf(want: Want): string[];
+  get(key: string): DataEntry | undefined;
+}
+
+/** The side a sequence is on in a region map's annotation: `a` its `from` assembly's, `b` its `to`'s. */
+function sideOf(model: StaticModel, m: AnnotationEntry, system: string): 'a' | 'b' | undefined {
+  if (model.assemblies.get(m.target)?.systems.includes(system)) return 'a';
+  if (m.ySystem !== undefined && model.assemblies.get(m.ySystem)?.systems.includes(system)) return 'b';
+  return undefined;
+}
+
+/**
+ * `ranges` on `from` carried onto `to` through a map read by region joining them (`RegionProjector.project`): the runs
+ * with an end on `from` in the items tiles the store holds at any level (read by that end), each range's images through
+ * the runs to `to` appended to `out` (EC-20: every image); false when no such map joins them.
+ */
+export function projectLifted(
+  model: StaticModel,
+  data: RegionReader,
+  from: string,
+  ranges: ArrayLike<number>,
+  to: string,
+  out: number[],
+): boolean {
+  for (const address of regionMaps(model.spec)) {
+    const m = model.annotations.get(address);
+    const near = m?.bySystem?.get(from);
+    const far = m?.bySystem?.get(to);
+    if (!m || !near || !far || near.kind !== 'source') continue;
+    const side = sideOf(model, m, from);
+    if (!side || side === sideOf(model, m, to)) continue;
+    const byName = new Map<string, Run[]>();
+    const seen = new Set<number>();
+    for (const level of data.coverage(near.source)?.levels ?? [1])
+      for (let i = 0; i + 1 < ranges.length; i += 2) {
+        const want: Want = {
+          source: near.source,
+          system: near.system,
+          start: ranges[i],
+          end: ranges[i + 1],
+          level,
+          items: true,
+          ...(near.side ? { side: near.side } : {}),
+        };
+        for (const key of data.keysOf(want)) {
+          const e = data.get(key);
+          const t = e?.status === 'loaded' ? e.tables.pairs : undefined;
+          if (t?.form === 'list') runsOf(t, near.system, side === 'b', seen, byName);
+        }
+      }
+    const runs = byName.get(far.system);
+    if (!runs) return true;
+    // the runs go from the far end to the near: read back, from `from` to `to`
+    const back = new RunsLinear(runs).inverse();
+    for (let i = 0; i + 1 < ranges.length; i += 2) back.targets(ranges[i], ranges[i + 1], out);
+    return true;
+  }
+  return false;
 }

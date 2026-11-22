@@ -14,7 +14,7 @@ import { type ReadonlyState, ReactiveModel, State } from '@molstar/core/reactive
 import type { Hit as RenderHit } from '@molstar/seqx-core/render';
 import { EmptyLocation, isEmptyLocation, type Key, type Location, location } from '@molstar/seqx-core/query';
 import { projectRanges, type Path } from '@molstar/seqx-core/resolve';
-import { projectOntoView } from '@molstar/seqx-core/view';
+import { projectOntoView, type RegionProjector } from '@molstar/seqx-core/view';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import { moleculeOfSystem, type PlaceMolecule } from '@molstar/seqx-viewer/describe-molecules';
 import type { ViewModel } from './view.js';
@@ -115,8 +115,8 @@ export class HoverModel extends ReactiveModel {
     members: undefined,
     count: undefined,
   };
-  /** The version, the view and the model the caches are for. */
-  private _cacheKey: [number, unknown, unknown] = [-1, undefined, undefined];
+  /** The version, the view, the model and the runs held (a liftover's) the caches are for. */
+  private _cacheKey: [number, unknown, unknown, number] = [-1, undefined, undefined, -1];
   private _location: Location | undefined;
   private _closed: Location | undefined;
   private _all: Location | undefined;
@@ -132,7 +132,12 @@ export class HoverModel extends ReactiveModel {
   readonly current: HoverRecord = this._record;
 
   /** The spec's model is read through the view's (`ViewModel.model`: a source's complexes in it once held). */
-  constructor(view: ViewModel, config: ViewerConfig = DefaultViewerConfig) {
+  constructor(
+    view: ViewModel,
+    config: ViewerConfig = DefaultViewerConfig,
+    /** What carries the hover through a map read by region (a liftover): the store's runs held now. */
+    private readonly regions?: RegionProjector,
+  ) {
     super();
     this._view = view;
     this.config = config;
@@ -298,6 +303,7 @@ export class HoverModel extends ReactiveModel {
     if (!view) return undefined;
     this._all = projectOntoView(this._view.model.value, view, own, {
       own: true,
+      ...(this.regions ? { regions: this.regions } : {}),
       close: this.config.hover.closeCodons,
       linked: this.config.hover.projectLinked,
     });
@@ -312,10 +318,12 @@ export class HoverModel extends ReactiveModel {
     const v = this._version.value;
     const view = this._view.resolved.value;
     const model = this._view.model.value;
-    if (k[0] === v && k[1] === view && k[2] === model) return;
+    const held = this.regions?.version ?? -1;
+    if (k[0] === v && k[1] === view && k[2] === model && k[3] === held) return;
     k[0] = v;
     k[1] = view;
     k[2] = model;
+    k[3] = held;
     this._location = undefined;
     this._closed = undefined;
     this._all = undefined;

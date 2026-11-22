@@ -81,6 +81,7 @@ export { LegendBand, layoutLegends, legendsHeight, viewLegends } from './legends
 export { OverlaySources } from './overlay-sources.js';
 export { LaneIndex, StickyLanes } from './lanes.js';
 export { type LayerSource, layerSource, readTiles, type TileContext, type TileRead } from './layer-data.js';
+export { regionProjector } from './lift-project.js';
 export {
   type Box,
   type Emphasis,

@@ -2557,8 +2557,10 @@ Overlay, Opened sources), kept per model and view. No data, no dynamic node, no 
   system no section shows, along the model's static path; rects are not carried. `close` closes it first among the
   view's systems (a hover's: a nucleotide lifts to its codon and gains its residue); `own` keeps the parts already on a
   section's system (a hover's and a highlight's), else only what it adds where it has no part (a selection's);
-  `linked: false` keeps the own parts alone. Why keyed by system, not a function per section: the renderer reads a part
-  per axis with an indexed loop, nothing called or made per draw.
+  `linked: false` keeps the own parts alone; `regions` (a `RegionProjector`, the render's `regionProjector` over a
+  store) carries a part that no static link does through a map read by region (a liftover, EC-212), every image of the
+  runs held now (EC-20), one step (an image never on to a second image). Why keyed by system, not a function per
+  section: the renderer reads a part per axis with an indexed loop, nothing called or made per draw.
 - **Bridges** (`bridges.ts`; `ResolvedView.bridges`, `ResolvedBridge`; `ResolvedView.stack`, the view's sections and
   bridges in the order written, `{ kind, index }` each, what the layout stacks): a bridge is its address, its sides `a`
   and `b` (section addresses), `label` (absent: "a to b" by the sides' ids), `height` as written (absent: the render
@@ -4104,6 +4106,10 @@ lifted layer), read by `readItems` as any items layer's, its rows on the block's
   sequences (assemblies only), `mapSummary` and the builder's `liftover()` (deferred).
 - **Kept** as a section's reads are (the entries read, by version): a pan of the new section lays out that section and
   the bridge only.
+- **Projection** (`lift-project.ts`, `regionProjector(store)`: a `RegionProjector`, Resolved view, Projection): a part
+  on one end's sequence carried to the other's through the runs in the items tiles the store holds at any level, read by
+  that end (the lifted layer's and the bridge's reads: no want of its own, so a hover never reads), its version the
+  store's. Both ways: an old gene lights each image, an image lights the old gene.
 
 ### Lanes and Hits
 
