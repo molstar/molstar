@@ -12,6 +12,7 @@
 // state: no history step).
 
 import { type SectionLayout, textTop, type ViewLayout, type WindowPart } from '@molstar/seqx-core/render';
+import { cancelFrameCallback, requestFrameCallback } from '@molstar/ui/dom/frame';
 import type { ViewModel } from '@molstar/seqx-viewer/models';
 
 /** The section of the last frame by its address that scrolls past its cap (its `sectionRail`), else undefined. */
@@ -50,10 +51,51 @@ export function setSectionTop(view: ViewModel, s: SectionLayout, top: number): b
   return true;
 }
 
-/** A section's scroll by `dy` px (the wheel's vertical delta): false at its end (the wheel goes on to the page). */
-export function scrollSection(view: ViewModel, layout: ViewLayout | undefined, section: string, dy: number): boolean {
-  const s = dy ? scrolledSection(layout, section) : undefined;
-  return s ? setSectionTop(view, s, sectionTop(view, s) + dy) : false;
+/**
+ * The wheel's vertical delta over a section past its cap, coalesced to the next frame as the navigation's wheel is
+ * (`navigate.coalesceWheel`): a wheel event allocates nothing (the model's viewport record is published once a frame).
+ * One pending section at a time; a wheel over another applies the first's at once.
+ */
+export class SectionWheel {
+  private _section = '';
+  private _dy = 0;
+  private _frame: number | undefined;
+  private readonly _run = (): void => void this.apply();
+
+  constructor(
+    private readonly view: ViewModel,
+    private readonly layout: () => ViewLayout | undefined,
+  ) {}
+
+  /** A wheel's `dy` px over `section`: false at its end with nothing pending that way (the wheel goes to the page). */
+  wheel(section: string, dy: number): boolean {
+    const s = dy ? scrolledSection(this.layout(), section) : undefined;
+    if (!s) return false;
+    if (this._dy && section !== this._section) this.apply();
+    const now = sectionTop(this.view, s) + this._dy;
+    const next = Math.max(0, Math.min(sectionMax(s), now + dy));
+    if (Math.abs(next - now) < 1e-6) return false;
+    this._section = section;
+    this._dy += next - now;
+    this._frame ??= requestFrameCallback(this._run);
+    return true;
+  }
+
+  /** The pending scroll applied now (the frame's; a key or a gesture before it reads the model). */
+  apply(): boolean {
+    if (this._frame !== undefined) cancelFrameCallback(this._frame);
+    this._frame = undefined;
+    const dy = this._dy;
+    this._dy = 0;
+    const s = dy ? scrolledSection(this.layout(), this._section) : undefined;
+    return s ? setSectionTop(this.view, s, sectionTop(this.view, s) + dy) : false;
+  }
+
+  dispose(): void {
+    if (this._frame !== undefined) cancelFrameCallback(this._frame);
+    this._frame = undefined;
+    this._dy = 0;
+  }
 }
 
 /**

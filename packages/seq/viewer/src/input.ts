@@ -49,7 +49,7 @@ import type {
 } from '@molstar/seqx-viewer/behaviors';
 import { isDragSelect } from '@molstar/seqx-viewer/behaviors/select';
 import { trackOfLayer } from '@molstar/seqx-viewer/behaviors/two-axes';
-import { SectionRailGesture, scrollSection, scrolledSection } from './section-scroll.js';
+import { SectionRailGesture, SectionWheel, scrolledSection } from './section-scroll.js';
 import {
   type Anchor,
   axisTotal,
@@ -158,6 +158,12 @@ export class ViewerInput {
   }
   /** A section rail's gesture: the viewer's own (a section past its cap scrolls in every composition). */
   private _sectionRailGesture: SectionRailGesture | undefined;
+  /** The wheel over a section past its cap, coalesced to the frame. */
+  private _sectionWheel: SectionWheel | undefined;
+  private get sectionWheel(): SectionWheel {
+    this._sectionWheel ??= new SectionWheel(this.viewer.view, () => this.viewer.frame?.layout);
+    return this._sectionWheel;
+  }
   private get sectionRailGesture(): SectionRailGesture {
     this._sectionRailGesture ??= new SectionRailGesture(this.viewer.view, () => this.viewer.frame?.layout);
     return this._sectionRailGesture;
@@ -373,7 +379,7 @@ export class ViewerInput {
    * page's (false: scroll chaining).
    */
   private _scrollSection(section: string, dy: number): boolean {
-    if (!scrollSection(this.viewer.view, this.viewer.frame?.layout, section, dy)) return false;
+    if (!this.sectionWheel.wheel(section, dy)) return false;
     this.viewer.schedule();
     return true;
   }
@@ -567,6 +573,8 @@ export class ViewerInput {
     const section = inSection ?? this._band(y);
     if (section === undefined) return false;
     const mods = this._modifiers(e);
+    // a section's wheel still pending lands first: the press reads the model
+    this._sectionWheel?.apply();
     const hit = this._hitAt(x, y);
     // over a bridge's band a drag moves both its sides and selects nothing (_spec/README.md "Bridges")
     const target = inSection === undefined ? 'empty' : hitTarget(hit);
@@ -854,6 +862,14 @@ export class ViewerInput {
     const uy = e.deltaMode === 1 ? pointer.lineHeight : e.deltaMode === 2 ? this.viewer.height : 1;
     const dx = e.deltaX * ux;
     const dy = e.deltaY * uy;
+    // a plain vertical wheel over a section past its cap and over none of its scrolling bands: the section's at once
+    // (the chain's second step, no hit read: a wheel step allocates nothing)
+    const plain = !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey && Math.abs(dy) > Math.abs(dx);
+    const capped = plain ? scrolledSection(this.viewer.frame?.layout, section) : undefined;
+    if (capped && capped.layout.name !== 'text' && !overBand(capped, x, y)) {
+      if (this._scrollSection(section, dy)) return true;
+      return this._overPlot(section, x, y);
+    }
     const target = hitTarget(this._hitAt(x, y));
     // over the label column the zoom is about the section's first visible position, never before it
     const width = this.viewer.view.get(section)?.width ?? 0;
@@ -1250,6 +1266,21 @@ function coveringArc(axis: Axis, ranges: ArrayLike<number>): { start: number; en
   const start = at + 1 < spans.length ? spans[at + 1][0] : spans[0][0];
   const end = spans[at][1];
   return { start, end: end > start ? end : end + t };
+}
+
+/** Whether a point is over a band of a section that scrolls on its own (a lanes or a rows band with its rail). */
+function overBand(s: SectionLayout, x: number, y: number): boolean {
+  return overRails(s.lanesRails, x, y) || overRails(s.rowsRails, x, y);
+}
+
+/** Whether a point is beside one of upright rails along it, left of its right side (its band's rows). */
+function overRails(list: readonly Rail[] | undefined, x: number, y: number): boolean {
+  if (list)
+    for (let i = 0; i < list.length; i++) {
+      const r = list[i];
+      if (y >= r.x - r.inset && y < r.x + r.width + r.inset && x < r.bottom) return true;
+    }
+  return false;
 }
 
 /** An upright rail's navigator: a rows band's, or a pan-only one (a lanes band's, a section's): the one gesture. */

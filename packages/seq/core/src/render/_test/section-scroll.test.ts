@@ -15,23 +15,9 @@ import { rangesLocation } from '@molstar/seqx-core/query';
 import { hitView, recordDrawLists, SectionRail, TracksNav } from '../index.js';
 import { renderSvg } from '../render-svg.js';
 import { settle } from './helpers.js';
+import { geneTracks } from './section-scroll-fixtures.js';
 
 const Size = { width: 800, height: 2000 };
-
-/** A ruler and `n` gene tracks of one feature each; `height` the section's own. */
-export function geneTracks(n = 30, height?: number): Node {
-  const b = createSeqSpec({ title: 'tracks past the cap' });
-  const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT'.repeat(100) });
-  b.views.view('main', (v) => {
-    const sec = v.section('s', { of: s, ...(height !== undefined ? { height } : {}) });
-    sec.track('ruler', { label: '' }).layer('r', { type: 'ruler' });
-    for (let i = 0; i < n; i++) {
-      const d = b.data.ranges(`g${i}`, { target: s, rows: { start: [1 + i], end: [200 + i], id: [`gene ${i}`] } });
-      sec.track(`t${i}`, { label: `Gene ${i}` }).layer('l', { type: 'ranges', data: d });
-    }
-  });
-  return b.build();
-}
 
 async function laid(spec: Node, config = {}, top?: number) {
   const s = await settle(spec, [], config);
