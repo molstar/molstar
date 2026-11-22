@@ -424,7 +424,6 @@ describe('unread params', () => {
     expect(said).toEqual([
       '/data/g `assembly.names`: read by lane GF',
       '/views/v/a `section.member_order`: read by lane LA',
-      '/views/v/br A bridge: read by lane LA',
     ]);
     expect(resolveSpec(spec()).issues.filter((i) => i.code === 'seq.resolve.param.unread')).toEqual([]);
   });

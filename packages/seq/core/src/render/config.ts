@@ -358,6 +358,22 @@ export interface RenderConfig {
     readonly binStroke: { readonly min: number; readonly max: number };
   };
   /**
+   * A bridge (_spec/README.md "Render", Bridges): its band's height when its spec gives none (`height`, 96 CSS px: room
+   * for a crossed ribbon to read; the band's resize grip is the viewer's, not built).
+   */
+  readonly bridges: { readonly height: number };
+  /**
+   * A bridge's ribbons (_spec/README.md "Render", Bridges): filled at `fillOpacity` (0.35: overlaps read through), a bin
+   * by its aligned length at `binOpacity` (0.15 to 0.8, square root over the bins in view), each end at least `minPx`
+   * device px wide (1: a short run on a long axis is still seen), a stub `stubShare` of the band's height (0.25).
+   */
+  readonly ribbons: {
+    readonly fillOpacity: number;
+    readonly binOpacity: { readonly min: number; readonly max: number };
+    readonly minPx: number;
+    readonly stubShare: number;
+  };
+  /**
    * The grid layer (_spec/README.md "Render", The grid layer): a cell drawn as a rect with its outline from `rectMinPx`
    * (12 CSS px: rects only where few), image tiles of the shared reduction below; at most `buildBudget` samples (65,536:
    * a tile) built a frame while the view moves, the coarser level drawn meanwhile (a settled frame builds the rest).
@@ -500,6 +516,8 @@ export const DefaultRenderConfig: RenderConfig = {
     square: { maxCells: 4096 },
   },
   pairs: { maxArcs: 4096, hitPx: 4, binPx: 2, itemsHysteresis: 1.25, binStroke: { min: 1, max: 6 } },
+  bridges: { height: 96 },
+  ribbons: { fillOpacity: 0.35, binOpacity: { min: 0.15, max: 0.8 }, minPx: 1, stubShare: 0.25 },
   grid: { rectMinPx: 12, buildBudget: 65_536, binPx: 1, marginTiles: 1 },
   text: {
     scale: 12,

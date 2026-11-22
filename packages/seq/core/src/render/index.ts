@@ -213,6 +213,9 @@ export {
   withAlpha,
 } from './tokens.js';
 export {
+  type BridgeLayout,
+  type BridgeRibbon,
+  bridgeAt,
   drawView,
   type HeldDomains,
   hitView,

@@ -47,6 +47,7 @@ import {
   sectionComplex,
   systemRef,
 } from './blocks.js';
+import type { ResolvedBridge, StackEntry } from './bridges.js';
 import { ViewIssues } from './issues.js';
 import { dataOf, layerData } from './layer-data.js';
 
@@ -404,7 +405,37 @@ export interface ResolvedView {
   readonly links: readonly ViewLink[];
   /** Its navigators in spec order, hidden ones included. */
   readonly navigators: readonly ResolvedNavigator[];
+  /**
+   * Its bridges in spec order (_spec/README.md "Resolved view", Bridges), hidden ones and those not placed included;
+   * absent when it has none (or the bridge pass is not composed).
+   */
+  readonly bridges?: readonly ResolvedBridge[];
+  /** Its sections and bridges in the order written (what the layout stacks), beside `bridges`. */
+  readonly stack?: readonly StackEntry[];
   readonly issues: readonly Issue[];
+}
+
+/**
+ * The view's bridge pass (`bridges.ts`), set where a composition draws bridges (render's pairs type registers its load,
+ * `withViewKind`): a model of a spec with a bridge waits for it. A view resolved without it has no bridges, its sides
+ * stacked as a reader without bridges draws them (_spec/README.md "Resolved view", Bridges).
+ * @internal
+ */
+export const BridgePass: { resolve?: typeof import('./bridges.js').resolveBridges } = {};
+
+/**
+ * A bridge in a view of a composition that registers none (the pairs layer type listed without `registerBridges`):
+ * said, never stacked silently (_spec/README.md "Resolved view", Bridges).
+ */
+function unregisteredBridge(view: Node, address: string, report: Report): undefined {
+  const b = view.children?.find((c) => c.kind === 'bridge');
+  if (b)
+    report(
+      'seq.view.bridge.unregistered',
+      'A bridge is not drawn: the composition registers no bridges; its sides are stacked',
+      `${address}/${b.id}`,
+    );
+  return undefined;
 }
 
 /** No systems: what an unmapped system links to besides itself. */
@@ -818,6 +849,11 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
     sections,
     links,
     navigators: navigatorsOf(model, view, address, sections, report, layerKinds),
+    // its bridges and the stack, where the view has a bridge and the pass is composed (_spec/README.md "Resolved
+    // view", Bridges)
+    ...(BridgePass.resolve
+      ? BridgePass.resolve({ view, address, sections, model, kinds, layer: layerOf }, issues)
+      : unregisteredBridge(view, address, report)),
     issues,
   };
 }
@@ -1254,7 +1290,9 @@ function layerOf(
   if (template && param(l, 'data') === undefined && drawn !== 'letters' && drawn !== 'ruler')
     return { ...base, placed: false };
 
-  const data = dataOf(model, layerData(model.spec, param(l, 'data')), drawn!, system);
+  const value = layerData(model.spec, param(l, 'data'));
+  // a segments map read as pairs (_spec/README.md "Resolved view", Bridges): a run a pair, `a` its `from` range
+  const data = dataOf(model, value, drawn!, system);
   if (!data) {
     report('seq.view.layer.data', 'The layer’s data names nothing the static model holds', at);
     return { ...base, placed: false };

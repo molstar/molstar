@@ -58,12 +58,15 @@ import { instanceInView, wantTemplate } from './tracks-templates.js';
 import { bandHeights, firstType, rowsFill, rulerTrack } from './tracks-heights.js';
 import { sectionHeaderOf, trackHeaderOf } from './tracks-headers.js';
 import { collapsedSection } from './headers.js';
+import { BridgeHooks } from './bridge-hooks.js';
 
 export { multiSystem, sectionLayoutName } from './tracks-axes.js';
 export { labelColumnWidth, layerKey } from './tracks-columns.js';
 export { BreakSlop, drawView } from './tracks-draw.js';
-export { hitView } from './tracks-hit.js';
+export { bridgeAt, hitView } from './tracks-hit.js';
 export {
+  type BridgeLayout,
+  type BridgeRibbon,
   type HeldDomains,
   type LayerLayout,
   type LayoutInput,
@@ -338,9 +341,11 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       if (railRowList(entry, false).includes('pinned')) pinnedAt.set(s.address, pinnedAt.size);
     }
   const pinnedPx = pinnedAt.size * SlimRailPx;
+  // a bridge's band above the section after it in the stack (_spec/README.md "Render", Bridges): its height and a gap
+  const bridgeRoom = input.view.bridges && BridgeHooks.rooms?.(input.view, config);
   for (const section of input.view.sections) {
     const collapsed = collapsedSection(section);
-    if (anyShown && !collapsed) y += config.sectionGap;
+    if (anyShown && !collapsed) y += config.sectionGap + (bridgeRoom?.get(section.address) ?? 0);
     if (!collapsed) anyShown = true;
     const axis = axes.get(section.address);
     if (!axis)
@@ -916,6 +921,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         state.domains.set(k, e);
         state.domainsVersion++;
       }
+  // the bridges, after their sides (the bridge chunk's: a view with one waits for it to land, `bridge-load.ts`)
+  const bridges = bridgeRoom && BridgeHooks.layout?.({ input, state, config, theme, sections, wants, report });
   for (const i of overlay.issues) report(i);
   // a source's lanes grew in this layout: its track grows to them in the same frame, once (what is below moves once)
   if (!again && knownVersion(input.types) !== known) return layoutView(input, state, true);
@@ -932,6 +939,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     shown: shownNodes,
     ...(narrow ? { narrow } : {}),
     ...(pinnedPx > 0 ? { pinnedPx } : {}),
+    bridges,
   };
 }
 
