@@ -2,6 +2,8 @@
 
 ## Decided
 
+- The values layer's look: variants first (the author, 2026-11-22: "is there a way to make the barcharts look nicer
+  too?", then "Yes, variants first"); VL (`briefs/vl-values-look.md`) after RL merges.
 - The rail look picked (the author, 2026-11-22): "let's go with D1 by default, but customizable to D2 as well"; "the
   hover card should not show on the rail". A, B, C and today's deleted. To RL step 2.
 - Header actions show on header hover only (the author, 2026-11-22: "Yes, header only"): not on data or rail hover;
