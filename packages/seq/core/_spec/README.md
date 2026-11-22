@@ -1054,10 +1054,13 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
   relative strand (EC-206), by `type` when the coverage's `binBy` says so, a numeric field summed; an end's bin is its
   first position's. `coarsenPairBins` (`coarsenBins` on pairs bins) sums bins into bins `factor` times wider, exact
   (levels nested). A one-level source's pairs are read whole once (each system's, merged once a pair: kept from its `a`
-  end's read), within `summaries.maxBytes` (16 MB, about 600,000 pairs at 26 bytes), binned in slices of
-  `summaries.sliceMs` (4 ms), each further level coarsened from the one below; **only the levels that halve the rows
-  below are kept**, a dropped level answered as items. Past `maxBytes`, a coarse tile is binned from its own items read
-  (`seq.store.pairs.levels`). Why: counts are exact at every level and sum across levels.
+  end's read), within `summaries.maxBytes` (16 MB, about 600,000 pairs at 26 bytes), merged and binned in slices of
+  `summaries.sliceMs` (4 ms; a system's read checked and each level its own task), the shape's first numeric field
+  summed (Decided 2), each further level coarsened from the one below; **only the levels that halve the rows below are
+  kept**: a dropped level leaves the coverage once the pyramid is built (unless values or a grid list it), a read of it
+  meanwhile answered as items. Past `maxBytes`, a coarse tile is its own items read only when the source's `readCost`
+  says they fit `maxBytes`, else refused before reading (`seq.store.pairs.levels`: the layer reads coarser, then says
+  zoom in). Why: counts are exact at every level and sum across levels.
 - **Grid levels** (`summaries-grid.ts`): a one-level grid's listed system pairs (a symmetric one's at or above the
   diagonal) read whole within `summaries.maxBytes` together, each level halved from the one below by the coverage's
   `aggregate` (`sum`, `mean`; NaN not counted); a tile cut from its level. A `whole` system's plane at a level is made

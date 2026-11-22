@@ -254,9 +254,53 @@ describe('the pairs level (EC-208)', () => {
       system: 'chr1',
     });
     expect(binKeys(fromStore as PairsBins)).toEqual(binKeys(held as PairsBins));
-    // a level whose bins do not halve the rows below is answered as items
+    // the shape's numeric field summed into the bins (Decided 2), as binned from the held pairs
+    const total = (c: Float32Array | undefined) => (c ?? new Float32Array(0)).reduce((a, v) => a + v, 0);
+    const heldSum = sliceTable(
+      binPairs(pairsOf(400), level, { category: true, systems: true, field: 'score' }),
+      level,
+      {
+        start: 0,
+        end: Chr1,
+        system: 'chr1',
+      },
+    ) as PairsBins;
+    expect((fromStore as PairsBins).sum).toBeDefined();
+    expect(total((fromStore as PairsBins).sum)).toBeCloseTo(total(heldSum.sum), 2);
+    // a level whose bins do not halve the rows below leaves the coverage once built (the reader takes the next kept)
+    expect(s.coverage.levels).not.toContain(16);
+    expect(s.coverage.levels).toContain(level);
+    // asked meanwhile, it is answered as items
     const fine = await s.read({ system: 'chr1', start: 0, end: Chr1, level: 16, shapes: ['pairs'] }, signal);
     expect(fine.ok && fine.tables.pairs?.form).toBe('list');
+  });
+
+  it('past the summaries’ bytes, refuses a coarse tile before reading unless its read cost fits', async () => {
+    const reads: RegionRequest[] = [];
+    const counted = (cost?: number): OpenedSource => {
+      const inner = openSeq(pairsSource(400));
+      return {
+        coverage: inner.coverage,
+        read: (r, sig) => {
+          reads.push(r);
+          return inner.read(r, sig);
+        },
+        ...(cost !== undefined && { readCost: () => cost }),
+        dispose: () => inner.dispose(),
+      };
+    };
+    const tiny = { factor: 16, maxBytes: 100, sliceMs: 4 };
+    const tile: RegionRequest = { system: 'chr1', start: 0, end: 4096, level: 256, shapes: ['pairs'] };
+    const blind = withSummaries(counted(), tiny, undefined, Now);
+    const a = await blind.read(tile, signal);
+    expect(a.ok).toBe(false);
+    // only the whole reads the pyramid tried: no tile read to be refused after
+    expect(reads.every((r) => r.end - r.start > 4096)).toBe(true);
+    reads.length = 0;
+    const cheap = withSummaries(counted(64), tiny, undefined, Now);
+    const b = await cheap.read(tile, signal);
+    expect(b.ok).toBe(true);
+    expect(reads.some((r) => r.level === 1 && r.end === 4096)).toBe(true);
   });
 
   it('answers an items tile at a coarse level as the level-1 items over it', async () => {
@@ -305,7 +349,7 @@ describe('the pairs pyramid’s cost (performance)', () => {
    * A one-level source of `n` pairs answering each system whole at once (its lists made before: the bound is the
    * pyramid's, not the source's), and a read of chr1 at the coarsest level (which builds the pyramid).
    */
-  function pyramid(n: number) {
+  function pyramid(n: number, clock: SliceClock = Now) {
     // no ids or types: 26 bytes a pair, so 600,000 are within the summaries' 16 MB
     const data = pairsSource(n, true);
     const lists = new Map(data.pairs.map((p) => [p.request.system, p.answer]));
@@ -314,7 +358,7 @@ describe('the pairs pyramid’s cost (performance)', () => {
       read: (r) => Promise.resolve(lists.get(r.system)!),
       dispose() {},
     };
-    const s = withSummaries(inner, undefined, undefined, Now);
+    const s = withSummaries(inner, undefined, undefined, clock);
     const level = s.coverage.levels[s.coverage.levels.length - 1];
     return () => s.read({ system: 'chr1', start: 0, end: Chr1, level, shapes: ['pairs'] }, signal);
   }
@@ -327,15 +371,36 @@ describe('the pairs pyramid’s cost (performance)', () => {
     expect(a.ok && a.tables.pairs?.form).toBe('bins');
   });
 
-  it('of 600,000 pairs (the summaries’ bytes) is built within 300 ms of slices', {
-    tags: ['heavy'],
-    timeout: 60_000,
-  }, async () => {
-    await pyramid(20_000)();
-    const read = pyramid(600_000);
-    const t0 = performance.now();
-    const a = await read();
-    expect(a.ok && a.tables.pairs?.form).toBe('bins');
-    expect(performance.now() - t0).toBeLessThan(300);
-  });
+  itWithin(
+    'of 600,000 pairs (the summaries’ bytes) is built in slices, none a long task (merge and bins alike)',
+    async (within) => {
+      await pyramid(20_000)();
+      // a clock of real time whose yields record each slice's length (the work between two yields)
+      let last = performance.now();
+      let longest = 0;
+      const clock: SliceClock = {
+        now: () => performance.now(),
+        yield: () => {
+          const t = performance.now();
+          longest = Math.max(longest, t - last);
+          return Promise.resolve().then(() => {
+            last = performance.now();
+          });
+        },
+      };
+      const read = pyramid(600_000, clock);
+      // from the read on (the fixture's pairs are made before)
+      last = performance.now();
+      const a = await read();
+      longest = Math.max(longest, performance.now() - last);
+      expect(a.ok && a.tables.pairs?.form).toBe('bins');
+      // the longest slice, replayed under the bound (a frame: a system's whole read checked is one task, 15 ms at
+      // 300,000 rows; the merge and the bins `sliceMs` 4 and a step's grain): what the heavy lane times
+      within(20, () => {
+        const t0 = performance.now();
+        while (performance.now() - t0 < longest);
+      });
+    },
+    60_000,
+  );
 });
