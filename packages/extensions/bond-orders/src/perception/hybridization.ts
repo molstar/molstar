@@ -26,7 +26,7 @@ import { Elements } from '@molstar/model/model/structure/model/properties/atomic
 import type { UnitIndex } from '@molstar/model/model/structure/structure/element/util';
 import { AtomGeometry } from '@molstar/model/props/computed/chemistry/geometry';
 import { atomId } from '@molstar/model/props/computed/chemistry/util';
-import { Ambiguity, isAssignedBond, isHydrogenElement, pos, type State, setAssignedBond } from './common.js';
+import { Ambiguity, getOrder, isAssignedBond, isHydrogenElement, pos, type State, setAssignedBond } from './common.js';
 import { exceedsMaxDoubleLength, hasPlanarDihedral } from './thresholds.js';
 
 // Per-atom dimensionality: threshold from which the principal component of the coordinates of
@@ -221,6 +221,7 @@ function assignLongOrNonPlanarBond(state: State, u: UnitIndex, v: UnitIndex, see
  * - Rings of 5 atoms not passing the planarity test: angle is ~108° which is assigned to tetrahedral at the geometry stage. If the atom
  * has only 2 neighbours, it is marked as ambiguous.
  * - Bonds too long or for which no planar dihedral can be found are marked as unambiguous single bonds.
+ * - An sp2 or ambiguous atom with no sp2, ambiguous or terminal neighbour across a bond that could be double is demoted to sp3.
  */
 function markAmbiguous(state: State) {
   for (const seq of state.localRings5or6) {
@@ -265,15 +266,20 @@ function markAmbiguous(state: State) {
   for (let i = 0; i < n; i++) {
     if (geometry[i] !== AtomGeometry.Trigonal && geometry[i] !== AtomGeometry.Tetrahedral && ambiguous[i] === 0)
       continue;
+    const u = unitIndices[i];
     let found = false;
     for (const j of state.heavyNeighbours[i]) {
-      if (geometry[j] === AtomGeometry.Terminal || geometry[j] === AtomGeometry.Trigonal || ambiguous[j] > 0) {
-        found = true;
-        break;
-      }
+      if (geometry[j] !== AtomGeometry.Terminal && geometry[j] !== AtomGeometry.Trigonal && ambiguous[j] === 0)
+        continue;
+      // a neighbour across an unambiguous single bond cannot share a double: otherwise a chain of borderline sp3
+      // atoms (the CH2s of a saturated ring fused to an aromatic one, H removed) keeps itself sp2
+      const v = unitIndices[j];
+      if (isAssignedBond(state, u, v) && getOrder(state.bonds, u, v) === 1) continue;
+      found = true;
+      break;
     }
     if (!found) {
-      // No trigonal or suitable tetrahedral neighbor found, demote to sp3
+      // No trigonal or suitable tetrahedral neighbor across a possible double found, demote to sp3
       geometry[i] = AtomGeometry.Tetrahedral;
       ambiguous[i] = 0;
     }
