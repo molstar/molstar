@@ -4,6 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { CategoryColumn, type Column } from '@molstar/core/repr/tree';
+import type { RangesList } from '@molstar/seqx-core/data';
 import type { Key, Location } from '@molstar/seqx-core/query';
 import { DefaultNumbering, findNumbering, numberingIds, rangesLocation } from '@molstar/seqx-core/query';
 import { extentText } from '@molstar/seqx-core/render/accessibility';
@@ -260,24 +262,72 @@ const ItemSection: CardSection = {
     const it = at.words.itemsOf(l).find((d) => d.key === el.key);
     if (!it) return;
     const system = at.words.systemName(it.system ?? l.layer.data?.system ?? at.section.section.axis.system);
-    const category = at.words.categoryOf(l, el.key);
-    const strand = at.words.strandOf(l, el.key, it.start);
-    out.title = it.label;
+    // a source's allele (a VCF's: its row holds `ref` and `alt`) is named by its id, `pos:ref>alt`, never its record's ID
+    // (its source's row looked up once: the strand reads it too)
+    const row = at.words.sourceRowOf(l, el.key, it.start);
+    const allele = row && it.system === undefined ? alleleOf(row.t, row.i) : undefined;
+    const category = allele?.category || at.words.categoryOf(l, el.key);
+    const strand = at.words.strandOf(l, el.key, it.start, row ?? null);
+    out.title = allele ? String(el.key) : it.label;
     // the track's name: a short drawn label (`CDR-H1`) is told apart by it (`CDRs (Kabat)`)
     const track = at.section.tracks.find((t) => t.layers.includes(l))?.track.label;
     if (track) out.row('Track', track);
     out.row('Extent', `${system} ${extentText(it)}`);
+    if (allele) {
+      if (category) out.row('Category', category);
+      if (allele.id) out.row('ID', allele.id);
+      for (const [name, value] of allele.info.slice(0, AlleleInfoRows)) out.row(name, value);
+      if (allele.info.length > AlleleInfoRows) out.row('INFO', `+${allele.info.length - AlleleInfoRows} more`);
+    }
     // a hit in a merged run of mixed categories lists them all (the hit's `categories`, in the legend's order)
     const mixed = at.place.categories;
     if (mixed) out.row('Categories', mixed);
-    else if (category) out.row('Category', category);
+    else if (category && !allele) out.row('Category', category);
     if (strand) out.row('Strand', strand);
     out.words.push(
-      `${itemText(system, it)}${track ? `, ${track}` : ''}${mixed ? `, ${mixed}` : category ? `, ${category}` : ''}${strand ? `, strand ${strand}` : ''}`,
+      `${allele ? `${String(el.key)}, ` : ''}${itemText(system, it)}${track ? `, ${track}` : ''}${mixed ? `, ${mixed}` : category ? `, ${category}` : ''}${strand ? `, strand ${strand}` : ''}`,
     );
     out.whole = true;
   },
 };
+
+/** The INFO fields an allele's card lists before "+k more" (the rest in the source's rows). */
+const AlleleInfoRows = 8;
+
+/** A source's fixed fields (core _spec "Data", VCF, Fields): what is not an INFO key. */
+const FixedFields = new Set(['label', 'name', 'ref', 'alt', 'qual', 'filter', 'category']);
+
+/**
+ * A variant allele as its card says it (core _spec "Data", VCF; genome formats' matrix row "a variant allele"): a row
+ * of a source's list holding `ref` and `alt` is one; its record's ID (`label`), its category and its INFO fields (every
+ * other field with a value, in the source's order); undefined for any other row.
+ */
+function alleleOf(
+  t: RangesList,
+  i: number,
+): { readonly id: string; readonly category: string; readonly info: [string, string][] } | undefined {
+  const fields = t.fields ?? [];
+  if (!fields.some((f) => f.name === 'ref') || !fields.some((f) => f.name === 'alt')) return undefined;
+  const text = (name: string): string => {
+    const f = fields.find((x) => x.name === name);
+    return f ? cellText(f.column, i) : '';
+  };
+  const info: [string, string][] = [];
+  for (const f of fields) {
+    if (FixedFields.has(f.name)) continue;
+    const v = cellText(f.column, i);
+    if (v) info.push([f.name, v]);
+  }
+  return { id: text('label'), category: text('category'), info };
+}
+
+/** A column's cell as text: '' when missing (a null category, a NaN, int32's missing value). */
+function cellText(c: Column, i: number): string {
+  if (c instanceof CategoryColumn) return c.get(i) ?? '';
+  const v = c[i];
+  // an INFO integer is often an id (ALLELEID): written as it is, never grouped
+  return v === undefined || Number.isNaN(v) || v === -2147483648 ? '' : Number.isInteger(v) ? String(v) : numberText(v);
+}
 
 /**
  * A rows layer's hidden-columns chip (core _spec "Render", The rows layer, Row columns, Narrow): each column it hides
@@ -603,28 +653,42 @@ class Words {
    * strand column of the loaded list tile of its source holding the item's first position; '' when it has none or its
    * tile is not loaded.
    */
-  strandOf(l: LayerLayout, key: string | number, start: number): string {
+  strandOf(
+    l: LayerLayout,
+    key: string | number,
+    start: number,
+    /** Its source's row when already looked up (`sourceRowOf`; null: none). */
+    row?: { t: RangesList; i: number } | null,
+  ): string {
     const model = this._src.view.model.value;
     const owner = l.layer.data?.address;
     const a = owner ? model.annotations.get(owner) : undefined;
     const f = a?.items?.find((i) => i.key === key)?.fields?.strand;
     if (typeof f === 'string') return f === '-' ? '−' : f === '+' ? '+' : '';
     if (typeof f === 'number') return f < 0 ? '−' : f > 0 ? '+' : '';
-    const src = layerSource(model, l.layer);
-    if (!src) return '';
+    const r = row === undefined ? this.sourceRowOf(l, key, start) : row;
+    const s = r?.t.strand?.[r.i] ?? 0;
+    return s < 0 ? '−' : s > 0 ? '+' : '';
+  }
+
+  /**
+   * An item's row in the loaded list tile of its layer's source holding its first position (its source's fields: a VCF
+   * allele's); undefined for an inline annotation's item, or while no tile holding it is loaded.
+   */
+  sourceRowOf(l: LayerLayout, key: string | number, start: number): { t: RangesList; i: number } | undefined {
+    const src = layerSource(this._src.view.model.value, l.layer);
+    if (!src) return undefined;
     const store = this._src.store.store;
     // the layer reads the level its pixels need: the list tile holding the item is at one of the source's levels
     for (const level of store.coverage(src.source)?.levels ?? [1])
       for (const k of store.keysOf({ source: src.source, system: src.system, start, end: start + 1, level })) {
         const e = store.get(k);
         const t = e?.status === 'loaded' ? e.tables.ranges : undefined;
-        if (!t || t.form !== 'list' || !t.strand) continue;
-        for (let i = 0; i < t.start.length; i++) {
-          if (t.start[i] !== start || (t.id ? t.id.get(i) : t.row?.[i]) !== key) continue;
-          return t.strand[i] < 0 ? '−' : t.strand[i] > 0 ? '+' : '';
-        }
+        if (!t || t.form !== 'list') continue;
+        for (let i = 0; i < t.start.length; i++)
+          if (t.start[i] === start && (t.id ? t.id.get(i) : t.row?.[i]) === key) return { t, i };
       }
-    return '';
+    return undefined;
   }
 
   /** An item's category: the `category` field of an inline annotation's item (a source's items are not held here). */

@@ -58,6 +58,29 @@ function hoverAt(v: SeqViewer, x: number, y: number) {
   return { f, marked: own !== undefined && drawnIn(passBoxes(f.lists.passes.hover), own), card: card(v) };
 }
 
+describe('a variant allele’s card', () => {
+  it('a VCF allele’s hover card naming the record, not the allele (Genome formats › VCF › TP53 ClinVar): `pos:ref>alt`, its category and its INFO fields', {
+    tags: ['medium'],
+  }, async () => {
+    const v = (viewer = await open(ExampleViews.find((x) => x.id === 'vcf-clinvar')!));
+    const probe = probesOf(v.frame!).find((p) => p.type === 'ranges' && v.hit(p.x, p.y)?.element !== undefined)!;
+    v.input.move(probe.x, probe.y);
+    v.draw();
+    const key = String(v.hover.current.element!.key);
+    expect(key).toMatch(/^\d+:[ACGTN]+>[ACGTN]+$/);
+    const c = card(v)!;
+    expect(c.title).toBe(key);
+    const rows = Object.fromEntries(c.rows.map((r) => [r.label, r.value]));
+    expect(rows.Category).toMatch(/^(SNV|MNV|insertion|deletion|indel)$/);
+    // the record's ClinVar id is a row, no longer the title
+    expect(rows.ID).toMatch(/^\d+$/);
+    // its INFO fields: ClinVar's significance among them
+    const info = c.rows.filter((r) => !['Track', 'Extent', 'Category', 'ID', 'Strand'].includes(r.label));
+    expect(info.length).toBeGreaterThan(0);
+    expect(c.rows.map((r) => r.label)).toContain('CLNSIG');
+  });
+});
+
 describe('legends both ways', () => {
   it('a legend’s hover working one way only (Genome formats › VCF › TP53 ClinVar): the “deletion” entry lights its variants, as a variant outlines it', {
     tags: ['medium'],

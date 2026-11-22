@@ -1160,9 +1160,12 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   cursor's card again at its cell and sends a hover's away until the hover rests again. A rectangle dragged on a grid
   shows its summary while it is dragged (`gridSummary`: the cells counted, their mean, least and greatest value), at
   most once a 50 ms. `hover.card` is read at composition (the configuration is read-only after it): off, no card is
-  shown and no port made. A behavior's part over the canvas is `BehaviorHandle.attach(container, viewer)`
-  (`viewer-spec.ts`): `mountCanvas` calls it for every behavior that has one, and the function it returns takes the part
-  away.
+  shown and no port made. **A variant allele's card** (the genome formats' matrix row "a variant allele"): an item whose
+  source row holds `ref` and `alt` (a VCF's, core's Data, VCF) is titled by its id `pos:ref>alt`, never its record's ID,
+  with its Category, its record's `ID` and its INFO fields with a value (the source's order, the first 8, then
+  `INFO: +k more`; an integer written as it is: an id is never grouped). A behavior's part over the canvas is
+  `BehaviorHandle.attach(container, viewer)` (`viewer-spec.ts`): `mountCanvas` calls it for every behavior that has one,
+  and the function it returns takes the part away.
 - `keysPanel` (`KeysPanelProvider`, in the default spec): `help.keys` (`?` in `view.keys`; the toolbar's button) opens a
   `@molstar/ui` surface over the canvas's corner listing what the view answers to, `describeKeys(viewer)` (`keys.ts`,
   DOM-free, so a host draws its own): generated from the viewer's commands with their keys (`view.keys`, else the
