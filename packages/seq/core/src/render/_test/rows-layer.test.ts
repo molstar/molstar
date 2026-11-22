@@ -337,8 +337,9 @@ describe('where the rows draw', () => {
     const f = await s.frame(input);
     const lay = rowsLay(f);
     expect(f.layout.issues.some((i) => i.code === 'seq.render.rows.lazy')).toBe(true);
-    expect(lay.neutral).toBe(true);
-    expect(lay.pending.length).toBe(0);
+    // a stored scale under the floor is drawn at the floor (a device pixel a row): never the neutral fill
+    expect(lay.rowScale).toBe(1);
+    expect(lay.neutral).toBe(false);
   });
 });
 
