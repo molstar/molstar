@@ -569,7 +569,9 @@ more than a screen can give it, it scrolls inside itself with its name and the t
   for the section's reachable region (its tiles at the fit's level, as the navigator reads), grown as tiles settle,
   never shrunk by a pan or a zoom (the decided "heights from the whole data stay put"); reset only when the data's
   identity changes (another file, another region `range`). Why the reachable region: it is the source's "whole" for
-  this view, bounded, and what a pan can reach.
+  this view, bounded, and what a pan can reach. Read as a margin want of its own under the layer's budget (FX11, `ranges-reach.ts`), its
+  verdict kept per prep and reset when the data's coverage changes; the track takes the larger of the reach's lanes and
+  the view's; a refused reach says `seq.render.reach` (info) once.
 - **Growth is batched to the settle**, not per tile: the track grows at most once per settled read (a store `settle`,
   data-store.md), so tracks below move once, never tile by tile. Data does not animate (ux-foundations section 7).
 - **Pending is never empty** (EC-169): before the first tile, one lane with the loading placeholder; never a blank band
