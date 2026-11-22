@@ -7,6 +7,7 @@
 // `renderSvg`: waits for the data its view needs and renders it; says when it did not settle; reads no assets unless
 // given a reader; reports a missing view; the render codes' catalog.
 
+import { RibbonIssues } from '../pairs-ribbons.js';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -96,7 +97,8 @@ describe('renderSvg', () => {
 
 describe('seq.render: issue codes', () => {
   it('every code a source uses is cataloged, and every cataloged code is used', () => {
-    const known = new Set(Object.keys(RenderIssues.codes));
+    // the bridge chunk catalogs its own (lazy as it is)
+    const known = new Set([...Object.keys(RenderIssues.codes), ...Object.keys(RibbonIssues.codes)]);
     const dir = fileURLToPath(new URL('../', import.meta.url));
     const used = new Set<string>();
     // the render folder and its layouts'

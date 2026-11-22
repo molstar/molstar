@@ -18,7 +18,7 @@ export const title = 'Plasmid features from GFF3';
 /** The feature types of the file, a ring track each: the SO term and its label. */
 export const GffTracks: readonly (readonly [type: string, label: string])[] = [
   ['CDS', 'CDS'],
-  ['promoter', 'Promoters'],
+  ['restriction_enzyme_recognition_site', 'Sites'],
   ['misc_feature', 'Misc'],
   ['rep_origin', 'Origin'],
   ['primer_bind', 'Primer sites'],

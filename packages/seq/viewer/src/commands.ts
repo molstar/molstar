@@ -150,6 +150,10 @@ export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   'preview.cancel': 'preview',
   // a track header's menu opens: the reader's, nothing in the models
   'headers.menu': 'none',
+  // a bridge's (`bridge-view.ts`, lazy): an align is a jump, select across a selection's, the lock toggle an edit
+  'bridge.align': 'navigate',
+  'bridge.selectAcross': 'session',
+  'bridge.lock': 'patch',
 };
 
 /** A command's change kind: the table's, then `extra` (an extension's commands); undefined when unknown. */

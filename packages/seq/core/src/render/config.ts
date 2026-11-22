@@ -84,7 +84,18 @@ export interface RenderConfig {
    * lanes and padding, a px number: no view height to take a share of), and `overflow` past it: its lanes `scroll`
    * inside the track (the default), `compact` (squeezed to the band) or the rest in a `density` row.
    */
-  readonly track: { readonly maxPx: number; readonly overflow: 'scroll' | 'compact' | 'density' };
+  readonly track: {
+    readonly maxPx: number;
+    readonly overflow: 'scroll' | 'compact' | 'density';
+    /**
+     * A track with no items in what it covers (its content known whole, no lanes): `note` (the default) a one-line row
+     * of `emptyPx` naming it with a quiet "no items", `collapse` the row alone, `keep` its well as any track's. A
+     * track's own `empty` overrides it; a track still waiting for its data is pending, never empty.
+     */
+    readonly empty: 'note' | 'collapse' | 'keep';
+    /** The height of an empty track's row (px). */
+    readonly emptyPx: number;
+  };
   /**
    * An export's lanes (`all`: every lane of a capped track at its content height; `view`: the band as on screen with
    * its cut edges), and the most a track's px an export draws (4,000), the rest said in its header.
@@ -231,6 +242,11 @@ export interface RenderConfig {
     readonly runPx: number;
     readonly readPx: number;
     readonly groupGap: number;
+    /**
+     * A stacked block's track with no items for that block: `collapse` (the default) leaves it out of that block's row
+     * (the first block's row and a track of letters or any fixed height are kept), `keep` draws its well.
+     */
+    readonly emptyTracks: 'collapse' | 'keep';
   };
   /**
    * Rings (_spec/README.md "Render", Rings layout): the hole a share of the radius at least (0.35: room for the title,
@@ -358,6 +374,22 @@ export interface RenderConfig {
     readonly binStroke: { readonly min: number; readonly max: number };
   };
   /**
+   * A bridge (_spec/README.md "Render", Bridges): its band's height when its spec gives none (`height`, 96 CSS px: room
+   * for a crossed ribbon to read; the band's resize grip is the viewer's, not built).
+   */
+  readonly bridges: { readonly height: number };
+  /**
+   * A bridge's ribbons (_spec/README.md "Render", Bridges): filled at `fillOpacity` (0.35: overlaps read through), a bin
+   * by its aligned length at `binOpacity` (0.15 to 0.8, square root over the bins in view), each end at least `minPx`
+   * device px wide (1: a short run on a long axis is still seen), a stub `stubShare` of the band's height (0.25).
+   */
+  readonly ribbons: {
+    readonly fillOpacity: number;
+    readonly binOpacity: { readonly min: number; readonly max: number };
+    readonly minPx: number;
+    readonly stubShare: number;
+  };
+  /**
    * The grid layer (_spec/README.md "Render", The grid layer): a cell drawn as a rect with its outline from `rectMinPx`
    * (12 CSS px: rects only where few), image tiles of the shared reduction below; at most `buildBudget` samples (65,536:
    * a tile) built a frame while the view moves, the coarser level drawn meanwhile (a settled frame builds the rest).
@@ -419,7 +451,7 @@ export const DefaultRenderConfig: RenderConfig = {
   laneHeight: 14,
   laneGap: 2,
   lanePadding: 4,
-  track: { maxPx: 240, overflow: 'scroll' },
+  track: { maxPx: 240, overflow: 'scroll', empty: 'note', emptyPx: 18 },
   export: { lanes: 'all', maxTrackPx: 4000 },
   density: { letters: 10, cells: 3, dots: 1, bars: 1 / 64 },
   densityUnits: { letters: 'css', cells: 'device', dots: 'device', bars: 'device' },
@@ -464,7 +496,7 @@ export const DefaultRenderConfig: RenderConfig = {
   ranges: { overflow: 'extra-lanes', maxLanes: 1000, connector: { width: 1, ink: 'item', alpha: 0.6 } },
   values: { aggregate: 'minmax', coarser: 1, direct: true },
   ruler: { labelGap: 48 },
-  blocks: { gapShare: 0.25, runPx: 2, readPx: 1, groupGap: 3 },
+  blocks: { gapShare: 0.25, runPx: 2, readPx: 1, groupGap: 3, emptyTracks: 'collapse' },
   rings: {
     hole: 0.35,
     trackMaxPx: 48,
@@ -500,6 +532,8 @@ export const DefaultRenderConfig: RenderConfig = {
     square: { maxCells: 4096 },
   },
   pairs: { maxArcs: 4096, hitPx: 4, binPx: 2, itemsHysteresis: 1.25, binStroke: { min: 1, max: 6 } },
+  bridges: { height: 96 },
+  ribbons: { fillOpacity: 0.35, binOpacity: { min: 0.15, max: 0.8 }, minPx: 1, stubShare: 0.25 },
   grid: { rectMinPx: 12, buildBudget: 65_536, binPx: 1, marginTiles: 1 },
   text: {
     scale: 12,

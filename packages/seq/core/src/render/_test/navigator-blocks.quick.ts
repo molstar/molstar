@@ -146,7 +146,7 @@ describe('a drag across many small blocks: the strip’s viewport follows the hu
     );
     // a new hull is a new layout of the strip's section (~110 KB for twenty contigs: the layout's own, measured): a
     // bound, so it never grows with the genome's 3,000 blocks (the context is not laid out again)
+    // its 2 ms bound is a wall-clock one: in the heavy lane, navigator-drag-time.test.ts
     expect(r.bytesPerStep, r.note).toBeLessThanOrEqual(256 * 1024);
-    expect(ms).toBeLessThanOrEqual(2);
   });
 });

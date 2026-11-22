@@ -106,6 +106,12 @@ export interface PlaceContext {
    * chip's letters drew its label in a pill (what a layout that places labels itself leaves out).
    */
   layStrip(placement: Placement, strip: number, labels?: LabelSink): boolean;
+  /**
+   * Whether block `b`'s layers of band `j` hold no item (every placed layer's content known whole and empty); false
+   * for a layer without a known content (letters, a source not read whole): a stack leaves such a band out of its row
+   * (`blocks.emptyTracks`).
+   */
+  bandEmpty?(b: number, j: number): boolean;
   /** Says what the layout could not place (a text past `text.maxLines`). */
   report(issue: Issue): void;
   /** Lays out all of the section's content (an export: a text's every line), not only what is in view. */

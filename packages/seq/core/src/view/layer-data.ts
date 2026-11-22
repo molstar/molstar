@@ -85,6 +85,9 @@ export function dataOf(
   const prefix = printAddress(ids);
   const kind = exact === undefined ? 'query' : 'address';
   const address = exact ?? printAddress(parsed.segments);
+  // a segments map read as pairs, anywhere (_spec/README.md "Resolved view", Bridges): a run a pair, on its `from`
+  const map = model.maps.get(prefix);
+  if (map?.kind === 'segments') return { kind, address, system: map.from, shape: 'pairs' };
   const a = model.annotations.get(prefix);
   // an alignment is its columns system too: a layer naming it reads its cells
   if (a?.shape === 'cells') return { kind, address, system: a.target, shape: 'cells' };

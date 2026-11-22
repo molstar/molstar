@@ -8,11 +8,13 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { BridgeIssues } from '../bridges.js';
 import { ViewIssues } from '../issues.js';
 
 describe('seq.view: issue codes', () => {
   it('every code a source uses is cataloged, and every cataloged code is used', () => {
-    const known = new Set(Object.keys(ViewIssues.codes));
+    // the bridge pass catalogs its own (lazy as it is)
+    const known = new Set([...Object.keys(ViewIssues.codes), ...Object.keys(BridgeIssues.codes)]);
     const dir = fileURLToPath(new URL('../', import.meta.url));
     const used = new Set<string>();
     for (const name of readdirSync(dir)) {

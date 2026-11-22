@@ -10,14 +10,29 @@
 // layout's second pass read it.
 
 const Lanes = new WeakMap<object, number>();
+const Empty = new WeakSet<object>();
 let Count = 0;
 
 /** Notes that a source's layer packed `lanes` lanes: the track grows to them, never shrinks by a pan. */
 export function noteLanes(prep: object, lanes: number): void {
   if (lanes > (Lanes.get(prep) ?? 1)) {
     Lanes.set(prep, lanes);
+    Empty.delete(prep);
     Count++;
   }
+}
+
+/** Notes that a source's layer, settled over its reachable region, holds no item: its track is empty, not pending. */
+export function noteEmpty(prep: object): void {
+  if (!Empty.has(prep)) {
+    Empty.add(prep);
+    Count++;
+  }
+}
+
+/** Whether a source's layer settled with no item (`noteEmpty`). */
+export function knownEmpty(prep: object): boolean {
+  return Empty.has(prep);
 }
 
 /** The lanes a layer has packed (one while it is pending: the loading lane). */
@@ -32,5 +47,5 @@ export function knownLanesVersion(): number {
 
 /** Forgets what a prep's source had packed (its data was replaced): the track sizes again from what is read. */
 export function resetLanes(prep: object): void {
-  if (Lanes.delete(prep)) Count++;
+  if (Lanes.delete(prep) || Empty.delete(prep)) Count++;
 }

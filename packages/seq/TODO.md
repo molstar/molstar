@@ -24,6 +24,11 @@ loaded when used, sections over a source's complex, the genome axis and layouts)
 - **A component query on a source-backed sequence** (`(elements :component X)`) is pending until the source's letters
   are read (EC-169); a format with a component index could answer it without the letters.
 
+- **Bridges' follow-ups** (LA, 2026-11-22; across-sections.md): over assemblies a bridge reads once, on side `a` (LA2);
+  grids over two sections, categorical axes, the liftover (LA3); the resize grip, bridge menus, a ribbon's double-click,
+  `bridge.pointer`; sections have no label, so a card names a side by its section id; Shift+A is the command's own
+  shortcut, not in `view.keys`; the bridge chunk is 23.5 of its 24 kB row (the design estimated 6).
+
 - **Region reads' follow-ups** (RG, 2026-11-22): sided pairs read on side `a` only (side `b` for a track on genome b,
   LA's); matrix state labels in the header, `order` and `hidden`; a pairs bin card's per-category breakdown;
   `MatrixItems` as a ranges list plus a cells column; `store.ts` (854 lines) and `viewer.ts` (818) past 800 with no

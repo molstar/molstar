@@ -49,6 +49,8 @@ export interface RegionState {
   /** Bin pairs with an end in view (summed counts), as last read; items in view when shown. */
   binPairs: number;
   itemCount: number;
+  /** The bins' tiles not loaded, `[start, end, …]` on the data's system (a bridge's pending hatch, EC-169). */
+  pending?: readonly number[];
 }
 
 /** A lay's region state, made on first read. */
@@ -113,7 +115,8 @@ function inView(regions: readonly number[], s: number, e: number): boolean {
 
 /**
  * The frame's pairs of a region layer: reads bins, gates items, and gives the prep the arcs lay out (`undefined` while
- * nothing is read). The read's state is the lay's. Over an assembly, a read a block (`pairs-assembly.ts`).
+ * nothing is read). The read's state is the lay's. Over an assembly, a read a block (`pairs-assembly.ts`). `over`: the
+ * regions read instead of the view's (a bridge's near side reads its `R`).
  */
 export function regionPairs(
   prep: PairsPrep,
@@ -121,13 +124,14 @@ export function regionPairs(
   ctx: LayoutContext,
   data: StoreReader,
   lay: PairsLay,
+  over?: number[],
 ): PairsPrep | undefined {
   if (region.assembly) return AssemblyPairs.read?.(prep, region, region.assembly, ctx, data, lay);
   const state = regionState(lay);
   const { src } = region;
   const cov = data.coverage(src.source);
   const levels = cov?.levels ?? [1];
-  const regions = dataRegions(src, ctx.axis);
+  const regions = over ?? dataRegions(src, ctx.axis);
   const span = (ctx.axis.u1 - ctx.axis.u0) * src.ratio;
   const cfg = ctx.config.pairs;
   const fit = pairsLevels(levels, src.ratio / ctx.axis.devicePx, span, data, cfg.binPx);
@@ -135,6 +139,7 @@ export function regionPairs(
   const bins = fittedLevel(ctx, data, src, regions, fit.bins);
   const items = fit.items;
   const binRead = readTiles(ctx, data, src, regions, bins);
+  state.pending = binRead.pending;
   // at the finest level the bins are the items themselves
   const binned = binRead.entries.some((e) => e.tables.pairs?.form === 'bins');
   state.binPairs = binned
@@ -277,7 +282,6 @@ export class Gather {
   kindAt = new Map<string, number>();
   keys: (string | number)[] = [];
   weight: number[] = [];
-
   push(
     as: number,
     ae: number,

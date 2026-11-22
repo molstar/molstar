@@ -58,12 +58,15 @@ import { instanceInView, wantTemplate } from './tracks-templates.js';
 import { bandHeights, firstType, rowsFill, rulerTrack } from './tracks-heights.js';
 import { sectionHeaderOf, trackHeaderOf } from './tracks-headers.js';
 import { collapsedSection } from './headers.js';
+import { BridgeHooks } from './bridge-hooks.js';
 
 export { multiSystem, sectionLayoutName } from './tracks-axes.js';
 export { labelColumnWidth, layerKey } from './tracks-columns.js';
 export { BreakSlop, drawView } from './tracks-draw.js';
-export { hitView } from './tracks-hit.js';
+export { bridgeAt, hitView } from './tracks-hit.js';
 export {
+  type BridgeLayout,
+  type BridgeRibbon,
   type HeldDomains,
   type LayerLayout,
   type LayoutInput,
@@ -338,9 +341,11 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       if (railRowList(entry, false).includes('pinned')) pinnedAt.set(s.address, pinnedAt.size);
     }
   const pinnedPx = pinnedAt.size * SlimRailPx;
+  // a bridge's band above the section after it in the stack (_spec/README.md "Render", Bridges): its height and a gap
+  const bridgeRoom = input.view.bridges && BridgeHooks.rooms?.(input.view, config);
   for (const section of input.view.sections) {
     const collapsed = collapsedSection(section);
-    if (anyShown && !collapsed) y += config.sectionGap;
+    if (anyShown && !collapsed) y += config.sectionGap + (bridgeRoom?.get(section.address) ?? 0);
     if (!collapsed) anyShown = true;
     const axis = axes.get(section.address);
     if (!axis)
@@ -430,6 +435,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     // the kept heights, copied only where this layout changes them (a rows band's)
     let heights = sizedBands.heights as number[];
     const trackContents = sizedBands.contents;
+    const trackEmpties = sizedBands.empties;
     // each track's padding inside its well, `[top, bottom]` a track: its own, else the config's (_spec/README.md
     // "Render", Tracks layout)
     const pads: number[] = [];
@@ -560,7 +566,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         strips.used[k] = 0;
         const h = strips.bandH[k];
         // a band below the page is not laid out: nothing of it is drawn or asked for
-        if (!(strips.bandY[k] + strips.dy[i] < height) || (h <= 0 && layout !== TracksLayout)) continue;
+        if (!(strips.bandY[k] + strips.dy[i] < height) || (h <= 0 && (layout !== TracksLayout || block))) continue;
         const track = shown[j];
         const band = bandOf(track);
         if (trackContents[j]) labelLaneOf(j).reset();
@@ -670,6 +676,26 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         }
       return out;
     };
+    // a block's band with no item (a stack's rows: `blocks.emptyTracks`): asked of a stack only
+    const stacked = section.blocks !== undefined && section.params.arrange === 'stack';
+    const emptyCtx = stacked ? { config, text: input.text, fit: 0, labelLane: false } : undefined;
+    const bandEmpty = stacked
+      ? (b: number, j: number): boolean => {
+          const block = section.blocks?.[b];
+          if (!block || trackOf[j] < 0) return false;
+          for (const l of block.layers[trackOf[j]] ?? []) {
+            if (!l.placed || l.params.hidden === true) continue;
+            const type = firstType(l, types);
+            if (!type?.content) return false;
+            let prep = state.preps.get(l);
+            if (prep === undefined) state.preps.set(l, (prep = type.prepare(l, input.model)));
+            const c = type.content(prep, emptyCtx!);
+            if (!c || c.partial || c.lanes > 0) return false;
+          }
+          // every layer placed here is empty, or none is placed (a layer of another block's system)
+          return true;
+        }
+      : undefined;
     const sectionBox: Box = {
       x: dataX,
       y: top,
@@ -693,6 +719,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         heights,
         ...(padded ? { pads } : {}),
         layStrip,
+        bandEmpty,
         report: sectionReport,
         ...(input.figure ? { figure: true } : {}),
         ...(input.windows ? { windows: true } : {}),
@@ -712,11 +739,14 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       const track = shown[j];
       // a grid's track is its plot (over blocks: its cells together), its well the plot's grown by its padding
       const plot = layout.name === 'grid' && strips.n ? (placement as GridPlacement) : undefined;
-      const pt = plot ? plot.padTop : strips.n ? strips.padT[j] : pads[2 * j];
-      const pb = plot ? plot.padBottom : strips.n ? strips.padB[j] : pads[2 * j + 1];
+      // a stack's track sits in the first row that keeps it (the first block's, unless it left the track out)
+      let at = 0;
+      if (stacked && strips.n) while (at + 1 < strips.n && strips.bandH[at * nb + j] <= 0) at++;
+      const pt = plot ? plot.padTop : strips.n ? strips.padT[at * nb + j] : pads[2 * j];
+      const pb = plot ? plot.padBottom : strips.n ? strips.padB[at * nb + j] : pads[2 * j + 1];
       const box: Box = {
         x: dataX,
-        y: plot ? plot.plotTop : strips.n ? strips.bandY[j] + strips.dy[0] : by + pt,
+        y: plot ? plot.plotTop : strips.n ? strips.bandY[at * nb + j] + strips.dy[at] : by + pt,
         width: sectionBox.width,
         // a layout of two axes overlays its bands on the plot
         height: plot ? plot.plotHeight : heights[j],
@@ -865,6 +895,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       y: sectionTop,
       height: y - sectionTop,
       tracks,
+      empties: trackEmpties,
       ...(sectionHeader ? { header: sectionHeader } : {}),
       breaks: axis && band ? (stripBreaks[0] ?? NoBreaks) : NoBreaks,
       ...(mark ? { mark } : {}),
@@ -916,6 +947,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         state.domains.set(k, e);
         state.domainsVersion++;
       }
+  // the bridges, after their sides (the bridge chunk's: a view with one waits for it to land, `bridge-load.ts`)
+  const bridges = bridgeRoom && BridgeHooks.layout?.({ input, state, config, theme, sections, wants, report });
   for (const i of overlay.issues) report(i);
   // a source's lanes grew in this layout: its track grows to them in the same frame, once (what is below moves once)
   if (!again && knownVersion(input.types) !== known) return layoutView(input, state, true);
@@ -932,6 +965,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     shown: shownNodes,
     ...(narrow ? { narrow } : {}),
     ...(pinnedPx > 0 ? { pinnedPx } : {}),
+    bridges,
   };
 }
 

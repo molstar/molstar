@@ -24,6 +24,7 @@ import {
 } from '@molstar/seqx-core/render';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { AddressModel, Cursor, SpecModel, StoreModel, ViewModel } from '@molstar/seqx-viewer/models';
+import { BridgeView } from '@molstar/seqx-viewer/models/bridge-hooks';
 import { chemistryRows } from './describe-molecules.js';
 import { regionHoverOf } from './describe-region.js';
 import type { HoverCard, HoverCardRow } from './hover-card.js';
@@ -520,7 +521,8 @@ class Words {
     const layout = this._src.layout();
     if (!layout || place.section === undefined) return undefined;
     const section = layout.sections.find((s) => s.section.address === place.section);
-    if (!section) return undefined;
+    // a ribbon in a bridge's band (its `section` the bridge's id): the bridge chunk's card
+    if (!section) return BridgeView.parts?.card(this._src.view, layout, place);
     const layer = place.layer === undefined ? undefined : layerOf(section, place.layer);
     const out = new Parts();
     const at: PlaceContext = {

@@ -31,7 +31,9 @@ export function plasmid(uri: string = PlasmidFiles.rotatedGenbank): Node {
   const gb = b.data.source('record', { format: 'genbank', uri });
   const seq = b.data.sequence('plasmid', { alphabet: 'dna', source: gb, cyclic: true, name: PlasmidName });
   const features = b.data.ranges('features', { target: seq, source: gb });
-  const data = (key: string) => `${features}${printAddress([{ kind: 'item', params: { category: key } }])}`;
+  // GenBank's key for the GFF3's restriction sites is `protein_bind`
+  const data = (key: string) =>
+    `${features}${printAddress([{ kind: 'item', params: { category: key === 'restriction_enzyme_recognition_site' ? 'protein_bind' : key } }])}`;
   b.views.view('main', (v) => {
     const ring = v.section('ring', { of: seq, layout: 'rings' });
     for (const [key, label] of GffTracks)

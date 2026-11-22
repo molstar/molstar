@@ -10,7 +10,8 @@ import type { OverlayNode, StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedLayer, ResolvedSection, ResolvedTrack, ResolvedView } from '@molstar/seqx-core/view';
 import { AxisTransform, type Viewport } from './axis.js';
 import type { RenderConfig } from './config.js';
-import type { Box, LayerType, Overlay, StoreReader } from './layer-type.js';
+import type { PassName, PassWriter } from './draw-lists.js';
+import type { Box, Emphasis, Hit, LayerType, Overlay, StoreReader } from './layer-type.js';
 import type { ThemeContext } from './channels.js';
 import type { TextMetrics } from './text.js';
 import type { SeqTokens } from './tokens.js';
@@ -74,6 +75,11 @@ export interface SectionLayout {
   readonly height: number;
   /** Its tracks as bands: on the page in tracks; in text, those of its first line. */
   readonly tracks: readonly TrackLayout[];
+  /**
+   * Each track with no items (`track.empty`): its one-line row, with a note (`note`) or without (`collapse`); undefined
+   * for any other. The sizing's kept list (a layout makes none).
+   */
+  readonly empties: readonly ('note' | 'collapse' | undefined)[];
   /** Its header line above its first track (`section.header`), when drawn: its hidden tracks' chip, its slots. */
   readonly header?: SectionHeaderLine;
   /** The breaks in view, `[x, hiddenStart, hiddenEnd, …]` (x unsnapped): a hairline each across the band. */
@@ -103,6 +109,74 @@ export interface SectionLayout {
   readonly config: RenderConfig;
 }
 
+/**
+ * A bridge laid out (_spec/README.md "Render", Bridges; the bridge chunk's): its band between its sides, its layers'
+ * lays, its draw of a pass and its hit (a page point in `at`).
+ */
+export interface BridgeLayout {
+  /** Its index in `ResolvedView.bridges` (a hit's `bridge`), its address, id and label, its sides' addresses. */
+  readonly index: number;
+  readonly address: string;
+  readonly id: string;
+  readonly label: string;
+  readonly a: string;
+  readonly b: string;
+  readonly box: Box;
+  readonly lays: readonly LayerLayout[];
+  /** The ribbons drawn (its ARIA description's count). */
+  readonly count: number;
+  draw(pass: PassName, out: PassWriter, emphasis: Emphasis | undefined): void;
+  hit(at: Float64Array): Hit | undefined;
+  /**
+   * Each ribbon drawn, in drawing order (the topmost last), its ends on the bridge's sides: what the viewer's align,
+   * select across and cursor read (_spec/README.md "Render", Bridges). Made on each call: a command's, never a frame's.
+   */
+  ribbons(): BridgeRibbon[];
+  /** The topmost ribbon drawn of a pair's key (a hit's element): one built, never the list. */
+  ribbon(key: string | number): BridgeRibbon | undefined;
+}
+
+/**
+ * A ribbon drawn in a bridge, by its sides: on the bridge's `a` side its system, its range of positions and its drawn
+ * extent in page px (`ax0 ≤ ax1`), the same on its `b` side; `reversed` when it is drawn crossed (its strand); its
+ * pair's key; `length` its aligned positions (its narrower end's).
+ */
+export interface BridgeRibbon {
+  readonly aSystem: string;
+  readonly aStart: number;
+  readonly aEnd: number;
+  readonly ax0: number;
+  readonly ax1: number;
+  readonly bSystem: string;
+  readonly bStart: number;
+  readonly bEnd: number;
+  readonly bx0: number;
+  readonly bx1: number;
+  readonly reversed: boolean;
+  readonly key: string | number;
+  readonly length: number;
+  /** A stub's unplaced end (its side shows no place of it). */
+  readonly stub?: 'a' | 'b';
+  /** A bin pair's level and its count (absent for an item). */
+  readonly bin?: number;
+  readonly count?: number;
+}
+
+/**
+ * A view's bridges laid out (the bridge chunk's): each one, and what the layout's draw, hit and export ask of them all,
+ * so the eager layout holds one call each.
+ */
+export interface BridgesLayout {
+  readonly list: readonly BridgeLayout[];
+  draw(pass: PassName, out: PassWriter, emphasis: Emphasis | undefined): void;
+  /** The hit at a page point (`at`): undefined off every band, null in a band over no ribbon. */
+  hit(at: Float64Array): Hit | null | undefined;
+  /** The bridge whose band holds a page point (its index in `ResolvedView.bridges`), −1 for none. */
+  at(x: number, y: number): number;
+  /** The export's document with each bridge's group (`data-bridge`, `data-a`, `data-b`, …) after the sections'. */
+  svg(document: string): string;
+}
+
 export interface ViewLayout {
   readonly width: number;
   readonly height: number;
@@ -120,6 +194,8 @@ export interface ViewLayout {
   readonly narrow?: NarrowColumns;
   /** The frame's foot the pinned rails take, px (`pinned`): past the last section, kept free of the fill band. */
   readonly pinnedPx?: number;
+  /** Its placed bridges laid out (absent: none, or the bridge chunk not landed yet). */
+  readonly bridges?: BridgesLayout | undefined;
 }
 
 export interface LayoutInput {
@@ -232,5 +308,7 @@ export interface SizedHeights {
   readonly heights: readonly number[];
   /** Each track's content (one lane block a track), undefined for a track not sized by its content. */
   readonly contents: readonly (LayerContent | undefined)[];
+  /** Each track with no items: how it is drawn (`note` or `collapse`), undefined for any other. */
+  readonly empties: readonly ('note' | 'collapse' | undefined)[];
   readonly issue?: Issue;
 }
