@@ -21,7 +21,7 @@ import type { GridData, StaticModel } from '@molstar/seqx-core/resolve';
 import type { ChannelName, Channel } from '@molstar/seqx-core/theme/index';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
-import { channelForms, channelLegends, Extents, type LayerChannels, PlainDatum } from './channels.js';
+import { channelForms, channelId, channelLegends, Extents, type LayerChannels, PlainDatum } from './channels.js';
 import type { RenderConfig } from './config.js';
 import { grown, type ImageData, NoColor, type PassName, type PassWriter } from './draw-lists.js';
 import { drawEmphasis, Ink, R, rect } from './grid-emphasis.js';
@@ -85,7 +85,7 @@ export class GridLay {
   off = false;
   grid: GridData | undefined;
   color: Channel | undefined;
-  /** Moves when the color changes (its channel or its held domain): part of an image tile's key. */
+  /** The color channel's id (`channelId`: moves with its held domain, its tokens): part of an image tile's key. */
   colorVersion = 0;
   readonly datum = new PlainDatum();
   readonly extents = new Extents();
@@ -218,7 +218,7 @@ export const GridType: LayerType<GridPrep, GridLay> = {
       const color = prep.channels.get('color' as ChannelName, DefaultColor, ctx, ValueEnv);
       if (color !== lay.color) {
         lay.color = color;
-        lay.colorVersion++;
+        lay.colorVersion = channelId(color);
       }
       lay.extents.reset([color]);
       layoutRegionGrid(lay, prep, prep.region, ctx, data, axis, ay);
@@ -227,7 +227,7 @@ export const GridType: LayerType<GridPrep, GridLay> = {
     const color = prep.channels.get('color' as ChannelName, DefaultColor, ctx, ValueEnv);
     if (color !== lay.color) {
       lay.color = color;
-      lay.colorVersion++;
+      lay.colorVersion = channelId(color);
     }
     // the color's open domain is the grid's whole range, held: a tile's colors never shimmer with the view
     lay.extents.reset([color]);

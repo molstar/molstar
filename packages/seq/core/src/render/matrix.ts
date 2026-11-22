@@ -20,7 +20,7 @@ import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { Channel, ChannelName } from '@molstar/seqx-core/theme/index';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
-import { channelForms, channelLegends, Extents, type LayerChannels, PlainDatum } from './channels.js';
+import { channelForms, channelId, channelLegends, Extents, type LayerChannels, PlainDatum } from './channels.js';
 import { grown, type ImageData, NoColor, type PassName, type PassWriter } from './draw-lists.js';
 import { colorOf } from './grid.js';
 import { ImageCache } from './images.js';
@@ -70,6 +70,7 @@ export class MatrixLay {
   axis: AxisTransform | undefined;
   tokens: SeqTokens | undefined;
   color: Channel | undefined;
+  /** The color channel's id (`channelId`): part of an image tile's key. */
   colorVersion = 0;
   readonly datum = new PlainDatum();
   readonly extents = new Extents();
@@ -272,7 +273,7 @@ export const MatrixType: LayerType<MatrixPrep, MatrixLay> = {
     const color = prep.channels.get('color' as ChannelName, DefaultColor, ctx, ValueEnv);
     if (color !== lay.color) {
       lay.color = color;
-      lay.colorVersion++;
+      lay.colorVersion = channelId(color);
     }
     lay.extents.reset([color]);
     const levels = data.coverage(src.source)?.levels ?? [1];

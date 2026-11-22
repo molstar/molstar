@@ -206,8 +206,8 @@ export function pairsRing(): Node {
 }
 
 /** The Hi-C's chromosome (`chr1`) as a sequence read from the source. */
-/** The contacts' colour: counts on a closed domain, so a tile's colours never depend on which tiles are drawn. */
-const counts = () => theme.field('value', { domain: [0, 300], palette: theme.continuous({ colors: 'blues' }) });
+/** The contacts' colour: counts on the blues, the domain the range of the tiles drawn. */
+const counts = () => theme.field('value', { palette: theme.continuous({ colors: 'blues' }) });
 
 /** One chromosome's Hi-C by region: tiles of its two levels, a pending tile drawn from the coarser one. */
 export function hicByRegion(): Node {

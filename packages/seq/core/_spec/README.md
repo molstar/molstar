@@ -3860,7 +3860,9 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   loaded draws the finest held coarser level under it; with none held, a pending rect (`seq-pending`), never empty
   (EC-169). Its wants carry the layer's key, so over blocks every block pair's are bounded together (`maxTilesPerLayer`,
   `maxBytesPerLayer`: past them the band's "zoom in"). The color domain is the range of the tiles drawn (a closed domain
-  is kept). A cell hit carries `bin`, the level read.
+  is kept), as the view holds it. The colors' version in an image key (a grid's, a region grid's, a matrix's) is the
+  compiled channel's id (`channelId`), never a count per lay: a frame's lay is new, and a tile drawn before a domain was
+  held (saturated) would be read back under the domain held after. A cell hit carries `bin`, the level read.
 - **Color**: the value's field theme (`value`), its domain the grid's range; a missing value (NaN) transparent;
   `triangle` keeps `upper` (y before x, above the diagonal) or `lower` (y after x).
 - **Hit**: any point on the plot is the cell under it (`target: 'cell'`, `position` on x, `ySystem`, `yPosition`), drawn

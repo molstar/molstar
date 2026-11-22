@@ -58,7 +58,8 @@ describe('Features/Region reads/Hi-C, headless', () => {
     expect(plot(v).images.length).toBe(1);
     expect(plot(v).tiles.length).toBe(0);
     expect(drawn(v, 'image')).toBe(1);
-    //     expect(imageColours(v)[0]).toBeGreaterThan(5);
+    // the held tile in the colours of the domain held, never those it was first drawn in (none held yet: saturated)
+    expect(imageColours(v)[0]).toBeGreaterThan(5);
     expect(box(v)).toBe(box0);
     // the fine tiles land: sharp
     await advance(v, 2000);
