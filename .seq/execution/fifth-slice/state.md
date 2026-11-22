@@ -2,6 +2,10 @@
 
 ## Decided
 
+- The dot plot's block-pair cells: the gaps tinted a little darker than the ground (the author, 2026-11-22: "Tint the
+  gaps"), never a line in a gap (2026-11-19). A grid over two sections of blocks only; the single-section grid (the
+  PAE plot) as it is. To FX17.
+
 - The tooltips design agreed (the author, 2026-11-22: "Yes, as recommended" to its four questions; earlier: "only
   be able to associate tooltips with data points/ranges", "we can do markdown", "configuration on viewer spec ...
   composed by application layer", "maybe <title> in SVG could work too"): `.seq/design/tooltips.md`. To TT after HC.
