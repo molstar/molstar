@@ -13,6 +13,7 @@ import { quickCase } from '@molstar/test-harness/quick';
 import { beforeAll, describe, expect, inject, it } from 'vitest';
 import { loadGenome } from '@molstar/seqx-core/resolve';
 import { type BlockPlacement, drawView, type FrameInput, type Hit, hitView } from '../index.js';
+import { assembly, createSeqSpec, genome } from '@molstar/seqx-core/lang';
 import { genomeSpec, toyGenome } from './genome-fixtures.js';
 import { settle } from './helpers.js';
 import { reusedHover } from './scenarios.js';
@@ -99,6 +100,50 @@ describe('a genome’s row of blocks: pans across a gap, draws and hovers', () =
       s.renderer.frame(at);
     });
     console.info(`genome row hover: ${r.bytesPerStep.toFixed(0)} bytes a frame (${r.note})`);
+    expect(r.bytesPerStep, r.note).toBeLessThanOrEqual(inject('perfThreshold'));
+  });
+});
+
+/** 25 chromosomes, a features layer over the assembly (rows split by `target`) and links over it as a ring's chords. */
+async function genomeData() {
+  const chromosomes = toyGenome(25, 0);
+  const b = createSeqSpec({ title: 'data over 25 blocks' });
+  const g = b.data.assembly('g', assembly('toy', chromosomes, { order: 'source' } as never));
+  const start: number[] = [];
+  const end: number[] = [];
+  const target: string[] = [];
+  chromosomes.forEach((c, i) => {
+    for (let k = 0; k < 40; k++) {
+      start.push(Math.floor((k * c.length) / 40));
+      end.push(Math.floor((k * c.length) / 40) + 400_000);
+      target.push(i % 2 ? c.name.slice(3) : c.name);
+    }
+  });
+  const features = b.data.ranges('features', { target: g, rows: { start, end, target } } as never);
+  b.views.view('v', (v) =>
+    genome(v, 'genome', g, {}, (sec) => sec.track('features').layer('features', { type: 'ranges', data: features })),
+  );
+  const s = await settle(b.build());
+  const input: FrameInput = { size: Size, dpr: 2 };
+  for (let i = 0; i < 4; i++) await s.frame(input);
+  return { s, input };
+}
+
+describe('data over an assembly: 25 blocks', () => {
+  it('a warm frame of a features layer over 25 blocks (read by sequence): 0 bytes', async ({ task }) => {
+    const { s, input } = await genomeData();
+    const f = s.renderer.frame(input);
+    expect((f.layout.sections[0].placement as BlockPlacement).strips.n).toBe(25);
+    const { r } = quickCase(task, 'genome data warm frame', () => void s.renderer.frame(input));
+    console.info(`genome data warm frame: ${r.bytesPerStep.toFixed(0)} bytes a frame (${r.note})`);
+    expect(r.bytesPerStep, r.note).toBeLessThanOrEqual(inject('perfThreshold'));
+  });
+
+  it('its draw: 0 bytes', async ({ task }) => {
+    const { s, input } = await genomeData();
+    const f = s.renderer.frame(input);
+    const { r } = quickCase(task, 'genome data draw', () => drawView(f.layout, f.lists), {});
+    console.info(`genome data draw: ${r.bytesPerStep.toFixed(0)} bytes a frame (${r.note})`);
     expect(r.bytesPerStep, r.note).toBeLessThanOrEqual(inject('perfThreshold'));
   });
 });
