@@ -35,16 +35,6 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   probes each story's legend entries: hover → at least one emphasis primitive over that entry's items in view, or no
   pointer cursor. Taken by the hover-contract lane (strong), after RG merges (RG changes the hover texts and card).
 
-- **The navigator's readout: one fixed place outside, and its text lagging a gesture** (the author, 2026-11-22, Features ›
-  Genome formats › BED › cytobands, after FX5: "it's better if the label stays outside in top right instead of jumping
-  around all the time. maybe we can do the same thing for the 'vertical maps' as well, where it appears 'above' the map
-  instead."; kind: look, and a bug): (1) the readout sits in one place outside the navigator, above it at its top-right
-  corner (above a vertical navigator for the vertical maps), never moving with the window or pointer; it replaces FX5's
-  `readout-place.ts` rule; designed in DL's `drafts/navigator-window-look.md` first. (2) Its text lags a gesture: the
-  window at 21 Mb while it reads `chr17:1–83,257,441`, at 59 Mb while it reads `20,145,469–27,700,018`: the readout
-  shows the window it draws, in the same frame. Test: after a drag and after a click-to-jump, the readout's text equals
-  the window's range.
-
 - **No track drawn as an empty well, and a sweep that holds it** (the author, 2026-11-21: "Yes, group them", after
   the Promoters track, the stacked ATP block's tracks and the plasmid's strip each showed a blank band). Three causes,
   one symptom: (a) the data has nothing for a declared track (Promoters: a fixture gap, the story's fault); (b) a
@@ -66,7 +56,7 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   size), so a named block shows nothing; the rule's form for a block too small to draw: drawn at a least arc
   (`blocks.minPx`) with a break mark on each side, its items as a density if any, never a label pointing at nothing.
 
-- **A drag's work is bounded by the screen, not by the selection** (the author, 2026-11-21, tRNA › Views › Dot plot
+- **A drag's work is bounded by the screen, not by the selection** (FX8, 2026-11-22: a drag across 3,000 contigs relays out the navigator's strip, about 110 kB a frame, bounded at 256 kB in `navigator-blocks.quick.ts`; its 2 ms bound fails under load: move it to the heavy lane under `itWithin`) (the author, 2026-11-21, tRNA › Views › Dot plot
   scale: "selecting a rect on the dotplot here is really laggy. both as a rect on the plot, and a range on the nav.
   are we doing too much work here? maybe related to the other perf issue? and similar lag to selecting on the genome
   ring with the contigs"). One class with the PAE drag and the 3,000-contig drag-select below. What I read (not yet
@@ -116,15 +106,6 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   - unnamed features are labelled by a bare row number ("152", "153"): fall back to the feature's type and range.
   Tests: the density row's hover draws a mark; the card's box never intersects the hovered row; a range value on
   one line.
-
-- **The navigator's window and zoom strip look inconsistent and rough** (the author, 2026-11-21, a ring that switches:
-  "i don't understand why chr6 gets a 'box' and the other 'sub-section'"; "the 'subsection visual' is really ugly,
-  with different line thicknesses"). Why it differs: a window wider than `navigator.zoomStrip.minPx` (48 px) is drawn
-  as the box with grips (chr6, about 85 px), a narrower one (chr13) gets the zoom strip under the navigator, with its
-  funnel lines. Needs a short look design before a fix lane: one rule a reader can see (the strip when the window is
-  too small to grab, or always for a section of one block), one stroke weight for the window, the funnel and the
-  strip, the strip's fill and border from the same tokens as the window's (ux-foundations: the loudest mark at rest),
-  the funnel thin and muted or dropped; its picture in navigators.md, then the fix.
 
 - **The vertical overview cut at the right on a wide page** (FX5 2026-11-22: not reproduced at 960, 1600, 2200 px; the grids made shrinkable, `minmax(0, 1fr)`, as hardening; open until seen at a wide page) (the author, 2026-11-21, Globins rows family-rail-pinned):
   at full width the story's canvas runs past the page's right edge, so the vertical overview is clipped (a narrow
@@ -253,6 +234,24 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 
 ## Fixed
 
+- **The navigator's window and zoom strip look inconsistent and rough** (fixed by FX8, merged 2026-11-22) (the author, 2026-11-21, a ring that switches:
+  "i don't understand why chr6 gets a 'box' and the other 'sub-section'"; "the 'subsection visual' is really ugly,
+  with different line thicknesses"). Why it differs: a window wider than `navigator.zoomStrip.minPx` (48 px) is drawn
+  as the box with grips (chr6, about 85 px), a narrower one (chr13) gets the zoom strip under the navigator, with its
+  funnel lines. Needs a short look design before a fix lane: one rule a reader can see (the strip when the window is
+  too small to grab, or always for a section of one block), one stroke weight for the window, the funnel and the
+  strip, the strip's fill and border from the same tokens as the window's (ux-foundations: the loudest mark at rest),
+  the funnel thin and muted or dropped; its picture in navigators.md, then the fix.
+
+- **The navigator's readout: one fixed place outside, and its text lagging a gesture** (fixed by FX8, merged 2026-11-22) (the author, 2026-11-22, Features ›
+  Genome formats › BED › cytobands, after FX5: "it's better if the label stays outside in top right instead of jumping
+  around all the time. maybe we can do the same thing for the 'vertical maps' as well, where it appears 'above' the map
+  instead."; kind: look, and a bug): (1) the readout sits in one place outside the navigator, above it at its top-right
+  corner (above a vertical navigator for the vertical maps), never moving with the window or pointer; it replaces FX5's
+  `readout-place.ts` rule; designed in DL's `drafts/navigator-window-look.md` first. (2) Its text lags a gesture: the
+  window at 21 Mb while it reads `chr17:1–83,257,441`, at 59 Mb while it reads `20,145,469–27,700,018`: the readout
+  shows the window it draws, in the same frame. Test: after a drag and after a click-to-jump, the readout's text equals
+  the window's range.
 - **A long deletion painted as an SNV** (fixed by FX7, merged 2026-11-22) (the author's look on `packages-seq`, 2026-11-22, Features › Genome formats ›
   VCF › TP53 ClinVar; kind: look): ClinVar 1174011, a 7 kb deletion (7,669,587–7,676,613), is drawn SNV blue: it is
   merged into one run with SNVs closer than a pixel at its ends, and FX6's majority counts items, so the SNVs win while

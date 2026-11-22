@@ -439,7 +439,7 @@ I drag", and where to read the numbers. Today none of the three is stable.
 
 | Mark | Stroke | Ink | Fill | Grips |
 |---|---|---|---|---|
-| the window (control row), at rest | `navigator.strokePx` (1 CSS px), snapped to the device grid | `seq-window` | `seq-window` at 0.12 | `seq-grip` tabs |
+| the window (control row), at rest | `navigator.window.strokePx` (1 CSS px), snapped to the device grid | `seq-window` | `seq-window` at 0.12 | `seq-grip` tabs |
 | the window, lit (hover, drag) | the same 1 px (no 2 px step) | `seq-window` | `seq-window` at 0.2 | the lit grip(s) in `seq-window`, one px wider (as built) |
 | the window at the fit, idle | 1 px | `seq-window` at 0.4 (quiet) | none | none |
 | the context mark (where the control row lies) | 1 px | `seq-window` at 0.4 (quiet) | none | none |
@@ -557,7 +557,7 @@ control row in display order, as built); a follower's window (moves its leader, 
 | `navigator.zoomStrip.overBlocks` (new) | `ViewerConfig` | `always` | the visible rule: over a genome the chromosome is always the control row | `narrow` (today's: by the window's width, with hysteresis), `never` (one row, floored window) |
 | `navigator.zoomStrip.heightPx` | `ViewerConfig` | 16 (over blocks at least the ruler's height, as built) | — | px |
 | `navigator.zoomStrip.funnel` (new) | `RenderConfig` preset | `muted` | ties two scales; quiet | `none` |
-| `navigator.strokePx` (new) | `RenderConfig` preset | 1 | one weight for every line of the part | px |
+| `navigator.window.strokePx` (new) | `RenderConfig` preset | 1 | one weight for every line of the part | px |
 | `navigator.window.quietAlpha` (new; `IdleAlpha` today, fixed) | `RenderConfig` preset | 0.4 | the context mark, the funnel, an idle or fitted frame | 0–1 |
 | `navigator.readout.place` (new) | `ViewerConfig` | `above` | one place, never over the control (the author) | `none` (a host draws `readoutParts` itself) |
 | `navigator.readout.linePx` (new) | `RenderConfig` preset | 16 | the `msui-text-xs` leading | px |
