@@ -923,10 +923,11 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
   one source, one open and one parse serve every channel; a host's edit is a new reading of the same source, not a new
   source.
 - **Conformance**: every adapter passes one suite (`data/_test/conformance.ts`): a well-formed coverage whose nodes the
-  language takes; each listed shape read whole at level 1 an answer in the protocol's shape, with a channel asked or
-  not; an aborted read an `AbortError`; `changes` stopping once unsubscribed; and (`checkRegionReads`) each listed shape
-  read by region equal to the whole read clipped (`sliceTable`) at every level it lists, a grid by both axes, a sided
-  system on its side, and a pair found from either end. Why: a host is code Seq\* does not own.
+  language takes; each listed shape read whole at level 1 an answer in the protocol's shape (a region shape served,
+  never failed: a grid read by both axes, a sided system on its side), with a channel asked or not; an aborted read an
+  `AbortError`; `changes` stopping once unsubscribed; and (`checkRegionReads`) each listed shape read by region equal to
+  the whole read clipped (`sliceTable`) at every level it lists, a grid by both axes, a sided system on its side, and a
+  pair found from either end. Why: a host is code Seq\* does not own.
 - **The region shapes** (`pairs`, `grid`, `matrix`, `rows`; `Shapes`): `pairs` on 1D tiles by either end (a tile holds
   every pair with an end in it, the other end anywhere: EC-62, EC-208), its finest level a `list`, coarser levels `bins`
   (the pairs level); `grid` on 2D tiles (`RegionRequest.y`: the second axis at the same level, square levels), `dense`
