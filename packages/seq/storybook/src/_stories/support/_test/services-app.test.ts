@@ -217,6 +217,29 @@ describe('the services application, on recorded answers', () => {
     expect(said).toMatch(/Colored \d+ runs/);
   });
 
+  it('a body drag of a follower’s ruler rail past the axis end pans: the window keeps its width and stops at the end', async () => {
+    const app = await open(Scenarios.predictions);
+    await started(app);
+    const v = app.viewer!;
+    v.resize(800);
+    await v.settle();
+    const sec = '/views/main/structure';
+    v.view.setRange(sec, 100, 160);
+    await v.settle();
+    v.draw();
+    const r = v.frame!.layout.sections.find((x) => x.section.address === sec)!.rail!;
+    const x = r.x + ((r.start + r.end) / 2 / r.total) * r.width;
+    expect(v.hit(x, r.y)?.part).toBe('body');
+    v.input.down(x, r.y);
+    for (const f of [0.5, 1, 3]) {
+      v.input.move(x + f * r.width, r.y);
+      const w = v.view.get(sec)!;
+      expect(w.end - w.start).toBeCloseTo(60, 6);
+    }
+    expect(v.view.get(sec)!.end).toBeCloseTo(219, 6);
+    v.input.up();
+  });
+
   it('every link of the addressing text runs: the three numberings of one residue name the same place', async () => {
     const { Passages } = await import('@molstar/seqx-examples/services/addressing');
     const app = await open(Scenarios.addressing);
