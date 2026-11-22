@@ -76,7 +76,7 @@ function drawMarks(lay: RangesLay, out: PassWriter, _emphasis: Emphasis | undefi
     a[1] = lay.laneY + lay.mlane[j] * lay.laneHeight + gap / 2 + (full - h) / 2;
     a[2] = lay.mx1[j] - lay.mx0[j];
     a[3] = h;
-    a[4] = item >= 0 ? lay.fills[item] : tokens.colors['seq-range'];
+    a[4] = item >= 0 ? lay.fills[item] : item <= -2 ? lay.fills[-2 - item] : tokens.colors['seq-range'];
     a[5] = NoColor;
     a[6] = 0;
     a[7] = lay.mradius[j];

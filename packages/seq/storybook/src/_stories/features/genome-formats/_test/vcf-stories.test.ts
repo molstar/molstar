@@ -164,6 +164,35 @@ describe('Features/Genome formats/VCF, headless', () => {
     expect(svg.settled).toBe(true);
   });
 
+  it('TP53’s drawn marks carry their category’s fill at rest: a run merged of one category keeps it, only a mixed run is neutral', async () => {
+    const v = await open('vcf-clinvar');
+    const lay = layOf(v, 'ClinVar')!;
+    const band = lay.box;
+    const hex = (c: number) => `#${(c >>> 0).toString(16).padStart(8, '0')}`;
+    const neutral = hex(lay.tokens.colors['seq-range']);
+    // the data pass's rects inside the ClinVar band, by fill (the rect line's fifth number)
+    const rects = recordDrawLists(v.frame!.lists, ['data'])
+      .split('\n')
+      .filter((l) => l.startsWith('rect '))
+      .map((l) => l.split(' '))
+      .filter((p) => Number(p[2]) >= band.y && Number(p[2]) < band.y + band.height);
+    const fills = new Set(rects.map((p) => p[5]));
+    // SNVs, deletions, insertions, indels, MNVs: their categories' fills, and the neutral colour of mixed runs
+    expect(fills.size).toBeGreaterThanOrEqual(4);
+    // every neutral rect is a run whose items' fills differ (its own marks, the hit marks in its lane and span)
+    let mixed = 0;
+    for (let j = 0; j < lay.m; j++) {
+      if (lay.mitem[j] !== -1) continue;
+      const own = new Set<number>();
+      for (let h = 0; h < lay.hn; h++)
+        if (lay.hlane[h] === lay.mlane[j] && lay.hx0[h] >= lay.mx0[j] && lay.hx1[h] <= lay.mx1[j])
+          own.add(lay.fills[lay.hitem[h]]);
+      expect(own.size, `run ${j} at ${lay.mx0[j]}`).toBeGreaterThan(1);
+      mixed++;
+    }
+    expect(rects.filter((p) => p[5] === neutral).length).toBe(mixed);
+  });
+
   it('an allele: hovered it lights, clicked its REF extent is selected, double-clicked it is focused', async () => {
     const v = await open('vcf-clinvar');
     // TP53 R175H (ClinVar 12374): zoomed in about it first, so its mark is its own
