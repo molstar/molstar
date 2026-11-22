@@ -49,7 +49,8 @@ import {
 } from './blocks.js';
 import type { ResolvedBridge, StackEntry } from './bridges.js';
 import { ViewIssues } from './issues.js';
-import { dataOf, layerData } from './layer-data.js';
+import { dataOf, layerData, liftedData } from './layer-data.js';
+import type { LiftData } from './lift.js';
 import { type MemberAxis, memberAxis } from './members.js';
 import { type ResolvedTooltip, resolveTooltips } from './tooltips.js';
 
@@ -172,6 +173,11 @@ export interface LayerData {
   readonly base?: Node;
   /** The forms after the annotation are none the layers read row by row (`seq.render.filter`). */
   readonly unread?: boolean;
+  /**
+   * Data over another assembly carried onto the section's sequence through a map read by region (a liftover, EC-212):
+   * `system` is the section's, the data's own systems its annotation's (`lift.ts`).
+   */
+  readonly lift?: LiftData;
 }
 
 export interface ResolvedLayer {
@@ -1361,6 +1367,9 @@ function layerOf(
     return { ...base, data, placed: false };
   }
   if (data.system === system) return { ...base, data, placed: true };
+  // data over another assembly through a map read by region (a liftover): no static path, the runs read by region
+  const lifted = liftedData(model, data, system);
+  if (lifted) return { ...base, data: lifted, placed: true };
   const r = model.path(data.system, system, via);
   if (!r.path) {
     report('seq.view.layer.unplaced', 'The layer’s data does not reach its section', at, r.issue);

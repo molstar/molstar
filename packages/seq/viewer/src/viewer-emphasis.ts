@@ -49,7 +49,7 @@ export class ViewerEmphasis {
   private _hoverVersion = -1;
 
   constructor(private readonly viewer: SeqViewer) {
-    this.projector = new Projector(viewer.spec, viewer.view);
+    this.projector = new Projector(viewer.spec, viewer.view, viewer.store.regions);
   }
 
   /**

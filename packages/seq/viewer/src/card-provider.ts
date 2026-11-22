@@ -41,6 +41,8 @@ export interface CardParts {
 export interface CardReads {
   /** A system's name as the spec gives it. */
   systemName(system: string): string;
+  /** An item's places through a map read by region (a liftover's), when several. */
+  places(system: string | undefined, start: number, end: number): string | undefined;
   /** A layer's items as drawn in the last frame. */
   itemsOf(l: LayerLayout): readonly ItemDescription[];
   /** The items of a section's tracks under a position (each with its extent in words). */

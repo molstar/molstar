@@ -32,6 +32,7 @@ import { readHeld, readJoined, readLazy, rowsSource } from './rows-read.js';
 import { layoutCells } from './rows-cells.js';
 import { inToggle, layoutHeader } from './rows-header.js';
 import { cladeHit, named, nearestNode, rowHit, writeHit } from './rows-hit.js';
+import { DefaultRowsZoom } from './rail.js';
 import { drawData, drawHeader } from './rows-draw.js';
 import { drawCursor, drawHover, drawSelection, hoverColumns } from './rows-emphasis.js';
 
@@ -222,7 +223,8 @@ export const RowsType: LayerType<RowsPrep, RowsLay> = {
       return lay;
     }
     lay.figure = layout === 'text';
-    lay.rowScale = ctx.rowScale ?? RowHeight;
+    lay.rowScale = RowHeight;
+    lay.rowFloor = 0;
     const N = lay.total;
     if (N === undefined) {
       // not attached yet: the band is pending
@@ -238,6 +240,8 @@ export const RowsType: LayerType<RowsPrep, RowsLay> = {
       else if (!lay.held) lay.pending.push(box.y, box.height);
     } else {
       lay.held = undefined;
+      // no row levels are served: below a device pixel a row the band is blank, so the rows' zoom stops there
+      lay.rowFloor = 1 / ctx.dpr;
       // ordering needs every row's field: a lazy alignment draws in data order
       if (prep.order !== 'data')
         ctx.report(
@@ -255,6 +259,11 @@ export const RowsType: LayerType<RowsPrep, RowsLay> = {
           }),
         );
     }
+    // a stored scale (a saved view, a story, a motion) is clamped where it is read: the host's bounds and the source's
+    // floor (`rail.ts`), and with the zoom off ignored (the fit's)
+    const zoom = ctx.rowsZoom ?? DefaultRowsZoom;
+    if (ctx.rowScale !== undefined && zoom.enabled)
+      lay.rowScale = Math.max(zoom.minPx, lay.rowFloor, Math.min(zoom.maxPx, ctx.rowScale));
     // the fields an order or a column reads: the measures and the joined records, before the order is built
     lay.prepareMeasures(prep);
     readJoined(lay, prep, ctx, data);

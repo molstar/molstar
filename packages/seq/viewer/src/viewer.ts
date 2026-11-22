@@ -275,7 +275,7 @@ export class SeqViewer extends ReactiveModel {
       },
       minScale: textMinScale(context.renderConfig),
     });
-    const hover = (this.hover = new HoverModel(view, config));
+    const hover = (this.hover = new HoverModel(view, config, store.regions));
     this.modelIssues = modelIssuesState(this);
     this.hiddenTracks = hiddenTracksState(spec.model);
     this.rowSort = rowSortState(spec.model);

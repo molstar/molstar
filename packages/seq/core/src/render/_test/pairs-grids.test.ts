@@ -391,7 +391,8 @@ describe('the emphasis along y', () => {
     const rows = lists.passes.selection.rects;
     let row = false;
     for (let k = 0; k < rows.n; k++)
-      if (Math.abs(rows.y[k] - ay.x(3)) < 1e-3 && Math.abs(rows.w[k] - box.width) < 1e-3) row = true;
+      // the row's outline across the cell, inside it (its stroke inset by half its width)
+      if (Math.abs(rows.y[k] - (ay.x(3) + 0.5)) < 1e-3 && Math.abs(rows.w[k] - (box.width - 1)) < 1e-3) row = true;
     expect(row).toBe(true);
   });
 
@@ -415,7 +416,8 @@ describe('the emphasis along y', () => {
       if (inside) onPlot++;
       else onTracks++;
     }
-    expect(onPlot).toBe(1);
+    // its fill and its outline inside it (two rects)
+    expect(onPlot).toBe(2);
     expect(onTracks).toBeGreaterThan(0);
   });
 });

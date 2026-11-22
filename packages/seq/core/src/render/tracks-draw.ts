@@ -133,6 +133,8 @@ function drawBackground(layout: ViewLayout, out: PassWriter, emphasis: Emphasis 
         }
       }
       if (head >= 0 && head < s.tracks.length) out.unclip();
+      // a grid over two sections of blocks tints its block gaps over the wells (its chrome's background)
+      if (s.layout.name === 'grid') s.layout.chrome(s, 'background', out, emphasis, -1, -1);
       if (under && column && s.axis && s.band) {
         // inside the section's box where it scrolls: never into the section below
         if (head >= 0) clipTo(out, s.placement.box);

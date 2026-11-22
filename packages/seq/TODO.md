@@ -105,6 +105,11 @@ loaded when used, sections over a source's complex, the genome axis and layouts,
 
 ## `@molstar/seqx-core`
 
+- **The liftover's follow-ups** (LA4, 2026-11-22): a pan frame of the Liftover story allocates ~1.4 MB (about as the
+  same genes read directly, ~1.5 MB; ~1.1 MB the bridge's and the sections' relayout): a pan that keeps the layout;
+  lifted pieces with square cut ends; lifting over single sequences (assemblies only today); `mapSummary` and the
+  builder's `liftover()` (deferred by the design).
+
 - **A categorical grid's pan re-lays the grid** (LA3, 2026-11-22): ~33 kB a pan frame at 2,000 members (bounded under 40
   kB), ~50 kB for a 2,000-position grid; a pan that keeps the layout and moves the window would be 0 B. Also files past
   800 lines grown by LA3: `render/tracks.ts` 1,087, `view/view.ts` 1,359, `resolve/model.ts` 1,222.

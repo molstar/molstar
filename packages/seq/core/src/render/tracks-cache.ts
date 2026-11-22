@@ -216,6 +216,7 @@ interface ViewStamp {
   readonly figure: boolean;
   readonly windows: boolean;
   readonly rails: unknown;
+  readonly rowsZoom: unknown;
   readonly headers: unknown;
   /** The count of source lanes grown (a track sized by them is laid out again). */
   readonly lanes: number;
@@ -246,6 +247,7 @@ export function viewStamp(
     figure: input.figure ?? false,
     windows: input.windows ?? false,
     rails: input.rails,
+    rowsZoom: input.rowsZoom,
     headers: input.headers,
     lanes: knownVersion(input.types),
   };
@@ -270,6 +272,7 @@ function sameStamp(a: ViewStamp, b: ViewStamp): boolean {
     a.figure === b.figure &&
     a.windows === b.windows &&
     a.rails === b.rails &&
+    a.rowsZoom === b.rowsZoom &&
     a.headers === b.headers &&
     a.lanes === b.lanes
   );

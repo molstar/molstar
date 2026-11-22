@@ -20,6 +20,7 @@ import { assembly, createSeqSpec, genome, type ViewBuilder } from '@molstar/seqx
 import type { ExampleView } from '../views.js';
 import { BinsPitch, Grape, grapePlum, Peach, peachGrape, peachSelf, Plum, type ToyGenome } from './genomes.js';
 import { dotPlot, kinship, twoChromosomes } from './grids.js';
+import { chainSource, liftover } from './liftover.js';
 
 // The views across sections (Features/Across sections; across-sections, Defaults): genomes stacked, a bridge between
 // neighbours drawing an alignment's blocks as ribbons. Each alignment a source generated at open and answered after a
@@ -34,6 +35,7 @@ const Alignments: Readonly<Record<string, () => SeqData>> = {
   'generated:peach-grape-dense': () => peachGrape(BinsPitch),
   'generated:grape-plum': grapePlum,
   'generated:peach-self': peachSelf,
+  'generated:liftover': () => chainSource(),
 };
 
 /** The chromosomes read late: a lower genome's (grape's below peach, plum's below grape). */
@@ -46,8 +48,12 @@ export interface AcrossOptions {
   readonly delayMs?: number | ((request: RegionRequest) => number);
 }
 
-/** A lower genome's chromosomes wait twice the upper's delay, so the tiles arrive a side at a time. */
-const bySide = (delayMs: number) => (r: RegionRequest) => (Late.has(r.system) ? 2 * delayMs : delayMs);
+/**
+ * A lower genome's chromosomes wait twice the upper's delay (a sided source's side `b`, the liftover's new assembly),
+ * so the tiles arrive a side at a time.
+ */
+const bySide = (delayMs: number) => (r: RegionRequest) =>
+  Late.has(r.system) || r.side === 'b' ? 2 * delayMs : delayMs;
 
 /** The runtime of `seq-across` sources: `uri` names an alignment, opened as a `seq` source answered after a delay. */
 export function acrossRuntime(options: AcrossOptions = {}): FormatRuntime {
@@ -252,6 +258,12 @@ export const AcrossViews: readonly ExampleView[] = [
       'chr1’s section across, chr4’s down (a block each), their contacts a grid following both: two hotspots where the chromosomes touch; pan either section and its axis of the plot follows.',
     build: twoChromosomes,
   },
+  view(
+    'across-liftover',
+    'A liftover',
+    'Rose v1 above with its genes, the chain to v2 as ribbons, v2 below with v1’s genes drawn through the chain: chr1’s 1.2–2.0 Mb fanning to two places (a duplication, its gene drawn twice), chr2’s lost stretch no ribbon and its gene not drawn (a deletion), chr2’s inversion crossed, chr3’s tail at the end of v2’s chr1 (a translocation). Hover a gene: its images light below.',
+    () => liftover(AcrossFormat),
+  ),
   {
     dataset: 'across',
     id: 'across-kinship',

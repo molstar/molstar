@@ -84,9 +84,11 @@ import {
 } from './model-entries.js';
 import {
   coverageStates,
+  isRegionMap,
   matrixEntry,
   memberSystem,
   regionEntry,
+  regionMapPairs,
   StatesSystemName,
   statesSystemOf,
 } from './model-region.js';
@@ -514,7 +516,9 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
     for (const n of c.children ?? []) {
       if (n.id === undefined) continue;
       const placed = { node: n, address: printAddress([c.id, n.id]) };
-      data.push(placed);
+      // a map read from a source (`map.source`): its runs a pairs source's rows, read by region as a `pairs` node's
+      // (`a` its `from`, `b` its `to`; `regionMapPairs`), never held here
+      data.push(isRegionMap(n) ? { node: regionMapPairs(n), address: placed.address } : placed);
       byAddress.set(placed.address, placed);
     }
   }
@@ -661,8 +665,6 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
   const isSource = (a: string) => byAddress.get(a)?.node.kind === 'source';
   for (const at of data) {
     if (at.node.kind !== 'map') continue;
-    // its runs read by region from a pairs source (`map.source`): the store's, never held here
-    if (p(at.node, 'source') !== undefined) continue;
     // an end a source describes (a unit of its complex): the overlay's once it arrives, pending until then
     const dFrom = describedAddress(p(at.node, 'from'), isSource);
     const dTo = describedAddress(p(at.node, 'to'), isSource);

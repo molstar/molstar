@@ -655,6 +655,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
             labels: labels ?? 'inside',
             ...(band ? { bandTop: band.bandTop } : {}),
             ...(band?.rowScale !== undefined ? { rowScale: band.rowScale } : {}),
+            rowsZoom: input.rowsZoom,
             ...(band?.folds !== undefined
               ? { folds: band.folds }
               : input.folds?.[track.address]
@@ -930,6 +931,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
           sectionRail ? lay.box.x + lay.box.width - SlimRailPx : width - config.inset - SlimRailPx,
           config,
           input.figure === true,
+          input.rowsZoom,
         );
         (rowsRails ??= []).push(r);
       }

@@ -43,6 +43,7 @@ export {
   unitOfPlace,
 } from './places.js';
 export { ViewIssues } from './issues.js';
+export type { LiftData } from './lift.js';
 export { type MemberAxis, type MemberOrder, memberAxis, memberOrderOf } from './members.js';
 export {
   type Axis,
@@ -75,5 +76,5 @@ export {
   type ViewLink,
 } from './view.js';
 export { expandTemplate, templateNeeds, templateNodes } from './templates.js';
-export { type ProjectOptions, projectOntoView } from './project.js';
+export { type ProjectOptions, projectOntoView, type RegionProjector } from './project.js';
 export { type ResolvedTooltip, resolveTooltips } from './tooltips.js';

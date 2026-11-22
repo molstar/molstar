@@ -13,7 +13,15 @@ import { axisBreaks, breakHolding, type ResolvedLayer } from '@molstar/seqx-core
 import type { AxisTransform } from './axis.js';
 import { type DensityStep, densityStep, type RenderConfig } from './config.js';
 import { NoColor, type PassWriter } from './draw-lists.js';
-import { dataRegions, type LayerSource, layerLevel, placeholderSpans, readTiles, toSection } from './layer-data.js';
+import {
+  dataRegions,
+  type LayerSource,
+  layerLevel,
+  Lift,
+  placeholderSpans,
+  readTiles,
+  toSection,
+} from './layer-data.js';
 import type { FilterRow, RowFilter } from './filter.js';
 import type { Box, Hit, ItemDescription, LayoutContext, StoreReader } from './layer-type.js';
 import { breakHit } from './marks.js';
@@ -45,6 +53,8 @@ export interface ItemRows {
   clamped: number;
   /** Each row's table fields and its row in that table: what a theme's channels read (a field, a measure). */
   fields: (RangesList['fields'] | undefined)[];
+  /** Each row's strand as its table gives it (−1, 0, 1; 0 when none): what a liftover carries through a run. */
+  strand: number[];
   row: number[];
   /** Each row's item's whole extent when its table says it (`RangesList.itemStart`, `itemEnd`), else −1. */
   itemStarts: number[];
@@ -71,6 +81,7 @@ export function newItemRows(): ItemRows {
     labels: [],
     occ: [],
     fields: [],
+    strand: [],
     row: [],
     itemStarts: [],
     itemEnds: [],
@@ -216,6 +227,7 @@ export function collectItems(
         rows.labels[j] = textAt(labels, i) ?? id ?? undefined;
         rows.occ[j] = k + piece;
         rows.fields[j] = t.fields;
+        rows.strand[j] = t.strand ? t.strand[i] : 0;
         rows.row[j] = i;
         rows.itemStarts[j] = t.itemStart ? t.itemStart[i] : -1;
         rows.itemEnds[j] = t.itemEnd ? t.itemEnd[i] : -1;
@@ -387,6 +399,8 @@ export function readItems(
         hint: RenderIssues.codes['seq.render.filter'].hint,
       }),
     );
+  // carried through a map read by region (a liftover): its reader, loaded with the genome chunk (`lift.ts`)
+  if (src.lift) return Lift.module?.readLifted(lay, ctx, data, src, fields) ?? [];
   const regions = dataRegions(src, axis, true);
   // a row of a cyclic system that runs past its end also overlaps the last position: its tile gives the origin's piece
   const wrap = src.length !== undefined && src.wraps ? { length: src.length, cyclic: src.cyclic === true } : undefined;

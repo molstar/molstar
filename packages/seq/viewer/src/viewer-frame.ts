@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { validRowsZoom } from './config.js';
 import { clampSectionTops } from './section-scroll.js';
 import { type ReadonlyState, State } from '@molstar/core/reactive';
 import type { Issue } from '@molstar/core/repr/tree';
@@ -139,6 +140,8 @@ export class ViewerFrame {
     else delete input.viewports;
     const rails = this.rails;
     rails.update(resolved);
+    // the rows' zoom the host configured (the rows rails' bounds and grips)
+    input.rowsZoom = validRowsZoom(config.rows.zoom);
     if (rails.rails) {
       input.rails = rails.rails;
       input.railsActive = rails.active;

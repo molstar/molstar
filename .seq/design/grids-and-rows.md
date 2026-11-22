@@ -120,7 +120,11 @@ layer is laid out per strip (`ctx.axis`, `ctx.box` its band in the strip's frame
 `scope: 'section'` and `ctx.place` for marks that cross strips. It owns `FrameInput.viewports` and the whole viewport
 record: the section's `top`, **a band's own scroll and row zoom** (`bandTop`, `rowScale`, by band; `ctx.bandTop`,
 `ctx.rowScale`), the grid's `y`; the y path in the emphasis passes; and the glyph runs' per-letter y, angle and
-vertical scale. This design builds on them and adds only:
+vertical scale. The rows' zoom limits are the host's (the author, 2026-11-21: "seems like this
+needs to be configurable"; FX16): `rows.zoom` in `ViewerConfig` (`minPx` 1/64, `maxPx` 40, `enabled`), the floor the
+larger of `minPx` and a lazy source's device pixel a row while it serves no row levels, a stored `rowScale` clamped
+to them; `enabled: false` leaves a pan-only rail. Open: the source's coarse row levels; a band's own override in the
+spec. This design builds on them and adds only:
 
 - **The grid is a section layout** (`grid`, a `SectionLayoutType` beside tracks, text and rings): one strip, the plot,
   whose transform is x and which **carries a second transform** `strip.y` (an `AxisTransform` down the strip's frame,
@@ -210,7 +214,7 @@ vertical scale. This design builds on them and adds only:
   `predicted_aligned_error`, read from a JSON or MessagePack array of arrays by path, [files.md](files.md)), its size
   checked against the blocks' total; each cell belongs to a (block, position) pair on each axis. Chain boundaries are
   the blocks' own gap, as in the tracks above, with no line in it and the cells clipped exactly at each block's edge
-  (decided 2026-11-19, the author: the gap and an off-centre hairline together read as "very weird"); a hairline
+  (decided 2026-11-19, the author: the gap and an off-centre hairline together read as "very weird"); over two sections of blocks (a dot plot, whose ground is mostly empty) the gaps are tinted a step darker than the ground so the block-pair cells read as cells (the author, 2026-11-22: "Tint the gaps"); a hairline
   (`seq-break`) only where blocks touch with no gap, the blocks' labels on both axes; a hover names both residues with their
   chains and lights them in the tracks; a dragged rect is two ranges, each split at chain boundaries into a part a
   system. **A summary of a grid over a rect** (`gridSummary(view, rect)`: mean, min, max, count of the cells in view

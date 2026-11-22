@@ -871,7 +871,7 @@ export class NavigatorModel extends ReactiveModel {
     const blocks = !!nav?.blocks && !!h && this.viewer.view.canMove(h.section);
     if (!nav || !h || (!blocks && (h.context || !(this.moves[h.section] ?? 0)))) return false;
     const track = nav.axes !== 'positions' && h.part !== 'outside' ? this.rowsTrack(h.section) : undefined;
-    if (track && this.viewer.view.band(track)?.rowScale !== undefined) {
+    if (track && this.viewer.config.rows.zoom.enabled && this.viewer.view.band(track)?.rowScale !== undefined) {
       const reset = !!this.viewer.behavior<RowsBehavior>('rows')?.railGesture().resetZoom(track);
       if (reset) this.ownMove = true;
       return reset;

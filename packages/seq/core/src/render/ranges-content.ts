@@ -134,7 +134,11 @@ export function rangesContent(prep: RangesPrep, ctx: ContentContext): LayerConte
     rows = contentRows(prep);
     // a source's data is not known whole: the lanes it has packed, one while it is pending (the loading lane)
     if (!rows)
-      return prep.src ? (knownEmpty(prep) ? lanesOnly(prep, 0) : lanesOnly(prep, knownLanes(prep), true)) : undefined;
+      return prep.src
+        ? knownEmpty(prep.known ?? prep)
+          ? lanesOnly(prep, 0)
+          : lanesOnly(prep, knownLanes(prep.known ?? prep), true)
+        : undefined;
     // the gene line lays an item's pieces in one lane, by its extent
     lanes = packedLanes(prep.line === 'gene' ? itemHulls(rows) : rows);
     Lanes.set(prep, lanes);

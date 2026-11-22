@@ -55,6 +55,19 @@ export const MinRowScale = 1 / 64;
 export const MaxRowScale = 40;
 
 /**
+ * The host's rows zoom (the viewer's `rows.zoom`): the least and the most px a row, and whether the rows zoom at all
+ * (`false`: the rows rail is a pan-only bar). The defaults are the constants above. A source's own floor (a device pixel
+ * a row for a lazy source with no row levels: `RowsLay.rowFloor`) is the larger of the two.
+ */
+export interface RowsZoom {
+  readonly minPx: number;
+  readonly maxPx: number;
+  readonly enabled: boolean;
+}
+
+export const DefaultRowsZoom: RowsZoom = { minPx: MinRowScale, maxPx: MaxRowScale, enabled: true };
+
+/**
  * A section's rail, or a rows band's (upright): where it is drawn and hit, and the window it shows (in the section's
  * own display units; a rows rail's in display rows below the pinned band).
  */
@@ -72,6 +85,13 @@ export class Rail {
    * whatever the view can do.
    */
   whole = false;
+  /**
+   * A rows rail's least px a row: the larger of the host's `minPx` (`RowsZoom`) and the source's (`RowsLay.rowFloor`);
+   * and whether its grips are drawn and hit (false: the host turned the rows' zoom off, the rail
+   * only pans).
+   */
+  rowMin = MinRowScale;
+  pan = false;
   /**
    * Along the rail: where its axis starts and its length (a section's data box's x and width; a rows rail's scrolled
    * area's y and height). Across it: the line, and the grab zone's two sides (a rows rail's: x).
@@ -230,6 +250,7 @@ export function placeRowsRail(
   x: number,
   config: RenderConfig,
   figure = false,
+  zoom: RowsZoom = DefaultRowsZoom,
 ) {
   const d = lay.display;
   const rows = Math.max(0, d.count - d.pinned);
@@ -253,7 +274,10 @@ export function placeRowsRail(
   );
   // idle only when the window can neither move nor shrink: every row shown, and shown still at the zoom-in limit (as a
   // ruler rail's: the whole axis in view and the axis fitting at the most px a position)
-  rail.whole = rail.start <= 0 && rail.end >= rows && rows * MaxRowScale <= area + 1e-9;
+  // (with the zoom off the rows never grow: every row shown is all there is)
+  rail.rowMin = Math.max(zoom.minPx, lay.rowFloor);
+  rail.pan = !zoom.enabled;
+  rail.whole = rail.start <= 0 && rail.end >= rows && (!zoom.enabled || rows * zoom.maxPx <= area + 1e-9);
 }
 
 /** An upright rail (a rows band's, a scrolled lanes band's): `total` units along `area` px from `y`, at x, its window. */
@@ -291,6 +315,8 @@ function placeUpright(
   rail.start = start;
   rail.end = end;
   rail.whole = false;
+  rail.rowMin = MinRowScale;
+  rail.pan = false;
   rail.shape.ranges = [0, total];
   rail.shape.dir = 1;
   rail.shape.cyclic = false;
@@ -573,7 +599,7 @@ function paint(
     Pl[3] = full;
     pillOut(out, rail);
   }
-  if (panOnly(rail.hit.navigator)) return;
+  if (rail.pan || panOnly(rail.hit.navigator)) return;
   // the knobs, circles centred on the window's true ends (a wrapped window's second piece ends before the axis's end):
   // 5 px at rest (4 at the fit), 10 hovered, 12 dragged, the hovered end one more, each about its centre; they may
   // overhang the slim row (nothing else is drawn on the rail's line, and the window pass is not clipped)
@@ -617,7 +643,7 @@ export function hitRail(rail: Rail, px: number, py: number, config: RenderConfig
   }
   if (!part) return undefined;
   // a lanes rail only pans: its window's ends are body
-  if (panOnly(rail.hit.navigator) && (part === 'start' || part === 'end')) part = 'body';
+  if ((rail.pan || panOnly(rail.hit.navigator)) && (part === 'start' || part === 'end')) part = 'body';
   // a window over the whole axis (the fit) has no body to drag, but the rail stays a target: its body is a place as
   // outside a window is (the hover names the place and marks it, never the whole rail lit; a sweep zooms to the region,
   // a click as elsewhere); its grips still resize it

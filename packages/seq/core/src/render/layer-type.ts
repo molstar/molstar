@@ -17,6 +17,7 @@ import type { RenderConfig } from './config.js';
 import type { PassName, PassWriter } from './draw-lists.js';
 import type { Placement, WindowPart } from './layout/types.js';
 import type { LabelLane, LayerContent } from './sizing.js';
+import type { RowsZoom } from './rail.js';
 import type { TextMetrics } from './text.js';
 import type { SeqTokens } from './tokens.js';
 
@@ -109,6 +110,8 @@ export interface LayoutContext {
   /** A band's own scroll (display rows below its pinned band) and row zoom (px a row), when it scrolls its rows. */
   readonly bandTop?: number;
   readonly rowScale?: number;
+  /** The host's rows zoom (`FrameInput.rowsZoom`): what a rows layer clamps `rowScale` to; absent: the defaults. */
+  readonly rowsZoom?: RowsZoom | undefined;
   /** The tree's width a narrow frame grants a rows layer (0: collapsed); the layer's own when absent. */
   readonly treePx?: number;
   /**

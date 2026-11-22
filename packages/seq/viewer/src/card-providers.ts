@@ -235,8 +235,11 @@ const ItemSection: CardProviderEntry = {
     if (mixed) out.row('Categories', mixed);
     else if (category && !allele) out.row('Category', category);
     if (strand) out.row('Strand', strand);
+    // its images through a map read by region (a liftover's), when several (EC-20)
+    const places = at.words.places(it.system ?? l.layer.data?.system, it.start, it.end);
+    if (places) out.row('Places', places);
     out.words.push(
-      `${allele ? `${name}, ` : ''}${itemText(system, it)}${track ? `, ${track}` : ''}${mixed ? `, ${mixed}` : category ? `, ${category}` : ''}${strand ? `, strand ${strand}` : ''}`,
+      `${allele ? `${name}, ` : ''}${itemText(system, it)}${track ? `, ${track}` : ''}${mixed ? `, ${mixed}` : category ? `, ${category}` : ''}${strand ? `, strand ${strand}` : ''}${places ? `, in ${places}` : ''}`,
     );
     out.whole = true;
   },

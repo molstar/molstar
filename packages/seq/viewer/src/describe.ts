@@ -40,6 +40,7 @@ import {
   unitOf,
   valueText,
 } from './card-providers.js';
+import { liftedStrand, liftPlaces } from './describe-lift.js';
 import type { HoverCard, HoverCardRow } from './hover-card.js';
 import { ViewerIssues } from './issues.js';
 
@@ -239,6 +240,12 @@ class Words implements CardReads {
     return this._src.view.model.value.systems.get(system)?.name ?? system;
   }
 
+  /** An item's places through a map read by region, when several (`describe-lift.ts`). */
+  places(system: string | undefined, start: number, end: number): string | undefined {
+    const v = this._src.view;
+    return liftPlaces(this._src.store.regions, v.model.value, v.resolved.value, system, start, end);
+  }
+
   itemsOf(l: LayerLayout): readonly ItemDescription[] {
     const layout = this._src.layout();
     if (layout !== this._itemsLayout) {
@@ -262,6 +269,8 @@ class Words implements CardReads {
     /** Its source's row when already looked up (`sourceRowOf`; null: none). */
     row?: { t: RangesList; i: number } | null,
   ): string {
+    // a lifted item's, as carried (`describe-lift.ts`)
+    if (l.layer.data?.lift) return liftedStrand(l, key, start);
     const model = this._src.view.model.value;
     const owner = l.layer.data?.address;
     const a = owner ? model.annotations.get(owner) : undefined;

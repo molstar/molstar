@@ -237,8 +237,9 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
 - [x] **LA3** (`briefs/la3-grids-categorical-liftover.md`; strong, after LA2) grids over two sections (`follow_y` a second section), categorical grid axes, the
       liftover (EC-212).
       Merged 2026-11-22 (`fe30f34c6`): grids over two sections and categorical axes; the liftover to LA4.
-- [ ] **LA4** (`briefs/la4-liftover.md`; strong, after LA3) the liftover (EC-212): runs read by either side, the projection's images in the card,
+- [x] **LA4** (`briefs/la4-liftover.md`; strong, after LA3) the liftover (EC-212): runs read by either side, the projection's images in the card,
       unmapped parts not drawn.
+      Merged 2026-11-22 (`344ed99f1`).
 - [ ] **TT** (`briefs/tt-tooltips.md`; strong, after HC; the language alone, 0.9.0) tooltips on drawn marks by data or
       a table, the card composed by providers in the viewer spec (tooltips.md, agreed 2026-11-22).
 - [ ] **GATE**.
