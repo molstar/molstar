@@ -81,6 +81,11 @@ export interface Placement {
    */
   readonly top?: number;
   readonly scrollY?: number;
+  /**
+   * A text's px scrolled for an anchor (`viewport.start`) through its placed lines: what its scroller reads before the
+   * next frame places it (moves before a frame add up). A method, so a viewer of no text bundles none of it.
+   */
+  scrollTopAt?(anchor: number): number;
   /** The page y the scrolled area ends at; 0 or absent: the box's foot. */
   readonly scrollEnd?: number;
   readonly fixed?: number;

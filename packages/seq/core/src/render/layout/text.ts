@@ -26,7 +26,7 @@ import type { SectionLayout } from '../tracks.js';
 import type { Hit } from '../layer-type.js';
 import { blockLength, chipWidth, isChip, type ResolvedBlock } from './blocks.js';
 import { PlacePoint, StripPlacement, type Strips } from './strips.js';
-import type { NavContext, Placement, PlaceContext, SectionLayoutType, SectionNav, StepDir } from './types.js';
+import type { NavContext, PlaceContext, SectionLayoutType, SectionNav, StepDir } from './types.js';
 
 // anchors read once: a draw reads no property of an imported object (_spec/README.md "Render", Draw lists)
 const AnchorStart: number = Anchor.start;
@@ -370,6 +370,11 @@ export class TextPlacement extends StripPlacement {
     this.heightsKey = key;
     if (this.heights.length !== g.laid) this.heights = new Float64Array(g.laid);
     this.heights.fill(g.lineHeight + g.lineGap);
+  }
+
+  /** The px scrolled for an anchor through the placed lines (`Placement.scrollTopAt`). */
+  scrollTopAt(anchor: number): number {
+    return this.geometry ? topOf(this, anchor) : this.top;
   }
 
   /** The px from the first line's top to line `l`'s. */
@@ -757,14 +762,6 @@ function topOf(p: TextPlacement, anchor: number): number {
   lineFrac(p.geometry!, anchor, LineFrac);
   const line = Math.min(p.heights.length - 1, LineFrac.line);
   return p.lineTop(line) + LineFrac.frac * p.heights[line];
-}
-
-/**
- * A text's px scrolled for an anchor (`viewport.start`) through its placed line heights: what its scroller reads before
- * the next frame places it (moves before a frame add up); 0 for a placement that is no text's.
- */
-export function textTop(p: Placement, anchor: number): number {
-  return p instanceof TextPlacement && p.geometry ? topOf(p, anchor) : 0;
 }
 
 /** The anchor at px `y` from the first line's top. */

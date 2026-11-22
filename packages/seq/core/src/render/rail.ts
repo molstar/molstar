@@ -312,7 +312,6 @@ export function placeLanesRail(
   room: number,
   top: number,
   config: RenderConfig,
-  inset = 0,
 ) {
   placeUpright(
     rail,
@@ -324,7 +323,7 @@ export function placeLanesRail(
     false,
     box.y,
     box.height,
-    box.x + box.width - SlimRailPx - inset,
+    box.x + box.width - SlimRailPx,
     lanes,
     top,
     Math.min(lanes, top + room),

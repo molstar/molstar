@@ -7,11 +7,11 @@
 // A section's scroll past its cap (_spec/README.md "Input", The one rail; core's "Render", Section scroll): the viewer's
 // own, composed wherever the cap is (no behavior needed: a minimal viewer scrolls its sections too). Its top in px of
 // the scrolled content: a tracks section's viewport `top`, a text's anchor moved by px through its placed lines
-// (`textTop`). Plain functions over the last frame's section (a wheel allocates nothing) and the section rail's gesture
+// (`Placement.scrollTopAt`). Plain functions over the last frame's section (a wheel allocates nothing) and the section rail's gesture
 // (a drag on its window, a press beside it centring there, Esc puts back the top the press found; pan only, session
 // state: no history step).
 
-import { type SectionLayout, textTop, type ViewLayout, type WindowPart } from '@molstar/seqx-core/render';
+import type { SectionLayout, ViewLayout, WindowPart } from '@molstar/seqx-core/render';
 import { cancelFrameCallback, requestFrameCallback } from '@molstar/ui/dom/frame';
 import type { ViewModel } from '@molstar/seqx-viewer/models';
 
@@ -32,7 +32,8 @@ export function sectionMax(s: SectionLayout): number {
 export function sectionTop(view: ViewModel, s: SectionLayout): number {
   const v = view.get(s.section.address);
   const p = s.placement;
-  const t = s.layout.name === 'text' ? (v ? textTop(p, v.start) : (p.top ?? 0)) : (v?.top ?? p.top ?? 0);
+  const t =
+    s.layout.name === 'text' ? (v && p.scrollTopAt ? p.scrollTopAt(v.start) : (p.top ?? 0)) : (v?.top ?? p.top ?? 0);
   return Math.max(0, Math.min(sectionMax(s), t));
 }
 
