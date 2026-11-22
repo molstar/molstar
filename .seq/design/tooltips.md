@@ -1,211 +1,195 @@
-# Tooltips: the card composed by the application, the spec's words on places
+# Tooltips: the card composed by the application, the spec's words on rendered marks
 
 ## Intent
 
 The author, 2026-11-22: "we should be able to associate arbitrary tooltips with data points. MolViewSpec has this too
 with .tooltip() ... we should find a good way to do this here too"; then "basically, we should be able to associate
 'tooltips' with addresses in general. ... or rather a tooltip by range, etc... the situation here is a bit different. i
-think we should design this first." In passing: a matrix layer should optionally show its member (sample) names, as a
-categorical grid axis does.
+think we should design this first."
 
-On the first draft (2026-11-22): "i am missing the 'tooltip from data/uri' option here"; "i think we can do markdown? we
-do have packages/core/src/util/markdown.ts"; "the placement: maybe configuration on 'viewer spec'? after all, mol*
-plugin also composes tooltips via providers. maybe we should adopt similar principle? in general, tooltips should be
-composed by 'application layer' anyway"; on SVG export, "not sure we need this", then "or well .. maybe <title> in SVG
-could work too ...".
+On the first draft: "i am missing the 'tooltip from data/uri' option here"; "i think we can do markdown? we do have
+packages/core/src/util/markdown.ts"; "the placement: maybe configuration on 'viewer spec'? after all, mol* plugin also
+composes tooltips via providers. maybe we should adopt similar principle? in general, tooltips should be composed by
+'application layer' anyway"; on SVG export, "not sure we need this", then "or well .. maybe <title> in SVG could work
+too ..."; on a note outlining its range: "i think we should only be able to associate tooltips with data points/ranges
+etc. .. so it would always be tied to something rendered?"
 
-So two things, kept apart: **the spec says which words attach where** (data: portable, drawn the same by every reader),
-and **the application composes the card** (which providers speak, in which order, how many rows, how links act).
+So two things, kept apart: **the spec says which words attach to which data** (portable, read the same by every
+reader), and **the application composes the card** (which providers speak, in which order, how links act).
 
 ## Precedents
 
 | Precedent | Taken | Not taken |
 |---|---|---|
-| MolViewSpec (`mvs-tree.ts`; runtime `annotation-tooltips-prop.ts`, `custom-tooltips-prop.ts`) | `tooltip { text }` on a component; `tooltip_from_uri` / `tooltip_from_source`: a separate annotation table (`uri`, `format` json, cif or bcif, `schema`, `field_name` default `tooltip`, `text_format` an f-string, `field_remapping`); a row with a field undefined gives no text; every matching tooltip shown | texts joined into one string by `" | "` (here a row each); a tooltip a child of each component (here one node with an address) |
-| Mol\*'s plugin (`plugin/core/src/spec.ts` `lociLabels`, `state/manager/loci-label.ts`) | hover labels composed from **providers listed in the plugin spec**, each given the hovered thing and returning a label or nothing; the application chooses which run (MVS's providers added by its behavior) | a numeric `priority` for order (here the listing's order); labels as HTML or React elements (here typed rows) |
-| Seq\*'s viewer spec (`viewer/src/default-spec.ts`, `header-entries.ts`) | the viewer composed from data: registry entries in order, behaviors with params, config items; `header-action` entries as the precedent for a viewer-only registry kind a host adds to or filters | — |
-| `@molstar/core/util/markdown.ts` | a typed tree, never HTML, linear in its input, nesting capped; `parseMarkdownInline`, `isSafeMarkdownHref` (http, https, mailto, relative), `markdownInlineText` for plain readers | its blocks in a card row (Text) |
+| MolViewSpec (`mvs-tree.ts`; runtime `annotation-tooltips-prop.ts`, `custom-tooltips-prop.ts`) | `tooltip { text }` on a component; `tooltip_from_uri` (`uri`, `format` json, cif, bcif, `schema`, `field_name` default `tooltip`, `text_format` an f-string, `field_remapping`, the CIF block params); `tooltip_from_source` (the same table as a CIF category in the structure's own file: `block_header`, `block_index`, `category_name`); a row with a field undefined gives no text; every matching tooltip shown | texts joined by `" | "` (here a row each); a tooltip a child of each component (here one node) |
+| Mol\*'s plugin (`spec.ts` `lociLabels`, `state/manager/loci-label.ts`) | hover labels composed from **providers listed in the plugin spec**, each given the hovered thing, returning a label or nothing | labels as HTML or React elements (here typed rows) |
+| Seq\*'s viewer spec (`default-spec.ts`, `header-entries.ts`) | the viewer composed from data; `header-action` entries, a viewer-only registry kind ordered by `order`, then name | — |
+| `@molstar/core/util/markdown.ts` | a typed tree, never HTML, linear, nesting capped; `parseMarkdownInline`, `markdownInlineText` | its blocks in a card row; its `isSafeMarkdownHref` as the link rule (a relative `/refs/dbd` passes it: Text) |
 | `@molstar/core/util/string-format` (`FormatTemplate`) | MVS's f-strings, one implementation | a second template language |
-| Themes ([themes.md](themes.md)), refs ([addressing.md](addressing.md)) | a rule's `in` (overlap by one position); nodes under `views` shared by every view; an address that no longer resolves reported, the rest opening | a tooltip as a mark's channel (Rejected) |
+| `describe.ts` (the card's sections) | `Parts`: a `title`, `rows`, a separate `words` list (the live region's sentence, not one per row: `ItemSection` writes three or four rows and one phrase, `PlaceSection`'s `index` row is never spoken), `whole` (an item, a region, a pair said whole: later place sections skip) | — |
 | The SVG export (`core/src/render/svg.ts`) | an accessible item is a named box whose `<title>` is the browser's tooltip and its accessible name | — |
 
 ## Decision
 
-### The spec: which words attach where
+### Tied to something rendered
 
-A `tooltip` node, under `views` (every view, beside `scale`) or under a `view` (that view only). Ids required, so a
-story step adds or removes one by patch. One mechanism: **a tooltip is a set of items, each with a location and its
-fields; a text is formatted from a row's fields**. The items come from one of three spellings:
+The author's rule: a tooltip "would always be tied to something rendered". So:
 
-| Spelling | Params | Like MVS's |
-|---|---|---|
-| on an address | `on`: a ref or a list (a Location, Keys, a data node of items, a layer) | `tooltip { text }` on a component |
-| a table of its own, inline | `target`, `rows` (a table: location columns and text fields) | `tooltip_from_uri` over an inline annotation |
-| a table of its own, read | `target`, `source` (a `source` node: `uri`, `format`, `fields`, `index`) | `tooltip_from_uri`, `tooltip_from_source` |
+- **A tooltip answers only on rendered marks**: an item, a range, a pair, a cell, a letter, a value bar some layer
+  draws, or a bin of them. A position no layer marks gets none (a track's empty band, a gap). Why: the words are about
+  data the reader sees; a note on nothing visible is a note the reader cannot find.
+- **No outline of its own**: the mark's hover emphasis is the tooltip's (one hover, one outline).
+- **Two ways to attach, one result** (items with a location and fields; a row's text from its fields):
+  - **by data**: a data node's (or a layer's) items speak their own fields (`on: /data/p53/features`, `text:
+    "{label}: {note}"`): each item's text on its own marks;
+  - **by range from a table**: a table of locations with text (inline rows, or a `source`: a URI, a CIF category):
+    each row's text on every mark its location covers (a letter, a feature, a value bar, a cell), in any layer of the
+    view. An address is a one-row table (`on: /refs/dbd`, MVS's `tooltip { text }` on a component).
 
-Common params: `field` (`tooltip`: what `{}` reads, MVS's `field_name`), `text` (`"{}"`: an f-string, MVS's
-`text_format`; on a bare Location a literal, `{{` for a brace), `label` (the card row's label; absent, the text is the
-row), `format` (`markdown`, absent, or `text`).
+### The spec: a `tooltip` node
 
-- **Location columns of a tooltip's table**, decided by the columns present (`seq.lang.tooltip.locate` when none or
-  two kinds):
-  - **ranges**: `start`, `end` on `target` (a sequence, a unit, an alignment's columns), or on an assembly with a
-    sequence name column (`target` role through `source.fields`, `chrom`, aliases and `chr` by GA's names rule);
-  - **addresses**: an `address` column, each row an address or a form relative to `target`
-    (`/refs/dbd`, `(range :from 94 :to 292 :numbering uniprot)`, `(elements :chain A :beg 10 :end 20)`);
-  - **keys**: a `key` column naming items of `target`, a data node (a feature's id, an alignment row's id, a matrix
-    state);
-  - **MVS's schema fields** (`label_asym_id`, `beg_label_seq_id`, `auth_seq_id`, …, by the short and long names of
-    [properties.md](properties.md)): each row an `(elements …)` item, so an MVS annotation file is a tooltip table as
-    is.
-- **Read whole or by region**: a ranges table over an indexed format (BED, GFF, VCF with tabix; bigBed later) is read
-  by region as any `ranges` source; addresses, keys and schema rows are read whole (they resolve before they can be
-  indexed), bounded by the asset policy's size of one asset and `SpecBounds.tooltipRows` (1,000,000).
-- **Assets**: a `source` is read through the assets port's policy ([security.md](security.md)): `https:` and relative
-  locations in a browser, no credentials, nothing over the network headless; a refused read is an issue on the
-  tooltip, and the rest of the spec opens.
-- **One mechanism, not two, with a `ranges` node**: `on` a `ranges` node whose rows carry a `tooltip` column and a
-  tooltip's own `rows` or `source` resolve to the same thing (an items table, one interval index, one region read,
-  one projection), and a tooltip's own table *is* a `ranges` shape with an extra location kind or two. Why both
-  spellings: a table that is also drawn belongs in `data` and is named by `on`; a notes table that is never drawn
-  (MVS's case) stays with its tooltip, and an MVS spec converts one node to one node. A tooltip's own table is not
-  addressable as data (`/views/notes` is the tooltip) and never drawn.
-- **On a layer** (`on: /views/main/p53/features/f`): its marks only, its filter applied: the one scope finer than a
-  view, given by the address.
-- **Resolved in tier 1** ([composition.md](composition.md)): each view's tooltips with `on` resolved, inline tables
-  indexed, templates parsed and their fields checked against what the table declares. Data read by region is never in
-  tier 1.
+Under `views` (every view, beside `scale`) or a `view` (that view only); ids required (a story step adds or removes
+one by patch).
+
+| Param | Says |
+|---|---|
+| `on` | by data: a data node of items or a layer (its marks only, its filter applied); by range: an address or a list (a ref, a range, Keys) |
+| `target`, `rows` | by range, the tooltip's own inline table (location columns, text fields) |
+| `target`, `source` | by range, a table read from a `source` node under `data` (a reference: data stays in `data`) |
+| `schema` | how a table's rows locate: `ranges` (absent: `start`, `end`, a sequence name on an assembly), `address` (an `address` column, forms relative to `target`), or MVS's schemas (`whole_structure`, `entity`, `chain`, `auth_chain`, `residue`, `auth_residue`, `residue_range`, `auth_residue_range`, `atom`, `auth_atom`, `all_atomic`), each read as MVS reads it, as `(elements …)` items |
+| `block`, `category` | a CIF table: MVS's `block_header` or `block_index`, `category_name` |
+| `field` | what `{}` reads (`tooltip`, MVS's `field_name`) |
+| `text` | always an f-string (`"{}"`, MVS's `text_format`) |
+| `label` | the card row's label; absent, the text is the row |
+| `format` | `markdown` (absent) or `text` |
+
+- **MVS's forms, mapped**: `tooltip { text }` on a component is `on` its selection as an address with `text`;
+  `tooltip_from_uri` is a `source` node (`uri`, `format`, `fields` from `field_remapping`) and a tooltip with `source`,
+  `schema`, `field`, `text` (and `block`, `category` for CIF); `tooltip_from_source` is the same over the `source` node
+  the structure is read from. **Where Seq\* differs**: a sequence spec has no structure file of its own; a CIF category
+  is read only through a structure's `source` (a molecule's or a complex's), and until the structure runtime reads
+  categories such a tooltip is unavailable (`seq.lang.tooltip.category`, said once).
+- **Schema is said, never guessed**: a `label_asym_id` and `beg_label_seq_id` file under `schema: chain` is whole
+  chains, as in MVS; a table whose columns do not fit its schema is `seq.lang.tooltip.schema`.
+- **One mechanism with a `ranges` column**: `on` a `ranges` node with a `tooltip` column and a tooltip's own table are
+  one items table in the store (one index, one region read, one projection). Inline `rows` is the only table that
+  lives with its tooltip (MVS has inline tooltips; a never-drawn note list has no other home); a read table is a
+  `source` under `data`.
+- **GA's assemblies and names**: ranges on an assembly name their sequence by the names rule (aliases, `chr`);
+  addresses take `(locus …)` and `(block :name …)`; a name that is not an id is reached by its form (EC-200).
+- **Tiers** ([composition.md](composition.md)): tier 1 holds the tooltip node resolved to references (`on`, `target`,
+  `source`) and its parsed template, never rows. Every table, inline too, goes through the store as items, as every
+  data does ([data-store.md](data-store.md)), and its interval index belongs to the store entry, built when it loads.
+- **Read with what it decorates**: a table no layer draws is wanted by no one, so its tiles are requested beside the
+  marks it decorates: the viewport's request for each layer whose marks the table can cover (on its system, or
+  reaching it by a path) adds the table's tiles over the same window, and they are kept as those are (never evicted in
+  view). States per data-store.md: pending gives a `loading` row (EC-169); empty, no rows; failed, no rows and the
+  issue on the tooltip, retried by the policy (EC-174). Read whole (addresses, MVS's schemas) only within the asset
+  policy's size of one asset and `SpecBounds.tooltipRows` (1,000,000).
+- **Assets**: a `source` is read through the assets port's policy ([security.md](security.md)); a refused read is an
+  issue on the tooltip, and the rest opens.
 
 ### The application: the card composed by providers
 
-- **A `card-provider` registry entry** in the viewer spec (beside `header-action`, a viewer-only kind):
-  `{ kind: 'card-provider', name: '<ns>:<name>', before?: name, describe(at, out) }`. `at` is the hit and its place
-  (the section, the layer, the system and position, a cell's y, the element, a bin, the block) and the models;
-  `out` takes rows (`label`, `value`, `rich?`, `item?`, `words?`) and may mark the place said whole (an item's own
-  card). A provider that has nothing to say writes nothing.
-- **The viewer's own rows become built-in providers**, in `BuiltInCardProviders`, in today's order: `seq:region`,
-  `seq:pair`, `seq:group`, `seq:item`, `seq:columns-hidden`, `seq:row`, `seq:grid`, `seq:residue`, `seq:place`
-  (numberings, letter, chemistry, values, items at the position), `seq:tooltips` (the spec's), `seq:block`. The
-  default spec lists them; `describe.ts`'s sections become these entries without a change of words.
-- **Order is the listing's**: a host spreads `BuiltInCardProviders` and inserts, filters or replaces by name; an
-  extension's entry says `before` a name, else it comes last but `seq:block`. Why not Mol\*'s numbers: two hosts'
-  priorities collide, and an order in a list reads in the spec.
-- **What stays in the spec, what in the viewer spec**: the spec says what text attaches to which places (portable:
-  another reader, a headless card, an export reads it). The viewer spec says which providers run, their order, the
-  caps (`hover.cardItems`, `hover.tooltipLines`), whether the card shows (`hover.card`), how links act, and the export's
-  titles. A host that wants the spec's tooltips in its own card replaces `seq:tooltips` and calls the core's
-  `tooltipsAt(view, place, out)`; one that does not want them filters it out.
-- **The hover contract holds** (HC: every mark answers with a hit, an emphasis and a card): providers change the
-  card's rows, never the hit or the emphasis. The floor is `seq:item` and `seq:place` (every hit names an item or a
-  position): a composition without either is `seq.viewer.card.floor` (a warning at composition); the HC sweep runs on
-  the default spec, and on a host's in its own tests.
-- **One description**: the card's `text` (the live region's sentence) is every row's words in order; a row without
-  `words` is said as `label: markdownInlineText(rich)`, or its value. The keyboard cursor's card is composed the same.
+- **A `card-provider` registry entry** in the viewer spec, beside `header-action`:
+  `{ kind: 'card-provider', name: '<ns>:<name>', order?: number, describe(at, out) }`, ordered as header entries are
+  (by `order`, then name: one registry rule). `at` is the hit and its place (the section, the layer, the system and
+  position, a cell's y, the element, a bin, the block) and the models; `out` is today's `Parts`: a `title` (a provider
+  sets it when empty), `rows`, a separate `words` list (the sentence's phrases, never one per row), and `whole`.
+- **The viewer's sections become built-in providers**, `BuiltInCardProviders`, with orders that keep today's order:
+  `seq:region`, `seq:pair`, `seq:group`, `seq:item`, `seq:columns-hidden`, `seq:row`, `seq:grid`, `seq:residue`,
+  `seq:place`, `seq:tooltips`, `seq:block`. Their rows and words are unchanged, so the live region's sentences and the
+  card tests hold as they are.
+- **`whole` is the place's, not the writer's**: `seq:tooltips` ignores it, so a note on 94 to 292 shows over a
+  feature, a cell or a pair the item and region sections said whole. A host's provider reads it as it chooses.
+- **What stays where**: the spec says which words attach to which data; the viewer spec says which providers run,
+  their order, the caps (`hover.cardItems`, `hover.tooltipLines`), whether the card shows (`hover.card`), and how a
+  link acts. A host adds an entry, filters one by name, or replaces `seq:tooltips` with its own over the core's
+  `tooltipsAt(view, place, out)`.
+- **The hover contract holds** (HC: every mark answers with a hit, an emphasis and a card): providers change rows,
+  never the hit or the emphasis. Its floor is `seq:item` and `seq:place`; a composition without either is
+  `seq.viewer.card.floor` (a warning). The HC sweep runs on the default spec.
 
 ### What the reader sees of the spec's tooltips (`seq:tooltips`)
 
-- **The place a tooltip matches is the hit's**: the item under the pointer by its key; else the position under the
-  pointer (a cell: both positions; a pair: both ends; a matrix cell: its position and its state; a row header: its
-  row); else a bin's stretch. A Location matches by overlap of one position or more, a cell or a pair by either place,
-  a rect only by both; Keys match the hit's element and a position inside a key's extent. **Projected** through the
-  hover's own projection (a note on the protein answers on its gene's codons), never a second one.
-- **On every mark whose place it covers, in every layer** (a mark-less position is still a hit), except a tooltip
-  `on` a layer. When the hit is an item of the tooltip's table, that item's row alone; else every item over the place,
-  in position order, as item rows under `hover.cardItems` with `+k more`.
+- **The mark's place**: the hit's item by key; the position under the pointer on the mark (a cell: both positions; a
+  pair: both ends; a matrix cell: its position and state); a bin's stretch. A range matches by overlap of one position
+  or more, a cell or a pair by either place, a rect by both; projected through the hover's own projection (a note on
+  the protein answers on its gene's codons).
+- **By data**: the hit's item's own row. **By range**: every table row covering the place, in position order.
+- **Rows and the cap**: a tooltip's single row on the hovered mark is a plain row, never cut. Rows listing several
+  matches (over a bin, or several table rows over one mark) are item rows sharing the one `hover.cardItems` cap with
+  the place's items, after them (`cutItems` counts both). Past the cap, `HoverCard.more` holds the rows made and a new
+  `HoverCard.moreCount` the matches not made (counted by the index), so the `+k more` row says `k = more.length +
+  moreCount`; the live region says the rows shown and the count, never a million texts.
 - **Stacking**: `views`' tooltips before the view's, each in spec order; none hides another or a built-in row.
-- **Zoomed out**: a bin matching many items gives the first `hover.cardItems` and `+k more` with the index's count;
-  the live region says the rows shown and the count. **Pending**: a row `label: loading` (EC-169), replaced while the
-  hover rests. **No emphasis of its own**: one hover, one outline.
 
-### Text: Markdown, inline
+### Text: Markdown in the template, links inside the view
 
-- **A card row shows inline Markdown** (`format: markdown`, the default): strong, emphasis, code spans, links, line
-  breaks (`parseMarkdownInline`). Blocks are not read: a row is a line of the card, so headings, lists, fences and rules
-  stay their text. Why inline only: the card is compact (the author, 2026-11-20); a note with structure is a link to
-  where it is written. `format: text` shows the text as written.
-- **Values are inserted as written**: a notes file's Markdown renders as its writer meant (MVS's file tooltips are the
-  file's); the parser is safe by construction (a typed tree, no HTML, nesting capped, linear), so a value can add a
-  mark or a link, never markup.
-- **Links point at two things**:
-  - **inside the view**: a bare address (`/refs/dbd`, `/data/p53/(range :from 94 :to 292)`: focus) or Seq\*'s link
-    grammar (`!seq-focus=…`, `!seq-select=…`): run as commands, the hover of a link on its own channel (EC-182);
-  - **outside**: `isSafeMarkdownHref`, and allowed by the assets policy's `schemes` and `hosts` (the viewer's one
-    list of where a spec may reach); opened by the host (`openLink` on the hover card port, default a new tab with
-    `noopener noreferrer`); headless, none. Any other link is its text.
-- **Plain readers**: the live region, a headless card's `value` and an export's `<title>` read
-  `markdownInlineText`; a link is said as its text. `rich` holds the tree for an adapter that draws it.
-- **Parse once**: a literal text is parsed at resolve; a templated row is formatted and parsed when a card first shows
-  it, kept in a cache by (tooltip, row) (64 entries), so a resting hover re-hit each frame (EC-143) parses nothing.
-- **Cleaned and bounded**: C0 and C1 controls (but `\n`) and the bidi overrides and isolates (U+202A to U+202E, U+2066
-  to U+2069) removed; a template at most 1,000 characters (`SpecBounds.tooltipText`); a formatted text cut at 1,000;
-  a row wraps to `hover.tooltipLines` (3) lines, then `…`.
+- **Inline Markdown** (`format: markdown`): strong, emphasis, code spans, links, line breaks (`parseMarkdownInline`);
+  no blocks (a row is a line of a compact card). `format: text` shows the text as written.
+- **Markdown applies to the template only; values are escaped**: each `{}` value has Markdown's escapable characters
+  backslash-escaped before the parse, so `A*02:01 and B*07:02` stays text, and a data file adds no mark or link.
+- **Links act only through commands** (security.md: "links act only through commands on addresses"): only Seq\*'s
+  link grammar (`!seq-focus=/refs/dbd`, `!seq-select=…`, the links codec's) is a link; anything else is its text. Why
+  not `isSafeMarkdownHref`: a bare `/refs/dbd` is a relative URL to it, and the asset policy is a read policy
+  (`https:` reads, no `mailto`), not a navigation rule. External links are an open question.
+- **Cleaned after parsing**: `parseMarkdownInline` decodes entities, so C0 and C1 controls (but breaks) and the bidi
+  overrides and isolates (U+202A to U+202E, U+2066 to U+2069) are removed from the text nodes it returns.
+- **Plain readers**: the live region, a headless card's `value` and an export's `<title>` read `markdownInlineText`;
+  `rich` holds the tree for an adapter that draws it.
+- **Bounds**: a template at most 1,000 characters (`SpecBounds.tooltipText`); a formatted text cut at 1,000; a row
+  wraps to `hover.tooltipLines` (3) lines, then `…`.
 
 ### The enterable card (EC-166's bridge)
 
-- **A card with a link is entered**: the pointer may cross from the anchor to the card within a grace (300 ms along
-  the path between them, the safe triangle), and the card stays while the pointer is over it; the hover stays on the
-  anchor (frozen) meanwhile. Leaving the card hides it. A card with no link takes no pointer (`pointer-events: none`),
-  so it never steals a hover from the data. Why only then: a card in the way of the next hover is the cost of a link,
-  never of words.
-- **From the keyboard**: the cursor's card's links are listed in the cursor's context menu (Shift+F10, EC-156), so a
-  link is reached without a pointer.
+- **A card with a link is entered**: the pointer may cross from the anchor to the card within a grace (300 ms, the
+  safe triangle between them), the card stays while it is over it, the hover frozen on the anchor; leaving hides it. A
+  card with no link takes no pointer (`pointer-events: none`), so it never steals a hover from the data.
+- **From the keyboard**: the cursor's card's links are listed in the cursor's context menu (Shift+F10, EC-156).
 
 ### The SVG export's `<title>`s
 
-- **An option**: the export may write each exported item's composed rows as its `<title>` (the providers' output as
-  plain text, `markdownInlineText`), in the named box the accessible export already writes ("a box nothing paints and
-  a pointer still hits: its `<title>` is the tooltip and the accessible name"). A browser then shows the figure's
-  notes on hover, and a screen reader says them; the default title stays the item's name.
-- **Where it goes**: an item (a feature, a pair, a row) a title; a spec tooltip on a Location with no item, one named
-  box over its extent per track; bins, image tiles and summaries no title (they are not items, and a bin's rows depend
-  on the zoom the figure froze).
-- **Cost, bounded**: a provider call per exported item, once per export, never per frame; at most
-  `export.titles.max` (10,000) items titled, past it the item's name only, said once (`seq.render.export.titles`).
-  Size: about the rows' text per item (a 60-character note on 10,000 items, 0.6 MB); the cap holds it.
-- **Composition**: `renderSvg`'s `titles` option takes a describe function; the viewer's export passes its composed
-  providers; the core's headless export passes `tooltipsAt` alone (the spec's words, no viewer rows). The view's
-  `export.titles` (`name` or `card`) is the spec's say, as `export.legend`. The default is an open question.
+- **An option**: the view's `export.titles`, `name` or `card` (renderSvg's `titles` option overriding it, as
+  `export.legend`). With `card`, each exported item's named box (the accessible export's: "a box nothing paints and a
+  pointer still hits: its `<title>` is the tooltip and the accessible name") takes the composed rows as plain text
+  (`markdownInlineText`); with `name`, as today. Items only: bins, image tiles and summaries get none (not items; a
+  bin's rows depend on the zoom the figure froze).
+- **Cost**: a provider call per exported item, once per export, never per frame; size about the rows' text per item
+  (a 60-character note on 10,000 items, 0.6 MB). The viewer's export passes its composed providers; the core's
+  headless export passes `tooltipsAt` alone. The default is an open question.
 
 ### The builder
 
-Mirrors MVS's `.tooltip()`, `tooltip_from_uri` and `tooltip_from_source`:
-
 ```ts
 const notes = data.ranges('notes', { target: p53, rows: { start: [93, 324], end: [292, 355], tooltip: ['DNA-binding', 'tetramerisation'] } });
-views.tooltip('notes', { on: notes, label: 'Note' });                                  // a drawn table's column
+views.tooltip('notes', { on: notes, label: 'Note' });                              // by data
 views.tooltip('dbd', { on: refs.ref('dbd', { to: `${p53}/(range :from 94 :to 292)` }), text: 'binds **DNA**' });
-views.tooltip('curated', { target: p53, rows: { address: ['(at :label 175)'], tooltip: ['R175H, a [hotspot](/refs/hotspots)'] } });
-views.tooltip('mvs', { target: tup, source: data.source('ann', { format: 'json', uri: 'ann.json' }), field: 'note', text: '{}' });
+views.tooltip('curated', { target: p53, schema: 'address', rows: { address: ['(at :label 175)'], tooltip: ['R175H, [a hotspot](!seq-focus=/refs/hotspots)'] } });
+views.tooltip('mvs', { target: tup, source: data.source('ann', { format: 'json', uri: 'ann.json' }), schema: 'auth_residue', field: 'note' });
 ```
 
-`check()` reports a template field the table lacks. Viewer side: `{ ...DefaultSeqViewerSpec(), registry: [...,
-{ kind: 'card-provider', name: 'lab:assay', before: 'seq:block', describe } ] }`.
+`check()` reports a template field the table lacks. Viewer side: `{ kind: 'card-provider', name: 'lab:assay', order,
+describe }` in the registry.
 
 ### Performance
 
 - **Per hover step, 0 B warm**: a step is the hit and the emphasis; providers run when the card shows (at rest) and
-  again only when the place or the store's version changes; the card for a place re-hit each frame is the one held.
-- **The lookup**: a Location's tooltips as one interval index per system (the runtimes' `intervalIndex`, moved to a
-  shared internal module of the core with its test); keys as a set by owner and key; a source's tiles index themselves
-  when they load and are evicted with them. Matches go into a reused `Int32Array`, stopping at `cardItems + 1`, the
-  rest counted: O(log n + k), 0 B.
+  again only when the place or the store's version changes; a place re-hit each frame keeps the card it has.
+- **The lookup**: the store entry's interval index (the runtimes' `intervalIndex`, moved to a shared internal module
+  of the core with its test); matches into a reused `Int32Array`, stopping at `cardItems + 1`, the rest counted:
+  O(log n + k), 0 B.
+- **Parses cached by text** (64 entries): a cold card parses and allocates; a warm one does not. The card's
+  allocation per step, 2,168 B, is the HC brief's reading (`.seq/execution/fifth-slice/briefs/hc-hover-contract.md`,
+  from the allocation tier); the tooltip lane measures a cold and a warm card show with tooltips in the same tier,
+  records both in its report, and holds the warm one at today's figure.
 - **Targets**: the lookup over 1,000,000 ranges within 1.5× of 10,000 (heavy, `itWithin`); a hover step at 0 B warm
-  and a card show within today's 2,168 B with a tooltip over 10,000 inline ranges and over a 1,000,000-range source
-  (the allocation tier); an export with titles over 10,000 items within 1.2× of one without (heavy).
-
-### The matrix's member labels
-
-- **`member_labels`** on a `matrix` layer: `none` (when absent) or `left`, the states' names down the track's label
-  column, a state a row, under the track's name line. Off by default: a cohort of thousands of states is sub-pixel
-  rows, thinned to nothing; today's records stay.
-- **Drawn as the categorical axis draws them** (`placeMemberLabels`, `drawMemberLabels`, `hitMemberLabel` in
-  `render/layout/grid-members.ts`), thinned past `rows.labelMinPx`, following `bandTop` and `rowScale`, cut to the
-  column (the card says the name whole); a label hits as `target: 'row'` on the states system (the interaction
-  matrix's "a state": click selects it). On a ring not drawn (`seq.render.matrix.labels`, info, once).
+  with a 10,000-row inline table and a 1,000,000-range source; an export with `card` titles over 10,000 items within
+  1.2× of `name` (heavy).
 
 ## Defaults
 
-No `tooltip` node: the card as today. With one, a row after the place's rows (links drawn as links):
+No `tooltip` node: the card as today. With one, a row after the place's rows on the marks it covers:
 
 ```
 ┌──────────────────────────────┐
@@ -217,98 +201,105 @@ No `tooltip` node: the card as today. With one, a row after the place's rows (li
 └──────────────────────────────┘
 ```
 
-The default viewer spec lists every built-in provider; an export writes item names as titles unless asked for the
-card's rows; a matrix draws no member labels.
+The default viewer spec lists every built-in provider; nothing in an empty band; an export's titles are item names
+unless `export.titles: card`.
+
+## A separate change: the matrix's member labels
+
+The author, in passing: a matrix layer should optionally show its member (sample) names, as a categorical grid axis
+does. A layer param, `member_labels`: `none` (absent) or `left`, the states' names down the track's label column,
+drawn by the categorical axis's `placeMemberLabels`, `drawMemberLabels`, `hitMemberLabel` (thinned past
+`rows.labelMinPx`, following `bandTop` and `rowScale`, a label a `target: 'row'` hit selecting the state); off by
+default (thousands of states are sub-pixel rows); on a ring not drawn (`seq.render.matrix.labels`, info). It shares
+nothing with tooltips but the language bump.
 
 ## Rejected alternatives
 
-- **Plain text only** (the first draft): the core's Markdown is safe by construction, and a note's emphasis or link is
-  the writer's meaning. Blocks in a row stay rejected (compact cards).
-- **The card's sections internal** (the first draft and extensibility.md's "chrome parts ... internal"): the author's
-  rule that the application composes tooltips is the outside user that opens them.
-- **Mol\*'s numeric priorities**: colliding numbers, an order not readable in the spec.
-- **Card composition in the spec** (which rows, their order): a reader's chrome, not the figure's meaning, and another
-  reader composes its own card.
-- **Two mechanisms for "a tooltip table" and "a `ranges` column"**: two indexes, two region reads, two projections
-  for one thing.
-- **A `tooltip` channel on layers**: per layer, compiled per mark in the layout's hot loop though read only on a
-  hover; silent on other layers and on mark-less positions.
-- **A param on data nodes** (`ranges.tooltip`), **a ref's note**, **a fifth root level**, **one tooltip per layer**:
-  a drawn table is named by `on`; a ref names, a note speaks; the levels are fixed; `on` a layer scopes it.
-- **Joining texts by `" | "`** (MVS): a row each reads, caps, wraps and links.
-- **Titles on bins in an export**: a bin's rows depend on the frozen zoom and multiply its size.
+- **A tooltip on any position, marks or not** (the first draft): the author's rule ties words to what is rendered.
+- **An outline of a note's range**: the mark's emphasis is the tooltip's; a second outline is a second hover.
+- **Plain text only** (the first draft): the core's Markdown is safe by construction; blocks in a row stay rejected.
+- **Markdown over values**: a data value's `*` or `_` would become emphasis (`A*02:01 and B*07:02`), and a file a link.
+- **`isSafeMarkdownHref` as the link rule**: it passes relative URLs and is no navigation policy; links act through
+  commands only.
+- **A `key` column**: `address` with `(item :id …)` says the same.
+- **Columns deciding the location kind**: MVS says `schema`; a guess reads a chain file as residues.
+- **Indexing tables in tier 1**: the resolved view holds no data; inline data goes through the store.
+- **Title boxes over a Location in an SVG, a cap on titles**: titles are on items; their cost is the item count.
+- **The card's sections internal** (extensibility.md's "chrome parts ... internal"): the application composing the
+  card is the outside user.
+- **One word list per row**: today's sentence is phrases, not rows; changing it changes every announcement.
+- **Mol\*'s priorities**: card providers order as header entries do, one registry rule.
+- **A `tooltip` channel on layers, a param on data nodes, a ref's note, a fifth root level, one tooltip per layer,
+  texts joined by `" | "`**: per-layer or per-mark costs, data and presentation mixed, names and words mixed, fixed
+  levels, copies; a row each reads, caps, wraps and links.
 
 ## Tensions
 
-- **A tooltip's own table outside `data`**: data is under `data` by the composition's rule; a never-drawn notes table
-  stays with its tooltip for MVS's shape. Open question 3.
 - **An enterable card vs the next hover**: only a card with a link takes the pointer.
-- **Compact cards vs notes**: three lines, `hover.tooltipLines`.
+- **Escaped values vs a notes file's Markdown**: an MVS file's `**` shows as written. Open question.
+- **A table read for marks it decorates**: one more request per decorated window; bounded by the same tiles.
 
 ## Edge cases
 
 New ids continue the catalog (EC-245 to EC-249 are layouts.md's).
 
-- **EC-250** an `on` or a table address that no longer resolves: `seq.lang.tooltip.on`, that row inert, the rest
-  opens; never re-bound.
-- **EC-251** a template field the table lacks: `seq.lang.tooltip.field` at check; undefined in a row: no row; empty:
-  no row.
-- **EC-252** a table with both `start`/`end` and `address`: `seq.lang.tooltip.locate`.
+- **EC-250** an `on` or a table address that no longer resolves: `seq.lang.tooltip.on`, that row inert, the rest opens.
+- **EC-251** a template field the table lacks: `seq.lang.tooltip.field`; undefined or empty in a row: no row.
+- **EC-252** a table not fitting its `schema`: `seq.lang.tooltip.schema`; a CIF category before the structure runtime
+  reads one: `seq.lang.tooltip.category`.
 - **EC-253** a wrapped range on a cyclic system (EC-9): two runs, one row.
-- **EC-254** a note over a collapsed break: answers where a position of it is shown.
-- **EC-255** a tooltip `on` a hidden or filtered layer: no rows; on its data node, by position.
-- **EC-256** bidi overrides, controls, `<script>`, `[x](javascript:…)`: removed, text, or the link's text; a
-  10,000-character template refused at check.
-- **EC-257** a pending tile: a `loading` row, replaced while the hover rests (EC-169).
-- **EC-258** a grid cell in a note's range by x only: the row once; a rect note by both.
-- **EC-259** a million-range source zoomed out: `cardItems` rows, `+k more`, 0 B warm.
-- **EC-260** a source refused by the policy (a host not listed, headless network): an issue on the tooltip.
-- **EC-261** a card with a link: entered across the gap; a card without one never takes the pointer; a link's hover
-  on its own channel (EC-182); Esc hides it.
+- **EC-254** a note over an empty band, a gap or a collapsed break: none there; on the marks around it, as covered.
+- **EC-255** a tooltip `on` a hidden or filtered layer: no marks, no rows.
+- **EC-256** bidi overrides, controls (entities too), `<script>`, `[x](javascript:…)`, `[x](/refs/dbd)`: removed,
+  text, or the link's text; a 10,000-character template refused at check.
+- **EC-257** a table pending under a mark: a `loading` row (EC-169); failed: the issue on the tooltip (EC-174).
+- **EC-258** a grid cell in a note's range by x only: the row once; a rect by both.
+- **EC-259** a million-range source zoomed out over a bin: `cardItems` rows, `+k more` with `moreCount`, 0 B warm.
+- **EC-260** a note on an item said whole (a feature, a region cell, a pair): its row shows (`whole` ignored).
+- **EC-261** a card with a link: entered across the gap; one without never takes the pointer; a link's hover on its own
+  channel (EC-182); Esc hides it.
 - **EC-262** a composition without `seq:item` or `seq:place`: `seq.viewer.card.floor`; a provider that throws: its
-  rows dropped, said once, the card from the others.
-- **EC-263** an export past `export.titles.max`: names only after it, said once.
-- **EC-264** a matrix with `member_labels: left` on a ring, or more states than room: not drawn, or thinned.
-- Related: EC-141 (one hover owner), EC-143 (a re-hit formats nothing), EC-156 (the cursor's menu lists the card's
-  links), EC-166 (the bridge, now built), EC-200 (names through forms).
+  rows dropped, said once.
+- Related: EC-141, EC-143 (a re-hit parses nothing), EC-156, EC-166 (the bridge, now built), EC-169 to EC-180 (the
+  store's states), EC-200.
 
 ## Tests
 
-- Quick, core: the `tooltip` kind's spellings and issues (EC-250 to EC-252); each `on` type and each location column
-  kind against a brute-force overlap (a property); an MVS annotation file's rows giving MVS's runtime text
-  (`FormatTemplate`); projection gene to protein; the interval index moved with its tests; `tooltipsAt` headless.
-- Quick, viewer: the built-in providers giving today's cards unchanged (the existing card tests as is); a host's
-  provider inserted `before`, a built-in filtered and replaced; the floor issue; a throwing provider; the live region's
-  sentence equal to the rows' words; Markdown rows, links by kind and policy (EC-256), the enterable card and its
-  grace (fake timers, jsdom); the cursor's menu links.
-- Medium: the HC sweep on the default spec with a tooltip on `(all)` of each system: every card holds its row; the
-  SVG titles over every story (one row per item, none on bins); the matrix labels (canvas and SVG).
-- Perf and heavy: the hover step 0 B warm; the lookup's scaling ratio; the export with titles.
-- A story: p53 with a curator's notes table (Markdown, a link to a ref), hotspots from a query, an MVS annotation file
-  as a tooltip source; the Genomes dataset with a BED's names as notes by region; a host's provider.
+- Quick, core: the `tooltip` kind, its schemas and issues (EC-250 to EC-252); by data and by range against a
+  brute-force overlap over drawn marks (a property); MVS annotation files under each schema giving MVS's runtime text
+  (`FormatTemplate`); projection gene to protein; a table's tiles wanted with a decorated layer's window, kept and
+  evicted with it; `tooltipsAt` headless.
+- Quick, viewer: the built-in providers giving today's cards and sentences unchanged (the existing tests as is); a
+  host's entry by `order`, one filtered, one replaced; the floor issue; a throwing provider; `whole` ignored
+  (EC-260); escaped values; cleaning after parsing; in-view links only (EC-256); the cap and `moreCount`; the
+  enterable card (fake timers, jsdom); the cursor's menu links.
+- Medium: the HC sweep on the default spec with a tooltip by range on each system: every card on a mark holds its
+  row, none on an empty band; the SVG with `card` titles over every story (items only).
+- Perf and heavy: the hover step at 0 B warm; a cold and a warm card show recorded; the lookup's scaling; the export.
+- A story: p53 with a curator's inline notes (Markdown, a link to a ref), hotspots by data, an MVS annotation file;
+  the Genomes dataset with a BED's names as notes by region; a host's provider.
 
 ## Consequences
 
-- **Language 0.9.0**: the `tooltip` kind (parents `views`, `view`; `on`, `target`, `rows`, `source`, `field`, `text`,
-  `label`, `format`), a view's `export.titles`, the matrix layer's `member_labels`; the core `_spec` Versions list (or
-  the next minor after any lane that lands first).
-- The viewer: the `card-provider` registry kind and `BuiltInCardProviders` (describe.ts's sections moved, words
-  unchanged); `HoverCardRow.rich` and `.tooltip`; the hover card port's `openLink`; config `hover.tooltipLines` (3);
-  extensibility.md's and extension-openings.md's lists gain card providers.
-- The core: `tooltipsAt`, the shared interval index, `renderSvg`'s `titles` option, `SpecBounds.tooltipText` and
-  `tooltipRows`.
-- MolViewSpec converts both ways: `tooltip { text }` is `on` its selection, `text` escaped; `tooltip_from_uri` is a
-  tooltip with its `source`, `field` and `text`; `field_remapping` is the source's `fields`.
+- **Language 0.9.0**: the `tooltip` kind (parents `views`, `view`; `on`, `target`, `rows`, `source`, `schema`,
+  `block`, `category`, `field`, `text`, `label`, `format`) and a view's `export.titles`; with the separate change, the
+  matrix layer's `member_labels` (or the next minor after any lane that lands first).
+- The viewer: the `card-provider` registry kind and `BuiltInCardProviders` (`describe.ts`'s sections moved, rows and
+  words unchanged); `HoverCardRow.rich`; `HoverCard.moreCount`; config `hover.tooltipLines` (3).
+- The core: `tooltipsAt`, the shared interval index, a tooltip table's wants beside its decorated layers',
+  `renderSvg`'s `titles`, `SpecBounds.tooltipText` and `tooltipRows`.
+- Designs to update with the change: [security.md](security.md) (tooltips' Markdown, cleaning after parse, links
+  through commands only), [extensibility.md](extensibility.md) and [extension-openings.md](extension-openings.md)
+  (card providers opened), [data-store.md](data-store.md) (wants for tables that decorate).
+- MolViewSpec converts both ways, as mapped above.
 
 ## Open questions for the author
 
 1. An item's own `tooltip` field with no `tooltip` node: shown by default, or only when a node names it (MVS's rule,
    recommended)?
-2. The SVG export's titles by default: the item's name (recommended: a figure's size and its reader's hover stay as
-   today unless asked) or the composed card rows?
-3. A tooltip's own table (`rows`, `source` on the node, MVS's shape, recommended) or only `on` a table under `data`
-   (one place for data, MVS converting to two nodes)?
-4. Order of providers: the listing's with `before` (recommended), or Mol\*'s numeric priorities, so Mol\*'s and Seq\*'s
-   providers read alike?
-5. Should a note by range outline its range while it answers (a second, quieter emphasis), or stay words only
-   (recommended: one hover, one outline)?
+2. The SVG export's titles by default: item names (recommended: a figure's size as today unless asked) or the
+   composed card rows?
+3. External links in a card (`https:` to a database entry): none in version 1 (recommended: security.md's "links act
+   only through commands"), or allowed under a navigation policy of their own (schemes and hosts, opened by the host)?
+4. Values in templates: escaped (recommended: a value is data, `A*02:01` stays text), or read as Markdown so a notes
+   file's own emphasis and links render?
