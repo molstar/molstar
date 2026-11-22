@@ -1912,11 +1912,10 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
 ### Unread params
 
 - **Said, never dropped in silence** (`resolve/unread.ts`): a param the language declares and this version reads nowhere
-  is `seq.resolve.param.unread` (info), one a node, naming the lane that reads it: `map.source` (FR), `grid.source` (RG:
-  its region tiles are not drawn yet), data over an assembly (GC2: its rows by sequence not read yet),
-  `section.member_order` and `member_order_y` (LA), a `bridge` (LA), `assembly.names` (GF: the printed names stay the
-  assembly's). The lane that reads one drops it from `Unread`. Why: a reader shown a spec drawn without what it says
-  should be told why.
+  is `seq.resolve.param.unread` (info), one a node, naming the lane that reads it: `map.source` (FR), data over an
+  assembly (GC2: its rows by sequence not read yet), `section.member_order` and `member_order_y` (LA), a `bridge` (LA),
+  `assembly.names` (GF: the printed names stay the assembly's). The lane that reads one drops it from `Unread`. Why: a
+  reader shown a spec drawn without what it says should be told why.
 
 ### Maps
 
@@ -3658,6 +3657,13 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   not settled builds at most `grid.buildBudget` samples, drawing a held coarser tile meanwhile (else the first coarser
   within the budget, else the coarsest); a settled frame builds the rest. An axis reversed flips its side of the plot
   (EC-145).
+- **By region** (`render/grid-region.ts`): a `grid` node with a `source` is read through the store in 2D tiles at
+  `gridLevel`'s level (`grid.binPx`), a ring of `grid.marginTiles` round the view; each store tile one image tile (a
+  sparse tile's `fill` under its cells, a symmetric grid's mirror tile drawn transposed from the served one), in the
+  image LRU by layer, the entry's region and version, the mirror, the colors' version and the triangle. A tile not
+  loaded draws the finest held coarser level under it; with none held, a pending rect (`seq-pending`), never empty
+  (EC-169). The color domain is the range of the tiles drawn (a closed domain is kept). A cell hit carries `bin`, the
+  level read.
 - **Color**: the value's field theme (`value`), its domain the grid's range; a missing value (NaN) transparent;
   `triangle` keeps `upper` (y before x, above the diagonal) or `lower` (y after x).
 - **Hit**: any point on the plot is the cell under it (`target: 'cell'`, `position` on x, `ySystem`, `yPosition`), drawn

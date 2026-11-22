@@ -25,6 +25,8 @@ import { channelForms, channelLegends, Extents, type LayerChannels, PlainDatum }
 import type { RenderConfig } from './config.js';
 import { grown, type ImageData, NoColor, type PassName, type PassWriter } from './draw-lists.js';
 import { drawEmphasis, Ink, R, rect } from './grid-emphasis.js';
+import { type GridRegion, layoutRegionGrid } from './grid-region.js';
+import { layerSource } from './layer-data.js';
 import { ImageCache, ImageTile } from './images.js';
 import { RenderIssues } from './issues.js';
 import { type Box, type Emphasis, type Hit, type LayerType, type LayoutContext, sectionId } from './layer-type.js';
@@ -56,6 +58,8 @@ export interface GridPrep {
   readonly hi: number;
   /** The shared reduction over the values, built once (`rows` the x positions, `columns` the y). */
   readonly pyramid?: Pyramid;
+  /** Read by region (a source's grid): where (`grid-region.ts`). */
+  readonly region?: GridRegion;
 }
 
 type ScratchHit = { -readonly [K in keyof Hit]: Hit[K] };
@@ -93,6 +97,10 @@ export class GridLay {
   cache: ImageCache | undefined;
   /** The level the tiles were drawn at (−1: rects). */
   level = -1;
+  /** A region grid: the level read (a cell's bin, `Hit.bin`), and its pending rects (x, y, w, h each). */
+  region = false;
+  binLevel = 1;
+  readonly pend: number[] = [];
   readonly scratch: ScratchHit = { layer: '', section: '', system: '' };
 }
 
@@ -127,9 +135,13 @@ function prepare(layer: ResolvedLayer, model: StaticModel): GridPrep {
     pyramid = new Pyramid({ factor: 2, pairing: 'square', reducer });
     pyramid.setValues(grid.nx, grid.ny, kept);
   }
+  // a source's grid, read by region on its two systems (`grid-region.ts`)
+  const src = !grid && a?.shape === 'grid' && a.access?.kind === 'source' ? layerSource(model, layer) : undefined;
+  const yName = a?.ySystem ? model.systems.get(a.ySystem)?.name : undefined;
   return {
     owner,
     ...(grid ? { grid } : {}),
+    ...(src ? { region: { src, yName: yName ?? src.system } } : {}),
     xSystem: a?.target ?? '',
     ySystem: a?.ySystem ?? '',
     triangle,
@@ -154,7 +166,7 @@ export const GridType: LayerType<GridPrep, GridLay> = {
   axes: 2,
   prepare,
 
-  layout(prep, ctx: LayoutContext, _data, _overlay, prev?: GridLay): GridLay {
+  layout(prep, ctx: LayoutContext, data, _overlay, prev?: GridLay): GridLay {
     const { axis, box, config, tokens } = ctx;
     const lay = prev ?? new GridLay();
     lay.key = ctx.key;
@@ -174,6 +186,9 @@ export const GridType: LayerType<GridPrep, GridLay> = {
     lay.ib.length = 0;
     lay.level = -1;
     lay.grid = undefined;
+    lay.region = prep.region !== undefined;
+    lay.binLevel = 1;
+    lay.pend.length = 0;
     if (ctx.images) lay.cache = ctx.images;
     else if (!lay.cache) {
       let own = OwnImages.get(config);
@@ -185,7 +200,7 @@ export const GridType: LayerType<GridPrep, GridLay> = {
       say(ctx, 'seq.render.layer.axes', 'A grid layer draws in a grid section only');
       return lay;
     }
-    if (!prep.grid) return lay;
+    if (!prep.grid && !prep.region) return lay;
     if (prep.xSystem !== axis.system || prep.ySystem !== ay.system) {
       // a grid over blocks is a strip a pair of blocks: a grid draws on the pairs of its own systems only, silently
       if (!ctx.section.blocks)
@@ -194,6 +209,16 @@ export const GridType: LayerType<GridPrep, GridLay> = {
       return lay;
     }
     lay.grid = prep.grid;
+    if (prep.region) {
+      const color = prep.channels.get('color' as ChannelName, DefaultColor, ctx, ValueEnv);
+      if (color !== lay.color) {
+        lay.color = color;
+        lay.colorVersion++;
+      }
+      lay.extents.reset([color]);
+      layoutRegionGrid(lay, prep, prep.region, ctx, data, axis, ay);
+      return lay;
+    }
     const color = prep.channels.get('color' as ChannelName, DefaultColor, ctx, ValueEnv);
     if (color !== lay.color) {
       lay.color = color;
@@ -231,7 +256,7 @@ export const GridType: LayerType<GridPrep, GridLay> = {
   hit(lay, at) {
     const a = lay.axis;
     const ay = lay.axisY;
-    if (!a || !ay || !lay.grid) return undefined;
+    if (!a || !ay || (!lay.grid && !lay.region)) return undefined;
     const i = a.positionOf(at, 0);
     const j = ay.positionOf(at, 1);
     // the cell under the point, drawn or not (a triangle's other half, a missing value): a plot's every point is a cell
@@ -244,6 +269,7 @@ export const GridType: LayerType<GridPrep, GridLay> = {
     h.ySystem = lay.ySystem;
     h.yPosition = j;
     h.target = 'cell';
+    h.bin = lay.binLevel > 1 ? lay.binLevel : undefined;
     return h;
   },
 
@@ -455,6 +481,12 @@ function placeTile(
 
 function drawData(lay: GridLay, out: PassWriter) {
   const g = out.args;
+  // a region grid's tiles not loaded, none held under them: the pending fill (loading, never empty)
+  if (lay.pend.length) {
+    const pending = lay.tokens!.colors['seq-pending'];
+    for (let k = 0; k + 3 < lay.pend.length; k += 4)
+      out.fill(lay.pend[k], lay.pend[k + 1], lay.pend[k + 2], lay.pend[k + 3], pending);
+  }
   for (let k = 0; k < lay.images.length; k++) {
     g[0] = lay.ib[4 * k];
     g[1] = lay.ib[4 * k + 1];
