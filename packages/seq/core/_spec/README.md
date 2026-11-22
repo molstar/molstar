@@ -433,10 +433,10 @@ words attach to which data, read the same by every reader; the application compo
   its own marks); by range, `target` and a table, inline `rows` or a `source` under `data` (each row's text on every
   mark its location covers, in any layer of the view). An address `on` is a one-row table (MVS's `tooltip { text }` on a
   component). Both or neither is `seq.lang.tooltip.content`.
-- **`schema`**: how a table's rows locate: `ranges` (absent: `start`, `end`, a `target` column naming the sequence over an assembly), `address` (an
-  `address` column, forms relative to `target`), or MVS's schemas (`whole_structure` … `all_atomic`,
-  `MvsSchemaColumns`), each read as MVS reads it, a row's other columns ignored. A table none of whose columns its
-  schema locates by is `seq.lang.tooltip.schema`. Why said: a guess reads a chain file as residues.
+- **`schema`**: how a table's rows locate: `ranges` (absent: `start`, `end`, a `target` column naming the sequence over
+  an assembly), `address` (an `address` column, forms relative to `target`), or MVS's schemas (`whole_structure` …
+  `all_atomic`, `MvsSchemaColumns`), each read as MVS reads it, a row's other columns ignored. A table none of whose
+  columns its schema locates by is `seq.lang.tooltip.schema`. Why said: a guess reads a chain file as residues.
 - **`field`, `text`, `label`, `format`**: `text` is an f-string (`@molstar/core/util/string-format`, MVS's
   `text_format`; `"{}"` when absent), `{}` reading `field` (`tooltip` when absent); a row with a field it names
   undefined or empty gives no text; a field the table lacks (inline rows, or a data node's inline items) is
@@ -1320,8 +1320,10 @@ by fuzz tests (mutated text read without a throw).
 and the tooltips' tables. `intervalIndex`: the short intervals by start with the longest of them, the long ones (past 64
 times the median, at least 4,096) apart, so one chromosome-long feature never makes every read scan from the sequence's
 start; `eachMeeting` calls back on each interval meeting a region; `meetingInto` writes the first of them into a buffer
-and returns how many meet (no closure, no allocation: a hover's lookup, O(log n + k)). A zero-length interval meets the
-position it is at.
+and returns how many meet (no closure, no allocation: a hover's lookup, O(log n + k)), its search through a directory of
+every 64th start first (`blocks`: a small array a search keeps in cache, then one block of starts). A zero-length
+interval meets the position it is at. Bound (heavy): a hover's path of lookups over 1,000,000 ranges within 1.5× of
+10,000; random lookups over the large table read about 1.7×, the memory's, not the search's.
 
 ### Genome runtimes' internals
 

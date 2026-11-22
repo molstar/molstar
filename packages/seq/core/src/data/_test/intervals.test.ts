@@ -8,6 +8,7 @@
 // (the count past it), equal a brute-force overlap over random intervals, long ones among them; a zero-length interval
 // meets the position it is at.
 
+import { itWithin, ratioWithin } from '@molstar/test-harness/timing';
 import { describe, expect, it } from 'vitest';
 import { eachMeeting, intervalIndex, meetingInto } from '../intervals.js';
 
@@ -39,6 +40,28 @@ describe('the interval index', () => {
       expect(count).toBe(brute.length);
       for (let k = 0; k < Math.min(count, buffer.length); k++) expect(brute).toContain(buffer[k]);
     }
+  });
+
+  // a tooltip's lookup under a hover: O(log n + k), so a million-range table answers as a ten-thousand one does
+  itWithin('the lookup over 1,000,000 ranges within 1.5× of 10,000 (a hover’s cap of matches)', (within) => {
+    const table = (n: number) => {
+      const s = Int32Array.from({ length: n }, (_, i) => i * 4);
+      const e = Int32Array.from(s, (x) => x + 3);
+      return { s, e, ix: intervalIndex(s, e) };
+    };
+    const small = table(10_000);
+    const large = table(1_000_000);
+    const out = new Int32Array(9);
+    const queries = (t: typeof small, n: number) => () => {
+      let hits = 0;
+      for (let q = 0; q < 10_000; q++) {
+        // a hover's path: positions next to each other, from the middle of the table on
+        const at = (n >> 1) * 4 + q;
+        hits += meetingInto(t.ix, t.s, t.e, at, at + 1, out);
+      }
+      return hits;
+    };
+    ratioWithin(within, 1.5, queries(small, 10_000), queries(large, 1_000_000));
   });
 
   it('a zero-length interval meets the position it is at', () => {

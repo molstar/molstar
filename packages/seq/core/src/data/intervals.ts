@@ -21,7 +21,12 @@ export interface IntervalIndex {
   readonly maxShort: number;
   /** The long intervals' numbers. */
   readonly long: Int32Array;
+  /** Every `Block`th start (`starts[k * Block]`): a search reads this small array first, then one block of starts. */
+  readonly blocks: Int32Array;
 }
+
+/** The starts a block of the index's directory spans (`IntervalIndex.blocks`). */
+const Block = 64;
 
 /** A span past which an interval is long: 64 times the median, at least 4,096 positions. */
 function longSpan(s: ArrayLike<number>, e: ArrayLike<number>): number {
@@ -43,7 +48,9 @@ export function intervalIndex(s: ArrayLike<number>, e: ArrayLike<number>): Inter
     }
   }
   const order = Int32Array.from(short).sort((a, b) => s[a] - s[b] || a - b);
-  return { order, starts: Int32Array.from(order, (i) => s[i]), maxShort, long: Int32Array.from(long) };
+  const starts = Int32Array.from(order, (i) => s[i]);
+  const blocks = Int32Array.from({ length: Math.ceil(starts.length / Block) }, (_, k) => starts[k * Block]);
+  return { order, starts, maxShort, long: Int32Array.from(long), blocks };
 }
 
 /** Calls `fn` for each interval meeting `[start, end)` (a short one in order of start, then the long ones). */
@@ -79,11 +86,19 @@ export function meetingInto(
   end: number,
   out: Int32Array,
 ): number {
-  const { order, starts } = ix;
+  const { order, starts, blocks } = ix;
   let n = 0;
-  let lo = 0;
-  let hi = starts.length;
   const v = start - ix.maxShort;
+  // the block holding the first start at least `v` (the small array, cached), then within it
+  let lo = 0;
+  let hi = blocks.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (blocks[mid] < v) lo = mid + 1;
+    else hi = mid;
+  }
+  hi = Math.min(starts.length, lo * Block);
+  lo = Math.max(0, (lo - 1) * Block);
   while (lo < hi) {
     const mid = (lo + hi) >> 1;
     if (starts[mid] < v) lo = mid + 1;
