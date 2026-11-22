@@ -684,14 +684,14 @@ A pending source, then settled:
 - **EC-125** export never changes the live viewport: Export.
 - **EC-108**, **EC-96**: rings and text, above.
 - **EC-137** a size channel shrinks a mark, never its lane: unchanged under scroll.
-- **EC-new-1** a tile adds lanes while the band is scrolled: lanes appended below, `bandTop` kept, the rail rescales;
+- **EC-245** a tile adds lanes while the band is scrolled: lanes appended below, `bandTop` kept, the rail rescales;
   the item under the pointer does not move.
-- **EC-new-2** a filter (`layer.filter`) leaves fewer lanes: the height shrinks (data identity changed), `bandTop`
+- **EC-246** a filter (`layer.filter`) leaves fewer lanes: the height shrinks (data identity changed), `bandTop`
   clamped to the new content.
-- **EC-new-3** a linked hover or a selection on an item in a lane scrolled out: a tick on the slim rail at its lane
+- **EC-247** a linked hover or a selection on an item in a lane scrolled out: a tick on the slim rail at its lane
   (as the navigator's marks); no scroll on a hover, a scroll on focus.
-- **EC-new-4** two tracks of one kind, one overflowing: one height, one rail; their lanes never scroll together.
-- **EC-new-5** a track's `height` smaller than one lane: one lane drawn, the rest scrolled (never a band under a lane).
+- **EC-248** two tracks of one kind, one overflowing: one height, one rail; their lanes never scroll together.
+- **EC-249** a track's `height` smaller than one lane: one lane drawn, the rest scrolled (never a band under a lane).
 
 #### Configuration
 
