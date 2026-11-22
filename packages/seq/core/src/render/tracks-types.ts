@@ -52,8 +52,6 @@ export interface TrackLayout {
   readonly labelWidth: number;
   readonly labelY: number;
   readonly layers: readonly LayerLayout[];
-  /** Set when it has no items (`track.empty`): its one-line row, with a note (`note`) or without (`collapse`). */
-  readonly empty?: 'note' | 'collapse' | undefined;
   /**
    * Its header's line in the label column (_spec/README.md "Render", Track headers): its slots, its states (the "n
    * filtered" chip among them, `seq:filtered`), the "⋯"; in a layout that draws a label column of track headers.
@@ -76,6 +74,11 @@ export interface SectionLayout {
   readonly height: number;
   /** Its tracks as bands: on the page in tracks; in text, those of its first line. */
   readonly tracks: readonly TrackLayout[];
+  /**
+   * Each track with no items (`track.empty`): its one-line row, with a note (`note`) or without (`collapse`); undefined
+   * for any other. The sizing's kept list (a layout makes none).
+   */
+  readonly empties: readonly ('note' | 'collapse' | undefined)[];
   /** Its header line above its first track (`section.header`), when drawn: its hidden tracks' chip, its slots. */
   readonly header?: SectionHeaderLine;
   /** The breaks in view, `[x, hiddenStart, hiddenEnd, …]` (x unsnapped): a hairline each across the band. */

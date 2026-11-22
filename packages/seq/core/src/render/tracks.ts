@@ -767,7 +767,6 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         // centred on its well (its padding with it), not on its data
         labelY: head ? head.labelY : well.y + well.height / 2 + labelSize * 0.35,
         layers,
-        empty: trackEmpties[j],
         ...(head ? { header: head.header } : {}),
       });
     }
@@ -889,6 +888,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       y: sectionTop,
       height: y - sectionTop,
       tracks,
+      empties: trackEmpties,
       ...(sectionHeader ? { header: sectionHeader } : {}),
       breaks: axis && band ? (stripBreaks[0] ?? NoBreaks) : NoBreaks,
       ...(mark ? { mark } : {}),

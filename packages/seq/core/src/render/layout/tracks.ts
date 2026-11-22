@@ -169,7 +169,7 @@ export const TracksLayout: SectionLayoutType<StripPlacement> = {
     const dy = strip > 0 && p instanceof BlockPlacement ? p.strips.bandY[strip * p.strips.bands + band] - t.box.y : 0;
     if (pass === 'labels') {
       drawLabel(out, t, s.tokens, s.config, dy);
-      if (t.empty === 'note') drawEmptyNote(out, t, s.tokens, s.config, dy);
+      if (s.empties[band] === 'note') drawEmptyNote(out, t, s.tokens, s.config, dy);
       if (band === 0 && s.mark && strip <= 0) drawMark(out, s, t, s.tokens, s.config);
     }
     // its header's states and, when they show, its actions (in a stack's first row)

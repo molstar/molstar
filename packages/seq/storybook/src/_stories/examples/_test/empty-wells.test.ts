@@ -43,9 +43,9 @@ function blankWells(v: SeqViewer, id: string): string[] {
   const row = v.frame!.layout.config.track.emptyPx;
   for (const s of v.frame!.layout.sections) {
     if (s.layout.name !== 'tracks') continue;
-    for (const t of s.tracks) {
+    for (const [j, t] of s.tracks.entries()) {
       // a track collapsed to its note is no well, but a story that draws one means it (`ExpectEmpty`): a fixture gap
-      if (t.empty) {
+      if (s.empties[j]) {
         out.push(`${id}:${t.track.address}`);
         continue;
       }

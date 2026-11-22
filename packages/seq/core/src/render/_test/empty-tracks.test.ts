@@ -57,7 +57,7 @@ describe('a track with no items is one line, not a blank well', () => {
     expect(h[1]).toBe(DefaultRenderConfig.track.emptyPx);
     expect(h[1]).toBeLessThan(lanesHeight(1, DefaultRenderConfig));
     expect(h[0]).toBe(lanesHeight(1, DefaultRenderConfig));
-    expect(f.layout.sections[0].tracks.map((t) => t.empty)).toEqual([undefined, 'note', undefined]);
+    expect(f.layout.sections[0].empties).toEqual([undefined, 'note', undefined]);
     expect(recordDrawLists(f.lists)).toContain('text "no items"');
   });
 
@@ -73,7 +73,7 @@ describe('a track with no items is one line, not a blank well', () => {
   it('an explicit `height` and no items is empty too: the note row, unless `keep`', async () => {
     const own = await heights(spec(60));
     expect(own.h[1]).toBe(DefaultRenderConfig.track.emptyPx);
-    expect(own.f.layout.sections[0].tracks[1].empty).toBe('note');
+    expect(own.f.layout.sections[0].empties[1]).toBe('note');
     expect((await heights(spec(60), { track: { empty: 'keep' } })).h[1]).toBe(60);
   });
 
@@ -90,7 +90,7 @@ describe('a track with no items is one line, not a blank well', () => {
     });
     const s = await settle(b.build(), [GffRuntime]);
     const pending = await s.frame({ size: Size, settled: false });
-    expect(pending.layout.sections[0].tracks[0].empty).toBeUndefined();
+    expect(pending.layout.sections[0].empties[0]).toBeUndefined();
     expect(pending.layout.sections[0].tracks[0].box.height).toBe(lanesHeight(1, DefaultRenderConfig));
   });
 });
@@ -151,11 +151,11 @@ describe('a source track settled with no items is empty, not a loading lane', ()
   it('pending keeps the placeholder lane (EC-169); settled with no item it is the note row', async () => {
     const s = await settle(none(), [GffRuntime]);
     const pending = await s.frame({ size: Size, settled: false });
-    expect(pending.layout.sections[0].tracks[0].empty).toBeUndefined();
+    expect(pending.layout.sections[0].empties[0]).toBeUndefined();
     expect(pending.layout.sections[0].tracks[0].box.height).toBe(lanesHeight(1, DefaultRenderConfig));
     const f = await s.frame({ size: Size, settled: true });
     const t = f.layout.sections[0].tracks[0];
-    expect(t.empty).toBe('note');
+    expect(f.layout.sections[0].empties[0]).toBe('note');
     expect(t.box.height).toBe(DefaultRenderConfig.track.emptyPx);
   });
 
@@ -167,7 +167,7 @@ describe('a source track settled with no items is empty, not a loading lane', ()
       [GffRuntime],
     );
     const f = await s.frame({ size: Size, settled: true });
-    expect(f.layout.sections[0].tracks[0].empty).toBeUndefined();
+    expect(f.layout.sections[0].empties[0]).toBeUndefined();
   });
 });
 
