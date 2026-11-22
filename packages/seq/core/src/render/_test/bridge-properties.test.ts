@@ -23,7 +23,7 @@ const Size = { width: 900, height: 600 };
 async function frame(o: BridgeSpecOptions, config = {}, input: Record<string, unknown> = {}) {
   const s = await settle(bridgeSpec(o), [], config);
   const f = await s.renderer.frame({ size: Size, settled: true, ...input });
-  return { f, lay: f.layout.bridges![0].lays[0].lay as RibbonsLay };
+  return { f, lay: f.layout.bridges!.list[0].lays[0].lay as RibbonsLay };
 }
 
 /** The page x of position `p` on side `i`'s block `b` (a row of blocks, as laid). */
@@ -158,7 +158,7 @@ describe('the closed-form hit', () => {
       };
       const viewports = round > 2 ? { '/views/v/bottom': { start: 50, end: 200 } } : {};
       const { f, lay } = await frame(o, { pairs: { hitPx: 0 } }, { viewports });
-      const box = f.layout.bridges![0].box;
+      const box = f.layout.bridges!.list[0].box;
       let checked = 0;
       for (let s = 0; s < 400; s++) {
         const x = box.x + rng.float() * box.width;

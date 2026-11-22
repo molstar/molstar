@@ -29,7 +29,7 @@ describe('a bridge draws and hovers with nothing allocated once warm', () => {
     const d = quickCase(task, 'bridge draw', () => drawView(f.layout, f.lists), {});
     console.info(`bridge draw: ${d.r.bytesPerStep.toFixed(0)} bytes a frame (${d.r.note})`);
     expect(d.r.bytesPerStep, d.r.note).toBeLessThanOrEqual(inject('perfThreshold'));
-    const lay = f.layout.bridges![0].lays[0].lay as RibbonsLay;
+    const lay = f.layout.bridges!.list[0].lays[0].lay as RibbonsLay;
     const points: [number, number][] = [];
     for (let i = 0; i < lay.n; i += 97) {
       const o = 6 * i;

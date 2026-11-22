@@ -19,8 +19,15 @@ interface Part {
 
 const Parts = new Map<string, Part[]>();
 
+/**
+ * What the model reads (`StaticModel.loading`): the walker once a part is registered, else nothing (a reader that
+ * registers none pays for no walk).
+ */
+export const ViewKinds: { loading?: (spec: Node, also?: Promise<unknown>) => Promise<unknown> | undefined } = {};
+
 /** A part to load when a spec's view holds a node of `kind` (render's bridge chunk: `bridge`). */
 export function withViewKind(kind: string, load: () => Promise<unknown>): void {
+  ViewKinds.loading = viewKindsLoading;
   let l = Parts.get(kind);
   if (!l) Parts.set(kind, (l = []));
   l.push({ load, landed: false });
@@ -30,8 +37,7 @@ export function withViewKind(kind: string, load: () => Promise<unknown>): void {
  * The loading of the parts a spec's views need and that have not landed, or undefined when none: it never rejects (a
  * failed load is tried again by the next model that needs it).
  */
-export function viewKindsLoading(spec: Node): Promise<void> | undefined {
-  if (!Parts.size) return undefined;
+function viewKindsLoading(spec: Node, also?: Promise<unknown>): Promise<unknown> | undefined {
   let out: Promise<void>[] | undefined;
   for (const views of spec.children ?? []) {
     if (views.kind !== 'views') continue;
@@ -54,5 +60,5 @@ export function viewKindsLoading(spec: Node): Promise<void> | undefined {
         }
       }
   }
-  return out && Promise.all(out).then(() => undefined);
+  return out && Promise.all(also ? [...out, also] : out);
 }

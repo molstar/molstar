@@ -124,6 +124,21 @@ export interface BridgeLayout {
   hit(at: Float64Array): Hit | undefined;
 }
 
+/**
+ * A view's bridges laid out (the bridge chunk's): each one, and what the layout's draw, hit and export ask of them all,
+ * so the eager layout holds one call each.
+ */
+export interface BridgesLayout {
+  readonly list: readonly BridgeLayout[];
+  draw(pass: PassName, out: PassWriter, emphasis: Emphasis | undefined): void;
+  /** The hit at a page point (`at`): undefined off every band, null in a band over no ribbon. */
+  hit(at: Float64Array): Hit | null | undefined;
+  /** The bridge whose band holds a page point (its index in `ResolvedView.bridges`), −1 for none. */
+  at(x: number, y: number): number;
+  /** The export's document with each bridge's group (`data-bridge`, `data-a`, `data-b`, …) after the sections'. */
+  svg(document: string): string;
+}
+
 export interface ViewLayout {
   readonly width: number;
   readonly height: number;
@@ -142,7 +157,7 @@ export interface ViewLayout {
   /** The frame's foot the pinned rails take, px (`pinned`): past the last section, kept free of the fill band. */
   readonly pinnedPx?: number;
   /** Its placed bridges laid out (absent: none, or the bridge chunk not landed yet). */
-  readonly bridges?: readonly BridgeLayout[];
+  readonly bridges?: BridgesLayout | undefined;
 }
 
 export interface LayoutInput {

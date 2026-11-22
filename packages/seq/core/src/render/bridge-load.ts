@@ -9,26 +9,32 @@
 // (`withViewKind`), so a view with a bridge is never drawn without it. Why lazy: a view without a bridge pays nothing.
 
 import { withViewKind } from '@molstar/seqx-core/resolve';
-import type { ResolvedView } from '@molstar/seqx-core/view';
+import { BridgePass, type ResolvedView } from '@molstar/seqx-core/view';
+import { BridgeHooks } from './bridge-hooks.js';
 import type { RenderConfig } from './config.js';
 
-/** The chunk's entry once landed (`layoutBridges`), else empty: the layout reserves the bands and draws no ribbon. */
-export const BridgeChunk: { layout?: typeof import('./bridges.js').layoutBridges } = {};
-
-/**
- * The pairs layer's reads a bridge reuses (`pairs.ts` sets them where a composition has the pairs type): through this
- * record, so the chunk imports none of the pairs layer's modules (a module the entry shares would load with it).
- */
-export const PairsReads: { region?: typeof import('./pairs-region.js').regionPairs } = {};
-
-/** Loads the bridge chunk (once while in flight). */
+/** Loads the bridge chunk and the view's bridge pass. */
 export function loadBridges(): Promise<void> {
-  return import('./bridges.js').then((m) => {
-    BridgeChunk.layout = m.layoutBridges;
-  });
+  return Promise.all([
+    import('./bridges.js').then((m) => {
+      BridgeHooks.layout = m.layoutBridges;
+    }),
+    import('@molstar/seqx-core/view/bridges').then((m) => {
+      BridgePass.resolve = m.resolveBridges;
+    }),
+  ]).then(() => undefined);
 }
 
-withViewKind('bridge', loadBridges);
+/**
+ * Registers bridges with the layout and resolve (the pairs type's module calls it): their room, the pairs layer's region
+ * reader, and the chunks loaded when a spec holds a bridge.
+ */
+export function registerBridges(region: NonNullable<(typeof BridgeHooks)['region']>): void {
+  if (BridgeHooks.rooms) return;
+  BridgeHooks.rooms = bridgeRooms;
+  BridgeHooks.region = region;
+  withViewKind('bridge', loadBridges);
+}
 
 /**
  * Each placed, shown bridge's room by the section below it (_spec/README.md "Render", Bridges): its height and a
@@ -36,7 +42,7 @@ withViewKind('bridge', loadBridges);
  */
 export function bridgeRooms(view: ResolvedView, config: RenderConfig): Map<string, number> {
   const out = new Map<string, number>();
-  const { stack, bridges, sections } = view;
+  const { stack = [], bridges = [], sections } = view;
   for (let i = 0; i + 1 < stack.length; i++) {
     const e = stack[i];
     if (e.kind !== 'bridge' || stack[i + 1].kind !== 'section') continue;

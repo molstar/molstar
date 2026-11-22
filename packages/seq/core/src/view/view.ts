@@ -32,7 +32,6 @@ import {
   projectPoint,
   type StaticModel,
   viaList,
-  withViewKind,
 } from '@molstar/seqx-core/resolve';
 import { viaUnusedIssue } from '@molstar/seqx-core/resolve/maps-via';
 import { wholePieces } from './axis.js';
@@ -406,28 +405,26 @@ export interface ResolvedView {
   readonly links: readonly ViewLink[];
   /** Its navigators in spec order, hidden ones included. */
   readonly navigators: readonly ResolvedNavigator[];
-  /** Its bridges in spec order (_spec/README.md "Resolved view", Bridges), hidden ones and those not placed included. */
-  readonly bridges: readonly ResolvedBridge[];
-  /** Its sections and bridges in the order written: what the layout stacks. */
-  readonly stack: readonly StackEntry[];
+  /**
+   * Its bridges in spec order (_spec/README.md "Resolved view", Bridges), hidden ones and those not placed included;
+   * absent when it has none (or the bridge pass is not composed).
+   */
+  readonly bridges?: readonly ResolvedBridge[];
+  /** Its sections and bridges in the order written (what the layout stacks), beside `bridges`. */
+  readonly stack?: readonly StackEntry[];
   readonly issues: readonly Issue[];
 }
 
 /**
- * The view's bridge pass (`bridges.ts`), loaded the first time a spec holds a bridge: a model waits for it
- * (`withViewKind`, as for render's bridge chunk), and a view resolved before it lands has no bridges (its model is
- * loading). Why lazy: a view without a bridge pays nothing for one (_spec/README.md "Resolved view", Bridges).
+ * The view's bridge pass (`bridges.ts`), set where a composition draws bridges (render's pairs type registers its load,
+ * `withViewKind`): a model of a spec with a bridge waits for it. A view resolved without it has no bridges, its sides
+ * stacked as a reader without bridges draws them (_spec/README.md "Resolved view", Bridges).
+ * @internal
  */
-const BridgePass: { resolve?: typeof import('./bridges.js').resolveBridges } = {};
-withViewKind('bridge', () =>
-  import('./bridges.js').then((m) => {
-    BridgePass.resolve = m.resolveBridges;
-  }),
-);
+export const BridgePass: { resolve?: typeof import('./bridges.js').resolveBridges } = {};
 
 /** No systems: what an unmapped system links to besides itself. */
 const NoSystems: readonly string[] = [];
-const NoBridges: readonly ResolvedBridge[] = [];
 
 const caches = new WeakMap<LayerKinds, WeakMap<StaticModel, Map<string, ResolvedView>>>();
 
@@ -829,22 +826,6 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
       for (const n of c.children ?? [])
         if (n.kind === 'scale' && n.id !== undefined) scales[`/${c.id}/${n.id}`] = n.params ?? {};
   const ex = param(view, 'export');
-  // its bridges and the stack (_spec/README.md "Resolved view", Bridges); none: the empty lists, nothing else read
-  const pass = BridgePass.resolve;
-  const { bridges, stack } = pass
-    ? pass(
-        {
-          view,
-          address,
-          sections,
-          layer: (l, index, at, say) => layerOf(model, kinds, l, index, at, '', say, false, [], true),
-        },
-        (code, message, at) => {
-          report(code, message, at);
-          return issues[issues.length - 1];
-        },
-      )
-    : { bridges: NoBridges, stack: sections.map((_, index) => ({ kind: 'section' as const, index })) };
   return {
     address,
     layout: viewLayout,
@@ -853,8 +834,9 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
     sections,
     links,
     navigators: navigatorsOf(model, view, address, sections, report, layerKinds),
-    bridges,
-    stack,
+    // its bridges and the stack, where the view has a bridge and the pass is composed (_spec/README.md "Resolved
+    // view", Bridges)
+    ...BridgePass.resolve?.({ view, address, sections, model, kinds, layer: layerOf }, issues),
     issues,
   };
 }
@@ -1246,7 +1228,6 @@ function layerOf(
   report: Report,
   template = false,
   via: readonly string[] = [],
-  bridge = false,
 ): ResolvedLayer {
   const type = String(param(l, 'type'));
   const address = l.id === undefined ? undefined : `${track}/${l.id}`;
@@ -1262,9 +1243,7 @@ function layerOf(
     t = t === type && (typeof written === 'string' || ns) ? (written as string | undefined) : types[t]?.fallback;
   }
   const fallbacks = ns && kinds.outdated.has(ns) ? chain.slice(1) : chain;
-  // in a bridge the chain's first `pairs` (_spec/README.md "Resolved view", Bridges): a type that draws along an axis has
-  // nowhere to draw there
-  const drawn = fallbacks.find((t) => types[t] && (!bridge || types[t].shape === 'pairs'));
+  const drawn = fallbacks.find((t) => types[t]);
   const layerType = drawn === undefined ? undefined : types[drawn];
   const params: Record<string, Value> = {};
   for (const [k, v] of Object.entries(l.params ?? {})) if (k !== 'type' && k !== 'data') params[k] = v;
@@ -1279,10 +1258,7 @@ function layerOf(
     params,
     theme,
   };
-  if (bridge && drawn !== type) {
-    const as = drawn ? `drawn as \`${drawn}\`` : 'not drawn';
-    report('seq.view.bridge.layer', `A bridge draws pairs: the \`${type}\` layer is ${as}`, at);
-  } else if (drawn !== type) {
+  if (drawn !== type) {
     // an extension's type is said once a namespace (`build`), a bare one (a newer built-in's) each layer
     if (ns) {
       let layers = kinds.needs.get(ns);
@@ -1299,22 +1275,7 @@ function layerOf(
 
   const value = layerData(model.spec, param(l, 'data'));
   // a segments map read as pairs (_spec/README.md "Resolved view", Bridges): a run a pair, `a` its `from` range
-  const map = typeof value === 'string' ? model.maps.get(exactAddress(value) ?? '') : undefined;
-  if (map && (map.kind !== 'segments' || layerType.shape !== 'pairs')) {
-    report('seq.view.layer.shape', 'A map is drawn by a pairs layer, and only a segments map', at);
-    return { ...base, placed: false };
-  }
-  const data: LayerData | undefined = map
-    ? { kind: 'address', address: map.address, system: map.from, shape: 'pairs' }
-    : dataOf(model, value, drawn!, bridge ? '' : system);
-  // a bridge places each end by the systems its sides show: no path (pairs are never projected)
-  if (bridge && data) {
-    if (data.shape !== 'pairs') {
-      report('seq.view.layer.shape', 'A bridge’s layer draws pairs: its data is a pairs node or a segments map', at);
-      return { ...base, data, placed: false };
-    }
-    return { ...base, data, placed: true };
-  }
+  const data = dataOf(model, value, drawn!, system);
   if (!data) {
     report('seq.view.layer.data', 'The layer’s data names nothing the static model holds', at);
     return { ...base, placed: false };

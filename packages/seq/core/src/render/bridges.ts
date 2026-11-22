@@ -21,18 +21,26 @@ import { issueOf } from '@molstar/core/repr/tree';
 import { BridgePlacement } from './layout/bridge.js';
 import { type BridgeLayoutContext, RibbonsLay, RibbonsType } from './pairs-ribbons.js';
 import type { PairsPrep } from './pairs-lay.js';
-import type { BridgeLayout, LayerLayout, LayoutInput, LayoutState, SectionLayout } from './tracks-types.js';
+import type {
+  BridgeLayout,
+  BridgesLayout,
+  LayerLayout,
+  LayoutInput,
+  LayoutState,
+  SectionLayout,
+} from './tracks-types.js';
+import { escapeXml } from './svg.js';
 
 /** What laying out a view's bridges reads of its layout pass. */
 export interface BridgesInput {
   readonly input: LayoutInput;
   readonly state: LayoutState;
   readonly config: RenderConfig;
-  readonly dpr: number;
   readonly theme: ThemeContext;
-  /** The view's sections laid out, by address. */
-  readonly sections: ReadonlyMap<string, SectionLayout>;
-  want(w: Want): void;
+  /** The view's sections laid out. */
+  readonly sections: readonly SectionLayout[];
+  /** The layout's wants: a bridge's reads join them. */
+  readonly wants: Want[];
   report(i: Issue): void;
 }
 
@@ -49,20 +57,22 @@ interface Kept {
 const KeptOf = new WeakMap<LayoutState, Map<string, Kept>>();
 
 /** The view's placed bridges laid out (_spec/README.md "Render", Bridges), in spec order; hidden ones left out. */
-export function layoutBridges(x: BridgesInput): BridgeLayout[] {
+export function layoutBridges(x: BridgesInput): BridgesLayout | undefined {
   const { input, state } = x;
   const view = input.view;
   let kept = KeptOf.get(state);
   if (!kept) KeptOf.set(state, (kept = new Map()));
   const used = new Set<string>();
-  const out: BridgeLayout[] = [];
-  for (let i = 0; i < view.bridges.length; i++) {
-    const br = view.bridges[i];
+  const bySection = new Map(x.sections.map((s) => [s.section.address, s]));
+  const out: Bridge[] = [];
+  const all = view.bridges ?? [];
+  for (let i = 0; i < all.length; i++) {
+    const br = all[i];
     if (!br.placed || br.hidden) continue;
-    const a = x.sections.get(br.a);
-    const b = x.sections.get(br.b);
+    const a = bySection.get(br.a);
+    const b = bySection.get(br.b);
     if (!a || !b) continue;
-    const placement = new BridgePlacement().place(a, b, br.above === 'a', x.dpr);
+    const placement = new BridgePlacement().place(a, b, br.above === 'a', x.input.dpr ?? 1);
     const id = br.address.slice(br.address.lastIndexOf('/') + 1);
     const lays: LayerLayout[] = [];
     for (const layer of br.layers) {
@@ -82,7 +92,41 @@ export function layoutBridges(x: BridgesInput): BridgeLayout[] {
     out.push(new Bridge(i, br, id, placement, lays));
   }
   for (const k of [...kept.keys()]) if (!used.has(k)) kept.delete(k);
-  return out;
+  return out.length ? new Bridges(out) : undefined;
+}
+
+/** A view's bridges: their draw, hit and export groups (`BridgesLayout`). */
+class Bridges implements BridgesLayout {
+  constructor(readonly list: readonly Bridge[]) {}
+  draw(pass: PassName, out: PassWriter, emphasis: Emphasis | undefined): void {
+    for (let i = 0; i < this.list.length; i++) this.list[i].draw(pass, out, emphasis);
+  }
+  hit(at: Float64Array): Hit | null | undefined {
+    const i = this.band(at[0], at[1]);
+    return i < 0 ? undefined : (this.list[i].hit(at) ?? null);
+  }
+  at(x: number, y: number): number {
+    const i = this.band(x, y);
+    return i < 0 ? -1 : this.list[i].index;
+  }
+  private band(x: number, y: number): number {
+    for (let i = 0; i < this.list.length; i++) {
+      const b = this.list[i].box;
+      if (y >= b.y && y < b.y + b.height && x >= b.x && x < b.x + b.width) return i;
+    }
+    return -1;
+  }
+  svg(document: string): string {
+    const groups = this.list
+      .map(
+        (b) =>
+          `<g data-bridge="${escapeXml(b.address)}" data-a="${escapeXml(b.a)}" data-b="${escapeXml(b.b)}" data-y="${b.box.y}" data-height="${b.box.height}" data-count="${b.count}"/>`,
+      )
+      .join('');
+    // before the passes' groups, after the sections'
+    const at = document.indexOf('<g data-pass=');
+    return at < 0 ? document : document.slice(0, at) + groups + document.slice(at);
+  }
 }
 
 /** One layer of a bridge: laid out again when its sides' layouts or its prep changed, else drawn again as kept. */
@@ -114,13 +158,13 @@ function layBridgeLayer(
     axis: a.axis!,
     section: placement.a.section,
     key,
-    dpr: x.dpr,
+    dpr: x.input.dpr ?? 1,
     config: x.config,
     tokens: input.tokens,
     text: input.text,
     settled: input.settled ?? false,
     theme: x.theme,
-    want: x.want,
+    want: (w) => x.wants.push(w),
     report: (i) => {
       said.push(i);
       x.report(i);

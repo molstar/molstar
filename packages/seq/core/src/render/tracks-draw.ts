@@ -210,8 +210,7 @@ function drawTracks(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | un
     if (clipped) out.unclip();
   }
   // the bridges' ribbons, on the page between their sides (_spec/README.md "Render", Bridges)
-  const bridges = layout.bridges;
-  if (bridges) for (let bi = 0; bi < bridges.length; bi++) bridges[bi].draw(pass, out, emphasis);
+  layout.bridges?.draw(pass, out, emphasis);
 }
 
 /** Whether a section has a rows layer (kept by the layout: its layers do not change within it). */

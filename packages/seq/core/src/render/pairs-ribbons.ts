@@ -15,7 +15,7 @@
 // strip along each edge. The hit is closed form: at the point's height every ribbon's two sides are one multiply-add
 // each, scanned last drawn first. Part of the bridge chunk.
 
-import { issueOf } from '@molstar/core/repr/tree';
+import { defineIssues, issueOf } from '@molstar/core/repr/tree';
 import { theme as themeForm } from '@molstar/seqx-core/lang';
 import { location } from '@molstar/seqx-core/query';
 import type { PairsData } from '@molstar/seqx-core/resolve';
@@ -27,8 +27,17 @@ import { RenderIssues } from './issues.js';
 import type { Box, Emphasis, Hit, LayerType, LayoutContext, StoreReader } from './layer-type.js';
 import type { BridgePlacement, BridgeSide } from './layout/bridge.js';
 import type { PairsLay, PairsPrep, ScratchHit } from './pairs-lay.js';
-import { PairsReads } from './bridge-load.js';
+import { BridgeHooks } from './bridge-hooks.js';
 import { type SeqTokens, withAlpha } from './tokens.js';
+
+/** The ribbons' codes, cataloged with the chunk (a composition that draws no bridge says none). */
+export const RibbonIssues = defineIssues('seq.render', {
+  'seq.render.bridge.unplaced': {
+    severity: 'info',
+    description: 'A bridge’s pairs have an end on a system neither side shows: those pairs are not drawn',
+    hint: 'Show the pairs’ systems on the bridge’s sides (pairs are not projected through maps)',
+  },
+});
 
 /** What a layer laid out in a bridge reads besides a layout's context: its bridge (_spec/README.md "Render", Bridges). */
 export interface BridgeContext {
@@ -317,10 +326,10 @@ export function layoutRibbons(lay: RibbonsLay, prep: PairsPrep, ctx: BridgeLayou
   if (unplaced)
     ctx.report(
       issueOf(
-        RenderIssues,
+        RibbonIssues,
         'seq.render.bridge.unplaced',
         `${unplaced} pair(s) have an end on a system neither side shows${UnplacedSystems.length ? ` (${UnplacedSystems.map((s) => s.slice(s.lastIndexOf('/') + 1)).join(', ')})` : ''}: not drawn`,
-        { address: ctx.key, hint: RenderIssues.codes['seq.render.bridge.unplaced'].hint },
+        { address: ctx.key, hint: RibbonIssues.codes['seq.render.bridge.unplaced'].hint },
       ),
     );
   // past `maxArcs`: the most aligned length kept (ties by span), the rest a density strip along each edge
@@ -700,7 +709,7 @@ export const RibbonsType: LayerType<PairsPrep, RibbonsLay> = {
     const sa = c.bridge.placement.a;
     if (prep.region && !prep.data && sa.ready) {
       const side = { ...ctx, section: sa.section, axis: sa.layout.axis!, place: sa.layout.placement };
-      const r = PairsReads.region?.(prep, prep.region, side, data, lay.side);
+      const r = BridgeHooks.region?.(prep, prep.region, side, data, lay.side);
       if (r?.data) read = r;
     }
     lay.prep = read;

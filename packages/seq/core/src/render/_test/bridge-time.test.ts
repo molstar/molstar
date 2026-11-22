@@ -33,7 +33,7 @@ describe('4,096 ribbons', () => {
     const s = await settle(bridgeSpec({ pairs, lengths: [N, N] }));
     const inputs = [0, 1, 2, 3].map((k) => at(k));
     for (const i of inputs) await s.frame(i);
-    const lay = (await s.frame(inputs[0])).layout.bridges![0].lays[0].lay as RibbonsLay;
+    const lay = (await s.frame(inputs[0])).layout.bridges!.list[0].lays[0].lay as RibbonsLay;
     expect(lay.n).toBe(4096);
     let k = 0;
     const pan = () => {
@@ -47,7 +47,7 @@ describe('4,096 ribbons', () => {
   itWithin('a hover over them', async (within) => {
     const s = await settle(bridgeSpec({ pairs, lengths: [N, N] }));
     const f = await s.frame(at(0));
-    const lay = f.layout.bridges![0].lays[0].lay as RibbonsLay;
+    const lay = f.layout.bridges!.list[0].lays[0].lay as RibbonsLay;
     const points: [number, number][] = [];
     for (let i = 0; i < lay.n; i += 41) {
       const o = 6 * i;

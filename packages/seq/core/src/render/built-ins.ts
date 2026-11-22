@@ -17,6 +17,8 @@ import type { SectionLayoutType } from './layout/types.js';
 import { LettersType } from './letters.js';
 import { LogoType } from './logo.js';
 import { PairsType } from './pairs.js';
+import { regionPairs } from './pairs-region.js';
+import { registerBridges } from './bridge-load.js';
 import { RangesType } from './ranges.js';
 import { RowsType } from './rows.js';
 import { RulerType } from './ruler.js';
@@ -44,6 +46,10 @@ export const BuiltInLayerTypes: Readonly<Record<string, LayerType<any, any>>> = 
   grid: GridType,
   matrix: MatrixType,
 };
+
+// bridges, drawn where a composition registers the built-ins: their ribbons are the pairs layer in a bridge, read by its
+// region reader (`bridge-load.ts`; a composition listing fewer types calls `registerBridges` itself)
+registerBridges(regionPairs);
 
 /** The section layouts the core ships, by name (_spec/README.md "Render", Section layouts). */
 export const BuiltInLayouts: Readonly<Record<string, SectionLayoutType<any>>> = {

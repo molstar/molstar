@@ -8,12 +8,12 @@
 // its layers (pairs, a segments map as pairs, another type drawn as its chain's `pairs`), its params' defaults, and a
 // lock a follow makes redundant.
 
-import { beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createSeqSpec } from '../../lang/builder.js';
 import { resolveSpec } from '../../resolve/model.js';
 import { unreadParams } from '../../resolve/unread.js';
-import { ViewIssues } from '../issues.js';
-import { resolveView } from '../view.js';
+import { BridgeIssues, resolveBridges } from '../bridges.js';
+import { BridgePass, resolveView } from '../view.js';
 
 type Order = readonly ('top' | 'bridge' | 'bottom' | 'third' | 'second')[];
 
@@ -59,14 +59,16 @@ const view = (s = spec()) => resolveView(resolveSpec(s), '/views/v')!;
 const codes = (v: ReturnType<typeof view>) => v.issues.map((i) => i.code);
 
 describe('bridges in the resolved view', () => {
-  // the view's bridge pass is lazy: a model of a spec with a bridge waits for it
-  beforeAll(async () => {
-    const m = resolveSpec(spec());
-    await m.loading;
-    expect(resolveSpec(spec()).loading).toBeUndefined();
+  // the view's bridge pass is set where a composition draws bridges (render's pairs type): set here, restored after
+  const kept = BridgePass.resolve;
+  beforeAll(() => {
+    BridgePass.resolve = resolveBridges;
+  });
+  afterAll(() => {
+    BridgePass.resolve = kept;
   });
 
-  it('a view without a bridge has empty lists: its stack its sections in order', () => {
+  it('a view without a bridge has neither list', () => {
     const b = createSeqSpec();
     const x = b.data.sequence('x', { alphabet: 'dna', letters: 'ACGT' });
     b.views.view('v', (v) => {
@@ -74,11 +76,8 @@ describe('bridges in the resolved view', () => {
       v.section('two', { of: x }).track('t').layer('l', { type: 'letters' });
     });
     const v = view(b.build());
-    expect(v.bridges).toEqual([]);
-    expect(v.stack).toEqual([
-      { kind: 'section', index: 0 },
-      { kind: 'section', index: 1 },
-    ]);
+    expect(v.bridges).toBeUndefined();
+    expect(v.stack).toBeUndefined();
   });
 
   it('stacks sections and bridges in order; a bridge its sides, its defaults and its pairs layer placed', () => {
@@ -88,7 +87,7 @@ describe('bridges in the resolved view', () => {
       { kind: 'bridge', index: 0 },
       { kind: 'section', index: 1 },
     ]);
-    const br = v.bridges[0];
+    const br = v.bridges![0];
     expect(br).toMatchObject({
       address: '/views/v/br',
       a: '/views/v/top',
@@ -124,7 +123,7 @@ describe('bridges in the resolved view', () => {
         hidden: true,
       }),
     );
-    expect(v.bridges[0]).toMatchObject({
+    expect(v.bridges![0]).toMatchObject({
       label: 'P–G',
       height: 140,
       lock: 'px',
@@ -136,43 +135,43 @@ describe('bridges in the resolved view', () => {
 
   it('refuses sides that are not its neighbours (A against C across B): not drawn, said at the bridge', () => {
     const v = view(spec(['bridge', 'top', 'bottom']));
-    expect(v.bridges[0].placed).toBe(false);
-    expect(v.bridges[0].issues.map((i) => i.code)).toEqual(['seq.view.bridge.neighbours']);
+    expect(v.bridges![0].placed).toBe(false);
+    expect(v.bridges![0].issues.map((i) => i.code)).toEqual(['seq.view.bridge.neighbours']);
     expect(v.issues.find((i) => i.code === 'seq.view.bridge.neighbours')?.address).toBe('/views/v/br');
     // two bridges in a row: the second has a bridge above it, never a section
     const two = view(spec(['top', 'bridge', 'second', 'bottom']));
-    expect(two.bridges.map((b) => b.placed)).toEqual([false, false]);
+    expect(two.bridges!.map((b) => b.placed)).toEqual([false, false]);
   });
 
   it('refuses a side that is not a row of tracks (a ring, blocks in a stack)', () => {
     const ring = view(spec(undefined, {}, {}, { top: { layout: 'rings' } }));
-    expect(ring.bridges[0].placed).toBe(false);
+    expect(ring.bridges![0].placed).toBe(false);
     expect(codes(ring)).toContain('seq.view.bridge.layout');
     const grid = view(spec(undefined, {}, {}, { bottom: { layout: 'text' } }));
-    expect(grid.bridges[0].placed).toBe(false);
+    expect(grid.bridges![0].placed).toBe(false);
   });
 
-  it('reads a segments map as pairs; a map of another method is the shape issue', () => {
-    const runs = view(spec(undefined, {}, { data: '/data/runs' })).bridges[0].layers[0];
+  it('reads a segments map as pairs; a map of another method names no pairs', () => {
+    const runs = view(spec(undefined, {}, { data: '/data/runs' })).bridges![0].layers[0];
     expect(runs).toMatchObject({ placed: true, data: { address: '/data/runs', system: '/data/x', shape: 'pairs' } });
     const shift = view(spec(undefined, {}, { data: '/data/shift' }));
-    expect(shift.bridges[0].layers[0].placed).toBe(false);
-    expect(codes(shift)).toContain('seq.view.layer.shape');
+    expect(shift.bridges![0].layers[0].placed).toBe(false);
+    expect(codes(shift)).toContain('seq.view.layer.data');
   });
 
   it('draws a layer of another type as its chain’s first pairs, else not at all (said)', () => {
     const ext = view(spec(undefined, {}, { type: 'rondo:ribbons', fallback: 'pairs' }));
-    expect(ext.bridges[0].layers[0]).toMatchObject({ placed: true, shape: 'pairs' });
+    expect(ext.bridges![0].layers[0]).toMatchObject({ placed: true, shape: 'pairs' });
     expect(codes(ext)).toContain('seq.view.bridge.layer');
     const ranges = view(spec(undefined, {}, { type: 'ranges' }));
-    expect(ranges.bridges[0].layers[0].placed).toBe(false);
+    expect(ranges.bridges![0].layers[0].placed).toBe(false);
     expect(codes(ranges)).toContain('seq.view.bridge.layer');
   });
 
   it('says a lock between a leader and its follower moves nothing more', () => {
     const v = view(spec(undefined, { lock: 'px' }, {}, { bottom: { of: '/data/x', follow: '/views/v/top' } }));
     expect(codes(v)).toContain('seq.view.bridge.lock');
-    expect(v.bridges[0].placed).toBe(true);
+    expect(v.bridges![0].placed).toBe(true);
   });
 
   it('is read: no unread-param issue for a bridge any more', () => {
@@ -188,6 +187,6 @@ describe('bridges in the resolved view', () => {
       'seq.view.bridge.layer',
       'seq.view.bridge.lock',
     ])
-      expect(ViewIssues.codes).toHaveProperty([c]);
+      expect(BridgeIssues.codes).toHaveProperty([c]);
   });
 });

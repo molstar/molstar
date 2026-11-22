@@ -9,9 +9,41 @@
 // first `pairs`, said), each pair's ends placed at layout by the systems its sides show (no path: a pair is never
 // projected). The stack is the view's sections and bridges in order.
 
-import { exactAddress, type Issue, type Node, type Value } from '@molstar/core/repr/tree';
-import type { ViewIssues } from './issues.js';
+import { defineIssues, exactAddress, type Issue, issueOf, type Node, type Value } from '@molstar/core/repr/tree';
+import type { StaticModel } from '@molstar/seqx-core/resolve';
+import { ViewIssues } from './issues.js';
+import { dataOf, layerData } from './layer-data.js';
 import type { ResolvedLayer, ResolvedSection } from './view.js';
+
+type ViewReport = (code: keyof typeof ViewIssues.codes, message: string, at: string) => void;
+
+/**
+ * A bridge's codes (_spec/README.md "Resolved view", Bridges): cataloged with the pass, lazy as it is (a reader that
+ * draws no bridges says none of them).
+ */
+export const BridgeIssues = defineIssues('seq.view', {
+  'seq.view.bridge.neighbours': {
+    severity: 'error',
+    description: 'A bridge’s sides are not the sections just above and below it in the view; it is not drawn',
+    hint: 'Place the bridge between its two sections (three genomes: A, a bridge, B, a bridge, C)',
+  },
+  'seq.view.bridge.layout': {
+    severity: 'error',
+    description: 'A bridge’s side is not a row of tracks (a ring, a text, a grid, blocks in a stack); it is not drawn',
+    hint: 'Join two sections in the tracks layout, their blocks in a row',
+  },
+  'seq.view.bridge.layer': {
+    severity: 'warning',
+    description:
+      'A bridge draws pairs: a layer of another type is drawn as its fallbacks’ first `pairs`, else not drawn',
+    hint: 'Give the bridge `pairs` layers',
+  },
+  'seq.view.bridge.lock': {
+    severity: 'info',
+    description: 'A bridge locks two sections a follow already moves together: the lock moves nothing more',
+    hint: 'Drop the lock',
+  },
+});
 
 /**
  * A bridge (_spec/README.md "Resolved view", Bridges): its two sides (section addresses), its params with their defaults
@@ -46,21 +78,26 @@ export interface StackEntry {
 }
 
 /** What resolving a bridge reads of the view being built. */
-export interface BridgeInput {
+export interface BridgeInput<K = unknown> {
   readonly view: Node;
   readonly address: string;
   readonly sections: readonly ResolvedSection[];
-  /** Resolves one layer of a bridge (its type chain and data, `bridgeLayer` in view.ts). */
+  readonly model: StaticModel;
+  /** The reader's layer kinds, as `layer` reads them. */
+  readonly kinds: K;
+  /** Resolves one layer on a system (view.ts's `layerOf`): its type chain, its data, what it says into `say`. */
   layer(
+    model: StaticModel,
+    kinds: K,
     l: Node,
     index: number,
     at: string,
-    say: (code: BridgeCode, message: string, at: string) => void,
+    system: string,
+    say: ViewReport,
   ): ResolvedLayer;
 }
 
-/** The issue codes a bridge says (ViewIssues). */
-export type BridgeCode = keyof typeof ViewIssues.codes;
+type BridgeCode = keyof typeof BridgeIssues.codes;
 
 const param = (n: Node, key: string): Value | undefined => n.params?.[key];
 
@@ -70,11 +107,13 @@ const idOf = (address: string) => address.slice(address.lastIndexOf('/') + 1);
  * The view's stack and bridges (_spec/README.md "Resolved view", Bridges): sections and bridges in the order written,
  * each bridge's sides checked against its neighbours, their layouts, and its layers resolved.
  */
-export function resolveBridges(
-  input: BridgeInput,
-  report: (code: BridgeCode, message: string, at: string) => Issue,
-): { bridges: ResolvedBridge[]; stack: StackEntry[] } {
+export function resolveBridges<K>(
+  input: BridgeInput<K>,
+  /** The view's issues: what the bridges say is pushed to them too. */
+  out: Issue[],
+): { bridges: ResolvedBridge[]; stack: StackEntry[] } | undefined {
   const { view, address, sections } = input;
+  if (!view.children?.some((c) => c.kind === 'bridge')) return undefined;
   const bridges: ResolvedBridge[] = [];
   const stack: StackEntry[] = [];
   const sectionIndex = new Map(sections.map((s, i) => [s.address, i]));
@@ -90,7 +129,12 @@ export function resolveBridges(
       continue;
     }
     const issues: Issue[] = [];
-    const say = (code: BridgeCode, message: string, where: string) => issues.push(report(code, message, where));
+    const collect = (i: Issue) => {
+      issues.push(i);
+      out.push(i);
+    };
+    const say = (code: BridgeCode, message: string, where: string) =>
+      collect(issueOf(BridgeIssues, code, message, { address: where, hint: BridgeIssues.codes[code].hint }));
     const a = exactAddress(param(c, 'a')) ?? '';
     const b = exactAddress(param(c, 'b')) ?? '';
     // its neighbours in the stack: the section just above and the one just below (a bridge between: none)
@@ -129,7 +173,24 @@ export function resolveBridges(
     }
     const layers: ResolvedLayer[] = [];
     (c.children ?? []).forEach((l, index) => {
-      if (l.kind === 'layer') layers.push(input.layer(l, index, at, say));
+      if (l.kind !== 'layer') return;
+      // on its data's own system (a segments map's `from`): placed with no path, each end placed by the sides at layout
+      const model = input.model;
+      const v = layerData(model.spec, l.params?.data);
+      const system = dataOf(model, v, 'pairs', '')?.system ?? '';
+      const report: ViewReport = (code, message, where) =>
+        collect(issueOf(ViewIssues, code, message, { address: where, hint: ViewIssues.codes[code].hint }));
+      let r = input.layer(model, input.kinds, l, index, at, system, report);
+      // a type that draws along an axis has nowhere to draw in a bridge: only one reading pairs is placed
+      if (r.placed && r.shape !== 'pairs') r = { ...r, placed: false };
+      // another type is drawn as the pairs ribbons (its chain's `pairs`), else not at all: said
+      if (r.type !== 'pairs')
+        say(
+          'seq.view.bridge.layer',
+          `A bridge draws pairs: the \`${r.type}\` layer is ${r.shape === 'pairs' ? 'drawn as `pairs`' : 'not drawn'}`,
+          r.address ?? at,
+        );
+      layers.push(r);
     });
     const label = param(c, 'label');
     const height = param(c, 'height');

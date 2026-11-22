@@ -58,7 +58,7 @@ import { instanceInView, wantTemplate } from './tracks-templates.js';
 import { bandHeights, firstType, rowsFill, rulerTrack } from './tracks-heights.js';
 import { sectionHeaderOf, trackHeaderOf } from './tracks-headers.js';
 import { collapsedSection } from './headers.js';
-import { BridgeChunk, bridgeRooms } from './bridge-load.js';
+import { BridgeHooks } from './bridge-hooks.js';
 
 export { multiSystem, sectionLayoutName } from './tracks-axes.js';
 export { labelColumnWidth, layerKey } from './tracks-columns.js';
@@ -341,7 +341,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     }
   const pinnedPx = pinnedAt.size * SlimRailPx;
   // a bridge's band above the section after it in the stack (_spec/README.md "Render", Bridges): its height and a gap
-  const bridgeRoom = input.view.bridges.length ? bridgeRooms(input.view, config) : undefined;
+  const bridgeRoom = input.view.bridges && BridgeHooks.rooms?.(input.view, config);
   for (const section of input.view.sections) {
     const collapsed = collapsedSection(section);
     if (anyShown && !collapsed) y += config.sectionGap + (bridgeRoom?.get(section.address) ?? 0);
@@ -919,19 +919,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         state.domainsVersion++;
       }
   // the bridges, after their sides (the bridge chunk's: a view with one waits for it to land, `bridge-load.ts`)
-  const bridges =
-    bridgeRoom && BridgeChunk.layout
-      ? BridgeChunk.layout({
-          input,
-          state,
-          config,
-          dpr,
-          theme,
-          sections: new Map(sections.map((s) => [s.section.address, s])),
-          want: (w) => wants.push(w),
-          report,
-        })
-      : undefined;
+  const bridges = bridgeRoom && BridgeHooks.layout?.({ input, state, config, theme, sections, wants, report });
   for (const i of overlay.issues) report(i);
   // a source's lanes grew in this layout: its track grows to them in the same frame, once (what is below moves once)
   if (!again && knownVersion(input.types) !== known) return layoutView(input, state, true);
@@ -948,7 +936,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     shown: shownNodes,
     ...(narrow ? { narrow } : {}),
     ...(pinnedPx > 0 ? { pinnedPx } : {}),
-    ...(bridges?.length ? { bridges } : {}),
+    bridges,
   };
 }
 

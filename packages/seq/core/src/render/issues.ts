@@ -90,11 +90,6 @@ export const RenderIssues = defineIssues('seq.render', {
     description: 'A pairs layer’s ends are not on the systems its section shows: those pairs are not drawn',
     hint: 'Show the pairs’ systems in the section (blocks, or a grid’s two axes)',
   },
-  'seq.render.bridge.unplaced': {
-    severity: 'info',
-    description: 'A bridge’s pairs have an end on a system neither side shows: those pairs are not drawn',
-    hint: 'Show the pairs’ systems on the bridge’s sides (pairs are not projected through maps)',
-  },
   'seq.render.pairs.copy': {
     severity: 'warning',
     description:

@@ -59,7 +59,7 @@ import {
 } from './model-molecules.js';
 import { ResolveIssues } from './issues.js';
 import { unreadParams } from './unread.js';
-import { viewKindsLoading } from './lazy-kinds.js';
+import { ViewKinds } from './lazy-kinds.js';
 import type { Encoding, Linear } from './linear.js';
 import {
   atomsOf,
@@ -591,11 +591,18 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
   }
 
   // assemblies: their sequences derived, a system each (`model-assemblies.ts`)
-  const genome = resolveAssemblies({ data, ref, sourceHashes, given, cached, key, systems, issues });
-  const { assemblies } = genome;
-  // the parts a view's kinds need (render's bridge chunk), waited for as the genome chunk is
-  const kinds = viewKindsLoading(spec);
-  const loading = genome.loading && kinds ? Promise.all([genome.loading, kinds]) : (genome.loading ?? kinds);
+  const { assemblies, loading: genome } = resolveAssemblies({
+    data,
+    ref,
+    sourceHashes,
+    given,
+    cached,
+    key,
+    systems,
+    issues,
+  });
+  // the parts a view's kinds need (render's bridge chunk), waited for with the genome chunk
+  const loading = ViewKinds.loading?.(spec, genome) ?? genome;
 
   const molecular = buildMolecular(data, inner, systems, issues, config, cached, key, ref, lengths);
 

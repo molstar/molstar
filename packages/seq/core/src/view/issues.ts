@@ -73,27 +73,6 @@ export const ViewIssues = defineIssues('seq.view', {
       'Two sections name rival maps of one pair in their `via`: what is carried between them takes the target’s map',
     hint: 'Name the same map in both sections, or drop the `via` from one',
   },
-  'seq.view.bridge.neighbours': {
-    severity: 'error',
-    description: 'A bridge’s sides are not the sections just above and below it in the view; it is not drawn',
-    hint: 'Place the bridge between its two sections (three genomes: A, a bridge, B, a bridge, C)',
-  },
-  'seq.view.bridge.layout': {
-    severity: 'error',
-    description: 'A bridge’s side is not a row of tracks (a ring, a text, a grid, blocks in a stack); it is not drawn',
-    hint: 'Join two sections in the tracks layout, their blocks in a row',
-  },
-  'seq.view.bridge.layer': {
-    severity: 'warning',
-    description:
-      'A bridge draws pairs: a layer of another type is drawn as its fallbacks’ first `pairs`, else not drawn',
-    hint: 'Give the bridge `pairs` layers',
-  },
-  'seq.view.bridge.lock': {
-    severity: 'info',
-    description: 'A bridge locks two sections a follow already moves together: the lock moves nothing more',
-    hint: 'Drop the lock',
-  },
   'seq.view.follow.unplaced': {
     severity: 'warning',
     description: 'A section follows one whose system no static path joins to its own; it does not follow',

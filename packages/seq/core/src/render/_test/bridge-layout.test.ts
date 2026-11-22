@@ -19,7 +19,7 @@ const Size = { width: 900, height: 600 };
 async function frame(o: BridgeSpecOptions, input: Record<string, unknown> = {}) {
   const s = await settle(bridgeSpec(o));
   const f = await s.renderer.frame({ size: Size, settled: true, ...input });
-  return { s, f, lay: f.layout.bridges?.[0]?.lays[0]?.lay as RibbonsLay | undefined };
+  return { s, f, lay: f.layout.bridges?.list[0]?.lays[0]?.lay as RibbonsLay | undefined };
 }
 
 /** The x of the boundary before position `p` on a side (its first section, `top` or `bottom`), no blocks. */
@@ -31,7 +31,7 @@ describe('a bridge between two sections', () => {
   it('takes its band between its sides, the sections’ gap above and below, its height by default 96', async () => {
     const { f, lay } = await frame({ pairs: [{ a: [10, 50], b: [20, 60] }] });
     const [top, bottom] = f.layout.sections;
-    const br = f.layout.bridges![0];
+    const br = f.layout.bridges!.list[0];
     expect(br.box.y).toBe(top.y + top.height);
     expect(br.box.y + br.box.height).toBe(bottom.y);
     const gap = f.layout.config.sectionGap;
@@ -117,7 +117,7 @@ describe('a bridge between two sections', () => {
     expect(h?.element?.key).toBe('p0');
     expect(h?.extent?.parts.map((p) => p.system)).toEqual(['/data/x', '/data/y']);
     expect(bridgeAt(f.layout, x, y)).toBe(0);
-    expect(hitView(f.layout, f.layout.bridges![0].box.x + 1, y)).toBeUndefined();
+    expect(hitView(f.layout, f.layout.bridges!.list[0].box.x + 1, y)).toBeUndefined();
     expect(bridgeAt(f.layout, x, 2)).toBe(-1);
   });
 

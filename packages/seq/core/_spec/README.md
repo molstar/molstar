@@ -2208,9 +2208,11 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
 ### Lazy kinds
 
 - **A part loaded for a view's kind** (`resolve/lazy-kinds.ts`): `withViewKind(kind, load)` registers what a node of
-  `kind` under a view needs (render's bridge chunk for `bridge`); a model whose spec holds one waits for it
-  (`StaticModel.loading`, with the genome chunk's) and is resolved again once it lands; the promise never rejects (a
-  failed load is tried again by the next model). Why: a reader that never draws a bridge pays nothing for one.
+  `kind` under a view needs (render's bridge chunk and the view's bridge pass for `bridge`; the walk over a spec's views
+  is set by the first registration, `ViewKinds`, so a reader that registers none walks nothing); a model whose spec
+  holds one waits for it (`StaticModel.loading`, with the genome chunk's) and is resolved again once it lands; the
+  promise never rejects (a failed load is tried again by the next model). Why: a reader that never draws a bridge pays
+  nothing for one.
 
 ### Unread params
 
@@ -2545,17 +2547,19 @@ Overlay, Opened sources), kept per model and view. No data, no dynamic node, no 
   stack, in either order (else `seq.view.bridge.neighbours`, an error: a ribbon to a section past a neighbour crosses
   its tracks; a bridge beside a bridge has none), each a row of tracks (the `tracks` layout, blocks not
   `arrange: stack`; else `seq.view.bridge.layout`, an error: a ring's rim, a text's line or a stack's block faces the
-  band on part of its box only). Not placed, it is not drawn and takes no room. Its layers are `pairs`: a layer's chain
-  is read for its first type that reads pairs (another type is `seq.view.bridge.layer`, a warning: drawn as that
-  `pairs`, else not drawn; an extension's ribbons fall back so); its data a `pairs` node or a segments `map`
-  (`segmentPairs`: a run a pair of equal length, `a` its `from` range, `b` its `to` range, `b_strand` its strand, keyed
-  by its row; any other map, or a layer of another shape, `seq.view.layer.shape`), placed with no path (each end is
-  placed at layout by the systems the sides show: pairs are never projected). `lock: px` between a leader and its
-  follower is `seq.view.bridge.lock` (info: the follow moves both already). A view without a bridge has empty lists and
-  nothing else read. **The pass is lazy** (`view/bridges.ts`, registered by `withViewKind`: Resolve, Lazy kinds): a
-  model of a spec with a bridge waits for it, and a view resolved before it lands has no bridges (its model is loading);
-  why: the eager bundles were past their bounds, the fallback the design names. A reader without bridges says the kind
-  by the language's unknown-kind rule and draws the sides stacked: no `seq.view` code of its own.
+  band on part of its box only). Not placed, it is not drawn and takes no room. Its layers are resolved on their data's
+  own system with no path (each end is placed at layout by the systems the sides show: pairs are never projected),
+  placed only when they read pairs (a type other than `pairs` is `seq.view.bridge.layer`, a warning: drawn as `pairs`
+  where its chain reads pairs, an extension's ribbons so, else not drawn); its data a `pairs` node or a segments `map`
+  (`dataOf`, anywhere: `segmentPairs`, a run a pair of equal length, `a` its `from` range, `b` its `to` range,
+  `b_strand` its strand, keyed by its row; a map of another method names no pairs, `seq.view.layer.data`). `lock: px`
+  between a leader and its follower is `seq.view.bridge.lock` (info: the follow moves both already). Its codes are the
+  pass's own catalog (`BridgeIssues`). A view without a bridge has neither list. **The pass is lazy and composed**
+  (`view/bridges.ts`, `BridgePass`): set where a composition draws bridges (render's built-ins register it,
+  `registerBridges`), loaded when a spec holds a bridge (Resolve, Lazy kinds), a model waiting for it; a view resolved
+  without it has no bridges and draws the sides stacked, as a reader without bridges (which says the kind by the
+  language's unknown-kind rule): no `seq.view` code of its own. Why: the eager bundles' bounds, the minimal viewer's
+  above all (it draws no pairs, so no bridge).
 - **A track**: its address, its label (its id when absent), its height, and its `template` when it has `for_each`. A
   hidden track (`hidden: true`) is left out of the view, so its row collapses; the spec keeps it.
 - **A layer**: its address (with an id) and index, its type and fallback chain (Layer kinds, below), the `shape` its
@@ -2613,8 +2617,8 @@ Overlay, Opened sources), kept per model and view. No data, no dynamic node, no 
   complement of a nucleotide on a reversed axis and the item key that drops a range seen in an earlier tile (both spec
   text, read again). Not drawn: a layer behind a path (the maps are public, `projectRanges`; not built).
 - `seq.view.*` (`ViewIssues`): `section.system`, `section.complex`, `block.unit`, `layer.type`, `layer.data`,
-  `layer.shape`, `layer.unplaced`, `bridge.neighbours`, `bridge.layout`, `bridge.layer`, `bridge.lock` (info),
-  `follow.unplaced`, `section.pieces`, `direction.unresolved`, `direction.mixed` (info); a test checks the catalog.
+  `layer.shape`, `layer.unplaced`, `follow.unplaced`, `section.pieces`, `direction.unresolved`, `direction.mixed`
+  (info); a test checks the catalog.
 
 ## Render
 
@@ -2699,7 +2703,7 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 | `grid.binPx`, `grid.marginTiles`                                                  | 1 device px; 1                                                                                                         | a region grid's level: a cell under a pixel is reduced again for nothing (2 halves the tiles); a ring of tiles round the view read at margin priority, evicted first (0: none)                                                                                                                                                                                                                                            |
 | `pairs.binPx`, `pairs.itemsHysteresis`                                            | 2 device px; 1.25                                                                                                      | pairs read by region: bins a couple of device pixels wide; items kept to 1.25 × `maxArcs` once shown, so a pan at the threshold never flips bins and arcs (≥ 1)                                                                                                                                                                                                                                                           |
 | `pairs.binStroke`                                                                 | 1 to 6 CSS px                                                                                                          | a bin pair's arc stroked by the square root of its count over the counts in view: thick reads as many without hiding the rest                                                                                                                                                                                                                                                                                             |
-| `bridges.height`, `bridges.gripPx`                                                | 96 CSS px; 4 CSS px                                                                                                    | a bridge's band when its spec gives no `height` (room for a crossed ribbon to read; JBrowse's level is about 100); its lower edge's resize grip (0: none)                                                                                                                                                                                                                                                                 |
+| `bridges.height`                                                                  | 96 CSS px                                                                                                              | a bridge's band when its spec gives no `height` (room for a crossed ribbon to read; JBrowse's level is about 100)                                                                                                                                                                                                                                                                                                         |
 | `ribbons.fillOpacity`, `ribbons.binOpacity`, `ribbons.minPx`, `ribbons.stubShare` | 0.35; 0.15 to 0.8; 1 device px; 0.25                                                                                   | a ribbon filled so overlaps read through; a bin by the square root of its aligned length over the bins in view; a short run on a long axis still seen; a stub says "elsewhere" without reaching the far side                                                                                                                                                                                                              |
 | `grid.buildBudget`                                                                | 65,536 samples a frame                                                                                                 | a frame while moving under 8 ms; a tile past it draws a coarser level meanwhile, never empty                                                                                                                                                                                                                                                                                                                              |
 | `navigator.window.minPx`, `.hitPx`, `.touchHitPx`, `.handlePx`                    | 16, 12, 24, 5 px                                                                                                       | a window under a few px cannot be seen or grabbed; a press in the middle still pans; a finger is wider                                                                                                                                                                                                                                                                                                                    |
@@ -3896,12 +3900,15 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
 ### Bridges
 
 A bridge's band and its ribbons (Resolved view, Bridges). The bridge chunk (`bridges.ts`, `layout/bridge.ts`,
-`pairs-ribbons.ts`) is lazy: `bridge-load.ts` registers it with resolve (`withViewKind('bridge', …)`, Resolve, Lazy
-kinds), so a model whose spec holds a bridge waits for it as for the genome chunk and a view without one loads none of
-it (nor the view's bridge pass, lazy too); eager are the language's kind, the `ResolvedView` fields, the band's room
-(`bridgeRooms`), the hooks in the layout, the draw and the hit, and `Hit.bridge`. The chunk takes the pairs layer's
-prepared form and its region reader through the composition (`types.pairs.prepare`, `PairsReads`), so it imports none of
-the pairs modules: a module the entry shares would be loaded with the entry.
+`pairs-ribbons.ts`) is lazy and composed: the built-ins call `registerBridges` (`bridge-load.ts`: the band's room, the
+pairs layer's region reader, and the chunk and the view's pass loaded through `withViewKind('bridge', …)`, Resolve, Lazy
+kinds), so a model whose spec holds a bridge waits for them as for the genome chunk, a view without one loads none of
+it, and a composition without the built-ins (the minimal viewer) holds none of it: the layout reads `BridgeHooks`
+(`bridge-hooks.ts`), empty there. Eager are the language's kind, the `ResolvedView` fields, the hooks in the layout, the
+draw, the hit and the export (one optional call each, on `ViewLayout.bridges`), and `Hit.bridge`. The chunk takes the
+pairs layer's prepared form and its region reader through the composition (`types.pairs.prepare`, `BridgeHooks.region`),
+so it imports none of the pairs modules (a module the entry shares would be loaded with the entry); its code
+`seq.render.bridge.unplaced` is its own catalog (`RibbonIssues`).
 
 - **Its room**: a placed, shown bridge takes its `height` (`bridges.height`, 96, when absent) and a section gap above
   the section below it in the stack; its band is the box from the upper side's foot to the lower side's top across the
@@ -3942,7 +3949,8 @@ the pairs modules: a module the entry shares would be loaded with the entry.
   own level, a pair drawn once by ownership: the finer side's region widened to the far bins), the merge of an
   alignment's blocks under a pixel and the pending hatch along an edge are not built (LA2).
 - **Export**: a bridge is an empty group (`data-bridge`, `data-a`, `data-b`, `data-y`, `data-height`, `data-count`)
-  beside the sections'; its ribbons are the passes' paths (two cubics joined by lines, closed).
+  after the sections' (written by the chunk, `BridgesLayout.svg`); its ribbons are the passes' paths (two cubics joined
+  by lines, closed).
 
 ### Lanes and Hits
 

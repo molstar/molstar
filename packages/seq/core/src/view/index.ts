@@ -65,6 +65,7 @@ export {
   type ResolvedTrack,
   type ResolvedNavigator,
   type ResolvedView,
+  BridgePass,
   resolveView,
   resolveViewNode,
   resolveNavigatorNode,

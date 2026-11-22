@@ -141,18 +141,6 @@ export interface SvgOptions {
       readonly assembly?: string;
     }[];
   }[];
-  /**
-   * The bridges drawn (_spec/README.md "Render", Bridges): each an empty group with its address, its sides, its band and
-   * its ribbons' count (`data-bridge`, `data-a`, `data-b`, `data-y`, `data-height`, `data-count`).
-   */
-  readonly bridges?: readonly {
-    readonly address: string;
-    readonly a: string;
-    readonly b: string;
-    readonly y: number;
-    readonly height: number;
-    readonly count: number;
-  }[];
 }
 
 /** The draw lists as an SVG document of their size. */
@@ -285,10 +273,6 @@ export function drawListsToSvg(lists: DrawLists, options: SvgOptions = {}): stri
       );
     body.push('</g>');
   }
-  for (const br of options.bridges ?? [])
-    body.push(
-      `<g data-bridge="${escapeXml(br.address)}" data-a="${escapeXml(br.a)}" data-b="${escapeXml(br.b)}" data-y="${fmt(br.y)}" data-height="${fmt(br.height)}" data-count="${br.count}"/>`,
-    );
   for (const name of Passes) {
     const pass = lists.passes[name];
     if (!pass.size) continue;
