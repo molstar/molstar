@@ -80,7 +80,7 @@ describe('region reads: gaps', () => {
     expect(lay.images.length).toBe(1);
   });
 
-  it.fails('a BEDPE source is read by a pairs layer: its pairs shape listed, its bins by the store', async () => {
+  it('a BEDPE source is read by a pairs layer: its pairs shape listed, its bins by its own levels', async () => {
     const lines = Array.from({ length: 20 }, (_, i) =>
       ['chr', 1000 * i, 1000 * i + 10, 'chr', 90_000 - 1000 * i, 90_010 - 1000 * i, `l${i}`, 1, '+', '+'].join('\t'),
     );
@@ -95,8 +95,8 @@ describe('region reads: gaps', () => {
     const s = await settle(b.build(), [BedRuntime]);
     const f = await s.frame({ size: { width: 720, height: 300 } });
     const lay = f.layout.sections[0].sectionLays[0].lay as unknown as { n: number };
-    // the store refused a want of 1,954 tiles at level 1 (`seq.store.too_many_tiles`): the source lists no pairs shape,
-    // so the pairs pyramid is never made and the layer reads items at level 1 over the whole chromosome
+    // the `bed` runtime lists `pairs` and levels of its own (its bin pairs per tile), so the view at the fit reads a
+    // coarse level within a want's tiles, never 1,954 tiles at level 1 (`seq.store.too_many_tiles`)
     expect(s.store.issues.value.map((i) => i.code)).not.toContain('seq.store.too_many_tiles');
     expect(lay.n).toBe(20);
   });
