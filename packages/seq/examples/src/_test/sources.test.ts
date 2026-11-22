@@ -16,6 +16,7 @@ import {
   GeneratedBedFile,
   GeneratedVcfFile,
   MisreadBedFile,
+  MisreadGenbankFile,
   MisreadGffFile,
   MisreadVcfFile,
 } from '../genomes/files.js';
@@ -55,6 +56,7 @@ const Generated = new Set(
     MisreadGffFile,
     GeneratedVcfFile,
     MisreadVcfFile,
+    MisreadGenbankFile,
   ].map((f) => f.slice('fixtures/'.length)),
 );
 

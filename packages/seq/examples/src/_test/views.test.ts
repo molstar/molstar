@@ -66,6 +66,17 @@ const Known: Readonly<Record<string, readonly string[]>> = {
     'seq.source.vcf.allele',
     'seq.source.vcf.range',
   ],
+  // the generated plasmid record's REFERENCE and COMMENT, and its CDSs' `/translation`: not read, said
+  'genomes/genbank-plasmid': ['seq.source.genbank.header', 'seq.source.genbank.translation'],
+  // the misread GenBank file's faults, said as the story shows them
+  'genomes/genbank-misread': [
+    'seq.source.genbank.header',
+    'seq.source.genbank.translation',
+    'seq.source.genbank.location',
+    'seq.source.genbank.approximate',
+    'seq.source.genbank.length',
+    'seq.source.genbank.record',
+  ],
   // ClinVar's chr17 at the fit: more tiles than a view reads, the "zoom in" state (the story's point)
   'genomes/vcf-zoom-in': ['seq.store.too_many_tiles'],
 };

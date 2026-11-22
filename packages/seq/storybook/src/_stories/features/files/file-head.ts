@@ -11,6 +11,7 @@ import type { Node } from '@molstar/core/repr/tree';
 import type { AssetReader } from '@molstar/seqx-core/data';
 import { SeqLanguage } from '@molstar/seqx-core/lang';
 import { RecordedFiles } from '@molstar/seqx-examples';
+import { genbankSummary } from '@molstar/seqx-examples/genomes/genbank';
 import { vcfHeaderSummary } from '@molstar/seqx-examples/genomes/vcf';
 import { recordedAssets } from '@molstar/seqx-examples/recorded-pages';
 
@@ -102,8 +103,16 @@ export function filesOf(spec: Node): FileOf[] {
   return out;
 }
 
-/** What a story prints of a file: a VCF's header summary (its sites are read by region: no head of them), else its head. */
+/**
+ * What a story prints of a file: a VCF's header summary (its sites are read by region: no head of them), a GenBank
+ * file's records and its head, else its head.
+ */
 export async function fileText(reader: AssetReader, file: FileOf, signal: AbortSignal): Promise<string> {
   if (file.format === 'vcf') return vcfHeaderSummary(file.uri, file.index, reader, signal);
+  // a GenBank file's records as the runtime reads them, then its head
+  if (file.format === 'genbank') {
+    const head = fileHead(await fileBytes(reader, file.uri, signal), file.format);
+    return `${await genbankSummary(file.uri, reader, signal)}\n\n${head}`;
+  }
   return fileHead(await fileBytes(reader, file.uri, signal), file.format);
 }

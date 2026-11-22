@@ -65,12 +65,13 @@ export const AddressingWithAStructure: StoryObj = {
 
 /**
  * Drop a file of your own on the view (or pick one): `.seq`, FASTA, Stockholm, aligned FASTA, TSV, CSV, JSON, MessagePack,
- * GFF3 or mmCIF. Nothing leaves the page: the viewer's assets port answers the dropped bytes at one location. A GenBank
- * file says it is not read yet. The "Try" buttons load a sample of each format as if dropped.
+ * GFF3, mmCIF or GenBank (`.gb`, `.gbk`: each record a sequence with its features, a circular one a ring's sequence).
+ * Nothing leaves the page: the viewer's assets port answers the dropped bytes at one location. The "Try" buttons load a
+ * sample of each format as if dropped ("Try pUC19.gb": the examples' generated plasmid record).
  */
 export const YourOwnFile: StoryObj = {
   render: () =>
     dropStory({
-      hint: 'Drop a .seq, FASTA, Stockholm, TSV, CSV, JSON, GFF3 or mmCIF file on the box, or use a "Try" button. The file is read in the page and nothing else is.',
+      hint: 'Drop a .seq, FASTA, Stockholm, TSV, CSV, JSON, GFF3, mmCIF or GenBank file on the box, or use a "Try" button. The file is read in the page and nothing else is.',
     }),
 };

@@ -60,6 +60,7 @@ import {
   trimLigand,
 } from '../lib/complex/record-trim.js';
 import {
+  genbankText,
   gff3Text,
   PlasmidAccession,
   PlasmidFiles,
@@ -385,6 +386,13 @@ async function plasmid(): Promise<Row[]> {
         'the features and sites of the rotated variant (origin at 2000, inside bla), a generated primer site across it',
       derived: derived(
         'bla and lacZα as open reading frames, the cloning site from EcoRI to HindIII, the origin by its signature, every site of the listed enzymes, all turned to the new origin; the primer site is generated',
+      ),
+    }),
+    write(PlasmidFiles.rotatedGenbank, genbankText(rotated.turned, rotated.features, rotated.sites), {
+      entry:
+        'the rotated variant as a GenBank flat file: its letters, the GFF3’s features (bla across the origin a join, lacZα a complement) and its sites (protein_bind)',
+      derived: derived(
+        'the rotated letters and the features of the GFF3 written as an NCBI-shaped record (LOCUS, DEFINITION, SOURCE, a REFERENCE, a COMMENT, FEATURES with /label and /translation, the sites as protein_bind, ORIGIN)',
       ),
     }),
   ];

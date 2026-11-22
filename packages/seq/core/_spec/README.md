@@ -1239,7 +1239,9 @@ runtimes only).
 - **Shared helpers**: `causes.ts` (`Causes`: one issue a cause with its count and first ten places, EC-86; each format's
   `BedCauses`, `GffCauses`, `VcfCauses` over its own codes), `answers.ts` (`failure` by kind, `refuse` at open,
   `wholeSource` over what a whole read holds), `intervals.ts` (`intervalIndex`: the short intervals by start and the
-  long ones apart, `eachMeeting`). Why shared: one rule for issues and answers across the formats.
+  long ones apart, `eachMeeting`), `items.ts` (items of pieces held by sequence: `systemItems`, `rowsIn` with span rows,
+  `rangesOf`, `fieldInfos`; the GFF and GenBank runtimes'). Why shared: one rule for issues and answers across the
+  formats.
 - **The first data line** reads past `track` and `browser` lines too, not only the index's meta lines: a file whose
   index's first chunk starts on one is told its columns by its first data line.
 - **Tests**: on files from the shared test-only writer (`@molstar/test-harness/genome/bgzf-writer`: BGZF blocks, TBI and
@@ -1321,9 +1323,10 @@ neither io's tabix nor the pairs index.
 `runtimes/gff.ts` (`@molstar/seqx-core/runtimes/gff`, opt in: `GffRuntime`, `gffRuntime(over)`, `GffOptions`,
 `DefaultGffOptions`, `GffFeatures`, `GffFormats`, `assembleTranscripts`, `Assembly`, `GffItem`, `AssembleOptions`,
 `DefaultTranscriptTypes`, `PieceTypes`, `parseGff`, `GffRow`, `GffFormat`, `GffIssues`, `GtfIssues`): `gff3` and `gtf`
-read whole; `gff-parse.ts` (the one line parser), `gff-assemble.ts` (the hierarchy), `gff-read.ts` (items by sequence,
-answers, the name index). `gff3` stays the records preset's (flat) unless a host composes this runtime with
-`withAdapter` (one adapter a format). Why opt in: the default viewer is at its size bound.
+read whole; `gff-parse.ts` (the one line parser), `gff-assemble.ts` (the hierarchy), `gff-read.ts` (the label rule, the
+name index; items by sequence and their answers `internal/items.ts`). `gff3` stays the records preset's (flat) unless a
+host composes this runtime with `withAdapter` (one adapter a format). Why opt in: the default viewer is at its size
+bound.
 
 - **Conventions fixed** (EC-195): base 1, ends inclusive, converted at the edge; `base` or `ends` not read, said once
   (`seq.source.gff.transform`). Bytes to text by magic (plain, gzip, BGZF) within `limits.maxBytes`; `#` lines read
@@ -1467,6 +1470,87 @@ genotype classes) are not read yet.
   1,000 in the quick lane; 40,000 lines without tabs under 500 ms and a line of 100,000 flags under 200 ms (heavy), the
   bytes and characters their searches scan counted in the quick lane. Size: its own row under 30 kB (25.2 kB minified,
   io's BGZF reader in it), its lazy chunk (by region with io's tabix, 14.8 kB) loaded on first use; in no viewer bundle.
+
+### GenBank
+
+`runtimes/genbank.ts` (`@molstar/seqx-core/runtimes/genbank`, opt in: `GenbankRuntime`, `genbankRuntime(over)`,
+`GenbankOptions`, `DefaultGenbankOptions`, `GenbankFormats`, `GenbankSource` (an opened source with its `records`: name,
+accession, DEFINITION, organism, molecule, length, topology, features; what a host shows of the file),
+`GenbankRecordInfo`, `GenbankItem`, `parseGenbank`, `GenbankRecord`, `GenbankFeature`, `GenbankFile`, `GenbankLimits`,
+`parseLocation`, `Location`, `MaxDepth`, `GenbankIssues`): `genbank` read whole; `genbank-parse.ts` (the records),
+`genbank-location.ts` (the location grammar), the items and their answers `internal/items.ts` (shared with GFF).
+
+- **Conventions fixed** (EC-195): base 1, ends inclusive, converted at the edge; `base` or `ends` not read, said once
+  (`.transform`). Bytes to text by magic (plain, gzip, BGZF) within `limits.maxBytes`.
+- **Records**: `LOCUS` … `//`, each a system: LOCUS's name (a repeated name's record not read, `.record`), its
+  `ACCESSION.VERSION` (VERSION's, else ACCESSION's first) an alias where it names no other record, `circular` a cyclic
+  system, the molecule its alphabet (`aa` protein, a type with `RNA` rna, else dna), its length ORIGIN's letters'
+  (digits and whitespace dropped, case kept as read) and LOCUS's without an ORIGIN (ranges only); letters that disagree
+  with LOCUS: the letters win (`.length`, warning). DEFINITION (its continuation lines) and SOURCE's ORGANISM are the
+  record's (`GenbankSource.records`: the protocol's `SystemInfo` has no description); REFERENCE, COMMENT, DBLINK,
+  KEYWORDS and every other header field skipped, one issue with its count (`.header`, info). Lines before the first
+  `LOCUS` and between records are read past. A record of a CONTIG, WGS, WGS_SCAFLD, TSA or TLS assembly of other records
+  is not read (`.record`, warning).
+- **Refused, the file** (`seq.source.malformed`): no `LOCUS` line; no complete record; a protein record's letters
+  outside the language's protein letters (`[A-Za-z*-]`). The last record cut short (no `//` at the end of the file) is
+  left out and said (`.record`), the records before it kept. A line from the first column ends a feature table, so a
+  quote never closed never takes the rest of the file.
+- **Features as ranges**: a feature a line indented less than 21 columns (its key, then its location), its qualifiers
+  `/name=value` or `/name` (the value `true`), a quoted value over lines joined by a space, `""` a quote; a line inside
+  quotes is its text whatever it starts with, but a line at the key's indent (under 21) with a key and a location's
+  start: the quote was left open, closed there with the text it has (`.feature`, warning, the qualifier's line), the
+  line a feature of its own (never swallowed up to the next qualifier's quote); a quote open at the table's end is
+  closed so too. Each feature an item: `category` its key, `label` `/label`, else `/gene`, else `/locus_tag`, else the
+  key; every other qualifier a category field by its name in order of first use, at most 256 names (`.names`; a
+  qualifier named as a fixed field is that field's), a name repeated in a feature joined by `; ` (its values each its
+  name in the index); `/translation` never held (`.translation`, info, counted); `partial_start`, `partial_end` (int8, 1
+  for a `<` or `>` anywhere in the location); `strand` from `complement` (all pieces −1, none 1, mixed 0; a protein's
+  0). **Identity** (EC-196): `<key>@<first>-<last>`, the hull from 1, ends inclusive (an origin join's last past the
+  length, as GFF3 writes it), `#2`, `#3` on a repeat in file order. Pieces, their item's extent on every row and span
+  rows as GFF3's (`internal/items.ts`).
+- **Locations** (`parseLocation(text, length, circular, maxPieces)`, whitespace dropped, one pass, never a throw):
+  `a..b`, a single base `a`, `a.b` read as its hull (`.approximate`, info), `<` and `>` partial ends, `complement(…)`,
+  `join(…)`, `order(…)` nested as INSDC writes them (`complement(join(…))`, `join(complement(…),…)`), at most 16
+  operators deep (`MaxDepth`; a 17th refused) and `maxLocationPieces` pieces, its text at most 64 characters a piece
+  before it is held. Pieces sorted, overlapping or touching ones one. **A join over a circular record's origin**
+  (`join(2600..2686,1..120)`, either strand's form): read in the numbering's direction, the pieces after a step back a
+  lap on, so the item is one piece `[2599, 2806)` past the length, which the row reader wraps (the cyclic system's wrap,
+  Records); more than one lap, or an end past 2^31 − 1, is refused. On a linear record the same text is two pieces where
+  they are. Only a `join` wraps: INSDC's `order(…)` says nothing of its pieces' order, so its pieces are where they are
+  on a circular record too (`order(50..60,10..20)` two pieces). **Refused per feature, never the file** (`.location`,
+  warning, its reason and line): a remote reference (`J00194.1:100..202`), a site `a^b`, a position past the record's
+  length (EC-51: never clipped into a wrong place), an end before its start, nested too deep, too many pieces, malformed
+  text (`gap(…)` too).
+- **Tables**: `letters` (level 1 only) and `ranges` lists at level 1 and at the level whose one tile holds the longest
+  record (`wholeLevel`; a coarse tile is its ranges alone).
+- **Names** (EC-228): `findNames` over `/label`, `/gene`, `/locus_tag` (a hit the item's `id` and extent) and the
+  records' LOCUS names and accessions (`locus`, `accession`: the whole sequence, no `id`), a map built once at open,
+  exact names first, then by prefix; `Coverage.names` those five fields.
+- **Bounds**: bytes (`limits.maxBytes`), features (`limits.maxRows`), records (`maxRecords`), a record's letters (2^31 −
+  1): the file refused (`seq.source.too_large`); a feature's qualifiers (`maxQualifiers`), a qualifier's text
+  (`maxQualifierBytes`, a repeated name's together, a DEFINITION's too: it stops growing there), a location's pieces
+  (`maxLocationPieces`) and nesting (16): the feature left out, said. Each counted before what it bounds is held; every
+  search stays in its line (counted in the quick lane).
+- **Configuration** (`genbankRuntime(over)`; `GenbankRuntime` is `genbankRuntime()`):
+
+  | Item                | Default | Why the default; the alternatives                                     |
+  | ------------------- | ------- | --------------------------------------------------------------------- |
+  | `maxRecords`        | 1,000   | a file of a genome's chromosomes and plasmids, a batch of clones; any |
+  | `maxQualifiers`     | 256     | GFF's attributes a row; NCBI writes a few tens at most; any           |
+  | `maxQualifierBytes` | 64 KiB  | the longest `/note` or `/product`; `/translation` is never held; any  |
+  | `maxLocationPieces` | 10,000  | a gene of thousands of exons (titin's 363); any                       |
+
+- **Tests**: the location grammar (every form, nesting, partial ends, the origin join on both strands, each refusal);
+  records (letters, alphabets, aliases, several records, a repeated name, no ORIGIN, a CONTIG); features (ids, labels,
+  qualifiers, strand, pieces); the name index; the examples' generated plasmid record
+  (`fixtures/plasmid/ pUC19c-rotated.gb`); fuzzed and truncated files without a throw (EC-40, EC-92); each bound; the
+  searches counted; the real record L09137.2 as NCBI GenBank serves it (`fixtures/plasmid/L09137.2.gb`: one cyclic
+  record SYNPUC19CV, its accession an alias, its letters the recorded FASTA's, its one `source` feature, found by name).
+  The generated record holds the GFF3's sites as `protein_bind` and wraps its qualifiers at spaces (read back
+  unchanged). Its synthetic twin is `delayedRuntime(GenbankRuntime)`.
+- **Performance**: 10,000 features opened under 100 ms (heavy, `itWithin`), 1,000 in the quick lane; 50 lines of a
+  million spaces in a quote never closed under 200 ms (heavy). Size: its own row under 30 kB (24.5 kB minified, io's
+  BGZF reader in it); in no viewer bundle.
 
 ### mmCIF
 
