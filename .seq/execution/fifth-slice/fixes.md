@@ -14,16 +14,6 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   Also from the look: the dot plot draws no lines between block-pair cells, so "a cell a pair of chromosomes" is not
   visible. To the next fix lane (after HC, which sets the linked views' emphasis rule).
 
-- **Allocation readings that depend on the process, not the code** (the orchestrator, 2026-11-22, FX14 and LA3; kind:
-  perf, a gate's trust): three warm-step cases read differently by what ran before them in the file: the storybook
-  `section-scroll.quick.ts` wheel step (0 B alone, 40 B and 80 B in a full-file run, with the fast path taken at every
-  x; a bare getter read 40 B in one process; FX14's two-case probe is in the orchestrator's scratchpad), the
-  `chromosome` "between two levels" pan (55,9xx–56,1xx B against its 56,000 bound across runs), and the core
-  `navigator-blocks` 3,000-contig leak control (112 KB, failing in alternate runs). A gate that flips by run order
-  blocks merges at random or hides a real allocation. To a perf lane (strong): find each cause with a heap profile
-  (V8 state, the harness's warm-up or GC accounting, or real allocation), make the harness isolate a case from its file's
-  history if that is the cause, and keep each bound honest (no loosening).
-
 - **One hover contract for every mark, and a sweep that holds it** (the author, 2026-11-21, Examples › Plasmid › Ring
   at scale: the strands' density bands on the ring and in the detail show no hover box or card; "we should not be
   fixing this one-by-one btw. since we already fixed a similar issue, we need a general rule for this and global
@@ -181,6 +171,16 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   (`pos:ref>alt`), its category and its INFO fields, as the design's matrix row "a variant allele" implies.
 
 ## Fixed
+
+- **Allocation readings that depend on the process, not the code** (the orchestrator, 2026-11-22, FX14 and LA3; kind:
+  perf, a gate's trust): three warm-step cases read differently by what ran before them in the file: the storybook
+  `section-scroll.quick.ts` wheel step (0 B alone, 40 B and 80 B in a full-file run, with the fast path taken at every
+  x; a bare getter read 40 B in one process; FX14's two-case probe is in the orchestrator's scratchpad), the
+  `chromosome` "between two levels" pan (55,9xx–56,1xx B against its 56,000 bound across runs), and the core
+  `navigator-blocks` 3,000-contig leak control (112 KB, failing in alternate runs). A gate that flips by run order
+  blocks merges at random or hides a real allocation. To a perf lane (strong): find each cause with a heap profile
+  (V8 state, the harness's warm-up or GC accounting, or real allocation), make the harness isolate a case from its file's
+  history if that is the cause, and keep each bound honest (no loosening). Fixed by PF (`ebc7b0ad6`): the wheel step's 80 B were two closures V8 allocated once a second viewer deoptimized the path (`FrameClock.schedule`, the `sectionWheel` getter), now 0 B in either order; the chromosome pan's growth (37 to 56 KB) was `formatGenomic` parsing its spec per call since CF, the ruler now caches its labels (39.6 KB); the navigator, bridge, categorical grid and 2OCJ cases carry a 4 KB control scaled to their KB a step (the 88 B one is below the harness's resolution there). Proposed, not done: the harness's control scaled by the case, and `formatGenomic` parsing once in `@molstar/core` (TODO, the author's).
 
 - **The render CLI's PNG test fails since VL** (the orchestrator, 2026-11-22; kind: bug, a missed check):
   `cli/seqx-render/src/_test/png.test.ts` "the probe pixels of every track are the SVG's fills" (light and dark, 1x
