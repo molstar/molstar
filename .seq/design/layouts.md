@@ -613,7 +613,7 @@ more than a screen can give it, it scrolls inside itself with its name and the t
   section or band that scrolls later share one rail: one placement (`placeUpright`), one drawing, one hit, one gesture
   (hover grows it, its window dragged, a press beside it pages toward the press, Page keys and Home/End with the cursor
   in its box, Escape cancels a drag). They differ only in what the rail can do: grips where the box also zooms (rows),
-  none where it only pans. Why: a scroll affordance that looks the same but answers differently is worse than none.
+  none where it only pans. Why: a scroll affordance that looks the same but answers differently is worse than none. The look (the author, 2026-11-22, D1 picked over a capsule, a groove and a quiet variant: "i like the simple look of today's one .. it just needs some polish"): the hairline inset by the well's corner radius; the window a heavier segment in a mid ink (`msui-text` at 55%; `navigator.rail.tint: accent` for the accent tint); a round knob with a 1 px ring in the well's ground at each end where the box zooms, growing about its centre (rest 5, hovered 10, dragged 12 px; it may overhang the row); pan-only rails round caps; at the fit the hairline's weight with small knobs. A rail's hover is its own: no card, no data hover, no header actions.
 - **A section scrolls past its cap, whatever its layout** (the author, 2026-11-22: "not just text sections. imagine
   having multiple tracks with standard features, these should be scrollable too. and 600px should definitely be
   configurable"): a tracks section whose tracks are taller than its box scrolls them (the section's viewport `top`)

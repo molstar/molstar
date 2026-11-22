@@ -320,12 +320,6 @@ export interface Emphasis {
    * submenu is open, wherever the pointer is (_spec/README.md "Behaviors", Headers).
    */
   readonly menu?: string;
-  /**
-   * The track whose row the pointer is in (its header, its bands, a gap between its blocks, a rail over it): its
-   * header's actions stay shown anywhere in the row and go only when the pointer leaves it (_spec/README.md "Behaviors",
-   * Headers), whatever the hover hits there.
-   */
-  readonly row?: string;
   /** The highlight channels in the order they were set: each a tint of its color (the `highlight` pass). */
   readonly highlights?: readonly EmphasisHighlight[];
   /** The window being dragged (its hit): a rail is drawn grown while its drag runs, wherever the pointer goes. */

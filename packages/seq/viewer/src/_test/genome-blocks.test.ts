@@ -466,7 +466,7 @@ describe('a genome in the viewer', () => {
     expect(sectionOf(v, Genome).blocks![1].axis.dir).toBe(1);
   });
 
-  it('a run of small blocks: its hover names the block under the point and the run’s count, not read at this zoom', async () => {
+  it('a run of small blocks: the rail’s hit names the block under the point and the run’s count, not read at this zoom', async () => {
     frames = installFrames();
     const viewer = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined });
     viewers.push(viewer);
@@ -488,19 +488,11 @@ describe('a genome in the viewer', () => {
     expect(h).toMatchObject({ target: 'window', part: 'outside', count: 400 });
     expect(viewer.view.resolved.value!.sections[0].blocks![h.block!].label).toMatch(/^ctg\d+$/);
     viewer.input.move(x, (p.tracksTop + p.tracksBottom) / 2);
-    expect(viewer.hover.current).toMatchObject({ target: 'window', count: 400, section: '/views/v/genome' });
-    const { Describer } = await import('../describe.js');
-    const card = new Describer({
-      spec: viewer.spec,
-      store: viewer.store,
-      addresses: viewer.addresses,
-      view: viewer.view,
-      layout: () => viewer.frame?.layout,
-    }).describe(viewer.hover.current)!;
-    expect(card.rows).toContainEqual({ label: 'Run', value: 'one of 400' });
-    // a contig a device pixel wide is read (its strip); one narrower is not, and says so
-    if (p.strips.atX(x) < 0) expect(card.rows).toContainEqual({ label: 'Data', value: 'not read at this zoom' });
-    expect(card.text).toMatch(/^ctg\d+, one of 400/);
+    // the rail's hover is its own: no data hover, so no card
+    viewer.draw();
+    expect(viewer.hover.current.layer).toBeUndefined();
+    expect(viewer.emphasis.hover).toMatchObject({ target: 'window', count: 400 });
+    // a contig a device pixel wide is read (its strip); one narrower is not, and says so (in the hit)
     let unread = -1;
     for (let px = Math.ceil(p.runX[0]); px < p.runX[0] + p.runW[0]; px += 0.25)
       if (p.strips.atX(px) < 0) {

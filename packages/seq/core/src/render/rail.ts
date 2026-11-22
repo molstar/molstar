@@ -16,6 +16,7 @@ import {
 } from '@molstar/seqx-core/view';
 import type { AxisTransform, Viewport } from './axis.js';
 import type { RenderConfig } from './config.js';
+import { Round } from './draw-lists.js';
 import type { PassWriter } from './draw-lists.js';
 import type { Box, Emphasis, Hit, HitTarget } from './layer-type.js';
 import { collapsedSection } from './headers.js';
@@ -80,6 +81,8 @@ export class Rail {
   y = 0;
   top = 0;
   bottom = 0;
+  /** The ends' inset along the rail, px (the well's corner radius): already in `x` and `width`. */
+  inset = 0;
   /** A slim row of its own (no ruler shown). */
   slim = false;
   /** Pinned to the bottom edge of the view's visible frame (`pinned`), outside the section's rows. */
@@ -112,13 +115,21 @@ export class Rail {
   };
 }
 
+/**
+ * Sets the rail's axis along it: the data box's span, inset at both ends by the well's corner radius (never past its
+ * rounded corner), so every reader of `x` and `width` (the drag, the hit, the draw)
+ * maps the same pixels.
+ */
+function setAlong(rail: Rail, x: number, width: number, config: RenderConfig): void {
+  const r = Math.max(0, Math.min(config.squircleMax, width / 4));
+  rail.inset = r;
+  rail.x = x + r;
+  rail.width = width - 2 * r;
+}
+
 /** The rail's thickness: a line a hint, a figure's window a segment twice it (a usable rail's at rest is a line too). */
 const Line = 1;
 const Rest = 2;
-/** A grip's height over the segment's. */
-const GripRise = 3;
-/** An idle window's opacity: quiet. */
-const IdleAlpha = 0.4;
 
 /**
  * The display unit at a point on a rail (the whole axis along it): what a drag on it reads; `x` along the rail (a rows
@@ -156,8 +167,7 @@ export function placeRail(
   rail.id = sectionId;
   rail.system = section.axis.system;
   rail.blocks = section.blocks;
-  rail.x = axis.x0;
-  rail.width = axis.width;
+  setAlong(rail, axis.x0, axis.width, config);
   rail.slim = !ruler;
   if (ruler) {
     // in the row just below the ruler's bottom border (its well grown by it), clear of its ticks and labels; the grab
@@ -212,7 +222,15 @@ export function placeRail(
  * Places a rows layer's rail (`track` its address): upright at `x` (its left side, `SlimRailPx` wide), along the band's
  * scrolled area (below the pinned rows), its window the rows in view, in display rows below the pinned band.
  */
-export function placeRowsRail(rail: Rail, lay: RowsLay, track: string, sectionId: string, x: number, figure = false) {
+export function placeRowsRail(
+  rail: Rail,
+  lay: RowsLay,
+  track: string,
+  sectionId: string,
+  x: number,
+  config: RenderConfig,
+  figure = false,
+) {
   const d = lay.display;
   const rows = Math.max(0, d.count - d.pinned);
   const area = Math.max(0, lay.box.height - lay.pinnedHeight);
@@ -231,6 +249,7 @@ export function placeRowsRail(rail: Rail, lay: RowsLay, track: string, sectionId
     rows,
     start,
     Math.max(start, Math.min(rows, lay.top + area / Math.max(1e-9, lay.rowScale))),
+    config,
   );
   // idle only when the window can neither move nor shrink: every row shown, and shown still at the zoom-in limit (as a
   // ruler rail's: the whole axis in view and the axis fitting at the most px a position)
@@ -252,6 +271,7 @@ function placeUpright(
   total: number,
   start: number,
   end: number,
+  config: RenderConfig,
 ) {
   rail.section = section;
   rail.key = track;
@@ -262,8 +282,7 @@ function placeUpright(
   rail.figure = figure;
   rail.id = sectionId;
   rail.system = system;
-  rail.x = y;
-  rail.width = area;
+  setAlong(rail, y, area, config);
   rail.slim = true;
   rail.top = x;
   rail.bottom = x + SlimRailPx;
@@ -292,6 +311,7 @@ export function placeLanesRail(
   lanes: number,
   room: number,
   top: number,
+  config: RenderConfig,
 ) {
   placeUpright(
     rail,
@@ -307,6 +327,7 @@ export function placeLanesRail(
     lanes,
     top,
     Math.min(lanes, top + room),
+    config,
   );
   // it exists only while its lanes overflow: always a target
   rail.active = true;
@@ -355,8 +376,9 @@ function emit(out: PassWriter, vertical: boolean): void {
 }
 
 /**
- * The window pass: the rail's line, its breaks' notches, the window's segment and its grips (lit, grown); idle a
- * hairline at a quiet opacity, no grips (at the fit it reads as the line); a figure's a plain segment, no grips.
+ * The window pass (_spec/README.md "Render", Navigators, The ruler rail): the hairline the axis's length, its breaks'
+ * notches, the window a heavier segment on it with a round knob at each end where the box zooms (round caps on a pan-only
+ * rail); idle (the view cannot move) a quiet hairline, no knobs; a figure's a plain segment, no knobs.
  */
 export function drawRail(
   rail: Rail,
@@ -365,84 +387,162 @@ export function drawRail(
   tokens: SeqTokens,
   config: RenderConfig,
 ) {
-  const g = out.args;
-  const line = tokens.colors['msui-line'];
   if (rail.pinned) {
     // pinned over the frame's foot: its own ground, so what the frame clips never shows through it
-    g[0] = rail.x;
+    const g = out.args;
+    g[0] = rail.x - rail.inset;
     g[1] = rail.top;
-    g[2] = rail.width;
+    g[2] = rail.width + 2 * rail.inset;
     g[3] = rail.bottom - rail.top;
     g[4] = tokens.colors['msui-bg'];
     emit(out, false);
   }
-  g[0] = rail.x;
-  g[1] = rail.y - Line / 2;
-  g[2] = rail.width;
-  g[3] = Line;
-  g[4] = line;
-  emit(out, rail.vertical);
-  for (let i = 0; i < rail.breaks.length; i++) {
-    g[0] = rail.x + (rail.breaks[i] / rail.total) * rail.width - 0.5;
-    g[1] = rail.y - 2;
-    g[2] = 1;
-    g[3] = 4;
-    g[4] = line;
-    emit(out, rail.vertical);
-  }
-  if (!(rail.total > 0)) return;
   const h = emphasis?.hover;
   const d = emphasis?.drag;
   const own = rail.hit.navigator;
   const lit = h?.target === 'window' && h.navigator === own && h.layer === rail.key ? h.part : undefined;
   const dragged = d !== undefined && d.navigator === own && d.layer === rail.key;
-  const plain = rail.active || rail.figure;
   // a place hovered outside the window (at the fit, its whole body): its position marked, the rail never grown or lit
   const place = lit === 'outside' && !dragged && !Number.isNaN(rail.markAt);
-  const grown = rail.active && ((lit !== undefined && !place) || dragged);
-  // at rest (usable, not hovered or dragged, not in a figure): 1 px and muted, the accent only while used
-  const rest = rail.active && !rail.figure && !grown;
-  const t = grown ? config.navigator.rail.grownPx : rest ? Line : plain ? Rest : Line;
-  const ink = tokens.colors['seq-window'];
-  const color = rest
-    ? tokens.colors['seq-grip']
-    : plain
-      ? ink
-      : ((ink & 0xffffff00) | Math.round(IdleAlpha * 255)) >>> 0;
+  const used = rail.active && ((lit !== undefined && !place) || dragged);
+  paint(rail, out, tokens, config, used, dragged, place, dragged ? d.part : lit);
+}
+
+/** A color with its alpha set (0 to 1). */
+function withAlpha(color: number, a: number): number {
+  return ((color & 0xffffff00) | Math.round(a * 255)) >>> 0;
+}
+
+/** The capsule's numbers (along, length, thickness, fill), set by `pill`'s callers: a call boxes the numbers it is passed. */
+const Pl = new Float64Array(4);
+
+/** A disc's numbers (along, diameter, fill), set by its callers: a call boxes the numbers it is passed. */
+const Dk = new Float64Array(3);
+const DiscPoints = new Float64Array(2 * 24);
+
+/**
+ * A disc centred on the rail's line at `Dk[0]` along it (a path of 24 points: a squircle rect is no circle), its
+ * diameter `Dk[1]`, its fill `Dk[2]`.
+ */
+function discOut(out: PassWriter, rail: Rail): void {
+  const r = Dk[1] / 2;
+  if (!(r > 0)) return;
+  for (let i = 0; i < 24; i++) {
+    const a = (i / 24) * 2 * Math.PI;
+    const u = Dk[0] + r * Math.cos(a);
+    const v = rail.y + r * Math.sin(a);
+    DiscPoints[2 * i] = rail.vertical ? v : u;
+    DiscPoints[2 * i + 1] = rail.vertical ? u : v;
+  }
+  const g = out.args;
+  g[4] = Dk[2];
+  g[5] = 0;
+  g[6] = 0;
+  g[7] = 0;
+  out.pathArgs(DiscPoints, 24, true);
+}
+
+/** A capsule: `len` along the rail from `a`, `t` thick across, centred on the rail's line, round caps of half its thickness. */
+function pillOut(out: PassWriter, rail: Rail): void {
+  const a = Pl[0];
+  const len = Pl[1];
+  const t = Pl[2];
+  const fill = Pl[3];
+  if (!(len > 0) || !(t > 0)) return;
+  const g = out.args;
+  const c = rail.y - t / 2;
+  g[0] = rail.vertical ? c : a;
+  g[1] = rail.vertical ? a : c;
+  g[2] = rail.vertical ? t : len;
+  g[3] = rail.vertical ? len : t;
+  g[4] = fill;
+  g[5] = 0;
+  g[6] = 0;
+  g[7] = Math.min(t, len) / 2;
+  g[8] = Round.both;
+  out.rectArgs();
+}
+
+/**
+ * The rail's picture: the hairline `msui-line`, the window a heavier segment in a mid ink (`msui-text` at 55%; the
+ * `accent` tint `msui-accent` at 55%), both in full ink (`seq-window`) and `grownPx` while used; a round knob at each end
+ * of the window where the box zooms (the segment's colour, a 1 px ring in `msui-bg`, growing about its centre while
+ * used), round caps on the segment where it only pans. At the fit the segment is the hairline's weight and colour with
+ * small knobs.
+ */
+function paint(
+  rail: Rail,
+  out: PassWriter,
+  tokens: SeqTokens,
+  config: RenderConfig,
+  used: boolean,
+  dragged: boolean,
+  place: boolean,
+  part: WindowPart | undefined,
+): void {
+  const line = tokens.colors['msui-line'];
+  const full = tokens.colors['seq-window'];
+  const mid = withAlpha(tokens.colors[config.navigator.rail.tint === 'accent' ? 'msui-accent' : 'msui-text'], 0.55);
+  const bg = tokens.colors['msui-bg'];
+  Pl[0] = rail.x;
+  Pl[1] = rail.width;
+  Pl[2] = Line;
+  Pl[3] = line;
+  pillOut(out, rail);
+  if (!(rail.total > 0)) return;
+  for (let i = 0; i < rail.breaks.length; i++) {
+    Pl[0] = rail.x + (rail.breaks[i] / rail.total) * rail.width - 0.5;
+    Pl[1] = 1;
+    Pl[2] = 4;
+    Pl[3] = line;
+    pillOut(out, rail);
+  }
+  const fit = rail.start <= 0 && rail.end >= rail.total;
+  const quiet = fit && !used && !rail.figure;
+  const ink = used ? full : rail.figure ? mid : rail.active ? mid : withAlpha(line, 0.8);
+  const t = used ? config.navigator.rail.grownPx : quiet || (!rail.active && !rail.figure) ? Line : Rest;
   windowEnds(rail, config);
-  const wraps = rail.end > rail.total;
-  // over a cyclic origin the second piece from the axis's start to the window's true end
-  const b = wraps ? rail.x + ((rail.end - rail.total) / rail.total) * rail.width : Ends[1];
-  for (let k = 0; k < (wraps ? 2 : 1); k++) {
-    g[0] = k === 0 ? Ends[0] : rail.x;
-    g[1] = rail.y - t / 2;
-    g[2] = k === 0 ? Ends[1] - Ends[0] : b - rail.x;
-    g[3] = t;
-    g[4] = color;
-    emit(out, rail.vertical);
+  const lo = rail.x;
+  const hi = rail.x + rail.width;
+  const a = Math.max(lo, Ends[0]);
+  const b = Math.min(hi, Ends[1]);
+  const segment = quiet && rail.active ? line : ink;
+  Pl[0] = a;
+  Pl[1] = b - a;
+  Pl[2] = t;
+  Pl[3] = segment;
+  pillOut(out, rail);
+  if (rail.end > rail.total) {
+    Pl[0] = lo;
+    Pl[1] = ((rail.end - rail.total) / rail.total) * rail.width;
+    Pl[2] = t;
+    Pl[3] = segment;
+    pillOut(out, rail);
   }
   if (!rail.active) return;
   if (place) {
-    g[0] = Math.max(rail.x, Math.min(rail.x + rail.width, rail.markAt)) - 0.75;
-    g[1] = rail.y - (Line + 2 * GripRise) / 2;
-    g[2] = 1.5;
-    g[3] = Line + 2 * GripRise;
-    g[4] = ink;
-    emit(out, rail.vertical);
+    Pl[0] = Math.max(lo, Math.min(hi, rail.markAt)) - 0.75;
+    Pl[1] = 1.5;
+    Pl[2] = 7;
+    Pl[3] = full;
+    pillOut(out, rail);
   }
-  // grips only where the box also zooms (rows): a lanes rail pans
-  if (own === LanesRail) return;
-  const grip = tokens.colors['seq-grip'];
-  const part = dragged ? d.part : lit;
-  const gh = t + 2 * GripRise;
-  for (let k = 0; k < 2; k++) {
-    const on = part === 'body' || (k === 0 ? part === 'start' : part === 'end');
-    g[0] = k === 0 ? Ends[0] - 2 : b;
-    g[1] = rail.y - gh / 2;
-    g[2] = 2;
-    g[3] = gh;
-    g[4] = on ? ink : grip;
-    emit(out, rail.vertical);
+  if (rail.hit.navigator === LanesRail) return;
+  // the knobs, circles centred on the window's true ends (a wrapped window's second piece ends before the axis's end):
+  // 5 px at rest (4 at the fit), 10 hovered, 12 dragged, the hovered end one more, each about its centre; they may
+  // overhang the slim row (nothing else is drawn on the rail's line, and the window pass is not clipped)
+  const wraps = rail.end > rail.total;
+  for (let e = 0; e < 2; e++) {
+    const end = part === (e === 0 ? 'start' : 'end');
+    const dia = (quiet ? 4 : used ? (dragged ? 12 : 10) : 5) + (used && end ? 1 : 0);
+    const c = e === 0 ? a : wraps ? lo + ((rail.end - rail.total) / rail.total) * rail.width : b;
+    Dk[0] = c;
+    Dk[1] = dia + 2;
+    Dk[2] = bg;
+    discOut(out, rail);
+    Dk[1] = dia;
+    Dk[2] = segment;
+    discOut(out, rail);
   }
 }
 
@@ -452,19 +552,20 @@ export function drawRail(
  * at its true ends only.
  */
 export function hitRail(rail: Rail, px: number, py: number, config: RenderConfig, touch = false): Hit | undefined {
-  // along the rail and across it (upright: the page's y and x)
+  // along the rail and across it (upright: the page's y and x); the grab zone reaches the inset (the old extent), a press
+  // there is at the axis's end (the unit is clamped)
   const x = rail.vertical ? py : px;
   const y = rail.vertical ? px : py;
   if (!rail.active || !(rail.total > 0) || y < rail.top || y >= rail.bottom) return undefined;
   const c = config.navigator.window;
   windowEnds(rail, config);
-  let part = navigatorPart(x, Ends[0], Ends[1], rail.x, rail.x + rail.width, c, touch);
+  let part = navigatorPart(x, Ends[0], Ends[1], rail.x - rail.inset, rail.x + rail.width + rail.inset, c, touch);
   if (rail.end > rail.total) {
     // the first piece runs to the axis's end: its end there is body
     if (part === 'end') part = 'body';
     if (part === 'outside') {
       const b = rail.x + ((rail.end - rail.total) / rail.total) * rail.width;
-      part = navigatorPart(x, rail.x, b, rail.x, rail.x + rail.width, c, touch);
+      part = navigatorPart(x, rail.x, b, rail.x - rail.inset, rail.x + rail.width + rail.inset, c, touch);
       if (part === 'start') part = 'body';
     }
   }

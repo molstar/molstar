@@ -101,6 +101,7 @@ limits (they were sort of self-imposed and estimate), but obviously try to minim
   only the picture differs (the author: built "with the navigation tracks"). The rail is EC-110's strip at its
   thinnest, not a fifth kind: the same `window` target and parts (`body` pans, `start` and `end` zoom, `outside`
   centres or sweeps), drawn on the ruler instead of a row of its own.
+- **The rail's look**: The look (the author, 2026-11-22, D1 picked over a capsule, a groove and a quiet variant: "i like the simple look of today's one .. it just needs some polish"): the hairline inset by the well's corner radius; the window a heavier segment in a mid ink (`msui-text` at 55%; `navigator.rail.tint: accent` for the accent tint); a round knob with a 1 px ring in the well's ground at each end where the box zooms, growing about its centre (rest 5, hovered 10, dragged 12 px; it may overhang the row); pan-only rails round caps; at the fit the hairline's weight with small knobs. A rail's hover is its own: no card, no data hover, no header actions.
 - **The rail is every linear section's navigator by default** (`navigator.form`: `rail`), with no node in the spec
   (a declared navigator replaces it on the sections it binds, as does a host's `viewer.navigator(def)` part; a hidden
   declared navigator brings the rail back): on a section with a ruler track it is drawn just below that ruler's bottom border, in a 12 px row of its own on the

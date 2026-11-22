@@ -927,6 +927,29 @@ describe('the ruler rail on the canvas', () => {
     expect(readRects(v.frame!.lists, 'window').some((x) => x.h === grown)).toBe(false);
   });
 
+  it('a pointer on the rail is the rail’s hover alone: no data hover, so no card', async () => {
+    const { v, rail: r } = await rail();
+    const k = r.width / r.total;
+    v.input.move(r.x + 125 * k, r.bottom - 2);
+    expect(v.input.windowHit).toBeDefined();
+    expect(v.hover.current.layer).toBeUndefined();
+  });
+
+  it('the pointer leaving the canvas without another move leaves the rail unlit and not grown', async () => {
+    const { v, rail: r } = await rail();
+    const k = r.width / r.total;
+    const y = r.bottom - 2;
+    v.input.move(r.x + 125 * k, y);
+    v.draw();
+    const grown = v.context.renderConfig.navigator.rail.grownPx;
+    expect(v.input.windowHit).toBeDefined();
+    expect(readRects(v.frame!.lists, 'window').some((x) => x.h === grown)).toBe(true);
+    v.input.leave();
+    v.draw();
+    expect(v.input.windowHit).toBeUndefined();
+    expect(readRects(v.frame!.lists, 'window').some((x) => x.h === grown)).toBe(false);
+  });
+
   it('hidden by the host (`navigator.form: none`) or the reader (the corner button)', async () => {
     const v = await make(spec({ ruler: true, strip: false }), [[viewerItem('navigator.form'), 'none']]);
     expect(v.frame!.layout.sections[0].rail).toBeUndefined();
