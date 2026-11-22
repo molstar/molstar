@@ -136,7 +136,7 @@ describe('Host data: the fake serving 2OCJ', () => {
     for (let i = 0; i < a.length; i++) expect(b[i].node).toEqual(a[i].node);
     // the tracks read the source's channel: bars (not the gray base alone) on the modeled residues, and the same bars
     const lists = drawn(host.v);
-    expect(lists.match(/^rect .* #5b7c99ff$/gm)?.length ?? 0).toBeGreaterThan(100);
+    expect(lists.match(/^rect .* #5b7c9999 squircle 2 cut-bottom$/gm)?.length ?? 0).toBeGreaterThan(100);
     expect(lists).toBe(drawn(file.v));
   });
 
@@ -164,7 +164,7 @@ describe('Host data: the fake serving 2OCJ', () => {
     ]);
     const barsBefore = drawn(v)
       .split('\n')
-      .filter((l) => l.startsWith('rect') && l.endsWith('#5b7c99ff'));
+      .filter((l) => l.startsWith('rect') && l.includes(' #5b7c9999 squircle 2'));
     expect(fake.chainToDrop()).toBe('D');
     expect(fake.dropChain('D')).toBe(true);
     // nothing yet: the reopen is asked for the next frame
@@ -177,13 +177,15 @@ describe('Host data: the fake serving 2OCJ', () => {
     expect(v.store.store.getNode(HostSource, 'complex')!.version).toBeGreaterThan(complex.version);
     expect(reads).toEqual([]);
     // chain A's track is read again from the reopened source and its bars are as they were, D's gone
-    const bars = (t: string) => t.split('\n').filter((l) => l.startsWith('rect') && l.endsWith('#5b7c99ff'));
+    const bars = (t: string) =>
+      t.split('\n').filter((l) => l.startsWith('rect') && l.includes(' #5b7c9999 squircle 2'));
     expect(bars(drawn(v))).toEqual(barsBefore.slice(0, barsBefore.length / 2));
   });
 
   it('Drop chain: chain D’s track is blank a few frames later with no further input, chain A’s bars as they were', async () => {
     const { v, fake } = await open('fake');
-    const bars = (t: string) => t.split('\n').filter((l) => l.startsWith('rect') && l.endsWith('#5b7c99ff'));
+    const bars = (t: string) =>
+      t.split('\n').filter((l) => l.startsWith('rect') && l.includes(' #5b7c9999 squircle 2'));
     const before = bars(drawn(v));
     expect(before.length).toBeGreaterThan(200);
     fake.dropChain('D');

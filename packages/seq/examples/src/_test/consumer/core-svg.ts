@@ -14,6 +14,8 @@ export interface Box {
   readonly fill: string;
   readonly y: number;
   readonly h: number;
+  /** The fill's opacity (`fill-opacity`; 1 when absent). */
+  readonly alpha: number;
 }
 
 export interface CoreDrawn {
@@ -61,10 +63,11 @@ export function readCoreSvg(svg: string): CoreDrawn {
       fill: rgb(attr(t, 'fill')),
       y: Number(attr(t, 'y')),
       h: Number(attr(t, 'height')),
+      alpha: Number(attr(t, 'fill-opacity') ?? 1),
     });
   }
   const paths: Box[] = [];
-  for (const m of data.matchAll(/<path d="([^"]*)" fill="([^"]*)"\/>/g)) {
+  for (const m of data.matchAll(/<path d="([^"]*)" fill="([^"]*)"(?: fill-opacity="([^"]*)")?\/>/g)) {
     const nums = m[1].match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
     // an even index is x and an odd one y: the commands carry coordinates only
     const xs = nums.filter((_, i) => i % 2 === 0);
@@ -75,6 +78,7 @@ export function readCoreSvg(svg: string): CoreDrawn {
       fill: rgb(m[2]),
       y: Math.min(...ys),
       h: Math.max(...ys) - Math.min(...ys),
+      alpha: Number(m[3] ?? 1),
     });
   }
   const letters: { x: number; c: string; fill: string }[] = [];

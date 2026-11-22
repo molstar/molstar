@@ -234,7 +234,7 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
       and LA3.
 - [x] **LA2** (`briefs/la2-bridge-sides.md`; strong, alone in resolve and the store) a bridge reads each side over
       assemblies (a side in a request, ownership over multi-system sides), ribbons in the SVG group, LA's last tests.
-- [ ] **LA3** (strong, after LA2) grids over two sections (`follow_y` a second section), categorical grid axes, the
+- [ ] **LA3** (`briefs/la3-grids-categorical-liftover.md`; strong, after LA2) grids over two sections (`follow_y` a second section), categorical grid axes, the
       liftover (EC-212).
 - [ ] **GATE**.
 
