@@ -1465,7 +1465,7 @@ genotype classes) are not read yet.
   region) without a throw; each bound. Its synthetic twin is `delayedRuntime(VcfRuntime)`.
 - **Performance**: a region of 10,000 records decoded under 100 ms, sites (heavy, `itWithin`; about 30 ms measured),
   1,000 in the quick lane; 40,000 lines without tabs under 500 ms and a line of 100,000 flags under 200 ms (heavy), the
-  bytes and characters their searches scan counted in the quick lane. Size: its own row under 30 kB (24.8 kB minified,
+  bytes and characters their searches scan counted in the quick lane. Size: its own row under 30 kB (25.2 kB minified,
   io's BGZF reader in it), its lazy chunk (by region with io's tabix, 14.8 kB) loaded on first use; in no viewer bundle.
 
 ### mmCIF
