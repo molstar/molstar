@@ -5,7 +5,9 @@
  */
 
 import type { NameHit } from '../data/protocol.js';
-import type { GffItem } from './gff-assemble.js';
+import { type Assembly, type GffItem, mergeIntervals } from './gff-assemble.js';
+import type { GffCauses } from './gff-issues.js';
+import { type GffRow, MaxAttributes } from './gff-parse.js';
 import { lowerBound } from './internal/intervals.js';
 import type { ItemField as GenericField, SystemItems as GenericItems } from './internal/items.js';
 
@@ -106,4 +108,115 @@ export class NameIndex {
     }
     return out;
   }
+}
+
+/** What a source's items are: its transcripts (the default), its genes (transcripts merged) or the file's lines. */
+export type GffFeatures = 'transcripts' | 'genes' | 'rows';
+
+/** A whole-sequence feature's types: a feature of one over a whole sequence describes it (Ensembl writes one each). */
+export const Describing = new Set(['region', 'chromosome', 'supercontig']);
+
+/**
+ * Whether a row describes its sequence (a `region`, `chromosome` or `supercontig` feature from its first position to its
+ * length, or to its own end when no length is known, which it then gives): never an item.
+ */
+export function describes(r: GffRow, lengths: Map<string, number>): boolean {
+  if (!Describing.has(r.type) || r.start !== 0) return false;
+  const known = lengths.get(r.seqid);
+  if (known !== undefined && known !== r.end) return false;
+  if (known === undefined) lengths.set(r.seqid, r.end);
+  return true;
+}
+
+/** Attributes not served as fields: the identity and the hierarchy (`id` and the item's pieces say them). */
+const NotFields = new Set(['ID', 'Parent']);
+
+/** The items of the file's lines (`features: rows`): rows sharing an `ID` one item, its pieces those rows, collected
+ * once and merged once (linear in the lines). */
+export function rowItems(rows: readonly GffRow[]): (GffItem & { readonly row: GffRow })[] {
+  const out: (GffItem & { readonly row: GffRow })[] = [];
+  /** An `ID`'s item and the pieces its rows gave, merged at the end. */
+  const byId = new Map<string, { k: number; start: number; end: number; pieces: number[] }>();
+  const seen = new Map<string, number>();
+  for (const r of rows) {
+    if (r.id !== undefined) {
+      const g = byId.get(r.id);
+      if (g !== undefined) {
+        g.start = Math.min(g.start, r.start);
+        g.end = Math.max(g.end, r.end);
+        g.pieces.push(r.start, r.end);
+        continue;
+      }
+      byId.set(r.id, { k: out.length, start: r.start, end: r.end, pieces: [r.start, r.end] });
+    }
+    const base = r.id ?? `${r.type}:${r.start + 1}-${r.end}`;
+    const k = (seen.get(base) ?? 0) + 1;
+    seen.set(base, k);
+    out.push({
+      id: k === 1 ? base : `${base}#${k}`,
+      seqid: r.seqid,
+      type: r.type,
+      role: 'feature',
+      start: r.start,
+      end: r.end,
+      strand: r.strand,
+      pieces: [r.start, r.end],
+      attributes: r.attributes,
+      ...(r.lists ? { lists: r.lists } : {}),
+      line: r.line,
+      row: r,
+    });
+  }
+  for (const g of byId.values())
+    if (g.pieces.length > 2) out[g.k] = { ...out[g.k], start: g.start, end: g.end, pieces: mergeIntervals(g.pieces) };
+  return out;
+}
+
+/** The items a `features` mode serves, from the assembly (or the rows). */
+export function itemsOf(features: GffFeatures, a: Assembly, rows: readonly GffRow[]): GffItem[] {
+  if (features === 'rows') return rowItems(rows);
+  if (features === 'transcripts') return [...a.transcripts, ...a.features];
+  // one model a gene: the genes, and the transcripts with none (a gene-level item of their own); no other feature
+  const genes = new Set(a.genes.map((g) => g.id));
+  return [...a.genes, ...a.transcripts.filter((t) => t.gene === undefined || !genes.has(t.gene))];
+}
+
+/** The fields of the items: the fixed ones, then the attributes in order of first use, at most `MaxAttributes`. */
+export function itemFields(features: GffFeatures, items: readonly GffItem[], causes: GffCauses): ItemField[] {
+  const nan = (v: number | undefined) => (v === undefined ? Number.NaN : v);
+  const fixed: ItemField[] = [
+    { name: 'label', type: 'category', value: labelOf },
+    { name: 'type', type: 'category', value: (it) => it.type },
+  ];
+  if (features === 'rows') {
+    const row = (it: GffItem) => (it as GffItem & { row: GffRow }).row;
+    fixed.push(
+      { name: 'source', type: 'category', value: (it) => row(it).source },
+      { name: 'score', type: 'float32', value: (it) => row(it).score },
+      { name: 'phase', type: 'int8', value: (it) => row(it).phase },
+    );
+  } else
+    fixed.push(
+      { name: 'gene', type: 'category', value: (it) => it.gene ?? null },
+      { name: 'gene_name', type: 'category', value: (it) => it.geneName ?? null },
+      { name: 'thick_start', type: 'float64', value: (it) => nan(it.thickStart) },
+      { name: 'thick_end', type: 'float64', value: (it) => nan(it.thickEnd) },
+      { name: 'cds_phase', type: 'int8', value: (it) => it.cdsPhase ?? -1 },
+    );
+  const taken = new Set([...fixed.map((f) => f.name), 'strand']);
+  const keys: string[] = [];
+  const seen = new Set<string>();
+  let past = 0;
+  for (const it of items)
+    for (const k in it.attributes) {
+      if (seen.has(k) || NotFields.has(k) || taken.has(k)) continue;
+      seen.add(k);
+      if (keys.length < MaxAttributes) keys.push(k);
+      else past++;
+    }
+  if (past) causes.add('seq.source.gff.attributes', `More than ${MaxAttributes} attribute names: ${past} not fields`);
+  return [
+    ...fixed,
+    ...keys.map((k) => ({ name: k, type: 'category' as const, value: (it: GffItem) => it.attributes[k] ?? null })),
+  ];
 }

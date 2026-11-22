@@ -7,6 +7,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { PCG } from '@molstar/core/data/util/hash-functions';
+import { bgzip, type IndexedLine, tabixIndex } from '@molstar/test-harness/genome/bgzf-writer';
 
 // GFF3 and GTF written by a generator (the runtime's tests read each): genes of one to three transcripts, exons with a
 // CDS between UTRs on both strands, sorted by position, over a few sequences with their `##sequence-region`; and the
@@ -181,3 +182,34 @@ export function recordedSlice(name: string): Uint8Array {
 
 export const EnsemblTp53 = 'Homo_sapiens.GRCh38.116.chr.TP53.gff3.gz';
 export const GencodeTp53 = 'gencode.v50.annotation.TP53.gtf.gz';
+
+/**
+ * A GFF3 or GTF text bgzipped (blocks of `blockSize`) with its tabix index (GFF's preset: columns 1, 4, 5, 1-based,
+ * `#` meta) over `names`, each line's extent its own columns.
+ */
+export function indexedGff(text: string, names: readonly string[], blockSize = 4000) {
+  const enc = new TextEncoder();
+  const bytes = enc.encode(text);
+  const lines: IndexedLine[] = [];
+  for (let at = 0; at < bytes.length; ) {
+    let e = bytes.indexOf(10, at);
+    if (e < 0) e = bytes.length;
+    const stop = Math.min(bytes.length, e + 1);
+    if (bytes[at] !== 35 && e > at) {
+      const cells = new TextDecoder().decode(bytes.subarray(at, e)).split('\t');
+      lines.push({ seq: names.indexOf(cells[0]), begin: Number(cells[3]) - 1, end: Number(cells[4]), start: at, stop });
+    }
+    at = stop;
+  }
+  const file = bgzip(bytes, blockSize);
+  const index = tabixIndex(lines, file, {
+    kind: 'tbi',
+    format: 0,
+    zeroBased: false,
+    columns: [1, 4, 5],
+    meta: '#',
+    skip: 0,
+    names,
+  });
+  return { file: file.bytes, index };
+}

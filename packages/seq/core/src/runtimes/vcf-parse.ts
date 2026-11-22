@@ -6,8 +6,7 @@
 
 import { hashFnv32a } from '@molstar/core/data/util/hash-functions';
 import { type Column, type ColumnType, categoryColumn } from '@molstar/core/repr/tree';
-import type { FieldInfo, RangesField, RangesList, RegionAnswer, RegionRequest } from '../data/protocol.js';
-import { failure } from './internal/answers.js';
+import type { FieldInfo } from '../data/protocol.js';
 import { eachMeeting, type IntervalIndex, intervalIndex } from './internal/intervals.js';
 import { decodeText } from './internal/text.js';
 import type { VcfHeader } from './vcf-header.js';
@@ -210,6 +209,10 @@ export class VcfRowsBuilder {
   readonly start: number[] = [];
   readonly end: number[] = [];
   readonly key: string[] = [];
+  /** Each row's line (its bytes' span in what was parsed) and its allele's number on it (1 the first ALT). */
+  readonly lineStart: number[] = [];
+  readonly lineEnd: number[] = [];
+  readonly allele: number[] = [];
   /** The fixed fields' values, then the INFO fields'. */
   readonly values: (string | number | null)[][];
   private readonly seen = new Map<string, number>();
@@ -226,20 +229,41 @@ export class VcfRowsBuilder {
     return this.start.length;
   }
 
-  finish(): VcfRows {
+  /** The rows, over the bytes their lines were parsed from (`bytes`: a matrix's genotypes are read from them). */
+  finish(bytes: Uint8Array): VcfRows {
     const start = Int32Array.from(this.start);
     const end = Int32Array.from(this.end);
     let maxEnd = 0;
     for (let i = 0; i < end.length; i++) if (end[i] > maxEnd) maxEnd = end[i];
-    return { start, end, key: this.key, values: this.values, index: intervalIndex(start, end), maxEnd };
+    return {
+      start,
+      end,
+      key: this.key,
+      values: this.values,
+      index: intervalIndex(start, end),
+      maxEnd,
+      bytes,
+      lineStart: Uint32Array.from(this.lineStart),
+      lineEnd: Uint32Array.from(this.lineEnd),
+      allele: Uint16Array.from(this.allele),
+    };
   }
 
-  /** A row of an allele of a parsed line. */
-  push(begin: number, end: number, key: string, values: readonly (string | number | null)[]) {
+  /** A row of an allele (its number on the line, 1 the first ALT) of a parsed line `[s, e)`. */
+  push(
+    begin: number,
+    end: number,
+    key: string,
+    values: readonly (string | number | null)[],
+    line: { readonly s: number; readonly e: number; readonly allele: number },
+  ) {
     const n = (this.seen.get(key) ?? 0) + 1;
     this.seen.set(key, n);
     this.start.push(begin);
     this.end.push(end);
+    this.lineStart.push(line.s);
+    this.lineEnd.push(line.e);
+    this.allele.push(line.allele);
     this.key.push(n === 1 ? key : `${key}#${n}`);
     for (let f = 0; f < values.length; f++) this.values[f].push(values[f]);
   }
@@ -253,6 +277,11 @@ export interface VcfRows {
   readonly values: readonly (readonly (string | number | null)[])[];
   readonly index: IntervalIndex;
   readonly maxEnd: number;
+  /** What the lines were parsed from, and each row's line in it and allele's number (genotypes read on asking). */
+  readonly bytes: Uint8Array;
+  readonly lineStart: Uint32Array;
+  readonly lineEnd: Uint32Array;
+  readonly allele: Uint16Array;
 }
 
 export interface LineOptions {
@@ -373,6 +402,7 @@ export function parseLine(
   const refKey = alleleKey(ref);
   // an extent past REF's (`END=`) is part of the id: two records differing only in END are two items, each id stable
   const endKey = end !== begin + ref.length ? `@${end}` : '';
+  const line = { s, e, allele: 0 };
   let made = 0;
   for (let k = 0; k < alts.length; k++) {
     const alt = alts[k];
@@ -401,7 +431,8 @@ export function parseLine(
       } else cell = text;
       values[FixedFields.length + f] = cellValue(cell, field.type, place, causes);
     }
-    builder.push(begin, end, `${pos}:${refKey}>${alleleKey(alt)}${endKey}`, values);
+    line.allele = k + 1;
+    builder.push(begin, end, `${pos}:${refKey}>${alleleKey(alt)}${endKey}`, values, line);
     made++;
   }
   return made;
@@ -415,7 +446,7 @@ export function rowsIn(rows: VcfRows, start: number, end: number): number[] {
   return out.sort((a, b) => rows.start[a] - rows.start[b] || a - b);
 }
 
-function column(values: readonly (string | number | null)[], type: ColumnType, rows: readonly number[]): Column {
+export function column(values: readonly (string | number | null)[], type: ColumnType, rows: readonly number[]): Column {
   if (type === 'category') return categoryColumn(rows.map((r) => values[r] as string | null));
   const out =
     type === 'int32'
@@ -425,29 +456,4 @@ function column(values: readonly (string | number | null)[], type: ColumnType, r
         : new Float32Array(rows.length);
   for (let i = 0; i < rows.length; i++) out[i] = values[rows[i]] as number;
   return out as Column;
-}
-
-/** The answer of a system's rows over a request (whole and region reads alike): `ranges` lists at any level read. */
-export function vcfAnswer(
-  rows: VcfRows | undefined,
-  schema: VcfSchema,
-  request: RegionRequest,
-  maxRows: number,
-): RegionAnswer {
-  if (!request.shapes.includes('ranges')) return failure('not-served', 'A VCF source serves ranges only');
-  const got = rows ? rowsIn(rows, request.start, request.end) : [];
-  if (got.length > maxRows) return failure('too-large', `${got.length} rows in one region`);
-  const names = [...FixedFields, ...schema.info];
-  const fields: RangesField[] = names.map((f, k) => ({
-    name: f.name,
-    column: rows ? column(rows.values[k], f.type, got) : column([], f.type, []),
-  }));
-  const list: RangesList = {
-    form: 'list',
-    start: rows ? Int32Array.from(got, (r) => rows.start[r]) : new Int32Array(0),
-    end: rows ? Int32Array.from(got, (r) => rows.end[r]) : new Int32Array(0),
-    id: categoryColumn(rows ? got.map((r) => rows.key[r]) : []),
-    fields,
-  };
-  return { ok: true, tables: { ranges: list } };
 }

@@ -17,7 +17,7 @@ import type { Node, Value } from '@molstar/core/repr/tree';
 import { type MatrixSummary, type MatrixItems, type MatrixTable, tableRows } from '@molstar/seqx-core/data';
 import { theme as themeForm } from '@molstar/seqx-core/lang';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
-import type { Channel, ChannelName } from '@molstar/seqx-core/theme/index';
+import type { Channel, ChannelName, Legend } from '@molstar/seqx-core/theme/index';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
 import { channelForms, channelId, channelLegends, Extents, type LayerChannels, PlainDatum } from './channels.js';
@@ -148,6 +148,30 @@ function rangeOf(t: MatrixTable): readonly [number, number] {
     }
   Ranges.set(t, (r = [lo, hi]));
   return r;
+}
+
+/** The genotype classes a code says, in the order of their codes, then uncalled. */
+const CodeLabels = ['no copy', 'some copies', 'every copy', 'partly called'] as const;
+
+/** A matrix of codes' legend: a swatch a genotype class, its cells' colour (`CodeTokens`, uncalled `seq-missing`). */
+function codesLegend(tokens: SeqTokens, title: string, layer: string): Legend {
+  const items: { label: string; color: number; value: string }[] = CodeLabels.map((label, k) => ({
+    label,
+    color: tokens.colors[CodeTokens[k]],
+    value: label,
+  }));
+  items.push({ label: 'uncalled', color: tokens.colors['seq-missing'], value: 'uncalled' });
+  return {
+    key: `matrix-codes|${title}`,
+    title,
+    channel: 'color',
+    entries: { kind: 'swatches', items },
+    open: false,
+    source: 'vocabulary',
+    more: 0,
+    notes: [],
+    layers: [layer],
+  };
 }
 
 function codeColor(lay: MatrixLay, code: number): number {
@@ -401,6 +425,9 @@ export const MatrixType: LayerType<MatrixPrep, MatrixLay> = {
   },
 
   legend(lay, options) {
+    // genotype codes are classes, not a scale: their swatches, in the colours the cells are drawn with
+    if (lay.tokens && lay.tables.some((t) => (t.form === 'items' ? !!t.codes : !!t.classes)))
+      return [codesLegend(lay.tokens, options.title, lay.key)];
     return channelLegends([lay.color], { ...options, layer: lay.key });
   },
 };

@@ -171,6 +171,77 @@ export function generatedVariantsVcf(): string {
   ].join('\n')}\n`;
 }
 
+/** Genotypes of 40 samples on `chrG` (20 kb), generated: a matrix's file, read whole. */
+export const GeneratedGenotypesFile = 'fixtures/genomes/generated-genotypes.vcf';
+/** The samples of the generated genotypes, and those of them that carry the long deletion. */
+export const GenotypeSampleCount = 40;
+export const LongDeletionCarriers: readonly number[] = [2, 3, 4, 10, 11, 26];
+/** The long deletion's extent (0-based, end exclusive): `<DEL>` from 6,001 to its `END`, 11,000. */
+export const LongDeletionExtent: readonly [number, number] = [6000, 11_000];
+
+/**
+ * The generated genotypes: SNVs every 150 to 450 positions (a few multi-allelic) and one long deletion over them, each
+ * with `GT` and `DS` for 40 samples: diploid calls drawn from the allele's frequency (phased now and then), the last
+ * eight samples haploid (a male's chrX), and calls partly made or missing at times (EC-220 to EC-222).
+ */
+export function generatedGenotypesVcf(): string {
+  const rng = new PCG(29);
+  const S = GenotypeSampleCount;
+  const base = () => 'ACGT'[Math.floor(rng.float() * 4)];
+  const other = (b: string) => 'ACGT'.replace(b, '')[Math.floor(rng.float() * 3)];
+  const rows: [number, string][] = [];
+  const call = (s: number, af: number, alts: number) => {
+    const r = rng.float();
+    if (r < 0.03) return s >= S - 8 ? '.' : './.';
+    const allele = () => (rng.float() < af ? 1 + Math.floor(rng.float() * alts) : 0);
+    if (s >= S - 8) return `${allele()}`;
+    if (r < 0.05) return `./${allele()}`;
+    return `${allele()}${rng.float() < 0.3 ? '|' : '/'}${allele()}`;
+  };
+  const dosage = (gt: string, alts: number) =>
+    Array.from({ length: alts }, (_, k) =>
+      gt.includes('.')
+        ? '.'
+        : gt
+            .split(/[/|]/)
+            .filter((a) => a === `${k + 1}`)
+            .length.toFixed(1),
+    ).join(',');
+  for (let pos = 120, k = 1; pos < GeneratedVcfLength - 200; pos += 150 + Math.floor(rng.float() * 300), k++) {
+    const ref = base();
+    const alts = rng.float() < 0.1 ? 2 : 1;
+    const a = other(ref);
+    const alt = alts === 2 ? `${a},${'ACGT'.replace(ref, '').replace(a, '')[0]}` : a;
+    const af = 0.05 + rng.float() * 0.5;
+    const cols: string[] = [];
+    for (let s = 0; s < S; s++) {
+      const gt = call(s, af, alts);
+      cols.push(`${gt}:${dosage(gt, alts)}`);
+    }
+    rows.push([pos, [GeneratedSystem, pos, `rs${k}`, ref, alt, '.', 'PASS', '.', 'GT:DS', ...cols].join('\t')]);
+  }
+  const del = Array.from({ length: S }, (_, s) =>
+    LongDeletionCarriers.includes(s) ? (s === LongDeletionCarriers[0] ? '1/1:2.0' : '0/1:1.0') : '0/0:0.0',
+  );
+  const [ds, de] = LongDeletionExtent;
+  rows.push([
+    ds + 1,
+    [GeneratedSystem, ds + 1, 'sv1', 'N', '<DEL>', '.', 'PASS', `SVTYPE=DEL;END=${de}`, 'GT:DS', ...del].join('\t'),
+  ]);
+  rows.sort((x, y) => x[0] - y[0]);
+  const names = Array.from({ length: S }, (_, s) => `S${String(s + 1).padStart(2, '0')}`);
+  return `${[
+    '##fileformat=VCFv4.2',
+    `##contig=<ID=${GeneratedSystem},length=${GeneratedVcfLength}>`,
+    '##INFO=<ID=SVTYPE,Number=1,Type=String,Description="Type of the structural variant">',
+    '##INFO=<ID=END,Number=1,Type=Integer,Description="End of the variant">',
+    '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">',
+    '##FORMAT=<ID=DS,Number=A,Type=Float,Description="Dosage of each ALT allele">',
+    `#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t${names.join('\t')}`,
+    ...rows.map((r) => r[1]),
+  ].join('\n')}\n`;
+}
+
 /** A VCF with lines the runtime leaves out or reads in part, each said. */
 export const MisreadVcfFile = 'fixtures/genomes/misread.vcf';
 

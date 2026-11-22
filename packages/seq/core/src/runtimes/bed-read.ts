@@ -12,6 +12,7 @@ import {
   type OpenContext,
   type OpenedSource,
   type PairsList,
+  type RangesList,
   type RegionAnswer,
   type RegionRequest,
   type SourceEntry,
@@ -29,11 +30,20 @@ import {
   type Items,
   ItemsBuilder,
   isMetaLine,
+  binsIn,
   piecesIn,
   rangesList,
   valuesIn,
 } from './bed-parse.js';
 import { failure } from './internal/answers.js';
+import { densityOf } from './internal/levels.js';
+
+const EmptyIntervals: Intervals = {
+  start: new Int32Array(0),
+  end: new Int32Array(0),
+  value: new Float32Array(0),
+  maxSpan: 1,
+};
 import { decodeText } from './internal/text.js';
 
 // What the BED family's whole and region reads share (_spec/README.md "Data", BED family): data lines into items or
@@ -52,6 +62,10 @@ export const SummariesMaxBytes = 16 * 1024 * 1024;
 export interface BedOptions {
   /** A BEDPE's rows with both orders, in bytes: region-reads' `summaries.maxBytes` (16 MiB, 600,000 six-column rows). */
   readonly maxPairsBytes: number;
+  /** The coarsest level listed by region (4,096: 4 Mb tiles); a level is listed when each of its tiles fits. */
+  readonly maxLevel: number;
+  /** Bins a tile (the store's `tileBins`, 1,024): a level's tiles are `level × tileBins` positions. */
+  readonly tileBins: number;
   /** io's tabix bounds for a source read by region (`DefaultTabixLimits` for those not given). */
   readonly tabix?: Partial<TabixLimits>;
 }
@@ -157,28 +171,32 @@ export function bedgraphIntervals(rows: Rows, causes: BedCauses): Map<string, In
   return out;
 }
 
-/** The answer of a BED system's items or a bedGraph's intervals over a request (whole and region reads alike). */
+/**
+ * The answer of a BED system's items or a bedGraph's intervals over a request (whole and region reads alike). With
+ * `coarse` (by region), a level above 1 not asked as items is a BED's density or a bedGraph's bins, counted from the
+ * region's own records.
+ */
 export function answerOf(
   format: 'bed' | 'bedgraph',
   data: Items | Intervals | undefined,
   request: RegionRequest,
   maxRows: number,
+  coarse = false,
 ): RegionAnswer {
   const { start, end } = request;
   const shape = format === 'bed' ? 'ranges' : 'values';
   if (!request.shapes.includes(shape)) return failure('not-served', `The ${format} source serves ${shape} only`);
+  const bins = coarse && request.level > 1 && !request.items;
   if (format === 'bed') {
     const rows = data ? piecesIn(data as Items, start, end) : [];
     if (rows.length > maxRows) return failure('too-large', `${rows.length} rows in one region`);
-    return {
-      ok: true,
-      tables: {
-        ranges: data
-          ? rangesList(data as Items, rows)
-          : { form: 'list', start: new Int32Array(0), end: new Int32Array(0) },
-      },
-    };
+    const list: RangesList = data
+      ? rangesList(data as Items, rows)
+      : { form: 'list', start: new Int32Array(0), end: new Int32Array(0) };
+    return { ok: true, tables: { ranges: bins ? densityOf(list, request) : list } };
   }
+  if (bins)
+    return { ok: true, tables: { values: binsIn((data as Intervals) ?? EmptyIntervals, start, end, request.level) } };
   if (end - start > maxRows) return failure('too-large', `${end - start} positions in one region`);
   return {
     ok: true,
@@ -194,8 +212,9 @@ export type PairsAnswer =
   | { readonly ok: false; readonly kind: FailureKind; readonly issue: Issue };
 
 /**
- * An opened BEDPE: its systems (no shape yet: the protocol's `pairs` shape is to come), every pair with an end in a
- * region by `pairs`, and what it holds (`summaryBytes`, counted by the store as a pyramid's).
+ * An opened BEDPE: its systems, each serving `pairs` (a region's every pair with an end in it, its bin pairs at the
+ * coarser levels), the same pairs by `pairs` (a host's direct use), and what it holds (`summaryBytes`, counted by the
+ * store as a pyramid's).
  */
 export interface BedpeSource extends OpenedSource {
   readonly summaryBytes: number;

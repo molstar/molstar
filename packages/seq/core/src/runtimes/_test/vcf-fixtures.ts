@@ -60,12 +60,18 @@ export function generateVcf(
   names: readonly string[],
   seed = 1,
   span = 400_000,
-  options: { readonly contigs?: readonly string[]; readonly samples?: number } = {},
+  options: {
+    readonly contigs?: readonly string[];
+    readonly samples?: number;
+    /** Genotypes of every kind (`GT:DS:GQ`): haploid, partly called, uncalled, multi-allelic, short columns. */
+    readonly genotypes?: boolean;
+  } = {},
 ): GeneratedVcf {
   const rng = new PCG(seed);
   const rows: Row[] = [];
   const samples = options.samples ?? 0;
-  const gts = samples ? `\tGT${'\t0|1'.repeat(samples)}` : '';
+  const fixed = samples ? `\tGT${'\t0|1'.repeat(samples)}` : '';
+  const gts = (alts: number) => (samples && options.genotypes ? randomGenotypes(rng, samples, alts) : fixed);
   for (let i = 0; i < n; i++) {
     const seq = Math.floor(rng.float() * names.length);
     const pos = 1 + Math.floor(rng.float() * span);
@@ -128,7 +134,7 @@ export function generateVcf(
     const rc = [ref, ...alts].map(() => Math.floor(rng.float() * 50)).join(',');
     const gl = rng.float() < 0.2 ? 'GL=-0.1,-1.5,-3;' : '';
     const info = `${dp}AF=${af};RC=${rc};${db}${sig}${gl}${extra}`.replace(/;$/, '') || '.';
-    const text = `${names[seq]}\t${pos}\t${id}\t${ref}\t${alts.join(',')}\t${qual}\t${filter}\t${info}${gts}`;
+    const text = `${names[seq]}\t${pos}\t${id}\t${ref}\t${alts.join(',')}\t${qual}\t${filter}\t${info}${gts(alts.length)}`;
     rows.push({ seq, begin, end, text });
     // a line written twice (a duplicated record: `#2` on its ids)
     if (rng.float() < 0.03) rows.push({ seq, begin, end, text });
@@ -136,6 +142,11 @@ export function generateVcf(
   rows.sort((a, b) => a.seq - b.seq || a.begin - b.begin);
   const lengths = new Map<string, number>();
   const header = [...VcfHeaderLines];
+  if (options.genotypes)
+    header.push(
+      '##FORMAT=<ID=DS,Number=A,Type=Float,Description="Dosage, one an allele">',
+      '##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype quality">',
+    );
   for (const name of options.contigs ?? []) {
     lengths.set(name, span + 1000);
     header.splice(1, 0, `##contig=<ID=${name},length=${span + 1000}>`);
@@ -158,6 +169,34 @@ export function generateVcf(
     at += b;
   }
   return { text: parts.join(''), lines, names, lengths };
+}
+
+/** A call of `alleles` ALTs: diploid mostly (phased or not), a haploid, partly called or uncalled one at times. */
+function randomCall(rng: PCG, alts: number): string {
+  const allele = () => (rng.float() < 0.5 ? 0 : 1 + Math.floor(rng.float() * alts));
+  const r = rng.float();
+  if (r < 0.05) return '.';
+  if (r < 0.1) return './.';
+  if (r < 0.15) return `./${allele()}`;
+  if (r < 0.25) return `${allele()}`;
+  return `${allele()}${rng.float() < 0.5 ? '/' : '|'}${allele()}`;
+}
+
+/** `GT:DS:GQ` and a sample column each: a call, a dosage an allele (`.` at times), a quality; some columns short. */
+function randomGenotypes(rng: PCG, samples: number, alts: number): string {
+  let out = '\tGT:DS:GQ';
+  for (let k = 0; k < samples; k++) {
+    const gt = randomCall(rng, alts);
+    const r = rng.float();
+    if (r < 0.05) out += `\t${gt}`;
+    else {
+      const ds = Array.from({ length: alts }, () =>
+        rng.float() < 0.1 ? '.' : (Math.floor(rng.float() * 200) / 100).toString(),
+      );
+      out += `\t${gt}:${ds.join(',')}:${Math.floor(rng.float() * 99)}`;
+    }
+  }
+  return out;
 }
 
 /** VCF's index options (1-based, columns 1, 2, 0, `#` meta) over `names`. */
@@ -190,4 +229,34 @@ export function tablessLines(n: number): Uint8Array {
 export function flagsLine(n: number): Uint8Array {
   const flags = Array.from({ length: n }, (_, k) => `F${k}`).join(';');
   return enc.encode(`chr1\t100\t.\tA\tC\t.\t.\tDB;${flags}\n`);
+}
+
+/**
+ * A dense file (a biobank's, by its bytes): an SNV every `step` positions over `span` on each of `names`, with
+ * `samples` random diploid calls, bgzipped in full-size blocks and indexed. Bytes grow with a tile's width, so the
+ * coarser levels pass a bound the finer ones fit.
+ */
+export function denseVcf(names: readonly string[], span: number, step: number, samples: number, seed = 1) {
+  const rng = new PCG(seed);
+  const header = [
+    '##fileformat=VCFv4.2',
+    ...names.map((n) => `##contig=<ID=${n},length=${span}>`),
+    '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">',
+    `#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT${Array.from({ length: samples }, (_, k) => `\tS${k + 1}`).join('')}`,
+  ];
+  const parts = header.map((h) => `${h}\n`);
+  let at = parts.reduce((n, p) => n + enc.encode(p).length, 0);
+  const lines: IndexedLine[] = [];
+  for (let seq = 0; seq < names.length; seq++)
+    for (let pos = 1; pos < span; pos += step) {
+      let gts = '';
+      for (let k = 0; k < samples; k++) gts += `\t${rng.float() < 0.5 ? 0 : 1}|${rng.float() < 0.5 ? 0 : 1}`;
+      const t = `${names[seq]}\t${pos}\t.\tA\tC\t.\t.\t.\tGT${gts}\n`;
+      const b = enc.encode(t).length;
+      lines.push({ seq, begin: pos - 1, end: pos, start: at, stop: at + b });
+      parts.push(t);
+      at += b;
+    }
+  const g: GeneratedVcf = { text: parts.join(''), lines, names, lengths: new Map(names.map((n) => [n, span])) };
+  return { g, ...indexedVcf(g, 65280) };
 }

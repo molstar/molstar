@@ -5,7 +5,7 @@
  */
 
 import { type Column, type ColumnType, categoryColumn } from '@molstar/core/repr/tree';
-import type { FieldInfo, RangesField, RangesList, ValuesPositions } from '../data/protocol.js';
+import type { FieldInfo, RangesField, RangesList, ValuesBins, ValuesPositions } from '../data/protocol.js';
 import type { BedCauses } from './bed-issues.js';
 
 // The BED family's one line parser (_spec/README.md "Data", BED family): a line's cells into a system's items (BED's
@@ -472,6 +472,68 @@ export class IntervalsBuilder {
     }
     return { start, end, value, maxSpan };
   }
+}
+
+/**
+ * The values of `[start, end)` binned at `level` (bins of its width from 0, those meeting the region): `min`, `max`,
+ * count-weighted `mean` and `count` of the positions with a value, exactly as `binValues` over `valuesIn` (a later
+ * interval over an earlier), without a value a position: the intervals meeting the region painted into segments (each
+ * later one cutting what it covers of the earlier), each segment added to its bins whole. Bounded by the bins, not
+ * the positions.
+ */
+export function binsIn(iv: Intervals, start: number, end: number, level: number): ValuesBins {
+  const lo = Math.floor(start / level);
+  const n = Math.max(0, Math.ceil(end / level) - lo);
+  const min = new Float32Array(n).fill(Number.NaN);
+  const max = new Float32Array(n).fill(Number.NaN);
+  const mean = new Float32Array(n).fill(Number.NaN);
+  const count = new Float32Array(n);
+  const out: ValuesBins = { form: 'bins', start: lo * level, min, max, mean, count };
+  if (end <= start) return out;
+  // the effective segments, sorted and apart: `[s, e)` of value `v`, three numbers each
+  const seg: number[] = [];
+  const tail: number[] = [];
+  const from = start - iv.maxSpan;
+  let a = 0;
+  let b = iv.start.length;
+  while (a < b) {
+    const mid = (a + b) >> 1;
+    if (iv.start[mid] < from) a = mid + 1;
+    else b = mid;
+  }
+  for (let i = a; i < iv.start.length && iv.start[i] < end; i++) {
+    if (iv.end[i] <= start) continue;
+    const s = Math.max(iv.start[i], start);
+    const e = Math.min(iv.end[i], end);
+    if (e <= s) continue;
+    // what the earlier segments hold past `s`: kept before `s` and after `e`, the new one between
+    tail.length = 0;
+    while (seg.length && seg[seg.length - 2] > s) {
+      const v = seg.pop()!;
+      const se = seg.pop()!;
+      const ss = seg.pop()!;
+      if (se > e) tail.push(Math.max(ss, e), se, v);
+      if (ss < s) seg.push(ss, s, v);
+    }
+    seg.push(s, e, iv.value[i]);
+    for (let k = tail.length - 3; k >= 0; k -= 3) seg.push(tail[k], tail[k + 1], tail[k + 2]);
+  }
+  const sum = new Float64Array(n);
+  for (let k = 0; k < seg.length; k += 3) {
+    const s = seg[k];
+    const e = seg[k + 1];
+    const v = seg[k + 2];
+    for (let x = Math.floor(s / level); x * level < e; x++) {
+      const c = Math.min(e, (x + 1) * level) - Math.max(s, x * level);
+      const j = x - lo;
+      if (count[j] === 0 || v < min[j]) min[j] = v;
+      if (count[j] === 0 || v > max[j]) max[j] = v;
+      count[j] += c;
+      sum[j] += v * c;
+    }
+  }
+  for (let j = 0; j < n; j++) if (count[j] > 0) mean[j] = sum[j] / count[j];
+  return out;
 }
 
 /**

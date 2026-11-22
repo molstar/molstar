@@ -88,21 +88,26 @@ const AllCases = [
     own: /seq\/core\/src\/runtimes\/|(^|\/)packages\/io\/src\/common\//,
     lazy: true,
   },
-  // GFF3 and GTF read whole (no viewer bundles it): its own code and io's BGZF (a bgzipped file read whole)
+  // GFF3 and GTF read whole (no viewer bundles it): its own code; io's BGZF (a bgzipped file read whole) a lazy chunk on a gzip file's magic; its reads
+  // by region (io's tabix, the region lines) are its lazy chunk, loaded when the first indexed source opens: listed
+  // apart (`lazy`)
   {
     name: 'GFF runtime',
     entry: 'gff.ts',
     target: 30_000,
     own: /seq\/core\/src\/runtimes\/|(^|\/)packages\/io\/src\/common\//,
+    lazy: true,
   },
-  // GenBank read whole (no viewer bundles it): its own code and io's BGZF (a bgzipped file read whole)
+  // GenBank read whole (no viewer bundles it): its own code; io's BGZF (a bgzipped file read whole) a lazy chunk on a gzip file's magic
   {
     name: 'GenBank runtime',
     entry: 'genbank.ts',
     target: 30_000,
     own: /seq\/core\/src\/runtimes\/|(^|\/)packages\/io\/src\/common\//,
+
+    lazy: true,
   },
-  // VCF sites (no viewer bundles it): its own code and io's BGZF (a bgzipped file read whole); its reads by region (io's
+  // VCF sites (no viewer bundles it): its own code; io's BGZF (a bgzipped file read whole) a lazy chunk on a gzip file's magic; its reads by region (io's
   // tabix, the region lines) are its lazy chunk, loaded when the first indexed source opens: listed apart (`lazy`)
   {
     name: 'VCF runtime',

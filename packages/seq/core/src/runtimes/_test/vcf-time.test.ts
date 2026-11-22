@@ -14,8 +14,8 @@ import { memoryAssets } from './bed-fixtures.js';
 import { flagsLine, generateVcf, indexedVcf, tablessLines, VcfHeaderText } from './vcf-fixtures.js';
 
 // The VCF runtime's time (_spec/README.md "Data", VCF; performance.md's row): a region of 10,000 records decoded under
-// 100 ms, sites (its BGZF blocks inflated, its lines parsed, its rows answered). Its quick representative (1,000
-// records) is in `vcf.test.ts`. A hostile file's lines cost their own length: 40,000 lines without tabs, and a line of
+// 100 ms, sites (its BGZF blocks inflated, its lines parsed, its rows answered), and with 100 samples' genotypes under
+// 200 ms. Their quick representatives (1,000 records) are in `vcf.test.ts`. A hostile file's lines cost their own length: 40,000 lines without tabs, and a line of
 // 100,000 flags, read whole at once (their quick counts in `vcf-cost.test.ts`).
 
 /** `body` after the header, read whole by the runtime. */
@@ -56,6 +56,27 @@ itWithin(
       s.read({ system: 'chr1', start: 0, end: 1_100_000, level: 1, shapes: ['ranges'] }, signal),
     );
     expect(a.ok && a.tables.ranges?.form === 'list' && a.tables.ranges.start.length).toBeGreaterThanOrEqual(10_000);
+    s.dispose();
+  },
+  60_000,
+);
+
+itWithin(
+  'a VCF region of 10,000 records with 100 samples’ genotypes decoded under 200 ms (the matrix’s codes)',
+  async (within) => {
+    const g = generateVcf(10_000, ['chr1'], 14, 1_000_000, { samples: 100, genotypes: true });
+    const { file, index } = indexedVcf(g, 65_280);
+    const signal = new AbortController().signal;
+    const s = await VcfRuntime.open(
+      { address: '/data/v', format: 'vcf', uri: 'f', index: 'i' },
+      { assets: memoryAssets({ f: file, i: index }), signal, limits: DefaultOpenLimits },
+    );
+    const a = await within(200, () =>
+      s.read({ system: 'chr1', start: 0, end: 1_100_000, level: 1, shapes: ['ranges', 'matrix'] }, signal),
+    );
+    expect(a.ok && a.tables.matrix?.form === 'items' && a.tables.matrix.codes!.length).toBeGreaterThanOrEqual(
+      10_000 * 100,
+    );
     s.dispose();
   },
   60_000,

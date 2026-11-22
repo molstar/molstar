@@ -9,12 +9,20 @@ import type { SeqRegistryEntry } from '@molstar/seqx-core/context';
 import { type AssetReader, DefaultOpenLimits, delayedRuntime, type StoreClock } from '@molstar/seqx-core/data';
 import { createSeqSpec, theme } from '@molstar/seqx-core/lang';
 import { BedFormats, BedRuntime } from '@molstar/seqx-core/runtimes/bed';
-import { VcfCategories, type VcfHeader, VcfFormats, VcfRuntime, type VcfSource } from '@molstar/seqx-core/runtimes/vcf';
+import {
+  VcfCategories,
+  type VcfHeader,
+  VcfFormats,
+  VcfRuntime,
+  type VcfSource,
+  vcfRuntime,
+} from '@molstar/seqx-core/runtimes/vcf';
 import { recordedAssets, withRecordedPages } from '../recorded-pages.js';
 import {
   Chr17Length,
   ClinvarFile,
   ClinvarIndexFile,
+  GeneratedGenotypesFile,
   GeneratedSystem,
   GeneratedVcfFile,
   MisreadVcfFile,
@@ -33,6 +41,7 @@ import {
 /** The sections' addresses (what the tests read). */
 export const ClinvarSection = '/views/main/chr17';
 export const GeneratedVcfSection = '/views/main/variants';
+export const GenotypesSection = '/views/main/genotypes';
 export const MisreadVcfSection = '/views/main/misread';
 /** The variants' annotation of each view (an allele's address is `<it>/(item :id "7675088:C>T")`). */
 export const VariantsAddress = '/data/variants';
@@ -96,6 +105,30 @@ export function longDeletion(): Node {
   return b.build();
 }
 
+/**
+ * Generated genotypes (read whole): the sites above, the matrix of 40 samples' genotype classes below, a row a sample in
+ * the header's order; the long deletion one item across the SNVs it covers, solid in its carriers' rows (EC-222),
+ * uncalled calls in the missing colour (EC-220), the haploid samples' calls every copy or none.
+ */
+export function genotypes(): Node {
+  const b = createSeqSpec({ title: 'Genotypes of 40 samples' });
+  const file = b.data.source('genotypes', { format: 'vcf', uri: GeneratedGenotypesFile });
+  const chr = b.data.sequence('chrG', { alphabet: 'dna', source: file, name: GeneratedSystem });
+  const sites = b.data.ranges('variants', { target: chr, source: file });
+  const gt = b.data.matrix('gt', { target: chr, source: file });
+  b.views.view('main', (v) => {
+    const s = v.section('genotypes', { of: chr });
+    s.track('ruler', { label: '' }).layer('ruler', { type: 'ruler', units: 'bases' });
+    s.track('variants', { label: 'Sites', height: 48 }).layer('variants', {
+      type: 'ranges',
+      data: sites,
+      color: byCategory(),
+    });
+    s.track('gt', { label: 'Genotypes', height: 260 }).layer('gt', { type: 'matrix', data: gt });
+  });
+  return b.build();
+}
+
 /** A misread VCF: the lines read drawn, the rest said (a line number each) under the view. */
 export function misread(): Node {
   const b = createSeqSpec({ title: 'A misread VCF' });
@@ -109,6 +142,9 @@ export function misread(): Node {
   });
   return b.build();
 }
+
+/** The `vcf` runtime over the recordings: level 1 only, as recorded (TP53's pages). */
+const RecordedVcfRuntime = vcfRuntime({ maxLevel: 1 });
 
 /** A header as a few lines: its format, contigs, INFO and FORMAT keys (`Number`, `Type`) and samples. */
 export function headerSummary(h: VcfHeader): string {
@@ -155,7 +191,9 @@ export function registry(options: { readonly delayMs?: number; readonly clock?: 
   return [
     {
       kind: 'format-runtime',
-      runtime: delayedRuntime(withRecordedPages(VcfRuntime, RecordedFiles), {
+      // level 1 alone (`maxLevel`): ClinVar's index lists 1 to 4,096, but its recording holds TP53's pages only, so the
+      // coarser tiles of chr17 at the fit (each within the view's read cost) could not be read from it
+      runtime: delayedRuntime(withRecordedPages(RecordedVcfRuntime, RecordedFiles), {
         name: 'vcf-async',
         formats: VcfFormats,
         ...timing,
