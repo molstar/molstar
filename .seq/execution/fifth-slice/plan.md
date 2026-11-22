@@ -214,7 +214,7 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
 
 ### Stage 3: by region and across sections (after GC1; RG alone in the store)
 
-- [ ] **RG** (`briefs/rg-region-reads.md`; strong) the shapes, `RegionRequest.y`, 2D keys and tiles, `side`, items at
+- [x] **RG** (merged 2026-11-22, `590151907`, with RS's stories) (`briefs/rg-region-reads.md`; strong) the shapes, `RegionRequest.y`, 2D keys and tiles, `side`, items at
       a tile size, `readCost` and `maxBytesPerLayer`, the pairs level and `binPairs`, `coarsenBins`, grid summaries and
       the whole-assembly level, the `matrix` layer's drawing (its params declared by GC1), images on rings as runs (EC-208, EC-223).
 - [ ] **GA2** (added 2026-11-22: GC2 checked data over an assembly but never read it, RS's gap 1;

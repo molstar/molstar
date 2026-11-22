@@ -131,7 +131,7 @@ what undo does to each.
 | Variants | sites colored by a field | done: sites colored by a field, heads stacked, a count strip (SL; p53: variants) | [themes](themes.md) | — | p53: variants |
 | Variants by sample | samples as rows, long deletions solid | deferred | — | 222 | trigger: the Genomes milestone ([version-1](version-1.md))
 | Pairs | arcs above and below, kinds, chords on rings | building: arcs above and below, chords on rings, crossing pairs, linked pairs (PG, LP; tRNA: arcs), on an alignment's columns (AC), links as arcs (MR), numeric extra columns (FX3); kinds at one cell as slices (EC-63, decided) | [grids-and-rows](grids-and-rows.md) | 62, 63, 129 | tRNA: arcs |
-| Matrix | positions × states, majority and maximum density | deferred | — | 60, 61, 220 | trigger: the Genomes milestone ([version-1](version-1.md))
+| Matrix | positions × states, majority and maximum density | building: the `matrix` layer by region (RG: Features › Region reads › Matrix); a VCF's genotypes FR's | [region-reads](region-reads.md) | 60, 61, 220 | trigger: the Genomes milestone ([version-1](version-1.md))
 | Grid and dot plots | a value per pair of positions; crosshair hover | building: a section of its own, rectangles, image tiles, navigation (PG, PZ; tRNA: dot plot; Complex: PAE); two grids on one block pair (EC-59) not | [grids-and-rows](grids-and-rows.md) | 58, 59, 109, 145 | tRNA: base-pair dot plot |
 | Logo | stacked letters by bits or probability | done: letters by conservation, saturation (LG, LS; Globins: family) | [grids-and-rows](grids-and-rows.md) | — | Globins: family |
 | Secondary structure | helices and strands, cut ends square | done: helices, strands with their arrowheads, turns (SL, EC-67, EC-130) | [themes](themes.md) | 67, 130 | p53: tracks |
@@ -149,7 +149,7 @@ what undo does to each.
 | Column measures | share, identity, matches-reference per column, registered for themes (Clustal X, percent identity, ESPript) | done: share, identity, matches-reference, ESPript's gaps (RW, CF, EC-135; Globins: family) | [grids-and-rows](grids-and-rows.md) | 135 | Globins: family |
 | Size channels | thickness, glyph, radius, width, opacity | building: a mark shrinks, never its lane (TH, EC-137); EC-242's outcome not recorded | [themes](themes.md) | 137, 242 | p53: tracks |
 | Layers across sections | ribbons between sections, a dot plot with its own y section | deferred | — | 209 | trigger: the Genomes milestone ([version-1](version-1.md))
-| Contact maps | binned grids by region and level (Hi-C) | deferred | — | 223 | trigger: layers across sections |
+| Contact maps | binned grids by region and level (Hi-C) | building: region grids by tile and level (RG: Features › Region reads › Hi-C); over a genome GA2's, across sections LA's | [region-reads](region-reads.md) | 223 | trigger: layers across sections |
 | MAF over a genome | a multiple alignment on a genome axis | deferred | — | 213 | trigger: a dataset that needs it |
 
 ## Views and layouts
