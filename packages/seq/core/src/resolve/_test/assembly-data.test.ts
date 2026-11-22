@@ -163,7 +163,7 @@ describe('data over an assembly, read by sequence', () => {
     }
   });
 
-  it('over two assemblies, a listed name neither has is said, once; inline kinds that name no sequence say they are not read', () => {
+  it('over two assemblies, a listed name neither has is said, once; inline values, which name no sequence, say they are not read', () => {
     const b = createSeqSpec();
     const a = b.data.assembly('a', assembly('A', [{ name: 'chrA1', length: 100 }]));
     const g = b.data.assembly('b', assembly('B', [{ name: 'chrB1', length: 100 }]));
@@ -173,9 +173,8 @@ describe('data over an assembly, read by sequence', () => {
       levels: [1],
     };
     const src = b.data.source('src', { format: 'seq', value: seqToValue({ coverage, pairs: [] }) as never });
-    b.data.pairs('syn', { a, b: g, source: src } as never);
-    b.data.pairs('held', { a, rows: { a_start: [0], a_end: [1], b_start: [2], b_end: [3] } } as never);
-    b.data.grid('cells', { x: a, values: new Float32Array(4) } as never);
+    b.data.pairs('syn', { a, b: g, source: src });
+    b.data.values('vals', { target: a, values: new Float32Array(100) });
     const root = b.build();
     const lengths = sourceLengths(resolveSpec(root), (s) => (s === '/data/src' ? coverage : undefined));
     const said = resolveSpec(root, { lengths })
@@ -183,8 +182,7 @@ describe('data over an assembly, read by sequence', () => {
       .map((i) => `${i.address} ${i.code}: ${i.message}`);
     expect(said).toEqual([
       '/data/syn seq.resolve.assembly.name: The source names 1 sequences neither assembly has (chrZ)',
-      '/data/held seq.resolve.assembly.inline: inline pairs over an assembly is not read yet: name a source, or target a sequence',
-      '/data/cells seq.resolve.assembly.inline: inline grid over an assembly is not read yet: name a source, or target a sequence',
+      '/data/vals seq.resolve.assembly.inline: inline values over an assembly is not read yet: name a source, or target a sequence',
     ]);
   });
 
@@ -259,5 +257,54 @@ describe('data over an assembly, read by sequence', () => {
       });
       expect(joined).toEqual(expected);
     }
+  });
+});
+
+describe('inline pairs, grids and matrices over an assembly', () => {
+  const toy = (b: ReturnType<typeof createSeqSpec>) =>
+    b.data.assembly(
+      'g',
+      assembly('G', [
+        { name: 'chr1', length: 4 },
+        { name: 'chr2', length: 2 },
+      ]),
+    );
+  const plans = (root: ReturnType<ReturnType<typeof createSeqSpec>['build']>, address: string) => {
+    const m = resolveSpec(root);
+    const a = m.annotations.get(address)!;
+    return { m, a, systems: [...(a.bySystem?.keys() ?? [])].map((s) => s.replace(/^.*:name |\)$/g, '')) };
+  };
+
+  it('a side on a sequence is that system: pairs between a sequence and an assembly plan both', () => {
+    const b = createSeqSpec();
+    const g = toy(b);
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGTACGT' });
+    b.data.pairs('p', {
+      a: s,
+      b: g,
+      rows: { a_start: [0, 2], a_end: [1, 3], b_start: [0, 1], b_end: [1, 2], b_name: ['2', 'chr1'] },
+    });
+    const { a, systems } = plans(b.build(), '/data/p');
+    expect(a.target).toBe('/data/s');
+    expect(systems).toEqual(['/data/s', 'chr1', 'chr2']);
+  });
+
+  it('a grid’s sequence pair of the wrong count is left out and said; a matrix’s states its inline names', () => {
+    const b = createSeqSpec();
+    const g = toy(b);
+    b.data.grid('h', {
+      x: g,
+      values: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+      x_name: ['chr1', 'chr1', 'chr1', 'chr1', 'chr1', 'chr1', 'chr1', 'chr1', 'chr2'],
+      y_name: ['chr2', 'chr2', 'chr2', 'chr2', 'chr2', 'chr2', 'chr2', 'chr2', 'chr2'],
+    });
+    b.data.matrix('m', { target: g, values: [1, 2, 3, 4], states: ['x', 'y'], name: ['chr2', 'chr2'] });
+    const root = b.build();
+    const { m } = plans(root, '/data/h');
+    expect(m.issues.filter((i) => i.code === 'seq.resolve.grid.size').map((i) => i.message)).toEqual([
+      "A sequence pair's grid has 1 of 4 values: left out",
+    ]);
+    expect(m.systems.get('/data/m/(states)')?.length).toBe(2);
+    expect(plans(root, '/data/m').systems).toEqual(['chr2']);
   });
 });

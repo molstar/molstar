@@ -88,12 +88,12 @@ export function assemblyRegion(
   const units: string[] = [];
   const unitOf = new Map<string, number>();
   for (const [system, plan] of plans) {
-    if (plan.kind !== 'source') continue;
     const length = lengthOf(system);
     unitOf.set(plan.system, units.length);
     units.push(system);
     sources.set(system, {
-      source: plan.source,
+      // inline rows over an assembly are an inline `seq` source, read as a file's (`genome-inline.ts`)
+      source: plan.kind === 'source' ? plan.source : plan.source.address,
       system: plan.system,
       dataSystem: system,
       shape: 'pairs',

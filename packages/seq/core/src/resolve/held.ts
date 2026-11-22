@@ -91,6 +91,9 @@ const PairColumns = new Set([
   'b_strand',
   'a_unit',
   'b_unit',
+  // the sequences of an assembly's ends: read over an assembly only (`genome-inline.ts`)
+  'a_name',
+  'b_name',
 ]);
 
 /**

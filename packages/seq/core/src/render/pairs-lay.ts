@@ -231,7 +231,10 @@ export function prepare(layer: ResolvedLayer, model: StaticModel): PairsPrep {
         filtered++;
       }
   // a source's pairs, read by region on the layer's first system (`pairs-region.ts`)
-  const src = !data && a?.shape === 'pairs' && a.access?.kind === 'source' ? layerSource(model, layer) : undefined;
+  const src =
+    !data && a?.shape === 'pairs' && (a.access?.kind === 'source' || a.bySystem)
+      ? layerSource(model, layer)
+      : undefined;
   const bName = a?.ySystem ? model.systems.get(a.ySystem)?.name : undefined;
   // over an assembly: a read a block, each end on its sequence (`pairs-assembly.ts`)
   const over = src && a?.bySystem ? assemblyRegion(a.bySystem, (s) => model.systems.get(s)?.length) : undefined;

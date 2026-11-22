@@ -42,7 +42,7 @@ export const GenomeIssues = defineIssues('seq.resolve.assembly', {
   },
   'seq.resolve.assembly.inline': {
     severity: 'info',
-    description: 'Inline pairs, grids, matrices or values over an assembly are not read yet',
+    description: 'Inline values over an assembly are not read yet (they name no sequence a value)',
     hint: 'Name a source, or target a sequence',
   },
 });

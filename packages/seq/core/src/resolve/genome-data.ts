@@ -6,8 +6,9 @@
 
 // Data over an assembly, read by sequence (_spec/README.md "Resolve", Assemblies: data over an assembly), in the genome
 // chunk: a `ranges`, `values`, `pairs`, `grid` or `matrix` node whose `target` (`a`, `x`) names an assembly gets a plan
-// for each derived sequence, on the sequence's own system. Inline rows are split by their `target` field through the
-// names rule (one inline source over every sequence named, its systems named by their addresses); a source is read
+// for each derived sequence, on the sequence's own system. Inline ranges are split by their `target` field through the
+// names rule (one inline source over every sequence named, its systems named by their addresses), inline pairs, grids
+// and matrices by their name columns (`genome-inline.ts`); a source is read
 // by region on each sequence under the name it lists it by (its coverage's names mapped by the names rule both ways,
 // `17` is `chr17`; before it opens, the sequence's printed name). A sequence `include` leaves out reads nothing.
 
@@ -25,6 +26,7 @@ import {
 import { channelAddress } from '@molstar/seqx-core/data/channels';
 import type { AssemblyEntry } from './genome.js';
 import { GenomeIssues } from './genome-issues.js';
+import { inlineOverAssembly } from './genome-inline.js';
 import { pick } from './genome-model.js';
 import { inlineRanges, sourcePlan } from './model-entries.js';
 import type { Placed } from './model-molecules.js';
@@ -56,19 +58,24 @@ export function assemblyAnnotation(
   const kind = at.node.kind as AnnotationEntry['shape'];
   const firstKey = kind === 'pairs' ? 'a' : kind === 'grid' ? 'x' : 'target';
   const secondKey = kind === 'pairs' ? 'b' : kind === 'grid' ? 'y' : undefined;
-  const a = input.assemblies.get(exactAddress(p(at.node, firstKey)) ?? '');
-  if (!a) return undefined;
+  const first = exactAddress(p(at.node, firstKey)) ?? '';
   const second = secondKey === undefined ? undefined : exactAddress(p(at.node, secondKey));
   const b = second === undefined ? undefined : input.assemblies.get(second);
+  const found = input.assemblies.get(first);
+  // inline pairs and grids may have one side on a sequence (`b` or `y` the assembly); a source reads by `a` or `x`
+  if (!found && !(b && input.source === undefined && kind !== 'ranges' && input.systems.has(first))) return undefined;
   const issues: Issue[] = [];
   const base = {
     address: at.address,
     shape: kind,
-    target: a.address,
-    ...(kind === 'pairs' || kind === 'grid' ? { ySystem: second ?? a.address } : {}),
+    target: found?.address ?? first,
+    ...(kind === 'pairs' || kind === 'grid' ? { ySystem: second ?? first } : {}),
   };
   if (input.source === undefined) {
-    // inline: ranges split by their `target` field; the other kinds name no sequence a row: nothing read, said once
+    // inline pairs, grids and matrices: each row's sequences by its name columns (`genome-inline.ts`)
+    if (kind === 'pairs' || kind === 'grid' || kind === 'matrix')
+      return inlineData(at, base, found, first, b, second, input.systems);
+    // inline ranges split by their `target` field; values name no sequence a row: nothing read, said once
     if (kind !== 'ranges') {
       issues.push(
         issueOf(
@@ -80,10 +87,11 @@ export function assemblyAnnotation(
       );
       return { annotation: { ...base, fields: [], bySystem: new Map() }, issues };
     }
-    return { annotation: inlineOverAssembly(at, a, base, input.systems), issues };
+    return { annotation: inlineRangesOverAssembly(at, found!, base, input.systems), issues };
   }
   const field = p(at.node, 'field');
   const read = typeof field === 'string' && kind !== 'ranges' ? channelAddress(input.source, field) : input.source;
+  const a = found!;
   const names = sourceNames(a, input.listed);
   const bySystem = new Map<string, AccessPlan>();
   const add = (e: AssemblyEntry, n: ReadonlyMap<number, string>) => {
@@ -107,8 +115,7 @@ export function assemblyAnnotation(
         { address: at.address, hint: GenomeIssues.codes['seq.resolve.assembly.name'].hint },
       ),
     );
-  const first = bySystem.values().next().value;
-  const plan = first ?? sourcePlan(read, '', kind as Shape);
+  const plan = bySystem.values().next().value ?? sourcePlan(read, '', kind as Shape);
   const fields = kind === 'grid' ? ['value'] : [];
   if (kind !== 'matrix') return { annotation: { ...base, fields, access: plan, bySystem }, issues };
   // a matrix's states: a system of their own, as many as its source lists (one set over every sequence)
@@ -123,6 +130,49 @@ export function assemblyAnnotation(
     access: sourcePlan(input.source, StatesSystemName, 'matrix'),
   };
   return { annotation: { ...base, fields, states: statesAddress, access: plan, bySystem }, states, issues };
+}
+
+/**
+ * Inline pairs, grids and matrices over an assembly: a plan a system named (`genome-inline.ts`), a side on a sequence
+ * its own system; a matrix's states its inline `states`, a system of their own.
+ */
+function inlineData(
+  at: Placed,
+  base: Pick<AnnotationEntry, 'address' | 'shape' | 'target' | 'ySystem'>,
+  a: AssemblyEntry | undefined,
+  first: string,
+  b: AssemblyEntry | undefined,
+  second: string | undefined,
+  systems: ReadonlyMap<string, SystemEntry>,
+): { annotation: AnnotationEntry; states?: SystemEntry; issues: Issue[] } {
+  const side = (e: AssemblyEntry | undefined, address: string) => (e ? { assembly: e } : { system: address });
+  const names = p(at.node, 'states');
+  const count = Array.isArray(names) ? names.length : undefined;
+  const r = inlineOverAssembly(
+    at,
+    [side(a, first), second === undefined ? undefined : side(b, second)],
+    systems,
+    count,
+  );
+  const plan = r.bySystem.values().next().value;
+  const annotation: AnnotationEntry = {
+    ...base,
+    fields: r.fields,
+    ...(plan ? { access: plan } : {}),
+    bySystem: r.bySystem,
+  };
+  if (base.shape !== 'matrix') return { annotation, issues: r.issues };
+  const statesAddress = statesSystemOf(at.address);
+  const states: SystemEntry = {
+    address: statesAddress,
+    kind: 'sequence',
+    ...(count !== undefined ? { length: count } : {}),
+    cyclic: false,
+    name: StatesSystemName,
+    numberings: ['index', 'ordinal'],
+    access: sourcePlan('', StatesSystemName, 'matrix'),
+  };
+  return { annotation: { ...annotation, states: statesAddress }, states, issues: r.issues };
 }
 
 /**
@@ -150,7 +200,7 @@ function sourceNames(
  * a table on its system (named by its address), all of them one inline `seq` source; a row naming no sequence (or one
  * `include` leaves out) is read nowhere (counted by `checkAssemblyData`). A row's key is its row in the node's table.
  */
-function inlineOverAssembly(
+function inlineRangesOverAssembly(
   at: Placed,
   a: AssemblyEntry,
   base: Pick<AnnotationEntry, 'address' | 'shape' | 'target'>,

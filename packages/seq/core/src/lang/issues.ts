@@ -362,8 +362,8 @@ export const LangIssues = defineIssues('seq.lang', {
   },
   'seq.lang.data.names': {
     severity: 'error',
-    description: 'Inline data over an assembly names no sequence a row, or names one over a sequence',
-    hint: '`a_name`/`b_name`, `x_name`/`y_name` or `name`, one a row, over an assembly only',
+    description: 'Inline rows over an assembly name no sequence, or rows over a sequence name one',
+    hint: 'Name them over an assembly only, one a row',
   },
   'seq.lang.link.occupancy': {
     severity: 'error',

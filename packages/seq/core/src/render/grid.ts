@@ -154,7 +154,8 @@ function prepare(layer: ResolvedLayer, model: StaticModel): GridPrep {
     pyramid.setValues(grid.nx, grid.ny, kept);
   }
   // a source's grid, read by region on its two systems (`grid-region.ts`)
-  const src = !grid && a?.shape === 'grid' && a.access?.kind === 'source' ? layerSource(model, layer) : undefined;
+  const src =
+    !grid && a?.shape === 'grid' && (a.access?.kind === 'source' || a.bySystem) ? layerSource(model, layer) : undefined;
   const yName = a?.ySystem ? model.systems.get(a.ySystem)?.name : undefined;
   // over an assembly: the layer is on its x block's sequence; each strip's y block is its own (`layout`)
   const over = src && a?.bySystem;
