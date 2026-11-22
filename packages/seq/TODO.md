@@ -95,6 +95,10 @@ loaded when used, sections over a source's complex, the genome axis and layouts,
 
 ## `@molstar/seqx-core`
 
+- **A categorical grid's pan re-lays the grid** (LA3, 2026-11-22): ~33 kB a pan frame at 2,000 members (bounded under 40
+  kB), ~50 kB for a 2,000-position grid; a pan that keeps the layout and moves the window would be 0 B. Also files past
+  800 lines grown by LA3: `render/tracks.ts` 1,087, `view/view.ts` 1,359, `resolve/model.ts` 1,222.
+
 - **The values layer's dots at the domain's minimum** (VP's review, 2026-11-22): a dot of a value at the low end sits on
   the well's bottom edge and is half clipped; give dots the headroom the top has, or a floor inset of a dot's radius.
   Also an exact-6 px boundary test and the SVG dots' coordinates against the canvas's.
