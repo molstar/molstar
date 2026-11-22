@@ -2,6 +2,11 @@
 
 ## Decided
 
+- Tracks of one kind share the tallest height only when close (the author, 2026-11-22: "Share only when close"): within
+  2 lanes or 2x of each other; a far track fits its own. To FX14 (`briefs/fx14-close-sharing.md`).
+- A values lane VP (the author, 2026-11-22: "Yes, one lane"): colour by value at full strength, a line's points from
+  6 px a value, `encoding: 'points'`; the language to 0.8.0.
+
 - The default viewer raised to 1,495 kB by the orchestrator (the soft-size rule): VL at 1,481.3 after a trim pass found
   nothing to cut; SX's section scroll next (+~5.6 before its trim).
 - Size bounds are soft (the author, 2026-11-22): trim and lazy-load first, then the orchestrator raises them without
