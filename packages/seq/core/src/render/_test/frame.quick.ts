@@ -38,6 +38,14 @@ const LayoutOptions = {
  * items at 100,000 positions: their keys and lane maps); never a buffer a position or a bin (44 MB a frame before).
  */
 const LayoutBound: Record<string, number> = {
+  // 58.6 KB (pan; zoom 54.8 KB, 2026-11-22): the look's ordered bars (the sort) and the profile's points, a layout's
+  ...Object.fromEntries(
+    (['profile', 'bars', 'quiet'] as const).flatMap((look) => [
+      [`p53 tracks, whole protein, values look ${look}`, 90_000],
+      // 40.9 KB
+      [`p53 tracks, 40 residues, values look ${look}`, 64_000],
+    ]),
+  ),
   // 44.5 KB (zoom; pan 42.3 KB, 2026-11-19): three tracks, the ruler's ticks and labels, the run and its note
   'holey rulers': 64_000,
   // measured 25.7 KB

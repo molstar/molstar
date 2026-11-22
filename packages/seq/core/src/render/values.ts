@@ -10,7 +10,7 @@ import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
 import { type DensityStep, densityStep, perPosition, type RenderConfig } from './config.js';
 import { ValueColorFallback, ValueEnv } from './layer-color.js';
-import { drawPass, grown, NoColor, type PassName, type PassWriter, passDraws } from './draw-lists.js';
+import { drawPass, grown, NoColor, type PassName, type PassWriter, passDraws, Round } from './draw-lists.js';
 import {
   dataRegions,
   type LayerSource,
@@ -256,7 +256,7 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
       }
     if (lay.perBar) colorBars(lay, color, ctx);
     lay.domain = yDomain(prep, ctx, lay);
-    if (lay.encoding !== 'bars') orderLine(lay);
+    if (lay.encoding !== 'bars' || config.values.look !== 'today') orderLine(lay);
     return lay;
   },
 
@@ -287,8 +287,9 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
 
 /** The data pass: bars, or the line (and area) through the same marks. */
 function drawData(lay: ValuesLay, out: PassWriter, emphasis: Emphasis | undefined) {
-  if (lay.encoding === 'bars') drawBars(lay, out, emphasis);
-  else drawLine(lay, out);
+  if (lay.encoding !== 'bars') drawLine(lay, out);
+  else if (lay.config.values.look !== 'today') drawLook(lay, out);
+  else drawBars(lay, out, emphasis);
 }
 
 /** The data pass of bars: placeholders, and a bar a value from the baseline (missing: a mark at it). */
@@ -321,6 +322,135 @@ function drawBars(lay: ValuesLay, out: PassWriter, _emphasis: Emphasis | undefin
       fill = lay.perBar ? lay.col[j] : lay.fill;
     }
     out.fill(lay.x0[j], top, lay.x1[j] - lay.x0[j], h, fill);
+  }
+}
+
+/**
+ * The variants of the bars' look (VL step 1: internal, picked from the Values looks story): a stepped profile below
+ * `BarMinPx` CSS px a value (an area under a crisp top line), bars from it. `gap` and `round` are the bars' (CSS px),
+ * the alphas of the profile's fill (0-255), of the bars' fill, and the top line's width.
+ */
+const LookFillAlpha = 0;
+const LookBarAlpha = 1;
+const LookLine = 2;
+const LookGap = 3;
+const LookRound = 4;
+
+/**
+ * The numbers of each look, a row of five (the order above) in one typed array: read as numbers, never as fields of
+ * objects of differing representations (a double field is boxed where the code is not optimized: an allocation a frame).
+ */
+const LookNumbers = new Float64Array([
+  // profile
+  128, 255, 1, 0, 0,
+  // bars
+  128, 255, 1, 1, 2,
+  // quiet
+  89, 153, 0.75, 1, 2,
+]);
+const LookRow = 5;
+
+/** A value takes bars from this many CSS px; below, the profile. */
+const BarMinPx = 4;
+/** The share of the height the domain's top takes: the rest is headroom (10%). */
+const Fill = 0.9;
+
+/**
+ * The data pass of a look: placeholders, a hairline at the baseline, then a profile (runs of consecutive values, one
+ * color a run: the area under the steps at the look's alpha, the top line over it) or bars. A missing value is a gap.
+ * Nothing allocated once warm: the numbers go through `out.args`, the points through `linePoints`.
+ */
+function drawLook(lay: ValuesLay, out: PassWriter) {
+  const { box, tokens } = lay;
+  drawSpans(out, lay.pending, box.y, box.height, tokens.colors['seq-pending']);
+  drawFailed(out, lay.failed, box.y, box.height, tokens);
+  const lk = lay.config.values.look;
+  const row = (lk === 'profile' ? 0 : lk === 'bars' ? 1 : 2) * LookRow;
+  const L = LookNumbers;
+  const gap = L[row + LookGap];
+  const barAlpha = L[row + LookBarAlpha];
+  const fillAlpha = L[row + LookFillAlpha];
+  const lineWidth = L[row + LookLine];
+  const round = L[row + LookRound];
+  const lo = lay.domain ? lay.domain[0] : 0;
+  const hi = lay.domain ? lay.domain[1] : 1;
+  const base = lo <= 0 && hi >= 0 ? 0 : lo;
+  const span = (hi - lo || 1) / Fill;
+  const y1 = box.y + box.height;
+  const bh = box.height;
+  const yBase = y1 - ((Math.max(lo, Math.min(hi, base)) - lo) / span) * bh;
+  const dpr = lay.axis.dpr;
+  const px = 1 / dpr;
+  out.fill(box.x, yBase - px, box.width, px, tokens.colors['seq-sequence']);
+  const a = out.args;
+  const n = lay.n;
+  const bars = perPosition(lay.step) && lay.axis.scale >= BarMinPx;
+  if (bars) {
+    for (let j = 0; j < n; j++) {
+      const v = lay.v[j];
+      if (Number.isNaN(v)) continue;
+      const top = y1 - ((Math.max(lo, Math.min(hi, Math.max(v, base))) - lo) / span) * bh;
+      const h = y1 - ((Math.max(lo, Math.min(hi, Math.min(lay.lo[j], base))) - lo) / span) * bh - top;
+      const c = lay.perBar ? lay.col[j] : lay.fill;
+      const g = gap / 2;
+      a[0] = lay.x0[j] + g;
+      a[1] = top;
+      a[2] = lay.x1[j] - lay.x0[j] - gap;
+      a[3] = h;
+      a[4] = ((c & 0xffffff00) | barAlpha) >>> 0;
+      a[5] = NoColor;
+      a[6] = 0;
+      a[7] = Math.min(round, a[2] / 2, h / 2);
+      a[8] = Round.both | Round.cutBottom;
+      out.rectArgs();
+    }
+    return;
+  }
+  const pts = linePoints;
+  const ord = lay.ord;
+  let count = 0;
+  let prev = -1;
+  for (let k = 0; k <= n; k++) {
+    const j = k < n ? ord[k] : -1;
+    const valid = j >= 0 && !Number.isNaN(lay.v[j]);
+    const joins =
+      valid &&
+      count > 0 &&
+      prev >= 0 &&
+      !lay.cut[prev] &&
+      lay.col[j] === a[0] &&
+      lay.x0[j] - lay.x1[prev] <= px * 1.01 &&
+      lay.x0[j] >= lay.x1[prev] - px * 1.01;
+    if (count > 0 && !joins) {
+      // the area under the steps down to the baseline, then the line over it
+      pts[2 * count] = pts[2 * count - 2];
+      pts[2 * count + 1] = yBase;
+      pts[2 * count + 2] = pts[0];
+      pts[2 * count + 3] = yBase;
+      a[4] = ((a[0] & 0xffffff00) | fillAlpha) >>> 0;
+      a[5] = NoColor;
+      a[6] = 0;
+      a[7] = 0;
+      out.pathArgs(pts, count + 2, true);
+      a[4] = NoColor;
+      a[5] = a[0];
+      a[6] = lineWidth;
+      a[7] = 0;
+      out.pathArgs(pts, count, false);
+      count = 0;
+    }
+    if (!valid) {
+      prev = -1;
+      continue;
+    }
+    const y = y1 - ((Math.max(lo, Math.min(hi, lay.v[j])) - lo) / span) * bh;
+    if (count === 0) a[0] = lay.col[j];
+    pts[2 * count] = lay.x0[j];
+    pts[2 * count + 1] = y;
+    pts[2 * count + 2] = lay.x1[j];
+    pts[2 * count + 3] = y;
+    count += 2;
+    prev = j;
   }
 }
 
@@ -467,7 +597,7 @@ function orderLine(lay: ValuesLay) {
       if (lo < n && Math.abs(lay.x1[ord[lo]] - x) <= px / 2) lay.cut[ord[lo]] = 1;
     }
   }
-  linePoints = grown(linePoints, 2 * n + 16);
+  linePoints = grown(linePoints, 4 * n + 16);
 }
 
 /**
