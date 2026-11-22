@@ -19,6 +19,7 @@ import {
 import { assembly, createSeqSpec, genome, type ViewBuilder } from '@molstar/seqx-core/lang';
 import type { ExampleView } from '../views.js';
 import { BinsPitch, Grape, grapePlum, Peach, peachGrape, peachSelf, Plum, type ToyGenome } from './genomes.js';
+import { dotPlot, kinship, twoChromosomes } from './grids.js';
 
 // The views across sections (Features/Across sections; across-sections, Defaults): genomes stacked, a bridge between
 // neighbours drawing an alignment's blocks as ribbons. Each alignment a source generated at open and answered after a
@@ -237,4 +238,26 @@ export const AcrossViews: readonly ExampleView[] = [
     'Peach, grape, plum: a bridge between each two; grape’s chr1 tail carried reversed onto plum’s Pd4, its chr3 and chr4 fused in plum’s Pd3.',
     chainView,
   ),
+  view(
+    'across-dot-plot',
+    'Two genomes as a dot plot',
+    'Peach across, grape down, a cell a pair of chromosomes (a grid over two sections of blocks): each alignment block a diagonal, Pp02’s inversion an anti-diagonal in Pp02 × chr2, Pp03’s tail in Pp03 × chr4 (a translocation), Pp01’s lost stretch a break in its diagonal.',
+    () => dotPlot(AcrossFormat),
+  ),
+  {
+    dataset: 'across',
+    id: 'across-contacts',
+    title: 'Contacts between two chromosomes',
+    summary:
+      'chr1’s section across, chr4’s down (a block each), their contacts a grid following both: two hotspots where the chromosomes touch; pan either section and its axis of the plot follows.',
+    build: twoChromosomes,
+  },
+  {
+    dataset: 'across',
+    id: 'across-kinship',
+    title: 'Kinship beside the genotypes',
+    summary:
+      'Twelve samples’ genotypes as a matrix (a row a sample, in data order) and their kinship as a grid on the same samples, ordered by label: three families gather into blocks on the diagonal, the members’ labels down the side and at 45° along the top.',
+    build: kinship,
+  },
 ];

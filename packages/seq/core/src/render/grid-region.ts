@@ -7,7 +7,7 @@
 import type { GridTable } from '@molstar/seqx-core/data';
 import type { AxisTransform } from './axis.js';
 import { type ImageData, NoColor } from './draw-lists.js';
-import { colorOf, type GridLay, type GridPrep, keeps } from './grid.js';
+import { colorOf, type GridLay, type GridPrep, keepsCell } from './grid.js';
 import { dataRegions, fittedLevel, gridLevel, type LayerSource, readGridTiles } from './layer-data.js';
 import type { LayoutContext, StoreReader } from './layer-type.js';
 
@@ -129,7 +129,7 @@ function buildTile(lay: GridLay, p: Placed, level: number): ImageData | undefine
     const row = flipY ? p.h - 1 - j : j;
     for (let i = 0; i < p.w; i++) {
       const q = 4 * (row * p.w + (flipX ? p.w - 1 - i : i));
-      const v = keeps(lay.triangle, p.x + i, p.y + j) ? (sparse ? sparse[i * p.h + j] : value(i, j)) : Number.NaN;
+      const v = keepsCell(lay, p.x + i, p.y + j) ? (sparse ? sparse[i * p.h + j] : value(i, j)) : Number.NaN;
       const fill = colorOf(lay, v);
       if (fill === NoColor) {
         d[q] = d[q + 1] = d[q + 2] = d[q + 3] = 0;
@@ -220,7 +220,7 @@ export function layoutRegionGrid(
   const tokens = ctx.tokens.version;
   const xLen = region.src.length ?? Number.MAX_SAFE_INTEGER;
   const place = (p: Placed, level: number) => {
-    const key = `${lay.key}|r|${p.key}|${p.transposed ? 't' : ''}|${lay.colorVersion}.${tokens}|${prep.triangle}`;
+    const key = `${lay.key}|r|${p.key}|${p.transposed ? 't' : ''}|${lay.colorVersion}.${tokens}|${lay.orderKey}`;
     let img = lay.cache!.get(key);
     if (!img) {
       img = buildTile(lay, p, level);

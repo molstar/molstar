@@ -10,7 +10,7 @@ cases flip by what ran before them in their file, so the gate blocks merges at r
 
 - storybook `_stories/features/layouts/_test/section-scroll.quick.ts`, the wheel step: 0 B alone, 40 B and 80 B in a
   full-file run (FX14's two-case probe, wheel over an empty lane and over a gene, is at
-  `/private/tmp/claude-501/-Users-davinci001--claude-spares-spare-tLE57b/4a6ec687-17ab-4e02-9611-42250d4e989e/scratchpad/fx14-two-case-probe.ts`);
+  `fx14-two-case-probe.ts` in the orchestrator's scratchpad (ask for it if you need it));
 - storybook `chromosome` "between two levels" pan: 55,9xx–56,1xx B against its 56,000 bound;
 - core `render/_test/navigator-blocks.quick.ts`, the 3,000-contig leak control: ~112 KB, failing in alternate runs.
 

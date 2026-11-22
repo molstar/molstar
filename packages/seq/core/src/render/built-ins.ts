@@ -19,6 +19,7 @@ import { LogoType } from './logo.js';
 import { PairsType } from './pairs.js';
 import { regionPairs, regionState } from './pairs-region.js';
 import { registerBridges } from './bridge-load.js';
+import { registerMembers } from './members-hooks.js';
 import { RangesType } from './ranges.js';
 import { RowsType } from './rows.js';
 import { RulerType } from './ruler.js';
@@ -50,6 +51,8 @@ export const BuiltInLayerTypes: Readonly<Record<string, LayerType<any, any>>> = 
 // bridges, drawn where a composition registers the built-ins: their ribbons are the pairs layer in a bridge, read by its
 // region reader (`bridge-load.ts`; a composition listing fewer types calls `registerBridges` itself)
 registerBridges(regionPairs, regionState);
+// categorical grid axes' orders and labels, loaded when a spec names a rows system on a grid's axis (`members-hooks.ts`)
+registerMembers();
 
 /** The section layouts the core ships, by name (_spec/README.md "Render", Section layouts). */
 export const BuiltInLayouts: Readonly<Record<string, SectionLayoutType<any>>> = {
