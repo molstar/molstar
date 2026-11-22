@@ -10,7 +10,7 @@
 // gutter left (`start`) or right (`end`); the lines laid out lazily (only those in view), their heights kept per
 // section (full until laid out: the text's `end` is an estimate), the reader's place held by the anchor (`viewport.start`,
 // the display unit at the top of the box, fractional within its line) across a reflow. A text section in a page caps at
-// `text.maxHeight` and scrolls inside its box; an export lays out every line (`figure`).
+// `section.maxPx` and scrolls inside its box; an export lays out every line (`figure`).
 
 import { issueOf, type Value } from '@molstar/core/repr/tree';
 import { DefaultNumbering, findNumbering, type NumberingOf } from '@molstar/seqx-core/query';
@@ -358,11 +358,10 @@ export class TextPlacement extends StripPlacement {
   private heightsKey = '';
   /** The anchor (`viewport.start`, clamped), the px scrolled (`top`), and the window followers read. */
   anchor = 0;
-  top = 0;
   window: Viewport = { start: 0, end: 0 };
   marks: TextMark[] = [];
   /** Whether the section scrolls inside its box: its strips are clipped to it. */
-  readonly clip = true;
+  override clip = true;
 
   /** Keeps the line heights for a geometry; a new one fills them full. */
   keep(g: TextGeometry): void {
@@ -371,6 +370,11 @@ export class TextPlacement extends StripPlacement {
     this.heightsKey = key;
     if (this.heights.length !== g.laid) this.heights = new Float64Array(g.laid);
     this.heights.fill(g.lineHeight + g.lineGap);
+  }
+
+  /** The px scrolled for an anchor through the placed lines (`Placement.scrollTopAt`). */
+  scrollTopAt(anchor: number): number {
+    return this.geometry ? topOf(this, anchor) : this.top;
   }
 
   /** The px from the first line's top to line `l`'s. */
@@ -539,10 +543,10 @@ export const TextLayout: SectionLayoutType<TextPlacement> = {
     const frac = LineFrac.frac;
     const content = () => p.lineTop(g.laid);
     const top = ctx.box.y;
-    // the box: the section's `height`, else its content's up to `text.maxHeight`; an export shows every line
+    // the box: the section's `height`, else its content's up to `section.maxPx`; an export shows every line
     const figure = ctx.figure === true;
-    // its content's up to `text.maxHeight` (a host sizing its canvas to the content reads it), or its `height`
-    const boxOf = () => (figure ? content() : (params.height ?? Math.min(content(), config.text.maxHeight)));
+    // its content's up to `section.maxPx` (a host sizing its canvas to the content reads it), or its `height`
+    const boxOf = () => (figure ? content() : (params.height ?? Math.min(content(), config.section.maxPx)));
     let boxH = boxOf();
     const from = figure ? 0 : first;
     let y = figure ? top : top - frac * p.heights[first];
@@ -648,6 +652,7 @@ export const TextLayout: SectionLayoutType<TextPlacement> = {
     boxH = boxOf();
     p.contentHeight = content();
     p.top = p.lineTop(first) + frac * p.heights[first];
+    p.scrollY = top;
     // the units in view (lines of blocks: from their first units)
     const n = strips.n;
     const last = n
@@ -674,7 +679,7 @@ export const TextLayout: SectionLayoutType<TextPlacement> = {
       ctx.pads,
     );
     const pitch = g.lineHeight + g.lineGap;
-    const boxH = params.height ?? Math.min(g.laid * pitch, ctx.config.text.maxHeight);
+    const boxH = params.height ?? Math.min(g.laid * pitch, ctx.config.section.maxPx);
     lineFrac(g, Math.max(0, Math.min(viewport?.start ?? 0, g.total)), LineFrac);
     const first = LineFrac.line;
     const lines = Math.max(1, Math.ceil(boxH / pitch + LineFrac.frac));

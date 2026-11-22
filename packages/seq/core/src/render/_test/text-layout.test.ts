@@ -193,7 +193,7 @@ describe('the text layout', () => {
     b.views.view('main', { layout: 'text' }, (v) => {
       v.section('protein', { of: p, pieces: d }).track('letters').layer('letters', { type: 'letters' });
     });
-    const s = await settle(b.build(), [], { text: { pieceBreak: 'line', maxHeight: 2000 } });
+    const s = await settle(b.build(), [], { text: { pieceBreak: 'line' }, section: { maxPx: 2000 } });
     const f = await s.frame({ size: Size });
     const t = text(f.layout.sections[0]);
     const g = t.geometry!;
@@ -248,7 +248,7 @@ describe('the text layout', () => {
       sec.track('letters').layer('letters', { type: 'letters' });
       sec.track('ruler').layer('ruler', { type: 'ruler' });
     });
-    const s = await settle(b.build(), [], { text: { maxHeight: 4000 } });
+    const s = await settle(b.build(), [], { section: { maxPx: 4000 } });
     const f = await s.frame({ size: { width: 520, height: 400 } });
     const sec = f.layout.sections[0];
     const t = text(sec);
@@ -336,7 +336,7 @@ describe('the text layout', () => {
       s.track('letters').layer('letters', { type: 'letters' });
       s.track('domains').layer('ranges', { type: 'ranges', data: d });
     });
-    const s = await settle(b.build(), [], { text: { maxHeight: 4000 } });
+    const s = await settle(b.build(), [], { section: { maxPx: 4000 } });
     const f = await s.frame({ size: Size });
     const sec = f.layout.sections[0];
     const t = text(sec);
@@ -404,7 +404,7 @@ describe('the text layout', () => {
       s.track('letters').layer('letters', { type: 'letters' });
       s.track('domains').layer('ranges', { type: 'ranges', data: d });
     });
-    const s = await settle(b.build(), [], { text: { maxHeight: 4000 } });
+    const s = await settle(b.build(), [], { section: { maxPx: 4000 } });
     const f = await s.frame({ size: Size });
     const sec = f.layout.sections[0];
     const nb = text(sec).strips.bands;
@@ -468,7 +468,7 @@ describe('the text layout', () => {
 describe('the text layout’s navigation', () => {
   it('a pan scrolls lines, a step goes a line up and down, a reveal brings a line to the top, clamp holds the end', async () => {
     // a box of 120 px: the text scrolls inside it
-    const s = await settle(p53TextSpec(), [], { text: { maxHeight: 120 } });
+    const s = await settle(p53TextSpec(), [], { section: { maxPx: 120 } });
     const f = await s.frame({ size: { width: 720, height: 400 }, viewport: { start: 0, end: 393 } });
     const p = text(f.layout.sections[0]);
     const g = p.geometry!;
@@ -499,7 +499,7 @@ describe('the text layout’s navigation', () => {
   });
 
   it('a pan reads the viewport it is given (two pans before a layout add up); a zoom keeps the pointer’s line at its y', async () => {
-    const s = await settle(p53TextSpec(), [], { text: { maxHeight: 120 } });
+    const s = await settle(p53TextSpec(), [], { section: { maxPx: 120 } });
     const f = await s.frame({ size: { width: 720, height: 400 }, viewport: { start: 0, end: 393 } });
     const p = text(f.layout.sections[0]);
     const g = p.geometry!;

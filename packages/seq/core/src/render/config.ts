@@ -189,7 +189,15 @@ export interface RenderConfig {
     readonly states: { readonly export: 'include' | 'none' };
   };
   /** A section's header line: drawn when it has a state or a slot (`auto`), for every section, or never. */
-  readonly section: { readonly header: 'auto' | 'always' | 'none' };
+  readonly section: {
+    readonly header: 'auto' | 'always' | 'none';
+    /**
+     * A section's box with no `height` of its own (_spec/README.md "Render", Section scroll): its content's height up to
+     * `maxPx` (600 px), past it its content (a text's lines, a tracks section's tracks below its ruler) scrolls inside
+     * with the one rail; an export shows all of it.
+     */
+    readonly maxPx: number;
+  };
   /** What a want adds on each side of the view, as a fraction of it (the store's `margin` priority). */
   readonly margin: number;
   /** A follower's leader pieces carried as their image's hull, or the shortest arc on a cyclic follower. */
@@ -405,8 +413,7 @@ export interface RenderConfig {
   /**
    * The text layout (_spec/README.md "Render", Text layout): its letter size (`scale`, px a position: the zoom), the gap
    * between groups (a share of a cell), between lines and between a line's bands (px), whether a band no layer used on
-   * a line collapses there, the most lines a section lays out, the most px a section in a page takes before it scrolls
-   * inside, whether a piece's edge starts a line, the gap between a line and its numbers, a track's height by its
+   * a line collapses there, the most lines a section lays out, whether a piece's edge starts a line, the gap between a line and its numbers, a track's height by its
    * layers' type when the spec gives none (thin: a ranges track reads as underlines, a values track as a strip).
    */
   readonly text: {
@@ -416,7 +423,6 @@ export interface RenderConfig {
     readonly bandGap: number;
     readonly collapseEmpty: boolean;
     readonly maxLines: number;
-    readonly maxHeight: number;
     readonly pieceBreak: 'none' | 'line';
     readonly numberGap: number;
     readonly heights: RenderConfig['heights'];
@@ -487,7 +493,7 @@ export const DefaultRenderConfig: RenderConfig = {
     actions: { show: 'hover' },
     states: { export: 'include' },
   },
-  section: { header: 'auto' },
+  section: { header: 'auto', maxPx: 600 },
   margin: 0.5,
   followArc: 'shortest',
   maxTemplateTracks: 200,
@@ -542,7 +548,6 @@ export const DefaultRenderConfig: RenderConfig = {
     bandGap: 3,
     collapseEmpty: true,
     maxLines: 100_000,
-    maxHeight: 600,
     pieceBreak: 'none',
     numberGap: 8,
     heights: {

@@ -77,7 +77,7 @@ export const Scenarios: readonly Scenario[] = [
     width: 40,
     center: 100,
     panStep: 0.5,
-    config: { text: { maxHeight: 80 } },
+    config: { section: { maxPx: 80 } },
   },
   { name: 'p53 on its gene, whole protein', spec: p53GeneSpec, runtimes: [], width: 393, center: 196, panStep: 0.5 },
   // the gene reversed and collapsed (its coding pieces), the protein's letters a codon wide on it

@@ -7,7 +7,7 @@
 import type { Box, Hit } from './layer-type.js';
 import { breakHit } from './marks.js';
 import { BlockPlacement } from './layout/blocks.js';
-import { PlacePoint, WarpKind } from './layout/strips.js';
+import { hiddenAt, PlacePoint, WarpKind } from './layout/strips.js';
 import { hitRail } from './rail.js';
 import type { SectionLayout, ViewLayout } from './tracks-types.js';
 import { BreakSlop, Notch } from './tracks-draw.js';
@@ -112,19 +112,27 @@ function hitLayout(layout: ViewLayout, x: number, y: number, touch: boolean, hov
         for (let k = 0; k < s.rails.length; k++) s.rails[k].markAt = s.rails[i].markAt;
         return h;
       }
-    if (s.rowsRails)
+    // a section's own rail where it scrolls inside its box; the rails of its bands only over its scrolled area
+    if (s.sectionRail) {
+      const h = hitRail(s.sectionRail, x, y, s.config, touch);
+      if (h) return h;
+    }
+    // in a section past its cap, a point outside its scrolled area hits none of its scrolled bands' parts
+    const scrolled = !s.sectionRail || !hiddenAt(s.placement, y);
+    if (s.rowsRails && scrolled)
       for (let i = 0; i < s.rowsRails.length; i++) {
         const h = hitRail(s.rowsRails[i], x, y, s.config, touch);
         if (h) return h;
       }
     // a scrolled lanes band's rail (pan only: `hitRail` gives its grips as body)
-    if (s.lanesRails)
+    if (s.lanesRails && scrolled)
       for (let i = 0; i < s.lanesRails.length; i++) {
         const h = hitRail(s.lanesRails[i], x, y, s.config, touch);
         if (h) return h;
       }
     // what a layer draws outside its band (a rows layer's column titles, above the rows), on its first strip
     for (let j = 0; j < s.tracks.length; j++) {
+      if (!scrolled && j >= (s.placement.fixed ?? 0)) continue;
       const lays = s.tracks[j].layers;
       for (let i = 0; i < lays.length; i++) {
         const t = lays[i].type;

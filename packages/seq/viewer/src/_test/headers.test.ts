@@ -512,8 +512,9 @@ describe('the hover path (the quick representative; the allocation case is the s
     const layouts = v.counts.layouts;
     const sets: unknown[] = [];
     v.headers!.listen((g) => sets.push(g));
+    // the section past its cap shows the headers of the tracks in its box (the rest scroll in)
     const lines = v.headers!.value.filter((g) => g.target.track !== undefined);
-    expect(lines).toHaveLength(200);
+    expect(lines.length).toBeGreaterThan(10);
     for (const g of lines) {
       v.input.move(g.label.x + 2, g.line.y + g.line.height / 2);
       v.draw();

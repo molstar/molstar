@@ -12,8 +12,9 @@ import {
   type Placement,
   PlacePoint,
   type Rail,
-  LanesRail,
+  panOnly,
   RowsRail,
+  SectionRail,
   railUnitAt,
   type Hit as RenderHit,
   type SectionLayout,
@@ -48,6 +49,7 @@ import type {
 } from '@molstar/seqx-viewer/behaviors';
 import { isDragSelect } from '@molstar/seqx-viewer/behaviors/select';
 import { trackOfLayer } from '@molstar/seqx-viewer/behaviors/two-axes';
+import { SectionRailGesture, SectionWheel, scrolledSection } from './section-scroll.js';
 import {
   type Anchor,
   axisTotal,
@@ -154,6 +156,18 @@ export class ViewerInput {
     this._rowsRailGesture ??= this.viewer.behavior<RowsBehavior>('rows')?.railGesture();
     return this._rowsRailGesture;
   }
+  /** A section rail's gesture: the viewer's own (a section past its cap scrolls in every composition). */
+  private _sectionRailGesture: SectionRailGesture | undefined;
+  /** The wheel over a section past its cap, coalesced to the frame. */
+  private _sectionWheel: SectionWheel | undefined;
+  private get sectionWheel(): SectionWheel {
+    this._sectionWheel ??= new SectionWheel(this.viewer.view, () => this.viewer.frame?.layout);
+    return this._sectionWheel;
+  }
+  private get sectionRailGesture(): SectionRailGesture {
+    this._sectionRailGesture ??= new SectionRailGesture(this.viewer.view, () => this.viewer.frame?.layout);
+    return this._sectionRailGesture;
+  }
   /** A rail's press that never moved: its click (the platform's, after the button went up) centres or not. */
   private _railClick: { section: string; at: number; part: WindowPart } | undefined;
   /** The pointer is a finger (the last pointer event's kind): a window's hit is wider. */
@@ -239,8 +253,7 @@ export class ViewerInput {
   get cursor(): PartCursor | undefined {
     const h = this._dragHit ?? this._windowHit;
     if (!h?.part) return undefined;
-    if (h.navigator !== 'rail' && h.navigator !== RowsRail && h.navigator !== LanesRail)
-      return h === this._dragHit ? 'grabbing' : 'grab';
+    if (h.navigator !== 'rail' && !upright(h.navigator)) return h === this._dragHit ? 'grabbing' : 'grab';
     return partCursor(h.part, h.navigator === 'rail' ? 'positions' : 'rows', h === this._dragHit);
   }
 
@@ -260,6 +273,7 @@ export class ViewerInput {
     for (const s of this.viewer.frame?.layout.sections ?? []) {
       for (const r of s.rowsRails ?? []) if (r.key === track) return r;
       for (const r of s.lanesRails ?? []) if (r.key === track) return r;
+      if (s.sectionRail?.key === track) return s.sectionRail;
     }
     return undefined;
   }
@@ -355,6 +369,17 @@ export class ViewerInput {
     const before = view.get(section)?.start;
     if (dy === 0 || before === undefined || !view.panPx(section, 0, dy)) return false;
     if (view.get(section)?.start === before) return false;
+    this.viewer.schedule();
+    return true;
+  }
+
+  /**
+   * The wheel's vertical delta over a tracks section past its cap (_spec/README.md "Input", The one rail): its tracks
+   * below the ruler scroll by it (the viewport's `top`, clamped to its content); at its top or bottom the wheel is the
+   * page's (false: scroll chaining).
+   */
+  private _scrollSection(section: string, dy: number): boolean {
+    if (!this.sectionWheel.wheel(section, dy)) return false;
     this.viewer.schedule();
     return true;
   }
@@ -465,7 +490,9 @@ export class ViewerInput {
       if (d.rowsRail) {
         d.x = x;
         d.y = y;
-        if (d.moved) this.rowsRailGesture?.dragTo(railUnitAt(d.rowsRail, y));
+        const at = railUnitAt(d.rowsRail, y);
+        if (d.moved && d.rowsRail.hit.navigator === SectionRail) this.sectionRailGesture.dragTo(at);
+        else if (d.moved) this.rowsRailGesture?.dragTo(at);
       } else if (d.rail) {
         d.x = x;
         d.y = y;
@@ -507,7 +534,7 @@ export class ViewerInput {
   private _hoverable(hit: Hit | undefined): Hit | undefined {
     if (hit?.target !== 'window') return hit;
     const n = hit.navigator;
-    return n === 'rail' || n === RowsRail || n === LanesRail ? undefined : hit;
+    return n === 'rail' || upright(n) ? undefined : hit;
   }
 
   /** The pointer left the canvas: the hover it owned goes, and no re-hit follows. */
@@ -546,16 +573,23 @@ export class ViewerInput {
     const section = inSection ?? this._band(y);
     if (section === undefined) return false;
     const mods = this._modifiers(e);
+    // a section's wheel still pending lands first: the press reads the model
+    this._sectionWheel?.apply();
     const hit = this._hitAt(x, y);
     // over a bridge's band a drag moves both its sides and selects nothing (_spec/README.md "Bridges")
     const target = inSection === undefined ? 'empty' : hitTarget(hit);
     // a rows rail's part (_spec/README.md "Input", Navigators, The rows rail): its window scrolls, a grip zooms the rows
     const rowsRail =
-      target === 'window' && (hit?.navigator === RowsRail || hit?.navigator === LanesRail) && hit.layer && !this._space
+      target === 'window' && upright(hit?.navigator) && hit?.layer && !this._space
         ? this._rowsRailOf(hit.layer)
         : undefined;
     if (rowsRail && hit?.part) {
-      if (!this.rowsRailGesture?.press(rowsRail.key, hit.part, railUnitAt(rowsRail, y), rowsRail)) return false;
+      const at = railUnitAt(rowsRail, y);
+      const pressed =
+        rowsRail.hit.navigator === SectionRail
+          ? this.sectionRailGesture.press(rowsRail.key, hit.part, at)
+          : this.rowsRailGesture?.press(rowsRail.key, hit.part, at, rowsRail);
+      if (!pressed) return false;
       this._drag = {
         x,
         y,
@@ -632,8 +666,8 @@ export class ViewerInput {
       this.viewer.schedule();
     }
     if (d.rowsRail) {
-      const g = this.rowsRailGesture;
       const r = d.rowsRail;
+      const g = r.hit.navigator === SectionRail ? this.sectionRailGesture : this.rowsRailGesture;
       // a press that never moved waits for its click: outside the window it centres the rows there
       if (!d.moved) {
         g?.cancel();
@@ -641,7 +675,7 @@ export class ViewerInput {
           track: r.key,
           at: railUnitAt(r, d.y0),
           part: d.part ?? 'body',
-          window: { start: r.start, end: r.end, total: r.total, width: r.width, lanes: r.hit.navigator === LanesRail },
+          window: { start: r.start, end: r.end, total: r.total, width: r.width, hit: r.hit },
         };
       } else g?.release();
       this._suppressClick = true;
@@ -681,7 +715,9 @@ export class ViewerInput {
     if (rr) {
       this._rowsRailClick = undefined;
       this._suppressClick = false;
-      this.rowsRailGesture?.click(rr.track, rr.part, rr.at, rr.window, e.detail ?? 1);
+      if (rr.window.hit?.navigator === SectionRail)
+        this.sectionRailGesture.click(rr.track, rr.part, rr.at, e.detail ?? 1);
+      else this.rowsRailGesture?.click(rr.track, rr.part, rr.at, rr.window, e.detail ?? 1);
       return true;
     }
     const rc = this._railClick;
@@ -826,6 +862,14 @@ export class ViewerInput {
     const uy = e.deltaMode === 1 ? pointer.lineHeight : e.deltaMode === 2 ? this.viewer.height : 1;
     const dx = e.deltaX * ux;
     const dy = e.deltaY * uy;
+    // a plain vertical wheel over a section past its cap and over none of its scrolling bands: the section's at once
+    // (the chain's second step, no hit read: a wheel step allocates nothing)
+    const plain = !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey && Math.abs(dy) > Math.abs(dx);
+    const capped = plain ? scrolledSection(this.viewer.frame?.layout, section) : undefined;
+    if (capped && capped.layout.name !== 'text' && !overBand(capped, x, y)) {
+      if (this._scrollSection(section, dy)) return true;
+      return this._overPlot(section, x, y);
+    }
     const target = hitTarget(this._hitAt(x, y));
     // over the label column the zoom is about the section's first visible position, never before it
     const width = this.viewer.view.get(section)?.width ?? 0;
@@ -845,9 +889,12 @@ export class ViewerInput {
       return taken || plot;
     }
     const mods = this._modifiers(e);
-    // a section that scrolls inside its box (a text) takes the wheel only while it overflows, and gives it back at its
-    // ends; Cmd/Ctrl+wheel zooms it as any section
-    if (this.viewer.placementOf(section)?.clip && !e.ctrlKey && !e.metaKey) return this._scrollBox(section, dy);
+    // the wheel's chain (_spec/README.md "Input", The one rail): its vertical delta scrolls a rows band or a lanes band
+    // under the pointer first, then the section past its cap (a text's lines, a tracks section's tracks), then the page
+    const overflowing = scrolledSection(this.viewer.frame?.layout, section) !== undefined;
+    const textBox = this.viewer.placementOf(section)?.clip === true && this.viewer.view.layoutOf(section) === 'text';
+    // a text takes no other wheel (Cmd/Ctrl+wheel zooms it as any section)
+    const vertical = !mods.mod && !mods.shift && (textBox ? !e.ctrlKey && !e.metaKey : Math.abs(dy) > Math.abs(dx));
     // over a rows band (its cells, its header) the wheel's vertical delta scrolls its rows, the rest pans the columns
     const rowsHit =
       this._hit.ySystem !== undefined || target === 'row' || target === 'summary-row' || target === 'tree-node';
@@ -857,17 +904,20 @@ export class ViewerInput {
     if (rows && over?.key === this._hit.layer && this._hit.layer !== undefined && Math.abs(dy) >= Math.abs(dx)) {
       const scrolled = rows.wheel(trackOfLayer(this._hit.layer), dy);
       this.viewer.schedule();
-      return scrolled;
+      if (scrolled || !overflowing) return scrolled;
+      return this._scrollSection(section, dy);
     }
     // over a ranges layer whose lanes overflow its band the wheel's vertical delta scrolls them (the rows behavior's); at
-    // their end it is given back
+    // their end it goes on to the section, then the page
     const lanesLayer = this._hitAt(x, y)?.layer;
-    if (lanesLayer !== undefined && !mods.mod && !mods.shift && Math.abs(dy) > Math.abs(dx)) {
+    if (lanesLayer !== undefined && vertical && !textBox) {
       if (this.viewer.behavior<RowsBehavior>('rows')?.wheelLanes(lanesLayer, dy)) {
         this.viewer.schedule();
         return true;
       }
     }
+    if (textBox && !e.ctrlKey && !e.metaKey) return this._scrollBox(section, dy);
+    if (overflowing && vertical) return this._scrollSection(section, dy);
     const taken = this.viewer.bindings.resolve('wheel', mods, target) !== undefined;
     if (taken) nav.wheel(section, dx, dy, local, mods, target, at, atY);
     // the frame asked for after the behavior's own, so a wheel's deltas apply in the frame that draws them
@@ -903,7 +953,7 @@ export class ViewerInput {
     const mods = this._modifiers(e);
     const hit = this._hitAt(x, y);
     // on a rows rail: its window resets the rows' zoom; outside it nothing (its first click centred, or not)
-    if (hit?.target === 'window' && (hit.navigator === RowsRail || hit.navigator === LanesRail)) {
+    if (hit?.target === 'window' && upright(hit.navigator)) {
       if (hit.navigator === RowsRail && hit.part !== 'outside' && hit.layer !== undefined)
         this.rowsRailGesture?.resetZoom(hit.layer);
       return true;
@@ -1112,7 +1162,8 @@ export class ViewerInput {
     // Esc during a drag-select cancels it: the selection before it comes back, and the click after it is none
     // Esc during a window's drag puts the view back where the press found it
     if (e.key === 'Escape' && this._drag?.window) {
-      if (this._drag.rowsRail) this.rowsRailGesture?.cancel();
+      if (this._drag.rowsRail?.hit.navigator === SectionRail) this.sectionRailGesture.cancel();
+      else if (this._drag.rowsRail) this.rowsRailGesture?.cancel();
       else if (this._drag.rail) this.navigatorBehavior?.cancel();
       else this.windowBehavior?.cancel();
       this._dragHit = undefined;
@@ -1215,6 +1266,26 @@ function coveringArc(axis: Axis, ranges: ArrayLike<number>): { start: number; en
   const start = at + 1 < spans.length ? spans[at + 1][0] : spans[0][0];
   const end = spans[at][1];
   return { start, end: end > start ? end : end + t };
+}
+
+/** Whether a point is over a band of a section that scrolls on its own (a lanes or a rows band with its rail). */
+function overBand(s: SectionLayout, x: number, y: number): boolean {
+  return overRails(s.lanesRails, x, y) || overRails(s.rowsRails, x, y);
+}
+
+/** Whether a point is beside one of upright rails along it, left of its right side (its band's rows). */
+function overRails(list: readonly Rail[] | undefined, x: number, y: number): boolean {
+  if (list)
+    for (let i = 0; i < list.length; i++) {
+      const r = list[i];
+      if (y >= r.x - r.inset && y < r.x + r.width + r.inset && x < r.bottom) return true;
+    }
+  return false;
+}
+
+/** An upright rail's navigator: a rows band's, or a pan-only one (a lanes band's, a section's): the one gesture. */
+function upright(n: string | undefined): boolean {
+  return n === RowsRail || panOnly(n);
 }
 
 /** A rail's window as drawn, in display units, when the floor drew it wider than the truth (else undefined). */
