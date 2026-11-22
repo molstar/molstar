@@ -72,7 +72,11 @@ export function behaviorOf<H>(
 ): H | undefined {
   const handle = handles.get(name);
   if (handle !== undefined) {
-    const lacks = BehaviorShapes[name]?.find((m) => typeof handle[m] !== 'function');
+    // a loop, no closure: the input asks on every wheel and pointer event
+    const shape = BehaviorShapes[name];
+    let lacks: string | undefined;
+    for (let i = 0; shape && i < shape.length && lacks === undefined; i++)
+      if (typeof handle[shape[i]] !== 'function') lacks = shape[i];
     if (lacks === undefined) return handle as H;
     behaviorIssue(
       issues,

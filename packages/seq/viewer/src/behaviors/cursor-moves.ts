@@ -49,17 +49,13 @@ import {
   type ViewModel,
 } from '@molstar/seqx-viewer/models';
 import type { CursorBehavior, CursorContext } from './cursor.js';
-import {
-  bandFolds,
-  lanesBand,
-  lanesTop,
-  pagedTop,
-  pageLanes,
-  pageRows,
-  revealedTop,
-  setBandFolds,
-} from './rows-band.js';
+import { bandFolds, pagedTop, pageRows, revealedTop, setBandFolds } from './rows-band.js';
 import { type RowsOf, rowsOf as rowsIn, twoAxesLayer } from './two-axes.js';
+import { rowsScroller, type Scroller, scrollChain, scrollersUnder } from './scrollers.js';
+import { revealInSection } from '@molstar/seqx-viewer/section-scroll';
+
+/** What a page or an end key says it scrolled. */
+const Scrolled = { rows: 'Rows', lanes: 'Lanes', section: 'Section' } as const;
 import { BridgeView } from '@molstar/seqx-viewer/models/bridge-hooks';
 
 /** The cursor less its row: a cell on the section's axis. */
@@ -197,6 +193,11 @@ export function createCursor(
     if (i < 0) return;
     const next = revealedTop(r.lay, top ?? topOf(r), i);
     if (next !== topOf(r)) view.setBand(r.track, { bandTop: next });
+    // a band in a section past its cap: the section scrolls the least to show the row (_spec/README.md "Input")
+    const l = r.lay;
+    const P = l.display.pinned;
+    const y0 = l.box.y + (i < P ? i * l.rowScale : l.pinnedHeight + (i - P - next) * l.rowScale);
+    revealInSection(view, layout(), c.section, y0, y0 + l.rowScale);
   };
   /**
    * A grid's y shows the cursor's row by the least move: a y of its own (or one following a section) pans by the px the
@@ -560,11 +561,15 @@ export function createCursor(
     }
     return undefined;
   };
-  /** The overflowing lanes band under the pointer, with its track and stored top (lanes). */
-  const lanesIn = (ctx: CursorContext) => {
-    const b = ctx.layer === undefined ? undefined : lanesBand(layout(), ctx.layer);
-    if (!b || !(b.lay.scrollMax > 0)) return undefined;
-    return { lay: b.lay, track: b.track, top: view.band(b.track)?.bandTop ?? b.lay.top };
+  /**
+   * The scroller under the pointer that can move (_spec/README.md "Input", The one rail): an overflowing lanes band, a
+   * rows band, else the section past its cap; with none, the first rows band (the rows' `rows.page-*`).
+   */
+  const scrollersAt = (ctx: CursorContext, fallback = true): Scroller[] => {
+    const out = scrollersUnder(view, layout(), ctx);
+    const r = fallback ? pageRowsOf(ctx) : undefined;
+    if (r && !out.some((s) => s.kind === 'rows' && s.key === r.track)) out.push(rowsScroller(view, r.lay, r.track));
+    return out;
   };
   /** A shown cursor's rows, else undefined. */
   const shownOnRows = () => {
@@ -574,8 +579,8 @@ export function createCursor(
 
   /**
    * Page Down and Page Up: a shown cursor on rows moves a page of rows and the band a page with it (`pagedTop`), the
-   * row then shown; with none, the lanes band under the pointer that overflows scrolls a page, else the rows' band (the
-   * rows' `rows.page-*`); at the band's end the key is the page's.
+   * row then shown; with none, the scroller under the pointer (a lanes band, a rows band, the section past its cap: one
+   * command, the innermost that can move) a page; at the ends the key is the page's.
    */
   const page = (id: string, title: string, dir: 1 | -1): CommandDefinition<CursorContext> => ({
     id,
@@ -585,27 +590,39 @@ export function createCursor(
     when: (ctx) => {
       const c = shownOnRows();
       if (c) return rowsOf(c.section) ? true : 'No rows to page';
-      const l = lanesIn(ctx);
-      if (l) return lanesTop(l.lay, l.top, dir * pageLanes(l.lay)) !== l.top ? true : 'The lanes are at their end';
-      const r = pageRowsOf(ctx);
-      if (!r) return 'No rows to page';
-      return pagedTop(r.lay, topOf(r), dir) !== topOf(r) ? true : 'The rows are at their end';
+      const all = scrollersAt(ctx);
+      if (!all.length) return 'Nothing to page';
+      return all.some((s) => (dir > 0 ? s.top() < s.total - s.shown - 1e-6 : s.top() > 1e-6)) ? true : 'At the end';
     },
     run: (_, ctx): CommandResult => {
       const c = shownOnRows();
-      const l = c ? undefined : lanesIn(ctx);
-      if (l) {
-        view.setBand(l.track, { bandTop: lanesTop(l.lay, l.top, dir * pageLanes(l.lay)) });
-        return { message: dir > 0 ? 'Lanes a page down' : 'Lanes a page up' };
+      if (!c) {
+        const moved = scrollChain(scrollersAt(ctx), (s) => dir * s.page);
+        return { message: moved ? `${Scrolled[moved.kind]} a page ${dir > 0 ? 'down' : 'up'}` : '' };
       }
-      const r = c ? rowsOf(c.section) : pageRowsOf(ctx);
+      const r = rowsOf(c.section);
       if (!r) return { message: '' };
       const top = pagedTop(r.lay, topOf(r), dir);
       view.setBand(r.track, { bandTop: top });
-      if (!c) return { message: dir > 0 ? 'Rows a page down' : 'Rows a page up' };
       const next = rowStep(c, dir * pageRows(r.lay), true);
       if (next) moveTo(next, top);
       return { message: 'Moved' };
+    },
+  });
+
+  /** Home and End: the scroller under the pointer to its start or its end (none there: the keys are the page's). */
+  const ends = (id: string, title: string, end: -1 | 1): CommandDefinition<CursorContext> => ({
+    id,
+    title,
+    category: 'Cursor',
+    scope: 'canvas',
+    when: (ctx) =>
+      scrollersAt(ctx, false).some((s) => (end > 0 ? s.top() < s.total - s.shown - 1e-6 : s.top() > 1e-6))
+        ? true
+        : 'At the end',
+    run: (_, ctx): CommandResult => {
+      const moved = scrollChain(scrollersAt(ctx, false), (s) => (end > 0 ? s.total : -s.total));
+      return { message: moved ? `${Scrolled[moved.kind]} to the ${end > 0 ? 'end' : 'start'}` : '' };
     },
   });
 
@@ -711,6 +728,8 @@ export function createCursor(
     ),
     page('cursor.page-down', 'Cursor and rows a page down', 1),
     page('cursor.page-up', 'Cursor and rows a page up', -1),
+    ends('cursor.scroll-start', 'Scroll to the start', -1),
+    ends('cursor.scroll-end', 'Scroll to the end', 1),
     rowsEnd('cursor.first-row', 'Cursor to the first row', -1),
     rowsEnd('cursor.last-row', 'Cursor to the last row', 1),
     {

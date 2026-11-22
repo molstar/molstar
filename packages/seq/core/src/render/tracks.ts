@@ -28,7 +28,16 @@ import { TracksLayout } from './layout/tracks.js';
 import type { GridPlacement } from './layout/grid.js';
 import type { PlaceContext, Placement, SectionLayoutType } from './layout/types.js';
 import { narrowColumns, treeKept } from './narrow.js';
-import { placeLanesRail, placeRail, placeRowsRail, Rail, type RailRow, railRowList, SlimRailPx } from './rail.js';
+import {
+  placeLanesRail,
+  placeRail,
+  placeRowsRail,
+  placeSectionRail,
+  Rail,
+  type RailRow,
+  railRowList,
+  SlimRailPx,
+} from './rail.js';
 import type { RowsLay } from './rows.js';
 import { rowsCount, rowsFillHeight, rowsShown } from './rows-fill.js';
 import {
@@ -97,6 +106,12 @@ function directionMark(section: ResolvedSection, config: RenderConfig): string |
 const NoLays: readonly LayerLayout[] = [];
 const NoSectionLays: LayerLayout[] = [];
 
+/** Whether a band's box reaches a placement's scrolled area (always where it does not scroll). */
+function inScroll(p: Placement, b: Box): boolean {
+  if (!p.clip || !(p.contentHeight > p.box.height + 0.5)) return true;
+  return b.y < (p.scrollEnd || p.box.y + p.box.height) && b.y + b.height > (p.scrollY ?? p.box.y);
+}
+
 export function layoutView(input: LayoutInput, state = new LayoutState(), again = false): ViewLayout {
   const known = knownVersion(input.types);
   const header = rowsHeader(input.view, input.rails);
@@ -105,7 +120,9 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
   // the first numbers take their own room in the label column, the labels keep theirs
   const first = header.numbers ? Math.ceil(input.text.measure(base.itemFont, '00000')) + 4 : 0;
   // the last numbers' gutter, and beside it a rows rail's column (fixed: a rail idle or live keeps the data's width)
-  const gutter = (header.numbers ? numbersGutter(input.text, base) : 0) + (header.rail ? SlimRailPx : 0);
+  // (a section past its cap takes the same slot for its own rail: kept from the last layout, `sectionSlot`)
+  const gutter =
+    (header.numbers ? numbersGutter(input.text, base) : 0) + (header.rail || state.sectionSlot ? SlimRailPx : 0);
   // the row columns: the left ones widen the label column, the right ones the right gutter (and a gap before a rows
   // rail), yielding to a narrow view; kept while the view, the width and the room they read are
   const fixed = 2 * base.inset + base.labelWidth + base.labelGap + header.tree + first + gutter;
@@ -730,6 +747,11 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       for (let i = 0; i < placement.strips.n; i++) stripBreaks.push(placement.strips.axes[i].breaks([]));
       sectionLays = laySection(placement, axis);
     } else placement = pendingPlacement(top, sectionBox, heights, pads, config);
+    // a section that scrolls past its cap (_spec/README.md "Render", Section scroll): its scrolled area
+    const scrolls = placement.clip === true && placement.contentHeight > placement.box.height + 0.5;
+    const scrollY = placement.scrollY ?? placement.box.y;
+    const scrollEnd = placement.scrollEnd || placement.box.y + placement.box.height;
+    const fixedBands = placement.fixed ?? 0;
     // the section's tracks as bands of its first strip (on the page: tracks)
     const tracks: TrackLayout[] = [];
     const strips = placement.strips;
@@ -772,7 +794,13 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         // centred on its well (its padding with it), not on its data
         labelY: head ? head.labelY : well.y + well.height / 2 + labelSize * 0.35,
         layers,
-        ...(head ? { header: head.header } : {}),
+        // a header under the fixed head or past the box is neither drawn nor hit (its line wholly in the scrolled area)
+        ...(head &&
+        (!scrolls ||
+          j < fixedBands ||
+          (head.header.line.y >= scrollY && head.header.line.y + head.header.line.height <= scrollEnd))
+          ? { header: head.header }
+          : {}),
       });
     }
     y = top + placement.box.height;
@@ -838,6 +866,25 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       }
     }
     const rail = rails?.[0];
+    // the section's own rail while its content scrolls inside its box (_spec/README.md "Render", Section scroll): in the
+    // right gutter's rail slot (a rows band's rail inside it moves into its band); a band's rail only while its band
+    // reaches the scrolled area
+    let sectionRail: Rail | undefined;
+    if (scrolls && input.figure !== true) {
+      sectionRail = kept?.layout?.sectionRail ?? new Rail();
+      placeSectionRail(
+        sectionRail,
+        width - config.inset - SlimRailPx,
+        scrollY,
+        scrollEnd,
+        section.address,
+        sectionId(section),
+        // the scrolled content: all of it less the fixed head above and a foot below the scrolled area
+        placement.contentHeight - (scrollY - placement.box.y) - (placement.box.y + placement.box.height - scrollEnd),
+        placement.top ?? 0,
+        config,
+      );
+    }
     // each rows layer's rail, upright at the right edge (beside its last numbers), along its band's scrolled rows
     let rowsRails: Rail[] | undefined;
     if (input.rails && layout === TracksLayout)
@@ -846,14 +893,14 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         if (input.rails[t.track.address] === undefined) continue;
         const l = t.layers.find((x) => x.type.name === 'rows');
         const lay = l?.lay as RowsLay | undefined;
-        if (!lay || lay.figure || lay.total === undefined) continue;
+        if (!lay || lay.figure || lay.total === undefined || !inScroll(placement, lay.box)) continue;
         const r = kept?.layout?.rowsRails?.[rowsRails?.length ?? 0] ?? new Rail();
         placeRowsRail(
           r,
           lay,
           t.track.address,
           sectionId(section),
-          width - config.inset - SlimRailPx,
+          sectionRail ? lay.box.x + lay.box.width - SlimRailPx : width - config.inset - SlimRailPx,
           config,
           input.figure === true,
         );
@@ -866,7 +913,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         const ls = tracks[j].layers;
         for (let k = 0; k < ls.length; k++) {
           const lay = ls[k].lay as RangesLay;
-          if (ls[k].type.name !== 'ranges' || !lay.scrolls || !(lay.scrollMax > 0)) continue;
+          if (ls[k].type.name !== 'ranges' || !lay.scrolls || !(lay.scrollMax > 0) || !inScroll(placement, lay.box))
+            continue;
           const r = kept?.layout?.lanesRails?.[lanesRails?.length ?? 0] ?? new Rail();
           placeLanesRail(
             r,
@@ -892,6 +940,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       ...(rail ? { rail, rails } : {}),
       ...(rowsRails ? { rowsRails } : {}),
       ...(lanesRails ? { lanesRails } : {}),
+      ...(sectionRail ? { sectionRail } : {}),
       y: sectionTop,
       height: y - sectionTop,
       tracks,
@@ -952,6 +1001,13 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
   for (const i of overlay.issues) report(i);
   // a source's lanes grew in this layout: its track grows to them in the same frame, once (what is below moves once)
   if (!again && knownVersion(input.types) !== known) return layoutView(input, state, true);
+  // a section came past its cap, or none is now: the gutter's rail slot for it, laid out again once
+  let slot = false;
+  for (let i = 0; i < sections.length; i++) if (sections[i].sectionRail) slot = true;
+  if (slot !== state.sectionSlot) {
+    state.sectionSlot = slot;
+    if (!again) return layoutView(input, state, true);
+  }
   const shownNodes = config.nodes.holdShown && overlay.nodes.length ? overlay.holds(showing) : [];
   return {
     width,

@@ -87,7 +87,10 @@ function drawBackground(layout: ViewLayout, out: PassWriter, emphasis: Emphasis 
   for (let si = 0; si < layout.sections.length; si++) {
     const s = layout.sections[si];
     if (s.layout.fillBands) {
+      // a section that scrolls inside its box: the wells below its fixed head clipped to its scrolled area
+      const head = s.placement.clip === true ? (s.placement.fixed ?? 0) : -1;
       for (let ti = 0; ti < s.tracks.length; ti++) {
+        if (ti === head) scrollClip(out, s);
         const t = s.tracks[ti];
         const { box, well } = t;
         if (box.y >= layout.height) continue;
@@ -121,7 +124,13 @@ function drawBackground(layout: ViewLayout, out: PassWriter, emphasis: Emphasis 
           }
         }
       }
-      if (under && column && s.axis && s.band) drawTints(out, s, s.axis, s.band, emphasis!, tokens, config);
+      if (head >= 0 && head < s.tracks.length) out.unclip();
+      if (under && column && s.axis && s.band) {
+        // inside the section's box where it scrolls: never into the section below
+        if (head >= 0) clipTo(out, s.placement.box);
+        drawTints(out, s, s.axis, s.band, emphasis!, tokens, config);
+        if (head >= 0) out.unclip();
+      }
       continue;
     }
     if (!under) continue;
@@ -158,6 +167,19 @@ function clipTo(out: PassWriter, b: Box): void {
   out.clipArgs();
 }
 
+/** A clip to a scrolled section's scrolled area: its box below its fixed head (_spec/README.md "Render", Section scroll). */
+function scrollClip(out: PassWriter, s: SectionLayout, dx = 0, dy = 0): void {
+  const p = s.placement;
+  const b = p.box;
+  const y = p.scrollY ?? b.y;
+  const g = out.args;
+  g[0] = b.x - dx;
+  g[1] = y - dy;
+  g[2] = b.width;
+  g[3] = Math.max(0, (p.scrollEnd || b.y + b.height) - y);
+  out.clipArgs();
+}
+
 function openStrip(s: SectionLayout, i: number, out: PassWriter): PassWriter {
   const strips = s.placement.strips;
   if (strips.warp[i] === WarpKind.polar) return s.placement.warpOf!(i).writer(out);
@@ -189,10 +211,19 @@ function drawTracks(layout: ViewLayout, out: PassWriter, emphasis: Emphasis | un
     s.layout.chrome(s, pass, out, emphasis, -1, -1);
     if (pass === 'window' && s.rails)
       for (let i = 0; i < s.rails.length; i++) drawRail(s.rails[i], out, emphasis, s.tokens, s.config);
-    if (pass === 'window' && s.rowsRails)
-      for (let i = 0; i < s.rowsRails.length; i++) drawRail(s.rowsRails[i], out, emphasis, s.tokens, s.config);
-    if (pass === 'window' && s.lanesRails)
-      for (let i = 0; i < s.lanesRails.length; i++) drawRail(s.lanesRails[i], out, emphasis, s.tokens, s.config);
+    if (pass === 'window') {
+      // the rails of bands inside a section that scrolls: clipped to its scrolled area, as their bands are
+      const scroll = s.sectionRail !== undefined;
+      if (scroll) scrollClip(out, s);
+      if (s.rowsRails)
+        for (let i = 0; i < s.rowsRails.length; i++) drawRail(s.rowsRails[i], out, emphasis, s.tokens, s.config);
+      if (s.lanesRails)
+        for (let i = 0; i < s.lanesRails.length; i++) drawRail(s.lanesRails[i], out, emphasis, s.tokens, s.config);
+      if (scroll) {
+        out.unclip();
+        drawRail(s.sectionRail!, out, emphasis, s.tokens, s.config);
+      }
+    }
     const strips = s.placement.strips;
     if (!strips.n) {
       // pending: its tracks' chrome alone
@@ -292,8 +323,12 @@ function drawStrips(
           if (s.boxes[k].height > 0 && ownLettersIn(s.lays[k], emphasis))
             drawSectionEmphasis(w, s, a, s.boxes[k], emphasis, layout, false);
         }
+      // a tracks section past its cap: the scrolled bands clipped to its scrolled area (below its fixed head, above a
+      // row of blocks' foot) as well
+      const head = clipped && s.layout.fillBands ? (s.placement.fixed ?? 0) : -1;
       for (let j = 0; j < nb; j++) {
         const k = i * nb + j;
+        if (j === head) scrollClip(w, s, strips.dx[i], dy);
         const box = s.boxes[k];
         if (box.y + dy >= layout.height) continue;
         if (box.height <= 0 && !s.layout.fillBands) continue;
@@ -339,6 +374,7 @@ function drawStrips(
         }
         if (clip) w.unclip();
       }
+      if (head >= 0 && head < nb) w.unclip();
       const breaks = s.stripBreaks[i];
       if (pass === 'data' && col && breaks.length) drawBreaks(w, breaks, a, col, tokens);
       if (clipped) w.unclip();
