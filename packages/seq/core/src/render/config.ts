@@ -156,6 +156,8 @@ export interface RenderConfig {
     readonly selectionTint: number;
     /** The selection's outline: the accent at this opacity (0.6), `outline.selection` px wide (1). */
     readonly selectionOutline: number;
+    /** A hovered member's row band where a layer draws one (the matrix's): its tint's opacity (0.1). */
+    readonly hoverTint: number;
     readonly highlightTint: number;
     /** Stripes a band is split into where channels overlap (4); the rest share the last one. */
     readonly highlightStripes: number;
@@ -477,6 +479,7 @@ export const DefaultRenderConfig: RenderConfig = {
     selectionShape: 'column',
     selectionTint: 0.18,
     selectionOutline: 0.6,
+    hoverTint: 0.1,
     highlightTint: 0.3,
     highlightStripes: 4,
     highlightBand: 3,

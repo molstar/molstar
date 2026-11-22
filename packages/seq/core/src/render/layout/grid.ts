@@ -324,6 +324,10 @@ export const GridLayout: SectionLayoutType<GridPlacement> = {
   sameKey: sameGrid,
   nav: GridNav,
   chrome(s, pass, out, _emphasis, strip, band) {
+    if (pass === 'background' && strip === -1) {
+      tintGaps(s, out);
+      return;
+    }
     if (pass !== 'labels' || strip !== -1) return;
     drawChrome(s, pass, out);
   },
@@ -376,6 +380,50 @@ function drawChrome(s: SectionLayout, _pass: PassName, out: PassWriter) {
     g[4] = tokens.colors['msui-text-muted'];
     out.textArgs(text, AnchorEnd, config.itemFont);
   }
+}
+
+/**
+ * A grid over two sections of blocks (`follow_y`): the gaps between its blocks, down the plot between x blocks and
+ * across it between y blocks, tinted a step off the cells' ground (`msui-line`: darker in light, lighter in dark) under
+ * the data, so a block-pair cell reads as a cell with no line in a gap (the single-section grid, the PAE plot, has none).
+ * Each gap is exactly the space between two blocks in view.
+ */
+function tintGaps(s: SectionLayout, out: PassWriter) {
+  const p = s.placement;
+  if (!(p instanceof GridPlacement) || !p.xRow || !p.yRow || !s.section.y?.blocks) return;
+  const xr = p.xRow;
+  const yr = p.yRow;
+  const ink = s.tokens.colors['msui-line'];
+  const top = p.plotTop;
+  const h = p.plotHeight;
+  for (let b = 1; b < s.section.blocks!.length; b++) {
+    if (xr.ve[b] <= xr.vs[b] || xr.ve[b - 1] <= xr.vs[b - 1]) continue;
+    const x0 = xr.x[b - 1] + xr.w[b - 1];
+    if (!(xr.x[b] > x0)) continue;
+    gap(out, x0, top, xr.x[b] - x0, h, ink);
+  }
+  const yBlocks = s.section.y.blocks;
+  for (let b = 1; b < yBlocks.length; b++) {
+    if (yr.ve[b] <= yr.vs[b] || yr.ve[b - 1] <= yr.vs[b - 1]) continue;
+    const y0 = yr.x[b - 1] + yr.w[b - 1];
+    if (!(yr.x[b] > y0)) continue;
+    gap(out, xr.x0, y0, xr.width, yr.x[b] - y0, ink);
+  }
+}
+
+/** A gap's tint through the writer's `args` (nothing boxed): a rect without stroke. */
+function gap(out: PassWriter, x: number, y: number, w: number, h: number, ink: number) {
+  const g = out.args;
+  g[0] = x;
+  g[1] = y;
+  g[2] = w;
+  g[3] = h;
+  g[4] = ink;
+  g[5] = 0;
+  g[6] = 0;
+  g[7] = 0;
+  g[8] = 0;
+  out.rectArgs();
 }
 
 /**

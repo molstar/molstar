@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { DarkTokens, LightTokens, type PairsLay, type SectionLayout } from '@molstar/seqx-core/render';
+import { DarkTokens, LightTokens, MatrixLay, type PairsLay, type SectionLayout } from '@molstar/seqx-core/render';
 import { loadMembers } from '@molstar/seqx-core/render/members-hooks';
 import { loadGenome } from '@molstar/seqx-core/resolve';
 import {
@@ -194,6 +194,26 @@ describe('Features/Across sections, the grids, headless', () => {
     clickAt(v, [a.x0 - 20, cy]);
     const sel = v.selection.value.value.location.parts.find((part) => part.system === SamplesSystem);
     expect(sel && [...sel.ranges]).toEqual([label.position, label.position! + 1]);
+    // the matrix on the same rows system lights that sample's row, across its band (an outline and a tint)
+    v.draw();
+    const gt = sectionOf(v, '/views/main/genotypes')
+      .lays.flat()
+      .find((l) => l?.lay instanceof MatrixLay)!.lay as MatrixLay;
+    const sr = v.frame!.lists.passes.selection.rects;
+    const row = gt.box.y + label.position! * gt.rowScale - gt.bandTop;
+    const lit: number[] = [];
+    for (let i = 0; i < sr.n; i++)
+      if (sr.x[i] === gt.box.x && sr.w[i] === gt.box.width && sr.stroke[i] !== 0) lit.push(sr.y[i]);
+    expect(lit.map((y) => Math.round(y * 100))).toEqual([Math.round(row * 100)]);
+    // and a hover on another member's label outlines that sample's row there (the hover contract)
+    const other = v.hit(a.x0 - 20, (ay.xOfUnit(3) + ay.xOfUnit(4)) / 2)!;
+    v.hover.set({ ...other, section: s.section.address }, 'test');
+    v.draw();
+    const hr = v.frame!.lists.passes.hover.rects;
+    const hy = gt.box.y + other.position! * gt.rowScale - gt.bandTop;
+    const hovered: number[] = [];
+    for (let i = 0; i < hr.n; i++) if (hr.x[i] === gt.box.x && hr.w[i] === gt.box.width) hovered.push(hr.y[i]);
+    expect(hovered.map((y) => Math.round(y * 100))).toEqual([Math.round(hy * 100)]);
     const svg = await bothThemes(v);
     for (const name of Samples) expect(svg).toContain(name);
   });

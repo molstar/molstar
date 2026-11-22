@@ -2690,6 +2690,7 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 | `emphasis.selectionTint`, `emphasis.selectionOutline`                             | 0.18, 0.6                                                                                                              | a soft tint and one thin outline (the author's look)                                                                                                                                                                                                                                                                                                                                                                      |
 | `emphasis.highlightStripes`                                                       | 4                                                                                                                      | stripes a band splits into where channels overlap; the rest share the last                                                                                                                                                                                                                                                                                                                                                |
 | `emphasis.highlightBand`                                                          | 3                                                                                                                      | a `band`-style channel's bar, px                                                                                                                                                                                                                                                                                                                                                                                          |
+| `emphasis.hoverTint`                                                              | 0.1                                                                                                                    | a hovered member's row band in a layer that draws one (the matrix's): its tint's opacity                                                                                                                                                                                                                                                                                                                                  |
 | `emphasis.highlightTint`                                                          | 0.3                                                                                                                    | a highlight channel's tint                                                                                                                                                                                                                                                                                                                                                                                                |
 | `emphasis.projected`                                                              | 0.5                                                                                                                    | what is projected onto a linked section, a factor of its own look's opacity: the same look, lighter                                                                                                                                                                                                                                                                                                                       |
 | `emphasis.hoverOffset`                                                            | 1                                                                                                                      | the hover's outline outside its mark, concentric, never touching the selection's                                                                                                                                                                                                                                                                                                                                          |
@@ -4020,9 +4021,12 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   tracks section's row above is, so the columns above and the plot's align and the cells' clip and the tiles' edges meet
   exactly: no cell past its block's edge, no gap's ink inside it; a cell's rect is cut at its axes' edges. A chain
   boundary is the blocks' gap with no line in it (decided: the gap and an off-centre hairline together read wrong); a
-  `seq-break` hairline a device pixel wide only where two blocks in view touch with less than a device pixel between
-  them (down the plot at an x boundary, across it at a y one). Chrome: the first track's label at the plot's top, each y
-  block's label at the label column's right edge at its top (below the track's label when it starts there).
+  grid over two sections of blocks (`follow_y`) tints its gaps, x and y, with `msui-line` (a step off the cells' ground,
+  in both themes) in the background pass over the wells, under the data, so a block-pair cell reads as a cell (the
+  single-section grid, the PAE plot, has none); a `seq-break` hairline a device pixel wide only where two blocks in view
+  touch with less than a device pixel between them (down the plot at an x boundary, across it at a y one). Chrome: the
+  first track's label at the plot's top, each y block's label at the label column's right edge at its top (below the
+  track's label when it starts there).
 
 ### Bridges
 
@@ -4428,6 +4432,10 @@ band (EC-220 to EC-222), inline or a source's, read through the store either way
   bounded together (`readTiles`'s layer key: past them the band's "zoom in").
 - **Hit**: `target: 'cell'`, `position` on x, `ySystem` the states system, `yPosition` the state; `bin` at a coarse
   level.
+- **Emphasis** (`render/matrix-emphasis.ts`): a member of the states system selected (its own part, else the projected
+  one, lighter) lights its state's row across the band, a tint with an outline; a hover on another layer's hit naming
+  one (a kinship grid's label, an alignment's row) or a projected hover outlines it. Rows in view only, cut at the band.
+  Why: one rows system, one member, every layer of it (across-sections.md, Categorical grid axes; ux-foundations §6).
 
 ### Hover texts by region
 

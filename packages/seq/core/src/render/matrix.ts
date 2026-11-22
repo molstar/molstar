@@ -23,6 +23,7 @@ import type { AxisTransform } from './axis.js';
 import { channelForms, channelId, channelLegends, Extents, type LayerChannels, PlainDatum } from './channels.js';
 import { grown, type ImageData, NoColor, type PassName, type PassWriter } from './draw-lists.js';
 import { colorOf } from './grid.js';
+import { drawMatrixEmphasis } from './matrix-emphasis.js';
 import { ImageCache } from './images.js';
 import {
   dataRegions,
@@ -34,7 +35,16 @@ import {
   readTiles,
   toSection,
 } from './layer-data.js';
-import { type Box, type Hit, type LayerType, type LayoutContext, sectionId, type StoreReader } from './layer-type.js';
+import type { RenderConfig } from './config.js';
+import {
+  type Box,
+  type Emphasis,
+  type Hit,
+  type LayerType,
+  type LayoutContext,
+  sectionId,
+  type StoreReader,
+} from './layer-type.js';
 import type { SeqTokens } from './tokens.js';
 
 const ValueEnv = { numeric: (n: string) => n === 'value' };
@@ -69,6 +79,7 @@ export class MatrixLay {
   box: Box = { x: 0, y: 0, width: 0, height: 0 };
   axis: AxisTransform | undefined;
   tokens: SeqTokens | undefined;
+  config: RenderConfig | undefined;
   color: Channel | undefined;
   /** The color channel's id (`channelId`): part of an image tile's key. */
   colorVersion = 0;
@@ -281,6 +292,7 @@ export const MatrixType: LayerType<MatrixPrep, MatrixLay> = {
     lay.box = box;
     lay.axis = axis;
     lay.tokens = ctx.tokens;
+    lay.config = config;
     lay.n = 0;
     lay.images.length = 0;
     lay.ib.length = 0;
@@ -374,8 +386,12 @@ export const MatrixType: LayerType<MatrixPrep, MatrixLay> = {
     return lay;
   },
 
-  draw(lay, pass: PassName, out: PassWriter) {
-    if (pass !== 'data' || !lay.tokens || !lay.axis) return;
+  draw(lay, pass: PassName, out: PassWriter, emphasis?: Emphasis) {
+    if (pass !== 'data') {
+      if (emphasis) drawMatrixEmphasis(lay, pass, out, emphasis);
+      return;
+    }
+    if (!lay.tokens || !lay.axis) return;
     const b = lay.box;
     // the states scrolled: what is past the band is cut
     const g = out.args;
