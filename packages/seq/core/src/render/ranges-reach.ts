@@ -5,105 +5,134 @@
  */
 
 import { HalfOpenRanges } from '@molstar/core/data/int/half-open-ranges';
-import { sortArrayRange } from '@molstar/core/data/util/sort';
+import { type Issue, issueOf } from '@molstar/core/repr/tree';
+import type { QueryItem } from '@molstar/seqx-core/query';
 import { projectRanges } from '@molstar/seqx-core/resolve';
-import { boundedLevel, mergeNear, readTiles } from './layer-data.js';
+import type { Want } from '@molstar/seqx-core/data';
+import { RenderIssues } from './issues.js';
+import { type LayerSource, boundedLevel, mergeNear, readTiles } from './layer-data.js';
 import { collectItems, newItemRows } from './items.js';
-import { noteLanes } from './known.js';
+import { noteLanes, resetLanes } from './known.js';
 import type { LayoutContext, StoreReader } from './layer-type.js';
-import type { LayerSource } from './layer-data.js';
+import { itemHulls, packedLanes } from './ranges-content.js';
 import type { RangesPrep } from './ranges-lay.js';
 
 // The lanes of a source's layer over its reachable region (_spec/README.md "Render", Track heights): the items of the
 // section's whole extent, its tiles at the level that fits it, packed once they are all read; a track of a source is
-// as tall as they need from the first settle, and a pan or a zoom keeps it.
+// as tall as they need from the first settle, and a pan or a zoom keeps it. The layer's own lanes in view are noted
+// beside (`ranges.ts`): a lane the packing here does not model (a label's room) still grows the track.
 
-/** Where a prep's reachable read stands: unread (absent), asked and waiting, or done. */
-const Reach = new WeakMap<RangesPrep, { done: boolean }>();
+/** What a prep keeps of its reachable read: the verdict for the fit it was made for, and what was packed. */
+interface Reach {
+  // the fit the verdict is for
+  pieces: ArrayLike<number> | undefined;
+  width: number;
+  dpr: number;
+  coverage: object | undefined;
+  /** The fit level holds items and the layer's bounds hold them: the region is read. */
+  read: boolean;
+  /** The region is read at the fit level but past the layer's bounds: said (an info) on every layout. */
+  issue: Issue | undefined;
+  regions: number[];
+  level: number;
+  /** The entries the lanes were packed from (their versions, in the order read): another set is other data. */
+  versions: number[];
+  packed: boolean;
+}
 
-/** The gap a gene model's label leaves before it, CSS px (`ranges-gene.ts`: its label and the gap to its model). */
-const LabelGap = 4;
+const Reaches = new WeakMap<RangesPrep, Reach>();
 
 /**
- * Wants the tiles of the section's whole extent at the fit's level (every frame: a want set is the whole set) and, once
- * every one is read as items and the view has settled, notes the lanes they pack into (`noteLanes`). Returns whether the reachable lanes are known (the layer then notes none of its
- * own: its view's lanes are within them). A source whose fit level holds no items (a density's coarse tiles), one with
- * no known length or a failed tile is not known: the view's lanes are noted as before.
+ * Wants the tiles of the section's whole extent at the fit's level (a margin want: the view's come first; every frame,
+ * a want set is the whole set) and, once every one is read as items and the view has settled, notes the lanes they
+ * pack into (`noteLanes`). Nothing is read where the fit level holds no items (a density), past the layer's bounds
+ * (`layerLoad` over the same wants as the view's: said, `seq.render.reach`), or where a tile failed. A verdict is kept
+ * for its fit and allocates nothing a frame.
  */
-export function noteReachable(prep: RangesPrep, src: LayerSource, ctx: LayoutContext, data: StoreReader): boolean {
-  const kept = Reach.get(prep);
-  if (kept?.done) return true;
-  if (data.coverage(src.source) === undefined) return false;
-  // the section's own pieces: its window of the system (a range's), never the whole system's length
-  const whole = Array.from(ctx.axis.pieces);
-  // the whole extent on the data's system, its stretches near one another read as one
-  const regions = mergeNear(HalfOpenRanges.normalize(src.back ? projectRanges(src.back, whole) : whole));
-  let span = 0;
-  for (let i = 0; i + 1 < regions.length; i += 2) span += regions[i + 1] - regions[i];
-  if (!(span > 0)) return false;
-  const levels = data.coverage(src.source)?.levels ?? [1];
-  const level = boundedLevel(levels, span / Math.max(1, ctx.box.width * ctx.axis.dpr), span, data);
-  // the finest level holds the items: a coarser one is a density, whose lanes nobody knows
-  if (level !== levels[0]) return false;
-  const read = readTiles(ctx, data, src, regions, level, {
-    layer: `${ctx.key}/reach`,
-    priority: 'margin',
-  });
-  if (read.tooMany || read.failed.length) return false;
-  // waiting for the rest: the layer's own lanes are not noted meanwhile (the track grows once, to the whole)
-  if (read.pending.length || !ctx.settled) return true;
+export function noteReachable(prep: RangesPrep, src: LayerSource, ctx: LayoutContext, data: StoreReader): void {
+  const coverage = data.coverage(src.source);
+  if (coverage === undefined) return;
+  let r = Reaches.get(prep);
+  if (!r) {
+    r = {
+      pieces: undefined,
+      width: -1,
+      dpr: -1,
+      coverage: undefined,
+      read: false,
+      issue: undefined,
+      regions: [],
+      level: 1,
+      versions: [],
+      packed: false,
+    };
+    Reaches.set(prep, r);
+  }
+  const axis = ctx.axis;
+  if (r.coverage !== coverage || r.pieces !== axis.pieces || r.width !== ctx.box.width || r.dpr !== axis.dpr) {
+    // the data's identity changed (another reading of its source): the lanes it packed are another data's
+    if (r.coverage !== undefined && r.coverage !== coverage) {
+      resetLanes(prep);
+      r.packed = false;
+    }
+    r.coverage = coverage;
+    r.pieces = axis.pieces;
+    r.width = ctx.box.width;
+    r.dpr = axis.dpr;
+    fit(r, src, ctx, data, coverage.levels ?? [1]);
+  }
+  if (r.issue && !data.layerRefused?.(ctx.key)) ctx.report(r.issue);
+  if (!r.read) return;
+  const read = readTiles(ctx, data, src, r.regions, r.level, { priority: 'margin' });
+  if (read.tooMany || read.failed.length || read.pending.length) return;
+  const entries = read.entries;
+  if (r.packed && sameEntries(r.versions, entries)) return;
+  if (r.packed) resetLanes(prep);
+  if (!ctx.settled) return;
   const rows = newItemRows();
-  const densities = collectItems(rows, read.entries, [], src.filter, src.base);
-  if (densities.length) return false;
-  noteLanes(prep, packed(prep, rows, ctx, span / Math.max(1, ctx.box.width)));
-  Reach.set(prep, { done: true });
+  const densities = collectItems(rows, entries, [], src.filter, src.base);
+  if (densities.length) return;
+  const items: QueryItem[] = [];
+  for (let j = 0; j < rows.n; j++) items.push({ key: rows.keys[j], start: rows.starts[j], end: rows.ends[j] });
+  noteLanes(prep, Math.min(packedLanes(prep.line === 'gene' ? itemHulls(items) : items), ctx.config.ranges.maxLanes));
+  r.versions.length = 0;
+  for (const e of entries) r.versions.push(e.version);
+  r.packed = true;
+}
+
+function sameEntries(versions: readonly number[], entries: readonly { readonly version: number }[]): boolean {
+  if (versions.length !== entries.length) return false;
+  for (let i = 0; i < entries.length; i++) if (versions[i] !== entries[i].version) return false;
   return true;
 }
 
-/** The lanes first-fit by start packs the items into (a gene line's: an item's rows by its hull, a label's room before it). */
-function packed(prep: RangesPrep, rows: ReturnType<typeof newItemRows>, ctx: LayoutContext, perPx: number): number {
-  const gene = prep.line === 'gene';
-  const room = gene && (ctx.labels === undefined || ctx.labels === 'inside');
-  const starts: number[] = [];
-  const ends: number[] = [];
-  const labels: (string | undefined)[] = [];
-  if (gene) {
-    const at = new Map<string | number, number>();
-    for (let j = 0; j < rows.n; j++) {
-      const k = at.get(rows.keys[j]);
-      if (k === undefined) {
-        at.set(rows.keys[j], starts.length);
-        starts.push(rows.starts[j]);
-        ends.push(rows.ends[j]);
-        labels.push(rows.labels[j]);
-      } else {
-        starts[k] = Math.min(starts[k], rows.starts[j]);
-        ends[k] = Math.max(ends[k], rows.ends[j]);
-      }
-    }
-  } else
-    for (let j = 0; j < rows.n; j++) {
-      starts.push(rows.starts[j]);
-      ends.push(rows.ends[j]);
-    }
-  const n = starts.length;
-  const font = ctx.config.itemFont;
-  const from = new Float64Array(n);
-  const to = new Float64Array(n);
-  for (let i = 0; i < n; i++) {
-    const label = room ? labels[i] : undefined;
-    from[i] = starts[i] - (label ? (ctx.text.measure(font, label) + LabelGap) * perPx : 0);
-    to[i] = Math.max(ends[i], starts[i] + 1);
+/** The verdict for a fit: the regions, the level, whether the layer's bounds hold them (`Reach.read`, `issue`). */
+function fit(r: Reach, src: LayerSource, ctx: LayoutContext, data: StoreReader, levels: readonly number[]) {
+  r.read = false;
+  r.issue = undefined;
+  // the section's own pieces: its window of the system (a range's), never the whole system's length; the stretches
+  // near one another read as one
+  const whole = Array.from(r.pieces ?? []);
+  r.regions = mergeNear(HalfOpenRanges.normalize(src.back ? projectRanges(src.back, whole) : whole));
+  let span = 0;
+  for (let i = 0; i + 1 < r.regions.length; i += 2) span += r.regions[i + 1] - r.regions[i];
+  if (!(span > 0)) return;
+  const level = boundedLevel(levels, span / Math.max(1, r.width * r.dpr), span, data);
+  // the finest level holds the items: a coarser one is a density, whose lanes nobody knows
+  if (level !== levels[0]) return;
+  r.level = level;
+  // within the layer's bounds as the view's reads are (the same layer, its tiles by key: the view's are among them)
+  const wants: Want[] = [];
+  for (let i = 0; i + 1 < r.regions.length; i += 2)
+    wants.push({ source: src.source, system: src.system, start: r.regions[i], end: r.regions[i + 1], level, layer: ctx.key });
+  if (data.layerLoad && !data.layerLoad(wants).fits) {
+    r.issue = issueOf(
+      RenderIssues,
+      'seq.render.reach',
+      'The track’s section is too large to read whole for its height: it is as tall as what is in view',
+      { address: ctx.key, hint: RenderIssues.codes['seq.render.reach'].hint },
+    );
+    return;
   }
-  const order = new Int32Array(n);
-  for (let i = 0; i < n; i++) order[i] = i;
-  sortArrayRange(order, 0, n, (o, a, b) => from[o[a]] - from[o[b]] || o[a] - o[b]);
-  const lanes: number[] = [];
-  for (let k = 0; k < n; k++) {
-    const i = order[k];
-    let lane = 0;
-    while (lane < lanes.length && lanes[lane] > from[i]) lane++;
-    lanes[lane] = to[i];
-  }
-  return Math.min(Math.max(1, lanes.length), ctx.config.ranges.maxLanes);
+  r.read = true;
 }

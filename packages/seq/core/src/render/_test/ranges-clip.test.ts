@@ -11,9 +11,9 @@
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
 import { GffRuntime } from '../../runtimes/gff.js';
-import { type DrawLists, type PassName, type RangesLay, walkPass } from '../index.js';
+import type { RangesLay } from '../index.js';
 import { settle } from './helpers.js';
-import { layerLay } from './small-helpers.js';
+import { layerLay, outside } from './small-helpers.js';
 
 const SIZE = { width: 1000, height: 200 } as const;
 
@@ -35,33 +35,6 @@ function spec(line: string) {
       .layer('tx', { type: 'ranges', data: tx, ...(line === 'gene' ? { line } : {}) } as never);
   });
   return b.build();
-}
-
-/** The labels-pass texts and rects whose visible part (under the clips around it) leaves `[top, bottom]`. */
-function outside(lists: DrawLists, pass: PassName, top: number, bottom: number): { drawn: number; bad: number } {
-  const stack: [number, number][] = [];
-  let bad = 0;
-  let drawn = 0;
-  const check = (y0: number, y1: number) => {
-    drawn++;
-    let lo = Number.NEGATIVE_INFINITY;
-    let hi = Number.POSITIVE_INFINITY;
-    for (const [a, b] of stack) {
-      lo = Math.max(lo, a);
-      hi = Math.min(hi, b);
-    }
-    if (Math.max(y0, lo) < top - 0.01 || Math.min(y1, hi) > bottom + 0.01) bad++;
-  };
-  walkPass(lists.passes[pass], {
-    rect: (l, i) => check(l.y[i], l.y[i] + l.h[i]),
-    path: () => undefined,
-    glyphs: () => undefined,
-    text: (l, i) => check(l.y[i] - 10, l.y[i] + 3),
-    image: () => undefined,
-    clip: (l, i) => stack.push([l.y[i], l.y[i] + l.h[i]]),
-    unclip: () => stack.pop(),
-  });
-  return { drawn, bad };
 }
 
 describe('a band’s labels stay in its box', () => {

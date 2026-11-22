@@ -313,8 +313,11 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
       }
     }
     // a source's lanes as known grow once the view settles (its track grows with them, `ranges-content.ts`)
-    // (its reachable region's, once read: the track keeps the height a pan will, `ranges-reach.ts`; else the view's)
-    if (!prep.extents && !noteReachable(prep, src, ctx, data) && ctx.settled) noteLanes(prep, lay.laneCount);
+    // its reachable region's, once read (the track keeps the height a pan will, `ranges-reach.ts`), and the view's
+    if (!prep.extents) {
+      noteReachable(prep, src, ctx, data);
+      if (ctx.settled) noteLanes(prep, lay.laneCount);
+    }
     lay.mode = dense || densities.length || (lay.overflow && !row) ? 'density' : step === 'bars' ? 'bars' : 'items';
     // below a position a pixel a run has no ends, no dash and no wave: a plain line or block
     if (lay.mode !== 'items' && lay.style >= 2 && lay.style <= 5) lay.style = Solid;
