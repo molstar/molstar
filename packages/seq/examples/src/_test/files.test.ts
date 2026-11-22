@@ -346,7 +346,10 @@ describe('the plasmid’s GFF3', () => {
     const ring = (await laid()).sections[0];
     const marks = ring.tracks.map((t) => t.layers.map((l) => (l.lay as { m?: number } | undefined)?.m));
     for (let j = 0; j < plasmidGff.GffTracks.length; j++)
-      expect(marks[j].some((m) => m === undefined || m > 0), plasmidGff.GffTracks[j][0]).toBe(true);
+      expect(
+        marks[j].some((m) => m === undefined || m > 0),
+        plasmidGff.GffTracks[j][0],
+      ).toBe(true);
   });
 
   it('reads bla and the primer site, ending past the length, as one item across the origin each, in the ring', async () => {

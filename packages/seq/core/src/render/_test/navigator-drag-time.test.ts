@@ -26,33 +26,37 @@ beforeAll(async () => {
 });
 
 describe('a drag across many small blocks', () => {
-  itWithin('3,000 contigs, a window of 1 Mb a few contigs on each frame: at most 2 ms a frame', async (within) => {
-    const spec = () =>
-      withNavigator(genomeSpec(toyGenome(25, 3000, 7)), { of: Section, axes: 'positions', content: 'axis' });
-    const s = await settleNavigator(spec());
-    const blocks = s.view.sections[0].blocks!;
-    const first = blocks.findIndex((b) => b.axis.system.includes('chrUn'));
-    const views: ViewLayout[] = [];
-    for (let k = 0; k < 32; k++) {
-      const v = await settle(spec());
-      const start = blocks[first + k * 20].offset!;
-      views.push((await v.frame({ size: Size, viewport: { start, end: start + 1e6 } })).layout);
-    }
-    await s.frames({ size: Size }, { size: NavSize });
-    const inputs: NavigatorFrameInput[] = views.map((view) => ({
-      size: NavSize,
-      view,
-      moves: { [Section]: 1 },
-      lit: { section: Section, part: 'body' as const },
-    }));
-    for (const i of inputs) s.nav.frame(i);
-    expect(s.nav.zoomHeight).toBeGreaterThan(0);
-    const n = 500;
-    const ms = within(2 * n, () => {
-      const t0 = performance.now();
-      for (let i = 0; i < n; i++) s.nav.frame(inputs[i & 31]);
-      return (performance.now() - t0) / n;
-    });
-    expect(ms).toBeGreaterThanOrEqual(0);
-  }, 60_000);
+  itWithin(
+    '3,000 contigs, a window of 1 Mb a few contigs on each frame: at most 2 ms a frame',
+    async (within) => {
+      const spec = () =>
+        withNavigator(genomeSpec(toyGenome(25, 3000, 7)), { of: Section, axes: 'positions', content: 'axis' });
+      const s = await settleNavigator(spec());
+      const blocks = s.view.sections[0].blocks!;
+      const first = blocks.findIndex((b) => b.axis.system.includes('chrUn'));
+      const views: ViewLayout[] = [];
+      for (let k = 0; k < 32; k++) {
+        const v = await settle(spec());
+        const start = blocks[first + k * 20].offset!;
+        views.push((await v.frame({ size: Size, viewport: { start, end: start + 1e6 } })).layout);
+      }
+      await s.frames({ size: Size }, { size: NavSize });
+      const inputs: NavigatorFrameInput[] = views.map((view) => ({
+        size: NavSize,
+        view,
+        moves: { [Section]: 1 },
+        lit: { section: Section, part: 'body' as const },
+      }));
+      for (const i of inputs) s.nav.frame(i);
+      expect(s.nav.zoomHeight).toBeGreaterThan(0);
+      const n = 500;
+      const ms = within(2 * n, () => {
+        const t0 = performance.now();
+        for (let i = 0; i < n; i++) s.nav.frame(inputs[i & 31]);
+        return (performance.now() - t0) / n;
+      });
+      expect(ms).toBeGreaterThanOrEqual(0);
+    },
+    60_000,
+  );
 });

@@ -102,6 +102,11 @@ export function smallHeight(t: Node, config: RenderConfig): number {
   return Math.max(config.navigator.trackMinPx, base * config.navigator.trackScale);
 }
 
+/** The thickness of an axis picture: the navigator's `size` (a number), else the default. */
+function axisThickness(nav: ResolvedNavigator): number {
+  return typeof nav.size === 'number' ? nav.size : NavigatorSizes.axis;
+}
+
 /** The axis: a ruler filling the navigator (its ticks and numbers at the picture's scale); the fixed fallback. */
 export const AxisPicture: NavigatorPicture = {
   name: 'axis',
@@ -110,7 +115,13 @@ export const AxisPicture: NavigatorPicture = {
   // a zoom strip over a genome's blocks counts in bases (`20 Mb`), as a genome's rulers do
   picture: (c) => ({
     tracks: [
-      fill('axis', c.height, c.zoom && c.navigator.blocks ? { type: 'ruler', units: 'bases' } : { type: 'ruler' }),
+      // a picture not made for the navigator's height (`fills` absent: height 0) takes its thickness, never a track of
+      // one pixel, whose ticks and labels fall outside it (a blank well); over blocks the label row is the section's
+      fill(
+        'axis',
+        c.height > 0 || c.navigator.blocks ? c.height : axisThickness(c.navigator),
+        c.zoom && c.navigator.blocks ? { type: 'ruler', units: 'bases' } : { type: 'ruler' },
+      ),
     ],
   }),
 };
