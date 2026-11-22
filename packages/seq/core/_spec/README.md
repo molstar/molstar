@@ -2086,15 +2086,17 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
   the assembly, and `bySystem` holds a plan for each derived sequence, on its own system. Inline ranges are split by
   their `target` field through the names rule into one inline `seq` source over every sequence named (its systems named
   by their addresses, every one served at every level listed, a row's key its row in the node's table); inline pairs,
-  grids, matrices and values name no sequence a row and read nothing. A source is read by region on each sequence under
-  the name it lists the sequence by: its coverage's names (and aliases) mapped through the names rule (`17` is `chr17`),
-  carried to the next resolve inside the lengths as an assembly's own source's coverage is (`listedSystems`); before it
-  opens, the sequence's printed name. A sequence `include` leaves out has no plan and reads nothing. Said: a source
-  naming another assembly (`seq.resolve.assembly.mismatch`), inline rows whose `target` names no sequence and the names
-  a source lists that no sequence is, each counted once with the first (`seq.resolve.assembly.name`). A matrix's states
-  are as many as its source lists for any sequence. Pairs over two assemblies plan both's sequences. Why a plan a
-  sequence: each block is a system the store reads by region, and a layer on a block reads its own plan; nothing new in
-  the store or the protocol. Pairs, grids and maps read from a source are not held.
+  grids, matrices and values name no sequence a row: they read nothing and say so once (`seq.resolve.assembly.inline`,
+  info; which columns name a held pair's sequences is open). A source is read by region on each sequence under the name
+  it lists the sequence by: its coverage's names (and aliases) mapped through the names rule (`17` is `chr17`), carried
+  to the next resolve inside the lengths as an assembly's own source's coverage is (`listedSystems`); before it opens,
+  the sequence's printed name. A sequence `include` leaves out has no plan and reads nothing. Said: a source naming
+  another assembly (`seq.resolve.assembly.mismatch`), inline rows whose `target` names no sequence and the names a
+  source lists that no sequence is (over two assemblies, that neither's is), each counted once with the first
+  (`seq.resolve.assembly.name`). A matrix's states are as many as its source lists for any sequence. Pairs over two
+  assemblies plan both's sequences. Why a plan a sequence: each block is a system the store reads by region, and a layer
+  on a block reads its own plan; nothing new in the store or the protocol. Pairs, grids and maps read from a source are
+  not held.
 - **A map between assemblies** is one map over every sequence pair: its inline runs grouped by `from_name` and `to_name`
   into one entry a pair, each keyed apart and stepping as the map (`Edge.map` its address), so a path between two
   sequences is one step of it and the ambiguity rules read one map (EC-207); a run naming no sequence is left out
@@ -2215,9 +2217,9 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
 `path.none`, `path.ambiguous`, `path.limit`, `complex.units`, `ref.system` (a reference to a sequence, molecule or unit
 that made no system: a unit of a refused complex or of nothing held; what reads it is left out), `assembly.lengths`,
 `assembly.duplicate` (a name twice: the later dropped), `genome.load`, `assembly.alias`, `assembly.mismatch`,
-`assembly.name`, `assembly.override` (a `sequence` override naming no sequence: dropped) (Assemblies), `param.unread`
-(Unread params), and the overlay's `node.invalid`, `node.ref`, `node.depth`. A test checks the catalog against the
-sources.
+`assembly.name`, `assembly.override` (a `sequence` override naming no sequence: dropped), `assembly.inline` (inline
+pairs, grids, matrices or values over an assembly: not read yet) (Assemblies), `param.unread` (Unread params), and the
+overlay's `node.invalid`, `node.ref`, `node.depth`. A test checks the catalog against the sources.
 
 ## Overlay
 

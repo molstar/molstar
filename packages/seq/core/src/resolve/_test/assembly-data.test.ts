@@ -155,4 +155,29 @@ describe('data over an assembly, read by sequence', () => {
       ]);
     }
   });
+
+  it('over two assemblies, a listed name neither has is said, once; inline kinds that name no sequence say they are not read', () => {
+    const b = createSeqSpec();
+    const a = b.data.assembly('a', assembly('A', [{ name: 'chrA1', length: 100 }]));
+    const g = b.data.assembly('b', assembly('B', [{ name: 'chrB1', length: 100 }]));
+    const coverage: Coverage = {
+      systems: ['chrA1', 'chrB1', 'chrZ'].map((name) => ({ name, length: 100 })),
+      shapes: ['chrA1', 'chrB1', 'chrZ'].map((system) => ({ system, shape: 'pairs' as const })),
+      levels: [1],
+    };
+    const src = b.data.source('src', { format: 'seq', value: seqToValue({ coverage, pairs: [] }) as never });
+    b.data.pairs('syn', { a, b: g, source: src } as never);
+    b.data.pairs('held', { a, rows: { a_start: [0], a_end: [1], b_start: [2], b_end: [3] } } as never);
+    b.data.grid('cells', { x: a, values: new Float32Array(4) } as never);
+    const root = b.build();
+    const lengths = sourceLengths(resolveSpec(root), (s) => (s === '/data/src' ? coverage : undefined));
+    const said = resolveSpec(root, { lengths })
+      .issues.filter((i) => i.code.startsWith('seq.resolve.assembly.'))
+      .map((i) => `${i.address} ${i.code}: ${i.message}`);
+    expect(said).toEqual([
+      '/data/syn seq.resolve.assembly.name: The source names 1 sequences neither assembly has (chrZ)',
+      '/data/held seq.resolve.assembly.inline: inline pairs over an assembly is not read yet: name a source, or target a sequence',
+      '/data/cells seq.resolve.assembly.inline: inline grid over an assembly is not read yet: name a source, or target a sequence',
+    ]);
+  });
 });

@@ -68,8 +68,18 @@ export function assemblyAnnotation(
     ...(kind === 'pairs' || kind === 'grid' ? { ySystem: second ?? a.address } : {}),
   };
   if (input.source === undefined) {
-    // inline: ranges split by their `target` field; the other kinds name no sequence a row (nothing read)
-    if (kind !== 'ranges') return { annotation: { ...base, fields: [], bySystem: new Map() }, issues };
+    // inline: ranges split by their `target` field; the other kinds name no sequence a row: nothing read, said once
+    if (kind !== 'ranges') {
+      issues.push(
+        issueOf(
+          GenomeIssues,
+          'seq.resolve.assembly.inline',
+          `inline ${kind} over an assembly is not read yet: name a source, or target a sequence`,
+          { address: at.address, hint: GenomeIssues.codes['seq.resolve.assembly.inline'].hint },
+        ),
+      );
+      return { annotation: { ...base, fields: [], bySystem: new Map() }, issues };
+    }
     return { annotation: inlineOverAssembly(at, a, base, input.systems), issues };
   }
   const field = p(at.node, 'field');
@@ -83,14 +93,17 @@ export function assemblyAnnotation(
     }
   };
   add(a, names.byIndex);
-  // a second assembly's sequences (synteny between two genomes) by its own names rule
-  if (b && b !== a) add(b, sourceNames(b, input.listed).byIndex);
-  if (names.unknown.length && !(b && b !== a))
+  // a second assembly's sequences (synteny between two genomes) by its own names rule; a listed name unknown to both
+  // is said
+  const other = b && b !== a ? sourceNames(b, input.listed) : undefined;
+  if (other) add(b!, other.byIndex);
+  const unknown = other ? names.unknown.filter((n) => other.unknown.includes(n)) : names.unknown;
+  if (unknown.length)
     issues.push(
       issueOf(
         GenomeIssues,
         'seq.resolve.assembly.name',
-        `The source names ${names.unknown.length} sequences the assembly lacks (${names.unknown.slice(0, 3).join(', ')})`,
+        `The source names ${unknown.length} sequences ${other ? 'neither assembly has' : 'the assembly lacks'} (${unknown.slice(0, 3).join(', ')})`,
         { address: at.address, hint: GenomeIssues.codes['seq.resolve.assembly.name'].hint },
       ),
     );

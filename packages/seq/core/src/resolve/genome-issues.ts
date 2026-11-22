@@ -40,4 +40,9 @@ export const GenomeIssues = defineIssues('seq.resolve.assembly', {
     description: 'Rows name sequences the assembly lacks',
     hint: 'Add aliases',
   },
+  'seq.resolve.assembly.inline': {
+    severity: 'info',
+    description: 'Inline pairs, grids, matrices or values over an assembly are not read yet',
+    hint: 'Name a source, or target a sequence',
+  },
 });
