@@ -94,7 +94,8 @@ describe('the navigator over a genome: two rows always', () => {
       const f = await frame(5, 0.25, 0.5, lit && { section: Section, part: lit, axis: 'positions' });
       const { rects, paths } = f.lists.passes.window;
       const widths = new Set<number>();
-      for (let i = 0; i < rects.n; i++) if (rects.stroke[i] !== 0 && rects.strokeWidth[i] > 0) widths.add(rects.strokeWidth[i]);
+      for (let i = 0; i < rects.n; i++)
+        if (rects.stroke[i] !== 0 && rects.strokeWidth[i] > 0) widths.add(rects.strokeWidth[i]);
       for (let i = 0; i < paths.n; i++) widths.add(paths.strokeWidth[i]);
       expect([...widths]).toEqual([NavStrokePx]);
     }

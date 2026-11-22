@@ -144,6 +144,66 @@ describe('a strip and the view it moves', () => {
     expect(range(v)).toEqual([0, 40]);
   });
 
+  it('the readout says the window as drawn, each frame: after a drag, a click-to-jump and a wheel, with the pointer elsewhere', async () => {
+    const v = await make(spec());
+    v.view.setRange(P, 100, 150);
+    v.draw();
+    const { nav, f } = await drawNav(v);
+    const say = () => {
+      const g = nav.draw()!.windows[0];
+      return `p:${(Math.round(g.p0) + 1).toLocaleString('en-US')}–${Math.round(g.p1).toLocaleString('en-US')} of p`;
+    };
+    // at rest: the window's region
+    {
+      const text = say();
+      expect(nav.readout.value).toBe(text);
+    }
+    const w = f.windows[0];
+    const mid = (w.dx0 + w.dx1) / 2;
+    const px = nav.width / 393;
+    expect(nav.down(mid, 10)).toBe(true);
+    // mid-drag, every frame: the text equals the window drawn in that frame (it did lag: set on a hover's hit only)
+    for (const dx of [10, 25, 40, 70]) {
+      nav.move(mid + dx * px, 10);
+      v.draw();
+      frames!.flush();
+      {
+        const text = say();
+        expect(nav.readout.value).toBe(text);
+      }
+    }
+    nav.up();
+    v.draw();
+    frames!.flush();
+    {
+      const text = say();
+      expect(nav.readout.value).toBe(text);
+    }
+    expect(nav.readout.value).not.toBe('p:101–150 of p');
+    // a click-to-jump with the pointer over the picture: the text is the window's
+    const x = (20 / 393) * nav.width;
+    nav.move(x, 10);
+    expect(nav.down(x, 10)).toBe(true);
+    nav.up();
+    expect(nav.click(x, 10, 1)).toBe(true);
+    for (let i = 0; i < 20; i++) {
+      v.draw();
+      frames!.flush();
+      {
+        const text = say();
+        expect(nav.readout.value).toBe(text);
+      }
+    }
+    // a wheel zoom
+    expect(nav.wheel(10, 12, 0, -100, { mod: true })).toBe(true);
+    v.draw();
+    frames!.flush();
+    {
+      const text = say();
+      expect(nav.readout.value).toBe(text);
+    }
+  });
+
   it('a double-click: fit, then fitted a window zoomPx wide; one step with its first click', async () => {
     const v = await make(spec());
     v.view.setRange(P, 0, 40);

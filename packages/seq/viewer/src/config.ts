@@ -11,6 +11,7 @@ import { configItem, type SeqConfigItem } from '@molstar/seqx-core/context';
 import { DefaultMaxBlockValues } from '@molstar/seqx-core/data';
 import { DefaultSpecBounds, type SpecBounds } from '@molstar/seqx-core/lang';
 import { DefaultZoomStrip, type PositionsRailMode, type RailPlace, type RowsRailMode } from '@molstar/seqx-core/render';
+import type { ZoomOverBlocks } from '@molstar/seqx-core/render/window';
 import { DefaultStoryConfig, type StoryConfig } from '@molstar/seqx-core/story';
 
 /** What the models and behaviors read; read-only after composition. */
@@ -118,7 +119,8 @@ export interface ViewerConfig {
    * double-click does (`toggle-fit`: fit, or fitted, zoom so the window is `zoomPx` navigator px wide; `fit`, `none`),
    * which way a navigator runs (`display`: the bound section's display order, a drag right moves the view right;
    * `genomic`), and when a navigator gets a zoom strip (`zoomStrip`: its reachable span narrower than `minPx`, 48; the
-   * strip `heightPx` more, 16), and when a rows band draws its rows rail (`rowsRail`: `always`, beside a declared
+   * strip `heightPx` more, 16; over blocks `overBlocks`: `always`, the chromosome the control row at any window width,
+   * `narrow` only for a narrow window, `never`), and when a rows band draws its rows rail (`rowsRail`: `always`, beside a declared
    * overview too; `unlessOverview`, replaced by a navigator over its rows; `none`), when a linear section draws its
    * positions rail (`positionsRail`: `always`, beside a declared navigator too; `unlessNavigator`, replaced by one;
    * `none`) and where (`railPlace`: `ruler` below the ruler, `bottom` under the last track, `navigator` by a declared
@@ -135,7 +137,7 @@ export interface ViewerConfig {
     readonly doubleClick: 'toggle-fit' | 'fit' | 'none';
     readonly zoomPx: number;
     readonly direction: 'display' | 'genomic';
-    readonly zoomStrip: { readonly minPx: number; readonly heightPx: number };
+    readonly zoomStrip: { readonly minPx: number; readonly heightPx: number; readonly overBlocks: ZoomOverBlocks };
   };
   readonly view: {
     /** The steps back the view's history of jumps keeps (50): the oldest goes first. */
@@ -379,7 +381,7 @@ export function viewerConfig(over: DeepPartial<ViewerConfig> = {}): ViewerConfig
   // the view's keys merge by command id: an override of one command's keys keeps the others' (`[]` removes them)
   const keys = over.view?.keys;
   if (keys) (out.view as { keys: unknown }).keys = { ...DefaultViewerConfig.view.keys, ...keys };
-  // the zoom strip's two numbers merge: one set keeps the other's default
+  // the zoom strip's items merge: one set keeps the other's default
   const zoomStrip = over.navigator?.zoomStrip;
   if (zoomStrip)
     (out.navigator as { zoomStrip: unknown }).zoomStrip = { ...DefaultViewerConfig.navigator.zoomStrip, ...zoomStrip };

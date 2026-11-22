@@ -16,6 +16,7 @@ import { RecordingContext } from '../canvas/_test/recording.js';
 import { viewerItem } from '../config.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
 import { mountNavigator, railToggleMount } from '../mount-navigator.js';
+import { ReadoutLinePx } from '../navigator.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
 import { installFrames, type Frames } from './frames.js';
 
@@ -111,7 +112,7 @@ describe('the navigator part', () => {
     expect(el.children.length).toBe(0);
   });
 
-  it('its position readout is the chrome’s surface on one line with a space after the colon: shown over a hover, hidden after it', async () => {
+  it('its readout is the part’s first line, one place at the top right: the window’s region at rest, the pointer’s position over the picture, the window’s again when it moves', async () => {
     viewer = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined });
     await viewer.load(spec());
     viewer.resize(600);
@@ -126,35 +127,54 @@ describe('the navigator part', () => {
     const part = el.querySelector<HTMLElement>('[data-navigator="strip"]')!;
     vi.spyOn(part, 'getBoundingClientRect').mockReturnValue({ left: 0, top: 0 } as DOMRect);
     const readout = part.querySelector<HTMLElement>('.seqx-navigator-readout')!;
-    // nothing said: no backdrop drawn
-    expect(readout.style.display).toBe('none');
-    part.dispatchEvent(
-      new MouseEvent('pointermove', { clientX: 450, clientY: 2, bubbles: true }) as unknown as PointerEvent,
-    );
+    const move = (x: number, y: number) =>
+      part.dispatchEvent(
+        new MouseEvent('pointermove', {
+          clientX: x,
+          clientY: ReadoutLinePx + y,
+          bubbles: true,
+        }) as unknown as PointerEvent,
+      );
+    const place = () => [readout.style.left, readout.style.top, readout.style.right, readout.style.height];
+    // at rest: the window's region, in the line above the picture (the container's padding), at its top right corner
+    expect(readout.textContent).toMatch(/^p:1–30 of p$/);
+    expect(readout.style.display).toBe('flex');
+    expect(place()).toEqual(['', '0px', '0px', `${ReadoutLinePx}px`]);
+    expect(part.style.paddingTop).toBe(`${ReadoutLinePx}px`);
+    // the canvases start under the line: the readout never covers the picture
+    for (const c of part.querySelectorAll('canvas'))
+      if (c.style.position === 'absolute') expect(c.style.top).toBe(`${ReadoutLinePx}px`);
+    const at = place();
+    // over the picture: the position under the pointer, in the same place
+    move(450, 2);
     viewer.draw();
     frames.flush();
     expect(readout.textContent).toMatch(/^p: [\d,]+$/);
-    expect(readout.style.display).toBe('flex');
-    // placed by the model, clear of the window and the pointer (`readoutAt`), in the part's px
-    expect(readout.style.left).toMatch(/px$/);
-    expect(readout.style.top).toMatch(/px$/);
-    // the surface's inset and backdrop (`msui-surface`), one line cut by an ellipsis, inside the part's box
-    expect(readout.classList.contains('msui-surface')).toBe(true);
-    expect(readout.style).toMatchObject({ whiteSpace: 'nowrap', overflow: 'hidden', display: 'flex' });
-    expect(readout.style.maxWidth).toContain('100%');
-    // the number is the information: the name shrinks (ellipsis, no minimum), the value never
+    expect(place()).toEqual(at);
+    // a window moved by something else than the pointer: the line says the window
+    viewer.view.setRange('/views/v/protein', 100, 140);
+    viewer.draw();
+    frames.flush();
+    expect(readout.textContent).toBe('p:101–140 of p');
+    expect(place()).toEqual(at);
+    // the pointer moving again says what is under it
+    move(300, 2);
+    viewer.draw();
+    frames.flush();
+    expect(readout.textContent).toMatch(/^p: [\d,]+$/);
+    // the pointer away: the window's region
+    part.dispatchEvent(new MouseEvent('pointerleave', { bubbles: true }) as unknown as PointerEvent);
+    viewer.draw();
+    frames.flush();
+    expect(readout.textContent).toBe('p:101–140 of p');
+    // one line, the name shrinking first, the value never
+    expect(readout.style).toMatchObject({ whiteSpace: 'nowrap', justifyContent: 'flex-end' });
     const [name, value] = [...readout.children] as HTMLElement[];
-    expect(name.textContent).toBe('p: ');
-    expect(value.textContent).toMatch(/^[\d,]+$/);
     expect(name.style.minWidth).toMatch(/^0(px)?$/);
     expect(name.style.overflow).toBe('hidden');
     expect(name.style.textOverflow).toBe('ellipsis');
     expect(name.style.flex).toBe('0 1 auto');
     expect(value.style.flex).toMatch(/^(none|0 0 auto)$/);
-    part.dispatchEvent(new MouseEvent('pointerleave', { bubbles: true }) as unknown as PointerEvent);
-    viewer.draw();
-    frames.flush();
-    expect(readout.style.display).toBe('none');
   });
 
   it('its slider’s value is set on settle after its own gesture or key, never for a move made elsewhere', async () => {

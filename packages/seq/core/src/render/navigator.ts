@@ -196,7 +196,6 @@ const MarkUs = new Float64Array(4);
 const Line = new Float64Array(4);
 const FlagNoStart: number = NavWindowFlags.noStart;
 const FlagNoEnd: number = NavWindowFlags.noEnd;
-const FlagOutline: number = NavWindowFlags.outline;
 const FlagX: number = NavWindowFlags.x;
 // the mark's flags as one number read once (an expression passed to a call is boxed)
 const FlagMark: number = NavWindowFlags.outline | NavWindowFlags.quiet;
@@ -217,7 +216,11 @@ export class NavigatorRenderer {
   readonly config: RenderConfig;
   private readonly pictureConfig: RenderConfig;
   private zoomConfig: RenderConfig | undefined;
-  private readonly zoomStrip: { readonly minPx: number; readonly heightPx: number; readonly overBlocks?: ZoomOverBlocks };
+  private readonly zoomStrip: {
+    readonly minPx: number;
+    readonly heightPx: number;
+    readonly overBlocks?: ZoomOverBlocks;
+  };
   /** The zoom strip's track and the gap above it (their sum `heightPx`, never more). */
   private readonly zoomTrack: number;
   private readonly zoomGap: number;
@@ -671,7 +674,9 @@ export class NavigatorRenderer {
     if (this.overBlocks) {
       const mode = this.zoomStrip.overBlocks ?? 'always';
       const px = this.windowPx;
-      want = can && (mode === 'always' || (mode === 'narrow' && (px < min || (this.zoomed && px <= min + ZoomHysteresisPx))));
+      want =
+        can &&
+        (mode === 'always' || (mode === 'narrow' && (px < min || (this.zoomed && px <= min + ZoomHysteresisPx))));
     } else want = can && min > 0 && (u1 - u0) * ctx.scale < min;
     if (want === this.zoomed) return false;
     this.zoomed = want;
@@ -1086,8 +1091,7 @@ export class NavigatorRenderer {
         const m = moves ? (moves[w.section] ?? 0) : -1;
         // at the fit (the window covers all it can reach) the frame is quiet like an idle one, and no target: the whole
         // row is a sweep (navigators.md, "The window's look", 2)
-        const flags =
-          m < 0 ? NavWindowFlags.outline : m === 0 || this.atFit(w) ? NavWindowFlags.idle : m & w.axes;
+        const flags = m < 0 ? NavWindowFlags.outline : m === 0 || this.atFit(w) ? NavWindowFlags.idle : m & w.axes;
         const lit = input.lit?.section === w.section ? input.lit.part : undefined;
         this.drawWindow(out, w, flags, m > 0 ? lit : undefined, dpr, c, tokens);
       }
@@ -1375,7 +1379,14 @@ export class NavigatorRenderer {
       const w = this.windows[i];
       if (!w.shown) continue;
       // at the fit the window is no target: the whole row is outside it (a sweep)
-      const along = w.axes & NavWindowFlags.x ? (this.atFit(w) ? (x >= w.lo && x < w.hi ? 'outside' : undefined) : partOf(x, w, c, touch)) : 'body';
+      const along =
+        w.axes & NavWindowFlags.x
+          ? this.atFit(w)
+            ? x >= w.lo && x < w.hi
+              ? 'outside'
+              : undefined
+            : partOf(x, w, c, touch)
+          : 'body';
       const across = w.axes & NavWindowFlags.y ? navigatorPart(y, w.dy0, w.dy1, w.ly, w.hy, c, touch) : 'body';
       if (along === undefined && across === undefined) continue;
       const a = along ?? 'outside';

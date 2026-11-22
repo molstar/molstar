@@ -13,6 +13,7 @@ import {
   type NavigatorHit,
   NavigatorRenderer,
   navigatorBox,
+  type NavigatorWindow,
   windowText,
 } from '@molstar/seqx-core/render/navigator';
 import { isSquareNavigator, SquareNavigator } from '@molstar/seqx-core/render/navigator-square';
@@ -38,7 +39,6 @@ import { blockOfUnit, blockSwitchRange } from './block-switch.js';
 import { DragSlop } from './input.js';
 import { setNarrowed } from './narrowed.js';
 import { type PartCursor, partCursor } from './part-cursor.js';
-import { placeReadout, pointerBox, windowBoxes } from './readout-place.js';
 import type { SeqViewer } from './viewer.js';
 
 // The navigator's model (_spec/README.md "Models", NavigatorModel): DOM-free, one a navigator a viewer shows (a
@@ -48,6 +48,13 @@ import type { SeqViewer } from './viewer.js';
 // slider and the readout; the canvas view and an export read it. Its pointer and keys are in its own px, carried to the
 // bound section's display units through the picture, and run through the `navigator` behavior. A hover stays here (a
 // readout, never the viewer's hover).
+
+/**
+ * The readout's line, CSS px (the `msui-text-xs` leading): the first line of every navigator part, above its picture,
+ * right-aligned, in the same place whatever the window or the pointer does (_spec/README.md "Composition", Navigators,
+ * The readout). A side part's picture is the form's box less it, so the part is the view's height.
+ */
+export const ReadoutLinePx = 16;
 
 /** A host's navigator: the params of a `navigator` node with its id, not saved in the spec. */
 export interface NavigatorDef {
@@ -235,7 +242,9 @@ export class NavigatorModel extends ReactiveModel {
         this.width = overviewWidth(this.room - narrow.columnsPx, b.width, this.viewer.context.renderConfig);
     // hidden for want of width: as a hidden navigator, its rows rail back under `unlessOverview` (the next frame's)
     if (setNarrowed(this.viewer, this.id, b.width > 0 && this.width === 0)) this.viewer.schedule();
-    this.boxHeight = this.hostHeight ? Math.max(1, this.hostHeight - zoom) : b.height;
+    // a side part's picture gives the readout's line its room: the part is the form's box, the view's height
+    const side = nav.place === 'left' || nav.place === 'right' ? ReadoutLinePx : 0;
+    this.boxHeight = this.hostHeight ? Math.max(1, this.hostHeight - zoom) : Math.max(1, b.height - side);
     this.height = this.hostHeight || this.boxHeight + zoom;
   }
 
@@ -330,6 +339,7 @@ export class NavigatorModel extends ReactiveModel {
     }
     if (rebuilt) this.wanter.want(f.wants as Want[]);
     this.lastFrame = f;
+    this.publishReadout();
     // the sliders' values: first drawn, and when the view rested (a move made elsewhere while the part has the focus
     // announces nothing: its value waits for the focus to leave)
     if (
@@ -366,16 +376,6 @@ export class NavigatorModel extends ReactiveModel {
       cvdSafe: this.viewer.legends.cvdSafe.value,
       ...(sweep && this.press ? { sweep: this.sweepPx(sweep) } : {}),
     });
-  }
-
-  /**
-   * Where a readout of `w` × `h` px goes in this part's px (its top left, above or below the part when it is negative or
-   * past the height): clear of every shown window, its grips and the pointer (`placeReadout`, _spec/README.md
-   * "Composition", Navigators).
-   */
-  readoutAt(w: number, h: number): readonly [left: number, top: number] {
-    const windows = this.lastFrame ? windowBoxes(this.lastFrame.windows, this.width, this.height) : [];
-    return placeReadout(w, h, this.width, this.height, windows, pointerBox(this.pointerX, this.pointerY));
   }
 
   /** The navigator's last frame. */
@@ -509,9 +509,74 @@ export class NavigatorModel extends ReactiveModel {
     return { name: named, value, rest: rest.map((r) => ` \u00b7 ${r}`).join('') };
   }
 
+  /** What the pointer is over (`say`), and whether the readout follows the window (it moved since the pointer did). */
+  private hover: ReadoutParts | undefined;
+  private following = false;
+  /** The window the readout last read (its ends, as numbers: compared each frame, its text made when they move). */
+  private readParts: ReadoutParts | undefined;
+  private readP0 = Number.NaN;
+  private readP1 = Number.NaN;
+  private readR0 = Number.NaN;
+  private readR1 = Number.NaN;
+  private readS0 = '';
+  private readS1 = '';
+
+  /** The pointer's readout (a hover's, a press on the context's): shown unless the window moved since. */
   private say(parts: ReadoutParts | undefined): void {
+    this.hover = parts;
+    this.following = false;
+    this.publishReadout();
+  }
+
+  /**
+   * The readout is one line in one place (_spec/README.md "Composition", Navigators, The readout) and says what is
+   * drawn: while a window moves (a drag, a wheel, a key, a jump, a move made elsewhere) the window's region as this
+   * frame draws it, until the pointer moves again; else what is under the pointer, else, at rest, the window's region
+   * (the one last acted on). Called with each frame and with each hover.
+   */
+  private publishReadout(): void {
+    const nav = this.navigator;
+    const f = this.lastFrame;
+    const w = nav && f ? (f.windows.find((x) => x.section === this.top) ?? f.windows.find((x) => x.shown)) : undefined;
+    let own: ReadoutParts | undefined;
+    if (nav && w?.shown) {
+      if (
+        w.p0 !== this.readP0 ||
+        w.p1 !== this.readP1 ||
+        w.r0 !== this.readR0 ||
+        w.r1 !== this.readR1 ||
+        w.s0 !== this.readS0 ||
+        w.s1 !== this.readS1 ||
+        !this.readParts
+      ) {
+        // a window that moved by itself (not just drawn again) takes the readout from the pointer
+        if (this.readParts) this.following = true;
+        this.readP0 = w.p0;
+        this.readP1 = w.p1;
+        this.readR0 = w.r0;
+        this.readR1 = w.r1;
+        this.readS0 = w.s0;
+        this.readS1 = w.s1;
+        this.readParts = this.windowParts(nav, w);
+      }
+      own = this.readParts;
+    } else this.readParts = undefined;
+    if (this.press?.moved) this.following = true;
+    const parts = this.following ? (own ?? this.hover) : (this.hover ?? own);
+    const prev = this._readoutParts.value;
+    if (parts === prev) return;
+    if (prev && parts && prev.name === parts.name && prev.value === parts.value && prev.rest === parts.rest) return;
     this._readoutParts.set(parts);
     this._readout.set(parts && `${parts.name ? `${parts.name}: ` : ''}${parts.value}${parts.rest}`);
+  }
+
+  /** A window as the readout says it: its region (a rows-only overview the short form, `401–440 / 10,000`). */
+  private windowParts(nav: ResolvedNavigator, w: NavigatorWindow): ReadoutParts {
+    if (nav.axes === 'rows') {
+      const n = (x: number) => Math.round(x).toLocaleString('en-US');
+      return { name: '', value: `${n(w.r0 + 1)}–${n(w.r1)} / ${n(w.rows)}`, rest: '' };
+    }
+    return { name: '', value: windowText(this.viewer.spec.model.value, nav, w), rest: '' };
   }
 
   /** The pointer left: no lit part, no readout, no hairline. */
