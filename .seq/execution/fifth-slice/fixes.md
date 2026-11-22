@@ -16,13 +16,6 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   (V8 state, the harness's warm-up or GC accounting, or real allocation), make the harness isolate a case from its file's
   history if that is the cause, and keep each bound honest (no loosening).
 
-- **One tall track makes every track of its kind tall** (the orchestrator, 2026-11-22, SX's look, Features › Layouts ›
-  Tracks past the cap; on packages-seq too; kind: design, the author's): `ContentSizing` (`render/sizing.ts`) gives
-  every track of one kind the tallest lanes among them ("neighbours do not vary lane by lane"), so a 40-lane
-  Transcripts track draws thirty one-feature ranges tracks at `track.maxPx` (240 px each, 7,598 px of content). Options:
-  share only between adjacent tracks, or only when the tallest is within a few lanes (or 2x) of a track's own, else fit
-  each track's own lanes. The rule needs the author's call before a fix lane.
-
 - **One hover contract for every mark, and a sweep that holds it** (the author, 2026-11-21, Examples › Plasmid › Ring
   at scale: the strands' density bands on the ring and in the detail show no hover box or card; "we should not be
   fixing this one-by-one btw. since we already fixed a similar issue, we need a general rule for this and global
@@ -180,6 +173,13 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   (`pos:ref>alt`), its category and its INFO fields, as the design's matrix row "a variant allele" implies.
 
 ## Fixed
+
+- **One tall track makes every track of its kind tall** (the orchestrator, 2026-11-22, SX's look, Features › Layouts ›
+  Tracks past the cap; on packages-seq too; kind: design, the author's): `ContentSizing` (`render/sizing.ts`) gives
+  every track of one kind the tallest lanes among them ("neighbours do not vary lane by lane"), so a 40-lane
+  Transcripts track draws thirty one-feature ranges tracks at `track.maxPx` (240 px each, 7,598 px of content). Options:
+  share only between adjacent tracks, or only when the tallest is within a few lanes (or 2x) of a track's own, else fit
+  each track's own lanes. The rule needs the author's call before a fix lane. Fixed by FX14 (`d219f79b7`): tracks of a kind share only within 2 lanes or 2x of their cluster's smallest (sorted, so order does not matter); the 40-lane test's short tracks fit their own (fails on the parent).
 
 - **Arcs jump, vanish and fly out of the band as the view pans** (the author, 2026-11-22, Examples › Complex, Contacts
   (≤ 4 Å) over CDK2 and cyclin A, the rail dragged: "the arc rendering doesn't really work when moving the rail.
