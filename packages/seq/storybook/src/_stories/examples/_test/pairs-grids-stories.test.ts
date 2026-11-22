@@ -516,7 +516,8 @@ describe('Complex: PAE and contacts, headless', () => {
     const lay = arcsOf(v);
     expect(lay.n).toBeGreaterThan(100);
     // an arc no ATP arc (its own layer, over the chains' arcs) lies on at its middle
-    const systems = (h: ReturnType<typeof v.hit>) => h?.extent?.parts.map((p) => p.system);
+    const systems = (h: { readonly extent?: { readonly parts: readonly { readonly system: string }[] } } | undefined) =>
+      h?.extent?.parts.map((p) => p.system);
     let at: [number, number] | undefined;
     for (let k = 0; k < lay.n && !at; k++) {
       const [x, y] = curveAt(lay.curve, k, 0.5);
