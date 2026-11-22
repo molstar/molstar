@@ -122,6 +122,32 @@ export interface BridgeLayout {
   readonly count: number;
   draw(pass: PassName, out: PassWriter, emphasis: Emphasis | undefined): void;
   hit(at: Float64Array): Hit | undefined;
+  /**
+   * Each ribbon drawn, in drawing order (the topmost last), its ends on the bridge's sides: what the viewer's align,
+   * select across and cursor read (_spec/README.md "Render", Bridges). Made on each call: a command's, never a frame's.
+   */
+  ribbons(): BridgeRibbon[];
+}
+
+/**
+ * A ribbon drawn in a bridge, by its sides: on the bridge's `a` side its system, its range of positions and its drawn
+ * extent in page px (`ax0 ≤ ax1`), the same on its `b` side; `reversed` when it is drawn crossed (its strand); its
+ * pair's key; `length` its aligned positions (its narrower end's).
+ */
+export interface BridgeRibbon {
+  readonly aSystem: string;
+  readonly aStart: number;
+  readonly aEnd: number;
+  readonly ax0: number;
+  readonly ax1: number;
+  readonly bSystem: string;
+  readonly bStart: number;
+  readonly bEnd: number;
+  readonly bx0: number;
+  readonly bx1: number;
+  readonly reversed: boolean;
+  readonly key: string | number;
+  readonly length: number;
 }
 
 /**

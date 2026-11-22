@@ -60,6 +60,7 @@ import {
   setBandFolds,
 } from './rows-band.js';
 import { type RowsOf, rowsOf as rowsIn, twoAxesLayer } from './two-axes.js';
+import { BridgeView } from '@molstar/seqx-viewer/models/bridge-hooks';
 
 /** The cursor less its row: a cell on the section's axis. */
 const plain = (section: string, system: string, position: number): Cursor => ({ section, system, position });
@@ -404,6 +405,9 @@ export function createCursor(
     if (i < 0 || !to) return undefined;
     // onto its rows (or a grid's y) from the side it came in by: the first row shown going down, the last going up
     const which = delta > 0 ? 'first' : 'last';
+    // across a bridge's band: through the topmost ribbon covering the position (_spec/README.md "Bridges")
+    const r = BridgeView.parts?.cross(view, layout(), c, to.address);
+    if (r) return enter(plain(to.address, r.system, r.position), which);
     if (to.axis.system === c.system) return enter(plain(to.address, c.system, c.position), which);
     const part = projectOntoView(
       spec.model.value,

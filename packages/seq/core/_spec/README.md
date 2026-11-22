@@ -3962,6 +3962,10 @@ pairs layer's prepared form and its region reader through the composition (`type
 - **Export**: a bridge is an empty group (`data-bridge`, `data-a`, `data-b`, `data-y`, `data-height`, `data-count`)
   after the sections' (written by the chunk, `BridgesLayout.svg`); its ribbons are the passes' paths (two cubics joined
   by lines, closed).
+- **Its ribbons as data** (`BridgeLayout.ribbons()`, `BridgeRibbon`): each ribbon drawn, topmost last, by the bridge's
+  sides: its system, positions (a merged ribbon's hull) and drawn px extent on `a` and on `b`, `reversed`, its pair's
+  key and its aligned length. Made on each call (a command's or a card's, never a frame's): what the viewer's align,
+  select across, cursor and card read, so the viewer never reads the ribbons' arrays.
 
 ### Lanes and Hits
 

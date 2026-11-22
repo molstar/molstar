@@ -61,6 +61,7 @@ import {
   offsetOf,
 } from '@molstar/seqx-viewer/models';
 import type { SeqViewer } from './viewer.js';
+import { BridgeView } from '@molstar/seqx-viewer/models/bridge-hooks';
 
 // The viewer's input (_spec/README.md "Input"): pointer, wheel and key events in canvas coordinates (CSS px from the
 // canvas's top left), DOM-free, so the mounted UI only translates events and a test drives the same calls. Every
@@ -335,6 +336,12 @@ export class ViewerInput {
     return undefined;
   }
 
+  /** The bridge whose band holds a y (the bridge chunk's): a drag or a wheel there moves both its sides. */
+  private _band(y: number): string | undefined {
+    const layout = this.viewer.frame?.layout;
+    return layout && BridgeView.parts?.bandAt(layout, y);
+  }
+
   /**
    * The display unit under a page point on a section, from its placement in the last frame (_spec/README.md "Input":
    * the layout's inverse, never the input's arithmetic): the nearest when between lines or in a gutter.
@@ -569,11 +576,13 @@ export class ViewerInput {
     this._railClick = undefined;
     this._rowsRailClick = undefined;
     this._touch = e.pointerType === 'touch';
-    const section = this.sectionAt(y);
+    const inSection = this.sectionAt(y);
+    const section = inSection ?? this._band(y);
     if (section === undefined) return false;
     const mods = this._modifiers(e);
     const hit = this._hitAt(x, y);
-    const target = hitTarget(hit);
+    // over a bridge's band a drag moves both its sides and selects nothing (_spec/README.md "Bridges")
+    const target = inSection === undefined ? 'empty' : hitTarget(hit);
     // a rows rail's part (_spec/README.md "Input", Navigators, The rows rail): its window scrolls, a grip zooms the rows
     const rowsRail =
       target === 'window' && (hit?.navigator === RowsRail || hit?.navigator === LanesRail) && hit.layer && !this._space
@@ -842,7 +851,7 @@ export class ViewerInput {
     // a jump's motion stops where it is drawn: the input reads one picture
     this.viewer.stopMotion();
     this.cardBehavior?.interrupt();
-    const section = this.sectionAt(y);
+    const section = this.sectionAt(y) ?? this._band(y);
     const nav = this.navigateBehavior;
     if (section === undefined || !nav) return false;
     const { pointer } = this.viewer.config;

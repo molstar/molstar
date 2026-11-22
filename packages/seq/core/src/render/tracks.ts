@@ -66,6 +66,7 @@ export { BreakSlop, drawView } from './tracks-draw.js';
 export { bridgeAt, hitView } from './tracks-hit.js';
 export {
   type BridgeLayout,
+  type BridgeRibbon,
   type HeldDomains,
   type LayerLayout,
   type LayoutInput,

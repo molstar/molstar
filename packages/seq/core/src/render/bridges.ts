@@ -19,10 +19,12 @@ import { RenderIssues } from './issues.js';
 import type { Box, Emphasis, Hit, LayoutContext } from './layer-type.js';
 import { issueOf } from '@molstar/core/repr/tree';
 import { BridgePlacement } from './layout/bridge.js';
-import { type BridgeLayoutContext, RibbonsLay, RibbonsType } from './pairs-ribbons.js';
+import { type BridgeLayoutContext, type RibbonsLay, RibbonsType } from './pairs-ribbons.js';
+import { aOf, bOf, R } from './pairs-ribbons-lay.js';
 import type { PairsPrep } from './pairs-lay.js';
 import type {
   BridgeLayout,
+  BridgeRibbon,
   BridgesLayout,
   LayerLayout,
   LayoutInput,
@@ -216,5 +218,43 @@ class Bridge implements BridgeLayout {
       if (h) return h;
     }
     return undefined;
+  }
+
+  ribbons(): BridgeRibbon[] {
+    const out: BridgeRibbon[] = [];
+    for (const l of this.lays) {
+      const lay = l.lay as RibbonsLay;
+      for (let i = 0; i < lay.n; i++) {
+        const prep = lay.reads[lay.src[i]];
+        const d = prep.data;
+        if (!d) continue;
+        const k = lay.pair[i];
+        const h = 4 * i;
+        const o = R * i;
+        // the data's `a` end on the bridge's `a` side, or the swap (`orient`)
+        const fwd = lay.orient[i] === 1;
+        const as = aOf(prep, k);
+        const bs = bOf(prep, k);
+        const da = [as, lay.hull[h], lay.hull[h + 1]] as const;
+        const db = [bs, lay.hull[h + 2], lay.hull[h + 3]] as const;
+        const [na, nb] = fwd ? [da, db] : [db, da];
+        out.push({
+          aSystem: na[0],
+          aStart: na[1],
+          aEnd: na[2],
+          ax0: Math.min(lay.rib[o], lay.rib[o + 1]),
+          ax1: Math.max(lay.rib[o], lay.rib[o + 1]),
+          bSystem: nb[0],
+          bStart: nb[1],
+          bEnd: nb[2],
+          bx0: Math.min(lay.rib[o + 3], lay.rib[o + 4]),
+          bx1: Math.max(lay.rib[o + 3], lay.rib[o + 4]),
+          reversed: d.aStrand[k] * d.bStrand[k] < 0,
+          key: d.keys[k],
+          length: Math.min(na[2] - na[1], nb[2] - nb[1]),
+        });
+      }
+    }
+    return out;
   }
 }

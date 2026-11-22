@@ -53,6 +53,7 @@ import type { SeqAnimationParticipant } from '@molstar/seqx-viewer/ports';
 import { frameAnimation } from './animation.js';
 import { ViewerInput } from './input.js';
 import { LegendModel } from './legends.js';
+import { BridgeView } from './models/bridge-hooks.js';
 import { type HiddenTrackEntry, hiddenTracksState } from './models/hidden-tracks.js';
 import { type RowSortEntry, rowSortState } from './models/row-sort.js';
 import { modelIssuesState } from './model-issues.js';
@@ -394,6 +395,8 @@ export class SeqViewer extends ReactiveModel {
       // "Render", Layer types: ranges) is opened by a sync, as the model listener's is for a new model
       if (spec.model.value === resolvedFor) void this._sync();
       resolvedFor = spec.model.value;
+      // a view with a bridge: its commands (the bridge chunk's, landed with the model)
+      BridgeView.parts?.install(this);
       this.schedule();
     });
     this._followViewports();
