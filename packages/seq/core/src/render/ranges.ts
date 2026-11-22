@@ -185,6 +185,20 @@ function laneGeometry(lay: RangesLay, ctx: LayoutContext): number {
   return lanes;
 }
 
+/**
+ * A source layer's key for its known lanes, one for its blocks (each block's layer is its own prep, and the track's
+ * sizing reads one of them: the lanes another block packed were never its track's): by the model and the layer's
+ * address.
+ */
+const BlockKnown = new WeakMap<StaticModel, Map<string, object>>();
+function blockKnown(model: StaticModel, address: string): object {
+  let m = BlockKnown.get(model);
+  if (!m) BlockKnown.set(model, (m = new Map()));
+  let k = m.get(address);
+  if (!k) m.set(address, (k = {}));
+  return k;
+}
+
 export const RangesType: LayerType<RangesPrep, RangesLay> = {
   name: 'ranges',
 
@@ -197,8 +211,10 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
       arrow: arrow === 'end' ? 1 : arrow === 'start' ? 2 : arrow === 'both' ? 3 : 0,
       connector: layer.params.connector !== 'none',
       cyclic: model.systems.get(layer.data?.system ?? '')?.cyclic ?? false,
-      ...(itemExtents(model, layer) ? { extents: itemExtents(model, layer) } : {}),
+      // a lifted layer's items are its far rows' images, none known whole
+      ...(!src?.lift && itemExtents(model, layer) ? { extents: itemExtents(model, layer) } : {}),
       ...(src ? { src } : {}),
+      ...(src && layer.address !== undefined ? { known: blockKnown(model, layer.address) } : {}),
       owner: layer.data?.address ?? '',
       channels: channelForms(layer.theme),
     };
@@ -314,9 +330,11 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     }
     // a source's lanes as known grow once the view settles (its track grows with them, `ranges-content.ts`)
     // its reachable region's, once read (the track keeps the height a pan will, `ranges-reach.ts`), and the view's
+    // a lifted layer's too, the view's alone (its reachable region is the runs' and the far reads' over the whole
+    // section: a second read of both by region, not made; its track grows as the views settle); its blocks' one key
     if (!prep.extents) {
-      noteReachable(prep, src, ctx, data);
-      if (ctx.settled) noteLanes(prep, lay.laneCount);
+      if (!src.lift) noteReachable(prep, src, ctx, data);
+      if (ctx.settled) noteLanes(prep.known ?? prep, lay.laneCount);
     }
     lay.mode = dense || densities.length || (lay.overflow && !row) ? 'density' : step === 'bars' ? 'bars' : 'items';
     // below a position a pixel a run has no ends, no dash and no wave: a plain line or block

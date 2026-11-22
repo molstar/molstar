@@ -45,6 +45,8 @@ export interface RangesPrep extends ItemsPrep {
   /** Whether an item's pieces are joined across the positions between them (the `connector` param: `line` or `none`). */
   readonly connector: boolean;
   readonly cyclic: boolean;
+  /** A source layer's key for its known lanes, shared by its blocks (`ranges.ts`); else the prep is. */
+  readonly known?: object;
   /** Its channels (`color`, `size`, `opacity`), compiled per layout's tokens. */
   readonly channels: LayerChannels;
 }

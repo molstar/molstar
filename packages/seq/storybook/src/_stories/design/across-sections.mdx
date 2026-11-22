@@ -55,6 +55,19 @@ its sides, and moving it moves them.
   the side and at 45° along the top, thinned to a label every 8 px; a click on a label selects the member, which lights
   its row wherever that rows system is drawn. A reorder rebuilds the grid's tiles once.
 
+## A liftover
+
+- **The figure** is made of what is above, nothing of its own: the old assembly's section, a bridge whose `pairs` layer
+  draws the alignment's map, and the new assembly's section with the old assembly's annotations on it. The map names a
+  pairs source (`map.source`) instead of its runs: a run a row of equal-length ends, side `a` the old assembly, so one
+  source serves the ribbons and the liftover.
+- **Read by the new side**: a layer on the new assembly asks for the runs landing in its window (`RegionRequest.side`
+  `b`), carries its window back along them onto the old assembly, reads the annotations there and carries each forward:
+  a part that maps nowhere is not drawn (a deletion), a part in two places is drawn in both (a duplication).
+- **Hover and selection** cross the map both ways: an old gene lights each image, an image lights the old gene; the card
+  of an item with two or more images lists them ("2 places").
+- **Not yet**: a share of the location mapped for a host's readout, and a builder's `liftover(old, map, new)`.
+
 ## Stories
 
 Generated toy genomes (peach, grape made from peach by an inversion, a translocation and a gap, plum made from grape),
@@ -73,8 +86,9 @@ each the canvas and the SVG of one view, light and dark by the toolbar's theme:
 - [Contacts between two chromosomes](?path=/story/seq-next-features-across-sections--contacts-between-two-chromosomes)
 - [Kinship beside the genotypes](?path=/story/seq-next-features-across-sections--kinship-beside-the-genotypes),
   categorical axes
+- [Liftover](?path=/story/seq-next-features-across-sections--liftover), a liftover over a generated chain
 
 ## Not yet
 
-The liftover, the band's resize grip, a sided source read a side at a time over an assembly, a ribbon's double-click
-focusing both sides.
+The band's resize grip, a sided source read a side at a time over an assembly, a ribbon's double-click focusing both
+sides.

@@ -6,7 +6,7 @@
 
 import { HalfOpenRanges } from '@molstar/core/data/int/half-open-ranges';
 import { type DataEntry, fitLevel, type Shape, type Want } from '@molstar/seqx-core/data';
-import { inversePath, type Path, projectRanges, type StaticModel } from '@molstar/seqx-core/resolve';
+import { inversePath, type Path, projectRanges, type StaticModel, withGenome } from '@molstar/seqx-core/resolve';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
 import { compileRowFilter, type RowFilter } from './filter.js';
@@ -15,6 +15,18 @@ import type { LayoutContext, StoreReader } from './layer-type.js';
 // How a layer reads its data (_spec/README.md "Render", Data): the access plan of its data's node names the store's
 // source and system; the region in view is carried back along the layer's path onto the data's system; the level fits
 // the positions a device pixel covers there; the tiles' entries are read, and those not loaded are placeholders.
+
+/**
+ * A liftover's module (`lift.ts`: a lifted layer's source and items, hover and selection through its map), loaded with
+ * the genome chunk: a liftover is over assemblies, so a model holding one waits for both. Why lazy: a reader that never
+ * opens a genome pays nothing for it.
+ */
+export const Lift: { module?: typeof import('./lift.js') } = {};
+withGenome(() =>
+  import('./lift.js').then((m) => {
+    Lift.module = m;
+  }),
+);
 
 /** Where a layer's data comes from in the store. */
 export interface LayerSource {
@@ -42,12 +54,29 @@ export interface LayerSource {
   /** A leading item form's predicate: its rejected rows are left out and not counted as filtered. */
   readonly base?: RowFilter;
   readonly unreadFilter?: boolean;
+  /** Data over another assembly carried onto the section's sequence through a map read by region (`lift.ts`). */
+  readonly lift?: LiftSource;
+}
+
+/**
+ * A lifted layer's reads (_spec/README.md "Render", A liftover): the map's runs on the section's system, read by the
+ * end on it (`side`), and the data on each far system, by the name the map's source lists that system by.
+ */
+export interface LiftSource {
+  readonly map: string;
+  readonly side: 'a' | 'b';
+  /** The map's runs: a pairs source read on the section's system by `side`. */
+  readonly near: LayerSource;
+  /** The data on each far system (no path: its rows are carried along the runs), by the far name the runs give. */
+  readonly far: ReadonlyMap<string, LayerSource>;
 }
 
 /** The store's source of a placed layer's data; undefined when its node has no access plan. */
 export function layerSource(model: StaticModel, layer: ResolvedLayer): LayerSource | undefined {
   const data = layer.data;
   if (!data || !layer.placed) return undefined;
+  // carried through a map read by region (a liftover): its source, loaded with the genome chunk (`lift.ts`)
+  if (data.lift) return Lift.module?.liftSource(model, data);
   // a template instance's data is the overlay's: its plan and length travel with it
   let access = data.access ?? model.systems.get(data.address)?.access;
   if (!access) {

@@ -22,7 +22,7 @@ import {
   SourceOpenError,
   type StoreClock,
 } from '@molstar/seqx-core/data';
-import { OverlaySources } from '@molstar/seqx-core/render';
+import { OverlaySources, regionProjector } from '@molstar/seqx-core/render';
 import {
   EmptyOverlay,
   nodeAddress,
@@ -31,7 +31,7 @@ import {
   type OverlayNode,
   type StaticModel,
 } from '@molstar/seqx-core/resolve';
-import type { ResolvedView } from '@molstar/seqx-core/view';
+import type { RegionProjector, ResolvedView } from '@molstar/seqx-core/view';
 import { DomHost } from '@molstar/ui/dom/host';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import { ViewerIssues } from '@molstar/seqx-viewer/issues';
@@ -87,6 +87,11 @@ interface Opening {
 
 export class StoreModel extends ReactiveModel {
   readonly store: DataStore;
+  /**
+   * Hover and selection through a map read by region (a liftover): the runs this store holds now (core _spec "Render",
+   * A liftover).
+   */
+  readonly regions: RegionProjector;
   private readonly _open = new Map<string, Opening>();
   private _overlays: OverlayBuilder | undefined;
   private readonly _runtimes = new State<readonly FormatRuntime[]>([]);
@@ -118,6 +123,7 @@ export class StoreModel extends ReactiveModel {
       },
       clock: this.options.clock ?? DomHostClock,
     });
+    this.regions = regionProjector(this.store);
     this.registerPermanentDispose(() => {
       // the overlay's openings first: one that settles later is disposed, never attached
       this._overlaySources?.dispose();

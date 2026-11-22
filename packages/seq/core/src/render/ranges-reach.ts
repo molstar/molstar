@@ -70,7 +70,7 @@ export function noteReachable(prep: RangesPrep, src: LayerSource, ctx: LayoutCon
   if (r.coverage !== coverage || r.pieces !== axis.pieces || r.width !== ctx.box.width || r.dpr !== axis.dpr) {
     // the data's identity changed (another reading of its source): the lanes it packed are another data's
     if (r.coverage !== undefined && r.coverage !== coverage) {
-      resetLanes(prep);
+      resetLanes(prep.known ?? prep);
       r.packed = false;
     }
     r.coverage = coverage;
@@ -91,9 +91,12 @@ export function noteReachable(prep: RangesPrep, src: LayerSource, ctx: LayoutCon
   if (densities.length) return;
   const items: QueryItem[] = [];
   for (let j = 0; j < rows.n; j++) items.push({ key: rows.keys[j], start: rows.starts[j], end: rows.ends[j] });
-  if (items.length === 0) noteEmpty(prep);
+  if (items.length === 0) noteEmpty(prep.known ?? prep);
   else
-    noteLanes(prep, Math.min(packedLanes(prep.line === 'gene' ? itemHulls(items) : items), ctx.config.ranges.maxLanes));
+    noteLanes(
+      prep.known ?? prep,
+      Math.min(packedLanes(prep.line === 'gene' ? itemHulls(items) : items), ctx.config.ranges.maxLanes),
+    );
   r.packed = true;
 }
 

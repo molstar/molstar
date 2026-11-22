@@ -27,6 +27,7 @@ import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { AddressModel, Cursor, SpecModel, StoreModel, ViewModel } from '@molstar/seqx-viewer/models';
 import { BridgeView } from '@molstar/seqx-viewer/models/bridge-hooks';
 import { alleleOf } from './describe-allele.js';
+import { liftedStrand, liftPlaces } from './describe-lift.js';
 import { chemistryRows } from './describe-molecules.js';
 import { regionHoverOf } from './describe-region.js';
 import type { HoverCard, HoverCardRow } from './hover-card.js';
@@ -284,8 +285,11 @@ const ItemSection: CardSection = {
     if (mixed) out.row('Categories', mixed);
     else if (category && !allele) out.row('Category', category);
     if (strand) out.row('Strand', strand);
+    // its images through a map read by region (a liftover's), when several (EC-20)
+    const places = at.words.places(it.system ?? l.layer.data?.system, it.start, it.end);
+    if (places) out.row('Places', places);
     out.words.push(
-      `${allele ? `${String(el.key)}, ` : ''}${itemText(system, it)}${track ? `, ${track}` : ''}${mixed ? `, ${mixed}` : category ? `, ${category}` : ''}${strand ? `, strand ${strand}` : ''}`,
+      `${allele ? `${String(el.key)}, ` : ''}${itemText(system, it)}${track ? `, ${track}` : ''}${mixed ? `, ${mixed}` : category ? `, ${category}` : ''}${strand ? `, strand ${strand}` : ''}${places ? `, in ${places}` : ''}`,
     );
     out.whole = true;
   },
@@ -603,6 +607,12 @@ class Words {
     return this._src.view.model.value.systems.get(system)?.name ?? system;
   }
 
+  /** An item's places through a map read by region, when several (`describe-lift.ts`). */
+  places(system: string | undefined, start: number, end: number): string | undefined {
+    const v = this._src.view;
+    return liftPlaces(this._src.store.regions, v.model.value, v.resolved.value, system, start, end);
+  }
+
   itemsOf(l: LayerLayout): readonly ItemDescription[] {
     const layout = this._src.layout();
     if (layout !== this._itemsLayout) {
@@ -626,6 +636,8 @@ class Words {
     /** Its source's row when already looked up (`sourceRowOf`; null: none). */
     row?: { t: RangesList; i: number } | null,
   ): string {
+    // a lifted item's, as carried (`describe-lift.ts`)
+    if (l.layer.data?.lift) return liftedStrand(l, key, start);
     const model = this._src.view.model.value;
     const owner = l.layer.data?.address;
     const a = owner ? model.annotations.get(owner) : undefined;

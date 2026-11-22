@@ -104,13 +104,20 @@ export function drawData(lay: RibbonsLay, out: PassWriter) {
   const g = out.args;
   clipBand(out, lay.band);
   for (let i = 0; i < lay.n; i++) {
-    const line = lay.flags[i] & Line;
-    g[4] = line ? NoColor : lay.color[i];
-    g[5] = line ? lay.color[i] | 0xff : NoColor;
-    g[6] = line ? 1 : 0;
+    // a branch each, never `line ? NoColor : color`: a colour past 2^31 joined with a small constant is boxed (16 B a
+    // ribbon a frame)
     g[7] = 0;
-    if (line) ribbonPath(out, middle(lay.rib, R * i), 0, false);
-    else ribbonPath(out, lay.rib, R * i, true);
+    if (lay.flags[i] & Line) {
+      g[4] = NoColor;
+      g[5] = lay.color[i] | 0xff;
+      g[6] = 1;
+      ribbonPath(out, middle(lay.rib, R * i), 0, false);
+    } else {
+      g[4] = lay.color[i];
+      g[5] = NoColor;
+      g[6] = 0;
+      ribbonPath(out, lay.rib, R * i, true);
+    }
   }
   const b = lay.band;
   if (lay.densityN && lay.densityMax) {

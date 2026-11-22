@@ -44,17 +44,19 @@ async function exported(v: SeqViewer, dark: boolean) {
   return r;
 }
 
-/** The element keys hit along a strip's band, a few px apart. */
+/** The element keys hit along a strip's band, a few px apart, on each of its lanes (every 4 px down it). */
 function keysOn(v: SeqViewer, strip: number, band: number): Set<string> {
   const p = v.frame!.layout.sections[0].placement as BlockPlacement;
   const s = p.strips;
   const a = s.axes[strip];
-  const y = s.bandY[strip * s.bands + band] + s.bandH[strip * s.bands + band] / 2;
+  const top = s.bandY[strip * s.bands + band];
+  const height = s.bandH[strip * s.bands + band];
   const keys = new Set<string>();
-  for (let x = a.x0; x < a.x0 + a.width; x += 0.5) {
-    const h = hitView(v.frame!.layout, x, y);
-    if (h?.element) keys.add(String(h.element.key));
-  }
+  for (let y = top + 2; y < top + height; y += 4)
+    for (let x = a.x0; x < a.x0 + a.width; x += 0.5) {
+      const h = hitView(v.frame!.layout, x, y);
+      if (h?.element) keys.add(String(h.element.key));
+    }
   return keys;
 }
 

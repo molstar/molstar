@@ -9,8 +9,25 @@
 
 import { exactAddress, type Node, parseAddress, printAddress, type Value } from '@molstar/core/repr/tree';
 import { followRef } from '@molstar/seqx-core/lang';
-import type { StaticModel } from '@molstar/seqx-core/resolve';
+import { type StaticModel, withGenome } from '@molstar/seqx-core/resolve';
 import type { LayerData } from './view.js';
+
+/**
+ * A layer lifted through a map read by region (`lift.ts`), loaded with the genome chunk: a liftover is over assemblies,
+ * so a model holding one waits for both. Why lazy: a reader that never opens a genome pays nothing for it. (The
+ * render's own door, `Lift` in its `layer-data.ts`, loads its part: the view is below the render.)
+ */
+const Lift: { of?: typeof import('./lift.js').liftOf } = {};
+withGenome(() =>
+  import('./lift.js').then((m) => {
+    Lift.of = m.liftOf;
+  }),
+);
+
+/** `data` lifted onto `system` through a map read by region, when one joins them (`lift.ts`); else undefined. */
+export function liftedData(model: StaticModel, data: LayerData, system: string): LayerData | undefined {
+  return Lift.of?.(model, data, system);
+}
 
 /** What a layer's data says after its annotation: the track's base, the user's filter, the forms in the base. */
 export interface DataForms {
