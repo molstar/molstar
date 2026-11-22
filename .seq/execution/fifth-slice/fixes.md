@@ -20,8 +20,9 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   "F2-b" label selects the member (the grid's row and column light), but the matrix on the same rows system shows
   nothing, though across-sections.md says a member selected on the grid lights its row in a matrix layer of the same
   system with no map. The matrix also draws no member labels. The story's twin asserts the selection as state only.
-  Also from the look: the dot plot draws no lines between block-pair cells, so "a cell a pair of chromosomes" is not
-  visible. To the next fix lane (after HC, which sets the linked views' emphasis rule).
+  Also from the look: the dot plot's block-pair cells are not visible as cells (its ground is one tone, the gaps the
+  same tone); a hairline in the gap is ruled out (the author, 2026-11-19: "the gap and an off-centre hairline together
+  read as very weird"; FX17 drew one by the orchestrator's brief, reverted). A question for the author. To the next fix lane (after HC, which sets the linked views' emphasis rule).
 
 - **A drag's work is bounded by the screen, not by the selection** (FX8, 2026-11-22: a drag across 3,000 contigs relays out the navigator's strip, about 110 kB a frame, bounded at 256 kB in `navigator-blocks.quick.ts`; its 2 ms bound fails under load: move it to the heavy lane under `itWithin`) (moved by FX12) (the author, 2026-11-21, tRNA › Views › Dot plot
   scale: "selecting a rect on the dotplot here is really laggy. both as a rect on the plot, and a range on the nav.
