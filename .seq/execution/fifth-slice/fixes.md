@@ -35,6 +35,13 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   probes each story's legend entries: hover → at least one emphasis primitive over that entry's items in view, or no
   pointer cursor. Taken by the hover-contract lane (strong), after RG merges (RG changes the hover texts and card).
 
+- **A long deletion painted as an SNV** (the author's look on `packages-seq`, 2026-11-22, Features › Genome formats ›
+  VCF › TP53 ClinVar; kind: look): ClinVar 1174011, a 7 kb deletion (7,669,587–7,676,613), is drawn SNV blue: it is
+  merged into one run with SNVs closer than a pixel at its ends, and FX6's majority counts items, so the SNVs win while
+  the hover card and the legend's outline name a deletion. The majority weighs each item by the width it covers
+  (genome-formats.md, Defaults 2, amended); ties by the legend's order. Test against the drawn lists: the run holding
+  1174011 is deletion pink; a run of equal-width items keeps the count rule.
+
 - **No track drawn as an empty well, and a sweep that holds it** (the author, 2026-11-21: "Yes, group them", after
   the Promoters track, the stacked ATP block's tracks and the plasmid's strip each showed a blank band). Three causes,
   one symptom: (a) the data has nothing for a declared track (Promoters: a fixture gap, the story's fault); (b) a
