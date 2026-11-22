@@ -477,8 +477,15 @@ function withAlpha(color: number, a: number): number {
   return ((color & 0xffffff00) | Math.round(a * 255)) >>> 0;
 }
 
+/** The capsule's numbers (along, length, thickness, fill), set by `pill`'s callers: a call boxes the numbers it is passed. */
+const Pl = new Float64Array(4);
+
 /** A capsule: `len` along the rail from `a`, `t` thick across, centred on the rail's line, round caps of half its thickness. */
-function pill(out: PassWriter, rail: Rail, a: number, len: number, t: number, fill: number): void {
+function pillOut(out: PassWriter, rail: Rail): void {
+  const a = Pl[0];
+  const len = Pl[1];
+  const t = Pl[2];
+  const fill = Pl[3];
   if (!(len > 0) || !(t > 0)) return;
   const g = out.args;
   const c = rail.y - t / 2;
@@ -519,13 +526,26 @@ function drawLook(
   const dragged = d !== undefined && d.navigator === own && d.layer === rail.key;
   const place = lit === 'outside' && !dragged && !Number.isNaN(rail.markAt);
   const used = rail.active && ((lit !== undefined && !place) || dragged);
+  if (look === 'polished' || look === 'polishedTint')
+    return drawPolished(rail, out, tokens, config, look === 'polishedTint', used, place, dragged ? d.part : lit);
   const resting = look === 'quiet' && !used;
   // the groove: faint, the axis's length, a little thicker than the thumb at its fullest (quiet: thin until used)
   const gt = resting ? Rest * 2 : grownPx + 2;
-  if (look !== 'capsule') pill(out, rail, rail.x, rail.width, gt, withAlpha(line, resting ? 0.3 : 0.4));
+  if (look !== 'capsule') {
+    Pl[0] = rail.x;
+    Pl[1] = rail.width;
+    Pl[2] = gt;
+    Pl[3] = withAlpha(line, resting ? 0.3 : 0.4);
+    pillOut(out, rail);
+  }
   if (!(rail.total > 0)) return;
-  for (let i = 0; i < rail.breaks.length; i++)
-    pill(out, rail, rail.x + (rail.breaks[i] / rail.total) * rail.width - 0.5, 1, 4, withAlpha(line, 0.6));
+  for (let i = 0; i < rail.breaks.length; i++) {
+    Pl[0] = rail.x + (rail.breaks[i] / rail.total) * rail.width - 0.5;
+    Pl[1] = 1;
+    Pl[2] = 4;
+    Pl[3] = withAlpha(line, 0.6);
+    pillOut(out, rail);
+  }
   // the thumb: 4 px in a soft accent at rest, `grownPx` and strong while used; idle a quiet thin pill
   let t = used ? grownPx : 4;
   let fill = withAlpha(used ? ink : rail.active ? ink : line, used ? 0.85 : rail.active ? 0.4 : 0.3);
@@ -543,12 +563,28 @@ function drawLook(
   const fit = rail.start <= 0 && rail.end >= rail.total;
   // the quiet rail at the fit: the groove alone
   if (!(resting && fit)) {
-    pill(out, rail, a, b - a, t, fill);
+    Pl[0] = a;
+    Pl[1] = b - a;
+    Pl[2] = t;
+    Pl[3] = fill;
+    pillOut(out, rail);
     // over a cyclic origin the second piece, from the axis's start to the window's true end
-    if (rail.end > rail.total) pill(out, rail, lo, ((rail.end - rail.total) / rail.total) * rail.width, t, fill);
+    if (rail.end > rail.total) {
+      Pl[0] = lo;
+      Pl[1] = ((rail.end - rail.total) / rail.total) * rail.width;
+      Pl[2] = t;
+      Pl[3] = fill;
+      pillOut(out, rail);
+    }
   }
   if (!rail.active) return;
-  if (place) pill(out, rail, Math.max(lo, Math.min(hi, rail.markAt)) - 0.75, 1.5, gt + 2, ink);
+  if (place) {
+    Pl[0] = Math.max(lo, Math.min(hi, rail.markAt)) - 0.75;
+    Pl[1] = 1.5;
+    Pl[2] = gt + 2;
+    Pl[3] = ink;
+    pillOut(out, rail);
+  }
   // the ends are the grips (no ticks): where the window zooms, each takes the ink and grows while the pointer is on it
   if (own === LanesRail || resting) return;
   const part = dragged ? d.part : lit;
@@ -556,7 +592,96 @@ function drawLook(
   for (let e = 0; e < 2; e++) {
     const end = part === (e === 0 ? 'start' : 'end');
     if (!end && part !== 'body') continue;
-    pill(out, rail, e === 0 ? a : b - cap, cap, t + (end ? 2 : 0), withAlpha(ink, 1));
+    Pl[0] = e === 0 ? a : b - cap;
+    Pl[1] = cap;
+    Pl[2] = t + (end ? 2 : 0);
+    Pl[3] = withAlpha(ink, 1);
+    pillOut(out, rail);
+  }
+}
+
+/**
+ * The `polished` looks (D1 neutral, D2 a faint accent tint): today's shape, the hairline the axis's length and the
+ * window a heavier segment on it, polished: the segment in a mid ink (`msui-text` at 55%; D2 `msui-accent` at 55%), the
+ * hairline `msui-line`, both full ink (`seq-window`) and `grownPx` while used; a round knob at each end of the window
+ * where the box zooms (the segment's colour, a 1 px ring in `msui-bg`, growing while used), round caps on the segment
+ * where it only pans. At the fit the segment is the hairline's weight and colour with small knobs.
+ */
+function drawPolished(
+  rail: Rail,
+  out: PassWriter,
+  tokens: SeqTokens,
+  config: RenderConfig,
+  tint: boolean,
+  used: boolean,
+  place: boolean,
+  part: WindowPart | undefined,
+): void {
+  const line = tokens.colors['msui-line'];
+  const full = tokens.colors['seq-window'];
+  const mid = withAlpha(tokens.colors[tint ? 'msui-accent' : 'msui-text'], 0.55);
+  const bg = tokens.colors['msui-bg'];
+  Pl[0] = rail.x;
+  Pl[1] = rail.width;
+  Pl[2] = Line;
+  Pl[3] = line;
+  pillOut(out, rail);
+  if (!(rail.total > 0)) return;
+  for (let i = 0; i < rail.breaks.length; i++) {
+    Pl[0] = rail.x + (rail.breaks[i] / rail.total) * rail.width - 0.5;
+    Pl[1] = 1;
+    Pl[2] = 4;
+    Pl[3] = line;
+    pillOut(out, rail);
+  }
+  const fit = rail.start <= 0 && rail.end >= rail.total;
+  const quiet = fit && !used;
+  const ink = used ? full : rail.figure ? mid : rail.active ? mid : withAlpha(line, 0.8);
+  const t = used ? config.navigator.rail.grownPx : quiet || !rail.active ? Line : Rest;
+  windowEnds(rail, config);
+  const lo = rail.x;
+  const hi = rail.x + rail.width;
+  const a = Math.max(lo, Ends[0]);
+  const b = Math.min(hi, Ends[1]);
+  const segment = quiet && rail.active ? line : ink;
+  Pl[0] = a;
+  Pl[1] = b - a;
+  Pl[2] = t;
+  Pl[3] = segment;
+  pillOut(out, rail);
+  if (rail.end > rail.total) {
+    Pl[0] = lo;
+    Pl[1] = ((rail.end - rail.total) / rail.total) * rail.width;
+    Pl[2] = t;
+    Pl[3] = segment;
+    pillOut(out, rail);
+  }
+  if (!rail.active) return;
+  if (place) {
+    Pl[0] = Math.max(lo, Math.min(hi, rail.markAt)) - 0.75;
+    Pl[1] = 1.5;
+    Pl[2] = 7;
+    Pl[3] = full;
+    pillOut(out, rail);
+  }
+  if (rail.hit.navigator === LanesRail) return;
+  // the knobs: a little taller than the segment (small at the fit), the hovered one and the dragged grown
+  for (let e = 0; e < 2; e++) {
+    const end = part === (e === 0 ? 'start' : 'end');
+    // a circle centred on the window's end at every size: hover grows its radius about that centre, the ring included
+    // within the slim row (SlimRailPx)
+    const dia = Math.min(SlimRailPx - 2, (quiet ? 4 : t + 3) + (used && end ? 2 : 0));
+    const c = e === 0 ? a : b;
+    Pl[0] = c - dia / 2 - 1;
+    Pl[1] = dia + 2;
+    Pl[2] = dia + 2;
+    Pl[3] = bg;
+    pillOut(out, rail);
+    Pl[0] = c - dia / 2;
+    Pl[1] = dia;
+    Pl[2] = dia;
+    Pl[3] = segment;
+    pillOut(out, rail);
   }
 }
 

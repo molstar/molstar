@@ -42,6 +42,16 @@ export const Looks: readonly LookEntry[] = [
     title: 'C: quiet until hovered',
     says: 'B thin and low at rest, in the full ink and grown while hovered or dragged; at the fit only the groove.',
   },
+  {
+    look: 'polished',
+    title: 'D1: today’s, polished (neutral)',
+    says: 'Today’s shape: a hairline and the window a heavier segment on it, in a mid grey ink (the text ink at 55%) with the hairline quieter; round knobs at the ends (a ring in the well’s ground) in place of ticks, growing on hover; full ink and grown while used. At the fit the hairline’s weight and colour, small knobs; lanes pan only (round caps).',
+  },
+  {
+    look: 'polishedTint',
+    title: 'D2: today’s, polished (accent tint)',
+    says: 'D1 with the segment and knobs in a faint accent tint (the accent at 55%) in place of grey.',
+  },
 ];
 
 /** A cell: a rail in a view, and where the view opens (a function of the viewer; none: at its fit). */

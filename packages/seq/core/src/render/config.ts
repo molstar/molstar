@@ -392,7 +392,7 @@ export interface RenderConfig {
 }
 
 /** The rail looks to pick from: today's, a capsule, a capsule in a groove, the groove quiet until hovered. */
-export type RailLook = 'current' | 'capsule' | 'groove' | 'quiet';
+export type RailLook = 'current' | 'capsule' | 'groove' | 'quiet' | 'polished' | 'polishedTint';
 
 export const DefaultRenderConfig: RenderConfig = {
   inset: 8,
