@@ -10,7 +10,7 @@
 // viewport the touched blocks' hull: a move across blocks that changes the hull lays the strip out again, not timed here).
 // By hand, never in CI: `pnpm -C packages/seq/core test:perf`.
 
-import { measureBytesPerStep, quickCase } from '@molstar/test-harness/quick';
+import { quickCase } from '@molstar/test-harness/quick';
 import { loadGenome } from '@molstar/seqx-core/resolve';
 import { beforeAll, describe, expect, inject, it } from 'vitest';
 import type { ViewLayout } from '../index.js';
@@ -18,15 +18,11 @@ import type { NavigatorFrameInput } from '../navigator.js';
 import { genomeSpec, toyGenome } from './genome-fixtures.js';
 import { settle } from './helpers.js';
 import { settleNavigator, withNavigator } from './navigator-fixtures.js';
+import { ScaledControlWhy, scaledControl } from './scaled-control.js';
 
 const Section = '/views/v/genome';
 const Size = { width: 1200, height: 300 };
 const NavSize = { width: 1200, height: 28 };
-
-/** The drag case's own control: an array of 510 small integers a step, 4 KB (garbage at the next step). */
-const ControlSlots = 510;
-const ControlBytes = 4096;
-const garbage: unknown[] = [null];
 
 beforeAll(async () => {
   await loadGenome();
@@ -142,21 +138,9 @@ describe('a drag across many small blocks: the strip’s viewport follows the hu
     const frame = (i: number) => void s.nav.frame(inputs[i & 31]);
     const { r } = quickCase(task, 'navigator over blocks drag across small blocks', frame, {
       control: false,
-      why: 'the 88-byte control is within this layout’s noise: its own control of 4 KB a step below',
+      why: ScaledControlWhy,
     });
-    // The harness's control reads the case and `leaking(case)` apart, each a median over its windows: over a step of
-    // 112 KB their windows wander by 20 to 80 bytes a step (300 collections a window), so the 88 bytes read 60 to 105
-    // over the case and failed the control's 66 in alternate runs. A control the size of a layout's noise times fifty
-    // tells whether the measurement sees what this step adds, as the 88 bytes do for a step allocating nothing.
-    const c = measureBytesPerStep(
-      (i) => {
-        frame(i);
-        garbage[0] = new Array(ControlSlots).fill(i);
-      },
-      { warmSteps: 1_000, steps: 1_000, windows: 3, maxWarmSteps: 1_000 },
-    );
-    console.info(`navigator drag across small blocks +4 KB control: ${(c.bytesPerStep - r.bytesPerStep).toFixed(0)} B`);
-    expect(c.bytesPerStep - r.bytesPerStep, c.note).toBeGreaterThan(0.75 * ControlBytes);
+    scaledControl('navigator over blocks drag across small blocks', frame, r);
     const ms = msPerFrame((i) => s.nav.frame(inputs[i & 31]), 500);
     console.info(
       `navigator drag across small blocks: ${r.bytesPerStep.toFixed(0)} bytes, ${ms.toFixed(3)} ms (${r.note})`,
