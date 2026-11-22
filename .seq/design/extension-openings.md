@@ -202,7 +202,10 @@ Claim: "this part covers what an outside package needs to add a way to draw, and
 4. Integrated: all four above into the Decision. Standing: new data shapes (deferred with node kinds); an extension's
    story channels.
 
-### Consequences
+#- **Card providers are open** (TT, 2026-11-22): a host or an extension registers a `card-provider`; see
+  [extensibility](extensibility.md) and [tooltips](tooltips.md).
+
+## Consequences
 
 - **`seqx-core`**: the language 0.5.0's union for `type`, `layout`, `heights`, `content`, the `fallback` and
   `extensions` params, `seq.lang.layer.fallback`; `SeqExtension`, `spec.extensions`, the namespace and version checks;

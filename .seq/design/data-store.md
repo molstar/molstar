@@ -48,6 +48,10 @@ author, 2026-11-17).
   colors and heights do not shimmer. An export computes it for its own viewport and records it in the SVG's metadata.
   A legend states the domain it shows.
 
+- **Tooltip tables** ([tooltips](tooltips.md); TT): read by region beside the windows of the sections whose marks they
+  decorate, at the view's priority, keyed by the tooltip's address; kept as those windows are; pending shows a
+  `loading` row, failed its issue (EC-257).
+
 ## Consequences
 
 - Tier 1 (the static model and the resolved view) never reads the store; node entries feed the overlay (tier 2); data

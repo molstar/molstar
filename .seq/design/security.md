@@ -62,6 +62,10 @@ bounded before it starts (§bounded-work).
 - **Agents and links act as a user would**: through commands, within the same bounds; a patch is validated before it is
   applied.
 
+- **Tooltips** ([tooltips](tooltips.md); TT): a tooltip's text is at most 1,000 code points and a table at most
+  1,000,000 rows (`SpecBounds`); Markdown applies to the template only, values escaped (numbers as written); only
+  `!seq-` links are kept and act through commands; control and bidi characters are stripped after parsing.
+
 ## Consequences
 
 - [ports.md](ports.md)'s assets port is the policy wrapper over `AssetManager`; a host passing its own manager passes

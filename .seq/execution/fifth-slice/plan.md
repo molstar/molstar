@@ -240,8 +240,8 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
 - [x] **LA4** (`briefs/la4-liftover.md`; strong, after LA3) the liftover (EC-212): runs read by either side, the projection's images in the card,
       unmapped parts not drawn.
       Merged 2026-11-22 (`344ed99f1`).
-- [ ] **TT** (`briefs/tt-tooltips.md`; strong, after HC; the language alone, 0.9.0) tooltips on drawn marks by data or
-      a table, the card composed by providers in the viewer spec (tooltips.md, agreed 2026-11-22).
+- [x] **TT** (`briefs/tt-tooltips.md`; strong, after HC; the language alone, 0.9.0) tooltips on drawn marks by data or
+      a table, the card composed by providers in the viewer spec (tooltips.md, agreed 2026-11-22). Merged 2026-11-22 (`5b8a02f89`).
 - [ ] **GATE**.
 
 ### Stage 4: the dataset and the ring (beside each other)

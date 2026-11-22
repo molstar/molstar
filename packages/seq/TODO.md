@@ -10,8 +10,9 @@ block and ring layouts, navigators, pairs, grids, the logo, the rows layer, the 
 PNG and the render CLI); the fourth, integration (molecules and units in language 0.5.0, structure maps and the
 structure link on a fake 3D viewer, seq data ports, extension openings, track header parts, services, bigWig with range
 reads of assets, archives, a test consumer of the resolved view). Next, the Genomes milestone (the fifth slice's plan;
-built so far: BGZF and tabix in io, language 0.8.0 with assemblies, inline data over them by name and genome resolve
-loaded when used, sections over a source's complex, the genome axis and layouts, values as points), on extension kinds.
+built so far: BGZF and tabix in io, language 0.9.0 with assemblies, inline data over them by name and genome resolve
+loaded when used, sections over a source's complex, the genome axis and layouts, values as points, tooltips), on
+extension kinds.
 
 - **GFF's follow-ups** (GG, 2026-11-21): a name hit focuses its range, not its item address (the item waits for its data
   after open); the GFF row is 25.8 kB (the design's 12 kB was low); by region is FR's.
@@ -297,6 +298,11 @@ loaded when used, sections over a source's complex, the genome axis and layouts,
   split arcs stand on its middle).
 
 ## `@molstar/seqx-viewer`
+
+- **Tooltips' follow-ups** (TT, 2026-11-22): MolViewSpec and address tables read from a `source` (today
+  `seq.resolve.tooltip.source`, unread); a CIF category of a structure's source; the card's links in the keyboard
+  cursor's menu (Shift+F10, EC-156); the matrix's `member_labels` (the design's separate change); `data/intervals.ts` is
+  generic: a candidate for `@molstar/core/data/int` (the author's call); `viewer.ts` 847 lines.
 
 - **Files past 800 lines** (SX, 2026-11-22): `viewer/src/input.ts` (1,306) and core `render/layout/tracks.ts` (1,051)
   grew with the section's scroll; split or say why each stays whole.

@@ -76,6 +76,11 @@ should be fixed when it can be a setting or an extension.
 - **Registration is atomic, counted and undoable**, as the plugin's: every conflict (two providers under one name, a
   binding claimed twice) found before anything changes and reported as one error; never resolved by order.
 
+- **Card providers** ([tooltips](tooltips.md); TT): the hover card is composed by `card-provider` registry entries in
+  the viewer spec, ordered by `order` then name (as header entries), each given the hit and the place and writing rows
+  into the card's parts; the viewer's own sections are built-in providers; a host adds or replaces one; a provider that
+  throws is rolled back and the card keeps its floor (EC-262).
+
 ## Rejected alternatives
 
 - A fixed registration order with priorities (the previous design): results depended on order; here conflicts are

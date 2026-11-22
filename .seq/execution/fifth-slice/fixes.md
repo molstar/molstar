@@ -6,15 +6,6 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 
 ## Open
 
-- **A hover card's long values overflow its box** (the author, 2026-11-22, Features › Genome formats › VCF › TP53
-  ClinVar, a deletion's allele card: "let's handle overflow on the hover cards to when we next visit them"; kind:
-  look): the `CLNDISDB` value ("MONDO:MONDO:0018875,MedGen:C0085390,OMI…") runs past the card's right edge though HC
-  cut it at 40 characters; the card's width does not bound its value column. Wrap a value within the card (break at
-  `,` `;` `|` `:` and anywhere in a token with no break), up to a few lines, then an ellipsis; the card's width capped
-  (as `hover.cardMaxPx` or a token) and the label column kept. Also from the same card: its title
-  `7674964:469:edaeae47>G` shows a long REF as a length and hash; a reader wants `7674964 del 469 bp>G` or the REF's
-  first letters with its length. To TT (it rebuilds the card as providers), else the next lane that touches the card.
-
 - **A drag's work is bounded by the screen, not by the selection** (FX8, 2026-11-22: a drag across 3,000 contigs relays out the navigator's strip, about 110 kB a frame, bounded at 256 kB in `navigator-blocks.quick.ts`; its 2 ms bound fails under load: move it to the heavy lane under `itWithin`) (moved by FX12) (the author, 2026-11-21, tRNA › Views › Dot plot
   scale: "selecting a rect on the dotplot here is really laggy. both as a rect on the plot, and a range on the nav.
   are we doing too much work here? maybe related to the other perf issue? and similar lag to selecting on the genome
@@ -119,6 +110,15 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   (allowed: repr's public API is open to this work); take it only if a real name set needs it.
 
 ## Fixed
+
+- **A hover card's long values overflow its box** (the author, 2026-11-22, Features › Genome formats › VCF › TP53
+  ClinVar, a deletion's allele card: "let's handle overflow on the hover cards to when we next visit them"; kind:
+  look): the `CLNDISDB` value ("MONDO:MONDO:0018875,MedGen:C0085390,OMI…") runs past the card's right edge though HC
+  cut it at 40 characters; the card's width does not bound its value column. Wrap a value within the card (break at
+  `,` `;` `|` `:` and anywhere in a token with no break), up to a few lines, then an ellipsis; the card's width capped
+  (as `hover.cardMaxPx` or a token) and the label column kept. Also from the same card: its title
+  `7674964:469:edaeae47>G` shows a long REF as a length and hash; a reader wants `7674964 del 469 bp>G` or the REF's
+  first letters with its length. To TT (it rebuilds the card as providers), else the next lane that touches the card. Fixed by TT (`5b8a02f89`): values wrap within a capped card width to `hover.tooltipLines`, then an ellipsis; a long REF titled by its length.
 
 - **A sample selected on the kinship grid does not light its row in the genotype matrix** (the orchestrator,
   2026-11-22, LA3's look, Features › Across sections › Kinship beside the genotypes; kind: bug): a click on the
