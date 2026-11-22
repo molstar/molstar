@@ -9,7 +9,8 @@
 // `a`, `complement(…)`, `join(…)` and `order(…)` nested as INSDC writes them (`complement(join(…))`,
 // `join(complement(…),…)`), at most `MaxDepth` deep and `maxPieces` pieces; `<` and `>` kept as partial ends; `a.b` read
 // as its hull (said). A `join` over a circular record's origin (`join(2600..2686,1..120)`) is one item across it: the
-// pieces after the origin a lap on, so its end passes the length (the cyclic system's wrap, as built for ranges).
+// pieces after the origin a lap on, so its end passes the length (the cyclic system's wrap, as built for ranges); an
+// `order(…)` is never a wrap (its pieces in no order: each where it is).
 // Refused, with the reason: a remote reference (`J00194.1:100..202`), a site between two bases (`a^b`), a position
 // past the record's length, a malformed text. One pass over the text, never a throw.
 
@@ -62,6 +63,8 @@ export function parseLocation(text: string, length: number, circular: boolean, m
   let partialStart = false;
   let partialEnd = false;
   let approximate = false;
+  /** An `order(…)` in it: its pieces in no order, so never read as a wrap. */
+  let ordered = false;
 
   const word = (w: string) => {
     if (!text.startsWith(w, i)) return false;
@@ -127,8 +130,10 @@ export function parseLocation(text: string, length: number, circular: boolean, m
       }
       return;
     }
-    if (word('join(') || word('order(')) {
+    const join = word('join(');
+    if (join || word('order(')) {
       if (depth >= MaxDepth) throw new Refused(`nested deeper than ${MaxDepth}`);
+      if (!join) ordered = true;
       loc(depth + 1, out);
       while (word(',')) loc(depth + 1, out);
       expect(')');
@@ -153,7 +158,8 @@ export function parseLocation(text: string, length: number, circular: boolean, m
   // in the direction of the sequence's numbering: a minus strand's pieces were read from its far end
   const along = strand === -1 ? leaves.reverse() : leaves;
   let wraps = false;
-  if (circular) {
+  // only a `join` is read in order: INSDC's `order` says nothing of its pieces' order, so never a wrap
+  if (circular && !ordered) {
     for (let k = 1; k < along.length; k++) {
       if (along[k].start + (wraps ? length : 0) >= along[k - 1].start) {
         if (wraps) along[k].start += length;

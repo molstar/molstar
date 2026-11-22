@@ -102,6 +102,10 @@ describe('the location grammar', () => {
     expect(at('join(2600..2680,10..120)', 2686, true)).toMatchObject({ ok: true, pieces: [2599, 2680, 2695, 2806] });
     // on a linear record the same text is two pieces where they are
     expect(at('join(2600..2686,1..120)', 2686, false)).toMatchObject({ ok: true, pieces: [0, 120, 2599, 2686] });
+    // `order` is unordered (INSDC): never a wrap, its pieces where they are, whatever their order or strand
+    expect(at('order(50..60,10..20)', 2686, true)).toMatchObject({ ok: true, pieces: [9, 20, 49, 60], wraps: false });
+    expect(at('complement(order(10..20,50..60))', 2686, true)).toMatchObject({ ok: true, pieces: [9, 20, 49, 60] });
+    expect(at('order(2600..2686,1..120)', 2686, true)).toMatchObject({ ok: true, pieces: [0, 120, 2599, 2686] });
     // a join over the origin of a record near 2^31 would pass int32 positions: refused, never a negative end
     const max = 0x7fffffff;
     const far = parseLocation(`join(${max - 10}..${max},1..20)`, max, true, 10);
