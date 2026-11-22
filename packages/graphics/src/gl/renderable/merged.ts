@@ -2167,7 +2167,7 @@ export function createMergedValues(
   }
 
   function sync(observedOnly = false) {
-    if (recordsVersion) syncedRecordsVersion = recordsVersion.ref.value;
+    const version = recordsVersion?.ref.value;
     // with a source: the members it changed alone after the first sync, the others' cells as the last saw them
     const taken = source?.takeMembers?.();
     // and those it changed the count or bounds of alone: from its copies
@@ -2184,9 +2184,13 @@ export function createMergedValues(
       readList = allMembers;
     }
     synced = true;
+    // the records' writes seen by a read of all members alone: one of the observed cells (a mark between a write and
+    // its update) leaves them to the next sync
+    if (version !== undefined && readList === allMembers) syncedRecordsVersion = version;
     if (updateLayout()) {
       // a whole layout: all of them seen, and counted as changed
       readList = allMembers;
+      if (version !== undefined) syncedRecordsVersion = version;
       rebuild();
       snapshotAll();
       ValueCell.update(cullVersion, cullVersion.ref.value + 1);

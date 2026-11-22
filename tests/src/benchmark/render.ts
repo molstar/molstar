@@ -34,7 +34,7 @@ import { Sphere3D } from '@molstar/core/math/geometry/primitives/sphere3d';
 import type { ValueCell } from '@molstar/core/util/value-cell';
 import { Renderer } from '@molstar/graphics/gl/renderer';
 import { isWebGPUContext } from '@molstar/graphics/gl/contexts/webgpu';
-import { type GraphicsRenderObject, isMergedRenderObject } from '@molstar/graphics/gl/render-object';
+import { type GraphicsRenderObject, getMergedMembers, isMergedRenderObject } from '@molstar/graphics/gl/render-object';
 import { MarkerAction } from '@molstar/core/util/marker-action';
 import { now } from '@molstar/core/util/now';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -242,7 +242,7 @@ function getCpuBytes(reprs: readonly Representation.Any[]): CpuBytes {
   };
   for (const r of reprs) {
     for (const o of r.renderObjects) {
-      if (isMergedRenderObject(o)) for (const m of o.members) add(m, objects);
+      if (isMergedRenderObject(o)) for (const m of getMergedMembers(o)) add(m, objects);
     }
   }
   for (const r of reprs) {
@@ -590,7 +590,7 @@ function getRasterSplitNotes(canvas3d: Canvas3D, reprs: readonly Representation.
   for (const repr of reprs) {
     for (const o of repr.renderObjects) {
       if (!isMergedRenderObject(o) || o.type !== 'spheres') continue;
-      for (const m of o.members) {
+      for (const m of getMergedMembers(o)) {
         const v = m.values as unknown as {
           invariantBoundingSphere: ValueCell<Sphere3D>;
           padding: ValueCell<number>;

@@ -111,6 +111,11 @@ type Segment<G extends Geometry> = {
   groupCount: number;
   instanceCount: number;
   previousMark?: Visual.PreviousMark;
+  /**
+   * its update state's info (`VisualUpdateState.info`: the versions its geometry was built of, the builder's
+   * `initUpdateState`), its own: a group's, as a units visual's, not the visual's shared update state's
+   */
+  readonly info: { [k: string]: unknown };
 };
 
 /**
@@ -127,7 +132,10 @@ export interface UnitsMergedVisual<P extends StructureParams> {
   /** advanced where a segment's geometry was made again or a merged object is another */
   readonly geometryVersion: number;
   readonly groupCount: number;
-  /** whether its groups merge (`canMergeValues` of each part's shared values); false: per-group visuals instead */
+  /**
+   * whether its groups merge (`canMergeValues` of each part's shared values); false: per-group visuals instead, the
+   * visual destroyed (an update that finds a part not to merge ends there, its groups not all updated)
+   */
   readonly mergeable: boolean;
   createOrUpdate(
     ctx: VisualContext,
@@ -144,6 +152,9 @@ export interface UnitsMergedVisual<P extends StructureParams> {
   setState(state: Partial<StructureRepresentationState>, current: StructureRepresentationState): void;
   destroy(): void;
 }
+
+/** What the loci of a segment are applied by: its group and its location iterator's counts */
+type SegmentPlace = { readonly group: Unit.SymmetryGroup; readonly groupCount: number; readonly instanceCount: number };
 
 function createSegmentMap<G extends Geometry>() {
   return new HashMap<Unit.SymmetryGroup, Segment<G>>(
@@ -183,6 +194,8 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
   let parts: Part<G>[] = [];
   let renderObjects: GraphicsRenderObject[] = [];
   let geometryVersion = 0;
+  /** its last update found a part not to merge and ended there (`mergeable`) */
+  let unmergeable = false;
   /**
    * advanced where the records' cells are written but the observed ones (a mark's): the merged objects then read all
    * of their members at their next sync, else those of changed observed cells (`Merged.recordsUnchanged`)
@@ -210,16 +223,16 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
     return seg as unknown as GraphicsRenderObject;
   }
 
-  function structureGroupOf(seg: Segment<G>): StructureGroup {
+  function structureGroupOf(seg: SegmentPlace): StructureGroup {
     return { group: seg.group, structure: lociStructure! };
   }
 
-  function getVisualLoci(seg: Segment<G>) {
+  function getVisualLoci(seg: SegmentPlace) {
     return (loci: Loci) =>
       StructureElement.Loci.is(loci) ? getGroupLoci(loci, seg.group.units, seg.group.unitIndexMap) : loci;
   }
 
-  function lociApply(seg: Segment<G>): Visual.LociApply {
+  function lociApply(seg: SegmentPlace): Visual.LociApply {
     const structureGroup = structureGroupOf(seg);
     const visualLoci = getVisualLoci(seg);
     return (loci, apply, isMarking) =>
@@ -295,13 +308,28 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
     );
     const values = utils.createValues(geometry, transform, locationIt, theme, props) as unknown as MergeableValues;
     builder.processValues?.(values as any, geometry, props, theme, ctx.graphics);
+    // the kept state on its values before its part is picked: their layers' defines as its part's (one made with them),
+    // its merge key that of the segments made before it
+    const place: SegmentPlace = {
+      group: structureGroup.group,
+      groupCount: locationIt.groupCount,
+      instanceCount: locationIt.instanceCount,
+    };
+    applyStateTo({ values } as unknown as GraphicsRenderObject, place);
     const part = getPart(values, props);
     // the shared values its prototype: once a record, made as a fast object (a prototype set then, not keys added)
     const record: { [k: string]: unknown } = { ...part.recordTemplate };
     Object.setPrototypeOf(record, part.shared);
     for (const k of part.recordKeys) record[k] = values[k];
     if (part.sharedExtra) for (const k of ExtraTransformKeys) record[k] = part.sharedExtra[k];
+    const info: { [k: string]: unknown } = {};
+    if (builder.initUpdateState) {
+      VisualUpdateState.reset(updateState);
+      updateState.info = info;
+      builder.initUpdateState(updateState, props, theme, structureGroup);
+    }
     const seg: Segment<G> = {
+      info,
       group: structureGroup.group,
       geometry,
       part,
@@ -310,7 +338,6 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
       groupCount: locationIt.groupCount,
       instanceCount: locationIt.instanceCount,
     };
-    applyStateTo(seg);
     return seg;
   }
 
@@ -324,6 +351,7 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
   ): Promise<void> | void {
     const current: StructureGroup = { group: seg.group, structure: currentStructure! };
     VisualUpdateState.reset(updateState);
+    updateState.info = seg.info;
     const values = seg.record as any;
     setUnitsUpdateState(
       updateState,
@@ -430,10 +458,12 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
     }
   }
 
-  /** The kept state on `seg`, made just now (as a units visual's `setVisualState` on a new one) */
-  function applyStateTo(seg: Segment<G>) {
+  /**
+   * The kept state on `o`, the values of a segment of `seg` made just now (as a units visual's `setVisualState` on a
+   * new one)
+   */
+  function applyStateTo(o: GraphicsRenderObject, seg: SegmentPlace) {
     const { overpaint, transparency, emissive, substance, clipping, wiggle, transform, unitTransforms } = state;
-    const o = asObject(seg);
     if (transform && !Mat4.isIdentity(transform)) Visual.setTransform(o, transform);
     if (unitTransforms) Visual.setTransform(o, undefined, unitTransforms.getSymmetryGroupTransforms(seg.group));
     if (overpaint?.layers.length) Visual.setOverpaint(o, overpaint, lociApply(seg), true);
@@ -544,10 +574,11 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
       return count;
     },
     get mergeable() {
-      return parts.length > 0 && parts.every((part) => canMergeValues(type, [part.shared]));
+      return !unmergeable && parts.length > 0 && parts.every((part) => canMergeValues(type, [part.shared]));
     },
     async createOrUpdate(ctx, theme, props, structure, groups) {
       const { graphics } = ctx;
+      unmergeable = false;
       // after a backend switch or restore: all made again, for the new context. A new instance granularity: the
       // segments' parts again (`auto` resolves by a group's counts)
       if (
@@ -578,6 +609,16 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
       const propsOnly = !unchanged && sameGroups && sameData && !!currentProps;
       /** by part, whether its first segment's update wrote its shared values alone (`propsOnly`) */
       const sharedOnly = new Map<Part<G>, boolean>();
+      /**
+       * the parts checked to merge in this update, once each after its first segment's update: one that does not ends
+       * the update there (the visual left to be destroyed, `mergeable` false), not every group's geometry made first
+       */
+      const checked = new Set<Part<G>>();
+      const merges = (seg: Segment<G>) => {
+        if (checked.has(seg.part)) return true;
+        checked.add(seg.part);
+        return canMergeValues(type, [seg.part.shared]);
+      };
       let written = !sameGroups;
       for (let i = 0, il = groups.length; i < il; ++i) {
         const group = groups[i];
@@ -595,6 +636,10 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
               const clean = !hasRecordUpdates(updateState) && isSameVersions(versions, recordVersions(seg));
               sharedOnly.set(seg.part, clean);
               if (!clean) written = true;
+              if (!merges(seg)) {
+                unmergeable = true;
+                return;
+              }
               continue;
             }
           }
@@ -613,6 +658,10 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
           seg = made!;
           geometryVersion += 1;
           // a new segment of a marked representation: its markers as made, clear (as a new units visual's)
+        }
+        if (!merges(seg)) {
+          unmergeable = true;
+          return;
         }
         if (!sameGroups) {
           next.set(group, seg);

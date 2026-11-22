@@ -155,7 +155,6 @@ export function UnitsRepresentation<P extends StructureParams>(
     const changed = !!mergedVisual && !!_structure && !Structure.areUnitIdsAndIndicesEqual(structure, _structure);
     let mv = mergedVisual;
     if (!mv) {
-      destroyVisuals();
       // the builder's props those of the representation's visuals (`P`), typed by its geometry's
       mv = UnitsMergedVisual(builder as UnitsVisualGeometryBuilder<any, any>, materialId) as UnitsMergedVisual<P>;
       mv.setState(_state, _state);
@@ -163,11 +162,13 @@ export function UnitsRepresentation<P extends StructureParams>(
     }
     await mv.createOrUpdate(getVisualContext(runtime), _theme, _props, structure, groups);
     if (!mv.mergeable) {
+      // the per-group visuals kept (updated, not made again): the merged one ends at a part found not to merge
       mv.destroy();
       mergedVisual = undefined;
       unmergeableAt = { props: _props, structure };
       return false;
     }
+    if (hasVisuals()) destroyVisuals();
     // remove highlight, as the per-group visuals do on a new structure
     if (changed) mv.mark(EveryLoci, MarkerAction.RemoveHighlight);
     renderObjects.length = 0;

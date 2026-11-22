@@ -8,6 +8,7 @@ import {
   createRenderObject,
   type GraphicsRenderObject,
   getNextMaterialId,
+  getMergedMembers,
   isMergedRenderObject,
 } from '@molstar/graphics/gl/render-object';
 import { MeshBuilder } from '@molstar/graphics/geo/geometry/mesh/mesh-builder';
@@ -86,7 +87,7 @@ export class BoundingSphereHelper implements DebugHelper<BoundingSphereHelperPro
       live.add(ro);
       if (isMergedRenderObject(ro)) {
         // one instance-spheres entry per merged segment
-        for (const member of ro.members) {
+        for (const member of getMergedMembers(ro)) {
           this.updateInstancesData(member);
           live.add(member);
         }
@@ -156,7 +157,7 @@ export class BoundingSphereHelper implements DebugHelper<BoundingSphereHelperPro
       if (objectData) objectData.renderObject.state.visible = ro.state.visible && this._props.objectBoundingSpheres;
 
       if (isMergedRenderObject(ro)) {
-        for (const member of ro.members) {
+        for (const member of getMergedMembers(ro)) {
           const instanceData = this.instancesData.get(member);
           if (instanceData)
             instanceData.renderObject.state.visible = ro.state.visible && this._props.instanceBoundingSpheres;

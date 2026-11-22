@@ -234,6 +234,35 @@ describe('merged', () => {
     same();
   });
 
+  it("keeps its records' writes to a full read: a sync of the observed cells between a write and its update", () => {
+    const [c, d] = createMembers();
+    const records = [c, d].map((m) => pickMergeRecord('spheres', m.values as unknown as MergeableValues));
+    const recordsVersion = ValueCell.create(0);
+    const { merged, values } = createMergedRecordsRenderObject('spheres', c.values, records, c.state, -1, {
+      recordsVersion,
+    });
+    // as the merged object's update reads it (`MergedRenderable.update`)
+    const update = (observedOnly = false) => merged.sync(observedOnly || !!merged.recordsUnchanged!());
+    update();
+    expect(merged.recordsUnchanged!()).toBe(true);
+
+    // a record written (its owner's version advanced), then a mark's sync of the observed cells alone
+    const pg = d.values.tPositionGroup.ref.value;
+    pg.array.set([3, 0, 0, 0], 0);
+    ValueCell.update(d.values.tPositionGroup, pg);
+    ValueCell.update(recordsVersion, 1);
+    update(true);
+    expect(merged.recordsUnchanged!()).toBe(false);
+
+    // the update after: the write read
+    update();
+    expect(merged.recordsUnchanged!()).toBe(true);
+    const flat = SegmentedArray.flatten(
+      values.tPositionGroup.ref.value.array as unknown as SegmentedArray<Float32Array>,
+    );
+    expect(Array.from(flat.subarray(3 * 4, 3 * 4 + 3))).toEqual([3, 0, 0]);
+  });
+
   it("a merged object moves as one: its own transient transform drawn, its members' not read", () => {
     const [a, b] = createMembers();
     const { values, merged } = createMergedRenderObject([a, b]);

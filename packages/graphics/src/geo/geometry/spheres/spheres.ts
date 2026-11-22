@@ -456,7 +456,7 @@ export namespace Spheres {
     const lodValue = values.lodLevels.ref.value as LodLevelsValue;
     const lodRadius = getLodRadius(props.lodRadius, values);
     if (
-      props.sizeFactor !== prevSizeFactor ||
+      props.sizeFactor !== (lodValue.sizeFactor ?? prevSizeFactor) ||
       props.lodPixelSize !== (lodValue.pixelSize ?? 0) ||
       (props.lodPixelSize > 0 && lodRadius !== lodValue.radius)
     ) {
