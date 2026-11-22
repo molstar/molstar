@@ -41,8 +41,13 @@ export interface ProjectOptions {
  * held now: what a viewer gives the projections so hover and selection reach across a liftover both ways (EC-20).
  */
 export interface RegionProjector {
-  /** Moves when the runs it reads may have changed (the store's version): a projection kept is made again. */
-  readonly version: number;
+  /**
+   * Its value moves when the runs it reads may have changed (the store's version): a projection kept is made again, when
+   * the model has a map read by region (`reads`).
+   */
+  readonly version: { readonly value: number };
+  /** Whether the model has a map read by region: else nothing it holds changes a projection (and none is made again). */
+  reads(model: StaticModel): boolean;
   /**
    * `ranges` on `from` carried onto `to` through a map read by region joining them, every image appended to `out`
    * (unsorted); false when no such map joins them.

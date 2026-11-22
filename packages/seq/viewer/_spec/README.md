@@ -322,8 +322,9 @@ past the new block's length, the new block whole. One rule for a click on the na
   system along the view's link (paths found under the copy rule, EC-25); `hover.projectLinked` false keeps only the
   parts on the section's own system. `projectedAll()` is the same for every section at once (the core's
   `projectOntoView`, one Location keyed by system), what the frame draws (Emphasis). Through a map read by region (a
-  liftover) a part is carried by the store's `regions` (StoreModel), the runs held now: the cache is kept for the
-  store's version too, so runs arriving carry it; the selection's projections (`Projector`) alike.
+  liftover) a part is carried by the store's `regions` (StoreModel), the runs held now: when the model has such a map
+  (`regions.reads`) the cache is kept for the store's version too, so runs arriving carry it (else the store's moves
+  drop nothing); the selection's projections (`Projector`) alike.
 
 - **Molecules** (`describe-molecules.ts`): `molecule()` is the molecule the hover is on (a molecule's residue or atom, a
   unit of one, a chip): its address, name, class, `identifiers` and unit, computed when asked and kept for the version;

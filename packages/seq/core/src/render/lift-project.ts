@@ -17,9 +17,8 @@ export function regionProjector(
   data: RegionReader & { readonly version: { readonly value: number } },
 ): RegionProjector {
   return {
-    get version() {
-      return data.version.value;
-    },
+    version: data.version,
+    reads: (model) => (Lift.module?.regionMaps(model.spec).length ?? 0) > 0,
     project: (model, from, ranges, to, out) => Lift.module?.projectLifted(model, data, from, ranges, to, out) ?? false,
     places: (model, view, system, start, end) => Lift.module?.liftPlaces(model, data, view, system, start, end),
   };

@@ -40,7 +40,7 @@ export class Projector {
     const view = this.view.resolved.value;
     const model = this.spec.model.value;
     if (!view) return undefined;
-    const held = this.regions?.version ?? -1;
+    const held = this.regions?.reads(model) ? this.regions.version.value : -1;
     if (view !== this._view || model !== this._model || held !== this._held) {
       this._view = view;
       this._model = model;

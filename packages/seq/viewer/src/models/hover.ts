@@ -318,7 +318,7 @@ export class HoverModel extends ReactiveModel {
     const v = this._version.value;
     const view = this._view.resolved.value;
     const model = this._view.model.value;
-    const held = this.regions?.version ?? -1;
+    const held = this.regions?.reads(model) ? this.regions.version.value : -1;
     if (k[0] === v && k[1] === view && k[2] === model && k[3] === held) return;
     k[0] = v;
     k[1] = view;

@@ -21,6 +21,8 @@ import {
 } from '@molstar/seqx-core/resolve';
 import type { ResolvedLayer, ResolvedView } from '@molstar/seqx-core/view';
 import { regionMaps } from '@molstar/seqx-core/view/lift';
+
+export { regionMaps };
 import { spanText } from './accessibility.js';
 import { compileRowFilter } from './filter.js';
 import {
