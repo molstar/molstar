@@ -74,7 +74,9 @@ limit of two without anyone deciding it).
      (the script exits 0 on a failing row: read its rows, never its exit code; LA merged at 930.5 of 930 kB so, 2026-11-22).
      **Size bounds are soft** (the author, 2026-11-22: "don't ask me to raise the size limits constantly. try some basic
      stuff to reduce size, lazy load less frequent features, and otherwise keep it growing. the important parts are the
-     performance and low allocations"): a row past its bound sends the lane to trim and lazy-load first; what remains, the
+     performance and low allocations"): a row past its bound sends the lane to trim first (duplicates, dead code, code on the wrong side of an existing
+     door), and to lazy-load only what is genuinely rare or optional, where a first-use load causes no jank (the author:
+     "don't just go lazy load by default ... be considerate about it"); core paths stay eager; what remains, the
      orchestrator raises in `sizes.mjs` and `performance.md` with its cause, without asking. Timing and allocation
      bounds are the hard gates: never loosened to land a lane;
      the merge commit names the lane and the review's refuted or unfixed findings. Then:
