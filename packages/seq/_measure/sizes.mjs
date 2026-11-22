@@ -95,6 +95,15 @@ const AllCases = [
     target: 30_000,
     own: /seq\/core\/src\/runtimes\/|(^|\/)packages\/io\/src\/common\//,
   },
+  // VCF sites (no viewer bundles it): its own code and io's BGZF (a bgzipped file read whole); its reads by region (io's
+  // tabix, the region lines) are its lazy chunk, loaded when the first indexed source opens: listed apart (`lazy`)
+  {
+    name: 'VCF runtime',
+    entry: 'vcf.ts',
+    target: 30_000,
+    own: /seq\/core\/src\/runtimes\/|(^|\/)packages\/io\/src\/common\//,
+    lazy: true,
+  },
   // the mmCIF runtime and Seq io's converter (in no viewer entry); `@molstar/io`'s parser is its lazy chunk, loaded
   // when the first mmCIF source opens: listed apart (`lazy`), measured with every import it brings that the default
   // viewer's bundle does not hold (its `@molstar/core` imports too): what a host pays on first open

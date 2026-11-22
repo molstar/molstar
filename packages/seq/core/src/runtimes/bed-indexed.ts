@@ -8,17 +8,8 @@ import { type Issue, issueOf } from '@molstar/core/repr/tree';
 import { abortError, type Coverage, type OpenedSource, type RegionAnswer } from '../data/protocol.js';
 import { BedCauses } from './bed-issues.js';
 import { cellsOf, fieldInfos } from './bed-parse.js';
-import {
-  answerOf,
-  bedgraphIntervals,
-  bedItems,
-  dataCells,
-  failure,
-  type Opened,
-  refuse,
-  schemaOf,
-  spanLines,
-} from './bed-read.js';
+import { answerOf, bedgraphIntervals, bedItems, dataCells, type Opened, schemaOf, spanLines } from './bed-read.js';
+import { failure, refuse } from './internal/answers.js';
 import { BgzfIssues } from './internal/issues.js';
 import { openIndexedLines } from './internal/lines.js';
 import { decodeText } from './internal/text.js';

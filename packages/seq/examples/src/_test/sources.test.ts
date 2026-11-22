@@ -12,7 +12,13 @@ import { AllowedLicences } from '../files/record-trim.js';
 import { GeneFile } from '../p53/data.js';
 import { ConservationFile } from '../p53/conservation.js';
 import { RegionFile } from '../p53/region.js';
-import { GeneratedBedFile, MisreadBedFile, MisreadGffFile } from '../genomes/files.js';
+import {
+  GeneratedBedFile,
+  GeneratedVcfFile,
+  MisreadBedFile,
+  MisreadGffFile,
+  MisreadVcfFile,
+} from '../genomes/files.js';
 import { PackageFolder } from '../node-assets.js';
 
 // Provenance is data (examples.md, "One rule for every fixture"): each dataset's `sources.json` lists every file of its
@@ -40,9 +46,16 @@ const Fixtures = join(PackageFolder, 'fixtures');
 const Datasets = ['p53', 'globins', 'complex', 'antibody', 'services', 'genomes'];
 /** Files a generator writes, compared with it by a test (not recorded): by their path under `fixtures/`. */
 const Generated = new Set(
-  [GeneFile, RegionFile, ConservationFile, GeneratedBedFile, MisreadBedFile, MisreadGffFile].map((f) =>
-    f.slice('fixtures/'.length),
-  ),
+  [
+    GeneFile,
+    RegionFile,
+    ConservationFile,
+    GeneratedBedFile,
+    MisreadBedFile,
+    MisreadGffFile,
+    GeneratedVcfFile,
+    MisreadVcfFile,
+  ].map((f) => f.slice('fixtures/'.length)),
 );
 
 const MaxFile = 1024 * 1024;

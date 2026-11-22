@@ -500,15 +500,20 @@ function mergeRuns(lay: RangesLay, px: number) {
   for (let k = 0; k < m; ) {
     let end = x1[k];
     let it = item[k];
+    // a run of several items whose fills are all equal keeps that fill (`−2 − item`, its first item's: drawn so, never
+    // hit, sized or labelled as one item); a run of mixed fills is the neutral range colour (`−1`)
+    let same = it >= 0;
     let r = round[k];
     let e = k + 1;
     // an arrow is its item's alone: never merged into a run
     while (!tip[k] && e < m && !tip[e] && lane[e] === lane[k] && x0[e] <= end + px) {
       end = Math.max(end, x1[e]);
       if (item[e] !== it) it = -1;
+      if (same && (item[e] < 0 || lay.fills[item[e]] !== lay.fills[item[k]])) same = false;
       r = (r & Round.left) | (round[e] & Round.right);
       e++;
     }
+    if (it < 0 && same) it = -2 - item[k];
     const j = nextMark(lay);
     lay.mx0[j] = x0[k];
     lay.mx1[j] = end;
