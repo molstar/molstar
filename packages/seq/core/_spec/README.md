@@ -340,11 +340,11 @@ never chemistry: a component code, a SMILES, a GlyTouCan id are strings it match
   `pairs.source` and `grid.source` with `field` (one of `rows`/`values` and `source`: `seq.lang.pairs.content`,
   `seq.lang.grid.content`); the `matrix` kind (`target`, inline `values` or `codes` with `states`, or `source` and
   `field`: `seq.lang.matrix.content`) and the `matrix` layer type (its data a matrix); `map.source` (a `segments` map's
-  runs from a pairs source, instead of `segments`: `seq.lang.map.params`); a grid section's `of_y` a rows system (an
-  alignment's, a matrix's states: `<alignment>/(rows)`, `<matrix>/(states)`; read: Resolved view, Grids),
-  `member_order`, `member_order_y` (the rows layer's order values; read); a source's `features` (`transcripts` when
-  absent, `genes`, `rows`) and `samples`; BED's columns named by number through `fields` (`{ stain: '4' }`); the `line`
-  word `gene`.
+  runs from a pairs source, instead of `segments`: `seq.lang.map.params`; read: Resolve, Maps read by region); a grid
+  section's `of_y` a rows system (an alignment's, a matrix's states: `<alignment>/(rows)`, `<matrix>/(states)`; read:
+  Resolved view, Grids), `member_order`, `member_order_y` (the rows layer's order values; read); a source's `features`
+  (`transcripts` when absent, `genes`, `rows`) and `samples`; BED's columns named by number through `fields`
+  (`{ stain: '4' }`); the `line` word `gene`.
 
 | Item                                                                       | Whose       | Default                                                   | Why the default; the alternatives                                           |
 | -------------------------------------------------------------------------- | ----------- | --------------------------------------------------------- | --------------------------------------------------------------------------- |
@@ -2219,9 +2219,9 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
 ### Unread params
 
 - **Said, never dropped in silence** (`resolve/unread.ts`): a param the language declares and this version reads nowhere
-  is `seq.resolve.param.unread` (info), one a node, naming the lane that reads it: `map.source` (FR), `assembly.names`
-  (GF: the printed names stay the assembly's). The lane that reads one drops it from `Unread`. Why: a reader shown a
-  spec drawn without what it says should be told why.
+  is `seq.resolve.param.unread` (info), one a node, naming the lane that reads it: `assembly.names` (GF: the printed
+  names stay the assembly's). The lane that reads one drops it from `Unread`. Why: a reader shown a spec drawn without
+  what it says should be told why.
 
 ### Maps
 
@@ -2261,6 +2261,12 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
   for every use, and a residue missing from the model is still the sequence's.
 - **Priority**: `MapEntry.priority` (0 when absent), on each of its edges.
 - A map that pairs nothing is `seq.resolve.map.empty`; a partial one is no issue.
+- **Maps read by region** (`map.source`, `model-region.ts`): a `segments` map naming a pairs source is never held (no
+  entry in `maps`, no step of a path): its runs are the source's rows of equal-length ends, read by region as a `pairs`
+  node's (`a` its `from`, `b` its `to`: `regionMapPairs`), so over two assemblies its annotation carries each sequence's
+  plan by side (Assemblies; a sided source's side `a` is the map's `from`), and a bridge's ribbons and a liftover read
+  one source (Render, A liftover). Why not a path: the runs arrive by region (EC-211), and a path is composed once per
+  model.
 
 ### Paths
 
