@@ -515,9 +515,16 @@ describe('Complex: PAE and contacts, headless', () => {
     // 1FIN's contacts of both copies (a pair of residues once a copy), folded onto the merged blocks
     const lay = arcsOf(v);
     expect(lay.n).toBeGreaterThan(100);
-    const [x, y] = curveAt(lay.curve, 0, 0.5);
-    v.input.move(x, y);
+    // an arc no ATP arc (its own layer, over the chains' arcs) lies on at its middle
+    const systems = (h: ReturnType<typeof v.hit>) => h?.extent?.parts.map((p) => p.system);
+    let at: [number, number] | undefined;
+    for (let k = 0; k < lay.n && !at; k++) {
+      const [x, y] = curveAt(lay.curve, k, 0.5);
+      if (JSON.stringify(systems(v.hit(x, y))) === JSON.stringify(['/data/cdk2', '/data/cyclin'])) at = [x, y];
+    }
+    expect(at).toBeDefined();
+    v.input.move(at![0], at![1]);
     v.draw();
-    expect(v.hover.current.extent?.parts.map((p) => p.system)).toEqual(['/data/cdk2', '/data/cyclin']);
+    expect(systems(v.hover.current)).toEqual(['/data/cdk2', '/data/cyclin']);
   });
 });
