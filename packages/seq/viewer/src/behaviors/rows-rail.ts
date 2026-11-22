@@ -14,7 +14,7 @@
 // section's is the viewer's own, `section-scroll.ts`); a press beside the window is a scroll, never a history step.
 
 import { type BandViewport, LanesRail, MaxRowScale, MinRowScale, type WindowPart } from '@molstar/seqx-core/render';
-import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
+import { DefaultViewerConfig, type ViewerConfig, validRowsZoom } from '@molstar/seqx-viewer/config';
 import type { ViewModel, ViewSnapshot } from '@molstar/seqx-viewer/models';
 
 /** The rows' zoom bounds (px a row over the band's base): core's, one source (the rows rail's idle rule reads them). */
@@ -111,7 +111,7 @@ export class RowsRailGesture {
       return true;
     }
     // the rows a grip leaves in view, within the zoom's bounds and the rows there are
-    const zoom = this.config.rows.zoom;
+    const zoom = validRowsZoom(this.config.rows.zoom);
     const least = p.area / zoom.maxPx;
     const most = p.area / Math.max(zoom.minPx, p.live.rowMin ?? 0);
     if (p.part === 'start') {
@@ -142,7 +142,7 @@ export class RowsRailGesture {
    */
   resetZoom(track: string): boolean {
     this._press = undefined;
-    if (this.view.band(track)?.rowScale === undefined) return false;
+    if (!this.config.rows.zoom.enabled || this.view.band(track)?.rowScale === undefined) return false;
     return (
       this.view.jump(() => {
         this.view.setBand(track, { rowScale: undefined });

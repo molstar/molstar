@@ -393,6 +393,17 @@ type DeepPartial<T> = {
   readonly [K in keyof T]?: T[K] extends readonly unknown[] ? T[K] : T[K] extends object ? DeepPartial<T[K]> : T[K];
 };
 
+const ZoomOffDefault = { ...DefaultRowsZoom, enabled: false };
+
+/**
+ * `rows.zoom` as the keys, the grips and the layout read it: finite and positive bounds, `minPx <= maxPx`, else the
+ * defaults (a bad value never reaches a layout).
+ */
+export function validRowsZoom(z: ViewerConfig['rows']['zoom']): ViewerConfig['rows']['zoom'] {
+  const ok = Number.isFinite(z.minPx) && Number.isFinite(z.maxPx) && z.minPx > 0 && z.maxPx > 0 && z.minPx <= z.maxPx;
+  return ok ? z : z.enabled === false ? ZoomOffDefault : DefaultRowsZoom;
+}
+
 /** The defaults with the given items over them, one level of groups deep. */
 export function viewerConfig(over: DeepPartial<ViewerConfig> = {}): ViewerConfig {
   const out: Record<string, unknown> = {};
@@ -407,7 +418,7 @@ export function viewerConfig(over: DeepPartial<ViewerConfig> = {}): ViewerConfig
     (out.navigator as { zoomStrip: unknown }).zoomStrip = { ...DefaultViewerConfig.navigator.zoomStrip, ...zoomStrip };
   // the rows' zoom items merge as the zoom strip's do
   const rowsZoom = over.rows?.zoom;
-  if (rowsZoom) (out.rows as { zoom: unknown }).zoom = { ...DefaultViewerConfig.rows.zoom, ...rowsZoom };
+  if (rowsZoom) (out.rows as { zoom: unknown }).zoom = validRowsZoom({ ...DefaultViewerConfig.rows.zoom, ...rowsZoom });
   // `view.motion: 'auto'`, the earlier spelling of `platform` (before one item decided jumps and stories), reads as it
   const view = out.view as { motion: string };
   if (view.motion === 'auto') view.motion = 'platform';

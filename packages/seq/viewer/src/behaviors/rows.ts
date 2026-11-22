@@ -25,7 +25,7 @@ import {
   type ViewLayout,
 } from '@molstar/seqx-core/render';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
-import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
+import { DefaultViewerConfig, type ViewerConfig, validRowsZoom } from '@molstar/seqx-viewer/config';
 import type { EditOutcome, SpecModel, ViewModel } from '@molstar/seqx-viewer/models';
 import type { EditOrigin } from '@molstar/seqx-viewer/ports';
 import { CladeActions } from '@molstar/seqx-viewer/bindings';
@@ -191,7 +191,7 @@ export function rowsBehavior(
   };
   /** The rows' zoom about the band's middle row: `rowScale` by a factor, `bandTop` keeping that row where it is. */
   const zoom = (track: string, l: RowsLay, factor: number): CommandResult => {
-    const bounds = config.rows.zoom;
+    const bounds = validRowsZoom(config.rows.zoom);
     if (!bounds.enabled) return { message: 'The rows do not zoom here' };
     // the floor the larger of the host's and the source's (a lazy alignment with no row levels: a device pixel a row)
     const scale = Math.max(bounds.minPx, l.rowFloor, Math.min(bounds.maxPx, l.rowScale * factor));

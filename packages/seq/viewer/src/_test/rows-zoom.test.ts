@@ -191,3 +191,41 @@ describe('rows.zoom: the limits the host’s', () => {
     expect(v.input.key({ key: '[' })).toBe(true);
   });
 });
+
+describe('a stored rowScale and a bad rows.zoom', () => {
+  it('a saved scale under the floor is drawn at it (dpr 2), the rail’s bounds agreeing with the layout', async () => {
+    const v = await make(lazySpec(1_000_000), [[viewerItem('canvas.dpr'), 2]]);
+    v.view.setBand(Track, { rowScale: 0.1, bandTop: 0 });
+    v.draw();
+    const lay = rowsLay(v);
+    expect(v.dpr).toBe(2);
+    expect(lay.rowScale).toBe(0.5);
+    expect(lay.neutral).toBe(false);
+    expect(rail(v).rowMin).toBe(lay.rowScale);
+    // and above the host's most
+    v.view.setBand(Track, { rowScale: 500 });
+    v.draw();
+    expect(rowsLay(v).rowScale).toBe(40);
+  });
+
+  it('with the zoom off a stored scale is ignored: the fit’s', async () => {
+    const v = await make(heldSpec(200), [[viewerItem('rows.zoom'), { enabled: false }]]);
+    const fit = rowsLay(v).rowScale;
+    v.view.setBand(Track, { rowScale: 3 });
+    v.draw();
+    expect(rowsLay(v).rowScale).toBe(fit);
+  });
+
+  it('a bad rows.zoom is the default; a double-click resets nothing with the zoom off', async () => {
+    for (const bad of [{ minPx: 0 }, { minPx: 9, maxPx: 3 }, { maxPx: Number.NaN }]) {
+      const v = await make(heldSpec(200), [[viewerItem('rows.zoom'), bad]]);
+      expect(v.config.rows.zoom).toEqual({ minPx: 1 / 64, maxPx: 40, enabled: true });
+    }
+    const v = await make(heldSpec(200), [[viewerItem('rows.zoom'), { enabled: false }]]);
+    v.view.setBand(Track, { rowScale: 3 });
+    v.draw();
+    const r = rail(v);
+    v.input.doubleClick(r.top + 6, yOf(r, (r.start + r.end) / 2));
+    expect(band(v)?.rowScale).toBe(3);
+  });
+});
