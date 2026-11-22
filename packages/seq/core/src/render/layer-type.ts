@@ -111,6 +111,11 @@ export interface LayoutContext {
   readonly rowScale?: number;
   /** The tree's width a narrow frame grants a rows layer (0: collapsed); the layer's own when absent. */
   readonly treePx?: number;
+  /**
+   * The reader opened the tree a narrow frame collapsed (a band's `tree`, kept whole while the frame lacks room): the
+   * layer keeps its toggle at the band's top, pressed, so the tree has a way back on screen.
+   */
+  readonly treeOpen?: boolean;
   /** The clades a rows layer folds (session state, by name), when the band says; its `collapsed` when absent. */
   readonly folds?: readonly string[];
   /** The shared image cache a layer keeps its image tiles in (the renderer's). */

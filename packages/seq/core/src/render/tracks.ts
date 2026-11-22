@@ -615,6 +615,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
               : {}),
             ...(grants && type.name === 'rows' && grants.has(key) ? { rowColumns: grants.get(key)! } : {}),
             ...(narrow && narrow.tree !== header.tree && type.name === 'rows' ? { treePx: narrow.tree } : {}),
+            ...(narrow?.lacks && band?.tree && type.name === 'rows' ? { treeOpen: true } : {}),
           };
           // kept by the strip's first unit, and its block's (a stack's blocks all start at 0)
           let at = block ? `${key}#${strips.block[i]}@${strips.first[i]}` : `${key}@${strips.first[i]}`;

@@ -21,6 +21,8 @@ export interface NarrowColumns {
   readonly plotPx: number;
   /** Everything but the plot at the columns' own widths, CSS px. */
   readonly columnsPx: number;
+  /** The frame lacks the room for its plot at the columns' own widths: a tree is collapsed to its toggle, or kept open. */
+  readonly lacks: boolean;
   /** The least frame width that keeps the plot at its floor, the columns at theirs: a narrower frame scrolls. */
   readonly minWidth: number;
 }
@@ -47,10 +49,10 @@ export function narrowColumns(
   const floor = Math.min(labelWidth, config.labelColumn.min);
   const minWidth = fixed - (labelWidth - floor) - (keepTree ? 0 : tree) + minPlot;
   let lack = minPlot - (width - fixed);
-  if (!(lack > 0)) return { labelWidth, tree, plotPx, columnsPx, minWidth };
+  if (!(lack > 0)) return { labelWidth, tree, plotPx, columnsPx, minWidth, lacks: false };
   const label = Math.max(floor, Math.floor(labelWidth - lack));
   lack -= labelWidth - label;
-  return { labelWidth: label, tree: lack > 0 && !keepTree ? 0 : tree, plotPx, columnsPx, minWidth };
+  return { labelWidth: label, tree: lack > 0 && !keepTree ? 0 : tree, plotPx, columnsPx, minWidth, lacks: true };
 }
 
 /** Whether the reader opened a tree a narrow frame collapsed (a band's `tree`, session state): it is kept then. */

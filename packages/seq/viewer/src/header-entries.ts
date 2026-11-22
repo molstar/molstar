@@ -24,6 +24,8 @@ export interface HeaderLayerFacts {
   readonly type: string;
   readonly label: string;
   readonly hidden: boolean;
+  /** A rows layer ordered by a tree it has. */
+  readonly tree?: boolean;
   /** The rows its user filter leaves out (0: none). */
   readonly filtered: number;
   /** Its color as written (absent: its type's default). */
@@ -65,6 +67,8 @@ export interface HeaderFacts {
     readonly name: string;
     readonly reversed: boolean;
   };
+  /** The track has a rows layer with a tree (`order: 'tree'`): whether the reader opened it past a narrow frame's fold. */
+  readonly tree?: { readonly open: boolean };
   /** A section of assemblies (its `include` can be set), and whether it has one. */
   readonly assemblies?: boolean;
   readonly included?: boolean;
@@ -233,6 +237,7 @@ export const HeaderEntryNames = {
   reverseBlock: 'seq:reverse-block',
   onlyBlock: 'seq:only-block',
   allBlocks: 'seq:all-blocks',
+  tree: 'seq:tree',
 } as const;
 
 /**
@@ -292,6 +297,17 @@ export const BuiltInHeaderEntries: readonly HeaderActionEntry[] = /* @__PURE__ *
       order: 5,
       when: (f) => moveAfter(f, 1) !== undefined,
       args: (f) => ({ address: f.address, after: moveAfter(f, 1) }),
+    },
+    {
+      // a narrow frame's tree: shown whole from its toggle, folded back from the toggle or here (`rows.tree`, Shift+T)
+      name: HeaderEntryNames.tree,
+      on: 'track',
+      label: (f) => (f.tree?.open ? 'Fold tree' : 'Show tree'),
+      command: 'rows.tree',
+      slot: false,
+      order: 6,
+      when: (f) => f.tree !== undefined,
+      args: (f) => ({ track: f.address }),
     },
     FilteredHeaderEntry,
     {

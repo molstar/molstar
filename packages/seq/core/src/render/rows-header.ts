@@ -40,14 +40,18 @@ export function layoutHeader(lay: RowsLay, prep: RowsPrep, ctx: LayoutContext) {
     lay.clades && prep.order === 'tree' && !lay.figure
       ? Math.max(0, Math.min(ctx.treePx ?? prep.treeWidth, right - left - 24))
       : 0;
-  lay.treeX0 = left;
+  // an opened tree keeps its toggle at the band's top with the tree beside it (pressed: it folds the tree back)
+  const open = ctx.treeOpen === true && treeW > TogglePx + 4;
+  const shift = open ? TogglePx + 4 : 0;
+  lay.toggleOpen = open;
+  lay.treeX0 = left + shift;
   lay.treeX1 = left + treeW;
   // the tree inset by half a stroke each side (`BranchPx`): a branch is centred on its line, and the header's clip is
   // the column's edge, so a vertical on the edge drew half its width
-  if (treeW > BranchPx) layoutTree(lay, lay.clades!, left + BranchPx / 2, treeW - BranchPx);
+  if (treeW > BranchPx) layoutTree(lay, lay.clades!, left + shift + BranchPx / 2, treeW - shift - BranchPx);
   // a tree a narrow frame collapsed: its toggle in its place, at the band's top (a click or Shift+T reopens it)
   const toggle = ctx.treePx === 0 && lay.clades && prep.order === 'tree' && !lay.figure ? TogglePx + 4 : 0;
-  if (toggle) {
+  if (toggle || open) {
     lay.toggleX = left;
     lay.toggleY = box.y + lay.pinnedHeight;
   }

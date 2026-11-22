@@ -286,11 +286,16 @@ function drawToggle(lay: RowsLay, out: PassWriter, ink: number) {
   t[13] = y + s - 2;
   t[14] = x + s - 2;
   t[15] = y + s - 2;
-  for (let k = 0; k < 16; k += 4) branchRect(lay, out, k, ink, t);
+  // pressed (the tree is open): an underline, the toggle folding it back
+  t[16] = x;
+  t[17] = y + s + 1;
+  t[18] = x + s;
+  t[19] = y + s + 1;
+  for (let k = 0; k < (lay.toggleOpen ? 20 : 16); k += 4) branchRect(lay, out, k, ink, t);
 }
 
 /** The toggle's segments, reused. */
-const ToggleSegments = new Float64Array(16);
+const ToggleSegments = new Float64Array(20);
 
 /** A wedge's corners and its outline with each corner softened (3 corners, 4 points each: two cuts, two between). */
 const WedgeCorners = new Float64Array(6);
