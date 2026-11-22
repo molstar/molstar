@@ -6,7 +6,7 @@
 
 import { abortError, type FormatRuntime, type OpenContext, type SourceEntry } from '../data/protocol.js';
 import { wholeLevel } from '../data/seq-format.js';
-import { refuse, wholeSource } from './internal/answers.js';
+import { IndexHint, refuse, wholeSource } from './internal/answers.js';
 import { textBytes } from './internal/text.js';
 import { wholeLines } from './internal/whole-lines.js';
 import { readVcfHeader } from './vcf-header.js';
@@ -16,7 +16,6 @@ import {
   coverageOf,
   DefaultVcfOptions,
   headerSchema,
-  IndexHint,
   refusedIssues,
   type VcfOpened,
   type VcfOptions,

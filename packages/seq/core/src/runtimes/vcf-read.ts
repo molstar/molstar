@@ -52,8 +52,6 @@ export interface VcfOpened {
   readonly causes: VcfCauses;
 }
 
-export const IndexHint = 'Read it by region: bgzip it and give its tabix index';
-
 /**
  * What a header gives a source: the schema of its INFO keys, and its systems' lengths (`##contig`, EC-188), a length
  * past 2^31 − 1 refused by name (the system not read, the others are).

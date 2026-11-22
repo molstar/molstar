@@ -26,16 +26,13 @@ import {
   bedgraphIntervals,
   bedItems,
   dataCells,
-  failure,
-  IndexHint,
   type Opened,
-  refuse,
   schemaOf,
   spanLines,
   SummariesMaxBytes,
-  wholeSource,
   dataLines,
 } from './bed-read.js';
+import { failure, IndexHint, refuse, wholeSource } from './internal/answers.js';
 import { wholeLines } from './internal/whole-lines.js';
 import { textBytes } from './internal/text.js';
 

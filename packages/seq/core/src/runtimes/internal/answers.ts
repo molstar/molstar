@@ -21,6 +21,9 @@ import { SourceOpenError } from '../../data/seq-runtime.js';
 // source refused at open, and a source over what a whole read holds. Shared by the BED, GFF and VCF runtimes, not published
 // (`./runtimes/internal/*`).
 
+/** The hint of a whole read past its bounds: an index reads the file by region. */
+export const IndexHint = 'Read it by region: bgzip it and give its tabix index';
+
 /** A region's failure of `kind`, its issue the source's code of that kind. */
 export function failure(kind: FailureKind, message: string): RegionAnswer & { ok: false } {
   const code =

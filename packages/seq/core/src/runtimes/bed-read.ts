@@ -33,10 +33,8 @@ import {
   rangesList,
   valuesIn,
 } from './bed-parse.js';
-import { failure, refuse, wholeSource } from './internal/answers.js';
+import { failure } from './internal/answers.js';
 import { decodeText } from './internal/text.js';
-
-export { failure, refuse, wholeSource };
 
 // What the BED family's whole and region reads share (_spec/README.md "Data", BED family): data lines into items or
 // intervals, and the answer of a request from them, so a region read equals the whole read clipped.
@@ -66,9 +64,6 @@ export interface Opened {
   readonly causes: BedCauses;
   readonly format: BedFormat;
 }
-
-/** Index hint of a whole read past its bounds. */
-export const IndexHint = 'Read it by region: bgzip it and give its tabix index';
 
 /** Refuses a source whose `fields` name no column (`seq.source.bed.field`). */
 export function refuseField(address: string, message: string): never {

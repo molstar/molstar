@@ -7,16 +7,8 @@
 import { abortError, type Coverage } from '../data/protocol.js';
 import { indexPairs, PairsBuilder, pairsIn, pairsList, pairsSchema, rowBytes } from './bed-pairs.js';
 import type { BedLine, DeclaredType } from './bed-parse.js';
-import {
-  type BedpeSource,
-  dataCells,
-  dataLines,
-  failure,
-  type Opened,
-  refuse,
-  refuseField,
-  wholeSource,
-} from './bed-read.js';
+import { type BedpeSource, dataCells, dataLines, type Opened, refuseField } from './bed-read.js';
+import { failure, refuse, wholeSource } from './internal/answers.js';
 
 // A BEDPE read whole and indexed by both ends (_spec/README.md "Data", BED family): loaded when the first BEDPE source
 // opens, so a host reading BED alone never loads the pairs index.
