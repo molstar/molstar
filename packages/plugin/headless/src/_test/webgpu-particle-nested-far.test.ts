@@ -202,7 +202,23 @@ describe.skipIf(!WebGPU.module)("a list with templates' far copies on WebGPU", (
       const { data, repr } = await draw(nested);
       const r = repr.data!.repr;
       // near: its template whole, as the flattened list
-      expect(differing(await frame(...near), flatNear)).toBeLessThanOrEqual(8);
+      const { pending } = graphics.resources;
+      const tracked = pending.trackedCount;
+      const nearDiffering = differing(await frame(...near), flatNear);
+      if (nearDiffering > 8) {
+        // what the near frames tracked (the leaf pages wanted, a room overflowed, pipelines), and whether more frames
+        // with real time between them draw it whole (the cull reads its wants by the clock): told in the failure
+        const labels: Record<string, number> = {};
+        for (const l of pending.trackedSince(tracked)) labels[l] = (labels[l] ?? 0) + 1;
+        const recovery: number[] = [];
+        for (let i = 0; i < 5 && (recovery.at(-1) ?? nearDiffering) > 8; ++i) {
+          await new Promise((r) => setTimeout(r, 300));
+          recovery.push(differing(await frame(...near), flatNear));
+        }
+        const maxStorage = graphics.compute?.maxStorageBufferSize;
+        const report = JSON.stringify({ nearDiffering, recovery, labels, maxStorage });
+        expect(nearDiffering, `near copy not drawn whole: ${report}`).toBeLessThanOrEqual(8);
+      }
       // far: a sample drawn larger, not the flattened list's image, but about its color and its cover
       const nestedFar = await frame(...far);
       expect(differing(nestedFar, flatFar)).toBeGreaterThan(8);
