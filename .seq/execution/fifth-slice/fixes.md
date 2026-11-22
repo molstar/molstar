@@ -40,28 +40,7 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   probes each story's legend entries: hover → at least one emphasis primitive over that entry's items in view, or no
   pointer cursor. Taken by the hover-contract lane (strong), after RG merges (RG changes the hover texts and card).
 
-- **No track drawn as an empty well, and a sweep that holds it** (the author, 2026-11-21: "Yes, group them", after
-  the Promoters track, the stacked ATP block's tracks and the plasmid's strip each showed a blank band). Three causes,
-  one symptom: (a) the data has nothing for a declared track (Promoters: a fixture gap, the story's fault); (b) a
-  layout repeats tracks for a block or section that has no items there (stacked blocks: the library's); (c) a
-  navigator or strip declared with no content (the plasmid's strip: the library's default). **The rule** (into
-  ux-foundations.md and composition.md, with navigators.md for strips): a track with no items in what it covers never
-  draws a full-height blank well. By default it collapses to a one-line row naming it with a quiet "no items" (so a
-  host's "none found" stays visible); a stacked block's track with nothing for that block is left out of that block;
-  a strip with no `content` draws its system's ticks. Configurable as the host's (`track.empty: 'note' | 'collapse' |
-  'keep'`, `blocks.emptyTracks`), the defaults above. A track still waiting for its source is pending, never empty.
-  **The sweep**: one test (medium lane, canvas and SVG) over every story's settled spec: every track, block row and
-  strip draws at least one mark besides its chrome, or is collapsed by the rule; a story that means an empty track
-  says so (`expectEmpty`), so a fixture gap like Promoters fails the sweep. The three items below (the Promoters
-  track, the stacked block, the plasmid's strip) are its instances, closed with it; their story fixes (re-record the
-  plasmid's GFF3 with promoters or a Sites track, place the strip by the detail) go in the same lane. A strong-model
-  lane, like the hover contract.
-  Also an instance (the author, 2026-11-21, the genome ring with its contigs: "feels weird it's empty"): the ring's
-  block "2,976 contigs" is labelled with a leader line but draws no arc (its share of the genome a sliver at that
-  size), so a named block shows nothing; the rule's form for a block too small to draw: drawn at a least arc
-  (`blocks.minPx`) with a break mark on each side, its items as a density if any, never a label pointing at nothing.
-
-- **A drag's work is bounded by the screen, not by the selection** (FX8, 2026-11-22: a drag across 3,000 contigs relays out the navigator's strip, about 110 kB a frame, bounded at 256 kB in `navigator-blocks.quick.ts`; its 2 ms bound fails under load: move it to the heavy lane under `itWithin`) (the author, 2026-11-21, tRNA › Views › Dot plot
+- **A drag's work is bounded by the screen, not by the selection** (FX8, 2026-11-22: a drag across 3,000 contigs relays out the navigator's strip, about 110 kB a frame, bounded at 256 kB in `navigator-blocks.quick.ts`; its 2 ms bound fails under load: move it to the heavy lane under `itWithin`) (moved by FX12) (the author, 2026-11-21, tRNA › Views › Dot plot
   scale: "selecting a rect on the dotplot here is really laggy. both as a rect on the plot, and a range on the nav.
   are we doing too much work here? maybe related to the other perf issue? and similar lag to selecting on the genome
   ring with the contigs"). One class with the PAE drag and the 3,000-contig drag-select below. What I read (not yet
@@ -138,16 +117,6 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   drawn once; a twin test (canvas and SVG) that every selection piece's box lies inside its cell's box, at both a block
   boundary and the grid's outer edge. Not measured in the browser yet: the fix lane measures first.
 
-- **The plasmid's strip is an empty bar at the top** (an instance of the empty-well rule above; the author, 2026-11-21, Examples › Plasmid › Ring › Detail with
-  a strip: "feels quite weird to have the empty strip on the top"). `plasmidStrip` (`examples/src/navigators.ts:218`)
-  declares `stripNavigator('/views/main/detail', { system })` with no `content`, so the strip draws only its window
-  (here nearly the whole construct) over a blank well, no ticks or features; and it sits at the frame's top, above the
-  ring, far from the detail it navigates. `tracksStrip` (`content: 'tracks'`) shows what it should look like. Fix: the
-  story's strip gets content (the detail's feature tracks small, or the ruler's ticks at least) and sits next to the
-  detail (between the ring and the detail, or the place navigators.md gives a strip over a section); and a library
-  question for the design: a strip with no `content` draws the system's ticks by default rather than an empty well. A
-  story test that the strip has marks besides its window.
-
 - **Zooming a lazy alignment out past a pixel a row leaves a blank plot** (the author, 2026-11-21, Examples › Globins ›
   Rows › Lazy, the rows rail's grip dragged to widen the window: "trying to resize the vertical bar breaks the lazy
   views. does our streaming protocol correctly ask for a window to fill?"). The window is asked correctly while rows
@@ -183,27 +152,6 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   card show (the item's fields: entry, resolution). A test on this story: hovering the box and hovering the empty band
   at the same position light the same arcs, and the box shows a card.
 
-- **A stacked block repeats tracks that hold nothing for it** (an instance of the empty-well rule above; the author, 2026-11-21, Examples › Complex › Blocks ›
-  Stacked: "another view with empty tracks"): with `arrange: 'stack'` each block is a row of every track, so the ATP
-  block (`complex/blocks.ts:69`, a one-position block drawn as a chip) gets empty Features, Interface and Secondary
-  bands, three tall blank wells above one chip; its row also has no heading where the polymers have "CDK2 (A) ×2".
-  In a `row` arrange the tracks are shared by all blocks, so nothing is empty there. Needs a short design before a fix
-  lane (composition.md's blocks, molecules.md's ligands, the library rule that such a choice is the host's): a stacked
-  block's track with no items for that block collapses to nothing by default (the letters track kept), configurable
-  (`blocks.emptyTracks: 'collapse' | 'keep'`), and the block gets its heading like the others ("ATP ×2"). Together
-  with the Promoters item just below: the same family (a declared track drawn empty), here a library rule, there a
-  fixture.
-
-- **The Promoters track is empty** (an instance of the empty-well rule above; the author, 2026-11-21, Files › Plasmid GFF3: "feels weird the promoters track is
-  empty"): `files/plasmid-gff.ts`'s `GffTracks` declares a `promoter` track (on the ring and the detail), but the
-  fixture `plasmid/pUC19c-rotated-features.gff3` has no promoter row: it is generated (`record.ts`, `gff3Text`) from
-  `plasmid/derive.ts`, whose features are all found in the sequence (examples.md, Plasmid: none taken from another
-  record), and no promoter is derived. Also the file's 14 `restriction_enzyme_recognition_site` rows have no track.
-  Either derive the two promoters (lac: its -35/-10 boxes upstream of lacZα; AmpR's upstream of bla, across the origin
-  like bla) and keep the track, or drop the track and add a Sites track for the rows the file holds (the better
-  showcase of a type with many short items); re-record the fixture, and a story test that every declared track of the
-  story has at least one item.
-
 - **The 3,000-contig story could be faster** (the drag part an instance of the drag rule above; the author, 2026-11-21, on packages-seq's build: "better perf ... although
   still could be faster"): my measure, 40 hover steps along the row each drawn within two frames (about 33 ms, no
   drops). Take it at M5: profile hover and pan on three-thousand-contigs (ring and row), find the per-frame cost, and
@@ -219,13 +167,61 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   contract's lane): hovering a ClinVar variant shows ClinVar's id, Track and Extent; it should name the allele
   (`pos:ref>alt`), its category and its INFO fields, as the design's matrix row "a variant allele" implies.
 
+## Fixed
+
+- **No track drawn as an empty well, and a sweep that holds it** (the author, 2026-11-21: "Yes, group them", after
+  the Promoters track, the stacked ATP block's tracks and the plasmid's strip each showed a blank band). Three causes,
+  one symptom: (a) the data has nothing for a declared track (Promoters: a fixture gap, the story's fault); (b) a
+  layout repeats tracks for a block or section that has no items there (stacked blocks: the library's); (c) a
+  navigator or strip declared with no content (the plasmid's strip: the library's default). **The rule** (into
+  ux-foundations.md and composition.md, with navigators.md for strips): a track with no items in what it covers never
+  draws a full-height blank well. By default it collapses to a one-line row naming it with a quiet "no items" (so a
+  host's "none found" stays visible); a stacked block's track with nothing for that block is left out of that block;
+  a strip with no `content` draws its system's ticks. Configurable as the host's (`track.empty: 'note' | 'collapse' |
+  'keep'`, `blocks.emptyTracks`), the defaults above. A track still waiting for its source is pending, never empty.
+  **The sweep**: one test (medium lane, canvas and SVG) over every story's settled spec: every track, block row and
+  strip draws at least one mark besides its chrome, or is collapsed by the rule; a story that means an empty track
+  says so (`expectEmpty`), so a fixture gap like Promoters fails the sweep. The three items below (the Promoters
+  track, the stacked block, the plasmid's strip) are its instances, closed with it; their story fixes (re-record the
+  plasmid's GFF3 with promoters or a Sites track, place the strip by the detail) go in the same lane. A strong-model
+  lane, like the hover contract.
+  Also an instance (the author, 2026-11-21, the genome ring with its contigs: "feels weird it's empty"): the ring's
+  block "2,976 contigs" is labelled with a leader line but draws no arc (its share of the genome a sliver at that
+  size), so a named block shows nothing; the rule's form for a block too small to draw: drawn at a least arc
+  (`blocks.minPx`) with a break mark on each side, its items as a density if any, never a label pointing at nothing. Fixed by FX12 (`f6f8823be`).
+- **A stacked block repeats tracks that hold nothing for it** (an instance of the empty-well rule above; the author, 2026-11-21, Examples › Complex › Blocks ›
+  Stacked: "another view with empty tracks"): with `arrange: 'stack'` each block is a row of every track, so the ATP
+  block (`complex/blocks.ts:69`, a one-position block drawn as a chip) gets empty Features, Interface and Secondary
+  bands, three tall blank wells above one chip; its row also has no heading where the polymers have "CDK2 (A) ×2".
+  In a `row` arrange the tracks are shared by all blocks, so nothing is empty there. Needs a short design before a fix
+  lane (composition.md's blocks, molecules.md's ligands, the library rule that such a choice is the host's): a stacked
+  block's track with no items for that block collapses to nothing by default (the letters track kept), configurable
+  (`blocks.emptyTracks: 'collapse' | 'keep'`), and the block gets its heading like the others ("ATP ×2"). Together
+  with the Promoters item just below: the same family (a declared track drawn empty), here a library rule, there a
+  fixture. Fixed by FX12 (`f6f8823be`).
+- **The plasmid's strip is an empty bar at the top** (an instance of the empty-well rule above; the author, 2026-11-21, Examples › Plasmid › Ring › Detail with
+  a strip: "feels quite weird to have the empty strip on the top"). `plasmidStrip` (`examples/src/navigators.ts:218`)
+  declares `stripNavigator('/views/main/detail', { system })` with no `content`, so the strip draws only its window
+  (here nearly the whole construct) over a blank well, no ticks or features; and it sits at the frame's top, above the
+  ring, far from the detail it navigates. `tracksStrip` (`content: 'tracks'`) shows what it should look like. Fix: the
+  story's strip gets content (the detail's feature tracks small, or the ruler's ticks at least) and sits next to the
+  detail (between the ring and the detail, or the place navigators.md gives a strip over a section); and a library
+  question for the design: a strip with no `content` draws the system's ticks by default rather than an empty well. A
+  story test that the strip has marks besides its window. Fixed by FX12 (`f6f8823be`).
+- **The Promoters track is empty** (an instance of the empty-well rule above; the author, 2026-11-21, Files › Plasmid GFF3: "feels weird the promoters track is
+  empty"): `files/plasmid-gff.ts`'s `GffTracks` declares a `promoter` track (on the ring and the detail), but the
+  fixture `plasmid/pUC19c-rotated-features.gff3` has no promoter row: it is generated (`record.ts`, `gff3Text`) from
+  `plasmid/derive.ts`, whose features are all found in the sequence (examples.md, Plasmid: none taken from another
+  record), and no promoter is derived. Also the file's 14 `restriction_enzyme_recognition_site` rows have no track.
+  Either derive the two promoters (lac: its -35/-10 boxes upstream of lacZα; AmpR's upstream of bla, across the origin
+  like bla) and keep the track, or drop the track and add a Sites track for the rows the file holds (the better
+  showcase of a type with many short items); re-record the fixture, and a story test that every declared track of the
+  story has at least one item. Fixed by FX12 (`f6f8823be`).
 - **The genome ring's chords fill the circle** (GA2's look, 2026-11-22, Features › Region reads › Pairs › On a ring;
   kind: look): the chords are now bounded and shaded by count, but 10,000 uniformly random links give every bin pair a
   similar count, so the ring reads as a disc. Make the generator's links structured (a few strong inter-chromosome
   blocks and local links, as real synteny or SVs), so the picture shows what the layer is for; and a row of stray dots
-  above the ring at the top left (find what draws them).
-
-## Fixed
+  above the ring at the top left (find what draws them). Fixed by FX12 (`f6f8823be`).
 
 - **The rail's contrast and its square ticks break the rounded UI** (the author, 2026-11-22: "should we iterate on the
   look of the rail? i think the contrast breaks the view quite a bit + the ticks breaks the 'rounded look' of the rest

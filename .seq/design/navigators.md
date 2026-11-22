@@ -761,3 +761,5 @@ Claim: "this design covers what a user does with navigators".
 - **Themes**: the `giemsa` scheme and the tokens `seq-window`, `seq-grip`, `seq-wash`, `seq-centromere`, light and
   dark. **Stories**: a centre's
   animation through the `AnimationPort` once it exists (until then the view's jump animation).
+
+- **A strip with no `content`** draws its axis ruler at its `size`, never a blank well (FX12, the plasmid's strip).
