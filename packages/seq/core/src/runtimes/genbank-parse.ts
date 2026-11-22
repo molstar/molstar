@@ -34,6 +34,8 @@ export interface GenbankFeature {
   readonly key: string;
   readonly location: string;
   readonly qualifiers: Readonly<Record<string, string>>;
+  /** A repeated qualifier's values each (its `qualifiers` value them joined). */
+  readonly lists?: Readonly<Record<string, readonly string[]>>;
   /** Its first line, 1-based. */
   readonly line: number;
 }
@@ -189,8 +191,18 @@ export function parseGenbank(text: string, causes: GenbankCauses, limits: Genban
     }
     // a record without a prototype: a qualifier named `__proto__` is a name like any other
     const qualifiers: Record<string, string> = Object.create(null);
-    for (const [name, q] of f.qualifiers) qualifiers[name] = q.values.join('; ');
-    rec.features.push({ key: f.key, location: f.location.join(''), qualifiers, line: f.line });
+    let lists: Record<string, string[]> | undefined;
+    for (const [name, q] of f.qualifiers) {
+      qualifiers[name] = q.values.join('; ');
+      if (q.values.length > 1) (lists ??= Object.create(null) as Record<string, string[]>)[name] = q.values;
+    }
+    rec.features.push({
+      key: f.key,
+      location: f.location.join(''),
+      qualifiers,
+      ...(lists ? { lists } : {}),
+      line: f.line,
+    });
   };
   const closeRecord = () => {
     closeFeature();

@@ -376,6 +376,27 @@ describe('the name index (EC-228)', () => {
     expect(await find('zz123.1')).toEqual([['accession', '', 'pX', 0, 200]]);
     expect(await s.findNames!('lac', { max: 1, prefix: true }, signal)).toHaveLength(1);
   });
+
+  it('a repeated `/gene` names its item by each value, the item once a field', async () => {
+    const t = record('pY', letters(100), [
+      {
+        key: 'CDS',
+        location: '1..30',
+        qualifiers: [
+          ['gene', '"abcA"'],
+          ['gene', '"abcB"'],
+        ],
+      },
+    ]);
+    const s = await open(t);
+    const find = async (q: string, prefix = false) =>
+      (await s.findNames!(q, { max: 20, prefix }, signal)).map((h) => [h.field, h.id]);
+    expect(await find('abcb')).toEqual([['gene', 'CDS@1-30']]);
+    expect(await find('abca')).toEqual([['gene', 'CDS@1-30']]);
+    expect(await find('abc', true)).toEqual([['gene', 'CDS@1-30']]);
+    const r = list(await read(s, 'pY', 0, 100));
+    expect(field(r, 'gene')).toEqual(['abcA; abcB']);
+  });
 });
 
 describe('the examples’ generated plasmid record', () => {

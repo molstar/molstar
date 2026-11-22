@@ -86,6 +86,8 @@ export interface GenbankItem extends PieceItem {
   readonly system: string;
   readonly key: string;
   readonly qualifiers: Readonly<Record<string, string>>;
+  /** A repeated qualifier's values each. */
+  readonly lists?: Readonly<Record<string, readonly string[]>>;
   readonly label: string;
   readonly partialStart: boolean;
   readonly partialEnd: boolean;
@@ -136,6 +138,7 @@ function itemsOf(r: GenbankRecord, length: number, causes: GenbankCauses, maxPie
       pieces: loc.pieces,
       key: f.key,
       qualifiers: f.qualifiers,
+      ...(f.lists ? { lists: f.lists } : {}),
       label: labelOf(f.key, f.qualifiers),
       partialStart: loc.partialStart,
       partialEnd: loc.partialEnd,
@@ -297,15 +300,13 @@ async function open(source: SourceEntry, ctx: OpenContext, options: GenbankOptio
     index.add(r.name, { ...whole, field: 'locus' });
     if (r.accession !== undefined) index.add(r.accession, { ...whole, field: 'accession' });
     for (const it of h.items)
-      for (const q of NameQualifiers)
-        index.add(it.qualifiers[q], {
-          system: it.system,
-          start: it.start,
-          end: it.end,
-          id: it.id,
-          label: it.label,
-          field: q,
-        });
+      for (const q of NameQualifiers) {
+        const value = it.qualifiers[q];
+        if (value === undefined) continue;
+        const hit = { system: it.system, start: it.start, end: it.end, id: it.id, label: it.label, field: q };
+        // a repeated `/gene` names the item by each of its values (one hit a field, `NameIndex.find`'s rule)
+        for (const name of it.lists?.[q] ?? [value]) index.add(name, hit);
+      }
   }
 
   let extent = 1;
