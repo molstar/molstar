@@ -1401,15 +1401,17 @@ neither io's tabix nor the pairs index.
 `runtimes/gff.ts` (`@molstar/seqx-core/runtimes/gff`, opt in: `GffRuntime`, `gffRuntime(over)`, `GffOptions`,
 `DefaultGffOptions`, `GffFeatures`, `GffFormats`, `assembleTranscripts`, `Assembly`, `GffItem`, `AssembleOptions`,
 `DefaultTranscriptTypes`, `PieceTypes`, `parseGff`, `GffRow`, `GffFormat`, `GffIssues`, `GtfIssues`): `gff3` and `gtf`
-read whole; `gff-parse.ts` (the one line parser), `gff-assemble.ts` (the hierarchy), `gff-read.ts` (the label rule, the
-name index; items by sequence and their answers `internal/items.ts`). `gff3` stays the records preset's (flat) unless a
+read whole, or by region with a tabix `index`; `gff-parse.ts` (the one line parser), `gff-assemble.ts` (the hierarchy),
+`gff-read.ts` (the label rule, the name index, the items a `features` mode serves and their fields; items by sequence
+and their answers `internal/items.ts`), and `gff-indexed.ts` loaded when the first indexed source opens (io's tabix in
+it). `gff3` stays the records preset's (flat) unless a
 host composes this runtime with `withAdapter` (one adapter a format). Why opt in: the default viewer is at its size
 bound.
 
 - **Conventions fixed** (EC-195): base 1, ends inclusive, converted at the edge; `base` or `ends` not read, said once
   (`seq.source.gff.transform`). Bytes to text by magic (plain, gzip, BGZF) within `limits.maxBytes`; `#` lines read
   past; `##sequence-region` a system's length (EC-188); everything after `##FASTA` ignored, its characters counted
-  (`.fasta`, info). An `index` is said (`.index`) and the file read whole: by region is to come.
+  (`.fasta`, info). An `index` with no `uri` (inline text) is said (`.index`) and the text read whole.
 - **Lines**: nine tab-separated columns, else left out (`.line`, warning, with its number; GTF's `seq.source.gtf.line`),
   as are positions not whole numbers from 1 to 2^31 − 1 and an end before its start. GFF3's attributes `key=value;`,
   percent-decoded (the multi-valued `Parent`, `Alias`, `Dbxref`, `Ontology_term` split on `,` before decoding: `%2C` is
@@ -1447,6 +1449,19 @@ bound.
   clipped start of the item, with its extent: EC-229). Pieces and items are found by a region from an index by start of
   the short ones (a binary search, then what is near) and a list of the long ones (past 64 times the median span, at
   least 4,096), so one chromosome-long feature never makes every read scan the sequence.
+- **By region** (a bgzipped, sorted file with a tabix `index`, never `<uri>.tbi`: EC-186): the header's directives at
+  open (`##sequence-region` lengths), the levels its index's bytes allow (Genome runtimes' internals, Levels), a tile's
+  `readCost` its `regionBytes`. **A tile's lines are assembled alone, by type**, as the whole file's are: a
+  transcript's line spans its children, so every tile meeting a transcript holds its line and its gene's, and a tile
+  inside an intron gives its span row (EC-229). What an item is besides its pieces (its CDS hull, its first CDS's
+  phase, a gene's merged transcripts, a prokaryote's gene made a transcript by its CDS) needs every child, so a tile is
+  assembled from **the hull of the lines meeting it** (a second read when they reach past the tile, a line describing
+  its sequence not counted), then cut to the tile (`rowsIn`): every tiling equals the whole read clipped (EC-227). The
+  coverage's fields are the fixed ones; a tile's attributes are those of its items, in order of first use there. Above
+  level 1 a `density` of the tile's items, each by its extent (its introns too). No name index by region (`findNames`
+  is a whole read's). Partial by region, as the whole read says of GTF 2.2: an item made only from rows sharing an
+  `ID` (no line spans it), whose extent is the hull of the rows a tile read; the hull read costs more than `readCost`
+  says where an item reaches far past its tile (a gene of 2 Mb read for a 1 kb tile).
 - **Names** (EC-228): a map from each lowercased value of GFF3's `Name`, `ID`, `Alias` or GTF's `gene_name`, `gene_id`,
   `transcript_name`, `transcript_id` to its items (genes, transcripts and features, whatever `features` serves), built
   once at open; `findNames` gives the exact names, then by prefix from the sorted names, each item once a field; a hit's
@@ -1461,12 +1476,18 @@ bound.
   | ----------------- | ------------------------ | ---------------------------------------------------------------------- |
   | `transcriptTypes` | `DefaultTranscriptTypes` | a line's role by its type, so a tile reads as the whole file; any list |
   | `features`        | `transcripts`            | a source param: a gene model (EC-227); `genes`, `rows`                 |
+  | `maxLevel`        | 4,096                    | the coarsest level listed by region (4 Mb tiles); 1, 16, 256           |
+  | `tileBins`        | 1,024                    | the store's `tileBins`: a level's tile is `level × tileBins` positions |
+  | `tabix`           | `DefaultTabixLimits`     | io's bounds of a read by region (`maxRegionBytes`, …); any             |
 
 - **Tests**: the source suite on generated GFF3 and GTF (plain, gzip, BGZF; every `features`) and on the recorded real
   slices (TP53's region of Ensembl GRCh38 release 116's GFF3 and GENCODE v50's GTF, examples' `fixtures/genomes/`);
   `assembleTranscripts` alone (three levels, a shared exon, CDS only, GTF with and without transcript lines, a cycle, a
   chain past 16, a prokaryote's gene, a type outside the list, attributes past 256); span rows; lengths; the name index;
-  fuzzed and truncated files without a throw. Its synthetic twin is `delayedRuntime(GffRuntime)`.
+  fuzzed and truncated files without a throw. By region (`gff-region.test.ts`): the source suite at every level, every
+  tiling of generated GFF3 and GTF equal to the whole read clipped at every level and in every `features` mode
+  (EC-227), a tile inside an intron with the transcript's span row, thick part and phase (EC-229). Its synthetic twin
+  is `delayedRuntime(GffRuntime)`.
 - **Performance**: 100,000 GFF3 lines assembled under 500 ms (heavy, `itWithin`), 10,000 in the quick lane;
   `features: rows` of 40,000 lines of one `ID` under 500 ms, 2,000 region reads beside a chromosome-long feature under
   200 ms, 50 lines of a million tabs refused under 200 ms (heavy). Size: its own row under 30 kB (24.3 kB minified, io's

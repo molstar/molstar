@@ -13,21 +13,17 @@ import {
   type SourceEntry,
   type SystemInfo,
 } from '../data/protocol.js';
+import type { TabixLimits } from '@molstar/io/common/tabix';
 import { wholeLevel } from '../data/seq-format.js';
-import {
-  type Assembly,
-  assembleTranscripts,
-  DefaultTranscriptTypes,
-  type GffItem,
-  mergeIntervals,
-  transcriptTest,
-} from './gff-assemble.js';
+import { assembleTranscripts, DefaultTranscriptTypes, type GffItem, transcriptTest } from './gff-assemble.js';
 import { GffCauses } from './gff-issues.js';
-import { type GffFormat, type GffRow, MaxAttributes, parseGff } from './gff-parse.js';
+import { type GffFormat, parseGff } from './gff-parse.js';
 import {
+  describes,
   fieldInfos,
-  type ItemField,
-  labelOf,
+  type GffFeatures,
+  itemFields,
+  itemsOf,
   NameIndex,
   rangesOf,
   rowsIn,
@@ -42,8 +38,8 @@ import { decodeText, textBytes } from './internal/text.js';
 // (`assembleTranscripts`), served as `ranges` by the source's `features` (`transcripts`, `genes` or `rows`), each item's
 // pieces with its whole extent; `##sequence-region` lengths (EC-188); a name index over GFF3's `Name`, `ID`, `Alias` or
 // GTF's `gene_name`, `gene_id`, `transcript_name`, `transcript_id` (EC-228). Positions as the formats write them (base
-// 1, ends inclusive), converted at the edge: the source's `base` and `ends` are not read (EC-195). By region (a tabix
-// `index`) is to come: an `index` is said and the file read whole.
+// 1, ends inclusive), converted at the edge: the source's `base` and `ends` are not read (EC-195). With a tabix `index`
+// read by region (`gff-indexed.ts`, loaded then): each tile's lines assembled alone, by type.
 
 export {
   type AssembleOptions,
@@ -59,18 +55,24 @@ export { parseGff } from './gff-parse.js';
 
 export const GffFormats = ['gff3', 'gtf'] as const;
 
-/** What a source's items are: its transcripts (the default), its genes (transcripts merged) or the file's lines. */
-export type GffFeatures = 'transcripts' | 'genes' | 'rows';
+export type { GffFeatures } from './gff-read.js';
 
 export interface GffOptions {
   /** The types read as transcripts (any type ending in `_transcript` too). */
   readonly transcriptTypes: readonly string[];
+  /** The coarsest level listed by region (4,096: 4 Mb tiles); a level is listed when each of its tiles fits. */
+  readonly maxLevel: number;
+  /** Bins a tile (the store's `tileBins`, 1,024): a level's tiles are `level × tileBins` positions. */
+  readonly tileBins: number;
+  /** io's tabix bounds for a source read by region (`DefaultTabixLimits` for those not given). */
+  readonly tabix?: Partial<TabixLimits>;
 }
 
-export const DefaultGffOptions: GffOptions = { transcriptTypes: DefaultTranscriptTypes };
-
-/** A whole-sequence feature's types: a feature of one over a whole sequence describes it (Ensembl writes one each). */
-const Describing = new Set(['region', 'chromosome', 'supercontig']);
+export const DefaultGffOptions: GffOptions = {
+  transcriptTypes: DefaultTranscriptTypes,
+  maxLevel: 4096,
+  tileBins: 1024,
+};
 
 /** The fields `findNames` searches, by format. */
 const NameFields: Readonly<Record<GffFormat, readonly string[]>> = {
@@ -78,100 +80,7 @@ const NameFields: Readonly<Record<GffFormat, readonly string[]>> = {
   gtf: ['gene_name', 'gene_id', 'transcript_name', 'transcript_id'],
 };
 
-/** Attributes not served as fields: the identity and the hierarchy (`id` and the item's pieces say them). */
-const NotFields = new Set(['ID', 'Parent']);
-
 const IndexHint = 'A smaller file, or a host’s adapter reading it by region';
-
-/** The items of the file's lines (`features: rows`): rows sharing an `ID` one item, its pieces those rows, collected
- * once and merged once (linear in the lines). */
-function rowItems(rows: readonly GffRow[]): (GffItem & { readonly row: GffRow })[] {
-  const out: (GffItem & { readonly row: GffRow })[] = [];
-  /** An `ID`'s item and the pieces its rows gave, merged at the end. */
-  const byId = new Map<string, { k: number; start: number; end: number; pieces: number[] }>();
-  const seen = new Map<string, number>();
-  for (const r of rows) {
-    if (r.id !== undefined) {
-      const g = byId.get(r.id);
-      if (g !== undefined) {
-        g.start = Math.min(g.start, r.start);
-        g.end = Math.max(g.end, r.end);
-        g.pieces.push(r.start, r.end);
-        continue;
-      }
-      byId.set(r.id, { k: out.length, start: r.start, end: r.end, pieces: [r.start, r.end] });
-    }
-    const base = r.id ?? `${r.type}:${r.start + 1}-${r.end}`;
-    const k = (seen.get(base) ?? 0) + 1;
-    seen.set(base, k);
-    out.push({
-      id: k === 1 ? base : `${base}#${k}`,
-      seqid: r.seqid,
-      type: r.type,
-      role: 'feature',
-      start: r.start,
-      end: r.end,
-      strand: r.strand,
-      pieces: [r.start, r.end],
-      attributes: r.attributes,
-      ...(r.lists ? { lists: r.lists } : {}),
-      line: r.line,
-      row: r,
-    });
-  }
-  for (const g of byId.values())
-    if (g.pieces.length > 2) out[g.k] = { ...out[g.k], start: g.start, end: g.end, pieces: mergeIntervals(g.pieces) };
-  return out;
-}
-
-/** The items a `features` mode serves, from the assembly (or the rows). */
-function itemsOf(features: GffFeatures, a: Assembly, rows: readonly GffRow[]): GffItem[] {
-  if (features === 'rows') return rowItems(rows);
-  if (features === 'transcripts') return [...a.transcripts, ...a.features];
-  // one model a gene: the genes, and the transcripts with none (a gene-level item of their own); no other feature
-  const genes = new Set(a.genes.map((g) => g.id));
-  return [...a.genes, ...a.transcripts.filter((t) => t.gene === undefined || !genes.has(t.gene))];
-}
-
-/** The fields of the items: the fixed ones, then the attributes in order of first use, at most `MaxAttributes`. */
-function itemFields(features: GffFeatures, items: readonly GffItem[], causes: GffCauses): ItemField[] {
-  const nan = (v: number | undefined) => (v === undefined ? Number.NaN : v);
-  const fixed: ItemField[] = [
-    { name: 'label', type: 'category', value: labelOf },
-    { name: 'type', type: 'category', value: (it) => it.type },
-  ];
-  if (features === 'rows') {
-    const row = (it: GffItem) => (it as GffItem & { row: GffRow }).row;
-    fixed.push(
-      { name: 'source', type: 'category', value: (it) => row(it).source },
-      { name: 'score', type: 'float32', value: (it) => row(it).score },
-      { name: 'phase', type: 'int8', value: (it) => row(it).phase },
-    );
-  } else
-    fixed.push(
-      { name: 'gene', type: 'category', value: (it) => it.gene ?? null },
-      { name: 'gene_name', type: 'category', value: (it) => it.geneName ?? null },
-      { name: 'thick_start', type: 'float64', value: (it) => nan(it.thickStart) },
-      { name: 'thick_end', type: 'float64', value: (it) => nan(it.thickEnd) },
-      { name: 'cds_phase', type: 'int8', value: (it) => it.cdsPhase ?? -1 },
-    );
-  const taken = new Set([...fixed.map((f) => f.name), 'strand']);
-  const keys: string[] = [];
-  const seen = new Set<string>();
-  let past = 0;
-  for (const it of items)
-    for (const k in it.attributes) {
-      if (seen.has(k) || NotFields.has(k) || taken.has(k)) continue;
-      seen.add(k);
-      if (keys.length < MaxAttributes) keys.push(k);
-      else past++;
-    }
-  if (past) causes.add('seq.source.gff.attributes', `More than ${MaxAttributes} attribute names: ${past} not fields`);
-  return [
-    ...fixed,
-    ...keys.map((k) => ({ name: k, type: 'category' as const, value: (it: GffItem) => it.attributes[k] ?? null })),
-  ];
-}
 
 async function open(source: SourceEntry, ctx: OpenContext, options: GffOptions): Promise<OpenedSource> {
   const at = source.address;
@@ -184,7 +93,13 @@ async function open(source: SourceEntry, ctx: OpenContext, options: GffOptions):
   const causes = new GffCauses();
   if (source.base !== undefined || source.ends !== undefined)
     causes.add('seq.source.gff.transform', `${format} fixes base 1 and inclusive ends`);
-  if (source.index !== undefined) causes.add('seq.source.gff.index', `${format} is read whole`);
+  if (source.index !== undefined && source.uri !== undefined)
+    return (await import('./gff-indexed.js')).openIndexed(
+      { source, ctx, options, causes, format, features },
+      source.uri,
+      source.index,
+    );
+  if (source.index !== undefined) causes.add('seq.source.gff.index', `${format} with an index needs a uri: read whole`);
 
   let bytes: Uint8Array;
   if (typeof source.value === 'string') bytes = new TextEncoder().encode(source.value);
@@ -208,10 +123,7 @@ async function open(source: SourceEntry, ctx: OpenContext, options: GffOptions):
   // a whole-sequence feature describes its sequence (its length when no directive gives one), never an item
   const lengths = file.lengths;
   const rows = file.rows.filter((r) => {
-    if (!Describing.has(r.type) || r.start !== 0) return true;
-    const known = lengths.get(r.seqid);
-    if (known !== undefined && known !== r.end) return true;
-    if (known === undefined) lengths.set(r.seqid, r.end);
+    if (!describes(r, lengths)) return true;
     causes.add(
       'seq.source.gff.region',
       `A ${r.type} feature over ${r.seqid} read as its description`,
