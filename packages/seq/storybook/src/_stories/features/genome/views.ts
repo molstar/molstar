@@ -75,7 +75,7 @@ function twoOnARing(): Node {
     name: `chr${i + 1}`,
     length: 18e6 + (rng.int() % 16_000_000),
   }));
-  const p = b.data.assembly('peach', assembly('peach', peach, { order: 'source' } as never));
+  const p = b.data.assembly('peach', assembly('peach', peach, { order: 'source' }));
   const g = b.data.assembly('grape', assembly('grape', grape));
   b.views.view('main', (v) => genome(v, 'genomes', [p, g], { layout: 'rings' }));
   return b.build();

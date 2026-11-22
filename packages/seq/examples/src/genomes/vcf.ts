@@ -62,7 +62,7 @@ const clinvar = {
 function clinvarView(title: string, range?: readonly [number, number]): Node {
   const b = createSeqSpec({ title });
   const sizes = b.data.source('sizes', { format: 'chrom-sizes', value: `17\t${Chr17Length}\n` as never });
-  const file = b.data.source('clinvar', clinvar as never);
+  const file = b.data.source('clinvar', clinvar);
   const chr = b.data.sequence('chr17', { alphabet: 'dna', source: sizes, name: '17' });
   const variants = b.data.ranges('variants', { target: chr, source: file });
   b.views.view('main', (v) => {

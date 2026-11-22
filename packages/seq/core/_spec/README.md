@@ -15,7 +15,7 @@ is added in the change that builds what it describes.
 
 ## Versions
 
-- The language has one version, `LanguageVersion` (`0.6.0`). Why: one language, one description, one number for readers
+- The language has one version, `LanguageVersion` (`0.7.0`). Why: one language, one description, one number for readers
   to check.
 - **Pre-release** (`0.x`): a change to the language moves the version with no migration (`0.1.0`: every child of the
   spec has an id, `layer` included; `0.2.0`: the `refs` container and the `ref` kind; `0.3.0`: the `snapshots` container
@@ -47,9 +47,11 @@ is added in the change that builds what it describes.
   `bridge` kind (a layer under it), the `matrix` kind and layer type, `pairs.source`, `pairs.field`, `grid.source`,
   `grid.field` (`rows` and `values` then optional), `map.source`, a layer's `data` a segments `map` or a `matrix`, a
   grid section's `of_y` a rows system, `member_order`, `member_order_y`, a source's `features` and `samples`, the `line`
-  word `gene` and the `shape` words `ribbon` and `line`). A spec in an earlier `0.x` reads as one in this one, and is
-  reported where it no longer fits: a `0.5.0` spec reads unchanged (every addition is optional, and every kind a
-  reference took it still takes), but an extension's `requires: '0.5'` no longer covers it (0.x: the minor).
+  word `gene` and the `shape` words `ribbon` and `line`); `0.7.0`: inline data over an assembly names its sequences
+  (Language, Assemblies): a pairs row's `a_name` and `b_name`, a grid's `x_name` and `y_name`, a matrix's `name`. A spec
+  in an earlier `0.x` reads as one in this one, and is reported where it no longer fits: a `0.6.0` spec reads unchanged
+  (every addition is optional; inline pairs, grids or matrices over an assembly, never read in 0.6, now need their
+  names: `seq.lang.data.names`), but an extension's `requires: '0.6'` no longer covers it (0.x: the minor).
 
 ## Language
 
@@ -318,12 +320,17 @@ never chemistry: a component code, a SMILES, a GlyTouCan id are strings it match
   (`seq.lang.sequence.content`: its letters are the assembly's source's). Why a kind: a genome's hundreds of sequences
   written as nodes is a manifest by hand.
 - **Over an assembly**: `ranges.target`, `values.target`, `pairs.a`/`b`, `grid.x`/`y`, `matrix.target`, `map.from`/`to`
-  and `navigator.system` may name one; a row is on the sequence its `target` field names (Resolve). A section `of` an
-  assembly, or a list of them (a group each, EC-210), has a block a derived sequence; its `include` (the assembly's
-  grammar, within the assembly's own) keeps some (`seq.lang.section.include`, a warning, on a section of none). A
-  block's `direction` (`section` when absent, `reversed`) and `scale` (1 when absent, positive: `seq.lang.block.scale`)
-  are the figure's; a block child overrides a derived block by its `of` (the derived sequence's address), or by an id
-  that is the sequence's name. `navigator.switch` (`none` when absent, `include`).
+  and `navigator.system` may name one; a row is on the sequence its `target` field names (Resolve). Inline rows of two
+  ends or axes name theirs in columns parallel to a segments map's `from_name`/`to_name`: a pairs row's `a_name` and
+  `b_name`, a grid value's `x_name` and `y_name` (a sequence pair's values x-major as one grid's, pairs joined), a
+  matrix item's `name` (a sequence's items its positions in order, as one matrix's, sequences joined); each required
+  where its side names an assembly and refused elsewhere, one a row (`seq.lang.data.names`). Why columns, not one node a
+  sequence: one file's rows over every chromosome stay one node, as a BEDPE or a map's runs. A section `of` an assembly,
+  or a list of them (a group each, EC-210), has a block a derived sequence; its `include` (the assembly's grammar,
+  within the assembly's own) keeps some (`seq.lang.section.include`, a warning, on a section of none). A block's
+  `direction` (`section` when absent, `reversed`) and `scale` (1 when absent, positive: `seq.lang.block.scale`) are the
+  figure's; a block child overrides a derived block by its `of` (the derived sequence's address), or by an id that is
+  the sequence's name. `navigator.switch` (`none` when absent, `include`).
 - **Declared, read by later lanes** (a reader that lacks one says so by the existing issue, never silently): the
   `bridge` kind under a view (`a`, `b` two sections, `seq.lang.bridge.sides`; `label`, `height`, `lock` `none` or `px`,
   `hidden`; its children layers); `pairs.source` and `grid.source` with `field` (one of `rows`/`values` and `source`:
