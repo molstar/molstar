@@ -42,7 +42,7 @@ const Generators: Readonly<Record<string, () => SeqData>> = {
   'generated:hic-one-level': hicOneLevel,
   'generated:synteny': () => syntenySource(SyntenyViewBlocks, undefined, { sided: false }),
   'generated:links': () => linksSource(),
-  'generated:links-ring': () => linksSource(RingChromosomes),
+  'generated:links-ring': () => linksSource(RingChromosomes, LinkCount, 9, true),
   'generated:genotypes': () => genotypesSource(),
   'generated:genotypes-items': () => genotypesItemsOnly(),
   'generated:methylation': () => methylationSource(),

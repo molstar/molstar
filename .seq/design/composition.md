@@ -91,3 +91,9 @@ spec ─read─▶ checked spec ─resolve─▶ static model ─▶ resolved vi
   resolved view with the overlay and the store, runtimes their source entries in the static model, tests any of them.
 - The core's folders follow the pipeline: `lang/` (the description, the builder), `resolve/`, `view/`, `data/` (the
   protocol, the store, the runtime contract), `render/` (layout, draw lists, the SVG and recording backends).
+
+- **No track drawn as an empty well** (the author, 2026-11-21: "Yes, group them"; FX12): a settled track with no items
+  in what it covers is one line (`track.emptyPx` 18) naming it with a quiet "no items"; pending is never empty
+  (EC-169); a settled source with no items is empty; an explicit `height` does not keep the well. The host's choice
+  (`track.empty: note | collapse | keep`, render config; no spec param); a stacked block leaves out its empty tracks,
+  the first block too (`blocks.emptyTracks: collapse | keep`).

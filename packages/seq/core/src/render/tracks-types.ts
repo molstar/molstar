@@ -75,6 +75,11 @@ export interface SectionLayout {
   readonly height: number;
   /** Its tracks as bands: on the page in tracks; in text, those of its first line. */
   readonly tracks: readonly TrackLayout[];
+  /**
+   * Each track with no items (`track.empty`): its one-line row, with a note (`note`) or without (`collapse`); undefined
+   * for any other. The sizing's kept list (a layout makes none).
+   */
+  readonly empties: readonly ('note' | 'collapse' | undefined)[];
   /** Its header line above its first track (`section.header`), when drawn: its hidden tracks' chip, its slots. */
   readonly header?: SectionHeaderLine;
   /** The breaks in view, `[x, hiddenStart, hiddenEnd, …]` (x unsnapped): a hairline each across the band. */
@@ -303,5 +308,7 @@ export interface SizedHeights {
   readonly heights: readonly number[];
   /** Each track's content (one lane block a track), undefined for a track not sized by its content. */
   readonly contents: readonly (LayerContent | undefined)[];
+  /** Each track with no items: how it is drawn (`note` or `collapse`), undefined for any other. */
+  readonly empties: readonly ('note' | 'collapse' | undefined)[];
   readonly issue?: Issue;
 }

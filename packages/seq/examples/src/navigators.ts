@@ -214,11 +214,20 @@ export function globinsNavigators(): Node {
   });
 }
 
-/** The plasmid's ring and linear detail with a strip of the detail's whole system, its window wrapping the origin. */
+/**
+ * The plasmid's ring and linear detail with a strip of the detail's whole system under it (next to what it navigates):
+ * the strands' features small, its window wrapping the origin.
+ */
 export function plasmidStrip(): Node {
   const spec = plasmidRing.build();
   const seq = (spec.children ?? []).find((c) => c.kind === 'data')?.children?.find((c) => c.kind === 'sequence')?.id;
   return withNavigators(spec, '/views/main', {
-    strip: stripNavigator('/views/main/detail', { system: `/data/${seq}` }),
+    strip: stripNavigator('/views/main/detail', {
+      system: `/data/${seq}`,
+      content: 'tracks',
+      tracks: ['/views/main/detail/plus', '/views/main/detail/minus'],
+      place: 'bottom',
+      size: 16,
+    }),
   });
 }
