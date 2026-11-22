@@ -304,3 +304,10 @@ predictably, P/What JBrowse could not honour)
 243. Collapse by an arbitrary field; split order and empty rows shown.
 244. Density modes; templates and dynamic nodes; computed nodes and services; snapshots; collapsed groups and summaries;
      the text layout.
+245. A track's lanes scrolled inside it gain lanes from a new tile: appended below, the scroll position kept, the
+     rail rescaled, the item under the pointer not moved.
+246. A filter leaves a scrolled track fewer lanes: its height shrinks and the scroll position is clamped.
+247. A hover or selection on an item in a lane scrolled out of its track: a tick on the track's rail at its lane; no
+     scroll on a hover, a scroll on focus.
+248. Two tracks of one kind, one overflowing its cap: one height, one rail, their lanes never scroll together.
+249. A track's height smaller than one lane: one lane drawn, the rest scrolled, never a band under a lane.
