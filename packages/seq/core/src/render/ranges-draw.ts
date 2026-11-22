@@ -98,7 +98,7 @@ function drawStyled(lay: RangesLay, out: PassWriter) {
   const forward = lay.axis.dir === 1;
   for (let j = 0; j < lay.m; j++) {
     const item = lay.mitem[j];
-    const fill = item >= 0 ? lay.fills[item] : tokens.colors['seq-range'];
+    const fill = item >= 0 ? lay.fills[item] : item <= -2 ? lay.fills[-2 - item] : tokens.colors['seq-range'];
     const full = lay.laneHeight - gap;
     const h = item >= 0 ? full * lay.sizes[item] : full;
     const y = lay.laneY + lay.mlane[j] * lay.laneHeight + gap / 2 + (full - h) / 2;

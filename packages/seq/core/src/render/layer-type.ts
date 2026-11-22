@@ -202,7 +202,8 @@ export interface Hit {
   readonly yBlock?: number;
   /**
    * What is under the point within the position, when a layer says: a logo's letter; a rows layer's column cell, what
-   * it names (`title: value`, on its row's `row` hit); a column title's field (`column-title`).
+   * it names (`title: value`, on its row's `row` hit); a column title's field (`column-title`); a ranges layer's merged run
+   * of mixed categories: their names in the legend's order, comma-separated.
    */
   readonly state?: string;
   /** A `group` hit's members: the hits of the items it stands for. */

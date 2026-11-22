@@ -443,7 +443,9 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     }
     const item = lay.hitem[j];
     if (item < 0) return base;
-    return itemHit(base, lay, lay.keys[item], lay.starts[item], lay.ends[item]);
+    const hit = itemHit(base, lay, lay.keys[item], lay.starts[item], lay.ends[item]);
+    const mixed = lay.hn > lay.m ? categoriesAt(lay, lane, x) : undefined;
+    return mixed ? { ...hit, state: mixed } : hit;
   },
 
   filtered: (lay) => lay.rows.filtered,
@@ -463,6 +465,59 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
 };
 
 /**
+ * The categories of the items under the pointer within the merge slack, in the legend's order, when they are several
+ * (a merged run of mixed categories): their names joined by a comma, else undefined. A hover's work, not a frame's.
+ */
+function categoriesAt(lay: RangesLay, lane: number, x: number): string | undefined {
+  const { index, hx0, hx1, hitem } = lay;
+  if (lane < 0 || lane + 1 >= index.laneStart.length || !lay.groupNames.length) return undefined;
+  const slack = lay.hslack;
+  const from = index.laneStart[lane];
+  let lo = from;
+  let hi = index.laneStart[lane + 1];
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (hx0[index.order[mid]] <= x + slack) lo = mid + 1;
+    else hi = mid;
+  }
+  const groups: number[] = [];
+  for (let k = lo - 1; k >= from && index.runMax[k] >= x - slack; k--) {
+    const i = index.order[k];
+    if (hx1[i] < x - slack || hitem[i] < 0) continue;
+    const v = lay.painted[hitem[i]];
+    const g = v === undefined ? -1 : lay.group[hitem[i]];
+    if (g >= 0 && !groups.includes(g)) groups.push(g);
+  }
+  if (groups.length < 2) return undefined;
+  groups.sort((a, b) => a - b);
+  return groups.map((g) => lay.groupNames[g]).join(', ');
+}
+
+/**
+ * The item of the run `[from, to)` (marks in the merge scratch) whose color group holds most of its items, the lower group
+ * (the legend's order) on a tie, the first such item. Counts in a kept scratch, zeroed after: allocates nothing warm.
+ */
+function majority(lay: RangesLay, item: Int32Array, from: number, to: number): number {
+  const count = lay.merge.count;
+  const group = lay.group;
+  for (let q = from; q < to; q++) count[group[item[q]]]++;
+  let best = item[from];
+  let bestCount = 0;
+  let bestGroup = 0;
+  for (let q = from; q < to; q++) {
+    const g = group[item[q]];
+    const c = count[g];
+    if (c > bestCount || (c === bestCount && g < bestGroup)) {
+      best = item[q];
+      bestCount = c;
+      bestGroup = g;
+    }
+  }
+  for (let q = from; q < to; q++) count[group[item[q]]] = 0;
+  return best;
+}
+
+/**
  * Merges a lane's marks that touch within a device pixel into one bar a run: at most one mark a device column. The marks
  * are sorted by lane and left edge (ties in the order they were made) into the layout's kept scratch, then written back.
  */
@@ -480,6 +535,8 @@ function mergeRuns(lay: RangesLay, px: number) {
     s.radius = new Float64Array(n);
     s.tip = new Uint8Array(n);
   }
+  if (s.count.length < lay.groupNames.length + lay.groupIds.size + 1)
+    s.count = new Int32Array(2 * (lay.groupNames.length + lay.groupIds.size + 1));
   const order = s.order;
   for (let j = 0; j < m; j++) order[j] = j;
   const { mlane, mx0 } = lay;
@@ -501,7 +558,7 @@ function mergeRuns(lay: RangesLay, px: number) {
     let end = x1[k];
     let it = item[k];
     // a run of several items whose fills are all equal keeps that fill (`−2 − item`, its first item's: drawn so, never
-    // hit, sized or labelled as one item); a run of mixed fills is the neutral range colour (`−1`)
+    // hit, sized or labelled as one item); a run of mixed fills takes the majority group's (ties by the legend's order)
     let same = it >= 0;
     let r = round[k];
     let e = k + 1;
@@ -514,6 +571,7 @@ function mergeRuns(lay: RangesLay, px: number) {
       e++;
     }
     if (it < 0 && same) it = -2 - item[k];
+    else if (it < 0) it = -2 - majority(lay, item, k, e);
     const j = nextMark(lay);
     lay.mx0[j] = x0[k];
     lay.mx1[j] = end;

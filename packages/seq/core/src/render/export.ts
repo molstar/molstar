@@ -422,7 +422,10 @@ export interface RenderSvgResult {
 function withIssues(a: SvgAccessible, errors: readonly Issue[]): SvgAccessible {
   if (!errors.length) return a;
   const said = errors.map((i) => `${i.code}${i.address ? ` at ${i.address}` : ''}: ${i.message}`).join('; ');
-  return { ...a, description: `${a.description}. The spec has ${errors.length === 1 ? 'an error' : 'errors'}: ${said}` };
+  return {
+    ...a,
+    description: `${a.description}. The spec has ${errors.length === 1 ? 'an error' : 'errors'}: ${said}`,
+  };
 }
 
 function wantsKey(wants: readonly Want[]): string {

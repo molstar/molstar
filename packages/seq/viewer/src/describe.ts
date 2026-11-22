@@ -250,10 +250,13 @@ const ItemSection: CardSection = {
     const track = at.section.tracks.find((t) => t.layers.includes(l))?.track.label;
     if (track) out.row('Track', track);
     out.row('Extent', `${system} ${extentText(it)}`);
-    if (category) out.row('Category', category);
+    // a hit in a merged run of mixed categories lists them all (the layer's `state`, in the legend's order)
+    const mixed = at.place.state;
+    if (mixed) out.row('Categories', mixed);
+    else if (category) out.row('Category', category);
     if (strand) out.row('Strand', strand);
     out.words.push(
-      `${itemText(system, it)}${track ? `, ${track}` : ''}${category ? `, ${category}` : ''}${strand ? `, strand ${strand}` : ''}`,
+      `${itemText(system, it)}${track ? `, ${track}` : ''}${mixed ? `, ${mixed}` : category ? `, ${category}` : ''}${strand ? `, strand ${strand}` : ''}`,
     );
     out.whole = true;
   },
