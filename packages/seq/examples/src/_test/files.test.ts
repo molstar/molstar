@@ -28,6 +28,7 @@ import {
   manyContent,
   manyRows,
   ManySequencesFile,
+  PlasmidGffFile,
   PlasmidSeqId,
 } from '../files/data.js';
 import { EntryFile, EntryTracks } from '../files/p53-entry.js';
@@ -334,6 +335,19 @@ describe('the plasmid’s GFF3', () => {
     }
     return layoutView(input);
   }
+
+  it('every declared track of the story has at least one item (no track is a blank well)', async () => {
+    const rows = readFileSync(`${PackageFolder}${PlasmidGffFile}`, 'utf8')
+      .split('\n')
+      .filter((l) => l && !l.startsWith('#'))
+      .map((l) => l.split('\t')[2]);
+    for (const [type] of plasmidGff.GffTracks) expect(rows, type).toContain(type);
+    // and drawn: each ring track's layer has marks
+    const ring = (await laid()).sections[0];
+    const marks = ring.tracks.map((t) => t.layers.map((l) => (l.lay as { m?: number } | undefined)?.m));
+    for (let j = 0; j < plasmidGff.GffTracks.length; j++)
+      expect(marks[j].some((m) => m === undefined || m > 0), plasmidGff.GffTracks[j][0]).toBe(true);
+  });
 
   it('reads bla and the primer site, ending past the length, as one item across the origin each, in the ring', async () => {
     const layout = await laid();
