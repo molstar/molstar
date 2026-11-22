@@ -29,3 +29,8 @@ export function knownLanes(prep: object): number {
 export function knownLanesVersion(): number {
   return Count;
 }
+
+/** Forgets what a prep's source had packed (its data was replaced): the track sizes again from what is read. */
+export function resetLanes(prep: object): void {
+  if (Lanes.delete(prep)) Count++;
+}

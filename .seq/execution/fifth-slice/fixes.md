@@ -9,15 +9,6 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 - **The rail's contrast and its square ticks break the rounded UI** (the author, 2026-11-22: "should we iterate on the
   look of the rail? i think the contrast breaks the view quite a bit + the ticks breaks the 'rounded look' of the rest
   of the ui"; the grips overhang the well's rounded corners): variants first, then the pick built. To RL.
-- **A track jumps while loading, its labels drawn below it; a section of many tracks does not scroll** (the author,
-  2026-11-22, Features › Genome formats › GFF3 › TP53 while loading: "the size when loading. could be handled better";
-  "not just text sections. imagine having multiple tracks with standard features, these should be scrollable too. and
-  600px should definitely be configurable"): FX9 did not build growth batched to the settle nor the reachable region
-  (layouts.md, Track sizing); the placeholder lane draws labels outside its band; a tracks section has no scroll and
-  no cap (layouts.md, A section scrolls past its cap). To FX11 (loading) and FX10 (the section's scroll and its rail).
-- **A scrolled band's labels drawn outside it** (the author, 2026-11-22, GFF3 TP53 scrolled: "clip bounds are not
-  respected. See the TP53-233"): marks clipped at the band's edges, labels not (TP53-233 above, TP53-221 below). To
-  FX11.
 - **One hover contract for every mark, and a sweep that holds it** (the author, 2026-11-21, Examples › Plasmid › Ring
   at scale: the strands' density bands on the ring and in the detail show no hover box or card; "we should not be
   fixing this one-by-one btw. since we already fixed a similar issue, we need a general rule for this and global
@@ -233,6 +224,16 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   above the ring at the top left (find what draws them).
 
 ## Fixed
+
+- **A scrolled band's labels drawn outside it** (the author, 2026-11-22, GFF3 TP53 scrolled: "clip bounds are not
+  respected. See the TP53-233"): marks clipped at the band's edges, labels not (TP53-233 above, TP53-221 below). To
+  FX11. Fixed by FX11: every pass of a scrolled or loading band (labels, leaders, selection, hover) clipped to it, canvas and SVG.
+- **A track jumps while loading, its labels drawn below it; a section of many tracks does not scroll** (the author,
+  2026-11-22, Features › Genome formats › GFF3 › TP53 while loading: "the size when loading. could be handled better";
+  "not just text sections. imagine having multiple tracks with standard features, these should be scrollable too. and
+  600px should definitely be configurable"): FX9 did not build growth batched to the settle nor the reachable region
+  (layouts.md, Track sizing); the placeholder lane draws labels outside its band; a tracks section has no scroll and
+  no cap (layouts.md, A section scrolls past its cap). To FX11 (loading) and FX10 (the section's scroll and its rail). The loading part fixed by FX11: the height from the section's reachable region at the first settle, growing once per settle (a staggered-tiles test fails on the parent), the placeholder's labels clipped; a tracks section's scroll to SX.
 
 - **Dragging a rail's window past the axis end shrinks it** (the author, 2026-11-22, 2OCJ A over UniProt, the ruler
   rail: "by dragging a rail, it's possible to make it really small and zoom all the way to a position spanning the

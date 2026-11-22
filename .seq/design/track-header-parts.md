@@ -187,8 +187,10 @@ It does not cover:
     looked for (Mol\*'s order; the author, 2026-11-20: "Amend the design").
   - the **state chips**, ending where the action columns begin. On a track of two lines' height they move to a line of
     their own under the label (as the filter chip does today), and the label stays whole.
-- **Actions show on hover** (`header.actions.show: hover`): while the pointer is over the track (its header or its
-  data), or the keyboard cursor is on its header, its slots are drawn over a backdrop in the label column's
+- **Actions show on hover** (`header.actions.show: hover`): while the pointer is over the track's header (not its data
+  or a rail: the author, 2026-11-22, "show the icons only when user hovers the header? and not the track data": a scrub
+  across the data must not cut the label to an ellipsis), the keyboard cursor is on its header, or its menu is open (a
+  tap on the header on touch), its slots are drawn over a backdrop in the label column's
   background (the column has no well). The backdrop
   covers the label's tail and does not move it; where it cuts the label it makes room for an ellipsis and draws one,
   on the canvas and in the DOM parts (the novice pass, F13). Why:
