@@ -98,8 +98,8 @@ const bridge = (
 interface TwoOptions {
   readonly title: string;
   readonly uri?: string;
-  /** Grape's `chr4` cut to its first 300 kb (a section of blocks, one with a `range`): the stub's view. */
-  readonly cut?: boolean;
+  /** Grape's chromosomes shown (its `include`); all when absent. */
+  readonly include?: readonly string[];
   readonly hidden?: boolean;
 }
 
@@ -113,16 +113,7 @@ function peachOverGrape(o: TwoOptions): Node {
   b.views.view('main', (v) => {
     genome(v, 'peach', peach);
     bridge(v, 'peach-grape', PeachSection, GrapeSection, aln, o.hidden ? { hidden: true } : {});
-    if (!o.cut) genome(v, 'grape', grape);
-    else
-      v.section('grape', {}, (s) => {
-        s.track('ruler').layer('ruler', { type: 'ruler', units: 'bases' } as never);
-        for (const c of Grape.chromosomes)
-          s.block(c.name, {
-            of: `/data/grape/(sequence :name ${c.name})`,
-            ...(c.name === 'chr4' ? { range: [0, CutChr4] } : {}),
-          } as never);
-      });
+    genome(v, 'grape', grape, o.include ? { include: [...o.include] } : {});
   });
   return b.build();
 }
@@ -192,9 +183,6 @@ const view = (id: string, title: string, summary: string, build: () => Node): Ex
   registry,
 });
 
-/** Where the stub view cuts grape's `chr4`. */
-export const CutChr4 = 300_000;
-
 /** Where the zoomed-in view opens: peach's `Pp02` from 1.2 to 1.5 Mb (Defaults, 3). */
 export const ZoomedLocus = 'Pp02:1,200,001-1,500,000';
 
@@ -220,8 +208,8 @@ export const AcrossViews: readonly ExampleView[] = [
   view(
     'across-stub',
     'A stub',
-    'Grape’s chr4 cut to its first 300 kb (a block’s `range`): the ribbons of peach Pp03’s tail landing past it have no place below, each a quarter-height taper from its peach end.',
-    () => peachOverGrape({ title: 'Grape’s chr4 cut', cut: true }),
+    'Grape without its chr4 (its `include`): the ribbons of peach Pp03’s tail have no place below, each a quarter-height taper from its peach end.',
+    () => peachOverGrape({ title: 'Grape without chr4', include: ['chr1', 'chr2', 'chr3', 'chr5'] }),
   ),
   view(
     'across-pending',

@@ -37,8 +37,8 @@ export const OneSideZoomedIn: StoryObj = {
 };
 
 /**
- * Grape’s chr4 cut to its first 300 kb: the ribbons of peach Pp03’s tail that land past it have no place below, each a
- * quarter-height taper from its peach end.
+ * Grape without its chr4 (its `include`): the ribbons of peach Pp03’s tail have no place below, each a quarter-height
+ * taper from its peach end, never an issue.
  */
 export const AStub: StoryObj = { render: () => exampleStory(view('across-stub'), { stacked: true }) };
 

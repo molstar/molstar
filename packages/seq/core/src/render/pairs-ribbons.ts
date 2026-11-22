@@ -127,6 +127,12 @@ const BlocksA = new Int32Array(32);
 const PlacesB = new Float64Array(64);
 const BlocksB = new Int32Array(32);
 const MaxPlaces = 32;
+/** Each place's positions (`extentInto`'s `pos`), and a b piece's places within an a piece's image. */
+const PosA = new Float64Array(64);
+const PosB = new Float64Array(64);
+const PosC = new Float64Array(64);
+const PlacesC = new Float64Array(64);
+const BlocksC = new Int32Array(32);
 
 /** An end narrower than `min` px widened about its middle (into `p[o]`, `p[o + 1]`), its order kept; true when it was. */
 function widen(p: Float64Array, o: number, min: number): boolean {
@@ -307,13 +313,14 @@ function pairRibbons(
   const be = orient > 0 ? d.bEnd[k] : d.aEnd[k];
   // another read draws it (or neither: in neither view)
   if (Own.on && !owns(as, bs)) return true;
-  const na = sa.extentInto(orient > 0 ? aSys : bSys, as, ae, PlacesA, BlocksA, MaxPlaces);
-  const nb = sb.extentInto(orient > 0 ? bSys : aSys, bs, be, PlacesB, BlocksB, MaxPlaces);
+  const na = sa.extentInto(orient > 0 ? aSys : bSys, as, ae, PlacesA, BlocksA, MaxPlaces, PosA);
+  const nb = sb.extentInto(orient > 0 ? bSys : aSys, bs, be, PlacesB, BlocksB, MaxPlaces, PosB);
   if (!na && !nb) return false;
   // corresponding positions: a's first to b's first when the strands' product is 1, to b's last when −1 (GA's twist)
   const product = d.aStrand[k] * d.bStrand[k];
   const ya = sa.edge;
   const yb = sb.edge;
+  const yStubB = ya + stub * (yb - ya);
   if (!na || !nb) {
     // a stub: a taper from the placed end into the band, `stubShare` of its height
     const near = na ? sa : sb;
@@ -331,7 +338,7 @@ function pairRibbons(
   }
   // the b corners in the order corresponding to a's: turned where the run is against
   const turned = product < 0;
-  if (na === 1 && nb === 1 && Groups) {
+  if (na === 1 && nb === 1 && PosA[0] === as && PosA[1] === ae && PosB[0] === bs && PosB[1] === be && Groups) {
     const a0 = PlacesA[0];
     const a1 = PlacesA[1];
     const b0 = turned ? PlacesB[1] : PlacesB[0];
@@ -351,14 +358,41 @@ function pairRibbons(
     r.b1 = b1;
     return true;
   }
-  for (let i = 0; i < na; i++)
-    for (let j = 0; j < nb; j++)
+  // each a piece joined to the b positions corresponding to it through the pair's own linear map (reversed when
+  // turned), cut by b's pieces in turn: every ribbon joins positions that correspond; an a piece whose image no block
+  // shows is a stub
+  const kb = ae > as ? (be - bs) / (ae - as) : 0;
+  const bSide = orient > 0 ? bSys : aSys;
+  for (let i = 0; i < na; i++) {
+    const s = PosA[2 * i];
+    const e = PosA[2 * i + 1];
+    const xa0 = PlacesA[2 * i];
+    const xa1 = PlacesA[2 * i + 1];
+    const i0 = turned ? be - (e - as) * kb : bs + (s - as) * kb;
+    const i1 = turned ? be - (s - as) * kb : bs + (e - as) * kb;
+    const m = sb.extentInto(bSide, Math.floor(i0), Math.ceil(i1), PlacesC, BlocksC, MaxPlaces, PosC);
+    if (!m) {
+      Corner[0] = xa0;
+      Corner[1] = xa1;
+      widen(Corner, 0, min);
+      const c = (Corner[0] + Corner[1]) / 2;
+      push(Corner[0], Corner[1], ya, c, c, yStubB, k, Stub, orient, BlocksA[i], rank);
+      continue;
+    }
+    for (let j = 0; j < m; j++) {
+      const p0 = PosC[2 * j];
+      const p1 = PosC[2 * j + 1];
+      // the a positions corresponding to `[p0, p1)` on b, within the a piece
+      let q0 = kb ? (turned ? as + (be - p1) / kb : as + (p0 - bs) / kb) : s;
+      let q1 = kb ? (turned ? as + (be - p0) / kb : as + (p1 - bs) / kb) : e;
+      q0 = q0 < s ? s : q0 > e ? e : q0;
+      q1 = q1 < s ? s : q1 > e ? e : q1;
       push1(
-        PlacesA[2 * i],
-        PlacesA[2 * i + 1],
+        lerpX(xa0, xa1, s, e, q0),
+        lerpX(xa0, xa1, s, e, q1),
         ya,
-        turned ? PlacesB[2 * j + 1] : PlacesB[2 * j],
-        turned ? PlacesB[2 * j] : PlacesB[2 * j + 1],
+        turned ? PlacesC[2 * j + 1] : PlacesC[2 * j],
+        turned ? PlacesC[2 * j] : PlacesC[2 * j + 1],
         yb,
         k,
         orient,
@@ -367,7 +401,14 @@ function pairRibbons(
         line,
         rank,
       );
+    }
+  }
   return true;
+}
+
+/** The x of position `p` within a piece `[s, e)` drawn from `x0` to `x1` (a block piece is linear). */
+function lerpX(x0: number, x1: number, s: number, e: number, p: number): number {
+  return e > s ? x0 + ((p - s) * (x1 - x0)) / (e - s) : x0;
 }
 
 /** A ribbon of two placed ends, each widened to `min` (both under it: a line). */
@@ -442,8 +483,9 @@ export function layoutRibbons(lay: RibbonsLay, ctx: BridgeLayoutContext, own?: O
       if (!prep.shown[k]) continue;
       const as = aOf(prep, k);
       const bs = bOf(prep, k);
-      const fwd = sa.shows(as) && sb.shows(bs);
-      const back = sa.shows(bs) && sb.shows(as);
+      // an end on a chromosome the side's `include` leaves out is the side's still: a stub (Defaults, 4)
+      const fwd = sa.holds(as) && sb.holds(bs) && (sa.shows(as) || sb.shows(bs));
+      const back = sa.holds(bs) && sb.holds(as) && (sa.shows(bs) || sb.shows(as));
       const rank = prep.weight ? prep.weight[k] : d.aEnd[k] - d.aStart[k];
       if (fwd) pairRibbons(d, k, 1, sa, sb, as, bs, min, stub, line, rank);
       // turned when the sides show only that way, or (one genome against itself) the mirror's swap too

@@ -117,12 +117,13 @@ describe('Features/Across sections, headless', () => {
     await bothThemes(v);
   });
 
-  it('a stub: grape’s chr4 cut, the ribbons of peach Pp03’s tail landing past it drawn as stubs', async () => {
+  it('a stub: grape without chr4 (its `include`), peach Pp03’s tail drawn as stubs, nothing unplaced', async () => {
     const v = await open('across-stub');
     const lay = bridges(v)[0].lays[0].lay as unknown as { n: number; flags: Uint8Array };
     let stubs = 0;
     for (let i = 0; i < lay.n; i++) if (lay.flags[i] & 2) stubs++;
     expect(stubs).toBeGreaterThan(5);
+    expect(v.layoutIssues.value.map((i) => i.code)).not.toContain('seq.render.bridge.unplaced');
     await bothThemes(v);
   });
 

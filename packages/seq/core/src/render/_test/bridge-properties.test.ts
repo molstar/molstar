@@ -88,9 +88,51 @@ describe('a ribbon’s ends against its data', () => {
       seen.add(`${k}:${xs[0].toFixed(3)}:${r[6 * i + 3].toFixed(3)}`);
       expect(blockOf(top, p.a[0])).toBeGreaterThanOrEqual(0);
     }
-    // the pair across two blocks on each side: a ribbon each place pair (2 × 2), the others one each
-    expect(lay.n).toBe(1 + 1 + 4);
+    // the pair across two blocks on each side: a ribbon each piece of a and the b piece corresponding to it (2), never
+    // the cross product of their pieces (4: two would join positions that do not correspond)
+    expect(lay.n).toBe(1 + 1 + 2);
     expect(seen.size).toBe(lay.n);
+  });
+
+  it('join corresponding positions when a pair crosses block edges on both sides, either strand', async () => {
+    const top = [{ range: [0, 150] }, { range: [150, 400] }] as const;
+    const bottom = [{ range: [0, 100] }, { range: [100, 300] }] as const;
+    for (const strand of ['+', '-'] as const) {
+      const pairs: BridgePair[] = [{ a: [100, 200], b: [50, 150], strand }];
+      const { f, lay } = await frame({ pairs, top, bottom });
+      const blockAt = (bs: readonly { range: readonly number[] }[], p: number) =>
+        bs.findIndex((b) => p >= b.range[0] && p < b.range[1]);
+      // each a piece's ends and the b positions they map to: a p to 50 + (p − 100) on +, 150 − (p − 100) on −
+      const image = (p: number) => (strand === '+' ? 50 + (p - 100) : 150 - (p - 100));
+      const want: string[] = [];
+      for (const [a0, a1] of [
+        [100, 150],
+        [150, 200],
+      ]) {
+        const b0 = image(a0);
+        const b1 = image(a1);
+        const lo = Math.min(b0, b1);
+        want.push(
+          [
+            blockX(f, 0, blockAt(top, a0), a0),
+            blockX(f, 0, blockAt(top, a0), a1),
+            blockX(f, 1, blockAt(bottom, lo), b0),
+            blockX(f, 1, blockAt(bottom, lo), b1),
+          ]
+            .map((x) => x.toFixed(3))
+            .join(' '),
+        );
+      }
+      const got: string[] = [];
+      for (let i = 0; i < lay.n; i++)
+        got.push(
+          [0, 1, 3, 4]
+            .map((o) => lay.rib[6 * i + o])
+            .map((x) => x.toFixed(3))
+            .join(' '),
+        );
+      expect(got.sort(), strand).toEqual(want.sort());
+    }
   });
 });
 

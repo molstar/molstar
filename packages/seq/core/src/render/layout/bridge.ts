@@ -35,6 +35,17 @@ function systemBlocks(section: ResolvedSection): ReadonlyMap<string, Int32Array>
   return m;
 }
 
+const Assemblies = new WeakMap<ResolvedSection, ReadonlySet<string>>();
+
+/** The assemblies a section's blocks' sequences are of: built once a section. */
+function assembliesOf(section: ResolvedSection, blocks: ReadonlyMap<string, Int32Array>): ReadonlySet<string> {
+  let a = Assemblies.get(section);
+  if (a) return a;
+  a = new Set([...blocks.keys()].filter((s) => s.lastIndexOf('/(') > 0).map((s) => s.slice(0, s.lastIndexOf('/('))));
+  Assemblies.set(section, a);
+  return a;
+}
+
 /** The x a unit row writes into (a typed array's slot: a number returned from a call not inlined is boxed). */
 const RowX = new Float64Array(2);
 
@@ -55,6 +66,8 @@ export class BridgeSide {
   /** Its device pixels a CSS px. */
   dpr = 1;
   private blocks: ReadonlyMap<string, Int32Array> | undefined;
+  /** The assemblies its blocks' sequences are of (by the address before a sequence's query). */
+  private assemblies: ReadonlySet<string> | undefined;
   private row: BlockPlacement | undefined;
   private axis: AxisTransform | undefined;
 
@@ -69,6 +82,7 @@ export class BridgeSide {
     const p = layout.placement;
     this.row = p instanceof BlockPlacement && !p.stacked ? p : undefined;
     this.blocks = layout.section.blocks ? systemBlocks(layout.section) : undefined;
+    this.assemblies = this.blocks ? assembliesOf(layout.section, this.blocks) : undefined;
     const box = this.row ? { x: this.row.row.x0, width: this.row.row.width } : a ? { x: a.x0, width: a.width } : p.box;
     this.x0 = box.x;
     this.width = box.width;
@@ -80,6 +94,16 @@ export class BridgeSide {
     return this.blocks ? this.blocks.has(system) : this.section.axis.system === system;
   }
 
+  /**
+   * Whether an end on a system is the side's: shown, or a sequence of an assembly the section shows (a block of a
+   * sequence beside it, `<assembly>/(sequence …)`) that its `include` leaves out (Defaults, 4: a stub, never unplaced).
+   */
+  holds(system: string): boolean {
+    if (this.shows(system)) return true;
+    const at = system.lastIndexOf('/(');
+    return at > 0 && !!this.assemblies?.has(system.slice(0, at));
+  }
+
   /** Whether its axis is laid out (a pending section has none: nothing is placed on it). */
   get ready(): boolean {
     return this.axis !== undefined;
@@ -88,9 +112,18 @@ export class BridgeSide {
   /**
    * The places of `[start, end)` on `system` (`shows` it): each place's x of its first position and of its end into
    * `out` (`2k`, `2k + 1`; a reversed block's first the larger) and its block into `blocks` (−1 without blocks), at most
-   * `max`; their count, 0 when no block shows any of it (a stub's end).
+   * `max`; their count, 0 when no block shows any of it (a stub's end). With `pos`, each place's positions `[s, e)`
+   * (the part of `[start, end)` it shows).
    */
-  extentInto(system: string, start: number, end: number, out: Float64Array, blocks: Int32Array, max: number): number {
+  extentInto(
+    system: string,
+    start: number,
+    end: number,
+    out: Float64Array,
+    blocks: Int32Array,
+    max: number,
+    pos?: Float64Array,
+  ): number {
     if (!this.axis) return 0;
     if (!this.blocks) {
       const a = this.axis;
@@ -100,6 +133,10 @@ export class BridgeSide {
       out[0] = this.clamp(x0 + this.dx());
       out[1] = this.clamp(x1 + this.dx());
       blocks[0] = -1;
+      if (pos) {
+        pos[0] = start;
+        pos[1] = end;
+      }
       return 1;
     }
     const list = this.blocks.get(system);
@@ -119,6 +156,10 @@ export class BridgeSide {
         if (u0 === undefined || u1 === undefined) continue;
         out[2 * n] = this.clamp(this.unitX(u0));
         out[2 * n + 1] = this.clamp(this.unitX(u1));
+        if (pos) {
+          pos[2 * n] = s;
+          pos[2 * n + 1] = e;
+        }
         blocks[n] = list[i];
         n++;
       }
