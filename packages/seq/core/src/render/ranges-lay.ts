@@ -135,7 +135,7 @@ export interface RangesLay extends ItemsBase {
     radius: Float64Array;
     tip: Uint8Array;
     /** A run's tally of its items by color group (zeroed after each run). */
-    count: Int32Array;
+    count: Float64Array;
   };
   /** The heat strip's band: the whole box, or the bottom row past the lanes. */
   densityY: number;
@@ -257,7 +257,7 @@ export function newLay(ctx: LayoutContext, prep: RangesPrep): RangesLay {
       round: new Uint8Array(0),
       radius: new Float64Array(0),
       tip: new Uint8Array(0),
-      count: new Int32Array(0),
+      count: new Float64Array(0),
     },
     densityY: 0,
     densityH: 0,

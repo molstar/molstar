@@ -494,15 +494,16 @@ function categoriesAt(lay: RangesLay, lane: number, x: number): string | undefin
 }
 
 /**
- * The item of the run `[from, to)` (marks in the merge scratch) whose color group holds most of its items, the lower group
+ * The item of the run `[from, to)` (marks in the merge scratch) whose color group covers most of the run's width (each mark weighs its width), the lower group
  * (the legend's order) on a tie, the first such item. Counts in a kept scratch, zeroed after: allocates nothing warm.
  */
 function majority(lay: RangesLay, item: Int32Array, from: number, to: number): number {
   const count = lay.merge.count;
+  const { x0, x1 } = lay.merge;
   const group = lay.group;
-  for (let q = from; q < to; q++) count[group[item[q]]]++;
+  for (let q = from; q < to; q++) count[group[item[q]]] += x1[q] - x0[q];
   let best = item[from];
-  let bestCount = 0;
+  let bestCount = -1;
   let bestGroup = 0;
   for (let q = from; q < to; q++) {
     const g = group[item[q]];
@@ -536,7 +537,7 @@ function mergeRuns(lay: RangesLay, px: number) {
     s.tip = new Uint8Array(n);
   }
   if (s.count.length < lay.groupNames.length + lay.groupIds.size + 1)
-    s.count = new Int32Array(2 * (lay.groupNames.length + lay.groupIds.size + 1));
+    s.count = new Float64Array(2 * (lay.groupNames.length + lay.groupIds.size + 1));
   const order = s.order;
   for (let j = 0; j < m; j++) order[j] = j;
   const { mlane, mx0 } = lay;
