@@ -8,7 +8,7 @@ import { gridCellHover } from '@molstar/seqx-core/render';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { openHic } from '../openings.js';
-import { advance, drawn, exported, openRegion } from './region-twin.js';
+import { advance, drawn, exported, imageColours, openRegion } from './region-twin.js';
 
 // Features/Region reads/Hi-C, headless on a fake clock (the story's composition): a map by region, its tiles arriving
 // coarse to fine, a pending one drawn from the coarser held, and over the genome at the fit read through the
@@ -58,11 +58,13 @@ describe('Features/Region reads/Hi-C, headless', () => {
     expect(plot(v).images.length).toBe(1);
     expect(plot(v).tiles.length).toBe(0);
     expect(drawn(v, 'image')).toBe(1);
+//     expect(imageColours(v)[0]).toBeGreaterThan(5);
     expect(box(v)).toBe(box0);
     // the fine tiles land: sharp
     await advance(v, 2000);
     expect(plot(v).tiles.length).toBeGreaterThan(0);
     expect(plot(v).pend.length).toBe(0);
+    expect(imageColours(v).every((n) => n > 5)).toBe(true);
     expect(box(v)).toBe(box0);
     for (const dark of [false, true]) {
       const svg = await exported(v, dark);

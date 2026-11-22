@@ -14,8 +14,8 @@ const meta: Meta = { title: 'Features/Region reads/Pairs' };
 export default meta;
 
 /**
- * A generated synteny alignment between two toy chromosomes (the two genomes’ 6,000 blocks as pairs in the `seq`
- * format, each found from either end): `chrA2` on the left, `chrB2` on the right, about 2,000 pairs in view. Under 4,096,
+ * A generated synteny alignment between two toy chromosomes (pairs in the `seq` format, each found from either
+ * end): `chrA2` on the left, `chrB2` on the right, about 80 pairs in view. Under 4,096,
  * the pairs layer reads the items and draws each alignment block as one arc; B reads a 6 Mb stretch reversed, its arcs
  * twisted. The data waits a moment, as a remote source’s would (EC-208).
  */

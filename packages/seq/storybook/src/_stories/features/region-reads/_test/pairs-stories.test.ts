@@ -43,7 +43,7 @@ describe('Features/Region reads/Pairs, headless', () => {
     const [lay] = lays(v);
     // under the gate: the items, no bins
     expect(lay.prep?.weight).toBeUndefined();
-    expect(lay.n).toBeGreaterThan(1000);
+    expect(lay.n).toBeGreaterThan(30);
     expect(lay.n).toBeLessThan(4096);
     // a block the alignment holds with its B end reversed is twisted: arcs of two kinds
     expect(drawn(v, 'path')).toBeGreaterThan(100);

@@ -16,7 +16,7 @@ import {
   SourceOpenError,
   type StoreClock,
 } from '@molstar/seqx-core/data';
-import { createSeqSpec } from '@molstar/seqx-core/lang';
+import { createSeqSpec, theme } from '@molstar/seqx-core/lang';
 import { BedRuntime } from '@molstar/seqx-core/runtimes/bed';
 import type { ExampleView } from '../views.js';
 import { HicWhole, hicOneLevel, hicSource } from './hic.js';
@@ -25,6 +25,9 @@ import { genotypesSource } from './genotypes.js';
 import { LinkCount, LinksChromosome, linksOnChromosome, linksSource } from './links.js';
 import { methylationSource } from './methylation.js';
 import { syntenySource } from './synteny.js';
+
+/** The blocks of the synteny the zoomed-in view reads (about 80 on chrA2: an arc each stays readable). */
+const SyntenyViewBlocks = 240;
 
 // The region reads' views (Features/Region reads): each a source generated at open (no
 // file) and answered after a delay on the store's clock, the finest level later than the coarse ones, so a picture
@@ -37,7 +40,7 @@ export const GeneratedFormat = 'seq-generated';
 const Generators: Readonly<Record<string, () => SeqData>> = {
   'generated:hic': hicSource,
   'generated:hic-one-level': hicOneLevel,
-  'generated:synteny': () => syntenySource(undefined, undefined, { sided: false }),
+  'generated:synteny': () => syntenySource(SyntenyViewBlocks, undefined, { sided: false }),
   'generated:links': () => linksSource(),
   'generated:genotypes': () => genotypesSource(),
   'generated:genotypes-items': () => genotypesItemsOnly(),
@@ -111,7 +114,7 @@ export const GenotypesSection = '/views/main/chr';
 
 /**
  * The synteny between two toy chromosomes, `chrA2` on the left and `chrB2` on the right: an arc a block of the alignment
- * between them (the ones B reads reversed, a 6 Mb stretch, are twisted), about 2,000 of them, under the gate.
+ * between them (the ones B reads reversed, a 6 Mb stretch, are twisted), about 80 of them.
  */
 export function pairsZoomedIn(): Node {
   const b = createSeqSpec({ title: 'Synteny, zoomed in' });
@@ -203,7 +206,10 @@ export function pairsRing(): Node {
 }
 
 /** The Hi-C's chromosome (`chr1`) as a sequence read from the source. */
-/** one chromosome's Hi-C by region: tiles of its two levels, a pending tile drawn from the coarser one. */
+/** The contacts' colour: counts on a closed domain, so a tile's colours never depend on which tiles are drawn. */
+const counts = () => theme.field('value', { domain: [0, 300], palette: theme.continuous({ colors: 'blues' }) });
+
+/** One chromosome's Hi-C by region: tiles of its two levels, a pending tile drawn from the coarser one. */
 export function hicByRegion(): Node {
   const b = createSeqSpec({ title: 'Hi-C by region' });
   const src = b.data.source('hic', generated('generated:hic'));
@@ -213,7 +219,7 @@ export function hicByRegion(): Node {
     const top = v.section('chr1', { of: chr });
     top.track('ruler').layer('ruler', { type: 'ruler', units: 'bases' } as never);
     v.section('plot', { layout: 'grid', of: chr, follow: top.address } as never).track('plot', {}, (t) => {
-      t.layer('contacts', { type: 'grid', data: contacts });
+      t.layer('contacts', { type: 'grid', data: contacts, color: counts() } as never);
     });
   });
   return b.build();
@@ -233,7 +239,7 @@ export function hicOverGenome(): Node {
     const top = v.section('genome', { of: all });
     top.track('ruler').layer('ruler', { type: 'ruler', units: 'bases' } as never);
     v.section('plot', { layout: 'grid', of: all, follow: top.address } as never).track('plot', {}, (t) => {
-      t.layer('contacts', { type: 'grid', data: contacts });
+      t.layer('contacts', { type: 'grid', data: contacts, color: counts() } as never);
     });
   });
   return b.build();
@@ -326,7 +332,7 @@ export const RegionReadsViews: readonly ExampleView[] = [
     id: 'pairs-zoomed-in',
     title: 'Pairs zoomed in: items as arcs',
     summary:
-      'A synteny alignment between two toy chromosomes (generated; the whole alignment of two genomes is about 6,000 blocks as pairs in the `seq` format): chrA2 on the left, chrB2 on the right, about 2,000 pairs in view, under the 4,096 an arc a pair is drawn from, so each alignment block is one arc between its two ends; the ones B reads reversed (a stretch of 6 Mb) are twisted. Each pair is found from either end.',
+      'A synteny alignment between two toy chromosomes (generated, pairs in the `seq` format): chrA2 on the left, chrB2 on the right, about 80 pairs in view, far under the 4,096 an arc a pair is drawn from, so each alignment block is one arc between its two ends; the ones B reads reversed (a stretch of 6 Mb) are twisted. Each pair is found from either end.',
     build: pairsZoomedIn,
     registry,
   },
@@ -335,7 +341,7 @@ export const RegionReadsViews: readonly ExampleView[] = [
     id: 'pairs-zoomed-out',
     title: 'Pairs zoomed out: bin pairs by count',
     summary:
-      '12,000 generated links on a 2 Mb chromosome, read twice, held in the spec and as a BEDPE file: past the 4,096 arcs a view draws, bin pairs, each an arc stroked by its count. The two are one picture. Hover a bin pair: it names both bins and the count, never a pair.',
+      '12,000 generated links on a 2 Mb chromosome, read twice, held in the spec and as a BEDPE file: past the 4,096 arcs a view draws, the BEDPE’s pairs are read as bin pairs, each an arc stroked by its count; the held table, not read through the store, bins its arcs by device column. Hover a bin pair: it names both bins and the count, never a pair. The BEDPE row draws a few seconds after the page, once the store has built its pairs levels.',
     build: pairsZoomedOut,
     registry,
   },
