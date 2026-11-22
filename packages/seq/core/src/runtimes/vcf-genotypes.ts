@@ -5,11 +5,10 @@
  */
 
 import { categoryColumn } from '@molstar/core/repr/tree';
-import type { FieldInfo, MatrixItems, MatrixSummary, RegionAnswer, RegionRequest } from '../data/protocol.js';
+import type { MatrixItems, MatrixSummary, RegionAnswer, RegionRequest } from '../data/protocol.js';
 import { failure } from './internal/answers.js';
 import { floatOf, type VcfRows } from './vcf-parse.js';
-import type { VcfHeader } from './vcf-header.js';
-import type { VcfCauses } from './vcf-issues.js';
+import type { GenotypeSchema, MatrixBounds } from './vcf-samples.js';
 
 // A VCF's matrix (_spec/README.md "Data", VCF: the matrix): items the ALT alleles of a region × states the samples
 // held (the header's order, narrowed by the source's `samples`), `codes` the allele's genotype class in `GT` (0 no copy,
@@ -17,53 +16,7 @@ import type { VcfCauses } from './vcf-issues.js';
 // `RegionRequest.field` (`GT` the allele's copies; a numeric FORMAT key of `Number=1` or `A`; NaN missing). Genotypes
 // are read only for a matrix request and only for the samples held, from the lines' bytes, once a line; a coarser
 // level is a summary counted from the region's items (majority class and its share, or mean, min, max and count).
-
-/** The samples a source holds and the FORMAT keys a matrix serves as values. */
-export interface GenotypeSchema {
-  /** The states: the samples held, in the header's order. */
-  readonly states: readonly string[];
-  /** Each state's sample column (0 the first sample), ascending. */
-  readonly columns: Int32Array;
-  /** The value channels: `GT` (copies), then the numeric FORMAT keys of one value a sample or an allele. */
-  readonly fields: readonly FieldInfo[];
-  /** A value channel's `Number` (`1` or `A`). */
-  readonly number: ReadonlyMap<string, string>;
-}
-
-/**
- * The samples held: the header's, narrowed by `samples` (names the header lacks said once, as is a narrowing of a file
- * without samples); the matrix's value channels from the header's `##FORMAT` lines.
- */
-export function genotypeSchema(
-  header: VcfHeader,
-  samples: readonly string[] | undefined,
-  causes: VcfCauses,
-): GenotypeSchema {
-  let columns: number[];
-  if (samples === undefined) columns = header.samples.map((_, k) => k);
-  else {
-    const wanted = new Set(samples);
-    columns = [];
-    for (let k = 0; k < header.samples.length; k++) if (wanted.has(header.samples[k])) columns.push(k);
-    const have = new Set(header.samples);
-    const missing = samples.filter((s) => !have.has(s));
-    if (!header.samples.length) causes.add('seq.source.vcf.samples', 'The file has no samples: `samples` reads none');
-    else if (missing.length)
-      causes.add(
-        'seq.source.vcf.samples',
-        `Samples the file has not: ${missing.length} (${missing.slice(0, 10).join(', ')})`,
-      );
-  }
-  const fields: FieldInfo[] = [{ name: 'GT', type: 'float32', doc: 'Copies of the allele (NaN uncalled)' }];
-  const number = new Map<string, string>([['GT', '1']]);
-  for (const d of header.format) {
-    if (d.id === 'GT' || (d.number !== '1' && d.number !== 'A')) continue;
-    if (d.type !== 'Integer' && d.type !== 'Float') continue;
-    fields.push({ name: d.id, type: 'float32' });
-    number.set(d.id, d.number);
-  }
-  return { states: columns.map((k) => header.samples[k]), columns: Int32Array.from(columns), fields, number };
-}
+// Loaded on the first matrix request (`vcf-answer.ts`), so a host reading sites never loads it.
 
 const tab = 9;
 const colon = 58;
@@ -247,11 +200,6 @@ function partAt(bytes: Uint8Array, s: number, e: number, k: number): number {
   let b = a;
   while (b < e && bytes[b] !== comma) b++;
   return numberAt(bytes, a, b);
-}
-
-/** What a matrix read may allocate: its tile's bytes (the store's `maxTileBytes`, 16 MiB). */
-export interface MatrixBounds {
-  readonly maxBytes: number;
 }
 
 const genotypes = new LineGenotypes();

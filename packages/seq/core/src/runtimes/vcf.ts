@@ -6,7 +6,7 @@
 
 import { abortError, type FormatRuntime, type OpenContext, type SourceEntry } from '../data/protocol.js';
 import { wholeLevel } from '../data/seq-format.js';
-import { IndexHint, refuse, wholeSource } from './internal/answers.js';
+import { failure, IndexHint, refuse } from './internal/answers.js';
 import { textBytes } from './internal/text.js';
 import { wholeLines } from './internal/whole-lines.js';
 import { readVcfHeader } from './vcf-header.js';
@@ -104,11 +104,20 @@ async function openWhole(o: VcfOpened): Promise<VcfSource> {
   const genotypes = genotypesOf(o, header);
   const coverage = coverageOf(names, lengths, schema, whole > 1 ? [1, whole] : [1], genotypes);
   const answer = { maxRows, genotypes, matrix: { maxBytes: options.maxMatrixBytes }, density: false };
+  const served = new Set(names);
   return {
-    ...wholeSource(coverage, [...causes.issues(at), ...refusedIssues(at, refused)], (r) =>
-      vcfAnswer(rows.get(r.system), schema, r, answer),
-    ),
+    coverage,
+    issues: [...causes.issues(at), ...refusedIssues(at, refused)],
     header,
+    async read(r, signal) {
+      if (signal.aborted) throw abortError();
+      if (!served.has(r.system)) return failure('not-served', `No sequence ${r.system}`);
+      if (!coverage.levels.includes(r.level)) return failure('not-served', `No level ${r.level}`);
+      const a = await vcfAnswer(rows.get(r.system), schema, r, answer);
+      if (signal.aborted) throw abortError();
+      return a;
+    },
+    dispose() {},
   };
 }
 

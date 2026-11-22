@@ -15,8 +15,9 @@ import type {
 } from '../data/protocol.js';
 import { failure } from './internal/answers.js';
 import { densityOf } from './internal/levels.js';
-import { type GenotypeSchema, type MatrixBounds, matrixAnswer } from './vcf-genotypes.js';
+import type { matrixAnswer } from './vcf-genotypes.js';
 import { column, FixedFields, rowsIn, type VcfRows, type VcfSchema } from './vcf-parse.js';
+import type { GenotypeSchema, MatrixBounds } from './vcf-samples.js';
 
 // A VCF's answer of a region (_spec/README.md "Data", VCF), whole and region reads alike: its sites as ranges (a
 // density above level 1 by region), its genotypes as a matrix.
@@ -36,14 +37,18 @@ export interface VcfAnswerOptions {
  * level 1 and not as items, a density counted from the tile's items), `matrix` the items × the samples held (a summary
  * above level 1).
  */
-export function vcfAnswer(
+export async function vcfAnswer(
   rows: VcfRows | undefined,
   schema: VcfSchema,
   request: RegionRequest,
   options: VcfAnswerOptions,
-): RegionAnswer {
+): Promise<RegionAnswer> {
   const ranges = request.shapes.includes('ranges');
   const matrix = request.shapes.includes('matrix') && options.genotypes !== undefined;
+  // the matrix's reader loaded on the first matrix request
+  const matrixOf: typeof matrixAnswer | undefined = matrix
+    ? (await import('./vcf-genotypes.js')).matrixAnswer
+    : undefined;
   if (!ranges && !matrix) return failure('not-served', 'A VCF source serves ranges, and a matrix with samples');
   const got = rows ? rowsIn(rows, request.start, request.end) : [];
   if (got.length > options.maxRows) return failure('too-large', `${got.length} rows in one region`);
@@ -53,7 +58,7 @@ export function vcfAnswer(
     tables.ranges = options.density && request.level > 1 && !request.items ? densityOf(list, request, true) : list;
   }
   if (matrix) {
-    const m = matrixAnswer(rows, got, options.genotypes!, request, options.matrix);
+    const m = matrixOf!(rows, got, options.genotypes!, request, options.matrix);
     if (!m.ok) return m;
     tables.matrix = m.tables.matrix;
   }

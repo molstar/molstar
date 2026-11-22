@@ -8,7 +8,7 @@ import { type Issue, issueOf } from '@molstar/core/repr/tree';
 import type { TabixLimits } from '@molstar/io/common/tabix';
 import { SourceIssues } from '../data/issues.js';
 import type { Coverage, OpenContext, OpenedSource, ShapeInfo, SourceEntry, SystemInfo } from '../data/protocol.js';
-import { type GenotypeSchema, genotypeSchema } from './vcf-genotypes.js';
+import { type GenotypeSchema, genotypeSchema } from './vcf-samples.js';
 import type { VcfHeader } from './vcf-header.js';
 import type { VcfCauses } from './vcf-issues.js';
 import { fieldInfos, MaxPosition, type VcfSchema, vcfSchema } from './vcf-parse.js';
