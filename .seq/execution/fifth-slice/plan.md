@@ -227,9 +227,15 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
 - [x] **FR** (`briefs/fr-format-regions.md`; strong, after RG and stage 2's lanes) the formats' by-region rest: tabix
       levels from the index's bytes with exact counts and `readCost` (BED, GFF, VCF), GFF's span rows by region, VCF's
       matrix and genotype classes; the `seq` runtime's sided pairs from either end, `map.source` by either side.
-- [ ] **LA** (`briefs/la-across-sections.md`; strong, after RG and FR) the `bridge`: placement, ribbons drawn once by
+- [x] **LA** (`briefs/la-across-sections.md`; strong, after RG and FR) the `bridge`: placement, ribbons drawn once by
       ownership, the closed-form hit, the lock, align, select across, the cursor across; contact maps and dot plots
       over two sections; categorical axes; the liftover last (EC-209, EC-212).
+      Merged 2026-11-22 (`f67063de4`): steps 1–4 (resolve, ribbons drawn once, the viewer, the stories); the rest to LA2
+      and LA3.
+- [ ] **LA2** (`briefs/la2-bridge-sides.md`; strong, alone in resolve and the store) a bridge reads each side over
+      assemblies (a side in a request, ownership over multi-system sides), ribbons in the SVG group, LA's last tests.
+- [ ] **LA3** (strong, after LA2) grids over two sections (`follow_y` a second section), categorical grid axes, the
+      liftover (EC-212).
 - [ ] **GATE**.
 
 ### Stage 4: the dataset and the ring (beside each other)
