@@ -232,6 +232,12 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   contract's lane): hovering a ClinVar variant shows ClinVar's id, Track and Extent; it should name the allele
   (`pos:ref>alt`), its category and its INFO fields, as the design's matrix row "a variant allele" implies.
 
+- **The genome ring's chords fill the circle** (GA2's look, 2026-11-22, Features › Region reads › Pairs › On a ring;
+  kind: look): the chords are now bounded and shaded by count, but 10,000 uniformly random links give every bin pair a
+  similar count, so the ring reads as a disc. Make the generator's links structured (a few strong inter-chromosome
+  blocks and local links, as real synteny or SVs), so the picture shows what the layer is for; and a row of stray dots
+  above the ring at the top left (find what draws them).
+
 ## Fixed
 
 - **The navigator's window and zoom strip look inconsistent and rough** (fixed by FX8, merged 2026-11-22) (the author, 2026-11-21, a ring that switches:

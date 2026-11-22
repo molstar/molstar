@@ -217,7 +217,7 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
 - [x] **RG** (merged 2026-11-22, `590151907`, with RS's stories) (`briefs/rg-region-reads.md`; strong) the shapes, `RegionRequest.y`, 2D keys and tiles, `side`, items at
       a tile size, `readCost` and `maxBytesPerLayer`, the pairs level and `binPairs`, `coarsenBins`, grid summaries and
       the whole-assembly level, the `matrix` layer's drawing (its params declared by GC1), images on rings as runs (EC-208, EC-223).
-- [ ] **GA2** (added 2026-11-22: GC2 checked data over an assembly but never read it, RS's gap 1;
+- [x] **GA2** (merged 2026-11-22) (added 2026-11-22: GC2 checked data over an assembly but never read it, RS's gap 1;
       `briefs/ga2-data-over-assembly.md`; strong, after RG, alone in resolve and the store) ranges, values, pairs,
       grid and matrix over an assembly read by sequence; held pairs by the pairs level (RS's gap 6); the ideogram's
       bands over every chromosome; RS's single-system stories moved onto assemblies.

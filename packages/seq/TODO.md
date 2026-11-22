@@ -15,9 +15,9 @@ source's complex, the genome axis and layouts), on extension kinds.
 
 - **GFF's follow-ups** (GG, 2026-11-21): a name hit focuses its range, not its item address (the item waits for its data
   after open); the GFF row is 25.8 kB (the design's 12 kB was low); by region is FR's.
-- **Genome navigators' follow-ups** (GC3, 2026-11-21): bands on the ideogram navigator wait for data over an assembly
-  read by sequence (RG); the square's cells and grips (RG); the label menu's genome entries are static (about 0.6 kB:
-  `extend` refuses late header entries by design); Shift+arrows extending a selection across blocks.
+- **Genome navigators' follow-ups** (GC3, 2026-11-21): bands on the ideogram navigator (GA2, done); the square's cells
+  and grips (RG); the label menu's genome entries are static (about 0.6 kB: `extend` refuses late header entries by
+  design); Shift+arrows extending a selection across blocks.
 - **BED's follow-ups** (BE, 2026-11-21): BEDPE onto the protocol's pairs shape (RG, FR); `itemStart`/`itemEnd` kept
   through `sliceTable` and the store (RG); BED12 span rows by region; region line issues not yet said; the renderer's
   `label` against the design's `name` for a BED name (split convention: decide once in files.md).
@@ -27,7 +27,8 @@ source's complex, the genome axis and layouts), on extension kinds.
 - **Region reads' follow-ups** (RG, 2026-11-22): sided pairs read on side `a` only (side `b` for a track on genome b,
   LA's); matrix state labels in the header, `order` and `hidden`; a pairs bin card's per-category breakdown;
   `MatrixItems` as a ranges list plus a cells column; `store.ts` (854 lines) and `viewer.ts` (818) past 800 with no
-  natural split found; data over an assembly and held pairs' bins (GA2); BEDPE through the store (FR).
+  natural split found; held pairs over blocks still binned by device column (Decided 7, partial); the whole-assembly
+  level not cut into block pairs (Default 5); inline data over an assembly (GA3); BEDPE through the store (FR).
 
 ## Base library (`@molstar/core`, `@molstar/io`)
 

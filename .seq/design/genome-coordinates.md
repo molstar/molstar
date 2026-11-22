@@ -499,7 +499,7 @@ Cells this design fills or changes; the others stand as the axis, layouts and na
 | a block's ruler at its own density; overlapping blocks lit together; a ribbon's twist by the three directions | fixed | — | the reasons in the Decision |
 | the hue per block's domain (the blocks in order) | fixed | — | known up front, never by region (EC-191) |
 
-Not built: `system` as a list of assemblies; an ideogram's bands over every chromosome and data over an assembly read by sequence (its unread info stays); the square's cells (RG) and its grips.
+Not built: `system` as a list of assemblies; the square's cells (RG) and its grips.
 
 ## Tensions
 
