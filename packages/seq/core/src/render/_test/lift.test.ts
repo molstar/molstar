@@ -9,7 +9,9 @@
 
 import { SeqRuntime } from '@molstar/seqx-core/data';
 import { loadGenome } from '@molstar/seqx-core/resolve';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { TracksLayout } from '../index.js';
+import { RibbonsType } from '../pairs-ribbons.js';
 import { loadBridges } from '../bridge-load.js';
 import type { Frame } from '../renderer.js';
 import type { RangesLay } from '../ranges.js';
@@ -86,5 +88,29 @@ describe('a layer lifted through the map', () => {
     const wants = f.wants.filter((w) => w.source === '/data/chain' && w.layer?.endsWith('/new/genes/genes'));
     expect(wants.length).toBeGreaterThan(0);
     expect(wants.every((w) => w.side === 'b' && w.items)).toBe(true);
+  });
+});
+
+describe('a pan of the new section', () => {
+  it('lays out that section and the bridge only; a frame with nothing moved, neither (EC-212)', async () => {
+    const s = await settle(liftSpec(), [SeqRuntime]);
+    const at = (k: number) => ({
+      size: Size,
+      viewports: { [NewSection]: { start: 1_000 + k, end: 120_000 + k } },
+    });
+    await s.frame(at(0));
+    await s.frame(at(0));
+    const place = vi.spyOn(TracksLayout, 'place');
+    const ribbons = vi.spyOn(RibbonsType, 'layout');
+    s.renderer.frame(at(5));
+    expect(place.mock.calls.map((c) => c[0].address)).toEqual([NewSection]);
+    expect(ribbons).toHaveBeenCalledTimes(1);
+    place.mockClear();
+    ribbons.mockClear();
+    s.renderer.frame({ ...at(5), emphasis: { hover: { layer: '', section: '', system: '' } } });
+    expect(place).not.toHaveBeenCalled();
+    expect(ribbons).not.toHaveBeenCalled();
+    place.mockRestore();
+    ribbons.mockRestore();
   });
 });

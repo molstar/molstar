@@ -121,7 +121,7 @@ export const LiftMap = '/data/lift';
 export const GenesData = '/data/genes';
 
 /** The figure: the old section with its genes, a bridge over the map, the new section with the genes lifted. */
-export function liftSpec(runs: readonly LiftRun[] = Runs): Node {
+export function liftSpec(runs: readonly LiftRun[] = Runs, options: { lifted?: boolean; bridge?: boolean } = {}): Node {
   const b = createSeqSpec({ title: 'a liftover' });
   const old = b.data.assembly('old', assembly('Old', OldChromosomes, { order: 'source' } as never));
   const neu = b.data.assembly('new', assembly('New', NewChromosomes, { order: 'source' } as never));
@@ -130,10 +130,16 @@ export function liftSpec(runs: readonly LiftRun[] = Runs): Node {
   const genes = b.data.ranges('genes', { target: old, rows: Genes } as never);
   b.views.view('v', (v) => {
     v.section('old', { of: old } as never, (s) => s.track('genes').layer('genes', { type: 'ranges', data: genes }));
-    v.bridge('br', { a: OldSection, b: NewSection } as never, (br) =>
-      br.layer('runs', { type: 'pairs', data: map } as never),
+    if (options.bridge !== false)
+      v.bridge('br', { a: OldSection, b: NewSection } as never, (br) =>
+        br.layer('runs', { type: 'pairs', data: map } as never),
+      );
+    // `lifted: false`, the control: the new section without the old genes
+    v.section('new', { of: neu } as never, (s) =>
+      options.lifted === false
+        ? s.track('ruler').layer('ruler', { type: 'ruler', units: 'bases' } as never)
+        : s.track('genes').layer('genes', { type: 'ranges', data: genes }),
     );
-    v.section('new', { of: neu } as never, (s) => s.track('genes').layer('genes', { type: 'ranges', data: genes }));
   });
   return b.build();
 }
