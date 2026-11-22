@@ -95,6 +95,13 @@ const AllCases = [
     target: 30_000,
     own: /seq\/core\/src\/runtimes\/|(^|\/)packages\/io\/src\/common\//,
   },
+  // GenBank read whole (no viewer bundles it): its own code and io's BGZF (a bgzipped file read whole)
+  {
+    name: 'GenBank runtime',
+    entry: 'genbank.ts',
+    target: 30_000,
+    own: /seq\/core\/src\/runtimes\/|(^|\/)packages\/io\/src\/common\//,
+  },
   // VCF sites (no viewer bundles it): its own code and io's BGZF (a bgzipped file read whole); its reads by region (io's
   // tabix, the region lines) are its lazy chunk, loaded when the first indexed source opens: listed apart (`lazy`)
   {
