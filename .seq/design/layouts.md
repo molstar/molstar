@@ -143,8 +143,8 @@ limits (they were sort of self-imposed and estimate), but obviously try to minim
   the whole data, not of the view, so a pan never resizes it), rounded up to a step of one lane, between one lane and a
   cap (then lanes compact, as now); its marks centred in the band. Tracks of one kind in a section share the tallest
   height among them (two CDR tracks are equal), so neighbours do not vary lane by lane, **only when close** (the author,
-  2026-11-22: "Share only when close"): tracks of a kind whose lanes are within 2 lanes or 2x of each other share the
-  tallest of them; a track far from the rest fits its own lanes (one 40-lane track does not draw thirty one-feature
+  2026-11-22: "Share only when close"): tracks of a kind whose lanes are within 2 lanes or 2x of the smallest among them share the
+  tallest of them (sorted by lanes, so the order of tracks does not matter); a track far from the rest fits its own lanes (one 40-lane track does not draw thirty one-feature
   tracks at the cap). A track's `height` overrides.
   Why: a default fills its space and reads as designed; heights decided by the whole data stay put as the view moves.
   The numbers (decided, the author, 2026-11-19, the defaults audit `drafts/defaults-audit.md`, "Accept as drafted"):
