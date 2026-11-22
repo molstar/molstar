@@ -213,7 +213,7 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
       undefined,
     ],
     ['keyup', (e: KeyboardEvent) => own(e) && e.key === ' ' && input.spaceUp(e), undefined],
-    ['blur', () => input.setSpace(false), undefined],
+    ['blur', () => (input.setSpace(false), input.leave()), undefined],
   ];
   for (const [type, fn, options] of listeners) container.addEventListener(type, fn, options);
 

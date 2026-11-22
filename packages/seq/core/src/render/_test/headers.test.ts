@@ -33,6 +33,7 @@ import {
   sectionHeaderLine,
   trackHeaderLine,
 } from '../headers.js';
+import { actionsShown } from '../headers-draw.js';
 import { renderSvg } from '../render-svg.js';
 import { P53, seeded } from './fixtures.js';
 import { settle } from './helpers.js';
@@ -388,13 +389,17 @@ describe('drawn alike, hit as laid out', () => {
     expect(tip.match(/^rect /gm)).toHaveLength(1 + 3);
   });
 
-  it('a hover on a track’s data or its label line shows its actions; the cursor on its header too; `always` and `never`', async () => {
+  it('a hover on a track’s label line shows its actions, on its data not; the cursor on its header too; `always` and `never`', async () => {
     const { s, f, input } = await frame([], Host);
     const t = f.layout.sections[0].tracks[0];
     const tipPaths = (e: Emphasis) => recordDrawLists(s.renderer.frame({ ...input, emphasis: e }).lists, ['tip']);
     const data = hitView(f.layout, t.box.x + 40, t.box.y + t.box.height / 2)!;
     expect(data.layer.startsWith(t.track.address)).toBe(true);
-    expect(tipPaths({ hover: data })).toMatch(/^path /m);
+    // data hover: no actions (a scrub across the data must not cut the label to an ellipsis)
+    expect(tipPaths({ hover: data })).not.toMatch(/^path /m);
+    expect(actionsShown(t.track.address, 'p', { hover: data }, f.layout.config)).toBe(false);
+    // an open menu keeps them while the pointer is elsewhere
+    expect(tipPaths({ menu: t.track.address })).toMatch(/^path /m);
     expect(tipPaths({ cursor: { system: '/data/p', position: 0, part: 'header', track: t.track.address } })).toMatch(
       /^path /m,
     );

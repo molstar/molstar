@@ -12,6 +12,7 @@
 
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec, overviewNavigator } from '@molstar/seqx-core/lang';
+import { SeqCoreConfig } from '@molstar/seqx-core/context';
 import { RowsRail, type RowsLay, SlimRailPx, type Rail } from '@molstar/seqx-core/render';
 import { afterEach, describe, expect, it } from 'vitest';
 import { viewerItem } from '../config.js';
@@ -62,6 +63,8 @@ async function make(root: Node, config: readonly (readonly [unknown, unknown])[]
   return viewer;
 }
 
+// the gesture tests below read exact rows from px: no inset, no floor offset
+const Flush = [[SeqCoreConfig.render, { squircleMax: 0 }]] as const;
 const band = (v: SeqViewer) => v.view.band(RowsTrack);
 const rowsRail = (v: SeqViewer): Rail | undefined => v.frame!.layout.sections[0].rowsRails?.[0];
 /** The page y of display row `u` on the rail. */
@@ -84,8 +87,9 @@ describe('the rows rail', () => {
     const lay = v.frame!.layout.sections[0].tracks[1].layers.find((l) => l.type.name === 'rows')!.lay as RowsLay;
     expect(lay.lastText.length).toBeGreaterThan(0);
     expect(lay.numberRightX + lay.lastMaxW).toBeLessThanOrEqual(r.top);
-    expect(r.x).toBeCloseTo(data.y, 6);
-    expect(r.width).toBeCloseTo(data.height, 6);
+    // its ends inset by the well's corner radius
+    expect(r.x - r.inset).toBeCloseTo(data.y, 6);
+    expect(r.width + 2 * r.inset).toBeCloseTo(data.height, 6);
     expect(r.total).toBe(60);
     expect(r.start).toBe(0);
     expect(r.end).toBeCloseTo(100 / 20, 6);
@@ -124,7 +128,7 @@ describe('the rows rail', () => {
   });
 
   it('a grip zooms the rows about the other end; `]` and `[` zoom them too', async () => {
-    const v = await make(spec(60));
+    const v = await make(spec(60), Flush);
     v.view.setBand(RowsTrack, { bandTop: 10 });
     v.draw();
     let r = rowsRail(v)!;
@@ -135,7 +139,7 @@ describe('the rows rail', () => {
     const end = yOf(r, 15) + 2;
     expect(v.hit(x, end)?.part).toBe('end');
     v.input.down(x, end);
-    v.input.move(x, end + (5 / r.total) * r.width);
+    v.input.move(x, end + (yOf(r, 20) - yOf(r, 15)));
     expect(band(v)?.bandTop).toBeCloseTo(10, 6);
     expect(band(v)?.rowScale).toBeCloseTo(100 / 10, 6);
     v.input.up();
@@ -160,6 +164,31 @@ describe('the rows rail', () => {
     v.draw();
     expect(v.input.key({ key: ']' })).toBe(true);
     expect(band(v)?.rowScale).toBeCloseTo(before, 6);
+  });
+
+  it('with the inset (the well’s corner radius): a press in the inset zone maps to the end; a body drag maps unit-exact', async () => {
+    const v = await make(spec(60));
+    v.view.setBand(RowsTrack, { bandTop: 10 });
+    v.draw();
+    let r = rowsRail(v)!;
+    expect(r.inset).toBeGreaterThan(0);
+    const x = r.top + 6;
+    // a body drag of 10 rows' px moves the top exactly 10 rows
+    const mid = yOf(r, 12.5);
+    v.input.down(x, mid);
+    v.input.move(x, mid + (yOf(r, 20) - yOf(r, 10)));
+    expect(band(v)?.bandTop).toBeCloseTo(20, 6);
+    v.input.up();
+    v.draw();
+    // a click past the inset axis's end, inside the old extent: the rows centre at the end (clamped to the last rows)
+    r = rowsRail(v)!;
+    const past = r.x + r.width + r.inset / 2;
+    v.input.down(x, past);
+    v.input.up();
+    v.input.click(x, past);
+    v.draw();
+    r = rowsRail(v)!;
+    expect(r.end).toBeCloseTo(60, 6);
   });
 
   it('a double-click on its window resets the rows’ zoom (a jump, the top row kept); outside it nothing', async () => {
@@ -243,7 +272,7 @@ describe('the rows rail', () => {
   });
 
   it('a grip dragged to the band’s end shows every row, and dragged back the window shrinks again', async () => {
-    const v = await make(spec(60));
+    const v = await make(spec(60), Flush);
     let r = rowsRail(v)!;
     const x = r.top + 6;
     /**
@@ -270,7 +299,7 @@ describe('the rows rail', () => {
     const back = endGrip(r);
     expect(Number.isNaN(back)).toBe(false);
     v.input.down(x, back);
-    v.input.move(x, back - r.width / 2);
+    v.input.move(x, back + (yOf(r, 30) - yOf(r, 60)));
     v.input.up();
     v.draw();
     r = rowsRail(v)!;

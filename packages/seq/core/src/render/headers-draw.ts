@@ -35,16 +35,15 @@ function inBox(b: { x: number; y: number; width: number; height: number }, x: nu
 }
 
 /**
- * Whether a header's actions show (`header.actions.show`): `always`; on `hover` the track a hover's hit is in (its label
- * line, its slots, its states, its data: `within`; a section's line only its own hits), the cursor's header, the header whose menu is open. A slot is
- * hit only while they show.
+ * Whether a header's actions show (`header.actions.show`, track-header-parts.md "Actions show on hover"): `always`; on
+ * `hover` only while the pointer is over the track's header (its label line, its slots, its states), the keyboard
+ * cursor is on its header, or its menu is open, never on its data or a rail. A slot is hit only while they show.
  */
 export function actionsShown(
   address: string,
   section: string,
   emphasis: Emphasis | undefined,
   config: RenderConfig,
-  within = true,
 ): boolean {
   const show = config.header.actions.show;
   if (show === 'always') return true;
@@ -53,18 +52,10 @@ export function actionsShown(
   if (c && c.part === 'header' && c.track === address) return true;
   // an open menu keeps its header's actions (the pointer on its way to the menu leaves the line)
   if (emphasis.menu === address) return true;
-  // the pointer anywhere in a track's row (a gap between blocks, a rail over it): its actions, never a flicker
-  if (within && emphasis.row === address) return true;
   const h = emphasis.hover;
-  if (!h || h.section !== section) return false;
-  const l = h.layer;
-  if (l === address) return true;
-  if (!within) return false;
-  // a layer's key under the track: its address (`<track>/<id>`) or its index (`<track>:<n>`)
-  const n = address.length;
-  if (l.length <= n || !l.startsWith(address)) return false;
-  const c0 = l.charCodeAt(n);
-  return c0 === 47 || c0 === 58;
+  if (!h || h.section !== section || h.layer !== address) return false;
+  const t = h.target;
+  return t === 'header-label' || t === 'header-slot' || t === 'header-state' || t === 'section-header';
 }
 
 /** The states of a header line in the labels pass: a chip its text in the accent, a mark an accent squircle. */
@@ -233,7 +224,7 @@ export function drawSectionHeader(out: PassWriter, s: SectionLayout, pass: strin
   const line = s.header;
   if (!line || line.hosted) return;
   if (pass === 'labels') drawStates(out, line, s.tokens, s.config, 0);
-  else if (pass === 'tip' && line.actions && actionsShown(s.section.address, s.id, emphasis, s.config, false))
+  else if (pass === 'tip' && line.actions && actionsShown(s.section.address, s.id, emphasis, s.config))
     drawActions(out, line, emphasis?.hover, s.tokens, s.config);
 }
 
@@ -272,7 +263,7 @@ export function hitHeaders(
   const mouse = !touch && config.header.actions.show !== 'never';
   const sh = s.header;
   if (sh && y >= sh.line.y && y < sh.line.y + sh.line.height)
-    return hitLine(sh, x, y, mouse || actionsShown(s.section.address, s.id, HoverOnly, config, false)) ?? sh.hit;
+    return hitLine(sh, x, y, mouse || actionsShown(s.section.address, s.id, HoverOnly, config)) ?? sh.hit;
   for (let i = 0; i < s.tracks.length; i++) {
     const t = s.tracks[i];
     const line = t.header;
