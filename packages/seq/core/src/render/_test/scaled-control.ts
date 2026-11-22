@@ -4,11 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// A positive control for an allocation case that allocates hundreds of kilobytes a step by design (a layout): the
+// A positive control for an allocation case that allocates kilobytes a step by design (a layout, a hover onto units): the
 // harness's control (`quickCase`, `leaking`) reads the case and the case with an 88-byte object apart, each a median of
 // its windows, and over a step of 100 to 500 KB (300 to 1,200 collections a window) the windows wander by 20 to 250
 // bytes a step: the 88 bytes read from -13 to 105 over the case, against the control's 66 (the 3,000-contig drag, the
-// bridge's relayout). This control adds an array of 4 KB a step (garbage at the next step), well above that noise, and
+// bridge's relayout; the categorical grid's pan read 56, the 2OCJ hover's windows 30 bytes apart). This control adds an array of 4 KB a step (garbage at the next step), well above that noise, and
 // checks the measurement sees three quarters of it.
 
 import { type Alloc, measureBytesPerStep } from '@molstar/test-harness/quick';
