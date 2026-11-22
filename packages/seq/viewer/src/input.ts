@@ -47,8 +47,6 @@ import type {
   WindowBehavior,
 } from '@molstar/seqx-viewer/behaviors';
 import { isDragSelect } from '@molstar/seqx-viewer/behaviors/select';
-import { kindOf } from '@molstar/seqx-viewer/behaviors/rows-rail';
-import { scrollerOf } from '@molstar/seqx-viewer/behaviors/scrollers';
 import { trackOfLayer } from '@molstar/seqx-viewer/behaviors/two-axes';
 import {
   type Anchor,
@@ -367,8 +365,8 @@ export class ViewerInput {
    * page's (false: scroll chaining).
    */
   private _scrollSection(section: string, dy: number): boolean {
-    const sc = dy ? scrollerOf(this.viewer.view, this.viewer.frame?.layout, 'section', section) : undefined;
-    if (!sc?.set(sc.top() + dy)) return false;
+    // the rows behavior's (the one rail's scrollers): a viewer without it scrolls no tracks section
+    if (!dy || !this.viewer.behavior<RowsBehavior>('rows')?.scrollBy?.('section', section, dy)) return false;
     this.viewer.schedule();
     return true;
   }
@@ -655,7 +653,7 @@ export class ViewerInput {
           track: r.key,
           at: railUnitAt(r, d.y0),
           part: d.part ?? 'body',
-          window: { start: r.start, end: r.end, total: r.total, width: r.width, kind: kindOf(r) },
+          window: { start: r.start, end: r.end, total: r.total, width: r.width, hit: r.hit },
         };
       } else g?.release();
       this._suppressClick = true;
