@@ -2024,15 +2024,47 @@ export namespace Particle {
     return ParticleValues.compact(array);
   }
 
+  /** what other modules cache of a list's particles alone, by name: its tiles (`ParticleTiles.setDirectory`) */
+  const KeptByTargetsNames = ['particle-tile-directory'];
+
   /**
    * Return a copy of `particles` with the given per-target reference objects attached; of the same line of moves
-   * (`movedFrom`: the coordinates the same), so a list moved under it gives its move
+   * (`movedFrom`: the coordinates the same), so a list moved under it gives its move. What is cached on it of its
+   * particles alone is kept (their groups by target, transforms, bounds, order, stored levels, deferred reads, tiles;
+   * its boundary where neither targets have templates), what is of its targets not (a list with
+   * templates' id space, flattened list and theme list; the targets' measures and densities): computed again
    */
   export function withTargets(
     particles: ParticleList,
     targetMapping: ReadonlyMap<number, ParticleTarget>,
   ): ParticleList {
-    return { ...particles, targetMapping, movedFrom: particles.movedFrom ?? { particles, transform: Mat4.identity() } };
+    const kept = new Set<string>(KeptByTargetsNames);
+    for (const d of [
+      ...keptByMove,
+      ParticleTransformsDescriptor,
+      TargetBoundsDescriptor,
+      SampleOrderedDescriptor,
+      StoredLevelsDescriptor,
+      DeferredDescriptor,
+    ]) {
+      kept.add(d.name);
+    }
+    const next = { ...particles, targetMapping };
+    if (!hasTemplateTargets(particles) && !hasTemplateTargets(next)) kept.add(BoundaryDescriptor.name);
+    const customProperties = new CustomProperties();
+    const propertyData = Object.create(null);
+    for (const descriptor of particles.customProperties.all) {
+      const value = particles._propertyData[descriptor.name];
+      if (value === undefined || !kept.has(descriptor.name)) continue;
+      customProperties.add(descriptor);
+      propertyData[descriptor.name] = value;
+    }
+    return {
+      ...next,
+      movedFrom: particles.movedFrom ?? { particles, transform: Mat4.identity() },
+      customProperties,
+      _propertyData: propertyData,
+    };
   }
 
   /**

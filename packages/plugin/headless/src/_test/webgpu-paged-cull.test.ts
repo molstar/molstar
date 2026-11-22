@@ -1154,6 +1154,20 @@ describe.skipIf(!WebGPU.module)('a page store culled on the GPU', () => {
       await readRegions(culler, culler.counts);
       for (let i = 0; i < 20; ++i) await new Promise((r) => setTimeout(r, 10));
       expect(culler.frameVersion).toBe(settled);
+
+      // without a pyramid no entry is tested against the occlusion bits: their room of one entry no bar to growing
+      const fewBits = createPagedCuller(compute, graphics.resources, {
+        ...FullRooms,
+        frameInitialSlots: 100,
+        occlusionInitialEntries: 1,
+      });
+      fewBits.sync(store, store.takeChanges(), [2, 3, 1.5, 4]);
+      fewBits.cull(wide);
+      expect((await readRegions(fewBits, fewBits.counts)).total).toBe(10 + 100);
+      expect(await advancedPast(fewBits, 0)).toBe(true);
+      fewBits.cull(wide);
+      expect((await readRegions(fewBits, fewBits.counts)).total).toBeGreaterThan(10 + 100);
+      fewBits.destroy();
       expect(graphics.takeErrors?.() ?? []).toEqual([]);
       culler.destroy();
     } finally {

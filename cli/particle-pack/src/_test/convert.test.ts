@@ -183,6 +183,36 @@ describe('particle pack converter', () => {
     expect(key(back)).toEqual(key(createParticleListFromPack(readParticlePack(writeParticlePack(list)))));
   });
 
+  it("writes a nested pack as mmCIF flattened: a copy's particles each, its template's targets' atoms", async () => {
+    const template = createList(true);
+    const nested: ParticleList = {
+      ...template,
+      label: 'nested',
+      count: 2,
+      coordinates: Float32Array.of(0, 0, 0, 500, 0, 0),
+      rotations: Float32Array.of(0, 0, 0, 1, 0, 0, 0, 1),
+      targets: new Int32Array(2),
+      targetInfo: new Map([[0, { name: 'copy' }]]),
+      targetMapping: new Map<number, ParticleTarget>([[0, { kind: 'particles', particles: template }]]),
+      entities: undefined,
+      entityInfo: undefined,
+      compartments: undefined,
+      compartmentInfo: undefined,
+      radii: undefined,
+      fibers: undefined,
+      customProperties: new CustomProperties(),
+      _propertyData: Object.create(null),
+    };
+    const { data } = packToMmcif(writeParticlePack(nested), true);
+    const back = createParticleListFromPack(
+      readParticlePack(await mmcifToPack(await parseMmcif(data as Uint8Array, true))),
+    );
+    expect(back.count).toBe(2 * template.count);
+    // every target's atoms: the template's three
+    expect(back.targetMapping?.size).toBe(3);
+    for (const t of back.targetMapping!.values()) expect(t.kind).toBe('sites');
+  });
+
   it('writes a pack again, tile-ordered with tiles: the same particles, a tile directory', () => {
     const pack = writeParticlePack(createList(true));
     const tiled = createParticleListFromPack(readParticlePack(packToPack(pack, { tiles: 2 })));

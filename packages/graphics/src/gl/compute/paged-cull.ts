@@ -1354,10 +1354,10 @@ export function createPagedCuller(
    * culled again (`frameVersion`) and a draw asked for (a settled promise tracked as pending work); the room grown to
    * half again what it needed (`grow`), not where a pyramid is to come (`PagedCullView.pyramidToCome`: an app's first
    * frames, nothing occluded, every instance in view needed; the next cull's pyramid hides most of them: the isg cell
-   * on a 4x4x4 grid 29.4 M without, 0.56 M with), nor where selected entries were past the occlusion bits' room (not
-   * tested against the pyramid: `readSelected` grows it)
+   * on a 4x4x4 grid 29.4 M without, 0.56 M with), nor where a cull of a pyramid (`tested`) selected entries past the
+   * occlusion bits' room (not tested against it: `readSelected` grows it; a cull without one tests none)
    */
-  const readCursors = (phaseCounts: StorageBuffer, grow: boolean, second: boolean) => {
+  const readCursors = (phaseCounts: StorageBuffer, grow: boolean, second: boolean, tested: boolean) => {
     const frameBudgeted = frameRoom > 0 && frameRoom < frameInstances;
     if (cursorsRead || !(frameBudgeted || budgeted)) return;
     cursorsRead = true;
@@ -1374,7 +1374,7 @@ export function createPagedCuller(
         const c = new Uint32Array(data);
         const prior = priorData ? new Uint32Array(priorData) : undefined;
         // every selected entry tested against the pyramid, else what it needed not what the view will
-        if (new Uint32Array(selectedData)[0] > bits) grow = false;
+        if (tested && new Uint32Array(selectedData)[0] > bits) grow = false;
         let overflowed = false;
         // a room at its cap (`sizeFrame`) not grown by a cull again: overflowing it asks for another while each needs
         // fewer than the one before (its pyramid this view's: a zoom's first cull of the last view's pyramid, the isg
@@ -2177,7 +2177,7 @@ export function createPagedCuller(
       // (one read at a time: the second's not made while the first's is on its way)
       if (!culledWithPyramid) {
         readSelected(!!pyramid);
-        readCursors(firstCounts, !pyramidToCome && !residencyChanged, false);
+        readCursors(firstCounts, !pyramidToCome && !residencyChanged, false, !!pyramid);
         fallback();
       }
     },
@@ -2186,7 +2186,7 @@ export function createPagedCuller(
       if (!culledWithPyramid) return;
       culledWithPyramid = false;
       readSelected(true);
-      readCursors(firstCounts, !residencyChanged, false);
+      readCursors(firstCounts, !residencyChanged, false, true);
     },
 
     cullSecond(pyramid) {
@@ -2205,7 +2205,7 @@ export function createPagedCuller(
       // the first's entries and those the second added: the survivors' room for both, the bits' for the first's (the
       // count of both: grown for a few more)
       readSelected(true);
-      readCursors(secondCounts, !residencyChanged, true);
+      readCursors(secondCounts, !residencyChanged, true, true);
       fallback();
       ValueCell.updateIfChanged(uniforms.uPhase, 0);
       ValueCell.update(counts, firstCounts);
@@ -2298,7 +2298,20 @@ export function createPagedCuller(
       selectKernel?.destroy();
       selectArgsKernel?.destroy();
       cullKernel?.destroy();
-      for (const c of [tables, positions, composePages, bases, poses, groupBoxes, indices, occludedBits]) {
+      wantsKernel?.destroy();
+      groupsKernel?.destroy();
+      for (const c of [
+        tables,
+        positions,
+        composePages,
+        bases,
+        poses,
+        groupBoxes,
+        indices,
+        occludedBits,
+        wanted,
+        lacking,
+      ]) {
         c.ref.value.destroy();
       }
       firstCounts.destroy();

@@ -10,6 +10,7 @@ import { GridPositions } from '@molstar/core/math/geometry/grid-positions';
 import { Quat, Vec3 } from '@molstar/core/math/linear-algebra';
 import { CustomProperties } from '../../custom-property.js';
 import {
+  getParticleTransforms,
   Particle,
   type ParticleList,
   ParticleRotations,
@@ -553,5 +554,33 @@ describe('particle nesting', () => {
     // a template of a few particles a target: none
     const small = createTemplate();
     expect(ParticleNesting.getTemplateLevels(createTop(small), small)).toEqual([]);
+  });
+
+  it("gives a list other targets with its targets' caches made again, its particles' kept", () => {
+    const template = createTemplate();
+    const top = createTop(template);
+    // cached of its targets: its expansion, id space, flattened list, boundary; of its particles: its transforms
+    expect(ParticleNesting.getExpandedCount(top)).toBe(10);
+    const flat = ParticleNesting.flatten(top);
+    const transforms = getParticleTransforms(top);
+    Particle.getBoundary(top);
+    // another template at the copies' target: four particles, not three
+    const other = createList({
+      ...createTemplate(),
+      count: 4,
+      coordinates: new Float32Array(12),
+      targets: new Int32Array(4),
+    });
+    const mapping = new Map(top.targetMapping!);
+    mapping.set(2, { kind: 'particles', particles: other, center: Vec3.create(0, 0, 0) });
+    const retargeted = Particle.withTargets(top, mapping);
+    expect(ParticleNesting.getExpandedCount(retargeted)).toBe(4 + 4 + 1 + 4);
+    expect(ParticleNesting.flatten(retargeted)).not.toBe(flat);
+    expect([...ParticleNesting.getIdSpace(retargeted).moves.keys()]).toEqual([other]);
+    expect(getParticleTransforms(retargeted)).toBe(transforms);
+    // a flat list's boundary kept (its particles' alone)
+    const leaves = createTemplate();
+    const boundary = Particle.getBoundary(leaves);
+    expect(Particle.getBoundary(Particle.withTargets(leaves, new Map()))).toBe(boundary);
   });
 });
