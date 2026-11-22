@@ -2,6 +2,7 @@
 
 ## Decided
 
+- Minimal raised to 1,060 kB (the author, 2026-11-22: "raise minimal to 1,060 too"), LA at 1,039.95 of 1,040.
 - Sizes raised a third time (the author, 2026-11-22: "You can raise the limits"): headless 930, default 1,470 kB; the
   chromosome pan's fit bound 55 KB (FX9 measured 54.1).
 - Gate 0 (the author, 2026-11-20: "the recommendation make sense"): every question as recommended (plan, Gate 0).
