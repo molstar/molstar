@@ -25,7 +25,7 @@ import { ScaleParamsDescription, ThemeLanguage, ThemeLanguageId } from './theme-
  * The version of the language this description is (the package's `LanguageVersion` is the same). Pre-release (`0.x`):
  * a change moves it with no migration (_spec/README.md, Versions).
  */
-export const SeqLanguageVersion = '0.7.0';
+export const SeqLanguageVersion = '0.8.0';
 
 /**
  * What `pairs.a`/`b`, `ranges.target` and `map.to` take: a system, or an alignment by its columns system (its address;
@@ -1173,8 +1173,8 @@ export const SeqLanguage = defineLanguage({
         },
         encoding: {
           type: 'string',
-          enum: ['bars', 'line', 'area'],
-          doc: 'For `values`: `bars` (when absent), `line` (through the cells’ centers, held over half cells at its ends and gaps, broken by missing values) or `area` (the line and the area under it).',
+          enum: ['bars', 'line', 'area', 'points'],
+          doc: 'For `values`: `bars` (when absent), `line` (through the cells’ centers, held over half cells at its ends and gaps, broken by missing values), `area` (the line and the area under it) or `points` (a dot a value; a thin mark a device column below a pixel a value). A line and an area show a dot a value from about 6 px a value.',
         },
         style: {
           type: 'string',

@@ -15,7 +15,7 @@ is added in the change that builds what it describes.
 
 ## Versions
 
-- The language has one version, `LanguageVersion` (`0.7.0`). Why: one language, one description, one number for readers
+- The language has one version, `LanguageVersion` (`0.8.0`). Why: one language, one description, one number for readers
   to check.
 - **Pre-release** (`0.x`): a change to the language moves the version with no migration (`0.1.0`: every child of the
   spec has an id, `layer` included; `0.2.0`: the `refs` container and the `ref` kind; `0.3.0`: the `snapshots` container
@@ -48,12 +48,12 @@ is added in the change that builds what it describes.
   `grid.field` (`rows` and `values` then optional), `map.source`, a layer's `data` a segments `map` or a `matrix`, a
   grid section's `of_y` a rows system, `member_order`, `member_order_y`, a source's `features` and `samples`, the `line`
   word `gene` and the `shape` words `ribbon` and `line`); `0.7.0`: inline data over an assembly names its sequences
-  (Language, Assemblies): a pairs row's `a_name` and `b_name`, a grid's `x_name` and `y_name`, a matrix's `name`. A spec
-  in an earlier `0.x` reads as one in this one, and is reported where it no longer fits: a `0.6.0` spec reads unchanged
-  (every addition is optional; inline pairs, grids or matrices over an assembly, never read in 0.6, now need their
-  names: `seq.lang.data.names`), with one change of behaviour: `a_name`/`b_name` columns on pairs over a sequence, a
-  ride-along field before, are refused (`seq.lang.data.names`), but an extension's `requires: '0.6'` no longer covers it
-  (0.x: the minor).
+  (Language, Assemblies): a pairs row's `a_name` and `b_name`, a grid's `x_name` and `y_name`, a matrix's `name`;
+  `0.8.0`: the `values` encoding `points` (Render, Layer types, `values`). A spec in an earlier `0.x` reads as one in
+  this one, and is reported where it no longer fits: a `0.6.0` spec reads unchanged (every addition is optional; inline
+  pairs, grids or matrices over an assembly, never read in 0.6, now need their names: `seq.lang.data.names`), with one
+  change of behaviour: `a_name`/`b_name` columns on pairs over a sequence, a ride-along field before, are refused
+  (`seq.lang.data.names`), but an extension's `requires: '0.6'` no longer covers it (0.x: the minor).
 
 ## Language
 
@@ -89,15 +89,15 @@ checks it cannot express.
   of a piece; absent: 0); a layer's `complement` (`auto`, `always`, `never`; absent: `auto`) and `code` (`auto`, `one`,
   `three`; absent: `auto`), read by `letters`; a layer's `numbering` (a numbering id; absent: the section's default,
   `ordinal`) and `units` (`none`, `bases`; absent: `none`), `unnumbered` (`mark`, `fallback`; absent: `mark`) and
-  `fallbackNumbering` (a numbering id; absent: `ordinal`), read by `ruler`, `encoding` (`bars`, `line`, `area`; absent:
-  `bars`) by `values`, `style` (`blocks`) by `secondary`, `line` (`solid`, `dashed`, `dotted`, `wavy`, `double`, `box`,
-  `highlight`, `gene`; absent: blocks) and `arrow` (`none`, `end`, `start`, `both`; absent: `none`) by `ranges`; a
-  `ranges` layer's `connector` (`line`, the default, or `none`: the hairline joining an item's pieces across shown
-  positions); a grid section's `of_y` (absent: `of`), `follow_y` (`x`, `none` or a section; absent: `x`) and `aspect` (a
-  number or `none`; absent: 1); by `pairs` its `side` (`above`, `below`; absent: `above`), `reach` (absent: 0.25),
-  `height` (`span`; absent: `span`), `crossing` (`same`, `split`; absent: `same`), `across_lines` (absent: false) and
-  `mirror` (absent: false: a pair drawn where its data puts it, never read off whether the two axes are one system; the
-  tRNA's builder sets it); by `grid` its `aggregate` (`mean`, `max`, `min`; absent: `mean`); by both in a grid
+  `fallbackNumbering` (a numbering id; absent: `ordinal`), read by `ruler`, `encoding` (`bars`, `line`, `area`,
+  `points`; absent: `bars`) by `values`, `style` (`blocks`) by `secondary`, `line` (`solid`, `dashed`, `dotted`, `wavy`,
+  `double`, `box`, `highlight`, `gene`; absent: blocks) and `arrow` (`none`, `end`, `start`, `both`; absent: `none`) by
+  `ranges`; a `ranges` layer's `connector` (`line`, the default, or `none`: the hairline joining an item's pieces across
+  shown positions); a grid section's `of_y` (absent: `of`), `follow_y` (`x`, `none` or a section; absent: `x`) and
+  `aspect` (a number or `none`; absent: 1); by `pairs` its `side` (`above`, `below`; absent: `above`), `reach` (absent:
+  0.25), `height` (`span`; absent: `span`), `crossing` (`same`, `split`; absent: `same`), `across_lines` (absent: false)
+  and `mirror` (absent: false: a pair drawn where its data puts it, never read off whether the two axes are one system;
+  the tRNA's builder sets it); by `grid` its `aggregate` (`mean`, `max`, `min`; absent: `mean`); by both in a grid
   `triangle` (`both`, `upper`, `lower`; absent: `both`). Why: the figure's form is the writer's, never the host's or the
   data's: one spec draws the same in the canvas, the SVG and another viewer. The refs inside `direction` and `pieces`
   are checked by kind as top-level refs are, and a change's check reaches them (its reverse index walks a union's record
