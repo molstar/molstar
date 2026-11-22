@@ -71,7 +71,7 @@ function contentRows(prep: RangesPrep): QueryItem[] | undefined {
 }
 
 /** An item a lane (the gene line's): each key's rows as one row over their hull. */
-function itemHulls(rows: readonly QueryItem[]): QueryItem[] {
+export function itemHulls(rows: readonly QueryItem[]): QueryItem[] {
   const hulls = new Map<string | number, QueryItem>();
   for (const r of rows) {
     const h = hulls.get(r.key);
@@ -81,7 +81,7 @@ function itemHulls(rows: readonly QueryItem[]): QueryItem[] {
 }
 
 /** The lanes first-fit by start needs (as few as the most rows over one position: intervals pack greedily). */
-function packedLanes(rows: readonly QueryItem[]): number {
+export function packedLanes(rows: readonly QueryItem[]): number {
   const order = rows.map((_, k) => k).sort((a, b) => rows[a].start - rows[b].start);
   const ends: number[] = [];
   for (const k of order) {

@@ -425,7 +425,7 @@ export function readTiles(
   src: LayerSource,
   regions: readonly number[],
   level: number,
-  extra?: { readonly items?: boolean; readonly layer?: string },
+  extra?: { readonly items?: boolean; readonly layer?: string; readonly priority?: 'view' | 'margin' },
 ): TileRead {
   const out: TileRead = { entries: [], pending: [], failed: [] };
   const known = data.coverage(src.source) !== undefined;
@@ -438,9 +438,11 @@ export function readTiles(
     // member: an items want is the rare other shape)
     const layer = extra?.layer ?? ctx.key;
     const items = extra?.items === true;
-    const want = wantOf(src, start, end, level, 'view', layer, items);
+    const priority = extra?.priority ?? 'view';
+    const want = wantOf(src, start, end, level, priority, layer, items);
     ctx.want(want);
-    const m = Math.ceil((end - start) * ctx.config.margin);
+    // a margin read has none of its own
+    const m = priority === 'view' ? Math.ceil((end - start) * ctx.config.margin) : 0;
     if (m > 0) {
       const max = src.length ?? Number.MAX_SAFE_INTEGER;
       if (start > 0) ctx.want(wantOf(src, Math.max(0, start - m), start, level, 'margin', layer, items));

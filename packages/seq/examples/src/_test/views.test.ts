@@ -78,7 +78,7 @@ const Known: Readonly<Record<string, readonly string[]>> = {
     'seq.source.genbank.record',
   ],
   // ClinVar's chr17 at the fit: more tiles than a view reads, the "zoom in" state (the story's point)
-  'genomes/vcf-zoom-in': ['seq.store.too_many_tiles', 'seq.render.zoom_in'],
+  'genomes/vcf-zoom-in': ['seq.store.too_many_tiles', 'seq.render.zoom_in', 'seq.render.reach'],
 };
 
 /** The views whose drawing takes over 40 ms: `dataset/id`. */
