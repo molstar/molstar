@@ -776,6 +776,8 @@ export async function exportSvg(spec: Node, given: RenderSvgOptions): Promise<Re
           : {}),
       })),
     });
+    // a bridge a group with its sides (its ribbons are the passes' cubic paths)
+    if (frame.layout.bridges) svg = frame.layout.bridges.svg(svg);
     if (navs?.count) {
       const drawn = navs.frames(frame.layout, true).frames;
       issues.push(...navs.issues());

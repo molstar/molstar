@@ -6,9 +6,11 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 
 ## Open
 
-- **The rail's contrast and its square ticks break the rounded UI** (the author, 2026-11-22: "should we iterate on the
-  look of the rail? i think the contrast breaks the view quite a bit + the ticks breaks the 'rounded look' of the rest
-  of the ui"; the grips overhang the well's rounded corners): variants first, then the pick built. To RL.
+- **Arcs jump, vanish and fly out of the band as the view pans** (the author, 2026-11-22, Examples › Complex, Contacts
+  (≤ 4 Å) over CDK2 and cyclin A, the rail dragged: "the arc rendering doesn't really work when moving the rail.
+  similar issues were present in packages/sequences too. bad these came back again"): at one window every arc gone
+  (ticks at the foot), at the next back; a partner past the edge a long line out of the band. The previous Seq*'s rules
+  and tests (`packages/sequences/viewer/_test/arcs-off-window`, `arcs-continuous`, `arcs-pan`) to port. To FX13.
 - **One hover contract for every mark, and a sweep that holds it** (the author, 2026-11-21, Examples › Plasmid › Ring
   at scale: the strands' density bands on the ring and in the detail show no hover box or card; "we should not be
   fixing this one-by-one btw. since we already fixed a similar issue, we need a general rule for this and global
@@ -224,6 +226,10 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   above the ring at the top left (find what draws them).
 
 ## Fixed
+
+- **The rail's contrast and its square ticks break the rounded UI** (the author, 2026-11-22: "should we iterate on the
+  look of the rail? i think the contrast breaks the view quite a bit + the ticks breaks the 'rounded look' of the rest
+  of the ui"; the grips overhang the well's rounded corners): variants first, then the pick built. To RL. Fixed by RL (`12f58e1c7`): D1 by default, D2 an option; circle knobs grown about their centres; a rail's hover its own; header actions on header hover only; a rail unlit when the pointer leaves.
 
 - **A scrolled band's labels drawn outside it** (the author, 2026-11-22, GFF3 TP53 scrolled: "clip bounds are not
   respected. See the TP53-233"): marks clipped at the band's edges, labels not (TP53-233 above, TP53-221 below). To

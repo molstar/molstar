@@ -227,6 +227,11 @@ export interface Hit {
   readonly categories?: string;
   /** A `group` hit's members: the hits of the items it stands for. */
   readonly members?: readonly Hit[];
+  /**
+   * A bridge's hit (_spec/README.md "Render", Bridges): its index in `ResolvedView.bridges` (absent off a bridge); its
+   * `section` is the bridge's id, its element the ribbon's drawn run.
+   */
+  readonly bridge?: number;
 }
 
 /**
@@ -315,12 +320,6 @@ export interface Emphasis {
    * submenu is open, wherever the pointer is (_spec/README.md "Behaviors", Headers).
    */
   readonly menu?: string;
-  /**
-   * The track whose row the pointer is in (its header, its bands, a gap between its blocks, a rail over it): its
-   * header's actions stay shown anywhere in the row and go only when the pointer leaves it (_spec/README.md "Behaviors",
-   * Headers), whatever the hover hits there.
-   */
-  readonly row?: string;
   /** The highlight channels in the order they were set: each a tint of its color (the `highlight` pass). */
   readonly highlights?: readonly EmphasisHighlight[];
   /** The window being dragged (its hit): a rail is drawn grown while its drag runs, wherever the pointer goes. */
@@ -431,9 +430,10 @@ export interface LayerType<Prep = unknown, Lay = unknown> {
   used?(lay: Lay): number;
   /**
    * `strip` (the default): laid out once a strip, drawn in its frame; `section`: once a section with the placement
-   * (`ctx.place`), drawn in page coordinates (what crosses strips).
+   * (`ctx.place`), drawn in page coordinates (what crosses strips); `bridge` (internal: no extension draws in a bridge
+   * yet): once a bridge, its context `BridgeLayoutContext` (its band and its two sides), drawn in page coordinates.
    */
-  readonly scope?: 'strip' | 'section';
+  readonly scope?: 'strip' | 'section' | 'bridge';
   /**
    * 2: it has a second axis of its own (a grid's y, rows): the emphasis passes call its `draw` with the emphasis, whose
    * parts on its y systems it paints through its own y transform; the strip paints x.

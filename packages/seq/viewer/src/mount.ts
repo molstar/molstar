@@ -15,6 +15,7 @@ import {
   ThemeAttribute,
 } from '@molstar/seqx-viewer/canvas';
 import { Announcer } from './announcer.js';
+import { BridgeView } from './models/bridge-hooks.js';
 import { createDragSession } from './drag-session.js';
 import { isViewEvent } from './overlay-events.js';
 import type { SeqViewer } from './viewer.js';
@@ -62,6 +63,8 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
     live.textContent = '';
     live.textContent = said.text;
   });
+  // each bridge an ARIA group, its words set when the frame settles (the bridge chunk's: none without a bridge)
+  const stopBands = viewer.rested.listen(() => BridgeView.parts?.aria(viewer, container));
 
   // the token table: the root's computed style (`theme.source: 'root'`) read before the first frame, and again when
   // `data-msui-theme` changes on the document element or the nearest ancestor that has it; else the config's
@@ -213,7 +216,7 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
       undefined,
     ],
     ['keyup', (e: KeyboardEvent) => own(e) && e.key === ' ' && input.spaceUp(e), undefined],
-    ['blur', () => input.setSpace(false), undefined],
+    ['blur', () => (input.setSpace(false), input.leave()), undefined],
   ];
   for (const [type, fn, options] of listeners) container.addEventListener(type, fn, options);
 
@@ -296,6 +299,7 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
     reduced?.removeEventListener?.('change', onReduced);
     forced?.removeEventListener?.('change', onForced);
     stopSaying();
+    stopBands();
     stopLeast();
     announcer.dispose();
     fontFaces?.removeEventListener?.('loadingdone', onFonts);

@@ -12,6 +12,7 @@
 import { HalfOpenRanges } from '@molstar/core/data/int/half-open-ranges';
 import { isColumn, type Value } from '@molstar/core/repr/tree';
 import { strings } from '@molstar/seqx-core/lang/check-maps';
+import type { PairsData } from './held.js';
 import { composeLinear, ImplicitLinear, type Linear, type Run, RunsLinear, runTargets, wrapRun } from './linear.js';
 
 /** A structure map's own facts beside its runs. */
@@ -45,6 +46,43 @@ function segmentRows(table: Record<string, Value> | undefined): { run: Run; row:
   }
   return out;
 }
+
+/**
+ * A `segments` map's runs as pairs (_spec/README.md "Resolved view", Bridges: a map as a pairs layer's data): a run a
+ * pair of equal length, `a` its `from` range, `b` its `to` range (its strand `b_strand`), keyed by its row; kept per
+ * table.
+ */
+export function segmentPairs(table: Record<string, Value> | undefined): PairsData {
+  const kept = table && SegmentPairs.get(table);
+  if (kept) return kept;
+  const rows = segmentRows(table);
+  const n = rows.length;
+  const d: PairsData = {
+    n,
+    aStart: new Int32Array(n),
+    aEnd: new Int32Array(n),
+    bStart: new Int32Array(n),
+    bEnd: new Int32Array(n),
+    kind: new Int16Array(n).fill(-1),
+    kinds: [],
+    keys: rows.map((r) => r.row),
+    aStrand: new Int8Array(n).fill(1),
+    bStrand: new Int8Array(n),
+  };
+  for (let i = 0; i < n; i++) {
+    const r = rows[i].run;
+    const [lo, hi] = runTargets(r);
+    (d.aStart as Int32Array)[i] = r.from;
+    (d.aEnd as Int32Array)[i] = r.from + r.length;
+    (d.bStart as Int32Array)[i] = lo;
+    (d.bEnd as Int32Array)[i] = hi;
+    (d.bStrand as Int8Array)[i] = r.dir;
+  }
+  if (table) SegmentPairs.set(table, d);
+  return d;
+}
+
+const SegmentPairs = new WeakMap<object, PairsData>();
 
 /** A `segments` table's runs, in the order written. */
 export function segmentRuns(table: Record<string, Value> | undefined): Run[] {

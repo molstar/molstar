@@ -91,7 +91,9 @@ describe('Genome coordinates stories, headless', () => {
     expect(fit.position! > 0 && fit.position! < 230e6).toBe(true);
     v.input.move(x, y);
     v.draw();
-    expect(v.hover.current).toMatchObject({ target: 'window', system: '/data/toy/(sequence :name chr3)', block: 2 });
+    // the rail's hover is its own: no data hover, no card
+    expect(v.hover.current.layer).toBeUndefined();
+    expect(v.emphasis.hover).toMatchObject({ target: 'window', system: '/data/toy/(sequence :name chr3)', block: 2 });
     expect(v.emphasis.hover?.part).toBe('outside');
     // drawn: the position mark (1.5 px across the line at the pointer), the rail never grown
     const rects = v.frame!.lists.passes.window.rects;
@@ -131,37 +133,123 @@ describe('Genome coordinates stories, headless', () => {
     expect(h.position!).toBeLessThan(260e6);
   });
 
-  it('a pointer sweep along a ruler’s row keeps its header’s actions shown on every step (gaps, the rail, its header)', async () => {
+  it('a pointer sweep along a ruler’s row shows no header actions over its data, gaps or rail', async () => {
     for (const id of ['row', 'b-in-a-order', 'square']) {
       const v = await open(id);
       const s = v.frame!.layout.sections.find((x) => x.tracks.some((t) => t.track.address.endsWith('/ruler')))!;
       const t = s.tracks.find((x) => x.track.address.endsWith('/ruler'))!;
       const config = v.context.renderConfig;
-      for (const y of [
-        t.box.y + 1,
-        t.box.y + t.box.height / 2,
-        t.box.y + t.box.height - 1,
-        ...(s.rail ? [s.rail.y] : []),
-      ]) {
-        let steps = 0;
-        for (let x = 2; x < v.width - 2; x += 3) {
+      for (const y of [t.box.y + 1, t.box.y + t.box.height / 2, ...(s.rail ? [s.rail.y] : [])]) {
+        for (let x = v.dataX + 2; x < v.width - 2; x += 7) {
           v.input.move(x, y);
           v.draw();
-          expect(actionsShown(t.track.address, s.id, v.emphasis, config, true), `${id} ${x},${y}`).toBe(true);
-          steps++;
+          expect(actionsShown(t.track.address, s.id, v.emphasis, config), `${id} ${x},${y}`).toBe(false);
         }
-        expect(steps).toBeGreaterThan(100);
       }
-      // off the row: they go
-      v.input.move(5, s.y + s.height + 40);
-      v.draw();
-      expect(actionsShown(t.track.address, s.id, v.emphasis, config, true)).toBe(false);
       v.input.leave();
       v.retire();
       viewer = undefined;
     }
   });
 
+  it('One assembly in a row: its blocks, each its label, the gaps at most a quarter; exported light and dark', async () => {
+    const v = await open('row');
+    const p = v.frame!.layout.sections[0].placement as BlockPlacement;
+    // chrM (16.6 kb of 3.1 Gb) is under a device pixel at the fit: no strip, its gap with it
+    expect(p.strips.n).toBe(24);
+    expect(p.labels.slice(0, 3)).toEqual(['chr1', 'chr2', 'chr3']);
+    let used = 0;
+    for (let i = 0; i < p.strips.n; i++) used += p.strips.axes[i].width;
+    expect(used / p.row.width).toBeGreaterThanOrEqual(0.75 - 1e-6);
+    const light = await exported(v, false);
+    const dark = await exported(v, true);
+    expect([light.settled, light.issues]).toEqual([true, []]);
+    expect(light.svg).toContain('data-system="/data/toy/(sequence :name chrM)"');
+    expect(dark.svg).not.toBe(light.svg);
+  });
+
+  it('One assembly in a row: a hover over the ruler names the block and its position, at the fit and zoomed', async () => {
+    const v = await open('row');
+    const s = v.frame!.layout.sections[0];
+    const r = s.rail!;
+    const p = s.placement as BlockPlacement;
+    // chr3's middle, over the ruler where the rail's grab zone is
+    const a = p.strips.axes[2];
+    const x = a.x0 + a.width / 2;
+    // the ruler band's foot: inside the rail's grab zone too
+    const y = Math.min(p.strips.bandY[2 * p.strips.bands] + p.strips.bandH[2 * p.strips.bands] - 2, r.bottom - 2);
+    expect(y).toBeGreaterThanOrEqual(r.top);
+    // at the fit the rail stays a target: its body a place (as outside a window), never the whole window lit
+    const fit = v.hit(x, y)!;
+    expect([fit.target, fit.part, fit.system, fit.block]).toEqual([
+      'window',
+      'outside',
+      '/data/toy/(sequence :name chr3)',
+      2,
+    ]);
+    expect(fit.position! > 0 && fit.position! < 230e6).toBe(true);
+    v.input.move(x, y);
+    v.draw();
+    // the rail's hover is its own: no data hover, no card
+    expect(v.hover.current.layer).toBeUndefined();
+    expect(v.emphasis.hover).toMatchObject({ target: 'window', system: '/data/toy/(sequence :name chr3)', block: 2 });
+    expect(v.emphasis.hover?.part).toBe('outside');
+    // drawn: the position mark (1.5 px across the line at the pointer), the rail never grown
+    const rects = v.frame!.lists.passes.window.rects;
+    const grownPx = v.context.renderConfig.navigator.rail.grownPx;
+    let marks = 0;
+    for (let i = 0; i < rects.n; i++) {
+      expect(rects.h[i]).not.toBe(grownPx);
+      if (rects.w[i] === 1.5 && Math.abs(rects.x[i] + 0.75 - x) < 1e-6) marks++;
+    }
+    expect(marks).toBe(1);
+    // a sweep across it at the fit zooms to the swept region
+    const x2 = p.strips.axes[4].x0 + p.strips.axes[4].width / 2;
+    const u0 = v.view.get('/views/main/genome')!;
+    expect(v.input.down(x, y)).toBe(true);
+    v.input.move((x + x2) / 2, y);
+    v.input.move(x2, y);
+    v.input.up();
+    await vi.advanceTimersByTimeAsync(1000);
+    v.draw();
+    const swept = v.view.get('/views/main/genome')!;
+    const b2 = s.section.blocks![2];
+    const b4 = s.section.blocks![4];
+    expect(swept.end - swept.start).toBeLessThan((u0.end - u0.start) / 2);
+    expect(swept.start).toBeGreaterThan(b2.offset!);
+    expect(swept.end).toBeLessThan(b4.offset! + b4.axis.ranges![1]);
+    v.view.fit('/views/main/genome');
+    await vi.advanceTimersByTimeAsync(50);
+    v.draw();
+    // zoomed in: the rail is a target, and it names the block's system and position too, never the section's units
+    v.view.setRange('/views/main/genome', 4e8, 9e8);
+    await vi.advanceTimersByTimeAsync(50);
+    v.draw();
+    const r2 = v.frame!.layout.sections[0].rail!;
+    const h = v.hit(r2.x + r2.width / 2, r2.bottom - 2)!;
+    expect(h.navigator).toBe('rail');
+    expect(h.system).toMatch(/^\/data\/toy\/\(sequence :name chr\d+\)$/);
+    expect(h.position!).toBeLessThan(260e6);
+  });
+
+  it('a pointer sweep along a ruler’s row shows no header actions over its data, gaps or rail', async () => {
+    for (const id of ['row', 'b-in-a-order', 'square']) {
+      const v = await open(id);
+      const s = v.frame!.layout.sections.find((x) => x.tracks.some((t) => t.track.address.endsWith('/ruler')))!;
+      const t = s.tracks.find((x) => x.track.address.endsWith('/ruler'))!;
+      const config = v.context.renderConfig;
+      for (const y of [t.box.y + 1, t.box.y + t.box.height / 2, ...(s.rail ? [s.rail.y] : [])]) {
+        for (let x = v.dataX + 2; x < v.width - 2; x += 7) {
+          v.input.move(x, y);
+          v.draw();
+          expect(actionsShown(t.track.address, s.id, v.emphasis, config), `${id} ${x},${y}`).toBe(false);
+        }
+      }
+      v.input.leave();
+      v.retire();
+      viewer = undefined;
+    }
+  });
   it('One assembly in a row: a double-click on a block’s label fits it, again the whole', async () => {
     const v = await open('row');
     const s = v.frame!.layout.sections[0];

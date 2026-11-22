@@ -13,6 +13,8 @@
 import type { Node } from '@molstar/core/repr/tree';
 import { SeqCoreConfig } from '@molstar/seqx-core/context';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
+import { recordDrawLists } from '@molstar/seqx-core/render';
+import { actionsShown } from '@molstar/seqx-core/render/headers-draw';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { HeadersBehavior } from '../behaviors/headers.js';
 import { HeadersProvider } from '../behaviors/headers.js';
@@ -518,5 +520,43 @@ describe('the hover path (the quick representative; the allocation case is the s
     }
     expect(v.counts.layouts).toBe(layouts);
     expect(sets).toEqual([]);
+  });
+});
+
+describe('actions show on header hover only (track-header-parts.md "Actions show on hover")', () => {
+  const shown = (v: SeqViewer) => {
+    const sec = v.frame!.layout.sections[0];
+    return actionsShown(Letters, sec.id, v.emphasis, v.context.renderConfig);
+  };
+
+  it('data hover shows none and the label stays whole; the header shows them; a leave and a touch leaving clear them', async () => {
+    const v = await make();
+    const sec = v.frame!.layout.sections[0];
+    const t = sec.tracks.find((x) => x.track.address === Letters)!;
+    v.input.move(t.box.x + 40, t.box.y + t.box.height / 2);
+    v.draw();
+    expect(shown(v)).toBe(false);
+    // the labels pass is the one of a pointer elsewhere: the label is not cut by a backdrop
+    const labels = () => recordDrawLists(v.frame!.lists, ['labels']);
+    const withData = labels();
+    v.input.leave();
+    v.draw();
+    expect(labels()).toBe(withData);
+    // the header: shown
+    const g = geo(v, Letters);
+    v.input.move(g.label.x + 2, g.label.y + g.label.height / 2);
+    v.draw();
+    expect(shown(v)).toBe(true);
+    // leaving the canvas clears them
+    v.input.leave();
+    v.draw();
+    expect(shown(v)).toBe(false);
+    // a tap (touch) on the header shows them, a touch leaving clears them
+    v.input.move(g.label.x + 2, g.label.y + g.label.height / 2, { pointerType: 'touch' });
+    v.draw();
+    expect(shown(v)).toBe(true);
+    v.input.leave();
+    v.draw();
+    expect(shown(v)).toBe(false);
   });
 });

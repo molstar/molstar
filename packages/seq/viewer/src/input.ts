@@ -61,6 +61,7 @@ import {
   offsetOf,
 } from '@molstar/seqx-viewer/models';
 import type { SeqViewer } from './viewer.js';
+import { BridgeView } from '@molstar/seqx-viewer/models/bridge-hooks';
 
 // The viewer's input (_spec/README.md "Input"): pointer, wheel and key events in canvas coordinates (CSS px from the
 // canvas's top left), DOM-free, so the mounted UI only translates events and a test drives the same calls. Every
@@ -124,47 +125,6 @@ export class ViewerInput {
   /** The pointer's last place while it rests over the canvas (EC-143's re-hit reads it). */
   private _x = Number.NaN;
   private _y = Number.NaN;
-  private _row: string | undefined;
-
-  /**
-   * The track whose row the resting pointer is in (its header, its bands, a gap between its blocks, a rail over it),
-   * by address; undefined off every track. Its header's actions stay shown anywhere in the row (_spec/README.md
-   * "Behaviors", Headers): a hover that hits nothing in a gap is no reason for them to go.
-   */
-  get row(): string | undefined {
-    return this._row;
-  }
-
-  /** The track whose row holds a y in the last frame's layout (no string made: an address the layout holds). */
-  private _rowAt(y: number): string | undefined {
-    const layout = this.viewer.frame?.layout;
-    if (!layout || Number.isNaN(y)) return undefined;
-    for (const s of layout.sections) {
-      if (y < s.y || y >= s.y + s.height) continue;
-      // in a track's box, else the nearest's (the rail under a ruler, the gap between two tracks, the block labels)
-      let best: string | undefined;
-      let d = Number.POSITIVE_INFINITY;
-      for (const t of s.tracks) {
-        const top = t.box.y;
-        const bottom = t.box.y + t.box.height;
-        if (y >= top && y < bottom) return t.track.address;
-        const e = y < top ? top - y : y - bottom;
-        if (e < d) {
-          d = e;
-          best = t.track.address;
-        }
-      }
-      return best;
-    }
-    return undefined;
-  }
-
-  /** The row under the pointer moved to another track (or off every one): the next frame draws its actions. */
-  private _setRow(row: string | undefined): void {
-    if (row === this._row) return;
-    this._row = row;
-    this.viewer.schedule();
-  }
 
   private _drag:
     | {
@@ -335,6 +295,12 @@ export class ViewerInput {
     return undefined;
   }
 
+  /** The bridge whose band holds a y (the bridge chunk's): a drag or a wheel there moves both its sides. */
+  private _band(y: number): string | undefined {
+    const layout = this.viewer.frame?.layout;
+    return layout && BridgeView.parts?.bandAt(layout, y);
+  }
+
   /**
    * The display unit under a page point on a section, from its placement in the last frame (_spec/README.md "Input":
    * the layout's inverse, never the input's arithmetic): the nearest when between lines or in a gutter.
@@ -494,7 +460,6 @@ export class ViewerInput {
     const d = this._drag;
     const hit = this._hitAt(x, y);
     this._windowHover(this._renderHit);
-    this._setRow(this._rowAt(y));
     if (d) {
       if (!d.moved && Math.max(Math.abs(x - d.x0), Math.abs(y - d.y0)) >= DragSlop) d.moved = true;
       if (d.rowsRail) {
@@ -527,7 +492,7 @@ export class ViewerInput {
         this.navigateBehavior?.drag(d.section, dx, mods, d.target, dy, units);
       }
     }
-    this.hoverBehavior?.move(hit, mods);
+    this.hoverBehavior?.move(this._hoverable(hit), mods);
     // the card is told where the pointer is (two numbers): it shows on rest, hides while a drag runs
     // in an array: two fractional numbers passed to a call that is not inlined are boxed (a move allocates nothing)
     const card = this.cardBehavior;
@@ -538,10 +503,18 @@ export class ViewerInput {
     }
   }
 
+  /** What the hover model (and so the card and the data hover) takes of a hit: a rail's is the rail's own, none. */
+  private _hoverable(hit: Hit | undefined): Hit | undefined {
+    if (hit?.target !== 'window') return hit;
+    const n = hit.navigator;
+    return n === 'rail' || n === RowsRail || n === LanesRail ? undefined : hit;
+  }
+
   /** The pointer left the canvas: the hover it owned goes, and no re-hit follows. */
   leave(): void {
     this._x = this._y = Number.NaN;
-    this._setRow(undefined);
+    // a rail never stays lit (grown) without a pointer over it or its drag running
+    this._windowHover(undefined);
     this.hoverBehavior?.leave();
     this.cardBehavior?.leave();
   }
@@ -553,7 +526,7 @@ export class ViewerInput {
   rehit(): boolean {
     if (this.viewer.retired || !this.resting || this._drag) return false;
     const before = this.viewer.hover.version.value;
-    this.hoverBehavior?.move(this._hitAt(this._x, this._y), this._mods);
+    this.hoverBehavior?.move(this._hoverable(this._hitAt(this._x, this._y)), this._mods);
     return this.viewer.hover.version.value !== before;
   }
 
@@ -569,11 +542,13 @@ export class ViewerInput {
     this._railClick = undefined;
     this._rowsRailClick = undefined;
     this._touch = e.pointerType === 'touch';
-    const section = this.sectionAt(y);
+    const inSection = this.sectionAt(y);
+    const section = inSection ?? this._band(y);
     if (section === undefined) return false;
     const mods = this._modifiers(e);
     const hit = this._hitAt(x, y);
-    const target = hitTarget(hit);
+    // over a bridge's band a drag moves both its sides and selects nothing (_spec/README.md "Bridges")
+    const target = inSection === undefined ? 'empty' : hitTarget(hit);
     // a rows rail's part (_spec/README.md "Input", Navigators, The rows rail): its window scrolls, a grip zooms the rows
     const rowsRail =
       target === 'window' && (hit?.navigator === RowsRail || hit?.navigator === LanesRail) && hit.layer && !this._space
@@ -842,7 +817,7 @@ export class ViewerInput {
     // a jump's motion stops where it is drawn: the input reads one picture
     this.viewer.stopMotion();
     this.cardBehavior?.interrupt();
-    const section = this.sectionAt(y);
+    const section = this.sectionAt(y) ?? this._band(y);
     const nav = this.navigateBehavior;
     if (section === undefined || !nav) return false;
     const { pointer } = this.viewer.config;

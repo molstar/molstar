@@ -20,6 +20,7 @@ export {
   densityStep,
   fontSize,
   perPosition,
+  type RailTint,
   type RenderConfig,
   type RenderConfigOverrides,
   renderConfig,
@@ -212,6 +213,9 @@ export {
   withAlpha,
 } from './tokens.js';
 export {
+  type BridgeLayout,
+  type BridgeRibbon,
+  bridgeAt,
   drawView,
   type HeldDomains,
   hitView,

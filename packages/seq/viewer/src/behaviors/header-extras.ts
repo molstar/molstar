@@ -462,7 +462,7 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
     const s = sectionLayout(viewer.frame?.layout, g.target.section);
     const address = g.target.track ?? g.target.section;
     const config = viewer.context.renderConfig;
-    return !!s && actionsShown(address, s.id, viewer.emphasis, config, g.target.track !== undefined);
+    return !!s && actionsShown(address, s.id, viewer.emphasis, config);
   };
 
   const partsState = (): HeaderPartsState => {

@@ -344,7 +344,12 @@ export interface RenderConfig {
     readonly trackScale: number;
     readonly trackMinPx: number;
     readonly marks: readonly ('selection' | 'highlights' | 'cursor')[];
-    readonly rail: { readonly grownPx: number; readonly grabShare: number };
+    readonly rail: {
+      readonly grownPx: number;
+      readonly grabShare: number;
+      /** The rail's tint: `neutral` (the text ink at 55%, the default) or `accent` (the accent at 55%). */
+      readonly tint: RailTint;
+    };
     readonly overview: { readonly minPlotPx: number; readonly minPx: number };
     /**
      * The square (two axes over blocks × blocks): past `maxCells` block (or run) pairs (4,096) its lattice's lines are
@@ -367,6 +372,22 @@ export interface RenderConfig {
     readonly itemsHysteresis: number;
     /** A bin pair's stroke, CSS px, on a square-root scale of its count over the counts in view: 1 to 6. */
     readonly binStroke: { readonly min: number; readonly max: number };
+  };
+  /**
+   * A bridge (_spec/README.md "Render", Bridges): its band's height when its spec gives none (`height`, 96 CSS px: room
+   * for a crossed ribbon to read; the band's resize grip is the viewer's, not built).
+   */
+  readonly bridges: { readonly height: number };
+  /**
+   * A bridge's ribbons (_spec/README.md "Render", Bridges): filled at `fillOpacity` (0.35: overlaps read through), a bin
+   * by its aligned length at `binOpacity` (0.15 to 0.8, square root over the bins in view), each end at least `minPx`
+   * device px wide (1: a short run on a long axis is still seen), a stub `stubShare` of the band's height (0.25).
+   */
+  readonly ribbons: {
+    readonly fillOpacity: number;
+    readonly binOpacity: { readonly min: number; readonly max: number };
+    readonly minPx: number;
+    readonly stubShare: number;
   };
   /**
    * The grid layer (_spec/README.md "Render", The grid layer): a cell drawn as a rect with its outline from `rectMinPx`
@@ -401,6 +422,9 @@ export interface RenderConfig {
     readonly heights: RenderConfig['heights'];
   };
 }
+
+/** The rail's tint: a neutral grey or a faint accent. */
+export type RailTint = 'neutral' | 'accent';
 
 export const DefaultRenderConfig: RenderConfig = {
   inset: 8,
@@ -503,11 +527,13 @@ export const DefaultRenderConfig: RenderConfig = {
     trackScale: 0.25,
     trackMinPx: 2,
     marks: ['selection', 'highlights', 'cursor'],
-    rail: { grownPx: 6, grabShare: 0.4 },
+    rail: { grownPx: 6, grabShare: 0.4, tint: 'neutral' },
     overview: { minPlotPx: 160, minPx: 48 },
     square: { maxCells: 4096 },
   },
   pairs: { maxArcs: 4096, hitPx: 4, binPx: 2, itemsHysteresis: 1.25, binStroke: { min: 1, max: 6 } },
+  bridges: { height: 96 },
+  ribbons: { fillOpacity: 0.35, binOpacity: { min: 0.15, max: 0.8 }, minPx: 1, stubShare: 0.25 },
   grid: { rectMinPx: 12, buildBudget: 65_536, binPx: 1, marginTiles: 1 },
   text: {
     scale: 12,

@@ -52,6 +52,7 @@ import { PlacePoint, type Placement } from './layout/types.js';
 import { withAlpha } from './tokens.js';
 
 export { PairsLay, type PairsPrep } from './pairs-lay.js';
+
 export { crosses, SplitExact, splitCrossing } from './pairs-split.js';
 
 const PA = new PlacePoint();

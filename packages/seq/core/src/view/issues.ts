@@ -11,6 +11,12 @@ import { defineIssues } from '@molstar/core/repr/tree';
 const Compose = 'Compose the extension';
 
 export const ViewIssues = defineIssues('seq.view', {
+  'seq.view.bridge.unregistered': {
+    severity: 'warning',
+    description:
+      'A view has a bridge, and the composition registers no bridges: its sides are stacked, the band not drawn',
+    hint: 'Compose the built-in layer types, or call `registerBridges` beside the pairs layer type',
+  },
   'seq.view.section.system': {
     severity: 'error',
     description: 'A section’s `of` names no system of the spec; its layers are not placed',

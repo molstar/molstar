@@ -38,6 +38,7 @@ import {
 import { openedModel, type Overlay, type StaticModel } from '@molstar/seqx-core/resolve';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import { axisTotal } from './axis.js';
+import { BridgeView } from './bridge-hooks.js';
 import type { SpecModel } from './spec.js';
 import { type BandRows, type Bands, ViewBands } from './view-bands.js';
 import {
@@ -209,8 +210,9 @@ export class ViewModel extends ReactiveModel {
     return this._viewports.key(section);
   }
 
+  /** A section's viewport; a bridge's is its upper side's (a gesture over its band reads it, `bridge-view.ts`). */
   get(section: string): Viewport | undefined {
-    return this._viewports.get(section);
+    return this._viewports.get(section) ?? BridgeView.parts?.get(this, section);
   }
 
   /** The sections sharing a section's viewport (itself included); a follower's is its own. */
@@ -355,6 +357,16 @@ export class ViewModel extends ReactiveModel {
    * window pans across (a row of blocks keeping the content under the pointer's `x`, px along the axis), a text scrolls its lines; nothing before a width. A follower that leads moves its leader.
    */
   panPx(section: string, dx: number, dy = 0, x?: number): boolean {
+    const p = BridgeView.parts;
+    return p ? p.panPx(this, section, dx, dy, x) : this.ownPanPx(section, dx, dy, x);
+  }
+
+  /**
+   * `panPx` of one section and what follows it or shares its group, carried through no lock (_spec/README.md "ViewModel",
+   * Locks: the bridge chunk carries a gesture through them, each section moved once).
+   * @internal
+   */
+  ownPanPx(section: string, dx: number, dy = 0, x?: number): boolean {
     const v = this.get(section);
     if (!v || v.width <= 0) return false;
     // a grid whose y moves apart from x: dy moves y (its own window, or the section it follows), dx moves x
@@ -379,6 +391,12 @@ export class ViewModel extends ReactiveModel {
    * whose y moves apart from x zooms y too, about `anchorY` (an offset down y).
    */
   zoom(section: string, factor: number, anchor?: number, anchorY?: number): boolean {
+    const p = BridgeView.parts;
+    return p ? p.zoom(this, section, factor, anchor, anchorY) : this.ownZoom(section, factor, anchor, anchorY);
+  }
+
+  /** `zoom` of one section, carried through no lock (as `ownPanPx`). @internal */
+  ownZoom(section: string, factor: number, anchor?: number, anchorY?: number): boolean {
     if (!(factor > 0) || !Number.isFinite(factor) || (anchor !== undefined && !Number.isFinite(anchor))) return false;
     if (this._yOf(section)) {
       const y = this._zoomY(section, factor, anchorY);
