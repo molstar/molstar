@@ -141,9 +141,22 @@ describe("a layer's wants together", () => {
     expect(store.issues.value[0].message).toMatch(/layer's wanted regions cover 4 tiles/);
   });
 
+  it('count their view, never their margin ring: a view that fits is asked with its ring', () => {
+    const { store } = setup({ maxTilesPerLayer: 2 });
+    const view = grid([0, 256_000], [0, 512_000], { layer: 'hic' });
+    const ring = grid([0, 768_000], [0, 768_000], { layer: 'hic', priority: 'margin' });
+    expect(store.layerLoad([view, ring])).toMatchObject({ tiles: 2, fits: true });
+    store.want([view, ring]);
+    expect(store.layerRefused('hic')).toBeUndefined();
+    expect(store.issues.value).toEqual([]);
+  });
+
   it('past maxBytesPerLayer of read cost are not asked: the layer reads coarser', async () => {
     const clock = new FakeClock();
-    const src = new SyntheticSource(gridCoverage(), clock, { answer: emptyGrid, delayMs: 10 });
+    const src = new SyntheticSource(gridCoverage({ levels: [1, 1000, 10_000] }), clock, {
+      answer: emptyGrid,
+      delayMs: 10,
+    });
     // a tile costs what its index says: 6 MiB at level 1,000, 1 MiB at 10,000
     const costly = Object.assign(src, { readCost: (r: RegionRequest) => (r.level === 1000 ? 6 : 1) * 1024 * 1024 });
     const store = new DataStore({ clock, settings: { summaries: false } });
@@ -154,11 +167,18 @@ describe("a layer's wants together", () => {
     await clock.advance(20);
     expect(src.reads.length).toBe(0);
     expect(store.issues.value[0].message).toMatch(/cost/);
+    // a level coarser fits (one tile, 1 MiB): what a layer reads instead (`fittedLevel`), asked and read
+    const coarser = [grid([0, 768_000], [0, 256_000], { layer: 'vcf', level: 10_000 })];
+    expect(store.layerLoad(coarser)).toMatchObject({ tiles: 1, cost: 1024 * 1024, fits: true });
+    store.want(coarser);
+    await clock.advance(20);
+    expect(src.reads.map((r) => r.request.level)).toEqual([10_000]);
+    expect(store.layerRefused('vcf')).toBeUndefined();
   });
 });
 
 describe('bytes and keys', () => {
-  it('refuse an answer past maxTileBytes as too large, never kept', async () => {
+  it('refuse an answer past maxTileBytes as too large, never kept (EC-59: the size cap a tile)', async () => {
     const big = (r: RegionRequest): RegionAnswer => {
       const n = 256;
       const grid: GridDense = {

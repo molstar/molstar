@@ -13,6 +13,7 @@ import { SeqRuntime } from '@molstar/seqx-core/data';
 import { describe, expect, it } from 'vitest';
 import type { GridLay } from '../grid.js';
 import { gridCellHover, hitView } from '../index.js';
+import { renderSvg } from '../render-svg.js';
 import { settle } from './helpers.js';
 import { gridRegionSpec as spec } from './region-render-fixtures.js';
 
@@ -76,5 +77,38 @@ describe('a grid by region', () => {
     expect(l.zoomIn).toBe(true);
     expect(l.lay.images.length).toBe(0);
     expect(f.layout.issues.map((i) => i.code)).toContain('seq.render.zoom_in');
+  });
+
+  it('past the layer bound at its level, reads coarser before it says zoom in (Decided 16)', async () => {
+    const s = await settle(spec(), [SeqRuntime], {}, {}, { maxTilesPerLayer: 2 });
+    const near = { size: Size, viewport: { start: 0, end: 300 } };
+    const f = await s.frame(near);
+    const l = f.layout.sections[1].tracks[0].layers[0] as { lay: GridLay; zoomIn?: boolean };
+    // level 1 wants 2 × 2 tiles over the view: level 4 one
+    expect(l.zoomIn).toBeUndefined();
+    expect(l.lay.binLevel).toBe(4);
+    expect(l.lay.images.length).toBeGreaterThan(0);
+  });
+
+  it('two region grids on one pair, the upper one map and the lower another, both drawn (EC-59)', async () => {
+    const s = await settle(spec(true), [SeqRuntime]);
+    const f = await s.frame({ size: Size });
+    const layers = f.layout.sections[1].tracks[0].layers;
+    expect(layers.length).toBe(2);
+    const [upper, lower] = layers.map((l) => l.lay as GridLay);
+    expect(upper.images.length).toBeGreaterThan(0);
+    expect(lower.images.length).toBeGreaterThan(0);
+    // each keeps its own triangle of its own map: a cell above the diagonal is the first's, below the second's
+    expect(upper.triangle).toBe('upper');
+    expect(lower.triangle).toBe('lower');
+    // the first map's value above the diagonal (bins 10 and 2 at level 4), the second's three times it below
+    expect(gridCellHover(upper, 40, 8, () => 'chr')!.rows).toContainEqual(['Value', '177.8']);
+    expect(gridCellHover(lower, 8, 40, () => 'chr')!.rows).toContainEqual(['Value', '533.3']);
+  });
+
+  it('an export waits for its 2D tiles and draws them (EC-125)', async () => {
+    const out = await renderSvg(spec(), { size: { width: 600, height: 900 }, runtimes: [SeqRuntime] });
+    expect(out.settled).toBe(true);
+    expect(out.svg).toContain('<image');
   });
 });

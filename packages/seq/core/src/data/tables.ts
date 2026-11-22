@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { CategoryColumn, columnType, isColumn, isNode, type Value } from '@molstar/core/repr/tree';
+import { CategoryColumn, isNode, type Value } from '@molstar/core/repr/tree';
 import { measureNode, specBounds } from '@molstar/seqx-core/lang';
 import {
   type CellsCodes,
@@ -14,7 +14,6 @@ import {
   FailureKinds,
   type LettersTable,
   type RangesDensity,
-  type RangesField,
   type RangesList,
   type RegionRequest,
   type Shape,
@@ -25,9 +24,21 @@ import {
 } from './protocol.js';
 import { concatColumns, gather, isInt, isObject, sameLength } from './tables-columns.js';
 import {
+  checkForm,
+  columnBytes,
+  DensityForm,
+  formBytes,
+  formColumnCount,
+  gatherForm,
+  joinForm,
+  offsetOutside,
+  RangesListForm,
+  rangesOutside,
+  strandsOutside,
+} from './tables-forms.js';
+import {
   checkRegionExtent,
   checkRegionTable,
-  columnBytes,
   joinRegion,
   type RegionCut,
   RegionForms,
@@ -86,11 +97,7 @@ export function answerBytes(tables: Tables, nodes: readonly DynamicNode[] | unde
   if (c?.form === 'codes') n += c.codes.byteLength + columnBytes(c.label) + columnBytes(c.first);
   else if (c) n += c.classes.byteLength + c.shares.byteLength;
   if (l) n += typeof l.letters === 'string' ? 2 * l.letters.length : l.letters.byteLength;
-  if (r?.form === 'list') {
-    n += columnBytes(r.start) + columnBytes(r.end) + columnBytes(r.strand) + columnBytes(r.id) + columnBytes(r.row);
-    n += columnBytes(r.itemStart) + columnBytes(r.itemEnd);
-    for (const f of r.fields ?? []) n += columnBytes(f.column);
-  } else if (r) n += columnBytes(r.bin) + columnBytes(r.count) + columnBytes(r.category);
+  if (r) n += formBytes(r, r.form === 'list' ? RangesListForm : DensityForm);
   if (v?.form === 'positions') n += v.value.byteLength;
   else if (v) n += v.min.byteLength + v.max.byteLength + v.mean.byteLength + v.count.byteLength;
   for (const t of [tables.pairs, tables.grid, tables.matrix, tables.rows]) if (t) n += regionBytes(t);
@@ -135,28 +142,10 @@ function checkTable(t: LineTable): string | undefined {
       if (typeof t.letters === 'string') return undefined;
       if (!(t.letters instanceof Uint8Array)) return '`letters` is neither a string nor uint8 codes';
       return typeof t.alphabet === 'string' ? undefined : 'codes without an `alphabet`';
-    case 'list': {
-      if (!(t.start instanceof Int32Array) || !(t.end instanceof Int32Array)) return '`start` and `end` are not int32';
-      if (t.strand !== undefined && !(t.strand instanceof Int8Array)) return '`strand` is not int8';
-      if (t.id !== undefined && !(t.id instanceof CategoryColumn)) return '`id` is not a category';
-      if (t.row !== undefined && !(t.row instanceof Int32Array)) return '`row` is not int32';
-      for (const c of [t.itemStart, t.itemEnd])
-        if (c !== undefined && !(c instanceof Int32Array)) return '`itemStart` and `itemEnd` are not int32';
-      if (!!t.itemStart !== !!t.itemEnd) return '`itemStart` without `itemEnd`';
-      const n = t.start.length;
-      if (!sameLength(n, t.end, t.strand, t.id, t.row, t.itemStart, t.itemEnd)) return 'columns of unequal lengths';
-      if (t.fields !== undefined && !Array.isArray(t.fields)) return '`fields` is not a list';
-      for (const f of t.fields ?? []) {
-        if (!isObject(f) || typeof f.name !== 'string' || !isColumn(f.column)) return 'a field is not a named column';
-        if (f.column.length !== n) return 'columns of unequal lengths';
-      }
-      return undefined;
-    }
+    case 'list':
+      return checkForm(t, RangesListForm);
     case 'density':
-      if (!(t.bin instanceof Int32Array) || !(t.count instanceof Float32Array))
-        return '`bin` and `count` are not int32 and float32';
-      if (t.category !== undefined && !(t.category instanceof CategoryColumn)) return '`category` is not a category';
-      return sameLength(t.bin.length, t.count, t.category) ? undefined : 'columns of unequal lengths';
+      return checkForm(t, DensityForm);
     case 'positions':
       if (!isInt(t.start)) return '`start` is not an integer';
       return t.value instanceof Float32Array ? undefined : '`value` is not float32';
@@ -220,9 +209,8 @@ function columnCount(t: Table): number {
     case 'positions':
       return 1;
     case 'list':
-      return 2 + (l.strand ? 1 : 0) + (l.id ? 1 : 0) + (l.row ? 1 : 0) + (l.fields?.length ?? 0);
     case 'density':
-      return 2 + (l.category ? 1 : 0);
+      return formColumnCount(l, l.form === 'list' ? RangesListForm : DensityForm);
     case 'bins':
       return 4;
     case 'codes':
@@ -299,47 +287,21 @@ function checkExtent(t: LineTable, r: RegionRequest, maxRows: number): string | 
     case 'positions': {
       if (t.form === 'positions' && L !== 1) return 'values per position above level 1';
       const n = tableRows(t);
-      if (n > 0 && (t.start < r.start || t.start + n > r.end)) return 'outside the region';
       if (t.form === 'letters' && typeof t.letters !== 'string') {
         const size = t.alphabet!.length;
         for (let i = 0; i < n; i++) if (t.letters[i] >= size) return 'a code outside its alphabet';
       }
-      return undefined;
+      return offsetOutside(t.start, n, 1, r);
     }
-    case 'bins': {
+    case 'bins':
+    case 'majority':
       if (L === 1) return 'bins at level 1';
-      const n = t.count.length;
-      if (t.start % L !== 0) return 'bins not aligned to the level';
-      if (n > 0 && (t.start < Math.floor(r.start / L) * L || t.start + n * L > Math.ceil(r.end / L) * L))
-        return 'outside the region';
-      return undefined;
-    }
-    case 'list': {
-      const n = t.start.length;
-      if (n > maxRows) return `more than ${maxRows} rows`;
-      for (let i = 0; i < n; i++) {
-        const s = t.start[i];
-        const e = t.end[i];
-        if (s > e) return 'a range ends before it starts';
-        if (s >= r.end || Math.max(e, s + 1) <= r.start) return 'a range outside the region';
-      }
-      if (t.strand) for (let i = 0; i < n; i++) if (t.strand[i] < -1 || t.strand[i] > 1) return 'a strand not −1, 0, 1';
-      return undefined;
-    }
+      return offsetOutside(t.start, tableRows(t), L, r);
+    case 'list':
+      return rangesOutside(t.start, t.end, r, maxRows, 'a range') ?? strandsOutside(t.strand);
     case 'codes':
-    case 'majority': {
-      const n = tableRows(t);
-      if (t.form === 'codes' && L !== 1) return 'cells per row above level 1';
-      if (t.form === 'majority') {
-        if (L === 1) return 'row bins at level 1';
-        if (t.start % L !== 0) return 'row bins not aligned to the level';
-        if (n > 0 && (t.start < Math.floor(r.start / L) * L || t.start + n * L > Math.ceil(r.end / L) * L))
-          return 'outside the region';
-        return undefined;
-      }
-      if (n > 0 && (t.start < r.start || t.start + n > r.end)) return 'outside the region';
-      return undefined;
-    }
+      if (L !== 1) return 'cells per row above level 1';
+      return offsetOutside(t.start, tableRows(t), 1, r);
     case 'density': {
       const n = t.bin.length;
       if (n > maxRows) return `more than ${maxRows} rows`;
@@ -450,13 +412,7 @@ function sliceLine<T extends LineTable>(t: T, level: number, cut: Cut): T {
         const s = t.bin[i] * level;
         if (s < end && s + level > start && anchored(s)) rows.push(i);
       }
-      if (rows.length === t.bin.length) return t;
-      return {
-        form: 'density',
-        bin: gather(t.bin, rows),
-        count: gather(t.count, rows),
-        ...(t.category && { category: gather(t.category, rows) }),
-      } as T;
+      return rows.length === t.bin.length ? t : (gatherForm(t, DensityForm, rows) as T);
     }
   }
 }
@@ -499,20 +455,10 @@ function sliceList(t: RangesList, cut: Cut, anchored: (s: number) => boolean): R
   }
   const derive = !t.id && !t.row && cut.rowBase !== undefined;
   if (rows.length === t.start.length && !derive && at.every((a) => a < 0)) return t;
-  const row = derive ? Int32Array.from(rows, (i) => cut.rowBase! + i) : t.row && gather(t.row, rows);
-  const startOut = gather(t.start, rows);
-  const endOut = gather(t.end, rows);
-  for (let j = 0; j < at.length; j++) if (at[j] >= 0) startOut[j] = endOut[j] = at[j];
-  return {
-    form: 'list',
-    start: startOut,
-    end: endOut,
-    ...(t.strand && { strand: gather(t.strand, rows) }),
-    ...(t.id && { id: gather(t.id, rows) }),
-    ...(row && { row }),
-    ...(t.fields && { fields: t.fields.map((f) => ({ name: f.name, column: gather(f.column, rows) })) }),
-    ...(t.itemStart && t.itemEnd && { itemStart: gather(t.itemStart, rows), itemEnd: gather(t.itemEnd, rows) }),
-  };
+  const out = gatherForm(t, RangesListForm, rows) as { -readonly [K in keyof RangesList]: RangesList[K] };
+  if (derive) out.row = Int32Array.from(rows, (i) => cut.rowBase! + i);
+  for (let j = 0; j < at.length; j++) if (at[j] >= 0) out.start[j] = out.end[j] = at[j];
+  return out;
 }
 
 /**
@@ -599,44 +545,8 @@ function joinLine(parts: readonly LineTable[], level: number): Table | string {
         ...(ks[0].first && { first: concatColumns(ks.map((k) => k.first!)) }),
       };
     }
-    case 'list': {
-      const ls = nonEmpty as RangesList[];
-      const sig = (l: (typeof ls)[number]) =>
-        [
-          !!l.strand,
-          !!l.id,
-          !!l.row,
-          !!l.itemStart,
-          ...(l.fields ?? []).map((f) => `${f.name}:${columnType(f.column)}`),
-        ].join('|');
-      if (ls.some((l) => sig(l) !== sig(ls[0]))) return 'the parts carry different columns';
-      const fields: RangesField[] | undefined = ls[0].fields?.map((f, j) => ({
-        name: f.name,
-        column: concatColumns(ls.map((l) => l.fields![j].column)),
-      }));
-      return {
-        form,
-        start: concatColumns(ls.map((l) => l.start)),
-        end: concatColumns(ls.map((l) => l.end)),
-        ...(ls[0].strand && { strand: concatColumns(ls.map((l) => l.strand!)) }),
-        ...(ls[0].id && { id: concatColumns(ls.map((l) => l.id!)) }),
-        ...(ls[0].row && { row: concatColumns(ls.map((l) => l.row!)) }),
-        ...(fields && { fields }),
-        ...(ls[0].itemStart && {
-          itemStart: concatColumns(ls.map((l) => l.itemStart!)),
-          itemEnd: concatColumns(ls.map((l) => l.itemEnd!)),
-        }),
-      };
-    }
-    case 'density': {
-      const ds = nonEmpty as RangesDensity[];
-      if (ds.some((d) => !!d.category !== !!ds[0].category)) return 'the parts carry different columns';
-      return {
-        form,
-        bin: concatColumns(ds.map((d) => d.bin)),
-        count: concatColumns(ds.map((d) => d.count)),
-        ...(ds[0].category && { category: concatColumns(ds.map((d) => d.category!)) }),
-      };
-    }
+    case 'list':
+    case 'density':
+      return joinForm(nonEmpty as (RangesList | RangesDensity)[], form === 'list' ? RangesListForm : DensityForm);
   }
 }

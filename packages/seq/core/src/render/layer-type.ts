@@ -36,6 +36,8 @@ export interface StoreReader {
   tilesOf?(want: Want): readonly WantTile[];
   /** Whether a layer's wants together were refused (past `maxTilesPerLayer` or `maxBytesPerLayer`), where it says. */
   layerRefused?(layer: string): 'tiles' | 'cost' | undefined;
+  /** Whether wants of one layer fit the store's bounds together (`DataStore.layerLoad`): a layer reads coarser first. */
+  layerLoad?(wants: readonly Want[]): { readonly fits: boolean };
   /** Moves when a layer's refusal comes or goes, where it says (a layout keeps it, to know its reads hold). */
   readonly refusals?: number;
 }

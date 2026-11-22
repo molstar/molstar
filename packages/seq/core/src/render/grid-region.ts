@@ -8,7 +8,7 @@ import type { GridTable } from '@molstar/seqx-core/data';
 import type { AxisTransform } from './axis.js';
 import { type ImageData, NoColor } from './draw-lists.js';
 import { colorOf, type GridLay, type GridPrep, keeps } from './grid.js';
-import { dataRegions, gridLevel, type LayerSource, readGridTiles } from './layer-data.js';
+import { dataRegions, fittedLevel, gridLevel, type LayerSource, readGridTiles } from './layer-data.js';
 import type { LayoutContext, StoreReader } from './layer-type.js';
 
 // A grid read by region (_spec/README.md "Render", The grid layer: by region): a `grid` node with a `source` is read
@@ -57,6 +57,9 @@ export interface Placed {
   readonly h: number;
   readonly key: string;
 }
+
+/** The view's x range as regions (`fittedLevel`). */
+const XRange = [0, 0];
 
 /** A reader that asks for nothing (what a coarser level holds is read, never wanted). */
 const NoWants = { want: () => {} };
@@ -174,13 +177,17 @@ export function layoutRegionGrid(
   const x: [number, number] = [xr[0], xr[xr.length - 1]];
   const y = { system: region.yName, start: yr[0], end: yr[yr.length - 1] };
   const cfg = ctx.config.grid;
-  const L = gridLevel(
+  const fit = gridLevel(
     levels,
     { x: 1 / a.devicePx, y: 1 / ay.devicePx },
     { x: x[1] - x[0], y: y.end - y.start },
     data,
     cfg.binPx,
   );
+  // past the store's bounds on the layer's wants together: coarser, then zoom in
+  XRange[0] = x[0];
+  XRange[1] = x[1];
+  const L = fittedLevel(ctx, data, region.src, XRange, fit, y);
   lay.binLevel = L;
   const now = loadedAt(ctx, data, region, x, y, L, true, cfg.marginTiles);
   let under: Placed[] = [];

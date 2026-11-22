@@ -8,7 +8,7 @@
 // extents (a long deletion solid, drawn under the short items, EC-222), missing values transparent (EC-220), coarse bins
 // as image tiles, pending across the band before its tiles land (EC-169), a cell hit as its item and state.
 
-import { SeqRuntime, seqToValue } from '@molstar/seqx-core/data';
+import { SeqRuntime } from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { LightTokens } from '@molstar/seqx-core/render';
 import { describe, expect, it } from 'vitest';
@@ -38,7 +38,7 @@ type Frame = { layout: { sections: readonly { lays: readonly (readonly { lay: un
 const layOf = (f: Frame) => f.layout.sections[0].lays[0][0].lay as MatrixLay;
 
 describe('the matrix layer', () => {
-  it('draws inline values a state a row, a missing one transparent, a cell hit as its position and state', async () => {
+  it('draws inline values a state a row, a missing one transparent, a cell hit as its position and state (EC-220, EC-221)', async () => {
     const s = await settle(inline(), [SeqRuntime]);
     const f = await s.frame({ size: { width: 400, height: 200 } });
     const lay = layOf(f);
@@ -57,7 +57,7 @@ describe('the matrix layer', () => {
     expect(matrixCellHover(lay, 2, 0, () => 's')!.rows).toContainEqual(['Value', '0.2']);
   });
 
-  it('draws items at their extents, a long deletion solid and under the short ones; an uncalled code drawn missing', async () => {
+  it('draws items at their extents, a long deletion solid and under the short ones; an uncalled code drawn missing (EC-222)', async () => {
     const s = await settle(sourced(), [SeqRuntime]);
     const size = { width: 800, height: 200 };
     const near = { size, viewport: { start: 0, end: 2000 } };
@@ -97,6 +97,8 @@ describe('the matrix layer', () => {
     expect(lay.images.length).toBe(1);
     expect(lay.images[0].width).toBe(N / 256);
     expect(lay.images[0].height).toBe(S);
+    // each bin's majority at its share's strength (200 of 255 here): the colour's alpha
+    expect(lay.images[0].data[3]).toBe(200);
     const h = hitView(f.layout as never, lay.box.x + lay.box.width / 2, lay.box.y + 1);
     expect(h?.bin).toBe(256);
     expect(h?.yPosition).toBe(0);
@@ -104,7 +106,7 @@ describe('the matrix layer', () => {
     expect(matrixCellHover(lay, 300, 1, () => 'chr')!.text).toBe('chr:257–512, NA12891, 1/1 (78%), 256 bp bins');
   });
 
-  it('on a ring, draws its states as thin rings of runs; past `rings.imageRuns` its rows reduced, said once', async () => {
+  it('on a ring, draws its states as thin rings of runs at the outer circumference’s columns; past `rings.imageRuns` its rows reduced, said once (EC-108)', async () => {
     const size = { width: 640, height: 900 };
     const s = await settle(sourced(Many, 'rings'), [SeqRuntime]);
     const f = await s.frame({ size });
@@ -117,5 +119,14 @@ describe('the matrix layer', () => {
     const g = await few.frame({ size });
     expect(g.layout.issues.map((i) => [i.code, i.severity])).toEqual([['seq.render.ring.image', 'info']]);
     expect(g.lists.passes.data.paths.n).toBeLessThanOrEqual(4096 + 64);
+  });
+
+  it('past the store’s bounds at every level, its band says zoom in (the layer’s wants bounded together)', async () => {
+    const s = await settle(sourced(), [SeqRuntime], {}, {}, { maxTilesPerLayer: 0 });
+    const f = await s.frame({ size: { width: 800, height: 200 } });
+    const l = f.layout.sections[0].tracks[0].layers[0] as { lay: MatrixLay; zoomIn?: boolean };
+    expect(l.zoomIn).toBe(true);
+    expect(l.lay.n + l.lay.images.length).toBe(0);
+    expect(f.layout.issues.map((i) => i.code)).toContain('seq.render.zoom_in');
   });
 });

@@ -7,66 +7,12 @@
 // Pairs read by region (_spec/README.md "Render", The pairs layer): zoomed out, bin pairs each an arc stroked by count
 // and hit as its bin; zoomed in past the gate, the items themselves; every bin pair in view its arc (EC-208, EC-171).
 
-import { PCG } from '@molstar/core/data/util/hash-functions';
-import { categoryColumn } from '@molstar/core/repr/tree';
-import { binPairs, type PairsList, type SeqData, SeqRuntime, seqToValue } from '@molstar/seqx-core/data';
-import { createSeqSpec } from '@molstar/seqx-core/lang';
+import { SeqRuntime } from '@molstar/seqx-core/data';
 import { describe, expect, it } from 'vitest';
 import { hitView, pairsBinHover } from '../index.js';
 import type { PairsLay } from '../pairs.js';
 import { settle } from './helpers.js';
-
-const Length = 1_000_000;
-const Levels = [1, 1024, 16_384];
-
-/** `n` links between 20 hotspots of a chromosome (each end jittered 2 kb), a level of bins at each coarse level. */
-function linksSource(n: number): { data: SeqData; list: PairsList } {
-  const rng = new PCG(9);
-  const spots = Array.from({ length: 20 }, (_, i) => 20_000 + i * 48_000);
-  const as = new Int32Array(n);
-  const bs = new Int32Array(n);
-  for (let i = 0; i < n; i++) {
-    const a = spots[Math.floor(rng.float() * spots.length)];
-    const b = spots[Math.floor(rng.float() * spots.length)];
-    as[i] = a + Math.floor(rng.float() * 2000);
-    bs[i] = b + Math.floor(rng.float() * 2000);
-  }
-  const list: PairsList = {
-    form: 'list',
-    aStart: as,
-    aEnd: as.map((s) => s + 10),
-    bStart: bs,
-    bEnd: bs.map((s) => s + 10),
-    id: categoryColumn(Array.from({ length: n }, (_, i) => `l${i}`)),
-  };
-  const whole = (level: number) => ({ system: 'chr', start: 0, end: Length, level, shapes: ['pairs' as const] });
-  return {
-    list,
-    data: {
-      coverage: {
-        systems: [{ name: 'chr', length: Length }],
-        shapes: [{ system: 'chr', shape: 'pairs' }],
-        levels: Levels,
-      },
-      pairs: Levels.map((level) => ({
-        request: whole(level),
-        answer: { ok: true as const, tables: { pairs: level === 1 ? list : binPairs(list, level) } },
-      })),
-    },
-  };
-}
-
-function spec(n: number) {
-  const b = createSeqSpec({ title: 'links by region' });
-  const src = b.data.source('src', { format: 'seq', value: seqToValue(linksSource(n).data) as never });
-  const chr = b.data.sequence('chr', { alphabet: 'dna', source: src, name: 'chr' });
-  const links = b.data.pairs('links', { a: chr, source: src } as never);
-  b.views.view('main', (v) => {
-    const s = v.section('chr', { of: chr });
-    s.track('links').layer('links', { type: 'pairs', data: links });
-  });
-  return b.build();
-}
+import { LinksLength as Length, linksSource, linksSpec as spec } from './region-render-fixtures.js';
 
 const Size = { width: 720, height: 300 };
 const layOf = (f: { layout: { sections: readonly { sectionLays: readonly { lay: unknown }[] }[] } }) =>
@@ -114,6 +60,33 @@ describe('pairs by region', () => {
     let inView = 0;
     for (let i = 0; i < list.aStart.length; i++) if (list.aStart[i] < 400_000 || list.bStart[i] < 400_000) inView++;
     expect(inView).toBeLessThanOrEqual(4096);
-    expect(lay.prep!.data!.n).toBe(inView);
+    // the items tile is read uncut: every row of it, each once; the arcs drawn those over the view
+    expect(lay.prep!.data!.n).toBe(6000);
+    expect(lay.n).toBe(inView);
+  });
+
+  it('a pan inside the items tiles draws the pairs that enter the view, nothing built again (EC-208)', async () => {
+    const s = await settle(spec(4000), [SeqRuntime]);
+    const at = (start: number) => ({ size: Size, viewport: { start, end: start + 400_000 } });
+    const first = layOf(await s.frame(at(0)));
+    const prep = first.prep;
+    const lay = layOf(await s.frame(at(50_000)));
+    // the same tiles read: the same data, not built again
+    expect(lay.prep).toBe(prep);
+    const { list } = linksSource(4000);
+    // an arc is drawn unless both its ends are past one side of the view
+    let shown = 0;
+    let entering = 0;
+    for (let i = 0; i < list.aStart.length; i++) {
+      const a = list.aStart[i];
+      const b = list.bStart[i];
+      if ((a < 50_000 && b < 50_000) || (a >= 450_000 && b >= 450_000)) continue;
+      shown++;
+      if (a >= 400_000 && a < 450_000 && b >= 400_000) entering++;
+    }
+    expect(entering).toBeGreaterThan(0);
+    // within `maxArcs`: each its own arc
+    expect(shown).toBeLessThanOrEqual(4096);
+    expect(lay.n).toBe(shown);
   });
 });

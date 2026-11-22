@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { categoryFromCodes, issueOf } from '@molstar/core/repr/tree';
+import { CategoryColumn, categoryFromCodes, issueOf } from '@molstar/core/repr/tree';
 import { StoreIssues } from './issues.js';
 import type {
   Coverage,
@@ -80,7 +80,22 @@ export interface PairsRead {
  * the read of its `a` end's system (of side `a`), else, that system not read, from its `b` end's. No identity is
  * compared: a pair's place decides.
  */
-export function mergePairs(reads: readonly PairsRead[]): PairsList {
+export function mergePairs(reads: readonly PairsRead[], field?: string): PairsList {
+  const steps = mergeSteps(reads, field);
+  for (;;) {
+    const r = steps.next();
+    if (r.done) return r.value;
+  }
+}
+
+/** Rows a merge step takes before it yields (a slice's grain). */
+const MergeStep = 4096;
+
+/**
+ * `mergePairs` a step at a time (each at most `MergeStep` rows), so a pyramid's merge is built in time slices; `field`
+ * a numeric field carried (summed by the bins: Decided 2).
+ */
+export function* mergeSteps(reads: readonly PairsRead[], field?: string): Generator<void, PairsList> {
   const readA = new Set(reads.filter((r) => r.side !== 'b').map((r) => r.system));
   const dict: string[] = [];
   const index = new Map<string, number>();
@@ -120,6 +135,7 @@ export function mergePairs(reads: readonly PairsRead[]): PairsList {
     const takeB = read.side !== 'a';
     let m = 0;
     for (let i = 0; i < len; i++) {
+      if ((i & (MergeStep - 1)) === MergeStep - 1) yield;
       const as = aMap ? aMap[ac![i]] : own;
       const bs = bMap ? bMap[bc![i]] : own;
       aCodes[i] = as;
@@ -143,13 +159,18 @@ export function mergePairs(reads: readonly PairsRead[]): PairsList {
     aStrand: new Int8Array(n),
     bStrand: new Int8Array(n),
     type: new Int32Array(n).fill(-1),
+    field: new Float32Array(field === undefined ? 0 : n),
   };
+  const carried = field !== undefined && reads.some((r) => fieldOf(r.list, field));
   let k = 0;
   for (const { read, rows, aCodes, bCodes, tCodes } of keep) {
     const t = read.list;
     const { aStart, aEnd, bStart, bEnd, aStrand, bStrand } = t;
+    const f = field === undefined ? undefined : fieldOf(t, field);
     for (let j = 0; j < rows.length; j++, k++) {
+      if ((j & (MergeStep - 1)) === MergeStep - 1) yield;
       const i = rows[j];
+      if (carried) out.field[k] = f ? f[i] : Number.NaN;
       out.aSys[k] = aCodes[i];
       out.bSys[k] = bCodes[i];
       out.aStart[k] = aStart[i];
@@ -171,7 +192,14 @@ export function mergePairs(reads: readonly PairsRead[]): PairsList {
     bEnd: out.bEnd,
     ...(strands && { aStrand: out.aStrand, bStrand: out.bStrand }),
     ...(types && { type: categoryFromCodes(typeDict, out.type) }),
+    ...(carried && { fields: [{ name: field!, column: out.field }] }),
   };
+}
+
+/** A list's numeric field by name. */
+function fieldOf(t: PairsList, name: string): ArrayLike<number> | undefined {
+  const c = t.fields?.find((x) => x.name === name)?.column;
+  return c && !(c instanceof CategoryColumn) && typeof c !== 'string' ? (c as ArrayLike<number>) : undefined;
 }
 
 /** A pyramid's bins at a level cut to a request's region (an end's bin meeting it on the request's system and side). */
@@ -183,9 +211,10 @@ function cutPairs(bins: PairsBins, own: number, request: RegionRequest): PairsBi
 
 /**
  * The pairs pyramid of a one-level source: every pairs system read whole at level 1 (shared by every caller), merged
- * once a pair, binned at the first level and coarsened for each further one, only the levels that halve the bins kept;
- * a dropped level is answered as items (they cost no more than its bins). Past `maxBytes`, a coarse tile is binned from
- * an items read of that tile alone (the store's `maxTileBytes` bounds it).
+ * once a pair (merged and binned in time slices, the shape's numeric field summed), binned at the first level and
+ * coarsened for each further one, only the levels that halve the bins kept: a dropped level leaves the coverage once
+ * built (`dropped`). Past `maxBytes`, a coarse tile is its items read alone when its `readCost` says they fit, else
+ * refused before reading.
  */
 export function pairsPyramid(
   inner: OpenedSource,
@@ -197,6 +226,10 @@ export function pairsPyramid(
 ) {
   const shapes = coverage.shapes.filter((s) => s.shape === 'pairs');
   const category = shapes.some((s) => s.binBy === 'type');
+  // the shape's numeric field the bins sum (Decided 2): the first the coverage lists
+  const field = shapes.flatMap((s) => s.fields ?? []).find((f) => f.type === 'float32' || f.type === 'int32')?.name;
+  /** The levels built and kept (those that halve the rows below), once the pyramid is built. */
+  let kept: ReadonlySet<number> | undefined;
   let bytes = 0;
   let built: Promise<Map<number, PairsBins> | RegionAnswer> | undefined;
   const reading = new AbortController();
@@ -227,8 +260,19 @@ export function pairsPyramid(
       held += regionBytes(list);
       if (held > 2 * settings.maxBytes) return tooMany();
       reads.push({ system: sys.name, list, ...(sys.side && { side: sys.side }) });
+      // a system's read checked: one task a system
+      await clock.yield();
     }
-    const items = mergePairs(reads);
+    // merged in slices too: 600,000 pairs are a few dozen of them, never one long task
+    const steps = mergeSteps(reads, field);
+    let merged = steps.next();
+    for (;;) {
+      const until = clock.now() + settings.sliceMs;
+      while (!merged.done && clock.now() < until) merged = steps.next();
+      if (merged.done) break;
+      await clock.yield();
+    }
+    const items = merged.value;
     if (regionBytes(items) > settings.maxBytes) return tooMany();
     const made = new Map<number, PairsBins>();
     let below: PairsBins | undefined;
@@ -237,7 +281,14 @@ export function pairsPyramid(
     for (const level of levels) {
       let bins: PairsBins;
       if (!below) {
-        const run = binPairsRange(items, level, { category, systems: true }, 0, items.aStart.length, pairsBinner());
+        const run = binPairsRange(
+          items,
+          level,
+          { category, systems: true, ...(field !== undefined && { field }) },
+          0,
+          items.aStart.length,
+          pairsBinner(),
+        );
         // binned in slices: a 600,000-pair read is a few dozen slices, never one long task
         let at = 0;
         for (;;) {
@@ -248,6 +299,8 @@ export function pairsPyramid(
         }
         bins = run.finish();
       } else bins = coarsenPairBins(below, level / belowLevel);
+      // each level its own task
+      await clock.yield();
       // only the levels that halve the rows below are kept: sparse pairs barely compress at fine levels
       if (bins.count.length * 2 <= belowRows) {
         made.set(level, bins);
@@ -257,12 +310,25 @@ export function pairsPyramid(
       belowLevel = level;
       belowRows = bins.count.length;
     }
+    kept = new Set(made.keys());
     return made;
   };
 
-  /** A coarse tile binned from its own items (past `maxBytes`, or a level the pyramid dropped). */
-  const fromItems = async (request: RegionRequest, signal: AbortSignal): Promise<Built<PairsBins | PairsList>> => {
+  /**
+   * A coarse tile from its own items: past `maxBytes` (`bounded`), read only when the source tells the read's cost
+   * (`readCost`) within `maxBytes` before reading, else refused at once (the layer reads coarser, then says zoom in),
+   * never read to be refused after; a level asked while the pyramid was building that it then dropped, read (the
+   * pairs read whole fit `maxBytes`).
+   */
+  const fromItems = async (
+    request: RegionRequest,
+    signal: AbortSignal,
+    bounded: boolean,
+  ): Promise<Built<PairsBins | PairsList>> => {
     const one: RegionRequest = { ...request, level: 1, shapes: ['pairs'] };
+    const cost = bounded ? inner.readCost?.(one) : 0;
+    if (cost === undefined || cost > settings.maxBytes)
+      return refused('seq.store.pairs.levels', 'A coarse pairs tile past the summaries’ bytes: zoom in');
     const a = await inner.read(one, signal);
     if (!a.ok) return a;
     return (
@@ -280,6 +346,10 @@ export function pairsPyramid(
     get bytes() {
       return bytes;
     },
+    /** The pairs levels the pyramid dropped (they did not halve the rows below), once built: left out of the coverage. */
+    get dropped(): readonly number[] {
+      return kept ? levels.filter((l) => !kept!.has(l)) : [];
+    },
     async read(request: RegionRequest, signal: AbortSignal): Promise<Built<PairsBins | PairsList>> {
       built ??= build();
       const p = built;
@@ -289,11 +359,13 @@ export function pairsPyramid(
       });
       const made = await untilAborted(p, signal);
       if (!(made instanceof Map)) {
-        if (made.ok === false && made.issue.code === 'seq.store.pairs.levels') return fromItems(request, signal);
+        if (made.ok === false && made.issue.code === 'seq.store.pairs.levels') return fromItems(request, signal, true);
         return made;
       }
+      // a dropped level asked while the pyramid was building: from a kept finer level when there is one
       const own = sourceLevel([...made.keys()], request.level);
-      if (own === undefined) return fromItems(request, signal);
+      // none: its items (the pairs read whole fit `maxBytes`, so a tile's do)
+      if (own === undefined) return fromItems(request, signal, false);
       return cutPairs(made.get(own)!, own, request);
     },
     dispose() {

@@ -291,8 +291,23 @@ export function withSummaries(
     return nodes ? { ok: true, tables, nodes } : { ok: true, tables };
   };
 
+  // a pairs level the pyramid dropped leaves the coverage once built, unless another shape lists it (the reader then
+  // takes the next kept level); the coverage given is kept until it changes
+  let shown = coverage;
+  let seen = 0;
+  const coverageNow = (): Coverage => {
+    const dropped = pairs?.dropped ?? [];
+    if (dropped.length === seen) return shown;
+    seen = dropped.length;
+    const gone = dropped.filter((l) => !own.values.includes(l) && !own.grid.includes(l));
+    shown = gone.length ? { ...coverage, levels: levels.filter((l) => !gone.includes(l)) } : coverage;
+    return shown;
+  };
+
   const out: SummarizedSource = {
-    coverage,
+    get coverage() {
+      return coverageNow();
+    },
     get summaryBytes() {
       return bytes + (pairs?.bytes ?? 0) + (grid?.bytes ?? 0);
     },

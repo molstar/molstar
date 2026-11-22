@@ -332,6 +332,7 @@ export class Renderer {
       ...(data.tooMany ? { tooMany: (w: Want) => data.tooMany!(w) } : {}),
       ...(data.tilesOf ? { tilesOf: (w: Want) => data.tilesOf!(w) } : {}),
       ...(data.layerRefused ? { layerRefused: (l: string) => data.layerRefused!(l) } : {}),
+      ...(data.layerLoad ? { layerLoad: (w: readonly Want[]) => data.layerLoad!(w) } : {}),
       get refusals() {
         return data.refusals;
       },

@@ -164,7 +164,8 @@ export function planWants(
     }
     const tiles = eachTile(w, t);
     planned.push({ w, tiles, shapes: t.shapes });
-    if (w.layer === undefined) continue;
+    // a layer's load is its view's: its margin ring is asked with it, never counted (the view decides the zoom-in)
+    if (w.layer === undefined || w.priority === 'margin') continue;
     let load = loads.get(w.layer);
     if (!load) loads.set(w.layer, (load = { tiles: 0, cost: 0, keys: new Set() }));
     const opened = sources.get(w.source)!.opened;
@@ -208,6 +209,7 @@ export function layerLoad(
   let cost = 0;
   let fits = true;
   for (const w of wants) {
+    if (w.priority === 'margin') continue;
     const t = wantTiles(w, sources, settings);
     if (!t || t.count === 0) continue;
     if (t.count > settings.maxTilesPerWant) {

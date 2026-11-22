@@ -314,6 +314,60 @@ export function readGridTiles(
   return out;
 }
 
+/** A layer's level as last fitted to the store's bounds, by the tiles it spans (`fittedLevel`), by reader and layer. */
+const Fitted = new WeakMap<object, Map<string, { readonly sig: number[]; readonly level: number }>>();
+const Sig: number[] = [];
+
+/**
+ * The layer's level fitted to the store's bounds on a layer's wants together (`maxTilesPerLayer`, `maxBytesPerLayer`;
+ * the design's "past it coarser, then zoom in"): `level`, else the first coarser listed level whose view wants fit
+ * (`StoreReader.layerLoad`), else `level` (the store refuses it: the band's "zoom in"). Asked again only when the view's
+ * tiles change (`sig` writes them), so a pan within its tiles asks nothing. 1D: `regions` on the data's system; 2D: `y`.
+ */
+export function fittedLevel(
+  ctx: { readonly key?: string },
+  data: StoreReader,
+  src: LayerSource,
+  regions: readonly number[],
+  level: number,
+  y?: { readonly system: string; readonly start: number; readonly end: number },
+): number {
+  const key = ctx.key;
+  if (!data.layerLoad || key === undefined) return level;
+  const levels = data.coverage(src.source)?.levels ?? [level];
+  const bins = (y ? data.settings?.gridTileBins : data.settings?.tileBins) ?? 1024;
+  Sig.length = 0;
+  Sig.push(level);
+  for (let i = 0; i + 1 < regions.length; i++) Sig.push(Math.floor(regions[i] / (bins * level)));
+  if (y) Sig.push(Math.floor(y.start / (bins * level)), Math.floor(y.end / (bins * level)));
+  let byKey = Fitted.get(data);
+  if (!byKey) Fitted.set(data, (byKey = new Map()));
+  const at = byKey.get(key);
+  if (at && at.sig.length === Sig.length && at.sig.every((v, i) => v === Sig[i])) return at.level;
+  let fitted = level;
+  for (let i = Math.max(0, levels.indexOf(level)); i < levels.length; i++) {
+    const l = levels[i];
+    if (l < level) continue;
+    const wants: Want[] = [];
+    for (let k = 0; k + 1 < regions.length; k += 2)
+      wants.push({
+        source: src.source,
+        system: src.system,
+        start: regions[k],
+        end: regions[k + 1],
+        level: l,
+        layer: key,
+        ...(y ? { y } : {}),
+      });
+    if (data.layerLoad(wants).fits) {
+      fitted = l;
+      break;
+    }
+  }
+  byKey.set(key, { sig: Sig.slice(), level: fitted });
+  return fitted;
+}
+
 /** The tiles' state over the regions read: loaded entries, and the data positions still pending or failed. */
 export interface TileRead {
   readonly entries: Extract<DataEntry, { status: 'loaded' }>[];

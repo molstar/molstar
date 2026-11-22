@@ -250,9 +250,12 @@ export interface MatrixItems {
   readonly row?: Int32Array;
 }
 
-/** `matrix` at a coarser level: a bin per column from `start` (aligned), every state, bin-major. */
-export interface MatrixBins {
-  readonly form: 'bins';
+/**
+ * `matrix` at a coarser level: a bin per column from `start` (aligned), every state, bin-major. Its own form, `summary`
+ * (not `bins`): a pairs table's `bins` and a matrix's are told apart by name, not by their columns.
+ */
+export interface MatrixSummary {
+  readonly form: 'summary';
   readonly start: number;
   readonly states: number;
   readonly mean?: Float32Array;
@@ -329,7 +332,7 @@ export type CellsTable = CellsCodes | CellsMajority;
 export type ValuesTable = ValuesPositions | ValuesBins;
 export type PairsTable = PairsList | PairsBins;
 export type GridTable = GridDense | GridSparse;
-export type MatrixTable = MatrixItems | MatrixBins;
+export type MatrixTable = MatrixItems | MatrixSummary;
 export type RowsTable = RowsKeyed;
 
 export interface Tables {

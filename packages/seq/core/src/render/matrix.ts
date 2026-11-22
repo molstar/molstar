@@ -14,7 +14,7 @@
 // loaded is pending across the band, never empty (EC-169); the layer's wants are bounded together (`readTiles`'s key).
 
 import type { Node, Value } from '@molstar/core/repr/tree';
-import { type MatrixBins, type MatrixItems, type MatrixTable, tableRows } from '@molstar/seqx-core/data';
+import { type MatrixSummary, type MatrixItems, type MatrixTable, tableRows } from '@molstar/seqx-core/data';
 import { theme as themeForm } from '@molstar/seqx-core/lang';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { Channel, ChannelName } from '@molstar/seqx-core/theme/index';
@@ -26,6 +26,7 @@ import { colorOf } from './grid.js';
 import { ImageCache } from './images.js';
 import {
   dataRegions,
+  fittedLevel,
   type LayerSource,
   layerLevel,
   layerSource,
@@ -158,7 +159,12 @@ function codeColor(lay: MatrixLay, code: number): number {
 function cellColor(lay: MatrixLay, t: MatrixTable, i: number, s: number): number {
   const k = i * t.states + s;
   if (t.form === 'items') return t.codes ? codeColor(lay, t.codes[k]) : t.value ? colorOf(lay, t.value[k]) : NoColor;
-  if (t.classes) return codeColor(lay, t.classes[k]);
+  if (t.classes) {
+    // a bin's majority class, its share the colour's strength (design: "its majority with its share")
+    const c = codeColor(lay, t.classes[k]);
+    if (c === NoColor || !t.shares) return c;
+    return ((c & 0xffffff00) | Math.round(((c & 0xff) * t.shares[k]) / 255)) >>> 0;
+  }
   return t.mean ? colorOf(lay, t.mean[k]) : NoColor;
 }
 
@@ -207,7 +213,7 @@ function layoutItems(lay: MatrixLay, src: LayerSource, t: MatrixItems, a: AxisTr
 }
 
 /** A bins tile's image: a column a bin, a row a state, in display order (a reversed axis's bins right to left). */
-function buildBins(lay: MatrixLay, t: MatrixBins, n: number): ImageData | undefined {
+function buildBins(lay: MatrixLay, t: MatrixSummary, n: number): ImageData | undefined {
   if (n <= 0 || t.states <= 0) return undefined;
   const img = lay.cache!.slot(n, t.states);
   const d = img.data;
@@ -270,9 +276,11 @@ export const MatrixType: LayerType<MatrixPrep, MatrixLay> = {
     }
     lay.extents.reset([color]);
     const levels = data.coverage(src.source)?.levels ?? [1];
-    lay.level = layerLevel(src, data, axis);
+    const regions = dataRegions(src, axis);
+    // past the store's bounds on the layer's wants together: coarser, then zoom in
+    lay.level = fittedLevel(ctx, data, src, regions, layerLevel(src, data, axis));
     lay.items = lay.level === levels[0];
-    const read = readTiles(ctx, data, src, dataRegions(src, axis), lay.level, { layer: ctx.key });
+    const read = readTiles(ctx, data, src, regions, lay.level, { layer: ctx.key });
     // the states: the spec's count, else the tables' (a source's coverage not known at resolve)
     let states = prep.states ?? 0;
     for (const e of read.entries)
@@ -328,7 +336,8 @@ export const MatrixType: LayerType<MatrixPrep, MatrixLay> = {
         lay.cache.put(key, img);
       }
       Pieces.length = 0;
-      toSection(src, t.start, t.start + n * lay.level, Pieces);
+      // the last bin of a system ending inside it is cut at the system's end (its image a column the narrower)
+      toSection(src, t.start, Math.min(t.start + n * lay.level, src.length ?? Number.MAX_SAFE_INTEGER), Pieces);
       if (Pieces.length !== 2) continue;
       const d = axis.dpr;
       const x0 = Math.round(axis.x(Pieces[0]) * d) / d;

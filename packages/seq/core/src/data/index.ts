@@ -55,7 +55,7 @@ export {
   isAbortError,
   ItemShapes,
   type LettersTable,
-  type MatrixBins,
+  type MatrixSummary,
   type MatrixItems,
   type MatrixTable,
   type NameHit,
