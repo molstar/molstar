@@ -6,6 +6,12 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 
 ## Open
 
+- **A track jumps while loading, its labels drawn below it; a section of many tracks does not scroll** (the author,
+  2026-11-22, Features › Genome formats › GFF3 › TP53 while loading: "the size when loading. could be handled better";
+  "not just text sections. imagine having multiple tracks with standard features, these should be scrollable too. and
+  600px should definitely be configurable"): FX9 did not build growth batched to the settle nor the reachable region
+  (layouts.md, Track sizing); the placeholder lane draws labels outside its band; a tracks section has no scroll and
+  no cap (layouts.md, A section scrolls past its cap). To FX11 (loading) and FX10 (the section's scroll and its rail).
 - **A lanes rail scrolls by the wheel only, not by a gesture on it** (the author, 2026-11-22, Features › Genome
   formats › GTF › TP53: "the scrollbar is nice, but it can't be scrubbed by a gesture on the control itself, only by
   wheel"; layouts.md:650 asks "drag the slim rail; Page keys with the cursor in it", FX9's Not built): the rows rail's

@@ -612,6 +612,18 @@ more than a screen can give it, it scrolls inside itself with its name and the t
   (hover grows it, its window dragged, a press beside it pages toward the press, Page keys and Home/End with the cursor
   in its box, Escape cancels a drag). They differ only in what the rail can do: grips where the box also zooms (rows),
   none where it only pans. Why: a scroll affordance that looks the same but answers differently is worse than none.
+- **A section scrolls past its cap, whatever its layout** (the author, 2026-11-22: "not just text sections. imagine
+  having multiple tracks with standard features, these should be scrollable too. and 600px should definitely be
+  configurable"): a tracks section whose tracks are taller than its box scrolls them (the section's viewport `top`)
+  with the one rail at its right edge, its ruler and navigators fixed above; lanes bands and rows bands inside it
+  scroll first, then the section, then the page (the wheel's chain). The box: the section's `height` (spec param, px,
+  every layout: text, tracks, rings' diameter as now), else its content up to `section.maxPx` (render config, default
+  600; `text.maxHeight` folds into it, one key); a host page sizing its canvas reads the box. An export shows every
+  track (the figure), as a text section shows every line. Why one cap: a reader's page should not grow by a
+  section's data, and a host decides how much room a section takes, per view or per section.
+- **Loading: the labels stay in the band**: a pending track's placeholder lane clips its labels to the band; nothing
+  is drawn below a track's box (the author, 2026-11-22, the TP53 GFF3 while loading: "TP53-227" drawn under the
+  placeholder, then the track jumping to its height).
 - **A cut edge says so**: a 1 px `msui-border` line at the band's top or bottom where lanes are cut (the scroll's
   affordance at rest, quieter than the rail).
 - **Drag past the edge** (EC-150): a drag-select leaving the band autoscrolls it by time, as the rows band.
