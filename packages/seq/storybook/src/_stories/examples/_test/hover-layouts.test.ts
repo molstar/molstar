@@ -14,7 +14,7 @@ import { AcrossViews, type ExampleView, ExampleViews } from '@molstar/seqx-examp
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { openExample } from './draw-checks.js';
-import { sweepHover } from './hover-probes.js';
+import { sweepHover } from './hover-sweep.js';
 
 /** A view a layout, by `dataset/id`. */
 const ByLayout: readonly (readonly [string, string])[] = [

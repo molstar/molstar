@@ -18,7 +18,7 @@ import { legendRows } from '@molstar/seqx-viewer/legends';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { HoverOwner, openExample } from './draw-checks.js';
-import { drawnIn, passBoxes, probesOf } from './hover-probes.js';
+import { passBoxes, probesOf } from './hover-probes.js';
 
 let viewer: SeqViewer | undefined;
 
@@ -54,8 +54,11 @@ function hoverPaths(f: Frame): number {
 function hoverAt(v: SeqViewer, x: number, y: number) {
   v.input.move(x, y);
   const f = v.draw() ?? v.frame!;
-  const own = f.layout.sections.find((s) => s.section.address === v.hover.current.section);
-  return { f, marked: own !== undefined && drawnIn(passBoxes(f.lists.passes.hover), own), card: card(v) };
+  // the hover's mark over the pointer's point (its outline, the view's position box), within 3 px
+  const marked = passBoxes(f.lists.passes.hover).some(
+    (b) => b.x1 >= x - 3 && b.x0 <= x + 3 && b.y1 >= y - 3 && b.y0 <= y + 3,
+  );
+  return { f, marked, card: card(v) };
 }
 
 describe('a variant allele’s card', () => {

@@ -6,7 +6,6 @@
 
 import {
   DrawLists,
-  drawListsToSvg,
   type Frame,
   type GlyphList,
   type ImageList,
@@ -18,10 +17,6 @@ import {
   walkPass,
   WarpKind,
 } from '@molstar/seqx-core/render';
-import { CanvasBackend, type CanvasLike, type Context2D } from '@molstar/seqx-viewer/canvas';
-import { describerFor } from '@molstar/seqx-viewer/describe';
-import { legendRows } from '@molstar/seqx-viewer/legends';
-import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 
 // The hover contract's sweep (_spec/README.md "Render", Emphasis, The hover contract): points on the marks each layer
 // instance drew, read from its own data pass (drawn again alone into scratch lists, so a mark is a layer's by
@@ -38,10 +33,12 @@ export interface Probe {
   readonly type: string;
   /** What the mark is: `rect`, `path`, `letter`, `image`. */
   readonly mark: string;
+  /** Its band's top and foot on the page, in a translated strip (absent on a ring, a section's own layer, a bridge). */
+  readonly band?: { readonly y0: number; readonly y1: number };
 }
 
 type Point = { x: number; y: number; mark: string };
-type Bounds = { x0: number; y0: number; x1: number; y1: number };
+export type Bounds = { x0: number; y0: number; x1: number; y1: number };
 
 const scratch = new DrawLists();
 
@@ -138,6 +135,7 @@ export function probesOf(frame: Frame, per = 4): Probe[] {
     layer: string,
     map: (x: number, y: number) => [number, number],
     inside: (x: number, y: number) => boolean,
+    band?: { y0: number; y1: number },
   ) => {
     pts.length = 0;
     marksOf(pass, pts);
@@ -145,7 +143,7 @@ export function probesOf(frame: Frame, per = 4): Probe[] {
     for (const p of pts) {
       const [x, y] = map(p.x, p.y);
       if (!Number.isFinite(x) || !Number.isFinite(y) || !inside(x, y)) continue;
-      placed.push({ x, y, section, layer, type, mark: p.mark });
+      placed.push({ x, y, section, layer, type, mark: p.mark, ...(band ? { band } : {}) });
     }
     out.push(...spread(placed, per));
   };
@@ -175,7 +173,8 @@ export function probesOf(frame: Frame, per = 4): Probe[] {
           if (l.zoomIn) continue;
           scratch.reset(['data']);
           l.type.draw(l.lay, 'data', w);
-          take(s.section.address, l.type.name, l.key, l.layer.params.across ? map : inBand, inSection);
+          const band = polar || l.layer.params.across ? undefined : { y0: by + dy, y1: by + bh + dy };
+          take(s.section.address, l.type.name, l.key, l.layer.params.across ? map : inBand, inSection, band);
         }
       }
     }
@@ -233,167 +232,4 @@ export function passBoxes(p: PassList): Bounds[] {
     unclip() {},
   });
   return out;
-}
-
-/** Whether a pass drew anything over a section's visible box. */
-export function drawnIn(boxes: readonly Bounds[], s: SectionLayout): boolean {
-  const b = s.placement.box;
-  return boxes.some((r) => r.x1 >= b.x && r.x0 <= b.x + b.width && r.y1 >= b.y && r.y0 <= b.y + b.height);
-}
-
-/**
- * The sections other than the hovered one where the projected hover (`projected`, the viewer's emphasis) has positions
- * in a strip that draws a band: each must draw a hover mark (a linked view).
- */
-export function linkedSections(
-  frame: Frame,
-  projected: { readonly parts: readonly { readonly system: string; readonly ranges: ArrayLike<number> }[] } | undefined,
-  hovered: string | undefined,
-): SectionLayout[] {
-  if (!projected) return [];
-  const out: SectionLayout[] = [];
-  for (const s of frame.layout.sections) {
-    if (s.section.address === hovered) continue;
-    const st = s.placement.strips;
-    let shown = false;
-    for (let i = 0; i < st.n && !shown; i++) {
-      // a strip with no band drawn (its tracks hidden) shows nothing to mark
-      if (!(s.columns[i]?.height ?? 0)) continue;
-      const a = st.axes[i];
-      const part = projected.parts.find((p) => p.system === a.system);
-      if (!part) continue;
-      const vis = a.visible([]);
-      for (let k = 0; k + 1 < part.ranges.length && !shown; k += 2)
-        for (let m = 0; m + 1 < vis.length; m += 2)
-          if (part.ranges[k] < vis[m + 1] && vis[m] < part.ranges[k + 1]) shown = true;
-    }
-    if (shown) out.push(s);
-  }
-  return out;
-}
-
-/** A 2D context that counts the calls that put ink down (the canvas backend's). */
-function countingContext(): { ctx: Context2D; painted: () => number; reset: () => void } {
-  let n = 0;
-  const ink = new Set(['fill', 'stroke', 'fillRect', 'strokeRect', 'fillText', 'drawImage', 'putImageData']);
-  const ctx = new Proxy({} as Record<string | symbol, unknown>, {
-    get(t, k) {
-      if (k in t) return t[k];
-      if (k === 'createImageData') return (w: number, h: number) => ({ data: new Uint8ClampedArray(4 * w * h) });
-      if (k === 'createLinearGradient') return () => ({ addColorStop() {} });
-      return typeof k === 'string' && ink.has(k) ? () => void n++ : () => {};
-    },
-    set(t, k, v) {
-      t[k] = v;
-      return true;
-    },
-  }) as unknown as Context2D;
-  return { ctx, painted: () => n, reset: () => void (n = 0) };
-}
-
-const counting = countingContext();
-const canvas = (): CanvasLike => ({ width: 1, height: 1, getContext: () => counting.ctx });
-const backend = new CanvasBackend(canvas(), canvas(), canvas());
-const NoLists = new DrawLists();
-
-/** The frame's hover pass alone, as draw lists both backends read (the other passes empty). */
-function hoverOnly(lists: DrawLists): DrawLists {
-  return Object.assign(Object.create(lists) as DrawLists, { passes: { ...NoLists.passes, hover: lists.passes.hover } });
-}
-
-/** What one view's sweep found: what is wrong, the probes, and the layer types and layouts it reached. */
-export interface Swept {
-  readonly wrong: string[];
-  readonly probes: number;
-  /** Probes in a rail's grab zone (the rail's hover is its own). */
-  readonly rails: number;
-  readonly types: string[];
-  readonly layouts: string[];
-  /** The legend entries the hovered items read as (`key`, NUL, `value`). */
-  readonly entries: string[];
-}
-
-/**
- * The hover contract over one settled view (_spec/README.md "Render", Emphasis, The hover contract): each probe's
- * pointer move answers with (1) a hit, (2) a hover mark over its own section (a bridge's: anywhere) and every linked
- * section with positions in view, drawn by the canvas's backend and in the SVG's hover group, (3) a card with words.
- */
-export function sweepHover(v: SeqViewer, id: string, per = 4): Swept {
-  const wrong: string[] = [];
-  const types = new Set<string>();
-  const layouts = new Set<string>();
-  const entries = new Set<string>();
-  let rails = 0;
-  const probes = probesOf(v.frame!, per);
-  const words = describerFor({ ...v, layout: () => v.frame?.layout });
-  backend.resize(v.frame!.layout.width, v.frame!.layout.height, 1);
-  for (const p of probes) {
-    const where = `${id} ${p.type} ${p.layer} ${p.mark}@${p.x.toFixed(0)},${p.y.toFixed(0)}`;
-    // a rail's grab zone over a ruler takes the pointer: its hover is its own (no card, no data hover)
-    if (v.hit(p.x, p.y)?.target === 'window') {
-      rails++;
-      continue;
-    }
-    v.input.move(p.x, p.y);
-    const f = v.draw() ?? v.frame!;
-    const h = v.hover.current;
-    types.add(p.type);
-    const s = f.layout.sections.find((x) => x.section.address === p.section);
-    if (s) {
-      layouts.add(s.layout.name);
-      if (s.section.blocks) layouts.add('blocks');
-      if (p.type === 'rows') layouts.add('rows');
-    } else layouts.add('bridge');
-    if (h.owner === undefined || h.layer === undefined) {
-      wrong.push(`${where}: no hit`);
-      v.input.leave();
-      continue;
-    }
-    const boxes = passBoxes(f.lists.passes.hover);
-    const own = f.layout.sections.find((x) => x.section.address === h.section);
-    if (own ? !drawnIn(boxes, own) : !boxes.length) wrong.push(`${where}: no hover mark (hit ${h.layer})`);
-    for (const l of linkedSections(f, v.emphasis.projected?.hover, h.section))
-      if (!drawnIn(boxes, l)) wrong.push(`${where}: no hover mark in linked ${l.section.address} (hit ${h.layer})`);
-    // both backends draw it: the canvas's paints, the SVG's hover group holds a mark
-    if (boxes.length) {
-      counting.reset();
-      backend.drawOverlay(hoverOnly(f.lists));
-      if (!counting.painted()) wrong.push(`${where}: the canvas painted no hover`);
-      if (!/<g data-pass="hover">\s*<(rect|path|image|g)/.test(drawListsToSvg(hoverOnly(f.lists))))
-        wrong.push(`${where}: the SVG drew no hover`);
-    }
-    const card = words.describe(h);
-    if (!card || (!card.title && !card.rows.length)) wrong.push(`${where}: no card (hit ${h.layer})`);
-    // the legend entry the item reads as (outlined): the way back is swept by `sweepLegends`
-    const entry = v.legends.hover.value;
-    if (entry?.value !== undefined) entries.add(`${entry.key}\u0000${entry.value}`);
-    v.input.leave();
-  }
-  return { wrong, probes: probes.length, rails, types: [...types], layouts: [...layouts], entries: [...entries] };
-}
-
-/**
- * Legends both ways (_spec/README.md "Legends"; the hover contract): every entry with an action (`LegendEntryRow.action`,
- * the pointer's) whose items are drawn in view lights them when hovered (`legend.hover`: a highlight drawn); an entry
- * with none is no target (the default cursor); and each entry a hovered item reads as (`entries`, found by the hover
- * sweep) has its action, so the hover works both ways.
- */
-export function sweepLegends(v: SeqViewer, id: string, entries: readonly string[]): string[] {
-  const wrong: string[] = [];
-  const rows = legendRows(v);
-  for (const e of entries) {
-    const [key, value] = e.split('\u0000');
-    const entry = rows.find((r) => r.key === key)?.entries.find((x) => x.value === value);
-    if (!entry?.action) wrong.push(`${id} legend ${key} ${value}: an item reads as it, but the entry has no action`);
-  }
-  for (const row of rows)
-    for (const entry of row.entries) {
-      if (!entry.action || entry.value === undefined || !v.legends.entryItems(row.layer, entry.value)) continue;
-      void v.execute('legend.hover', { address: row.layer, entry: entry.value });
-      const f = v.draw() ?? v.frame!;
-      if (!passBoxes(f.lists.passes.highlight).length)
-        wrong.push(`${id} legend ${row.key} ${entry.value}: nothing lit`);
-      void v.execute('legend.hover', {});
-    }
-  return wrong;
 }
