@@ -275,6 +275,9 @@ loaded when used, sections over a source's complex, the genome axis and layouts)
 
 ## `@molstar/seqx-viewer`
 
+- **Files past 800 lines** (SX, 2026-11-22): `viewer/src/input.ts` (1,306) and core `render/layout/tracks.ts` (1,051)
+  grew with the section's scroll; split or say why each stays whole.
+
 - **The minimal viewer, what still holds it** (viewer-composition "Injected, opt in"): the tracks layout reads the rows
   layer (`RowsLay`, the row columns of `rows-model`), the text layout (`TextLayout` by identity) and the grid's
   `GridPlacement` and `rectOver` itself, so those stay in a viewer that lists none (about 30 kB minified of the rows
