@@ -21,7 +21,7 @@ import { BedRuntime } from '@molstar/seqx-core/runtimes/bed';
 import type { ExampleView } from '../views.js';
 import { HicWhole, hicOneLevel, hicSource } from './hic.js';
 import { openBedpeByRegion } from './bedpe.js';
-import { genotypeItems, genotypesSource } from './genotypes.js';
+import { genotypesSource } from './genotypes.js';
 import { LinkCount, LinksChromosome, linksOnChromosome, linksSource } from './links.js';
 import { methylationSource } from './methylation.js';
 import { syntenySource } from './synteny.js';
@@ -105,14 +105,13 @@ const generated = (uri: string) => ({ format: GeneratedFormat, uri }) as never;
 export const SyntenySection = '/views/main/synteny';
 export const LinksSection = '/views/main/links';
 export const RingSection = '/views/main/ring';
-export const HicRegionSection = '/views/main/plot';
-export const HicGenomeSection = '/views/main/plot';
+export const HicSection = '/views/main/chr1';
+export const HicPlot = '/views/main/plot';
 export const GenotypesSection = '/views/main/chr';
-export const ZoomInSection = '/views/main/chr';
 
 /**
- * Default 1: a few Mb of the synteny between two toy genomes, `chrA2`'s stretch around its inversion on the left and
- * `chrB2`'s on the right, an arc a block of the alignment between them (the ones B reads reversed are twisted).
+ * The synteny between two toy chromosomes, `chrA2` on the left and `chrB2` on the right: an arc a block of the alignment
+ * between them (the ones B reads reversed, a 6 Mb stretch, are twisted), about 2,000 of them, under the gate.
  */
 export function pairsZoomedIn(): Node {
   const b = createSeqSpec({ title: 'Synteny, zoomed in' });
@@ -122,10 +121,14 @@ export function pairsZoomedIn(): Node {
   const pairs = b.data.pairs('synteny', { a: a2, b: b2, source: src } as never);
   b.views.view('main', (v) => {
     v.section('synteny', {}, (s) => {
-      s.block('a', { of: a2, range: [6_000_000, 14_000_000], label: 'chrA2' } as never);
-      s.block('b', { of: b2, range: [12_000_000, 20_000_000], label: 'chrB2' } as never);
+      s.block('a', { of: a2, label: 'chrA2' } as never);
+      s.block('b', { of: b2, label: 'chrB2' } as never);
       s.track('ruler').layer('ruler', { type: 'ruler', units: 'bases' } as never);
-      s.track('synteny', { label: 'Synteny', height: 120 }).layer('synteny', { type: 'pairs', data: pairs });
+      s.track('synteny', { label: 'Synteny', height: 120 }).layer('synteny', {
+        type: 'pairs',
+        data: pairs,
+        legend: 'none',
+      } as never);
     });
   });
   return b.build();
@@ -141,7 +144,7 @@ function linksChromosome(b: ReturnType<typeof createSeqSpec>) {
 }
 
 /**
- * Default 2: 12,000 links on one chromosome, zoomed out: bin pairs, each an arc stroked by its count, the hover naming
+ * 12,000 links on one chromosome, zoomed out: bin pairs, each an arc stroked by its count, the hover naming
  * the bin pair. The same links twice, held (the table in the spec) and as a BEDPE: one picture.
  */
 export function pairsZoomedOut(): Node {
@@ -165,14 +168,22 @@ export function pairsZoomedOut(): Node {
   b.views.view('main', (v) => {
     const s = v.section('links', { of: chr });
     s.track('ruler').layer('ruler', { type: 'ruler', units: 'bases' } as never);
-    s.track('held', { label: 'Held', height: 120 }).layer('held', { type: 'pairs', data: held });
-    s.track('bedpe', { label: 'BEDPE', height: 120 }).layer('bedpe', { type: 'pairs', data: bedpe });
+    s.track('held', { label: 'Held', height: 120 }).layer('held', {
+      type: 'pairs',
+      data: held,
+      legend: 'none',
+    } as never);
+    s.track('bedpe', { label: 'BEDPE', height: 120 }).layer('bedpe', {
+      type: 'pairs',
+      data: bedpe,
+      legend: 'none',
+    } as never);
   });
   return b.build();
 }
 
 /**
- * Default 3: the links on a ring at the fit (one chromosome as a ring): bin-pair chords between the ring's bins,
+ * the links on a ring at the fit (one chromosome as a ring): bin-pair chords between the ring's bins,
  * stroked by count, the strongest drawn first. (Between a genome's chromosomes: data over an assembly by source waits.)
  */
 export function pairsRing(): Node {
@@ -185,14 +196,15 @@ export function pairsRing(): Node {
   b.views.view('main', (v) => {
     v.section('ring', { of: chr, layout: 'rings' }, (s) => {
       s.track('ruler').layer('ruler', { type: 'ruler', units: 'bases' } as never);
-      s.track('links', { label: 'Links' }).layer('links', { type: 'pairs', data: bedpe });
+      s.track('links', { label: 'Links' }).layer('links', { type: 'pairs', data: bedpe, legend: 'none' } as never);
     });
   });
   return b.build();
 }
 
 /** The Hi-C's chromosome (`chr1`) as a sequence read from the source. */
-function hicByRegion(): Node {
+/** one chromosome's Hi-C by region: tiles of its two levels, a pending tile drawn from the coarser one. */
+export function hicByRegion(): Node {
   const b = createSeqSpec({ title: 'Hi-C by region' });
   const src = b.data.source('hic', generated('generated:hic'));
   const chr = b.data.sequence('chr1', { alphabet: 'dna', source: src, name: 'chr1' });
@@ -207,10 +219,8 @@ function hicByRegion(): Node {
   return b.build();
 }
 
-export { hicByRegion };
-
 /**
- * Default 5: the Hi-C over the whole toy assembly as one system (`all`, the chromosomes end to end) at the fit: one
+ * the Hi-C over the whole toy assembly as one system (`all`, the chromosomes end to end) at the fit: one
  * read of the whole-assembly level the store's summaries make from the blocks' planes (one level served). (Over the
  * assembly's blocks, with the chromosome gaps and labels: data over an assembly by source waits.)
  */
@@ -229,7 +239,7 @@ export function hicOverGenome(): Node {
   return b.build();
 }
 
-/** Default 6: 40 samples over a chromosome's variants, a row a sample, a long deletion solid across its SNVs. */
+/** 40 samples over a chromosome's variants, a row a sample, a long deletion solid across its SNVs. */
 export function matrixSamples(): Node {
   const b = createSeqSpec({ title: 'Samples by positions' });
   const src = b.data.source('genotypes', generated('generated:genotypes'));
@@ -244,7 +254,7 @@ export function matrixSamples(): Node {
   return b.build();
 }
 
-/** Default 7: the same matrix on a ring, each sample a thin ring. */
+/** the same matrix on a ring, each sample a thin ring. */
 export function matrixRing(): Node {
   const b = createSeqSpec({ title: 'A matrix on a ring' });
   const src = b.data.source('genotypes', generated('generated:genotypes'));
@@ -274,7 +284,7 @@ export function matrixMethylation(): Node {
 }
 
 /**
- * Default 8: a matrix served at its items' level alone, past what a view reads ("zoom in to read this track"), and
+ * a matrix served at its items' level alone, past what a view reads ("zoom in to read this track"), and
  * links over a stretch with no link end (nothing drawn: no arc, no placeholder).
  */
 export function zoomIn(): Node {
@@ -287,17 +297,21 @@ export function zoomIn(): Node {
     v.section('chr', { of: chr }, (s) => {
       s.track('ruler').layer('ruler', { type: 'ruler', units: 'bases' } as never);
       s.track('gt', { label: 'Genotypes', height: 100 }).layer('gt', { type: 'matrix', data: gt });
-      s.track('links', { label: 'Links', height: 60 }).layer('links', { type: 'pairs', data: links });
+      s.track('links', { label: 'Links', height: 60 }).layer('links', {
+        type: 'pairs',
+        data: links,
+        legend: 'none',
+      } as never);
     });
   });
   return b.build();
 }
 
-/** Links with no end in 400 to 700 kb of the genotypes' chromosome: the stretch the view opens on. */
+/** Forty links inside the first 200 kb of the genotypes' chromosome: none reaches 400 to 700 kb, where the view opens. */
 function emptyLinks() {
   const n = 40;
-  const start = Int32Array.from({ length: n }, (_, i) => 10_000 + i * 5_000);
-  const far = Int32Array.from({ length: n }, (_, i) => 800_000 + i * 4_000);
+  const start = Int32Array.from({ length: n }, (_, i) => 10_000 + i * 2_000);
+  const far = Int32Array.from({ length: n }, (_, i) => 100_000 + i * 2_400);
   return {
     a_start: start,
     a_end: start.map((s) => s + 10),
@@ -306,22 +320,13 @@ function emptyLinks() {
   };
 }
 
-/** The stretch the zoom-in view opens on for the bins-with-nothing half: no link end in it. */
-export const EmptyStretch: readonly [number, number] = [400_000, 700_000];
-
-/** Where the deletion is, and so what the genotype views are opened on (its extent with room round it). */
-export const DeletionView = (): readonly [number, number] => {
-  const g = genotypeItems();
-  return [g.start[g.deletion] - 40_000, g.end[g.deletion] + 40_000];
-};
-
 export const RegionReadsViews: readonly ExampleView[] = [
   {
     dataset: 'regions',
     id: 'pairs-zoomed-in',
     title: 'Pairs zoomed in: items as arcs',
     summary:
-      'A few Mb of a synteny alignment between two toy genomes (generated, about 6,000 blocks as sided pairs in the `seq` format): chrA2 on the left, chrB2 on the right, under 4,096 pairs in view, so each alignment block is one arc between its two ends; the ones B reads reversed are twisted. Read from either end.',
+      'A synteny alignment between two toy chromosomes (generated; the whole alignment of two genomes is about 6,000 blocks as pairs in the `seq` format): chrA2 on the left, chrB2 on the right, about 2,000 pairs in view, under the 4,096 an arc a pair is drawn from, so each alignment block is one arc between its two ends; the ones B reads reversed (a stretch of 6 Mb) are twisted. Each pair is found from either end.',
     build: pairsZoomedIn,
     registry,
   },

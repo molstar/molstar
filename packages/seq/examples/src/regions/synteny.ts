@@ -9,23 +9,23 @@ import { categoryColumn } from '@molstar/core/repr/tree';
 import type { Coverage, PairsList, SeqData, SeqPair, SystemInfo } from '@molstar/seqx-core/data';
 
 // A generated synteny alignment between two toy genomes (Features/Region reads): aligned
-// blocks as sided pairs in the `seq` format, a pair the block's start on genome A and on genome B (the `a` side names
-// A's chromosomes, the `b` side B's), found from either end. B is A with two inversions and a translocated tail, so
-// most blocks are colinear and a few are reversed or cross chromosomes. Deterministic on core's `PCG`.
+// blocks as sided pairs in the `seq` format, a pair the block's extent on genome A and on genome B (the `a` side names
+// A's chromosomes, the `b` side B's), found from either end. B is A with an inversion on its second chromosome and 6 Mb
+// inserted before it, so most blocks are colinear and some are reversed. Deterministic on core's `PCG`.
 
 export interface SyntenyChromosome {
   readonly name: string;
   readonly length: number;
 }
 
-/** Genome A's chromosomes and genome B's (B's `chrB2` has A's `chrA2` less its tail, and gains `chrA1`'s tail). */
+/** Genome A's chromosomes and genome B's (B's `chrB2` is A's `chrA2` after 6 Mb of its own). */
 export const SyntenyA: readonly SyntenyChromosome[] = [
   { name: 'chrA1', length: 40_000_000 },
   { name: 'chrA2', length: 30_000_000 },
   { name: 'chrA3', length: 20_000_000 },
 ];
 export const SyntenyB: readonly SyntenyChromosome[] = [
-  { name: 'chrB1', length: 34_000_000 },
+  { name: 'chrB1', length: 40_000_000 },
   { name: 'chrB2', length: 36_000_000 },
   { name: 'chrB3', length: 20_000_000 },
 ];
@@ -66,10 +66,9 @@ function blocks(n: number, seed: number): Block[] {
       let bEnd: number;
       let strand: 1 | -1 = 1;
       if (c.name === 'chrA1') {
-        // the tail past 34 Mb is on chrB2's start
-        b = aStart >= 34_000_000 ? 'chrB2' : 'chrB1';
-        bStart = aStart >= 34_000_000 ? aStart - 34_000_000 : aStart;
-        bEnd = bStart + (aEnd - aStart);
+        b = 'chrB1';
+        bStart = aStart;
+        bEnd = aEnd;
       } else if (c.name === 'chrA2') {
         b = 'chrB2';
         bStart = aStart + 6_000_000;

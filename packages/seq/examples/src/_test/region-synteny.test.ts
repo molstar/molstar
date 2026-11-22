@@ -21,8 +21,8 @@ describe('the generated synteny (Features/Region reads; EC-208)', () => {
     for (let i = 0; i < t.aStart.length; i++) {
       expect(t.aStart[i]).toBeLessThan(t.aEnd[i]);
       expect(t.bStart[i]).toBeLessThan(t.bEnd[i]);
-      expect(t.aEnd[i]).toBeLessThanOrEqual(lengthA.get(t.aSystem!.get(i))!);
-      expect(t.bEnd[i]).toBeLessThanOrEqual(lengthB.get(t.bSystem!.get(i))!);
+      expect(t.aEnd[i]).toBeLessThanOrEqual(lengthA.get(t.aSystem!.get(i)!)!);
+      expect(t.bEnd[i]).toBeLessThanOrEqual(lengthB.get(t.bSystem!.get(i)!)!);
       if (t.bStrand![i] < 0) reversed++;
     }
     expect(reversed).toBeGreaterThan(50);

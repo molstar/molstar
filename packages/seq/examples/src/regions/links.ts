@@ -6,7 +6,7 @@
 
 import { PCG } from '@molstar/core/data/util/hash-functions';
 import { categoryColumn } from '@molstar/core/repr/tree';
-import type { Coverage, PairsList, SeqData } from '@molstar/seqx-core/data';
+import type { Coverage, PairsList, SeqData, SeqPair } from '@molstar/seqx-core/data';
 import { binPairs } from '@molstar/seqx-core/data';
 import { HicChromosomes } from './hic.js';
 
@@ -148,7 +148,7 @@ export function linksSource(systems: readonly LinkSystem[] = LinksChromosomes, n
     shapes: systems.map((s) => ({ system: s.name, shape: 'pairs' as const })),
     levels: [...LinkLevels],
   };
-  const pairs: SeqData['pairs'] = [];
+  const pairs: SeqPair[] = [];
   for (const s of systems) {
     const rows: number[] = [];
     for (let i = 0; i < n; i++) if (all.aSystem[i] === s.name || all.bSystem[i] === s.name) rows.push(i);

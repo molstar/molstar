@@ -1,0 +1,63 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Region reads" />
+
+# Region reads
+
+Pairs, grids and matrices are read **by region**, as ranges and values are: a source answers a region at a level, the
+store keeps the tiles, a layer draws what is in view. Cost follows pixels, never the data: a Hi-C of a genome, a synteny
+of two genomes, thousands of links and a cohort's genotypes each read what the screen can show.
+
+## The answer shapes
+
+- **Pairs**: a list (each row two ends, an `id` or `row` that names it once across tiles) at the items' level, bin pairs
+  (each bin pair its count, by relative strand, by `category` when the source says) at coarser ones. A request finds a
+  pair from either end; a sided source (two genomes, a name listed once a side) is read by side.
+- **A grid**: dense or sparse 2D tiles of the same level on both axes (`RegionRequest.y`), a symmetric grid served once
+  at or above its diagonal and mirrored by the reader (Hi-C), counts summed or scores averaged going coarser.
+- **A matrix**: items × states, an item a variant or a CpG at its own extent, a code (genotype) or a value (NaN missing)
+  a cell; a coarse level a bin's majority class and its share, or its mean.
+- **Keyed rows**: records by key, for results that are no places.
+
+A source that serves one level (level 1) gets the others from the store's **summaries** (a pairs pyramid, grid levels,
+and for a grid of several chromosomes a whole-assembly level cut from the blocks' planes), bounded in bytes.
+
+## What a view reads
+
+- **Pairs**: bin pairs at a couple of device pixels, always; the items once the bin pairs in view sum to at most 4,096
+  (a gate with hysteresis: shown, they are kept to 1.25 times that, so a pan at the threshold never flips). A bin pair
+  is one arc stroked by its count, its hover naming both bins, never a pair.
+- **A grid**: the finest level whose bin is at least a device pixel, in tiles of 256 bins and a ring of tiles round the
+  view. A tile not loaded draws the coarser one held under it, else a pending rect, and the plot's box never moves.
+- **A matrix**: a row a state in the band, an item a rect at its extent, **a long deletion one solid bar** across the
+  SNVs it covers with the short ones over it; zoomed out a bin's majority class, its share the colour's strength.
+- **On a ring**: a matrix's states are thin rings, an image drawn as runs (at most a run a device column a ring), so the
+  SVG is paths, never a picture.
+- **Nothing in view** is no arc and no placeholder; pending is the hatched band; a layer whose wants pass the store's
+  bounds says "zoom in to read this track".
+
+## Stories
+
+Generated in the examples (small, seeded, no file read), answered after a delay on the store's clock, the coarse levels
+first, each the canvas and the SVG of one view, light and dark by the toolbar's theme:
+
+- Pairs: [zoomed in](?path=/story/seq-next-features-region-reads-pairs--zoomed-in) (a synteny alignment, items as arcs),
+  [zoomed out](?path=/story/seq-next-features-region-reads-pairs--zoomed-out) (12,000 links, bin pairs by count, held
+  and as a BEDPE), [on a ring](?path=/story/seq-next-features-region-reads-pairs--on-a-ring) (chords between bins)
+- Hi-C: [by region](?path=/story/seq-next-features-region-reads-hi-c--by-region) (a pending tile drawn coarse, then
+  sharp), [over the genome](?path=/story/seq-next-features-region-reads-hi-c--over-the-genome) (the whole-assembly
+  level)
+- Matrix: [samples by positions](?path=/story/seq-next-features-region-reads-matrix--samples-by-positions) (40 samples,
+  a long deletion solid), [on a ring](?path=/story/seq-next-features-region-reads-matrix--on-a-ring),
+  [methylation with values missing](?path=/story/seq-next-features-region-reads-matrix--methylation-with-missing-values)
+- [Zoom in to read](?path=/story/seq-next-features-region-reads-zoom-in--zoom-in-to-read): the waiting band, and links
+  with nothing in view
+
+## Not yet
+
+- Pairs, grids and matrices read by source **over an assembly** (a ring of chords between a genome's chromosomes, a Hi-C
+  over the blocks of an assembly with gaps and labels on both axes, a synteny of two genomes in one section) wait for
+  data over an assembly to be read by sequence: the stories above put a genome in one system, or draw one chromosome.
+- A BEDPE file is served by region through a host adapter (the runtime lists no `pairs` shape); a held table of links is
+  not read through the store, so past the gate it bins arcs by device column, not by the pairs level.
+- The matrix's state labels in the header (the `order` and `hidden` of a state) are listed, not built.
