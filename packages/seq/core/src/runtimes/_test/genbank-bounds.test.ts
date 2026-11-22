@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { columnValues } from '@molstar/core/repr/tree';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DefaultOpenLimits, type OpenedSource } from '../../data/protocol.js';
 import { GenbankCauses } from '../genbank-issues.js';
@@ -106,12 +107,41 @@ describe('bounds of a feature: the feature left out, said; the file read', () =>
     expect(codes).toEqual(['opened', 'seq.source.genbank.location']);
   });
 
-  it('a quote never closed: the indented lines after it its text, its feature left out at the next line from the first column, the letters read', async () => {
+  it('a quote never closed: closed at the next feature’s line (a key and a location at its indent), said; both features read, the letters too', async () => {
     const text = one([['note', '"never closed']]);
     const [codes, s] = await outcome(text);
     expect(codes).toEqual(['opened', 'seq.source.genbank.feature']);
+    expect(s!.issues![0].message).toMatch(/quote left open.*\(line \d+\)/);
     expect(s!.coverage.systems[0].length).toBe(100);
-    expect(await features(s)).toBe(0);
+    expect(await features(s)).toBe(2);
+  });
+
+  it('a quote left open is not closed by the next qualifier’s quote: the feature line between them read, never swallowed', async () => {
+    const text = record('b', letters(100), [
+      { key: 'misc_feature', location: '1..10', qualifiers: [['note', '"left open']] },
+      { key: 'gene', location: 'complement(20..30)', qualifiers: [['gene', '"x"']] },
+      { key: 'gene', location: '40..50', qualifiers: [['gene', '"y"']] },
+    ]);
+    const [codes, s] = await outcome(text);
+    expect(codes).toEqual(['opened', 'seq.source.genbank.feature']);
+    const a = await s!.read({ system: 'b', start: 0, end: 100, level: 1, shapes: ['ranges'] }, signal);
+    if (!a.ok || a.tables.ranges?.form !== 'list') throw new Error('not read');
+    const label = a.tables.ranges.fields!.find((f) => f.name === 'label')!.column;
+    expect(columnValues(label)).toEqual(['misc_feature', 'x', 'y']);
+    const note = a.tables.ranges.fields!.find((f) => f.name === 'note')!.column;
+    expect(columnValues(note)[0]).toBe('left open');
+  });
+
+  it('inside a quote, an indented line that is not a key and a location stays its text', async () => {
+    const text = record('b', letters(100), [
+      {
+        key: 'misc_feature',
+        location: '1..10',
+        qualifiers: [['note', '"a note\n     whose second line is indented as a key"']],
+      },
+    ]);
+    const [codes] = await outcome(text);
+    expect(codes).toEqual(['opened']);
   });
 
   it('`/translation` is never held: one of 100,000 characters passes a 1,000-character bound', async () => {

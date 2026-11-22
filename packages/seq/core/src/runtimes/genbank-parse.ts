@@ -67,6 +67,10 @@ export type GenbankFile =
 const Read = new Set(['LOCUS', 'DEFINITION', 'ACCESSION', 'VERSION', 'SOURCE', 'FEATURES', 'ORIGIN', 'BASE', '//']);
 /** Keywords of an assembly of other records: the record not read. */
 const Assembly = new Set(['CONTIG', 'WGS', 'WGS_SCAFLD', 'TSA', 'TLS']);
+/** A feature key (INSDC's: letters, digits, `_`, `-`, `'`, `*`). */
+const FeatureKey = /^[A-Za-z0-9_'*-]+$/;
+/** A location's first characters: a position, a partial end, an operator. */
+const LocationStart = /^(?:[<>]?\d|complement\(|join\(|order\()/;
 
 /** A feature being read. */
 interface OpenFeature {
@@ -90,6 +94,8 @@ interface OpenQualifier {
   open: boolean;
   /** Not held (`/translation`): only its quotes followed. */
   skip: boolean;
+  /** Its line, 1-based. */
+  line: number;
 }
 
 /** A record being read. */
@@ -147,10 +153,9 @@ export function parseGenbank(text: string, causes: GenbankCauses, limits: Genban
     const q = qualifier;
     qualifier = undefined;
     if (!q || !feature || feature.bad) return;
-    if (q.open) {
-      feature.bad = { code: 'seq.source.genbank.feature', why: 'A quoted qualifier never closed' };
-      return;
-    }
+    // a quote left open: its text to here is the value (said), the feature kept
+    if (q.open)
+      causes.add('seq.source.genbank.feature', 'A quote left open: closed where its value ends', `line ${q.line}`);
     if (q.skip) return;
     let v = q.parts.join(' ');
     if (v.startsWith('"')) {
@@ -306,8 +311,10 @@ export function parseGenbank(text: string, causes: GenbankCauses, limits: Genban
   /** A line of the feature table (indented). */
   const featureLine = (s: number, e: number, line: number, indent: number) => {
     const c = text.charCodeAt(s + indent);
-    // inside a quoted value every line is its text, a `/` at its start too
-    if (qualifier?.open || (indent >= 21 && c !== 47) || (c === 47 && feature)) {
+    // inside a quoted value every line is its text, a `/` at its start too, but a line at the key's indent with a key
+    // and a location: the quote was left open (closed there, said), the line a feature of its own
+    const keyLine = qualifier?.open === true && indent < 21 && c !== 47 && isFeatureStart(s, e);
+    if ((qualifier?.open && !keyLine) || (indent >= 21 && c !== 47) || (c === 47 && feature)) {
       if (!feature) {
         causes.add('seq.source.genbank.feature', 'A feature table line before any feature', `line ${line}`);
         return;
@@ -338,6 +345,14 @@ export function parseGenbank(text: string, causes: GenbankCauses, limits: Genban
     else feature.location.push(loc.replace(/\s+/g, ''));
   };
 
+  /** Whether `[s, e)` is a feature's first line: a key, then a location's start (a position, `<`, `>`, an operator). */
+  const isFeatureStart = (s: number, e: number): boolean => {
+    const [key, after] = token(s, e);
+    if (!key || key.length > 64 || !FeatureKey.test(key)) return false;
+    const [loc] = token(after, Math.min(e, after + 64));
+    return LocationStart.test(loc);
+  };
+
   const startQualifier = (content: string, line: number) => {
     closeQualifier();
     const f = feature!;
@@ -355,7 +370,7 @@ export function parseGenbank(text: string, causes: GenbankCauses, limits: Genban
     else if (++f.count > limits.maxQualifiers)
       f.bad ??= { code: 'seq.source.genbank.feature', why: `More than ${limits.maxQualifiers} qualifiers` };
     const open = value.startsWith('"') && closingQuote(value, 1) < 0;
-    qualifier = { name, parts: [], bytes: 0, open, skip };
+    qualifier = { name, parts: [], bytes: 0, open, skip, line };
     hold(value);
   };
 

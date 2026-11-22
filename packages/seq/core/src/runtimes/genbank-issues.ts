@@ -19,7 +19,7 @@ export const GenbankIssues = defineIssues('seq.source.genbank', {
   'seq.source.genbank.feature': {
     severity: 'warning',
     description:
-      'A feature past a bound (more qualifiers than `maxQualifiers`, a qualifier’s text past `maxQualifierBytes`) or a feature table line that does not parse: left out',
+      'A feature past a bound (more qualifiers than `maxQualifiers`, a qualifier’s text past `maxQualifierBytes`) or a feature table line that does not parse: left out; or a quote left open: closed at the next feature’s line (or the table’s end), the feature kept',
   },
   'seq.source.genbank.approximate': {
     severity: 'info',
