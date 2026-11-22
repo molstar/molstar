@@ -129,44 +129,70 @@ export async function checkRegionReads(opened: OpenedSource, tileBins = 8): Prom
           const w = level * tileBins;
           for (let start = 0; start < length; start += w) {
             const end = Math.min(length, start + w);
-            const yr = y && { system: y.system, start: 0, end: Math.min(yLength, w) };
-            const part = await read({ ...base, start, end, ...(yr && { y: yr }) });
-            expect(part.ok).toBe(true);
-            if (!part.ok || !table) continue;
-            const cut = { start, end, system: info.system, ...(side && { side }), ...(yr && { y: yr }) };
-            const expected = sliceTable(table, level, cut);
-            const got = part.tables[info.shape];
-            if (tableRows(expected) === 0) expect(got === undefined || tableRows(got) === 0).toBe(true);
-            else expect(got).toEqual(expected);
+            // a grid by both axes: every y part, off the origin and across the diagonal too
+            for (let ys = 0; ys < (y ? yLength : 1); ys += w) {
+              const yr = y && { system: y.system, start: ys, end: Math.min(yLength, ys + w) };
+              const part = await read({ ...base, start, end, ...(yr && { y: yr }) });
+              expect(part.ok).toBe(true);
+              if (!part.ok || !table) continue;
+              const cut = { start, end, system: info.system, ...(side && { side }), ...(yr && { y: yr }) };
+              const expected = sliceTable(table, level, cut);
+              const got = part.tables[info.shape];
+              if (tableRows(expected) === 0) expect(got === undefined || tableRows(got) === 0).toBe(true);
+              else expect(got).toEqual(expected);
+            }
           }
         }
       }
   }
-  await checkEitherEnd(opened, cov.levels[0]);
+  for (const level of cov.levels) await checkEitherEnd(opened, level, tileBins);
 }
 
-/** Every pair read on one end's system is read on the other end's too (EC-62: found from either end). */
-async function checkEitherEnd(opened: OpenedSource, level: number): Promise<void> {
+/**
+ * Every pair read on one end's system is read on the other end's too (EC-62: found from either end), at `level`: a
+ * list's pair by its ends and id, a bin pair by its bins; a sided source's `a` end read on side `a`, found on side `b`.
+ * At least one pair checked spans two parts of `tileBins` bins (its ends in different tiles), when the data has one.
+ */
+async function checkEitherEnd(opened: OpenedSource, level: number, tileBins: number): Promise<void> {
   const signal = new AbortController().signal;
   const cov = opened.coverage;
-  if (cov.systems.some((s) => s.side)) return;
+  const sided = cov.systems.some((s) => s.side);
+  const w = level * tileBins;
   for (const info of cov.shapes.filter((s) => s.shape === 'pairs')) {
-    const length = cov.systems.find((s) => s.name === info.system)?.length ?? 0;
-    const a = await opened.read({ system: info.system, start: 0, end: length, level, shapes: ['pairs'] }, signal);
-    if (!a.ok || a.tables.pairs?.form !== 'list') continue;
+    if (sided && !cov.systems.some((s) => s.name === info.system && s.side === 'a')) continue;
+    const length = cov.systems.find((s) => s.name === info.system && (!sided || s.side === 'a'))?.length ?? 0;
+    const asked = { system: info.system, start: 0, end: length, level, shapes: ['pairs' as const] };
+    const a = await opened.read(sided ? { ...asked, side: 'a' } : asked, signal);
+    if (!a.ok || !a.tables.pairs) continue;
     const t = a.tables.pairs;
-    for (let i = 0; i < Math.min(t.aStart.length, 20); i++) {
+    const rows = t.form === 'list' ? t.aStart.length : t.count.length;
+    let spanning = 0;
+    for (let i = 0; i < Math.min(rows, 40); i++) {
       const other = t.bSystem?.get(i) ?? info.system;
-      const request = { system: other, start: t.bStart[i], end: t.bEnd[i], level, shapes: ['pairs' as const] };
+      const [as, bs, be] =
+        t.form === 'list'
+          ? [t.aStart[i], t.bStart[i], t.bEnd[i]]
+          : [t.aBin[i] * level, t.bBin[i] * level, (t.bBin[i] + 1) * level];
+      if (Math.floor(as / w) !== Math.floor(bs / w)) spanning++;
+      const request: RegionRequest = {
+        system: other,
+        start: bs,
+        end: Math.max(be, bs + 1),
+        level,
+        shapes: ['pairs'],
+        ...(sided && { side: 'b' as const }),
+      };
       const b = await opened.read(request, signal);
-      const found = b.ok && b.tables.pairs?.form === 'list' ? b.tables.pairs : undefined;
-      const hit =
-        found !== undefined &&
-        Array.from({ length: found.aStart.length }).some(
-          (_, j) =>
-            found.aStart[j] === t.aStart[i] && found.bStart[j] === t.bStart[i] && found.id?.get(j) === t.id?.get(i),
-        );
-      expect(hit).toBe(true);
+      const found = b.ok ? b.tables.pairs : undefined;
+      let hit = false;
+      if (found?.form === 'list' && t.form === 'list')
+        for (let j = 0; j < found.aStart.length && !hit; j++)
+          hit = found.aStart[j] === t.aStart[i] && found.bStart[j] === t.bStart[i] && found.id?.get(j) === t.id?.get(i);
+      else if (found?.form === 'bins' && t.form === 'bins')
+        for (let j = 0; j < found.count.length && !hit; j++)
+          hit = found.aBin[j] === t.aBin[i] && found.bBin[j] === t.bBin[i];
+      expect(hit, `pair ${i} at level ${level} found from its other end`).toBe(true);
     }
+    if (rows > 40 && length > 2 * w) expect(spanning, `a pair across two parts at level ${level}`).toBeGreaterThan(0);
   }
 }

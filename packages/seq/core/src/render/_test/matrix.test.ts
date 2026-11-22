@@ -38,7 +38,7 @@ type Frame = { layout: { sections: readonly { lays: readonly (readonly { lay: un
 const layOf = (f: Frame) => f.layout.sections[0].lays[0][0].lay as MatrixLay;
 
 describe('the matrix layer', () => {
-  it('draws inline values a state a row, a missing one transparent, a cell hit as its position and state', async () => {
+  it('draws inline values a state a row, a missing one transparent, a cell hit as its position and state (EC-220, EC-221)', async () => {
     const s = await settle(inline(), [SeqRuntime]);
     const f = await s.frame({ size: { width: 400, height: 200 } });
     const lay = layOf(f);
@@ -57,7 +57,7 @@ describe('the matrix layer', () => {
     expect(matrixCellHover(lay, 2, 0, () => 's')!.rows).toContainEqual(['Value', '0.2']);
   });
 
-  it('draws items at their extents, a long deletion solid and under the short ones; an uncalled code drawn missing', async () => {
+  it('draws items at their extents, a long deletion solid and under the short ones; an uncalled code drawn missing (EC-222)', async () => {
     const s = await settle(sourced(), [SeqRuntime]);
     const size = { width: 800, height: 200 };
     const near = { size, viewport: { start: 0, end: 2000 } };
@@ -106,7 +106,7 @@ describe('the matrix layer', () => {
     expect(matrixCellHover(lay, 300, 1, () => 'chr')!.text).toBe('chr:257–512, NA12891, 1/1 (78%), 256 bp bins');
   });
 
-  it('on a ring, draws its states as thin rings of runs; past `rings.imageRuns` its rows reduced, said once', async () => {
+  it('on a ring, draws its states as thin rings of runs at the outer circumference’s columns; past `rings.imageRuns` its rows reduced, said once (EC-108)', async () => {
     const size = { width: 640, height: 900 };
     const s = await settle(sourced(Many, 'rings'), [SeqRuntime]);
     const f = await s.frame({ size });

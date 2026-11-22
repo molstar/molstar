@@ -17,12 +17,12 @@ import { createSeqSpec } from '@molstar/seqx-core/lang';
 export const HicLength = 2048;
 
 /** A contact map over chr (2,048 positions): a band along the diagonal, served symmetric at levels 1 and 4. */
-export function hic(): SeqData {
+export function hic(scale = 1): SeqData {
   const dense = (level: number): GridDense => {
     const n = HicLength / level;
     const v = new Float32Array(n * n);
     for (let i = 0; i < n; i++)
-      for (let j = 0; j < n; j++) v[i * n + j] = (level * level * 100) / (1 + Math.abs(i - j));
+      for (let j = 0; j < n; j++) v[i * n + j] = (scale * level * level * 100) / (1 + Math.abs(i - j));
     return { form: 'dense', x: 0, y: 0, nx: n, ny: n, value: v };
   };
   const request = (level: number) => ({
@@ -46,17 +46,23 @@ export function hic(): SeqData {
   };
 }
 
-/** A top track section and a grid section over chr, its grid read by region. */
-export function gridRegionSpec() {
+/**
+ * A top track section and a grid section over chr, its grid read by region; with `second`, a second source's grid on
+ * the same pair (EC-59: the upper triangle one map, the lower the other).
+ */
+export function gridRegionSpec(second = false) {
   const b = createSeqSpec({ title: 'Hi-C by region' });
   const src = b.data.source('src', { format: 'seq', value: seqToValue(hic()) as never });
   const chr = b.data.sequence('chr', { alphabet: 'dna', source: src, name: 'chr' });
   const g = b.data.grid('contacts', { x: chr, source: src } as never);
+  const other = second ? b.data.source('other', { format: 'seq', value: seqToValue(hic(3)) as never }) : undefined;
+  const h = other ? b.data.grid('treated', { x: chr, source: other } as never) : undefined;
   b.views.view('main', (v) => {
     const top = v.section('chr', { of: chr });
     top.track('ruler').layer('ruler', { type: 'ruler' });
     v.section('plot', { layout: 'grid', of: chr, follow: top.address }).track('plot', {}, (t) => {
-      t.layer('grid', { type: 'grid', data: g });
+      t.layer('grid', { type: 'grid', data: g, ...(h ? { triangle: 'upper' } : {}) });
+      if (h) t.layer('treated', { type: 'grid', data: h, triangle: 'lower' });
     });
   });
   return b.build();

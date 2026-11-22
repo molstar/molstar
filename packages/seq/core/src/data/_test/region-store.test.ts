@@ -178,7 +178,7 @@ describe("a layer's wants together", () => {
 });
 
 describe('bytes and keys', () => {
-  it('refuse an answer past maxTileBytes as too large, never kept', async () => {
+  it('refuse an answer past maxTileBytes as too large, never kept (EC-59: the size cap a tile)', async () => {
     const big = (r: RegionRequest): RegionAnswer => {
       const n = 256;
       const grid: GridDense = {

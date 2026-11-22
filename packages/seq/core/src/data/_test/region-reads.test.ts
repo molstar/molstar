@@ -242,13 +242,27 @@ describe('the pairs level (EC-208)', () => {
     expect(b.sum!.reduce((a, v) => a + v, 0)).toBeCloseTo(total, 0);
   });
 
-  it('binned from held pairs equals binned by the store’s summaries from region reads', async () => {
-    const s = withSummaries(openSeq(pairsSource(400)), undefined, undefined, Now);
+  it('binned from held pairs equals binned by the store’s summaries from region reads, at every kept level', async () => {
+    const N = 400;
+    const s = withSummaries(openSeq(pairsSource(N)), undefined, undefined, Now);
     const level = s.coverage.levels[s.coverage.levels.length - 1];
+    // the pyramid built by the first read: every kept level after it equals the held pairs binned there
+    await s.read({ system: 'chr1', start: 0, end: Chr1, level, shapes: ['pairs'] }, signal);
+    const kept = s.coverage.levels.filter((l) => l > 1);
+    expect(kept.length).toBeGreaterThan(0);
+    for (const l of kept) {
+      const r = await s.read({ system: 'chr1', start: 0, end: Chr1, level: l, shapes: ['pairs'] }, signal);
+      const held = sliceTable(binPairs(pairsOf(N), l, { category: true, systems: true }), l, {
+        start: 0,
+        end: Chr1,
+        system: 'chr1',
+      });
+      expect(binKeys((r.ok ? r.tables.pairs : undefined) as PairsBins)).toEqual(binKeys(held as PairsBins));
+    }
     const a = await s.read({ system: 'chr1', start: 0, end: Chr1, level, shapes: ['pairs'] }, signal);
     const fromStore = a.ok ? a.tables.pairs : undefined;
     expect(fromStore?.form).toBe('bins');
-    const held = sliceTable(binPairs(pairsOf(400), level, { category: true, systems: true }), level, {
+    const held = sliceTable(binPairs(pairsOf(N), level, { category: true, systems: true }), level, {
       start: 0,
       end: Chr1,
       system: 'chr1',
@@ -256,15 +270,11 @@ describe('the pairs level (EC-208)', () => {
     expect(binKeys(fromStore as PairsBins)).toEqual(binKeys(held as PairsBins));
     // the shape's numeric field summed into the bins (Decided 2), as binned from the held pairs
     const total = (c: Float32Array | undefined) => (c ?? new Float32Array(0)).reduce((a, v) => a + v, 0);
-    const heldSum = sliceTable(
-      binPairs(pairsOf(400), level, { category: true, systems: true, field: 'score' }),
-      level,
-      {
-        start: 0,
-        end: Chr1,
-        system: 'chr1',
-      },
-    ) as PairsBins;
+    const heldSum = sliceTable(binPairs(pairsOf(N), level, { category: true, systems: true, field: 'score' }), level, {
+      start: 0,
+      end: Chr1,
+      system: 'chr1',
+    }) as PairsBins;
     expect((fromStore as PairsBins).sum).toBeDefined();
     expect(total((fromStore as PairsBins).sum)).toBeCloseTo(total(heldSum.sum), 2);
     // a level whose bins do not halve the rows below leaves the coverage once built (the reader takes the next kept)
@@ -313,21 +323,35 @@ describe('the pairs level (EC-208)', () => {
 });
 
 describe('grid levels and symmetric tiles (EC-223)', () => {
-  it('a symmetric tile transposed equals the tile asked across the diagonal', async () => {
+  it('a symmetric tile transposed equals the tile asked across the diagonal, every tile pair at every level', async () => {
     const s = openSeq(twoLevelGrid(64, 40));
-    const up: RegionRequest = {
-      system: 'chr1',
-      start: 0,
-      end: 32,
-      level: 1,
-      shapes: ['grid'],
-      y: { system: 'chr1', start: 32, end: 64 },
-    };
-    const down: RegionRequest = { ...up, start: 32, end: 64, y: { system: 'chr1', start: 0, end: 32 } };
-    const a = await s.read(up, signal);
-    const b = await s.read(down, signal);
-    expect(a.ok && b.ok).toBe(true);
-    if (a.ok && b.ok) expect(transposeGrid(a.tables.grid!)).toEqual(b.tables.grid);
+    let pairs = 0;
+    for (const level of [1, 4])
+      for (let x = 0; x < 64; x += 16 * level)
+        for (let y = 0; y < 64; y += 16 * level) {
+          const w = 16 * level;
+          const up: RegionRequest = {
+            system: 'chr1',
+            start: x,
+            end: Math.min(64, x + w),
+            level,
+            shapes: ['grid'],
+            y: { system: 'chr1', start: y, end: Math.min(64, y + w) },
+          };
+          const down: RegionRequest = {
+            ...up,
+            start: y,
+            end: Math.min(64, y + w),
+            y: { system: 'chr1', start: x, end: Math.min(64, x + w) },
+          };
+          const a = await s.read(up, signal);
+          const b = await s.read(down, signal);
+          expect(a.ok && b.ok).toBe(true);
+          if (a.ok && b.ok) expect(transposeGrid(a.tables.grid!)).toEqual(b.tables.grid);
+          pairs++;
+        }
+    // 4 × 4 tile pairs at level 1 (the diagonal and both sides of it), one at level 4
+    expect(pairs).toBe(17);
   });
 
   it('sums counts at factor 2 a side, every level summing to the whole', async () => {
