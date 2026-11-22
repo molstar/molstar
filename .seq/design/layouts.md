@@ -604,8 +604,14 @@ more than a screen can give it, it scrolls inside itself with its name and the t
 - **Keys**: the keyboard cursor moving to an item reveals its lane (the band scrolls the least to show it);
   Page Up and Page Down scroll the band under the cursor a band's height (the rows' rule, EC-155: only while a cursor
   is shown).
-- **A slim rail**, the rows rail's geometry upright (`SlimRailPx`, 12 px at the band's right edge beside the right
-  gutter), drawn only while the lanes overflow; its window the lanes in view; pan only (lanes have no zoom: no grips).
+- **A slim rail**, the rows rail itself, not a look-alike (`SlimRailPx`, 12 px at the band's right edge beside the
+  right gutter), drawn only while the lanes overflow; its window the lanes in view; pan only (lanes have no zoom: no
+  grips). **One rail for every box that scrolls** (the author, 2026-11-22: "any section should be scrollable already,
+  so we should use the same rail everywhere"): a rows band, a lanes band, a text section past `text.maxHeight`, and any
+  section or band that scrolls later share one rail: one placement (`placeUpright`), one drawing, one hit, one gesture
+  (hover grows it, its window dragged, a press beside it pages toward the press, Page keys and Home/End with the cursor
+  in its box, Escape cancels a drag). They differ only in what the rail can do: grips where the box also zooms (rows),
+  none where it only pans. Why: a scroll affordance that looks the same but answers differently is worse than none.
 - **A cut edge says so**: a 1 px `msui-border` line at the band's top or bottom where lanes are cut (the scroll's
   affordance at rest, quieter than the rail).
 - **Drag past the edge** (EC-150): a drag-select leaving the band autoscrolls it by time, as the rows band.
