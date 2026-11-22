@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { type MatrixBins, type MatrixItems, openSeq } from '@molstar/seqx-core/data';
+import { type MatrixSummary, type MatrixItems, openSeq } from '@molstar/seqx-core/data';
 import { describe, expect, it } from 'vitest';
 import {
   GenotypeBin,
@@ -56,7 +56,7 @@ describe('the generated genotypes (Features/Region reads; EC-220, EC-222)', () =
       return a.tables.matrix!;
     };
     const items = (await read(1)) as MatrixItems;
-    const bins = (await read(GenotypeBin)) as MatrixBins;
+    const bins = (await read(GenotypeBin)) as MatrixSummary;
     expect(bins.states).toBe(40);
     // a bin of one item agrees with it entirely
     const S = 40;
@@ -106,7 +106,7 @@ describe('the generated methylation (EC-221)', () => {
       signal,
     );
     if (!a.ok) throw new Error(a.issue.message);
-    const bins = a.tables.matrix as MatrixBins;
+    const bins = a.tables.matrix as MatrixSummary;
     expect(bins.states).toBe(MethylationSamples.length);
     expect(bins.mean!.some((x) => Number.isNaN(x))).toBe(true);
     expect(bins.mean!.some((x) => !Number.isNaN(x))).toBe(true);

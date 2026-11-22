@@ -5,7 +5,7 @@
  */
 
 import { PCG } from '@molstar/core/data/util/hash-functions';
-import type { MatrixBins, MatrixItems, SeqData } from '@molstar/seqx-core/data';
+import type { MatrixSummary, MatrixItems, SeqData } from '@molstar/seqx-core/data';
 
 // Generated methylation (Features/Region reads): a fraction in 0 to 1 per CpG and
 // sample, a CpG island where it falls to near zero, and a share of values missing (a sample that did not cover a CpG:
@@ -57,7 +57,7 @@ export function methylationItems(seed = 31): MatrixItems & { readonly missing: n
 }
 
 /** The values at a coarser level: each bin's mean per sample (NaN where no CpG was covered), and the counts. */
-export function binValues(items: MatrixItems, length: number, width: number): MatrixBins {
+export function binValues(items: MatrixItems, length: number, width: number): MatrixSummary {
   const S = items.states;
   const n = Math.ceil(length / width);
   const sum = new Float64Array(n * S);
@@ -73,7 +73,7 @@ export function binValues(items: MatrixItems, length: number, width: number): Ma
   }
   const mean = new Float32Array(n * S);
   for (let i = 0; i < n * S; i++) mean[i] = count[i] === 0 ? Number.NaN : sum[i] / count[i];
-  return { form: 'bins', start: 0, states: S, mean, count };
+  return { form: 'summary', start: 0, states: S, mean, count };
 }
 
 /** The methylation as a source: items (level 1) and bins (`MethylationBin`). */

@@ -6,7 +6,7 @@
 
 import { PCG } from '@molstar/core/data/util/hash-functions';
 import { categoryColumn } from '@molstar/core/repr/tree';
-import type { MatrixBins, MatrixItems, SeqData } from '@molstar/seqx-core/data';
+import type { MatrixSummary, MatrixItems, SeqData } from '@molstar/seqx-core/data';
 
 // A generated genotype matrix (Features/Region reads): 40 samples over one
 // chromosome's variants, a code each (`0` no copy, `1` one, `2` both, `255` uncalled), with one long deletion that a
@@ -61,7 +61,7 @@ export function genotypeItems(seed = 21): MatrixItems & { readonly deletion: num
 }
 
 /** A matrix of codes at a coarser level: each bin's majority class per sample and its share (0 to 255). */
-export function binCodes(items: MatrixItems, length: number, width: number): MatrixBins {
+export function binCodes(items: MatrixItems, length: number, width: number): MatrixSummary {
   const S = items.states;
   const n = Math.ceil(length / width);
   const counts = new Float32Array(n * S * 4);
@@ -86,7 +86,7 @@ export function binCodes(items: MatrixItems, length: number, width: number): Mat
     classes[i] = best;
     shares[i] = Math.round((255 * counts[i * 4 + best]) / called[i]);
   }
-  return { form: 'bins', start: 0, states: S, classes, shares };
+  return { form: 'summary', start: 0, states: S, classes, shares };
 }
 
 /** The genotypes as a source: the items (level 1) and the bins (`GenotypeBin`). */
