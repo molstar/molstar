@@ -25,8 +25,6 @@ import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { ParticlesRegistry } from '@molstar/plugin/particles-registry';
 import { PluginStateTransform, PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import { ParticlesRepresentation3D } from '@molstar/plugin/state/transforms/particles/representation';
-import type { MergedGraphicsRenderObject } from '@molstar/graphics/gl/render-object';
-import { getPagedCuller } from '@molstar/graphics/gl/renderable/merged-paged-culler';
 import { WebGPU } from './webgpu-module.js';
 
 // A list with templates' far copies (`ParticleNesting.getTemplateLevels`): a copy whose template's particles are a few
@@ -204,26 +202,7 @@ describe.skipIf(!WebGPU.module)("a list with templates' far copies on WebGPU", (
       const { data, repr } = await draw(nested);
       const r = repr.data!.repr;
       // near: its template whole, as the flattened list
-      const { pending } = graphics.resources;
-      const tracked = pending.trackedCount;
-      const nearDiffering = differing(await frame(...near), flatNear);
-      if (nearDiffering > 8) {
-        // what the near frames tracked (the leaf pages wanted, a room overflowed, pipelines), and whether more frames
-        // with real time between them draw it whole (the cull reads its wants by the clock): told in the failure
-        const labels: Record<string, number> = {};
-        for (const l of pending.trackedSince(tracked)) labels[l] = (labels[l] ?? 0) + 1;
-        const recovery: number[] = [];
-        for (let i = 0; i < 5 && (recovery.at(-1) ?? nearDiffering) > 8; ++i) {
-          await new Promise((r) => setTimeout(r, 300));
-          recovery.push(differing(await frame(...near), flatNear));
-        }
-        const maxStorage = graphics.compute?.maxStorageBufferSize;
-        // the store's cull: what its read-backs last found (the frame's slots needed, its room and cap)
-        const source = r.renderObjects.map((o) => (o as MergedGraphicsRenderObject).merged?.source).find((s) => s);
-        const readBack = source && getPagedCuller(source)?.readBack;
-        const report = JSON.stringify({ nearDiffering, recovery, labels, maxStorage, readBack });
-        expect(nearDiffering, `near copy not drawn whole: ${report}`).toBeLessThanOrEqual(8);
-      }
+      expect(differing(await frame(...near), flatNear)).toBeLessThanOrEqual(8);
       // far: a sample drawn larger, not the flattened list's image, but about its color and its cover
       const nestedFar = await frame(...far);
       expect(differing(nestedFar, flatFar)).toBeGreaterThan(8);
