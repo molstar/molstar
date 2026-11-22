@@ -205,6 +205,8 @@ export interface Hit {
    * it names (`title: value`, on its row's `row` hit); a column title's field (`column-title`).
    */
   readonly state?: string;
+  /** A ranges layer's merged run of mixed categories: their names in the legend's order, comma-separated. */
+  readonly categories?: string;
   /** A `group` hit's members: the hits of the items it stands for. */
   readonly members?: readonly Hit[];
 }

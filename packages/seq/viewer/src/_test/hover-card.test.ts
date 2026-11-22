@@ -299,6 +299,23 @@ describe('the hover card’s content, headless on the HoverModel', () => {
     expect(c.said).toBe(c.card!.text);
   });
 
+  it('an item hit in a run of mixed categories lists them; a layer’s `state` (a rows cell’s `title: value`) never is one', async () => {
+    const v = await make(cardSpec());
+    const item = layerOf(v, 0, 'ranges');
+    const hit = {
+      layer: item.l.key,
+      section: item.s.section.address,
+      system: Heavy,
+      element: { owner: item.l.layer.data!.address, key: 'A' },
+    };
+    const mixed = cardOf(v, { ...hit, categories: 'loop, sheet' });
+    expect(mixed.card!.rows).toContainEqual({ label: 'Categories', value: 'loop, sheet' });
+    expect(mixed.card!.rows.map((r) => r.label)).not.toContain('Category');
+    const stated = cardOf(v, { ...hit, state: 'Species: human' });
+    expect(stated.card!.rows.map((r) => r.label)).not.toContain('Categories');
+    expect(stated.card!.rows).toContainEqual({ label: 'Category', value: 'loop' });
+  });
+
   it('names a grid cell by its two residues (letter and position) and its value', async () => {
     const v = await make(cardSpec());
     const g = layerOf(v, 1, 'grid');

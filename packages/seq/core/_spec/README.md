@@ -2661,7 +2661,9 @@ in page coordinates: what crosses strips), `axes` (2: a second axis of its own, 
 - `ranges`: items in sticky lanes, carried onto the section along the layer's path (a domain on its gene: a piece an
   exon); labels inside marks 24 px or wider (faded past the mark), or inside a narrower one when they fit whole with 3
   px a side (a modified residue's code over its one position; none below 8 px), drawn in the `labels` pass. At `bars` a
-  lane's marks touching within a device pixel merge into a run; at `density`, or a density table, one heat strip, a
+  lane's marks touching within a device pixel merge into a run, drawn in the fill of its items' majority color group (a
+  palette's value, in the legend's order on a tie; never the neutral colour), and a hover over a run of several
+  categories lists them (`Hit.categories`, the card's "Categories"); at `density`, or a density table, one heat strip, a
   device column a pixel, except a list of few rows (at most one a CSS pixel of the band): those stay items, each its own
   mark, so a chromosome's bands at its fit keep their labels, hits and arrows. Items past the lanes collapse into a
   density row in the last lane, the rest drawn as items (`ranges.overflow: 'extra-lanes'`), or the whole layer becomes
@@ -3983,6 +3985,9 @@ under the point as the hit's `state`. It reads every row (a logo of the rows sho
   overlay and syncs its sources (let go at the end), lays out until its wants and the store's node version hold, waits
   for them to settle, and draws once more with the view settled. It waits for its view's wants alone, never their
   margins.
+- **A spec with an error** is drawn as the canvas draws it (what resolves), its errors said in the picture's `<desc>`
+  (`code at address: message`); a spec past the bounds (`seq.lang.bound.*`) stays a blank document with the issues, for
+  resolving it is what the bounds guard. Why: a picture of what a spec says beats none while the author fixes a mistake.
 - **One deadline** (`timeoutMs`, 10 s, on `clock`: real timers by default, a shared store's clock or a fake one) covers
   opening the sources and settling; past it the opens are aborted and the export is `seq.render.unsettled`. The model
   and view resolved again are taken only when the opening wins the race with the deadline: a source that opens later

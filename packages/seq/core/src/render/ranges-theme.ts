@@ -37,6 +37,16 @@ export function themeItems(lay: RangesLay, prep: RangesPrep, ctx: LayoutContext)
   const cconst = color.constant;
   const sconst = size.constant;
   const oconst = opacity.constant;
+  // the color groups a merged run takes its majority by: a palette's values in the legend's order, else distinct fills
+  const ids = lay.groupIds;
+  ids.clear();
+  lay.groupNames.length = 0;
+  const palette = color.legend?.kind === 'palette' ? color.legend.palette : undefined;
+  if (palette?.kind === 'categorical')
+    for (const v of palette.values ?? []) {
+      ids.set(v, lay.groupNames.length);
+      lay.groupNames.push(v);
+    }
   let bound: ItemRows['fields'][number] | null = null;
   let codes: ArrayLike<number> | undefined;
   let dict: readonly string[] | undefined;
@@ -75,6 +85,15 @@ export function themeItems(lay: RangesLay, prep: RangesPrep, ctx: LayoutContext)
     }
     if (lay.extents.any) lay.extents.add(datum);
     lay.fills[j] = fill;
+    const pv = painted !== undefined ? lay.painted[j] : undefined;
+    const gk: string | number = pv ?? fill;
+    let g = ids.get(gk);
+    if (g === undefined) {
+      g = Math.max(ids.size, lay.groupNames.length);
+      ids.set(gk, g);
+      lay.groupNames[g] = pv ?? '';
+    }
+    lay.group[j] = g;
   }
   lay.extents.flush(ctx.theme);
 }

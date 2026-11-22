@@ -39,12 +39,15 @@ describe('Builder stories, headless', () => {
       const svg = viewer.renderSvg({ idPrefix: 'b-' });
       await vi.advanceTimersByTimeAsync(400);
       const r = await svg;
-      // the export refuses a spec with an error (`exportSvg`: a blank picture and the issues): the SVG of `check` is blank
-      // while the canvas draws the letters it can
+      // the export draws what resolves, as the canvas does, and says the issues in the picture's `<desc>`: the SVG of
+      // `check` has the letters and an empty hits track
       if (c.id === 'check') {
-        expect(r.issues.some((i) => i.severity === 'error')).toBe(true);
-        expect(recordDrawLists(r.lists, ['data']).split('\n').filter(Boolean)).toHaveLength(2);
-        expect(recordDrawLists(viewer.frame!.lists, ['data'])).toContain('rect');
+        const errors = r.issues.filter((i) => i.severity === 'error');
+        expect(errors.length).toBeGreaterThan(0);
+        expect(recordDrawLists(r.lists, ['data'])).toBe(recordDrawLists(viewer.frame!.lists, ['data']));
+        expect(recordDrawLists(r.lists, ['data'])).toContain('rect');
+        const desc = /<desc[^>]*>([^<]*)<\/desc>/.exec(r.svg)![1];
+        expect(desc).toContain(errors[0].code);
       } else {
         expect([r.settled, r.issues]).toEqual([true, []]);
         expect(viewer.modelIssues.value).toEqual([]);

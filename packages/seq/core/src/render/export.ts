@@ -5,7 +5,7 @@
  */
 
 import { hashString } from '@molstar/core/data/util/hash-functions';
-import { hasErrors, type Issue, issueOf, type Node } from '@molstar/core/repr/tree';
+import { type Issue, issueOf, type Node } from '@molstar/core/repr/tree';
 import {
   type AssetReader,
   DataStore,
@@ -59,7 +59,7 @@ import { type PositionsRailMode, railSections } from './rail.js';
 import { Renderer, type RendererOptions } from './renderer.js';
 import type { ViewLayout } from './tracks.js';
 import type { HeaderPartsOf } from './headers.js';
-import { drawListsToSvg } from './svg.js';
+import { drawListsToSvg, type SvgAccessible } from './svg.js';
 import { bundledTextMetrics, type TextMetrics } from './text.js';
 import { builtInTokens, type SeqTokens } from './tokens.js';
 
@@ -418,6 +418,23 @@ export interface RenderSvgResult {
   readonly selection?: Location;
 }
 
+/** The most errors a description names; the rest are counted. */
+const MaxDescribedErrors = 10;
+
+/** A figure's description with the spec's errors said, the first ten and a count of the rest (none: unchanged). */
+export function withIssues(a: SvgAccessible, errors: readonly Issue[]): SvgAccessible {
+  if (!errors.length) return a;
+  const said = errors
+    .slice(0, MaxDescribedErrors)
+    .map((i) => `${i.code}${i.address ? ` at ${i.address}` : ''}: ${i.message}`)
+    .join('; ');
+  const more = errors.length > MaxDescribedErrors ? ` and ${errors.length - MaxDescribedErrors} more` : '';
+  return {
+    ...a,
+    description: `${a.description}. The spec has ${errors.length === 1 ? 'an error' : 'errors'}: ${said}${more}`,
+  };
+}
+
 function wantsKey(wants: readonly Want[]): string {
   return wants.map((w) => `${w.source}|${w.system}|${w.start}|${w.end}|${w.level}|${w.priority}`).join(';');
 }
@@ -439,7 +456,10 @@ export async function exportSvg(spec: Node, given: RenderSvgOptions): Promise<Re
     lists.height = options.size.height === 'auto' ? 0 : options.size.height;
     return { svg: drawListsToSvg(lists), settled, issues, lists };
   };
-  if (hasErrors(issues)) return blank(true);
+  // a spec with an error is drawn as the canvas draws it (what resolves); its errors go in the picture's description
+  const specErrors = issues.filter((i) => i.severity === 'error');
+  // except a spec past the bounds (`seq.lang.bound.*`): they guard what resolving costs, so it is not resolved
+  if (specErrors.some((i) => i.code.startsWith('seq.lang.bound.'))) return blank(true);
   const resolveOptions = {
     ...(options.runtimes ? { runtimes: options.runtimes } : {}),
     config: options.resolve ?? {},
@@ -713,7 +733,7 @@ export async function exportSvg(spec: Node, given: RenderSvgOptions): Promise<Re
       fonts: tokens.fonts,
       fade: config.fade,
       idPrefix,
-      accessible: accessibleOf(model, frame.layout, titleText, emphasis?.highlights),
+      accessible: withIssues(accessibleOf(model, frame.layout, titleText, emphasis?.highlights), specErrors),
       metadata: {
         'seq-settled': String(settled),
         ...(domains.length ? { 'seq-domains': domains.join(';') } : {}),
