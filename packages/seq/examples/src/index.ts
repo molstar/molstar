@@ -27,3 +27,4 @@ export {
   TrnaViews,
 } from './views.js';
 export { RecordedFiles } from './genomes/files.js';
+export { RegionReadsViews } from './regions/views.js';
