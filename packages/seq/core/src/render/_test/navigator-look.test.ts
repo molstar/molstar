@@ -89,9 +89,9 @@ describe('the navigator over a genome: two rows always', () => {
   });
 
   it('every line of the part has one width: the window, the mark, the funnel, a lit window', async () => {
-    const { s, frame } = await over();
+    const { frame } = await over();
     for (const lit of [undefined, 'body' as const]) {
-      const f = await frame(5, 0.25, 0.5, lit && { section: Section, part: lit, axis: 'positions' });
+      const f = await frame(5, 0.25, 0.5, lit && { section: Section, part: lit });
       const { rects, paths } = f.lists.passes.window;
       const widths = new Set<number>();
       for (let i = 0; i < rects.n; i++)

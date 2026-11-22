@@ -261,6 +261,33 @@ export function arcText(model: StaticModel, nav: ResolvedNavigator, p0: number, 
   return `${label}:${countText(p0 + 1)}–${countText(p1)}`;
 }
 
+// the flag as a number read once: a draw reads no property of an imported object
+const FlagX: number = NavWindowFlags.x;
+
+/** Whether a window is at the fit: it moves along x alone and covers all it can reach, so it is no target (a sweep's row). */
+export function windowAtFit(w: NavigatorWindow): boolean {
+  return w.shown && w.axes === FlagX && !w.wrap && w.dx0 <= w.lo + 0.5 && w.dx1 >= w.hi - 0.5;
+}
+
+/**
+ * Whether a positions navigator has a zoom strip (navigators.md, "The window's look", 1): over blocks by `mode`
+ * (`always`; `narrow`: the window's width `px` under `minPx`, held `hysteresis` px past it while `on`; `never`), else by
+ * the one-system reachable span `span` px narrower than `min`.
+ */
+export function wantsStrip(
+  blocks: boolean,
+  strip: { readonly minPx: number; readonly overBlocks?: 'always' | 'narrow' | 'never' },
+  px: number,
+  span: number,
+  on: boolean,
+  hysteresis: number,
+): boolean {
+  const min = strip.minPx;
+  if (!blocks) return min > 0 && span < min;
+  const mode = strip.overBlocks ?? 'always';
+  return mode === 'always' || (mode === 'narrow' && (px < min || (on && px <= min + hysteresis)));
+}
+
 /**
  * The part along x of a window that may wrap a cyclic origin (two pieces: from its start to the axis's end, from the
  * axis's start to its end): where a piece meets the axis's end it is body, so its grips are at its true ends only.
@@ -271,6 +298,7 @@ export function partOf(
   c: RenderConfig['navigator']['window'],
   touch: boolean,
 ): WindowPart | undefined {
+  if (windowAtFit(w)) return x >= w.lo && x < w.hi ? 'outside' : undefined;
   if (!w.wrap) return navigatorPart(x, w.dx0, w.dx1, w.lo, w.hi, c, touch);
   const a = navigatorPart(x, w.x0, w.x1, w.lo, w.hi, c, touch);
   if (a === 'end') return 'body';
