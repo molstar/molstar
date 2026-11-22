@@ -169,16 +169,6 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   source's (a device pixel a row for a lazy source without row levels, part 1 above). The library rule (memory: the
   host configures optional behaviour) and grids-and-rows.md's zoom rows updated with it.
 
-- **A tree opened from its toggle has no way back on screen** (FX7 stopped it, 2026-11-22: it needs a `LayoutContext` field in `layer-type.ts` and a line in `tracks.ts`, RG's then; open for the next fix lane) (the author, 2026-11-21, Examples › Globins › Rows ›
-  Scale: "when i expand the tree, there doesn't seem to be a way to collapse it back. another port for app level
-  control?"). The narrow-frame rule (grids-and-rows.md, "A narrow frame gives way in one order", step 3; core `_spec`
-  Rows, `RowsLay.toggleX`) collapses the tree to its glyph; a click or Shift+T (`rows.tree`) opens it whole "and folds
-  it back", but once open the glyph is gone, so only the key folds it. Keep the toggle at the band's top while the
-  tree is kept open (the same glyph, pressed, `tree-toggle` hit, its tooltip naming Shift+T), and give the command an
-  app-owned control the same way as the sort's clear: an entry "Show tree" / "Fold tree" in the band's menu, and
-  `rows.tree` in the viewer's commands for a host's button. A twin test: open from the glyph, fold from the glyph, the
-  layout back to its narrow form.
-
 - **Hovering a ligand's score box lights its residues but not its arcs** (closed by the hover contract above; the author, 2026-11-21, Examples › Complex ›
   Views › As a complex: "mouse on empty patch highlights arcs, but on box only the columns"). Over the score track's
   empty band at PYZ's position, the hover resolves to the position (card "PYZ 1"), its contact arcs light dark and the
@@ -216,14 +206,6 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   chr22 selected on the row, mirrored on the ring): profile the drag's frames (the selection's blocks and their
   emphasis on both views), bound a drag across 12 blocks to the frame budget at 0 bytes warm.
 
-- **Sizing a track of many lanes: content height, a cap, then its own scroll** (the author, 2026-11-21, gff3--tp-53:
-  "can we do a better job at the track sizing for the transcripts in general? what if that section needs a scroll?";
-  earlier: blank lanes above and below, the first row unlabelled). Needs a short design before a fix lane (Ranges,
-  ux-foundations' heights): a ranges track sizes to its lanes as they are known (growing as a source's rows arrive,
-  never a blank band), up to a cap (`track.maxPx` or a share of the view); past the cap its lanes scroll inside the
-  track (the wheel over it scrolls lanes, a slim vertical rail like the rows', the header and labels fixed); the
-  first row labelled. The fixed height of source-backed tracks (TODO, "Track heights … for a source's items") is the
-  rule this revisits.
 - **A bare number as a block name** (`:name 01`): GC1 refuses it with "quote it" (`seq.query.form.param`), since core's
   address reader turns `01` into 1 before Seq* sees it. Keeping the text would need a raw-token surface in core repr
   (allowed: repr's public API is open to this work); take it only if a real name set needs it.
@@ -239,6 +221,24 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   above the ring at the top left (find what draws them).
 
 ## Fixed
+
+- **A tree opened from its toggle has no way back on screen** (FX7 stopped it, 2026-11-22: it needs a `LayoutContext` field in `layer-type.ts` and a line in `tracks.ts`, RG's then; open for the next fix lane) (the author, 2026-11-21, Examples › Globins › Rows ›
+  Scale: "when i expand the tree, there doesn't seem to be a way to collapse it back. another port for app level
+  control?"). The narrow-frame rule (grids-and-rows.md, "A narrow frame gives way in one order", step 3; core `_spec`
+  Rows, `RowsLay.toggleX`) collapses the tree to its glyph; a click or Shift+T (`rows.tree`) opens it whole "and folds
+  it back", but once open the glyph is gone, so only the key folds it. Keep the toggle at the band's top while the
+  tree is kept open (the same glyph, pressed, `tree-toggle` hit, its tooltip naming Shift+T), and give the command an
+  app-owned control the same way as the sort's clear: an entry "Show tree" / "Fold tree" in the band's menu, and
+  `rows.tree` in the viewer's commands for a host's button. A twin test: open from the glyph, fold from the glyph, the
+  layout back to its narrow form. Fixed by FX9 (`1b651968d`): a pressed toggle with the tree beside it, and "Show tree / Fold tree" in the band menu when the frame lacks room.
+- **Sizing a track of many lanes: content height, a cap, then its own scroll** (the author, 2026-11-21, gff3--tp-53:
+  "can we do a better job at the track sizing for the transcripts in general? what if that section needs a scroll?";
+  earlier: blank lanes above and below, the first row unlabelled). Needs a short design before a fix lane (Ranges,
+  ux-foundations' heights): a ranges track sizes to its lanes as they are known (growing as a source's rows arrive,
+  never a blank band), up to a cap (`track.maxPx` or a share of the view); past the cap its lanes scroll inside the
+  track (the wheel over it scrolls lanes, a slim vertical rail like the rows', the header and labels fixed); the
+  first row labelled. The fixed height of source-backed tracks (TODO, "Track heights … for a source's items") is the
+  rule this revisits. Fixed by FX9 (`1b651968d`): content height up to `track.maxPx` (240), then the lanes scroll inside with the rows rail; a source's track grows as its lanes settle; an export draws every lane. Not built (TODO): keys, rail drag, drag autoscroll, EC-247 ticks, the "+n" headers, `track.overflow` as a param.
 
 - **The navigator's window and zoom strip look inconsistent and rough** (fixed by FX8, merged 2026-11-22) (the author, 2026-11-21, a ring that switches:
   "i don't understand why chr6 gets a 'box' and the other 'sub-section'"; "the 'subsection visual' is really ugly,
