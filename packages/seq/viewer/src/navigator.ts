@@ -537,7 +537,13 @@ export class NavigatorModel extends ReactiveModel {
   private publishReadout(): void {
     const nav = this.navigator;
     const f = this.lastFrame;
-    const w = nav && f ? (f.windows.find((x) => x.section === this.top) ?? f.windows.find((x) => x.shown)) : undefined;
+    // the window last acted on, else the first shown (an indexed loop: no closure a frame)
+    let w: NavigatorWindow | undefined;
+    if (nav && f) {
+      const ws = f.windows;
+      for (let i = 0; i < ws.length && !w; i++) if (ws[i].section === this.top) w = ws[i];
+      for (let i = 0; i < ws.length && !w; i++) if (ws[i].shown) w = ws[i];
+    }
     let own: ReadoutParts | undefined;
     if (nav && w?.shown) {
       if (
