@@ -126,9 +126,9 @@ export function inlinePlan(
   return { kind: 'inline', source: { address, format: 'seq', value }, runtime: SeqRuntime, system: name, shape };
 }
 
-/** A source read by region, the system by the name the source knows it by. */
-export function sourcePlan(source: string, system: string, shape: Shape): AccessPlan {
-  return { kind: 'source', source, system, shape };
+/** A source read by region, the system by the name the source knows it by (on `side` of a sided pairs source). */
+export function sourcePlan(source: string, system: string, shape: Shape, side?: 'a' | 'b'): AccessPlan {
+  return side ? { kind: 'source', source, system, shape, side } : { kind: 'source', source, system, shape };
 }
 
 export function sequenceEntry(at: Placed, source: string | undefined, known: number | undefined): SystemEntry {

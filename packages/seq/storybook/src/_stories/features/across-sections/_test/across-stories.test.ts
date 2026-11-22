@@ -14,12 +14,21 @@ import {
   PeachSection,
   PlumSection,
 } from '@molstar/seqx-examples/across/views';
-import { Gap, Inversion, Translocation } from '@molstar/seqx-examples/across/genomes';
+import {
+  BinsPitch,
+  type Blocks,
+  blocksOf,
+  Gap,
+  Inversion,
+  ItemsPitch,
+  PeachToGrape,
+  Translocation,
+} from '@molstar/seqx-examples/across/genomes';
 import { describerFor } from '@molstar/seqx-viewer/describe';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { openExample } from '../../../examples/_test/draw-checks.js';
-import { openZoomed } from '../openings.js';
+import { openZoomed, openZoomedGrape } from '../openings.js';
 
 // Features/Across sections, headless on a fake clock as the stories compose them (a viewer of the view, its SVG export
 // light and dark): two genomes at the fit (an inversion crossed, a translocation, a gap; EC-206, EC-218), zoomed out to
@@ -75,6 +84,50 @@ async function bothThemes(v: SeqViewer, groups = 1) {
 
 const named = (v: SeqViewer, system: string) => v.view.model.value.systems.get(system)?.name;
 
+/** Whether a section's window shows a position of a chromosome (a block's place over its window). */
+function shows(v: SeqViewer, section: string, chr: string, p: number): boolean {
+  const s = v.frame!.layout.sections.find((x) => x.section.address === section)!;
+  const strips = s.placement.strips;
+  for (let i = 0; i < strips.n; i++) {
+    const axis = strips.axes[i];
+    if (named(v, axis.system) !== chr) continue;
+    const vis = axis.visible([]);
+    for (let j = 0; j + 1 < vis.length; j += 2) if (p >= vis[j] && p < vis[j + 1]) return true;
+  }
+  return false;
+}
+
+/**
+ * Every block anchored in either side's window drawn exactly once (its item, or a bin pair of its strand holding both
+ * its starts), none twice (EC-209).
+ */
+function expectDrawnOnce(v: SeqViewer, bl: Blocks) {
+  const ribbons = bridges(v)[0].ribbons();
+  const count = new Array<number>(bl.a.length).fill(0);
+  for (const r of ribbons) {
+    const a = named(v, r.aSystem);
+    const b = named(v, r.bSystem);
+    for (let j = 0; j < bl.a.length; j++) {
+      if (bl.a[j] !== a || bl.b[j] !== b || r.reversed !== bl.strand[j] < 0) continue;
+      const as = bl.aStart[j];
+      const bs = bl.bStart[j];
+      if (
+        r.bin === undefined
+          ? r.aStart === as && r.bStart === bs
+          : as >= r.aStart && as < r.aEnd && bs >= r.bStart && bs < r.bEnd
+      )
+        count[j]++;
+    }
+  }
+  const wrong: string[] = [];
+  for (let j = 0; j < bl.a.length; j++) {
+    const shown = shows(v, PeachSection, bl.a[j], bl.aStart[j]) || shows(v, GrapeSection, bl.b[j], bl.bStart[j]);
+    if (count[j] > 1 || (shown && count[j] !== 1))
+      wrong.push(`${bl.a[j]}:${bl.aStart[j]} ${bl.b[j]}:${bl.bStart[j]} ×${count[j]}`);
+  }
+  expect(wrong.slice(0, 5)).toEqual([]);
+}
+
 describe('Features/Across sections, headless', () => {
   it('two genomes at the fit (EC-206, EC-218): a ribbon a block, the inversion crossed, the translocation to chr4, no ribbon over the gap', async () => {
     const v = await open('across-fit');
@@ -117,10 +170,27 @@ describe('Features/Across sections, headless', () => {
     const g = v.view.get(GrapeSection)!;
     expect(w.end - w.start).toBeLessThan(400_000);
     expect(g.start).toBe(0);
+    const lay = bridges(v)[0].lays[0].lay as unknown as { reads: unknown[]; readSide: number[] };
+    // each side its own read: peach's window by peach, the rest of grape's blocks by grape
+    expect(lay.readSide).toEqual([0, 1]);
     const ribbons = bridges(v)[0].ribbons();
-    expect(ribbons.length).toBeGreaterThan(5);
-    // every ribbon drawn reaches the window on peach
-    for (const r of ribbons) expect(named(v, r.aSystem)).toBe('Pp02');
+    expect(ribbons.filter((r) => named(v, r.aSystem) === 'Pp02').length).toBeGreaterThan(5);
+    expectDrawnOnce(v, blocksOf(PeachToGrape, ItemsPitch, 7));
+    await bothThemes(v);
+  });
+
+  it('one side zoomed in, the other way: grape in chr2’s 300 kb on items, peach at the fit on bins, each block once', async () => {
+    const v = await open('across-bins');
+    await openZoomedGrape(v);
+    await vi.advanceTimersByTimeAsync(4000);
+    v.draw();
+    const g = v.view.get(GrapeSection)!;
+    expect(g.end - g.start).toBeLessThan(400_000);
+    expect(v.view.get(PeachSection)!.start).toBe(0);
+    const lay = bridges(v)[0].lays[0].lay as unknown as { reads: { level?: number }[] };
+    // grape the near side (items), peach's bins the rest
+    expect(lay.reads.map((r) => r.level !== undefined)).toEqual([true, false]);
+    expectDrawnOnce(v, blocksOf(PeachToGrape, BinsPitch, 7));
     await bothThemes(v);
   });
 

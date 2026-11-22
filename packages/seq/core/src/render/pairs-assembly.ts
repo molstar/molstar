@@ -17,7 +17,11 @@ import {
   type Loaded,
   names,
   type PairsRegion,
+  type RegionOver,
+  type RegionState,
   regionState,
+  sourceOn,
+  unitKey,
   withData,
 } from './pairs-region.js';
 
@@ -111,31 +115,82 @@ function meets(regions: readonly number[] | undefined, s: number, e: number): bo
   return false;
 }
 
-/** The blocks in view (by the strips laid out), each once with its positions in view merged. */
-function blocksInView(over: AssemblyRegion, ctx: LayoutContext, st: AssemblyState): number {
-  const strips = ctx.place!.strips;
+/** A block's read: its source on the side read, its unit, the units' positions in view (reused) as `n` grows. */
+function addBlock(over: AssemblyRegion, st: AssemblyState, src: LayerSource, regions: readonly number[], n: number) {
+  const unit = over.unitOf.get(unitKey(src.side, src.system));
+  if (unit === undefined || !regions.length) return n;
+  const seen = st.inView[unit];
+  if (!seen.length) {
+    const b = st.blocks[n] ?? (st.blocks[n] = { src, regions: [], unit });
+    b.src = src;
+    b.unit = unit;
+    b.regions = seen;
+    n++;
+  }
+  for (let i = 0; i < regions.length; i++) seen.push(regions[i]);
+  return n;
+}
+
+function clearInView(over: AssemblyRegion, st: AssemblyState) {
   st.inView.length = over.units.length;
   for (let u = 0; u < over.units.length; u++) st.inView[u] = st.inView[u] ?? [];
   for (let u = 0; u < over.units.length; u++) st.inView[u].length = 0;
+}
+
+/**
+ * The blocks in view (by the strips laid out), each once with its positions in view merged, read on `side` (a bridge
+ * side's, one genome against itself); `at`, the regions given instead (a bridge's `R`).
+ */
+function blocksInView(
+  over: AssemblyRegion,
+  ctx: LayoutContext,
+  st: AssemblyState,
+  side: 'a' | 'b' | undefined,
+  at: RegionOver | undefined,
+): number {
+  clearInView(over, st);
   let n = 0;
+  if (at) {
+    for (const [system, regions] of at.regions) {
+      const src = sourceOn(over, system, side);
+      if (src) n = addBlock(over, st, src, regions, n);
+    }
+    return n;
+  }
+  const strips = ctx.place!.strips;
   for (let i = 0; i < strips.n; i++) {
     const axis = strips.axes[i] as AxisTransform;
-    const src = over.sources.get(axis.system);
-    if (!src) continue;
-    const unit = over.unitOf.get(src.system)!;
-    const regions = dataRegions(src, axis);
-    if (!regions.length) continue;
-    const seen = st.inView[unit];
-    if (!seen.length) {
-      const b = st.blocks[n] ?? (st.blocks[n] = { src, regions: [], unit });
-      b.src = src;
-      b.unit = unit;
-      b.regions = seen;
-      n++;
-    }
-    seen.push(...regions);
+    const src = sourceOn(over, axis.system, side);
+    if (src) n = addBlock(over, st, src, dataRegions(src, axis), n);
   }
+  // a sequence's copies add their positions one after another: each unit's sorted and merged (a bridge's ownership
+  // reads them so)
+  for (let b = 0; b < n; b++) sortMerged(st.blocks[b].regions);
   return n;
+}
+
+/** `[start, end, …]` sorted by start and merged in place (a few ranges: an insertion sort; no array made a layout). */
+function sortMerged(r: number[]) {
+  const n = r.length >> 1;
+  if (n < 2) return;
+  for (let j = 1; j < n; j++)
+    for (let k = j; k > 0 && r[2 * k - 2] > r[2 * k]; k--) {
+      const s = r[2 * k];
+      const e = r[2 * k + 1];
+      r[2 * k] = r[2 * k - 2];
+      r[2 * k + 1] = r[2 * k - 1];
+      r[2 * k - 2] = s;
+      r[2 * k - 1] = e;
+    }
+  let m = 1;
+  for (let j = 1; j < n; j++)
+    if (r[2 * j] <= r[2 * m - 1]) r[2 * m - 1] = Math.max(r[2 * m - 1], r[2 * j + 1]);
+    else {
+      r[2 * m] = r[2 * j];
+      r[2 * m + 1] = r[2 * j + 1];
+      m++;
+    }
+  r.length = 2 * m;
 }
 
 /** The finest level whose blocks' wants together fit the store's bounds (coarser first, then "zoom in"). */
@@ -179,6 +234,7 @@ function fitBlocks(
           end: regions[r + 1],
           level: l,
           layer: ctx.key,
+          ...(src.side ? { side: src.side } : {}),
         });
     }
     if (data.layerLoad(wants).fits) {
@@ -215,9 +271,9 @@ function readBlocks(
   return { entries, pending };
 }
 
-/** The unit of a row's end: its listed name's, else (no name) the block's it was read on. */
-function unitOfEnd(over: AssemblyRegion, name: string | undefined, block: number): number {
-  return name === undefined ? block : (over.unitOf.get(name) ?? -1);
+/** The unit of a row's end: its listed name's (on its side over a sided source), else (no name) the block's read. */
+function unitOfEnd(over: AssemblyRegion, name: string | undefined, block: number, end: 'a' | 'b'): number {
+  return name === undefined ? block : (over.unitOf.get(over.sided ? unitKey(end, name) : name) ?? -1);
 }
 
 /** What a read gives: rows once each (by key), their ends' units; counts of those with an end in view. */
@@ -243,8 +299,8 @@ function gather(
     for (let i = 0; i < rows; i++) {
       const a = names(t.aSystem, i);
       const b = names(t.bSystem, i);
-      const au = unitOfEnd(over, a, units[k]);
-      const bu = unitOfEnd(over, b, units[k]);
+      const au = unitOfEnd(over, a, units[k], 'a');
+      const bu = unitOfEnd(over, b, units[k], 'b');
       if (au < 0 || bu < 0) continue;
       let as: number;
       let ae: number;
@@ -316,11 +372,15 @@ export function assemblyPairs(
   ctx: LayoutContext,
   data: StoreReader,
   lay: PairsLay,
+  at?: RegionOver,
+  side?: 'a' | 'b',
 ): PairsPrep | undefined {
   if (!ctx.place) return undefined;
   const state = regionState(lay);
   const st = stateOf(lay);
-  const n = blocksInView(over, ctx, st);
+  const n = blocksInView(over, ctx, st, side, at);
+  // the positions in view by system (the arrays reused: a bridge's drawn-once rule normalizes them)
+  if (!at) for (let u = 0; u < over.units.length; u++) state.windows.set(over.units[u], st.inView[u]);
   const levels = data.coverage(region.src.source)?.levels ?? [1];
   // one level for every block: the finest any block in view needs, its span the widest
   let ppp = Number.POSITIVE_INFINITY;
@@ -337,6 +397,13 @@ export function assemblyPairs(
   if (!n || !Number.isFinite(ppp)) return state.prep;
   const cfg = ctx.config.pairs;
   const fit = pairsLevels(levels, ppp, span, data, cfg.binPx);
+  if (at) {
+    // a bridge's `R`: at the near side's level, no gate; items pending, nothing
+    const items = at.level === undefined;
+    const level = items ? fit.items : at.level!;
+    const r = readBlocks(ctx, data, st, n, level, items, Units);
+    return items && r.pending ? undefined : built(prep, state, over, st, items ? 1 : 0, level, r.entries, Units);
+  }
   const bins = fitBlocks(ctx, data, st, n, levels, fit.bins);
   const binRead = readBlocks(ctx, data, st, n, bins, false, Units);
   const binned = binRead.entries.some((e) => e.tables.pairs?.form === 'bins');
@@ -366,20 +433,33 @@ export function assemblyPairs(
       } else state.items = true;
     }
   }
-  const level = mode ? fit.items : bins;
+  return built(prep, state, over, st, mode, mode ? fit.items : bins, read, units);
+}
+
+/** The read's rows as the frame's pairs (`mode` 1 items, 0 bins at `level`), kept while built from the same read. */
+function built(
+  prep: PairsPrep,
+  state: RegionState,
+  over: AssemblyRegion,
+  st: AssemblyState,
+  mode: number,
+  level: number,
+  read: readonly Loaded[],
+  units: readonly number[],
+): PairsPrep {
   if (sameRead(state.read, mode, level, read, units) && state.prep) return state.prep;
-  const built = gather(over, st, read, units, bins, mode === 0, true);
-  const g = built.g!;
+  const got = gather(over, st, read, units, level, mode === 0, true);
+  const g = got.g!;
   const pairs = {
     ...g.data(mode ? undefined : { count: g.weight }),
-    aUnit: Int32Array.from(built.ua),
-    bUnit: Int32Array.from(built.ub),
+    aUnit: Int32Array.from(got.ua),
+    bUnit: Int32Array.from(got.ub),
   };
   state.read.length = 0;
   state.read.push(mode, level);
   for (let k = 0; k < read.length; k++) state.read.push(units[k], read[k].region.tile, read[k].version);
   state.prep = {
-    ...withData(prep, pairs, mode ? undefined : Float32Array.from(g.weight), mode ? undefined : bins),
+    ...withData(prep, pairs, mode ? undefined : Float32Array.from(g.weight), mode ? undefined : level),
     endUnits: over.units,
   };
   return state.prep;

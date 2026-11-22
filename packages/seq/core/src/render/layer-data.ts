@@ -25,6 +25,8 @@ export interface LayerSource {
   /** The data's system in the spec. */
   readonly dataSystem: string;
   readonly shape: Shape;
+  /** A sided pairs source's side the system is read on (its wants carry it). */
+  readonly side?: 'a' | 'b';
   /** The data's system's length, when known. */
   readonly length?: number;
   /** Whether the data's system wraps, and whether a source's rows may run past its length (then wrapped or clipped). */
@@ -59,7 +61,9 @@ export function layerSource(model: StaticModel, layer: ResolvedLayer): LayerSour
   const plan =
     access.kind === 'inline'
       ? { source: access.source.address, system: access.system, shape: access.shape }
-      : { source: access.source, system: access.system, shape: access.shape };
+      : access.side
+        ? { source: access.source, system: access.system, shape: access.shape, side: access.side }
+        : { source: access.source, system: access.system, shape: access.shape };
   let path = layer.path;
   let dataSystem = data.system;
   // a unit's letters from a source are its sequence's, read on the sequence's positions through the unit's step
@@ -105,6 +109,20 @@ export function dataRegions(src: LayerSource, axis: AxisTransform, hidden = fals
   }
   const exact = HalfOpenRanges.normalize(src.back ? projectRanges(src.back, vis) : vis);
   return near ? mergeNear(exact) : Array.from(exact);
+}
+
+/**
+ * Sorted, disjoint `[start, end, …]` widened outward to multiples of `step` and merged, pushed onto `out` (a bridge's
+ * `R`: a window widened to the far level's grid, _spec/README.md "Render", Bridges).
+ */
+export function widenedToGrid(ranges: readonly number[], step: number, out: number[]): number[] {
+  for (let j = 0; j + 1 < ranges.length; j += 2) {
+    const s = Math.floor(ranges[j] / step) * step;
+    const e = Math.ceil(ranges[j + 1] / step) * step;
+    if (out.length && s <= out[out.length - 1]) out[out.length - 1] = Math.max(e, out[out.length - 1]);
+    else out.push(s, e);
+  }
+  return out;
 }
 
 /** Gaps of at most this many positions between regions are read with them (small: an intron of an exon pair stays apart). */
@@ -490,6 +508,9 @@ function wantOf(
   layer: string | undefined,
   items: boolean,
 ): Want {
+  // a sided source's want names its side (the rare third shape)
+  if (src.side)
+    return { source: src.source, system: src.system, start, end, level, priority, layer, items, side: src.side };
   return items
     ? { source: src.source, system: src.system, start, end, level, priority, layer, items: true }
     : { source: src.source, system: src.system, start, end, level, priority, layer };

@@ -95,9 +95,11 @@ export class RibbonsLay {
     ['', undefined],
     ['', undefined],
   ];
-  /** The drawn-once rule's ranges: the near side's `R`, the far side's window. */
-  readonly ownR: number[] = [];
-  readonly ownFar: number[] = [];
+  /** The near side's read of `R` (its state beside its window's). */
+  readonly rSide = {} as PairsLay;
+  /** The drawn-once rule's ranges by data system: the near side's `R`, the far side's window. */
+  readonly ownR = new Map<string, number[]>();
+  readonly ownFar = new Map<string, number[]>();
   readonly scratch: ScratchHit = { layer: '', section: '', system: '' };
 }
 

@@ -190,22 +190,34 @@ function push(
 // ---- the drawn-once rule (_spec/README.md "Render", Bridges: each pair drawn once, by ownership) ----
 
 /** While a read is laid with two reads: whether it is the near side's, the near side, `R` and the far window. */
-const Own = { on: false, mine: false, near: 0, r: [] as readonly number[], far: [] as readonly number[] };
+const Own: { on: boolean; mine: boolean; near: number; r?: Ownership['r']; far?: Ownership['far'] } = {
+  on: false,
+  mine: false,
+  near: 0,
+};
 
-/** Whether `p` lies in `[start, end, …]`. */
-function inRanges(r: readonly number[], p: number): boolean {
-  for (let i = 0; i + 1 < r.length; i += 2) if (p >= r[i] && p < r[i + 1]) return true;
-  return false;
+/** Whether `p` lies in sorted, disjoint `[start, end, …]` (a binary search). */
+function inRanges(r: readonly number[] | undefined, p: number): boolean {
+  if (!r) return false;
+  let lo = 0;
+  let hi = r.length >> 1;
+  while (lo < hi) {
+    const m = (lo + hi) >> 1;
+    if (r[2 * m + 1] <= p) lo = m + 1;
+    else hi = m;
+  }
+  return 2 * lo < r.length && r[2 * lo] <= p;
 }
 
 /**
- * Whether the read being laid draws a ribbon with these anchors on the bridge's sides (each end's first position): the
- * near side every one anchored in `R`; the far side those anchored in its window whose near anchor is outside `R`.
+ * Whether the read being laid draws a ribbon with these anchors on the bridge's sides (each end's system and first
+ * position): the near side every one anchored in `R`; the far side those anchored in its window whose near anchor is
+ * outside `R`.
  */
-function owns(anchorA: number, anchorB: number): boolean {
-  const near = Own.near ? anchorB : anchorA;
-  if (Own.mine) return inRanges(Own.r, near);
-  return inRanges(Own.far, Own.near ? anchorA : anchorB) && !inRanges(Own.r, near);
+function owns(sysA: string, anchorA: number, sysB: string, anchorB: number): boolean {
+  const n = Own.near;
+  const inR = inRanges(Own.r!.get(n ? sysB : sysA), n ? anchorB : anchorA);
+  return Own.mine ? inR : !inR && inRanges(Own.far!.get(n ? sysA : sysB), n ? anchorA : anchorB);
 }
 
 // ---- an alignment's blocks merged under a pixel ----
@@ -312,7 +324,7 @@ function pairRibbons(
   const bs = orient > 0 ? d.bStart[k] : d.aStart[k];
   const be = orient > 0 ? d.bEnd[k] : d.aEnd[k];
   // another read draws it (or neither: in neither view)
-  if (Own.on && !owns(as, bs)) return true;
+  if (Own.on && !owns(orient > 0 ? aSys : bSys, as, orient > 0 ? bSys : aSys, bs)) return true;
   const na = sa.extentInto(orient > 0 ? aSys : bSys, as, ae, PlacesA, BlocksA, MaxPlaces, PosA);
   const nb = sb.extentInto(orient > 0 ? bSys : aSys, bs, be, PlacesB, BlocksB, MaxPlaces, PosB);
   if (!na && !nb) return false;

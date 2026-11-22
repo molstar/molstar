@@ -185,6 +185,8 @@ const view = (id: string, title: string, summary: string, build: () => Node): Ex
 
 /** Where the zoomed-in view opens: peach's `Pp02` from 1.2 to 1.5 Mb (Defaults, 3). */
 export const ZoomedLocus = 'Pp02:1,200,001-1,500,000';
+/** The other way: grape's `chr2` from 1.2 to 1.5 Mb, over the dense alignment (peach at the fit on bins). */
+export const ZoomedGrapeLocus = 'chr2:1,200,001-1,500,000';
 
 export const AcrossViews: readonly ExampleView[] = [
   view(
