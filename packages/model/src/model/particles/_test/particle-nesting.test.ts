@@ -191,6 +191,51 @@ describe('particle nesting', () => {
     expect(sphere.radius).toBeLessThan(Particle.getBoundary(flat).sphere.radius * 1.25);
   });
 
+  it('bounds the copies of a round template by its sphere, of a box-like one by its corners', () => {
+    // a template of particles over a sphere of radius 50 (a cell), its box's corners 50√3 from its center
+    const n = 400;
+    const golden = Math.PI * (3 - Math.sqrt(5));
+    const round = createList({
+      label: 'cell',
+      count: n,
+      coordinates: Float32Array.from({ length: n * 3 }, (_, k) => {
+        const i = Math.floor(k / 3);
+        const y = 1 - (2 * (i + 0.5)) / n;
+        const r = Math.sqrt(1 - y * y);
+        return 50 * [Math.cos(golden * i) * r, y, Math.sin(golden * i) * r][k % 3];
+      }),
+      targets: new Int32Array(n),
+      targetInfo: new Map([[0, { name: 'a' }]]),
+      targetMapping: new Map([[0, leaf('a')]]),
+    });
+    // four copies on a 2x2 grid 120 apart, turned about a diagonal (their boxes' corners turned out)
+    const q = Quat.setAxisAngle(Quat(), Vec3.normalize(Vec3(), Vec3.create(1, 1, 1)), 0.7);
+    const top = createList({
+      label: 'grid',
+      count: 4,
+      coordinates: Float32Array.of(0, 0, 0, 120, 0, 0, 0, 120, 0, 120, 120, 0),
+      rotations: Float32Array.of(...q, ...q, ...q, ...q),
+      targets: new Int32Array(4),
+      targetInfo: new Map([[0, { name: 'copy' }]]),
+      targetMapping: new Map<number, ParticleTarget>([[0, { kind: 'particles', particles: round }]]),
+    });
+    const { sphere, box } = Particle.getBoundary(top);
+    // as tight as the flattened list's (its particles' own); the copies' corners 50√3 past their centers, not 50
+    const flat = ParticleNesting.flatten(top);
+    expect(sphere.radius).toBeLessThan(Particle.getBoundary(flat).sphere.radius * 1.05);
+    expect(sphere.radius).toBeLessThan(60 * Math.SQRT2 + 50 * Math.sqrt(3));
+    for (let i = 0; i < flat.count; ++i) {
+      const p = position(flat, i);
+      expect(Vec3.distance(p, sphere.center)).toBeLessThanOrEqual(sphere.radius + 1e-3);
+      for (let k = 0; k < 3; ++k) {
+        expect(p[k]).toBeGreaterThanOrEqual(box.min[k] - 1e-3);
+        expect(p[k]).toBeLessThanOrEqual(box.max[k] + 1e-3);
+      }
+    }
+    // its box the spheres' per axis: 50 past the copies' centers
+    expect(box.max[2] - box.min[2]).toBeLessThan(100 * 1.02);
+  });
+
   it('refuses nesting deeper than a level, a list placing itself, a slot list as a template', () => {
     const template = createTemplate();
     const nested = createTop(template);

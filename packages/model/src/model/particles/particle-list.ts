@@ -2294,23 +2294,37 @@ export namespace Particle {
   }
 
   /**
-   * The boundary of a list with templates (`ParticleNesting`): a template's particle the eight corners of the template's
-   * box placed by its pose (`q (x - c) + t`: they hold its every particle at any turn; a sphere a copy would bound a
-   * grid of box-like copies loosely, the camera's fit of it a seventh farther), a leaf its position and radius; the
-   * templates' boundaries computed first (a template's own computing resets the helpers this one shares)
+   * A template's sphere bounds its copies where its radius is below this share of its box's half diagonal (a round
+   * template's about 0.58: the box's corners √3 as far as its surface), else its box's corners (a box-like template's
+   * sphere about the half diagonal: spheres would bound a grid of copies loosely, the camera's fit a seventh farther)
+   */
+  const NestedSphereShare = 0.9;
+
+  /**
+   * The boundary of a list with templates (`ParticleNesting`): a template's particle its template placed by its pose
+   * (`q (x - c) + t`), by the template's sphere (its center placed, its radius) or by the eight corners of its box
+   * (`NestedSphereShare`: whichever is tighter; both hold its every particle at any turn), a leaf its position and
+   * radius; the box of each copy's the tighter of the two per axis. The templates' boundaries computed first (a
+   * template's own computing resets the helpers this one shares)
    */
   function getNestedBoundary(particles: ParticleList): Boundary {
     const { count, coordinates, rotations, radii, targets, targetMapping } = particles;
-    const boxes = new Map<number, { box: Box3D; center: Vec3 }>();
+    const boxes = new Map<number, { box: Box3D; center: Vec3; sphere: Sphere3D; bySphere: boolean }>();
     for (const [id, target] of targetMapping!) {
       if (target.kind !== 'particles') continue;
-      boxes.set(id, { box: getBoundary(target.particles).box, center: ParticleTarget.getCenter(target)! });
+      const { box, sphere } = getBoundary(target.particles);
+      const halfDiagonal = Vec3.distance(box.min, box.max) / 2;
+      const bySphere = sphere.radius < NestedSphereShare * halfDiagonal;
+      boxes.set(id, { box, center: ParticleTarget.getCenter(target)!, sphere, bySphere });
     }
-    // per particle its points (a leaf one, a copy eight) and their radii
+    // per particle its points (a leaf one, a copy one by its sphere or eight by its box's corners) and their radii
     let points = 0;
     ParticleValues.forEachRun(targets, count, (start, end, id) => {
-      points += (end - start) * (boxes.has(id) ? 8 : 1);
+      const b = boxes.get(id);
+      points += (end - start) * (b ? (b.bySphere ? 1 : 8) : 1);
     });
+    const copyMin = Vec3();
+    const copyMax = Vec3();
     const centers = new Float32Array(points * 3);
     const pointRadii = new Float32Array(points);
     const q = Quat();
@@ -2330,6 +2344,9 @@ export namespace Particle {
           continue;
         }
         ParticleRotations.get(rotations, i, q);
+        // the copy's box: its corners' and its sphere's, the tighter per axis
+        Vec3.set(copyMin, Infinity, Infinity, Infinity);
+        Vec3.set(copyMax, -Infinity, -Infinity, -Infinity);
         for (let k = 0; k < 8; ++k) {
           Vec3.set(
             corner,
@@ -2339,10 +2356,26 @@ export namespace Particle {
           );
           Vec3.transformQuat(corner, Vec3.sub(corner, corner, b.center), q);
           Vec3.add(corner, corner, _tmpPos);
+          Vec3.min(copyMin, copyMin, corner);
+          Vec3.max(copyMax, copyMax, corner);
+          if (b.bySphere) continue;
           Vec3.toArray(corner, centers, o * 3);
           pointRadii[o++] = 0;
-          Box3D.add(box, corner);
         }
+        // its sphere's center placed, its radius kept
+        Vec3.transformQuat(corner, Vec3.sub(corner, b.sphere.center, b.center), q);
+        Vec3.add(corner, corner, _tmpPos);
+        const r = b.sphere.radius;
+        if (b.bySphere) {
+          Vec3.toArray(corner, centers, o * 3);
+          pointRadii[o++] = r;
+        }
+        for (let a = 0; a < 3; ++a) {
+          copyMin[a] = Math.max(copyMin[a], corner[a] - r);
+          copyMax[a] = Math.min(copyMax[a], corner[a] + r);
+        }
+        Box3D.add(box, copyMin);
+        Box3D.add(box, copyMax);
       }
     });
     const helper = getBoundaryHelper(points);
