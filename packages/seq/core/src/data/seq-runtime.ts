@@ -59,26 +59,41 @@ function malformed(why: string): RegionAnswer {
 export function openSeq(data: SeqData): OpenedSource {
   const names = new Map<string, string>();
   for (const s of data.coverage.systems) {
-    names.set(s.name, s.name);
-    for (const a of s.aliases ?? []) if (!names.has(a)) names.set(a, s.name);
+    // a sided system by its side and name (`a:chr1`), an unsided one by its name
+    const at = (n: string) => (s.side ? `${s.side}:${n}` : n);
+    names.set(at(s.name), s.name);
+    for (const a of s.aliases ?? []) if (!names.has(at(a))) names.set(at(a), s.name);
   }
   // A stable row identity: each pair's list rows numbered after the rows of the pairs before it.
   const rowBase = new Map<SeqPair, number>();
   let rows = 0;
   for (const p of data.pairs) {
     rowBase.set(p, rows);
-    const r = p.answer.ok ? p.answer.tables.ranges : undefined;
-    if (r?.form === 'list') rows += r.start.length;
+    const t = p.answer.ok ? p.answer.tables : undefined;
+    if (t?.ranges?.form === 'list') rows += t.ranges.start.length;
+    if (t?.pairs?.form === 'list') rows += t.pairs.aStart.length;
+    if (t?.matrix?.form === 'items') rows += t.matrix.start.length;
   }
 
   const answer = (request: RegionRequest): RegionAnswer => {
-    const system = sourceNameOf(names, request.system);
+    const side = request.side;
+    const system = sourceNameOf(names, side ? `${side}:${request.system}` : request.system);
     if (system === undefined) return notServed('a system the coverage does not list');
     if (!data.coverage.levels.includes(request.level)) return notServed('a level the coverage does not list');
-    const { start, end, level } = request;
+    const { start, end } = request;
+    // an items tile is the finest level's items over the region: the level is only its width
+    const level = request.items ? data.coverage.levels[0] : request.level;
+    const ry = request.y;
+    const ySystem = ry && sourceNameOf(names, ry.system);
+    if (ry && ySystem === undefined) return notServed('a second system the coverage does not list');
+    // a grid's pair holds the whole of the asked second axis (grid parts join along x only)
+    const yHolds = (p: SeqPair) => {
+      const py = p.request.y;
+      return ry ? !!py && py.system === ySystem && py.start <= ry.start && py.end >= ry.end : !py;
+    };
     const pairs = data.pairs
-      .filter((p) => p.request.system === system && p.request.level === level)
-      .filter((p) => p.request.start < end && p.request.end > start)
+      .filter((p) => p.request.system === system && p.request.level === level && p.request.side === side)
+      .filter((p) => p.request.start < end && p.request.end > start && yHolds(p))
       .sort((a, b) => a.request.start - b.request.start);
     const parts: { pair: SeqPair; from: number; to: number }[] = [];
     let at = start;
@@ -98,7 +113,19 @@ export function openSeq(data: SeqData): OpenedSource {
       const cuts: Table[] = [];
       for (const { pair, from, to } of parts) {
         const t = pair.answer.ok ? pair.answer.tables[shape] : undefined;
-        if (t) cuts.push(sliceTable(t, level, { start, end, from, to, rowBase: rowBase.get(pair) }));
+        if (t)
+          cuts.push(
+            sliceTable(t, level, {
+              start,
+              end,
+              from,
+              to,
+              rowBase: rowBase.get(pair),
+              system,
+              ...(side && { side }),
+              ...(ry && { y: { start: ry.start, end: ry.end } }),
+            }),
+          );
       }
       if (!cuts.length) continue;
       const joined = joinTables(cuts, level);

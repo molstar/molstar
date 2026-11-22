@@ -804,6 +804,9 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
     }
     if (pass === 'data') {
       p.warp.refused = 0;
+      p.warp.reduced = 0;
+      p.warp.runsUsed = 0;
+      p.warp.imageRuns = config.rings.imageRuns;
       if (p.runN || p.groupN) drawRingRuns(p, out, tokens);
     } else if (pass === 'window') drawRingWindow(p, s, out, emphasis, tokens);
     else if (pass === 'labels') drawRingLabels(p, out, tokens, config);

@@ -923,8 +923,29 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
   one source, one open and one parse serve every channel; a host's edit is a new reading of the same source, not a new
   source.
 - **Conformance**: every adapter passes one suite (`data/_test/conformance.ts`): a well-formed coverage whose nodes the
-  language takes; each listed shape read whole at level 1 an answer in the protocol's shape, with a channel asked or
-  not; an aborted read an `AbortError`; `changes` stopping once unsubscribed. Why: a host is code Seq\* does not own.
+  language takes; each listed shape read whole at level 1 an answer in the protocol's shape (a region shape served,
+  never failed: a grid read by both axes, a sided system on its side), with a channel asked or not; an aborted read an
+  `AbortError`; `changes` stopping once unsubscribed; and (`checkRegionReads`) each listed shape read by region equal to
+  the whole read clipped (`sliceTable`) at every level it lists, a grid by both axes, a sided system on its side, and a
+  pair found from either end. Why: a host is code Seq\* does not own.
+- **The region shapes** (`pairs`, `grid`, `matrix`, `rows`; `Shapes`): `pairs` on 1D tiles by either end (a tile holds
+  every pair with an end in it, the other end anywhere: EC-62, EC-208), its finest level a `list`, coarser levels `bins`
+  (the pairs level); `grid` on 2D tiles (`RegionRequest.y`: the second axis at the same level, square levels), `dense`
+  or `sparse` with its `fill`; `matrix` positions tiled and states whole (`items`, a column an item at its own extent,
+  `value` or `codes`; coarser `summary`); `rows` keyed records on a records system (`keyed`). Why: each read is bounded
+  by the screen, never by the data.
+- **Items tiles** (`RegionRequest.items`, `ItemShapes`: `ranges`, `pairs`, `matrix`): a list form at any listed level,
+  the level only the tile's width, every item with an end in it, uncut; a source with one level serves it as a level-1
+  read of the tile (the summaries map it). Why: a wide view reads items in few large tiles, never past
+  `maxTilesPerWant`.
+- **Sided pairs** (`SystemInfo.side`, `RegionRequest.side`): a pairs source between two genomes lists a name once a
+  side; a request reads its side's end alone. Side `a` is the `from` side of the map the pairs serve.
+- **Coverage of a shape** (`ShapeInfo`, all optional): `y` (a grid's second systems, or `'*'`), `symmetric` (served
+  once, at or above the diagonal by `(system order, tile)`), `aggregate` (`sum`, `mean`), `binBy` (`type`: a category
+  the pairs bins keep), `states` (a matrix's), `whole` (a whole-assembly system: listed sequences end to end, listed as
+  a system itself, served at coarse levels).
+- **`OpenedSource.readCost?(request)`**: a tile's read cost known before reading it (compressed bytes, tabix's
+  `regionBytes`), summed over a layer's tiles by the store (`maxBytesPerLayer`).
 
 ### Names
 
@@ -948,10 +969,25 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
   has two encodings by level. Why fields as a list: any name, `kind` and `$x` too, in memory and in a file.
 - **An item's extent on its pieces** (`RangesList.itemStart`, `itemEnd`, int32, optional): each row carries its item's
   whole extent (BED12's blocks, a BED line's own), so a reader of region data knows an item's ends from any tile: the
-  ranges layer marks an item's arrowheads by it. Served by the BED runtime; `sliceTable`, `joinTables` and the store do
-  not carry them yet (region-reads, RG's). **`PairsList`** (both ends' systems, positions and strands, `id`, `row`,
-  `fields`) is a type only: no `Shape` serves pairs yet, and the BEDPE source answers it by its own `pairs` read (BED
-  family).
+  ranges layer marks an item's arrowheads by it. `sliceTable` and `joinTables` carry them, and a cut emits a **span
+  row** (`start = end` at the item's first position in the region, its first piece's columns) for an item meeting the
+  region by its extent with no piece in it, so a region read and the whole read clipped agree (EC-229).
+- **The region shapes' forms** (`tables-region.ts`): `pairs` `list` (`aStart`, `aEnd`, `bStart`, `bEnd` int32;
+  `aSystem`, `bSystem` categories, both or neither; strands int8; `type`, `id` categories; `row`; `fields`) and `bins`
+  (`aBin`, `bBin` int32, `count` float32; systems, `strand` int8 relative, `category`, `sum`); `grid` `dense` (`x`, `y`,
+  `nx`, `ny`, `value` float32 x-major, NaN missing) and `sparse` (`xBin`, `yBin`, `value`, `fill`); `matrix` `items`
+  (`start`, `end`, `states`, `value` or `codes` item-major, `id`, `row`) and `summary` (`start`, `states`, `mean`,
+  `min`, `max`, `count`, `classes` and `shares`: its own name, not `bins`); `rows` `keyed` (`start`, `key`, `fields`).
+  Pairs share the 1D forms' names (`list`, `bins`), so a table's shape is told by its columns (`regionShapeOf`) and a
+  table under another shape's key is refused.
+- **The row forms are one schema** (`tables-forms.ts`, `RowForm`): a form whose rows are columns of one length (a ranges
+  `list` and `density`, pairs `list` and `bins`, a matrix's `items`, a grid's `sparse` cells, `keyed` rows) is declared
+  once, its columns' names and types, those that come in twos, its fields and its cells; its rows, bytes, checks,
+  gathers (a cut) and joins are read from it by one routine each, and the extents by offset or by range share their
+  checks (`offsetOutside`, `rangesOutside`). Forms by offset (letters, values, cells, a dense grid, a matrix's
+  `summary`) stay written out. Why: a form written out in each routine was the size of both files twice over (about 5 kB
+  in a bundle), and a column added to one routine and not another a silent bug. **A pair's identity** is its `row`, else
+  its `id` (never `.` or empty), with both ends' systems and starts.
 - **A row's identity** is its `id`, else its `row`: a range over a tile's edge is in each tile it touches, with its own
   start, and readers dedupe by identity and start; rows of one id with other starts are pieces of one item (the exons of
   a transcript, read in different tiles).
@@ -966,7 +1002,12 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
   charges them by that estimate, a flat floor under it. Why: an answer's size is a claim of its source, refused before
   it is cut, joined or kept.
 - Cutting (`sliceTable`) keeps letters, positions and bins by offset, and a range or a density bin by its anchor (its
-  first position in the region) within the part cut; `joinTables` joins consecutive parts, so each row is held once.
+  first position in the region) within the part cut; `joinTables` joins consecutive parts, so each row is held once. A
+  pair or bin pair is kept by its ends meeting the region on its system (`Cut.system`; a sided cut its side's end), its
+  anchor the earlier end's first position in the region; a grid along x by its bins' anchors and within `Cut.y` on y
+  (grid parts join along x only); a matrix's items as ranges, its bins by offset.
+- **Bytes** (`answerBytes`): a dense grid tile `nx × ny × 4`, a sparse one 12 a cell, pairs and matrices their columns;
+  checked against the store's `maxTileBytes` before an answer is kept.
 
 ### The seq format
 
@@ -1015,6 +1056,25 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
   alone, refused (malformed) past `maxRows` positions. A caller's abort is noticed at once, even while the shared read
   goes on. Other shapes at a coarse level are read at level 1 over the same region. Why: a values layer zoomed out reads
   a coarse level within the tile bound, a level costs one pass over the one below, and memory stays within the bound.
+- **Levels by shape**: values' and pairs' `[f, f², …]`, grids' `[2, 4, …]` (square levels, factor 2 a side); the
+  coverage lists their union, and a shape asked at another's level is cut from its own finer level dividing it and
+  coarsened. An items tile at any level is a level-1 read of the tile.
+- **The pairs level** (`summaries-pairs.ts`): `binPairs(list, level, { category, field })` makes bin-pair counts by
+  relative strand (EC-206), by `type` when the coverage's `binBy` says so, a numeric field summed; an end's bin is its
+  first position's. `coarsenPairBins` (`coarsenBins` on pairs bins) sums bins into bins `factor` times wider, exact
+  (levels nested). A one-level source's pairs are read whole once (each system's, merged once a pair: kept from its `a`
+  end's read), within `summaries.maxBytes` (16 MB, about 600,000 pairs at 26 bytes), merged and binned in slices of
+  `summaries.sliceMs` (4 ms; a system's read checked and each level its own task), the shape's first numeric field
+  summed (Decided 2), each further level coarsened from the one below; **only the levels that halve the rows below are
+  kept**: a dropped level leaves the coverage once the pyramid is built (unless values or a grid list it), a read of it
+  meanwhile answered as items. Past `maxBytes`, a coarse tile is its own items read only when the source's `readCost`
+  says they fit `maxBytes`, else refused before reading (`seq.store.pairs.levels`: the layer reads coarser, then says
+  zoom in). Why: counts are exact at every level and sum across levels.
+- **Grid levels** (`summaries-grid.ts`): a one-level grid's listed system pairs (a symmetric one's at or above the
+  diagonal) read whole within `summaries.maxBytes` together, each level halved from the one below by the coverage's
+  `aggregate` (`sum`, `mean`; NaN not counted); a tile cut from its level. A `whole` system's plane at a level is made
+  from the blocks' planes, a symmetric pair's other triangle mirrored. Past `maxBytes`, coarse tiles are `too-large`
+  (`seq.store.grid.levels`).
 
 ### FASTA
 
@@ -1654,12 +1714,24 @@ over the assets port, with `@molstar/core/util/zip` (never a private zip). Not a
 
 ### Store
 
-- **Keys**: `<source>|<system>|<level>|<tile>` and `<source>#<key>`; a part holding `|`, `#` or `\` escapes it, so no
-  two keys of other parts are equal. A tile is `tileBins` bins (1,024) at the level's width; a want is clipped to the
-  system's length when known and snaps to whole tiles; an unlisted level falls back to the coarsest listed no wider
-  (EC-170). A want over `maxTilesPerWant` tiles is `seq.store.too_many_tiles` and not asked, and `keysOf` lists none of
-  its tiles (a reader reads it as pending, never as empty): work is bounded before it starts, a key a tile included. A
-  tile is asked for every shape its system serves: the key has no shapes.
+- **Keys**: `<source>|<system>|<level>|<tile>` and `<source>#<key>`; a part holding `|`, `#` or `\` escapes it (a system
+  part `:` too), so no two keys of other parts are equal. A 2D tile adds `|<y system>|<y tile>`; a sided system part is
+  `a:chr1`; an items tile's level part `i<level>`.
+- **2D wants** (`Want.y`): x tiles × y tiles of `gridTileBins` (256) a side, each clipped to its system; a symmetric
+  grid's tile below the diagonal folded to the served one (`foldTile`; `tilesOf` says which are mirrors);
+  `maxTilesPerWant` bounds the product. A 1D tile asks no grid, an items tile only `ItemShapes`.
+- **A layer's wants together** (`Want.layer`): their tiles at most `maxTilesPerLayer` (1,024) and their read cost
+  (`readCost`) at most `maxBytesPerLayer` (16 MiB), its view's wants alone counted (a margin ring is asked with them,
+  never counted: the view decides); past either none is asked (`seq.store.too_many_tiles`), and `layerLoad(wants)` tells
+  a layer before it wants: a region layer (pairs' bins, a grid, a matrix) reads the first coarser listed level that fits
+  (`fittedLevel`, asked again only when its view's tiles change), and past the coarsest its band says "zoom in" (Decided
+  16).
+- **An answer's bytes**: past `maxTileBytes` (16 MB, a quarter of the cache) a `too-large` failure, never kept. A tile
+  is `tileBins` bins (1,024) at the level's width; a want is clipped to the system's length when known and snaps to
+  whole tiles; an unlisted level falls back to the coarsest listed no wider (EC-170). A want over `maxTilesPerWant`
+  tiles is `seq.store.too_many_tiles` and not asked, and `keysOf` lists none of its tiles (a reader reads it as pending,
+  never as empty): work is bounded before it starts, a key a tile included. A tile is asked for every shape its system
+  serves: the key has no shapes.
 - **Sources** are checked on `attach`: a malformed coverage is an issue and the source unavailable. `detach` cancels its
   requests, drops its entries, releases its holds and clears its reports. `named()` lists the attached sources by
   address, as attached: what `findNames` asks (a locus box's fallback to a name).
@@ -1684,8 +1756,10 @@ over the assets port, with `@molstar/core/util/zip` (never a private zip). Not a
   still over, the wanted prefetch then margin tiles become `evicted` and are not asked again until they leave the set
   and come back, so a planner that wants again on every change does not loop. Never the view, never a request on its
   way. Still over: `overBudget`, reported once each time (`seq.store.over_budget`); a coarser level is the planner's.
-- **Settle**: no wanted entry pending (a failed one waiting to be asked again is settled), kept on every transition;
-  `whenSettled(timeout?)` resolves `false` on a timeout.
+- **Settle**: no wanted entry pending (a failed one waiting to be asked again is settled) and no source's summaries
+  building (`summariesBuilding`: a pyramid's build goes on after the read that started it is let go), kept on every
+  transition and again when a build ends; `whenSettled(timeout?)` resolves `false` on a timeout. Why: what a build makes
+  is drawn after, and an export must not stop before it (EC-125).
 - **Nodes** are held, not cached: by each data entry that carried them, by their source's coverage while attached, and
   by `hold`; with no holder they go quietly. A re-answer takes in its nodes before releasing the old ones. The same key
   with other content keeps the held node (`seq.store.node_conflict`). `nodes` lists the entries held now and
@@ -1922,11 +1996,17 @@ alignment's systems, a held pairs or grid node, an annotation), importing the mo
   into typed arrays on the entry (`pairs`, `grid`), on two systems (`target` and `ySystem`), with no access plan: they
   are inline, read whole, and their reductions are their layers'. A grid whose values are not `|x| × |y|`, or more than
   `DefaultMaxBlockValues` (the bound the store checks a block), is dropped with `seq.resolve.grid.size` saying the count
-  it expected. Pairs and grids read by region wait for the Genomes milestone. **Links** (a `pairs` child, Language,
-  Molecules and complexes) are held so too: a molecule's on its residues (`target` and `ySystem` the molecule); a
-  complex's with each end on its row's unit (`PairsData.aUnit`, `bUnit`: indices into the entry's `units`, the complex's
-  units in order; a row naming no unit of it is left out), so a query reads each end on its own unit and an end on one
-  copy never lights another.
+  it expected. **By source** (`model-region.ts`): a `pairs` or `grid` node with a `source` is read by region through the
+  store on its first system (`pairs.a`, `grid.x`), by that system's name (`AccessPlan` of shape `pairs` or `grid`), its
+  second system the entry's `ySystem`, its `field` a channel of the source (`pairs.field` a summed column, `grid.field`
+  a normalization). **Matrices** (`matrix`): on their `target`, their states a system of their own (`statesSystemOf`:
+  `<matrix>/(states)`, a position a state, as an alignment's rows), its length the inline `states`' count, else, once
+  its source is open, the count its coverage lists for the target (`ShapeInfo.states`, through `sourceLengths` as a
+  length); inline cells are an items table of one item a position. **Links** (a `pairs` child, Language, Molecules and
+  complexes) are held so too: a molecule's on its residues (`target` and `ySystem` the molecule); a complex's with each
+  end on its row's unit (`PairsData.aUnit`, `bUnit`: indices into the entry's `units`, the complex's units in order; a
+  row naming no unit of it is left out), so a query reads each end on its own unit and an end on one copy never lights
+  another.
 - **Wrapped rows**: a row that wraps a cyclic origin is two rows of one item, in the items and the table (EC-9). On a
   sequence of unknown length it is left out with `seq.resolve.length.unknown` until the length is known.
 - **The query forms' model**: `system`, `annotation` (ranges; inline items at once, a source's pending over what is
@@ -2014,10 +2094,10 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
 ### Unread params
 
 - **Said, never dropped in silence** (`resolve/unread.ts`): a param the language declares and this version reads nowhere
-  is `seq.resolve.param.unread` (info), one a node, naming the lane that reads it: `map.source` (FR), `pairs.source` and
-  `grid.source` (RG), data over an assembly (GC2: its rows by sequence not read yet), `section.member_order` and
-  `member_order_y` (LA), a `bridge` (LA), `assembly.names` (GF: the printed names stay the assembly's). The lane that
-  reads one drops it from `Unread`. Why: a reader shown a spec drawn without what it says should be told why.
+  is `seq.resolve.param.unread` (info), one a node, naming the lane that reads it: `map.source` (FR), data over an
+  assembly (GC2: its rows by sequence not read yet), `section.member_order` and `member_order_y` (LA), a `bridge` (LA),
+  `assembly.names` (GF: the printed names stay the assembly's). The lane that reads one drops it from `Unread`. Why: a
+  reader shown a spec drawn without what it says should be told why.
 
 ### Maps
 
@@ -2468,8 +2548,12 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 | `rings.labelGap`, `rings.leaderBend`                           | 8, 12 px                                                                                                               | leaders fan out over the ruler, never through one point                                                                                                                                                                                                                                                                                                                                                                   |
 | `rings.cluster`                                                | `over: 6`, `degrees: 12`, `fanMax: 12`                                                                                 | more than 6 of one layer's labels within 12° (across the origin too) are one "n items" label, its fan of members placed with the layout and opened by a hover (the `tip` pass; nothing laid out on a hover); 0 degrees never groups; a group of up to `fanMax` fans out (past a dozen lines a fan is a hairball: the author's choice), a larger one is listed in its card; `Infinity` fans every group                    |
 | `rings.window`                                                 | `followed`                                                                                                             | a window means only what a follower shows; `always` (idle, quiet, when nothing follows)                                                                                                                                                                                                                                                                                                                                   |
+| `rings.imageRuns`                                              | 65,536                                                                                                                 | the runs an image's rows draw on a ring a frame: a matrix of 40 states at a run a device column within it; past it rows are taken a step of 2, 4, … apart (`seq.render.ring.image`, info)                                                                                                                                                                                                                                 |
 | `pairs.maxArcs`, `pairs.hitPx`                                 | 4,096; 4                                                                                                               | bounded by the screen: past it arcs binned by their ends' device columns (`seq.render.pairs.limit`); a curve is thin, so a hit within 4 px                                                                                                                                                                                                                                                                                |
 | `grid.rectMinPx`                                               | 12                                                                                                                     | rects with outlines only where cells are few and large enough to read; image tiles below                                                                                                                                                                                                                                                                                                                                  |
+| `grid.binPx`, `grid.marginTiles`                               | 1 device px; 1                                                                                                         | a region grid's level: a cell under a pixel is reduced again for nothing (2 halves the tiles); a ring of tiles round the view read at margin priority, evicted first (0: none)                                                                                                                                                                                                                                            |
+| `pairs.binPx`, `pairs.itemsHysteresis`                         | 2 device px; 1.25                                                                                                      | pairs read by region: bins a couple of device pixels wide; items kept to 1.25 × `maxArcs` once shown, so a pan at the threshold never flips bins and arcs (≥ 1)                                                                                                                                                                                                                                                           |
+| `pairs.binStroke`                                              | 1 to 6 CSS px                                                                                                          | a bin pair's arc stroked by the square root of its count over the counts in view: thick reads as many without hiding the rest                                                                                                                                                                                                                                                                                             |
 | `grid.buildBudget`                                             | 65,536 samples a frame                                                                                                 | a frame while moving under 8 ms; a tile past it draws a coarser level meanwhile, never empty                                                                                                                                                                                                                                                                                                                              |
 | `navigator.window.minPx`, `.hitPx`, `.touchHitPx`, `.handlePx` | 16, 12, 24, 5 px                                                                                                       | a window under a few px cannot be seen or grabbed; a press in the middle still pans; a finger is wider                                                                                                                                                                                                                                                                                                                    |
 | `navigator.window.floor`                                       | `centred`                                                                                                              | the drawn window says where; `thumb` (a scrollbar's mapping)                                                                                                                                                                                                                                                                                                                                                              |
@@ -2877,6 +2961,21 @@ in page coordinates: what crosses strips), `axes` (2: a second axis of its own, 
   unknown source (not attached) is pending. Two regions sharing a tile (a cyclic view wrapping a short system) read its
   entry once. The regions a layer reads (the view's, or their image through its path) are merged across gaps of up to 16
   positions (`mergeNear`): one read over a run of short pieces, not one a piece.
+- **The level rules by shape** (`layer-data.ts`, each bounded by `maxTilesPerWant`): values, ranges, letters, cells the
+  coarsest level no wider than `k` device pixels' positions (`layerLevel`); a grid the **finest** level whose bin is at
+  least `grid.binPx` device pixels on both axes, coarser while x tiles × y tiles pass the bound (`gridLevel`); pairs two
+  reads (`pairsLevels`): bins at the coarsest level no wider than `pairs.binPx` device pixels' positions, items as items
+  tiles at the finest level whose tiles over the view fit the bound; the items gate (`itemsGate`): asked once the bin
+  pairs with an end in view sum to at most `pairs.maxArcs`, kept while the items in view stay at most
+  `pairs.itemsHysteresis` × it (EC-171: no "load anyway"). A 2D read (`readGridTiles`) wants the view and a ring of
+  `grid.marginTiles` tiles at `margin`, each tile a pending or failed rect until loaded, a symmetric grid's mirror tiles
+  read transposed.
+- **Zoom in** (a layer's wants carry its key, `Want.layer`): a layer whose wants together the store refused (past
+  `maxTilesPerLayer` tiles or `maxBytesPerLayer` of read cost, `layerRefused`), or one of whose wants is past its own
+  bound at the coarsest level there is (`maxTilesPerWant`: a VCF's one level over 83 Mb, a matrix of items only; the
+  section's reads note it, `wantRefused`), draws its band hatched with "zoom in to read this track" (`ZoomInText`) and
+  says `seq.render.zoom_in` (info); distinct from pending, which settles by itself. A change of refusal lays the view
+  out again (the renderer's and a section's reads keep it). Canvas and SVG draw the same list.
 - **An item's key** is its `id`, else its `row` (a null `id` falls back to `row`), else its tile and index; never its
   extent. A key seen in an earlier tile is that range again and is not drawn twice; within one tile a repeated key is
   another piece of one item (a wrapped row).
@@ -3287,10 +3386,14 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   the origin (unchanged when the range is in the window across the origin), steps wrapping, clamps by `clampWindow` (a
   cyclic window wraps, never clamped at the total; one as wide as the axis is the fit, from 0: a whole turn from
   elsewhere would put the origin mid-window).
-- **A one-row image is a ring band**: a density strip (a ranges layer past its lanes, its overflow row, a variants
-  count) is drawn radially, each run of one color an annular sector through the warp, so a ring never refuses its
-  density. Why: the strip's columns are the frame's, so the band is exactly what a track shows. **A taller image is
-  refused** (a matrix: the warp counts it; `seq.render.ring.image`, said once a section by the frame).
+- **An image is drawn as runs**: each sample row of an image (a density strip: a ranges layer past its lanes, its
+  overflow row, a variants count; a matrix's states) is a band, each run of one color in it an annular sector through
+  the warp, so a matrix's states are thin concentric rings (Circos's heatmap tracks). Why runs and not a polar bitmap:
+  the bitmap is a second drawing path, canvas only, its SVG an embedded PNG; runs reuse the warp and the export.
+  Bounded: `rings.imageRuns` a frame; past it an image's rows are taken a step of 2, 4, … apart, each standing for the
+  rows of its step (`seq.render.ring.image`, info, said once a section by the frame). An image of no rows is refused
+  (the warp counts it). A run is traced from its columns' edges' angles, computed once an image (cut so no piece spans
+  more than the warp's step): a ring of 40 states at a run a column lays out and draws under 8 ms (heavy lane).
 - `at` is `atan2` and the radius through the warp's inverse (a label before the rings; the rim `window` while active;
   the hole and outside `empty`; between blocks `gap`); `offsetAt` the nearest block's edge in a gap; both monotone in
   angle from the origin. Held by property tests over rotations.
@@ -3628,6 +3731,8 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   each `hit` with the point in the strip's frame; a layer's hit box is in its strip's frame, so every drawn mark keeps
   its hit box through the warp. `system` is the strip's; `block` its index in the section when the section has blocks;
   `target` `window` (with its `part`) or `row` (a gutter's row) for a layout's marks.
+- **A bin hit** carries `bin`, the level read in positions (absent at 1): a pairs bin's, flat, so a card computes the
+  bin's ranges and a hit allocates nothing.
 - **Hits** are `{ layer, section, element?, extent?, hull?, position?, system, ySystem?, yPosition?, target? }` (flat: a
   hit of two axes, a rows cell or a grid cell, is the target `cell` with `ySystem` and `yPosition` set, so it allocates
   nothing; `row` a rows header, `tree-node` a tree's node and `summary-row` a folded clade's row, their element the
@@ -3659,6 +3764,22 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
 
 `render/pairs.ts` (`PairsType`, `scope: 'section'`, fallback `ranges`): a `pairs` entry's items, each two ends.
 
+- **By region** (`pairs-region.ts`: a `pairs` node with a `source`): the frame's pairs are read through the store on the
+  layer's first system: bins at a pixel's level, always; items once the gate opens (Data, the level rules), drawn with
+  no gap (bins until they land, EC-169); every row of the tiles read (a tile is uncut: a pan inside its tiles builds
+  nothing, and an arc across the view is drawn), each once across tiles by the **anchor rule**: a tile holds every row
+  with an end on the layer's system in it, so a row is taken by the first loaded tile (by start) that holds it, no key
+  made (the gate's counts over the view use it too, so a layout allocates nothing a row read); a pair found from its
+  other end turned round. A **bin pair** is one arc between its bins, stroked by its count (`pairs.binStroke`, 1 to 6
+  CSS px, the square root over the counts in view), twisted where its relative strand is −1, its extent both bins, its
+  hit `bin` the level; past `pairs.maxArcs` the strongest are kept (by count, ties by span), the rest the density strip.
+  What is read is kept while the entries read are the same (a warm frame builds nothing).
+- **A bin pair's element** (`Key.key`, what a selection and a bookmark keep):
+  `bin:<a>:<aBin>|<b>:<bBin>|<strand>|<category>`, `<a>` and `<b>` the ends' system names as the source gives them
+  (empty: the request's system), `<aBin>` and `<bBin>` the bins' indices at the level read (positions `bin × level` to
+  `(bin + 1) × level`), `<strand>` the relative strand (−1, 0 or 1), `<category>` the bin's `category` (empty: none).
+  Why the level is not in the key: the hit carries it (`Hit.bin`), and a selection made of a bin is its rect, not its
+  key (`(rect …)`, the design's).
 - **Arcs**: each end placed with `ctx.place` (page x), the apex in its band (`side`: `above`, `below`), never flat; the
   height by span against the widest in view (`height: span`), so nested arcs nest and the widest fills the band; on a
   single translate strip an end past the window is taken `reach` (0.25) of the window past its edge, so an arc moves
@@ -3734,6 +3855,16 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   not settled builds at most `grid.buildBudget` samples, drawing a held coarser tile meanwhile (else the first coarser
   within the budget, else the coarsest); a settled frame builds the rest. An axis reversed flips its side of the plot
   (EC-145).
+- **By region** (`render/grid-region.ts`): a `grid` node with a `source` is read through the store in 2D tiles at
+  `gridLevel`'s level (`grid.binPx`), a ring of `grid.marginTiles` round the view; each store tile one image tile (a
+  sparse tile's `fill` under its cells, a symmetric grid's mirror tile drawn transposed from the served one), in the
+  image LRU by layer, the entry's region and version, the mirror, the colors' version and the triangle. A tile not
+  loaded draws the finest held coarser level under it; with none held, a pending rect (`seq-pending`), never empty
+  (EC-169). Its wants carry the layer's key, so over blocks every block pair's are bounded together (`maxTilesPerLayer`,
+  `maxBytesPerLayer`: past them the band's "zoom in"). The color domain is the range of the tiles drawn (a closed domain
+  is kept), as the view holds it. The colors' version in an image key (a grid's, a region grid's, a matrix's) is the
+  compiled channel's id (`channelId`), never a count per lay: a frame's lay is new, and a tile drawn before a domain was
+  held (saturated) would be read back under the domain held after. A cell hit carries `bin`, the level read.
 - **Color**: the value's field theme (`value`), its domain the grid's range; a missing value (NaN) transparent;
   `triangle` keeps `upper` (y before x, above the diagonal) or `lower` (y after x).
 - **Hit**: any point on the plot is the cell under it (`target: 'cell'`, `position` on x, `ySystem`, `yPosition`), drawn
@@ -3752,6 +3883,42 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   (each grid once, on a rect of its two systems), each cell once however many rects hold it (an added drag's overlap),
   within the layer's `triangle`, missing values left out; NaN with no cell. A library function, no state: a host's
   readout reads it (a selected rect's mean PAE).
+
+### The matrix layer
+
+`render/matrix.ts` (`MatrixType`, `shape: 'matrix'`, fallback `values`): a `matrix` entry's items × states in a track's
+band (EC-220 to EC-222), inline or a source's, read through the store either way.
+
+- **States as rows**: a state a row in the band, scrolled by the band's `bandTop` and zoomed by its `rowScale` (the rows
+  layer's band state), the states fit to the band when it says none; the count the states system's length, else the
+  tables'. What is past the band is clipped.
+- **Items at the finest level**: an item a rect a state row at its own extent (at least a device pixel), a long one (a
+  deletion) one solid rect across the columns it covers, drawn before the short ones (they read over it). An items tile
+  holds every item with an end in it, uncut: an item starting before an earlier loaded tile's end is that tile's, drawn
+  once.
+- **Bins at a coarser level** (`layerLevel`): a store tile one image tile (bins × states, never smoothed) in the shared
+  image LRU by layer, the tile and its version, the colors' version and the axis's direction, placed on the device grid.
+- **Color**: values by the layer's `color` channel by value (its open domain the range of the tiles read), a missing
+  value transparent; codes by class (`0` `seq-ramp-0`, `1` `seq-ramp-2`, `2` `seq-ramp-4`, `3` `seq-ramp-1`), uncalled
+  (`255`) `seq-missing`; a bin's code its majority class at its share's strength (the colour's alpha × share).
+- **Pending**: a region not loaded is the pending fill across the band, never empty (EC-169); the layer's wants are
+  bounded together (`readTiles`'s layer key: past them the band's "zoom in").
+- **Hit**: `target: 'cell'`, `position` on x, `ySystem` the states system, `yPosition` the state; `bin` at a coarse
+  level.
+
+### Hover texts by region
+
+`render/region-hover.ts`: what a hover over data read by region says, as text only (`RegionHover`: a title, rows of
+label and value, the sentence), read on a hover from what the frame drew; a host's card lays it out.
+
+- **A pairs bin** (`pairsBinHover`, its `bin:` key): its two bin ranges, its count (with its kind when the bins keep
+  one), its level (`binsText`: `1 kb bins`), `reversed` when a bin's strand is −1, "zoom in to see them"; never a pair.
+- **A region grid's cell** (`gridCellHover`): its bin on each axis and its value from the tiles drawn at the level read
+  (a mirror's cell the served one's, a sparse tile's unlisted cell its `fill`), NaN `no data`, a tile not loaded
+  `loading`; undefined for a held grid (the viewer's own words).
+- **A matrix cell** (`matrixCellHover`): its item (its `id` when the table keeps one, its extent; the shortest item
+  there, a SNP over a deletion) and state (inline `states`, else the coverage's), its value or genotype (`genotypeText`:
+  `0/0`, `0/1`, `1/1`, `./1`, `./.`); at a coarse level its bin, its mean or its majority with its share, and its level.
 
 ### Tensions (pairs and grids)
 

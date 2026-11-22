@@ -10,7 +10,7 @@
 import { BuiltInLayerTypes, BuiltInLayouts } from '../built-ins.js';
 import { MoleculeLettersType } from '../letters-molecule.js';
 import type { Node } from '@molstar/core/repr/tree';
-import { DataStore, type FormatRuntime } from '@molstar/seqx-core/data';
+import { DataStore, type FormatRuntime, type StoreSettings } from '@molstar/seqx-core/data';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedView } from '@molstar/seqx-core/view';
 import {
@@ -42,8 +42,9 @@ export async function settle(
   runtimes: readonly FormatRuntime[] = [],
   config: RenderConfigOverrides = {},
   options: Pick<RendererOptions, 'sizings' | 'trackSizing'> = {},
+  storeSettings: Partial<StoreSettings> = {},
 ): Promise<Settled> {
-  const store = new DataStore();
+  const store = new DataStore({ settings: storeSettings });
   const { model, view: opened } = await openModel(spec, store, { runtimes });
   const view = opened!;
   const renderer = new Renderer({

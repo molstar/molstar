@@ -80,7 +80,7 @@ export const GenomeFormatsViews: readonly ExampleView[] = [
     id: 'vcf-zoom-in',
     title: 'ClinVar’s chr17 at the fit',
     summary:
-      'The same ClinVar file over the whole of chr17 (83 Mb): more level-1 tiles than a view reads, so none is asked and the track stays the band drawn while data is waiting (no text, no issue in the status line; no estimate drawn). Only TP53’s pages are recorded: zoom into TP53 (7.67–7.69 Mb) to read its variants.',
+      'The same ClinVar file over the whole of chr17 (83 Mb): more level-1 tiles than a view reads, so none is asked and the track’s band is hatched with “zoom in to read this track” (an info issue; no estimate drawn, never an endless wait). Only TP53’s pages are recorded: zoom into TP53 (7.67–7.69 Mb) to read its variants.',
     build: genomeVcf.clinvarZoomIn,
     registry: genomeVcf.registry,
   },

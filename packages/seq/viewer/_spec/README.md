@@ -699,6 +699,10 @@ param (`port`, a `HoverCardPortFactory` given the canvas's element, none headles
   then a row `+k more`, the rest in `more`; the behavior's `shown` keeps the whole card and the live region says every
   item. Why: a ring's position under 20 features filled the page; a host that wants the list whole draws its own card
   from `more` (the port).
+- **By region** (`describe-region.ts`): a pairs bin, a region grid's cell and a matrix cell are said in the core's words
+  (`pairsBinHover`, `gridCellHover`, `matrixCellHover`: core "Render", Hover texts by region), their rows the card's;
+  first of the sections, the whole description. Why the core's: an export's accessible layer and a host's own card say a
+  bin as the viewer does.
 - **A residue over its codon**: a hit on a letters layer whose data is on another system than its section's through a
   codon step (a protein's letters over its gene; an alignment row, an offset or a pairwise map keeps the place's card)
   is titled by the residue (`p 12`), with its `Index`, its letter and the codon's positions on the section's system, a

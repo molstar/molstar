@@ -5,7 +5,7 @@
  */
 
 import type { Issue } from '@molstar/core/repr/tree';
-import type { Coverage, DataEntry, Want } from '@molstar/seqx-core/data';
+import type { Coverage, DataEntry, Want, WantTile } from '@molstar/seqx-core/data';
 import type { Key, Keys, Location } from '@molstar/seqx-core/query';
 import type { Overlay, StaticModel } from '@molstar/seqx-core/resolve';
 import type { Legend } from '@molstar/seqx-core/theme/index';
@@ -31,7 +31,15 @@ export interface StoreReader {
   tooMany?(want: Want): boolean;
   get(key: string): DataEntry | undefined;
   /** The store's tiling and its bound on a want's tiles (a layer picks a level within it), where it has them. */
-  readonly settings?: { readonly tileBins: number; readonly maxTilesPerWant: number };
+  readonly settings?: { readonly tileBins: number; readonly maxTilesPerWant: number; readonly gridTileBins?: number };
+  /** A 2D want's tiles (x-major), each its key, its served region and whether it is that one's mirror, where it has them. */
+  tilesOf?(want: Want): readonly WantTile[];
+  /** Whether a layer's wants together were refused (past `maxTilesPerLayer` or `maxBytesPerLayer`), where it says. */
+  layerRefused?(layer: string): 'tiles' | 'cost' | undefined;
+  /** Whether wants of one layer fit the store's bounds together (`DataStore.layerLoad`): a layer reads coarser first. */
+  layerLoad?(wants: readonly Want[]): { readonly fits: boolean };
+  /** Moves when a layer's refusal comes or goes, where it says (a layout keeps it, to know its reads hold). */
+  readonly refusals?: number;
 }
 
 /** The dynamic nodes of tier 2 (the resolve pass's overlay): its version is part of the draw lists' key. */
@@ -181,6 +189,11 @@ export interface Hit {
    */
   readonly ySystem?: string;
   readonly yPosition?: number;
+  /**
+   * A bin hit (a pairs bin, a grid cell read at a coarse level): the level read, in positions (absent at 1), so a card
+   * computes the bin's ranges from `extent` or `position` and a hit still allocates nothing.
+   */
+  readonly bin?: number;
   /**
    * `break`: a collapsed break (within 3 CSS px of its notch, or on a tick of the items it hides): `position` the
    * section's position at its edge (the last shown before it in display order), `extent` the hidden stretch on the

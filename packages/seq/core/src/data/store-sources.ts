@@ -8,7 +8,8 @@ import type { Issue } from '@molstar/core/repr/tree';
 import { channelOf, channelSource, fieldChannel } from './channels.js';
 import type { OpenedSource } from './protocol.js';
 import { checkCoverage } from './seq-format.js';
-import { type SummarySettings, summaryBytes, withSummaries } from './summaries.js';
+import { sidedName } from './store-wants.js';
+import { type SummarySettings, summariesBuilding, summaryBytes, withSummaries } from './summaries.js';
 
 // The data store's sources (_spec/README.md "Data", Store): each attached source checked and summarized, its systems'
 // names, the nodes its coverage brought; a source's values channels made when a tile of one is read (Channels); and
@@ -42,8 +43,10 @@ export class StoreSources {
     const opened = summaries ? withSummaries(source, summaries, this.settings.maxRows) : source;
     const names = new Map<string, string>();
     for (const s of opened.coverage.systems) {
-      names.set(s.name, s.name);
-      for (const a of s.aliases ?? []) if (!names.has(a)) names.set(a, s.name);
+      // a sided system is named with its side (`sidedName`): `chr1` may be listed once a side
+      const at = (n: string) => sidedName(s.side, n);
+      names.set(at(s.name), s.name);
+      for (const a of s.aliases ?? []) if (!names.has(at(a))) names.set(at(a), s.name);
     }
     return { opened, raw: source, names };
   }
@@ -104,6 +107,15 @@ export class StoreSources {
     let n = 0;
     for (const s of this._all.values()) n += summaryBytes(s.opened);
     return n;
+  }
+
+  /** A source's summaries' build in flight (any one), else undefined. */
+  get building(): Promise<unknown> | undefined {
+    for (const s of this._all.values()) {
+      const b = summariesBuilding(s.opened);
+      if (b) return b;
+    }
+    return undefined;
   }
 
   /** Marks a key an old reading's tile brought (`tile`), not in the new reading's coverage: replaced when served. */

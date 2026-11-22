@@ -251,6 +251,16 @@ export { type VariantsLay, type VariantsPrep, VariantsType } from './variants.js
 export { type FrameLay, type FramePrep, FrameType } from './frames.js';
 export { LogoLay, type LogoPrep, LogoType, MinLogoGlyphPx } from './logo.js';
 export { GridLay, type GridPrep, type GridSummary, GridType, gridSummary } from './grid.js';
+export { MatrixLay, type MatrixPrep, MatrixType } from './matrix.js';
+export {
+  binsText,
+  genotypeText,
+  gridCellHover,
+  matrixCellHover,
+  pairsBinHover,
+  type RegionHover,
+  type SystemName,
+} from './region-hover.js';
 export { crosses, PairsLay, type PairsPrep, PairsType, SplitExact, splitCrossing } from './pairs.js';
 export { readHeld, RowsLay, type RowsOrder, type RowsPrep, RowsType, rowsSource } from './rows.js';
 export {
