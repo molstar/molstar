@@ -15,6 +15,7 @@ import {
   PlumSection,
 } from '@molstar/seqx-examples/across/views';
 import { Gap, Inversion, Translocation } from '@molstar/seqx-examples/across/genomes';
+import { describerFor } from '@molstar/seqx-viewer/describe';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { openExample } from '../../../examples/_test/draw-checks.js';
@@ -98,6 +99,12 @@ describe('Features/Across sections, headless', () => {
     const lay = b.lays[0].lay as unknown as { reads: { level?: number }[]; n: number };
     expect(lay.n).toBeGreaterThan(0);
     expect(lay.reads.some((r) => (r.level ?? 1) > 1)).toBe(true);
+    // a bin's card: its count and its bins' width, never an aligned length
+    const r = b.ribbons().find((x) => x.bin !== undefined && x.ax1 - x.ax0 > 1 && x.ax0 > b.box.x)!;
+    v.hover.set(v.hit((r.ax0 + r.ax1) / 2, b.box.y + 1), 'test');
+    const card = describerFor({ ...v, layout: () => v.frame?.layout }).describe(v.hover.current)!;
+    expect(card.text).toMatch(/pairs? · .* bins · zoom in to see them/);
+    expect(card.rows.map((row) => row.label)).not.toContain('Aligned');
     await bothThemes(v);
   });
 

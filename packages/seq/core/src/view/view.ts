@@ -423,6 +423,21 @@ export interface ResolvedView {
  */
 export const BridgePass: { resolve?: typeof import('./bridges.js').resolveBridges } = {};
 
+/**
+ * A bridge in a view of a composition that registers none (the pairs layer type listed without `registerBridges`):
+ * said, never stacked silently (_spec/README.md "Resolved view", Bridges).
+ */
+function unregisteredBridge(view: Node, address: string, report: Report): undefined {
+  const b = view.children?.find((c) => c.kind === 'bridge');
+  if (b)
+    report(
+      'seq.view.bridge.unregistered',
+      'A bridge is not drawn: the composition registers no bridges; its sides are stacked',
+      `${address}/${b.id}`,
+    );
+  return undefined;
+}
+
 /** No systems: what an unmapped system links to besides itself. */
 const NoSystems: readonly string[] = [];
 
@@ -836,7 +851,9 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
     navigators: navigatorsOf(model, view, address, sections, report, layerKinds),
     // its bridges and the stack, where the view has a bridge and the pass is composed (_spec/README.md "Resolved
     // view", Bridges)
-    ...BridgePass.resolve?.({ view, address, sections, model, kinds, layer: layerOf }, issues),
+    ...(BridgePass.resolve
+      ? BridgePass.resolve({ view, address, sections, model, kinds, layer: layerOf }, issues)
+      : unregisteredBridge(view, address, report)),
     issues,
   };
 }

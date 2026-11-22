@@ -56,6 +56,22 @@ function spec(
 }
 
 const view = (s = spec()) => resolveView(resolveSpec(s), '/views/v')!;
+
+describe('a bridge in a composition that registers none', () => {
+  it('is said (`seq.view.bridge.unregistered`), never stacked silently', () => {
+    const kept = BridgePass.resolve;
+    BridgePass.resolve = undefined;
+    try {
+      const v = view();
+      expect(v.bridges).toBeUndefined();
+      expect(v.issues.filter((i) => i.code === 'seq.view.bridge.unregistered').map((i) => i.address)).toEqual([
+        '/views/v/br',
+      ]);
+    } finally {
+      BridgePass.resolve = kept;
+    }
+  });
+});
 const codes = (v: ReturnType<typeof view>) => v.issues.map((i) => i.code);
 
 describe('bridges in the resolved view', () => {

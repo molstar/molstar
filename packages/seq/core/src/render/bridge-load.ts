@@ -9,14 +9,14 @@
 // (`withViewKind`), so a view with a bridge is never drawn without it. Why lazy: a view without a bridge pays nothing.
 
 import { withViewKind } from '@molstar/seqx-core/resolve';
-import { BridgePass, type ResolvedView } from '@molstar/seqx-core/view';
+import { BridgePass } from '@molstar/seqx-core/view';
 import { BridgeHooks } from './bridge-hooks.js';
-import type { RenderConfig } from './config.js';
 
 /** Loads the bridge chunk and the view's bridge pass. */
 export function loadBridges(): Promise<void> {
   return Promise.all([
     import('./bridges.js').then((m) => {
+      BridgeHooks.rooms = m.bridgeRooms;
       BridgeHooks.layout = m.layoutBridges;
     }),
     import('@molstar/seqx-core/view/bridges').then((m) => {
@@ -26,33 +26,15 @@ export function loadBridges(): Promise<void> {
 }
 
 /**
- * Registers bridges with the layout and resolve (the pairs type's module calls it): their room, the pairs layer's region
- * reader, and the chunks loaded when a spec holds a bridge.
+ * Registers bridges with the layout and resolve (the pairs type's module calls it): the pairs layer's region reader,
+ * and the chunks loaded when a spec holds a bridge (the bands' room is the chunk's: a view with a bridge waits for it).
  */
 export function registerBridges(
   region: NonNullable<(typeof BridgeHooks)['region']>,
   state: NonNullable<(typeof BridgeHooks)['state']>,
 ): void {
-  if (BridgeHooks.rooms) return;
-  BridgeHooks.rooms = bridgeRooms;
+  if (BridgeHooks.region) return;
   BridgeHooks.region = region;
   BridgeHooks.state = state;
   withViewKind('bridge', loadBridges);
-}
-
-/**
- * Each placed, shown bridge's room by the section below it (_spec/README.md "Render", Bridges): its height and a
- * section gap, taken above that section.
- */
-export function bridgeRooms(view: ResolvedView, config: RenderConfig): Map<string, number> {
-  const out = new Map<string, number>();
-  const { stack = [], bridges = [], sections } = view;
-  for (let i = 0; i + 1 < stack.length; i++) {
-    const e = stack[i];
-    if (e.kind !== 'bridge' || stack[i + 1].kind !== 'section') continue;
-    const br = bridges[e.index];
-    if (!br.placed || br.hidden) continue;
-    out.set(sections[stack[i + 1].index].address, (br.height ?? config.bridges.height) + config.sectionGap);
-  }
-  return out;
 }

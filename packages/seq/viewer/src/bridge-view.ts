@@ -14,7 +14,6 @@ import { type Location, location } from '@molstar/seqx-core/query';
 import type { BridgeRibbon, ViewLayout } from '@molstar/seqx-core/render';
 import { placesOf, type ResolvedBridge, type ResolvedSection, type ResolvedView } from '@molstar/seqx-core/view';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
-import type { ChangeKind } from './commands.js';
 import type { HoverCard } from './hover-card.js';
 import type { Place } from './describe.js';
 import type { Cursor } from './models/selection.js';
@@ -79,10 +78,45 @@ export function carriedSections(view: ViewModel, from: readonly string[]): strin
   return out;
 }
 
-/** The sections a gesture on `section` starts from: a band's are its two sides. */
-function startsOf(view: ViewModel, section: string): { from: string[]; band: boolean } {
-  const b = bridgeAt(view.resolved.value, section);
-  return b ? { from: [upperOf(b), lowerOf(b)], band: true } : { from: [section], band: false };
+/** A gesture's carrying, kept a resolved view and section: its sections, and the follows it was found under. */
+interface Carry {
+  readonly to: readonly string[];
+  /** Each follower's `isFollowing` when found (a detach or an attach since finds it again). */
+  readonly following: readonly boolean[];
+}
+
+const Carries = new WeakMap<ResolvedView, Map<string, Carry>>();
+/** Each resolved view's followers (their follow state is what a kept carrying is checked against). */
+const Followers = new WeakMap<ResolvedView, readonly string[]>();
+
+function followersOf(r: ResolvedView): readonly string[] {
+  let f = Followers.get(r);
+  if (!f) Followers.set(r, (f = r.sections.filter((s) => s.follow).map((s) => s.address)));
+  return f;
+}
+
+/**
+ * The sections a gesture on `section` moves (a band's: both its sides), kept per resolved view and found again only
+ * when a follower was detached or attached since: a drag's moves allocate nothing (_spec/README.md "Bridges").
+ */
+function carriedOf(
+  view: ViewModel,
+  r: ResolvedView,
+  section: string,
+  band: ResolvedBridge | undefined,
+): readonly string[] {
+  let m = Carries.get(r);
+  if (!m) Carries.set(r, (m = new Map()));
+  const fs = followersOf(r);
+  const c = m.get(section);
+  if (c) {
+    let same = true;
+    for (let i = 0; i < fs.length && same; i++) same = c.following[i] === view.isFollowing(fs[i]);
+    if (same) return c.to;
+  }
+  const to = carriedSections(view, band ? [upperOf(band), lowerOf(band)] : [section]);
+  m.set(section, { to, following: fs.map((f) => view.isFollowing(f)) });
+  return to;
 }
 
 /** A section's (or a band's) viewport: a band's is its upper side's. */
@@ -91,17 +125,61 @@ function get(view: ViewModel, section: string): Viewport | undefined {
   return b ? view.get(upperOf(b)) : undefined;
 }
 
+/** The move in progress, read by `runMove` inside one batch (no closure a move). */
+const Move = {
+  view: undefined as ViewModel | undefined,
+  to: [] as readonly string[],
+  section: '',
+  zoom: false,
+  dx: 0,
+  dy: 0,
+  x: undefined as number | undefined,
+  factor: 1,
+  anchor: undefined as number | undefined,
+  anchorY: undefined as number | undefined,
+  origin: undefined as Viewport | undefined,
+  moved: false,
+};
+
+function runMove(): void {
+  const m = Move;
+  const view = m.view!;
+  for (let i = 0; i < m.to.length; i++) {
+    const t = m.to[i];
+    const own = t === m.section;
+    // a band has no y: its sides pan across only; a carried section takes the gesture's dx alone, and zooms about
+    // the same page x
+    const moved = m.zoom
+      ? view.ownZoom(t, m.factor, own ? m.anchor : sameX(m.origin, view.get(t), m.anchor), own ? m.anchorY : undefined)
+      : view.ownPanPx(t, m.dx, own ? m.dy : 0, m.x);
+    m.moved = moved || m.moved;
+  }
+}
+
+function carried(view: ViewModel, section: string): readonly string[] | undefined {
+  const r = view.resolved.value;
+  if (!r?.bridges) return undefined;
+  const band = bridgeAt(r, section);
+  const to = carriedOf(view, r, section, band);
+  return !band && to.length === 1 ? undefined : to;
+}
+
 /** A pan by px carried through the locks (a band's: both its sides, whatever their lock). */
 function panPx(view: ViewModel, section: string, dx: number, dy: number, x?: number): boolean {
-  const { from, band } = startsOf(view, section);
-  const to = carriedSections(view, from);
-  if (!band && to.length === 1) return view.ownPanPx(section, dx, dy, x);
-  let moved = false;
-  // a band has no y: its sides pan across only; a carried section takes the gesture's dx alone
-  batch(() => {
-    for (const t of to) moved = view.ownPanPx(t, dx, t === section ? dy : 0, x) || moved;
-  });
-  return moved;
+  const to = carried(view, section);
+  if (!to) return view.ownPanPx(section, dx, dy, x);
+  const m = Move;
+  m.view = view;
+  m.to = to;
+  m.section = section;
+  m.zoom = false;
+  m.dx = dx;
+  m.dy = dy;
+  m.x = x;
+  m.moved = false;
+  batch(runMove);
+  m.view = undefined;
+  return m.moved;
 }
 
 /** An offset of `v` at the page x of offset `anchor` of `from` (same data x: the sides share the label column). */
@@ -114,18 +192,23 @@ function sameX(from: Viewport | undefined, v: Viewport | undefined, anchor: numb
 
 /** A zoom carried through the locks, about the same page x on each section (a band's: both its sides). */
 function zoom(view: ViewModel, section: string, factor: number, anchor?: number, anchorY?: number): boolean {
-  const { from, band } = startsOf(view, section);
-  const to = carriedSections(view, from);
-  if (!band && to.length === 1) return view.ownZoom(section, factor, anchor, anchorY);
-  const origin = view.get(section);
-  const at = to.map((t) => (t === section ? anchor : sameX(origin, view.get(t), anchor)));
-  let moved = false;
-  batch(() => {
-    to.forEach((t, i) => {
-      moved = view.ownZoom(t, factor, at[i], t === section ? anchorY : undefined) || moved;
-    });
-  });
-  return moved;
+  const to = carried(view, section);
+  if (!to) return view.ownZoom(section, factor, anchor, anchorY);
+  const m = Move;
+  m.view = view;
+  m.to = to;
+  m.section = section;
+  m.zoom = true;
+  m.factor = factor;
+  m.anchor = anchor;
+  m.anchorY = anchorY;
+  m.moved = false;
+  // the anchor's page x read before any side moved (a band's: its upper side's viewport)
+  m.origin = view.get(section);
+  batch(runMove);
+  m.view = undefined;
+  m.origin = undefined;
+  return m.moved;
 }
 
 /** The bridge whose band holds a page y (its address): a drag or a wheel there moves both sides. */
@@ -192,6 +275,8 @@ function cross(
   if (!b) return undefined;
   const rs = ribbonsOf(layout, b.address);
   for (let i = rs.length - 1; i >= 0; i--) {
+    // a stub's far end has no place on the far section: never landed on
+    if (rs[i].stub) continue;
     const e = endsFrom(rs[i], b.a === c.section);
     if (e.nearSystem !== c.system || c.position < e.near0 || c.position >= e.near1) continue;
     const t = (c.position - e.near0 + 0.5) / Math.max(1, e.near1 - e.near0);
@@ -228,6 +313,8 @@ export function alignRange(
   if (!box || !section) return undefined;
   const by = new Map<string, { length: number; lo: number; hi: number }>();
   for (const r of ribbonsOf(layout, b.address)) {
+    // a stub's far end has no place: it aligns nothing
+    if (r.stub) continue;
     const e = endsFrom(r, b.a === near);
     if (e.nearX1 < box.x || e.nearX0 > box.x + box.width) continue;
     const h = by.get(e.farSystem);
@@ -276,6 +363,7 @@ export function acrossOf(
   };
   for (const b of bridges)
     for (const r of ribbonsOf(layout, b.address)) {
+      if (r.stub) continue;
       if (meets(shown, r.aSystem, r.aStart, r.aEnd)) add(r.bSystem, r.bStart, r.bEnd);
       if (meets(shown, r.bSystem, r.bStart, r.bEnd)) add(r.aSystem, r.aStart, r.aEnd);
     }
@@ -318,17 +406,32 @@ function lengthText(n: number): string {
 function card(view: ViewModel, layout: ViewLayout | undefined, place: Place): HoverCard | undefined {
   const bl = layout?.bridges?.list.find((b) => b.id === place.section);
   const key = place.element?.key;
-  if (!bl || key === undefined) return undefined;
-  const r = bl.ribbons().find((x) => x.key === key);
-  if (!r) return undefined;
-  const end = (side: string, system: string, s: number, e: number) =>
-    `${sideName(side)} ${systemName(view, system)}:${count(s + 1)}–${count(e)}`;
-  const title = `${end(bl.a, r.aSystem, r.aStart, r.aEnd)} ↔ ${end(bl.b, r.bSystem, r.bStart, r.bEnd)}`;
+  // the hit's ribbon alone, never the list (a hover's change)
+  const r = key === undefined ? undefined : bl?.ribbon(key);
+  if (!bl || !r) return undefined;
+  const end = (side: string, system: string, s: number, e: number, unplaced: boolean) =>
+    `${sideName(side)} ${systemName(view, system)}:${count(s + 1)}–${count(e)}${unplaced ? ', not shown' : ''}`;
+  const title = `${end(bl.a, r.aSystem, r.aStart, r.aEnd, r.stub === 'a')} ↔ ${end(bl.b, r.bSystem, r.bStart, r.bEnd, r.stub === 'b')}`;
+  // a bin pair: its count and its bins' width, never an aligned length (it stands for many pairs)
+  if (r.bin !== undefined) {
+    const n = Math.round(r.count ?? 0);
+    const words = `${count(n)} pair${n === 1 ? '' : 's'} · ${lengthText(r.bin)} bins · zoom in to see them`;
+    return {
+      title,
+      rows: [
+        { label: 'Pairs', value: count(n) },
+        { label: 'Bins', value: lengthText(r.bin) },
+      ],
+      text: `${title} · ${words}`,
+    };
+  }
   const rows = [
     { label: 'Strand', value: r.reversed ? 'reversed' : 'same' },
     { label: 'Aligned', value: lengthText(r.length) },
+    ...(r.stub ? [{ label: 'Not shown', value: sideName(r.stub === 'a' ? bl.a : bl.b) }] : []),
   ];
-  return { title, rows, text: [title, ...(r.reversed ? ['reversed'] : []), lengthText(r.length)].join(' · ') };
+  const words = [title, ...(r.reversed ? ['reversed'] : []), lengthText(r.length)];
+  return { title, rows, text: words.join(' · ') };
 }
 
 /**
@@ -346,13 +449,6 @@ export function bridgeAria(view: ViewModel, layout: ViewLayout | undefined): { l
   });
 }
 
-/** The bridge commands' change kinds (_spec/README.md "Commands"): an align is a jump, select across a selection's. */
-export const BridgeChangeKinds: Readonly<Record<string, ChangeKind>> = {
-  'bridge.align': 'navigate',
-  'bridge.selectAcross': 'session',
-  'bridge.lock': 'patch',
-};
-
 /** What the bridge commands read: the section (a side) or the bridge they act on, and an align's way. */
 export interface BridgeContext {
   readonly section?: string;
@@ -369,10 +465,18 @@ export const AlignKey = { key: 'A', shift: true } as const;
 export function bridgeCommands(viewer: SeqViewer): CommandDefinition<BridgeContext>[] {
   const view = viewer.view;
   const layout = () => viewer.frame?.layout;
-  /** The side a command acts at: the one named, else the keyboard cursor's when the keys moved it, else the pointer's. */
+  /**
+   * The side a command acts at: the one named (a key's context names the pointer's section), else the keyboard
+   * cursor's when the keys moved it, else the leading section: the first in the stack a bridge touches. Never none, so
+   * an align is one consistent step (in a chain A–B–C, A's neighbour only: never C to B's old window).
+   */
   const sideOf = (ctx: BridgeContext) => {
     const c = viewer.selection.cursor.value;
-    return ctx.section ?? (c?.keyboard ? c.section : undefined);
+    const named = ctx.section ?? (c?.keyboard ? c.section : undefined);
+    if (named !== undefined) return named;
+    const r = view.resolved.value;
+    const touched = new Set(bridgesOf(view, undefined).flatMap((b) => [b.a, b.b]));
+    return r?.sections.find((s) => touched.has(s.address))?.address;
   };
   const result = (message: string): CommandResult => ({ message });
   return [
@@ -389,7 +493,7 @@ export function bridgeCommands(viewer: SeqViewer): CommandDefinition<BridgeConte
         if (named) pairs.push([named, ctx.to ?? upperOf(named)]);
         else {
           const side = sideOf(ctx);
-          for (const b of bridgesOf(view, side)) pairs.push([b, side ?? upperOf(b)]);
+          if (side !== undefined) for (const b of bridgesOf(view, side)) pairs.push([b, side]);
         }
         const ranges = pairs.map(([b, near]) => alignRange(view, layout(), b, near)).filter((r) => !!r);
         if (!ranges.length) return result('Nothing aligned in view');
@@ -450,5 +554,45 @@ function install(viewer: SeqViewer): void {
   viewer.commands.push(...bridgeCommands(viewer));
 }
 
+const AriaGroups = new WeakMap<HTMLElement, HTMLElement>();
+
+/**
+ * The bands' ARIA groups in a mounted viewer (across-sections, ARIA): a visually hidden list beside the canvas, a
+ * group a bridge labelled by its `label`, its words the ribbons in view (`bridgeAria`); set when a frame settles,
+ * removed when no bridge is drawn.
+ */
+function aria(viewer: SeqViewer, container: HTMLElement): void {
+  const words = bridgeAria(viewer.view, viewer.frame?.layout);
+  let host = AriaGroups.get(container);
+  if (!words.length) {
+    host?.replaceChildren();
+    return;
+  }
+  if (!host) {
+    host = container.ownerDocument.createElement('div');
+    Object.assign(host.style, {
+      position: 'absolute',
+      width: '1px',
+      height: '1px',
+      overflow: 'hidden',
+      clip: 'rect(0 0 0 0)',
+      whiteSpace: 'nowrap',
+      pointerEvents: 'none',
+    });
+    container.append(host);
+    AriaGroups.set(container, host);
+  }
+  const doc = container.ownerDocument;
+  host.replaceChildren(
+    ...words.map((w) => {
+      const g = doc.createElement('div');
+      g.setAttribute('role', 'group');
+      g.setAttribute('aria-label', w.label);
+      g.textContent = w.description;
+      return g;
+    }),
+  );
+}
+
 /** What the eager viewer calls (`models/bridge-hooks.ts`). */
-export const BridgeViewParts = { get, panPx, zoom, bandAt, cross, card, install };
+export const BridgeViewParts = { get, panPx, zoom, bandAt, cross, card, install, aria };

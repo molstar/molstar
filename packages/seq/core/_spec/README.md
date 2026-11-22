@@ -3964,8 +3964,16 @@ pairs layer's prepared form and its region reader through the composition (`type
   by lines, closed).
 - **Its ribbons as data** (`BridgeLayout.ribbons()`, `BridgeRibbon`): each ribbon drawn, topmost last, by the bridge's
   sides: its system, positions (a merged ribbon's hull) and drawn px extent on `a` and on `b`, `reversed`, its pair's
-  key and its aligned length. Made on each call (a command's or a card's, never a frame's): what the viewer's align,
-  select across, cursor and card read, so the viewer never reads the ribbons' arrays.
+  key and its aligned length, a stub's unplaced end (`stub`), a bin pair's level and count (`bin`, `count`). Made on
+  each call (a command's, never a frame's): what the viewer's align, select across and cursor read, so the viewer never
+  reads the ribbons' arrays; `ribbon(key)` builds the topmost of one pair alone (a hover's card).
+- **A ribbon joins corresponding positions**: each place of its `a` end (a block's piece of it) is joined to its image
+  on `b` through the pair's own linear map (reversed on a minus strand), cut by `b`'s places in turn, so a pair over
+  block edges on both sides is a ribbon a corresponding piece, never the cross product of the ends' pieces; a piece of
+  `a` whose image no block shows is a stub. An end on a sequence of an assembly the side shows that its `include` leaves
+  out is a stub too (`BridgeSide.holds`), never unplaced.
+- **The bands' room** (`bridgeRooms`) is the chunk's: a view with a bridge waits for it. A composition listing the pairs
+  type without `registerBridges` resolves a bridge to `seq.view.bridge.unregistered` (a warning), its sides stacked.
 
 ### Lanes and Hits
 

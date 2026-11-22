@@ -127,6 +127,8 @@ export interface BridgeLayout {
    * select across and cursor read (_spec/README.md "Render", Bridges). Made on each call: a command's, never a frame's.
    */
   ribbons(): BridgeRibbon[];
+  /** The topmost ribbon drawn of a pair's key (a hit's element): one built, never the list. */
+  ribbon(key: string | number): BridgeRibbon | undefined;
 }
 
 /**
@@ -148,6 +150,11 @@ export interface BridgeRibbon {
   readonly reversed: boolean;
   readonly key: string | number;
   readonly length: number;
+  /** A stub's unplaced end (its side shows no place of it). */
+  readonly stub?: 'a' | 'b';
+  /** A bin pair's level and its count (absent for an item). */
+  readonly bin?: number;
+  readonly count?: number;
 }
 
 /**

@@ -11,7 +11,7 @@
 
 import type { Issue } from '@molstar/core/repr/tree';
 import type { Want } from '@molstar/seqx-core/data';
-import type { ResolvedBridge, ResolvedLayer } from '@molstar/seqx-core/view';
+import type { ResolvedBridge, ResolvedLayer, ResolvedView } from '@molstar/seqx-core/view';
 import type { ThemeContext } from './channels.js';
 import type { RenderConfig } from './config.js';
 import type { PassName, PassWriter } from './draw-lists.js';
@@ -20,7 +20,7 @@ import type { Box, Emphasis, Hit, LayoutContext } from './layer-type.js';
 import { issueOf } from '@molstar/core/repr/tree';
 import { BridgePlacement } from './layout/bridge.js';
 import { type BridgeLayoutContext, type RibbonsLay, RibbonsType } from './pairs-ribbons.js';
-import { aOf, bOf, R } from './pairs-ribbons-lay.js';
+import { aOf, bOf, R, Stub } from './pairs-ribbons-lay.js';
 import type { PairsPrep } from './pairs-lay.js';
 import type {
   BridgeLayout,
@@ -225,36 +225,74 @@ class Bridge implements BridgeLayout {
     for (const l of this.lays) {
       const lay = l.lay as RibbonsLay;
       for (let i = 0; i < lay.n; i++) {
-        const prep = lay.reads[lay.src[i]];
-        const d = prep.data;
-        if (!d) continue;
-        const k = lay.pair[i];
-        const h = 4 * i;
-        const o = R * i;
-        // the data's `a` end on the bridge's `a` side, or the swap (`orient`)
-        const fwd = lay.orient[i] === 1;
-        const as = aOf(prep, k);
-        const bs = bOf(prep, k);
-        const da = [as, lay.hull[h], lay.hull[h + 1]] as const;
-        const db = [bs, lay.hull[h + 2], lay.hull[h + 3]] as const;
-        const [na, nb] = fwd ? [da, db] : [db, da];
-        out.push({
-          aSystem: na[0],
-          aStart: na[1],
-          aEnd: na[2],
-          ax0: Math.min(lay.rib[o], lay.rib[o + 1]),
-          ax1: Math.max(lay.rib[o], lay.rib[o + 1]),
-          bSystem: nb[0],
-          bStart: nb[1],
-          bEnd: nb[2],
-          bx0: Math.min(lay.rib[o + 3], lay.rib[o + 4]),
-          bx1: Math.max(lay.rib[o + 3], lay.rib[o + 4]),
-          reversed: d.aStrand[k] * d.bStrand[k] < 0,
-          key: d.keys[k],
-          length: Math.min(na[2] - na[1], nb[2] - nb[1]),
-        });
+        const r = this.ribbonAt(lay, i);
+        if (r) out.push(r);
       }
     }
     return out;
   }
+
+  ribbon(key: string | number): BridgeRibbon | undefined {
+    // the topmost drawn with the key (drawn last): a hover's card builds one ribbon, never the list
+    for (let l = this.lays.length - 1; l >= 0; l--) {
+      const lay = this.lays[l].lay as RibbonsLay;
+      for (let i = lay.n - 1; i >= 0; i--) {
+        const d = lay.reads[lay.src[i]].data;
+        if (d && d.keys[lay.pair[i]] === key) return this.ribbonAt(lay, i);
+      }
+    }
+    return undefined;
+  }
+
+  private ribbonAt(lay: RibbonsLay, i: number): BridgeRibbon | undefined {
+    const prep = lay.reads[lay.src[i]];
+    const d = prep.data;
+    if (!d) return undefined;
+    const k = lay.pair[i];
+    const h = 4 * i;
+    const o = R * i;
+    // the data's `a` end on the bridge's `a` side, or the swap (`orient`)
+    const fwd = lay.orient[i] === 1;
+    const as = aOf(prep, k);
+    const bs = bOf(prep, k);
+    const da = [as, lay.hull[h], lay.hull[h + 1]] as const;
+    const db = [bs, lay.hull[h + 2], lay.hull[h + 3]] as const;
+    const [na, nb] = fwd ? [da, db] : [db, da];
+    // a stub's unplaced end: the side its taper does not start from
+    const stub = lay.flags[i] & Stub ? (lay.rib[o + 2] === this.placement.a.edge ? 'b' : 'a') : undefined;
+    return {
+      aSystem: na[0],
+      aStart: na[1],
+      aEnd: na[2],
+      ax0: Math.min(lay.rib[o], lay.rib[o + 1]),
+      ax1: Math.max(lay.rib[o], lay.rib[o + 1]),
+      bSystem: nb[0],
+      bStart: nb[1],
+      bEnd: nb[2],
+      bx0: Math.min(lay.rib[o + 3], lay.rib[o + 4]),
+      bx1: Math.max(lay.rib[o + 3], lay.rib[o + 4]),
+      reversed: d.aStrand[k] * d.bStrand[k] < 0,
+      key: d.keys[k],
+      length: Math.min(na[2] - na[1], nb[2] - nb[1]),
+      ...(stub ? { stub } : {}),
+      ...(prep.level !== undefined && prep.weight ? { bin: prep.level, count: prep.weight[k] } : {}),
+    };
+  }
+}
+
+/**
+ * Each placed, shown bridge's room by the section below it (_spec/README.md "Render", Bridges): its height and a
+ * section gap, taken above that section.
+ */
+export function bridgeRooms(view: ResolvedView, config: RenderConfig): Map<string, number> {
+  const out = new Map<string, number>();
+  const { stack = [], bridges = [], sections } = view;
+  for (let i = 0; i + 1 < stack.length; i++) {
+    const e = stack[i];
+    if (e.kind !== 'bridge' || stack[i + 1].kind !== 'section') continue;
+    const br = bridges[e.index];
+    if (!br.placed || br.hidden) continue;
+    out.set(sections[stack[i + 1].index].address, (br.height ?? config.bridges.height) + config.sectionGap);
+  }
+  return out;
 }

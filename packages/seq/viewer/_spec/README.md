@@ -1503,15 +1503,19 @@ each. Why lazy: a viewer that never shows a bridge pays for none of it (eager: t
   `lock: px` bridges, each section moved once by its mover (up its attached follows to the first leader, then its scroll
   group): a lock between sections a follow or a group already moves moves nothing more, and a cycle ends where it began.
   A carried section pans by the same CSS px (`ownPanPx`, its own follow and group only) and zooms by the same factor
-  about the same page x (`ownZoom`). Why px: two assemblies' scales and gaps differ; the reader's slant is kept.
+  about the same page x (`ownZoom`). Why px: two assemblies' scales and gaps differ; the reader's slant is kept. The
+  carrying is kept per resolved view and section, found again only when a follower was detached or attached since: a
+  drag's moves allocate what the sides' own pans do (the storybook's `across.quick.ts`).
 - **The band's pointer**: a press or a wheel over a band (`bandAt`, between its sides) is the bridge's: a drag pans both
   sides (target `empty`: it never selects), a wheel pans or zooms both about the pointer's x, whatever the lock, through
   the same closure; `ViewModel.get(bridge)` is its upper side's viewport (the wheel's px and anchor).
 - **`bridge.align`** (`navigate`, a jump with the location aligned; `Shift+A`, the command's shortcut, `view.keys`
-  rebinds it; checked against every built-in key and binding): the side named (`section`), else the keyboard cursor's,
-  each neighbour across a bridge touching it brought to the hull on the far system holding the most aligned length among
-  the ribbons with their near end in the window (`alignRange`), all in one step; a bridge named (`bridge`, `to`) one
-  way. Nothing in view: "Nothing aligned in view", nothing moves.
+  rebinds it; checked against every built-in key and binding): the side named (`section`: a key's is the pointer's),
+  else the keyboard cursor's, else the leading section (the first in the stack a bridge touches): never none, so in a
+  chain A–B–C it is one consistent step (never C to B's old window); each neighbour across a bridge touching it brought
+  to the hull on the far system holding the most aligned length among the ribbons with their near end in the window
+  (`alignRange`), all in one step; a bridge named (`bridge`, `to`) one way. Nothing in view: "Nothing aligned in view",
+  nothing moves. A stub (its far end has no place) is never read by an align, select across or the cursor.
 - **`bridge.selectAcross`** (`session`, no key): the far ends of the drawn ribbons with an end in the selection, across
   the bridge named or every bridge touching the side, added in one change.
 - **`bridge.lock`** (`patch`, one undo step, no key): toggles the bridge's `lock` between `px` and unset.
@@ -1519,9 +1523,12 @@ each. Why lazy: a viewer that never shows a bridge pays for none of it (eager: t
   covering it (a reversed ribbon read backwards); none: the view's link, else the far side's window, as between any
   sections.
 - **A ribbon's card**: "peach chrX:101–200 ↔ grape chrY:201–300", its strand and its aligned length (`bp`, `kb`, `Mb`);
-  the sides by their ids.
+  the sides by their ids; a stub's far end ", not shown"; a bin pair's count and its bins' width ("37 pairs · 16 kb bins
+  · zoom in to see them"), never an aligned length. Built from the hit ribbon alone (`BridgeLayout.ribbon(key)`), never
+  the list. The commands' change kinds are the commands table's (`commands.ts`).
 - **ARIA words** (`bridgeAria`): each bridge its `label` and the ribbons in view ("3 ribbons between peach and grape in
-  view"; none: "no ribbons in view"); DOM-free; the mount group nodes are to come.
+  view"; none: "no ribbons in view"); the mount sets them as visually hidden `role="group"` nodes, labelled, beside the
+  canvas each time a frame settles (`aria`).
 
 ## Structure link
 

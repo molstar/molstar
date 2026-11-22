@@ -7,9 +7,9 @@
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { rangesLocation } from '@molstar/seqx-core/query';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { parseChord } from '../bindings.js';
-import { AlignKey, BridgeChangeKinds, bridgeAria, carriedSections } from '../bridge-view.js';
+import { AlignKey, bridgeAria, carriedSections } from '../bridge-view.js';
 import { changeKindOf } from '../commands.js';
 import { DefaultViewerConfig } from '../config.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
@@ -34,6 +34,7 @@ afterEach(() => {
 const Top = '/views/v/peach';
 const Bottom = '/views/v/grape';
 const Bridge = '/views/v/br';
+const Third = '/views/v/plum';
 const X = '/data/x';
 const Y = '/data/y';
 
@@ -43,7 +44,22 @@ const letters = (n: number) => 'ACGT'.repeat(Math.ceil(n / 4)).slice(0, n);
  * Two sections (x, 400; y, 300) joined by a bridge of three ribbons: x [0, 100) to y [0, 100), x [100, 200) to y
  * [200, 300) reversed, x [300, 400) to y [100, 200). With `self`, both sections show x (one genome against itself).
  */
-function spec(o: { lock?: 'px'; self?: boolean; middle?: boolean } = {}): Node {
+function spec(
+  o: {
+    lock?: 'px';
+    self?: boolean;
+    /** The lower section a block of y's first 150 positions: ribbons landing past it are stubs. */
+    cut?: boolean;
+    /** A third section (plum, of z) below grape, a bridge between them (z [0, 100) to y [0, 100)). */
+    chain?: boolean;
+    /** The lower section follows the upper (`self` only: equal axes). */
+    follow?: boolean;
+    /** A second bridge's lock (grape to plum), with `chain`. */
+    lock2?: 'px';
+    /** Plum of x, with `chain`: one scroll group with peach (equal axes), closing a cycle of locks and a group. */
+    plumOfX?: boolean;
+  } = {},
+): Node {
   const b = createSeqSpec({ title: 'bridge' });
   const x = b.data.sequence('x', { alphabet: 'dna', letters: letters(400), name: 'chrX' });
   const y = b.data.sequence('y', { alphabet: 'dna', letters: letters(300), name: 'chrY' });
@@ -65,7 +81,29 @@ function spec(o: { lock?: 'px'; self?: boolean; middle?: boolean } = {}): Node {
     v.bridge('br', { a: Top, b: Bottom, ...(o.lock ? { lock: o.lock } : {}) } as never, (br) =>
       br.layer('ribbons', { type: 'pairs', data: p } as never),
     );
-    v.section('grape', { of: yb }, (s) => void s.track('t').layer('l', { type: 'letters' }));
+    if (o.cut)
+      v.section('grape', {}, (s) => {
+        s.track('t').layer('l', { type: 'letters' });
+        s.block('y0', { of: yb, range: [0, 150] } as never);
+      });
+    else
+      v.section(
+        'grape',
+        { of: yb, ...(o.follow ? { follow: Top } : {}) } as never,
+        (s) => void s.track('t').layer('l', { type: 'letters' }),
+      );
+    if (o.chain) {
+      const z = o.plumOfX ? x : b.data.sequence('z', { alphabet: 'dna', letters: letters(200), name: 'chrZ' });
+      const q = b.data.pairs('q', {
+        a: yb,
+        b: z,
+        rows: { a_start: [0, 150], a_end: [100, 250], b_start: [0, 100], b_end: [100, 200], id: ['q0', 'q1'] },
+      });
+      v.bridge('br2', { a: Bottom, b: Third, ...(o.lock2 ? { lock: o.lock2 } : {}) } as never, (br) =>
+        br.layer('ribbons', { type: 'pairs', data: q } as never),
+      );
+      v.section('plum', { of: z }, (s) => void s.track('t').layer('l', { type: 'letters' }));
+    }
   });
   return b.build();
 }
@@ -167,7 +205,7 @@ describe('a bridge in the viewer: its pointer, its lock, its commands (EC-206, E
     const v = await make(spec());
     v.view.setRange(Top, 110, 190);
     redraw(v);
-    expect(changeKindOf('bridge.align', BridgeChangeKinds)).toBe('navigate');
+    expect(changeKindOf('bridge.align')).toBe('navigate');
     const jumps = v.view.jumps.value;
     expect(v.runCommand('bridge.align', { section: Top })).toBe('Aligned');
     const [s, e] = range(v, Bottom);
@@ -190,7 +228,7 @@ describe('a bridge in the viewer: its pointer, its lock, its commands (EC-206, E
   it('`bridge.selectAcross` adds the far ends of the ribbons with an end in the selection, one change', async () => {
     const v = await make(spec());
     v.selection.add(rangesLocation(X, [20, 40]));
-    expect(changeKindOf('bridge.selectAcross', BridgeChangeKinds)).toBe('session');
+    expect(changeKindOf('bridge.selectAcross')).toBe('session');
     expect(v.runCommand('bridge.selectAcross', { section: Top })).toBe('Selected across');
     const parts = v.selection.value.value.location.parts.map((p) => [p.system, [...p.ranges]]);
     expect(parts).toContainEqual([Y, [0, 100]]);
@@ -199,7 +237,7 @@ describe('a bridge in the viewer: its pointer, its lock, its commands (EC-206, E
 
   it('the lock toggle is a patch: one undo step', async () => {
     const v = await make(spec());
-    expect(changeKindOf('bridge.lock', BridgeChangeKinds)).toBe('patch');
+    expect(changeKindOf('bridge.lock')).toBe('patch');
     const revision = v.spec.head.value.revision;
     expect(await v.execute('bridge.lock', { bridge: Bridge })).toBe('Locked');
     await v.settle();
@@ -264,5 +302,88 @@ describe('a bridge in the viewer: its pointer, its lock, its commands (EC-206, E
     v.selection.setCursor({ section: Top, system: X, position: 150, keyboard: true });
     expect(v.input.key({ key: 'A', shiftKey: true })).toBe(true);
     expect(range(v, Bottom)[0]).toBeCloseTo(200, 6);
+  });
+
+  it('a stub aligns nothing and the cursor never lands on it (its far end has no place)', async () => {
+    const v = await make(spec({ cut: true }));
+    // the window holds p0's end (to y [0, 100)) and the stub p1 (to y [200, 300), past the block)
+    v.view.setRange(Top, 90, 200);
+    redraw(v);
+    const ribbons = v.frame!.layout.bridges!.list[0].ribbons();
+    expect(ribbons.find((r) => r.key === 'p1')?.stub).toBe('b');
+    expect(v.runCommand('bridge.align', { section: Top })).toBe('Aligned');
+    const [s, e] = range(v, Bottom);
+    expect(s).toBeCloseTo(0, 6);
+    expect(e).toBeCloseTo(100, 6);
+    // the cursor on the stub's end: not onto y 250, which the section does not show
+    v.selection.setCursor({ section: Top, system: X, position: 150, keyboard: true });
+    v.runCommand('cursor.down', {});
+    const c = v.selection.cursor.value!;
+    expect(c.section).toBe(Bottom);
+    expect(c.position).toBeLessThan(150);
+  });
+
+  it('a stub’s card says its far end is not shown; a hover builds the hit ribbon, never the list', async () => {
+    const v = await make(spec({ cut: true }));
+    const bl = v.frame!.layout.bridges!.list[0];
+    const r = bl.ribbon('p1')!;
+    const hit = v.hit((r.ax0 + r.ax1) / 2, bl.box.y + 2);
+    v.hover.set(hit, 'test');
+    const spy = vi.spyOn(bl, 'ribbons');
+    const card = describerFor({ ...v, layout: () => v.frame?.layout }).describe(v.hover.current);
+    expect(spy).not.toHaveBeenCalled();
+    expect(card?.title).toBe('peach chrX:101–200 ↔ grape chrY:201–300, not shown');
+  });
+
+  it('`bridge.align` with no side named aligns the leading section’s neighbour alone: one consistent step', async () => {
+    const v = await make(spec({ chain: true }));
+    v.view.setRange(Top, 110, 190);
+    v.view.setRange(Third, 0, 20);
+    redraw(v);
+    const third = range(v, Third);
+    expect(v.runCommand('bridge.align', {})).toBe('Aligned');
+    expect(range(v, Bottom)[0]).toBeCloseTo(200, 6);
+    // never plum to grape's old window
+    expect(range(v, Third)).toEqual(third);
+  });
+
+  it('a lock and a follow: the follower carried once, by its leader', async () => {
+    const v = await make(spec({ self: true, follow: true, lock: 'px' }));
+    expect(carriedSections(v.view, [Top])).toEqual([Top]);
+    v.view.zoom(Top, 4);
+    const before = range(v, Top);
+    v.view.panPx(Bottom, 40);
+    const w = v.view.get(Top)!;
+    expect(((w.start - before[0]) * w.width) / (w.end - w.start)).toBeCloseTo(40, 6);
+    expect(range(v, Bottom)).toEqual(range(v, Top));
+  });
+
+  it('a chain of locks moves each section once; a cycle through a group ends where it began', async () => {
+    const cycle = await make(spec({ chain: true, lock: 'px', lock2: 'px', plumOfX: true }));
+    // peach and plum one group (equal axes): the lock to plum's side is redundant
+    expect(cycle.view.groupOf(Top)).toContain(Third);
+    expect(carriedSections(cycle.view, [Top])).toEqual([Top, Bottom]);
+    expect(carriedSections(cycle.view, [Bottom])).toEqual([Bottom, Top]);
+    const v = await make(spec({ chain: true, lock: 'px', lock2: 'px' }));
+    expect(carriedSections(v.view, [Top])).toEqual([Top, Bottom, Third]);
+    expect(carriedSections(v.view, [Third])).toEqual([Third, Bottom, Top]);
+    for (const s of [Top, Bottom, Third]) v.view.zoom(s, 2);
+    const before = [Top, Bottom, Third].map((s) => range(v, s)[0]);
+    v.view.panPx(Bottom, 30);
+    [Top, Bottom, Third].forEach((s, i) => {
+      const w = v.view.get(s)!;
+      expect(((w.start - before[i]) * w.width) / (w.end - w.start), s).toBeCloseTo(30, 6);
+    });
+  });
+
+  it('an align is undone by back, the view’s history (never the spec’s)', async () => {
+    const v = await make(spec());
+    v.view.setRange(Top, 110, 190);
+    redraw(v);
+    const revision = v.spec.head.value.revision;
+    v.runCommand('bridge.align', { section: Top });
+    expect(v.spec.head.value.revision).toBe(revision);
+    expect(v.runCommand('view.back', { section: Top })).toBe('Back');
+    expect(range(v, Bottom)).toEqual([0, 300]);
   });
 });
