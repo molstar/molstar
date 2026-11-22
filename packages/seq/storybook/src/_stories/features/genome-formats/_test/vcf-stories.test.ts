@@ -6,12 +6,18 @@
 
 import { readFileSync } from 'node:fs';
 import { GenomeFormatsViews } from '@molstar/seqx-examples';
-import { ClinvarSection, GeneratedVcfSection, MisreadVcfSection } from '@molstar/seqx-examples/genomes/vcf';
+import { GenotypeSampleCount, LongDeletionCarriers, LongDeletionExtent } from '@molstar/seqx-examples/genomes/files';
+import {
+  ClinvarSection,
+  GeneratedVcfSection,
+  GenotypesSection,
+  MisreadVcfSection,
+} from '@molstar/seqx-examples/genomes/vcf';
 import { PackageFolder } from '@molstar/seqx-examples/node-assets';
 import type { SeqRegistryEntry } from '@molstar/seqx-core/context';
 import type { FormatRuntime, OpenedSource, RegionRequest } from '@molstar/seqx-core/data';
-import type { RangesLay } from '@molstar/seqx-core/render';
-import { recordDrawLists } from '@molstar/seqx-core/render';
+import type { MatrixLay, RangesLay } from '@molstar/seqx-core/render';
+import { matrixCellHover, recordDrawLists } from '@molstar/seqx-core/render';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { DomHost } from '@molstar/ui/dom';
@@ -53,6 +59,7 @@ for (const f of [
   'fixtures/genomes/clinvar_20240107.vcf.gz.pages.json',
   'fixtures/genomes/clinvar_20240107.vcf.gz.tbi.pages.json',
   'fixtures/genomes/generated-variants.vcf',
+  'fixtures/genomes/generated-genotypes.vcf',
   'fixtures/genomes/misread.vcf',
 ])
   files.set(f, new Uint8Array(readFileSync(`${PackageFolder}${f}`)));
@@ -260,6 +267,37 @@ describe('Features/Genome formats/VCF, headless', () => {
     expect(Math.max(...lay.pending.filter((_, i) => i % 3 === 1))).toBeGreaterThanOrEqual(
       lay.box.x + lay.box.width - 1,
     );
+  });
+
+  it('genotypes of 40 samples: the matrix read from the VCF, a row a sample; the long deletion a bar in every row (EC-220, EC-222)', async () => {
+    const v = await open('vcf-genotypes');
+    expect(v.layoutIssues.value).toEqual([]);
+    const matrixOf = () =>
+      v.frame!.layout.sections[0].tracks.find((t) => t.track.label === 'Genotypes')?.layers[0].lay as MatrixLay;
+    let m = matrixOf();
+    expect(m.states).toBe(GenotypeSampleCount);
+    expect(m.names.slice(0, 3)).toEqual(['S01', 'S02', 'S03']);
+    expect(m.pend).toEqual([]);
+    expect(v.view.get(GenotypesSection)).toBeDefined();
+    // inside the deletion's window: the items, the deletion one rect a sample across the SNVs it covers
+    const [ds, de] = LongDeletionExtent;
+    v.runCommand('address.focus', { address: `/data/chrG/(range :from ${ds - 1000} :to ${de + 1000})` });
+    await settled(v);
+    m = matrixOf();
+    expect(m.items).toBe(true);
+    const bars = recordDrawLists(v.frame!.lists, ['data'])
+      .split('\n')
+      .filter((l) => l.startsWith('rect '))
+      .map((l) => l.split(' ').slice(1, 5).map(Number))
+      .filter(([, y, w]) => y >= m.box.y && y < m.box.y + m.box.height && w > 300);
+    expect(bars.length).toBe(GenotypeSampleCount);
+    expect(new Set(bars.map(([x]) => x)).size).toBe(1);
+    // a carrier's call over the deletion where no SNV is: the deletion's genotype
+    const card = matrixCellHover(m as never, ds + 37, LongDeletionCarriers[1], (s) => s);
+    expect(card?.rows[1][1]).toBe('S04');
+    const svg = await v.renderSvg({ idPrefix: 'vcf-gt-' });
+    expect(svg.issues).toEqual([]);
+    expect(svg.settled).toBe(true);
   });
 
   it('a long deletion over SNVs: one item each, a bar across the SNVs it covers (EC-222)', async () => {

@@ -95,6 +95,15 @@ export const GenomeFormatsViews: readonly ExampleView[] = [
   },
   {
     dataset: 'genomes',
+    id: 'vcf-genotypes',
+    title: 'Genotypes of 40 samples',
+    summary:
+      'A generated VCF of 40 samples (read whole, `GT` and `DS`) by the `vcf` runtime’s matrix: a row a sample in the header’s order, a column an ALT allele at its extent coloured by its genotype class (no copy, some, every copy, partly called; uncalled in the missing colour). The last eight samples are haploid (a call of every copy or none); one long deletion is one item across the SNVs it covers, solid in its six carriers’ rows. Genotypes are read only for the matrix; the sites above are the same rows.',
+    build: genomeVcf.genotypes,
+    registry: genomeVcf.registry,
+  },
+  {
+    dataset: 'genomes',
     id: 'vcf-misread',
     title: 'A misread VCF',
     summary:

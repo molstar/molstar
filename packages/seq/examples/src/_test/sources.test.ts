@@ -14,6 +14,7 @@ import { ConservationFile } from '../p53/conservation.js';
 import { RegionFile } from '../p53/region.js';
 import {
   GeneratedBedFile,
+  GeneratedGenotypesFile,
   GeneratedVcfFile,
   MisreadBedFile,
   MisreadGenbankFile,
@@ -55,6 +56,7 @@ const Generated = new Set(
     MisreadBedFile,
     MisreadGffFile,
     GeneratedVcfFile,
+    GeneratedGenotypesFile,
     MisreadVcfFile,
     MisreadGenbankFile,
   ].map((f) => f.slice('fixtures/'.length)),

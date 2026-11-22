@@ -22,6 +22,7 @@ import {
   Chr17Length,
   ClinvarFile,
   ClinvarIndexFile,
+  GeneratedGenotypesFile,
   GeneratedSystem,
   GeneratedVcfFile,
   MisreadVcfFile,
@@ -40,6 +41,7 @@ import {
 /** The sections' addresses (what the tests read). */
 export const ClinvarSection = '/views/main/chr17';
 export const GeneratedVcfSection = '/views/main/variants';
+export const GenotypesSection = '/views/main/genotypes';
 export const MisreadVcfSection = '/views/main/misread';
 /** The variants' annotation of each view (an allele's address is `<it>/(item :id "7675088:C>T")`). */
 export const VariantsAddress = '/data/variants';
@@ -99,6 +101,30 @@ export function longDeletion(): Node {
       data: variants,
       color: byCategory(),
     });
+  });
+  return b.build();
+}
+
+/**
+ * Generated genotypes (read whole): the sites above, the matrix of 40 samples' genotype classes below, a row a sample in
+ * the header's order; the long deletion one item across the SNVs it covers, solid in its carriers' rows (EC-222),
+ * uncalled calls in the missing colour (EC-220), the haploid samples' calls every copy or none.
+ */
+export function genotypes(): Node {
+  const b = createSeqSpec({ title: 'Genotypes of 40 samples' });
+  const file = b.data.source('genotypes', { format: 'vcf', uri: GeneratedGenotypesFile });
+  const chr = b.data.sequence('chrG', { alphabet: 'dna', source: file, name: GeneratedSystem });
+  const sites = b.data.ranges('variants', { target: chr, source: file });
+  const gt = b.data.matrix('gt', { target: chr, source: file } as never);
+  b.views.view('main', (v) => {
+    const s = v.section('genotypes', { of: chr });
+    s.track('ruler', { label: '' }).layer('ruler', { type: 'ruler', units: 'bases' });
+    s.track('variants', { label: 'Sites', height: 48 }).layer('variants', {
+      type: 'ranges',
+      data: sites,
+      color: byCategory(),
+    });
+    s.track('gt', { label: 'Genotypes', height: 260 }).layer('gt', { type: 'matrix', data: gt });
   });
   return b.build();
 }
