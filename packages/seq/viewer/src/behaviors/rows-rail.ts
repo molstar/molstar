@@ -11,7 +11,7 @@
 // one step of the view's history when it went farther than the rows in view or zoomed (`navigator.dragStep`). A
 // double-click on its window resets the rows' zoom (`resetZoom`); the vertical overview's grips are the same gesture.
 
-import { MaxRowScale, MinRowScale, type WindowPart } from '@molstar/seqx-core/render';
+import { LanesRail, MaxRowScale, MinRowScale, type WindowPart } from '@molstar/seqx-core/render';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import type { ViewModel, ViewSnapshot } from '@molstar/seqx-viewer/models';
 
@@ -25,7 +25,13 @@ export interface RowsRailWindow {
   readonly total: number;
   /** The band's scrolled area, px (the rail's length). */
   readonly width: number;
+  /** A lanes band's rail (in lanes): pan only, session state as the wheel's (no history step, no zoom). */
+  readonly lanes?: boolean;
+  /** A rail itself is a window: its hit says which rail it is (`LanesRail`). */
+  readonly hit?: { readonly navigator?: string };
 }
+
+const isLanes = (w: RowsRailWindow): boolean => w.lanes ?? w.hit?.navigator === LanesRail;
 
 export class RowsRailGesture {
   private _press:
@@ -37,6 +43,7 @@ export class RowsRailGesture {
         end: number;
         total: number;
         area: number;
+        lanes: boolean;
         band: { bandTop: number; rowScale?: number };
         before: ViewSnapshot;
       }
@@ -63,6 +70,7 @@ export class RowsRailGesture {
       end: w.end,
       total: w.total,
       area: w.width,
+      lanes: isLanes(w),
       band: { bandTop: b?.bandTop ?? w.start, ...(b?.rowScale !== undefined ? { rowScale: b.rowScale } : {}) },
       before: this.view.snapshot(),
     };
@@ -78,7 +86,7 @@ export class RowsRailGesture {
     if (!p || p.part === 'outside' || !Number.isFinite(at)) return false;
     const d = at - p.at0;
     const shown = p.end - p.start;
-    if (p.part === 'body') {
+    if (p.part === 'body' || p.lanes) {
       this.view.setBand(p.track, { bandTop: clamp(p.start + d, 0, Math.max(0, p.total - shown)) });
       return true;
     }
@@ -99,7 +107,7 @@ export class RowsRailGesture {
   release(): void {
     const p = this._press;
     this._press = undefined;
-    if (!p || p.part === 'outside') return;
+    if (!p || p.part === 'outside' || p.lanes) return;
     const now = this.view.band(p.track);
     const far = Math.abs((now?.bandTop ?? p.start) - p.start) > p.end - p.start;
     const zoomed = now?.rowScale !== p.band.rowScale;
@@ -137,6 +145,13 @@ export class RowsRailGesture {
     this._press = undefined;
     if (detail > 1 || part !== 'outside' || !Number.isFinite(at)) return false;
     const shown = w.end - w.start;
+    if (isLanes(w)) {
+      // a lanes band's scroll is session state (the wheel's): set, not a jump
+      const top = clamp(at - shown / 2, 0, Math.max(0, w.total - shown));
+      if (top === (this.view.band(track)?.bandTop ?? w.start)) return false;
+      this.view.setBand(track, { bandTop: top });
+      return true;
+    }
     return (
       this.view.jump(
         () => {

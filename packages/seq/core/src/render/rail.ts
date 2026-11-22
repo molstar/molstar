@@ -280,8 +280,9 @@ function placeUpright(
 
 /**
  * A scrolled lanes band's rail (_spec/README.md "Render", Track heights): the rows rail's geometry upright at the band's
- * right edge, the whole of its lanes along the band, its window the lanes in view; pan only, drawn plain (no grips, no
- * hit: the wheel moves it).
+ * right edge, the whole of its lanes along the band, its window the lanes in view; pan only (no grips, its window's ends
+ * are body), drawn plain, grown while hovered or dragged. The wheel moves it, so does a drag, a press outside the
+ * window and the Page keys (the rows rail's gesture, in lanes).
  */
 export function placeLanesRail(
   rail: Rail,
@@ -307,9 +308,11 @@ export function placeLanesRail(
     top,
     Math.min(lanes, top + room),
   );
+  // it exists only while its lanes overflow: always a target
+  rail.active = true;
 }
 
-/** A lanes rail's `navigator` (it takes no hit). */
+/** A lanes rail's `navigator`. */
 export const LanesRail = 'lanes-rail';
 
 /** A rows rail's hit's `navigator`. */
@@ -418,7 +421,7 @@ export function drawRail(
     g[4] = color;
     emit(out, rail.vertical);
   }
-  if (!rail.active) return;
+  if (!rail.active || own === LanesRail) return;
   if (place) {
     g[0] = Math.max(rail.x, Math.min(rail.x + rail.width, rail.markAt)) - 0.75;
     g[1] = rail.y - (Line + 2 * GripRise) / 2;
