@@ -1296,6 +1296,16 @@ runtimes only).
   end by its `BSIZE`) to its newline, within `maxLineBytes`; what a format whose columns are told by its first line
   (BED's `N`) reads at open.
 - **Shared codes** (`issues.ts`): `seq.source.bgzf.eof` (warning: a BGZF file without its EOF block, read as it is).
+- **Levels** (`levels.ts`; `indexedLevels` in `lines.ts`): a source by region lists level 1 and each of `1, 16, 256,
+  4096` up to the runtime's `maxLevel` whose **every tile** (`level × tileBins` positions from 0) on every indexed
+  sequence costs at most `maxRegionBytes` by the index (`regionBytes`, nothing read); a sequence to its length when the
+  file says one, else to the end of its last 4 Mb tile with a cost. Each level is checked tile by tile (the first tile
+  past the bound ends it), never inferred from another: io's cost is conservative (64 KiB for a chunk's last block), so
+  a finer tile can cost more than a coarser one holding it. Above level 1 a ranges request is a `density`
+  (`densityOf`): each item (by `id`, else `row`; pieces by their item's extent, else their hull) counted once in every
+  bin its extent touches inside the tile, from the tile's own records; a request with `items` is the tile's list. A
+  tile's `readCost` is its `regionBytes`. Why from bytes, per source: one runtime reads sparse and dense files, and a
+  tile's bytes are known exactly before a read, its rows are not (EC-171: counts exact or absent, never estimated).
 - **Shared helpers**: `causes.ts` (`Causes`: one issue a cause with its count and first ten places, EC-86; each format's
   `BedCauses`, `GffCauses`, `VcfCauses` over its own codes), `answers.ts` (`failure` by kind, `refuse` at open,
   `wholeSource` over what a whole read holds), `intervals.ts` (`intervalIndex`: the short intervals by start and the
@@ -1460,14 +1470,14 @@ bound.
 `DefaultVcfOptions`, `VcfFormats`, `readVcfHeader`, `VcfHeader`, `VcfHeaderLimits`, `DefaultVcfHeaderLimits`,
 `VcfHeaderResult`, `VcfDeclaration`, `VcfContig`, `VcfType`, `VcfIssues`, `MissingInt`, `VcfCategories` (the `category`
 field's values, a palette's), `VcfSource`: an opened source with its `header`, what a host shows of the file):
-**sites**, `vcf` read whole or by region at level 1 over the internals above; `vcf-header.ts` (the header),
-`vcf-parse.ts` (the one line parser, rows and answers), `vcf-read.ts` (what whole and region reads share), and
-`vcf-indexed.ts` loaded when the first indexed source opens (io's tabix in it). Genotypes (the matrix, `samples`,
-genotype classes) are not read yet.
+**sites and genotypes**, `vcf` read whole or by region at the levels its index's bytes allow over the internals
+above; `vcf-header.ts` (the header), `vcf-parse.ts` (the one line parser and rows), `vcf-answer.ts` (a region's
+answer), `vcf-genotypes.ts` (the matrix), `vcf-read.ts` (what whole and region reads share), and `vcf-indexed.ts`
+loaded when the first indexed source opens (io's tabix in it).
 
 - **Conventions fixed** (EC-195): base 1 (`POS − 1`), an extent by the index's rule; a source's `base` or `ends` is not
   read, said once (`seq.source.vcf.transform`, info). Bytes to text by magic (plain, gzip, BGZF) within
-  `limits.maxBytes`; `samples` on a source is kept and said once (`.samples`, info: not read yet), never an error.
+  `limits.maxBytes`.
 - **Header** (`readVcfHeader(text, limits)`, pure, a host may call it on a file's head): `##fileformat`, `##contig`
   (names and lengths: a system's length, EC-188; one past 2^31 − 1 refused by name, `seq.source.too_large`, the others
   read), `##INFO` and `##FORMAT` (`ID`, `Number`, `Type`, `Description`; quoted values unescaped; the first of an `ID`
@@ -1500,15 +1510,36 @@ genotype classes) are not read yet.
   split once a line (a file of lines without tabs, or a line of a hundred thousand flags, is read in linear time). A row
   starting past its contig's length is left out, one running past it clipped, both counted in one issue (`.range`,
   EC-51). UTF-8, U+FFFD said once (`.encoding`).
-- **Whole or by region**: with an `index` (the source names it, never `<uri>.tbi`: EC-186) read by region at level 1
-  through `openIndexedLines`; without one read whole within `limits` and served at level 1 and at the level whose one
-  tile holds its longest system (`wholeLevel`). One parser either way, so a region read equals the whole read clipped
-  (the property test). The systems are the header's contigs, then those the file (or the index) names; a contig with no
+- **Whole or by region**: with an `index` (the source names it, never `<uri>.tbi`: EC-186) read by region through
+  `openIndexedLines` at **the levels its index's bytes allow** (Genome runtimes' internals, Levels): above level 1 a
+  request is answered as a `density` of its tile's alleles, each counted once in every bin its extent touches (counted,
+  never estimated), or as the tile's items when it asks them (`items`); `readCost` is the tile's `regionBytes`, so the
+  store's `maxBytesPerLayer` bounds a view (ClinVar at the fit, about 138 MB over its 4 Mb tiles, is "zoom in", nothing
+  read). Without an index read whole within `limits` and served at level 1 and at the level whose one tile holds its
+  longest system (`wholeLevel`, a list at both). One parser either way, so a region read equals the whole read clipped
+  at every level (the property test). The systems are the header's contigs, then those the file (or the index) names; a contig with no
   line serves empty answers. A region's line issues are not said (no place in an answer); the whole read says them. Rows
   are answered in order of start, then of the file; found by `intervalIndex`.
+- **The matrix** (EC-220 to EC-222): a source whose file has samples serves a `matrix` on each system beside its
+  `ranges`: items the ALT alleles of the region (the sites' rows, their ids) × states the samples held
+  (`ShapeInfo.states`: the header's order, narrowed by the source's `samples`; names the file lacks, or `samples` on a
+  file without any, said once: `.samples`, info). `codes` the allele's **genotype class** in `GT`, whatever the ploidy:
+  `0` no copy, `1` some but not every copy (`0/1`, `1/2` for either allele), `2` every copy (`1/1`, a haploid `1`), `3`
+  partly called (a `.` beside called alleles), `255` uncalled (`.`, `./.`, no `GT`, a column the line lacks). Why
+  classes and not a count: a haploid `1` and a heterozygote's `1` are different genotypes a theme must not paint alike.
+  `value` float32 by `RegionRequest.field`: `GT` the allele's copies among the called (NaN uncalled), or a numeric
+  FORMAT key of `Number=1` or `A` (the allele's), the coverage's `fields`; NaN missing. A long deletion is one item
+  across the SNVs it covers (EC-222). **Genotypes are read only for a `matrix` request**, only for the samples held,
+  from the lines' bytes the read already holds (each row keeps its line's span and its allele's number), each line
+  once. Above level 1 (not as items) a `summary` counted from the tile's items, each in every bin its extent touches
+  (as a density): codes as each bin's majority class (0 to 3, ties to the lower) and its share of the called (0 to
+  255; 255 and 0 where none is called), values as `mean`, `min`, `max`, `count` (NaN not counted). A matrix's bytes
+  (its items' cells and a summary's counts) are counted before it is allocated, within `maxMatrixBytes` (region-reads'
+  `maxTileBytes`), else `too-large`.
 - **Bounds**: a whole read's bytes (`limits.maxBytes`) and lines (`limits.maxRows`) before the lines are spanned; its
   alleles (`limits.maxRows`); a region's lines and alleles within `limits.maxRows`; one line `maxLineBytes`; io's tabix
-  bounds by region (`VcfOptions.tabix`; its `maxLineBytes` and `maxHeaderBytes` the runtime's own).
+  bounds by region (`VcfOptions.tabix`; its `maxLineBytes` and `maxHeaderBytes` the runtime's own); a matrix within
+  `maxMatrixBytes`.
 - **Configuration** (`vcfRuntime(over)`; `VcfRuntime` is `vcfRuntime()`):
 
   | Item             | Default              | Why the default; the alternatives                                                                 |
@@ -1518,6 +1549,9 @@ genotype classes) are not read yet.
   | `maxInfoFields`  | 256                  | bounded columns (gnomAD v4 declares about 900): the source's `fields`, `types` first; any         |
   | `maxSamples`     | 100,000              | a biobank's `#CHROM` line within `maxLineBytes`; any                                              |
   | `maxAlleles`     | 256                  | bounded rows a record; past it the record is left out (said); any                                 |
+  | `maxLevel`       | 4,096                | the coarsest level listed by region (4 Mb tiles: a chromosome in a few dozen); 1, 16, 256         |
+  | `tileBins`       | 1,024                | the store's `tileBins`: a level's tile is `level × tileBins` positions; the store's when changed  |
+  | `maxMatrixBytes` | 16 MiB               | region-reads' `maxTileBytes`: a matrix answer's cells and counts; any                             |
   | `tabix`          | `DefaultTabixLimits` | io's other bounds of a read by region (`maxRegionBytes`, `maxInflatedBytes`, …); any              |
 
 - **Tests**: the source suite on generated files (plain, gzip, BGZF; whole and by region, with and without range reads)
@@ -1525,9 +1559,15 @@ genotype classes) are not read yet.
   `fixtures/genomes/`); a region read equal to the whole read clipped over generated files and random regions, and a
   tiling deduped by id equal to the whole read; each line's extent equal to io's; ids of duplicates and long SVs,
   categories, multi-allelic lines, INFO's types and `Number`s; the header; fuzzed and truncated files (whole and by
-  region) without a throw; each bound. Its synthetic twin is `delayedRuntime(VcfRuntime)`.
+  region) without a throw; each bound. Levels (`vcf-levels.test.ts`): listed from a dense and a sparse generated index
+  as io's `regionBytes` allows them; a tile's read cost the index's; items tiles and densities at every level equal to
+  the whole read clipped; the source suite at every level, ranges and the matrix; the matrix against a reference
+  reading of the text (classes, `GT`, `DS`, `GQ`), `samples`, `maxMatrixBytes`, a long deletion (EC-222) and the
+  summaries. The recorded ClinVar index at the fit: past `maxBytesPerLayer`, refused, nothing read (EC-171). Its
+  synthetic twin is `delayedRuntime(VcfRuntime)`.
 - **Performance**: a region of 10,000 records decoded under 100 ms, sites (heavy, `itWithin`; about 30 ms measured),
-  1,000 in the quick lane; 40,000 lines without tabs under 500 ms and a line of 100,000 flags under 200 ms (heavy), the
+  and with 100 samples' genotypes (the matrix's codes) under 200 ms (heavy), 1,000 of each in the quick lane; ClinVar's
+  levels at open about 80 ms (every tile of each level from its index); 40,000 lines without tabs under 500 ms and a line of 100,000 flags under 200 ms (heavy), the
   bytes and characters their searches scan counted in the quick lane. Size: its own row under 30 kB (25.2 kB minified,
   io's BGZF reader in it), its lazy chunk (by region with io's tabix, 14.8 kB) loaded on first use; in no viewer bundle.
 

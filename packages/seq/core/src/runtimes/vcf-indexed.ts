@@ -5,17 +5,19 @@
  */
 
 import { issueOf } from '@molstar/core/repr/tree';
-import { abortError, type RegionAnswer } from '../data/protocol.js';
+import { abortError, type RegionAnswer, type RegionRequest } from '../data/protocol.js';
 import { failure, refuse } from './internal/answers.js';
 import { BgzfIssues } from './internal/issues.js';
-import { openIndexedLines } from './internal/lines.js';
-import { coverageOf, headerSchema, refusedIssues, type VcfOpened, type VcfSource } from './vcf-read.js';
+import { indexedLevels, openIndexedLines } from './internal/lines.js';
+import { vcfAnswer } from './vcf-answer.js';
 import { readVcfHeader } from './vcf-header.js';
 import { VcfCauses } from './vcf-issues.js';
-import { parseLine, VcfRowsBuilder, vcfAnswer } from './vcf-parse.js';
+import { parseLine, VcfRowsBuilder } from './vcf-parse.js';
+import { coverageOf, genotypesOf, headerSchema, refusedIssues, type VcfOpened, type VcfSource } from './vcf-read.js';
 
 // A VCF by region through its tabix index (_spec/README.md "Data", VCF): its header read once at open (io's header
-// lines, within `maxHeaderBytes`), each region's lines through the one line parser, at level 1. Loaded when the first
+// lines, within `maxHeaderBytes`), each region's lines through the one line parser, at the levels its index's bytes
+// allow (a density above level 1, items when asked), with each tile's read cost from the index. Loaded when the first
 // indexed source opens, so a host reading VCF files whole never loads io's tabix.
 
 export async function openIndexed(o: VcfOpened, uri: string, indexUri: string): Promise<VcfSource> {
@@ -41,6 +43,7 @@ export async function openIndexed(o: VcfOpened, uri: string, indexUri: string): 
     const indexed = new Set(lines.index.names);
     const names = [...lengths.keys()];
     for (const name of lines.index.names) if (!lengths.has(name) && !refusedSet.has(name)) names.push(name);
+    const genotypes = genotypesOf(o, read.header);
     const issues = [...causes.issues(at), ...refusedIssues(at, refused)];
     if (!lines.eof)
       issues.push(
@@ -49,20 +52,30 @@ export async function openIndexed(o: VcfOpened, uri: string, indexUri: string): 
           hint: BgzfIssues.codes['seq.source.bgzf.eof'].hint,
         }),
       );
-    const coverage = coverageOf(names, lengths, schema, [1]);
+    const levels = indexedLevels(lines, lengths, options);
+    const coverage = coverageOf(names, lengths, schema, levels, genotypes);
     const served = new Set(names);
     const maxRows = ctx.limits.maxRows;
+    const answer = { maxRows, genotypes, matrix: { maxBytes: options.maxMatrixBytes }, density: true };
+    const reads = (request: RegionRequest) =>
+      request.shapes.includes('ranges') || (genotypes !== undefined && request.shapes.includes('matrix'));
     return {
       coverage,
       header: read.header,
       issues,
+      readCost: (request) =>
+        served.has(request.system) && levels.includes(request.level)
+          ? reads(request) && indexed.has(request.system) && request.end > request.start
+            ? lines.cost(request.system, request.start, request.end)
+            : 0
+          : undefined,
       async read(request, signal): Promise<RegionAnswer> {
         if (signal.aborted) throw abortError();
         const { system, start, end } = request;
         if (!served.has(system)) return failure('not-served', `No sequence ${system}`);
-        if (request.level !== 1) return failure('not-served', 'By region, level 1 only');
-        if (!request.shapes.includes('ranges') || !indexed.has(system) || end <= start)
-          return vcfAnswer(undefined, schema, request, maxRows);
+        if (!levels.includes(request.level)) return failure('not-served', `No level ${request.level}`);
+        if (!reads(request) || !indexed.has(system) || end <= start)
+          return vcfAnswer(undefined, schema, request, answer);
         const got = await lines.region(system, start, end, signal);
         if (!got.ok) return failure(got.kind, `${uri}, ${system}:${start + 1}-${end}: ${got.message}`);
         const l = got.lines;
@@ -81,7 +94,7 @@ export async function openIndexed(o: VcfOpened, uri: string, indexUri: string): 
           if (parseLine(l.bytes, l.lineStart[i], l.lineEnd[i], place, lineOptions, quiet, encoding) < 0)
             return failure('too-large', `More than ${maxRows} alleles in one region`);
         }
-        return vcfAnswer(rows.finish(), schema, request, maxRows);
+        return vcfAnswer(rows.finish(l.bytes), schema, request, answer);
       },
       dispose: () => lines.dispose(),
     };

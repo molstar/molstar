@@ -98,7 +98,8 @@ describe('a region read equals the whole read clipped', () => {
       const { file, index } = indexedVcf(g, 1000 + seed * 500);
       const whole = await VcfRuntime.open(entry(), context({ f: g.text }));
       const region = await VcfRuntime.open(entry({ index: 'i' }), context({ f: file, i: index }));
-      expect(region.coverage).toEqual({ ...whole.coverage, levels: [1] });
+      expect(region.coverage).toEqual({ ...whole.coverage, levels: region.coverage.levels });
+      expect(region.coverage.levels[0]).toBe(1);
       for (let k = 0; k < 25; k++) {
         const at = g.lines[Math.floor(rng.float() * g.lines.length)];
         // every fifth region starts at a line's own start, every fifth a position long
@@ -420,7 +421,7 @@ describe('the header', () => {
 });
 
 describe('the source', () => {
-  it('`base` and `ends` not read, said once (EC-195); `samples` kept and said as not yet read, never an error', async () => {
+  it('`base` and `ends` not read, said once (EC-195); `samples` on a file without samples said once, never an error', async () => {
     const s = await VcfRuntime.open(
       entry({ base: 0, ends: 'exclusive', samples: ['NA1'] } as Partial<SourceEntry>),
       context({ f: vcf('chr1\t100\t.\tA\tC\t.\t.\t.') }),
@@ -649,5 +650,13 @@ describe('performance (quick representative)', () => {
     expect(a.ok && a.tables.ranges?.form === 'list' && a.tables.ranges.start.length).toBeGreaterThan(1000);
     if (a.ok && a.tables.ranges?.form === 'list')
       expect(columnValues(a.tables.ranges.id!).length).toBeGreaterThan(1000);
+  });
+
+  it('a region of 1,000 records with 100 samples’ genotypes decoded (the matrix’s codes)', async () => {
+    const g = generateVcf(1000, ['chr1'], 12, 100_000, { samples: 100, genotypes: true });
+    const { file, index } = indexedVcf(g, 60_000);
+    const s = await VcfRuntime.open(entry({ index: 'i' }), context({ f: file, i: index }));
+    const a = await s.read({ system: 'chr1', start: 0, end: 200_000, level: 1, shapes: ['matrix'] }, signal);
+    expect(a.ok && a.tables.matrix?.form === 'items' && a.tables.matrix.codes!.length).toBeGreaterThan(1000 * 100);
   });
 });

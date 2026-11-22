@@ -50,7 +50,7 @@ export const VcfIssues = defineIssues('seq.source.vcf', {
   },
   'seq.source.vcf.samples': {
     severity: 'info',
-    description: 'Genotypes are not read yet: `samples` is kept and has no effect on the sites',
+    description: '`samples` names samples the file has not, or the file has none: those are not read',
   },
   'seq.source.vcf.encoding': {
     severity: 'info',
