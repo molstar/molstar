@@ -74,7 +74,9 @@ export function wantTiles(w: Want, sources: StoreSources, settings: StoreSetting
     length: yLength,
     first: yFirst,
     last: yLast,
-    symmetric: mirror || grids.some((g) => g.symmetric),
+    symmetric: grids.some((g) => g.symmetric),
+    // the pair is served the other way round (`y` × `x`): every tile of the want is a served tile's mirror
+    mirror,
   };
   const count = Math.max(0, last - first + 1) * Math.max(0, yLast - yFirst + 1);
   return { system, level, length, first, last, shapes: ['grid'] as Shape[], bins, count, y, order };
@@ -98,7 +100,13 @@ export function eachTile(w: Want, t: Tiles): WantTile[] {
     for (let yt = t.y.first; yt <= t.y.last; yt++) {
       const x = { system: t.system, tile, length: t.length };
       const y = { system: t.y.system, tile: yt, length: t.y.length };
-      const f = t.y.symmetric ? foldTile(x, y, t.order!) : { x, y, transposed: false };
+      // across two systems the served pair decides (its mirror read transposed); within one, a symmetric grid's tile
+      // below the diagonal is the one above's
+      const f = t.y.mirror
+        ? { x: y, y: x, transposed: true }
+        : t.y.symmetric && t.system === t.y.system
+          ? foldTile(x, y, t.order!)
+          : { x, y, transposed: false };
       const xr = tileRegion(f.x.tile, t.level, t.bins, f.x.length);
       const yr = tileRegion(f.y.tile, t.level, t.bins, f.y.length);
       const key = dataKey(w.source, f.x.system, t.level, f.x.tile, { y: f.y });
