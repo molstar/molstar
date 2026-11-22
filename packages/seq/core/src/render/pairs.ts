@@ -422,6 +422,12 @@ const CaretAt = new Float64Array(2);
 
 function densityStrip(lay: PairsLay, place: Placement, band: number, dpr: number) {
   const s = place.strips;
+  // a ring has no straight strip: the chords past the cap are dropped, never drawn as ticks along a line above it
+  if (s.warp[0] === WarpKind.polar) {
+    lay.densityN = 0;
+    lay.densityMax = 0;
+    return;
+  }
   const a = s.axes[0];
   const cols = Math.ceil(a.width * dpr) + 1;
   if (lay.density.length < cols) lay.density = new Uint16Array(cols);

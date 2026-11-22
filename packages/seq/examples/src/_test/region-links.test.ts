@@ -12,6 +12,7 @@ import {
   binPairs,
   openSeq,
 } from '@molstar/seqx-core/data';
+import { DefaultRenderConfig } from '@molstar/seqx-core/render';
 import { BedRuntime } from '@molstar/seqx-core/runtimes/bed';
 import { describe, expect, it } from 'vitest';
 import {
@@ -19,6 +20,7 @@ import {
   LinkLevels,
   LinksChromosome,
   LinksChromosomes,
+  RingChromosomes,
   linksBedpe,
   linksOnChromosome,
   linksSource,
@@ -92,5 +94,39 @@ describe('the generated links (Features/Region reads)', () => {
       signal,
     );
     expect(bins.ok && bins.tables.pairs?.form).toBe('bins');
+  });
+
+  it('on the genome ring they are structure, not a disc: a few strong blocks, local links, a thin scatter, in the arcs’ bound', async () => {
+    const data = linksSource(RingChromosomes, LinkCount, 9, true);
+    // deterministic
+    const again = linksSource(RingChromosomes, LinkCount, 9, true);
+    expect(again.pairs[0].answer).toEqual(data.pairs[0].answer);
+    const src = openSeq(data);
+    const level = LinkLevels[LinkLevels.length - 1];
+    const bins = new Map<string, number>();
+    for (const s of RingChromosomes) {
+      const a = await src.read({ system: s.name, start: 0, end: s.length, level, shapes: ['pairs'] }, signal);
+      if (!a.ok) throw new Error(a.issue.message);
+      const t = a.tables.pairs as {
+        aBin: Int32Array;
+        bBin: Int32Array;
+        count: Float32Array;
+        aSystem: { get(i: number): string };
+        bSystem: { get(i: number): string };
+      };
+      for (let i = 0; i < t.count.length; i++)
+        bins.set(`${t.aSystem.get(i)}:${t.aBin[i]}|${t.bSystem.get(i)}:${t.bBin[i]}`, t.count[i]);
+    }
+    const counts = [...bins.values()].sort((x, y) => y - x);
+    const total = counts.reduce((a, b) => a + b, 0);
+    expect(total).toBe(LinkCount);
+    // the strongest chords are bundles, an order above the thin ones (a disc of equal chords has no strongest)
+    const median = counts[counts.length >> 1];
+    expect(counts[9]).toBeGreaterThanOrEqual(6 * median);
+    // every chord drawn: fewer bin pairs than the arcs' cap (no density strip), and links within a chromosome among them
+    expect(bins.size).toBeLessThan(DefaultRenderConfig.pairs.maxArcs);
+    expect([...bins.keys()].some((k) => k.split('|').every((e, _, a) => e.split(':')[0] === a[0].split(':')[0]))).toBe(
+      true,
+    );
   });
 });
