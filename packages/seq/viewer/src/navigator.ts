@@ -570,14 +570,21 @@ export class NavigatorModel extends ReactiveModel {
     this._readout.set(parts && `${parts.name ? `${parts.name}: ` : ''}${parts.value}${parts.rest}`);
   }
 
-  /** A window as the readout says it: its region (a rows-only overview the short form, `401–440 / 10,000`). */
+  /**
+   * A window as the readout says it: its region, short where the part is narrow. A rows-only or vertical overview: the
+   * rows alone (`401–440 / 10,000`); the miniature (two axes): the positions then the rows (`1–300 · 1–12 / 10,000`);
+   * the square over blocks (two axes, a block's range): the block and its range without the assembly (`chr3: 1–181,000,000`).
+   */
   private windowParts(nav: ResolvedNavigator, w: NavigatorWindow): ReadoutParts {
-    // a vertical overview is narrow: the rows alone
-    if (nav.axes === 'rows' || (nav.axes === 'both' && (nav.place === 'left' || nav.place === 'right'))) {
-      const n = (x: number) => Math.round(x).toLocaleString('en-US');
-      return { name: '', value: `${n(w.r0 + 1)}–${n(w.r1)} / ${n(w.rows)}`, rest: '' };
-    }
-    return { name: '', value: windowText(this.viewer.spec.model.value, nav, w), rest: '' };
+    const n = (x: number) => Math.round(x).toLocaleString('en-US');
+    const rows = `${n(w.r0 + 1)}–${n(w.r1)} / ${n(w.rows)}`;
+    const text = windowText(this.viewer.spec.model.value, nav, w);
+    const side = nav.place === 'left' || nav.place === 'right';
+    let value = text;
+    if (nav.axes === 'rows' || (nav.axes === 'both' && side && !nav.blocks)) value = rows;
+    else if (nav.axes === 'both' && nav.blocks) value = text.replace(/ of [^,]*$/, '');
+    else if (nav.axes === 'both') value = `${text.replace(/^[^:]*:\s?/, '').replace(/ of [^,]*,.*$/, '')} · ${rows}`;
+    return { name: '', value, rest: '' };
   }
 
   /** The pointer left: no lit part, no readout, no hairline. */

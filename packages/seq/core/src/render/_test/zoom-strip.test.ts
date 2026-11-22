@@ -154,6 +154,17 @@ describe('the zoom strip', () => {
     }
   });
 
+  it('`navigator.zoomStrip.funnel: none` draws the strip with no connectors; `strokePx` and `idleAlpha` are the config’s', async () => {
+    const none = await zoomed({}, Box, {}, { navigator: { zoomStrip: { funnel: 'none' } } });
+    expect(none.s.nav.zoomHeight).toBe(16);
+    expect(none.f.lists.passes.window.paths.n).toBe(0);
+    const heavy = await zoomed({}, Box, {}, { navigator: { window: { strokePx: 2, idleAlpha: 0.2 } } } as never);
+    const p = heavy.f.lists.passes.window.paths;
+    expect(p.n).toBe(2);
+    expect(p.strokeWidth[0]).toBe(2);
+    expect(p.stroke[0] & 0xff).toBe(Math.round(0.2 * 255));
+  });
+
   it('the mark is centred on the truth, whatever `window.floor`; the truth inside it', async () => {
     const thumb = { navigator: { window: { ...DefaultRenderConfig.navigator.window, floor: 'thumb' as const } } };
     const { f, ctx } = await zoomed({ range: [100, 110] }, Box, {}, thumb);
