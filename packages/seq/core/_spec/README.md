@@ -340,11 +340,11 @@ never chemistry: a component code, a SMILES, a GlyTouCan id are strings it match
   `pairs.source` and `grid.source` with `field` (one of `rows`/`values` and `source`: `seq.lang.pairs.content`,
   `seq.lang.grid.content`); the `matrix` kind (`target`, inline `values` or `codes` with `states`, or `source` and
   `field`: `seq.lang.matrix.content`) and the `matrix` layer type (its data a matrix); `map.source` (a `segments` map's
-  runs from a pairs source, instead of `segments`: `seq.lang.map.params`); a grid section's `of_y` a rows system (an
-  alignment's, a matrix's states: `<alignment>/(rows)`, `<matrix>/(states)`; read: Resolved view, Grids),
-  `member_order`, `member_order_y` (the rows layer's order values; read); a source's `features` (`transcripts` when
-  absent, `genes`, `rows`) and `samples`; BED's columns named by number through `fields` (`{ stain: '4' }`); the `line`
-  word `gene`.
+  runs from a pairs source, instead of `segments`: `seq.lang.map.params`; read: Resolve, Maps read by region); a grid
+  section's `of_y` a rows system (an alignment's, a matrix's states: `<alignment>/(rows)`, `<matrix>/(states)`; read:
+  Resolved view, Grids), `member_order`, `member_order_y` (the rows layer's order values; read); a source's `features`
+  (`transcripts` when absent, `genes`, `rows`) and `samples`; BED's columns named by number through `fields`
+  (`{ stain: '4' }`); the `line` word `gene`.
 
 | Item                                                                       | Whose       | Default                                                   | Why the default; the alternatives                                           |
 | -------------------------------------------------------------------------- | ----------- | --------------------------------------------------------- | --------------------------------------------------------------------------- |
@@ -2220,9 +2220,9 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
 ### Unread params
 
 - **Said, never dropped in silence** (`resolve/unread.ts`): a param the language declares and this version reads nowhere
-  is `seq.resolve.param.unread` (info), one a node, naming the lane that reads it: `map.source` (FR), `assembly.names`
-  (GF: the printed names stay the assembly's). The lane that reads one drops it from `Unread`. Why: a reader shown a
-  spec drawn without what it says should be told why.
+  is `seq.resolve.param.unread` (info), one a node, naming the lane that reads it: `assembly.names` (GF: the printed
+  names stay the assembly's). The lane that reads one drops it from `Unread`. Why: a reader shown a spec drawn without
+  what it says should be told why.
 
 ### Maps
 
@@ -2262,6 +2262,12 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
   for every use, and a residue missing from the model is still the sequence's.
 - **Priority**: `MapEntry.priority` (0 when absent), on each of its edges.
 - A map that pairs nothing is `seq.resolve.map.empty`; a partial one is no issue.
+- **Maps read by region** (`map.source`, `model-region.ts`): a `segments` map naming a pairs source is never held (no
+  entry in `maps`, no step of a path): its runs are the source's rows of equal-length ends, read by region as a `pairs`
+  node's (`a` its `from`, `b` its `to`: `regionMapPairs`), so over two assemblies its annotation carries each sequence's
+  plan by side (Assemblies; a sided source's side `a` is the map's `from`), and a bridge's ribbons and a liftover read
+  one source (Render, A liftover). Why not a path: the runs arrive by region (EC-211), and a path is composed once per
+  model.
 
 ### Paths
 
@@ -2552,8 +2558,11 @@ Overlay, Opened sources), kept per model and view. No data, no dynamic node, no 
   system no section shows, along the model's static path; rects are not carried. `close` closes it first among the
   view's systems (a hover's: a nucleotide lifts to its codon and gains its residue); `own` keeps the parts already on a
   section's system (a hover's and a highlight's), else only what it adds where it has no part (a selection's);
-  `linked: false` keeps the own parts alone. Why keyed by system, not a function per section: the renderer reads a part
-  per axis with an indexed loop, nothing called or made per draw.
+  `linked: false` keeps the own parts alone; `regions` (a `RegionProjector`, the render's `regionProjector` over a
+  store) carries a part that no static link does through a map read by region (a liftover, EC-212), every image of the
+  runs held now (EC-20); a part also carried onto its own system through it (an image's item's other images: symmetric,
+  Render, A liftover), no further. Why keyed by system, not a function per section: the renderer reads a part per axis
+  with an indexed loop, nothing called or made per draw.
 - **Bridges** (`bridges.ts`; `ResolvedView.bridges`, `ResolvedBridge`; `ResolvedView.stack`, the view's sections and
   bridges in the order written, `{ kind, index }` each, what the layout stacks): a bridge is its address, its sides `a`
   and `b` (section addresses), `label` (absent: "a to b" by the sides' ids), `height` as written (absent: the render
@@ -2586,6 +2595,11 @@ Overlay, Opened sources), kept per model and view. No data, no dynamic node, no 
   knows is not placed; data naming nothing is `seq.view.layer.data`; data of a shape the type does not draw is
   `seq.view.layer.shape`; data no static path brings to the section is `seq.view.layer.unplaced`. Each leaves the layer
   not placed.
+- **A lifted layer** (`view/lift.ts`, loaded with the genome chunk; a liftover, EC-212): data over one assembly on a
+  block of another that a map read by region joins (Resolve, Maps read by region: the data's assembly its `from` and the
+  block's its `to`, or the other way) is placed with `data.lift` (the map, the end of its runs on the block's system,
+  `b` on its `to`, and the map's plan there) and `data.system` the block's; no static path (the runs arrive by region,
+  EC-211).
 - **Layer kinds** (`LayerKinds`: the types a reader knows, each its shape and fallback, and its extensions by id with
   their versions; `resolveView(model, address, kinds?)`, kept per kinds, model and view; the built-ins' `LayerTypes`
   when absent; a composition's is `SeqContext.kinds`): a layer's chain is its type, its `fallback` (an extension's type
@@ -3895,8 +3909,10 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   is the lanes its layer has packed over the data read (`Known` in `ranges-content.ts`, `LayerContent.partial`), one
   lane (the loading lane) while pending, grown once the view settles (`noteLanes`; the layout runs again in the frame
   that grew it, once, `knownLanesVersion` in the section's stamp and the sizing's key) and never shrunk by a pan or a
-  zoom; another prep (another file, another region) starts again. Why: a default fills its space, never a blank band,
-  and heights decided by the data read stay put as the view moves.
+  zoom; another prep (another file, another region) starts again. Over blocks (an assembly's sequences) each block's
+  layer is its own prep: they note under one key, by the model and the layer's address (`RangesPrep.known`), since the
+  track's sizing reads one of them; one empty block empties no track that another has lanes for. Why: a default fills
+  its space, never a blank band, and heights decided by the data read stay put as the view moves.
 - **Empty tracks** (the tracks layout): a track whose layers' content is known whole and holds no item, with no layer of
   a fixed height beside, is never a blank well: it is one line of `track.emptyPx` (18) naming it, with a quiet "no
   items" in its data box (`track.empty: note`, the default), the row alone (`collapse`), or its well as any track's
@@ -4107,6 +4123,50 @@ pairs layer's prepared form and its region reader through the composition (`type
   said and wants what it wanted. So a pan of an unrelated section lays out that section alone.
 - **The bands' room** (`bridgeRooms`) is the chunk's: a view with a bridge waits for it. A composition listing the pairs
   type without `registerBridges` resolves a bridge to `seq.view.bridge.unregistered` (a warning), its sides stacked.
+
+### A liftover
+
+`render/lift.ts`, loaded with the genome chunk (a liftover is over assemblies). Two doors, one a layer: the view's,
+`liftedData` in `view/layer-data.ts` (`view/lift.ts`'s `liftOf`, placing a layer lifted), and the render's, `Lift` in
+`render/layer-data.ts` (its source, its items, its projection and its places). Why two: the view is below the render, so
+the render's door cannot serve it. A lifted layer's items (Resolved view, A lifted layer), read by `readItems` as any
+items layer's, its rows on the block's system. Why lazy: a reader that never opens a genome pays nothing (the door's
+cost to the minimal viewer is the names the chunk imports from it).
+
+- **The runs by the near end**: the map's source read as items tiles on the block's system by `lift.side`
+  (`RegionRequest.side`: `b`, the map's `to`), the window's span at the finest level whose tiles a want's bound holds;
+  each row a run from its far end to its near end (its direction the ends' relative strand), once across tiles (by
+  `row`); a row of unequal ends is no run, left out and said (`seq.render.lift.run`, info, by count). Why the near end:
+  the block's window asks for the runs that land in it, and the `seq` runtime indexes both ends, so it is the bridge's
+  read again (no second read).
+- **The data along them**: the window carried back along each far system's runs onto that system, the data read there as
+  items (its plan by the far system: `bySystem` of the data's annotation, matched to the runs by the name the map's
+  source lists), each row carried forward: a row an image, an item's images its rows (EC-20, a duplicated stretch drawn
+  in both places), a part with no image not drawn (EC-21: a deletion), an inverted run's image in its order. A row's
+  images joined where its runs' targets meet in one direction (one image across adjacent runs). Its coordinate fields
+  carried too: `thick_start`/`thick_end` through the runs, clipped to each image (an image with none of it is thin); its
+  strand (the field, else the table's) turned by an inverted run; the other fields as they are. Why: the gene line draws
+  the thick part and the chevrons from them, and the card reads the strand (in old coordinates they would draw wrong).
+  Pending and failed spans are the runs' and the far reads' carried onto the block. No density tables: the far data is
+  read as items. Not built: a lifted item's ends drawn square where a run cuts it (each image is round), lifting over
+  single sequences (assemblies only), `mapSummary` and the builder's `liftover()` (deferred).
+- **Kept** by the entries read: the runs (by-far maps, their `RunsLinear`) while the runs' entries are the same, the
+  carried rows while the far reads' entries are too; a layout with neither changed copies the kept rows. A pan of the
+  new section lays out that section and the bridge only, and costs no more than the same layer read directly.
+- **Its track's height**: a lifted layer's lanes are known as a source's are (Track heights: partial, grown as the view
+  settles, under its blocks' one key). Not by its reachable region: that would read the runs and the far data over the
+  whole section again.
+- **Projection** (`lift-project.ts`, `regionProjector(store)`: a `RegionProjector`, Resolved view, Projection): a part
+  on one end's sequence carried to the other's through the runs in the items tiles the store holds at any level, read by
+  that end (the lifted layer's and the bridge's reads: no want of its own, so a hover never reads), its version the
+  store's; its answers kept for that version (a ring of the last ranges), so a warm hover allocates nothing. Both ways,
+  and symmetric (EC-20): an old gene lights each image; an image lights the old gene and, through it, the item's other
+  images (one step back and out: `projectOntoView` carries a part onto its own system through `regions` too). Its
+  `places` name an item's places for a card, the same from the item or any image (at least two; a place a colinear chain
+  of its runs: in the source's order, on one sequence, one direction, each after the last on both ends; a run over a
+  source position already placed (a duplication), another sequence, a turn or a step back starts another. So an
+  insertion on the new side longer than the item splits none, and a duplication starts a second. Why by the runs, not by
+  distance: a distance rule splits an item an insertion longer than it crosses).
 
 ### Lanes and Hits
 

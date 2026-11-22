@@ -19,6 +19,22 @@ import type { AnnotationEntry, SystemEntry } from './model.js';
 
 const p = (n: Node, key: string): Value | undefined => n.params?.[key];
 
+/**
+ * A map read from a source (`map.source`, a `segments` map's runs a pairs source's rows: _spec/README.md "Resolve",
+ * Maps read by region): never held, its runs read by region of either side as a `pairs` node's.
+ */
+export function isRegionMap(n: Node): boolean {
+  return n.kind === 'map' && p(n, 'source') !== undefined;
+}
+
+/**
+ * A region map as the `pairs` node its reads are (`a` its `from`, `b` its `to`, its `source`): side `a` of a sided
+ * source is the `from` side (_spec/README.md "Data", Protocol: sided pairs), so its ribbons and its runs are one read.
+ */
+export function regionMapPairs(n: Node): Node {
+  return { ...n, kind: 'pairs', params: { a: p(n, 'from')!, b: p(n, 'to')!, source: p(n, 'source')! } };
+}
+
 /** A matrix's states system's address: its node's, then `(states)`. */
 export function statesSystemOf(matrix: string): string {
   return `${matrix}/(states)`;

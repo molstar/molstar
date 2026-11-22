@@ -102,6 +102,12 @@ export const RenderIssues = defineIssues('seq.render', {
       'A layer’s wants together are past the store’s bound on a layer’s tiles or read cost, at its coarsest level: nothing is read, its band says to zoom in',
     hint: 'Zoom in to read this track',
   },
+  'seq.render.lift.run': {
+    severity: 'info',
+    description:
+      'Rows of a map read by region (`map.source`) whose two ends differ in length are no runs: a liftover carries nothing through them',
+    hint: 'Serve each aligned block as a row of equal ends (split a gapped alignment at its gaps)',
+  },
   'seq.render.reach': {
     severity: 'info',
     description:

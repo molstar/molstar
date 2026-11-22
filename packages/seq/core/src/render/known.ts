@@ -22,9 +22,12 @@ export function noteLanes(prep: object, lanes: number): void {
   }
 }
 
-/** Notes that a source's layer, settled over its reachable region, holds no item: its track is empty, not pending. */
+/**
+ * Notes that a source's layer, settled over its reachable region, holds no item: its track is empty, not pending. Not
+ * when lanes are known (a block's layer shares its key with its other blocks': one empty block empties no track).
+ */
 export function noteEmpty(prep: object): void {
-  if (!Empty.has(prep)) {
+  if (!Empty.has(prep) && !Lanes.has(prep)) {
     Empty.add(prep);
     Count++;
   }

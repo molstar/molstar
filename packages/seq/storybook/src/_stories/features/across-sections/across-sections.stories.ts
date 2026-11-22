@@ -98,6 +98,15 @@ export const ContactsBetweenTwoChromosomes: StoryObj = {
 };
 
 /**
+ * A liftover (EC-212): Rose v1 above with its genes, the chain to v2 as ribbons (a map read by region, its runs a sided
+ * pairs source’s rows), v2 below with v1’s genes drawn through the same chain. chr1’s 1.2–2.0 Mb fans to two places (a
+ * duplication: its gene drawn twice, EC-20), chr2’s lost stretch has no ribbon and its gene is not drawn (EC-21), chr2’s
+ * inversion crosses, chr3’s tail lands at the end of v2’s chr1. Hover a gene: its images light below, and the card of
+ * the duplicated one lists its two places.
+ */
+export const Liftover: StoryObj = { render: () => exampleStory(view('across-liftover'), { stacked: true }) };
+
+/**
  * Twelve samples’ genotypes as a matrix (a row a sample, in data order) and their kinship on the same samples as a
  * grid on categorical axes, ordered by label (`member_order`, EC-35): the three families gather into blocks along the
  * diagonal. The members’ labels run down the side and at 45° along the top; a click on one selects the sample.

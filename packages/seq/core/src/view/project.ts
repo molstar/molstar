@@ -10,6 +10,7 @@
 // for a system no section shows (a structure's chain, an item system), along the model's static path. One Location keyed
 // by system: two sections on one system show the same.
 
+import { HalfOpenRanges } from '@molstar/core/data/int/half-open-ranges';
 import { EmptyLocation, type Location, type LocationPart, location } from '@molstar/seqx-core/query';
 import { type Path, projectRanges, type StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedView } from './view.js';
@@ -28,6 +29,35 @@ export interface ProjectOptions {
   readonly own?: boolean;
   /** Carry parts along links at all (true by default); false keeps the own parts alone. */
   readonly linked?: boolean;
+  /**
+   * What carries a part through a map read by region (a liftover's, EC-212), where no static link does: from the runs
+   * the store holds now (`regionProjector`, the render's). None: such parts are not carried.
+   */
+  readonly regions?: RegionProjector;
+}
+
+/**
+ * A part carried through a map read by region (_spec/README.md "Resolved view", Projection: a liftover), from the runs
+ * held now: what a viewer gives the projections so hover and selection reach across a liftover both ways (EC-20).
+ */
+export interface RegionProjector {
+  /**
+   * Its value moves when the runs it reads may have changed (the store's version): a projection kept is made again, when
+   * the model has a map read by region (`reads`).
+   */
+  readonly version: { readonly value: number };
+  /** Whether the model has a map read by region: else nothing it holds changes a projection (and none is made again). */
+  reads(model: StaticModel): boolean;
+  /**
+   * `ranges` on `from` carried onto `to` through a map read by region joining them, every image appended to `out`
+   * (unsorted); false when no such map joins them.
+   */
+  project(model: StaticModel, from: string, ranges: ArrayLike<number>, to: string, out: number[]): boolean;
+  /**
+   * `[start, end)` on `system` carried onto every block `view` shows: its places named when there are at least two (a
+   * card's `Places`, a duplicated stretch's), else undefined.
+   */
+  places?(model: StaticModel, view: ResolvedView, system: string, start: number, end: number): string | undefined;
 }
 
 /**
@@ -58,11 +88,21 @@ export function projectOntoView(
     for (const part of src.parts) {
       if (part.system === system) {
         parts.push(part);
+        // the item's other images on its own system, through a map read by region and back (EC-20)
+        buffer.length = 0;
+        if (options.linked !== false && options.regions?.project(model, system, part.ranges, system, buffer))
+          if (buffer.length) parts.push({ system, ranges: HalfOpenRanges.normalize(buffer) });
         continue;
       }
       if (options.linked === false) continue;
       const path = pathOf(model, view, part, system);
       if (path) parts.push({ system, ranges: projectRanges(path, part.ranges, buffer).slice() });
+      else if (options.regions) {
+        // through a map read by region (a liftover): every image of the runs held now (EC-20)
+        buffer.length = 0;
+        if (options.regions.project(model, part.system, part.ranges, system, buffer) && buffer.length)
+          parts.push({ system, ranges: HalfOpenRanges.normalize(buffer) });
+      }
     }
   }
   return parts.length ? location({ parts }) : EmptyLocation;
