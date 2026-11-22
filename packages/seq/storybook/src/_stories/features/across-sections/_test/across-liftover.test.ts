@@ -123,7 +123,7 @@ describe('Features/Across sections/Liftover, headless', () => {
     await bothThemes(v);
   });
 
-  it('the lifted track grows to its lanes as v1’s does: its genes in view drawn in its lanes, none clipped', async () => {
+  it('both gene tracks grow to their lanes, the bridge below v1’s: every gene in view drawn in its lanes, none clipped', async () => {
     const v = await open();
     await vi.advanceTimersByTimeAsync(4000);
     v.draw();
@@ -136,16 +136,27 @@ describe('Features/Across sections/Liftover, headless', () => {
       const track = sec.tracks.find((t) => t.box.y === lays[0].box.y)!;
       return { lays, track, lanes: Math.max(...lays.map((l) => l.laneCount)) };
     };
-    const lifted = room(NewSection);
-    // the track as tall as the lanes the lifted genes pack into (no cap reached here), as a ranges track over a source
-    expect(lifted.lanes).toBeGreaterThan(1);
-    for (const lay of lifted.lays) {
-      expect(lay.room).toBe(lifted.lanes);
-      expect(lay.laneY - lay.box.y + lifted.lanes * lay.laneHeight).toBeLessThanOrEqual(lay.box.height + 0.5);
-      // every lifted gene in view in a lane inside the track (a lane out of the band is -1)
-      for (let i = 0; i < lay.rows.n; i++) expect(lay.lanes[i], String(lay.rows.keys[i])).toBeGreaterThanOrEqual(0);
+    // each section's track as tall as the lanes its genes pack into (no cap reached here): v1's inline genes with their
+    // labels' room, the lifted ones as a source's
+    for (const section of [OldSection, NewSection]) {
+      const t = room(section);
+      expect(t.lanes, section).toBeGreaterThan(1);
+      for (const lay of t.lays) {
+        expect(lay.room, section).toBeGreaterThanOrEqual(t.lanes);
+        expect(lay.scrollMax, section).toBe(0);
+        expect(lay.laneY - lay.box.y + t.lanes * lay.laneHeight, section).toBeLessThanOrEqual(lay.box.height + 0.5);
+        // every gene in view in a lane inside the track (a lane out of the band is -1)
+        for (let i = 0; i < lay.rows.n; i++)
+          expect(lay.lanes[i], `${section} ${lay.rows.keys[i]}`).toBeGreaterThanOrEqual(0);
+      }
+      expect(t.track.box.height, section).toBeGreaterThanOrEqual(t.lanes * t.lays[0].laneHeight);
     }
-    expect(lifted.track.box.height).toBeGreaterThanOrEqual(lifted.lanes * lifted.lays[0].laneHeight);
+    // the bridge's band starts where the section above ends: it covers none of v1's lanes
+    const above = v.frame!.layout.sections.find((s) => s.section.address === OldSection)!;
+    const bridge = v.frame!.layout.bridges!.list[0];
+    expect(bridge.box.y).toBeGreaterThanOrEqual(above.y + above.height);
+    for (const l of room(OldSection).lays)
+      expect(l.laneY + l.laneCount * l.laneHeight).toBeLessThanOrEqual(bridge.box.y);
   });
 
   it('a hover on the duplicated gene lights both images; its card lists them ("2 places")', async () => {

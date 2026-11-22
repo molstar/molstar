@@ -3908,8 +3908,10 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   is the lanes its layer has packed over the data read (`Known` in `ranges-content.ts`, `LayerContent.partial`), one
   lane (the loading lane) while pending, grown once the view settles (`noteLanes`; the layout runs again in the frame
   that grew it, once, `knownLanesVersion` in the section's stamp and the sizing's key) and never shrunk by a pan or a
-  zoom; another prep (another file, another region) starts again. Why: a default fills its space, never a blank band,
-  and heights decided by the data read stay put as the view moves.
+  zoom; another prep (another file, another region) starts again. Over blocks (an assembly's sequences) each block's
+  layer is its own prep: they note under one key, by the model and the layer's address (`RangesPrep.known`), since the
+  track's sizing reads one of them; one empty block empties no track that another has lanes for. Why: a default fills
+  its space, never a blank band, and heights decided by the data read stay put as the view moves.
 - **Empty tracks** (the tracks layout): a track whose layers' content is known whole and holds no item, with no layer of
   a fixed height beside, is never a blank well: it is one line of `track.emptyPx` (18) naming it, with a quiet "no
   items" in its data box (`track.empty: note`, the default), the row alone (`collapse`), or its well as any track's
@@ -4147,10 +4149,9 @@ cost to the minimal viewer is the names the chunk imports from it).
 - **Kept** by the entries read: the runs (by-far maps, their `RunsLinear`) while the runs' entries are the same, the
   carried rows while the far reads' entries are too; a layout with neither changed copies the kept rows. A pan of the
   new section lays out that section and the bridge only, and costs no more than the same layer read directly.
-- **Its track's height**: a lifted layer's lanes are known as a source's are (partial, grown as the view settles: the
-  lanes its blocks pack, noted under one key for its blocks, by the model and the layer's address, since each block's
-  layer is its own prep and the track's sizing reads one). Not by its reachable region: that would read the runs and the
-  far data over the whole section again.
+- **Its track's height**: a lifted layer's lanes are known as a source's are (Track heights: partial, grown as the view
+  settles, under its blocks' one key). Not by its reachable region: that would read the runs and the far data over the
+  whole section again.
 - **Projection** (`lift-project.ts`, `regionProjector(store)`: a `RegionProjector`, Resolved view, Projection): a part
   on one end's sequence carried to the other's through the runs in the items tiles the store holds at any level, read by
   that end (the lifted layer's and the bridge's reads: no want of its own, so a hover never reads), its version the
