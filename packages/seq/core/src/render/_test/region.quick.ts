@@ -12,11 +12,18 @@
 import { SeqRuntime } from '@molstar/seqx-core/data';
 import { quickCase } from '@molstar/test-harness/quick';
 import { describe, expect, inject, it } from 'vitest';
-import { drawView, type FrameInput, GridType, MatrixType } from '../index.js';
+import { drawView, type FrameInput, GridType, MatrixType, type PairsLay } from '../index.js';
 import type { GridLay } from '../grid.js';
 import type { MatrixLay } from '../matrix.js';
 import { settle } from './helpers.js';
-import { gridRegionSpec, Many, sourced } from './region-render-fixtures.js';
+import { gridRegionSpec, linksSpec, Many, sourced } from './region-render-fixtures.js';
+
+/**
+ * Bytes a region pairs pan frame may allocate, at either size: the arcs' layout over about 2,400 bin pairs in view
+ * (239 KB at 6,000 links, 275 KB at 60,000, 2026-11-22), never a key and a set entry a row read (1.26 and 1.53 MB
+ * before the anchor rule).
+ */
+const PairsPanBound = 400_000;
 
 /** The point a layer's hit reads. */
 const At = new Float64Array(2);
@@ -83,4 +90,31 @@ describe('region reads draw with nothing allocated once warm', () => {
     console.info(`matrix ring draw: ${d.r.bytesPerStep.toFixed(0)} bytes a frame (${d.r.note})`);
     expect(d.r.bytesPerStep, d.r.note).toBeLessThanOrEqual(inject('perfThreshold'));
   });
+
+  // a pan's layout of region pairs (bins in view counted, each once by the anchor rule, nothing built again)
+  const PanOptions = {
+    warmSteps: 300,
+    steps: 100,
+    windows: 3,
+    maxWarmSteps: 2000,
+    control: false,
+    why: 'a layout',
+  } as const;
+  for (const n of [6000, 60_000])
+    it(`region pairs, ${n.toLocaleString('en-US')} links: a warm pan's layout allocates no key a row`, async ({
+      task,
+    }) => {
+      const s = await settle(linksSpec(n), [SeqRuntime]);
+      const at = (k: number): FrameInput => ({
+        size: { width: 720, height: 300 },
+        settled: true,
+        viewport: { start: 40_000 + (k % 16) * 1000, end: 840_000 + (k % 16) * 1000 },
+      });
+      for (let k = 0; k < 16; k++) await s.frame(at(k));
+      const lay = (await s.frame(at(0))).layout.sections[0].sectionLays[0].lay as PairsLay;
+      expect(lay.prep?.weight).toBeDefined();
+      const r = quickCase(task, `region pairs pan ${n}`, (i) => void s.renderer.frame(at(i + 1)), PanOptions).r;
+      console.info(`region pairs pan (${n}): ${r.bytesPerStep.toFixed(0)} bytes a frame (${r.note})`);
+      expect(r.bytesPerStep, r.note).toBeLessThan(PairsPanBound);
+    });
 });

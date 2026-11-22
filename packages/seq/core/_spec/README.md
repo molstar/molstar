@@ -3748,12 +3748,20 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
 
 - **By region** (`pairs-region.ts`: a `pairs` node with a `source`): the frame's pairs are read through the store on the
   layer's first system: bins at a pixel's level, always; items once the gate opens (Data, the level rules), drawn with
-  no gap (bins until they land, EC-169); the items of an uncut tile with an end in view; each pair once across tiles
-  (`row`, else an `id` other than `.`, with both ends), a pair found from its other end turned round. A **bin pair** is
-  one arc between its bins, stroked by its count (`pairs.binStroke`, 1 to 6 CSS px, the square root over the counts in
-  view), twisted where its relative strand is −1, its element keyed `bin:…`, its extent both bins, its hit `bin` the
-  level; past `pairs.maxArcs` the strongest are kept (by count, ties by span), the rest the density strip. What is read
-  is kept while the entries read are the same (a warm frame builds nothing).
+  no gap (bins until they land, EC-169); every row of the tiles read (a tile is uncut: a pan inside its tiles builds
+  nothing, and an arc across the view is drawn), each once across tiles by the **anchor rule**: a tile holds every row
+  with an end on the layer's system in it, so a row is taken by the first loaded tile (by start) that holds it, no key
+  made (the gate's counts over the view use it too, so a layout allocates nothing a row read); a pair found from its
+  other end turned round. A **bin pair** is one arc between its bins, stroked by its count (`pairs.binStroke`, 1 to 6
+  CSS px, the square root over the counts in view), twisted where its relative strand is −1, its extent both bins, its
+  hit `bin` the level; past `pairs.maxArcs` the strongest are kept (by count, ties by span), the rest the density strip.
+  What is read is kept while the entries read are the same (a warm frame builds nothing).
+- **A bin pair's element** (`Key.key`, what a selection and a bookmark keep):
+  `bin:<a>:<aBin>|<b>:<bBin>|<strand>|<category>`, `<a>` and `<b>` the ends' system names as the source gives them
+  (empty: the request's system), `<aBin>` and `<bBin>` the bins' indices at the level read (positions `bin × level` to
+  `(bin + 1) × level`), `<strand>` the relative strand (−1, 0 or 1), `<category>` the bin's `category` (empty: none).
+  Why the level is not in the key: the hit carries it (`Hit.bin`), and a selection made of a bin is its rect, not its
+  key (`(rect …)`, the design's).
 - **Arcs**: each end placed with `ctx.place` (page x), the apex in its band (`side`: `above`, `below`), never flat; the
   height by span against the widest in view (`height: span`), so nested arcs nest and the widest fills the band; on a
   single translate strip an end past the window is taken `reach` (0.25) of the window past its edge, so an arc moves

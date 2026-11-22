@@ -5,9 +5,9 @@
  */
 
 import type { CategoryColumn } from '@molstar/core/repr/tree';
-import type { PairsBins, PairsList } from '@molstar/seqx-core/data';
+import type { PairsList } from '@molstar/seqx-core/data';
 import type { PairsData } from '@molstar/seqx-core/resolve';
-import { dataRegions, itemsGate, type LayerSource, pairsLevels, readTiles } from './layer-data.js';
+import { dataRegions, itemsGate, type LayerSource, pairsLevels, readTiles, type TileRead } from './layer-data.js';
 import type { LayoutContext, StoreReader } from './layer-type.js';
 import { PairDatum, type PairsLay, type PairsPrep } from './pairs-lay.js';
 
@@ -16,13 +16,13 @@ import { PairDatum, type PairsLay, type PairsPrep } from './pairs-lay.js';
 // finest level whose tiles fit, asked once the bin pairs with an end in view sum to at most `pairs.maxArcs` and kept
 // while the items in view stay within `pairs.itemsHysteresis` × it. Bins draw until the items land (EC-169: pending is
 // never empty), each bin pair one arc between its bins' middles, stroked by count. What is read becomes the frame's
-// `PairsData` (ends on the layer's two systems, a pair found from its other end turned round), kept while the entries
-// read are the same, so a warm frame builds nothing.
+// `PairsData` (ends on the layer's two systems, a pair found from its other end turned round; every row of the tiles
+// read, each once by the anchor rule), kept while the entries read are the same, so a warm frame builds nothing.
 
 /** What a region read of pairs keeps on its lay between frames. */
 export interface RegionState {
-  /** The entries' key the data was built for (their versions and the mode). */
-  key: string;
+  /** What the data was built from: the mode (0 bins, 1 items), the level, then each entry's tile and version. */
+  readonly read: number[];
   prep: PairsPrep | undefined;
   /** Whether items are shown (the gate's state, for its hysteresis). */
   items: boolean;
@@ -36,7 +36,7 @@ const States = new WeakMap<PairsLay, RegionState>();
 
 export function regionState(lay: PairsLay): RegionState {
   let s = States.get(lay);
-  if (!s) States.set(lay, (s = { key: '', prep: undefined, items: false, binPairs: 0, itemCount: 0 }));
+  if (!s) States.set(lay, (s = { read: [], prep: undefined, items: false, binPairs: 0, itemCount: 0 }));
   return s;
 }
 
@@ -74,15 +74,14 @@ export function regionPairs(
   const cfg = ctx.config.pairs;
   const { bins, items } = pairsLevels(levels, src.ratio / ctx.axis.devicePx, span, data, cfg.binPx);
   const binRead = readTiles(ctx, data, src, regions, bins);
-  const binTables = binRead.entries.map((e) => e.tables.pairs).filter((t) => t !== undefined);
   // at the finest level the bins are the items themselves
-  const lists = binTables.filter((t): t is PairsList => t.form === 'list');
-  const binned = binTables.filter((t): t is PairsBins => t.form === 'bins');
-  state.binPairs = countBins(binned, bins, region, regions) + countItems(lists, region, regions);
-  let mode: 'bins' | 'items' = binned.length ? 'bins' : 'items';
-  let itemTables: PairsList[] = lists;
-  let itemKeys = '';
-  if (binned.length) {
+  const binned = binRead.entries.some((e) => e.tables.pairs?.form === 'bins');
+  state.binPairs = binned
+    ? countBins(binRead.entries, bins, region, regions)
+    : countItems(binRead.entries, region, regions);
+  let mode = binned ? 0 : 1;
+  let read = binRead.entries;
+  if (binned) {
     const ask = itemsGate(
       state.items,
       state.binPairs,
@@ -94,23 +93,53 @@ export function regionPairs(
     if (ask) {
       const itemRead = readTiles(ctx, data, src, regions, items, { items: true });
       if (!itemRead.pending.length && !itemRead.failed.length) {
-        itemTables = itemRead.entries.map((e) => e.tables.pairs).filter((t): t is PairsList => t?.form === 'list');
-        state.itemCount = countItems(itemTables, region, regions);
+        state.itemCount = countItems(itemRead.entries, region, regions);
         state.items = state.itemCount <= cfg.maxArcs * Math.max(1, cfg.itemsHysteresis);
         if (state.items) {
-          mode = 'items';
-          itemKeys = itemRead.entries.map((e) => `${e.region.tile}:${e.version}`).join(',');
+          mode = 1;
+          read = itemRead.entries;
         }
       } else state.items = true;
     }
   }
-  const binKeys = binRead.entries.map((e) => `${e.region.tile}:${e.version}`).join(',');
-  const key = `${mode}|${bins}|${mode === 'items' && itemKeys ? itemKeys : binKeys}`;
-  if (state.key === key && state.prep) return state.prep;
-  const built = mode === 'items' ? fromItems(itemTables, region, regions) : fromBins(binned, bins, region);
-  state.key = key;
-  state.prep = withData(prep, built.data, built.weight, mode === 'bins' ? bins : undefined);
+  const level = mode ? items : bins;
+  if (sameRead(state.read, mode, level, read) && state.prep) return state.prep;
+  const built = mode ? fromItems(read, region) : fromBins(read, bins, region);
+  keepRead(state.read, mode, level, read);
+  state.prep = withData(prep, built.data, built.weight, mode ? undefined : bins);
   return state.prep;
+}
+
+type Loaded = TileRead['entries'][number];
+
+/** Whether the data was built from this read (its mode, level, tiles and versions): nothing made to tell. */
+function sameRead(r: readonly number[], mode: number, level: number, entries: readonly Loaded[]): boolean {
+  if (r.length !== 2 + 2 * entries.length || r[0] !== mode || r[1] !== level) return false;
+  for (let k = 0; k < entries.length; k++)
+    if (r[2 + 2 * k] !== entries[k].region.tile || r[3 + 2 * k] !== entries[k].version) return false;
+  return true;
+}
+
+function keepRead(r: number[], mode: number, level: number, entries: readonly Loaded[]) {
+  r.length = 0;
+  r.push(mode, level);
+  for (const e of entries) r.push(e.region.tile, e.version);
+}
+
+/**
+ * Whether a row of entry `k` is that entry's to take, by the anchor rule (_spec/README.md "Render", The pairs layer: by
+ * region): a tile holds every row with an end on the layer's system in it, so a row is taken by the first loaded tile
+ * (by start) that holds it; `as`, `ae` its `a` end when on the system (else NaN), `bs`, `be` its `b` end.
+ */
+function owned(entries: readonly Loaded[], k: number, as: number, ae: number, bs: number, be: number): boolean {
+  const start = entries[k].region.start;
+  for (let o = 0; o < entries.length; o++) {
+    const r = entries[o].region;
+    if (o === k || r.start >= start) continue;
+    if (as < r.end && Math.max(ae, as + 1) > r.start) return false;
+    if (bs < r.end && Math.max(be, bs + 1) > r.start) return false;
+  }
+  return true;
 }
 
 /** The two systems' names of a row, `undefined` when it carries none (both on the request's). */
@@ -127,27 +156,22 @@ function orient(a: string | undefined, b: string | undefined, region: PairsRegio
   return 0;
 }
 
-function countBins(
-  tables: readonly PairsBins[],
-  level: number,
-  region: PairsRegion,
-  regions: readonly number[],
-): number {
-  const seen = new Set<string>();
+/** Bin pairs with an end in view, their counts summed, each once across tiles (the anchor rule: no key made). */
+function countBins(entries: readonly Loaded[], level: number, region: PairsRegion, regions: readonly number[]): number {
+  const sys = region.src.system;
   let n = 0;
-  for (const t of tables)
+  for (let k = 0; k < entries.length; k++) {
+    const t = entries[k].tables.pairs;
+    if (t?.form !== 'bins' || 'aStart' in t) continue;
     for (let i = 0; i < t.count.length; i++) {
-      const a = names(t.aSystem, i);
-      const b = names(t.bSystem, i);
-      const sys = region.src.system;
-      const aIn = (a ?? sys) === sys && inView(regions, t.aBin[i] * level, (t.aBin[i] + 1) * level);
-      const bIn = (b ?? sys) === sys && inView(regions, t.bBin[i] * level, (t.bBin[i] + 1) * level);
-      if (!aIn && !bIn) continue;
-      const k = `${a}|${t.aBin[i]}|${b}|${t.bBin[i]}|${t.strand?.[i] ?? 0}|${t.category?.codes[i] ?? -1}`;
-      if (seen.has(k)) continue;
-      seen.add(k);
-      n += t.count[i];
+      const aOn = (names(t.aSystem, i) ?? sys) === sys;
+      const bOn = (names(t.bSystem, i) ?? sys) === sys;
+      const as = aOn ? t.aBin[i] * level : Number.NaN;
+      const bs = bOn ? t.bBin[i] * level : Number.NaN;
+      if (!(aOn && inView(regions, as, as + level)) && !(bOn && inView(regions, bs, bs + level))) continue;
+      if (owned(entries, k, as, as + level, bs, bs + level)) n += t.count[i];
     }
+  }
   return n;
 }
 
@@ -158,16 +182,25 @@ function itemKey(t: PairsList, i: number): string {
   return named && named !== '.' ? `${named}|${ends}` : ends;
 }
 
-function countItems(tables: readonly PairsList[], region: PairsRegion, regions: readonly number[]): number {
-  const seen = new Set<string>();
+/** Pairs with an end in view, each once across tiles (the anchor rule: no key made). */
+function countItems(entries: readonly Loaded[], region: PairsRegion, regions: readonly number[]): number {
   const sys = region.src.system;
-  for (const t of tables)
+  let n = 0;
+  for (let k = 0; k < entries.length; k++) {
+    const t = entries[k].tables.pairs;
+    if (t?.form !== 'list') continue;
     for (let i = 0; i < t.aStart.length; i++) {
-      const aIn = (names(t.aSystem, i) ?? sys) === sys && inView(regions, t.aStart[i], t.aEnd[i]);
-      const bIn = (names(t.bSystem, i) ?? sys) === sys && inView(regions, t.bStart[i], t.bEnd[i]);
-      if (aIn || bIn) seen.add(itemKey(t, i));
+      const aOn = (names(t.aSystem, i) ?? sys) === sys;
+      const bOn = (names(t.bSystem, i) ?? sys) === sys;
+      const aIn = aOn && inView(regions, t.aStart[i], t.aEnd[i]);
+      const bIn = bOn && inView(regions, t.bStart[i], t.bEnd[i]);
+      if (!aIn && !bIn) continue;
+      const as = aOn ? t.aStart[i] : Number.NaN;
+      const bs = bOn ? t.bStart[i] : Number.NaN;
+      if (owned(entries, k, as, t.aEnd[i], bs, t.bEnd[i])) n++;
     }
-  return seen.size;
+  }
+  return n;
 }
 
 /** Rows gathered into a `PairsData` (and each one's weight). */
@@ -229,52 +262,58 @@ class Gather {
 }
 
 /**
- * Items tiles as pairs: those with an end in view (a tile is read uncut, wider than the view), each once across tiles,
- * on the layer's two systems (a pair found from its `b` end turned).
+ * Items tiles as pairs: every row of the tiles read (a tile is read uncut, wider than the view: a pan inside the tiles
+ * builds nothing, and an arc across the view is drawn), each once across tiles by the anchor rule, on the layer's two
+ * systems (a pair found from its `b` end turned).
  */
-function fromItems(tables: readonly PairsList[], region: PairsRegion, regions: readonly number[]) {
+function fromItems(entries: readonly Loaded[], region: PairsRegion) {
   const sys = region.src.system;
   const g = new Gather();
-  const seen = new Set<string>();
-  for (const t of tables)
+  for (let k = 0; k < entries.length; k++) {
+    const t = entries[k].tables.pairs;
+    if (t?.form !== 'list') continue;
     for (let i = 0; i < t.aStart.length; i++) {
       const o = orient(names(t.aSystem, i), names(t.bSystem, i), region);
       if (!o) continue;
-      const aIn = (names(t.aSystem, i) ?? sys) === sys && inView(regions, t.aStart[i], t.aEnd[i]);
-      if (!aIn && !((names(t.bSystem, i) ?? sys) === sys && inView(regions, t.bStart[i], t.bEnd[i]))) continue;
+      const as = (names(t.aSystem, i) ?? sys) === sys ? t.aStart[i] : Number.NaN;
+      const bs = (names(t.bSystem, i) ?? sys) === sys ? t.bStart[i] : Number.NaN;
+      if (!owned(entries, k, as, t.aEnd[i], bs, t.bEnd[i])) continue;
       const key = itemKey(t, i);
-      if (seen.has(key)) continue;
-      seen.add(key);
       const sa = t.aStrand?.[i] ?? 1;
       const sb = t.bStrand?.[i] ?? 1;
       const type = t.type?.get(i) ?? null;
       if (o > 0) g.push(t.aStart[i], t.aEnd[i], t.bStart[i], t.bEnd[i], sa, sb, type, key, 1);
       else g.push(t.bStart[i], t.bEnd[i], t.aStart[i], t.aEnd[i], sb, sa, type, key, 1);
     }
+  }
   return { data: g.data(), weight: undefined };
 }
 
 /**
- * Bins tiles as pairs: each bin pair once, from its bins' starts to their ends, its relative strand on its `b` end (so
- * a reversed bin is twisted, GA's rule), its count its weight (and a `count` field a theme reads).
+ * Bins tiles as pairs: each bin pair once (the anchor rule), from its bins' starts to their ends, its relative strand on
+ * its `b` end (so a reversed bin is twisted, GA's rule), its count its weight (and a `count` field a theme reads).
  */
-function fromBins(tables: readonly PairsBins[], level: number, region: PairsRegion) {
+function fromBins(entries: readonly Loaded[], level: number, region: PairsRegion) {
+  const sys = region.src.system;
   const g = new Gather();
-  const seen = new Set<string>();
-  for (const t of tables)
+  for (let k = 0; k < entries.length; k++) {
+    const t = entries[k].tables.pairs;
+    if (t?.form !== 'bins' || 'aStart' in t) continue;
     for (let i = 0; i < t.count.length; i++) {
       const a = names(t.aSystem, i);
       const b = names(t.bSystem, i);
       const o = orient(a, b, region);
       if (!o) continue;
+      const as = (a ?? sys) === sys ? t.aBin[i] * level : Number.NaN;
+      const bs = (b ?? sys) === sys ? t.bBin[i] * level : Number.NaN;
+      if (!owned(entries, k, as, as + level, bs, bs + level)) continue;
       const st = t.strand?.[i] ?? 0;
       const cat = t.category?.get(i) ?? null;
       const key = `bin:${a ?? ''}:${t.aBin[i]}|${b ?? ''}:${t.bBin[i]}|${st}|${cat ?? ''}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
       const [x, y] = o > 0 ? [t.aBin[i], t.bBin[i]] : [t.bBin[i], t.aBin[i]];
       g.push(x * level, (x + 1) * level, y * level, (y + 1) * level, 1, st < 0 ? -1 : 1, cat, key, t.count[i]);
     }
+  }
   return { data: g.data({ count: g.weight }), weight: Float32Array.from(g.weight) };
 }
 

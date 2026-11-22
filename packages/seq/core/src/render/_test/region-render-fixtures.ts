@@ -5,10 +5,12 @@
  */
 
 // Region reads' render fixtures (_spec/README.md "Render", The grid layer: by region; The matrix layer): a symmetric
-// contact map at two levels, genotypes with a long deletion over items and bins, generated, in the `seq` format.
+// contact map at two levels, links between hotspots at three levels, genotypes with a long deletion over items and bins, generated, in the `seq` format.
 
-import type { GridDense, MatrixBins, MatrixItems, SeqData } from '@molstar/seqx-core/data';
-import { seqToValue } from '@molstar/seqx-core/data';
+import { PCG } from '@molstar/core/data/util/hash-functions';
+import { categoryColumn } from '@molstar/core/repr/tree';
+import type { GridDense, MatrixBins, MatrixItems, PairsList, SeqData } from '@molstar/seqx-core/data';
+import { binPairs, seqToValue } from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 
 /** A contact map's chromosome length. */
@@ -116,6 +118,61 @@ export function sourced(names: readonly string[] = States, layout: 'tracks' | 'r
     v.section('chr', { of: chr, layout }).track('gt', { height: 80 }, (t) => {
       t.layer('gt', { type: 'matrix', data: m });
     });
+  });
+  return b.build();
+}
+
+/** A links chromosome's length. */
+export const LinksLength = 1_000_000;
+const Length = LinksLength;
+const LinksLevels = [1, 1024, 16_384];
+
+/** `n` links between 20 hotspots of a chromosome (each end jittered 2 kb), a level of bins at each coarse level. */
+export function linksSource(n: number): { data: SeqData; list: PairsList } {
+  const rng = new PCG(9);
+  const spots = Array.from({ length: 20 }, (_, i) => 20_000 + i * 48_000);
+  const as = new Int32Array(n);
+  const bs = new Int32Array(n);
+  for (let i = 0; i < n; i++) {
+    const a = spots[Math.floor(rng.float() * spots.length)];
+    const b = spots[Math.floor(rng.float() * spots.length)];
+    as[i] = a + Math.floor(rng.float() * 2000);
+    bs[i] = b + Math.floor(rng.float() * 2000);
+  }
+  const list: PairsList = {
+    form: 'list',
+    aStart: as,
+    aEnd: as.map((s) => s + 10),
+    bStart: bs,
+    bEnd: bs.map((s) => s + 10),
+    id: categoryColumn(Array.from({ length: n }, (_, i) => `l${i}`)),
+  };
+  const whole = (level: number) => ({ system: 'chr', start: 0, end: Length, level, shapes: ['pairs' as const] });
+  return {
+    list,
+    data: {
+      coverage: {
+        systems: [{ name: 'chr', length: Length }],
+        shapes: [{ system: 'chr', shape: 'pairs' }],
+        levels: LinksLevels,
+      },
+      pairs: LinksLevels.map((level) => ({
+        request: whole(level),
+        answer: { ok: true as const, tables: { pairs: level === 1 ? list : binPairs(list, level) } },
+      })),
+    },
+  };
+}
+
+/** A pairs layer over chr, its links read by region. */
+export function linksSpec(n: number) {
+  const b = createSeqSpec({ title: 'links by region' });
+  const src = b.data.source('src', { format: 'seq', value: seqToValue(linksSource(n).data) as never });
+  const chr = b.data.sequence('chr', { alphabet: 'dna', source: src, name: 'chr' });
+  const links = b.data.pairs('links', { a: chr, source: src } as never);
+  b.views.view('main', (v) => {
+    const s = v.section('chr', { of: chr });
+    s.track('links').layer('links', { type: 'pairs', data: links });
   });
   return b.build();
 }
