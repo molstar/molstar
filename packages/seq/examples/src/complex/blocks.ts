@@ -8,14 +8,23 @@ import { printAddress } from '@molstar/core/repr/tree';
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec, type SeqSpecBuilder } from '@molstar/seqx-core/lang';
 import type { Derived } from './derived.js';
-import { Cdk2Features, constructOffset, contactRows, crystal, CyclinFeatures, Data, interfaceRows } from './data.js';
+import {
+  Cdk2Features,
+  constructOffset,
+  contactRows,
+  crystal,
+  CyclinFeatures,
+  Data,
+  interfaceRows,
+  ligandContactRows,
+} from './data.js';
 
 // The Complex's crystal, PDB 1FIN: CDK2 and the cyclin A construct, two copies of the complex, an ATP on each CDK2. Its
 // chains as blocks of one section, polymers first, then the ATPs as one-position blocks (chips, EC-101); the copies
 // merged into one block labeled ×2 (`copies: 'merge'`, the default, EC-65) or split (`each`). Under them the features
 // (CDK2's PSTAIRE helix, activation loop and T160; cyclin A's cyclin box folds on the construct), the interface
-// residues of both copies, the first copy's secondary structure and the letters; the contacts across the chains as
-// arcs only when asked (`contacts`: an optional `pairs` layer, never a default), folded by copy group.
+// residues of both copies, the first copy's secondary structure and the letters; the contacts across the chains and of
+// the ATPs with CDK2 as arcs only when asked (`contacts`: optional `pairs` layers, never a default), folded by copy group.
 
 export const title = 'Complex: 1FIN’s chains as blocks';
 
@@ -44,7 +53,14 @@ export function crystalData(b: SeqSpecBuilder, d: Derived = Data) {
   const cdk2Interface = b.data.ranges('cdk2-interface', { target: x.cdk2, rows: interfaceRows('cdk2', d) });
   const cyclinInterface = b.data.ranges('cyclin-interface', { target: x.cyclin, rows: interfaceRows('cyclin', d) });
   const contacts = b.data.pairs('contacts', { a: x.cdk2, b: x.cyclin, rows: contactRows({}, d) });
-  return { ...x, atp, cdk2Features, cyclinFeatures, cdk2Interface, cyclinInterface, contacts };
+  // each ATP's contacts with CDK2's residues, both copies' in one node (the ATP block is one position, the copies' merged)
+  const atps = d.ligands.filter((l) => l.entry === '1FIN');
+  const atpContacts = b.data.pairs('atp-contacts', {
+    a: atp,
+    b: x.cdk2,
+    rows: ligandContactRows({ ...atps[0], contacts: atps.flatMap((l) => l.contacts) }),
+  });
+  return { ...x, atp, cdk2Features, cyclinFeatures, cdk2Interface, cyclinInterface, contacts, atpContacts };
 }
 
 /** A layer's data: a ranges node's rows of one chain (`(item :chain A)`). */
@@ -76,7 +92,10 @@ export function build(options: BlocksOptions = {}, d: Derived = Data): Node {
       t.layer('cyclin', { type: 'ranges', data: x.cyclinInterface });
     });
     if (options.contacts)
-      s.track('contacts', { label: 'Contacts (≤ 4 Å)' }).layer('arcs', { type: 'pairs', data: x.contacts });
+      s.track('contacts', { label: 'Contacts (≤ 4 Å)' }, (t) => {
+        t.layer('arcs', { type: 'pairs', data: x.contacts });
+        t.layer('atp', { type: 'pairs', data: x.atpContacts });
+      });
     s.track('secondary', { label: 'Secondary (A, B)' }, (t) => {
       t.layer('cdk2', { type: 'secondary', data: ofChain(x.cdk2Secondary, 'A') });
       t.layer('cyclin', { type: 'secondary', data: ofChain(x.cyclinSecondary, 'B') });
@@ -98,7 +117,7 @@ export const stackedSplit = () => build({ arrange: 'stack', copies: 'each' });
 /** The chains on a ring: a block an arc. */
 export const ring = () => build({ layout: 'rings' });
 
-/** The contacts across the chains as arcs between the merged blocks: one arc a contact of either copy. */
+/** The contacts across the chains, and each ATP with CDK2, as arcs between the merged blocks: one arc a contact of either copy. */
 export const contacts = () => build({ contacts: true });
 
 /** The contacts with the copies split: each copy's contacts between its own blocks. */
