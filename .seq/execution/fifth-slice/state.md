@@ -73,6 +73,9 @@
 - **The navigator's readout in one fixed place outside** (the author, 2026-11-22: "it's better if the label stays
   outside in top right instead of jumping around all the time … the same thing for the 'vertical maps' … 'above' the
   map"): top-right above a horizontal navigator, above a vertical one; into DL's navigator draft, then a fix lane.
+- **DL's two drafts promoted** (the author, 2026-11-22: "Yes, as recommended", all twelve gaps): the window's look and
+  readout into navigators.md, track sizing into layouts.md, each with its Design page line; the drafts kept as the
+  record. Fix lanes: the navigator's (now, clear of RG), track sizing after RG (tracks*.ts are RG's).
 - **A GenBank lane in stage 2** (the author, 2026-11-21: "Add a GenBank lane", after "Try pUC19.gb" in Services ›
   Your own file showed only a refusal): GB after VC, strong, a short design section first (plan, Stage 2); GenBank
   leaves Out of scope.
