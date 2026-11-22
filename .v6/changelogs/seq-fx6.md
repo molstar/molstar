@@ -1,6 +1,3 @@
-## Seq* (next): the header menus
+## Seq* (next): fixes
 
-- Seq*: header menus over the view apply their items and never select or hover the view under them (only events on
-  the view reach it; an overlay is a leave); `Color ▸` opens on click, on resting (`submenuRestMs`, 300 ms) or →, and
-  stays open through its preview and through loads; a click on a header slot hits it without a hover first; a ranges
-  layer's default colour no longer depends on another layer's scheme.
+- The SVG export of a spec with an error draws what resolves, the first ten errors in its description (a spec past the language's bounds stays blank); a merged run of mixed categories takes its majority category's colour and its hover lists the categories; styled ranges layers' runs of one fill keep that fill.

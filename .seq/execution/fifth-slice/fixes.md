@@ -264,7 +264,15 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   contract's lane): hovering a ClinVar variant shows ClinVar's id, Track and Extent; it should name the allele
   (`pos:ref>alt`), its category and its INFO fields, as the design's matrix row "a variant allele" implies.
 
-- **The SVG export blank on a spec with an error** (drift svg-on-error, decided as recommended by the author,
+- **A click on one piece of a feature across a cyclic origin selects only that piece** (GB's look, 2026-11-22,
+  kind: bug; likely shared with the GFF3 plasmid, the same renderer): Features › Genome formats › GenBank › Plasmid,
+  bla (`complement(join(2312..2686,1..486))`): the hover names the whole item and lights both pieces, but a click on
+  the piece at 2,312–2,686 selects only that stretch. A click selects the item's extent across the origin (both
+  pieces), as the design's matrix row "an element: a transcript" says. Test on both plasmid views.
+
+## Fixed
+
+- **The SVG export blank on a spec with an error** (fixed by FX6, merged 2026-11-22) (drift svg-on-error, decided as recommended by the author,
   2026-11-22: "go as recommended with the drifts"; kind: bug): `exportSvg` returns a blank picture when `checkSeqSpec`
   finds an error (`packages/seq/core/src/render/export.ts`, about 435 and 441, `if (hasErrors(issues)) return
   blank(true)`), while the canvas draws what resolves. Export what resolves, as the canvas draws it, the issues in the
@@ -272,14 +280,13 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   the canvas's draw list (letters and an empty hits track) and the issue in `<desc>`; a spec with no errors exports
   unchanged.
 
-- **A merged run of mixed categories drawn neutral** (drift vcf-mixed-runs, decided as recommended by the author,
+- **A merged run of mixed categories drawn neutral** (fixed by FX6, merged 2026-11-22) (drift vcf-mixed-runs, decided as recommended by the author,
   2026-11-22; kind: look): `render/ranges.ts` (about 508, VC's `-2 - item` encoding) and `ranges-draw.ts` (about 79)
   paint a run whose items differ in fill in the neutral colour; ClinVar at TP53's fit is mostly grey. A mixed run takes
   the majority fill among its items (ties by the legend's order); the hover over it lists the categories under the
   pointer. Tests against the drawn lists: TP53's ClinVar band draws no neutral rect at the fit; a two-item tie picks
   the legend's first; a single-category run unchanged.
 
-## Fixed
 
 - **The navigator's readout covers the control in use** (fixed by FX5, merged 2026-11-22) (the author, 2026-11-21, BED cytobands: "the tooltip appears
   on top of currently active control. quite disruptive"): while the window is dragged, its readout
