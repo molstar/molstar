@@ -143,6 +143,23 @@ describe('an alignment’s blocks in a bridge', () => {
   });
 });
 
+describe('a bridge over a collapsed axis', () => {
+  it('EC-33: a side of 150,000 single-position pieces owns a few merged ranges, each pair drawn once (EC-209)', async () => {
+    const alignments = randomAlignments(500, 4);
+    const s = await settle(regionBridgeSpec(alignments, { pieces: 150_000 }), [SeqRuntime], {
+      pairs: { maxArcs: 4096 },
+    });
+    // the top's whole axis (A's first 300 kb, every other position), the bottom zoomed in: the top the far side
+    const lay = layOf(
+      await s.frame({ size: Size, viewports: { '/views/v/bottom': { start: 500_000, end: 520_000 } } }),
+    );
+    expect(lay.reads.length).toBe(2);
+    const ranges = [...lay.ownR.values(), ...lay.ownFar.values()];
+    expect(Math.max(...ranges.map((r) => r.length))).toBeLessThanOrEqual(4);
+    expect(coverage(lay, alignments).filter((x) => x > 1)).toEqual([]);
+  });
+});
+
 describe('a bridge’s pending hatch while a side reads items', () => {
   it('EC-169: a side on items panned to tiles not loaded hatches its own edge alone, then its items again', async () => {
     const s = await settle(regionBridgeSpec(randomAlignments(300, 9)), [SeqRuntime]);
