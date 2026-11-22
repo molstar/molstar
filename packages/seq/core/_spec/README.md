@@ -4069,11 +4069,16 @@ pairs layer's prepared form and its region reader through the composition (`type
   Why the level is not in the key: the hit carries it (`Hit.bin`), and a selection made of a bin is its rect, not its
   key (`(rect …)`, the design's).
 - **Arcs**: each end placed with `ctx.place` (page x), the apex in its band (`side`: `above`, `below`), never flat; the
-  height by span against the widest in view (`height: span`), so nested arcs nest and the widest fills the band; on a
-  single translate strip an end past the window is taken `reach` (0.25) of the window past its edge, so an arc moves
-  continuously on pan (EC-129). On a polar strip the apex goes toward the centre (`side: below` reaches the hole): a
-  chord, its depth by span. An end not placed in the view, or the ends on different lines without `across_lines`, draws
-  a caret at the placed end, never a dangling arc. A curve is one cubic (`curveArgs`), clipped to the data box.
+  height by span against the widest in view (`height: span`), so nested arcs nest and the widest fills the band. On one
+  line of translate strips (a track, a row of blocks) an end past the window (its unit outside it) is taken past the
+  edge it lies beyond by its distance at the window's px a unit, at most `reach` (0.25) of the window's width, on its
+  partner's strip, the control between the feet: a partner off the window is an arc toward that edge, never a caret, and
+  a pair across the window is the widest arc over it. The widest counts the pairs within reach (an end in view, or both
+  within `reach` past one edge, not drawn), so as a pan brings a partner or the widest arc in or out, every arc moves
+  continuously (EC-129). Why: a caret at the band's foot, or a scale that snaps, reads as data that changed with the
+  view. On a polar strip the apex goes toward the centre (`side: below` reaches the hole): a chord, its depth by span.
+  An end not placed in the view, or the ends on different lines without `across_lines`, draws a caret at the placed end,
+  never a dangling arc. A curve is one cubic (`curveArgs`), clipped to the data box.
 - **Crossing pairs** (`crossing`): `same` draws them crossing; `split` the largest nested subset on `side`, the rest on
   the other (`splitCrossing`: exact up to `SplitExact`, 2,000 pairs, by an interval DP over the sorted ends; greedy past
   it, fixed: the exact subset is quadratic and no figure asks for another bound). On one system only.
