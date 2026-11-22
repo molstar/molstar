@@ -311,3 +311,16 @@ predictably, P/What JBrowse could not honour)
      scroll on a hover, a scroll on focus.
 248. Two tracks of one kind, one overflowing its cap: one height, one rail, their lanes never scroll together.
 249. A track's height smaller than one lane: one lane drawn, the rest scrolled, never a band under a lane.
+250. A tooltip's `on` or a table's address resolves to nothing: an issue, the rest opens.
+251. A tooltip template names a field the row lacks: no text for that row, never `undefined`.
+252. A tooltip table off its schema (a column missing, a wrong type): an issue, its rows unread.
+253. A tooltip range wrapping a cyclic system's origin answers on both sides of it.
+254. An empty band, a gap or a break under the pointer gets no tooltip.
+255. A hidden or filtered layer's marks give no tooltip rows.
+256. Bidi overrides, control characters and unsafe links in a tooltip's text are removed, after parsing.
+257. A tooltip table still loading shows a `loading` row; a failed one shows its issue.
+258. A grid cell or a pair whose two ends fall in one note counts it once.
+259. A bin over a million-range tooltip table answers from its stretch, bounded, never per range.
+260. An item whose card is said whole still carries its tooltip rows.
+261. A card holding a link can be entered by the pointer; one without cannot.
+262. A card provider that throws is rolled back; the card keeps its floor.
