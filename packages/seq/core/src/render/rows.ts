@@ -223,6 +223,7 @@ export const RowsType: LayerType<RowsPrep, RowsLay> = {
     }
     lay.figure = layout === 'text';
     lay.rowScale = ctx.rowScale ?? RowHeight;
+    lay.rowFloor = 0;
     const N = lay.total;
     if (N === undefined) {
       // not attached yet: the band is pending
@@ -238,6 +239,8 @@ export const RowsType: LayerType<RowsPrep, RowsLay> = {
       else if (!lay.held) lay.pending.push(box.y, box.height);
     } else {
       lay.held = undefined;
+      // no row levels are served: below a device pixel a row the band is blank, so the rows' zoom stops there
+      lay.rowFloor = 1 / ctx.dpr;
       // ordering needs every row's field: a lazy alignment draws in data order
       if (prep.order !== 'data')
         ctx.report(

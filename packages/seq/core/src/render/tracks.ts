@@ -929,6 +929,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
           sectionRail ? lay.box.x + lay.box.width - SlimRailPx : width - config.inset - SlimRailPx,
           config,
           input.figure === true,
+          input.rowsZoom,
         );
         (rowsRails ??= []).push(r);
       }

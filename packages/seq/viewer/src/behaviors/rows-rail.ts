@@ -31,6 +31,10 @@ export interface RowsRailWindow {
   readonly lanes?: boolean;
   /** A rail itself is a window: its hit says which rail it is (`LanesRail`). */
   readonly hit?: { readonly navigator?: string };
+  /** The least px a row the layout placed it with (the larger of the host's `minPx` and the source's floor). */
+  readonly rowMin?: number;
+  /** The host turned the rows' zoom off (`rows.zoom.enabled`): its grips are body. */
+  readonly pan?: boolean;
 }
 
 const isLanes = (w: RowsRailWindow): boolean => w.lanes ?? w.hit?.navigator === LanesRail;
@@ -102,13 +106,14 @@ export class RowsRailGesture {
     }
     const d = at - p.at0;
     const shown = p.end - p.start;
-    if (p.part === 'body' || p.lanes) {
+    if (p.part === 'body' || p.lanes || p.live.pan === true || !this.config.rows.zoom.enabled) {
       this.scrollTo(p.track, p.start + d, p.total - shown);
       return true;
     }
     // the rows a grip leaves in view, within the zoom's bounds and the rows there are
-    const least = p.area / MaxRowScale;
-    const most = p.area / MinRowScale;
+    const zoom = this.config.rows.zoom;
+    const least = p.area / zoom.maxPx;
+    const most = p.area / Math.max(zoom.minPx, p.live.rowMin ?? 0);
     if (p.part === 'start') {
       const rows = clamp(shown - d, least, Math.min(most, p.end));
       this.view.setBand(p.track, { rowScale: p.area / rows, bandTop: Math.max(0, p.end - rows) });

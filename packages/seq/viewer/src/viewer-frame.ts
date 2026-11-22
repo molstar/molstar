@@ -139,6 +139,8 @@ export class ViewerFrame {
     else delete input.viewports;
     const rails = this.rails;
     rails.update(resolved);
+    // the rows' zoom the host configured (the rows rails' bounds and grips)
+    input.rowsZoom = config.rows.zoom;
     if (rails.rails) {
       input.rails = rails.rails;
       input.railsActive = rails.active;

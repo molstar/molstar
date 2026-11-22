@@ -155,6 +155,7 @@ export type { NavigatorPicture, NavigatorPictureContext, NavigatorPictureTracks 
 export { type NarrowColumns, narrowColumns, overviewWidth } from './narrow.js';
 export { type SourceLabelsOptions, withSourceNumberings } from './numberings.js';
 export {
+  DefaultRowsZoom,
   drawRail,
   hitRail,
   LanesRail,
@@ -166,6 +167,7 @@ export {
   placeSectionRail,
   Rail,
   RowsRail,
+  type RowsZoom,
   SectionRail,
   type PositionsRailMode,
   type RailPlace,

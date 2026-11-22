@@ -10,7 +10,13 @@
 import { configItem, type SeqConfigItem } from '@molstar/seqx-core/context';
 import { DefaultMaxBlockValues } from '@molstar/seqx-core/data';
 import { DefaultSpecBounds, type SpecBounds } from '@molstar/seqx-core/lang';
-import { DefaultZoomStrip, type PositionsRailMode, type RailPlace, type RowsRailMode } from '@molstar/seqx-core/render';
+import {
+  DefaultRowsZoom,
+  DefaultZoomStrip,
+  type PositionsRailMode,
+  type RailPlace,
+  type RowsRailMode,
+} from '@molstar/seqx-core/render';
 import type { ZoomOverBlocks } from '@molstar/seqx-core/render/window';
 import { DefaultStoryConfig, type StoryConfig } from '@molstar/seqx-core/story';
 
@@ -98,6 +104,16 @@ export interface ViewerConfig {
      * lack of width comes back as it was, EC-112) or keep its range (`keep-range`). A fitted viewport stays fitted.
      */
     readonly onResize: 'keep-zoom' | 'keep-range';
+  };
+  /**
+   * The rows' zoom (_spec/README.md "Configuration", Rows; core's _spec Rows, The rows rail): the least and the most px a
+   * row (`minPx` 1/64, `maxPx` 40: the rows' zoom keys and the rows rail's grips stop there), and whether the rows zoom at
+   * all (`enabled`, true; false: the rows rail is a pan-only bar, no grips, the zoom keys inert, the wheel and the rail's
+   * body still scroll). A source's own floor (a lazy alignment serving no row levels: a device pixel a row, below which
+   * its band is blank) applies whatever `minPx` says: the effective floor is the larger of the two.
+   */
+  readonly rows: {
+    readonly zoom: { readonly minPx: number; readonly maxPx: number; readonly enabled: boolean };
   };
   readonly follow: {
     /**
@@ -294,6 +310,7 @@ export const DefaultViewerConfig: ViewerConfig = {
   cursor: { keys: { prev: 'ArrowLeft', next: 'ArrowRight', up: 'ArrowUp', down: 'ArrowDown' } },
   reveal: { cursor: true, linked: 'text' },
   viewport: { maxPxPerPosition: 32, groupEqualAxes: true, onResize: 'keep-zoom' },
+  rows: { zoom: DefaultRowsZoom },
   follow: { followerMoves: 'lead', cyclicArc: 'wrap' },
   navigator: {
     form: 'rail',
@@ -388,6 +405,9 @@ export function viewerConfig(over: DeepPartial<ViewerConfig> = {}): ViewerConfig
   const zoomStrip = over.navigator?.zoomStrip;
   if (zoomStrip)
     (out.navigator as { zoomStrip: unknown }).zoomStrip = { ...DefaultViewerConfig.navigator.zoomStrip, ...zoomStrip };
+  // the rows' zoom items merge as the zoom strip's do
+  const rowsZoom = over.rows?.zoom;
+  if (rowsZoom) (out.rows as { zoom: unknown }).zoom = { ...DefaultViewerConfig.rows.zoom, ...rowsZoom };
   // `view.motion: 'auto'`, the earlier spelling of `platform` (before one item decided jumps and stories), reads as it
   const view = out.view as { motion: string };
   if (view.motion === 'auto') view.motion = 'platform';

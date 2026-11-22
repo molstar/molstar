@@ -3539,7 +3539,13 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   rows in view. Idle only while every row is shown and the rows cannot zoom in (navigators.md's idle rule: a rail zoomed
   out to the whole band keeps its grips, so a grip drags it smaller again) (`whole`, the layout's: every row shown and
   still at `MaxRowScale`, 40 px a row, the rows' zoom-in limit with `MinRowScale`, 1/64, their least; the renderer sets
-  `active` only when the viewer says it can move and not `whole`). Its hit is the `window` target with
+  `active` only when the viewer says it can move and not `whole`). The bounds are the host's (`FrameInput.rowsZoom`,
+  `RowsZoom`: the viewer's `rows.zoom`, defaults those constants; part of the layout's key by identity): `rail.rowMin`
+  the larger of its `minPx` and the source's floor (`RowsLay.rowFloor`: a lazy alignment serves no row levels yet, so a
+  device pixel a row, `1 / dpr`, below which `readLazy` draws the neutral fill: the zoom-out stops there, the window
+  never reaches a blank band; a held one 0), `whole` against its `maxPx`; `enabled: false` sets `rail.pan` (no grips
+  drawn or hit, the window's ends body, `whole` when every row is shown). Why: the limits are a host's choice (a view
+  that must not resize its rows), and a state nothing can draw is not reachable. Its hit is the `window` target with
   `navigator: 'rows-rail'` (`RowsRail`), its `layer` the track, `position` the display row.
   `rowsRailTracks(view, hosted, mode)`: each tracks section's tracks with a rows layer shown; by `mode` (the viewer's
   `navigator.rowsRail`) drawn beside a shown navigator over the section's rows too (`always`, the default), replaced by

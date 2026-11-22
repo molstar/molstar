@@ -140,6 +140,11 @@ export class RowsLay {
   fontSize = 0;
   /** Rects from here on are the pinned rows' (drawn over a band that does not scroll). */
   pinnedFrom = 0;
+  /**
+   * The least px a row this source can be drawn at (a lazy alignment with no row levels: a device pixel a row, below
+   * it the band is blank), 0: none. The rows' zoom-out stops at it (`rail.ts` `RowsZoom`).
+   */
+  rowFloor = 0;
   /** The band drawn as a neutral fill: lazy rows below a pixel (no row bins served). */
   neutral = false;
   /** Image tiles drawn: their boxes and images. */

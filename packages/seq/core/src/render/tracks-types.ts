@@ -17,7 +17,7 @@ import type { TextMetrics } from './text.js';
 import type { SeqTokens } from './tokens.js';
 import { LabelLane, type LayerContent, type TrackSizing, type TrackSizingHook } from './sizing.js';
 import type { Placement, SectionLayoutType } from './layout/types.js';
-import { Rail } from './rail.js';
+import { Rail, type RowsZoom } from './rail.js';
 import type { ImageCache } from './images.js';
 import type { NarrowColumns } from './narrow.js';
 import type { SectionCache } from './tracks-cache.js';
@@ -256,6 +256,8 @@ export interface LayoutInput {
    * relayout.
    */
   readonly rails?: Readonly<Record<string, unknown>>;
+  /** The host's rows zoom (the rows rails' bounds and grips): part of the key by identity; absent: the defaults. */
+  readonly rowsZoom?: RowsZoom;
   /**
    * Another layout's held domains (_spec/README.md "Render", Navigators: a navigator's picture colors by its view's,
    * never by a domain of its own over the whole axis): looked up by `map(key)`; this layout then holds none.
