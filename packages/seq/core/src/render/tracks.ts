@@ -1076,12 +1076,23 @@ function setWindow(
   layout.window!(placement, own ?? viewport, active, shown);
 }
 
-/** A categorical axis's members over its whole pieces (their count its length), once the chunk landed; else undefined. */
+/** The members made for a resolved categorical axis (by its object: kept while the view is), with what they were for. */
+const MembersOf = new WeakMap<MemberAxis, { model: LayoutInput['model']; n: number; members: Members }>();
+
+/**
+ * A categorical axis's members over its whole pieces (their count its length), once the chunk landed; else undefined.
+ * Kept by the resolved axis, so a warm frame looks nothing up.
+ */
 function membersOn(
   model: LayoutInput['model'],
   axis: MemberAxis,
   whole: readonly number[] | undefined,
 ): Members | undefined {
   const n = whole && whole.length === 2 ? whole[1] - whole[0] : undefined;
-  return n === undefined || n <= 0 ? undefined : MemberHooks.membersOf?.(model, axis, n);
+  if (n === undefined || n <= 0) return undefined;
+  const kept = MembersOf.get(axis);
+  if (kept && kept.model === model && kept.n === n) return kept.members;
+  const members = MemberHooks.membersOf?.(model, axis, n);
+  if (members) MembersOf.set(axis, { model, n, members });
+  return members;
 }

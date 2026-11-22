@@ -12,6 +12,7 @@ import { itWithin } from '@molstar/test-harness/timing';
 import { describe, expect, it, vi } from 'vitest';
 import { colorOf } from '../grid.js';
 import { type GridLay, GridPlacement, hitView, recordDrawLists } from '../index.js';
+import { MemberHooks } from '../members-hooks.js';
 import { Pyramid } from '../pyramid.js';
 import { kinship } from './grid-categorical-fixtures.js';
 import { settle } from './helpers.js';
@@ -146,6 +147,21 @@ describe('categorical grid axes (EC-35): cells and hits through the permutation'
       expect(built.mock.calls.length).toBe(once);
     }
     built.mockRestore();
+  });
+
+  it('a warm pan looks no order up: the members are kept by the resolved axis', async () => {
+    const st = await settle(kinship(300, 2).spec);
+    const at = (k: number) => ({
+      size: Size,
+      settled: true,
+      viewports: { '/views/v/plot': { start: 10 + (k % 2), end: 200 + (k % 2), y: { start: 0, end: 300 } } },
+    });
+    await st.frame(at(0));
+    await st.frame(at(1));
+    const made = vi.spyOn(MemberHooks, 'membersOf');
+    for (let k = 0; k < 4; k++) st.renderer.frame(at(k));
+    expect(made).not.toHaveBeenCalled();
+    made.mockRestore();
   });
 });
 

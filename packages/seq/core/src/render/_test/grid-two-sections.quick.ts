@@ -15,6 +15,9 @@ import { twoSectionsSpec } from './grid-two-sections-fixtures.js';
 import { settle } from './helpers.js';
 import { reusedHover } from './scenarios.js';
 
+/** A categorical pan frame's bound, bytes: its layout's (a positions grid of as many measured about 50 kB). */
+const CategoricalPanBound = 40_000;
+
 const Input: FrameInput = {
   size: { width: 1440, height: 1600 },
   dpr: 2,
@@ -98,5 +101,23 @@ describe('a grid over two sections of blocks draws and hovers with nothing alloc
     );
     console.info(`categorical grid hover: ${h.r.bytesPerStep.toFixed(0)} bytes a frame (${h.r.note})`);
     expect(h.r.bytesPerStep, h.r.note).toBeLessThanOrEqual(inject('perfThreshold'));
+  });
+
+  it('a categorical grid of 2,000 members (EC-35): a pan frame a bounded size, below a positions grid’s', async ({
+    task,
+  }) => {
+    // a pan relays the section (a layout a bounded size a frame, as any grid's: a 2,000-position grid's pan measured
+    // about 50 kB); the categorical axis adds nothing: its members and labels are kept, measured 35 kB
+    const cat = await settle(kinship(2000, 5, { field: 'score' }, { field: 'score', direction: 'descending' }).spec);
+    const at = (k: number): FrameInput => ({
+      size: { width: 1200, height: 1400 },
+      dpr: 2,
+      settled: true,
+      viewports: { '/views/v/plot': { start: 100 + (k % 2), end: 1100 + (k % 2), y: { start: 0, end: 2000 } } },
+    });
+    for (const k of [0, 1]) await cat.frame(at(k));
+    const c = quickCase(task, 'categorical grid pan', (i) => void cat.renderer.frame(at(i)), {});
+    console.info(`categorical grid pan: ${c.r.bytesPerStep.toFixed(0)} bytes a frame (${c.r.note})`);
+    expect(c.r.bytesPerStep, c.r.note).toBeLessThan(CategoricalPanBound);
   });
 });

@@ -49,6 +49,12 @@ export class MemberLabels {
   /** The x labels' room above the plot (0: none), and their longest run along the slant, px. */
   room = 0;
   run = 0;
+  /** What the advances were measured for. */
+  labels: readonly string[] | undefined;
+  font = '';
+  text: TextMetrics | undefined;
+  textVersion = -1;
+  cap = -1;
   /** The hit a label gives (one, reused). */
   readonly hit: { -readonly [K in keyof Hit]: Hit[K] } = { layer: '', section: '', system: '' };
 }
@@ -63,10 +69,24 @@ export function placeMemberLabels(
   text: TextMetrics,
   config: RenderConfig,
 ): number {
+  const labels = axis?.members?.labels;
+  // measured once a set of labels, font, metrics and cap: a warm place measures nothing
+  if (
+    labels === m.labels &&
+    config.itemFont === m.font &&
+    text === m.text &&
+    text.version === m.textVersion &&
+    config.labelWidth === m.cap
+  )
+    return m.room;
+  m.labels = labels;
+  m.font = config.itemFont;
+  m.text = text;
+  m.textVersion = text.version;
+  m.cap = config.labelWidth;
   m.advances.length = 0;
   m.room = 0;
   m.run = 0;
-  const labels = axis?.members?.labels;
   if (!labels) return 0;
   let run = 0;
   for (let i = 0; i < labels.length; i++) {
