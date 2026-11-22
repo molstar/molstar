@@ -102,7 +102,7 @@ export function assemblyAnnotations(
   for (const d of b.data) {
     const n = d.node;
     if (!OverAssemblyKinds.has(n.kind)) continue;
-    const over = at(n, 'target') ?? at(n, 'a') ?? at(n, 'x');
+    const over = at(n, 'target') ?? at(n, 'a') ?? at(n, 'x') ?? at(n, 'b') ?? at(n, 'y');
     if (!over) continue;
     const second = at(n, 'b') ?? at(n, 'y');
     const src = p(n, 'source') === undefined ? undefined : b.ref(d, 'source', ['source'])?.address;

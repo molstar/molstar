@@ -360,6 +360,11 @@ export const LangIssues = defineIssues('seq.lang', {
     description: 'A matrix has not one of its cells and `source`',
     hint: 'Give one',
   },
+  'seq.lang.data.names': {
+    severity: 'error',
+    description: 'Inline rows over an assembly name no sequence, or rows over a sequence name one',
+    hint: 'Name them over an assembly only, one a row',
+  },
   'seq.lang.link.occupancy': {
     severity: 'error',
     description: 'A link’s occupancy is not between 0 and 1',

@@ -15,7 +15,7 @@ is added in the change that builds what it describes.
 
 ## Versions
 
-- The language has one version, `LanguageVersion` (`0.6.0`). Why: one language, one description, one number for readers
+- The language has one version, `LanguageVersion` (`0.7.0`). Why: one language, one description, one number for readers
   to check.
 - **Pre-release** (`0.x`): a change to the language moves the version with no migration (`0.1.0`: every child of the
   spec has an id, `layer` included; `0.2.0`: the `refs` container and the `ref` kind; `0.3.0`: the `snapshots` container
@@ -47,9 +47,13 @@ is added in the change that builds what it describes.
   `bridge` kind (a layer under it), the `matrix` kind and layer type, `pairs.source`, `pairs.field`, `grid.source`,
   `grid.field` (`rows` and `values` then optional), `map.source`, a layer's `data` a segments `map` or a `matrix`, a
   grid section's `of_y` a rows system, `member_order`, `member_order_y`, a source's `features` and `samples`, the `line`
-  word `gene` and the `shape` words `ribbon` and `line`). A spec in an earlier `0.x` reads as one in this one, and is
-  reported where it no longer fits: a `0.5.0` spec reads unchanged (every addition is optional, and every kind a
-  reference took it still takes), but an extension's `requires: '0.5'` no longer covers it (0.x: the minor).
+  word `gene` and the `shape` words `ribbon` and `line`); `0.7.0`: inline data over an assembly names its sequences
+  (Language, Assemblies): a pairs row's `a_name` and `b_name`, a grid's `x_name` and `y_name`, a matrix's `name`. A spec
+  in an earlier `0.x` reads as one in this one, and is reported where it no longer fits: a `0.6.0` spec reads unchanged
+  (every addition is optional; inline pairs, grids or matrices over an assembly, never read in 0.6, now need their
+  names: `seq.lang.data.names`), with one change of behaviour: `a_name`/`b_name` columns on pairs over a sequence, a
+  ride-along field before, are refused (`seq.lang.data.names`), but an extension's `requires: '0.6'` no longer covers it
+  (0.x: the minor).
 
 ## Language
 
@@ -318,12 +322,17 @@ never chemistry: a component code, a SMILES, a GlyTouCan id are strings it match
   (`seq.lang.sequence.content`: its letters are the assembly's source's). Why a kind: a genome's hundreds of sequences
   written as nodes is a manifest by hand.
 - **Over an assembly**: `ranges.target`, `values.target`, `pairs.a`/`b`, `grid.x`/`y`, `matrix.target`, `map.from`/`to`
-  and `navigator.system` may name one; a row is on the sequence its `target` field names (Resolve). A section `of` an
-  assembly, or a list of them (a group each, EC-210), has a block a derived sequence; its `include` (the assembly's
-  grammar, within the assembly's own) keeps some (`seq.lang.section.include`, a warning, on a section of none). A
-  block's `direction` (`section` when absent, `reversed`) and `scale` (1 when absent, positive: `seq.lang.block.scale`)
-  are the figure's; a block child overrides a derived block by its `of` (the derived sequence's address), or by an id
-  that is the sequence's name. `navigator.switch` (`none` when absent, `include`).
+  and `navigator.system` may name one; a row is on the sequence its `target` field names (Resolve). Inline rows of two
+  ends or axes name theirs in columns parallel to a segments map's `from_name`/`to_name`: a pairs row's `a_name` and
+  `b_name`, a grid value's `x_name` and `y_name` (a sequence pair's values x-major as one grid's, pairs joined), a
+  matrix item's `name` (a sequence's items its positions in order, as one matrix's, sequences joined); each required
+  where its side names an assembly and refused elsewhere, one a row (`seq.lang.data.names`). Why columns, not one node a
+  sequence: one file's rows over every chromosome stay one node, as a BEDPE or a map's runs. A section `of` an assembly,
+  or a list of them (a group each, EC-210), has a block a derived sequence; its `include` (the assembly's grammar,
+  within the assembly's own) keeps some (`seq.lang.section.include`, a warning, on a section of none). A block's
+  `direction` (`section` when absent, `reversed`) and `scale` (1 when absent, positive: `seq.lang.block.scale`) are the
+  figure's; a block child overrides a derived block by its `of` (the derived sequence's address), or by an id that is
+  the sequence's name. `navigator.switch` (`none` when absent, `include`).
 - **Declared, read by later lanes** (a reader that lacks one says so by the existing issue, never silently): the
   `bridge` kind under a view (`a`, `b` two sections, `seq.lang.bridge.sides`; `label`, `height`, `lock` `none` or `px`,
   `hidden`; its children layers); `pairs.source` and `grid.source` with `field` (one of `rows`/`values` and `source`:
@@ -2166,17 +2175,28 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
   the assembly, and `bySystem` holds a plan for each derived sequence, on its own system. Inline ranges are split by
   their `target` field through the names rule into one inline `seq` source over every sequence named (its systems named
   by their addresses, every one served at every level listed, a row's key its row in the node's table); inline pairs,
-  grids, matrices and values name no sequence a row: they read nothing and say so once (`seq.resolve.assembly.inline`,
-  info; which columns name a held pair's sequences is open). A source is read by region on each sequence under the name
-  it lists the sequence by: its coverage's names (and aliases) mapped through the names rule (`17` is `chr17`), carried
-  to the next resolve inside the lengths as an assembly's own source's coverage is (`listedSystems`); before it opens,
-  the sequence's printed name. A sequence `include` leaves out has no plan and reads nothing. Said: a source naming
-  another assembly (`seq.resolve.assembly.mismatch`), inline rows whose `target` names no sequence and the names a
-  source lists that no sequence is (over two assemblies, that neither's is), each counted once with the first
-  (`seq.resolve.assembly.name`). A matrix's states are as many as its source lists for any sequence. Pairs over two
-  assemblies plan both's sequences. Why a plan a sequence: each block is a system the store reads by region, and a layer
-  on a block reads its own plan; nothing new in the store or the protocol. Pairs, grids and maps read from a source are
-  not held.
+  grids and matrices by their name columns (`genome-inline.ts`: a side on a sequence its own system, the systems in the
+  assemblies' order, each assembly's whole before the next). Pairs are held as a complex's links are (`readPairs`): each
+  end on its sequence's unit (`PairsData.aUnit`, `bUnit` over the entry's `units`), every column kept (`id`, `label`,
+  `type`, strands, ride-alongs a theme reads), the layer placed on each unit's block; binned by the pairs level in the
+  held reader (Render, The pairs layer). A sequence pair's values are one grid, served only for the pairs with values
+  (the coverage lists each x's y systems), one past `DefaultMaxBlockValues` refused before anything is allocated and one
+  of the wrong count left out (`seq.resolve.grid.size`); a sequence's items are a matrix's positions in order (its
+  states the inline `states`), one inline `seq` source over every system named, its grid pyramid the summaries' of a
+  one-level source. Nothing is dropped silently: names the assembly lacks (never while it is pending), rows naming none
+  (a null, a short column, no string: `seq.resolve.assembly.name`) and rows or items past their sequence's length
+  (`seq.resolve.assembly.bounds`, warning: never drawn past the block) are counted and said once a node. Inline values
+  name no sequence a value: they read nothing and say so once (`seq.resolve.assembly.inline`, info). A source is read by
+  region on each sequence under the name it lists the sequence by: its coverage's names (and aliases) mapped through the
+  names rule (`17` is `chr17`), carried to the next resolve inside the lengths as an assembly's own source's coverage is
+  (`listedSystems`); before it opens, the sequence's printed name. A sequence `include` leaves out has no plan and reads
+  nothing. Said: a source naming another assembly (`seq.resolve.assembly.mismatch`), inline rows whose `target` (or name
+  columns) names no sequence and the names a source lists that no sequence is (over two assemblies, that neither's is),
+  each counted once with the first (`seq.resolve.assembly.name`). A matrix's states are as many as its source lists for
+  any sequence. Pairs over two assemblies plan both's sequences (inline ones too, each side by its own assembly's names
+  rule). Why a plan a sequence: each block is a system the store reads by region, and a layer on a block reads its own
+  plan; nothing new in the store or the protocol. Pairs, grids and maps read from a source, and inline grids and
+  matrices over an assembly, are not held.
 - **A map between assemblies** is one map over every sequence pair: its inline runs grouped by `from_name` and `to_name`
   into one entry a pair, each keyed apart and stepping as the map (`Edge.map` its address), so a path between two
   sequences is one step of it and the ambiguity rules read one map (EC-207); a run naming no sequence is left out
@@ -2298,8 +2318,9 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
 that made no system: a unit of a refused complex or of nothing held; what reads it is left out), `assembly.lengths`,
 `assembly.duplicate` (a name twice: the later dropped), `genome.load`, `assembly.alias`, `assembly.mismatch`,
 `assembly.name`, `assembly.override` (a `sequence` override naming no sequence: dropped), `assembly.inline` (inline
-pairs, grids, matrices or values over an assembly: not read yet) (Assemblies), `param.unread` (Unread params), and the
-overlay's `node.invalid`, `node.ref`, `node.depth`. A test checks the catalog against the sources.
+values over an assembly: not read yet), `assembly.bounds` (inline rows or items past their sequence's length: left out)
+(Assemblies), `param.unread` (Unread params), and the overlay's `node.invalid`, `node.ref`, `node.depth`. A test checks
+the catalog against the sources.
 
 ## Overlay
 
@@ -3884,13 +3905,16 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   wants together do not fit the store's layer bounds, then "zoom in"; the gate as on one system. A row is found from
   either end's block and taken once (an item by its id and ends, never its row: a source numbers each sequence's rows
   apart; a bin pair by its bins), each end on the unit its listed name is (`PairsData.aUnit`, `bUnit` over the
-  sequences' systems, `PairsPrep.endUnits`), so a chord joins two chromosomes (the genome ring) or two genomes.
-- **Held pairs past the gate** (`pairs-held.ts`): a held table (no complex's units, no grid, no blocks) whose pairs with
-  an end in view pass `pairs.maxArcs` is binned as the store's summaries bin a level-1 source (levels `summaries.factor`
-  apart up to the system's length, each from the one below, only those halving the rows below kept), at the coarsest
-  kept level no wider than `pairs.binPx` device pixels: a bin pair an arc stroked by its count. The pyramid is built
-  once a prep, from the pairs the filter shows. Why: a held table and the same pairs from a file are one picture (one
-  reader, region-reads Decided 7).
+  sequences' systems, `PairsPrep.endUnits`), so a chord joins two chromosomes (the genome ring) or two genomes. Inline
+  pairs over an assembly (`a_name`, `b_name`) are held (Resolve, Assemblies), each end on its sequence's unit.
+- **Held pairs past the gate** (`pairs-held.ts`): a held table (no complex's units, no grid; over an assembly on its
+  blocks, each end on its unit) whose pairs with an end in view pass `pairs.maxArcs` is binned as the store's summaries
+  bin a level-1 source (levels `summaries.factor` apart up to the longest system, each from the one below, only those
+  halving the rows below kept), at the level a source's bins are read at (`boundedLevel`: the coarsest kept no wider
+  than `pairs.binPx` device pixels, over blocks the finest block's), a bin pair an arc stroked by its count. The pyramid
+  is a prep's (the pairs the filter shows: rebuilt with it), each level built when first read and kept; the assembly's
+  part (units as the bins' systems, the blocks' scale) loads with the genome chunk (`OverAssembly`). Why: a held table
+  and the same pairs from a file are one picture (one reader, region-reads Decided 7).
 - **A bin pair's element** (`Key.key`, what a selection and a bookmark keep):
   `bin:<a>:<aBin>|<b>:<bBin>|<strand>|<category>`, `<a>` and `<b>` the ends' system names as the source gives them
   (empty: the request's system), `<aBin>` and `<bBin>` the bins' indices at the level read (positions `bin × level` to
