@@ -265,6 +265,82 @@ function cytobandsOverGenome(): Node {
   return b.build();
 }
 
+/**
+ * Links written in the spec over the toy assembly, a chord ring: each row names its two sequences (`a_name`, `b_name`,
+ * some without `chr`: the names rule maps them), a link between two chromosomes a chord between their arcs.
+ */
+export function inlineLinks(seed = 5) {
+  const rng = new PCG(seed);
+  const chromosomes = toyKaryotype().filter((c) => !c.cyclic);
+  const rows = {
+    a_start: [] as number[],
+    a_end: [] as number[],
+    b_start: [] as number[],
+    b_end: [] as number[],
+    a_name: [] as string[],
+    b_name: [] as string[],
+  };
+  const name = (c: { name: string }, i: number) => (i % 3 ? c.name : c.name.slice(3));
+  for (let i = 0; i < 60; i++) {
+    const a = chromosomes[rng.int() % chromosomes.length];
+    const b = chromosomes[(rng.int() % 5 ? rng.int() : 0) % chromosomes.length];
+    const as = Math.floor((a.length * (rng.int() % 1000)) / 1000);
+    const bs = Math.floor((b.length * (rng.int() % 1000)) / 1000);
+    rows.a_start.push(Math.min(as, a.length - 1_000_000));
+    rows.a_end.push(Math.min(as, a.length - 1_000_000) + 1_000_000);
+    rows.b_start.push(Math.min(bs, b.length - 1_000_000));
+    rows.b_end.push(Math.min(bs, b.length - 1_000_000) + 1_000_000);
+    rows.a_name.push(name(a, i));
+    rows.b_name.push(name(b, i + 1));
+  }
+  return rows;
+}
+
+function inlineLinksRing(): Node {
+  const b = createSeqSpec({ title: 'Links written in the spec, on a ring' });
+  const g = b.data.assembly('toy', assembly(AssemblyName, toyKaryotype()));
+  const links = b.data.pairs('links', { a: g, rows: inlineLinks() });
+  b.views.view('main', (v) =>
+    genome(v, 'ring', g, { layout: 'rings' }, (s) =>
+      s.track('links', { label: 'Links' }).layer('links', { type: 'pairs', data: links, legend: 'none' }),
+    ),
+  );
+  return b.build();
+}
+
+/** Two short chromosomes (a toy: a position an item, so the items show at the fit). */
+export const TwoChromosomes = [
+  { name: 'chrI', length: 48 },
+  { name: 'chrII', length: 32 },
+];
+
+/**
+ * A matrix written in the spec over two chromosomes: four samples, a value an item and sample; `name` says each item's
+ * chromosome (`I` is `chrI`), a chromosome's items its positions in order.
+ */
+function inlineMatrix(): Node {
+  const b = createSeqSpec({ title: 'A matrix written in the spec, over two chromosomes' });
+  const g = b.data.assembly('toy', assembly('Toy2', TwoChromosomes, { order: 'source' }));
+  const rng = new PCG(11);
+  const states = ['s1', 's2', 's3', 's4'];
+  const values: number[] = [];
+  const name: string[] = [];
+  for (const c of TwoChromosomes)
+    for (let i = 0; i < c.length; i++) {
+      name.push(i % 2 ? c.name : c.name.slice(3));
+      // a methylation-like level, smooth along the chromosome, a sample's offset
+      for (let k = 0; k < states.length; k++)
+        values.push(Math.max(0, Math.min(1, 0.5 + 0.4 * Math.sin(i / 6 + k) + ((rng.int() % 100) - 50) / 500)));
+    }
+  const m = b.data.matrix('levels', { target: g, values, states, name });
+  b.views.view('main', (v) =>
+    genome(v, 'genome', g, {}, (s) =>
+      s.track('levels', { label: 'Levels', height: 80 }).layer('levels', { type: 'matrix', data: m }),
+    ),
+  );
+  return b.build();
+}
+
 export const GenomeViews: readonly ExampleView[] = [
   {
     dataset: 'genome',
@@ -347,5 +423,21 @@ export const GenomeViews: readonly ExampleView[] = [
       'hg38’s cytobands (UCSC’s cytoBandIdeo, the recorded file) over GRCh38’s 25 primary sequences, read by sequence: a bands track on every chromosome and the ideogram navigator over the genome; the file’s 686 other contigs are said once.',
     build: cytobandsOverGenome,
     registry: (o) => genomeBedRegistry(o),
+  },
+  {
+    dataset: 'genome',
+    id: 'inline-links-ring',
+    title: 'Links written in the spec, on a ring',
+    summary:
+      'Sixty links written in the spec over the toy assembly, each row naming its two chromosomes (`a_name`, `b_name`; some without `chr`, the names rule maps them): a chord ring, a link between two chromosomes a chord between their arcs.',
+    build: inlineLinksRing,
+  },
+  {
+    dataset: 'genome',
+    id: 'inline-matrix',
+    title: 'A matrix written in the spec, over two chromosomes',
+    summary:
+      'Four samples’ levels written in the spec over two short chromosomes, `name` an item’s chromosome: each block draws its own items, a chromosome’s items its positions in order.',
+    build: inlineMatrix,
   },
 ];

@@ -31,7 +31,10 @@ export const HandlesAndReferences: StoryObj = story('handles');
 /** `theme(...)` and `measure(...)`: a scheme, a categorical field, rules over a value. */
 export const LayersAndThemes: StoryObj = story('themes');
 
-/** An assembly with the genome builder, a genome section of it, and a section of one chromosome of it. */
+/**
+ * An assembly with the genome builder, a genome section of it with a link between two chromosomes (`a_name`,
+ * `b_name`), and a section of one chromosome of it.
+ */
 export const AGenomeView: StoryObj = story('genome');
 
 /** A spec with a mistake the types cannot catch: `check()`'s issues are listed beside the view; the SVG export draws what resolves, as the canvas does, and says the issues in its `<desc>`. */
