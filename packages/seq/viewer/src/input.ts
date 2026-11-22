@@ -1156,7 +1156,8 @@ export class ViewerInput {
     if (e.key === 'Escape' && this.keysPanel?.close()) return true;
     const section =
       (this.resting ? this.sectionAt(this._y) : undefined) ?? this.viewer.view.resolved.value?.sections[0]?.address;
-    const ctx = { section };
+    // the layer under the pointer: the lanes band a page key scrolls
+    const ctx = { section, layer: this.resting ? this._hitAt(this._x, this._y)?.layer : undefined };
     let matched = false;
     // a gesture in progress first (a preview's command), then the rest in the spec's order
     for (const previews of [true, false])

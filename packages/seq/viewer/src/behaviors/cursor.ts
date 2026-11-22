@@ -15,6 +15,8 @@ import { createCursor } from './cursor-moves.js';
 /** The section a key acts on when there is no cursor yet (the one under the pointer, else the first). */
 export interface CursorContext {
   readonly section?: string;
+  /** The layer under the pointer: a lanes band a page key scrolls. */
+  readonly layer?: string;
 }
 
 export interface CursorBehavior {

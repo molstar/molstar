@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { RowsLay } from '@molstar/seqx-core/render';
+import type { RangesLay, RowsLay, ViewLayout } from '@molstar/seqx-core/render';
 import type { ViewModel } from '@molstar/seqx-viewer/models';
 
 // A rows band's moves the `rows` and `cursor` behaviors share (_spec/README.md "Behaviors", Rows and Cursor): its
@@ -48,4 +48,22 @@ export function revealedTop(l: RowsLay, top: number, i: number): number {
   if (r < top) next = r;
   else if (r + 1 > top + area) next = r + 1 - area;
   return Math.max(0, Math.min(next, l.maxTop(l.rowScale, l.display.count)));
+}
+
+/** The ranges layer `key`'s last layout in a layout (a lanes band). */
+export function lanesOf(layout: ViewLayout | undefined, key: string): RangesLay | undefined {
+  for (const s of layout?.sections ?? [])
+    for (const band of s.lays)
+      for (const l of band ?? []) if (l.key === key && l.type.name === 'ranges') return l.lay as RangesLay;
+  return undefined;
+}
+
+/** The lanes a page moves (Page Up, Page Down): the lanes the band shows less one, at least one. */
+export function pageLanes(l: RangesLay): number {
+  return Math.max(1, Math.floor(l.room) - 1);
+}
+
+/** The lanes band's top (lanes) a page on, or at its first (`-Infinity`) or last (`Infinity`) lane: within its lanes. */
+export function lanesTop(l: RangesLay, top: number, by: number): number {
+  return Math.max(0, Math.min(l.scrollMax, top + by));
 }

@@ -146,6 +146,8 @@ export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   'rows.page-down': 'navigate',
   'rows.page-up': 'navigate',
   'rows.tree': 'session',
+  'lanes.first': 'session',
+  'lanes.last': 'session',
   // Esc ends a gesture's preview in nothing
   'preview.cancel': 'preview',
   // a track header's menu opens: the reader's, nothing in the models
