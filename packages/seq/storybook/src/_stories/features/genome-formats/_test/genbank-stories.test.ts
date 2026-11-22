@@ -137,7 +137,7 @@ describe('Features/Genome formats/GenBank, headless', () => {
     vi.useRealTimers();
     const text = await fileText(reader, file, new AbortController().signal);
     expect(text.split('\n')[0]).toBe('pUC19c: 2686 bp, circular, DNA');
-    expect(text).toContain('Cloning vector pUC19c; 6 features');
+    expect(text).toContain('Cloning vector pUC19c; 19 features');
     expect(text).toContain('LOCUS       pUC19c');
     expect(printSources(spec)).toContain('genbank');
   });

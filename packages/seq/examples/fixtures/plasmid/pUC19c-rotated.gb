@@ -39,6 +39,71 @@ FEATURES             Location/Qualifiers
      primer_bind     join(2657..2686,1..25)
                      /label="primer site"
                      /note="generated, across the origin"
+     protein_bind    177..182
+                     /bound_moiety="ScaI"
+                     /label="ScaI"
+                     /note="the recognition site of ScaI, which cuts the top
+                     strand before base 180"
+     protein_bind    617..622
+                     /bound_moiety="AatII"
+                     /label="AatII"
+                     /note="the recognition site of AatII, which cuts the top
+                     strand before base 622"
+     protein_bind    869..874
+                     /bound_moiety="NdeI"
+                     /label="NdeI"
+                     /note="the recognition site of NdeI, which cuts the top
+                     strand before base 871"
+     protein_bind    1082..1087
+                     /bound_moiety="EcoRI"
+                     /label="EcoRI"
+                     /note="the recognition site of EcoRI, which cuts the top
+                     strand before base 1083"
+     protein_bind    1088..1093
+                     /bound_moiety="SacI"
+                     /label="SacI"
+                     /note="the recognition site of SacI, which cuts the top
+                     strand before base 1093"
+     protein_bind    1094..1099
+                     /bound_moiety="KpnI"
+                     /label="KpnI"
+                     /note="the recognition site of KpnI, which cuts the top
+                     strand before base 1099"
+     protein_bind    1098..1103
+                     /bound_moiety="SmaI"
+                     /label="SmaI"
+                     /note="the recognition site of SmaI, which cuts the top
+                     strand before base 1101"
+     protein_bind    1103..1108
+                     /bound_moiety="BamHI"
+                     /label="BamHI"
+                     /note="the recognition site of BamHI, which cuts the top
+                     strand before base 1104"
+     protein_bind    1109..1114
+                     /bound_moiety="XbaI"
+                     /label="XbaI"
+                     /note="the recognition site of XbaI, which cuts the top
+                     strand before base 1110"
+     protein_bind    1115..1120
+                     /bound_moiety="SalI"
+                     /label="SalI"
+                     /note="the recognition site of SalI, which cuts the top
+                     strand before base 1116"
+     protein_bind    1121..1126
+                     /bound_moiety="PstI"
+                     /label="PstI"
+                     /note="the recognition site of PstI, which cuts the top
+                     strand before base 1126"
+     protein_bind    1127..1132
+                     /bound_moiety="SphI"
+                     /label="SphI"
+                     /note="the recognition site of SphI, which cuts the top
+                     strand before base 1132"
+     protein_bind    1133..1138
+                     /bound_moiety="HindIII"
+                     /label="HindIII"
+                     /note="the recognition site of HindIII, which cuts the top
+                     strand before base 1134"
 ORIGIN      
         1 acgatcaagg cgagttacat gatcccccat gttgtgcaaa aaagcggtta gctccttcgg
        61 tcctccgatc gttgtcagaa gtaagttggc cgcagtgtta tcactcatgg ttatggcagc

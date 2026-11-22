@@ -388,11 +388,11 @@ async function plasmid(): Promise<Row[]> {
         'bla and lacZα as open reading frames, the cloning site from EcoRI to HindIII, the origin by its signature, every site of the listed enzymes, all turned to the new origin; the primer site is generated',
       ),
     }),
-    write(PlasmidFiles.rotatedGenbank, genbankText(rotated.turned, rotated.features), {
+    write(PlasmidFiles.rotatedGenbank, genbankText(rotated.turned, rotated.features, rotated.sites), {
       entry:
-        'the rotated variant as a GenBank flat file: its letters and the GFF3’s features (bla across the origin a join, lacZα a complement), no sites',
+        'the rotated variant as a GenBank flat file: its letters, the GFF3’s features (bla across the origin a join, lacZα a complement) and its sites (protein_bind)',
       derived: derived(
-        'the rotated letters and the features of the GFF3 written as an NCBI-shaped record (LOCUS, DEFINITION, SOURCE, a REFERENCE, a COMMENT, FEATURES with /label and /translation, ORIGIN)',
+        'the rotated letters and the features of the GFF3 written as an NCBI-shaped record (LOCUS, DEFINITION, SOURCE, a REFERENCE, a COMMENT, FEATURES with /label and /translation, the sites as protein_bind, ORIGIN)',
       ),
     }),
   ];

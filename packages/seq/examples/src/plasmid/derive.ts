@@ -267,24 +267,39 @@ function genbankLocation(f: { start: number; length: number; strand: '+' | '-' }
   return f.strand === '-' ? `complement(${plain})` : plain;
 }
 
-/** A qualifier's lines (from column 22, to 79), a value cut where it reaches the edge. */
-function qualifierLines(name: string, value: string): string[] {
+/**
+ * A qualifier's lines (from column 22, to 79), as NCBI wraps them: broken at spaces, so a reader joining its lines by a
+ * space reads the value back unchanged; a word longer than a line (a `/translation`) cut where it reaches the edge.
+ */
+export function qualifierLines(name: string, value: string): string[] {
   const indent = ' '.repeat(21);
-  const text = `/${name}="${value.replaceAll('"', '""')}"`;
+  const width = 58;
   const out: string[] = [];
-  for (let k = 0; k < text.length; k += 58) out.push(indent + text.slice(k, k + 58));
-  return out;
+  let line = '';
+  for (const word of `/${name}="${value.replaceAll('"', '""')}"`.split(' ')) {
+    if (!line) line = word;
+    else if (line.length + 1 + word.length <= width) line += ` ${word}`;
+    else {
+      out.push(line);
+      line = word;
+    }
+    for (; line.length > width; line = line.slice(width)) out.push(line.slice(0, width));
+  }
+  if (line) out.push(line);
+  return out.map((l) => indent + l);
 }
 
 /**
  * The rotated variant as a GenBank flat file, as NCBI writes a record (LOCUS, DEFINITION, SOURCE, a REFERENCE and a
- * COMMENT, the feature table, ORIGIN's lowercase letters): `source`, then the features in the GFF3's order, a feature
- * across the origin a `join` over it (bla's on the minus strand `complement(join(…))`), each labelled as the GFF3's
- * `Name` (`/label`), a CDS's protein in `/translation`. The sites are no features (INSDC has no key for them).
+ * COMMENT, the feature table, ORIGIN's lowercase letters): `source` (the GFF3's `region` row), then the features in the
+ * GFF3's order, a feature across the origin a `join` over it (bla's on the minus strand `complement(join(…))`), each
+ * labelled as the GFF3's `Name` (`/label`), a CDS's protein in `/translation`; then the sites, INSDC's `protein_bind`
+ * (the enzyme its `/bound_moiety` and `/label`: INSDC has no key for a recognition site), so the two files hold the same.
  */
 export function genbankText(
   letters: string,
   features: readonly PlasmidFeature[],
+  sites: readonly PlasmidSite[] = [],
   length: number = PlasmidLength,
 ): string {
   const pad = (s: string, n: number) => s + ' '.repeat(Math.max(1, n - s.length));
@@ -316,6 +331,16 @@ export function genbankText(
       lines.push('                     /codon_start=1');
       lines.push(...qualifierLines('translation', translate(featureLetters(letters, f)).replace(/\*$/, '')));
     }
+  }
+  for (const s of sites) {
+    lines.push(`     ${pad('protein_bind', 16)}${genbankLocation({ ...s, strand: '+' }, length)}`);
+    lines.push(...qualifierLines('bound_moiety', s.enzyme), ...qualifierLines('label', s.enzyme));
+    lines.push(
+      ...qualifierLines(
+        'note',
+        `the recognition site of ${s.enzyme}, which cuts the top strand before base ${s.cut + 1}`,
+      ),
+    );
   }
   lines.push('ORIGIN      ');
   const lower = letters.toLowerCase();

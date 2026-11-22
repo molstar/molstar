@@ -88,7 +88,10 @@ describe('the Plasmid fixtures', () => {
     compare(fileURLToPath(new URL('../plasmid/record.ts', import.meta.url)), recordModule(fromFile));
     const rotated = rotatedAnnotations(fromFile);
     compare(`${PackageFolder}${PlasmidFiles.rotatedFeatures}`, gff3Text(rotated.features, rotated.sites));
-    compare(`${PackageFolder}${PlasmidFiles.rotatedGenbank}`, genbankText(rotated.turned, rotated.features));
+    compare(
+      `${PackageFolder}${PlasmidFiles.rotatedGenbank}`,
+      genbankText(rotated.turned, rotated.features, rotated.sites),
+    );
   });
 
   it('the seq file is what the format’s encoder writes for the record', () => {

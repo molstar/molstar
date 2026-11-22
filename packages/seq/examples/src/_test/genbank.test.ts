@@ -4,8 +4,19 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { columnValues } from '@molstar/core/repr/tree';
 import { createSeqContext } from '@molstar/seqx-core/context/default';
-import { SeqRuntime } from '@molstar/seqx-core/data';
+import { DefaultOpenLimits, SeqRuntime } from '@molstar/seqx-core/data';
+import { GenbankRuntime } from '@molstar/seqx-core/runtimes/genbank';
+import {
+  findSites,
+  genbankText,
+  type PlasmidFeature,
+  PlasmidLength,
+  PlasmidName,
+  qualifierLines,
+} from '../plasmid/derive.js';
+import { PublishedLetters } from '../plasmid/record.js';
 import { RecordsRuntime } from '@molstar/seqx-core/data/records';
 import { recordDrawLists } from '@molstar/seqx-core/render';
 import { describe, expect, it } from 'vitest';
@@ -29,6 +40,39 @@ function context() {
 }
 
 const size = { width: 720, height: 900 };
+
+describe('the GenBank writer', () => {
+  it('wraps a qualifier at spaces: a long `/note` and `/label` read back unchanged, a `/translation` cut at the edge', async () => {
+    const long =
+      'a feature whose note runs well past one line of the feature table, with "quotes" and words, read back';
+    const lines = qualifierLines('note', long);
+    expect(lines.length).toBeGreaterThan(1);
+    for (const l of lines) expect(l.length).toBeLessThanOrEqual(79);
+    const features: PlasmidFeature[] = [
+      { id: 'x', label: long, type: 'misc_feature', strand: '+', start: 10, length: 20 },
+    ];
+    const text = genbankText(PublishedLetters, features, findSites(PublishedLetters));
+    const s = await GenbankRuntime.open(
+      { address: '/g', format: 'genbank', value: text as never },
+      {
+        assets: nodeFixtureAssets().reader,
+        signal: new AbortController().signal,
+        limits: DefaultOpenLimits,
+      },
+    );
+    const a = await s.read(
+      { system: PlasmidName, start: 0, end: PlasmidLength, level: 1, shapes: ['ranges'] },
+      new AbortController().signal,
+    );
+    if (!a.ok || a.tables.ranges?.form !== 'list') throw new Error('not read');
+    const col = (name: string) => columnValues(a.tables.ranges.fields!.find((f) => f.name === name)!.column);
+    expect(col('label')).toContain(long);
+    const ecoRI = col('note').filter((n) => typeof n === 'string' && n.startsWith('the recognition site of EcoRI'));
+    expect(ecoRI).toHaveLength(1);
+    expect(ecoRI[0]).toMatch(/^the recognition site of EcoRI, which cuts the top strand before base \d+$/);
+    expect(col('category').filter((c) => c === 'protein_bind').length).toBe(findSites(PublishedLetters).length);
+  });
+});
 
 describe('the plasmid from GenBank and from GFF3', () => {
   it('the two views’ draw lists are equal: the ring, its tracks by key, the detail, the labels', async () => {

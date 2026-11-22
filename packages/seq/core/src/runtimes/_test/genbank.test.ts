@@ -403,7 +403,9 @@ describe('the examples’ generated plasmid record', () => {
   it('pUC19c turned: cyclic, 2,686 letters as read (lowercase), bla across the origin, lacZα complemented', async () => {
     const s = await open(plasmidGenbank());
     expect(s.coverage.systems).toEqual([{ name: 'pUC19c', length: 2686, alphabet: 'dna', cyclic: true }]);
-    expect(s.records[0]).toMatchObject({ organism: 'Cloning vector pUC19c', circular: true, features: 6 });
+    expect(s.records[0]).toMatchObject({ organism: 'Cloning vector pUC19c', circular: true, features: 19 });
+    // the GFF3's 13 sites as protein_bind, no track of the views drawing them
+    expect(s.records[0].features - 6).toBe(13);
     expect(codes(s).sort()).toEqual(['seq.source.genbank.header', 'seq.source.genbank.translation']);
     const a = await read(s, 'pUC19c', 0, 2686);
     const letters = a.ok ? (a.tables.letters?.letters as string) : '';
