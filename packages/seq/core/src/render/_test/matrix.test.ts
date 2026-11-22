@@ -8,7 +8,6 @@
 // extents (a long deletion solid, drawn under the short items, EC-222), missing values transparent (EC-220), coarse bins
 // as image tiles, pending across the band before its tiles land (EC-169), a cell hit as its item and state.
 
-import type { MatrixBins, MatrixItems, SeqData } from '@molstar/seqx-core/data';
 import { SeqRuntime, seqToValue } from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { LightTokens } from '@molstar/seqx-core/render';
@@ -16,64 +15,9 @@ import { describe, expect, it } from 'vitest';
 import { hitView, matrixCellHover } from '../index.js';
 import type { MatrixLay } from '../matrix.js';
 import { settle } from './helpers.js';
+import { GenotypesLength as N, Many, States, sourced } from './region-render-fixtures.js';
 
-const N = 262_144;
-const States = ['NA12878', 'NA12891', 'NA12892', 'HG00096'];
 const S = States.length;
-/** A ring's 40 states (a heatmap ring of samples, Circos). */
-const Many = Array.from({ length: 40 }, (_, i) => `s${i}`);
-
-/** Genotypes over chr: a SNP every 100 positions in 0..2,000, a deletion over 500..1,500 in the first state. */
-function genotypes(names: readonly string[] = States): SeqData {
-  const S = names.length;
-  const start: number[] = [];
-  const end: number[] = [];
-  for (let p = 0; p < 2000; p += 100) start.push(p), end.push(p + 1);
-  start.push(500), end.push(1500);
-  const n = start.length;
-  const codes = new Uint8Array(n * S);
-  for (let i = 0; i < n; i++) for (let s = 0; s < S; s++) codes[i * S + s] = (i + s) % 3;
-  // the deletion: every copy in the first state, none in the others; one state uncalled at the first SNP
-  codes[(n - 1) * S] = 2;
-  codes[1] = 255;
-  const items: MatrixItems = {
-    form: 'items',
-    start: Int32Array.from(start),
-    end: Int32Array.from(end),
-    states: S,
-    codes,
-  };
-  const binsN = N / 256;
-  const classes = new Uint8Array(binsN * S);
-  const shares = new Uint8Array(binsN * S).fill(200);
-  for (let b = 0; b < binsN; b++) for (let s = 0; s < S; s++) classes[b * S + s] = (b + s) % 3;
-  const bins: MatrixBins = { form: 'bins', start: 0, states: S, classes, shares };
-  const request = (level: number) => ({ system: 'chr', start: 0, end: N, level, shapes: ['matrix' as const] });
-  return {
-    coverage: {
-      systems: [{ name: 'chr', length: N }],
-      shapes: [{ system: 'chr', shape: 'matrix', states: [...names] }],
-      levels: [1, 256],
-    },
-    pairs: [
-      { request: request(1), answer: { ok: true as const, tables: { matrix: items } } },
-      { request: request(256), answer: { ok: true as const, tables: { matrix: bins } } },
-    ],
-  };
-}
-
-function sourced(names: readonly string[] = States, layout: 'tracks' | 'rings' = 'tracks') {
-  const b = createSeqSpec({ title: 'Genotypes' });
-  const src = b.data.source('src', { format: 'seq', value: seqToValue(genotypes(names)) as never });
-  const chr = b.data.sequence('chr', { alphabet: 'dna', source: src, name: 'chr' });
-  const m = b.data.matrix('gt', { target: chr, source: src } as never);
-  b.views.view('main', (v) => {
-    v.section('chr', { of: chr, layout }).track('gt', { height: 80 }, (t) => {
-      t.layer('gt', { type: 'matrix', data: m });
-    });
-  });
-  return b.build();
-}
 
 function inline() {
   const b = createSeqSpec({ title: 'Methylation' });

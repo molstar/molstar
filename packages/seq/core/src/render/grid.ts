@@ -283,8 +283,8 @@ export const GridType: LayerType<GridPrep, GridLay> = {
   },
 };
 
-/** The color of a value (missing: none). */
-export function colorOf(lay: GridLay, v: number): number {
+/** The color of a value (missing: none), by a lay's color channel (a grid's, a matrix's). */
+export function colorOf(lay: { readonly color: Channel | undefined; readonly datum: PlainDatum }, v: number): number {
   if (Number.isNaN(v) || !lay.color) return NoColor;
   lay.datum.value = v;
   const c = lay.color.at(lay.datum);

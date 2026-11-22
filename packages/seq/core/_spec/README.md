@@ -3207,7 +3207,8 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   the bitmap is a second drawing path, canvas only, its SVG an embedded PNG; runs reuse the warp and the export.
   Bounded: `rings.imageRuns` a frame; past it an image's rows are taken a step of 2, 4, … apart, each standing for the
   rows of its step (`seq.render.ring.image`, info, said once a section by the frame). An image of no rows is refused
-  (the warp counts it).
+  (the warp counts it). A run is traced from its columns' edges' angles, computed once an image (cut so no piece spans
+  more than the warp's step): a ring of 40 states at a run a column lays out and draws under 8 ms (heavy lane).
 - `at` is `atan2` and the radius through the warp's inverse (a label before the rings; the rim `window` while active;
   the hole and outside `empty`; between blocks `gap`); `offsetAt` the nearest block's edge in a gap; both monotone in
   angle from the origin. Held by property tests over rotations.

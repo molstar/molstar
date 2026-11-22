@@ -14,7 +14,7 @@
 // loaded is pending across the band, never empty (EC-169); the layer's wants are bounded together (`readTiles`'s key).
 
 import type { Node, Value } from '@molstar/core/repr/tree';
-import type { MatrixBins, MatrixItems, MatrixTable } from '@molstar/seqx-core/data';
+import { type MatrixBins, type MatrixItems, type MatrixTable, tableRows } from '@molstar/seqx-core/data';
 import { theme as themeForm } from '@molstar/seqx-core/lang';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { Channel, ChannelName } from '@molstar/seqx-core/theme/index';
@@ -22,6 +22,7 @@ import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
 import { channelForms, channelLegends, Extents, type LayerChannels, PlainDatum } from './channels.js';
 import { grown, type ImageData, NoColor, type PassName, type PassWriter } from './draw-lists.js';
+import { colorOf } from './grid.js';
 import { ImageCache } from './images.js';
 import {
   dataRegions,
@@ -147,13 +148,6 @@ function rangeOf(t: MatrixTable): readonly [number, number] {
   return r;
 }
 
-function colorOf(lay: MatrixLay, v: number): number {
-  if (Number.isNaN(v) || !lay.color) return NoColor;
-  lay.datum.value = v;
-  const c = lay.color.at(lay.datum);
-  return typeof c === 'number' ? c : NoColor;
-}
-
 function codeColor(lay: MatrixLay, code: number): number {
   if (code === Uncalled) return lay.tokens!.colors['seq-missing'];
   const t = CodeTokens[code];
@@ -237,12 +231,6 @@ function buildBins(lay: MatrixLay, t: MatrixBins, n: number): ImageData | undefi
 /** A state row's top in the strip's frame. */
 function rowY(lay: MatrixLay, s: number): number {
   return lay.box.y + s * lay.rowScale - lay.bandTop;
-}
-
-/** A bins table's columns (bins). */
-export function columnsOf(t: MatrixBins): number {
-  const c = t.mean ?? t.count ?? t.min ?? t.max ?? t.classes ?? t.shares;
-  return c && t.states > 0 ? Math.floor(c.length / t.states) : 0;
 }
 
 export const MatrixType: LayerType<MatrixPrep, MatrixLay> = {
@@ -331,7 +319,7 @@ export const MatrixType: LayerType<MatrixPrep, MatrixLay> = {
         layoutItems(lay, src, t, axis, from);
         continue;
       }
-      const n = columnsOf(t);
+      const n = tableRows(t);
       const key = `${lay.key}|m|${e.region.source}|${e.region.system}|${e.region.level}|${e.region.tile}|${e.version}|${lay.colorVersion}.${tokens}|${axis.dir}`;
       let img = lay.cache.get(key);
       if (!img) {

@@ -9,60 +9,12 @@
 // pending rect with nothing held under it and the coarser held tile once one is (EC-169, EC-223); a cell hit with its
 // bin (Default 4).
 
-import type { GridDense, SeqData } from '@molstar/seqx-core/data';
-import { SeqRuntime, seqToValue } from '@molstar/seqx-core/data';
-import { createSeqSpec } from '@molstar/seqx-core/lang';
+import { SeqRuntime } from '@molstar/seqx-core/data';
 import { describe, expect, it } from 'vitest';
 import type { GridLay } from '../grid.js';
 import { gridCellHover, hitView } from '../index.js';
 import { settle } from './helpers.js';
-
-const N = 2048;
-
-/** A contact map over chr (2,048 positions): a band along the diagonal, served symmetric at levels 1 and 4. */
-function hic(): SeqData {
-  const dense = (level: number): GridDense => {
-    const n = N / level;
-    const v = new Float32Array(n * n);
-    for (let i = 0; i < n; i++)
-      for (let j = 0; j < n; j++) v[i * n + j] = (level * level * 100) / (1 + Math.abs(i - j));
-    return { form: 'dense', x: 0, y: 0, nx: n, ny: n, value: v };
-  };
-  const request = (level: number) => ({
-    system: 'chr',
-    start: 0,
-    end: N,
-    level,
-    shapes: ['grid' as const],
-    y: { system: 'chr', start: 0, end: N },
-  });
-  return {
-    coverage: {
-      systems: [{ name: 'chr', length: N }],
-      shapes: [{ system: 'chr', shape: 'grid', symmetric: true, aggregate: 'sum' }],
-      levels: [1, 4],
-    },
-    pairs: [1, 4].map((level) => ({
-      request: request(level),
-      answer: { ok: true as const, tables: { grid: dense(level) } },
-    })),
-  };
-}
-
-function spec() {
-  const b = createSeqSpec({ title: 'Hi-C by region' });
-  const src = b.data.source('src', { format: 'seq', value: seqToValue(hic()) as never });
-  const chr = b.data.sequence('chr', { alphabet: 'dna', source: src, name: 'chr' });
-  const g = b.data.grid('contacts', { x: chr, source: src } as never);
-  b.views.view('main', (v) => {
-    const top = v.section('chr', { of: chr });
-    top.track('ruler').layer('ruler', { type: 'ruler' });
-    v.section('plot', { layout: 'grid', of: chr, follow: top.address }).track('plot', {}, (t) => {
-      t.layer('grid', { type: 'grid', data: g });
-    });
-  });
-  return b.build();
-}
+import { gridRegionSpec as spec } from './region-render-fixtures.js';
 
 const Size = { width: 600, height: 900 };
 

@@ -120,9 +120,14 @@ export class PolarWarp {
   private clipDepth = 0;
   /** The square's outline a rect is traced through, and the rect's numbers. */
   private readonly square = new PassList('data');
-  /** A one-row image's runs, a rect each, warped as rects are. */
-  private readonly runs = new PassList('data');
   private readonly rectArgs = new Float64Array(6);
+  /** An image's columns' edges' angles (sine and cosine), shared by its rows' sectors. */
+  private sinT = new Float64Array(64);
+  private cosT = new Float64Array(64);
+  /** The clip an image's rows are cut to: x0, y0, x1, y1. */
+  private readonly scratchClip = new Float64Array(4);
+  /** A row's top's and bottom's radii (`sectorRow`). */
+  private readonly rowArgs = new Float64Array(2);
 
   /** The page point of a frame point: into `px`, `py`. */
   px = 0;
@@ -262,19 +267,72 @@ export class PolarWarp {
     while (step < h && rowRuns(image.data, image.width, h, step) > left) step *= 2;
     if (step > 1) this.reduced++;
     const rh = l.h[i] / h;
-    for (let r = 0; r < h; r += step) this.bandRow(out, l, i, r, rh * Math.min(step, h - r), rh);
+    // the columns' edges' angles, once an image (every row shares them), cut so no piece of an edge spans more than
+    // `step` px at the image's outer radius: a run is then a sector traced from them, no angle computed again
+    const n = image.width;
+    const cw = l.w[i] / n;
+    const outer = Math.max(0, this.r0 - l.y[i]);
+    const sub = Math.max(1, Math.min(64, Math.ceil((Math.abs((cw / this.width) * this.sweep) * outer) / this.step)));
+    const m = n * sub;
+    this.sinT = grown(this.sinT, m + 1);
+    this.cosT = grown(this.cosT, m + 1);
+    for (let q = 0; q <= m; q++) {
+      const t = this.a0 + ((l.x[i] + (q / sub) * cw - this.x0) / this.width) * this.sweep;
+      this.sinT[q] = Math.sin(t);
+      this.cosT[q] = Math.cos(t);
+    }
+    // the clip: rows cut to its y range; a run past its x range goes through the rect path, which clips it
+    const sc = this.scratchClip;
+    sc[0] = Number.NEGATIVE_INFINITY;
+    sc[1] = Number.NEGATIVE_INFINITY;
+    sc[2] = Number.POSITIVE_INFINITY;
+    sc[3] = Number.POSITIVE_INFINITY;
+    if (this.clipDepth > 0) {
+      const b = 4 * (this.clipDepth - 1);
+      const cs = this.clipStack;
+      sc[0] = cs[b] - 1e-6;
+      sc[1] = cs[b + 1];
+      sc[2] = cs[b] + cs[b + 2] + 1e-6;
+      sc[3] = cs[b + 1] + cs[b + 3];
+    }
+    for (let r = 0; r < h; r += step) {
+      const height = rh * Math.min(step, h - r);
+      const top = l.y[i] + r * rh;
+      const y0 = Math.max(top, sc[1]);
+      const y1 = Math.min(top + height, sc[3]);
+      if (y1 <= y0) continue;
+      // the row's radii through an array: a number passed to a call that is not inlined is boxed
+      const ra = this.rowArgs;
+      ra[0] = Math.max(0, this.r0 - y0);
+      ra[1] = Math.max(0, this.r0 - y1);
+      this.sectorRow(out, l, i, r, sub);
+    }
     return true;
   }
 
-  /** Row `r` of image `i` as its runs, `height` px from its top (`rh` px a row). */
-  private bandRow(out: PassWriter, l: PassList['images'], i: number, r: number, height: number, rh: number) {
-    const image = l.images[i];
-    const d = image.data;
-    const n = image.width;
+  /**
+   * Row `r`'s runs as sectors between the radii of `rowArgs` (its top's and its bottom's), from the columns' edges'
+   * angles; the columns past the clip's x range left out (a column cut by its edge with them: a ring's band clip holds
+   * its strip's image whole).
+   */
+  private sectorRow(out: PassWriter, l: PassList['images'], i: number, r: number, sub: number) {
+    const ra = this.rowArgs[0];
+    const rb = this.rowArgs[1];
+    const d = l.images[i].data;
+    const n = l.images[i].width;
     const cw = l.w[i] / n;
+    const xi = l.x[i];
+    const sc = this.scratchClip;
     const o = 4 * r * n;
-    const runs = this.runs;
-    for (let c = 0; c < n; ) {
+    const c0 = Math.max(0, Math.ceil((sc[0] - xi) / cw));
+    const c1 = Math.min(n, Math.floor((sc[2] - xi) / cw));
+    const S = this.sinT;
+    const C = this.cosT;
+    const cx = this.cx;
+    const cy = this.cy;
+    const pass = out.pass;
+    const pl = pass.paths;
+    for (let c = c0; c < c1; ) {
       const k = o + 4 * c;
       if (d[k + 3] === 0) {
         c++;
@@ -282,26 +340,40 @@ export class PolarWarp {
       }
       let e = c + 1;
       while (
-        e < n &&
+        e < c1 &&
         d[o + 4 * e] === d[k] &&
         d[o + 4 * e + 1] === d[k + 1] &&
         d[o + 4 * e + 2] === d[k + 2] &&
         d[o + 4 * e + 3] === d[k + 3]
       )
         e++;
-      runs.reset();
-      runs.rects.push(
-        l.x[i] + c * cw,
-        l.y[i] + r * rh,
-        (e - c) * cw,
-        height,
-        ((d[k] << 24) | (d[k + 1] << 16) | (d[k + 2] << 8) | d[k + 3]) >>> 0,
-        NoColor,
-        0,
-        0,
-        0,
-      );
-      this.rect(out, runs, 0);
+      const color = ((d[k] << 24) | (d[k + 1] << 16) | (d[k + 2] << 8) | d[k + 3]) >>> 0;
+      pass.op(Op.path);
+      pl.begin();
+      const q0 = c * sub;
+      const q1 = e * sub;
+      pl.command(PathCommand.move);
+      this.px = cx + ra * S[q0];
+      this.py = cy - ra * C[q0];
+      this.put(pl);
+      for (let q = q0 + 1; q <= q1; q++) {
+        pl.command(PathCommand.line);
+        this.px = cx + ra * S[q];
+        this.py = cy - ra * C[q];
+        this.put(pl);
+      }
+      for (let q = q1; q >= q0; q--) {
+        pl.command(PathCommand.line);
+        this.px = cx + rb * S[q];
+        this.py = cy - rb * C[q];
+        this.put(pl);
+      }
+      pl.command(PathCommand.close);
+      const pk = pl.end(NoColor);
+      pl.fill[pk] = color;
+      pl.stroke[pk] = NoColor;
+      pl.strokeWidth[pk] = 0;
+      pl.dash[pk] = 0;
       this.runsUsed++;
       c = e;
     }

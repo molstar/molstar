@@ -10,10 +10,11 @@
 // state and its value or genotype, at a coarse level its bin and its mean or majority with its share. Texts only: a
 // host's card lays them out (the viewer's hover card), nothing is drawn. Read on a hover, from what the frame drew.
 
+import { tableRows } from '@molstar/seqx-core/data';
 import { spanText } from './accessibility.js';
 import type { GridLay } from './grid.js';
 import { regionCellAt } from './grid-region.js';
-import { columnsOf, type MatrixLay } from './matrix.js';
+import type { MatrixLay } from './matrix.js';
 import { aOf, bOf, type PairsLay } from './pairs-lay.js';
 
 /** A hover's words: a title, a card's rows (label, value), and the sentence an announcer says. */
@@ -36,19 +37,10 @@ export function binsText(level: number): string {
 
 /** A genotype class as VCF writes it (`0/0`, `0/1`, `1/1`, a partly called `./1`, an uncalled `./.`). */
 export function genotypeText(code: number): string {
-  switch (code) {
-    case 0:
-      return '0/0';
-    case 1:
-      return '0/1';
-    case 2:
-      return '1/1';
-    case 3:
-      return './1';
-    default:
-      return './.';
-  }
+  return Genotypes[code] ?? './.';
 }
+
+const Genotypes = ['0/0', '0/1', '1/1', './1'];
 
 function numberText(v: number): string {
   if (!Number.isFinite(v)) return String(v);
@@ -144,7 +136,7 @@ export function matrixCellHover(lay: MatrixLay, i: number, s: number, name: Syst
         [item, state, ...(value ? [value] : [])],
       );
     }
-    const n = columnsOf(t);
+    const n = tableRows(t);
     const level = lay.level;
     const b = Math.floor((i - t.start) / level);
     if (b < 0 || b >= n) continue;
