@@ -49,6 +49,11 @@ export class StickyLanes {
     return this.kept.size;
   }
 
+  /** The lanes held (arrays of intervals): the most any packing reached, not the `maxLanes` it was given. */
+  get held(): number {
+    return this.starts.length;
+  }
+
   laneOf(key: Key): number | undefined {
     return this.kept.get(key);
   }
@@ -99,11 +104,9 @@ export class StickyLanes {
     out: Int32Array,
     sticky: boolean,
   ): { used: number; overflow: number } {
-    for (let l = 0; l < maxLanes; l++) {
-      if (!this.starts[l]) {
-        this.starts[l] = [];
-        this.ends[l] = [];
-      }
+    // only the lanes held so far are cleared: `maxLanes` is a bound (1,000 by `ranges.maxLanes`), not the lanes in use, and
+    // a lane no item reached is made when the first item needs it (a pan's frame repacks, so this runs each)
+    for (let l = 0; l < this.starts.length; l++) {
       this.starts[l].length = 0;
       this.ends[l].length = 0;
     }
@@ -113,7 +116,7 @@ export class StickyLanes {
       for (let k = 0; k < order.length; k++) {
         const i = order[k];
         const l = this.kept.get(keys[i]);
-        if (l === undefined || l >= maxLanes) continue;
+        if (l === undefined || l >= maxLanes || l >= this.starts.length) continue;
         const s = starts[i];
         const e = Math.max(ends[i], s + 1);
         if (overlaps(this.starts[l], this.ends[l], s, e)) continue;
@@ -128,7 +131,14 @@ export class StickyLanes {
       const s = starts[i];
       const e = Math.max(ends[i], s + 1);
       let lane = -1;
-      for (let l = 0; l < maxLanes && lane < 0; l++) if (!overlaps(this.starts[l], this.ends[l], s, e)) lane = l;
+      for (let l = 0; l < maxLanes && lane < 0; l++) {
+        if (l === this.starts.length) {
+          // a lane past those held is empty: free
+          this.starts.push([]);
+          this.ends.push([]);
+        }
+        if (!overlaps(this.starts[l], this.ends[l], s, e)) lane = l;
+      }
       if (lane < 0) {
         overflow++;
         continue;
