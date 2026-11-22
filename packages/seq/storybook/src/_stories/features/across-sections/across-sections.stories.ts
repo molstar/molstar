@@ -7,7 +7,7 @@
 import { AcrossViews } from '@molstar/seqx-examples';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { exampleStory } from '../../examples/example-root.js';
-import { openZoomed } from './openings.js';
+import { openZoomed, openZoomedGrape } from './openings.js';
 
 const view = (id: string) => AcrossViews.find((v) => v.id === id)!;
 
@@ -30,10 +30,19 @@ export const ZoomedOutBins: StoryObj = { render: () => exampleStory(view('across
 
 /**
  * Peach zoomed into Pp02 from 1.2 to 1.5 Mb, grape at the fit: the zoomed side’s blocks fan to their true x on grape,
- * narrowing to grape’s 300 kb; ends past a side’s edge leave the band sideways.
+ * narrowing to grape’s 300 kb; grape reads its own blocks, so every block is drawn once, those anchored in peach’s
+ * window by peach, the rest by grape, leaving the band sideways.
  */
 export const OneSideZoomedIn: StoryObj = {
   render: () => exampleStory(view('across-zoomed'), { stacked: true, opening: openZoomed }),
+};
+
+/**
+ * The other way, over the dense alignment: grape zoomed into chr2 from 1.2 to 1.5 Mb, its blocks; peach at the fit,
+ * its bin pairs. Each block is drawn once: grape’s window (widened to peach’s bins) by grape, the rest by peach’s bins.
+ */
+export const OneSideZoomedInTheOtherWay: StoryObj = {
+  render: () => exampleStory(view('across-bins'), { stacked: true, opening: openZoomedGrape }),
 };
 
 /**

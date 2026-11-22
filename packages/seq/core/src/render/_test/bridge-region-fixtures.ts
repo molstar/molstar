@@ -114,14 +114,34 @@ export function alignmentSource(alignments: readonly Alignment[]): SeqData {
  * Two sections (`top` of A, `bottom` of B) and a bridge between them drawing the alignments read by region; with
  * `third`, a third section (`third`, of A) below them, joined to nothing.
  */
-export function regionBridgeSpec(alignments: readonly Alignment[], options: { third?: boolean } = {}) {
+export function regionBridgeSpec(
+  alignments: readonly Alignment[],
+  options: { third?: boolean; pieces?: number; format?: string; mirror?: boolean } = {},
+) {
   const b = createSeqSpec({ title: 'alignments across' });
-  const src = b.data.source('src', { format: 'seq', value: seqToValue(alignmentSource(alignments)) as never });
+  // `format`: a source of a runtime of the test's (`uri` none), the alignments its to serve
+  const src = options.format
+    ? b.data.source('src', { format: options.format, uri: 'test' } as never)
+    : b.data.source('src', { format: 'seq', value: seqToValue(alignmentSource(alignments)) as never });
   const A = b.data.sequence('A', { alphabet: 'dna', source: src, name: 'A' });
   const B = b.data.sequence('B', { alphabet: 'dna', source: src, name: 'B' });
   const aln = b.data.pairs('aln', { a: A, b: B, source: src } as never);
+  // `pieces`: the top shows every other position of A's first `2 · pieces` (single-position pieces, EC-33)
+  const n = options.pieces ?? 0;
+  const pieces =
+    n > 0
+      ? b.data.ranges('pieces', {
+          target: A,
+          rows: {
+            start: Int32Array.from({ length: n }, (_, i) => 2 * i),
+            end: Int32Array.from({ length: n }, (_, i) => 2 * i + 1),
+          },
+        } as never)
+      : undefined;
   b.views.view('v', (v) => {
-    v.section('top', { of: A }).track('ruler').layer('ruler', { type: 'ruler' });
+    v.section('top', { of: A, ...(pieces ? { pieces } : {}) } as never)
+      .track('ruler')
+      .layer('ruler', { type: 'ruler' });
     v.bridge('br', { a: '/views/v/top', b: '/views/v/bottom' } as never, (br) =>
       br.layer('aln', { type: 'pairs', data: aln } as never),
     );

@@ -5,7 +5,7 @@
  */
 
 import type { CategoryColumn } from '@molstar/core/repr/tree';
-import type { PairsList } from '@molstar/seqx-core/data';
+import type { PairsList, Want } from '@molstar/seqx-core/data';
 import type { AccessPlan, PairsData } from '@molstar/seqx-core/resolve';
 import {
   dataRegions,
@@ -18,6 +18,7 @@ import {
 } from './layer-data.js';
 import type { LayoutContext, StoreReader } from './layer-type.js';
 import { withGenome } from '@molstar/seqx-core/resolve';
+import { sidedName } from '@molstar/seqx-core/data';
 import { PairDatum, type PairsLay, type PairsPrep } from './pairs-lay.js';
 
 // Pairs read by region (_spec/README.md "Render", The pairs layer: by region): the layer's one reader over a source's
@@ -51,6 +52,11 @@ export interface RegionState {
   itemCount: number;
   /** The bins' tiles not loaded, `[start, end, …]` on the data's system (a bridge's pending hatch, EC-169). */
   pending?: readonly number[];
+  /**
+   * The data's positions read this frame by its system (`dataRegions`: projected, normalized, merged near; over an
+   * assembly each block's system): a bridge's drawn-once rule reads them.
+   */
+  readonly windows: Map<string, number[]>;
 }
 
 /** A lay's region state, made on first read. */
@@ -58,7 +64,8 @@ const States = new WeakMap<PairsLay, RegionState>();
 
 export function regionState(lay: PairsLay): RegionState {
   let s = States.get(lay);
-  if (!s) States.set(lay, (s = { read: [], prep: undefined, items: false, binPairs: 0, itemCount: 0 }));
+  if (!s)
+    States.set(lay, (s = { read: [], prep: undefined, items: false, binPairs: 0, itemCount: 0, windows: new Map() }));
   return s;
 }
 
@@ -73,37 +80,107 @@ export interface PairsRegion {
 
 /** Pairs over an assembly read by region (`pairs-assembly.ts`): a block a sequence. */
 export interface AssemblyRegion {
-  /** Each sequence's read (its plan's source and name), by its system. */
+  /** Each sequence's read (its plan's source and name, its side of a sided source), by its system. */
   readonly sources: ReadonlyMap<string, LayerSource>;
+  /** One genome against itself over a sided source: a sequence read on either side (`sourceOn`). */
+  readonly turned?: ReadonlyMap<string, LayerSource>;
   /** The sequences' systems: the ends' units (`PairsData.aUnit`, `bUnit`), in the assembly's order. */
   readonly units: readonly string[];
-  /** A listed name's unit (index into `units`). */
+  /**
+   * A listed name's unit (index into `units`), by its side and name over a sided source (`sidedName`: `chr1` listed on
+   * both sides is two sequences), by its name alone else.
+   */
   readonly unitOf: ReadonlyMap<string, number>;
+  readonly sided: boolean;
 }
 
-/** The region of pairs over an assembly: its sequences' plans by system as each block's reads. */
+/**
+ * The region of pairs over an assembly: its sequences' plans by system as each block's reads; `plansB`, one genome
+ * against itself over a sided source: each sequence's plan on side `b` (its name there).
+ */
 export function assemblyRegion(
   plans: ReadonlyMap<string, AccessPlan>,
   lengthOf: (system: string) => number | undefined,
+  plansB?: ReadonlyMap<string, AccessPlan>,
 ): AssemblyRegion {
   const sources = new Map<string, LayerSource>();
+  const turned = new Map<string, LayerSource>();
   const units: string[] = [];
   const unitOf = new Map<string, number>();
-  for (const [system, plan] of plans) {
-    if (plan.kind !== 'source') continue;
+  let sided = false;
+  const sourceOf = (system: string, plan: AccessPlan): LayerSource | undefined => {
+    if (plan.kind !== 'source') return undefined;
     const length = lengthOf(system);
-    unitOf.set(plan.system, units.length);
-    units.push(system);
-    sources.set(system, {
+    unitOf.set(sidedName(plan.side, plan.system), units.length - 1);
+    if (plan.side) sided = true;
+    return {
       source: plan.source,
       system: plan.system,
       dataSystem: system,
       shape: 'pairs',
+      ...(plan.side ? { side: plan.side } : {}),
       ...(length !== undefined ? { length, wraps: true } : {}),
       ratio: 1,
-    });
+    };
+  };
+  for (const [system, plan] of plans) {
+    if (plan.kind !== 'source') continue;
+    units.push(system);
+    sources.set(system, sourceOf(system, plan)!);
+    const b = plansB?.get(system);
+    const src = b && sourceOf(system, b);
+    if (src) turned.set(system, src);
   }
-  return { sources, units, unitOf };
+  return { sources, ...(turned.size ? { turned } : {}), units, unitOf, sided };
+}
+
+/** A sequence's read on a side (`side`: the side asked; a sequence of one side read there whatever is asked). */
+export function sourceOn(over: AssemblyRegion, system: string, side: 'a' | 'b' | undefined): LayerSource | undefined {
+  const src = over.sources.get(system);
+  return src?.side && side && src.side !== side ? (over.turned?.get(system) ?? src) : src;
+}
+
+/**
+ * A bridge's read of a side's `R` (_spec/README.md "Render", Bridges: drawn once): the regions by data system, at the
+ * near side's own level (`undefined`: items), never coarser than the far level, no gate; `wants`, the layer's others
+ * this frame (`R`'s are asked only when they fit beside them).
+ */
+export interface RegionOver {
+  regions: ReadonlyMap<string, readonly number[]>;
+  level: number | undefined;
+  wants: readonly Want[];
+}
+
+/** A dry read's wants, and those with the layer's others (`overFits`): kept, reused. */
+const Asked: Want[] = [];
+const Load: Want[] = [];
+const Dry = {
+  want: (w: Want) => {
+    Asked.push(w);
+  },
+  config: undefined as unknown as LayoutContext['config'],
+  key: undefined as string | undefined,
+};
+
+/** A layout context whose reads only collect their wants (`Asked`): an `R` read is asked once it is known to fit. */
+export function dryOf(ctx: LayoutContext): LayoutContext {
+  Asked.length = 0;
+  Dry.config = ctx.config;
+  Dry.key = ctx.key;
+  return Dry as unknown as LayoutContext;
+}
+
+/**
+ * Whether a dry read's wants fit the store's bounds beside the layer's others (`maxTilesPerWant` already said by the
+ * read's `tooMany`; the layer's tiles and bytes here): then asked, else never (a layer refused for them would flicker).
+ */
+export function overFits(ctx: LayoutContext, data: StoreReader, others: readonly Want[]): boolean {
+  Load.length = 0;
+  for (let i = 0; i < others.length; i++) Load.push(others[i]);
+  for (let i = 0; i < Asked.length; i++) Load.push(Asked[i]);
+  if (data.layerLoad && !data.layerLoad(Load).fits) return false;
+  for (let i = 0; i < Asked.length; i++) ctx.want(Asked[i]);
+  return true;
 }
 
 /** Whether `[s, e)` meets any of `regions` (`[start, end, …]`). */
@@ -115,8 +192,9 @@ function inView(regions: readonly number[], s: number, e: number): boolean {
 
 /**
  * The frame's pairs of a region layer: reads bins, gates items, and gives the prep the arcs lay out (`undefined` while
- * nothing is read). The read's state is the lay's. Over an assembly, a read a block (`pairs-assembly.ts`). `over`: the
- * regions read instead of the view's (a bridge's near side reads its `R`).
+ * nothing is read). The read's state is the lay's. Over an assembly, a read a block (`pairs-assembly.ts`; `side`, a
+ * bridge side's of one genome against itself). `over`: the regions read instead of the view's at a level given (a
+ * bridge's near side reads its `R`); items pending, nothing.
  */
 export function regionPairs(
   prep: PairsPrep,
@@ -124,20 +202,29 @@ export function regionPairs(
   ctx: LayoutContext,
   data: StoreReader,
   lay: PairsLay,
-  over?: number[],
+  over?: RegionOver,
+  side?: 'a' | 'b',
 ): PairsPrep | undefined {
-  if (region.assembly) return AssemblyPairs.read?.(prep, region, region.assembly, ctx, data, lay);
+  if (region.assembly) return AssemblyPairs.read?.(prep, region, region.assembly, ctx, data, lay, over, side);
   const state = regionState(lay);
   const { src } = region;
   const cov = data.coverage(src.source);
   const levels = cov?.levels ?? [1];
-  const regions = over ?? dataRegions(src, ctx.axis);
+  const regions = over
+    ? ((over.regions.get(src.dataSystem) as number[] | undefined) ?? [])
+    : dataRegions(src, ctx.axis);
+  if (!over) {
+    // one system: its entry replaced, no entry made a layout
+    if (state.windows.size !== 1 || !state.windows.has(src.dataSystem)) state.windows.clear();
+    state.windows.set(src.dataSystem, regions);
+  }
   const span = (ctx.axis.u1 - ctx.axis.u0) * src.ratio;
   const cfg = ctx.config.pairs;
   const fit = pairsLevels(levels, src.ratio / ctx.axis.devicePx, span, data, cfg.binPx);
+  const items = fit.items;
+  if (over) return overRead(prep, region, ctx, data, state, regions, over, items);
   // past the store's bounds on the layer's wants together: coarser bins, then zoom in
   const bins = fittedLevel(ctx, data, src, regions, fit.bins);
-  const items = fit.items;
   const binRead = readTiles(ctx, data, src, regions, bins);
   state.pending = binRead.pending;
   // at the finest level the bins are the items themselves
@@ -173,6 +260,31 @@ export function regionPairs(
   const built = mode ? fromItems(read, region) : fromBins(read, bins, region);
   keepRead(state.read, mode, level, read);
   state.prep = withData(prep, built.data, built.weight, mode ? undefined : bins);
+  return state.prep;
+}
+
+/**
+ * A read of `R` at the near side's level (bins, or items: `undefined`), no gate; its wants asked only when they fit
+ * beside the layer's; not whole (pending, failed, past a bound), nothing.
+ */
+function overRead(
+  prep: PairsPrep,
+  region: PairsRegion,
+  ctx: LayoutContext,
+  data: StoreReader,
+  state: RegionState,
+  regions: readonly number[],
+  over: RegionOver,
+  items: number,
+): PairsPrep | undefined {
+  const mode = over.level === undefined ? 1 : 0;
+  const at = over.level ?? items;
+  const r = readTiles(dryOf(ctx), data, region.src, regions, at, mode ? { items: true } : undefined);
+  if (!overFits(ctx, data, over.wants) || r.pending.length || r.failed.length) return undefined;
+  if (sameRead(state.read, mode, at, r.entries) && state.prep) return state.prep;
+  const built = mode ? fromItems(r.entries, region) : fromBins(r.entries, at, region);
+  keepRead(state.read, mode, at, r.entries);
+  state.prep = withData(prep, built.data, built.weight, mode ? undefined : at);
   return state.prep;
 }
 
@@ -222,16 +334,23 @@ function orient(a: string | undefined, b: string | undefined, region: PairsRegio
   return 0;
 }
 
+/** The ends a read anchors by: a sided read's side's alone (1 `a`, 2 `b`), else either (3). */
+function endsOf(region: PairsRegion): number {
+  const side = region.src.side;
+  return side === 'a' ? 1 : side === 'b' ? 2 : 3;
+}
+
 /** Bin pairs with an end in view, their counts summed, each once across tiles (the anchor rule: no key made). */
 function countBins(entries: readonly Loaded[], level: number, region: PairsRegion, regions: readonly number[]): number {
   const sys = region.src.system;
+  const ends = endsOf(region);
   let n = 0;
   for (let k = 0; k < entries.length; k++) {
     const t = entries[k].tables.pairs;
     if (t?.form !== 'bins' || 'aStart' in t) continue;
     for (let i = 0; i < t.count.length; i++) {
-      const aOn = (names(t.aSystem, i) ?? sys) === sys;
-      const bOn = (names(t.bSystem, i) ?? sys) === sys;
+      const aOn = (ends & 1) !== 0 && (names(t.aSystem, i) ?? sys) === sys;
+      const bOn = (ends & 2) !== 0 && (names(t.bSystem, i) ?? sys) === sys;
       const as = aOn ? t.aBin[i] * level : Number.NaN;
       const bs = bOn ? t.bBin[i] * level : Number.NaN;
       if (!(aOn && inView(regions, as, as + level)) && !(bOn && inView(regions, bs, bs + level))) continue;
@@ -251,13 +370,14 @@ export function itemKey(t: PairsList, i: number): string {
 /** Pairs with an end in view, each once across tiles (the anchor rule: no key made). */
 function countItems(entries: readonly Loaded[], region: PairsRegion, regions: readonly number[]): number {
   const sys = region.src.system;
+  const ends = endsOf(region);
   let n = 0;
   for (let k = 0; k < entries.length; k++) {
     const t = entries[k].tables.pairs;
     if (t?.form !== 'list') continue;
     for (let i = 0; i < t.aStart.length; i++) {
-      const aOn = (names(t.aSystem, i) ?? sys) === sys;
-      const bOn = (names(t.bSystem, i) ?? sys) === sys;
+      const aOn = (ends & 1) !== 0 && (names(t.aSystem, i) ?? sys) === sys;
+      const bOn = (ends & 2) !== 0 && (names(t.bSystem, i) ?? sys) === sys;
       const aIn = aOn && inView(regions, t.aStart[i], t.aEnd[i]);
       const bIn = bOn && inView(regions, t.bStart[i], t.bEnd[i]);
       if (!aIn && !bIn) continue;
@@ -333,6 +453,7 @@ export class Gather {
  */
 function fromItems(entries: readonly Loaded[], region: PairsRegion) {
   const sys = region.src.system;
+  const ends = endsOf(region);
   const g = new Gather();
   for (let k = 0; k < entries.length; k++) {
     const t = entries[k].tables.pairs;
@@ -340,8 +461,8 @@ function fromItems(entries: readonly Loaded[], region: PairsRegion) {
     for (let i = 0; i < t.aStart.length; i++) {
       const o = orient(names(t.aSystem, i), names(t.bSystem, i), region);
       if (!o) continue;
-      const as = (names(t.aSystem, i) ?? sys) === sys ? t.aStart[i] : Number.NaN;
-      const bs = (names(t.bSystem, i) ?? sys) === sys ? t.bStart[i] : Number.NaN;
+      const as = ends & 1 && (names(t.aSystem, i) ?? sys) === sys ? t.aStart[i] : Number.NaN;
+      const bs = ends & 2 && (names(t.bSystem, i) ?? sys) === sys ? t.bStart[i] : Number.NaN;
       if (!owned(entries, k, as, t.aEnd[i], bs, t.bEnd[i])) continue;
       const key = itemKey(t, i);
       const sa = t.aStrand?.[i] ?? 1;
@@ -360,6 +481,7 @@ function fromItems(entries: readonly Loaded[], region: PairsRegion) {
  */
 function fromBins(entries: readonly Loaded[], level: number, region: PairsRegion) {
   const sys = region.src.system;
+  const ends = endsOf(region);
   const g = new Gather();
   for (let k = 0; k < entries.length; k++) {
     const t = entries[k].tables.pairs;
@@ -369,8 +491,8 @@ function fromBins(entries: readonly Loaded[], level: number, region: PairsRegion
       const b = names(t.bSystem, i);
       const o = orient(a, b, region);
       if (!o) continue;
-      const as = (a ?? sys) === sys ? t.aBin[i] * level : Number.NaN;
-      const bs = (b ?? sys) === sys ? t.bBin[i] * level : Number.NaN;
+      const as = ends & 1 && (a ?? sys) === sys ? t.aBin[i] * level : Number.NaN;
+      const bs = ends & 2 && (b ?? sys) === sys ? t.bBin[i] * level : Number.NaN;
       if (!owned(entries, k, as, as + level, bs, bs + level)) continue;
       const st = t.strand?.[i] ?? 0;
       const cat = t.category?.get(i) ?? null;

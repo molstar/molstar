@@ -124,6 +124,7 @@ export { type GridPlane, gridPlane, transposeGrid } from './summaries-grid.js';
 export { type BinPairsOptions, binPairs, coarsenPairBins } from './summaries-pairs.js';
 export { FrameSlices, type SliceClock } from './summaries-region.js';
 export type { LayerLoad, WantTile } from './store-wants.js';
+export { sidedName } from './store-wants.js';
 export {
   answerBytes,
   type Cut,

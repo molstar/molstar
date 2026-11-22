@@ -12,7 +12,9 @@ import { quickCase } from '@molstar/test-harness/quick';
 import { describe, expect, inject, it } from 'vitest';
 import { drawView, type FrameInput, type Hit, hitView } from '../index.js';
 import type { RibbonsLay } from '../pairs-ribbons.js';
+import { SeqRuntime } from '@molstar/seqx-core/data';
 import { bridgeSpec, randomBridgePairs } from './bridge-fixtures.js';
+import { AlnLength, randomAlignments, regionBridgeSpec } from './bridge-region-fixtures.js';
 import { settle } from './helpers.js';
 import { reusedHover } from './scenarios.js';
 
@@ -21,6 +23,13 @@ const input: FrameInput = { size: { width: 1440, height: 900 }, dpr: 2, settled:
 
 /** A hit's bytes: the two numbers the test's own call boxes, nothing past them (no hit object). */
 const HitBound = 32;
+
+/**
+ * A pan's layout of both sides and the bridge over a region source (its reads kept, `R` read again and fitted to the
+ * layer's bounds, the ribbons laid out), bytes a layout: measured 486 kB (440 before `R`'s fit check), held, not a
+ * target (the sides' layouts and the reads' regions are most of it).
+ */
+const RelayoutBound = 500_000;
 
 describe('a bridge draws and hovers with nothing allocated once warm', () => {
   it('4,096 ribbons: draw, a hover lighting a ribbon, a hit', async ({ task }) => {
@@ -67,5 +76,26 @@ describe('a bridge draws and hovers with nothing allocated once warm', () => {
     );
     console.info(`bridge hit: ${hit.r.bytesPerStep.toFixed(0)} bytes a hit (${hit.r.note})`);
     expect(hit.r.bytesPerStep, hit.r.note).toBeLessThanOrEqual(HitBound);
+  });
+});
+
+describe('a bridge laid out again', () => {
+  it('a pan of a side over a region source relays the bridge each frame, a bounded size a layout', async ({ task }) => {
+    const s = await settle(regionBridgeSpec(randomAlignments(500, 3)), [SeqRuntime], {
+      pairs: { maxArcs: 1024, binPx: 40 },
+    });
+    // the top zoomed in (the near side, its `R` read), the bottom at the fit: two windows inside the same tiles
+    const at = (x: number) => ({
+      ...input,
+      viewports: {
+        '/views/v/top': { start: 400_000 + x, end: 450_000 + x },
+        '/views/v/bottom': { start: 0, end: AlnLength },
+      },
+    });
+    const frames = [at(0), at(37)];
+    for (const f of frames) await s.frame(f);
+    const r = quickCase(task, 'bridge relayout', (i) => void s.renderer.frame(frames[i & 1]), {});
+    console.info(`bridge relayout: ${r.r.bytesPerStep.toFixed(0)} bytes a layout (${r.r.note})`);
+    expect(r.r.bytesPerStep, r.r.note).toBeLessThanOrEqual(RelayoutBound);
   });
 });
