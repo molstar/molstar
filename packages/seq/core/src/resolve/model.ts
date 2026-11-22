@@ -29,6 +29,7 @@ import {
   type SourceEntry,
   type SystemInfo,
 } from '@molstar/seqx-core/data';
+import { channelSource } from '@molstar/seqx-core/data/channels';
 import { type SeqKinds, SeqLanguage } from '@molstar/seqx-core/lang';
 import {
   type ItemsRead,
@@ -80,6 +81,7 @@ import {
   rowsSystemOf,
   sequenceEntry,
 } from './model-entries.js';
+import { coverageStates, matrixEntry, regionEntry, StatesSystemName, statesSystemOf } from './model-region.js';
 export { resolveAnnotationNode, resolveMapNode, resolveSequenceNode, rowsSystemOf } from './model-entries.js';
 import { mapEntry, numberingEntry } from './maps-entry.js';
 import type { StructureMapData } from './maps-segments.js';
@@ -230,7 +232,7 @@ export interface AnnotationEntry {
    * `cells`: an alignment, on its columns system (`target`), its rows a system of their own (`rows`); `pairs` and
    * `grid`: two systems, `target` and `ySystem` (a pair's second end, a grid's y).
    */
-  readonly shape: 'ranges' | 'values' | 'cells' | 'pairs' | 'grid';
+  readonly shape: 'ranges' | 'values' | 'cells' | 'pairs' | 'grid' | 'matrix';
   readonly target: string;
   readonly fields: readonly string[];
   readonly access?: AccessPlan;
@@ -244,6 +246,8 @@ export interface AnnotationEntry {
   readonly items?: readonly QueryItem[];
   /** An alignment's rows system (`rowsSystemOf`): a position a row, in data order (EC-35). */
   readonly rows?: string;
+  /** A matrix's states system (`statesSystemOf`): a position a state, in the source's order. */
+  readonly states?: string;
   /** An alignment's reference row, by label (what `identity` compares with). */
   readonly reference?: string;
   /** A complex's links: the units their rows' ends are on (`PairsData.aUnit`, `bUnit` index it), by address. */
@@ -396,8 +400,17 @@ export function sourceLengths(model: StaticModel, coverage: (source: string) => 
     const known = coverage(s.source!)?.systems;
     const info = known?.find((x) => isSystemInfo(x, s));
     if (info?.length !== undefined) out.set(lengthKey(s.address, hash), info.length);
-    else if (!info && known?.length && s.name !== AlignmentSystems.rows && !s.aliases)
+    else if (!info && known?.length && s.name !== AlignmentSystems.rows && s.name !== StatesSystemName && !s.aliases)
       out.set(lengthKey(s.address, hash), Unnamed);
+  }
+  // a matrix's states: as many as its source's coverage lists for its target (`ShapeInfo.states`)
+  for (const a of model.annotations.values()) {
+    if (a.shape !== 'matrix' || !a.states || a.access?.kind !== 'source') continue;
+    const source = channelSource(a.access.source);
+    const hash = hashes?.get(source);
+    const target = model.systems.get(a.target);
+    const states = target && coverageStates(coverage(source), target);
+    if (hash && states) out.set(lengthKey(a.states, hash), states.length);
   }
   return out;
 }
@@ -506,11 +519,17 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
   const unnamed = new Set<string>();
   if (given.size)
     for (const at of data) {
-      if (at.node.kind !== 'sequence' && at.node.kind !== 'alignment' && at.node.kind !== 'molecule') continue;
+      const kind = at.node.kind;
+      if (kind !== 'sequence' && kind !== 'alignment' && kind !== 'molecule' && kind !== 'matrix') continue;
       const src = exactAddress(p(at.node, 'source'));
       const hash = src === undefined ? undefined : sourceHashes.get(src);
       if (hash === undefined) continue;
-      const systems = at.node.kind === 'alignment' ? [at.address, rowsSystemOf(at.address)] : [at.address];
+      const systems =
+        kind === 'alignment'
+          ? [at.address, rowsSystemOf(at.address)]
+          : kind === 'matrix'
+            ? [statesSystemOf(at.address)]
+            : [at.address];
       for (const system of systems) {
         const n = given.get(lengthKey(system, hash));
         if (n === Unnamed) unnamed.add(system);
@@ -638,8 +657,8 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
   // pairs and grids: held whole on their two systems
   for (const at of data) {
     if (at.node.kind !== 'pairs' && at.node.kind !== 'grid') continue;
-    // read by region (a source): its reads are the store's, its sides by block (not held)
-    if (p(at.node, 'source') !== undefined || overAssembly(at.node, assemblies)) continue;
+    // over an assembly: its sides by block (the genome model's)
+    if (overAssembly(at.node, assemblies)) continue;
     const isPairs = at.node.kind === 'pairs';
     const kinds = isPairs ? ColumnsRefs : SystemRefs;
     const x = ref(at, isPairs ? 'a' : 'x', kinds);
@@ -647,11 +666,28 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
     const yKey = isPairs ? 'b' : 'y';
     const y = p(at.node, yKey) === undefined ? x : ref(at, yKey, kinds);
     if (!y) continue;
+    // read by region (a source): its reads are the store's (`model-region.ts`)
+    const src = p(at.node, 'source') === undefined ? undefined : ref(at, 'source', ['source']);
     const entry = cached(`${at.address}|${key(at, x, y)}`, () =>
-      heldEntry(at, systems.get(x.address)!, systems.get(y.address)!),
+      src
+        ? { annotation: regionEntry(at, systems.get(x.address)!, systems.get(y.address)!, src.address), issues: [] }
+        : heldEntry(at, systems.get(x.address)!, systems.get(y.address)!),
     );
     annotations.set(at.address, entry.annotation);
     issues.push(...entry.issues);
+  }
+  // matrices: on their target, their states a system of their own
+  for (const at of data) {
+    if (at.node.kind !== 'matrix' || overAssembly(at.node, assemblies)) continue;
+    const target = ref(at, 'target', SystemRefs);
+    if (!target) continue;
+    const src = p(at.node, 'source') === undefined ? undefined : ref(at, 'source', ['source']);
+    const statesAt = statesSystemOf(at.address);
+    const e = cached(`${at.address}|${key(at, target)}|${lengths.get(statesAt) ?? ''}`, () =>
+      matrixEntry(at, systems.get(target.address)!, src?.address, lengths.get(statesAt)),
+    );
+    systems.set(statesAt, e.states);
+    annotations.set(at.address, e.annotation);
   }
   for (const at of data) {
     if (at.node.kind !== 'ranges' && at.node.kind !== 'values') continue;

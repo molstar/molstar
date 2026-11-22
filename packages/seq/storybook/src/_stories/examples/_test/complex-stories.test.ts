@@ -275,6 +275,17 @@ describe('the Complex editing views, headless', () => {
     expect(r.issues).toEqual([]);
   });
 
+  it('the blocks’ contacts: the ATP block has arcs (its contacting CDK2 residues of either copy), beside the chains’', async () => {
+    const s = await open(view('contacts'));
+    const sec = s.viewer.frame!.layout.sections[0];
+    const arcs = sec.sectionLays.filter((l) => l.type.name === 'pairs').map((l) => (l.lay as PairsLay).n);
+    const atps = Data.ligands.filter((l) => l.entry === '1FIN');
+    const residues = new Set(atps.flatMap((l) => l.contacts.map(([r]) => r)));
+    expect(arcs.length).toBe(2);
+    expect(arcs[1]).toBe(residues.size);
+    expect(arcs[0]).toBeGreaterThan(0);
+  });
+
   it('ligands: a chip a ligand with its arcs; an arc hovered lights both ends; the past-2 Å ones hidden by one patch, undone', async () => {
     const s = await open(view('ligands'));
     const v = s.viewer;

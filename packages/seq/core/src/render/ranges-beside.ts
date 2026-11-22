@@ -43,7 +43,7 @@ export function sinkLabels(lay: RangesLay, src: LayerSource, sink: LabelSink, or
   const length = lay.axis.cyclic ? lay.axis.length : undefined;
   for (const [key, g] of byKey) {
     const [s, e] = itemArc(g.pieces, length);
-    const hit = itemHit(base, lay, key, lay.starts[g.row], lay.ends[g.row]);
+    const hit = itemHit(base, lay, key, lay.starts[g.row], lay.ends[g.row], g.row);
     sink.label(g.text, s, e, { owner: lay.owner, key }, hit, order);
   }
 }

@@ -53,7 +53,7 @@ import {
 import { ViewIssues } from './issues.js';
 
 /** The six shapes a layer reads (an extension's type reads one of them: _spec/README.md "Context", Extensions). */
-export type LayerShape = 'letters' | 'ranges' | 'values' | 'cells' | 'pairs' | 'grid';
+export type LayerShape = 'letters' | 'ranges' | 'values' | 'cells' | 'pairs' | 'grid' | 'matrix';
 type Shape = LayerShape;
 
 /** A layer type: what it draws and the simpler type a reader that lacks it draws instead. */
@@ -83,6 +83,8 @@ export const LayerTypes: Readonly<Record<string, LayerType>> = {
   // pairs drawn as their ends where a reader lacks arcs; a grid has none (a reader without it draws none)
   pairs: { shape: 'pairs', fallback: 'ranges' },
   grid: { shape: 'grid' },
+  // samples × positions: a reader without it draws the states' mean as values
+  matrix: { shape: 'matrix', fallback: 'values' },
 };
 
 /**

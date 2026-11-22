@@ -86,10 +86,13 @@ export function windowBehavior(view: ViewModel, config: ViewerConfig = DefaultVi
     const total = axis && axisTotal(axis);
     if (!v || v.pending || !axis || total === undefined) return;
     const a = positionAt(axis, v.start, 'start');
-    const b = positionAt(axis, Math.min(v.end, total), 'end');
+    // a window over a cyclic axis's end runs on past the total: its end is before its start (an arc, never the rest)
+    const over = axis.cyclic && v.end > total;
+    const b = positionAt(axis, over ? v.end - total : Math.min(v.end, total), 'end');
     if (a === undefined || b === undefined) return;
-    const start = Math.min(a, b) + 1;
-    const end = Math.max(a, b);
+    const arc = over || (axis.cyclic && a > b);
+    const start = (arc ? a : Math.min(a, b)) + 1;
+    const end = arc ? b : Math.max(a, b);
     value.set({
       section,
       start,

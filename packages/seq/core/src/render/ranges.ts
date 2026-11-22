@@ -419,14 +419,14 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
       for (let k = 0; k < lay.ln; k++)
         if (x >= lay.lx[k] && x < lay.lx[k] + lay.lw[k]) {
           const i = lay.litem[k];
-          return itemHit(base, lay, lay.keys[i], lay.starts[i], lay.ends[i]);
+          return itemHit(base, lay, lay.keys[i], lay.starts[i], lay.ends[i], i);
         }
       return base;
     }
     // a gene model's label is its item's
     if (lay.gene.ln) {
       const i = geneLabelAt(lay, x, y);
-      if (i >= 0) return itemHit(base, lay, lay.keys[i], lay.starts[i], lay.ends[i]);
+      if (i >= 0) return itemHit(base, lay, lay.keys[i], lay.starts[i], lay.ends[i], i);
     }
     const lane = Math.floor((y - lay.laneY) / lay.laneHeight);
     // a hidden items' tick is hit as its break (within the break's slop), the count of what it hides with it
@@ -439,11 +439,11 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
       const c = connectorAt(lay, lane, x);
       if (c < 0) return base;
       const i = lay.citem[c];
-      return itemHit(base, lay, lay.keys[i], lay.starts[i], lay.ends[i]);
+      return itemHit(base, lay, lay.keys[i], lay.starts[i], lay.ends[i], i);
     }
     const item = lay.hitem[j];
     if (item < 0) return base;
-    const hit = itemHit(base, lay, lay.keys[item], lay.starts[item], lay.ends[item]);
+    const hit = itemHit(base, lay, lay.keys[item], lay.starts[item], lay.ends[item], item);
     const mixed = lay.hn > lay.m ? categoriesAt(lay, lane, x) : undefined;
     return mixed ? { ...hit, categories: mixed } : hit;
   },
@@ -494,20 +494,22 @@ function categoriesAt(lay: RangesLay, lane: number, x: number): string | undefin
 }
 
 /**
- * The item of the run `[from, to)` (marks in the merge scratch) whose color group holds most of its items, the lower group
+ * The item of the run `[from, to)` (marks in the merge scratch) whose color group covers most of the run's width (each mark weighs its width), the lower group
  * (the legend's order) on a tie, the first such item. Counts in a kept scratch, zeroed after: allocates nothing warm.
  */
 function majority(lay: RangesLay, item: Int32Array, from: number, to: number): number {
   const count = lay.merge.count;
+  const { x0, x1 } = lay.merge;
   const group = lay.group;
-  for (let q = from; q < to; q++) count[group[item[q]]]++;
+  for (let q = from; q < to; q++) count[group[item[q]]] += x1[q] - x0[q];
   let best = item[from];
-  let bestCount = 0;
+  let bestCount = -1;
   let bestGroup = 0;
   for (let q = from; q < to; q++) {
     const g = group[item[q]];
     const c = count[g];
-    if (c > bestCount || (c === bestCount && g < bestGroup)) {
+    // widths are sums of floats: equal within a thousandth of a pixel is a tie
+    if (c > bestCount + 1e-3 || (c >= bestCount - 1e-3 && g < bestGroup)) {
       best = item[q];
       bestCount = c;
       bestGroup = g;
@@ -536,7 +538,7 @@ function mergeRuns(lay: RangesLay, px: number) {
     s.tip = new Uint8Array(n);
   }
   if (s.count.length < lay.groupNames.length + lay.groupIds.size + 1)
-    s.count = new Int32Array(2 * (lay.groupNames.length + lay.groupIds.size + 1));
+    s.count = new Float64Array(2 * (lay.groupNames.length + lay.groupIds.size + 1));
   const order = s.order;
   for (let j = 0; j < m; j++) order[j] = j;
   const { mlane, mx0 } = lay;

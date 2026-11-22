@@ -12,11 +12,15 @@ import type { AssetRangeReader } from '@molstar/core/util/assets';
 
 /**
  * The table shapes: `cells` an alignment's rows on 1D tiles of its rows system, columns whole (_spec/README.md "Data",
- * Cells); `pairs`, `matrix` and `grid` by region come later.
+ * Cells); `pairs` on 1D tiles by either end, `grid` on 2D tiles, `matrix` positions tiled and states whole, `rows`
+ * keyed records (_spec/README.md "Data", Protocol: the region shapes).
  */
-export type Shape = 'letters' | 'ranges' | 'values' | 'cells';
+export type Shape = 'letters' | 'ranges' | 'values' | 'cells' | 'pairs' | 'grid' | 'matrix' | 'rows';
 
-export const Shapes: readonly Shape[] = ['letters', 'ranges', 'values', 'cells'];
+export const Shapes: readonly Shape[] = ['letters', 'ranges', 'values', 'cells', 'pairs', 'grid', 'matrix', 'rows'];
+
+/** The shapes whose `list` (or `items`) form a request may ask at any level, as items tiles (`RegionRequest.items`). */
+export const ItemShapes: readonly Shape[] = ['ranges', 'pairs', 'matrix'];
 
 /** A field a source's ranges carry besides `start`, `end`, `strand` and `id`. */
 export interface FieldInfo {
@@ -33,12 +37,36 @@ export interface SystemInfo {
   readonly cyclic?: boolean;
   /** Names a spec may use for it (`chr1`, `1`). */
   readonly aliases?: readonly string[];
+  /**
+   * A sided pairs source's side (between two genomes): `a` the `from` side of the map the pairs serve, `b` the other; a
+   * name may be listed once a side (_spec/README.md "Data", Protocol: sided pairs).
+   */
+  readonly side?: 'a' | 'b';
+}
+
+/** A grid's or pairs' whole-assembly system: the listed sequences end to end, in order, served at coarse levels only. */
+export interface WholeSystem {
+  readonly system: string;
+  readonly sequences: readonly string[];
 }
 
 export interface ShapeInfo {
   readonly system: string;
   readonly shape: Shape;
+  /** A ranges table's fields; a grid's or matrix's channels; a pairs field that can be summed. */
   readonly fields?: readonly FieldInfo[];
+  /** A grid's second systems: a list, or `'*'` (every system of the coverage). */
+  readonly y?: readonly string[] | '*';
+  /** A grid served once (the tile at or above the diagonal), the reader transposing the other (Hi-C). */
+  readonly symmetric?: boolean;
+  /** How a grid's coarse levels were made: `sum` (counts) or `mean` (scores; when absent). */
+  readonly aggregate?: 'sum' | 'mean';
+  /** A category the pairs bins keep (`type`). */
+  readonly binBy?: string;
+  /** A matrix's state names, in order. */
+  readonly states?: readonly string[];
+  /** A grid's or pairs' whole-assembly system. */
+  readonly whole?: WholeSystem;
 }
 
 /**
@@ -98,6 +126,15 @@ export interface RegionRequest {
    * source serving one value ignores it (_spec/README.md "Data", Protocol).
    */
   readonly field?: string;
+  /** A grid's second axis, at the same level (square levels): positions of `system`, 0-based, end exclusive. */
+  readonly y?: { readonly system: string; readonly start: number; readonly end: number };
+  /** The side a request on a sided pairs source reads (`SystemInfo.side`). */
+  readonly side?: 'a' | 'b';
+  /**
+   * Items at a tile size, not bins: the `list` form of `ranges` and `pairs` (a matrix's `items`) at any listed level,
+   * every item with an end in the region, uncut (_spec/README.md "Data", Protocol: items tiles).
+   */
+  readonly items?: boolean;
 }
 
 /** `letters`: one letter per position from `start`, a string, or codes into an alphabet. */
@@ -138,7 +175,8 @@ export interface RangesList {
 
 /**
  * Pairs as a list (_spec/README.md "Data", Protocol): both ends of each row, every pair with an end in the region asked,
- * the other end anywhere. A type only: no `Shape` serves it yet; the BEDPE source answers it by its own `pairs` read.
+ * the other end anywhere. A pair's identity is its `row`, else its `id` (never `.` or empty), with both ends' systems
+ * and starts; rows sharing `row` with other starts are the pieces of one alignment.
  */
 export interface PairsList {
   readonly form: 'list';
@@ -156,6 +194,85 @@ export interface PairsList {
   readonly id?: CategoryColumn;
   readonly row?: Int32Array;
   readonly fields?: readonly RangesField[];
+}
+
+/**
+ * `pairs` at a coarser level (the pairs level): each bin pair with at least one pair, its count, by relative strand (1
+ * straight, −1 reversed, 0 none) and by `category` when the coverage's `binBy` lists it, a field summed when asked
+ * (`sum`). Bins are of the level's width on each end's system, aligned on position 0.
+ */
+export interface PairsBins {
+  readonly form: 'bins';
+  readonly aSystem?: CategoryColumn;
+  readonly bSystem?: CategoryColumn;
+  readonly aBin: Int32Array;
+  readonly bBin: Int32Array;
+  readonly strand?: Int8Array;
+  readonly category?: CategoryColumn;
+  readonly count: Float32Array;
+  readonly sum?: Float32Array;
+}
+
+/** `grid` dense: `nx × ny` cells from bins (`x`, `y`) at the level, x-major, NaN missing. */
+export interface GridDense {
+  readonly form: 'dense';
+  readonly x: number;
+  readonly y: number;
+  readonly nx: number;
+  readonly ny: number;
+  readonly value: Float32Array;
+}
+
+/** `grid` sparse: the listed cells by bin (absolute, at the level); others are `fill` (0 counts, NaN missing). */
+export interface GridSparse {
+  readonly form: 'sparse';
+  readonly x: number;
+  readonly y: number;
+  readonly xBin: Int32Array;
+  readonly yBin: Int32Array;
+  readonly value: Float32Array;
+  readonly fill: number;
+}
+
+/**
+ * `matrix` at its finest level: a column an item (a variant, a CpG) at its own extent × every state, item-major,
+ * `value` float32 (NaN missing) or `codes` uint8 (`0` no copy, `1` some, `2` every copy, `3` partly called, `255`
+ * uncalled).
+ */
+export interface MatrixItems {
+  readonly form: 'items';
+  readonly start: Int32Array;
+  readonly end: Int32Array;
+  readonly states: number;
+  readonly value?: Float32Array;
+  readonly codes?: Uint8Array;
+  readonly id?: CategoryColumn;
+  readonly row?: Int32Array;
+}
+
+/**
+ * `matrix` at a coarser level: a bin per column from `start` (aligned), every state, bin-major. Its own form, `summary`
+ * (not `bins`): a pairs table's `bins` and a matrix's are told apart by name, not by their columns.
+ */
+export interface MatrixSummary {
+  readonly form: 'summary';
+  readonly start: number;
+  readonly states: number;
+  readonly mean?: Float32Array;
+  readonly min?: Float32Array;
+  readonly max?: Float32Array;
+  readonly count?: Float32Array;
+  /** Codes: the majority class (255 none) and its share (0 to 255), as cells' coarse form. */
+  readonly classes?: Uint8Array;
+  readonly shares?: Uint8Array;
+}
+
+/** `rows`: keyed records on the source's records system, a position a record from `start`. */
+export interface RowsKeyed {
+  readonly form: 'keyed';
+  readonly start: number;
+  readonly key: CategoryColumn;
+  readonly fields: readonly RangesField[];
 }
 
 /** `ranges` at a coarse level as density: a count per bin (bin index on the system, at the level's width). */
@@ -213,15 +330,31 @@ export interface CellsMajority {
 export type RangesTable = RangesList | RangesDensity;
 export type CellsTable = CellsCodes | CellsMajority;
 export type ValuesTable = ValuesPositions | ValuesBins;
+export type PairsTable = PairsList | PairsBins;
+export type GridTable = GridDense | GridSparse;
+export type MatrixTable = MatrixItems | MatrixSummary;
+export type RowsTable = RowsKeyed;
 
 export interface Tables {
   readonly letters?: LettersTable;
   readonly ranges?: RangesTable;
   readonly values?: ValuesTable;
   readonly cells?: CellsTable;
+  readonly pairs?: PairsTable;
+  readonly grid?: GridTable;
+  readonly matrix?: MatrixTable;
+  readonly rows?: RowsTable;
 }
 
-export type Table = LettersTable | RangesTable | ValuesTable | CellsTable;
+export type Table =
+  | LettersTable
+  | RangesTable
+  | ValuesTable
+  | CellsTable
+  | PairsTable
+  | GridTable
+  | MatrixTable
+  | RowsTable;
 
 /**
  * Why a region was not answered: `failed` is retried with backoff then a cooldown, `malformed` fails at once with a
@@ -314,6 +447,12 @@ export interface OpenedSource {
    * Names).
    */
   findNames?(text: string, options: FindNamesOptions, signal: AbortSignal): Promise<readonly NameHit[]>;
+  /**
+   * Optional: what reading `request` costs before it is read (compressed bytes; a tabix source's `regionBytes`), known
+   * exactly from an index, never estimated; `undefined` when not known. The store sums it over a layer's tiles
+   * (`maxBytesPerLayer`).
+   */
+  readCost?(request: RegionRequest): number | undefined;
   dispose(): void;
 }
 

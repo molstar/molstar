@@ -35,13 +35,6 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   probes each story's legend entries: hover → at least one emphasis primitive over that entry's items in view, or no
   pointer cursor. Taken by the hover-contract lane (strong), after RG merges (RG changes the hover texts and card).
 
-- **A long deletion painted as an SNV** (the author's look on `packages-seq`, 2026-11-22, Features › Genome formats ›
-  VCF › TP53 ClinVar; kind: look): ClinVar 1174011, a 7 kb deletion (7,669,587–7,676,613), is drawn SNV blue: it is
-  merged into one run with SNVs closer than a pixel at its ends, and FX6's majority counts items, so the SNVs win while
-  the hover card and the legend's outline name a deletion. The majority weighs each item by the width it covers
-  (genome-formats.md, Defaults 2, amended); ties by the legend's order. Test against the drawn lists: the run holding
-  1174011 is deletion pink; a run of equal-width items keeps the count rule.
-
 - **The navigator's readout: one fixed place outside, and its text lagging a gesture** (the author, 2026-11-22, Features ›
   Genome formats › BED › cytobands, after FX5: "it's better if the label stays outside in top right instead of jumping
   around all the time. maybe we can do the same thing for the 'vertical maps' as well, where it appears 'above' the map
@@ -139,22 +132,6 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   at every page width, the overview inside it; a story-layout test at a wide and a narrow width that the overview's box
   lies inside the canvas and the canvas inside the page.
 
-- **A follower's rail turns a window over the cyclic origin into its complement** (the author, 2026-11-21, Files ›
-  Plasmid GFF3, dragging the detail's rail: the bar leaves the pointer, grows to most of the axis, then jumps to the
-  start; "maybe a symptom of a bigger problem"). `core/src/render/rail.ts:186`: a follower's window is read back from
-  its two end positions and ordered with `min`/`max`; when the window crosses pUC19c's origin (end position < start
-  position), that gives the rest of the ring (e.g. 60–2600) instead of 2600–60. The non-follower branch just below
-  already keeps `end > total` over a cyclic origin and the rail already draws such a window as two pieces
-  (`rail.ts:34`, `window.ts:43`); the follower branch should do the same (the end past the total when it runs over the
-  origin), and a drag across the end wrap the bar through its two pieces, the pointer's offset kept modulo the total.
-  **The bigger problem**: ordering two ends with `min`/`max` is wrong on any cyclic axis; audit every site that does it
-  on positions or units that can be cyclic: `navigator.ts:517`, `:1163`, `navigator-parts.ts:255`, `:349`,
-  `export.ts:400–405`, `items.ts:711`, `viewer/src/input.ts:1079` (a selection or export across the origin likely
-  inverts the same way), fixing each through one shared helper (a cyclic interval from its start and end, the core
-  `util` rule) and a twin test per site with a window across pUC19c's origin. Also in the same screenshot: a straight
-  line from the ring's centre through the follower's window wedge, and the wedge wider than the detail's span; check
-  with the fix.
-
 - **The hover card follows a drag on the grid and makes it laggy** (the drag part an instance of the drag rule above; the author, 2026-11-21, Examples › Complex › PAE
   and contacts › CDK2 monomer: "showing the hover when dragging on the PAE plot makes the view feel really laggy"):
   while a drag sweeps a box on the PAE grid, the hover card (x, y, value) and the crosshair are re-resolved and redrawn
@@ -211,7 +188,7 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   source's (a device pixel a row for a lazy source without row levels, part 1 above). The library rule (memory: the
   host configures optional behaviour) and grids-and-rows.md's zoom rows updated with it.
 
-- **A tree opened from its toggle has no way back on screen** (the author, 2026-11-21, Examples › Globins › Rows ›
+- **A tree opened from its toggle has no way back on screen** (FX7 stopped it, 2026-11-22: it needs a `LayoutContext` field in `layer-type.ts` and a line in `tracks.ts`, RG's then; open for the next fix lane) (the author, 2026-11-21, Examples › Globins › Rows ›
   Scale: "when i expand the tree, there doesn't seem to be a way to collapse it back. another port for app level
   control?"). The narrow-frame rule (grids-and-rows.md, "A narrow frame gives way in one order", step 3; core `_spec`
   Rows, `RowsLay.toggleX`) collapses the tree to its glyph; a click or Shift+T (`rows.tree`) opens it whole "and folds
@@ -229,14 +206,6 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   positions it covers reach (the pairs layer's arcs with an end in it), the same as hovering those positions, and its
   card show (the item's fields: entry, resolution). A test on this story: hovering the box and hovering the empty band
   at the same position light the same arcs, and the box shows a card.
-
-- **The blocks' Contacts track leaves ATP out** (the author, 2026-11-21, Examples › Complex › PAE and contacts ›
-  Contacts: "does ATP really have 0 contacts here?"). It has: the recording (`complex/derived-data.ts`, `ligands`) holds
-  ATP A's 43 heavy-atom contacts with 15 CDK2 residues and ATP C's 48 with 14, and the units stories draw them; but
-  `crystalData` (`complex/blocks.ts:46`) builds the one pairs node `a: cdk2, b: cyclin`, so the ATP block shows as a
-  chip with no arc. Add ATP's contacts to the blocks' Contacts track (a second pairs layer, or rows of ATP to CDK2 by
-  residue, copies merged like the rest: an arc an ATP–residue contact of either copy), the story's text naming both
-  kinds, and a story test that the ATP block has arcs.
 
 - **A stacked block repeats tracks that hold nothing for it** (an instance of the empty-well rule above; the author, 2026-11-21, Examples › Complex › Blocks ›
   Stacked: "another view with empty tracks"): with `arrange: 'stack'` each block is a row of every track, so the ATP
@@ -282,19 +251,49 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   contract's lane): hovering a ClinVar variant shows ClinVar's id, Track and Extent; it should name the allele
   (`pos:ref>alt`), its category and its INFO fields, as the design's matrix row "a variant allele" implies.
 
-- **A click on one piece of a feature across a cyclic origin selects only that piece** (GB's look, 2026-11-22,
+## Fixed
+
+- **A long deletion painted as an SNV** (fixed by FX7, merged 2026-11-22) (the author's look on `packages-seq`, 2026-11-22, Features › Genome formats ›
+  VCF › TP53 ClinVar; kind: look): ClinVar 1174011, a 7 kb deletion (7,669,587–7,676,613), is drawn SNV blue: it is
+  merged into one run with SNVs closer than a pixel at its ends, and FX6's majority counts items, so the SNVs win while
+  the hover card and the legend's outline name a deletion. The majority weighs each item by the width it covers
+  (genome-formats.md, Defaults 2, amended); ties by the legend's order. Test against the drawn lists: the run holding
+  1174011 is deletion pink; a run of equal-width items keeps the count rule.
+
+- **The VCF ClinVar story test fails under load** (fixed by FX7, merged 2026-11-22) (2026-11-22: once in GB's run, once in RG's full quick run, each
+  passing alone; the second failure makes it a fix lane's item, `TODO.md`'s watch rule; kind: test): find what is
+  timing-sensitive in `vcf-stories.test.ts` (a real-turn wait, a timeout under load, a 30-read region on a real
+  clock) and make it deterministic on a fake clock; run it 20 times under load.
+
+- **A click on one piece of a feature across a cyclic origin selects only that piece** (fixed by FX7, merged 2026-11-22) (GB's look, 2026-11-22,
   kind: bug; likely shared with the GFF3 plasmid, the same renderer): Features › Genome formats › GenBank › Plasmid,
   bla (`complement(join(2312..2686,1..486))`): the hover names the whole item and lights both pieces, but a click on
   the piece at 2,312–2,686 selects only that stretch. A click selects the item's extent across the origin (both
   pieces), as the design's matrix row "an element: a transcript" says. Test on both plasmid views.
 
-- **The VCF ClinVar story test fails under load** (2026-11-22: once in GB's run, once in RG's full quick run, each
-  passing alone; the second failure makes it a fix lane's item, `TODO.md`'s watch rule; kind: test): find what is
-  timing-sensitive in `vcf-stories.test.ts` (a real-turn wait, a timeout under load, a 30-read region on a real
-  clock) and make it deterministic on a fake clock; run it 20 times under load.
+- **A follower's rail turns a window over the cyclic origin into its complement** (fixed by FX7, merged 2026-11-22) (the author, 2026-11-21, Files ›
+  Plasmid GFF3, dragging the detail's rail: the bar leaves the pointer, grows to most of the axis, then jumps to the
+  start; "maybe a symptom of a bigger problem"). `core/src/render/rail.ts:186`: a follower's window is read back from
+  its two end positions and ordered with `min`/`max`; when the window crosses pUC19c's origin (end position < start
+  position), that gives the rest of the ring (e.g. 60–2600) instead of 2600–60. The non-follower branch just below
+  already keeps `end > total` over a cyclic origin and the rail already draws such a window as two pieces
+  (`rail.ts:34`, `window.ts:43`); the follower branch should do the same (the end past the total when it runs over the
+  origin), and a drag across the end wrap the bar through its two pieces, the pointer's offset kept modulo the total.
+  **The bigger problem**: ordering two ends with `min`/`max` is wrong on any cyclic axis; audit every site that does it
+  on positions or units that can be cyclic: `navigator.ts:517`, `:1163`, `navigator-parts.ts:255`, `:349`,
+  `export.ts:400–405`, `items.ts:711`, `viewer/src/input.ts:1079` (a selection or export across the origin likely
+  inverts the same way), fixing each through one shared helper (a cyclic interval from its start and end, the core
+  `util` rule) and a twin test per site with a window across pUC19c's origin. Also in the same screenshot: a straight
+  line from the ring's centre through the follower's window wedge, and the wedge wider than the detail's span; check
+  with the fix.
 
-## Fixed
-
+- **The blocks' Contacts track leaves ATP out** (fixed by FX7, merged 2026-11-22) (the author, 2026-11-21, Examples › Complex › PAE and contacts ›
+  Contacts: "does ATP really have 0 contacts here?"). It has: the recording (`complex/derived-data.ts`, `ligands`) holds
+  ATP A's 43 heavy-atom contacts with 15 CDK2 residues and ATP C's 48 with 14, and the units stories draw them; but
+  `crystalData` (`complex/blocks.ts:46`) builds the one pairs node `a: cdk2, b: cyclin`, so the ATP block shows as a
+  chip with no arc. Add ATP's contacts to the blocks' Contacts track (a second pairs layer, or rows of ATP to CDK2 by
+  residue, copies merged like the rest: an arc an ATP–residue contact of either copy), the story's text naming both
+  kinds, and a story test that the ATP block has arcs.
 - **"Try pUC19.gb" looks like it does nothing** (fixed by GB, merged 2026-11-22: the button loads the GenBank file) (the author, 2026-11-21, Examples › Services › Your own file:
   "pUC19.gb doesn't load anything"). By design today: GenBank is out of the slice's scope (plan, Out of scope), and
   `dropped-file.ts:71` refuses `.gb`/`.gbk` with "GenBank files are not read yet"; the story's "Try pUC19.gb" button

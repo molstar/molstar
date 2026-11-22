@@ -114,4 +114,21 @@ describe('the window behavior', () => {
     t.w.dragTo(90);
     expect(t.range()).toEqual([75, 95]);
   });
+
+  it('a window over a cyclic axis’s end is said as the arc over it, from its start to its end past the total', () => {
+    const ring = '/views/main/ring';
+    const b = createSeqSpec({ title: 'ring' });
+    const c = b.data.sequence('c', { alphabet: 'dna', letters: 'ACGTACGTAC'.repeat(10), cyclic: true });
+    b.views.view('main', (v) => v.section('ring', { of: c }).track('letters').layer('l', { type: 'letters' }));
+    const config = viewerConfig({ viewport: { maxPxPerPosition: 4 } });
+    const view = new ViewModel(new SpecModel(b.build()), config);
+    view.setLayoutSource({ placement: () => undefined, layouts: { tracks: TracksLayout } });
+    view.setWidth(ring, 40);
+    view.setRange(ring, 90, 110);
+    const w = windowBehavior(view, config);
+    w.begin(ring, 'body', 95);
+    w.dragTo(96);
+    w.end();
+    expect(w.value.value).toMatchObject({ start: 92, end: 11, text: '92 to 11 of 100' });
+  });
 });

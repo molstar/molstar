@@ -30,6 +30,11 @@ export interface LayerLayout {
   readonly layer: ResolvedLayer;
   readonly type: LayerType<any, any>;
   readonly lay: unknown;
+  /**
+   * The layer's wants together were refused (past `maxTilesPerLayer` or `maxBytesPerLayer`): its band hatched with
+   * "zoom in to read this track", which no wait resolves (pending does).
+   */
+  readonly zoomIn?: boolean;
 }
 
 export interface TrackLayout {

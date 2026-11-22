@@ -20,12 +20,21 @@ const B = 0x0000bb;
 const ORDER = ['alpha', 'beta'] as const;
 
 /** Items one position wide, adjacent, over 4000 positions in 400 px (a tenth of a pixel each: one merged bar). */
-function spec(kinds: string[], values: readonly string[] = ORDER): Node {
+function spec(kinds: string[], values: readonly string[] = ORDER, widths?: number[]): Node {
   const b = createSeqSpec({ title: 'mixed runs' });
   const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT'.repeat(1000) });
+  // `widths`: item i spans `widths[i]` positions, adjacent to the next
+  const start: number[] = [];
+  const end: number[] = [];
+  let at = 100;
+  kinds.forEach((_, i) => {
+    start.push(at);
+    at += widths?.[i] ?? 1;
+    end.push(at);
+  });
   const rows = {
-    start: kinds.map((_, i) => 100 + i),
-    end: kinds.map((_, i) => 101 + i),
+    start,
+    end,
     id: kinds.map((_, i) => `i${i}`),
     kind: kinds,
   };
@@ -46,8 +55,8 @@ function spec(kinds: string[], values: readonly string[] = ORDER): Node {
   return b.build();
 }
 
-async function drawn(kinds: string[], values?: readonly string[]) {
-  const f = await (await settle(spec(kinds, values))).frame({ size: SIZE, settled: true });
+async function drawn(kinds: string[], values?: readonly string[], widths?: number[]) {
+  const f = await (await settle(spec(kinds, values, widths))).frame({ size: SIZE, settled: true });
   const lay = layerLay<RangesLay>(f, 0);
   const rects = readRects(f.lists).filter((r) => r.y >= lay.box.y && r.y < lay.box.y + lay.box.height);
   return { f, lay, rects };
@@ -61,6 +70,19 @@ describe('ranges: a merged run of mixed categories', () => {
     expect(lay.step).toBe('bars');
     expect(lay.m).toBe(1);
     expect(rects.map((r) => rgb(r.fill))).toEqual([B]);
+  });
+
+  it('weighs each item by the width it covers: a long item outweighs several short ones', async () => {
+    // a 100-position beta (10 px) among four 1-position alphas (a pixel each at least): beta covers most of it
+    const { lay, rects } = await drawn(['alpha', 'alpha', 'beta', 'alpha', 'alpha'], undefined, [1, 1, 100, 1, 1]);
+    expect(lay.m).toBe(1);
+    expect(rects.map((r) => rgb(r.fill))).toEqual([B]);
+  });
+
+  it('equal total widths from different sums are a tie: the legend’s first category', async () => {
+    // beta 3 px; alpha 1 px and 2 px: the sums differ in the last float digit, not as widths
+    const { rects } = await drawn(['beta', 'alpha', 'alpha'], undefined, [30, 10, 20]);
+    expect(rects.map((r) => rgb(r.fill))).toEqual([A]);
   });
 
   it('a tie takes the legend’s first category', async () => {

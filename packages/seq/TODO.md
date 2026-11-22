@@ -24,6 +24,11 @@ source's complex, the genome axis and layouts), on extension kinds.
 - **A component query on a source-backed sequence** (`(elements :component X)`) is pending until the source's letters
   are read (EC-169); a format with a component index could answer it without the letters.
 
+- **Region reads' follow-ups** (RG, 2026-11-22): sided pairs read on side `a` only (side `b` for a track on genome b,
+  LA's); matrix state labels in the header, `order` and `hidden`; a pairs bin card's per-category breakdown;
+  `MatrixItems` as a ranges list plus a cells column; `store.ts` (854 lines) and `viewer.ts` (818) past 800 with no
+  natural split found; data over an assembly and held pairs' bins (GA2); BEDPE through the store (FR).
+
 ## Base library (`@molstar/core`, `@molstar/io`)
 
 - **`repr`**: `checkRefs` (the resolve pass), `composeLanguage`, `descriptors`, issue dedupe, the catalog docs

@@ -166,6 +166,22 @@ export class LayerChannels {
   }
 }
 
+/** Each compiled channel's id, from one count (a layer's colours as an image key: see `channelId`). */
+const ChannelIds = new WeakMap<Channel, number>();
+let nextChannelId = 0;
+
+/**
+ * A compiled channel's id, unique over every layout: an image cached by it (shared across frames, lays and a
+ * navigator's picture) is never read again under other colours. A channel is compiled again, so a new id, when the
+ * tokens, the reader's setting or its held domains change; a per-lay count would not do (a frame's lay is new, its
+ * count starting again, and a tile drawn under no held domain would be read back under the domain it then holds).
+ */
+export function channelId(channel: Channel): number {
+  let id = ChannelIds.get(channel);
+  if (id === undefined) ChannelIds.set(channel, (id = ++nextChannelId));
+  return id;
+}
+
 function heldDomains(channel: Channel, theme: ThemeContext): Float64Array {
   const out = new Float64Array(2 * channel.open.length);
   for (let i = 0; i < channel.open.length; i++) {

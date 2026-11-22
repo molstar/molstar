@@ -14,6 +14,7 @@ import type { SeqViewerSpec } from '@molstar/seqx-viewer/viewer-spec';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { readFileSync } from 'node:fs';
 import { vi } from 'vitest';
+import { withViewRegistry } from '../view-registry.js';
 
 // The checks the example views' drawing tests share: every drawn mark of a ranges layer is hit (and outlined when
 // hovered), and every item of the data in view has its marks.
@@ -53,7 +54,7 @@ export async function openExample(view: ExampleView, options: OpenOptions): Prom
     ...(history ? { history: uiHistory() } : {}),
     ...(options.config ? { config: [...(base.config ?? []), ...options.config] } : {}),
     ...(options.behaviors ? { behaviors: [...base.behaviors, ...options.behaviors] } : {}),
-    registry: [...(base.registry ?? []), ...(view.registry?.(delayMs === 'staggered' ? {} : { delayMs }) ?? [])],
+    registry: withViewRegistry(base.registry ?? [], view.registry?.(delayMs === 'staggered' ? {} : { delayMs }) ?? []),
     ports: {
       assets: () => {
         // every dataset’s files (`fixtures/…`) are read as they are committed, at once (a read of the disk is not on the

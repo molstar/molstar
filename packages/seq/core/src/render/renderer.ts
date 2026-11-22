@@ -239,16 +239,16 @@ function railsActive(layout: ViewLayout, active: FrameInput['railsActive']): voi
 }
 
 /**
- * What a polar warp refused to draw in the frame's data pass (an image on a ring: `seq.render.ring.image`), said
+ * What a polar warp reduced in the frame's data pass (an image's rows on a ring: `seq.render.ring.image`), said
  * once a section among the layout's issues (_spec/README.md "Render", Rings layout).
  */
 function refusedImages(layout: ViewLayout): void {
   for (const s of layout.sections) {
     const w = s.placement.warpOf?.(0);
-    if (!w?.refused || layout.issues.some((i) => i.code === 'seq.render.ring.image' && i.address === s.section.address))
+    if (!w?.reduced || layout.issues.some((i) => i.code === 'seq.render.ring.image' && i.address === s.section.address))
       continue;
     (layout.issues as Issue[]).push(
-      issueOf(RenderIssues, 'seq.render.ring.image', 'A layer draws an image on a ring: it is not drawn', {
+      issueOf(RenderIssues, 'seq.render.ring.image', 'Rows reduced on the ring', {
         address: s.section.address,
         hint: RenderIssues.codes['seq.render.ring.image'].hint,
       }),
@@ -300,6 +300,8 @@ export class Renderer {
   private readonly parts = new KeyParts();
   private readonly reads = new Map<string, number>();
   private readonly coverages = new Map<string, Coverage | undefined>();
+  /** The store's refusals when laid out (`StoreReader.refusals`): a change lays the view out again. */
+  private refusals: number | undefined;
   /** The last layout's reads as arrays: the check walks them with no iterator. */
   private readKeys: string[] = [];
   private readVersions: number[] = [];
@@ -328,6 +330,12 @@ export class Renderer {
       },
       keysOf: (w) => data.keysOf(w),
       ...(data.tooMany ? { tooMany: (w: Want) => data.tooMany!(w) } : {}),
+      ...(data.tilesOf ? { tilesOf: (w: Want) => data.tilesOf!(w) } : {}),
+      ...(data.layerRefused ? { layerRefused: (l: string) => data.layerRefused!(l) } : {}),
+      ...(data.layerLoad ? { layerLoad: (w: readonly Want[]) => data.layerLoad!(w) } : {}),
+      get refusals() {
+        return data.refusals;
+      },
       get: (k): DataEntry | undefined => {
         const e = data.get(k);
         this.reads.set(k, e?.version ?? -1);
@@ -345,6 +353,7 @@ export class Renderer {
     const sources = this.coverageKeys;
     const coverages = this.coverageValues;
     for (let i = 0; i < sources.length; i++) if (data.coverage(sources[i]) !== coverages[i]) return false;
+    if (data.refusals !== this.refusals) return false;
     return true;
   }
 
@@ -431,10 +440,12 @@ export class Renderer {
     const reads = [...this.reads].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
     let sig = '';
     for (const [k, v] of reads) sig += `${k}=${v};`;
+    sig += `refusals=${this.options.data.refusals ?? 0};`;
     this.readKeys = reads.map((r) => r[0]);
     this.readVersions = reads.map((r) => r[1]);
     this.coverageKeys = [...this.coverages.keys()];
     this.coverageValues = [...this.coverages.values()];
+    this.refusals = this.options.data.refusals;
     this.lists.key = `${parts.toString(this.configKey)}|${(hashString(sig) >>> 0).toString(16)}`;
     return { lists: this.lists, layout, key: this.lists.key, rebuilt: true, base: true, wants: layout.wants };
   }

@@ -183,8 +183,16 @@ export function placeRail(
     const shape = { ranges: own, dir: section.axis.dir, cyclic: section.axis.cyclic };
     const a = p0 === undefined ? undefined : nearestOffsetOf(shape, p0);
     const b = p1 === undefined ? undefined : nearestOffsetOf(shape, p1);
-    rail.start = Math.min(a ?? 0, b ?? total);
-    rail.end = Math.max(a ?? 0, b ?? total);
+    const from = a ?? 0;
+    const to = b ?? total;
+    // over a cyclic origin the end is before the start: the window runs on, its end past the total
+    if (section.axis.cyclic && to < from) {
+      rail.start = from;
+      rail.end = to + total;
+    } else {
+      rail.start = Math.min(from, to);
+      rail.end = Math.max(from, to);
+    }
   } else if (viewport && section.axis.cyclic && viewport.end > total) {
     rail.start = viewport.start;
     rail.end = viewport.end;

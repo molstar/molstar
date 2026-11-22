@@ -33,6 +33,7 @@ import {
   sourceLengths,
 } from '@molstar/seqx-core/resolve';
 import {
+  axisTotal,
   BuiltInLayerKinds,
   type LayerKinds,
   nearestOffsetOf,
@@ -402,7 +403,10 @@ function offsetsOf(view: ResolvedView, v: PositionsViewport): Record<string, Vie
     }
     const a = s.axis.ranges ? (nearestOffsetOf(s.axis, r[0]) ?? r[0]) : r[0];
     const b = s.axis.ranges ? (nearestOffsetOf(s.axis, r[1]) ?? r[1]) : r[1];
-    out[s.address] = { start: Math.min(a, b), end: Math.max(a, b) };
+    // over a cyclic axis's end the second position is before the first: the window runs on, its end past the total
+    const total = s.axis.cyclic ? axisTotal(s.axis) : undefined;
+    out[s.address] =
+      total !== undefined && b < a ? { start: a, end: b + total } : { start: Math.min(a, b), end: Math.max(a, b) };
   }
   return out;
 }

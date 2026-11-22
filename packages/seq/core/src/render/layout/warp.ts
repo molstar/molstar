@@ -9,8 +9,8 @@
 // draw added, in place (text: a line's lays kept across a scroll, only the translation changes); the polar warp takes
 // what a strip drew into a scratch pass and writes it bent onto the page: a rect an annular sector (its squircle
 // corners warped with it), a path's lines cut every few px so they bend, a glyph run's letters placed one by one with
-// their angles, a one-row image (a density strip) its runs of one color as sectors, a taller image refused (its layout
-// says so), a clip applied in the strip's frame before warping. Buffers are kept: nothing allocated once warm.
+// their angles, an image (a density strip, a matrix's states) its rows' runs of one color as sectors (rows a step apart
+// past `imageRuns`: its layout says so), a clip applied in the strip's frame before warping. Buffers are kept: nothing allocated once warm.
 
 import { grown, NoColor, Op, PassList, Passes, PassWriter, PathCommand, type PathList } from '../draw-lists.js';
 import { fontSize } from '../config.js';
@@ -102,8 +102,15 @@ export class PolarWarp {
   tangent = false;
   /** The most px a cut segment spans along the ring. */
   step = 4;
-  /** Primitives refused (an image of more than one row): its layout reports them. */
+  /** Primitives refused (an image of no rows): its layout reports them. */
   refused = 0;
+  /**
+   * The runs an image's rows may draw a frame (`rings.imageRuns`), those drawn, and the images whose rows were taken a
+   * step apart to keep to them (its layout says so, `seq.render.ring.image`); reset with `refused` a frame.
+   */
+  imageRuns = 65_536;
+  runsUsed = 0;
+  reduced = 0;
   /** A scratch pass a pass, named as it (what a strip draws reads its pass's name: the emphasis does). */
   private readonly scratches = Passes.map((name) => new PassList(name));
   private readonly writers: (PassWriter | undefined)[] = [];
@@ -113,9 +120,14 @@ export class PolarWarp {
   private clipDepth = 0;
   /** The square's outline a rect is traced through, and the rect's numbers. */
   private readonly square = new PassList('data');
-  /** A one-row image's runs, a rect each, warped as rects are. */
-  private readonly runs = new PassList('data');
   private readonly rectArgs = new Float64Array(6);
+  /** An image's columns' edges' angles (sine and cosine), shared by its rows' sectors. */
+  private sinT = new Float64Array(64);
+  private cosT = new Float64Array(64);
+  /** The clip an image's rows are cut to: x0, y0, x1, y1. */
+  private readonly scratchClip = new Float64Array(4);
+  /** A row's top's and bottom's radii (`sectorRow`). */
+  private readonly rowArgs = new Float64Array(2);
 
   /** The page point of a frame point: into `px`, `py`. */
   px = 0;
@@ -240,48 +252,131 @@ export class PolarWarp {
   }
 
   /**
-   * A one-row image (a density strip: a color a device column) as the ring band it stands for, each run of one color an
-   * annular sector, so a ring draws a layer's density as a track does; false for a taller image (a matrix).
+   * An image as the ring bands it stands for (_spec/README.md "Render", Rings layout: images as runs): each sample row
+   * a band, each run of one color in it an annular sector, so a ring draws a density strip or a matrix's states as a
+   * track does. Past the frame's `imageRuns` the rows are taken a step of 2, 4, … apart (each standing for the rows of
+   * its step), said by `reduced`; false for an image of no rows.
    */
   private band(out: PassWriter, p: PassList, i: number): boolean {
     const l = p.images;
     const image = l.images[i];
-    if (!image || image.height !== 1) return false;
-    const d = image.data;
+    if (!image || image.height < 1 || image.width < 1) return false;
+    const h = image.height;
+    const left = Math.max(0, this.imageRuns - this.runsUsed);
+    let step = 1;
+    while (step < h && rowRuns(image.data, image.width, h, step) > left) step *= 2;
+    if (step > 1) this.reduced++;
+    const rh = l.h[i] / h;
+    // the columns' edges' angles, once an image (every row shares them), cut so no piece of an edge spans more than
+    // `step` px at the image's outer radius: a run is then a sector traced from them, no angle computed again
     const n = image.width;
-    const cw = l.w[i] / Math.max(1, n);
-    const runs = this.runs;
-    for (let c = 0; c < n; ) {
-      const k = 4 * c;
+    const cw = l.w[i] / n;
+    const outer = Math.max(0, this.r0 - l.y[i]);
+    const sub = Math.max(1, Math.min(64, Math.ceil((Math.abs((cw / this.width) * this.sweep) * outer) / this.step)));
+    const m = n * sub;
+    this.sinT = grown(this.sinT, m + 1);
+    this.cosT = grown(this.cosT, m + 1);
+    for (let q = 0; q <= m; q++) {
+      const t = this.a0 + ((l.x[i] + (q / sub) * cw - this.x0) / this.width) * this.sweep;
+      this.sinT[q] = Math.sin(t);
+      this.cosT[q] = Math.cos(t);
+    }
+    // the clip: rows cut to its y range; a run past its x range goes through the rect path, which clips it
+    const sc = this.scratchClip;
+    sc[0] = Number.NEGATIVE_INFINITY;
+    sc[1] = Number.NEGATIVE_INFINITY;
+    sc[2] = Number.POSITIVE_INFINITY;
+    sc[3] = Number.POSITIVE_INFINITY;
+    if (this.clipDepth > 0) {
+      const b = 4 * (this.clipDepth - 1);
+      const cs = this.clipStack;
+      sc[0] = cs[b] - 1e-6;
+      sc[1] = cs[b + 1];
+      sc[2] = cs[b] + cs[b + 2] + 1e-6;
+      sc[3] = cs[b + 1] + cs[b + 3];
+    }
+    for (let r = 0; r < h; r += step) {
+      const height = rh * Math.min(step, h - r);
+      const top = l.y[i] + r * rh;
+      const y0 = Math.max(top, sc[1]);
+      const y1 = Math.min(top + height, sc[3]);
+      if (y1 <= y0) continue;
+      // the row's radii through an array: a number passed to a call that is not inlined is boxed
+      const ra = this.rowArgs;
+      ra[0] = Math.max(0, this.r0 - y0);
+      ra[1] = Math.max(0, this.r0 - y1);
+      this.sectorRow(out, l, i, r, sub);
+    }
+    return true;
+  }
+
+  /**
+   * Row `r`'s runs as sectors between the radii of `rowArgs` (its top's and its bottom's), from the columns' edges'
+   * angles; the columns past the clip's x range left out (a column cut by its edge with them: a ring's band clip holds
+   * its strip's image whole).
+   */
+  private sectorRow(out: PassWriter, l: PassList['images'], i: number, r: number, sub: number) {
+    const ra = this.rowArgs[0];
+    const rb = this.rowArgs[1];
+    const d = l.images[i].data;
+    const n = l.images[i].width;
+    const cw = l.w[i] / n;
+    const xi = l.x[i];
+    const sc = this.scratchClip;
+    const o = 4 * r * n;
+    const c0 = Math.max(0, Math.ceil((sc[0] - xi) / cw));
+    const c1 = Math.min(n, Math.floor((sc[2] - xi) / cw));
+    const S = this.sinT;
+    const C = this.cosT;
+    const cx = this.cx;
+    const cy = this.cy;
+    const pass = out.pass;
+    const pl = pass.paths;
+    for (let c = c0; c < c1; ) {
+      const k = o + 4 * c;
       if (d[k + 3] === 0) {
         c++;
         continue;
       }
       let e = c + 1;
       while (
-        e < n &&
-        d[4 * e] === d[k] &&
-        d[4 * e + 1] === d[k + 1] &&
-        d[4 * e + 2] === d[k + 2] &&
-        d[4 * e + 3] === d[k + 3]
+        e < c1 &&
+        d[o + 4 * e] === d[k] &&
+        d[o + 4 * e + 1] === d[k + 1] &&
+        d[o + 4 * e + 2] === d[k + 2] &&
+        d[o + 4 * e + 3] === d[k + 3]
       )
         e++;
-      runs.reset();
-      runs.rects.push(
-        l.x[i] + c * cw,
-        l.y[i],
-        (e - c) * cw,
-        l.h[i],
-        ((d[k] << 24) | (d[k + 1] << 16) | (d[k + 2] << 8) | d[k + 3]) >>> 0,
-        NoColor,
-        0,
-        0,
-        0,
-      );
-      this.rect(out, runs, 0);
+      const color = ((d[k] << 24) | (d[k + 1] << 16) | (d[k + 2] << 8) | d[k + 3]) >>> 0;
+      pass.op(Op.path);
+      pl.begin();
+      const q0 = c * sub;
+      const q1 = e * sub;
+      pl.command(PathCommand.move);
+      this.px = cx + ra * S[q0];
+      this.py = cy - ra * C[q0];
+      this.put(pl);
+      for (let q = q0 + 1; q <= q1; q++) {
+        pl.command(PathCommand.line);
+        this.px = cx + ra * S[q];
+        this.py = cy - ra * C[q];
+        this.put(pl);
+      }
+      for (let q = q1; q >= q0; q--) {
+        pl.command(PathCommand.line);
+        this.px = cx + rb * S[q];
+        this.py = cy - rb * C[q];
+        this.put(pl);
+      }
+      pl.command(PathCommand.close);
+      const pk = pl.end(NoColor);
+      pl.fill[pk] = color;
+      pl.stroke[pk] = NoColor;
+      pl.strokeWidth[pk] = 0;
+      pl.dash[pk] = 0;
+      this.runsUsed++;
       c = e;
     }
-    return true;
   }
 
   /** A rect: clipped in the frame, traced as its squircle outline, written as a bent path. */
@@ -467,4 +562,19 @@ export class PolarWarp {
     o.width[k] = l.width[i];
     o.maxWidth[k] = l.maxWidth[i];
   }
+}
+
+/** The runs of one color (transparent left out) in every `step`-th row of an image. */
+function rowRuns(d: Uint8Array, n: number, h: number, step: number): number {
+  let runs = 0;
+  for (let r = 0; r < h; r += step) {
+    const o = 4 * r * n;
+    for (let c = 0; c < n; c++) {
+      const k = o + 4 * c;
+      if (d[k + 3] === 0) continue;
+      if (c === 0 || d[k - 4] !== d[k] || d[k - 3] !== d[k + 1] || d[k - 2] !== d[k + 2] || d[k - 1] !== d[k + 3])
+        runs++;
+    }
+  }
+  return runs;
 }

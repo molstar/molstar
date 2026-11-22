@@ -64,6 +64,17 @@ export const StoreIssues = defineIssues('seq.store', {
     severity: 'warning',
     description: 'A source sent a node again under its key with other content; the held node is kept',
   },
+  'seq.store.pairs.levels': {
+    severity: 'info',
+    description:
+      'A one-level pairs source is past the summaries’ bytes: its coarse tiles are binned from each tile’s items, else too large',
+    hint: 'A format with levels, or indexed by both ends (pairix)',
+  },
+  'seq.store.grid.levels': {
+    severity: 'info',
+    description: 'A one-level grid is past the summaries’ bytes: its coarse tiles are too large',
+    hint: 'A format with its own levels (.hic, .mcool)',
+  },
 });
 
 /** The archive's codes (`archive.ts`; EC-91). */

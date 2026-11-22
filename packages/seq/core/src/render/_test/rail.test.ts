@@ -187,6 +187,37 @@ describe('the ruler rail', () => {
     expect(hitView(f.layout, end + 1, y)?.part).toBe('end');
   });
 
+  it('a follower’s window over a cyclic origin is the arc over it, not its complement', async () => {
+    const b = createSeqSpec({ title: 'cyclic follower' });
+    const p = b.data.sequence('p53', { alphabet: 'protein', letters: P53, cyclic: true });
+    b.views.view('v', (v) => {
+      const lead = v.section('lead', { of: p });
+      lead.track('ruler').layer('ruler', { type: 'ruler' });
+      const f = v.section('detail', { of: p, follow: lead });
+      f.track('ruler').layer('ruler', { type: 'ruler' });
+      f.track('letters').layer('letters', { type: 'letters' });
+    });
+    const s = await settle(b.build());
+    const detail = '/views/v/detail';
+    const f = await s.frame({
+      size: Size,
+      viewport: { start: 380, end: 410 },
+      rails: { [detail]: true },
+      railsActive: { [detail]: true },
+    });
+    const rail = f.layout.sections[1].rail!;
+    expect(rail.start).toBeCloseTo(380, 0);
+    expect(rail.end).toBeCloseTo(410, 0);
+    expect(rail.end).toBeGreaterThan(rail.total);
+  });
+
+  it('an export’s viewport in positions over a cyclic axis’s end is the arc over it, not the rest of the axis', async () => {
+    const s = p53({ cyclic: true });
+    const over = await renderSvg(s, { size: Size, viewport: { positions: { [Section]: [380, 17] } } });
+    const offsets = await renderSvg(s, { size: Size, viewport: { start: 380, end: 410 } });
+    expect(recordDrawLists(over.lists, ['data'])).toBe(recordDrawLists(offsets.lists, ['data']));
+  });
+
   it('never covers the ruler’s ticks or labels, at rest and grown', async () => {
     const s = await settle(p53());
     const input: FrameInput = { size: Size, viewport: { start: 100, end: 200 }, rails, railsActive: active };

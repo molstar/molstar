@@ -134,6 +134,7 @@ function readSystem(v: unknown, path: TreePath): SystemInfo {
   opt(r, 'alphabet', path, str);
   opt(r, 'cyclic', path, (x, p) => (typeof x === 'boolean' ? x : fail(p, 'expected a boolean')));
   opt(r, 'aliases', path, (x, p) => list(x, p).map((a, i) => str(a, [...p, i])));
+  opt(r, 'side', path, (x, p) => oneOf(x, ['a', 'b'] as const, p));
   return r as unknown as SystemInfo;
 }
 
@@ -160,8 +161,12 @@ function readCoverage(v: unknown, path: TreePath): Coverage {
   const r = rec(v, path);
   const systems = list(r.systems, [...path, 'systems']).map((s, i) => readSystem(s, [...path, 'systems', i]));
   const names = new Set<string>();
+  const listed = new Set<string>();
   systems.forEach((s, i) => {
-    if (names.has(s.name)) fail([...path, 'systems', i, 'name'], 'a system listed twice');
+    // a sided pairs source lists a name once a side
+    const at = `${s.side ?? ''}:${s.name}`;
+    if (listed.has(at)) fail([...path, 'systems', i, 'name'], 'a system listed twice');
+    listed.add(at);
     names.add(s.name);
   });
   list(r.shapes, [...path, 'shapes']).forEach((s, i) => {
@@ -169,7 +174,7 @@ function readCoverage(v: unknown, path: TreePath): Coverage {
     const sr = rec(s, p);
     if (!names.has(str(sr.system, [...p, 'system']))) fail([...p, 'system'], 'a system the coverage does not list');
     oneOf(sr.shape, Shapes, [...p, 'shape']);
-    opt(sr, 'fields', p, (x, fp) => list(x, fp).map((f, j) => readField(f, [...fp, j])));
+    readShapeInfo(sr, p, names);
   });
   const levels = list(r.levels, [...path, 'levels']).map((l, i) => int(l, [...path, 'levels', i], 1));
   if (levels.length === 0) fail([...path, 'levels'], 'expected at least one level');
@@ -180,6 +185,25 @@ function readCoverage(v: unknown, path: TreePath): Coverage {
   return r as unknown as Coverage;
 }
 
+/** A shape's optional members (_spec/README.md "Data", Protocol: coverage). */
+function readShapeInfo(sr: ValueRecord, p: TreePath, names: ReadonlySet<string>): void {
+  const known = (x: unknown, q: TreePath) => {
+    if (!names.has(str(x, q))) fail(q, 'a system the coverage does not list');
+  };
+  const bool = (x: unknown, q: TreePath) => (typeof x === 'boolean' ? x : fail(q, 'expected a boolean'));
+  opt(sr, 'fields', p, (x, fp) => list(x, fp).map((f, j) => readField(f, [...fp, j])));
+  opt(sr, 'y', p, (x, q) => (x === '*' ? x : list(x, q).forEach((n, j) => known(n, [...q, j]))));
+  opt(sr, 'symmetric', p, bool);
+  opt(sr, 'aggregate', p, (x, q) => oneOf(x, ['sum', 'mean'] as const, q));
+  opt(sr, 'binBy', p, str);
+  opt(sr, 'states', p, (x, q) => list(x, q).forEach((n, j) => str(n, [...q, j])));
+  opt(sr, 'whole', p, (x, q) => {
+    const w = rec(x, q);
+    known(w.system, [...q, 'system']);
+    list(w.sequences, [...q, 'sequences']).forEach((n, j) => known(n, [...q, 'sequences', j]));
+  });
+}
+
 function readRequest(v: unknown, path: TreePath): RegionRequest {
   const r = rec(v, path);
   str(r.system, [...path, 'system']);
@@ -187,6 +211,14 @@ function readRequest(v: unknown, path: TreePath): RegionRequest {
   if (int(r.end, [...path, 'end'], 0) < start) fail([...path, 'end'], 'the end is before the start');
   int(r.level, [...path, 'level'], 1);
   list(r.shapes, [...path, 'shapes']).forEach((s, i) => oneOf(s, Shapes, [...path, 'shapes', i]));
+  opt(r, 'y', path, (x, p) => {
+    const y = rec(x, p);
+    str(y.system, [...p, 'system']);
+    const ys = int(y.start, [...p, 'start'], 0);
+    if (int(y.end, [...p, 'end'], 0) < ys) fail([...p, 'end'], 'the end is before the start');
+  });
+  opt(r, 'side', path, (x, p) => oneOf(x, ['a', 'b'] as const, p));
+  opt(r, 'items', path, (x, p) => (typeof x === 'boolean' ? x : fail(p, 'expected a boolean')));
   return r as unknown as RegionRequest;
 }
 
