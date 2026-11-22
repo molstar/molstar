@@ -148,9 +148,7 @@ function sizeTracks(
       kind,
       fixed: fixed[j],
       // its label lane its own: what it adds over its lanes (a kind shares lanes, never a label lane)
-      ...(content !== undefined
-        ? { content, label: labels ? content - lanesPx : 0 }
-        : {}),
+      ...(content !== undefined ? { content, label: labels ? content - lanesPx : 0 } : {}),
       ...(t.height !== undefined ? { height: t.height } : {}),
     });
   }

@@ -55,14 +55,15 @@ function tp53(format: 'gff3' | 'gtf'): Node {
   b.views.view('main', (v) => {
     const s = v.section('chr17', { of: chr, range: [...Tp53Region] });
     s.track('ruler', { label: '' }).layer('ruler', { type: 'ruler', units: 'bases' });
-    // a lane a model, its label's room before it: TP53's 47 transcripts and WRAP53's overlap one another (a source's
-    // lanes are not known before it is read, so the tracks are as tall as the region's models need: no density row)
-    s.track('genes', { label: 'Genes', height: 56 }).layer('genes', {
+    // a lane a model, its label's room before it: TP53's 47 transcripts and WRAP53's overlap one another; a track is as
+    // tall as the lanes its source has read, to its cap, then its lanes scroll inside it. Tracks of one kind share the
+    // tallest, so the two genes' own height (two lanes) is theirs to say
+    s.track('genes', { label: 'Genes', height: 36 }).layer('genes', {
       type: 'ranges',
       data: genes,
       line: 'gene',
     } as never);
-    s.track('transcripts', { label: 'Transcripts', height: 760 }).layer('transcripts', {
+    s.track('transcripts', { label: 'Transcripts' }).layer('transcripts', {
       type: 'ranges',
       data: transcripts,
       line: 'gene',

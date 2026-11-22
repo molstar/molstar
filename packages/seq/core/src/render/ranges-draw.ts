@@ -238,10 +238,59 @@ function drawStyled(lay: RangesLay, out: PassWriter) {
   }
 }
 
+/** The width of a scrolled band's rail (a slim line at its right edge), CSS px. */
+const RailPx = 3;
+
+/**
+ * A band whose lanes scroll inside it (_spec/README.md "Render", Track heights): a 1 px edge in the line ink where lanes
+ * are cut (above the first lane in view, below the last), and a slim rail at its right edge whose window is the lanes in
+ * view; none while every lane fits.
+ */
+function drawScroll(lay: RangesLay, out: PassWriter) {
+  if (!lay.scrolls || !(lay.scrollMax > 0)) return;
+  const { box, tokens } = lay;
+  const g = out.args;
+  const edge = tokens.colors['msui-line'];
+  // unrolled: a number passed to a call that is not inlined is boxed (a warm frame allocates nothing)
+  g[4] = edge;
+  g[5] = NoColor;
+  g[6] = 0;
+  g[7] = 0;
+  g[8] = 0;
+  if (lay.top > 0) {
+    g[0] = box.x;
+    g[1] = box.y;
+    g[2] = box.width;
+    g[3] = 1;
+    out.rectArgs();
+  }
+  if (lay.top < lay.scrollMax) {
+    g[0] = box.x;
+    g[1] = box.y + box.height - 1;
+    g[2] = box.width;
+    g[3] = 1;
+    out.rectArgs();
+  }
+  const room = box.height - 4;
+  const h = Math.max(8, (room * lay.room) / (lay.scrollMax + lay.room));
+  g[0] = box.x + box.width - RailPx - 1;
+  g[1] = box.y + 2;
+  g[2] = RailPx;
+  g[3] = room;
+  g[4] = edge;
+  g[6] = RailPx / 2;
+  out.rectArgs();
+  g[1] = box.y + 2 + ((room - h) * lay.top) / lay.scrollMax;
+  g[3] = h;
+  g[4] = tokens.colors['seq-window'];
+  out.rectArgs();
+}
+
 /** The labels pass: the labels inside their marks (whole or cut), and those beside in the label lane with their leaders. */
 function drawLabels(lay: RangesLay, out: PassWriter, _emphasis: Emphasis | undefined) {
   const gap = lay.gap;
   const g = out.args;
+  drawScroll(lay, out);
   if (lay.style === Gene) {
     // a gene model's label: plain text in the text ink, left of its model (placed whole, `ranges-gene.ts`)
     const gl = lay.gene;

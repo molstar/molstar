@@ -767,7 +767,9 @@ describe('a narrow frame’s tree toggle', () => {
     expect(lay(v).treeX1 - lay(v).treeX0).toBe(0);
     // the band's menu says it: "Show tree" once folded; its entry runs `rows.tree` for the track
     const entry = () =>
-      headerMenu(v, { section: '/views/v/s', track: Track })!.groups.flat().find((i) => i.name === 'seq:tree')!;
+      headerMenu(v, { section: '/views/v/s', track: Track })!
+        .groups.flat()
+        .find((i) => i.name === 'seq:tree')!;
     expect(entry().label).toBe('Show tree');
     expect(entry().command).toBe('rows.tree');
     expect(entry().args).toEqual({ track: Track });
