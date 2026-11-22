@@ -2,6 +2,7 @@
 
 ## Decided
 
+- The default viewer raised to 1,480 kB (the author, 2026-11-22: "raise default to 1,480"), LA at 1,470.4.
 - The rail's look: today's, polished (the author, 2026-11-22, after A–C: "can we try option D as 'todays' but with
   better color and knobs? in general, i like the simple look of today's one .. it just needs some polish"): RL adds D
   (the line and a heavier window in a mid ink, round knobs where the box zooms, quiet at the fit, inset ends).
