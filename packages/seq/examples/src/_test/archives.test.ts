@@ -9,7 +9,7 @@ import type { AssetsPort } from '@molstar/seqx-core/context';
 import { createSeqContext } from '@molstar/seqx-core/context/default';
 import { archiveReader, readArchive, SeqRuntime, writeArchive } from '@molstar/seqx-core/data';
 import { describe, expect, it } from 'vitest';
-import { ClinvarFile, RecordedFiles } from '../genomes/files.js';
+import { ClinvarFile, ClinvarIndexFile, RecordedFiles } from '../genomes/files.js';
 import { recordedAssets } from '../recorded-pages.js';
 import { nodeFixtureAssets } from '../node-assets.js';
 import { type ExampleView, ExampleViews } from '../views.js';
@@ -19,10 +19,11 @@ import { type ExampleView, ExampleViews } from '../views.js';
 // reader serves the same bytes, and a view drawn from the archive alone is the view drawn from the fixtures.
 
 /**
- * A location a view’s own runtime serves (a generated chromosome), or a file read by range whose recording holds some
- * pages only (ClinVar’s: TP53’s), kept by its location as a host keeps a remote file it reads by region: no file to hold.
+ * A location a view’s own runtime serves (a generated chromosome), or a file read by region (ClinVar's, its recording
+ * TP53's pages only) and its index, kept by their locations as a host keeps a remote file it reads by range: no file to
+ * hold.
  */
-const generated = (uri: string) => uri.startsWith('generated:') || uri === ClinvarFile;
+const generated = (uri: string) => uri.startsWith('generated:') || uri === ClinvarFile || uri === ClinvarIndexFile;
 
 const signal = new AbortController().signal;
 
