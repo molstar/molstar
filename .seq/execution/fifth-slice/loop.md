@@ -71,7 +71,12 @@ limit of two without anyone deciding it).
    - **fix round**: the lane fixes the findings in one round (SendMessage, §reuse-agents), or the orchestrator does. A
      finding that is a design question becomes a drift note.
    - **merge** with `--no-ff`, only after `pnpm -s -C packages/seq/core size` shows no `FAIL` row on the merged tree
-     (the script exits 0 on a failing row: read its rows, never its exit code; LA merged at 930.5 of 930 kB so, 2026-11-22);
+     (the script exits 0 on a failing row: read its rows, never its exit code; LA merged at 930.5 of 930 kB so, 2026-11-22).
+     **Size bounds are soft** (the author, 2026-11-22: "don't ask me to raise the size limits constantly. try some basic
+     stuff to reduce size, lazy load less frequent features, and otherwise keep it growing. the important parts are the
+     performance and low allocations"): a row past its bound sends the lane to trim and lazy-load first; what remains, the
+     orchestrator raises in `sizes.mjs` and `performance.md` with its cause, without asking. Timing and allocation
+     bounds are the hard gates: never loosened to land a lane;
      the merge commit names the lane and the review's refuted or unfixed findings. Then:
      apply the hot-file changes the lane asked for (dependencies, inventory, tsconfig references, exports' `_test`
      nulls, Storybook registration, its `.v6/changelogs/` entry); lower the file-size baseline when a listed file

@@ -2,6 +2,8 @@
 
 ## Decided
 
+- Size bounds are soft (the author, 2026-11-22): trim and lazy-load first, then the orchestrator raises them without
+  asking; performance and allocations are the gates (loop.md, merge).
 - The bridge chunk's row raised to 28 kB (the author, 2026-11-22: "Raise to 28"), LA2 at 25.2.
 - The values layer's look: C (the author, 2026-11-22: "let's go with C with the bars"): a quiet profile below 4 px a
   value, bars with a gap and rounded tops above; today's, A and B deleted. To VL step 2.
