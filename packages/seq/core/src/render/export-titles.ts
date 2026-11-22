@@ -17,7 +17,9 @@ import { type TooltipOut, tooltipsAt } from './tooltips.js';
 
 /** What the titles read of the export's options. */
 export interface TitleOptions {
+  /** An item's `<title>`: its `name` or its `card` as text; the view's `export.titles` when absent, else `name`. */
   readonly titles?: 'name' | 'card';
+  /** With `card` titles, an item's card as text (a viewer's composed providers); absent: the spec's tooltips alone. */
   readonly cardTitle?: ItemTitle;
 }
 

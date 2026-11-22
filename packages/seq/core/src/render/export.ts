@@ -47,8 +47,8 @@ import {
 } from '@molstar/seqx-core/view';
 import type { Viewport } from './axis.js';
 import { type RenderConfigOverrides, renderConfig } from './config.js';
-import { accessibleOf, type ItemTitle, locationText } from './accessibility.js';
-import { itemTitles } from './export-titles.js';
+import { accessibleOf, locationText } from './accessibility.js';
+import { itemTitles, type TitleOptions } from './export-titles.js';
 import { DrawLists } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
 import { layerSource } from './layer-data.js';
@@ -65,6 +65,7 @@ import type { HeaderPartsOf } from './headers.js';
 import { drawListsToSvg, type SvgAccessible } from './svg.js';
 import { bundledTextMetrics, type TextMetrics } from './text.js';
 import { builtInTokens, type SeqTokens } from './tokens.js';
+import { tooltipSources } from './tooltip-wants.js';
 
 // Headless rendering (_spec/README.md "Render", Export): a spec to an SVG string, asynchronously. It resolves the spec,
 // opens the sources the view reads, wants what the export's size and viewport need through a want set of its own
@@ -112,12 +113,7 @@ export function viewSources(model: StaticModel, view: ResolvedView): Set<string>
       }
     }
   }
-  // its tooltips' `ranges` tables (Render, Tooltip tables): inline or a source's, an assembly's a plan a sequence
-  for (const t of view.tooltips ?? []) {
-    const a = t.schema === 'ranges' ? model.annotations.get(t.address) : undefined;
-    for (const p of a?.bySystem ? a.bySystem.values() : a?.access ? [a.access] : [])
-      out.add(p.kind === 'inline' ? p.source.address : p.source);
-  }
+  tooltipSources(model, view, out);
   return out;
 }
 
@@ -294,7 +290,7 @@ export interface PositionsViewport {
   readonly positions: Readonly<Record<string, readonly [number, number] | readonly [SystemPosition, SystemPosition]>>;
 }
 
-export interface RenderSvgOptions {
+export interface RenderSvgOptions extends TitleOptions {
   /** CSS px; a height `auto` is the sections' content's (a text section every line). */
   readonly size: { readonly width: number; readonly height: number | 'auto' };
   /** Draws a ring's window (the view's `export.window` when absent; false: an exported map is a figure). */
@@ -347,13 +343,6 @@ export interface RenderSvgOptions {
   readonly store?: DataStore;
   /** Legends in a band `below` the data or to its `right`, or `none`: the view's `export.legend` when absent. */
   readonly legend?: 'none' | 'below' | 'right';
-  /**
-   * What an exported item's `<title>` says: its `name`, or its `card` (the composed rows as plain text: a provider call
-   * an item, once an export); the view's `export.titles` when absent, else `name`. Items only.
-   */
-  readonly titles?: 'name' | 'card';
-  /** With `card` titles, an item's card as text (a viewer's composed providers); absent: the spec's tooltips alone. */
-  readonly cardTitle?: ItemTitle;
   /** A reader's color-blind substitution (off: an export draws the figure's colors unless asked). */
   readonly cvdSafe?: boolean;
   /**

@@ -75,3 +75,12 @@ export function tooltipWants(
     }
   }
 }
+
+/** The sources of a view's `ranges` tooltip tables (Render, Tooltip tables): inline or a source's, an assembly's a plan a sequence. */
+export function tooltipSources(model: StaticModel, view: ResolvedView, out: Set<string>): void {
+  for (const t of view.tooltips ?? []) {
+    const a = t.schema === 'ranges' ? model.annotations.get(t.address) : undefined;
+    for (const p of a?.bySystem ? a.bySystem.values() : a?.access ? [a.access] : [])
+      out.add(p.kind === 'inline' ? p.source.address : p.source);
+  }
+}
