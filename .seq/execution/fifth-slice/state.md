@@ -2,6 +2,7 @@
 
 ## Decided
 
+- The bridge chunk's row raised to 28 kB (the author, 2026-11-22: "Raise to 28"), LA2 at 25.2.
 - The values layer's look: C (the author, 2026-11-22: "let's go with C with the bars"): a quiet profile below 4 px a
   value, bars with a gap and rounded tops above; today's, A and B deleted. To VL step 2.
 - A fourth lane for FX13 (the author, 2026-11-22: "Start it now"), beside LA2, FX12 and VL.
