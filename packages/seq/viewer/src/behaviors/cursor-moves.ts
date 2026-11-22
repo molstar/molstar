@@ -52,7 +52,7 @@ import type { CursorBehavior, CursorContext } from './cursor.js';
 import { bandFolds, pagedTop, pageRows, revealedTop, setBandFolds } from './rows-band.js';
 import { type RowsOf, rowsOf as rowsIn, twoAxesLayer } from './two-axes.js';
 import { rowsScroller, type Scroller, scrollChain, scrollersUnder } from './scrollers.js';
-import { scrolledSection, sectionTop, setSectionTop } from '@molstar/seqx-viewer/section-scroll';
+import { revealInSection } from '@molstar/seqx-viewer/section-scroll';
 
 /** What a page or an end key says it scrolled. */
 const Scrolled = { rows: 'Rows', lanes: 'Lanes', section: 'Section' } as const;
@@ -193,19 +193,11 @@ export function createCursor(
     if (i < 0) return;
     const next = revealedTop(r.lay, top ?? topOf(r), i);
     if (next !== topOf(r)) view.setBand(r.track, { bandTop: next });
-    // a band in a section past its cap: the section scrolls the least to show the row (_spec/README.md "Input", The
-    // one rail), read from the last frame's band at the row's place once the band has moved
-    const s = scrolledSection(layout(), c.section);
-    if (!s) return;
+    // a band in a section past its cap: the section scrolls the least to show the row (_spec/README.md "Input")
     const l = r.lay;
     const P = l.display.pinned;
     const y0 = l.box.y + (i < P ? i * l.rowScale : l.pinnedHeight + (i - P - next) * l.rowScale);
-    const y1 = y0 + l.rowScale;
-    const from = s.placement.scrollY ?? s.placement.box.y;
-    const to = s.placement.scrollEnd || s.placement.box.y + s.placement.box.height;
-    const now = sectionTop(view, s);
-    if (y0 < from) setSectionTop(view, s, now - (from - y0));
-    else if (y1 > to) setSectionTop(view, s, now + (y1 - to));
+    revealInSection(view, layout(), c.section, y0, y0 + l.rowScale);
   };
   /**
    * A grid's y shows the cursor's row by the least move: a y of its own (or one following a section) pans by the px the

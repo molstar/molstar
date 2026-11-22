@@ -100,6 +100,27 @@ export class SectionWheel {
 }
 
 /**
+ * Page y `y0` to `y1` (the last frame's: a band's row) shown in a section past its cap by the least scroll (the
+ * keyboard cursor's reveal); nothing where the section does not scroll.
+ */
+export function revealInSection(
+  view: ViewModel,
+  layout: ViewLayout | undefined,
+  section: string,
+  y0: number,
+  y1: number,
+): void {
+  const s = scrolledSection(layout, section);
+  if (!s) return;
+  const p = s.placement;
+  const from = p.scrollY ?? p.box.y;
+  const to = p.scrollEnd || p.box.y + p.box.height;
+  const now = sectionTop(view, s);
+  if (y0 < from) setSectionTop(view, s, now - (from - y0));
+  else if (y1 > to) setSectionTop(view, s, now + (y1 - to));
+}
+
+/**
  * After a layout: a tracks section's stored `top` kept within its content while it scrolls (its tracks hidden or shrunk
  * while scrolled; the layout clamps what it draws by too). Allocates nothing.
  */
