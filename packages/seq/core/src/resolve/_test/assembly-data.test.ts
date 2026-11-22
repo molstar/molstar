@@ -310,4 +310,88 @@ describe('inline pairs, grids and matrices over an assembly', () => {
     expect(m.systems.get('/data/m/(states)')?.length).toBe(2);
     expect(plans(root, '/data/m').systems).toEqual(['chr2']);
   });
+
+  const said = (m: ReturnType<typeof resolveSpec>) =>
+    m.issues.filter((i) => i.code.startsWith('seq.resolve.assembly.')).map((i) => `${i.code}: ${i.message}`);
+  const pair = (n: number) => ({
+    a_start: Array.from({ length: n }, () => 0),
+    a_end: Array.from({ length: n }, () => 1),
+    b_start: Array.from({ length: n }, () => 0),
+    b_end: Array.from({ length: n }, () => 1),
+  });
+
+  it('ends past a sequence’s length: left out, counted and said once (EC-189, EC-208)', () => {
+    const b = createSeqSpec();
+    const g = toy(b);
+    b.data.pairs('p', {
+      a: g,
+      rows: { ...pair(3), b_end: [1, 3, 5], a_name: ['chr1', 'chr1', 'chr1'], b_name: ['chr2', 'chr2', 'chr2'] },
+    });
+    const { m, a } = plans(b.build(), '/data/p');
+    expect(a.pairs!.n).toBe(1);
+    expect(said(m)).toEqual(['seq.resolve.assembly.bounds: 2 rows are past their sequence’s length: left out']);
+  });
+
+  it('rows naming no sequence (null, a short column, no string) and items past a length: counted and said once (EC-189)', () => {
+    const b = createSeqSpec();
+    const g = toy(b);
+    b.data.pairs('p', {
+      a: g,
+      rows: { ...pair(3), a_name: ['chr1', null, 'chr2'], b_name: ['chr1', 'chr2', null] } as never,
+    });
+    b.data.matrix('m', {
+      target: g,
+      values: [1, 2, 3, 4, 5, 6],
+      states: ['x'],
+      name: ['chr2', 'chr2', 'chr2', 'chr1', 7, null] as never,
+    });
+    const root = b.build();
+    const m = resolveSpec(root);
+    expect(m.annotations.get('/data/p')!.pairs!.n).toBe(1);
+    expect(said(m)).toEqual([
+      'seq.resolve.assembly.name: 2 rows name no sequence: left out',
+      'seq.resolve.assembly.name: 2 items name no sequence: left out',
+      'seq.resolve.assembly.bounds: 1 items are past their sequence’s length: left out',
+    ]);
+  });
+
+  it('no name is unknown while the assembly is pending (its source not open): said once it lists its sequences', () => {
+    const b = createSeqSpec();
+    const sizes = b.data.source('sizes', { format: 'chrom-sizes', value: 'chr1\t100\n' as never });
+    const g = b.data.assembly('g', { name: 'G', source: sizes });
+    b.data.pairs('p', { a: g, rows: { ...pair(1), a_name: ['chrZ'], b_name: ['chr1'] } });
+    const root = b.build();
+    expect(said(resolveSpec(root))).toEqual([]);
+  });
+
+  it('two assemblies’ sequences in order, each assembly’s whole before the next (a grid’s systems)', () => {
+    const b = createSeqSpec();
+    const three = (n: string) => [1, 2, 3].map((i) => ({ name: `${n}${i}`, length: 1 }));
+    const a = b.data.assembly('a', assembly('A', three('a'), { order: 'source' }));
+    const c = b.data.assembly('c', assembly('C', three('c'), { order: 'source' }));
+    const xs = ['a3', 'a1', 'a2', 'a3', 'a1', 'a2'];
+    const ys = ['c2', 'c3', 'c1', 'c1', 'c2', 'c3'];
+    b.data.grid('h', { x: a, y: c, values: xs.map(() => 1), x_name: xs, y_name: ys });
+    const { systems } = plans(b.build(), '/data/h');
+    expect(systems).toEqual(['a1', 'a2', 'a3', 'c1', 'c2', 'c3']);
+  });
+
+  it('a grid over 3,400 one-base scaffolds serves the pairs with values alone; a pair past the bound refused unread', () => {
+    const b = createSeqSpec();
+    const n = 3400;
+    const seqs = Array.from({ length: n }, (_, i) => ({ name: `scaffold_${i}`, length: 1 }));
+    const g = b.data.assembly('g', assembly('S', [...seqs, { name: 'chrBig', length: 5000 }], { order: 'source' }));
+    const names = [...seqs.map((q) => q.name), 'chrBig'];
+    b.data.grid('h', { x: g, values: names.map(() => 1), x_name: names, y_name: names });
+    const t = performance.now();
+    const m = resolveSpec(b.build());
+    const a = m.annotations.get('/data/h')!;
+    const value = (a.access as { source: { value: unknown } }).source.value;
+    const data = readSeq(value as never).data!;
+    expect(data.pairs.length).toBe(n);
+    expect(performance.now() - t).toBeLessThan(2000);
+    expect(m.issues.filter((i) => i.code === 'seq.resolve.grid.size').map((i) => i.message)).toEqual([
+      "A sequence pair's grid of 25000000 values is past 16777216",
+    ]);
+  });
 });

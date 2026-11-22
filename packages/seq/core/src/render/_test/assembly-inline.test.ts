@@ -6,7 +6,7 @@
 
 import { categoryColumn, type Node } from '@molstar/core/repr/tree';
 import { binPairs, type PairsList, type SeqData, type SeqPair, SeqRuntime, seqToValue } from '@molstar/seqx-core/data';
-import { assembly, createSeqSpec, genome } from '@molstar/seqx-core/lang';
+import { assembly, createSeqSpec, genome, theme } from '@molstar/seqx-core/lang';
 import { loadGenome } from '@molstar/seqx-core/resolve';
 import { beforeAll, describe, expect, it } from 'vitest';
 import type { RenderConfigOverrides } from '../config.js';
@@ -37,9 +37,10 @@ type Rows = {
   readonly a_end: number[];
   readonly b_start: number[];
   readonly b_end: number[];
-  readonly a_name: string[];
-  readonly b_name: string[];
+  readonly a_name: (string | null)[];
+  readonly b_name: (string | null)[];
   readonly type?: string[];
+  readonly score?: number[];
 };
 
 /**
@@ -50,12 +51,19 @@ export function linksSpec(
   seqs: readonly Seq[],
   rows: Rows,
   inline: boolean,
-  options: { include?: string[]; order?: 'source' | 'length' | 'natural'; layout?: 'rings' } = {},
+  options: {
+    include?: string[];
+    order?: 'source' | 'length' | 'natural';
+    layout?: 'rings';
+    reversed?: string[];
+    scaled?: Record<string, number>;
+    color?: ReturnType<typeof theme.field>;
+  } = {},
 ): Node {
   const b = createSeqSpec({ title: 'links over an assembly' });
   const g = b.data.assembly('toy', assembly('Toy', seqs, { order: options.order ?? 'source' }));
   let links;
-  if (inline) links = b.data.pairs('links', { a: g, rows });
+  if (inline) links = b.data.pairs('links', { a: g, rows: rows as never });
   else {
     const src = b.data.source('src', { format: 'seq', value: seqToValue(perSequence(seqs, rows)) as never });
     links = b.data.pairs('links', { a: g, source: src });
@@ -66,14 +74,23 @@ export function linksSpec(
       'genome',
       g,
       { ...(options.include ? { include: options.include } : {}), ...(options.layout ? { layout: 'rings' } : {}) },
-      (s) => s.track('links').layer('links', { type: 'pairs', data: links }),
+      (s) => {
+        for (const name of options.reversed ?? []) s.block(name, { direction: 'reversed' });
+        for (const [name, scale] of Object.entries(options.scaled ?? {})) s.block(name, { scale });
+        s.track('links').layer('links', {
+          type: 'pairs',
+          data: links,
+          ...(options.color ? { color: options.color, legend: 'none' as const } : {}),
+        });
+      },
     ),
   );
   return b.build();
 }
 
 /** A sequence's own name for any of its names (or none). */
-function canonical(seqs: readonly Seq[], name: string): string | undefined {
+function canonical(seqs: readonly Seq[], name: string | null): string | undefined {
+  if (typeof name !== 'string') return undefined;
   const bare = (x: string) => x.replace(/^chr/i, '');
   return seqs.find((s) => s.name === name || s.aliases?.includes(name) || bare(s.name) === bare(name))?.name;
 }
@@ -86,7 +103,9 @@ function perSequence(seqs: readonly Seq[], rows: Rows): SeqData {
     for (let i = 0; i < rows.a_start.length; i++) {
       const a = canonical(seqs, rows.a_name[i]);
       const b = canonical(seqs, rows.b_name[i]);
-      if (a && b && (a === s.name || b === s.name)) at.push(i);
+      const len = (n: string) => seqs.find((q) => q.name === n)!.length;
+      if (!a || !b || rows.a_end[i] > len(a) || rows.b_end[i] > len(b)) continue;
+      if (a === s.name || b === s.name) at.push(i);
     }
     pairs.push({
       request: { system: s.name, start: 0, end: s.length, level: 1, shapes: ['pairs'] },
@@ -194,7 +213,7 @@ describe('inline pairs over an assembly', () => {
     expect(await marks(linksSpec(Toy, rows, true))).toEqual(await marks(linksSpec(Toy, rows, false)));
   });
 
-  it('a property: over generated assemblies (aliases, `include`, `order`), inline rows draw as the rows per sequence', async () => {
+  it('a property (EC-189, EC-208): over generated assemblies (aliases, unknown and null names, ends past a length, `include`, `order`, reversed and scaled blocks), inline rows draw as the rows per sequence', async () => {
     for (let seed = 1; seed <= 4; seed++) {
       const r = seeded(seed * 7919);
       const n = 2 + Math.floor(r() * 4);
@@ -205,6 +224,8 @@ describe('inline pairs over an assembly', () => {
       }));
       const nameOf = (s: Seq) => {
         const k = r();
+        if (k < 0.05) return null;
+        if (k < 0.1) return 'chrZ';
         return k < 0.3 && s.aliases ? s.aliases[0] : k < 0.6 ? s.name.replace(/^chr/, '') : s.name;
       };
       const rows: Rows = { a_start: [], a_end: [], b_start: [], b_end: [], a_name: [], b_name: [], type: [] };
@@ -216,7 +237,8 @@ describe('inline pairs over an assembly', () => {
         rows.a_start.push(as);
         rows.a_end.push(as + 1 + Math.floor(r() * 40));
         rows.b_start.push(bs);
-        rows.b_end.push(bs + 1 + Math.floor(r() * 40));
+        // now and then an end past its sequence
+        rows.b_end.push(r() < 0.1 ? b.length + 5 : bs + 1 + Math.floor(r() * 40));
         rows.a_name.push(nameOf(a));
         rows.b_name.push(nameOf(b));
         rows.type!.push(r() < 0.5 ? 'link' : 'contact');
@@ -227,11 +249,45 @@ describe('inline pairs over an assembly', () => {
         ...(include?.length ? { include } : {}),
         order,
         ...(r() < 0.3 ? { layout: 'rings' as const } : {}),
+        ...(r() < 0.5 ? { reversed: [seqs[0].name] } : {}),
+        ...(r() < 0.5 ? { scaled: { [seqs[n - 1].name]: 2 } } : {}),
       };
       const inline = await marks(linksSpec(seqs, rows, true, options));
       expect(inline, `seed ${seed}`).toEqual(await marks(linksSpec(seqs, rows, false, options)));
       expect(inline.length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('inline pairs over an assembly: what rides along', () => {
+  const rows: Rows = {
+    a_start: [100, 500],
+    a_end: [200, 600],
+    b_start: [2500, 100],
+    b_end: [2600, 200],
+    a_name: ['1', '1'],
+    b_name: ['1', '2'],
+    score: [0.1, 0.9],
+  };
+
+  it('a theme reads a ride-along column (`score`) over an assembly, as over a sequence', async () => {
+    const color = theme.field('score', { palette: theme.continuous({ colors: 'blues' }) });
+    const s = await settle(linksSpec(Toy, rows, true, { color }), [SeqRuntime]);
+    const f = await s.frame({ size: Size, dpr: 1 });
+    expect(s.model.annotations.get('/data/links')!.fields).toContain('score');
+    const strokes = recordDrawLists(f.lists, ['data'])
+      .split('\n')
+      .filter((l) => l.startsWith('path ') && l.includes(' C '))
+      .map((l) => /stroke (#[0-9a-f]{8})/.exec(l)?.[1]);
+    expect(strokes.length).toBe(2);
+    expect(new Set(strokes).size).toBe(2);
+    expect(f.layout.issues.filter((i) => i.code.startsWith('seq.render.theme'))).toEqual([]);
+  });
+
+  it('a block’s label is the assembly’s name, never a row’s (the rows name `1`, `2`)', async () => {
+    const s = await settle(linksSpec(Toy, rows, true), [SeqRuntime]);
+    const f = await s.frame({ size: Size, dpr: 1 });
+    expect((f.layout.sections[0].placement as BlockPlacement).labels).toEqual(['chr1', 'chr2', 'chr3']);
   });
 });
 
@@ -439,5 +495,26 @@ describe('an inline grid over an assembly', () => {
     const inline = await marks(gridSpec(cells, true));
     expect(inline).toEqual(await marks(gridSpec(cells, false)));
     expect(inline).toContain('image');
+  });
+});
+
+describe('a question for the author: sparse pairs from a one-level source over a genome', () => {
+  // the store's summaries keep only the levels that halve the bins (region-reads "Pairs"): 60 links over a 250 Mb
+  // genome halve none, so the fit reads level 1 over every chromosome, past the store's tiles ("zoom in"); held, the
+  // same links draw (their own rows, no tiles). Kept failing until the author decides (a level kept for the fit?).
+  it.fails('60 links from a level-1 source over 24 chromosomes of 250 Mb draw at the fit', async () => {
+    const seqs: Seq[] = Array.from({ length: 24 }, (_, i) => ({ name: `chr${i + 1}`, length: 250e6 - i * 9e6 }));
+    const rows: Rows = { a_start: [], a_end: [], b_start: [], b_end: [], a_name: [], b_name: [] };
+    for (let i = 0; i < 60; i++) {
+      rows.a_start.push(1e6 * i);
+      rows.a_end.push(1e6 * i + 1e6);
+      rows.b_start.push(2e6 * i);
+      rows.b_end.push(2e6 * i + 1e6);
+      rows.a_name.push(seqs[i % 24].name);
+      rows.b_name.push(seqs[(i * 7) % 24].name);
+    }
+    const s = await settle(linksSpec(seqs, rows, false), [SeqRuntime]);
+    const f = await s.frame({ size: Size, dpr: 1 });
+    expect(f.layout.issues.map((i) => i.code)).not.toContain('seq.render.zoom_in');
   });
 });
