@@ -7,7 +7,15 @@
 import type { CategoryColumn } from '@molstar/core/repr/tree';
 import type { PairsList } from '@molstar/seqx-core/data';
 import type { PairsData } from '@molstar/seqx-core/resolve';
-import { dataRegions, itemsGate, type LayerSource, pairsLevels, readTiles, type TileRead } from './layer-data.js';
+import {
+  dataRegions,
+  fittedLevel,
+  itemsGate,
+  type LayerSource,
+  pairsLevels,
+  readTiles,
+  type TileRead,
+} from './layer-data.js';
 import type { LayoutContext, StoreReader } from './layer-type.js';
 import { PairDatum, type PairsLay, type PairsPrep } from './pairs-lay.js';
 
@@ -72,7 +80,10 @@ export function regionPairs(
   const regions = dataRegions(src, ctx.axis);
   const span = (ctx.axis.u1 - ctx.axis.u0) * src.ratio;
   const cfg = ctx.config.pairs;
-  const { bins, items } = pairsLevels(levels, src.ratio / ctx.axis.devicePx, span, data, cfg.binPx);
+  const fit = pairsLevels(levels, src.ratio / ctx.axis.devicePx, span, data, cfg.binPx);
+  // past the store's bounds on the layer's wants together: coarser bins, then zoom in
+  const bins = fittedLevel(ctx, data, src, regions, fit.bins);
+  const items = fit.items;
   const binRead = readTiles(ctx, data, src, regions, bins);
   // at the finest level the bins are the items themselves
   const binned = binRead.entries.some((e) => e.tables.pairs?.form === 'bins');

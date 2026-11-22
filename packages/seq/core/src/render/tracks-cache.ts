@@ -22,6 +22,9 @@ import type { LayoutInput, LayoutState, SectionLayout } from './tracks-types.js'
  * layout read with their versions, so a section whose reads hold is not laid out again. Its arrays are kept from layout
  * to layout (a count, not a new array: a layout allocates a bounded amount).
  */
+/** A store that bounds no layer: every load fits. */
+const Fits = { fits: true } as const;
+
 class SectionReads implements StoreReader {
   private keys: string[] = [];
   private versions: number[] = [];
@@ -43,6 +46,9 @@ class SectionReads implements StoreReader {
   /** A layer's refusal: a section is laid out again when any changes (`refusals`). */
   layerRefused(layer: string) {
     return this.data.layerRefused?.(layer);
+  }
+  layerLoad(wants: readonly Want[]) {
+    return this.data.layerLoad?.(wants) ?? Fits;
   }
   get refusals() {
     return this.data.refusals;

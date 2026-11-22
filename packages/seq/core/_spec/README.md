@@ -1709,8 +1709,11 @@ over the assets port, with `@molstar/core/util/zip` (never a private zip). Not a
   grid's tile below the diagonal folded to the served one (`foldTile`; `tilesOf` says which are mirrors);
   `maxTilesPerWant` bounds the product. A 1D tile asks no grid, an items tile only `ItemShapes`.
 - **A layer's wants together** (`Want.layer`): their tiles at most `maxTilesPerLayer` (1,024) and their read cost
-  (`readCost`) at most `maxBytesPerLayer` (16 MiB); past either none is asked (`seq.store.too_many_tiles`), and
-  `layerLoad(wants)` tells a layer before it wants, so it reads coarser first.
+  (`readCost`) at most `maxBytesPerLayer` (16 MiB), its view's wants alone counted (a margin ring is asked with them,
+  never counted: the view decides); past either none is asked (`seq.store.too_many_tiles`), and `layerLoad(wants)` tells
+  a layer before it wants: a region layer (pairs' bins, a grid, a matrix) reads the first coarser listed level that fits
+  (`fittedLevel`, asked again only when its view's tiles change), and past the coarsest its band says "zoom in" (Decided
+  16).
 - **An answer's bytes**: past `maxTileBytes` (16 MB, a quarter of the cache) a `too-large` failure, never kept. A tile
   is `tileBins` bins (1,024) at the level's width; a want is clipped to the system's length when known and snaps to
   whole tiles; an unlisted level falls back to the coarsest listed no wider (EC-170). A want over `maxTilesPerWant`

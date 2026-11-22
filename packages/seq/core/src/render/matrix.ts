@@ -26,6 +26,7 @@ import { colorOf } from './grid.js';
 import { ImageCache } from './images.js';
 import {
   dataRegions,
+  fittedLevel,
   type LayerSource,
   layerLevel,
   layerSource,
@@ -270,9 +271,11 @@ export const MatrixType: LayerType<MatrixPrep, MatrixLay> = {
     }
     lay.extents.reset([color]);
     const levels = data.coverage(src.source)?.levels ?? [1];
-    lay.level = layerLevel(src, data, axis);
+    const regions = dataRegions(src, axis);
+    // past the store's bounds on the layer's wants together: coarser, then zoom in
+    lay.level = fittedLevel(ctx, data, src, regions, layerLevel(src, data, axis));
     lay.items = lay.level === levels[0];
-    const read = readTiles(ctx, data, src, dataRegions(src, axis), lay.level, { layer: ctx.key });
+    const read = readTiles(ctx, data, src, regions, lay.level, { layer: ctx.key });
     // the states: the spec's count, else the tables' (a source's coverage not known at resolve)
     let states = prep.states ?? 0;
     for (const e of read.entries)

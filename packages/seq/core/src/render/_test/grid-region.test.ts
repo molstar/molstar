@@ -77,4 +77,15 @@ describe('a grid by region', () => {
     expect(l.lay.images.length).toBe(0);
     expect(f.layout.issues.map((i) => i.code)).toContain('seq.render.zoom_in');
   });
+
+  it('past the layer bound at its level, reads coarser before it says zoom in (Decided 16)', async () => {
+    const s = await settle(spec(), [SeqRuntime], {}, {}, { maxTilesPerLayer: 2 });
+    const near = { size: Size, viewport: { start: 0, end: 300 } };
+    const f = await s.frame(near);
+    const l = f.layout.sections[1].tracks[0].layers[0] as { lay: GridLay; zoomIn?: boolean };
+    // level 1 wants 2 × 2 tiles over the view: level 4 one
+    expect(l.zoomIn).toBeUndefined();
+    expect(l.lay.binLevel).toBe(4);
+    expect(l.lay.images.length).toBeGreaterThan(0);
+  });
 });
