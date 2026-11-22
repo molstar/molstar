@@ -339,21 +339,23 @@ export const LanesRail = 'lanes-rail';
 
 /**
  * A section's rail where it scrolls inside its box (_spec/README.md "Render", Section scroll): the one rail upright at
- * the box's right edge along its scrolled area (`y`, `area` px: below a fixed head), the whole of its scrolled content
- * (px) along it, its window the px in view; pan only, always a target (it exists only while the content overflows).
+ * `x` (the right gutter's rail slot) along its scrolled area (`y` to `end`, px: below a fixed head), the scrolled
+ * content (`scrolled` px) along it, its window the px in view; pan only, always a target (it exists only while the
+ * content overflows).
  */
 export function placeSectionRail(
   rail: Rail,
-  box: Box,
+  x: number,
+  y: number,
+  end: number,
   section: string,
   sectionId: string,
-  y: number,
-  content: number,
+  scrolled: number,
   top: number,
   config: RenderConfig,
 ) {
-  const area = Math.max(0, box.y + box.height - y);
-  const total = Math.max(area, content - (y - box.y));
+  const area = Math.max(0, end - y);
+  const total = Math.max(area, scrolled);
   placeUpright(
     rail,
     section,
@@ -364,7 +366,7 @@ export function placeSectionRail(
     false,
     y,
     area,
-    box.x + box.width - SlimRailPx,
+    x,
     total,
     top,
     Math.min(total, top + area),

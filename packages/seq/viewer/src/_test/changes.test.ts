@@ -262,9 +262,12 @@ const Cases: Record<string, { ctx: unknown; before?: (v: SeqViewer) => unknown }
   'cursor.add-down': { ctx: { section: Text }, before: cursorAtText(5) },
   'cursor.page-down': { ctx: {}, before: cursorOnRow(0) },
   'cursor.page-up': { ctx: {}, before: cursorOnRow(3) },
-  // the first rows band (none under a pointer): its end, then back to its start
-  'cursor.scroll-end': { ctx: {} },
-  'cursor.scroll-start': { ctx: {}, before: (v) => run(v, 'cursor.scroll-end', {}) },
+  // the rows band under the pointer (its layer): its end, then back to its start
+  'cursor.scroll-end': { ctx: { layer: `${RowsTrack}/r` } },
+  'cursor.scroll-start': {
+    ctx: { layer: `${RowsTrack}/r` },
+    before: (v) => run(v, 'cursor.scroll-end', { layer: `${RowsTrack}/r` }),
+  },
   'cursor.first-row': { ctx: {}, before: cursorOnRow(3) },
   'cursor.last-row': { ctx: {}, before: cursorOnRow(0) },
   'cursor.toggle': { ctx: { section: Protein }, before: cursorAt(Protein) },

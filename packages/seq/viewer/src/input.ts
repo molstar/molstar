@@ -14,6 +14,7 @@ import {
   type Rail,
   panOnly,
   RowsRail,
+  SectionRail,
   railUnitAt,
   type Hit as RenderHit,
   type SectionLayout,
@@ -48,6 +49,7 @@ import type {
 } from '@molstar/seqx-viewer/behaviors';
 import { isDragSelect } from '@molstar/seqx-viewer/behaviors/select';
 import { trackOfLayer } from '@molstar/seqx-viewer/behaviors/two-axes';
+import { SectionRailGesture, scrollSection, scrolledSection } from './section-scroll.js';
 import {
   type Anchor,
   axisTotal,
@@ -153,6 +155,12 @@ export class ViewerInput {
   private get rowsRailGesture(): RowsRailGesture | undefined {
     this._rowsRailGesture ??= this.viewer.behavior<RowsBehavior>('rows')?.railGesture();
     return this._rowsRailGesture;
+  }
+  /** A section rail's gesture: the viewer's own (a section past its cap scrolls in every composition). */
+  private _sectionRailGesture: SectionRailGesture | undefined;
+  private get sectionRailGesture(): SectionRailGesture {
+    this._sectionRailGesture ??= new SectionRailGesture(this.viewer.view, () => this.viewer.frame?.layout);
+    return this._sectionRailGesture;
   }
   /** A rail's press that never moved: its click (the platform's, after the button went up) centres or not. */
   private _railClick: { section: string; at: number; part: WindowPart } | undefined;
@@ -365,8 +373,7 @@ export class ViewerInput {
    * page's (false: scroll chaining).
    */
   private _scrollSection(section: string, dy: number): boolean {
-    // the rows behavior's (the one rail's scrollers): a viewer without it scrolls no tracks section
-    if (!dy || !this.viewer.behavior<RowsBehavior>('rows')?.scrollBy?.('section', section, dy)) return false;
+    if (!scrollSection(this.viewer.view, this.viewer.frame?.layout, section, dy)) return false;
     this.viewer.schedule();
     return true;
   }
@@ -477,7 +484,9 @@ export class ViewerInput {
       if (d.rowsRail) {
         d.x = x;
         d.y = y;
-        if (d.moved) this.rowsRailGesture?.dragTo(railUnitAt(d.rowsRail, y));
+        const at = railUnitAt(d.rowsRail, y);
+        if (d.moved && d.rowsRail.hit.navigator === SectionRail) this.sectionRailGesture.dragTo(at);
+        else if (d.moved) this.rowsRailGesture?.dragTo(at);
       } else if (d.rail) {
         d.x = x;
         d.y = y;
@@ -567,7 +576,12 @@ export class ViewerInput {
         ? this._rowsRailOf(hit.layer)
         : undefined;
     if (rowsRail && hit?.part) {
-      if (!this.rowsRailGesture?.press(rowsRail.key, hit.part, railUnitAt(rowsRail, y), rowsRail)) return false;
+      const at = railUnitAt(rowsRail, y);
+      const pressed =
+        rowsRail.hit.navigator === SectionRail
+          ? this.sectionRailGesture.press(rowsRail.key, hit.part, at)
+          : this.rowsRailGesture?.press(rowsRail.key, hit.part, at, rowsRail);
+      if (!pressed) return false;
       this._drag = {
         x,
         y,
@@ -644,8 +658,8 @@ export class ViewerInput {
       this.viewer.schedule();
     }
     if (d.rowsRail) {
-      const g = this.rowsRailGesture;
       const r = d.rowsRail;
+      const g = r.hit.navigator === SectionRail ? this.sectionRailGesture : this.rowsRailGesture;
       // a press that never moved waits for its click: outside the window it centres the rows there
       if (!d.moved) {
         g?.cancel();
@@ -693,7 +707,9 @@ export class ViewerInput {
     if (rr) {
       this._rowsRailClick = undefined;
       this._suppressClick = false;
-      this.rowsRailGesture?.click(rr.track, rr.part, rr.at, rr.window, e.detail ?? 1);
+      if (rr.window.hit?.navigator === SectionRail)
+        this.sectionRailGesture.click(rr.track, rr.part, rr.at, e.detail ?? 1);
+      else this.rowsRailGesture?.click(rr.track, rr.part, rr.at, rr.window, e.detail ?? 1);
       return true;
     }
     const rc = this._railClick;
@@ -859,9 +875,7 @@ export class ViewerInput {
     const mods = this._modifiers(e);
     // the wheel's chain (_spec/README.md "Input", The one rail): its vertical delta scrolls a rows band or a lanes band
     // under the pointer first, then the section past its cap (a text's lines, a tracks section's tracks), then the page
-    const overflowing = this.viewer.frame?.layout.sections.some(
-      (s) => s.section.address === section && s.sectionRail !== undefined,
-    );
+    const overflowing = scrolledSection(this.viewer.frame?.layout, section) !== undefined;
     const textBox = this.viewer.placementOf(section)?.clip === true && this.viewer.view.layoutOf(section) === 'text';
     // a text takes no other wheel (Cmd/Ctrl+wheel zooms it as any section)
     const vertical = !mods.mod && !mods.shift && (textBox ? !e.ctrlKey && !e.metaKey : Math.abs(dy) > Math.abs(dx));
@@ -1132,7 +1146,8 @@ export class ViewerInput {
     // Esc during a drag-select cancels it: the selection before it comes back, and the click after it is none
     // Esc during a window's drag puts the view back where the press found it
     if (e.key === 'Escape' && this._drag?.window) {
-      if (this._drag.rowsRail) this.rowsRailGesture?.cancel();
+      if (this._drag.rowsRail?.hit.navigator === SectionRail) this.sectionRailGesture.cancel();
+      else if (this._drag.rowsRail) this.rowsRailGesture?.cancel();
       else if (this._drag.rail) this.navigatorBehavior?.cancel();
       else this.windowBehavior?.cancel();
       this._dragHit = undefined;

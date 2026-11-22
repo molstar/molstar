@@ -33,7 +33,6 @@ import type { EditOrigin } from '@molstar/seqx-viewer/ports';
 import { CladeActions } from '@molstar/seqx-viewer/bindings';
 import { bandFolds, pagedTop, setBandFolds } from './rows-band.js';
 import { RowsRailGesture } from './rows-rail.js';
-import { type ScrollerKind, scrollerOf } from './scrollers.js';
 import { lanesBand } from './rows-band.js';
 import { trackOfLayer } from './two-axes.js';
 
@@ -96,8 +95,6 @@ export interface RowsBehavior {
   framed(layout: ViewLayout): void;
   /** A new gesture on a rows rail (the input keeps one): its drags scroll and zoom the rows. */
   railGesture(): RowsRailGesture;
-  /** A scroller (the one rail's: a rows or lanes band, a section past its cap) moved by `by` units; false at its end. */
-  scrollBy(kind: ScrollerKind, key: string, by: number): boolean;
   dispose(): void;
 }
 
@@ -514,11 +511,7 @@ export function rowsBehavior(
   });
 
   return {
-    railGesture: () => new RowsRailGesture(view, config, layout),
-    scrollBy(kind, key, by) {
-      const s = disposed ? undefined : scrollerOf(view, layout(), kind, key);
-      return s?.set(s.top() + by) ?? false;
-    },
+    railGesture: () => new RowsRailGesture(view, config),
     commands,
     wheel(track, dy) {
       const l = lay(track);

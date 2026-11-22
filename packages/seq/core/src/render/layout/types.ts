@@ -81,6 +81,8 @@ export interface Placement {
    */
   readonly top?: number;
   readonly scrollY?: number;
+  /** The page y the scrolled area ends at; 0 or absent: the box's foot. */
+  readonly scrollEnd?: number;
   readonly fixed?: number;
   /** What a follower of the section follows: the display units it shows (text: its lines in view). */
   readonly window?: Viewport;

@@ -168,8 +168,8 @@ describe('the one rail answers alike over every box that scrolls', () => {
       expect(sc().top()).toBeCloseTo(sc().total - sc().shown, 3);
       // at the end the key is the page's
       expect(v.input.key({ key: 'End' })).toBe(false);
-      // session state but the rows rail's press beside its window, a jump (its own step: the rows' history)
-      expect(v.view.history.value.back).toBe(kind === 'rows' ? 1 : 0);
+      // session state, every rail's (the rows rail's press beside its window too: a scroll, no step)
+      expect(v.view.history.value.back).toBe(0);
     });
 });
 
@@ -224,6 +224,18 @@ describe('a section of 30 gene tracks past its cap', () => {
       draw(v);
     }
     expect(section(v, Genes).placement.top).toBeGreaterThan(0);
+    // at the section's end the wheel is the page's
+    for (let i = 0; i < 40; i++) {
+      scroll();
+      draw(v);
+    }
+    expect(section(v, Genes).placement.top).toBeCloseTo(
+      section(v, Genes).placement.contentHeight - section(v, Genes).placement.box.height,
+      6,
+    );
+    const s1 = section(v, Genes);
+    const at = s1.tracks.find((t) => t.box.y > s1.placement.scrollY! + 10)!.box;
+    expect(v.input.wheel(at.x + 50, at.y + 5, { deltaX: 0, deltaY: 400, deltaMode: 0 })).toBe(false);
   });
 
   it('an export shows every track, the live scroll untouched', async () => {

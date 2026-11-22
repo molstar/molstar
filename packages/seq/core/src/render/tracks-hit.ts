@@ -8,6 +8,7 @@ import type { Box, Hit } from './layer-type.js';
 import { breakHit } from './marks.js';
 import { BlockPlacement } from './layout/blocks.js';
 import { PlacePoint, WarpKind } from './layout/strips.js';
+import type { Placement } from './layout/types.js';
 import { hitRail } from './rail.js';
 import type { SectionLayout, ViewLayout } from './tracks-types.js';
 import { BreakSlop, Notch } from './tracks-draw.js';
@@ -65,6 +66,11 @@ export function hitView(layout: ViewLayout, x: number, y: number, touch = false,
   return h?.position !== undefined && h.block === r.block ? { ...r, position: h.position } : r;
 }
 
+/** Whether a page y is outside a scrolled placement's scrolled area (below its fixed head, past its box). */
+function outsideScroll(p: Placement, y: number): boolean {
+  return y < (p.scrollY ?? p.box.y) || y >= (p.scrollEnd || p.box.y + p.box.height);
+}
+
 /** A run's hit at a point: the block under it and the run's count (`state` when the block is not read at this zoom). */
 function runHit(layout: ViewLayout, x: number, y: number): Hit | undefined {
   for (const s of layout.sections) {
@@ -117,9 +123,8 @@ function hitLayout(layout: ViewLayout, x: number, y: number, touch: boolean, hov
       const h = hitRail(s.sectionRail, x, y, s.config, touch);
       if (h) return h;
     }
-    const scrolled =
-      !s.sectionRail ||
-      (y >= (s.placement.scrollY ?? s.placement.box.y) && y < s.placement.box.y + s.placement.box.height);
+    // in a section past its cap, a point outside its scrolled area hits none of its scrolled bands' parts
+    const scrolled = !s.sectionRail || !outsideScroll(s.placement, y);
     if (s.rowsRails && scrolled)
       for (let i = 0; i < s.rowsRails.length; i++) {
         const h = hitRail(s.rowsRails[i], x, y, s.config, touch);
@@ -133,6 +138,7 @@ function hitLayout(layout: ViewLayout, x: number, y: number, touch: boolean, hov
       }
     // what a layer draws outside its band (a rows layer's column titles, above the rows), on its first strip
     for (let j = 0; j < s.tracks.length; j++) {
+      if (!scrolled && j >= (s.placement.fixed ?? 0)) continue;
       const lays = s.tracks[j].layers;
       for (let i = 0; i < lays.length; i++) {
         const t = lays[i].type;

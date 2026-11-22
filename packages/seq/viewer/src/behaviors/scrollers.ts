@@ -10,7 +10,8 @@
 // clamped to its ends (the same floor and ceiling whatever moved it), a page, and what Esc puts back. Internal: not in
 // the behaviors' entry.
 
-import { type RangesLay, type RowsLay, type SectionLayout, textTop, type ViewLayout } from '@molstar/seqx-core/render';
+import type { RangesLay, RowsLay, SectionLayout, ViewLayout } from '@molstar/seqx-core/render';
+import { sectionTop, setSectionTop } from '@molstar/seqx-viewer/section-scroll';
 import type { ViewModel } from '@molstar/seqx-viewer/models';
 import { lanesBand, pageLanes, pageRows } from './rows-band.js';
 import { trackOfLayer } from './two-axes.js';
@@ -90,45 +91,22 @@ export function lanesScroller(view: ViewModel, l: RangesLay, track: string): Scr
 /** The px a section's page keeps in view: a page is the box less it (the last lines seen stay). */
 const PageOverlapPx = 40;
 
-/**
- * A section's own scroller while its content overflows its box (its `sectionRail`): px of its scrolled content; a
- * tracks section's top is its viewport's `top`, a text's is moved by px through its anchor (its layout's pan).
- */
+/** A section's own scroller while its content overflows its box (`section-scroll.ts`, the viewer's): px. */
 export function sectionScroller(view: ViewModel, s: SectionLayout): Scroller | undefined {
   const rail = s.sectionRail;
   if (!rail) return undefined;
-  const section = s.section.address;
-  const p = s.placement;
   const shown = rail.end - rail.start;
-  const max = Math.max(0, rail.total - shown);
-  const text = s.layout.name === 'text';
-  // a text's from its stored anchor through its placed lines: moves before a frame add up
-  const top = (): number => {
-    const v = view.get(section);
-    if (text) return v ? textTop(p, v.start) : (p.top ?? 0);
-    return v?.top ?? p.top ?? 0;
-  };
   return {
     kind: 'section',
-    key: section,
+    key: s.section.address,
     total: rail.total,
     shown,
     page: Math.max(1, Math.max(shown / 2, shown - PageOverlapPx)),
     session: true,
-    top,
-    set(to) {
-      const now = top();
-      const next = clamp(to, 0, max);
-      if (Math.abs(next - now) < 1e-6) return false;
-      if (text) return view.panPx(section, 0, next - now);
-      view.setTop(section, next);
-      return true;
-    },
-    save: () => view.get(section),
-    restore(saved) {
-      const v = saved as ReturnType<ViewModel['get']>;
-      if (v) view.setViewport(section, v);
-    },
+    top: () => sectionTop(view, s),
+    set: (to) => setSectionTop(view, s, to),
+    save: () => sectionTop(view, s),
+    restore: (saved) => setSectionTop(view, s, saved as number),
   };
 }
 

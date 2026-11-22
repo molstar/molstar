@@ -21,7 +21,7 @@ import { cutLabel, longestCut } from '../range-labels.js';
 import { elide, type TextMetrics } from '../text.js';
 import { wellCorners } from '../wells.js';
 import type { SectionLayout } from '../tracks.js';
-import { PlacePoint, StripPlacement } from './strips.js';
+import { capScroll, headOf, hiddenAt, PlacePoint, StripPlacement } from './strips.js';
 import type { NavContext, PlaceContext } from './types.js';
 
 /** A section's block as the resolved view gives it. */
@@ -644,6 +644,8 @@ export class BlockPlacement extends StripPlacement {
     out.y = y;
     for (let j = 0; j < s.bands; j++) {
       const k = i * s.bands + j;
+      // a scrolled band outside the scrolled area is hidden there (_spec/README.md "Render", Section scroll)
+      if (this.clip && j >= this.fixed && hiddenAt(this, y)) continue;
       if (s.bandH[k] > 0 && y >= s.bandY[k] && y < s.bandY[k] + s.bandH[k]) {
         out.band = j;
         break;
@@ -721,7 +723,12 @@ export function rowZoom(row: BlockRow, c: NavContext, v: Viewport, factor: numbe
 }
 
 /** Places a section's blocks in a row or a stack over the section's window (`ctx.axis`'s). */
-export function placeBlocks(section: ResolvedSection, ctx: PlaceContext, prev?: BlockPlacement): BlockPlacement {
+export function placeBlocks(
+  section: ResolvedSection,
+  ctx: PlaceContext,
+  prev?: BlockPlacement,
+  scrollTop?: number,
+): BlockPlacement {
   const p = prev ?? new BlockPlacement();
   const blocks = section.blocks!;
   const { config, axis } = ctx;
@@ -890,14 +897,23 @@ export function placeBlocks(section: ResolvedSection, ctx: PlaceContext, prev?: 
       }
     }
   if (!p.stacked && p.labelRow) thinLabels(p, blocks, ctx.text, config, prefix);
+  // past its cap its tracks scroll (_spec/README.md "Render", Section scroll): a row's below its label row and ruler,
+  // its foot kept below the box; a stack's rows whole
+  const fixed = p.stacked ? 0 : headOf(ctx.bands, ctx.heights);
+  let head = p.stacked ? top : top + p.labelRow;
+  if (fixed > 0 && strips.n) head = strips.bandY[fixed - 1] + strips.bandH[fixed - 1] + strips.padB[fixed - 1];
+  const content = p.stacked ? y - top : rows;
+  const capped = capScroll(p, ctx, section.params.height, top, content, fixed, head, p.stacked, scrollTop);
+  if (p.clip && !p.stacked) p.scrollEnd = top + capped;
   p.tracksTop = top + p.labelRow;
-  p.tracksBottom = top + rows;
+  p.tracksBottom = top + (p.stacked ? rows : capped);
   // the runs in view, their labels where they have room; the groups' brackets and the closing run in a row under
   layRuns(p, ctx, blocks);
   const foot = p.stacked ? 0 : layFoot(p, section, ctx, blocks);
   p.footRow = foot;
-  const height = (p.stacked ? y - top : rows) + foot;
-  p.contentHeight = height;
+  const height = capped + foot;
+  // all of it (an export's figure, the rail's extent): the tracks whole and the foot
+  p.contentHeight = content + foot;
   p.box = { x: config.inset, y: top, width: ctx.width - 2 * config.inset, height };
   for (let i = 0; i < strips.n; i++) ctx.layStrip(p, i);
   return p;

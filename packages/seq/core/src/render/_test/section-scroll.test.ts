@@ -11,7 +11,8 @@
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
-import { hitView, SectionRail, TracksNav } from '../index.js';
+import { rangesLocation } from '@molstar/seqx-core/query';
+import { hitView, recordDrawLists, SectionRail, TracksNav } from '../index.js';
 import { renderSvg } from '../render-svg.js';
 import { settle } from './helpers.js';
 
@@ -75,7 +76,8 @@ describe('a tracks section past its cap', () => {
     // a point on the ruler is the ruler's, though a scrolled band lies under it
     const r = b.tracks[0].box;
     const h = hitView(f.layout, r.x + 40, r.y + r.height / 2);
-    expect(h?.layer ?? '').not.toMatch(/\/t\d+\//);
+    expect(h).toBeDefined();
+    expect(h!.layer).toMatch(/\/ruler\//);
   });
 
   it('the navigation clamps `top` to its content', async () => {
@@ -86,9 +88,65 @@ describe('a tracks section past its cap', () => {
     expect(TracksNav.pan(c, v, 0, -50).top).toBe(0);
   });
 
-  it('an export shows every track (the figure), no rail', async () => {
+  it('an export shows every track (the figure): its height holds them, no clip at the scrolled area', async () => {
+    const { sec } = await laid(geneTracks());
     const r = await renderSvg(geneTracks(), { size: { width: 800, height: 'auto' } } as never);
     expect(r.svg).toContain('>Gene 29<');
     expect(r.svg).toContain('>Gene 0<');
+    const height = Number(/<svg[^>]* height="([\d.]+)"/.exec(r.svg)![1]);
+    expect(height).toBeGreaterThanOrEqual(sec.placement.contentHeight);
+    // no clip rect at the live scrolled area's top
+    expect(r.svg).not.toContain(`<rect x="8" y="${sec.placement.scrollY}"`);
   });
+
+  it('a column tint under the data stays inside its box (never into the section below)', async () => {
+    const st = await settle(geneTracks(), [], { emphasis: { selectionPlace: 'under', selectionShape: 'column' } });
+    const input = { size: Size, settled: true };
+    await st.frame(input);
+    const f = st.renderer.frame({ ...input, emphasis: { selection: rangesLocation('/data/s', [10, 40]) } });
+    const lines = recordDrawLists(f.lists, ['background']).split('\n');
+    const tint = lines.findIndex((l) => l.includes('#8f4c062e'));
+    expect(tint).toBeGreaterThan(0);
+    let k = tint - 1;
+    while (k >= 0 && !lines[k].startsWith('clip') && lines[k] !== 'unclip') k--;
+    const box = f.layout.sections[0].placement.box;
+    expect(lines[k]).toBe(`clip ${box.x} ${box.y} ${box.width} ${box.height}`);
+  });
+
+  it('a head as tall as the box: no scroll, no rail, all of it shown (a spec `height` under the ruler)', async () => {
+    const { sec } = await laid(geneTracks(30, 20));
+    expect(sec.placement.clip).toBe(false);
+    expect(sec.sectionRail).toBeUndefined();
+    expect(sec.placement.box.height).toBe(sec.placement.contentHeight);
+  });
+});
+
+/** Blocks of one system each over `n` gene tracks, in a row or stacked. */
+function blockTracks(arrange: 'row' | 'stack', n = 30): Node {
+  const b = createSeqSpec({ title: 'blocks past the cap' });
+  const a = b.data.sequence('a', { alphabet: 'dna', letters: 'ACGT'.repeat(50) });
+  const c = b.data.sequence('c', { alphabet: 'dna', letters: 'TTGA'.repeat(50) });
+  b.views.view('v', (v) => {
+    const s = v.section('blocks', { arrange } as never);
+    s.block('a', { of: a });
+    s.block('c', { of: c });
+    s.track('ruler', { label: '' }).layer('r', { type: 'ruler' });
+    for (let i = 0; i < n; i++)
+      s.track(`t${i}`, { label: `T${i}`, height: 30 } as never).layer('l', { type: 'letters' });
+  });
+  return b.build();
+}
+
+describe('a section of blocks past its cap', () => {
+  for (const arrange of ['row', 'stack'] as const)
+    it(`${arrange}: its box the cap, its tracks scroll by \`top\` with the rail`, async () => {
+      const { sec } = await laid(blockTracks(arrange));
+      expect(sec.placement.contentHeight).toBeGreaterThan(600);
+      expect(sec.placement.clip).toBe(true);
+      expect(sec.sectionRail).toBeDefined();
+      const { sec: b } = await laid(blockTracks(arrange), {}, 150);
+      expect(b.placement.top).toBe(150);
+      const last = b.tracks.length - 1;
+      expect(b.placement.strips.bandY[last]).toBeCloseTo(sec.placement.strips.bandY[last] - 150, 6);
+    });
 });

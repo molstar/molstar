@@ -125,7 +125,12 @@ function drawBackground(layout: ViewLayout, out: PassWriter, emphasis: Emphasis 
         }
       }
       if (head >= 0 && head < s.tracks.length) out.unclip();
-      if (under && column && s.axis && s.band) drawTints(out, s, s.axis, s.band, emphasis!, tokens, config);
+      if (under && column && s.axis && s.band) {
+        // inside the section's box where it scrolls: never into the section below
+        if (head >= 0) clipTo(out, s.placement.box);
+        drawTints(out, s, s.axis, s.band, emphasis!, tokens, config);
+        if (head >= 0) out.unclip();
+      }
       continue;
     }
     if (!under) continue;
@@ -163,14 +168,15 @@ function clipTo(out: PassWriter, b: Box): void {
 }
 
 /** A clip to a scrolled section's scrolled area: its box below its fixed head (_spec/README.md "Render", Section scroll). */
-function scrollClip(out: PassWriter, s: SectionLayout): void {
-  const b = s.placement.box;
-  const y = s.placement.scrollY ?? b.y;
+function scrollClip(out: PassWriter, s: SectionLayout, dx = 0, dy = 0): void {
+  const p = s.placement;
+  const b = p.box;
+  const y = p.scrollY ?? b.y;
   const g = out.args;
-  g[0] = b.x;
-  g[1] = y;
+  g[0] = b.x - dx;
+  g[1] = y - dy;
   g[2] = b.width;
-  g[3] = Math.max(0, b.y + b.height - y);
+  g[3] = Math.max(0, (p.scrollEnd || b.y + b.height) - y);
   out.clipArgs();
 }
 
@@ -317,18 +323,12 @@ function drawStrips(
           if (s.boxes[k].height > 0 && ownLettersIn(s.lays[k], emphasis))
             drawSectionEmphasis(w, s, a, s.boxes[k], emphasis, layout, false);
         }
-      // under a fixed head (a scrolled tracks section's ruler) the scrolled bands clipped below it as well
-      const head = clipped ? (s.placement.fixed ?? 0) : 0;
+      // a tracks section past its cap: the scrolled bands clipped to its scrolled area (below its fixed head, above a
+      // row of blocks' foot) as well
+      const head = clipped && s.layout.fillBands ? (s.placement.fixed ?? 0) : -1;
       for (let j = 0; j < nb; j++) {
         const k = i * nb + j;
-        if (head > 0 && j === head) {
-          const g = w.args;
-          g[0] = pb.x - strips.dx[i];
-          g[1] = (s.placement.scrollY ?? pb.y) - dy;
-          g[2] = pb.width;
-          g[3] = Math.max(0, pb.y + pb.height - (s.placement.scrollY ?? pb.y));
-          w.clipArgs();
-        }
+        if (j === head) scrollClip(w, s, strips.dx[i], dy);
         const box = s.boxes[k];
         if (box.y + dy >= layout.height) continue;
         if (box.height <= 0 && !s.layout.fillBands) continue;
@@ -374,7 +374,7 @@ function drawStrips(
         }
         if (clip) w.unclip();
       }
-      if (head > 0 && head < nb) w.unclip();
+      if (head >= 0 && head < nb) w.unclip();
       const breaks = s.stripBreaks[i];
       if (pass === 'data' && col && breaks.length) drawBreaks(w, breaks, a, col, tokens);
       if (clipped) w.unclip();

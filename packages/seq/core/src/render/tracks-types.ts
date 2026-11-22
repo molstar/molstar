@@ -282,6 +282,8 @@ export class LayoutState {
   domainsVersion = 0;
   /** Each section's last layout and what it was laid out for (_spec/README.md "Render", The key: per section). */
   readonly sections = new Map<string, SectionCache>();
+  /** A section of the last layout scrolled past its cap: the right gutter keeps a rail's slot for it. */
+  sectionSlot = false;
   /** The row columns' fit, kept while what it read is the same. */
   columnsFit: unknown;
   /** The template instances shown last (their tracks' addresses): kept while a zoom's new level is pending. */
