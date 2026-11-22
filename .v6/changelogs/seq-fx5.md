@@ -1,7 +1,4 @@
-## Seq* (next): the fourth slice's fix point FX5
+## Seq* (next): fixes
 
-- Seq*: an extension layer type's hover outline is drawn by the view from its reported mark (`LayerType.mark`,
-  `HitMark`; opt out with `ownHover`); `isExtensionName`; the named palettes `greens` and `greens-r`; an open header
-  menu keeps its header's actions shown (`Emphasis.menu`).
-- Seq* examples: PAE plots in AlphaFold DB's greens, with CDK2's real PAE (AlphaFold DB v6); the extension story's
-  sites at p53's serines; the fake structure viewer names the hovered residue.
+- The navigator's readout never covers the window, its grips or the pointer; the square navigator draws its sweep live, snapped to whole cells, and Escape cancels it; the palette control is one menu entry, shown only where a layer reads a palette, its change a patch that the original entry and undo restore exactly; the tree's root line is drawn whole.
+- `@molstar/ui`'s context menu ends a submenu row in its arrow, after a key when the row has both.
