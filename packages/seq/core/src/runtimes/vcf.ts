@@ -4,12 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import {
-  abortError,
-  type FormatRuntime,
-  type OpenContext,
-  type SourceEntry,
-} from '../data/protocol.js';
+import { abortError, type FormatRuntime, type OpenContext, type SourceEntry } from '../data/protocol.js';
 import { wholeLevel } from '../data/seq-format.js';
 import { refuse, wholeSource } from './internal/answers.js';
 import { textBytes } from './internal/text.js';
@@ -38,7 +33,7 @@ import {
 export type { VcfContig, VcfDeclaration, VcfHeader, VcfHeaderLimits, VcfHeaderResult, VcfType } from './vcf-header.js';
 export { DefaultVcfHeaderLimits, readVcfHeader } from './vcf-header.js';
 export { VcfIssues } from './vcf-issues.js';
-export { MissingInt } from './vcf-parse.js';
+export { MissingInt, VcfCategories } from './vcf-parse.js';
 export { DefaultVcfOptions, type VcfOptions, type VcfSource } from './vcf-read.js';
 
 export const VcfFormats = ['vcf'] as const;

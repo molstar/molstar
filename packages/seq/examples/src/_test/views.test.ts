@@ -57,6 +57,17 @@ const Known: Readonly<Record<string, readonly string[]>> = {
   // the misread GFF3's faults, and the real slices' chromosome line read as its description
   'genomes/gff-misread': ['seq.source.gff.line', 'seq.source.gff.parent', 'seq.source.gff.type'],
   'genomes/gff-tp53': ['seq.source.gff.region'],
+  // the misread VCF's faults, said as the story shows them
+  'genomes/vcf-misread': [
+    'seq.source.vcf.header',
+    'seq.source.vcf.line',
+    'seq.source.vcf.cell',
+    'seq.source.vcf.info',
+    'seq.source.vcf.allele',
+    'seq.source.vcf.range',
+  ],
+  // ClinVar's chr17 at the fit: more tiles than a view reads, the "zoom in" state (the story's point)
+  'genomes/vcf-zoom-in': ['seq.store.too_many_tiles'],
 };
 
 /** The views whose drawing takes over 40 ms: `dataset/id`. */

@@ -16,7 +16,7 @@ import { UiElement } from '@molstar/ui/elements/ui-element';
 import { followSvg } from '../follow-svg.js';
 import { statusIssues } from './status-issues.js';
 import { withViewRegistry } from './view-registry.js';
-import { fileBytes, filesOf, fileHead, printSources } from '../features/files/file-head.js';
+import { filesOf, fileText, printSources } from '../features/files/file-head.js';
 
 // A story of an example view (examples-and-stories.md): the view's `build()` shown by a viewer composed from the default
 // spec, the canvas and the SVG of the same view side by side, and the spec as it prints, beside them (the SVG with the
@@ -192,12 +192,12 @@ function fileSections(spec: Parameters<typeof printSources>[0]): HTMLElement[] {
   const out = [section('Source node', pre(printSources(spec)))];
   for (const file of filesOf(spec)) {
     const head = pre('Reading…');
-    out.push(section(`File: ${file.uri}`, head));
+    out.push(section(file.format === 'vcf' ? `Header: ${file.uri}` : `File: ${file.uri}`, head));
     // read the way the viewer reads it: relative to the page, which serves the examples' fixtures (a recorded file from
-    // its pages, a gzip file inflated)
-    void fileBytes(pageReader, file.uri, new AbortController().signal)
-      .then((b) => {
-        head.textContent = fileHead(b, file.format);
+    // its pages, a gzip file inflated; a VCF's header by its index)
+    void fileText(pageReader, file, new AbortController().signal)
+      .then((text) => {
+        head.textContent = text;
       })
       .catch((e) => {
         head.textContent = `The file could not be read: ${e instanceof Error ? e.message : e}`;

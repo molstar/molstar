@@ -9,7 +9,7 @@ import type { AssetsPort } from '@molstar/seqx-core/context';
 import { createSeqContext } from '@molstar/seqx-core/context/default';
 import { archiveReader, readArchive, SeqRuntime, writeArchive } from '@molstar/seqx-core/data';
 import { describe, expect, it } from 'vitest';
-import { RecordedFiles } from '../genomes/files.js';
+import { ClinvarFile, RecordedFiles } from '../genomes/files.js';
 import { recordedAssets } from '../recorded-pages.js';
 import { nodeFixtureAssets } from '../node-assets.js';
 import { type ExampleView, ExampleViews } from '../views.js';
@@ -18,8 +18,11 @@ import { type ExampleView, ExampleViews } from '../views.js';
 // the files its sources name, read through the Node adapter that refuses all but the fixtures; the opened archive's
 // reader serves the same bytes, and a view drawn from the archive alone is the view drawn from the fixtures.
 
-/** A location a view’s own runtime serves (a generated chromosome): no file to hold. */
-const generated = (uri: string) => uri.startsWith('generated:');
+/**
+ * A location a view’s own runtime serves (a generated chromosome), or a file read by range whose recording holds some
+ * pages only (ClinVar’s: TP53’s), kept by its location as a host keeps a remote file it reads by region: no file to hold.
+ */
+const generated = (uri: string) => uri.startsWith('generated:') || uri === ClinvarFile;
 
 const signal = new AbortController().signal;
 

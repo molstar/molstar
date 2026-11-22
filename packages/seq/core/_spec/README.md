@@ -1395,11 +1395,12 @@ answers, the name index). `gff3` stays the records preset's (flat) unless a host
 
 `runtimes/vcf.ts` (`@molstar/seqx-core/runtimes/vcf`, opt in: `VcfRuntime`, `vcfRuntime(over)`, `VcfOptions`,
 `DefaultVcfOptions`, `VcfFormats`, `readVcfHeader`, `VcfHeader`, `VcfHeaderLimits`, `DefaultVcfHeaderLimits`,
-`VcfHeaderResult`, `VcfDeclaration`, `VcfContig`, `VcfType`, `VcfIssues`, `MissingInt`, `VcfSource`: an opened source
-with its `header`, what a host shows of the file): **sites**, `vcf` read whole or by region at level 1 over the
-internals above; `vcf-header.ts` (the header), `vcf-parse.ts` (the one line parser, rows and answers), `vcf-read.ts`
-(what whole and region reads share), and `vcf-indexed.ts` loaded when the first indexed source opens (io's tabix in it).
-Genotypes (the matrix, `samples`, genotype classes) are not read yet.
+`VcfHeaderResult`, `VcfDeclaration`, `VcfContig`, `VcfType`, `VcfIssues`, `MissingInt`, `VcfCategories` (the `category`
+field's values, a palette's), `VcfSource`: an opened source with its `header`, what a host shows of the file):
+**sites**, `vcf` read whole or by region at level 1 over the internals above; `vcf-header.ts` (the header),
+`vcf-parse.ts` (the one line parser, rows and answers), `vcf-read.ts` (what whole and region reads share), and
+`vcf-indexed.ts` loaded when the first indexed source opens (io's tabix in it). Genotypes (the matrix, `samples`,
+genotype classes) are not read yet.
 
 - **Conventions fixed** (EC-195): base 1 (`POS − 1`), an extent by the index's rule; a source's `base` or `ends` is not
   read, said once (`seq.source.vcf.transform`, info). Bytes to text by magic (plain, gzip, BGZF) within

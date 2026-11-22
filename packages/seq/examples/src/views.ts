@@ -16,6 +16,7 @@ import * as complexBlocks from './complex/blocks.js';
 import * as navigators from './navigators.js';
 import * as genomeBed from './genomes/bed.js';
 import * as genomeGff from './genomes/gff.js';
+import * as genomeVcf from './genomes/vcf.js';
 import * as complexConfidence from './complex/confidence.js';
 import * as complexGrid from './complex/complex-grid.js';
 import * as complexLigands from './complex/ligands.js';
@@ -922,6 +923,42 @@ export const GenomeFormatsViews: readonly ExampleView[] = [
       'A GFF3 with faults: an end before its start, a position that is no number and a short line (left out), an exon whose parent no line has, two transcripts each other’s parent (kept flat), a gene with a CDS and no transcript (read as one, said by type); each said once with its line number, the rest drawn as gene models.',
     build: genomeGff.misread,
     registry: genomeGff.registry,
+  },
+  {
+    dataset: 'genomes',
+    id: 'vcf-clinvar',
+    title: 'TP53’s variants from ClinVar',
+    summary:
+      'TP53’s region of NCBI ClinVar’s GRCh38 sites (the recorded slice: BGZF, read by region at level 1 through the tabix index the source names) by the opt-in `vcf` runtime: a row an ALT allele, a mark at its REF extent coloured by its category (SNV, deletion, insertion, indel, MNV). ClinVar names chr17 `17`; its length from an inline chrom.sizes. Hover an allele for its id (`pos:ref>alt`), ClinVar’s id and INFO; click selects its REF extent, a double-click focuses it.',
+    build: genomeVcf.tp53Clinvar,
+    registry: genomeVcf.registry,
+  },
+  {
+    dataset: 'genomes',
+    id: 'vcf-zoom-in',
+    title: 'ClinVar’s chr17 at the fit',
+    summary:
+      'The same ClinVar file over the whole of chr17 (83 Mb): more level-1 tiles than a view reads, so the track is the hatched “zoom in” band and nothing is read (no estimate drawn). Only TP53’s pages are recorded: zoom into TP53 (7.67–7.69 Mb) to read its variants.',
+    build: genomeVcf.clinvarZoomIn,
+    registry: genomeVcf.registry,
+  },
+  {
+    dataset: 'genomes',
+    id: 'vcf-long-deletion',
+    title: 'A long deletion over SNVs',
+    summary:
+      'A generated VCF on a 20 kb chromosome (read whole; its length from its `##contig`): SNVs, multi-allelic sites (a row an allele), insertions, deletions and MNVs, and two long deletions, a symbolic `<DEL>` to its `END` and a 600-base sequence-resolved one, each one item drawn as a bar across the SNVs it covers.',
+    build: genomeVcf.longDeletion,
+    registry: genomeVcf.registry,
+  },
+  {
+    dataset: 'genomes',
+    id: 'vcf-misread',
+    title: 'A misread VCF',
+    summary:
+      'A VCF with faults: a position that is no number, no REF and a short line (left out), a QUAL and a depth that are not numbers (read as missing), an undeclared INFO key, an `*` allele (no item), a record running past its contig (clipped) and one past it (left out), a header line without its Type; each said once with its line number, the rest drawn.',
+    build: genomeVcf.misread,
+    registry: genomeVcf.registry,
   },
 ];
 

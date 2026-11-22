@@ -114,6 +114,9 @@ export function fieldInfos(schema: VcfSchema): FieldInfo[] {
   return [...FixedFields, ...schema.info.map((f) => ({ name: f.name, type: f.type }))];
 }
 
+/** The values of the `category` field, in the order a key lists them (a categorical palette's `values`). */
+export const VcfCategories = ['SNV', 'MNV', 'insertion', 'deletion', 'indel', 'structural', 'breakend'] as const;
+
 /** A variant allele's category by its text and the reference's (EC-196). */
 export function alleleCategory(ref: string, alt: string): string {
   if (alt.startsWith('<')) return 'structural';
