@@ -3784,6 +3784,19 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   CSS px, the square root over the counts in view), twisted where its relative strand is −1, its extent both bins, its
   hit `bin` the level; past `pairs.maxArcs` the strongest are kept (by count, ties by span), the rest the density strip.
   What is read is kept while the entries read are the same (a warm frame builds nothing).
+- **Over an assembly** (`pairs-assembly.ts`: `pairs.a` an assembly, read from a source): each block in view (a strip;
+  a block under a device pixel has none, the joint small-blocks rule) reads its own sequence's tiles; one level for
+  every block (the finest a block in view needs: a section unit's pixels over its block's scale), coarser while the
+  blocks' wants together do not fit the store's layer bounds, then "zoom in"; the gate as on one system. A row is found
+  from either end's block and taken once (an item by its id and ends, never its row: a source numbers each sequence's
+  rows apart; a bin pair by its bins), each end on the unit its listed name is (`PairsData.aUnit`, `bUnit` over the
+  sequences' systems, `PairsPrep.endUnits`), so a chord joins two chromosomes (the genome ring) or two genomes.
+- **Held pairs past the gate** (`pairs-held.ts`): a held table (no complex's units, no grid, no blocks) whose pairs
+  with an end in view pass `pairs.maxArcs` is binned as the store's summaries bin a level-1 source (levels
+  `summaries.factor` apart up to the system's length, each from the one below, only those halving the rows below
+  kept), at the coarsest kept level no wider than `pairs.binPx` device pixels: a bin pair an arc stroked by its count.
+  The pyramid is built once a prep, from the pairs the filter shows. Why: a held table and the same pairs from a file
+  are one picture (one reader, region-reads Decided 7).
 - **A bin pair's element** (`Key.key`, what a selection and a bookmark keep):
   `bin:<a>:<aBin>|<b>:<bBin>|<strand>|<category>`, `<a>` and `<b>` the ends' system names as the source gives them
   (empty: the request's system), `<aBin>` and `<bBin>` the bins' indices at the level read (positions `bin × level` to
@@ -3813,7 +3826,8 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   left out) and each system with its copies; one whose other end is on no block also says `seq.render.pairs.systems`.
   Why: the data says a pair within one system holds on every copy; across two it does not say which copies touch, and a
   contact drawn on the wrong copy states a fact the data does not hold (derive contacts per pair of units).
-- **Bounded by the screen**: past `pairs.maxArcs`, arcs binned by their ends' device columns, one a bin (widest first),
+- **Bounded by the screen**: past `pairs.maxArcs` (pairs not binned by a level: items read by region, held pairs at
+  the items' level, a complex's links), arcs binned by their ends' device columns, one a bin (widest first),
   the rest a density strip of ends, said once (`seq.render.pairs.limit`, info). Ends on two systems that are not the
   section's own report `seq.render.pairs.systems`.
 - **Feet**: on the band's edge toward the sequence (`above`: its bottom, the arcs rising; `below`: its top), inset by

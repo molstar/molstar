@@ -70,12 +70,12 @@ describe('Features/Region reads/Pairs, headless', () => {
     expect((await exported(v, true)).svg).not.toBe((await exported(v, false)).svg);
   });
 
-  it('zoomed out (EC-171, EC-208): bin pairs stroked by count, the BEDPE’s bin pairs and the held links binned by column, the hover naming the bin pair', async () => {
+  it('zoomed out (EC-171, EC-208): bin pairs stroked by count, the BEDPE’s bin pairs and the held links’ one picture (the pairs level), the hover naming the bin pair', async () => {
     const v = (viewer = await openRegion('pairs-zoomed-out'));
     await advance(v, 8000);
     const [held, bedpe] = lays(v);
-    // more than 4,096 links in view: binned, said once
-    expect(v.layoutIssues.value.map((i) => i.code)).toEqual(['seq.render.pairs.limit']);
+    // more than 4,096 links in view: both read as bin pairs, nothing to say (no arc left out)
+    expect(v.layoutIssues.value.map((i) => i.code)).toEqual([]);
     // the pairs read by region (the BEDPE): bin pairs, their counts summing to the links
     expect(bedpe.prep?.weight).toBeDefined();
     expect(bedpe.n).toBeGreaterThan(100);
@@ -83,10 +83,20 @@ describe('Features/Region reads/Pairs, headless', () => {
     expect(Math.max(...bedpe.width.subarray(0, bedpe.n))).toBeGreaterThan(
       Math.min(...bedpe.width.subarray(0, bedpe.n)),
     );
-    // the held links past the gate: arcs binned by their ends' device columns (the pairs level is the store's, a held
-    // table is not read through it), a density strip of the rest
-    expect(held.prep?.weight).toBeUndefined();
-    expect(held.n).toBeGreaterThan(100);
+    // the held links past the gate: bin pairs at the pairs level the BEDPE is read at, one picture (the same bins, the
+    // same counts)
+    expect(held.prep?.weight).toBeDefined();
+    expect(held.prep?.level).toBe(bedpe.prep?.level);
+    const bins = (l: PairsLay) => {
+      const d = (l.prep as unknown as { data: { n: number; aStart: Int32Array; bStart: Int32Array } }).data;
+      const out = new Map<string, number>();
+      for (let k = 0; k < d.n; k++) {
+        const key = `${d.aStart[k]}|${d.bStart[k]}`;
+        out.set(key, (out.get(key) ?? 0) + l.prep!.weight![k]);
+      }
+      return out;
+    };
+    expect(bins(held)).toEqual(bins(bedpe));
     // the strongest bin pair of the held track: hit at its arc's middle, its hover a bin pair, never a pair
     const widths = Array.from(bedpe.width.subarray(0, bedpe.n));
     const i = widths.indexOf(Math.max(...widths));
@@ -101,9 +111,7 @@ describe('Features/Region reads/Pairs, headless', () => {
     for (const dark of [false, true]) {
       const svg = await exported(v, dark);
       expect(svg.settled).toBe(true);
-      expect(svg.issues.map((i) => `${i.code}: ${i.message}`)).toEqual([
-        'seq.render.pairs.limit: More than 4096 pairs in view: binned',
-      ]);
+      expect(svg.issues.map((i) => `${i.code}: ${i.message}`)).toEqual([]);
     }
   });
 

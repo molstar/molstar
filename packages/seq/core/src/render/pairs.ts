@@ -45,6 +45,7 @@ import {
   type Side,
 } from './pairs-lay.js';
 import { drawDots, hitDots, layoutDots } from './pairs-dots.js';
+import { heldBins } from './pairs-held.js';
 import { regionPairs } from './pairs-region.js';
 import { drawEmphasis, drawHighlights, pairItems } from './pairs-emphasis.js';
 import { PlacePoint, type Placement } from './layout/types.js';
@@ -87,6 +88,14 @@ export const PairsType: LayerType<PairsPrep, PairsLay> = {
       lay.prep = prep;
     }
     if (!prep.data) return lay;
+    // held pairs past the gate: bin pairs at the pairs level a source's are read at (`pairs-held.ts`)
+    if (!prep.region && ctx.place) {
+      const binned = heldBins(prep, ctx, data);
+      if (binned) {
+        prep = binned;
+        lay.prep = prep;
+      }
+    }
     if (prep.unreadFilter)
       ctx.report(
         issueOf(
