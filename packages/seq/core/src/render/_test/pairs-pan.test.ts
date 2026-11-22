@@ -109,4 +109,27 @@ describe('arcs on a track while the view moves', () => {
       );
     }
   });
+
+  it('(4) held pairs past the gate: the gate counts what the arcs reach, so a window across the threshold never bins by device column', async () => {
+    // 40 pairs in one stretch, 30 across the whole sequence: an end in view is under the gate (50), what is drawn is not
+    const pairs: [number, number][] = [];
+    for (let i = 0; i < 40; i++) pairs.push([5000 + i, 5050 + i]);
+    for (let i = 0; i < 30; i++) pairs.push([100 + i, 19000 + i]);
+    const s = await settle(arcsSpec({ n: 20_000, pairs, height: 60 }), [], { pairs: { maxArcs: 50 } });
+    const modes = new Set<string>();
+    for (let start = 7500; start >= 2000; start -= 250) {
+      const f = await s.frame({ size: Size, viewport: { start, end: start + 9000 } });
+      const lay = pairsLay(f);
+      const where = `at ${start} n=${lay.n} w=${!!lay.prep!.weight} d=${lay.prep!.data!.n}`;
+      // items, or bins at a level: never the device-column bins past `maxArcs` (a density strip, a limit said)
+      expect(lay.densityN, where).toBe(0);
+      expect(
+        f.layout.issues.map((i) => i.code),
+        where,
+      ).not.toContain('seq.render.pairs.limit');
+      expect(lay.n, where).toBeLessThanOrEqual(50);
+      modes.add(lay.prep!.weight ? 'bins' : 'items');
+    }
+    expect([...modes].sort()).toEqual(['bins', 'items']);
+  });
 });

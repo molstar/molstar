@@ -27,7 +27,8 @@ import { RenderIssues } from './issues.js';
 import { type PairEnds } from './pairs-ends.js';
 import { type Emphasis, type Hit, type LayerType, type LayoutContext, sectionId } from './layer-type.js';
 import type { AxisTransform } from './axis.js';
-import { WarpKind } from './layout/strips.js';
+import { BlockPlacement } from './layout/blocks.js';
+import { type Strips, WarpKind } from './layout/strips.js';
 import {
   Caret,
   clipTo,
@@ -178,16 +179,34 @@ let Raw = new Float64Array(256);
 
 /** `virtualX`'s result (no number returned: a double returned from a call not inlined is boxed). */
 const VX = new Float64Array(1);
+/**
+ * Whether the strips are one line whose arcs take an end past the window (`virtualX`): a track, or a row of blocks
+ * (each strip translated, at one top and `dy`, the pairs' band at one place and height in each, so an arc's feet and
+ * apex are where they would be on any of them: which strip an end is on changes nothing).
+ */
+function lineOf(s: Strips, place: Placement, ax: AxisTransform, band: number): boolean {
+  const blocks = place instanceof BlockPlacement;
+  const nb = s.bands;
+  for (let i = 0; i < s.n; i++) {
+    if (s.warp[i] !== WarpKind.translate || s.top[i] !== s.top[0] || s.dy[i] !== s.dy[0]) return false;
+    if (s.bandY[i * nb + band] !== s.bandY[band] || s.bandH[i * nb + band] !== s.bandH[band]) return false;
+    if (!blocks && s.axes[i] !== ax) return false;
+  }
+  return true;
+}
 
 /**
- * The page x of an end past the window on one line (unit `u` outside `[u0, u1]`) into `VX[0]`: past the edge it lies
- * beyond by its distance at the window's px a unit, at most `reach` of the window's width. Continuous as a pan moves
- * the end across the edge (it meets the end's placed x there) and as it goes past reach.
+ * The page x of an end past the window on one line (section unit `u` outside `[u0, u1]`) into `VX[0]`: past the data
+ * box's edge it lies beyond by its distance in units at the section's px a unit (`scale`: a group's gaps aside), at
+ * most `reach` of the box's width. The end is drawn at that edge as it crosses it (the strip holding the window's edge
+ * unit reaches the box's edge), so a pan moves it continuously. Why not through the frame of the strip it lies on: a
+ * block entering the view is a sliver snapped to the device grid, its transform's px a unit far from the row's (an 11
+ * px jump measured on the Complex's joint), and a block wholly out of view has no strip.
  */
 function virtualX(ax: AxisTransform, u: number, reach: number) {
-  const ppu = ax.width / (ax.u1 - ax.u0);
   const m = reach * ax.width;
-  VX[0] = u < ax.u0 ? ax.x0 - Math.min(m, (ax.u0 - u) * ppu) : ax.x0 + ax.width + Math.min(m, (u - ax.u1) * ppu);
+  VX[0] =
+    u < ax.u0 ? ax.x0 - Math.min(m, (ax.u0 - u) * ax.scale) : ax.x0 + ax.width + Math.min(m, (u - ax.u1) * ax.scale);
 }
 
 function layoutArcs(lay: PairsLay, prep: PairsPrep, ctx: LayoutContext, place: Placement) {
@@ -198,11 +217,10 @@ function layoutArcs(lay: PairsLay, prep: PairsPrep, ctx: LayoutContext, place: P
   const ends = endsIn(prep, ctx.section, ctx.axis);
   const units = ends.u;
   const nb = s.bands;
-  // one line of translated strips (a track, a row of blocks): an end past the window is taken at most `reach` of the
-  // window past the edge its unit lies beyond (`virtualX`), on its partner's strip
-  let line = true;
-  for (let i = 0; i < s.n; i++) if (s.warp[i] !== WarpKind.translate || s.top[i] !== s.top[0]) line = false;
+  // one line (a track, a row of blocks): an end past the window is taken at most `reach` of the window past the edge
+  // its unit lies beyond (`virtualX`)
   const ax = ctx.axis;
+  const line = lineOf(s, place, ax, band);
   if (Spans.length < ends.n) {
     Spans = new Float64Array(2 * ends.n);
     StripOf = new Int32Array(4 * ends.n);
@@ -247,7 +265,8 @@ function layoutArcs(lay: PairsLay, prep: PairsPrep, ctx: LayoutContext, place: P
         if (span > widest) widest = span;
         continue;
       }
-      // the ends on one strip's frame (one line: the strips' frames differ by x alone), the arc symmetric between them
+      // the ends on one strip's frame (`lineOf`: the strips' frames differ by `dx` alone, their bands alike), the arc
+      // symmetric between them
       const home = !outA && !Number.isNaN(xa) ? sa : !outB && !Number.isNaN(xb) ? sb : 0;
       if (outA) {
         virtualX(ax, oa, prep.reach);
