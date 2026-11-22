@@ -155,7 +155,7 @@ export const FrameType: LayerType<FramePrep, FrameLay> = {
       if (!onTitle && !onSide && !onEdge) continue;
       const row = lay.marks[4 * j + 3];
       const base = { layer: lay.key, section: lay.section, system: lay.system };
-      return itemHit(base, lay, lay.rows.keys[row], lay.rows.starts[row], lay.rows.ends[row]);
+      return itemHit(base, lay, lay.rows.keys[row], lay.rows.starts[row], lay.rows.ends[row], row);
     }
     return undefined;
   },

@@ -49,6 +49,12 @@ export interface ItemRows {
   /** Each row's item's whole extent when its table says it (`RangesList.itemStart`, `itemEnd`), else −1. */
   itemStarts: number[];
   itemEnds: number[];
+  /**
+   * Over a cyclic axis, a row of an item across the origin (one ending at the system's length) and the row of the same
+   * key that starts at 0 (its other piece) hold each other's index; else −1. Made once as the rows are read: a hit
+   * takes the item's own pieces from it, whatever is in view.
+   */
+  link: number[];
 }
 
 export function newItemRows(): ItemRows {
@@ -68,6 +74,7 @@ export function newItemRows(): ItemRows {
     row: [],
     itemStarts: [],
     itemEnds: [],
+    link: [],
   };
 }
 
@@ -223,6 +230,23 @@ export function collectItems(
   return densities;
 }
 
+/** Links the rows of an item across a cyclic origin: a row ending at the length and a row of its key starting at 0. */
+export function linkPieces(rows: ItemRows, wrap: { readonly length: number; readonly cyclic: boolean } | undefined) {
+  rows.link.length = rows.n;
+  rows.link.fill(-1);
+  if (!wrap?.cyclic) return;
+  const heads = new Map<string | number, number>();
+  for (let j = 0; j < rows.n; j++) if (rows.starts[j] === 0 && rows.ends[j] < wrap.length) heads.set(rows.keys[j], j);
+  if (!heads.size) return;
+  for (let j = 0; j < rows.n; j++) {
+    if (rows.ends[j] !== wrap.length || rows.starts[j] === 0) continue;
+    const h = heads.get(rows.keys[j]);
+    if (h === undefined) continue;
+    rows.link[j] = h;
+    rows.link[h] = j;
+  }
+}
+
 /** What every items layer's layout holds. */
 /**
  * What an items layer used on its strip (_spec/README.md "Render", Layer types: `used`): its band's height when it drew
@@ -371,6 +395,7 @@ export function readItems(
   placeholderSpans(src, axis, read.pending, lay.pending);
   placeholderSpans(src, axis, read.failed, lay.failed);
   const densities = collectItems(lay.rows, read.entries, fields, src.filter, src.base, wrap);
+  linkPieces(lay.rows, src.length !== undefined ? { length: src.length, cyclic: src.cyclic === true } : undefined);
   const { clipped, leftOut, clamped } = lay.rows;
   if (clipped || leftOut || clamped) {
     const said = [
@@ -472,6 +497,7 @@ export function itemHit(
   key: string | number,
   s: number,
   e: number,
+  row?: number,
 ): Hit {
   let lo = s;
   let hi = e;
@@ -487,9 +513,18 @@ export function itemHit(
   return {
     ...base,
     element: { owner: lay.owner, key },
-    extent: rangesLocation(lay.dataSystem, [s, e]),
+    extent: rangesLocation(lay.dataSystem, piecesOf(lay.rows, row, s, e)),
     ...(lo < hi ? { hull: [lo, hi] as const } : {}),
   };
+}
+
+/**
+ * An item's ranges for a hit on `row`: its own, and over a cyclic axis its other piece across the origin (`link`: the
+ * click selects the item's extent, not the piece under the pointer). No scan, nothing for an item of one piece.
+ */
+function piecesOf(rows: ItemRows, row: number | undefined, s: number, e: number): number[] {
+  const p = row === undefined ? -1 : (rows.link[row] ?? -1);
+  return p < 0 ? [s, e] : [s, e, rows.starts[p], rows.ends[p]];
 }
 
 /** The rows of every item of an inline annotation, by key: what an end is decided from (undefined: a source's). */

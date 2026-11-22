@@ -556,7 +556,7 @@ export const ComplexViews: readonly ExampleView[] = [
     id: 'contacts',
     title: 'Contacts between the chains',
     summary:
-      '1FIN’s contacts within 4 Å between heavy atoms of CDK2 and cyclin A, both copies, as arcs between the merged blocks (an optional `pairs` track): hover one, both ends light.',
+      '1FIN’s contacts within 4 Å between heavy atoms of CDK2 and cyclin A, both copies, as arcs between the merged blocks, and each ATP’s with CDK2’s residues, as arcs from its chip (an optional `pairs` track, a layer for each kind): hover one, both ends light.',
     build: complexBlocks.contacts,
   },
   {

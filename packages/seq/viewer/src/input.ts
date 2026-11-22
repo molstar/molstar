@@ -1068,7 +1068,7 @@ export class ViewerInput {
     const extent = (hit.element && this.viewer.selection.extentOfHit(hit)) || hit.extent;
     const part = extent?.parts.find((p) => p.system === hit.system);
     // round a ring: the arc its pieces cover, the circle less the widest gap between them (over the origin)
-    if (arc && part && part.ranges.length >= 4) {
+    if ((arc || axis.cyclic) && part && part.ranges.length >= 4) {
       const r = coveringArc(axis, part.ranges);
       if (r) return r;
     }

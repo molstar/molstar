@@ -39,5 +39,5 @@ export const OverTheComplex: StoryObj = {
   render: () => complexEditStory({ view: view('complex-grid'), edits: [], readout: true }),
 };
 
-/** 1FIN's contacts (≤ 4 Å, both copies) as arcs from CDK2's block to cyclin A's: hover one, both ends light. */
+/** 1FIN’s contacts (≤ 4 Å, both copies) as arcs from CDK2’s block to cyclin A’s, and each ATP’s with CDK2’s residues as arcs from its chip: hover one, both ends light. */
 export const Contacts: StoryObj = { render: () => exampleStory(view('contacts')) };
