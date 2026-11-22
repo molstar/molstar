@@ -62,5 +62,22 @@
     "bytesFixture": 5506,
     "sha256Download": "",
     "sha256Fixture": "7c0859dd045439bad757ae9aeaffed4751343e2c1ff9e5d4728e1fd5ddfca22d"
+  },
+  {
+    "file": "plasmid/L09137.2.gb",
+    "entry": "INSDC L09137.2, Cloning vector pUC19c, complete sequence (2,686 bp, circular), as NCBI GenBank serves it (LOCUS SYNPUC19CV; its only feature the source)",
+    "url": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nuccore&id=L09137.2&rettype=gb&retmode=text",
+    "recorded": "2026-11-22",
+    "licence": [
+      "LicenseRef-NCBI-public-data"
+    ],
+    "attribution": "INSDC (NCBI GenBank) L09137.2; Yanisch-Perron C, Vieira J, Messing J. Gene 33:103-119 (1985)",
+    "licenceChecked": "the record's own text states no restriction on use; NCBI's policy treats GenBank records as public data, with the caveat that submitters may hold patent, copyright or other rights in the data; NCBI's terms page itself was not fetched",
+    "trimmed": "none: the flat file as fetched (NCBI E-utilities efetch, db=nuccore, rettype=gb), fetched by the orchestrator on the author's word",
+    "derived": "none",
+    "bytesDownloaded": 8367,
+    "bytesFixture": 8367,
+    "sha256Download": "9498daed1c3703dd739c684a3a7bcd6770823aa4a500cf9b57cf59bbdc38f72a",
+    "sha256Fixture": "9498daed1c3703dd739c684a3a7bcd6770823aa4a500cf9b57cf59bbdc38f72a"
   }
 ]

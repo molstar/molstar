@@ -113,6 +113,7 @@ describe('the Plasmid fixtures', () => {
       bytesDownloaded: number;
     }[];
     expect(rows.map((r) => r.file).sort()).toEqual([
+      'plasmid/L09137.2.gb',
       'plasmid/L09137.2.seq',
       'plasmid/pUC19c-rotated-features.gff3',
       'plasmid/pUC19c-rotated.gb',
@@ -128,6 +129,11 @@ describe('the Plasmid fixtures', () => {
     expect(record.url).toBe('https://www.ebi.ac.uk/ena/browser/api/fasta/L09137.2');
     expect(record.licence).toEqual(['LicenseRef-NCBI-public-data']);
     expect(record.attribution).toContain('L09137.2');
+    // the real GenBank record: NCBI's own, recorded as fetched
+    const real = at('L09137.2.gb');
+    expect(real.url).toContain('eutils.ncbi.nlm.nih.gov');
+    expect(real.licence).toEqual(['LicenseRef-NCBI-public-data']);
+    expect(real.bytesDownloaded).toBe(real.bytesFixture);
     for (const g of [rotated, gff, gb]) {
       expect(g.licence).toEqual(['LicenseRef-seqx-generated']);
       expect(g.derived).toContain('derive.ts');
