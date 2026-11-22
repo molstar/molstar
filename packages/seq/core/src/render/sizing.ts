@@ -83,17 +83,65 @@ export function lanesHeight(lanes: number, config: RenderConfig): number {
   return 2 * config.lanePadding + n * config.laneHeight;
 }
 
+// Scratch of the content sizing: the content-sized tracks' indices and their lanes, kept between settles (grown, never
+// shrunk): a sizing allocates nothing once warm beyond its answer.
+const order: number[] = [];
+const laneOf: number[] = [];
+const EmptyTracks: readonly SizedTrack[] = [];
+let sizedTracks: readonly SizedTrack[] = EmptyTracks;
+
+function byKindThenLanes(a: number, b: number): number {
+  const ka = sizedTracks[a].kind;
+  const kb = sizedTracks[b].kind;
+  return ka === kb ? laneOf[a] - laneOf[b] : ka < kb ? -1 : 1;
+}
+
+/** Whether a track of `lanes` lanes is close to one of `base`: within 2 lanes or 2x. */
+function close(base: number, lanes: number): boolean {
+  return lanes - base <= 2 || lanes <= 2 * base;
+}
+
 /**
- * Tracks fit their content; tracks of one kind share the tallest lanes (neighbours do not vary lane by lane), each with
- * its own label lane (a track whose labels all fit inside reserves none).
+ * Tracks fit their content; tracks of one kind whose lanes (their content less the label lane) are close, within 2
+ * lanes or 2x of each other, share the tallest of them (neighbours do not vary lane by lane: two CDR tracks are equal),
+ * a track far from the rest fits its own (one 40-lane track does not draw thirty one-feature tracks at the cap). The
+ * clusters are by sorted lane height, chained: a track joins the cluster when it is close to the cluster's smallest,
+ * so the result does not depend on the tracks' order (1, 2 and 4 lanes: 1 and 2 share, 4 is 3 lanes and 4x above 1:
+ * its own). Each track keeps its own label lane (a track whose labels all fit inside reserves none).
  */
 export const ContentSizing: TrackSizing = {
   name: 'content',
-  heights(tracks) {
-    const tallest = new Map<string, number>();
-    for (const t of tracks)
-      if (t.content !== undefined) tallest.set(t.kind, Math.max(tallest.get(t.kind) ?? 0, t.content - (t.label ?? 0)));
-    return tracks.map((t) => (t.content === undefined ? t.fixed : (tallest.get(t.kind) as number) + (t.label ?? 0)));
+  heights(tracks, config) {
+    const n = tracks.length;
+    const out = new Array<number>(n);
+    let m = 0;
+    for (let i = 0; i < n; i++) {
+      const t = tracks[i];
+      if (t.content === undefined) {
+        out[i] = t.fixed;
+        continue;
+      }
+      order[m++] = i;
+      laneOf[i] = (t.content - (t.label ?? 0) - 2 * config.lanePadding) / config.laneHeight;
+    }
+    order.length = m;
+    sizedTracks = tracks;
+    order.sort(byKindThenLanes);
+    for (let a = 0; a < m; ) {
+      const kind = tracks[order[a]].kind;
+      const base = laneOf[order[a]];
+      let b = a;
+      let tallest = 0;
+      while (b < m && tracks[order[b]].kind === kind && (b === a || close(base, laneOf[order[b]]))) {
+        const t = tracks[order[b]];
+        tallest = Math.max(tallest, (t.content as number) - (t.label ?? 0));
+        b++;
+      }
+      for (let k = a; k < b; k++) out[order[k]] = tallest + (tracks[order[k]].label ?? 0);
+      a = b;
+    }
+    sizedTracks = EmptyTracks;
+    return out;
   },
 };
 
