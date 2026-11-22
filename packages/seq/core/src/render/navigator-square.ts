@@ -292,7 +292,7 @@ export class SquareNavigator {
   }
 
   /**
-   * A sweep in progress (_spec/README.md "Render", Navigators, The square): the rectangle its release zooms to, tinted and
+   * A sweep in progress (_spec/README.md "Render", Navigators, The square): the rectangle its release zooms to (whole cells, `snapSweep`), tinted and
    * outlined as the window is. Along x the swept range; along y the same range where one section is on both axes (its
    * window the diagonal), else the y section's window as it is.
    */
@@ -449,6 +449,28 @@ export class SquareNavigator {
       ySystem: cell.ySystem,
       yBlock: cell.y,
     };
+  }
+
+  /**
+   * A sweep from x `xa` to x `xb` snapped to whole cells (the lattice blocks under its ends, both included), as the
+   * bound section's units `[start, end]`: what the sweep draws and its release fits (_spec/README.md "Render",
+   * Navigators, The square). Undefined when the section shows none of it.
+   */
+  snapSweep(section: string, xa: number, xb: number): readonly [number, number] | undefined {
+    const s = this.options.view.sections.find((v) => v.address === section);
+    const lattice = this.lattice;
+    const blocks = lattice?.blocks;
+    if (!s || !lattice || !blocks?.length) return undefined;
+    const lo = this.blockOf(this.unitAt(Math.min(xa, xb), true));
+    const hi = this.blockOf(this.unitAt(Math.max(xa, xb), true));
+    const u0 = blocks[lo].offset ?? 0;
+    const u1 = hi + 1 < blocks.length ? (blocks[hi + 1].offset ?? 0) : this.total;
+    if (sameBlocks(s, lattice)) return [u0, u1];
+    const a = placeOfUnit(lattice, u0, 'start');
+    const b = placeOfUnit(lattice, u1, 'end');
+    const ua = a && unitOfPlace(s, a);
+    const ub = b && unitOfPlace(s, b);
+    return ua !== undefined && ub !== undefined ? [Math.min(ua, ub), Math.max(ua, ub)] : undefined;
   }
 
   /** The first bound section's unit at x (a click centres it there), through the places of the lattice. */

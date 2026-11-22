@@ -442,31 +442,38 @@ describe('The square’s sweep (a drag from a cell outside the window)', () => {
     return { v, n };
   }
 
-  it('draws the swept rectangle live on the diagonal; release zooms there', async () => {
+  it('draws the swept rectangle live on the diagonal, snapped to whole cells; release fits exactly those', async () => {
     const { v, n } = await opened();
     expect(windowRects(n)).toHaveLength(1);
-    let x = -1;
-    for (let px = 0; px < n.width; px++) if (n.hit(px, 18)?.block === 7) x = px;
+    const px = (k: number) => {
+      const xs: number[] = [];
+      for (let i = 0; i < n.width; i += 0.25) if (n.hit(i, 18)?.block === k) xs.push(i);
+      return xs;
+    };
+    const c7 = px(7);
+    const c8 = px(8);
+    expect(c7.length).toBeGreaterThan(0);
+    // pressed inside chr8's column (off the window), ending mid-way over chr9's
+    const x = c7[Math.floor(c7.length / 2)];
+    const end = c8[Math.floor(c8.length / 2)];
     expect(n.hit(x, 18)!.part).toBe('outside');
     expect(n.down(x, 18)).toBe(true);
-    n.move(x + 30, 60);
+    n.move(end, 60);
     const [win, sweep] = windowRects(n);
     expect(win).toBeDefined();
-    expect(sweep.x).toBeCloseTo(x, 3);
-    expect(sweep.w).toBeCloseTo(30, 3);
-    // one section on both axes: the swept range on both, so its square sits on the diagonal
+    // both cells whole: from chr8's left edge to chr9's right edge
+    expect(sweep.x).toBeCloseTo(c7[0], 0);
+    expect(sweep.x + sweep.w).toBeCloseTo(c8[c8.length - 1], 0);
+    expect(sweep.w).toBeGreaterThan(end - x);
+    // one section on both axes: the same range on y, so its square sits on the diagonal
     expect(sweep.y).toBeGreaterThan(0);
     expect(sweep.h).toBeGreaterThan(0);
-    const before = [v.view.get(Genome)!.start, v.view.get(Genome)!.end];
     n.up();
     await settle(v);
+    const s = v.view.resolved.value!.sections[0].blocks!;
     const now = v.view.get(Genome)!;
-    expect([now.start, now.end]).not.toEqual(before);
-    // the window is the swept square afterwards
-    const rects = windowRects(n);
-    expect(rects).toHaveLength(1);
-    expect(rects[0].x).toBeCloseTo(sweep.x, 0);
-    expect(rects[0].w).toBeCloseTo(sweep.w, 0);
+    expect(now.start).toBeCloseTo(s[7].offset!, 3);
+    expect(now.end).toBeCloseTo(s[8].offset! + blockSpan(s[8]), 3);
   });
 
   it('Escape cancels it: no sweep drawn, the view unchanged', async () => {

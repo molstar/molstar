@@ -634,6 +634,16 @@ export class NavigatorModel extends ReactiveModel {
         this.viewer.view.setBand(d.rows.track, { bandTop: this.clampTop(d.hit.section, d.rows.top + row - row0) });
     }
     if (!d.positions) return;
+    // the square's sweep (from a cell off the window): whole cells, the drawn rectangle and the release's zoom alike
+    if (r instanceof SquareNavigator && d.hit.part === 'outside') {
+      const snapped = r.snapSweep(d.hit.section, d.x0, x);
+      if (snapped) {
+        // the end the pointer is at is the one away from the press's cell
+        const forward = x >= d.x0;
+        this.behavior?.dragTo(forward ? snapped[1] : snapped[0], forward ? snapped[0] : snapped[1]);
+        return;
+      }
+    }
     const at = r.sectionUnitAt(d.hit.section, x);
     if (at !== undefined) this.behavior?.dragTo(at);
   }

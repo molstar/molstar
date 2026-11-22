@@ -42,8 +42,11 @@ export interface NavigatorBehavior {
    * `start`, `end`), or outside it a sweep (or, `dragOutside: pan`, a centre then a pan). True when a gesture began.
    */
   press(section: string, part: WindowPart, at: number, drawn?: readonly [number, number]): boolean;
-  /** The pointer at display unit `at` while pressed; `moved`: past the drag slop (a press that never moves is a click). */
-  dragTo(at: number): boolean;
+  /**
+   * The pointer at display unit `at` while pressed. `from`: a sweep's other end where the host snaps it (the square's
+   * whole cells), in place of the unit the press began at.
+   */
+  dragTo(at: number, from?: number): boolean;
   /** The release: a sweep zooms to what it swept; a far drag pushes its step. */
   release(): void;
   /** Esc: the gesture is cancelled, the view back where the press found it. */
@@ -170,7 +173,7 @@ export function navigatorBehavior(view: ViewModel, config: ViewerConfig = Defaul
       };
       return true;
     },
-    dragTo(at) {
+    dragTo(at, from) {
       const p = press;
       if (!p || !Number.isFinite(at)) return false;
       // a drag is a gesture of its own: a double-click no longer folds into the click before it
@@ -187,7 +190,8 @@ export function navigatorBehavior(view: ViewModel, config: ViewerConfig = Defaul
         return win.dragTo(at);
       }
       p.sweeping = true;
-      sweep.set([Math.min(p.at0, at), Math.max(p.at0, at)]);
+      const a0 = from !== undefined && Number.isFinite(from) ? from : p.at0;
+      sweep.set([Math.min(a0, at), Math.max(a0, at)]);
       return true;
     },
     release() {
