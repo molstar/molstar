@@ -2435,7 +2435,8 @@ Overlay, Opened sources), kept per model and view. No data, no dynamic node, no 
   (`GridAxis.blocks`, `axis` their display axis, `follow` the identity on their units, `followsX` false): a genome
   against another (a dot plot), one chromosome's section against another's (a contact map). The layers are still placed
   per x block; a strip is a block pair. Refused (`seq.view.section.system`): a grid with blocks of its own, and one
-  following blocks (on either axis) in a stack or on a ring (the plot's axes are a row's units).
+  following blocks (on either axis) in a stack or on a ring (the plot's axes are a row's units). A `follow_y` naming a
+  section with no blocks (or no section) is `seq.view.follow.unplaced`, y then x's blocks: never a silent fallback.
 - **A section of a complex** (`of` a complex; `view/blocks.ts`): a block a unit, at `<section>/<unit id>`, ordered by
   the section's `classes` (`[polymer, branched, ligand, ion]` when absent: water left out, EC-101), polymers in the
   complex's order, then each class in order; a class not listed is left out. Why left out: hundreds of waters say
@@ -4208,13 +4209,15 @@ pairs layer's prepared form and its region reader through the composition (`type
   not projected: on another system's section they are `seq.render.pairs.systems`.
 - **Dots** (with `ctx.axisY`, in a grid; `pairs-dots.ts`): each pair's ends on their own systems (`aOf`, `bOf`: an
   assembly's sequences, a complex's units), so over blocks a strip draws the pairs of its block pair alone, silently on
-  the others (a dot plot of two genomes, EC-209; read by region on the x blocks as over an assembly, each strip its
-  lay). Bins (past the gate): a rect a bin pair at its two bins' extent (at least 4 CSS px), its opacity by count, the
-  square root over the bins on the strip, within `ribbons.binOpacity` (as a bridge's). Items: a rect a pair of single
-  positions at every zoom, at least 4 CSS px, outlined in the text's ink (it reads over any cell color in both themes);
-  a diagonal segment a stretch, with its partner when both ends are on one strand (`a_strand`, `b_strand`), against it
-  otherwise; `mirror` (false: a pair is drawn where its data puts it; the tRNA builder sets it) adds (j, i), a self-pair
-  once; `triangle` keeps a side. Pairs at one cell share it side by side (EC-63).
+  the others (a dot plot of two genomes, EC-209; read by region on the x blocks as over an assembly, each strip its lay;
+  the pairs on a strip's two systems listed once a data, strip and `mirror`, so a warm frame scans none). Bins (past the
+  gate): a rect a bin pair at its two bins' extent (at least 4 CSS px), its opacity by count, the square root over the
+  bins on the strip, within `ribbons.binOpacity` (as a bridge's), `mirror` and `triangle` as items. Items: a rect a pair
+  of single positions at every zoom, at least 4 CSS px, outlined in the text's ink (it reads over any cell color in both
+  themes); a diagonal segment a stretch, with its partner when both ends are on one strand (`a_strand`, `b_strand`),
+  against it otherwise; `mirror` (false: a pair is drawn where its data puts it; the tRNA builder sets it) adds (j, i),
+  a self-pair once; `triangle` keeps a side, as the grid layer's (`stripKeep`). Pairs at one cell share it side by side
+  (EC-63).
 - **Themes and filter**: its `color` channel (`channelForms`, held extents, its legend), by default `field type` (a
   categorical palette fixed by value; the builder lists an inline table's kinds, as for ranges' `category`); a pair the
   channel gives no color takes the ranges' ink. The layer's data filter (`<pairs>/(except :of (item :type …))`) is read
@@ -4272,13 +4275,21 @@ pairs layer's prepared form and its region reader through the composition (`type
   inline row field or `label` (numbers by value, text by code points, missing last, ties in data order). The axis
   transform holds them (`AxisTransform.members`: its pieces one a member in display order, a member's piece its rank, no
   breaks), so cells, emphasis and hits read members through it unchanged; the image tiles read the reduction in display
-  order (`orderedPyramid`: built when first drawn as tiles, kept by the grid and the orders' versions, which the tiles'
-  keys hold), so a reorder builds it once. The grid's own reduction is built the same way, lazily: a grid drawn as rects
-  builds none. **Lazy** (`members-hooks.ts`): `members.ts` and the labels' chrome load the first time a spec holds a
-  section whose `of` or `of_y` is a rows system (`withViewKind('section', …, when)`), the model waiting for them as for
-  the bridge chunk. Why: a categorical axis is rare; a view without one pays nothing for its orders and labels.
+  order (`orderedPyramid`: built when first drawn as tiles, kept by the prepared layer and its key, the orders'
+  versions, the axes' directions and the strip's triangle (`GridLay.orderKey`, made when they change), a few a layer:
+  two layers on one grid, one layer in a data-order and a tree-order section, each build once), so a reorder builds it
+  once. The grid's own reduction is built the same way, lazily: a grid drawn as rects builds none. A warm frame computes
+  no order: `Members` are kept by the resolved axis, the labels' advances by their labels, font and metrics. **Lazy**
+  (`members-hooks.ts`): `members.ts` and the labels' chrome load the first time a spec holds a section whose `of` or
+  `of_y` is a rows system (`withViewKind('section', …, when)`), the model waiting for them as for the bridge chunk. Why:
+  a categorical axis is rare; a view without one pays nothing for its orders and labels.
 - **Color**: the value's field theme (`value`), its domain the grid's range; a missing value (NaN) transparent;
   `triangle` keeps `upper` (y before x, above the diagonal) or `lower` (y after x).
+- **Triangles** (`render/triangle.ts`, `stripKeep`): a triangle halves one system against itself along the diagonal as
+  drawn: a cell by its display ranks (a categorical axis's rank, a reversed axis's position negated). Over one section
+  of blocks a pair of two blocks is whole on the side the triangle keeps (y's block before x's for `upper`) and empty on
+  the other; over two sections of blocks, or on two systems (chr1 × chr4), nothing is halved. Why: positions of one axis
+  are no positions of another, and comparing them cut a pair in half.
 - **Hit**: any point on the plot is the cell under it (`target: 'cell'`, `position` on x, `ySystem`, `yPosition`), drawn
   or not (outside a triangle too). Why: the crosshair reads the two positions everywhere on the plot.
 - **Emphasis along y** (the crosshair, EC-145): for the hover, the selection, its projected part and every highlight

@@ -11,11 +11,77 @@ import { RenderIssues } from './issues.js';
 import { aOf, bOf, DotMin, pairColor, pairHit, type PairsLay, type PairsPrep, segmentDistance2 } from './pairs-lay.js';
 import { type Hit, type LayoutContext } from './layer-type.js';
 import { withAlpha } from './tokens.js';
+import { keeps, StripKeep, stripKeep, type Triangle } from './triangle.js';
+import type { PairsData } from '@molstar/seqx-core/resolve';
 
 // The pairs layer in a grid's strip (_spec/README.md "Render", The pairs layer): a dot a pair of single positions, a
 // diagonal for a stretch, at (a, b) and with `mirror` at (b, a) too; kinds at one cell side by side.
 
 // ---- dots (a grid's strip) ----
+
+/**
+ * A strip's pairs (module-private, by lay): each pair on its two systems (`dir` 1) or, with `mirror`, the other way (2,
+ * both: 3), and the bins' greatest weight among them; made when the data, the strip's systems or `mirror` change, so a
+ * warm frame scans no pair it does not draw.
+ */
+interface StripPairs {
+  data: PairsData | undefined;
+  shown: Uint8Array | undefined;
+  a: string;
+  b: string;
+  mirror: boolean;
+  n: number;
+  pair: Int32Array;
+  dir: Uint8Array;
+  most: number;
+}
+
+const OnStrip = new WeakMap<PairsLay, StripPairs>();
+
+function stripPairs(lay: PairsLay, prep: PairsPrep, a: AxisTransform, ay: AxisTransform): StripPairs {
+  let sp = OnStrip.get(lay);
+  if (!sp) {
+    sp = {
+      data: undefined,
+      shown: undefined,
+      a: '',
+      b: '',
+      mirror: false,
+      n: 0,
+      pair: new Int32Array(16),
+      dir: new Uint8Array(16),
+      most: 0,
+    };
+    OnStrip.set(lay, sp);
+  }
+  const d = prep.data!;
+  if (sp.data === d && sp.shown === prep.shown && sp.a === a.system && sp.b === ay.system && sp.mirror === prep.mirror)
+    return sp;
+  sp.data = d;
+  sp.shown = prep.shown;
+  sp.a = a.system;
+  sp.b = ay.system;
+  sp.mirror = prep.mirror;
+  sp.n = 0;
+  sp.most = 0;
+  const units = prep.endUnits !== undefined;
+  const w = prep.weight;
+  for (let k = 0; k < d.n; k++) {
+    if (!prep.shown[k]) continue;
+    const as = units ? aOf(prep, k) : prep.aSystem;
+    const bs = units ? bOf(prep, k) : prep.bSystem;
+    const dir =
+      (as === a.system && bs === ay.system ? 1 : 0) | (prep.mirror && as === ay.system && bs === a.system ? 2 : 0);
+    if (!dir) continue;
+    const i = sp.n++;
+    sp.pair = grown(sp.pair, i + 1);
+    sp.dir = grown(sp.dir, i + 1);
+    sp.pair[i] = k;
+    sp.dir[i] = dir;
+    if (w && w[k] > sp.most) sp.most = w[k];
+  }
+  return sp;
+}
 
 export function layoutDots(lay: PairsLay, prep: PairsPrep, ctx: LayoutContext, a: AxisTransform, ay: AxisTransform) {
   const d = prep.data!;
@@ -35,35 +101,41 @@ export function layoutDots(lay: PairsLay, prep: PairsPrep, ctx: LayoutContext, a
       );
     return;
   }
-  // bins (a source's pairs zoomed out): a rect a bin pair at its bins' size, its opacity by count, square root over
-  // the bins on this strip (as a bridge's, `ribbons.binOpacity`)
+  // the triangle on this strip (`stripKeep`): a cell by its display ranks, never across two systems or two sections
+  const keep = stripKeep(prep.triangle, ctx);
+  if (keep === StripKeep.None) return;
+  Keep.t = keep === StripKeep.Cells ? prep.triangle : 'both';
+  Keep.sx = a.dir;
+  Keep.sy = ay.dir;
+  const sp = stripPairs(lay, prep, a, ay);
   const w = prep.weight;
-  let most = 0;
-  if (w) for (let k = 0; k < d.n; k++) if (prep.shown[k] && w[k] > most && onStrip(prep, units, k, a, ay)) most = w[k];
-  for (let k = 0; k < d.n; k++) {
-    if (!prep.shown[k]) continue;
+  for (let q = 0; q < sp.n; q++) {
+    const k = sp.pair[q];
+    const fw = (sp.dir[q] & 1) !== 0;
+    const bw = (sp.dir[q] & 2) !== 0;
+    // a self-pair on a self grid is its own mirror: one mark
+    const self = fw && d.aStart[k] === d.bStart[k] && d.aEnd[k] === d.bEnd[k];
     if (w) {
-      if (onStrip(prep, units, k, a, ay)) binRect(lay, prep, ctx, a, ay, k, most);
+      // bins (a source's pairs zoomed out): a rect a bin pair at its bins' size, its opacity by count, the square root
+      // over the bins on this strip (as a bridge's, `ribbons.binOpacity`); with `mirror` at (b, a) too
+      if (fw) binRect(lay, prep, ctx, a, ay, k, sp.most, d.aStart[k], d.aEnd[k], d.bStart[k], d.bEnd[k]);
+      if (bw && !self) binRect(lay, prep, ctx, a, ay, k, sp.most, d.bStart[k], d.bEnd[k], d.aStart[k], d.aEnd[k]);
       continue;
     }
-    const as = units ? aOf(prep, k) : prep.aSystem;
-    const bs = units ? bOf(prep, k) : prep.bSystem;
-    const fw = as === a.system && bs === ay.system;
-    const bw = prep.mirror && as === ay.system && bs === a.system;
-    if (!fw && !bw) continue;
     // a stretch runs with its partner when both ends are on the same strand, against it otherwise (EC-206)
     const parallel = d.aStrand[k] === d.bStrand[k];
     if (fw) dot(lay, prep, a, ay, k, d.aStart[k], d.aEnd[k], d.bStart[k], d.bEnd[k], parallel);
-    // a self-pair on a self grid is its own mirror: one dot
-    const self = fw && d.aStart[k] === d.bStart[k] && d.aEnd[k] === d.bEnd[k];
     if (bw && !self) dot(lay, prep, a, ay, k, d.bStart[k], d.bEnd[k], d.aStart[k], d.aEnd[k], parallel);
   }
   sideBySide(lay);
 }
 
-/** Whether pair `k`'s ends are on the strip's two systems, `a` across. */
-function onStrip(prep: PairsPrep, units: boolean, k: number, a: AxisTransform, ay: AxisTransform): boolean {
-  return (units ? aOf(prep, k) : prep.aSystem) === a.system && (units ? bOf(prep, k) : prep.bSystem) === ay.system;
+/** The strip's triangle and the axes' directions (display ranks: a reversed axis's positions negated), set a layout. */
+const Keep = { t: 'both' as Triangle, sx: 1, sy: 1 };
+
+/** Whether a mark centred at positions (cx, cy) is kept by the strip's triangle, above or below the drawn diagonal. */
+function kept(cx: number, cy: number): boolean {
+  return keeps(Keep.t, Keep.sx * cx, Keep.sy * cy);
 }
 
 /** `[s, e)`'s extent in view on an axis into `out[o]`, `out[o + 1]` (its first piece in view, clipped); false if none. */
@@ -89,9 +161,13 @@ function binRect(
   ay: AxisTransform,
   k: number,
   most: number,
+  xs: number,
+  xe: number,
+  ys: number,
+  ye: number,
 ) {
-  const d = prep.data!;
-  if (!extentIn(a, d.aStart[k], d.aEnd[k], BinBox, 0) || !extentIn(ay, d.bStart[k], d.bEnd[k], BinBox, 2)) return;
+  if (!kept((xs + xe - 1) / 2, (ys + ye - 1) / 2)) return;
+  if (!extentIn(a, xs, xe, BinBox, 0) || !extentIn(ay, ys, ye, BinBox, 2)) return;
   const color = pairColor(lay, prep, k);
   if (lay.extents.any) lay.extents.add(prep.datum!.set(k));
   const { min, max } = ctx.config.ribbons.binOpacity;
@@ -126,10 +202,7 @@ function dot(
   ye: number,
   parallel: boolean,
 ) {
-  const t = prep.triangle;
-  const cx = (xs + xe - 1) / 2;
-  const cy = (ys + ye - 1) / 2;
-  if ((t === 'upper' && !(cy < cx)) || (t === 'lower' && !(cy > cx))) return;
+  if (!kept((xs + xe - 1) / 2, (ys + ye - 1) / 2)) return;
   const color = pairColor(lay, prep, k);
   if (lay.extents.any) lay.extents.add(prep.datum!.set(k));
   if (xe - xs === 1 && ye - ys === 1) {

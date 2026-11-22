@@ -39,6 +39,7 @@ import {
   sectionId,
 } from './layer-type.js';
 import { Pyramid, pyramidLevelFor } from './pyramid.js';
+import { keeps, StripKeep, stripKeep, type Triangle } from './triangle.js';
 import type { SeqTokens } from './tokens.js';
 
 /** The color channel's environment: its one field is the value. */
@@ -52,7 +53,7 @@ export const CrossTint = 0.14;
 /** The crosshair's edge: the hover's ink at this opacity, a hairline each side of its column and row. */
 export const CrossEdge = 0.85;
 
-export type Triangle = 'both' | 'upper' | 'lower';
+export { keeps, type Triangle } from './triangle.js';
 
 export interface GridPrep {
   readonly owner: string;
@@ -68,6 +69,11 @@ export interface GridPrep {
   readonly region?: GridRegion;
   /** The reduction's reducer (`aggregate`): a pyramid in display order over categorical axes reduces alike. */
   readonly reducer: 'mean' | 'max' | 'min';
+  /**
+   * The layer's reductions, by the orders and the strip's triangle (`GridLay.orderKey`): built when first drawn as tiles,
+   * a few kept (one layer in a data-order and a tree-order section; a block against itself and pairs of blocks).
+   */
+  readonly pyramids: Map<string, Pyramid>;
   /**
    * Over an assembly: each sequence's name as its source lists it, by system; a strip (a block pair) reads its x
    * block's plan, its y block's name the region's (`yRegions`, made once a y block).
@@ -92,6 +98,17 @@ export class GridLay {
   tokens: SeqTokens | undefined;
   config: RenderConfig | undefined;
   triangle: Triangle = 'both';
+  /** The triangle on this strip (`stripKeep`), and the ranks a cell is kept by: a categorical axis's, else the sign. */
+  keep: StripKeep = StripKeep.All;
+  rankX: Int32Array | undefined;
+  rankY: Int32Array | undefined;
+  signX = 1;
+  signY = 1;
+  /** The tiles' and the reduction's key part: the orders' versions and the strip's triangle (made when they change). */
+  orderKey = '';
+  orderVx = -1;
+  orderVy = -1;
+  orderT = '';
   /**
    * A strip of a grid over blocks on another pair of systems: nothing of the layer is drawn there, its emphasis neither
    * (the strip of its own pair draws it once).
@@ -158,6 +175,7 @@ function prepare(layer: ResolvedLayer, model: StaticModel): GridPrep {
     ySystem: a?.ySystem ?? '',
     triangle,
     reducer,
+    pyramids: new Map(),
     channels: channelForms(layer.theme),
     lo,
     hi,
@@ -168,9 +186,16 @@ function say(ctx: LayoutContext, code: 'seq.render.layer.axes' | 'seq.render.gri
   ctx.report(issueOf(RenderIssues, code, message, { address: ctx.key, hint: RenderIssues.codes[code].hint }));
 }
 
-/** Whether cell (i, j) is kept by the triangle (`upper`: y before x, `lower`: y after x). */
-export function keeps(t: Triangle, i: number, j: number): boolean {
-  return t === 'both' || (t === 'upper' ? j < i : j > i);
+/**
+ * Whether a lay keeps cell (i, j) (_spec/README.md "Render", The grid layer: triangles): its strip's rule (`stripKeep`),
+ * a cell by its display ranks (a categorical axis's rank, a reversed axis's position negated): the half above or below
+ * the diagonal as drawn.
+ */
+export function keepsCell(lay: GridLay, i: number, j: number): boolean {
+  if (lay.keep !== StripKeep.Cells) return lay.keep === StripKeep.All;
+  const ri = lay.rankX ? lay.rankX[i] : lay.signX * i;
+  const rj = lay.rankY ? lay.rankY[j] : lay.signY * j;
+  return keeps(lay.triangle, ri, rj);
 }
 
 export const GridType: LayerType<GridPrep, GridLay> = {
@@ -212,6 +237,21 @@ export const GridType: LayerType<GridPrep, GridLay> = {
     if (!ay) {
       say(ctx, 'seq.render.layer.axes', 'A grid layer draws in a grid section only');
       return lay;
+    }
+    // the triangle on this strip: by display ranks, never across two systems or two sections
+    lay.keep = stripKeep(prep.triangle, ctx);
+    lay.rankX = axis.members?.rank;
+    lay.rankY = ay.members?.rank;
+    lay.signX = axis.dir;
+    lay.signY = ay.dir;
+    const vx = axis.members?.version ?? 0;
+    const vy = ay.members?.version ?? 0;
+    const t = lay.keep === StripKeep.Cells ? prep.triangle : lay.keep === StripKeep.All ? 'both' : 'none';
+    if (vx !== lay.orderVx || vy !== lay.orderVy || t !== lay.orderT) {
+      lay.orderVx = vx;
+      lay.orderVy = vy;
+      lay.orderT = t;
+      lay.orderKey = `@${vx}.${vy}.${axis.dir}.${ay.dir}|${t}`;
     }
     if (!prep.grid && !prep.region) return lay;
     // over an assembly: any pair of its blocks, the y block's plan naming the region's y
@@ -350,7 +390,7 @@ function layoutRects(lay: GridLay, prep: GridPrep, a: AxisTransform, ay: AxisTra
     if (!(w > 0)) continue;
     for (let uj = j0; uj < j1; uj++) {
       const j = ay.elementAtUnit(uj + 0.5);
-      if (j < 0 || j >= g.ny || !keeps(prep.triangle, i, j) || !ay.cell(j)) continue;
+      if (j < 0 || j >= g.ny || !keepsCell(lay, i, j) || !ay.cell(j)) continue;
       const y0 = Math.max(ya, Math.min(ay.sx0, ay.sx1));
       const h = Math.min(yb, Math.max(ay.sx0, ay.sx1)) - y0;
       if (!(h > 0)) continue;
@@ -392,7 +432,8 @@ const Range = new Int32Array(4);
  */
 function layoutImages(lay: GridLay, prep: GridPrep, ctx: LayoutContext, a: AxisTransform, ay: AxisTransform) {
   const g = prep.grid!;
-  const pyr = orderedPyramid(prep, a, ay);
+  if (lay.keep === StripKeep.None) return;
+  const pyr = orderedPyramid(lay, prep, a, ay);
   const cache = lay.cache!;
   const tokens = ctx.tokens;
   const want = pyramidLevelFor(Math.max(1 / a.devicePx, 1 / ay.devicePx), 2);
@@ -401,7 +442,7 @@ function layoutImages(lay: GridLay, prep: GridPrep, ctx: LayoutContext, a: AxisT
   lay.level = L;
   viewRange(a, g.nx, Range, 0);
   viewRange(ay, g.ny, Range, 2);
-  const order = orderKey(a, ay);
+  const order = lay.orderKey;
   let budget = ctx.settled ? Number.POSITIVE_INFINITY : ctx.config.grid.buildBudget;
   let lastCoarse = '';
   const f = 2 ** L;
@@ -466,16 +507,11 @@ function tileKey(
   tj: number,
   order: string,
 ): string {
-  return `${lay.key}|${level}|${ti}.${tj}|${pyr.version}${order}|${lay.colorVersion}.${tokens}|${lay.triangle}`;
+  return `${lay.key}|${level}|${ti}.${tj}|${pyr.version}${order}|${lay.colorVersion}.${tokens}`;
 }
 
-/** The members' orders a tile is drawn in (categorical axes: their versions), empty for positions. */
-function orderKey(a: AxisTransform, ay: AxisTransform): string {
-  return a.members || ay.members ? `@${a.members?.version ?? 0}.${ay.members?.version ?? 0}` : '';
-}
-
-/** The reduction, by the grid and the orders (a reorder builds it once): built when first drawn as tiles. */
-const Ordered = new WeakMap<GridData, { key: string; pyramid: Pyramid }>();
+/** The reductions a layer keeps (its orders and strips' triangles). */
+const KeptPyramids = 4;
 
 /**
  * The reduction the tiles read (_spec/README.md "Render", The grid layer: categorical axes), built when first drawn as
@@ -483,24 +519,25 @@ const Ordered = new WeakMap<GridData, { key: string; pyramid: Pyramid }>();
  * display order (a member at its rank), reduced alike; a triangle's over its own cells alone (the others missing, so a
  * coarse sample on the diagonal keeps its half); kept while the orders are.
  */
-function orderedPyramid(prep: GridPrep, a: AxisTransform, ay: AxisTransform): Pyramid {
+function orderedPyramid(lay: GridLay, prep: GridPrep, a: AxisTransform, ay: AxisTransform): Pyramid {
   const mx = a.members;
   const my = ay.members;
   const g = prep.grid!;
-  const key = `${orderKey(a, ay)}|${prep.triangle}|${prep.reducer}`;
-  const kept = Ordered.get(g);
-  if (kept?.key === key) return kept.pyramid;
+  const key = lay.orderKey;
+  const kept = prep.pyramids.get(key);
+  if (kept) return kept;
   const v = new Float32Array(g.nx * g.ny);
   for (let dx = 0; dx < g.nx; dx++) {
     const i = mx ? mx.order[dx] : dx;
     for (let dy = 0; dy < g.ny; dy++) {
       const j = my ? my.order[dy] : dy;
-      v[dx * g.ny + dy] = keeps(prep.triangle, i, j) ? g.values[i * g.ny + j] : Number.NaN;
+      v[dx * g.ny + dy] = keepsCell(lay, i, j) ? g.values[i * g.ny + j] : Number.NaN;
     }
   }
   const pyramid = new Pyramid({ factor: 2, pairing: 'square', reducer: prep.reducer });
   pyramid.setValues(g.nx, g.ny, v);
-  Ordered.set(g, { key, pyramid });
+  if (prep.pyramids.size >= KeptPyramids) prep.pyramids.delete(prep.pyramids.keys().next().value!);
+  prep.pyramids.set(key, pyramid);
   return pyramid;
 }
 

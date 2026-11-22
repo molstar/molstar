@@ -22,6 +22,8 @@ export interface TwoSectionsOptions {
   readonly stack?: boolean;
   /** No grids: the pairs alone (a dot plot). */
   readonly noGrids?: boolean;
+  /** The grids' `triangle` (two sections: never halved). */
+  readonly triangle?: 'upper' | 'lower';
   /** Pairs from block `s[x]` to `t[y]`: each `[aStart, aEnd, bStart, bEnd, strand]` (strand −1: against). */
   readonly pairs?: { readonly x: number; readonly y: number; readonly rows: readonly (readonly number[])[] };
 }
@@ -66,7 +68,9 @@ export function twoSectionsSpec(o: TwoSectionsOptions): Node {
     bs.track('letters').layer('letters', { type: 'letters' });
     const g = v.section('plot', { layout: 'grid', follow: a.address, follow_y: bs.address });
     g.track('plot', {}, (t) => {
-      grids.forEach((d, k) => t.layer(`g${k}`, { type: 'grid', data: d }));
+      grids.forEach((d, k) =>
+        t.layer(`g${k}`, { type: 'grid', data: d, ...(o.triangle ? { triangle: o.triangle } : {}) }),
+      );
       if (pairs) t.layer('dots', { type: 'pairs', data: pairs });
     });
   });

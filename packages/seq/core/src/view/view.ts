@@ -635,6 +635,9 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
       }
       overBlocks.set(at, leader);
       if (yBlocks) overBlocksY.set(at, yLeader!);
+      // a `follow_y` naming a section with no blocks (or none): y keeps x's blocks, said (never silently)
+      else if (yLeader !== undefined && yLeader !== leader)
+        report('seq.view.follow.unplaced', 'The grid’s y follows no section of blocks: it shows the blocks across', at);
       systemOf.set(at, '');
       continue;
     }
