@@ -5,11 +5,11 @@
  */
 
 import { issueOf } from '@molstar/core/repr/tree';
-import { abortError, type OpenedSource, type RegionAnswer } from '../data/protocol.js';
+import { abortError, type RegionAnswer } from '../data/protocol.js';
 import { failure, refuse } from './internal/answers.js';
 import { BgzfIssues } from './internal/issues.js';
 import { openIndexedLines } from './internal/lines.js';
-import { coverageOf, headerSchema, refusedIssues, type VcfOpened } from './vcf-read.js';
+import { coverageOf, headerSchema, refusedIssues, type VcfOpened, type VcfSource } from './vcf-read.js';
 import { readVcfHeader } from './vcf-header.js';
 import { VcfCauses } from './vcf-issues.js';
 import { parseLine, VcfRowsBuilder, vcfAnswer } from './vcf-parse.js';
@@ -18,7 +18,7 @@ import { parseLine, VcfRowsBuilder, vcfAnswer } from './vcf-parse.js';
 // lines, within `maxHeaderBytes`), each region's lines through the one line parser, at level 1. Loaded when the first
 // indexed source opens, so a host reading VCF files whole never loads io's tabix.
 
-export async function openIndexed(o: VcfOpened, uri: string, indexUri: string): Promise<OpenedSource> {
+export async function openIndexed(o: VcfOpened, uri: string, indexUri: string): Promise<VcfSource> {
   const { source, ctx, options, causes } = o;
   const at = source.address;
   const lines = await openIndexedLines(uri, indexUri, {
@@ -54,6 +54,7 @@ export async function openIndexed(o: VcfOpened, uri: string, indexUri: string): 
     const maxRows = ctx.limits.maxRows;
     return {
       coverage,
+      header: read.header,
       issues,
       async read(request, signal): Promise<RegionAnswer> {
         if (signal.aborted) throw abortError();

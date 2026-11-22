@@ -8,7 +8,6 @@ import {
   abortError,
   type FormatRuntime,
   type OpenContext,
-  type OpenedSource,
   type SourceEntry,
 } from '../data/protocol.js';
 import { wholeLevel } from '../data/seq-format.js';
@@ -26,6 +25,7 @@ import {
   refusedIssues,
   type VcfOpened,
   type VcfOptions,
+  type VcfSource,
 } from './vcf-read.js';
 
 // VCF sites (_spec/README.md "Data", VCF), the opt-in runtime `@molstar/seqx-core/runtimes/vcf`: a row an ALT allele
@@ -39,7 +39,7 @@ export type { VcfContig, VcfDeclaration, VcfHeader, VcfHeaderLimits, VcfHeaderRe
 export { DefaultVcfHeaderLimits, readVcfHeader } from './vcf-header.js';
 export { VcfIssues } from './vcf-issues.js';
 export { MissingInt } from './vcf-parse.js';
-export { DefaultVcfOptions, type VcfOptions } from './vcf-read.js';
+export { DefaultVcfOptions, type VcfOptions, type VcfSource } from './vcf-read.js';
 
 export const VcfFormats = ['vcf'] as const;
 
@@ -64,7 +64,7 @@ async function wholeBytes(o: VcfOpened): Promise<Uint8Array> {
   return text.bytes;
 }
 
-async function openWhole(o: VcfOpened): Promise<OpenedSource> {
+async function openWhole(o: VcfOpened): Promise<VcfSource> {
   const { source, ctx, options, causes } = o;
   const at = source.address;
   const bytes = await wholeBytes(o);
@@ -104,12 +104,16 @@ async function openWhole(o: VcfOpened): Promise<OpenedSource> {
   // read whole, sites are served at level 1 and at the level whose one tile holds the longest system (the inline rule)
   const whole = wholeLevel(extent);
   const coverage = coverageOf(names, lengths, schema, whole > 1 ? [1, whole] : [1]);
-  return wholeSource(coverage, [...causes.issues(at), ...refusedIssues(at, refused)], (r) =>
-    vcfAnswer(rows.get(r.system), schema, r, maxRows),
-  );
+  const header = read.header;
+  return {
+    ...wholeSource(coverage, [...causes.issues(at), ...refusedIssues(at, refused)], (r) =>
+      vcfAnswer(rows.get(r.system), schema, r, maxRows),
+    ),
+    header,
+  };
 }
 
-async function open(source: SourceEntry, ctx: OpenContext, options: VcfOptions): Promise<OpenedSource> {
+async function open(source: SourceEntry, ctx: OpenContext, options: VcfOptions): Promise<VcfSource> {
   if (source.format !== 'vcf') refuse(source.address, 'seq.source.no_data', `Not VCF: ${source.format}`);
   const causes = new VcfCauses();
   if (source.base !== undefined || source.ends !== undefined)

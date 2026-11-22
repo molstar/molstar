@@ -7,7 +7,7 @@
 import { type Issue, issueOf } from '@molstar/core/repr/tree';
 import type { TabixLimits } from '@molstar/io/common/tabix';
 import { SourceIssues } from '../data/issues.js';
-import type { Coverage, OpenContext, SourceEntry, SystemInfo } from '../data/protocol.js';
+import type { Coverage, OpenContext, OpenedSource, SourceEntry, SystemInfo } from '../data/protocol.js';
 import type { VcfHeader } from './vcf-header.js';
 import type { VcfCauses } from './vcf-issues.js';
 import { fieldInfos, MaxPosition, type VcfSchema, vcfSchema } from './vcf-parse.js';
@@ -38,6 +38,11 @@ export const DefaultVcfOptions: VcfOptions = {
   maxSamples: 100_000,
   maxAlleles: 256,
 };
+
+/** An opened VCF: a source, and its header (what a host shows of the file: its keys, contigs and samples). */
+export interface VcfSource extends OpenedSource {
+  readonly header: VcfHeader;
+}
 
 /** An open in progress: the source, its context, the runtime's options and the causes said. */
 export interface VcfOpened {

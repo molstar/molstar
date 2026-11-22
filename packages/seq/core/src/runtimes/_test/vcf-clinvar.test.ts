@@ -11,7 +11,7 @@ import type { AssetRangeReader } from '@molstar/core/util/assets';
 import { describe, expect, it } from 'vitest';
 import { sourceSuite } from '../../data/_test/source-suite.js';
 import { type AssetReader, DefaultOpenLimits, type OpenContext } from '../../data/protocol.js';
-import { VcfRuntime } from '../vcf.js';
+import { VcfRuntime, type VcfSource } from '../vcf.js';
 
 // The recorded real slice (_spec/README.md "Data", VCF): NCBI ClinVar's GRCh38 `clinvar_20240107.vcf.gz` (BGZF, its
 // header's page, TP53's chunks and the EOF block's page) and its `.tbi` (whole), recorded as pages (examples'
@@ -92,6 +92,15 @@ describe('the recorded ClinVar slice (TP53, by region)', () => {
     expect(s.coverage.systems.every((x) => x.length === undefined)).toBe(true);
     const fields = Object.fromEntries((s.coverage.shapes[0].fields ?? []).map((f) => [f.name, f.type]));
     expect(fields).toMatchObject({ ALLELEID: 'int32', AF_EXAC: 'float32', CLNSIG: 'category', GENEINFO: 'category' });
+    // the header the source keeps (what a host shows of the file)
+    const h = (s as VcfSource).header;
+    expect([h.fileformat, h.contigs.length, h.info.length, h.format.length, h.samples.length]).toEqual([
+      'VCFv4.1',
+      0,
+      21,
+      0,
+      0,
+    ]);
     s.dispose();
   });
 
