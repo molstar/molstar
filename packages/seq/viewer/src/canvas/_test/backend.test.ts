@@ -92,6 +92,28 @@ describe('CanvasBackend', () => {
     expect(log).toContain('rect(5, 5, 50, 20)');
   });
 
+  it('a clip inside a clip intersects it: each is its own saved state over the one around it, restored innermost first', () => {
+    const { base, backend } = setup();
+    const l = new DrawLists();
+    const out = l.writer('data');
+    out.clip(0, 0, 100, 50);
+    out.clip(20, 30, 100, 50);
+    out.rect(0, 0, 200, 200, RED);
+    out.unclip();
+    out.unclip();
+    backend.draw(l, true);
+    const log = base.context.take();
+    // the second clip is made with the first still in force (the canvas's clip() intersects with the current one), and
+    // the first's state is restored only after the second's
+    const first = log.indexOf('rect(0, 0, 100, 50)');
+    const second = log.indexOf('rect(20, 30, 100, 50)');
+    expect(first).toBeGreaterThan(-1);
+    expect(second).toBeGreaterThan(first);
+    expect(log.slice(first, second).includes('restore()')).toBe(false);
+    expect(log.indexOf('restore()')).toBeGreaterThan(log.indexOf('fillRect(0, 0, 200, 200)'));
+    expect(log.filter((c) => c === 'restore()').length).toBe(2);
+  });
+
   it('draws a squircle clip (a track’s well) through the core’s curve, as the SVG’s clip path; a box clip a rect', () => {
     const { base, backend } = setup();
     const l = new DrawLists();

@@ -23,6 +23,7 @@ import {
   PathCommandPoints,
   Renderer,
   renderConfig,
+  walkPass,
 } from '../index.js';
 import { BuiltInLayerTypes, BuiltInLayouts } from '../built-ins.js';
 
@@ -124,4 +125,31 @@ export async function frameWithout(
     f = next;
   }
   return renderer.frame(input);
+}
+
+/** The labels-pass texts and rects whose visible part (under the clips around it) leaves `[top, bottom]`. */
+export function outside(lists: DrawLists, pass: PassName, top: number, bottom: number): { drawn: number; bad: number } {
+  const stack: [number, number][] = [];
+  let bad = 0;
+  let drawn = 0;
+  const check = (y0: number, y1: number) => {
+    drawn++;
+    let lo = Number.NEGATIVE_INFINITY;
+    let hi = Number.POSITIVE_INFINITY;
+    for (const [a, b] of stack) {
+      lo = Math.max(lo, a);
+      hi = Math.min(hi, b);
+    }
+    if (Math.max(y0, lo) < top - 0.01 || Math.min(y1, hi) > bottom + 0.01) bad++;
+  };
+  walkPass(lists.passes[pass], {
+    rect: (l, i) => check(l.y[i], l.y[i] + l.h[i]),
+    path: () => undefined,
+    glyphs: () => undefined,
+    text: (l, i) => check(l.y[i] - 10, l.y[i] + 3),
+    image: () => undefined,
+    clip: (l, i) => stack.push([l.y[i], l.y[i] + l.h[i]]),
+    unclip: () => stack.pop(),
+  });
+  return { drawn, bad };
 }

@@ -102,6 +102,12 @@ export const RenderIssues = defineIssues('seq.render', {
       'A layer’s wants together are past the store’s bound on a layer’s tiles or read cost, at its coarsest level: nothing is read, its band says to zoom in',
     hint: 'Zoom in to read this track',
   },
+  'seq.render.reach': {
+    severity: 'info',
+    description:
+      'A ranges layer’s section is too large to read whole at its fit level within the store’s bound on a layer’s tiles or read cost: its track is as tall as the lanes in view',
+    hint: 'Give the track a height, or zoom in',
+  },
   'seq.render.pairs.limit': {
     severity: 'info',
     description:
