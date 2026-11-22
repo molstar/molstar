@@ -127,6 +127,7 @@ export class DataStore extends ReactiveModel {
   private readonly _reports: StoreReports;
   /** The layers whose wants together were past `maxTilesPerLayer` (`tiles`) or `maxBytesPerLayer` (`cost`). */
   private readonly _refused = new Map<string, 'tiles' | 'cost'>();
+  private _refusals = 0;
 
   /** The clock the store's timers run on (a caller sharing the store keeps time on it). */
   get clock(): StoreClock {
@@ -379,6 +380,11 @@ export class DataStore extends ReactiveModel {
     return this._refused.get(layer);
   }
 
+  /** Moves when a layer's refusal comes or goes: what a reader of `layerRefused` keeps to know it read it again. */
+  get refusals(): number {
+    return this._refusals;
+  }
+
   /** The live view's want set (`wanter()` for another consumer). */
   want(wants: readonly Want[]): void {
     this._live.want(wants);
@@ -421,7 +427,10 @@ export class DataStore extends ReactiveModel {
       if (now) this._refused.set(w.layer, now);
       else this._refused.delete(w.layer);
     }
-    if (changed) this._version.set(this._next());
+    if (changed) {
+      this._refusals++;
+      this._version.set(this._next());
+    }
     return planned;
   }
 

@@ -5,7 +5,7 @@
  */
 
 import { HalfOpenRanges } from '@molstar/core/data/int/half-open-ranges';
-import { type DataEntry, fitLevel, type Shape } from '@molstar/seqx-core/data';
+import { type DataEntry, fitLevel, type Shape, type Want } from '@molstar/seqx-core/data';
 import { inversePath, type Path, projectRanges, type StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
@@ -335,15 +335,16 @@ export function readTiles(
   for (let i = 0; i + 1 < regions.length; i += 2) {
     const start = regions[i];
     const end = regions[i + 1];
-    const want = {
+    // one shape for every want (no spreads): a layout allocates a bounded amount
+    const want: Want = {
       source: src.source,
       system: src.system,
       start,
       end,
       level,
-      priority: 'view' as const,
-      ...(ctx.key !== undefined ? { layer: ctx.key } : {}),
-      ...extra,
+      priority: 'view',
+      layer: extra?.layer ?? ctx.key,
+      items: extra?.items,
     };
     ctx.want(want);
     const m = Math.ceil((end - start) * ctx.config.margin);
