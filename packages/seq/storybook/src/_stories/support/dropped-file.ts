@@ -16,14 +16,15 @@ import {
 import { AlignmentFileRuntime } from '@molstar/seqx-core/data/alignment-readers';
 import { RecordsRuntime } from '@molstar/seqx-core/data/records';
 import { createSeqSpec, type SeqSpecBuilder } from '@molstar/seqx-core/lang';
+import { GenbankRuntime } from '@molstar/seqx-core/runtimes/genbank';
 import { MmcifRuntime } from '@molstar/seqx-core/runtimes/mmcif';
 
 // A user's own file dropped onto a view (examples.md, Showcases; the formats built): the file's name says its format,
 // the runtime of the format opens it (the same runtimes a spec's source node is read by) and its coverage says what the
-// file holds: sequences (`seq`, FASTA), the units of a structure (mmCIF), an alignment (Stockholm, aligned FASTA) or rows
-// of ranges (the records: a table with `start` and `end` columns). The spec the view then shows names the file by a
-// location the application's assets port answers from the dropped bytes; nothing leaves the page. GenBank is not read
-// (decided: the fifth slice at the earliest) and says so.
+// file holds: sequences (`seq`, FASTA; GenBank's records with their features), the units of a structure (mmCIF), an
+// alignment (Stockholm, aligned FASTA) or rows of ranges (the records: a table with `start` and `end` columns). The spec
+// the view then shows names the file by a location the application's assets port answers from the dropped bytes;
+// nothing leaves the page.
 
 /** The runtimes a viewer that takes dropped files lists (the default registry has `seq` and the records). */
 export const DropRuntimes: readonly FormatRuntime[] = [
@@ -32,6 +33,17 @@ export const DropRuntimes: readonly FormatRuntime[] = [
   FastaRuntime,
   AlignmentFileRuntime,
   MmcifRuntime,
+  GenbankRuntime,
+];
+
+/** The samples the "Try" buttons load as if dropped: the name it is dropped as, the examples' file. */
+export const DropSamples: ReadonlyArray<readonly [name: string, file: string]> = [
+  ['2OCJ.seq', 'fixtures/p53/2OCJ.seq'],
+  ['1N8Z.fasta', 'fixtures/antibody/1N8Z.fasta'],
+  ['PF00042-seed.sto', 'fixtures/globins/PF00042-seed.sto'],
+  ['domains.tsv', 'fixtures/files/domains.tsv'],
+  ['2ocj.cif.gz', 'fixtures/structures/2OCJ.cif.gz'],
+  ['pUC19.gb', 'fixtures/plasmid/pUC19c-rotated.gb'],
 ];
 
 /** The most sequences or units a dropped file's view shows: one section each. */
@@ -64,14 +76,17 @@ const Extensions: ReadonlyArray<readonly [RegExp, string]> = [
   [/\.(msgpack|mpk)$/i, 'msgpack'],
   [/\.(gff|gff3)$/i, 'gff3'],
   [/\.(cif|mmcif)(\.gz)?$/i, 'mmcif'],
+  [/\.(gb|gbk|genbank)(\.gz)?$/i, 'genbank'],
 ];
+
+/** The formats read gzipped (the runtime tells it by its magic). */
+const Gzipped = new Set(['mmcif', 'genbank']);
 
 /** The format a file name says, or why it is refused. */
 export function formatOfName(name: string): { readonly format: string } | { readonly refused: string } {
-  if (/\.(gb|gbk|genbank)(\.gz)?$/i.test(name)) return { refused: 'GenBank files are not read yet' };
   for (const [re, format] of Extensions) if (re.test(name)) return { format };
   return {
-    refused: `The format of ${name} is not known: Seq* reads .seq, FASTA, Stockholm, aligned FASTA, TSV, CSV, JSON, MessagePack, GFF3 and mmCIF files`,
+    refused: `The format of ${name} is not known: Seq* reads .seq, FASTA, Stockholm, aligned FASTA, TSV, CSV, JSON, MessagePack, GFF3, mmCIF and GenBank files`,
   };
 }
 
@@ -84,10 +99,12 @@ const isGzip = (b: Uint8Array) => b.length >= 2 && b[0] === 0x1f && b[1] === 0x8
 
 /**
  * A cheap look at the content before a runtime is picked: the name says the format, the first bytes must agree (gzip's
- * magic only on mmCIF, `# STOCKHOLM`, `>` of FASTA, `data_` of mmCIF, a JSON value). The reason says what was found.
+ * magic only on mmCIF and GenBank, `# STOCKHOLM`, `>` of FASTA, `data_` of mmCIF, `LOCUS` of GenBank, a JSON value). The
+ * reason says what was found.
  */
 export function sniff(name: string, format: string, bytes: Uint8Array): string | undefined {
-  if (isGzip(bytes)) return format === 'mmcif' ? undefined : `${name} is gzipped: only mmCIF files are read compressed`;
+  if (isGzip(bytes))
+    return Gzipped.has(format) ? undefined : `${name} is gzipped: only mmCIF and GenBank files are read compressed`;
   if (format === 'msgpack' || format === 'seq' || format === 'tsv' || format === 'csv' || format === 'gff3')
     return undefined;
   const head = new TextDecoder()
@@ -105,6 +122,8 @@ export function sniff(name: string, format: string, bytes: Uint8Array): string |
       return head.startsWith('{') || head.startsWith('[') ? undefined : refuse('"{" or "["');
     case 'mmcif':
       return /^data_/m.test(head) ? undefined : refuse('"data_"');
+    case 'genbank':
+      return /^LOCUS /m.test(head) ? undefined : refuse('"LOCUS"');
   }
   return undefined;
 }
@@ -145,7 +164,13 @@ function sequenceSections(b: SeqSpecBuilder, opened: OpenedSource, format: strin
   const withValues = new Set(opened.coverage.shapes.filter((s) => s.shape === 'values').map((s) => s.system));
   const parts = systems.map((s, i) => {
     const id = `s${i + 1}`;
-    const sequence = b.data.sequence(id, { alphabet: alphabetOf(s.alphabet), source, name: s.name });
+    // a cyclic record (a GenBank plasmid) is a cyclic sequence: its features across the origin wrap
+    const sequence = b.data.sequence(id, {
+      alphabet: alphabetOf(s.alphabet),
+      source,
+      name: s.name,
+      ...(s.cyclic ? { cyclic: true } : {}),
+    });
     const ranges = withRanges.has(s.name) ? b.data.ranges(`${id}-ranges`, { target: sequence, source }) : undefined;
     const values = withValues.has(s.name) ? b.data.values(`${id}-values`, { target: sequence, source }) : undefined;
     return { id, label: s.name, sequence, ranges, values };
@@ -191,7 +216,7 @@ export async function specOfDropped(name: string, bytes: Uint8Array): Promise<Dr
     dispose(opened);
     return { spec: b.build(), format, summary: `${format}: an alignment` };
   }
-  if (format === 'seq' || format === 'fasta' || format === 'mmcif') {
+  if (format === 'seq' || format === 'fasta' || format === 'mmcif' || format === 'genbank') {
     b.data.source('file', common);
     const summary = sequenceSections(b, opened, format, name);
     if (!opened.coverage.systems.length) {

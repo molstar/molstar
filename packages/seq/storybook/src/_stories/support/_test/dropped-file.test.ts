@@ -13,6 +13,7 @@ import { DefaultOpenLimits } from '@molstar/seqx-core/data';
 import {
   droppedUri,
   DropRuntimes,
+  DropSamples,
   formatOfName,
   MaxLength,
   refuseSize,
@@ -72,6 +73,7 @@ describe('a dropped file', () => {
     ['domains.csv', 'fixtures/files/domains.csv', 'csv'],
     ['domains.json', 'fixtures/files/domains-aos.json', 'json'],
     ['2ocj.cif.gz', 'fixtures/structures/2OCJ.cif.gz', 'mmcif'],
+    ['pUC19.gb', 'fixtures/plasmid/pUC19c-rotated.gb', 'genbank'],
   ])('%s is read as %s: shown with no issue, read from the dropped bytes only', async (name, file, format) => {
     const r = await show(name, bytes(file));
     expect('refused' in r.dropped, JSON.stringify(r.dropped)).toBe(false);
@@ -84,8 +86,7 @@ describe('a dropped file', () => {
     expect([...new Set(r.reads)]).toEqual([droppedUri(name)]);
   });
 
-  it('GenBank is refused, saying so (no EC: a format not built); an unknown extension names what is read; a file that does not parse is refused with the reason, never thrown (EC-77)', async () => {
-    expect(formatOfName('pUC19.gb')).toEqual({ refused: 'GenBank files are not read yet' });
+  it('an unknown extension names what is read; a file that does not parse is refused with the reason, never thrown (EC-77)', async () => {
     expect(
       'refused' in formatOfName('notes.txt') && (formatOfName('notes.txt') as { refused: string }).refused,
     ).toContain('.seq');
@@ -93,6 +94,26 @@ describe('a dropped file', () => {
     expect('refused' in bad && bad.refused).toContain('broken.seq');
     const empty = await specOfDropped('empty.tsv', new TextEncoder().encode('a\tb\n'));
     expect('refused' in empty).toBe(true);
+  });
+
+  it.each(DropSamples.map(([name, file]) => [name, file]))(
+    'the "Try %s" button’s sample loads a view: shown with no issue',
+    async (name, file) => {
+      const r = await show(name, bytes(file));
+      expect('refused' in r.dropped, JSON.stringify(r.dropped)).toBe(false);
+      expect(r.issues).toEqual([]);
+      expect(r.sections.length).toBeGreaterThan(0);
+    },
+  );
+
+  it('pUC19.gb: one cyclic sequence, its letters and its features (bla one item across the origin)', async () => {
+    const dropped = await specOfDropped('pUC19.gb', bytes('fixtures/plasmid/pUC19c-rotated.gb'));
+    if ('refused' in dropped) throw new Error(dropped.refused);
+    expect(dropped.summary).toBe('genbank: 1 sequences');
+    const printed = JSON.stringify(dropped.spec);
+    expect(printed).toContain('"cyclic":true');
+    const r = await show('pUC19.gb', bytes('fixtures/plasmid/pUC19c-rotated.gb'));
+    expect(r.svg).toContain('bla (AmpR)');
   });
 
   it('a name with characters of a URL is one location (EC-200: names cover real names)', () => {
@@ -119,6 +140,7 @@ describe('a dropped file', () => {
     ['a.fasta', 'ACGT\n', '>'],
     ['a.json', 'name,x\n', '{'],
     ['a.cif', 'loop_\n', 'data_'],
+    ['a.gb', '>not genbank\n', 'LOCUS'],
   ])(
     '%s with the wrong content is refused by its first bytes, saying what it should start with',
     async (name, text, want) => {
@@ -127,9 +149,10 @@ describe('a dropped file', () => {
     },
   );
 
-  it('gzip is read only as mmCIF', async () => {
+  it('gzip is read only as mmCIF and GenBank', async () => {
     const gz = new Uint8Array([0x1f, 0x8b, 8, 0]);
     expect(sniff('a.tsv', 'tsv', gz)).toContain('gzipped');
     expect(sniff('a.cif.gz', 'mmcif', gz)).toBeUndefined();
+    expect(sniff('a.gb.gz', 'genbank', gz)).toBeUndefined();
   });
 });
