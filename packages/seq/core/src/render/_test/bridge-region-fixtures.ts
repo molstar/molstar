@@ -110,8 +110,11 @@ export function alignmentSource(alignments: readonly Alignment[]): SeqData {
   };
 }
 
-/** Two sections (`top` of A, `bottom` of B) and a bridge between them drawing the alignments read by region. */
-export function regionBridgeSpec(alignments: readonly Alignment[]) {
+/**
+ * Two sections (`top` of A, `bottom` of B) and a bridge between them drawing the alignments read by region; with
+ * `third`, a third section (`third`, of A) below them, joined to nothing.
+ */
+export function regionBridgeSpec(alignments: readonly Alignment[], options: { third?: boolean } = {}) {
   const b = createSeqSpec({ title: 'alignments across' });
   const src = b.data.source('src', { format: 'seq', value: seqToValue(alignmentSource(alignments)) as never });
   const A = b.data.sequence('A', { alphabet: 'dna', source: src, name: 'A' });
@@ -123,6 +126,7 @@ export function regionBridgeSpec(alignments: readonly Alignment[]) {
       br.layer('aln', { type: 'pairs', data: aln } as never),
     );
     v.section('bottom', { of: B }).track('ruler').layer('ruler', { type: 'ruler' });
+    if (options.third) v.section('third', { of: A }).track('ruler').layer('ruler', { type: 'ruler' });
   });
   return b.build();
 }

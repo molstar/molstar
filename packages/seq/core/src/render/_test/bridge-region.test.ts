@@ -8,8 +8,9 @@
 // drawn once by ownership; an alignment's blocks under a pixel apart one ribbon; pending tiles the hatch (EC-169).
 
 import { SeqRuntime } from '@molstar/seqx-core/data';
-import { describe, expect, it } from 'vitest';
-import { hitView } from '../index.js';
+import { describe, expect, it, vi } from 'vitest';
+import { hitView, TracksLayout } from '../index.js';
+import { RibbonsType } from '../pairs-ribbons.js';
 import type { RibbonsLay } from '../pairs-ribbons.js';
 import { groupsOf } from '../pairs-ribbons-lay.js';
 import {
@@ -139,5 +140,34 @@ describe('an alignment’s blocks in a bridge', () => {
     const settled = layOf(await s.frame(input));
     expect(settled.n).toBeGreaterThan(0);
     expect(settled.hatch).toEqual([]);
+  });
+});
+
+describe('a bridge over a region source, kept', () => {
+  it('a pan of a third section lays out that section alone; a pan of a side lays out the bridge again', async () => {
+    const s = await settle(regionBridgeSpec(randomAlignments(200, 7), { third: true }), [SeqRuntime]);
+    const at = (third: number, top = 0) => ({
+      size: Size,
+      viewports: {
+        '/views/v/top': { start: top, end: AlnLength / 4 + top },
+        '/views/v/bottom': { start: 0, end: AlnLength / 4 },
+        '/views/v/third': { start: third, end: AlnLength / 2 + third },
+      },
+    });
+    await s.frame(at(0));
+    await s.frame(at(0));
+    expect(layOf(await s.frame(at(0))).n).toBeGreaterThan(0);
+    const place = vi.spyOn(TracksLayout, 'place');
+    const ribbons = vi.spyOn(RibbonsType, 'layout');
+    try {
+      s.renderer.frame(at(1000));
+      expect(place.mock.calls.map((c) => c[0].address)).toEqual(['/views/v/third']);
+      expect(ribbons).not.toHaveBeenCalled();
+      s.renderer.frame(at(1000, 500));
+      expect(ribbons).toHaveBeenCalledTimes(1);
+    } finally {
+      place.mockRestore();
+      ribbons.mockRestore();
+    }
   });
 });

@@ -16,7 +16,7 @@ import type { ThemeContext } from './channels.js';
 import type { RenderConfig } from './config.js';
 import type { PassName, PassWriter } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
-import type { Box, Emphasis, Hit, LayoutContext } from './layer-type.js';
+import type { Box, Emphasis, Hit, LayoutContext, StoreReader } from './layer-type.js';
 import { issueOf } from '@molstar/core/repr/tree';
 import { BridgePlacement } from './layout/bridge.js';
 import { type BridgeLayoutContext, type RibbonsLay, RibbonsType } from './pairs-ribbons.js';
@@ -54,6 +54,17 @@ interface Kept {
   lay: RibbonsLay;
   /** What it said, said again when it is drawn again. */
   said: Issue[];
+  /** A source read by region: the store entries it read with their versions (`key, version, …`), its wants. */
+  reads: (string | number)[];
+  wants: Want[];
+  settled: boolean;
+}
+
+/** Whether the store entries a kept layer read are as they were (a tile arriving, or going, lays it out again). */
+function readsHold(k: Kept, data: StoreReader): boolean {
+  const r = k.reads;
+  for (let i = 0; i < r.length; i += 2) if ((data.get(r[i] as string)?.version ?? -1) !== r[i + 1]) return false;
+  return true;
 }
 
 const KeptOf = new WeakMap<LayoutState, Map<string, Kept>>();
@@ -148,13 +159,24 @@ function layBridgeLayer(
   // the composition's pairs type prepares it (its data, its channels): the chunk shares its prepared form
   if (prep === undefined) state.preps.set(layer, (prep = input.types!.pairs.prepare(layer, input.model) as PairsPrep));
   const k = kept.get(key);
-  // a source read by region reads the store each frame: never kept by its sides alone
-  if (k && k.a === a && k.b === b && k.prep === prep && !prep.region) {
+  const settled = input.settled ?? false;
+  // kept while its sides' layouts and its prep are; a source read by region also while the entries it read are as they
+  // were (_spec/README.md "Render", Bridges: a pan of one side lays out that side and the bridge only)
+  if (
+    k &&
+    k.a === a &&
+    k.b === b &&
+    k.prep === prep &&
+    (!prep.region || (k.settled === settled && readsHold(k, input.data)))
+  ) {
     for (const i of k.said) x.report(i);
+    for (const w of k.wants) x.wants.push(w);
     k.lay.band = placement.box;
     return { key, layer, type: RibbonsType, lay: k.lay };
   }
   const said: Issue[] = [];
+  const reads: (string | number)[] = [];
+  const wants: Want[] = [];
   const ctx: BridgeLayoutContext = {
     box: placement.box,
     axis: a.axis!,
@@ -164,17 +186,30 @@ function layBridgeLayer(
     config: x.config,
     tokens: input.tokens,
     text: input.text,
-    settled: input.settled ?? false,
+    settled,
     theme: x.theme,
-    want: (w) => x.wants.push(w),
+    want: (w) => {
+      wants.push(w);
+      x.wants.push(w);
+    },
     report: (i) => {
       said.push(i);
       x.report(i);
     },
     bridge: { placement, index, id },
   } satisfies LayoutContext & { bridge: unknown };
-  const lay = RibbonsType.layout(prep, ctx, input.data, input.overlay!, k?.lay);
-  kept.set(key, { a, b, prep, lay, said });
+  // a source read by region: what it reads of the store recorded (its keep's check)
+  const data: StoreReader = prep.region
+    ? Object.assign(Object.create(input.data) as StoreReader, {
+        get: (key: string) => {
+          const e = input.data.get(key);
+          reads.push(key, e?.version ?? -1);
+          return e;
+        },
+      })
+    : input.data;
+  const lay = RibbonsType.layout(prep, ctx, data, input.overlay!, k?.lay);
+  kept.set(key, { a, b, prep, lay, said, reads, wants, settled });
   return { key, layer, type: RibbonsType, lay };
 }
 
