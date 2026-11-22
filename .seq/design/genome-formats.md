@@ -474,7 +474,7 @@ What a reader sees with a source of the format and one layer over it, nothing el
    TP53-202 ◂━━━━━━━━━▮▮▮━━━▮▮━━━━━━━━━━━━━━━━━━━▮▮▮▮▮▬▬
    ```
    `features: genes`: one lane a gene, its exons merged.
-2. **VCF zoomed in**: a variant a mark at its REF extent, coloured by `category` (the next categorical colours);
+2. **VCF zoomed in**: a variant a mark at its REF extent, coloured by `category` (the next categorical colours); items merged under a pixel into one run take **the majority category's fill** (ties by the legend's order), the hover listing the categories under the pointer (the author, 2026-11-22, drift vcf-mixed-runs);
    a long deletion a bar. With a matrix layer, RR's picture 6 (a row a sample).
    ```
    ▏ ▌  ▌▌    ███████   ▌  ▏   SNV ▌, deletion ███

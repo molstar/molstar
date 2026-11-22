@@ -264,6 +264,21 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   contract's lane): hovering a ClinVar variant shows ClinVar's id, Track and Extent; it should name the allele
   (`pos:ref>alt`), its category and its INFO fields, as the design's matrix row "a variant allele" implies.
 
+- **The SVG export blank on a spec with an error** (drift svg-on-error, decided as recommended by the author,
+  2026-11-22: "go as recommended with the drifts"; kind: bug): `exportSvg` returns a blank picture when `checkSeqSpec`
+  finds an error (`packages/seq/core/src/render/export.ts`, about 435 and 441, `if (hasErrors(issues)) return
+  blank(true)`), while the canvas draws what resolves. Export what resolves, as the canvas draws it, the issues in the
+  picture's `<desc>`; viewer-composition.md says so. Tests: Features › Builder › Check's twin asserts the SVG equal to
+  the canvas's draw list (letters and an empty hits track) and the issue in `<desc>`; a spec with no errors exports
+  unchanged.
+
+- **A merged run of mixed categories drawn neutral** (drift vcf-mixed-runs, decided as recommended by the author,
+  2026-11-22; kind: look): `render/ranges.ts` (about 508, VC's `-2 - item` encoding) and `ranges-draw.ts` (about 79)
+  paint a run whose items differ in fill in the neutral colour; ClinVar at TP53's fit is mostly grey. A mixed run takes
+  the majority fill among its items (ties by the legend's order); the hover over it lists the categories under the
+  pointer. Tests against the drawn lists: TP53's ClinVar band draws no neutral rect at the fit; a two-item tie picks
+  the legend's first; a single-category run unchanged.
+
 ## Fixed
 
 - **The navigator's readout covers the control in use** (fixed by FX5, merged 2026-11-22) (the author, 2026-11-21, BED cytobands: "the tooltip appears

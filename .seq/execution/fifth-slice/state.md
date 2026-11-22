@@ -59,6 +59,10 @@
   a time"; `loop.md`'s line changed by the author's word.
 - **The builder stays in core; a Features story showcases it** (the author, 2026-11-22: "keep it in core for now, but
   add a storybook example to features section that showcases it"): lane BS; no `seqx-builder` package for now.
+- **The GenBank download, and the two drifts as recommended** (the author, 2026-11-22: "Yes download and go as
+  recommended with the drifts"): GB fetches L09137.2's flat file once; the SVG export draws what resolves on a spec
+  with an error (viewer-composition.md); a mixed run takes its majority category's fill (genome-formats.md, Defaults
+  2). Both fixes to FX6.
 - **A GenBank lane in stage 2** (the author, 2026-11-21: "Add a GenBank lane", after "Try pUC19.gb" in Services ›
   Your own file showed only a refusal): GB after VC, strong, a short design section first (plan, Stage 2); GenBank
   leaves Out of scope.
@@ -141,7 +145,7 @@ Agents: one at a time while usage is tight (Decided); the orchestrator's look an
 
 - 2026-11-21: the loop started (`/loop run .seq/execution/fifth-slice/loop.md`). Running (B3): FX1 (fast; started
   with this commit) and BZ (strong; same). Both merged (BZ `167d24491`, FX1 `2afb32e91`). GC1 merged (`e3b3a98d0`). SC merged (`2fdc44e76`), GC2 merged (`db2364d09`). BE merged (`98028d3f6`), GC3 merged (`61e71891b`). GG merged (`9b8cf675b`). FX2 merged (`e678d2dbc`), NS merged (`190dfc135`), FX3 merged (`ded361691`), FX4 merged (`5bfebf366`). No lane running (2026-11-21, the session ended at its usage limit); next VC, then stage 1's gate (the author's), RG; open fixes in fixes.md.
-- 2026-11-22: the loop resumed in a new session. BS merged (`5bf984d5b`), VC merged (`364acfb5e`), FX5 merged (2026-11-22). Running (B3, three at once from 2026-11-22): **RG** (strong; same commit, `briefs/rg-region-reads.md`; alone in the store); **GB** (strong; started 2026-11-22 with its brief's commit, `briefs/gb-genbank.md`; the L09137.2 download not yet asked of the author: built on the generated file). Downloads stay asked before they are made (plan, How this slice runs).
+- 2026-11-22: the loop resumed in a new session. BS merged (`5bf984d5b`), VC merged (`364acfb5e`), FX5 merged (2026-11-22). Running (B3, three at once from 2026-11-22): **RG** (strong; same commit, `briefs/rg-region-reads.md`; alone in the store); **GB** (strong; started 2026-11-22 with its brief's commit, `briefs/gb-genbank.md`; the L09137.2 download approved 2026-11-22); **FX6** (Sonnet; started 2026-11-22 with its brief's commit, `briefs/fx6-drifts.md`: the two decided drifts). Downloads stay asked before they are made (plan, How this slice runs).
 
 ## Findings by lane
 
