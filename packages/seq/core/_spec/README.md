@@ -1814,11 +1814,17 @@ alignment's systems, a held pairs or grid node, an annotation), importing the mo
   into typed arrays on the entry (`pairs`, `grid`), on two systems (`target` and `ySystem`), with no access plan: they
   are inline, read whole, and their reductions are their layers'. A grid whose values are not `|x| × |y|`, or more than
   `DefaultMaxBlockValues` (the bound the store checks a block), is dropped with `seq.resolve.grid.size` saying the count
-  it expected. Pairs and grids read by region wait for the Genomes milestone. **Links** (a `pairs` child, Language,
-  Molecules and complexes) are held so too: a molecule's on its residues (`target` and `ySystem` the molecule); a
-  complex's with each end on its row's unit (`PairsData.aUnit`, `bUnit`: indices into the entry's `units`, the complex's
-  units in order; a row naming no unit of it is left out), so a query reads each end on its own unit and an end on one
-  copy never lights another.
+  it expected. **By source** (`model-region.ts`): a `pairs` or `grid` node with a `source` is read by region through the
+  store on its first system (`pairs.a`, `grid.x`), by that system's name (`AccessPlan` of shape `pairs` or `grid`), its
+  second system the entry's `ySystem`, its `field` a channel of the source (`pairs.field` a summed column, `grid.field`
+  a normalization). **Matrices** (`matrix`): on their `target`, their states a system of their own (`statesSystemOf`:
+  `<matrix>/(states)`, a position a state, as an alignment's rows), its length the inline `states`' count, else, once
+  its source is open, the count its coverage lists for the target (`ShapeInfo.states`, through `sourceLengths` as a
+  length); inline cells are an items table of one item a position. **Links** (a `pairs` child, Language, Molecules and
+  complexes) are held so too: a molecule's on its residues (`target` and `ySystem` the molecule); a complex's with each
+  end on its row's unit (`PairsData.aUnit`, `bUnit`: indices into the entry's `units`, the complex's units in order; a
+  row naming no unit of it is left out), so a query reads each end on its own unit and an end on one copy never lights
+  another.
 - **Wrapped rows**: a row that wraps a cyclic origin is two rows of one item, in the items and the table (EC-9). On a
   sequence of unknown length it is left out with `seq.resolve.length.unknown` until the length is known.
 - **The query forms' model**: `system`, `annotation` (ranges; inline items at once, a source's pending over what is
