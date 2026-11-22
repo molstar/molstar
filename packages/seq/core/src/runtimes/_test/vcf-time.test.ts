@@ -11,11 +11,36 @@ import { expect } from 'vitest';
 import { DefaultOpenLimits } from '../../data/protocol.js';
 import { VcfRuntime } from '../vcf.js';
 import { memoryAssets } from './bed-fixtures.js';
-import { generateVcf, indexedVcf } from './vcf-fixtures.js';
+import { flagsLine, generateVcf, indexedVcf, tablessLines, VcfHeaderText } from './vcf-fixtures.js';
 
 // The VCF runtime's time (_spec/README.md "Data", VCF; performance.md's row): a region of 10,000 records decoded under
 // 100 ms, sites (its BGZF blocks inflated, its lines parsed, its rows answered). Its quick representative (1,000
-// records) is in `vcf.test.ts`.
+// records) is in `vcf.test.ts`. A hostile file's lines cost their own length: 40,000 lines without tabs, and a line of
+// 100,000 flags, read whole at once (their quick counts in `vcf-cost.test.ts`).
+
+/** `body` after the header, read whole by the runtime. */
+async function openWhole(body: Uint8Array) {
+  const head = new TextEncoder().encode(VcfHeaderText);
+  const text = new Uint8Array(head.length + body.length);
+  text.set(head);
+  text.set(body, head.length);
+  return VcfRuntime.open(
+    { address: '/data/v', format: 'vcf', uri: 'f' },
+    { assets: memoryAssets({ f: text }), signal: new AbortController().signal, limits: DefaultOpenLimits },
+  );
+}
+
+itWithin('40,000 lines without their tabs read whole under 500 ms (each search in its line)', async (within) => {
+  const body = tablessLines(40_000);
+  const s = await within(500, () => openWhole(body));
+  expect(s.issues?.[0].message).toMatch(/^Fewer than eight columns: 40000/);
+});
+
+itWithin('a line of 100,000 INFO flags read whole under 200 ms (`=` looked for in each field)', async (within) => {
+  const body = flagsLine(100_000);
+  const s = await within(200, () => openWhole(body));
+  expect(s.coverage.systems.map((x) => x.name)).toEqual(['chr1']);
+});
 
 itWithin(
   'a VCF region of 10,000 records decoded under 100 ms (sites)',

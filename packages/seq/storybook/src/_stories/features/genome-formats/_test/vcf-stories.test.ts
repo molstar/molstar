@@ -259,7 +259,7 @@ describe('Features/Genome formats/VCF, headless', () => {
     const lay = layOf(v, 'Variants')!;
     expect(lay.pending).toEqual([]);
     const widths = widthsOf(lay);
-    const sv1 = widths.get('4001:N><DEL>')!;
+    const sv1 = widths.get('4001:N><DEL>@9000')!;
     // 4,000 to 9,000 of 20,000 at 900 px: a bar about a quarter of the axis wide, the SNVs it covers marks beside it
     expect(sv1).toBeGreaterThan(150);
     const ids = [...widths.keys()];

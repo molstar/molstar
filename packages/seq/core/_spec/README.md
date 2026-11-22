@@ -1415,12 +1415,14 @@ genotype classes) are not read yet.
   `tbx_parse1`, io's `readRegion`): `POS − 1` to `INFO/END` when INFO starts with `END=` or holds `;END=` with a number
   past `POS − 1` (whatever the alleles: an SNV's too), else `POS − 1 + len(REF)`; the anchor base kept. A long deletion
   is one item across the SNVs it covers (EC-222, sites). **`id`** `pos:ref>alt` (POS as written), an allele past 32
-  characters `<length>:<FNV-1a hex>` (core's `hashFnv32a` over its bytes), `#2`, `#3` … on a later identical key in file
-  order (a duplicated record: at one `POS`, so read together and the suffix stable by region). ALT `.`, `*`, `<NON_REF>`
-  and `<*>` are no item (`.allele`, info). A record with more ALT alleles than `maxAlleles` is left out (`.alleles`,
-  warning), counted from its commas before it is split.
+  characters `<length>:<FNV-1a hex>` (core's `hashFnv32a` over its bytes), `@<end>` after it when `END=` sets the extent
+  past REF's (two records differing only in `END` are two items, neither id depending on whether a region reads the
+  other), `#2`, `#3` … on a later identical key in file order (a duplicated record: one `POS` and one extent, so read
+  together and the suffix stable by region). ALT `.`, `*`, `<NON_REF>` and `<*>` are no item (`.allele`, info). A record
+  with more ALT alleles than `maxAlleles` is left out (`.alleles`, warning), counted from its commas before it is split.
 - **Fields**: `label` and `name` the VCF `ID` (`.` none; `label` is what a ranges layer labels by), `ref`, `alt`, `qual`
-  (float32, `.` NaN), `filter` (category), `category` (`SNV`, `MNV`, `insertion`, `deletion`, `indel`, `structural` for
+  (float32, `.` NaN; a decimal float as VCF writes one, `Inf` and `NaN` too: never `` as 0 or `0x10` as 16, as every
+  `Float` cell), `filter` (category), `category` (`SNV`, `MNV`, `insertion`, `deletion`, `indel`, `structural` for
   `<…>`, `breakend` for `]`, `[` and single breakends); then **INFO keys typed by the header**: `Integer` int32 and
   `Float` float32 when one value an allele (`Number=1`, or `A` split by allele), `Flag` a category (`true`), every other
   a category (`Number=R` the reference's and the allele's values, `r,a`; other numbers their text). A missing int32 is
@@ -1430,9 +1432,11 @@ genotype classes) are not read yet.
   the header does not declare said once (`.info`, the keys its places); a key named as a fixed field said once and not
   read (`.cell`); a cell its type cannot hold missing (`.cell`).
 - **Lines**: eight tab-separated columns at least (the samples' bytes never decoded), a `POS` a whole number to 2^31 −
-  1, a `REF`, an end to 2^31 − 1, else left out (`.line`, warning, with its line number). A row starting past its
-  contig's length is left out, one running past it clipped, both counted in one issue (`.range`, EC-51). UTF-8, U+FFFD
-  said once (`.encoding`).
+  1, a `REF`, an end to 2^31 − 1, else left out (`.line`, warning, with its line number). **A line costs its own
+  length**: its tab searches stay in it, an INFO field's `=` is looked for in that field, a `Number=A` or `R` value is
+  split once a line (a file of lines without tabs, or a line of a hundred thousand flags, is read in linear time). A row
+  starting past its contig's length is left out, one running past it clipped, both counted in one issue (`.range`,
+  EC-51). UTF-8, U+FFFD said once (`.encoding`).
 - **Whole or by region**: with an `index` (the source names it, never `<uri>.tbi`: EC-186) read by region at level 1
   through `openIndexedLines`; without one read whole within `limits` and served at level 1 and at the level whose one
   tile holds its longest system (`wholeLevel`). One parser either way, so a region read equals the whole read clipped
@@ -1460,8 +1464,9 @@ genotype classes) are not read yet.
   categories, multi-allelic lines, INFO's types and `Number`s; the header; fuzzed and truncated files (whole and by
   region) without a throw; each bound. Its synthetic twin is `delayedRuntime(VcfRuntime)`.
 - **Performance**: a region of 10,000 records decoded under 100 ms, sites (heavy, `itWithin`; about 30 ms measured),
-  1,000 in the quick lane. Size: its own row under 30 kB (24.8 kB minified, io's BGZF reader in it), its lazy chunk (by
-  region with io's tabix, 14.8 kB) loaded on first use; in no viewer bundle.
+  1,000 in the quick lane; 40,000 lines without tabs under 500 ms and a line of 100,000 flags under 200 ms (heavy), the
+  bytes and characters their searches scan counted in the quick lane. Size: its own row under 30 kB (24.8 kB minified,
+  io's BGZF reader in it), its lazy chunk (by region with io's tabix, 14.8 kB) loaded on first use; in no viewer bundle.
 
 ### mmCIF
 

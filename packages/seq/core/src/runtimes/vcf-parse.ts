@@ -173,6 +173,13 @@ function noVariant(alt: string): string | undefined {
   return undefined;
 }
 
+/** A decimal float as VCF writes one (`1`, `-2.5`, `.5`, `3e-8`, `Inf`, `NaN`), else NaN: never `''` as 0, `0x10` as 16. */
+export function floatOf(text: string): number {
+  if (/^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(text)) return Number(text);
+  if (/^[+-]?inf(inity)?$/i.test(text)) return text.startsWith('-') ? -Infinity : Infinity;
+  return Number.NaN;
+}
+
 /** A cell as its field's type: a number (NaN missing, or `MissingInt`), else its text (null missing). */
 function cellValue(text: string | undefined, type: ColumnType, place: string, causes: VcfCauses) {
   const missing = text === undefined || text === '' || text === '.';
@@ -192,7 +199,7 @@ function cellValue(text: string | undefined, type: ColumnType, place: string, ca
     return MissingInt;
   }
   if (missing) return Number.NaN;
-  const v = Number(text);
+  const v = floatOf(text);
   if (Number.isNaN(v) && !/^nan$/i.test(text))
     causes.add('seq.source.vcf.cell', 'A number field’s cell is no number: read as missing', place);
   return v;
@@ -258,16 +265,20 @@ export interface LineOptions {
 
 const tab = 9;
 
-/** Where a line's eighth column ends (its INFO's end), or −1 when it has fewer than eight columns. */
+/**
+ * Where a line's eighth column ends (its INFO's end), or −1 when it has fewer than eight columns. Each search stays in
+ * the line (`bytes[s, e)` as its own view): a line without its tabs costs its own length, never the rest of the file.
+ */
 function fixedEnd(bytes: Uint8Array, s: number, e: number): number {
-  let at = s;
+  const line = bytes.subarray(s, e);
+  let at = 0;
   for (let k = 0; k < 7; k++) {
-    const t = bytes.indexOf(tab, at);
-    if (t < 0 || t >= e) return -1;
+    const t = line.indexOf(tab, at);
+    if (t < 0) return -1;
     at = t + 1;
   }
-  const t = bytes.indexOf(tab, at);
-  return t < 0 || t > e ? e : t;
+  const t = line.indexOf(tab, at);
+  return t < 0 ? e : s + t;
 }
 
 /**
@@ -336,22 +347,32 @@ export function parseLine(
     for (let i = 0; i < infoText.length; ) {
       let j = infoText.indexOf(';', i);
       if (j < 0) j = infoText.length;
-      const eq = infoText.indexOf('=', i);
-      const key = eq >= 0 && eq < j ? infoText.slice(i, eq) : infoText.slice(i, j);
+      // `=` looked for in this field only: a line of flags costs its length, not its length squared
+      const field = infoText.slice(i, j);
+      const eq = field.indexOf('=');
+      const key = eq >= 0 ? field.slice(0, eq) : field;
       const f = schema.byKey.get(key);
-      if (f !== undefined) info[f] ??= eq >= 0 && eq < j ? infoText.slice(eq + 1, j) : '';
+      if (f !== undefined) info[f] ??= eq >= 0 ? field.slice(eq + 1) : '';
       else if (key && key !== 'END' && !schema.known.has(key))
         causes.add('seq.source.vcf.info', 'An INFO key the header does not declare', key);
       i = j + 1;
     }
   }
   const name = id === '.' || id === '' ? null : id;
-  const qual = qualText === '.' || qualText === undefined ? Number.NaN : Number(qualText);
-  if (Number.isNaN(qual) && qualText !== '.' && qualText !== undefined)
+  const qual = qualText === '.' || qualText === undefined ? Number.NaN : floatOf(qualText);
+  if (Number.isNaN(qual) && qualText !== '.' && qualText !== undefined && !/^[+-]?nan$/i.test(qualText))
     causes.add('seq.source.vcf.cell', 'A QUAL that is no number: read as missing', place);
   const filter = filterText === '.' || filterText === '' ? null : filterText;
   const values: (string | number | null)[] = new Array(FixedFields.length + schema.info.length);
+  // a `Number=A` or `R` value split once a line, each allele then indexing it (never alleles × the INFO's bytes)
+  const lists: (string[] | undefined)[] = new Array(schema.info.length);
+  for (let f = 0; f < schema.info.length; f++) {
+    const n = schema.info[f].number;
+    if ((n === 'A' || n === 'R') && info[f] !== undefined) lists[f] = info[f]!.split(',');
+  }
   const refKey = alleleKey(ref);
+  // an extent past REF's (`END=`) is part of the id: two records differing only in END are two items, each id stable
+  const endKey = end !== begin + ref.length ? `@${end}` : '';
   let made = 0;
   for (let k = 0; k < alts.length; k++) {
     const alt = alts[k];
@@ -373,14 +394,14 @@ export function parseLine(
       let cell: string | undefined;
       if (field.number === '0') cell = text === undefined ? undefined : 'true';
       else if (text === undefined) cell = undefined;
-      else if (field.number === 'A') cell = text.split(',')[k];
+      else if (field.number === 'A') cell = lists[f]![k];
       else if (field.number === 'R') {
-        const v = text.split(',');
+        const v = lists[f]!;
         cell = v[0] === undefined || v[k + 1] === undefined ? undefined : `${v[0]},${v[k + 1]}`;
       } else cell = text;
       values[FixedFields.length + f] = cellValue(cell, field.type, place, causes);
     }
-    builder.push(begin, end, `${pos}:${refKey}>${alleleKey(alt)}`, values);
+    builder.push(begin, end, `${pos}:${refKey}>${alleleKey(alt)}${endKey}`, values);
     made++;
   }
   return made;

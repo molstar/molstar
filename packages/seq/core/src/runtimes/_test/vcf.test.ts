@@ -268,7 +268,7 @@ describe('rows: a row an ALT allele, its id, its fields (EC-196)', () => {
       [5000, 5001],
     ]) {
       const rows = rowsOf(await s.read({ system: 'chr1', start, end, level: 1, shapes: ['ranges'] }, signal));
-      expect(rows[0]).toMatchObject({ id: '1000:N><DEL>', start: 999, end: 6000, category: 'structural' });
+      expect(rows[0]).toMatchObject({ id: '1000:N><DEL>@6000', start: 999, end: 6000, category: 'structural' });
     }
   });
 
@@ -461,6 +461,66 @@ describe('the source', () => {
         }),
       ),
     ).toEqual(['seq.source.unreadable']);
+  });
+
+  it('two records differing only in `END=` are two items, each id the same by region as whole (EC-196)', async () => {
+    const text = vcf('chr1\t1000\tlong\tN\t<DEL>\t.\t.\tEND=9000', 'chr1\t1000\tshort\tN\t<DEL>\t.\t.\tEND=1500');
+    const whole = await VcfRuntime.open(entry(), context({ f: text }));
+    const all = rowsOf(
+      await whole.read({ system: 'chr1', start: 0, end: 10_000, level: 1, shapes: ['ranges'] }, signal),
+    );
+    expect(all.map((r) => [r.id, r.name])).toEqual([
+      ['1000:N><DEL>@9000', 'long'],
+      ['1000:N><DEL>@1500', 'short'],
+    ]);
+    // a region meeting the long one only: its id as the whole read gives it (no `#2` that depends on the other)
+    const g = { text, names: ['chr1'], lengths: new Map(), lines: [] };
+    const enc = new TextEncoder().encode(text);
+    const at = enc.indexOf(10, enc.lastIndexOf(35));
+    const first = enc.indexOf(10, at + 1);
+    const { file, index } = indexedVcf({
+      ...g,
+      lines: [
+        { seq: 0, begin: 999, end: 9000, start: at + 1, stop: first + 1 },
+        { seq: 0, begin: 999, end: 1500, start: first + 1, stop: enc.length },
+      ],
+    });
+    const region = await VcfRuntime.open(entry({ index: 'i' }), context({ f: file, i: index }));
+    const far = rowsOf(
+      await region.read({ system: 'chr1', start: 5000, end: 6000, level: 1, shapes: ['ranges'] }, signal),
+    );
+    expect(far.map((r) => r.id)).toEqual(['1000:N><DEL>@9000']);
+  });
+
+  it('QUAL and Float cells strictly decimal: `` and `0x10` missing, not 0 and 16; `Inf` and `3e-8` read', async () => {
+    const { s, rows } = await readAll(
+      vcf(
+        'chr1\t10\t.\tA\tC\t\t.\tAF=0x10',
+        'chr1\t20\t.\tA\tC\t0x10\t.\tAF=',
+        'chr1\t30\t.\tA\tC\tInf\t.\tAF=3e-8',
+        'chr1\t40\t.\tA\tC\t.5\t.\tAF=-.25',
+      ),
+    );
+    expect(rows.map((r) => [r.qual, r.AF])).toEqual([
+      [null, null],
+      [null, null],
+      [Number.POSITIVE_INFINITY, expect.closeTo(3e-8, 12)],
+      [0.5, -0.25],
+    ]);
+    expect(s.issues?.find((i) => i.message.startsWith('A QUAL'))?.message).toBe(
+      'A QUAL that is no number: read as missing: 2 (line 12, line 13)',
+    );
+  });
+
+  it('header lines not read: one issue, its count said once', async () => {
+    const text = vcf('chr1\t10\t.\tA\tC\t.\t.\t.').replace(
+      '##fileformat=VCFv4.2\n',
+      '##fileformat=VCFv4.2\n##INFO=<ID=X,Number=1,Type=Wrong>\n##FORMAT=<Number=1,Type=String>\n',
+    );
+    const { s } = await readAll(text);
+    expect(s.issues?.filter((i) => i.code === 'seq.source.vcf.header').map((i) => i.message)).toEqual([
+      'Header lines not read (no ID, or an unknown Type): 2',
+    ]);
   });
 
   it('a line that does not parse is left out and said with its line number', async () => {

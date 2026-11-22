@@ -176,3 +176,18 @@ export function indexedVcf(g: GeneratedVcf, blockSize = 4000) {
   const file = bgzip(enc.encode(g.text), blockSize);
   return { file: file.bytes, index: tabixIndex(g.lines, file, vcfIndex(g.names)) };
 }
+
+/** The header lines of `VcfHeaderLines` with a `#CHROM` line (sites only), as text. */
+export const VcfHeaderText = `${[...VcfHeaderLines, '#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO'].join('\n')}\n`;
+
+/** `n` data lines of 199 bytes without a tab (each fewer than eight columns), and no tab after them either. */
+export function tablessLines(n: number): Uint8Array {
+  const line = `chr1 100 . A C . . ${'x'.repeat(180)}`.slice(0, 199);
+  return enc.encode(`${Array.from({ length: n }, () => line).join('\n')}\n`);
+}
+
+/** One line whose INFO is `n` flags (no `=` in any). */
+export function flagsLine(n: number): Uint8Array {
+  const flags = Array.from({ length: n }, (_, k) => `F${k}`).join(';');
+  return enc.encode(`chr1\t100\t.\tA\tC\t.\t.\tDB;${flags}\n`);
+}
