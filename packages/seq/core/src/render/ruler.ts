@@ -386,6 +386,34 @@ function tickAt(lay: RulerLay, p: number, label: string, major: boolean, muted: 
 }
 
 /**
+ * A label in bases (`formatGenomic`) by its step, then its number, kept between layouts: a pan's frame lays out the
+ * same ticks again and formats none of them (formatting one parses a format and builds its string: 16 KB a frame of
+ * p53's chromosome). Dropped whole past `GenomicLabelsCap` labels.
+ */
+const GenomicLabels = new Map<number, Map<number, string>>();
+const GenomicLabelsCap = 4096;
+let genomicLabelCount = 0;
+
+function genomicLabel(n: number, step: number): string {
+  let byN = GenomicLabels.get(step);
+  if (!byN) {
+    byN = new Map();
+    GenomicLabels.set(step, byN);
+  }
+  let label = byN.get(n);
+  if (label === undefined) {
+    if (genomicLabelCount >= GenomicLabelsCap) {
+      for (const m of GenomicLabels.values()) m.clear();
+      genomicLabelCount = 0;
+    }
+    label = formatGenomic(n, step);
+    byN.set(n, label);
+    genomicLabelCount++;
+  }
+  return label;
+}
+
+/**
  * The ticks of the positions `[a, b)` in view (one piece): the labels that are multiples of the step, the insertions;
  * with `bases`, an `ordinal` ruler's labels in bp, kb or Mb by the step (another numbering keeps its own labels).
  */
@@ -411,7 +439,7 @@ function tickRange(
     if ((hi - lo) / step > 4 * LoopLimit) return;
     const genomic = bases && numbering.id === 'ordinal';
     for (let n = Math.ceil(lo / step) * step; n <= hi; n += step) {
-      const label = genomic ? formatGenomic(n, step) : String(n);
+      const label = genomic ? genomicLabel(n, step) : String(n);
       const i = builtIn ? n - (numbering.id === 'index' ? 0 : 1) : numbering.indexOf(label);
       const p = i + shift;
       if (i >= 0 && p >= a && p < b) tickAt(lay, p, label, true, muted);
