@@ -74,6 +74,21 @@ export interface Placement {
   warpOf?(strip: number): PolarWarp;
   /** Whether its strips are clipped to its box (a section that scrolls inside it). */
   readonly clip?: boolean;
+  /**
+   * A section that scrolls inside its box (_spec/README.md "Render", Section scroll): the px of its content scrolled
+   * above the box (`top`), the page y where the scrolled area starts (`scrollY`: the box's top, else below its fixed
+   * head) and the bands before `fixed` that never scroll (a tracks section's ruler).
+   */
+  readonly top?: number;
+  readonly scrollY?: number;
+  /**
+   * A text's px scrolled for an anchor (`viewport.start`) through its placed lines: what its scroller reads before the
+   * next frame places it (moves before a frame add up). A method, so a viewer of no text bundles none of it.
+   */
+  scrollTopAt?(anchor: number): number;
+  /** The page y the scrolled area ends at; 0 or absent: the box's foot. */
+  readonly scrollEnd?: number;
+  readonly fixed?: number;
   /** What a follower of the section follows: the display units it shows (text: its lines in view). */
   readonly window?: Viewport;
 }

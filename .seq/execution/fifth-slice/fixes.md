@@ -6,6 +6,13 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 
 ## Open
 
+- **One tall track makes every track of its kind tall** (the orchestrator, 2026-11-22, SX's look, Features › Layouts ›
+  Tracks past the cap; on packages-seq too; kind: design, the author's): `ContentSizing` (`render/sizing.ts`) gives
+  every track of one kind the tallest lanes among them ("neighbours do not vary lane by lane"), so a 40-lane
+  Transcripts track draws thirty one-feature ranges tracks at `track.maxPx` (240 px each, 7,598 px of content). Options:
+  share only between adjacent tracks, or only when the tallest is within a few lanes (or 2x) of a track's own, else fit
+  each track's own lanes. The rule needs the author's call before a fix lane.
+
 - **One hover contract for every mark, and a sweep that holds it** (the author, 2026-11-21, Examples › Plasmid › Ring
   at scale: the strands' density bands on the ring and in the detail show no hover box or card; "we should not be
   fixing this one-by-one btw. since we already fixed a similar issue, we need a general rule for this and global
@@ -236,7 +243,7 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   "not just text sections. imagine having multiple tracks with standard features, these should be scrollable too. and
   600px should definitely be configurable"): FX9 did not build growth batched to the settle nor the reachable region
   (layouts.md, Track sizing); the placeholder lane draws labels outside its band; a tracks section has no scroll and
-  no cap (layouts.md, A section scrolls past its cap). To FX11 (loading) and FX10 (the section's scroll and its rail). The loading part fixed by FX11: the height from the section's reachable region at the first settle, growing once per settle (a staggered-tiles test fails on the parent), the placeholder's labels clipped; a tracks section's scroll to SX.
+  no cap (layouts.md, A section scrolls past its cap). To FX11 (loading) and FX10 (the section's scroll and its rail). The loading part fixed by FX11: the height from the section's reachable region at the first settle, growing once per settle (a staggered-tiles test fails on the parent), the placeholder's labels clipped; a tracks section's scroll to SX. The section part fixed by SX (`7e6d0649a`): a tracks section scrolls past `section.maxPx` (600) or its `height`, the ruler fixed, the one rail at its right edge.
 
 - **Dragging a rail's window past the axis end shrinks it** (the author, 2026-11-22, 2OCJ A over UniProt, the ruler
   rail: "by dragging a rail, it's possible to make it really small and zoom all the way to a position spanning the
@@ -249,7 +256,7 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   wheel"; layouts.md:650 asks "drag the slim rail; Page keys with the cursor in it", FX9's Not built): the rows rail's
   gesture (`rowsRailGesture`) has it, the lanes rail does not. Widened by the author (2026-11-22: "any section should be
   scrollable already, so we should use the same rail everywhere"): one rail for rows, lanes and text sections
-  (layouts.md, A slim rail). To FX10. The lanes part fixed by FX10 (`38f147b49`): the lanes rail is the rows rail (its hit, drawing and gesture: drag, a press beside it, Escape, Page keys over the band or the rail). The text rail and a tracks section's scroll to SX.
+  (layouts.md, A slim rail). To FX10. The lanes part fixed by FX10 (`38f147b49`): the lanes rail is the rows rail (its hit, drawing and gesture: drag, a press beside it, Escape, Page keys over the band or the rail). The text rail and a tracks section's scroll to SX. Fixed by SX (`7e6d0649a`): the text and section rails are the one rail (drag, a press beside it pages, Home/End and Page keys in the box).
 
 - **A tree opened from its toggle has no way back on screen** (FX7 stopped it, 2026-11-22: it needs a `LayoutContext` field in `layer-type.ts` and a line in `tracks.ts`, RG's then; open for the next fix lane) (the author, 2026-11-21, Examples › Globins › Rows ›
   Scale: "when i expand the tree, there doesn't seem to be a way to collapse it back. another port for app level

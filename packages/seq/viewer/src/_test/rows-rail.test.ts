@@ -230,7 +230,7 @@ describe('the rows rail', () => {
     expect(v.selection.value.value.shown.parts.length).toBe(0);
   });
 
-  it('a click outside the window centres the rows there (a jump: back returns); a grip’s click does not', async () => {
+  it('a click outside the window centres the rows there (a scroll, as every rail’s: no step); a grip’s click does not', async () => {
     const v = await make(spec(60));
     const r = rowsRail(v)!;
     const x = r.top + 6;
@@ -240,8 +240,8 @@ describe('the rows rail', () => {
     expect(v.input.click(x, y, { detail: 1 })).toBe(true);
     expect(band(v)?.bandTop).toBeCloseTo(40 - 2.5, 6);
     expect(v.selection.value.value.shown.parts.length).toBe(0);
-    v.view.back();
-    expect(band(v)?.bandTop ?? 0).toBe(0);
+    expect(v.view.history.value.back).toBe(0);
+    v.view.setBand(RowsTrack, { bandTop: 0 });
     v.draw();
     const grip = yOf(rowsRail(v)!, 5) + 2;
     v.input.down(x, grip);

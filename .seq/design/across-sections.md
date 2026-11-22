@@ -325,7 +325,7 @@ over a bridge does is the viewer's.
   refused (`seq.view.section.system`): a grid following blocks in a stack or on a ring. Amends
   [grids-and-rows](grids-and-rows.md) (A grid over a complex) and the resolved view's Grids.
 - **Reads**: RR's 2D tiles by block pair, the upper triangle only when x and y are one assembly and the coverage says
-  `symmetric`, the whole-assembly level at the fit; a block pair is read at the finer of its two axes' levels (RR).
+  `symmetric`, the whole-assembly level at the fit; a block pair is read at the coarser of its two axes' levels (LA3, 2026-11-22: so a bin is at least `binPx` on both axes; the finer level would draw bins thinner than a pixel on the other axis).
 - **A dot plot of two genomes**: the same grid section with a `pairs` layer (the alignment's sided pairs, the `seq`
   runtime): items as dots and
   diagonal segments with or against the diagonal by strand (built), bins as dots of their bin's size, opacity by count

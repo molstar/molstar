@@ -137,6 +137,8 @@ describe('Complex blocks, headless', () => {
           const windows = 'zoom' in c ? [undefined, c.zoom] : [undefined];
           for (const w of windows) {
             if (w) v.view.setRange('/views/main/complex', w[0], w[1]);
+            // a stack past the section's cap scrolls: its chips' row is its last, scrolled into view
+            v.view.setTop('/views/main/complex', 1e6);
             await vi.advanceTimersByTimeAsync(50);
             v.draw();
             const sec = v.frame!.layout.sections[0];
