@@ -224,7 +224,7 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
 - [ ] **GA3** (added 2026-11-22, the author: "Ok we can use this naming"; strong; the language, alone; after GA2 and FR)
       inline pairs, grids and matrices over an assembly by `a_name`/`b_name`, `x_name`/`y_name`, `name`; a matrix's
       `source` typed; one minor bump.
-- [ ] **FR** (`briefs/fr-format-regions.md`; strong, after RG and stage 2's lanes) the formats' by-region rest: tabix
+- [x] **FR** (`briefs/fr-format-regions.md`; strong, after RG and stage 2's lanes) the formats' by-region rest: tabix
       levels from the index's bytes with exact counts and `readCost` (BED, GFF, VCF), GFF's span rows by region, VCF's
       matrix and genotype classes; the `seq` runtime's sided pairs from either end, `map.source` by either side.
 - [ ] **LA** (`briefs/la-across-sections.md`; strong, after RG and FR) the `bridge`: placement, ribbons drawn once by

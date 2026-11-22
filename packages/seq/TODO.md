@@ -28,7 +28,13 @@ source's complex, the genome axis and layouts), on extension kinds.
   LA's); matrix state labels in the header, `order` and `hidden`; a pairs bin card's per-category breakdown;
   `MatrixItems` as a ranges list plus a cells column; `store.ts` (854 lines) and `viewer.ts` (818) past 800 with no
   natural split found; held pairs over blocks still binned by device column (Decided 7, partial); the whole-assembly
-  level not cut into block pairs (Default 5); inline data over an assembly (GA3); BEDPE through the store (FR).
+  level not cut into block pairs (Default 5); inline data over an assembly (GA3).
+
+- **Formats by region's follow-ups** (FR, 2026-11-22): ClinVar at coarse levels needs chr17 recorded past TP53 (a fetch,
+  the author's; the examples cap it at `maxLevel: 1`); BED and GFF coarse-level stories need generated BGZF and tabix
+  fixtures (a BGZF writer in examples: `@molstar/test-harness` in its `package.json`); GTF without transcript lines does
+  not say `seq.source.gtf.extent` by region; a GFF tile's `readCost` counts its flanks only after a first read (512
+  tiles remembered), so the first read under-counts with nothing said.
 
 ## Base library (`@molstar/core`, `@molstar/io`)
 
