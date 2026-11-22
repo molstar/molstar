@@ -154,7 +154,7 @@ describe('a track of lanes is as tall as its lanes, to its cap, then its lanes s
     expect(d.overflow).toBeGreaterThan(0);
   });
 
-  it('EC-245: a tile adds lanes while the band is scrolled: lanes appended below, the band’s top kept, the rail rescales', async () => {
+  it('EC-245: a pan to a region of more lanes keeps the band’s top and the track’s height (the reachable region’s lanes are known from the first frame)', async () => {
     // a region of 24 lanes, then one of 30 at the other end of the same source
     const text = [gff(24, 0), gff(30, 2000).split('\n').slice(2).join('\n')].join('\n');
     const s = await settle(geneSpec(text, 240), [GffRuntime]);
@@ -163,17 +163,17 @@ describe('a track of lanes is as tall as its lanes, to its cap, then its lanes s
     const a = await s.frame({ size: Size, settled: true, viewports: view(0, 1000) });
     const la = layerLay<RangesLay>(a, 0);
     expect(la.top).toBe(5);
-    const room = la.room;
-    expect(la.scrollMax).toBe(la.laneCount - room);
+    // the lanes the whole region packs into (30), not those of the stretch in view (24)
+    expect(la.scrollMax).toBeGreaterThan(la.laneCount - la.room);
     const before = la.scrollMax;
     const b = await s.frame({ size: Size, settled: true, viewports: view(2000, 3000) });
     const lb = layerLay<RangesLay>(b, 0);
-    // the band's top stays; the window of the rail is smaller in the grown lanes
+    // the band's top stays; the lanes and the track as they were (a pan never resizes)
     expect(lb.top).toBe(5);
-    expect(lb.scrollMax).toBeGreaterThan(before);
-    // and back at the first region: the lanes never shrank (a pan never resizes)
+    expect(lb.scrollMax).toBe(before);
+    expect(b.layout.sections[0].tracks[0].box.height).toBe(a.layout.sections[0].tracks[0].box.height);
     const c = await s.frame({ size: Size, settled: true, viewports: view(0, 1000) });
-    expect(layerLay<RangesLay>(c, 0).scrollMax).toBe(lb.scrollMax);
+    expect(layerLay<RangesLay>(c, 0).scrollMax).toBe(before);
     expect(c.layout.sections[0].tracks[0].box.height).toBe(b.layout.sections[0].tracks[0].box.height);
   });
 
