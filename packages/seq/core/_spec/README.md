@@ -3034,7 +3034,17 @@ in page coordinates: what crosses strips; `bridge`, internal, once a bridge with
   outlines the value's own extent, from the baseline to its end. The fill is clipped to the well's squircle. Why: at a
   pixel or two a value, full-ink columns read as a jagged block, not a profile; a gap says "no data" where a stub says
   "low". The domain is the layer's `domain` param where given, else open: computed from the values in view when the view
-  settles, held while it does not.
+  settles, held while it does not. **A color from the value** (`color` by `value`: a scheme, a ramp, pLDDT's bands) is
+  the data, and a tint would no longer match its legend: it is drawn at full strength (a bar, a line, a dot), the
+  profile's and the area's fill at 90%; a uniform series keeps the tints above. Why: at 60% pLDDT's "very high" and
+  "confident" blur. **Dots** (`values-marks.ts`): a line and an area draw a dot a value from 6 CSS px a value (a polygon
+  of 16 corners, 3 px across, the value's color or the series', in a ring of the well's ground 1 px wide, over the line;
+  a missing value has none), and `points` draws only dots, at every value of a per-position step; below a pixel a value
+  (the device-column steps) a thin vertical mark of the column's extent, min to max, at least a device pixel tall, in
+  the value's color. `points` has the headroom, the baseline hairline and the clip of the others; its hit is the
+  position under the pointer (the line's), its hover a ring on the hovered dot (outside it by the hover offset; at the
+  column steps the extent's outline). Why a polygon: the draw lists have no circle, and the squircle's corner is not
+  one. A warm frame, draw and hover of each encoding allocate nothing.
 
 - `frame` (EC-100): an annotation's regions outlined across tracks of its section (`across`: the first and the last
   track's ids, the bands between them too; its own band when absent: `ctx.span`). A strip layer: on each strip a
@@ -3097,8 +3107,9 @@ in page coordinates: what crosses strips; `bridge`, internal, once a bridge with
 - `values` with `encoding` `line` or `area` (EC-57): the bars' marks as a path through the cells' centers, held flat
   over the half cell at its ends and at a gap (a hole in the data, a break of the axis), broken by a missing value
   (which keeps its mark at the baseline); a color that changes does so halfway between two positions, the line going on
-  to the boundary. `area` fills under each run at 0.35 opacity. At the bars and density steps the line follows each
-  column's maximum and the column's extent is drawn under it.
+  to the boundary. `area` fills under each run at 0.35 opacity (0.9 for a color from the value), and both show a dot a
+  value from 6 px a value. At the bars and density steps the line follows each column's maximum and the column's extent
+  is drawn under it.
 - `ranges` with `line`: each item a line in its lane's middle instead of a block (a box and a highlight are blocks), the
   dash and the wave run from the content's start (the item's first position's edge, on its right on a reversed axis, in
   each piece), so a pan moves them with the data; below a position a pixel a run is a plain line. A value that is none

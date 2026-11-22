@@ -30,7 +30,9 @@ import {
   type StoreReader,
   sectionId,
 } from './layer-type.js';
-import { drawFailed, drawSpans, hoverCell } from './marks.js';
+import { drawFailed, drawSpans } from './marks.js';
+import { drawBaseline, drawDots, DotMinPx, drawPoints, Fill } from './values-marks.js';
+import { hoverValue } from './values-hover.js';
 import type { SeqTokens } from './tokens.js';
 import { sortArrayRange } from '@molstar/core/data/util/sort';
 import type { Channel } from '@molstar/seqx-core/theme/index';
@@ -46,13 +48,17 @@ import { channelForms, channelLegends, Extents, type LayerChannels, PlainDatum }
 // is the scale's (an open end the union over the layers naming it, held from the last settle). Its color is its
 // `color` channel: uniform (one fill), or by `value` (a bar's color its value's, `col`; a line's color changes with it).
 //
+// A color from the value (`col`) is the data: bars and a line draw it at full strength, the profile's and the area's
+// fill nearly opaque (`ValueFillAlpha`); a uniform series keeps the tints. A line shows a dot a value from `DotMinPx`
+// CSS px a value; `encoding: 'points'` draws only the dots (values-marks.ts).
+//
 // `encoding` `line` and `area` (EC-57) draw the same bars as a line through the cells' centers: held flat over the half
 // cells at its ends and at gaps (a hole in the data, a break of the axis), broken by a missing value (which keeps its
 // mark at the baseline), its color changing halfway between two positions; `area` fills under it at `FillAlpha`. At
 // the bars and density steps the line follows each device column's maximum, the column's extent still drawn.
 
 /** How a values layer draws: bars (default), a line, or a line over the area under it. */
-export type ValuesEncoding = 'bars' | 'line' | 'area';
+export type ValuesEncoding = 'bars' | 'line' | 'area' | 'points';
 
 /** The line's thickness, CSS px, and the area's opacity (the channels' defaults). */
 const LineWidth = 1.5;
@@ -129,7 +135,7 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
     const e = layer.params.encoding;
     const scale = typeof layer.params.scale === 'string' ? layer.params.scale : undefined;
     return {
-      encoding: e === 'line' || e === 'area' ? e : 'bars',
+      encoding: e === 'line' || e === 'area' || e === 'points' ? e : 'bars',
       ...(src ? { src } : {}),
       channels: channelForms(layer.theme),
       ...(domain ? { domain } : {}),
@@ -286,7 +292,8 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
 
 /** The data pass: bars, or the line (and area) through the same marks. */
 function drawData(lay: ValuesLay, out: PassWriter) {
-  if (lay.encoding !== 'bars') drawLine(lay, out);
+  if (lay.encoding === 'points') drawPoints(lay, out);
+  else if (lay.encoding !== 'bars') drawLine(lay, out);
   else drawBars(lay, out);
 }
 
@@ -298,6 +305,8 @@ function drawData(lay: ValuesLay, out: PassWriter) {
  */
 const FillAlpha = 89;
 const BarAlpha = 153;
+/** A color from the value is the data, drawn at full strength; its area (a profile's, a line's) stays under its line. */
+const ValueFillAlpha = 230;
 /** The top line's width and the bars' gap and corner radius, CSS px. */
 const ProfileLine = 0.75;
 const BarGap = 1;
@@ -307,31 +316,6 @@ const RunColorStep = 48;
 
 /** A value takes bars from this many CSS px; below, the profile. */
 const BarMinPx = 4;
-/** The share of the height the domain's top takes: the rest is headroom (10%). */
-const Fill = 0.9;
-
-/** The hairline at the baseline (zero, else the domain's low), a device pixel thick. No number is passed to a call. */
-function drawBaseline(lay: ValuesLay, out: PassWriter) {
-  const { box } = lay;
-  const lo = lay.domain ? lay.domain[0] : 0;
-  const hi = lay.domain ? lay.domain[1] : 1;
-  const base = lo <= 0 && hi >= 0 ? 0 : lo;
-  const span = (hi - lo || 1) / Fill;
-  const yBase = box.y + box.height - ((Math.max(lo, Math.min(hi, base)) - lo) / span) * box.height;
-  const px = 1 / lay.axis.dpr;
-  const a = out.args;
-  a[0] = box.x;
-  a[1] = yBase - px;
-  a[2] = box.width;
-  a[3] = px;
-  a[4] = lay.tokens.colors['seq-sequence'];
-  a[5] = NoColor;
-  a[6] = 0;
-  a[7] = 0;
-  a[8] = 0;
-  out.rectArgs();
-}
-
 /**
  * The data pass of bars: placeholders, a hairline at the baseline, then a profile (runs of consecutive values: the area
  * under the steps, the top line over it; a run goes on across small steps of a per-value color) or bars. A missing
@@ -368,7 +352,7 @@ function drawBars(lay: ValuesLay, out: PassWriter) {
       a[1] = top;
       a[2] = w - gap;
       a[3] = Math.max(yv, yl, yBase) - top;
-      if (lay.perBar) a[4] = ((lay.col[j] & 0xffffff00) | ((((lay.col[j] & 255) * BarAlpha + 127) / 255) | 0)) >>> 0;
+      if (lay.perBar) a[4] = lay.col[j];
       else a[4] = ((lay.fill & 0xffffff00) | ((((lay.fill & 255) * BarAlpha + 127) / 255) | 0)) >>> 0;
       a[5] = NoColor;
       a[6] = 0;
@@ -391,7 +375,8 @@ function drawBars(lay: ValuesLay, out: PassWriter) {
       a[1] = from;
       a[2] = lay.x1[j] - lay.x0[j];
       a[3] = yl - from;
-      if (lay.perBar) a[4] = ((lay.col[j] & 0xffffff00) | ((((lay.col[j] & 255) * FillAlpha + 127) / 255) | 0)) >>> 0;
+      if (lay.perBar)
+        a[4] = ((lay.col[j] & 0xffffff00) | ((((lay.col[j] & 255) * ValueFillAlpha + 127) / 255) | 0)) >>> 0;
       else a[4] = ((lay.fill & 0xffffff00) | ((((lay.fill & 255) * FillAlpha + 127) / 255) | 0)) >>> 0;
       a[5] = NoColor;
       a[6] = 0;
@@ -427,7 +412,8 @@ function drawBars(lay: ValuesLay, out: PassWriter) {
       pts[2 * count + 1] = yBase;
       pts[2 * count + 2] = pts[0];
       pts[2 * count + 3] = yBase;
-      a[4] = ((a[0] & 0xffffff00) | ((((a[0] & 255) * FillAlpha + 127) / 255) | 0)) >>> 0;
+      const fa = lay.perBar ? ValueFillAlpha : FillAlpha;
+      a[4] = ((a[0] & 0xffffff00) | ((((a[0] & 255) * fa + 127) / 255) | 0)) >>> 0;
       a[5] = NoColor;
       a[6] = 0;
       a[7] = 0;
@@ -458,59 +444,6 @@ function drawBars(lay: ValuesLay, out: PassWriter) {
     count += 2;
     prev = j;
   }
-}
-
-/**
- * The hover's outline on the value hovered: its bar's or its step's own extent, from the baseline to the value's end
- * (a position that has no value in view, the cell's column as every layer's).
- */
-function hoverValue(lay: ValuesLay, out: PassWriter, emphasis: Emphasis | undefined) {
-  const h = emphasis?.hover;
-  if (!h || h.layer !== lay.key || h.position === undefined) return;
-  const axis = lay.axis;
-  if (h.system !== axis.system || !axis.cell(h.position)) return;
-  const cx = (axis.sx0 + axis.sx1) / 2;
-  let j = -1;
-  for (let i = 0; i < lay.n; i++)
-    if (lay.x0[i] <= cx && cx < lay.x1[i] && !Number.isNaN(lay.v[i])) {
-      j = i;
-      break;
-    }
-  if (j < 0) {
-    hoverCell(lay, out, emphasis);
-    return;
-  }
-  const { box } = lay;
-  const lo = lay.domain ? lay.domain[0] : 0;
-  const hi = lay.domain ? lay.domain[1] : 1;
-  const base = lo <= 0 && hi >= 0 ? 0 : lo;
-  const span = (hi - lo || 1) / Fill;
-  const y1 = box.y + box.height;
-  const bh = box.height;
-  const yBase = y1 - ((Math.max(lo, Math.min(hi, base)) - lo) / span) * bh;
-  const yv = y1 - ((Math.max(lo, Math.min(hi, lay.v[j])) - lo) / span) * bh;
-  const yl = y1 - ((Math.max(lo, Math.min(hi, Math.min(lay.lo[j], base))) - lo) / span) * bh;
-  const top = Math.min(yv, yBase);
-  const bottom = Math.max(yv, yl, yBase);
-  // outside the extent by the offset, as every hover outline; a sliver of a bar still gets a visible frame
-  const d = lay.hoverWidth / 2 + lay.hoverOffset;
-  const c = lay.config;
-  const cw = lay.x1[j] - lay.x0[j];
-  const eh = Math.max(bottom - top, 1 / lay.axis.dpr);
-  // the extent's squircle by the frame rule (as `hoverCell`), the outline's its plus `d`
-  const r =
-    cw < c.squircleMin || eh < c.squircleMin ? 0 : Math.min(eh * c.squircleRatio, c.squircleMax, cw / 2, eh / 2);
-  const g = out.args;
-  g[0] = lay.x0[j] - d;
-  g[1] = top - d;
-  g[2] = cw + 2 * d;
-  g[3] = eh + 2 * d;
-  g[4] = NoColor;
-  g[5] = lay.tokens.colors['seq-hover'];
-  g[6] = lay.hoverWidth;
-  g[7] = r > 0 ? r + d : 0;
-  g[8] = Round.both;
-  out.rectArgs();
 }
 
 const ValuesDraws = passDraws<ValuesLay, Emphasis | undefined>({ data: drawData, hover: hoverValue });
@@ -690,6 +623,7 @@ function drawLine(lay: ValuesLay, out: PassWriter) {
   const a = out.args;
   const pts = linePoints;
   const area = lay.encoding === 'area';
+  const fa = lay.perBar ? ValueFillAlpha : FillAlpha;
   const n = lay.n;
   const ord = lay.ord;
   let count = 0;
@@ -731,7 +665,7 @@ function drawLine(lay: ValuesLay, out: PassWriter) {
         pts[2 * count + 1] = yl;
         count++;
       }
-      flush(out, a, pts, count, color, area, yBase);
+      flush(out, a, pts, count, color, area, yBase, fa);
       count = 0;
     }
     if (!valid) {
@@ -760,6 +694,8 @@ function drawLine(lay: ValuesLay, out: PassWriter) {
     count++;
     prev = j;
   }
+  // a dot at each value where there is room for them (the dots over the line)
+  if (each && lay.axis.scale >= DotMinPx) drawDots(lay, out);
 }
 
 /** One path of the line (and the polygon under it, behind): its points `pts` (`count` of them) in `color`. */
@@ -771,6 +707,7 @@ function flush(
   color: number,
   area: boolean,
   yBase: number,
+  fillAlpha: number,
 ) {
   if (area) {
     // the polygon: the line, down to the baseline at its last x, back along it to its first x
@@ -778,7 +715,7 @@ function flush(
     pts[2 * count + 1] = yBase;
     pts[2 * count + 2] = pts[0];
     pts[2 * count + 3] = yBase;
-    a[4] = ((color & 0xffffff00) | ((((color & 255) * FillAlpha + 127) / 255) | 0)) >>> 0;
+    a[4] = ((color & 0xffffff00) | ((((color & 255) * fillAlpha + 127) / 255) | 0)) >>> 0;
     a[5] = NoColor;
     a[6] = 0;
     a[7] = 0;
