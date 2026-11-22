@@ -41,8 +41,13 @@ export function liftPlaces(
       if (!regions.project(model, system, [start, end], to, buf) || !buf.length) continue;
       const r = HalfOpenRanges.normalize(buf);
       const name = model.systems.get(to)?.name ?? to;
-      for (let k = 0; k + 1 < r.length; k += 2, n++)
-        if (named.length < MaxNamed) named.push(`${name} ${spanText(r[k], r[k + 1])}`);
+      // a place: an image's pieces nearer than the item's length joined (a run's small gap splits no place)
+      for (let k = 0; k + 1 < r.length; n++) {
+        const s = r[k];
+        let e = r[k + 1];
+        for (k += 2; k + 1 < r.length && r[k] - e <= end - start; k += 2) e = r[k + 1];
+        if (named.length < MaxNamed) named.push(`${name} ${spanText(s, e)}`);
+      }
     }
   if (n < 2) return undefined;
   return `${n} places: ${named.join(', ')}${n > named.length ? ', …' : ''}`;
