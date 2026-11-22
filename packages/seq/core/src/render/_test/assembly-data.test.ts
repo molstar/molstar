@@ -65,6 +65,37 @@ function bedSpec(over: { rows?: Record<string, unknown>; source?: SeqData; inclu
   return b.build();
 }
 
+/** A source listing chr1 and chr3 as `1` and `3`, and a name the assembly lacks. */
+const Listed: SeqData = {
+  coverage: {
+    systems: [
+      { name: '1', length: 3000 },
+      { name: '3', length: 1000 },
+      { name: 'chrUn', length: 50 },
+    ],
+    shapes: ['1', '3', 'chrUn'].map((system) => ({ system, shape: 'ranges' as const })),
+    levels: [1],
+  },
+  pairs: [
+    { system: '1', end: 3000, id: ['p', 'q'], start: [10, 1000], stop: [200, 2000] },
+    { system: '3', end: 1000, id: ['r'], start: [500], stop: [900] },
+    { system: 'chrUn', end: 50, id: ['u'], start: [0], stop: [10] },
+  ].map((x) => ({
+    request: { system: x.system, start: 0, end: x.end, level: 1, shapes: ['ranges' as const] },
+    answer: {
+      ok: true as const,
+      tables: {
+        ranges: {
+          form: 'list' as const,
+          start: Int32Array.from(x.start),
+          end: Int32Array.from(x.stop),
+          id: categoryColumn(x.id),
+        },
+      },
+    },
+  })),
+};
+
 describe('ranges over an assembly', () => {
   it('inline rows are split by their `target` through the names rule, each drawn on its block (EC-189)', async () => {
     const s = await settle(
@@ -86,40 +117,21 @@ describe('ranges over an assembly', () => {
   });
 
   it('a source is read by region on each block, its names mapped both ways (`1` is `chr1`, EC-187)', async () => {
-    const source: SeqData = {
-      coverage: {
-        systems: [
-          { name: '1', length: 3000 },
-          { name: '3', length: 1000 },
-          { name: 'chrUn', length: 50 },
-        ],
-        shapes: ['1', '3', 'chrUn'].map((system) => ({ system, shape: 'ranges' as const })),
-        levels: [1],
-      },
-      pairs: [
-        { system: '1', end: 3000, id: ['p', 'q'], start: [10, 1000], stop: [200, 2000] },
-        { system: '3', end: 1000, id: ['r'], start: [500], stop: [900] },
-        { system: 'chrUn', end: 50, id: ['u'], start: [0], stop: [10] },
-      ].map((x) => ({
-        request: { system: x.system, start: 0, end: x.end, level: 1, shapes: ['ranges' as const] },
-        answer: {
-          ok: true as const,
-          tables: {
-            ranges: {
-              form: 'list' as const,
-              start: Int32Array.from(x.start),
-              end: Int32Array.from(x.stop),
-              id: categoryColumn(x.id),
-            },
-          },
-        },
-      })),
-    };
-    const s = await settle(bedSpec({ source }), [SeqRuntime]);
+    const s = await settle(bedSpec({ source: Listed }), [SeqRuntime]);
     const f = await s.frame({ size: Size });
     expect(keysByStrip(f, 1)).toEqual({ chr1: ['p', 'q'], chr2: [], chr3: ['r'] });
     const said = s.model.issues.filter((i) => i.code === 'seq.resolve.assembly.name');
     expect(said.map((i) => i.message)).toEqual(['The source names 1 sequences the assembly lacks (chrUn)']);
+  });
+
+  it('the layer’s wants over every block are bounded together (`maxTilesPerLayer` summed over blocks): past it, zoom in', async () => {
+    const wide = await settle(bedSpec({ source: Listed }), [SeqRuntime], {}, {}, { maxTilesPerLayer: 2 });
+    const f = await wide.frame({ size: Size });
+    // two blocks read (chr1, chr3), a tile each at least: past two together
+    expect(f.layout.issues.map((i) => i.code)).toContain('seq.render.zoom_in');
+    expect(keysByStrip(f, 1)).toEqual({ chr1: [], chr2: [], chr3: [] });
+    const fits = await settle(bedSpec({ source: Listed }), [SeqRuntime], {}, {}, { maxTilesPerLayer: 64 });
+    expect(keysByStrip(await fits.frame({ size: Size }), 1)).toEqual({ chr1: ['p', 'q'], chr2: [], chr3: ['r'] });
   });
 
   it('a sequence the section’s `include` leaves out reads nothing', async () => {
