@@ -206,6 +206,10 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
         download asked in the brief); fuzz and malformed-input tests as BE's and GG's. Its own size row (under 30 kB
         like the other runtimes). The story side: "Try pUC19.gb" loads it (fixes.md), and a plasmid story reads the
         GenBank file beside the GFF3 one, the two views equal.
+- [ ] **BS** (added 2026-11-22, the author: "keep it in core for now, but add a storybook example to features section
+      that showcases it"; `briefs/bs-builder-showcase.md`; fast, storybook only, beside any lane) **the builder
+      showcased**: `Features/Builder`, each story the builder code shown beside the view it builds; the builder stays
+      in `seqx-core/lang` (no package of its own for now).
 - [ ] **GATE**, with `pnpm build` and `pnpm check:workspace` (`@molstar/io` changed); each runtime its own size row.
 
 ### Stage 3: by region and across sections (after GC1; RG alone in the store)
@@ -254,7 +258,8 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
 
 ## Order and parallelism
 
-Two lanes at once (loop.md). Three tracks:
+Three lanes at once (loop.md, the author, 2026-11-22). Three tracks, and the builder showcase (BS, storybook only)
+beside any of them:
 
 - **Coordinates** (the language, resolve, render, the viewer): FX1 → GC1 → SC and GC2 beside each other → GC3.
 - **Formats** (`@molstar/io` and runtimes): BZ beside FX1 or GC1 → BE, GG, VC (after GC1 for their params), two at a

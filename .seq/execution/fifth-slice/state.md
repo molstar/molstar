@@ -47,7 +47,7 @@
 - **Sizes for GC2's genome axis** (the author, 2026-11-21: "raise the bound, even 10% is still fine"): headless
   870 kB (was 830), the default viewer 1,400 (was 1,330), the minimal viewer 1,000 (was 960), about 5 % each, room for
   the slice; reading stays at 240. GC2 measured 833.6, 1,332.3 and 964.4 kB.
-- **One lane at a time** (the author, 2026-11-21: "slow down to just 1 active lane after current batch finishes, we
+- **One lane at a time** (superseded 2026-11-22 by three) (the author, 2026-11-21: "slow down to just 1 active lane after current batch finishes, we
   are nearing usage limit"): after GC3 and GG finish, one agent at a time (a lane, then its reviewer, then its fix
   round), never two; VC waits for both.
 - **Stage 1's gate passed** (the author, 2026-11-21: every story walked, the findings in `fixes.md`; the novice
@@ -55,6 +55,10 @@
   naming it; F9 the colouring track's icon pressed, one at a time, its tooltip naming it; F11 an empty section names
   its issue in its own row (the empty-well rule); F14 the "n filtered" card names the filter and says a click clears;
   F25 a navigator window at the fit drawn as one quiet frame (no grips, no target), the story opening zoomed.
+- **Three lanes at once** (the author, 2026-11-22: "we can run up to 3 lanes in parallel now"), replacing "one lane at
+  a time"; `loop.md`'s line changed by the author's word.
+- **The builder stays in core; a Features story showcases it** (the author, 2026-11-22: "keep it in core for now, but
+  add a storybook example to features section that showcases it"): lane BS; no `seqx-builder` package for now.
 - **A GenBank lane in stage 2** (the author, 2026-11-21: "Add a GenBank lane", after "Try pUC19.gb" in Services ›
   Your own file showed only a refusal): GB after VC, strong, a short design section first (plan, Stage 2); GenBank
   leaves Out of scope.
@@ -137,7 +141,7 @@ Agents: one at a time while usage is tight (Decided); the orchestrator's look an
 
 - 2026-11-21: the loop started (`/loop run .seq/execution/fifth-slice/loop.md`). Running (B3): FX1 (fast; started
   with this commit) and BZ (strong; same). Both merged (BZ `167d24491`, FX1 `2afb32e91`). GC1 merged (`e3b3a98d0`). SC merged (`2fdc44e76`), GC2 merged (`db2364d09`). BE merged (`98028d3f6`), GC3 merged (`61e71891b`). GG merged (`9b8cf675b`). FX2 merged (`e678d2dbc`), NS merged (`190dfc135`), FX3 merged (`ded361691`), FX4 merged (`5bfebf366`). No lane running (2026-11-21, the session ended at its usage limit); next VC, then stage 1's gate (the author's), RG; open fixes in fixes.md.
-- 2026-11-22: the loop resumed in a new session. Running (B3, one at a time): **VC** (strong; started 2026-11-22 with this commit, `briefs/vc-vcf.md`). Nothing else. Downloads stay asked before they are made (plan, How this slice runs).
+- 2026-11-22: the loop resumed in a new session. Running (B3, three at once from 2026-11-22): **VC** (strong; started 2026-11-22 08:26, `briefs/vc-vcf.md`); **BS** (fast, Sonnet; started 2026-11-22 with the next commit, `briefs/bs-builder-showcase.md`); **RG** (strong; same commit, `briefs/rg-region-reads.md`; alone in the store). Downloads stay asked before they are made (plan, How this slice runs).
 
 ## Findings by lane
 

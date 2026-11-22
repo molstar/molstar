@@ -7,8 +7,8 @@ since.
 
 ## Lanes at once
 
-**Two lanes at once** (the author, 2026-11-20: "also we can run 2 lanes in parallel again now"; one before it, two or
-three before that). Each lane strong or fast by its work. Strong (the strongest model, high
+**Three lanes at once** (the author, 2026-11-22: "we can run up to 3 lanes in parallel now"; one from 2026-11-21
+while usage was tight, two before it). Each lane strong or fast by its work. Strong (the strongest model, high
 effort) for design, a model or anything ambiguous; fast (the fast model) for specified work: fixes, stories, tests,
 read-only. The author changes this line; the loop never does. What runs together is limited by files, not by kind
 (plan, Order and parallelism): never two lanes on the language or on core's store and resolve, never two in one file,
