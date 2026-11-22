@@ -79,13 +79,11 @@ export {
 } from './language.js';
 export { type FieldOptions, measure, theme } from './theme-builder.js';
 export {
-  MvsSchemaColumns,
   TooltipDefaults,
   TooltipKinds,
   type TooltipSchema,
   TooltipSchemas,
-  type TooltipTemplate,
-  tooltipTemplate,
+  templateFields,
 } from './tooltip-language.js';
 export { checkTooltip } from './check-tooltips.js';
 export { ScaleParamsDescription, ThemeLanguage, ThemeLanguageId } from './theme-language.js';

@@ -96,7 +96,7 @@ export { resolveAnnotationNode, resolveMapNode, resolveSequenceNode, rowsSystemO
 import { mapEntry, numberingEntry } from './maps-entry.js';
 import type { StructureMapData } from './maps-segments.js';
 import { pathKey, viaList, viaPath, viaRivals, withoutRivals } from './maps-via.js';
-import { tooltipTables } from './tooltip-tables.js';
+import { TooltipTables, tooltipsLoading } from './tooltip-door.js';
 import { collapseAtoms, expandAtoms, type ModifiedIndex, type UnitEntry, unitEdges } from './molecules.js';
 import { composeEdges, type Edge, findPath, inversePath, type Path, projectRanges, type Step } from './paths.js';
 
@@ -623,7 +623,10 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
     issues,
   });
   // the parts a view's kinds need (render's bridge chunk), waited for with the genome chunk
-  const loading = ViewKinds.loading?.(spec, genome) ?? genome;
+  const views = ViewKinds.loading?.(spec, genome) ?? genome;
+  // the tooltips' parts (`tooltip-door.ts`), waited for with them
+  const tipsLoad = tooltipsLoading(spec);
+  const loading = tipsLoad && views ? Promise.all([tipsLoad, views]) : (tipsLoad ?? views);
 
   const molecular = buildMolecular(data, inner, systems, issues, config, cached, key, ref, lengths);
 
@@ -700,7 +703,9 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
 
   genomeLoaded()?.checkAssemblyData(data, assemblies, byAddress, issues);
   // the tooltips' `ranges` tables: annotations at their tooltips' addresses, read through the store (Tooltip tables)
-  const tables = tooltipTables(spec);
+  const tips = TooltipTables.tables;
+  const tables = tips?.tooltipTables(spec) ?? [];
+  if (tips) issues.push(...tips.tooltipIssues(spec));
   // data over an assembly: a plan a derived sequence (`model-assemblies.ts`)
   assemblyAnnotations(
     // a tooltip's `ranges` table over an assembly is read by its sequences' names as data over one is

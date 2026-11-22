@@ -13,7 +13,7 @@ import { createSeqSpec } from '../builder.js';
 import { specBounds } from '../bounds.js';
 import { checkSeqSpec } from '../check.js';
 import { SeqLanguageVersion } from '../language.js';
-import { MvsSchemaColumns, TooltipSchemas, tooltipTemplate } from '../tooltip-language.js';
+import { templateFields } from '../tooltip-language.js';
 
 /** p53's protein, its notes and the design's four tooltips. */
 function designSpec() {
@@ -89,7 +89,7 @@ describe('the tooltip kind', () => {
     ]);
   });
 
-  it('a table off its schema is said; MVS’s schemas need one of their columns, others ignored (EC-252)', () => {
+  it('a table off its schema is said (Seq*’s schemas here, MVS’s at resolve: resolve’s tooltip tables, EC-252)', () => {
     const b = createSeqSpec();
     const s = b.data.sequence('s', { alphabet: 'protein', letters: 'MEEP' });
     b.views.tooltip('a', { target: s, rows: { start: [0], tooltip: ['x'] } as never });
@@ -99,11 +99,7 @@ describe('the tooltip kind', () => {
       rows: { label_asym_id: ['A'], beg_label_seq_id: [3], tooltip: ['x'] } as never,
     });
     b.views.tooltip('c', { target: s, schema: 'residue', rows: { start: [0], end: [1], tooltip: ['x'] } });
-    expect(b.check().map((i) => [i.code, i.address])).toEqual([
-      ['seq.lang.tooltip.schema', '/views/a'],
-      ['seq.lang.tooltip.schema', '/views/c'],
-    ]);
-    expect(TooltipSchemas.length).toBe(Object.keys(MvsSchemaColumns).length + 2);
+    expect(b.check().map((i) => [i.code, i.address])).toEqual([['seq.lang.tooltip.schema', '/views/a']]);
   });
 
   it('an `on` naming nothing is said, that tooltip inert (EC-250)', () => {
@@ -133,12 +129,8 @@ describe('the tooltip kind', () => {
   });
 
   it('a template’s fields, `{}` as its field (MVS’s text_format and field_name)', () => {
-    const t = tooltipTemplate('{} at {start:d}: {label}', 'note');
-    expect('fields' in t && t.fields).toEqual(['note', 'start', 'label']);
-    expect('template' in t && t.template.format((n) => ({ note: 'n', start: '4.0', label: 'l' })[n || 'note'])).toBe(
-      'n at 4: l',
-    );
-    expect('error' in tooltipTemplate('}')).toBe(true);
+    expect(templateFields('{} at {start:d}: {label} {{x}}', 'note')).toEqual(['note', 'start', 'label']);
+    for (const bad of ['}', '{a', '{a{b}}']) expect(typeof templateFields(bad)).toBe('string');
   });
 
   it('a view exports its items’ titles as their names or their cards', () => {

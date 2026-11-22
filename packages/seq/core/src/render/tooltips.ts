@@ -8,9 +8,10 @@ import { CategoryColumn, isColumn, type Value } from '@molstar/core/repr/tree';
 import { type MarkdownInline, markdownInlineText, parseMarkdownInline } from '@molstar/core/util/markdown';
 import type { RangesList } from '@molstar/seqx-core/data';
 import { type IntervalIndex, intervalIndex, meetingInto } from '@molstar/seqx-core/data/intervals';
-import { MvsSchemaColumns, type TooltipSchema } from '@molstar/seqx-core/lang';
+import { DefaultSpecBounds, type TooltipSchema } from '@molstar/seqx-core/lang';
 import { type Location, rangesLocation } from '@molstar/seqx-core/query';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
+import { MvsSchemaColumns, tableLength } from '@molstar/seqx-core/resolve/tooltip-tables';
 import type { ResolvedLayer, ResolvedTooltip, ResolvedView } from '@molstar/seqx-core/view';
 import { layerSource } from './layer-data.js';
 import type { StoreReader } from './layer-type.js';
@@ -21,7 +22,10 @@ import type { StoreReader } from './layer-type.js';
 // overlap of one position or more, a cell or a pair by either place), in position order; a `ranges` table through the
 // store's entry and its interval index (built once an entry, kept with it), an `address` or MVS table read whole and
 // resolved by the caller's `locate`. `views`' tooltips before the view's, each in spec order. A tooltip's one row on
-// the mark is plain; several matches are item rows sharing the card's cap, the rest counted (`more`). Values are escaped
+// the mark is plain; several matches are item rows sharing the card's cap, the rest counted (`more`), a row met by
+// several parts (a cell's two positions, a pair's two ends) counted once; a tooltip's rows in position order. A warm
+// lookup allocates nothing past its matches: a row's text and its row are made once (cached by the table's row and by
+// text), an inline table's addresses and locations once a model (read to `tooltipRows`). Values are escaped
 // before the Markdown parse (a value adds no mark or link); the parse is cached by text and cleaned after it (controls
 // and bidi overrides removed); only Seq*'s own links (`!seq-…`) stay links. A table pending under the mark gives a
 // `loading` row (EC-169); a failed one no rows, its tooltip listed in `failed` (EC-174).
@@ -115,7 +119,7 @@ function byData(ctx: TooltipContext, t: ResolvedTooltip, place: TooltipPlace, ou
       if (!table || table.form !== 'list') continue;
       for (let i = 0; i < table.start.length; i++)
         if (table.start[i] === item.start && rowKey(table, i) === item.key) {
-          const text = formatRow(t, (name) => listField(table, i, name));
+          const text = tableText(t, table, i);
           if (text !== undefined) out.rows.push(rowOf(t, text, false));
           return;
         }
@@ -128,6 +132,10 @@ function byData(ctx: TooltipContext, t: ResolvedTooltip, place: TooltipPlace, ou
 const Indices = new WeakMap<RangesList, IntervalIndex>();
 /** The matches of one lookup (reused: a warm lookup allocates no buffer). */
 let Matches = new Int32Array(16);
+/** The stretches a lookup has read (a source's, on its system): a row met again by a later part is counted once. */
+const Seen = { source: [] as string[], start: [] as number[], end: [] as number[] };
+/** The project's carry of a part, reused when the part is on the table's system. */
+const Same = [0, 0];
 
 function indexOf(table: RangesList): IntervalIndex {
   let ix = Indices.get(table);
@@ -135,32 +143,46 @@ function indexOf(table: RangesList): IntervalIndex {
   return ix;
 }
 
+/** Whether a row was met by a stretch read before (the same source): counted there. */
+function seenBefore(source: string, s: number, e: number, upTo: number): boolean {
+  for (let k = 0; k < upTo; k++) if (Seen.source[k] === source && meets(s, e, Seen.start[k], Seen.end[k])) return true;
+  return false;
+}
+
 function byRanges(ctx: TooltipContext, t: ResolvedTooltip, place: TooltipPlace, out: TooltipOut, cap: number): void {
   const a = ctx.model.annotations.get(t.address);
   if (!a) return;
-  const made: string[] = [];
+  const made = Made.begin();
   let count = 0;
   let pending = false;
+  let seen = 0;
   for (const part of place.parts) {
     // the table's plan on the part's system (an assembly's by its sequence), the part carried onto the table's system
     const plan = a.bySystem ? a.bySystem.get(part.system) : a.access;
     const dataSystem = a.bySystem ? part.system : a.target;
     if (!plan) continue;
     const source = plan.kind === 'inline' ? plan.source.address : plan.source;
-    const ranges =
-      dataSystem === part.system
-        ? [part.start, part.end]
-        : (ctx.model
-            .project(rangesLocation(part.system, [part.start, part.end]), dataSystem)
-            .location.parts.find((p) => p.system === dataSystem)?.ranges ?? []);
+    let ranges: ArrayLike<number> = Same;
+    if (dataSystem === part.system) {
+      Same[0] = part.start;
+      Same[1] = part.end;
+    } else
+      ranges =
+        ctx.model
+          .project(rangesLocation(part.system, [part.start, part.end]), dataSystem)
+          .location.parts.find((p) => p.system === dataSystem)?.ranges ?? [];
     const levels = ctx.data.coverage(source)?.levels;
     if (!levels) {
       pending = true;
       continue;
     }
+    const before = seen;
     for (let r = 0; r + 1 < ranges.length; r += 2) {
       const s = ranges[r];
       const e = Math.max(ranges[r + 1], s + 1);
+      Seen.source[seen] = source;
+      Seen.start[seen] = s;
+      Seen.end[seen++] = e;
       // the level read: the finest whose tiles here hold rows (a list) and have come; a coarser level's may be
       // summaries, and an inline list is served whole at a coarse level too (what a layer at the fit wanted)
       const level = listLevel(ctx.data, source, plan.system, s, e, levels);
@@ -195,16 +217,18 @@ function byRanges(ctx: TooltipContext, t: ResolvedTooltip, place: TooltipPlace, 
           }
           const at = Math.max(table.start[i], s);
           if (at < entry.region.start || at >= entry.region.end) continue;
+          // a row an earlier part met (a cell's two positions, a pair's two ends on one note): counted there
+          if (seenBefore(source, table.start[i], table.end[i], before)) continue;
           count++;
-          if (made.length >= cap) continue;
-          const text = formatRow(t, (name) => listField(table, i, name));
-          if (text !== undefined && !made.includes(text)) made.push(text);
+          if (made.n >= cap) continue;
+          const text = tableText(t, table, i);
+          if (text !== undefined) made.add(text, table.start[i]);
         }
       }
     }
   }
-  if (pending && !made.length) {
-    out.rows.push({ ...rowOf(t, 'loading', false), loading: true });
+  if (pending && !made.n) {
+    out.rows.push(loadingRow(t));
     return;
   }
   emit(t, made, count, out);
@@ -229,49 +253,69 @@ function listLevel(
 
 // ---- by range: addresses, an `address` table, MVS's schemas (read whole) ----
 
-/** A tooltip's rows located, per model: the address each row names and its Location (undefined: not resolved). */
-const Located = new WeakMap<StaticModel, Map<string, { readonly locations: (Location | undefined)[] }>>();
+/** A tooltip's rows located, per model: each row's address, its Location (undefined: not resolved yet), its start. */
+interface Located {
+  readonly addresses: readonly string[];
+  readonly locations: (Location | undefined)[];
+  /** Each row's first position as located (Infinity until located): the rows' order. */
+  readonly starts: number[];
+}
+const LocatedRows = new WeakMap<StaticModel, Map<string, Located>>();
 
-function located(ctx: TooltipContext, key: string, addresses: readonly string[]) {
-  let byModel = Located.get(ctx.model);
-  if (!byModel) Located.set(ctx.model, (byModel = new Map()));
+/** A tooltip's rows located (their addresses made once a model, `addresses` asked then); unresolved ones asked again. */
+function located(ctx: TooltipContext, key: string, addresses: () => readonly string[]): Located {
+  let byModel = LocatedRows.get(ctx.model);
+  if (!byModel) LocatedRows.set(ctx.model, (byModel = new Map()));
   let l = byModel.get(key);
-  if (!l) byModel.set(key, (l = { locations: addresses.map((a) => ctx.locate?.(a)) }));
-  // an address not located yet (its data not arrived) is asked again; a located one is kept for the model
-  else for (let i = 0; i < addresses.length; i++) if (!l.locations[i]) l.locations[i] = ctx.locate?.(addresses[i]);
-  return l.locations;
+  if (!l) {
+    const list = addresses();
+    const locations = list.map((a) => ctx.locate?.(a));
+    byModel.set(key, (l = { addresses: list, locations, starts: locations.map(firstOf) }));
+  } else
+    for (let i = 0; i < l.addresses.length; i++)
+      if (!l.locations[i]) {
+        const loc = (l.locations[i] = ctx.locate?.(l.addresses[i]));
+        l.starts[i] = firstOf(loc);
+      }
+  return l;
 }
 
+const firstOf = (loc: Location | undefined) => loc?.parts[0]?.ranges[0] ?? Number.POSITIVE_INFINITY;
+
 function byAddresses(ctx: TooltipContext, t: ResolvedTooltip, place: TooltipPlace, out: TooltipOut, cap: number) {
-  const locs = located(ctx, t.address, t.addresses!);
-  const made: string[] = [];
+  const l = located(ctx, t.address, () => t.addresses!);
+  const made = Made.begin();
   let count = 0;
-  for (const loc of locs) {
+  for (let i = 0; i < l.locations.length; i++) {
+    const loc = l.locations[i];
     if (!loc || !covers(ctx.model, loc, place)) continue;
     count++;
-    const text = made.length < cap ? formatRow(t, () => undefined) : undefined;
-    if (text !== undefined && !made.includes(text)) made.push(text);
+    const text = made.n < cap ? constantText(t) : undefined;
+    if (text !== undefined) made.add(text, l.starts[i]);
   }
   emit(t, made, count, out);
 }
 
 function byTable(ctx: TooltipContext, t: ResolvedTooltip, place: TooltipPlace, out: TooltipOut, cap: number) {
   const rows = t.node.params?.rows as Record<string, Value> | undefined;
+  // a table from a source is not read whole yet (`seq.resolve.tooltip.source`)
   if (!rows || t.target === undefined || t.source !== undefined) return;
-  const n = columnLength(rows);
-  const get = (name: string, i: number) => cellOf(rows[name], i);
-  const addresses: string[] = [];
-  for (let i = 0; i < n; i++) addresses.push(rowAddress(t.target, t.schema!, (c) => get(c, i)) ?? '');
-  const locs = located(ctx, `${t.address}#${t.schema}`, addresses);
-  const made: string[] = [];
+  // read to the bound (`tooltipRows`, `seq.resolve.tooltip.rows` past it)
+  const n = Math.min(tableLength(rows), DefaultSpecBounds.tooltipRows);
+  const l = located(ctx, `${t.address}#${t.schema}`, () => {
+    const addresses: string[] = [];
+    for (let i = 0; i < n; i++) addresses.push(rowAddress(t.target!, t.schema!, (c) => cellOf(rows[c], i)) ?? '');
+    return addresses;
+  });
+  const made = Made.begin();
   let count = 0;
   for (let i = 0; i < n; i++) {
-    const loc = locs[i];
+    const loc = l.locations[i];
     if (!loc || !covers(ctx.model, loc, place)) continue;
     count++;
-    if (made.length >= cap) continue;
-    const text = formatRow(t, (name) => get(name, i));
-    if (text !== undefined && !made.includes(text)) made.push(text);
+    if (made.n >= cap) continue;
+    const text = inlineText(t, rows, i);
+    if (text !== undefined) made.add(text, l.starts[i]);
   }
   emit(t, made, count, out);
 }
@@ -323,23 +367,93 @@ function covers(model: StaticModel, loc: Location, place: TooltipPlace): boolean
 
 // ---- rows and texts ----
 
+/** A lookup's distinct texts and their starts (reused: one tooltip's at a time), kept in position order. */
+const Made = {
+  n: 0,
+  texts: [] as string[],
+  starts: [] as number[],
+  begin() {
+    this.n = 0;
+    return this;
+  },
+  /** Adds a text at its start unless made already, by start (a stable insertion: few, `cap` at most). */
+  add(text: string, start: number) {
+    for (let k = 0; k < this.n; k++) if (this.texts[k] === text) return;
+    let k = this.n++;
+    for (; k > 0 && this.starts[k - 1] > start; k--) {
+      this.texts[k] = this.texts[k - 1];
+      this.starts[k] = this.starts[k - 1];
+    }
+    this.texts[k] = text;
+    this.starts[k] = start;
+  },
+};
+
 /** A tooltip's matches as rows: one a plain row, several item rows (the rest counted). */
-function emit(t: ResolvedTooltip, made: readonly string[], count: number, out: TooltipOut) {
-  if (!made.length) return;
+function emit(t: ResolvedTooltip, made: typeof Made, count: number, out: TooltipOut) {
+  if (!made.n) return;
   const several = count > 1;
-  for (const text of made) out.rows.push(rowOf(t, text, several));
-  out.more += Math.max(0, count - made.length);
+  for (let k = 0; k < made.n; k++) out.rows.push(rowOf(t, made.texts[k], several));
+  out.more += Math.max(0, count - made.n);
 }
 
+/** Rows kept by tooltip and text (a plain one and an item one): a warm card makes none. Bounded a tooltip. */
+const Rows = new WeakMap<ResolvedTooltip, Map<string, TooltipRow>>();
+const RowsPerTooltip = 256;
+
 function rowOf(t: ResolvedTooltip, text: string, item: boolean): TooltipRow {
+  let byText = Rows.get(t);
+  if (!byText) Rows.set(t, (byText = new Map()));
+  const key = item ? `\u0001${text}` : text;
+  let row = byText.get(key);
+  if (row) return row;
   const rich = t.format === 'markdown' ? richOf(text) : undefined;
   const value = rich ? markdownInlineText(rich) : clean(text);
   const base = t.label !== undefined ? { label: t.label, value } : { label: value, value: '' };
-  return { ...base, ...(rich && hasMarks(rich) ? { rich } : {}), ...(item ? { item: true } : {}) };
+  row = { ...base, ...(rich && hasMarks(rich) ? { rich } : {}), ...(item ? { item: true } : {}) };
+  if (byText.size >= RowsPerTooltip) byText.delete(byText.keys().next().value!);
+  byText.set(key, row);
+  return row;
+}
+
+function loadingRow(t: ResolvedTooltip): TooltipRow {
+  let byText = Rows.get(t);
+  if (!byText) Rows.set(t, (byText = new Map()));
+  let row = byText.get('\u0002');
+  if (!row) byText.set('\u0002', (row = { ...rowOf(t, 'loading', false), loading: true }));
+  return row;
 }
 
 /** Whether a tree has more than plain text (a mark or a link): its `rich` is worth carrying. */
 const hasMarks = (nodes: readonly MarkdownInline[]) => nodes.some((n) => n.kind !== 'text');
+
+/** Texts kept by a table's row, a tooltip's (undefined: none; a few thousand rows a table at most, the oldest let go). */
+const TableTexts = new WeakMap<object, Map<ResolvedTooltip, Map<number, string | null>>>();
+const TextsPerTable = 4096;
+
+function cachedText(key: object, t: ResolvedTooltip, i: number, make: () => string | undefined): string | undefined {
+  let byTip = TableTexts.get(key);
+  if (!byTip) TableTexts.set(key, (byTip = new Map()));
+  let texts = byTip.get(t);
+  if (!texts) byTip.set(t, (texts = new Map()));
+  const c = texts.get(i);
+  if (c !== undefined) return c ?? undefined;
+  const text = make();
+  if (texts.size >= TextsPerTable) texts.delete(texts.keys().next().value!);
+  texts.set(i, text ?? null);
+  return text;
+}
+
+/** A list table's row's text (cached by the row). */
+const tableText = (t: ResolvedTooltip, table: RangesList, i: number) =>
+  cachedText(table, t, i, () => formatRow(t, (name) => listField(table, i, name)));
+
+/** An inline table's row's text (cached by the row). */
+const inlineText = (t: ResolvedTooltip, rows: Record<string, Value>, i: number) =>
+  cachedText(rows, t, i, () => formatRow(t, (name) => cellOf(rows[name], i)));
+
+/** An address's text (no fields: the template alone, cached). */
+const constantText = (t: ResolvedTooltip) => cachedText(t, t, -1, () => formatRow(t, () => undefined));
 
 /** A row's text: the template over its fields (`{}` the tooltip's field), values escaped; undefined when one is missing. */
 function formatRow(t: ResolvedTooltip, field: (name: string) => string | undefined): string | undefined {
@@ -351,15 +465,24 @@ function formatRow(t: ResolvedTooltip, field: (name: string) => string | undefin
     return md && !Numeric.test(v) ? escapeMarkdown(v) : v;
   });
   if (text === undefined || text === '') return undefined;
-  return text.length > MaxText ? `${text.slice(0, MaxText - 1)}…` : text;
+  return text.length > MaxText ? `${cutAt(text, MaxText - 1)}…` : text;
+}
+
+/** A text's first `n` UTF-16 units, one less when the last would split a surrogate pair (a code point kept whole). */
+function cutAt(text: string, n: number): string {
+  const c = text.charCodeAt(n - 1);
+  return text.slice(0, c >= 0xd800 && c <= 0xdbff ? n - 1 : n);
 }
 
 /** A value that is a number as text: formatted by the template's spec, never escaped. */
 const Numeric = /^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i;
 
-/** Markdown's escapable characters, each backslash-escaped: a value is text (`A*02:01` stays as written). */
+/**
+ * Markdown's escapable characters, each backslash-escaped, and `&` as its entity (the parse decodes entities, so a
+ * value's `&amp;` stays as written): a value is text (`A*02:01` stays as written).
+ */
 export function escapeMarkdown(v: string): string {
-  return v.replace(/[\\`*_{}[\]()#+\-.!<>|~]/g, '\\$&');
+  return v.replace(/[\\`*_{}[\]()#+\-.!<>|~]/g, '\\$&').replace(/&/g, '&amp;');
 }
 
 /** C0 and C1 controls (but tab and newline) and the bidi overrides and isolates: removed from a text. */
@@ -429,11 +552,4 @@ function cellOf(c: Value | undefined, i: number): string | undefined {
   return undefined;
 }
 
-/** The rows of an inline table (its first column's length). */
-function columnLength(rows: Record<string, Value>): number {
-  for (const c of Object.values(rows)) {
-    if (c instanceof CategoryColumn) return c.length;
-    if (Array.isArray(c) || ArrayBuffer.isView(c)) return (c as ArrayLike<unknown>).length;
-  }
-  return 0;
-}
+const meets = (s: number, e: number, start: number, end: number) => s < end && Math.max(e, s + 1) > start;

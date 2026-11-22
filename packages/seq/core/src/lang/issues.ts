@@ -234,37 +234,33 @@ export const LangIssues = defineIssues('seq.lang', {
   },
   'seq.lang.tooltip.content': {
     severity: 'error',
-    description:
-      'A tooltip names `on` beside a table, or neither: it is by data (`on`) or by range (`target` with `rows` or a `source`)',
-    hint: 'Give `on` alone, or a `target` with one of `rows` and `source`',
+    description: 'A tooltip is by data (`on`) or by range (`target` with `rows` or a `source`): both, or neither',
+    hint: 'Give `on` alone, or a `target` with `rows` or a `source`',
   },
   'seq.lang.tooltip.on': {
     severity: 'warning',
-    description:
-      'A tooltip’s `on`, or an address of its table, names nothing the view draws: that row is inert, the rest shows',
-    hint: 'Name a data node, a layer, or an address that resolves in the spec',
+    description: 'A tooltip’s `on` names nothing in the spec: that row is inert',
+    hint: 'Name a node or an address of the spec',
   },
   'seq.lang.tooltip.field': {
     severity: 'warning',
-    description: 'A tooltip’s template names a field its table lacks: no row of it gives a text',
-    hint: 'Name a column of the table (`{}` reads `field`, `tooltip` when absent)',
+    description: 'A tooltip’s template names a field its table lacks: no row gives a text',
+    hint: 'Name a column (`{}` reads `field`)',
   },
   'seq.lang.tooltip.schema': {
     severity: 'error',
-    description: 'A tooltip table’s columns do not fit its `schema` (none of the columns the schema locates by)',
-    hint: 'Say the schema the table is written in (`ranges`: `start` and `end`; `address`: `address`; MVS’s by name)',
+    description: 'A tooltip table’s columns do not fit its `schema`',
+    hint: 'Say the table’s schema',
   },
   'seq.lang.tooltip.category': {
     severity: 'info',
-    description:
-      'A tooltip reads a CIF category, which only a structure’s source holds and this reader does not read yet: it shows nothing',
-    hint: 'Give the table inline or from a source of its own until the structure runtime reads categories',
+    description: 'A tooltip reads a CIF category, not read yet: it shows nothing',
+    hint: 'Give the table inline or from a source of its own',
   },
   'seq.lang.tooltip.text': {
     severity: 'error',
-    description:
-      'A tooltip’s template is not an f-string this reader formats, or is past the bound (`SpecBounds.tooltipText`, 1,000)',
-    hint: 'Write fields as `{name}` or `{}` (`{{` for a brace), with a format a value takes; keep it short',
+    description: 'A tooltip’s template is no f-string, or is past `SpecBounds.tooltipText`',
+    hint: 'Write fields as `{name}` or `{}`; keep it short',
   },
   'seq.lang.navigator.bands': {
     severity: 'error',

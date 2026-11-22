@@ -6,7 +6,7 @@
 
 import { isColumn, type Node, type Value } from '@molstar/core/repr/tree';
 import type { Say } from './check-molecules.js';
-import { MvsSchemaColumns, type TooltipSchema, TooltipDefaults, tooltipTemplate } from './tooltip-language.js';
+import { TooltipDefaults, templateFields } from './tooltip-language.js';
 
 // What the description cannot say of a tooltip (_spec/README.md, Language, Tooltips; `seq.lang.tooltip.*`): by data or
 // by a table, never both; its template an f-string within the bound; a field it names in its table; a table fitting
@@ -46,11 +46,7 @@ export function checkTooltip(
   const ons = Array.isArray(p.on) ? p.on : on ? [p.on] : [];
   ons.forEach((a, i) => {
     if (typeof a === 'string' && !named(a))
-      say(
-        'seq.lang.tooltip.on',
-        `The tooltip's \`on\` names nothing in the spec: ${a}`,
-        ...(Array.isArray(p.on) ? ['on', i] : ['on']),
-      );
+      say('seq.lang.tooltip.on', `\`on\` names nothing: ${a}`, ...(Array.isArray(p.on) ? ['on', i] : ['on']));
   });
   const table = p.rows !== undefined || p.source !== undefined;
   const ok = on
@@ -59,43 +55,32 @@ export function checkTooltip(
   if (!ok)
     say(
       'seq.lang.tooltip.content',
-      on
-        ? 'A tooltip names `on` and a table: one of them'
-        : 'A tooltip by range needs a `target` and one of `rows` and `source`',
+      on ? '`on` and a table' : 'Needs a `target` and `rows` or a `source`',
       on ? 'on' : 'target',
     );
   // the template: an f-string within the bound (a 10,000-character template is refused here, EC-256)
   const field = typeof p.field === 'string' ? p.field : TooltipDefaults.field;
   const text = typeof p.text === 'string' ? p.text : TooltipDefaults.text;
   if (text.length > maxText) {
-    say('seq.lang.tooltip.text', `The template is ${text.length} characters, past ${maxText}`, 'text');
+    say('seq.lang.tooltip.text', `${text.length} characters, past ${maxText}`, 'text');
     return;
   }
-  const t = tooltipTemplate(text, field);
-  if ('error' in t) {
-    say('seq.lang.tooltip.text', `The template cannot be read: ${t.error}`, 'text');
+  const fields = templateFields(text, field);
+  if (typeof fields === 'string') {
+    say('seq.lang.tooltip.text', fields, 'text');
     return;
   }
   // a CIF category: unavailable until the structure runtime reads one (said once, here)
   if (p.category !== undefined || p.block !== undefined)
-    say('seq.lang.tooltip.category', 'A CIF category is not read yet: the tooltip shows nothing', 'category');
+    say('seq.lang.tooltip.category', 'A CIF category: not read yet', 'category');
   // the table's columns, where known: the inline rows', or the data's items' (by data)
-  const schema = (typeof p.schema === 'string' ? p.schema : 'ranges') as TooltipSchema;
+  // Seq*'s schemas here; MVS's at resolve, with the tooltips (`seq.resolve.tooltip.schema`: their columns load there)
+  const schema = typeof p.schema === 'string' ? p.schema : 'ranges';
   const columns = on ? itemFields(target('on')) : columnsOf(p.rows);
-  if (!on && columns) {
-    const locates = schema === 'ranges' ? RangesColumns : schema === 'address' ? ['address'] : MvsSchemaColumns[schema];
-    const fits =
-      schema === 'ranges'
-        ? locates.every((c) => columns.includes(c))
-        : !locates.length || locates.some((c) => columns.includes(c));
-    if (!fits)
-      say(
-        'seq.lang.tooltip.schema',
-        `The table's columns (${columns.join(', ')}) do not fit the schema ${schema} (${locates.join(', ')})`,
-        'rows',
-      );
+  const locates = schema === 'ranges' ? RangesColumns : schema === 'address' ? ['address'] : undefined;
+  if (!on && columns && locates) {
+    if (!locates.every((c) => columns.includes(c)))
+      say('seq.lang.tooltip.schema', `Columns ${columns.join(', ')}: not ${schema}`, 'rows');
   }
-  if (columns)
-    for (const f of t.fields)
-      if (!columns.includes(f)) say('seq.lang.tooltip.field', `The template names ${f}, which the table lacks`, 'text');
+  if (columns) for (const f of fields) if (!columns.includes(f)) say('seq.lang.tooltip.field', `No field ${f}`, 'text');
 }

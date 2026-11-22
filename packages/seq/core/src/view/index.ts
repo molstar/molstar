@@ -77,4 +77,4 @@ export {
 } from './view.js';
 export { expandTemplate, templateNeeds, templateNodes } from './templates.js';
 export { type ProjectOptions, projectOntoView, type RegionProjector } from './project.js';
-export { type ResolvedTooltip, resolveTooltips } from './tooltips.js';
+export type { ResolvedTooltip } from './tooltips.js';

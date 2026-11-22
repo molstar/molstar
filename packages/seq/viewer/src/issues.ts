@@ -82,6 +82,11 @@ export const ViewerIssues = defineIssues('seq.viewer', {
     description: 'A card provider threw: its rows are left out of the card, the rest shows',
     hint: 'Fix the provider; the card is composed without it meanwhile',
   },
+  'seq.viewer.card.tooltip': {
+    severity: 'warning',
+    description: 'A tooltip’s table failed to load under the mark: the card shows no row of it',
+    hint: 'Check the table’s source; its tiles are asked again by the store’s policy',
+  },
   'seq.viewer.step.none': {
     severity: 'error',
     description: 'The viewer lists no story part: it enters no story step',

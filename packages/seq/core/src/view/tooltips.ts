@@ -5,9 +5,9 @@
  */
 
 import { exactAddress, type Node, parseAddress, resolveAddress } from '@molstar/core/repr/tree';
-import type { FormatTemplate } from '@molstar/core/util/string-format';
-import { followRef, type TooltipSchema, TooltipDefaults, tooltipTemplate } from '@molstar/seqx-core/lang';
-import { tooltipNodes } from '@molstar/seqx-core/resolve';
+import { FormatTemplate } from '@molstar/core/util/string-format';
+import { followRef, type TooltipSchema, TooltipDefaults } from '@molstar/seqx-core/lang';
+import { tooltipNodes } from '@molstar/seqx-core/resolve/tooltip-tables';
 
 // A view's tooltips resolved (_spec/README.md "Resolved view", Tooltips): tier 1, references and the parsed template,
 // never rows. `views`' tooltips before the view's own, each in spec order. By data: the data node or the layer `on`
@@ -38,6 +38,15 @@ export interface ResolvedTooltip {
   readonly node: Node;
 }
 
+/** A tooltip's template parsed (MVS's `text_format`), undefined when it cannot be read (`seq.lang.tooltip.text`). */
+export function tooltipTemplate(text: string): FormatTemplate | undefined {
+  try {
+    return FormatTemplate(text);
+  } catch {
+    return undefined;
+  }
+}
+
 /** The data kinds whose items speak by data (each its own marks); another node `on` is an address (by range). */
 const ItemKinds: ReadonlySet<string> = new Set(['ranges', 'pairs']);
 
@@ -64,13 +73,13 @@ export function resolveTooltips(spec: Node, view: string): ResolvedTooltip[] {
     if (own !== view && own.split('/').length > 2) continue;
     const p = t.node.params ?? {};
     const field = typeof p.field === 'string' ? p.field : TooltipDefaults.field;
-    const parsed = tooltipTemplate(typeof p.text === 'string' ? p.text : TooltipDefaults.text, field);
+    const template = tooltipTemplate(typeof p.text === 'string' ? p.text : TooltipDefaults.text);
     const base = {
       address: t.address,
       field,
       format: p.format === 'text' ? ('text' as const) : ('markdown' as const),
       node: t.node,
-      ...('template' in parsed ? { template: parsed.template } : {}),
+      ...(template ? { template } : {}),
       ...(typeof p.label === 'string' ? { label: p.label } : {}),
     };
     if (p.on !== undefined) {

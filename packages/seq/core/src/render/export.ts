@@ -65,7 +65,7 @@ import type { HeaderPartsOf } from './headers.js';
 import { drawListsToSvg, type SvgAccessible } from './svg.js';
 import { bundledTextMetrics, type TextMetrics } from './text.js';
 import { builtInTokens, type SeqTokens } from './tokens.js';
-import { tooltipSources } from './tooltip-wants.js';
+import { TooltipRender } from './tooltip-hooks.js';
 
 // Headless rendering (_spec/README.md "Render", Export): a spec to an SVG string, asynchronously. It resolves the spec,
 // opens the sources the view reads, wants what the export's size and viewport need through a want set of its own
@@ -113,7 +113,7 @@ export function viewSources(model: StaticModel, view: ResolvedView): Set<string>
       }
     }
   }
-  tooltipSources(model, view, out);
+  TooltipRender.chunk?.tooltipSources(model, view, out);
   return out;
 }
 

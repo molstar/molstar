@@ -65,6 +65,8 @@ export interface CardReads {
   categoryOf(l: LayerLayout, key: string | number): string;
   /** An address as positions in the spec shown; undefined until it resolves (its data not arrived, or nothing). */
   locate(address: string): Location | undefined;
+  /** A tooltip whose table failed under the mark: its issue said once (`seq.viewer.card.tooltip`, EC-174). */
+  tooltipFailed(address: string): void;
 }
 
 /** What a provider is given (`at`): the place, its section and layer in the last frame, the models. */

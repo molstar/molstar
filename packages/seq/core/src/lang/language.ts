@@ -735,7 +735,7 @@ export const SeqLanguage = defineLanguage({
             titles: {
               type: 'string',
               enum: ['name', 'card'],
-              doc: 'What an exported item’s `<title>` says (its tooltip and accessible name): its `name` (when absent), or its `card`, the composed card’s rows as plain text. Items only.',
+              doc: 'An exported item’s `<title>`: its `name` (absent) or its `card` as text.',
             },
           },
           doc: 'How the view exports (a figure says how it exports); an export call’s options override it.',

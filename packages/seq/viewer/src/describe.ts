@@ -129,7 +129,12 @@ class Words implements CardReads {
   cardItems = 3;
   /** Says a provider that threw (its rows dropped), once a provider. */
   report: ((name: string, error: unknown) => void) | undefined = undefined;
+  /** Says an issue a provider raised (a tooltip's table failed), once an address. */
+  issue: ((issue: Issue) => void) | undefined = undefined;
   private readonly _threw = new Set<string>();
+  private readonly _failed = new Set<string>();
+  /** The rows before a provider ran (reused): restored when it throws. */
+  private readonly _rows: HoverCardRow[] = [];
 
   constructor(src: DescribeSource) {
     this._src = src;
@@ -176,13 +181,17 @@ class Words implements CardReads {
 
   /** One provider's part: a throw drops what it added (its rows, words and title), said once a provider. */
   private _run(p: CardProviderEntry, at: CardAt, out: Parts): void {
-    const rows = out.rows.length;
+    // the rows as they were (a provider may change one, not only add): copied into a reused array, restored on a throw
+    const before = this._rows;
+    before.length = 0;
+    for (const r of out.rows) before.push(r);
     const words = out.words.length;
     const { title, whole, moreCount } = out;
     try {
       p.describe(at, out);
     } catch (e) {
-      out.rows.length = rows;
+      out.rows.length = 0;
+      for (const r of before) out.rows.push(r);
       out.words.length = words;
       out.title = title;
       out.whole = whole;
@@ -306,6 +315,17 @@ class Words implements CardReads {
   locate(address: string): Location | undefined {
     const r = this._src.addresses.locate(address);
     return r.resolution.status === 'resolved' ? r.location : undefined;
+  }
+
+  tooltipFailed(address: string): void {
+    if (this._failed.has(address)) return;
+    this._failed.add(address);
+    this.issue?.(
+      issueOf(ViewerIssues, 'seq.viewer.card.tooltip', 'The tooltip’s table failed to load under the mark', {
+        address,
+        hint: ViewerIssues.codes['seq.viewer.card.tooltip'].hint,
+      }),
+    );
   }
 
   /** An item's category: the `category` field of an inline annotation's item (a source's items are not held here). */
@@ -461,10 +481,12 @@ export class Describer {
     providers: readonly CardProviderEntry[],
     cardItems: number,
     report: (name: string, error: unknown) => void,
+    issue?: (issue: Issue) => void,
   ): void {
     this._words.providers = providers;
     this._words.cardItems = cardItems;
     this._words.report = report;
+    this._words.issue = issue;
   }
 
   /** The header words of a place (a slot, a chip, a label): the `headers` behavior sets them when it is listed. */
@@ -532,15 +554,19 @@ export function composeCard(
         hint: ViewerIssues.codes['seq.viewer.card.floor'].hint,
       }),
     );
-  describer.compose(providers, cardItems, (name, e) =>
-    report(
-      issueOf(
-        ViewerIssues,
-        'seq.viewer.card.provider',
-        `The card provider ${name} threw: its rows are left out (${e instanceof Error ? e.message : String(e)})`,
-        { hint: ViewerIssues.codes['seq.viewer.card.provider'].hint },
+  describer.compose(
+    providers,
+    cardItems,
+    (name, e) =>
+      report(
+        issueOf(
+          ViewerIssues,
+          'seq.viewer.card.provider',
+          `The card provider ${name} threw: its rows are left out (${e instanceof Error ? e.message : String(e)})`,
+          { hint: ViewerIssues.codes['seq.viewer.card.provider'].hint },
+        ),
       ),
-    ),
+    report,
   );
 }
 

@@ -8,11 +8,10 @@ import type { Location } from '@molstar/seqx-core/query';
 import { rangesLocation } from '@molstar/seqx-core/query';
 import { extentText } from '@molstar/seqx-core/render/accessibility';
 import { itemText, type LayerLayout, type RowsLay, spanText } from '@molstar/seqx-core/render';
-import type { StaticModel } from '@molstar/seqx-core/resolve';
-import type { CardProviderEntry } from './card-provider.js';
+import { type StaticModel, withTooltips } from '@molstar/seqx-core/resolve';
+import type { CardAt, CardParts, CardProviderEntry } from './card-provider.js';
 import { alleleOf, alleleTitle } from './describe-allele.js';
 import { chemistryRows } from './describe-molecules.js';
-import { TooltipsCardProvider } from './card-tooltips.js';
 import { regionHoverOf } from './describe-region.js';
 
 // The card's built-in providers (_spec/README.md "Hover card", Providers): the viewer's own sections, registry entries
@@ -438,6 +437,25 @@ const PlaceSection: CardProviderEntry = {
     for (const it of items) out.row(it.label, it.extent, true);
     if (items.length) out.words.push(`items: ${items.map((i) => `${i.label}, ${i.extent}`).join('; ')}`);
   },
+};
+
+/** The spec's tooltips' provider's body (`card-tooltips.ts`), loaded with the tooltips (core's `withTooltips`). */
+const CardTooltips: { describe?: (at: CardAt, out: CardParts) => void } = {};
+withTooltips(() =>
+  import('./card-tooltips.js').then((m) => {
+    CardTooltips.describe = m.describeTooltips;
+  }),
+);
+
+/**
+ * The spec's tooltips (`seq:tooltips`, order 95: after the place's rows, before the block); its body loads with the
+ * tooltips, before a model holding one settles (_spec/README.md "Hover card", Tooltips).
+ */
+export const TooltipsCardProvider: CardProviderEntry = {
+  kind: 'card-provider',
+  name: 'seq:tooltips',
+  order: 95,
+  describe: (at, out) => CardTooltips.describe?.(at, out),
 };
 
 /**
