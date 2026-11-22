@@ -130,7 +130,8 @@ const layers = (v: SeqViewer) => {
   const out = new Map<string, ValuesLay>();
   for (const s of v.frame!.layout.sections)
     for (const t of s.tracks)
-      for (const l of t.layers) if (l.type.name === 'values') out.set(l.lay.key.split('/').pop()!, l.lay as ValuesLay);
+      for (const l of t.layers)
+        if (l.type.name === 'values') out.set((l.lay as ValuesLay).key.split('/').pop()!, l.lay as ValuesLay);
   return out;
 };
 
