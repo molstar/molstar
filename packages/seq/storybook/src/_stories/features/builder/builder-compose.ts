@@ -87,7 +87,7 @@ export const BuilderCases: readonly BuilderCase[] = [
   make(
     'check',
     'check()',
-    'A mistake the types cannot catch: any string is a reference, so an address written out that names nothing compiles. `check()` says what is wrong. The spec has an error, so the export refuses to draw it: the SVG is blank (its issues are the status line’s), while the canvas draws what it can.',
+    'A mistake the types cannot catch: any string is a reference, so an address written out that names nothing compiles. `check()` says what is wrong. The spec has an error; the export draws what resolves, as the canvas does, and says the issues in the SVG’s description.',
     check.build,
     checkSource,
     () => [{ title: 'check()', text: formatIssues(check.issues()) }],

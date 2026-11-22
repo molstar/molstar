@@ -34,8 +34,8 @@ export const LayersAndThemes: StoryObj = story('themes');
 /** An assembly with the genome builder, a genome section of it, and a section of one chromosome of it. */
 export const AGenomeView: StoryObj = story('genome');
 
-/** A spec with a mistake the types cannot catch: `check()`'s issues are listed beside the view; the SVG export is blank (it refuses a spec with an error), the canvas draws what it can. */
+/** A spec with a mistake the types cannot catch: `check()`'s issues are listed beside the view; the SVG export draws what resolves, as the canvas does, and says the issues in its `<desc>`. */
 export const Check: StoryObj = story('check');
 
-/** `build()` as data: the normalized tree printed as JSON and as the S-expression, beside the view; the SVG export is blank (it refuses a spec with an error), the canvas draws what it can. */
+/** `build()` as data: the normalized tree printed as JSON and as the S-expression, beside the view; the SVG export draws what resolves, as the canvas does, and says the issues in its `<desc>`. */
 export const BuildAsData: StoryObj = story('as-data');
