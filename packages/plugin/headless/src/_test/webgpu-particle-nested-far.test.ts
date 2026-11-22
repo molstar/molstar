@@ -139,6 +139,10 @@ describe.skipIf(!WebGPU.module)("a list with templates' far copies on WebGPU", (
           canvas.camera.setState(canvas.camera.getFocus(focus, radius), 0);
           canvas.requestDraw();
           canvas.tick((time += 100) as now.Timestamp, { isSynchronous: true });
+          // the cull's read-backs landed (the leaf pages it wants, a room overflowed: tracked once read, on a slow
+          // device, a software Vulkan's, after the frame), then the work they asked for
+          await graphics.waitForGpuCommandsComplete();
+          await new Promise((r) => setTimeout(r, 0));
           await graphics.resources.pending.whenReady();
         }
         return Array.from((await graphics.readDrawingBuffer()).data);
@@ -313,6 +317,10 @@ describe.skipIf(!WebGPU.module)("a list with templates' far copies on WebGPU", (
           canvas.camera.setState(canvas.camera.getFocus(Vec3.create(150, 0, 0), 180), 0);
           canvas.requestDraw();
           canvas.tick((time += 100) as now.Timestamp, { isSynchronous: true });
+          // the cull's read-backs landed (the leaf pages it wants, a room overflowed: tracked once read, on a slow
+          // device, a software Vulkan's, after the frame), then the work they asked for
+          await graphics.waitForGpuCommandsComplete();
+          await new Promise((r) => setTimeout(r, 0));
           await graphics.resources.pending.whenReady();
         }
         const image = (await graphics.readDrawingBuffer()).data;
