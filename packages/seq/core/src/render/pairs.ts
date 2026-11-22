@@ -45,6 +45,7 @@ import {
   type Side,
 } from './pairs-lay.js';
 import { drawDots, hitDots, layoutDots } from './pairs-dots.js';
+import { regionPairs } from './pairs-region.js';
 import { drawEmphasis, drawHighlights, pairItems } from './pairs-emphasis.js';
 import { PlacePoint, type Placement } from './layout/types.js';
 
@@ -61,7 +62,7 @@ export const PairsType: LayerType<PairsPrep, PairsLay> = {
   scope: 'section',
   prepare,
 
-  layout(prep, ctx: LayoutContext, _data, _overlay, prev?: PairsLay): PairsLay {
+  layout(prep, ctx: LayoutContext, data, _overlay, prev?: PairsLay): PairsLay {
     const lay = prev ?? new PairsLay();
     lay.key = ctx.key;
     lay.section = sectionId(ctx.section);
@@ -78,6 +79,13 @@ export const PairsType: LayerType<PairsPrep, PairsLay> = {
     lay.clip = undefined;
     lay.mode = 'none';
     lay.colorChannel = undefined;
+    // a source's pairs: this frame's read (bins, or items once they fit) as the pairs laid out
+    if (prep.region && !prep.data) {
+      const read = ctx.place ? regionPairs(prep, prep.region, ctx, data, lay) : undefined;
+      if (!read?.data) return lay;
+      prep = read;
+      lay.prep = prep;
+    }
     if (!prep.data) return lay;
     if (prep.unreadFilter)
       ctx.report(
@@ -256,10 +264,16 @@ function layoutArcs(lay: PairsLay, prep: PairsPrep, ctx: LayoutContext, place: P
     );
     order = new Int32Array(m);
     for (let i = 0; i < m; i++) order[i] = i;
-    order.sort((x, y) => Spans[y] - Spans[x]);
+    // bins: the strongest first (by count, ties by span); items: the widest first
+    const w = prep.weight;
+    if (w) order.sort((x, y) => w[Raw[4 * y + 3]] - w[Raw[4 * x + 3]] || Spans[y] - Spans[x]);
+    else order.sort((x, y) => Spans[y] - Spans[x]);
     densityStrip(lay, place, band, ctx.dpr);
   }
-  const seen = binned ? new Set<number>() : undefined;
+  const seen = binned && !prep.weight ? new Set<number>() : undefined;
+  // a bin pair's stroke by its count: `pairs.binStroke` CSS px on a square-root scale over the counts in view
+  let maxWeight = 0;
+  if (prep.weight) for (let i = 0; i < m; i++) maxWeight = Math.max(maxWeight, prep.weight[Raw[4 * i + 3]]);
   const dpr = ctx.dpr;
   for (let oi = 0; oi < m; oi++) {
     const i = order ? order[oi] : oi;
@@ -308,6 +322,7 @@ function layoutArcs(lay: PairsLay, prep: PairsPrep, ctx: LayoutContext, place: P
     const cy = side === 'above' ? base - depth : base + depth;
     lay.pair = grown(lay.pair, lay.n + 1);
     lay.color = grown(lay.color, lay.n + 1);
+    lay.width = grown(lay.width, lay.n + 1);
     lay.curve = grown(lay.curve, 8 * lay.n + 8);
     const o = 8 * lay.n;
     const c = lay.curve;
@@ -339,6 +354,9 @@ function layoutArcs(lay: PairsLay, prep: PairsPrep, ctx: LayoutContext, place: P
     c[o + 5] = c[o + 7] + (2 / 3) * (qy - c[o + 7]);
     lay.pair[lay.n] = k;
     lay.color[lay.n] = pairColor(lay, prep, k);
+    const stroke = ctx.config.pairs.binStroke;
+    lay.width[lay.n] =
+      prep.weight && maxWeight > 0 ? stroke.min + (stroke.max - stroke.min) * Math.sqrt(prep.weight[k] / maxWeight) : 1;
     if (lay.extents.any) lay.extents.add(prep.datum!.set(k));
     lay.n++;
   }
@@ -410,7 +428,7 @@ function drawArcs(lay: PairsLay, out: PassWriter) {
   for (let i = 0; i < lay.n; i++) {
     g[4] = NoColor;
     g[5] = lay.color[i];
-    g[6] = 1;
+    g[6] = lay.width[i];
     g[7] = 0;
     out.curveArgs(lay.curve, 8 * i);
   }

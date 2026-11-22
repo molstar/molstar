@@ -316,15 +316,32 @@ export interface RenderConfig {
   /**
    * The pairs layer (_spec/README.md "Render", The pairs layer): the most arcs drawn (`maxArcs`, 4,096: bounded by the
    * screen; past it one arc a bin of the ends' device columns, widest first, the rest a density strip of ends) and how
-   * near a point is to a curve to hit it (`hitPx`, 4 CSS px: a curve is thin).
+   * near a point is to a curve to hit it (`hitPx`, 4 CSS px: a curve is thin). Read by region: bins at the coarsest
+   * level no wider than `binPx` device pixels' positions (2), items asked once the bin pairs in view sum to at most
+   * `maxArcs` and kept while the items in view stay at most `itemsHysteresis` × `maxArcs` (1.25: no flip at the
+   * threshold).
    */
-  readonly pairs: { readonly maxArcs: number; readonly hitPx: number };
+  readonly pairs: {
+    readonly maxArcs: number;
+    readonly hitPx: number;
+    readonly binPx: number;
+    readonly itemsHysteresis: number;
+    /** A bin pair's stroke, CSS px, on a square-root scale of its count over the counts in view: 1 to 6. */
+    readonly binStroke: { readonly min: number; readonly max: number };
+  };
   /**
    * The grid layer (_spec/README.md "Render", The grid layer): a cell drawn as a rect with its outline from `rectMinPx`
    * (12 CSS px: rects only where few), image tiles of the shared reduction below; at most `buildBudget` samples (65,536:
    * a tile) built a frame while the view moves, the coarser level drawn meanwhile (a settled frame builds the rest).
+   * Read by region: the finest level whose bin is at least `binPx` device pixels (1) on both axes, a ring of
+   * `marginTiles` tiles (1) round the view at margin priority.
    */
-  readonly grid: { readonly rectMinPx: number; readonly buildBudget: number };
+  readonly grid: {
+    readonly rectMinPx: number;
+    readonly buildBudget: number;
+    readonly binPx: number;
+    readonly marginTiles: number;
+  };
   /**
    * The text layout (_spec/README.md "Render", Text layout): its letter size (`scale`, px a position: the zoom), the gap
    * between groups (a share of a cell), between lines and between a line's bands (px), whether a band no layer used on
@@ -446,8 +463,8 @@ export const DefaultRenderConfig: RenderConfig = {
     overview: { minPlotPx: 160, minPx: 48 },
     square: { maxCells: 4096 },
   },
-  pairs: { maxArcs: 4096, hitPx: 4 },
-  grid: { rectMinPx: 12, buildBudget: 65_536 },
+  pairs: { maxArcs: 4096, hitPx: 4, binPx: 2, itemsHysteresis: 1.25, binStroke: { min: 1, max: 6 } },
+  grid: { rectMinPx: 12, buildBudget: 65_536, binPx: 1, marginTiles: 1 },
   text: {
     scale: 12,
     groupGap: 0.5,

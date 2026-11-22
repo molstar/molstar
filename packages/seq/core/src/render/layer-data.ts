@@ -171,6 +171,133 @@ export function boundedLevel(
   return level;
 }
 
+/**
+ * A grid's level (_spec/README.md "Render", Data: the level rules by shape): the finest of `levels` whose bin is at least
+ * `binPx` device pixels on both axes (the larger of the two axes' positions a pixel), then coarser while the view's x
+ * tiles × y tiles pass the store's bound. The other way from values: a cell under a pixel is reduced again for nothing.
+ */
+export function gridLevel(
+  levels: readonly number[],
+  positionsPerPixel: { readonly x: number; readonly y: number },
+  span: { readonly x: number; readonly y: number },
+  data: Pick<StoreReader, 'settings'>,
+  binPx = 1,
+): number {
+  const need = binPx * Math.max(positionsPerPixel.x, positionsPerPixel.y);
+  let i = levels.findIndex((l) => l >= need);
+  if (i < 0) i = levels.length - 1;
+  const s = data.settings;
+  const bins = s?.gridTileBins ?? s?.tileBins ?? 256;
+  const tiles = (l: number) => (Math.ceil(span.x / (bins * l)) + 1) * (Math.ceil(span.y / (bins * l)) + 1);
+  if (s) while (i + 1 < levels.length && tiles(levels[i]) > s.maxTilesPerWant) i++;
+  return levels[i];
+}
+
+/** A pairs layer's two reads: bins at a pixel's level, items at a tile size (`RegionRequest.items`). */
+export interface PairsLevels {
+  readonly bins: number;
+  readonly items: number;
+}
+
+/**
+ * A pairs layer's levels: **bins** at the coarsest level no wider than `binPx` device pixels' positions (bounded as
+ * `boundedLevel`); **items** at the finest level whose tiles over the view fit the store's bound (no pixel floor: a
+ * 10 Mb view reads its items in a few large tiles, never thousands of small ones).
+ */
+export function pairsLevels(
+  levels: readonly number[],
+  positionsPerPixel: number,
+  span: number,
+  data: Pick<StoreReader, 'settings'>,
+  binPx = 2,
+): PairsLevels {
+  const bins = boundedLevel(levels, binPx * positionsPerPixel, span, data);
+  const s = data.settings;
+  let items = levels[levels.length - 1];
+  if (!s) items = levels[0];
+  else
+    for (const l of levels)
+      if (span / (s.tileBins * l) + 1 <= s.maxTilesPerWant) {
+        items = l;
+        break;
+      }
+  return { bins, items };
+}
+
+/**
+ * Whether a pairs layer reads its items (the gate, with hysteresis): asked when the bin pairs with an end in view sum
+ * to at most `gate`; once shown, kept while the items in view (when loaded, else the bins' sum) stay at most
+ * `hysteresis` × `gate`. Why: a pan at the threshold would otherwise flip bins and arcs every frame.
+ */
+export function itemsGate(
+  showing: boolean,
+  binPairs: number,
+  items: number | undefined,
+  gate: number,
+  hysteresis: number,
+): boolean {
+  if (!showing) return binPairs <= gate;
+  return (items ?? binPairs) <= gate * Math.max(1, hysteresis);
+}
+
+/** A 2D tile read: its entry and whether it is the asked tile's mirror (a symmetric grid's, drawn transposed). */
+export interface GridTileRead {
+  readonly entry: Extract<DataEntry, { status: 'loaded' }>;
+  readonly transposed: boolean;
+}
+
+/** The 2D tiles' state over a rect read: loaded entries, and the rects (`x0, x1, y0, y1` positions) still pending or failed. */
+export interface GridRead {
+  readonly entries: GridTileRead[];
+  readonly pending: number[];
+  readonly failed: number[];
+  tooMany?: boolean;
+}
+
+/**
+ * Wants a 2D rect (the view at `view` priority, a ring of `marginTiles` tiles round it at `margin`) and reads its tiles:
+ * a tile not loaded is a pending rect (EC-169: never drawn or hit as empty), a failed one a failed rect.
+ */
+export function readGridTiles(
+  ctx: Pick<LayoutContext, 'want'>,
+  data: StoreReader,
+  src: LayerSource,
+  x: readonly [number, number],
+  y: { readonly system: string; readonly start: number; readonly end: number },
+  level: number,
+  marginTiles = 1,
+): GridRead {
+  const out: GridRead = { entries: [], pending: [], failed: [] };
+  const want = { source: src.source, system: src.system, start: x[0], end: x[1], level, y, priority: 'view' as const };
+  ctx.want(want);
+  if (marginTiles > 0) {
+    const m = marginTiles * level * (data.settings?.gridTileBins ?? 256);
+    const yr = { ...y, start: Math.max(0, y.start - m), end: y.end + m };
+    ctx.want({ ...want, start: Math.max(0, x[0] - m), end: x[1] + m, y: yr, priority: 'margin' });
+  }
+  if (data.coverage(src.source) === undefined || !data.tilesOf) {
+    out.pending.push(x[0], x[1], y.start, y.end);
+    return out;
+  }
+  const tiles = data.tilesOf(want);
+  if (!tiles.length && data.tooMany?.(want)) {
+    out.pending.push(x[0], x[1], y.start, y.end);
+    out.tooMany = true;
+    return out;
+  }
+  for (const t of tiles) {
+    const e = data.get(t.key);
+    const r = t.region;
+    // the asked tile's rect: the served one's, swapped for a mirror
+    const rect = t.transposed ? [r.y!.start, r.y!.end, r.start, r.end] : [r.start, r.end, r.y!.start, r.y!.end];
+    if (e?.status === 'loaded') out.entries.push({ entry: e, transposed: t.transposed });
+    else if (e?.status === 'empty') continue;
+    else if (e?.status === 'failed') out.failed.push(...rect);
+    else out.pending.push(...rect);
+  }
+  return out;
+}
+
 /** The tiles' state over the regions read: loaded entries, and the data positions still pending or failed. */
 export interface TileRead {
   readonly entries: Extract<DataEntry, { status: 'loaded' }>[];
@@ -187,7 +314,7 @@ export type TileContext = Pick<LayoutContext, 'want'> & { readonly config: Pick<
 /**
  * Wants the regions (the view at `view` priority, a margin each side) and reads the tiles of the view's. A tile not
  * asked for, pending or evicted is pending (EC-169: never drawn as empty); a failed one is failed; an unknown source
- * (not attached yet) is pending over the regions.
+ * (not attached yet) is pending over the regions. `extra` marks the wants (items tiles, the layer they are for).
  */
 export function readTiles(
   ctx: TileContext,
@@ -195,6 +322,7 @@ export function readTiles(
   src: LayerSource,
   regions: readonly number[],
   level: number,
+  extra?: { readonly items?: boolean; readonly layer?: string },
 ): TileRead {
   const out: TileRead = { entries: [], pending: [], failed: [] };
   const known = data.coverage(src.source) !== undefined;
@@ -203,7 +331,7 @@ export function readTiles(
   for (let i = 0; i + 1 < regions.length; i += 2) {
     const start = regions[i];
     const end = regions[i + 1];
-    const want = { source: src.source, system: src.system, start, end, level, priority: 'view' as const };
+    const want = { source: src.source, system: src.system, start, end, level, priority: 'view' as const, ...extra };
     ctx.want(want);
     const m = Math.ceil((end - start) * ctx.config.margin);
     if (m > 0) {

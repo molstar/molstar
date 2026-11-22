@@ -328,6 +328,7 @@ export class Renderer {
       },
       keysOf: (w) => data.keysOf(w),
       ...(data.tooMany ? { tooMany: (w: Want) => data.tooMany!(w) } : {}),
+      ...(data.tilesOf ? { tilesOf: (w: Want) => data.tilesOf!(w) } : {}),
       get: (k): DataEntry | undefined => {
         const e = data.get(k);
         this.reads.set(k, e?.version ?? -1);

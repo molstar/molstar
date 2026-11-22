@@ -1912,10 +1912,11 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
 ### Unread params
 
 - **Said, never dropped in silence** (`resolve/unread.ts`): a param the language declares and this version reads nowhere
-  is `seq.resolve.param.unread` (info), one a node, naming the lane that reads it: `map.source` (FR), `pairs.source` and
-  `grid.source` (RG), data over an assembly (GC2: its rows by sequence not read yet), `section.member_order` and
-  `member_order_y` (LA), a `bridge` (LA), `assembly.names` (GF: the printed names stay the assembly's). The lane that
-  reads one drops it from `Unread`. Why: a reader shown a spec drawn without what it says should be told why.
+  is `seq.resolve.param.unread` (info), one a node, naming the lane that reads it: `map.source` (FR), `grid.source` (RG:
+  its region tiles are not drawn yet), data over an assembly (GC2: its rows by sequence not read yet),
+  `section.member_order` and `member_order_y` (LA), a `bridge` (LA), `assembly.names` (GF: the printed names stay the
+  assembly's). The lane that reads one drops it from `Unread`. Why: a reader shown a spec drawn without what it says
+  should be told why.
 
 ### Maps
 
@@ -2368,6 +2369,9 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 | `rings.window`                                                 | `followed`                                                                                                             | a window means only what a follower shows; `always` (idle, quiet, when nothing follows)                                                                                                                                                                                                                                                                                                                                   |
 | `pairs.maxArcs`, `pairs.hitPx`                                 | 4,096; 4                                                                                                               | bounded by the screen: past it arcs binned by their ends' device columns (`seq.render.pairs.limit`); a curve is thin, so a hit within 4 px                                                                                                                                                                                                                                                                                |
 | `grid.rectMinPx`                                               | 12                                                                                                                     | rects with outlines only where cells are few and large enough to read; image tiles below                                                                                                                                                                                                                                                                                                                                  |
+| `grid.binPx`, `grid.marginTiles`                               | 1 device px; 1                                                                                                         | a region grid's level: a cell under a pixel is reduced again for nothing (2 halves the tiles); a ring of tiles round the view read at margin priority, evicted first (0: none)                                                                                                                                                                                                                                            |
+| `pairs.binPx`, `pairs.itemsHysteresis`                         | 2 device px; 1.25                                                                                                      | pairs read by region: bins a couple of device pixels wide; items kept to 1.25 × `maxArcs` once shown, so a pan at the threshold never flips bins and arcs (≥ 1)                                                                                                                                                                                                                                                           |
+| `pairs.binStroke`                                              | 1 to 6 CSS px                                                                                                          | a bin pair's arc stroked by the square root of its count over the counts in view: thick reads as many without hiding the rest                                                                                                                                                                                                                                                                                             |
 | `grid.buildBudget`                                             | 65,536 samples a frame                                                                                                 | a frame while moving under 8 ms; a tile past it draws a coarser level meanwhile, never empty                                                                                                                                                                                                                                                                                                                              |
 | `navigator.window.minPx`, `.hitPx`, `.touchHitPx`, `.handlePx` | 16, 12, 24, 5 px                                                                                                       | a window under a few px cannot be seen or grabbed; a press in the middle still pans; a finger is wider                                                                                                                                                                                                                                                                                                                    |
 | `navigator.window.floor`                                       | `centred`                                                                                                              | the drawn window says where; `thumb` (a scrollbar's mapping)                                                                                                                                                                                                                                                                                                                                                              |
@@ -2773,6 +2777,15 @@ in page coordinates: what crosses strips), `axes` (2: a second axis of its own, 
   unknown source (not attached) is pending. Two regions sharing a tile (a cyclic view wrapping a short system) read its
   entry once. The regions a layer reads (the view's, or their image through its path) are merged across gaps of up to 16
   positions (`mergeNear`): one read over a run of short pieces, not one a piece.
+- **The level rules by shape** (`layer-data.ts`, each bounded by `maxTilesPerWant`): values, ranges, letters, cells the
+  coarsest level no wider than `k` device pixels' positions (`layerLevel`); a grid the **finest** level whose bin is at
+  least `grid.binPx` device pixels on both axes, coarser while x tiles × y tiles pass the bound (`gridLevel`); pairs two
+  reads (`pairsLevels`): bins at the coarsest level no wider than `pairs.binPx` device pixels' positions, items as items
+  tiles at the finest level whose tiles over the view fit the bound; the items gate (`itemsGate`): asked once the bin
+  pairs with an end in view sum to at most `pairs.maxArcs`, kept while the items in view stay at most
+  `pairs.itemsHysteresis` × it (EC-171: no "load anyway"). A 2D read (`readGridTiles`) wants the view and a ring of
+  `grid.marginTiles` tiles at `margin`, each tile a pending or failed rect until loaded, a symmetric grid's mirror tiles
+  read transposed.
 - **An item's key** is its `id`, else its `row` (a null `id` falls back to `row`), else its tile and index; never its
   extent. A key seen in an earlier tile is that range again and is not drawn twice; within one tile a repeated key is
   another piece of one item (a wrapped row).
@@ -3524,6 +3537,8 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   each `hit` with the point in the strip's frame; a layer's hit box is in its strip's frame, so every drawn mark keeps
   its hit box through the warp. `system` is the strip's; `block` its index in the section when the section has blocks;
   `target` `window` (with its `part`) or `row` (a gutter's row) for a layout's marks.
+- **A bin hit** carries `bin`, the level read in positions (absent at 1): a pairs bin's, flat, so a card computes the
+  bin's ranges and a hit allocates nothing.
 - **Hits** are `{ layer, section, element?, extent?, hull?, position?, system, ySystem?, yPosition?, target? }` (flat: a
   hit of two axes, a rows cell or a grid cell, is the target `cell` with `ySystem` and `yPosition` set, so it allocates
   nothing; `row` a rows header, `tree-node` a tree's node and `summary-row` a folded clade's row, their element the
@@ -3555,6 +3570,14 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
 
 `render/pairs.ts` (`PairsType`, `scope: 'section'`, fallback `ranges`): a `pairs` entry's items, each two ends.
 
+- **By region** (`pairs-region.ts`: a `pairs` node with a `source`): the frame's pairs are read through the store on the
+  layer's first system: bins at a pixel's level, always; items once the gate opens (Data, the level rules), drawn with
+  no gap (bins until they land, EC-169); the items of an uncut tile with an end in view; each pair once across tiles
+  (`row`, else an `id` other than `.`, with both ends), a pair found from its other end turned round. A **bin pair** is
+  one arc between its bins, stroked by its count (`pairs.binStroke`, 1 to 6 CSS px, the square root over the counts in
+  view), twisted where its relative strand is −1, its element keyed `bin:…`, its extent both bins, its hit `bin` the
+  level; past `pairs.maxArcs` the strongest are kept (by count, ties by span), the rest the density strip. What is read
+  is kept while the entries read are the same (a warm frame builds nothing).
 - **Arcs**: each end placed with `ctx.place` (page x), the apex in its band (`side`: `above`, `below`), never flat; the
   height by span against the widest in view (`height: span`), so nested arcs nest and the widest fills the band; on a
   single translate strip an end past the window is taken `reach` (0.25) of the window past its edge, so an arc moves

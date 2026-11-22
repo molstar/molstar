@@ -14,7 +14,9 @@ import { channelForms, Extents, type LayerChannels } from './channels.js';
 import type { RenderConfig } from './config.js';
 import type { PassWriter } from './draw-lists.js';
 import { compileRowFilter } from './filter.js';
+import { layerSource } from './layer-data.js';
 import { type PairEnds, pairEnds } from './pairs-ends.js';
+import type { PairsRegion } from './pairs-region.js';
 import { splitCrossing } from './pairs-split.js';
 import { type Box, type EmphasisHighlight, type Hit } from './layer-type.js';
 import type { SeqTokens } from './tokens.js';
@@ -131,6 +133,11 @@ export interface PairsPrep {
   readonly model: StaticModel;
   /** The ends drawn in a section (`pairEnds`), by section. */
   readonly units: WeakMap<ResolvedSection, PairEnds>;
+  /** Read by region (a source's pairs): where, and what the frame read is (`pairs-region.ts`). */
+  readonly region?: PairsRegion;
+  /** Bins drawn as arcs: each one's count (its stroke and its cull's order) and the level read. */
+  readonly weight?: Float32Array;
+  readonly level?: number;
 }
 
 export type ScratchHit = { -readonly [K in keyof Hit]: Hit[K] };
@@ -153,6 +160,8 @@ export class PairsLay {
   pair = new Int32Array(64);
   curve = new Float64Array(512);
   color = new Uint32Array(64);
+  /** Each arc's stroke, CSS px (a bin pair's by its count, else 1). */
+  width = new Float32Array(64);
   /** Carets at ends whose partner is not placed: x, y, 1 above or −1 below, the pair. */
   carets: number[] = [];
   /** The density strip of ends past `maxArcs`: counts a device column from `densityX`, at `densityY`. */
@@ -221,9 +230,14 @@ export function prepare(layer: ResolvedLayer, model: StaticModel): PairsPrep {
         shown[k] = 0;
         filtered++;
       }
+  // a source's pairs, read by region on the layer's first system (`pairs-region.ts`)
+  const src = !data && a?.shape === 'pairs' && a.access?.kind === 'source' ? layerSource(model, layer) : undefined;
+  const bName = a?.ySystem ? model.systems.get(a.ySystem)?.name : undefined;
+  const region = src ? { src, aName: src.system, bName: bName ?? src.system } : undefined;
   return {
     owner,
     ...(data ? { data } : {}),
+    ...(region ? { region } : {}),
     ...(datum ? { datum } : {}),
     channels: channelForms(layer.theme),
     shown,
@@ -302,6 +316,7 @@ export function pairHit(lay: PairsLay, k: number): Hit {
   h.ySystem = undefined;
   h.yPosition = undefined;
   h.target = undefined;
+  h.bin = prep.level;
   return h;
 }
 
