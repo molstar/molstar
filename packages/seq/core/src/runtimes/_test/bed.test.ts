@@ -408,7 +408,7 @@ describe('BED', () => {
     const whole = await BedRuntime.open(entry('bed'), context(files));
     expect(whole.coverage.levels.length).toBe(2);
     const byRegion = await BedRuntime.open(entry('bed', { index: 'f.tbi' }), context(files));
-    expect(byRegion.coverage.levels).toEqual([1]);
+    expect(byRegion.coverage.levels).toEqual([1, 16, 256, 4096]);
     expect(await opened(BedRuntime.open(entry('bed', { index: 'missing.tbi' }), context(files)))).toEqual([
       'seq.source.unreadable',
     ]);

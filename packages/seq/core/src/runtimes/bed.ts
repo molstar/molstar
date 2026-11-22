@@ -45,8 +45,8 @@ import { textBytes } from './internal/text.js';
 export { BedIssues } from './bed-issues.js';
 export { type BedFormat, BedFormats, type BedOptions, type BedpeSource, type PairsAnswer } from './bed-read.js';
 
-/** The defaults: `maxPairsBytes` region-reads' `summaries.maxBytes` (16 MiB). */
-export const DefaultBedOptions: BedOptions = { maxPairsBytes: SummariesMaxBytes };
+/** The defaults: `maxPairsBytes` region-reads' `summaries.maxBytes` (16 MiB); by region up to level 4,096. */
+export const DefaultBedOptions: BedOptions = { maxPairsBytes: SummariesMaxBytes, maxLevel: 4096, tileBins: 1024 };
 
 /** The text a whole read parses: inline `value` or the file at `uri`, inflated by its magic within `maxBytes`. */
 async function wholeText(o: Opened): Promise<BedLine[]> {

@@ -1330,8 +1330,13 @@ neither io's tabix nor the pairs index.
   (`seq.source.bed.transform`, info). `track`, `browser` and `#` lines are read past; a line without a tab is split on
   spaces (said once, `.whitespace`). Bytes to text by magic (plain, gzip, BGZF), U+FFFD said once (`.encoding`).
 - **Whole or by region**: `bed` and `bedgraph` with an `index` (a `.tbi` or `.csi` the source names, never `<uri>.tbi`:
-  EC-186) read by region at level 1 through `openIndexedLines`; without one they are read whole within `limits`. One
-  parser either way, so a region read equals the whole read clipped (the property test). Read whole, a BED's items are
+  EC-186) read by region through `openIndexedLines` at the levels its index's bytes allow (Genome runtimes' internals,
+  Levels): above level 1 a BED's tile is a `density` of its items (BED12's blocks one item, by its extent), a
+  bedGraph's `bins` (`binsIn`: the tile's intervals painted into segments, a later over an earlier, each added to its
+  bins whole: `binValues` over the values without a value a position), the tile's items when asked (`items`); a
+  tile's `readCost` is its `regionBytes` from the position before its start (the read's). Without one they are read
+  whole within `limits`. One parser either way, so a region read equals the whole read clipped at every level (the
+  property tests). Read whole, a BED's items are
   served at level 1 and at the level whose one tile holds its longest system (`wholeLevel`, the inline rule), so a
   navigator reads a chromosome's bands in one tile. A region's line issues are not said (no place in an answer); the
   whole read says them. io meets a line where it overlaps, so a region is asked of io from the position before its
@@ -1376,13 +1381,16 @@ neither io's tabix nor the pairs index.
   | Item            | Default              | Why the default; the alternatives                                             |
   | --------------- | -------------------- | ----------------------------------------------------------------------------- |
   | `maxPairsBytes` | 16 MiB               | region-reads' `summaries.maxBytes` (`SummariesMaxBytes`): a BEDPE's held rows |
+  | `maxLevel`      | 4,096                | the coarsest level listed by region (4 Mb tiles); 1, 16, 256                  |
+  | `tileBins`      | 1,024                | the store's `tileBins`: a level's tile is `level × tileBins` positions        |
   | `tabix`         | `DefaultTabixLimits` | io's bounds of a read by region (`maxRegionBytes`, `maxLineBytes`, …); any    |
 
 - **Tests**: the source suite on generated files (plain, gzip, BGZF; whole and by region, with and without range reads)
   and on the recorded real slice (UCSC hg38 `cytoBandIdeo.txt.gz`, examples' `fixtures/genomes/`); a region read equal
   to the whole read clipped over generated files and random regions; fuzzed and truncated files (whole and by region)
   without a throw; BED12 pieces, `fields` by number, identities, chrom.sizes, BEDPE from either end once and its byte
-  bound; its synthetic twin is `delayedRuntime(BedRuntime)`.
+  bound; at every level (`bed-levels.test.ts`) items tiles, densities and a bedGraph's bins equal to the whole read
+  clipped, a tile's read cost the index's, `maxLevel`; its synthetic twin is `delayedRuntime(BedRuntime)`.
 - **Performance**: 600,000 BEDPE rows indexed by both ends under 300 ms (heavy, `itWithin`; about 100 ms measured),
   12,000 in the quick lane; a chrom.sizes of 1,000,000 lines under 1.5 s (heavy), 20,000 quick. Size: its own row under
   30 kB (23.2 kB minified, io's BGZF reader in it), its lazy chunks (by region with io's tabix, and BEDPE: 20.5 kB
