@@ -260,6 +260,11 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   the piece at 2,312–2,686 selects only that stretch. A click selects the item's extent across the origin (both
   pieces), as the design's matrix row "an element: a transcript" says. Test on both plasmid views.
 
+- **The VCF ClinVar story test fails under load** (2026-11-22: once in GB's run, once in RG's full quick run, each
+  passing alone; the second failure makes it a fix lane's item, `TODO.md`'s watch rule; kind: test): find what is
+  timing-sensitive in `vcf-stories.test.ts` (a real-turn wait, a timeout under load, a 30-read region on a real
+  clock) and make it deterministic on a fake clock; run it 20 times under load.
+
 ## Fixed
 
 - **"Try pUC19.gb" looks like it does nothing** (fixed by GB, merged 2026-11-22: the button loads the GenBank file) (the author, 2026-11-21, Examples › Services › Your own file:
