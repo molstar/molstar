@@ -385,7 +385,32 @@ const Misuses: Record<keyof typeof LangIssues.codes, () => Node> = {
     });
     return b.build();
   },
+  // tooltips (EC-250 to EC-252, EC-256)
+  'seq.lang.tooltip.content': () =>
+    tooltipSpec((b, s) => ({ on: s, target: s, rows: { start: [0], end: [2], tooltip: ['x'] } })),
+  'seq.lang.tooltip.on': () => tooltipSpec(() => ({ on: '/data/gone/(range :from 1 :to 2)', text: 'a note' })),
+  'seq.lang.tooltip.field': () =>
+    tooltipSpec((_, s) => ({ target: s, rows: { start: [0], end: [2], note: ['x'] }, text: '{note}: {score}' })),
+  'seq.lang.tooltip.schema': () =>
+    tooltipSpec((_, s) => ({ target: s, schema: 'address', rows: { start: [0], end: [2], tooltip: ['x'] } })),
+  'seq.lang.tooltip.category': () =>
+    tooltipSpec((b, s) => ({
+      target: s,
+      source: b.data.source('cif', { format: 'mmcif', uri: 'x.cif' }),
+      schema: 'auth_residue',
+      category: 'my_notes',
+    })),
+  'seq.lang.tooltip.text': () =>
+    tooltipSpec((_, s) => ({ target: s, rows: { start: [0], end: [2], tooltip: ['x'] }, text: '{tooltip' })),
 };
+
+/** A sequence and one tooltip, its params made from the builder and the sequence's address. */
+function tooltipSpec(params: (b: ReturnType<typeof createSeqSpec>, s: string) => Record<string, unknown>): Node {
+  const b = createSeqSpec();
+  const s = b.data.sequence('s', { alphabet: 'protein', letters: 'MEEPQSDPSV' });
+  b.views.tooltip('t', params(b, s) as never);
+  return b.build();
+}
 
 const sequence = (b: ReturnType<typeof createSeqSpec>, cyclic: boolean) =>
   b.data.sequence('s', { alphabet: 'dna', letters: 'ACGTACGT', cyclic });

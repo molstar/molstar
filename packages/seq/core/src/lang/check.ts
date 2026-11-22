@@ -23,6 +23,7 @@ import {
   type Value,
 } from '@molstar/core/repr/tree';
 import { checkSpecBounds, DefaultSpecBounds, IssueCaps, type SpecBounds } from './bounds.js';
+import { checkTooltip } from './check-tooltips.js';
 import {
   checkBlockForm,
   checkCompound,
@@ -95,7 +96,12 @@ export function checkSeqLang(spec: Node, bounds: SpecBounds = DefaultSpecBounds)
   // the root is `/`: its children are addressed by their ids alone
   all.push({ node: spec, path: [], address: '/' });
   spec.children?.forEach((c, i) => visit(c, ['children', i], [], spec));
-  const look: SeqLookup = { spec, get: (a) => byAddress.get(a), themeDepth: bounds.themeDepth };
+  const look: SeqLookup = {
+    spec,
+    get: (a) => byAddress.get(a),
+    themeDepth: bounds.themeDepth,
+    tooltipText: bounds.tooltipText,
+  };
   const report = reporter(issues, caps);
   for (const at of all) checkPlaced(at, look, report);
   for (const at of all) checkFollow(at, look, report);
@@ -117,6 +123,8 @@ export interface SeqLookup {
   get(address: string): Placed | undefined;
   /** The theme forms' nesting bound (`SpecBounds.themeDepth`; the default when absent). */
   readonly themeDepth?: number;
+  /** A tooltip template's bound (`SpecBounds.tooltipText`; the default when absent). */
+  readonly tooltipText?: number;
 }
 
 /** Takes one issue of a node: `tail` is where in the node, a param and below it a column and a row index. */
@@ -273,6 +281,18 @@ export function checkPlaced(at: Placed, look: SeqLookup, report: Report): void {
       if (scale === 0) say('seq.lang.block.scale', 'The scale is not positive', 'scale');
       break;
     }
+    case 'tooltip':
+      checkTooltip(
+        n,
+        (key) => target(n, key)?.node,
+        (a) => {
+          const ids = idRunOf(a);
+          return !ids.length || look.get(printAddress(ids)) !== undefined;
+        },
+        look.tooltipText ?? DefaultSpecBounds.tooltipText,
+        say,
+      );
+      break;
     case 'bridge': {
       // the sections named, however written (an address, a ref standing for it)
       const a = target(n, 'a');

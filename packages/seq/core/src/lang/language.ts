@@ -20,12 +20,13 @@ import {
   SystemKinds,
 } from './molecule-language.js';
 import { ScaleParamsDescription, ThemeLanguage, ThemeLanguageId } from './theme-language.js';
+import { TooltipKinds } from './tooltip-language.js';
 
 /**
  * The version of the language this description is (the package's `LanguageVersion` is the same). Pre-release (`0.x`):
  * a change moves it with no migration (_spec/README.md, Versions).
  */
-export const SeqLanguageVersion = '0.8.0';
+export const SeqLanguageVersion = '0.9.0';
 
 /**
  * What `pairs.a`/`b`, `ranges.target` and `map.to` take: a system, or an alignment by its columns system (its address;
@@ -731,6 +732,11 @@ export const SeqLanguage = defineLanguage({
               enum: ['omit', 'include'],
               doc: 'Navigators in an export: `omit` (when absent: a window is session, not a figure), or `include`, stacked by `place` around the view, their windows as outlines.',
             },
+            titles: {
+              type: 'string',
+              enum: ['name', 'card'],
+              doc: 'What an exported item’s `<title>` says (its tooltip and accessible name): its `name` (when absent), or its `card`, the composed card’s rows as plain text. Items only.',
+            },
           },
           doc: 'How the view exports (a figure says how it exports); an export call’s options override it.',
         },
@@ -821,6 +827,7 @@ export const SeqLanguage = defineLanguage({
       ids: 'required',
       params: ScaleParamsDescription,
     },
+    ...TooltipKinds,
     section: {
       doc: 'A section of a view: a region of one coordinate system (or its `block` children), with its tracks.',
       parents: ['view'],

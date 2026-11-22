@@ -232,6 +232,40 @@ export const LangIssues = defineIssues('seq.lang', {
     description: 'A section follows itself, directly or through other sections',
     hint: 'Following is a chain that ends at a section that follows none',
   },
+  'seq.lang.tooltip.content': {
+    severity: 'error',
+    description:
+      'A tooltip names `on` beside a table, or neither: it is by data (`on`) or by range (`target` with `rows` or a `source`)',
+    hint: 'Give `on` alone, or a `target` with one of `rows` and `source`',
+  },
+  'seq.lang.tooltip.on': {
+    severity: 'warning',
+    description:
+      'A tooltip’s `on`, or an address of its table, names nothing the view draws: that row is inert, the rest shows',
+    hint: 'Name a data node, a layer, or an address that resolves in the spec',
+  },
+  'seq.lang.tooltip.field': {
+    severity: 'warning',
+    description: 'A tooltip’s template names a field its table lacks: no row of it gives a text',
+    hint: 'Name a column of the table (`{}` reads `field`, `tooltip` when absent)',
+  },
+  'seq.lang.tooltip.schema': {
+    severity: 'error',
+    description: 'A tooltip table’s columns do not fit its `schema` (none of the columns the schema locates by)',
+    hint: 'Say the schema the table is written in (`ranges`: `start` and `end`; `address`: `address`; MVS’s by name)',
+  },
+  'seq.lang.tooltip.category': {
+    severity: 'info',
+    description:
+      'A tooltip reads a CIF category, which only a structure’s source holds and this reader does not read yet: it shows nothing',
+    hint: 'Give the table inline or from a source of its own until the structure runtime reads categories',
+  },
+  'seq.lang.tooltip.text': {
+    severity: 'error',
+    description:
+      'A tooltip’s template is not an f-string this reader formats, or is past the bound (`SpecBounds.tooltipText`, 1,000)',
+    hint: 'Write fields as `{name}` or `{}` (`{{` for a brace), with a format a value takes; keep it short',
+  },
   'seq.lang.navigator.bands': {
     severity: 'error',
     description: 'A navigator draws `bands` and names no annotation of bands',
