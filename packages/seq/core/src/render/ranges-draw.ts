@@ -267,9 +267,27 @@ function drawScroll(lay: RangesLay, out: PassWriter) {
 
 /** The labels pass: the labels inside their marks (whole or cut), and those beside in the label lane with their leaders. */
 function drawLabels(lay: RangesLay, out: PassWriter, _emphasis: Emphasis | undefined) {
+  // a pending track's placeholder lane and a scrolled band's lanes cut by its top and bottom draw no label, leader or
+  // backdrop outside the band's box (layouts.md, Loading: the labels stay in the band); a band at rest has none to clip
+  const clip = lay.scrolls || lay.pending.length > 0;
+  if (clip) {
+    const { box } = lay;
+    const g = out.args;
+    g[0] = box.x;
+    g[1] = box.y;
+    g[2] = box.width;
+    g[3] = box.height;
+    out.clipArgs();
+  }
+  drawScroll(lay, out);
+  drawLabelsIn(lay, out);
+  if (clip) out.unclip();
+}
+
+/** The labels of `drawLabels`, inside its clip. */
+function drawLabelsIn(lay: RangesLay, out: PassWriter) {
   const gap = lay.gap;
   const g = out.args;
-  drawScroll(lay, out);
   if (lay.style === Gene) {
     // a gene model's label: plain text in the text ink, left of its model (placed whole, `ranges-gene.ts`)
     const gl = lay.gene;
@@ -421,9 +439,27 @@ function drawSelected(lay: RangesLay, out: PassWriter, emphasis: Emphasis | unde
   }
 }
 
+/** A pass of a scrolled band, clipped to its box: the hover's outline and a selection's hairline of a lane half out of it. */
+function clipped(
+  draw: (lay: RangesLay, out: PassWriter, emphasis: Emphasis | undefined) => void,
+): (lay: RangesLay, out: PassWriter, emphasis: Emphasis | undefined) => void {
+  return (lay, out, emphasis) => {
+    if (!lay.scrolls) return draw(lay, out, emphasis);
+    const { box } = lay;
+    const g = out.args;
+    g[0] = box.x;
+    g[1] = box.y;
+    g[2] = box.width;
+    g[3] = box.height;
+    out.clipArgs();
+    draw(lay, out, emphasis);
+    out.unclip();
+  };
+}
+
 export const RangesDraws = passDraws<RangesLay, Emphasis | undefined>({
   data: drawMarks,
   labels: drawLabels,
-  selection: drawSelected,
-  hover: drawHover,
+  selection: clipped(drawSelected),
+  hover: clipped(drawHover),
 });
