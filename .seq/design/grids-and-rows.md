@@ -214,7 +214,7 @@ spec. This design builds on them and adds only:
   `predicted_aligned_error`, read from a JSON or MessagePack array of arrays by path, [files.md](files.md)), its size
   checked against the blocks' total; each cell belongs to a (block, position) pair on each axis. Chain boundaries are
   the blocks' own gap, as in the tracks above, with no line in it and the cells clipped exactly at each block's edge
-  (decided 2026-11-19, the author: the gap and an off-centre hairline together read as "very weird"); a hairline
+  (decided 2026-11-19, the author: the gap and an off-centre hairline together read as "very weird"); over two sections of blocks (a dot plot, whose ground is mostly empty) the gaps are tinted a step darker than the ground so the block-pair cells read as cells (the author, 2026-11-22: "Tint the gaps"); a hairline
   (`seq-break`) only where blocks touch with no gap, the blocks' labels on both axes; a hover names both residues with their
   chains and lights them in the tracks; a dragged rect is two ranges, each split at chain boundaries into a part a
   system. **A summary of a grid over a rect** (`gridSummary(view, rect)`: mean, min, max, count of the cells in view
