@@ -5,7 +5,7 @@
  */
 
 import { categoryColumn, type Node } from '@molstar/core/repr/tree';
-import { binPairs, type PairsList, type SeqData, SeqRuntime, seqToValue } from '@molstar/seqx-core/data';
+import { binPairs, type PairsList, type SeqData, type SeqPair, SeqRuntime, seqToValue } from '@molstar/seqx-core/data';
 import { assembly, createSeqSpec, genome } from '@molstar/seqx-core/lang';
 import { loadGenome } from '@molstar/seqx-core/resolve';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -32,7 +32,7 @@ interface Seq {
 }
 
 /** Pairs as rows naming their sequences (by any name or alias the assembly knows them by). */
-interface Rows {
+type Rows = {
   readonly a_start: number[];
   readonly a_end: number[];
   readonly b_start: number[];
@@ -40,7 +40,7 @@ interface Rows {
   readonly a_name: string[];
   readonly b_name: string[];
   readonly type?: string[];
-}
+};
 
 /**
  * A section of `seqs` with a links track, its data inline (`rows`) or a `seq` source of the same rows given per
@@ -80,7 +80,7 @@ function canonical(seqs: readonly Seq[], name: string): string | undefined {
 
 /** The rows as a `seq` source: a pairs list a sequence, the rows with an end on it, named by its own name. */
 function perSequence(seqs: readonly Seq[], rows: Rows): SeqData {
-  const pairs: SeqData['pairs'] = [];
+  const pairs: SeqPair[] = [];
   for (const s of seqs) {
     const at: number[] = [];
     for (let i = 0; i < rows.a_start.length; i++) {
@@ -379,7 +379,7 @@ function gridSpec(cells: { x: string; y: string; values: number[] }[], inline: b
     const xs = [...new Set(cells.map((c) => canonical(Small, c.x)!))];
     const ys = [...new Set(cells.map((c) => canonical(Small, c.y)!))];
     const length = (n: string) => Small.find((q) => q.name === n)!.length;
-    const pairs: SeqData['pairs'] = [];
+    const pairs: SeqPair[] = [];
     for (const x of xs)
       for (const y of ys) {
         const c = cells.find((k) => canonical(Small, k.x) === x && canonical(Small, k.y) === y);
