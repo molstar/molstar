@@ -65,7 +65,8 @@ describe('the GenBank writer', () => {
       new AbortController().signal,
     );
     if (!a.ok || a.tables.ranges?.form !== 'list') throw new Error('not read');
-    const col = (name: string) => columnValues(a.tables.ranges.fields!.find((f) => f.name === name)!.column);
+    const fields = a.tables.ranges.fields ?? [];
+    const col = (name: string) => columnValues(fields.find((f) => f.name === name)!.column);
     expect(col('label')).toContain(long);
     const ecoRI = col('note').filter((n) => typeof n === 'string' && n.startsWith('the recognition site of EcoRI'));
     expect(ecoRI).toHaveLength(1);
