@@ -14,6 +14,7 @@ import type { SeqViewerSpec } from '@molstar/seqx-viewer/viewer-spec';
 import { defineElements, onCleanup } from '@molstar/ui/dom';
 import { UiElement } from '@molstar/ui/elements/ui-element';
 import { followSvg } from '../follow-svg.js';
+import { Box, PageGrid, pairGrid } from './example-layout.js';
 import { statusIssues } from './status-issues.js';
 import { withViewRegistry } from './view-registry.js';
 import { fileBytes, filesOf, fileHead, printSources } from '../features/files/file-head.js';
@@ -48,7 +49,6 @@ type ExampleModel = ExampleView & {
   readonly behaviors?: SeqViewerSpec['behaviors'];
 };
 
-const Box = 'display: grid; gap: var(--msui-space-2); min-width: 0; align-content: start;';
 const Title =
   'margin: 0; font-size: var(--msui-text-sm); font-weight: var(--msui-weight-strong); color: var(--msui-text-muted);';
 
@@ -68,8 +68,7 @@ class ExampleRoot extends UiElement<ExampleModel> {
 
   protected render(view: ExampleModel): HTMLElement {
     const root = document.createElement('div');
-    root.style.cssText =
-      'display: grid; gap: var(--msui-space-5); padding: var(--msui-space-5); min-height: 100vh; background: var(--msui-bg); color: var(--msui-text); font: var(--msui-text-sm) / var(--msui-leading-sm) var(--msui-font-sans);';
+    root.style.cssText = `${PageGrid} background: var(--msui-bg); color: var(--msui-text); font: var(--msui-text-sm) / var(--msui-leading-sm) var(--msui-font-sans);`;
 
     const summary = document.createElement('p');
     summary.style.cssText = 'margin: 0; color: var(--msui-text-muted); max-width: 72ch;';
@@ -86,7 +85,7 @@ class ExampleRoot extends UiElement<ExampleModel> {
     status.style.cssText = 'margin: 0; color: var(--msui-text-muted);';
 
     const pair = document.createElement('div');
-    pair.style.cssText = `display: grid; grid-template-columns: ${view.stacked ? '1fr' : 'repeat(auto-fit, minmax(420px, 1fr))'}; gap: var(--msui-space-5);`;
+    pair.style.cssText = pairGrid(!!view.stacked);
     pair.append(section('Canvas', canvasHost), section('SVG', svgHost));
     const found = document.createElement('pre');
     const input = document.createElement('input');
