@@ -634,6 +634,7 @@ more than a screen can give it, it scrolls inside itself with its name and the t
   full colour; from 4 px, bars at 60% with a 1 px gap and 2 px rounded tops. The top 10% of the well is headroom, a
   hairline marks the baseline, a missing value is a gap, and the fill is clipped to the well. Why: a profile reads as
   a signal when values are denser than bars can show, bars read as counts once each has room.
+  **Colour by value and points** (the author, 2026-11-22: "should we use the same look for the bars for the plddt etc too?", then "Yes, one lane"): a colour from the value is the data and draws as its scheme gives it (bars, line and dots at full strength, a profile or area at 90%); a uniform series keeps the tints above. A line or area shows a dot per value from 6 px a value (3 px across, a 1 px ring in the well's ground, none at a missing value); `encoding: 'points'` draws the dots only, below a pixel a value a thin min-to-max mark per device column; a hovered dot is ringed. Why: a scheme's colours are matched against its legend, and tinted they no longer match.
 - **A cut edge says so**: a 1 px `msui-border` line at the band's top or bottom where lanes are cut (the scroll's
   affordance at rest, quieter than the rail).
 - **Drag past the edge** (EC-150): a drag-select leaving the band autoscrolls it by time, as the rows band.

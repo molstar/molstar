@@ -144,13 +144,33 @@ describe('the small layers’ stories, headless', () => {
     expect((gtrack.layers[0].lay as VariantsLay).density).toBeDefined();
   });
 
-  it('Values as a line and an area: three tracks of one signal; the line and the area break at the missing residues', async () => {
+  it('Values as a line and an area: four tracks of one signal and two of a confidence by pLDDT; the line and the area break at the missing residues', async () => {
     const v = await open('values-line');
     const t = tracks(v, 0);
-    expect(t.map((x) => x.track.label)).toEqual(['', 'Bars', 'Line', 'Area']);
+    expect(t.map((x) => x.track.label)).toEqual(['', 'Bars', 'Line', 'Area', 'Points', 'pLDDT line', 'pLDDT points']);
     const svg = await svgOf(v);
     // the line’s two paths and the area’s two polygons and two paths, as stroked and filled paths
     expect(svg.svg.match(/<path /g)!.length).toBeGreaterThanOrEqual(6);
+  });
+
+  it('Values as a line and an area: zoomed in, the line, the area and the points show a dot a residue, in the export too', async () => {
+    const v = await open('values-line');
+    const dotRings = () => {
+      const paths = v.frame!.lists.passes.data.paths;
+      const ground = v.frame!.layout.tokens.colors['seq-track'];
+      let n = 0;
+      for (let i = 0; i < paths.n; i++) if (paths.fill[i] === ground && paths.cmdCount[i] === 17) n++;
+      return n;
+    };
+    // the whole protein, under 6 px a residue: the lines and the area have no dot, the points tracks one a value
+    // (the conservation's 391, two residues missing, and the confidence's 393)
+    expect(dotRings()).toBe(391 + 393);
+    v.view.setRange(Protein, 150, 180);
+    v.draw();
+    // 30 residues on the line, the area, the points and the pLDDT line and points (the signal's, none missing there)
+    expect(dotRings()).toBe(30 * 5);
+    const svg = await svgOf(v);
+    expect(svg.svg.match(/<path /g)!.length).toBeGreaterThanOrEqual(30 * 10);
   });
 
   it('Ranges as lines and arrows: each style drawn, the dash anchored to its domain over a pan', async () => {

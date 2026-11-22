@@ -155,7 +155,10 @@ describe('values as a line: across a tile edge and at the device-column step', (
     const f = await s.frame({ size: { width: 1000, height: 60 }, viewport: { start: 1000, end: 1050 } });
     const lay = layerLay<ValuesLay>(f, 0);
     expect(lay.n).toBe(50);
-    const paths = readPaths(f.lists);
+    // 20 px a value: the line, and a dot (two closed paths: its ring and itself) at each value
+    const all = readPaths(f.lists);
+    expect(all.filter((p) => p.closed).length).toBe(100);
+    const paths = all.filter((p) => !p.closed);
     expect(paths.length).toBe(1);
     expect(paths[0].xy.length / 2).toBe(52);
   });

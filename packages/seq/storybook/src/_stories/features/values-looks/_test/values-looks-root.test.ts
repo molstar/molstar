@@ -7,7 +7,7 @@
 
 import { DomHost } from '@molstar/ui/dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { Cells } from '../compose.js';
+import { AllCells } from '../compose.js';
 import { Looks } from '../values-looks.stories.js';
 
 // The Values look story's root rendered in a DOM (jsdom) as Storybook renders it: every cell mounts its viewer inside the
@@ -65,7 +65,7 @@ describe('the values look story in a DOM', () => {
     mounted = el;
     await vi.advanceTimersByTimeAsync(600);
     for (const theme of ['light', 'dark'])
-      for (const cell of Cells) {
+      for (const cell of AllCells) {
         const host = el.querySelector(`[data-msui-theme="${theme}"] [data-cell="${cell.id}"]`);
         expect(host, `${theme} ${cell.id}`).not.toBeNull();
         expect(host!.querySelector('canvas'), `${theme} ${cell.id}`).not.toBeNull();

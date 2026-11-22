@@ -67,7 +67,7 @@ const Dots: LayerType<object, { key: string }> = {
 const Demo = defineExtension({
   id: 'demo',
   version: '1.0.0',
-  requires: '0.7',
+  requires: '0.8',
   registry: [{ kind: 'layer-type', type: Dots }],
 });
 

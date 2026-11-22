@@ -15,7 +15,7 @@ is added in the change that builds what it describes.
 
 ## Versions
 
-- The language has one version, `LanguageVersion` (`0.7.0`). Why: one language, one description, one number for readers
+- The language has one version, `LanguageVersion` (`0.8.0`). Why: one language, one description, one number for readers
   to check.
 - **Pre-release** (`0.x`): a change to the language moves the version with no migration (`0.1.0`: every child of the
   spec has an id, `layer` included; `0.2.0`: the `refs` container and the `ref` kind; `0.3.0`: the `snapshots` container
@@ -48,12 +48,12 @@ is added in the change that builds what it describes.
   `grid.field` (`rows` and `values` then optional), `map.source`, a layer's `data` a segments `map` or a `matrix`, a
   grid section's `of_y` a rows system, `member_order`, `member_order_y`, a source's `features` and `samples`, the `line`
   word `gene` and the `shape` words `ribbon` and `line`); `0.7.0`: inline data over an assembly names its sequences
-  (Language, Assemblies): a pairs row's `a_name` and `b_name`, a grid's `x_name` and `y_name`, a matrix's `name`. A spec
-  in an earlier `0.x` reads as one in this one, and is reported where it no longer fits: a `0.6.0` spec reads unchanged
-  (every addition is optional; inline pairs, grids or matrices over an assembly, never read in 0.6, now need their
-  names: `seq.lang.data.names`), with one change of behaviour: `a_name`/`b_name` columns on pairs over a sequence, a
-  ride-along field before, are refused (`seq.lang.data.names`), but an extension's `requires: '0.6'` no longer covers it
-  (0.x: the minor).
+  (Language, Assemblies): a pairs row's `a_name` and `b_name`, a grid's `x_name` and `y_name`, a matrix's `name`;
+  `0.8.0`: the `values` encoding `points` (Render, Layer types, `values`). A spec in an earlier `0.x` reads as one in
+  this one, and is reported where it no longer fits: a `0.6.0` spec reads unchanged (every addition is optional; inline
+  pairs, grids or matrices over an assembly, never read in 0.6, now need their names: `seq.lang.data.names`), with one
+  change of behaviour: `a_name`/`b_name` columns on pairs over a sequence, a ride-along field before, are refused
+  (`seq.lang.data.names`), but an extension's `requires: '0.6'` no longer covers it (0.x: the minor).
 
 ## Language
 
@@ -89,15 +89,15 @@ checks it cannot express.
   of a piece; absent: 0); a layer's `complement` (`auto`, `always`, `never`; absent: `auto`) and `code` (`auto`, `one`,
   `three`; absent: `auto`), read by `letters`; a layer's `numbering` (a numbering id; absent: the section's default,
   `ordinal`) and `units` (`none`, `bases`; absent: `none`), `unnumbered` (`mark`, `fallback`; absent: `mark`) and
-  `fallbackNumbering` (a numbering id; absent: `ordinal`), read by `ruler`, `encoding` (`bars`, `line`, `area`; absent:
-  `bars`) by `values`, `style` (`blocks`) by `secondary`, `line` (`solid`, `dashed`, `dotted`, `wavy`, `double`, `box`,
-  `highlight`, `gene`; absent: blocks) and `arrow` (`none`, `end`, `start`, `both`; absent: `none`) by `ranges`; a
-  `ranges` layer's `connector` (`line`, the default, or `none`: the hairline joining an item's pieces across shown
-  positions); a grid section's `of_y` (absent: `of`), `follow_y` (`x`, `none` or a section; absent: `x`) and `aspect` (a
-  number or `none`; absent: 1); by `pairs` its `side` (`above`, `below`; absent: `above`), `reach` (absent: 0.25),
-  `height` (`span`; absent: `span`), `crossing` (`same`, `split`; absent: `same`), `across_lines` (absent: false) and
-  `mirror` (absent: false: a pair drawn where its data puts it, never read off whether the two axes are one system; the
-  tRNA's builder sets it); by `grid` its `aggregate` (`mean`, `max`, `min`; absent: `mean`); by both in a grid
+  `fallbackNumbering` (a numbering id; absent: `ordinal`), read by `ruler`, `encoding` (`bars`, `line`, `area`,
+  `points`; absent: `bars`) by `values`, `style` (`blocks`) by `secondary`, `line` (`solid`, `dashed`, `dotted`, `wavy`,
+  `double`, `box`, `highlight`, `gene`; absent: blocks) and `arrow` (`none`, `end`, `start`, `both`; absent: `none`) by
+  `ranges`; a `ranges` layer's `connector` (`line`, the default, or `none`: the hairline joining an item's pieces across
+  shown positions); a grid section's `of_y` (absent: `of`), `follow_y` (`x`, `none` or a section; absent: `x`) and
+  `aspect` (a number or `none`; absent: 1); by `pairs` its `side` (`above`, `below`; absent: `above`), `reach` (absent:
+  0.25), `height` (`span`; absent: `span`), `crossing` (`same`, `split`; absent: `same`), `across_lines` (absent: false)
+  and `mirror` (absent: false: a pair drawn where its data puts it, never read off whether the two axes are one system;
+  the tRNA's builder sets it); by `grid` its `aggregate` (`mean`, `max`, `min`; absent: `mean`); by both in a grid
   `triangle` (`both`, `upper`, `lower`; absent: `both`). Why: the figure's form is the writer's, never the host's or the
   data's: one spec draws the same in the canvas, the SVG and another viewer. The refs inside `direction` and `pieces`
   are checked by kind as top-level refs are, and a change's check reaches them (its reverse index walks a union's record
@@ -3048,7 +3048,17 @@ in page coordinates: what crosses strips; `bridge`, internal, once a bridge with
   outlines the value's own extent, from the baseline to its end. The fill is clipped to the well's squircle. Why: at a
   pixel or two a value, full-ink columns read as a jagged block, not a profile; a gap says "no data" where a stub says
   "low". The domain is the layer's `domain` param where given, else open: computed from the values in view when the view
-  settles, held while it does not.
+  settles, held while it does not. **A color from the value** (`color` by `value`: a scheme, a ramp, pLDDT's bands) is
+  the data, and a tint would no longer match its legend: it is drawn at full strength (a bar, a line, a dot), the
+  profile's and the area's fill at 90%; a uniform series keeps the tints above. Why: at 60% pLDDT's "very high" and
+  "confident" blur. **Dots** (`values-marks.ts`): a line and an area draw a dot a value from 6 CSS px a value (a polygon
+  of 16 corners, 3 px across, the value's color or the series', in a ring of the well's ground 1 px wide, over the line;
+  a missing value has none), and `points` draws only dots, at every value of a per-position step; below a pixel a value
+  (the device-column steps) a thin vertical mark of the column's extent, min to max, at least a device pixel tall, in
+  the value's color. `points` has the headroom, the baseline hairline and the clip of the others; its hit is the
+  position under the pointer (the line's), its hover a ring on the hovered dot (outside it by the hover offset; at the
+  column steps the extent's outline). Why a polygon: the draw lists have no circle, and the squircle's corner is not
+  one. A warm frame, draw and hover of each encoding allocate nothing.
 
 - `frame` (EC-100): an annotation's regions outlined across tracks of its section (`across`: the first and the last
   track's ids, the bands between them too; its own band when absent: `ctx.span`). A strip layer: on each strip a
@@ -3111,8 +3121,9 @@ in page coordinates: what crosses strips; `bridge`, internal, once a bridge with
 - `values` with `encoding` `line` or `area` (EC-57): the bars' marks as a path through the cells' centers, held flat
   over the half cell at its ends and at a gap (a hole in the data, a break of the axis), broken by a missing value
   (which keeps its mark at the baseline); a color that changes does so halfway between two positions, the line going on
-  to the boundary. `area` fills under each run at 0.35 opacity. At the bars and density steps the line follows each
-  column's maximum and the column's extent is drawn under it.
+  to the boundary. `area` fills under each run at 0.35 opacity (0.9 for a color from the value), and both show a dot a
+  value from 6 px a value. At the bars and density steps the line follows each column's maximum and the column's extent
+  is drawn under it.
 - `ranges` with `line`: each item a line in its lane's middle instead of a block (a box and a highlight are blocks), the
   dash and the wave run from the content's start (the item's first position's edge, on its right on a reversed axis, in
   each piece), so a pan moves them with the data; below a position a pixel a run is a plain line. A value that is none
