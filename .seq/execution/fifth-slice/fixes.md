@@ -12,6 +12,9 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   600px should definitely be configurable"): FX9 did not build growth batched to the settle nor the reachable region
   (layouts.md, Track sizing); the placeholder lane draws labels outside its band; a tracks section has no scroll and
   no cap (layouts.md, A section scrolls past its cap). To FX11 (loading) and FX10 (the section's scroll and its rail).
+- **A scrolled band's labels drawn outside it** (the author, 2026-11-22, GFF3 TP53 scrolled: "clip bounds are not
+  respected. See the TP53-233"): marks clipped at the band's edges, labels not (TP53-233 above, TP53-221 below). To
+  FX11.
 - **A lanes rail scrolls by the wheel only, not by a gesture on it** (the author, 2026-11-22, Features › Genome
   formats › GTF › TP53: "the scrollbar is nice, but it can't be scrubbed by a gesture on the control itself, only by
   wheel"; layouts.md:650 asks "drag the slim rail; Page keys with the cursor in it", FX9's Not built): the rows rail's

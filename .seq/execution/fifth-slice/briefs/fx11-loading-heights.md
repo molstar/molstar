@@ -9,7 +9,11 @@ loading. could be handled better": the Transcripts track shows one lane with "TP
 jumps to 240 px. layouts.md's Track sizing already decides it; FX9 left three parts unbuilt:
 
 1. **Labels stay in the band** (layouts.md, "Loading: the labels stay in the band"): a pending track's placeholder lane
-   and any band clip labels and leaders to the band's box; nothing is drawn below a track.
+   and any band clip labels and leaders to the band's box; nothing is drawn below a track. **And a scrolled band**
+   (the author, 2026-11-22, GFF3 TP53 scrolled: "clip bounds are not respected. See the TP53-233"): the marks are
+   clipped at the band's top and bottom, the labels (beside and floating) are not: TP53-233 drawn above the band,
+   TP53-221 below it. Clip every pass of a scrolled band (labels, leaders, the gene label's backdrop) to its box, canvas
+   and SVG alike.
 2. **Growth is batched to the settle**: a track grows at most once per settled read (a store `settle`, data-store.md),
    so tracks below move once, never tile by tile; today a global version counter relays out per arrival.
 3. **The content from the reachable region**: the lanes packed over the data read for the section's reachable region
