@@ -2,6 +2,8 @@
 
 ## Decided
 
+- The rail look picked (the author, 2026-11-22): "let's go with D1 by default, but customizable to D2 as well"; "the
+  hover card should not show on the rail". A, B, C and today's deleted. To RL step 2.
 - Header actions show on header hover only (the author, 2026-11-22: "Yes, header only"): not on data or rail hover;
   also with the keyboard cursor on the header or its menu open. To RL.
 - The default viewer raised to 1,480 kB (the author, 2026-11-22: "raise default to 1,480"), LA at 1,470.4.
