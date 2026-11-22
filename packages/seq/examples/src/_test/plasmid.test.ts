@@ -38,6 +38,7 @@ import {
   Enzymes,
   featureLetters,
   findSites,
+  genbankText,
   gff3Text,
   LacZaPrefix,
   PlasmidFiles,
@@ -87,6 +88,7 @@ describe('the Plasmid fixtures', () => {
     compare(fileURLToPath(new URL('../plasmid/record.ts', import.meta.url)), recordModule(fromFile));
     const rotated = rotatedAnnotations(fromFile);
     compare(`${PackageFolder}${PlasmidFiles.rotatedFeatures}`, gff3Text(rotated.features, rotated.sites));
+    compare(`${PackageFolder}${PlasmidFiles.rotatedGenbank}`, genbankText(rotated.turned, rotated.features));
   });
 
   it('the seq file is what the format’s encoder writes for the record', () => {
@@ -113,14 +115,20 @@ describe('the Plasmid fixtures', () => {
     expect(rows.map((r) => r.file).sort()).toEqual([
       'plasmid/L09137.2.seq',
       'plasmid/pUC19c-rotated-features.gff3',
+      'plasmid/pUC19c-rotated.gb',
       'plasmid/pUC19c-rotated.seq',
     ]);
     const at = (file: string) => rows.find((r) => r.file === `plasmid/${file}`)!;
-    const [record, rotated, gff] = [at('L09137.2.seq'), at('pUC19c-rotated.seq'), at('pUC19c-rotated-features.gff3')];
+    const [record, rotated, gff, gb] = [
+      at('L09137.2.seq'),
+      at('pUC19c-rotated.seq'),
+      at('pUC19c-rotated-features.gff3'),
+      at('pUC19c-rotated.gb'),
+    ];
     expect(record.url).toBe('https://www.ebi.ac.uk/ena/browser/api/fasta/L09137.2');
     expect(record.licence).toEqual(['LicenseRef-NCBI-public-data']);
     expect(record.attribution).toContain('L09137.2');
-    for (const g of [rotated, gff]) {
+    for (const g of [rotated, gff, gb]) {
       expect(g.licence).toEqual(['LicenseRef-seqx-generated']);
       expect(g.derived).toContain('derive.ts');
     }
