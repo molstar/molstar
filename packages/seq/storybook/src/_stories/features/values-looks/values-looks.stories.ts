@@ -12,6 +12,8 @@ export default meta;
 
 /**
  * The values layer's look on p53's conservation and a bigWig signal, zoomed out (a stepped profile) and zoomed in (bars),
- * in the light and the dark theme. Each is live: hover a value to light it.
+ * in the light and the dark theme, then one confidence uniform against colored by pLDDT's bands (full strength, as the
+ * legend's colors) as bars, a line and points, zoomed out and in (from 6 px a value a line shows its dots). Each is live:
+ * hover a value to light it.
  */
 export const Looks: StoryObj = { render: () => valuesLooksStory() };

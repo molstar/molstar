@@ -347,7 +347,7 @@ export const LayerViews: readonly ExampleView[] = [
     id: 'values-line',
     title: 'Values as a line and an area',
     summary:
-      'The conservation as bars, a line (held over half cells at its ends and at the two missing residues, broken there) and an area under it.',
+      'The conservation as bars, a line (held over half cells at its ends and at the two missing residues, broken there), an area under it and points; a confidence colored by pLDDT’s bands as a line and as points. Zoom in: from 6 px a residue a line and an area show a dot at each value.',
     build: layers.valuesLine,
   },
   {

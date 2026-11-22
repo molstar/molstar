@@ -14,7 +14,7 @@ import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { withViewRegistry } from '../../../examples/view-registry.js';
-import { Cells, zoomed } from '../compose.js';
+import { AllCells, Cells, ColorCells, zoomed } from '../compose.js';
 
 let viewer: SeqViewer | undefined;
 
@@ -41,7 +41,7 @@ const reader = {
 
 async function open(id: string, firstWidth = 480) {
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date', 'performance'] });
-  const cell = Cells.find((c) => c.id === id)!;
+  const cell = AllCells.find((c) => c.id === id)!;
   const base = DefaultSeqViewerSpec();
   const v = createSeqViewer({
     ...base,
@@ -123,4 +123,42 @@ describe('a viewer mounted before it has a width', () => {
     const v = await open(id, 0);
     expect(values(v).n, id).toBeGreaterThan(10);
   });
+});
+
+/** The values layers of the viewer's view by key. */
+const layers = (v: SeqViewer) => {
+  const out = new Map<string, ValuesLay>();
+  for (const s of v.frame!.layout.sections)
+    for (const t of s.tracks)
+      for (const l of t.layers) if (l.type.name === 'values') out.set(l.lay.key.split('/').pop()!, l.lay as ValuesLay);
+  return out;
+};
+
+describe('the values look story: uniform against by value', () => {
+  it.each(ColorCells.map((c) => c.id))(
+    '%s: a layer a color and encoding, drawn at the density its title says',
+    async (id) => {
+      const cell = ColorCells.find((c) => c.id === id)!;
+      const v = await open(id);
+      const lays = layers(v);
+      expect([...lays.keys()].sort()).toEqual(
+        ['bars', 'line', 'points'].flatMap((e) => [`uniform-${e}`, `value-${e}`]).sort(),
+      );
+      for (const e of ['bars', 'line', 'points']) {
+        expect(lays.get(`uniform-${e}`)!.perBar, `${id} uniform ${e}`).toBe(false);
+        expect(lays.get(`value-${e}`)!.perBar, `${id} by value ${e}`).toBe(true);
+      }
+      const lay = lays.get('value-line')!;
+      const ground = (v.frame!.layout.tokens.colors['seq-track'] >>> 0).toString(16).padStart(8, '0');
+      // dots: a ring of the well's ground a value, only where a value has 6 px
+      const rings = dataLines(v).filter((l) => l.startsWith('path ') && l.includes(`#${ground}`));
+      if (cell.zoom) {
+        expect(lay.axis.scale, id).toBeGreaterThanOrEqual(6);
+        expect(rings.length, id).toBeGreaterThanOrEqual(2 * (cell.zoom.end - cell.zoom.start - 2));
+      } else {
+        expect(lay.axis.scale, id).toBeLessThan(6);
+        expect(rings, id).toEqual([]);
+      }
+    },
+  );
 });
