@@ -29,11 +29,25 @@ class SectionReads implements StoreReader {
   private sources: string[] = [];
   private coverages: (Coverage | undefined)[] = [];
   private m = 0;
+  private layers: string[] = [];
+  private refused: (string | undefined)[] = [];
+  private r = 0;
   private data!: StoreReader;
   begin(data: StoreReader): void {
     this.data = data;
     this.n = 0;
     this.m = 0;
+    this.r = 0;
+  }
+  tilesOf(w: Want) {
+    return this.data.tilesOf?.(w) ?? [];
+  }
+  /** A layer's refusal, recorded: a section is laid out again when it changes. */
+  layerRefused(layer: string) {
+    const v = this.data.layerRefused?.(layer);
+    this.layers[this.r] = layer;
+    this.refused[this.r++] = v;
+    return v;
   }
   coverage(source: string) {
     const c = this.data.coverage(source);
@@ -60,6 +74,7 @@ class SectionReads implements StoreReader {
   hold(data: StoreReader): boolean {
     for (let i = 0; i < this.n; i++) if ((data.get(this.keys[i])?.version ?? -1) !== this.versions[i]) return false;
     for (let i = 0; i < this.m; i++) if (data.coverage(this.sources[i]) !== this.coverages[i]) return false;
+    for (let i = 0; i < this.r; i++) if (data.layerRefused?.(this.layers[i]) !== this.refused[i]) return false;
     return true;
   }
 }

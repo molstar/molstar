@@ -125,6 +125,8 @@ export class DataStore extends ReactiveModel {
   private readonly _overBudget = new State(false);
   private readonly _issues = new State<readonly Issue[]>([]);
   private readonly _reports: StoreReports;
+  /** The layers whose wants together were past `maxTilesPerLayer` (`tiles`) or `maxBytesPerLayer` (`cost`). */
+  private readonly _refused = new Map<string, 'tiles' | 'cost'>();
 
   /** The clock the store's timers run on (a caller sharing the store keeps time on it). */
   get clock(): StoreClock {
@@ -369,6 +371,14 @@ export class DataStore extends ReactiveModel {
     return set;
   }
 
+  /**
+   * Whether a layer's wants together (`Want.layer`) were last refused, past `maxTilesPerLayer` (`tiles`) or
+   * `maxBytesPerLayer` (`cost`): what draws its "zoom in" state.
+   */
+  layerRefused(layer: string): 'tiles' | 'cost' | undefined {
+    return this._refused.get(layer);
+  }
+
   /** The live view's want set (`wanter()` for another consumer). */
   want(wants: readonly Want[]): void {
     this._live.want(wants);
@@ -388,7 +398,9 @@ export class DataStore extends ReactiveModel {
 
   /** @internal Plans a consumer's wants into tiles. */
   _plan(wants: readonly Want[]): Map<string, PlannedTile> {
-    return planWants(wants, this._sources, this.settings, ({ want: w, bound, value, max }) => {
+    const refused = new Map<string, 'tiles' | 'cost'>();
+    const planned = planWants(wants, this._sources, this.settings, ({ want: w, bound, value, max }) => {
+      if (w.layer !== undefined && bound !== 'want') refused.set(w.layer, bound === 'layer' ? 'tiles' : 'cost');
       const message =
         bound === 'want'
           ? `A wanted region covers ${value} tiles, more than ${max}`
@@ -400,6 +412,17 @@ export class DataStore extends ReactiveModel {
         this._reports.report(address, issueOf(StoreIssues, 'seq.store.too_many_tiles', message, { address })),
       );
     });
+    // a layer's refusal moves the version when it changes, so what draws the layer reads it again
+    let changed = false;
+    for (const w of wants) {
+      if (w.layer === undefined) continue;
+      const now = refused.get(w.layer);
+      if (this._refused.get(w.layer) !== now) changed = true;
+      if (now) this._refused.set(w.layer, now);
+      else this._refused.delete(w.layer);
+    }
+    if (changed) this._version.set(this._next());
+    return planned;
   }
 
   /**

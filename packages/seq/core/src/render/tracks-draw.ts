@@ -5,9 +5,19 @@
  */
 
 import { AxisTransform } from './axis.js';
-import { type DrawLists, drawPass, NoColor, passDraws, Passes, type PassName, type PassWriter } from './draw-lists.js';
+import {
+  Anchor,
+  type DrawLists,
+  drawPass,
+  NoColor,
+  passDraws,
+  Passes,
+  type PassName,
+  type PassWriter,
+} from './draw-lists.js';
 import type { Box, Emphasis } from './layer-type.js';
 import type { SeqTokens } from './tokens.js';
+import type { RenderConfig } from './config.js';
 import { WarpKind } from './layout/strips.js';
 import { TranslateWarp } from './layout/warp.js';
 import { drawRail } from './rail.js';
@@ -314,6 +324,10 @@ function drawStrips(
         }
         for (let li = 0; li < lays.length; li++) {
           const l = lays[li];
+          if (l.zoomIn && pass === 'data') {
+            drawZoomIn(w, box, tokens, layout.config);
+            continue;
+          }
           l.type.draw(l.lay, pass, w, emphasis);
           // an extension's layer type is given the hover's look by the view (Emphasis), unless it draws its own
           if (pass === 'hover' && emphasis?.hover?.layer === l.key && !l.type.ownHover && extensionType(l.type.name))
@@ -354,4 +368,36 @@ function drawBreaks(out: PassWriter, b: readonly number[], axis: AxisTransform, 
       out.rectArgs();
     }
   }
+}
+
+/** The text a layer refused by the store's bounds says over its band (_spec/README.md "Render", Data). */
+export const ZoomInText = 'zoom in to read this track';
+
+/**
+ * A refused layer's band: the pending hatch (stripes of the pending ink, as a band read nothing shows) with the text
+ * "zoom in to read this track" in the middle, the label's font and the muted ink: distinct from pending, which settles
+ * by itself.
+ */
+function drawZoomIn(w: PassWriter, box: Box, tokens: SeqTokens, config: RenderConfig): void {
+  const g = w.args;
+  const pending = tokens.colors['seq-pending'];
+  // the hatch: a stripe every 8 px across the band, 4 px wide
+  for (let x = box.x; x < box.x + box.width; x += 8) {
+    g[0] = x;
+    g[1] = box.y;
+    g[2] = Math.min(4, box.x + box.width - x);
+    g[3] = box.height;
+    g[4] = pending;
+    g[5] = NoColor;
+    g[6] = 0;
+    g[7] = 0;
+    g[8] = 0;
+    w.rectArgs();
+  }
+  g[0] = box.x + box.width / 2;
+  g[1] = box.y + box.height / 2 + 4;
+  g[2] = 0;
+  g[3] = box.width;
+  g[4] = tokens.colors['msui-text-muted'];
+  w.textArgs(ZoomInText, Anchor.middle, config.labelFont);
 }

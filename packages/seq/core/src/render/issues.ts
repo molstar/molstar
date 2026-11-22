@@ -96,6 +96,12 @@ export const RenderIssues = defineIssues('seq.render', {
       'Pairs between two systems with an end on split copies whose data names no units: drawn on no copy, never a guessed one',
     hint: 'Name each end’s unit (`a_unit`, `b_unit`: the pairs of a complex, derived per pair of units), or merge the copies (`copies: merge`)',
   },
+  'seq.render.zoom_in': {
+    severity: 'info',
+    description:
+      'A layer’s wants together are past the store’s bound on a layer’s tiles or read cost, at its coarsest level: nothing is read, its band says to zoom in',
+    hint: 'Zoom in to read this track',
+  },
   'seq.render.pairs.limit': {
     severity: 'info',
     description:

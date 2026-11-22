@@ -34,6 +34,8 @@ export interface StoreReader {
   readonly settings?: { readonly tileBins: number; readonly maxTilesPerWant: number; readonly gridTileBins?: number };
   /** A 2D want's tiles (x-major), each its key, its served region and whether it is that one's mirror, where it has them. */
   tilesOf?(want: Want): readonly WantTile[];
+  /** Whether a layer's wants together were refused (past `maxTilesPerLayer` or `maxBytesPerLayer`), where it says. */
+  layerRefused?(layer: string): 'tiles' | 'cost' | undefined;
 }
 
 /** The dynamic nodes of tier 2 (the resolve pass's overlay): its version is part of the draw lists' key. */

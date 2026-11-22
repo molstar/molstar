@@ -300,6 +300,9 @@ export class Renderer {
   private readonly parts = new KeyParts();
   private readonly reads = new Map<string, number>();
   private readonly coverages = new Map<string, Coverage | undefined>();
+  /** The layers' refusals read (`layerRefused`): a change lays the view out again. */
+  private readonly refused = new Map<string, 'tiles' | 'cost' | undefined>();
+  private refusedRead: [string, 'tiles' | 'cost' | undefined][] = [];
   /** The last layout's reads as arrays: the check walks them with no iterator. */
   private readKeys: string[] = [];
   private readVersions: number[] = [];
@@ -329,6 +332,15 @@ export class Renderer {
       keysOf: (w) => data.keysOf(w),
       ...(data.tooMany ? { tooMany: (w: Want) => data.tooMany!(w) } : {}),
       ...(data.tilesOf ? { tilesOf: (w: Want) => data.tilesOf!(w) } : {}),
+      ...(data.layerRefused
+        ? {
+            layerRefused: (l: string) => {
+              const v = data.layerRefused!(l);
+              this.refused.set(l, v);
+              return v;
+            },
+          }
+        : {}),
       get: (k): DataEntry | undefined => {
         const e = data.get(k);
         this.reads.set(k, e?.version ?? -1);
@@ -346,6 +358,7 @@ export class Renderer {
     const sources = this.coverageKeys;
     const coverages = this.coverageValues;
     for (let i = 0; i < sources.length; i++) if (data.coverage(sources[i]) !== coverages[i]) return false;
+    for (const [l, v] of this.refusedRead) if (data.layerRefused?.(l) !== v) return false;
     return true;
   }
 
@@ -391,6 +404,7 @@ export class Renderer {
     }
     this.reads.clear();
     this.coverages.clear();
+    this.refused.clear();
     const layout = layoutView(
       {
         model,
@@ -432,10 +446,12 @@ export class Renderer {
     const reads = [...this.reads].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
     let sig = '';
     for (const [k, v] of reads) sig += `${k}=${v};`;
+    for (const [l, v] of this.refused) if (v) sig += `${l}~${v};`;
     this.readKeys = reads.map((r) => r[0]);
     this.readVersions = reads.map((r) => r[1]);
     this.coverageKeys = [...this.coverages.keys()];
     this.coverageValues = [...this.coverages.values()];
+    this.refusedRead = [...this.refused];
     this.lists.key = `${parts.toString(this.configKey)}|${(hashString(sig) >>> 0).toString(16)}`;
     return { lists: this.lists, layout, key: this.lists.key, rebuilt: true, base: true, wants: layout.wants };
   }

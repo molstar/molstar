@@ -309,7 +309,11 @@ export interface TileRead {
 }
 
 /** What reading tiles reads of a layout: its wants and the margin it asks beside them. */
-export type TileContext = Pick<LayoutContext, 'want'> & { readonly config: Pick<LayoutContext['config'], 'margin'> };
+export type TileContext = Pick<LayoutContext, 'want'> & {
+  readonly config: Pick<LayoutContext['config'], 'margin'>;
+  /** The layer's key: its wants carry it, so the store bounds them together (`maxTilesPerLayer`, `maxBytesPerLayer`). */
+  readonly key?: string;
+};
 
 /**
  * Wants the regions (the view at `view` priority, a margin each side) and reads the tiles of the view's. A tile not
@@ -331,7 +335,16 @@ export function readTiles(
   for (let i = 0; i + 1 < regions.length; i += 2) {
     const start = regions[i];
     const end = regions[i + 1];
-    const want = { source: src.source, system: src.system, start, end, level, priority: 'view' as const, ...extra };
+    const want = {
+      source: src.source,
+      system: src.system,
+      start,
+      end,
+      level,
+      priority: 'view' as const,
+      ...(ctx.key !== undefined ? { layer: ctx.key } : {}),
+      ...extra,
+    };
     ctx.want(want);
     const m = Math.ceil((end - start) * ctx.config.margin);
     if (m > 0) {
@@ -341,6 +354,12 @@ export function readTiles(
     }
     if (!known) {
       out.pending.push(start, end);
+      continue;
+    }
+    // the layer's wants together past the store's bounds: none asked, its band "zoom in" (drawn by the track)
+    if (ctx.key !== undefined && data.layerRefused?.(ctx.key)) {
+      out.pending.push(start, end);
+      out.tooMany = true;
       continue;
     }
     const keys = data.keysOf(want);
