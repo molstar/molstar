@@ -9,7 +9,7 @@ import { GenomeFormatsViews } from '@molstar/seqx-examples';
 import { ClinvarSection, GeneratedVcfSection, MisreadVcfSection } from '@molstar/seqx-examples/genomes/vcf';
 import { PackageFolder } from '@molstar/seqx-examples/node-assets';
 import type { SeqRegistryEntry } from '@molstar/seqx-core/context';
-import type { FormatRuntime } from '@molstar/seqx-core/data';
+import type { FormatRuntime, OpenedSource, RegionRequest } from '@molstar/seqx-core/data';
 import type { RangesLay } from '@molstar/seqx-core/render';
 import { recordDrawLists } from '@molstar/seqx-core/render';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
@@ -29,6 +29,9 @@ import { fileText, filesOf, printSources } from '../../files/file-head.js';
 const DelayMs = 150;
 const raf = DomHost.requestAnimationFrame;
 const viewers: SeqViewer[] = [];
+/** The region reads in flight (a settled view has none). */
+const inflight = { n: 0 };
+const realNow = () => Number(process.hrtime.bigint() / 1_000_000n);
 
 beforeEach(() => {
   DomHost.requestAnimationFrame = (fn) => {
@@ -39,6 +42,7 @@ beforeEach(() => {
 afterEach(() => {
   DomHost.requestAnimationFrame = raf;
   for (const v of viewers.splice(0)) v.retire();
+  inflight.n = 0;
   vi.useRealTimers();
 });
 
@@ -63,6 +67,7 @@ const view = (id: string) => GenomeFormatsViews.find((v) => v.id === id)!;
 
 /** The view's registry with each runtime's opens kept: a test waits on them, not on a count of turns. */
 function watched(entries: readonly SeqRegistryEntry[], opens: Promise<unknown>[]): SeqRegistryEntry[] {
+  // each region read too is counted: `settled` waits for none in flight
   return entries.map((e) =>
     e.kind === 'format-runtime'
       ? {
@@ -70,7 +75,17 @@ function watched(entries: readonly SeqRegistryEntry[], opens: Promise<unknown>[]
           runtime: {
             ...e.runtime,
             open: (source, ctx) => {
-              const p = e.runtime.open(source, ctx);
+              const p = e.runtime.open(source, ctx).then((o) =>
+                Object.assign(Object.create(o) as OpenedSource, {
+                  read: (request: RegionRequest, signal: AbortSignal) => {
+                    const r = o.read(request, signal);
+                    inflight.n++;
+                    const done = () => void inflight.n--;
+                    r.then(done, done);
+                    return r;
+                  },
+                }),
+              );
               opens.push(p);
               return p;
             },
@@ -105,22 +120,22 @@ async function open(id: string) {
   return v;
 }
 
-/** Whether a track's layer still waits for data. */
-const waiting = (v: SeqViewer) =>
-  v.frame!.layout.sections.some((s) =>
-    s.tracks.some((t) => ((t.layers[0]?.lay as RangesLay)?.pending?.length ?? 0) > 0),
-  );
-
 /**
- * The viewer's region reads done (each a BGZF inflate on the platform's thread pool, by no clock: a turn of the event
- * loop each step; then the twin's delay on the fake clock), then a frame: never a count of turns, a bound on the steps.
+ * The viewer's region reads done: the twin's delay runs on the fake clock, a BGZF inflate on the platform's thread pool,
+ * by no clock, so its time under load is no bound. Each step moves the fake clock and yields a real turn, until no read
+ * is in flight for four steps running (a layer can wait for good); the bound is a real-time deadline, never a count of
+ * turns.
  */
 async function settled(v: SeqViewer) {
-  for (let k = 0; k < 200; k++) {
+  const deadline = realNow() + 25_000;
+  for (let quiet = 0; ; ) {
     await vi.advanceTimersByTimeAsync(100);
     await new Promise<void>((done) => setImmediate(done));
     v.draw();
-    if (k > 10 && !waiting(v)) break;
+    // a layer may wait for good (the too-many-tiles state reads nothing): quiet steps, not an empty wait list
+    quiet = inflight.n === 0 ? quiet + 1 : 0;
+    if (quiet >= 4) break;
+    if (realNow() > deadline) throw new Error('the view did not settle');
   }
   v.draw();
 }
