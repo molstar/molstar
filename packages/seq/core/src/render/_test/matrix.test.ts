@@ -97,6 +97,8 @@ describe('the matrix layer', () => {
     expect(lay.images.length).toBe(1);
     expect(lay.images[0].width).toBe(N / 256);
     expect(lay.images[0].height).toBe(S);
+    // each bin's majority at its share's strength (200 of 255 here): the colour's alpha
+    expect(lay.images[0].data[3]).toBe(200);
     const h = hitView(f.layout as never, lay.box.x + lay.box.width / 2, lay.box.y + 1);
     expect(h?.bin).toBe(256);
     expect(h?.yPosition).toBe(0);

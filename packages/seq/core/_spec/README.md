@@ -3886,7 +3886,7 @@ band (EC-220 to EC-222), inline or a source's, read through the store either way
   image LRU by layer, the tile and its version, the colors' version and the axis's direction, placed on the device grid.
 - **Color**: values by the layer's `color` channel by value (its open domain the range of the tiles read), a missing
   value transparent; codes by class (`0` `seq-ramp-0`, `1` `seq-ramp-2`, `2` `seq-ramp-4`, `3` `seq-ramp-1`), uncalled
-  (`255`) `seq-missing`; a bin's code its majority class.
+  (`255`) `seq-missing`; a bin's code its majority class at its share's strength (the colour's alpha × share).
 - **Pending**: a region not loaded is the pending fill across the band, never empty (EC-169); the layer's wants are
   bounded together (`readTiles`'s layer key: past them the band's "zoom in").
 - **Hit**: `target: 'cell'`, `position` on x, `ySystem` the states system, `yPosition` the state; `bin` at a coarse

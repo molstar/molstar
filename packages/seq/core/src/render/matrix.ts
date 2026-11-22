@@ -159,7 +159,12 @@ function codeColor(lay: MatrixLay, code: number): number {
 function cellColor(lay: MatrixLay, t: MatrixTable, i: number, s: number): number {
   const k = i * t.states + s;
   if (t.form === 'items') return t.codes ? codeColor(lay, t.codes[k]) : t.value ? colorOf(lay, t.value[k]) : NoColor;
-  if (t.classes) return codeColor(lay, t.classes[k]);
+  if (t.classes) {
+    // a bin's majority class, its share the colour's strength (design: "its majority with its share")
+    const c = codeColor(lay, t.classes[k]);
+    if (c === NoColor || !t.shares) return c;
+    return ((c & 0xffffff00) | Math.round(((c & 0xff) * t.shares[k]) / 255)) >>> 0;
+  }
   return t.mean ? colorOf(lay, t.mean[k]) : NoColor;
 }
 
