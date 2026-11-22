@@ -2,6 +2,8 @@
 
 ## Decided
 
+- The values layer's look: C (the author, 2026-11-22: "let's go with C with the bars"): a quiet profile below 4 px a
+  value, bars with a gap and rounded tops above; today's, A and B deleted. To VL step 2.
 - A fourth lane for FX13 (the author, 2026-11-22: "Start it now"), beside LA2, FX12 and VL.
 - Headless raised to 940 kB (the author, 2026-11-22: "Raise to 940"), RL and LA together at 930.5 (merged at 930.5 by my
   mistake: the size script exits 0 on a failing row; the orchestrator now reads its FAIL lines).
