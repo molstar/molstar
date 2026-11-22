@@ -34,10 +34,13 @@ class SectionReads implements StoreReader {
   private m = 0;
   private refusalsAt: number | undefined;
   private data!: StoreReader;
+  /** The layers a want of which was past its own tile bound this layout (`tooMany`): their band says zoom in. */
+  private readonly over = new Set<string>();
   begin(data: StoreReader): void {
     this.data = data;
     this.n = 0;
     this.m = 0;
+    this.over.clear();
     this.refusalsAt = data.refusals;
   }
   tilesOf(w: Want) {
@@ -63,7 +66,13 @@ class SectionReads implements StoreReader {
     return this.data.keysOf(w);
   }
   tooMany(w: Want) {
-    return this.data.tooMany?.(w) ?? false;
+    const over = this.data.tooMany?.(w) ?? false;
+    if (over && w.layer !== undefined) this.over.add(w.layer);
+    return over;
+  }
+  /** Whether a want of `layer` was past its own tile bound this layout (`maxTilesPerWant`, at its coarsest level). */
+  wantRefused(layer: string): boolean {
+    return this.over.has(layer);
   }
   get settings() {
     return this.data.settings;
