@@ -10,8 +10,8 @@
 
 import { PCG } from '@molstar/core/data/util/hash-functions';
 import { categoryColumn } from '@molstar/core/repr/tree';
-import type { PairsList, SeqData, SeqPair } from '@molstar/seqx-core/data';
-import { binPairs, seqToValue } from '@molstar/seqx-core/data';
+import type { FormatRuntime, PairsList, SeqData, SeqPair, StoreClock } from '@molstar/seqx-core/data';
+import { binPairs, delayedSource, openSeq, seqToValue } from '@molstar/seqx-core/data';
 import { assembly, createSeqSpec, genome } from '@molstar/seqx-core/lang';
 
 export const ChrLength = 1_000_000;
@@ -64,11 +64,14 @@ function listOf(blocks: readonly SideBlock[]): PairsList {
   };
 }
 
-/** The blocks served by region on each side (a name listed once a side), the whole list a request, bins above 1. */
-export function sidedSource(blocks: readonly SideBlock[]): SeqData {
+/**
+ * The blocks served by region on each side (a name listed once a side), the whole list a request, bins above 1; `served`
+ * the sides answered (another listed but not served: its reads fail).
+ */
+export function sidedSource(blocks: readonly SideBlock[], served: readonly ('a' | 'b')[] = ['a', 'b']): SeqData {
   const list = listOf(blocks);
   const pairs: SeqPair[] = [];
-  for (const side of ['a', 'b'] as const)
+  for (const side of served)
     for (const system of Chromosomes)
       for (const level of Levels)
         pairs.push({
@@ -88,13 +91,48 @@ export function sidedSource(blocks: readonly SideBlock[]): SeqData {
 export const TopSection = '/views/v/top';
 export const BottomSection = '/views/v/bottom';
 
-/** `P` above, `G` below (genome sections), a bridge between them drawing the blocks read by region. */
-export function sidesBridgeSpec(blocks: readonly SideBlock[]) {
+/** The format of a source whose side `b` answers on a clock of the test's (`slowSide`). */
+export const SlowFormat = 'seq-slow-b';
+
+/** `sidedSource` with side `b`'s reads waiting on `clock` (a timer of 1 ms each), side `a`'s at once. */
+export function slowSide(blocks: readonly SideBlock[], clock: StoreClock): FormatRuntime {
+  return {
+    name: SlowFormat,
+    formats: [SlowFormat],
+    open: async () => delayedSource(openSeq(sidedSource(blocks)), { clock, delayMs: (r) => (r.side === 'b' ? 1 : 0) }),
+  };
+}
+
+/** A clock whose timers wait until `flush` is called, and fire at once from then on. */
+export function manualClock(): StoreClock & { flush(): void } {
+  let due: (() => void)[] | undefined = [];
+  return {
+    now: () => 0,
+    setTimeout: (fn) => (due ? due.push(fn) : queueMicrotask(fn)),
+    clearTimeout: () => {},
+    flush() {
+      const now = due ?? [];
+      due = undefined;
+      for (const f of now) f();
+    },
+  };
+}
+
+/**
+ * `P` above, `G` below (genome sections), a bridge between them drawing the blocks read by region (`served`: the sides
+ * the source answers; `slow`: the source of `slowSide`'s format instead).
+ */
+export function sidesBridgeSpec(
+  blocks: readonly SideBlock[],
+  options: { served?: readonly ('a' | 'b')[]; slow?: boolean } = {},
+) {
   const b = createSeqSpec({ title: 'two genomes, sided' });
   const seqs = Chromosomes.map((name) => ({ name, length: ChrLength }));
   const P = b.data.assembly('P', assembly('P', seqs, { order: 'source' } as never));
   const G = b.data.assembly('G', assembly('G', seqs, { order: 'source' } as never));
-  const src = b.data.source('src', { format: 'seq', value: seqToValue(sidedSource(blocks)) as never });
+  const src = options.slow
+    ? b.data.source('src', { format: SlowFormat, uri: 'slow' } as never)
+    : b.data.source('src', { format: 'seq', value: seqToValue(sidedSource(blocks, options.served)) as never });
   const aln = b.data.pairs('aln', { a: P, b: G, source: src } as never);
   b.views.view('v', (v) => {
     genome(v, 'top', P);

@@ -108,7 +108,8 @@ export function readSides(
     regions[i] = r;
     const side = (sides[i] = { ...ctx, section: s.section, axis: s.layout.axis!, place: s.layout.placement });
     const got = read(prep, r, side, data, lay.sides[i], undefined, i ? 'b' : 'a');
-    if (got?.data) {
+    // a side with nothing read (its tiles pending or failed) takes no part: the other draws all it reads
+    if (got?.data?.n) {
       reads.push(got);
       lay.readSide.push(i);
     }

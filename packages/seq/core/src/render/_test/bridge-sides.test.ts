@@ -18,9 +18,11 @@ import type { BridgeRibbon } from '../tracks-types.js';
 import {
   BottomSection,
   ChrLength,
+  manualClock,
   type SideBlock,
   sideBlocks,
   sidesBridgeSpec,
+  slowSide,
   TopSection,
 } from './bridge-sides-fixtures.js';
 import { type Settled, settle } from './helpers.js';
@@ -159,5 +161,35 @@ describe('a bridge between two genomes, each side reading its own blocks', () =>
       );
       expect(got).toEqual(want);
     }
+  });
+
+  it('a side refused (its reads failed): the other side draws what it reads, each once, nothing twice', async () => {
+    const s = await settle(sidesBridgeSpec(blocks, { served: ['a'] }), [SeqRuntime], { pairs: { maxArcs: 4096 } });
+    const top: Window = [200_000, 900_000];
+    const { ribbons, lay } = await frameOf(s, top, Fit);
+    expect(lay.readSide).toEqual([0]);
+    expectDrawnOnce(ribbons, blocks, top, [0, 0]);
+  });
+
+  it('a side pending: the loaded side draws alone, then each pair once when the other lands (EC-169, EC-209)', async () => {
+    const clock = manualClock();
+    const s = await settle(sidesBridgeSpec(blocks, { slow: true }), [slowSide(blocks, clock)], {
+      pairs: { maxArcs: 4096 },
+    });
+    const top: Window = [200_000, 900_000];
+    const bottom: Window = [800_000, 1_600_000];
+    const at = input(top, bottom);
+    const lay = () => s.renderer.frame(at).layout.bridges!.list[0];
+    // side `a` answers at once, side `b` waits on the clock
+    for (let i = 0; i < 3; i++) {
+      s.store.want(s.renderer.frame(at).wants);
+      await new Promise((r) => setTimeout(r, 0));
+    }
+    expect((lay().lays[0].lay as RibbonsLay).readSide).toEqual([0]);
+    expectDrawnOnce(lay().ribbons(), blocks, top, [0, 0]);
+    clock.flush();
+    const { ribbons, lay: settled } = await frameOf(s, top, bottom);
+    expect(settled.readSide).toEqual([0, 1]);
+    expectDrawnOnce(ribbons, blocks, top, bottom);
   });
 });

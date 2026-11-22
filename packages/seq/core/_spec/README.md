@@ -3966,12 +3966,13 @@ pairs layer's prepared form and its region reader through the composition (`type
   merged near, so a few a system on a collapsed axis, EC-33) widened outward to the far level's grid (items: the
   windows), read again over `R` at the near side's own level (the reader's `over`: no gate, never coarser than the far
   level, a state of its own); the near side draws every ribbon whose end on it starts in `R`, the far side those whose
-  end on it starts in its window and whose near end does not start in `R` (a binary search a system). Levels nested, so
-  no far bin straddles `R`: property tests (every block over a whole far side drawn exactly once, by its item or its
-  bin; over two genomes at every pair of windows and levels). A side of blocks over no assembly: one read, on the `a`
-  side's window. **Pending** (EC-169): each side's bins' tiles not loaded (`RegionState.pending`) are the pending hatch
-  along its edge (4 px stripes every 8 px, `seq-pending`), so a bridge waiting is never an empty band. The gate per side
-  after ownership is LA2's (each side's own count).
+  end on it starts in its window and whose near end does not start in `R` (a binary search a system). A side with
+  nothing read (its tiles pending, failed or refused) takes no part: the other draws all it reads. Levels nested, so no
+  far bin straddles `R`: property tests (every block over a whole far side drawn exactly once, by its item or its bin;
+  over two genomes at every pair of windows and levels). A side of blocks over no assembly: one read, on the `a` side's
+  window. **Pending** (EC-169): each side's bins' tiles not loaded (`RegionState.pending`) are the pending hatch along
+  its edge (4 px stripes every 8 px, `seq-pending`), so a bridge waiting is never an empty band. The gate per side after
+  ownership is LA2's (each side's own count).
 - **Export**: a bridge is an empty group (`data-bridge`, `data-a`, `data-b`, `data-y`, `data-height`, `data-count`)
   after the sections' (written by the chunk, `BridgesLayout.svg`); its ribbons are the passes' paths (two cubics joined
   by lines, closed).

@@ -143,6 +143,28 @@ describe('an alignment’s blocks in a bridge', () => {
   });
 });
 
+describe('a bridge’s pending hatch while a side reads items', () => {
+  it('EC-169: a side on items panned to tiles not loaded hatches its own edge alone, then its items again', async () => {
+    const s = await settle(regionBridgeSpec(randomAlignments(300, 9)), [SeqRuntime]);
+    const zoomed = windows([400_000, 450_000], [400_000, 450_000]);
+    const before = layOf(await s.frame(zoomed));
+    expect(before.reads.map((r) => r.level)).toEqual([undefined, undefined]);
+    expect(before.hatch).toEqual([]);
+    // the top panned far: its tiles pending, the bottom's loaded
+    const panned = windows([800_000, 850_000], [400_000, 450_000]);
+    const lay = layOf(s.renderer.frame(panned));
+    const ys = new Set<number>();
+    for (let i = 0; i + 3 < lay.hatch.length; i += 4) ys.add(lay.hatch[i + 2]);
+    expect(ys).toEqual(new Set([lay.edgeA]));
+    // the bottom still draws what it reads, each once
+    expect(lay.readSide).toEqual([1]);
+    expect(lay.n).toBeGreaterThan(0);
+    const after = layOf(await s.frame(panned));
+    expect(after.hatch).toEqual([]);
+    expect(after.reads.map((r) => r.level)).toEqual([undefined, undefined]);
+  });
+});
+
 describe('a bridge over a region source, kept', () => {
   it('a pan of a third section lays out that section alone; a pan of a side lays out the bridge again', async () => {
     const s = await settle(regionBridgeSpec(randomAlignments(200, 7), { third: true }), [SeqRuntime]);
