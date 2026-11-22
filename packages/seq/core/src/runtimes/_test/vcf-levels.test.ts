@@ -292,6 +292,37 @@ describe('the matrix (genotypes, read only when asked)', () => {
     expect(big).toMatchObject({ ok: false, kind: 'too-large' });
   });
 
+  it('a matrix read’s line buffers count in `maxMatrixBytes` (states × the highest allele), never held past the read', async () => {
+    const r: RegionRequest = { system: 'chr1', start: 0, end: 600_000, level: 1, shapes: ['matrix'] };
+    const all = (await (await VcfRuntime.open(entry(), context({ f: g.text }))).read(r, signal)) as RegionAnswer & {
+      ok: true;
+    };
+    const cells = (all.tables.matrix as MatrixItems).codes!.length;
+    // the items' cells alone fit, with the buffers they do not
+    const s = await vcfRuntime({ maxMatrixBytes: cells }).open(entry(), context({ f: g.text }));
+    expect(await s.read(r, signal)).toMatchObject({ ok: false, kind: 'too-large' });
+    const t = await vcfRuntime({ maxMatrixBytes: cells + 20 * (3 + 10) }).open(entry(), context({ f: g.text }));
+    expect((await t.read(r, signal)).ok).toBe(true);
+  });
+
+  it('a DS or GQ value read from its bytes as `Number` reads its text: decimals, a sign, an exponent, `.` missing', async () => {
+    const text = [
+      '##fileformat=VCFv4.2',
+      '##contig=<ID=chr1,length=1000>',
+      '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">',
+      '##FORMAT=<ID=DS,Number=A,Type=Float,Description="Dosage">',
+      '#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tA\tB\tC\tD\tE\tF\tG',
+      'chr1\t10\t.\tA\tC\t.\t.\t.\tGT:DS\t0/1:0.25\t0/1:-1.5e-3\t0/1:.\t0/1:12\t0/1:+.5\t0/1:Inf\t0/1:1x',
+    ].join('\n');
+    const s = await VcfRuntime.open(entry(), context({ f: `${text}\n` }));
+    const a = (await s.read(
+      { system: 'chr1', start: 0, end: 100, level: 1, shapes: ['matrix'], field: 'DS' },
+      signal,
+    )) as RegionAnswer & { ok: true };
+    const want = [0.25, -1.5e-3, Number.NaN, 12, 0.5, Number.POSITIVE_INFINITY, Number.NaN].map(Math.fround);
+    expect(Array.from((a.tables.matrix as MatrixItems).value!)).toEqual(want);
+  });
+
   it('a whole read keeps the file’s bytes only when it holds samples (a sites file’s rows hold no copy of it)', async () => {
     const kept: number[] = [];
     const finish = VcfRowsBuilder.prototype.finish;

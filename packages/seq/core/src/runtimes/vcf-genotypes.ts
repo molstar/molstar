@@ -24,32 +24,30 @@ const comma = 44;
 const dot = 46;
 
 /**
- * Buffers a matrix read reuses across its lines: per state the ploidy, the `.` alleles and the field's span, per allele
- * and state the copies. Grown, never shrunk.
+ * Buffers one matrix read reuses across its lines, sized once for its states and its highest allele (counted in its
+ * bound): per state the ploidy, the `.` alleles and the field's span, per allele and state the copies.
  */
 class LineGenotypes {
-  ploidy = new Uint8Array(0);
-  dots = new Uint8Array(0);
-  copies = new Uint8Array(0);
-  fieldStart = new Int32Array(0);
-  fieldEnd = new Int32Array(0);
-  alleles = 0;
+  readonly ploidy: Uint8Array;
+  readonly dots: Uint8Array;
+  readonly copies: Uint8Array;
+  readonly fieldStart: Int32Array;
+  readonly fieldEnd: Int32Array;
+
+  constructor(states: number, alleles: number) {
+    this.ploidy = new Uint8Array(states);
+    this.dots = new Uint8Array(states);
+    this.fieldStart = new Int32Array(states);
+    this.fieldEnd = new Int32Array(states);
+    this.copies = new Uint8Array(states * alleles);
+  }
 
   reset(states: number, alleles: number) {
-    if (this.ploidy.length < states) {
-      this.ploidy = new Uint8Array(states);
-      this.dots = new Uint8Array(states);
-      this.fieldStart = new Int32Array(states);
-      this.fieldEnd = new Int32Array(states);
-    }
-    if (this.copies.length < states * alleles)
-      this.copies = new Uint8Array(Math.max(states * alleles, 2 * this.copies.length));
     this.ploidy.fill(0, 0, states);
     this.dots.fill(0, 0, states);
     this.fieldStart.fill(-1, 0, states);
     this.fieldEnd.fill(-1, 0, states);
     this.copies.fill(0, 0, states * alleles);
-    this.alleles = alleles;
   }
 }
 
@@ -177,13 +175,45 @@ function numberAt(bytes: Uint8Array, s: number, e: number): number {
   let i = s;
   let sign = 1;
   if (bytes[i] === 45 || bytes[i] === 43) sign = bytes[i++] === 45 ? -1 : 1;
+  // digits, a fraction and an exponent read from the bytes (15 significant digits kept, float32 holds fewer)
   let v = 0;
   let digits = 0;
-  while (i < e && bytes[i] >= 48 && bytes[i] <= 57 && digits < 15) {
-    v = v * 10 + bytes[i++] - 48;
+  let scale = 0;
+  while (i < e && bytes[i] >= 48 && bytes[i] <= 57) {
+    if (digits < 15) v = v * 10 + bytes[i] - 48;
+    else scale++;
     digits++;
+    i++;
   }
-  if (i === e && digits) return sign * v;
+  if (i < e && bytes[i] === dot) {
+    i++;
+    while (i < e && bytes[i] >= 48 && bytes[i] <= 57) {
+      if (digits < 15) {
+        v = v * 10 + bytes[i] - 48;
+        scale--;
+      }
+      digits++;
+      i++;
+    }
+  }
+  if (!digits) return wordAt(bytes, s, e);
+  if (i < e && (bytes[i] === 101 || bytes[i] === 69)) {
+    i++;
+    let es = 1;
+    if (bytes[i] === 45 || bytes[i] === 43) es = bytes[i++] === 45 ? -1 : 1;
+    let x = 0;
+    const from = i;
+    while (i < e && bytes[i] >= 48 && bytes[i] <= 57 && x < 1000) x = x * 10 + bytes[i++] - 48;
+    if (i === from) return Number.NaN;
+    scale += es * x;
+  }
+  if (i !== e) return Number.NaN;
+  return sign * (scale < 0 ? v / 10 ** -scale : v * 10 ** scale);
+}
+
+/** `Inf`, `Infinity` or `NaN` (any case, a sign): VCF's words for a float; else NaN. Only a cell with no digit gets here. */
+function wordAt(bytes: Uint8Array, s: number, e: number): number {
+  if (e - s > 9) return Number.NaN;
   let text = '';
   for (let k = s; k < e; k++) text += String.fromCharCode(bytes[k]);
   return floatOf(text);
@@ -201,8 +231,6 @@ function partAt(bytes: Uint8Array, s: number, e: number, k: number): number {
   while (b < e && bytes[b] !== comma) b++;
   return numberAt(bytes, a, b);
 }
-
-const genotypes = new LineGenotypes();
 
 /**
  * The matrix of `rows` (row numbers in region order) over `request`: at level 1, or as items (`request.items`), the
@@ -224,10 +252,15 @@ export function matrixAnswer(
   const L = request.level;
   const lo = Math.floor(request.start / L);
   const bins = summary ? Math.max(0, Math.ceil(request.end / L) - lo) : 0;
-  // the items' cells, and a summary's with what it counts in (codes: four counts and two bytes; values: five and a sum)
-  const bytes = n * S * (values ? 4 : 1) + (summary ? bins * S * (values ? 24 : 18) : 0);
+  // the highest allele read: a line's copies are counted a state and an allele
+  let alleles = 0;
+  if (data) for (let k = 0; k < n; k++) alleles = Math.max(alleles, data.allele[rows[k]]);
+  // the items' cells, a summary's with what it counts in (codes: four counts and two bytes; values: five and a sum),
+  // and the line's buffers (copies a state and an allele; ploidy, missing alleles and a field's span a state)
+  const bytes = n * S * (values ? 4 : 1) + (summary ? bins * S * (values ? 24 : 18) : 0) + (n ? S * (alleles + 10) : 0);
   if (bytes > bounds.maxBytes)
     return failure('too-large', `A matrix of ${n} items × ${S} samples: ${bytes} bytes, over ${bounds.maxBytes}`);
+  const genotypes = new LineGenotypes(S, alleles);
   const codes = values ? undefined : new Uint8Array(n * S);
   const value = values ? new Float32Array(n * S) : undefined;
   const number = values ? g.number.get(field!)! : '1';
