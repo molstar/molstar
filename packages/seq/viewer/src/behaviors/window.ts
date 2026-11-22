@@ -70,6 +70,8 @@ export function windowBehavior(view: ViewModel, config: ViewerConfig = DefaultVi
         last: number;
         moved: number;
         total: number | undefined;
+        /** The axis's length where the window does not wrap: a body drag stops at its ends, the width kept. */
+        limit: number | undefined;
         drawn: readonly [number, number] | undefined;
       }
     | undefined;
@@ -167,7 +169,8 @@ export function windowBehavior(view: ViewModel, config: ViewerConfig = DefaultVi
       const axis = view.resolved.value?.sections.find((s) => s.address === section)?.axis;
       const total = axis && view.wraps(section) ? axisTotal(axis) : undefined;
       const floored = drawn && drawn[1] - drawn[0] > v.end - v.start ? drawn : undefined;
-      drag = { section, part, at0: at, start: v.start, end: v.end, last: at, moved: 0, total, drawn: floored };
+      const limit = total === undefined && axis ? axisTotal(axis) : undefined;
+      drag = { section, part, at0: at, start: v.start, end: v.end, last: at, moved: 0, total, limit, drawn: floored };
       return true;
     },
     dragTo(at) {
@@ -181,7 +184,13 @@ export function windowBehavior(view: ViewModel, config: ViewerConfig = DefaultVi
           const step = ((((at - d.last + t / 2) % t) + t) % t) - t / 2;
           d.last = at;
           d.moved += step;
-        } else d.moved = at - d.at0;
+        } else {
+          // a pan: the window keeps its width and stops at the axis's ends (`setRange` would clip one end alone)
+          const by = at - d.at0;
+          const lo = -d.start;
+          const hi = (d.limit ?? Infinity) - d.end;
+          d.moved = lo <= hi ? Math.max(lo, Math.min(hi, by)) : by;
+        }
         return move(d.section, d.start + d.moved, d.end + d.moved);
       }
       // an end: the other held; an inward drag on a floored window keeps it (the floor holds its far end). On a cyclic

@@ -48,6 +48,17 @@ describe('the window behavior', () => {
     expect(w.dragging).toBe(false);
   });
 
+  it('a body drag is a pan: 2x the axis past either end, the window keeps its width and stops at the end', () => {
+    const { view, w, range } = setup();
+    view.setRange(ProteinSection, 20, 40);
+    w.begin(ProteinSection, 'body', 30);
+    w.dragTo(30 + 200);
+    expect(range()).toEqual([80, 100]);
+    w.dragTo(30 - 200);
+    expect(range()).toEqual([0, 20]);
+    w.end();
+  });
+
   it('a drag on an end resizes about the other; the floor holds; the end of a drag says where it settled', () => {
     const { view, w, range } = setup();
     view.setRange(ProteinSection, 20, 40);
