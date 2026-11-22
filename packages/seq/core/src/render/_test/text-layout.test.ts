@@ -278,6 +278,13 @@ describe('the text layout', () => {
     const x = (a.marks[0] + a.marks[1]) / 2;
     const h = hitView(f.layout, x, t.strips.dy[first] + a.span.y);
     expect(h?.element).toEqual({ owner: '/data/regions', key: 'A' });
+    // and in a group's gap it crosses (no position there: an element alone answers, a layer drawn across bands too)
+    const axis = t.strips.axes[first];
+    let gx = Number.NaN;
+    for (let gx0 = axis.x(99); gx0 < axis.x(100) + 1 && Number.isNaN(gx); gx0 += 0.25) if (axis.inGap(gx0)) gx = gx0;
+    expect(Number.isFinite(gx)).toBe(true);
+    const g = hitView(f.layout, gx + t.strips.dx[first], t.strips.dy[first] + a.span.y);
+    expect(g?.element).toEqual({ owner: '/data/regions', key: 'A' });
     const record = recordDrawLists(f.lists, ['labels']);
     expect(record).toContain('Frame A');
   });

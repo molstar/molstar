@@ -167,6 +167,9 @@ function hitLayout(layout: ViewLayout, x: number, y: number, touch: boolean, hov
     // a group's gap inside a band (a text's) holds no position, but a mark drawn across it (an item over two groups)
     // is its item's (_spec/README.md "Render", Emphasis, The hover contract): only an element answers there
     if (Point.kind === 'gap' && Point.strip >= 0 && Point.band >= 0) {
+      // a layer drawn across the strip's bands (a frame's outline) first, as on data
+      const across = acrossHit(s);
+      if (across) return across;
       const lays = s.lays[Point.strip * strips.bands + Point.band];
       for (let i = lays ? lays.length - 1 : -1; i >= 0; i--) {
         const h = lays![i].type.hit(lays![i].lay, pointAt());
@@ -176,14 +179,8 @@ function hitLayout(layout: ViewLayout, x: number, y: number, touch: boolean, hov
     }
     if (Point.kind !== 'data') continue;
     // a layer drawn across other bands of its strip (a frame's outline, `across`) is hit there, over their layers
-    for (let j = 0; j < strips.bands; j++) {
-      const own = s.lays[Point.strip * strips.bands + j];
-      for (let i = own ? own.length - 1 : -1; i >= 0; i--) {
-        if (!Array.isArray(own![i].layer.params.across)) continue;
-        const h = own![i].type.hit(own![i].lay, pointAt());
-        if (h?.element) return h;
-      }
-    }
+    const across = acrossHit(s);
+    if (across) return across;
     const lays = s.lays[Point.strip * strips.bands + Point.band];
     if (!lays) return undefined;
     // the topmost layer with an element under the point, else the topmost with a position
@@ -195,6 +192,20 @@ function hitLayout(layout: ViewLayout, x: number, y: number, touch: boolean, hov
       position ??= h;
     }
     return position && withBlock(s, Point.strip, position);
+  }
+  return undefined;
+}
+
+/** The element of a layer drawn across its strip's bands (`across`: a frame's outline) under `Point`, if any. */
+function acrossHit(s: SectionLayout): Hit | undefined {
+  const strips = s.placement.strips;
+  for (let j = 0; j < strips.bands; j++) {
+    const own = s.lays[Point.strip * strips.bands + j];
+    for (let i = own ? own.length - 1 : -1; i >= 0; i--) {
+      if (!Array.isArray(own![i].layer.params.across)) continue;
+      const h = own![i].type.hit(own![i].lay, pointAt());
+      if (h?.element) return withBlock(s, Point.strip, h);
+    }
   }
   return undefined;
 }
