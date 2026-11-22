@@ -206,8 +206,8 @@ export class Strips {
 }
 
 /** Whether a page y is outside a scrolled placement's scrolled area (_spec/README.md "Render", Section scroll). */
-export function hiddenAt(p: StripPlacement, y: number): boolean {
-  return y < p.scrollY || y >= (p.scrollEnd > 0 ? p.scrollEnd : p.box.y + p.box.height);
+export function hiddenAt(p: Placement, y: number): boolean {
+  return y < (p.scrollY ?? p.box.y) || y >= (p.scrollEnd || p.box.y + p.box.height);
 }
 
 /**

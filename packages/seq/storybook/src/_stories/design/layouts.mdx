@@ -34,7 +34,8 @@ is the section's `heights` param: `content` (this, the default), `uniform`, `fix
   position; frames across tracks, open where a line breaks them.
 - Alignment figures in the ESPript style: each row's label on every line, its last residue's number at the end.
 - Zoom is the letter size; a resize reflows with the reader's line kept at the top. A text in a host page is capped at
-  `text.maxHeight` and scrolls inside, taking the wheel only while it overflows.
+  `section.maxPx` (or its `height`) and scrolls inside, taking the wheel only while it overflows; a tracks section past
+  the cap scrolls its tracks below the ruler (Features › Layouts).
 - A selection made in a linked view scrolls a text to it (`reveal.linked`).
 - An export draws every line: a text is a figure.
 

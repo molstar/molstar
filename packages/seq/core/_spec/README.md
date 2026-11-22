@@ -3253,17 +3253,23 @@ way, over a straight axis and a box, in every layout; a layout knows strips, ban
 
 ### Section scroll
 
-- **A section scrolls past its cap, whatever its layout** (`render/layout/tracks.ts`, `text.ts`): its box is its
-  `height` (spec param, px), else its content's up to `section.maxPx` (600 px; a host sizing its canvas to the content
-  reads the box). Past it the placement is `clip`: its content scrolls inside, `top` px scrolled, clipped to the box.
-  Why one cap: a reader's page should not grow by a section's data; a host decides the room, per view or per section.
+- **A section scrolls past its cap, whatever its layout** (`layout/strips.ts` `capScroll`, the tracks and blocks
+  layouts, `text.ts`): its box is its `height` (spec param, px), else its content's up to `section.maxPx` (600 px; a
+  host sizing its canvas to the content reads the box). Past it the placement is `clip`: its content scrolls inside,
+  `top` px scrolled, clipped to the box. Why one cap: a reader's page should not grow by a section's data; a host
+  decides the room, per view or per section.
 - **Tracks**: its leading ruler tracks (`headOf`: tracks of ruler layers alone) are a fixed head; the tracks below
   scroll under it by the viewport's `top` (`TracksNav` clamps it to `[0, content − box]`), clipped to the scrolled area
-  (`scrollY` to the box's foot: wells, data, labels, the rails of its bands); a band hidden above `scrollY` is no hit.
-  Text scrolls by its anchor (Text layout), `top` its px.
-- **The one rail** (`placeSectionRail`, `SectionRail`): while the content overflows, the rows rail's geometry upright at
-  the data box's right edge along the scrolled area, the scrolled content (px) along it, its window the px in view; pan
-  only (no grips). The rails of a rows or lanes band inside it move left by `SlimRailPx`, placed only while their band
+  (`scrollY` to `scrollEnd`, else the box's foot): wells, data, labels, tints, the rails of its bands. A band, a header
+  line, a layer's parts outside the band (`hitOutside`) outside the scrolled area are neither drawn nor hit; a header
+  line not wholly in it is dropped (the DOM header parts with it). A row of blocks keeps its label row and ruler fixed
+  and its foot row below the box (`scrollEnd`); a stack's rows scroll whole. **A head as tall as the box** (a `height`
+  under the ruler) leaves no scrolled area: no scroll and no rail, the box its content. Text scrolls by its anchor (Text
+  layout), `top` its px, read before a frame through `Placement.scrollTopAt`.
+- **The one rail** (`placeSectionRail`, `SectionRail`): while the content overflows, the rows rail's geometry upright in
+  the right gutter's rail slot (kept by the layout once a section scrolls, `LayoutState.sectionSlot`: the data never
+  under it), along the scrolled area, the scrolled content (px) along it, its window the px in view; pan only (no
+  grips). A rows or lanes band's rail inside it sits at its band's right edge, left of it, placed only while its band
   reaches the scrolled area.
 - **An export shows all of it** (`figure`: the box its content, no rail), as a text shows every line.
 

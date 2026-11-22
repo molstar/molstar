@@ -866,25 +866,29 @@ binding table; per move one hit record and one modifiers record are reused.
   zooms them about the other end, which stays (`rowScale` within the rows' bounds, core's `MinRowScale` to
   `MaxRowScale`, never past the rows there are), each by the rows the pointer travelled (a floored window reaches every
   row); a drag farther than the rows in view, or a zoom, is one step (`navigator.dragStep`); Esc puts the band back. A
-  press that never moved acts at its click: outside the window the rows centre there (a jump), on the window nothing; a
-  double-click on the window resets the rows' zoom (`resetZoom`: `rowScale` unset, the band's top row kept; a jump),
-  outside it nothing more. A vertical overview's rows grips (its window's top and bottom bars) are this gesture over its
-  window, never a scroll; a double-click on its window resets zoomed rows the same, else it is the positions' (one
-  gesture, one step). Why: the rows rail and the overview are one window over the rows. `]` and `[` (the rows behavior's
-  `rows.zoom-in`, `rows.zoom-out`) zoom the rows; PageDown and PageUp (`cursor.page-down`, `cursor.page-up`, with no
-  cursor shown on rows: as `rows.page-down`, `rows.page-up`) move the window by the rows it shows less one, the page's
-  own key at an end.
-- **The one rail** (`behaviors/scrollers.ts`, core's "Render", Section scroll): every box that scrolls has a scroller
-  (`Scroller`: its extent and window in its units, a set clamped to its ends, a page, what Esc puts back): a rows band
-  (display rows), a lanes band (lanes), a section past its cap (px: a tracks section's viewport `top`, a text's anchor
-  moved by px through its placed lines, `textTop`). The rows rail's gesture drives each alike (a drag on the window, a
-  press beside it centring there, Esc); the lanes and section rails pan only and are session state (no step), the rows
-  rail adds its grips and its jumps' steps. **The wheel's chain**: its vertical delta (no modifier, mostly vertical)
-  scrolls a rows band or a lanes band under the pointer, at its end the section past its cap, at the section's end the
-  page (false). **Keys**: PageDown and PageUp (`cursor.page-*`) and Home and End (`cursor.scroll-start`,
-  `cursor.scroll-end`, `view.keys`) move the innermost scroller under the pointer that can (a cursor shown on rows takes
-  the page keys first; the page keys fall back to the first rows band); at the ends the key is the page's. Why one rail:
-  a scroll affordance that looks the same but answers differently is worse than none.
+  press that never moved acts at its click: outside the window the rows centre there (a scroll, no step), on the window
+  nothing; a double-click on the window resets the rows' zoom (`resetZoom`: `rowScale` unset, the band's top row kept; a
+  jump), outside it nothing more. A vertical overview's rows grips (its window's top and bottom bars) are this gesture
+  over its window, never a scroll; a double-click on its window resets zoomed rows the same, else it is the positions'
+  (one gesture, one step). Why: the rows rail and the overview are one window over the rows. `]` and `[` (the rows
+  behavior's `rows.zoom-in`, `rows.zoom-out`) zoom the rows; PageDown and PageUp (`cursor.page-down`, `cursor.page-up`,
+  with no cursor shown on rows: as `rows.page-down`, `rows.page-up`) move the window by the rows it shows less one, the
+  page's own key at an end.
+- **The one rail** (core's "Render", Section scroll): every box that scrolls answers one gesture (a drag on its window,
+  a press beside it centring there, a scroll and never a history step, Esc back to where the press found it). A section
+  past its cap is the viewer's own (`section-scroll.ts`: its top in px, a tracks section's viewport `top` through
+  `setTop` (a follower's too), a text's anchor moved by px; `SectionRailGesture`; `SectionWheel`; the stored top kept
+  within the content after each layout, `clampSectionTops`): every composition scrolls it, a minimal one too. A rows or
+  a lanes band's is the rows behavior's (`RowsRailGesture`; the rows rail adds its grips). The keys' scrollers
+  (`behaviors/scrollers.ts`: a rows band in display rows, a lanes band in lanes, a section in px). **The wheel's
+  chain**: its vertical delta (no modifier, mostly vertical) scrolls a rows band or a lanes band under the pointer, at
+  its end the section past its cap, at the section's end the page (false); over a section past its cap and none of its
+  scrolling bands it is the section's at once, coalesced to the frame (allocating nothing, as the navigation's wheel).
+  **Keys**: PageDown and PageUp (`cursor.page-*`) and Home and End (`cursor.scroll-start`, `cursor.scroll-end`,
+  `view.keys`) move the innermost scroller under the pointer that can (a cursor shown on rows takes the page keys first;
+  the page keys fall back to the first rows band); at the ends the key is the page's. The keyboard cursor on a band's
+  row below the cap scrolls the section the least to show it. Why one rail: a scroll affordance that looks the same but
+  answers differently is worse than none.
 
 - **Round a ring** (a section whose window `wraps`), the placement read by angle: a zoom keeps the unit under the
   pointer's angle (the turn nearest the window, `RingsNav.zoom`); a pan drag (Space+drag) moves the window by the units

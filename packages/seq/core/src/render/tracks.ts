@@ -109,8 +109,7 @@ const NoSectionLays: LayerLayout[] = [];
 /** Whether a band's box reaches a placement's scrolled area (always where it does not scroll). */
 function inScroll(p: Placement, b: Box): boolean {
   if (!p.clip || !(p.contentHeight > p.box.height + 0.5)) return true;
-  const end = p.scrollEnd || p.box.y + p.box.height;
-  return b.y < end && b.y + b.height > (p.scrollY ?? p.box.y);
+  return b.y < (p.scrollEnd || p.box.y + p.box.height) && b.y + b.height > (p.scrollY ?? p.box.y);
 }
 
 export function layoutView(input: LayoutInput, state = new LayoutState(), again = false): ViewLayout {
