@@ -22,7 +22,7 @@ import type { ExampleView } from '../views.js';
 import { HicAssemblyName, HicChromosomes, hicOneLevel, hicSource } from './hic.js';
 import { openBedpeByRegion } from './bedpe.js';
 import { genotypesSource } from './genotypes.js';
-import { LinkCount, LinksChromosome, LinksChromosomes, linksOnChromosome, linksSource } from './links.js';
+import { LinkCount, LinksChromosome, RingChromosomes, linksOnChromosome, linksSource } from './links.js';
 import { methylationSource } from './methylation.js';
 import { SyntenyA, SyntenyAssemblyA, SyntenyAssemblyB, SyntenyB, syntenySource } from './synteny.js';
 
@@ -42,6 +42,7 @@ const Generators: Readonly<Record<string, () => SeqData>> = {
   'generated:hic-one-level': hicOneLevel,
   'generated:synteny': () => syntenySource(SyntenyViewBlocks, undefined, { sided: false }),
   'generated:links': () => linksSource(),
+  'generated:links-ring': () => linksSource(RingChromosomes),
   'generated:genotypes': () => genotypesSource(),
   'generated:genotypes-items': () => genotypesItemsOnly(),
   'generated:methylation': () => methylationSource(),
@@ -197,8 +198,8 @@ export function pairsZoomedOut(): Node {
  */
 export function pairsRing(): Node {
   const b = createSeqSpec({ title: 'Links on a genome ring' });
-  const g = b.data.assembly('toy', assembly(HicAssemblyName, LinksChromosomes, { order: 'source' } as never));
-  const src = b.data.source('links-source', generated('generated:links'));
+  const g = b.data.assembly('toy', assembly(HicAssemblyName, RingChromosomes, { order: 'source' } as never));
+  const src = b.data.source('links-source', generated('generated:links-ring'));
   const links = b.data.pairs('links', { a: g, source: src } as never);
   b.views.view('main', (v) => {
     genome(v, 'ring', g, { layout: 'rings' }, (s) => {
@@ -351,7 +352,7 @@ export const RegionReadsViews: readonly ExampleView[] = [
     id: 'pairs-ring',
     title: 'A genome ring at the fit: bin-pair chords',
     summary:
-      'The same links on a ring at the fit (one 2 Mb chromosome as the ring, read from a BEDPE): bin pairs as chords between its bins, stroked by count, the strongest drawn first.',
+      'The genome ring at the fit: 12,000 generated links over a toy assembly’s six chromosomes (38 to 10 Mb), read a chromosome at a time as bin pairs of 16 kb: chords between the chromosomes and within each, stroked and shaded by count, the strongest kept and drawn first.',
     build: pairsRing,
     registry,
   },

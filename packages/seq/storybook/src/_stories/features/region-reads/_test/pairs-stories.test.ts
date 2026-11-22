@@ -126,20 +126,36 @@ describe('Features/Region reads/Pairs, headless', () => {
     expect(bedpe.n).toBeLessThan(4096);
   });
 
-  it('on a genome ring at the fit: chords between the chromosomes and within each, none dangling, in both themes', async () => {
+  it('on a genome ring at the fit (region-reads Default 3): bin-pair chords between the chromosomes, stroked and shaded by count within the bound, the strongest kept', async () => {
     const v = (viewer = await openRegion('pairs-ring'));
     await advance(v, 8000);
     const [lay] = lays(v);
-    // the toy assembly's 1,376 positions at about a position a pixel: the links themselves, past 4,096 binned by column
-    expect(lay.n).toBeGreaterThan(100);
-    expect(lay.carets.length).toBe(0);
     const prep = (
-      lay as unknown as { prep: { endUnits: string[]; data: { aUnit: Int32Array; bUnit: Int32Array; n: number } } }
+      lay as unknown as {
+        prep: { endUnits: string[]; weight?: Float32Array; data: { aUnit: Int32Array; bUnit: Int32Array; n: number } };
+      }
     ).prep;
-    expect(prep.data.n).toBe(12_000);
+    // bin pairs (a count each), never the links themselves at the fit
+    expect(prep.weight).toBeDefined();
+    expect(lay.n).toBeGreaterThan(100);
+    expect(lay.n).toBeLessThanOrEqual(4096);
+    expect(lay.carets.length).toBe(0);
+    // no chord's stroke past the bound (1 to 6 px), the strong ones thicker; alphas from a quarter to whole
+    const widths = Array.from(lay.width.subarray(0, lay.n));
+    expect(Math.max(...widths)).toBeLessThanOrEqual(6);
+    expect(Math.min(...widths)).toBeGreaterThanOrEqual(1);
+    expect(Math.max(...widths)).toBeGreaterThan(3);
+    const color = (lay as unknown as { color: Uint32Array }).color;
+    const alphas = Array.from(color.subarray(0, lay.n), (c) => c & 0xff);
+    expect(Math.min(...alphas)).toBeLessThan(128);
+    // chords join different chromosomes (and some stay within one), each end on one of the six
     let across = 0;
-    for (let k = 0; k < prep.data.n; k++) if (prep.data.aUnit[k] !== prep.data.bUnit[k]) across++;
-    expect(across).toBeGreaterThan(100);
+    for (let i = 0; i < lay.n; i++) {
+      const k = (lay as unknown as { pair: Int32Array }).pair[i];
+      if (prep.data.aUnit[k] !== prep.data.bUnit[k]) across++;
+    }
+    expect(across).toBeGreaterThan(50);
+    expect(across).toBeLessThan(lay.n);
     expect(new Set(Array.from(prep.data.aUnit)).size).toBe(6);
     expect(drawn(v, 'path')).toBeGreaterThan(100);
     for (const dark of [false, true]) {

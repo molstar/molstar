@@ -168,6 +168,7 @@ path M 259.19 36 L 259.16 30 L 199.99 30 none stroke #6b655cff 1
 text "primer site" 196.99 33.5 end "10px sans" #2d271eff width 46.67 max 96
 path M 132.52 226.85 L 126.98 229.15 L 114.07 229.15 none stroke #6b655cff 1
 text "ori" 111.07 232.65 end "10px sans" #2d271eff width 11.11 max 96
+rect 232.65 158 54.7 34 #f1efead9 squircle 4
 text "pUC19c" 260 172 middle "12px sans" #2d271eff width 0 max 85.68
 text "2,686 bp" 260 188 middle "12px sans" #6b655cff width 0 max 85.68
 text "200" 285.47 123.45 middle "10px mono" #5c574fff width 18

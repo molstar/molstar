@@ -30,6 +30,12 @@ export const LinksChromosome: LinkSystem = { name: 'chr', length: 2_000_000 };
 /** The toy assembly's chromosomes the ring's links join (the Hi-C's). */
 export const LinksChromosomes: readonly LinkSystem[] = HicChromosomes;
 
+/**
+ * The genome ring's chromosomes: the Hi-C's six at 100,000 times their length (38 Mb down to 10 Mb), so the ring at the
+ * fit reads the links' bins (16 kb), never the links themselves.
+ */
+export const RingChromosomes: readonly LinkSystem[] = HicChromosomes.map((c) => ({ ...c, length: c.length * 100_000 }));
+
 interface Links {
   readonly aSystem: string[];
   readonly bSystem: string[];

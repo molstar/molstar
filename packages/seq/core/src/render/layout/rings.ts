@@ -23,7 +23,7 @@ import { Anchor, grown, NoColor, type PassWriter } from '../draw-lists.js';
 import type { Box, Emphasis, Hit, LabelSink } from '../layer-type.js';
 import { sectionId } from '../layer-type.js';
 import type { TextMetrics } from '../text.js';
-import type { SeqTokens } from '../tokens.js';
+import { type SeqTokens, withAlpha } from '../tokens.js';
 import type { SectionLayout } from '../tracks.js';
 import { drawWindowArgs, floorExtent, WindowFill, windowPart } from '../window.js';
 import {
@@ -168,6 +168,8 @@ export class RingPlacement implements Placement {
   total = 0;
   title = '';
   subtitle = '';
+  /** The title's and subtitle's widths, CSS px: the plate under them (chords cross the hole). */
+  titleW = 0;
   labelFont = '';
   /** The window: drawn, active (something follows), and its ends in the section's display units (end past start). */
   windowShown = false;
@@ -761,6 +763,7 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
     const [title, sub] = rc.center === 'title' ? ringTitle(section, ctx, total) : ['', ''];
     p.title = title;
     p.subtitle = sub;
+    p.titleW = title ? Math.max(ctx.text.measure(config.labelFont, title), ctx.text.measure(config.labelFont, sub)) : 0;
     return p;
   },
   // rotation and size are the section's and the view's: the window is never part of the ring's key
@@ -1283,6 +1286,18 @@ function drawRingLabels(p: RingPlacement, out: PassWriter, tokens: SeqTokens, co
   if (!p.title) return;
   const size = p.titleSize;
   const hole = Math.max(0, p.r - p.depth);
+  // a plate in the page's colour under the title and its subtitle: a pairs layer's chords cross the hole
+  const w = Math.min(p.titleW, 2 * hole * 0.9) + 8;
+  g[0] = p.cx - w / 2;
+  g[1] = p.cy - size - 4;
+  g[2] = w;
+  g[3] = 2 * size + 10;
+  g[4] = withAlpha(tokens.colors['msui-bg'], 0.85);
+  g[5] = NoColor;
+  g[6] = 0;
+  g[7] = 4;
+  g[8] = 0;
+  out.rectArgs();
   g[0] = p.cx;
   g[1] = p.cy - 2;
   g[2] = 0;
