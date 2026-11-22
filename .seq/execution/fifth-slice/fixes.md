@@ -6,12 +6,21 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 
 ## Open
 
+- **The rail's contrast and its square ticks break the rounded UI** (the author, 2026-11-22: "should we iterate on the
+  look of the rail? i think the contrast breaks the view quite a bit + the ticks breaks the 'rounded look' of the rest
+  of the ui"; the grips overhang the well's rounded corners): variants first, then the pick built. To RL.
 - **A track jumps while loading, its labels drawn below it; a section of many tracks does not scroll** (the author,
   2026-11-22, Features › Genome formats › GFF3 › TP53 while loading: "the size when loading. could be handled better";
   "not just text sections. imagine having multiple tracks with standard features, these should be scrollable too. and
   600px should definitely be configurable"): FX9 did not build growth batched to the settle nor the reachable region
   (layouts.md, Track sizing); the placeholder lane draws labels outside its band; a tracks section has no scroll and
   no cap (layouts.md, A section scrolls past its cap). To FX11 (loading) and FX10 (the section's scroll and its rail).
+- **Dragging a rail's window past the axis end shrinks it** (the author, 2026-11-22, 2OCJ A over UniProt, the ruler
+  rail: "by dragging a rail, it's possible to make it really small and zoom all the way to a position spanning the
+  entire width of the view. should there be a limit? when resizing the rail, the minimum width is about 20-30
+  positions (which is good)"): a body drag is a pan (`behaviors/window.ts` `dragTo`, both ends by one offset), but
+  `ViewModel.setRange` clips the end past the axis, so the window narrows below the resize floor. A pan keeps its
+  width and stops at the end (the offset clamped, not the end); the floor holds on every path. To FX10.
 - **A scrolled band's labels drawn outside it** (the author, 2026-11-22, GFF3 TP53 scrolled: "clip bounds are not
   respected. See the TP53-233"): marks clipped at the band's edges, labels not (TP53-233 above, TP53-221 below). To
   FX11.
