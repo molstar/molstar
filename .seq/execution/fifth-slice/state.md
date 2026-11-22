@@ -2,6 +2,9 @@
 
 ## Decided
 
+- The rail's look: today's, polished (the author, 2026-11-22, after A–C: "can we try option D as 'todays' but with
+  better color and knobs? in general, i like the simple look of today's one .. it just needs some polish"): RL adds D
+  (the line and a heavier window in a mid ink, round knobs where the box zooms, quiet at the fit, inset ends).
 - The rail's look: variants first (the author, 2026-11-22: "Yes, variants first"); RL (`briefs/rl-rail-look.md`) after
   FX10 merges: capsule, capsule in a groove, quiet until hovered, beside today's.
 - Minimal raised to 1,060 kB (the author, 2026-11-22: "raise minimal to 1,060 too"), LA at 1,039.95 of 1,040.
