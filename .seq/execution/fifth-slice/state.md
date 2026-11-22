@@ -2,6 +2,10 @@
 
 ## Decided
 
+- The values layer's look: variants first (the author, 2026-11-22: "is there a way to make the barcharts look nicer
+  too?", then "Yes, variants first"); VL (`briefs/vl-values-look.md`) after RL merges.
+- The rail look picked (the author, 2026-11-22): "let's go with D1 by default, but customizable to D2 as well"; "the
+  hover card should not show on the rail". A, B, C and today's deleted. To RL step 2.
 - Header actions show on header hover only (the author, 2026-11-22: "Yes, header only"): not on data or rail hover;
   also with the keyboard cursor on the header or its menu open. To RL.
 - The default viewer raised to 1,480 kB (the author, 2026-11-22: "raise default to 1,480"), LA at 1,470.4.
@@ -173,7 +177,7 @@ Agents: one at a time while usage is tight (Decided); the orchestrator's look an
 
 - 2026-11-21: the loop started (`/loop run .seq/execution/fifth-slice/loop.md`). Running (B3): FX1 (fast; started
   with this commit) and BZ (strong; same). Both merged (BZ `167d24491`, FX1 `2afb32e91`). GC1 merged (`e3b3a98d0`). SC merged (`2fdc44e76`), GC2 merged (`db2364d09`). BE merged (`98028d3f6`), GC3 merged (`61e71891b`). GG merged (`9b8cf675b`). FX2 merged (`e678d2dbc`), NS merged (`190dfc135`), FX3 merged (`ded361691`), FX4 merged (`5bfebf366`). No lane running (2026-11-21, the session ended at its usage limit); next VC, then stage 1's gate (the author's), RG; open fixes in fixes.md.
-- 2026-11-22: the loop resumed in a new session. BS merged (`5bf984d5b`), VC merged (`364acfb5e`), FX5 merged (2026-11-22), FX6 merged (2026-11-22), GB merged (2026-11-22), FX7 merged (`29546ad25`), RG with RS merged (`590151907`), FX8 merged (2026-11-22), GA2 merged (2026-11-22), FR merged (`0af3f0809`), GA3 merged (`64e2f87cc`). Running: **LA** (strong; steps 1, 2 and 2's rest done on `seq/la` (resolve, layout and render, per-side reads drawn once, blocks merged under a pixel, the hatch; the bridge chunk 20.8 kB, its own row raised by LA to 24 kB: the author's to confirm); its agent out of context ~16:35, a fresh strong agent on `seq/la` for steps 3 and 4), **RL** (Sonnet, `briefs/rl-rail-look.md`, three rail looks to pick from), FX10 merged (`38f147b49`), FX11 merged.
+- 2026-11-22: the loop resumed in a new session. BS merged (`5bf984d5b`), VC merged (`364acfb5e`), FX5 merged (2026-11-22), FX6 merged (2026-11-22), GB merged (2026-11-22), FX7 merged (`29546ad25`), RG with RS merged (`590151907`), FX8 merged (2026-11-22), GA2 merged (2026-11-22), FR merged (`0af3f0809`), GA3 merged (`64e2f87cc`). Running: **FX12** (Sonnet, `briefs/fx12-empty-wells.md`, the free slot, the author: "use the free slot for a fix lane"); **LA** (strong; steps 1, 2 and 2's rest done on `seq/la` (resolve, layout and render, per-side reads drawn once, blocks merged under a pixel, the hatch; the bridge chunk 20.8 kB, its own row raised by LA to 24 kB: the author's to confirm); its agent out of context ~16:35, a fresh strong agent on `seq/la` for steps 3 and 4), **RL** (Sonnet, `briefs/rl-rail-look.md`, three rail looks to pick from), FX10 merged (`38f147b49`), FX11 merged.
 
 ## Findings by lane
 
