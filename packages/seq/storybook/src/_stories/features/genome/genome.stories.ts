@@ -107,8 +107,9 @@ export const CytobandsOverTheGenome: StoryObj = {
 
 /**
  * Links written in the spec over the toy assembly: each row names its two chromosomes (`a_name`, `b_name`; some
- * without `chr`, the names rule maps them), read as a file's a chromosome at a time, so past `pairs.maxArcs` they bin
- * as a BEDPE's would. A link between two chromosomes is a chord between their arcs.
+ * without `chr`, the names rule maps them; each block labelled by the assembly's name), held, each end on its
+ * chromosome, so past `pairs.maxArcs` they bin by the pairs level as a BEDPE's would. A link between two chromosomes is
+ * a chord between their arcs.
  */
 export const LinksWrittenInTheSpec: StoryObj = {
   render: () => exampleStory(view('inline-links-ring'), { stacked: true }),
