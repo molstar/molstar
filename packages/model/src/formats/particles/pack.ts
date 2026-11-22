@@ -31,7 +31,9 @@ import { mortonOrder3d } from '@molstar/core/data/util/hash-functions';
 import { radixSortIndices } from '@molstar/core/data/util/sort';
 import { ChunkedArray } from '@molstar/core/data/util/chunked-array';
 import { Box3D } from '@molstar/core/math/geometry/primitives/box3d';
+import { Sphere3D } from '@molstar/core/math/geometry/primitives/sphere3d';
 import { ParticleDensityGrid, ParticleTileOpaque } from '../../model/particles/particle-tile-opaque.js';
+import { ParticleNesting } from '../../model/particles/particle-nesting.js';
 import type {
   ParticleAttribute,
   ParticleCompartmentInfo,
@@ -58,15 +60,18 @@ import type {
  * their box where written (`density`: what hides what is behind as the whole is drawn, the tiles' opacities a
  * tile-ordered pack's). A particle's id, entity and
  * compartment are not stored per particle, nor a key (a particle's key is its index in the pack). A target is `sites`
- * (positions and radii, chains as runs) or has none.
+ * (positions and radii, chains as runs), a template (version 7, `template`: a list of `templates`, a document of its own
+ * whose blocks are of the same file, placed whole at each of the target's particles) or has none.
  */
 export const ParticlePackMagic = 'MSPK';
-export const ParticlePackVersion = 6;
+/** The version written: 7 where the list has templates (a reader before it refuses what it would draw wrong), else 6 */
+export const ParticlePackVersion = 7;
+const ParticlePackVersionWithoutTemplates = 6;
 /**
  * The versions read: 2's rotations float32, 2's and 3's positions float32 (a block's type tells); before 5 no
- * `siteElements` (the sites' elements not known); before 6 sorted by target
+ * `siteElements` (the sites' elements not known); before 6 sorted by target; before 7 no templates
  */
-const ReadVersions = [2, 3, 4, 5, 6];
+const ReadVersions = [2, 3, 4, 5, 6, 7];
 const HeaderBytes = 64;
 const radiusBits = new Float32Array(1);
 const radiusBitsU32 = new Uint32Array(radiusBits.buffer);
@@ -141,6 +146,11 @@ export interface ParticlePackTarget {
     readonly max: readonly [number, number, number];
     readonly distance: number;
   };
+  /**
+   * a template (version 7): its particles each place the list of `templates[index]` whole, about `center` (the point a
+   * particle's position places: `ParticleTarget.getCenter`, the template's boundary's where written)
+   */
+  readonly template?: { readonly index: number; readonly center: readonly [number, number, number] };
 }
 
 /** Steps an Å the targets' bounds are rounded outward to (`ParticlePackTarget.bounds`): 0.001 Å */
@@ -187,11 +197,12 @@ export interface ParticlePackDocument {
     readonly opacityBlocks?: number;
     /**
      * the coarse levels written (`WriteParticlePackOptions.levels`): level `L` (1 to `levels`) a node a cell of the
-     * grid of `dimensions >> L` cells an axis, every `8^L`-th of the particles of its `2^L`³ tiles (in Morton order
-     * of a fine grid over them: spread evenly), copies of theirs in the blocks `node.*` (`node.position`,
-     * `node.rotation`, `node.attribute.<name>`; `node.keys` a node particle's index in the pack, `node.runs` its
-     * targets' runs, `node.ranges` a node's level, cell, first and count, `node.boxes` its centers' box); a reader of
-     * none ignores them
+     * grid of `dimensions >> L` cells an axis, of each target every `8^L`-th of its particles in its `2^L`³ tiles (at
+     * least one; in Morton order of a fine grid over them: spread evenly), copies of theirs in the blocks `node.*`
+     * (`node.position`, `node.rotation`, `node.attribute.<name>`; `node.keys` a node particle's index in the pack,
+     * `node.runs` its targets' runs, `node.scales` a run's scale: the cube root of its target's particles over those
+     * kept, so each target's volume kept; `node.ranges` a node's level, cell, first and count, `node.boxes` its
+     * centers' box); a reader of none ignores them, one of no `node.scales` draws a node `2^L` larger
      */
     readonly levels?: number;
   };
@@ -204,6 +215,37 @@ export interface ParticlePackDocument {
     readonly dimensions: readonly number[];
     readonly min: readonly number[];
     readonly max: readonly number[];
+  };
+  /**
+   * the lists the targets' `template`s place (version 7): a document each, its blocks of the same file, by target, no
+   * templates, tiles or density of its own
+   */
+  readonly templates?: readonly ParticlePackDocument[];
+  /**
+   * a template's (version 7, optional: a reader without it computes them): its particles by target (tile-ordered:
+   * by tile, then by target, `WriteParticlePackOptions.templateTiles`), each target's in the sample order of its levels
+   * (`Particle.getSampleOrder`, `setSampleOrdered`), and its boundary of the positions and radii as written, rounded
+   * outward (`Particle.setBoundary`). Why: the yeast cell's levels sorted its 31.5 M
+   * particles at every load (1.9 s), its sphere a pass over them (0.5 s)
+   */
+  readonly sampleOrdered?: boolean;
+  /**
+   * a template's coarse levels written (version 7, optional: a reader without them samples them,
+   * `ParticleNesting.getTemplateLevels`): level `L` (1 to `templateLevels`) of each target every `8^L`-th of its
+   * particles as written (at least one), a run a target (as first seen), in the blocks `level.*` (`level.position`,
+   * `level.rotation`, `level.keys` a level particle's index in the template, `level.runs` its targets' runs,
+   * `level.scales` a run's scale: the square root of its target's particles over those kept, the area a far copy covers
+   * kept, `level.ranges` a level's level, first and count). Why: sampled at load, the yeast cell's 461 ms (its gathers
+   * scattered tile-ordered). Not by tile (a tile set's `node.*`: a run a target a node, at least one a target a node):
+   * the yeast's levels 11-42% larger and 724 k runs, not 5,639 (its frames rotating 1.70 to 1.97 ms), the isg cell's 2
+   * levels by its 4 tiles an axis, not 3 (its far frames 2.40 to 3.93 ms)
+   */
+  readonly templateLevels?: number;
+  readonly boundary?: {
+    readonly min: readonly [number, number, number];
+    readonly max: readonly [number, number, number];
+    readonly center: readonly [number, number, number];
+    readonly radius: number;
   };
   readonly blocks: readonly ParticlePackBlock[];
 }
@@ -223,9 +265,30 @@ export interface WriteParticlePackOptions {
   readonly opacityBlocks?: number;
   /**
    * by target, the density grid's blocks along the box's longest side (`ParticlePackDocument.density`): 64 by default,
-   * 0 none written; tile-ordered none (its tiles' opacities are)
+   * 0 none written; tile-ordered with the tiles' opacities none (they are its)
    */
   readonly densityBlocks?: number;
+  /**
+   * a list with templates, its templates' tiles an axis (tile-ordered as `tiles`, a tile's by target, each target's in
+   * its sample order): by default about a store page's particles a tile (`templateTilesOf`), 0 or 1 by target alone
+   */
+  readonly templateTiles?: number;
+  /** a template's coarse levels written (`ParticlePackDocument.templateLevels`; set for a list's templates) */
+  readonly templateLevels?: number;
+}
+
+/** a template's particles a tile by default (a store page's: its pages then about a tile's, by space) */
+const TemplateTileParticles = 8192;
+
+/**
+ * A template's tiles an axis by default: a power of two whose cube is about its particles' store pages (the yeast
+ * cell's 31.5 M: 16, the isg cell's 460 k: 4). Why by tile: a page by target holds a target spread over the template
+ * (its box the template's), every page reached by a near view; by tile its particles near each other
+ */
+export function templateTilesOf(count: number) {
+  const tiles = Math.cbrt(count / TemplateTileParticles);
+  if (tiles < 1.5) return 1;
+  return Math.min(1024, 2 ** Math.round(Math.log2(tiles)));
 }
 
 /** A pack read: its document and the bytes its blocks are views of */
@@ -234,6 +297,8 @@ export interface ParticlePack {
   readonly buffer: ArrayBuffer;
   /** the file's first byte in `buffer` */
   readonly byteOffset: number;
+  /** its blocks read apart, not views of `buffer` (a pack opened by range: `ParticlePackBlocks`) */
+  readonly blocks?: ParticlePackBlocks;
 }
 
 export type ParticlePackFormat = ModelFormat<ParticlePack>;
@@ -291,6 +356,22 @@ function isPerParticleBlock(name: string) {
  */
 export function parseParticlePackDocument(json: Uint8Array, byteLength: number): ParticlePackDocument {
   const document = JSON.parse(new TextDecoder().decode(json)) as ParticlePackDocument;
+  checkParticlePackDocument(document, byteLength, false);
+  return document;
+}
+
+/** `document`'s blocks and its templates' checked (`parseParticlePackDocument`), a template's none of its own */
+function checkParticlePackDocument(document: ParticlePackDocument, byteLength: number, isTemplate: boolean) {
+  if (document.templates?.length) {
+    if (isTemplate) throw new Error('particle pack template with templates of its own');
+    for (const t of document.templates) checkParticlePackDocument(t, byteLength, true);
+    for (const t of document.targets) {
+      if (t.template && !document.templates[t.template.index])
+        throw new Error(`particle pack target ${t.id} of template ${t.template.index}, not a template`);
+    }
+  } else if (document.targets.some((t) => t.template)) {
+    throw new Error('particle pack target of a template, but the pack has none');
+  }
   for (const b of document.blocks) {
     if (b.byteOffset % BlockAlignment !== 0) throw new Error(`particle pack block '${b.name}' not aligned`);
     if (b.byteOffset + b.byteLength > byteLength) throw new Error(`particle pack truncated (block '${b.name}')`);
@@ -307,7 +388,6 @@ export function parseParticlePackDocument(json: Uint8Array, byteLength: number):
       );
     }
   }
-  return document;
 }
 
 /** bytes of a pack at an offset not keeping its blocks aligned copied at most (`readParticlePack`) */
@@ -342,6 +422,21 @@ function getBlock(pack: ParticlePack, name: string) {
   return pack.document.blocks.find((b) => b.name === name);
 }
 
+/**
+ * A pack's blocks read apart (a pack opened by range: `openParticleListFromPackStream`), by their byte offset, and
+ * the reads of those not read (a template's particles: its positions, rotations and attributes, read by range when
+ * asked, `Particle.DeferredParticles`)
+ */
+export interface ParticlePackBlocks {
+  readonly arrays: ReadonlyMap<number, Float32Array | Int32Array | Int16Array | Uint32Array>;
+  readonly read: (
+    block: ParticlePackBlock,
+    first: number,
+    count: number,
+    signal?: AbortSignal,
+  ) => Promise<Float32Array | Int32Array | Int16Array | Uint32Array>;
+}
+
 /** The view of block `name` of `pack` (its bytes, no copy), none where the pack has no such block */
 export function getParticlePackArray(
   pack: ParticlePack,
@@ -349,6 +444,8 @@ export function getParticlePackArray(
 ): Float32Array | Int32Array | Int16Array | Uint32Array | undefined {
   const b = getBlock(pack, name);
   if (!b) return;
+  // read apart: the blocks read (a template's particles' none, `Particle.DeferredParticles`)
+  if (pack.blocks) return pack.blocks.arrays.get(b.byteOffset);
   const length = b.count * b.components;
   const offset = pack.byteOffset + b.byteOffset;
   if (b.type === 'float32') return new Float32Array(pack.buffer, offset, length);
@@ -370,6 +467,72 @@ function getIntArray(pack: ParticlePack, name: string) {
 }
 
 /**
+ * A warning where template `index` of a pack an older writer wrote: of more than a tile's particles and not
+ * tile-ordered (its copies culled particle by particle: the isg cell's 16x16x16 grid near, frames 39.9 ms, 29.2
+ * tile-ordered), or its coarse levels not stored (sampled at every load: the yeast cell's 461 ms). Drawn either way;
+ * the pack written again (`writeParticlePack`, `scripts/particle-grid-pack.mjs`) is faster
+ */
+function warnOlderTemplate(template: ParticlePackDocument, index: number) {
+  const slower: string[] = [];
+  if (!template.tiles && templateTilesOf(template.count) > 1)
+    slower.push('not tile-ordered (its copies culled slower)');
+  if (!template.templateLevels) slower.push('its coarse levels not stored (sampled at every load)');
+  if (slower.length === 0) return;
+  console.warn(
+    `particle pack: template ${index} (${template.label}) written by an older writer: ${slower.join(', ')}; ` +
+      'write the pack again for faster frames and loads',
+  );
+}
+
+/**
+ * A template pack's coarse levels (`ParticlePackDocument.templateLevels`, the `level.*` blocks) as a list's stored
+ * levels (`Particle.StoredLevel`), finest first, views of the pack's bytes; undefined where a block is missing. A
+ * template's levels read, not sampled where loaded (`ParticleNesting.getTemplateLevels`)
+ */
+function getStoredLevels(pack: ParticlePack, grid: GridPositions): Particle.StoredLevel[] | undefined {
+  const position = getParticlePackArray(pack, 'level.position');
+  const rotation = getParticlePackArray(pack, 'level.rotation');
+  const keys = getIntArray(pack, 'level.keys');
+  const runs = getIntArray(pack, 'level.runs');
+  const scales = getFloatArray(pack, 'level.scales');
+  const ranges = getIntArray(pack, 'level.ranges');
+  if (!(position instanceof Uint32Array) || !keys || !runs || !scales || !ranges) return undefined;
+  if (rotation && !(rotation instanceof Int16Array))
+    throw new Error("particle pack block 'level.rotation' not snorm16");
+  const runCount = runs.length / 2;
+  const levels: Particle.StoredLevel[] = [];
+  let r0 = 0;
+  for (let k = 0; k < ranges.length; k += 3) {
+    const level = ranges[k];
+    const lo = ranges[k + 1];
+    const hi = lo + ranges[k + 2];
+    // its runs: those from its first to its end (the runs ascending, a level's consecutive)
+    if (r0 >= runCount || runs[r0 * 2] !== lo)
+      throw new Error(`particle pack level ${level}'s runs not from its first`);
+    let r1 = r0;
+    while (r1 < runCount && runs[r1 * 2] < hi) r1 += 1;
+    const offsets = new Int32Array(r1 - r0 + 1);
+    const targets = new Int32Array(r1 - r0);
+    for (let r = r0; r < r1; ++r) {
+      offsets[r - r0] = runs[r * 2] - lo;
+      targets[r - r0] = runs[r * 2 + 1];
+    }
+    offsets[r1 - r0] = hi - lo;
+    levels.push({
+      level,
+      keys: keys.subarray(lo, hi),
+      offsets,
+      targets,
+      scales: scales.subarray(r0, r1),
+      coordinates: { kind: 'grid', data: position.subarray(lo * 2, hi * 2), origin: grid.origin, step: grid.step },
+      rotations: rotation?.subarray(lo * 4, hi * 4),
+    });
+    r0 = r1;
+  }
+  return levels;
+}
+
+/**
  * The list of `pack`: its positions, rotations, sites, fibers and attributes views of the pack's bytes; its targets,
  * entities, compartments and radii runs (`ParticleValues`), a value a target, not a particle; no keys (a particle's key
  * its index)
@@ -387,9 +550,24 @@ export function createParticleListFromPack(pack: ParticlePack): ParticleList {
   } else if (positions instanceof Float32Array) {
     coordinates = positions;
   }
-  if (!coordinates || GridPositions.count(coordinates) !== n) throw new Error('particle pack without positions');
-  // snorm16 (version 3), float32 (version 2)
-  const rotations = getParticlePackArray(pack, 'rotation');
+  // a template's particles not read (a pack opened by range): an empty grid of its origin and step, read by range
+  const positionBlock = getBlock(pack, 'position');
+  const deferred = !!pack.blocks && !coordinates && !!positionBlock && !!grid && !!doc.templateLevels;
+  if (deferred) {
+    coordinates = {
+      kind: 'grid',
+      data: new Uint32Array(0),
+      origin: Vec3.create(grid!.origin[0], grid!.origin[1], grid!.origin[2]),
+      step: grid!.step,
+    };
+  }
+  if (!coordinates || (!deferred && GridPositions.count(coordinates) !== n))
+    throw new Error('particle pack without positions');
+  // snorm16 (version 3), float32 (version 2); a deferred list's empty, of its type
+  const rotationBlock = getBlock(pack, 'rotation');
+  const rotations = deferred
+    ? rotationBlock && (rotationBlock.type === 'float32' ? new Float32Array(0) : new Int16Array(0))
+    : getParticlePackArray(pack, 'rotation');
   if (rotations instanceof Int32Array || rotations instanceof Uint32Array)
     throw new Error("particle pack block 'rotation' not snorm16 or float32");
 
@@ -457,6 +635,21 @@ export function createParticleListFromPack(pack: ParticlePack): ParticleList {
       createParticlePackSitesTarget(s, siteData.subarray(s.offset * 4, (s.offset + s.count) * 4), siteTypes),
     );
   }
+  // the templates: a list each, read once for the targets placing it (views of the same bytes)
+  const templates: ParticleList[] = [];
+  for (const t of doc.targets) {
+    if (!t.template) continue;
+    const { index, center } = t.template;
+    if (!templates[index]) {
+      warnOlderTemplate(doc.templates![index], index);
+      templates[index] = createParticleListFromPack({ ...pack, document: doc.templates![index] });
+    }
+    targetMapping.set(t.id, {
+      kind: 'particles',
+      particles: templates[index],
+      center: Vec3.create(center[0], center[1], center[2]),
+    });
+  }
 
   const fiberOffsets = getIntArray(pack, 'fiber.offsets');
   const fiberIndices = getIntArray(pack, 'fiber.indices');
@@ -504,9 +697,37 @@ export function createParticleListFromPack(pack: ParticlePack): ParticleList {
     customProperties: new CustomProperties(),
     _propertyData: Object.create(null),
   };
+  if (templates.length > 0) ParticleNesting.check(list);
   if (bounds) Particle.setTargetBounds(list, bounds);
+  if (doc.sampleOrdered) Particle.setSampleOrdered(list);
+  if (doc.boundary) {
+    const { min, max, center, radius } = doc.boundary;
+    Particle.setBoundary(list, {
+      box: Box3D.create(Vec3.create(min[0], min[1], min[2]), Vec3.create(max[0], max[1], max[2])),
+      sphere: Sphere3D.create(Vec3.create(center[0], center[1], center[2]), radius),
+    });
+  }
   if (measures.size > 0) ParticleTileCatalog.setTargetMeasures(list, measures);
   if (doc.tiles) ParticleTiles.setDirectory(list, getTileDirectory(pack, doc.tiles));
+  if (deferred) {
+    const blocks = pack.blocks!;
+    Particle.setDeferred(list, {
+      read: async (first, count, signal) => {
+        const [positions, rotations] = await Promise.all([
+          blocks.read(positionBlock!, first, count, signal),
+          rotationBlock ? blocks.read(rotationBlock, first, count, signal) : Promise.resolve(undefined),
+        ]);
+        if (!(positions instanceof Uint32Array)) throw new Error("particle pack block 'position' not on a grid");
+        if (rotations && !(rotations instanceof Int16Array || rotations instanceof Float32Array))
+          throw new Error("particle pack block 'rotation' not snorm16 or float32");
+        return { positions, rotations };
+      },
+    });
+  }
+  if (doc.templateLevels && GridPositions.is(coordinates)) {
+    const levels = getStoredLevels(pack, coordinates);
+    if (levels) Particle.setStoredLevels(list, levels);
+  }
   const density = doc.density ? getFloatArray(pack, 'density') : undefined;
   if (doc.density && density) {
     const [x, y, z] = doc.density.dimensions;
@@ -642,9 +863,87 @@ interface BlockData {
  * first particle), its targets' sites (those of kind `sites`; other kinds not packed). A target's entity and
  * compartment must be the same for its particles (they are stored once); its radius is too, by definition (the
  * largest of its particles' kept, where a list's differ in rounding). Keys are not kept (a particle's key is its index in
- * the pack). Tile-ordered with `options.tiles` (`WriteParticlePackOptions`)
+ * the pack). Tile-ordered with `options.tiles` (`WriteParticlePackOptions`). A list with templates (`ParticleNesting`):
+ * its templates once each (a document of `templates`, by target), its targets placing them by index; not tile-ordered
+ * (refused: a tile set of copies is not one of their particles), no density grid of its own (a copy's volume its
+ * template's particles')
  */
 export function writeParticlePack(list: ParticleList, options: WriteParticlePackOptions = {}): Uint8Array<ArrayBuffer> {
+  const nested = ParticleNesting.hasTemplates(list);
+  if (nested) {
+    ParticleNesting.check(list);
+    for (const t of ParticleNesting.getIdSpace(list).moves.keys()) Particle.assertRead(t, 'writing a pack');
+    if (options.tiles !== undefined) throw new Error('particle pack: a list with templates not tile-ordered');
+  }
+  const templates: ParticleList[] = [];
+  const top = buildPack(list, nested ? { ...options, densityBlocks: 0 } : options, templates);
+  const parts = templates.map((t) => {
+    const tiles = options.templateTiles ?? templateTilesOf(t.count);
+    return buildPack(
+      t,
+      // its coarse levels written (`level.*`): read, not sampled where loaded (`Particle.StoredLevel`)
+      {
+        densityBlocks: options.densityBlocks,
+        templateLevels: ParticleNesting.MaxTemplateLevels,
+        ...(tiles > 1 && { tiles, opacityBlocks: 0 }),
+      },
+      undefined,
+    );
+  });
+
+  // the layout: the header, the blocks aligned (the top list's, then each template's), the document after them (their
+  // offsets known before it is written)
+  let end = HeaderBytes;
+  const place = (blocks: readonly BlockData[]) =>
+    blocks.map((b): ParticlePackBlock => {
+      const byteOffset = align(end);
+      end = byteOffset + b.values.byteLength;
+      return {
+        name: b.name,
+        type: b.type,
+        components: b.components,
+        count: b.values.length / b.components,
+        byteOffset,
+        byteLength: b.values.byteLength,
+      };
+    });
+  const placed = place(top.blocks);
+  const templateDocuments = parts.map((part) => ({ ...part.document, blocks: place(part.blocks) }));
+  const document: ParticlePackDocument = {
+    ...top.document,
+    templates: templateDocuments.length > 0 ? templateDocuments : undefined,
+    blocks: placed,
+  };
+  const json = new TextEncoder().encode(JSON.stringify(document));
+
+  const out = new Uint8Array(end + json.byteLength);
+  const view = new DataView(out.buffer);
+  for (let k = 0; k < 4; ++k) out[k] = ParticlePackMagic.charCodeAt(k);
+  view.setUint32(4, nested ? ParticlePackVersion : ParticlePackVersionWithoutTemplates, true);
+  view.setUint32(8, ByteOrderMark, true);
+  view.setBigUint64(12, BigInt(end), true);
+  view.setBigUint64(20, BigInt(json.byteLength), true);
+  const write = (blocks: readonly BlockData[], at: readonly ParticlePackBlock[]) => {
+    for (let k = 0; k < blocks.length; ++k) {
+      const v = blocks[k].values;
+      out.set(new Uint8Array(v.buffer, v.byteOffset, v.byteLength), at[k].byteOffset);
+    }
+  };
+  write(top.blocks, placed);
+  for (let k = 0; k < parts.length; ++k) write(parts[k].blocks, templateDocuments[k].blocks);
+  out.set(json, end);
+  return out;
+}
+
+/**
+ * The blocks and document (but its blocks' places) of `list` (`writeParticlePack`); its targets' templates gathered
+ * into `templates` (an index a list, once each), none where `templates` is undefined (a template's own list)
+ */
+function buildPack(
+  list: ParticleList,
+  options: WriteParticlePackOptions,
+  templates: ParticleList[] | undefined,
+): { blocks: BlockData[]; document: Omit<ParticlePackDocument, 'blocks'> } {
   const n = list.count;
   // runs (`ParticleValues`) expanded: the writer reads a value a particle
   const listTargets = ParticleValues.toArray(list.targets, n, Int32Array);
@@ -680,7 +979,11 @@ export function writeParticlePack(list: ParticleList, options: WriteParticlePack
   let order = new Int32Array(n);
   const position = new Int32Array(n);
   const next = new Map(targetOffset);
-  for (let i = 0; i < n; ++i) {
+  // a template's (`templates` none) each target's in its levels' sample order (`ParticlePackDocument.sampleOrdered`)
+  const sampleOrdered = !templates && n > 0;
+  const visit = sampleOrdered ? Particle.getSampleOrder(list) : undefined;
+  for (let s = 0; s < n; ++s) {
+    const i = visit ? visit[s] : s;
     const p = next.get(listTargets[i])!;
     next.set(listTargets[i], p + 1);
     order[p] = i;
@@ -781,6 +1084,14 @@ export function writeParticlePack(list: ParticleList, options: WriteParticlePack
     let sites: ParticlePackSites | undefined;
     let reach: number | undefined;
     let volume: number | undefined;
+    let template: ParticlePackTarget['template'];
+    if (target?.kind === 'particles') {
+      if (!templates) throw new Error(`particle pack: template target ${t} in a template`);
+      let index = templates.indexOf(target.particles);
+      if (index < 0) index = templates.push(target.particles) - 1;
+      const center = ParticleTarget.getCenter(target)!;
+      template = { index, center: [center[0], center[1], center[2]] };
+    }
     // its volume where its sites give one: the tiles' opacities'
     if (target?.kind === 'sites') {
       const s = target.sites;
@@ -869,6 +1180,7 @@ export function writeParticlePack(list: ParticleList, options: WriteParticlePack
       volume,
       // a target a range: its bounds (tile-ordered its runs', computed where asked)
       bounds: tiling ? undefined : targetBounds(t),
+      template,
     });
   }
   if (siteCount > 0) blocks.push({ name: 'site', type: 'int16', components: 4, values: siteData });
@@ -904,8 +1216,10 @@ export function writeParticlePack(list: ParticleList, options: WriteParticlePack
     }
     blocks.push({ name: 'tile.opacity', type: 'float32', components: b3, values: density });
   }
-  // by target, the particles' density grid: of their positions as written, their targets' volumes
-  const densityBlocks = tiling ? 0 : Math.max(0, Math.floor(options.densityBlocks ?? 64));
+  // the particles' density grid: of their positions as written, their targets' volumes; tile-ordered with the tiles'
+  // opacities none (they are its), a template tile-ordered (no opacities) its own (what places its copies' occlusion,
+  // `ParticleNesting.getDensityGrid`: computed where read else, the yeast cell's 5.3 s)
+  const densityBlocks = tiling && opacityBlocks > 0 ? 0 : Math.max(0, Math.floor(options.densityBlocks ?? 64));
   let densityGrid: ParticlePackDocument['density'];
   if (densityBlocks > 0 && n > 0) {
     const box = ParticleTileOpaque.getCentersBox(positions, n);
@@ -944,6 +1258,13 @@ export function writeParticlePack(list: ParticleList, options: WriteParticlePack
     }
   }
 
+  // a template's coarse levels: copies of samples of its particles as written
+  const templateLevels = options.templateLevels ?? 0;
+  if (templateLevels > 0 && n > 0) {
+    const rotationBlock = blocks.find((b) => b.name === 'rotation')?.values as Int16Array | undefined;
+    blocks.push(...writeTemplateLevels(positions, n, (q) => listTargets[order[q]], rotationBlock, templateLevels));
+  }
+
   // the coarse levels: their nodes' particles copies of a sample of their tiles'
   const levelCount = tiling && options.levels ? Math.log2(tiling.dimensions) : 0;
   if (tiling && levelCount > 0) {
@@ -957,22 +1278,44 @@ export function writeParticlePack(list: ParticleList, options: WriteParticlePack
   const compartments: { index: number; name: string }[] = [];
   for (const [index, c] of list.compartmentInfo ?? []) compartments.push({ index, name: c.name });
 
-  // the layout: the header, the blocks aligned, the document after them (their offsets known before it is written)
-  const placed: ParticlePackBlock[] = [];
-  let end = HeaderBytes;
-  for (const b of blocks) {
-    const byteOffset = align(end);
-    placed.push({
-      name: b.name,
-      type: b.type,
-      components: b.components,
-      count: b.values.length / b.components,
-      byteOffset,
-      byteLength: b.values.byteLength,
-    });
-    end = byteOffset + b.values.byteLength;
+  // a template's boundary of its positions and radii as written (what a reader decodes: a radius a target), rounded
+  // outward (`ParticlePackDocument.boundary`)
+  let boundary: ParticlePackDocument['boundary'];
+  if (sampleOrdered) {
+    let radii: ParticleValues<Float32Array> | undefined;
+    if (radiusOf && tiling) {
+      // tile-ordered: a radius a particle (a target's runs apart)
+      const values = new Float32Array(n);
+      for (let q = 0; q < n; ++q) values[q] = radiusOf.get(listTargets[order[q]]) ?? 0;
+      radii = values;
+    } else if (radiusOf) {
+      const offsets = new Int32Array(targetOrder.length + 1);
+      const values = new Float32Array(targetOrder.length);
+      targetOrder.forEach((t, k) => {
+        offsets[k + 1] = offsets[k] + targetCounts.get(t)!;
+        values[k] = radiusOf.get(t) ?? 0;
+      });
+      radii = ParticleValues.ofRuns(offsets, values);
+    }
+    const { box, sphere } = Particle.getBoundary({
+      count: n,
+      coordinates: positions,
+      radii,
+      customProperties: new CustomProperties(),
+      _propertyData: Object.create(null),
+    } as unknown as ParticleList);
+    const down = (v: number) => Math.floor(v * BoundsSteps) / BoundsSteps;
+    const up = (v: number) => Math.ceil(v * BoundsSteps) / BoundsSteps;
+    const c = sphere.center;
+    boundary = {
+      min: [down(box.min[0]), down(box.min[1]), down(box.min[2])],
+      max: [up(box.max[0]), up(box.max[1]), up(box.max[2])],
+      center: [c[0], c[1], c[2]],
+      radius: up(sphere.radius + 1 / BoundsSteps),
+    };
   }
-  const document: ParticlePackDocument = {
+
+  const document: Omit<ParticlePackDocument, 'blocks'> = {
     label: list.label,
     entryId: list.entryId,
     count: n,
@@ -997,22 +1340,96 @@ export function writeParticlePack(list: ParticleList, options: WriteParticlePack
         }
       : undefined,
     density: densityGrid,
-    blocks: placed,
+    sampleOrdered: sampleOrdered || undefined,
+    templateLevels: templateLevels > 0 && n > 0 ? templateLevels : undefined,
+    boundary,
   };
-  const json = new TextEncoder().encode(JSON.stringify(document));
+  return { blocks, document };
+}
 
-  const out = new Uint8Array(end + json.byteLength);
-  const view = new DataView(out.buffer);
-  for (let k = 0; k < 4; ++k) out[k] = ParticlePackMagic.charCodeAt(k);
-  view.setUint32(4, ParticlePackVersion, true);
-  view.setUint32(8, ByteOrderMark, true);
-  view.setBigUint64(12, BigInt(end), true);
-  view.setBigUint64(20, BigInt(json.byteLength), true);
-  for (let k = 0; k < blocks.length; ++k) {
-    const v = blocks[k].values;
-    out.set(new Uint8Array(v.buffer, v.byteOffset, v.byteLength), placed[k].byteOffset);
+/**
+ * A template's coarse levels' blocks (`ParticlePackDocument.templateLevels`), of its particles as written (in their
+ * stored order: tiles, a target's in its sample order): level `L` of each target every `8^L`-th of its particles in
+ * that order (the first kept), a run a target as first seen, its scale the square root of its particles over those
+ * kept; levels 1 to `levelCount`, finest first. What `ParticleNesting.getTemplateLevels` samples where loaded
+ * (`Particle.sampleByTarget` in a stored order: its picks by runs), written once
+ */
+function writeTemplateLevels(
+  positions: GridPositions,
+  n: number,
+  targetOf: (q: number) => number,
+  rotations: Int16Array | undefined,
+  levelCount: number,
+): BlockData[] {
+  // the targets by id as first seen, a particle's target's slot
+  const slotOf = new Map<number, number>();
+  const ids: number[] = [];
+  const slots = new Int32Array(n);
+  for (let q = 0; q < n; ++q) {
+    const t = targetOf(q);
+    let s = slotOf.get(t);
+    if (s === undefined) {
+      s = ids.length;
+      slotOf.set(t, s);
+      ids.push(t);
+    }
+    slots[q] = s;
   }
-  out.set(json, end);
+  const targets = ids.length;
+  const counts = new Int32Array(targets);
+  for (let q = 0; q < n; ++q) counts[slots[q]] += 1;
+  const levelSizes: number[] = [];
+  let total = 0;
+  for (let level = 1; level <= levelCount; ++level) {
+    const stride = 8 ** level;
+    let size = 0;
+    for (let s = 0; s < targets; ++s) size += Math.ceil(counts[s] / stride);
+    levelSizes.push(size);
+    total += size;
+  }
+  const data = new Uint32Array(total * 2);
+  const keys = new Int32Array(total);
+  const rotation = rotations ? new Int16Array(total * 4) : undefined;
+  const runs = new Int32Array(levelCount * targets * 2);
+  const scales = new Float32Array(levelCount * targets);
+  const ranges = new Int32Array(levelCount * 3);
+  const seen = new Int32Array(targets);
+  const cursor = new Int32Array(targets);
+  let first = 0;
+  for (let level = 1; level <= levelCount; ++level) {
+    const stride = 8 ** level;
+    // a run a target, its particles every stride-th of its own in order
+    let at = first;
+    for (let s = 0; s < targets; ++s) {
+      cursor[s] = at;
+      const kept = Math.ceil(counts[s] / stride);
+      const r = (level - 1) * targets + s;
+      runs[r * 2] = at;
+      runs[r * 2 + 1] = ids[s];
+      scales[r] = Math.sqrt(counts[s] / kept);
+      at += kept;
+    }
+    seen.fill(0);
+    for (let q = 0; q < n; ++q) {
+      const s = slots[q];
+      if (seen[s]++ % stride !== 0) continue;
+      const k = cursor[s]++;
+      data[k * 2] = positions.data[q * 2];
+      data[k * 2 + 1] = positions.data[q * 2 + 1];
+      keys[k] = q;
+      if (rotation) rotation.set(rotations!.subarray(q * 4, q * 4 + 4), k * 4);
+    }
+    ranges.set([level, first, levelSizes[level - 1]], (level - 1) * 3);
+    first = at;
+  }
+  const out: BlockData[] = [
+    { name: 'level.position', type: 'grid21', components: 2, values: data },
+    { name: 'level.keys', type: 'int32', components: 1, values: keys },
+    { name: 'level.runs', type: 'int32', components: 2, values: runs },
+    { name: 'level.scales', type: 'float32', components: 1, values: scales },
+    { name: 'level.ranges', type: 'int32', components: 3, values: ranges },
+  ];
+  if (rotation) out.push({ name: 'level.rotation', type: 'snorm16', components: 4, values: rotation });
   return out;
 }
 
@@ -1022,9 +1439,12 @@ const LevelSampleCells = 512;
 /**
  * The coarse levels' blocks (`ParticlePackDocument.tiles.levels`) of tile-ordered particles `tiling` (`orderByTiles`;
  * a particle's index its place there, `targetOf` its target): level `L` a node a cell of the grid of
- * `dimensions >> L` cells an axis, its tiles consecutive (the tiles in Morton order), every `8^L`-th of their particles
- * in Morton order of a fine grid over the box (`LevelSampleCells` an axis: a node's sample spread over it), the
- * kept ones by target (its runs); the nodes by level, coarsest first, a level's in Morton order
+ * `dimensions >> L` cells an axis, its tiles consecutive (the tiles in Morton order), of each target every `8^L`-th
+ * of its particles there (at least one) in Morton order of a fine grid over the box (`LevelSampleCells` an axis: a
+ * node's sample spread over it), a run a target, its scale the cube root of its particles over those kept; the nodes
+ * by level, coarsest first, a level's in Morton order. Why by target: a sample by count alone keeps a node's volume
+ * only on average (its large molecules sampled more or less than its small ones), and loses a target rarer than
+ * `8^L` there
  */
 function writeLevels(
   tiling: ReturnType<typeof orderByTiles>,
@@ -1064,40 +1484,41 @@ function writeLevels(
   const nodeRanges: number[] = [];
   const nodeBoxes: number[] = [];
   const runs = ChunkedArray.create(Int32Array, 2, ChunkSize);
+  const runScales = ChunkedArray.create(Float32Array, 1, ChunkSize);
   let count = 0;
   const bounds = new Float64Array(ParticleRangeBoundsValues);
   for (let level = levelCount; level >= 1; --level) {
     const stride = 8 ** level;
     const shift = 3 * level;
-    const byNode = new Map<number, { node: number; seen: number; q: number[] }>();
+    // per node, per target its particles seen and those kept (every stride-th, the first kept)
+    const byNode = new Map<
+      number,
+      { node: number; first: number; byTarget: Map<number, { seen: number; q: number[] }> }
+    >();
     for (let s = 0; s < n; ++s) {
       const q = fine[s];
       const node = tileCode[q] >> shift;
       let at = byNode.get(node);
-      if (!at) byNode.set(node, (at = { node, seen: 0, q: [] }));
-      if (at.seen++ % stride === 0) at.q.push(q);
+      if (!at) byNode.set(node, (at = { node, first: q, byTarget: new Map() }));
+      const t = targetOf(q);
+      let of = at.byTarget.get(t);
+      if (!of) at.byTarget.set(t, (of = { seen: 0, q: [] }));
+      if (of.seen++ % stride === 0) of.q.push(q);
     }
     const nodes = [...byNode.values()].sort((a, b) => a.node - b.node);
     const dl = d >> level;
-    for (const { q } of nodes) {
-      // its particles by target (in their sample's order within one)
-      const byTarget = new Map<number, number[]>();
-      for (const j of q) {
-        const t = targetOf(j);
-        let list = byTarget.get(t);
-        if (!list) byTarget.set(t, (list = []));
-        list.push(j);
-      }
+    for (const { first: q0, byTarget } of nodes) {
       const first = count;
-      for (const [t, list] of byTarget) {
+      for (const [t, { seen, q: list }] of byTarget) {
         ChunkedArray.add2(runs, count, t);
+        ChunkedArray.add(runScales, Math.cbrt(seen / list.length));
         for (const j of list) {
           ChunkedArray.add2(position, positions.data[j * 2], positions.data[j * 2 + 1]);
           ChunkedArray.add(keyChunks, j);
           count += 1;
         }
       }
-      const id = tileCell[q[0]];
+      const id = tileCell[q0];
       const x = (id % d) >> level;
       const y = (Math.floor(id / d) % d) >> level;
       const z = Math.floor(id / (d * d)) >> level;
@@ -1119,6 +1540,7 @@ function writeLevels(
     { name: 'node.position', type: 'grid21', components: 2, values: data },
     { name: 'node.keys', type: 'int32', components: 1, values: nodeKeys },
     { name: 'node.runs', type: 'int32', components: 2, values: ChunkedArray.compact(runs) as Int32Array },
+    { name: 'node.scales', type: 'float32', components: 1, values: ChunkedArray.compact(runScales) as Float32Array },
     { name: 'node.ranges', type: 'int32', components: 4, values: Int32Array.from(nodeRanges) },
     { name: 'node.boxes', type: 'float32', components: 6, values: Float32Array.from(nodeBoxes) },
   ];

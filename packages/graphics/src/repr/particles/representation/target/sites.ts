@@ -204,12 +204,15 @@ export function createSitesTargetGeometry(
       ParticleSites.getPosition(sites, i, p);
       builder.add(p[0], p[1], p[2], i);
     }
-    const s = builder.getSpheres();
+    // coarse sites drawn as their stride's level of detail, as quantized ones (WebGL1: none quantized)
+    const s = builder.getSpheres(sites.stride);
     if (count > 0) s.setBoundingSphere(boundingSphere);
     return s;
   }
-  // meshes carry no size data: the radius baked into the vertices
-  const { detail, sizeFactor } = props;
+  // meshes carry no size data: the radius baked into the vertices; coarse sites' larger by their stride's cube root (no
+  // levels of detail for meshes: the sample's volume kept, as a coarse node's, `ParticleList.scales`)
+  const { detail } = props;
+  const sizeFactor = props.sizeFactor * Math.cbrt(Math.max(1, sites.stride ?? 1));
   const vertexCount = count * sphereVertexCount(detail);
   const state = MeshBuilder.createState(vertexCount, vertexCount / 2, existing?.kind === 'mesh' ? existing : undefined);
   for (let i = 0; i < count; ++i) {
@@ -217,7 +220,9 @@ export function createSitesTargetGeometry(
     addSphere(state, ParticleSites.getPosition(sites, i, p), radius(i) * sizeFactor, detail);
   }
   const m = MeshBuilder.getMesh(state);
-  if (count > 0) m.setBoundingSphere(boundingSphere);
+  if (count > 0) {
+    m.setBoundingSphere(Sphere3D.expand(Sphere3D(), getSitesBoundary(sites).sphere, maxRadius * sizeFactor + 0.05));
+  }
   return m;
 }
 

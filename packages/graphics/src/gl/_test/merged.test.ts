@@ -4,8 +4,14 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { describe, expect, it } from 'vitest';
-import { createRenderObject, createMergedRenderObject, canMergeRenderObjects } from '../render-object.js';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  createRenderObject,
+  createMergedRenderObject,
+  createMergedRecordsRenderObject,
+  canMergeRenderObjects,
+} from '../render-object.js';
+import { type MergeableValues, type MergeRecord, pickMergeRecord } from '../renderable/merged.js';
 import { Scene } from '../scene.js';
 import { SegmentedArray } from '../segmented-array.js';
 import { getGLContext, tryGetGLContext } from './gl.js';
@@ -190,6 +196,44 @@ describe('merged', () => {
     expect(Array.from(pg.subarray(3 * 4, 3 * 4 + 4))).toEqual([3, 0, 0, 0]);
   });
 
+  it('builds a merged object of records alone as of its members, their changes followed', () => {
+    const [a, b] = createMembers();
+    const [c, d] = createMembers();
+    const byMembers = createMergedRenderObject([a, b]);
+    const records = [c, d].map((m) => pickMergeRecord('spheres', m.values as unknown as MergeableValues));
+    // a record its cells of what the merged object reads alone, not a member's values
+    expect(Object.keys(records[0]).length).toBeLessThan(Object.keys(c.values).length / 3);
+    const byRecords = createMergedRecordsRenderObject('spheres', c.values, records, c.state, -1);
+    expect(byRecords.members).toEqual([]);
+    expect(byRecords.merged.records).toBe(records);
+
+    const same = () => {
+      const x = byMembers.values as any;
+      const y = byRecords.values as any;
+      expect(byRecords.merged.segments).toEqual(byMembers.merged.segments);
+      for (const k of ['drawCount', 'uVertexCount', 'instanceCount', 'uGroupCount', 'boundingSphere']) {
+        expect(y[k].ref.value).toEqual(x[k].ref.value);
+      }
+      for (const k of ['aInstance', 'aSegment']) expect(Array.from(y[k].ref.value)).toEqual(Array.from(x[k].ref.value));
+      expect(Array.from(y.tSegment.ref.value.array)).toEqual(Array.from(x.tSegment.ref.value.array));
+      for (const k of ['tPositionGroup', 'tColor']) {
+        const flat = (v: any) => Array.from(SegmentedArray.flatten(v[k].ref.value.array as SegmentedArray));
+        expect(flat(y)).toEqual(flat(x));
+      }
+    };
+    same();
+
+    // a record's cell changed as a member's: read by the next sync alike
+    for (const m of [b, d]) {
+      const pg = m.values.tPositionGroup.ref.value;
+      pg.array.set([3, 0, 0, 0], 0);
+      ValueCell.update(m.values.tPositionGroup, pg);
+    }
+    byMembers.merged.sync();
+    byRecords.merged.sync();
+    same();
+  });
+
   it("a merged object moves as one: its own transient transform drawn, its members' not read", () => {
     const [a, b] = createMembers();
     const { values, merged } = createMergedRenderObject([a, b]);
@@ -346,7 +390,82 @@ describe('merged', () => {
     expect(SegmentedArray.flatten(segmentedPositions)[6 * 3]).toBe(200);
   });
 
+  it('syncs the members whose observed cells changed alone, as a full sync does', () => {
+    const create = () => {
+      const members = Array.from({ length: 6 }, (_, i) =>
+        createSpheresRenderObject(new Float32Array([i, 0, 0, i, 1, 0]), new Float32Array([0, 1]), 2),
+      );
+      const records = members.map((m) => pickMergeRecord('spheres', m.values as unknown as MergeableValues));
+      return createMergedRecordsRenderObject('spheres', members[0].values, records, members[0].state, -1);
+    };
+    const observed = create();
+    const full = create();
+    const markers = (o: ReturnType<typeof create>) => {
+      const v = o.values as any;
+      const array = v.tMarker.ref.value.array;
+      return {
+        layer: Array.from(SegmentedArray.is(array) ? SegmentedArray.flatten(array) : array),
+        average: v.markerAverage.ref.value,
+        status: v.markerStatus.ref.value,
+        marked: o.merged.getMarkedMembers!(),
+      };
+    };
+    // as `Visual.mark` writes a member's markers: its layer, its average and status; a uniform status's layer not
+    // marked changed (its uniform draws it)
+    const mark = (i: number, layer: number[], average: number, status: number) => {
+      for (const o of [observed, full]) {
+        const r = o.merged.records[i] as MergeRecord;
+        const marker = r.tMarker!.ref.value as { array: Uint8Array };
+        marker.array.set(layer);
+        if (status === -1) ValueCell.update(r.tMarker!, marker);
+        ValueCell.update(r.markerAverage, average);
+        ValueCell.update(r.markerStatus, status);
+      }
+      observed.merged.sync(true);
+      full.merged.sync();
+      expect(markers(observed)).toEqual(markers(full));
+    };
+
+    mark(2, [1, 1], 1, 1);
+    mark(4, [1, 0], 0.5, -1);
+    expect(markers(observed).marked).toEqual([2, 4]);
+    expect(markers(observed).status).toBe(-1);
+    mark(2, [0, 0], 0, 0);
+    expect(markers(observed).marked).toEqual([4]);
+    // none marked: the average 0, whatever the updates' rounding
+    mark(4, [0, 0], 0, 0);
+    expect(markers(observed)).toMatchObject({ average: 0, status: 0, marked: [] });
+  });
+
   const ctx = tryGetGLContext(32, 32, { fragDepth: true });
+
+  (ctx ? it : it.skip)(
+    'updates a merged object by its observed cells alone where only they changed',
+    { tags: ['medium'] },
+    () => {
+      const ctx = getGLContext(32, 32);
+      const scene = Scene.create(ctx);
+      const [a, b] = createMembers();
+      const merged = createMergedRenderObject([a, b]);
+      scene.add(merged);
+      scene.commit();
+      scene.updateChanged(false);
+      const renderable = scene.get(merged)!;
+      const update = vi.spyOn(renderable, 'update');
+
+      // a mark: the members' observed cells alone
+      ValueCell.update(b.values.markerStatus, 1);
+      scene.updateChanged(false);
+      expect(update).toHaveBeenCalledExactlyOnceWith(true);
+      expect(merged.values.markerStatus.ref.value).toBe(-1);
+
+      // a representation's update: all of it read
+      update.mockClear();
+      scene.update([merged], false);
+      expect(update).toHaveBeenCalledExactlyOnceWith();
+      ctx.destroy();
+    },
+  );
 
   (ctx ? it : it.skip)('scene', { tags: ['medium'] }, async () => {
     const ctx = getGLContext(32, 32);

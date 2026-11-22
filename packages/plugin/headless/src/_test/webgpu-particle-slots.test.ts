@@ -211,6 +211,28 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles on WebGPU', () =>
       expect(r.mark(loci, MarkerAction.RemoveHighlight)).toBe(true);
       expect(await image()).toEqual(allFlat);
 
+      // a layer by slot: the store's texels (its define on), the object kept; none again, as before
+      // as the plugin applies a state: the canvas told
+      const overpaint = (layers: { loci: Particle.Loci; color: number; clear: boolean }[]) => {
+        r.setState({ overpaint: { kind: 'particle-loci', layers } as never });
+        plugin.canvas3d!.update(r);
+        plugin.canvas3d!.commit(true);
+      };
+      // every slot by its index (not every loci: the store indices of the slots)
+      const all = Particle.Loci(slots, OrderedSet.ofBounds(0, slots.count));
+      overpaint([{ loci: all, color: 0xff0000, clear: false }]);
+      expect((object.values as any).dOverpaint.ref.value).toBe(true);
+      const painted = await image();
+      expect(painted).not.toEqual(allFlat);
+      expect(r.renderObjects[0]).toBe(object);
+      // the view's tiles let go and added again: the pages written their texels by the layers again, the others kept
+      expect(await setIds('0, 2, 5')).not.toEqual(someFlat);
+      expect(await setIds('0-7')).toEqual(painted);
+      expect(r.renderObjects[0]).toBe(object);
+      overpaint([]);
+      expect((object.values as any).dOverpaint.ref.value).toBe(false);
+      expect(await image()).toEqual(allFlat);
+
       // picks through the canvas, its frames multi-sampled over time: the canvas' frame the culled one. The first an
       // async one drawn incomplete (a draw skipped, as while a program compiles), then again as work settles: of the
       // canvas' frame then, not one of its own

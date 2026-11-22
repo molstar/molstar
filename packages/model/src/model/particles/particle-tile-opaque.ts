@@ -36,7 +36,19 @@ export interface ParticleDensityGrid {
   readonly max: Vec3;
   readonly dimensions: readonly [number, number, number];
   readonly density: Float32Array;
+  /** this grid's state of `density` (`updateDensityGrid` writes the same array in place, a new version each time) */
+  readonly version?: number;
+  /**
+   * what an update changed (`updateDensityGrid`): the version it was made from and the boxes of cells it wrote,
+   * `[x0, y0, z0, x1, y1, z1)` six a box. Why: a copy of the grid (an upload) kept up to date by those cells alone, not
+   * all of it (a view's step: a few tiles of thousands)
+   */
+  readonly update?: { readonly from: number; readonly boxes: Int32Array };
+  /** the tiles whose opacities it holds (`updateDensityGrid`: none left, no grid; kept by the changes alone) */
+  readonly tileCount?: number;
 }
+
+let densityGridVersion = 0;
 
 export interface ParticleTileOpaqueOptions {
   /** the blocks an axis: 4 by default */
@@ -304,6 +316,8 @@ export namespace ParticleTileOpaque {
       max: Vec3.create(origin[0] + cellSize[0] * gx, origin[1] + cellSize[1] * gy, origin[2] + cellSize[2] * gz),
       dimensions: [nx, ny, nz],
       density,
+      version: ++densityGridVersion,
+      tileCount: withOpacity.length,
     };
   }
 
@@ -314,6 +328,8 @@ export namespace ParticleTileOpaque {
     b: number,
     tile: ParticleTile,
     clear: boolean,
+    /** the box of cells written appended (six a box) */
+    boxes?: number[],
   ) {
     const [gx, gy] = set.grid.dimensions;
     const nx = gx * b;
@@ -321,6 +337,7 @@ export namespace ParticleTileOpaque {
     const x = tile.id % gx;
     const y = Math.floor(tile.id / gx) % gy;
     const z = Math.floor(tile.id / (gx * gy));
+    boxes?.push(x * b, y * b, z * b, (x + 1) * b, (y + 1) * b, (z + 1) * b);
     const d = tile.opacity!.density;
     for (let bk = 0; bk < b; ++bk) {
       for (let bj = 0; bj < b; ++bj) {
@@ -359,23 +376,47 @@ export namespace ParticleTileOpaque {
       const opacity = set.tiles.get(id)?.opacity;
       return opacity && opacity.dimensions.every((d) => d === b) ? set.tiles.get(id)! : undefined;
     };
+    // the tiles added and let go alone (a step: a few of thousands shown), the count of those with opacities kept
+    const added: number[] = [];
     for (const id of next) {
+      if (before.has(id)) continue;
       const tile = set.tiles.get(id);
-      if (!before.has(id) && tile?.opacity && !withOpacity(id)) return getDensityGrid(set, next);
+      if (tile?.opacity && !withOpacity(id)) return getDensityGrid(set, next);
+      added.push(id);
     }
     const { density } = last.grid;
+    const boxes: number[] = [];
+    let count = last.grid.tileCount;
     for (const id of before) {
-      const tile = withOpacity(id);
-      if (tile && !next.has(id)) writeTileDensity(set, density, b, tile, true);
-    }
-    let any = false;
-    for (const id of next) {
+      if (next.has(id)) continue;
       const tile = withOpacity(id);
       if (!tile) continue;
-      any = true;
-      if (!before.has(id)) writeTileDensity(set, density, b, tile, false);
+      writeTileDensity(set, density, b, tile, true, boxes);
+      if (count !== undefined) count -= 1;
     }
-    return any ? { ...last.grid } : undefined;
+    for (const id of added) {
+      const tile = withOpacity(id);
+      if (!tile) continue;
+      writeTileDensity(set, density, b, tile, false, boxes);
+      if (count !== undefined) count += 1;
+    }
+    // a grid of no count (made elsewhere): its tiles counted
+    if (count === undefined) {
+      count = 0;
+      for (const id of next) if (withOpacity(id)) count += 1;
+    }
+    if (count === 0) return undefined;
+    // a grid of no version (made elsewhere): no update to go by, a copy of it made again whole
+    const from = last.grid.version;
+    return {
+      min: last.grid.min,
+      max: last.grid.max,
+      dimensions: last.grid.dimensions,
+      density,
+      version: ++densityGridVersion,
+      update: from !== undefined ? { from, boxes: Int32Array.from(boxes) } : undefined,
+      tileCount: count,
+    };
   }
 
   /**

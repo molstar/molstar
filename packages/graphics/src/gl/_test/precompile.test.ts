@@ -6,8 +6,18 @@
 
 import { describe, expect, it } from 'vitest';
 import type { GraphicsContext } from '../context.js';
-import { createSignatureProgramItem, getSchemaLinearTextures, type ObjectSignature } from '../precompile.js';
-import { getRenderableProgramSource } from '../render-object.js';
+import {
+  createSignatureProgramItem,
+  getSchemaLinearTextures,
+  type ObjectSignature,
+  PrecompileRecorder,
+} from '../precompile.js';
+import { createRenderObject, getRenderableProgramSource } from '../render-object.js';
+import { Scene } from '../scene.js';
+import { ValueCell } from '@molstar/core/util/value-cell';
+import { ColorNames } from '@molstar/core/util/color/names';
+import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import { Lines } from '@molstar/graphics/geo/geometry/lines/lines';
 import type { DefineValues } from '../shader-code.js';
 import { createContext } from '../webgl/context.js';
 import { getDataTextureSchema } from '../webgl/data-textures.js';
@@ -96,6 +106,33 @@ describe('precompile signatures on WebGL', () => {
     expect(ctx.isWebGL2).toBe(false);
     expect(programSchema.uClipObjectCount.type).toBe('define');
     item.destroy();
+    ctx.destroy();
+  });
+
+  it('record a renderable again only where what its signature reads changed, and after a reset', () => {
+    const ctx = createContext(createGl(32, 32));
+    const props = PD.getDefaultValues(Lines.Params);
+    const values = Lines.Utils.createValuesSimple(Lines.createEmpty(), props, ColorNames.orange, 1);
+    const object = createRenderObject('lines', values, Lines.Utils.createRenderableState(props), -1);
+    const scene = Scene.create(ctx);
+    scene.add(object);
+    scene.commit();
+    const renderable = scene.renderables[0];
+    const recorder = new PrecompileRecorder();
+    expect(recorder.recordAgain([renderable])).toBe(true);
+    // nothing it reads changed (a state set elsewhere): the same, not signed again
+    ValueCell.update(values.uColor, values.uColor.ref.value);
+    expect(recorder.recordAgain([renderable])).toBe(false);
+    expect(recorder.size).toBe(1);
+    // a define changed: another signature
+    ValueCell.update(values.dOverpaint, true);
+    expect(recorder.recordAgain([renderable])).toBe(true);
+    expect(recorder.size).toBe(2);
+    // forgotten: recorded again, its signature the same
+    recorder.reset();
+    expect(recorder.recordAgain([renderable])).toBe(false);
+    expect(recorder.size).toBe(1);
+    scene.clear();
     ctx.destroy();
   });
 });

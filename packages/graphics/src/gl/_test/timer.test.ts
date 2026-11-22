@@ -9,8 +9,11 @@ import { isDebugMode, setDebugMode } from '@molstar/core/util/debug';
 import { createGraphicsStats } from '../stats.js';
 import { createGraphicsTimer, type TimerResult, type TimerSource } from '../timer.js';
 
-/** Segments take 10 ns each, unless listed in `invalid` */
-function createFakeSource(invalid = new Set<number>()) {
+/**
+ * Segments take 10 ns each, unless listed in `invalid`; with `spans`, segment `i` ran from `1000 * i` on the GPU's
+ * clock
+ */
+function createFakeSource(invalid = new Set<number>(), spans = false) {
   let nextId = 0;
   let current = -1;
   const finished: number[] = [];
@@ -26,7 +29,14 @@ function createFakeSource(invalid = new Set<number>()) {
       finished.push(current);
       current = -1;
     },
-    poll: () => finished.splice(0).map((id) => [id, invalid.has(id) ? undefined : 10] as const),
+    poll: () =>
+      finished
+        .splice(0)
+        .map((id) =>
+          invalid.has(id)
+            ? ([id, undefined] as const)
+            : ([id, 10, spans ? { start: 1000 * id, end: 1000 * id + 10 } : undefined] as const),
+        ),
     clear: () => {
       finished.length = 0;
     },
@@ -34,9 +44,9 @@ function createFakeSource(invalid = new Set<number>()) {
   return { source, log };
 }
 
-function setup(invalid?: Set<number>) {
+function setup(invalid?: Set<number>, spans = false) {
   const stats = createGraphicsStats();
-  const { source, log } = createFakeSource(invalid);
+  const { source, log } = createFakeSource(invalid, spans);
   const timer = createGraphicsTimer(source, stats);
   const draw = () => {
     stats.calls.drawInstanced += 1;
@@ -103,6 +113,42 @@ describe('graphics timer', () => {
       ['pass Z', 10],
     ]);
     expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("gives a pass where it ran on the GPU, a group its passes' first begin and last end, and their CPU starts", () => {
+    const { timer, draw } = setup(undefined, true);
+    timer.group('A');
+    timer.passBegin('compute', 'X');
+    timer.group('B');
+    timer.passBegin('drawing-buffer', 'Y');
+    draw();
+    timer.passEnd();
+    timer.groupEnd('B');
+    timer.passBegin('compute', 'Z');
+    timer.passEnd();
+    timer.groupEnd('A');
+
+    const a = timer.resolve()[0];
+    expect([a.gpuStart, a.gpuEnd]).toEqual([0, 2010]);
+    expect(a.children.map((c) => [c.label, c.gpuStart, c.gpuEnd])).toEqual([
+      ['B', 1000, 1010],
+      ['pass X', 0, 10],
+      ['pass Z', 2000, 2010],
+    ]);
+    // the CPU's starts in order: the group, its first pass, the nested group, the last pass
+    const x = find([a], 'pass X')!;
+    const b = find([a], 'B')!;
+    const z = find([a], 'pass Z')!;
+    expect(a.cpuStart).toBeLessThanOrEqual(x.cpuStart);
+    expect(x.cpuStart).toBeLessThanOrEqual(b.cpuStart);
+    expect(b.cpuStart).toBeLessThanOrEqual(z.cpuStart);
+    // a source without spans: none
+    const plain = setup();
+    plain.timer.group('A');
+    plain.timer.passBegin('compute', 'X');
+    plain.timer.passEnd();
+    plain.timer.groupEnd('A');
+    expect(plain.timer.resolve()[0].gpuStart).toBeUndefined();
   });
 
   it('times compute passes like render passes', () => {

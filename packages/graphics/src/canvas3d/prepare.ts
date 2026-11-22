@@ -9,6 +9,7 @@
 
 import { getDenoiseKernels, isComputeDenoiseSupported } from '@molstar/graphics/gl/compute/denoise';
 import { SphereRasterKernels } from '@molstar/graphics/gl/compute/sphere-raster';
+import { isSplatSortSupported, SplatSortKernels } from '@molstar/graphics/gl/compute/splat-sort';
 import { Object3D } from '@molstar/graphics/gl/object3d';
 import {
   createSignatureProgramItem,
@@ -170,11 +171,13 @@ export function createCanvas3DPreparer(parts: Canvas3DParts): Canvas3DPreparer {
       const primitives: { signature: ObjectSignature; item: ProgramItem }[] = [];
       const volumes: { signature: ObjectSignature; item: ProgramItem }[] = [];
       for (const signature of list.objects) {
-        const key = `${transparency}|${globals.dLightCount}|${globals.dColorMarker}|${getSignatureKey(signature)}`;
+        // splats blended whatever the scene's transparency (their own pass, `GaussianSplatsRenderable`)
+        const mode = signature.type === 'gaussian-splats' ? 'blended' : transparency;
+        const key = `${mode}|${globals.dLightCount}|${globals.dColorMarker}|${getSignatureKey(signature)}`;
         let item = items.get(key) ?? reuse?.get(key);
         if (!item) {
           try {
-            item = createSignatureProgramItem(graphics, signature, transparency, globals);
+            item = createSignatureProgramItem(graphics, signature, mode, globals);
           } catch (e) {
             if (isDebugMode) console.warn('Skipped a precompile list entry', signature, e);
           }
@@ -185,6 +188,7 @@ export function createCanvas3DPreparer(parts: Canvas3DParts): Canvas3DPreparer {
       }
 
       const listPrimitives = group(primitives.length);
+      const hasGaussianSplats = primitives.some((p) => p.signature.type === 'gaussian-splats');
       const listVolumes = group(volumes.length);
       // the averages decide between exclusive branches (e.g. bloom composites the background over emissive objects
       // only, postprocessing blends transparency only with transparent objects): planned with none and some
@@ -196,6 +200,7 @@ export function createCanvas3DPreparer(parts: Canvas3DParts): Canvas3DPreparer {
               primitives: { value: listPrimitives },
               volumes: { value: listVolumes },
               hasOpaque: { value: true },
+              hasGaussianSplats: { value: hasGaussianSplats },
               opacityAverage: { value: opacityAverage },
               transparencyMin: { value: 0 },
               emissiveAverage: { value: emissiveAverage },
@@ -259,6 +264,13 @@ export function createCanvas3DPreparer(parts: Canvas3DParts): Canvas3DPreparer {
     return list.objects.some((s) => s.type === 'spheres' && s.opaque && (mode !== 'auto' || s.gpuCulled === true));
   }
 
+  /** the GPU sort's kernels where `list` has splats and compute shaders run, else compiled at their first frame */
+  function prepareSplatSort(list: PrecompileList) {
+    const { compute } = parts.graphics;
+    if (!compute || !list.objects.some((s) => s.type === 'gaussian-splats') || !isSplatSortSupported(compute)) return;
+    return compute.prepareKernels(SplatSortKernels);
+  }
+
   function precompile(list: PrecompileList, propsList: readonly Canvas3DPrecompileProps[] = [{}]): Promise<void> {
     if (parts.contextLost) return Promise.resolve();
     const { graphics, passes } = parts;
@@ -282,7 +294,8 @@ export function createCanvas3DPreparer(parts: Canvas3DParts): Canvas3DPreparer {
       })
         ? graphics.compute.prepareKernels(getDenoiseKernels())
         : undefined;
-    return Promise.all([graphics.resources.pending.whenReady(), kernels, raster, denoise]).then(() => {});
+    const splatSort = prepareSplatSort(list);
+    return Promise.all([graphics.resources.pending.whenReady(), kernels, raster, denoise, splatSort]).then(() => {});
   }
 
   /**
@@ -339,6 +352,7 @@ export function createCanvas3DPreparer(parts: Canvas3DParts): Canvas3DPreparer {
     // the culling's kernels of objects culled on the GPU, as `precompile`
     if (graphics.compute && gpuCulled) graphics.compute.prepareKernels(MergedCullKernels);
     if (hasSphereRaster({ objects })) graphics.compute!.prepareKernels(SphereRasterKernels);
+    prepareSplatSort({ objects });
     // the items this request uses too move to it: with an earlier one's they could go before its owners are added
     for (const entry of preparedObjects) for (const key of items.keys()) entry.items.delete(key);
     preparedObjects.push({ owners: new Set(requests.keys()), added: new Set(), items, time: now() });

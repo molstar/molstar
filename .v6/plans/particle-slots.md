@@ -179,8 +179,8 @@
   add made the object again (a slot view's target map has new ids as tiles come: taken as other targets, all made
   again, 300-1,100 ms; then the pool's members by their targets: the object made again, 174-253 MB uploaded, frames
   110-1,000 ms and Dawn's `submit` stalls after). Now:
-  - **A pool of members** (`slots.ts`): members of cells of their own (`createEmptyMergeMember`), filled with a
-    target's values (`fillMergeMember`), the room `PoolHeadroom` past the store's members and at least a member a
+  - **A pool of members** (`slots.ts`): records (`MergeRecord`: the cells a fill writes their own, the rest the
+    empty record's; the shared values once), filled with a target's values (`fillMergeRecord`), the room `PoolHeadroom` past the store's members and at least a member a
     target of the list's catalog (`targetInfo`: a tile set's, the object made once; made again past it); the store's members by target (`ParticleTileStore.memberCapacity`: a new target a member never used
     while there is room, else the longest free; a target let go and taken again its own member back, its values
     as they are).
@@ -213,7 +213,8 @@
     changed members alone still cost three passes over cold cells (the pool's, the merged sync's, the culler's) and
     the records' prediction a fourth over all (`predictRecords`). The pool keeps a member's count and bounds in
     typed arrays (`MergedInstanceSource.counts`: its cells written with them, the CPU cull and the marking read
-    those), its reach and grid size read once a fill; the merged sync reads the members whose count or bounds alone
+    those; a paged source's counts in the copies alone since, the merged object and its CPU cull reading those:
+    [particle-tiles.md](particle-tiles.md) 10a4), its reach and grid size read once a fill; the merged sync reads the members whose count or bounds alone
     changed (`counts.take`) from the copies, their cells not (not counted in `memberChanges`: the culler's rows
     stay), the culler its cells' and the prediction's bounds from them (no transient transform).
   - **The poses composed on the GPU**: the store's write ~20 ns a particle in V8 (the decode, the normalization and
@@ -399,7 +400,7 @@ Each measured against the goal (the yeast cell, 8³ tiles, 30 in view, a tile ad
          `poses[base + i]` (objects not of a source as now).
        - **Gone for sources**: the tile store's instance arrays and `TileStoreCulled`, `CulledStore`,
          `expandBlocks`, the identity region, the culler's `syncLayout` (cells, records, `refreshSegments`), most
-         of `MergedSourceCounts`. Kept: the member pool (`fillMergeMember`, `replaceGeometry`), the records'
+         of `MergedSourceCounts`. Kept: the member pool (`fillMergeRecord`, `replaceGeometry`), the records'
          compaction (empty draws cost), the lists, the raster, the passes.
        - **Steps**: 1. the page store and runs (CPU; tested against the tile store's poses); 2. the source culler's
          kernels (count, scan, write; levels, the frustum); 3. the draws by pose region (a slot view's image the flat
@@ -418,7 +419,7 @@ Each measured against the goal (the yeast cell, 8³ tiles, 30 in view, a tile ad
          `paged-cull-write`). Its buffers within a stage's eight: the tables one buffer (the records, the runs, the
          members' centers and reaches, the active pages; written whole where a section's capacity changed, else by what
          changed), the positions and rotations as stored, the extras (a page's member and scale a particle: the store's
-         extras pool, the record its first, no longer \`PageValues\`'), the counts (the write's cursors after the scan),
+         extras pool, the record its first, no longer \`PageValues\`'; now the tables' last section, grown in place: a binding freed for the nested lists' cull, particle-nesting.md step 5), the counts (the write's cursors after the scan),
          the bases (the prefix sum's), the poses (32 B: \`t\`, the scale, the snorm16 quaternion, the slot, the member).
          A level the first whose distance range holds the instance's center (none: culled); a workgroup's counts by its
          runs' index times the levels and the level, one global atomic a key. The values' buffers grown by a copy,

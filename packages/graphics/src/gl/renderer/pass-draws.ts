@@ -184,7 +184,12 @@ export function getSolidInteriorFillStates(passState: RenderState, mode: SolidIn
 export type FactTest = (facts: number, state: number) => boolean;
 
 const OpaqueBlockers =
-  DrawFact.AlphaOne | DrawFact.TransparencyFull | DrawFact.DirectVolume | DrawFact.FuzzyPoints | DrawFact.Xray;
+  DrawFact.AlphaOne |
+  DrawFact.TransparencyFull |
+  DrawFact.DirectVolume |
+  DrawFact.FuzzyPoints |
+  DrawFact.Xray |
+  DrawFact.GaussianSplats;
 const TransparentReasons =
   DrawFact.AlphaBelowOne |
   DrawFact.TransparencyAny |
@@ -194,11 +199,24 @@ const TransparentReasons =
   DrawFact.Xray |
   DrawFact.Occludable;
 
-/** alpha 1, not fully transparent, not a direct volume, fuzzy points or x-ray shaded; or back faces opaque */
-const checkOpaque: FactTest = (f) => (f & OpaqueBlockers) === DrawFact.AlphaOne || (f & DrawFact.BackfacesOpaque) !== 0;
+/**
+ * alpha 1, not fully transparent, not a direct volume, fuzzy points, x-ray shaded or gaussian splats; or back faces
+ * opaque (not splats)
+ */
+const checkOpaque: FactTest = (f) =>
+  (f & OpaqueBlockers) === DrawFact.AlphaOne ||
+  ((f & DrawFact.BackfacesOpaque) !== 0 && (f & DrawFact.GaussianSplats) === 0);
 
-/** not alpha 0, and alpha below 1, transparency, a direct volume, fuzzy points, text, an image or x-ray shaded */
-const checkTransparent: FactTest = (f) => (f & DrawFact.AlphaZero) === 0 && (f & TransparentReasons) !== 0;
+/**
+ * not alpha 0, and alpha below 1, transparency, a direct volume, fuzzy points, text, an image or x-ray shaded; not
+ * gaussian splats (their own pass, `checkGaussianSplats`)
+ */
+const checkTransparent: FactTest = (f) =>
+  (f & (DrawFact.AlphaZero | DrawFact.GaussianSplats)) === 0 && (f & TransparentReasons) !== 0;
+
+/** gaussian splats, not alpha 0: always blended, back to front */
+const checkGaussianSplats: FactTest = (f) =>
+  (f & (DrawFact.AlphaZero | DrawFact.GaussianSplats)) === DrawFact.GaussianSplats;
 
 const checkPickable: FactTest = (_, s) => (s & DrawState.ColorOnly) === 0;
 
@@ -212,6 +230,8 @@ const checkClipGhost: FactTest = (f) => (f & DrawFact.ClipGhost) !== 0;
 const checkEmissive: FactTest = (f) => (f & DrawFact.Emissive) !== 0;
 
 const isDirectVolume: FactTest = (f) => (f & DrawFact.DirectVolume) !== 0;
+
+const isGaussianSplats: FactTest = (f) => (f & DrawFact.GaussianSplats) !== 0;
 
 /** caps are drawn from back faces, which transparent passes discard when `transparentBackfaces` is 'off' */
 const checkTransparentCap: FactTest = (f, s) => checkTransparent(f, s) && (f & DrawFact.BackfacesOff) === 0;
@@ -336,6 +356,19 @@ export const PassDraws = {
   blendedTransparent: createBlendedTransparentPassDraws(false),
   blendedTransparentBackground: createBlendedTransparentPassDraws(true),
   volume: { variant: 'color', select: isDirectVolume, check: checkAll, draws: singleDraw(VolumeState) },
+  // after the other transparency (its composite), on the opaque depth: as blended transparency, no faces nor caps
+  gaussianSplats: {
+    variant: 'color',
+    select: isGaussianSplats,
+    check: checkGaussianSplats,
+    draws: singleDraw(BlendedTransparentState),
+  } as PassDraws,
+  gaussianSplatsBackground: {
+    variant: 'color',
+    select: isGaussianSplats,
+    check: checkGaussianSplats,
+    draws: singleDraw(BlendedTransparentBackgroundState),
+  } as PassDraws,
   wboitTransparent: simplePassDraws('color', checkTransparent, WboitState, {
     check: checkTransparentCap,
     mode: 'oit',
@@ -364,6 +397,7 @@ export type Pass =
         | 'opaque'
         | 'blendedTransparent'
         | 'volume'
+        | 'gaussianSplats'
         | 'wboitTransparent'
         | 'dpoitTransparent';
     };
@@ -376,6 +410,8 @@ export function getPassDraws(pass: Pass, transparentBackground: boolean): PassDr
       return pass.occludeWithOpaqueDepth ? PassDraws.emissiveOpaqueOccluded : PassDraws.emissiveOpaque;
     case 'blendedTransparent':
       return transparentBackground ? PassDraws.blendedTransparentBackground : PassDraws.blendedTransparent;
+    case 'gaussianSplats':
+      return transparentBackground ? PassDraws.gaussianSplatsBackground : PassDraws.gaussianSplats;
     default:
       return PassDraws[pass.name];
   }

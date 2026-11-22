@@ -61,4 +61,33 @@ describe('shape representation, geometry relying on capabilities', () => {
     expect(values.dVaryingGroup.ref.value).toBe(false);
     expect(values.uVertexCount.ref.value).toBeGreaterThan(3);
   });
+
+  // e.g. GPU textures: what the context made can't be changed in place, so the getter makes it on the new one
+  it('calls the getter again with the new context for geometry made on the previous one', async () => {
+    const madeOn = new WeakMap<Mesh, GraphicsContext | undefined>();
+    const calls: (GraphicsContext | undefined)[] = [];
+    const getShape = (_: unknown, _data: object, _props: unknown, _shape: unknown, g?: GraphicsContext) => {
+      calls.push(g);
+      const shape = getVaryingShape();
+      madeOn.set(shape.geometry, g);
+      return shape;
+    };
+    const utils = {
+      ...Mesh.Utils,
+      isCompatible: (mesh: Mesh, g: GraphicsContext) => madeOn.get(mesh) === g,
+      makeCompatible: undefined,
+    };
+    const a = graphics(true);
+    const b = graphics(true);
+    const repr = ShapeRepresentation(getShape, utils, { graphics: a });
+    await repr.createOrUpdate({}, {}).run();
+    expect(calls).toEqual([a]);
+    // the same context: nothing made again
+    await repr.createOrUpdate().run();
+    expect(calls).toEqual([a]);
+    repr.setGraphics!(b);
+    await repr.createOrUpdate().run();
+    expect(calls).toEqual([a, b]);
+    expect(repr.renderObjects).toHaveLength(1);
+  });
 });

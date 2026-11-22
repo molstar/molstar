@@ -99,11 +99,20 @@ export namespace Spheres {
     return fromPositionGroup(interleavePositionGroup(centers, groups, sphereCount), sphereCount, spheres);
   }
 
-  /** From center xyz and group per sphere (`PositionGroupStride` floats), kept as the geometry's array */
-  export function fromPositionGroup(positionGroup: Float32Array, sphereCount: number, spheres?: Spheres): Spheres {
+  /**
+   * From center xyz and group per sphere (`PositionGroupStride` floats), kept as the geometry's array; `base`: the
+   * spheres every `base`-th of a whole's (coarse sites, `ParticleSites.stride`), their levels of detail of the whole, as
+   * quantized sites' (`SphereSites.stride`)
+   */
+  export function fromPositionGroup(
+    positionGroup: Float32Array,
+    sphereCount: number,
+    spheres?: Spheres,
+    base = 1,
+  ): Spheres {
     return spheres && !spheres.sites
-      ? update(positionGroup, sphereCount, spheres)
-      : fromData(positionGroup, undefined, sphereCount);
+      ? update(positionGroup, sphereCount, spheres, base)
+      : fromData(positionGroup, undefined, sphereCount, base);
   }
 
   /**
@@ -128,8 +137,11 @@ export namespace Spheres {
     positionGroup: Float32Array | undefined,
     sites: SphereSites | undefined,
     sphereCount: number,
+    base = 1,
   ): Spheres {
     const sitesCell = sites ? ValueCell.create(sites) : undefined;
+    // the levels' base of centers not quantized (`fromPositionGroup`'s), quantized ones' their stride
+    const baseCell = ValueCell.create(base);
     const getCount = () => spheres.sphereCount;
     const centerGroup = positionGroup ? createCenterGroupData(positionGroup, sphereCount, getCount) : undefined;
     const data = centerGroup ?? createSitesData(sitesCell!, getCount);
@@ -138,7 +150,7 @@ export namespace Spheres {
     const lodLevels = ValueCell.create([] as LodLevelsValue);
     const sizeFactor = ValueCell.create(0);
 
-    const spheres: Spheres & { sitesCell?: ValueCell<SphereSites> } = {
+    const spheres: Spheres & { sitesCell?: ValueCell<SphereSites>; baseCell: ValueCell<number> } = {
       kind: 'spheres' as const,
       sphereCount,
       positionGroup: positionGroupCell,
@@ -154,6 +166,7 @@ export namespace Spheres {
       setBoundingSphere: data.setBoundingSphere,
       hasBoundingSphere: data.hasBoundingSphere,
       sitesCell,
+      baseCell,
       shaderData: {
         positionGroup: positionGroupCell,
         sites: ValueCell.create(sites ? getSitesDataArray(sites, sphereCount) : createDataArray(1, 4, Int16Array)),
@@ -166,7 +179,7 @@ export namespace Spheres {
           const sizeFactorProp = props?.sizeFactor ?? sizeFactor.ref.value;
           const pixelSizeProp = props?.lodPixelSize ?? lodLevels.ref.value.pixelSize ?? 0;
           const radiusProp = props?.lodRadius ?? lodLevels.ref.value.radius ?? LodNominalRadius;
-          const base = sitesCell?.ref.value.stride ?? 1;
+          const base = sitesCell ? (sitesCell.ref.value.stride ?? 1) : baseCell.ref.value;
           const value = Lod.getLodPixelLevelsValue(
             spheres.sphereCount,
             pixelSizeProp,
@@ -183,8 +196,9 @@ export namespace Spheres {
     return spheres;
   }
 
-  function update(positionGroup: Float32Array, sphereCount: number, spheres: Spheres) {
+  function update(positionGroup: Float32Array, sphereCount: number, spheres: Spheres, base: number) {
     spheres.sphereCount = sphereCount;
+    ValueCell.updateIfChanged((spheres as unknown as { baseCell: ValueCell<number> }).baseCell, base);
     setPositionGroup(spheres.positionGroup, positionGroup, sphereCount);
     spheres.shaderData.update();
     return spheres;

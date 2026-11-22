@@ -62,7 +62,10 @@ export function createEmissive(count: number, type: EmissiveType, emissiveData?:
     Math.max(1, count),
     1,
     Uint8Array,
-    emissiveData && emissiveData.tEmissive.ref.value.array,
+    // its array reused, not the empty one: shared by every object (one's layer another's)
+    emissiveData && emissiveData.tEmissive.ref.value !== emptyEmissiveTexture
+      ? emissiveData.tEmissive.ref.value.array
+      : undefined,
   );
   if (emissiveData) {
     ValueCell.update(emissiveData.tEmissive, emissive);

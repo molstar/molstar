@@ -1373,6 +1373,8 @@ namespace Canvas3D {
 
       camera.transition.tick(currentTime);
       hiZ.tick();
+      // the last frame culled against older levels, these of its view arrived: drawn again (`HiZPass.noteCulled`)
+      if (hiZ.takeCatchUp()) forceNextRender = true;
 
       if (options?.manualDraw) {
         return;

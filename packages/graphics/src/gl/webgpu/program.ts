@@ -278,8 +278,12 @@ export function createWebGPUProgram(
   const culled = indexed || !!lookup(InstanceStorageDefine);
   const storageNames = indexed ? CulledStorageNames : InstanceStorageNames;
   const body = culled ? wrapCulledVertexMain(preprocessed) : preprocessed;
+  const vertexInput = culled
+    ? getCulledVertexInputDeclaration(schema, lookup, indexed, indexed && !!lookup(CulledPagedDefine))
+    : undefined;
 
-  const identifiers = new Set(body.match(/\b[A-Za-z_]\w*\b/g) ?? []);
+  // the generated input reader's too (its helpers' bindings: a copy's layers, `copyLayerOr`)
+  const identifiers = new Set(`${body}\n${vertexInput ?? ''}`.match(/\b[A-Za-z_]\w*\b/g) ?? []);
   // the data layers' pages are read by the generated accessors (`getDataLayerAccessors`), each layer from its page
   const dataPages = Number(defineValues[DataLayerPagesName]?.ref.value ?? 0);
   const readPages = getReadDataPages(schema, (n) => identifiers.has(n), dataPages);
@@ -287,9 +291,6 @@ export function createWebGPUProgram(
   const isReferenced = (n: string) => identifiers.has(n) || readPages.has(n) || (culled && storageNames.has(n));
 
   const bindingLayout = getBindingLayout(schema, lookup);
-  const vertexInput = culled
-    ? getCulledVertexInputDeclaration(schema, lookup, indexed, indexed && !!lookup(CulledPagedDefine))
-    : undefined;
   const declarations = getWgslDeclarations(schema, bindingLayout, lookup, isReferenced, vertexInput);
   if (declarations.unsupported.length > 0) {
     throw new Error(`uniforms without a block are not supported by WebGPU: ${declarations.unsupported.join(', ')}`);

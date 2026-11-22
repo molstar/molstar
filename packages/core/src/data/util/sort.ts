@@ -219,10 +219,15 @@ export function radixSort<T extends Int32Array | Uint32Array>(data: T, maxValue?
   return data;
 }
 
+/** from this many keys of more than two digits `radixSortIndices` sorts by bucket (`radixSortIndicesByBucket`) */
+const RadixBucketMin = 1 << 16;
+const _radixBounds = new Uint32Array(257);
+
 /**
  * The indices `0..n-1` of `keys` (non-negative integers) ordered by their key, ascending, equal keys by index (stable):
  * an LSD radix sort (8-bit digits) of the indices, the keys read in place. `maxValue` is an inclusive upper bound of the
- * keys and determines the number of passes; it is computed from the keys when omitted. Two index arrays of `n`.
+ * keys and determines the number of passes; it is computed from the keys when omitted. Two index arrays of `n`. Many
+ * keys of more than two digits by bucket (`radixSortIndicesByBucket`, the same order)
  */
 export function radixSortIndices(keys: Int32Array | Uint32Array, maxValue?: number): Int32Array {
   const n = keys.length;
@@ -233,6 +238,7 @@ export function radixSortIndices(keys: Int32Array | Uint32Array, maxValue?: numb
       if (keys[i] > max) max = keys[i];
     }
   }
+  if (n >= RadixBucketMin && max >>> 16 > 0) return radixSortIndicesByBucket(keys, max);
 
   let a = new Int32Array(n);
   for (let i = 0; i < n; i++) a[i] = i;
@@ -252,4 +258,90 @@ export function radixSortIndices(keys: Int32Array | Uint32Array, maxValue?: numb
     b = t;
   }
   return a;
+}
+
+/**
+ * `radixSortIndices` of many keys (`max` their bound, above two digits): the indices into buckets by the keys' top
+ * digit (a pass reading them in order), then each bucket by LSD with its keys alongside, the bucket's arrays in cache;
+ * a key read out of order once, not a pass each (31.5 M Morton codes of 27 bits: 3.8 to 1.0 s in Node). Stable, as the LSD
+ * sort: a bucket's indices ascending, its passes stable. Scratch of the largest bucket's size
+ */
+function radixSortIndicesByBucket(keys: Int32Array | Uint32Array, max: number): Int32Array {
+  const n = keys.length;
+  const top = 32 - Math.clz32(max) - 8;
+  const counts = _radixCounts;
+  const bounds = _radixBounds;
+  counts.fill(0);
+  for (let i = 0; i < n; i++) counts[(keys[i] >>> top) + 1]++;
+  for (let i = 0; i < 256; i++) counts[i + 1] += counts[i];
+  bounds.set(counts);
+  let largest = 0;
+  for (let d = 0; d < 256; d++) largest = Math.max(largest, bounds[d + 1] - bounds[d]);
+  const byBucket = new Int32Array(n);
+  for (let i = 0; i < n; i++) byBucket[counts[keys[i] >>> top]++] = i;
+
+  const out = new Int32Array(n);
+  const kA = new Uint32Array(largest);
+  const kB = new Uint32Array(largest);
+  const iA = new Int32Array(largest);
+  const iB = new Int32Array(largest);
+  const mask = 2 ** top - 1;
+  for (let d = 0; d < 256; d++) {
+    const s = bounds[d];
+    const m = bounds[d + 1] - s;
+    if (m < 2) {
+      if (m === 1) out[s] = byBucket[s];
+      continue;
+    }
+    let ka = kA;
+    let kb = kB;
+    let ia = iA;
+    let ib = iB;
+    for (let j = 0; j < m; j++) {
+      const k = byBucket[s + j];
+      ia[j] = k;
+      ka[j] = keys[k] & mask;
+    }
+    for (let shift = 0; shift < top; shift += 8) {
+      counts.fill(0);
+      for (let j = 0; j < m; j++) counts[((ka[j] >>> shift) & 0xff) + 1]++;
+      for (let j = 0; j < 256; j++) counts[j + 1] += counts[j];
+      for (let j = 0; j < m; j++) {
+        const p = counts[(ka[j] >>> shift) & 0xff]++;
+        kb[p] = ka[j];
+        ib[p] = ia[j];
+      }
+      const tk = ka;
+      ka = kb;
+      kb = tk;
+      const ti = ia;
+      ia = ib;
+      ib = ti;
+    }
+    out.set(ia.subarray(0, m), s);
+  }
+  return out;
+}
+
+let _countingCounts = new Uint32Array(0);
+
+/**
+ * The indices `0..n-1` of the first `n` of `keys` (integers from 0 to `maxValue`) ordered by key, ascending, equal keys
+ * by index (stable), written into `out` from `offset`: a counting sort, one pass reading the keys in order and a count
+ * per value, for keys of a small range (to 2^16 or so: `radixSortIndices` beyond). Faster than `radixSortIndices`'s two
+ * passes for 16-bit keys (1 M keys about 2x, 5 M 4x in Node: no reads by index); scratch of `maxValue + 2` counts, kept
+ */
+export function countingSortIndices(
+  keys: ArrayLike<number>,
+  n: number,
+  maxValue: number,
+  out: Uint32Array | Int32Array,
+  offset = 0,
+): void {
+  if (_countingCounts.length < maxValue + 2) _countingCounts = new Uint32Array(maxValue + 2);
+  const counts = _countingCounts;
+  counts.fill(0, 0, maxValue + 2);
+  for (let i = 0; i < n; i++) counts[keys[i] + 1]++;
+  for (let k = 0; k <= maxValue; k++) counts[k + 1] += counts[k];
+  for (let i = 0; i < n; i++) out[offset + counts[keys[i]]++] = i;
 }

@@ -292,6 +292,83 @@ describe('createTargetParticleTransform', () => {
     }
   });
 
+  it("draws a coarse sample's particles larger by its scale or its runs' (as the page store), matrices and poses alike", () => {
+    // three particles, radii 2, 3, 4 (`createTestParticles`); a list's scale for all, or by runs ([0, 2) 1.5, [2, 3) 4)
+    const offsets = Int32Array.from([0, 2, 3]);
+    const cases: { list: Partial<ParticleList>; scale: (p: number) => number }[] = [
+      { list: { scale: 2 }, scale: () => 2 },
+      {
+        list: { scales: ParticleValues.ofRuns(offsets, Float32Array.from([1.5, 4])) },
+        scale: (p) => (p < 2 ? 1.5 : 4),
+      },
+      // by particle (a tile view's, concatenated)
+      { list: { scales: Float32Array.of(1.5, 1.5, 4) }, scale: (p) => (p < 2 ? 1.5 : 4) },
+    ];
+    const at = Vec3.create(0, 0, 0);
+    for (const { list, scale } of cases) {
+      for (const scaleByRadius of [false, true]) {
+        for (const indices of [OrderedSet.ofBounds(0, 3), SortedArray.ofSortedArray([0, 2])]) {
+          const plain = createTestParticles();
+          const particles: ParticleList = { ...createTestParticles(), ...list };
+          const by = (p: number) => scale(p) * (scaleByRadius ? plain.radii![p] : 1);
+          // matrices: each instance's basis its unscaled one times its scale
+          const base = instanceOrder(createTargetParticleTransform(plain, indices, sphereOffCenter, 100, 1000, false));
+          const t = instanceOrder(
+            createTargetParticleTransform(particles, indices, sphereOffCenter, 100, 1000, scaleByRadius),
+          );
+          for (let i = 0; i < OrderedSet.size(indices); ++i) {
+            const p = OrderedSet.getAt(indices, i);
+            for (let j = 0; j < 12; ++j) expect(t[i * 16 + j]).toBeCloseTo(base[i * 16 + j] * by(p), 5);
+          }
+          // poses: an instance's invariant center placed by its scale, the grid's sphere grown by the largest
+          const data = createTargetParticleTransform(
+            particles,
+            indices,
+            sphereOffCenter,
+            100,
+            1000,
+            scaleByRadius,
+            undefined,
+            at,
+            false,
+            true,
+          );
+          const poses = getObjectTransforms(data);
+          expect(poses.kind).toBe('poses');
+          const point = Vec3();
+          let max = 1;
+          for (let i = 0; i < OrderedSet.size(indices); ++i) {
+            const p = OrderedSet.getAt(indices, i);
+            InstanceTransforms.getPoint(poses, i, sphereOffCenter.center, point);
+            const position = Vec3.fromArray(Vec3(), plain.coordinates, p * 3);
+            // the invariant center's offset from the placed point (the origin) scaled, rotated (no rotations: as is)
+            expect(Vec3.distance(point, position)).toBeCloseTo(Vec3.magnitude(sphereOffCenter.center) * by(p), 4);
+            max = Math.max(max, by(p));
+          }
+          expect(InstanceTransforms.getMaxScaleOfAll(poses)).toBeCloseTo(max, 5);
+          // another target's particles of the list: by particle, its poses' scales the same array (one a list)
+          const other = getObjectTransforms(
+            createTargetParticleTransform(
+              particles,
+              SortedArray.ofSortedArray([1]),
+              sphereOffCenter,
+              100,
+              1000,
+              scaleByRadius,
+              undefined,
+              at,
+              false,
+              true,
+            ),
+          );
+          if (poses.kind === 'poses' && poses.scales && other.kind === 'poses' && other.scales) {
+            expect(other.scales).toBe(poses.scales);
+          }
+        }
+      }
+    }
+  });
+
   it("sizes a pack's target's cells by its particles' bounds, no pass over them", () => {
     // two targets as runs (a pack's), a radius each; positions spread, rotated
     const count = 40;

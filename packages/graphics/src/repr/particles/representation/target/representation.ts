@@ -17,6 +17,7 @@ import {
   type ParticleTarget,
   getParticleTargetGroups,
 } from '@molstar/model/model/particles/particle-list';
+import { ParticleNesting } from '@molstar/model/model/particles/particle-nesting';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { Theme } from '@molstar/graphics/theme/theme';
 import { type GraphicsRenderObject, getNextMaterialId, isMergedRenderObject } from '@molstar/graphics/gl/render-object';
@@ -24,6 +25,8 @@ import { Subject } from 'rxjs';
 import { type RuntimeContext, Task } from '@molstar/core/task';
 import { type Loci as ModelLoci, EmptyLoci, isEveryLoci, EveryLoci } from '@molstar/model/model/loci';
 import { type MarkerAction, MarkerActions } from '@molstar/core/util/marker-action';
+import { ValueCell } from '@molstar/core/util/value-cell';
+import { createTemplateCopyLayers } from './copy-layers.js';
 import type { LocationCallback } from '../../../util.js';
 import type { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import { BaseGeometry } from '@molstar/graphics/geo/geometry/base';
@@ -36,6 +39,9 @@ import {
   ParticleTargetRepresentationParams,
   type ParticleTargetRepresentationProps,
   createTargetVisual,
+  mapTargetLayers,
+  TargetLayerKeys,
+  type TargetLayers,
   createParticleTargetPropsProvider,
   getTargetGeometryChoice,
   getTargetGeometryUtils,
@@ -56,7 +62,21 @@ import {
 import type { Mesh } from '@molstar/graphics/geo/geometry/mesh/mesh';
 import { getSitesSignatureDefines } from './sites.js';
 import { getStructureSignatureDefines, type SiteColorProps } from './site-color.js';
-import { createTargetPagedObject, type TargetSlotsObject } from './paged.js';
+import { createTargetPagedObject, isNestedPagedDrawable, type TargetSlotsObject } from './paged.js';
+import {
+  canExpandTemplates,
+  getExpandedInstance,
+  createExpandedMarkerState,
+  createTemplateCopyMarkers,
+  getLevelLoci,
+  getTemplateCopies,
+  getTemplateWideLocals,
+  getTemplates,
+  setExpansionLayers,
+  setTargetExpansion,
+  type TemplateCopies,
+} from './expanded.js';
+import { getCopyBlockBudget } from './copy-markers.js';
 import { ParticleSlots } from '@molstar/model/model/particles/particle-slots';
 import { ParticleTileDrawings } from '@molstar/model/model/particles/particle-tile-drawings';
 import { ParticleTileView } from '@molstar/model/model/particles/particle-tile-view';
@@ -66,6 +86,9 @@ import { type OccluderGrid, setOccluderGrid, usesOccluderGrid } from '@molstar/g
 import { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
 
 export { ParticleTargetRepresentationParams };
+
+/** a template's coarse level's visual of a target keyed by its id plus the level times this (`updateExpanded`) */
+const CoarseLevelKeys = 2 ** 32;
 export type { ParticleTargetRepresentationProps };
 
 export interface ParticleTargetRepresentation
@@ -94,13 +117,37 @@ export function ParticleTargetRepresentation(
   const materialId = getNextMaterialId();
 
   let version = 0;
+  /** the list drawn: `_list` flattened (`ParticleNesting.flatten`), `_list` itself without templates */
   let _particles: ParticleList | undefined;
+  /** the list given: its loci what the representation gives and marks (a list with templates' by path) */
+  let _list: ParticleList | undefined;
   let _params: ParticleTargetRepresentationParams;
   let _props: ParticleTargetRepresentationProps;
   // Map from targetId → TargetVisual; re-used across updates.
   const targetVisuals = new Map<number, TargetVisual>();
 
   let mergedByType = new Map<string, MergedEntry<TargetVisual>>();
+  /**
+   * a list with templates drawn by its copies' poses (`expanded.ts`): the visuals of its templates' leaf targets, by
+   * target id (the flattened list's), each its template and copies
+   */
+  const expandedVisuals = new Map<
+    number,
+    {
+      template: ParticleList;
+      copies: TemplateCopies;
+      level?: ParticleNesting.TemplateLevel;
+      /** an instance's template particle by its instance id */
+      toLocal: (instance: number) => number;
+      /** its target (its leaf list's id, `getLeafList`) */
+      target: number;
+    }
+  >();
+  /** their copies' markers (a copy marked apart from the others), their objects' own marker state with them */
+  const copyMarkers = createTemplateCopyMarkers(() => getCopyBlockBudget(graphics));
+  const expandedMarkers = createExpandedMarkerState();
+  /** their copies' own layers (a layer on a copy apart from the others) */
+  const copyLayers = createTemplateCopyLayers(() => getCopyBlockBudget(graphics));
   /**
    * a slot list's object on GPU culling (`paged.ts`): its instances a page store's, culled and composed on the GPU,
    * updated by the list's changes
@@ -122,24 +169,33 @@ export function ParticleTargetRepresentation(
     if (!built || built.particles !== _particles || built.theme !== _theme) return false;
     if (targetVisuals.size === 0 && !slots?.renderObject) return false;
     const before = built.props;
-    if (before.clip === _props.clip) return false;
-    for (const k in _props) {
-      if (k !== 'clip' && (_props as any)[k] !== (before as any)[k]) return false;
-    }
-    return BaseGeometry.isSameClipDefines(before.clip, _props.clip);
+    return BaseGeometry.isClipChangeOnly(_props, before) && BaseGeometry.isSameClipDefines(before.clip, _props.clip);
   }
 
   /** updates one after another, see `Representation.createUpdateQueue` */
   const serialize = Representation.createUpdateQueue();
   function createOrUpdate(props: Partial<ParticleTargetRepresentationProps> = {}, input?: ParticleList) {
     if (input) {
-      _particles = input;
-      _params = getParams(ctx, _particles);
+      _list = input;
+      // a list with templates by its leaves' targets (`getThemeList`: no copy expanded)
+      _params = getParams(ctx, ParticleNesting.hasTemplates(input) ? ParticleNesting.getThemeList(input) : input);
       if (!_props) _props = PD.getDefaultValues(_params);
     }
     // Quality-derived props are resolved per target (see `createParticleTargetPropsProvider`),
     // since each target has its own data and its own geometry params.
     Object.assign(_props, props);
+    // a list with templates drawn by the store's object as it is where it draws its every leaf target (culled and
+    // composed on the GPU, a template's particles once), else flattened (`ParticleNesting.flatten`, cached on it): its
+    // copies expanded on the CPU only where drawn so; again with the props (a geometry the store does not draw)
+    if (_list) {
+      // drawn by its copies' poses where the vertex stage composes them (`expanded.ts`, WebGL2)
+      _particles =
+        ParticleNesting.hasTemplates(_list) &&
+        !(canCullOnGpu(graphics) && isNestedPagedDrawable(_list, _props, graphics)) &&
+        !(!canCullOnGpu(graphics) && canExpandTemplates(graphics))
+          ? ParticleNesting.flatten(_list)
+          : _list;
+    }
     // how it draws a tile view (its clip objects, its opacity): what the view's picks go by, a moved cut too (a
     // clipping gizmo's drag updates the representation alone, not the state)
     ParticleTileDrawings.set(self, _particles, _props);
@@ -169,17 +225,32 @@ export function ParticleTargetRepresentation(
       if (!_particles) return;
 
       let particles = _particles;
+      // a list with templates drawn as it is: by the store's object, or by its copies' poses (see `createOrUpdate`)
+      const nested = ParticleNesting.hasTemplates(particles);
+      const nestedPaged = nested && canCullOnGpu(graphics);
       // a tile-ordered list (a pack written with tiles) drawn whole as a slot list of all its tiles: a tile a range,
       // as a tile view draws them; not a target an index set (its particles a run a tile)
-      if (!particles.pages && canCullOnGpu(graphics)) particles = ParticleTileView.ofWhole(particles) ?? particles;
-      if (particles.pages && canCullOnGpu(graphics)) {
+      if (!nested && !particles.pages && canCullOnGpu(graphics))
+        particles = ParticleTileView.ofWhole(particles) ?? particles;
+      if ((particles.pages || nestedPaged) && canCullOnGpu(graphics)) {
         // a slot list: the store's object alone
         for (const visual of targetVisuals.values()) visual.destroy();
         targetVisuals.clear();
         mergedByType.clear();
-        slots ??= createTargetPagedObject(materialId, graphics);
+        if (!slots) {
+          slots = createTargetPagedObject(materialId, graphics);
+          // the state's layers: applied by its update, as it lays out its texels
+          const layers = getStateLayers(_state);
+          if (layers) slots.setLayers(layers);
+        }
         // the themes of the slot list where it is another (the list's index their arrays by its particles)
-        const theme = particles === _particles ? _theme : getSlotsTheme(_theme, particles);
+        // a list with templates: by its leaves by level (`getThemeList`: a page a template's leaves, colored once for
+        // all copies), not an index of the flattened list
+        const theme = nestedPaged
+          ? getSlotsTheme(_theme, ParticleNesting.getThemeList(particles))
+          : particles === _particles
+            ? _theme
+            : getSlotsTheme(_theme, particles);
         await slots.update({ graphics, runtime }, particles, theme, _props);
         renderObjects.length = 0;
         const object = slots.renderObject;
@@ -189,6 +260,9 @@ export function ParticleTargetRepresentation(
           renderObjects.push(object);
           geometryState.add(object.id, slotsVersion++);
         }
+        // a list with templates drawn whole: what it hides (its templates' grids placed by their copies), as a flat
+        // list's; a tile view's its store's object sets
+        if (nestedPaged) await setOccluder(runtime);
         geometryState.snapshot();
         drawn = particles;
         built = { particles, theme: _theme, props: { ..._props } };
@@ -198,6 +272,10 @@ export function ParticleTargetRepresentation(
       if (slots) {
         slots.destroy();
         slots = undefined;
+      }
+      if (nested) {
+        await updateExpanded(runtime, particles);
+        return;
       }
       // a slot list not culled on the GPU: drawn flat, picked by its keys (its slots), not marked
       if (particles.pages) particles = ParticleSlots.flatten(particles);
@@ -253,6 +331,8 @@ export function ParticleTargetRepresentation(
         }
       }
 
+      // the layers on the visuals as made (before they are merged)
+      applyLayers(getStateLayers(_state));
       updateRenderObjectList(entries);
       await setOccluder(runtime);
       geometryState.snapshot();
@@ -260,6 +340,108 @@ export function ParticleTargetRepresentation(
       updated.next(version++);
     });
     return serialize(task);
+  }
+
+  /**
+   * A list with templates drawn by its copies' poses (`expanded.ts`): its own leaves' visuals as a flat list's (of its
+   * top list, `getTopList`), a visual a leaf target of each template (of its leaf list, `getLeafList`: its particles in
+   * the template's frame) drawn by the template's copies, not merged
+   */
+  async function updateExpanded(runtime: RuntimeContext, list: ParticleList) {
+    drawn = list;
+    const targetProps = createParticleTargetPropsProvider(_props);
+    const present = new Set<number>();
+    const entries: { visual: TargetVisual; renderObject: GraphicsRenderObject }[] = [];
+    const expandedObjects: GraphicsRenderObject[] = [];
+    const previous = new Map(expandedVisuals);
+    expandedVisuals.clear();
+    /** `leaves`' visuals; of a template's at its coarse level `level` (none: the template whole) by `copies` */
+    const add = async (
+      leaves: ParticleList,
+      template?: ParticleList,
+      copies?: TemplateCopies,
+      level?: ParticleNesting.TemplateLevel,
+    ) => {
+      const groups = getParticleTargetGroups(leaves);
+      const targets = leaves.targetMapping;
+      for (let g = 0; g < groups.targetIds.length; g++) {
+        const id = groups.targetIds[g];
+        const target = targets?.get(id);
+        const indices = groups.sets[g];
+        if (!target || target.kind === 'particles' || OrderedSet.size(indices) === 0) continue;
+        // a coarse level's visual of a target keyed past the target ids
+        const targetId = id + (level ? level.level * CoarseLevelKeys : 0);
+        present.add(targetId);
+        let visual = targetVisuals.get(targetId);
+        // a visual drawn flat before (a transform of its own) made again for the template's frame
+        if (visual && template && !previous.has(targetId)) {
+          visual.destroy();
+          visual = undefined;
+        }
+        if (!visual) {
+          visual = createTargetVisual(targetId, materialId, graphics);
+          targetVisuals.set(targetId, visual);
+        }
+        await visual.createOrUpdate({ graphics, runtime }, _theme, targetProps(target), leaves, indices, target);
+        const ro = visual.renderObject;
+        if (!ro) continue;
+        applyState(ro, _state);
+        if (copies) {
+          // a leaf list's particle its template particle, a coarse level's by its indices
+          const toLocal = level
+            ? (i: number) => level.indices[OrderedSet.getAt(indices, i)]
+            : (i: number) => OrderedSet.getAt(indices, i);
+          setTargetExpansion(ro, copies, level?.level ?? 0, copyMarkerOf(template!), toLocal, copyLayerOf(template!));
+          expandedVisuals.set(targetId, { template: template!, copies, level, toLocal, target: id });
+          expandedObjects.push(ro);
+        } else {
+          visual.setTransform(_state.transform);
+          entries.push({ visual, renderObject: ro });
+        }
+        geometryState.add(ro.id, visual.geometryVersion);
+      }
+    };
+    await add(ParticleNesting.getTopList(list));
+    const templates = getTemplates(list).map((t) => [t, getTemplateCopies(list, t, _state.transform)] as const);
+    // the copies' markers laid out (cleared), as the objects' own are made again
+    copyMarkers.layout(list, templates);
+    // and their layers (none: the state's applied once the objects are made, `applyLayers`)
+    copyLayers.layout(list, templates);
+    expandedMarkers.clear();
+    for (const [template, copies] of templates) {
+      await add(ParticleNesting.getLeafList(list, template), template, copies);
+      // its far copies by its coarse levels (a copy one of them by the view, `getCopyLevels`)
+      for (const level of ParticleNesting.getTemplateLevels(list, template)) {
+        await add(level.list, template, copies, level);
+      }
+    }
+
+    for (const [tid, visual] of targetVisuals) {
+      if (!present.has(tid)) {
+        visual.destroy();
+        targetVisuals.delete(tid);
+      }
+    }
+    applyLayers(getStateLayers(_state));
+    updateRenderObjectList(entries);
+    for (const ro of expandedObjects) {
+      if (_state.previewTransform) Visual.setPreviewTransform(ro, _state.previewTransform);
+      renderObjects.push(ro);
+    }
+    await setOccluder(runtime);
+    geometryState.snapshot();
+    built = { particles: list, theme: _theme, props: { ..._props } };
+    updated.next(version++);
+  }
+
+  /** the copies' layers' image an object of `template` reads (by the markers' copies), whether a copy has one */
+  function copyLayerOf(template: ParticleList) {
+    return { image: copyLayers.image, has: copyLayers.has(template) };
+  }
+
+  /** the copies' markers' image an object of `template` reads, its first copy in it */
+  function copyMarkerOf(template: ParticleList) {
+    return { image: copyMarkers.image, base: copyMarkers.base(template) };
   }
 
   function updateRenderObjectList(entries: { visual: TargetVisual; renderObject: GraphicsRenderObject }[]) {
@@ -284,7 +466,10 @@ export function ParticleTargetRepresentation(
   async function setOccluder(runtime?: RuntimeContext) {
     let grid: OccluderGrid | undefined;
     if (_particles && !isTargetOccluderOff(_props) && Mat4.isIdentity(_state.transform) && usesOccluderGrid(graphics)) {
-      grid = ParticleDensityGrid.get(_particles);
+      // a list with templates': its templates' grids placed by their copies (given where theirs are: a pack's)
+      grid =
+        ParticleDensityGrid.get(_particles) ??
+        (ParticleNesting.hasTemplates(_particles) ? ParticleNesting.getDensityGrid(_particles) : undefined);
       if (!grid && _props.occluder === 'compute' && runtime) {
         grid = await ParticleDensityGrid.computeTask(_particles).runInContext(runtime);
         if (grid) ParticleDensityGrid.set(_particles, grid);
@@ -298,13 +483,110 @@ export function ParticleTargetRepresentation(
     if (state.pickable !== undefined) renderObject.state.pickable = state.pickable;
   }
 
+  /** the layers `state` gives, none where it gives none (an empty layer one: what clears) */
+  function getStateLayers(state: Partial<Representation.State>): TargetLayers | undefined {
+    let layers: TargetLayers | undefined;
+    for (const k of TargetLayerKeys) {
+      if (state[k] === undefined) continue;
+      layers ??= {};
+      (layers as any)[k] = state[k];
+    }
+    return layers;
+  }
+
+  /**
+   * `layers` on the visuals: a list with templates flattened by its flat loci; drawn by its copies its objects by
+   * their template's particles every copy holds (`getTemplateWideLocals`), the rest by copy (`TemplateCopyLayers`:
+   * an object's layer kept where it reaches none of its own, its copies' read by it); the store's object its own
+   * (by store index and copy); a flattened slot list's visuals none
+   */
+  function applyLayers(layers: TargetLayers | undefined) {
+    if (!layers) return;
+    // the store's object: by store index and by copy (`TargetSlotsObject.setLayers`), kept for its updates
+    if (slots) {
+      slots.setLayers(layers);
+      return;
+    }
+    if (!_particles || drawn !== _particles) return;
+    const list = _particles;
+    const flattened = _list !== _particles;
+    if (expandedVisuals.size > 0) copyLayers.set(list, layers as Parameters<typeof copyLayers.set>[1]);
+    for (const [targetId, visual] of targetVisuals) {
+      const e = expandedVisuals.get(targetId);
+      if (e) {
+        visual.setLayers(
+          mapTargetLayers(layers, (loci) => {
+            if (isEveryLoci(loci)) return loci;
+            const locals = getTemplateWideLocals(list, e.template, e.copies.tops, loci);
+            return (locals && getLevelLoci(list, e.template, locals, e.level)) ?? EmptyLoci;
+          }),
+        );
+        const ro = visual.renderObject;
+        if (ro) {
+          setExpansionLayers(ro, copyLayerOf(e.template));
+          raiseCopyAverages(ro, e.template);
+        }
+      } else if (flattened) {
+        visual.setLayers(
+          mapTargetLayers(layers, (loci) =>
+            Particle.isLoci(loci) && loci.particles === _list ? ParticleNesting.toFlatLoci(loci) : loci,
+          ),
+        );
+      } else {
+        visual.setLayers(layers);
+      }
+    }
+  }
+
+  /**
+   * An expanded object's averages where its copies have transparency or emission of their own (its own none, or
+   * less): what puts it into the passes that draw them (its own recomputed where its layer is set again)
+   */
+  function raiseCopyAverages(ro: GraphicsRenderObject, template: ParticleList) {
+    const values = ro.values as unknown as {
+      transparencyAverage: ValueCell<number>;
+      emissiveAverage: ValueCell<number>;
+      wiggleAverage: ValueCell<number>;
+    };
+    if (copyLayers.has(template, 'transparency') && values.transparencyAverage.ref.value < 0.5) {
+      ValueCell.update(values.transparencyAverage, 0.5);
+    }
+    if (copyLayers.has(template, 'emissive') && values.emissiveAverage.ref.value < 0.5) {
+      ValueCell.update(values.emissiveAverage, 0.5);
+    }
+    // what animates it (drawn anew each frame)
+    if (copyLayers.has(template, 'wiggle') && values.wiggleAverage.ref.value < 0.5) {
+      ValueCell.update(values.wiggleAverage, 0.5);
+    }
+  }
+
   function setState(state: Partial<Representation.State>) {
     Representation.updateState(_state, state);
+    applyLayers(getStateLayers(state));
     // apply per visual, not per (possibly merged) renderObject: a merged render object only
     // aliases its first member's state, so looping renderObjects would miss the other members
-    for (const visual of targetVisuals.values()) {
+    const moved = new Map<ParticleList, TemplateCopies>();
+    for (const [targetId, visual] of targetVisuals) {
       if (visual.renderObject) applyState(visual.renderObject, state);
-      if (state.transform !== undefined) visual.setTransform(state.transform);
+      if (state.transform === undefined) continue;
+      // a template's leaf target: its copies placed by the transform (its instances in the template's frame)
+      const e = expandedVisuals.get(targetId);
+      if (e && _particles && visual.renderObject) {
+        // a template's copies once for its visuals
+        let copies = moved.get(e.template);
+        if (!copies) moved.set(e.template, (copies = getTemplateCopies(_particles, e.template, state.transform)));
+        e.copies = copies;
+        setTargetExpansion(
+          visual.renderObject,
+          copies,
+          e.level?.level ?? 0,
+          copyMarkerOf(e.template),
+          e.toLocal,
+          copyLayerOf(e.template),
+        );
+      } else {
+        visual.setTransform(state.transform);
+      }
     }
     // a slot list's object: its members' state (its own their first's); no transform of its own yet
     slots?.applyState((ro) => applyState(ro, state));
@@ -334,7 +616,17 @@ export function ParticleTargetRepresentation(
     });
   }
 
+  /** a loci of the drawn list as the given list's (a flattened list's instances by path) */
+  function toListLoci(loci: ModelLoci): ModelLoci {
+    if (!_list || _list === _particles || !Particle.isLoci(loci) || loci.particles !== _particles) return loci;
+    return ParticleNesting.fromFlatIndices(_list, loci.indices);
+  }
+
   function getLoci(pickingId: PickingId): ModelLoci {
+    return toListLoci(getDrawnLoci(pickingId));
+  }
+
+  function getDrawnLoci(pickingId: PickingId): ModelLoci {
     if (!_particles) return EmptyLoci;
     if (slots) {
       const loci = slots.getLoci(pickingId) ?? EmptyLoci;
@@ -345,6 +637,21 @@ export function ParticleTargetRepresentation(
 
     const mergedLoci = getMergedLoci(pickingId);
     if (mergedLoci !== undefined) return mergedLoci;
+
+    // a template's leaf target: its draw slot the copy and the template particle (`getExpandedInstance`)
+    for (const [targetId, e] of expandedVisuals) {
+      const visual = targetVisuals.get(targetId);
+      const ro = visual?.renderObject;
+      if (!ro || ro.id !== pickingId.objectId || !visual!.particleIndices) continue;
+      const instance = getExpandedInstance(
+        ro,
+        e.copies.tops,
+        visual!.particleIndices,
+        pickingId.instanceId,
+        e.level?.indices,
+      );
+      return instance ? ParticleNesting.ofInstance(_particles, instance.top, instance.local) : EmptyLoci;
+    }
 
     const { objectId, instanceId } = pickingId;
     for (const visual of targetVisuals.values()) {
@@ -360,7 +667,7 @@ export function ParticleTargetRepresentation(
 
   function getAllLoci(): ModelLoci[] {
     if (!_particles) return [];
-    return [Particle.Loci(_particles, OrderedSet.ofRange(0, _particles.count - 1))];
+    return [toListLoci(Particle.Loci(_particles, OrderedSet.ofRange(0, _particles.count - 1)))];
   }
 
   function eachLocation(cb: LocationCallback) {
@@ -376,17 +683,49 @@ export function ParticleTargetRepresentation(
   function mark(loci: ModelLoci, action: MarkerAction): boolean {
     if (!_particles) return false;
     if (!MarkerActions.is(_state.markerActions, action)) return false;
+    // a loci of the given list with templates marked as its flattened list's
+    if (_list !== _particles && Particle.isLoci(loci) && loci.particles === _list)
+      loci = ParticleNesting.toFlatLoci(loci);
     if (!isEveryLoci(loci) && (!Particle.isLoci(loci) || loci.particles !== _particles)) return false;
-    if (Particle.isLoci(loci) && Particle.lociSize(loci) === _particles.count) {
+    // all of it: a list with templates' by its instances (a loci's size counts them), not its top particles
+    const all = ParticleNesting.hasTemplates(_particles)
+      ? ParticleNesting.getExpandedCount(_particles)
+      : _particles.count;
+    if (Particle.isLoci(loci) && Particle.lociSize(loci) === all) {
       // Change to `EveryLoci` to allow for downstream optimizations
       loci = EveryLoci;
     }
     if (slots) return slots.mark(loci, action);
     // a flattened slot list: its loci by slot, its visuals' by index
     if (drawn !== _particles) return false;
+    if (expandedVisuals.size > 0) return markExpanded(_particles, loci, action);
     let changed = false;
-    for (const visual of targetVisuals.values()) {
-      changed = visual.mark(loci, action) || changed;
+    for (const visual of targetVisuals.values()) changed = visual.mark(loci, action) || changed;
+    return changed;
+  }
+
+  /**
+   * A list with templates drawn by its copies: its copies' markers by copy (`TemplateCopyMarkers`), a template's
+   * particles in every copy and every particle by its objects' own; its own leaves' visuals as a flat list's
+   */
+  function markExpanded(list: ParticleList, loci: ModelLoci, action: MarkerAction) {
+    const { changed: copiesChanged, templateWide } = copyMarkers.mark(list, loci, action);
+    const every = isEveryLoci(loci);
+    let changed = copiesChanged;
+    for (const [targetId, visual] of targetVisuals) {
+      const e = expandedVisuals.get(targetId);
+      const ro = visual.renderObject;
+      if (!e || !ro) {
+        changed = visual.mark(loci, action) || changed;
+        continue;
+      }
+      // the image grown: another texture
+      ValueCell.updateIfChanged((ro.values as any).tCopyMarkers, copyMarkers.image);
+      expandedMarkers.restore(ro);
+      const locals = templateWide.get(e.template);
+      const own = every ? loci : locals && getLevelLoci(list, e.template, locals, e.level);
+      if (own) changed = visual.mark(own, action) || changed;
+      expandedMarkers.apply(ro, copyMarkers.isMarked(e.template, e.target));
     }
     return changed;
   }
@@ -397,6 +736,7 @@ export function ParticleTargetRepresentation(
       visual.destroy();
     }
     targetVisuals.clear();
+    expandedVisuals.clear();
     mergedByType.clear();
     renderObjects.length = 0;
     slots?.destroy();
@@ -557,21 +897,28 @@ function computeParticleTargetSignatures(
   return uniqueSignatures(out);
 }
 
+/**
+ * the params by the kinds of targets present (a bit each: structure, volume, shape), made once each: asked at every
+ * resolve of a list's params (a tile set's, each step), a clone of the whole tree each time otherwise
+ */
+const ParticleTargetParamsByKinds = new Map<number, typeof ParticleTargetRepresentationParams>();
+
 function getParticleTargetParams(ctx: RepresentationContext, particles: ParticleList | undefined) {
-  let params = ParticleTargetRepresentationParams;
-  if (particles?.targetMapping?.size) {
+  if (!particles?.targetMapping?.size) return ParticleTargetRepresentationParams;
+  let kinds = 0;
+  for (const target of particles.targetMapping.values()) {
+    if (target.kind === 'structure' || target.kind === 'sites') kinds |= 1;
+    else if (target.kind === 'volume') kinds |= 2;
+    else if (target.kind === 'shape') kinds |= 4;
+    if (kinds === 7) break;
+  }
+  let params = ParticleTargetParamsByKinds.get(kinds);
+  if (!params) {
     params = PD.clone(ParticleTargetRepresentationParams);
-    let hasStructure = false;
-    let hasVolume = false;
-    let hasShape = false;
-    for (const target of particles.targetMapping.values()) {
-      if (target.kind === 'structure' || target.kind === 'sites') hasStructure = true;
-      if (target.kind === 'volume') hasVolume = true;
-      if (target.kind === 'shape') hasShape = true;
-    }
-    if (!hasStructure) params.structure.isHidden = true;
-    if (!hasVolume) params.volume.isHidden = true;
-    if (!hasShape) params.shape.isHidden = true;
+    if (!(kinds & 1)) params.structure.isHidden = true;
+    if (!(kinds & 2)) params.volume.isHidden = true;
+    if (!(kinds & 4)) params.shape.isHidden = true;
+    ParticleTargetParamsByKinds.set(kinds, params);
   }
   return params;
 }

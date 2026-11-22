@@ -6,6 +6,7 @@
 
 import { clip_flag_wgsl } from './clip.wgsl.js';
 import { assign_data_index_wgsl } from './read-from-texture.wgsl.js';
+import { CopyMarkerBlock, PagedCopyShift } from '../../../culled-data.js';
 
 /**
  * \`VertexOutput\` with the varyings shared by the graphics programs at locations 0 to 8 and 15, and the program's
@@ -179,6 +180,17 @@ const GridModelPosition = 'gridModelPosition';
  */
 export const assign_varyings_wgsl = /* wgsl */ `
     let instanceIndex = i32(in.aInstance);
+    #if defined(dCopyLayers)
+        // a page store's copy's instance: its copy plus one (none 0) and its template particle's store index, by which
+        // its copy's own layers replace its store index's (\`copyLayerOr\`)
+        #if defined(dSphereResolve)
+            let layerWords = rasterPagedWords(in.instanceIndex);
+        #else
+            let layerWords = culledPagedWords(in.instanceIndex);
+        #endif
+        let layerTag = layerWords.w >> ${PagedCopyShift}u;
+        let layerIndex = layerWords.z;
+    #endif
     #if defined(dSegmented)
         // the data of merged render items, offset per segment (see \`SegmentSchema\`)
         let segment = segmentGroups(in);
@@ -192,12 +204,39 @@ export const assign_varyings_wgsl = /* wgsl */ `
     let vertexInstanceIndex = instanceIndex * uObject.uVertexCount + vertexId;
 
     #if defined(dRenderVariant_pick)
-        out.vPickIds = vec2<u32>(in.aInstance, u32(group));
+        #if defined(dCulledPaged)
+            // a page store's: its composed pose's slot (a copy's instances' the frame's), its record's identity (store
+            // index, copy) gathered before the pick is read (\`paged-pick.ts\`)
+            out.vPickIds = vec2<u32>(in.instanceIndex, u32(group));
+        #else
+            out.vPickIds = vec2<u32>(in.aInstance, u32(group));
+        #endif
     #endif
 
     #if defined(dNeedsMarker)
         ${assign_data_index_wgsl(undefined, 'markerIndex')}
         out.vMarkerClipping.x = read_tMarker(markerIndex).r;
+        #if defined(dCopyMarkers)
+            // a copy's instance (a page store's template particle, its copy plus one above its pose's segment): its
+            // copy's marker (\`sCopyMarkers\`: two words a copy, its marker or its block's offset by store index) or-ed
+            // with its store index's (its template's: every copy's, a selection by entity)
+            #if defined(dSphereResolve)
+                let copyWords = rasterPagedWords(in.instanceIndex);
+            #else
+                let copyWords = culledPagedWords(in.instanceIndex);
+            #endif
+            let copyTag = copyWords.w >> ${PagedCopyShift}u;
+            if (copyTag != 0u) {
+                let copyWord = sCopyMarkers[2u * (copyTag - 1u)];
+                var copyMarker = copyWord & 0xffu;
+                if ((copyWord & ${CopyMarkerBlock}u) != 0u) {
+                    let b = u32(bitcast<i32>(sCopyMarkers[2u * (copyTag - 1u) + 1u]) + i32(copyWords.z));
+                    copyMarker = (sCopyMarkers[b / 4u] >> (8u * (b % 4u))) & 0xffu;
+                }
+                let templateMarker = u32(out.vMarkerClipping.x * 255.0 + 0.5);
+                out.vMarkerClipping.x = f32(copyMarker | templateMarker) / 255.0;
+            }
+        #endif
     #endif
 
     #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing) || defined(dRenderVariant_emissive)
@@ -243,10 +282,13 @@ export const assign_varyings_wgsl = /* wgsl */ `
 
         #if defined(dOverpaint)
             #if defined(dOverpaintType_volumeInstance)
-                let overpaint = ${grid_value_wgsl('tOverpaintGrid', GridModelPosition)};
+                var overpaint = ${grid_value_wgsl('tOverpaintGrid', GridModelPosition)};
             #else
                 ${assign_data_index_wgsl('dOverpaintType', 'overpaintIndex')}
-                let overpaint = read_tOverpaint(overpaintIndex);
+                var overpaint = read_tOverpaint(overpaintIndex);
+            #endif
+            #if defined(dCopyLayers)
+                overpaint = copyLayerOr(0u, 4u, layerTag, layerIndex, overpaint);
             #endif
             // pre-mix to avoid darkening due to empty overpaint
             #if defined(dColorType_uniform)
@@ -262,16 +304,23 @@ export const assign_varyings_wgsl = /* wgsl */ `
                 out.vTransparencyEmissive.y = ${grid_value_wgsl('tEmissiveGrid', GridModelPosition)}.r * uMaterial.uEmissiveStrength;
             #else
                 ${assign_data_index_wgsl('dEmissiveType', 'emissiveIndex')}
-                out.vTransparencyEmissive.y = read_tEmissive(emissiveIndex).r * uMaterial.uEmissiveStrength;
+                var emissive = read_tEmissive(emissiveIndex).r;
+                #if defined(dCopyLayers)
+                    emissive = copyLayerOr(3u, 1u, layerTag, layerIndex, vec4<f32>(emissive)).r;
+                #endif
+                out.vTransparencyEmissive.y = emissive * uMaterial.uEmissiveStrength;
             #endif
         #endif
 
         #if defined(dSubstance)
             #if defined(dSubstanceType_volumeInstance)
-                let substance = ${grid_value_wgsl('tSubstanceGrid', GridModelPosition)};
+                var substance = ${grid_value_wgsl('tSubstanceGrid', GridModelPosition)};
             #else
                 ${assign_data_index_wgsl('dSubstanceType', 'substanceIndex')}
-                let substance = read_tSubstance(substanceIndex);
+                var substance = read_tSubstance(substanceIndex);
+            #endif
+            #if defined(dCopyLayers)
+                substance = copyLayerOr(4u, 4u, layerTag, layerIndex, substance);
             #endif
             // pre-mix to avoid artifacts due to empty substance
             let baseSubstance = vec3<f32>(uMaterial.uMetalness, uMaterial.uRoughness, uMaterial.uBumpiness);
@@ -284,13 +333,20 @@ export const assign_varyings_wgsl = /* wgsl */ `
             out.vTransparencyEmissive.x = ${grid_value_wgsl('tTransparencyGrid', GridModelPosition)}.r * uMaterial.uTransparencyStrength;
         #else
             ${assign_data_index_wgsl('dTransparencyType', 'transparencyIndex')}
-            out.vTransparencyEmissive.x = read_tTransparency(transparencyIndex).r * uMaterial.uTransparencyStrength;
+            var transparency = read_tTransparency(transparencyIndex).r;
+            #if defined(dCopyLayers)
+                transparency = copyLayerOr(1u, 1u, layerTag, layerIndex, vec4<f32>(transparency)).r;
+            #endif
+            out.vTransparencyEmissive.x = transparency * uMaterial.uTransparencyStrength;
         #endif
     #endif
 
     #if defined(dClipObjects) && defined(dClipping)
         ${assign_data_index_wgsl(undefined, 'clippingIndex')}
         out.vMarkerClipping.y = read_tClipping(clippingIndex).r;
+        #if defined(dCopyLayers)
+            out.vMarkerClipping.y = copyLayerOr(2u, 1u, layerTag, layerIndex, vec4<f32>(out.vMarkerClipping.y)).r;
+        #endif
     #endif
     ${clip_flag_wgsl('out.vMarkerClipping.y')}
 `;

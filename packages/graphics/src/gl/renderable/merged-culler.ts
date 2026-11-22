@@ -41,7 +41,7 @@ import { IndirectRecordBytes, type MultiDrawBaseData } from '../render-item.js';
 import type { ItemIndexPattern } from '../quad-indices.js';
 import type { GraphicsResources } from '../context.js';
 import { type CullBatch, type LodLevelsValue, LodView } from '../renderable.js';
-import { type CulledValues, type Merged, type MergeableValues, type MergedSegments } from './merged.js';
+import { type CulledValues, type Merged, type MergeRecord, type MergedSegments } from './merged.js';
 import { getObjectTransforms, getTransformParts, hasInstanceCells, type TransformValues } from '../transform-parts.js';
 import { CulledData, getCulledSegmentData } from '../culled-data.js';
 import { type DrawnBoundsValues, getDrawnBoundingSphere } from './util.js';
@@ -103,8 +103,11 @@ export interface MergedCuller {
    * their own order again. Kept through layouts of the same instance count, written where the layout is current
    */
   setIdentityOrder: (order: Uint32Array | undefined) => void;
-  /** after the merged values synced: the cells, records and instances written where they changed */
-  sync: () => void;
+  /**
+   * after the merged values synced: the cells, records and instances written where they changed; `observedOnly`: only
+   * observed cells changed (`Renderable.update`), the layout's key read only where the merged values' `cullVersion` moved
+   */
+  sync: (observedOnly?: boolean) => void;
   /** advanced by `sync` where the layout or the instances changed, and by a dispatch where the clip objects did */
   readonly dataVersion: number;
   /** whether the kernels are ready (compiled), their compile started where not (tracked as pending work) */
@@ -123,6 +126,8 @@ export interface MergedCuller {
     batch?: CullBatch,
     /** the ghost of what the clip objects remove too, into a region of its own (`getGhostLists`) */
     ghost?: boolean,
+    /** the view culled in two phases (Hi-Z on): a pyramid to come where `pyramid` is none yet (`Renderable.prepareCull`) */
+    twoPhase?: boolean,
   ) => boolean;
   /** whether the last `dispatch` culled the ghost */
   readonly ghostDispatched: boolean;
@@ -168,7 +173,7 @@ export interface MergedRasterInput {
   /** the instances' data (`CulledData`): the transforms' affine rows first, three vec4s an instance */
   readonly data: StorageBuffer;
   readonly records: StorageBuffer;
-  /** the second phase's records (`MergedCuller.dispatchSecond`), as `records` */
+  /** the second phase's records (`MergedCuller.dispatchSecond`, which may grow them: read after it), as `records` */
   readonly secondRecords: StorageBuffer;
   /** whether the second phase ran for this dispatch */
   readonly secondDispatched: boolean;
@@ -269,7 +274,7 @@ export function createMergedCuller(
   /** for a texture bound while there is no pyramid */
   resources: GraphicsResources,
   merged: Merged,
-  members: readonly MergeableValues[],
+  members: readonly MergeRecord[],
   indexed: boolean,
   /**
    * items drawn by the shared indices of their pattern (no elements): an indexed record's first index 0, its base
@@ -313,6 +318,11 @@ export function createMergedCuller(
     sCulledData: data,
     dCulled: ValueCell.create(true),
     dCulledPaged: ValueCell.create(false),
+    // no copies: not read (`dCopyMarkers`, `dCopyLayers`)
+    sCopyMarkers: data,
+    dCopyMarkers: ValueCell.create(false),
+    sCopyLayers: data,
+    dCopyLayers: ValueCell.create(false),
   };
 
   const levelCountCell = ValueCell.create(0);
@@ -852,9 +862,16 @@ export function createMergedCuller(
    * segments' bounds and scales, the object's transform, the regions), the clip not among it
    */
   let boundsVersion = 0;
-  function sync() {
-    const key = getLayoutKey();
-    const layoutChanged = !isSameKey(key, layoutKey);
+  /** the merged values' `cullVersion` at the last sync: what the layout's key reads of the members moves it */
+  let keyCullVersion = -1;
+  function sync(observedOnly = false) {
+    // only observed cells changed and nothing the culling reads (a mark): the key over every member not read (6 cells a
+    // member, a hover over 100k members a third of its frame)
+    const cullVersion = merged.cullVersion.ref.value;
+    const keep = observedOnly && layoutKey.length > 0 && cullVersion === keyCullVersion;
+    keyCullVersion = cullVersion;
+    const key = keep ? layoutKey : getLayoutKey();
+    const layoutChanged = !keep && !isSameKey(key, layoutKey);
     const laidOut = layoutKey.length > 0;
     // a placement moved as a whole (grids moved from those split): the cells moved, not split again
     const moved = layoutChanged && laidOut && isLayoutMoved();
@@ -908,7 +925,8 @@ export function createMergedCuller(
   }
 
   sync();
-  // compiled from now on: a frame waiting for what is pending waits for them, culled on the CPU only meanwhile
+  // compiled from now on: a frame waiting for what is pending waits for them, nothing drawn meanwhile (but for the
+  // sphere raster alone: culled on the CPU)
   getKernels();
 
   const setPlane = (cell: ValueCell<Vec4>, plane: Plane3D) => {
@@ -1018,6 +1036,25 @@ export function createMergedCuller(
   let predictedNext = new Uint8Array(0);
   /** the `boundsVersion` the records were last predicted with */
   let predictedBounds = -1;
+  /**
+   * the segments' drawn bounds (`segmentBounds`) packed, center and radius each, read again where `boundsVersion`
+   * moved: a moving camera's predictions read them, not each segment's cells (100k segments: most of a rotating frame)
+   */
+  let drawnSpheres = new Float64Array(0);
+  let drawnSpheresVersion = -1;
+  function getDrawnSpheres() {
+    if (drawnSpheresVersion === boundsVersion && drawnSpheres.length === segmentCount * 4) return drawnSpheres;
+    drawnSpheresVersion = boundsVersion;
+    if (drawnSpheres.length !== segmentCount * 4) drawnSpheres = new Float64Array(segmentCount * 4);
+    for (let s = 0, o = 0; s < segmentCount; ++s, o += 4) {
+      const { center, radius } = getDrawnBoundingSphere(segmentBounds[s]);
+      drawnSpheres[o] = center[0];
+      drawnSpheres[o + 1] = center[1];
+      drawnSpheres[o + 2] = center[2];
+      drawnSpheres[o + 3] = radius;
+    }
+    return drawnSpheres;
+  }
   function setListRecords() {
     recordsVersion += 1;
     for (let k = 0; k < lists.length; ++k) {
@@ -1052,17 +1089,13 @@ export function createMergedCuller(
     const segmentInfo = segmentDataCopy!;
     const objectScale = cellValues.uObjectScale.ref.value;
     const c = [0, 0, 0];
+    // as drawn: moved by the object's transient transform
+    const spheres = getDrawnSpheres();
     for (let s = 0; s < segmentCount; ++s) {
-      // as drawn: moved by the object's transient transform
-      let radius: number;
-      {
-        const drawn = getDrawnBoundingSphere(segmentBounds[s]);
-        c[0] = drawn.center[0];
-        c[1] = drawn.center[1];
-        c[2] = drawn.center[2];
-        radius = drawn.radius;
-      }
-      const r = radius * 1.001 + 1e-3;
+      c[0] = spheres[s * 4];
+      c[1] = spheres[s * 4 + 1];
+      c[2] = spheres[s * 4 + 2];
+      const r = spheres[s * 4 + 3] * 1.001 + 1e-3;
       let inside = true;
       for (let i = 0; i < 6 && inside; ++i) {
         const { normal, constant } = frustum[i as 0];

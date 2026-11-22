@@ -59,9 +59,12 @@ class StereoCamera {
     Object.assign(this.props, props);
   }
 
-  /** the eyes from the stereo props, or from the views of an XR pose (rendered by `graphics`) */
-  update(xr?: { pose: XRViewerPose; graphics: GraphicsXR }) {
-    this.parent.update();
+  /**
+   * the eyes from the stereo props, or from the views of an XR pose (rendered by `graphics`); `silent`: the parent's
+   * `changed` not told (`Camera.update`)
+   */
+  update(xr?: { pose: XRViewerPose; graphics: GraphicsXR }, silent = false) {
+    this.parent.update(silent);
     if (xr) {
       xrUpdate(this.parent, this.left, this.right, xr);
     } else {

@@ -441,6 +441,31 @@ export function createSphereRaster(compute: ComputeContext, resources: GraphicsR
     ValueCell.updateIfChanged(v.blockFirsts, b.argsValues.blockFirsts.ref.value);
     k.chunk.dispatchIndirect(b.argsValues.dispatchArgs.ref.value, 0);
   }
+  /**
+   * The second phase's records of the merged objects of the last `draw` whose culler holds them (`secondDispatched`),
+   * rastered after the first's into the same chunks
+   */
+  function drawSecond() {
+    let begun = false;
+    for (const { k, index, culled } of prepared) {
+      if (!culled?.secondDispatched) continue;
+      if (!begun) compute.beginComputePass({ label: 'sphere raster, second phase' });
+      begun = true;
+      ValueCell.updateIfChanged(k.argsValues.uMark, 1);
+      k.args.dispatch(1);
+      ValueCell.updateIfChanged(k.argsValues.uMark, 0);
+      ValueCell.updateIfChanged(
+        (k.chunkValues as Cells<typeof SphereRasterRegionsSchema>).records,
+        culled.secondRecords,
+      );
+      dispatchRegions(k, culled, culled.secondRecords);
+      k.args.dispatch(1);
+      k.raster.dispatchIndirect(args!, index * ArgsBytes);
+      k.rasterWide.dispatchIndirect(args!, index * ArgsBytes + 32);
+      k.rasterSingles.dispatchIndirect(args!, index * ArgsBytes + 16);
+    }
+    if (begun) compute.endComputePass();
+  }
   /** the objects of the last `draw` */
   const prepared: { k: ObjectKernels; threads: number; index: number; culled?: MergedRasterInput }[] = [];
   let readCounts: (() => void) | undefined;
@@ -873,27 +898,16 @@ export function createSphereRaster(compute: ComputeContext, resources: GraphicsR
       const drawnObjects = objects.slice();
       const capacities = ranges.map((r) => r.chunkCapacity);
       readCounts = () => readChunkCounts(drawnObjects, capacities);
-      if (!twoPhase) readCounts();
+      if (!twoPhase) {
+        // a view culled before (not again): its second phase's records still the culler's, drawn by its impostors
+        // outside the raster's regions; inside them the raster's, as `second` draws them
+        drawSecond();
+        readCounts();
+      }
       return { ranges, chunks };
     },
     second: () => {
-      compute.beginComputePass({ label: 'sphere raster, second phase' });
-      for (const { k, index, culled } of prepared) {
-        if (!culled?.secondDispatched) continue;
-        ValueCell.updateIfChanged(k.argsValues.uMark, 1);
-        k.args.dispatch(1);
-        ValueCell.updateIfChanged(k.argsValues.uMark, 0);
-        ValueCell.updateIfChanged(
-          (k.chunkValues as Cells<typeof SphereRasterRegionsSchema>).records,
-          culled.secondRecords,
-        );
-        dispatchRegions(k, culled, culled.secondRecords);
-        k.args.dispatch(1);
-        k.raster.dispatchIndirect(args!, index * ArgsBytes);
-        k.rasterWide.dispatchIndirect(args!, index * ArgsBytes + 32);
-        k.rasterSingles.dispatchIndirect(args!, index * ArgsBytes + 16);
-      }
-      compute.endComputePass();
+      drawSecond();
       readCounts?.();
     },
     skipSecond: () => readCounts?.(),

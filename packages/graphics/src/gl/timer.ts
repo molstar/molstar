@@ -19,6 +19,14 @@ export type TimerResult = {
   /** nanoseconds, `NaN` if no timed pass began in the group */
   readonly gpuElapsed: number;
   readonly gpuAvg: number;
+  /**
+   * where its passes ran: the first's begin and the last's end on the GPU's clock (nanoseconds, its own origin), where
+   * the source reports them (`TimerSpan`); `createTimerTrace` places them on the profile's timeline
+   */
+  readonly gpuStart?: number;
+  readonly gpuEnd?: number;
+  /** milliseconds, `now()`'s: when it began on the CPU (its passes encoded from then) */
+  readonly cpuStart: number;
   readonly cpuElapsed: number;
   readonly cpuAvg: number;
   /** nested groups, then the group's own passes (labelled `pass <label>`) */
@@ -44,14 +52,20 @@ export type GraphicsTimer = {
   destroy: () => void;
 };
 
+/** where a segment ran: its first encoder's begin and its last's end on the GPU's clock (nanoseconds) */
+export type TimerSpan = { readonly start: number; readonly end: number };
+
 /** GPU time measurement of a backend: one segment per pass, begun and ended at pass boundaries */
 export interface TimerSource {
   /** Begins timing a pass and returns the segment id, or -1 if it can't be timed */
   begin: () => number;
   /** Ends the segment begun last */
   end: () => void;
-  /** Segments finished since the last call: id and elapsed nanoseconds, `undefined` if the time is invalid */
-  poll: () => Iterable<readonly [number, number | undefined]>;
+  /**
+   * Segments finished since the last call: id and elapsed nanoseconds, `undefined` if the time is invalid; where the
+   * source knows it, where the segment ran (`TimerSpan`)
+   */
+  poll: () => Iterable<readonly [number, number | undefined, TimerSpan?]>;
   /** Forgets all segments */
   clear: () => void;
 }
@@ -119,7 +133,7 @@ function getPassLabel(target: RenderPassTarget | 'compute', label?: string) {
   return 'kind' in target ? 'attachments' : `render-target ${target.id}`;
 }
 
-type Segment = { elapsed?: number; done: boolean; invalid: boolean };
+type Segment = { elapsed?: number; span?: TimerSpan; done: boolean; invalid: boolean };
 
 type Group = {
   label: string;
@@ -237,6 +251,20 @@ export function createGraphicsTimer(
     return elapsed;
   };
 
+  /** the span of the segments `ids` (none where one has none) */
+  const getGpuSpan = (ids: readonly number[]) => {
+    if (ids.length === 0) return undefined;
+    let start = Infinity;
+    let end = -Infinity;
+    for (const id of ids) {
+      const span = segments.get(id)!.span;
+      if (!span) return undefined;
+      start = Math.min(start, span.start);
+      end = Math.max(end, span.end);
+    }
+    return { gpuStart: start, gpuEnd: end };
+  };
+
   const getResult = (g: Group, path: string): TimerResult => {
     const gpuElapsed = getGpuElapsed(g.segments);
     const cpuElapsed = g.cpu.end - g.cpu.start;
@@ -250,6 +278,8 @@ export function createGraphicsTimer(
         label: `pass ${p.label}`,
         gpuElapsed: passElapsed,
         gpuAvg: isNaN(passElapsed) ? NaN : gpuAvgs.add(passKey, passElapsed),
+        ...(p.segment === -1 ? undefined : getGpuSpan([p.segment])),
+        cpuStart: p.cpu.start,
         cpuElapsed: passCpu,
         cpuAvg: cpuAvgs.add(passKey, passCpu),
         children: [],
@@ -259,6 +289,8 @@ export function createGraphicsTimer(
       label: g.label,
       gpuElapsed,
       gpuAvg: isNaN(gpuElapsed) ? NaN : gpuAvgs.add(g.label, gpuElapsed),
+      ...getGpuSpan(g.segments),
+      cpuStart: g.cpu.start,
       cpuElapsed,
       cpuAvg: cpuAvgs.add(g.label, cpuElapsed),
       children,
@@ -272,12 +304,13 @@ export function createGraphicsTimer(
       const results: TimerResult[] = [];
       if (!source || !roots.length || capturingStats) return results;
 
-      for (const [id, elapsed] of source.poll()) {
+      for (const [id, elapsed, span] of source.poll()) {
         const segment = segments.get(id);
         if (!segment) continue;
         segment.done = true;
         if (elapsed === undefined) segment.invalid = true;
         else segment.elapsed = elapsed;
+        if (span) segment.span = span;
       }
 
       const unresolved: Group[] = [];

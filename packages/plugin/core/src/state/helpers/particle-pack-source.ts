@@ -46,14 +46,59 @@ export function getPackFile(asset: Asset.File, assets?: AssetManager): File | un
 
 /**
  * `asset`'s file held by `assets` (not read: a pack read by range, never whole), so that a session saved keeps it;
- * whether it was held here (none before it): its holder deletes it as it goes
+ * whether it was held here (none before it): its holder deletes it as it goes. `kept`: the file where the asset has
+ * none of its own (a state's, by name and id), the one its holder held before (a cell made again)
  */
-export function holdParticlePackFile(asset: Asset.File, assets: AssetManager): boolean {
+export function holdParticlePackFile(asset: Asset.File, assets: AssetManager, kept?: File): boolean {
   if (assets.has(asset)) return false;
-  const file = getPackFile(asset);
+  const file = getPackFile(asset) ?? kept;
   if (!file) return false;
   assets.set(asset, file);
   return true;
+}
+
+/**
+ * A transform's hold of a pack's file (its cell's cache, kept as it is made again): the asset it holds in the asset
+ * manager (`holdParticlePackFile`) and that asset's file, held again from it
+ */
+export interface ParticlePackHold {
+  held?: Asset.File;
+  file?: File;
+}
+
+/**
+ * The range reads of a transform's pack (`source`: a URL's, a file's held by `assets` in `hold`: a session saved keeps
+ * it, one opened reads it from there): an error where a file is not held here or a server ignores ranges
+ */
+export async function getHeldParticlePackSource(
+  source:
+    | { readonly name: 'url'; readonly params: string | Asset.Url }
+    | { readonly name: 'file'; readonly params: Asset.File | null },
+  hold: ParticlePackHold,
+  assets: AssetManager,
+  warn?: (message: string) => void,
+): Promise<ParticlePackSource> {
+  const asset =
+    source.name === 'url'
+      ? typeof source.params === 'string'
+        ? Asset.Url(source.params)
+        : source.params
+      : source.params;
+  if (asset && Asset.isFile(asset)) {
+    // made again, the cell's hold let go first (`dispose`, the asset's id the asset manager's key): held again from the
+    // file it kept, where its params name the file without it (a session opened again in this plugin)
+    const kept = hold.held?.id === asset.id ? hold.file : undefined;
+    const held = holdParticlePackFile(asset, assets, kept);
+    hold.held = held ? asset : undefined;
+    hold.file = held ? getPackFile(asset, assets) : undefined;
+  }
+  // a file not held: none here (a state names it without holding it; a session saved before sessions held packs)
+  if (asset && Asset.isFile(asset) && !getPackFile(asset, assets)) {
+    throw new Error(`The particle pack file '${asset.name}' is not held here: open the file again.`);
+  }
+  const read = asset ? await getParticlePackSource(asset, assets, warn) : undefined;
+  if (!read) throw new Error('particle pack not read by range (a server ignoring ranges)');
+  return read;
 }
 
 /** the total of a `Content-Range` (`bytes 0-63/731477500`), none where unknown (`*`) */

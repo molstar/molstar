@@ -12,6 +12,8 @@ import { Task } from '@molstar/core/task';
 import { Theme } from '@molstar/graphics/theme/theme';
 import { StateTransformer } from '@molstar/core/state';
 import { ParticleTileDrawings } from '@molstar/model/model/particles/particle-tile-drawings';
+import { ParticleNesting } from '@molstar/model/model/particles/particle-nesting';
+import type { ParticleList } from '@molstar/model/model/particles/particle-list';
 
 import {
   assertRepresentationScope,
@@ -24,6 +26,15 @@ import {
   prepareRepresentation,
   registerTransformSignatures,
 } from '@molstar/plugin/state/precompile';
+
+/**
+ * What a list is themed by: a list with templates by its leaves by level (`ParticleNesting.getThemeList`: a slot list of
+ * its top list's and its templates' leaves, no copy expanded; its representation draws it so, or flattened where it
+ * cannot, its loci the list's by path), any other as it is
+ */
+function getThemeData(list: ParticleList) {
+  return ParticleNesting.hasTemplates(list) ? ParticleNesting.getThemeList(list) : list;
+}
 
 export { ParticlesRepresentation3D };
 type ParticlesRepresentation3D = typeof ParticlesRepresentation3D;
@@ -72,7 +83,8 @@ const ParticlesRepresentation3D = PluginStateTransform.BuiltIn({
       };
     }
 
-    const dataCtx = { particles: a.data };
+    const data = getThemeData(a.data);
+    const dataCtx = { particles: data };
     const colorThemeInfo = {
       help: (value: { name: string; params: {} }) => {
         const { name, params } = value;
@@ -84,8 +96,8 @@ const ParticlesRepresentation3D = PluginStateTransform.BuiltIn({
 
     return {
       type: registry.default
-        ? PD.Mapped<any>(registry.default.name, registry.getApplicableTypes(a.data), (name) =>
-            PD.Group<any>(registry.get(name).getParams(themeCtx, a.data)),
+        ? PD.Mapped<any>(registry.default.name, registry.getApplicableTypes(data), (name) =>
+            PD.Group<any>(registry.get(name).getParams(themeCtx, data)),
           )
         : emptyMappedParams(),
       colorTheme: hasColor
@@ -113,11 +125,12 @@ const ParticlesRepresentation3D = PluginStateTransform.BuiltIn({
       const themes = plugin.representation.particles.themes;
       const provider = plugin.representation.particles.registry.get(params.type.name);
       const repr = provider.factory({ graphics: plugin.canvas3d?.graphics, ...themes }, provider.getParams);
-      const theme = Theme.create(themes, { particles: a.data }, params);
+      const data = getThemeData(a.data);
+      const theme = Theme.create(themes, { particles: data }, params);
       repr.setTheme(theme);
       const props = params.type.params || {};
       // compiling what it draws while it builds
-      prepareRepresentation(plugin, repr, { ...repr.props, ...props }, theme, a.data);
+      prepareRepresentation(plugin, repr, { ...repr.props, ...props }, theme, data);
       await repr.createOrUpdate(props, a.data).runInContext(ctx);
       // how it draws a tile view (its clip objects, its opacity): what the view picks its tiles by
       ParticleTileDrawings.set(repr, a.data, { ...repr.props, ...props });
@@ -134,12 +147,13 @@ const ParticlesRepresentation3D = PluginStateTransform.BuiltIn({
         return StateTransformer.UpdateResult.Recreate;
 
       const themes = plugin.representation.particles.themes;
-      b.data.repr.setTheme(Theme.create(themes, { particles: a.data }, newParams));
+      const data = getThemeData(a.data);
+      b.data.repr.setTheme(Theme.create(themes, { particles: data }, newParams));
       // its data alone changed (a tile view's step), its params the same: the representation's props as they are, not
       // the params', which would undo a clipping gizmo's preview (a drag sets the clip on the representation alone)
       const dataOnly = JSON.stringify(oldParams.type.params) === JSON.stringify(newParams.type.params);
       const props = dataOnly ? { ...b.data.repr.props } : { ...b.data.repr.props, ...newParams.type.params };
-      prepareRepresentation(plugin, b.data.repr, props, b.data.repr.theme, a.data);
+      prepareRepresentation(plugin, b.data.repr, props, b.data.repr.theme, data);
       await b.data.repr.createOrUpdate(dataOnly ? {} : props, a.data).runInContext(ctx);
       b.data.sourceData = a.data;
       ParticleTileDrawings.set(b.data.repr, a.data, props);

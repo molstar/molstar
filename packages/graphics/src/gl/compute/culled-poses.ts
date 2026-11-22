@@ -175,7 +175,7 @@ export interface CulledPoseExpander {
 
 /**
  * The expander's kernel created at once, not prepared in the background: a culled object's data is complete before
- * its first draw (the culling's own kernels are not: frames cull on the CPU meanwhile), so the first submit waits for
+ * its first draw (the culling's own kernels are not: frames draw none meanwhile), so the first submit waits for
  * its compile
  */
 export function createCulledPoseExpander(compute: ComputeContext, batchBytes = MaxBatchBytes): CulledPoseExpander {

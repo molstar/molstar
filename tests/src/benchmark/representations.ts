@@ -69,7 +69,13 @@ async function createRepresentation(graphics: GraphicsContext, input: ReprInput,
     await graphics.resources.pending.whenReady();
     await timer.stage('settled');
   });
-  // what the representation retains (its geometry, values, visuals), not what it allocated on the way
+  // what the representation retains (its geometry, values, visuals), not what it allocated on the way: collected, then
+  // collected again after a turn of the event loop (read at once, 100k merged units' values made and dropped were some
+  // 5 KB a unit more, garbage a first collection keeps; why is not known)
+  if (heapBefore !== undefined) {
+    collectedHeap();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
   const heapAfter = heapBefore === undefined ? undefined : collectedHeap();
   const notes: string[] = [];
   if (heapBefore !== undefined && heapAfter !== undefined) {

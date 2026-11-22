@@ -22,9 +22,16 @@ import { deepClone } from '@molstar/core/util/object';
 import { stringToWords } from '@molstar/core/util/string';
 import { ValueCell } from '@molstar/core/util/value-cell';
 import type { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
+import type { GaussianSplats } from '@molstar/graphics/geo/geometry/gaussian-splats/gaussian-splats';
+import { isGaussianSplatPly } from '@molstar/model/formats/shape/gaussian-splat/ply';
+import {
+  type GaussianSplatFileParams,
+  type GaussianSplatShapeSource,
+  shapeFromGaussianSplats,
+} from './gaussian-splat.js';
 
 // TODO support 'edge' element, see https://www.mathworks.com/help/vision/ug/the-ply-format.html
-// TODO support missing face element
+// TODO support missing face element (gaussian splat files have none: `gaussian-splat.ts`)
 
 export type PlyData = {
   source: PlyFile;
@@ -337,7 +344,20 @@ function makeShapeGetter() {
   return getShape;
 }
 
-export function shapeFromPly(source: PlyFile, params?: { transforms?: Mat4[] }) {
+/**
+ * The shape provider of `source`: its gaussian splats where it is a gaussian splatting file (`isGaussianSplatPly`), else
+ * its mesh
+ */
+export function shapeFromPly(
+  source: PlyFile,
+  params?: { transforms?: Mat4[] },
+): Task<
+  | ShapeProvider<PlyData, Mesh, PlyShapeParams>
+  | ShapeProvider<GaussianSplatShapeSource, GaussianSplats, GaussianSplatFileParams>
+> {
+  if (isGaussianSplatPly(source)) {
+    return shapeFromGaussianSplats({ kind: 'ply', file: source, transforms: params?.transforms });
+  }
   return Task.create<ShapeProvider<PlyData, Mesh, PlyShapeParams>>('Shape Provider', async (ctx) => {
     return {
       label: 'Mesh',

@@ -33,6 +33,8 @@ import {
 } from '../../model/particles/particle-tiles.js';
 import type { ModelFormat } from '../format.js';
 import {
+  createParticleListFromPack,
+  type ParticlePack,
   createParticlePackSitesTarget,
   getParticlePackInfo,
   getParticlePackSiteTypes,
@@ -277,6 +279,45 @@ async function readWhole<A extends Int32Array | Float32Array>(
 }
 
 /**
+ * Whether a pack of `doc` is read by range as a nested list (`openParticleListFromPackStream`): its templates each
+ * with its coarse levels stored, its positions on a grid, its tile directory (a page's box before its particles are
+ * read)
+ */
+export function isParticlePackListStreamable(doc: ParticlePackDocument) {
+  if (!doc.templates?.length) return false;
+  return doc.templates.every((t) => {
+    const has = (name: string) => t.blocks.some((b) => b.name === name);
+    return !!t.templateLevels && !!t.positionGrid && has('position') && has('tile.ranges') && has('tile.boxes');
+  });
+}
+
+/** a template's blocks its particles' (not read at open: by range when its pages are drawn) */
+const isDeferredBlock = (name: string) => name === 'position' || name === 'rotation' || name.startsWith('attribute.');
+
+/**
+ * The nested list of `stream` (`isParticlePackListStreamable`): its top list's blocks and its templates' read (their
+ * runs, tile directories, stored levels, density grids, sites), its templates' particles (positions, rotations,
+ * attributes) not: read by range when asked (`Particle.DeferredParticles`, a page store's page when the cull wants
+ * it). Why: a nested pack read whole (the yeast nested 2x2: 822 MB in memory) where a view draws its coarse levels and
+ * the pages near it
+ */
+export async function openParticleListFromPackStream(stream: ParticlePackStream): Promise<ParticleList> {
+  const doc = stream.document;
+  if (!isParticlePackListStreamable(doc)) throw new Error('particle pack not read by range as a nested list');
+  const toRead = [...doc.blocks];
+  for (const t of doc.templates!) for (const b of t.blocks) if (!isDeferredBlock(b.name)) toRead.push(b);
+  const arrays = new Map<number, Float32Array | Int32Array | Int16Array | Uint32Array>();
+  await Promise.all(toRead.map(async (b) => arrays.set(b.byteOffset, await readItems(stream.source, b, 0, b.count))));
+  const pack: ParticlePack = {
+    document: doc,
+    buffer: new ArrayBuffer(0),
+    byteOffset: 0,
+    blocks: { arrays, read: (b, first, count, signal) => readItems(stream.source, b, first, count, signal) },
+  };
+  return createParticleListFromPack(pack);
+}
+
+/**
  * Per compartment its entities (in `entityInfo`'s order) and whether some of its particles have none, by the
  * targets' (a target's particles' entity and compartment its own): `ParticleTileCatalog.getCompartmentEntities`'s, no
  * particle read
@@ -456,6 +497,8 @@ export async function createParticleTileSetFromPack(
     readonly keys?: ParticlePackBlock;
     /** its runs (first, target), ascending */
     readonly runs: Int32Array;
+    /** its runs' scales (a node's: `node.scales`), none: the range's one */
+    readonly scales?: Float32Array;
     /** its boxes (`ParticleTileDirectoryBox` a range) */
     readonly boxes: Float32Array;
   }
@@ -508,6 +551,8 @@ export async function createParticleTileSetFromPack(
     const entityValues = new Int32Array(runsIn);
     const compartmentValues = new Int32Array(runsIn);
     const radiusValues = new Float32Array(runsIn);
+    const scaleValues = ranges.scales ? new Float32Array(runsIn) : undefined;
+    // the largest radius as drawn (by its run's scale): the bounds' padding
     let radius = 0;
     for (let q = 0; q < runsIn; ++q) {
       const t = byId.get(runs[(at.r0 + q) * 2 + 1]);
@@ -517,7 +562,8 @@ export async function createParticleTileSetFromPack(
       entityValues[q] = t.entity;
       compartmentValues[q] = t.compartment;
       radiusValues[q] = t.radius ?? 0;
-      radius = Math.max(radius, radiusValues[q]);
+      const runScale = scaleValues ? (scaleValues[q] = ranges.scales![at.r0 + q]) : scale;
+      radius = Math.max(radius, radiusValues[q] * runScale);
     }
     offsets[runsIn] = count;
     const targetValues = ParticleValues.ofRuns(offsets, ids);
@@ -562,7 +608,8 @@ export async function createParticleTileSetFromPack(
         return parts.join(' · ');
       },
       sourceData: format,
-      scale: scale !== 1 ? scale : undefined,
+      scale: !scaleValues && scale !== 1 ? scale : undefined,
+      scales: scaleValues ? ParticleValues.ofRuns(offsets, scaleValues) : undefined,
       customProperties: new CustomProperties(),
       _propertyData: Object.create(null),
     };
@@ -623,10 +670,12 @@ export async function createParticleTileSetFromPack(
 
   // the coarse levels: a node a tile of the set, its slots after the particles' (its base the pack's count and its
   // first), its id after the grid's cells
-  const [nodeRanges, nodeBoxes, nodeRuns] = await Promise.all([
+  const [nodeRanges, nodeBoxes, nodeRuns, nodeScales] = await Promise.all([
     readWhole(stream, 'node.ranges', Int32Array),
     readWhole(stream, 'node.boxes', Float32Array),
     readWhole(stream, 'node.runs', Int32Array),
+    // a pack written before them none: its nodes drawn `2^L` larger
+    readWhole(stream, 'node.scales', Float32Array),
   ]);
   const nodePosition = getBlock(doc, 'node.position');
   const nodeKeys = getBlock(doc, 'node.keys');
@@ -639,6 +688,7 @@ export async function createParticleTileSetFromPack(
     attributes: doc.attributes.map((a) => getBlock(doc, `node.attribute.${a.name}`)),
     keys: nodeKeys,
     runs: nodeRuns,
+    scales: nodeScales,
     boxes: nodeBoxes,
   };
   const cells = n * n * n;

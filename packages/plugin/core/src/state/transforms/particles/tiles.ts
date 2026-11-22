@@ -7,7 +7,7 @@
 import { Box3D } from '@molstar/core/math/geometry/primitives/box3d';
 import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
 import { Task } from '@molstar/core/task';
-import { Asset } from '@molstar/core/util/assets';
+import { UserTiming } from '@molstar/core/task/util/user-timing';
 import { StateTransformer } from '@molstar/core/state';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { createParticleTileLoader, type ParticleTileLoader } from '@molstar/model/model/particles/particle-tile-loader';
@@ -15,16 +15,15 @@ import { ParticleTileOpaque } from '@molstar/model/model/particles/particle-tile
 import type { ParticleList } from '@molstar/model/model/particles/particle-list';
 import { ParticleSlots } from '@molstar/model/model/particles/particle-slots';
 import { ParticleTileView } from '@molstar/model/model/particles/particle-tile-view';
-import { ParticleTileVisibility } from '@molstar/model/model/particles/particle-tile-visibility';
+import {
+  getParticleTileSetRadius,
+  ParticleTileVisibility,
+} from '@molstar/model/model/particles/particle-tile-visibility';
 import { ParticleTileDrawings } from '@molstar/model/model/particles/particle-tile-drawings';
 import { ParticleTiles, type ParticleTileSet } from '@molstar/model/model/particles/particle-tiles';
 import type { PluginContext } from '@molstar/plugin/context';
 import { getParticleTileCamera, type ParticleTileCameraSnapshot } from '@molstar/plugin/state/helpers/particle-tiles';
-import {
-  getPackFile,
-  getParticlePackSource,
-  holdParticlePackFile,
-} from '@molstar/plugin/state/helpers/particle-pack-source';
+import { getHeldParticlePackSource, type ParticlePackHold } from '@molstar/plugin/state/helpers/particle-pack-source';
 
 import {
   createParticleTileSetFromPack,
@@ -130,24 +129,10 @@ const ParticleTileSetFromPack = PluginStateTransform.BuiltIn({
 })({
   apply({ params, cache }, plugin: PluginContext) {
     return Task.create('Particle Pack Tiles', async () => {
-      const { source } = params;
-      const asset =
-        source.name === 'url'
-          ? typeof source.params === 'string'
-            ? Asset.Url(source.params)
-            : source.params
-          : source.params;
       // a file held by the asset manager, not read: a session saved keeps it, one opened reads it from there
-      const assets = plugin.managers.asset;
-      if (asset && Asset.isFile(asset) && holdParticlePackFile(asset, assets)) (cache as PackCache).held = asset;
-      // a file not held: none here (a state names it without holding it; a session saved before sessions held packs)
-      if (asset && Asset.isFile(asset) && !getPackFile(asset, assets)) {
-        throw new Error(`The particle pack file '${asset.name}' is not held here: open the file again.`);
-      }
-      const read = asset
-        ? await getParticlePackSource(asset, assets, (m) => plugin.log.warn(`Particle pack: ${m}`))
-        : undefined;
-      if (!read) throw new Error('particle pack not read by range (a server ignoring ranges)');
+      const read = await getHeldParticlePackSource(params.source, cache as PackCache, plugin.managers.asset, (m) =>
+        plugin.log.warn(`Particle pack: ${m}`),
+      );
       const stream = await openParticlePackStream(read);
       if (!isParticlePackStreamable(stream.document)) throw new Error('particle pack not tile-ordered: read it whole');
       const set = await createParticleTileSetFromPack(stream, {
@@ -183,11 +168,8 @@ function tileError(plugin: PluginContext) {
     plugin.log.warn(`Particle tiles: tile ${id}${frame > 0 ? ` at frame ${frame}` : ''} not read: ${error}`);
 }
 
-/** A pack tile set's cache: the file it holds in the asset manager (`holdParticlePackFile`) */
-
-interface PackCache {
-  held?: Asset.File;
-}
+/** A pack tile set's cache (its cell's, kept as it is made again): its pack's file's hold */
+type PackCache = ParticlePackHold;
 
 /** A canvas camera as a param: its snapshot and its viewport's size (none: the canvas' own at the time) */
 const CameraParam = PD.Value<
@@ -222,7 +204,7 @@ const TilesParam = PD.MappedStatic(
           description: 'Leave out tiles hidden behind others (where opacities are known).',
         }),
         opticalDepth: PD.Numeric(
-          7,
+          3,
           { min: 0.5, max: 12, step: 0.5 },
           {
             description:
@@ -242,11 +224,11 @@ const TilesParam = PD.MappedStatic(
           },
         ),
         detailPixels: PD.Numeric(
-          4,
+          24,
           { min: 0, max: 64, step: 0.5 },
           {
             description:
-              "With levels (a tile set's coarse levels): the radius on screen, in pixels, of a tile's largest molecule from which its particles are all drawn; smaller, a coarse level's sample of them drawn larger (0: all).",
+              "With levels (a tile set's coarse levels): the radius on screen, in pixels, of the set's largest molecule at a tile from which its particles are all drawn; smaller, a coarse level's sample of them drawn larger (0: all). Alike for tiles alike far, whatever they hold.",
           },
         ),
         maxParticles: PD.Numeric(
@@ -262,7 +244,7 @@ const TilesParam = PD.MappedStatic(
           { min: 0, max: 100, step: 1 },
           {
             description:
-              "Following, the time an update aims at (ms; 0: by the budget alone): its particles by how long the last updates took, at most the budget. Off by default: an update's fixed cost (about 20 ms) is above it, smaller steps only slower.",
+              "Following, the time an update aims at (ms; 0: by the budget alone): its particles by how long the last updates took, at most the budget. Off by default: smaller steps are more of them, each with an update's fixed cost (a step a frame at 4 or 8 ms: three times the frames past a display's frame).",
           },
         ),
         camera: CameraParam,
@@ -297,10 +279,27 @@ export { pickTiles as pickParticleTiles };
 
 /**
  * the occlusion's rays a side (`ParticleTileVisibilityOptions.resolution`): settled, and while what draws the tiles
- * changes (a cut dragged: a pick a frame or so, a quarter of the rays, about a quarter of the time)
+ * changes (a cut dragged: a pick a frame or so, a quarter of the rays, about a quarter of the time) or the camera
+ * moves (a pick every `intervalMs`)
  */
 const SettledResolution = 64;
 const MovingResolution = 32;
+
+/** per canvas camera when it last changed (`setParticleTilesCameraChanged`, the follow behavior's: every change) */
+const cameraChangedAt = new WeakMap<object, number>();
+
+/**
+ * `camera` (a canvas') changed `at`: its picks the quicker ones while it changed within `ParticleTileDrawings.SettleMs`,
+ * a full pick once it settled (the follow behavior's pass after it)
+ */
+export function setParticleTilesCameraChanged(camera: object, at = performance.now()) {
+  cameraChangedAt.set(camera, at);
+}
+
+function isCameraMoving(camera: object) {
+  const at = cameraChangedAt.get(camera);
+  return at !== undefined && performance.now() - at < ParticleTileDrawings.SettleMs;
+}
 /** a block a clip surface cuts split in eight once while the cut moves (settled: the visibility's default, 3) */
 const MovingClipSplitDepth = 1;
 
@@ -309,6 +308,11 @@ function pickTiles(
   set: ParticleTileSet,
   params: PD.Values<{ tiles: typeof TilesParam }>['tiles'],
   plugin: PluginContext,
+  /**
+   * the set's latest pick of these params (`latestPicks`), whatever camera it was of, where there is one: a pass not
+   * the camera's (a tile loaded, a step's next) steps toward it, the camera's passes pick again
+   */
+  latest = false,
 ) {
   switch (params.name) {
     case 'all':
@@ -331,32 +335,45 @@ function pickTiles(
       const width = given ? given.width : canvas!.camera.viewport.width;
       const height = given ? given.height : canvas!.camera.viewport.height;
       const { minPixels, occlusion } = params.params;
-      const opticalDepth = params.params.opticalDepth ?? 7;
+      const opticalDepth = params.params.opticalDepth ?? 3;
       // the set's last picks kept by their cameras: a following view's steps (and the behavior's check) of one camera
       // pick once (the visibility a pass over the tiles, their occlusion), each of a few views of the set its own
-      const detailPixels = params.params.detailPixels ?? 4;
+      const detailPixels = params.params.detailPixels ?? 24;
       // what draws its tiles (their representations' clip objects and opacity): picked again where it changes
       const drawing = ParticleTileDrawings.get(set);
       // a cut being moved (its drawings changing): the quicker pick, a coarser occlusion and a block a surface cuts
       // split once, picked again in full once it settles (the follow behavior's pass after `SettleMs`)
       const moving = ParticleTileDrawings.isChanging(set);
-      const resolution = moving ? MovingResolution : SettledResolution;
-      const key = `${getCameraKey(snapshot, width, height, minPixels, occlusion, opticalDepth)},${params.params.maxParticles ?? 0},${detailPixels},${drawing.version},${resolution}`;
+      // the canvas' camera moving (none given): the coarser occlusion too, picked again in full once it settles
+      const cameraMoving = !given && !!canvas && isCameraMoving(canvas.camera);
+      const resolution = moving || cameraMoving ? MovingResolution : SettledResolution;
+      const paramsKey = `${minPixels},${occlusion},${opticalDepth},${params.params.maxParticles ?? 0},${detailPixels},${drawing.version},${resolution}`;
+      if (latest && !given) {
+        const last = latestPicks.get(set)?.get(paramsKey);
+        if (last) return last;
+      }
+      const key = `${getCameraKey(snapshot, width, height, minPixels, occlusion, opticalDepth)},${paramsKey}`;
       const kept = getPick(set, key);
-      if (kept) return kept;
-      const v = ParticleTileVisibility.get(set.levels?.base ?? set, getParticleTileCamera(snapshot, width, height), {
-        minPixels,
-        occlusion,
-        opticalDepth,
-        drawings: drawing.list.length > 0 ? drawing.list : undefined,
-        resolution,
-        clipSplitDepth: moving ? MovingClipSplitDepth : undefined,
-      });
+      if (kept) {
+        setLatestPick(set, paramsKey, kept);
+        return kept;
+      }
+      const v = UserTiming.span('tiles: visibility', () =>
+        ParticleTileVisibility.get(set.levels?.base ?? set, getParticleTileCamera(snapshot, width, height), {
+          minPixels,
+          occlusion,
+          opticalDepth,
+          drawings: drawing.list.length > 0 ? drawing.list : undefined,
+          resolution,
+          clipSplitDepth: moving ? MovingClipSplitDepth : undefined,
+        }),
+      );
       // the tiles by priority within the cap of particles
       const max = params.params.maxParticles ?? 0;
       if (set.levels) {
-        const ids = pickNodes(set, v.tiles, detailPixels, max);
+        const ids = UserTiming.span('tiles: cut', () => pickNodes(set, v.tiles, detailPixels, max));
         keepPick(set, key, ids);
+        setLatestPick(set, paramsKey, ids);
         return ids;
       }
       let ids = v.tiles.map((t) => t.id);
@@ -367,6 +384,7 @@ function pickTiles(
         ids = ids.slice(0, Math.max(1, n));
       }
       keepPick(set, key, ids);
+      setLatestPick(set, paramsKey, ids);
       return ids;
     }
   }
@@ -386,8 +404,8 @@ function tilesOf(set: ParticleTileSet) {
 const MaxDetailRaise = 4;
 
 /**
- * The coarsest level of a visible tile whose sample, drawn larger, keeps its largest molecule's radius on screen
- * (`size`) at `detailPixels`: level `L` keeps `8^-L` of the particles, at least the fraction `(size / detailPixels)³`;
+ * The coarsest level of a visible tile whose sample, drawn larger, keeps the set's largest molecule's radius on screen
+ * there (`size`: `getParticleTileSetRadius` by the tile's scale) at `detailPixels`: level `L` keeps `8^-L` of the particles, at least the fraction `(size / detailPixels)³`;
  * 0 (its own particles) from `detailPixels` on, or nearer than its reach
  */
 function getWantedLevel(size: number, detailPixels: number, levelCount: number) {
@@ -407,11 +425,14 @@ function getWantedLevel(size: number, detailPixels: number, levelCount: number) 
  */
 function pickNodes(
   set: ParticleTileSet,
-  visible: readonly { readonly id: number; readonly size: number }[],
+  visible: readonly { readonly id: number; readonly size: number; readonly scale: number }[],
   detailPixels: number,
   max: number,
 ) {
   const levels = set.levels!;
+  // a tile's detail by the set's largest molecule at the tile (alike far, alike coarse), its own size where none known
+  const radius = getParticleTileSetRadius(set);
+  const sizes = visible.map((t) => (radius === undefined ? t.size : radius * t.scale));
   const count = levels.count;
   const dimensions = levels.base.grid.dimensions[0];
   // per visible tile its nodes, by level (0 itself; -1 none)
@@ -428,7 +449,7 @@ function pickNodes(
     // per node the least level its visible tiles want
     const least = new Map<number, number>();
     for (let i = 0; i < visible.length; ++i) {
-      const wanted = getWantedLevel(visible[i].size, detail, count);
+      const wanted = getWantedLevel(sizes[i], detail, count);
       for (let level = 1; level <= count; ++level) {
         const node = nodes[i * stride + level];
         if (node < 0) continue;
@@ -505,6 +526,22 @@ function getPick(set: ParticleTileSet, key: string) {
   return ids;
 }
 
+/**
+ * per tile set its latest pick by params other than the camera's (`pickTiles`' `latest`). Why: a pass woken by a tile
+ * loaded or a step's next, while the camera moves, would pick again for the camera where it is now: a pick a frame
+ * (the visibility a pass over the tiles), the camera's own passes throttled for nothing
+ */
+const latestPicks = new WeakMap<ParticleTileSet, Map<string, number[]>>();
+
+function setLatestPick(set: ParticleTileSet, paramsKey: string, ids: number[]) {
+  let picks = latestPicks.get(set);
+  if (!picks) {
+    picks = new Map();
+    latestPicks.set(set, picks);
+  }
+  picks.set(paramsKey, ids);
+}
+
 function keepPick(set: ParticleTileSet, key: string, ids: number[]) {
   let picks = lastPicks.get(set);
   if (!picks) {
@@ -575,9 +612,12 @@ function getStepBudget(tiles: TilesValues, set: ParticleTileSet) {
 
 /**
  * A following view's next tiles (`getStepBudget`): those of `shown` still picked, then the picked ones ready (by
- * priority) up to its budget of particles (at least one tile), not waiting for the rest; `shown` as it is where that is
- * none (a pick all new, none of it ready). Why: an empty view a blank frame, and what draws it made again for it and again
- * after
+ * priority) up to its budget of particles (at least one tile, or one region switched), not waiting for the rest;
+ * `shown` as it is where that is none (a pick all new, none of it ready). Why: an empty view a blank frame, and what
+ * draws it made again for it and again after. A region switched (`getSwitchGroups`: a level switch, a node for its
+ * tiles or the tiles for their node) steps whole: its picked tiles in once all have arrived (ready or failed), the shown
+ * ones it replaces out in the same step, kept until then. Why: no region empty while it loads, none drawn twice (a
+ * node's sample over its tiles: more particles to draw, and the two looks at once)
  */
 function stepTiles(
   set: ParticleTileSet,
@@ -595,15 +635,170 @@ function stepTiles(
     next.push(shown[i]);
     kept.add(shown[i]);
   }
+  const groups = getSwitchGroups(set, picked, shown, kept);
+  const ready = (id: number) => loader.getState(id, frame) === 'ready';
+  const arrived = (id: number) => {
+    const state = loader.getState(id, frame);
+    return state === 'ready' || state === 'failed';
+  };
+  const visited = new Set<SwitchGroup>();
+  const taken = new Set<SwitchGroup>();
   let particles = 0;
   for (const id of picked) {
-    if (kept.has(id) || loader.getState(id, frame) !== 'ready') continue;
-    const count = set.tiles.get(id)!.count;
+    if (kept.has(id)) continue;
+    const group = groups?.get(id);
+    if (!group) {
+      if (!ready(id)) continue;
+      const count = set.tiles.get(id)!.count;
+      if (particles > 0 && particles + count > budget) break;
+      next.push(id);
+      kept.add(id);
+      particles += count;
+      continue;
+    }
+    // a region switched: at its first picked tile (by priority), all of them or none
+    if (visited.has(group)) continue;
+    visited.add(group);
+    if (!group.picked.every(arrived)) continue;
+    const ids = group.picked.filter(ready);
+    let count = 0;
+    for (const t of ids) count += set.tiles.get(t)!.count;
     if (particles > 0 && particles + count > budget) break;
-    next.push(id);
+    for (const t of ids) {
+      next.push(t);
+      kept.add(t);
+    }
+    taken.add(group);
     particles += count;
   }
-  return next.length > 0 ? next : Array.from(shown);
+  if (next.length === 0) return Array.from(shown);
+  // the regions not switched yet keep what they show
+  if (groups) {
+    for (const group of new Set(groups.values())) {
+      if (!taken.has(group)) for (const t of group.shown) next.push(t);
+    }
+  }
+  return next;
+}
+
+export { stepTiles as stepParticleTiles };
+
+/** A region switched (`getSwitchGroups`): the shown tiles leaving it, the picked tiles over it */
+interface SwitchGroup {
+  readonly shown: number[];
+  readonly picked: number[];
+}
+
+/**
+ * The regions a step switches (with levels): the tiles of `shown` no longer picked and the picked tiles not `kept`
+ * over them, joined where their regions share a base cell (`getTileRegions`; a node's its block of them), per picked
+ * tile its group; none without levels (its tiles' regions apart) or where none leaves. A shown tile no picked tile is
+ * over (the camera turned away) in none: dropped. By the base grid's cells, not tile against tile: thousands of each
+ * at a switch
+ */
+function getSwitchGroups(
+  set: ParticleTileSet,
+  picked: readonly number[],
+  shown: ArrayLike<number>,
+  kept: ReadonlySet<number>,
+) {
+  if (!set.levels) return undefined;
+  const regions = getTileRegions(set);
+  const wanted = new Set(picked);
+  const leaving: number[] = [];
+  for (let i = 0; i < shown.length; ++i) {
+    if (!wanted.has(shown[i]) && regions.has(shown[i])) leaving.push(shown[i]);
+  }
+  if (leaving.length === 0) return undefined;
+  const d = set.levels.base.grid.dimensions[0];
+  // per base cell the leaving tile over it (its index), -1 none
+  const owner = new Int32Array(d * d * d).fill(-1);
+  for (let i = 0; i < leaving.length; ++i) {
+    someRegionCell(d, regions.get(leaving[i])!, (cell) => {
+      owner[cell] = i;
+      return false;
+    });
+  }
+  // the leaving tiles joined by the picked tiles over them (union-find)
+  const parent = Int32Array.from({ length: leaving.length }, (_, i) => i);
+  const root = (i: number) => {
+    while (parent[i] !== i) i = parent[i] = parent[parent[i]];
+    return i;
+  };
+  const over = new Map<number, number>();
+  for (const id of picked) {
+    if (kept.has(id)) continue;
+    const region = regions.get(id);
+    if (region === undefined) continue;
+    let first = -1;
+    someRegionCell(d, region, (cell) => {
+      const o = owner[cell];
+      if (o < 0) return false;
+      if (first < 0) first = o;
+      else parent[root(o)] = root(first);
+      return false;
+    });
+    if (first >= 0) over.set(id, first);
+  }
+  if (over.size === 0) return undefined;
+  const byRoot = new Map<number, SwitchGroup>();
+  const groups = new Map<number, SwitchGroup>();
+  for (const [id, o] of over) {
+    const r = root(o);
+    let group = byRoot.get(r);
+    if (!group) byRoot.set(r, (group = { shown: [], picked: [] }));
+    group.picked.push(id);
+    groups.set(id, group);
+  }
+  for (let i = 0; i < leaving.length; ++i) byRoot.get(root(i))?.shown.push(leaving[i]);
+  return groups;
+}
+
+/** per set with levels its tiles' regions (`getTileRegions`) */
+const tileRegions = new WeakMap<ParticleTileSet, Map<number, number>>();
+
+/**
+ * The region of each tile of `set` (with levels): its level and its cell in that level's grid, as one number
+ * (`cell * 32 + level`); a base tile level 0 at its own cell, a node by its level's grid (`ParticleTileLevels.getNode`)
+ */
+function getTileRegions(set: ParticleTileSet) {
+  let regions = tileRegions.get(set);
+  if (regions) return regions;
+  regions = new Map();
+  const levels = set.levels!;
+  for (const id of levels.base.tiles.keys()) regions.set(id, id * 32);
+  const dimensions = levels.base.grid.dimensions[0];
+  for (let level = 1; level <= levels.count; ++level) {
+    const d = dimensions >> level;
+    for (let cell = 0, n = d * d * d; cell < n; ++cell) {
+      const node = levels.getNode(level, cell);
+      if (node !== undefined) regions.set(node, cell * 32 + level);
+    }
+  }
+  tileRegions.set(set, regions);
+  return regions;
+}
+
+/**
+ * Whether `test` holds for a base cell (of a grid of `dimensions` cells an axis) within `region` (`getTileRegions`: a
+ * level's cell, `2^level` base cells an axis), stopping at the first that does
+ */
+function someRegionCell(dimensions: number, region: number, test: (cell: number) => boolean) {
+  const level = region % 32;
+  const cell = (region - level) / 32;
+  const d = dimensions >> level;
+  const x0 = (cell % d) << level;
+  const y0 = (Math.floor(cell / d) % d) << level;
+  const z0 = Math.floor(cell / (d * d)) << level;
+  const n = 1 << level;
+  for (let z = z0; z < z0 + n; ++z) {
+    for (let y = y0; y < y0 + n; ++y) {
+      for (let x = x0; x < x0 + n; ++x) {
+        if (test(x + y * dimensions + z * dimensions * dimensions)) return true;
+      }
+    }
+  }
+  return false;
 }
 
 /**
@@ -690,11 +885,11 @@ function forgetView(view: ViewCache) {
 }
 
 /**
- * Whether a following view (`getStepBudget`) is behind what the camera picks now, a step changing what it shows
- * (`stepTiles`): a picked tile ready not shown, or a tile shown no longer picked where another shown stays (what
- * `ParticleTilesFollowCamera` steps it toward). A view none of whose tiles is picked and none of the picked ready keeps
- * what it shows: not behind until one is ready (the loader's change waking the behavior), not stepped to the same
- * tiles every frame meanwhile (forever where they fail)
+ * Whether a following view (`getStepBudget`) is behind what the camera picks now: a step (`stepTiles`, any budget)
+ * changing what it shows (what `ParticleTilesFollowCamera` steps it toward). Not behind while what a step would add is
+ * not there yet: a picked tile not ready, a region switched not all arrived, a view none of whose tiles is picked and
+ * none of the picked ready (the loader's change waking the behavior); not stepped to the same tiles every frame
+ * meanwhile (forever where they fail)
  */
 export function isParticleTilesViewBehind(
   data: SO.Particle.TileSet['data'],
@@ -703,25 +898,24 @@ export function isParticleTilesViewBehind(
   plugin: PluginContext,
   /** the view's cell's cache (`StateObjectCell.cache`): its wants on the loader the other views' kept */
   cache: unknown,
+  /** the set's latest pick, not the camera's now (`pickTiles`): a pass the camera's change did not wake */
+  latest = false,
 ) {
   const { set, loader } = data;
   const view = ParticleTileView.of(list);
   if (!view || view.set !== set) return true;
   const frame = Math.max(0, Math.min(params.frame, set.frameCount - 1));
-  const picked = pickTiles(set, params.tiles, plugin);
+  const picked = pickTiles(set, params.tiles, plugin, latest);
   // the loader wanting what the camera picks now, whether the view steps or not: else a pick that keeps the tiles shown
   // (the first, before the camera framed the set) and brings others never loads them
   if (cache) wantTiles(loader, cache as ViewCache, picked, frame);
-  const wanted = new Set(picked);
+  // the step itself, unbounded: behind where it changes the tiles (a bounded step changes them too, at least a tile or
+  // a region)
+  const next = stepTiles(set, loader, picked, frame, view.tiles, Infinity);
   const shown = new Set(view.tiles);
-  for (const id of picked) if (!shown.has(id) && loader.getState(id, frame) === 'ready') return true;
-  let kept = false;
-  let dropped = false;
-  for (const id of shown) {
-    if (wanted.has(id)) kept = true;
-    else dropped = true;
-  }
-  return kept && dropped;
+  if (next.length !== shown.size) return true;
+  for (const id of next) if (!shown.has(id)) return true;
+  return false;
 }
 
 export { ParticleTilesView };
@@ -780,7 +974,10 @@ async function createView(
 ) {
   const { set, loader } = data;
   const frame = Math.max(0, Math.min(params.frame, set.frameCount - 1));
-  const ids = pickTiles(set, params.tiles, plugin);
+  // a following view's step toward the set's latest pick: the behavior's pass before it picked for the camera where it
+  // woke for it (`isParticleTilesViewBehind`), not again for a camera moved since
+  const following = params.tiles.name === 'camera' && params.tiles.params.follow && !params.tiles.params.camera;
+  const ids = pickTiles(set, params.tiles, plugin, following);
   wantTiles(loader, cache, ids, frame);
   let ready: number[];
   const budget = getStepBudget(params.tiles, set);
@@ -788,20 +985,22 @@ async function createView(
     // a step toward the tiles picked: those ready up to the budget, the others as they load (the next steps)
     const shown = previous?.set === set && previous.frame === frame ? previous.tiles : [];
     if (shown.length === 0) await whenSettled(loader, ids, frame, true);
-    ready = stepTiles(set, loader, ids, frame, shown, budget);
+    ready = UserTiming.span('tiles: step', () => stepTiles(set, loader, ids, frame, shown, budget));
   } else {
     await whenSettled(loader, ids, frame, false);
     // the failed left out: a view of what is there
     ready = ids.filter((id) => loader.getState(id, frame) === 'ready');
   }
   // a slot list the next version of the last (its changes by page) where that is one of the same set
-  const view = params.slots
-    ? ParticleTileView.createSlots(set, loader, ready, frame, previousList)
-    : ParticleTileView.create(set, loader, ready, frame, previous?.set === set ? previous : undefined);
+  const view = UserTiming.span('tiles: view', () =>
+    params.slots
+      ? ParticleTileView.createSlots(set, loader, ready, frame, previousList)
+      : ParticleTileView.create(set, loader, ready, frame, previous?.set === set ? previous : undefined),
+  );
   const want = viewWants.get(loader)?.get(cache);
   if (want) want.shown = view.tiles;
   const max = params.tiles.name === 'camera' ? (params.tiles.params.maxParticles ?? 0) : 0;
-  if (max > 0) trimLoader(loader, frame, LoadedParticlesPerCap * max);
+  if (max > 0) UserTiming.span('tiles: trim', () => trimLoader(loader, frame, LoadedParticlesPerCap * max));
   return view;
 }
 

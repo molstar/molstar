@@ -13,7 +13,8 @@ const caAdd4 = ChunkedArray.add4;
 
 export interface SpheresBuilder {
   add(x: number, y: number, z: number, group: number): void;
-  getSpheres(): Spheres;
+  /** `base`: the spheres every `base`-th of a whole's (`Spheres.fromPositionGroup`) */
+  getSpheres(base?: number): Spheres;
 }
 
 export namespace SpheresBuilder {
@@ -31,9 +32,9 @@ export namespace SpheresBuilder {
         // the group as its bits (`rgb32f-i32`: exact past 2^24)
         caAdd4(positionGroup, x, y, z, int32ToFloatBits(group));
       },
-      getSpheres: () => {
+      getSpheres: (base?: number) => {
         const array = ChunkedArray.compactTrimmed(positionGroup) as Float32Array;
-        return Spheres.fromPositionGroup(array, positionGroup.elementCount, spheres);
+        return Spheres.fromPositionGroup(array, positionGroup.elementCount, spheres, base);
       },
     };
   }

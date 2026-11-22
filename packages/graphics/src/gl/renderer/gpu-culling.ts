@@ -156,7 +156,7 @@ export function createGpuCulling(host: GpuCullingHost): GpuCulling {
       const spheres = r.rasterSpheres;
       // left to the CPU culling: drawn by its lists, as where the kernels are not ready; hidden, not culled at all
       if (spheres !== undefined && (spheres < rasterSpheresMin || !r.state.visible)) continue;
-      if (r.prepareCull?.(cameraPlane, frustum, frame, lodView, pyramid, cullRaster, cullBatch, clipGhost)) {
+      if (r.prepareCull?.(cameraPlane, frustum, frame, lodView, pyramid, cullRaster, cullBatch, clipGhost, twoPhase)) {
         culledCount += 1;
       }
       records += r.recordsVersion ?? 0;

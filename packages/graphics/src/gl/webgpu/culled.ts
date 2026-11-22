@@ -6,6 +6,7 @@
 
 import { getAttributeLayout } from '../attribute-layout.js';
 import { CulledData } from '../culled-data.js';
+import { CopyLayerBlock, CopyLayerKinds } from '../instance-expansion.js';
 import type { DefineLookup, RenderableSchema } from '../renderable/schema.js';
 import { getWgslVertexAttributes, getWgslVertexInputs } from './wgsl-declarations.js';
 
@@ -95,8 +96,29 @@ export function getCulledVertexInputDeclaration(
   input.push('};');
   reader.push('    return in;', '}');
   const data = CulledData.wgsl(indexed ? DataName : InstanceDataName);
-  return [stage.join('\n'), input.join('\n'), data, reader.join('\n')].join('\n\n');
+  // added after the preprocessor: by the defines, not `#if`
+  const copyLayers = defines('dCopyLayers') ? copy_layers_wgsl : '';
+  return [stage.join('\n'), input.join('\n'), data, copyLayers, reader.join('\n')].join('\n\n');
 }
+
+/**
+ * Layer `k` of a page store's copy's instance (`sCopyLayers`: two words a copy's kind, `CopyLayerKinds` a copy: a
+ * value's flag and its first byte, or a block's and its first byte less its template's first store index times the
+ * size), `tag` its copy plus one, `index` its template particle's store index; else `own`, its store index's
+ */
+const copy_layers_wgsl = /* wgsl */ `
+fn copyLayerOr(k: u32, size: u32, tag: u32, index: u32, own: vec4<f32>) -> vec4<f32> {
+    if (tag == 0u) { return own; }
+    let o = 2u * (${CopyLayerKinds}u * (tag - 1u) + k);
+    let flag = sCopyLayers[o];
+    if (flag == 0u) { return own; }
+    var b = sCopyLayers[o + 1u];
+    if ((flag & ${CopyLayerBlock}u) != 0u) { b = u32(bitcast<i32>(b) + i32(index * size)); }
+    let w = sCopyLayers[b / 4u];
+    if (size == 4u) { return unpack4x8unorm(w); }
+    return vec4<f32>(f32((w >> (8u * (b % 4u))) & 0xffu) / 255.0);
+}
+`;
 
 const VertexMain = /@vertex\s+fn vertexMain\(in: VertexInput\) -> VertexOutput \{/;
 

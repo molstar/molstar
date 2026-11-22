@@ -19,7 +19,7 @@ import {
   resolveRenderMerged,
 } from '@molstar/graphics/geo/geometry/base';
 import type { PickingId } from '@molstar/graphics/geo/geometry/picking';
-import type { SpheresValues } from '@molstar/graphics/gl/renderable/spheres';
+import type { MergeRecord } from '@molstar/graphics/gl/renderable/merged';
 import { type Loci, EmptyLoci } from '@molstar/model/model/loci';
 import type { ValueCell } from '@molstar/core/util/value-cell';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
@@ -105,6 +105,35 @@ function isMergeFingerprintUnchanged(ro: GraphicsRenderObject) {
   return isLodOf(values, f.lod);
 }
 
+/**
+ * Whether members `records` of `type` merge (`renderMerged` for their count) and are culled on the GPU (`gpuCulling`:
+ * where many instances per draw, a segment and level; then merged for it, also one alone), and for the sphere raster
+ * alone (`rasterOnly`: the renderer culls them on the CPU where the raster does not take them). `gpuSupported`: the
+ * device culls on the GPU (`canCullOnGpu`)
+ */
+export function resolveMergedCulling(
+  type: string,
+  records: readonly MergeRecord[],
+  renderMerged: RenderMergedValue,
+  gpuCulling: GpuCullingValue,
+  gpuSupported: boolean,
+  graphics?: GraphicsContext,
+) {
+  let instances = 0;
+  for (const r of records) instances += r.instanceCount.ref.value;
+  const levels = records[0]?.lodLevels as { ref: { value: unknown[] } } | undefined;
+  const draws = records.length * Math.max(1, levels?.ref.value.length ?? 0);
+  let rasterSpheres = 0;
+  if (type === 'spheres' && graphics?.capabilities.atomicMinMax64) {
+    for (const r of records) rasterSpheres += r.instanceCount.ref.value * r.uVertexCount.ref.value;
+  }
+  const byInstances = resolveGpuCulling(gpuCulling, instances, draws);
+  const gpu = gpuSupported && (byInstances || resolveGpuCulling(gpuCulling, instances, draws, rasterSpheres));
+  const rasterOnly = gpu && !byInstances;
+  const merge = gpu || (records.length >= 2 && resolveRenderMerged(renderMerged, records.length));
+  return { merge, gpu, rasterOnly };
+}
+
 /** One visual and its renderObject, ready to be grouped/merged by `mergeRenderObjectsByType`. */
 export type MergeableEntry<V> = { visual: V; renderObject: GraphicsRenderObject };
 
@@ -149,23 +178,14 @@ export function mergeRenderObjectsByType<V>(
       else byType.set(e.renderObject.type, [e]);
     }
     byType.forEach((group, type) => {
-      // culled on the GPU where many instances per draw (a segment and level): merged for it, also one object alone
-      let instances = 0;
-      for (const e of group) instances += e.renderObject.values.instanceCount.ref.value;
-      const levels = (group[0].renderObject.values as { lodLevels?: { ref: { value: unknown[] } } }).lodLevels;
-      const draws = group.length * Math.max(1, levels?.ref.value.length ?? 0);
-      let rasterSpheres = 0;
-      if (type === 'spheres' && graphics?.capabilities.atomicMinMax64) {
-        for (const e of group) {
-          const { instanceCount, uVertexCount } = e.renderObject.values as SpheresValues;
-          rasterSpheres += instanceCount.ref.value * uVertexCount.ref.value;
-        }
-      }
-      const byInstances = resolveGpuCulling(gpuCulling, instances, draws);
-      const gpu = gpuSupported && (byInstances || resolveGpuCulling(gpuCulling, instances, draws, rasterSpheres));
-      // culled on the GPU for the sphere raster only: the renderer culls it on the CPU where the raster does not take it
-      const rasterOnly = gpu && !byInstances;
-      const merge = gpu || (group.length >= 2 && resolveRenderMerged(renderMerged, group.length));
+      const { merge, gpu, rasterOnly } = resolveMergedCulling(
+        type,
+        group.map((e) => e.renderObject.values as unknown as MergeRecord),
+        renderMerged,
+        gpuCulling,
+        gpuSupported,
+        graphics,
+      );
       if (!merge) return;
 
       const key = `${group.map((e) => e.renderObject.id).join(',')}|${gpu}|${rasterOnly}`;

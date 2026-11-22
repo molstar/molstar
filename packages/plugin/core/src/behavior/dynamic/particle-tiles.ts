@@ -20,6 +20,7 @@ import { PluginBehavior } from '../behavior.js';
 import { PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import {
   isParticleTilesViewBehind,
+  setParticleTilesCameraChanged,
   ParticleTilesView,
   setParticleTilesStep,
 } from '@molstar/plugin/state/transforms/particles/tiles';
@@ -55,6 +56,29 @@ export function getParticleTilesStepParticles(rate: number | undefined, stepMs: 
   return Math.max(1, Math.round(rate * stepMs));
 }
 
+/**
+ * A camera's changes that move what it sees: its view or its projection but for the depth range (near and far, the
+ * projection's 10th and 14th entries, perspective or orthographic), which follows the scene's bounds (a view's own
+ * tiles as they load) and which a pick does not read. Why: a change read as a move picks the quicker way (fewer rays)
+ * and in full once settled; where those differ on a tile, each step it brings moves the bounds again: a step every
+ * few frames with the camera still, without end (a sample's jitter did the same: `Camera.update`'s silent)
+ */
+export function createParticleTilesCameraMoved() {
+  const view = new Float64Array(16).fill(Number.NaN);
+  const projection = new Float64Array(16).fill(Number.NaN);
+  return (camera: { readonly view: ArrayLike<number>; readonly projection: ArrayLike<number> }) => {
+    let moved = false;
+    for (let i = 0; i < 16; ++i) {
+      if (view[i] !== camera.view[i]) moved = true;
+      view[i] = camera.view[i];
+      if (i === 10 || i === 14) continue;
+      if (projection[i] !== camera.projection[i]) moved = true;
+      projection[i] = camera.projection[i];
+    }
+    return moved;
+  };
+}
+
 /** the least time between passes while what draws a set changes (a cut dragged), in ms */
 const DrawingsIntervalMs = 250;
 
@@ -88,6 +112,12 @@ export const ParticleTilesFollowCamera = PluginBehavior.create<{ intervalMs: num
 
     private scheduled = false;
     private disposed = false;
+    /**
+     * the next pass picks for the camera where it is (the camera changed, what draws a set, a set or view made); else
+     * (a tile loaded, a step's next) the views step toward their sets' latest picks: a pick (a pass over the tiles) at
+     * most a camera's pass, every `intervalMs` while it moves and once as it stops, not a frame
+     */
+    private fresh = true;
     /** per tile set its steps' particles a ms (a running mean): what its next step's particles are by */
     private rates = new WeakMap<ParticleTileSet, number>();
 
@@ -105,19 +135,33 @@ export const ParticleTilesFollowCamera = PluginBehavior.create<{ intervalMs: num
       this.subscribeObservable(this.ctx.behaviors.canvas3d.initialized, () => {
         const camera = this.ctx.canvas3d?.camera;
         if (!camera) return;
-        const changed = camera.changed.pipe(
+        // when it last moved (its picks the quicker ones while it moves), a pass at most every `intervalMs`, and one
+        // in full once it settled (`ParticleTileDrawings.SettleMs` after its last move); its depth range's changes not
+        // a move (`createParticleTilesCameraMoved`)
+        // one subscription reading the camera (the check keeps the last matrices: a subscriber each would see a move once)
+        const isMoved = createParticleTilesCameraMoved();
+        const moved = new Subject<void>();
+        this.subscribeObservable(camera.changed, () => {
+          if (!isMoved(camera)) return;
+          setParticleTilesCameraChanged(camera);
+          moved.next();
+        });
+        const changed = moved.pipe(
           throttleTime(this.params.intervalMs, asyncScheduler, { leading: true, trailing: true }),
         );
-        this.subscribeObservable(changed, () => this.schedule());
+        this.subscribeObservable(changed, () => this.schedule(true));
+        this.subscribeObservable(moved.pipe(debounceTime(ParticleTileDrawings.SettleMs + 10)), () =>
+          this.schedule(true),
+        );
       });
       // what draws the sets changing (a cut dragged): a pass at most every `intervalMs`, `DrawingsIntervalMs` at least
       // (a pick a pass on the main thread: a drag's frames kept), its picks the quicker ones, and once it settled
       // (`ParticleTileDrawings.SettleMs`: picked again in full)
       const interval = Math.max(this.params.intervalMs, DrawingsIntervalMs);
       const throttle = throttleTime(interval, asyncScheduler, { leading: true, trailing: true });
-      this.subscribeObservable(this.drawingsChanged.pipe(throttle), () => this.schedule());
+      this.subscribeObservable(this.drawingsChanged.pipe(throttle), () => this.schedule(true));
       this.subscribeObservable(this.drawingsChanged.pipe(debounceTime(ParticleTileDrawings.SettleMs + 10)), () =>
-        this.schedule(),
+        this.schedule(true),
       );
     }
 
@@ -129,14 +173,15 @@ export const ParticleTilesFollowCamera = PluginBehavior.create<{ intervalMs: num
     private wake(state: State, ref: string, obj: StateObject | undefined) {
       if (obj && SO.Particle.TileSet.is(obj)) {
         this.watch(obj.data);
-        this.schedule();
+        this.schedule(true);
       } else if (state.cells.get(ref)?.transform.transformer === ParticleTilesView) {
-        this.schedule();
+        this.schedule(true);
       }
     }
 
-    /** a pass over the following views at the next frame, once however often asked */
-    private schedule() {
+    /** a pass over the following views at the next frame, once however often asked; `fresh`: a pick for the camera */
+    private schedule(fresh = false) {
+      if (fresh) this.fresh = true;
       if (this.scheduled || this.disposed) return;
       this.scheduled = true;
       nextFrame(() => {
@@ -154,6 +199,8 @@ export const ParticleTilesFollowCamera = PluginBehavior.create<{ intervalMs: num
         this.again = true;
         return;
       }
+      const fresh = this.fresh;
+      this.fresh = false;
       const state = this.ctx.state.data;
       const cells = state.select(StateSelection.Generators.ofTransformer(ParticleTilesView));
       const update = state.build();
@@ -165,7 +212,7 @@ export const ParticleTilesFollowCamera = PluginBehavior.create<{ intervalMs: num
         const parent = state.cells.get(cell.transform.parent)?.obj;
         if (!parent || !SO.Particle.TileSet.is(parent)) continue;
         this.watch(parent.data);
-        if (!isParticleTilesViewBehind(parent.data, params, cell.obj.data, this.ctx, cell.cache)) continue;
+        if (!isParticleTilesViewBehind(parent.data, params, cell.obj.data, this.ctx, cell.cache, !fresh)) continue;
         // the same params, a new object: the view applied again, a step toward what the camera picks now
         update.to(cell).update({ ...params, tiles: { ...params.tiles } });
         updated.push(cell);
@@ -173,6 +220,13 @@ export const ParticleTilesFollowCamera = PluginBehavior.create<{ intervalMs: num
         steps.push({ set: parent.data.set, cell, before: particlesOf(cell.obj.data as ParticleList), stepMs });
       }
       if (updated.length === 0) return;
+      // a pass that picked for the camera (`fresh`): its step at the next frame, toward that pick (the set's latest),
+      // not in this one. Why: a pick and a step in one frame (a few ms each) miss a display's frame where either alone
+      // does not
+      if (fresh) {
+        this.schedule();
+        return;
+      }
       this.updating = true;
       const start = performance.now();
       try {

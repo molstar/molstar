@@ -5,9 +5,10 @@
  */
 
 import { Subject } from 'rxjs';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GridPositions } from '@molstar/core/math/geometry/grid-positions';
 import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
+import { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Clip } from '@molstar/core/util/clip';
 import { CustomProperties } from '@molstar/model/model/custom-property';
@@ -21,6 +22,7 @@ import {
 import { ParticleTileView } from '@molstar/model/model/particles/particle-tile-view';
 import { ParticleTileDrawings } from '@molstar/model/model/particles/particle-tile-drawings';
 import { ParticleTiles } from '@molstar/model/model/particles/particle-tiles';
+import { ParticleTileVisibility } from '@molstar/model/model/particles/particle-tile-visibility';
 import { ArrayParticleTrajectory } from '@molstar/model/model/particles/particle-trajectory';
 import { PluginContext } from '@molstar/plugin/context';
 import { DefaultRegistry } from '@molstar/plugin/default-registry';
@@ -33,9 +35,11 @@ import {
   ParticleTileSetFromPack,
   ParticleTilesView,
   pickParticleTiles,
+  stepParticleTiles,
   setParticleTilesStep,
 } from '@molstar/plugin/state/transforms/particles/tiles';
 import {
+  createParticleTilesCameraMoved,
   getParticleTilesStepParticles,
   ParticleTilesFollowCamera,
 } from '@molstar/plugin/behavior/dynamic/particle-tiles';
@@ -172,6 +176,38 @@ describe('particle tiles in the state', () => {
       expect((cells[0].obj!.data as typeof tiles.data)!.set.count).toBe(Count);
     } finally {
       other.dispose();
+    }
+    // the set removed: its file no longer held
+    await plugin.build().delete(tiles.ref).commit();
+    expect(plugin.managers.asset.has(file)).toBe(false);
+  });
+
+  it('keeps a pack opened from a file through its session opened again in the same plugin and its params edited', async () => {
+    const bytes = writeParticlePack(createList(), { tiles: 2 });
+    const file = Asset.File(new File([bytes], 'lattice.mspk'));
+    const tiles = await plugin
+      .build()
+      .toRoot()
+      .apply(ParticleTileSetFromPack, { source: { name: 'file', params: file } } as never)
+      .commit();
+    const session = await plugin.managers.snapshot.serialize({
+      type: 'molx',
+      params: { camera: false, canvas3d: false },
+    });
+    // the cell kept (its cache too), its params now the session's (the file named, not given)
+    await plugin.managers.snapshot.open(new File([session], 'session.molx'));
+    const cell = () => plugin.state.data.cells.get(tiles.ref)!;
+    expect(cell().status).toBe('ok');
+    // edited: the set made again, the file it held let go first, then held again (twice: from the file it kept)
+    for (const concurrency of [2, 3]) {
+      await plugin
+        .build()
+        .to(tiles.ref)
+        .update(ParticleTileSetFromPack, (old) => ({ ...old, concurrency }))
+        .commit();
+      expect(cell().status).toBe('ok');
+      expect((cell().obj!.data as typeof tiles.data)!.set.count).toBe(Count);
+      expect(plugin.managers.asset.get(file)?.file.size).toBe(bytes.byteLength);
     }
     // the set removed: its file no longer held
     await plugin.build().delete(tiles.ref).commit();
@@ -559,6 +595,123 @@ describe('particle tiles in the state', () => {
     const less = pick(4, 3);
     expect(countOf(less)).toBeLessThanOrEqual(3);
     expect(less.length).toBeGreaterThan(0);
+
+    // orthographic, every tile alike on screen: one level for all whatever the detail, though the tiles hold targets
+    // of two radii (a tile's own largest would have them differ): the second target's sites 20 Å apart, the lattice's
+    // lower half of the first, its upper of the second (each half whole nodes of the levels)
+    const base = createList();
+    const halves = Int32Array.from({ length: base.count }, (_, i) => (Math.floor(i / 16) < 2 ? 1 : 2));
+    const spread: ParticleTarget = {
+      kind: 'sites',
+      sites: { count: 2, positions: Float32Array.of(0, 0, 0, 20, 0, 0), radii: new Float32Array(2).fill(2) },
+    };
+    const mixedBytes = writeParticlePack(
+      { ...base, targets: halves, targetMapping: new Map([...base.targetMapping!, [2, spread]]) },
+      { tiles: 4, levels: true },
+    );
+    const mixed = await createParticleTileSetFromPack(
+      await openParticlePackStream(ParticlePackSource.fromBytes(mixedBytes)),
+    );
+    const radii = [1, 2].map((t) => mixed.catalog.targets.get(t)!.radius!);
+    expect(radii[1]).toBeGreaterThan(radii[0] * 2);
+    const ortho = { ...camera, snapshot: { ...camera.snapshot, mode: 'orthographic' as const } };
+    const levelOf = (id: number) => {
+      const ml = mixed.levels!;
+      if (ml.base.tiles.has(id)) return 0;
+      for (let level = 1; level <= ml.count; ++level) {
+        for (let cell = 0; cell < 8 ** (ml.count - level); ++cell) {
+          if (ml.getNode(level, cell) === id) return level;
+        }
+      }
+      return -1;
+    };
+    for (let detail = 0.25; detail <= 1024; detail *= Math.SQRT2) {
+      const ids = pickParticleTiles(
+        mixed,
+        {
+          name: 'camera',
+          params: {
+            minPixels: 0,
+            occlusion: false,
+            opticalDepth: 7,
+            follow: false,
+            budget: 0,
+            detailPixels: detail,
+            maxParticles: 0,
+            stepMs: 0,
+            camera: ortho,
+          },
+        },
+        plugin,
+      );
+      expect(new Set(ids.map(levelOf)).size, `detail ${detail}`).toBe(1);
+    }
+  });
+
+  it('switches a region whole at a level switch: none left empty, none drawn twice', async () => {
+    // the lattice a tile a particle (4³ tiles), its levels: 8 nodes of 8 tiles at level 1
+    const bytes = writeParticlePack(createList(), { tiles: 4, levels: true });
+    const set = await createParticleTileSetFromPack(await openParticlePackStream(ParticlePackSource.fromBytes(bytes)));
+    const levels = set.levels!;
+    const base = [...levels.base.tiles.keys()];
+    expect(base.length).toBe(64);
+    const nodeOf = (tile: number) => levels.getNode(1, ParticleTiles.getLevelCell(4, tile, 1))!;
+    const nodes = [...new Set(base.map(nodeOf))];
+    expect(nodes.length).toBe(8);
+    // a loader whose tiles in `ready` are loaded, those in `failed` failed, the others still read
+    const step = (picked: number[], shown: number[], ready: number[], budget = 1e9, failed: number[] = []) => {
+      const loaded = new Set(ready);
+      const lost = new Set(failed);
+      const loader = {
+        getState: (id: number) => (loaded.has(id) ? 'ready' : lost.has(id) ? 'failed' : 'loading'),
+      } as never;
+      return stepParticleTiles(set, loader, picked, 0, shown, budget);
+    };
+    // each base tile's region shown once: by itself or by its node, not both
+    const covers = (ids: number[]) => {
+      const shown = new Set(ids);
+      for (const tile of base) {
+        expect(shown.has(tile) || shown.has(nodeOf(tile)), `tile ${tile}`).toBe(true);
+        expect(shown.has(tile) && shown.has(nodeOf(tile)), `tile ${tile} twice`).toBe(false);
+      }
+    };
+
+    // coarser (the tiles shown, their nodes picked): three nodes ready, the tiles of the other five kept
+    const coarser = step(nodes, base, nodes.slice(0, 3));
+    covers(coarser);
+    expect(coarser.filter((id) => nodes.includes(id))).toEqual(nodes.slice(0, 3));
+    expect(coarser.filter((id) => base.includes(id)).length).toBe(40);
+    expect(coarser.some((id) => base.includes(id) && nodes.slice(0, 3).includes(nodeOf(id)))).toBe(false);
+    // all ready: the nodes alone
+    expect(step(nodes, base, nodes)).toEqual(nodes);
+
+    // finer (the nodes shown, their tiles picked): the first node's tiles and half the second's ready
+    const first = base.filter((t) => nodeOf(t) === nodes[0]);
+    const second = base.filter((t) => nodeOf(t) === nodes[1]);
+    const finer = step(base, nodes, [...first, ...second.slice(0, 4)]);
+    covers(finer);
+    // the first node let go for its tiles (all there), the second kept whole: none of its tiles in yet
+    expect(finer.filter((id) => nodes.includes(id))).toEqual(nodes.slice(1));
+    expect(finer.filter((id) => base.includes(id)).sort((a, b) => a - b)).toEqual([...first].sort((a, b) => a - b));
+    // none ready: the view as it is
+    expect(step(base, nodes, [])).toEqual(nodes);
+    // the second's last tiles ready: it switches in the step they are, its node out in it
+    const later = step(base, finer, [...first, ...second]);
+    covers(later);
+    expect(later.includes(nodes[1])).toBe(false);
+    for (const t of second) expect(later.includes(t)).toBe(true);
+
+    // the budget by region: a step of one tile's particles switches one region whole (the first, at least one)
+    const one = step(base, nodes, base, 1);
+    covers(one);
+    expect(one.filter((id) => base.includes(id)).length).toBe(8);
+    expect(one.filter((id) => nodes.includes(id)).length).toBe(7);
+
+    // a tile failed: arrived, its region switches with the rest of its tiles, not kept for it forever
+    const failed = step(base, nodes, first.slice(1), 1e9, first.slice(0, 1));
+    covers(failed.concat(first.slice(0, 1)));
+    expect(failed.includes(nodes[0])).toBe(false);
+    expect(failed.filter((id) => base.includes(id)).length).toBe(7);
   });
 
   it('keeps the tiles another view of the set wants or shows: a capped camera view lets go of none of them', async () => {
@@ -690,6 +843,8 @@ describe('particle tiles in the state', () => {
         params: {
           minPixels: 0,
           occlusion,
+          // the threshold the column's depths are set by (two tiles together past it, one alone not)
+          opticalDepth: 7,
           camera: {
             snapshot: {
               mode: 'perspective' as const,
@@ -793,7 +948,17 @@ describe('particle tile views following the camera', () => {
       ...initial,
     };
     const changed = new Subject<void>();
-    const camera = { changed, getSnapshot: () => snapshot, viewport: { width: 512, height: 512 } };
+    // its matrices by its snapshot (the follow behavior's check of a move reads them)
+    const view = Mat4();
+    const projection = Mat4();
+    const update = () => {
+      Mat4.lookAt(view, snapshot.position, snapshot.target, snapshot.up);
+      const near = snapshot.minNear;
+      const half = near * Math.tan(snapshot.fov / 2);
+      Mat4.perspective(projection, -half, half, half, -half, near, 1000);
+    };
+    update();
+    const camera = { changed, getSnapshot: () => snapshot, viewport: { width: 512, height: 512 }, view, projection };
     // what a representation's behavior asks of a canvas: nothing drawn
     const none = () => {};
     (plugin as unknown as { canvas3d: unknown }).canvas3d = {
@@ -807,7 +972,18 @@ describe('particle tile views following the camera', () => {
     return {
       lookAt(x: number, y: number) {
         snapshot = { ...snapshot, position: Vec3.create(x, y, 400), target: Vec3.create(x, y, 0) };
+        update();
         changed.next();
+      },
+      /** the camera moved without its change told (between the behavior's throttled camera passes) */
+      drift(dx: number) {
+        const { position, target } = snapshot;
+        snapshot = {
+          ...snapshot,
+          position: Vec3.create(position[0] + dx, position[1], position[2]),
+          target: Vec3.create(target[0] + dx, target[1], target[2]),
+        };
+        update();
       },
     };
   }
@@ -846,7 +1022,10 @@ describe('particle tile views following the camera', () => {
         .build()
         .to(tiles.ref)
         .apply(ParticleTilesView, {
-          tiles: { name: 'camera', params: { minPixels: 0, occlusion: true, follow: true, camera: undefined } },
+          tiles: {
+            name: 'camera',
+            params: { minPixels: 0, occlusion: true, opticalDepth: 7, follow: true, camera: undefined },
+          },
           frame: 0,
         })
         .commit();
@@ -1040,6 +1219,127 @@ describe('particle tile views following the camera', () => {
     }
   });
 
+  it("picks for the camera on the camera's passes only: a tile loaded or a step's next steps toward the latest pick", async () => {
+    const plugin = new PluginContext({
+      behaviors: [PluginSpec.Behavior(ParticleTilesFollowCamera, { intervalMs: 0 })],
+      registry: [...DefaultRegistry, ...ParticlesRegistry],
+    });
+    await plugin.init();
+    try {
+      const canvas = stubCanvas(plugin);
+      canvas.lookAt(45, 45);
+      const list = await plugin.build().toRoot().apply(ListOf, { list: createList() }).commit();
+      const tiles = await plugin.build().to(list.ref).apply(ParticleTileSetFromList, { cells: 2, delay: 10 }).commit();
+      const params = {
+        tiles: {
+          name: 'camera' as const,
+          params: { minPixels: 0, occlusion: false, follow: true, budget: 1, camera: undefined },
+        },
+        frame: 0,
+      };
+      const picked = pickParticleTiles(tiles.data!.set, params.tiles, plugin).length;
+      const get = vi.spyOn(ParticleTileVisibility, 'get');
+      const view = await plugin.build().to(tiles.ref).apply(ParticleTilesView, params).commit();
+      const shown = () => ParticleTileView.of(view.cell!.obj!.data)!.tiles.length;
+      // the camera drifting a little at each step, its change not told: the steps' passes pick none again
+      const steps = plugin.state.data.events.object.updated.subscribe((e) => {
+        if (e.ref === view.ref) canvas.drift(0.01);
+      });
+      try {
+        await settled(() => shown() === picked);
+      } finally {
+        steps.unsubscribe();
+      }
+      expect(shown()).toBe(picked);
+      expect(get.mock.calls.length).toBeLessThanOrEqual(1);
+      // the camera's change told: picked again for it
+      const before = get.mock.calls.length;
+      canvas.lookAt(45.5, 45);
+      await settled(() => get.mock.calls.length > before);
+      expect(get.mock.calls.length).toBe(before + 1);
+      get.mockRestore();
+    } finally {
+      plugin.dispose();
+    }
+  });
+
+  it('picks with fewer rays while the camera moves, in full once it settled', async () => {
+    const plugin = new PluginContext({
+      behaviors: [PluginSpec.Behavior(ParticleTilesFollowCamera, { intervalMs: 0 })],
+      registry: [...DefaultRegistry, ...ParticlesRegistry],
+    });
+    await plugin.init();
+    try {
+      const canvas = stubCanvas(plugin);
+      canvas.lookAt(45, 45);
+      const list = await plugin.build().toRoot().apply(ListOf, { list: createList() }).commit();
+      const tiles = await plugin.build().to(list.ref).apply(ParticleTileSetFromList, { cells: 2 }).commit();
+      const params = {
+        tiles: { name: 'camera' as const, params: { minPixels: 0, occlusion: true, follow: true, camera: undefined } },
+        frame: 0,
+      };
+      await plugin.build().to(tiles.ref).apply(ParticleTilesView, params).commit();
+      const get = vi.spyOn(ParticleTileVisibility, 'get');
+      const resolutions = () => get.mock.calls.map(([, , options]) => options?.resolution);
+      // moved: picked again with a quarter of the rays
+      canvas.lookAt(45.5, 45);
+      await settled(() => get.mock.calls.length > 0);
+      expect(resolutions()).toEqual([32]);
+      // still for longer than it takes to settle: picked again in full
+      await settled(() => get.mock.calls.length > 1);
+      expect(resolutions()).toEqual([32, 64]);
+      get.mockRestore();
+    } finally {
+      plugin.dispose();
+    }
+  });
+
+  it("steps toward a camera's pick at the next frame, not in the pass that picked", async () => {
+    const plugin = new PluginContext({
+      behaviors: [PluginSpec.Behavior(ParticleTilesFollowCamera, { intervalMs: 0 })],
+      registry: [...DefaultRegistry, ...ParticlesRegistry],
+    });
+    await plugin.init();
+    try {
+      const canvas = stubCanvas(plugin);
+      canvas.lookAt(45, 45);
+      const list = await plugin.build().toRoot().apply(ListOf, { list: createList() }).commit();
+      const tiles = await plugin.build().to(list.ref).apply(ParticleTileSetFromList, { cells: 2 }).commit();
+      const params = {
+        tiles: { name: 'camera' as const, params: { minPixels: 0, occlusion: true, follow: true, camera: undefined } },
+        frame: 0,
+      };
+      const view = await plugin.build().to(tiles.ref).apply(ParticleTilesView, params).commit();
+      const shown = () => [...ParticleTileView.of(view.cell!.obj!.data)!.tiles].join(',');
+      const before = shown();
+      // a pick's task ended (a timeout after it) before the view's update: the step a pass of its own
+      let picked = false;
+      let turned = false;
+      const original = ParticleTileVisibility.get;
+      vi.spyOn(ParticleTileVisibility, 'get').mockImplementation((...a) => {
+        if (!picked) setTimeout(() => (turned = true), 0);
+        picked = true;
+        return original(...a);
+      });
+      const updates: boolean[] = [];
+      const updateTree = plugin.state.data.updateTree.bind(plugin.state.data);
+      const tree = vi.spyOn(plugin.state.data, 'updateTree').mockImplementation((...a) => {
+        if (picked) updates.push(turned);
+        return updateTree(...(a as Parameters<typeof updateTree>));
+      });
+      // another view: its tiles picked, then stepped toward
+      canvas.lookAt(75, 75);
+      await settled(() => shown() !== before);
+      tree.mockRestore();
+      expect(picked).toBe(true);
+      expect(updates.length).toBeGreaterThan(0);
+      expect(updates[0]).toBe(true);
+    } finally {
+      vi.restoreAllMocks();
+      plugin.dispose();
+    }
+  });
+
   it('steps a following view of a set made again (a new loader) with the camera still', async () => {
     const plugin = new PluginContext({
       behaviors: [PluginSpec.Behavior(ParticleTilesFollowCamera, { intervalMs: 0 })],
@@ -1170,6 +1470,36 @@ describe('particle tile views following the camera', () => {
     } finally {
       plugin.dispose();
     }
+  });
+
+  it("takes a camera's depth range changed alone (the scene's bounds) as no move, its view or frustum as one", () => {
+    const camera = { view: Mat4(), projection: Mat4() };
+    const look = (z: number) => Mat4.lookAt(camera.view, Vec3.create(0, 0, z), Vec3(), Vec3.create(0, 1, 0));
+    // the frustum's sides by near (a field of view of 90°), as the camera makes them
+    const perspective = (near: number, far: number, half = 1) =>
+      Mat4.perspective(camera.projection, -near * half, near * half, near * half, -near * half, near, far);
+    const ortho = (near: number, far: number, half = 10) =>
+      Mat4.ortho(camera.projection, -half, half, half, -half, near, far);
+    const isMoved = createParticleTilesCameraMoved();
+    look(10);
+    perspective(1, 100);
+    expect(isMoved(camera)).toBe(true);
+    expect(isMoved(camera)).toBe(false);
+    // the scene's bounds grown or shrunk: near and far alone
+    perspective(0.5, 250);
+    expect(isMoved(camera)).toBe(false);
+    // the field of view, the position
+    perspective(0.5, 250, 0.5);
+    expect(isMoved(camera)).toBe(true);
+    look(12);
+    expect(isMoved(camera)).toBe(true);
+    expect(isMoved(camera)).toBe(false);
+    ortho(1, 100);
+    expect(isMoved(camera)).toBe(true);
+    ortho(2, 300);
+    expect(isMoved(camera)).toBe(false);
+    ortho(2, 300, 5);
+    expect(isMoved(camera)).toBe(true);
   });
 
   it("steps a following view by time: a step's particles its set's (by the last steps' time), with stepMs, at most its budget", async () => {

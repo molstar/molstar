@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -10,6 +10,7 @@ import { now } from '@molstar/core/util/now';
 import type { PluginAnimationManager } from '@molstar/plugin/state/manager/animation';
 import { isTimingMode } from '@molstar/core/util/debug';
 import { printTimerResults } from '@molstar/graphics/gl/timer';
+import { createTimerTrace } from '@molstar/graphics/gl/timer-trace';
 import { PluginConfig } from '@molstar/plugin/config';
 import type { Subscription } from 'rxjs';
 
@@ -21,6 +22,8 @@ const MaxProperFrameDelta = 1000 / 30;
 const IdleGraceMs = 250;
 
 export class PluginAnimationLoop {
+  /** the graphics timer's results on the profile's tracks in timing mode (`createTimerTrace`) */
+  private readonly timerTrace = createTimerTrace();
   private lastTickT: number = 0;
   // Proper time is used to prevent animations from skipping
   // if there is a blocking operation, e.g., shader compilation
@@ -63,6 +66,8 @@ export class PluginAnimationLoop {
     if (isTimingMode) {
       const timerResults = this.plugin.canvas3d?.graphics.timer.resolve();
       if (timerResults) {
+        // the passes on the profile's tracks too: where they ran on the GPU, when the CPU encoded them
+        this.timerTrace.report(timerResults);
         for (const result of timerResults) {
           printTimerResults([result]);
         }

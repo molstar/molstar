@@ -70,6 +70,11 @@ const Expected: { [program: string]: { glsl: string[]; wgsl: string[] } } = {
     glsl: ['dClipping', 'dLightCount', 'uBrickTexDim', 'uClipObjectCount', 'uGridTexDim', 'uPickType'],
     wgsl: ['uInvView'],
   },
+  // the SOG palette's size: WebGL1 reads by coordinates, WGSL's `textureLoad` by texel
+  'gaussian-splats': {
+    glsl: [...Grids, 'uClipObjectCount', 'uDrawId', 'uInvView', 'uPickType', 'uSogShDim'],
+    wgsl: [],
+  },
 };
 
 /** The schema names `source` reads: whole words, a define's value suffix (`dX_value`) as the define; comments not */

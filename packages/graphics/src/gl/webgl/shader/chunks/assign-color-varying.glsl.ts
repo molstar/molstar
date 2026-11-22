@@ -61,6 +61,8 @@ export const assign_color_varying = `
             vec3 ogridPos = (uOverpaintGridTransform.w * (gridModelPosition - uOverpaintGridTransform.xyz)) / uOverpaintGridDim;
             vOverpaint = texture3dFrom2dLinear(tOverpaintGrid, ogridPos, uOverpaintGridDim, uOverpaintGridTexDim);
         #endif
+        // an expanded instance's copy's own, where it has one (\`copyLayerOr\`)
+        vOverpaint = copyLayerOr4(0, vOverpaint);
 
         // pre-mix to avoid darkening due to empty overpaint
         #ifdef dColorType_uniform
@@ -80,6 +82,7 @@ export const assign_color_varying = `
             vec3 egridPos = (uEmissiveGridTransform.w * (gridModelPosition - uEmissiveGridTransform.xyz)) / uEmissiveGridDim;
             vEmissive = texture3dFrom2dLinear(tEmissiveGrid, egridPos, uEmissiveGridDim, uEmissiveGridTexDim).r;
         #endif
+        vEmissive = copyLayerOr1(3, vEmissive);
         vEmissive *= uEmissiveStrength;
     #endif
 
@@ -92,6 +95,7 @@ export const assign_color_varying = `
             vec3 sgridPos = (uSubstanceGridTransform.w * (gridModelPosition - uSubstanceGridTransform.xyz)) / uSubstanceGridDim;
             vSubstance = texture3dFrom2dLinear(tSubstanceGrid, sgridPos, uSubstanceGridDim, uSubstanceGridTexDim);
         #endif
+        vSubstance = copyLayerOr4(4, vSubstance);
 
         // pre-mix to avoid artifacts due to empty substance
         vSubstance.rgb = mix(vec3(uMetalness, uRoughness, uBumpiness), vSubstance.rgb, vSubstance.a);
@@ -107,18 +111,25 @@ export const assign_color_varying = `
             vec3 egridPos = (uEmissiveGridTransform.w * (gridModelPosition - uEmissiveGridTransform.xyz)) / uEmissiveGridDim;
             vEmissive = texture3dFrom2dLinear(tEmissiveGrid, egridPos, uEmissiveGridDim, uEmissiveGridTexDim).r;
         #endif
+        vEmissive = copyLayerOr1(3, vEmissive);
         vEmissive *= uEmissiveStrength;
     #endif
 #elif defined(dRenderVariant_pick)
+    // an expanded object's instance picked by its draw slot (\`instance-expansion.ts\`), its pose's and its own
+    #if defined(dInstanceExpansion)
+        #define pickInstance expansionSlot
+    #else
+        #define pickInstance aInstance
+    #endif
     #ifdef requiredDrawBuffers
         vObject = packPickId(uObjectId);
-        vInstance = packPickId(aInstance);
+        vInstance = packPickId(pickInstance);
         vGroup = packPickId(group);
     #else
         if (uPickType == 1) {
             vColor = packPickId(uObjectId);
         } else if (uPickType == 2) {
-            vColor = packPickId(aInstance);
+            vColor = packPickId(pickInstance);
         } else {
             vColor = packPickId(group);
         }
@@ -134,6 +145,7 @@ export const assign_color_varying = `
         vec3 tgridPos = (uTransparencyGridTransform.w * (gridModelPosition - uTransparencyGridTransform.xyz)) / uTransparencyGridDim;
         vTransparency = texture3dFrom2dLinear(tTransparencyGrid, tgridPos, uTransparencyGridDim, uTransparencyGridTexDim).r;
     #endif
+    vTransparency = copyLayerOr1(1, vTransparency);
     vTransparency *= uTransparencyStrength;
 #endif
 `;

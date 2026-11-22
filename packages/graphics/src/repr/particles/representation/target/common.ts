@@ -22,6 +22,7 @@ import { NullLocation } from '@molstar/model/model/location';
 import type { MarkerAction } from '@molstar/core/util/marker-action';
 import { VisualUpdateState } from '../../../util.js';
 import { Visual, type VisualContext } from '../../../visual.js';
+import type { Representation } from '../../../representation.js';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { Geometry } from '@molstar/graphics/geo/geometry/geometry';
 import { LocationIterator } from '@molstar/graphics/geo/util/location-iterator';
@@ -259,6 +260,8 @@ export function createParticleTargetPropsProvider(
     sites: { ...common, ...structure } as ParticleTargetProps,
     shape: { ...common, ...shape } as ParticleTargetProps,
     volume: { ...common, ...volume } as ParticleTargetProps,
+    // a template's: never drawn as one (its leaves are, `templateNotDrawn`), keyed alike
+    particles: common as ParticleTargetProps,
   };
   const cache = new Map<unknown, ParticleTargetProps>();
   // the targets' props of one kind and quality one object (thousands of targets, a few qualities): what is keyed by
@@ -351,6 +354,7 @@ export const LargeParticleListCount = 1_000_000;
  * not given) renders at
  * the particle position. When `scaleByRadius`
  * is set (e.g. for shape targets), each instance is additionally scaled by the particle radius;
+ * a coarse sample's particles drawn larger too (`ParticleList.scale`, or a run's own: `scales`), as the page store's;
  * the scaling is applied before the center subtraction so the basis already accounts for it.
  * The bounding sphere used for grid/culling purposes is likewise inflated by the largest radius
  * in play, since it is otherwise unaware of the per-instance scale (see `calcInstanceGrid`).
@@ -402,6 +406,8 @@ export function createTargetParticleTransform(
   else sortedIndices = indices;
 
   const radiiArr = scaleByRadius ? particles.radii : undefined;
+  const listScales = particles.scales;
+  const listScale = getListScale(particles);
   const cx = center[0],
     cy = center[1],
     cz = center[2];
@@ -419,14 +425,14 @@ export function createTargetParticleTransform(
     const o = i * 16;
     writeParticleTransform(particles, pi, transformArray, o);
 
+    // a run's value read again for the run's next particle (`ParticleValues.get`): no search
+    let s = listScales ? ParticleValues.get(listScales, pi) : listScale;
     if (radiiArr) {
-      let s = 1;
-      // a run's value read again for the run's next particle (`ParticleValues.get`): no search
       const r = ParticleValues.get(radiiArr, pi);
-      if (r > 0) s = r;
-      if (s > maxRadius) maxRadius = s;
-      if (s !== 1) for (let j = 0; j < 12; j++) transformArray[o + j] *= s;
+      if (r > 0) s *= r;
     }
+    if (s > maxRadius) maxRadius = s;
+    if (s !== 1) for (let j = 0; j < 12; j++) transformArray[o + j] *= s;
 
     if (hasCenter) {
       transformArray[o + 12] -= transformArray[o + 0] * cx + transformArray[o + 4] * cy + transformArray[o + 8] * cz;
@@ -447,11 +453,11 @@ export function createTargetParticleTransform(
 
   // `calcInstanceGrid` (used inside `createTransform`) builds its grid/culling bounds from
   // `invariantBoundingSphere.radius` alone and does not account for any scale baked into the
-  // per-instance transform matrices. Since scaling-by-radius applies such a scale above, the
-  // sphere passed on for grid/culling purposes must be inflated by the largest radius used,
+  // per-instance transform matrices. Since scaling (by radius, a coarse sample's) applies such a scale above, the
+  // sphere passed on for grid/culling purposes must be inflated by the largest scale used,
   // otherwise larger particles get under-sized cells/LOD bounds and can be culled incorrectly.
   const gridBoundingSphere =
-    scaleByRadius && maxRadius !== 1
+    maxRadius !== 1
       ? Sphere3D.create(invariantBoundingSphere.center, invariantBoundingSphere.radius * maxRadius)
       : invariantBoundingSphere;
 
@@ -480,6 +486,64 @@ export function isPosesGeometry(kind: string) {
  * element), the one value of their run where they are runs (a pack's target: a radius a target, `ParticleValues`),
  * the runs as an array where `indices` span several
  */
+/** a list's scale for all its particles (`ParticleList.scale`), 1 where none or not positive */
+function getListScale(particles: ParticleList) {
+  return particles.scale !== undefined && particles.scale > 0 ? particles.scale : 1;
+}
+
+/**
+ * the instances' scales by poses (`InstanceTransforms.ofPoses`: one for all, or per particle): their radii's where
+ * `scaleByRadius`, times a coarse sample's (`ParticleList.scale`, or its runs': `scales`); none where all are 1
+ */
+function getInstanceScales(
+  particles: ParticleList,
+  indices: OrderedSet<number>,
+  scaleByRadius: boolean,
+): { scales?: Float32Array; scale?: number } {
+  const radius = scaleByRadius ? getRadiusScales(particles, indices) : {};
+  const listScales = particles.scales;
+  const listScale = getListScale(particles);
+  const n = OrderedSet.size(indices);
+  const byRadius = scaleByRadius && !!particles.radii;
+  if (listScales && n > 0) {
+    if (ParticleValues.isRuns(listScales)) {
+      const first = ParticleValues.runOf(listScales, OrderedSet.getAt(indices, 0));
+      const last = ParticleValues.runOf(listScales, OrderedSet.getAt(indices, n - 1));
+      if (first === last && !radius.scales) return { scale: listScales.values[first] * (radius.scale ?? 1) };
+    }
+    return { scales: getParticleScales(particles, byRadius) };
+  }
+  if (listScale === 1) return radius;
+  if (radius.scales) return { scales: getParticleScales(particles, byRadius) };
+  return { scale: (radius.scale ?? 1) * listScale };
+}
+
+/** per list its particles' scales (`getParticleScales`), without and with their radii */
+const particleScales = [new WeakMap<ParticleList, Float32Array>(), new WeakMap<ParticleList, Float32Array>()];
+
+/**
+ * every particle's scale of `particles` (a coarse sample's: `ParticleList.scales` or `scale`), times its radius where
+ * `byRadius`: one array a list (and kind), its targets' poses sharing it. Why: poses read a scale by particle (the
+ * list's index), an array a target the list's size each (thousands of targets in a tile view)
+ */
+function getParticleScales(particles: ParticleList, byRadius: boolean) {
+  const cache = particleScales[byRadius ? 1 : 0];
+  let out = cache.get(particles);
+  if (out) return out;
+  const count = particles.count;
+  const scales = particles.scales;
+  const listScale = getListScale(particles);
+  out = new Float32Array(count);
+  if (scales) out.set(ParticleValues.toArray(scales, count, Float32Array).subarray(0, count));
+  else out.fill(listScale);
+  if (byRadius) {
+    const radii = ParticleValues.toArray(particles.radii!, count, Float32Array);
+    for (let i = 0; i < count; ++i) out[i] *= radii[i];
+  }
+  cache.set(particles, out);
+  return out;
+}
+
 function getRadiusScales(
   particles: ParticleList,
   indices: OrderedSet<number>,
@@ -497,7 +561,8 @@ function getRadiusScales(
 
 /**
  * `createTargetParticleTransform` by poses: the particles' positions, rotations and radii (`scaleByRadius`) read where
- * they are, the instances' particles the range or the indices of `indices`, no matrix an instance made
+ * they are, a coarse sample's scales with them (`getInstanceScales`), the instances' particles the range or the indices
+ * of `indices`, no matrix an instance made
  */
 function createTargetParticlePoses(
   particles: ParticleList,
@@ -513,19 +578,20 @@ function createTargetParticlePoses(
 ): TransformData {
   const instanceCount = OrderedSet.size(indices);
   const range = Interval.is(indices);
-  const radiusScales = scaleByRadius ? getRadiusScales(particles, indices) : undefined;
+  const instanceScales = getInstanceScales(particles, indices, scaleByRadius);
+  const scaled = instanceScales.scales !== undefined || instanceScales.scale !== undefined;
   const poses = InstanceTransforms.ofPoses({
     count: instanceCount,
     positions: particles.coordinates,
     rotations: particles.rotations,
-    scales: radiusScales?.scales,
-    scale: radiusScales?.scale,
+    scales: instanceScales.scales,
+    scale: instanceScales.scale,
     first: range ? Interval.start(indices) : undefined,
     indices: range ? undefined : (indices as SortedArray<number>),
     center: Vec3.clone(center),
   });
   // the grid's sphere inflated by the largest radius, as the matrices' (`createTargetParticleTransform`)
-  const maxScale = radiusScales ? InstanceTransforms.getMaxScaleOfAll(poses) : 1;
+  const maxScale = scaled ? InstanceTransforms.getMaxScaleOfAll(poses) : 1;
   const maxRadius = Math.max(1, maxScale);
   // the box of the instances' centers from their particles' bounds where they are a target's (a pack's,
   // `Particle.getRangeBounds`): no pass over them. An instance's center is its particle's position moved by its scale
@@ -676,6 +742,14 @@ export type TargetGeometryChoice =
   | 'volume-dot-mesh'
   | 'shape';
 
+/**
+ * A template (`ParticleTarget` kind `particles`, `ParticleNesting`) is drawn by its leaves, never as a geometry of its
+ * own: its list placed whole (its particles' targets drawn)
+ */
+function templateNotDrawn(): never {
+  throw new Error('a particles target (a template) is drawn by its leaves, not as a target geometry');
+}
+
 export function getTargetGeometryChoice(
   target: ParticleTarget,
   props: ParticleTargetProps,
@@ -693,6 +767,8 @@ export function getTargetGeometryChoice(
     case 'volume':
       if ((props as VolumeTargetProps).type !== 'dot') return 'volume-isosurface';
       return volumeTargetUseImpostor(props as VolumeTargetProps, graphics) ? 'volume-dot-spheres' : 'volume-dot-mesh';
+    case 'particles':
+      return templateNotDrawn();
   }
 }
 
@@ -753,6 +829,8 @@ export function createTargetGeometry(
       return createShapeTargetGeometry(target.shape, existing);
     case 'volume':
       return createVolumeTargetGeometry(ctx, target.volume, theme, props as VolumeTargetProps, graphics, spheresOrMesh);
+    case 'particles':
+      return templateNotDrawn();
   }
 }
 
@@ -781,6 +859,8 @@ export function targetGeometryPropsChanged(
         newProps as VolumeTargetProps,
         graphics,
       );
+    case 'particles':
+      return templateNotDrawn();
   }
 }
 
@@ -797,6 +877,8 @@ export function targetMustRecreate(
       return false;
     case 'volume':
       return volumeTargetMustRecreate(oldProps as VolumeTargetProps, newProps as VolumeTargetProps);
+    case 'particles':
+      return templateNotDrawn();
   }
 }
 
@@ -818,6 +900,8 @@ function targetSizeFactorChanged(
       return false;
     case 'volume':
       return volumeTargetSizeFactorChanged(oldProps as VolumeTargetProps, newProps as VolumeTargetProps, graphics);
+    case 'particles':
+      return templateNotDrawn();
   }
 }
 
@@ -905,7 +989,82 @@ export interface TargetVisual {
   /** the representation's transform, on top of the particles' */
   setTransform(matrix: Mat4): void;
   mark(loci: ModelLoci, action: MarkerAction): boolean;
+  /** the layers given (each all of its own: cleared, then its layers' loci applied), the others kept */
+  setLayers(layers: TargetLayers): void;
   destroy(): void;
+}
+
+/** the layers a target's visual takes (`Representation.State`'s), a loci of each by the list's particles */
+export type TargetLayers = Partial<
+  Pick<Representation.State, 'overpaint' | 'transparency' | 'emissive' | 'substance' | 'clipping' | 'wiggle'>
+>;
+
+export const TargetLayerKeys = ['overpaint', 'transparency', 'emissive', 'substance', 'clipping', 'wiggle'] as const;
+
+/** `layers` with each layer's loci `map`ped (a layer whose loci maps to none left out) */
+export function mapTargetLayers(layers: TargetLayers, map: (loci: ModelLoci) => ModelLoci | undefined): TargetLayers {
+  const mapped: TargetLayers = {};
+  for (const k of TargetLayerKeys) {
+    const value = layers[k] as { layers: ReadonlyArray<{ loci: ModelLoci }> } | undefined;
+    if (!value) continue;
+    const out: { loci: ModelLoci }[] = [];
+    for (const layer of value.layers) {
+      const loci = map(layer.loci);
+      if (loci) out.push({ ...layer, loci });
+    }
+    (mapped as any)[k] = { ...value, layers: out };
+  }
+  return mapped;
+}
+
+/** `layers`' each by `lociApply` on `renderObject` (`Visual.setOverpaint` and the others: each cleared first) */
+export function setTargetLayers(renderObject: GraphicsRenderObject, layers: TargetLayers, lociApply: Visual.LociApply) {
+  if (layers.overpaint) Visual.setOverpaint(renderObject, layers.overpaint, lociApply, true);
+  if (layers.transparency) Visual.setTransparency(renderObject, layers.transparency, lociApply, true);
+  if (layers.emissive) Visual.setEmissive(renderObject, layers.emissive, lociApply, true);
+  if (layers.substance) Visual.setSubstance(renderObject, layers.substance, lociApply, true);
+  if (layers.clipping) Visual.setClipping(renderObject, layers.clipping, lociApply, true);
+  if (layers.wiggle) Visual.setWiggle(renderObject, layers.wiggle, lociApply, true);
+}
+
+/**
+ * A loci of the list on a target's instances `particleIndices` (an instance a particle of them): their runs applied,
+ * every loci all of them
+ */
+export function createTargetLociApply(particleIndices: OrderedSet<number>): Visual.LociApply {
+  const instanceCount = OrderedSet.size(particleIndices);
+  return (loci, apply) => {
+    // Fast path: whole visual selected
+    if (isEveryLoci(loci)) {
+      return apply(Interval.ofBounds(0, instanceCount));
+    }
+    if (!Particle.isLoci(loci) || Particle.isLociEmpty(loci)) return false;
+    // Intersect loci indices with this visual's particle indices
+    const intersection = OrderedSet.intersect(loci.indices, particleIndices);
+    const intersectionSize = OrderedSet.size(intersection);
+    if (intersectionSize === 0) return false;
+    // Fast path: all instances in this target are covered
+    if (intersectionSize === instanceCount) {
+      return apply(Interval.ofBounds(0, instanceCount));
+    }
+    // Iterate intersection in order; indexOf gives monotonically increasing instance indices → merge runs
+    let changed = false;
+    let start = -1,
+      end = -1;
+    OrderedSet.forEach(intersection, (particleIdx) => {
+      const instanceIdx = OrderedSet.indexOf(particleIndices, particleIdx);
+      if (start === -1) {
+        start = end = instanceIdx;
+      } else if (instanceIdx === end + 1) {
+        end = instanceIdx;
+      } else {
+        if (apply(Interval.ofBounds(start, end + 1))) changed = true;
+        start = end = instanceIdx;
+      }
+    });
+    if (start !== -1 && apply(Interval.ofBounds(start, end + 1))) changed = true;
+    return changed;
+  };
 }
 
 /**
@@ -1257,41 +1416,12 @@ export function createTargetVisual(targetId: number, materialId: number, graphic
 
   function mark(loci: ModelLoci, action: MarkerAction): boolean {
     if (!renderObject || !currentParticleIndices) return false;
-    const instanceCount = OrderedSet.size(currentParticleIndices);
-    const particleIndices = currentParticleIndices;
-    function lociApply(loci: ModelLoci, apply: (interval: Interval) => boolean, _isMarking: boolean): boolean {
-      // Fast path: whole visual selected
-      if (isEveryLoci(loci)) {
-        return apply(Interval.ofBounds(0, instanceCount));
-      }
-      if (!Particle.isLoci(loci) || Particle.isLociEmpty(loci)) return false;
-      // Intersect loci indices with this visual's particle indices
-      const intersection = OrderedSet.intersect(loci.indices, particleIndices);
-      const intersectionSize = OrderedSet.size(intersection);
-      if (intersectionSize === 0) return false;
-      // Fast path: all instances in this target are covered
-      if (intersectionSize === instanceCount) {
-        return apply(Interval.ofBounds(0, instanceCount));
-      }
-      // Iterate intersection in order; indexOf gives monotonically increasing instance indices → merge runs
-      let changed = false;
-      let start = -1,
-        end = -1;
-      OrderedSet.forEach(intersection, (particleIdx) => {
-        const instanceIdx = OrderedSet.indexOf(particleIndices, particleIdx);
-        if (start === -1) {
-          start = end = instanceIdx;
-        } else if (instanceIdx === end + 1) {
-          end = instanceIdx;
-        } else {
-          if (apply(Interval.ofBounds(start, end + 1))) changed = true;
-          start = end = instanceIdx;
-        }
-      });
-      if (start !== -1 && apply(Interval.ofBounds(start, end + 1))) changed = true;
-      return changed;
-    }
-    return Visual.mark(renderObject, loci, action, lociApply);
+    return Visual.mark(renderObject, loci, action, createTargetLociApply(currentParticleIndices));
+  }
+
+  function setLayers(layers: TargetLayers) {
+    if (!renderObject || !currentParticleIndices) return;
+    setTargetLayers(renderObject, layers, createTargetLociApply(currentParticleIndices));
   }
 
   function destroy() {
@@ -1319,6 +1449,7 @@ export function createTargetVisual(targetId: number, materialId: number, graphic
     createOrUpdate,
     setTransform,
     mark,
+    setLayers,
     destroy,
   };
 }
