@@ -73,19 +73,18 @@ export const ViewerIssues = defineIssues('seq.viewer', {
   },
   'seq.viewer.card.floor': {
     severity: 'warning',
-    description:
-      'The card’s providers leave out `seq:item` or `seq:place`: a hovered mark may show no card, the hover contract’s floor',
-    hint: 'Keep `seq:item` and `seq:place` in the registry (the default spec lists every built-in provider)',
+    description: 'The card’s providers leave out `seq:item` or `seq:place`: a mark may show no card',
+    hint: 'Keep `seq:item` and `seq:place` in the registry',
   },
   'seq.viewer.card.provider': {
     severity: 'warning',
-    description: 'A card provider threw: its rows are left out of the card, the rest shows',
-    hint: 'Fix the provider; the card is composed without it meanwhile',
+    description: 'A card provider threw: its rows are left out',
+    hint: 'Fix the provider',
   },
   'seq.viewer.card.tooltip': {
     severity: 'warning',
-    description: 'A tooltip’s table failed to load under the mark: the card shows no row of it',
-    hint: 'Check the table’s source; its tiles are asked again by the store’s policy',
+    description: 'A tooltip’s table failed to load: no row of it shows',
+    hint: 'Check the table’s source',
   },
   'seq.viewer.step.none': {
     severity: 'error',

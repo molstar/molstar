@@ -112,6 +112,10 @@ describe('tooltips on the pointer’s path', () => {
     const card = held(v);
     const plainCard = held(without);
     const first = card.card();
+    expect(first?.rows.filter((r) => r.label === 'Note').map((r) => r.value)).toEqual([
+      'n149_**note**@298-301',
+      'n150_**note**@300-303',
+    ]);
     const before = process.memoryUsage().heapUsed;
     card.show();
     const coldBytes = process.memoryUsage().heapUsed - before;

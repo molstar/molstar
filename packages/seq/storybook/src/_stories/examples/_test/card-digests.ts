@@ -56,7 +56,7 @@ export const CardDigests: Readonly<Record<string, string>> = {
   'files/table-tsv': '405dffd4',
   'files/uniprot': 'c80a5ea9',
   'genome/b-in-a-order': '00000000',
-  'genome/bed-over-rows': 'e644f785',
+  'genome/bed-over-rows': '64db40d4',
   'genome/chromosome-at-a-time': '00000000',
   'genome/contigs': 'b68061fe',
   'genome/cytobands': '4865cf8e',
