@@ -14,7 +14,7 @@
 // loaded is pending across the band, never empty (EC-169); the layer's wants are bounded together (`readTiles`'s key).
 
 import type { Node, Value } from '@molstar/core/repr/tree';
-import { type MatrixBins, type MatrixItems, type MatrixTable, tableRows } from '@molstar/seqx-core/data';
+import { type MatrixSummary, type MatrixItems, type MatrixTable, tableRows } from '@molstar/seqx-core/data';
 import { theme as themeForm } from '@molstar/seqx-core/lang';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { Channel, ChannelName } from '@molstar/seqx-core/theme/index';
@@ -213,7 +213,7 @@ function layoutItems(lay: MatrixLay, src: LayerSource, t: MatrixItems, a: AxisTr
 }
 
 /** A bins tile's image: a column a bin, a row a state, in display order (a reversed axis's bins right to left). */
-function buildBins(lay: MatrixLay, t: MatrixBins, n: number): ImageData | undefined {
+function buildBins(lay: MatrixLay, t: MatrixSummary, n: number): ImageData | undefined {
   if (n <= 0 || t.states <= 0) return undefined;
   const img = lay.cache!.slot(n, t.states);
   const d = img.data;

@@ -931,8 +931,8 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
   every pair with an end in it, the other end anywhere: EC-62, EC-208), its finest level a `list`, coarser levels `bins`
   (the pairs level); `grid` on 2D tiles (`RegionRequest.y`: the second axis at the same level, square levels), `dense`
   or `sparse` with its `fill`; `matrix` positions tiled and states whole (`items`, a column an item at its own extent,
-  `value` or `codes`; coarser `bins`); `rows` keyed records on a records system (`keyed`). Why: each read is bounded by
-  the screen, never by the data.
+  `value` or `codes`; coarser `summary`); `rows` keyed records on a records system (`keyed`). Why: each read is bounded
+  by the screen, never by the data.
 - **Items tiles** (`RegionRequest.items`, `ItemShapes`: `ranges`, `pairs`, `matrix`): a list form at any listed level,
   the level only the tile's width, every item with an end in it, uncut; a source with one level serves it as a level-1
   read of the tile (the summaries map it). Why: a wide view reads items in few large tiles, never past
@@ -975,10 +975,18 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
   `aSystem`, `bSystem` categories, both or neither; strands int8; `type`, `id` categories; `row`; `fields`) and `bins`
   (`aBin`, `bBin` int32, `count` float32; systems, `strand` int8 relative, `category`, `sum`); `grid` `dense` (`x`, `y`,
   `nx`, `ny`, `value` float32 x-major, NaN missing) and `sparse` (`xBin`, `yBin`, `value`, `fill`); `matrix` `items`
-  (`start`, `end`, `states`, `value` or `codes` item-major, `id`, `row`) and `bins` (`start`, `states`, `mean`, `min`,
-  `max`, `count`, `classes` and `shares`); `rows` `keyed` (`start`, `key`, `fields`). Forms share names across shapes,
-  so a table's shape is told by its columns (`regionShapeOf`) and a table under another shape's key is refused. **A
-  pair's identity** is its `row`, else its `id` (never `.` or empty), with both ends' systems and starts.
+  (`start`, `end`, `states`, `value` or `codes` item-major, `id`, `row`) and `summary` (`start`, `states`, `mean`,
+  `min`, `max`, `count`, `classes` and `shares`: its own name, not `bins`); `rows` `keyed` (`start`, `key`, `fields`).
+  Pairs share the 1D forms' names (`list`, `bins`), so a table's shape is told by its columns (`regionShapeOf`) and a
+  table under another shape's key is refused.
+- **The row forms are one schema** (`tables-forms.ts`, `RowForm`): a form whose rows are columns of one length (a ranges
+  `list` and `density`, pairs `list` and `bins`, a matrix's `items`, a grid's `sparse` cells, `keyed` rows) is declared
+  once, its columns' names and types, those that come in twos, its fields and its cells; its rows, bytes, checks,
+  gathers (a cut) and joins are read from it by one routine each, and the extents by offset or by range share their
+  checks (`offsetOutside`, `rangesOutside`). Forms by offset (letters, values, cells, a dense grid, a matrix's
+  `summary`) stay written out. Why: a form written out in each routine was the size of both files twice over (about 5 kB
+  in a bundle), and a column added to one routine and not another a silent bug. **A pair's identity** is its `row`, else
+  its `id` (never `.` or empty), with both ends' systems and starts.
 - **A row's identity** is its `id`, else its `row`: a range over a tile's edge is in each tile it touches, with its own
   start, and readers dedupe by identity and start; rows of one id with other starts are pieces of one item (the exons of
   a transcript, read in different tiles).

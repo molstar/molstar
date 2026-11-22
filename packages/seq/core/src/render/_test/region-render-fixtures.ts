@@ -9,7 +9,7 @@
 
 import { PCG } from '@molstar/core/data/util/hash-functions';
 import { categoryColumn } from '@molstar/core/repr/tree';
-import type { GridDense, MatrixBins, MatrixItems, PairsList, SeqData } from '@molstar/seqx-core/data';
+import type { GridDense, MatrixSummary, MatrixItems, PairsList, SeqData } from '@molstar/seqx-core/data';
 import { binPairs, seqToValue } from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 
@@ -99,7 +99,7 @@ export function genotypes(names: readonly string[] = States): SeqData {
   const classes = new Uint8Array(binsN * S);
   const shares = new Uint8Array(binsN * S).fill(200);
   for (let b = 0; b < binsN; b++) for (let s = 0; s < S; s++) classes[b * S + s] = (b + s) % 3;
-  const bins: MatrixBins = { form: 'bins', start: 0, states: S, classes, shares };
+  const bins: MatrixSummary = { form: 'summary', start: 0, states: S, classes, shares };
   const request = (level: number) => ({ system: 'chr', start: 0, end: N, level, shapes: ['matrix' as const] });
   return {
     coverage: {
