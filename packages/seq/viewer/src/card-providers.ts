@@ -10,7 +10,7 @@ import { extentText } from '@molstar/seqx-core/render/accessibility';
 import { itemText, type LayerLayout, type RowsLay, spanText } from '@molstar/seqx-core/render';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { CardProviderEntry } from './card-provider.js';
-import { alleleOf } from './describe-allele.js';
+import { alleleOf, alleleTitle } from './describe-allele.js';
 import { chemistryRows } from './describe-molecules.js';
 import { TooltipsCardProvider } from './card-tooltips.js';
 import { regionHoverOf } from './describe-region.js';
@@ -219,7 +219,9 @@ const ItemSection: CardProviderEntry = {
     const allele = row && it.system === undefined ? alleleOf(row.t, row.i) : undefined;
     const category = allele?.category || at.words.categoryOf(l, el.key);
     const strand = at.words.strandOf(l, el.key, it.start, row ?? null);
-    out.title = allele ? String(el.key) : it.label;
+    // an allele by its id; a long REF or ALT (hashed in the id) by its first letters and its length
+    const name = allele ? alleleTitle(el.key, allele) : '';
+    out.title = allele ? name : it.label;
     // the track's name: a short drawn label (`CDR-H1`) is told apart by it (`CDRs (Kabat)`)
     const track = at.section.tracks.find((t) => t.layers.includes(l))?.track.label;
     if (track) out.row('Track', track);
@@ -234,7 +236,7 @@ const ItemSection: CardProviderEntry = {
     else if (category && !allele) out.row('Category', category);
     if (strand) out.row('Strand', strand);
     out.words.push(
-      `${allele ? `${String(el.key)}, ` : ''}${itemText(system, it)}${track ? `, ${track}` : ''}${mixed ? `, ${mixed}` : category ? `, ${category}` : ''}${strand ? `, strand ${strand}` : ''}`,
+      `${allele ? `${name}, ` : ''}${itemText(system, it)}${track ? `, ${track}` : ''}${mixed ? `, ${mixed}` : category ? `, ${category}` : ''}${strand ? `, strand ${strand}` : ''}`,
     );
     out.whole = true;
   },

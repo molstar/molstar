@@ -28,6 +28,27 @@ export interface Allele {
   readonly info: readonly (readonly [string, string])[];
   /** Its card's rows after the category: ID, QUAL, FILTER, the first `AlleleInfoRows` INFO fields and "+k more". */
   readonly rows: readonly (readonly [string, string])[];
+  /** Its REF and ALT as the source gives them ('' when not). */
+  readonly ref: string;
+  readonly alt: string;
+}
+
+/** The longest allele a title spells out: past it, its first letters and its length (the id holds a hash). */
+export const AlleleTitleChars = 32;
+
+/** An allele's text in a title: itself, or past `AlleleTitleChars` its first letters and its length (`GAGGCT… 469 bp`). */
+const shortAllele = (a: string) => (a.length <= AlleleTitleChars ? a : `${a.slice(0, 6)}… ${a.length} bp`);
+
+/**
+ * An allele's card title (_spec/README.md "Behaviors", hoverCard, A variant allele's card): its id (`7674964:A>G`),
+ * with a long REF or ALT, hashed in the id (`7674964:469:edaeae47>G`), as its first letters and its length
+ * (`7674964:GAGGCT… 469 bp>G`): a reader reads a length, not a hash.
+ */
+export function alleleTitle(key: string | number, allele: Allele): string {
+  const id = String(key);
+  const m = /^(\d+):/.exec(id);
+  if (!m || (allele.ref.length <= AlleleTitleChars && allele.alt.length <= AlleleTitleChars)) return id;
+  return `${m[1]}:${shortAllele(allele.ref)}>${shortAllele(allele.alt)}`;
 }
 
 /** The last allele read of a list (its row): a hover held over one reads it once; a list let go takes it along. */
@@ -70,7 +91,7 @@ function readAllele(t: RangesList, i: number): Allele | undefined {
   if (filter) rows.push(['FILTER', filter]);
   rows.push(...info.slice(0, AlleleInfoRows));
   if (info.length > AlleleInfoRows) rows.push(['INFO', `+${info.length - AlleleInfoRows} more`]);
-  return { id, category: text('category'), qual, filter, info, rows };
+  return { id, category: text('category'), qual, filter, info, rows, ref: text('ref'), alt: text('alt') };
 }
 
 /**

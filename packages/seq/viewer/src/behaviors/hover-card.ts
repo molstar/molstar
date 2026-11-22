@@ -14,14 +14,17 @@ import { twoAxesLayer } from './two-axes.js';
 import {
   type CardBox,
   CardEstimate,
+  cardHasLink,
   cutItems,
   type HoverCard,
   type HoverCardPlace,
   type HoverCardPort,
   type HoverCardPortFactory,
+  type HoverCardShowOptions,
   placeCard,
 } from '@molstar/seqx-viewer/hover-card';
 import type { BehaviorContext, BehaviorProvider } from '@molstar/seqx-viewer/viewer-spec';
+import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 
 // The hover card (_spec/README.md "Behaviors", hoverCard; "Ports", Hover card): what the pointer rests on, in words,
 // after the hover rests (the announcer's rest), one card. Its content is the announcer's description (`describe.ts`)
@@ -64,6 +67,8 @@ export interface HoverCardBehavior {
   cursorMoved(): void;
   /** A frame was drawn (the viewer, each frame), laid out again or not: no allocation. */
   framed(relaid: boolean): void;
+  /** The viewer is composed: a linked card's links run through it. */
+  composed(viewer: SeqViewer): void;
   /** The mounted canvas's element: the port's adapter is made over it. */
   attach(container: HTMLElement): () => void;
   dispose(): void;
@@ -71,6 +76,9 @@ export interface HoverCardBehavior {
 
 /** How long a rectangle's summary waits after a change while it is dragged, ms: the summary once a frame or so. */
 const SummaryMs = 50;
+
+/** How long a linked card waits for the pointer crossing from its anchor to it, ms (the enterable card's grace). */
+export const BridgeMs = 300;
 
 /** A box `r` px around a point. */
 const around = (x: number, y: number, rx: number, ry: number): CardBox => ({
@@ -264,6 +272,8 @@ function hoverCardBehavior(context: BehaviorContext, params: HoverCardParams = {
   let timer: unknown;
   let summaryTimer: unknown;
   let disposed = false;
+  /** The viewer (its links run through it), once composed. */
+  let viewer: SeqViewer | undefined;
   const sameHit = new HitIdentity();
 
   const portOf = (): HoverCardPort | undefined => {
@@ -291,11 +301,57 @@ function hoverCardBehavior(context: BehaviorContext, params: HoverCardParams = {
     showing = by;
     // the card drawn lists `hover.cardItems` items at most (`cutItems`); the state keeps it whole
     shown.set({ card, place });
-    portOf()?.show(cutItems(card, config.hover.cardItems), place);
+    linked = cardHasLink(card);
+    entered = false;
+    portOf()?.show(cutItems(card, config.hover.cardItems), place, linked ? linkedOptions : plainOptions);
+  };
+
+  // the enterable card (_spec/README.md "Behaviors", hoverCard, The enterable card): a card with a link stays a grace
+  // after the hover leaves its anchor, so the pointer can cross to it; over it, it stays (the hover frozen); leaving it
+  // hides it. A card with no link never takes the pointer.
+  let linked = false;
+  let entered = false;
+  let bridge: unknown;
+  const stopBridge = () => {
+    DomHost.clearTimeout(bridge);
+    bridge = undefined;
+  };
+  /** The hover left the anchor of a linked card: it waits `BridgeMs` for the pointer to come onto it, else goes. */
+  const bridged = (then: () => void): boolean => {
+    if (!linked || shown.value === undefined) return false;
+    if (entered) return true;
+    if (bridge === undefined)
+      bridge = DomHost.setTimeout(() => {
+        bridge = undefined;
+        if (entered || disposed) return;
+        hide();
+        then();
+      }, BridgeMs);
+    return true;
+  };
+  const plainOptions: HoverCardShowOptions = { lines: config.hover.tooltipLines };
+  const linkedOptions: HoverCardShowOptions = {
+    lines: config.hover.tooltipLines,
+    link(href) {
+      viewer?.runLink(href);
+      hide();
+    },
+    enter() {
+      entered = true;
+      stopBridge();
+    },
+    leave() {
+      entered = false;
+      hide();
+      arm();
+    },
   };
 
   const hide = () => {
     showing = 'none';
+    stopBridge();
+    entered = false;
+    linked = false;
     if (shown.value === undefined) return;
     shown.set(undefined);
     portOf()?.hide();
@@ -345,9 +401,11 @@ function hoverCardBehavior(context: BehaviorContext, params: HoverCardParams = {
     // a re-hit of what was hovered (a zoom or a pan under a resting pointer: the same element, cell or target) is no
     // change: the card stays (a cursor's is placed again with the frame); the same place of another model is a change
     if (sameHit.update(hover.current, context.spec.model.value)) return;
+    cursorDue = false;
+    // a linked card waits for the pointer crossing to it (the bridge); else it goes at once
+    if (!dragging && bridged(arm)) return;
     // a rectangle's summary stays while its drag moves the hover
     if (!dragging) hide();
-    cursorDue = false;
     arm();
   });
 
@@ -379,6 +437,8 @@ function hoverCardBehavior(context: BehaviorContext, params: HoverCardParams = {
     leave() {
       at[0] = at[1] = Number.NaN;
       stopTimer();
+      // the pointer leaving the canvas onto a linked card is the bridge's
+      if (bridged(() => {})) return;
       hide();
     },
     interrupt() {
@@ -419,7 +479,11 @@ function hoverCardBehavior(context: BehaviorContext, params: HoverCardParams = {
         release();
       };
     },
+    composed(v) {
+      viewer = v;
+    },
     dispose() {
+      stopBridge();
       disposed = true;
       stopHover();
       stopSelection();

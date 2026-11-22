@@ -47,6 +47,11 @@ export interface ViewerConfig {
      * row `+k more` (8); the card's data keeps the rest (`HoverCard.more`) and the live region says every one.
      */
     readonly cardItems: number;
+    /**
+     * The lines a card row's value wraps to within the card's width, then an ellipsis (3): a tooltip's text, a long INFO
+     * value. The default adapter's; a host's card reads it from the show's options.
+     */
+    readonly tooltipLines: number;
   };
   readonly selection: {
     /**
@@ -288,7 +293,7 @@ export const DefaultViewerConfig: ViewerConfig = {
   density: { letterMinPx: 7, dotMinPx: 2 },
   bindings: { preset: 'default' },
   store: { cacheBytes: 64 * 1024 * 1024, inFlight: 6, tileBins: 1024 },
-  hover: { projectLinked: true, closeCodons: true, card: true, cardItems: 8 },
+  hover: { projectLinked: true, closeCodons: true, card: true, cardItems: 8, tooltipLines: 3 },
   selection: { holdNodes: true, extendScope: 'range', acrossBreaks: 'shown' },
   highlight: { color: 'token:cat-5', colors: { 'link-hover': 'token:hover' } },
   cursor: { keys: { prev: 'ArrowLeft', next: 'ArrowRight', up: 'ArrowUp', down: 'ArrowDown' } },

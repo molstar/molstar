@@ -86,10 +86,31 @@ export interface HoverCardPlace {
   readonly y: number;
 }
 
+/**
+ * What a show gives an adapter besides the card and its place: the lines a row's value wraps to (`hover.tooltipLines`),
+ * and, for a card with a link, what its link runs and that the pointer entered and left it (the enterable card).
+ */
+export interface HoverCardShowOptions {
+  readonly lines: number;
+  /** Runs a link of the card (`!seq-…`, through the viewer's commands). */
+  link?(href: string): void;
+  /** The pointer came onto the card (it stays while the pointer is over it). */
+  enter?(): void;
+  /** The pointer left the card: it hides. */
+  leave?(): void;
+}
+
+/** Whether a card has a link a reader can follow (it then takes the pointer, entered across the gap). */
+export function cardHasLink(card: HoverCard): boolean {
+  const has = (nodes: readonly MarkdownInline[]): boolean =>
+    nodes.some((n) => n.kind === 'link' || ((n.kind === 'strong' || n.kind === 'em') && has(n.children)));
+  return card.rows.some((r) => r.rich !== undefined && has(r.rich));
+}
+
 /** What the viewer asks of the port. */
 export interface HoverCardPort {
   /** Shows the card at its place (one card: a show replaces the last). */
-  show(card: HoverCard, place: HoverCardPlace): void;
+  show(card: HoverCard, place: HoverCardPlace, options?: HoverCardShowOptions): void;
   hide(): void;
   /** False: the host owns it (one adapter shared by several viewers), and the viewer leaves it. */
   readonly disposeWithViewer?: boolean;

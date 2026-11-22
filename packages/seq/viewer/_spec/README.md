@@ -746,13 +746,22 @@ param (`port`, a `HoverCardPortFactory` given the canvas's element, none headles
   adapter places its own card by its measured size with `placeCard(anchor, pointer, view, size)`: beside the pointer,
   above the anchor, else below it, else to its right or left, inside the view. Why boxes: the host's card has its own
   size; the viewer knows what it must not cover.
-- **The port** (`HoverCardPort`): `show(card, place)` (one card: a show replaces the last), `hide()`, `dispose()`,
-  `disposeWithViewer`.
+- **The port** (`HoverCardPort`): `show(card, place, options)` (one card: a show replaces the last), `hide()`,
+  `dispose()`, `disposeWithViewer`. `options` (`HoverCardShowOptions`): `lines` (`hover.tooltipLines`, 3) and, for a
+  card with a link (`cardHasLink`), `link(href)` (run through the viewer's `runLink`, the card hidden), `enter()` and
+  `leave()` (the enterable card, Behaviors, hoverCard).
 - **The default adapter** (`hoverCardOverlay()`): `@molstar/ui`'s primitives in the canvas's element (`msui-surface`,
   its tokens and squircle, a header, a form of rows; the rows' elements kept across shows), absolutely placed,
   `aria-hidden` (the live region says the same), never in the draw lists or an export. Compact: the title a text line,
   each row a text line (not a control row's height), the value next to its label (the label column as wide as its
-  longest label, no control inset). Why: a card is read at a glance, beside the pointer.
+  longest label, no control inset). Why: a card is read at a glance, beside the pointer. **Its width capped**
+  (`CardMaxPx`, 320, or `maxWidth`), bounding the value column (`max-content minmax(0, 1fr)`): a long value wraps there,
+  at `,` `;` `|` `:` first (a zero-width break after each, `breakable`) and anywhere in a token with none, to `lines`
+  lines, then an ellipsis (a line clamp); the title to two. Why: a VCF's `CLNDISDB` ran past the card's edge. A row's
+  Markdown (`rich`) is drawn as elements (strong, emphasis, code, a link an anchor whose click runs `link`), never HTML,
+  in the value's place (the label's, a row with no value). A card with a link takes the pointer (`pointer-events: auto`,
+  its `pointerenter` and `pointerleave` the options' `enter` and `leave`); one without never does, so it never steals a
+  hover from the data.
 
 ### Header menu and Header parts
 
@@ -1188,15 +1197,21 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   it describes: a frame laid out again (a zoom, a pan, an edit, a load, data or a source's labels arriving) places the
   cursor's card again at its cell and sends a hover's away until the hover rests again. A rectangle dragged on a grid
   shows its summary while it is dragged (`gridSummary`: the cells counted, their mean, least and greatest value), at
-  most once a 50 ms. `hover.card` is read at composition (the configuration is read-only after it): off, no card is
-  shown and no port made. **A variant allele's card** (the genome formats' matrix row "a variant allele"): an item whose
-  source row holds `ref` and `alt` (a VCF's, core's Data, VCF) is titled by its id `pos:ref>alt`, never its record's ID,
-  with its Category, its record's `ID`, `QUAL` and `FILTER`, and its INFO fields with a value (every field not in core's
-  VCF `FixedFields`, the source's order, the first 8, then `INFO: +k more`; a value past 40 characters cut with an
-  ellipsis; an integer written as it is: an id is never grouped). Its words are read once a hover (`alleleOf` keeps a
-  list's last, a weak map: 0 B a held hover, the storybook's `allele-card.quick.ts`). A behavior's part over the canvas
-  is `BehaviorHandle.attach(container, viewer)` (`viewer-spec.ts`): `mountCanvas` calls it for every behavior that has
-  one, and the function it returns takes the part away.
+  most once a 50 ms. **The enterable card** (EC-166's bridge): a card with a link (a tooltip's `!seq-…`) waits
+  `BridgeMs` (300) after the hover leaves its anchor or the pointer leaves the canvas, so the pointer can cross the gap
+  to it; entered (the adapter's `enter`), it stays while the pointer is over it, the hover frozen; its `leave` hides it
+  and arms the next rest; the grace ended without an entry, it goes. Esc, a press and a drag hide it at once. Why: a
+  link a reader cannot reach is no link; a card with none never takes the pointer. `hover.card` is read at composition
+  (the configuration is read-only after it): off, no card is shown and no port made. **A variant allele's card** (the
+  genome formats' matrix row "a variant allele"): an item whose source row holds `ref` and `alt` (a VCF's, core's Data,
+  VCF) is titled by its id `pos:ref>alt` (an allele past 32 letters, hashed in the id, as its first letters and its
+  length: `7674964:GAGGCT… 469 bp>G`, `alleleTitle`), never its record's ID, with its Category, its record's `ID`,
+  `QUAL` and `FILTER`, and its INFO fields with a value (every field not in core's VCF `FixedFields`, the source's
+  order, the first 8, then `INFO: +k more`; a value past 40 characters cut with an ellipsis; an integer written as it
+  is: an id is never grouped). Its words are read once a hover (`alleleOf` keeps a list's last, a weak map: 0 B a held
+  hover, the storybook's `allele-card.quick.ts`). A behavior's part over the canvas is
+  `BehaviorHandle.attach(container, viewer)` (`viewer-spec.ts`): `mountCanvas` calls it for every behavior that has one,
+  and the function it returns takes the part away.
 - `keysPanel` (`KeysPanelProvider`, in the default spec): `help.keys` (`?` in `view.keys`; the toolbar's button) opens a
   `@molstar/ui` surface over the canvas's corner listing what the view answers to, `describeKeys(viewer)` (`keys.ts`,
   DOM-free, so a host draws its own): generated from the viewer's commands with their keys (`view.keys`, else the
@@ -1659,6 +1674,7 @@ settings form.
 | `hover.projectLinked`                                            | true                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | the hover shows on every linked section; false: only sections of the hovered system                                                                                                                                                                                                                                        |
 | `hover.card`                                                     | true                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | the hover card (the `hoverCard` behavior) shows what the pointer rests on; false: none (the live region still says it)                                                                                                                                                                                                     |
 | `hover.cardItems`                                                | 8                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | the items the card lists at most (a place's features, a group's members): past it the first ones and a row `+k more`; the data keeps every one (`HoverCard.more`), the live region says them all                                                                                                                           |
+| `hover.tooltipLines`                                             | 3                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | the lines a card row's value wraps to within the card's capped width, then an ellipsis (a tooltip's text, a long INFO value)                                                                                                                                                                                               |
 | `hover.closeCodons`                                              | true                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | a nucleotide lights its whole codon and its residue (EC-30, EC-144); false: the position alone                                                                                                                                                                                                                             |
 | `headers.submenuRestMs` (a behavior's param, in `SeqViewerSpec`) | 300 ms                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | a submenu's flyout opens once the pointer rests on its row: long enough that a pointer passing over it down the menu opens nothing, short enough to read as hover; a click, → and Enter open it at once; the same rest on another row closes it; 0 turns resting off                                                       |
 | `selection.holdNodes`                                            | true                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | a selection's dynamic nodes stay while selected, so a selected transcript survives a scroll; false: only while shown                                                                                                                                                                                                       |
