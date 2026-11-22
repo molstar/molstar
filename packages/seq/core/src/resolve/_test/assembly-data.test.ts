@@ -5,7 +5,15 @@
  */
 
 import { PCG } from '@molstar/core/data/util/hash-functions';
-import { type Coverage, openSeq, type RangesList, type SeqData, seqToValue } from '@molstar/seqx-core/data';
+import {
+  type Coverage,
+  DataStore,
+  openSeq,
+  type RangesList,
+  readSeq,
+  type SeqData,
+  seqToValue,
+} from '@molstar/seqx-core/data';
 import { assembly, createSeqSpec } from '@molstar/seqx-core/lang';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { loadGenome } from '../genome.js';
@@ -76,7 +84,6 @@ function specOf(g: Generated, source?: SeqData) {
 async function readPlan(plan: { kind: string; source: unknown; system: string }, length: number): Promise<string[]> {
   if (plan.kind !== 'inline') throw new Error('an inline plan');
   const value = (plan.source as { value: unknown }).value;
-  const { readSeq } = await import('@molstar/seqx-core/data');
   const opened = openSeq(readSeq(value as never).data!);
   const a = await opened.read({ system: plan.system, start: 0, end: length, level: 1, shapes: ['ranges'] }, signal);
   if (!a.ok) throw new Error(a.issue.message);
@@ -179,5 +186,78 @@ describe('data over an assembly, read by sequence', () => {
       '/data/held seq.resolve.assembly.inline: inline pairs over an assembly is not read yet: name a source, or target a sequence',
       '/data/cells seq.resolve.assembly.inline: inline grid over an assembly is not read yet: name a source, or target a sequence',
     ]);
+  });
+
+  it('a region read over the assembly through the store is the per-sequence reads joined, in the assembly’s order (with `M` and `MT`, EC-189)', async () => {
+    const cases: Generated[] = [
+      ...Array.from({ length: 12 }, (_, k) => generate(100 + k)),
+      {
+        // `M` is `chrM` by the prefix; `MT` is its own sequence, never `M`'s
+        sequences: [
+          { name: 'chrM', length: 16_571, aliases: [] },
+          { name: 'MT', length: 16_569, aliases: [] },
+          { name: 'chr1', length: 3000, aliases: [] },
+        ],
+        rows: [
+          { start: 10, end: 20, target: 'M', seq: 0 },
+          { start: 30, end: 40, target: 'chrM', seq: 0 },
+          { start: 50, end: 60, target: 'MT', seq: 1 },
+          { start: 70, end: 80, target: '1', seq: 2 },
+        ],
+      },
+    ];
+    for (const g of cases) {
+      const m = resolveSpec(specOf(g));
+      const a = m.assemblies.get('/data/g')!;
+      const e = m.annotations.get('/data/bed')!;
+      const store = new DataStore();
+      const plan = e.access;
+      if (!plan || plan.kind !== 'inline') {
+        expect(g.rows.every((r) => r.seq < 0 || a.systemAt[a.find(g.sequences[r.seq].name)!] === undefined)).toBe(true);
+        continue;
+      }
+      store.attach(plan.source.address, openSeq(readSeq(plan.source.value as never).data!));
+      // the region over the assembly: every derived sequence whole, in the assembly's order
+      const wants = a.systems.flatMap((system) => {
+        const p = e.bySystem!.get(system);
+        const length = m.systems.get(system)!.length!;
+        return p
+          ? [
+              {
+                source: p.kind === 'inline' ? p.source.address : p.source,
+                system: p.system,
+                start: 0,
+                end: length,
+                level: 1,
+              },
+            ]
+          : [];
+      });
+      store.want(wants);
+      await store.whenSettled();
+      const joined: string[] = [];
+      for (const w of wants) {
+        // a row once (a tile holds every row meeting it: one across a tile's edge is in two), by its row
+        const rows = new Map<number, [number, number]>();
+        for (const k of store.keysOf(w)) {
+          const entry = store.get(k);
+          if (entry?.status !== 'loaded') continue;
+          const t = entry.tables.ranges as RangesList;
+          for (let i = 0; i < t.start.length; i++) rows.set(t.row![i], [t.start[i], t.end[i]]);
+        }
+        joined.push(
+          ...[...rows.values()].sort((x, y) => x[0] - y[0] || x[1] - y[1]).map(([st, en]) => `${w.system}:${st}-${en}`),
+        );
+      }
+      // the per-sequence rows, joined in the assembly's order
+      const expected = a.systems.flatMap((system) => {
+        const i = a.systemAt.indexOf(system);
+        return g.rows
+          .filter((r) => r.seq >= 0 && a.find(g.sequences[r.seq].name) === i)
+          .sort((x, y) => x.start - y.start || x.end - y.end)
+          .map((r) => `${system}:${r.start}-${r.end}`);
+      });
+      expect(joined).toEqual(expected);
+    }
   });
 });
