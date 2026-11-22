@@ -8,7 +8,9 @@
 // level (a sided source on the end it shows, `chr1` on both genomes), each pair drawn exactly once by ownership over
 // the sides' systems, the near side's `R` read at its own level (EC-209).
 
-import { SeqRuntime } from '@molstar/seqx-core/data';
+import { SeqRuntime, seqToValue } from '@molstar/seqx-core/data';
+import { createSeqSpec } from '@molstar/seqx-core/lang';
+import { Chr1, sidedPairsSource } from '../../data/_test/region-fixtures.js';
 import { loadGenome } from '@molstar/seqx-core/resolve';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { loadBridges } from '../bridge-load.js';
@@ -191,5 +193,45 @@ describe('a bridge between two genomes, each side reading its own blocks', () =>
     const { ribbons, lay: settled } = await frameOf(s, top, bottom);
     expect(settled.readSide).toEqual([0, 1]);
     expectDrawnOnce(ribbons, blocks, top, bottom);
+  });
+});
+
+describe('a bridge between two sequences of a sided source', () => {
+  it('reads each side on the end it shows: `chr1` listed on both sides, each pair once (EC-209)', async () => {
+    const data = sidedPairsSource(120);
+    const b = createSeqSpec({ title: 'sided sequences' });
+    const src = b.data.source('src', { format: 'seq', value: seqToValue(data) as never });
+    const A = b.data.sequence('A', { alphabet: 'dna', source: src, name: 'chr1', length: Chr1 } as never);
+    const B = b.data.sequence('B', { alphabet: 'dna', source: src, name: 'chr1', length: Chr1 } as never);
+    const aln = b.data.pairs('aln', { a: A, b: B, source: src } as never);
+    b.views.view('v', (v) => {
+      v.section('top', { of: A }).track('ruler').layer('ruler', { type: 'ruler' });
+      v.bridge('br', { a: TopSection, b: BottomSection } as never, (br) =>
+        br.layer('aln', { type: 'pairs', data: aln } as never),
+      );
+      v.section('bottom', { of: B }).track('ruler').layer('ruler', { type: 'ruler' });
+    });
+    const s = await settle(b.build(), [SeqRuntime]);
+    const top: Window = [0, 2000];
+    const bottom: Window = [3000, 5000];
+    const { lay } = await frameOf(s, top, bottom);
+    expect(lay.readSide).toEqual([0, 1]);
+    const list = data.pairs[0].answer.ok ? data.pairs[0].answer.tables.pairs! : undefined;
+    if (list?.form !== 'list') throw new Error('a list');
+    // each pair with its `a` end in the top's window or its `b` end in the bottom's drawn exactly once
+    const drawn = new Map<string, number>();
+    for (let i = 0; i < lay.n; i++) {
+      const d = lay.reads[lay.src[i]].data!;
+      const k = lay.pair[i];
+      const key = `${d.aStart[k]}|${d.bStart[k]}`;
+      drawn.set(key, (drawn.get(key) ?? 0) + 1);
+    }
+    for (let i = 0; i < list.aStart.length; i++) {
+      const shown =
+        (list.aStart[i] >= top[0] && list.aStart[i] < top[1]) ||
+        (list.bStart[i] >= bottom[0] && list.bStart[i] < bottom[1]);
+      if (shown) expect(drawn.get(`${list.aStart[i]}|${list.bStart[i]}`)).toBe(1);
+    }
+    expect(Math.max(...drawn.values())).toBe(1);
   });
 });
