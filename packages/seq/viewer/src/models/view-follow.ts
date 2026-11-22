@@ -104,6 +104,14 @@ export function leaderRange(
   const oa = nearestOffsetOf(la, a);
   const ob = nearestOffsetOf(la, b);
   if (oa === undefined || ob === undefined || oa === ob) return undefined;
+  // a cyclic follower's range over its end (past the total) is the leader's arc over its own: on from the first end,
+  // never the rest of the ring
+  const lt = axisTotal(la);
+  if (end > total && axis.cyclic && la.cyclic && lt !== undefined && follow.dir === 1 && axis.dir === 1 && ob < oa) {
+    out.start = oa;
+    out.end = ob + lt;
+    return out;
+  }
   out.start = Math.min(oa, ob);
   out.end = Math.max(oa, ob);
   return out;

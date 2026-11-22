@@ -192,4 +192,25 @@ describe('Features/Genome formats/GenBank: a click on a feature across the cycli
       clickAt(viewer, p);
     }
   });
+
+  it.each([
+    ['GenBank', () => view('genbank-plasmid'), 'CDS@2312-3172'],
+    ['GFF3', () => gff3, 'bla'],
+  ])('%s: a double click zooms to the arc over the origin, not the whole axis', async (_name, v, key) => {
+    const viewer = await open(v());
+    const lay = viewer.frame!.layout.sections[1].tracks.find((t) => t.track.label === 'CDS')!.layers[0]
+      .lay as RangesLay;
+    const j = [...Array(lay.hn).keys()].find((k) => String(lay.keys[lay.hitem[k]]) === key)!;
+    const x = (lay.hx0[j] + lay.hx1[j]) / 2;
+    const y = lay.laneY + lay.hlane[j] * lay.laneHeight + lay.laneHeight / 2;
+    viewer.input.doubleClick(x, y);
+    for (let k = 0; k < 20; k++) {
+      await vi.advanceTimersByTimeAsync(100);
+      viewer.draw();
+    }
+    const r = viewer.view.get('/views/main/detail')!;
+    // 2,311 to 2,686 and 0 to 486: 861 of 2,686, its end past the total
+    expect(r.end).toBeGreaterThan(2686);
+    expect(r.end - r.start).toBeLessThan(1200);
+  });
 });
