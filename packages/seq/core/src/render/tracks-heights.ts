@@ -139,12 +139,10 @@ function sizeTracks(
     }
     // one lane block a track: the most lanes its layers need, one label lane for all of them
     // no items in what it covers: its content known whole (not a source's partial lanes: pending is not empty), no lane
-    // of any layer, and no layer of a fixed height beside
-    const mode = t.empty ?? config.track.empty;
+    // of any layer, and no layer of a fixed height beside; its own `height` too (the note row, unless `keep`)
+    const mode = config.track.empty;
     empties.push(
-      layout === TracksLayout && lanes === 0 && !partial && other === 0 && mode !== 'keep' && t.height === undefined
-        ? mode
-        : undefined,
+      layout === TracksLayout && lanes === 0 && !partial && other === 0 && mode !== 'keep' ? mode : undefined,
     );
     contents.push(lanes === undefined ? undefined : partial ? { lanes, labels, partial } : { lanes, labels });
     // its lanes' px to the cap (`track.maxPx`; a ring's radial width `rings.trackMaxPx`), past which they scroll inside
@@ -176,7 +174,7 @@ function sizeTracks(
   }
   let named = sizing.heights(sized, config);
   if (!heightsFit(named, sized.length)) named = ContentSizing.heights(sized, config);
-  const ownHeights = named.map((h, j) => sized[j].height ?? (empties[j] ? config.track.emptyPx : h));
+  const ownHeights = named.map((h, j) => (empties[j] ? config.track.emptyPx : (sized[j].height ?? h)));
   const hook = input.trackSizing?.(section, sized, ownHeights);
   const heights = heightsFit(hook, sized.length) ? [...hook] : ownHeights;
   return { ...base, heights, contents, empties, ...(issue ? { issue } : {}) };

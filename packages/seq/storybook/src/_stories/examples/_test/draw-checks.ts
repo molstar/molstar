@@ -4,6 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import type { SeqRegistryEntry } from '@molstar/seqx-core/context';
+import type { FormatRuntime, OpenedSource, RegionRequest } from '@molstar/seqx-core/data';
 import { type Frame, type RangesLay, recordDrawLists } from '@molstar/seqx-core/render';
 import type { ExampleView } from '@molstar/seqx-examples';
 import { PackageFolder } from '@molstar/seqx-examples/node-assets';
@@ -32,6 +34,11 @@ export interface OpenOptions {
   readonly wait?: number;
   /** Keep the real `Date` and `performance` (a bound on time reads them): only the timers are faked. */
   readonly realClock?: boolean;
+  /**
+   * Await every runtime's open (a gzip file inflates on the platform's thread pool, by no clock) between turns of the
+   * fake clock: what a view of recorded genome files needs to settle.
+   */
+  readonly awaitOpens?: true;
   /** The host's history, for edits that are undone (the spec takes part in it). */
   readonly history?: boolean;
   /** The viewer's config items, as the story passes them (`exampleStory`'s `config`). */
@@ -48,13 +55,17 @@ export async function openExample(view: ExampleView, options: OpenOptions): Prom
   });
   const text = view.id === 'gene-by-region' || view.id === 'gene-region-ideogram' ? regionSeqText() : gene;
   const base = DefaultSeqViewerSpec();
+  const opens: Promise<unknown>[] = [];
   const v = createSeqViewer({
     ...base,
     ui: undefined,
     ...(history ? { history: uiHistory() } : {}),
     ...(options.config ? { config: [...(base.config ?? []), ...options.config] } : {}),
     ...(options.behaviors ? { behaviors: [...base.behaviors, ...options.behaviors] } : {}),
-    registry: withViewRegistry(base.registry ?? [], view.registry?.(delayMs === 'staggered' ? {} : { delayMs }) ?? []),
+    registry: withViewRegistry(
+      base.registry ?? [],
+      watchOpens(view.registry?.(delayMs === 'staggered' ? {} : { delayMs }) ?? [], opens, options.awaitOpens === true),
+    ),
     ports: {
       assets: () => {
         // every dataset’s files (`fixtures/…`) are read as they are committed, at once (a read of the disk is not on the
@@ -73,9 +84,46 @@ export async function openExample(view: ExampleView, options: OpenOptions): Prom
   });
   v.resize(720);
   void v.load(view.build());
+  if (options.awaitOpens) {
+    await vi.advanceTimersByTimeAsync(200);
+    for (let seen = -1; seen !== opens.length; ) {
+      seen = opens.length;
+      await Promise.allSettled(opens);
+      await vi.advanceTimersByTimeAsync(200);
+    }
+  }
   await vi.advanceTimersByTimeAsync(wait);
   v.draw();
   return v;
+}
+
+/** The registry's runtimes with their opens kept (`awaitOpens`), else as they are. */
+function watchOpens(entries: readonly SeqRegistryEntry[], opens: Promise<unknown>[], on: boolean): SeqRegistryEntry[] {
+  if (!on) return [...entries];
+  return entries.map((e) =>
+    e.kind === 'format-runtime'
+      ? {
+          ...e,
+          runtime: {
+            ...e.runtime,
+            open: (source, ctx) => {
+              // each region read too: a settled view has none in flight
+              const p = e.runtime.open(source, ctx).then((o) =>
+                Object.assign(Object.create(o) as OpenedSource, {
+                  read: (request: RegionRequest, signal: AbortSignal) => {
+                    const r = o.read(request, signal);
+                    opens.push(r);
+                    return r;
+                  },
+                }),
+              );
+              opens.push(p);
+              return p;
+            },
+          } satisfies FormatRuntime,
+        }
+      : e,
+  );
 }
 
 /** The hover pass's rects. */

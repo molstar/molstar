@@ -21,8 +21,13 @@ import { openExample } from './draw-checks.js';
 /** The tracks (`<view id>:<section id>/<track id>`) a story means to leave empty, with why. */
 const ExpectEmpty: Readonly<Record<string, string>> = {};
 
-/** The views the sweep leaves out: their layout is not the tracks layout's page of tracks, or too large to open here. */
-const Skipped: ReadonlySet<string> = new Set([]);
+/** The views the sweep leaves out, each with why (the sources are read settled: their opens and region reads awaited). */
+const Skipped: ReadonlyMap<string, string> = new Map([
+  [
+    'vcf-zoom-in',
+    'its variants come after a zoom in (the story’s point): the band says so until then, its regions refused',
+  ],
+]);
 
 let viewer: SeqViewer | undefined;
 
@@ -47,11 +52,22 @@ function blankWells(v: SeqViewer, id: string): string[] {
       if (t.box.height <= row) continue;
       const lays = t.layers.filter((l) => l.type.name === 'ranges');
       if (lays.length === 0 || lays.length !== t.layers.length) continue;
-      const marks = lays.reduce((n, l) => n + ((l.lay as RangesLay).m ?? 0) + ((l.lay as RangesLay).items ?? 0), 0);
-      // a density strip (a source drawn at its summary level) draws its bins, not marks
-      if (lays.some((l) => (l.lay as RangesLay).mode === 'density')) continue;
-      const pending = lays.some((l) => ((l.lay as RangesLay).pending?.length ?? 0) > 0);
-      if (marks === 0 && !pending) out.push(`${id}:${t.track.address}`);
+      // marks, or a density strip's bins (a source drawn at its summary level) holding counts
+      const marks = lays.reduce((n, l) => {
+        const y = l.lay as RangesLay;
+        let bins = 0;
+        for (let k = 0; k < y.strip.counts.length; k++) bins += y.strip.counts[k];
+        return n + (y.m ?? 0) + (y.items ?? 0) + bins;
+      }, 0);
+      if (marks === 0)
+        out.push(
+          `${id}:${t.track.address} h=${t.box.height} ${lays
+            .map((l) => {
+              const y = l.lay as any;
+              return `mode=${y.mode} m=${y.m} items=${y.items} pend=${y.pending?.length} tn=${y.tn} cnt=${y.strip?.counts?.length}`;
+            })
+            .join(';')}`,
+        );
     }
   }
   return out.filter((a) => !(a in ExpectEmpty));
@@ -60,7 +76,7 @@ function blankWells(v: SeqViewer, id: string): string[] {
 describe('no track of an example view is a blank well', () => {
   for (const view of ExampleViews.filter((x) => !Skipped.has(x.id))) {
     it(`${view.dataset}/${view.id}`, { tags: ['medium'] }, async () => {
-      viewer = await openExample(view, { fixtures: true, gene: '' });
+      viewer = await openExample(view, { fixtures: true, gene: '', delayMs: 0, wait: 5000, awaitOpens: true });
       expect(blankWells(viewer, view.id)).toEqual([]);
     });
   }

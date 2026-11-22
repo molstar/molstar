@@ -686,6 +686,10 @@ describe('the pairs layer: arcs', () => {
     expect(lay.n).toBeLessThanOrEqual(20);
     expect(lay.densityN).toBe(0);
     expect(lay.densityMax).toBe(0);
+    // said once, with the count it drops
+    const said = f.layout.issues.filter((i) => i.code === 'seq.render.pairs.limit');
+    expect(said.length).toBe(1);
+    expect(said[0].message).toMatch(/the \d+ strongest are drawn on the ring, \d+ are not/);
   });
 
   it('on a ring: chords through the hole, ends on the band’s outer edge', async () => {

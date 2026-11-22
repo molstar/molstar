@@ -559,6 +559,9 @@ export class BlockPlacement extends StripPlacement {
   labelRoom = new Float64Array(4);
   /** Whether a strip's label may be shown past its block by the stride (1: not a chip's, not in a run). */
   strideable = new Uint8Array(4);
+  /** A stack's bands left out of a block's row (`blocks * bands`, 1: out), and those every chip leaves out. */
+  gone = new Uint8Array(0);
+  chipGone = new Uint8Array(0);
   /** A row's arithmetic (pan and zoom through its inverse). */
   readonly row = new BlockRow();
   private slots: Float64Array = new Float64Array(4);
@@ -764,22 +767,28 @@ export function placeBlocks(section: ResolvedSection, ctx: PlaceContext, prev?: 
   for (let j = 0; j < nb; j++)
     rows += (j ? config.trackGap : 0) + ctx.heights[j] + (pads ? pads[2 * j] + pads[2 * j + 1] : 0);
   let y = top;
-  // a stack's bands with no item for a block are left out of its row (`blocks.emptyTracks`); the first block's row
-  // keeps its bands (the label column is its), as does a track with any layer of no known content; the chips share a
-  // row, left out of it where every chip is empty
-  const gone = new Uint8Array(blocks.length * nb);
+  // a stack's bands with no item for a block are left out of its row (`blocks.emptyTracks`, the first block's too: a
+  // track's label and well sit in the first row that keeps it), a track with any layer of no known content kept; the
+  // chips share a row, left out of it where every chip is empty
+  // (kept in the placement, grown and cleared: only a stack asks)
+  let gone = p.gone;
+  if (p.stacked) {
+    p.gone = gone = grown(gone, blocks.length * nb);
+    gone.fill(0, 0, blocks.length * nb);
+  }
   if (p.stacked && nb > 0 && config.blocks.emptyTracks === 'collapse' && ctx.bandEmpty) {
-    let first = true;
-    let chips: Uint8Array | undefined;
+    p.chipGone = grown(p.chipGone, nb);
+    const chips = p.chipGone;
+    chips.fill(1, 0, nb);
+    let anyChip = false;
     for (let b = 0; b < blocks.length; b++) {
       if (!blocks[b].axis.ranges) continue;
       if (slots[b] > 0) {
-        chips ??= new Uint8Array(nb).fill(1);
+        anyChip = true;
         for (let j = 0; j < nb; j++) if (!ctx.bandEmpty(b, j)) chips[j] = 0;
-      } else if (first) first = false;
-      else for (let j = 0; j < nb; j++) gone[b * nb + j] = ctx.bandEmpty(b, j) ? 1 : 0;
+      } else for (let j = 0; j < nb; j++) gone[b * nb + j] = ctx.bandEmpty(b, j) ? 1 : 0;
     }
-    if (chips)
+    if (anyChip)
       for (let b = 0; b < blocks.length; b++)
         if (slots[b] > 0) for (let j = 0; j < nb; j++) gone[b * nb + j] = chips[j];
   }

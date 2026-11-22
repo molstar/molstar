@@ -734,11 +734,14 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       const track = shown[j];
       // a grid's track is its plot (over blocks: its cells together), its well the plot's grown by its padding
       const plot = layout.name === 'grid' && strips.n ? (placement as GridPlacement) : undefined;
-      const pt = plot ? plot.padTop : strips.n ? strips.padT[j] : pads[2 * j];
-      const pb = plot ? plot.padBottom : strips.n ? strips.padB[j] : pads[2 * j + 1];
+      // a stack's track sits in the first row that keeps it (the first block's, unless it left the track out)
+      let at = 0;
+      if (stacked && strips.n) while (at + 1 < strips.n && strips.bandH[at * nb + j] <= 0) at++;
+      const pt = plot ? plot.padTop : strips.n ? strips.padT[at * nb + j] : pads[2 * j];
+      const pb = plot ? plot.padBottom : strips.n ? strips.padB[at * nb + j] : pads[2 * j + 1];
       const box: Box = {
         x: dataX,
-        y: plot ? plot.plotTop : strips.n ? strips.bandY[j] + strips.dy[0] : by + pt,
+        y: plot ? plot.plotTop : strips.n ? strips.bandY[at * nb + j] + strips.dy[at] : by + pt,
         width: sectionBox.width,
         // a layout of two axes overlays its bands on the plot
         height: plot ? plot.plotHeight : heights[j],

@@ -155,7 +155,7 @@ export const TracksLayout: SectionLayoutType<StripPlacement> = {
       // the label column once a row: a stack's chips share one
       if (strip > 0 && (!p.stacked || !p.rowStart(strip))) return;
       // a band left out of a stack's row has no label
-      if (strip > 0 && band >= 0 && p.strips.bandH[strip * p.strips.bands + band] <= 0) return;
+      if (strip >= 0 && band >= 0 && p.strips.bandH[strip * p.strips.bands + band] <= 0) return;
     }
     // the section's header line (_spec/README.md "Render", Track headers), once before its strips
     if (band < 0) {
