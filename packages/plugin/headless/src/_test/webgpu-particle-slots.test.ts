@@ -173,13 +173,41 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles on WebGPU', () =>
       expect(new Set(allFlat).size).toBeGreaterThan(3);
       expect(someFlat).not.toEqual(allFlat);
 
+      const { pending } = plugin.canvas3d!.graphics.resources;
+      const tracked = pending.trackedCount;
       const { view, repr, image: allSlots } = await render('0-7', true);
       const r = repr.data!.repr;
       // one object of the store's instances
       expect(r.renderObjects).toHaveLength(1);
       const object = r.renderObjects[0] as MergedGraphicsRenderObject;
       expect(object.merged.source).toBeDefined();
-      expect(differing(allSlots, allFlat)).toBe(0);
+      const allDiffering = differing(allSlots, allFlat);
+      if (allDiffering > 0) {
+        // the differing pixels by kind (the background's the corner's): drawn flat alone (missing), by slot alone, or
+        // colored otherwise; the work the frames tracked (by label); whether frames with real time between them draw
+        // it as the flat view: told in the failure (on a software Vulkan, in some runs)
+        const pixels = (a: number[], b: number[]) => {
+          const bg = (x: number[], i: number) => x[i] === x[0] && x[i + 1] === x[1] && x[i + 2] === x[2];
+          const kinds = { missing: 0, extra: 0, recolored: 0 };
+          for (let i = 0; i < a.length; i += 4) {
+            if (Math.max(...[0, 1, 2].map((k) => Math.abs(a[i + k] - b[i + k]))) <= 2) continue;
+            if (bg(a, i) && !bg(b, i)) kinds.missing += 1;
+            else if (!bg(a, i) && bg(b, i)) kinds.extra += 1;
+            else kinds.recolored += 1;
+          }
+          return kinds;
+        };
+        const labels: Record<string, number> = {};
+        for (const l of pending.trackedSince(tracked)) labels[l] = (labels[l] ?? 0) + 1;
+        const recovery: number[] = [];
+        for (let i = 0; i < 5 && (recovery.at(-1) ?? allDiffering) > 0; ++i) {
+          await new Promise((r) => setTimeout(r, 300));
+          recovery.push(differing(await image(), allFlat));
+        }
+        const maxStorage = plugin.canvas3d!.graphics.compute?.maxStorageBufferSize;
+        const report = JSON.stringify({ pixels: pixels(allSlots, allFlat), recovery, labels, maxStorage });
+        expect(allDiffering, `slot view not drawn as the flat one: ${report}`).toBe(0);
+      }
 
       const setIds = async (ids: string) => {
         await plugin
