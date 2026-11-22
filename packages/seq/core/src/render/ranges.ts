@@ -445,7 +445,7 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     if (item < 0) return base;
     const hit = itemHit(base, lay, lay.keys[item], lay.starts[item], lay.ends[item]);
     const mixed = lay.hn > lay.m ? categoriesAt(lay, lane, x) : undefined;
-    return mixed ? { ...hit, state: mixed } : hit;
+    return mixed ? { ...hit, categories: mixed } : hit;
   },
 
   filtered: (lay) => lay.rows.filtered,

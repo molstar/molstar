@@ -80,10 +80,10 @@ describe('ranges: a merged run of mixed categories', () => {
     const mixed = await drawn(['beta', 'alpha', 'beta']);
     const x = (mixed.lay.mx0[0] + mixed.lay.mx1[0]) / 2;
     const y = mixed.lay.box.y + mixed.lay.box.height / 2;
-    expect(hitView(mixed.f.layout, x, y)?.state).toBe('alpha, beta');
+    expect(hitView(mixed.f.layout, x, y)?.categories).toBe('alpha, beta');
     const one = await drawn(['beta', 'beta']);
     const h = hitView(one.f.layout, (one.lay.mx0[0] + one.lay.mx1[0]) / 2, one.lay.box.y + one.lay.box.height / 2);
     expect(h?.element).toBeDefined();
-    expect(h?.state).toBeUndefined();
+    expect(h?.categories).toBeUndefined();
   });
 });

@@ -82,6 +82,8 @@ export interface HoverRecord {
   readonly yBlock: number | undefined;
   /** What a layer named within the position (a rows column cell: `title: value`), as the hit said. */
   readonly state: string | undefined;
+  /** A ranges layer's merged run of mixed categories (the legend's order), as the hit said. */
+  readonly categories: string | undefined;
   /** A `group` hit's members (a ring's grouped label): the hits it stands for. */
   readonly members: readonly RenderHit[] | undefined;
   /** A `run` hit's count (the run's blocks), a break's hidden items; undefined when none. */
@@ -109,6 +111,7 @@ export class HoverModel extends ReactiveModel {
     block: undefined,
     yBlock: undefined,
     state: undefined,
+    categories: undefined,
     members: undefined,
     count: undefined,
   };
@@ -167,6 +170,7 @@ export class HoverModel extends ReactiveModel {
       r.block === hit.block &&
       r.yBlock === hit.yBlock &&
       r.state === hit.state &&
+      r.categories === hit.categories &&
       r.members === hit.members &&
       r.count === hit.count &&
       (r.yPosition === yPosition || (Number.isNaN(r.yPosition) && Number.isNaN(yPosition))) &&
@@ -187,6 +191,7 @@ export class HoverModel extends ReactiveModel {
     r.block = hit.block;
     r.yBlock = hit.yBlock;
     r.state = hit.state;
+    r.categories = hit.categories;
     r.members = hit.members;
     r.count = hit.count;
     this._version.set(this._version.value + 1);
@@ -209,7 +214,7 @@ export class HoverModel extends ReactiveModel {
     const r = this._record;
     if (r.owner === undefined || r.owner !== owner) return false;
     r.owner = r.layer = r.section = r.system = r.element = r.extent = r.ySystem = r.target = undefined;
-    r.block = r.yBlock = r.state = r.members = r.count = undefined;
+    r.block = r.yBlock = r.state = r.categories = r.members = r.count = undefined;
     r.position = r.yPosition = Number.NaN;
     this._version.set(this._version.value + 1);
     return true;

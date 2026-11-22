@@ -2663,7 +2663,7 @@ in page coordinates: what crosses strips), `axes` (2: a second axis of its own, 
   px a side (a modified residue's code over its one position; none below 8 px), drawn in the `labels` pass. At `bars` a
   lane's marks touching within a device pixel merge into a run, drawn in the fill of its items' majority color group (a
   palette's value, in the legend's order on a tie; never the neutral colour), and a hover over a run of several
-  categories lists them (`Hit.state`, the card's "Categories"); at `density`, or a density table, one heat strip, a
+  categories lists them (`Hit.categories`, the card's "Categories"); at `density`, or a density table, one heat strip, a
   device column a pixel, except a list of few rows (at most one a CSS pixel of the band): those stay items, each its own
   mark, so a chromosome's bands at its fit keep their labels, hits and arrows. Items past the lanes collapse into a
   density row in the last lane, the rest drawn as items (`ranges.overflow: 'extra-lanes'`), or the whole layer becomes
