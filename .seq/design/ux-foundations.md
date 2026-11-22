@@ -285,3 +285,9 @@ to its summary row), never silently dropped.
   its key or gesture and its name; Esc closes it. Its list is data too (`describeKeys(viewer)`), so a host can draw its
   own. A view says once, quietly, where to find it (the toolbar button's
   title: "Keys and gestures (?)").
+
+- **No track drawn as an empty well** (the author, 2026-11-21: "Yes, group them"; FX12): a settled track with no items
+  in what it covers is one line (`track.emptyPx` 18) naming it with a quiet "no items"; pending is never empty
+  (EC-169); a settled source with no items is empty; an explicit `height` does not keep the well. The host's choice
+  (`track.empty: note | collapse | keep`, render config; no spec param); a stacked block leaves out its empty tracks,
+  the first block too (`blocks.emptyTracks: collapse | keep`).

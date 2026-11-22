@@ -9,7 +9,7 @@ import { toSection } from './layer-data.js';
 import type { ContentContext } from './layer-type.js';
 import type { LayerContent } from './sizing.js';
 import { LabelInset, LabelMinPx, minGlyphPx } from './range-labels.js';
-import { knownLanes } from './known.js';
+import { knownEmpty, knownLanes } from './known.js';
 import { mappedPieces, type RangesPrep } from './ranges-lay.js';
 
 // A ranges layer's content (_spec/README.md "Render", Track heights): the lanes its whole inline data packs into and
@@ -133,7 +133,8 @@ export function rangesContent(prep: RangesPrep, ctx: ContentContext): LayerConte
   if (lanes === undefined) {
     rows = contentRows(prep);
     // a source's data is not known whole: the lanes it has packed, one while it is pending (the loading lane)
-    if (!rows) return prep.src ? lanesOnly(prep, knownLanes(prep), true) : undefined;
+    if (!rows)
+      return prep.src ? (knownEmpty(prep) ? lanesOnly(prep, 0) : lanesOnly(prep, knownLanes(prep), true)) : undefined;
     // the gene line lays an item's pieces in one lane, by its extent
     lanes = packedLanes(prep.line === 'gene' ? itemHulls(rows) : rows);
     Lanes.set(prep, lanes);

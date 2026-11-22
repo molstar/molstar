@@ -84,7 +84,18 @@ export interface RenderConfig {
    * lanes and padding, a px number: no view height to take a share of), and `overflow` past it: its lanes `scroll`
    * inside the track (the default), `compact` (squeezed to the band) or the rest in a `density` row.
    */
-  readonly track: { readonly maxPx: number; readonly overflow: 'scroll' | 'compact' | 'density' };
+  readonly track: {
+    readonly maxPx: number;
+    readonly overflow: 'scroll' | 'compact' | 'density';
+    /**
+     * A track with no items in what it covers (its content known whole, no lanes): `note` (the default) a one-line row
+     * of `emptyPx` naming it with a quiet "no items", `collapse` the row alone, `keep` its well as any track's. A
+     * track's own `empty` overrides it; a track still waiting for its data is pending, never empty.
+     */
+    readonly empty: 'note' | 'collapse' | 'keep';
+    /** The height of an empty track's row (px). */
+    readonly emptyPx: number;
+  };
   /**
    * An export's lanes (`all`: every lane of a capped track at its content height; `view`: the band as on screen with
    * its cut edges), and the most a track's px an export draws (4,000), the rest said in its header.
@@ -231,6 +242,11 @@ export interface RenderConfig {
     readonly runPx: number;
     readonly readPx: number;
     readonly groupGap: number;
+    /**
+     * A stacked block's track with no items for that block: `collapse` (the default) leaves it out of that block's row
+     * (the first block's row and a track of letters or any fixed height are kept), `keep` draws its well.
+     */
+    readonly emptyTracks: 'collapse' | 'keep';
   };
   /**
    * Rings (_spec/README.md "Render", Rings layout): the hole a share of the radius at least (0.35: room for the title,
@@ -435,7 +451,7 @@ export const DefaultRenderConfig: RenderConfig = {
   laneHeight: 14,
   laneGap: 2,
   lanePadding: 4,
-  track: { maxPx: 240, overflow: 'scroll' },
+  track: { maxPx: 240, overflow: 'scroll', empty: 'note', emptyPx: 18 },
   export: { lanes: 'all', maxTrackPx: 4000 },
   density: { letters: 10, cells: 3, dots: 1, bars: 1 / 64 },
   densityUnits: { letters: 'css', cells: 'device', dots: 'device', bars: 'device' },
@@ -480,7 +496,7 @@ export const DefaultRenderConfig: RenderConfig = {
   ranges: { overflow: 'extra-lanes', maxLanes: 1000, connector: { width: 1, ink: 'item', alpha: 0.6 } },
   values: { aggregate: 'minmax', coarser: 1, direct: true },
   ruler: { labelGap: 48 },
-  blocks: { gapShare: 0.25, runPx: 2, readPx: 1, groupGap: 3 },
+  blocks: { gapShare: 0.25, runPx: 2, readPx: 1, groupGap: 3, emptyTracks: 'collapse' },
   rings: {
     hole: 0.35,
     trackMaxPx: 48,

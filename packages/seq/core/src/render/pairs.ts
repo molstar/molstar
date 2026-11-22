@@ -266,13 +266,16 @@ function layoutArcs(lay: PairsLay, prep: PairsPrep, ctx: LayoutContext, place: P
   const max = ctx.config.pairs.maxArcs;
   const binned = m > max;
   let order: Int32Array | undefined;
+  // a ring says it after its chords (the count of those it drops); a line now, its ends a density strip
+  const ring = s.warp[0] === WarpKind.polar;
   if (binned) {
-    ctx.report(
-      issueOf(RenderIssues, 'seq.render.pairs.limit', `More than ${max} pairs in view: binned`, {
-        address: ctx.key,
-        hint: RenderIssues.codes['seq.render.pairs.limit'].hint,
-      }),
-    );
+    if (!ring)
+      ctx.report(
+        issueOf(RenderIssues, 'seq.render.pairs.limit', `More than ${max} pairs in view: binned`, {
+          address: ctx.key,
+          hint: RenderIssues.codes['seq.render.pairs.limit'].hint,
+        }),
+      );
     order = new Int32Array(m);
     for (let i = 0; i < m; i++) order[i] = i;
     // bins: the strongest first (by count, ties by span); items: the widest first
@@ -379,6 +382,15 @@ function layoutArcs(lay: PairsLay, prep: PairsPrep, ctx: LayoutContext, place: P
     if (lay.extents.any) lay.extents.add(prep.datum!.set(k));
     lay.n++;
   }
+  if (binned && ring)
+    ctx.report(
+      issueOf(
+        RenderIssues,
+        'seq.render.pairs.limit',
+        `More than ${max} pairs in view: the ${lay.n} strongest are drawn on the ring, ${m - lay.n} are not`,
+        { address: ctx.key, hint: RenderIssues.codes['seq.render.pairs.limit'].hint },
+      ),
+    );
   // translated strips clip to the data's box (an end taken past the window); a ring needs none
   if (s.warp[0] === WarpKind.translate) {
     let x0 = Number.POSITIVE_INFINITY;
@@ -423,6 +435,12 @@ const CaretAt = new Float64Array(2);
 
 function densityStrip(lay: PairsLay, place: Placement, band: number, dpr: number) {
   const s = place.strips;
+  // a ring has no straight strip: the chords past the cap are dropped, never drawn as ticks along a line above it
+  if (s.warp[0] === WarpKind.polar) {
+    lay.densityN = 0;
+    lay.densityMax = 0;
+    return;
+  }
   const a = s.axes[0];
   const cols = Math.ceil(a.width * dpr) + 1;
   if (lay.density.length < cols) lay.density = new Uint16Array(cols);

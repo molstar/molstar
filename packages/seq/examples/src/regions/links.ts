@@ -45,6 +45,12 @@ interface Links {
   readonly bStrand: Int8Array;
 }
 
+/** The least distance between a local link's ends: four bins of 16 kb. */
+const LocalGap = 65_536;
+
+/** The coarsest level's bin. */
+const LastBin = 16_384;
+
 /** An end's size: ten positions. */
 const EndLength = 10;
 
@@ -98,6 +104,88 @@ function generate(systems: readonly LinkSystem[], n: number, seed: number): Link
   return out;
 }
 
+/**
+ * `n` links over a genome ring as structure, not a disc (synteny blocks and structural variants): a handful of strong
+ * blocks between two chromosomes (a stretch of one joined to a stretch of another, the ends running together or
+ * inverted), local links within a chromosome (short, a tandem or a loop), and a thin scatter. Each strong block is a
+ * region pair a few hundredths of the chromosomes' lengths wide, so its bins at a coarse level are a band of chords.
+ */
+function generateStructured(systems: readonly LinkSystem[], n: number, seed: number): Links {
+  const rng = new PCG(seed);
+  const out: Links = {
+    aSystem: [],
+    bSystem: [],
+    aStart: new Int32Array(n),
+    bStart: new Int32Array(n),
+    aStrand: new Int8Array(n),
+    bStrand: new Int8Array(n),
+  };
+  const pick = (k: number) => Math.min(k - 1, Math.floor(rng.float() * k));
+  /** A stretch of a system: its start and width as shares of its length. */
+  const stretch = (s: LinkSystem, width: number) => {
+    const w = Math.floor(s.length * width);
+    return { at: Math.floor(rng.float() * (s.length - w - EndLength)), width: w };
+  };
+  // the strong blocks: pairs of chromosomes (never alike), a stretch each, their ends in order or inverted
+  const blocks: {
+    a: number;
+    b: number;
+    sa: { at: number; width: number };
+    sb: { at: number; width: number };
+    inverted: boolean;
+  }[] = [];
+  for (let k = 0; k < 7; k++) {
+    const a = pick(systems.length);
+    let b = pick(systems.length - 1);
+    if (b >= a) b++;
+    const width = 0.015 + 0.02 * rng.float();
+    blocks.push({ a, b, sa: stretch(systems[a], width), sb: stretch(systems[b], width), inverted: rng.float() < 0.3 });
+  }
+  // the local links: tandem duplications and loops, each a stretch of one chromosome read again a fixed span on (so
+  // their chords run together as a band, never a fan)
+  const locals = Array.from({ length: 10 }, () => {
+    const s = pick(systems.length);
+    const span = stretch(systems[s], 0.02 + 0.02 * rng.float());
+    return { s, span, offset: Math.max(LocalGap, Math.floor(systems[s].length * (0.05 + 0.1 * rng.float()))) };
+  });
+  for (let i = 0; i < n; i++) {
+    const r = rng.float();
+    let sa: number;
+    let sb: number;
+    let pa: number;
+    let pb: number;
+    if (r < 0.7) {
+      // a strong block: a position along its stretch on one chromosome joined to the same share on the other
+      const bl = blocks[pick(blocks.length)];
+      const t = rng.float();
+      sa = bl.a;
+      sb = bl.b;
+      pa = bl.sa.at + Math.floor(t * bl.sa.width);
+      pb = bl.sb.at + Math.floor((bl.inverted ? 1 - t : t) * bl.sb.width);
+    } else if (r < 0.985) {
+      // a local link: a position in the stretch joined to the one a span on (the ends are two bins at least apart)
+      const l = locals[pick(locals.length)];
+      sa = sb = l.s;
+      pa = l.span.at + Math.floor(rng.float() * l.span.width);
+      pb = pa + l.offset;
+    } else {
+      // a thin scatter
+      sa = pick(systems.length);
+      sb = pick(systems.length);
+      pa = Math.floor(rng.float() * (systems[sa].length - EndLength));
+      pb = Math.floor(rng.float() * (systems[sb].length - EndLength));
+    }
+    out.aSystem.push(systems[sa].name);
+    out.bSystem.push(systems[sb].name);
+    // never in a chromosome's last bin (it ends inside it: a chord's end must be placed)
+    out.aStart[i] = Math.max(0, Math.min(systems[sa].length - LastBin - EndLength, pa));
+    out.bStart[i] = Math.max(0, Math.min(systems[sb].length - LastBin - EndLength, pb));
+    out.aStrand[i] = 1;
+    out.bStrand[i] = 1;
+  }
+  return out;
+}
+
 function listOf(l: Links, sided: boolean): PairsList {
   const n = l.aStart.length;
   return {
@@ -146,10 +234,16 @@ export const LinkLevels: readonly number[] = [1, 1024, 16_384];
 
 /**
  * Links between the toy assembly's chromosomes as a `seq` source: each chromosome answers the links with an end on it,
- * at the items' level and at two coarser ones (bin pairs by count: the pairs level, served as a source with levels).
+ * at the items' level and at two coarser ones (bin pairs by count: the pairs level, served as a source with levels);
+ * `structured`: synteny blocks and local links (`generateStructured`), what a genome ring reads as structure.
  */
-export function linksSource(systems: readonly LinkSystem[] = LinksChromosomes, n = LinkCount, seed = 9): SeqData {
-  const all = generate(systems, n, seed);
+export function linksSource(
+  systems: readonly LinkSystem[] = LinksChromosomes,
+  n = LinkCount,
+  seed = 9,
+  structured = false,
+): SeqData {
+  const all = structured ? generateStructured(systems, n, seed) : generate(systems, n, seed);
   const full = listOf(all, true);
   const coverage: Coverage = {
     systems: systems.map((s) => ({ name: s.name, length: s.length })),
