@@ -25,7 +25,7 @@ import { channelForms, channelLegends, Extents, type LayerChannels, PlainDatum }
 import type { RenderConfig } from './config.js';
 import { grown, type ImageData, NoColor, type PassName, type PassWriter } from './draw-lists.js';
 import { drawEmphasis, Ink, R, rect } from './grid-emphasis.js';
-import { type GridRegion, layoutRegionGrid } from './grid-region.js';
+import { type GridRegion, layoutRegionGrid, type Placed } from './grid-region.js';
 import { layerSource } from './layer-data.js';
 import { ImageCache, ImageTile } from './images.js';
 import { RenderIssues } from './issues.js';
@@ -64,6 +64,8 @@ export interface GridPrep {
 
 type ScratchHit = { -readonly [K in keyof Hit]: Hit[K] };
 
+const NoTiles: readonly Placed[] = [];
+
 export class GridLay {
   key = '';
   section = '';
@@ -101,6 +103,8 @@ export class GridLay {
   region = false;
   binLevel = 1;
   readonly pend: number[] = [];
+  /** A region grid's tiles drawn at the level read (a hover's value: `regionCellAt`). */
+  tiles: readonly Placed[] = NoTiles;
   readonly scratch: ScratchHit = { layer: '', section: '', system: '' };
 }
 
@@ -189,6 +193,7 @@ export const GridType: LayerType<GridPrep, GridLay> = {
     lay.region = prep.region !== undefined;
     lay.binLevel = 1;
     lay.pend.length = 0;
+    lay.tiles = NoTiles;
     if (ctx.images) lay.cache = ctx.images;
     else if (!lay.cache) {
       let own = OwnImages.get(config);

@@ -25,6 +25,7 @@ import {
 import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { AddressModel, Cursor, SpecModel, StoreModel, ViewModel } from '@molstar/seqx-viewer/models';
 import { chemistryRows } from './describe-molecules.js';
+import { regionHoverOf } from './describe-region.js';
 import type { HoverCard, HoverCardRow } from './hover-card.js';
 
 // What a place is, in words (_spec/README.md "Input", Announcements; "Hover card"): one description that the live
@@ -178,6 +179,19 @@ function blockKindName(model: StaticModel, system: string): string {
   const e = model.systems.get(system);
   return !e || e.kind !== 'sequence' || e.alphabet === 'protein' ? 'Chain' : 'Sequence';
 }
+
+/** Data read by region (a pairs bin, a region grid's cell, a matrix cell): the core's words (`describe-region.ts`). */
+const RegionSection: CardSection = {
+  name: 'region',
+  describe(at, out) {
+    const h = regionHoverOf(at.layer, at.place.element, at.position, at.yPosition, (s) => at.words.systemName(s));
+    if (!h) return;
+    out.title = h.title;
+    for (const [label, value] of h.rows) out.row(label, value);
+    out.words.push(h.text);
+    out.whole = true;
+  },
+};
 
 /** A pairs layer's pair: its label, its two ends, its kind. */
 const PairSection: CardSection = {
@@ -442,6 +456,7 @@ const PlaceSection: CardSection = {
 
 // the block last: what is in it is said first, then its chain
 const Sections: readonly CardSection[] = [
+  RegionSection,
   PairSection,
   GroupSection,
   ItemSection,

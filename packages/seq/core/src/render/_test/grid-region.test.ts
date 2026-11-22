@@ -14,7 +14,7 @@ import { SeqRuntime, seqToValue } from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
 import type { GridLay } from '../grid.js';
-import { hitView } from '../index.js';
+import { gridCellHover, hitView } from '../index.js';
 import { settle } from './helpers.js';
 
 const N = 2048;
@@ -92,6 +92,13 @@ describe('a grid by region', () => {
     const h = hitView(f.layout, lay.box.x + lay.box.width / 3, lay.box.y + lay.box.height / 4);
     expect(h?.target).toBe('cell');
     expect(h?.bin).toBe(4);
+    // its hover: its bin on each axis and its value (a mirror's cell as the served one's), its level
+    const card = gridCellHover(lay, 10, 9, () => 'chr')!;
+    expect(card.title).toBe('chr:9–12 × chr:9–12');
+    expect(card.rows).toContainEqual(['Value', '1,600']);
+    expect(card.rows).toContainEqual(['Bins', '4 bp bins']);
+    // across the diagonal: the mirror of the served tile
+    expect(gridCellHover(lay, 1000, 9, () => 'chr')!.rows).toContainEqual(['Value', '6.43']);
   });
 
   it('zoomed in, reads level 1 and draws the coarser held tile while its own tiles are pending', async () => {
@@ -103,6 +110,8 @@ describe('a grid by region', () => {
     // level 4's tile is held: drawn under, no pending rect
     expect(pending.images.length).toBeGreaterThan(0);
     expect(pending.pend.length).toBe(0);
+    // a cell of a tile not loaded at the level read: loading
+    expect(gridCellHover(pending, 10, 10, () => 'chr')!.rows).toContainEqual(['Value', 'loading']);
     const lay = gridLay(await s.frame(near));
     expect(lay.binLevel).toBe(1);
     expect(lay.images.length).toBeGreaterThan(0);

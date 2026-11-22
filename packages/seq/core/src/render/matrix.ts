@@ -13,6 +13,7 @@
 // read), codes by the genotype classes' tokens; a missing value transparent, an uncalled code `seq-missing`. A tile not
 // loaded is pending across the band, never empty (EC-169); the layer's wants are bounded together (`readTiles`'s key).
 
+import type { Node, Value } from '@molstar/core/repr/tree';
 import type { MatrixBins, MatrixItems, MatrixTable } from '@molstar/seqx-core/data';
 import { theme as themeForm } from '@molstar/seqx-core/lang';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
@@ -51,6 +52,8 @@ export interface MatrixPrep {
   readonly statesSystem: string;
   /** The states' count when the spec says it (inline `states`, or the source's coverage at resolve). */
   readonly states?: number;
+  /** The states' names given inline. */
+  readonly names?: readonly string[];
   readonly channels: LayerChannels;
 }
 
@@ -85,12 +88,16 @@ export class MatrixLay {
   readonly images: ImageData[] = [];
   readonly ib: number[] = [];
   cache: ImageCache | undefined;
+  /** The tables read (a hover's cell: `matrixCellAt`) and the states' names (inline, else the coverage's). */
+  readonly tables: MatrixTable[] = [];
+  names: readonly string[] = NoNames;
   /** Pending spans on x (x0, x1, cut triples): the pending fill across the band. */
   readonly pend: number[] = [];
   readonly scratch: ScratchHit = { layer: '', section: '', system: '' };
 }
 
 const OwnImages = new WeakMap<object, ImageCache>();
+const NoNames: readonly string[] = [];
 
 function prepare(layer: ResolvedLayer, model: StaticModel): MatrixPrep {
   const owner = layer.data?.address ?? '';
@@ -98,13 +105,26 @@ function prepare(layer: ResolvedLayer, model: StaticModel): MatrixPrep {
   const statesSystem = a?.shape === 'matrix' ? (a.states ?? '') : '';
   const states = model.systems.get(statesSystem)?.length;
   const src = a?.shape === 'matrix' ? layerSource(model, layer) : undefined;
+  const given = names(nodeAt(model.spec, owner)?.params?.states);
   return {
     owner,
     ...(src ? { src } : {}),
     statesSystem,
     ...(states !== undefined ? { states } : {}),
+    ...(given ? { names: given } : {}),
     channels: channelForms(layer.theme),
   };
+}
+
+/** A node of the spec by its exact address (`/data/gt`). */
+function nodeAt(spec: Node, address: string): Node | undefined {
+  let n: Node | undefined = spec;
+  for (const id of address.split('/').filter(Boolean)) n = n?.children?.find((c) => c.id === id);
+  return n;
+}
+
+function names(v: Value | undefined): readonly string[] | undefined {
+  return Array.isArray(v) && v.every((x) => typeof x === 'string') ? (v as string[]) : undefined;
 }
 
 /** The value range of a table's cells (values or bins' means), kept by the table. */
@@ -219,7 +239,8 @@ function rowY(lay: MatrixLay, s: number): number {
   return lay.box.y + s * lay.rowScale - lay.bandTop;
 }
 
-function columnsOf(t: MatrixBins): number {
+/** A bins table's columns (bins). */
+export function columnsOf(t: MatrixBins): number {
   const c = t.mean ?? t.count ?? t.min ?? t.max ?? t.classes ?? t.shares;
   return c && t.states > 0 ? Math.floor(c.length / t.states) : 0;
 }
@@ -245,6 +266,7 @@ export const MatrixType: LayerType<MatrixPrep, MatrixLay> = {
     lay.images.length = 0;
     lay.ib.length = 0;
     lay.pend.length = 0;
+    lay.tables.length = 0;
     if (ctx.images) lay.cache = ctx.images;
     else if (!lay.cache) {
       let own = OwnImages.get(config);
@@ -268,6 +290,10 @@ export const MatrixType: LayerType<MatrixPrep, MatrixLay> = {
     for (const e of read.entries)
       if (e.tables.matrix && !prep.states) states = Math.max(states, e.tables.matrix.states);
     lay.states = states;
+    lay.names =
+      prep.names ??
+      data.coverage(src.source)?.shapes.find((x) => x.shape === 'matrix' && x.system === src.system)?.states ??
+      NoNames;
     // the band's rows: its zoom (px a state) when it says, else the states fit to the band; its scroll clamped
     const rs = ctx.rowScale ?? Math.max(MatrixMinRowPx, box.height / Math.max(1, states));
     lay.rowScale = rs;
@@ -298,6 +324,7 @@ export const MatrixType: LayerType<MatrixPrep, MatrixLay> = {
     for (const e of read.entries) {
       const t = e.tables.matrix;
       if (!t) continue;
+      lay.tables.push(t);
       if (t.form === 'items') {
         let from = Number.NEGATIVE_INFINITY;
         for (const o of read.entries) if (o.region.start < e.region.start && o.region.end > from) from = o.region.end;

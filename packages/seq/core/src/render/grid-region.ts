@@ -48,7 +48,7 @@ function rangeOf(t: GridTable): readonly [number, number] {
 }
 
 /** A tile read: its table, its bins' box (x, y, width, height in bins, as drawn: a mirror's swapped), its key. */
-interface Placed {
+export interface Placed {
   readonly table: GridTable;
   readonly transposed: boolean;
   readonly x: number;
@@ -227,4 +227,31 @@ export function layoutRegionGrid(
       boxOf(a, ay, now.pending[k], now.pending[k + 1], now.pending[k + 2], now.pending[k + 3], lay.pend);
   for (const p of under) place(p, underLevel);
   for (const p of now.tiles) place(p, L);
+  // what a hover reads (`regionCellAt`): the tiles drawn at the level read
+  lay.tiles = now.tiles;
+}
+
+/**
+ * A region grid's cell value at positions (i, j) from the tiles drawn at the level read: NaN where the tile holds no
+ * value (a sparse tile's unlisted cell is its `fill`), undefined where no tile is loaded (pending).
+ */
+export function regionCellAt(lay: GridLay, i: number, j: number): number | undefined {
+  const L = lay.binLevel;
+  const bx = Math.floor(i / L);
+  const by = Math.floor(j / L);
+  for (const p of lay.tiles) {
+    if (bx < p.x || by < p.y || bx >= p.x + p.w || by >= p.y + p.h) continue;
+    const t = p.table;
+    // the served table's own bins: a mirror's swapped
+    const sx = p.transposed ? by : bx;
+    const sy = p.transposed ? bx : by;
+    if (t.form === 'dense') {
+      const a = sx - t.x;
+      const b = sy - t.y;
+      return a < 0 || b < 0 || a >= t.nx || b >= t.ny ? Number.NaN : t.value[a * t.ny + b];
+    }
+    for (let k = 0; k < t.value.length; k++) if (t.xBin[k] === sx && t.yBin[k] === sy) return t.value[k];
+    return t.fill;
+  }
+  return undefined;
 }

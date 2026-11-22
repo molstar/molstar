@@ -12,7 +12,7 @@ import { categoryColumn } from '@molstar/core/repr/tree';
 import { binPairs, type PairsList, type SeqData, SeqRuntime, seqToValue } from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
-import { hitView } from '../index.js';
+import { hitView, pairsBinHover } from '../index.js';
 import type { PairsLay } from '../pairs.js';
 import { settle } from './helpers.js';
 
@@ -94,6 +94,14 @@ describe('pairs by region', () => {
     const h = hitView(f.layout, x, y);
     expect(h?.bin).toBe(1024);
     expect(String(h?.element?.key)).toMatch(/^bin:/);
+    // its hover: two bin ranges, its count, its level, never a pair
+    const k = prep.index.get(h!.element!.key)!;
+    const card = pairsBinHover(lay, h!.element!.key, () => 'chr')!;
+    expect(card.title).toMatch(/^chr:[\d,]+–[\d,]+ ↔ chr:[\d,]+–[\d,]+$/);
+    const n = prep.weight![k];
+    expect(card.rows.find((r) => r[0] === 'Pairs')?.[1]).toMatch(new RegExp(`^${n} pairs?( \\(.+\\))?$`));
+    expect(card.rows).toContainEqual(['Bins', '1 kb bins']);
+    expect(card.text).toMatch(/zoom in to see them$/);
   });
 
   it('zoomed in under the gate: the items themselves, with no bins (Default 1)', async () => {

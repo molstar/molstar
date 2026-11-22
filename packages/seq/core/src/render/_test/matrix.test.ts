@@ -13,7 +13,7 @@ import { SeqRuntime, seqToValue } from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { LightTokens } from '@molstar/seqx-core/render';
 import { describe, expect, it } from 'vitest';
-import { hitView } from '../index.js';
+import { hitView, matrixCellHover } from '../index.js';
 import type { MatrixLay } from '../matrix.js';
 import { settle } from './helpers.js';
 
@@ -109,6 +109,8 @@ describe('the matrix layer', () => {
     expect(h?.yPosition).toBe(1);
     expect(h?.ySystem).toBe(lay.statesSystem);
     expect(h?.bin).toBeUndefined();
+    expect(matrixCellHover(lay, 2, 1, () => 's')!.text).toBe('s:3, normal, no data');
+    expect(matrixCellHover(lay, 2, 0, () => 's')!.rows).toContainEqual(['Value', '0.2']);
   });
 
   it('draws items at their extents, a long deletion solid and under the short ones; an uncalled code drawn missing', async () => {
@@ -133,6 +135,12 @@ describe('the matrix layer', () => {
     let found = false;
     for (let k = 0; k < lay.n; k++) if (lay.rc[k] === missing) found = true;
     expect(found).toBe(true);
+    // a hover: the shortest item there, its state, its genotype
+    const name = () => 'chr';
+    expect(matrixCellHover(lay, 500, 0, name)!.text).toBe('chr:501, NA12878, 1/1');
+    expect(matrixCellHover(lay, 550, 0, name)!.text).toBe('chr:501–1,500, NA12878, 1/1');
+    expect(matrixCellHover(lay, 550, 1, name)!.rows).toContainEqual(['Value', '0/0']);
+    expect(matrixCellHover(lay, 0, 1, name)!.rows).toContainEqual(['Value', './.']);
   });
 
   it('zoomed out, draws the bins as an image tile of bins × states, a hit with its bin', async () => {
@@ -148,6 +156,8 @@ describe('the matrix layer', () => {
     const h = hitView(f.layout as never, lay.box.x + lay.box.width / 2, lay.box.y + 1);
     expect(h?.bin).toBe(256);
     expect(h?.yPosition).toBe(0);
+    // a bin's hover: its range, its state, its majority with its share, its level
+    expect(matrixCellHover(lay, 300, 1, () => 'chr')!.text).toBe('chr:257–512, NA12891, 1/1 (78%), 256 bp bins');
   });
 
   it('on a ring, draws its states as thin rings of runs; past `rings.imageRuns` its rows reduced, said once', async () => {

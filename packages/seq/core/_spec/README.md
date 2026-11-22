@@ -3709,6 +3709,20 @@ band (EC-220 to EC-222), inline or a source's, read through the store either way
 - **Hit**: `target: 'cell'`, `position` on x, `ySystem` the states system, `yPosition` the state; `bin` at a coarse
   level.
 
+### Hover texts by region
+
+`render/region-hover.ts`: what a hover over data read by region says, as text only (`RegionHover`: a title, rows of
+label and value, the sentence), read on a hover from what the frame drew; a host's card lays it out.
+
+- **A pairs bin** (`pairsBinHover`, its `bin:` key): its two bin ranges, its count (with its kind when the bins keep
+  one), its level (`binsText`: `1 kb bins`), `reversed` when a bin's strand is −1, "zoom in to see them"; never a pair.
+- **A region grid's cell** (`gridCellHover`): its bin on each axis and its value from the tiles drawn at the level read
+  (a mirror's cell the served one's, a sparse tile's unlisted cell its `fill`), NaN `no data`, a tile not loaded
+  `loading`; undefined for a held grid (the viewer's own words).
+- **A matrix cell** (`matrixCellHover`): its item (its `id` when the table keeps one, its extent; the shortest item
+  there, a SNP over a deletion) and state (inline `states`, else the coverage's), its value or genotype (`genotypeText`:
+  `0/0`, `0/1`, `1/1`, `./1`, `./.`); at a coarse level its bin, its mean or its majority with its share, and its level.
+
 ### Tensions (pairs and grids)
 
 - **Images in SVG**: an `image` is runs of rects, so a zoomed-out large grid exports large; a PNG inside SVG needs an
