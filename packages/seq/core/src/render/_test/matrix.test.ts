@@ -20,9 +20,12 @@ import { settle } from './helpers.js';
 const N = 262_144;
 const States = ['NA12878', 'NA12891', 'NA12892', 'HG00096'];
 const S = States.length;
+/** A ring's 40 states (a heatmap ring of samples, Circos). */
+const Many = Array.from({ length: 40 }, (_, i) => `s${i}`);
 
 /** Genotypes over chr: a SNP every 100 positions in 0..2,000, a deletion over 500..1,500 in the first state. */
-function genotypes(): SeqData {
+function genotypes(names: readonly string[] = States): SeqData {
+  const S = names.length;
   const start: number[] = [];
   const end: number[] = [];
   for (let p = 0; p < 2000; p += 100) start.push(p), end.push(p + 1);
@@ -49,7 +52,7 @@ function genotypes(): SeqData {
   return {
     coverage: {
       systems: [{ name: 'chr', length: N }],
-      shapes: [{ system: 'chr', shape: 'matrix', states: States }],
+      shapes: [{ system: 'chr', shape: 'matrix', states: [...names] }],
       levels: [1, 256],
     },
     pairs: [
@@ -59,13 +62,13 @@ function genotypes(): SeqData {
   };
 }
 
-function sourced() {
+function sourced(names: readonly string[] = States, layout: 'tracks' | 'rings' = 'tracks') {
   const b = createSeqSpec({ title: 'Genotypes' });
-  const src = b.data.source('src', { format: 'seq', value: seqToValue(genotypes()) as never });
+  const src = b.data.source('src', { format: 'seq', value: seqToValue(genotypes(names)) as never });
   const chr = b.data.sequence('chr', { alphabet: 'dna', source: src, name: 'chr' });
   const m = b.data.matrix('gt', { target: chr, source: src } as never);
   b.views.view('main', (v) => {
-    v.section('chr', { of: chr }).track('gt', { height: 80 }, (t) => {
+    v.section('chr', { of: chr, layout }).track('gt', { height: 80 }, (t) => {
       t.layer('gt', { type: 'matrix', data: m });
     });
   });
@@ -145,5 +148,20 @@ describe('the matrix layer', () => {
     const h = hitView(f.layout as never, lay.box.x + lay.box.width / 2, lay.box.y + 1);
     expect(h?.bin).toBe(256);
     expect(h?.yPosition).toBe(0);
+  });
+
+  it('on a ring, draws its states as thin rings of runs; past `rings.imageRuns` its rows reduced, said once', async () => {
+    const size = { width: 640, height: 900 };
+    const s = await settle(sourced(Many, 'rings'), [SeqRuntime]);
+    const f = await s.frame({ size });
+    expect(f.layout.issues.map((i) => i.code)).toEqual([]);
+    const data = f.lists.passes.data;
+    // the image is not on the page: its rows' runs are, a sector each (1,024 bins a state, a class a bin)
+    expect(data.images.n).toBe(0);
+    expect(data.paths.n).toBeGreaterThanOrEqual(40 * 1000);
+    const few = await settle(sourced(Many, 'rings'), [SeqRuntime], { rings: { imageRuns: 4096 } });
+    const g = await few.frame({ size });
+    expect(g.layout.issues.map((i) => [i.code, i.severity])).toEqual([['seq.render.ring.image', 'info']]);
+    expect(g.lists.passes.data.paths.n).toBeLessThanOrEqual(4096 + 64);
   });
 });

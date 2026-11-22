@@ -9,8 +9,8 @@
 // draw added, in place (text: a line's lays kept across a scroll, only the translation changes); the polar warp takes
 // what a strip drew into a scratch pass and writes it bent onto the page: a rect an annular sector (its squircle
 // corners warped with it), a path's lines cut every few px so they bend, a glyph run's letters placed one by one with
-// their angles, a one-row image (a density strip) its runs of one color as sectors, a taller image refused (its layout
-// says so), a clip applied in the strip's frame before warping. Buffers are kept: nothing allocated once warm.
+// their angles, an image (a density strip, a matrix's states) its rows' runs of one color as sectors (rows a step apart
+// past `imageRuns`: its layout says so), a clip applied in the strip's frame before warping. Buffers are kept: nothing allocated once warm.
 
 import { grown, NoColor, Op, PassList, Passes, PassWriter, PathCommand, type PathList } from '../draw-lists.js';
 import { fontSize } from '../config.js';
@@ -102,8 +102,15 @@ export class PolarWarp {
   tangent = false;
   /** The most px a cut segment spans along the ring. */
   step = 4;
-  /** Primitives refused (an image of more than one row): its layout reports them. */
+  /** Primitives refused (an image of no rows): its layout reports them. */
   refused = 0;
+  /**
+   * The runs an image's rows may draw a frame (`rings.imageRuns`), those drawn, and the images whose rows were taken a
+   * step apart to keep to them (its layout says so, `seq.render.ring.image`); reset with `refused` a frame.
+   */
+  imageRuns = 65_536;
+  runsUsed = 0;
+  reduced = 0;
   /** A scratch pass a pass, named as it (what a strip draws reads its pass's name: the emphasis does). */
   private readonly scratches = Passes.map((name) => new PassList(name));
   private readonly writers: (PassWriter | undefined)[] = [];
@@ -240,19 +247,35 @@ export class PolarWarp {
   }
 
   /**
-   * A one-row image (a density strip: a color a device column) as the ring band it stands for, each run of one color an
-   * annular sector, so a ring draws a layer's density as a track does; false for a taller image (a matrix).
+   * An image as the ring bands it stands for (_spec/README.md "Render", Rings layout: images as runs): each sample row
+   * a band, each run of one color in it an annular sector, so a ring draws a density strip or a matrix's states as a
+   * track does. Past the frame's `imageRuns` the rows are taken a step of 2, 4, … apart (each standing for the rows of
+   * its step), said by `reduced`; false for an image of no rows.
    */
   private band(out: PassWriter, p: PassList, i: number): boolean {
     const l = p.images;
     const image = l.images[i];
-    if (!image || image.height !== 1) return false;
+    if (!image || image.height < 1 || image.width < 1) return false;
+    const h = image.height;
+    const left = Math.max(0, this.imageRuns - this.runsUsed);
+    let step = 1;
+    while (step < h && rowRuns(image.data, image.width, h, step) > left) step *= 2;
+    if (step > 1) this.reduced++;
+    const rh = l.h[i] / h;
+    for (let r = 0; r < h; r += step) this.bandRow(out, l, i, r, rh * Math.min(step, h - r), rh);
+    return true;
+  }
+
+  /** Row `r` of image `i` as its runs, `height` px from its top (`rh` px a row). */
+  private bandRow(out: PassWriter, l: PassList['images'], i: number, r: number, height: number, rh: number) {
+    const image = l.images[i];
     const d = image.data;
     const n = image.width;
-    const cw = l.w[i] / Math.max(1, n);
+    const cw = l.w[i] / n;
+    const o = 4 * r * n;
     const runs = this.runs;
     for (let c = 0; c < n; ) {
-      const k = 4 * c;
+      const k = o + 4 * c;
       if (d[k + 3] === 0) {
         c++;
         continue;
@@ -260,18 +283,18 @@ export class PolarWarp {
       let e = c + 1;
       while (
         e < n &&
-        d[4 * e] === d[k] &&
-        d[4 * e + 1] === d[k + 1] &&
-        d[4 * e + 2] === d[k + 2] &&
-        d[4 * e + 3] === d[k + 3]
+        d[o + 4 * e] === d[k] &&
+        d[o + 4 * e + 1] === d[k + 1] &&
+        d[o + 4 * e + 2] === d[k + 2] &&
+        d[o + 4 * e + 3] === d[k + 3]
       )
         e++;
       runs.reset();
       runs.rects.push(
         l.x[i] + c * cw,
-        l.y[i],
+        l.y[i] + r * rh,
         (e - c) * cw,
-        l.h[i],
+        height,
         ((d[k] << 24) | (d[k + 1] << 16) | (d[k + 2] << 8) | d[k + 3]) >>> 0,
         NoColor,
         0,
@@ -279,9 +302,9 @@ export class PolarWarp {
         0,
       );
       this.rect(out, runs, 0);
+      this.runsUsed++;
       c = e;
     }
-    return true;
   }
 
   /** A rect: clipped in the frame, traced as its squircle outline, written as a bent path. */
@@ -467,4 +490,19 @@ export class PolarWarp {
     o.width[k] = l.width[i];
     o.maxWidth[k] = l.maxWidth[i];
   }
+}
+
+/** The runs of one color (transparent left out) in every `step`-th row of an image. */
+function rowRuns(d: Uint8Array, n: number, h: number, step: number): number {
+  let runs = 0;
+  for (let r = 0; r < h; r += step) {
+    const o = 4 * r * n;
+    for (let c = 0; c < n; c++) {
+      const k = o + 4 * c;
+      if (d[k + 3] === 0) continue;
+      if (c === 0 || d[k - 4] !== d[k] || d[k - 3] !== d[k + 1] || d[k - 2] !== d[k + 2] || d[k - 1] !== d[k + 3])
+        runs++;
+    }
+  }
+  return runs;
 }

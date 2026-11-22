@@ -249,6 +249,8 @@ export interface RenderConfig {
      */
     readonly cluster: { readonly over: number; readonly degrees: number; readonly fanMax: number };
     readonly window: 'followed' | 'always';
+    /** The runs an image's rows draw on a ring a frame (65,536): past it rows are taken a step apart (`seq.render.ring.image`). */
+    readonly imageRuns: number;
   };
   /**
    * The strings (texts and fonts) a renderer's draw lists keep interned across frames: a frame drawn again interns
@@ -444,6 +446,7 @@ export const DefaultRenderConfig: RenderConfig = {
     labelGap: 8,
     leaderBend: 12,
     cluster: { over: 6, degrees: 12, fanMax: 12 },
+    imageRuns: 65_536,
     window: 'followed',
   },
   internedStrings: DefaultMaxStrings,

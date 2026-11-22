@@ -261,10 +261,10 @@ export const RenderIssues = defineIssues('seq.render', {
     hint: 'Give both sections the same blocks, or let them move on their own (a navigator or the selection links them)',
   },
   'seq.render.ring.image': {
-    severity: 'warning',
+    severity: 'info',
     description:
-      'A layer draws an image of more than one row (a dense matrix) on a ring: such images are not drawn on rings',
-    hint: 'Show the layer in a tracks section',
+      'A layer draws an image of more rows (a dense matrix) than a ring draws as runs a frame (`rings.imageRuns`): its rows are reduced on the ring',
+    hint: 'Show fewer states, or the layer in a tracks section',
   },
   'seq.render.follow.cycle': {
     severity: 'warning',

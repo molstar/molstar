@@ -239,16 +239,16 @@ function railsActive(layout: ViewLayout, active: FrameInput['railsActive']): voi
 }
 
 /**
- * What a polar warp refused to draw in the frame's data pass (an image on a ring: `seq.render.ring.image`), said
+ * What a polar warp reduced in the frame's data pass (an image's rows on a ring: `seq.render.ring.image`), said
  * once a section among the layout's issues (_spec/README.md "Render", Rings layout).
  */
 function refusedImages(layout: ViewLayout): void {
   for (const s of layout.sections) {
     const w = s.placement.warpOf?.(0);
-    if (!w?.refused || layout.issues.some((i) => i.code === 'seq.render.ring.image' && i.address === s.section.address))
+    if (!w?.reduced || layout.issues.some((i) => i.code === 'seq.render.ring.image' && i.address === s.section.address))
       continue;
     (layout.issues as Issue[]).push(
-      issueOf(RenderIssues, 'seq.render.ring.image', 'A layer draws an image on a ring: it is not drawn', {
+      issueOf(RenderIssues, 'seq.render.ring.image', 'Rows reduced on the ring', {
         address: s.section.address,
         hint: RenderIssues.codes['seq.render.ring.image'].hint,
       }),
