@@ -555,6 +555,11 @@ export class ViewModel extends ReactiveModel {
     this._bands.set(track, band);
   }
 
+  /** A band as it was before a gesture (its cancel): its viewport, or none when it had none. */
+  restoreBand(track: string, band: BandViewport | undefined): void {
+    this._bands.restore(track, band);
+  }
+
   /** The bands of a section's tracks (by track address), as a frame reads them; undefined when none has one. */
   bandsOf(section: string): Readonly<Record<string, BandViewport>> | undefined {
     return this._bands.of(section);
