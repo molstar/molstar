@@ -17,7 +17,7 @@ import { PackageFolder } from '@molstar/seqx-examples/node-assets';
 import type { SeqRegistryEntry } from '@molstar/seqx-core/context';
 import type { FormatRuntime, OpenedSource, RegionRequest } from '@molstar/seqx-core/data';
 import type { MatrixLay, RangesLay } from '@molstar/seqx-core/render';
-import { matrixCellHover, recordDrawLists } from '@molstar/seqx-core/render';
+import { matrixCellHover, recordDrawLists, viewLegends } from '@molstar/seqx-core/render';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { DomHost } from '@molstar/ui/dom';
@@ -279,6 +279,17 @@ describe('Features/Genome formats/VCF, headless', () => {
     expect(m.names.slice(0, 3)).toEqual(['S01', 'S02', 'S03']);
     expect(m.pend).toEqual([]);
     expect(v.view.get(GenotypesSection)).toBeDefined();
+    // its legend: the genotype classes as swatches in the cells' colours, never a 0-to-1 ramp
+    const legend = viewLegends(v.frame!.layout).legends.find((l) => l.title === 'Genotypes')!;
+    expect(legend.entries.kind).toBe('swatches');
+    if (legend.entries.kind === 'swatches')
+      expect(legend.entries.items.map((i) => i.label)).toEqual([
+        'no copy',
+        'some copies',
+        'every copy',
+        'partly called',
+        'uncalled',
+      ]);
     // inside the deletion's window: the items, the deletion one rect a sample across the SNVs it covers
     const [ds, de] = LongDeletionExtent;
     v.runCommand('address.focus', { address: `/data/chrG/(range :from ${ds - 1000} :to ${de + 1000})` });

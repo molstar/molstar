@@ -3992,6 +3992,9 @@ band (EC-220 to EC-222), inline or a source's, read through the store either way
 - **Color**: values by the layer's `color` channel by value (its open domain the range of the tiles read), a missing
   value transparent; codes by class (`0` `seq-ramp-0`, `1` `seq-ramp-2`, `2` `seq-ramp-4`, `3` `seq-ramp-1`), uncalled
   (`255`) `seq-missing`; a bin's code its majority class at its share's strength (the colour's alpha × share).
+- **Legend**: values the `color` channel's; codes their classes as swatches in the cells' colours (`no copy`,
+  `some copies`, `every copy`, `partly called`, `uncalled`), never a ramp: a code is a class, not a value. The classes'
+  tokens are an open question for the author.
 - **Pending**: a region not loaded is the pending fill across the band, never empty (EC-169); the layer's wants are
   bounded together (`readTiles`'s layer key: past them the band's "zoom in").
 - **Hit**: `target: 'cell'`, `position` on x, `ySystem` the states system, `yPosition` the state; `bin` at a coarse

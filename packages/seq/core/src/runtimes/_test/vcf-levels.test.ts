@@ -138,7 +138,7 @@ async function both(g: GeneratedVcf, more: Partial<SourceEntry> = {}) {
 }
 
 describe('a region read equals the whole read clipped, at every level', () => {
-  it('items tiles equal the whole read of the tile; densities are counted from it exactly (random tiles)', async () => {
+  it('items tiles equal the whole read of the tile; densities are counted from it exactly, never estimated (random tiles, EC-171)', async () => {
     const rng = new PCG(9);
     for (let seed = 1; seed <= 3; seed++) {
       const g = generateVcf(500 + 100 * seed, names, seed, 3_000_000, { contigs: names });
