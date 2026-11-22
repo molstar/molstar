@@ -136,7 +136,8 @@ Agents: one at a time while usage is tight (Decided); the orchestrator's look an
 ## In progress
 
 - 2026-11-21: the loop started (`/loop run .seq/execution/fifth-slice/loop.md`). Running (B3): FX1 (fast; started
-  with this commit) and BZ (strong; same). Both merged (BZ `167d24491`, FX1 `2afb32e91`). GC1 merged (`e3b3a98d0`). SC merged (`2fdc44e76`), GC2 merged (`db2364d09`). BE merged (`98028d3f6`), GC3 merged (`61e71891b`). GG merged (`9b8cf675b`). FX2 merged (`e678d2dbc`), NS merged (`190dfc135`), FX3 merged (`ded361691`), FX4 merged (`5bfebf366`). No lane running (2026-11-21, the session ended at its usage limit); next VC, then stage 1's gate (the author's), RG; open fixes in fixes.md. Downloads stay asked before they are made (plan, How this slice runs).
+  with this commit) and BZ (strong; same). Both merged (BZ `167d24491`, FX1 `2afb32e91`). GC1 merged (`e3b3a98d0`). SC merged (`2fdc44e76`), GC2 merged (`db2364d09`). BE merged (`98028d3f6`), GC3 merged (`61e71891b`). GG merged (`9b8cf675b`). FX2 merged (`e678d2dbc`), NS merged (`190dfc135`), FX3 merged (`ded361691`), FX4 merged (`5bfebf366`). No lane running (2026-11-21, the session ended at its usage limit); next VC, then stage 1's gate (the author's), RG; open fixes in fixes.md.
+- 2026-11-22: the loop resumed in a new session. Running (B3, one at a time): **VC** (strong; started 2026-11-22 with this commit, `briefs/vc-vcf.md`). Nothing else. Downloads stay asked before they are made (plan, How this slice runs).
 
 ## Findings by lane
 
