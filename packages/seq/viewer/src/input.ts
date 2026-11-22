@@ -59,7 +59,6 @@ import {
   cellOffset,
   offsetOf,
 } from '@molstar/seqx-viewer/models';
-import { scrollLanes } from './lanes-scroll.js';
 import type { SeqViewer } from './viewer.js';
 
 // The viewer's input (_spec/README.md "Input"): pointer, wheel and key events in canvas coordinates (CSS px from the
@@ -881,10 +880,11 @@ export class ViewerInput {
       this.viewer.schedule();
       return scrolled;
     }
-    // over a track whose lanes overflow its band the wheel's vertical delta scrolls them; at the ends it is given back
-    if (this._hit.layer !== undefined && !mods.mod && !mods.shift && Math.abs(dy) > Math.abs(dx)) {
-      const lanes = scrollLanes(this.viewer.view, this.viewer.frame?.layout, trackOfLayer(this._hit.layer), dy);
-      if (lanes) {
+    // over a ranges layer whose lanes overflow its band the wheel's vertical delta scrolls them (the rows behavior's); at
+    // their end it is given back
+    const lanesLayer = this._hitAt(x, y)?.layer;
+    if (lanesLayer !== undefined && !mods.mod && !mods.shift && Math.abs(dy) > Math.abs(dx)) {
+      if (this.viewer.behavior<RowsBehavior>('rows')?.wheelLanes(lanesLayer, dy)) {
         this.viewer.schedule();
         return true;
       }

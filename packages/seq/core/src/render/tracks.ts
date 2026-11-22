@@ -21,13 +21,14 @@ import { type Box, EmptyOverlay, type LabelSink, type LayerType, type LayoutCont
 import type { LettersLay } from './letters.js';
 import type { ThemeContext } from './channels.js';
 import { colorKey, defaultColors, viewTheme } from './layer-color.js';
-import { LabelLane } from './sizing.js';
+import { knownVersion, LabelLane } from './sizing.js';
+import type { RangesLay } from './ranges-lay.js';
 import { blockLength, chipText } from './layout/blocks.js';
 import { TracksLayout } from './layout/tracks.js';
 import type { GridPlacement } from './layout/grid.js';
 import type { PlaceContext, Placement, SectionLayoutType } from './layout/types.js';
 import { narrowColumns, treeKept } from './narrow.js';
-import { placeRail, placeRowsRail, Rail, type RailRow, railRowList, SlimRailPx } from './rail.js';
+import { placeLanesRail, placeRail, placeRowsRail, Rail, type RailRow, railRowList, SlimRailPx } from './rail.js';
 import type { RowsLay } from './rows.js';
 import { rowsCount, rowsFillHeight, rowsShown } from './rows-fill.js';
 import {
@@ -54,7 +55,6 @@ import {
   widened,
 } from './tracks-columns.js';
 import { instanceInView, wantTemplate } from './tracks-templates.js';
-import { knownLanesVersion } from './known.js';
 import { bandHeights, firstType, rowsFill, rulerTrack } from './tracks-heights.js';
 import { sectionHeaderOf, trackHeaderOf } from './tracks-headers.js';
 import { collapsedSection } from './headers.js';
@@ -95,7 +95,7 @@ const NoLays: readonly LayerLayout[] = [];
 const NoSectionLays: LayerLayout[] = [];
 
 export function layoutView(input: LayoutInput, state = new LayoutState(), again = false): ViewLayout {
-  const known = knownLanesVersion();
+  const known = knownVersion(input.types);
   const header = rowsHeader(input.view, input.rails);
   const given = input.config ?? DefaultRenderConfig;
   const base = measured(given, labelColumnWidth(input.view, given, input.text));
@@ -475,7 +475,9 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       const room = height - top - used - config.inset - pinnedPx;
       const filled = rowsFillHeight(heights[fill], room, n, titleRowOf(shown[fill], config));
       // a rows band with no `height` takes its rows up to `rows.maxPx` (then its rows scroll); `height: fill` takes the room
-      const explicit = shown[fill].layers.some((l) => l.type === 'rows' && l.params.height === 'fill');
+      let explicit = false;
+      const fl = shown[fill].layers;
+      for (let q = 0; q < fl.length; q++) if (fl[q].type === 'rows' && fl[q].params.height === 'fill') explicit = true;
       heights[fill] = explicit ? filled : Math.min(filled, config.rows.maxPx);
     }
     const nb = shown.length;
@@ -826,6 +828,28 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         );
         (rowsRails ??= []).push(r);
       }
+    // each ranges band whose lanes scroll inside it: a plain rail at its right edge (not in an export of every lane)
+    let lanesRails: Rail[] | undefined;
+    if (layout === TracksLayout)
+      for (let j = 0; j < tracks.length; j++) {
+        const ls = tracks[j].layers;
+        for (let k = 0; k < ls.length; k++) {
+          const lay = ls[k].lay as RangesLay;
+          if (ls[k].type.name !== 'ranges' || !lay.scrolls || !(lay.scrollMax > 0)) continue;
+          const r = kept?.layout?.lanesRails?.[lanesRails?.length ?? 0] ?? new Rail();
+          placeLanesRail(
+            r,
+            lay.box,
+            tracks[j].track.address,
+            sectionId(section),
+            lay.scrollMax + lay.room,
+            lay.room,
+            lay.top,
+          );
+          (lanesRails ??= []).push(r);
+          break;
+        }
+      }
     const sectionLayout: SectionLayout = {
       section,
       id: sectionId(section),
@@ -835,6 +859,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       ...(band ? { band } : {}),
       ...(rail ? { rail, rails } : {}),
       ...(rowsRails ? { rowsRails } : {}),
+      ...(lanesRails ? { lanesRails } : {}),
       y: sectionTop,
       height: y - sectionTop,
       tracks,
@@ -891,7 +916,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       }
   for (const i of overlay.issues) report(i);
   // a source's lanes grew in this layout: its track grows to them in the same frame, once (what is below moves once)
-  if (!again && knownLanesVersion() !== known) return layoutView(input, state, true);
+  if (!again && knownVersion(input.types) !== known) return layoutView(input, state, true);
   const shownNodes = config.nodes.holdShown && overlay.nodes.length ? overlay.holds(showing) : [];
   return {
     width,

@@ -739,6 +739,14 @@ describe('the rows’ columns in the viewer', () => {
 describe('a narrow frame’s tree toggle', () => {
   it('a collapsed tree is a toggle: its click opens the tree (session state), Shift+T folds it back', async () => {
     const v = await make();
+    // a wide frame (the label column may shrink, the tree is whole): no tree entry in the menu, nothing to show or fold
+    const entry = () =>
+      headerMenu(v, { section: '/views/v/s', track: Track })!
+        .groups.flat()
+        .find((i) => i.name === 'seq:tree')!;
+    expect(v.frame!.layout.narrow!.lacks).toBe(false);
+    expect(lay(v).toggleX).toBe(-1);
+    expect(entry()).toBeUndefined();
     // narrow enough that the label column at its floor still leaves the plot short: the tree collapses
     v.resize(260);
     frames!.flush();
@@ -766,10 +774,6 @@ describe('a narrow frame’s tree toggle', () => {
     expect(lay(v).toggleOpen).toBe(false);
     expect(lay(v).treeX1 - lay(v).treeX0).toBe(0);
     // the band's menu says it: "Show tree" once folded; its entry runs `rows.tree` for the track
-    const entry = () =>
-      headerMenu(v, { section: '/views/v/s', track: Track })!
-        .groups.flat()
-        .find((i) => i.name === 'seq:tree')!;
     expect(entry().label).toBe('Show tree');
     expect(entry().command).toBe('rows.tree');
     expect(entry().args).toEqual({ track: Track });

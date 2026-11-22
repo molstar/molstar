@@ -29,14 +29,15 @@ function stacked(n: number) {
   };
 }
 
-function spec(): Node {
+function spec(sized = false): Node {
   const b = createSeqSpec({ title: 'lanes' });
   const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT'.repeat(100) });
   const tall = b.data.ranges('tall', { target: s, rows: stacked(40) });
   const short = b.data.ranges('short', { target: s, rows: stacked(2) });
   b.views.view('v', (v) => {
-    const sec = v.section('s', { of: s, heights: 'fixed' } as never);
-    sec.track('tall', { height: 240 } as never).layer('l', { type: 'ranges', data: tall });
+    // `sized`: the tracks fit their lanes (to the cap) rather than a hand height
+    const sec = v.section('s', { of: s, ...(sized ? {} : { heights: 'fixed' }) } as never);
+    sec.track('tall', sized ? {} : ({ height: 240 } as never)).layer('l', { type: 'ranges', data: tall });
     sec.track('short').layer('l', { type: 'ranges', data: short });
   });
   return b.build();
@@ -53,12 +54,12 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-async function make() {
+async function make(sized = false) {
   vi.useFakeTimers({ toFake: ['Date', 'performance'] });
   frames = installFrames();
   const v = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined, config: [[viewerItem('view.jumpMs'), 0]] });
   viewer = v;
-  await v.load(spec());
+  await v.load(spec(sized));
   v.resize(600);
   await v.settle();
   frames.flush();
@@ -124,5 +125,59 @@ describe('a track’s lanes scrolling in the viewer', () => {
     v.input.wheel(x, y, { deltaX: 0, deltaY: 42, deltaMode: 0 });
     frames!.flush();
     expect(v.view.band(Short)).toBeUndefined();
+  });
+
+  it('a wheel with no pointer move before it is the lanes’ (taken: the page is not scrolled too)', async () => {
+    const v = await make();
+    const l = lay(v, Tall);
+    // the pointer never moved: the hit is of the wheel's own point
+    expect(v.input.wheel(l.box.x + 20, l.box.y + 30, { deltaX: 0, deltaY: 28, deltaMode: 0 })).toBe(true);
+    frames!.flush();
+    expect(v.view.band(Tall)?.bandTop).toBe(2);
+  });
+
+  it('several wheel events before a frame add up (the stored top, not the last layout’s)', async () => {
+    const v = await make();
+    const l = lay(v, Tall);
+    const x = l.box.x + 20;
+    const y = l.box.y + 30;
+    v.input.move(x, y);
+    expect(v.input.wheel(x, y, { deltaX: 0, deltaY: 28, deltaMode: 0 })).toBe(true);
+    expect(v.input.wheel(x, y, { deltaX: 0, deltaY: 28, deltaMode: 0 })).toBe(true);
+    expect(v.input.wheel(x, y, { deltaX: 0, deltaY: 14, deltaMode: 0 })).toBe(true);
+    // no frame between them
+    expect(v.view.band(Tall)?.bandTop).toBe(5);
+    frames!.flush();
+    v.draw();
+    expect(lay(v, Tall).top).toBe(5);
+  });
+
+  it('EC-246: the stored top is kept inside the lanes when they shrink (an edit of the data)', async () => {
+    const v = await make();
+    v.view.setBand(Tall, { bandTop: 20 });
+    frames!.flush();
+    v.draw();
+    expect(lay(v, Tall).top).toBe(20);
+    const o = await v.spec.patch('Fewer rows', {
+      ops: [{ op: 'set', at: ['data', 'tall'], key: 'rows', value: stacked(10) }],
+    });
+    expect(o.ok && o.changed).toBe(true);
+    await v.settle();
+    frames!.flush();
+    v.draw();
+    frames!.flush();
+    // ten lanes fit the 240 px band: the stored top is 0, not a 20 waiting for the lanes to grow back
+    expect(lay(v, Tall).scrollMax).toBe(0);
+    expect(v.view.band(Tall)?.bandTop ?? 0).toBe(0);
+  });
+
+  it('the SVG beside the canvas exports every lane: it grows to hold them (`export.lanes`)', async () => {
+    const v = await make(true);
+    expect(lay(v, Tall).scrollMax).toBeGreaterThan(0);
+    const svg = await v.renderSvg();
+    const h = Number(/viewBox="0 0 [\d.]+ ([\d.]+)"/.exec(svg.svg)![1]);
+    // 40 lanes of 14 px: taller than the canvas that scrolls them
+    expect(h).toBeGreaterThan(40 * 14);
+    expect(h).toBeGreaterThan(v.height);
   });
 });

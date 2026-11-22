@@ -395,6 +395,12 @@ export interface LayerType<Prep = unknown, Lay = unknown> {
    * fixed height stands). Kept by the layer type: called again with the same prep and context, it answers at once.
    */
   content?(prep: Prep, ctx: ContentContext): LayerContent | undefined;
+  /**
+   * A count that moves each time what this type's content reads of a source grew (a ranges layer's lanes, noted by its
+   * layout): the sizing's key, a section's reuse and the layout's second pass read it, so no module outside the type
+   * carries what it keeps.
+   */
+  known?(): number;
   layout(prep: Prep, ctx: LayoutContext, data: StoreReader, overlay: Overlay, prev?: Lay): Lay;
   draw(lay: Lay, pass: PassName, out: PassWriter, emphasis?: Emphasis): void;
   /**

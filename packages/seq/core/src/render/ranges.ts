@@ -42,7 +42,7 @@ import {
   ThinStripShare,
 } from './ranges-lay.js';
 import { placeLabels, sinkLabels } from './ranges-beside.js';
-import { noteLanes } from './known.js';
+import { knownLanesVersion, noteLanes } from './known.js';
 import { rangesContent } from './ranges-content.js';
 import { connect, connectorAt, startConnectors } from './ranges-connector.js';
 import { RangesDraws, growWave, WaveStep } from './ranges-draw.js';
@@ -153,8 +153,8 @@ function laneGeometry(lay: RangesLay, ctx: LayoutContext): number {
     lay.scrolls = true;
     lay.room = Math.max(1, room);
     lay.laneHeight = lh;
-    // a band under a lane and its padding centres its one lane (never a band under a lane: EC-249)
-    lay.laneY0 = box.y + Math.min(pad, (box.height - lh) / 2);
+    // a band under a lane and its padding centres its one lane, one under a lane shows the lane's top (EC-249)
+    lay.laneY0 = box.y + Math.max(0, Math.min(pad, (box.height - lh) / 2));
     lay.laneY = lay.laneY0;
     return config.ranges.maxLanes;
   }
@@ -204,6 +204,7 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
   },
 
   content: rangesContent,
+  known: knownLanesVersion,
 
   layout(prep, ctx: LayoutContext, data: StoreReader, _overlay: Overlay, prev?: RangesLay): RangesLay {
     const lay = prev ?? newLay(ctx, prep);

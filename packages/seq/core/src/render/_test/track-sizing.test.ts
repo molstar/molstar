@@ -227,10 +227,13 @@ describe('a track of lanes is as tall as its lanes, to its cap, then its lanes s
     expect(lay.scrolls).toBe(true);
     expect(lay.room).toBe(1);
     expect(lay.m).toBeGreaterThan(0);
-    // its one lane is centred in the band: the mark's middle inside it
-    const y = lay.laneY + lay.laneHeight / 2;
-    expect(y).toBeGreaterThanOrEqual(t.box.y);
-    expect(y).toBeLessThan(t.box.y + t.box.height);
+    // a band under a lane shows the lane's top: anchored at the band's top, cut at its foot only
+    expect(lay.laneY).toBe(t.box.y);
+    // and its rail has a positive length, however short the band
+    const short = await settle(spec([3], { height: 3 }));
+    const g = await short.frame({ size: Size, settled: true });
+    expect(layerLay<RangesLay>(g, 0).laneY).toBe(g.layout.sections[0].tracks[0].box.y);
+    for (const r of g.layout.sections[0].lanesRails ?? []) expect(r.width).toBeGreaterThan(0);
     for (let j = 0; j < lay.m; j++) expect(lay.mlane[j]).toBe(0);
   });
 });

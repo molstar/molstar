@@ -120,6 +120,16 @@ export const Scenarios: readonly Scenario[] = [
     panStep: 60,
     bands: { '/views/main/chr1/tx': { bandTop: 2.5 } },
   },
+  // and scrolled far (another band top: other lanes in view, the cut edge at its top)
+  {
+    name: 'gene models, scrolled far (60 kb)',
+    spec: geneModelsSpec,
+    runtimes: [GffRuntime],
+    width: 60_000,
+    center: 400_000,
+    panStep: 60,
+    bands: { '/views/main/chr1/tx': { bandTop: 20 } },
+  },
   {
     name: '3M letters (120 positions)',
     spec: bigSpec,

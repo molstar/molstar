@@ -25,7 +25,7 @@ export function knownLanes(prep: object): number {
   return Lanes.get(prep) ?? 1;
 }
 
-/** A count that moves each time some layer's known lanes grew. */
+/** A count that moves each time some layer's known lanes grew (a ranges layer type's `known`). */
 export function knownLanesVersion(): number {
   return Count;
 }

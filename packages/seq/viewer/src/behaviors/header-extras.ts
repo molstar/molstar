@@ -200,7 +200,12 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
       layers,
       hiddenTracks: at?.hiddenTracks ?? hiddenTracksOf(model, section),
       ...(track && layers.some((l) => l.tree)
-        ? { tree: { open: inner.context.view.band(track.address)?.tree === true } }
+        ? {
+            tree: {
+              open: inner.context.view.band(track.address)?.tree === true,
+              lacks: viewer.frame?.layout.narrow?.lacks === true,
+            },
+          }
         : {}),
       ...(target.element ? { element: target.element } : {}),
       ...blockFacts(model, section, specNode, target.block),

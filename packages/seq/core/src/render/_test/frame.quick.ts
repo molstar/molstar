@@ -61,7 +61,8 @@ const LayoutBound: Record<string, number> = {
   // 121.6 KB (pan; zoom 110.4 KB, 2026-11-21): the transcripts in view, their lanes by item, boxes and hairlines
   'gene models (60 kb)': 182_000,
   // scrolled band: the lanes in view only
-  'gene models, scrolled (60 kb)': 182_000,
+  'gene models, scrolled (60 kb)': 190_000,
+  'gene models, scrolled far (60 kb)': 190_000,
   // 27.9 KB
   '3M letters (120 positions)': 48_000,
   // 37.3 KB

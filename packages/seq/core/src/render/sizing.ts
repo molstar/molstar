@@ -21,6 +21,25 @@ export interface LayerContent {
   readonly partial?: boolean;
 }
 
+const Knowns = new WeakMap<object, (() => number)[]>();
+
+/** The sum of the registered types' `known` counts: moves when a source's content grew (the types' list kept). */
+export function knownVersion(types: Readonly<Record<string, { known?(): number }>> | undefined): number {
+  if (!types) return 0;
+  let fns = Knowns.get(types);
+  if (!fns) {
+    fns = [];
+    for (const k in types) {
+      const f = types[k].known;
+      if (f) fns.push(f);
+    }
+    Knowns.set(types, fns);
+  }
+  let v = 0;
+  for (let i = 0; i < fns.length; i++) v += fns[i]();
+  return v;
+}
+
 /** A section's track as a sizing reads it. */
 export interface SizedTrack {
   readonly track: ResolvedTrack;

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { knownLanesVersion } from './known.js';
+import { knownVersion } from './sizing.js';
 import type { Issue } from '@molstar/core/repr/tree';
 import type { Coverage, Want } from '@molstar/seqx-core/data';
 import type { ResolvedSection } from '@molstar/seqx-core/view';
@@ -247,7 +247,7 @@ export function viewStamp(
     windows: input.windows ?? false,
     rails: input.rails,
     headers: input.headers,
-    lanes: knownLanesVersion(),
+    lanes: knownVersion(input.types),
   };
 }
 

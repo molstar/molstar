@@ -13,13 +13,13 @@ import {
   BuiltInSizings,
   ContentSizing,
   heightsFit,
+  knownVersion,
   lanesHeight,
   type LayerContent,
   type SizedTrack,
 } from './sizing.js';
 import { TracksLayout } from './layout/tracks.js';
 import type { SectionLayoutType } from './layout/types.js';
-import { knownLanesVersion } from './known.js';
 import { RowHeight } from './rows-model.js';
 import type { LayoutInput, LayoutState, SizedHeights } from './tracks-types.js';
 import { ownPieces } from './tracks-axes.js';
@@ -71,7 +71,7 @@ export function bandHeights(
     kept.version === input.text.version &&
     kept.sizings === input.sizings &&
     kept.hook === input.trackSizing &&
-    kept.known === knownLanesVersion() &&
+    kept.known === knownVersion(types) &&
     sameTracks(kept.tracks, tracks)
   ) {
     if (kept.issue) say(kept.issue);
@@ -104,7 +104,7 @@ function sizeTracks(
     version: input.text.version,
     sizings: input.sizings,
     hook: input.trackSizing,
-    known: knownLanesVersion(),
+    known: knownVersion(types),
   };
   if (layout.heights || !tracks.length) return { ...base, heights: fixed, contents: [] };
   const cap = layout.name === 'rings' ? config.rings.trackMaxPx : config.track.maxPx;

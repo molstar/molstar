@@ -216,32 +216,101 @@ export function placeRowsRail(rail: Rail, lay: RowsLay, track: string, sectionId
   const d = lay.display;
   const rows = Math.max(0, d.count - d.pinned);
   const area = Math.max(0, lay.box.height - lay.pinnedHeight);
-  rail.section = lay.section;
+  const start = Math.max(0, Math.min(rows, lay.top));
+  placeUpright(
+    rail,
+    track,
+    sectionId,
+    lay.section,
+    lay.rowsSystem,
+    RowsRail,
+    figure,
+    lay.box.y + lay.pinnedHeight,
+    area,
+    x,
+    rows,
+    start,
+    Math.max(start, Math.min(rows, lay.top + area / Math.max(1e-9, lay.rowScale))),
+  );
+  // idle only when the window can neither move nor shrink: every row shown, and shown still at the zoom-in limit (as a
+  // ruler rail's: the whole axis in view and the axis fitting at the most px a position)
+  rail.whole = rail.start <= 0 && rail.end >= rows && rows * MaxRowScale <= area + 1e-9;
+}
+
+/** An upright rail (a rows band's, a scrolled lanes band's): `total` units along `area` px from `y`, at x, its window. */
+function placeUpright(
+  rail: Rail,
+  track: string,
+  sectionId: string,
+  section: string,
+  system: string,
+  navigator: string,
+  figure: boolean,
+  y: number,
+  area: number,
+  x: number,
+  total: number,
+  start: number,
+  end: number,
+) {
+  rail.section = section;
   rail.key = track;
   rail.vertical = true;
   rail.pinned = false;
   rail.hit.layer = track;
-  rail.hit.navigator = RowsRail;
+  rail.hit.navigator = navigator;
   rail.figure = figure;
   rail.id = sectionId;
-  rail.system = lay.rowsSystem;
-  rail.x = lay.box.y + lay.pinnedHeight;
+  rail.system = system;
+  rail.x = y;
   rail.width = area;
   rail.slim = true;
   rail.top = x;
   rail.bottom = x + SlimRailPx;
   rail.y = x + SlimRailPx / 2;
-  rail.total = rows;
-  rail.start = Math.max(0, Math.min(rows, lay.top));
-  rail.end = Math.max(rail.start, Math.min(rows, lay.top + area / Math.max(1e-9, lay.rowScale)));
-  // idle only when the window can neither move nor shrink: every row shown, and shown still at the zoom-in limit (as a
-  // ruler rail's: the whole axis in view and the axis fitting at the most px a position)
-  rail.whole = rail.start <= 0 && rail.end >= rows && rows * MaxRowScale <= area + 1e-9;
-  rail.shape.ranges = [0, rows];
+  rail.total = total;
+  rail.start = start;
+  rail.end = end;
+  rail.whole = false;
+  rail.shape.ranges = [0, total];
   rail.shape.dir = 1;
   rail.shape.cyclic = false;
   rail.breaks.length = 0;
 }
+
+/**
+ * A scrolled lanes band's rail (_spec/README.md "Render", Track heights): the rows rail's geometry upright at the band's
+ * right edge, the whole of its lanes along the band, its window the lanes in view; pan only, drawn plain (no grips, no
+ * hit: the wheel moves it).
+ */
+export function placeLanesRail(
+  rail: Rail,
+  box: Box,
+  track: string,
+  sectionId: string,
+  lanes: number,
+  room: number,
+  top: number,
+) {
+  placeUpright(
+    rail,
+    track,
+    sectionId,
+    sectionId,
+    '',
+    LanesRail,
+    true,
+    box.y,
+    box.height,
+    box.x + box.width - SlimRailPx,
+    lanes,
+    top,
+    Math.min(lanes, top + room),
+  );
+}
+
+/** A lanes rail's `navigator` (it takes no hit). */
+export const LanesRail = 'lanes-rail';
 
 /** A rows rail's hit's `navigator`. */
 export const RowsRail = 'rows-rail';

@@ -67,8 +67,8 @@ export interface HeaderFacts {
     readonly name: string;
     readonly reversed: boolean;
   };
-  /** The track has a rows layer with a tree (`order: 'tree'`): whether the reader opened it past a narrow frame's fold. */
-  readonly tree?: { readonly open: boolean };
+  /** The track has a rows layer with a tree (`order: 'tree'`): whether the reader opened it, and whether the frame lacks the room (the tree is collapsed to its toggle, or kept open past it). */
+  readonly tree?: { readonly open: boolean; readonly lacks: boolean };
   /** A section of assemblies (its `include` can be set), and whether it has one. */
   readonly assemblies?: boolean;
   readonly included?: boolean;
@@ -306,7 +306,7 @@ export const BuiltInHeaderEntries: readonly HeaderActionEntry[] = /* @__PURE__ *
       command: 'rows.tree',
       slot: false,
       order: 6,
-      when: (f) => f.tree !== undefined,
+      when: (f) => f.tree?.lacks === true,
       args: (f) => ({ track: f.address }),
     },
     FilteredHeaderEntry,
