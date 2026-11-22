@@ -71,8 +71,8 @@ const Deferred = [
   /seq\/core\/src\/render\/(bridges|pairs-ribbons(-lay|-read|-draw)?|layout\/bridge)\.ts$/,
 ];
 
-/** The bridge chunk's row (minified; the design's estimate was about 6 kB, measured 14.6 at LA, 20.8 with the per-side reads, merged blocks and the hatch): the default viewer's chunk holding `render/bridges.ts`. */
-const BridgeChunk = { name: 'bridge chunk (lazy)', file: /seq\/core\/src\/render\/bridges\.ts$/, target: 24_000 };
+/** The bridge chunk's row (minified; the design's estimate was about 6 kB, measured 14.6 at LA, 20.8 with the per-side reads, merged blocks and the hatch; 24 until LA2's per-side reads over assemblies, raised to 28 by the author, 2026-11-22: "Raise to 28", measured 25.2): the default viewer's chunk holding `render/bridges.ts`. */
+const BridgeChunk = { name: 'bridge chunk (lazy)', file: /seq\/core\/src\/render\/bridges\.ts$/, target: 28_000 };
 
 /** The opt-in runtimes: loaded only when a composition lists one. */
 const Runtimes = [/seq\/core\/src\/runtimes\//, /seq\/core\/src\/structure\//];

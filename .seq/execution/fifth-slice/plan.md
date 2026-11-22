@@ -232,7 +232,7 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
       over two sections; categorical axes; the liftover last (EC-209, EC-212).
       Merged 2026-11-22 (`f67063de4`): steps 1–4 (resolve, ribbons drawn once, the viewer, the stories); the rest to LA2
       and LA3.
-- [ ] **LA2** (`briefs/la2-bridge-sides.md`; strong, alone in resolve and the store) a bridge reads each side over
+- [x] **LA2** (`briefs/la2-bridge-sides.md`; strong, alone in resolve and the store) a bridge reads each side over
       assemblies (a side in a request, ownership over multi-system sides), ribbons in the SVG group, LA's last tests.
 - [ ] **LA3** (strong, after LA2) grids over two sections (`follow_y` a second section), categorical grid axes, the
       liftover (EC-212).

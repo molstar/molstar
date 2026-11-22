@@ -221,7 +221,14 @@ export type AccessPlan =
       readonly system: string;
       readonly shape: Shape;
     }
-  | { readonly kind: 'source'; readonly source: string; readonly system: string; readonly shape: Shape };
+  | {
+      readonly kind: 'source';
+      readonly source: string;
+      readonly system: string;
+      readonly shape: Shape;
+      /** A sided pairs source's side the system is read on (_spec/README.md "Data", Protocol: sided pairs). */
+      readonly side?: 'a' | 'b';
+    };
 
 /**
  * An annotation: its shape, the system it is on, its fields and how it is read (none for what is held whole: `pairs`
@@ -262,6 +269,8 @@ export interface AnnotationEntry {
    * sequence `include` leaves out, or one no inline row names, has none: a layer on its block reads nothing.
    */
   readonly bySystem?: ReadonlyMap<string, AccessPlan>;
+  /** One genome against itself over a sided pairs source: each sequence's plan on side `b` (`bySystem`'s on `a`). */
+  readonly bySystemB?: ReadonlyMap<string, AccessPlan>;
 }
 
 /**

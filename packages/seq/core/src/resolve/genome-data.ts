@@ -92,20 +92,39 @@ export function assemblyAnnotation(
   const field = p(at.node, 'field');
   const read = typeof field === 'string' && kind !== 'ranges' ? channelAddress(input.source, field) : input.source;
   const a = found!;
-  const names = sourceNames(a, input.listed);
+  // a sided pairs source (between two genomes): `a`'s sequences read on its side `a` by the names it lists there, `b`'s
+  // on side `b` (a name may be listed once a side: `chr1` on both)
+  const sided = kind === 'pairs' && !!input.listed?.some((s) => s.side);
+  const on = (side: 'a' | 'b') => (sided ? input.listed!.filter((s) => s.side === side) : input.listed);
+  const names = sourceNames(a, on('a'));
   const bySystem = new Map<string, AccessPlan>();
-  const add = (e: AssemblyEntry, n: ReadonlyMap<number, string>) => {
+  const add = (
+    e: AssemblyEntry,
+    n: ReadonlyMap<number, string>,
+    side: 'a' | 'b' | undefined,
+    into: Map<string, AccessPlan> = bySystem,
+  ) => {
     for (let i = 0; i < e.sequences.length; i++) {
       const system = e.systemAt[i];
-      if (system !== undefined) bySystem.set(system, sourcePlan(read, n.get(i) ?? e.sequences[i].name, kind as Shape));
+      if (system !== undefined)
+        into.set(system, sourcePlan(read, n.get(i) ?? e.sequences[i].name, kind as Shape, side));
     }
   };
-  add(a, names.byIndex);
+  add(a, names.byIndex, sided ? 'a' : undefined);
+  // one genome against itself over a sided source: its sequences on side `b` too, by the names listed there (`chr17`
+  // on one side may be `17` on the other)
+  const bySystemB = sided && (!b || b === a) ? new Map<string, AccessPlan>() : undefined;
+  if (bySystemB) add(a, sourceNames(a, on('b')).byIndex, 'b', bySystemB);
   // a second assembly's sequences (synteny between two genomes) by its own names rule; a listed name unknown to both
   // is said
-  const other = b && b !== a ? sourceNames(b, input.listed) : undefined;
-  if (other) add(b!, other.byIndex);
-  const unknown = other ? names.unknown.filter((n) => other.unknown.includes(n)) : names.unknown;
+  const other = b && b !== a ? sourceNames(b, on('b')) : undefined;
+  if (other) add(b!, other.byIndex, sided ? 'b' : undefined);
+  // sided, a name is its side's: unknown to that side's assembly
+  const unknown = !other
+    ? names.unknown
+    : sided
+      ? [...names.unknown, ...other.unknown]
+      : names.unknown.filter((n) => other.unknown.includes(n));
   if (unknown.length)
     issues.push(
       issueOf(
@@ -117,7 +136,8 @@ export function assemblyAnnotation(
     );
   const plan = bySystem.values().next().value ?? sourcePlan(read, '', kind as Shape);
   const fields = kind === 'grid' ? ['value'] : [];
-  if (kind !== 'matrix') return { annotation: { ...base, fields, access: plan, bySystem }, issues };
+  if (kind !== 'matrix')
+    return { annotation: { ...base, fields, access: plan, bySystem, ...(bySystemB ? { bySystemB } : {}) }, issues };
   // a matrix's states: a system of their own, as many as its source lists (one set over every sequence)
   const statesAddress = statesSystemOf(at.address);
   const states: SystemEntry = {

@@ -103,6 +103,7 @@ let CandHull = new Float64Array(4 * 256);
 let CandWidth = new Float64Array(256);
 let CandRank = new Float64Array(256);
 let Order = new Int32Array(256);
+let Spare = new Int32Array(256);
 let nc = 0;
 
 function room(n: number) {
@@ -119,6 +120,7 @@ function room(n: number) {
   CandWidth = grown(CandWidth, m);
   CandRank = grown(CandRank, m);
   Order = grown(Order, m);
+  Spare = grown(Spare, m);
 }
 
 /** Each end's places (x pairs) and blocks on its side. */
@@ -190,22 +192,47 @@ function push(
 // ---- the drawn-once rule (_spec/README.md "Render", Bridges: each pair drawn once, by ownership) ----
 
 /** While a read is laid with two reads: whether it is the near side's, the near side, `R` and the far window. */
-const Own = { on: false, mine: false, near: 0, r: [] as readonly number[], far: [] as readonly number[] };
+const Own: {
+  on: boolean;
+  mine: boolean;
+  near: number;
+  r?: Ownership['r'];
+  far?: Ownership['far'];
+  win?: Ownership['win'];
+  step: number;
+} = { on: false, mine: false, near: 0, step: 1 };
 
-/** Whether `p` lies in `[start, end, …]`. */
-function inRanges(r: readonly number[], p: number): boolean {
-  for (let i = 0; i + 1 < r.length; i += 2) if (p >= r[i] && p < r[i + 1]) return true;
-  return false;
+/** Whether `p` lies in sorted, disjoint `[start, end, …]` (a binary search). */
+function inRanges(r: readonly number[] | undefined, p: number): boolean {
+  if (!r) return false;
+  let lo = 0;
+  let hi = r.length >> 1;
+  while (lo < hi) {
+    const m = (lo + hi) >> 1;
+    if (r[2 * m + 1] <= p) lo = m + 1;
+    else hi = m;
+  }
+  return 2 * lo < r.length && r[2 * lo] <= p;
 }
 
 /**
- * Whether the read being laid draws a ribbon with these anchors on the bridge's sides (each end's first position): the
- * near side every one anchored in `R`; the far side those anchored in its window whose near anchor is outside `R`.
+ * Whether the read being laid draws a ribbon with these anchors on the bridge's sides (each end's system and first
+ * position): the near side every one anchored in `R`; the far side those anchored in its window whose near anchor is
+ * outside `R`.
  */
-function owns(anchorA: number, anchorB: number): boolean {
-  const near = Own.near ? anchorB : anchorA;
-  if (Own.mine) return inRanges(Own.r, near);
-  return inRanges(Own.far, Own.near ? anchorA : anchorB) && !inRanges(Own.r, near);
+function owns(sysA: string, anchorA: number, sysB: string, anchorB: number): boolean {
+  const n = Own.near;
+  const ns = n ? sysB : sysA;
+  const na = n ? anchorB : anchorA;
+  const fs = n ? sysA : sysB;
+  const fa = n ? anchorA : anchorB;
+  const inR = inRanges(Own.r!.get(ns), na);
+  if (!Own.mine) return !inR && inRanges(Own.far!.get(fs), fa);
+  // `R` not read whole: the rest of the near window too where the far side draws nothing (its far bin out of view)
+  return (
+    inR ||
+    (!!Own.win && inRanges(Own.win.get(ns), na) && !inRanges(Own.far!.get(fs), Math.floor(fa / Own.step) * Own.step))
+  );
 }
 
 // ---- an alignment's blocks merged under a pixel ----
@@ -312,7 +339,7 @@ function pairRibbons(
   const bs = orient > 0 ? d.bStart[k] : d.aStart[k];
   const be = orient > 0 ? d.bEnd[k] : d.aEnd[k];
   // another read draws it (or neither: in neither view)
-  if (Own.on && !owns(as, bs)) return true;
+  if (Own.on && !owns(orient > 0 ? aSys : bSys, as, orient > 0 ? bSys : aSys, bs)) return true;
   const na = sa.extentInto(orient > 0 ? aSys : bSys, as, ae, PlacesA, BlocksA, MaxPlaces, PosA);
   const nb = sb.extentInto(orient > 0 ? bSys : aSys, bs, be, PlacesB, BlocksB, MaxPlaces, PosB);
   if (!na && !nb) return false;
@@ -478,6 +505,8 @@ export function layoutRibbons(lay: RibbonsLay, ctx: BridgeLayoutContext, own?: O
       Own.near = own.near;
       Own.r = own.r;
       Own.far = own.far;
+      Own.win = own.win;
+      Own.step = own.step;
     }
     for (let k = 0; k < d.n; k++) {
       if (!prep.shown[k]) continue;
@@ -487,9 +516,11 @@ export function layoutRibbons(lay: RibbonsLay, ctx: BridgeLayoutContext, own?: O
       const fwd = sa.holds(as) && sb.holds(bs) && (sa.shows(as) || sb.shows(bs));
       const back = sa.holds(bs) && sb.holds(as) && (sa.shows(bs) || sb.shows(as));
       const rank = prep.weight ? prep.weight[k] : d.aEnd[k] - d.aStart[k];
-      if (fwd) pairRibbons(d, k, 1, sa, sb, as, bs, min, stub, line, rank);
+      // a read of one end a side (`mirror` over a sided source) draws the ribbons with that end on its side alone
+      const o = lay.readOrient[r];
+      if (fwd && o >= 0) pairRibbons(d, k, 1, sa, sb, as, bs, min, stub, line, rank);
       // turned when the sides show only that way, or (one genome against itself) the mirror's swap too
-      if (back && (!fwd || (prep.mirror && (as !== bs || d.aStart[k] !== d.bStart[k]))))
+      if (back && o <= 0 && (!fwd || (prep.mirror && (as !== bs || d.aStart[k] !== d.bStart[k]))))
         pairRibbons(d, k, -1, sa, sb, as, bs, min, stub, line, rank);
       if (fwd || back) continue;
       unplaced++;
@@ -510,23 +541,39 @@ export function layoutRibbons(lay: RibbonsLay, ctx: BridgeLayoutContext, own?: O
         { address: ctx.key, hint: RibbonIssues.codes['seq.render.bridge.unplaced'].hint },
       ),
     );
-  // past `maxArcs`: the most aligned length kept (ties by span), the rest a density strip along each edge
+  // past `maxArcs` a side (after ownership, each side's own): the most aligned length kept (ties by span), the rest a
+  // density strip along each edge; so a side at the fit never pushes the zoomed side's items out
   const max = config.pairs.maxArcs;
-  for (let i = 0; i < nc; i++) Order[i] = i;
-  const order = Order.subarray(0, nc);
+  let n0 = 0;
+  for (let i = 0; i < nc; i++) {
+    Order[i] = i;
+    if (!lay.readSide[CandRead[i]]) n0++;
+  }
+  let order = Order.subarray(0, nc);
   let kept = nc;
   lay.densityN = 0;
   lay.densityMax = 0;
-  if (nc > max) {
+  if (n0 > max || nc - n0 > max) {
     ctx.report(
       issueOf(RenderIssues, 'seq.render.pairs.limit', `More than ${max} ribbons in view: the most aligned kept`, {
         address: ctx.key,
         hint: RenderIssues.codes['seq.render.pairs.limit'].hint,
       }),
     );
-    order.sort((x, y) => CandRank[y] - CandRank[x] || CandWidth[y] - CandWidth[x]);
-    kept = max;
-    densityOf(lay, order, max, ctx.dpr);
+    const side = lay.readSide;
+    order.sort(
+      (x, y) => side[CandRead[x]] - side[CandRead[y]] || CandRank[y] - CandRank[x] || CandWidth[y] - CandWidth[x],
+    );
+    // each side's first `max` first, then the rest (`Spare`)
+    const k0 = Math.min(n0, max);
+    kept = k0 + Math.min(nc - n0, max);
+    const s = Spare;
+    s.set(order.subarray(0, k0), 0);
+    s.set(order.subarray(n0, n0 + kept - k0), k0);
+    s.set(order.subarray(k0, n0), kept);
+    s.set(order.subarray(n0 + kept - k0, nc), kept + n0 - k0);
+    order = s.subarray(0, nc);
+    densityOf(lay, order, kept, ctx.dpr);
   }
   // widest first, so narrow ones lie on top and stay hittable
   const top = order.subarray(0, kept);

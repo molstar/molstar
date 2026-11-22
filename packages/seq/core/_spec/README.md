@@ -3969,8 +3969,9 @@ pairs layer's prepared form and its region reader through the composition (`type
   it parts. Filled at `ribbons.fillOpacity` in the layer's colour, no outline, widest first (by its ends' widths), so
   narrow ones lie on top. Colour by default `field block` of the end on the bridge's `a` side over that side's block
   domain (EC-218: a side without blocks is one block, one colour); a bin by its weight (`ribbons.binOpacity`, square
-  root over the bins). Past `pairs.maxArcs` the most aligned length is kept (its length, a bin's weight; ties by width),
-  the rest a density strip along each edge (`seq.render.pairs.limit`).
+  root over the bins). Past `pairs.maxArcs` **a side** (its reads' ribbons after ownership; each side its own, so a side
+  at the fit never pushes the zoomed side's items out) the most aligned length is kept (its length, a bin's weight; ties
+  by width), the rest a density strip along each edge (`seq.render.pairs.limit`).
 - **The hit, closed form** (`hitRibbons`): at the point's height `S(u)` is one value; each ribbon's sides are one
   multiply-add, the point in it when its x lies between them (widened to `pairs.hitPx` for a thin one), scanned last
   drawn first; nothing allocated (a property test: the hit is the sampled polygon's topmost cover). The hit is the drawn
@@ -3981,16 +3982,30 @@ pairs layer's prepared form and its region reader through the composition (`type
   Clipped to the band. Warm draw and hover allocate nothing (`bridge.quick.ts`); 4,096 ribbons a frame under 8 ms and a
   hover under 2 ms (heavy, `bridge-time.test.ts`).
 - **Reads** (`pairs-ribbons-read.ts`): held pairs and a segments map's runs whole. A source's pairs by region **on each
-  side**, on the system it shows (its name in the source), its window at its own level (bins, or items once they fit:
-  the pairs layer's reader, a state a side), the wants of both one layer's (`maxTilesPerLayer` over both). **Each pair
-  drawn once, by ownership**: the near side is the finer read (items finest), the bridge's `a` on a tie; `R` its window
-  widened outward to the far level's grid (items: the window), read again over `R` (the reader's `over`); the near side
-  draws every ribbon whose end on it starts in `R`, the far side those whose end on it starts in its window and whose
-  near end does not start in `R`. Levels nested, so no far bin straddles `R`: a property test (every block over a whole
-  far side drawn exactly once, by its item or its bin). Over an assembly or a side of blocks: one read, on the `a`
-  side's window (a block's own system read a side is LA2's). **Pending** (EC-169): each side's bins' tiles not loaded
-  (`RegionState.pending`) are the pending hatch along its edge (4 px stripes every 8 px, `seq-pending`), so a bridge
-  waiting is never an empty band. The gate per side after ownership is LA2's (each side's own count).
+  side**, on the systems it shows (its name in the source; over assemblies each block in view its own sequence's read,
+  `pairs-assembly.ts`), its window at its own level (bins, or items once they fit: the pairs layer's reader, a state a
+  side), the wants of both one layer's (`maxTilesPerLayer` over both). A **sided source** (`SystemInfo.side`) is read on
+  the end the side shows: the access plan carries the side (`AccessPlan.side`, `LayerSource.side`, the wants' `side`),
+  an assembly's sequences on its end's side (one genome against itself: either, by the bridge's side, each side's names
+  planned apart, `AnnotationEntry.bySystemB`: `chr17` on one side may be `17` on the other), and a listed name's unit is
+  keyed by its side and name (`sidedName`), so `chr1` of two genomes stays two. `mirror` over one genome's sided source:
+  each side reads both ends, each read drawing the ribbons whose end on its side is the end it read. **Each pair drawn
+  once, by ownership**, by data system: the near side is the finer read (items finest), the bridge's `a` on a tie; `R`
+  its windows as its reader read them (`RegionState.windows`: `dataRegions`, projected through `back`, sorted and merged
+  near, so a few a system on a collapsed axis, EC-33) widened outward to the far level's grid (items: the windows), read
+  again over `R` at the near side's own level (the reader's `over`: no gate, never coarser than the far level, a state
+  of its own), its wants asked only when they fit the layer's bounds beside its others (a refusal for them would
+  flicker). While that read is not whole (pending, failed, past `maxTilesPerWant` or the layer's bounds) the widening is
+  the far side's own bins: `R` is the near window shrunk to the far grid, and the near side also draws a pair anchored
+  in its window whose far bin is out of the far window, so nothing is owned and unread, nothing drawn twice. The near
+  side draws every ribbon whose end on it starts in `R`, the far side those whose end on it starts in its window and
+  whose near end does not start in `R` (a binary search a system). A side with nothing read (its tiles pending, failed
+  or refused), or no block in view (never a read kept from before), takes no part: the other draws all it reads. Levels
+  nested, so no far bin straddles `R`: property tests (every block over a whole far side drawn exactly once, by its item
+  or its bin; over two genomes at every pair of windows and levels). A side of blocks over no assembly: one read, on the
+  `a` side's window. **Pending** (EC-169): each side's bins' tiles not loaded (`RegionState.pending`) are the pending
+  hatch along its edge (4 px stripes every 8 px, `seq-pending`), so a bridge waiting is never an empty band. Not built:
+  the items gate per side after ownership (a side's bins are counted before it), an assembly side's hatch.
 - **Export**: a bridge is an empty group (`data-bridge`, `data-a`, `data-b`, `data-y`, `data-height`, `data-count`)
   after the sections' (written by the chunk, `BridgesLayout.svg`); its ribbons are the passes' paths (two cubics joined
   by lines, closed).
