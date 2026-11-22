@@ -28,13 +28,17 @@ interface Probe {
   readonly x: number;
   readonly y: number;
   readonly rgb: readonly [number, number, number];
+  /** The channel tolerance: a blend rounds twice (the fill's alpha in the SVG, the rasterizer's). */
+  readonly tol: number;
 }
 
 /**
  * Up to `per` probes in each track of the data pass: an opaque rect's inner corner, in no later rect of the pass and
- * inside the figure (a letter's ink is at its middle, a clip may cut a rect's far side).
+ * inside the figure (a letter's ink is at its middle, a clip may cut a rect's far side). The conservation track draws a
+ * stepped profile of translucent bars below 4 px a value (values.ts): a translucent rect, 2 px or more, is probed at
+ * its center, expected as its fill over `bg` (nothing else is drawn under the profile's bars).
  */
-function probesOf(lists: DrawLists, per = 4): Probe[] {
+function probesOf(lists: DrawLists, bg: readonly [number, number, number], per = 4): Probe[] {
   const rects: { block: number; x: number; y: number; w: number; h: number; fill: number }[] = [];
   let block = -1;
   walkPass(lists.passes.data, {
@@ -49,14 +53,24 @@ function probesOf(lists: DrawLists, per = 4): Probe[] {
   const out: Probe[] = [];
   const taken = new Map<number, number>();
   rects.forEach((r, k) => {
-    const x = r.x + 1.5;
-    const y = r.y + 1.5;
-    if ((r.fill & 0xff) !== 0xff || r.w < 4 || r.h < 4) return;
+    const alpha = r.fill & 0xff;
+    const translucent = alpha !== 0xff && alpha > 0 && r.w >= 2 && r.h >= 2;
+    const x = translucent ? r.x + r.w / 2 : r.x + 1.5;
+    const y = translucent ? r.y + r.h / 2 : r.y + 1.5;
+    if (!translucent && (alpha !== 0xff || r.w < 4 || r.h < 4)) return;
     if (x >= lists.width || y >= lists.height) return;
     if (rects.slice(k + 1).some((o) => x >= o.x && x < o.x + o.w && y >= o.y && y < o.y + o.h)) return;
     if ((taken.get(r.block) ?? 0) >= per) return;
     taken.set(r.block, (taken.get(r.block) ?? 0) + 1);
-    out.push({ block: r.block, x, y, rgb: [(r.fill >>> 24) & 255, (r.fill >>> 16) & 255, (r.fill >>> 8) & 255] });
+    const a = alpha / 255;
+    const over = (c: number, b: number) => Math.round(c * a + b * (1 - a));
+    out.push({
+      tol: translucent ? 4 : 2,
+      block: r.block,
+      x,
+      y,
+      rgb: [over((r.fill >>> 24) & 255, bg[0]), over((r.fill >>> 16) & 255, bg[1]), over((r.fill >>> 8) & 255, bg[2])],
+    });
   });
   return out;
 }
@@ -75,7 +89,7 @@ describe('renderPng', () => {
         const img = decodePng(r.png);
         expect([img.width, img.height]).toEqual([r.pixels.width, r.pixels.height]);
         expect(img.width).toBe(Math.round(640 * scale));
-        const probes = probesOf(r.lists);
+        const probes = probesOf(r.lists, theme === 'dark' ? [0x12, 0x14, 0x19] : [0xf1, 0xef, 0xea]);
         // letters, domains and conservation: a track each
         expect(new Set(probes.map((p) => p.block)).size).toBe(3);
         for (const p of probes) {
@@ -84,7 +98,7 @@ describe('renderPng', () => {
             expect(
               Math.abs(px[c] - p.rgb[c]),
               `${theme} ${scale}x track ${p.block} at ${p.x},${p.y}`,
-            ).toBeLessThanOrEqual(2);
+            ).toBeLessThanOrEqual(p.tol);
           expect(px[3]).toBe(255);
         }
       });

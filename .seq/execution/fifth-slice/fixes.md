@@ -6,22 +6,13 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 
 ## Open
 
-- **Allocation readings that depend on the process, not the code** (the orchestrator, 2026-11-22, FX14 and LA3; kind:
-  perf, a gate's trust): three warm-step cases read differently by what ran before them in the file: the storybook
-  `section-scroll.quick.ts` wheel step (0 B alone, 40 B and 80 B in a full-file run, with the fast path taken at every
-  x; a bare getter read 40 B in one process; FX14's two-case probe is in the scratchpad, `fx14-two-case-probe.ts`), the
-  `chromosome` "between two levels" pan (55,9xx–56,1xx B against its 56,000 bound across runs), and the core
-  `navigator-blocks` 3,000-contig leak control (112 KB, failing in alternate runs). A gate that flips by run order
-  blocks merges at random or hides a real allocation. To a perf lane (strong): find each cause with a heap profile
-  (V8 state, the harness's warm-up or GC accounting, or real allocation), make the harness isolate a case from its file's
-  history if that is the cause, and keep each bound honest (no loosening).
-
-- **One tall track makes every track of its kind tall** (the orchestrator, 2026-11-22, SX's look, Features › Layouts ›
-  Tracks past the cap; on packages-seq too; kind: design, the author's): `ContentSizing` (`render/sizing.ts`) gives
-  every track of one kind the tallest lanes among them ("neighbours do not vary lane by lane"), so a 40-lane
-  Transcripts track draws thirty one-feature ranges tracks at `track.maxPx` (240 px each, 7,598 px of content). Options:
-  share only between adjacent tracks, or only when the tallest is within a few lanes (or 2x) of a track's own, else fit
-  each track's own lanes. The rule needs the author's call before a fix lane.
+- **A sample selected on the kinship grid does not light its row in the genotype matrix** (the orchestrator,
+  2026-11-22, LA3's look, Features › Across sections › Kinship beside the genotypes; kind: bug): a click on the
+  "F2-b" label selects the member (the grid's row and column light), but the matrix on the same rows system shows
+  nothing, though across-sections.md says a member selected on the grid lights its row in a matrix layer of the same
+  system with no map. The matrix also draws no member labels. The story's twin asserts the selection as state only.
+  Also from the look: the dot plot draws no lines between block-pair cells, so "a cell a pair of chromosomes" is not
+  visible. To the next fix lane (after HC, which sets the linked views' emphasis rule).
 
 - **One hover contract for every mark, and a sweep that holds it** (the author, 2026-11-21, Examples › Plasmid › Ring
   at scale: the strands' density bands on the ring and in the detail show no hover box or card; "we should not be
@@ -180,6 +171,30 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   (`pos:ref>alt`), its category and its INFO fields, as the design's matrix row "a variant allele" implies.
 
 ## Fixed
+
+- **Allocation readings that depend on the process, not the code** (the orchestrator, 2026-11-22, FX14 and LA3; kind:
+  perf, a gate's trust): three warm-step cases read differently by what ran before them in the file: the storybook
+  `section-scroll.quick.ts` wheel step (0 B alone, 40 B and 80 B in a full-file run, with the fast path taken at every
+  x; a bare getter read 40 B in one process; FX14's two-case probe is in the orchestrator's scratchpad), the
+  `chromosome` "between two levels" pan (55,9xx–56,1xx B against its 56,000 bound across runs), and the core
+  `navigator-blocks` 3,000-contig leak control (112 KB, failing in alternate runs). A gate that flips by run order
+  blocks merges at random or hides a real allocation. To a perf lane (strong): find each cause with a heap profile
+  (V8 state, the harness's warm-up or GC accounting, or real allocation), make the harness isolate a case from its file's
+  history if that is the cause, and keep each bound honest (no loosening). Fixed by PF (`ebc7b0ad6`): the wheel step's 80 B were two closures V8 allocated once a second viewer deoptimized the path (`FrameClock.schedule`, the `sectionWheel` getter), now 0 B in either order; the chromosome pan's growth (37 to 56 KB) was `formatGenomic` parsing its spec per call since CF, the ruler now caches its labels (39.6 KB); the navigator, bridge, categorical grid and 2OCJ cases carry a 4 KB control scaled to their KB a step (the 88 B one is below the harness's resolution there). Proposed, not done: the harness's control scaled by the case, and `formatGenomic` parsing once in `@molstar/core` (TODO, the author's).
+
+- **The render CLI's PNG test fails since VL** (the orchestrator, 2026-11-22; kind: bug, a missed check):
+  `cli/seqx-render/src/_test/png.test.ts` "the probe pixels of every track are the SVG's fills" (light and dark, 1x
+  and 2x) find 2 tracks of 3 since VL's merge (`385c98c60`; green on its parent): the values look C draws the
+  conservation track differently (a profile, rounded bars). Either the PNG renderer does not draw a primitive VL
+  added (a real bug: a PNG missing a track) or the probe looks for the old shape. The orchestrator's checks ran
+  `packages/seq/` only; loop.md now adds `cli/seqx-render/`. To FX15. Fixed by FX15 (`3f2d2bc73`): the test's probe only took opaque 4x4 rects; it now probes the profile's translucent bars blended over the theme's ground (the renderer was right: the conservation track drew 121 rects).
+
+- **One tall track makes every track of its kind tall** (the orchestrator, 2026-11-22, SX's look, Features › Layouts ›
+  Tracks past the cap; on packages-seq too; kind: design, the author's): `ContentSizing` (`render/sizing.ts`) gives
+  every track of one kind the tallest lanes among them ("neighbours do not vary lane by lane"), so a 40-lane
+  Transcripts track draws thirty one-feature ranges tracks at `track.maxPx` (240 px each, 7,598 px of content). Options:
+  share only between adjacent tracks, or only when the tallest is within a few lanes (or 2x) of a track's own, else fit
+  each track's own lanes. The rule needs the author's call before a fix lane. Fixed by FX14 (`d219f79b7`): tracks of a kind share only within 2 lanes or 2x of their cluster's smallest (sorted, so order does not matter); the 40-lane test's short tracks fit their own (fails on the parent).
 
 - **Arcs jump, vanish and fly out of the band as the view pans** (the author, 2026-11-22, Examples › Complex, Contacts
   (≤ 4 Å) over CDK2 and cyclin A, the rail dragged: "the arc rendering doesn't really work when moving the rail.

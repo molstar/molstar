@@ -82,7 +82,14 @@ import {
   rowsSystemOf,
   sequenceEntry,
 } from './model-entries.js';
-import { coverageStates, matrixEntry, regionEntry, StatesSystemName, statesSystemOf } from './model-region.js';
+import {
+  coverageStates,
+  matrixEntry,
+  memberSystem,
+  regionEntry,
+  StatesSystemName,
+  statesSystemOf,
+} from './model-region.js';
 export { resolveAnnotationNode, resolveMapNode, resolveSequenceNode, rowsSystemOf } from './model-entries.js';
 import { mapEntry, numberingEntry } from './maps-entry.js';
 import type { StructureMapData } from './maps-segments.js';
@@ -697,28 +704,41 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
     annotations,
   );
 
-  // pairs and grids: held whole on their two systems
-  for (const at of data) {
-    if (at.node.kind !== 'pairs' && at.node.kind !== 'grid') continue;
-    // over an assembly: its sides by block (the genome model's)
-    if (overAssembly(at.node, assemblies)) continue;
-    const isPairs = at.node.kind === 'pairs';
-    const kinds = isPairs ? ColumnsRefs : SystemRefs;
-    const x = ref(at, isPairs ? 'a' : 'x', kinds);
-    if (!x) continue;
-    const yKey = isPairs ? 'b' : 'y';
-    const y = p(at.node, yKey) === undefined ? x : ref(at, yKey, kinds);
-    if (!y) continue;
-    // read by region (a source): its reads are the store's (`model-region.ts`)
-    const src = p(at.node, 'source') === undefined ? undefined : ref(at, 'source', ['source']);
-    const entry = cached(`${at.address}|${key(at, x, y)}`, () =>
-      src
-        ? { annotation: regionEntry(at, systems.get(x.address)!, systems.get(y.address)!, src.address), issues: [] }
-        : heldEntry(at, systems.get(x.address)!, systems.get(y.address)!),
-    );
-    annotations.set(at.address, entry.annotation);
-    issues.push(...entry.issues);
-  }
+  // a grid's axis a rows system (an alignment's rows, a matrix's states: EC-35, a categorical axis): its owner node, at
+  // the system's address; read after the matrices, whose states systems are made below
+  const memberRef = (at: Placed, key: string): Placed | undefined => {
+    const v = p(at.node, key);
+    const m = typeof v === 'string' ? memberSystem(v) : undefined;
+    const owner = m && byAddress.get(m.owner);
+    return owner && systems.has(v as string) ? { node: owner.node, address: v as string } : undefined;
+  };
+  const onMembers = (n: Node) =>
+    n.kind === 'grid' && [p(n, 'x'), p(n, 'y')].some((v) => typeof v === 'string' && memberSystem(v) !== undefined);
+  const pairsAndGrids = (members: boolean) => {
+    // pairs and grids: held whole on their two systems
+    for (const at of data) {
+      if (at.node.kind !== 'pairs' && at.node.kind !== 'grid') continue;
+      // over an assembly: its sides by block (the genome model's)
+      if (overAssembly(at.node, assemblies) || onMembers(at.node) !== members) continue;
+      const isPairs = at.node.kind === 'pairs';
+      const kinds = isPairs ? ColumnsRefs : SystemRefs;
+      const x = memberRef(at, isPairs ? 'a' : 'x') ?? ref(at, isPairs ? 'a' : 'x', kinds);
+      if (!x) continue;
+      const yKey = isPairs ? 'b' : 'y';
+      const y = p(at.node, yKey) === undefined ? x : (memberRef(at, yKey) ?? ref(at, yKey, kinds));
+      if (!y) continue;
+      // read by region (a source): its reads are the store's (`model-region.ts`)
+      const src = p(at.node, 'source') === undefined ? undefined : ref(at, 'source', ['source']);
+      const entry = cached(`${at.address}|${key(at, x, y)}`, () =>
+        src
+          ? { annotation: regionEntry(at, systems.get(x.address)!, systems.get(y.address)!, src.address), issues: [] }
+          : heldEntry(at, systems.get(x.address)!, systems.get(y.address)!),
+      );
+      annotations.set(at.address, entry.annotation);
+      issues.push(...entry.issues);
+    }
+  };
+  pairsAndGrids(false);
   // matrices: on their target, their states a system of their own
   for (const at of data) {
     if (at.node.kind !== 'matrix' || overAssembly(at.node, assemblies)) continue;
@@ -732,6 +752,7 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
     systems.set(statesAt, e.states);
     annotations.set(at.address, e.annotation);
   }
+  pairsAndGrids(true);
   for (const at of data) {
     if (at.node.kind !== 'ranges' && at.node.kind !== 'values') continue;
     if (overAssembly(at.node, assemblies)) continue;

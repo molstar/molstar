@@ -54,6 +54,16 @@ loaded when used, sections over a source's complex, the genome axis and layouts,
 
 ## Base library (`@molstar/core`, `@molstar/io`)
 
+- **The harness's leak control scaled by the case** (PF, 2026-11-22; `test-harness/src/quick.ts`, shared): when a case
+  reads above ~1 KB a step or spreads above ~8 B, size the control to ~1% of the case (at least 4 KB) and check 75% of
+  it, or alternate case and control windows and take the median of the pairs' differences; then seq's `scaledControl`
+  and the storybook cases still on the 88 B control (bridge ribbon hover, a pan through a lock, a connector, linked
+  pairs) need nothing of their own. The author's call (a shared package).
+- **`formatGenomic` parses its spec on every call** (PF; `@molstar/core` `string-format`): parse each `,.Nf` once and
+  pass the parsed spec to `formatValue`; the seq ruler caches its labels meanwhile. The author's call.
+- **Tighten the chromosome pan's bound** (PF): 56,000 B with the pan now at ~39.6 KB and the fit at ~38.4 KB; lower both
+  bounds to keep the gain.
+
 - **`repr`**: `checkRefs` (the resolve pass), `composeLanguage`, `descriptors`, issue dedupe, the catalog docs
   generation, a version-migration hook, `fallback` handling, a read-side `ParamValue` with typed columns only; a
   version-aware validate (an unknown kind in a newer minor version is a warning); staged `pending` unioned across a
@@ -94,6 +104,10 @@ loaded when used, sections over a source's complex, the genome axis and layouts,
   change, after an audit of both packages for import-time effects (CSS, registrations) and a build of every app.
 
 ## `@molstar/seqx-core`
+
+- **A categorical grid's pan re-lays the grid** (LA3, 2026-11-22): ~33 kB a pan frame at 2,000 members (bounded under 40
+  kB), ~50 kB for a 2,000-position grid; a pan that keeps the layout and moves the window would be 0 B. Also files past
+  800 lines grown by LA3: `render/tracks.ts` 1,087, `view/view.ts` 1,359, `resolve/model.ts` 1,222.
 
 - **The values layer's dots at the domain's minimum** (VP's review, 2026-11-22): a dot of a value at the low end sits on
   the well's bottom edge and is half clipped; give dots the headroom the top has, or a floor inset of a dot's radius.

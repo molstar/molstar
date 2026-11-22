@@ -79,3 +79,29 @@ export const OneGenomeAgainstItself: StoryObj = {
 export const ThreeGenomesChained: StoryObj = {
   render: () => exampleStory(view('across-chain'), { stacked: true }),
 };
+
+/**
+ * Peach across, grape down: a grid over two sections of blocks, a cell a pair of chromosomes (EC-209). Each alignment
+ * block a diagonal; Pp02’s inversion an anti-diagonal in Pp02 × chr2, Pp03’s tail in Pp03 × chr4 (a translocation),
+ * Pp01’s lost stretch a break in its diagonal. Pan either genome and its axis of the plot follows.
+ */
+export const TwoGenomesAsADotPlot: StoryObj = {
+  render: () => exampleStory(view('across-dot-plot'), { stacked: true }),
+};
+
+/**
+ * chr1’s section across, chr4’s down (a block each), their contacts a grid following both (EC-223): two hotspots where
+ * the chromosomes touch, over a low floor.
+ */
+export const ContactsBetweenTwoChromosomes: StoryObj = {
+  render: () => exampleStory(view('across-contacts'), { stacked: true }),
+};
+
+/**
+ * Twelve samples’ genotypes as a matrix (a row a sample, in data order) and their kinship on the same samples as a
+ * grid on categorical axes, ordered by label (`member_order`, EC-35): the three families gather into blocks along the
+ * diagonal. The members’ labels run down the side and at 45° along the top; a click on one selects the sample.
+ */
+export const KinshipBesideTheGenotypes: StoryObj = {
+  render: () => exampleStory(view('across-kinship'), { stacked: true }),
+};

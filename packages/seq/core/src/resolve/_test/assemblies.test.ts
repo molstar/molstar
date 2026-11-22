@@ -421,10 +421,8 @@ describe('unread params', () => {
     const said = resolveSpec(b.build())
       .issues.filter((i) => i.code === 'seq.resolve.param.unread')
       .map((i) => `${i.address} ${i.message}`);
-    expect(said).toEqual([
-      '/data/g `assembly.names`: read by lane GF',
-      '/views/v/a `section.member_order`: read by lane LA',
-    ]);
+    // `member_order` is read (a grid's categorical axis: LA3)
+    expect(said).toEqual(['/data/g `assembly.names`: read by lane GF']);
     expect(resolveSpec(spec()).issues.filter((i) => i.code === 'seq.resolve.param.unread')).toEqual([]);
   });
 });

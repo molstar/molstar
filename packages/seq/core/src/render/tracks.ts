@@ -13,6 +13,7 @@ import {
   type ResolvedTrack,
   sameBlocks,
   templateNodes,
+  type MemberAxis,
 } from '@molstar/seqx-core/view';
 import { AxisTransform, type Viewport } from './axis.js';
 import { DefaultRenderConfig, fontSize, type RenderConfig } from './config.js';
@@ -68,6 +69,8 @@ import { bandHeights, firstType, rowsFill, rulerTrack } from './tracks-heights.j
 import { sectionHeaderOf, trackHeaderOf } from './tracks-headers.js';
 import { collapsedSection } from './headers.js';
 import { BridgeHooks } from './bridge-hooks.js';
+import type { Members } from './members.js';
+import { MemberHooks } from './members-hooks.js';
 
 export { multiSystem, sectionLayoutName } from './tracks-axes.js';
 export { labelColumnWidth, layerKey } from './tracks-columns.js';
@@ -300,6 +303,13 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         }
       }
     }
+    // a categorical x (`of` a rows system, EC-35): a piece a member, in its order
+    const xMembers =
+      section.members && membersOn(input.model, section.members, ownPieces(section, input.model, input.data));
+    if (!made && xMembers) {
+      const viewport = input.viewports?.[at] ?? input.viewport;
+      made = { pieces: xMembers.pieces, ...(viewport ? { viewport } : {}) };
+    }
     if (!made) {
       const own = ownPieces(section, input.model, input.data);
       // a layout that reads its viewport its own way (text: an anchor; a ring: its window) places over the whole axis
@@ -309,6 +319,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     const axis = made?.pieces.length
       ? AxisTransform.on(section.axis, made.pieces, dataX, dataW, dpr, made.viewport)
       : undefined;
+    if (axis && xMembers && made?.pieces === xMembers.pieces) axis.members = xMembers;
     if (!axes.has(at)) axes.set(at, axis);
     return axes.get(at);
   };
@@ -321,8 +332,20 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     const y = section.y;
     const own = y?.axis.ranges;
     if (!y || !own || !axis) return undefined;
-    if (y.followsX && !y.follow)
-      return { axis: { ...y.axis, dir: axis.dir }, pieces: axis.pieces, viewport: { start: axis.u0, end: axis.u1 } };
+    if (y.followsX && !y.follow) {
+      // categorical (EC-35): x's window over y's own order (`member_order_y`)
+      const members = y.members && membersOn(input.model, y.members, own);
+      const window = { start: axis.u0, end: axis.u1 };
+      if (members) return { axis: y.axis, pieces: members.pieces, members, viewport: window };
+      return { axis: { ...y.axis, dir: axis.dir }, pieces: axis.pieces, viewport: window };
+    }
+    if (y.blocks && y.follow) {
+      // a second section of blocks: its window on its blocks' units, as its own strips show it (EC-209)
+      const leaderSection = bySection.get(y.follow.leader);
+      const leader = leaderSection && axes.get(leaderSection.address);
+      if (!leaderSection || !leader) return undefined;
+      return { axis: y.axis, pieces: leader.pieces, viewport: leaderWindow(leaderSection, leader) };
+    }
     if (y.follow) {
       const leaderSection = y.followsX ? section : bySection.get(y.follow.leader);
       const leader = y.followsX ? axis : leaderSection && axes.get(leaderSection.address);
@@ -334,6 +357,9 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       return { axis: y.axis, pieces: own };
     }
     const v = (input.viewports?.[section.address] ?? input.viewport)?.y;
+    // a categorical y (`of_y` a rows system, EC-35): a piece a member, in its order
+    const members = y.members && membersOn(input.model, y.members, own);
+    if (members) return { axis: y.axis, pieces: members.pieces, members, ...(v ? { viewport: v } : {}) };
     return { axis: y.axis, pieces: own, ...(v ? { viewport: v } : {}) };
   };
   const labelSize = fontSize(config.labelFont);
@@ -1048,4 +1074,25 @@ function setWindow(
   for (let i = 0; i < sections.length && !active; i++) if (sections[i].follow?.leader === at) active = true;
   const shown = (active || config.rings.window === 'always') && (!input.figure || input.windows === true);
   layout.window!(placement, own ?? viewport, active, shown);
+}
+
+/** The members made for a resolved categorical axis (by its object: kept while the view is), with what they were for. */
+const MembersOf = new WeakMap<MemberAxis, { model: LayoutInput['model']; n: number; members: Members }>();
+
+/**
+ * A categorical axis's members over its whole pieces (their count its length), once the chunk landed; else undefined.
+ * Kept by the resolved axis, so a warm frame looks nothing up.
+ */
+function membersOn(
+  model: LayoutInput['model'],
+  axis: MemberAxis,
+  whole: readonly number[] | undefined,
+): Members | undefined {
+  const n = whole && whole.length === 2 ? whole[1] - whole[0] : undefined;
+  if (n === undefined || n <= 0) return undefined;
+  const kept = MembersOf.get(axis);
+  if (kept && kept.model === model && kept.n === n) return kept.members;
+  const members = MemberHooks.membersOf?.(model, axis, n);
+  if (members) MembersOf.set(axis, { model, n, members });
+  return members;
 }

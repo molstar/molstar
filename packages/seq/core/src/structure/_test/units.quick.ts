@@ -13,6 +13,7 @@ import { rangesLocation } from '@molstar/seqx-core/query';
 import { resolveSpec } from '@molstar/seqx-core/resolve';
 import { measureBytesPerStep, quickCase } from '@molstar/test-harness/quick';
 import { describe, expect, it } from 'vitest';
+import { ScaledControlWhy, scaledControl } from '../../render/_test/scaled-control.js';
 import { DefaultSyncLimits, toUnits } from '../units.js';
 import { EntStart, p53Spec, Up } from './p53.js';
 
@@ -25,7 +26,10 @@ const stepOf = (copies: number) => {
 describe('a hover onto the units', () => {
   it('2OCJ: bytes a hover on one copy and on four (a lit unit their difference over three)', ({ task }) => {
     const one = measureBytesPerStep(stepOf(1)).bytesPerStep;
-    const { r } = quickCase(task, 'toUnits hover onto 2OCJ', stepOf(4));
+    const four = stepOf(4);
+    // 9 KB a hover: a window read 30 bytes a step under the others, past the 88-byte control's margin (22)
+    const { r } = quickCase(task, 'toUnits hover onto 2OCJ', four, { control: false, why: ScaledControlWhy });
+    scaledControl('toUnits hover onto 2OCJ', four, r);
     const perUnit = (r.bytesPerStep - one) / 3;
     console.info(
       `toUnits, a 2OCJ hover: ${r.bytesPerStep.toFixed(0)} bytes on four units, ${one.toFixed(0)} on one; ${perUnit.toFixed(0)} a lit unit (${r.note})`,

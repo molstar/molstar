@@ -152,14 +152,16 @@ const BlockSection: CardSection = {
       out.whole = true;
       return;
     }
-    const say = (b: number, which: string) => {
-      const block = blocks[b];
+    // a grid over two sections of blocks: its y blocks are the second section's (EC-209)
+    const yBlocks = at.section.section.y?.blocks ?? blocks;
+    const say = (b: number, which: string, of = blocks) => {
+      const block = of[b];
       if (!block) return;
       out.row(which, block.label);
       let copy = '';
       if (block.members.length > 1) copy = `${block.members.length} copies merged`;
       else {
-        const twins = blocks.filter((o) => o.axis.system === block.axis.system);
+        const twins = of.filter((o) => o.axis.system === block.axis.system);
         if (twins.length > 1) copy = `copy ${twins.indexOf(block) + 1} of ${twins.length}`;
       }
       if (copy) out.row('Copy', copy);
@@ -169,9 +171,9 @@ const BlockSection: CardSection = {
     // complex's unit or a chain's sequence a chain
     const name = blockKindName(at.model, blocks[k].axis.system);
     const y = at.place.yBlock;
-    if (y !== undefined && y !== k) {
+    if (y !== undefined && yBlocks[y] && (y !== k || yBlocks !== blocks)) {
       say(k, `${name} x`);
-      say(y, `${blockKindName(at.model, blocks[y].axis.system)} y`);
+      say(y, `${blockKindName(at.model, yBlocks[y].axis.system)} y`, yBlocks);
     } else say(k, name);
   },
 };
@@ -352,14 +354,18 @@ const GridSection: CardSection = {
     if (Number.isNaN(at.position) || Number.isNaN(at.yPosition)) return;
     // over blocks (a grid over a complex) each axis by its block's label, the chain: `CDK2 33 × cyclin A2 263`
     const blocks = at.section.section.blocks;
-    const nameOf = (system: string, k: number | undefined) =>
-      (k !== undefined && blocks?.[k]?.axis.system === system ? blocks[k].label : undefined) ??
-      at.words.systemName(system);
+    const yBlocks = at.section.section.y?.blocks ?? blocks;
+    const nameOf = (system: string, k: number | undefined, of = blocks) =>
+      (k !== undefined && of?.[k]?.axis.system === system ? of[k].label : undefined) ?? at.words.systemName(system);
     // a residue as a structure's readout writes it: its letter before its number (`CDK2 K33`), when it is loaded
-    const end = (system: string, k: number | undefined, i: number) =>
-      `${nameOf(system, k)} ${at.words.letterOn(system, i)}${spanText(i, i + 1)}`;
-    const x = end(p.system, p.block, at.position);
-    const y = end(p.ySystem, p.yBlock ?? p.block, at.yPosition);
+    const end = (system: string, k: number | undefined, i: number, of = blocks) =>
+      `${nameOf(system, k, of)} ${at.words.letterOn(system, i)}${spanText(i, i + 1)}`;
+    // a categorical axis (EC-35): its member by label (`NA12878 × NA12891`)
+    const st = at.section.placement.strips;
+    const xm = st.n ? st.axes[0].members : undefined;
+    const ym = st.n ? st.ys[0]?.members : undefined;
+    const x = xm?.labels[at.position] ?? end(p.system, p.block, at.position);
+    const y = ym?.labels[at.yPosition] ?? end(p.ySystem, p.yBlock ?? p.block, at.yPosition, yBlocks);
     const v = at.words.gridValue(l, p.system, at.position, p.ySystem, at.yPosition);
     const value = valueText(v, unitOf(l));
     out.title = `${x} × ${y}`;

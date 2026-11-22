@@ -50,6 +50,7 @@ import {
 import type { ResolvedBridge, StackEntry } from './bridges.js';
 import { ViewIssues } from './issues.js';
 import { dataOf, layerData } from './layer-data.js';
+import { type MemberAxis, memberAxis } from './members.js';
 
 /** The six shapes a layer reads (an extension's type reads one of them: _spec/README.md "Context", Extensions). */
 export type LayerShape = 'letters' | 'ranges' | 'values' | 'cells' | 'pairs' | 'grid' | 'matrix';
@@ -262,6 +263,8 @@ export interface ResolvedSection {
   readonly domains?: { readonly block: readonly string[]; readonly system: readonly string[] };
   /** A grid section's second axis (_spec/README.md "Resolved view", Grids): down the plot. */
   readonly y?: GridAxis;
+  /** A grid section's x when it is categorical (`of` a rows system, EC-35): its members' order (`member_order`). */
+  readonly members?: MemberAxis;
   /**
    * The maps its `via` names (sorted; absent when none): its follow, its `direction: { along }`, its layers' data and
    * what is projected onto it take `model.path(from, to, via)` (_spec/README.md "Resolved view", Via).
@@ -278,6 +281,13 @@ export interface GridAxis {
   readonly axis: Axis;
   readonly followsX: boolean;
   readonly follow?: Follow;
+  /**
+   * A grid over two sections of blocks (`follow_y` naming a second section of blocks, EC-209): that section's blocks
+   * down the plot, `axis` their display axis and `follow` the identity on their units (absent: y is x's blocks).
+   */
+  readonly blocks?: readonly ResolvedBlock[];
+  /** A categorical y (`of_y` a rows system, EC-35): its members' order (`member_order_y`). */
+  readonly members?: MemberAxis;
 }
 
 /**
@@ -318,6 +328,9 @@ export interface ResolvedBlock {
 
 /** A block's form (_spec/README.md "Resolved view", Blocks). */
 export type BlockForm = 'whole' | 'residues' | 'atoms';
+
+/** A y block's layers: none (its section's tracks are drawn by the x blocks' strips). */
+const NoBlockLayers: readonly (readonly ResolvedLayer[])[] = [];
 
 /** The params a section's layout reads (_spec/README.md "Resolved view"). */
 const LayoutParams = [
@@ -565,6 +578,8 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
   const viaOf = (at: string) => viaList(param(byAddress.get(at)!, 'via'));
   // a grid section with no system of its own that follows a section of blocks: a grid over them (`blocksGrid`)
   const overBlocks = new Map<string, string>();
+  // and its y over a second section of blocks (`follow_y` naming it): that section's address
+  const overBlocksY = new Map<string, string>();
   // each section's block nodes, derived once a build (an assembly's blocks are a walk of its sequences)
   const nodesOf = new Map<string, Node[]>();
   // a section of assemblies' blocks past `maxAssemblyBlocks`: its closing run's count
@@ -607,14 +622,22 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
       continue;
     }
     if (grid && param(s, 'of') === undefined && leader !== undefined && lead && blocksAt(leader).length) {
-      // the leader's blocks in a row (the plot's axes are their units): not a stack, not a ring
-      const leadLayout = param(lead, 'layout') ?? viewLayout;
-      if (param(lead, 'arrange') === 'stack' || leadLayout !== 'tracks') {
+      // the leader's blocks in a row (the plot's axes are their units): not a stack, not a ring; a second section of
+      // blocks named by `follow_y` the same (_spec/README.md "Resolved view", A grid over blocks)
+      const yLeader = exactAddress(param(s, 'follow_y'));
+      const yLead = yLeader === undefined ? undefined : byAddress.get(yLeader);
+      const yBlocks = yLead && yLeader !== leader && blocksAt(yLeader!).length > 0;
+      const inRow = (n: Node) => param(n, 'arrange') !== 'stack' && (param(n, 'layout') ?? viewLayout) === 'tracks';
+      if (!inRow(lead) || (yBlocks && !inRow(yLead))) {
         report('seq.view.section.system', 'A grid follows a section of blocks in a row only', at);
         systemOf.set(at, '');
         continue;
       }
       overBlocks.set(at, leader);
+      if (yBlocks) overBlocksY.set(at, yLeader!);
+      // a `follow_y` naming a section with no blocks (or none): y keeps x's blocks, said (never silently)
+      else if (yLeader !== undefined && yLeader !== leader)
+        report('seq.view.follow.unplaced', 'The grid’s y follows no section of blocks: it shows the blocks across', at);
       systemOf.set(at, '');
       continue;
     }
@@ -769,11 +792,22 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
         ? assemblies.flatMap((a) => a.order.map((i) => a.sequences[i].name))
         : [...new Set(blocks.map((b) => b.name ?? b.axis.system))],
     };
+    const grid = (typeof own === 'string' ? own : viewLayout) === 'grid';
+    const members = grid ? memberAxis(axis.system, param(s, 'member_order')) : undefined;
+    const yBlocks = overBlocksY.get(at);
+    const yb = yBlocks === undefined ? undefined : blocksOf.get(yBlocks);
     const y =
       (typeof own === 'string' ? own : viewLayout) === 'grid'
-        ? overBlocks.has(at)
-          ? { axis, followsX: true }
-          : gridAxis(model, s, at, axis, axes, systemOf, report, via)
+        ? yb
+          ? {
+              axis: yb.axis,
+              followsX: false,
+              follow: followOf(yBlocks!, yb.axis, identityPath(yb.axis.system)),
+              blocks: yb.blocks.map((b) => ({ ...b, layers: NoBlockLayers })),
+            }
+          : overBlocks.has(at)
+            ? { axis, followsX: true }
+            : gridAxis(model, s, at, axis, axes, systemOf, report, via)
         : undefined;
     sections.push({
       address: at,
@@ -787,6 +821,7 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
       ...(more ? { more } : {}),
       ...(domains ? { domains } : {}),
       ...(y ? { y } : {}),
+      ...(members ? { members } : {}),
       ...(via.length ? { via } : {}),
     });
   }
@@ -992,7 +1027,7 @@ function gridAxis(
   report: Report,
   via: readonly string[],
 ): GridAxis | undefined {
-  const system = exactAddress(param(s, 'of_y')) ?? x.system;
+  const system = systemRef(model, param(s, 'of_y')) ?? x.system;
   const entry = model.systems.get(system);
   if (!entry) {
     report('seq.view.section.system', 'The grid’s y shows no system of the spec', at);
@@ -1006,20 +1041,25 @@ function gridAxis(
     dir: 1,
     pieces: 'whole',
   };
+  // a categorical y (a rows system, EC-35): its members' order; it follows nothing of positions, so with no `follow_y`
+  // over another system than x's it keeps a window of its own
+  const members = memberAxis(system, param(s, 'member_order_y'));
+  const own = members ? { axis, followsX: false, members } : { axis, followsX: false };
+  if (members && param(s, 'follow_y') === undefined && system !== x.system) return own;
   const written = param(s, 'follow_y') ?? 'x';
-  if (written === 'none') return { axis, followsX: false };
+  if (written === 'none') return own;
   const leader = written === 'x' ? at : exactAddress(written);
   const from = written === 'x' ? x.system : leader === undefined ? undefined : systemOf.get(leader);
   const leaderAxis = written === 'x' ? x : leader === undefined ? undefined : axes.get(leader);
   if (leader === undefined || from === undefined || !leaderAxis || !model.systems.has(from)) {
     report('seq.view.follow.unplaced', 'The grid’s y follows no section of the view', at);
-    return { axis, followsX: false };
+    return own;
   }
-  if (written === 'x' && from === system) return { axis, followsX: true };
+  if (written === 'x' && from === system) return { ...own, followsX: true };
   const r = model.path(from, system, via);
   if (!r.path) {
     report('seq.view.follow.unplaced', 'The grid’s y cannot follow: no path joins the systems', at, r.issue);
-    return { axis, followsX: false };
+    return own;
   }
   return { axis, followsX: written === 'x', follow: followOf(leader, leaderAxis, r.path) };
 }

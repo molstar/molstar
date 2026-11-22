@@ -43,6 +43,18 @@ its sides, and moving it moves them.
   covering it.
 - **The lock toggle** (`bridge.lock`) is an edit: one undo step.
 
+## Grids across sections
+
+- **A grid over two sections of blocks**: a grid section that `follow`s a section of blocks takes its blocks across, and
+  with `follow_y` naming a second section of blocks takes that section's blocks down. Each pair of blocks is a cell,
+  clipped at both blocks' edges, with the blocks' labels on both axes; a reversed block flips its side. A `pairs` layer
+  there is a dot plot: a block a diagonal, against the diagonal where its strand is reversed, bins past the gate as
+  rects shaded by count. Each axis moves with its own section.
+- **Categorical axes**: a grid's `of` or `of_y` an alignment's rows or a matrix's states, a position a named member, in
+  the order `member_order` (`member_order_y` down) gives: `data`, `tree`, or a field. No ruler; the members' labels down
+  the side and at 45° along the top, thinned to a label every 8 px; a click on a label selects the member, which lights
+  its row wherever that rows system is drawn. A reorder rebuilds the grid's tiles once.
+
 ## Stories
 
 Generated toy genomes (peach, grape made from peach by an inversion, a translocation and a gap, plum made from grape),
@@ -56,9 +68,13 @@ each the canvas and the SVG of one view, light and dark by the toolbar's theme:
 - [A reader without bridges](?path=/story/seq-next-features-across-sections--a-reader-without-bridges)
 - [One genome against itself](?path=/story/seq-next-features-across-sections--one-genome-against-itself), `mirror`
 - [Three genomes chained](?path=/story/seq-next-features-across-sections--three-genomes-chained)
+- [Two genomes as a dot plot](?path=/story/seq-next-features-across-sections--two-genomes-as-a-dot-plot), a grid over
+  two sections of blocks
+- [Contacts between two chromosomes](?path=/story/seq-next-features-across-sections--contacts-between-two-chromosomes)
+- [Kinship beside the genotypes](?path=/story/seq-next-features-across-sections--kinship-beside-the-genotypes),
+  categorical axes
 
 ## Not yet
 
-A grid over two sections of blocks (a dot plot of two genomes, a contact map between two chromosomes), categorical grid
-axes, the liftover, the band's resize grip, a sided source read a side at a time over an assembly, a ribbon's
-double-click focusing both sides.
+The liftover, the band's resize grip, a sided source read a side at a time over an assembly, a ribbon's double-click
+focusing both sides.

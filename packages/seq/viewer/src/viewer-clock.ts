@@ -28,14 +28,19 @@ export class FrameClock {
 
   constructor(private readonly viewer: SeqViewer) {}
 
-  /** Asks for a frame: one a frame, whatever asked; `dispose` cancels it. */
+  /**
+   * Asks for a frame: one a frame, whatever asked; `dispose` cancels it. The callback is made once: a closure here made
+   * V8 allocate this method's context (40 bytes) on every call, an early return's too, once optimized code had asked.
+   */
   schedule(): void {
     if (this._frameId !== undefined || this.viewer.retired || this.rehitting) return;
-    this._frameId = requestFrameCallback(() => {
-      this._frameId = undefined;
-      if (!this.viewer.retired) this.viewer.draw();
-    });
+    this._frameId = requestFrameCallback(this._frame);
   }
+
+  private readonly _frame = (): void => {
+    this._frameId = undefined;
+    if (!this.viewer.retired) this.viewer.draw();
+  };
 
   /** The view moved: it is not settled until it rests for `canvas.settleMs`. */
   moved(): void {

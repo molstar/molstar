@@ -36,7 +36,9 @@ const LayoutOptions = {
  * Bytes a pan frame may allocate, measured (2026-11-19, M-series, Node 26) with half again as headroom: at the fit
  * 36 KB (the genes a density, a count a bin: 348 KB when they came as 1,177 rows), between levels 37 KB, the signal's
  * tiles and their keys. The fit 55 KB since FX9 (2026-11-22, the author: "You can raise the limits"; measured 54.1 KB:
- * a layer's context holds a source's lanes).
+ * a layer's context holds a source's lanes). Both had grown by 16 KB on 2026-11-19 (54.4 and 55.9 KB): the ruler's
+ * labels in bases formatted again every frame, each parsing its format (`formatGenomic` through `formatValue`); kept
+ * between layouts since, 38.4 and 39.6 KB (2026-11-22).
  */
 const LayoutBound: Record<string, number> = { fit: 55_000, 'between two levels': 56_000 };
 

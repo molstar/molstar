@@ -195,6 +195,10 @@ export function boundedLevel(
  * A grid's level (_spec/README.md "Render", Data: the level rules by shape): the finest of `levels` whose bin is at least
  * `binPx` device pixels on both axes (the larger of the two axes' positions a pixel), then coarser while the view's x
  * tiles × y tiles pass the store's bound. The other way from values: a cell under a pixel is reduced again for nothing.
+ * Why the coarser axis's level, not the finer's: a 2D bin is square, so a level fine enough for the finer axis puts
+ * many bins in a device pixel on the coarser one (a block pair of a zoomed chromosome against one at the fit), reading
+ * tiles of the coarser axis's whole window to draw them a pixel apart; a bin at least `binPx` on both axes reads no bin
+ * the plot cannot show. The finer axis then shows bins wider than its pixels.
  */
 export function gridLevel(
   levels: readonly number[],

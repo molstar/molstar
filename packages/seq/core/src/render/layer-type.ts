@@ -216,7 +216,10 @@ export interface Hit {
   readonly navigator?: string;
   /** The block (its index in the section) when the section has blocks. */
   readonly block?: number;
-  /** A grid over blocks: the cell's y block (its index in the section; `block` is its x block). */
+  /**
+   * A grid over blocks: the cell's y block (its index in the section's, or in `section.y.blocks` over two sections of
+   * blocks; `block` is its x block).
+   */
   readonly yBlock?: number;
   /**
    * What is under the point within the position, when a layer says: a logo's letter; a rows layer's column cell, what
