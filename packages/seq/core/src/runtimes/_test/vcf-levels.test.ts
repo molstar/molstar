@@ -359,4 +359,30 @@ describe('the matrix (genotypes, read only when asked)', () => {
     const it = await region.read({ ...t, items: true }, signal);
     expect((it as RegionAnswer & { ok: true }).tables.matrix).toEqual(w.tables.matrix);
   });
+
+  it('fuzzed genotype columns read without a throw: every byte of a sample column changed, a column cut short (EC-40)', async () => {
+    const rng = new PCG(31);
+    const text = new TextEncoder().encode(generateVcf(60, names, 8, 100_000, { samples: 8, genotypes: true }).text);
+    const body = text.indexOf(10, text.lastIndexOf(35)) + 1;
+    for (let k = 0; k < 40; k++) {
+      const bytes = text.slice(0, body + Math.floor(rng.float() * (text.length - body)));
+      for (let n = 0; n < 50; n++) {
+        const at = body + Math.floor(rng.float() * (bytes.length - body));
+        bytes[at] = ['/', '|', '.', ':', ',', '\t', '9', 'x'][Math.floor(rng.float() * 8)].charCodeAt(0);
+      }
+      const s = await VcfRuntime.open(entry(), context({ f: bytes }));
+      for (const field of [undefined, 'GT', 'DS', 'GQ']) {
+        const r: RegionRequest = {
+          system: 'chr1',
+          start: 0,
+          end: 100_000,
+          level: 1,
+          shapes: ['matrix'],
+          ...(field && { field }),
+        };
+        const a = await s.read(r, signal);
+        expect(checkAnswer(a, r)).toBeUndefined();
+      }
+    }
+  });
 });

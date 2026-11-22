@@ -1296,16 +1296,16 @@ runtimes only).
   end by its `BSIZE`) to its newline, within `maxLineBytes`; what a format whose columns are told by its first line
   (BED's `N`) reads at open.
 - **Shared codes** (`issues.ts`): `seq.source.bgzf.eof` (warning: a BGZF file without its EOF block, read as it is).
-- **Levels** (`levels.ts`; `indexedLevels` in `lines.ts`): a source by region lists level 1 and each of `1, 16, 256,
-  4096` up to the runtime's `maxLevel` whose **every tile** (`level × tileBins` positions from 0) on every indexed
-  sequence costs at most `maxRegionBytes` by the index (`regionBytes`, nothing read); a sequence to its length when the
-  file says one, else to the end of its last 4 Mb tile with a cost. Each level is checked tile by tile (the first tile
-  past the bound ends it), never inferred from another: io's cost is conservative (64 KiB for a chunk's last block), so
-  a finer tile can cost more than a coarser one holding it. Above level 1 a ranges request is a `density`
-  (`densityOf`): each item (by `id`, else `row`; pieces by their item's extent, else their hull) counted once in every
-  bin its extent touches inside the tile, from the tile's own records; a request with `items` is the tile's list. A
-  tile's `readCost` is its `regionBytes`. Why from bytes, per source: one runtime reads sparse and dense files, and a
-  tile's bytes are known exactly before a read, its rows are not (EC-171: counts exact or absent, never estimated).
+- **Levels** (`levels.ts`; `indexedLevels` in `lines.ts`): a source by region lists level 1 and each of `16, 256, 4096`
+  up to the runtime's `maxLevel` whose **every tile** (`level × tileBins` positions from 0) on every indexed sequence
+  costs at most `maxRegionBytes` by the index (`regionBytes`, nothing read); a sequence to its length when the file says
+  one, else to the end of its last 4 Mb tile with a cost. Each level is checked tile by tile (the first tile past the
+  bound ends it), never inferred from another: io's cost is conservative (64 KiB for a chunk's last block), so a finer
+  tile can cost more than a coarser one holding it. Above level 1 a ranges request is a `density` (`densityOf`): each
+  item (by `id`, else `row`; pieces by their item's extent, else their hull) counted once in every bin its extent
+  touches inside the tile, from the tile's own records; a request with `items` is the tile's list. A tile's `readCost`
+  is its `regionBytes`. Why from bytes, per source: one runtime reads sparse and dense files, and a tile's bytes are
+  known exactly before a read, its rows are not (EC-171: counts exact or absent, never estimated).
 - **Shared helpers**: `causes.ts` (`Causes`: one issue a cause with its count and first ten places, EC-86; each format's
   `BedCauses`, `GffCauses`, `VcfCauses` over its own codes), `answers.ts` (`failure` by kind, `refuse` at open,
   `wholeSource` over what a whole read holds), `intervals.ts` (`intervalIndex`: the short intervals by start and the
@@ -1331,16 +1331,16 @@ neither io's tabix nor the pairs index.
   spaces (said once, `.whitespace`). Bytes to text by magic (plain, gzip, BGZF), U+FFFD said once (`.encoding`).
 - **Whole or by region**: `bed` and `bedgraph` with an `index` (a `.tbi` or `.csi` the source names, never `<uri>.tbi`:
   EC-186) read by region through `openIndexedLines` at the levels its index's bytes allow (Genome runtimes' internals,
-  Levels): above level 1 a BED's tile is a `density` of its items (BED12's blocks one item, by its extent), a
-  bedGraph's `bins` (`binsIn`: the tile's intervals painted into segments, a later over an earlier, each added to its
-  bins whole: `binValues` over the values without a value a position), the tile's items when asked (`items`); a
-  tile's `readCost` is its `regionBytes` from the position before its start (the read's). Without one they are read
-  whole within `limits`. One parser either way, so a region read equals the whole read clipped at every level (the
-  property tests). Read whole, a BED's items are
-  served at level 1 and at the level whose one tile holds its longest system (`wholeLevel`, the inline rule), so a
-  navigator reads a chromosome's bands in one tile. A region's line issues are not said (no place in an answer); the
-  whole read says them. io meets a line where it overlaps, so a region is asked of io from the position before its
-  start: an item of no length at the region's start (which the parser keeps, at its start) is read by region as whole.
+  Levels): above level 1 a BED's tile is a `density` of its items (BED12's blocks one item, by its extent), a bedGraph's
+  `bins` (`binsIn`: the tile's intervals painted into segments, a later over an earlier, each added to its bins whole:
+  `binValues` over the values without a value a position), the tile's items when asked (`items`); a tile's `readCost` is
+  its `regionBytes` from the position before its start (the read's). Without one they are read whole within `limits`.
+  One parser either way, so a region read equals the whole read clipped at every level (the property tests). Read whole,
+  a BED's items are served at level 1 and at the level whose one tile holds its longest system (`wholeLevel`, the inline
+  rule), so a navigator reads a chromosome's bands in one tile. A region's line issues are not said (no place in an
+  answer); the whole read says them. io meets a line where it overlaps, so a region is asked of io from the position
+  before its start: an item of no length at the region's start (which the parser keeps, at its start) is read by region
+  as whole.
 - **BED** (BED3 to BED12): the first data line's column count is the file's `N` (by region: `IndexedLines.head`).
   Columns past the third by BED's names: the fourth, BED's name, is the items' `label` (what a ranges layer labels by,
   so a spec maps nothing) and their identity; `score` float32, `strand` the role (and a field `strand`, int8, so a
@@ -1365,16 +1365,16 @@ neither io's tabix nor the pairs index.
   two `Int32Array` orders, each by system (a counting sort) then start (float64 keys `start × 2^21 + row`, sorted
   natively; a comparison sort past 2^21 rows). `pairs(system, start, end)` gives every row with an end meeting the
   region once (a row found from its second end is skipped when its first end met it too), in file order, as a
-  `PairsList` (`id` the name, `.` none; `row`). Coverage: the systems, each serving **`pairs`** (RR's shape: a
-  region's read gives the same list, the items at any level when asked), at levels of factor 16 up to the one whose
-  tile holds the longest end's system (`wholeLevel`); a coarser level is the **pairs level** made per tile from the held
-  rows (`binPairs` of the pairs with an end's first position in the tile: each bin pair meeting the tile whole, so a
-  reader deduping bins by key reads the whole file's bins). Why the runtime's levels and not the store's summaries: a
-  BEDPE names no lengths, and the summaries' pairs pyramid needs them; a host adapter is not needed. Held bytes
-  (`summaryBytes`, counted by the store: the source is not wrapped, having levels) against `maxPairsBytes`, which is region-reads' `summaries.maxBytes` (`SummariesMaxBytes`, 16 MiB: 600,000
-  six-column rows; the bound the pairs summaries share, the store's setting once RG lands it, the runtime's option until
-  then), checked from the line count before a row is parsed and exactly after; past it `seq.source.too_large`, hinting
-  pairix or a levelled pairs format.
+  `PairsList` (`id` the name, `.` none; `row`). Coverage: the systems, each serving **`pairs`** (RR's shape: a region's
+  read gives the same list, the items at any level when asked), at levels of factor 16 up to the one whose tile holds
+  the longest end's system (`wholeLevel`); a coarser level is the **pairs level** made per tile from the held rows
+  (`binPairs` of the pairs with an end's first position in the tile: each bin pair meeting the tile whole, so a reader
+  deduping bins by key reads the whole file's bins). Why the runtime's levels and not the store's summaries: a BEDPE
+  names no lengths, and the summaries' pairs pyramid needs them; a host adapter is not needed. Held bytes
+  (`summaryBytes`, counted by the store: the source is not wrapped, having levels) against `maxPairsBytes`, which is
+  region-reads' `summaries.maxBytes` (`SummariesMaxBytes`, 16 MiB: 600,000 six-column rows; the bound the pairs
+  summaries share, the store's setting once RG lands it, the runtime's option until then), checked from the line count
+  before a row is parsed and exactly after; past it `seq.source.too_large`, hinting pairix or a levelled pairs format.
 - **chrom.sizes** (EC-188): `name length` lines, a coverage of systems and lengths, no shapes; a length past 2^31 − 1
   refused by name (`seq.source.too_large`), a name again left out (the names seen a set: one pass, a million lines under
   1.5 s).
@@ -1410,9 +1410,8 @@ neither io's tabix nor the pairs index.
 read whole, or by region with a tabix `index`; `gff-parse.ts` (the one line parser), `gff-assemble.ts` (the hierarchy),
 `gff-read.ts` (the label rule, the name index, the items a `features` mode serves and their fields; items by sequence
 and their answers `internal/items.ts`), and `gff-indexed.ts` loaded when the first indexed source opens (io's tabix in
-it). `gff3` stays the records preset's (flat) unless a
-host composes this runtime with `withAdapter` (one adapter a format). Why opt in: the default viewer is at its size
-bound.
+it). `gff3` stays the records preset's (flat) unless a host composes this runtime with `withAdapter` (one adapter a
+format). Why opt in: the default viewer is at its size bound.
 
 - **Conventions fixed** (EC-195): base 1, ends inclusive, converted at the edge; `base` or `ends` not read, said once
   (`seq.source.gff.transform`). Bytes to text by magic (plain, gzip, BGZF) within `limits.maxBytes`; `#` lines read
@@ -1457,17 +1456,17 @@ bound.
   least 4,096), so one chromosome-long feature never makes every read scan the sequence.
 - **By region** (a bgzipped, sorted file with a tabix `index`, never `<uri>.tbi`: EC-186): the header's directives at
   open (`##sequence-region` lengths), the levels its index's bytes allow (Genome runtimes' internals, Levels), a tile's
-  `readCost` its `regionBytes`. **A tile's lines are assembled alone, by type**, as the whole file's are: a
-  transcript's line spans its children, so every tile meeting a transcript holds its line and its gene's, and a tile
-  inside an intron gives its span row (EC-229). What an item is besides its pieces (its CDS hull, its first CDS's
-  phase, a gene's merged transcripts, a prokaryote's gene made a transcript by its CDS) needs every child, so a tile is
-  assembled from **the hull of the lines meeting it** (a second read when they reach past the tile, a line describing
-  its sequence not counted), then cut to the tile (`rowsIn`): every tiling equals the whole read clipped (EC-227). The
-  coverage's fields are the fixed ones; a tile's attributes are those of its items, in order of first use there. Above
-  level 1 a `density` of the tile's items, each by its extent (its introns too). No name index by region (`findNames`
-  is a whole read's). Partial by region, as the whole read says of GTF 2.2: an item made only from rows sharing an
-  `ID` (no line spans it), whose extent is the hull of the rows a tile read; the hull read costs more than `readCost`
-  says where an item reaches far past its tile (a gene of 2 Mb read for a 1 kb tile).
+  `readCost` its `regionBytes`. **A tile's lines are assembled alone, by type**, as the whole file's are: a transcript's
+  line spans its children, so every tile meeting a transcript holds its line and its gene's, and a tile inside an intron
+  gives its span row (EC-229). What an item is besides its pieces (its CDS hull, its first CDS's phase, a gene's merged
+  transcripts, a prokaryote's gene made a transcript by its CDS) needs every child, so a tile is assembled from **the
+  hull of the lines meeting it** (a second read when they reach past the tile, a line describing its sequence not
+  counted), then cut to the tile (`rowsIn`): every tiling equals the whole read clipped (EC-227). The coverage's fields
+  are the fixed ones; a tile's attributes are those of its items, in order of first use there. Above level 1 a `density`
+  of the tile's items, each by its extent (its introns too). No name index by region (`findNames` is a whole read's).
+  Partial by region, as the whole read says of GTF 2.2: an item made only from rows sharing an `ID` (no line spans it),
+  whose extent is the hull of the rows a tile read; the hull read costs more than `readCost` says where an item reaches
+  far past its tile (a gene of 2 Mb read for a 1 kb tile).
 - **Names** (EC-228): a map from each lowercased value of GFF3's `Name`, `ID`, `Alias` or GTF's `gene_name`, `gene_id`,
   `transcript_name`, `transcript_id` to its items (genes, transcripts and features, whatever `features` serves), built
   once at open; `findNames` gives the exact names, then by prefix from the sorted names, each item once a field; a hit's
@@ -1491,9 +1490,9 @@ bound.
   `assembleTranscripts` alone (three levels, a shared exon, CDS only, GTF with and without transcript lines, a cycle, a
   chain past 16, a prokaryote's gene, a type outside the list, attributes past 256); span rows; lengths; the name index;
   fuzzed and truncated files without a throw. By region (`gff-region.test.ts`): the source suite at every level, every
-  tiling of generated GFF3 and GTF equal to the whole read clipped at every level and in every `features` mode
-  (EC-227), a tile inside an intron with the transcript's span row, thick part and phase (EC-229). Its synthetic twin
-  is `delayedRuntime(GffRuntime)`.
+  tiling of generated GFF3 and GTF equal to the whole read clipped at every level and in every `features` mode (EC-227),
+  a tile inside an intron with the transcript's span row, thick part and phase (EC-229). Its synthetic twin is
+  `delayedRuntime(GffRuntime)`.
 - **Performance**: 100,000 GFF3 lines assembled under 500 ms (heavy, `itWithin`), 10,000 in the quick lane;
   `features: rows` of 40,000 lines of one `ID` under 500 ms, 2,000 region reads beside a chromosome-long feature under
   200 ms, 50 lines of a million tabs refused under 200 ms (heavy). Size: its own row under 30 kB (24.3 kB minified, io's
@@ -1504,11 +1503,11 @@ bound.
 `runtimes/vcf.ts` (`@molstar/seqx-core/runtimes/vcf`, opt in: `VcfRuntime`, `vcfRuntime(over)`, `VcfOptions`,
 `DefaultVcfOptions`, `VcfFormats`, `readVcfHeader`, `VcfHeader`, `VcfHeaderLimits`, `DefaultVcfHeaderLimits`,
 `VcfHeaderResult`, `VcfDeclaration`, `VcfContig`, `VcfType`, `VcfIssues`, `MissingInt`, `VcfCategories` (the `category`
-field's values, a palette's), `VcfSource`: an opened source with its `header`, what a host shows of the file):
-**sites and genotypes**, `vcf` read whole or by region at the levels its index's bytes allow over the internals
-above; `vcf-header.ts` (the header), `vcf-parse.ts` (the one line parser and rows), `vcf-answer.ts` (a region's
-answer), `vcf-genotypes.ts` (the matrix), `vcf-read.ts` (what whole and region reads share), and `vcf-indexed.ts`
-loaded when the first indexed source opens (io's tabix in it).
+field's values, a palette's), `VcfSource`: an opened source with its `header`, what a host shows of the file): **sites
+and genotypes**, `vcf` read whole or by region at the levels its index's bytes allow over the internals above;
+`vcf-header.ts` (the header), `vcf-parse.ts` (the one line parser and rows), `vcf-answer.ts` (a region's answer),
+`vcf-genotypes.ts` (the matrix), `vcf-read.ts` (what whole and region reads share), and `vcf-indexed.ts` loaded when the
+first indexed source opens (io's tabix in it).
 
 - **Conventions fixed** (EC-195): base 1 (`POS − 1`), an extent by the index's rule; a source's `base` or `ends` is not
   read, said once (`seq.source.vcf.transform`, info). Bytes to text by magic (plain, gzip, BGZF) within
@@ -1552,9 +1551,9 @@ loaded when the first indexed source opens (io's tabix in it).
   store's `maxBytesPerLayer` bounds a view (ClinVar at the fit, about 138 MB over its 4 Mb tiles, is "zoom in", nothing
   read). Without an index read whole within `limits` and served at level 1 and at the level whose one tile holds its
   longest system (`wholeLevel`, a list at both). One parser either way, so a region read equals the whole read clipped
-  at every level (the property test). The systems are the header's contigs, then those the file (or the index) names; a contig with no
-  line serves empty answers. A region's line issues are not said (no place in an answer); the whole read says them. Rows
-  are answered in order of start, then of the file; found by `intervalIndex`.
+  at every level (the property test). The systems are the header's contigs, then those the file (or the index) names; a
+  contig with no line serves empty answers. A region's line issues are not said (no place in an answer); the whole read
+  says them. Rows are answered in order of start, then of the file; found by `intervalIndex`.
 - **The matrix** (EC-220 to EC-222): a source whose file has samples serves a `matrix` on each system beside its
   `ranges`: items the ALT alleles of the region (the sites' rows, their ids) × states the samples held
   (`ShapeInfo.states`: the header's order, narrowed by the source's `samples`; names the file lacks, or `samples` on a
@@ -1565,11 +1564,11 @@ loaded when the first indexed source opens (io's tabix in it).
   `value` float32 by `RegionRequest.field`: `GT` the allele's copies among the called (NaN uncalled), or a numeric
   FORMAT key of `Number=1` or `A` (the allele's), the coverage's `fields`; NaN missing. A long deletion is one item
   across the SNVs it covers (EC-222). **Genotypes are read only for a `matrix` request**, only for the samples held,
-  from the lines' bytes the read already holds (each row keeps its line's span and its allele's number), each line
-  once. Above level 1 (not as items) a `summary` counted from the tile's items, each in every bin its extent touches
-  (as a density): codes as each bin's majority class (0 to 3, ties to the lower) and its share of the called (0 to
-  255; 255 and 0 where none is called), values as `mean`, `min`, `max`, `count` (NaN not counted). A matrix's bytes
-  (its items' cells and a summary's counts) are counted before it is allocated, within `maxMatrixBytes` (region-reads'
+  from the lines' bytes the read already holds (each row keeps its line's span and its allele's number), each line once.
+  Above level 1 (not as items) a `summary` counted from the tile's items, each in every bin its extent touches (as a
+  density): codes as each bin's majority class (0 to 3, ties to the lower) and its share of the called (0 to 255; 255
+  and 0 where none is called), values as `mean`, `min`, `max`, `count` (NaN not counted). A matrix's bytes (its items'
+  cells and a summary's counts) are counted before it is allocated, within `maxMatrixBytes` (region-reads'
   `maxTileBytes`), else `too-large`.
 - **Bounds**: a whole read's bytes (`limits.maxBytes`) and lines (`limits.maxRows`) before the lines are spanned; its
   alleles (`limits.maxRows`); a region's lines and alleles within `limits.maxRows`; one line `maxLineBytes`; io's tabix
@@ -1596,15 +1595,16 @@ loaded when the first indexed source opens (io's tabix in it).
   categories, multi-allelic lines, INFO's types and `Number`s; the header; fuzzed and truncated files (whole and by
   region) without a throw; each bound. Levels (`vcf-levels.test.ts`): listed from a dense and a sparse generated index
   as io's `regionBytes` allows them; a tile's read cost the index's; items tiles and densities at every level equal to
-  the whole read clipped; the source suite at every level, ranges and the matrix; the matrix against a reference
-  reading of the text (classes, `GT`, `DS`, `GQ`), `samples`, `maxMatrixBytes`, a long deletion (EC-222) and the
-  summaries. The recorded ClinVar index at the fit: past `maxBytesPerLayer`, refused, nothing read (EC-171). Its
-  synthetic twin is `delayedRuntime(VcfRuntime)`.
-- **Performance**: a region of 10,000 records decoded under 100 ms, sites (heavy, `itWithin`; about 30 ms measured),
-  and with 100 samples' genotypes (the matrix's codes) under 200 ms (heavy), 1,000 of each in the quick lane; ClinVar's
-  levels at open about 80 ms (every tile of each level from its index); 40,000 lines without tabs under 500 ms and a line of 100,000 flags under 200 ms (heavy), the
-  bytes and characters their searches scan counted in the quick lane. Size: its own row under 30 kB (25.2 kB minified,
-  io's BGZF reader in it), its lazy chunk (by region with io's tabix, 14.8 kB) loaded on first use; in no viewer bundle.
+  the whole read clipped; the source suite at every level, ranges and the matrix; the matrix against a reference reading
+  of the text (classes, `GT`, `DS`, `GQ`), `samples`, `maxMatrixBytes`, a long deletion (EC-222) and the summaries. The
+  recorded ClinVar index at the fit: past `maxBytesPerLayer`, refused, nothing read (EC-171). Its synthetic twin is
+  `delayedRuntime(VcfRuntime)`.
+- **Performance**: a region of 10,000 records decoded under 100 ms, sites (heavy, `itWithin`; about 30 ms measured), and
+  with 100 samples' genotypes (the matrix's codes) under 200 ms (heavy), 1,000 of each in the quick lane; ClinVar's
+  levels at open about 80 ms (every tile of each level from its index); 40,000 lines without tabs under 500 ms and a
+  line of 100,000 flags under 200 ms (heavy), the bytes and characters their searches scan counted in the quick lane.
+  Size: its own row under 30 kB (25.2 kB minified, io's BGZF reader in it), its lazy chunk (by region with io's tabix,
+  14.8 kB) loaded on first use; in no viewer bundle.
 
 ### GenBank
 
