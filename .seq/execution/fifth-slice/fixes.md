@@ -24,6 +24,17 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   score box, these bands) are checked by it and closed with it. A strong-model lane (it is a rule across layer types,
   not a closed list), its brief naming the items it closes.
 
+- **A legend's hover works one way only** (the author, 2026-11-22, Features › Genome formats › VCF › TP53 ClinVar:
+  "there is an asymmetry for many legends ... where the highlight only works one way. add to fix round? or at least
+  don't show 'hand' icon for legends that don't have any action associated with it"; kind: bug, a class): hovering a
+  variant outlines its legend entry ("deletion"), but hovering the "deletion" entry lights no variant, though
+  themes.md lists "hovers a legend entry to see its items" as built (a highlight channel over its items in view). The
+  rule, with the hover contract above and swept by it: every legend entry that names items (a category, a ramp's
+  stretch) lights its items in view when hovered, in every layer type and layout, canvas and SVG alike; an entry with
+  no action (no select, no filter, no highlight: a swatch only) shows the default cursor, never the pointer. The sweep
+  probes each story's legend entries: hover → at least one emphasis primitive over that entry's items in view, or no
+  pointer cursor. Taken by the hover-contract lane (strong), after RG merges (RG changes the hover texts and card).
+
 - **No track drawn as an empty well, and a sweep that holds it** (the author, 2026-11-21: "Yes, group them", after
   the Promoters track, the stacked ATP block's tracks and the plasmid's strip each showed a blank band). Three causes,
   one symptom: (a) the data has nothing for a declared track (Promoters: a fixture gap, the story's fault); (b) a
