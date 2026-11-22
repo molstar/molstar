@@ -9,7 +9,9 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 - **A lanes rail scrolls by the wheel only, not by a gesture on it** (the author, 2026-11-22, Features › Genome
   formats › GTF › TP53: "the scrollbar is nice, but it can't be scrubbed by a gesture on the control itself, only by
   wheel"; layouts.md:650 asks "drag the slim rail; Page keys with the cursor in it", FX9's Not built): the rows rail's
-  gesture (`rowsRailGesture`) has it, the lanes rail does not. To FX10.
+  gesture (`rowsRailGesture`) has it, the lanes rail does not. Widened by the author (2026-11-22: "any section should be
+  scrollable already, so we should use the same rail everywhere"): one rail for rows, lanes and text sections
+  (layouts.md, A slim rail). To FX10.
 - **One hover contract for every mark, and a sweep that holds it** (the author, 2026-11-21, Examples › Plasmid › Ring
   at scale: the strands' density bands on the ring and in the detail show no hover box or card; "we should not be
   fixing this one-by-one btw. since we already fixed a similar issue, we need a general rule for this and global
