@@ -924,7 +924,27 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
   source.
 - **Conformance**: every adapter passes one suite (`data/_test/conformance.ts`): a well-formed coverage whose nodes the
   language takes; each listed shape read whole at level 1 an answer in the protocol's shape, with a channel asked or
-  not; an aborted read an `AbortError`; `changes` stopping once unsubscribed. Why: a host is code Seq\* does not own.
+  not; an aborted read an `AbortError`; `changes` stopping once unsubscribed; and (`checkRegionReads`) each listed shape
+  read by region equal to the whole read clipped (`sliceTable`) at every level it lists, a grid by both axes, a sided
+  system on its side, and a pair found from either end. Why: a host is code Seq\* does not own.
+- **The region shapes** (`pairs`, `grid`, `matrix`, `rows`; `Shapes`): `pairs` on 1D tiles by either end (a tile holds
+  every pair with an end in it, the other end anywhere: EC-62, EC-208), its finest level a `list`, coarser levels `bins`
+  (the pairs level); `grid` on 2D tiles (`RegionRequest.y`: the second axis at the same level, square levels), `dense`
+  or `sparse` with its `fill`; `matrix` positions tiled and states whole (`items`, a column an item at its own extent,
+  `value` or `codes`; coarser `bins`); `rows` keyed records on a records system (`keyed`). Why: each read is bounded by
+  the screen, never by the data.
+- **Items tiles** (`RegionRequest.items`, `ItemShapes`: `ranges`, `pairs`, `matrix`): a list form at any listed level,
+  the level only the tile's width, every item with an end in it, uncut; a source with one level serves it as a level-1
+  read of the tile (the summaries map it). Why: a wide view reads items in few large tiles, never past
+  `maxTilesPerWant`.
+- **Sided pairs** (`SystemInfo.side`, `RegionRequest.side`): a pairs source between two genomes lists a name once a
+  side; a request reads its side's end alone. Side `a` is the `from` side of the map the pairs serve.
+- **Coverage of a shape** (`ShapeInfo`, all optional): `y` (a grid's second systems, or `'*'`), `symmetric` (served
+  once, at or above the diagonal by `(system order, tile)`), `aggregate` (`sum`, `mean`), `binBy` (`type`: a category
+  the pairs bins keep), `states` (a matrix's), `whole` (a whole-assembly system: listed sequences end to end, listed as
+  a system itself, served at coarse levels).
+- **`OpenedSource.readCost?(request)`**: a tile's read cost known before reading it (compressed bytes, tabix's
+  `regionBytes`), summed over a layer's tiles by the store (`maxBytesPerLayer`).
 
 ### Names
 
@@ -948,10 +968,17 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
   has two encodings by level. Why fields as a list: any name, `kind` and `$x` too, in memory and in a file.
 - **An item's extent on its pieces** (`RangesList.itemStart`, `itemEnd`, int32, optional): each row carries its item's
   whole extent (BED12's blocks, a BED line's own), so a reader of region data knows an item's ends from any tile: the
-  ranges layer marks an item's arrowheads by it. Served by the BED runtime; `sliceTable`, `joinTables` and the store do
-  not carry them yet (region-reads, RG's). **`PairsList`** (both ends' systems, positions and strands, `id`, `row`,
-  `fields`) is a type only: no `Shape` serves pairs yet, and the BEDPE source answers it by its own `pairs` read (BED
-  family).
+  ranges layer marks an item's arrowheads by it. `sliceTable` and `joinTables` carry them, and a cut emits a **span
+  row** (`start = end` at the item's first position in the region, its first piece's columns) for an item meeting the
+  region by its extent with no piece in it, so a region read and the whole read clipped agree (EC-229).
+- **The region shapes' forms** (`tables-region.ts`): `pairs` `list` (`aStart`, `aEnd`, `bStart`, `bEnd` int32;
+  `aSystem`, `bSystem` categories, both or neither; strands int8; `type`, `id` categories; `row`; `fields`) and `bins`
+  (`aBin`, `bBin` int32, `count` float32; systems, `strand` int8 relative, `category`, `sum`); `grid` `dense` (`x`, `y`,
+  `nx`, `ny`, `value` float32 x-major, NaN missing) and `sparse` (`xBin`, `yBin`, `value`, `fill`); `matrix` `items`
+  (`start`, `end`, `states`, `value` or `codes` item-major, `id`, `row`) and `bins` (`start`, `states`, `mean`, `min`,
+  `max`, `count`, `classes` and `shares`); `rows` `keyed` (`start`, `key`, `fields`). Forms share names across shapes,
+  so a table's shape is told by its columns (`regionShapeOf`) and a table under another shape's key is refused. **A
+  pair's identity** is its `row`, else its `id` (never `.` or empty), with both ends' systems and starts.
 - **A row's identity** is its `id`, else its `row`: a range over a tile's edge is in each tile it touches, with its own
   start, and readers dedupe by identity and start; rows of one id with other starts are pieces of one item (the exons of
   a transcript, read in different tiles).
@@ -966,7 +993,12 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
   charges them by that estimate, a flat floor under it. Why: an answer's size is a claim of its source, refused before
   it is cut, joined or kept.
 - Cutting (`sliceTable`) keeps letters, positions and bins by offset, and a range or a density bin by its anchor (its
-  first position in the region) within the part cut; `joinTables` joins consecutive parts, so each row is held once.
+  first position in the region) within the part cut; `joinTables` joins consecutive parts, so each row is held once. A
+  pair or bin pair is kept by its ends meeting the region on its system (`Cut.system`; a sided cut its side's end), its
+  anchor the earlier end's first position in the region; a grid along x by its bins' anchors and within `Cut.y` on y
+  (grid parts join along x only); a matrix's items as ranges, its bins by offset.
+- **Bytes** (`answerBytes`): a dense grid tile `nx × ny × 4`, a sparse one 12 a cell, pairs and matrices their columns;
+  checked against the store's `maxTileBytes` before an answer is kept.
 
 ### The seq format
 
@@ -1015,6 +1047,22 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
   alone, refused (malformed) past `maxRows` positions. A caller's abort is noticed at once, even while the shared read
   goes on. Other shapes at a coarse level are read at level 1 over the same region. Why: a values layer zoomed out reads
   a coarse level within the tile bound, a level costs one pass over the one below, and memory stays within the bound.
+- **Levels by shape**: values' and pairs' `[f, f², …]`, grids' `[2, 4, …]` (square levels, factor 2 a side); the
+  coverage lists their union, and a shape asked at another's level is cut from its own finer level dividing it and
+  coarsened. An items tile at any level is a level-1 read of the tile.
+- **The pairs level** (`summaries-pairs.ts`): `binPairs(list, level, { category, field })` makes bin-pair counts by
+  relative strand (EC-206), by `type` when the coverage's `binBy` says so, a numeric field summed; an end's bin is its
+  first position's. `coarsenPairBins` (`coarsenBins` on pairs bins) sums bins into bins `factor` times wider, exact
+  (levels nested). A one-level source's pairs are read whole once (each system's, merged once a pair: kept from its `a`
+  end's read), within `summaries.maxBytes` (16 MB, about 600,000 pairs at 26 bytes), binned in slices of
+  `summaries.sliceMs` (4 ms), each further level coarsened from the one below; **only the levels that halve the rows
+  below are kept**, a dropped level answered as items. Past `maxBytes`, a coarse tile is binned from its own items read
+  (`seq.store.pairs.levels`). Why: counts are exact at every level and sum across levels.
+- **Grid levels** (`summaries-grid.ts`): a one-level grid's listed system pairs (a symmetric one's at or above the
+  diagonal) read whole within `summaries.maxBytes` together, each level halved from the one below by the coverage's
+  `aggregate` (`sum`, `mean`; NaN not counted); a tile cut from its level. A `whole` system's plane at a level is made
+  from the blocks' planes, a symmetric pair's other triangle mirrored. Past `maxBytes`, coarse tiles are `too-large`
+  (`seq.store.grid.levels`).
 
 ### FASTA
 
@@ -1489,12 +1537,21 @@ over the assets port, with `@molstar/core/util/zip` (never a private zip). Not a
 
 ### Store
 
-- **Keys**: `<source>|<system>|<level>|<tile>` and `<source>#<key>`; a part holding `|`, `#` or `\` escapes it, so no
-  two keys of other parts are equal. A tile is `tileBins` bins (1,024) at the level's width; a want is clipped to the
-  system's length when known and snaps to whole tiles; an unlisted level falls back to the coarsest listed no wider
-  (EC-170). A want over `maxTilesPerWant` tiles is `seq.store.too_many_tiles` and not asked, and `keysOf` lists none of
-  its tiles (a reader reads it as pending, never as empty): work is bounded before it starts, a key a tile included. A
-  tile is asked for every shape its system serves: the key has no shapes.
+- **Keys**: `<source>|<system>|<level>|<tile>` and `<source>#<key>`; a part holding `|`, `#` or `\` escapes it (a system
+  part `:` too), so no two keys of other parts are equal. A 2D tile adds `|<y system>|<y tile>`; a sided system part is
+  `a:chr1`; an items tile's level part `i<level>`.
+- **2D wants** (`Want.y`): x tiles × y tiles of `gridTileBins` (256) a side, each clipped to its system; a symmetric
+  grid's tile below the diagonal folded to the served one (`foldTile`; `tilesOf` says which are mirrors);
+  `maxTilesPerWant` bounds the product. A 1D tile asks no grid, an items tile only `ItemShapes`.
+- **A layer's wants together** (`Want.layer`): their tiles at most `maxTilesPerLayer` (1,024) and their read cost
+  (`readCost`) at most `maxBytesPerLayer` (16 MiB); past either none is asked (`seq.store.too_many_tiles`), and
+  `layerLoad(wants)` tells a layer before it wants, so it reads coarser first.
+- **An answer's bytes**: past `maxTileBytes` (16 MB, a quarter of the cache) a `too-large` failure, never kept. A tile
+  is `tileBins` bins (1,024) at the level's width; a want is clipped to the system's length when known and snaps to
+  whole tiles; an unlisted level falls back to the coarsest listed no wider (EC-170). A want over `maxTilesPerWant`
+  tiles is `seq.store.too_many_tiles` and not asked, and `keysOf` lists none of its tiles (a reader reads it as pending,
+  never as empty): work is bounded before it starts, a key a tile included. A tile is asked for every shape its system
+  serves: the key has no shapes.
 - **Sources** are checked on `attach`: a malformed coverage is an issue and the source unavailable. `detach` cancels its
   requests, drops its entries, releases its holds and clears its reports. `named()` lists the attached sources by
   address, as attached: what `findNames` asks (a locus box's fallback to a name).

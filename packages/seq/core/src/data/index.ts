@@ -24,7 +24,18 @@ export { asyncSeqSource, type DelayOptions, delayedRuntime, delayedSource } from
 export { checkFai, FastaRuntime, type FaiRecord, faidx, openFasta, parseFai } from './fasta.js';
 export { ArchiveIssues, SourceIssues, StoreIssues } from './issues.js';
 export { DefaultMaxNameHits, findNames, type NamedSource, type SourceNameHit } from './names.js';
-export { DefaultTileBins, dataKey, fitLevel, nodeKey, tileRegion, tileSpan, tileWidth } from './keys.js';
+export {
+  DefaultGridTileBins,
+  DefaultTileBins,
+  dataKey,
+  fitLevel,
+  foldTile,
+  type KeyParts,
+  nodeKey,
+  tileRegion,
+  tileSpan,
+  tileWidth,
+} from './keys.js';
 export {
   type AssetReader,
   type CellsCodes,
@@ -38,19 +49,31 @@ export {
   type FieldInfo,
   type FindNamesOptions,
   type FormatRuntime,
+  type GridDense,
+  type GridSparse,
+  type GridTable,
   isAbortError,
+  ItemShapes,
   type LettersTable,
+  type MatrixBins,
+  type MatrixItems,
+  type MatrixTable,
   type NameHit,
   DefaultOpenLimits,
   type OpenContext,
   type OpenLimits,
   type OpenedSource,
+  type PairsBins,
+  type PairsList,
+  type PairsTable,
   type RangesDensity,
   type RangesField,
   type RangesList,
   type RangesTable,
   type RegionAnswer,
   type RegionRequest,
+  type RowsKeyed,
+  type RowsTable,
   type Shape,
   type ShapeInfo,
   Shapes,
@@ -61,6 +84,7 @@ export {
   type ValuesBins,
   type ValuesPositions,
   type ValuesTable,
+  type WholeSystem,
 } from './protocol.js';
 export {
   checkCoverage,
@@ -96,6 +120,10 @@ export {
   type SummarySettings,
   withSummaries,
 } from './summaries.js';
+export { type GridPlane, gridPlane, transposeGrid } from './summaries-grid.js';
+export { type BinPairsOptions, binPairs, coarsenPairBins } from './summaries-pairs.js';
+export { FrameSlices, type SliceClock } from './summaries-region.js';
+export type { LayerLoad, WantTile } from './store-wants.js';
 export {
   answerBytes,
   type Cut,

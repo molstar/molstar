@@ -5,7 +5,7 @@
  */
 
 import type { Issue, Node } from '@molstar/core/repr/tree';
-import { DefaultTileBins } from './keys.js';
+import { DefaultGridTileBins, DefaultTileBins } from './keys.js';
 import type { FailureKind, Tables } from './protocol.js';
 import { DefaultSummarySettings, type SummarySettings } from './summaries.js';
 import { DefaultAnswerBounds, DefaultMaxBlockValues, DefaultMaxColumnLength, DefaultMaxRows } from './tables.js';
@@ -29,6 +29,17 @@ export interface Want {
   readonly level: number;
   /** `view` by default. */
   readonly priority?: Priority;
+  /** A grid's second axis: the want's tiles are its x tiles × its y tiles (a symmetric grid's folded). */
+  readonly y?: { readonly system: string; readonly start: number; readonly end: number };
+  /** A sided pairs source's side read. */
+  readonly side?: 'a' | 'b';
+  /** Items tiles (`RegionRequest.items`): the level is only the tile's width. */
+  readonly items?: boolean;
+  /**
+   * The layer the want is for: a layer's wants together are bounded (`maxTilesPerLayer`, `maxBytesPerLayer`); none, the
+   * want alone.
+   */
+  readonly layer?: string;
 }
 
 /** The tile an entry holds: its parts and its positions. */
@@ -40,6 +51,10 @@ export interface TileRegion {
   readonly tile: number;
   readonly start: number;
   readonly end: number;
+  /** A 2D tile's second axis: its system, tile and positions (a symmetric grid's served tile, never its mirror). */
+  readonly y?: { readonly system: string; readonly tile: number; readonly start: number; readonly end: number };
+  readonly side?: 'a' | 'b';
+  readonly items?: boolean;
 }
 
 /**
@@ -97,8 +112,16 @@ export interface StoreSettings {
   readonly maxBytes: number;
   /** Requests in flight at most (EC-172). */
   readonly maxInFlight: number;
-  /** Tiles one want may cover; more is an issue and the want is not requested (work bounded before it starts). */
+  /** Bins a side of a 2D (grid) tile: 256. */
+  readonly gridTileBins: number;
+  /** Tiles one want may cover (a 2D want's x tiles × y tiles); more is an issue and the want is not requested. */
   readonly maxTilesPerWant: number;
+  /** Tiles a layer's wants may cover together: 1,024; past it the layer reads coarser. */
+  readonly maxTilesPerLayer: number;
+  /** A layer's tiles' read cost together (`OpenedSource.readCost`), bytes: 16 MiB; past it the layer reads coarser. */
+  readonly maxBytesPerLayer: number;
+  /** The bytes one answer may hold (`answerBytes`): 16 MB, a quarter of the cache; more is `too-large`. */
+  readonly maxTileBytes: number;
   /** Rows a list or density table may hold in one answer. */
   readonly maxRows: number;
   /** The longest column an answer may hold: 2^31 − 1. */
@@ -131,7 +154,11 @@ export const DefaultStoreSettings: StoreSettings = {
   tileBins: DefaultTileBins,
   maxBytes: 64 * 1024 * 1024,
   maxInFlight: 6,
+  gridTileBins: DefaultGridTileBins,
   maxTilesPerWant: 256,
+  maxTilesPerLayer: 1024,
+  maxBytesPerLayer: 16 * 1024 * 1024,
+  maxTileBytes: 16 * 1024 * 1024,
   maxRows: DefaultMaxRows,
   maxColumnLength: DefaultMaxColumnLength,
   maxBlockValues: DefaultMaxBlockValues,

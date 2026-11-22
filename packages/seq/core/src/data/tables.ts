@@ -4,20 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import {
-  CategoryColumn,
-  type Column,
-  categoryColumn,
-  categoryFromCodes,
-  columnConstructor,
-  columnType,
-  columnValues,
-  isColumn,
-  isNode,
-  type NumericColumn,
-  type NumericColumnType,
-  type Value,
-} from '@molstar/core/repr/tree';
+import { CategoryColumn, columnType, isColumn, isNode, type Value } from '@molstar/core/repr/tree';
 import { measureNode, specBounds } from '@molstar/seqx-core/lang';
 import {
   type CellsCodes,
@@ -36,46 +23,56 @@ import {
   type ValuesBins,
   type ValuesPositions,
 } from './protocol.js';
+import { concatColumns, gather, isInt, isObject, sameLength } from './tables-columns.js';
+import {
+  checkRegionExtent,
+  checkRegionTable,
+  columnBytes,
+  joinRegion,
+  type RegionCut,
+  RegionForms,
+  type RegionTable,
+  regionBytes,
+  regionColumnCount,
+  regionRows,
+  regionShapeOf,
+  sliceRegion,
+} from './tables-region.js';
 
 // Tables of the protocol's shapes (_spec/README.md "Data", Tables): their rows, their bytes, their checks (shape, and
 // an answer against its request), and cutting and joining tables by region (a `seq` source answers a tile from its
 // pairs).
 
-/** The rows (positions, bins or ranges) a table holds. */
+/** The 1D shapes' tables (the region shapes' are `tables-region.ts`'s). */
+type LineTable = Exclude<Table, RegionTable>;
+
+/** The rows (positions, bins, ranges, pairs, cells, items, records) a table holds. */
 export function tableRows(t: Table): number {
-  switch (t.form) {
+  if (regionShapeOf(t)) return regionRows(t as RegionTable);
+  const l = t as LineTable;
+  switch (l.form) {
     case 'letters':
-      return t.letters.length;
+      return l.letters.length;
     case 'list':
-      return t.start.length;
+      return l.start.length;
     case 'density':
-      return t.bin.length;
+      return l.bin.length;
     case 'positions':
-      return t.value.length;
+      return l.value.length;
     case 'bins':
-      return t.count.length;
+      return l.count.length;
     case 'codes':
-      return t.columns > 0 ? Math.floor(t.codes.length / t.columns) : 0;
+      return l.columns > 0 ? Math.floor(l.codes.length / l.columns) : 0;
     case 'majority':
-      return t.columns > 0 ? Math.floor(t.classes.length / t.columns) : 0;
+      return l.columns > 0 ? Math.floor(l.classes.length / l.columns) : 0;
   }
 }
 
 /** Whether an answer holds nothing: no rows in any table and no nodes (an `empty` entry). */
 export function isEmptyAnswer(tables: Tables, nodes: readonly DynamicNode[] | undefined): boolean {
   if (nodes?.length) return false;
-  for (const t of [tables.letters, tables.ranges, tables.values, tables.cells]) if (t && tableRows(t) > 0) return false;
+  for (const t of Object.values(tables) as (Table | undefined)[]) if (t && tableRows(t) > 0) return false;
   return true;
-}
-
-function columnBytes(c: Column | undefined): number {
-  if (c === undefined) return 0;
-  if (c instanceof CategoryColumn) {
-    let n = c.codes.byteLength;
-    for (const s of c.dict) n += 2 * s.length;
-    return n;
-  }
-  return c.byteLength;
 }
 
 /** A held node's cost in the byte bound: nodes are small and few against tables; a flat estimate. */
@@ -91,10 +88,12 @@ export function answerBytes(tables: Tables, nodes: readonly DynamicNode[] | unde
   if (l) n += typeof l.letters === 'string' ? 2 * l.letters.length : l.letters.byteLength;
   if (r?.form === 'list') {
     n += columnBytes(r.start) + columnBytes(r.end) + columnBytes(r.strand) + columnBytes(r.id) + columnBytes(r.row);
+    n += columnBytes(r.itemStart) + columnBytes(r.itemEnd);
     for (const f of r.fields ?? []) n += columnBytes(f.column);
   } else if (r) n += columnBytes(r.bin) + columnBytes(r.count) + columnBytes(r.category);
   if (v?.form === 'positions') n += v.value.byteLength;
   else if (v) n += v.min.byteLength + v.max.byteLength + v.mean.byteLength + v.count.byteLength;
+  for (const t of [tables.pairs, tables.grid, tables.matrix, tables.rows]) if (t) n += regionBytes(t);
   return n;
 }
 
@@ -103,20 +102,10 @@ const Forms: Record<Shape, readonly string[]> = {
   ranges: ['list', 'density'],
   values: ['positions', 'bins'],
   cells: ['codes', 'majority'],
+  ...RegionForms,
 };
 
-function isInt(x: unknown): boolean {
-  return typeof x === 'number' && Number.isInteger(x);
-}
-
-function sameLength(n: number, ...cols: (Column | undefined)[]): boolean {
-  for (const c of cols) if (c !== undefined && c.length !== n) return false;
-  return true;
-}
-
-function isObject(x: unknown): x is Record<string, unknown> {
-  return typeof x === 'object' && x !== null;
-}
+const RegionShapes = new Set<string>(Object.keys(RegionForms));
 
 /**
  * What is wrong with tables, as a message, or `undefined` when each is of its shape's forms with the protocol's column
@@ -128,15 +117,18 @@ export function checkTables(tables: Tables): string | undefined {
     const t = (tables as Record<string, Table | undefined>)[shape];
     if (t === undefined) continue;
     const forms = Object.hasOwn(Forms, shape) ? Forms[shape as Shape] : undefined;
-    if (!forms) return 'a table of a shape other than letters, ranges, values and cells';
+    if (!forms) return 'a table of a shape the protocol does not list';
     if (!isObject(t) || !forms.includes(t.form)) return `the ${shape} table has no form of its shape`;
-    const bad = checkTable(t);
+    const region = RegionShapes.has(shape);
+    // forms share names across shapes (`list`, `bins`): a table is of its key's shape by its columns too
+    if ((regionShapeOf(t) ?? '') !== (region ? shape : '')) return `the ${shape} table has no form of its shape`;
+    const bad = region ? checkRegionTable(t as RegionTable) : checkTable(t as LineTable);
     if (bad) return `the ${shape} table: ${bad}`;
   }
   return undefined;
 }
 
-function checkTable(t: Table): string | undefined {
+function checkTable(t: LineTable): string | undefined {
   switch (t.form) {
     case 'letters':
       if (!isInt(t.start)) return '`start` is not an integer';
@@ -148,8 +140,11 @@ function checkTable(t: Table): string | undefined {
       if (t.strand !== undefined && !(t.strand instanceof Int8Array)) return '`strand` is not int8';
       if (t.id !== undefined && !(t.id instanceof CategoryColumn)) return '`id` is not a category';
       if (t.row !== undefined && !(t.row instanceof Int32Array)) return '`row` is not int32';
+      for (const c of [t.itemStart, t.itemEnd])
+        if (c !== undefined && !(c instanceof Int32Array)) return '`itemStart` and `itemEnd` are not int32';
+      if (!!t.itemStart !== !!t.itemEnd) return '`itemStart` without `itemEnd`';
       const n = t.start.length;
-      if (!sameLength(n, t.end, t.strand, t.id, t.row)) return 'columns of unequal lengths';
+      if (!sameLength(n, t.end, t.strand, t.id, t.row, t.itemStart, t.itemEnd)) return 'columns of unequal lengths';
       if (t.fields !== undefined && !Array.isArray(t.fields)) return '`fields` is not a list';
       for (const f of t.fields ?? []) {
         if (!isObject(f) || typeof f.name !== 'string' || !isColumn(f.column)) return 'a field is not a named column';
@@ -218,20 +213,22 @@ export const DefaultAnswerBounds: AnswerBounds = {
 
 /** The columns a table holds besides its rows' extent: what a block's values are counted by. */
 function columnCount(t: Table): number {
-  switch (t.form) {
+  if (regionShapeOf(t)) return regionColumnCount(t as RegionTable);
+  const l = t as LineTable;
+  switch (l.form) {
     case 'letters':
     case 'positions':
       return 1;
     case 'list':
-      return 2 + (t.strand ? 1 : 0) + (t.id ? 1 : 0) + (t.row ? 1 : 0) + (t.fields?.length ?? 0);
+      return 2 + (l.strand ? 1 : 0) + (l.id ? 1 : 0) + (l.row ? 1 : 0) + (l.fields?.length ?? 0);
     case 'density':
-      return 2 + (t.category ? 1 : 0);
+      return 2 + (l.category ? 1 : 0);
     case 'bins':
       return 4;
     case 'codes':
-      return t.columns + (t.label ? 1 : 0) + (t.first ? 1 : 0);
+      return l.columns + (l.label ? 1 : 0) + (l.first ? 1 : 0);
     case 'majority':
-      return 2 * t.columns;
+      return 2 * l.columns;
   }
 }
 
@@ -287,13 +284,15 @@ export function checkAnswer(
     const t = tables[shape as Shape]!;
     const big = checkTableBounds(t, bounds);
     if (big) return `the ${shape} table: ${big}`;
-    const out = checkExtent(t, request, maxRows);
+    const out = regionShapeOf(t)
+      ? checkRegionExtent(t as RegionTable, request, maxRows)
+      : checkExtent(t as LineTable, request, maxRows);
     if (out) return `the ${shape} table: ${out}`;
   }
   return undefined;
 }
 
-function checkExtent(t: Table, r: RegionRequest, maxRows: number): string | undefined {
+function checkExtent(t: LineTable, r: RegionRequest, maxRows: number): string | undefined {
   const L = r.level;
   switch (t.form) {
     case 'letters':
@@ -352,35 +351,6 @@ function checkExtent(t: Table, r: RegionRequest, maxRows: number): string | unde
   }
 }
 
-function gather<C extends Column>(c: C, rows: readonly number[]): C {
-  if (c instanceof CategoryColumn) {
-    const codes = new Int32Array(rows.length);
-    for (let i = 0; i < rows.length; i++) codes[i] = c.codes[rows[i]];
-    return categoryFromCodes(c.dict, codes) as C;
-  }
-  const out = new (columnConstructor(columnType(c) as NumericColumnType))(rows.length) as NumericColumn;
-  for (let i = 0; i < rows.length; i++) out[i] = (c as NumericColumn)[rows[i]];
-  return out as C;
-}
-
-function concatColumns<C extends Column>(cols: readonly C[]): C {
-  if (cols.length === 1) return cols[0];
-  if (cols[0] instanceof CategoryColumn) {
-    const values: (string | null)[] = [];
-    for (const c of cols) for (const v of columnValues(c)) values.push(v as string | null);
-    return categoryColumn(values) as C;
-  }
-  let n = 0;
-  for (const c of cols) n += c.length;
-  const out = new (columnConstructor(columnType(cols[0]) as NumericColumnType))(n) as NumericColumn;
-  let at = 0;
-  for (const c of cols) {
-    out.set(c as NumericColumn, at);
-    at += c.length;
-  }
-  return out as C;
-}
-
 /** Where a cut keeps a row: the region `[start, end)`, and the part of it `[from, to)` this cut answers for. */
 export interface Cut {
   readonly start: number;
@@ -389,6 +359,12 @@ export interface Cut {
   readonly to?: number;
   /** A list without `id` or `row` gets `row` = `rowBase` + its index, a stable identity across cuts. */
   readonly rowBase?: number;
+  /** The system the region is on (a pairs table's ends on other systems never anchor a pair). */
+  readonly system?: string;
+  /** A sided pairs request's side: only that end anchors a pair. */
+  readonly side?: 'a' | 'b';
+  /** A grid's second axis (grid parts join along x only). */
+  readonly y?: { readonly start: number; readonly end: number };
 }
 
 /**
@@ -397,6 +373,11 @@ export interface Cut {
  * region by default), so joined cuts of one region hold each row once. The table itself when nothing is cut.
  */
 export function sliceTable<T extends Table>(t: T, level: number, cut: Cut): T {
+  if (regionShapeOf(t)) return sliceRegion(t as RegionTable, level, cut as RegionCut) as T;
+  return sliceLine(t as LineTable, level, cut) as T;
+}
+
+function sliceLine<T extends LineTable>(t: T, level: number, cut: Cut): T {
   const { start, end } = cut;
   const from = cut.from ?? start;
   const to = cut.to ?? end;
@@ -436,25 +417,8 @@ export function sliceTable<T extends Table>(t: T, level: number, cut: Cut): T {
         count: t.count.slice(a, b),
       } as T;
     }
-    case 'list': {
-      const rows: number[] = [];
-      for (let i = 0; i < t.start.length; i++) {
-        const s = t.start[i];
-        if (s < end && Math.max(t.end[i], s + 1) > start && anchored(s)) rows.push(i);
-      }
-      const derive = !t.id && !t.row && cut.rowBase !== undefined;
-      if (rows.length === t.start.length && !derive) return t;
-      const row = derive ? Int32Array.from(rows, (i) => cut.rowBase! + i) : t.row && gather(t.row, rows);
-      return {
-        form: 'list',
-        start: gather(t.start, rows),
-        end: gather(t.end, rows),
-        ...(t.strand && { strand: gather(t.strand, rows) }),
-        ...(t.id && { id: gather(t.id, rows) }),
-        ...(row && { row }),
-        ...(t.fields && { fields: t.fields.map((f) => ({ name: f.name, column: gather(f.column, rows) })) }),
-      } as T;
-    }
+    case 'list':
+      return sliceList(t, cut, anchored) as T;
     case 'codes':
     case 'majority': {
       // rows by offset (a majority's by its row bins, as values' bins)
@@ -498,11 +462,73 @@ export function sliceTable<T extends Table>(t: T, level: number, cut: Cut): T {
 }
 
 /**
+ * A ranges list cut: a row meeting the region and anchored in the part; with item extents (`itemStart`, `itemEnd`), an
+ * item meeting the region by its extent with no piece in it gets one **span row** (`start = end` at its anchor, the
+ * item's first piece's columns), so a region read and the whole read clipped agree (EC-229).
+ */
+function sliceList(t: RangesList, cut: Cut, anchored: (s: number) => boolean): RangesList {
+  const { start, end } = cut;
+  const rows: number[] = [];
+  const at: number[] = [];
+  for (let i = 0; i < t.start.length; i++) {
+    const s = t.start[i];
+    if (s < end && Math.max(t.end[i], s + 1) > start && anchored(s)) {
+      rows.push(i);
+      at.push(-1);
+    }
+  }
+  if (t.itemStart && t.itemEnd) {
+    // an item: its id, else its row, else its index; seen with a piece in the whole region, or not
+    const keyOf = (i: number) => (t.id ? `i${t.id.codes[i]}` : t.row ? `r${t.row[i]}` : `#${i}`);
+    const hasPiece = new Set<string>();
+    for (let i = 0; i < t.start.length; i++)
+      if (t.start[i] < end && Math.max(t.end[i], t.start[i] + 1) > start) hasPiece.add(keyOf(i));
+    const spanned = new Set<string>();
+    for (let i = 0; i < t.start.length; i++) {
+      const k = keyOf(i);
+      if (hasPiece.has(k) || spanned.has(k)) continue;
+      const is = t.itemStart[i];
+      const ie = t.itemEnd[i];
+      if (!(is < end && ie > start)) continue;
+      spanned.add(k);
+      const a = Math.max(is, start);
+      if (!anchored(a)) continue;
+      rows.push(i);
+      at.push(a);
+    }
+  }
+  const derive = !t.id && !t.row && cut.rowBase !== undefined;
+  if (rows.length === t.start.length && !derive && at.every((a) => a < 0)) return t;
+  const row = derive ? Int32Array.from(rows, (i) => cut.rowBase! + i) : t.row && gather(t.row, rows);
+  const startOut = gather(t.start, rows);
+  const endOut = gather(t.end, rows);
+  for (let j = 0; j < at.length; j++) if (at[j] >= 0) startOut[j] = endOut[j] = at[j];
+  return {
+    form: 'list',
+    start: startOut,
+    end: endOut,
+    ...(t.strand && { strand: gather(t.strand, rows) }),
+    ...(t.id && { id: gather(t.id, rows) }),
+    ...(row && { row }),
+    ...(t.fields && { fields: t.fields.map((f) => ({ name: f.name, column: gather(f.column, rows) })) }),
+    ...(t.itemStart && t.itemEnd && { itemStart: gather(t.itemStart, rows), itemEnd: gather(t.itemEnd, rows) }),
+  };
+}
+
+/**
  * Tables of one shape from consecutive parts of a region joined in order, or a message when they cannot be: forms
  * differ, letters or values leave a gap, lists carry different columns.
  */
 export function joinTables(parts: readonly Table[], level: number): Table | string {
   if (parts.length === 1) return parts[0];
+  if (parts.some((p) => regionShapeOf(p))) {
+    if (!parts.every((p) => regionShapeOf(p))) return 'the parts are of different forms';
+    return joinRegion(parts as RegionTable[], level);
+  }
+  return joinLine(parts as LineTable[], level);
+}
+
+function joinLine(parts: readonly LineTable[], level: number): Table | string {
   const form = parts[0].form;
   if (parts.some((p) => p.form !== form)) return 'the parts are of different forms';
   const nonEmpty = parts.filter((p) => tableRows(p) > 0);
@@ -576,7 +602,13 @@ export function joinTables(parts: readonly Table[], level: number): Table | stri
     case 'list': {
       const ls = nonEmpty as RangesList[];
       const sig = (l: (typeof ls)[number]) =>
-        [!!l.strand, !!l.id, !!l.row, ...(l.fields ?? []).map((f) => `${f.name}:${columnType(f.column)}`)].join('|');
+        [
+          !!l.strand,
+          !!l.id,
+          !!l.row,
+          !!l.itemStart,
+          ...(l.fields ?? []).map((f) => `${f.name}:${columnType(f.column)}`),
+        ].join('|');
       if (ls.some((l) => sig(l) !== sig(ls[0]))) return 'the parts carry different columns';
       const fields: RangesField[] | undefined = ls[0].fields?.map((f, j) => ({
         name: f.name,
@@ -590,6 +622,10 @@ export function joinTables(parts: readonly Table[], level: number): Table | stri
         ...(ls[0].id && { id: concatColumns(ls.map((l) => l.id!)) }),
         ...(ls[0].row && { row: concatColumns(ls.map((l) => l.row!)) }),
         ...(fields && { fields }),
+        ...(ls[0].itemStart && {
+          itemStart: concatColumns(ls.map((l) => l.itemStart!)),
+          itemEnd: concatColumns(ls.map((l) => l.itemEnd!)),
+        }),
       };
     }
     case 'density': {

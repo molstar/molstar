@@ -8,6 +8,7 @@ import type { Issue } from '@molstar/core/repr/tree';
 import { channelOf, channelSource, fieldChannel } from './channels.js';
 import type { OpenedSource } from './protocol.js';
 import { checkCoverage } from './seq-format.js';
+import { sidedName } from './store-wants.js';
 import { type SummarySettings, summaryBytes, withSummaries } from './summaries.js';
 
 // The data store's sources (_spec/README.md "Data", Store): each attached source checked and summarized, its systems'
@@ -42,8 +43,10 @@ export class StoreSources {
     const opened = summaries ? withSummaries(source, summaries, this.settings.maxRows) : source;
     const names = new Map<string, string>();
     for (const s of opened.coverage.systems) {
-      names.set(s.name, s.name);
-      for (const a of s.aliases ?? []) if (!names.has(a)) names.set(a, s.name);
+      // a sided system is named with its side (`sidedName`): `chr1` may be listed once a side
+      const at = (n: string) => sidedName(s.side, n);
+      names.set(at(s.name), s.name);
+      for (const a of s.aliases ?? []) if (!names.has(at(a))) names.set(at(a), s.name);
     }
     return { opened, raw: source, names };
   }
