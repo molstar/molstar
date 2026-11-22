@@ -284,12 +284,14 @@ whole (`navigator.doubleClick: toggle-fit`, at the fit too, its window idle); Pa
 the section already shows alone, nothing), Home (and `showAll()`, a host's title) removes it. **The square** (core's
 `SquareNavigator`: two axes over blocks × blocks): the same model draws it; a click on a cell off the window moves each
 axis by the switching rule (one section on both axes: by the x block), one step; a double-click fits a cell's pair (one
-section on both axes: the hull of its two blocks), again the whole; a click with a switch shows the cell's two blocks.
-Not built on the square: its grips and drags per axis. **Switching blocks** (`blockSwitchRange`, `block-switch.ts`; the
-author, 2026-11-21, IGV's: a picked chromosome whole): from a view showing its block whole (within a pixel) the new
-block whole; zoomed inside a block, the same width centred at the same relative place in the new block, clamped to its
-ends; a width past the new block's length, the new block whole. One rule for a click on the navigator, `block.next` and
-`block.previous`, and the square's click.
+section on both axes: the hull of its two blocks), again the whole; a click with a switch shows the cell's two blocks. A
+drag from a cell off the window sweeps the x section (one section on both axes: both), the rectangle its release zooms
+to drawn live, tinted and outlined as the window is (the same range on y for one section, else the y window as it is);
+Escape cancels it. Not built on the square: its grips and drags per axis. **Switching blocks** (`blockSwitchRange`,
+`block-switch.ts`; the author, 2026-11-21, IGV's: a picked chromosome whole): from a view showing its block whole
+(within a pixel) the new block whole; zoomed inside a block, the same width centred at the same relative place in the
+new block, clamped to its ends; a width past the new block's length, the new block whole. One rule for a click on the
+navigator, `block.next` and `block.previous`, and the square's click.
 
 ### HoverModel
 

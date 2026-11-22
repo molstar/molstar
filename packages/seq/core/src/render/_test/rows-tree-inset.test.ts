@@ -49,12 +49,7 @@ describe('the tree column', () => {
       const rects = recordDrawLists(f.lists, ['labels'])
         .split('\n')
         .filter((l) => l.startsWith('rect '))
-        .map((l) =>
-          l
-            .slice(5)
-            .split(' ')
-            .map(Number),
-        )
+        .map((l) => l.slice(5).split(' ').map(Number))
         .filter((r) => r[0] < lay!.labelX);
       expect(rects.length).toBeGreaterThan(3);
       const x0 = lay!.treeX0;

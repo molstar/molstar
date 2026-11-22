@@ -425,3 +425,62 @@ describe('The square as composed (it opens on chr3)', () => {
     expect(v.view.back()).toBe(true);
   });
 });
+
+describe('The square’s sweep (a drag from a cell outside the window)', () => {
+  /** The rects of the window pass: the window, then a sweep's. */
+  const windowRects = (n: NonNullable<ReturnType<SeqViewer['navigatorModel']>>) => {
+    const r = n.draw()!.lists.passes.window.rects;
+    return Array.from({ length: r.n }, (_, i) => ({ x: r.x[i], y: r.y[i], w: r.w[i], h: r.h[i] }));
+  };
+
+  async function opened() {
+    const v = await open('square');
+    openSquare(v);
+    await settle(v, 100);
+    const n = v.navigatorModel('square')!;
+    n.draw();
+    return { v, n };
+  }
+
+  it('draws the swept rectangle live on the diagonal; release zooms there', async () => {
+    const { v, n } = await opened();
+    expect(windowRects(n)).toHaveLength(1);
+    let x = -1;
+    for (let px = 0; px < n.width; px++) if (n.hit(px, 18)?.block === 7) x = px;
+    expect(n.hit(x, 18)!.part).toBe('outside');
+    expect(n.down(x, 18)).toBe(true);
+    n.move(x + 30, 60);
+    const [win, sweep] = windowRects(n);
+    expect(win).toBeDefined();
+    expect(sweep.x).toBeCloseTo(x, 3);
+    expect(sweep.w).toBeCloseTo(30, 3);
+    // one section on both axes: the swept range on both, so its square sits on the diagonal
+    expect(sweep.y).toBeGreaterThan(0);
+    expect(sweep.h).toBeGreaterThan(0);
+    const before = [v.view.get(Genome)!.start, v.view.get(Genome)!.end];
+    n.up();
+    await settle(v);
+    const now = v.view.get(Genome)!;
+    expect([now.start, now.end]).not.toEqual(before);
+    // the window is the swept square afterwards
+    const rects = windowRects(n);
+    expect(rects).toHaveLength(1);
+    expect(rects[0].x).toBeCloseTo(sweep.x, 0);
+    expect(rects[0].w).toBeCloseTo(sweep.w, 0);
+  });
+
+  it('Escape cancels it: no sweep drawn, the view unchanged', async () => {
+    const { v, n } = await opened();
+    const before = [v.view.get(Genome)!.start, v.view.get(Genome)!.end];
+    let x = -1;
+    for (let px = 0; px < n.width; px++) if (n.hit(px, 18)?.block === 7) x = px;
+    expect(n.down(x, 18)).toBe(true);
+    n.move(x + 30, 60);
+    expect(windowRects(n)).toHaveLength(2);
+    expect(n.key('Escape')).toBe(true);
+    expect(windowRects(n)).toHaveLength(1);
+    n.up();
+    await settle(v);
+    expect([v.view.get(Genome)!.start, v.view.get(Genome)!.end]).toEqual(before);
+  });
+});
