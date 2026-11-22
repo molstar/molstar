@@ -143,8 +143,8 @@ limits (they were sort of self-imposed and estimate), but obviously try to minim
   the whole data, not of the view, so a pan never resizes it), rounded up to a step of one lane, between one lane and a
   cap (then lanes compact, as now); its marks centred in the band. Tracks of one kind in a section share the tallest
   height among them (two CDR tracks are equal), so neighbours do not vary lane by lane, **only when close** (the author,
-  2026-11-22: "Share only when close"): tracks of a kind whose lanes are within 2 lanes or 2x of each other share the
-  tallest of them; a track far from the rest fits its own lanes (one 40-lane track does not draw thirty one-feature
+  2026-11-22: "Share only when close"): tracks of a kind whose lanes are within 2 lanes or 2x of the smallest among them share the
+  tallest of them (sorted by lanes, so the order of tracks does not matter); a track far from the rest fits its own lanes (one 40-lane track does not draw thirty one-feature
   tracks at the cap). A track's `height` overrides.
   Why: a default fills its space and reads as designed; heights decided by the whole data stay put as the view moves.
   The numbers (decided, the author, 2026-11-19, the defaults audit `drafts/defaults-audit.md`, "Accept as drafted"):
@@ -634,6 +634,7 @@ more than a screen can give it, it scrolls inside itself with its name and the t
   full colour; from 4 px, bars at 60% with a 1 px gap and 2 px rounded tops. The top 10% of the well is headroom, a
   hairline marks the baseline, a missing value is a gap, and the fill is clipped to the well. Why: a profile reads as
   a signal when values are denser than bars can show, bars read as counts once each has room.
+  **Colour by value and points** (the author, 2026-11-22: "should we use the same look for the bars for the plddt etc too?", then "Yes, one lane"): a colour from the value is the data and draws as its scheme gives it (bars, line and dots at full strength, a profile or area at 90%); a uniform series keeps the tints above. A line or area shows a dot per value from 6 px a value (3 px across, a 1 px ring in the well's ground, none at a missing value); `encoding: 'points'` draws the dots only, below a pixel a value a thin min-to-max mark per device column; a hovered dot is ringed. Why: a scheme's colours are matched against its legend, and tinted they no longer match.
 - **A cut edge says so**: a 1 px `msui-border` line at the band's top or bottom where lanes are cut (the scroll's
   affordance at rest, quieter than the rail).
 - **Drag past the edge** (EC-150): a drag-select leaving the band autoscrolls it by time, as the rows band.

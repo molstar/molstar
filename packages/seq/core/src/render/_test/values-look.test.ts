@@ -139,7 +139,11 @@ describe('the values look', () => {
     expect(baseline(line).length).toBe(1);
     expect(baseline(line)[0].y).toBeCloseTo(baseline(bars)[0].y, 4);
     // the highest value (3) sits at the same y on the line's path as at the bar's top
-    const lineTop = Math.min(...readPaths(line.lists).flatMap((p) => p.xy.filter((_, i) => i % 2 === 1)));
+    const lineTop = Math.min(
+      ...readPaths(line.lists)
+        .filter((p) => !p.closed)
+        .flatMap((p) => p.xy.filter((_, i) => i % 2 === 1)),
+    );
     expect(lineTop).toBeCloseTo(Math.min(...barsOf(bars).map((x) => x.y)), 3);
     // a missing value: a gap, no mark in the missing color
     expect(top(line)).toBeGreaterThan(0);

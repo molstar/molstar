@@ -10,8 +10,8 @@ block and ring layouts, navigators, pairs, grids, the logo, the rows layer, the 
 PNG and the render CLI); the fourth, integration (molecules and units in language 0.5.0, structure maps and the
 structure link on a fake 3D viewer, seq data ports, extension openings, track header parts, services, bigWig with range
 reads of assets, archives, a test consumer of the resolved view). Next, the Genomes milestone (the fifth slice's plan;
-built so far: BGZF and tabix in io, language 0.7.0 with assemblies, inline data over them by name and genome resolve
-loaded when used, sections over a source's complex, the genome axis and layouts), on extension kinds.
+built so far: BGZF and tabix in io, language 0.8.0 with assemblies, inline data over them by name and genome resolve
+loaded when used, sections over a source's complex, the genome axis and layouts, values as points), on extension kinds.
 
 - **GFF's follow-ups** (GG, 2026-11-21): a name hit focuses its range, not its item address (the item waits for its data
   after open); the GFF row is 25.8 kB (the design's 12 kB was low); by region is FR's.
@@ -94,6 +94,10 @@ loaded when used, sections over a source's complex, the genome axis and layouts)
   change, after an audit of both packages for import-time effects (CSS, registrations) and a build of every app.
 
 ## `@molstar/seqx-core`
+
+- **The values layer's dots at the domain's minimum** (VP's review, 2026-11-22): a dot of a value at the low end sits on
+  the well's bottom edge and is half clipped; give dots the headroom the top has, or a floor inset of a dot's radius.
+  Also an exact-6 px boundary test and the SVG dots' coordinates against the canvas's.
 
 - **A dynamic (overlay) values node's `field`**: read its source's channel, as a static one does (DP, 2026-11-20).
 
