@@ -4147,6 +4147,10 @@ cost to the minimal viewer is the names the chunk imports from it).
 - **Kept** by the entries read: the runs (by-far maps, their `RunsLinear`) while the runs' entries are the same, the
   carried rows while the far reads' entries are too; a layout with neither changed copies the kept rows. A pan of the
   new section lays out that section and the bridge only, and costs no more than the same layer read directly.
+- **Its track's height**: a lifted layer's lanes are known as a source's are (partial, grown as the view settles: the
+  lanes its blocks pack, noted under one key for its blocks, by the model and the layer's address, since each block's
+  layer is its own prep and the track's sizing reads one). Not by its reachable region: that would read the runs and the
+  far data over the whole section again.
 - **Projection** (`lift-project.ts`, `regionProjector(store)`: a `RegionProjector`, Resolved view, Projection): a part
   on one end's sequence carried to the other's through the runs in the items tiles the store holds at any level, read by
   that end (the lifted layer's and the bridge's reads: no want of its own, so a hover never reads), its version the
