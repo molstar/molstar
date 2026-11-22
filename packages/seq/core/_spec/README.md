@@ -4002,11 +4002,11 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   and shared by the x blocks' strips. A hit on it carries its x block (`Hit.block`) and its y block (`Hit.yBlock`). Each
   block's edges are on the device grid (`BlockRow.snap`: its strip's x and width, its y block's top and height), as the
   tracks section's row above is, so the columns above and the plot's align and the cells' clip and the tiles' edges meet
-  exactly: no cell past its block's edge, no gap's ink inside it; a cell's rect is cut at its axes' edges. A boundary
-  between two blocks in view is a `seq-break` hairline a device pixel wide in the middle of their gap (down the plot at
-  an x boundary, across it at a y one; on the device grid, so inside the gap and over no block's data; where the blocks
-  touch, on their edge),. Why: a block-pair cell reads as a cell. Chrome: the first track's label at the plot's top,
-  each y block's label at the label column's right edge at its top (below the track's label when it starts there).
+  exactly: no cell past its block's edge, no gap's ink inside it; a cell's rect is cut at its axes' edges. A chain
+  boundary is the blocks' gap with no line in it (decided: the gap and an off-centre hairline together read wrong); a
+  `seq-break` hairline a device pixel wide only where two blocks in view touch with less than a device pixel between
+  them (down the plot at an x boundary, across it at a y one). Chrome: the first track's label at the plot's top, each y
+  block's label at the label column's right edge at its top (below the track's label when it starts there).
 
 ### Bridges
 
@@ -4368,10 +4368,6 @@ band (EC-220 to EC-222), inline or a source's, read through the store either way
   bounded together (`readTiles`'s layer key: past them the band's "zoom in").
 - **Hit**: `target: 'cell'`, `position` on x, `ySystem` the states system, `yPosition` the state; `bin` at a coarse
   level.
-- **Emphasis** (`render/matrix-emphasis.ts`): a member of the states system selected (its own part, else the projected
-  one, lighter) lights its state's row across the band, a tint with an outline; a hover on another layer's hit naming
-  one (a kinship grid's label, an alignment's row) or a projected hover outlines it. Rows in view only, cut at the band.
-  Why: one rows system, one member, every layer of it (across-sections.md, Categorical grid axes; ux-foundations §6).
 
 ### Hover texts by region
 

@@ -122,42 +122,22 @@ describe('a grid over blocks: layout', () => {
     }
   });
 
-  it('three blocks at the fit: a boundary a hairline in the middle of its gap, never over a block; each block’s cells clipped at its edges', async () => {
+  it('three blocks at the fit: the boundaries are the gaps, no line in them; each block’s cells clipped at its edges', async () => {
     const st = await settle(blocksSpec([10, 20, 15]));
     for (const dpr of [1, 2]) {
       const f = await st.frame({ size: Size, settled: true, dpr });
       const plot = f.layout.sections[1].placement as GridPlacement;
-      const rects = recordDrawLists(f.lists, ['labels'])
+      const hairlines = recordDrawLists(f.lists, ['labels'])
         .split('\n')
         .filter((l) => l.startsWith('rect '))
         .map((l) => l.split(' ').slice(1, 5).map(Number))
         .filter(([, y, w, h]) => y >= plot.box.y && (w <= 1 || h <= 1));
-      const xr = plot.xRow!;
-      const yr = plot.yRow!;
-      const px = 1 / dpr;
-      const down = rects.filter(([, , w]) => w <= 1).map(([x, , w]) => [x, w]);
-      const across = rects.filter(([, , w]) => w > 1).map(([, y, , h]) => [y, h]);
-      for (const [lines, row] of [
-        [down, xr],
-        [across, yr],
-      ] as const) {
-        expect(lines.length, `dpr ${dpr}`).toBe(2);
-        for (let b = 1; b < 3; b++) {
-          const gapA = row.x[b - 1] + row.w[b - 1];
-          const [at, w] = lines[b - 1];
-          expect(w, `dpr ${dpr}`).toBeCloseTo(px, 6);
-          // a device pixel inside the gap, centred in it: touching neither block's data
-          expect(at, `dpr ${dpr}`).toBeGreaterThanOrEqual(gapA - 1e-6);
-          expect(at + w, `dpr ${dpr}`).toBeLessThanOrEqual(row.x[b] + 1e-6);
-          expect(Math.abs(at + w / 2 - (gapA + row.x[b]) / 2), `dpr ${dpr}`).toBeLessThanOrEqual(px);
-          expect(Number.isInteger(Math.round(at * dpr * 1e6) / 1e6), `dpr ${dpr}`).toBe(true);
-        }
-      }
+      expect(hairlines, `dpr ${dpr}`).toEqual([]);
       expectClipped(f.lists, plot, dpr);
     }
   });
 
-  it('a boundary at the window’s edge, the blocks touching: its hairline on their edge', async () => {
+  it('a hairline only where two blocks touch with no gap: a boundary at the window’s edge', async () => {
     const st = await settle(blocksSpec([10, 20, 15]));
     // the first boundary a hundredth of a unit inside the window's left edge: its gap under a pixel
     const f = await st.frame({ size: Size, settled: true, viewports: { '/views/v/chains': { start: 9.99, end: 45 } } });
@@ -169,9 +149,9 @@ describe('a grid over blocks: layout', () => {
       .filter((l) => l.startsWith('rect '))
       .map((l) => l.split(' ').slice(1, 5).map(Number))
       .filter(([, y, w, h]) => y >= plot.box.y - 1 && (w === 1 || h === 1));
-    // down the plot and across it at each boundary: the touching one and the one in a gap
-    expect(hair.filter(([, , w]) => w === 1).length).toBe(2);
-    expect(hair.filter(([, , , h]) => h === 1).length).toBe(2);
+    // down the plot and across it at the touching boundary; none at the second (a gap)
+    expect(hair.filter(([, , w]) => w === 1).length).toBe(1);
+    expect(hair.filter(([, , , h]) => h === 1).length).toBe(1);
     expectClipped(f.lists, plot, 1, false);
   });
 });
