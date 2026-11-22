@@ -40,19 +40,11 @@ export const DefaultZoomStrip: {
 export type ZoomOverBlocks = 'always' | 'narrow' | 'never';
 
 /**
- * One stroke weight for every line of a navigator's part (the window, the mark, the funnel, an idle frame), CSS px
- * (navigators.md, "The window's look", 3: lit is said by the fill and the grips, never a thicker line).
- */
-export const NavStrokePx = 1;
-
-/**
  * The window's look, fixed as other marks' are (a look, not a reader's choice): its body's fill opacity, and lit
  * (hovered or dragged); an idle outline's opacity; a grip's share of the window's thickness.
  */
 export const WindowFill = 0.12;
 const LitFill = 0.2;
-export const IdleAlpha = 0.4;
-const QuietAlpha: number = Math.round(IdleAlpha * 255);
 const GripShare = 0.5;
 // an imported binding read in a draw is a property read under a module runner (it boxed one number a frame here)
 const None: number = NoColor;
@@ -70,7 +62,6 @@ const FlagIdle: number = NavWindowFlags.idle;
 const FlagNoStart: number = NavWindowFlags.noStart;
 const FlagNoEnd: number = NavWindowFlags.noEnd;
 const FlagQuiet: number = NavWindowFlags.quiet;
-const StrokePx: number = NavStrokePx;
 
 /**
  * A window along one axis after the floor (`navigator.window`): its true ends `[a, b)` within the span `[lo, hi)` read
@@ -267,8 +258,8 @@ export function drawNavigatorWindow(
   g[4] = idle || outline ? None : ((ink & 0xffffff00) | Math.round(fill * 255)) >>> 0;
   // two stores, not a conditional between two numbers (one is boxed a frame)
   g[5] = ink;
-  if (quiet) g[5] = ((ink & 0xffffff00) | QuietAlpha) >>> 0;
-  g[6] = StrokePx;
+  if (quiet) g[5] = ((ink & 0xffffff00) | Math.round(config.idleAlpha * 255)) >>> 0;
+  g[6] = config.strokePx;
   emit(out);
   if (idle) return;
   // the true extent where the floor drew it wider: a hairline, when it is at least a device pixel

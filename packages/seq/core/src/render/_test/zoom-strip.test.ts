@@ -15,7 +15,6 @@ import { createSeqSpec, stripNavigator } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
 import { DarkTokens, DefaultRenderConfig, NavWindowFlags, type ViewLayout } from '../index.js';
 import { type NavigatorRendererOptions, windowText } from '../navigator.js';
-import { IdleAlpha } from '../window.js';
 import { regionSpec, settleNavigator } from './navigator-fixtures.js';
 
 const R = '/views/v/region';
@@ -201,7 +200,10 @@ describe('the zoom strip', () => {
     const g = s.nav.frame({ size: { width: 600, height: 30 }, view: view.layout });
     expect(g.rebuilt).toBe(true);
     const p = g.lists.passes.window.paths;
-    const quiet = ((DarkTokens.colors['seq-window'] & 0xffffff00) | Math.round(IdleAlpha * 255)) >>> 0;
+    const quiet =
+      ((DarkTokens.colors['seq-window'] & 0xffffff00) |
+        Math.round(DefaultRenderConfig.navigator.window.idleAlpha * 255)) >>>
+      0;
     for (let i = 0; i < p.n; i++) expect(p.stroke[i]).toBe(quiet);
     expect(g.lists.passes.background.rects.fill[0]).toBe(DarkTokens.colors['msui-bg']);
   });
@@ -215,5 +217,7 @@ describe('the zoom strip', () => {
     expect(w.x0).toBeCloseTo(box.x, 3);
     expect(w.x1).toBeCloseTo(box.x + box.width, 3);
     expect(s.nav.sectionUnitAt(R, box.x + box.width / 3)).toBeCloseTo(10, 0);
+    // a reversed axis reads in positions order (not an arc), on a cyclic one the arc of its genomic start to its end
+    expect(windowText(s.model, s.nav.navigator, f.windows[0])).toBe('chr:301–330 of chr');
   });
 });

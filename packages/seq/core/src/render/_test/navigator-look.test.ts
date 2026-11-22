@@ -11,9 +11,8 @@
 
 import { loadGenome } from '@molstar/seqx-core/resolve';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { LightTokens, type ViewLayout } from '../index.js';
+import { DefaultRenderConfig, LightTokens, type ViewLayout } from '../index.js';
 import type { NavigatorFrame, NavigatorFrameInput } from '../navigator.js';
-import { IdleAlpha, NavStrokePx } from '../window.js';
 import { genomeSpec, toyGenome } from './genome-fixtures.js';
 import { settle } from './helpers.js';
 import { regionSpec, settleNavigator, withNavigator } from './navigator-fixtures.js';
@@ -97,7 +96,7 @@ describe('the navigator over a genome: two rows always', () => {
       for (let i = 0; i < rects.n; i++)
         if (rects.stroke[i] !== 0 && rects.strokeWidth[i] > 0) widths.add(rects.strokeWidth[i]);
       for (let i = 0; i < paths.n; i++) widths.add(paths.strokeWidth[i]);
-      expect([...widths]).toEqual([NavStrokePx]);
+      expect([...widths]).toEqual([DefaultRenderConfig.navigator.window.strokePx]);
     }
   });
 });
@@ -114,7 +113,10 @@ describe('a window at the fit is one quiet frame (F25)', () => {
     for (let i = 0; i < rects.n; i++) expect(rects.fill[i]).not.toBe(grip);
     for (const x of [1, 300, 599]) expect(s.nav.hit(x, 12)?.part).toBe('outside');
     // an outline only: its stroke the quiet alpha of the window's ink
-    const quiet = ((LightTokens.colors['seq-window'] & 0xffffff00) | Math.round(IdleAlpha * 255)) >>> 0;
+    const quiet =
+      ((LightTokens.colors['seq-window'] & 0xffffff00) |
+        Math.round(DefaultRenderConfig.navigator.window.idleAlpha * 255)) >>>
+      0;
     expect(Array.from({ length: rects.n }, (_, i) => rects.stroke[i]).filter((c) => c !== 0)).toEqual([quiet]);
 
     const z = await settleNavigator(regionSpec({ range: [0, 1000] }));

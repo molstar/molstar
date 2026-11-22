@@ -724,6 +724,7 @@ export class NavigatorBase {
     }
     w.p0 = p0;
     w.p1 = p1;
+    w.rev = s.section.axis.dir * (path.to ? pathDir(path.to) : 1) < 0;
     const u0 = offsetOf(axis, p0) ?? nearestOffsetOf(axis, p0);
     const u1 = offsetOf(axis, p1) ?? nearestOffsetOf(axis, p1);
     if (u0 === undefined || u1 === undefined) return false;

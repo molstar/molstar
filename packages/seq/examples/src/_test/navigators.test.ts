@@ -19,6 +19,7 @@ import {
   type BandsLay,
   bundledTextMetrics,
   DarkTokens,
+  DefaultRenderConfig,
   LightTokens,
   Renderer,
   type RangesLay,
@@ -27,7 +28,6 @@ import {
   openModel,
 } from '@molstar/seqx-core/render';
 import { NavigatorRenderer } from '@molstar/seqx-core/render/navigator';
-import { IdleAlpha } from '@molstar/seqx-core/render/window';
 import { describe, expect, it } from 'vitest';
 import { generatedRegistry } from '../globins/data.js';
 import { Chr17Bands, Chr17BandsLevel, RegionOnChr17 } from '../navigators.js';
@@ -169,7 +169,10 @@ describe('the examples’ navigators', () => {
       const g = r.renderer.frame({ size: { width: 800, height: 24 }, view: r.view.layout });
       const ink = g.lists.passes.window.paths;
       // the connectors at the quiet alpha of the window's ink, one weight with every line of the part
-      const quiet = ((tokens.colors['seq-window'] & 0xffffff00) | Math.round(IdleAlpha * 255)) >>> 0;
+      const quiet =
+        ((tokens.colors['seq-window'] & 0xffffff00) |
+          Math.round(DefaultRenderConfig.navigator.window.idleAlpha * 255)) >>>
+        0;
       for (let i = 0; i < 2; i++) expect(ink.stroke[i]).toBe(quiet);
       const view = ExampleViews.find((v) => v.id === 'gene-region-ideogram')!;
       const c = createSeqContext({

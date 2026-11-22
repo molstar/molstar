@@ -207,6 +207,8 @@ export class NavigatorWindow {
   /** Its ends as positions of the navigator's system, and as display rows (what its title and slider say). */
   p0 = 0;
   p1 = 0;
+  /** The section runs against the navigator's axis (its display start is the larger position). */
+  rev = false;
   /** Over blocks: the systems its ends are on (`p0` and `p1` positions on them). */
   s0 = '';
   s1 = '';
@@ -220,9 +222,20 @@ export function windowText(model: StaticModel, nav: ResolvedNavigator, w: Naviga
   if (nav.blocks) return blocksText(model, w);
   const name = (nav.system && model.systems.get(nav.system)?.name) ?? '';
   const parts: string[] = [];
-  if (w.axes & NavWindowFlags.x) parts.push(`${spanText(model, nav, w.p0, w.p1)} of ${name}`);
+  if (w.axes & NavWindowFlags.x) parts.push(`${windowSpan(model, nav, w)} of ${name}`);
   if (w.axes & NavWindowFlags.y) parts.push(`rows ${countText(w.r0 + 1)}–${countText(w.r1)} of ${countText(w.rows)}`);
   return parts.join(', ');
+}
+
+/**
+ * A window's positions as text: from its genomic start to its genomic end (`rev`: a reversed section's display start is
+ * the larger position); an end before the start on a cyclic system is the arc over the origin, never its complement.
+ */
+function windowSpan(model: StaticModel, nav: ResolvedNavigator, w: NavigatorWindow): string {
+  const a = w.rev ? w.p1 : w.p0;
+  const b = w.rev ? w.p0 : w.p1;
+  if (b < a && nav.system && model.systems.get(nav.system)?.cyclic) return arcText(model, nav, a, b);
+  return spanText(model, nav, w.p0, w.p1);
 }
 
 const countText = (n: number) => Math.round(n).toLocaleString('en-US');
@@ -252,11 +265,9 @@ export function blockPlaceText(model: StaticModel, system: string, position: num
 
 /**
  * Positions `[p0, p1)` on the navigator's system as text, 1-based (`chr17:7,666,403–7,688,402`); a reversed axis's
- * ends in either order, across a cyclic origin (`p1` before `p0`) the arc over it.
+ * ends in either order (a reversed axis's).
  */
 export function spanText(model: StaticModel, nav: ResolvedNavigator, p0: number, p1: number): string {
-  // a window across a cyclic origin ends before it starts: the arc over the origin, never its complement
-  if (p1 < p0 && nav.system && model.systems.get(nav.system)?.cyclic) return arcText(model, nav, p0, p1);
   return arcText(model, nav, Math.min(p0, p1), Math.max(p0, p1));
 }
 

@@ -16,15 +16,7 @@ import { BlockPlacement } from './layout/blocks.js';
 import type { WindowPart } from './layout/types.js';
 import type { SeqTokens } from './tokens.js';
 import { hitView, type SectionLayout } from './tracks.js';
-import {
-  drawNavigatorWindow,
-  IdleAlpha,
-  NavStrokePx,
-  floorExtent,
-  NavWindow,
-  NavWindowFlags,
-  navigatorPart,
-} from './window.js';
+import { drawNavigatorWindow, floorExtent, NavWindow, NavWindowFlags, navigatorPart } from './window.js';
 
 import {
   type NavigatorHit,
@@ -56,8 +48,6 @@ const Ext = new Float64Array(8);
 const MarkUs = new Float64Array(4);
 const Line = new Float64Array(4);
 const FlagMark: number = NavWindowFlags.outline | NavWindowFlags.quiet;
-const StrokePx: number = NavStrokePx;
-const QuietAlpha: number = Math.round(IdleAlpha * 255);
 const None: number = NoColor;
 const Seen: number[] = [];
 const OwnPasses: readonly PassName[] = ['window', 'highlight', 'selection', 'hover', 'cursor'];
@@ -301,12 +291,13 @@ export class NavigatorRenderer extends NavigatorBase {
     }
     // the connectors: from the mark's foot to the zoom strip's top, its start to the strip's start, its end to its end
     // (over the origin the first piece's start, the second's end)
+    if (this.config.navigator.zoomStrip.funnel === 'none') return;
     const g = out.args;
     const wb = work.placement.box;
     for (let k = 0; k < 2; k++) {
       g[4] = None;
-      g[5] = ((tokens.colors['seq-window'] & 0xffffff00) | QuietAlpha) >>> 0;
-      g[6] = StrokePx;
+      g[5] = ((tokens.colors['seq-window'] & 0xffffff00) | Math.round(c.idleAlpha * 255)) >>> 0;
+      g[6] = c.strokePx;
       g[7] = 0;
       // display units run left to right on both: the arc's start is the strip's start
       Line[0] = k === 0 ? m[0] : wraps ? m[3] : m[1];

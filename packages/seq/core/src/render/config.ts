@@ -303,7 +303,13 @@ export interface RenderConfig {
       readonly touchHitPx: number;
       readonly handlePx: number;
       readonly floor: 'centred' | 'thumb';
+      /** One stroke weight for every line of a navigator's part, CSS px (1): lit is said by the fill and the grips. */
+      readonly strokePx: number;
+      /** The quiet alpha of every "where" mark and an idle frame (0.4): the control stays the loudest. */
+      readonly idleAlpha: number;
     };
+    /** The zoom strip's funnel (two lines from the context's mark to the control row): `muted` or `none`. */
+    readonly zoomStrip: { readonly funnel: 'muted' | 'none' };
     readonly trackScale: number;
     readonly trackMinPx: number;
     readonly marks: readonly ('selection' | 'highlights' | 'cursor')[];
@@ -458,7 +464,8 @@ export const DefaultRenderConfig: RenderConfig = {
     columns: { floorPx: 32, gapPx: 6, dataMinPx: 200, titlePx: 16 },
   },
   navigator: {
-    window: { minPx: 16, hitPx: 12, touchHitPx: 24, handlePx: 5, floor: 'centred' },
+    window: { minPx: 16, hitPx: 12, touchHitPx: 24, handlePx: 5, floor: 'centred', strokePx: 1, idleAlpha: 0.4 },
+    zoomStrip: { funnel: 'muted' },
     trackScale: 0.25,
     trackMinPx: 2,
     marks: ['selection', 'highlights', 'cursor'],
@@ -553,6 +560,7 @@ export function renderConfig(over: RenderConfigOverrides = {}): RenderConfig {
       ...DefaultRenderConfig.navigator,
       ...over.navigator,
       window: { ...DefaultRenderConfig.navigator.window, ...over.navigator?.window },
+      zoomStrip: { ...DefaultRenderConfig.navigator.zoomStrip, ...over.navigator?.zoomStrip },
       rail: { ...DefaultRenderConfig.navigator.rail, ...over.navigator?.rail },
       overview: { ...DefaultRenderConfig.navigator.overview, ...over.navigator?.overview },
       square: { ...DefaultRenderConfig.navigator.square, ...over.navigator?.square },
