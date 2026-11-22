@@ -358,7 +358,7 @@ describe('the grid over the complex', () => {
     );
   });
 
-  it('the chain boundaries are the blocks’ gaps, no line in them; each pair’s cells exactly in its blocks’ box, canvas lists and SVG alike', async () => {
+  it('the chain boundaries are a hairline in the blocks’ gaps; each pair’s cells exactly in its blocks’ box, canvas lists and SVG alike', async () => {
     const ctx = createSeqContext({
       registry: [
         { kind: 'format-runtime', runtime: SeqRuntime },
@@ -374,10 +374,16 @@ describe('the grid over the complex', () => {
     const clips = lines.filter((l) => l.startsWith('clip ') && l.includes(' cut-')).map(nums);
     expect(clips).toHaveLength(4);
     const plotTop = Math.min(...clips.map((c) => c[1]));
-    // no hairline over the plot: the boundary is the gap
+    // the boundary between two blocks a hairline in the middle of their gap: one down the plot, one across it
     const hair = lines.filter((l) => l.startsWith('rect ') && l.includes('#8a847a') && nums(l)[1] >= plotTop - 1);
-    expect(hair).toEqual([]);
-    expect(r.svg).not.toContain('#8a847a');
+    expect(hair).toHaveLength(2);
+    expect(r.svg).toContain('#8a847a');
+    const [down] = hair.map(nums).filter(([, , w]) => w < 2);
+    const xGap = [...new Set(clips.map((c) => `${c[0]} ${c[2]}`))]
+      .map((k) => k.split(' ').map(Number))
+      .sort((a, b) => a[0] - b[0]);
+    expect(down[0]).toBeGreaterThanOrEqual(xGap[0][0] + xGap[0][1]);
+    expect(down[0] + down[2]).toBeLessThanOrEqual(xGap[1][0]);
     // each image exactly its pair of blocks' box (the clip round it, on the pixel grid): no cell past a block's edge
     let clip: number[] | undefined;
     let images = 0;
