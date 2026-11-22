@@ -379,8 +379,8 @@ function drawChrome(s: SectionLayout, _pass: PassName, out: PassWriter) {
 }
 
 /**
- * A grid over blocks' chrome: a chain boundary is the blocks' gap with no line in it, a `seq-break` hairline only where
- * two blocks touch with no gap (down the plot at an x boundary, across it at a y one); the first track's label
+ * A grid over blocks' chrome: a boundary between two blocks in view is a `seq-break` hairline in the middle of their gap
+ * (down the plot at an x boundary, across it at a y one), never over data; the first track's label
  * at the plot's top in the label column; and each y block's label at the label column's right edge at the block's top
  * (below the track's label when it starts there), drawn when the block is at least 14 px tall. The x blocks' labels are
  * their section's, above.
@@ -397,16 +397,17 @@ function drawBlocksChrome(s: SectionLayout, p: GridPlacement, out: PassWriter) {
   const ink = tokens.colors['seq-break'];
   const muted = tokens.colors['msui-text-muted'];
   const right = s.axis ? s.axis.x0 - config.labelGap / 2 : config.inset + config.labelWidth;
-  // a boundary is the blocks' gap, with no line in it; a hairline a device pixel wide only where two blocks in view
-  // touch with less than a device pixel between them (a boundary at the window's edge)
-  const px = 1 / (s.axis?.dpr || 1);
+  // a boundary between two blocks in view is a hairline a device pixel wide in the middle of their gap (on the device
+  // grid, so inside it: a gap is whole device pixels), across the plot; where the blocks touch it is on their edge
+  const dpr = s.axis?.dpr || 1;
+  const px = 1 / dpr;
   for (let b = 1; b < blocks.length; b++) {
-    const at = touching(xr, b, px);
-    if (at >= 0) out.fill(at - px / 2, top, px, h, ink);
+    const at = between(xr, b);
+    if (at >= 0) out.fill(Math.round((at - px / 2) * dpr) / dpr, top, px, h, ink);
   }
   for (let b = 1; b < yBlocks.length; b++) {
-    const atY = touching(yr, b, px);
-    if (atY >= 0) out.fill(xr.x0, atY - px / 2, xr.width, px, ink);
+    const atY = between(yr, b);
+    if (atY >= 0) out.fill(xr.x0, Math.round((atY - px / 2) * dpr) / dpr, xr.width, px, ink);
   }
   const t = s.tracks[0];
   if (t?.labelText) {
@@ -430,9 +431,8 @@ function drawBlocksChrome(s: SectionLayout, p: GridPlacement, out: PassWriter) {
   }
 }
 
-/** Where block `b` meets the block before it with no gap (less than `px` between them), −1 otherwise. */
-function touching(r: BlockRow, b: number, px: number): number {
+/** The middle of the gap between block `b` and the block before it (both in view), −1 when either is out of view. */
+function between(r: BlockRow, b: number): number {
   if (r.ve[b] <= r.vs[b] || r.ve[b - 1] <= r.vs[b - 1]) return -1;
-  const end = r.x[b - 1] + r.w[b - 1];
-  return r.x[b] - end < px ? (end + r.x[b]) / 2 : -1;
+  return (r.x[b - 1] + r.w[b - 1] + r.x[b]) / 2;
 }
