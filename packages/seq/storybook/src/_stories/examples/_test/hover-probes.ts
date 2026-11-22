@@ -20,6 +20,7 @@ import {
 } from '@molstar/seqx-core/render';
 import { CanvasBackend, type CanvasLike, type Context2D } from '@molstar/seqx-viewer/canvas';
 import { describerFor } from '@molstar/seqx-viewer/describe';
+import { legendRows } from '@molstar/seqx-viewer/legends';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 
 // The hover contract's sweep (_spec/README.md "Render", Emphasis, The hover contract): points on the marks each layer
@@ -308,6 +309,8 @@ export interface Swept {
   readonly rails: number;
   readonly types: string[];
   readonly layouts: string[];
+  /** The legend entries the hovered items read as (`key`, NUL, `value`). */
+  readonly entries: string[];
 }
 
 /**
@@ -319,6 +322,7 @@ export function sweepHover(v: SeqViewer, id: string, per = 4): Swept {
   const wrong: string[] = [];
   const types = new Set<string>();
   const layouts = new Set<string>();
+  const entries = new Set<string>();
   let rails = 0;
   const probes = probesOf(v.frame!, per);
   const words = describerFor({ ...v, layout: () => v.frame?.layout });
@@ -360,7 +364,36 @@ export function sweepHover(v: SeqViewer, id: string, per = 4): Swept {
     }
     const card = words.describe(h);
     if (!card || (!card.title && !card.rows.length)) wrong.push(`${where}: no card (hit ${h.layer})`);
+    // the legend entry the item reads as (outlined): the way back is swept by `sweepLegends`
+    const entry = v.legends.hover.value;
+    if (entry?.value !== undefined) entries.add(`${entry.key}\u0000${entry.value}`);
     v.input.leave();
   }
-  return { wrong, probes: probes.length, rails, types: [...types], layouts: [...layouts] };
+  return { wrong, probes: probes.length, rails, types: [...types], layouts: [...layouts], entries: [...entries] };
+}
+
+/**
+ * Legends both ways (_spec/README.md "Legends"; the hover contract): every entry with an action (`LegendEntryRow.action`,
+ * the pointer's) whose items are drawn in view lights them when hovered (`legend.hover`: a highlight drawn); an entry
+ * with none is no target (the default cursor); and each entry a hovered item reads as (`entries`, found by the hover
+ * sweep) has its action, so the hover works both ways.
+ */
+export function sweepLegends(v: SeqViewer, id: string, entries: readonly string[]): string[] {
+  const wrong: string[] = [];
+  const rows = legendRows(v);
+  for (const e of entries) {
+    const [key, value] = e.split('\u0000');
+    const entry = rows.find((r) => r.key === key)?.entries.find((x) => x.value === value);
+    if (!entry?.action) wrong.push(`${id} legend ${key} ${value}: an item reads as it, but the entry has no action`);
+  }
+  for (const row of rows)
+    for (const entry of row.entries) {
+      if (!entry.action || entry.value === undefined || !v.legends.entryItems(row.layer, entry.value)) continue;
+      void v.execute('legend.hover', { address: row.layer, entry: entry.value });
+      const f = v.draw() ?? v.frame!;
+      if (!passBoxes(f.lists.passes.highlight).length)
+        wrong.push(`${id} legend ${row.key} ${entry.value}: nothing lit`);
+      void v.execute('legend.hover', {});
+    }
+  return wrong;
 }

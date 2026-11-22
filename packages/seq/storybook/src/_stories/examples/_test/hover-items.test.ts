@@ -7,13 +7,14 @@
 // The items the hover contract closes (_spec/README.md "Render", Emphasis, The hover contract), each on its story's
 // view as the story composes it, headless on a fake clock: the density row's highlight (Files › UniProt's entry), a
 // ligand's score box lighting its arcs (Complex › As a complex), the strands' density bands on a ring and a strip
-// (Plasmid › Ring at scale).
+// (Plasmid › Ring at scale); and a legend's hover both ways (Genome formats › VCF › TP53 ClinVar).
 
 import { SeqCoreConfig } from '@molstar/seqx-core/context';
 import { type Frame, type RangesLay, walkPass } from '@molstar/seqx-core/render';
-import { ComplexViews, FilesViews, PlasmidViews } from '@molstar/seqx-examples';
+import { ComplexViews, ExampleViews, FilesViews, PlasmidViews } from '@molstar/seqx-examples';
 import { LinksHoverProvider } from '@molstar/seqx-viewer/behaviors';
 import { describerFor } from '@molstar/seqx-viewer/describe';
+import { legendRows } from '@molstar/seqx-viewer/legends';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { HoverOwner, openExample } from './draw-checks.js';
@@ -56,6 +57,37 @@ function hoverAt(v: SeqViewer, x: number, y: number) {
   const own = f.layout.sections.find((s) => s.section.address === v.hover.current.section);
   return { f, marked: own !== undefined && drawnIn(passBoxes(f.lists.passes.hover), own), card: card(v) };
 }
+
+describe('legends both ways', () => {
+  it('a legend’s hover working one way only (Genome formats › VCF › TP53 ClinVar): the “deletion” entry lights its variants, as a variant outlines it', {
+    tags: ['medium'],
+  }, async () => {
+    const v = (viewer = await open(ExampleViews.find((x) => x.id === 'vcf-clinvar')!));
+    const row = legendRows(v).find((r) => r.entries.some((e) => e.value === 'deletion'))!;
+    const deletion = row.entries.find((e) => e.value === 'deletion')!;
+    // a variant of it hovered outlines the entry (the way there)
+    const variants = v
+      .frame!.layout.sections.flatMap((s) => s.tracks.flatMap((t) => t.layers))
+      .find((l) => l.key === row.layer)!;
+    const lay = variants.lay as RangesLay;
+    // a deletion's mark the pointer reaches (variants of one site share a pixel: the one hit there)
+    let found = false;
+    for (let k = 0; k < lay.hn && !found; k++) {
+      if (lay.painted[lay.hitem[k]] !== 'deletion') continue;
+      v.input.move((lay.hx0[k] + lay.hx1[k]) / 2, lay.laneY + (lay.hlane[k] + 0.5) * lay.laneHeight);
+      v.draw();
+      found = v.legends.hover.value?.value === 'deletion';
+      v.input.leave();
+    }
+    expect(found).toBe(true);
+    // the way back: the entry is a target, its hover lights its variants in view
+    expect(deletion.action).toBe(true);
+    await v.execute('legend.hover', { address: row.layer, entry: 'deletion' });
+    const f = v.draw() ?? v.frame!;
+    expect(passBoxes(f.lists.passes.highlight).length).toBeGreaterThan(0);
+    expect(v.highlight.get('legend')?.elements.keys.length).toBeGreaterThan(0);
+  });
+});
 
 describe('the hover contract closes', () => {
   it('the density row’s missing highlight (Files › UniProt’s entry, Regions): the row lights the stretch hovered', async () => {

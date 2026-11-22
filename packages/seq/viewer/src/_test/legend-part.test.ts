@@ -114,6 +114,22 @@ describe('the Legend part', () => {
   }
   const slot = (el: HTMLElement) => el.querySelector<HTMLElement>('[data-channels]');
 
+  it('an entry with no action (no address names its items, none drawn) keeps the default cursor and hovers nothing', async () => {
+    const { el } = await mounted({ of: '/views/main/p/domains' });
+    const options = () => [...el.querySelectorAll<HTMLElement>('[role="option"]')];
+    // both entries name items: a pointer each
+    expect(options().map((o) => o.style.cursor)).toEqual(['pointer', 'pointer']);
+    // no address names them and nothing is drawn in their value: no action, no pointer, no hover
+    viewer!.legends.addressable = () => false;
+    viewer!.legends.entryItems = () => undefined;
+    // a redraw of the part (the reader's substitution moves)
+    viewer!.legends.setCvdSafe(true);
+    const swatches = options();
+    expect(swatches.map((o) => o.style.cursor)).toEqual(['default', 'default']);
+    swatches[0].dispatchEvent(new PointerEvent('pointerover', { bubbles: true }));
+    expect(viewer!.highlight.names.value).not.toContain('legend');
+  });
+
   it('groups one a line: a column, each title muted, 600, 11 px, 12 px between', async () => {
     const { el } = await mounted({});
     const box = el.querySelector<HTMLElement>('[role="listbox"]')!;

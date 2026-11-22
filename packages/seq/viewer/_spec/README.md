@@ -1456,9 +1456,16 @@ derived on settle: a legend that changes during a pan reads as noise, and its co
   filtered (core's Render, Filters: `splitDataForms` is the one parser). A legend entry's items are the base's forms and
   `(item :<field> v)` in one query (`itemsAddress`: one item form holding every param, or an `and` when the base has
   `and` or `or`), `legend.select` (session: the items whose field has the value; Cmd/Ctrl toggles), `legend.hover`
-  (session: a highlight named `legend`), `theme.cvd-safe` (session). `fittingSchemes(layer)` is what a menu offers (the
-  schemes whose subject and measures fit the layer); `preview(layer, channel, value)` shows one hovered (a preview,
-  ended by `layer.channel` or Esc).
+  (session: a highlight named `legend`), `theme.cvd-safe` (session). **Both ways** (core's Emphasis, the hover
+  contract): an item hovered outlines the entry it reads as (`updateHover`: its painted value), and the entry hovered
+  lights its items in view; where its address names none the store holds (a source's rows: a VCF's alleles; a derived
+  table), the items the layout drew in its value (`LegendModel.entryItems`: their hit marks, never items read and out of
+  view) are lit and selected instead. An entry **has an action** (`LegendEntryRow.action`, `LegendModel.names`) when an
+  address names its items (`addressable`, the behavior's) or items in its value are drawn: only then is it a pointer
+  target with a click, a hover and Enter; a swatch alone keeps the default cursor. Swept by the hover sweep: every entry
+  a hovered item reads as has its action, and every entry with an action and items drawn lights them.
+  `fittingSchemes(layer)` is what a menu offers (the schemes whose subject and measures fit the layer);
+  `preview(layer, channel, value)` shows one hovered (a preview, ended by `layer.channel` or Esc).
 - **The Legend part's groups run one a line** (a column, 12 px apart; each title muted, 600, 11 px: grouping is seen
   without reading) and **its channels row keeps its place**: the row is outside the listbox (a listbox holds options),
   one line (`nowrap`, the first two channels named, the rest a `+n` chip), and `channels: reserve` (the default) holds
