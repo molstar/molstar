@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { knownLanesVersion } from './known.js';
 import type { Issue } from '@molstar/core/repr/tree';
 import type { Coverage, Want } from '@molstar/seqx-core/data';
 import type { ResolvedSection } from '@molstar/seqx-core/view';
@@ -216,6 +217,8 @@ interface ViewStamp {
   readonly windows: boolean;
   readonly rails: unknown;
   readonly headers: unknown;
+  /** The count of source lanes grown (a track sized by them is laid out again). */
+  readonly lanes: number;
 }
 
 export function viewStamp(
@@ -244,6 +247,7 @@ export function viewStamp(
     windows: input.windows ?? false,
     rails: input.rails,
     headers: input.headers,
+    lanes: knownLanesVersion(),
   };
 }
 
@@ -266,7 +270,8 @@ function sameStamp(a: ViewStamp, b: ViewStamp): boolean {
     a.figure === b.figure &&
     a.windows === b.windows &&
     a.rails === b.rails &&
-    a.headers === b.headers
+    a.headers === b.headers &&
+    a.lanes === b.lanes
   );
 }
 

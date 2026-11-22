@@ -17,6 +17,8 @@ export interface LayerContent {
   readonly lanes: number;
   /** Some item's label does not fit inside its mark at the fit view: a label lane above the marks. */
   readonly labels: boolean;
+  /** The lanes are those a source's data has packed so far, not its whole (they grow as tiles settle). */
+  readonly partial?: boolean;
 }
 
 /** A section's track as a sizing reads it. */
@@ -58,7 +60,7 @@ export type TrackSizingHook = (
  * @internal
  */
 export function lanesHeight(lanes: number, config: RenderConfig): number {
-  const n = Math.max(1, Math.min(config.maxLanes, lanes));
+  const n = Math.max(1, lanes);
   return 2 * config.lanePadding + n * config.laneHeight;
 }
 

@@ -157,6 +157,16 @@ export interface RangesLay extends ItemsBase {
   order: Int32Array;
   /** The most lanes the layer has shown, its whole data's not known (a tiled source's): what its lanes are centred by. */
   seen: number;
+  /**
+   * The band's lanes scroll inside it (_spec/README.md "Render", Track sizing): the lanes past the band, the whole lanes
+   * it shows (`room`), the first lane in view in lanes (`top`, fractional) and the most it may be (`scrollMax`: 0 while
+   * every lane fits); `laneY` is shifted by it, `laneY0` the unshifted top of the lane block.
+   */
+  scrolls: boolean;
+  room: number;
+  top: number;
+  scrollMax: number;
+  laneY0: number;
   /** The label lane's top (−1: none) and the labels placed there (`ln`): x, width, where their item starts, item. */
   labelY: number;
   ln: number;
@@ -270,6 +280,11 @@ export function newLay(ctx: LayoutContext, prep: RangesPrep): RangesLay {
     idCache: new Map(),
     order: new Int32Array(64),
     seen: 0,
+    scrolls: false,
+    room: 0,
+    top: 0,
+    scrollMax: 0,
+    laneY0: 0,
     cn: 0,
     cx0: new Float32Array(8),
     cx1: new Float32Array(8),

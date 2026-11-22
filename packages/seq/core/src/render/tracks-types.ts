@@ -225,6 +225,8 @@ export interface SizedHeights {
   readonly version: number;
   readonly sizings: LayoutInput['sizings'];
   readonly hook: LayoutInput['trackSizing'];
+  /** The count of source lanes grown it was sized at (`knownLanesVersion`). */
+  readonly known: number;
   readonly heights: readonly number[];
   /** Each track's content (one lane block a track), undefined for a track not sized by its content. */
   readonly contents: readonly (LayerContent | undefined)[];

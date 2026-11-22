@@ -167,7 +167,13 @@ describe('Features/Genome formats/GFF3 and GTF, headless', () => {
         (i) => g.repOf[i] === i && tx.lanes[i] >= 0 && g.labelW[i] > 0 && labelRoom(tx, i) >= tx.box.x,
       );
       expect(room.length).toBeGreaterThan(10);
-      expect(g.ln).toBe(room.length);
+      // a label with no room before its model floats at the data's left edge: every shown lane is labelled
+      const shown = Array.from({ length: tx.items }, (_, i) => i).filter(
+        (i) => g.repOf[i] === i && tx.lanes[i] >= 0 && g.labelW[i] > 0,
+      );
+      expect(g.ln).toBe(shown.length);
+      expect(g.ln - room.length).toBeGreaterThan(0);
+      expect(g.ln - room.length).toBe(Array.from(g.lfloat.subarray(0, g.ln)).filter((f) => f === 1).length);
       const svg = await v.renderSvg({ idPrefix: `${id}-` });
       expect(svg.issues).toEqual([]);
       expect(svg.settled).toBe(true);

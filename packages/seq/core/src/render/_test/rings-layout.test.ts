@@ -549,7 +549,7 @@ describe('a ring over tiles', () => {
 
   it('a column over a tile edge reduces both tiles’ data; an item over the edge is one item', async () => {
     const s = await settle(bigRing(), [BigRuntime]);
-    const f = await s.frame({ size: Size });
+    const f = await s.frame({ size: Size, settled: true });
     const p = ringOf(f).placement as RingPlacement;
     const lay = layerLay<ValuesLay>(f, 0);
     const a = lay.axis;

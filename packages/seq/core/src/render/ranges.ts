@@ -42,6 +42,7 @@ import {
   ThinStripShare,
 } from './ranges-lay.js';
 import { placeLabels, sinkLabels } from './ranges-beside.js';
+import { noteLanes } from './known.js';
 import { rangesContent } from './ranges-content.js';
 import { connect, connectorAt, startConnectors } from './ranges-connector.js';
 import { RangesDraws, growWave, WaveStep } from './ranges-draw.js';
@@ -137,13 +138,33 @@ function laneGeometry(lay: RangesLay, ctx: LayoutContext): number {
   const pad = config.lanePadding;
   const content = ctx.content;
   lay.labelY = -1;
+  lay.scrolls = false;
+  lay.top = 0;
+  lay.scrollMax = 0;
   const room = box.height >= lh + 2 * pad ? Math.floor((box.height - 2 * pad) / lh) : 0;
   const need = content ? Math.max(1, content.lanes) : 1;
-  if (room >= need || room >= config.maxLanes) {
+  // lanes past the band scroll inside it (tracks; a ring's annulus and a text's lines compact, as `overflow: compact`)
+  if (
+    (room < need || content?.partial === true) &&
+    config.track.overflow === 'scroll' &&
+    ctx.section.layout === 'tracks' &&
+    (ctx.labels === undefined || ctx.labels === 'inside')
+  ) {
+    lay.scrolls = true;
+    lay.room = Math.max(1, room);
+    lay.laneHeight = lh;
+    // a band under a lane and its padding centres its one lane (never a band under a lane: EC-249)
+    lay.laneY0 = box.y + Math.min(pad, (box.height - lh) / 2);
+    lay.laneY = lay.laneY0;
+    return config.ranges.maxLanes;
+  }
+  // `density`: the band at its cap, the rest of the lanes in a density row at its bottom
+  if (room >= need || (config.track.overflow === 'density' && room >= 1)) {
     // a label lane only beside marks the band holds too, and only where labels are placed in the band (tracks)
     const label = content?.labels && ctx.labels === 'inside' && room > need ? 1 : 0;
-    const lanes = content ? Math.min(need, room - label) : room;
-    const block = (content ? lanes : Math.max(1, Math.min(lay.seen, lanes))) + label;
+    // a source's lanes known so far are not its whole: its marks may take every lane the band holds
+    const lanes = content && !content.partial ? Math.max(1, Math.min(need, room - label)) : room;
+    const block = (content && !content.partial ? lanes : Math.max(1, Math.min(lay.seen, lanes))) + label;
     lay.laneHeight = lh;
     // centred in a band with a little to spare (one lane's marks in a thin band); a tall band's lanes start at its top,
     // evenly (not a blank stretch above and below them: a transcripts track of 47 lanes)
@@ -151,12 +172,15 @@ function laneGeometry(lay: RangesLay, ctx: LayoutContext): number {
     const top = box.y + (slack > 2 * lh ? pad : slack / 2);
     if (label) lay.labelY = top;
     lay.laneY = top + label * lh;
-    return lanes;
+    lay.laneY0 = lay.laneY;
+    // a source's lanes are packed past the band's (a ring's, a text's): the lanes it needs are counted, those past the band not drawn
+    return content?.partial && room >= need ? config.ranges.maxLanes : lanes;
   }
   const fit = Math.floor(box.height / Math.max(1, lh - config.laneGap));
   const lanes = Math.max(1, Math.min(content ? need : fit, fit));
   lay.laneHeight = box.height / lanes;
   lay.laneY = box.y;
+  lay.laneY0 = box.y;
   return lanes;
 }
 
@@ -255,7 +279,7 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
       };
       assign(maxLanes, ctx.settled);
       // the whole data packs in its lanes: a sticky lane that leaves an item out is packed fresh before any overflow
-      if (lay.overflow && ctx.content && !ctx.settled) assign(maxLanes, true);
+      if (lay.overflow && ctx.content && !ctx.content.partial && !ctx.settled) assign(maxLanes, true);
       // past the lanes: the last lane becomes a density row of what does not fit; the rest stay items
       if (lay.overflow && config.ranges.overflow === 'extra-lanes' && maxLanes > 1) {
         assign(maxLanes - 1, ctx.settled);
@@ -264,11 +288,30 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
       // the whole data's lanes not known (a tiled source's): centred by the most lanes the layer has shown, every lane
       // when the last is the density row (else the lanes stay centred by the first frame's and run past the band)
       const shown = row ? maxLanes : lay.laneCount;
-      if (!ctx.content && lay.laneHeight === config.laneHeight && shown > lay.seen) {
+      if ((!ctx.content || ctx.content.partial) && lay.laneHeight === config.laneHeight && shown > lay.seen) {
         lay.seen = shown;
         lay.laneY = box.y + (box.height - Math.min(lay.seen, maxLanes) * lay.laneHeight) / 2;
       }
     }
+    if (lay.scrolls) {
+      // the lanes packed (as known, when the data is not whole): the band's top lane, kept inside them
+      const total = Math.max(ctx.content?.lanes ?? 1, lay.laneCount);
+      lay.scrollMax = Math.max(0, total - lay.room);
+      lay.top = Math.max(0, Math.min(ctx.bandTop ?? 0, lay.scrollMax));
+      lay.laneY = lay.laneY0 - lay.top * lay.laneHeight;
+    }
+    // the lanes out of the band are no marks (the draw lists, the hit index and the labels hold the lanes in view)
+    if (lay.scrolls || ctx.content?.partial) {
+      if (!dense && !densities.length) {
+        // the lanes whose rows meet the box
+        const first = Math.floor((box.y - lay.laneY) / lay.laneHeight);
+        const past = Math.ceil((box.y + box.height - lay.laneY) / lay.laneHeight);
+        const lanes = lay.lanes;
+        for (let i = 0; i < n; i++) if (lanes[i] >= 0 && (lanes[i] < first || lanes[i] >= past)) lanes[i] = -1;
+      }
+    }
+    // a source's lanes as known grow once the view settles (its track grows with them, `ranges-content.ts`)
+    if (ctx.settled && !prep.extents) noteLanes(prep, lay.laneCount);
     lay.mode = dense || densities.length || (lay.overflow && !row) ? 'density' : step === 'bars' ? 'bars' : 'items';
     // below a position a pixel a run has no ends, no dash and no wave: a plain line or block
     if (lay.mode !== 'items' && lay.style >= 2 && lay.style <= 5) lay.style = Solid;

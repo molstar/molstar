@@ -539,7 +539,10 @@ export async function exportSvg(spec: Node, given: RenderSvgOptions): Promise<Re
       controller.abort();
     }
     const tokens = options.tokens ?? builtInTokens(options.theme ?? 'light');
-    const config = renderConfig(options.config);
+    // a figure shows data: every lane of a capped track at its content height, to `export.maxTrackPx`
+    const asked = renderConfig(options.config);
+    const config =
+      asked.export.lanes === 'all' ? { ...asked, track: { ...asked.track, maxPx: asked.export.maxTrackPx } } : asked;
     const renderer = new Renderer({
       model,
       view,

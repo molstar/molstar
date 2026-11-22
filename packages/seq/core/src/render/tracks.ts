@@ -54,6 +54,7 @@ import {
   widened,
 } from './tracks-columns.js';
 import { instanceInView, wantTemplate } from './tracks-templates.js';
+import { knownLanesVersion } from './known.js';
 import { bandHeights, firstType, rowsFill, rulerTrack } from './tracks-heights.js';
 import { sectionHeaderOf, trackHeaderOf } from './tracks-headers.js';
 import { collapsedSection } from './headers.js';
@@ -94,6 +95,7 @@ const NoLays: readonly LayerLayout[] = [];
 const NoSectionLays: LayerLayout[] = [];
 
 export function layoutView(input: LayoutInput, state = new LayoutState(), again = false): ViewLayout {
+  const known = knownLanesVersion();
   const header = rowsHeader(input.view, input.rails);
   const given = input.config ?? DefaultRenderConfig;
   const base = measured(given, labelColumnWidth(input.view, given, input.text));
@@ -470,12 +472,11 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         used += (j !== fill ? heights[j] + config.trackGap : 0) + pads[2 * j] + pads[2 * j + 1];
       if (heights === sizedBands.heights) heights = heights.slice();
       const n = rowsShown(shown[fill], input.model, config.rows.pinInPlace);
-      heights[fill] = rowsFillHeight(
-        heights[fill],
-        height - top - used - config.inset - pinnedPx,
-        n,
-        titleRowOf(shown[fill], config),
-      );
+      const room = height - top - used - config.inset - pinnedPx;
+      const filled = rowsFillHeight(heights[fill], room, n, titleRowOf(shown[fill], config));
+      // a rows band with no `height` takes its rows up to `rows.maxPx` (then its rows scroll); `height: fill` takes the room
+      const explicit = shown[fill].layers.some((l) => l.type === 'rows' && l.params.height === 'fill');
+      heights[fill] = explicit ? filled : Math.min(filled, config.rows.maxPx);
     }
     const nb = shown.length;
     const lays: LayerLayout[][] = [];
@@ -889,6 +890,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         state.domainsVersion++;
       }
   for (const i of overlay.issues) report(i);
+  // a source's lanes grew in this layout: its track grows to them in the same frame, once (what is below moves once)
+  if (!again && knownLanesVersion() !== known) return layoutView(input, state, true);
   const shownNodes = config.nodes.holdShown && overlay.nodes.length ? overlay.holds(showing) : [];
   return {
     width,

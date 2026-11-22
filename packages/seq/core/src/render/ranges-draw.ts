@@ -246,7 +246,21 @@ function drawLabels(lay: RangesLay, out: PassWriter, _emphasis: Emphasis | undef
     // a gene model's label: plain text in the text ink, left of its model (placed whole, `ranges-gene.ts`)
     const gl = lay.gene;
     const ink = lay.tokens.colors['msui-text'];
+    const bg = lay.tokens.colors['msui-bg'];
     for (let k = 0; k < gl.ln; k++) {
+      if (gl.lfloat[k]) {
+        // floating over its model's hairline: the page's color under the text
+        g[0] = gl.lx[k] - 2;
+        g[1] = gl.ly[k] - lay.fontSize * 0.85;
+        g[2] = gl.lw[k] + 4;
+        g[3] = lay.fontSize;
+        g[4] = bg;
+        g[5] = NoColor;
+        g[6] = 0;
+        g[7] = 0;
+        g[8] = 0;
+        out.rectArgs();
+      }
       g[0] = gl.lx[k];
       g[1] = gl.ly[k];
       g[2] = gl.lw[k];
