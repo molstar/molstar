@@ -5,7 +5,7 @@
  */
 
 import type { AxisTransform } from './axis.js';
-import { grown, type PassWriter } from './draw-lists.js';
+import { grown, NoColor, type PassWriter } from './draw-lists.js';
 import type { LayoutContext } from './layer-type.js';
 import type { RangesLay } from './ranges-lay.js';
 
@@ -93,7 +93,15 @@ export function drawConnectors(lay: RangesLay, out: PassWriter): void {
     const base = lay.cink !== 0 ? lay.cink : lay.fills[lay.citem[j]];
     const color = ((base & 0xffffff00) | Math.round((base & 255) * lay.calpha)) >>> 0;
     const y = Math.round((lay.laneY + lay.clane[j] * lay.laneHeight + (lay.laneHeight - w) / 2) * dpr) / dpr;
-    out.fill(lay.cx0[j], y, lay.cx1[j] - lay.cx0[j], w, color);
+    // through `args`: a double passed to `fill` (not inlined) is boxed
+    a[0] = lay.cx0[j];
+    a[1] = y;
+    a[2] = lay.cx1[j] - lay.cx0[j];
+    a[3] = w;
+    a[4] = color;
+    a[5] = NoColor;
+    a[6] = a[7] = a[8] = 0;
+    out.rectArgs();
     const dir = lay.cdir[j];
     if (dir === 0 || half < 1.5) continue;
     const cy = y + w / 2;
@@ -137,9 +145,17 @@ function inkConnectors(lay: RangesLay, out: PassWriter, key: string | number, wi
   const dpr = lay.axis.dpr;
   const w = Math.max(width, 1 / dpr);
   const color = which === 0 ? lay.tokens.colors['seq-hover'] : lay.tokens.colors['msui-accent'];
+  const a = out.args;
   for (let j = 0; j < lay.cn; j++) {
     if (lay.keys[lay.citem[j]] !== key) continue;
-    const y = Math.round((lay.laneY + lay.clane[j] * lay.laneHeight + (lay.laneHeight - w) / 2) * dpr) / dpr;
-    out.fill(lay.cx0[j], y, lay.cx1[j] - lay.cx0[j], w, color);
+    // through `args`: a double passed to `fill` (not inlined) is boxed, 16 B a connector a hover frame
+    a[0] = lay.cx0[j];
+    a[1] = Math.round((lay.laneY + lay.clane[j] * lay.laneHeight + (lay.laneHeight - w) / 2) * dpr) / dpr;
+    a[2] = lay.cx1[j] - lay.cx0[j];
+    a[3] = w;
+    a[4] = color;
+    a[5] = NoColor;
+    a[6] = a[7] = a[8] = 0;
+    out.rectArgs();
   }
 }
