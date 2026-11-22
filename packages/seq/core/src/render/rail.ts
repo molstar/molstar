@@ -312,6 +312,7 @@ export function placeLanesRail(
   room: number,
   top: number,
   config: RenderConfig,
+  inset = 0,
 ) {
   placeUpright(
     rail,
@@ -323,7 +324,7 @@ export function placeLanesRail(
     false,
     box.y,
     box.height,
-    box.x + box.width - SlimRailPx,
+    box.x + box.width - SlimRailPx - inset,
     lanes,
     top,
     Math.min(lanes, top + room),
@@ -335,6 +336,50 @@ export function placeLanesRail(
 
 /** A lanes rail's `navigator`. */
 export const LanesRail = 'lanes-rail';
+
+/**
+ * A section's rail where it scrolls inside its box (_spec/README.md "Render", Section scroll): the one rail upright at
+ * the box's right edge along its scrolled area (`y`, `area` px: below a fixed head), the whole of its scrolled content
+ * (px) along it, its window the px in view; pan only, always a target (it exists only while the content overflows).
+ */
+export function placeSectionRail(
+  rail: Rail,
+  box: Box,
+  section: string,
+  sectionId: string,
+  y: number,
+  content: number,
+  top: number,
+  config: RenderConfig,
+) {
+  const area = Math.max(0, box.y + box.height - y);
+  const total = Math.max(area, content - (y - box.y));
+  placeUpright(
+    rail,
+    section,
+    sectionId,
+    section,
+    '',
+    SectionRail,
+    false,
+    y,
+    area,
+    box.x + box.width - SlimRailPx,
+    total,
+    top,
+    Math.min(total, top + area),
+    config,
+  );
+  rail.active = true;
+}
+
+/** A section rail's `navigator`. */
+export const SectionRail = 'section-rail';
+
+/** Whether a rail only pans (a lanes band's, a section's): no grips, its window's ends are body. */
+export function panOnly(navigator: string | undefined): boolean {
+  return navigator === LanesRail || navigator === SectionRail;
+}
 
 /** A rows rail's hit's `navigator`. */
 export const RowsRail = 'rows-rail';
@@ -527,7 +572,7 @@ function paint(
     Pl[3] = full;
     pillOut(out, rail);
   }
-  if (rail.hit.navigator === LanesRail) return;
+  if (panOnly(rail.hit.navigator)) return;
   // the knobs, circles centred on the window's true ends (a wrapped window's second piece ends before the axis's end):
   // 5 px at rest (4 at the fit), 10 hovered, 12 dragged, the hovered end one more, each about its centre; they may
   // overhang the slim row (nothing else is drawn on the rail's line, and the window pass is not clipped)
@@ -571,7 +616,7 @@ export function hitRail(rail: Rail, px: number, py: number, config: RenderConfig
   }
   if (!part) return undefined;
   // a lanes rail only pans: its window's ends are body
-  if (rail.hit.navigator === LanesRail && (part === 'start' || part === 'end')) part = 'body';
+  if (panOnly(rail.hit.navigator) && (part === 'start' || part === 'end')) part = 'body';
   // a window over the whole axis (the fit) has no body to drag, but the rail stays a target: its body is a place as
   // outside a window is (the hover names the place and marks it, never the whole rail lit; a sweep zooms to the region,
   // a click as elsewhere); its grips still resize it

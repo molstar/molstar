@@ -92,6 +92,11 @@ export interface SectionLayout {
   readonly rowsRails?: readonly Rail[];
   /** The rails of its tracks whose lanes scroll inside their band (upright, plain: the wheel moves them). */
   readonly lanesRails?: readonly Rail[];
+  /**
+   * Its own rail while its content scrolls inside its box (a text's lines, a tracks section's tracks below its ruler:
+   * _spec/README.md "Render", Section scroll), upright at the box's right edge.
+   */
+  readonly sectionRail?: Rail;
   /** The direction mark in the first track's label row (`axis.directionMark`): its text, x and measured width. */
   readonly mark?: { readonly text: string; readonly x: number; readonly width: number };
   /** The layers' lays a strip and band (`strip * bands + band`), in the strip's frame. */

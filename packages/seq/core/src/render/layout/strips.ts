@@ -223,6 +223,14 @@ export class StripPlacement implements Placement {
   lineBlocks = false;
   /** Its bands overlay one another (a grid's plot): `at` gives the last band holding the point, the topmost. */
   readonly overlay: boolean = false;
+  /**
+   * Scrolled inside its box (`Placement`, _spec/README.md "Render", Section scroll): clipped, its px scrolled, the page
+   * y its scrolled area starts at and the bands before `fixed` that stay (a band past it above `scrollY` is hidden).
+   */
+  clip = false;
+  top = 0;
+  scrollY = 0;
+  fixed = 0;
 
   /** The strip at page y, or the one above it (−1 above every strip). */
   private stripAt(y: number): number {
@@ -261,6 +269,8 @@ export class StripPlacement implements Placement {
     out.y = fy;
     for (let j = 0; j < s.bands; j++) {
       const k = i * s.bands + j;
+      // a scrolled band above the scrolled area (under a fixed head) is hidden there
+      if (j >= this.fixed && y < this.scrollY) continue;
       if (s.bandH[k] > 0 && fy >= s.bandY[k] && fy < s.bandY[k] + s.bandH[k]) {
         out.band = j;
         if (!this.overlay) break;

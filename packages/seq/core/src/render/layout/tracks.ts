@@ -14,6 +14,7 @@ import type { RenderConfig } from '../config.js';
 import { Anchor, type PassName, type PassWriter } from '../draw-lists.js';
 import type { Emphasis } from '../layer-type.js';
 import type { SeqTokens } from '../tokens.js';
+import type { ResolvedTrack } from '@molstar/seqx-core/view';
 import type { SectionLayout, TrackLayout } from '../tracks.js';
 import { BlockPlacement, blockChrome, placeBlocks, rowPan, rowZoom } from './blocks.js';
 import { StripPlacement } from './strips.js';
@@ -25,6 +26,8 @@ const AnchorStart: number = Anchor.start;
 
 /** At least `width / maxScale` wide (within the total), centered, within the axis; a cyclic window may pass the end. */
 export function clampWindow(c: NavContext, v: Viewport): Viewport {
+  const t = clampTop(c, v.top);
+  if (t !== v.top) v = { ...v, top: t };
   const total = c.total;
   const w = Math.min(Math.max(v.end - v.start, Math.min(c.width / c.maxScale, total)), total);
   if (c.cyclic) {
@@ -37,6 +40,41 @@ export function clampWindow(c: NavContext, v: Viewport): Viewport {
   const center = (v.start + v.end) / 2;
   const s = Math.min(Math.max(center - w / 2, 0), total - w);
   return { ...v, start: s, end: s + w };
+}
+
+/**
+ * A section's scroll within its content (_spec/README.md "Render", Section scroll): `[0, content − box]` where it
+ * scrolls, 0 where it shows all of it; as given with no placement.
+ */
+function clampTop(c: NavContext, top: number | undefined): number | undefined {
+  const p = c.placement;
+  if (top === undefined || !p) return top;
+  const max = p.clip ? Math.max(0, p.contentHeight - p.box.height) : 0;
+  const t = Math.max(0, Math.min(max, top));
+  return t === 0 && top === 0 ? top : t;
+}
+
+/**
+ * The tracks a scrolled section keeps fixed above its scrolled area: its leading ruler tracks (a track of ruler layers
+ * alone, or of none shown), so the ruler stays while the tracks below it scroll.
+ */
+export function headOf(bands: readonly ResolvedTrack[], heights: readonly number[]): number {
+  let n = 0;
+  let ruler = false;
+  for (let j = 0; j < bands.length; j++) {
+    const ls = bands[j].layers;
+    let any = false;
+    let all = true;
+    for (let k = 0; k < ls.length; k++) {
+      if (!ls[k].placed || ls[k].params.hidden === true) continue;
+      any = true;
+      if (ls[k].type !== 'ruler') all = false;
+    }
+    if (heights[j] > 0 && !(any && all)) break;
+    if (any && all) ruler = true;
+    n = j + 1;
+  }
+  return ruler ? n : 0;
 }
 
 /** The tracks layout's arithmetic: a window of display units across `width` px. */
@@ -115,7 +153,7 @@ export const TracksLayout: SectionLayoutType<StripPlacement> = {
   fillBands: true,
   // a cyclic axis's window passes its origin: drawn as its two runs (the axis's pieces twice, `layoutView`)
   wraps: true,
-  place(section, ctx: PlaceContext, _viewport, prev) {
+  place(section, ctx: PlaceContext, viewport, prev) {
     if (section.blocks) return placeBlocks(section, ctx, prev instanceof BlockPlacement ? prev : undefined);
     const p = prev && !(prev instanceof BlockPlacement) ? prev : new StripPlacement();
     const strips = p.strips;
@@ -139,10 +177,27 @@ export const TracksLayout: SectionLayoutType<StripPlacement> = {
       y += pt + ctx.heights[j] + pb;
       bottom = y;
     }
+    // past its box its tracks below the ruler scroll (_spec/README.md "Render", Section scroll): the box its `height`,
+    // else its content up to `section.maxPx`; an export shows every track
+    const content = bottom - top;
+    const own = section.params.height;
+    const boxH = ctx.figure ? content : typeof own === 'number' ? own : Math.min(content, config.section.maxPx);
+    const fixed = headOf(ctx.bands, ctx.heights);
+    p.clip = !ctx.figure && content > boxH + 0.5;
+    p.fixed = p.clip ? fixed : 0;
+    p.scrollY = top;
+    p.top = 0;
+    if (p.clip) {
+      // the scrolled area starts below the head's well; its bands move up by the viewport's `top`, clamped
+      if (fixed > 0) p.scrollY = strips.bandY[fixed - 1] + strips.bandH[fixed - 1] + strips.padB[fixed - 1];
+      const t = Math.max(0, Math.min(content - boxH, viewport?.top ?? 0));
+      p.top = t;
+      for (let j = fixed; j < ctx.bands.length; j++) strips.bandY[i * strips.bands + j] -= t;
+    }
     strips.top[i] = top;
-    strips.height[i] = bottom - top;
-    p.contentHeight = bottom - top;
-    p.box = { x: config.inset, y: top, width: ctx.width - 2 * config.inset, height: bottom - top };
+    strips.height[i] = p.clip ? boxH : content;
+    p.contentHeight = content;
+    p.box = { x: config.inset, y: top, width: ctx.width - 2 * config.inset, height: boxH };
     ctx.layStrip(p, i);
     return p;
   },

@@ -112,13 +112,21 @@ function hitLayout(layout: ViewLayout, x: number, y: number, touch: boolean, hov
         for (let k = 0; k < s.rails.length; k++) s.rails[k].markAt = s.rails[i].markAt;
         return h;
       }
-    if (s.rowsRails)
+    // a section's own rail where it scrolls inside its box; the rails of its bands only over its scrolled area
+    if (s.sectionRail) {
+      const h = hitRail(s.sectionRail, x, y, s.config, touch);
+      if (h) return h;
+    }
+    const scrolled =
+      !s.sectionRail ||
+      (y >= (s.placement.scrollY ?? s.placement.box.y) && y < s.placement.box.y + s.placement.box.height);
+    if (s.rowsRails && scrolled)
       for (let i = 0; i < s.rowsRails.length; i++) {
         const h = hitRail(s.rowsRails[i], x, y, s.config, touch);
         if (h) return h;
       }
     // a scrolled lanes band's rail (pan only: `hitRail` gives its grips as body)
-    if (s.lanesRails)
+    if (s.lanesRails && scrolled)
       for (let i = 0; i < s.lanesRails.length; i++) {
         const h = hitRail(s.lanesRails[i], x, y, s.config, touch);
         if (h) return h;

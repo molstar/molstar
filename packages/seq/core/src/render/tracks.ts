@@ -28,7 +28,16 @@ import { TracksLayout } from './layout/tracks.js';
 import type { GridPlacement } from './layout/grid.js';
 import type { PlaceContext, Placement, SectionLayoutType } from './layout/types.js';
 import { narrowColumns, treeKept } from './narrow.js';
-import { placeLanesRail, placeRail, placeRowsRail, Rail, type RailRow, railRowList, SlimRailPx } from './rail.js';
+import {
+  placeLanesRail,
+  placeRail,
+  placeRowsRail,
+  placeSectionRail,
+  Rail,
+  type RailRow,
+  railRowList,
+  SlimRailPx,
+} from './rail.js';
 import type { RowsLay } from './rows.js';
 import { rowsCount, rowsFillHeight, rowsShown } from './rows-fill.js';
 import {
@@ -838,6 +847,28 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       }
     }
     const rail = rails?.[0];
+    // the section's own rail while its content scrolls inside its box (_spec/README.md "Render", Section scroll); the
+    // rails of the bands inside it move left of it, and those whose band is out of the scrolled area are not placed
+    const scrolls = placement.clip === true && placement.contentHeight > placement.box.height + 0.5;
+    const scrollY = placement.scrollY ?? placement.box.y;
+    const scrollEnd = placement.box.y + placement.box.height;
+    let sectionRail: Rail | undefined;
+    if (scrolls && input.figure !== true) {
+      sectionRail = kept?.layout?.sectionRail ?? new Rail();
+      const box = layout === TracksLayout ? { ...placement.box, x: dataX, width: sectionBox.width } : placement.box;
+      placeSectionRail(
+        sectionRail,
+        box,
+        section.address,
+        sectionId(section),
+        scrollY,
+        placement.contentHeight,
+        placement.top ?? 0,
+        config,
+      );
+    }
+    const inner = sectionRail ? SlimRailPx : 0;
+    const inView = (b: Box): boolean => !scrolls || (b.y < scrollEnd && b.y + b.height > scrollY);
     // each rows layer's rail, upright at the right edge (beside its last numbers), along its band's scrolled rows
     let rowsRails: Rail[] | undefined;
     if (input.rails && layout === TracksLayout)
@@ -846,14 +877,14 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         if (input.rails[t.track.address] === undefined) continue;
         const l = t.layers.find((x) => x.type.name === 'rows');
         const lay = l?.lay as RowsLay | undefined;
-        if (!lay || lay.figure || lay.total === undefined) continue;
+        if (!lay || lay.figure || lay.total === undefined || !inView(lay.box)) continue;
         const r = kept?.layout?.rowsRails?.[rowsRails?.length ?? 0] ?? new Rail();
         placeRowsRail(
           r,
           lay,
           t.track.address,
           sectionId(section),
-          width - config.inset - SlimRailPx,
+          width - config.inset - SlimRailPx - inner,
           config,
           input.figure === true,
         );
@@ -866,7 +897,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         const ls = tracks[j].layers;
         for (let k = 0; k < ls.length; k++) {
           const lay = ls[k].lay as RangesLay;
-          if (ls[k].type.name !== 'ranges' || !lay.scrolls || !(lay.scrollMax > 0)) continue;
+          if (ls[k].type.name !== 'ranges' || !lay.scrolls || !(lay.scrollMax > 0) || !inView(lay.box)) continue;
           const r = kept?.layout?.lanesRails?.[lanesRails?.length ?? 0] ?? new Rail();
           placeLanesRail(
             r,
@@ -877,6 +908,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
             lay.room,
             lay.top,
             config,
+            inner,
           );
           (lanesRails ??= []).push(r);
           break;
@@ -892,6 +924,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       ...(rail ? { rail, rails } : {}),
       ...(rowsRails ? { rowsRails } : {}),
       ...(lanesRails ? { lanesRails } : {}),
+      ...(sectionRail ? { sectionRail } : {}),
       y: sectionTop,
       height: y - sectionTop,
       tracks,
