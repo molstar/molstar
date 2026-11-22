@@ -1314,6 +1314,15 @@ by fuzz tests (mutated text read without a throw).
 - **Performance**: a region at the zoom level that fits, from a local file, decoded under 50 ms (heavy, `itWithin`).
   Size: its own row, under 30 kB, in no bundle that does not list it.
 
+### Intervals
+
+`data/intervals.ts` (internal: not in the `data` entry): intervals found by a region, shared by the GFF and VCF runtimes
+and the tooltips' tables. `intervalIndex`: the short intervals by start with the longest of them, the long ones (past 64
+times the median, at least 4,096) apart, so one chromosome-long feature never makes every read scan from the sequence's
+start; `eachMeeting` calls back on each interval meeting a region; `meetingInto` writes the first of them into a buffer
+and returns how many meet (no closure, no allocation: a hover's lookup, O(log n + k)). A zero-length interval meets the
+position it is at.
+
 ### Genome runtimes' internals
 
 `runtimes/internal/` (not published: `"./runtimes/internal/*": null`): what the BED, GFF and VCF runtimes share, over
@@ -1357,10 +1366,9 @@ runtimes only).
   (EC-171: counts exact or absent, never estimated).
 - **Shared helpers**: `causes.ts` (`Causes`: one issue a cause with its count and first ten places, EC-86; each format's
   `BedCauses`, `GffCauses`, `VcfCauses` over its own codes), `answers.ts` (`failure` by kind, `refuse` at open,
-  `wholeSource` over what a whole read holds), `intervals.ts` (`intervalIndex`: the short intervals by start and the
-  long ones apart, `eachMeeting`), `items.ts` (items of pieces held by sequence: `systemItems`, `rowsIn` with span rows,
-  `rangesOf`, `fieldInfos`; the GFF and GenBank runtimes'). Why shared: one rule for issues and answers across the
-  formats.
+  `wholeSource` over what a whole read holds), the data folder's intervals (Intervals, below), `items.ts` (items of
+  pieces held by sequence: `systemItems`, `rowsIn` with span rows, `rangesOf`, `fieldInfos`; the GFF and GenBank
+  runtimes'). Why shared: one rule for issues and answers across the formats.
 - **The first data line** reads past `track` and `browser` lines too, not only the index's meta lines: a file whose
   index's first chunk starts on one is told its columns by its first data line.
 - **Tests**: on files from the shared test-only writer (`@molstar/test-harness/genome/bgzf-writer`: BGZF blocks, TBI and
@@ -2252,6 +2260,15 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
   rejects (a failed load is tried again by the next model). Why: a reader that never draws a bridge pays nothing for
   one.
 
+### Tooltip tables
+
+- **As data** (`resolve/tooltip-tables.ts`): a by-range tooltip's `ranges` table (the `schema` absent or `ranges`),
+  inline `rows` or a `source`'s, is an annotation at the tooltip's address (`/views/<id>`, `/views/<view>/<id>`), made
+  as a `ranges` node's is: inline rows an inline plan (its text columns its fields), a source's by region, over an
+  assembly a plan a sequence by its names. Why: every table goes through the store as every data does, inline too, and
+  its index belongs to the store entry. An `address` table and MVS's schemas are read whole by the reader that shows
+  them (Render, Tooltips): no store entry.
+
 ### Unread params
 
 - **Said, never dropped in silence** (`resolve/unread.ts`): a param the language declares and this version reads nowhere
@@ -2433,6 +2450,12 @@ of it (`buildOverlay(model, reader)`; `OverlayBuilder` keeps one a node version 
 Overlay, Opened sources), kept per model and view. No data, no dynamic node, no pixels, no target.
 
 - **A view**: its address, its `layout`, its sections in order, its links, its issues.
+- **Tooltips** (`view/tooltips.ts`, `ResolvedView.tooltips`, absent when none): `views`' tooltips, then the view's own,
+  in spec order, each resolved to references and its parsed template, never rows (tier 1): by data (`data`, a data node
+  of items, a ranges or pairs node; `layer`, a layer and its data: its marks only), by addresses (`addresses`, an `on`
+  naming anything else, each a one-row table), or by a table (`target`, `schema`, `source`); `field`, `label`, `format`;
+  `category` when it reads a CIF category (it shows nothing yet). A ref standing for one exact address is followed to
+  its node.
 - **A section's layout**: its own `layout`, else its view's (`tracks`, `text`, `rings`, `grid`), with its layout's
   params as written (`params`: `group`, `numbers`, `group_labels`, `align`, `max_width`, `height`, `rotation`, `labels`,
   `arrange`, `copies`, `aspect`); the layout reads them with its defaults. Why on the section: a view mixes layouts (a
@@ -4621,6 +4644,36 @@ under the point as the hit's `state`. It reads every row (a logo of the rows sho
   key's text (`Frame.key`, `DrawLists.key`) is made when the lists are rebuilt; an emphasis redraw returns one kept
   `Frame` record, its fields set again. So a frame is valid until the next `frame` call (the lists are reused too): a
   caller copies what it keeps.
+
+### Tooltips
+
+`render/tooltips.ts` (`tooltipsAt(ctx, place, out, cap)`) and `render/tooltip-wants.ts`: the spec's words at a hovered
+mark, as data; the viewer's `seq:tooltips` provider and an export's titles read them.
+
+- **Tooltip tables wanted with what they decorate**: a `ranges` table no layer draws is wanted by no one, so each layout
+  wants its tiles beside every section's axis (a strip's, a block's) on the table's system or reaching it by a path,
+  carried back, at the level a layer there reads, its wants carrying the tooltip's address (bounded together, as a
+  layer's), kept as the view's are. A view with no table wants nothing more. An export opens them with the view's
+  sources (`viewSources`).
+- **The place** (`TooltipPlace`): the hit's layer and item (by data) and the stretches under the mark (`parts`: the
+  pointer's position on it, a cell's two, a pair's two ends, a bin's stretch).
+- **By data**: the hit's item's own row, when the hit's layer is the tooltip's or its data is (a query over it too):
+  looked up by key and start in the loaded list tile of its source holding it, its fields read by name.
+- **By range**: every row meeting a part (overlap of one position or more; a zero-length row its position), a part
+  carried onto the table's system through the model's paths (a note on the protein answers on its gene's codons); a
+  `ranges` table at the finest level whose tile there holds a list, through the entry's interval index (built at its
+  first lookup, kept with the entry: `meetingInto`, the matches past the buffer counted); an `address` table and MVS's
+  rows (each an `(elements …)` form of its schema's columns alone, `rowAddress`) and `on` addresses located by the
+  caller's `locate`, once a model. A row covering two parts shows once.
+- **Rows**: a tooltip's one match a plain row, never cut; several are item rows (`item`), at most `cap` made, the rest
+  counted in `out.more` (the card's `+k more`). The row's label is the tooltip's `label`, else the text itself. A table
+  not yet come gives a `loading` row (EC-169); a failed one no rows, its tooltip in `out.failed` (EC-174).
+- **Texts**: the template over the row's fields (`{}` the tooltip's `field`), a missing or empty one no row, cut at
+  1,000. Markdown is the template's only: each value not a number has Markdown's escapable characters backslash-escaped
+  first. The parse (`parseMarkdownInline`) is cached by text (64); its text nodes are cleaned after it (C0 and C1
+  controls but tab and newline, U+202A to U+202E, U+2066 to U+2069), and a link is kept only in Seq*'s grammar
+  (`!seq-…`, `isSeqLink`), any other is its text. `value` is the plain text (`markdownInlineText`), `rich` the tree when
+  it has a mark or a link.
 
 ### The overlay's sources
 

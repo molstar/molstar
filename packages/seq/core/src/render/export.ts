@@ -111,6 +111,12 @@ export function viewSources(model: StaticModel, view: ResolvedView): Set<string>
       }
     }
   }
+  // its tooltips' `ranges` tables (Render, Tooltip tables): inline or a source's, an assembly's a plan a sequence
+  for (const t of view.tooltips ?? []) {
+    const a = t.schema === 'ranges' ? model.annotations.get(t.address) : undefined;
+    for (const p of a?.bySystem ? a.bySystem.values() : a?.access ? [a.access] : [])
+      out.add(p.kind === 'inline' ? p.source.address : p.source);
+  }
   return out;
 }
 

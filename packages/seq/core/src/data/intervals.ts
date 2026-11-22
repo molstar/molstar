@@ -4,9 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// Intervals found by a region (_spec/README.md "Data", Genome runtimes' internals): an index by start of the short ones
-// and a list of the long ones, so one chromosome-long feature never makes every read scan the sequence. Shared by the
-// GFF and VCF runtimes, not published (`./runtimes/internal/*`).
+// Intervals found by a region (_spec/README.md "Data", Intervals): an index by start of the short ones and a list of
+// the long ones, so one chromosome-long feature never makes every read scan the sequence. Shared by the GFF and VCF
+// runtimes and the tooltips' tables (a store entry's rows looked up under a hover). Internal: not in the `data` entry.
 
 /**
  * Intervals found by a region: the short ones sorted by start with the longest of them (one meeting `start` starts at
@@ -65,6 +65,46 @@ export function eachMeeting(
     const i = ix.long[k];
     if (meets(s[i], e[i], start, end)) fn(i);
   }
+}
+
+/**
+ * The intervals meeting `[start, end)` into `out` (the first `out.length` of them: a short one in order of start, then
+ * the long ones), and how many meet in all: no closure, no allocation (a hover's lookup, O(log n + k)).
+ */
+export function meetingInto(
+  ix: IntervalIndex,
+  s: ArrayLike<number>,
+  e: ArrayLike<number>,
+  start: number,
+  end: number,
+  out: Int32Array,
+): number {
+  const { order, starts } = ix;
+  let n = 0;
+  let lo = 0;
+  let hi = starts.length;
+  const v = start - ix.maxShort;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (starts[mid] < v) lo = mid + 1;
+    else hi = mid;
+  }
+  for (let k = lo; k < starts.length; k++) {
+    if (starts[k] >= end) break;
+    const i = order[k];
+    if (meets(s[i], e[i], start, end)) {
+      if (n < out.length) out[n] = i;
+      n++;
+    }
+  }
+  for (let k = 0; k < ix.long.length; k++) {
+    const i = ix.long[k];
+    if (meets(s[i], e[i], start, end)) {
+      if (n < out.length) out[n] = i;
+      n++;
+    }
+  }
+  return n;
 }
 
 /** The first index of `sorted` (by `at`) whose value is at least `v`. */

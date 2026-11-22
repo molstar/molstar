@@ -290,3 +290,16 @@ export {
   type Profile,
   profileOf,
 } from './rows-model.js';
+export {
+  escapeMarkdown,
+  isSeqLink,
+  richOf,
+  rowAddress,
+  type TooltipContext,
+  type TooltipOut,
+  type TooltipPart,
+  type TooltipPlace,
+  type TooltipRow,
+  tooltipsAt,
+} from './tooltips.js';
+export { tooltipWants } from './tooltip-wants.js';

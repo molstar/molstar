@@ -134,3 +134,4 @@ export {
   projectRanges,
   type Step,
 } from './paths.js';
+export { isRangesTable, type TooltipPlaced, tooltipNodes, tooltipTables } from './tooltip-tables.js';

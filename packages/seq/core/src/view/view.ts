@@ -51,6 +51,7 @@ import type { ResolvedBridge, StackEntry } from './bridges.js';
 import { ViewIssues } from './issues.js';
 import { dataOf, layerData } from './layer-data.js';
 import { type MemberAxis, memberAxis } from './members.js';
+import { type ResolvedTooltip, resolveTooltips } from './tooltips.js';
 
 /** The six shapes a layer reads (an extension's type reads one of them: _spec/README.md "Context", Extensions). */
 export type LayerShape = 'letters' | 'ranges' | 'values' | 'cells' | 'pairs' | 'grid' | 'matrix';
@@ -425,6 +426,8 @@ export interface ResolvedView {
   readonly bridges?: readonly ResolvedBridge[];
   /** Its sections and bridges in the order written (what the layout stacks), beside `bridges`. */
   readonly stack?: readonly StackEntry[];
+  /** Its tooltips, `views`' then its own, in spec order (_spec/README.md "Resolved view", Tooltips); absent: none. */
+  readonly tooltips?: readonly ResolvedTooltip[];
   readonly issues: readonly Issue[];
 }
 
@@ -884,6 +887,8 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
     sections,
     links,
     navigators: navigatorsOf(model, view, address, sections, report, layerKinds),
+    // its tooltips (Tooltips): `views`' and its own, references and templates (none: absent)
+    ...withTooltips(model.spec, address),
     // its bridges and the stack, where the view has a bridge and the pass is composed (_spec/README.md "Resolved
     // view", Bridges)
     ...(BridgePass.resolve
@@ -891,6 +896,12 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
       : unregisteredBridge(view, address, report)),
     issues,
   };
+}
+
+/** A view's tooltips as the resolved view's member: absent when it has none (a view without them is as it was). */
+function withTooltips(spec: Node, address: string): { tooltips?: readonly ResolvedTooltip[] } {
+  const tooltips = resolveTooltips(spec, address);
+  return tooltips.length ? { tooltips } : {};
 }
 
 /** A view's navigators (`<view>/navigators/<id>`), resolved against its sections. */

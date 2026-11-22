@@ -87,6 +87,7 @@ export {
   type TrackLayout,
   type ViewLayout,
 } from './tracks-types.js';
+import { tooltipWants } from './tooltip-wants.js';
 
 // The tracks layout (_spec/README.md "Render", Tracks layout): sections stacked, each with its axis transform from its
 // system and range (a follower's from its leader's view), tracks with heights in px under one label column, each
@@ -1025,6 +1026,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
   // the bridges, after their sides (the bridge chunk's: a view with one waits for it to land, `bridge-load.ts`)
   const bridges = bridgeRoom && BridgeHooks.layout?.({ input, state, config, theme, sections, wants, report });
   for (const i of overlay.issues) report(i);
+  // the tooltips' tables, wanted beside the marks they decorate (Tooltip tables)
+  tooltipWants(input.model, input.view, input.data, sections, wants);
   // a source's lanes grew in this layout: its track grows to them in the same frame, once (what is below moves once)
   if (!again && knownVersion(input.types) !== known) return layoutView(input, state, true);
   // a section came past its cap, or none is now: the gutter's rail slot for it, laid out again once

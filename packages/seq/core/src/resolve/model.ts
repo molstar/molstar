@@ -94,6 +94,7 @@ export { resolveAnnotationNode, resolveMapNode, resolveSequenceNode, rowsSystemO
 import { mapEntry, numberingEntry } from './maps-entry.js';
 import type { StructureMapData } from './maps-segments.js';
 import { pathKey, viaList, viaPath, viaRivals, withoutRivals } from './maps-via.js';
+import { tooltipTables } from './tooltip-tables.js';
 import { collapseAtoms, expandAtoms, type ModifiedIndex, type UnitEntry, unitEdges } from './molecules.js';
 import { composeEdges, type Edge, findPath, inversePath, type Path, projectRanges, type Step } from './paths.js';
 
@@ -696,9 +697,12 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
   }
 
   genomeLoaded()?.checkAssemblyData(data, assemblies, byAddress, issues);
+  // the tooltips' `ranges` tables: annotations at their tooltips' addresses, read through the store (Tooltip tables)
+  const tables = tooltipTables(spec);
   // data over an assembly: a plan a derived sequence (`model-assemblies.ts`)
   assemblyAnnotations(
-    { data, ref, sourceHashes, given, cached, key, systems, issues },
+    // a tooltip's `ranges` table over an assembly is read by its sequences' names as data over one is
+    { data: [...data, ...tables], ref, sourceHashes, given, cached, key, systems, issues },
     assemblies,
     lengths,
     annotations,
@@ -753,7 +757,7 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
     annotations.set(at.address, e.annotation);
   }
   pairsAndGrids(true);
-  for (const at of data) {
+  for (const at of [...data, ...tables]) {
     if (at.node.kind !== 'ranges' && at.node.kind !== 'values') continue;
     if (overAssembly(at.node, assemblies)) continue;
     const target = ref(at, 'target', at.node.kind === 'ranges' ? ColumnsRefs : SystemRefs);
