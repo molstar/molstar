@@ -186,7 +186,9 @@ function sequenceSections(b: SeqSpecBuilder, opened: OpenedSource, format: strin
       });
   });
   const more = opened.coverage.systems.length - systems.length;
-  return `${format}: ${systems.length} ${format === 'mmcif' ? 'chains' : 'sequences'}${more > 0 ? ` of ${opened.coverage.systems.length} shown` : ''}`;
+  // one chain or sequence, else the plural (every format's summary says it so)
+  const noun = format === 'mmcif' ? 'chain' : 'sequence';
+  return `${format}: ${systems.length} ${noun}${systems.length === 1 ? '' : 's'}${more > 0 ? ` of ${opened.coverage.systems.length} shown` : ''}`;
 }
 
 /**

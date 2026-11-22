@@ -74,6 +74,8 @@ describe('a dropped file', () => {
     ['domains.json', 'fixtures/files/domains-aos.json', 'json'],
     ['2ocj.cif.gz', 'fixtures/structures/2OCJ.cif.gz', 'mmcif'],
     ['pUC19.gb', 'fixtures/plasmid/pUC19c-rotated.gb', 'genbank'],
+    ['pUC19.gbk', 'fixtures/plasmid/pUC19c-rotated.gb', 'genbank'],
+    ['L09137.2.gb', 'fixtures/plasmid/L09137.2.gb', 'genbank'],
   ])('%s is read as %s: shown with no issue, read from the dropped bytes only', async (name, file, format) => {
     const r = await show(name, bytes(file));
     expect('refused' in r.dropped, JSON.stringify(r.dropped)).toBe(false);
@@ -109,7 +111,7 @@ describe('a dropped file', () => {
   it('pUC19.gb: one cyclic sequence, its letters and its features (bla one item across the origin)', async () => {
     const dropped = await specOfDropped('pUC19.gb', bytes('fixtures/plasmid/pUC19c-rotated.gb'));
     if ('refused' in dropped) throw new Error(dropped.refused);
-    expect(dropped.summary).toBe('genbank: 1 sequences');
+    expect(dropped.summary).toBe('genbank: 1 sequence');
     const printed = JSON.stringify(dropped.spec);
     expect(printed).toContain('"cyclic":true');
     const r = await show('pUC19.gb', bytes('fixtures/plasmid/pUC19c-rotated.gb'));
