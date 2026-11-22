@@ -97,10 +97,25 @@ const PairColumns = new Set([
 ]);
 
 /**
- * A pairs node's rows read into arrays; rows whose ends are not intervals are left out (the checks said so). Under a
- * complex (`unitOf`: a unit's index by its id, −1 for none) each end's unit is read too, a row naming none left out.
+ * Each end's unit, read from a column a side: a complex's `a_unit`/`b_unit` (a unit's id), or over an assembly
+ * `a_name`/`b_name` (a sequence's name, through the names rule). A row an end of which is on no unit is left out.
  */
-export function readPairs(node: Node, unitOf?: (id: string) => number): PairsData {
+export interface EndUnits {
+  readonly columns: readonly [string, string];
+  /** An end's unit from its column's value (null: none, or no string), −1 for none. */
+  unit(value: string | null, side: 0 | 1, row: number): number;
+}
+
+/**
+ * A pairs node's rows read into arrays; rows whose ends are not intervals are left out (the checks said so). Under a
+ * complex (`unitOf`: a unit's index by its id, −1 for none) or over an assembly (`EndUnits`) each end's unit is read
+ * too, a row naming none left out.
+ */
+export function readPairs(node: Node, unitOf?: ((id: string) => number) | EndUnits): PairsData {
+  const units: EndUnits | undefined =
+    typeof unitOf === 'function'
+      ? { columns: ['a_unit', 'b_unit'], unit: (id) => (id === null ? -1 : unitOf(id)) }
+      : unitOf;
   const rows = (p(node, 'rows') ?? {}) as Record<string, Value>;
   const col = (k: string): ArrayLike<number> => (isColumn(rows[k]) ? (rows[k] as unknown as ArrayLike<number>) : []);
   const as = col('a_start');
@@ -113,14 +128,11 @@ export function readPairs(node: Node, unitOf?: (id: string) => number): PairsDat
   const aStr = category(rows.a_strand);
   const bStr = category(rows.b_strand);
   const label = Array.isArray(rows.label) ? (rows.label as (string | null)[]) : undefined;
-  const aUnits = unitOf && category(rows.a_unit);
-  const bUnits = unitOf && category(rows.b_unit);
-  const aUnit = unitOf ? new Int32Array(n0) : undefined;
-  const bUnit = unitOf ? new Int32Array(n0) : undefined;
-  const unitAt = (c: Category | undefined, i: number) => {
-    const id = c?.get(i);
-    return id === null || id === undefined ? -1 : unitOf!(id);
-  };
+  const aUnits = units && category(rows[units.columns[0]]);
+  const bUnits = units && category(rows[units.columns[1]]);
+  const aUnit = units ? new Int32Array(n0) : undefined;
+  const bUnit = units ? new Int32Array(n0) : undefined;
+  const unitAt = (c: Category | undefined, side: 0 | 1, i: number) => units!.unit(c?.get(i) ?? null, side, i);
   const aStart = new Int32Array(n0);
   const aEnd = new Int32Array(n0);
   const bStart = new Int32Array(n0);
@@ -142,8 +154,8 @@ export function readPairs(node: Node, unitOf?: (id: string) => number): PairsDat
   for (let i = 0; i < n0; i++) {
     if (!(as[i] >= 0 && ae[i] > as[i] && bs[i] >= 0 && be[i] > bs[i])) continue;
     if (aUnit && bUnit) {
-      const ua = unitAt(aUnits, i);
-      const ub = unitAt(bUnits, i);
+      const ua = unitAt(aUnits, 0, i);
+      const ub = unitAt(bUnits, 1, i);
       if (ua < 0 || ub < 0) continue;
       aUnit[n] = ua;
       bUnit[n] = ub;

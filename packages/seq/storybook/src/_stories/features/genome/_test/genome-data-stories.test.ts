@@ -119,10 +119,10 @@ describe('Genome coordinates: data over an assembly, headless', () => {
         const h = hitView(v.frame!.layout, x, y);
         if (h?.element && h.layer.endsWith('/links')) keys.add(String(h.element.key));
       }
-    const across = [...keys].filter((k) => {
-      const m = /^\|(\d+):[^|]*\|(\d+):/.exec(k);
-      return m && m[1] !== m[2];
-    });
+    // held as a complex's links are, each end on its chromosome's unit: the links hit by their rows
+    const pairs = v.view.model.value.annotations.get('/data/links')!.pairs!;
+    expect(pairs.n).toBe(60);
+    const across = [...keys].filter((k) => pairs.aUnit![Number(k)] !== pairs.bUnit![Number(k)]);
     expect(across.length).toBeGreaterThan(10);
     for (const dark of [false, true]) {
       const svg = await exported(v, dark);

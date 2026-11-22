@@ -4,10 +4,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Want } from '@molstar/seqx-core/data';
+import { categoryColumn } from '@molstar/core/repr/tree';
+import type { PairsBins, Want } from '@molstar/seqx-core/data';
 import type { AxisTransform } from './axis.js';
 import { dataRegions, itemsGate, type LayerSource, pairsLevels, readTiles } from './layer-data.js';
 import type { LayoutContext, StoreReader } from './layer-type.js';
+import { OverAssembly } from './pairs-held.js';
 import type { PairsLay, PairsPrep } from './pairs-lay.js';
 import {
   type AssemblyRegion,
@@ -382,3 +384,27 @@ export function assemblyPairs(
   };
   return state.prep;
 }
+
+// Held pairs over an assembly binned by the pairs level (`pairs-held.ts`): each end's unit the list's system (its index),
+// the longest unit the pyramid's top; on a section of blocks, a position a device pixel the finest block's and the
+// window the widest block's (as the region read's level); the bins' systems back to units.
+OverAssembly.list = (prep, rows) => {
+  const d = prep.data!;
+  const of = (u: Int32Array) => categoryColumn(rows.map((k) => String(u[k])));
+  const length = Math.max(0, ...prep.endUnits!.map((s) => prep.model.systems.get(s)?.length ?? 0));
+  return { aSystem: of(d.aUnit!), bSystem: of(d.bUnit!), length };
+};
+OverAssembly.scale = (ctx) => {
+  const strips = ctx.section.blocks && ctx.place?.strips;
+  let ppp = Number.POSITIVE_INFINITY;
+  let span = 0;
+  for (let i = 0; strips && i < strips.n; i++) {
+    ppp = Math.min(ppp, 1 / (ctx.axis.devicePx * strips.scale[i]));
+    span = Math.max(span, strips.axes[i].u1 - strips.axes[i].u0);
+  }
+  return ppp < Number.POSITIVE_INFINITY ? { ppp, span } : undefined;
+};
+OverAssembly.units = (bins) => {
+  const unit = (c: PairsBins['aSystem']) => Int32Array.from(bins.count, (_, i) => Number(c!.get(i)));
+  return { aUnit: unit(bins.aSystem), bUnit: unit(bins.bSystem) };
+};

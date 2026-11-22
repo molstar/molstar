@@ -133,8 +133,9 @@ export function assemblyAnnotation(
 }
 
 /**
- * Inline pairs, grids and matrices over an assembly: a plan a system named (`genome-inline.ts`), a side on a sequence
- * its own system; a matrix's states its inline `states`, a system of their own.
+ * Inline pairs, grids and matrices over an assembly (`genome-inline.ts`): pairs held on their sequences' units, grids
+ * and matrices a plan a system named; a side on a sequence its own system; a matrix's states its inline `states`, a
+ * system of their own.
  */
 function inlineData(
   at: Placed,
@@ -154,13 +155,7 @@ function inlineData(
     systems,
     count,
   );
-  const plan = r.bySystem.values().next().value;
-  const annotation: AnnotationEntry = {
-    ...base,
-    fields: r.fields,
-    ...(plan ? { access: plan } : {}),
-    bySystem: r.bySystem,
-  };
+  const annotation: AnnotationEntry = { ...base, fields: r.fields, ...r.entry };
   if (base.shape !== 'matrix') return { annotation, issues: r.issues };
   const statesAddress = statesSystemOf(at.address);
   const states: SystemEntry = {

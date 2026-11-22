@@ -40,6 +40,11 @@ export const GenomeIssues = defineIssues('seq.resolve.assembly', {
     description: 'Rows name sequences the assembly lacks',
     hint: 'Add aliases',
   },
+  'seq.resolve.assembly.bounds': {
+    severity: 'warning',
+    description: 'Inline rows over an assembly end past their sequence’s length: left out',
+    hint: 'Check the rows’ positions against the assembly',
+  },
   'seq.resolve.assembly.inline': {
     severity: 'info',
     description: 'Inline values over an assembly are not read yet (they name no sequence a value)',

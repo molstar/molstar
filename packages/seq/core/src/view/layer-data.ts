@@ -100,11 +100,13 @@ export function dataOf(
   // over an assembly: its plan on the section's (or the block's) sequence, which reads nothing without one (Resolve,
   // data over an assembly)
   const plan = a?.bySystem?.get(section);
+  // held pairs over an assembly (inline links): on each of their units' blocks, their ends on its sequence
+  const onUnit = !plan && !!a?.units && model.assemblies.has(a.target) && a.units.includes(section);
   return a
     ? {
         kind,
         address,
-        system: plan ? section : a.target,
+        system: plan || onUnit ? section : a.target,
         ...(plan ? { access: plan, ...lengthOf(model, section) } : {}),
         shape: a.shape,
         ...(base ? { base } : {}),

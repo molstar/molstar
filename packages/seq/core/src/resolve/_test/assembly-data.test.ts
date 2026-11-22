@@ -275,7 +275,7 @@ describe('inline pairs, grids and matrices over an assembly', () => {
     return { m, a, systems: [...(a.bySystem?.keys() ?? [])].map((s) => s.replace(/^.*:name |\)$/g, '')) };
   };
 
-  it('a side on a sequence is that system: pairs between a sequence and an assembly plan both', () => {
+  it('a side on a sequence is that system: pairs between a sequence and an assembly hold both’s units', () => {
     const b = createSeqSpec();
     const g = toy(b);
     const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGTACGT' });
@@ -284,9 +284,12 @@ describe('inline pairs, grids and matrices over an assembly', () => {
       b: g,
       rows: { a_start: [0, 2], a_end: [1, 3], b_start: [0, 1], b_end: [1, 2], b_name: ['2', 'chr1'] },
     });
-    const { a, systems } = plans(b.build(), '/data/p');
+    const { a } = plans(b.build(), '/data/p');
     expect(a.target).toBe('/data/s');
-    expect(systems).toEqual(['/data/s', 'chr1', 'chr2']);
+    // held, each end on its unit: the sequence first, then the assembly's sequences in order
+    expect(a.units?.map((u) => u.replace(/^.*:name |\)$/g, ''))).toEqual(['/data/s', 'chr1', 'chr2']);
+    expect([...a.pairs!.aUnit!]).toEqual([0, 0]);
+    expect([...a.pairs!.bUnit!]).toEqual([2, 1]);
   });
 
   it('a grid’s sequence pair of the wrong count is left out and said; a matrix’s states its inline names', () => {

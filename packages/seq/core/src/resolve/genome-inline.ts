@@ -6,40 +6,32 @@
 
 // Inline pairs, grids and matrices over an assembly (_spec/README.md "Resolve", Assemblies: data over an assembly), in
 // the genome chunk: each row's sequences by its name columns (`a_name`/`b_name`, `x_name`/`y_name`, `name`) through
-// the names rule, a side on a sequence its own system; the rows split by sequence (pairs: each in the read of each
-// system an end is on; grids: a sequence pair's values one grid; matrices: a sequence's items its positions in order)
-// into one inline `seq` source over every system named, each system named by its address: the same access plan a
-// source gets, so the store reads, bins (the pairs level, the grid's pyramid) and bounds them as it does a file's.
+// the names rule, a side on a sequence its own system. Pairs are held, as a complex's links are: each end on its
+// sequence's unit (`PairsData.aUnit`, `bUnit` over the entry's `units`), every column kept, binned by the pairs level
+// in the reader (region-reads "Held pairs get the same levels"). Grids and matrices are split by sequence (a sequence
+// pair's values one grid, a sequence's items its positions in order) into one inline `seq` source over every system
+// named, each system named by its address: the same access plan a source gets. Nothing is dropped silently: names the
+// assembly lacks, rows naming none and ends past a sequence's length are counted and said once (EC-189).
 
+import { type Issue, issueOf, isColumn, type Node, type Value } from '@molstar/core/repr/tree';
 import {
-  type CategoryColumn,
-  categoryColumn,
-  type Issue,
-  issueOf,
-  isColumn,
-  type Node,
-  type Value,
-} from '@molstar/core/repr/tree';
-import {
-  binPairs,
-  coarsenPairBins,
-  DefaultSummarySettings,
+  DefaultMaxBlockValues,
   type MatrixItems,
-  type PairsBins,
-  type PairsList,
   type SeqData,
   type SeqPair,
-  SeqRuntime,
   type Shape,
   type ShapeInfo,
   type SystemInfo,
   seqToValue,
 } from '@molstar/seqx-core/data';
+// the runtime by its own module (the inline sources' reader): no barrel between a lazy chunk and the eager code
+import { SeqRuntime } from '@molstar/seqx-core/data/seq-runtime';
 import type { AssemblyEntry } from './genome.js';
 import { GenomeIssues } from './genome-issues.js';
+import { type EndUnits, readPairs } from './held.js';
 import { ResolveIssues } from './issues.js';
 import type { Placed } from './model-molecules.js';
-import type { AccessPlan, SystemEntry } from './model.js';
+import type { AccessPlan, AnnotationEntry, SystemEntry } from './model.js';
 
 const p = (n: Node, key: string): Value | undefined => n.params?.[key];
 
@@ -52,83 +44,157 @@ export interface InlineSide {
 
 type Names = { readonly length: number; get?(i: number): string | null } & ArrayLike<string | null>;
 
-/** A row's system on a side: by its name through the names rule, else the side's own; undefined when none. */
-function systemOn(side: InlineSide, names: Names | undefined, i: number, unknown: Set<string>): string | undefined {
-  if (!side.assembly) return side.system;
-  const name = names ? (names.get ? names.get(i) : names[i]) : null;
-  if (typeof name !== 'string') return undefined;
-  const k = side.assembly.find(name);
-  // a name of the assembly by the names rule; one `include` leaves out reads nothing, and is no unknown name
-  if (k === undefined) unknown.add(name);
-  return k === undefined ? undefined : side.assembly.systemAt[k];
+/** What a node's rows say, each counted once a node. */
+interface Said {
+  /** Names the assembly lacks, in order. */
+  readonly unknown: Set<string>;
+  /** Rows (items, values) naming no sequence: a null, a short column, no string. */
+  readonly unnamed: Set<number>;
+  /** Rows (items) past their sequence's length. */
+  past: number;
 }
 
-/** What inline data over an assembly resolves to: a plan a system named, its fields, what it says. */
+/** The name at row `i` of a column (null where it has none). */
+function nameAt(c: Names | undefined, i: number): unknown {
+  return c ? (c.get ? c.get(i) : c[i]) : null;
+}
+
+/**
+ * A row's system on a side: by its name through the names rule, else the side's own; undefined when none. A row
+ * naming no string is counted (`unnamed`); a name the assembly lacks is said, never while the assembly is pending (its
+ * names are not known yet); one `include` leaves out reads nothing and is no unknown name.
+ */
+function systemOn(side: InlineSide, name: unknown, row: number, said: Said): string | undefined {
+  const a = side.assembly;
+  if (!a) return side.system;
+  if (a.pending || !a.lookup.index.size) return undefined;
+  if (typeof name !== 'string') {
+    said.unnamed.add(row);
+    return undefined;
+  }
+  const k = a.find(name);
+  if (k === undefined) said.unknown.add(name);
+  return k === undefined ? undefined : a.systemAt[k];
+}
+
+/** What inline data over an assembly resolves to: the annotation's own params, its fields, what it says. */
 export interface InlineOverAssembly {
-  readonly bySystem: Map<string, AccessPlan>;
+  readonly entry: Partial<AnnotationEntry>;
   readonly fields: readonly string[];
   readonly issues: Issue[];
 }
 
-/** The rows of an inline pairs, grid or matrix node over an assembly, by system, as one inline `seq` source. */
+/** An inline pairs, grid or matrix node over an assembly: pairs held, grids and matrices one inline `seq` source. */
 export function inlineOverAssembly(
   at: Placed,
   sides: readonly [InlineSide, InlineSide?],
   systems: ReadonlyMap<string, SystemEntry>,
   states?: number,
 ): InlineOverAssembly {
-  const unknown = new Set<string>();
+  const said: Said = { unknown: new Set(), unnamed: new Set(), past: 0 };
   const kind = at.node.kind;
   const length = (s: string) => systems.get(s)?.length ?? 0;
-  // the systems listed in the assemblies' sequence order (a side on a sequence first), as a source's plans are, so
-  // the blocks read and gather in one order whichever way the rows came
+  // the systems in the assemblies' sequence order (a side on a sequence first), as a source's plans are, so the blocks
+  // read and gather in one order whichever way the rows came
   const ranks = new Map<string, number>();
   for (const e of new Set(sides.map((x) => x?.assembly)))
-    e?.systemAt.forEach((x, i) => x !== undefined && !ranks.has(x) && ranks.set(x, ranks.size + i));
+    for (const x of e?.systemAt ?? []) if (x !== undefined && !ranks.has(x)) ranks.set(x, ranks.size);
   const rank = (s: string) => ranks.get(s) ?? -1;
   const order = (names: Iterable<string>) => [...names].sort((x, y) => rank(x) - rank(y));
-  const built: { data: SeqData; sizes?: readonly string[] } =
-    kind === 'pairs'
-      ? pairsBySystem(at.node, sides, unknown, length, order)
-      : kind === 'grid'
-        ? gridBySystem(at.node, sides, unknown, length, order)
-        : matrixBySystem(at.node, sides[0], unknown, length, order, states ?? 0);
-  const shape = kind as Shape;
-  const source = { address: at.address, format: 'seq', value: seqToValue(built.data) };
-  const bySystem = new Map<string, AccessPlan>();
-  for (const s of built.data.coverage.systems)
-    bySystem.set(s.name, { kind: 'inline', source, runtime: SeqRuntime, system: s.name, shape });
   const issues: Issue[] = [];
-  if (unknown.size)
-    issues.push(
-      issueOf(
-        GenomeIssues,
-        'seq.resolve.assembly.name',
-        `Rows name ${unknown.size} sequences the assembly lacks (${[...unknown].slice(0, 3).join(', ')})`,
-        { address: at.address, hint: GenomeIssues.codes['seq.resolve.assembly.name'].hint },
-      ),
+  let entry: Partial<AnnotationEntry>;
+  let fields: readonly string[] = [];
+  if (kind === 'pairs') {
+    const held = heldPairs(at.node, sides, said, length, ranks);
+    entry = { pairs: held.pairs, units: held.units };
+    fields = held.fields;
+  } else {
+    const built: { data: SeqData; sizes?: readonly string[] } =
+      kind === 'grid'
+        ? gridBySystem(at.node, sides, said, length, order)
+        : matrixBySystem(at.node, sides[0], said, length, order, states ?? 0);
+    const shape = kind as Shape;
+    const source = { address: at.address, format: 'seq', value: seqToValue(built.data) };
+    const bySystem = new Map<string, AccessPlan>();
+    for (const s of built.data.coverage.systems)
+      bySystem.set(s.name, { kind: 'inline', source, runtime: SeqRuntime, system: s.name, shape });
+    const plan = bySystem.values().next().value;
+    entry = { ...(plan ? { access: plan } : {}), bySystem };
+    if (kind === 'grid') fields = ['value'];
+    for (const size of built.sizes ?? [])
+      issues.push(
+        issueOf(ResolveIssues, 'seq.resolve.grid.size', size, {
+          address: at.address,
+          hint: ResolveIssues.codes['seq.resolve.grid.size'].hint,
+        }),
+      );
+  }
+  const say = (code: 'seq.resolve.assembly.name' | 'seq.resolve.assembly.bounds', message: string) =>
+    issues.push(issueOf(GenomeIssues, code, message, { address: at.address, hint: GenomeIssues.codes[code].hint }));
+  const what = kind === 'matrix' ? 'items' : kind === 'grid' ? 'values' : 'rows';
+  if (said.unknown.size)
+    say(
+      'seq.resolve.assembly.name',
+      `Rows name ${said.unknown.size} sequences the assembly lacks (${[...said.unknown].slice(0, 3).join(', ')})`,
     );
-  const sizes = built.sizes ?? [];
-  if (sizes.length)
-    issues.push(
-      issueOf(ResolveIssues, 'seq.resolve.grid.size', `A sequence pair's grid has ${sizes[0]} values: left out`, {
-        address: at.address,
-        hint: ResolveIssues.codes['seq.resolve.grid.size'].hint,
-      }),
-    );
-  return { bySystem, fields: kind === 'grid' ? ['value'] : [], issues };
+  if (said.unnamed.size) say('seq.resolve.assembly.name', `${said.unnamed.size} ${what} name no sequence: left out`);
+  if (said.past) say('seq.resolve.assembly.bounds', `${said.past} ${what} are past their sequence’s length: left out`);
+  return { entry, fields, issues };
 }
 
-/** One whole-system pair a system (its rows, level 1), in the systems' first-named order. */
+/**
+ * Pairs held: each end's unit its sequence's index in `units` (every system of the sides, in the assemblies' order),
+ * read by `readPairs` as a complex's links are, so `id`, `label`, `type`, strands and the ride-along columns (a
+ * `score` a theme reads) stay; an end past its sequence's length leaves its row out, counted.
+ */
+function heldPairs(
+  node: Node,
+  sides: readonly [InlineSide, InlineSide?],
+  said: Said,
+  length: (s: string) => number,
+  ranks: ReadonlyMap<string, number>,
+) {
+  const units: string[] = [];
+  const index = new Map<string, number>();
+  const add = (s: string) => {
+    if (!index.has(s)) index.set(s, units.push(s) - 1);
+  };
+  for (const side of sides) if (side?.system !== undefined) add(side.system);
+  for (const s of ranks.keys()) add(s);
+  // an end past its sequence's length leaves its row out, counted once a row (never drawn past its block)
+  const rows = (p(node, 'rows') ?? {}) as Record<string, Value>;
+  const endOf = (k: string) => (isColumn(rows[k]) ? (rows[k] as unknown as ArrayLike<number>) : []);
+  const aEnd = endOf('a_end');
+  const bEnd = endOf('b_end');
+  const past = new Set<number>();
+  const ends: EndUnits = {
+    columns: ['a_name', 'b_name'],
+    unit: (name, side, row) => {
+      const s = systemOn(side === 0 ? sides[0] : (sides[1] ?? sides[0]), name, row, said);
+      if (s === undefined) return -1;
+      const l = length(s);
+      if (l && (side ? bEnd : aEnd)[row] > l) {
+        past.add(row);
+        return -1;
+      }
+      return index.get(s) ?? -1;
+    },
+  };
+  const pairs = readPairs(node, ends);
+  said.past += past.size;
+  const fields = ['type', ...(pairs.labels ? ['label'] : []), ...Object.keys(pairs.extra ?? {})];
+  return { pairs, units, fields };
+}
+
+/** One whole-system pair a system (its rows, level 1), in the systems' order. */
 function seqData(
   systems: readonly string[],
   length: (s: string) => number,
   shapes: ShapeInfo[],
   pairs: SeqPair[],
-  levels: readonly number[] = [1],
 ): SeqData {
   const listed: SystemInfo[] = systems.map((name) => ({ name, length: length(name) }));
-  return { coverage: { systems: listed, shapes, levels }, pairs };
+  return { coverage: { systems: listed, shapes, levels: [1] }, pairs };
 }
 
 /** A category column of strings, or undefined. */
@@ -136,201 +202,83 @@ function names(v: Value | undefined): Names | undefined {
   return v === undefined || v === null ? undefined : (v as unknown as Names);
 }
 
-const PairEnds = ['a_start', 'a_end', 'b_start', 'b_end'] as const;
-
 /**
- * Pairs: each row on its two systems, kept in the read of each (a pair between two sequences is a chord between their
- * blocks, read from either end); its key its row in the node's table, so a selection names it at every level.
- */
-function pairsBySystem(
-  node: Node,
-  sides: readonly [InlineSide, InlineSide?],
-  unknown: Set<string>,
-  length: (s: string) => number,
-  order: (names: Iterable<string>) => string[],
-) {
-  const rows = (p(node, 'rows') ?? {}) as Record<string, Value>;
-  const [as, ae, bs, be] = PairEnds.map((k) => (isColumn(rows[k]) ? (rows[k] as unknown as ArrayLike<number>) : []));
-  const n = Math.min(as.length, ae.length, bs.length, be.length);
-  const aNames = names(rows.a_name);
-  const bNames = names(rows.b_name);
-  const type = names(rows.type);
-  const aStrand = names(rows.a_strand);
-  const bStrand = names(rows.b_strand);
-  const at = (c: Names | undefined, i: number) => (c ? (c.get ? c.get(i) : c[i]) : null);
-  const strand = (c: Names | undefined, i: number) => (at(c, i) === '-' ? -1 : at(c, i) === '+' ? 1 : 0);
-  const bySystem = new Map<string, number[]>();
-  const aSys: string[] = [];
-  const bSys: string[] = [];
-  const add = (s: string, i: number) => {
-    let g = bySystem.get(s);
-    if (!g) bySystem.set(s, (g = []));
-    if (g[g.length - 1] !== i) g.push(i);
-  };
-  for (let i = 0; i < n; i++) {
-    const a = systemOn(sides[0], aNames, i, unknown);
-    const b = systemOn(sides[1] ?? sides[0], bNames, i, unknown);
-    aSys[i] = a ?? '';
-    bSys[i] = b ?? '';
-    // an end that is no interval, or on no sequence, leaves the row out (the checks said the one, the names the other)
-    if (a === undefined || b === undefined || !(as[i] >= 0 && ae[i] > as[i] && bs[i] >= 0 && be[i] > bs[i])) continue;
-    add(a, i);
-    add(b, i);
-  }
-  const strands = aStrand !== undefined || bStrand !== undefined;
-  const listOf = (g: readonly number[]): PairsList => ({
-    form: 'list',
-    aSystem: categoryColumn(g.map((i) => aSys[i])),
-    bSystem: categoryColumn(g.map((i) => bSys[i])),
-    aStart: Int32Array.from(g, (i) => as[i]),
-    aEnd: Int32Array.from(g, (i) => ae[i]),
-    bStart: Int32Array.from(g, (i) => bs[i]),
-    bEnd: Int32Array.from(g, (i) => be[i]),
-    ...(strands
-      ? { aStrand: Int8Array.from(g, (i) => strand(aStrand, i)), bStrand: Int8Array.from(g, (i) => strand(bStrand, i)) }
-      : {}),
-    ...(type ? { type: categoryColumn(g.map((i) => at(type, i))) } : {}),
-    row: Int32Array.from(g),
-  });
-  const systems = order(bySystem.keys());
-  const shapes: ShapeInfo[] = [];
-  const pairs: SeqPair[] = [];
-  const request = (system: string, level: number) => ({
-    system,
-    start: 0,
-    end: length(system),
-    level,
-    shapes: ['pairs' as Shape],
-  });
-  for (const system of systems) {
-    // kinds kept by the bins, as a held table's are (`binPairs`' category)
-    shapes.push({ system, shape: 'pairs', ...(type ? { binBy: 'type' } : {}) });
-    pairs.push({ request: request(system, 1), answer: { ok: true, tables: { pairs: listOf(bySystem.get(system)!) } } });
-  }
-  // the pairs level (region-reads Decided 2, 7): bin-pair counts at levels `factor` apart up to the longest system,
-  // each from the one below and every one listed, as a file's index lists its levels; a level-1 source alone would be
-  // read at level 1 over a whole genome at the fit (past the store's tiles), its pyramid dropping sparse links' levels
-  const all = [...new Set(systems.flatMap((s) => bySystem.get(s)!))].sort((x, y) => x - y);
-  const longest = Math.max(0, ...systems.map(length));
-  const f = DefaultSummarySettings.factor;
-  const levels = [1];
-  let bins: PairsBins | undefined;
-  for (let level = f; level < longest; level *= f) {
-    bins = bins ? coarsenPairBins(bins, f) : binPairs(listOf(all), level, { category: !!type, systems: true });
-    levels.push(level);
-    for (const system of systems)
-      pairs.push({ request: request(system, level), answer: { ok: true, tables: { pairs: binsOn(bins, system) } } });
-  }
-  return { data: seqData(systems, length, shapes, pairs, levels) };
-}
-
-/** The bin pairs with an end on `system`. */
-function binsOn(t: PairsBins, system: string): PairsBins {
-  const rows: number[] = [];
-  for (let i = 0; i < t.count.length; i++)
-    if (t.aSystem?.get(i) === system || t.bSystem?.get(i) === system) rows.push(i);
-  const take = <A extends Int32Array | Int8Array | Float32Array>(c: A): A =>
-    (c.constructor as unknown as { from(a: number[]): A }).from(rows.map((i) => c[i]));
-  const cat = (c: CategoryColumn) => categoryColumn(rows.map((i) => c.get(i)));
-  return {
-    form: 'bins',
-    ...(t.aSystem ? { aSystem: cat(t.aSystem) } : {}),
-    ...(t.bSystem ? { bSystem: cat(t.bSystem) } : {}),
-    aBin: take(t.aBin),
-    bBin: take(t.bBin),
-    ...(t.strand ? { strand: take(t.strand) } : {}),
-    ...(t.category ? { category: cat(t.category) } : {}),
-    count: take(t.count),
-    ...(t.sum ? { sum: take(t.sum) } : {}),
-  };
-}
-
-/**
- * A grid: a sequence pair's values (in the node's order, x-major) one grid of `|x| × |y|`; a pair of the wrong count is
- * left out, said. Every pair of the systems named on x and y is served (one named nowhere empty), so no strip pair of
- * them is a gap.
+ * A grid: a sequence pair's values (in the node's order, x-major) one grid of `|x| × |y|`, served only for the pairs
+ * with values (the coverage lists each x's y systems); a pair past `DefaultMaxBlockValues` is refused before anything
+ * is allocated, one of the wrong count left out, each said.
  */
 function gridBySystem(
   node: Node,
   sides: readonly [InlineSide, InlineSide?],
-  unknown: Set<string>,
+  said: Said,
   length: (s: string) => number,
   order: (names: Iterable<string>) => string[],
 ) {
   const values = isColumn(p(node, 'values')) ? (p(node, 'values') as unknown as ArrayLike<number>) : [];
   const xNames = names(p(node, 'x_name'));
   const yNames = names(p(node, 'y_name'));
-  const groups = new Map<string, { x: string; y: string; at: number[] }>();
-  const xs = new Set<string>();
-  const ys = new Set<string>();
+  const groups = new Map<string, Map<string, number[]>>();
   for (let i = 0; i < values.length; i++) {
-    const x = systemOn(sides[0], xNames, i, unknown);
-    const y = systemOn(sides[1] ?? sides[0], yNames, i, unknown);
+    const x = systemOn(sides[0], nameAt(xNames, i), i, said);
+    const y = systemOn(sides[1] ?? sides[0], nameAt(yNames, i), i, said);
     if (x === undefined || y === undefined) continue;
-    const key = `${x}\u0000${y}`;
-    let g = groups.get(key);
-    if (!g) groups.set(key, (g = { x, y, at: [] }));
-    g.at.push(i);
-    xs.add(x);
-    ys.add(y);
+    let byY = groups.get(x);
+    if (!byY) groups.set(x, (byY = new Map()));
+    let g = byY.get(y);
+    if (!g) byY.set(y, (g = []));
+    g.push(i);
   }
   const pairs: SeqPair[] = [];
-  const request = (x: string, y: string) => ({
-    system: x,
-    start: 0,
-    end: length(x),
-    level: 1,
-    shapes: ['grid' as Shape],
-    y: { system: y, start: 0, end: length(y) },
-  });
+  const shapes: ShapeInfo[] = [];
   const sizes: string[] = [];
-  const xo = order(xs);
-  const yo = order(ys);
-  for (const x of xo)
-    for (const y of yo) {
-      const g = groups.get(`${x}\u0000${y}`);
+  const listed = new Set<string>();
+  for (const x of order(groups.keys())) {
+    const byY = groups.get(x)!;
+    const ys: string[] = [];
+    for (const y of order(byY.keys())) {
+      const at = byY.get(y)!;
       const nx = length(x);
       const ny = length(y);
-      const whole = g && g.at.length === nx * ny;
-      if (g && !whole) sizes.push(`${g.at.length} of ${nx * ny}`);
+      if (nx * ny > DefaultMaxBlockValues) {
+        sizes.push(`A sequence pair's grid of ${nx * ny} values is past ${DefaultMaxBlockValues}`);
+        continue;
+      }
+      if (at.length !== nx * ny) {
+        sizes.push(`A sequence pair's grid has ${at.length} of ${nx * ny} values: left out`);
+        continue;
+      }
+      ys.push(y);
+      listed.add(x).add(y);
       pairs.push({
-        request: request(x, y),
+        request: {
+          system: x,
+          start: 0,
+          end: nx,
+          level: 1,
+          shapes: ['grid'],
+          y: { system: y, start: 0, end: ny },
+        },
         answer: {
           ok: true,
-          tables: {
-            grid: whole
-              ? { form: 'dense', x: 0, y: 0, nx, ny, value: Float32Array.from(g.at, (i) => values[i]) }
-              : sparseEmpty(),
-          },
+          tables: { grid: { form: 'dense', x: 0, y: 0, nx, ny, value: Float32Array.from(at, (i) => values[i]) } },
         },
       });
     }
-  const shapes: ShapeInfo[] = xo.map((system) => ({ system, shape: 'grid', y: yo }));
+    if (ys.length) shapes.push({ system: x, shape: 'grid', y: ys });
+  }
   // the y systems are listed too: a section's y block reads its length from the coverage
-  const listed = order(new Set([...xs, ...ys]));
-  return { data: seqData(listed, length, shapes, pairs), sizes };
-}
-
-function sparseEmpty() {
-  return {
-    form: 'sparse' as const,
-    x: 0,
-    y: 0,
-    xBin: new Int32Array(0),
-    yBin: new Int32Array(0),
-    value: new Float32Array(0),
-    fill: Number.NaN,
-  };
+  return { data: seqData(order(listed), length, shapes, pairs), sizes: sizes.slice(0, 1) };
 }
 
 /**
  * A matrix: a sequence's items (in the node's order) its positions from 0, each with every state, as one matrix's
- * inline items; an item's key its index in the node, so two sequences' items are never one.
+ * inline items; an item's key its index in the node, so two sequences' items are never one. Items past a sequence's
+ * length are left out, counted.
  */
 function matrixBySystem(
   node: Node,
   side: InlineSide,
-  unknown: Set<string>,
+  said: Said,
   length: (s: string) => number,
   order: (names: Iterable<string>) => string[],
   states: number,
@@ -342,12 +290,12 @@ function matrixBySystem(
   const itemNames = names(p(node, 'name'));
   const bySystem = new Map<string, number[]>();
   for (let i = 0; i < items; i++) {
-    const s = systemOn(side, itemNames, i, unknown);
+    const s = systemOn(side, nameAt(itemNames, i), i, said);
     if (s === undefined) continue;
     let g = bySystem.get(s);
     if (!g) bySystem.set(s, (g = []));
-    // a sequence's items past its length are left out (a position each)
     if (g.length < length(s)) g.push(i);
+    else said.past++;
   }
   const shapes: ShapeInfo[] = [];
   const pairs: SeqPair[] = [];
