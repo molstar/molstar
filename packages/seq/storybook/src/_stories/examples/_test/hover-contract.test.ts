@@ -14,6 +14,8 @@
 
 // @module-tag medium
 
+import { appendFileSync } from 'node:fs';
+import { hashString } from '@molstar/core/data/util/hash-functions';
 import { BuiltInLayerTypes, BuiltInLayouts } from '@molstar/seqx-core/render/built-ins';
 import { loadBridges } from '@molstar/seqx-core/render/bridge-load';
 import { loadGenome } from '@molstar/seqx-core/resolve';
@@ -21,6 +23,7 @@ import { AcrossViews, type ExampleView, ExampleViews, RegionReadsViews } from '@
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { GenomeViews } from '../../features/genome/views.js';
+import { CardDigests } from './card-digests.js';
 import { openExample } from './draw-checks.js';
 import { type Swept, sweepHover, sweepLegends } from './hover-sweep.js';
 
@@ -40,6 +43,9 @@ const Views: readonly ExampleView[] = [...ExampleViews, ...GenomeViews, ...Regio
 
 let viewer: SeqViewer | undefined;
 
+/** A view's cards as `card-digests.ts` holds them: their `hashString`, unsigned, in hex. */
+const cardsDigest = (cards: string) => (hashString(cards) >>> 0).toString(16).padStart(8, '0');
+
 // the genome and bridge chunks landed first: their imports are real I/O, never on the fake clock
 beforeAll(async () => {
   await loadGenome();
@@ -58,8 +64,13 @@ describe('the hover contract: every drawn mark answers a hover with a hit, a mar
   for (const view of Views)
     it(`${view.dataset}/${view.id}`, { tags: ['medium'] }, async () => {
       viewer = await openExample(view, { fixtures: true, gene: '', delayMs: 0, wait: 5000, awaitOpens: true });
-      const r = sweepHover(viewer, `${view.dataset}/${view.id}`);
+      const id = `${view.dataset}/${view.id}`;
+      const r = sweepHover(viewer, id);
       all.push(r);
+      // the cards as composed by the providers: today's, byte for byte (`card-digests.ts`; a dump refreshes them)
+      const dump = process.env.SEQ_CARDS_DUMP;
+      if (dump) appendFileSync(dump, `${JSON.stringify([id, r.cards])}\n`);
+      else if (CardDigests[id] !== undefined) expect(cardsDigest(r.cards), id).toBe(CardDigests[id]);
       expect(r.wrong).toEqual([]);
       // a view whose hover reaches another section checks it there: a projection dropped fails here
       if (r.links) expect(r.linked).toBeGreaterThan(0);

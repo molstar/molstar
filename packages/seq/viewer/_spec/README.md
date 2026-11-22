@@ -703,6 +703,23 @@ param (`port`, a `HoverCardPortFactory` given the canvas's element, none headles
   then a row `+k more`, the rest in `more`; the behavior's `shown` keeps the whole card and the live region says every
   item. Why: a ring's position under 20 features filled the page; a host that wants the list whole draws its own card
   from `more` (the port).
+- **Providers** (`card-provider.ts`, `card-providers.ts`): the card is composed by the application, as Mol\*'s plugin
+  composes its labels: registry entries `{ kind: 'card-provider', name, order?, describe(at, out) }` in the viewer spec,
+  beside `header-action`, run by `order`, then name (the header entries' rule; no order: after the ordered ones). `at`
+  is the place (the hit, its section and layer in the last frame, the floored positions, the view resolved, the store,
+  the `hover.cardItems` cap) and the viewer's lookups (`CardReads`); `out` is the parts so far (`CardParts`: `title`,
+  set when empty; `rows`; `words`, the sentence's phrases, never one a row; `whole`, set by a provider that says all
+  there is; `moreCount`, matches past the cap not made into rows). The viewer's own sections are `BuiltInCardProviders`
+  (`seq:region` 10, `seq:pair` 20, `seq:group` 30, `seq:item` 40, `seq:columns-hidden` 50, `seq:row` 60, `seq:grid` 70,
+  `seq:residue` 80, `seq:place` 90, `seq:tooltips` 95, `seq:block` 110), listed by the default spec; their rows and
+  words are the card's and the live region's as they were (the hover sweep's digests hold them). A host adds an entry,
+  leaves one out of the registry it spreads, or lists its own under a built-in's name (a later entry under a name
+  replaces the earlier). A registry listing none keeps the built-ins. Providers change rows, never the hit or the
+  emphasis: the hover contract's floor is `seq:item` and `seq:place`, and a composition without either is said
+  (`seq.viewer.card.floor`, a warning). A provider that throws has what it added dropped (rows, words, title), the rest
+  shown, said once a provider (`seq.viewer.card.provider`). A run of small blocks is said by `seq:block` alone. Why
+  entries, not internal sections: the application composing the card is the outside user; one registry rule orders
+  header entries and providers.
 - **By region** (`describe-region.ts`): a pairs bin, a region grid's cell and a matrix cell are said in the core's words
   (`pairsBinHover`, `gridCellHover`, `matrixCellHover`: core "Render", Hover texts by region), their rows the card's;
   first of the sections, the whole description. Why the core's: an export's accessible layer and a host's own card say a

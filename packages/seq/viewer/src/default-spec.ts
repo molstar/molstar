@@ -25,6 +25,7 @@ import {
 import { HeadersProvider } from '@molstar/seqx-viewer/behaviors/headers';
 import { defaultPorts } from '@molstar/seqx-viewer/ports';
 import { frameAnimation } from './animation.js';
+import { BuiltInCardProviders } from './card-providers.js';
 import { BuiltInHeaderEntries } from './header-entries.js';
 import { headerMenuOverlay } from './mount-header-menu.js';
 import { hoverCardOverlay } from './mount-hover-card.js';
@@ -51,6 +52,8 @@ export function DefaultSeqViewerSpec(): SeqViewerSpec {
       ...BuiltInRenderRegistry,
       // the track headers' built-in entries (hide, color, layers, the chips): a host's sit beside them
       ...BuiltInHeaderEntries,
+      // the hover card's providers (the viewer's own sections, the spec's tooltips): a host's sit beside them by order
+      ...BuiltInCardProviders,
     ],
     behaviors: [
       { provider: HoverProvider },

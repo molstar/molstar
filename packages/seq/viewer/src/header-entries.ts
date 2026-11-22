@@ -9,6 +9,7 @@ import type { SeqRegistryEntry } from '@molstar/seqx-core/context';
 import { type Box, HeaderStateNames, type HiddenTrack } from '@molstar/seqx-core/render';
 import type { IconName } from '@molstar/ui/components/icon/icon';
 import type { HeadersBehavior } from './behaviors/headers.js';
+import type { CardProviderEntry } from './card-provider.js';
 import { FilteredHeaderEntry } from './filter-chip.js';
 import type { SeqViewer } from './viewer.js';
 
@@ -129,8 +130,8 @@ export interface HeaderActionEntry {
   readonly entry: HeaderEntry;
 }
 
-/** What a viewer's registry lists: the core's entries and the viewer's own kinds. */
-export type SeqViewerRegistryEntry = SeqRegistryEntry | HeaderActionEntry;
+/** What a viewer's registry lists: the core's entries and the viewer's own kinds (header entries, card providers). */
+export type SeqViewerRegistryEntry = SeqRegistryEntry | HeaderActionEntry | CardProviderEntry;
 
 /** What a header (or a menu) is about: its section's address, the track's, the element a menu was opened on. */
 export interface HeaderTarget {

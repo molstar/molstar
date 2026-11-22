@@ -26,16 +26,22 @@ export interface HoverCard {
   readonly text: string;
   /** The item rows the card leaves to its `+k more` row: a host's card may list them. */
   readonly more?: readonly HoverCardRow[];
+  /**
+   * Matches past the cap not made into rows (a tooltip table's rows over a bin, counted by its index): the `+k more` row
+   * says `k = more.length + moreCount`.
+   */
+  readonly moreCount?: number;
 }
 
 /**
- * The card a port draws: at most `maxItems` item rows, the rest counted in a row `+k more` and kept in `more`; the card
- * itself when it has no more.
+ * The card a port draws: at most `maxItems` item rows, the rest counted in a row `+k more` and kept in `more` (with the
+ * matches never made, `moreCount`); the card itself when it has no more.
  */
 export function cutItems(card: HoverCard, maxItems: number): HoverCard {
   let items = 0;
   for (const r of card.rows) if (r.item) items++;
-  if (items <= maxItems) return card;
+  const uncounted = card.moreCount ?? 0;
+  if (items <= maxItems && !uncounted) return card;
   const rows: HoverCardRow[] = [];
   const more: HoverCardRow[] = [];
   let n = 0;
@@ -44,7 +50,7 @@ export function cutItems(card: HoverCard, maxItems: number): HoverCard {
     else if (n++ < maxItems) rows.push(r);
     else more.push(r);
   }
-  rows.push({ label: `+${more.length} more`, value: '' });
+  rows.push({ label: `+${(more.length + uncounted).toLocaleString('en-US')} more`, value: '' });
   return { ...card, rows, more };
 }
 
