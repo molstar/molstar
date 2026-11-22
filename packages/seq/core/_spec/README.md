@@ -3683,6 +3683,28 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   within the layer's `triangle`, missing values left out; NaN with no cell. A library function, no state: a host's
   readout reads it (a selected rect's mean PAE).
 
+### The matrix layer
+
+`render/matrix.ts` (`MatrixType`, `shape: 'matrix'`, fallback `values`): a `matrix` entry's items × states in a track's
+band (EC-220 to EC-222), inline or a source's, read through the store either way.
+
+- **States as rows**: a state a row in the band, scrolled by the band's `bandTop` and zoomed by its `rowScale` (the rows
+  layer's band state), the states fit to the band when it says none; the count the states system's length, else the
+  tables'. What is past the band is clipped.
+- **Items at the finest level**: an item a rect a state row at its own extent (at least a device pixel), a long one (a
+  deletion) one solid rect across the columns it covers, drawn before the short ones (they read over it). An items tile
+  holds every item with an end in it, uncut: an item starting before an earlier loaded tile's end is that tile's, drawn
+  once.
+- **Bins at a coarser level** (`layerLevel`): a store tile one image tile (bins × states, never smoothed) in the shared
+  image LRU by layer, the tile and its version, the colors' version and the axis's direction, placed on the device grid.
+- **Color**: values by the layer's `color` channel by value (its open domain the range of the tiles read), a missing
+  value transparent; codes by class (`0` `seq-ramp-0`, `1` `seq-ramp-2`, `2` `seq-ramp-4`, `3` `seq-ramp-1`), uncalled
+  (`255`) `seq-missing`; a bin's code its majority class.
+- **Pending**: a region not loaded is the pending fill across the band, never empty (EC-169); the layer's wants are
+  bounded together (`readTiles`'s layer key: past them the band's "zoom in").
+- **Hit**: `target: 'cell'`, `position` on x, `ySystem` the states system, `yPosition` the state; `bin` at a coarse
+  level.
+
 ### Tensions (pairs and grids)
 
 - **Images in SVG**: an `image` is runs of rects, so a zoomed-out large grid exports large; a PNG inside SVG needs an

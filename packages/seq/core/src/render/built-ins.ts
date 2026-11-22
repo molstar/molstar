@@ -7,6 +7,7 @@
 import { BandsType } from './bands.js';
 import { FrameType } from './frames.js';
 import { GridType } from './grid.js';
+import { MatrixType } from './matrix.js';
 import type { LayerType } from './layer-type.js';
 import { GridLayout } from './layout/grid.js';
 import { RingsLayout } from './layout/rings.js';
@@ -41,6 +42,7 @@ export const BuiltInLayerTypes: Readonly<Record<string, LayerType<any, any>>> = 
   bands: BandsType,
   pairs: PairsType,
   grid: GridType,
+  matrix: MatrixType,
 };
 
 /** The section layouts the core ships, by name (_spec/README.md "Render", Section layouts). */
