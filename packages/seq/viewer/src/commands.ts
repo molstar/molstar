@@ -60,6 +60,10 @@ export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   'cursor.add-down': 'session',
   'cursor.page-down': 'session',
   'cursor.page-up': 'session',
+  // Home and End scroll the scroller under the pointer and move no cursor: a scroll is a viewport's (a band's top, a
+  // section's `top`), so a navigation, as `rows.page-*` (the page keys are the cursor's: a shown cursor moves with them)
+  'cursor.scroll-start': 'navigate',
+  'cursor.scroll-end': 'navigate',
   'cursor.first-row': 'session',
   'cursor.last-row': 'session',
   'cursor.toggle': 'session',

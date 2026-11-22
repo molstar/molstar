@@ -92,6 +92,11 @@ export interface SectionLayout {
   readonly rowsRails?: readonly Rail[];
   /** The rails of its tracks whose lanes scroll inside their band (upright, plain: the wheel moves them). */
   readonly lanesRails?: readonly Rail[];
+  /**
+   * Its own rail while its content scrolls inside its box (a text's lines, a tracks section's tracks below its ruler:
+   * _spec/README.md "Render", Section scroll), upright at the box's right edge.
+   */
+  readonly sectionRail?: Rail;
   /** The direction mark in the first track's label row (`axis.directionMark`): its text, x and measured width. */
   readonly mark?: { readonly text: string; readonly x: number; readonly width: number };
   /** The layers' lays a strip and band (`strip * bands + band`), in the strip's frame. */
@@ -277,6 +282,8 @@ export class LayoutState {
   domainsVersion = 0;
   /** Each section's last layout and what it was laid out for (_spec/README.md "Render", The key: per section). */
   readonly sections = new Map<string, SectionCache>();
+  /** A section of the last layout scrolled past its cap: the right gutter keeps a rail's slot for it. */
+  sectionSlot = false;
   /** The row columns' fit, kept while what it read is the same. */
   columnsFit: unknown;
   /** The template instances shown last (their tracks' addresses): kept while a zoom's new level is pending. */

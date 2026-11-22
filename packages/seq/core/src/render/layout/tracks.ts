@@ -16,7 +16,7 @@ import type { Emphasis } from '../layer-type.js';
 import type { SeqTokens } from '../tokens.js';
 import type { SectionLayout, TrackLayout } from '../tracks.js';
 import { BlockPlacement, blockChrome, placeBlocks, rowPan, rowZoom } from './blocks.js';
-import { StripPlacement } from './strips.js';
+import { capScroll, headOf, StripPlacement } from './strips.js';
 import { drawSectionHeader, drawTrackHeader, hitHeaders } from '../headers-draw.js';
 import type { NavContext, PlaceContext, SectionLayoutType, SectionNav, StepDir } from './types.js';
 
@@ -25,6 +25,8 @@ const AnchorStart: number = Anchor.start;
 
 /** At least `width / maxScale` wide (within the total), centered, within the axis; a cyclic window may pass the end. */
 export function clampWindow(c: NavContext, v: Viewport): Viewport {
+  const t = clampTop(c, v.top);
+  if (t !== v.top) v = { ...v, top: t };
   const total = c.total;
   const w = Math.min(Math.max(v.end - v.start, Math.min(c.width / c.maxScale, total)), total);
   if (c.cyclic) {
@@ -37,6 +39,18 @@ export function clampWindow(c: NavContext, v: Viewport): Viewport {
   const center = (v.start + v.end) / 2;
   const s = Math.min(Math.max(center - w / 2, 0), total - w);
   return { ...v, start: s, end: s + w };
+}
+
+/**
+ * A section's scroll within its content (_spec/README.md "Render", Section scroll): `[0, content − box]` where it
+ * scrolls, 0 where it shows all of it; as given with no placement.
+ */
+function clampTop(c: NavContext, top: number | undefined): number | undefined {
+  const p = c.placement;
+  if (top === undefined || !p) return top;
+  const max = p.clip ? Math.max(0, p.contentHeight - p.box.height) : 0;
+  const t = Math.max(0, Math.min(max, top));
+  return t === 0 && top === 0 ? top : t;
 }
 
 /** The tracks layout's arithmetic: a window of display units across `width` px. */
@@ -115,8 +129,9 @@ export const TracksLayout: SectionLayoutType<StripPlacement> = {
   fillBands: true,
   // a cyclic axis's window passes its origin: drawn as its two runs (the axis's pieces twice, `layoutView`)
   wraps: true,
-  place(section, ctx: PlaceContext, _viewport, prev) {
-    if (section.blocks) return placeBlocks(section, ctx, prev instanceof BlockPlacement ? prev : undefined);
+  place(section, ctx: PlaceContext, viewport, prev) {
+    if (section.blocks)
+      return placeBlocks(section, ctx, prev instanceof BlockPlacement ? prev : undefined, viewport?.top);
     const p = prev && !(prev instanceof BlockPlacement) ? prev : new StripPlacement();
     const strips = p.strips;
     const { config } = ctx;
@@ -139,10 +154,15 @@ export const TracksLayout: SectionLayoutType<StripPlacement> = {
       y += pt + ctx.heights[j] + pb;
       bottom = y;
     }
+    // past its box its tracks below the ruler scroll (_spec/README.md "Render", Section scroll); an export shows all
+    const content = bottom - top;
+    const fixed = headOf(ctx.bands, ctx.heights);
+    const head = fixed > 0 ? strips.bandY[fixed - 1] + strips.bandH[fixed - 1] + strips.padB[fixed - 1] : top;
+    const boxH = capScroll(p, ctx, section.params.height, top, content, fixed, head, false, viewport?.top);
     strips.top[i] = top;
-    strips.height[i] = bottom - top;
-    p.contentHeight = bottom - top;
-    p.box = { x: config.inset, y: top, width: ctx.width - 2 * config.inset, height: bottom - top };
+    strips.height[i] = p.clip ? boxH : content;
+    p.contentHeight = content;
+    p.box = { x: config.inset, y: top, width: ctx.width - 2 * config.inset, height: boxH };
     ctx.layStrip(p, i);
     return p;
   },

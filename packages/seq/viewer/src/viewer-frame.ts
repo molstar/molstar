@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { clampSectionTops } from './section-scroll.js';
 import { type ReadonlyState, State } from '@molstar/core/reactive';
 import type { Issue } from '@molstar/core/repr/tree';
 import { type Frame, type FrameInput, type Placement, Renderer } from '@molstar/seqx-core/render';
@@ -179,6 +180,8 @@ export class ViewerFrame {
       viewer.view.placed();
       // a scrolled band's stored top kept inside its lanes (by name: a viewer without the rows behavior bundles none)
       (viewer.behaviors.get('rows') as RowsBehavior | undefined)?.framed(frame.layout);
+      // a section's stored scroll kept within its content (its tracks hidden or shrunk while scrolled)
+      clampSectionTops(viewer.view, frame.layout);
       if (!this.clock.restDue) this.clock.changed();
       this._wanter?.want(frame.wants);
       this.issues.set(frame.layout.issues);

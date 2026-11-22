@@ -13,7 +13,8 @@
 import type { AxisTransform } from '../axis.js';
 import { grown } from '../draw-lists.js';
 import type { Box } from '../layer-type.js';
-import { PlacePoint, type Placement } from './types.js';
+import type { ResolvedTrack } from '@molstar/seqx-core/view';
+import { type PlaceContext, PlacePoint, type Placement } from './types.js';
 
 /** How a strip's frame goes to the page: a translation (tracks, text) or the layout's polar warp (rings). */
 export const WarpKind = { translate: 0, polar: 1 } as const;
@@ -204,6 +205,76 @@ export class Strips {
   }
 }
 
+/** Whether a page y is outside a scrolled placement's scrolled area (_spec/README.md "Render", Section scroll). */
+export function hiddenAt(p: Placement, y: number): boolean {
+  return y < (p.scrollY ?? p.box.y) || y >= (p.scrollEnd || p.box.y + p.box.height);
+}
+
+/**
+ * A section's cap (_spec/README.md "Render", Section scroll): its box its `height` (`own`), else its content up to
+ * `section.maxPx`; past it the bands from `fixed` on (below the head ending at `head`) scroll by the viewport's `top`,
+ * clamped (a stack's rows, `stacked`, move whole). A head as tall as the box, or a figure, shows all and scrolls not.
+ * Before the strips are laid out. Returns the box's height (of the tracks: a foot is the caller's).
+ */
+export function capScroll(
+  p: StripPlacement,
+  ctx: PlaceContext,
+  own: unknown,
+  top: number,
+  content: number,
+  fixed: number,
+  head: number,
+  stacked: boolean,
+  viewportTop: number | undefined,
+): number {
+  p.clip = false;
+  p.fixed = 0;
+  p.scrollY = top;
+  p.scrollEnd = 0;
+  p.top = 0;
+  if (ctx.figure) return content;
+  const cap = typeof own === 'number' ? own : Math.min(content, ctx.config.section.maxPx);
+  if (content <= cap + 0.5) return cap;
+  // a head that leaves the box no scrolled area: all of it shown
+  if (head >= top + cap - 0.5) return content;
+  p.clip = true;
+  p.fixed = fixed;
+  p.scrollY = head;
+  const t = Math.max(0, Math.min(content - cap, viewportTop ?? 0));
+  p.top = t;
+  if (t > 0) {
+    const s = p.strips;
+    for (let i = 0; i < s.n; i++) {
+      if (stacked) s.top[i] -= t;
+      for (let j = fixed; j < s.bands; j++) s.bandY[i * s.bands + j] -= t;
+    }
+  }
+  return cap;
+}
+
+/**
+ * The tracks a scrolled section keeps fixed above its scrolled area: its leading ruler tracks (a track of ruler layers
+ * alone, or of none shown), so the ruler stays while the tracks below it scroll.
+ */
+export function headOf(bands: readonly ResolvedTrack[], heights: readonly number[]): number {
+  let n = 0;
+  let ruler = false;
+  for (let j = 0; j < bands.length; j++) {
+    const ls = bands[j].layers;
+    let any = false;
+    let all = true;
+    for (let k = 0; k < ls.length; k++) {
+      if (!ls[k].placed || ls[k].params.hidden === true) continue;
+      any = true;
+      if (ls[k].type !== 'ruler') all = false;
+    }
+    if (heights[j] > 0 && !(any && all)) break;
+    if (any && all) ruler = true;
+    n = j + 1;
+  }
+  return ruler ? n : 0;
+}
+
 /** A strip-frame x and its display unit (`AxisTransform.inGapOf`, `unitInto`): one scratch, read at once. */
 const StripX = new Float64Array(2);
 
@@ -223,6 +294,16 @@ export class StripPlacement implements Placement {
   lineBlocks = false;
   /** Its bands overlay one another (a grid's plot): `at` gives the last band holding the point, the topmost. */
   readonly overlay: boolean = false;
+  /**
+   * Scrolled inside its box (`Placement`, _spec/README.md "Render", Section scroll): clipped, its px scrolled, the page
+   * y its scrolled area starts at and the bands before `fixed` that stay (a band past it above `scrollY` is hidden).
+   */
+  clip = false;
+  top = 0;
+  scrollY = 0;
+  /** The page y the scrolled area ends at, 0 for the box's foot (a row of blocks keeps its foot row below it). */
+  scrollEnd = 0;
+  fixed = 0;
 
   /** The strip at page y, or the one above it (−1 above every strip). */
   private stripAt(y: number): number {
@@ -261,6 +342,8 @@ export class StripPlacement implements Placement {
     out.y = fy;
     for (let j = 0; j < s.bands; j++) {
       const k = i * s.bands + j;
+      // a scrolled band outside the scrolled area (under a fixed head, over a foot) is hidden there
+      if (this.clip && j >= this.fixed && hiddenAt(this, y)) continue;
       if (s.bandH[k] > 0 && fy >= s.bandY[k] && fy < s.bandY[k] + s.bandH[k]) {
         out.band = j;
         if (!this.overlay) break;
