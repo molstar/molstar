@@ -2593,10 +2593,11 @@ Overlay, Opened sources), kept per model and view. No data, no dynamic node, no 
   knows is not placed; data naming nothing is `seq.view.layer.data`; data of a shape the type does not draw is
   `seq.view.layer.shape`; data no static path brings to the section is `seq.view.layer.unplaced`. Each leaves the layer
   not placed.
-- **A lifted layer** (`view/lift.ts`, a liftover, EC-212): data over one assembly on a block of another that a map read
-  by region joins (Resolve, Maps read by region: the data's assembly its `from` and the block's its `to`, or the other
-  way) is placed with `data.lift` (the map, the end of its runs on the block's system, `b` on its `to`, and the map's
-  plan there) and `data.system` the block's; no static path (the runs arrive by region, EC-211).
+- **A lifted layer** (`view/lift.ts`, loaded with the genome chunk; a liftover, EC-212): data over one assembly on a
+  block of another that a map read by region joins (Resolve, Maps read by region: the data's assembly its `from` and the
+  block's its `to`, or the other way) is placed with `data.lift` (the map, the end of its runs on the block's system,
+  `b` on its `to`, and the map's plan there) and `data.system` the block's; no static path (the runs arrive by region,
+  EC-211).
 - **Layer kinds** (`LayerKinds`: the types a reader knows, each its shape and fallback, and its extensions by id with
   their versions; `resolveView(model, address, kinds?)`, kept per kinds, model and view; the built-ins' `LayerTypes`
   when absent; a composition's is `SeqContext.kinds`): a layer's chain is its type, its `fallback` (an extension's type
@@ -4089,8 +4090,10 @@ pairs layer's prepared form and its region reader through the composition (`type
 
 ### A liftover
 
-`render/lift.ts`, loaded with the genome chunk (a liftover is over assemblies): a lifted layer's items (Resolved view, A
-lifted layer), read by `readItems` as any items layer's, its rows on the block's system.
+`render/lift.ts`, loaded with the genome chunk (a liftover is over assemblies; one door, `Lift` in `layer-data.ts`, for
+its source, its items, its projection and its places): a lifted layer's items (Resolved view, A lifted layer), read by
+`readItems` as any items layer's, its rows on the block's system. Why lazy: a reader that never opens a genome pays
+nothing (the door's cost to the minimal viewer is the names the chunk imports from it).
 
 - **The runs by the near end**: the map's source read as items tiles on the block's system by `lift.side`
   (`RegionRequest.side`: `b`, the map's `to`), the window's span at the finest level whose tiles a want's bound holds;
@@ -4109,7 +4112,9 @@ lifted layer), read by `readItems` as any items layer's, its rows on the block's
 - **Projection** (`lift-project.ts`, `regionProjector(store)`: a `RegionProjector`, Resolved view, Projection): a part
   on one end's sequence carried to the other's through the runs in the items tiles the store holds at any level, read by
   that end (the lifted layer's and the bridge's reads: no want of its own, so a hover never reads), its version the
-  store's. Both ways: an old gene lights each image, an image lights the old gene.
+  store's. Both ways: an old gene lights each image, an image lights the old gene. Its `places` name an item's places
+  for a card (at least two; a place an image's pieces nearer than the item's length joined, so a chain's small gap
+  splits none).
 
 ### Lanes and Hits
 

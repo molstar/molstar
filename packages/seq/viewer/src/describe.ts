@@ -25,7 +25,6 @@ import {
 import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { AddressModel, Cursor, SpecModel, StoreModel, ViewModel } from '@molstar/seqx-viewer/models';
 import { BridgeView } from '@molstar/seqx-viewer/models/bridge-hooks';
-import { liftPlaces } from './describe-lift.js';
 import { chemistryRows } from './describe-molecules.js';
 import { regionHoverOf } from './describe-region.js';
 import type { HoverCard, HoverCardRow } from './hover-card.js';
@@ -597,11 +596,11 @@ class Words {
     return this._src.view.model.value.systems.get(system)?.name ?? system;
   }
 
-  /** An item's images through a map read by region, when several (`describe-lift.ts`). */
+  /** An item's places through a map read by region, when several (the core's `regionProjector`). */
   places(system: string | undefined, start: number, end: number): string | undefined {
     const view = this._src.view.resolved.value;
     if (!view || system === undefined) return undefined;
-    return liftPlaces(this._src.view.model.value, view, this._src.store.regions, system, start, end);
+    return this._src.store.regions.places?.(this._src.view.model.value, view, system, start, end);
   }
 
   itemsOf(l: LayerLayout): readonly ItemDescription[] {

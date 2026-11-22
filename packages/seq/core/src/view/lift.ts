@@ -7,9 +7,10 @@
 // A layer's data carried through a map read by region (_spec/README.md "Resolved view", A liftover; EC-212): data over
 // one assembly drawn on a block of another, through a `map` whose runs are a pairs source's rows (`map.source`). No
 // static path joins them (the runs arrive by region, EC-211): the layer is placed with the map and the end of its runs
-// on the block's system, and the render reads the runs by that end before the data along them.
+// on the block's system, and the render reads the runs by that end before the data along them. Loaded with the genome
+// chunk (`view.ts`): a liftover is over assemblies.
 
-import { type Node, printAddress } from '@molstar/core/repr/tree';
+import type { Node } from '@molstar/core/repr/tree';
 import type { AccessPlan, StaticModel } from '@molstar/seqx-core/resolve';
 import type { LayerData } from './view.js';
 
@@ -32,8 +33,7 @@ export function regionMaps(spec: Node): readonly string[] {
   for (const d of spec.children ?? [])
     if (d.kind === 'data' && d.id !== undefined)
       for (const n of d.children ?? [])
-        if (n.kind === 'map' && n.id !== undefined && n.params?.source !== undefined)
-          out.push(printAddress([d.id, n.id]));
+        if (n.kind === 'map' && n.id !== undefined && n.params?.source !== undefined) out.push(`/${d.id}/${n.id}`);
   RegionMaps.set(spec, (maps = out));
   return maps;
 }

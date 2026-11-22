@@ -8,16 +8,9 @@
 // `RegionProjector` over its store, its work in `lift.ts`, loaded with the genome chunk (a liftover is over assemblies,
 // so a model holding one waits for it; before it lands nothing is carried).
 
-import { withGenome } from '@molstar/seqx-core/resolve';
 import type { RegionProjector } from '@molstar/seqx-core/view';
+import { Lift } from './layer-data.js';
 import type { RegionReader } from './lift.js';
-
-const Lift: { project?: typeof import('./lift.js').projectLifted } = {};
-withGenome(() =>
-  import('./lift.js').then((m) => {
-    Lift.project = m.projectLifted;
-  }),
-);
 
 /** A projector through the maps read by region over `data` (a store: the tiles it holds now, its version). */
 export function regionProjector(
@@ -27,6 +20,7 @@ export function regionProjector(
     get version() {
       return data.version.value;
     },
-    project: (model, from, ranges, to, out) => Lift.project?.(model, data, from, ranges, to, out) ?? false,
+    project: (model, from, ranges, to, out) => Lift.module?.projectLifted(model, data, from, ranges, to, out) ?? false,
+    places: (model, view, system, start, end) => Lift.module?.liftPlaces(model, data, view, system, start, end),
   };
 }

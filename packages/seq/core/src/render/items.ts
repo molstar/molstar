@@ -8,12 +8,20 @@ import { CategoryColumn, type Column, issueOf } from '@molstar/core/repr/tree';
 import { RenderIssues } from './issues.js';
 import type { DataEntry, RangesDensity, RangesList } from '@molstar/seqx-core/data';
 import { type QueryItem, rangesLocation } from '@molstar/seqx-core/query';
-import { type StaticModel, withGenome } from '@molstar/seqx-core/resolve';
+import type { StaticModel } from '@molstar/seqx-core/resolve';
 import { axisBreaks, breakHolding, type ResolvedLayer } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
 import { type DensityStep, densityStep, type RenderConfig } from './config.js';
 import { NoColor, type PassWriter } from './draw-lists.js';
-import { dataRegions, type LayerSource, layerLevel, placeholderSpans, readTiles, toSection } from './layer-data.js';
+import {
+  dataRegions,
+  type LayerSource,
+  layerLevel,
+  Lift,
+  placeholderSpans,
+  readTiles,
+  toSection,
+} from './layer-data.js';
 import type { FilterRow, RowFilter } from './filter.js';
 import type { Box, Hit, ItemDescription, LayoutContext, StoreReader } from './layer-type.js';
 import { breakHit } from './marks.js';
@@ -25,17 +33,6 @@ import type { SeqTokens } from './tokens.js';
 // Layer types, Data): the items of the tiles read (a key and start seen in an earlier tile is that range again, over
 // the tile's edge; a key repeated with another start is another piece of the item), the layout's prologue, the
 // placeholders, the ticks of the items a break hides, the count strip, an item's hit and where an item's ends are.
-
-/**
- * A lifted layer's reader (`lift.ts`), loaded with the genome chunk: a liftover is over assemblies, so a model holding
- * one waits for both. Why lazy: a viewer that never opens a genome pays nothing for it.
- */
-const Lift: { read?: typeof import('./lift.js').readLifted } = {};
-withGenome(() =>
-  import('./lift.js').then((m) => {
-    Lift.read = m.readLifted;
-  }),
-);
 
 export interface ItemRows {
   /** The rows in view (`n` of them; the arrays are kept longer and written over frame to frame). */
@@ -399,7 +396,7 @@ export function readItems(
       }),
     );
   // carried through a map read by region (a liftover): its reader, loaded with the genome chunk (`lift.ts`)
-  if (src.lift) return Lift.read?.(lay, ctx, data, src, fields) ?? [];
+  if (src.lift) return Lift.module?.readLifted(lay, ctx, data, src, fields) ?? [];
   const regions = dataRegions(src, axis, true);
   // a row of a cyclic system that runs past its end also overlaps the last position: its tile gives the origin's piece
   const wrap = src.length !== undefined && src.wraps ? { length: src.length, cyclic: src.cyclic === true } : undefined;

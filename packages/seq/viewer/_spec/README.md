@@ -710,10 +710,11 @@ param (`port`, a `HoverCardPortFactory` given the canvas's element, none headles
   (`pairsBinHover`, `gridCellHover`, `matrixCellHover`: core "Render", Hover texts by region), their rows the card's;
   first of the sections, the whole description. Why the core's: an export's accessible layer and a host's own card say a
   bin as the viewer does.
-- **A liftover's places** (`describe-lift.ts`): an item with at least two images through a map read by region (a
-  duplicated stretch, EC-20) has a row `Places` listing them (`2 places: chr1 62,001–68,000, chr2 62,001–68,000`, at
-  most four named), and its words say `in 2 places`. A place is an image's pieces nearer than the item's length joined
-  (a chain's small gap splits no place). One place says nothing: it is the projected hover itself.
+- **A liftover's places** (the store's `regions.places`, the core's): an item with at least two images through a map
+  read by region (a duplicated stretch, EC-20) has a row `Places` listing them
+  (`2 places: chr1 62,001–68,000, chr2 62,001–68,000`, at most four named), and its words say `in 2 places`. A place is
+  an image's pieces nearer than the item's length joined (a chain's small gap splits no place). One place says nothing:
+  it is the projected hover itself.
 - **A residue over its codon**: a hit on a letters layer whose data is on another system than its section's through a
   codon step (a protein's letters over its gene; an alignment row, an offset or a pairwise map keeps the place's card)
   is titled by the residue (`p 12`), with its `Index`, its letter and the codon's positions on the section's system, a

@@ -48,6 +48,11 @@ export interface RegionProjector {
    * (unsorted); false when no such map joins them.
    */
   project(model: StaticModel, from: string, ranges: ArrayLike<number>, to: string, out: number[]): boolean;
+  /**
+   * `[start, end)` on `system` carried onto every block `view` shows: its places named when there are at least two (a
+   * card's `Places`, a duplicated stretch's), else undefined.
+   */
+  places?(model: StaticModel, view: ResolvedView, system: string, start: number, end: number): string | undefined;
 }
 
 /**

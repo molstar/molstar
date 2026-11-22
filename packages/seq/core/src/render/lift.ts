@@ -12,8 +12,17 @@
 
 import { HalfOpenRanges } from '@molstar/core/data/int/half-open-ranges';
 import type { DataEntry, PairsList, Want } from '@molstar/seqx-core/data';
-import { type AnnotationEntry, type Run, RunsLinear, type StaticModel } from '@molstar/seqx-core/resolve';
-import { regionMaps } from '@molstar/seqx-core/view';
+import {
+  type AccessPlan,
+  type AnnotationEntry,
+  type Run,
+  RunsLinear,
+  type StaticModel,
+} from '@molstar/seqx-core/resolve';
+import type { ResolvedLayer, ResolvedView } from '@molstar/seqx-core/view';
+import { regionMaps } from '@molstar/seqx-core/view/lift';
+import { spanText } from './accessibility.js';
+import { compileRowFilter } from './filter.js';
 import {
   dataRegions,
   type LayerSource,
@@ -248,4 +257,102 @@ export function projectLifted(
     return true;
   }
   return false;
+}
+/** The annotation a layer's data reads: its address's, else the one a query starts at. */
+function annotationOf(model: StaticModel, address: string) {
+  const a = model.annotations.get(address);
+  if (a) return a;
+  for (const [at, entry] of model.annotations) if (address.startsWith(`${at}/`)) return entry;
+  return undefined;
+}
+
+/** A plan's store source and system (an inline node's own address). */
+const planOf = (p: AccessPlan) =>
+  p.kind === 'inline'
+    ? { source: p.source.address, system: p.system, shape: p.shape }
+    : { source: p.source, system: p.system, shape: p.shape, ...(p.side ? { side: p.side } : {}) };
+
+/**
+ * A lifted layer's source (_spec/README.md "Render", A liftover): its rows on the section's system, read as the map's
+ * runs there and the data along them on each far system the map's source names and the data's annotation reads.
+ */
+export function liftSource(model: StaticModel, data: NonNullable<ResolvedLayer['data']>): LayerSource | undefined {
+  const lift = data.lift!;
+  const m = model.annotations.get(lift.map);
+  const a = annotationOf(model, data.address);
+  if (!m?.bySystem || !a?.bySystem) return undefined;
+  const filter = data.filter ? compileRowFilter(data.filter) : undefined;
+  const base = data.base ? compileRowFilter(data.base) : undefined;
+  const length = model.systems.get(data.system)?.length;
+  const len = (n: number | undefined) => (n !== undefined ? { length: n } : {});
+  const far = new Map<string, LayerSource>();
+  for (const [system, plan] of a.bySystem) {
+    const named = m.bySystem.get(system);
+    if (!named) continue;
+    const n = model.systems.get(system)?.length;
+    far.set(named.system, {
+      ...planOf(plan),
+      dataSystem: system,
+      ...len(n),
+      ...(n !== undefined && plan.kind !== 'inline' ? { wraps: true } : {}),
+      ratio: 1,
+      ...(filter ? { filter } : {}),
+      ...(base ? { base } : {}),
+    });
+  }
+  const near: LayerSource = { ...planOf(lift.near), dataSystem: data.system, ...len(length), ratio: 1 };
+  return {
+    source: near.source,
+    system: near.system,
+    dataSystem: data.system,
+    shape: 'ranges',
+    ...len(length),
+    ratio: 1,
+    ...(filter ? { filter } : {}),
+    ...(base ? { base } : {}),
+    ...((data.filter && !filter) || (data.base && !base) || data.unread ? { unreadFilter: true } : {}),
+    lift: { map: lift.map, side: lift.side, near, far },
+  };
+}
+
+/** The most places a card names: past it, the count alone. */
+const MaxNamed = 4;
+
+/**
+ * `[start, end)` on `system` carried through the maps read by region onto every block `view` shows (`RegionProjector`'s
+ * `places`): its places as `2 places: chr1 62,001–68,000, chr2 62,001–68,000` when there are at least two, else
+ * undefined (one is the projected hover itself). A place is an image's pieces nearer than the item's length joined (a
+ * chain's small gap splits no place).
+ */
+export function liftPlaces(
+  model: StaticModel,
+  data: RegionReader,
+  view: ResolvedView,
+  system: string,
+  start: number,
+  end: number,
+): string | undefined {
+  if (!regionMaps(model.spec).length) return undefined;
+  const named: string[] = [];
+  const seen = new Set<string>([system]);
+  const buf: number[] = [];
+  const range = [start, end];
+  let n = 0;
+  for (const s of view.sections)
+    for (const to of s.blocks ? s.blocks.map((b) => b.axis.system) : [s.axis.system]) {
+      if (seen.has(to)) continue;
+      seen.add(to);
+      buf.length = 0;
+      if (!projectLifted(model, data, system, range, to, buf) || !buf.length) continue;
+      const r = HalfOpenRanges.normalize(buf);
+      const name = model.systems.get(to)?.name ?? to;
+      for (let k = 0; k + 1 < r.length; n++) {
+        const s0 = r[k];
+        let e = r[k + 1];
+        for (k += 2; k + 1 < r.length && r[k] - e <= end - start; k += 2) e = r[k + 1];
+        if (named.length < MaxNamed) named.push(`${name} ${spanText(s0, e)}`);
+      }
+    }
+  if (n < 2) return undefined;
+  return `${n} places: ${named.join(', ')}${n > named.length ? ', …' : ''}`;
 }
