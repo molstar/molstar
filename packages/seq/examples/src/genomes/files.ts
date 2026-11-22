@@ -9,7 +9,7 @@ import { PCG } from '@molstar/core/data/util/hash-functions';
 // The genome formats' files: UCSC hg38's cytobands, TP53's region of Ensembl's GFF3 and GENCODE's GTF, and ClinVar's
 // sites file (TP53's pages) with its index recorded as pages (`fixtures/genomes/sources.json`), and files written by the
 // generators below (a test compares each with its generator): BED12 genes and variants on small generated chromosomes,
-// and a misread BED, GFF3 and VCF whose bad lines the runtimes say.
+// and a misread BED, GFF3, VCF and GenBank file whose bad lines the runtimes say.
 
 /** UCSC hg38's `cytoBandIdeo.txt.gz`, read from its recording (`cytoBandIdeo.txt.gz.pages.json`). */
 export const CytobandsFile = 'fixtures/genomes/cytoBandIdeo.txt.gz';
@@ -192,6 +192,62 @@ export function misreadVcf(): string {
     l('chrG', 6990, 'past-end', 'ACGTACGTACGTACGTACGT', 'A', 40, 'PASS', 'DP=5'),
     l('chrG', 7500, 'outside', 'A', 'T', 40, 'PASS', 'DP=5'),
     l('chrG', 5000, 'good2', 'T', 'TA', 60, 'PASS', 'DP=30'),
+    '',
+  ].join('\n');
+}
+
+/** A GenBank file with features the runtime leaves out or reads in part, each said. */
+export const MisreadGenbankFile = 'fixtures/genomes/misread.gb';
+export const MisreadGenbankSystem = 'misread';
+
+/**
+ * A misread GenBank file: a record whose good features are read and one of each fault the runtime says (a line number
+ * each), more letters than its LOCUS says, a CONTIG record not read, and a last record cut short (no `//`).
+ */
+export function misreadGenbank(): string {
+  const rng = new PCG(29);
+  let letters = '';
+  for (let i = 0; i < 1260; i++) letters += 'acgt'[Math.floor(rng.float() * 4)];
+  const origin: string[] = [];
+  for (let at = 0; at < letters.length; at += 60) {
+    const blocks: string[] = [];
+    for (let k = at; k < at + 60; k += 10) blocks.push(letters.slice(k, k + 10));
+    origin.push(`${String(at + 1).padStart(9)} ${blocks.join(' ')}`);
+  }
+  const f = (key: string, location: string, ...qualifiers: string[]) => [
+    `     ${key.padEnd(16)}${location}`,
+    ...qualifiers.map((q) => `                     /${q}`),
+  ];
+  return [
+    `LOCUS       ${MisreadGenbankSystem}                 1200 bp    DNA     linear   SYN 22-NOV-2026`,
+    'DEFINITION  A misread GenBank record (generated).',
+    'ACCESSION   MR000001',
+    'VERSION     MR000001.1',
+    'KEYWORDS    .',
+    'SOURCE      synthetic construct',
+    '  ORGANISM  synthetic construct',
+    '            other sequences; artificial sequences.',
+    'REFERENCE   1  (bases 1 to 1200)',
+    '  TITLE     Generated',
+    'FEATURES             Location/Qualifiers',
+    ...f('gene', '101..400', 'gene="good"'),
+    ...f('CDS', 'join(101..200,301..400)', 'gene="good"', 'product="a protein"', 'translation="MKV"'),
+    ...f('gene', 'J00194.1:100..202', 'gene="remote"'),
+    ...f('misc_feature', '450^451', 'label="site between bases"'),
+    ...f('gene', '1100..1300', 'gene="past the end"'),
+    ...f('gene', 'join(500..600', 'gene="malformed"'),
+    ...f('misc_feature', '700.710', 'label="approximate"'),
+    ...f('repeat_region', '<900..>1000', 'label="partial"'),
+    'ORIGIN',
+    ...origin,
+    '//',
+    'LOCUS       assembly               50000 bp    DNA     linear   CON 22-NOV-2026',
+    'DEFINITION  An assembly of other records.',
+    'CONTIG      join(AB000001.1:1..25000,gap(100),AB000002.1:1..24900)',
+    '//',
+    'LOCUS       cut                       60 bp    DNA     linear   SYN 22-NOV-2026',
+    'ORIGIN',
+    `        1 ${letters.slice(0, 10)}`,
     '',
   ].join('\n');
 }

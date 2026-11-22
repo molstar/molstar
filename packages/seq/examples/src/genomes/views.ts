@@ -6,6 +6,7 @@
 
 import type { ExampleView } from '../views.js';
 import * as genomeBed from './bed.js';
+import * as genomeGenbank from './genbank.js';
 import * as genomeGff from './gff.js';
 import * as genomeVcf from './vcf.js';
 
@@ -100,5 +101,23 @@ export const GenomeFormatsViews: readonly ExampleView[] = [
       'A VCF with faults: a position that is no number, no REF and a short line (left out), a QUAL and a depth that are not numbers (read as missing), an undeclared INFO key, an `*` allele (no item), a record running past its contig (clipped) and one past it (left out), a header line without its Type; each said once with its line number, the rest drawn.',
     build: genomeVcf.misread,
     registry: genomeVcf.registry,
+  },
+  {
+    dataset: 'genomes',
+    id: 'genbank-plasmid',
+    title: 'Plasmid features from GenBank',
+    summary:
+      'The plasmid’s generated GenBank record (pUC19c turned to an origin inside bla) read by the opt-in `genbank` runtime: its letters and its features from the one file, drawn as the GFF3 view draws them (a ring and its detail, a track a feature key). The record says it is circular; bla’s `complement(join(2312..2686,1..486))` and the primer site’s join are one item each across the origin.',
+    build: () => genomeGenbank.plasmid(),
+    registry: genomeGenbank.registry,
+  },
+  {
+    dataset: 'genomes',
+    id: 'genbank-misread',
+    title: 'A misread GenBank file',
+    summary:
+      'A GenBank file with faults: a remote reference, a site between two bases, a location past the record’s length and a malformed one (each feature left out), an approximate `a.b` (read as its hull), more letters than LOCUS says (the letters win), a CONTIG assembly (not read) and a last record cut short; each said once with its line numbers, the rest drawn.',
+    build: genomeGenbank.misread,
+    registry: genomeGenbank.registry,
   },
 ];
