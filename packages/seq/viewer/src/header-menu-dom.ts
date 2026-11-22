@@ -27,7 +27,7 @@ export function contextMenuPort(): HeaderMenuPortFactory {
         const at = { x: r.left + place.x, y: r.top + place.y };
         const itemOf = (it: HeaderMenuItem, i: number): ContextMenuItem => ({
           id: `${it.name}:${i}`,
-          label: it.items ? `${it.label} ▸` : it.kind === 'state' && it.text ? `${it.label} (${it.text})` : it.label,
+          label: it.kind === 'state' && it.text ? `${it.label} (${it.text})` : it.label,
           ...(it.icon ? { icon: it.icon } : {}),
           ...(it.enabled ? {} : { disabled: it.why ?? 'Not available' }),
           ...(it.key ? { shortcut: it.key } : {}),

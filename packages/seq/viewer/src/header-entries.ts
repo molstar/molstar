@@ -245,9 +245,10 @@ export const BuiltInHeaderEntries: readonly HeaderActionEntry[] = /* @__PURE__ *
     {
       name: HeaderEntryNames.color,
       on: 'track',
-      icon: 'palette',
       label: 'Color',
       command: 'layer.channel',
+      // the menu only ("Color ▸"): one place for it, never also a slot (a host that wants a slot registers its own entry)
+      slot: false,
       order: 2,
       when: (f) => colorLayer(f) !== undefined,
       // its submenu: the command's choices (`layer.channel`'s select param, the layer's fitting schemes)

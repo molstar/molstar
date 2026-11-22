@@ -248,6 +248,11 @@ function openMenu(
               <span class={classes.label}>{item.label}</span>
               {item.shortcut ? (
                 <kbd class={classes.keys}>{item.shortcut}</kbd>
+              ) : item.items?.length ? (
+                // a submenu's arrow at the row's end, as menus have it (the label never carries it)
+                <span class={classes.check} data-submenu-arrow="">
+                  <Icon name="chevron-right" />
+                </span>
               ) : checks ? (
                 <span class={classes.check}>{item.checked ? <Icon name="check" /> : null}</span>
               ) : (

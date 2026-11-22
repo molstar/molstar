@@ -1189,14 +1189,15 @@ rows' commands) reads the last frame's rows layers through the behavior context'
     so the menu, a palette and an agent offer the same. Why entries: one list for a slot, a menu item, a DOM part, a key
     and an agent; the registry's rules (atomic, undoable, namespaced) for free.
   - **Built-ins** (`BuiltInHeaderEntries`, in the default spec's registry; a host leaves one out to remove it):
-    `seq:hide` (`eye-off`, `track.hide`), `seq:color` (`palette`, the first shown layer with more than one fitting
-    scheme: `layer.channel`'s choices a submenu, previewed while focused or hovered), `seq:layers` (more than one
-    addressable layer: a checked item a layer, `layer.hide` or `layer.show`), `seq:move-up`, `seq:move-down`
-    (`track.move`, a sibling there), the states `seq:filtered` (its count the track's, every thinned layer's rows;
-    `layer.filter` clears every thinned layer's filter, one patch), `seq:hidden-layers` (`layer.show` of every hidden
-    layer, one patch; its list each) and the section's `seq:hidden-tracks` (menu only, "Show hidden ▸": a flyout of each
-    hidden track, then "Show all", `track.show` of every hidden track in one patch), the section's `seq:reverse` and
-    `seq:collapse`. `seq:pending` is not built (the TODO).
+    `seq:hide` (`eye-off`, `track.hide`), `seq:color` (menu only, "Color ▸": one place, never also a slot; the first
+    shown layer with more than one fitting scheme: `layer.channel`'s choices a submenu, previewed while focused or
+    hovered; its arrow at the row's end, the menu's), `seq:layers` (more than one addressable layer: a checked item a
+    layer, `layer.hide` or `layer.show`), `seq:move-up`, `seq:move-down` (`track.move`, a sibling there), the states
+    `seq:filtered` (its count the track's, every thinned layer's rows; `layer.filter` clears every thinned layer's
+    filter, one patch), `seq:hidden-layers` (`layer.show` of every hidden layer, one patch; its list each) and the
+    section's `seq:hidden-tracks` (menu only, "Show hidden ▸": a flyout of each hidden track, then "Show all",
+    `track.show` of every hidden track in one patch), the section's `seq:reverse` and `seq:collapse`. `seq:pending` is
+    not built (the TODO).
   - **`HeaderFacts`**: plain data from the resolved view, the spec and the last layout (the address, label, section,
     system, linear, the section's track ids, the track's layers with type, label, hidden, filtered rows, color and
     fitting schemes, the hidden tracks, the element). Entries' functions are pure over them, run once a layout a shown
@@ -1416,15 +1417,19 @@ derived on settle: a legend that changes during a pan reads as noise, and its co
 
 - **The legend behavior's commands** (`behaviors/theming.ts`, patches unless said): `layer.channel` (a channel's value
   or form set or unset, on one layer or several in one patch; on one layer's color its choices are a select param,
-  `scheme`, the layer's fitting schemes, its default the layer's scheme: read when no `value` is given; its `preview`
-  the gesture's preview), `scale.set` (a scale's params; `null` reopens a domain's end), `theme.value-color` (one
-  value's color in a field form's palette, the listed values keeping theirs; refused on a scheme, rules or any other
-  form: never replaced), `layer.filter` (a value's items hidden or shown again: one patch of the layer's `data`, a
-  trailing `(not …)` of the values hidden; no value: cleared, every layer of `addresses` in one patch, as a click on the
-  track's "n filtered" chip). The user's filter is only that trailing `(not …)` (`dataFilter`): what leads it, the
-  annotation and a leading run of item forms (`<annotation>/(item :category Domain)`, a layer a feature type), is the
-  layer's base, kept when the filter is set, toggled or cleared, its rejected rows not counted as filtered (core's
-  Render, Filters: `splitDataForms` is the one parser). A legend entry's items are the base's forms and
+  `scheme`, the layer's fitting schemes, its default the layer's scheme (or, on a field form, the scheme whose palette
+  it has): read when no `value` is given; its `preview` the gesture's preview; a scheme chosen on a color that reads a
+  field is that scheme over the layer's own field, its scale, domain, mapping and listed values kept (a field form with
+  more than a name and a palette, or listed values, has the scheme's palette put in it), so the first entry brings the
+  original colors back exactly, and a letters or logo layer of no known alphabet has no fitting scheme: the menu has no
+  Color entry where no palette is read), `scale.set` (a scale's params; `null` reopens a domain's end),
+  `theme.value-color` (one value's color in a field form's palette, the listed values keeping theirs; refused on a
+  scheme, rules or any other form: never replaced), `layer.filter` (a value's items hidden or shown again: one patch of
+  the layer's `data`, a trailing `(not …)` of the values hidden; no value: cleared, every layer of `addresses` in one
+  patch, as a click on the track's "n filtered" chip). The user's filter is only that trailing `(not …)` (`dataFilter`):
+  what leads it, the annotation and a leading run of item forms (`<annotation>/(item :category Domain)`, a layer a
+  feature type), is the layer's base, kept when the filter is set, toggled or cleared, its rejected rows not counted as
+  filtered (core's Render, Filters: `splitDataForms` is the one parser). A legend entry's items are the base's forms and
   `(item :<field> v)` in one query (`itemsAddress`: one item form holding every param, or an `and` when the base has
   `and` or `or`), `legend.select` (session: the items whose field has the value; Cmd/Ctrl toggles), `legend.hover`
   (session: a highlight named `legend`), `theme.cvd-safe` (session). `fittingSchemes(layer)` is what a menu offers (the
