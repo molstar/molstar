@@ -105,12 +105,12 @@ describe('values as a line', () => {
     expect(after.xy[1]).toBeCloseTo(mid, 3);
   });
 
-  it('is drawn with no bars: the layer’s marks are its paths and the missing marks', async () => {
+  it('is drawn as its own paths: the line’s, where bars at this width are a profile (an area and its line a run)', async () => {
     const bars = await (await settle(p53Values('bars'))).frame({ size: { width: 800, height: 60 } });
     const line = await (await settle(p53Values('line'))).frame({ size: { width: 800, height: 60 } });
-    expect(bars.lists.passes.data.paths.n).toBe(0);
+    // two paths a run of consecutive values: the two adjacent missing residues cut the profile into two runs
+    expect(bars.lists.passes.data.paths.n).toBe(4);
     expect(line.lists.passes.data.paths.n).toBe(2);
-    expect(line.lists.passes.data.rects.n).toBeLessThan(bars.lists.passes.data.rects.n);
   });
 });
 

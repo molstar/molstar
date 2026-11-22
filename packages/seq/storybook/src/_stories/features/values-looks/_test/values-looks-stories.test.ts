@@ -4,19 +4,17 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The Values looks story, headless on a fake clock, composed as the story composes it (`compose.ts`: each look's config
-// over each cell's view): every look draws every cell, a variant never draws a stub for a missing value, the profile
-// draws paths where a value is under 4 px and the variants' bars from it, and hover outlines a value in each.
+// The Values look story, headless on a fake clock, composed as the story composes it (`compose.ts`): each cell draws, at
+// the range its title says (zoomed in: bars; out: a profile), a missing value is a gap, and hover outlines a value.
 
 import { readFileSync } from 'node:fs';
 import { type ValuesLay, recordDrawLists } from '@molstar/seqx-core/render';
-import type { ValuesLook } from '@molstar/seqx-core/render';
 import { PackageFolder } from '@molstar/seqx-examples/node-assets';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { withViewRegistry } from '../../../examples/view-registry.js';
-import { Cells, lookConfig, Looks } from '../compose.js';
+import { Cells, zoomed } from '../compose.js';
 
 let viewer: SeqViewer | undefined;
 
@@ -41,22 +39,22 @@ const reader = {
   },
 };
 
-async function open(look: ValuesLook, id: string) {
+async function open(id: string, firstWidth = 480) {
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date', 'performance'] });
   const cell = Cells.find((c) => c.id === id)!;
   const base = DefaultSeqViewerSpec();
   const v = createSeqViewer({
     ...base,
     ui: undefined,
-    config: [...(base.config ?? []), lookConfig(look)] as never,
     registry: withViewRegistry(base.registry ?? [], cell.view.registry?.({ delayMs: 100 }) ?? []),
     ports: { assets: () => ({ reader: reader as never }) },
   });
   viewer = v;
-  v.resize(480);
+  v.resize(firstWidth);
   void v.load(cell.view.build()).then(() => v.settle());
   await vi.advanceTimersByTimeAsync(3000);
-  cell.opening?.(v);
+  if (firstWidth !== 480) v.resize(480);
+  zoomed(cell, v);
   await vi.advanceTimersByTimeAsync(3000);
   v.draw();
   return v;
@@ -71,66 +69,58 @@ const values = (v: SeqViewer) => {
 /** The data pass as text: its lines per primitive. */
 const dataLines = (v: SeqViewer) => recordDrawLists(v.frame!.lists, ['data']).split('\n');
 
-describe('the values looks story, headless', () => {
-  const missing = (v: SeqViewer) => v.frame!.layout.tokens.colors['seq-missing'];
+/** The values layer's bars: rounded rects of the data pass (the series color at 60%, tops rounded where they have height). */
+const bars = (v: SeqViewer) => dataLines(v).filter((l) => l.startsWith('rect ') && / #[0-9a-f]{6}99( |$)/.test(l));
 
-  it.each(Looks.map((l) => l.look))('%s: every cell draws, and hover outlines a value', async (look) => {
-    for (const cell of Cells) {
-      const v = await open(look, cell.id);
-      const lay = values(v);
-      expect(lay.n, cell.id).toBeGreaterThan(10);
-      expect(lay.config.values.look).toBe(look);
-      const x = lay.box.x + lay.box.width / 2;
-      const y = lay.box.y + lay.box.height / 2;
-      const hit = v.hit(x, y);
-      expect(hit?.layer, cell.id).toBe(lay.key);
-      v.hover.set(hit, 'test');
-      const f = v.draw() ?? v.frame!;
-      expect(
-        recordDrawLists(f.lists, ['hover'])
-          .split('\n')
-          .filter((l) => l.startsWith('rect ')).length,
-        cell.id,
-      ).toBeGreaterThan(0);
-      v.hover.set(undefined, 'test');
-      v.retire();
-      viewer = undefined;
+describe('the values look story, headless', () => {
+  it.each(Cells.map((c) => c.id))('%s: draws, at the range its title says, and hover outlines a value', async (id) => {
+    const cell = Cells.find((c) => c.id === id)!;
+    const v = await open(id);
+    const lay = values(v);
+    expect(lay.n, id).toBeGreaterThan(10);
+    if (cell.zoom) {
+      // zoomed in: the view holds the range of the title, wide enough for bars, and the layer draws them
+      const r = v.view.get(cell.zoom.section)!;
+      expect([r.start, r.end], id).toEqual([cell.zoom.start, cell.zoom.end]);
+      expect(lay.axis.scale, id).toBeGreaterThanOrEqual(4);
+      expect(bars(v).length, id).toBeGreaterThanOrEqual(cell.zoom.end - cell.zoom.start - 3);
+    } else {
+      // zoomed out: a profile (paths), no bar
+      expect(lay.axis.scale, id).toBeLessThan(4);
+      expect(dataLines(v).filter((l) => l.startsWith('path ')).length, id).toBeGreaterThan(0);
+      expect(bars(v), id).toEqual([]);
     }
+    const hit = v.hit(lay.box.x + lay.box.width / 2, lay.box.y + lay.box.height / 2);
+    expect(hit?.layer, id).toBe(lay.key);
+    v.hover.set(hit, 'test');
+    const f = v.draw() ?? v.frame!;
+    expect(
+      recordDrawLists(f.lists, ['hover'])
+        .split('\n')
+        .filter((l) => l.startsWith('rect ')).length,
+      id,
+    ).toBeGreaterThan(0);
   });
 
-  it('the variants draw the whole protein as a profile (paths) and the zoomed cells as bars; today draws columns', async () => {
-    const today = await open('today', 'conservation-out');
-    const todayPaths = dataLines(today).filter((l) => l.startsWith('path ')).length;
-    today.retire();
-    viewer = undefined;
-    for (const look of ['profile', 'bars', 'quiet'] as const) {
-      const out = await open(look, 'conservation-out');
-      expect(values(out).axis.scale, look).toBeLessThan(4);
-      expect(dataLines(out).filter((l) => l.startsWith('path ')).length, look).toBeGreaterThan(todayPaths);
-      out.retire();
-      viewer = undefined;
-      const inn = await open(look, 'conservation-in');
-      expect(values(inn).axis.scale, look).toBeGreaterThanOrEqual(4);
-      const rects = dataLines(inn).filter((l) => l.startsWith('rect ')).length;
-      expect(rects, look).toBeGreaterThan(40);
-      inn.retire();
-      viewer = undefined;
-    }
+  it('a missing value is a gap: no bar and no mark in the missing color at residues 100 and 101', async () => {
+    const v = await open('conservation-out');
+    v.view.setRange('/views/main/protein', 95, 105);
+    await vi.advanceTimersByTimeAsync(1000);
+    v.draw();
+    // the bars' left edges: one pitch apart but across the two missing positions, three pitches
+    const xs = bars(v).map((l) => Number(l.split(' ')[1]));
+    expect(xs.length).toBeGreaterThan(6);
+    const pitch = xs[1] - xs[0];
+    const steps = xs.slice(1).map((x, i) => Math.round((x - xs[i]) / pitch));
+    expect(steps.filter((k) => k !== 1)).toEqual([3]);
+    const missing = (v.frame!.layout.tokens.colors['seq-missing'] >>> 0).toString(16).padStart(8, '0');
+    expect(dataLines(v).filter((l) => l.includes(`#${missing}`))).toEqual([]);
   });
+});
 
-  it('a missing value is a gap in a variant, never a stub at zero', async () => {
-    const today = await open('today', 'conservation-in');
-    const stubs = (v: SeqViewer) =>
-      dataLines(v).filter((l) => l.includes(`#${(missing(v) >>> 0).toString(16).padStart(8, '0')}`)).length;
-    const hadToday = stubs(today);
-    today.retire();
-    viewer = undefined;
-    // the zoomed-in range holds no missing residue of its own: the stub count of a look never exceeds today's
-    for (const look of ['profile', 'bars', 'quiet'] as const) {
-      const v = await open(look, 'conservation-in');
-      expect(stubs(v), look).toBeLessThanOrEqual(hadToday);
-      v.retire();
-      viewer = undefined;
-    }
+describe('a viewer mounted before it has a width', () => {
+  it.each(['conservation-out', 'bigwig-out', 'bigwig-in'])('%s: draws its data once it is sized', async (id) => {
+    const v = await open(id, 0);
+    expect(values(v).n, id).toBeGreaterThan(10);
   });
 });

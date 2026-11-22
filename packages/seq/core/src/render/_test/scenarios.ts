@@ -196,27 +196,6 @@ export const Scenarios: readonly Scenario[] = [
     center: BIG / 2,
     panStep: 200,
   },
-  // the values layer's looks (VL step 1, internal): the whole protein as a profile, and 40 residues as bars
-  ...(['profile', 'bars', 'quiet'] as const).flatMap((look) => [
-    {
-      name: `p53 tracks, whole protein, values look ${look}`,
-      spec: p53TracksSpec,
-      runtimes: [],
-      width: 393,
-      center: 196,
-      panStep: 0.5,
-      config: { values: { look } },
-    },
-    {
-      name: `p53 tracks, 40 residues, values look ${look}`,
-      spec: p53TracksSpec,
-      runtimes: [],
-      width: 40,
-      center: 196,
-      panStep: 0.3,
-      config: { values: { look } },
-    },
-  ]),
 ];
 
 /** A triangle wave of `STEPS` samples: 0 up to 1 and back. */

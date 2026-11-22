@@ -64,7 +64,7 @@ export function readCoreSvg(svg: string): CoreDrawn {
     });
   }
   const paths: Box[] = [];
-  for (const m of data.matchAll(/<path d="([^"]*)" fill="([^"]*)"\/>/g)) {
+  for (const m of data.matchAll(/<path d="([^"]*)" fill="([^"]*)"(?: fill-opacity="[^"]*")?\/>/g)) {
     const nums = m[1].match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
     // an even index is x and an odd one y: the commands carry coordinates only
     const xs = nums.filter((_, i) => i % 2 === 0);

@@ -59,13 +59,7 @@ describe('the Configuration table of RenderConfig', () => {
     const md = readFileSync(fileURLToPath(new URL('../../_spec/README.md', import.meta.url)), 'utf8');
     const rows = tableItems(md.slice(md.indexOf('\n## Render\n')), /^### Configuration$/);
     expect(rows.length).toBeGreaterThan(40);
-    // `values.look` is internal until the Values looks story's pick is built as the default (then it goes, here too)
-    expect(
-      tableDrift(
-        configItems(DefaultRenderConfig).filter((i) => i !== 'values.look'),
-        rows,
-      ),
-    ).toEqual({ missing: [], unknown: [] });
+    expect(tableDrift(configItems(DefaultRenderConfig), rows)).toEqual({ missing: [], unknown: [] });
   });
 });
 

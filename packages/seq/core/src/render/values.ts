@@ -36,11 +36,12 @@ import { sortArrayRange } from '@molstar/core/data/util/sort';
 import type { Channel } from '@molstar/seqx-core/theme/index';
 import { channelForms, channelLegends, Extents, type LayerChannels, PlainDatum } from './channels.js';
 
-// The `values` layer type (_spec/README.md "Render", Layer types): a bar a value, square (continuous data). Where a
-// position is a device pixel or more, a bar a position; below, a bar a device column over the column's extent from
-// the baseline (`values.aggregate`: `minmax`, so negative extremes show, or `max`), from per-position values or a
-// coarser level's bins. Missing (NaN) is a thin neutral mark at the baseline,
-// never a zero. The domain is the layer's `domain` param, else open: computed from the values in view when the view
+// The `values` layer type (_spec/README.md "Render", Layer types): bars of continuous data. A position of 4 CSS px or
+// more is a bar (a 1 px gap, rounded tops); below, one stepped profile over the device columns' extents (a faint area
+// under a thin top line), from per-position values or a coarser level's bins (`values.aggregate`: `minmax`, so negative
+// extremes show, or `max`). The top tenth of the well is headroom, a hairline marks the baseline, and a missing value
+// (NaN) is a gap, never a stub or a zero.
+// The domain is the layer's `domain` param, else open: computed from the values in view when the view
 // settles, held while it does not, so heights do not shimmer during a pan. Its `scale` names a scale node: its y domain
 // is the scale's (an open end the union over the layers naming it, held from the last settle). Its color is its
 // `color` channel: uniform (one fill), or by `value` (a bar's color its value's, `col`; a line's color changes with it).
@@ -256,7 +257,7 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
       }
     if (lay.perBar) colorBars(lay, color, ctx);
     lay.domain = yDomain(prep, ctx, lay);
-    if (lay.encoding !== 'bars' || config.values.look !== 'today') orderLine(lay);
+    orderLine(lay);
     return lay;
   },
 
@@ -286,69 +287,21 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
 // Each pass draws in a function of its own, called through a table (`drawPass`: nothing allocated once warm).
 
 /** The data pass: bars, or the line (and area) through the same marks. */
-function drawData(lay: ValuesLay, out: PassWriter, emphasis: Emphasis | undefined) {
+function drawData(lay: ValuesLay, out: PassWriter) {
   if (lay.encoding !== 'bars') drawLine(lay, out);
-  else if (lay.config.values.look !== 'today') drawLook(lay, out);
-  else drawBars(lay, out, emphasis);
-}
-
-/** The data pass of bars: placeholders, and a bar a value from the baseline (missing: a mark at it). */
-function drawBars(lay: ValuesLay, out: PassWriter, _emphasis: Emphasis | undefined) {
-  const { box, tokens } = lay;
-  drawSpans(out, lay.pending, box.y, box.height, tokens.colors['seq-pending']);
-  drawFailed(out, lay.failed, box.y, box.height, tokens);
-  // no closure, no destructuring, no call with a number made here (`yOf` inlined on purpose) and one call site a
-  // primitive (a site first run after its function was compiled stays a call): nothing allocated once warm
-  const lo = lay.domain ? lay.domain[0] : 0;
-  const hi = lay.domain ? lay.domain[1] : 1;
-  const base = lo <= 0 && hi >= 0 ? 0 : lo;
-  const span = hi - lo || 1;
-  const y1 = box.y + box.height;
-  const bh = box.height;
-  const yBase = y1 - ((Math.max(lo, Math.min(hi, base)) - lo) / span) * bh;
-  const missing = tokens.colors['seq-missing'];
-  const each = perPosition(lay.step);
-  for (let j = 0; j < lay.n; j++) {
-    const v = lay.v[j];
-    let top = yBase - 2;
-    let h = 2;
-    let fill = missing;
-    if (Number.isNaN(v)) {
-      if (!each) continue;
-    } else {
-      // the extent from the baseline: a column's low below it shows (negative extremes)
-      top = y1 - ((Math.max(lo, Math.min(hi, Math.max(v, base))) - lo) / span) * bh;
-      h = y1 - ((Math.max(lo, Math.min(hi, Math.min(lay.lo[j], base))) - lo) / span) * bh - top;
-      fill = lay.perBar ? lay.col[j] : lay.fill;
-    }
-    out.fill(lay.x0[j], top, lay.x1[j] - lay.x0[j], h, fill);
-  }
+  else drawBars(lay, out);
 }
 
 /**
- * The variants of the bars' look (VL step 1: internal, picked from the Values looks story): a stepped profile below
- * `BarMinPx` CSS px a value (an area under a crisp top line), bars from it. `gap` and `round` are the bars' (CSS px),
- * the alphas of the profile's fill (0-255), of the bars' fill, and the top line's width.
+ * The look of the bars (_spec/README.md "Render", Layer types, `values`): a stepped profile below `BarMinPx` CSS px a
+ * value (an area at `FillAlpha` under a top line of `ProfileLine`), bars from it (a gap, rounded tops, at `BarAlpha`).
  */
-const LookFillAlpha = 0;
-const LookBarAlpha = 1;
-const LookLine = 2;
-const LookGap = 3;
-const LookRound = 4;
-
-/**
- * The numbers of each look, a row of five (the order above) in one typed array: read as numbers, never as fields of
- * objects of differing representations (a double field is boxed where the code is not optimized: an allocation a frame).
- */
-const LookNumbers = new Float64Array([
-  // profile
-  128, 255, 1, 0, 0,
-  // bars
-  128, 255, 1, 1, 2,
-  // quiet
-  89, 153, 0.75, 1, 2,
-]);
-const LookRow = 5;
+const FillAlpha = 89;
+const BarAlpha = 153;
+/** The top line's width and the bars' gap and corner radius, CSS px. */
+const ProfileLine = 0.75;
+const BarGap = 1;
+const BarRound = 2;
 
 /** A value takes bars from this many CSS px; below, the profile. */
 const BarMinPx = 4;
@@ -356,22 +309,14 @@ const BarMinPx = 4;
 const Fill = 0.9;
 
 /**
- * The data pass of a look: placeholders, a hairline at the baseline, then a profile (runs of consecutive values, one
+ * The data pass of bars: placeholders, a hairline at the baseline, then a profile (runs of consecutive values, one
  * color a run: the area under the steps at the look's alpha, the top line over it) or bars. A missing value is a gap.
  * Nothing allocated once warm: the numbers go through `out.args`, the points through `linePoints`.
  */
-function drawLook(lay: ValuesLay, out: PassWriter) {
+function drawBars(lay: ValuesLay, out: PassWriter) {
   const { box, tokens } = lay;
   drawSpans(out, lay.pending, box.y, box.height, tokens.colors['seq-pending']);
   drawFailed(out, lay.failed, box.y, box.height, tokens);
-  const lk = lay.config.values.look;
-  const row = (lk === 'profile' ? 0 : lk === 'bars' ? 1 : 2) * LookRow;
-  const L = LookNumbers;
-  const gap = L[row + LookGap];
-  const barAlpha = L[row + LookBarAlpha];
-  const fillAlpha = L[row + LookFillAlpha];
-  const lineWidth = L[row + LookLine];
-  const round = L[row + LookRound];
   const lo = lay.domain ? lay.domain[0] : 0;
   const hi = lay.domain ? lay.domain[1] : 1;
   const base = lo <= 0 && hi >= 0 ? 0 : lo;
@@ -381,8 +326,18 @@ function drawLook(lay: ValuesLay, out: PassWriter) {
   const yBase = y1 - ((Math.max(lo, Math.min(hi, base)) - lo) / span) * bh;
   const dpr = lay.axis.dpr;
   const px = 1 / dpr;
-  out.fill(box.x, yBase - px, box.width, px, tokens.colors['seq-sequence']);
+  // through `args`: a call with fractional numbers boxes them where it is not inlined (an allocation a frame)
   const a = out.args;
+  a[0] = box.x;
+  a[1] = yBase - px;
+  a[2] = box.width;
+  a[3] = px;
+  a[4] = tokens.colors['seq-sequence'];
+  a[5] = NoColor;
+  a[6] = 0;
+  a[7] = 0;
+  a[8] = 0;
+  out.rectArgs();
   const n = lay.n;
   const bars = perPosition(lay.step) && lay.axis.scale >= BarMinPx;
   if (bars) {
@@ -391,20 +346,38 @@ function drawLook(lay: ValuesLay, out: PassWriter) {
       if (Number.isNaN(v)) continue;
       const top = y1 - ((Math.max(lo, Math.min(hi, Math.max(v, base))) - lo) / span) * bh;
       const h = y1 - ((Math.max(lo, Math.min(hi, Math.min(lay.lo[j], base))) - lo) / span) * bh - top;
-      const c = lay.perBar ? lay.col[j] : lay.fill;
-      const g = gap / 2;
-      a[0] = lay.x0[j] + g;
+      a[0] = lay.x0[j] + BarGap / 2;
       a[1] = top;
-      a[2] = lay.x1[j] - lay.x0[j] - gap;
+      a[2] = lay.x1[j] - lay.x0[j] - BarGap;
       a[3] = h;
-      a[4] = ((c & 0xffffff00) | barAlpha) >>> 0;
+      if (lay.perBar) a[4] = ((lay.col[j] & 0xffffff00) | BarAlpha) >>> 0;
+      else a[4] = ((lay.fill & 0xffffff00) | BarAlpha) >>> 0;
       a[5] = NoColor;
       a[6] = 0;
-      a[7] = Math.min(round, a[2] / 2, h / 2);
+      a[7] = Math.min(BarRound, a[2] / 2, h / 2);
       a[8] = Round.both | Round.cutBottom;
       out.rectArgs();
     }
     return;
+  }
+  // a column's extent below the baseline (negative extremes, `minmax`): a block under the profile's area
+  if (!perPosition(lay.step)) {
+    for (let j = 0; j < n; j++) {
+      if (Number.isNaN(lay.v[j]) || !(lay.lo[j] < base)) continue;
+      const yl = y1 - ((Math.max(lo, Math.min(hi, lay.lo[j])) - lo) / span) * bh;
+      a[0] = lay.x0[j];
+      a[1] = yBase;
+      a[2] = lay.x1[j] - lay.x0[j];
+      a[3] = yl - yBase;
+      // no local holding the color: a number past a small integer is boxed where it lives in a variable (an allocation)
+      if (lay.perBar) a[4] = ((lay.col[j] & 0xffffff00) | FillAlpha) >>> 0;
+      else a[4] = ((lay.fill & 0xffffff00) | FillAlpha) >>> 0;
+      a[5] = NoColor;
+      a[6] = 0;
+      a[7] = 0;
+      a[8] = 0;
+      out.rectArgs();
+    }
   }
   const pts = linePoints;
   const ord = lay.ord;
@@ -427,14 +400,14 @@ function drawLook(lay: ValuesLay, out: PassWriter) {
       pts[2 * count + 1] = yBase;
       pts[2 * count + 2] = pts[0];
       pts[2 * count + 3] = yBase;
-      a[4] = ((a[0] & 0xffffff00) | fillAlpha) >>> 0;
+      a[4] = ((a[0] & 0xffffff00) | FillAlpha) >>> 0;
       a[5] = NoColor;
       a[6] = 0;
       a[7] = 0;
       out.pathArgs(pts, count + 2, true);
       a[4] = NoColor;
       a[5] = a[0];
-      a[6] = lineWidth;
+      a[6] = ProfileLine;
       a[7] = 0;
       out.pathArgs(pts, count, false);
       count = 0;
@@ -577,10 +550,18 @@ function orderLine(lay: ValuesLay) {
     lay.col.fill(lay.fill, 0, n);
   }
   lay.cut.fill(0, 0, n);
-  const ord = lay.ord.subarray(0, n);
-  for (let i = 0; i < n; i++) ord[i] = i;
+  const ord = lay.ord;
   const x0 = lay.x0;
-  sortArrayRange(ord, 0, n, (o, a, b) => x0[o[a]] - x0[o[b]] || o[a] - o[b]);
+  // the bars come in x order (columns, a section's own positions): the sort, and its closure, only where they do not
+  let sorted = true;
+  for (let i = 0; i < n; i++) {
+    ord[i] = i;
+    if (i > 0 && x0[i] < x0[i - 1]) sorted = false;
+  }
+  if (!sorted) {
+    const o = ord.subarray(0, n);
+    sortArrayRange(o, 0, n, (q, a, b) => x0[q[a]] - x0[q[b]] || q[a] - q[b]);
+  }
   // the breaks of the axis in view, each after the bar whose right edge is at it (a position a bar only)
   if (perPosition(lay.step)) {
     const breaks = lay.axis.breaks([]);

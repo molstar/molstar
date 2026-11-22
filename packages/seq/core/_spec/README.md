@@ -2988,10 +2988,15 @@ in page coordinates: what crosses strips), `axes` (2: a second axis of its own, 
   known) are centred by the most the layer has shown, every lane when the last is the density row, so no lane runs past
   the band.
 
-- `values`: a bar a position, or at `bars` and `density` a bar a device column over the column's extent from the
-  baseline (`values.aggregate: 'minmax'`, so negative extremes show; `'max'` the maximum alone), from positions or bins.
-  Missing (NaN) is a 2 px neutral mark at the baseline. The domain is the layer's `domain` param where given, else open:
-  computed from the values in view when the view settles, held while it does not.
+- `values`: bars, or a profile where a position is under 4 CSS px. From 4 px a bar a position: a 1 px gap, rounded tops
+  (2 px), at 60% of the series color. Below, one stepped profile over the device columns' extent
+  (`values.aggregate: 'minmax'`, so negative extremes show; `'max'` the maximum alone), from positions or bins: the area
+  under it at 35%, a 0.75 px top line in the full color. The top 10% of the well is headroom (a value at the domain's
+  top never touches it), a hairline marks the baseline (zero, else the domain's low), and a missing value (NaN) is a
+  gap, never a stub or a zero (a `line` or `area` keeps its 2 px mark). The fill is clipped to the well's squircle. Why:
+  at a pixel or two a value, full-ink columns read as a jagged block, not a profile; a gap says "no data" where a stub
+  says "low". The domain is the layer's `domain` param where given, else open: computed from the values in view when the
+  view settles, held while it does not.
 
 - `frame` (EC-100): an annotation's regions outlined across tracks of its section (`across`: the first and the last
   track's ids, the bands between them too; its own band when absent: `ctx.span`). A strip layer: on each strip a

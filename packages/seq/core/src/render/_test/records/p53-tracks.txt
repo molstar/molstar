@@ -41,34 +41,33 @@ rect 96 51 191 12 #e7a717ff squircle 4 right
 rect 268 65 364 12 #18a67fff squircle 4 left
 unclip
 clip 96 86 536 32 squircle 8
-rect 96 95 19 23 #5b7c99ff
-rect 115 101 19 17 #5b7c99ff
-rect 134 101.67 19 16.33 #5b7c99ff
-rect 153 96.67 20 21.33 #5b7c99ff
-rect 173 107 19 11 #5b7c99ff
-rect 192 104 19 14 #5b7c99ff
-rect 211 93.67 19 24.33 #5b7c99ff
-rect 230 110.33 19 7.67 #5b7c99ff
-rect 249 110.33 19 7.67 #5b7c99ff
-rect 268 91.33 19 26.67 #5b7c99ff
-rect 287 112.33 20 5.67 #5b7c99ff
-rect 307 110 19 8 #5b7c99ff
-rect 326 104.33 19 13.67 #5b7c99ff
-rect 345 109.67 19 8.33 #5b7c99ff
-rect 364 101.67 19 16.33 #5b7c99ff
-rect 383 115 19 3 #5b7c99ff
-rect 402 116 19 2 #c9c5bdff
-rect 421 116 20 2 #c9c5bdff
-rect 441 106 19 12 #5b7c99ff
-rect 460 102 19 16 #5b7c99ff
-rect 479 93.67 19 24.33 #5b7c99ff
-rect 498 115 19 3 #5b7c99ff
-rect 517 115.33 19 2.67 #5b7c99ff
-rect 536 86 19 32 #5b7c99ff
-rect 555 89.33 20 28.67 #5b7c99ff
-rect 575 93.33 19 24.67 #5b7c99ff
-rect 594 98.33 19 19.67 #5b7c99ff
-rect 613 115.33 19 2.67 #5b7c99ff
+rect 96 117 536 1 #c4c9cfff
+rect 96.5 97.3 18 20.7 #5b7c9999 squircle 2 cut-bottom
+rect 115.5 102.7 18 15.3 #5b7c9999 squircle 2 cut-bottom
+rect 134.5 103.3 18 14.7 #5b7c9999 squircle 2 cut-bottom
+rect 153.5 98.8 19 19.2 #5b7c9999 squircle 2 cut-bottom
+rect 173.5 108.1 18 9.9 #5b7c9999 squircle 2 cut-bottom
+rect 192.5 105.4 18 12.6 #5b7c9999 squircle 2 cut-bottom
+rect 211.5 96.1 18 21.9 #5b7c9999 squircle 2 cut-bottom
+rect 230.5 111.1 18 6.9 #5b7c9999 squircle 2 cut-bottom
+rect 249.5 111.1 18 6.9 #5b7c9999 squircle 2 cut-bottom
+rect 268.5 94 18 24 #5b7c9999 squircle 2 cut-bottom
+rect 287.5 112.9 19 5.1 #5b7c9999 squircle 2 cut-bottom
+rect 307.5 110.8 18 7.2 #5b7c9999 squircle 2 cut-bottom
+rect 326.5 105.7 18 12.3 #5b7c9999 squircle 2 cut-bottom
+rect 345.5 110.5 18 7.5 #5b7c9999 squircle 2 cut-bottom
+rect 364.5 103.3 18 14.7 #5b7c9999 squircle 2 cut-bottom
+rect 383.5 115.3 18 2.7 #5b7c9999 squircle 1.35 cut-bottom
+rect 441.5 107.2 18 10.8 #5b7c9999 squircle 2 cut-bottom
+rect 460.5 103.6 18 14.4 #5b7c9999 squircle 2 cut-bottom
+rect 479.5 96.1 18 21.9 #5b7c9999 squircle 2 cut-bottom
+rect 498.5 115.3 18 2.7 #5b7c9999 squircle 1.35 cut-bottom
+rect 517.5 115.6 18 2.4 #5b7c9999 squircle 1.2 cut-bottom
+rect 536.5 89.2 18 28.8 #5b7c9999 squircle 2 cut-bottom
+rect 555.5 92.2 19 25.8 #5b7c9999 squircle 2 cut-bottom
+rect 575.5 95.8 18 22.2 #5b7c9999 squircle 2 cut-bottom
+rect 594.5 100.3 18 17.7 #5b7c9999 squircle 2 cut-bottom
+rect 613.5 115.6 18 2.4 #5b7c9999 squircle 1.2 cut-bottom
 unclip
 pass window
 pass highlight

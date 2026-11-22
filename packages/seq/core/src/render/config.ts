@@ -213,13 +213,7 @@ export interface RenderConfig {
    * pixel's positions, exact to a device pixel; 2, up to two pixels'); whether data on the section's own system is placed directly (`direct`;
    * false: through the general mapping, the same lists, slower).
    */
-  readonly values: {
-    readonly aggregate: 'minmax' | 'max';
-    readonly coarser: number;
-    readonly direct: boolean;
-    /** Internal, for the Values looks story: a look of bars beside today's (`today`, the default). */
-    readonly look: ValuesLook;
-  };
+  readonly values: { readonly aggregate: 'minmax' | 'max'; readonly coarser: number; readonly direct: boolean };
   /**
    * The ruler: the least px between two ticks (`labelGap`, 48: the foundations' number; the step of 1, 2, 5 × 10ⁿ is the
    * least that reaches it). Labels also clear each other by an eighth of it; one that does not fit is skipped, never shrunk.
@@ -468,7 +462,7 @@ export const DefaultRenderConfig: RenderConfig = {
   maxNumberingPositions: 1 << 18,
   nodes: { holdShown: true },
   ranges: { overflow: 'extra-lanes', maxLanes: 1000, connector: { width: 1, ink: 'item', alpha: 0.6 } },
-  values: { aggregate: 'minmax', coarser: 1, direct: true, look: 'today' },
+  values: { aggregate: 'minmax', coarser: 1, direct: true },
   ruler: { labelGap: 48 },
   blocks: { gapShare: 0.25, runPx: 2, readPx: 1, groupGap: 3 },
   rings: {
@@ -532,9 +526,6 @@ export const DefaultRenderConfig: RenderConfig = {
     },
   },
 };
-
-/** The looks of the values layer's bars: today's, and the variants the Values looks story shows. */
-export type ValuesLook = 'today' | 'profile' | 'bars' | 'quiet';
 
 /** Fields of a config to override: the nested ones whole or field by field. */
 export type RenderConfigOverrides = {

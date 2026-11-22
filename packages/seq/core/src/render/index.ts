@@ -21,7 +21,6 @@ export {
   fontSize,
   perPosition,
   type RailTint,
-  type ValuesLook,
   type RenderConfig,
   type RenderConfigOverrides,
   renderConfig,
