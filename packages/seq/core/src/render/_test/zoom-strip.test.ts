@@ -8,13 +8,14 @@
 // a mark on the context and a zoom strip under it over the region alone. Across a cyclic origin (the shorter arc, the
 // strip's viewport past the origin); a `heightPx` small or 0; the gap a finger's; several bound sections (one on the
 // navigator's own axis, two far apart); a side part; a strip's axis and tracks as the context; the mark centred
-// whatever the floor; the hysteresis at the threshold (and the strip gone when the span grows past it); the mark kept
+// whatever the floor; no hysteresis (the strip is the span's); the mark kept
 // while the bound section is pending; the tokens kept over a picture made again; a reversed section.
 
 import { createSeqSpec, stripNavigator } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
 import { DarkTokens, DefaultRenderConfig, NavWindowFlags, type ViewLayout } from '../index.js';
 import { type NavigatorRendererOptions } from '../navigator.js';
+import { IdleAlpha } from '../window.js';
 import { regionSpec, settleNavigator } from './navigator-fixtures.js';
 
 const R = '/views/v/region';
@@ -98,7 +99,8 @@ describe('the zoom strip', () => {
   it('the gap is the strip’s: a finger 2 px above the strip lands on its window', async () => {
     const { s, ctx, strip } = await zoomed();
     const x = Box.width / 2;
-    expect(s.nav.hit(x, strip!.y - 2, true)?.part).toBe('body');
+    // the region is at its fit on the strip: no target, the row a sweep (`outside`)
+    expect(s.nav.hit(x, strip!.y - 2, true)?.part).toBe('outside');
     expect(s.nav.hit(x, strip!.y - 2, true)?.context).toBeUndefined();
     expect(s.nav.hit(x, ctx.y + ctx.height - 1, true)?.context).toBe('outside');
   });
@@ -164,18 +166,15 @@ describe('the zoom strip', () => {
     expect(m.x + m.w).toBeGreaterThanOrEqual(b);
   });
 
-  it('a width about the threshold keeps what is drawn; past `minPx` and 8 the strip goes, under it it comes', async () => {
+  it('one system: the strip is the reachable span’s, the same at a width on either side of `minPx` (no hysteresis)', async () => {
     // the region is 60 of 1,000: 48 px at a width of 800
     const { s, view } = await zoomed({ range: [300, 360] }, { width: 780, height: 24 });
     const at = (width: number) => {
       s.nav.frame({ size: { width, height: 24 }, view: view.layout });
       return s.nav.zoomHeight > 0;
     };
-    expect(at(780)).toBe(true);
-    expect([810, 790, 820, 800, 900, 795].map(at)).toEqual([true, true, true, true, true, true]);
-    // past 48 + 8 px (a width over 933): gone, and back only under 48 px
-    expect(at(940)).toBe(false);
-    expect([920, 810, 800].map(at)).toEqual([false, false, false]);
+    expect([780, 790, 799].map(at)).toEqual([true, true, true]);
+    expect([801, 820, 940, 920, 810].map(at)).toEqual([false, false, false, false, false]);
     expect(at(790)).toBe(true);
   });
 
@@ -200,7 +199,8 @@ describe('the zoom strip', () => {
     const g = s.nav.frame({ size: { width: 600, height: 30 }, view: view.layout });
     expect(g.rebuilt).toBe(true);
     const p = g.lists.passes.window.paths;
-    for (let i = 0; i < p.n; i++) expect(p.stroke[i]).toBe(DarkTokens.colors['seq-window']);
+    const quiet = ((DarkTokens.colors['seq-window'] & 0xffffff00) | Math.round(IdleAlpha * 255)) >>> 0;
+    for (let i = 0; i < p.n; i++) expect(p.stroke[i]).toBe(quiet);
     expect(g.lists.passes.background.rects.fill[0]).toBe(DarkTokens.colors['msui-bg']);
   });
 

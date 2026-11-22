@@ -54,9 +54,9 @@ describe('the navigators’ examples, headless', () => {
     expect(w.ly).toBeGreaterThanOrEqual(24);
     nav.move(nav.width * 0.6, 12);
     expect(nav.readout.value).toMatch(/^chr17: [\d,]+ · q\d/);
-    // over the window: what it shows
+    // the region is at its fit on the strip: no target (the row a sweep), the pointer's position under it
     nav.move((w.dx0 + w.dx1) / 2, (w.ly + w.hy) / 2);
-    expect(nav.readout.value).toBe('chr17:7,666,403–7,672,402 of chr17');
+    expect(nav.readout.value).toMatch(/^chr17: [\d,]+/);
     const r = await svg(viewer);
     expect(r.settled).toBe(true);
     expect(r.svg).toContain('data-navigator="chr17"');

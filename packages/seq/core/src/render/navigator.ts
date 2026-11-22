@@ -51,6 +51,9 @@ import { hitView, type LayoutState, type SectionLayout, type ViewLayout } from '
 import {
   DefaultZoomStrip,
   drawNavigatorWindow,
+  IdleAlpha,
+  NavStrokePx,
+  type ZoomOverBlocks,
   floorExtent,
   NavWindow,
   NavWindowFlags,
@@ -90,7 +93,10 @@ export { blockPlaceText, type NavigatorHit, NavigatorWindow, navigatorBox, windo
 /** The gap between the context and the zoom strip, where the connectors run (CSS px, fixed: a look). */
 const ZoomGapPx = 6;
 
-/** How far past `minPx` a span grows before its zoom strip goes (CSS px, fixed): a width about the threshold flickers not. */
+/**
+ * How far past `minPx` a window grows before its zoom strip goes over blocks under `overBlocks: 'narrow'` only (CSS px,
+ * fixed): a width about the threshold flickers not. Otherwise no strip comes or goes with a gesture.
+ */
 const ZoomHysteresisPx = 8;
 
 /** The zoom strip's section in the picture's view. */
@@ -135,7 +141,7 @@ export interface NavigatorRendererOptions {
    * The zoom strip (`navigator.zoomStrip`, `DefaultZoomStrip` when absent): under a reachable span narrower than
    * `minPx`, `heightPx` more.
    */
-  readonly zoomStrip?: { readonly minPx: number; readonly heightPx: number };
+  readonly zoomStrip?: { readonly minPx: number; readonly heightPx: number; readonly overBlocks?: ZoomOverBlocks };
 }
 
 export interface NavigatorFrameInput {
@@ -191,6 +197,11 @@ const Line = new Float64Array(4);
 const FlagNoStart: number = NavWindowFlags.noStart;
 const FlagNoEnd: number = NavWindowFlags.noEnd;
 const FlagOutline: number = NavWindowFlags.outline;
+const FlagX: number = NavWindowFlags.x;
+// the mark's flags as one number read once (an expression passed to a call is boxed)
+const FlagMark: number = NavWindowFlags.outline | NavWindowFlags.quiet;
+const StrokePx: number = NavStrokePx;
+const QuietAlpha: number = Math.round(IdleAlpha * 255);
 // an imported binding read in a draw is a property read under a module runner
 const None: number = NoColor;
 const Seen: number[] = [];
@@ -206,7 +217,7 @@ export class NavigatorRenderer {
   readonly config: RenderConfig;
   private readonly pictureConfig: RenderConfig;
   private zoomConfig: RenderConfig | undefined;
-  private readonly zoomStrip: { readonly minPx: number; readonly heightPx: number };
+  private readonly zoomStrip: { readonly minPx: number; readonly heightPx: number; readonly overBlocks?: ZoomOverBlocks };
   /** The zoom strip's track and the gap above it (their sum `heightPx`, never more). */
   private readonly zoomTrack: number;
   private readonly zoomGap: number;
@@ -582,8 +593,8 @@ export class NavigatorRenderer {
     }
     this.placeWindows(input.view);
     this.readReach();
-    // the zoom strip (_spec/README.md "Render", Navigators): on where the reachable span is narrower than `minPx` on
-    // the picture, off where it is wider than `minPx` and the hysteresis (made again either way); at the box's bottom
+    // the zoom strip (_spec/README.md "Render", Navigators): on over blocks (`overBlocks`), or where the reachable span
+    // is narrower than `minPx` on the picture (made again either way); at the box's bottom
     // whatever the context's content; its viewport follows the span (laid out again)
     if (this.zoomFlips() || this.gapMoved()) {
       this.build();
@@ -653,10 +664,15 @@ export class NavigatorRenderer {
     if (!ctx || !(u1 > u0)) return false;
     // a strip along the view only (a side part's length is the view's height, not its axis), a height to draw in
     const can = nav.axes === 'positions' && nav.place !== 'left' && nav.place !== 'right' && this.zoomTrack > 0;
-    // over blocks: the window's own width (its block the strip), else the reachable span's
-    const px = this.overBlocks ? this.windowPx : (u1 - u0) * ctx.scale;
-    // on under `minPx`, off past it and the hysteresis: a width jittering about the threshold keeps what is drawn
-    const want = can && min > 0 && (px < min || (this.zoomed && px <= min + ZoomHysteresisPx));
+    // over blocks (navigators.md, "The window's look", 1): `always`, the chromosome the control row (a rule read from
+    // the spec, never from a pixel count); `narrow`, by the window's own width with a hysteresis (a host short of
+    // height); `never`, one row. Otherwise the reachable span's width, a fixed property of the section: no hysteresis
+    let want: boolean;
+    if (this.overBlocks) {
+      const mode = this.zoomStrip.overBlocks ?? 'always';
+      const px = this.windowPx;
+      want = can && (mode === 'always' || (mode === 'narrow' && (px < min || (this.zoomed && px <= min + ZoomHysteresisPx))));
+    } else want = can && min > 0 && (u1 - u0) * ctx.scale < min;
     if (want === this.zoomed) return false;
     this.zoomed = want;
     this.zoomU0 = u0;
@@ -1068,7 +1084,10 @@ export class NavigatorRenderer {
         const isTop = w.section === input.top;
         if (!w.shown || (pass === 0) === isTop) continue;
         const m = moves ? (moves[w.section] ?? 0) : -1;
-        const flags = m < 0 ? NavWindowFlags.outline : m === 0 ? NavWindowFlags.idle : m & w.axes;
+        // at the fit (the window covers all it can reach) the frame is quiet like an idle one, and no target: the whole
+        // row is a sweep (navigators.md, "The window's look", 2)
+        const flags =
+          m < 0 ? NavWindowFlags.outline : m === 0 || this.atFit(w) ? NavWindowFlags.idle : m & w.axes;
         const lit = input.lit?.section === w.section ? input.lit.part : undefined;
         this.drawWindow(out, w, flags, m > 0 ? lit : undefined, dpr, c, tokens);
       }
@@ -1086,6 +1105,15 @@ export class NavigatorRenderer {
       drawNavigatorWindow(out, NavWindowFlags.outline, 'body', dpr, c, tokens);
     }
     this.drawMarks(lists, input, tokens, dpr);
+  }
+
+  /**
+   * Whether a window is at the fit: it moves along x alone and covers all the span it can reach, so there is nothing to
+   * grab (its grips would sit at the row's own edges): drawn as the idle frame, the row a sweep (`hit`).
+   */
+  atFit(w: NavigatorWindow): boolean {
+    if (!w.shown || w.axes !== FlagX || w.wrap) return false;
+    return w.dx0 <= w.lo + 0.5 && w.dx1 >= w.hi - 0.5;
   }
 
   /**
@@ -1122,8 +1150,8 @@ export class NavigatorRenderer {
     const wb = work.placement.box;
     for (let k = 0; k < 2; k++) {
       g[4] = None;
-      g[5] = tokens.colors['seq-window'];
-      g[6] = 1 / dpr;
+      g[5] = ((tokens.colors['seq-window'] & 0xffffff00) | QuietAlpha) >>> 0;
+      g[6] = StrokePx;
       g[7] = 0;
       // display units run left to right on both: the arc's start is the strip's start
       Line[0] = k === 0 ? m[0] : wraps ? m[3] : m[1];
@@ -1164,7 +1192,7 @@ export class NavigatorRenderer {
     W[5] = Math.max(a, b);
     W[2] = W[6] = W[10] = ctx.y;
     W[3] = W[7] = W[11] = ctx.y + ctx.height;
-    drawNavigatorWindow(out, FlagOutline, undefined, dpr, c, tokens);
+    drawNavigatorWindow(out, FlagMark, undefined, dpr, c, tokens);
   }
 
   /** `window` with its floor `centred` (the mark's), made once. */
@@ -1346,7 +1374,8 @@ export class NavigatorRenderer {
       Seen.push(i);
       const w = this.windows[i];
       if (!w.shown) continue;
-      const along = w.axes & NavWindowFlags.x ? partOf(x, w, c, touch) : 'body';
+      // at the fit the window is no target: the whole row is outside it (a sweep)
+      const along = w.axes & NavWindowFlags.x ? (this.atFit(w) ? (x >= w.lo && x < w.hi ? 'outside' : undefined) : partOf(x, w, c, touch)) : 'body';
       const across = w.axes & NavWindowFlags.y ? navigatorPart(y, w.dy0, w.dy1, w.ly, w.hy, c, touch) : 'body';
       if (along === undefined && across === undefined) continue;
       const a = along ?? 'outside';

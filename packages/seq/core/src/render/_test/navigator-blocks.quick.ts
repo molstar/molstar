@@ -6,8 +6,8 @@
 
 // A navigator over a genome's blocks (performance.md, Memory and Time; _spec/README.md "Render", Navigators, A navigator
 // over blocks): a window move over 25 chromosomes, the window carried by identity in units onto the picture's row,
-// redraws with nothing allocated once warm and in at most 0.5 ms a frame; on its zoom strip (a window of a few Mb) in as
-// little time and a bounded few bytes.
+// redraws with nothing allocated once warm and in at most 0.5 ms a frame, on its zoom strip (always over blocks, its
+// viewport the touched blocks' hull: a move across blocks that changes the hull lays the strip out again, not timed here).
 // By hand, never in CI: `pnpm -C packages/seq/core test:perf`.
 
 import { quickCase } from '@molstar/test-harness/quick';
@@ -64,9 +64,10 @@ function msPerFrame(frame: (i: number) => void, n = 2000): number {
 }
 
 describe('a navigator over 25 chromosomes moves its window with nothing allocated, in at most 0.5 ms', () => {
-  it('a window of 300 Mb across a block gap (one window over the gap)', async ({ task }) => {
-    const { s, inputs } = await navigatorOver(3e8);
-    expect(s.nav.zoomHeight).toBe(0);
+  it('a window of 100 Mb across a block gap (the strip over both blocks, whose hull holds)', async ({ task }) => {
+    const { s, inputs } = await navigatorOver(1e8);
+    // over blocks the chromosome is always the control row: the same two rows at any width
+    expect(s.nav.zoomHeight).toBeGreaterThan(0);
     const { r } = quickCase(task, 'navigator over blocks window move', (i) => s.nav.frame(inputs[i & 3]), {});
     const ms = msPerFrame((i) => s.nav.frame(inputs[i & 3]));
     console.info(`navigator over blocks: ${r.bytesPerStep.toFixed(0)} bytes, ${ms.toFixed(3)} ms a frame (${r.note})`);
@@ -95,7 +96,7 @@ describe('a navigator over 25 chromosomes moves its window with nothing allocate
   it('over a reversed and a scaled block (chr3 reversed, chr4 ×2), with and without the zoom strip', async ({
     task,
   }) => {
-    for (const w of [3e8, 2e6]) {
+    for (const w of [1e8, 2e6]) {
       const { s, inputs } = await navigatorOver(w, true);
       const { r } = quickCase(task, `navigator over turned blocks ${w}`, (i) => s.nav.frame(inputs[i & 3]), {});
       const ms = msPerFrame((i) => s.nav.frame(inputs[i & 3]));

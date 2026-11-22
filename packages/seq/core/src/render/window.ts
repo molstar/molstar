@@ -25,7 +25,25 @@ type WindowConfig = RenderConfig['navigator']['window'];
  * navigator gets a zoom strip under it, `heightPx` more (its connectors' gap, `ZoomGapPx`, within it). The viewer's
  * `navigator.zoomStrip` sets them; these are the defaults (an export's).
  */
-export const DefaultZoomStrip = { minPx: 48, heightPx: 16 } as const;
+export const DefaultZoomStrip: {
+  readonly minPx: number;
+  readonly heightPx: number;
+  readonly overBlocks: ZoomOverBlocks;
+} = { minPx: 48, heightPx: 16, overBlocks: 'always' };
+
+/**
+ * When a navigator over blocks (a genome) has the zoom strip (navigators.md, "The window's look"): `always`, the
+ * chromosome the control row under the genome whatever the window's width (the default: a rule a reader can see);
+ * `narrow`, only while the window is narrower than `minPx` (with hysteresis: the earlier look, for a host short of
+ * height); `never`, one row with a floored window.
+ */
+export type ZoomOverBlocks = 'always' | 'narrow' | 'never';
+
+/**
+ * One stroke weight for every line of a navigator's part (the window, the mark, the funnel, an idle frame), CSS px
+ * (navigators.md, "The window's look", 3: lit is said by the fill and the grips, never a thicker line).
+ */
+export const NavStrokePx = 1;
 
 /**
  * The window's look, fixed as other marks' are (a look, not a reader's choice): its body's fill opacity, and lit
@@ -33,7 +51,8 @@ export const DefaultZoomStrip = { minPx: 48, heightPx: 16 } as const;
  */
 export const WindowFill = 0.12;
 const LitFill = 0.2;
-const IdleAlpha = 0.4;
+export const IdleAlpha = 0.4;
+const QuietAlpha: number = Math.round(IdleAlpha * 255);
 const GripShare = 0.5;
 // an imported binding read in a draw is a property read under a module runner (it boxed one number a frame here)
 const None: number = NoColor;
@@ -42,7 +61,7 @@ const None: number = NoColor;
  * How a navigator's window is drawn: the axes it has grips on (it moves along them), an export's outline, idle; and a
  * grip left out (`noStart`, `noEnd`: a piece of a window over a cyclic origin has the grip of its true end only).
  */
-export const NavWindowFlags = { x: 1, y: 2, outline: 4, idle: 8, noStart: 16, noEnd: 32 } as const;
+export const NavWindowFlags = { x: 1, y: 2, outline: 4, idle: 8, noStart: 16, noEnd: 32, quiet: 64 } as const;
 // the flags as numbers read once: a draw reads no property of an object
 const FlagX: number = NavWindowFlags.x;
 const FlagY: number = NavWindowFlags.y;
@@ -50,6 +69,8 @@ const FlagOutline: number = NavWindowFlags.outline;
 const FlagIdle: number = NavWindowFlags.idle;
 const FlagNoStart: number = NavWindowFlags.noStart;
 const FlagNoEnd: number = NavWindowFlags.noEnd;
+const FlagQuiet: number = NavWindowFlags.quiet;
+const StrokePx: number = NavStrokePx;
 
 /**
  * A window along one axis after the floor (`navigator.window`): its true ends `[a, b)` within the span `[lo, hi)` read
@@ -242,9 +263,12 @@ export function drawNavigatorWindow(
   g[1] = y0;
   g[2] = x1 - x0;
   g[3] = y1 - y0;
+  const quiet = idle || (flags & FlagQuiet) !== 0;
   g[4] = idle || outline ? None : ((ink & 0xffffff00) | Math.round(fill * 255)) >>> 0;
-  g[5] = idle ? ((ink & 0xffffff00) | Math.round(IdleAlpha * 255)) >>> 0 : ink;
-  g[6] = !idle && lit !== undefined && lit !== 'outside' ? 2 : 1;
+  // two stores, not a conditional between two numbers (one is boxed a frame)
+  g[5] = ink;
+  if (quiet) g[5] = ((ink & 0xffffff00) | QuietAlpha) >>> 0;
+  g[6] = StrokePx;
   emit(out);
   if (idle) return;
   // the true extent where the floor drew it wider: a hairline, when it is at least a device pixel
