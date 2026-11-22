@@ -113,7 +113,8 @@ export class AxisTransform {
    * A categorical axis's members (_spec/README.md "Render", The grid layer: categorical axes): its pieces one a member
    * in display order, `rank` each member's piece, so a member's piece is a lookup, and no break is drawn between them.
    */
-  members: AxisMembers | undefined = undefined;
+  // declared, never initialised: a positions axis carries no slot for it (a pan makes dozens of transforms a frame)
+  declare members?: AxisMembers;
 
   constructor(
     readonly system: string,

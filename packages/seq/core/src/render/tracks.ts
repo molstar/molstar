@@ -287,8 +287,12 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       }
     }
     // a categorical x (`of` a rows system, EC-35): a piece a member, in its order
-    const xMembers = section.members && membersOn(section.members, ownPieces(section, input.model, input.data));
-    if (!made && xMembers) made = { pieces: xMembers.pieces, ...(viewportOf(at) ? { viewport: viewportOf(at)! } : {}) };
+    const xMembers =
+      section.members && membersOn(input.model, section.members, ownPieces(section, input.model, input.data));
+    if (!made && xMembers) {
+      const viewport = input.viewports?.[at] ?? input.viewport;
+      made = { pieces: xMembers.pieces, ...(viewport ? { viewport } : {}) };
+    }
     if (!made) {
       const own = ownPieces(section, input.model, input.data);
       // a layout that reads its viewport its own way (text: an anchor; a ring: its window) places over the whole axis
@@ -303,15 +307,6 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     return axes.get(at);
   };
   for (const section of input.view.sections) axisOf(section);
-  /** A section's viewport as given. */
-  function viewportOf(at: string): Viewport | undefined {
-    return input.viewports?.[at] ?? input.viewport;
-  }
-  /** A categorical axis's members over its whole pieces (their count its length), else undefined. */
-  function membersOn(axis: MemberAxis, whole: readonly number[] | undefined): Members | undefined {
-    const n = whole && whole.length === 2 ? whole[1] - whole[0] : undefined;
-    return n === undefined || n <= 0 ? undefined : MemberHooks.membersOf?.(input.model, axis, n);
-  }
   /**
    * A grid's y (_spec/README.md "Render", The grid layout): x's pieces and window when it follows x on x's system; a
    * leader's image through its path (x's own, or a section's); else its own window (`viewport.y`), all of it by default.
@@ -322,7 +317,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     if (!y || !own || !axis) return undefined;
     if (y.followsX && !y.follow) {
       // categorical (EC-35): x's window over y's own order (`member_order_y`)
-      const members = y.members && membersOn(y.members, own);
+      const members = y.members && membersOn(input.model, y.members, own);
       const window = { start: axis.u0, end: axis.u1 };
       if (members) return { axis: y.axis, pieces: members.pieces, members, viewport: window };
       return { axis: { ...y.axis, dir: axis.dir }, pieces: axis.pieces, viewport: window };
@@ -346,7 +341,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     }
     const v = (input.viewports?.[section.address] ?? input.viewport)?.y;
     // a categorical y (`of_y` a rows system, EC-35): a piece a member, in its order
-    const members = y.members && membersOn(y.members, own);
+    const members = y.members && membersOn(input.model, y.members, own);
     if (members) return { axis: y.axis, pieces: members.pieces, members, ...(v ? { viewport: v } : {}) };
     return { axis: y.axis, pieces: own, ...(v ? { viewport: v } : {}) };
   };
@@ -1023,4 +1018,14 @@ function setWindow(
   for (let i = 0; i < sections.length && !active; i++) if (sections[i].follow?.leader === at) active = true;
   const shown = (active || config.rings.window === 'always') && (!input.figure || input.windows === true);
   layout.window!(placement, own ?? viewport, active, shown);
+}
+
+/** A categorical axis's members over its whole pieces (their count its length), once the chunk landed; else undefined. */
+function membersOn(
+  model: LayoutInput['model'],
+  axis: MemberAxis,
+  whole: readonly number[] | undefined,
+): Members | undefined {
+  const n = whole && whole.length === 2 ? whole[1] - whole[0] : undefined;
+  return n === undefined || n <= 0 ? undefined : MemberHooks.membersOf?.(model, axis, n);
 }
