@@ -67,6 +67,9 @@
   first): reading 260 kB (was 240), headless 910 (870), the default viewer 1,450 (1,400), the minimal viewer 1,040
   (1,000); RG measured 254.9, 897.2, 1,428 and 1,026. RG still removes an import reading should not have, if its
   breakdown finds one.
+- **Sizes raised again** (the author, 2026-11-22: "Raise again", offered a trim after the review first): headless
+  920 kB (was 910), the default viewer 1,460 (1,450); RG after the merged lanes measured 912.1 and 1,450.1. The review's
+  `tables-region.ts` cut stays a minimal-code item for RG, no longer a size gate.
 - **A GenBank lane in stage 2** (the author, 2026-11-21: "Add a GenBank lane", after "Try pUC19.gb" in Services ›
   Your own file showed only a refusal): GB after VC, strong, a short design section first (plan, Stage 2); GenBank
   leaves Out of scope.
