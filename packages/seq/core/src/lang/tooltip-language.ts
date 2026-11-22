@@ -101,7 +101,11 @@ export const TooltipKinds = {
         columns: {
           start: { type: 'column', of: 'int32', doc: '`ranges`: the first position of each row.' },
           end: { type: 'column', of: 'int32', doc: '`ranges`: the position after the last.' },
-          name: { type: 'column', of: 'category', doc: '`ranges` over an assembly: each row’s sequence.' },
+          target: {
+            type: 'column',
+            of: 'category',
+            doc: '`ranges` over an assembly: each row’s sequence by name (the names rule, as inline ranges over one).',
+          },
           address: {
             type: 'list',
             of: { type: 'string', doc: 'An address.' },
@@ -118,7 +122,7 @@ export const TooltipKinds = {
       schema: {
         type: 'string',
         enum: TooltipSchemas,
-        doc: 'How a table’s rows locate: `ranges` (absent: `start`, `end`, `name` on an assembly), `address` (an `address` column), or MolViewSpec’s schemas, each read as MVS reads it (a row’s other columns ignored).',
+        doc: 'How a table’s rows locate: `ranges` (absent: `start`, `end`, `target` a sequence’s name on an assembly), `address` (an `address` column), or MolViewSpec’s schemas, each read as MVS reads it (a row’s other columns ignored).',
       },
       block: {
         type: 'union',

@@ -433,7 +433,7 @@ words attach to which data, read the same by every reader; the application compo
   its own marks); by range, `target` and a table, inline `rows` or a `source` under `data` (each row's text on every
   mark its location covers, in any layer of the view). An address `on` is a one-row table (MVS's `tooltip { text }` on a
   component). Both or neither is `seq.lang.tooltip.content`.
-- **`schema`**: how a table's rows locate: `ranges` (absent: `start`, `end`, `name` over an assembly), `address` (an
+- **`schema`**: how a table's rows locate: `ranges` (absent: `start`, `end`, a `target` column naming the sequence over an assembly), `address` (an
   `address` column, forms relative to `target`), or MVS's schemas (`whole_structure` … `all_atomic`,
   `MvsSchemaColumns`), each read as MVS reads it, a row's other columns ignored. A table none of whose columns its
   schema locates by is `seq.lang.tooltip.schema`. Why said: a guess reads a chain file as residues.

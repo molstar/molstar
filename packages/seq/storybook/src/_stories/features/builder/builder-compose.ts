@@ -20,6 +20,8 @@ import * as handles from './handles.js';
 import handlesSource from './handles.ts?raw';
 import * as themes from './themes.js';
 import themesSource from './themes.ts?raw';
+import * as tooltips from './tooltips.js';
+import tooltipsSource from './tooltips.ts?raw';
 
 // The Builder stories' cases, DOM-free (the story and its headless twin read them). The code a story shows is the
 // module's own source, imported with Vite's `?raw` from the same file the view is built from: one copy, so the code
@@ -83,6 +85,13 @@ export const BuilderCases: readonly BuilderCase[] = [
     'An assembly from its sequences, a genome section of it (a block a sequence, a ruler in bases) with a link between two chromosomes (`a_name`, `b_name`: its ends’ sequences), and a section of one chromosome of it.',
     genome.build,
     genomeSource,
+  ),
+  make(
+    'tooltips',
+    'Tooltips',
+    '`views.tooltip` and `view.tooltip`: by data (a node’s items speak their own fields), by range (a table’s rows speak on every mark they cover), an address as a one-row table; Markdown in the template, values as text, an in-view link.',
+    tooltips.build,
+    tooltipsSource,
   ),
   make(
     'check',
