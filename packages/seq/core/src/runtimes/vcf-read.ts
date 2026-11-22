@@ -60,8 +60,9 @@ export const IndexHint = 'Read it by region: bgzip it and give its tabix index';
  */
 export function headerSchema(o: VcfOpened, header: VcfHeader) {
   const { source, options, causes } = o;
-  if (header.unread)
-    causes.add('seq.source.vcf.header', `${header.unread} header lines not read (no ID, or an unknown Type)`);
+  // one cause, counted once a line (its message then says the count once)
+  for (let k = 0; k < header.unread; k++)
+    causes.add('seq.source.vcf.header', 'Header lines not read (no ID, or an unknown Type)');
   const schema = vcfSchema(
     header,
     source.fields,
