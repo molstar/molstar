@@ -88,6 +88,10 @@ export function projectOntoView(
     for (const part of src.parts) {
       if (part.system === system) {
         parts.push(part);
+        // the item's other images on its own system, through a map read by region and back (EC-20)
+        buffer.length = 0;
+        if (options.linked !== false && options.regions?.project(model, system, part.ranges, system, buffer))
+          if (buffer.length) parts.push({ system, ranges: HalfOpenRanges.normalize(buffer) });
         continue;
       }
       if (options.linked === false) continue;

@@ -84,13 +84,22 @@ export function chainRuns(segments: readonly Segment[] = RoseChain, seed = 3): C
   return out;
 }
 
-/** A gene of v1: its id, chromosome and extent. */
+/** A gene of v1: its id, chromosome, extent, strand and coding (thick) part. */
 export interface Gene {
   readonly id: string;
   readonly chr: string;
   readonly start: number;
   readonly end: number;
+  readonly strand: '+' | '-';
+  readonly thickStart: number;
+  readonly thickEnd: number;
 }
+
+/** A gene's strand and its thick part, the middle four fifths (drawn thick; lifted, carried through the runs). */
+const coding = (id: string, chr: string, start: number, end: number, strand: '+' | '-'): Gene => {
+  const pad = Math.floor((end - start) / 10);
+  return { id, chr, start, end, strand, thickStart: start + pad, thickEnd: end - pad };
+};
 
 /**
  * v1's genes: one in each event (`dup` in the duplicated stretch, `lost` in the deleted one, `inv` in the inversion,
@@ -99,16 +108,16 @@ export interface Gene {
 export function roseGenes(seed = 9): Gene[] {
   const rng = new PCG(seed);
   const genes: Gene[] = [
-    { id: 'dup', chr: 'chr1', start: 1_500_000, end: 1_540_000 },
-    { id: 'lost', chr: 'chr2', start: 700_000, end: 740_000 },
-    { id: 'inv', chr: 'chr2', start: 1_200_000, end: 1_250_000 },
-    { id: 'moved', chr: 'chr3', start: 1_500_000, end: 1_530_000 },
+    coding('dup', 'chr1', 1_500_000, 1_540_000, '+'),
+    coding('lost', 'chr2', 700_000, 740_000, '-'),
+    coding('inv', 'chr2', 1_200_000, 1_250_000, '+'),
+    coding('moved', 'chr3', 1_500_000, 1_530_000, '-'),
   ];
   for (let i = 0; i < 36; i++) {
     const c = RoseV1.chromosomes[i % RoseV1.chromosomes.length];
     const length = 10_000 + Math.floor(rng.float() * 40_000);
     const start = Math.floor(rng.float() * (c.length - length));
-    genes.push({ id: `g${String(i + 1).padStart(2, '0')}`, chr: c.name, start, end: start + length });
+    genes.push(coding(`g${String(i + 1).padStart(2, '0')}`, c.name, start, start + length, i % 3 ? '+' : '-'));
   }
   return genes;
 }
@@ -213,12 +222,20 @@ export function liftover(format: string): Node {
       target: genes.map((g) => g.chr),
       start: genes.map((g) => g.start),
       end: genes.map((g) => g.end),
+      strand: genes.map((g) => g.strand),
+      thick_start: Int32Array.from(genes, (g) => g.thickStart),
+      thick_end: Int32Array.from(genes, (g) => g.thickEnd),
     },
   } as never);
   b.views.view('main', (v) => {
     v.section('v1', { of: v1 } as never, (s) => {
       s.track('ruler').layer('ruler', { type: 'ruler', units: 'bases' } as never);
-      s.track('genes', { label: 'Genes (v1)' }).layer('genes', { type: 'ranges', data, legend: 'none' } as never);
+      s.track('genes', { label: 'Genes (v1)' }).layer('genes', {
+        type: 'ranges',
+        data,
+        line: 'gene',
+        legend: 'none',
+      } as never);
     });
     v.bridge('chain', { a: OldSection, b: NewSection, label: 'v1 to v2' } as never, (br) =>
       br.layer('runs', { type: 'pairs', data: map, legend: 'none' } as never),
@@ -227,6 +244,7 @@ export function liftover(format: string): Node {
       s.track('genes', { label: 'Genes (lifted from v1)' }).layer('genes', {
         type: 'ranges',
         data,
+        line: 'gene',
         legend: 'none',
       } as never);
       s.track('ruler').layer('ruler', { type: 'ruler', units: 'bases' } as never);

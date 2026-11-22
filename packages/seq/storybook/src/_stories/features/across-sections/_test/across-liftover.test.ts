@@ -143,4 +143,42 @@ describe('Features/Across sections/Liftover, headless', () => {
     const places = card.rows.find((r) => r.label === 'Places');
     expect(places?.value).toMatch(/^2 places: chr1 .*, chr3 /);
   });
+
+  it('the inverted gene reads `−` on v2 and `+` on v1; its thick part lands inside its image (EC-21)', async () => {
+    const v = await open();
+    const strandOn = async (section: string, locus: string) => {
+      await goToLocus(v, locus, { section });
+      await vi.advanceTimersByTimeAsync(20_000);
+      v.draw();
+      v.draw();
+      const sec = v.frame!.layout.sections.find((s) => s.section.address === section)!;
+      let hit: ReturnType<SeqViewer['hit']>;
+      for (let y = sec.y; y < sec.y + sec.height && !hit; y += 2)
+        for (let x = 0; x < v.width && !hit; x += 2) {
+          const h = v.hit(x, y);
+          if (h?.element?.key === 'inv') hit = h;
+        }
+      expect(hit).toBeDefined();
+      v.hover.set({ ...hit!, section: undefined } as never, 'test');
+      const card = describerFor({ ...v, layout: () => v.frame?.layout }).describe(v.hover.current)!;
+      return card.rows.find((r) => r.label === 'Strand')?.value;
+    };
+    const inv = roseGenes().find((g) => g.id === 'inv')!;
+    const [image] = liftImages(chainRuns(), inv.chr, inv.start, inv.end);
+    const [thick] = liftImages(chainRuns(), inv.chr, inv.thickStart, inv.thickEnd);
+    expect(thick.start).toBeGreaterThan(image.start);
+    expect(thick.end).toBeLessThan(image.end);
+    const fmt = (n: number) => n.toLocaleString('en-US');
+    expect(await strandOn(NewSection, `chr2:${fmt(image.start - 9_999)}-${fmt(image.end + 10_000)}`)).toBe('−');
+    expect(await strandOn(OldSection, `chr2:${fmt(inv.start - 9_999)}-${fmt(inv.end + 10_000)}`)).toBe('+');
+    // the lifted row's thick part as drawn: the image's own, through the inverted run
+    const sec = v.frame!.layout.sections.find((s) => s.section.address === NewSection)!;
+    const lifted = sec.lays
+      .flat()
+      .find((l) => l?.key.endsWith('/genes/genes') && (l.lay as RangesLay).rows.keys.includes('inv'));
+    const rows = (lifted!.lay as RangesLay).rows;
+    const j = rows.keys.indexOf('inv');
+    const col = (name: string) => rows.fields[j]?.find((c) => c.name === name)?.column as ArrayLike<number>;
+    expect([col('thick_start')[rows.row[j]], col('thick_end')[rows.row[j]]]).toEqual([thick.start, thick.end]);
+  });
 });

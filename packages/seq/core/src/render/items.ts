@@ -53,6 +53,8 @@ export interface ItemRows {
   clamped: number;
   /** Each row's table fields and its row in that table: what a theme's channels read (a field, a measure). */
   fields: (RangesList['fields'] | undefined)[];
+  /** Each row's strand as its table gives it (−1, 0, 1; 0 when none): what a liftover carries through a run. */
+  strand: number[];
   row: number[];
   /** Each row's item's whole extent when its table says it (`RangesList.itemStart`, `itemEnd`), else −1. */
   itemStarts: number[];
@@ -79,6 +81,7 @@ export function newItemRows(): ItemRows {
     labels: [],
     occ: [],
     fields: [],
+    strand: [],
     row: [],
     itemStarts: [],
     itemEnds: [],
@@ -224,6 +227,7 @@ export function collectItems(
         rows.labels[j] = textAt(labels, i) ?? id ?? undefined;
         rows.occ[j] = k + piece;
         rows.fields[j] = t.fields;
+        rows.strand[j] = t.strand ? t.strand[i] : 0;
         rows.row[j] = i;
         rows.itemStarts[j] = t.itemStart ? t.itemStart[i] : -1;
         rows.itemEnds[j] = t.itemEnd ? t.itemEnd[i] : -1;

@@ -10,13 +10,14 @@
 
 import { SeqRuntime } from '@molstar/seqx-core/data';
 import { loadGenome } from '@molstar/seqx-core/resolve';
-import { quickCase } from '@molstar/test-harness/quick';
+import { measureBytesPerStep, quickCase } from '@molstar/test-harness/quick';
 import { beforeAll, describe, expect, inject, it } from 'vitest';
 import { loadBridges } from '../bridge-load.js';
 import { drawView, type FrameInput, type Hit, hitView } from '../index.js';
 import { settle } from './helpers.js';
-import { liftSpec, NewSection } from './lift-fixtures.js';
+import { liftSpec, NewSection, OldSection } from './lift-fixtures.js';
 import { reusedHover } from './scenarios.js';
+import { regionProjector } from '../lift-project.js';
 
 beforeAll(async () => {
   await loadGenome();
@@ -58,5 +59,69 @@ describe('a liftover draws and hovers with nothing allocated once warm', () => {
     );
     console.info(`liftover hover: ${h.r.bytesPerStep.toFixed(0)} bytes a frame (${h.r.note})`);
     expect(h.r.bytesPerStep, h.r.note).toBeLessThanOrEqual(inject('perfThreshold'));
+  });
+
+  it('a hover carried across the map and its card’s places, both ways', async ({ task }) => {
+    const s = await settle(liftSpec(), [SeqRuntime]);
+    await s.frame(input);
+    const p = regionProjector(s.store);
+    const old = '/data/old/(sequence :name chr1)';
+    const neu = '/data/new/(sequence :name chr2)';
+    const other = '/data/new/(sequence :name chr1)';
+    const gene = [72_000, 78_000];
+    const image = [62_000, 68_000];
+    // the caller's buffer, cut back to a kept prefix each step: V8 drops the backing store of an array set to length 0
+    // (and trims one cut far below its capacity), so emptying it would measure its regrowth (152 B), not the projector
+    const Kept = 64;
+    const out: number[] = new Array(Kept).fill(0);
+    const step = (i: number) => {
+      out.length = Kept;
+      if (i & 1) {
+        p.project(s.model, neu, image, old, out);
+        p.project(s.model, neu, image, other, out);
+        p.places!(s.model, s.view, neu, image[0], image[1]);
+      } else {
+        p.project(s.model, old, gene, neu, out);
+        p.places!(s.model, s.view, old, gene[0], gene[1]);
+      }
+    };
+    step(0);
+    step(1);
+    expect(out.slice(Kept)).toEqual([72_000, 78_000, 62_000, 68_000]);
+    const r = quickCase(task, 'liftover projection', step, {});
+    console.info(`liftover projection: ${r.r.bytesPerStep.toFixed(0)} bytes a hover (${r.r.note})`);
+    expect(r.r.bytesPerStep, r.r.note).toBeLessThanOrEqual(inject('perfThreshold'));
+  });
+});
+
+/**
+ * A pan of a section lays out that section and the bridge again (counted in `lift.test.ts`): about a megabyte a frame
+ * here, the bridge's ribbons and the section's strips (2026-11-22: 1.12 MB with a ruler alone on the new section). The
+ * bound is the same genes read directly: the old section panned alike (1.50 MB). A lifted layer keeps its rows by the
+ * runs' tiles and the window's level, so its pan costs no more than the plain layer's (1.30 MB); rebuilding its runs,
+ * maps and far reads each frame would cost more.
+ */
+const PanSteps = { warmSteps: 200, maxWarmSteps: 2_000, steps: 200 };
+
+async function panner(section: string) {
+  const s = await settle(liftSpec(), [SeqRuntime]);
+  const at = (x: number) => ({ ...input, viewports: { [section]: { start: 1_000 + x, end: 120_000 + x } } });
+  const frames = [at(0), at(37)];
+  for (const f of frames) await s.frame(f);
+  return (i: number) => void s.renderer.frame(frames[i & 1]);
+}
+
+describe('a liftover laid out again', () => {
+  it('a pan of the new section costs no more than the genes’ own section panned alike', async ({ task }) => {
+    const lifted = await panner(NewSection);
+    const plain = await panner(OldSection);
+    const reads = [lifted, plain, lifted, plain].map((s) => measureBytesPerStep(s, PanSteps).bytesPerStep);
+    const own = Math.min(reads[1], reads[3]);
+    // a frame of a megabyte: `leak`'s 88 bytes are under its noise, so no control
+    const { r } = quickCase(task, 'liftover pan', lifted, { ...PanSteps, control: false, why: 'a megabyte a frame' });
+    console.info(
+      `liftover pan: ${r.bytesPerStep.toFixed(0)} bytes a frame, the plain genes ${own.toFixed(0)} (${r.note})`,
+    );
+    expect(Math.min(reads[0], reads[2], r.bytesPerStep)).toBeLessThanOrEqual(own);
   });
 });

@@ -158,11 +158,28 @@ describe('a liftover’s hover and selection, through the map both ways (EC-20, 
     expect(card?.text).toContain('in 2 places');
   });
 
-  it('an image on the new assembly lights the old gene; one image has no places row', async () => {
+  it('an image on the new assembly lights the old gene and the other image; its card lists both (EC-20, symmetric)', async () => {
     const v = await make();
     const h = hitOn(v, '/views/v/new', 'twice', NewChr2);
     v.hover.set(h, 'test');
-    expect(parts(v.hover.projectedAll()).find((p) => p[0] === OldChr1)).toEqual([OldChr1, [72_000, 78_000]]);
+    expect(parts(v.hover.projectedAll())).toEqual([
+      [NewChr1, [62_000, 68_000]],
+      [NewChr2, [62_000, 68_000]],
+      [OldChr1, [72_000, 78_000]],
+    ]);
+    const card = describerFor({
+      spec: v.spec,
+      store: v.store,
+      addresses: v.addresses,
+      view: v.view,
+      layout: () => v.frame?.layout,
+    }).describe(v.hover.current);
+    expect(card?.rows).toContainEqual({ label: 'Places', value: '2 places: chr1 62,001–68,000, chr2 62,001–68,000' });
+  });
+
+  it('a gene with one image has no places row', async () => {
+    const v = await make();
+    v.hover.set(hitOn(v, '/views/v/old', 'head', OldChr1), 'test');
     const card = describerFor({
       spec: v.spec,
       store: v.store,
@@ -182,7 +199,10 @@ describe('a liftover’s hover and selection, through the map both ways (EC-20, 
       [NewChr2, [62_000, 68_000]],
     ]);
     const image = location({ parts: [{ system: NewChr1, ranges: [62_000, 63_000] }] });
-    // one step: to the old gene (never on to the other image, which no map joins to new chr1)
-    expect(parts(p.of(image))).toEqual([[OldChr1, [72_000, 73_000]]]);
+    // to the old gene, and through it to the other image (EC-20, both ways)
+    expect(parts(p.of(image))).toEqual([
+      [NewChr2, [62_000, 63_000]],
+      [OldChr1, [72_000, 73_000]],
+    ]);
   });
 });

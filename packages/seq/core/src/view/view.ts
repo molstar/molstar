@@ -32,7 +32,6 @@ import {
   projectPoint,
   type StaticModel,
   viaList,
-  withGenome,
 } from '@molstar/seqx-core/resolve';
 import { viaUnusedIssue } from '@molstar/seqx-core/resolve/maps-via';
 import { wholePieces } from './axis.js';
@@ -50,7 +49,7 @@ import {
 } from './blocks.js';
 import type { ResolvedBridge, StackEntry } from './bridges.js';
 import { ViewIssues } from './issues.js';
-import { dataOf, layerData } from './layer-data.js';
+import { dataOf, layerData, liftedData } from './layer-data.js';
 import type { LiftData } from './lift.js';
 import { type MemberAxis, memberAxis } from './members.js';
 
@@ -1282,17 +1281,6 @@ function templateOf(v: Value | undefined): TrackTemplate | undefined {
   };
 }
 
-/**
- * A layer lifted through a map read by region (`lift.ts`), loaded with the genome chunk: a liftover is over assemblies,
- * so a model holding one waits for both. Why lazy: a reader that never opens a genome pays nothing for it.
- */
-const Lift: { of?: typeof import('./lift.js').liftOf } = {};
-withGenome(() =>
-  import('./lift.js').then((m) => {
-    Lift.of = m.liftOf;
-  }),
-);
-
 function layerOf(
   model: StaticModel,
   kinds: Kinds,
@@ -1369,7 +1357,7 @@ function layerOf(
   }
   if (data.system === system) return { ...base, data, placed: true };
   // data over another assembly through a map read by region (a liftover): no static path, the runs read by region
-  const lifted = Lift.of?.(model, data, system);
+  const lifted = liftedData(model, data, system);
   if (lifted) return { ...base, data: lifted, placed: true };
   const r = model.path(data.system, system, via);
   if (!r.path) {

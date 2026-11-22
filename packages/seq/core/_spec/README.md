@@ -2559,8 +2559,9 @@ Overlay, Opened sources), kept per model and view. No data, no dynamic node, no 
   section's system (a hover's and a highlight's), else only what it adds where it has no part (a selection's);
   `linked: false` keeps the own parts alone; `regions` (a `RegionProjector`, the render's `regionProjector` over a
   store) carries a part that no static link does through a map read by region (a liftover, EC-212), every image of the
-  runs held now (EC-20), one step (an image never on to a second image). Why keyed by system, not a function per
-  section: the renderer reads a part per axis with an indexed loop, nothing called or made per draw.
+  runs held now (EC-20); a part also carried onto its own system through it (an image's item's other images: symmetric,
+  Render, A liftover), no further. Why keyed by system, not a function per section: the renderer reads a part per axis
+  with an indexed loop, nothing called or made per draw.
 - **Bridges** (`bridges.ts`; `ResolvedView.bridges`, `ResolvedBridge`; `ResolvedView.stack`, the view's sections and
   bridges in the order written, `{ kind, index }` each, what the layout stacks): a bridge is its address, its sides `a`
   and `b` (section addresses), `label` (absent: "a to b" by the sides' ids), `height` as written (absent: the render
@@ -4090,31 +4091,44 @@ pairs layer's prepared form and its region reader through the composition (`type
 
 ### A liftover
 
-`render/lift.ts`, loaded with the genome chunk (a liftover is over assemblies; one door, `Lift` in `layer-data.ts`, for
-its source, its items, its projection and its places): a lifted layer's items (Resolved view, A lifted layer), read by
-`readItems` as any items layer's, its rows on the block's system. Why lazy: a reader that never opens a genome pays
-nothing (the door's cost to the minimal viewer is the names the chunk imports from it).
+`render/lift.ts`, loaded with the genome chunk (a liftover is over assemblies). Two doors, one a layer: the view's,
+`liftedData` in `view/layer-data.ts` (`view/lift.ts`'s `liftOf`, placing a layer lifted), and the render's, `Lift` in
+`render/layer-data.ts` (its source, its items, its projection and its places). Why two: the view is below the render, so
+the render's door cannot serve it. A lifted layer's items (Resolved view, A lifted layer), read by `readItems` as any
+items layer's, its rows on the block's system. Why lazy: a reader that never opens a genome pays nothing (the door's
+cost to the minimal viewer is the names the chunk imports from it).
 
 - **The runs by the near end**: the map's source read as items tiles on the block's system by `lift.side`
   (`RegionRequest.side`: `b`, the map's `to`), the window's span at the finest level whose tiles a want's bound holds;
   each row a run from its far end to its near end (its direction the ends' relative strand), once across tiles (by
-  `row`); a row of unequal ends is no run (left out). Why the near end: the block's window asks for the runs that land
-  in it, and the `seq` runtime indexes both ends, so it is the bridge's read again (no second read).
+  `row`); a row of unequal ends is no run, left out and said (`seq.render.lift.run`, info, by count). Why the near end:
+  the block's window asks for the runs that land in it, and the `seq` runtime indexes both ends, so it is the bridge's
+  read again (no second read).
 - **The data along them**: the window carried back along each far system's runs onto that system, the data read there as
   items (its plan by the far system: `bySystem` of the data's annotation, matched to the runs by the name the map's
   source lists), each row carried forward: a row an image, an item's images its rows (EC-20, a duplicated stretch drawn
-  in both places), a part with no image not drawn (EC-21: a deletion), an inverted run's image in its order. Pending and
-  failed spans are the runs' and the far reads' carried onto the block. No density tables: the far data is read as
-  items. Not built: a lifted item's ends drawn square where a run cuts it (each image is round), lifting over single
-  sequences (assemblies only), `mapSummary` and the builder's `liftover()` (deferred).
-- **Kept** as a section's reads are (the entries read, by version): a pan of the new section lays out that section and
-  the bridge only.
+  in both places), a part with no image not drawn (EC-21: a deletion), an inverted run's image in its order. A row's
+  images joined where its runs' targets meet in one direction (one image across adjacent runs). Its coordinate fields
+  carried too: `thick_start`/`thick_end` through the runs, clipped to each image (an image with none of it is thin); its
+  strand (the field, else the table's) turned by an inverted run; the other fields as they are. Why: the gene line draws
+  the thick part and the chevrons from them, and the card reads the strand (in old coordinates they would draw wrong).
+  Pending and failed spans are the runs' and the far reads' carried onto the block. No density tables: the far data is
+  read as items. Not built: a lifted item's ends drawn square where a run cuts it (each image is round), lifting over
+  single sequences (assemblies only), `mapSummary` and the builder's `liftover()` (deferred).
+- **Kept** by the entries read: the runs (by-far maps, their `RunsLinear`) while the runs' entries are the same, the
+  carried rows while the far reads' entries are too; a layout with neither changed copies the kept rows. A pan of the
+  new section lays out that section and the bridge only, and costs no more than the same layer read directly.
 - **Projection** (`lift-project.ts`, `regionProjector(store)`: a `RegionProjector`, Resolved view, Projection): a part
   on one end's sequence carried to the other's through the runs in the items tiles the store holds at any level, read by
   that end (the lifted layer's and the bridge's reads: no want of its own, so a hover never reads), its version the
-  store's. Both ways: an old gene lights each image, an image lights the old gene. Its `places` name an item's places
-  for a card (at least two; a place an image's pieces nearer than the item's length joined, so a chain's small gap
-  splits none).
+  store's; its answers kept for that version (a ring of the last ranges), so a warm hover allocates nothing. Both ways,
+  and symmetric (EC-20): an old gene lights each image; an image lights the old gene and, through it, the item's other
+  images (one step back and out: `projectOntoView` carries a part onto its own system through `regions` too). Its
+  `places` name an item's places for a card, the same from the item or any image (at least two; a place a colinear chain
+  of its runs: in the source's order, on one sequence, one direction, each after the last on both ends; a run over a
+  source position already placed (a duplication), another sequence, a turn or a step back starts another. So an
+  insertion on the new side longer than the item splits none, and a duplication starts a second. Why by the runs, not by
+  distance: a distance rule splits an item an insertion longer than it crosses).
 
 ### Lanes and Hits
 

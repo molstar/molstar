@@ -17,7 +17,8 @@ import type { Frame } from '../renderer.js';
 import type { RangesLay } from '../ranges.js';
 import type { BlockPlacement } from '../layout/blocks.js';
 import { settle } from './helpers.js';
-import { Genes, imagesOf, liftSpec, NewChromosomes, NewSection, OldSection } from './lift-fixtures.js';
+import { Genes, imagesOf, liftSpec, NewChromosomes, NewSection, OldSection, Runs } from './lift-fixtures.js';
+import { regionProjector } from '../lift-project.js';
 
 beforeAll(async () => {
   await loadGenome();
@@ -112,5 +113,113 @@ describe('a pan of the new section', () => {
     expect(ribbons).not.toHaveBeenCalled();
     place.mockRestore();
     ribbons.mockRestore();
+  });
+});
+
+/** Each lifted row of the new section: its key, extent, thick part and strand as carried; each item's chevrons. */
+function carried(f: Frame) {
+  const sec = f.layout.sections.find((s) => s.section.address === NewSection)!;
+  const strips = (sec.placement as BlockPlacement).strips;
+  const bands = sec.lays.length / strips.n;
+  const out: { chr: string; key: string; start: number; end: number; ts: number; te: number; strand: number }[] = [];
+  const chevrons: Record<string, number> = {};
+  for (let i = 0; i < strips.n; i++)
+    for (let k = 0; k < bands; k++)
+      for (const l of sec.lays[i * bands + k] ?? []) {
+        if (!l.key.endsWith('/genes')) continue;
+        const lay = l.lay as RangesLay;
+        const r = lay.rows;
+        for (let j = 0; j < r.n; j++) {
+          const col = (name: string) => r.fields[j]?.find((c) => c.name === name)?.column as ArrayLike<number>;
+          out.push({
+            chr: chrOf(strips.axes[i].system),
+            key: String(r.keys[j]),
+            start: r.starts[j],
+            end: r.ends[j],
+            ts: col('thick_start')[r.row[j]],
+            te: col('thick_end')[r.row[j]],
+            strand: col('strand')[r.row[j]],
+          });
+        }
+        for (let c = 0; c < lay.cn; c++) chevrons[String(r.keys[lay.citem[c]])] = lay.cdir[c];
+      }
+  return { rows: out.sort((a, b) => a.chr.localeCompare(b.chr) || a.start - b.start), chevrons };
+}
+
+describe('a lifted gene’s own coordinates', () => {
+  it('its thick part carried and clipped to each image, its strand turned by an inverted run (EC-21, EC-212)', async () => {
+    const s = await settle(liftSpec(), [SeqRuntime]);
+    const f = await s.frame({ size: Size });
+    const { rows: got, chevrons } = carried(f);
+    const want: typeof got = [];
+    Genes.id.forEach((key, i) => {
+      const thick = imagesOf(Genes.target[i], Genes.thick_start[i], Genes.thick_end[i]);
+      for (const m of imagesOf(Genes.target[i], Genes.start[i], Genes.end[i])) {
+        let lo = Number.POSITIVE_INFINITY;
+        let hi = Number.NEGATIVE_INFINITY;
+        for (const t of thick)
+          if (t.b === m.b && Math.min(t.end, m.end) > Math.max(t.start, m.start)) {
+            lo = Math.min(lo, Math.max(t.start, m.start));
+            hi = Math.max(hi, Math.min(t.end, m.end));
+          }
+        const strand = (Genes.strand[i] === '-' ? -1 : 1) * m.dir;
+        const thin = !(hi > lo);
+        want.push({
+          chr: m.b,
+          key,
+          start: m.start,
+          end: m.end,
+          ts: thin ? m.start : lo,
+          te: thin ? m.start : hi,
+          strand,
+        });
+      }
+    });
+    expect(got).toEqual(want.sort((a, b) => a.chr.localeCompare(b.chr) || a.start - b.start));
+    // the inverted gene: its thick part 56–59 kb on old chr1 lands at 51–54 kb, read the other way
+    expect(got.find((r) => r.key === 'inverted')).toMatchObject({ ts: 51_000, te: 54_000, strand: -1 });
+    // the half-deleted gene: its thick part only where it lands
+    expect(got.find((r) => r.key === 'half')).toMatchObject({ start: 20_000, end: 25_000, ts: 20_000, te: 24_000 });
+    // the chevrons by the strand as carried: the inverted `+` gene points left, a straight `+` right, a `-` left
+    expect(chevrons.inverted).toBe(2);
+    expect(chevrons.half).toBe(1);
+    expect(chevrons.straight).toBe(2);
+  });
+
+  it('rows whose ends differ in length are no runs, said (`seq.render.lift.run`)', async () => {
+    const unequal = {
+      a: 'chr2',
+      from: 40_000,
+      b: 'chr2',
+      to: 70_000,
+      length: 5_000,
+      bLength: 4_000,
+      strand: 1 as const,
+    };
+    const s = await settle(liftSpec([...Runs, unequal]), [SeqRuntime]);
+    const f = await s.frame({ size: Size });
+    const said = f.layout.issues.filter((i) => i.code === 'seq.render.lift.run');
+    expect(said.length).toBeGreaterThan(0);
+    expect(said[0].message).toContain('1 rows');
+  });
+});
+
+describe('places, through the map (EC-20)', () => {
+  it('a duplicated gene in two places from either side; one split by an insertion longer than it in one', async () => {
+    const s = await settle(liftSpec(), [SeqRuntime]);
+    await s.frame({ size: Size });
+    const p = regionProjector(s.store);
+    const old = (c: string) => `/data/old/(sequence :name ${c})`;
+    const neu = (c: string) => `/data/new/(sequence :name ${c})`;
+    const two = '2 places: chr1 62,001–68,000, chr2 62,001–68,000';
+    expect(p.places!(s.model, s.view, old('chr1'), 72_000, 78_000)).toBe(two);
+    // hovered on one image: the item's places, itself among them
+    expect(p.places!(s.model, s.view, neu('chr2'), 62_000, 68_000)).toBe(two);
+    // 25–30 kb and 45–50 kb of new chr2: one colinear chain, one place
+    expect(p.places!(s.model, s.view, old('chr2'), 15_000, 25_000)).toBeUndefined();
+    // the other image lit from one, through the old gene
+    const out: number[] = [];
+    expect(p.project(s.model, neu('chr2'), [62_000, 68_000], neu('chr1'), out)).toBe(true);
+    expect(out).toEqual([62_000, 68_000]);
   });
 });
