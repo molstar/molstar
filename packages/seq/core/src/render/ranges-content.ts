@@ -9,6 +9,7 @@ import { toSection } from './layer-data.js';
 import type { ContentContext } from './layer-type.js';
 import type { LayerContent } from './sizing.js';
 import { LabelInset, LabelMinPx, minGlyphPx } from './range-labels.js';
+import { knownLanes } from './known.js';
 import { mappedPieces, type RangesPrep } from './ranges-lay.js';
 
 // A ranges layer's content (_spec/README.md "Render", Track heights): the lanes its whole inline data packs into and
@@ -43,9 +44,10 @@ const Beside = new WeakMap<
 
 /** A layer's content with no label lane, kept by its prep (a layout makes no object a frame). */
 const LanesOnly = new WeakMap<RangesPrep, LayerContent>();
-function lanesOnly(prep: RangesPrep, lanes: number): LayerContent {
+function lanesOnly(prep: RangesPrep, lanes: number, partial = false): LayerContent {
   let c = LanesOnly.get(prep);
-  if (!c || c.lanes !== lanes) LanesOnly.set(prep, (c = { lanes, labels: false }));
+  if (!c || c.lanes !== lanes || (c.partial ?? false) !== partial)
+    LanesOnly.set(prep, (c = partial ? { lanes, labels: false, partial } : { lanes, labels: false }));
   return c;
 }
 
@@ -130,7 +132,8 @@ export function rangesContent(prep: RangesPrep, ctx: ContentContext): LayerConte
   let rows: QueryItem[] | undefined;
   if (lanes === undefined) {
     rows = contentRows(prep);
-    if (!rows) return undefined;
+    // a source's data is not known whole: the lanes it has packed, one while it is pending (the loading lane)
+    if (!rows) return prep.src ? lanesOnly(prep, knownLanes(prep), true) : undefined;
     // the gene line lays an item's pieces in one lane, by its extent
     lanes = packedLanes(prep.line === 'gene' ? itemHulls(rows) : rows);
     Lanes.set(prep, lanes);

@@ -118,8 +118,13 @@ describe('a narrow frame', () => {
     // the reader opened it: the tree whole, no toggle, the least width holding it (the frame scrolls)
     const open = await laid(columns - 32 + 160 - 40, true);
     expect(open.layout.narrow!.tree).toBe(120);
-    expect(open.lay.toggleX).toBe(-1);
-    expect(open.lay.treeX1 - open.lay.treeX0).toBe(120);
+    // its toggle stays at the band's top, pressed, the tree beside it: the way back on screen
+    expect(open.lay.toggleX).toBeGreaterThanOrEqual(0);
+    expect(open.lay.toggleOpen).toBe(true);
+    expect(open.lay.treeX0).toBeGreaterThanOrEqual(open.lay.toggleX + 12);
+    expect(open.lay.treeX1 - open.lay.treeX0).toBeGreaterThan(100);
+    expect(hitView(open.layout, open.lay.toggleX + 6, open.lay.toggleY + 6)).toMatchObject({ target: 'tree-toggle' });
+    expect(narrow.lay.toggleOpen).toBe(false);
     expect(open.layout.narrow!.minWidth).toBe(narrow.layout.narrow!.minWidth + 120);
   });
 });

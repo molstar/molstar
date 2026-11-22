@@ -22,6 +22,7 @@ import {
   cladesWithin,
   MaxRowScale,
   MinRowScale,
+  type RangesLay,
   type RowsLay,
   type ViewLayout,
 } from '@molstar/seqx-core/render';
@@ -35,6 +36,14 @@ import { RowsRailGesture } from './rows-rail.js';
 import { trackOfLayer } from './two-axes.js';
 
 export { trackOfLayer };
+
+/** The ranges layer `key`'s last layout in a layout. */
+function lanesOf(layout: ViewLayout | undefined, key: string): RangesLay | undefined {
+  for (const s of layout?.sections ?? [])
+    for (const band of s.lays)
+      for (const l of band ?? []) if (l.key === key && l.type.name === 'ranges') return l.lay as RangesLay;
+  return undefined;
+}
 
 /** What a rows command is given: the rows layer's track (the first rows band when absent) and what each needs. */
 export interface RowsContext {
@@ -83,6 +92,14 @@ export interface RowsBehavior {
   wheel(track: string, dy: number): boolean;
   /** The rows layer's last layout of a track (what the commands read). */
   lay(track?: string): RowsLay | undefined;
+  /**
+   * The wheel's vertical delta (px) over a ranges layer (its layer key) whose lanes overflow its band scrolls them (the
+   * band's `bandTop`, in lanes, from the stored state so events before a frame add up); false at their end or with
+   * none to scroll: the wheel goes on to the section and the page.
+   */
+  wheelLanes(layer: string, dy: number): boolean;
+  /** A layout was made: a lanes band's stored top kept inside its lanes (they shrank by an edit or a cap). */
+  framed(layout: ViewLayout): void;
   /** A new gesture on a rows rail (the input keeps one): its drags scroll and zoom the rows. */
   railGesture(): RowsRailGesture;
   dispose(): void;
@@ -513,6 +530,31 @@ export function rowsBehavior(
       return true;
     },
     lay,
+    wheelLanes(layer, dy) {
+      if (disposed) return false;
+      const lanes = lanesOf(layout(), layer);
+      if (!lanes || !(lanes.scrollMax > 0)) return false;
+      const track = trackOfLayer(layer);
+      const now = view.band(track)?.bandTop ?? lanes.top;
+      const top = Math.max(0, Math.min(lanes.scrollMax, now + dy / lanes.laneHeight));
+      if (top === now) return false;
+      view.setBand(track, { bandTop: top });
+      return true;
+    },
+    framed(l) {
+      if (disposed) return;
+      for (const s of l.sections)
+        for (const band of s.lays)
+          for (const x of band ?? []) {
+            if (x.type.name !== 'ranges') continue;
+            const track = trackOfLayer(x.key);
+            const stored = view.band(track)?.bandTop;
+            if (stored === undefined || stored === 0 || lay(track)) continue;
+            const lanes = x.lay as RangesLay;
+            const max = lanes.scrolls ? lanes.scrollMax : 0;
+            if (stored > max) view.setBand(track, { bandTop: max });
+          }
+    },
     dispose() {
       disposed = true;
       view.setBandRows(undefined);

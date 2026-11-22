@@ -44,6 +44,8 @@ export interface Scenario {
   readonly panStep: number;
   /** The render config's overrides (the defaults otherwise). */
   readonly config?: RenderConfigOverrides;
+  /** The bands' own scroll by track address (a track whose lanes scroll inside it). */
+  readonly bands?: Readonly<Record<string, { readonly bandTop: number }>>;
 }
 
 // the data box is 1304 CSS px: letters need 10 px a position (130 positions), cells 1.5 px, bars down to 1/128 px
@@ -106,6 +108,27 @@ export const Scenarios: readonly Scenario[] = [
     width: 60_000,
     center: 400_000,
     panStep: 60,
+  },
+  // the same models in a track whose lanes scroll inside it (the track's `height` 120 holds eight lanes): a band's top
+  // lane in the middle of the lanes, the lanes out of the band no marks
+  {
+    name: 'gene models, scrolled (60 kb)',
+    spec: geneModelsSpec,
+    runtimes: [GffRuntime],
+    width: 60_000,
+    center: 400_000,
+    panStep: 60,
+    bands: { '/views/main/chr1/tx': { bandTop: 2.5 } },
+  },
+  // and scrolled far (another band top: other lanes in view, the cut edge at its top)
+  {
+    name: 'gene models, scrolled far (60 kb)',
+    spec: geneModelsSpec,
+    runtimes: [GffRuntime],
+    width: 60_000,
+    center: 400_000,
+    panStep: 60,
+    bands: { '/views/main/chr1/tx': { bandTop: 20 } },
   },
   {
     name: '3M letters (120 positions)',
@@ -186,7 +209,7 @@ export function walk(s: Scenario, kind: WalkKind): FrameInput[] {
       start = s.center - w / 2;
       end = s.center + w / 2;
     }
-    out.push({ size: SIZE, dpr: DPR, viewport: { start, end } });
+    out.push({ size: SIZE, dpr: DPR, viewport: { start, end, ...(s.bands ? { bands: s.bands } : {}) } });
   }
   return out;
 }
@@ -204,7 +227,11 @@ export async function prepare(s: Scenario): Promise<Settled> {
 
 /** The frame input a hover walk draws at: the scenario's widest window, as the viewer's frame is. */
 export function hoverInput(s: Scenario): FrameInput {
-  return { size: SIZE, dpr: DPR, viewport: { start: s.center - s.width / 2, end: s.center + s.width / 2 } };
+  return {
+    size: SIZE,
+    dpr: DPR,
+    viewport: { start: s.center - s.width / 2, end: s.center + s.width / 2, ...(s.bands ? { bands: s.bands } : {}) },
+  };
 }
 
 /** Hits along every track, one per 5 CSS px of the data box, for a hover walk: the emphasis of each, `STEPS` of them. */

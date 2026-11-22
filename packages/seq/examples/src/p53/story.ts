@@ -30,7 +30,7 @@ function base(): Node {
   b.views.view('main', (v) => {
     const s = v.section('protein', { of: p53 });
     s.track('letters', { label: 'p53' }).layer('letters', { type: 'letters' });
-    s.track('domains', { label: 'Domains', height: 24 }).layer('ranges', {
+    s.track('domains', { label: 'Domains' }).layer('ranges', {
       type: 'ranges',
       data: domains,
       color: '#4c78a8',

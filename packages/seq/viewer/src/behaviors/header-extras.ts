@@ -179,6 +179,7 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
         label,
         hidden: l.params.hidden === true,
         filtered,
+        ...(l.type === 'rows' && l.params.order === 'tree' && l.params.tree !== undefined ? { tree: true } : {}),
         ...(l.params.color !== undefined ? { color: l.params.color } : {}),
         schemes: l.address && legend && Colored.has(l.type) ? legend.fittingSchemes(l.address) : [],
       });
@@ -198,6 +199,14 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
       tracks: (specNode?.children ?? []).flatMap((c) => (c.kind === 'track' && c.id !== undefined ? [c.id] : [])),
       layers,
       hiddenTracks: at?.hiddenTracks ?? hiddenTracksOf(model, section),
+      ...(track && layers.some((l) => l.tree)
+        ? {
+            tree: {
+              open: inner.context.view.band(track.address)?.tree === true,
+              lacks: viewer.frame?.layout.narrow?.lacks === true,
+            },
+          }
+        : {}),
       ...(target.element ? { element: target.element } : {}),
       ...blockFacts(model, section, specNode, target.block),
     };

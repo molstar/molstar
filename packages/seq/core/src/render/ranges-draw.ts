@@ -238,15 +238,57 @@ function drawStyled(lay: RangesLay, out: PassWriter) {
   }
 }
 
+/**
+ * A band whose lanes scroll inside it (_spec/README.md "Render", Track heights): a 1 px edge in the line ink where lanes
+ * are cut (above the first lane in view, below the last); the rail is the layout's (`placeLanesRail`).
+ */
+function drawScroll(lay: RangesLay, out: PassWriter) {
+  if (!lay.scrolls || !(lay.scrollMax > 0)) return;
+  const { box } = lay;
+  const g = out.args;
+  // unrolled: a number passed to a call that is not inlined is boxed (a warm frame allocates nothing)
+  g[2] = box.width;
+  g[3] = 1;
+  g[4] = lay.tokens.colors['msui-line'];
+  g[5] = NoColor;
+  g[6] = 0;
+  g[7] = 0;
+  g[8] = 0;
+  g[0] = box.x;
+  if (lay.top > 0) {
+    g[1] = box.y;
+    out.rectArgs();
+  }
+  if (lay.top < lay.scrollMax) {
+    g[1] = box.y + box.height - 1;
+    out.rectArgs();
+  }
+}
+
 /** The labels pass: the labels inside their marks (whole or cut), and those beside in the label lane with their leaders. */
 function drawLabels(lay: RangesLay, out: PassWriter, _emphasis: Emphasis | undefined) {
   const gap = lay.gap;
   const g = out.args;
+  drawScroll(lay, out);
   if (lay.style === Gene) {
     // a gene model's label: plain text in the text ink, left of its model (placed whole, `ranges-gene.ts`)
     const gl = lay.gene;
     const ink = lay.tokens.colors['msui-text'];
+    const bg = lay.tokens.colors['msui-bg'];
     for (let k = 0; k < gl.ln; k++) {
+      if (gl.lfloat[k]) {
+        // floating over its model's hairline: the page's color under the text
+        g[0] = gl.lx[k] - 2;
+        g[1] = gl.ly[k] - lay.fontSize * 0.85;
+        g[2] = gl.lw[k] + 4;
+        g[3] = lay.fontSize;
+        g[4] = bg;
+        g[5] = NoColor;
+        g[6] = 0;
+        g[7] = 0;
+        g[8] = 0;
+        out.rectArgs();
+      }
       g[0] = gl.lx[k];
       g[1] = gl.ly[k];
       g[2] = gl.lw[k];

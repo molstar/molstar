@@ -116,6 +116,19 @@ function labelRoom(lay: RangesLay, i: number): number {
   return x - 4 - lay.gene.labelW[i];
 }
 
+/** Scrolls the Transcripts band (its lanes scroll inside the capped track) until the item `key` is drawn. */
+function reveal(v: SeqViewer, key: string): RangesLay {
+  const track = '/views/main/chr17/transcripts';
+  const first = layOf(v, 'Transcripts')!;
+  for (let top = 0; top <= first.scrollMax + first.room; top += Math.max(1, first.room - 2)) {
+    v.view.setBand(track, { bandTop: top });
+    v.draw();
+    const lay = layOf(v, 'Transcripts')!;
+    if (drawn(lay).has(key)) return lay;
+  }
+  throw new Error(`${key} is in no lane`);
+}
+
 /** The item keys a gene-line layer drew, with their lanes (one each). */
 function drawn(lay: RangesLay) {
   const lanes = new Map<string, Set<number>>();
@@ -140,8 +153,10 @@ describe('Features/Genome formats/GFF3 and GTF, headless', () => {
       expect(tx.pending).toEqual([]);
       expect(tx.failed).toEqual([]);
       const lanes = drawn(tx);
+      // the track holds its cap's lanes (16) and scrolls to the rest
       expect(lanes.size).toBeGreaterThan(15);
-      expect(lanes.has(canonical)).toBe(true);
+      expect(tx.scrollMax).toBeGreaterThan(0);
+      expect(drawn(reveal(v, canonical)).has(canonical)).toBe(true);
       for (const l of lanes.values()) expect(l.size).toBe(1);
       expect(Array.from(tx.mthin.subarray(0, tx.m)).some((t) => t === 1)).toBe(true);
       expect(Array.from(tx.mthin.subarray(0, tx.m)).some((t) => t === 0)).toBe(true);
@@ -167,7 +182,12 @@ describe('Features/Genome formats/GFF3 and GTF, headless', () => {
         (i) => g.repOf[i] === i && tx.lanes[i] >= 0 && g.labelW[i] > 0 && labelRoom(tx, i) >= tx.box.x,
       );
       expect(room.length).toBeGreaterThan(10);
-      expect(g.ln).toBe(room.length);
+      // a label with no room before its model floats at the data's left edge: every shown lane is labelled
+      const shown = Array.from({ length: tx.items }, (_, i) => i).filter(
+        (i) => g.repOf[i] === i && tx.lanes[i] >= 0 && g.labelW[i] > 0,
+      );
+      expect(g.ln).toBe(shown.length);
+      expect(g.ln - room.length).toBe(Array.from(g.lfloat.subarray(0, g.ln)).filter((f) => f === 1).length);
       const svg = await v.renderSvg({ idPrefix: `${id}-` });
       expect(svg.issues).toEqual([]);
       expect(svg.settled).toBe(true);
@@ -176,7 +196,7 @@ describe('Features/Genome formats/GFF3 and GTF, headless', () => {
 
   it('a transcript is one item: hovered, every exon lights', async () => {
     const v = await open('gff-tp53');
-    const tx = layOf(v, 'Transcripts')!;
+    const tx = reveal(v, 'transcript:ENST00000269305');
     const j = Array.from({ length: tx.m }, (_, i) => i).find(
       (i) => String(tx.keys[tx.mitem[i]]) === 'transcript:ENST00000269305',
     )!;
@@ -194,13 +214,19 @@ describe('Features/Genome formats/GFF3 and GTF, headless', () => {
     expect(hovered).toBeGreaterThanOrEqual(marks);
   });
 
-  it('the Transcripts track’s lanes start at its top, not centred in a taller band', async () => {
+  it('the Transcripts track is sized to the lanes its source read, to its cap; its lanes start at its top, scroll inside it', async () => {
     const v = await open('gff-tp53');
     const tx = layOf(v, 'Transcripts')!;
-    const lanes = Math.max(...Array.from({ length: tx.m }, (_, i) => tx.mlane[i])) + 1;
-    expect(tx.box.height).toBeGreaterThan(lanes * tx.laneHeight + 2 * tx.laneHeight);
-    // from the top by the band's padding at most, so the blank is below the last lane alone
-    expect(tx.laneY - tx.box.y).toBeLessThanOrEqual(v.context.renderConfig.lanePadding + tx.laneHeight);
+    const config = v.context.renderConfig;
+    // 47 transcripts: past the cap (240 px, 16 lanes and padding)
+    expect(tx.box.height).toBe(config.track.maxPx);
+    expect(tx.laneCount).toBeGreaterThan(tx.room);
+    expect(tx.scrollMax).toBe(tx.laneCount - tx.room);
+    // the first lane at the band's padding: no blank band above the lanes
+    expect(tx.laneY - tx.box.y).toBe(config.lanePadding);
+    // the Genes track (WRAP53 and TP53) keeps its own height: two lanes, not the Transcripts' (tracks of one kind share)
+    const genes = layOf(v, 'Genes')!;
+    expect(genes.box.height).toBe(2 * config.laneHeight + 2 * config.lanePadding);
   });
 
   it('the hover card of a transcript deep in the tall track is anchored by its lane, not the track’s top', async () => {

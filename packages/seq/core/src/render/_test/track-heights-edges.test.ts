@@ -164,33 +164,33 @@ describe('lanes never below the band', () => {
 });
 
 describe('a source’s lanes', () => {
-  it('never move back on a pan: centred on the most lanes the layer has shown', async () => {
-    // a file's rows (not known whole before they are read): one item
-    const gff = ['##gff-version 3', 's\tt\tCDS\t11\t20\t.\t+\t.\tID=one'].join('\n');
+  it('the track grows to the lanes its source packed once the view settles, and a pan never shrinks it', async () => {
+    // a file's rows (not known whole before they are read): three over one another, and one alone
+    const gff = [
+      '##gff-version 3',
+      ...[0, 1, 2].map((k) => `s\tt\tCDS\t${11 + k}\t${40 + k}\t.\t+\t.\tID=a${k}`),
+      's\tt\tCDS\t301\t320\t.\t+\t.\tID=lone',
+    ].join('\n');
     const b = createSeqSpec({ title: 'source' });
     const seq = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT'.repeat(100) });
     const file = b.data.source('file', { format: 'gff3', value: gff });
     const f = b.data.ranges('f', { target: seq, source: file });
-    b.views.view('main', (v) =>
-      v.section('s', { of: seq }).track('t', { height: 64 }).layer('l', { type: 'ranges', data: f }),
-    );
+    b.views.view('main', (v) => v.section('s', { of: seq }).track('t').layer('l', { type: 'ranges', data: f }));
     const s = await settle(b.build(), [RecordsRuntime]);
-    const at = async (start: number, settled = false) => {
-      const fr = await s.frame({ size: Size, settled, viewport: { start, end: start + 30 } });
-      return { y: lay(fr).laneY, n: lay(fr).laneCount, lay: lay(fr) };
+    const at = async (start: number, end: number, settled: boolean) => {
+      const fr = await s.frame({ size: Size, settled, viewport: { start, end } });
+      return { h: track(fr).box.height, lay: lay(fr) };
     };
-    const first = await at(0);
-    expect(first.n).toBe(1);
-    // the alone item kept in a third lane, as a view before could have left it: three lanes shown
-    first.lay.sticky.assign(['k0', 'k1'], [0, 0], [50, 50], [0, 1], 5, false, new Int32Array(2));
-    first.lay.sticky.assign(['k0', 'k1', 'sone#0'], [0, 0, 0], [50, 50, 50], [0, 1, 2], 5, false, new Int32Array(3));
-    const busy = await at(1);
-    expect(busy.n).toBe(3);
-    expect(busy.y).toBeLessThan(first.y);
-    // repacked when the view settles (one lane again): the lanes' top stays where three stood
-    const back = await at(0, true);
-    expect(back.n).toBe(1);
-    expect(back.y).toBe(busy.y);
+    // pending, and settled with the tile read: one lane (the loading lane), then three, in the settled frame itself
+    const unsettled = await at(0, 60, false);
+    expect(unsettled.h).toBe(22);
+    const grown = await at(0, 60, true);
+    expect(grown.h).toBe(50);
+    expect(grown.lay.laneCount).toBe(3);
+    // a window with the lone item only: the track keeps its height, the lanes where they were
+    const lone = await at(290, 330, true);
+    expect(lone.h).toBe(50);
+    expect(lone.lay.laneY).toBe(grown.lay.laneY);
   });
 });
 

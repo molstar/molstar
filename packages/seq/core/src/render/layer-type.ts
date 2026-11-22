@@ -111,6 +111,11 @@ export interface LayoutContext {
   readonly rowScale?: number;
   /** The tree's width a narrow frame grants a rows layer (0: collapsed); the layer's own when absent. */
   readonly treePx?: number;
+  /**
+   * The reader opened the tree a narrow frame collapsed (a band's `tree`, kept whole while the frame lacks room): the
+   * layer keeps its toggle at the band's top, pressed, so the tree has a way back on screen.
+   */
+  readonly treeOpen?: boolean;
   /** The clades a rows layer folds (session state, by name), when the band says; its `collapsed` when absent. */
   readonly folds?: readonly string[];
   /** The shared image cache a layer keeps its image tiles in (the renderer's). */
@@ -390,6 +395,12 @@ export interface LayerType<Prep = unknown, Lay = unknown> {
    * fixed height stands). Kept by the layer type: called again with the same prep and context, it answers at once.
    */
   content?(prep: Prep, ctx: ContentContext): LayerContent | undefined;
+  /**
+   * A count that moves each time what this type's content reads of a source grew (a ranges layer's lanes, noted by its
+   * layout): the sizing's key, a section's reuse and the layout's second pass read it, so no module outside the type
+   * carries what it keeps.
+   */
+  known?(): number;
   layout(prep: Prep, ctx: LayoutContext, data: StoreReader, overlay: Overlay, prev?: Lay): Lay;
   draw(lay: Lay, pass: PassName, out: PassWriter, emphasis?: Emphasis): void;
   /**

@@ -880,6 +880,15 @@ export class ViewerInput {
       this.viewer.schedule();
       return scrolled;
     }
+    // over a ranges layer whose lanes overflow its band the wheel's vertical delta scrolls them (the rows behavior's); at
+    // their end it is given back
+    const lanesLayer = this._hitAt(x, y)?.layer;
+    if (lanesLayer !== undefined && !mods.mod && !mods.shift && Math.abs(dy) > Math.abs(dx)) {
+      if (this.viewer.behavior<RowsBehavior>('rows')?.wheelLanes(lanesLayer, dy)) {
+        this.viewer.schedule();
+        return true;
+      }
+    }
     const taken = this.viewer.bindings.resolve('wheel', mods, target) !== undefined;
     if (taken) nav.wheel(section, dx, dy, local, mods, target, at, atY);
     // the frame asked for after the behavior's own, so a wheel's deltas apply in the frame that draws them

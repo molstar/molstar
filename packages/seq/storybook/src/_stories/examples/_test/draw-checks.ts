@@ -94,9 +94,11 @@ export function checkMarks(v: SeqViewer) {
     if (l.type.name !== 'ranges') continue;
     const lay = l.lay as RangesLay;
     for (let j = 0; j < lay.m; j++) {
-      marks++;
       const x = (lay.mx0[j] + lay.mx1[j]) / 2;
       const y = lay.laneY + (lay.mlane[j] + 0.5) * lay.laneHeight;
+      // a lane scrolled half out of its band (or past a track not grown to its lanes yet) has its centre out of reach
+      if (y < lay.box.y || y >= lay.box.y + lay.box.height) continue;
+      marks++;
       // the items the mark draws: its own, or those of the run's marks
       const drawn = new Set<string | number>();
       if (lay.mitem[j] >= 0) drawn.add(lay.keys[lay.mitem[j]]);
