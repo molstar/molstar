@@ -6,6 +6,9 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 
 ## Open
 
+- **The rail's contrast and its square ticks break the rounded UI** (the author, 2026-11-22: "should we iterate on the
+  look of the rail? i think the contrast breaks the view quite a bit + the ticks breaks the 'rounded look' of the rest
+  of the ui"; the grips overhang the well's rounded corners): variants first, then the pick built. To RL.
 - **A track jumps while loading, its labels drawn below it; a section of many tracks does not scroll** (the author,
   2026-11-22, Features › Genome formats › GFF3 › TP53 while loading: "the size when loading. could be handled better";
   "not just text sections. imagine having multiple tracks with standard features, these should be scrollable too. and

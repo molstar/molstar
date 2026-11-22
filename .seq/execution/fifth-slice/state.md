@@ -2,6 +2,8 @@
 
 ## Decided
 
+- The rail's look: variants first (the author, 2026-11-22: "Yes, variants first"); RL (`briefs/rl-rail-look.md`) after
+  FX10 merges: capsule, capsule in a groove, quiet until hovered, beside today's.
 - Minimal raised to 1,060 kB (the author, 2026-11-22: "raise minimal to 1,060 too"), LA at 1,039.95 of 1,040.
 - Sizes raised a third time (the author, 2026-11-22: "You can raise the limits"): headless 930, default 1,470 kB; the
   chromosome pan's fit bound 55 KB (FX9 measured 54.1).
