@@ -3022,10 +3022,19 @@ in page coordinates: what crosses strips; `bridge`, internal, once a bridge with
   known) are centred by the most the layer has shown, every lane when the last is the density row, so no lane runs past
   the band.
 
-- `values`: a bar a position, or at `bars` and `density` a bar a device column over the column's extent from the
-  baseline (`values.aggregate: 'minmax'`, so negative extremes show; `'max'` the maximum alone), from positions or bins.
-  Missing (NaN) is a 2 px neutral mark at the baseline. The domain is the layer's `domain` param where given, else open:
-  computed from the values in view when the view settles, held while it does not.
+- `values`: bars, or a profile where a position is under 4 CSS px. From 4 px a bar a position: a 1 px gap, rounded tops
+  (2 px), at 60% of the series color. Below, one stepped profile over the device columns' extent
+  (`values.aggregate: 'minmax'`, so negative extremes show; `'max'` the maximum alone), from positions or bins: the area
+  under it at 35%, a 0.75 px top line in the full color. The top 10% of the well is headroom (a value at the domain's
+  top never touches it), a hairline marks the baseline (zero, else the domain's low), and a missing value (NaN) is a
+  gap, never a stub or a zero. A bar is round at its free end (a negative one below the baseline) and takes no gap where
+  a cut at the window's edge leaves it narrower than the gap and a device pixel; an alpha multiplies the series color's
+  own; a per-value color starts a new profile run where it moves by a step (the top line stays one line). The `line` and
+  `area` encodings share the headroom, the baseline and the gap, so a line and bars on one `scale` align. The hover
+  outlines the value's own extent, from the baseline to its end. The fill is clipped to the well's squircle. Why: at a
+  pixel or two a value, full-ink columns read as a jagged block, not a profile; a gap says "no data" where a stub says
+  "low". The domain is the layer's `domain` param where given, else open: computed from the values in view when the view
+  settles, held while it does not.
 
 - `frame` (EC-100): an annotation's regions outlined across tracks of its section (`across`: the first and the last
   track's ids, the bands between them too; its own band when absent: `ctx.span`). A strip layer: on each strip a

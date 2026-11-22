@@ -9,8 +9,7 @@ import type { Node } from '@molstar/core/repr/tree';
 import { createSeqContext } from '@molstar/seqx-core/context/default';
 import { DataStore, SeqRuntime } from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
-import { LightTokens, openModel } from '@molstar/seqx-core/render';
-import { colorHex } from '@molstar/seqx-core/theme';
+import { openModel } from '@molstar/seqx-core/render';
 import { describe, expect, it } from 'vitest';
 import { nodeFixtureAssets } from '../../node-assets.js';
 import { ExampleViews } from '../../views.js';
@@ -141,25 +140,26 @@ describe('EC-183 the second consumer draws what core draws', () => {
     const bars = of(b, 'value');
     expect(bars).toHaveLength(25);
     const t = b.track('Conservation');
-    const coreBars = inTrack(b.core.rects, t);
+    // core's bars: rounded shapes (the track's hairline at the baseline is a rect, no bar)
+    const coreBars = inTrack(b.core.paths, t);
     expect(coreBars).toHaveLength(bars.length);
     for (const c of coreBars) {
       const m = bars.find((x) => x.position === Math.floor(b.at((c.x0 + c.x1) / 2)))!;
       expect(c.fill).toBe(m.fill);
-      // the same share of the track: core snaps heights to the pixel grid
-      expect(c.h / t.height, `bar of ${m.position}`).toBeCloseTo(m.share!, 1);
+      // the same share of the track less the headroom (a tenth): core snaps heights to the pixel grid
+      expect(c.h / t.height / 0.9, `bar of ${m.position}`).toBeCloseTo(m.share!, 2);
+      // core's bars are the series color at 60% (the SVG's `fill-opacity`)
+      expect(c.alpha, `bar of ${m.position}`).toBeCloseTo(0.6, 2);
     }
     // the two missing values (100, 101) draw no bar
     const missing = await both(p53('tracks'), [95, 105]);
     const expected = [95, 96, 97, 98, 99, 102, 103, 104];
     expect(of(missing, 'value').map((m) => m.position)).toEqual(expected);
-    // core draws a mark there too, not a bar: in the missing colour, where the consumer leaves the position empty
-    const marks = inTrack(missing.core.rects, missing.track('Conservation')).map(
-      (c) => [Math.floor(missing.at((c.x0 + c.x1) / 2)), c.fill] as const,
+    // core leaves them a gap too: no mark in the missing colour, no stub at the floor
+    const marks = inTrack(missing.core.paths, missing.track('Conservation')).map((c) =>
+      Math.floor(missing.at((c.x0 + c.x1) / 2)),
     );
-    const missingFill = colorHex(LightTokens.colors['seq-missing']).slice(0, 7);
-    expect(marks.filter(([, f]) => f !== missingFill).map(([p]) => p)).toEqual(expected);
-    expect(marks.filter(([, f]) => f === missingFill).map(([p]) => p)).toEqual([100, 101]);
+    expect(marks).toEqual(expected);
   });
 
   it('EC-183 variants: each head at its site, in the colour of its consequence', async () => {
@@ -225,12 +225,13 @@ describe('EC-183 across a tile edge and on a reversed axis', () => {
       for (const m of letters) expect(coreAt.get(m.position), `position ${m.position}`).toBe(m.text);
       const bars = of(b, 'value');
       const t = b.track('Values');
-      const coreBars = inTrack(b.core.rects, t);
+      const coreBars = inTrack(b.core.paths, t);
       expect(coreBars).toHaveLength(bars.length);
       for (const c of coreBars) {
         const m = bars.find((x) => x.position === Math.floor(b.at((c.x0 + c.x1) / 2)))!;
         expect(c.fill).toBe(m.fill);
-        expect(c.h / t.height, `bar of ${m.position}`).toBeCloseTo(m.share!, 1);
+        expect(c.h / t.height / 0.9, `bar of ${m.position}`).toBeCloseTo(m.share!, 2);
+        expect(c.alpha, `bar of ${m.position}`).toBeCloseTo(0.6, 2);
       }
       const ranges = of(b, 'range');
       expect(ranges.map((m) => m.text)).toEqual(['one', 'two', 'three']);

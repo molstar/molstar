@@ -32,7 +32,8 @@ describe('renderSvg', () => {
     const [letters, items, values] = blocks(r.lists);
     expect(letters.letters).toBe(30);
     expect(items.rects).toBeGreaterThan(0);
-    expect(values.rects).toBe(30);
+    // thirty bars and the baseline's hairline
+    expect(values.rects).toBe(31);
     expect(r.svg).toContain('data-seq-settled="true"');
     expect(r.svg).toMatch(
       /data-seq-domains="\/data\/conservation|data-seq-domains="\/views\/main\/protein\/conservation\/values=0,/,

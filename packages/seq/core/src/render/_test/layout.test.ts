@@ -131,7 +131,8 @@ describe('the layout’s edges', () => {
     );
     const r = await renderSvg(b.build(), { size: Size });
     expect(r.issues).toEqual([]);
-    expect(blocks(r.lists)[0].rects).toBe(10);
+    // ten bars and the baseline's hairline
+    expect(blocks(r.lists)[0].rects).toBe(11);
   });
 
   it('items past the lanes collapse into a density row at the bottom; or the whole layer, as configured', async () => {
@@ -166,10 +167,19 @@ describe('the layout’s edges', () => {
     const minmax = await renderSvg(spec, { size: Size });
     // the track is 32 px from y 8: every column spans the domain [-1, 2], the negative extreme below the baseline
     expect(minmax.svg).toContain('data-seq-domains="/views/main/s/v/values=-1,2"');
-    expect(recordDrawLists(minmax.lists, ['data']).split('\n')[3]).toBe('rect 96 8 1 32 #5b7c99ff');
+    // a profile (the area and its line), and under it the columns' extents below the baseline: a block a column
+    const rects = (r: { lists: Parameters<typeof recordDrawLists>[0] }) =>
+      recordDrawLists(r.lists, ['data'])
+        .split('\n')
+        .filter((l) => l.startsWith('rect ')).length;
+    expect(recordDrawLists(minmax.lists, ['data'])).toContain('\npath ');
+    // the domain's 3 units over 90% of the 32 px: the baseline (zero) at 40 - 9.6; a column's block from there (the
+    // profile's area covers the baseline to the maximum) down to the track's floor (-1), one column wide
+    expect(recordDrawLists(minmax.lists, ['data'])).toContain('\nrect 96 30.4 1 9.6 #5b7c9959\n');
     // the maximum alone hides it: the domain starts at 0
     const max = await renderSvg(spec, { size: Size, config: { values: { aggregate: 'max' } } });
     expect(max.svg).toContain('data-seq-domains="/views/main/s/v/values=0,2"');
+    expect(rects(minmax)).toBeGreaterThan(rects(max) + 100);
   });
 });
 
