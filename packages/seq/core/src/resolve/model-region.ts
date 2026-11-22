@@ -24,6 +24,16 @@ export function statesSystemOf(matrix: string): string {
   return `${matrix}/(states)`;
 }
 
+/**
+ * The member system an address is (an alignment's rows, `<alignment>/(rows)`; a matrix's states, `<matrix>/(states)`:
+ * a position a named member, EC-35): its owner node's address and which; undefined for any other.
+ */
+export function memberSystem(system: string): { owner: string; kind: 'rows' | 'states' } | undefined {
+  if (system.endsWith('/(rows)')) return { owner: system.slice(0, -7), kind: 'rows' };
+  if (system.endsWith('/(states)')) return { owner: system.slice(0, -9), kind: 'states' };
+  return undefined;
+}
+
 /** The name a matrix's states system has (what no source names: its states are its coverage's `states`). */
 export const StatesSystemName = '(states)';
 

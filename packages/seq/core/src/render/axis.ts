@@ -55,6 +55,15 @@ export interface BandViewport {
   readonly tree?: boolean;
 }
 
+/** A categorical axis's members (EC-35): the member at each display offset, each member's offset, the order's version. */
+export interface AxisMembers {
+  readonly order: Int32Array;
+  readonly rank: Int32Array;
+  readonly version: number;
+  /** Each member's label (data order). */
+  readonly labels: readonly string[];
+}
+
 /** `unitAt` and `inGap`'s point through `unitInto` and `inGapOf` (one body each): read at once, never kept. */
 const AxisScratch = new Float64Array(2);
 
@@ -100,6 +109,12 @@ export class AxisTransform {
   private readonly g0: number;
   /** The display unit groups are counted from (0; a text line's first unit when a piece edge starts the line). */
   private readonly gorigin: number;
+  /**
+   * A categorical axis's members (_spec/README.md "Render", The grid layer: categorical axes): its pieces one a member
+   * in display order, `rank` each member's piece, so a member's piece is a lookup, and no break is drawn between them.
+   */
+  // declared, never initialised: a positions axis carries no slot for it (a pan makes dozens of transforms a frame)
+  declare members?: AxisMembers;
 
   constructor(
     readonly system: string,
@@ -203,6 +218,11 @@ export class AxisTransform {
 
   /** The piece holding position `p` (`[s, e)`); with `edge`, a position at a piece's end counts as in it. */
   pieceOf(p: number, edge = false): number {
+    const m = this.members;
+    if (m) {
+      const n = m.rank.length;
+      return p >= 0 && p < n ? m.rank[p] : edge && p === n && n > 0 ? m.rank[n - 1] : -1;
+    }
     return pieceOfPosition(this.pieces, this.dir, p, edge);
   }
 
@@ -325,6 +345,14 @@ export class AxisTransform {
   piecesIn(s: number, e: number): void {
     this.ka = this.k0;
     this.kb = this.k1;
+    // one member: its piece, when in view
+    const m = this.members;
+    if (m && e - s === 1 && s >= 0 && s < m.rank.length) {
+      const k = m.rank[s];
+      this.ka = k;
+      this.kb = k >= this.k0 && k <= this.k1 ? k : k - 1;
+      return;
+    }
     if (!this.sorted || this.k1 < this.k0) return;
     const r = this.pieces;
     const n = r.length >> 1;
@@ -446,6 +474,7 @@ export class AxisTransform {
    * break on the view's edge counts.
    */
   breaks(out: number[]): number[] {
+    if (this.members) return out;
     const b = axisBreaks(this);
     const m = b.length / 3;
     if (!m) return out;
