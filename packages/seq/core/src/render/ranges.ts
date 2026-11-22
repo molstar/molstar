@@ -419,14 +419,14 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
       for (let k = 0; k < lay.ln; k++)
         if (x >= lay.lx[k] && x < lay.lx[k] + lay.lw[k]) {
           const i = lay.litem[k];
-          return itemHit(base, lay, lay.keys[i], lay.starts[i], lay.ends[i]);
+          return itemHit(base, lay, lay.keys[i], lay.starts[i], lay.ends[i], i);
         }
       return base;
     }
     // a gene model's label is its item's
     if (lay.gene.ln) {
       const i = geneLabelAt(lay, x, y);
-      if (i >= 0) return itemHit(base, lay, lay.keys[i], lay.starts[i], lay.ends[i]);
+      if (i >= 0) return itemHit(base, lay, lay.keys[i], lay.starts[i], lay.ends[i], i);
     }
     const lane = Math.floor((y - lay.laneY) / lay.laneHeight);
     // a hidden items' tick is hit as its break (within the break's slop), the count of what it hides with it
@@ -439,11 +439,11 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
       const c = connectorAt(lay, lane, x);
       if (c < 0) return base;
       const i = lay.citem[c];
-      return itemHit(base, lay, lay.keys[i], lay.starts[i], lay.ends[i]);
+      return itemHit(base, lay, lay.keys[i], lay.starts[i], lay.ends[i], i);
     }
     const item = lay.hitem[j];
     if (item < 0) return base;
-    const hit = itemHit(base, lay, lay.keys[item], lay.starts[item], lay.ends[item]);
+    const hit = itemHit(base, lay, lay.keys[item], lay.starts[item], lay.ends[item], item);
     const mixed = lay.hn > lay.m ? categoriesAt(lay, lane, x) : undefined;
     return mixed ? { ...hit, categories: mixed } : hit;
   },
@@ -508,7 +508,8 @@ function majority(lay: RangesLay, item: Int32Array, from: number, to: number): n
   for (let q = from; q < to; q++) {
     const g = group[item[q]];
     const c = count[g];
-    if (c > bestCount || (c === bestCount && g < bestGroup)) {
+    // widths are sums of floats: equal within a thousandth of a pixel is a tie
+    if (c > bestCount + 1e-3 || (c >= bestCount - 1e-3 && g < bestGroup)) {
       best = item[q];
       bestCount = c;
       bestGroup = g;

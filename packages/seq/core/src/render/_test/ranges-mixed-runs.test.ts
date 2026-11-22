@@ -79,6 +79,12 @@ describe('ranges: a merged run of mixed categories', () => {
     expect(rects.map((r) => rgb(r.fill))).toEqual([B]);
   });
 
+  it('equal total widths from different sums are a tie: the legend’s first category', async () => {
+    // beta 3 px; alpha 1 px and 2 px: the sums differ in the last float digit, not as widths
+    const { rects } = await drawn(['beta', 'alpha', 'alpha'], undefined, [30, 10, 20]);
+    expect(rects.map((r) => rgb(r.fill))).toEqual([A]);
+  });
+
   it('a tie takes the legend’s first category', async () => {
     const tie = await drawn(['beta', 'alpha']);
     expect(tie.rects.map((r) => rgb(r.fill))).toEqual([A]);
