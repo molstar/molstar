@@ -25,9 +25,9 @@ export const ByRegion: StoryObj = {
 };
 
 /**
- * The Hi-C of a toy assembly’s six chromosomes as one system (their positions end to end, 1,376 bins), at the fit: the
- * source serves one level, the store’s summaries make the others and the whole-assembly level, so one read draws the
- * whole map. Zoom in and the finer levels are read by tiles. (Over the assembly’s blocks, with the chromosome gaps and
- * labels on both axes, waits for data over an assembly read by source.)
+ * The Hi-C of a toy assembly’s six chromosomes at the fit: the plot follows the genome’s section, a cell a pair of
+ * chromosomes with the gaps between them, each block pair read by its tiles from the source (two levels; the upper
+ * triangle served, the pairs below the diagonal its mirror). Zoom in on the genome and the finer level is read
+ * (EC-223).
  */
 export const OverTheGenome: StoryObj = { render: () => exampleStory(view('hic-genome'), { stacked: true }) };

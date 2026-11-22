@@ -326,7 +326,8 @@ describe('Genome coordinates stories, headless', () => {
 
   it('every story’s view renders headless with no issue (the export alone, a context of its own)', async () => {
     const ctx = createSeqContext({});
-    for (const g of GenomeViews) {
+    // the views reading a file (a registry of their own) are `genome-data-stories.test.ts`'s
+    for (const g of GenomeViews.filter((x) => !x.registry)) {
       const r = await ctx.renderSvg(g.build(), { size: { width: 900, height: 'auto' } });
       expect([g.id, r.issues]).toEqual([g.id, []]);
     }

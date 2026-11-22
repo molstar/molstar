@@ -82,6 +82,40 @@ describe('2D wants', () => {
     }
   });
 
+  it('over two systems of a symmetric grid read the pair the source serves, either way round, its mirror transposed', () => {
+    for (const served of [
+      ['chr1', 'chr2'],
+      ['chr2', 'chr1'],
+    ] as const) {
+      const shapes = [
+        {
+          system: served[0],
+          shape: 'grid' as const,
+          y: [served[0], served[1]],
+          symmetric: true,
+          aggregate: 'sum' as const,
+        },
+        { system: served[1], shape: 'grid' as const, y: [served[1]], symmetric: true, aggregate: 'sum' as const },
+      ];
+      const { store } = setup(
+        {},
+        (clock) => new SyntheticSource(gridCoverage({ shapes }), clock, { answer: emptyGrid }),
+      );
+      const want = (x: string, y: string) =>
+        grid([0, 256_000], [0, 256_000], { system: x, y: { system: y, start: 0, end: 256_000 } });
+      // asked as served: as it is
+      const direct = store.tilesOf(want(served[0], served[1]));
+      expect(direct.map((t) => [t.region.system, t.region.y!.system, t.transposed])).toEqual([
+        [served[0], served[1], false],
+      ]);
+      // asked the other way round: the served pair, transposed (never the pair the source does not serve)
+      const mirror = store.tilesOf(want(served[1], served[0]));
+      expect(mirror.map((t) => [t.region.system, t.region.y!.system, t.transposed])).toEqual([
+        [served[0], served[1], true],
+      ]);
+    }
+  });
+
   it('clip a tile to its system: a chromosome shorter than a tile is one small tile', () => {
     const { store } = setup();
     const t = store.tilesOf(grid([0, 1_000_000], [0, 500_000], { y: { system: 'chr2', start: 0, end: 500_000 } }));

@@ -17,7 +17,7 @@
 
 import { issueOf } from '@molstar/core/repr/tree';
 import { theme as themeForm } from '@molstar/seqx-core/lang';
-import type { GridData, StaticModel } from '@molstar/seqx-core/resolve';
+import type { AccessPlan, GridData, StaticModel } from '@molstar/seqx-core/resolve';
 import type { ChannelName, Channel } from '@molstar/seqx-core/theme/index';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
@@ -29,7 +29,15 @@ import { type GridRegion, layoutRegionGrid, type Placed } from './grid-region.js
 import { layerSource } from './layer-data.js';
 import { ImageCache, ImageTile } from './images.js';
 import { RenderIssues } from './issues.js';
-import { type Box, type Emphasis, type Hit, type LayerType, type LayoutContext, sectionId } from './layer-type.js';
+import {
+  type Box,
+  type Emphasis,
+  type Hit,
+  type LayerType,
+  type LayoutContext,
+  type StoreReader,
+  sectionId,
+} from './layer-type.js';
 import { Pyramid, pyramidLevelFor } from './pyramid.js';
 import type { SeqTokens } from './tokens.js';
 
@@ -60,6 +68,12 @@ export interface GridPrep {
   readonly pyramid?: Pyramid;
   /** Read by region (a source's grid): where (`grid-region.ts`). */
   readonly region?: GridRegion;
+  /**
+   * Over an assembly: each sequence's name as its source lists it, by system; a strip (a block pair) reads its x
+   * block's plan, its y block's name the region's (`yRegions`, made once a y block).
+   */
+  readonly over?: ReadonlyMap<string, AccessPlan>;
+  readonly yRegions?: Map<string, GridRegion>;
 }
 
 type ScratchHit = { -readonly [K in keyof Hit]: Hit[K] };
@@ -142,11 +156,14 @@ function prepare(layer: ResolvedLayer, model: StaticModel): GridPrep {
   // a source's grid, read by region on its two systems (`grid-region.ts`)
   const src = !grid && a?.shape === 'grid' && a.access?.kind === 'source' ? layerSource(model, layer) : undefined;
   const yName = a?.ySystem ? model.systems.get(a.ySystem)?.name : undefined;
+  // over an assembly: the layer is on its x block's sequence; each strip's y block is its own (`layout`)
+  const over = src && a?.bySystem;
   return {
     owner,
     ...(grid ? { grid } : {}),
     ...(src ? { region: { src, yName: yName ?? src.system } } : {}),
-    xSystem: a?.target ?? '',
+    ...(over ? { over, yRegions: new Map() } : {}),
+    xSystem: over ? src.dataSystem : (a?.target ?? ''),
     ySystem: a?.ySystem ?? '',
     triangle,
     channels: channelForms(layer.theme),
@@ -206,6 +223,15 @@ export const GridType: LayerType<GridPrep, GridLay> = {
       return lay;
     }
     if (!prep.grid && !prep.region) return lay;
+    // over an assembly: any pair of its blocks, the y block's plan naming the region's y
+    const yPlan = prep.over?.get(ay.system);
+    if (prep.over && prep.region && yPlan && prep.xSystem === axis.system) {
+      let r = prep.yRegions!.get(ay.system);
+      if (!r) prep.yRegions!.set(ay.system, (r = { src: prep.region.src, yName: yPlan.system }));
+      lay.ySystem = ay.system;
+      layoutRegion(lay, prep, r, ctx, data, axis, ay);
+      return lay;
+    }
     if (prep.xSystem !== axis.system || prep.ySystem !== ay.system) {
       // a grid over blocks is a strip a pair of blocks: a grid draws on the pairs of its own systems only, silently
       if (!ctx.section.blocks)
@@ -215,13 +241,7 @@ export const GridType: LayerType<GridPrep, GridLay> = {
     }
     lay.grid = prep.grid;
     if (prep.region) {
-      const color = prep.channels.get('color' as ChannelName, DefaultColor, ctx, ValueEnv);
-      if (color !== lay.color) {
-        lay.color = color;
-        lay.colorVersion = channelId(color);
-      }
-      lay.extents.reset([color]);
-      layoutRegionGrid(lay, prep, prep.region, ctx, data, axis, ay);
+      layoutRegion(lay, prep, prep.region, ctx, data, axis, ay);
       return lay;
     }
     const color = prep.channels.get('color' as ChannelName, DefaultColor, ctx, ValueEnv);
@@ -282,6 +302,25 @@ export const GridType: LayerType<GridPrep, GridLay> = {
     return channelLegends([lay.color], { ...options, layer: lay.key });
   },
 };
+
+/** A region grid's layout: its color channel, then its tiles (`grid-region.ts`). */
+function layoutRegion(
+  lay: GridLay,
+  prep: GridPrep,
+  region: GridRegion,
+  ctx: LayoutContext,
+  data: StoreReader,
+  axis: AxisTransform,
+  ay: AxisTransform,
+) {
+  const color = prep.channels.get('color' as ChannelName, DefaultColor, ctx, ValueEnv);
+  if (color !== lay.color) {
+    lay.color = color;
+    lay.colorVersion = channelId(color);
+  }
+  lay.extents.reset([color]);
+  layoutRegionGrid(lay, prep, region, ctx, data, axis, ay);
+}
 
 /** The color of a value (missing: none), by a lay's color channel (a grid's, a matrix's). */
 export function colorOf(lay: { readonly color: Channel | undefined; readonly datum: PlainDatum }, v: number): number {

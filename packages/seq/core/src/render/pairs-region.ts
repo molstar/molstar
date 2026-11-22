@@ -6,7 +6,7 @@
 
 import type { CategoryColumn } from '@molstar/core/repr/tree';
 import type { PairsList } from '@molstar/seqx-core/data';
-import type { PairsData } from '@molstar/seqx-core/resolve';
+import type { AccessPlan, PairsData } from '@molstar/seqx-core/resolve';
 import {
   dataRegions,
   fittedLevel,
@@ -17,6 +17,7 @@ import {
   type TileRead,
 } from './layer-data.js';
 import type { LayoutContext, StoreReader } from './layer-type.js';
+import { withGenome } from '@molstar/seqx-core/resolve';
 import { PairDatum, type PairsLay, type PairsPrep } from './pairs-lay.js';
 
 // Pairs read by region (_spec/README.md "Render", The pairs layer: by region): the layer's one reader over a source's
@@ -26,6 +27,17 @@ import { PairDatum, type PairsLay, type PairsPrep } from './pairs-lay.js';
 // never empty), each bin pair one arc between its bins' middles, stroked by count. What is read becomes the frame's
 // `PairsData` (ends on the layer's two systems, a pair found from its other end turned round; every row of the tiles
 // read, each once by the anchor rule), kept while the entries read are the same, so a warm frame builds nothing.
+
+/**
+ * Pairs over an assembly's reader (`pairs-assembly.ts`), loaded with the genome chunk: a model with an assembly waits
+ * for both, so a layer over one never reads before it lands. Why lazy: a viewer that never opens a genome pays nothing.
+ */
+const AssemblyPairs: { read?: typeof import('./pairs-assembly.js').assemblyPairs } = {};
+withGenome(() =>
+  import('./pairs-assembly.js').then((m) => {
+    AssemblyPairs.read = m.assemblyPairs;
+  }),
+);
 
 /** What a region read of pairs keeps on its lay between frames. */
 export interface RegionState {
@@ -53,6 +65,43 @@ export interface PairsRegion {
   readonly src: LayerSource;
   readonly aName: string;
   readonly bName: string;
+  /** Over an assembly: each block's plan by its system, and the unit (`PairsPrep.endUnits`) a listed name is. */
+  readonly assembly?: AssemblyRegion;
+}
+
+/** Pairs over an assembly read by region (`pairs-assembly.ts`): a block a sequence. */
+export interface AssemblyRegion {
+  /** Each sequence's read (its plan's source and name), by its system. */
+  readonly sources: ReadonlyMap<string, LayerSource>;
+  /** The sequences' systems: the ends' units (`PairsData.aUnit`, `bUnit`), in the assembly's order. */
+  readonly units: readonly string[];
+  /** A listed name's unit (index into `units`). */
+  readonly unitOf: ReadonlyMap<string, number>;
+}
+
+/** The region of pairs over an assembly: its sequences' plans by system as each block's reads. */
+export function assemblyRegion(
+  plans: ReadonlyMap<string, AccessPlan>,
+  lengthOf: (system: string) => number | undefined,
+): AssemblyRegion {
+  const sources = new Map<string, LayerSource>();
+  const units: string[] = [];
+  const unitOf = new Map<string, number>();
+  for (const [system, plan] of plans) {
+    if (plan.kind !== 'source') continue;
+    const length = lengthOf(system);
+    unitOf.set(plan.system, units.length);
+    units.push(system);
+    sources.set(system, {
+      source: plan.source,
+      system: plan.system,
+      dataSystem: system,
+      shape: 'pairs',
+      ...(length !== undefined ? { length, wraps: true } : {}),
+      ratio: 1,
+    });
+  }
+  return { sources, units, unitOf };
 }
 
 /** Whether `[s, e)` meets any of `regions` (`[start, end, …]`). */
@@ -64,7 +113,7 @@ function inView(regions: readonly number[], s: number, e: number): boolean {
 
 /**
  * The frame's pairs of a region layer: reads bins, gates items, and gives the prep the arcs lay out (`undefined` while
- * nothing is read). The read's state is the lay's.
+ * nothing is read). The read's state is the lay's. Over an assembly, a read a block (`pairs-assembly.ts`).
  */
 export function regionPairs(
   prep: PairsPrep,
@@ -73,6 +122,7 @@ export function regionPairs(
   data: StoreReader,
   lay: PairsLay,
 ): PairsPrep | undefined {
+  if (region.assembly) return AssemblyPairs.read?.(prep, region, region.assembly, ctx, data, lay);
   const state = regionState(lay);
   const { src } = region;
   const cov = data.coverage(src.source);
@@ -121,17 +171,17 @@ export function regionPairs(
   return state.prep;
 }
 
-type Loaded = TileRead['entries'][number];
+export type Loaded = TileRead['entries'][number];
 
 /** Whether the data was built from this read (its mode, level, tiles and versions): nothing made to tell. */
-function sameRead(r: readonly number[], mode: number, level: number, entries: readonly Loaded[]): boolean {
+export function sameRead(r: readonly number[], mode: number, level: number, entries: readonly Loaded[]): boolean {
   if (r.length !== 2 + 2 * entries.length || r[0] !== mode || r[1] !== level) return false;
   for (let k = 0; k < entries.length; k++)
     if (r[2 + 2 * k] !== entries[k].region.tile || r[3 + 2 * k] !== entries[k].version) return false;
   return true;
 }
 
-function keepRead(r: number[], mode: number, level: number, entries: readonly Loaded[]) {
+export function keepRead(r: number[], mode: number, level: number, entries: readonly Loaded[]) {
   r.length = 0;
   r.push(mode, level);
   for (const e of entries) r.push(e.region.tile, e.version);
@@ -154,7 +204,7 @@ function owned(entries: readonly Loaded[], k: number, as: number, ae: number, bs
 }
 
 /** The two systems' names of a row, `undefined` when it carries none (both on the request's). */
-function names(sys: CategoryColumn | undefined, i: number): string | undefined {
+export function names(sys: CategoryColumn | undefined, i: number): string | undefined {
   return sys ? (sys.get(i) ?? undefined) : undefined;
 }
 
@@ -187,7 +237,7 @@ function countBins(entries: readonly Loaded[], level: number, region: PairsRegio
 }
 
 /** A pair's identity across tiles: its row, else its id (not `.` or empty), with both ends; else its ends alone. */
-function itemKey(t: PairsList, i: number): string {
+export function itemKey(t: PairsList, i: number): string {
   const named = t.row ? `r${t.row[i]}` : t.id ? t.id.get(i) : null;
   const ends = `${names(t.aSystem, i)}:${t.aStart[i]}-${t.aEnd[i]}|${names(t.bSystem, i)}:${t.bStart[i]}-${t.bEnd[i]}`;
   return named && named !== '.' ? `${named}|${ends}` : ends;
@@ -215,7 +265,7 @@ function countItems(entries: readonly Loaded[], region: PairsRegion, regions: re
 }
 
 /** Rows gathered into a `PairsData` (and each one's weight). */
-class Gather {
+export class Gather {
   aStart: number[] = [];
   aEnd: number[] = [];
   bStart: number[] = [];
@@ -329,7 +379,7 @@ function fromBins(entries: readonly Loaded[], level: number, region: PairsRegion
 }
 
 /** The layer's prep over the frame's pairs: every pair shown, its index by key, its elements made on hit. */
-function withData(
+export function withData(
   prep: PairsPrep,
   data: PairsData,
   weight: Float32Array | undefined,

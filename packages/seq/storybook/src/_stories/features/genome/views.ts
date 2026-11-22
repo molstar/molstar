@@ -7,6 +7,9 @@
 import { PCG } from '@molstar/core/data/util/hash-functions';
 import type { Node } from '@molstar/core/repr/tree';
 import { assembly, createSeqSpec, genome } from '@molstar/seqx-core/lang';
+import { BedRuntime } from '@molstar/seqx-core/runtimes/bed';
+import { registry as genomeBedRegistry } from '@molstar/seqx-examples/genomes/bed';
+import { CytobandsFile } from '@molstar/seqx-examples/genomes/files';
 import type { ExampleView } from '@molstar/seqx-examples';
 import { blockSpan } from '@molstar/seqx-core/view';
 import { viewerItem } from '@molstar/seqx-viewer/config';
@@ -139,8 +142,8 @@ export const OneAtATime = [
 /**
  * A chromosome at a time: the genome's section with a navigator over its blocks (every chromosome and its label, a click
  * on one a jump there; under it the zoom strip of the chromosome holding the window); the viewer's
- * `navigate.acrossBlocks: stop` keeps a pan and a zoom in the chromosome. (An ideogram's bands over every chromosome wait
- * for data over an assembly read by sequence.)
+ * `navigate.acrossBlocks: stop` keeps a pan and a zoom in the chromosome. (An ideogram's bands over every chromosome:
+ * the cytobands story.)
  */
 function chromosomeAtATime(): Node {
   const b = createSeqSpec({ title: 'A chromosome at a time' });
@@ -194,6 +197,74 @@ function ringSwitch(): Node {
   return b.build();
 }
 
+/** The generated BED over the toy assembly: features on each chromosome, its names without the `chr` prefix. */
+export function toyBed(seed = 3): string {
+  const rng = new PCG(seed);
+  const lines: string[] = [];
+  for (const c of toyKaryotype()) {
+    if (c.cyclic) continue;
+    // a dozen features a chromosome, 0.5 to 3 Mb, on both strands
+    for (let i = 0; i < 12; i++) {
+      const start = Math.floor(((i + (rng.int() % 1000) / 1000) * c.length) / 12);
+      const end = Math.min(c.length, start + 500_000 + (rng.int() % 2_500_000));
+      lines.push([c.name.slice(3), start, end, `${c.name.slice(3)}.f${i + 1}`, 0, i % 3 ? '+' : '-'].join('\t'));
+    }
+  }
+  return `${lines.join('\n')}\n`;
+}
+
+/**
+ * A BED over the assembly's rows: one file over every chromosome (its names `1`, `X`, the assembly's `chr1`, `chrX`:
+ * the names rule maps them), read by region a chromosome at a time, each block drawing its own features.
+ */
+function bedOverRows(): Node {
+  const b = createSeqSpec({ title: 'A BED over the assembly' });
+  const g = b.data.assembly('toy', assembly(AssemblyName, toyKaryotype()));
+  const bed = b.data.source('features-bed', { format: 'bed', value: toyBed() as never });
+  const features = b.data.ranges('features', { target: g, source: bed });
+  b.views.view('main', (v) =>
+    genome(v, 'genome', g, {}, (s) =>
+      s.track('features', { label: 'Features' }).layer('features', { type: 'ranges', data: features }),
+    ),
+  );
+  return b.build();
+}
+
+/** GRCh38's primary chromosomes and their lengths (the cytobands' last band ends there). */
+export const Grch38: readonly { name: string; length: number; cyclic?: boolean }[] = [
+  ...[
+    248956422, 242193529, 198295559, 190214555, 181538259, 170805979, 159345973, 145138636, 138394717, 133797422,
+    135086622, 133275309, 114364328, 107043718, 101991189, 90338345, 83257441, 80373285, 58617616, 64444167, 46709983,
+    50818468,
+  ].map((length, i) => ({ name: `chr${i + 1}`, length })),
+  { name: 'chrX', length: 156_040_895 },
+  { name: 'chrY', length: 57_227_415 },
+  { name: 'chrM', length: 16_569, cyclic: true },
+];
+
+/**
+ * The cytobands over every chromosome: hg38's cytoBandIdeo (the recorded file) over GRCh38's primary assembly, read
+ * by sequence, as a bands track on every block and as the ideogram navigator over the genome.
+ */
+function cytobandsOverGenome(): Node {
+  const b = createSeqSpec({ title: 'Cytobands over the genome' });
+  const g = b.data.assembly('hg38', assembly('GRCh38', Grch38, { aliases: ['hg38'] }));
+  const src = b.data.source('cytobands', {
+    format: 'bed',
+    uri: CytobandsFile,
+    fields: { stain: '4' },
+    attribution: 'UCSC Genome Browser, hg38 cytoBandIdeo',
+    licence: 'LicenseRef-UCSC-freely-usable',
+  } as never);
+  const bands = b.data.ranges('bands', { target: g, source: src });
+  b.views.view('main', (v) =>
+    genome(v, 'genome', g, { bands }, (s) =>
+      s.track('bands', { label: 'Bands' }).layer('bands', { type: 'bands', data: bands }),
+    ),
+  );
+  return b.build();
+}
+
 export const GenomeViews: readonly ExampleView[] = [
   {
     dataset: 'genome',
@@ -240,7 +311,7 @@ export const GenomeViews: readonly ExampleView[] = [
     id: 'chromosome-at-a-time',
     title: 'A chromosome at a time',
     summary:
-      'A navigator over the genome’s blocks (every chromosome and its name; bands wait for data read by sequence): a click on one a jump there, the zoom strip of the chromosome in view under it; the readout names the chromosome and the position.',
+      'A navigator over the genome’s blocks (every chromosome and its name; the bands are the cytobands story’s): a click on one a jump there, the zoom strip of the chromosome in view under it; the readout names the chromosome and the position.',
     build: chromosomeAtATime,
   },
   {
@@ -258,5 +329,23 @@ export const GenomeViews: readonly ExampleView[] = [
     summary:
       'The genome’s ring and a navigator over the assembly with `switch: include`: a click on a chromosome shows it alone on the ring (one undo step); its title or Home shows every one again.',
     build: ringSwitch,
+  },
+  {
+    dataset: 'genome',
+    id: 'bed-over-rows',
+    title: 'A BED over the assembly',
+    summary:
+      'One BED file over every chromosome of the toy assembly (its names without `chr`: the names rule maps them), read by region a chromosome at a time: each block draws its own features.',
+    build: bedOverRows,
+    registry: () => [{ kind: 'format-runtime', runtime: BedRuntime }],
+  },
+  {
+    dataset: 'genome',
+    id: 'cytobands',
+    title: 'Cytobands over the genome',
+    summary:
+      'hg38’s cytobands (UCSC’s cytoBandIdeo, the recorded file) over GRCh38’s 25 primary sequences, read by sequence: a bands track on every chromosome and the ideogram navigator over the genome; the file’s 686 other contigs are said once.',
+    build: cytobandsOverGenome,
+    registry: (o) => genomeBedRegistry(o),
   },
 ];

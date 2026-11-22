@@ -30,6 +30,12 @@ export const LinksChromosome: LinkSystem = { name: 'chr', length: 2_000_000 };
 /** The toy assembly's chromosomes the ring's links join (the Hi-C's). */
 export const LinksChromosomes: readonly LinkSystem[] = HicChromosomes;
 
+/**
+ * The genome ring's chromosomes: the Hi-C's six at 100,000 times their length (38 Mb down to 10 Mb), so the ring at the
+ * fit reads the links' bins (16 kb), never the links themselves.
+ */
+export const RingChromosomes: readonly LinkSystem[] = HicChromosomes.map((c) => ({ ...c, length: c.length * 100_000 }));
+
 interface Links {
   readonly aSystem: string[];
   readonly bSystem: string[];
@@ -44,12 +50,13 @@ const EndLength = 10;
 
 /**
  * `n` links between hotspots of `systems` (20 hotspots on each system, a link joining two of them, the stronger ones
- * chosen more often, a quarter within a hotspot's chromosome only), each end jittered by 2 kb at most.
+ * chosen more often, a quarter within a hotspot's chromosome only), each end jittered by 2 kb at most (a twentieth of a
+ * short chromosome), never before its start.
  */
 function generate(systems: readonly LinkSystem[], n: number, seed: number): Links {
   const rng = new PCG(seed);
   const spots = systems.map((s) =>
-    Array.from({ length: 20 }, (_, i) => Math.floor((s.length * (i + 0.5)) / 20 - EndLength)),
+    Array.from({ length: 20 }, (_, i) => Math.max(0, Math.floor((s.length * (i + 0.5)) / 20 - EndLength))),
   );
   // a few strong pairs of hotspots draw most links
   const strong = Array.from({ length: 12 }, () => [
@@ -79,11 +86,12 @@ function generate(systems: readonly LinkSystem[], n: number, seed: number): Link
       sb = rng.float() < 0.25 ? sa : Math.floor(rng.float() * systems.length);
       hb = Math.floor(rng.float() * 20);
     }
-    const jitter = () => Math.floor(rng.float() * 2000);
+    // within a twentieth of a short system (a toy assembly's chromosomes of a few hundred positions)
+    const jitter = (s: LinkSystem) => Math.floor(rng.float() * Math.min(2000, s.length / 20));
     out.aSystem.push(systems[sa].name);
     out.bSystem.push(systems[sb].name);
-    out.aStart[i] = Math.min(systems[sa].length - EndLength, spots[sa][ha] + jitter());
-    out.bStart[i] = Math.min(systems[sb].length - EndLength, spots[sb][hb] + jitter());
+    out.aStart[i] = Math.min(systems[sa].length - EndLength, spots[sa][ha] + jitter(systems[sa]));
+    out.bStart[i] = Math.min(systems[sb].length - EndLength, spots[sb][hb] + jitter(systems[sb]));
     out.aStrand[i] = 1;
     out.bStrand[i] = rng.float() < 0.85 ? 1 : -1;
   }

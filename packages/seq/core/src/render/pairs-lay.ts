@@ -16,7 +16,7 @@ import type { PassWriter } from './draw-lists.js';
 import { compileRowFilter } from './filter.js';
 import { layerSource } from './layer-data.js';
 import { type PairEnds, pairEnds } from './pairs-ends.js';
-import type { PairsRegion } from './pairs-region.js';
+import { assemblyRegion, type PairsRegion } from './pairs-region.js';
 import { splitCrossing } from './pairs-split.js';
 import { type Box, type EmphasisHighlight, type Hit } from './layer-type.js';
 import type { SeqTokens } from './tokens.js';
@@ -233,7 +233,11 @@ export function prepare(layer: ResolvedLayer, model: StaticModel): PairsPrep {
   // a source's pairs, read by region on the layer's first system (`pairs-region.ts`)
   const src = !data && a?.shape === 'pairs' && a.access?.kind === 'source' ? layerSource(model, layer) : undefined;
   const bName = a?.ySystem ? model.systems.get(a.ySystem)?.name : undefined;
-  const region = src ? { src, aName: src.system, bName: bName ?? src.system } : undefined;
+  // over an assembly: a read a block, each end on its sequence (`pairs-assembly.ts`)
+  const over = src && a?.bySystem ? assemblyRegion(a.bySystem, (s) => model.systems.get(s)?.length) : undefined;
+  const region = src
+    ? { src, aName: src.system, bName: bName ?? src.system, ...(over ? { assembly: over } : {}) }
+    : undefined;
   return {
     owner,
     ...(data ? { data } : {}),

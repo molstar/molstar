@@ -2081,9 +2081,22 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
   optional `$`; no groups, alternation, backreferences or counted repeats; at most 256 characters), matched by a table
   over the name and the atoms, never a backtracking search: a spec is untrusted and a pattern runs over 100,000 names.
   One outside it is `seq.lang.include.pattern` (error) and reads as a name.
-- **Data over an assembly**: resolve says a source naming another assembly (`seq.resolve.assembly.mismatch`) and inline
-  rows whose `target` names no sequence, counted once with the first (`seq.resolve.assembly.name`); reading such data by
-  sequence is the store's and the view's (Genomes milestone). Pairs, grids and maps read from a source are not held.
+- **Data over an assembly** (`resolve/genome-data.ts`, the genome chunk): a `ranges`, `values`, `pairs`, `grid` or
+  `matrix` node whose `target` (`a`, `x`) names an assembly is read by sequence: its entry's `target` (and `ySystem`) is
+  the assembly, and `bySystem` holds a plan for each derived sequence, on its own system. Inline ranges are split by
+  their `target` field through the names rule into one inline `seq` source over every sequence named (its systems named
+  by their addresses, every one served at every level listed, a row's key its row in the node's table); inline pairs,
+  grids, matrices and values name no sequence a row: they read nothing and say so once (`seq.resolve.assembly.inline`,
+  info; which columns name a held pair's sequences is open). A source is read by region on each sequence under the name
+  it lists the sequence by: its coverage's names (and aliases) mapped through the names rule (`17` is `chr17`), carried
+  to the next resolve inside the lengths as an assembly's own source's coverage is (`listedSystems`); before it opens,
+  the sequence's printed name. A sequence `include` leaves out has no plan and reads nothing. Said: a source naming
+  another assembly (`seq.resolve.assembly.mismatch`), inline rows whose `target` names no sequence and the names a
+  source lists that no sequence is (over two assemblies, that neither's is), each counted once with the first
+  (`seq.resolve.assembly.name`). A matrix's states are as many as its source lists for any sequence. Pairs over two
+  assemblies plan both's sequences. Why a plan a sequence: each block is a system the store reads by region, and a layer
+  on a block reads its own plan; nothing new in the store or the protocol. Pairs, grids and maps read from a source are
+  not held.
 - **A map between assemblies** is one map over every sequence pair: its inline runs grouped by `from_name` and `to_name`
   into one entry a pair, each keyed apart and stepping as the map (`Edge.map` its address), so a path between two
   sequences is one step of it and the ambiguity rules read one map (EC-207); a run naming no sequence is left out
@@ -2094,10 +2107,10 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
 ### Unread params
 
 - **Said, never dropped in silence** (`resolve/unread.ts`): a param the language declares and this version reads nowhere
-  is `seq.resolve.param.unread` (info), one a node, naming the lane that reads it: `map.source` (FR), data over an
-  assembly (GC2: its rows by sequence not read yet), `section.member_order` and `member_order_y` (LA), a `bridge` (LA),
-  `assembly.names` (GF: the printed names stay the assembly's). The lane that reads one drops it from `Unread`. Why: a
-  reader shown a spec drawn without what it says should be told why.
+  is `seq.resolve.param.unread` (info), one a node, naming the lane that reads it: `map.source` (FR),
+  `section.member_order` and `member_order_y` (LA), a `bridge` (LA), `assembly.names` (GF: the printed names stay the
+  assembly's). The lane that reads one drops it from `Unread`. Why: a reader shown a spec drawn without what it says
+  should be told why.
 
 ### Maps
 
@@ -2204,9 +2217,9 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
 `path.none`, `path.ambiguous`, `path.limit`, `complex.units`, `ref.system` (a reference to a sequence, molecule or unit
 that made no system: a unit of a refused complex or of nothing held; what reads it is left out), `assembly.lengths`,
 `assembly.duplicate` (a name twice: the later dropped), `genome.load`, `assembly.alias`, `assembly.mismatch`,
-`assembly.name`, `assembly.override` (a `sequence` override naming no sequence: dropped) (Assemblies), `param.unread`
-(Unread params), and the overlay's `node.invalid`, `node.ref`, `node.depth`. A test checks the catalog against the
-sources.
+`assembly.name`, `assembly.override` (a `sequence` override naming no sequence: dropped), `assembly.inline` (inline
+pairs, grids, matrices or values over an assembly: not read yet) (Assemblies), `param.unread` (Unread params), and the
+overlay's `node.invalid`, `node.ref`, `node.depth`. A test checks the catalog against the sources.
 
 ## Overlay
 
@@ -3785,6 +3798,19 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   CSS px, the square root over the counts in view), twisted where its relative strand is −1, its extent both bins, its
   hit `bin` the level; past `pairs.maxArcs` the strongest are kept (by count, ties by span), the rest the density strip.
   What is read is kept while the entries read are the same (a warm frame builds nothing).
+- **Over an assembly** (`pairs-assembly.ts`: `pairs.a` an assembly, read from a source): each block in view (a strip; a
+  block under a device pixel has none, the joint small-blocks rule) reads its own sequence's tiles; one level for every
+  block (the finest a block in view needs: a section unit's pixels over its block's scale), coarser while the blocks'
+  wants together do not fit the store's layer bounds, then "zoom in"; the gate as on one system. A row is found from
+  either end's block and taken once (an item by its id and ends, never its row: a source numbers each sequence's rows
+  apart; a bin pair by its bins), each end on the unit its listed name is (`PairsData.aUnit`, `bUnit` over the
+  sequences' systems, `PairsPrep.endUnits`), so a chord joins two chromosomes (the genome ring) or two genomes.
+- **Held pairs past the gate** (`pairs-held.ts`): a held table (no complex's units, no grid, no blocks) whose pairs with
+  an end in view pass `pairs.maxArcs` is binned as the store's summaries bin a level-1 source (levels `summaries.factor`
+  apart up to the system's length, each from the one below, only those halving the rows below kept), at the coarsest
+  kept level no wider than `pairs.binPx` device pixels: a bin pair an arc stroked by its count. The pyramid is built
+  once a prep, from the pairs the filter shows. Why: a held table and the same pairs from a file are one picture (one
+  reader, region-reads Decided 7).
 - **A bin pair's element** (`Key.key`, what a selection and a bookmark keep):
   `bin:<a>:<aBin>|<b>:<bBin>|<strand>|<category>`, `<a>` and `<b>` the ends' system names as the source gives them
   (empty: the request's system), `<aBin>` and `<bBin>` the bins' indices at the level read (positions `bin × level` to
@@ -3814,9 +3840,10 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   left out) and each system with its copies; one whose other end is on no block also says `seq.render.pairs.systems`.
   Why: the data says a pair within one system holds on every copy; across two it does not say which copies touch, and a
   contact drawn on the wrong copy states a fact the data does not hold (derive contacts per pair of units).
-- **Bounded by the screen**: past `pairs.maxArcs`, arcs binned by their ends' device columns, one a bin (widest first),
-  the rest a density strip of ends, said once (`seq.render.pairs.limit`, info). Ends on two systems that are not the
-  section's own report `seq.render.pairs.systems`.
+- **Bounded by the screen**: past `pairs.maxArcs` (pairs not binned by a level: items read by region, held pairs at the
+  items' level, a complex's links), arcs binned by their ends' device columns, one a bin (widest first), the rest a
+  density strip of ends, said once (`seq.render.pairs.limit`, info). Ends on two systems that are not the section's own
+  report `seq.render.pairs.systems`.
 - **Feet**: on the band's edge toward the sequence (`above`: its bottom, the arcs rising; `below`: its top), inset by
   the stroke so the whole arc is in its band; with `split`, on the band's middle, each side half the band. A view puts
   the pairs track on the letters' side (the tRNA's: over its letters).
@@ -3876,6 +3903,11 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   is kept), as the view holds it. The colors' version in an image key (a grid's, a region grid's, a matrix's) is the
   compiled channel's id (`channelId`), never a count per lay: a frame's lay is new, and a tile drawn before a domain was
   held (saturated) would be read back under the domain held after. A cell hit carries `bin`, the level read.
+- **Over an assembly** (`grid.x` an assembly): the grid section follows the genome's section, a strip a block pair; the
+  layer on a strip reads its x block's plan, its y the y block's listed name (made once a y block), so every pair of
+  chromosomes is read by its tiles (Hi-C over the genome). A symmetric grid's pair below the diagonal reads the pair
+  above, its tiles transposed (the store: a pair the source serves the other way round is that pair's mirror). The
+  whole-assembly level cut into block pairs is not read yet: at the fit each pair reads its own coarse tiles.
 - **Color**: the value's field theme (`value`), its domain the grid's range; a missing value (NaN) transparent;
   `triangle` keeps `upper` (y before x, above the diagonal) or `lower` (y after x).
 - **Hit**: any point on the plot is the cell under it (`target: 'cell'`, `position` on x, `ySystem`, `yPosition`), drawn

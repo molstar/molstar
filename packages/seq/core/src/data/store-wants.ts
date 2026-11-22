@@ -54,12 +54,30 @@ export function wantTiles(w: Want, sources: StoreSources, settings: StoreSetting
   const ySystem = sourceNameOf(s.names, w.y.system);
   if (ySystem === undefined) return undefined;
   const grids = own.filter((x) => x.shape === 'grid' && (x.y === '*' || (x.y ?? [system]).includes(ySystem)));
-  if (!grids.length) return undefined;
+  // a symmetric grid's block pair below the diagonal: the pair above it is served (two sequences of an assembly)
+  const mirror =
+    !grids.length &&
+    cov.shapes.some(
+      (x) =>
+        x.shape === 'grid' &&
+        x.symmetric &&
+        x.system === ySystem &&
+        (x.y === '*' || (x.y ?? [ySystem]).includes(system)),
+    );
+  if (!grids.length && !mirror) return undefined;
   const yLength = cov.systems.find((x) => x.name === ySystem)?.length;
   const yEnd = yLength === undefined ? w.y.end : Math.min(w.y.end, yLength);
   const [yFirst, yLast] = tileSpan(w.y.start, yEnd, level, bins);
   const order = (name: string) => cov.systems.findIndex((x) => x.name === name);
-  const y = { system: ySystem, length: yLength, first: yFirst, last: yLast, symmetric: grids.some((g) => g.symmetric) };
+  const y = {
+    system: ySystem,
+    length: yLength,
+    first: yFirst,
+    last: yLast,
+    symmetric: grids.some((g) => g.symmetric),
+    // the pair is served the other way round (`y` × `x`): every tile of the want is a served tile's mirror
+    mirror,
+  };
   const count = Math.max(0, last - first + 1) * Math.max(0, yLast - yFirst + 1);
   return { system, level, length, first, last, shapes: ['grid'] as Shape[], bins, count, y, order };
 }
@@ -82,7 +100,13 @@ export function eachTile(w: Want, t: Tiles): WantTile[] {
     for (let yt = t.y.first; yt <= t.y.last; yt++) {
       const x = { system: t.system, tile, length: t.length };
       const y = { system: t.y.system, tile: yt, length: t.y.length };
-      const f = t.y.symmetric ? foldTile(x, y, t.order!) : { x, y, transposed: false };
+      // across two systems the served pair decides (its mirror read transposed); within one, a symmetric grid's tile
+      // below the diagonal is the one above's
+      const f = t.y.mirror
+        ? { x: y, y: x, transposed: true }
+        : t.y.symmetric && t.system === t.y.system
+          ? foldTile(x, y, t.order!)
+          : { x, y, transposed: false };
       const xr = tileRegion(f.x.tile, t.level, t.bins, f.x.length);
       const yr = tileRegion(f.y.tile, t.level, t.bins, f.y.length);
       const key = dataKey(w.source, f.x.system, t.level, f.x.tile, { y: f.y });

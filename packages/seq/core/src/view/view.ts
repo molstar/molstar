@@ -29,15 +29,12 @@ import {
   type Path,
   pathDir,
   pathDirection,
-  projectEnd,
   projectPoint,
-  projectRanges,
   type StaticModel,
   viaList,
 } from '@molstar/seqx-core/resolve';
 import { viaUnusedIssue } from '@molstar/seqx-core/resolve/maps-via';
-import { followRef } from '@molstar/seqx-core/lang';
-import { type AxisShape, axisTotal, nearestOffsetOf, positionAt, wholePieces } from './axis.js';
+import { wholePieces } from './axis.js';
 import {
   assemblyBlocks,
   type BlockAxes,
@@ -51,6 +48,7 @@ import {
   systemRef,
 } from './blocks.js';
 import { ViewIssues } from './issues.js';
+import { dataOf, layerData } from './layer-data.js';
 
 /** The six shapes a layer reads (an extension's type reads one of them: _spec/README.md "Context", Extensions). */
 export type LayerShape = 'letters' | 'ranges' | 'values' | 'cells' | 'pairs' | 'grid' | 'matrix';
@@ -155,7 +153,10 @@ export interface LayerData {
   readonly system: string;
   /** The shape of the node it names (a query on a sequence: undefined, a location of any shape). */
   readonly shape?: Shape;
-  /** A dynamic node's access plan and its system's length (a template's instance: the overlay's, not the model's). */
+  /**
+   * A dynamic node's access plan and its system's length (a template's instance: the overlay's, not the model's), or
+   * data over an assembly's plan on the section's or block's sequence (the annotation's `bySystem`).
+   */
   readonly access?: AccessPlan;
   readonly length?: number;
   /**
@@ -168,39 +169,6 @@ export interface LayerData {
   readonly base?: Node;
   /** The forms after the annotation are none the layers read row by row (`seq.render.filter`). */
   readonly unread?: boolean;
-}
-
-/** What a layer's data says after its annotation: the track's base, the user's filter, the forms in the base. */
-export interface DataForms {
-  /** The leading forms as one (`item` alone, else `and` of them): rows they reject are not counted. */
-  readonly base?: Node;
-  readonly lead: readonly Node[];
-  /** A trailing `(except …)`: counted. */
-  readonly filter?: Node;
-  /** Forms that are neither (a segment that is an id, a location form in the base): read as no filter, and said. */
-  readonly unread?: boolean;
-}
-
-const BaseKinds = new Set(['item', 'intersect', 'merge']);
-
-/**
- * The one rule for a layer's data after its annotation (_spec/README.md "Themes", Filters): a leading run of item forms
- * (`intersect` and `merge` of them too) is the base, a trailing `(except …)` the user's filter, a lone form of another kind the
- * filter (said unread by the layers); any other mix is `unread`.
- */
-export function splitDataForms(rest: readonly (string | Node)[]): DataForms {
-  if (!rest.length) return { lead: [] };
-  if (rest.some((f) => typeof f === 'string')) return { lead: [], unread: true };
-  const forms = rest as Node[];
-  const last = forms[forms.length - 1];
-  const filter = last.kind === 'except' ? last : undefined;
-  const lead = filter ? forms.slice(0, -1) : forms;
-  // a lone form that is none of these stays the layer's filter: the layers say they cannot read it (`seq.render.filter`)
-  if (forms.length === 1 && !filter && !BaseKinds.has(last.kind)) return { lead: [], filter: last };
-  if (!lead.every((f) => BaseKinds.has(f.kind))) return { lead: [], unread: true };
-  const base =
-    lead.length === 0 ? undefined : lead.length === 1 ? lead[0] : ({ kind: 'intersect', params: { of: lead } } as Node);
-  return { lead, ...(base ? { base } : {}), ...(filter ? { filter } : {}) };
 }
 
 export interface ResolvedLayer {
@@ -1312,170 +1280,5 @@ function layerOf(
   return { ...base, data, path: r.path, placed: true };
 }
 
-/**
- * A layer's data with a user-defined ref followed: a ref (a chain of them) naming one address stands for it
- * (_spec/README.md, Language, Refs); a set, or a ref that cannot be followed, is left as written (and names nothing).
- */
-function layerData(spec: Node, value: Value | undefined): Value | undefined {
-  if (typeof value !== 'string') return value;
-  const f = followRef(spec, value);
-  return 'addresses' in f && f.addresses.length === 1 ? f.addresses[0] : value;
-}
-
-/** A layer's data: the section's letters when it names none; an address's node; a query's first node. */
-function dataOf(model: StaticModel, value: Value | undefined, type: string, section: string): LayerData | undefined {
-  if (value === undefined)
-    return type === 'letters' || type === 'ruler'
-      ? { kind: 'address', address: section, system: section, shape: 'letters' }
-      : undefined;
-  if (typeof value !== 'string') return undefined;
-  const parsed = parseAddress(value).pattern;
-  if (!parsed) return undefined;
-  const exact = exactAddress(value);
-  const ids: string[] = [];
-  for (const s of parsed.segments) {
-    if (typeof s !== 'string') break;
-    ids.push(s);
-  }
-  if (!ids.length) return undefined;
-  const prefix = printAddress(ids);
-  const kind = exact === undefined ? 'query' : 'address';
-  const address = exact ?? printAddress(parsed.segments);
-  const a = model.annotations.get(prefix);
-  // an alignment is its columns system too: a layer naming it reads its cells
-  if (a?.shape === 'cells') return { kind, address, system: a.target, shape: 'cells' };
-  if (model.systems.has(prefix))
-    return { kind, address, system: prefix, ...(kind === 'address' ? { shape: 'letters' as const } : {}) };
-  const rest = parsed.segments.slice(ids.length);
-  // the forms after the annotation: a leading run of item forms is the layer's base, a trailing `(except …)` the user's
-  // filter (`splitDataForms`, one parser for the viewer's filter too)
-  const split = kind === 'query' ? splitDataForms(rest) : undefined;
-  const base = split?.base;
-  const filter = split?.filter;
-  const unread = split?.unread;
-  return a
-    ? {
-        kind,
-        address,
-        system: a.target,
-        shape: a.shape,
-        ...(base ? { base } : {}),
-        ...(filter ? { filter } : {}),
-        ...(unread ? { unread: true } : {}),
-      }
-    : undefined;
-}
-
-/**
- * A leader's continuous positions `[lo, hi]` (the edges of its window, lowest first) carried to the follower's
- * positions, `[lo, hi]` lowest first: the low edge's continuous image (`point`) and the high one's (`projectEnd`, the
- * far edge of the place before it), so a follower moves smoothly and is exact at element edges. Where an edge maps
- * nowhere (an intron, a UTR), the hull of the whole positions' image there (`followRange`). Ends past each other: over a
- * cyclic follower's origin the wrap (`lo > hi`), or its hull with `arc: 'hull'`; on a linear follower the hull (the
- * leader's range wraps the coding sequence's origin). Undefined when nothing maps.
- */
-export function followSpan(
-  section: ResolvedSection,
-  lo: number,
-  hi: number,
-  arc: 'shortest' | 'hull' = 'shortest',
-): [number, number] | undefined {
-  const follow = section.follow;
-  if (!follow) return undefined;
-  let a = follow.point(lo);
-  let b = projectEnd(follow.path, hi);
-  if (a === undefined || b === undefined) {
-    const hull = followRange(section, [Math.floor(lo), Math.ceil(hi)], { arc });
-    if (!hull || hull.length < 2) return undefined;
-    const first = hull[0];
-    const last = hull[hull.length - 1];
-    if (a === undefined) a = follow.dir === 1 ? first : last;
-    if (b === undefined) b = follow.dir === 1 ? last : first;
-  }
-  const [x, y] = follow.dir === 1 ? [a, b] : [b, a];
-  if (x > y || (x === y && hi > lo)) {
-    if (section.axis.cyclic && arc !== 'hull') return [x, y];
-    const hull = followRange(section, [Math.floor(lo), Math.ceil(hi)], { arc: 'hull' });
-    return hull && hull.length >= 2 ? [hull[0], hull[hull.length - 1]] : undefined;
-  }
-  return [x, y];
-}
-
-/** A follower's window in its own offsets: `start` below `end`, or over a cyclic origin `start > end` (`wraps`). */
-export interface FollowWindow {
-  readonly start: number;
-  readonly end: number;
-  readonly wraps: boolean;
-}
-
-/**
- * A follower's window from its leader's (`start`, `end`: offsets along the leader's axis, display order): the images of
- * the leader's window edges (`followSpan`) as offsets along the follower's axis, in its display order (a reversed
- * follower's lowest position is its window's end). An offset on a leader's break is read as a window's edge
- * (`positionAt`'s sides). `leader` and `axis` are the axes with their pieces (a pending one placed by the caller).
- */
-export function followWindow(
-  section: ResolvedSection,
-  leader: AxisShape,
-  axis: AxisShape,
-  start: number,
-  end: number,
-  arc: 'shortest' | 'hull' = 'shortest',
-): FollowWindow | undefined {
-  // a cyclic leader's window may pass its total: it wraps the origin (a ring's window, a rotated linear view)
-  const total = axisTotal(leader);
-  const wraps = leader.cyclic && total !== undefined && end > total && end - start < total;
-  const ps = positionAt(leader, start, 'start');
-  const pe = positionAt(leader, wraps ? end - total : end, 'end');
-  if (ps === undefined || pe === undefined) return undefined;
-  // over the origin the positions run from the start's past the length to the end's: low edge past the high
-  const lo = wraps ? (leader.dir === -1 ? pe : ps) : Math.min(ps, pe);
-  const hi = wraps ? (leader.dir === -1 ? ps : pe) : Math.max(ps, pe);
-  const span = followSpan(section, lo, hi, arc);
-  if (!span) return undefined;
-  const a = nearestOffsetOf(axis, span[0]);
-  const b = nearestOffsetOf(axis, span[1]);
-  if (a === undefined || b === undefined) return undefined;
-  const [s, e] = axis.dir === -1 ? [b, a] : [a, b];
-  if (s > e && axis.cyclic) return { start: s, end: e, wraps: true };
-  return { start: Math.min(s, e), end: Math.max(s, e), wraps: false };
-}
-
-/**
- * A follower's range from its leader's, both as `[start, end, …]` pieces in display order (an axis's shape). A leader
- * piece that wraps its cyclic origin (`start > end`) is split on it first. The image's hull, or on a cyclic follower
- * the shortest arc that holds it (EC-12), as two pieces when it wraps (in the follower's display order: on a reversed
- * axis the piece below the origin first); `arc: 'hull'` takes the hull there too. Undefined when nothing maps.
- */
-export function followRange(
-  section: ResolvedSection,
-  leader: readonly number[],
-  options: { readonly arc?: 'shortest' | 'hull' } = {},
-): number[] | undefined {
-  const follow = section.follow;
-  if (!follow) return undefined;
-  const pieces: number[] = [];
-  const ll = follow.leaderAxis.length;
-  for (let i = 0; i + 1 < leader.length; i += 2) {
-    const s = Math.floor(leader[i]);
-    const e = Math.ceil(leader[i + 1]);
-    if (s > e && follow.leaderAxis.cyclic && ll !== undefined) pieces.push(s, ll, 0, e);
-    else pieces.push(s, e);
-  }
-  const image = HalfOpenRanges.normalize(projectRanges(follow.path, pieces));
-  const n = image.length;
-  if (!n) return undefined;
-  const { cyclic, length } = section.axis;
-  if (!cyclic || length === undefined || options.arc === 'hull') return [image[0], image[n - 1]];
-  // the arc is the circle less its widest gap: around the origin, or between two pieces
-  let best = length - image[n - 1] + image[0];
-  let arc = [image[0], image[n - 1]];
-  for (let i = 2; i < n; i += 2) {
-    const gap = image[i] - image[i - 1];
-    if (gap > best) {
-      best = gap;
-      arc = [image[i], length, 0, image[i - 1]];
-    }
-  }
-  return arc.length === 4 && section.axis.dir === -1 ? [arc[2], arc[3], arc[0], arc[1]] : arc;
-}
+export { followRange, followSpan, followWindow, type FollowWindow } from './follow.js';
+export { type DataForms, splitDataForms } from './layer-data.js';

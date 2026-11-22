@@ -45,9 +45,11 @@ import {
   type Side,
 } from './pairs-lay.js';
 import { drawDots, hitDots, layoutDots } from './pairs-dots.js';
+import { heldBins } from './pairs-held.js';
 import { regionPairs } from './pairs-region.js';
 import { drawEmphasis, drawHighlights, pairItems } from './pairs-emphasis.js';
 import { PlacePoint, type Placement } from './layout/types.js';
+import { withAlpha } from './tokens.js';
 
 export { PairsLay, type PairsPrep } from './pairs-lay.js';
 export { crosses, SplitExact, splitCrossing } from './pairs-split.js';
@@ -87,6 +89,14 @@ export const PairsType: LayerType<PairsPrep, PairsLay> = {
       lay.prep = prep;
     }
     if (!prep.data) return lay;
+    // held pairs past the gate: bin pairs at the pairs level a source's are read at (`pairs-held.ts`)
+    if (!prep.region && ctx.place) {
+      const binned = heldBins(prep, ctx, data);
+      if (binned) {
+        prep = binned;
+        lay.prep = prep;
+      }
+    }
     if (prep.unreadFilter)
       ctx.report(
         issueOf(
@@ -292,6 +302,11 @@ function layoutArcs(lay: PairsLay, prep: PairsPrep, ctx: LayoutContext, place: P
         continue;
       }
       seen.add(bin);
+    } else if (binned && lay.n >= max) {
+      // bin pairs past `maxArcs`: the strongest kept (they come first), the rest the density strip's
+      addDensity(lay, xa + s.dx[sa], dpr);
+      addDensity(lay, xb + s.dx[sb], dpr);
+      continue;
     }
     const other = prep.other?.[k] === 1;
     const side: Side = other ? (prep.side === 'above' ? 'below' : 'above') : prep.side;
@@ -353,10 +368,13 @@ function layoutArcs(lay: PairsLay, prep: PairsPrep, ctx: LayoutContext, place: P
     c[o + 4] = c[o + 6] + (2 / 3) * (qx - c[o + 6]);
     c[o + 5] = c[o + 7] + (2 / 3) * (qy - c[o + 7]);
     lay.pair[lay.n] = k;
-    lay.color[lay.n] = pairColor(lay, prep, k);
     const stroke = ctx.config.pairs.binStroke;
-    lay.width[lay.n] =
-      prep.weight && maxWeight > 0 ? stroke.min + (stroke.max - stroke.min) * Math.sqrt(prep.weight[k] / maxWeight) : 1;
+    // a bin pair by its count: its stroke within `binStroke`, its colour's alpha from a quarter to whole, so the many
+    // weak chords of a genome ring are a haze and the strong ones read (region-reads Default 3)
+    const share = prep.weight && maxWeight > 0 ? Math.sqrt(prep.weight[k] / maxWeight) : 1;
+    const color = pairColor(lay, prep, k);
+    lay.color[lay.n] = prep.weight ? withAlpha(color, ((color & 0xff) / 255) * (0.25 + 0.75 * share)) : color;
+    lay.width[lay.n] = prep.weight ? stroke.min + (stroke.max - stroke.min) * share : 1;
     if (lay.extents.any) lay.extents.add(prep.datum!.set(k));
     lay.n++;
   }

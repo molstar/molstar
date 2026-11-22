@@ -95,6 +95,13 @@ function sourceLevel(own: readonly number[], level: number): number | undefined 
   return at;
 }
 
+const NoLevels: readonly number[] = [];
+
+/** The levels a set leaves out. */
+function without(levels: readonly number[], kept: ReadonlySet<number>): number[] {
+  return levels.filter((l) => !kept.has(l));
+}
+
 /** A read of a whole system's pairs (its side's, for a sided source). */
 export interface PairsRead {
   readonly system: string;
@@ -257,6 +264,7 @@ export function pairsPyramid(
   const field = shapes.flatMap((s) => s.fields ?? []).find((f) => f.type === 'float32' || f.type === 'int32')?.name;
   /** The levels built and kept (those that halve the rows below), once the pyramid is built. */
   let kept: ReadonlySet<number> | undefined;
+  let dropped: readonly number[] | undefined;
   let bytes = 0;
   const reading = new AbortController();
 
@@ -378,8 +386,15 @@ export function pairsPyramid(
       return shared.building;
     },
     /** The pairs levels the pyramid dropped (they did not halve the rows below), once built: left out of the coverage. */
+    /** Whether the pyramid is built: its `dropped` is then final. */
+    get built(): boolean {
+      return kept !== undefined;
+    },
     get dropped(): readonly number[] {
-      return kept ? levels.filter((l) => !kept!.has(l)) : [];
+      // made once the pyramid is built: the coverage reads it every frame (a store's `coverage`), allocating nothing
+      if (dropped) return dropped;
+      if (kept) dropped = without(levels, kept);
+      return dropped ?? NoLevels;
     },
     async read(request: RegionRequest, signal: AbortSignal): Promise<Built<PairsBins | PairsList>> {
       const p = shared.start();

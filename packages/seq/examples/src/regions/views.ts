@@ -16,15 +16,15 @@ import {
   SourceOpenError,
   type StoreClock,
 } from '@molstar/seqx-core/data';
-import { createSeqSpec, theme } from '@molstar/seqx-core/lang';
+import { assembly, createSeqSpec, genome, theme } from '@molstar/seqx-core/lang';
 import { BedRuntime } from '@molstar/seqx-core/runtimes/bed';
 import type { ExampleView } from '../views.js';
-import { HicWhole, hicOneLevel, hicSource } from './hic.js';
+import { HicAssemblyName, HicChromosomes, hicOneLevel, hicSource } from './hic.js';
 import { openBedpeByRegion } from './bedpe.js';
 import { genotypesSource } from './genotypes.js';
-import { LinkCount, LinksChromosome, linksOnChromosome, linksSource } from './links.js';
+import { LinkCount, LinksChromosome, RingChromosomes, linksOnChromosome, linksSource } from './links.js';
 import { methylationSource } from './methylation.js';
-import { syntenySource } from './synteny.js';
+import { SyntenyA, SyntenyAssemblyA, SyntenyAssemblyB, SyntenyB, syntenySource } from './synteny.js';
 
 /** The blocks of the synteny the zoomed-in view reads (about 80 on chrA2: an arc each stays readable). */
 const SyntenyViewBlocks = 240;
@@ -42,6 +42,7 @@ const Generators: Readonly<Record<string, () => SeqData>> = {
   'generated:hic-one-level': hicOneLevel,
   'generated:synteny': () => syntenySource(SyntenyViewBlocks, undefined, { sided: false }),
   'generated:links': () => linksSource(),
+  'generated:links-ring': () => linksSource(RingChromosomes),
   'generated:genotypes': () => genotypesSource(),
   'generated:genotypes-items': () => genotypesItemsOnly(),
   'generated:methylation': () => methylationSource(),
@@ -108,25 +109,30 @@ const generated = (uri: string) => ({ format: GeneratedFormat, uri }) as never;
 export const SyntenySection = '/views/main/synteny';
 export const LinksSection = '/views/main/links';
 export const RingSection = '/views/main/ring';
+export const GenomeSection = '/views/main/genome';
 export const HicSection = '/views/main/chr1';
 export const HicPlot = '/views/main/plot';
 export const GenotypesSection = '/views/main/chr';
 
+/** The two toy genomes of the synteny as assemblies (their chromosomes' lengths inline). */
+function syntenyAssemblies(b: ReturnType<typeof createSeqSpec>) {
+  const a = b.data.assembly('a', assembly(SyntenyAssemblyA, SyntenyA, { order: 'source' } as never));
+  const g = b.data.assembly('b', assembly(SyntenyAssemblyB, SyntenyB, { order: 'source' } as never));
+  return { a, g };
+}
+
 /**
- * The synteny between two toy chromosomes, `chrA2` on the left and `chrB2` on the right: an arc a block of the alignment
- * between them (the ones B reads reversed, a 6 Mb stretch, are twisted), about 80 of them.
+ * The synteny between two toy genomes, on one section of both assemblies kept to `chrA2` and `chrB2` (the section's
+ * `include`): an arc a block of the alignment between them (the ones B reads reversed, a 6 Mb stretch, are twisted),
+ * about 80 of them. The pairs are over the assemblies, read a chromosome at a time.
  */
 export function pairsZoomedIn(): Node {
   const b = createSeqSpec({ title: 'Synteny, zoomed in' });
   const src = b.data.source('alignment', generated('generated:synteny'));
-  const a2 = b.data.sequence('chrA2', { alphabet: 'dna', source: src, name: 'chrA2' });
-  const b2 = b.data.sequence('chrB2', { alphabet: 'dna', source: src, name: 'chrB2' });
-  const pairs = b.data.pairs('synteny', { a: a2, b: b2, source: src } as never);
+  const { a, g } = syntenyAssemblies(b);
+  const pairs = b.data.pairs('synteny', { a, b: g, source: src } as never);
   b.views.view('main', (v) => {
-    v.section('synteny', {}, (s) => {
-      s.block('a', { of: a2, label: 'chrA2' } as never);
-      s.block('b', { of: b2, label: 'chrB2' } as never);
-      s.track('ruler').layer('ruler', { type: 'ruler', units: 'bases' } as never);
+    genome(v, 'synteny', [a, g], { include: ['chrA2', 'chrB2'] }, (s) => {
       s.track('synteny', { label: 'Synteny', height: 120 }).layer('synteny', {
         type: 'pairs',
         data: pairs,
@@ -186,20 +192,18 @@ export function pairsZoomedOut(): Node {
 }
 
 /**
- * the links on a ring at the fit (one chromosome as a ring): bin-pair chords between the ring's bins,
- * stroked by count, the strongest drawn first. (Between a genome's chromosomes: data over an assembly by source waits.)
+ * The links between a toy assembly's six chromosomes on a ring at the fit (the genome ring): bin-pair chords between
+ * the chromosomes and within each, stroked by count, the strongest drawn first. The links are over the assembly, read
+ * a chromosome at a time from a source with three levels.
  */
 export function pairsRing(): Node {
-  const b = createSeqSpec({ title: 'Links on a ring' });
-  const { chr } = linksChromosome(b);
-  const bedpe = b.data.pairs('bedpe', {
-    a: chr,
-    source: b.data.source('links-bedpe', generated(BedpeUri)),
-  } as never);
+  const b = createSeqSpec({ title: 'Links on a genome ring' });
+  const g = b.data.assembly('toy', assembly(HicAssemblyName, RingChromosomes, { order: 'source' } as never));
+  const src = b.data.source('links-source', generated('generated:links-ring'));
+  const links = b.data.pairs('links', { a: g, source: src } as never);
   b.views.view('main', (v) => {
-    v.section('ring', { of: chr, layout: 'rings' }, (s) => {
-      s.track('ruler').layer('ruler', { type: 'ruler', units: 'bases' } as never);
-      s.track('links', { label: 'Links' }).layer('links', { type: 'pairs', data: bedpe, legend: 'none' } as never);
+    genome(v, 'ring', g, { layout: 'rings' }, (s) => {
+      s.track('links', { label: 'Links' }).layer('links', { type: 'pairs', data: links, legend: 'none' } as never);
     });
   });
   return b.build();
@@ -226,19 +230,17 @@ export function hicByRegion(): Node {
 }
 
 /**
- * the Hi-C over the whole toy assembly as one system (`all`, the chromosomes end to end) at the fit: one
- * read of the whole-assembly level the store's summaries make from the blocks' planes (one level served). (Over the
- * assembly's blocks, with the chromosome gaps and labels: data over an assembly by source waits.)
+ * The Hi-C over a toy assembly's six chromosomes at the fit: the plot follows the genome's section, a block pair a
+ * cell of chromosomes, each read by block pair from the source's tiles (the upper triangle served, the lower its
+ * mirror), with the chromosome gaps and labels on both axes.
  */
 export function hicOverGenome(): Node {
   const b = createSeqSpec({ title: 'Hi-C over the genome' });
-  const src = b.data.source('hic', generated('generated:hic-one-level'));
-  const all = b.data.sequence('all', { alphabet: 'dna', source: src, name: HicWhole });
-  const contacts = b.data.grid('contacts', { x: all, source: src } as never);
+  const g = b.data.assembly('toy', assembly(HicAssemblyName, HicChromosomes, { order: 'source' } as never));
+  const contacts = b.data.grid('contacts', { x: g, source: b.data.source('hic', generated('generated:hic')) } as never);
   b.views.view('main', (v) => {
-    const top = v.section('genome', { of: all });
-    top.track('ruler').layer('ruler', { type: 'ruler', units: 'bases' } as never);
-    v.section('plot', { layout: 'grid', of: all, follow: top.address } as never).track('plot', {}, (t) => {
+    const top = genome(v, 'genome', g);
+    v.section('plot', { layout: 'grid', follow: top.address } as never).track('plot', {}, (t) => {
       t.layer('contacts', { type: 'grid', data: contacts, color: counts() } as never);
     });
   });
@@ -350,7 +352,7 @@ export const RegionReadsViews: readonly ExampleView[] = [
     id: 'pairs-ring',
     title: 'A genome ring at the fit: bin-pair chords',
     summary:
-      'The same links on a ring at the fit (one 2 Mb chromosome as the ring, read from a BEDPE): bin pairs as chords between its bins, stroked by count, the strongest drawn first.',
+      'The genome ring at the fit: 12,000 generated links over a toy assembly’s six chromosomes (38 to 10 Mb), read a chromosome at a time as bin pairs of 16 kb: chords between the chromosomes and within each, stroked and shaded by count, the strongest kept and drawn first.',
     build: pairsRing,
     registry,
   },

@@ -314,9 +314,23 @@ export function readGridTiles(
   return out;
 }
 
-/** A layer's level as last fitted to the store's bounds, by the tiles it spans (`fittedLevel`), by reader and layer. */
-const Fitted = new WeakMap<object, Map<string, { readonly sig: number[]; readonly level: number }>>();
-const Sig: number[] = [];
+/**
+ * A layer's level as last fitted to the store's bounds, by the tiles it spans (`fittedLevel`), by reader, layer, and
+ * the block (its data system, a grid's y block's too): a layer over blocks is fitted a block at a time, each kept.
+ */
+type FitEntry = { readonly sig: Float64Array; readonly level: number };
+const Fitted = new WeakMap<object, Map<string, Map<string, Map<string, FitEntry>>>>();
+/** The signature being made (its first `SigN` slots): grown, never shrunk (`length = 0` would free its store). */
+let Sig = new Float64Array(64);
+let SigN = 0;
+function sigPut(v: number) {
+  if (SigN === Sig.length) {
+    const g = new Float64Array(2 * Sig.length);
+    g.set(Sig);
+    Sig = g;
+  }
+  Sig[SigN++] = v;
+}
 
 /**
  * The layer's level fitted to the store's bounds on a layer's wants together (`maxTilesPerLayer`, `maxBytesPerLayer`;
@@ -336,14 +350,22 @@ export function fittedLevel(
   if (!data.layerLoad || key === undefined) return level;
   const levels = data.coverage(src.source)?.levels ?? [level];
   const bins = (y ? data.settings?.gridTileBins : data.settings?.tileBins) ?? 1024;
-  Sig.length = 0;
-  Sig.push(level);
-  for (let i = 0; i + 1 < regions.length; i++) Sig.push(Math.floor(regions[i] / (bins * level)));
-  if (y) Sig.push(Math.floor(y.start / (bins * level)), Math.floor(y.end / (bins * level)));
+  SigN = 0;
+  sigPut(level);
+  for (let i = 0; i + 1 < regions.length; i++) sigPut(Math.floor(regions[i] / (bins * level)));
+  if (y) {
+    sigPut(Math.floor(y.start / (bins * level)));
+    sigPut(Math.floor(y.end / (bins * level)));
+  }
   let byKey = Fitted.get(data);
   if (!byKey) Fitted.set(data, (byKey = new Map()));
-  const at = byKey.get(key);
-  if (at && at.sig.length === Sig.length && at.sig.every((v, i) => v === Sig[i])) return at.level;
+  let byX = byKey.get(key);
+  if (!byX) byKey.set(key, (byX = new Map()));
+  let byY = byX.get(src.dataSystem);
+  if (!byY) byX.set(src.dataSystem, (byY = new Map()));
+  const yKey = y?.system ?? '';
+  const at = byY.get(yKey);
+  if (at && sameSig(at.sig)) return at.level;
   let fitted = level;
   for (let i = Math.max(0, levels.indexOf(level)); i < levels.length; i++) {
     const l = levels[i];
@@ -364,8 +386,15 @@ export function fittedLevel(
       break;
     }
   }
-  byKey.set(key, { sig: Sig.slice(), level: fitted });
+  byY.set(yKey, { sig: Sig.slice(0, SigN), level: fitted });
   return fitted;
+}
+
+/** Whether a kept fit's signature is `Sig` (a loop: no closure made a call). */
+function sameSig(sig: Float64Array): boolean {
+  if (sig.length !== SigN) return false;
+  for (let i = 0; i < sig.length; i++) if (sig[i] !== Sig[i]) return false;
+  return true;
 }
 
 /** The tiles' state over the regions read: loaded entries, and the data positions still pending or failed. */

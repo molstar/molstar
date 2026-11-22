@@ -44,6 +44,19 @@ export interface AssemblyEntry {
 }
 
 let chunk: typeof Genome | undefined;
+
+/** What loads with the genome chunk (render's reads over an assembly: `withGenome`). */
+const WithGenome: (() => Promise<unknown>)[] = [];
+
+/**
+ * A part that loads with the genome chunk (render's pairs over an assembly): a model holding an assembly waits for it
+ * as for the chunk (`StaticModel.loading`), so whatever reads data over an assembly has it. Loaded at once when the
+ * chunk has landed.
+ */
+export function withGenome(load: () => Promise<unknown>): void {
+  WithGenome.push(load);
+  if (chunk) void load();
+}
 let loading: Promise<void> | undefined;
 let failed: unknown;
 
@@ -65,7 +78,7 @@ export function genomeLoadFailure(): unknown {
 export function loadGenome(): Promise<void> {
   if (chunk) return Promise.resolve();
   failed = undefined;
-  loading ??= Promise.all([import('./genome-chunk.js'), loadGenomeForms()]).then(
+  loading ??= Promise.all([import('./genome-chunk.js'), loadGenomeForms(), ...WithGenome.map((load) => load())]).then(
     ([m]) => {
       chunk = m.Genome;
       loading = undefined;

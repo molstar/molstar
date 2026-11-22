@@ -101,7 +101,7 @@ describe('region reads: gaps', () => {
     expect(lay.n).toBe(20);
   });
 
-  it.fails('pairs read by region over an assembly are laid on its blocks (a ring’s chords between chromosomes)', async () => {
+  it('pairs read by region over an assembly are laid on its blocks (a ring’s chords between chromosomes)', async () => {
     const list: PairsList = {
       form: 'list',
       aSystem: categoryColumn(['c1', 'c1']),
@@ -146,5 +146,71 @@ describe('region reads: gaps', () => {
     const s = await settle(b.build(), [SeqRuntime]);
     const f = await s.frame({ size: { width: 720, height: 600 } });
     expect(f.layout.sections[0].sectionLays.length).toBe(1);
+    // the two links, each a chord from c1 to c2 (found from either end, once)
+    const lay = f.layout.sections[0].sectionLays[0].lay as unknown as { n: number };
+    expect(lay.n).toBe(2);
+  });
+
+  it('held pairs past the gate bin at the pairs level a source is read at: held and from a file one picture (RS gap 6)', async () => {
+    // 6,000 pairs between 60 hotspots of a 2 Mb chromosome, held in the spec and served at level 1 by a `seq` source
+    const n = 6000;
+    let x = 7;
+    const r = () => (x = (x * 1103515245 + 12345) % 2 ** 31) / 2 ** 31;
+    const as = Int32Array.from({ length: n }, () => Math.floor(r() * 60) * 33_000 + Math.floor(r() * 500));
+    const bs = Int32Array.from({ length: n }, () => Math.floor(r() * 60) * 33_000 + Math.floor(r() * 500));
+    const list: PairsList = {
+      form: 'list',
+      aStart: as,
+      aEnd: as.map((v) => v + 10),
+      bStart: bs,
+      bEnd: bs.map((v) => v + 10),
+    };
+    const data: SeqData = {
+      coverage: {
+        systems: [{ name: 'chr', length: 2_000_000 }],
+        shapes: [{ system: 'chr', shape: 'pairs' }],
+        levels: [1],
+      },
+      pairs: [
+        {
+          request: { system: 'chr', start: 0, end: 2_000_000, level: 1, shapes: ['pairs'] },
+          answer: { ok: true, tables: { pairs: list } },
+        },
+      ],
+    };
+    const b = createSeqSpec({ title: 'held and read' });
+    const sizes = b.data.source('sizes', { format: 'chrom-sizes', value: 'chr\t2000000\n' as never });
+    const chr = b.data.sequence('chr', { alphabet: 'dna', source: sizes, name: 'chr' });
+    const held = b.data.pairs('held', {
+      a: chr,
+      rows: { a_start: list.aStart, a_end: list.aEnd, b_start: list.bStart, b_end: list.bEnd },
+    } as never);
+    const src = b.data.source('src', { format: 'seq', value: seqToValue(data) as never });
+    const read = b.data.pairs('read', { a: chr, source: src } as never);
+    b.views.view('v', (v) => {
+      const s = v.section('chr', { of: chr });
+      s.track('held').layer('held', { type: 'pairs', data: held });
+      s.track('read').layer('read', { type: 'pairs', data: read });
+    });
+    const s = await settle(b.build(), [SeqRuntime, BedRuntime]);
+    let f = await s.frame({ size: { width: 720, height: 300 } });
+    await s.store.whenSettled();
+    f = await s.frame({ size: { width: 720, height: 300 } });
+    type Lay = {
+      prep?: { level?: number; weight?: Float32Array; data?: { n: number; aStart: Int32Array; bStart: Int32Array } };
+    };
+    const [h, d] = f.layout.sections[0].sectionLays.map((l) => l.lay as unknown as Lay);
+    const bins = (l: Lay) => {
+      const out = new Map<string, number>();
+      for (let k = 0; k < (l.prep?.data?.n ?? 0); k++) {
+        const key = `${l.prep!.data!.aStart[k]}|${l.prep!.data!.bStart[k]}`;
+        out.set(key, (out.get(key) ?? 0) + (l.prep!.weight?.[k] ?? 1));
+      }
+      return out;
+    };
+    expect(d.prep?.weight).toBeDefined();
+    expect(h.prep?.weight).toBeDefined();
+    expect(h.prep?.level).toBe(d.prep?.level);
+    expect(bins(h)).toEqual(bins(d));
   });
 });
