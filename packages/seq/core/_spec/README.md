@@ -2178,18 +2178,20 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
   found from either end, its key its row), a sequence pair's values one grid (a pair of the wrong count left out,
   `seq.resolve.grid.size`; every pair of the systems named served, an empty one sparse), a sequence's items a matrix's
   positions in order (its states the inline `states`). So the store reads, bins and bounds them as a file's: the pairs
-  level and the grid's pyramid are the summaries' of a one-level source. Inline values name no sequence a value: they
-  read nothing and say so once (`seq.resolve.assembly.inline`, info). A source is read by region on each sequence under
-  the name it lists the sequence by: its coverage's names (and aliases) mapped through the names rule (`17` is `chr17`),
-  carried to the next resolve inside the lengths as an assembly's own source's coverage is (`listedSystems`); before it
-  opens, the sequence's printed name. A sequence `include` leaves out has no plan and reads nothing. Said: a source
-  naming another assembly (`seq.resolve.assembly.mismatch`), inline rows whose `target` (or name columns) names no
-  sequence and the names a source lists that no sequence is (over two assemblies, that neither's is), each counted once
-  with the first (`seq.resolve.assembly.name`). A matrix's states are as many as its source lists for any sequence.
-  Pairs over two assemblies plan both's sequences (inline ones too, each side by its own assembly's names rule). Why a
-  plan a sequence: each block is a system the store reads by region, and a layer on a block reads its own plan; nothing
-  new in the store or the protocol. Pairs, grids and maps read from a source, and inline ones over an assembly, are not
-  held.
+  list their pairs level, bin-pair counts at every level `summaries.factor` apart up to the longest sequence (as a
+  file's index lists its levels; a level-1 source alone is read at level 1 over a genome at the fit, past the store's
+  tiles, and its pyramid drops sparse links' levels); the grid's pyramid is the summaries' of a one-level source. Inline
+  values name no sequence a value: they read nothing and say so once (`seq.resolve.assembly.inline`, info). A source is
+  read by region on each sequence under the name it lists the sequence by: its coverage's names (and aliases) mapped
+  through the names rule (`17` is `chr17`), carried to the next resolve inside the lengths as an assembly's own source's
+  coverage is (`listedSystems`); before it opens, the sequence's printed name. A sequence `include` leaves out has no
+  plan and reads nothing. Said: a source naming another assembly (`seq.resolve.assembly.mismatch`), inline rows whose
+  `target` (or name columns) names no sequence and the names a source lists that no sequence is (over two assemblies,
+  that neither's is), each counted once with the first (`seq.resolve.assembly.name`). A matrix's states are as many as
+  its source lists for any sequence. Pairs over two assemblies plan both's sequences (inline ones too, each side by its
+  own assembly's names rule). Why a plan a sequence: each block is a system the store reads by region, and a layer on a
+  block reads its own plan; nothing new in the store or the protocol. Pairs, grids and maps read from a source, and
+  inline ones over an assembly, are not held.
 - **A map between assemblies** is one map over every sequence pair: its inline runs grouped by `from_name` and `to_name`
   into one entry a pair, each keyed apart and stepping as the map (`Edge.map` its address), so a path between two
   sequences is one step of it and the ambiguity rules read one map (EC-207); a run naming no sequence is left out

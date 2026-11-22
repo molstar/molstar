@@ -5,7 +5,7 @@
  */
 
 import { categoryColumn, type Node } from '@molstar/core/repr/tree';
-import { type SeqData, SeqRuntime, seqToValue } from '@molstar/seqx-core/data';
+import { binPairs, type PairsList, type SeqData, SeqRuntime, seqToValue } from '@molstar/seqx-core/data';
 import { assembly, createSeqSpec, genome } from '@molstar/seqx-core/lang';
 import { loadGenome } from '@molstar/seqx-core/resolve';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -248,12 +248,29 @@ describe('inline pairs over an assembly past the gate', () => {
     rows.a_name.push(a.name);
     rows.b_name.push(b.name);
   }
-  const Gate = { pairs: { maxArcs: 20 } };
+  const Gate = { pairs: { maxArcs: 200 } };
 
-  it('bin by the pairs level (an arc a bin pair stroked by its count), as the same pairs from a source', async () => {
+  it('bin by the pairs level: an arc a bin pair of the rows at the level read, never by device column', async () => {
     const s = await settle(linksSpec(Big, rows, true), [SeqRuntime], Gate);
     const f = await s.frame({ size: Size, dpr: 1 });
-    expect(Math.max(...f.wants.map((w) => w.level))).toBeGreaterThan(1);
+    const level = Math.max(...f.wants.map((w) => w.level));
+    expect(level).toBeGreaterThan(1);
+    // the bin pairs of the rows at that level, on their sequences (the protocol's binning, computed apart)
+    const list: PairsList = {
+      form: 'list',
+      aSystem: categoryColumn(rows.a_name),
+      bSystem: categoryColumn(rows.b_name),
+      aStart: Int32Array.from(rows.a_start),
+      aEnd: Int32Array.from(rows.a_end),
+      bStart: Int32Array.from(rows.b_start),
+      bEnd: Int32Array.from(rows.b_end),
+    };
+    const bins = binPairs(list, level, { systems: true });
+    expect(bins.count.length).toBeGreaterThan(Gate.pairs.maxArcs / 10);
+    const arcs = recordDrawLists(f.lists, ['data'])
+      .split('\n')
+      .filter((l) => l.startsWith('path ') && l.includes(' C '));
+    expect(arcs.length).toBe(bins.count.length);
     const keys = new Set<string>();
     for (let x = 0; x < Size.width; x += 3)
       for (let y = 0; y < Size.height; y += 3) {
@@ -264,7 +281,6 @@ describe('inline pairs over an assembly past the gate', () => {
     for (const k of keys) expect(k.startsWith('bin:'), k).toBe(true);
     // never by device column: no density strip, no `seq.render.pairs.limit`
     expect(f.layout.issues.map((i) => i.code)).not.toContain('seq.render.pairs.limit');
-    expect(await marks(linksSpec(Big, rows, true), Gate)).toEqual(await marks(linksSpec(Big, rows, false), Gate));
   });
 });
 

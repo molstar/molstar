@@ -11,9 +11,21 @@
 // into one inline `seq` source over every system named, each system named by its address: the same access plan a
 // source gets, so the store reads, bins (the pairs level, the grid's pyramid) and bounds them as it does a file's.
 
-import { categoryColumn, type Issue, issueOf, isColumn, type Node, type Value } from '@molstar/core/repr/tree';
 import {
+  type CategoryColumn,
+  categoryColumn,
+  type Issue,
+  issueOf,
+  isColumn,
+  type Node,
+  type Value,
+} from '@molstar/core/repr/tree';
+import {
+  binPairs,
+  coarsenPairBins,
+  DefaultSummarySettings,
   type MatrixItems,
+  type PairsBins,
   type PairsList,
   type SeqData,
   type SeqPair,
@@ -113,9 +125,10 @@ function seqData(
   length: (s: string) => number,
   shapes: ShapeInfo[],
   pairs: SeqPair[],
+  levels: readonly number[] = [1],
 ): SeqData {
   const listed: SystemInfo[] = systems.map((name) => ({ name, length: length(name) }));
-  return { coverage: { systems: listed, shapes, levels: [1] }, pairs };
+  return { coverage: { systems: listed, shapes, levels }, pairs };
 }
 
 /** A category column of strings, or undefined. */
@@ -165,35 +178,71 @@ function pairsBySystem(
     add(b, i);
   }
   const strands = aStrand !== undefined || bStrand !== undefined;
+  const listOf = (g: readonly number[]): PairsList => ({
+    form: 'list',
+    aSystem: categoryColumn(g.map((i) => aSys[i])),
+    bSystem: categoryColumn(g.map((i) => bSys[i])),
+    aStart: Int32Array.from(g, (i) => as[i]),
+    aEnd: Int32Array.from(g, (i) => ae[i]),
+    bStart: Int32Array.from(g, (i) => bs[i]),
+    bEnd: Int32Array.from(g, (i) => be[i]),
+    ...(strands
+      ? { aStrand: Int8Array.from(g, (i) => strand(aStrand, i)), bStrand: Int8Array.from(g, (i) => strand(bStrand, i)) }
+      : {}),
+    ...(type ? { type: categoryColumn(g.map((i) => at(type, i))) } : {}),
+    row: Int32Array.from(g),
+  });
+  const systems = order(bySystem.keys());
   const shapes: ShapeInfo[] = [];
   const pairs: SeqPair[] = [];
-  for (const system of order(bySystem.keys())) {
-    const g = bySystem.get(system)!;
-    const list: PairsList = {
-      form: 'list',
-      aSystem: categoryColumn(g.map((i) => aSys[i])),
-      bSystem: categoryColumn(g.map((i) => bSys[i])),
-      aStart: Int32Array.from(g, (i) => as[i]),
-      aEnd: Int32Array.from(g, (i) => ae[i]),
-      bStart: Int32Array.from(g, (i) => bs[i]),
-      bEnd: Int32Array.from(g, (i) => be[i]),
-      ...(strands
-        ? {
-            aStrand: Int8Array.from(g, (i) => strand(aStrand, i)),
-            bStrand: Int8Array.from(g, (i) => strand(bStrand, i)),
-          }
-        : {}),
-      ...(type ? { type: categoryColumn(g.map((i) => at(type, i))) } : {}),
-      row: Int32Array.from(g),
-    };
+  const request = (system: string, level: number) => ({
+    system,
+    start: 0,
+    end: length(system),
+    level,
+    shapes: ['pairs' as Shape],
+  });
+  for (const system of systems) {
     // kinds kept by the bins, as a held table's are (`binPairs`' category)
     shapes.push({ system, shape: 'pairs', ...(type ? { binBy: 'type' } : {}) });
-    pairs.push({
-      request: { system, start: 0, end: length(system), level: 1, shapes: ['pairs'] },
-      answer: { ok: true, tables: { pairs: list } },
-    });
+    pairs.push({ request: request(system, 1), answer: { ok: true, tables: { pairs: listOf(bySystem.get(system)!) } } });
   }
-  return { data: seqData(order(bySystem.keys()), length, shapes, pairs) };
+  // the pairs level (region-reads Decided 2, 7): bin-pair counts at levels `factor` apart up to the longest system,
+  // each from the one below and every one listed, as a file's index lists its levels; a level-1 source alone would be
+  // read at level 1 over a whole genome at the fit (past the store's tiles), its pyramid dropping sparse links' levels
+  const all = [...new Set(systems.flatMap((s) => bySystem.get(s)!))].sort((x, y) => x - y);
+  const longest = Math.max(0, ...systems.map(length));
+  const f = DefaultSummarySettings.factor;
+  const levels = [1];
+  let bins: PairsBins | undefined;
+  for (let level = f; level < longest; level *= f) {
+    bins = bins ? coarsenPairBins(bins, f) : binPairs(listOf(all), level, { category: !!type, systems: true });
+    levels.push(level);
+    for (const system of systems)
+      pairs.push({ request: request(system, level), answer: { ok: true, tables: { pairs: binsOn(bins, system) } } });
+  }
+  return { data: seqData(systems, length, shapes, pairs, levels) };
+}
+
+/** The bin pairs with an end on `system`. */
+function binsOn(t: PairsBins, system: string): PairsBins {
+  const rows: number[] = [];
+  for (let i = 0; i < t.count.length; i++)
+    if (t.aSystem?.get(i) === system || t.bSystem?.get(i) === system) rows.push(i);
+  const take = <A extends Int32Array | Int8Array | Float32Array>(c: A): A =>
+    (c.constructor as unknown as { from(a: number[]): A }).from(rows.map((i) => c[i]));
+  const cat = (c: CategoryColumn) => categoryColumn(rows.map((i) => c.get(i)));
+  return {
+    form: 'bins',
+    ...(t.aSystem ? { aSystem: cat(t.aSystem) } : {}),
+    ...(t.bSystem ? { bSystem: cat(t.bSystem) } : {}),
+    aBin: take(t.aBin),
+    bBin: take(t.bBin),
+    ...(t.strand ? { strand: take(t.strand) } : {}),
+    ...(t.category ? { category: cat(t.category) } : {}),
+    count: take(t.count),
+    ...(t.sum ? { sum: take(t.sum) } : {}),
+  };
 }
 
 /**
