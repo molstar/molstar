@@ -6,13 +6,6 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 
 ## Open
 
-- **The render CLI's PNG test fails since VL** (the orchestrator, 2026-11-22; kind: bug, a missed check):
-  `cli/seqx-render/src/_test/png.test.ts` "the probe pixels of every track are the SVG's fills" (light and dark, 1x
-  and 2x) find 2 tracks of 3 since VL's merge (`385c98c60`; green on its parent): the values look C draws the
-  conservation track differently (a profile, rounded bars). Either the PNG renderer does not draw a primitive VL
-  added (a real bug: a PNG missing a track) or the probe looks for the old shape. The orchestrator's checks ran
-  `packages/seq/` only; loop.md now adds `cli/seqx-render/`. To FX15.
-
 - **A sample selected on the kinship grid does not light its row in the genotype matrix** (the orchestrator,
   2026-11-22, LA3's look, Features › Across sections › Kinship beside the genotypes; kind: bug): a click on the
   "F2-b" label selects the member (the grid's row and column light), but the matrix on the same rows system shows
@@ -188,6 +181,13 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   (`pos:ref>alt`), its category and its INFO fields, as the design's matrix row "a variant allele" implies.
 
 ## Fixed
+
+- **The render CLI's PNG test fails since VL** (the orchestrator, 2026-11-22; kind: bug, a missed check):
+  `cli/seqx-render/src/_test/png.test.ts` "the probe pixels of every track are the SVG's fills" (light and dark, 1x
+  and 2x) find 2 tracks of 3 since VL's merge (`385c98c60`; green on its parent): the values look C draws the
+  conservation track differently (a profile, rounded bars). Either the PNG renderer does not draw a primitive VL
+  added (a real bug: a PNG missing a track) or the probe looks for the old shape. The orchestrator's checks ran
+  `packages/seq/` only; loop.md now adds `cli/seqx-render/`. To FX15. Fixed by FX15 (`3f2d2bc73`): the test's probe only took opaque 4x4 rects; it now probes the profile's translucent bars blended over the theme's ground (the renderer was right: the conservation track drew 121 rects).
 
 - **One tall track makes every track of its kind tall** (the orchestrator, 2026-11-22, SX's look, Features › Layouts ›
   Tracks past the cap; on packages-seq too; kind: design, the author's): `ContentSizing` (`render/sizing.ts`) gives

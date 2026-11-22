@@ -180,8 +180,7 @@ describe }` in the registry.
   of the core with its test); matches into a reused `Int32Array`, stopping at `cardItems + 1`, the rest counted:
   O(log n + k), 0 B.
 - **Parses cached by text** (64 entries): a cold card parses and allocates; a warm one does not. The card's
-  allocation per step, 2,168 B, is the HC brief's reading (`.seq/execution/fifth-slice/briefs/hc-hover-contract.md`,
-  from the allocation tier); the tooltip lane measures a cold and a warm card show with tooltips in the same tier,
+  allocation per step, 2,168 B, is the allocation tier's reading of the card show (the viewer's card case); the tooltip lane measures a cold and a warm card show with tooltips in the same tier,
   records both in its report, and holds the warm one at today's figure.
 - **Targets**: the lookup over 1,000,000 ranges within 1.5× of 10,000 (heavy, `itWithin`); a hover step at 0 B warm
   with a 10,000-row inline table and a 1,000,000-range source; an export with `card` titles over 10,000 items within
@@ -293,13 +292,11 @@ New ids continue the catalog (EC-245 to EC-249 are layouts.md's).
   (card providers opened), [data-store.md](data-store.md) (wants for tables that decorate).
 - MolViewSpec converts both ways, as mapped above.
 
-## Open questions for the author
+## Answered (the author, 2026-11-22: "Yes, as recommended")
 
-1. An item's own `tooltip` field with no `tooltip` node: shown by default, or only when a node names it (MVS's rule,
-   recommended)?
-2. The SVG export's titles by default: item names (recommended: a figure's size as today unless asked) or the
-   composed card rows?
-3. External links in a card (`https:` to a database entry): none in version 1 (recommended: security.md's "links act
-   only through commands"), or allowed under a navigation policy of their own (schemes and hosts, opened by the host)?
-4. Values in templates: escaped (recommended: a value is data, `A*02:01` stays text), or read as Markdown so a notes
-   file's own emphasis and links render?
+1. An item's own `tooltip` field shows only when a `tooltip` node names it (MVS's rule): a column is not a promise to
+   show it.
+2. The SVG export's titles default to item names (a figure's size as today); the composed card rows when asked
+   (`export.titles`).
+3. No external links in version 1: links act only through commands (security.md); in-view `!seq-…` links only.
+4. Values in templates are escaped: a value is data (`A*02:01` stays text); Markdown applies to the template.
