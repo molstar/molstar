@@ -15,6 +15,7 @@ import { DataStore, SeqRuntime } from '@molstar/seqx-core/data';
 import { type Location, rangesLocation } from '@molstar/seqx-core/query';
 import { describe, expect, it } from 'vitest';
 import { openModel } from '../export.js';
+import { renderSvg } from '../render-svg.js';
 import { rowAddress, type TooltipOut, type TooltipPlace, tooltipsAt } from '../tooltips.js';
 import { settle } from './helpers.js';
 
@@ -230,6 +231,36 @@ describe('tooltipsAt', () => {
     const miss = fresh();
     tooltipsAt(ctx, at(10), miss);
     expect(miss.rows).toEqual([]);
+  });
+});
+
+describe('an export’s titles', () => {
+  const titled = (titles?: 'name' | 'card') => {
+    const b = createSeqSpec({ title: 'titles' });
+    const p = b.data.sequence('p', { alphabet: 'protein', letters: Letters });
+    const domains = b.data.ranges('domains', {
+      target: p,
+      rows: { start: [2], end: [12], id: ['a'], label: ['TAD'], note: ['transactivation'] },
+    });
+    b.views.tooltip('t', { on: domains, label: 'Note', text: '{note}' });
+    b.views.view('v', titles ? { export: { titles } } : {}, (v) =>
+      v.section('s', { of: p }).track('domains').layer('d', { type: 'ranges', data: domains }),
+    );
+    return b.build();
+  };
+
+  it('items titled by their names unless the view asks for their cards (the spec’s tooltips, headless)', async () => {
+    const name = await renderSvg(titled(), { size: { width: 640, height: 80 }, runtimes: [SeqRuntime] });
+    expect(name.svg).not.toContain('Note: transactivation');
+    const card = await renderSvg(titled('card'), { size: { width: 640, height: 80 }, runtimes: [SeqRuntime] });
+    expect(card.svg).toContain('Note: transactivation');
+    // the option overrides the view's
+    const back = await renderSvg(titled('card'), {
+      size: { width: 640, height: 80 },
+      runtimes: [SeqRuntime],
+      titles: 'name',
+    });
+    expect(back.svg).not.toContain('Note: transactivation');
   });
 });
 

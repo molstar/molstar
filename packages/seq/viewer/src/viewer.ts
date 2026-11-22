@@ -50,7 +50,7 @@ import {
 } from '@molstar/seqx-viewer/models';
 import type { AddressingBehavior, LinkRun } from '@molstar/seqx-viewer/behaviors';
 import type { SeqAnimationParticipant } from '@molstar/seqx-viewer/ports';
-import { composeCard, describerFor } from './describe.js';
+import { cardTitles, composeCard, describerFor } from './describe.js';
 import { frameAnimation } from './animation.js';
 import { ViewerInput } from './input.js';
 import { LegendModel } from './legends.js';
@@ -821,6 +821,16 @@ export class SeqViewer extends ReactiveModel {
       ...this._emphasis.svgEmphasis(),
       // the headers' states as the canvas draws them (a figure lays out no slots)
       ...(this.behaviors.get('headers') ? { headers: this.behaviors.get('headers').partsOf } : {}),
+      // `card` titles (the view's `export.titles`, or asked): the card its providers compose, an item each
+      cardTitle: cardTitles(
+        describerFor({
+          spec: this.spec,
+          store: this.store,
+          addresses: this.addresses,
+          view: this.view,
+          layout: () => this.frame?.layout,
+        }),
+      ),
       ...options,
     });
   }

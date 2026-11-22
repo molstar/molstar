@@ -237,6 +237,8 @@ function located(ctx: TooltipContext, key: string, addresses: readonly string[])
   if (!byModel) Located.set(ctx.model, (byModel = new Map()));
   let l = byModel.get(key);
   if (!l) byModel.set(key, (l = { locations: addresses.map((a) => ctx.locate?.(a)) }));
+  // an address not located yet (its data not arrived) is asked again; a located one is kept for the model
+  else for (let i = 0; i < addresses.length; i++) if (!l.locations[i]) l.locations[i] = ctx.locate?.(addresses[i]);
   return l.locations;
 }
 

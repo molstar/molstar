@@ -18,6 +18,7 @@ import {
   type SectionLayout,
   shownLetters,
   gridSummary,
+  type ItemTitle,
   type ValuesLay,
   type ViewLayout,
 } from '@molstar/seqx-core/render';
@@ -292,6 +293,12 @@ class Words implements CardReads {
     return undefined;
   }
 
+  /** An address as positions in the spec shown, once it resolves (the address model's). */
+  locate(address: string): Location | undefined {
+    const r = this._src.addresses.locate(address);
+    return r.resolution.status === 'resolved' ? r.location : undefined;
+  }
+
   /** An item's category: the `category` field of an inline annotation's item (a source's items are not held here). */
   categoryOf(l: LayerLayout, key: string | number): string {
     const owner = l.layer.data?.address;
@@ -472,6 +479,27 @@ export function describerFor(src: DescribeSource): Describer {
   let d = Describers.get(src.spec);
   if (!d) Describers.set(src.spec, (d = new Describer(src)));
   return d;
+}
+
+/**
+ * An export's `card` titles from a describer (_spec/README.md "Hover card", Export titles): each item's card, its title
+ * and its rows as plain text, a line each, as the composed providers give it at the item's middle.
+ */
+export function cardTitles(describer: Describer): ItemTitle {
+  return (s, l, it) => {
+    const owner = l.layer.data?.address;
+    const x = (it.x0 + it.x1) / 2;
+    const position = s.axis ? s.axis.positionAt(x) : Number.NaN;
+    const card = describer.describe({
+      section: s.section.address,
+      layer: l.key,
+      system: s.section.axis.system,
+      position,
+      ...(owner !== undefined ? { element: { owner, key: it.key } } : {}),
+    });
+    if (!card) return undefined;
+    return [card.title, ...card.rows.map((r) => (r.value ? `${r.label}: ${r.value}` : r.label))].join('\n');
+  };
 }
 
 /**

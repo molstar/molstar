@@ -5,6 +5,7 @@
  */
 
 import type { RangesList } from '@molstar/seqx-core/data';
+import type { Location } from '@molstar/seqx-core/query';
 import type { ItemDescription, LayerLayout, SectionLayout } from '@molstar/seqx-core/render';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedView } from '@molstar/seqx-core/view';
@@ -17,11 +18,6 @@ import type { HoverCardRow } from './hover-card.js';
 // Each is given the place (the hit, its section and layer, the floored positions) and the parts so far, and adds its
 // own: rows of the card, phrases of the live region's sentence. The spec says which words attach to which data; the
 // application says which providers speak and in which order. Types only: `describe.ts` runs them.
-
-/** A card's row with its rich text (a tooltip's Markdown, inline): `value` is its plain text, what is read aloud. */
-export interface RichCardRow extends HoverCardRow {
-  readonly rich?: unknown;
-}
 
 /** What a description collects (`out`): the card's title, rows and the sentence's phrases. */
 export interface CardParts {
@@ -65,6 +61,8 @@ export interface CardReads {
   sourceRowOf(l: LayerLayout, key: string | number, start: number): { t: RangesList; i: number } | undefined;
   /** An item's category ('' when none). */
   categoryOf(l: LayerLayout, key: string | number): string;
+  /** An address as positions in the spec shown; undefined until it resolves (its data not arrived, or nothing). */
+  locate(address: string): Location | undefined;
 }
 
 /** What a provider is given (`at`): the place, its section and layer in the last frame, the models. */

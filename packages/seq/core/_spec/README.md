@@ -4738,6 +4738,12 @@ mark, as data; the viewer's `seq:tooltips` provider and an export's titles read 
   state); the export opens the navigators' sources and waits for their wants, colors by the view's held domains.
   Omitted, no rail either (no slim row: a viewer's export is its picture without its chrome). Why omitted by default: a
   window is session, not a figure.
+- **Titles** (`titles`, else the view's `export.titles`, else `name`; `render/export-titles.ts`): an exported item's
+  named box (its `<title>` the tooltip and the accessible name) says its name, or with `card` its composed card as plain
+  text, a line a row: a viewer's providers (`cardTitle`, the viewer passes its own), else the spec's tooltips alone
+  (`tooltipsAt` over the item's extent). Items only: bins, image tiles and summaries get none (a bin's rows depend on
+  the zoom the figure froze). A provider call an item, once an export, never a frame's; its size about the rows' text an
+  item. Why `name` by default: a figure's size as before.
 - **What the layouts place** (`figure`): a text section draws every line, its box its content; `size.height: 'auto'` is
   the sections' content's height (measured from a first layout); a ring's window only with `window` (the view's
   `export.window` when absent, false: an exported map is a figure).

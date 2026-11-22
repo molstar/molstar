@@ -4,6 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import type { MarkdownInline } from '@molstar/core/util/markdown';
+
 // The hover card's port (_spec/README.md "Ports", Hover card): the viewer computes the card as data (a title, rows of a
 // label and a value, the announcer's text) and its place (the anchor it stays clear of, the pointer, the view, a side
 // from `placeCard`), headless; the port draws it. The default adapter is `@molstar/ui`'s surface over the canvas
@@ -15,6 +17,11 @@ export interface HoverCardRow {
   readonly value: string;
   /** The row names an item at the place (a feature under it, a group's member): what `hover.cardItems` counts. */
   readonly item?: boolean;
+  /**
+   * A tooltip's text as its inline Markdown tree (strong, emphasis, code, Seq*'s own links, breaks), for an adapter that
+   * draws it; `value` (or the label, a row with no label) is its plain text, what the live region and an export read.
+   */
+  readonly rich?: readonly MarkdownInline[];
 }
 
 /** What the card says: its title, its rows, and the sentence the live region says of the same place. */

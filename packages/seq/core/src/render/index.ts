@@ -190,6 +190,7 @@ export { SquircleHandle, squirclePath, squirclePathArgs, squircleRadius } from '
 export { drawListsToSvg, escapeXml, type SvgAccessible, type SvgOptions } from './svg.js';
 export {
   accessibleOf,
+  type ItemTitle,
   itemText,
   locationText,
   MaxNamedItems,

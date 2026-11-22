@@ -720,6 +720,18 @@ param (`port`, a `HoverCardPortFactory` given the canvas's element, none headles
   shown, said once a provider (`seq.viewer.card.provider`). A run of small blocks is said by `seq:block` alone. Why
   entries, not internal sections: the application composing the card is the outside user; one registry rule orders
   header entries and providers.
+- **Tooltips** (`card-tooltips.ts`, `seq:tooltips`, order 95): the spec's tooltips over the core's `tooltipsAt` (core
+  "Render", Tooltips). It answers only on drawn marks (an element under the pointer, or a layer that marks every
+  position it shows: letters, values, grid, rows, matrix, logo), never on an empty band (EC-254); it ignores `whole` (a
+  note shows over an item, a region cell or a pair said whole, EC-260). The place it reads: the pointer's position and a
+  cell's y, a pair's two ends; an item by key (by data). Its rows come after the place's, share the `hover.cardItems`
+  cap with the place's items (a single row on the mark always shows), the matches past it counted in
+  `HoverCard.moreCount` (`cutItems`'s `+k more` says `more.length + moreCount`). A row carries its Markdown tree
+  (`HoverCardRow.rich`) for an adapter that draws it; `value` (the label, a row with no label) is its plain text. The
+  live region says the rows shown and the count (`…; and 47 more`), never a million texts. Addresses resolve through the
+  address model, once resolved.
+- **Export titles** (`cardTitles`): the viewer's `renderSvg` passes its composed card (title and rows, a line each, at
+  the item's middle) for an export with `card` titles.
 - **By region** (`describe-region.ts`): a pairs bin, a region grid's cell and a matrix cell are said in the core's words
   (`pairsBinHover`, `gridCellHover`, `matrixCellHover`: core "Render", Hover texts by region), their rows the card's;
   first of the sections, the whole description. Why the core's: an export's accessible layer and a host's own card say a

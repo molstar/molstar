@@ -12,6 +12,7 @@ import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { CardProviderEntry } from './card-provider.js';
 import { alleleOf } from './describe-allele.js';
 import { chemistryRows } from './describe-molecules.js';
+import { TooltipsCardProvider } from './card-tooltips.js';
 import { regionHoverOf } from './describe-region.js';
 
 // The card's built-in providers (_spec/README.md "Hover card", Providers): the viewer's own sections, registry entries
@@ -448,5 +449,6 @@ export const BuiltInCardProviders: readonly CardProviderEntry[] = [
   GridSection,
   ResidueSection,
   PlaceSection,
+  TooltipsCardProvider,
   BlockSection,
 ];

@@ -47,7 +47,8 @@ import {
 } from '@molstar/seqx-core/view';
 import type { Viewport } from './axis.js';
 import { type RenderConfigOverrides, renderConfig } from './config.js';
-import { accessibleOf, locationText } from './accessibility.js';
+import { accessibleOf, type ItemTitle, locationText } from './accessibility.js';
+import { itemTitles } from './export-titles.js';
 import { DrawLists } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
 import { layerSource } from './layer-data.js';
@@ -346,6 +347,13 @@ export interface RenderSvgOptions {
   readonly store?: DataStore;
   /** Legends in a band `below` the data or to its `right`, or `none`: the view's `export.legend` when absent. */
   readonly legend?: 'none' | 'below' | 'right';
+  /**
+   * What an exported item's `<title>` says: its `name`, or its `card` (the composed rows as plain text: a provider call
+   * an item, once an export); the view's `export.titles` when absent, else `name`. Items only.
+   */
+  readonly titles?: 'name' | 'card';
+  /** With `card` titles, an item's card as text (a viewer's composed providers); absent: the spec's tooltips alone. */
+  readonly cardTitle?: ItemTitle;
   /** A reader's color-blind substitution (off: an export draws the figure's colors unless asked). */
   readonly cvdSafe?: boolean;
   /**
@@ -754,7 +762,10 @@ export async function exportSvg(spec: Node, given: RenderSvgOptions): Promise<Re
       fonts: tokens.fonts,
       fade: config.fade,
       idPrefix,
-      accessible: withIssues(accessibleOf(model, frame.layout, titleText, emphasis?.highlights), specErrors),
+      accessible: withIssues(
+        accessibleOf(model, frame.layout, titleText, emphasis?.highlights, itemTitles(options, view, model, store)),
+        specErrors,
+      ),
       metadata: {
         'seq-settled': String(settled),
         ...(domains.length ? { 'seq-domains': domains.join(';') } : {}),
