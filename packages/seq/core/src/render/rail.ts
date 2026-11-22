@@ -280,8 +280,9 @@ function placeUpright(
 
 /**
  * A scrolled lanes band's rail (_spec/README.md "Render", Track heights): the rows rail's geometry upright at the band's
- * right edge, the whole of its lanes along the band, its window the lanes in view; pan only, drawn plain (no grips, no
- * hit: the wheel moves it).
+ * right edge, the whole of its lanes along the band, its window the lanes in view; pan only (no grips, its window's ends
+ * are body), drawn as the rows rail is (a hairline at rest, grown while hovered or dragged). The wheel moves it, so
+ * do a drag, a press outside the window and the Page keys (the rows rail's gesture, in lanes).
  */
 export function placeLanesRail(
   rail: Rail,
@@ -299,7 +300,7 @@ export function placeLanesRail(
     sectionId,
     '',
     LanesRail,
-    true,
+    false,
     box.y,
     box.height,
     box.x + box.width - SlimRailPx,
@@ -307,9 +308,11 @@ export function placeLanesRail(
     top,
     Math.min(lanes, top + room),
   );
+  // it exists only while its lanes overflow: always a target
+  rail.active = true;
 }
 
-/** A lanes rail's `navigator` (it takes no hit). */
+/** A lanes rail's `navigator`. */
 export const LanesRail = 'lanes-rail';
 
 /** A rows rail's hit's `navigator`. */
@@ -427,6 +430,8 @@ export function drawRail(
     g[4] = ink;
     emit(out, rail.vertical);
   }
+  // grips only where the box also zooms (rows): a lanes rail pans
+  if (own === LanesRail) return;
   const grip = tokens.colors['seq-grip'];
   const part = dragged ? d.part : lit;
   const gh = t + 2 * GripRise;
@@ -464,6 +469,8 @@ export function hitRail(rail: Rail, px: number, py: number, config: RenderConfig
     }
   }
   if (!part) return undefined;
+  // a lanes rail only pans: its window's ends are body
+  if (rail.hit.navigator === LanesRail && (part === 'start' || part === 'end')) part = 'body';
   // a window over the whole axis (the fit) has no body to drag, but the rail stays a target: its body is a place as
   // outside a window is (the hover names the place and marks it, never the whole rail lit; a sweep zooms to the region,
   // a click as elsewhere); its grips still resize it

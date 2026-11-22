@@ -7,6 +7,7 @@
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
 import { viewerConfig } from '../config.js';
+import { windowBehavior } from '../behaviors/window.js';
 import { SpecModel } from '../models/spec.js';
 import { followerRange, leaderRange } from '../models/view-follow.js';
 import { ViewModel } from '../models/view.js';
@@ -120,6 +121,27 @@ describe('the follow functions write into the caller’s record', () => {
     expect(followerRange(section, gene, undefined, 20, 'shortest', 40, p)).toBe(p);
     expect(followerRange(section, { start: 1, end: 2 }, undefined, 20, 'shortest', 40, q)).toBe(q);
     expect(p).not.toEqual(q);
+  });
+});
+
+describe('a follower’s window dragged by its body (a pan)', () => {
+  it('2x the axis past either end: the window keeps its width and stops at the end', () => {
+    const { view, range } = setup();
+    view.setWidth(GeneSection, 20);
+    view.setWidth(ProteinSection, 20);
+    const w = windowBehavior(view, viewerConfig());
+    view.setRange(ProteinSection, 1, 3);
+    const at = range(ProteinSection)!;
+    const width = at[1] - at[0];
+    w.begin(ProteinSection, 'body', 2);
+    w.dragTo(2 + 200);
+    const hi = range(ProteinSection)!;
+    expect(hi[1] - hi[0]).toBeCloseTo(width, 6);
+    w.dragTo(2 - 200);
+    const lo = range(ProteinSection)!;
+    expect(lo[1] - lo[0]).toBeCloseTo(width, 6);
+    expect(lo[0]).toBeGreaterThanOrEqual(0);
+    w.end();
   });
 });
 

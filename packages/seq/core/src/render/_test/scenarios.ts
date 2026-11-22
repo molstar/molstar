@@ -130,6 +130,17 @@ export const Scenarios: readonly Scenario[] = [
     panStep: 60,
     bands: { '/views/main/chr1/tx': { bandTop: 20 } },
   },
+  // the lanes rail dragged: the band's top moves a fraction of a lane a frame (the stored `bandTop` a drag writes), the rail
+  // drawn with its window where it is
+  {
+    name: 'gene models, rail dragged (60 kb)',
+    spec: geneModelsSpec,
+    runtimes: [GffRuntime],
+    width: 60_000,
+    center: 400_000,
+    panStep: 60,
+    bands: { '/views/main/chr1/tx': { bandTop: 11.25 } },
+  },
   {
     name: '3M letters (120 positions)',
     spec: bigSpec,

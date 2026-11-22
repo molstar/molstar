@@ -33,17 +33,10 @@ import type { EditOrigin } from '@molstar/seqx-viewer/ports';
 import { CladeActions } from '@molstar/seqx-viewer/bindings';
 import { bandFolds, pagedTop, setBandFolds } from './rows-band.js';
 import { RowsRailGesture } from './rows-rail.js';
+import { lanesBand } from './rows-band.js';
 import { trackOfLayer } from './two-axes.js';
 
 export { trackOfLayer };
-
-/** The ranges layer `key`'s last layout in a layout. */
-function lanesOf(layout: ViewLayout | undefined, key: string): RangesLay | undefined {
-  for (const s of layout?.sections ?? [])
-    for (const band of s.lays)
-      for (const l of band ?? []) if (l.key === key && l.type.name === 'ranges') return l.lay as RangesLay;
-  return undefined;
-}
 
 /** What a rows command is given: the rows layer's track (the first rows band when absent) and what each needs. */
 export interface RowsContext {
@@ -532,9 +525,9 @@ export function rowsBehavior(
     lay,
     wheelLanes(layer, dy) {
       if (disposed) return false;
-      const lanes = lanesOf(layout(), layer);
-      if (!lanes || !(lanes.scrollMax > 0)) return false;
-      const track = trackOfLayer(layer);
+      const b = lanesBand(layout(), layer);
+      if (!b || !(b.lay.scrollMax > 0)) return false;
+      const { lay: lanes, track } = b;
       const now = view.band(track)?.bandTop ?? lanes.top;
       const top = Math.max(0, Math.min(lanes.scrollMax, now + dy / lanes.laneHeight));
       if (top === now) return false;
