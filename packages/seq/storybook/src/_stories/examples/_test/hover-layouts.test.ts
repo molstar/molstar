@@ -14,7 +14,7 @@ import { AcrossViews, type ExampleView, ExampleViews } from '@molstar/seqx-examp
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { openExample } from './draw-checks.js';
-import { Known, summed, sweepHover } from './hover-probes.js';
+import { sweepHover } from './hover-probes.js';
 
 /** A view a layout, by `dataset/id`. */
 const ByLayout: readonly (readonly [string, string])[] = [
@@ -51,6 +51,6 @@ describe('the hover contract, one view a layout', () => {
       const r = sweepHover(viewer, id);
       expect(r.probes).toBeGreaterThan(0);
       expect(r.layouts).toContain(layout);
-      expect(summed(r.wrong)).toEqual(Known.get(id) ?? []);
+      expect(r.wrong).toEqual([]);
     });
 });

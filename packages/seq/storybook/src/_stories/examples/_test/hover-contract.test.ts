@@ -22,7 +22,7 @@ import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { GenomeViews } from '../../features/genome/views.js';
 import { openExample } from './draw-checks.js';
-import { Known, type Swept, summed, sweepHover } from './hover-probes.js';
+import { type Swept, sweepHover } from './hover-probes.js';
 
 /** The views the sweep leaves out, each with why. */
 const Skipped: ReadonlyMap<string, string> = new Map([
@@ -60,7 +60,7 @@ describe('the hover contract: every drawn mark answers a hover with a hit, a mar
       viewer = await openExample(view, { fixtures: true, gene: '', delayMs: 0, wait: 5000, awaitOpens: true });
       const r = sweepHover(viewer, `${view.dataset}/${view.id}`);
       all.push(r);
-      expect(summed(r.wrong)).toEqual(Known.get(`${view.dataset}/${view.id}`) ?? []);
+      expect(r.wrong).toEqual([]);
     });
 
   it('reaches every built-in layer type and layout, and the bridges', { tags: ['medium'] }, () => {

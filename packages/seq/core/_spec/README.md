@@ -4222,13 +4222,14 @@ pairs layer's prepared form and its region reader through the composition (`type
   nest: a self-pair, a duplicate and a shared end cross nothing (held against a brute force).
 - **Hit**: candidates by hull over the point's x, then distance to the curve (`pairs.hitPx`), and the carets by the
   distance to their boxes, a tie the later drawn (the carets after the arcs); the pair's element, its extent both ends.
-  **Hover**: the hovered pair; as arcs, every pair with an end at a hovered position (a base, or either position of a
-  cell) or in the hover projected onto the section; as dots, the pair at the hovered cell. **Highlight**: the pairs a
-  highlight channel lists by key (`EmphasisHighlight.elements`) drawn over in the channel's color in the `highlight`
-  pass, as the selection's in the accent (a pair two channels list: the later's); the pairs each channel lights are made
-  again only when the channels change (by identity), into a reused array. The pairs pass ignores
-  `EmphasisHighlight.style`: a pair is a stroke over its arc or dot in any style (a tint or a band has no room on a
-  curve).
+  **Hover**: the hovered pair alone (its arc and its caret); as arcs, every pair with an end at a hovered position (a
+  base, or either position of a cell) or in the hover projected onto the section, another layer's hovered item too (a
+  score box over a ligand lights the arcs its position lights: the hover contract, Emphasis); as dots, the pair at the
+  hovered cell. **Highlight**: the pairs a highlight channel lists by key (`EmphasisHighlight.elements`) drawn over in
+  the channel's color in the `highlight` pass, as the selection's in the accent (a pair two channels list: the later's);
+  the pairs each channel lights are made again only when the channels change (by identity), into a reused array. The
+  pairs pass ignores `EmphasisHighlight.style`: a pair is a stroke over its arc or dot in any style (a tint or a band
+  has no room on a curve).
 
 ### The grid layer
 

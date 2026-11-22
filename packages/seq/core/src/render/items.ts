@@ -484,7 +484,7 @@ export function countStrip(
       strip.v = table.count[i];
       addToStrip(strip, src, axis, table.bin[i] * level, (table.bin[i] + 1) * level);
     }
-  return paintStrip(strip, axis.columns, tokens);
+  return paintStrip(strip, axis.columns, tokens, 1, axis);
 }
 
 /**
