@@ -101,7 +101,7 @@ describe('region reads: gaps', () => {
     expect(lay.n).toBe(20);
   });
 
-  it.fails('pairs read by region over an assembly are laid on its blocks (a ring’s chords between chromosomes)', async () => {
+  it('pairs read by region over an assembly are laid on its blocks (a ring’s chords between chromosomes)', async () => {
     const list: PairsList = {
       form: 'list',
       aSystem: categoryColumn(['c1', 'c1']),
