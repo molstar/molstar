@@ -80,14 +80,14 @@ export const BuilderCases: readonly BuilderCase[] = [
   make(
     'genome',
     'A genome view',
-    'An assembly from its sequences, a genome section of it (a block a sequence, a ruler in bases), and one chromosome of it, the locus.',
+    'An assembly from its sequences, a genome section of it (a block a sequence, a ruler in bases), and a section of one chromosome of it.',
     genome.build,
     genomeSource,
   ),
   make(
     'check',
     'check()',
-    'A mistake the types cannot catch: any string is a reference, so an address written out that names nothing compiles. `check()` says what is wrong, the view shows what is there.',
+    'A mistake the types cannot catch: any string is a reference, so an address written out that names nothing compiles. `check()` says what is wrong. The spec has an error, so the export refuses to draw it: the SVG is blank (its issues are the status line’s), while the canvas draws what it can.',
     check.build,
     checkSource,
     () => [{ title: 'check()', text: formatIssues(check.issues()) }],

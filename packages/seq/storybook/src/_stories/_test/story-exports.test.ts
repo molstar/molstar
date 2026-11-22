@@ -25,6 +25,9 @@ function storiesFiles(dir: string): string[] {
   return out;
 }
 
+/** Element classes that predate this guard, exported for their tests: to move into modules of their own. */
+const Known = new Set(['LegendPlacementsRoot', 'ThemesEditingRoot', 'SchemesGalleryRoot']);
+
 describe('stories files', () => {
   it('export stories only: an annotated export is a StoryObj', () => {
     const files = storiesFiles(root);
@@ -34,6 +37,15 @@ describe('stories files', () => {
       for (const m of readFileSync(f, 'utf8').matchAll(/^export const (\w+)\s*:\s*([^=]+)=/gm)) {
         if (!m[2].trim().startsWith('StoryObj')) wrong.push(`${f.slice(root.length + 1)}: ${m[1]}`);
       }
+    }
+    expect(wrong).toEqual([]);
+  });
+
+  it('export no function or class: Storybook lists it as a story too', () => {
+    const wrong: string[] = [];
+    for (const f of storiesFiles(root)) {
+      for (const m of readFileSync(f, 'utf8').matchAll(/^export (?:async )?(?:function\*?|class) (\w+)/gm))
+        if (!Known.has(m[1])) wrong.push(`${f.slice(root.length + 1)}: ${m[1]}`);
     }
     expect(wrong).toEqual([]);
   });

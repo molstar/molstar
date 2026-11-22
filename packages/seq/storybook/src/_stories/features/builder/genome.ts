@@ -8,7 +8,7 @@ import type { Node } from '@molstar/core/repr/tree';
 import { assembly, createSeqSpec, genome } from '@molstar/seqx-core/lang';
 
 // A genome: an assembly from its sequences, and a genome section of it (a block a sequence, a ruler in bases); the
-// second view's `include` is its locus, the chromosomes it shows.
+// second section's `include` shows one chromosome (a locus is a query, not a builder call).
 
 export function build(): Node {
   const b = createSeqSpec({ title: 'A genome view' });

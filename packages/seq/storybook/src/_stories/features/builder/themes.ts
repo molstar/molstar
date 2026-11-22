@@ -26,7 +26,7 @@ export function build(): Node {
     section.track('letters').layer('letters', { type: 'letters', color: theme.scheme('zappo') });
     // categorical: a color for each value of the column `category`
     section.track('regions').layer('regions', { type: 'ranges', data: regions, color: theme.field('category') });
-    // values: the bars #d62728 where the value is over 80, #4682b4 elsewhere
+    // values: the bars in the alert color where the value is over 80, in the base color elsewhere
     section.track('signal').layer('signal', {
       type: 'values',
       data: signal,

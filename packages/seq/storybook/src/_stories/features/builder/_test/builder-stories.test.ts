@@ -25,6 +25,8 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+// The source shown is the module's (the `?raw` import is the same file, so this proves the shown text is the module's
+// whole, license header aside); the `@ts-expect-error` in the handles module is proved by the storybook typecheck.
 const sourceOf = (id: string) => readFileSync(new URL(`../${id}.ts`, import.meta.url), 'utf8');
 
 describe('Builder stories, headless', () => {
@@ -37,9 +39,13 @@ describe('Builder stories, headless', () => {
       const svg = viewer.renderSvg({ idPrefix: 'b-' });
       await vi.advanceTimersByTimeAsync(400);
       const r = await svg;
-      // the view of `check` is the placeholder of a spec with an issue: it has nothing to draw
-      if (c.id === 'check') expect(r.issues.length + viewer.modelIssues.value.length).toBeGreaterThan(0);
-      else {
+      // the export refuses a spec with an error (`exportSvg`: a blank picture and the issues): the SVG of `check` is blank
+      // while the canvas draws the letters it can
+      if (c.id === 'check') {
+        expect(r.issues.some((i) => i.severity === 'error')).toBe(true);
+        expect(recordDrawLists(r.lists, ['data']).split('\n').filter(Boolean)).toHaveLength(2);
+        expect(recordDrawLists(viewer.frame!.lists, ['data'])).toContain('rect');
+      } else {
         expect([r.settled, r.issues]).toEqual([true, []]);
         expect(viewer.modelIssues.value).toEqual([]);
         expect(recordDrawLists(r.lists, ['data']).split('\n').length).toBeGreaterThan(3);
