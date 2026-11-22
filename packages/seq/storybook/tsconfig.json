@@ -7,7 +7,7 @@
     "declarationMap": false,
     "noEmit": true,
     "rootDir": "../../..",
-    "types": ["node"],
+    "types": ["node", "vite/client"],
     "jsxImportSource": "@molstar/ui/dom"
   },
   "include": ["src/**/*", "vite.ts", "_test/**/*"]
