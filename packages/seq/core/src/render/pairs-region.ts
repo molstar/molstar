@@ -17,7 +17,7 @@ import {
   type TileRead,
 } from './layer-data.js';
 import type { LayoutContext, StoreReader } from './layer-type.js';
-import { assemblyPairs } from './pairs-assembly.js';
+import { withGenome } from '@molstar/seqx-core/resolve';
 import { PairDatum, type PairsLay, type PairsPrep } from './pairs-lay.js';
 
 // Pairs read by region (_spec/README.md "Render", The pairs layer: by region): the layer's one reader over a source's
@@ -27,6 +27,17 @@ import { PairDatum, type PairsLay, type PairsPrep } from './pairs-lay.js';
 // never empty), each bin pair one arc between its bins' middles, stroked by count. What is read becomes the frame's
 // `PairsData` (ends on the layer's two systems, a pair found from its other end turned round; every row of the tiles
 // read, each once by the anchor rule), kept while the entries read are the same, so a warm frame builds nothing.
+
+/**
+ * Pairs over an assembly's reader (`pairs-assembly.ts`), loaded with the genome chunk: a model with an assembly waits
+ * for both, so a layer over one never reads before it lands. Why lazy: a viewer that never opens a genome pays nothing.
+ */
+const AssemblyPairs: { read?: typeof import('./pairs-assembly.js').assemblyPairs } = {};
+withGenome(() =>
+  import('./pairs-assembly.js').then((m) => {
+    AssemblyPairs.read = m.assemblyPairs;
+  }),
+);
 
 /** What a region read of pairs keeps on its lay between frames. */
 export interface RegionState {
@@ -111,7 +122,7 @@ export function regionPairs(
   data: StoreReader,
   lay: PairsLay,
 ): PairsPrep | undefined {
-  if (region.assembly) return assemblyPairs(prep, region, region.assembly, ctx, data, lay);
+  if (region.assembly) return AssemblyPairs.read?.(prep, region, region.assembly, ctx, data, lay);
   const state = regionState(lay);
   const { src } = region;
   const cov = data.coverage(src.source);
