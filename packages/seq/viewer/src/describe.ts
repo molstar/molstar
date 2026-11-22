@@ -4,7 +4,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { CategoryColumn, type Column } from '@molstar/core/repr/tree';
 import type { RangesList } from '@molstar/seqx-core/data';
 import type { Key, Location } from '@molstar/seqx-core/query';
 import { DefaultNumbering, findNumbering, numberingIds, rangesLocation } from '@molstar/seqx-core/query';
@@ -27,6 +26,7 @@ import {
 import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { AddressModel, Cursor, SpecModel, StoreModel, ViewModel } from '@molstar/seqx-viewer/models';
 import { BridgeView } from '@molstar/seqx-viewer/models/bridge-hooks';
+import { AlleleInfoRows, alleleOf } from './describe-allele.js';
 import { chemistryRows } from './describe-molecules.js';
 import { regionHoverOf } from './describe-region.js';
 import type { HoverCard, HoverCardRow } from './hover-card.js';
@@ -290,44 +290,6 @@ const ItemSection: CardSection = {
     out.whole = true;
   },
 };
-
-/** The INFO fields an allele's card lists before "+k more" (the rest in the source's rows). */
-const AlleleInfoRows = 8;
-
-/** A source's fixed fields (core _spec "Data", VCF, Fields): what is not an INFO key. */
-const FixedFields = new Set(['label', 'name', 'ref', 'alt', 'qual', 'filter', 'category']);
-
-/**
- * A variant allele as its card says it (core _spec "Data", VCF; genome formats' matrix row "a variant allele"): a row
- * of a source's list holding `ref` and `alt` is one; its record's ID (`label`), its category and its INFO fields (every
- * other field with a value, in the source's order); undefined for any other row.
- */
-function alleleOf(
-  t: RangesList,
-  i: number,
-): { readonly id: string; readonly category: string; readonly info: [string, string][] } | undefined {
-  const fields = t.fields ?? [];
-  if (!fields.some((f) => f.name === 'ref') || !fields.some((f) => f.name === 'alt')) return undefined;
-  const text = (name: string): string => {
-    const f = fields.find((x) => x.name === name);
-    return f ? cellText(f.column, i) : '';
-  };
-  const info: [string, string][] = [];
-  for (const f of fields) {
-    if (FixedFields.has(f.name)) continue;
-    const v = cellText(f.column, i);
-    if (v) info.push([f.name, v]);
-  }
-  return { id: text('label'), category: text('category'), info };
-}
-
-/** A column's cell as text: '' when missing (a null category, a NaN, int32's missing value). */
-function cellText(c: Column, i: number): string {
-  if (c instanceof CategoryColumn) return c.get(i) ?? '';
-  const v = c[i];
-  // an INFO integer is often an id (ALLELEID): written as it is, never grouped
-  return v === undefined || Number.isNaN(v) || v === -2147483648 ? '' : Number.isInteger(v) ? String(v) : numberText(v);
-}
 
 /**
  * A rows layer's hidden-columns chip (core _spec "Render", The rows layer, Row columns, Narrow): each column it hides

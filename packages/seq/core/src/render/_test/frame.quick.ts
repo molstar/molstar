@@ -171,6 +171,37 @@ describe('warm draws and hovers allocate nothing; a layout a bounded size', () =
       expect(r.bytesPerStep, `${s.name} projected: ${r.note}`).toBeLessThanOrEqual(inject('perfThreshold'));
     });
 
+    it(`${s.name}: hover with its projection (the view's mark where a layer drew none)`, async ({ task }) => {
+      // the hover as the viewer draws it (viewer-emphasis.ts): its hit, and its projection with its own section, so a
+      // hit its layer draws no mark for (a position, a density bin) takes the view's (Emphasis, The hover contract)
+      const settled = await prepare(s);
+      const input = hoverInput(s);
+      const layout = settled.renderer.frame(input).layout;
+      const { hits } = hovers(settled, input);
+      const hover = reusedHover(hits);
+      const shown = hits.map((h) =>
+        projectOntoView(
+          settled.model,
+          settled.view,
+          h.extent ?? rangesLocation(h.system, h.position === undefined ? [] : [h.position, h.position + 1]),
+          { own: true, close: true },
+        ),
+      );
+      const sections = hits.map((h) => layout.sections.find((x) => x.id === h.section)?.section.address);
+      const p: { hover?: Location; hoverSection?: string } = {};
+      const at = { ...input, emphasis: { ...hover.emphasis, projected: p } };
+      const step = (i: number) => {
+        // the hit record is the emphasis's (`reusedHover`: one object, its fields set)
+        hover.set(i);
+        p.hover = shown[i % shown.length];
+        p.hoverSection = sections[i % sections.length];
+        settled.renderer.frame(at);
+      };
+      const { r } = quickCase(task, `${s.name} own hover`, step, Options);
+      console.info(`${s.name} own hover: ${r.bytesPerStep.toFixed(0)} bytes a frame (${r.note})`);
+      expect(r.bytesPerStep, `${s.name} own hover: ${r.note}`).toBeLessThanOrEqual(inject('perfThreshold'));
+    });
+
     it(`${s.name}: overlapping highlight channels`, async ({ task }) => {
       const settled = await prepare(s);
       const input = hoverInput(s);

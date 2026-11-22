@@ -81,7 +81,9 @@ const Runtimes = [/seq\/core\/src\/runtimes\//, /seq\/core\/src\/structure\//];
 const AllCases = [
   { name: 'reading a spec', entry: 'spec-read.ts', target: 260_000 },
   { name: 'headless rendering', entry: 'headless.ts', target: 950_000 },
-  { name: 'the viewer, default', entry: 'viewer.ts', target: 1_495_000, unlisted: Runtimes },
+  // 1,492.5 kB before the hover contract (HC, 2026-11-22: 1,496.7 kB, +4.2: the view's own hover mark, a gap's hit, a
+  // legend's way back to its items drawn, an allele's card): raised
+  { name: 'the viewer, default', entry: 'viewer.ts', target: 1_500_000, unlisted: Runtimes },
   { name: 'viewer, minimal', entry: 'viewer-minimal.ts', target: 1_060_000, unlisted: Unlisted },
   { name: 'bigWig runtime', entry: 'bigwig.ts', target: 30_000, own: /seq\/core\/src\/runtimes\// },
   // the BED family's runtime with io's BGZF (no viewer bundles it); its reads by region (io's tabix, the region lines)
