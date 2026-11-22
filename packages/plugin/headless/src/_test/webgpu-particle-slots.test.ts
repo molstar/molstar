@@ -123,6 +123,10 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles on WebGPU', () =>
       const image = async () => {
         for (let i = 0; i < 4; ++i) {
           await plugin.getImageRaw({ width: Size, height: Size });
+          // the cull's read-backs landed (a room overflowed asks for another cull, tracked once it is read: on a slow
+          // device, a software Vulkan's, after the frame), then the work they asked for
+          await plugin.canvas3d!.graphics.waitForGpuCommandsComplete();
+          await new Promise((r) => setTimeout(r, 0));
           await plugin.canvas3d!.graphics.resources.pending.whenReady();
           const camera = plugin.canvas3d!.camera;
           camera.setState(camera.getFocus(Vec3.create(45, 45, 45), 70), 0);
@@ -353,6 +357,10 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles on WebGPU', () =>
           .commit();
         for (let i = 0; i < 4; ++i) {
           await plugin.getImageRaw({ width: Size, height: Size });
+          // the cull's read-backs landed (a room overflowed asks for another cull, tracked once it is read: on a slow
+          // device, a software Vulkan's, after the frame), then the work they asked for
+          await plugin.canvas3d!.graphics.waitForGpuCommandsComplete();
+          await new Promise((r) => setTimeout(r, 0));
           await plugin.canvas3d!.graphics.resources.pending.whenReady();
           const camera = plugin.canvas3d!.camera;
           camera.setState(camera.getFocus(Vec3.create(45, 45, 45), 90), 0);
