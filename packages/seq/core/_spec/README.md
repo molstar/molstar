@@ -341,9 +341,10 @@ never chemistry: a component code, a SMILES, a GlyTouCan id are strings it match
   `seq.lang.grid.content`); the `matrix` kind (`target`, inline `values` or `codes` with `states`, or `source` and
   `field`: `seq.lang.matrix.content`) and the `matrix` layer type (its data a matrix); `map.source` (a `segments` map's
   runs from a pairs source, instead of `segments`: `seq.lang.map.params`); a grid section's `of_y` a rows system (an
-  alignment's, a matrix's states), `member_order`, `member_order_y` (the rows layer's order values); a source's
-  `features` (`transcripts` when absent, `genes`, `rows`) and `samples`; BED's columns named by number through `fields`
-  (`{ stain: '4' }`); the `line` word `gene`.
+  alignment's, a matrix's states: `<alignment>/(rows)`, `<matrix>/(states)`; read: Resolved view, Grids),
+  `member_order`, `member_order_y` (the rows layer's order values; read); a source's `features` (`transcripts` when
+  absent, `genes`, `rows`) and `samples`; BED's columns named by number through `fields` (`{ stain: '4' }`); the `line`
+  word `gene`.
 
 | Item                                                                       | Whose       | Default                                                   | Why the default; the alternatives                                           |
 | -------------------------------------------------------------------------- | ----------- | --------------------------------------------------------- | --------------------------------------------------------------------------- |
@@ -2217,9 +2218,9 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
 ### Unread params
 
 - **Said, never dropped in silence** (`resolve/unread.ts`): a param the language declares and this version reads nowhere
-  is `seq.resolve.param.unread` (info), one a node, naming the lane that reads it: `map.source` (FR),
-  `section.member_order` and `member_order_y` (LA), `assembly.names` (GF: the printed names stay the assembly's). The
-  lane that reads one drops it from `Unread`. Why: a reader shown a spec drawn without what it says should be told why.
+  is `seq.resolve.param.unread` (info), one a node, naming the lane that reads it: `map.source` (FR), `assembly.names`
+  (GF: the printed names stay the assembly's). The lane that reads one drops it from `Unread`. Why: a reader shown a
+  spec drawn without what it says should be told why.
 
 ### Maps
 
@@ -2417,6 +2418,14 @@ Overlay, Opened sources), kept per model and view. No data, no dynamic node, no 
   system when `of_y` is another), a section's region through `follow` (the path from its system), `none` a window of its
   own (`viewport.y`). A y that cannot follow (no path) is `seq.view.follow.unplaced` and keeps its own window. A section
   whose `of` names no system (with blocks: its first block's) is `seq.view.section.system`; its layers are not placed.
+- **Categorical axes** (EC-35; `view/members.ts`): a grid's `of` or `of_y` a rows system (`<alignment>/(rows)`,
+  `<matrix>/(states)`: `memberSystem`) is categorical, a position a named member: `ResolvedSection.members` (x) and
+  `GridAxis.members` (y) name its owner, which system and its order (`member_order`, `member_order_y`: the rows layer's
+  values, `data` when absent). A grid node's `x` or `y` may name one (resolved after the matrices, whose states systems
+  are made there). A categorical y over another system than x's with no `follow_y` keeps its own window, silently (a
+  gene × sample grid); a `follow` or `follow_y` from positions onto members is `seq.view.follow.unplaced` (no path). Why
+  rows systems: they are systems already, so a member selected on the grid lights its row in a matrix or rows layer of
+  the same system with no map.
 - **A grid over blocks** (a grid over a complex): a grid section with no `of` and no blocks of its own that `follow`s a
   section of blocks takes that section's blocks and axis (their display units, on the leader's address), its follow the
   identity on those units, and its y the same blocks (`followsX`). Its tracks' layers are placed per block as a section
@@ -3910,6 +3919,13 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   otherwise feed its height back into the room and shrink.
 - **Chrome**: the label column (the first track's label) and y's first and last positions at the plot's top and bottom,
   their strings made at place (a draw allocates nothing).
+- **Categorical chrome** (EC-35; `layout/grid-members.ts`): no first and last positions; the members' labels, a label
+  every `ceil(rows.labelMinPx / px a member)` members, y's at the label column's right edge, x's as placed letters at
+  45° up from the plot's top (their advances measured at place, kept by font and text), the run capped at `labelWidth`;
+  the box grows by the x labels' room above the plot, fixed (never moved by a zoom); the track's label above the plot
+  when that room holds it. `hitChrome`: a y label, or a point on an x label's run, is its member (`target: 'row'`, the
+  rows system and the member): a click selects it (built). Why 45°: upright labels overlap at a member a few px wide,
+  vertical ones read sideways.
 - **A grid over blocks** (its section's blocks a leader's, "Resolved view"): a strip a pair of blocks in view, x's block
   across (`strips.block`) and y's down (`strips.yBlock`, its first unit `strips.yFirst`, in the lays' key), each block
   laid as a row of blocks is (`BlockRow`, gaps between them), y over x's window and the plot's height (over two sections
@@ -4215,6 +4231,16 @@ pairs layer's prepared form and its region reader through the composition (`type
   chromosomes is read by its tiles (Hi-C over the genome). A symmetric grid's pair below the diagonal reads the pair
   above, its tiles transposed (the store: a pair the source serves the other way round is that pair's mirror). The
   whole-assembly level cut into block pairs is not read yet: at the fit each pair reads its own coarse tiles.
+- **Categorical axes** (EC-35; `render/members.ts`, `Members`): the order's permutation (`order`, a display offset's
+  member) and its inverse (`rank`), both `Int32Array`, with the members' labels (an inline alignment's row labels, an
+  inline matrix's `states`, else `row 1`, `state 1`) and a version; made once a node, length and order. `tree` reads a
+  `tree` node of the alignment (leaves by label, rows it lacks after them in data order); `{ field, direction }` an
+  inline row field or `label` (numbers by value, text by code points, missing last, ties in data order). The axis
+  transform holds them (`AxisTransform.members`: its pieces one a member in display order, a member's piece its rank, no
+  breaks), so cells, emphasis and hits read members through it unchanged; the image tiles read the reduction in display
+  order (`orderedPyramid`: built when first drawn as tiles, kept by the grid and the orders' versions, which the tiles'
+  keys hold), so a reorder builds it once. The grid's own reduction is built the same way, lazily: a grid drawn as rects
+  builds none.
 - **Color**: the value's field theme (`value`), its domain the grid's range; a missing value (NaN) transparent;
   `triangle` keeps `upper` (y before x, above the diagonal) or `lower` (y after x).
 - **Hit**: any point on the plot is the cell under it (`target: 'cell'`, `position` on x, `ySystem`, `yPosition`), drawn

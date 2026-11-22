@@ -5,11 +5,12 @@
  */
 
 // A grid over two sections of blocks (EC-209): a warm frame of the plot (a strip a block pair, its cells and its dots)
-// and its crosshair hover allocate nothing. By hand, never in CI: `pnpm -C packages/seq/core test:perf`.
+// and its crosshair hover allocate nothing; a categorical grid's (EC-35) draw with its labels and its hover neither. By hand, never in CI: `pnpm -C packages/seq/core test:perf`.
 
 import { quickCase } from '@molstar/test-harness/quick';
 import { describe, expect, inject, it } from 'vitest';
-import { drawView, type FrameInput, type Hit, hitView } from '../index.js';
+import { drawView, type FrameInput, GridPlacement, type Hit, hitView } from '../index.js';
+import { kinship } from './grid-categorical-fixtures.js';
 import { twoSectionsSpec } from './grid-two-sections-fixtures.js';
 import { settle } from './helpers.js';
 import { reusedHover } from './scenarios.js';
@@ -67,6 +68,35 @@ describe('a grid over two sections of blocks draws and hovers with nothing alloc
       {},
     );
     console.info(`grid two sections hover: ${h.r.bytesPerStep.toFixed(0)} bytes a frame (${h.r.note})`);
+    expect(h.r.bytesPerStep, h.r.note).toBeLessThanOrEqual(inject('perfThreshold'));
+  });
+
+  it('a categorical grid (EC-35): a warm draw with its members’ labels, and its crosshair hover', async ({ task }) => {
+    const s = await settle(kinship(400, 3, { field: 'score' }, { field: 'score', direction: 'descending' }).spec);
+    const input: FrameInput = { size: { width: 1200, height: 1400 }, dpr: 2, settled: true };
+    const f = await s.frame(input);
+    const d = quickCase(task, 'categorical grid draw', () => drawView(f.layout, f.lists), {});
+    console.info(`categorical grid draw: ${d.r.bytesPerStep.toFixed(0)} bytes a frame (${d.r.note})`);
+    expect(d.r.bytesPerStep, d.r.note).toBeLessThanOrEqual(inject('perfThreshold'));
+    const plot = f.layout.sections[0].placement as GridPlacement;
+    const hits: Hit[] = [];
+    for (let k = 0; k < 40; k++) {
+      const h = hitView(f.layout, plot.strips.axes[0].x0 + 5 + ((k * 37) % 800), plot.plotTop + 5 + ((k * 53) % 800));
+      if (h) hits.push({ ...h });
+    }
+    expect(hits.length).toBeGreaterThan(10);
+    const hover = reusedHover(hits);
+    const at = { ...input, emphasis: hover.emphasis };
+    const h = quickCase(
+      task,
+      'categorical grid hover',
+      (i) => {
+        hover.set(i);
+        s.renderer.frame(at);
+      },
+      {},
+    );
+    console.info(`categorical grid hover: ${h.r.bytesPerStep.toFixed(0)} bytes a frame (${h.r.note})`);
     expect(h.r.bytesPerStep, h.r.note).toBeLessThanOrEqual(inject('perfThreshold'));
   });
 });

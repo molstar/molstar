@@ -43,6 +43,7 @@ export {
   unitOfPlace,
 } from './places.js';
 export { ViewIssues } from './issues.js';
+export { type MemberAxis, type MemberOrder, memberAxis, memberOrderOf } from './members.js';
 export {
   type Axis,
   type Follow,

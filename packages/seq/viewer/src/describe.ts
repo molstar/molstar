@@ -350,8 +350,12 @@ const GridSection: CardSection = {
     // a residue as a structure's readout writes it: its letter before its number (`CDK2 K33`), when it is loaded
     const end = (system: string, k: number | undefined, i: number, of = blocks) =>
       `${nameOf(system, k, of)} ${at.words.letterOn(system, i)}${spanText(i, i + 1)}`;
-    const x = end(p.system, p.block, at.position);
-    const y = end(p.ySystem, p.yBlock ?? p.block, at.yPosition, yBlocks);
+    // a categorical axis (EC-35): its member by label (`NA12878 × NA12891`)
+    const st = at.section.placement.strips;
+    const xm = st.n ? st.axes[0].members : undefined;
+    const ym = st.n ? st.ys[0]?.members : undefined;
+    const x = xm?.labels[at.position] ?? end(p.system, p.block, at.position);
+    const y = ym?.labels[at.yPosition] ?? end(p.ySystem, p.yBlock ?? p.block, at.yPosition, yBlocks);
     const v = at.words.gridValue(l, p.system, at.position, p.ySystem, at.yPosition);
     const value = valueText(v, unitOf(l));
     out.title = `${x} × ${y}`;

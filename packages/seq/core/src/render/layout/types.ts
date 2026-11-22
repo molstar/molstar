@@ -12,7 +12,7 @@
 import type { Issue } from '@molstar/core/repr/tree';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedSection, ResolvedTrack } from '@molstar/seqx-core/view';
-import type { AxisTransform, Viewport } from '../axis.js';
+import type { AxisMembers, AxisTransform, Viewport } from '../axis.js';
 import type { RenderConfig } from '../config.js';
 import type { PassName, PassWriter } from '../draw-lists.js';
 import type { Box, Emphasis, Hit, LabelSink } from '../layer-type.js';
@@ -131,6 +131,8 @@ export interface PlaceContext {
     };
     readonly pieces: readonly number[];
     readonly viewport?: Viewport;
+    /** A categorical y (EC-35): its members, a piece each in display order (the y transform holds them). */
+    readonly members?: AxisMembers;
   };
 }
 

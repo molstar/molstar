@@ -64,10 +64,10 @@ export interface GridPrep {
   /** The values' range (NaN with none): the color's domain is held to it. */
   readonly lo: number;
   readonly hi: number;
-  /** The shared reduction over the values, built once (`rows` the x positions, `columns` the y). */
-  readonly pyramid?: Pyramid;
   /** Read by region (a source's grid): where (`grid-region.ts`). */
   readonly region?: GridRegion;
+  /** The reduction's reducer (`aggregate`): a pyramid in display order over categorical axes reduces alike. */
+  readonly reducer: 'mean' | 'max' | 'min';
   /**
    * Over an assembly: each sequence's name as its source lists it, by system; a strip (a block pair) reads its x
    * block's plan, its y block's name the region's (`yRegions`, made once a y block).
@@ -134,7 +134,6 @@ function prepare(layer: ResolvedLayer, model: StaticModel): GridPrep {
   const grid = a?.shape === 'grid' ? a.grid : undefined;
   let lo = Number.NaN;
   let hi = Number.NaN;
-  let pyramid: Pyramid | undefined;
   if (grid) {
     const v = grid.values;
     for (let i = 0; i < v.length; i++) {
@@ -143,15 +142,6 @@ function prepare(layer: ResolvedLayer, model: StaticModel): GridPrep {
       if (Number.isNaN(lo) || x < lo) lo = x;
       if (Number.isNaN(hi) || x > hi) hi = x;
     }
-    // a triangle reduces its own cells alone: the others missing, so a coarse sample on the diagonal keeps its half
-    let kept = v;
-    if (triangle !== 'both') {
-      kept = Float32Array.from(v);
-      for (let i = 0; i < grid.nx; i++)
-        for (let j = 0; j < grid.ny; j++) if (!keeps(triangle, i, j)) kept[i * grid.ny + j] = Number.NaN;
-    }
-    pyramid = new Pyramid({ factor: 2, pairing: 'square', reducer });
-    pyramid.setValues(grid.nx, grid.ny, kept);
   }
   // a source's grid, read by region on its two systems (`grid-region.ts`)
   const src =
@@ -167,10 +157,10 @@ function prepare(layer: ResolvedLayer, model: StaticModel): GridPrep {
     xSystem: over ? src.dataSystem : (a?.target ?? ''),
     ySystem: a?.ySystem ?? '',
     triangle,
+    reducer,
     channels: channelForms(layer.theme),
     lo,
     hi,
-    ...(pyramid ? { pyramid } : {}),
   };
 }
 
@@ -380,6 +370,12 @@ function layoutRects(lay: GridLay, prep: GridPrep, a: AxisTransform, ay: AxisTra
 
 /** A position's sample range on an axis's view: the first and past the last position in view. */
 function viewRange(a: AxisTransform, n: number, out: Int32Array, o: number) {
+  if (a.members) {
+    // display offsets: the units in view
+    out[o] = Math.max(0, Math.floor(a.u0));
+    out[o + 1] = Math.min(n, Math.ceil(a.u1));
+    return;
+  }
   const p0 = a.elementAtUnit(Math.max(a.u0, 0));
   const p1 = a.elementAtUnit(Math.max(a.u0, a.u1 - 1e-6));
   const lo = Math.max(0, Math.min(p0 < 0 ? 0 : p0, p1 < 0 ? n - 1 : p1));
@@ -396,7 +392,7 @@ const Range = new Int32Array(4);
  */
 function layoutImages(lay: GridLay, prep: GridPrep, ctx: LayoutContext, a: AxisTransform, ay: AxisTransform) {
   const g = prep.grid!;
-  const pyr = prep.pyramid!;
+  const pyr = orderedPyramid(prep, a, ay);
   const cache = lay.cache!;
   const tokens = ctx.tokens;
   const want = pyramidLevelFor(Math.max(1 / a.devicePx, 1 / ay.devicePx), 2);
@@ -405,6 +401,7 @@ function layoutImages(lay: GridLay, prep: GridPrep, ctx: LayoutContext, a: AxisT
   lay.level = L;
   viewRange(a, g.nx, Range, 0);
   viewRange(ay, g.ny, Range, 2);
+  const order = orderKey(a, ay);
   let budget = ctx.settled ? Number.POSITIVE_INFINITY : ctx.config.grid.buildBudget;
   let lastCoarse = '';
   const f = 2 ** L;
@@ -412,7 +409,7 @@ function layoutImages(lay: GridLay, prep: GridPrep, ctx: LayoutContext, a: AxisT
   for (let ti = Math.floor(Range[0] / side); ti * side < Range[1]; ti++)
     for (let tj = Math.floor(Range[2] / side); tj * side < Range[3]; tj++) {
       let level = L;
-      let key = tileKey(lay, prep, tokens.version, level, ti, tj);
+      let key = tileKey(lay, pyr, tokens.version, level, ti, tj, order);
       let img = cache.get(key);
       let tx = ti;
       let ty = tj;
@@ -425,7 +422,7 @@ function layoutImages(lay: GridLay, prep: GridPrep, ctx: LayoutContext, a: AxisT
             const k = 2 ** (c - L);
             const ci = Math.floor(ti / k);
             const cj = Math.floor(tj / k);
-            const ck = tileKey(lay, prep, tokens.version, c, ci, cj);
+            const ck = tileKey(lay, pyr, tokens.version, c, ci, cj, order);
             const held = cache.get(ck);
             const fits = !held && tileCost(pyr, c, ci, cj) <= budget;
             if (held || fits || c === top - 1) {
@@ -443,7 +440,7 @@ function layoutImages(lay: GridLay, prep: GridPrep, ctx: LayoutContext, a: AxisT
         } else budget -= cost;
       }
       if (!img) {
-        img = buildTile(lay, prep, cache, level, tx, ty);
+        img = buildTile(lay, pyr, cache, level, tx, ty);
         if (!img) continue;
         cache.put(key, img);
       }
@@ -460,8 +457,51 @@ function tileCost(pyr: Pyramid, level: number, ti: number, tj: number): number {
   );
 }
 
-function tileKey(lay: GridLay, prep: GridPrep, tokens: number, level: number, ti: number, tj: number): string {
-  return `${lay.key}|${level}|${ti}.${tj}|${prep.pyramid!.version}|${lay.colorVersion}.${tokens}|${prep.triangle}`;
+function tileKey(
+  lay: GridLay,
+  pyr: Pyramid,
+  tokens: number,
+  level: number,
+  ti: number,
+  tj: number,
+  order: string,
+): string {
+  return `${lay.key}|${level}|${ti}.${tj}|${pyr.version}${order}|${lay.colorVersion}.${tokens}|${lay.triangle}`;
+}
+
+/** The members' orders a tile is drawn in (categorical axes: their versions), empty for positions. */
+function orderKey(a: AxisTransform, ay: AxisTransform): string {
+  return a.members || ay.members ? `@${a.members?.version ?? 0}.${ay.members?.version ?? 0}` : '';
+}
+
+/** The reduction, by the grid and the orders (a reorder builds it once): built when first drawn as tiles. */
+const Ordered = new WeakMap<GridData, { key: string; pyramid: Pyramid }>();
+
+/**
+ * The reduction the tiles read (_spec/README.md "Render", The grid layer: categorical axes), built when first drawn as
+ * tiles (a grid drawn as rects builds none): over positions the grid's own, over a categorical axis the values in
+ * display order (a member at its rank), reduced alike; a triangle's over its own cells alone (the others missing, so a
+ * coarse sample on the diagonal keeps its half); kept while the orders are.
+ */
+function orderedPyramid(prep: GridPrep, a: AxisTransform, ay: AxisTransform): Pyramid {
+  const mx = a.members;
+  const my = ay.members;
+  const g = prep.grid!;
+  const key = `${orderKey(a, ay)}|${prep.triangle}|${prep.reducer}`;
+  const kept = Ordered.get(g);
+  if (kept?.key === key) return kept.pyramid;
+  const v = new Float32Array(g.nx * g.ny);
+  for (let dx = 0; dx < g.nx; dx++) {
+    const i = mx ? mx.order[dx] : dx;
+    for (let dy = 0; dy < g.ny; dy++) {
+      const j = my ? my.order[dy] : dy;
+      v[dx * g.ny + dy] = keeps(prep.triangle, i, j) ? g.values[i * g.ny + j] : Number.NaN;
+    }
+  }
+  const pyramid = new Pyramid({ factor: 2, pairing: 'square', reducer: prep.reducer });
+  pyramid.setValues(g.nx, g.ny, v);
+  Ordered.set(g, { key, pyramid });
+  return pyramid;
 }
 
 /**
@@ -470,13 +510,13 @@ function tileKey(lay: GridLay, prep: GridPrep, tokens: number, level: number, ti
  */
 function buildTile(
   lay: GridLay,
-  prep: GridPrep,
+  pyr: Pyramid,
   cache: ImageCache,
   level: number,
   ti: number,
   tj: number,
 ): ImageData | undefined {
-  const lv = prep.pyramid!.level(level);
+  const lv = pyr.level(level);
   const w = Math.min(ImageTile, lv.rows - ti * ImageTile);
   const h = Math.min(ImageTile, lv.columns - tj * ImageTile);
   if (w <= 0 || h <= 0) return undefined;
@@ -524,10 +564,11 @@ function placeTile(
   // the edges on the device grid: two tiles meeting at a fractional pixel would each antialias it, a seam the page
   // shows through (a thin line where a tile ends)
   const d = a.dpr;
-  const x0 = Math.round(a.x(xs) * d) / d;
-  const x1 = Math.round(a.x(xe) * d) / d;
-  const y0 = Math.round(ay.x(ys) * d) / d;
-  const y1 = Math.round(ay.x(ye) * d) / d;
+  // over a categorical axis the samples are in display order: a sample's offset is its unit
+  const x0 = Math.round((a.members ? a.xOfUnit(xs) : a.x(xs)) * d) / d;
+  const x1 = Math.round((a.members ? a.xOfUnit(xe) : a.x(xe)) * d) / d;
+  const y0 = Math.round((ay.members ? ay.xOfUnit(ys) : ay.x(ys)) * d) / d;
+  const y1 = Math.round((ay.members ? ay.xOfUnit(ye) : ay.x(ye)) * d) / d;
   if (Number.isNaN(x0) || Number.isNaN(x1) || Number.isNaN(y0) || Number.isNaN(y1)) return;
   lay.images.push(img);
   lay.ib.push(Math.min(x0, x1), Math.min(y0, y1), Math.abs(x1 - x0), Math.abs(y1 - y0));

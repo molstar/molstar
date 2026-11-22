@@ -13,7 +13,6 @@ import { ResolveIssues } from './issues.js';
 /** A kind's unread params, each followed by the lane that reads it (`*`: the node itself). */
 const Unread: Readonly<Record<string, string>> = {
   map: 'source FR',
-  section: 'member_order LA member_order_y LA',
   assembly: 'names GF',
 };
 

@@ -20,6 +20,7 @@ import type { RenderConfig } from '../config.js';
 import { Anchor, grown, type PassName, type PassWriter } from '../draw-lists.js';
 import type { SectionLayout } from '../tracks.js';
 import { BlockRow, type ResolvedBlock, rowBlocks } from './blocks.js';
+import { drawMemberLabels, hitMemberLabel, MemberLabels, placeMemberLabels } from './grid-members.js';
 import { type PlacePoint, StripPlacement } from './strips.js';
 import { clampWindow, sameWindow, TracksNav } from './tracks.js';
 import type { ResolvedSection } from '@molstar/seqx-core/view';
@@ -53,6 +54,8 @@ export class GridPlacement extends StripPlacement {
   /** The padding above and below the plot inside its well. */
   padTop = 0;
   padBottom = 0;
+  /** Categorical axes' labels (EC-35): x's room above the plot, their advances. */
+  readonly members = new MemberLabels();
 
   override at(p: ArrayLike<number>, out: PlacePoint): boolean {
     if (!this.xRow) return super.at(p, out);
@@ -256,8 +259,10 @@ export const GridLayout: SectionLayoutType<GridPlacement> = {
       pt = Math.max(pt, ctx.pads[2 * j]);
       pb = Math.max(pb, ctx.pads[2 * j + 1]);
     }
+    // a categorical x: its labels' room above the plot, the box grown by it (fixed: no zoom moves it)
+    const room = section.blocks ? 0 : placeMemberLabels(p.members, ctx.axis, ctx.text, config);
     const well = ctx.box.y;
-    const top = well + pt;
+    const top = well + room + pt;
     const width = ctx.axis.width;
     const aspect = section.params.aspect;
     let h: number;
@@ -298,16 +303,18 @@ export const GridLayout: SectionLayoutType<GridPlacement> = {
     }
     if (y?.pieces.length) {
       const ya = AxisTransform.on(y.axis, y.pieces, top, h, ctx.dpr, y.viewport);
+      if (y.members) ya.members = y.members;
       strips.ys[i] = ya;
-      const first = ya.elementAtUnit(ya.u0);
-      const last = ya.elementAtUnit(Math.max(ya.u0, ya.u1 - 1e-6));
+      // a categorical y names its members down the label column instead
+      const first = ya.members ? -1 : ya.elementAtUnit(ya.u0);
+      const last = ya.members ? -1 : ya.elementAtUnit(Math.max(ya.u0, ya.u1 - 1e-6));
       if (first >= 0) p.yFirst = String(first + 1);
       if (last >= 0) p.yLast = String(last + 1);
     }
-    strips.top[i] = well;
+    strips.top[i] = well + room;
     strips.height[i] = h + pt + pb;
-    p.contentHeight = h + pt + pb;
-    p.box = { x: config.inset, y: well, width: ctx.width - 2 * config.inset, height: h + pt + pb };
+    p.contentHeight = room + h + pt + pb;
+    p.box = { x: config.inset, y: well, width: ctx.width - 2 * config.inset, height: room + h + pt + pb };
     ctx.layStrip(p, i);
     return p;
   },
@@ -316,6 +323,12 @@ export const GridLayout: SectionLayoutType<GridPlacement> = {
   chrome(s, pass, out, _emphasis, strip, band) {
     if (pass !== 'labels' || strip !== -1) return;
     drawChrome(s, pass, out);
+  },
+  hitChrome(s, x, y) {
+    const p = s.placement;
+    const st = p.strips;
+    if (!(p instanceof GridPlacement) || p.xRow || !st.n) return undefined;
+    return hitMemberLabel(s, p.members, st.axes[0], st.ys[0], p.plotTop, p.plotHeight, x, y);
   },
 };
 
@@ -335,9 +348,14 @@ function drawChrome(s: SectionLayout, _pass: PassName, out: PassWriter) {
     return;
   }
   const top = p instanceof GridPlacement ? p.plotTop : strips.top[0];
-  if (t?.labelText) {
+  // categorical axes (EC-35): the members' labels; the track's label above the plot then, where the x labels leave room
+  const ay = strips.ys[0];
+  const members = p instanceof GridPlacement && (strips.axes[0].members || ay?.members);
+  if (members) drawMemberLabels(s, p.members, strips.axes[0], ay, p.plotTop, out);
+  const labelAt = members && ay?.members ? (p.box.y + 12 <= top - 4 ? p.box.y + 12 : -1) : top + 12;
+  if (t?.labelText && labelAt >= 0) {
     g[0] = config.inset;
-    g[1] = top + 12;
+    g[1] = labelAt;
     g[2] = t.labelWidth;
     g[3] = config.labelWidth;
     g[4] = tokens.colors['msui-text-muted'];
