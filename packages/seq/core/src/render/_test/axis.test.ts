@@ -78,6 +78,36 @@ describe('the axis transform', () => {
   });
 });
 
+describe('a plain axis', () => {
+  // one forward piece: `spanPlain` is `spanIn(0, …)` for a layout's per-bin loop (the extents and the answer)
+  it('spanPlain answers as spanIn does over random ranges, in view and out', () => {
+    const rng = new PCG(7);
+    for (let t = 0; t < 40; t++) {
+      const start = Math.floor(rng.float() * 1000);
+      const len = 1 + Math.floor(rng.float() * 5000);
+      const u0 = rng.float() * len * 0.5;
+      const viewport = rng.float() < 0.5 ? undefined : { start: u0, end: u0 + 1 + rng.float() * len * 0.5 };
+      const a = new AxisTransform('/s', [start, start + len], 10, 300, 2, viewport);
+      expect(a.plain).toBe(true);
+      for (let i = 0; i < 100; i++) {
+        const s = start - 50 + Math.floor(rng.float() * (len + 100));
+        const e = rng.float() < 0.1 ? s : s + Math.floor(rng.float() * len * 0.3);
+        const plain = a.spanPlain(s, e);
+        const px = [a.sx0, a.sx1];
+        const full = a.spanIn(0, s, e);
+        expect(plain).toBe(full);
+        if (full) expect(px).toEqual([a.sx0, a.sx1]);
+      }
+    }
+  });
+
+  it('is not plain with several pieces, a reversed direction or a gap between groups', () => {
+    expect(new AxisTransform('/s', [0, 10, 20, 30], 0, 100, 1).plain).toBe(false);
+    expect(new AxisTransform('/s', [0, 10], 0, 100, 1, undefined, { dir: -1 }).plain).toBe(false);
+    expect(new AxisTransform('/s', [0, 10], 0, 100, 1, undefined, { groups: { size: 3, gap: 2 } }).plain).toBe(false);
+  });
+});
+
 describe('letters through a codon path', () => {
   it('a residue a codon wide on the gene’s coding axis, along the protein, each part of a split codon a cell', async () => {
     const s = await settle(spec({ direction: { along: '/data/p' }, pieces: 'coding' }));
