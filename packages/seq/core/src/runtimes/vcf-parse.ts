@@ -7,7 +7,7 @@
 import { hashFnv32a } from '@molstar/core/data/util/hash-functions';
 import { type Column, type ColumnType, categoryColumn } from '@molstar/core/repr/tree';
 import { type FieldInfo, VcfFixedFieldNames } from '../data/protocol.js';
-import { eachMeeting, type IntervalIndex, intervalIndex } from './internal/intervals.js';
+import { eachMeeting, type IntervalIndex, intervalIndex } from '@molstar/seqx-core/data/intervals';
 import { decodeText } from './internal/text.js';
 import type { VcfHeader } from './vcf-header.js';
 import type { VcfCauses } from './vcf-issues.js';

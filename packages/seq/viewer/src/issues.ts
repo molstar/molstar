@@ -71,6 +71,21 @@ export const ViewerIssues = defineIssues('seq.viewer', {
     description: 'The view declares navigators and the viewer lists none: they are not drawn, the ruler rails stay',
     hint: 'List `NavigatorsPart` of `@molstar/seqx-viewer/navigators` in the viewer spec (`navigators`), as the default spec does',
   },
+  'seq.viewer.card.floor': {
+    severity: 'warning',
+    description: 'The card’s providers leave out `seq:item` or `seq:place`: a mark may show no card',
+    hint: 'Keep `seq:item` and `seq:place` in the registry',
+  },
+  'seq.viewer.card.provider': {
+    severity: 'warning',
+    description: 'A card provider threw: its rows are left out',
+    hint: 'Fix the provider',
+  },
+  'seq.viewer.card.tooltip': {
+    severity: 'warning',
+    description: 'A tooltip’s table failed to load: no row of it shows',
+    hint: 'Check the table’s source',
+  },
   'seq.viewer.step.none': {
     severity: 'error',
     description: 'The viewer lists no story part: it enters no story step',

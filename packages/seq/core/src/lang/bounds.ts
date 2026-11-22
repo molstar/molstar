@@ -29,6 +29,10 @@ export interface SpecBounds {
   readonly maxPlaces: number;
   /** Levels of nested theme forms in a channel slot (a rule's value a form): 4 (`seq.lang.theme.depth`). */
   readonly themeDepth: number;
+  /** A tooltip's template, characters: 1,000 (`seq.lang.tooltip.text`); a formatted text is cut there too. */
+  readonly tooltipText: number;
+  /** The rows a tooltip table read whole holds (addresses, MVS's schemas): 1,000,000. */
+  readonly tooltipRows: number;
 }
 
 export const DefaultSpecBounds: SpecBounds = {
@@ -39,6 +43,8 @@ export const DefaultSpecBounds: SpecBounds = {
   maxNodeIssues: 100,
   maxPlaces: 10,
   themeDepth: 4,
+  tooltipText: 1000,
+  tooltipRows: 1_000_000,
 };
 
 /** The defaults with `over` laid on them. */

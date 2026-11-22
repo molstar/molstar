@@ -9,7 +9,15 @@ import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { ItemDescription } from './layer-type.js';
 import type { SvgAccessible } from './svg.js';
 import type { EmphasisHighlight } from './layer-type.js';
-import type { ViewLayout } from './tracks.js';
+import type { LayerLayout, SectionLayout, ViewLayout } from './tracks.js';
+
+/** An item's title in an export with `card` titles (the composed card's rows as text); undefined: its name. */
+export type ItemTitle = (
+  section: SectionLayout,
+  layer: LayerLayout,
+  item: ItemDescription,
+  name: string,
+) => string | undefined;
 
 // Words for what a figure shows (_spec/README.md "Render", Accessibility): the titles of an exported SVG and the
 // sentences a viewer's live region says come from the same functions, so a reader of the export and a reader of the
@@ -70,6 +78,8 @@ export function accessibleOf(
   layout: ViewLayout,
   title: string,
   highlights: readonly EmphasisHighlight[] = [],
+  /** `card` titles: an item's composed card as text (absent: its name, the default). */
+  titleOf?: ItemTitle,
 ): SvgAccessible {
   const tracks: SvgAccessible['tracks'][number][] = [];
   const sections: string[] = [];
@@ -90,8 +100,9 @@ export function accessibleOf(
           total++;
           if (items.length >= MaxNamedItemsPerTrack || named >= MaxNamedItems) continue;
           named++;
+          const name = itemText((it.system && model.systems.get(it.system)?.name) || dataSystem, it);
           items.push({
-            title: itemText((it.system && model.systems.get(it.system)?.name) || dataSystem, it),
+            title: (titleOf && titleOf(s, l, it, name)) || name,
             x: it.x0,
             y: it.y ?? t.box.y,
             width: Math.max(0, it.x1 - it.x0),

@@ -15,7 +15,7 @@ is added in the change that builds what it describes.
 
 ## Versions
 
-- The language has one version, `LanguageVersion` (`0.8.0`). Why: one language, one description, one number for readers
+- The language has one version, `LanguageVersion` (`0.9.0`). Why: one language, one description, one number for readers
   to check.
 - **Pre-release** (`0.x`): a change to the language moves the version with no migration (`0.1.0`: every child of the
   spec has an id, `layer` included; `0.2.0`: the `refs` container and the `ref` kind; `0.3.0`: the `snapshots` container
@@ -49,11 +49,13 @@ is added in the change that builds what it describes.
   grid section's `of_y` a rows system, `member_order`, `member_order_y`, a source's `features` and `samples`, the `line`
   word `gene` and the `shape` words `ribbon` and `line`); `0.7.0`: inline data over an assembly names its sequences
   (Language, Assemblies): a pairs row's `a_name` and `b_name`, a grid's `x_name` and `y_name`, a matrix's `name`;
-  `0.8.0`: the `values` encoding `points` (Render, Layer types, `values`). A spec in an earlier `0.x` reads as one in
-  this one, and is reported where it no longer fits: a `0.6.0` spec reads unchanged (every addition is optional; inline
-  pairs, grids or matrices over an assembly, never read in 0.6, now need their names: `seq.lang.data.names`), with one
-  change of behaviour: `a_name`/`b_name` columns on pairs over a sequence, a ride-along field before, are refused
-  (`seq.lang.data.names`), but an extension's `requires: '0.6'` no longer covers it (0.x: the minor).
+  `0.8.0`: the `values` encoding `points` (Render, Layer types, `values`); `0.9.0`: the `tooltip` kind under `views` and
+  a `view` (`on`, `target`, `rows`, `source`, `schema`, `block`, `category`, `field`, `text`, `label`, `format`;
+  Language, Tooltips) and a view's `export.titles`. A spec in an earlier `0.x` reads as one in this one, and is reported
+  where it no longer fits: a `0.6.0` spec reads unchanged (every addition is optional; inline pairs, grids or matrices
+  over an assembly, never read in 0.6, now need their names: `seq.lang.data.names`), with one change of behaviour:
+  `a_name`/`b_name` columns on pairs over a sequence, a ride-along field before, are refused (`seq.lang.data.names`),
+  but an extension's `requires: '0.6'` no longer covers it (0.x: the minor).
 
 ## Language
 
@@ -417,6 +419,42 @@ Stories.
 - The builder writes one with
   `b.snapshots.snapshot(id, { patch | state, label, from, keep, view, duration, easing, linger })` (a `Patch` or its
   node; a base throws).
+
+### Tooltips
+
+`tooltip` nodes under `views` (every view's) or a `view` (that view's), ids required (`lang/tooltip-language.ts`): which
+words attach to which data, read the same by every reader; the application composes the card (the viewer's
+`card-provider` entries). Why apart: the spec is portable, the card is the host's.
+
+- **Tied to something rendered**: a tooltip answers only on marks a layer draws (an item, a range, a pair, a cell, a
+  letter, a value bar, a bin of them); a position no layer marks gets none. No outline of its own: the mark's hover is
+  the tooltip's.
+- **Two ways to attach, one result**: by data, `on` a data node or a layer (its items' own fields, each item's text on
+  its own marks); by range, `target` and a table, inline `rows` or a `source` under `data` (each row's text on every
+  mark its location covers, in any layer of the view). An address `on` is a one-row table (MVS's `tooltip { text }` on a
+  component). Both or neither is `seq.lang.tooltip.content`.
+- **`schema`**: how a table's rows locate: `ranges` (absent: `start`, `end`, a `target` column naming the sequence over
+  an assembly), `address` (an `address` column, forms relative to `target`), or MVS's schemas (`whole_structure` …
+  `all_atomic`, `MvsSchemaColumns` in `resolve/tooltip-tables.ts`), each read as MVS reads it, a row's other columns
+  ignored. An inline table off `ranges` or `address` is `seq.lang.tooltip.schema`; one whose columns are none its MVS
+  schema locates by is said at resolve (`seq.resolve.tooltip.schema`: the columns load with the tooltips, Resolve,
+  Tooltip tables). Why said: a guess reads a chain file as residues.
+- **`field`, `text`, `label`, `format`**: `text` is an f-string (`@molstar/core/util/string-format`, MVS's
+  `text_format`; `"{}"` when absent; the check reads its braces and names alone, `templateFields`: the formatter loads
+  with the tooltips, and a format spec it refuses gives no text), `{}` reading `field` (`tooltip` when absent); a row
+  with a field it names undefined or empty gives no text; a field the table lacks (inline rows, or a data node's inline
+  items) is `seq.lang.tooltip.field` (a warning). `label` is the card row's label; `format` `markdown` (absent: inline,
+  in the template only, values escaped) or `text`. A template past `SpecBounds.tooltipText` (1,000) or not an f-string
+  is `seq.lang.tooltip.text`. An item's own `tooltip` field shows only when a tooltip names it (MVS's rule: a column is
+  no promise to show it).
+- **MVS mapped**: `tooltip_from_uri` is a `source` node (`format`, `uri`, `fields` from `field_remapping`) and a tooltip
+  with `source`, `schema`, `field`, `text`; `tooltip_from_source` is `block` and `category` over the structure's own
+  source. A CIF category is unavailable until the structure runtime reads categories (`seq.lang.tooltip.category`, info,
+  said once).
+- **`on` naming nothing** is `seq.lang.tooltip.on` (a warning: that row inert, the rest opens).
+- **A view's `export.titles`**: `name` (absent) or `card`, what an exported item's `<title>` says.
+- The builder writes them with `b.views.tooltip(id, params)` and `view.tooltip(id, params)`; `check()` reports a
+  template field the table lacks.
 
 ## Language builder
 
@@ -1279,6 +1317,17 @@ by fuzz tests (mutated text read without a throw).
 - **Performance**: a region at the zoom level that fits, from a local file, decoded under 50 ms (heavy, `itWithin`).
   Size: its own row, under 30 kB, in no bundle that does not list it.
 
+### Intervals
+
+`data/intervals.ts` (internal: not in the `data` entry): intervals found by a region, shared by the GFF and VCF runtimes
+and the tooltips' tables. `intervalIndex`: the short intervals by start with the longest of them, the long ones (past 64
+times the median, at least 4,096) apart, so one chromosome-long feature never makes every read scan from the sequence's
+start; `eachMeeting` calls back on each interval meeting a region; `meetingInto` writes the first of them into a buffer
+and returns how many meet (no closure, no allocation: a hover's lookup, O(log n + k)), its search through a directory of
+every 64th start first (`blocks`: a small array a search keeps in cache, then one block of starts). A zero-length
+interval meets the position it is at. Bound (heavy): a hover's path of lookups over 1,000,000 ranges within 1.5× of
+10,000; random lookups over the large table read about 1.7×, the memory's, not the search's.
+
 ### Genome runtimes' internals
 
 `runtimes/internal/` (not published: `"./runtimes/internal/*": null`): what the BED, GFF and VCF runtimes share, over
@@ -1322,10 +1371,9 @@ runtimes only).
   (EC-171: counts exact or absent, never estimated).
 - **Shared helpers**: `causes.ts` (`Causes`: one issue a cause with its count and first ten places, EC-86; each format's
   `BedCauses`, `GffCauses`, `VcfCauses` over its own codes), `answers.ts` (`failure` by kind, `refuse` at open,
-  `wholeSource` over what a whole read holds), `intervals.ts` (`intervalIndex`: the short intervals by start and the
-  long ones apart, `eachMeeting`), `items.ts` (items of pieces held by sequence: `systemItems`, `rowsIn` with span rows,
-  `rangesOf`, `fieldInfos`; the GFF and GenBank runtimes'). Why shared: one rule for issues and answers across the
-  formats.
+  `wholeSource` over what a whole read holds), the data folder's intervals (Intervals, below), `items.ts` (items of
+  pieces held by sequence: `systemItems`, `rowsIn` with span rows, `rangesOf`, `fieldInfos`; the GFF and GenBank
+  runtimes'). Why shared: one rule for issues and answers across the formats.
 - **The first data line** reads past `track` and `browser` lines too, not only the index's meta lines: a file whose
   index's first chunk starts on one is told its columns by its first data line.
 - **Tests**: on files from the shared test-only writer (`@molstar/test-harness/genome/bgzf-writer`: BGZF blocks, TBI and
@@ -2217,6 +2265,22 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
   rejects (a failed load is tried again by the next model). Why: a reader that never draws a bridge pays nothing for
   one.
 
+### Tooltip tables
+
+- **As data** (`resolve/tooltip-tables.ts`): a by-range tooltip's `ranges` table (the `schema` absent or `ranges`),
+  inline `rows` or a `source`'s, is an annotation at the tooltip's address (`/views/<id>`, `/views/<view>/<id>`), made
+  as a `ranges` node's is: inline rows an inline plan (its text columns its fields), a source's by region, over an
+  assembly a plan a sequence by its names. Why: every table goes through the store as every data does, inline too, and
+  its index belongs to the store entry. An `address` table and MVS's schemas are read whole by the reader that shows
+  them (Render, Tooltips): no store entry; to `SpecBounds.tooltipRows` (past it `seq.resolve.tooltip.rows`, the rest
+  unread). One from a `source` is not read yet: `seq.resolve.tooltip.source`, never silent (TODO).
+- **Loaded when used** (`resolve/tooltip-door.ts`): a tooltip's resolve past its declaration (these tables, their
+  issues, a catalog of their own `TooltipIssues`) and the parts the other layers register with `withTooltips` (the
+  view's pass, render's lookup, wants and titles, the viewer's provider body) load the first time a spec holds a
+  `tooltip`, a model waiting for them as for the genome chunk (`StaticModel.loading`), so its first hover finds them.
+  Why: only some specs carry tooltips; the check and the declaration stay (reading a spec says what is wrong at once).
+  The runtime functions are imported from their modules (`render/tooltips`), never the barrels.
+
 ### Unread params
 
 - **Said, never dropped in silence** (`resolve/unread.ts`): a param the language declares and this version reads nowhere
@@ -2404,6 +2468,12 @@ of it (`buildOverlay(model, reader)`; `OverlayBuilder` keeps one a node version 
 Overlay, Opened sources), kept per model and view. No data, no dynamic node, no pixels, no target.
 
 - **A view**: its address, its `layout`, its sections in order, its links, its issues.
+- **Tooltips** (`view/tooltips.ts`, `ResolvedView.tooltips`, absent when none): `views`' tooltips, then the view's own,
+  in spec order, each resolved to references and its parsed template, never rows (tier 1): by data (`data`, a data node
+  of items, a ranges or pairs node; `layer`, a layer and its data: its marks only), by addresses (`addresses`, an `on`
+  naming anything else, each a one-row table), or by a table (`target`, `schema`, `source`); `field`, `label`, `format`;
+  `category` when it reads a CIF category (it shows nothing yet). A ref standing for one exact address is followed to
+  its node.
 - **A section's layout**: its own `layout`, else its view's (`tracks`, `text`, `rings`, `grid`), with its layout's
   params as written (`params`: `group`, `numbers`, `group_labels`, `align`, `max_width`, `height`, `rotation`, `labels`,
   `arrange`, `copies`, `aspect`); the layout reads them with its defaults. Why on the section: a view mixes layouts (a
@@ -4666,6 +4736,37 @@ under the point as the hit's `state`. It reads every row (a logo of the rows sho
   `Frame` record, its fields set again. So a frame is valid until the next `frame` call (the lists are reused too): a
   caller copies what it keeps.
 
+### Tooltips
+
+`render/tooltips.ts` (`tooltipsAt(ctx, place, out, cap)`) and `render/tooltip-wants.ts`: the spec's words at a hovered
+mark, as data; the viewer's `seq:tooltips` provider and an export's titles read them.
+
+- **Tooltip tables wanted with what they decorate**: a `ranges` table no layer draws is wanted by no one, so each layout
+  wants its tiles beside every section's axis (a strip's, a block's) on the table's system or reaching it by a path,
+  carried back, at the level a layer there reads, its wants carrying the tooltip's address (bounded together, as a
+  layer's), kept as the view's are. A view with no table wants nothing more. An export opens them with the view's
+  sources (`viewSources`).
+- **The place** (`TooltipPlace`): the hit's layer and item (by data) and the stretches under the mark (`parts`: the
+  pointer's position on it, a cell's two, a pair's two ends, a bin's stretch).
+- **By data**: the hit's item's own row, when the hit's layer is the tooltip's or its data is (a query over it too):
+  looked up by key and start in the loaded list tile of its source holding it, its fields read by name.
+- **By range**: every row meeting a part (overlap of one position or more; a zero-length row its position), a part
+  carried onto the table's system through the model's paths (a note on the protein answers on its gene's codons); a
+  `ranges` table at the finest level whose tile there holds a list, through the entry's interval index (built at its
+  first lookup, kept with the entry: `meetingInto`, the matches past the buffer counted); an `address` table and MVS's
+  rows (each an `(elements …)` form of its schema's columns alone, `rowAddress`) and `on` addresses located by the
+  caller's `locate`, once a model (their addresses made once a model too). A row met by two parts (a cell's two
+  positions, a pair's two ends) shows and counts once (EC-258). A tooltip's rows are in position order.
+- **Rows**: a tooltip's one match a plain row, never cut; several are item rows (`item`), at most `cap` made, the rest
+  counted in `out.more` (the card's `+k more`). The row's label is the tooltip's `label`, else the text itself. A table
+  not yet come gives a `loading` row (EC-169); a failed one no rows, its tooltip in `out.failed` (EC-174).
+- **Texts**: the template over the row's fields (`{}` the tooltip's `field`), a missing or empty one no row, cut at
+  1,000. Markdown is the template's only: each value not a number has Markdown's escapable characters backslash-escaped
+  first. The parse (`parseMarkdownInline`) is cached by text (64); its text nodes are cleaned after it (C0 and C1
+  controls but tab and newline, U+202A to U+202E, U+2066 to U+2069), and a link is kept only in Seq*'s grammar
+  (`!seq-…`, `isSeqLink`), any other is its text. `value` is the plain text (`markdownInlineText`), `rich` the tree when
+  it has a mark or a link.
+
 ### The overlay's sources
 
 - `OverlaySources(store, assets).sync(overlay, view)`: a dynamic annotation's inline rows are attached as a `seq` source
@@ -4729,6 +4830,12 @@ under the point as the hit's `state`. It reads every row (a logo of the rows sho
   state); the export opens the navigators' sources and waits for their wants, colors by the view's held domains.
   Omitted, no rail either (no slim row: a viewer's export is its picture without its chrome). Why omitted by default: a
   window is session, not a figure.
+- **Titles** (`titles`, else the view's `export.titles`, else `name`; `render/export-titles.ts`): an exported item's
+  named box (its `<title>` the tooltip and the accessible name) says its name, or with `card` its composed card as plain
+  text, a line a row: a viewer's providers (`cardTitle`, the viewer passes its own), else the spec's tooltips alone
+  (`tooltipsAt` over the item's extent). Items only: bins, image tiles and summaries get none (a bin's rows depend on
+  the zoom the figure froze). A provider call an item, once an export, never a frame's; its size about the rows' text an
+  item. Why `name` by default: a figure's size as before.
 - **What the layouts place** (`figure`): a text section draws every line, its box its content; `size.height: 'auto'` is
   the sections' content's height (measured from a first layout); a ring's window only with `window` (the view's
   `export.window` when absent, false: an exported map is a figure).

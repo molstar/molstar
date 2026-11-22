@@ -6,7 +6,7 @@
 
 import { type Column, type ColumnType, categoryColumn } from '@molstar/core/repr/tree';
 import type { FieldInfo, RangesField, RangesList } from '../../data/protocol.js';
-import { eachMeeting, type IntervalIndex, intervalIndex } from './intervals.js';
+import { eachMeeting, type IntervalIndex, intervalIndex } from '@molstar/seqx-core/data/intervals';
 
 // Items of pieces held by sequence, and what a read answers from them (_spec/README.md "Data", Genome runtimes'
 // internals): the pieces meeting a region, each with its item's whole extent (`itemStart`, `itemEnd`), and a span row

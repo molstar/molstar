@@ -50,6 +50,7 @@ import {
 } from '@molstar/seqx-viewer/models';
 import type { AddressingBehavior, LinkRun } from '@molstar/seqx-viewer/behaviors';
 import type { SeqAnimationParticipant } from '@molstar/seqx-viewer/ports';
+import { cardTitles, composeCard, describerFor } from './describe.js';
 import { frameAnimation } from './animation.js';
 import { ViewerInput } from './input.js';
 import { LegendModel } from './legends.js';
@@ -87,6 +88,9 @@ import { holdSelection, revealLinked } from './viewer-selection.js';
 // alone) and the Canvas2D backend draws what changed.
 
 const NeverAborted = new AbortController().signal;
+
+/** The registry's kinds the viewer reads itself (the rest the core's context composes). */
+const ViewerKinds: ReadonlySet<string> = new Set(['header-action', 'card-provider']);
 
 /** A command a behavior provides, with the context it runs in. */
 export type ViewerCommand = CommandDefinition<any>;
@@ -228,7 +232,7 @@ export class SeqViewer extends ReactiveModel {
     const context = (this.context = composeSeqContext({
       // the core's kinds (the viewer's own, the header entries, are its behaviors')
       ...(viewerSpec.registry
-        ? { registry: viewerSpec.registry.filter((e): e is SeqRegistryEntry => e.kind !== 'header-action') }
+        ? { registry: viewerSpec.registry.filter((e): e is SeqRegistryEntry => !ViewerKinds.has(e.kind)) }
         : {}),
       extensions: exts,
       ...(viewerSpec.config ? { config: viewerSpec.config } : {}),
@@ -400,6 +404,14 @@ export class SeqViewer extends ReactiveModel {
       this.schedule();
     });
     this._followViewports();
+    // the card's providers (_spec/README.md "Hover card", Providers): the registry's, ordered; the announcer and the
+    // card read the one describer
+    composeCard(
+      describerFor({ spec, store, addresses, view, layout: () => this.frame?.layout }),
+      this.registry,
+      config.hover.cardItems,
+      (i) => this._behaviorIssues.set([...this._behaviorIssues.value, i]),
+    );
     // what reads the commands of every behavior and the frame (the header entries' checks), before the UI
     try {
       for (const h of this.behaviors.values() as Iterable<BehaviorHandle | undefined>) h?.composed?.(this);
@@ -809,6 +821,16 @@ export class SeqViewer extends ReactiveModel {
       ...this._emphasis.svgEmphasis(),
       // the headers' states as the canvas draws them (a figure lays out no slots)
       ...(this.behaviors.get('headers') ? { headers: this.behaviors.get('headers').partsOf } : {}),
+      // `card` titles (the view's `export.titles`, or asked): the card its providers compose, an item each
+      cardTitle: cardTitles(
+        describerFor({
+          spec: this.spec,
+          store: this.store,
+          addresses: this.addresses,
+          view: this.view,
+          layout: () => this.frame?.layout,
+        }),
+      ),
       ...options,
     });
   }

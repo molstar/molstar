@@ -82,6 +82,7 @@ export {
 export { type DescribedMap, describedAddress, pendingMaps } from './maps-described.js';
 export { segmentPairs, structureStatus } from './maps-segments.js';
 export { withViewKind } from './lazy-kinds.js';
+export { hasTooltip, loadTooltips, tooltipsLoading, withTooltips } from './tooltip-door.js';
 export { memberSystem, statesSystemOf } from './model-region.js';
 export { viaList } from './maps-via.js';
 export type { CompoundEntry, Molecular } from './molecule-query.js';
@@ -134,3 +135,4 @@ export {
   projectRanges,
   type Step,
 } from './paths.js';
+export type { TooltipPlaced } from './tooltip-tables.js';

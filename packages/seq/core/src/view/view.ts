@@ -32,6 +32,7 @@ import {
   projectPoint,
   type StaticModel,
   viaList,
+  withTooltips,
 } from '@molstar/seqx-core/resolve';
 import { viaUnusedIssue } from '@molstar/seqx-core/resolve/maps-via';
 import { wholePieces } from './axis.js';
@@ -52,6 +53,7 @@ import { ViewIssues } from './issues.js';
 import { dataOf, layerData, liftedData } from './layer-data.js';
 import type { LiftData } from './lift.js';
 import { type MemberAxis, memberAxis } from './members.js';
+import type { ResolvedTooltip } from './tooltips.js';
 
 /** The six shapes a layer reads (an extension's type reads one of them: _spec/README.md "Context", Extensions). */
 export type LayerShape = 'letters' | 'ranges' | 'values' | 'cells' | 'pairs' | 'grid' | 'matrix';
@@ -431,6 +433,8 @@ export interface ResolvedView {
   readonly bridges?: readonly ResolvedBridge[];
   /** Its sections and bridges in the order written (what the layout stacks), beside `bridges`. */
   readonly stack?: readonly StackEntry[];
+  /** Its tooltips, `views`' then its own, in spec order (_spec/README.md "Resolved view", Tooltips); absent: none. */
+  readonly tooltips?: readonly ResolvedTooltip[];
   readonly issues: readonly Issue[];
 }
 
@@ -441,6 +445,18 @@ export interface ResolvedView {
  * @internal
  */
 export const BridgePass: { resolve?: typeof import('./bridges.js').resolveBridges } = {};
+
+/**
+ * The view's tooltips pass (`tooltips.ts`), loaded with the tooltips (resolve's `withTooltips`): a model of a spec with
+ * a tooltip waits for it, so a view is never resolved without it once its model has settled.
+ * @internal
+ */
+export const TooltipPass: { resolve?: typeof import('./tooltips.js').resolveTooltips } = {};
+withTooltips(() =>
+  import('./tooltips.js').then((m) => {
+    TooltipPass.resolve = m.resolveTooltips;
+  }),
+);
 
 /**
  * A bridge in a view of a composition that registers none (the pairs layer type listed without `registerBridges`):
@@ -890,6 +906,8 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
     sections,
     links,
     navigators: navigatorsOf(model, view, address, sections, report, layerKinds),
+    // its tooltips (Tooltips): `views`' and its own, references and templates (none: absent)
+    ...tooltipsOf(model.spec, address),
     // its bridges and the stack, where the view has a bridge and the pass is composed (_spec/README.md "Resolved
     // view", Bridges)
     ...(BridgePass.resolve
@@ -897,6 +915,12 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
       : unregisteredBridge(view, address, report)),
     issues,
   };
+}
+
+/** A view's tooltips as the resolved view's member: absent when it has none (a view without them is as it was). */
+function tooltipsOf(spec: Node, address: string): { tooltips?: readonly ResolvedTooltip[] } {
+  const tooltips = TooltipPass.resolve?.(spec, address) ?? [];
+  return tooltips.length ? { tooltips } : {};
 }
 
 /** A view's navigators (`<view>/navigators/<id>`), resolved against its sections. */

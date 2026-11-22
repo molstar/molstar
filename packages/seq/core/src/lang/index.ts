@@ -78,6 +78,14 @@ export {
   seqLanguages,
 } from './language.js';
 export { type FieldOptions, measure, theme } from './theme-builder.js';
+export {
+  TooltipDefaults,
+  TooltipKinds,
+  type TooltipSchema,
+  TooltipSchemas,
+  templateFields,
+} from './tooltip-language.js';
+export { checkTooltip } from './check-tooltips.js';
 export { ScaleParamsDescription, ThemeLanguage, ThemeLanguageId } from './theme-language.js';
 export {
   addRefPatch,

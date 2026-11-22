@@ -90,6 +90,11 @@ const wrongParams = [
     b.data.sequence('s', { alphabet: 'dna', length: 4 });
     // @ts-expect-error a sequence has an id
     b.data.sequence({ alphabet: 'dna' });
+    const s = b.data.sequence('p', { alphabet: 'protein', letters: 'MEEP' });
+    // @ts-expect-error a tooltip's source is a source node
+    b.views.tooltip('t', { target: s, source: s });
+    // @ts-expect-error not a schema
+    b.views.tooltip('u', { target: s, schema: 'residues', rows: { start: [0], end: [1] } });
   },
 ];
 

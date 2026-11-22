@@ -8,7 +8,7 @@ import type { NameHit } from '../data/protocol.js';
 import { type Assembly, type GffItem, mergeIntervals } from './gff-assemble.js';
 import type { GffCauses } from './gff-issues.js';
 import { type GffRow, MaxAttributes } from './gff-parse.js';
-import { lowerBound } from './internal/intervals.js';
+import { lowerBound } from '@molstar/seqx-core/data/intervals';
 import type { ItemField as GenericField, SystemItems as GenericItems } from './internal/items.js';
 
 export { fieldInfos, rangesOf, rowsIn, systemItems } from './internal/items.js';

@@ -232,6 +232,36 @@ export const LangIssues = defineIssues('seq.lang', {
     description: 'A section follows itself, directly or through other sections',
     hint: 'Following is a chain that ends at a section that follows none',
   },
+  'seq.lang.tooltip.content': {
+    severity: 'error',
+    description: 'A tooltip is by data (`on`) or by range (`target` with `rows` or a `source`): both, or neither',
+    hint: 'Give `on` alone, or a `target` with `rows` or a `source`',
+  },
+  'seq.lang.tooltip.on': {
+    severity: 'warning',
+    description: 'A tooltip’s `on` names nothing in the spec: that row is inert',
+    hint: 'Name a node or an address of the spec',
+  },
+  'seq.lang.tooltip.field': {
+    severity: 'warning',
+    description: 'A tooltip’s template names a field its table lacks: no row gives a text',
+    hint: 'Name a column (`{}` reads `field`)',
+  },
+  'seq.lang.tooltip.schema': {
+    severity: 'error',
+    description: 'A tooltip table’s columns do not fit its `schema`',
+    hint: 'Say the table’s schema',
+  },
+  'seq.lang.tooltip.category': {
+    severity: 'info',
+    description: 'A tooltip reads a CIF category, not read yet: it shows nothing',
+    hint: 'Give the table inline or from a source of its own',
+  },
+  'seq.lang.tooltip.text': {
+    severity: 'error',
+    description: 'A tooltip’s template is no f-string, or is past `SpecBounds.tooltipText`',
+    hint: 'Write fields as `{name}` or `{}`; keep it short',
+  },
   'seq.lang.navigator.bands': {
     severity: 'error',
     description: 'A navigator draws `bands` and names no annotation of bands',

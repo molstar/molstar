@@ -37,6 +37,8 @@ describe('the defaults', () => {
       maxNodeIssues: 100,
       maxPlaces: 10,
       themeDepth: 4,
+      tooltipText: 1000,
+      tooltipRows: 1_000_000,
     });
     expect(specBounds({ maxDepth: 4 }).maxDepth).toBe(4);
     expect(specBounds({ maxDepth: 4 }).maxBytes).toBe(64 * 1024 * 1024);

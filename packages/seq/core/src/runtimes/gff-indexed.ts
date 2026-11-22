@@ -30,7 +30,7 @@ import type { GffOptions } from './gff.js';
 import { failure, refuse } from './internal/answers.js';
 import { BgzfIssues } from './internal/issues.js';
 import { densityOf } from './internal/levels.js';
-import { eachMeeting, intervalIndex } from './internal/intervals.js';
+import { eachMeeting, intervalIndex } from '@molstar/seqx-core/data/intervals';
 import { indexedLevels, openIndexedLines, type TabixLines } from './internal/lines.js';
 import { decodeText } from './internal/text.js';
 

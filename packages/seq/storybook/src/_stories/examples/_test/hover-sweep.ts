@@ -167,6 +167,8 @@ export interface Swept {
   readonly links: boolean;
   /** The legend entries hovered items read as, each with a probe point of one (`key`, NUL, `value` → point). */
   readonly entries: ReadonlyMap<string, Region>;
+  /** Every card the probes showed, in probe order, a line of JSON each: what the card providers' parity reads. */
+  readonly cards: string;
 }
 
 /** The type of the layer a key names in a frame ('bridge' for a bridge's). */
@@ -191,6 +193,7 @@ export function sweepHover(v: SeqViewer, id: string, per = 4): Swept {
   let rails = 0;
   let linked = 0;
   let links = false;
+  let cards = '';
   const probes = probesOf(v.frame!, per);
   const words = describerFor({ ...v, layout: () => v.frame?.layout });
   backend.resize(v.frame!.layout.width, v.frame!.layout.height, 1);
@@ -256,6 +259,7 @@ export function sweepHover(v: SeqViewer, id: string, per = 4): Swept {
     // (3) a card with words
     const card = words.describe(h);
     if (!card || (!card.title && !card.rows.length)) wrong.push(`${where}: no card (hit ${h.layer})`);
+    cards += `${JSON.stringify(card ?? null)}\n`;
     // the legend entry the item reads as (outlined): the way back is swept by `sweepLegends`
     const entry = v.legends.hover.value;
     if (entry?.value !== undefined && !entries.has(`${entry.key}\u0000${entry.value}`))
@@ -264,7 +268,17 @@ export function sweepHover(v: SeqViewer, id: string, per = 4): Swept {
   }
   // a type covered by an upper layer everywhere answers no hover of its own
   for (const [type, first] of covered) if (!answered.has(type)) wrong.push(`${first}; ${type} answered nowhere`);
-  return { wrong, probes: probes.length, rails, types: [...answered], layouts: [...layouts], linked, links, entries };
+  return {
+    wrong,
+    probes: probes.length,
+    rails,
+    types: [...answered],
+    layouts: [...layouts],
+    linked,
+    links,
+    entries,
+    cards,
+  };
 }
 
 /**

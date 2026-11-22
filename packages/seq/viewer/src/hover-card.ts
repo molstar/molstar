@@ -4,6 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import type { MarkdownInline } from '@molstar/core/util/markdown';
+
 // The hover card's port (_spec/README.md "Ports", Hover card): the viewer computes the card as data (a title, rows of a
 // label and a value, the announcer's text) and its place (the anchor it stays clear of, the pointer, the view, a side
 // from `placeCard`), headless; the port draws it. The default adapter is `@molstar/ui`'s surface over the canvas
@@ -15,6 +17,11 @@ export interface HoverCardRow {
   readonly value: string;
   /** The row names an item at the place (a feature under it, a group's member): what `hover.cardItems` counts. */
   readonly item?: boolean;
+  /**
+   * A tooltip's text as its inline Markdown tree (strong, emphasis, code, Seq*'s own links, breaks), for an adapter that
+   * draws it; `value` (or the label, a row with no label) is its plain text, what the live region and an export read.
+   */
+  readonly rich?: readonly MarkdownInline[];
 }
 
 /** What the card says: its title, its rows, and the sentence the live region says of the same place. */
@@ -26,16 +33,22 @@ export interface HoverCard {
   readonly text: string;
   /** The item rows the card leaves to its `+k more` row: a host's card may list them. */
   readonly more?: readonly HoverCardRow[];
+  /**
+   * Matches past the cap not made into rows (a tooltip table's rows over a bin, counted by its index): the `+k more` row
+   * says `k = more.length + moreCount`.
+   */
+  readonly moreCount?: number;
 }
 
 /**
- * The card a port draws: at most `maxItems` item rows, the rest counted in a row `+k more` and kept in `more`; the card
- * itself when it has no more.
+ * The card a port draws: at most `maxItems` item rows, the rest counted in a row `+k more` and kept in `more` (with the
+ * matches never made, `moreCount`); the card itself when it has no more.
  */
 export function cutItems(card: HoverCard, maxItems: number): HoverCard {
   let items = 0;
   for (const r of card.rows) if (r.item) items++;
-  if (items <= maxItems) return card;
+  const uncounted = card.moreCount ?? 0;
+  if (items <= maxItems && !uncounted) return card;
   const rows: HoverCardRow[] = [];
   const more: HoverCardRow[] = [];
   let n = 0;
@@ -44,7 +57,7 @@ export function cutItems(card: HoverCard, maxItems: number): HoverCard {
     else if (n++ < maxItems) rows.push(r);
     else more.push(r);
   }
-  rows.push({ label: `+${more.length} more`, value: '' });
+  rows.push({ label: `+${(more.length + uncounted).toLocaleString('en-US')} more`, value: '' });
   return { ...card, rows, more };
 }
 
@@ -73,10 +86,31 @@ export interface HoverCardPlace {
   readonly y: number;
 }
 
+/**
+ * What a show gives an adapter besides the card and its place: the lines a row's value wraps to (`hover.tooltipLines`),
+ * and, for a card with a link, what its link runs and that the pointer entered and left it (the enterable card).
+ */
+export interface HoverCardShowOptions {
+  readonly lines: number;
+  /** Runs a link of the card (`!seq-…`, through the viewer's commands). */
+  link?(href: string): void;
+  /** The pointer came onto the card (it stays while the pointer is over it). */
+  enter?(): void;
+  /** The pointer left the card: it hides. */
+  leave?(): void;
+}
+
+/** Whether a card has a link a reader can follow (it then takes the pointer, entered across the gap). */
+export function cardHasLink(card: HoverCard): boolean {
+  const has = (nodes: readonly MarkdownInline[]): boolean =>
+    nodes.some((n) => n.kind === 'link' || ((n.kind === 'strong' || n.kind === 'em') && has(n.children)));
+  return card.rows.some((r) => r.rich !== undefined && has(r.rich));
+}
+
 /** What the viewer asks of the port. */
 export interface HoverCardPort {
   /** Shows the card at its place (one card: a show replaces the last). */
-  show(card: HoverCard, place: HoverCardPlace): void;
+  show(card: HoverCard, place: HoverCardPlace, options?: HoverCardShowOptions): void;
   hide(): void;
   /** False: the host owns it (one adapter shared by several viewers), and the viewer leaves it. */
   readonly disposeWithViewer?: boolean;

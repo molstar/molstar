@@ -21,7 +21,7 @@ import { GenbankCauses } from './genbank-issues.js';
 import { parseLocation } from './genbank-location.js';
 import { type GenbankRecord, parseGenbank } from './genbank-parse.js';
 import { failure, refuse } from './internal/answers.js';
-import { lowerBound } from './internal/intervals.js';
+import { lowerBound } from '@molstar/seqx-core/data/intervals';
 import { fieldInfos, type ItemField, type PieceItem, rangesOf, rowsIn, systemItems } from './internal/items.js';
 import { decodeText, textBytes } from './internal/text.js';
 

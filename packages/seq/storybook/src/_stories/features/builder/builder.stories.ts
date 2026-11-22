@@ -42,3 +42,6 @@ export const Check: StoryObj = story('check');
 
 /** `build()` as data: the normalized tree printed as JSON and as the S-expression, beside the view; the SVG export draws what resolves, as the canvas does, and says the issues in its `<desc>`. */
 export const BuildAsData: StoryObj = story('as-data');
+
+/** `views.tooltip` and `view.tooltip`: words on rendered marks, by data and by range, Markdown in the template, an in-view link. Rest on a domain or residue 175. */
+export const Tooltips: StoryObj = story('tooltips');

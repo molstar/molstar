@@ -48,6 +48,7 @@ import {
 import type { Viewport } from './axis.js';
 import { type RenderConfigOverrides, renderConfig } from './config.js';
 import { accessibleOf, locationText } from './accessibility.js';
+import { itemTitles, type TitleOptions } from './export-titles.js';
 import { DrawLists } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
 import { layerSource } from './layer-data.js';
@@ -64,6 +65,7 @@ import type { HeaderPartsOf } from './headers.js';
 import { drawListsToSvg, type SvgAccessible } from './svg.js';
 import { bundledTextMetrics, type TextMetrics } from './text.js';
 import { builtInTokens, type SeqTokens } from './tokens.js';
+import { TooltipRender } from './tooltip-hooks.js';
 
 // Headless rendering (_spec/README.md "Render", Export): a spec to an SVG string, asynchronously. It resolves the spec,
 // opens the sources the view reads, wants what the export's size and viewport need through a want set of its own
@@ -111,6 +113,7 @@ export function viewSources(model: StaticModel, view: ResolvedView): Set<string>
       }
     }
   }
+  TooltipRender.chunk?.tooltipSources(model, view, out);
   return out;
 }
 
@@ -287,7 +290,7 @@ export interface PositionsViewport {
   readonly positions: Readonly<Record<string, readonly [number, number] | readonly [SystemPosition, SystemPosition]>>;
 }
 
-export interface RenderSvgOptions {
+export interface RenderSvgOptions extends TitleOptions {
   /** CSS px; a height `auto` is the sections' content's (a text section every line). */
   readonly size: { readonly width: number; readonly height: number | 'auto' };
   /** Draws a ring's window (the view's `export.window` when absent; false: an exported map is a figure). */
@@ -748,7 +751,10 @@ export async function exportSvg(spec: Node, given: RenderSvgOptions): Promise<Re
       fonts: tokens.fonts,
       fade: config.fade,
       idPrefix,
-      accessible: withIssues(accessibleOf(model, frame.layout, titleText, emphasis?.highlights), specErrors),
+      accessible: withIssues(
+        accessibleOf(model, frame.layout, titleText, emphasis?.highlights, itemTitles(options, view, model, store)),
+        specErrors,
+      ),
       metadata: {
         'seq-settled': String(settled),
         ...(domains.length ? { 'seq-domains': domains.join(';') } : {}),

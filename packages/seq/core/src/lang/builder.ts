@@ -128,9 +128,16 @@ export interface ViewsBuilder {
   view(id: string, params: Params<'view'>, body?: (view: ViewBuilder) => void): Address<'view'>;
   /** A shared scale (`/views/<id>`): layers whose themes name it share its domain and palette. */
   scale(id: string, params?: Params<'scale'>): Address<'scale'>;
+  /**
+   * Words on every view's rendered marks (`/views/<id>`, _spec/README.md, Language, Tooltips): by data (`on` a data
+   * node or a layer) or by range (`target` with `rows` or a `source`).
+   */
+  tooltip(id: string, params: Params<'tooltip'>): Address<'tooltip'>;
 }
 
 export interface ViewBuilder extends Addressed<'view'> {
+  /** Words on this view's rendered marks (`<view>/<id>`): as `views.tooltip`, for this view alone. */
+  tooltip(id: string, params: Params<'tooltip'>): Address<'tooltip'>;
   section(id: string, params: Params<'section'>, body?: (section: SectionBuilder) => void): SectionBuilder;
   /** A navigator (`<view>/navigators/<id>`): its params, or a form's (`stripNavigator`, `ideogramNavigator`, …). */
   navigator(id: string, params: NavigatorParams): Address<'navigator'>;
@@ -427,6 +434,7 @@ export function createSeqSpec(options: SeqSpecOptions = {}): SeqSpecBuilder {
         body?.(b);
         return b.address;
       },
+      tooltip: (id, params) => add(rec, 'tooltip', id, params).address as Address<'tooltip'>,
       toString: () => rec.address,
     };
   }
@@ -439,6 +447,9 @@ export function createSeqSpec(options: SeqSpecOptions = {}): SeqSpecBuilder {
     },
     scale(id: string, params?: unknown) {
       return add(views, 'scale', id, params ?? {}).address;
+    },
+    tooltip(id: string, params: unknown) {
+      return add(views, 'tooltip', id, params).address;
     },
   } as unknown as ViewsBuilder;
 

@@ -33,6 +33,8 @@ describe('the bounds items', () => {
       maxNodeIssues: 100,
       maxPlaces: 10,
       themeDepth: 4,
+      tooltipText: 1000,
+      tooltipRows: 1_000_000,
       maxBlockValues: 2 ** 24,
     });
   });

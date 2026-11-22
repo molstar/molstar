@@ -193,6 +193,7 @@ export { SquircleHandle, squirclePath, squirclePathArgs, squircleRadius } from '
 export { drawListsToSvg, escapeXml, type SvgAccessible, type SvgOptions } from './svg.js';
 export {
   accessibleOf,
+  type ItemTitle,
   itemText,
   locationText,
   MaxNamedItems,
@@ -293,3 +294,5 @@ export {
   type Profile,
   profileOf,
 } from './rows-model.js';
+// the tooltips' code loads with the tooltips (`tooltip-hooks.ts`): its functions from `render/tooltips`, never here
+export type { TooltipContext, TooltipOut, TooltipPart, TooltipPlace, TooltipRow } from './tooltips.js';
