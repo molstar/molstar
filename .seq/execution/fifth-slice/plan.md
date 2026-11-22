@@ -221,7 +221,7 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
       `briefs/ga2-data-over-assembly.md`; strong, after RG, alone in resolve and the store) ranges, values, pairs,
       grid and matrix over an assembly read by sequence; held pairs by the pairs level (RS's gap 6); the ideogram's
       bands over every chromosome; RS's single-system stories moved onto assemblies.
-- [ ] **GA3** (added 2026-11-22, the author: "Ok we can use this naming"; strong; the language, alone; after GA2 and FR)
+- [x] **GA3** (added 2026-11-22, the author: "Ok we can use this naming"; strong; the language, alone; after GA2 and FR)
       inline pairs, grids and matrices over an assembly by `a_name`/`b_name`, `x_name`/`y_name`, `name`; a matrix's
       `source` typed; one minor bump.
 - [x] **FR** (`briefs/fr-format-regions.md`; strong, after RG and stage 2's lanes) the formats' by-region rest: tabix

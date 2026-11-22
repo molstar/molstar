@@ -10,8 +10,8 @@ block and ring layouts, navigators, pairs, grids, the logo, the rows layer, the 
 PNG and the render CLI); the fourth, integration (molecules and units in language 0.5.0, structure maps and the
 structure link on a fake 3D viewer, seq data ports, extension openings, track header parts, services, bigWig with range
 reads of assets, archives, a test consumer of the resolved view). Next, the Genomes milestone (the fifth slice's plan;
-built so far: BGZF and tabix in io, language 0.6.0 with assemblies and genome resolve loaded when used, sections over a
-source's complex, the genome axis and layouts), on extension kinds.
+built so far: BGZF and tabix in io, language 0.7.0 with assemblies, inline data over them by name and genome resolve
+loaded when used, sections over a source's complex, the genome axis and layouts), on extension kinds.
 
 - **GFF's follow-ups** (GG, 2026-11-21): a name hit focuses its range, not its item address (the item waits for its data
   after open); the GFF row is 25.8 kB (the design's 12 kB was low); by region is FR's.
@@ -28,7 +28,12 @@ source's complex, the genome axis and layouts), on extension kinds.
   LA's); matrix state labels in the header, `order` and `hidden`; a pairs bin card's per-category breakdown;
   `MatrixItems` as a ranges list plus a cells column; `store.ts` (854 lines) and `viewer.ts` (818) past 800 with no
   natural split found; held pairs over blocks still binned by device column (Decided 7, partial); the whole-assembly
-  level not cut into block pairs (Default 5); inline data over an assembly (GA3).
+  level not cut into block pairs (Default 5).
+
+- **Inline data over an assembly's follow-ups** (GA3, 2026-11-22), the author's: a level-1 source's sparse links over a
+  genome give "zoom in" at the fit (the store's halving rule; `it.fails` in `render/_test/assembly-inline.test.ts`); a
+  grid's inline values per sequence pair are one dense x-major grid, so a binned Hi-C cannot be written inline; region
+  pairs are coloured by kind unlike held pairs; a bin past a chromosome's end draws a caret.
 
 - **Formats by region's follow-ups** (FR, 2026-11-22): ClinVar at coarse levels needs chr17 recorded past TP53 (a fetch,
   the author's; the examples cap it at `maxLevel: 1`); BED and GFF coarse-level stories need generated BGZF and tabix
