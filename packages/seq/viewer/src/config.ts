@@ -336,6 +336,9 @@ export const DefaultViewerConfig: ViewerConfig = {
       // own `rows.page-*` take no key: the cursor's scroll the rows when it is not shown)
       'cursor.page-down': ['PageDown'],
       'cursor.page-up': ['PageUp'],
+      // the scroller under the pointer to its start or end (a rows or lanes band, a section past its cap)
+      'cursor.scroll-start': ['Home'],
+      'cursor.scroll-end': ['End'],
       // the first and the last row (the page's keys when there is no cursor on rows)
       'cursor.first-row': ['Mod+ArrowUp'],
       'cursor.last-row': ['Mod+ArrowDown'],

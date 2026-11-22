@@ -511,7 +511,7 @@ export function rowsBehavior(
   });
 
   return {
-    railGesture: () => new RowsRailGesture(view, config),
+    railGesture: () => new RowsRailGesture(view, config, layout),
     commands,
     wheel(track, dy) {
       const l = lay(track);

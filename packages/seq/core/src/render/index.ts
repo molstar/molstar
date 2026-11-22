@@ -124,6 +124,7 @@ export {
   textGeometry,
   textMinScale,
   textParams,
+  textTop,
 } from './layout/text.js';
 export { clampWindow, sameWindow, TracksLayout, TracksNav } from './layout/tracks.js';
 export { ContentSizing, type LayerContent, type SizedTrack, type TrackSizing, type TrackSizingHook } from './sizing.js';

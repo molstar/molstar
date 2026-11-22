@@ -60,6 +60,8 @@ export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   'cursor.add-down': 'session',
   'cursor.page-down': 'session',
   'cursor.page-up': 'session',
+  'cursor.scroll-start': 'session',
+  'cursor.scroll-end': 'session',
   'cursor.first-row': 'session',
   'cursor.last-row': 'session',
   'cursor.toggle': 'session',

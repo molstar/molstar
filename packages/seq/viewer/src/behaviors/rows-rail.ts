@@ -10,10 +10,21 @@
 // window is a click that centres the rows there (a jump); Esc puts the band back where the press found it. A drag is
 // one step of the view's history when it went farther than the rows in view or zoomed (`navigator.dragStep`). A
 // double-click on its window resets the rows' zoom (`resetZoom`); the vertical overview's grips are the same gesture.
+// The one rail (_spec/README.md "Input", The one rail): the same gesture drives a lanes band's rail and a section's
+// that scrolls past its cap, pan only, through its scroller (`scrollers.ts`): session state, no history step.
 
-import { type BandViewport, LanesRail, MaxRowScale, MinRowScale, type WindowPart } from '@molstar/seqx-core/render';
+import {
+  type BandViewport,
+  LanesRail,
+  MaxRowScale,
+  MinRowScale,
+  SectionRail,
+  type ViewLayout,
+  type WindowPart,
+} from '@molstar/seqx-core/render';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import type { ViewModel, ViewSnapshot } from '@molstar/seqx-viewer/models';
+import { type ScrollerKind, scrollerOf } from './scrollers.js';
 
 /** The rows' zoom bounds (px a row over the band's base): core's, one source (the rows rail's idle rule reads them). */
 export { MaxRowScale, MinRowScale };
@@ -27,11 +38,21 @@ export interface RowsRailWindow {
   readonly width: number;
   /** A lanes band's rail (in lanes): pan only, session state as the wheel's (no history step, no zoom). */
   readonly lanes?: boolean;
-  /** A rail itself is a window: its hit says which rail it is (`LanesRail`). */
+  /** What scrolls under it (absent: from `lanes` and its hit; rows by default). */
+  readonly kind?: ScrollerKind;
+  /** A rail itself is a window: its hit says which rail it is (`LanesRail`, `SectionRail`). */
   readonly hit?: { readonly navigator?: string };
 }
 
-const isLanes = (w: RowsRailWindow): boolean => w.lanes ?? w.hit?.navigator === LanesRail;
+/** The scroller a rail's window drives. */
+export function kindOf(w: RowsRailWindow): ScrollerKind {
+  if (w.kind) return w.kind;
+  if (w.lanes ?? w.hit?.navigator === LanesRail) return 'lanes';
+  return w.hit?.navigator === SectionRail ? 'section' : 'rows';
+}
+
+/** Pan only and session state: a lanes band's, a section's. */
+const isLanes = (w: RowsRailWindow): boolean => kindOf(w) !== 'rows';
 
 export class RowsRailGesture {
   private _press:
@@ -44,7 +65,10 @@ export class RowsRailGesture {
         total: number;
         area: number;
         lanes: boolean;
+        kind: ScrollerKind;
         band: BandViewport | undefined;
+        /** A section's viewport at the press (what Esc puts back). */
+        saved: unknown;
         /** The rail as the frames draw it: its total changes when the lanes or the rows do. */
         live: RowsRailWindow;
         before: ViewSnapshot;
@@ -54,7 +78,15 @@ export class RowsRailGesture {
   constructor(
     private readonly view: ViewModel,
     private readonly config: ViewerConfig = DefaultViewerConfig,
+    /** The last frame's layout: a section's scroller reads its placement. */
+    private readonly layout: () => ViewLayout | undefined = () => undefined,
   ) {}
+
+  /** The stored top of what a rail scrolls (a band's `bandTop`, a section's scroller's px). */
+  private topOf(kind: ScrollerKind, key: string): number | undefined {
+    if (kind === 'section') return scrollerOf(this.view, this.layout(), 'section', key)?.top();
+    return this.view.band(key)?.bandTop;
+  }
 
   get pressed(): boolean {
     return this._press !== undefined;
@@ -64,6 +96,7 @@ export class RowsRailGesture {
   press(track: string, part: WindowPart, at: number, w: RowsRailWindow): boolean {
     if (!(w.total > 0) || !(w.width > 0) || !Number.isFinite(at)) return false;
     const b = this.view.band(track);
+    const kind = kindOf(w);
     this._press = {
       track,
       part,
@@ -73,7 +106,9 @@ export class RowsRailGesture {
       total: w.total,
       area: w.width,
       lanes: isLanes(w),
+      kind,
       band: b,
+      saved: kind === 'section' ? this.view.get(track) : undefined,
       live: w,
       before: this.view.snapshot(),
     };
@@ -90,7 +125,7 @@ export class RowsRailGesture {
     // the lanes or the rows grew or shrank under the press (a rail in the live frames): the press starts again where the
     // pointer is, the band's own top and the rail's new window
     if (p.live.total !== p.total) {
-      const top = this.view.band(p.track)?.bandTop ?? p.start;
+      const top = this.topOf(p.kind, p.track) ?? p.start;
       const shown = p.live.end - p.live.start;
       p.total = p.live.total;
       p.area = p.live.width;
@@ -101,7 +136,7 @@ export class RowsRailGesture {
     const d = at - p.at0;
     const shown = p.end - p.start;
     if (p.part === 'body' || p.lanes) {
-      this.scrollTo(p.track, p.start + d, p.total - shown);
+      this.scrollTo(p.kind, p.track, p.start + d, p.total - shown);
       return true;
     }
     // the rows a grip leaves in view, within the zoom's bounds and the rows there are
@@ -148,7 +183,11 @@ export class RowsRailGesture {
   cancel(): void {
     const p = this._press;
     this._press = undefined;
-    if (p && p.part !== 'outside') this.view.restoreBand(p.track, p.band);
+    if (!p || p.part === 'outside') return;
+    if (p.kind === 'section') {
+      const v = p.saved as ReturnType<ViewModel['get']>;
+      if (v) this.view.setViewport(p.track, v);
+    } else this.view.restoreBand(p.track, p.band);
   }
 
   /**
@@ -159,14 +198,18 @@ export class RowsRailGesture {
     this._press = undefined;
     if (detail > 1 || part !== 'outside' || !Number.isFinite(at)) return false;
     const shown = w.end - w.start;
-    const to = (): boolean => this.scrollTo(track, at - shown / 2, w.total - shown);
+    const to = (): boolean => this.scrollTo(kindOf(w), track, at - shown / 2, w.total - shown);
     // a lanes band's scroll is session state (the wheel's): set, not a jump
     if (isLanes(w)) return to();
     return this.view.jump(to, true, 'move') === 'moved';
   }
 
-  /** The band's top at `top`, within `[0, max]` (the rows or lanes there are); false when it was there already. */
-  private scrollTo(track: string, top: number, max: number): boolean {
+  /**
+   * The band's top at `top`, within `[0, max]` (the rows or lanes there are), a section's through its scroller; false
+   * when it was there already.
+   */
+  private scrollTo(kind: ScrollerKind, track: string, top: number, max: number): boolean {
+    if (kind === 'section') return scrollerOf(this.view, this.layout(), 'section', track)?.set(top) ?? false;
     const was = this.view.band(track)?.bandTop;
     const next = clamp(top, 0, Math.max(0, max));
     if (next === was) return false;
