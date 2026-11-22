@@ -418,13 +418,20 @@ export interface RenderSvgResult {
   readonly selection?: Location;
 }
 
-/** A figure's description with the spec's errors said (none: unchanged). */
-function withIssues(a: SvgAccessible, errors: readonly Issue[]): SvgAccessible {
+/** The most errors a description names; the rest are counted. */
+const MaxDescribedErrors = 10;
+
+/** A figure's description with the spec's errors said, the first ten and a count of the rest (none: unchanged). */
+export function withIssues(a: SvgAccessible, errors: readonly Issue[]): SvgAccessible {
   if (!errors.length) return a;
-  const said = errors.map((i) => `${i.code}${i.address ? ` at ${i.address}` : ''}: ${i.message}`).join('; ');
+  const said = errors
+    .slice(0, MaxDescribedErrors)
+    .map((i) => `${i.code}${i.address ? ` at ${i.address}` : ''}: ${i.message}`)
+    .join('; ');
+  const more = errors.length > MaxDescribedErrors ? ` and ${errors.length - MaxDescribedErrors} more` : '';
   return {
     ...a,
-    description: `${a.description}. The spec has ${errors.length === 1 ? 'an error' : 'errors'}: ${said}`,
+    description: `${a.description}. The spec has ${errors.length === 1 ? 'an error' : 'errors'}: ${said}${more}`,
   };
 }
 
