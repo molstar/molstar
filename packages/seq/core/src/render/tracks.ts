@@ -499,7 +499,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       const edges = layer.path?.edges;
       if (edges) for (let e = 0; e < edges.length; e++) cache.addShowing(edges[e].from, edges[e].to);
       // its wants refused together: "zoom in" over its band, said once (_spec/README.md "Render", Data)
-      const refused = mine.layerRefused?.(ctx.key);
+      // a want past its own tile bound at the coarsest level there is (`fittedLevel` found none that fits): the same
+      const refused = mine.layerRefused?.(ctx.key) ?? (mine.wantRefused(ctx.key) ? 'tiles' : undefined);
       if (refused) {
         const why = refused === 'tiles' ? 'tiles' : 'read cost';
         ctx.report(
