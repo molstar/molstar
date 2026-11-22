@@ -306,6 +306,13 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     if (!y || !own || !axis) return undefined;
     if (y.followsX && !y.follow)
       return { axis: { ...y.axis, dir: axis.dir }, pieces: axis.pieces, viewport: { start: axis.u0, end: axis.u1 } };
+    if (y.blocks && y.follow) {
+      // a second section of blocks: its window on its blocks' units, as its own strips show it (EC-209)
+      const leaderSection = bySection.get(y.follow.leader);
+      const leader = leaderSection && axes.get(leaderSection.address);
+      if (!leaderSection || !leader) return undefined;
+      return { axis: y.axis, pieces: leader.pieces, viewport: leaderWindow(leaderSection, leader) };
+    }
     if (y.follow) {
       const leaderSection = y.followsX ? section : bySection.get(y.follow.leader);
       const leader = y.followsX ? axis : leaderSection && axes.get(leaderSection.address);

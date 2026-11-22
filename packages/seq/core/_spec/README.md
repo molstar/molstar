@@ -2421,8 +2421,11 @@ Overlay, Opened sources), kept per model and view. No data, no dynamic node, no 
   section of blocks takes that section's blocks and axis (their display units, on the leader's address), its follow the
   identity on those units, and its y the same blocks (`followsX`). Its tracks' layers are placed per block as a section
   of blocks' are. Why the leader's blocks: the section of blocks already orders the chains and their copies on one axis.
-  Refused (`seq.view.section.system`): a grid with blocks of its own, and one following blocks in a stack or on a ring
-  (the plot's axes are a row's units).
+  **Over two sections of blocks** (EC-209): with `follow_y` naming another section of blocks, y is that section's blocks
+  (`GridAxis.blocks`, `axis` their display axis, `follow` the identity on their units, `followsX` false): a genome
+  against another (a dot plot), one chromosome's section against another's (a contact map). The layers are still placed
+  per x block; a strip is a block pair. Refused (`seq.view.section.system`): a grid with blocks of its own, and one
+  following blocks (on either axis) in a stack or on a ring (the plot's axes are a row's units).
 - **A section of a complex** (`of` a complex; `view/blocks.ts`): a block a unit, at `<section>/<unit id>`, ordered by
   the section's `classes` (`[polymer, branched, ligand, ion]` when absent: water left out, EC-101), polymers in the
   complex's order, then each class in order; a class not listed is left out. Why left out: hundreds of waters say
@@ -3909,18 +3912,19 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   their strings made at place (a draw allocates nothing).
 - **A grid over blocks** (its section's blocks a leader's, "Resolved view"): a strip a pair of blocks in view, x's block
   across (`strips.block`) and y's down (`strips.yBlock`, its first unit `strips.yFirst`, in the lays' key), each block
-  laid as a row of blocks is (`BlockRow`, gaps between them), y over x's window and the plot's height; the strip's bands
-  that pair's cell; `at` finds the strip by x and y. Its follow is the identity on the leader's units (the tracks
-  layout's "several systems cannot follow" does not apply; a follower that is no grid still is refused). The y blocks'
-  transforms are made once a place and shared by the x blocks' strips. A hit on it carries its x block (`Hit.block`) and
-  its y block (`Hit.yBlock`). Each block's edges are on the device grid (`BlockRow.snap`: its strip's x and width, its y
-  block's top and height), as the tracks section's row above is, so the columns above and the plot's align and the
-  cells' clip and the tiles' edges meet exactly: no cell past its block's edge, no gap's ink inside it; a cell's rect is
-  cut at its axes' edges. A chain boundary is the blocks' gap with no line in it (decided: the gap and an off-centre
-  hairline together read wrong); a `seq-break` hairline a device pixel wide only where two blocks in view touch with
-  less than a device pixel between them (down the plot at an x boundary, across it at a y one). Chrome: the first
-  track's label at the plot's top, each y block's label at the label column's right edge at its top (below the track's
-  label when it starts there).
+  laid as a row of blocks is (`BlockRow`, gaps between them), y over x's window and the plot's height (over two sections
+  of blocks, `gridYBlocks`: y the second section's blocks over its own window, each axis its own gaps and runs, a
+  reversed y block flipping its side, EC-145; `Hit.yBlock` indexes them); the strip's bands that pair's cell; `at` finds
+  the strip by x and y. Its follow is the identity on the leader's units (the tracks layout's "several systems cannot
+  follow" does not apply; a follower that is no grid still is refused). The y blocks' transforms are made once a place
+  and shared by the x blocks' strips. A hit on it carries its x block (`Hit.block`) and its y block (`Hit.yBlock`). Each
+  block's edges are on the device grid (`BlockRow.snap`: its strip's x and width, its y block's top and height), as the
+  tracks section's row above is, so the columns above and the plot's align and the cells' clip and the tiles' edges meet
+  exactly: no cell past its block's edge, no gap's ink inside it; a cell's rect is cut at its axes' edges. A chain
+  boundary is the blocks' gap with no line in it (decided: the gap and an off-centre hairline together read wrong); a
+  `seq-break` hairline a device pixel wide only where two blocks in view touch with less than a device pixel between
+  them (down the plot at an x boundary, across it at a y one). Chrome: the first track's label at the plot's top, each y
+  block's label at the label column's right edge at its top (below the track's label when it starts there).
 
 ### Bridges
 
@@ -4152,11 +4156,15 @@ pairs layer's prepared form and its region reader through the composition (`type
   pair's extent is on the columns, carried to a chain's section through its map onto a seed row (and a residue's hover
   back onto the arcs); a chain's ranges show on the columns along that map, as any layer's data on its path. Pairs are
   not projected: on another system's section they are `seq.render.pairs.systems`.
-- **Dots** (with `ctx.axisY`, in a grid): a rect a pair of single positions at every zoom, at least 4 CSS px, outlined
-  in the text's ink (it reads over any cell color in both themes); a diagonal segment a stretch, with its partner when
-  both ends are on one strand (`a_strand`, `b_strand`), against it otherwise; `mirror` (false: a pair is drawn where its
-  data puts it; the tRNA builder sets it) adds (j, i), a self-pair once; `triangle` keeps a side. Pairs at one cell
-  share it side by side (EC-63).
+- **Dots** (with `ctx.axisY`, in a grid; `pairs-dots.ts`): each pair's ends on their own systems (`aOf`, `bOf`: an
+  assembly's sequences, a complex's units), so over blocks a strip draws the pairs of its block pair alone, silently on
+  the others (a dot plot of two genomes, EC-209; read by region on the x blocks as over an assembly, each strip its
+  lay). Bins (past the gate): a rect a bin pair at its two bins' extent (at least 4 CSS px), its opacity by count, the
+  square root over the bins on the strip, within `ribbons.binOpacity` (as a bridge's). Items: a rect a pair of single
+  positions at every zoom, at least 4 CSS px, outlined in the text's ink (it reads over any cell color in both themes);
+  a diagonal segment a stretch, with its partner when both ends are on one strand (`a_strand`, `b_strand`), against it
+  otherwise; `mirror` (false: a pair is drawn where its data puts it; the tRNA builder sets it) adds (j, i), a self-pair
+  once; `triangle` keeps a side. Pairs at one cell share it side by side (EC-63).
 - **Themes and filter**: its `color` channel (`channelForms`, held extents, its legend), by default `field type` (a
   categorical palette fixed by value; the builder lists an inline table's kinds, as for ranges' `category`); a pair the
   channel gives no color takes the ranges' ink. The layer's data filter (`<pairs>/(except :of (item :type …))`) is read
@@ -4271,7 +4279,8 @@ label and value, the sentence), read on a hover from what the frame drew; a host
   encoder in core. Rects in this slice; measured with the PNG export, which decides.
 - **No navigator for a grid's own y window**: a grid whose y has its own window has no navigator over y; open until a
   Hi-C view needs one.
-- **Arcs between sections** (ribbons, EC-209) stay deferred: `follow_y` covers a y following a section of the same view.
+- **One read a strip** in a dot plot over blocks: each block pair's lay reads the x blocks' pairs and keeps its own;
+  bounded by the screen's strips, measured at the gate; a read shared by the section's strips if it shows.
 - **Emphasis along y** is the two-axis layers' own, through the y path (`axes: 2`).
 
 ### The rows layer

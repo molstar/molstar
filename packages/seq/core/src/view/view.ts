@@ -278,6 +278,11 @@ export interface GridAxis {
   readonly axis: Axis;
   readonly followsX: boolean;
   readonly follow?: Follow;
+  /**
+   * A grid over two sections of blocks (`follow_y` naming a second section of blocks, EC-209): that section's blocks
+   * down the plot, `axis` their display axis and `follow` the identity on their units (absent: y is x's blocks).
+   */
+  readonly blocks?: readonly ResolvedBlock[];
 }
 
 /**
@@ -318,6 +323,9 @@ export interface ResolvedBlock {
 
 /** A block's form (_spec/README.md "Resolved view", Blocks). */
 export type BlockForm = 'whole' | 'residues' | 'atoms';
+
+/** A y block's layers: none (its section's tracks are drawn by the x blocks' strips). */
+const NoBlockLayers: readonly (readonly ResolvedLayer[])[] = [];
 
 /** The params a section's layout reads (_spec/README.md "Resolved view"). */
 const LayoutParams = [
@@ -565,6 +573,8 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
   const viaOf = (at: string) => viaList(param(byAddress.get(at)!, 'via'));
   // a grid section with no system of its own that follows a section of blocks: a grid over them (`blocksGrid`)
   const overBlocks = new Map<string, string>();
+  // and its y over a second section of blocks (`follow_y` naming it): that section's address
+  const overBlocksY = new Map<string, string>();
   // each section's block nodes, derived once a build (an assembly's blocks are a walk of its sequences)
   const nodesOf = new Map<string, Node[]>();
   // a section of assemblies' blocks past `maxAssemblyBlocks`: its closing run's count
@@ -607,14 +617,19 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
       continue;
     }
     if (grid && param(s, 'of') === undefined && leader !== undefined && lead && blocksAt(leader).length) {
-      // the leader's blocks in a row (the plot's axes are their units): not a stack, not a ring
-      const leadLayout = param(lead, 'layout') ?? viewLayout;
-      if (param(lead, 'arrange') === 'stack' || leadLayout !== 'tracks') {
+      // the leader's blocks in a row (the plot's axes are their units): not a stack, not a ring; a second section of
+      // blocks named by `follow_y` the same (_spec/README.md "Resolved view", A grid over blocks)
+      const yLeader = exactAddress(param(s, 'follow_y'));
+      const yLead = yLeader === undefined ? undefined : byAddress.get(yLeader);
+      const yBlocks = yLead && yLeader !== leader && blocksAt(yLeader!).length > 0;
+      const inRow = (n: Node) => param(n, 'arrange') !== 'stack' && (param(n, 'layout') ?? viewLayout) === 'tracks';
+      if (!inRow(lead) || (yBlocks && !inRow(yLead))) {
         report('seq.view.section.system', 'A grid follows a section of blocks in a row only', at);
         systemOf.set(at, '');
         continue;
       }
       overBlocks.set(at, leader);
+      if (yBlocks) overBlocksY.set(at, yLeader!);
       systemOf.set(at, '');
       continue;
     }
@@ -769,11 +784,20 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
         ? assemblies.flatMap((a) => a.order.map((i) => a.sequences[i].name))
         : [...new Set(blocks.map((b) => b.name ?? b.axis.system))],
     };
+    const yBlocks = overBlocksY.get(at);
+    const yb = yBlocks === undefined ? undefined : blocksOf.get(yBlocks);
     const y =
       (typeof own === 'string' ? own : viewLayout) === 'grid'
-        ? overBlocks.has(at)
-          ? { axis, followsX: true }
-          : gridAxis(model, s, at, axis, axes, systemOf, report, via)
+        ? yb
+          ? {
+              axis: yb.axis,
+              followsX: false,
+              follow: followOf(yBlocks!, yb.axis, identityPath(yb.axis.system)),
+              blocks: yb.blocks.map((b) => ({ ...b, layers: NoBlockLayers })),
+            }
+          : overBlocks.has(at)
+            ? { axis, followsX: true }
+            : gridAxis(model, s, at, axis, axes, systemOf, report, via)
         : undefined;
     sections.push({
       address: at,

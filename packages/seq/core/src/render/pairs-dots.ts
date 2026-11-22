@@ -8,8 +8,9 @@ import { issueOf } from '@molstar/core/repr/tree';
 import type { AxisTransform } from './axis.js';
 import { grown, NoColor, type PassWriter } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
-import { DotMin, pairColor, pairHit, type PairsLay, type PairsPrep, segmentDistance2 } from './pairs-lay.js';
+import { aOf, bOf, DotMin, pairColor, pairHit, type PairsLay, type PairsPrep, segmentDistance2 } from './pairs-lay.js';
 import { type Hit, type LayoutContext } from './layer-type.js';
+import { withAlpha } from './tokens.js';
 
 // The pairs layer in a grid's strip (_spec/README.md "Render", The pairs layer): a dot a pair of single positions, a
 // diagonal for a stretch, at (a, b) and with `mirror` at (b, a) too; kinds at one cell side by side.
@@ -19,28 +20,94 @@ import { type Hit, type LayoutContext } from './layer-type.js';
 export function layoutDots(lay: PairsLay, prep: PairsPrep, ctx: LayoutContext, a: AxisTransform, ay: AxisTransform) {
   const d = prep.data!;
   lay.mode = 'dots';
+  // each pair's ends on their own systems (an assembly's sequences, a complex's units): over blocks a strip is a block
+  // pair, and draws the pairs of its two systems alone (a dot plot of two genomes, EC-209)
+  const units = prep.endUnits !== undefined;
   const forward = prep.aSystem === a.system && prep.bSystem === ay.system;
   const back = prep.aSystem === ay.system && prep.bSystem === a.system;
-  if (!forward && !(prep.mirror && back)) {
-    ctx.report(
-      issueOf(RenderIssues, 'seq.render.pairs.systems', 'The pairs are not on the grid’s two systems', {
-        address: ctx.key,
-        hint: RenderIssues.codes['seq.render.pairs.systems'].hint,
-      }),
-    );
+  if (!units && !forward && !(prep.mirror && back)) {
+    if (!ctx.section.blocks)
+      ctx.report(
+        issueOf(RenderIssues, 'seq.render.pairs.systems', 'The pairs are not on the grid’s two systems', {
+          address: ctx.key,
+          hint: RenderIssues.codes['seq.render.pairs.systems'].hint,
+        }),
+      );
     return;
   }
+  // bins (a source's pairs zoomed out): a rect a bin pair at its bins' size, its opacity by count, square root over
+  // the bins on this strip (as a bridge's, `ribbons.binOpacity`)
+  const w = prep.weight;
+  let most = 0;
+  if (w) for (let k = 0; k < d.n; k++) if (prep.shown[k] && w[k] > most && onStrip(prep, units, k, a, ay)) most = w[k];
   for (let k = 0; k < d.n; k++) {
     if (!prep.shown[k]) continue;
+    if (w) {
+      if (onStrip(prep, units, k, a, ay)) binRect(lay, prep, ctx, a, ay, k, most);
+      continue;
+    }
+    const as = units ? aOf(prep, k) : prep.aSystem;
+    const bs = units ? bOf(prep, k) : prep.bSystem;
+    const fw = as === a.system && bs === ay.system;
+    const bw = prep.mirror && as === ay.system && bs === a.system;
+    if (!fw && !bw) continue;
     // a stretch runs with its partner when both ends are on the same strand, against it otherwise (EC-206)
     const parallel = d.aStrand[k] === d.bStrand[k];
-    if (forward) dot(lay, prep, a, ay, k, d.aStart[k], d.aEnd[k], d.bStart[k], d.bEnd[k], parallel);
+    if (fw) dot(lay, prep, a, ay, k, d.aStart[k], d.aEnd[k], d.bStart[k], d.bEnd[k], parallel);
     // a self-pair on a self grid is its own mirror: one dot
-    const self = forward && d.aStart[k] === d.bStart[k] && d.aEnd[k] === d.bEnd[k];
-    if (prep.mirror && back && !self)
-      dot(lay, prep, a, ay, k, d.bStart[k], d.bEnd[k], d.aStart[k], d.aEnd[k], parallel);
+    const self = fw && d.aStart[k] === d.bStart[k] && d.aEnd[k] === d.bEnd[k];
+    if (bw && !self) dot(lay, prep, a, ay, k, d.bStart[k], d.bEnd[k], d.aStart[k], d.aEnd[k], parallel);
   }
   sideBySide(lay);
+}
+
+/** Whether pair `k`'s ends are on the strip's two systems, `a` across. */
+function onStrip(prep: PairsPrep, units: boolean, k: number, a: AxisTransform, ay: AxisTransform): boolean {
+  return (units ? aOf(prep, k) : prep.aSystem) === a.system && (units ? bOf(prep, k) : prep.bSystem) === ay.system;
+}
+
+/** `[s, e)`'s extent in view on an axis into `out[o]`, `out[o + 1]` (its first piece in view, clipped); false if none. */
+function extentIn(ax: AxisTransform, s: number, e: number, out: Float64Array, o: number): boolean {
+  ax.piecesIn(s, e);
+  for (let k = ax.ka; k <= ax.kb; k++)
+    if (ax.spanIn(k, s, e)) {
+      out[o] = ax.sx0;
+      out[o + 1] = ax.sx1;
+      return true;
+    }
+  return false;
+}
+
+const BinBox = new Float64Array(4);
+
+/** A bin pair as a rect of its two bins (at least `DotMin` CSS px a side), its opacity by its count's share. */
+function binRect(
+  lay: PairsLay,
+  prep: PairsPrep,
+  ctx: LayoutContext,
+  a: AxisTransform,
+  ay: AxisTransform,
+  k: number,
+  most: number,
+) {
+  const d = prep.data!;
+  if (!extentIn(a, d.aStart[k], d.aEnd[k], BinBox, 0) || !extentIn(ay, d.bStart[k], d.bEnd[k], BinBox, 2)) return;
+  const color = pairColor(lay, prep, k);
+  if (lay.extents.any) lay.extents.add(prep.datum!.set(k));
+  const { min, max } = ctx.config.ribbons.binOpacity;
+  const share = most > 0 ? Math.sqrt(prep.weight![k] / most) : 1;
+  const i = lay.nd++;
+  lay.dots = grown(lay.dots, 4 * i + 4);
+  lay.dotPair = grown(lay.dotPair, i + 1);
+  lay.dotColor = grown(lay.dotColor, i + 1);
+  const w = Math.max(BinBox[1] - BinBox[0], DotMin);
+  const h = Math.max(BinBox[3] - BinBox[2], DotMin);
+  lay.dots[4 * i] = (BinBox[0] + BinBox[1]) / 2 - w / 2;
+  lay.dots[4 * i + 1] = (BinBox[2] + BinBox[3]) / 2 - h / 2;
+  lay.dots[4 * i + 2] = w;
+  lay.dots[4 * i + 3] = h;
+  lay.dotPair[i] = k;
+  lay.dotColor[i] = withAlpha(color, min + (max - min) * share);
 }
 
 /**

@@ -12,7 +12,7 @@
 // (cells are rectangles when the two show different spans); `aspect: none` leaves it to the tracks' heights. Its viewport is the tracks' window plus `y` when y has a window of its own. A grid over a
 // section of blocks (its x and y the blocks' display axis, the chains side by side) is a strip a pair of blocks in view:
 // each its x block's transform and its y block's (the blocks laid along each axis as a row of blocks is, gaps between
-// them), its bands that pair's cell, its cells clipped at the block's edges; a chain boundary is the blocks' gap with no
+// them; y's a second section's blocks over its window when `follow_y` names one, EC-209), its bands that pair's cell, its cells clipped at the block's edges; a chain boundary is the blocks' gap with no
 // line in it (a hairline only where two blocks touch with no gap), the blocks' labels on both axes.
 
 import { AxisTransform, type Viewport } from '../axis.js';
@@ -130,22 +130,25 @@ function placeBlocksGrid(
   pb: number,
 ) {
   const blocks = section.blocks!;
+  // y over a second section of blocks (`follow_y`, EC-209), its window that section's; else x's blocks and window
+  const yBlocks = gridYBlocks(section);
   const strips = p.strips;
   const x = ctx.axis;
   const xr = (p.xRow ??= new BlockRow());
   const yr = (p.yRow ??= new BlockRow());
   blockRow(xr, blocks, x.x0, x.width, x.u0, x.u1, ctx.dpr, ctx.config);
   const yv = ctx.y?.viewport ?? { start: x.u0, end: x.u1 };
-  blockRow(yr, blocks, top, h, yv.start, yv.end, ctx.dpr, ctx.config);
+  blockRow(yr, yBlocks, top, h, yv.start, yv.end, ctx.dpr, ctx.config);
   const ys = p.yAxes;
-  ys.length = blocks.length;
-  for (let c = 0; c < blocks.length; c++) {
+  ys.length = yBlocks.length;
+  for (let c = 0; c < yBlocks.length; c++) {
     const oc = yr.offset[c];
+    const yb = yBlocks[c];
     ys[c] =
-      yr.ve[c] > yr.vs[c] && yr.w[c] > 0 && blocks[c].axis.ranges
-        ? AxisTransform.on(blocks[c].axis, blocks[c].axis.ranges!, yr.x[c], yr.w[c], ctx.dpr, {
-            start: (yr.vs[c] - oc) / (blocks[c].scale ?? 1),
-            end: (yr.ve[c] - oc) / (blocks[c].scale ?? 1),
+      yr.ve[c] > yr.vs[c] && yr.w[c] > 0 && yb.axis.ranges
+        ? AxisTransform.on(yb.axis, yb.axis.ranges!, yr.x[c], yr.w[c], ctx.dpr, {
+            start: (yr.vs[c] - oc) / (yb.scale ?? 1),
+            end: (yr.ve[c] - oc) / (yb.scale ?? 1),
           })
         : undefined;
   }
@@ -158,7 +161,7 @@ function placeBlocksGrid(
       start: (xr.vs[b] - ob) / sb,
       end: (xr.ve[b] - ob) / sb,
     });
-    for (let c = 0; c < blocks.length; c++) {
+    for (let c = 0; c < yBlocks.length; c++) {
       const ay = ys[c];
       if (!ay) continue;
       const oc = yr.offset[c];
@@ -180,6 +183,11 @@ function placeBlocksGrid(
       }
     }
   }
+}
+
+/** A grid over blocks' y blocks: a second section's (`follow_y`), else its x blocks. */
+export function gridYBlocks(section: ResolvedSection): readonly ResolvedBlock[] {
+  return section.y?.blocks ?? section.blocks!;
 }
 
 /** A grid's y window: its own, clamped within its units and at least a unit. */
@@ -360,6 +368,7 @@ function drawBlocksChrome(s: SectionLayout, p: GridPlacement, out: PassWriter) {
   const { config, tokens } = s;
   const g = out.args;
   const blocks = s.section.blocks!;
+  const yBlocks = gridYBlocks(s.section);
   const xr = p.xRow!;
   const yr = p.yRow!;
   const top = p.plotTop;
@@ -373,6 +382,8 @@ function drawBlocksChrome(s: SectionLayout, p: GridPlacement, out: PassWriter) {
   for (let b = 1; b < blocks.length; b++) {
     const at = touching(xr, b, px);
     if (at >= 0) out.fill(at - px / 2, top, px, h, ink);
+  }
+  for (let b = 1; b < yBlocks.length; b++) {
     const atY = touching(yr, b, px);
     if (atY >= 0) out.fill(xr.x0, atY - px / 2, xr.width, px, ink);
   }
@@ -385,8 +396,8 @@ function drawBlocksChrome(s: SectionLayout, p: GridPlacement, out: PassWriter) {
     g[4] = muted;
     out.textArgs(t.labelText, AnchorStart, config.labelFont);
   }
-  for (let b = 0; b < blocks.length; b++) {
-    const label = blocks[b].label;
+  for (let b = 0; b < yBlocks.length; b++) {
+    const label = yBlocks[b].label;
     if (yr.ve[b] > yr.vs[b] && yr.w[b] >= 14) {
       g[0] = right;
       g[1] = yr.x[b] + (t && yr.x[b] - top < 20 ? 28 : 12);
