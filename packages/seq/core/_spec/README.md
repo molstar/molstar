@@ -1274,11 +1274,12 @@ by fuzz tests (mutated text read without a throw).
 `@molstar/io`'s BGZF and tabix (io's `_spec/bgzf.md`; the allowlist names `common/bgzf` and `common/tabix` for these
 runtimes only).
 
-- **Bytes to text** (`text.ts`, `textBytes`): plain, gzip or BGZF told by the magic, never the extension; bounded by
-  `maxBytes` before and after inflating (BGZF's ISIZEs summed, gzip's declared size, both before the buffer is
-  allocated). Gzip is one member through the platform's decoder (a damaged file `malformed`, not logged), core's
-  `ungzip` where it has none; several plain members are `malformed` (bgzip the file). `decodeText`: UTF-8, and whether
-  U+FFFD is in it (said once a file). A result, never a throw for a file's content.
+- **Bytes to text** (`text.ts`, `textBytes`): plain, gzip or BGZF told by the magic, never the extension (io's BGZF
+  reader loaded only on a gzip file's magic, so a plain file's read never loads it); bounded by `maxBytes` before and
+  after inflating (BGZF's ISIZEs summed, gzip's declared size, both before the buffer is allocated). Gzip is one member
+  through the platform's decoder (a damaged file `malformed`, not logged), core's `ungzip` where it has none; several
+  plain members are `malformed` (bgzip the file). `decodeText`: UTF-8, and whether U+FFFD is in it (said once a file). A
+  result, never a throw for a file's content.
 - **Lines read whole** (`lines.ts`, `wholeLines`): lines as byte spans (`\n`, a `\r` before it dropped, blank lines left
   out) with 1-based numbers; the header lines at the top (`meta`, the first `skip`) apart. Counted before the spans are
   allocated: a line over `maxLineBytes` is `malformed`, more than `maxLines` (`limits.maxRows`) `too-large`.
@@ -1401,8 +1402,8 @@ neither io's tabix nor the pairs index.
   tiles' bin pairs deduped equal to the items binned whole; its synthetic twin is `delayedRuntime(BedRuntime)`.
 - **Performance**: 600,000 BEDPE rows indexed by both ends under 300 ms (heavy, `itWithin`; about 100 ms measured),
   12,000 in the quick lane; a chrom.sizes of 1,000,000 lines under 1.5 s (heavy), 20,000 quick. Size: its own row under
-  30 kB (26.1 kB minified, io's BGZF reader in it), its lazy chunks (by region with io's tabix, and BEDPE: 21.6 kB
-  together) loaded on first use; in no viewer bundle.
+  30 kB (20.0 kB minified), its lazy chunks (io's BGZF reader on a gzip file's magic, by region with io's tabix, and
+  BEDPE: 27.2 kB together) loaded on first use; in no viewer bundle.
 
 ### GFF3 and GTF
 
@@ -1497,9 +1498,9 @@ format). Why opt in: the default viewer is at its size bound.
   `delayedRuntime(GffRuntime)`.
 - **Performance**: 100,000 GFF3 lines assembled under 500 ms (heavy, `itWithin`), 10,000 in the quick lane;
   `features: rows` of 40,000 lines of one `ID` under 500 ms, 2,000 region reads beside a chromosome-long feature under
-  200 ms, 50 lines of a million tabs refused under 200 ms (heavy). Size: its own row under 30 kB (29.9 kB minified, io's
-  BGZF reader in it: at its bound), its lazy chunk (by region with io's tabix, 17.3 kB) loaded on first use; in no
-  viewer bundle.
+  200 ms, 50 lines of a million tabs refused under 200 ms (heavy). Size: its own row under 30 kB (23.8 kB minified), its
+  lazy chunks (io's BGZF reader on a gzip file's magic, by region with io's tabix, 24.3 kB together) loaded on first
+  use; in no viewer bundle.
 
 ### VCF
 
@@ -1607,8 +1608,8 @@ share), and two chunks loaded on first use: `vcf-indexed.ts` (the first indexed 
   with 100 samples' genotypes (the matrix's codes) under 200 ms (heavy), 1,000 of each in the quick lane; ClinVar's
   levels at open about 80 ms (every tile of each level from its index); 40,000 lines without tabs under 500 ms and a
   line of 100,000 flags under 200 ms (heavy), the bytes and characters their searches scan counted in the quick lane.
-  Size: its own row under 30 kB (28.4 kB minified, io's BGZF reader in it), its lazy chunks (by region with io's tabix,
-  and the matrix's reader: 20.0 kB together) loaded on first use; in no viewer bundle.
+  Size: its own row under 30 kB (22.3 kB minified), its lazy chunks (io's BGZF reader on a gzip file's magic, by region
+  with io's tabix, and the matrix's reader: 25.9 kB together) loaded on first use; in no viewer bundle.
 
 ### GenBank
 
@@ -1688,8 +1689,8 @@ accession, DEFINITION, organism, molecule, length, topology, features; what a ho
   The generated record holds the GFF3's sites as `protein_bind` and wraps its qualifiers at spaces (read back
   unchanged). Its synthetic twin is `delayedRuntime(GenbankRuntime)`.
 - **Performance**: 10,000 features opened under 100 ms (heavy, `itWithin`), 1,000 in the quick lane; 50 lines of a
-  million spaces in a quote never closed under 200 ms (heavy). Size: its own row under 30 kB (24.5 kB minified, io's
-  BGZF reader in it); in no viewer bundle.
+  million spaces in a quote never closed under 200 ms (heavy). Size: its own row under 30 kB (22.4 kB minified, io's
+  BGZF reader loaded on a gzip file's magic); in no viewer bundle.
 
 ### mmCIF
 
