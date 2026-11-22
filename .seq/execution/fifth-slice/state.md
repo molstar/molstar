@@ -63,6 +63,10 @@
   recommended with the drifts"): GB fetches L09137.2's flat file once; the SVG export draws what resolves on a spec
   with an error (viewer-composition.md); a mixed run takes its majority category's fill (genome-formats.md, Defaults
   2). Both fixes to FX6.
+- **Sizes for RG's region reads** (the author, 2026-11-22: "Ok increase the limit", after a breakdown was offered
+  first): reading 260 kB (was 240), headless 910 (870), the default viewer 1,450 (1,400), the minimal viewer 1,040
+  (1,000); RG measured 254.9, 897.2, 1,428 and 1,026. RG still removes an import reading should not have, if its
+  breakdown finds one.
 - **A GenBank lane in stage 2** (the author, 2026-11-21: "Add a GenBank lane", after "Try pUC19.gb" in Services ›
   Your own file showed only a refusal): GB after VC, strong, a short design section first (plan, Stage 2); GenBank
   leaves Out of scope.
