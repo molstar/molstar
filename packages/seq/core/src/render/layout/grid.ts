@@ -20,7 +20,8 @@ import type { RenderConfig } from '../config.js';
 import { Anchor, grown, type PassName, type PassWriter } from '../draw-lists.js';
 import type { SectionLayout } from '../tracks.js';
 import { BlockRow, type ResolvedBlock, rowBlocks } from './blocks.js';
-import { drawMemberLabels, hitMemberLabel, MemberLabels, placeMemberLabels } from './grid-members.js';
+import type { MemberLabels } from './grid-members.js';
+import { MemberHooks } from '../members-hooks.js';
 import { type PlacePoint, StripPlacement } from './strips.js';
 import { clampWindow, sameWindow, TracksNav } from './tracks.js';
 import type { ResolvedSection } from '@molstar/seqx-core/view';
@@ -54,8 +55,8 @@ export class GridPlacement extends StripPlacement {
   /** The padding above and below the plot inside its well. */
   padTop = 0;
   padBottom = 0;
-  /** Categorical axes' labels (EC-35): x's room above the plot, their advances. */
-  readonly members = new MemberLabels();
+  /** Categorical axes' labels (EC-35): x's room above the plot, their advances (made by the chunk when it lands). */
+  members: MemberLabels | undefined;
 
   override at(p: ArrayLike<number>, out: PlacePoint): boolean {
     if (!this.xRow) return super.at(p, out);
@@ -260,7 +261,9 @@ export const GridLayout: SectionLayoutType<GridPlacement> = {
       pb = Math.max(pb, ctx.pads[2 * j + 1]);
     }
     // a categorical x: its labels' room above the plot, the box grown by it (fixed: no zoom moves it)
-    const room = section.blocks ? 0 : placeMemberLabels(p.members, ctx.axis, ctx.text, config);
+    const c = MemberHooks.chrome;
+    if (c && !p.members && (ctx.axis.members || ctx.y?.members)) p.members = new c.MemberLabels();
+    const room = section.blocks || !c || !p.members ? 0 : c.placeMemberLabels(p.members, ctx.axis, ctx.text, config);
     const well = ctx.box.y;
     const top = well + room + pt;
     const width = ctx.axis.width;
@@ -327,8 +330,8 @@ export const GridLayout: SectionLayoutType<GridPlacement> = {
   hitChrome(s, x, y) {
     const p = s.placement;
     const st = p.strips;
-    if (!(p instanceof GridPlacement) || p.xRow || !st.n) return undefined;
-    return hitMemberLabel(s, p.members, st.axes[0], st.ys[0], p.plotTop, p.plotHeight, x, y);
+    if (!(p instanceof GridPlacement) || p.xRow || !st.n || !p.members) return undefined;
+    return MemberHooks.chrome?.hitMemberLabel(s, p.members, st.axes[0], st.ys[0], p.plotTop, p.plotHeight, x, y);
   },
 };
 
@@ -351,7 +354,7 @@ function drawChrome(s: SectionLayout, _pass: PassName, out: PassWriter) {
   // categorical axes (EC-35): the members' labels; the track's label above the plot then, where the x labels leave room
   const ay = strips.ys[0];
   const members = p instanceof GridPlacement && (strips.axes[0].members || ay?.members);
-  if (members) drawMemberLabels(s, p.members, strips.axes[0], ay, p.plotTop, out);
+  if (members && p.members) MemberHooks.chrome?.drawMemberLabels(s, p.members, strips.axes[0], ay, p.plotTop, out);
   const labelAt = members && ay?.members ? (p.box.y + 12 <= top - 4 ? p.box.y + 12 : -1) : top + 12;
   if (t?.labelText && labelAt >= 0) {
     g[0] = config.inset;

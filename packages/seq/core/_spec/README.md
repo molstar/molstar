@@ -2208,12 +2208,13 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
 
 ### Lazy kinds
 
-- **A part loaded for a view's kind** (`resolve/lazy-kinds.ts`): `withViewKind(kind, load)` registers what a node of
-  `kind` under a view needs (render's bridge chunk and the view's bridge pass for `bridge`; the walk over a spec's views
-  is set by the first registration, `ViewKinds`, so a reader that registers none walks nothing); a model whose spec
-  holds one waits for it (`StaticModel.loading`, with the genome chunk's) and is resolved again once it lands; the
-  promise never rejects (a failed load is tried again by the next model). Why: a reader that never draws a bridge pays
-  nothing for one.
+- **A part loaded for a view's kind** (`resolve/lazy-kinds.ts`): `withViewKind(kind, load, when?)` registers what a node
+  of `kind` under a view needs, the nodes `when` holds of when given (render's bridge chunk and the view's bridge pass
+  for `bridge`; render's categorical axes for a `section` naming a rows system; the walk over a spec's views is set by
+  the first registration, `ViewKinds`, so a reader that registers none walks nothing); a model whose spec holds one
+  waits for it (`StaticModel.loading`, with the genome chunk's) and is resolved again once it lands; the promise never
+  rejects (a failed load is tried again by the next model). Why: a reader that never draws a bridge pays nothing for
+  one.
 
 ### Unread params
 
@@ -4240,7 +4241,9 @@ pairs layer's prepared form and its region reader through the composition (`type
   breaks), so cells, emphasis and hits read members through it unchanged; the image tiles read the reduction in display
   order (`orderedPyramid`: built when first drawn as tiles, kept by the grid and the orders' versions, which the tiles'
   keys hold), so a reorder builds it once. The grid's own reduction is built the same way, lazily: a grid drawn as rects
-  builds none.
+  builds none. **Lazy** (`members-hooks.ts`): `members.ts` and the labels' chrome load the first time a spec holds a
+  section whose `of` or `of_y` is a rows system (`withViewKind('section', …, when)`), the model waiting for them as for
+  the bridge chunk. Why: a categorical axis is rare; a view without one pays nothing for its orders and labels.
 - **Color**: the value's field theme (`value`), its domain the grid's range; a missing value (NaN) transparent;
   `triangle` keeps `upper` (y before x, above the diagonal) or `lower` (y after x).
 - **Hit**: any point on the plot is the cell under it (`target: 'cell'`, `position` on x, `ySystem`, `yPosition`), drawn

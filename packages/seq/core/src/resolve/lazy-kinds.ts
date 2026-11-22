@@ -13,6 +13,8 @@ import type { Node } from '@molstar/core/repr/tree';
 
 interface Part {
   readonly load: () => Promise<unknown>;
+  /** Which nodes of the kind need it (all when absent: a categorical section, not every section). */
+  readonly when?: (node: Node) => boolean;
   landed: boolean;
   loading?: Promise<void>;
 }
@@ -25,12 +27,15 @@ const Parts = new Map<string, Part[]>();
  */
 export const ViewKinds: { loading?: (spec: Node, also?: Promise<unknown>) => Promise<unknown> | undefined } = {};
 
-/** A part to load when a spec's view holds a node of `kind` (render's bridge chunk: `bridge`). */
-export function withViewKind(kind: string, load: () => Promise<unknown>): void {
+/**
+ * A part to load when a spec's view holds a node of `kind` (render's bridge chunk: `bridge`), one `when` holds of
+ * (render's categorical axes: a section naming a rows system).
+ */
+export function withViewKind(kind: string, load: () => Promise<unknown>, when?: (node: Node) => boolean): void {
   ViewKinds.loading = viewKindsLoading;
   let l = Parts.get(kind);
   if (!l) Parts.set(kind, (l = []));
-  l.push({ load, landed: false });
+  l.push({ load, landed: false, ...(when ? { when } : {}) });
 }
 
 /**
@@ -46,7 +51,7 @@ function viewKindsLoading(spec: Node, also?: Promise<unknown>): Promise<unknown>
         const parts = Parts.get(c.kind);
         if (!parts) continue;
         for (const p of parts) {
-          if (p.landed) continue;
+          if (p.landed || (p.when && !p.when(c))) continue;
           p.loading ??= p.load().then(
             () => {
               p.landed = true;

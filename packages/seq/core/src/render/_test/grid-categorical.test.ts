@@ -157,8 +157,8 @@ describe('categorical grid axes (EC-35): chrome', () => {
     const p = s.placement as GridPlacement;
     const a = p.strips.axes[0];
     // the box grew by the x labels' room above the plot
-    expect(p.members.room).toBeGreaterThan(0);
-    expect(p.plotTop).toBeGreaterThanOrEqual(p.box.y + p.members.room);
+    expect(p.members!.room).toBeGreaterThan(0);
+    expect(p.plotTop).toBeGreaterThanOrEqual(p.box.y + p.members!.room);
     const rec = recordDrawLists(f.lists, ['labels']);
     const ys = rec.split('\n').filter((l) => /^text "S\d+"/.test(l));
     // a label a step of at least 8 px: about the plot's height over 8

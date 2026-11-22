@@ -60,7 +60,8 @@ import { bandHeights, firstType, rowsFill, rulerTrack } from './tracks-heights.j
 import { sectionHeaderOf, trackHeaderOf } from './tracks-headers.js';
 import { collapsedSection } from './headers.js';
 import { BridgeHooks } from './bridge-hooks.js';
-import { type Members, membersOf } from './members.js';
+import type { Members } from './members.js';
+import { MemberHooks } from './members-hooks.js';
 
 export { multiSystem, sectionLayoutName } from './tracks-axes.js';
 export { labelColumnWidth, layerKey } from './tracks-columns.js';
@@ -309,7 +310,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
   /** A categorical axis's members over its whole pieces (their count its length), else undefined. */
   function membersOn(axis: MemberAxis, whole: readonly number[] | undefined): Members | undefined {
     const n = whole && whole.length === 2 ? whole[1] - whole[0] : undefined;
-    return n === undefined || n <= 0 ? undefined : membersOf(input.model, axis, n);
+    return n === undefined || n <= 0 ? undefined : MemberHooks.membersOf?.(input.model, axis, n);
   }
   /**
    * A grid's y (_spec/README.md "Render", The grid layout): x's pieces and window when it follows x on x's system; a
