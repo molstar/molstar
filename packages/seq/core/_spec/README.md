@@ -1399,7 +1399,7 @@ neither io's tabix nor the pairs index.
   tiles' bin pairs deduped equal to the items binned whole; its synthetic twin is `delayedRuntime(BedRuntime)`.
 - **Performance**: 600,000 BEDPE rows indexed by both ends under 300 ms (heavy, `itWithin`; about 100 ms measured),
   12,000 in the quick lane; a chrom.sizes of 1,000,000 lines under 1.5 s (heavy), 20,000 quick. Size: its own row under
-  30 kB (23.2 kB minified, io's BGZF reader in it), its lazy chunks (by region with io's tabix, and BEDPE: 20.5 kB
+  30 kB (26.1 kB minified, io's BGZF reader in it), its lazy chunks (by region with io's tabix, and BEDPE: 21.6 kB
   together) loaded on first use; in no viewer bundle.
 
 ### GFF3 and GTF
@@ -1495,8 +1495,9 @@ format). Why opt in: the default viewer is at its size bound.
   `delayedRuntime(GffRuntime)`.
 - **Performance**: 100,000 GFF3 lines assembled under 500 ms (heavy, `itWithin`), 10,000 in the quick lane;
   `features: rows` of 40,000 lines of one `ID` under 500 ms, 2,000 region reads beside a chromosome-long feature under
-  200 ms, 50 lines of a million tabs refused under 200 ms (heavy). Size: its own row under 30 kB (24.3 kB minified, io's
-  BGZF reader in it); in no viewer bundle.
+  200 ms, 50 lines of a million tabs refused under 200 ms (heavy). Size: its own row under 30 kB (29.9 kB minified, io's
+  BGZF reader in it: at its bound), its lazy chunk (by region with io's tabix, 17.3 kB) loaded on first use; in no
+  viewer bundle.
 
 ### VCF
 
@@ -1506,8 +1507,9 @@ format). Why opt in: the default viewer is at its size bound.
 field's values, a palette's), `VcfSource`: an opened source with its `header`, what a host shows of the file): **sites
 and genotypes**, `vcf` read whole or by region at the levels its index's bytes allow over the internals above;
 `vcf-header.ts` (the header), `vcf-parse.ts` (the one line parser and rows), `vcf-answer.ts` (a region's answer),
-`vcf-genotypes.ts` (the matrix), `vcf-read.ts` (what whole and region reads share), and `vcf-indexed.ts` loaded when the
-first indexed source opens (io's tabix in it).
+`vcf-samples.ts` (the samples held and the matrix's channels, at open), `vcf-read.ts` (what whole and region reads
+share), and two chunks loaded on first use: `vcf-indexed.ts` (the first indexed source; io's tabix in it) and
+`vcf-genotypes.ts` (the matrix's reader, the first matrix request).
 
 - **Conventions fixed** (EC-195): base 1 (`POS − 1`), an extent by the index's rule; a source's `base` or `ends` is not
   read, said once (`seq.source.vcf.transform`, info). Bytes to text by magic (plain, gzip, BGZF) within
@@ -1603,8 +1605,8 @@ first indexed source opens (io's tabix in it).
   with 100 samples' genotypes (the matrix's codes) under 200 ms (heavy), 1,000 of each in the quick lane; ClinVar's
   levels at open about 80 ms (every tile of each level from its index); 40,000 lines without tabs under 500 ms and a
   line of 100,000 flags under 200 ms (heavy), the bytes and characters their searches scan counted in the quick lane.
-  Size: its own row under 30 kB (25.2 kB minified, io's BGZF reader in it), its lazy chunk (by region with io's tabix,
-  14.8 kB) loaded on first use; in no viewer bundle.
+  Size: its own row under 30 kB (28.4 kB minified, io's BGZF reader in it), its lazy chunks (by region with io's tabix,
+  and the matrix's reader: 20.0 kB together) loaded on first use; in no viewer bundle.
 
 ### GenBank
 
