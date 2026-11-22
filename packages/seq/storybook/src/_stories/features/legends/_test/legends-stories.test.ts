@@ -9,7 +9,8 @@ import { legendTitle } from '@molstar/seqx-core/theme';
 import { DomHost } from '@molstar/ui/dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { placementsOf, trackOf } from '../legends-compose.js';
-import { type LegendPlacementsRoot, LegendPlacements } from '../legends.stories.js';
+import { LegendPlacements } from '../legends.stories.js';
+import type { LegendPlacementsRoot } from '../legends-root.js';
 
 // The legend placements story in a DOM (jsdom) on a fake clock, mounted as Storybook mounts it: the same legends in
 // three places by the host's options (the header's one track compact, the panel without it, the band compact in a row)

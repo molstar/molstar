@@ -13,13 +13,8 @@ import { LetterSchemes } from '@molstar/seqx-examples/p53/themes';
 import { DomHost } from '@molstar/ui/dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { EditingSession } from '../../editing/compose.js';
-import {
-  EditingThemes,
-  SchemesGallery,
-  SchemesGalleryRoot,
-  type ThemesEditingRoot,
-  Themes,
-} from '../themes.stories.js';
+import { EditingThemes, SchemesGallery, Themes } from '../themes.stories.js';
+import { SchemesGalleryRoot, type ThemesEditingRoot } from '../themes-roots.js';
 import {
   cancelScheme,
   Letters,
