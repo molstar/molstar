@@ -250,8 +250,13 @@ export function blockPlaceText(model: StaticModel, system: string, position: num
   return `${model.systems.get(system)?.name ?? ''}: ${countText(Math.floor(position) + 1)}`;
 }
 
-/** Positions `[p0, p1)` on the navigator's system as text, 1-based (`chr17:7,666,403–7,688,402`). */
+/**
+ * Positions `[p0, p1)` on the navigator's system as text, 1-based (`chr17:7,666,403–7,688,402`); a reversed axis's
+ * ends in either order, across a cyclic origin (`p1` before `p0`) the arc over it.
+ */
 export function spanText(model: StaticModel, nav: ResolvedNavigator, p0: number, p1: number): string {
+  // a window across a cyclic origin ends before it starts: the arc over the origin, never its complement
+  if (p1 < p0 && nav.system && model.systems.get(nav.system)?.cyclic) return arcText(model, nav, p0, p1);
   return arcText(model, nav, Math.min(p0, p1), Math.max(p0, p1));
 }
 

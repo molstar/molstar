@@ -14,7 +14,7 @@
 import { createSeqSpec, stripNavigator } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
 import { DarkTokens, DefaultRenderConfig, NavWindowFlags, type ViewLayout } from '../index.js';
-import { type NavigatorRendererOptions } from '../navigator.js';
+import { type NavigatorRendererOptions, windowText } from '../navigator.js';
 import { IdleAlpha } from '../window.js';
 import { regionSpec, settleNavigator } from './navigator-fixtures.js';
 
@@ -54,6 +54,8 @@ describe('the zoom strip', () => {
     expect(strip!.axis!.u0).toBeCloseTo(59_000, 6);
     expect(strip!.axis!.u1).toBeCloseTo(61_000, 6);
     expect(s.nav.markText()).toBe('chr:59,001–1,000');
+    // the window's text across the origin is the arc, never its complement
+    expect(windowText(s.model, s.nav.navigator, f.windows[0])).toBe('chr:59,001–1,000 of chr');
     // the region's whole view is the strip's whole width, one piece
     const w = f.windows[0];
     const box = strip!.placement.box;

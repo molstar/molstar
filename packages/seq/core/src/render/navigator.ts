@@ -512,7 +512,7 @@ export class NavigatorRenderer {
   /**
    * x on the picture (the context, with a zoom strip) of positions `[start, end)` of the navigator's system, in its
    * display order (a reversed axis's, collapsed introns' nearest): `[x0, x1]`, x0 ≤ x1; undefined before the picture is
-   * laid out, or where none of it is shown. What a host drawing its own navigator places its marks with.
+   * laid out, or where none is shown (`end` past `start`: across a cyclic origin, two calls). For a host's marks.
    */
   xRangeOf(start: number, end: number): readonly [number, number] | undefined {
     const axis = this.pictureSection?.axis;
