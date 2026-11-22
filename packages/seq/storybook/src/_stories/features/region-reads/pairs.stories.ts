@@ -33,8 +33,9 @@ export const ZoomedIn: StoryObj = { render: () => exampleStory(view('pairs-zoome
 export const ZoomedOut: StoryObj = { render: () => exampleStory(view('pairs-zoomed-out'), { stacked: true }) };
 
 /**
- * The genome ring at the fit: 12,000 generated links over a toy assembly’s six chromosomes (a `seq` source with three
- * levels), read by region a chromosome at a time, as chords between the chromosomes and within each (core’s pairs
- * layer, no extension). Past the 4,096 arcs a view draws, the arcs are binned by their ends’ device columns (EC-208).
+ * The genome ring at the fit: 12,000 generated links over a toy assembly’s six chromosomes (38 to 10 Mb, a `seq`
+ * source with three levels), read a chromosome at a time as bin pairs of 16 kb: chords between the chromosomes and
+ * within each, stroked (1 to 6 px) and shaded by count, the strongest kept and drawn first (core’s pairs layer, no
+ * extension; EC-208).
  */
 export const OnARing: StoryObj = { render: () => exampleStory(view('pairs-ring'), { stacked: true }) };
