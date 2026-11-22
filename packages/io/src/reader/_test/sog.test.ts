@@ -76,6 +76,16 @@ describe('sog', () => {
   });
 
   // the graphics upload the images as stored, decoding the means alone
+  it("reads an archive of a Node Buffer at an offset in a larger one (a pool's view)", async () => {
+    const bytes = await sog(meta(3, 6, true));
+    const pool = new Uint8Array(bytes.length + 16).fill(0xee);
+    pool.set(bytes, 3);
+    const parsed = await parseSogArchive(Buffer.from(pool.buffer, 3, bytes.length)).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    expect([parsed.result.version, parsed.result.count]).toEqual([3, 6]);
+    expect(new TextDecoder().decode(parsed.result.quats.bytes)).toBe('quats.webp');
+  });
+
   it('reads the archive without decoding: the images as stored, decoded one by one on request', async () => {
     const parsed = await parseSogArchive(await sog(meta(3, 6, true))).run();
     if (parsed.isError) throw new Error(parsed.message);

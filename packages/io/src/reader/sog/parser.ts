@@ -15,7 +15,8 @@ import { decodeWebpInBrowser } from './webp-decoder.js';
 async function parseArchive(ctx: RuntimeContext, data: ReadonlyUint8Array): Promise<Result<SogArchive>> {
   // the archive's buffer as it is where the bytes are all of it (no copy)
   const whole = data.byteOffset === 0 && data.byteLength === data.buffer.byteLength;
-  const buffer = whole ? (data.buffer as ArrayBuffer) : (data as Uint8Array).slice().buffer;
+  // else a copy of its own (a Node `Buffer`'s `slice` is a view: its `buffer` the pool's, not the archive's)
+  const buffer = whole ? (data.buffer as ArrayBuffer) : new Uint8Array(data as Uint8Array).buffer;
   const entries = await unzip(ctx, buffer);
   const file = (name: string) => {
     const e = entries[name];

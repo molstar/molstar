@@ -8,7 +8,9 @@ import { describe, expect, it } from 'vitest';
 import { Mat3, Quat, Vec3 } from '@molstar/core/math/linear-algebra';
 import { GaussianSplats } from '../gaussian-splats/gaussian-splats.js';
 import {
+  encodeSplatSh,
   getMaxSplatScale,
+  getSplatShCoefficient,
   getSplatCovariance,
   getSplatOpacity,
   getSplatRotation,
@@ -304,5 +306,18 @@ describe('gaussian splats', () => {
     const centers = calculateInvariantBoundingSphere(splats.positionGroup.ref.value.array, 2, 1, PositionGroupStride);
     expect(splats.boundingSphere.center[0]).toBeCloseTo(centers.center[0], 5);
     expect(Array.from(Shape.getGroupBoundingSphere(loci).center)).toEqual([4, 0, 0]);
+  });
+
+  it('encode view-dependent colors by the finite coefficients: one not finite read as 0, the others as they are', () => {
+    // degree 1: three basis functions a splat; splat 1's first r NaN, its first g infinite
+    const values = [0.5, -0.25, 1];
+    const get = (i: number, k: number, c: number) =>
+      i === 1 && k === 0 && c === 0 ? Number.NaN : i === 1 && k === 0 && c === 1 ? Infinity : values[c] * (k + 1) * 0.1;
+    const sh = encodeSplatSh(2, 1, get);
+    expect(sh.scale).toBeCloseTo(0.3, 6);
+    expect(getSplatShCoefficient(sh, 0, 2, 2)).toBeCloseTo(0.3, 2);
+    expect(getSplatShCoefficient(sh, 1, 1, 0)).toBeCloseTo(0.1, 2);
+    expect(Math.abs(getSplatShCoefficient(sh, 1, 0, 0))).toBeLessThan(0.003);
+    expect(Math.abs(getSplatShCoefficient(sh, 1, 0, 1))).toBeLessThan(0.003);
   });
 });

@@ -53,17 +53,21 @@ export function sortSplats(
   if (count === 0) return;
   let min = Infinity;
   let max = -Infinity;
-  // the depths first, into `keys` as floats' bits would lose the order: kept in a view of its buffer
+  // the depths first, into `keys` as floats' bits would lose the order: kept in a view of its buffer; their bounds of
+  // the depths as stored (float32: a bound of the float64 ones would key a rounded depth past the keys' range)
   const depths = new Float32Array(keys.buffer, keys.byteOffset, count);
   for (let i = 0, o = 0; i < count; ++i, o += 4) {
-    const z = a * positionGroup[o] + b * positionGroup[o + 1] + c * positionGroup[o + 2];
-    depths[i] = z;
+    depths[i] = a * positionGroup[o] + b * positionGroup[o + 1] + c * positionGroup[o + 2];
+    const z = depths[i];
     if (z < min) min = z;
     if (z > max) max = z;
   }
   const scale = max > min ? KeySteps / (max - min) : 0;
-  // in place: a key written after its depth is read (the same index)
-  for (let i = 0; i < count; ++i) keys[i] = ((depths[i] - min) * scale) | 0;
+  // in place: a key written after its depth is read (the same index); within the keys' range (a NaN center's 0)
+  for (let i = 0; i < count; ++i) {
+    const key = ((depths[i] - min) * scale) | 0;
+    keys[i] = key < 0 ? 0 : key > KeySteps ? KeySteps : key;
+  }
   // one pass reading the keys in order (1 M splats 8-10 ms against 22.5 of `radixSortIndices` in Node, 5 M 42-47 against 188)
   countingSortIndices(keys, count, KeySteps, out, offset);
 }
@@ -204,7 +208,11 @@ export function updateSplatOrder(values: GaussianSplatsValues, modelView: Mat4, 
   }
   state.positionVersion = values.splatCenters.ref.version;
   state.transformVersion = values.aTransform.ref.version;
-  if (gpu) return sortOnGpu(values, state, gpu, count * instanceCount, jobs) || resized;
+  if (gpu) {
+    // the order of the new counts kept (else the next sort finds them resized again, all sorted again: every frame)
+    if (resized) ValueCell.update(orderCell, data);
+    return sortOnGpu(values, state, gpu, count * instanceCount, jobs) || resized;
+  }
   if (values.dSplatGpuOrder.ref.value) {
     ValueCell.update(values.dSplatGpuOrder, false);
     changed = true;

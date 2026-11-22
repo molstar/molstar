@@ -72,6 +72,21 @@ describe('gaussian splats order', () => {
     expect(Array.from(out)).toEqual([2, 0, 3, 1]);
   });
 
+  it('keys depths as stored (float32): each splat once where their range is below their rounding', () => {
+    // far from the origin, 0.019 apart along the row: their float32 depths a step of 0.031 apart, past the range of
+    // the float64 ones (a key of 109k of 65k steps, or below 0)
+    const pg = new Float32Array([1_000_000, 0, 0, 0, 1_000_000.0625, 0, 0, 0, 1_000_000, 0, 0, 0]);
+    const out = new Uint32Array(3).fill(99);
+    for (const a of [0.3, -0.3]) {
+      sortSplats(out, 0, pg, 3, a, 0, 0, new Uint32Array(3));
+      expect([...out].sort()).toEqual([0, 1, 2]);
+    }
+    // NaN centers among them: kept once each too
+    const nan = new Float32Array([Number.NaN, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0]);
+    sortSplats(out, 0, nan, 3, 1, 0, 0, new Uint32Array(3));
+    expect([...out].sort()).toEqual([0, 1, 2]);
+  });
+
   it('orders the splats for the camera, again where it turns, not where it moves', () => {
     const values = splatValues([
       [0, 0, -1],
@@ -150,6 +165,38 @@ describe('gaussian splats order', () => {
     // the view unchanged, still sorted again: the state forgotten
     expect(updateSplatOrder(values, view)).toBe(true);
     expect(order(values)).toEqual([0, 1]);
+  });
+
+  it('sorts on the GPU once after the splats are other: not again each frame for the same view', () => {
+    const compute = {
+      createBuffer: (byteLength: number) =>
+        ({ byteLength, write: () => {}, destroy: () => {} }) as unknown as StorageBuffer,
+    } as unknown as ComputeContext;
+    let jobs = 0;
+    const sorter = { sort: (_: unknown, __: unknown, j: unknown[]) => (jobs += j.length), destroy: () => {} };
+    const gpu = { compute, sorter: sorter as unknown as SplatSorter };
+    const view = lookAt(Vec3.create(0, 0, 10));
+    const values = splatValues([
+      [0, 0, -1],
+      [0, 0, 1],
+    ]);
+    updateSplatOrder(values, view, gpu);
+    expect(jobs).toBe(1);
+    // three splats: sorted once, then the same view none
+    const other = splatValues([
+      [0, 0, -1],
+      [0, 0, 1],
+      [0, 0, 2],
+    ]);
+    for (const k of ['splatCenters', 'uVertexCount', 'invariantBoundingSphere'] as const) {
+      ValueCell.update(values[k] as ValueCell<any>, other[k].ref.value);
+    }
+    updateSplatOrder(values, view, gpu);
+    expect(jobs).toBe(2);
+    updateSplatOrder(values, view, gpu);
+    updateSplatOrder(values, view, gpu);
+    expect(jobs).toBe(2);
+    expect(values.tSplatOrder.ref.value.count).toBe(3);
   });
 
   it("destroys the GPU sort's buffers on dispose: the centers and the order, once", () => {

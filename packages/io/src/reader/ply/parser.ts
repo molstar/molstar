@@ -315,7 +315,12 @@ function readUniformBinaryTable(state: State, spec: TableElementSpec, arrays: Pl
   const rows =
     start % bytes === 0
       ? new Ctor(data.buffer, start, length)
-      : new Ctor(data.slice(state.binaryOffset, state.binaryOffset + length * bytes).buffer, 0, length);
+      : // a copy of its own (a Node `Buffer`'s `slice` is a view: its `buffer` the pool's, not the table's)
+        new Ctor(
+          new Uint8Array(data.subarray(state.binaryOffset, state.binaryOffset + length * bytes)).buffer,
+          0,
+          length,
+        );
   for (let j = 0; j < propertyCount; j++) {
     const array = arrays[j];
     for (let i = 0, o = j; i < count; i++, o += propertyCount) array[i] = rows[o];

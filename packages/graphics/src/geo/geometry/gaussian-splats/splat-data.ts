@@ -155,7 +155,11 @@ export function encodeSplatSh(
   let scale = 0;
   for (let i = 0; i < splatCount; ++i) {
     for (let k = 0; k < n; ++k) {
-      for (let c = 0; c < 3; ++c) scale = Math.max(scale, Math.abs(getCoefficient(i, k, c)));
+      for (let c = 0; c < 3; ++c) {
+        // a coefficient not finite (a file's NaN) left out: the scale every splat's coefficients are read by
+        const v = Math.abs(getCoefficient(i, k, c));
+        if (v > scale && Number.isFinite(v)) scale = v;
+      }
     }
   }
   const data = new Uint8Array(splatCount * n * 4);
@@ -163,7 +167,10 @@ export function encodeSplatSh(
   for (let i = 0; i < splatCount; ++i) {
     for (let k = 0; k < n; ++k) {
       const o = (i * n + k) * 4;
-      for (let c = 0; c < 3; ++c) data[o + c] = Math.round(getCoefficient(i, k, c) * f + 127.5);
+      for (let c = 0; c < 3; ++c) {
+        const v = getCoefficient(i, k, c);
+        data[o + c] = Number.isFinite(v) ? Math.round(v * f + 127.5) : 128;
+      }
     }
   }
   return { degree, scale, data };

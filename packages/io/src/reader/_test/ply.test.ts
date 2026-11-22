@@ -366,6 +366,31 @@ describe('ply reader', () => {
     }
   });
 
+  it("reads a binary table of a Node Buffer at an offset in a larger one (a pool's view)", async () => {
+    const vertex = {
+      name: 'vertex',
+      props: [
+        ['x', 'float'],
+        ['y', 'float'],
+      ] as [string, 'float'][],
+      rows: [
+        [1.5, -2],
+        [3, 4.5],
+      ],
+    };
+    for (const pad of ['', 'a', 'ab', 'abc']) {
+      const bytes = binaryPly([vertex], pad);
+      // the bytes from 1 in a buffer of other bytes before and after them: `slice` of a Buffer a view of it
+      const pool = new Uint8Array(bytes.length + 16).fill(0xee);
+      pool.set(bytes, 1);
+      const data = Buffer.from(pool.buffer, 1, bytes.length);
+      const parsed = await parsePly(data).run();
+      if (parsed.isError) throw new Error(parsed.message);
+      const v = parsed.result.getElement('vertex') as PlyTable;
+      expect([0, 1].map((i) => [v.getProperty('x')!.value(i), v.getProperty('y')!.value(i)])).toEqual(vertex.rows);
+    }
+  });
+
   it('rejects a binary table past the end of the data', async () => {
     const data = binaryPly([{ name: 'vertex', props: [['x', 'float']], rows: [[1], [2]] }]);
     await expect(parsePly(data.subarray(0, data.length - 2)).run()).rejects.toThrow(/ends before its table/);
