@@ -2680,7 +2680,7 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 | `navigator.window.floor`                                       | `centred`                                                                                                              | the drawn window says where; `thumb` (a scrollbar's mapping)                                                                                                                                                                                                                                                                                                                                                              |
 | `navigator.trackScale`, `navigator.trackMinPx`                 | 0.25, 2 px                                                                                                             | a miniature reads as the view; a thinner track is not seen at dpr 1                                                                                                                                                                                                                                                                                                                                                       |
 | `navigator.marks`                                              | selection, highlights, cursor                                                                                          | where is what I picked; any subset                                                                                                                                                                                                                                                                                                                                                                                        |
-| `navigator.rail.grownPx`, `.grabShare`                         | 6 px, 0.4                                                                                                              | a target in use; an alignment ruler's labels select columns, its bottom pans                                                                                                                                                                                                                                                                                                                                              |
+| `navigator.rail.grownPx`, `.grabShare`, `.tint`                | 6 px, 0.4, neutral                                                                                                     | a target in use; an alignment ruler's labels select columns, its bottom pans                                                                                                                                                                                                                                                                                                                                              |
 | `navigator.overview.minPlotPx`, `.minPx`                       | 160, 48 px                                                                                                             | a narrow frame gives way by the plot's width: the overview narrows to `minPx` to keep the plot `minPlotPx` wide, hides below it (the rows rail kept), then the label column and the tree, then the frame scrolls (the author's choice); any px, `minPlotPx` 0 never hides                                                                                                                                                 |
 | `navigator.square.maxCells`                                    | 4,096                                                                                                                  | the square's lattice lines stay readable and a grid source's block-pair wants bounded (region reads); past it the lines are not drawn, said once; the picture always drawn                                                                                                                                                                                                                                                |
 | `internedStrings`                                              | 4,096                                                                                                                  | strings draw lists keep interned across frames, so a frame drawn again interns nothing; past it a full redraw starts the table again                                                                                                                                                                                                                                                                                      |
@@ -3405,24 +3405,30 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   (the canvas with rails on; with the rail toggle off none), never in an export ("Leave it out of exports": a figure has
   no empty strip, and its included rails lie on the border), else in a slim row of its own under the section's tracks
   (`SlimRailPx`, 12, fixed: the form's size, the least a rail and its grips need; a hidden ruler too; under, not above:
-  the tracks keep their place); the whole axis across the data box, the window a segment with a grip each end (over a
-  cyclic origin two pieces, a grip at each true end, the axis's ends body), collapsed breaks a notch; its grab zone the
-  ruler's height, up from the rail row's foot (on an alignment's columns its lower `grabShare`: above it a drag selects
-  columns), the slim row whole; grown (`grownPx`) while hovered or dragged (`Emphasis.drag`); idle (not active) a quiet
-  hairline with no grips and no target (at the fit it reads as the line); in a figure (an export) a plain segment, no
-  grips, no idle state. Its hit is the `window` target with `navigator: 'rail'` (touch the wider hit: `hitView`'s
-  `touch`), its unit `railUnitAt`; a window over the whole axis (the fit) has no body to drag, so its body is a place as
-  outside a window (part `outside`; the author, 2026-11-21: the rail stays interactive at the fit): its hover marks the
-  position (a 1.5 px tick, `Rail.markAt`) and names it, never the rail grown or lit; a sweep zooms to the region; its
-  grips keep their own hover. Over a run of small blocks the rail's place carries the run's `count` and `state`. On a
-  section of blocks its hit names the block under the unit, its system and its position (`block`), never the section's
-  units. Rails are part of a section's key by identity (a slim row takes room); which can move is not: the renderer sets
-  it on the rails each frame, an emphasis redraw too (an idle flip redraws the window pass alone).
-  `railSections(view, hosted, mode)`: every tracks section (`always`, the default: a declared navigator is the picture,
-  the rail the precise control, both drawn against one window); `unlessNavigator`: those no shown navigator binds along
-  its positions (a declared navigator and a host's replace its rail, a hidden one brings it back); `none`: no section
-  (the viewer's `navigator.positionsRail`). **Where**: `FrameInput.rails`'s value for a section is its row, or a list of
-  rows (`railRows(view, sections, hosted, place)`, the viewer's `navigator.railPlace`, one place or a list: a rail each,
+  the tracks keep their place); the whole axis across the data box (its ends inset by the well's corner radius, so the
+  rail never passes the rounded corner: every reader of `Rail.x` and `width` maps the inset axis), a hairline, the
+  window a heavier segment on it with a round knob at each end where the box zooms (a disc centred on the window's end
+  at every size, a 1 px ring in `msui-bg`, growing about its centre while used; none on a pan-only rail, whose segment
+  has round caps; over a cyclic origin two pieces, a knob at each true end, the axis's ends body), collapsed breaks a
+  notch; the segment in a mid ink (`msui-text` at 55%, `navigator.rail.tint: accent` the accent's), full ink while used;
+  at the fit the segment is the hairline's weight and colour with small knobs (the loudest case quiet, still grabbable);
+  a rail's hover is its own: no hover card, no data hover, no track's header actions; its grab zone the ruler's height,
+  up from the rail row's foot (on an alignment's columns its lower `grabShare`: above it a drag selects columns), the
+  slim row whole; grown (`grownPx`) while hovered or dragged (`Emphasis.drag`); idle (not active) a quiet hairline with
+  no knobs and no target (at the fit it reads as the line); in a figure (an export) a plain segment, no knobs, no idle
+  state. Its hit is the `window` target with `navigator: 'rail'` (touch the wider hit: `hitView`'s `touch`), its unit
+  `railUnitAt`; a window over the whole axis (the fit) has no body to drag, so its body is a place as outside a window
+  (part `outside`; the author, 2026-11-21: the rail stays interactive at the fit): its hover marks the position (a 1.5
+  px tick, `Rail.markAt`) and names it, never the rail grown or lit; a sweep zooms to the region; its grips keep their
+  own hover. Over a run of small blocks the rail's place carries the run's `count` and `state`. On a section of blocks
+  its hit names the block under the unit, its system and its position (`block`), never the section's units. Rails are
+  part of a section's key by identity (a slim row takes room); which can move is not: the renderer sets it on the rails
+  each frame, an emphasis redraw too (an idle flip redraws the window pass alone). `railSections(view, hosted, mode)`:
+  every tracks section (`always`, the default: a declared navigator is the picture, the rail the precise control, both
+  drawn against one window); `unlessNavigator`: those no shown navigator binds along its positions (a declared navigator
+  and a host's replace its rail, a hidden one brings it back); `none`: no section (the viewer's
+  `navigator.positionsRail`). **Where**: `FrameInput.rails`'s value for a section is its row, or a list of rows
+  (`railRows(view, sections, hosted, place)`, the viewer's `navigator.railPlace`, one place or a list: a rail each,
   `SectionLayout.rails`, `rail` the first; all on the one window, so a drag on any moves the others in the same frame;
   the fallbacks first, then duplicates dropped: `[ruler, ruler]`, or `ruler` with no ruler beside `bottom`, is one
   rail): `ruler` (below the ruler's border; a section with no ruler shown takes `bottom`), `bottom` (the slim row under

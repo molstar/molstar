@@ -20,7 +20,7 @@ export {
   densityStep,
   fontSize,
   perPosition,
-  type RailLook,
+  type RailTint,
   type RenderConfig,
   type RenderConfigOverrides,
   renderConfig,

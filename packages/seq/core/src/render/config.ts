@@ -331,8 +331,8 @@ export interface RenderConfig {
     readonly rail: {
       readonly grownPx: number;
       readonly grabShare: number;
-      /** The rail's look (internal, the Rail looks story's: not in the spec until one is picked): `current` or a variant. */
-      readonly look: RailLook;
+      /** The rail's tint: `neutral` (the text ink at 55%, the default) or `accent` (the accent at 55%). */
+      readonly tint: RailTint;
     };
     readonly overview: { readonly minPlotPx: number; readonly minPx: number };
     /**
@@ -391,8 +391,8 @@ export interface RenderConfig {
   };
 }
 
-/** The rail looks to pick from: today's, a capsule, a capsule in a groove, the groove quiet until hovered. */
-export type RailLook = 'current' | 'capsule' | 'groove' | 'quiet' | 'polished' | 'polishedTint';
+/** The rail's tint: a neutral grey or a faint accent. */
+export type RailTint = 'neutral' | 'accent';
 
 export const DefaultRenderConfig: RenderConfig = {
   inset: 8,
@@ -495,7 +495,7 @@ export const DefaultRenderConfig: RenderConfig = {
     trackScale: 0.25,
     trackMinPx: 2,
     marks: ['selection', 'highlights', 'cursor'],
-    rail: { grownPx: 6, grabShare: 0.4, look: 'current' },
+    rail: { grownPx: 6, grabShare: 0.4, tint: 'neutral' },
     overview: { minPlotPx: 160, minPx: 48 },
     square: { maxCells: 4096 },
   },

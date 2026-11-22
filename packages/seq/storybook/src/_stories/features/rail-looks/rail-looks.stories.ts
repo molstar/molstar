@@ -11,9 +11,8 @@ const meta: Meta = { title: 'Design/Rail looks' };
 export default meta;
 
 /**
- * Three looks of the one rail (`navigator.rail.look`, internal: the story's alone until one is picked) beside today's, on
- * a ruler rail (zoomed in and at the fit), an alignment's rows rail and a lanes band (GFF3, TP53), in the light and the
- * dark theme: A a capsule, B the capsule in a faint groove, C the groove quiet until hovered. Each is live: hover and drag
- * the rail, its ends and the space beside the window.
+ * The rail in its two tints (`navigator.rail.tint`: `neutral`, the default, and `accent`) on a ruler rail (zoomed in and at
+ * the fit), an alignment's rows rail and a lanes band (GFF3, TP53), in the light and the dark theme. Each is live: hover
+ * and drag the rail, its knobs and the space beside the window.
  */
 export const Looks: StoryObj = { render: () => railLooksStory() };

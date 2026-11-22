@@ -70,7 +70,7 @@ export class RailLooksRoot extends UiElement<readonly LookEntry[]> {
     root.append(
       text(
         'p',
-        'The rail’s look, three variants beside today’s, drawn by the one rail path: each live, so hover, drag, the grips and the wheel work in each. Ends are inset by the well’s corner radius in the variants.',
+        'The rail, in its two tints, drawn by the one rail path: each live, so hover, drag, the knobs and the wheel work in each. Ends are inset by the well’s corner radius.',
         Muted,
       ),
     );

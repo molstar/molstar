@@ -47,12 +47,9 @@ function configItems(config: object, prefix = ''): string[] {
   return out;
 }
 
-/** Items the table leaves out on purpose: internal, a look the Rail looks story shows until one is picked. */
-const Internal = ['navigator.rail.look'];
-
 /** The config's items no row covers, and the rows that name no item. */
 function tableDrift(items: readonly string[], rows: readonly string[]) {
-  const covered = (item: string) => Internal.includes(item) || rows.some((r) => item === r || item.startsWith(`${r}.`));
+  const covered = (item: string) => rows.some((r) => item === r || item.startsWith(`${r}.`));
   const named = (row: string) => items.some((i) => i === row || i.startsWith(`${row}.`));
   return { missing: items.filter((i) => !covered(i)), unknown: rows.filter((r) => !named(r)) };
 }

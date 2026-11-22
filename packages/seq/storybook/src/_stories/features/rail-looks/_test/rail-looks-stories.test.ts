@@ -12,7 +12,7 @@
 import { readFileSync } from 'node:fs';
 import type { SeqRegistryEntry } from '@molstar/seqx-core/context';
 import type { FormatRuntime } from '@molstar/seqx-core/data';
-import type { RailLook } from '@molstar/seqx-core/render';
+import type { RailTint } from '@molstar/seqx-core/render';
 import { PackageFolder } from '@molstar/seqx-examples/node-assets';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
@@ -33,7 +33,7 @@ afterEach(() => {
  * The GFF3 lanes cell as the GFF stories' twin opens it: the runtime's opens awaited (a gzip file inflates by no clock),
  * then the twin's delays on the fake clock.
  */
-async function openLanes(look: RailLook): Promise<SeqViewer> {
+async function openLanes(look: RailTint): Promise<SeqViewer> {
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date', 'performance'] });
   const view = cell('lanes').view;
   const opens: Promise<unknown>[] = [];
@@ -80,7 +80,7 @@ async function openLanes(look: RailLook): Promise<SeqViewer> {
 
 const cell = (id: string) => Cells.find((c) => c.id === id)!;
 
-async function open(look: RailLook, id: string) {
+async function open(look: RailTint, id: string) {
   const c = cell(id);
   viewer = await openExample(c.view, { config: [lookConfig(look)] as never });
   c.opening?.(viewer);
@@ -88,12 +88,9 @@ async function open(look: RailLook, id: string) {
   return viewer;
 }
 
-/** The window pass's rects with a radius: the capsules. */
-function rounded(v: SeqViewer): number {
-  const r = v.frame!.lists.passes.window.rects;
-  let n = 0;
-  for (let i = 0; i < r.n; i++) if (r.radius[i] > 0 && r.round[i] > 0) n++;
-  return n;
+/** The window pass's paths: the knobs' discs and their rings. */
+function discs(v: SeqViewer): number {
+  return v.frame!.lists.passes.window.paths.n;
 }
 
 describe('the rail looks story, headless', () => {
@@ -102,8 +99,8 @@ describe('the rail looks story, headless', () => {
     const r = v.frame!.layout.sections[0].rail!;
     expect(r.active).toBe(true);
     // ends inset by the well's corner radius in the variants, not in today's look
-    expect(r.inset).toBe(look === 'current' ? 0 : v.context.renderConfig.squircleMax);
-    expect(rounded(v) > 0).toBe(look !== 'current');
+    expect(r.inset).toBe(v.context.renderConfig.squircleMax);
+    expect(discs(v)).toBeGreaterThan(0);
     const k = r.width / r.total;
     const y = r.bottom - 2;
     const mid = r.x + ((r.start + r.end) / 2) * k;
@@ -131,12 +128,12 @@ describe('the rail looks story, headless', () => {
     const rows = await open(look, 'rows');
     const rr = rows.frame!.layout.sections[0].rowsRails![0];
     expect(rr.vertical).toBe(true);
-    expect(rr.inset).toBe(look === 'current' ? 0 : rows.context.renderConfig.squircleMax);
-    expect(rounded(rows) > 0).toBe(look !== 'current');
+    expect(rr.inset).toBe(rows.context.renderConfig.squircleMax);
+    expect(discs(rows)).toBeGreaterThan(0);
     rows.retire();
     const lanes = await openLanes(look);
     const lr = lanes.frame!.layout.sections.flatMap((x) => x.lanesRails ?? [])[0];
     expect(lr).toBeDefined();
-    expect(lr!.inset).toBe(look === 'current' ? 0 : lanes.context.renderConfig.squircleMax);
+    expect(lr!.inset).toBe(lanes.context.renderConfig.squircleMax);
   });
 });

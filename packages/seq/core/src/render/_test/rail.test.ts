@@ -60,8 +60,9 @@ describe('the ruler rail', () => {
     expect(railUnitAt(rail, mid)).toBeCloseTo(150, 9);
     expect(hitView(f.layout, rail.x + (100 / 393) * rail.width - 2, rail.y)?.part).toBe('start');
     expect(hitView(f.layout, rail.x + 5, rail.y)?.part).toBe('outside');
-    // the rail in the window pass: its line, its segment, its grips
-    expect(readRects(f.lists, 'window').length).toBe(4);
+    // the rail in the window pass: its hairline and its segment, a knob (a ring and a disc) at each end
+    expect(readRects(f.lists, 'window').length).toBe(2);
+    expect(f.lists.passes.window.paths.n).toBe(4);
   });
 
   it('idle: a quiet hairline, no grips and no target (a press falls through to the ruler), with no relayout', async () => {
@@ -83,7 +84,8 @@ describe('the ruler rail', () => {
     const again = s.renderer.frame({ size: Size, rails, railsActive: active });
     expect(again.rebuilt).toBe(false);
     expect(again.layout.sections[0].rail!.active).toBe(true);
-    expect(readRects(again.lists, 'window').length).toBe(4);
+    expect(readRects(again.lists, 'window').length).toBe(2);
+    expect(again.lists.passes.window.paths.n).toBe(4);
   });
 
   it('collapsed breaks are a notch each on the rail', async () => {
@@ -170,16 +172,13 @@ describe('the ruler rail', () => {
     const f = await s.frame({ size: Size, viewport: { start: 380, end: 410 }, rails, railsActive: active });
     const rail = f.layout.sections[0].rail!;
     expect(rail.end).toBeGreaterThan(rail.total);
-    const segs = readRects(f.lists, 'window').filter((r) => r.h === 1 && r.w !== rail.width);
+    const segs = readRects(f.lists, 'window').filter((r) => r.h === 2 && r.w !== rail.width);
     expect(segs.length).toBe(2);
     const k = rail.width / rail.total;
+    // a knob at each true end: two rings and two discs
+    expect(f.lists.passes.window.paths.n).toBe(4);
     const start = rail.x + 380 * k;
     const end = rail.x + 17 * k;
-    const grips = readRects(f.lists, 'window').filter((r) => r.w === 2);
-    const xs = grips.map((r) => r.x).sort((a, b) => a - b);
-    expect(xs.length).toBe(2);
-    expect(xs[0]).toBeCloseTo(end, 3);
-    expect(xs[1]).toBeCloseTo(start - 2, 3);
     const y = rail.y;
     expect(hitView(f.layout, rail.x + rail.width - 1, y)?.part).toBe('body');
     expect(hitView(f.layout, rail.x + 1, y)?.part).toBe('body');
@@ -230,12 +229,12 @@ describe('the ruler rail', () => {
     const h = { ...hitView(f.layout, 400, rail.y)! };
     for (const frame of [f, s.renderer.frame({ ...input, emphasis: { hover: h } })]) {
       const marks = readRects(frame.lists, 'window');
-      expect(marks.length).toBe(4);
+      expect(marks.length).toBe(2);
       for (const r of marks) expect(r.y).toBeGreaterThanOrEqual(lowest);
     }
   });
 
-  it('at rest is 1 px and muted (the grip’s token), the accent only while hovered or dragged', async () => {
+  it('at rest is a 2 px mid-ink segment, full ink and grown only while hovered or dragged', async () => {
     const s = await settle(p53());
     const input: FrameInput = { size: Size, viewport: { start: 100, end: 200 }, rails, railsActive: active };
     const f = await s.frame(input);
@@ -244,7 +243,7 @@ describe('the ruler rail', () => {
       readRects(lists, 'window').filter((r) => r.h <= 6 && r.w !== 2 && r.w !== rail.width);
     const rest = win(f.lists);
     expect(rest.length).toBe(1);
-    expect(rest[0]).toMatchObject({ h: 1, fill: LightTokens.colors['seq-grip'] });
+    expect(rest[0]).toMatchObject({ h: 2 });
     expect(readRects(f.lists, 'window').some((r) => r.fill === LightTokens.colors['seq-window'])).toBe(false);
     const h = { ...hitView(f.layout, 400, rail.y)! };
     for (const emphasis of [{ hover: h }, { drag: h }]) {
@@ -295,11 +294,11 @@ describe('navigators in an export', () => {
     );
   });
 
-  it('included, a section no navigator binds draws its rail as a plain window: no grips, no idle state', async () => {
+  it('included, a section no navigator binds draws its rail as a plain window: no knobs, no idle state', async () => {
     const r = await renderSvg(p53(), { size: { width: 600, height: 120 }, navigators: 'include' });
     const rects = readRects(r.lists, 'window');
     expect(rects.length).toBe(2);
-    expect(rects[1]).toMatchObject({ h: 2, fill: LightTokens.colors['seq-window'] });
+    expect(rects[1]).toMatchObject({ h: 2 });
     // omitted (the default), no rail at all
     expect(readRects((await renderSvg(p53(), { size: { width: 600, height: 120 } })).lists, 'window').length).toBe(0);
   });

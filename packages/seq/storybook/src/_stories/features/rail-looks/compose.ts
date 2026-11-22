@@ -5,52 +5,32 @@
  */
 
 import { SeqCoreConfig } from '@molstar/seqx-core/context';
-import type { RailLook } from '@molstar/seqx-core/render';
+import type { RailTint } from '@molstar/seqx-core/render';
 import { FeatureViews, GenomeFormatsViews, P53Views } from '@molstar/seqx-examples';
 import type { ExampleView } from '@molstar/seqx-examples';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 
 // The rail looks story's composition, DOM-free: the story and its headless twin call these. A look is the render
-// config's `navigator.rail.look` (internal: the story's alone until the author picks one); each cell is one rail of
+// config's `navigator.rail.tint`; each cell is one rail of
 // the one rail path (the ruler's, the rows', the lanes' band's) in a view of the examples.
 
-/** A look: today's and the three variants, with the sentence the story prints under it. */
+/** A tint of the rail, with the sentence the story prints under it. */
 export interface LookEntry {
-  readonly look: RailLook;
+  readonly look: RailTint;
   readonly title: string;
   readonly says: string;
 }
 
 export const Looks: readonly LookEntry[] = [
   {
-    look: 'current',
-    title: 'Today',
-    says: 'A dark line with the window a thicker segment and a square tick at each end; the ticks overhang the well’s rounded corners.',
+    look: 'neutral',
+    title: 'Neutral (the default)',
+    says: 'A hairline the axis’s length and the window a heavier segment in a mid grey (the text ink at 55%), a round knob at each end where the box zooms; full ink and grown while used; at the fit the hairline’s weight and small knobs; pan-only rails (lanes) round caps.',
   },
   {
-    look: 'capsule',
-    title: 'A: capsule',
-    says: 'The window a rounded pill in a soft accent, no groove; its ends are the grips (no ticks), taking the ink and growing under the pointer.',
-  },
-  {
-    look: 'groove',
-    title: 'B: capsule in a groove',
-    says: 'The same pill the thumb of a faint rounded groove the axis’s length, as a native scroll track is.',
-  },
-  {
-    look: 'quiet',
-    title: 'C: quiet until hovered',
-    says: 'B thin and low at rest, in the full ink and grown while hovered or dragged; at the fit only the groove.',
-  },
-  {
-    look: 'polished',
-    title: 'D1: today’s, polished (neutral)',
-    says: 'Today’s shape: a hairline and the window a heavier segment on it, in a mid grey ink (the text ink at 55%) with the hairline quieter; round knobs at the ends (a ring in the well’s ground) in place of ticks, growing on hover; full ink and grown while used. At the fit the hairline’s weight and colour, small knobs; lanes pan only (round caps).',
-  },
-  {
-    look: 'polishedTint',
-    title: 'D2: today’s, polished (accent tint)',
-    says: 'D1 with the segment and knobs in a faint accent tint (the accent at 55%) in place of grey.',
+    look: 'accent',
+    title: 'Accent (`navigator.rail.tint: accent`)',
+    says: 'The same with the segment and knobs in a faint accent tint (the accent at 55%).',
   },
 ];
 
@@ -77,4 +57,4 @@ export const Cells: readonly CellEntry[] = [
 ];
 
 /** The viewer config item that picks a look. */
-export const lookConfig = (look: RailLook) => [SeqCoreConfig.render, { navigator: { rail: { look } } }] as const;
+export const lookConfig = (tint: RailTint) => [SeqCoreConfig.render, { navigator: { rail: { tint } } }] as const;

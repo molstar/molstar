@@ -527,7 +527,7 @@ export class ViewerInput {
         this.navigateBehavior?.drag(d.section, dx, mods, d.target, dy, units);
       }
     }
-    this.hoverBehavior?.move(hit, mods);
+    this.hoverBehavior?.move(this._hoverable(hit), mods);
     // the card is told where the pointer is (two numbers): it shows on rest, hides while a drag runs
     // in an array: two fractional numbers passed to a call that is not inlined are boxed (a move allocates nothing)
     const card = this.cardBehavior;
@@ -538,10 +538,19 @@ export class ViewerInput {
     }
   }
 
+  /** What the hover model (and so the card and the data hover) takes of a hit: a rail's is the rail's own, none. */
+  private _hoverable(hit: Hit | undefined): Hit | undefined {
+    if (hit?.target !== 'window') return hit;
+    const n = hit.navigator;
+    return n === 'rail' || n === RowsRail || n === LanesRail ? undefined : hit;
+  }
+
   /** The pointer left the canvas: the hover it owned goes, and no re-hit follows. */
   leave(): void {
     this._x = this._y = Number.NaN;
     this._setRow(undefined);
+    // a rail never stays lit (grown) without a pointer over it or its drag running
+    this._windowHover(undefined);
     this.hoverBehavior?.leave();
     this.cardBehavior?.leave();
   }
@@ -553,7 +562,7 @@ export class ViewerInput {
   rehit(): boolean {
     if (this.viewer.retired || !this.resting || this._drag) return false;
     const before = this.viewer.hover.version.value;
-    this.hoverBehavior?.move(this._hitAt(this._x, this._y), this._mods);
+    this.hoverBehavior?.move(this._hoverable(this._hitAt(this._x, this._y)), this._mods);
     return this.viewer.hover.version.value !== before;
   }
 
