@@ -54,6 +54,16 @@ loaded when used, sections over a source's complex, the genome axis and layouts,
 
 ## Base library (`@molstar/core`, `@molstar/io`)
 
+- **The harness's leak control scaled by the case** (PF, 2026-11-22; `test-harness/src/quick.ts`, shared): when a case
+  reads above ~1 KB a step or spreads above ~8 B, size the control to ~1% of the case (at least 4 KB) and check 75% of
+  it, or alternate case and control windows and take the median of the pairs' differences; then seq's `scaledControl`
+  and the storybook cases still on the 88 B control (bridge ribbon hover, a pan through a lock, a connector, linked
+  pairs) need nothing of their own. The author's call (a shared package).
+- **`formatGenomic` parses its spec on every call** (PF; `@molstar/core` `string-format`): parse each `,.Nf` once and
+  pass the parsed spec to `formatValue`; the seq ruler caches its labels meanwhile. The author's call.
+- **Tighten the chromosome pan's bound** (PF): 56,000 B with the pan now at ~39.6 KB and the fit at ~38.4 KB; lower both
+  bounds to keep the gain.
+
 - **`repr`**: `checkRefs` (the resolve pass), `composeLanguage`, `descriptors`, issue dedupe, the catalog docs
   generation, a version-migration hook, `fallback` handling, a read-side `ParamValue` with typed columns only; a
   version-aware validate (an unknown kind in a newer minor version is a warning); staged `pending` unioned across a

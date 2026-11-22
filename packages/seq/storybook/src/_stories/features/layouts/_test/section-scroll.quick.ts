@@ -26,28 +26,36 @@ async function open(): Promise<SeqViewer> {
   return v;
 }
 
+// The wheel twice, over empty lane room and then over a gene, each in a viewer of its own, in this order: the second
+// viewer's objects deoptimize the first's optimized wheel path (a wrong map), and the code optimized again kept a
+// closure's context allocated on every call of the viewer's `schedule` and the input's `sectionWheel` getter (40 bytes
+// each, 80 a step). Alone, either case read 0.
 describe('a section past its cap: the wheel and a warm frame', () => {
-  it('a wheel step down and up over a gene (no frame): 0 bytes', async ({ task }) => {
-    const v = await open();
-    const s = v.frame!.layout.sections.find((x) => x.section.address === Genes)!;
-    const y = s.placement.box.y + s.placement.box.height - 10;
-    // a gene track in view at the section's bottom (they are one lane each: the point is over empty lane room)
-    const g =
-      s.tracks.find((t) => t.box.y <= y && y < t.box.y + t.box.height)?.box ?? s.tracks[s.tracks.length - 1].box;
-    const x = g.x + g.width - 5;
-    // the section a little scrolled, so each step moves it (down, then back up)
-    v.view.setTop(Genes, 100);
-    v.draw();
-    const down = { deltaX: 0, deltaY: 1, deltaMode: 0 };
-    const up = { deltaX: 0, deltaY: -1, deltaMode: 0 };
-    const step = (i: number) => void v.input.wheel(x, y, (i & 1) === 0 ? down : up);
-    for (let i = 0; i < 4; i++) step(i);
-    expect(v.view.get(Genes)?.top).toBe(100);
-    const { r } = quickCase(task, 'section wheel step', step, {});
-    console.info(`section wheel step: ${r.bytesPerStep.toFixed(0)} bytes a step (${r.note})`);
-    v.retire();
-    expect(r.bytesPerStep, r.note).toBeLessThanOrEqual(inject('perfThreshold'));
-  });
+  for (const [over, id] of [
+    ['empty lane room', 'section wheel step'],
+    ['a gene', 'section wheel step over a gene'],
+  ] as const)
+    it(`a wheel step down and up over ${over} (no frame): 0 bytes`, async ({ task }) => {
+      const v = await open();
+      const s = v.frame!.layout.sections.find((x) => x.section.address === Genes)!;
+      const y = s.placement.box.y + s.placement.box.height - 10;
+      // a gene track in view at the section's bottom (they are one lane each: its right end is empty lane room)
+      const g =
+        s.tracks.find((t) => t.box.y <= y && y < t.box.y + t.box.height)?.box ?? s.tracks[s.tracks.length - 1].box;
+      const x = over === 'a gene' ? g.x + 20 : g.x + g.width - 5;
+      // the section a little scrolled, so each step moves it (down, then back up)
+      v.view.setTop(Genes, 100);
+      v.draw();
+      const down = { deltaX: 0, deltaY: 1, deltaMode: 0 };
+      const up = { deltaX: 0, deltaY: -1, deltaMode: 0 };
+      const step = (i: number) => void v.input.wheel(x, y, (i & 1) === 0 ? down : up);
+      for (let i = 0; i < 4; i++) step(i);
+      expect(v.view.get(Genes)?.top).toBe(100);
+      const { r } = quickCase(task, id, step, {});
+      console.info(`${id}: ${r.bytesPerStep.toFixed(0)} bytes a step (${r.note})`);
+      v.retire();
+      expect(r.bytesPerStep, r.note).toBeLessThanOrEqual(inject('perfThreshold'));
+    });
 
   it('a warm frame of the scrolled section: 0 bytes', async ({ task }) => {
     const v = await open();

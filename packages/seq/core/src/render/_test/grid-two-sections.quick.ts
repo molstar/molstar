@@ -13,6 +13,7 @@ import { drawView, type FrameInput, GridPlacement, type Hit, hitView } from '../
 import { kinship } from './grid-categorical-fixtures.js';
 import { twoSectionsSpec } from './grid-two-sections-fixtures.js';
 import { settle } from './helpers.js';
+import { ScaledControlWhy, scaledControl } from './scaled-control.js';
 import { reusedHover } from './scenarios.js';
 
 /** A categorical pan frame's bound, bytes: its layout's (a positions grid of as many measured about 50 kB). */
@@ -116,8 +117,11 @@ describe('a grid over two sections of blocks draws and hovers with nothing alloc
       viewports: { '/views/v/plot': { start: 100 + (k % 2), end: 1100 + (k % 2), y: { start: 0, end: 2000 } } },
     });
     for (const k of [0, 1]) await cat.frame(at(k));
-    const c = quickCase(task, 'categorical grid pan', (i) => void cat.renderer.frame(at(i)), {});
+    const pan = (i: number) => void cat.renderer.frame(at(i));
+    // the 88-byte control read 56 over the case in one run (a window of 800 bytes a step more): scaledControl's 4 KB
+    const c = quickCase(task, 'categorical grid pan', pan, { control: false, why: ScaledControlWhy });
     console.info(`categorical grid pan: ${c.r.bytesPerStep.toFixed(0)} bytes a frame (${c.r.note})`);
     expect(c.r.bytesPerStep, c.r.note).toBeLessThan(CategoricalPanBound);
+    scaledControl('categorical grid pan', pan, c.r);
   });
 });

@@ -160,13 +160,19 @@ export class ViewerInput {
   private _sectionRailGesture: SectionRailGesture | undefined;
   /** The wheel over a section past its cap, coalesced to the frame. */
   private _sectionWheel: SectionWheel | undefined;
+  // The two getters below make their objects in methods of their own: a closure in a getter makes V8 allocate the
+  // getter's context (40 bytes) on every call, the fast path's too, once the slow path has run in optimized code.
   private get sectionWheel(): SectionWheel {
-    this._sectionWheel ??= new SectionWheel(this.viewer.view, () => this.viewer.frame?.layout);
-    return this._sectionWheel;
+    return (this._sectionWheel ??= this._newSectionWheel());
+  }
+  private _newSectionWheel(): SectionWheel {
+    return new SectionWheel(this.viewer.view, () => this.viewer.frame?.layout);
   }
   private get sectionRailGesture(): SectionRailGesture {
-    this._sectionRailGesture ??= new SectionRailGesture(this.viewer.view, () => this.viewer.frame?.layout);
-    return this._sectionRailGesture;
+    return (this._sectionRailGesture ??= this._newSectionRailGesture());
+  }
+  private _newSectionRailGesture(): SectionRailGesture {
+    return new SectionRailGesture(this.viewer.view, () => this.viewer.frame?.layout);
   }
   /** A rail's press that never moved: its click (the platform's, after the button went up) centres or not. */
   private _railClick: { section: string; at: number; part: WindowPart } | undefined;

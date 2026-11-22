@@ -18,6 +18,7 @@ import type { NavigatorFrameInput } from '../navigator.js';
 import { genomeSpec, toyGenome } from './genome-fixtures.js';
 import { settle } from './helpers.js';
 import { settleNavigator, withNavigator } from './navigator-fixtures.js';
+import { ScaledControlWhy, scaledControl } from './scaled-control.js';
 
 const Section = '/views/v/genome';
 const Size = { width: 1200, height: 300 };
@@ -134,12 +135,12 @@ describe('a drag across many small blocks: the strip’s viewport follows the hu
     }));
     for (const i of inputs) s.nav.frame(i);
     expect(s.nav.zoomHeight).toBeGreaterThan(0);
-    const { r } = quickCase(
-      task,
-      'navigator over blocks drag across small blocks',
-      (i) => s.nav.frame(inputs[i & 31]),
-      {},
-    );
+    const frame = (i: number) => void s.nav.frame(inputs[i & 31]);
+    const { r } = quickCase(task, 'navigator over blocks drag across small blocks', frame, {
+      control: false,
+      why: ScaledControlWhy,
+    });
+    scaledControl('navigator over blocks drag across small blocks', frame, r);
     const ms = msPerFrame((i) => s.nav.frame(inputs[i & 31]), 500);
     console.info(
       `navigator drag across small blocks: ${r.bytesPerStep.toFixed(0)} bytes, ${ms.toFixed(3)} ms (${r.note})`,

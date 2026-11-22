@@ -144,7 +144,8 @@ and counted by kind in `state.md`.
 Each its own command, from the repository root:
 
 ```sh
-pnpm test:unit packages/seq/                 # and packages/core/src/<touched> when core changed
+pnpm test:unit packages/seq/ cli/seqx-render/  # and packages/core/src/<touched> when core changed (the CLI renders
+                                             # the same draw lists: VL broke its PNG probe unseen, 2026-11-22)
 npx tsc -b packages/seq/core packages/seq/viewer packages/seq/examples   # and packages/core when it changed
 pnpm -C packages/seq/core typecheck:test     # and the same for viewer and examples
 pnpm lint
