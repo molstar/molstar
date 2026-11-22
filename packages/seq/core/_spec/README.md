@@ -435,15 +435,18 @@ words attach to which data, read the same by every reader; the application compo
   component). Both or neither is `seq.lang.tooltip.content`.
 - **`schema`**: how a table's rows locate: `ranges` (absent: `start`, `end`, a `target` column naming the sequence over
   an assembly), `address` (an `address` column, forms relative to `target`), or MVS's schemas (`whole_structure` …
-  `all_atomic`, `MvsSchemaColumns`), each read as MVS reads it, a row's other columns ignored. A table none of whose
-  columns its schema locates by is `seq.lang.tooltip.schema`. Why said: a guess reads a chain file as residues.
+  `all_atomic`, `MvsSchemaColumns` in `resolve/tooltip-tables.ts`), each read as MVS reads it, a row's other columns
+  ignored. An inline table off `ranges` or `address` is `seq.lang.tooltip.schema`; one whose columns are none its MVS
+  schema locates by is said at resolve (`seq.resolve.tooltip.schema`: the columns load with the tooltips, Resolve,
+  Tooltip tables). Why said: a guess reads a chain file as residues.
 - **`field`, `text`, `label`, `format`**: `text` is an f-string (`@molstar/core/util/string-format`, MVS's
-  `text_format`; `"{}"` when absent), `{}` reading `field` (`tooltip` when absent); a row with a field it names
-  undefined or empty gives no text; a field the table lacks (inline rows, or a data node's inline items) is
-  `seq.lang.tooltip.field` (a warning). `label` is the card row's label; `format` `markdown` (absent: inline, in the
-  template only, values escaped) or `text`. A template past `SpecBounds.tooltipText` (1,000) or not an f-string is
-  `seq.lang.tooltip.text`. An item's own `tooltip` field shows only when a tooltip names it (MVS's rule: a column is no
-  promise to show it).
+  `text_format`; `"{}"` when absent; the check reads its braces and names alone, `templateFields`: the formatter loads
+  with the tooltips, and a format spec it refuses gives no text), `{}` reading `field` (`tooltip` when absent); a row
+  with a field it names undefined or empty gives no text; a field the table lacks (inline rows, or a data node's inline
+  items) is `seq.lang.tooltip.field` (a warning). `label` is the card row's label; `format` `markdown` (absent: inline,
+  in the template only, values escaped) or `text`. A template past `SpecBounds.tooltipText` (1,000) or not an f-string
+  is `seq.lang.tooltip.text`. An item's own `tooltip` field shows only when a tooltip names it (MVS's rule: a column is
+  no promise to show it).
 - **MVS mapped**: `tooltip_from_uri` is a `source` node (`format`, `uri`, `fields` from `field_remapping`) and a tooltip
   with `source`, `schema`, `field`, `text`; `tooltip_from_source` is `block` and `category` over the structure's own
   source. A CIF category is unavailable until the structure runtime reads categories (`seq.lang.tooltip.category`, info,
@@ -2269,7 +2272,14 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
   as a `ranges` node's is: inline rows an inline plan (its text columns its fields), a source's by region, over an
   assembly a plan a sequence by its names. Why: every table goes through the store as every data does, inline too, and
   its index belongs to the store entry. An `address` table and MVS's schemas are read whole by the reader that shows
-  them (Render, Tooltips): no store entry.
+  them (Render, Tooltips): no store entry; to `SpecBounds.tooltipRows` (past it `seq.resolve.tooltip.rows`, the rest
+  unread). One from a `source` is not read yet: `seq.resolve.tooltip.source`, never silent (TODO).
+- **Loaded when used** (`resolve/tooltip-door.ts`): a tooltip's resolve past its declaration (these tables, their
+  issues, a catalog of their own `TooltipIssues`) and the parts the other layers register with `withTooltips` (the
+  view's pass, render's lookup, wants and titles, the viewer's provider body) load the first time a spec holds a
+  `tooltip`, a model waiting for them as for the genome chunk (`StaticModel.loading`), so its first hover finds them.
+  Why: only some specs carry tooltips; the check and the declaration stay (reading a spec says what is wrong at once).
+  The runtime functions are imported from their modules (`render/tooltips`), never the barrels.
 
 ### Unread params
 
@@ -4745,7 +4755,8 @@ mark, as data; the viewer's `seq:tooltips` provider and an export's titles read 
   `ranges` table at the finest level whose tile there holds a list, through the entry's interval index (built at its
   first lookup, kept with the entry: `meetingInto`, the matches past the buffer counted); an `address` table and MVS's
   rows (each an `(elements …)` form of its schema's columns alone, `rowAddress`) and `on` addresses located by the
-  caller's `locate`, once a model. A row covering two parts shows once.
+  caller's `locate`, once a model (their addresses made once a model too). A row met by two parts (a cell's two
+  positions, a pair's two ends) shows and counts once (EC-258). A tooltip's rows are in position order.
 - **Rows**: a tooltip's one match a plain row, never cut; several are item rows (`item`), at most `cap` made, the rest
   counted in `out.more` (the card's `+k more`). The row's label is the tooltip's `label`, else the text itself. A table
   not yet come gives a `loading` row (EC-169); a failed one no rows, its tooltip in `out.failed` (EC-174).

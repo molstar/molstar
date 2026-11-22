@@ -725,17 +725,22 @@ param (`port`, a `HoverCardPortFactory` given the canvas's element, none headles
   entries, not internal sections: the application composing the card is the outside user; one registry rule orders
   header entries and providers.
 - **Tooltips** (`card-tooltips.ts`, `seq:tooltips`, order 95): the spec's tooltips over the core's `tooltipsAt` (core
-  "Render", Tooltips). It answers only on drawn marks (an element under the pointer, or a layer that marks every
-  position it shows: letters, values, grid, rows, matrix, logo), never on an empty band (EC-254); it ignores `whole` (a
-  note shows over an item, a region cell or a pair said whole, EC-260). The place it reads: the pointer's position and a
-  cell's y, a pair's two ends; an item by key (by data). Its rows come after the place's, share the `hover.cardItems`
-  cap with the place's items (a single row on the mark always shows), the matches past it counted in
-  `HoverCard.moreCount` (`cutItems`'s `+k more` says `more.length + moreCount`). A row carries its Markdown tree
-  (`HoverCardRow.rich`) for an adapter that draws it; `value` (the label, a row with no label) is its plain text. The
-  live region says the rows shown and the count (`…; and 47 more`), never a million texts. Addresses resolve through the
-  address model, once resolved.
+  "Render", Tooltips), its body loaded with the tooltips (core "Resolve", Tooltip tables, Loaded when used; the entry
+  stays in the registry). It answers only on drawn marks (an element under the pointer, a layer that marks every
+  position it shows: letters, values, grid, rows, matrix, logo; a density bin), never on an empty band or a gap (a gap
+  letter, a missing value or cell, EC-254); it ignores `whole` (a note shows over an item, a region cell or a pair said
+  whole, EC-260). The place it reads: the pointer's position and a cell's y, a pair's two ends, a density bin's stretch
+  (the positions its pixel column spans, EC-259), an item given by the caller its extent (an export's); an item by key
+  (by data). A table failed under the mark gives no rows and `seq.viewer.card.tooltip` on the tooltip, once (EC-174). A
+  warm show allocates within a few hundred bytes of the card without (its rows, texts and keys kept, its buffers reused:
+  `tooltips.quick.ts`). Its rows come after the place's, share the `hover.cardItems` cap with the place's items (a
+  single row on the mark always shows), the matches past it counted in `HoverCard.moreCount` (`cutItems`'s `+k more`
+  says `more.length + moreCount`). A row carries its Markdown tree (`HoverCardRow.rich`) for an adapter that draws it;
+  `value` (the label, a row with no label) is its plain text. The live region says the rows shown and the count
+  (`…; and 47 more`), never a million texts. Addresses resolve through the address model, once resolved.
 - **Export titles** (`cardTitles`): the viewer's `renderSvg` passes its composed card (title and rows, a line each, at
-  the item's middle) for an export with `card` titles.
+  the item's middle) for an export with `card` titles, composed over the export's own section, layer and item
+  (`Describer.composeAt`, `CardAt.item`): nothing looked up in the viewer's frame, linear in the items.
 - **By region** (`describe-region.ts`): a pairs bin, a region grid's cell and a matrix cell are said in the core's words
   (`pairsBinHover`, `gridCellHover`, `matrixCellHover`: core "Render", Hover texts by region), their rows the card's;
   first of the sections, the whole description. Why the core's: an export's accessible layer and a host's own card say a
@@ -769,9 +774,10 @@ param (`port`, a `HoverCardPortFactory` given the canvas's element, none headles
   at `,` `;` `|` `:` first (a zero-width break after each, `breakable`) and anywhere in a token with none, to `lines`
   lines, then an ellipsis (a line clamp); the title to two. Why: a VCF's `CLNDISDB` ran past the card's edge. A row's
   Markdown (`rich`) is drawn as elements (strong, emphasis, code, a link an anchor whose click runs `link`), never HTML,
-  in the value's place (the label's, a row with no value). A card with a link takes the pointer (`pointer-events: auto`,
-  its `pointerenter` and `pointerleave` the options' `enter` and `leave`); one without never does, so it never steals a
-  hover from the data.
+  in the value's place. A row with no value (a tooltip's text without a `label`) spans the row and wraps as a value does
+  (the label column is as wide as its longest label: a long text there would never wrap). A card with a link (in the
+  rows drawn, past `cutItems`) takes the pointer (`pointer-events: auto`, its `pointerenter` and `pointerleave` the
+  options' `enter` and `leave`); one without never does, so it never steals a hover from the data.
 
 ### Header menu and Header parts
 
