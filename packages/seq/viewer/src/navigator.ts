@@ -38,6 +38,7 @@ import { blockOfUnit, blockSwitchRange } from './block-switch.js';
 import { DragSlop } from './input.js';
 import { setNarrowed } from './narrowed.js';
 import { type PartCursor, partCursor } from './part-cursor.js';
+import { placeReadout, pointerBox, windowBoxes } from './readout-place.js';
 import type { SeqViewer } from './viewer.js';
 
 // The navigator's model (_spec/README.md "Models", NavigatorModel): DOM-free, one a navigator a viewer shows (a
@@ -365,6 +366,16 @@ export class NavigatorModel extends ReactiveModel {
       cvdSafe: this.viewer.legends.cvdSafe.value,
       ...(sweep && this.press ? { sweep: this.sweepPx(sweep) } : {}),
     });
+  }
+
+  /**
+   * Where a readout of `w` × `h` px goes in this part's px (its top left, above or below the part when it is negative or
+   * past the height): clear of every shown window, its grips and the pointer (`placeReadout`, _spec/README.md
+   * "Composition", Navigators).
+   */
+  readoutAt(w: number, h: number): readonly [left: number, top: number] {
+    const windows = this.lastFrame ? windowBoxes(this.lastFrame.windows, this.width, this.height) : [];
+    return placeReadout(w, h, this.width, this.height, windows, pointerBox(this.pointerX, this.pointerY));
   }
 
   /** The navigator's last frame. */
