@@ -235,6 +235,12 @@ describe('Features/Genome formats/VCF, headless', () => {
     const lay = layOf(v, 'ClinVar')!;
     expect(lay.items).toBe(0);
     expect(lay.failed).toEqual([]);
+    // said: the band's text and the issue, past the coarsest level's bound
+    const texts: string[] = [];
+    for (const p of Object.values(v.frame!.lists.passes))
+      for (let i = 0; i < p.texts.n; i++) texts.push(v.frame!.lists.string(p.texts.str[i]));
+    expect(texts).toContain('zoom in to read this track');
+    expect(v.layoutIssues.value.map((i) => i.code)).toContain('seq.render.zoom_in');
     // the whole band waiting: 81,307 level-1 tiles, more than a want asks (`maxTilesPerWant`), so none is read
     expect(lay.pending.length).toBeGreaterThan(0);
     expect(Math.min(...lay.pending.filter((_, i) => i % 3 === 0))).toBeLessThanOrEqual(lay.box.x + 1);

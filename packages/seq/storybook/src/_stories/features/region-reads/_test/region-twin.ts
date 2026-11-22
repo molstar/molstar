@@ -76,3 +76,11 @@ export function imageColours(v: SeqViewer): number[] {
   }
   return out;
 }
+
+/** Every text the frame draws, in any pass. */
+export function textsOf(v: SeqViewer): string[] {
+  const out: string[] = [];
+  for (const p of Object.values(v.frame!.lists.passes))
+    for (let i = 0; i < p.texts.n; i++) out.push(v.frame!.lists.string(p.texts.str[i]));
+  return out;
+}

@@ -7,7 +7,7 @@
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { go, openEmpty, ReadableWindow } from '../openings.js';
-import { advance, exported, openRegion } from './region-twin.js';
+import { advance, exported, openRegion, textsOf } from './region-twin.js';
 
 // Features/Region reads/Zoom in, headless on a fake clock (the story's composition): a matrix served at its items'
 // level alone, past what a view asks the store for (its band the waiting hatch, nothing read, no wait resolving it),
@@ -47,8 +47,10 @@ describe('Features/Region reads/Zoom in, headless', () => {
       // items at 300 kb: more tiles than a want is planned for (`maxTilesPerWant`): none is read, the band stays hatched
       expect(matrix(v).items).toBe(true);
       expect(matrix(v).tables.length).toBe(0);
-      expect(matrix(v).pend.length).toBeGreaterThan(0);
       expect(matrix(v).n).toBe(0);
+      // said, not waited for: the band's text and the issue, no wait resolves it
+      expect(textsOf(v)).toContain('zoom in to read this track');
+      expect(v.layoutIssues.value.map((i) => i.code)).toContain('seq.render.zoom_in');
     }
     // the links: no end in 400 to 700 kb, no arc, no caret, no density strip, nothing pending
     expect(links(v).n).toBe(0);
@@ -57,7 +59,8 @@ describe('Features/Region reads/Zoom in, headless', () => {
     for (const dark of [false, true]) {
       const svg = await exported(v, dark);
       expect(svg.settled).toBe(true);
-      expect(svg.issues).toEqual([]);
+      expect(svg.issues.map((i) => i.code)).toEqual(['seq.render.zoom_in']);
+      expect(svg.svg).toContain('zoom in to read this track');
     }
   });
 
@@ -69,6 +72,7 @@ describe('Features/Region reads/Zoom in, headless', () => {
     expect(matrix(v).tables.length).toBe(0);
     go(v, 'chr', ReadableWindow);
     await advance(v, 5000);
+    expect(textsOf(v)).not.toContain('zoom in to read this track');
     expect(matrix(v).pend.length).toBe(0);
     expect(matrix(v).tables.length).toBeGreaterThan(0);
     expect(matrix(v).n).toBeGreaterThan(0);

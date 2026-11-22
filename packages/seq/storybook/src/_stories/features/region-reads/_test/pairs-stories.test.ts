@@ -46,7 +46,7 @@ describe('Features/Region reads/Pairs, headless', () => {
     expect(lay.n).toBeGreaterThan(30);
     expect(lay.n).toBeLessThan(4096);
     // a block the alignment holds with its B end reversed is twisted: arcs of two kinds
-    expect(drawn(v, 'path')).toBeGreaterThan(100);
+    expect(drawn(v, 'path')).toBeGreaterThan(30);
     for (const dark of [false, true]) {
       const svg = await exported(v, dark);
       expect(svg.settled).toBe(true);

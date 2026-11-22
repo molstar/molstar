@@ -350,7 +350,7 @@ export const RegionReadsViews: readonly ExampleView[] = [
     id: 'pairs-ring',
     title: 'A genome ring at the fit: bin-pair chords',
     summary:
-      'The same kind of links between six toy chromosomes on a ring at the fit: bin pairs as chords between the arcs, stroked by count, the strongest drawn first.',
+      'The same links on a ring at the fit (one 2 Mb chromosome as the ring, read from a BEDPE): bin pairs as chords between its bins, stroked by count, the strongest drawn first.',
     build: pairsRing,
     registry,
   },
@@ -368,7 +368,7 @@ export const RegionReadsViews: readonly ExampleView[] = [
     id: 'hic-genome',
     title: 'A Hi-C map over the genome',
     summary:
-      'The same kind of map over a toy assembly’s six chromosomes (one level served, the store’s summaries make the others): at the fit one read of the whole-assembly level, cut into block pairs, chromosome gaps and labels on both axes.',
+      'The map of a toy assembly’s six chromosomes as one system of 1,376 bins (one level served, the store’s summaries make the others): at the fit one read of the whole-assembly level.',
     build: hicOverGenome,
     registry,
   },
@@ -403,7 +403,7 @@ export const RegionReadsViews: readonly ExampleView[] = [
     id: 'zoom-in',
     title: 'Zoom in to read, and bins with nothing',
     summary:
-      'A matrix served at its items’ level alone (past what a view reads: its band hatched, “zoom in to read this track”, no wait resolves it) and links with no end in the stretch in view (nothing drawn: no arc, no placeholder). Zoom in to 20 kb and the genotypes are read.',
+      'A matrix served at its items’ level alone (past what a view reads: its band hatched and saying “zoom in to read this track”, an info issue, no wait resolving it) and links with no end in the stretch in view (nothing drawn: no arc, no placeholder). Zoom in to 20 kb and the genotypes are read.',
     build: zoomIn,
     registry,
   },

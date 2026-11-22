@@ -16,9 +16,10 @@ export default meta;
 
 /**
  * Two bands the view opens on at 400 to 700 kb. The genotypes (served at their items’ level alone) are past what a view
- * asks the store for: the band stays the hatched waiting band, nothing is read, and no wait resolves it; zoom in to a
- * stretch of about 20 kb and it is read. The links have no end in the stretch in view: nothing is drawn, no arc and no
- * placeholder (a bin with nothing in it is not data waiting). Pan left to the first 200 kb and the arcs are there (EC-169, EC-208).
+ * asks the store for even at the coarsest level: the band is hatched and says “zoom in to read this track” (an info issue
+ * in the status line), nothing is read and no wait resolves it; zoom in to a stretch of about 20 kb and it is read. The
+ * links have no end in the stretch in view: nothing is drawn, no arc and no placeholder (a bin with nothing in it is not
+ * data waiting). Pan left to the first 200 kb and the arcs are there (EC-169, EC-208).
  */
 export const ZoomInToRead: StoryObj = {
   render: () => exampleStory(view('zoom-in'), { stacked: true, opening: openEmpty }),

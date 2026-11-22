@@ -58,7 +58,7 @@ describe('Features/Region reads/Hi-C, headless', () => {
     expect(plot(v).images.length).toBe(1);
     expect(plot(v).tiles.length).toBe(0);
     expect(drawn(v, 'image')).toBe(1);
-//     expect(imageColours(v)[0]).toBeGreaterThan(5);
+    //     expect(imageColours(v)[0]).toBeGreaterThan(5);
     expect(box(v)).toBe(box0);
     // the fine tiles land: sharp
     await advance(v, 2000);
