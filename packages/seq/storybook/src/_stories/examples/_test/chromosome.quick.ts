@@ -35,9 +35,10 @@ const LayoutOptions = {
 /**
  * Bytes a pan frame may allocate, measured (2026-11-19, M-series, Node 26) with half again as headroom: at the fit
  * 36 KB (the genes a density, a count a bin: 348 KB when they came as 1,177 rows), between levels 37 KB, the signal's
- * tiles and their keys.
+ * tiles and their keys. The fit 55 KB since FX9 (2026-11-22, the author: "You can raise the limits"; measured 54.1 KB:
+ * a layer's context holds a source's lanes).
  */
-const LayoutBound: Record<string, number> = { fit: 54_000, 'between two levels': 56_000 };
+const LayoutBound: Record<string, number> = { fit: 55_000, 'between two levels': 56_000 };
 
 /** The view settled over a pan of `span` positions from `start`: the inputs of its walk (a pan out and back). */
 async function pan(start: number, span: number): Promise<{ renderer: Renderer; inputs: FrameInput[] }> {

@@ -2,6 +2,8 @@
 
 ## Decided
 
+- Sizes raised a third time (the author, 2026-11-22: "You can raise the limits"): headless 930, default 1,470 kB; the
+  chromosome pan's fit bound 55 KB (FX9 measured 54.1).
 - Gate 0 (the author, 2026-11-20: "the recommendation make sense"): every question as recommended (plan, Gate 0).
 - Stage 0's drafts and their reviews run overnight, before the fourth slice's close; the author agrees them in the
   morning (the author, 2026-11-20: "Let's schedule the designs steps for an overnight run (we can do the design drafts
