@@ -26,7 +26,7 @@ import {
 import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { AddressModel, Cursor, SpecModel, StoreModel, ViewModel } from '@molstar/seqx-viewer/models';
 import { BridgeView } from '@molstar/seqx-viewer/models/bridge-hooks';
-import { AlleleInfoRows, alleleOf } from './describe-allele.js';
+import { alleleOf } from './describe-allele.js';
 import { chemistryRows } from './describe-molecules.js';
 import { regionHoverOf } from './describe-region.js';
 import type { HoverCard, HoverCardRow } from './hover-card.js';
@@ -275,9 +275,7 @@ const ItemSection: CardSection = {
     out.row('Extent', `${system} ${extentText(it)}`);
     if (allele) {
       if (category) out.row('Category', category);
-      if (allele.id) out.row('ID', allele.id);
-      for (const [name, value] of allele.info.slice(0, AlleleInfoRows)) out.row(name, value);
-      if (allele.info.length > AlleleInfoRows) out.row('INFO', `+${allele.info.length - AlleleInfoRows} more`);
+      for (const [name, value] of allele.rows) out.row(name, value);
     }
     // a hit in a merged run of mixed categories lists them all (the hit's `categories`, in the legend's order)
     const mixed = at.place.categories;
