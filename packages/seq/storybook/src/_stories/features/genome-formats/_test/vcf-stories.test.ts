@@ -29,9 +29,9 @@ import { fileText, filesOf, printSources } from '../../files/file-head.js';
 const DelayMs = 150;
 const raf = DomHost.requestAnimationFrame;
 const viewers: SeqViewer[] = [];
-/** The region reads in flight (a settled view has none). */
-const inflight = { n: 0 };
-const realNow = () => Number(process.hrtime.bigint() / 1_000_000n);
+/** The region reads in flight (a settled view has none), and how many began. */
+const inflight = new Set<Promise<unknown>>();
+const began = { n: 0 };
 
 beforeEach(() => {
   DomHost.requestAnimationFrame = (fn) => {
@@ -42,7 +42,7 @@ beforeEach(() => {
 afterEach(() => {
   DomHost.requestAnimationFrame = raf;
   for (const v of viewers.splice(0)) v.retire();
-  inflight.n = 0;
+  inflight.clear();
   vi.useRealTimers();
 });
 
@@ -79,8 +79,9 @@ function watched(entries: readonly SeqRegistryEntry[], opens: Promise<unknown>[]
                 Object.assign(Object.create(o) as OpenedSource, {
                   read: (request: RegionRequest, signal: AbortSignal) => {
                     const r = o.read(request, signal);
-                    inflight.n++;
-                    const done = () => void inflight.n--;
+                    began.n++;
+                    inflight.add(r);
+                    const done = () => void inflight.delete(r);
                     r.then(done, done);
                     return r;
                   },
@@ -121,21 +122,18 @@ async function open(id: string) {
 }
 
 /**
- * The viewer's region reads done: the twin's delay runs on the fake clock, a BGZF inflate on the platform's thread pool,
- * by no clock, so its time under load is no bound. Each step moves the fake clock and yields a real turn, until no read
- * is in flight for four steps running (a layer can wait for good); the bound is a real-time deadline, never a count of
- * turns.
+ * The viewer's region reads done, with no wall clock: each step moves the fake clock (the frames that want data, the
+ * twin's delays) and a frame; the reads that began are awaited themselves (a BGZF inflate runs on the platform's thread
+ * pool, by no clock) while the fake clock moves on beside them. Settled when two steps in a row began no read (a layer
+ * can wait for good: the too-many-tiles state reads nothing).
  */
 async function settled(v: SeqViewer) {
-  const deadline = realNow() + 25_000;
-  for (let quiet = 0; ; ) {
+  for (let quiet = 0; quiet < 2; ) {
+    const before = began.n;
     await vi.advanceTimersByTimeAsync(100);
-    await new Promise<void>((done) => setImmediate(done));
     v.draw();
-    // a layer may wait for good (the too-many-tiles state reads nothing): quiet steps, not an empty wait list
-    quiet = inflight.n === 0 ? quiet + 1 : 0;
-    if (quiet >= 4) break;
-    if (realNow() > deadline) throw new Error('the view did not settle');
+    while (inflight.size) await Promise.all([Promise.allSettled([...inflight]), vi.advanceTimersByTimeAsync(200)]);
+    quiet = began.n === before ? quiet + 1 : 0;
   }
   v.draw();
 }
