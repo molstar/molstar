@@ -3875,14 +3875,16 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   untouched. **A gene model's label with no room before its model floats at the data's left edge** over its hairline, on
   a backdrop, never dropped while its lane is shown.
 - **The section's `heights` names the sizing**: `content` (the default: tracks of one kind, their shown layers' types in
-  order, share the tallest lanes, each with its own label lane, `SizedTrack.label`: a Reverse strand whose labels all
-  fit inside reserves no empty lane beside a Forward one's), `uniform` (every content-sized track the section's
-  tallest), `fixed` (each its types' fixed height, `heights` above), or an extension's `<id>:<name>` sizing
-  (`TrackSizing`, a `track-sizing` registry entry; one not registered is `seq.render.heights` and the tracks fit their
-  content; `ContentSizing` is public for one to wrap). A track's `height` overrides any. **The host's `trackSizing`
-  port** (`TrackSizingHook`: the section, its `SizedTrack`s with their content heights, the named answer) has the last
-  word; an answer of another length is ignored. Text keeps its own thin bands. A navigator's picture sizes its tracks
-  with the view's sizings and port, and has no label lane.
+  order, share the tallest lanes **when close** (their lanes, content less the label lane, within 2 lanes or 2x of the
+  cluster's smallest: clusters by sorted lanes, so the tracks' order never matters, 1, 3 and 5 lanes are {1, 3} and {5};
+  a far track fits its own), each with its own label lane, `SizedTrack.label`: a Reverse strand whose labels all fit
+  inside reserves no empty lane beside a Forward one's), `uniform` (every content-sized track the section's tallest),
+  `fixed` (each its types' fixed height, `heights` above), or an extension's `<id>:<name>` sizing (`TrackSizing`, a
+  `track-sizing` registry entry; one not registered is `seq.render.heights` and the tracks fit their content;
+  `ContentSizing` is public for one to wrap). A track's `height` overrides any. **The host's `trackSizing` port**
+  (`TrackSizingHook`: the section, its `SizedTrack`s with their content heights, the named answer) has the last word; an
+  answer of another length is ignored. Text keeps its own thin bands. A navigator's picture sizes its tracks with the
+  view's sizings and port, and has no label lane.
 - **Kept while their key is**: a section's heights and its tracks' contents are kept in the layout state by the section
   (its shown tracks, the px a position of its extent, the config, the layout, the metrics' version, the registry, the
   port), so a pan runs neither the sizing nor the port; a layer's content is kept by its prep (its label check by the

@@ -43,7 +43,15 @@ function spec(o: { n?: number; height?: number; all?: boolean } = {}): Node {
     });
     genes.track('tall', { label: 'Tall', height: 120 } as never).layer('l', { type: 'ranges', data: tall });
     for (let i = 0; i < (o.n ?? 30); i++) {
-      const d = b.data.ranges(`g${i}`, { target: s, rows: { start: [1 + i], end: [200 + i], id: [`gene ${i}`] } });
+      // five overlapping transcripts: five lanes each, so the track is tall under sizing that fits its own lanes
+      const d = b.data.ranges(`g${i}`, {
+        target: s,
+        rows: {
+          start: [0, 1, 2, 3, 4].map((k) => k + i),
+          end: [0, 1, 2, 3, 4].map((k) => 200 + i + k),
+          id: [0, 1, 2, 3, 4].map((k) => `gene ${i}.${k}`),
+        },
+      });
       genes.track(`t${i}`, { label: `Gene ${i}` }).layer('l', { type: 'ranges', data: d });
     }
     if (!o.all) return;

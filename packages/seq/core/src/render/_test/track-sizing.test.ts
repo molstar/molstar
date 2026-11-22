@@ -105,8 +105,9 @@ describe('a track of lanes is as tall as its lanes, to its cap, then its lanes s
       });
     const top = await at(0);
     const tracks = top.layout.sections[0].tracks;
-    // tracks of one kind share the tallest content, capped
-    expect(tracks.map((t) => t.box.height)).toEqual([240, 240, 240]);
+    // the 40-lane track is far from the short ones: it takes the cap, they fit their own lanes
+    const short = lanesHeight(3, DefaultRenderConfig);
+    expect(tracks.map((t) => t.box.height)).toEqual([short, 240, short]);
     const lay = layerLay<RangesLay>(top, 1);
     expect(lay.scrolls).toBe(true);
     // 240 px hold (240 - 8) / 14 = 16 lanes: 24 more to scroll to
@@ -328,5 +329,13 @@ describe('the rows band with no `height` takes its rows up to `rows.maxPx`', () 
     const filled = await settle(alignment('fill'));
     const ff = await filled.frame({ size: tall, settled: true });
     expect(ff.layout.sections[0].tracks.at(-1)!.box.height).toBeGreaterThan(hp);
+  });
+});
+
+describe('tracks of one kind share only when close', () => {
+  it('a track’s own height still overrides, and a far short neighbour fits its own lanes', async () => {
+    const s = await settle(spec([40, 1], { height: 100 }));
+    const f = await s.frame({ size: Size, settled: true, viewports: { [Section]: { start: 0, end: 200 } } });
+    expect(f.layout.sections[0].tracks.map((t) => t.box.height)).toEqual([100, lanesHeight(1, DefaultRenderConfig)]);
   });
 });
