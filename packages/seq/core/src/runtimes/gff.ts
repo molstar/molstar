@@ -4,21 +4,16 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { issueOf } from '@molstar/core/repr/tree';
-import { SourceIssues } from '../data/issues.js';
 import {
   abortError,
   type Coverage,
-  type FailureKind,
   type FormatRuntime,
   type OpenContext,
   type OpenedSource,
-  type RegionAnswer,
   type SourceEntry,
   type SystemInfo,
 } from '../data/protocol.js';
 import { wholeLevel } from '../data/seq-format.js';
-import { SourceOpenError } from '../data/seq-runtime.js';
 import {
   type Assembly,
   assembleTranscripts,
@@ -39,6 +34,7 @@ import {
   type SystemItems,
   systemItems,
 } from './gff-read.js';
+import { failure, refuse } from './internal/answers.js';
 import { decodeText, textBytes } from './internal/text.js';
 
 // GFF3 and GTF (_spec/README.md "Data", GFF3 and GTF), the opt-in runtime `@molstar/seqx-core/runtimes/gff`: a file read
@@ -86,25 +82,6 @@ const NameFields: Readonly<Record<GffFormat, readonly string[]>> = {
 const NotFields = new Set(['ID', 'Parent']);
 
 const IndexHint = 'A smaller file, or a host’s adapter reading it by region';
-
-function refuse(
-  address: string,
-  code: 'seq.source.unreadable' | 'seq.source.malformed' | 'seq.source.too_large' | 'seq.source.no_data',
-  message: string,
-  hint?: string,
-): never {
-  throw new SourceOpenError([issueOf(SourceIssues, code, message, { address, ...(hint && { hint }) })]);
-}
-
-function failure(kind: FailureKind, message: string): RegionAnswer & { ok: false } {
-  const code =
-    kind === 'not-served'
-      ? 'seq.source.not_served'
-      : kind === 'too-large'
-        ? 'seq.source.too_large'
-        : 'seq.source.failed';
-  return { ok: false, kind, issue: issueOf(SourceIssues, code, message) };
-}
 
 /** The items of the file's lines (`features: rows`): rows sharing an `ID` one item, its pieces those rows, collected
  * once and merged once (linear in the lines). */
