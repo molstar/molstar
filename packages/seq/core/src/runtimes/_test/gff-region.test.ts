@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { PCG } from '@molstar/core/data/util/hash-functions';
 import { readTabixIndex, regionBytes } from '@molstar/io/common/tabix';
 import { describe, expect, it } from 'vitest';
 import { sourceSuite } from '../../data/_test/source-suite.js';
@@ -190,9 +191,13 @@ describe('GFF3 and GTF by region', () => {
       'chr1\tt\texon\t1001\t1200\t.\t+\t.\tParent=t1',
       'chr1\tt\tCDS\t1101\t1200\t.\t+\t0\tParent=t1',
     ];
+    // notes of random letters: the flanks' compressed bytes past the tile's (the hull read in full would be too)
+    const rng = new PCG(3);
+    const note = () =>
+      Array.from({ length: 60 }, () => String.fromCharCode(97 + Math.floor(rng.float() * 26))).join('');
     const between = Array.from({ length: 4000 }, (_, k) => {
       const at = 2000 + k * 99;
-      return `chr1\tt\tbiological_region\t${at}\t${at + 10}\t.\t+\t.\tID=r${k};note=${'x'.repeat(40)}`;
+      return `chr1\tt\tbiological_region\t${at}\t${at + 10}\t.\t+\t.\tID=r${k};note=${note()}`;
     }).filter((_, k) => 2000 + k * 99 < 200_000 || 2000 + k * 99 > 202_000);
     const tail = [
       'chr1\tt\texon\t399001\t400000\t.\t+\t.\tParent=t1',
@@ -204,8 +209,8 @@ describe('GFF3 and GTF by region', () => {
     const tile = regionBytes(ix, 'chr1', t.start, t.end);
     const flanks = regionBytes(ix, 'chr1', 1000, t.start) + regionBytes(ix, 'chr1', t.end, 400_000);
     expect(flanks).toBeGreaterThan(tile);
-    // a bound between the tile's cost and the tile's with its flanks
-    const s = await gffRuntime({ tabix: { maxRegionBytes: tile + Math.floor(flanks / 2) } }).open(
+    // a bound at the tile's cost: its flanks (and its hull) past it
+    const s = await gffRuntime({ tabix: { maxRegionBytes: tile } }).open(
       entry('gff3', { index: 'i' }),
       context({ f: b.file, i: b.index }),
     );
