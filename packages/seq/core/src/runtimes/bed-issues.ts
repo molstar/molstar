@@ -4,7 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { defineIssues, type Issue, issueOf } from '@molstar/core/repr/tree';
+import { defineIssues, issueOf } from '@molstar/core/repr/tree';
+import { Causes } from './internal/causes.js';
 
 // The BED family's codes (_spec/README.md "Data", BED family): one issue a cause, with its count and its first ten
 // places (EC-86), its severity the catalog's (EC-87).
@@ -44,35 +45,14 @@ export const BedIssues = defineIssues('seq.source.bed', {
 
 export type BedCode = keyof typeof BedIssues.codes;
 
-/** Places an issue keeps. */
-const MaxPlaces = 10;
-
 /** The causes a read met, one issue each with its count and first places ("line 12"). */
-export class BedCauses {
-  private readonly byKey = new Map<string, { code: BedCode; message: string; count: number; places: string[] }>();
-
-  add(code: BedCode, message: string, place?: string) {
-    const key = `${code}|${message}`;
-    let c = this.byKey.get(key);
-    if (!c) {
-      c = { code, message, count: 0, places: [] };
-      this.byKey.set(key, c);
-    }
-    c.count++;
-    if (place !== undefined && c.places.length < MaxPlaces) c.places.push(place);
-  }
-
-  get size() {
-    return this.byKey.size;
-  }
-
-  issues(address: string): Issue[] {
-    return [...this.byKey.values()].map((c) => {
-      const where = c.places.length ? ` (${c.places.join(', ')}${c.count > c.places.length ? ', …' : ''})` : '';
-      return issueOf(BedIssues, c.code, `${c.message}: ${c.count}${where}`, {
+export class BedCauses extends Causes<BedCode> {
+  constructor() {
+    super((code, message, address) =>
+      issueOf(BedIssues, code, message, {
         address,
-        ...(BedIssues.codes[c.code].hint && { hint: BedIssues.codes[c.code].hint }),
-      });
-    });
+        ...(BedIssues.codes[code].hint && { hint: BedIssues.codes[code].hint }),
+      }),
+    );
   }
 }
