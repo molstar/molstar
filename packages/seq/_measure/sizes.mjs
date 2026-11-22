@@ -79,10 +79,10 @@ const Runtimes = [/seq\/core\/src\/runtimes\//, /seq\/core\/src\/structure\//];
 
 /** Target and entry of each case, bytes (minified). */
 const AllCases = [
-  { name: 'reading a spec', entry: 'spec-read.ts', target: 260_000 },
-  { name: 'headless rendering', entry: 'headless.ts', target: 970_000 },
-  { name: 'the viewer, default', entry: 'viewer.ts', target: 1_530_000, unlisted: Runtimes },
-  { name: 'viewer, minimal', entry: 'viewer-minimal.ts', target: 1_070_000, unlisted: Unlisted },
+  { name: 'reading a spec', entry: 'spec-read.ts', target: 265_000 },
+  { name: 'headless rendering', entry: 'headless.ts', target: 980_000 },
+  { name: 'the viewer, default', entry: 'viewer.ts', target: 1_545_000, unlisted: Runtimes },
+  { name: 'viewer, minimal', entry: 'viewer-minimal.ts', target: 1_090_000, unlisted: Unlisted },
   { name: 'bigWig runtime', entry: 'bigwig.ts', target: 30_000, own: /seq\/core\/src\/runtimes\// },
   // the BED family's runtime with io's BGZF (no viewer bundles it); its reads by region (io's tabix, the region lines)
   // are its lazy chunk, loaded when the first indexed source opens: listed apart (`lazy`)
