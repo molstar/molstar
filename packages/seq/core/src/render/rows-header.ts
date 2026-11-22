@@ -42,7 +42,9 @@ export function layoutHeader(lay: RowsLay, prep: RowsPrep, ctx: LayoutContext) {
       : 0;
   lay.treeX0 = left;
   lay.treeX1 = left + treeW;
-  if (treeW > 0) layoutTree(lay, lay.clades!, left, treeW);
+  // the tree inset by half a stroke each side (`BranchPx`): a branch is centred on its line, and the header's clip is
+  // the column's edge, so a vertical on the edge drew half its width
+  if (treeW > BranchPx) layoutTree(lay, lay.clades!, left + BranchPx / 2, treeW - BranchPx);
   // a tree a narrow frame collapsed: its toggle in its place, at the band's top (a click or Shift+T reopens it)
   const toggle = ctx.treePx === 0 && lay.clades && prep.order === 'tree' && !lay.figure ? TogglePx + 4 : 0;
   if (toggle) {
@@ -104,6 +106,9 @@ function isPinned(lay: RowsLay, row: number): boolean {
   for (let i = 0; i < lay.display.pinned; i++) if (lay.display.rowAt(i) === row) return true;
   return false;
 }
+
+/** The tree's stroke, px (`drawHeader`'s `branchWidth`). */
+const BranchPx = 1;
 
 /** A wedge's least length, px: a clade of zero branch lengths still shows one. */
 const WedgeMinPx = 6;

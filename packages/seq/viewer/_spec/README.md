@@ -240,56 +240,59 @@ declared node by its id or address, or a host's definition of the same shape, ne
 break): `frame.windows` (each window's true and drawn ends, axes, positions and rows, after `draw`), `values`,
 `readout`, `focused`, `cursor`, `version`, `issues`, the picture's geometry for the host's own marks
 (`xRange(start, end)`, a range's x in display order whatever the direction, pieces or collapsed introns;
-`positionAt(x)`), and the input methods `resize`, `hit`, `move`, `down`, `up`, `click`, `doubleClick`, `wheel`, `key`,
-`cancel`, `leave`, `setFocus`, `focusNext`: the host maps its events to them and draws what the frame says; every rule
-(geometry, floor, gestures, keys, idle, announcements) stays the model's. Why: the model already holds every rule,
-tested headless; a host replacing the canvas keeps them by calling it. Its picture is the composition's
-(`context.pictures`, resolved with `context.kinds`: core's "Render", Navigators, Pictures); a host's `content` the
-composition lacks is the axis, said in `issues` (`seq.view.navigator.picture`, as a declared one's is in the view's);
-the readout at a position is the picture's `readout` when it gives one. It holds its picture (a core `NavigatorRenderer`
-over the viewer's store, theme, image cache and held domains: the view renderer's, `viewer.renderer`), draws it over the
-viewer's last frame (`draw`, after each frame the viewer draws: `viewer.drawn`), wants what it reads through a want set
-of its own, and holds the lit part, idle per window and axis (`windowIdle`: the whole axis at the zoom limit, or the
-section cannot move; rows: every row shown), the gesture in progress, the focused slider (`focused`) and the readout
-(`readout`: the position, the row, a band's name; never the viewer's hover). Its size is the host's (`resize`), each
-side the form's box for the view where the host gives none. Its pointer (`move`, `down`, `up`, `click` with the
-platform's count, `doubleClick`, `wheel`, `cancel`) and keys (`key`) are in its own px, carried to the bound section's
-display units through the picture and run through the `navigator` behavior. A press on a window focuses its slider; a
-press that never moves acts at its click (outside the window it centres there, a miniature's both axes); a miniature's
-body drags both axes; a rows drag is clamped to the rows less those in view, and pushes the rows at its press when it
-went farther than the rows in view (`navigator.dragStep`). Its sliders' values (`values`, `aria-valuetext` as positions
-on the navigator's system and rows, `disabled` when idle) are set when the view rests (`viewer.rested`) after this
-part's own gesture or key, or while the part has no focus (`setFocus`, the host's): a move made elsewhere announces
-nothing (the design: noise), its value said when the focus leaves; never during a drag, never a frame. Keys while
-focused (one tab stop, the windows a roving slider: PageDown and PageUp move the focus to the next and the previous
-window; why those: arrows, Home and End are the slider's own, Tab the page's): arrows pan (Up and Down on rows,
-clamped), Shift+arrows resize about the centre, Home and End go to the ends (jumps), Enter centres on the readout's
-position, `=`, `-`, `0` act on the focused window's section; Alt+Left and Alt+Right walk the history even while the
-window is idle; Esc cancels a gesture. The wheel acts as over the bound section, zooming about the window's centre,
-never the pointer. A navigator with a zoom strip (core's "Render", Navigators, The zoom strip: `navigator.zoomStrip`) is
-one model: its height the box's and the strip's (`zoomStrip.heightPx` more, set by the frame that brings or drops it),
-or a height the host fixes holding both (the strip out of it, the context the rest: drawn again in the same call,
-nothing overflows); a side part (`left`, `right`) has none; `viewer.renderSvg` passes `navigator.zoomStrip` and
-`navigator.direction` to the export (its `navigator` option), so the SVG is what the parts show; its windows, grips and
-gestures are the zoom strip's; its context is no target (a hit's `context`: nothing lit, the default cursor, a press no
-gesture, a double-click nothing), its readout the band and position there, over the mark the region (a press there says
-it too, a tap's hover). **Over blocks** (core's navigator over blocks: a genome's chromosomes): the readout names the
-block and the position there (`chr17: 7,668,402`), the slider the block and the assembly
-(`chr17: 7,668,402–7,687,550 of GRCh38`, across blocks both ends); the context above a zoom strip is the genome and a
-target: a click on another block switches to it, one on the view's own block centres there (jumps; **Switching blocks**
-below); a double-click fits the block under the pointer, from that fit the whole (`navigator.doubleClick: toggle-fit`,
-at the fit too, its window idle); PageDown and PageUp on its slider are `block.next` and `block.previous` (ARIA's large
-step). **`navigator.switch: include`**: a click that never moved runs `section.include` with the block under it on the
-bound section (on the window too; a drag keeps its gestures; on what the section already shows alone, nothing), Home
-(and `showAll()`, a host's title) removes it. **The square** (core's `SquareNavigator`: two axes over blocks × blocks):
-the same model draws it; a click on a cell off the window moves each axis by the switching rule (one section on both
-axes: by the x block), one step; a double-click fits a cell's pair (one section on both axes: the hull of its two
-blocks), again the whole; a click with a switch shows the cell's two blocks. Not built on the square: its grips and
-drags per axis. **Switching blocks** (`blockSwitchRange`, `block-switch.ts`; the author, 2026-11-21, IGV's: a picked
-chromosome whole): from a view showing its block whole (within a pixel) the new block whole; zoomed inside a block, the
-same width centred at the same relative place in the new block, clamped to its ends; a width past the new block's
-length, the new block whole. One rule for a click on the navigator, `block.next` and `block.previous`, and the square's
-click.
+`positionAt(x)`, `readoutAt(w, h)`: where a readout of that size goes, clear of the windows and the pointer), and the
+input methods `resize`, `hit`, `move`, `down`, `up`, `click`, `doubleClick`, `wheel`, `key`, `cancel`, `leave`,
+`setFocus`, `focusNext`: the host maps its events to them and draws what the frame says; every rule (geometry, floor,
+gestures, keys, idle, announcements) stays the model's. Why: the model already holds every rule, tested headless; a host
+replacing the canvas keeps them by calling it. Its picture is the composition's (`context.pictures`, resolved with
+`context.kinds`: core's "Render", Navigators, Pictures); a host's `content` the composition lacks is the axis, said in
+`issues` (`seq.view.navigator.picture`, as a declared one's is in the view's); the readout at a position is the
+picture's `readout` when it gives one. It holds its picture (a core `NavigatorRenderer` over the viewer's store, theme,
+image cache and held domains: the view renderer's, `viewer.renderer`), draws it over the viewer's last frame (`draw`,
+after each frame the viewer draws: `viewer.drawn`), wants what it reads through a want set of its own, and holds the lit
+part, idle per window and axis (`windowIdle`: the whole axis at the zoom limit, or the section cannot move; rows: every
+row shown), the gesture in progress, the focused slider (`focused`) and the readout (`readout`: the position, the row, a
+band's name; never the viewer's hover). Its size is the host's (`resize`), each side the form's box for the view where
+the host gives none. Its pointer (`move`, `down`, `up`, `click` with the platform's count, `doubleClick`, `wheel`,
+`cancel`) and keys (`key`) are in its own px, carried to the bound section's display units through the picture and run
+through the `navigator` behavior. A press on a window focuses its slider; a press that never moves acts at its click
+(outside the window it centres there, a miniature's both axes); a miniature's body drags both axes; a rows drag is
+clamped to the rows less those in view, and pushes the rows at its press when it went farther than the rows in view
+(`navigator.dragStep`). Its sliders' values (`values`, `aria-valuetext` as positions on the navigator's system and rows,
+`disabled` when idle) are set when the view rests (`viewer.rested`) after this part's own gesture or key, or while the
+part has no focus (`setFocus`, the host's): a move made elsewhere announces nothing (the design: noise), its value said
+when the focus leaves; never during a drag, never a frame. Keys while focused (one tab stop, the windows a roving
+slider: PageDown and PageUp move the focus to the next and the previous window; why those: arrows, Home and End are the
+slider's own, Tab the page's): arrows pan (Up and Down on rows, clamped), Shift+arrows resize about the centre, Home and
+End go to the ends (jumps), Enter centres on the readout's position, `=`, `-`, `0` act on the focused window's section;
+Alt+Left and Alt+Right walk the history even while the window is idle; Esc cancels a gesture. The wheel acts as over the
+bound section, zooming about the window's centre, never the pointer. A navigator with a zoom strip (core's "Render",
+Navigators, The zoom strip: `navigator.zoomStrip`) is one model: its height the box's and the strip's
+(`zoomStrip.heightPx` more, set by the frame that brings or drops it), or a height the host fixes holding both (the
+strip out of it, the context the rest: drawn again in the same call, nothing overflows); a side part (`left`, `right`)
+has none; `viewer.renderSvg` passes `navigator.zoomStrip` and `navigator.direction` to the export (its `navigator`
+option), so the SVG is what the parts show; its windows, grips and gestures are the zoom strip's; its context is no
+target (a hit's `context`: nothing lit, the default cursor, a press no gesture, a double-click nothing), its readout the
+band and position there, over the mark the region (a press there says it too, a tap's hover). **Over blocks** (core's
+navigator over blocks: a genome's chromosomes): the readout names the block and the position there (`chr17: 7,668,402`),
+the slider the block and the assembly (`chr17: 7,668,402–7,687,550 of GRCh38`, across blocks both ends); the context
+above a zoom strip is the genome and a target: a click on another block switches to it, one on the view's own block
+centres there (jumps; **Switching blocks** below); a double-click fits the block under the pointer, from that fit the
+whole (`navigator.doubleClick: toggle-fit`, at the fit too, its window idle); PageDown and PageUp on its slider are
+`block.next` and `block.previous` (ARIA's large step). **`navigator.switch: include`**: a click that never moved runs
+`section.include` with the block under it on the bound section (on the window too; a drag keeps its gestures; on what
+the section already shows alone, nothing), Home (and `showAll()`, a host's title) removes it. **The square** (core's
+`SquareNavigator`: two axes over blocks × blocks): the same model draws it; a click on a cell off the window moves each
+axis by the switching rule (one section on both axes: by the x block), one step; a double-click fits a cell's pair (one
+section on both axes: the hull of its two blocks), again the whole; a click with a switch shows the cell's two blocks. A
+drag from a cell off the window sweeps the x section (one section on both axes: both), the rectangle its release zooms
+to drawn live, snapped to whole cells (the blocks under its ends, both included: what is drawn is what the release fits;
+`SquareNavigator.snapSweep`, the behavior's `dragTo(at, from)`), tinted and outlined as the window is (the same range on
+y for one section, else the y window as it is); Escape cancels it. Not built on the square: its grips and drags per
+axis. **Switching blocks** (`blockSwitchRange`, `block-switch.ts`; the author, 2026-11-21, IGV's: a picked chromosome
+whole): from a view showing its block whole (within a pixel) the new block whole; zoomed inside a block, the same width
+centred at the same relative place in the new block, clamped to its ends; a width past the new block's length, the new
+block whole. One rule for a click on the navigator, `block.next` and `block.previous`, and the square's click.
 
 ### HoverModel
 
@@ -511,12 +514,14 @@ selection moves (`viewer-selection.ts`) and the frame (`viewer-frame.ts`).
   draws one navigator (a declared node's id, or a host's `viewer.navigator(def)`) into an element the host owns: its own
   canvases sized by the element (its form's thickness where the element has no height), its listeners on it alone, one
   tab stop (`role="slider"`, its focused window's `aria-valuetext` and `aria-disabled` as the model says them, never a
-  frame; its focus told to the model), its readout (a chrome surface at the part's top right, the hover card's inset and
-  backdrop so it reads over data, one line (the system's name gives way, to an ellipsis and then nothing; the value and
-  `· row N` never; `readoutParts` is the model's split), absent while it says nothing; a position as `name: 1,234`), its
-  clicks with their count; its disposer takes it away. `ui.navigators` (`navigatorsMount`, on in the default spec)
-  places the view's shown navigators by `place` around the canvas (top before it, bottom after it, left and right beside
-  it in a row) through the same call, again when they change; each side part's room is the row less the other side parts
+  frame; its focus told to the model), its readout (a chrome surface, the hover card's inset and backdrop, never over
+  the control in use: at the part's top right where nothing is under it, else the top left, beside the windows, above
+  the part or below it, clear of every shown window and its grips and of the pointer (`NavigatorModel.readoutAt`,
+  `readout-place.ts`); one line (the system's name gives way, to an ellipsis and then nothing; the value and `· row N`
+  never; `readoutParts` is the model's split), absent while it says nothing; a position as `name: 1,234`), its clicks
+  with their count; its disposer takes it away. `ui.navigators` (`navigatorsMount`, on in the default spec) places the
+  view's shown navigators by `place` around the canvas (top before it, bottom after it, left and right beside it in a
+  row) through the same call, again when they change; each side part's room is the row less the other side parts
   (`NavigatorModel.setRoom`: a vertical overview of its form's size narrows and hides by the plot it leaves, core's
   "Render", A narrow frame; one hidden so counts as hidden for the rows rail, `narrowed.ts`, so under `unlessOverview`
   the rail comes back), and the canvas keeps the layout's least width (`narrow.minWidth`, its `min-width`), the middle
@@ -1185,14 +1190,15 @@ rows' commands) reads the last frame's rows layers through the behavior context'
     so the menu, a palette and an agent offer the same. Why entries: one list for a slot, a menu item, a DOM part, a key
     and an agent; the registry's rules (atomic, undoable, namespaced) for free.
   - **Built-ins** (`BuiltInHeaderEntries`, in the default spec's registry; a host leaves one out to remove it):
-    `seq:hide` (`eye-off`, `track.hide`), `seq:color` (`palette`, the first shown layer with more than one fitting
-    scheme: `layer.channel`'s choices a submenu, previewed while focused or hovered), `seq:layers` (more than one
-    addressable layer: a checked item a layer, `layer.hide` or `layer.show`), `seq:move-up`, `seq:move-down`
-    (`track.move`, a sibling there), the states `seq:filtered` (its count the track's, every thinned layer's rows;
-    `layer.filter` clears every thinned layer's filter, one patch), `seq:hidden-layers` (`layer.show` of every hidden
-    layer, one patch; its list each) and the section's `seq:hidden-tracks` (menu only, "Show hidden ▸": a flyout of each
-    hidden track, then "Show all", `track.show` of every hidden track in one patch), the section's `seq:reverse` and
-    `seq:collapse`. `seq:pending` is not built (the TODO).
+    `seq:hide` (`eye-off`, `track.hide`), `seq:color` (menu only, "Color ▸": one place, never also a slot; the first
+    shown layer with more than one fitting scheme: `layer.channel`'s choices a submenu, previewed while focused or
+    hovered; its arrow at the row's end, the menu's), `seq:layers` (more than one addressable layer: a checked item a
+    layer, `layer.hide` or `layer.show`), `seq:move-up`, `seq:move-down` (`track.move`, a sibling there), the states
+    `seq:filtered` (its count the track's, every thinned layer's rows; `layer.filter` clears every thinned layer's
+    filter, one patch), `seq:hidden-layers` (`layer.show` of every hidden layer, one patch; its list each) and the
+    section's `seq:hidden-tracks` (menu only, "Show hidden ▸": a flyout of each hidden track, then "Show all",
+    `track.show` of every hidden track in one patch), the section's `seq:reverse` and `seq:collapse`. `seq:pending` is
+    not built (the TODO).
   - **`HeaderFacts`**: plain data from the resolved view, the spec and the last layout (the address, label, section,
     system, linear, the section's track ids, the track's layers with type, label, hidden, filtered rows, color and
     fitting schemes, the hidden tracks, the element). Entries' functions are pure over them, run once a layout a shown
@@ -1412,15 +1418,19 @@ derived on settle: a legend that changes during a pan reads as noise, and its co
 
 - **The legend behavior's commands** (`behaviors/theming.ts`, patches unless said): `layer.channel` (a channel's value
   or form set or unset, on one layer or several in one patch; on one layer's color its choices are a select param,
-  `scheme`, the layer's fitting schemes, its default the layer's scheme: read when no `value` is given; its `preview`
-  the gesture's preview), `scale.set` (a scale's params; `null` reopens a domain's end), `theme.value-color` (one
-  value's color in a field form's palette, the listed values keeping theirs; refused on a scheme, rules or any other
-  form: never replaced), `layer.filter` (a value's items hidden or shown again: one patch of the layer's `data`, a
-  trailing `(not …)` of the values hidden; no value: cleared, every layer of `addresses` in one patch, as a click on the
-  track's "n filtered" chip). The user's filter is only that trailing `(not …)` (`dataFilter`): what leads it, the
-  annotation and a leading run of item forms (`<annotation>/(item :category Domain)`, a layer a feature type), is the
-  layer's base, kept when the filter is set, toggled or cleared, its rejected rows not counted as filtered (core's
-  Render, Filters: `splitDataForms` is the one parser). A legend entry's items are the base's forms and
+  `scheme`, the layer's fitting schemes, its default the layer's scheme (or, on a field form, the scheme whose palette
+  it has): read when no `value` is given; its `preview` the gesture's preview; a scheme chosen on a color that reads a
+  field is that scheme over the layer's own field, its scale, domain, mapping and listed values kept (a field form with
+  more than a name and a palette, or listed values, has the scheme's palette put in it), so the first entry brings the
+  original colors back exactly, and a letters or logo layer of no known alphabet has no fitting scheme: the menu has no
+  Color entry where no palette is read), `scale.set` (a scale's params; `null` reopens a domain's end),
+  `theme.value-color` (one value's color in a field form's palette, the listed values keeping theirs; refused on a
+  scheme, rules or any other form: never replaced), `layer.filter` (a value's items hidden or shown again: one patch of
+  the layer's `data`, a trailing `(not …)` of the values hidden; no value: cleared, every layer of `addresses` in one
+  patch, as a click on the track's "n filtered" chip). The user's filter is only that trailing `(not …)` (`dataFilter`):
+  what leads it, the annotation and a leading run of item forms (`<annotation>/(item :category Domain)`, a layer a
+  feature type), is the layer's base, kept when the filter is set, toggled or cleared, its rejected rows not counted as
+  filtered (core's Render, Filters: `splitDataForms` is the one parser). A legend entry's items are the base's forms and
   `(item :<field> v)` in one query (`itemsAddress`: one item form holding every param, or an `and` when the base has
   `and` or `or`), `legend.select` (session: the items whose field has the value; Cmd/Ctrl toggles), `legend.hover`
   (session: a highlight named `legend`), `theme.cvd-safe` (session). `fittingSchemes(layer)` is what a menu offers (the

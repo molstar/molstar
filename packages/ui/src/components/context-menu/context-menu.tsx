@@ -246,8 +246,21 @@ function openMenu(
             >
               {icons ? <span class={classes.slot}>{item.icon ? <Icon name={item.icon} /> : null}</span> : null}
               <span class={classes.label}>{item.label}</span>
-              {item.shortcut ? (
+              {item.shortcut && item.items?.length ? (
+                // both: one trailing cell (the row's columns stay), the key then the arrow in its slot
+                <span style="display: inline-flex; align-items: center">
+                  <kbd class={classes.keys}>{item.shortcut}</kbd>
+                  <span class={classes.check} data-submenu-arrow="">
+                    <Icon name="chevron-right" />
+                  </span>
+                </span>
+              ) : item.shortcut ? (
                 <kbd class={classes.keys}>{item.shortcut}</kbd>
+              ) : item.items?.length ? (
+                // a submenu's arrow at the row's end, as menus have it (the label never carries it)
+                <span class={classes.check} data-submenu-arrow="">
+                  <Icon name="chevron-right" />
+                </span>
               ) : checks ? (
                 <span class={classes.check}>{item.checked ? <Icon name="check" /> : null}</span>
               ) : (

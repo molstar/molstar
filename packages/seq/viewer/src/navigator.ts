@@ -38,6 +38,7 @@ import { blockOfUnit, blockSwitchRange } from './block-switch.js';
 import { DragSlop } from './input.js';
 import { setNarrowed } from './narrowed.js';
 import { type PartCursor, partCursor } from './part-cursor.js';
+import { placeReadout, pointerBox, windowBoxes } from './readout-place.js';
 import type { SeqViewer } from './viewer.js';
 
 // The navigator's model (_spec/README.md "Models", NavigatorModel): DOM-free, one a navigator a viewer shows (a
@@ -367,6 +368,16 @@ export class NavigatorModel extends ReactiveModel {
     });
   }
 
+  /**
+   * Where a readout of `w` × `h` px goes in this part's px (its top left, above or below the part when it is negative or
+   * past the height): clear of every shown window, its grips and the pointer (`placeReadout`, _spec/README.md
+   * "Composition", Navigators).
+   */
+  readoutAt(w: number, h: number): readonly [left: number, top: number] {
+    const windows = this.lastFrame ? windowBoxes(this.lastFrame.windows, this.width, this.height) : [];
+    return placeReadout(w, h, this.width, this.height, windows, pointerBox(this.pointerX, this.pointerY));
+  }
+
   /** The navigator's last frame. */
   get frame(): NavigatorFrame | undefined {
     return this.lastFrame;
@@ -623,6 +634,16 @@ export class NavigatorModel extends ReactiveModel {
         this.viewer.view.setBand(d.rows.track, { bandTop: this.clampTop(d.hit.section, d.rows.top + row - row0) });
     }
     if (!d.positions) return;
+    // the square's sweep (from a cell off the window): whole cells, the drawn rectangle and the release's zoom alike
+    if (r instanceof SquareNavigator && d.hit.part === 'outside') {
+      const snapped = r.snapSweep(d.hit.section, d.x0, x);
+      if (snapped) {
+        // the end the pointer is at is the one away from the press's cell
+        const forward = x >= d.x0;
+        this.behavior?.dragTo(forward ? snapped[1] : snapped[0], forward ? snapped[0] : snapped[1]);
+        return;
+      }
+    }
     const at = r.sectionUnitAt(d.hit.section, x);
     if (at !== undefined) this.behavior?.dragTo(at);
   }

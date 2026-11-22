@@ -17,7 +17,7 @@ import {
   unitOfPlace,
 } from '@molstar/seqx-core/view';
 import { DefaultRenderConfig, type RenderConfig } from './config.js';
-import { Anchor, DrawLists, EmphasisPasses, NoColor, type PassName } from './draw-lists.js';
+import { Anchor, DrawLists, EmphasisPasses, NoColor, type PassName, type PassWriter } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
 import { bundledWidth } from './text.js';
 import type { SeqTokens } from './tokens.js';
@@ -59,6 +59,8 @@ const LabelBand = 12;
 /** The labels' font: a block's name where its cell has room for it, else none. */
 const LabelFont = '10px sans';
 const LabelPad = 2;
+/** The alpha (of 255) of a sweep's tint: the window's own. */
+const SweepTint = 0x2e;
 const AnchorMiddle: number = Anchor.middle;
 const AnchorEnd: number = Anchor.end;
 /** What a window's move redraws (the base kept). */
@@ -284,7 +286,34 @@ export class SquareNavigator {
       g[8] = 0;
       out.rectArgs();
     }
+    const sw = input.sweep;
+    if (sw && w.shown) this.drawSweep(out, sw, wy.shown ? wy : w, px, c['seq-window']);
     return this.frameRecord;
+  }
+
+  /**
+   * A sweep in progress (_spec/README.md "Render", Navigators, The square): the rectangle its release zooms to (whole cells, `snapSweep`), tinted and
+   * outlined as the window is. Along x the swept range; along y the same range where one section is on both axes (its
+   * window the diagonal), else the y section's window as it is.
+   */
+  private drawSweep(out: PassWriter, sw: { x0: number; x1: number }, wy: NavigatorWindow, px: number, ink: number) {
+    const x0 = Math.min(sw.x0, sw.x1);
+    const x1 = Math.max(sw.x0, sw.x1);
+    if (!(x1 - x0 > 0)) return;
+    const one = this.navigator.of[1] === this.navigator.of[0];
+    const y0 = one ? this.at(this.unitAt(x0, true), false) : wy.y0;
+    const y1 = one ? this.at(this.unitAt(x1, true), false) : wy.y1;
+    const g = out.args;
+    g[0] = x0;
+    g[1] = y0;
+    g[2] = Math.max(px, x1 - x0);
+    g[3] = Math.max(px, y1 - y0);
+    g[4] = ((ink & 0xffffff00) | SweepTint) >>> 0;
+    g[5] = ink;
+    g[6] = Math.max(px, 1.5);
+    g[7] = 0;
+    g[8] = 0;
+    out.rectArgs();
   }
 
   /**
@@ -420,6 +449,28 @@ export class SquareNavigator {
       ySystem: cell.ySystem,
       yBlock: cell.y,
     };
+  }
+
+  /**
+   * A sweep from x `xa` to x `xb` snapped to whole cells (the lattice blocks under its ends, both included), as the
+   * bound section's units `[start, end]`: what the sweep draws and its release fits (_spec/README.md "Render",
+   * Navigators, The square). Undefined when the section shows none of it.
+   */
+  snapSweep(section: string, xa: number, xb: number): readonly [number, number] | undefined {
+    const s = this.options.view.sections.find((v) => v.address === section);
+    const lattice = this.lattice;
+    const blocks = lattice?.blocks;
+    if (!s || !lattice || !blocks?.length) return undefined;
+    const lo = this.blockOf(this.unitAt(Math.min(xa, xb), true));
+    const hi = this.blockOf(this.unitAt(Math.max(xa, xb), true));
+    const u0 = blocks[lo].offset ?? 0;
+    const u1 = hi + 1 < blocks.length ? (blocks[hi + 1].offset ?? 0) : this.total;
+    if (sameBlocks(s, lattice)) return [u0, u1];
+    const a = placeOfUnit(lattice, u0, 'start');
+    const b = placeOfUnit(lattice, u1, 'end');
+    const ua = a && unitOfPlace(s, a);
+    const ub = b && unitOfPlace(s, b);
+    return ua !== undefined && ub !== undefined ? [Math.min(ua, ub), Math.max(ua, ub)] : undefined;
   }
 
   /** The first bound section's unit at x (a click centres it there), through the places of the lattice. */
