@@ -764,10 +764,31 @@ export function placeBlocks(section: ResolvedSection, ctx: PlaceContext, prev?: 
   for (let j = 0; j < nb; j++)
     rows += (j ? config.trackGap : 0) + ctx.heights[j] + (pads ? pads[2 * j] + pads[2 * j + 1] : 0);
   let y = top;
+  // a stack's bands with no item for a block are left out of its row (`blocks.emptyTracks`); the first block's row
+  // keeps its bands (the label column is its), as does a track with any layer of no known content; the chips share a
+  // row, left out of it where every chip is empty
+  const gone = new Uint8Array(blocks.length * nb);
+  if (p.stacked && nb > 0 && config.blocks.emptyTracks === 'collapse' && ctx.bandEmpty) {
+    let first = true;
+    let chips: Uint8Array | undefined;
+    for (let b = 0; b < blocks.length; b++) {
+      if (!blocks[b].axis.ranges) continue;
+      if (slots[b] > 0) {
+        chips ??= new Uint8Array(nb).fill(1);
+        for (let j = 0; j < nb; j++) if (!ctx.bandEmpty(b, j)) chips[j] = 0;
+      } else if (first) first = false;
+      else for (let j = 0; j < nb; j++) gone[b * nb + j] = ctx.bandEmpty(b, j) ? 1 : 0;
+    }
+    if (chips)
+      for (let b = 0; b < blocks.length; b++)
+        if (slots[b] > 0) for (let j = 0; j < nb; j++) gone[b * nb + j] = chips[j];
+  }
   // a stack: the other blocks a row each, then the chips' one row, side by side from the first position's x
   let stackRows = 0;
   let chipRow = -1;
   let chipX = x0;
+  let rowH = rows;
+  let chipRowH = rows;
   for (let round = 0; round < (p.stacked ? 2 : 1); round++)
     for (let b = 0; b < blocks.length; b++) {
       const block = blocks[b];
@@ -778,8 +799,18 @@ export function placeBlocks(section: ResolvedSection, ctx: PlaceContext, prev?: 
       if (p.stacked && (!chip || chipRow < 0)) {
         if (stackRows++) y += config.sectionGap;
         rowTop = y;
-        y += rows;
-        if (chip) chipRow = rowTop;
+        // the label row, then the bands kept with a gap between
+        rowH = p.labelRow;
+        let kept = 0;
+        for (let j = 0; j < nb; j++) {
+          if (gone[b * nb + j]) continue;
+          rowH += (kept++ ? config.trackGap : 0) + ctx.heights[j] + (pads ? pads[2 * j] + pads[2 * j + 1] : 0);
+        }
+        y += rowH;
+        if (chip) {
+          chipRow = rowTop;
+          chipRowH = rowH;
+        }
       } else if (p.stacked) rowTop = chipRow;
       if (!block.axis.ranges) continue;
       const o = p.stacked ? 0 : row.offset[b];
@@ -829,10 +860,16 @@ export function placeBlocks(section: ResolvedSection, ctx: PlaceContext, prev?: 
       p.labelRoom[i] = a.width;
       p.strideable[i] = chip || inRun || p.stacked ? 0 : 1;
       strips.top[i] = rowTop;
-      strips.height[i] = rows;
+      strips.height[i] = p.stacked && !chip ? rowH : p.stacked ? chipRowH : rows;
       let by = rowTop + p.labelRow;
+      let kept = 0;
       for (let j = 0; j < nb; j++) {
-        if (j) by += config.trackGap;
+        if (gone[b * nb + j]) {
+          // left out: no height, drawn and hit nowhere
+          strips.bandY[i * nb + j] = by;
+          continue;
+        }
+        if (kept++) by += config.trackGap;
         // a band inside its well (_spec/README.md "Render", Tracks layout)
         const pt = pads ? pads[2 * j] : 0;
         const pb = pads ? pads[2 * j + 1] : 0;
@@ -943,6 +980,8 @@ export function blockChrome(
     // a row's ground once, before its first strip's layers: never over a strip drawn before it (a chip's pill)
     if (!p.rowStart(strip)) return;
     const k = strip * strips.bands + band;
+    // a band left out of this row has no ground
+    if (strips.bandH[k] <= 0) return;
     const well = s.tracks[band]?.well;
     // its well, as the first row's (_spec/README.md "Render", Shapes): through `args`, nothing boxed
     const g = out.args;

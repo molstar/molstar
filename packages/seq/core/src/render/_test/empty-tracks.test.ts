@@ -13,7 +13,7 @@ import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
 import { GffRuntime } from '../../runtimes/gff.js';
-import { DefaultRenderConfig, recordDrawLists } from '../index.js';
+import { type BlockPlacement, DefaultRenderConfig, recordDrawLists } from '../index.js';
 import { lanesHeight } from '../sizing.js';
 import { settle } from './helpers.js';
 
@@ -81,5 +81,55 @@ describe('a track with no items is one line, not a blank well', () => {
     const pending = await s.frame({ size: Size, settled: false });
     expect(pending.layout.sections[0].tracks[0].empty).toBeUndefined();
     expect(pending.layout.sections[0].tracks[0].box.height).toBe(lanesHeight(1, DefaultRenderConfig));
+  });
+});
+
+/** A stack of two blocks, a track of items on the first block's system only, a track of both, and the letters. */
+function stack(): Node {
+  const b = createSeqSpec({ title: 'stack' });
+  const a = b.data.sequence('a', { alphabet: 'dna', letters: 'ACGT'.repeat(10) });
+  const c = b.data.sequence('c', { alphabet: 'dna', letters: 'ACGT'.repeat(10) });
+  const ra = b.data.ranges('ra', { target: a, rows: { start: [1, 20], end: [10, 30], id: ['a', 'b'] } });
+  const rc = b.data.ranges('rc', { target: c, rows: { start: [2], end: [8], id: ['x'] } });
+  b.views.view('main', (v) => {
+    const sec = v.section('s', { arrange: 'stack' } as never);
+    sec.block('a', { of: a, label: 'A' });
+    sec.block('c', { of: c, label: 'C' });
+    sec.track('only-a', { label: 'Only A' }).layer('l', { type: 'ranges', data: ra });
+    const t = sec.track('both', { label: 'Both' });
+    t.layer('a', { type: 'ranges', data: ra });
+    t.layer('c', { type: 'ranges', data: rc });
+    sec.track('letters', { label: 'Sequence' }).layer('l', { type: 'letters' });
+  });
+  return b.build();
+}
+
+describe('a stacked block leaves out its tracks with no items for it (`blocks.emptyTracks`)', () => {
+  const bandsOf = async (config = {}) => {
+    const s = await settle(stack(), [], config);
+    const f = await s.frame({ size: Size, settled: true });
+    const p = f.layout.sections[0].placement as BlockPlacement;
+    const st = p.strips;
+    return {
+      p,
+      f,
+      h: Array.from({ length: st.n }, (_, i) => Array.from({ length: st.bands }, (_, j) => st.bandH[i * st.bands + j])),
+    };
+  };
+
+  it('the second block draws the tracks it has items in and its letters; the first keeps every track', async () => {
+    const { h, p } = await bandsOf();
+    expect(h[0].every((x) => x > 0)).toBe(true);
+    expect(h[1][0]).toBe(0);
+    expect(h[1][1]).toBeGreaterThan(0);
+    expect(h[1][2]).toBeGreaterThan(0);
+    // its row is shorter by the track left out, its label row kept
+    expect(p.strips.height[1]).toBeLessThan(p.strips.height[0]);
+    expect(p.labels[1]).toBe('C');
+  });
+
+  it('`keep` draws every track in every row', async () => {
+    const { h } = await bandsOf({ blocks: { emptyTracks: 'keep' } });
+    expect(h.every((row) => row.every((x) => x > 0))).toBe(true);
   });
 });

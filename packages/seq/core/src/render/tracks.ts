@@ -561,7 +561,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         strips.used[k] = 0;
         const h = strips.bandH[k];
         // a band below the page is not laid out: nothing of it is drawn or asked for
-        if (!(strips.bandY[k] + strips.dy[i] < height) || (h <= 0 && layout !== TracksLayout)) continue;
+        if (!(strips.bandY[k] + strips.dy[i] < height) || (h <= 0 && (layout !== TracksLayout || block))) continue;
         const track = shown[j];
         const band = bandOf(track);
         if (trackContents[j]) labelLaneOf(j).reset();
@@ -671,6 +671,23 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         }
       return out;
     };
+    // a block's band with no item (a stack's rows: `blocks.emptyTracks`)
+    const emptyCtx = { config, text: input.text, fit: 0, labelLane: false };
+    const bandEmpty = (b: number, j: number): boolean => {
+      const block = section.blocks?.[b];
+      if (!block || trackOf[j] < 0) return false;
+      for (const l of block.layers[trackOf[j]] ?? []) {
+        if (!l.placed || l.params.hidden === true) continue;
+        const type = firstType(l, types);
+        if (!type?.content) return false;
+        let prep = state.preps.get(l);
+        if (prep === undefined) state.preps.set(l, (prep = type.prepare(l, input.model)));
+        const c = type.content(prep, emptyCtx);
+        if (!c || c.partial || c.lanes > 0) return false;
+      }
+      // every layer placed here is empty, or none is placed (a layer of another block's system)
+      return true;
+    };
     const sectionBox: Box = {
       x: dataX,
       y: top,
@@ -694,6 +711,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         heights,
         ...(padded ? { pads } : {}),
         layStrip,
+        bandEmpty,
         report: sectionReport,
         ...(input.figure ? { figure: true } : {}),
         ...(input.windows ? { windows: true } : {}),

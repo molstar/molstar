@@ -242,6 +242,11 @@ export interface RenderConfig {
     readonly runPx: number;
     readonly readPx: number;
     readonly groupGap: number;
+    /**
+     * A stacked block's track with no items for that block: `collapse` (the default) leaves it out of that block's row
+     * (the first block's row and a track of letters or any fixed height are kept), `keep` draws its well.
+     */
+    readonly emptyTracks: 'collapse' | 'keep';
   };
   /**
    * Rings (_spec/README.md "Render", Rings layout): the hole a share of the radius at least (0.35: room for the title,
@@ -467,7 +472,7 @@ export const DefaultRenderConfig: RenderConfig = {
   ranges: { overflow: 'extra-lanes', maxLanes: 1000, connector: { width: 1, ink: 'item', alpha: 0.6 } },
   values: { aggregate: 'minmax', coarser: 1, direct: true },
   ruler: { labelGap: 48 },
-  blocks: { gapShare: 0.25, runPx: 2, readPx: 1, groupGap: 3 },
+  blocks: { gapShare: 0.25, runPx: 2, readPx: 1, groupGap: 3, emptyTracks: 'collapse' },
   rings: {
     hole: 0.35,
     trackMaxPx: 48,
