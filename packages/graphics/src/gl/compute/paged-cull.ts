@@ -633,6 +633,28 @@ export interface PagedCullReadBack {
   selected: number;
   bitsRoom: number;
   survivorsEntries: number;
+  /**
+   * of the last cursors' read: whether it grew the rooms, and what it was asked with (a pyramid to come, the residency
+   * changed), whether its entries were tested against a pyramid, the entries selected then against the bits' room
+   */
+  grow: boolean;
+  pyramidToCome: boolean;
+  residencyChanged: boolean;
+  tested: boolean;
+  selectedAtRead: number;
+  bitsAtRead: number;
+  /**
+   * of the last cull: its active entries, members, instances; its value blocks in use and their budget; the leaf pages
+   * not written, the pages pending composed after it; the culls whose residency changed
+   */
+  active: number;
+  members: number;
+  instances: number;
+  blocksInUse: number;
+  blocksBudget: number;
+  unwritten: number;
+  pending: number;
+  residencyChanges: number;
 }
 
 export interface PagedCuller {
@@ -972,6 +994,20 @@ export function createPagedCuller(
     selected: 0,
     bitsRoom: 0,
     survivorsEntries: 0,
+    grow: false,
+    pyramidToCome: false,
+    residencyChanged: false,
+    tested: false,
+    selectedAtRead: 0,
+    bitsAtRead: 0,
+    active: 0,
+    members: 0,
+    instances: 0,
+    blocksInUse: 0,
+    blocksBudget: 0,
+    unwritten: 0,
+    pending: 0,
+    residencyChanges: 0,
   };
   /**
    * per region the room a cull needed (`readCursors`: half again its count where it overflowed, 0 none asked yet), of
@@ -1407,8 +1443,14 @@ export function createPagedCuller(
         cursorsRead = false;
         const c = new Uint32Array(data);
         const prior = priorData ? new Uint32Array(priorData) : undefined;
+        readBack.pyramidToCome = pyramidToCome;
+        readBack.residencyChanged = residencyChanged;
+        readBack.tested = tested;
+        readBack.selectedAtRead = new Uint32Array(selectedData)[0];
+        readBack.bitsAtRead = bits;
         // every selected entry tested against the pyramid, else what it needed not what the view will
         if (tested && new Uint32Array(selectedData)[0] > bits) grow = false;
+        readBack.grow = grow;
         let overflowed = false;
         // a room at its cap (`sizeFrame`) not grown by a cull again: overflowing it asks for another while each needs
         // fewer than the one before (its pyramid this view's: a zoom's first cull of the last view's pyramid, the isg
@@ -2107,6 +2149,7 @@ export function createPagedCuller(
       // made resident (its pyramid of the copies drawn coarse, a sample's gaps hiding little: the yeast's first near
       // cull 27.6 M frame slots, 1.5 M after, its rooms and the raster's chunks grown to it), culled again instead
       residencyChanged = updateResidency();
+      if (residencyChanged) readBack.residencyChanges += 1;
       if (residencyChanged && source) {
         forceSync = true;
         this.sync(source, NoChanges, syncedReaches);
@@ -2223,6 +2266,13 @@ export function createPagedCuller(
       select();
       readWants();
       runPass('paged cull', true);
+      readBack.active = activeCount;
+      readBack.members = memberCount;
+      readBack.instances = instanceTotal;
+      readBack.blocksInUse = blockCount - freeBlocks.length;
+      readBack.blocksBudget = blocksBudget();
+      readBack.unwritten = unwrittenPages.size;
+      readBack.pending = pendingPages.size;
       // no second phase to follow: this phase's slots the frame's (read before the fallback's), its selected entries
       // the survivors' room's (`PagedCullGroupsKernel`) and with a pyramid the bits'; else read where the phases end
       // (one read at a time: the second's not made while the first's is on its way)
