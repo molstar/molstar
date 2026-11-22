@@ -81,6 +81,7 @@ export {
 } from './model.js';
 export { type DescribedMap, describedAddress, pendingMaps } from './maps-described.js';
 export { segmentPairs, structureStatus } from './maps-segments.js';
+export { withViewKind } from './lazy-kinds.js';
 export { viaList } from './maps-via.js';
 export type { CompoundEntry, Molecular } from './molecule-query.js';
 export {

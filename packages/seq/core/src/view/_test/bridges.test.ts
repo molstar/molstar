@@ -8,7 +8,7 @@
 // its layers (pairs, a segments map as pairs, another type drawn as its chain's `pairs`), its params' defaults, and a
 // lock a follow makes redundant.
 
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { createSeqSpec } from '../../lang/builder.js';
 import { resolveSpec } from '../../resolve/model.js';
 import { unreadParams } from '../../resolve/unread.js';
@@ -59,6 +59,13 @@ const view = (s = spec()) => resolveView(resolveSpec(s), '/views/v')!;
 const codes = (v: ReturnType<typeof view>) => v.issues.map((i) => i.code);
 
 describe('bridges in the resolved view', () => {
+  // the view's bridge pass is lazy: a model of a spec with a bridge waits for it
+  beforeAll(async () => {
+    const m = resolveSpec(spec());
+    await m.loading;
+    expect(resolveSpec(spec()).loading).toBeUndefined();
+  });
+
   it('a view without a bridge has empty lists: its stack its sections in order', () => {
     const b = createSeqSpec();
     const x = b.data.sequence('x', { alphabet: 'dna', letters: 'ACGT' });

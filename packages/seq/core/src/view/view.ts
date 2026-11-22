@@ -32,6 +32,7 @@ import {
   projectPoint,
   type StaticModel,
   viaList,
+  withViewKind,
 } from '@molstar/seqx-core/resolve';
 import { viaUnusedIssue } from '@molstar/seqx-core/resolve/maps-via';
 import { wholePieces } from './axis.js';
@@ -47,7 +48,7 @@ import {
   sectionComplex,
   systemRef,
 } from './blocks.js';
-import { type ResolvedBridge, resolveBridges, type StackEntry } from './bridges.js';
+import type { ResolvedBridge, StackEntry } from './bridges.js';
 import { ViewIssues } from './issues.js';
 import { dataOf, layerData } from './layer-data.js';
 
@@ -412,8 +413,21 @@ export interface ResolvedView {
   readonly issues: readonly Issue[];
 }
 
+/**
+ * The view's bridge pass (`bridges.ts`), loaded the first time a spec holds a bridge: a model waits for it
+ * (`withViewKind`, as for render's bridge chunk), and a view resolved before it lands has no bridges (its model is
+ * loading). Why lazy: a view without a bridge pays nothing for one (_spec/README.md "Resolved view", Bridges).
+ */
+const BridgePass: { resolve?: typeof import('./bridges.js').resolveBridges } = {};
+withViewKind('bridge', () =>
+  import('./bridges.js').then((m) => {
+    BridgePass.resolve = m.resolveBridges;
+  }),
+);
+
 /** No systems: what an unmapped system links to besides itself. */
 const NoSystems: readonly string[] = [];
+const NoBridges: readonly ResolvedBridge[] = [];
 
 const caches = new WeakMap<LayerKinds, WeakMap<StaticModel, Map<string, ResolvedView>>>();
 
@@ -816,18 +830,21 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
         if (n.kind === 'scale' && n.id !== undefined) scales[`/${c.id}/${n.id}`] = n.params ?? {};
   const ex = param(view, 'export');
   // its bridges and the stack (_spec/README.md "Resolved view", Bridges); none: the empty lists, nothing else read
-  const { bridges, stack } = resolveBridges(
-    {
-      view,
-      address,
-      sections,
-      layer: (l, index, at, say) => layerOf(model, kinds, l, index, at, '', say, false, [], true),
-    },
-    (code, message, at) => {
-      report(code, message, at);
-      return issues[issues.length - 1];
-    },
-  );
+  const pass = BridgePass.resolve;
+  const { bridges, stack } = pass
+    ? pass(
+        {
+          view,
+          address,
+          sections,
+          layer: (l, index, at, say) => layerOf(model, kinds, l, index, at, '', say, false, [], true),
+        },
+        (code, message, at) => {
+          report(code, message, at);
+          return issues[issues.length - 1];
+        },
+      )
+    : { bridges: NoBridges, stack: sections.map((_, index) => ({ kind: 'section' as const, index })) };
   return {
     address,
     layout: viewLayout,

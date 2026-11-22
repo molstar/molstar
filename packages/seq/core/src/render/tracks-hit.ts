@@ -39,6 +39,20 @@ function pointAt(): Float64Array {
 /** A run's block and count (`runAt`), reused. */
 const RunAt = new Int32Array(2);
 
+/**
+ * The bridge whose band holds a page point (its index in `ResolvedView.bridges`), −1 for none: what the viewer's pointer
+ * reads over a band where no ribbon is hit (a drag or a wheel there moves both sides).
+ */
+export function bridgeAt(layout: ViewLayout, x: number, y: number): number {
+  const bridges = layout.bridges;
+  if (bridges)
+    for (let i = 0; i < bridges.length; i++) {
+      const b = bridges[i].box;
+      if (y >= b.y && y < b.y + b.height && x >= b.x && x < b.x + b.width) return bridges[i].index;
+    }
+  return -1;
+}
+
 export function hitView(layout: ViewLayout, x: number, y: number, touch = false, hover?: Hit): Hit | undefined {
   const h = hitLayout(layout, x, y, touch, hover);
   // a run of small blocks (_spec/README.md "Render", Blocks): over its band, what names no item (a ruler's place, its
@@ -79,6 +93,16 @@ function runHit(layout: ViewLayout, x: number, y: number): Hit | undefined {
 }
 
 function hitLayout(layout: ViewLayout, x: number, y: number, touch: boolean, hover: Hit | undefined): Hit | undefined {
+  // a point in a bridge's band is the bridge's: its topmost ribbon, else nothing (_spec/README.md "Render", Bridges)
+  const bridges = layout.bridges;
+  if (bridges)
+    for (let i = 0; i < bridges.length; i++) {
+      const b = bridges[i].box;
+      if (y < b.y || y >= b.y + b.height || x < b.x || x >= b.x + b.width) continue;
+      HitAt[0] = x;
+      HitAt[1] = y;
+      return bridges[i].hit(HitAt);
+    }
   for (const s of layout.sections) {
     const strips = s.placement.strips;
     for (let i = 0; i < strips.n; i++) {

@@ -222,6 +222,11 @@ export interface Hit {
   readonly categories?: string;
   /** A `group` hit's members: the hits of the items it stands for. */
   readonly members?: readonly Hit[];
+  /**
+   * A bridge's hit (_spec/README.md "Render", Bridges): its index in `ResolvedView.bridges` (absent off a bridge); its
+   * `section` is the bridge's id, its element the ribbon's drawn run.
+   */
+  readonly bridge?: number;
 }
 
 /**
@@ -420,9 +425,10 @@ export interface LayerType<Prep = unknown, Lay = unknown> {
   used?(lay: Lay): number;
   /**
    * `strip` (the default): laid out once a strip, drawn in its frame; `section`: once a section with the placement
-   * (`ctx.place`), drawn in page coordinates (what crosses strips).
+   * (`ctx.place`), drawn in page coordinates (what crosses strips); `bridge` (internal: no extension draws in a bridge
+   * yet): once a bridge, its context `BridgeLayoutContext` (its band and its two sides), drawn in page coordinates.
    */
-  readonly scope?: 'strip' | 'section';
+  readonly scope?: 'strip' | 'section' | 'bridge';
   /**
    * 2: it has a second axis of its own (a grid's y, rows): the emphasis passes call its `draw` with the emphasis, whose
    * parts on its y systems it paints through its own y transform; the strip paints x.

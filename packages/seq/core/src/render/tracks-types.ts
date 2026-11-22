@@ -10,7 +10,8 @@ import type { OverlayNode, StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedLayer, ResolvedSection, ResolvedTrack, ResolvedView } from '@molstar/seqx-core/view';
 import { AxisTransform, type Viewport } from './axis.js';
 import type { RenderConfig } from './config.js';
-import type { Box, LayerType, Overlay, StoreReader } from './layer-type.js';
+import type { PassName, PassWriter } from './draw-lists.js';
+import type { Box, Emphasis, Hit, LayerType, Overlay, StoreReader } from './layer-type.js';
 import type { ThemeContext } from './channels.js';
 import type { TextMetrics } from './text.js';
 import type { SeqTokens } from './tokens.js';
@@ -101,6 +102,26 @@ export interface SectionLayout {
   readonly config: RenderConfig;
 }
 
+/**
+ * A bridge laid out (_spec/README.md "Render", Bridges; the bridge chunk's): its band between its sides, its layers'
+ * lays, its draw of a pass and its hit (a page point in `at`).
+ */
+export interface BridgeLayout {
+  /** Its index in `ResolvedView.bridges` (a hit's `bridge`), its address, id and label, its sides' addresses. */
+  readonly index: number;
+  readonly address: string;
+  readonly id: string;
+  readonly label: string;
+  readonly a: string;
+  readonly b: string;
+  readonly box: Box;
+  readonly lays: readonly LayerLayout[];
+  /** The ribbons drawn (its ARIA description's count). */
+  readonly count: number;
+  draw(pass: PassName, out: PassWriter, emphasis: Emphasis | undefined): void;
+  hit(at: Float64Array): Hit | undefined;
+}
+
 export interface ViewLayout {
   readonly width: number;
   readonly height: number;
@@ -118,6 +139,8 @@ export interface ViewLayout {
   readonly narrow?: NarrowColumns;
   /** The frame's foot the pinned rails take, px (`pinned`): past the last section, kept free of the fill band. */
   readonly pinnedPx?: number;
+  /** Its placed bridges laid out (absent: none, or the bridge chunk not landed yet). */
+  readonly bridges?: readonly BridgeLayout[];
 }
 
 export interface LayoutInput {

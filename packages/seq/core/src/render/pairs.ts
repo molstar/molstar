@@ -47,11 +47,15 @@ import {
 import { drawDots, hitDots, layoutDots } from './pairs-dots.js';
 import { heldBins } from './pairs-held.js';
 import { regionPairs } from './pairs-region.js';
+import { PairsReads } from './bridge-load.js';
 import { drawEmphasis, drawHighlights, pairItems } from './pairs-emphasis.js';
 import { PlacePoint, type Placement } from './layout/types.js';
 import { withAlpha } from './tokens.js';
 
 export { PairsLay, type PairsPrep } from './pairs-lay.js';
+
+// a bridge reads a source's pairs as this layer does (`bridge-load.ts`)
+PairsReads.region = regionPairs;
 export { crosses, SplitExact, splitCrossing } from './pairs-split.js';
 
 const PA = new PlacePoint();

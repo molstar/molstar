@@ -211,6 +211,8 @@ export {
   withAlpha,
 } from './tokens.js';
 export {
+  type BridgeLayout,
+  bridgeAt,
   drawView,
   type HeldDomains,
   hitView,
@@ -225,6 +227,7 @@ export {
   type TrackLayout,
   type ViewLayout,
 } from './tracks.js';
+export { loadBridges } from './bridge-load.js';
 export {
   actionColumns,
   builtInHeaderStates,

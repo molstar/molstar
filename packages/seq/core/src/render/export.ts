@@ -772,6 +772,19 @@ export async function exportSvg(spec: Node, given: RenderSvgOptions): Promise<Re
             }
           : {}),
       })),
+      // a bridge a group with its sides (its ribbons are the passes' cubic paths)
+      ...(frame.layout.bridges
+        ? {
+            bridges: frame.layout.bridges.map((b) => ({
+              address: b.address,
+              a: b.a,
+              b: b.b,
+              y: b.box.y,
+              height: b.box.height,
+              count: b.count,
+            })),
+          }
+        : {}),
     });
     if (navs?.count) {
       const drawn = navs.frames(frame.layout, true).frames;
