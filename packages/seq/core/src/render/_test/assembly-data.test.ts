@@ -5,7 +5,7 @@
  */
 
 import { categoryColumn, type Node } from '@molstar/core/repr/tree';
-import { type SeqData, SeqRuntime, seqToValue } from '@molstar/seqx-core/data';
+import { type Coverage, type SeqData, SeqRuntime, seqToValue } from '@molstar/seqx-core/data';
 import { assembly, createSeqSpec, genome } from '@molstar/seqx-core/lang';
 import { loadGenome } from '@molstar/seqx-core/resolve';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -13,6 +13,7 @@ import type { BlockPlacement } from '../layout/blocks.js';
 import type { Frame } from '../renderer.js';
 import { hitView } from '../tracks-hit.js';
 import { recordDrawLists } from '../record.js';
+import { toyGenome } from './genome-fixtures.js';
 import { settle } from './helpers.js';
 import { settleNavigator } from './navigator-fixtures.js';
 
@@ -187,5 +188,76 @@ describe('the ideogram over an assembly', () => {
     const one = await rects(ideogram('chr1'));
     expect(one).toBeGreaterThan(0);
     expect(all).toBeGreaterThanOrEqual(3 * one - 2);
+  });
+});
+
+describe('data over 3,000 contigs at the fit', () => {
+  // medium: 3,000 blocks resolved and laid out (seconds); the quick lane's representatives are the 3-block cases above
+  it('the small-blocks rule holds: no read on a contig under a device pixel, the layers within their bounds', {
+    tags: ['medium'],
+  }, async () => {
+    const sequences = toyGenome(24, 2976, 3);
+    const names = sequences.map((q) => q.name);
+    // a feature and a link on every sequence, as one `seq` source over all of them
+    const coverage: Coverage = {
+      systems: sequences.map((q) => ({ name: q.name, length: q.length })),
+      shapes: names.flatMap((system) => [
+        { system, shape: 'ranges' as const },
+        { system, shape: 'pairs' as const },
+      ]),
+      levels: [1, 65_536],
+    };
+    // each sequence's rows whole at both levels (a source's coarse level: the fit reads it, never level 1)
+    const pairs: SeqData['pairs'] = [1, 65_536].flatMap((level) =>
+      sequences.map((q, i) => {
+        const other = names[(i * 7) % names.length];
+        return {
+          request: { system: q.name, start: 0, end: q.length, level, shapes: ['ranges', 'pairs'] },
+          answer: {
+            ok: true,
+            tables: {
+              ranges: {
+                form: 'list',
+                start: Int32Array.from([0]),
+                end: Int32Array.from([10]),
+                id: categoryColumn([`${q.name}.f`]),
+              },
+              pairs: {
+                form: 'list',
+                aSystem: categoryColumn([q.name]),
+                bSystem: categoryColumn([other]),
+                aStart: Int32Array.from([0]),
+                aEnd: Int32Array.from([10]),
+                bStart: Int32Array.from([0]),
+                bEnd: Int32Array.from([10]),
+              },
+            },
+          },
+        };
+      }),
+    );
+    const b = createSeqSpec({ title: '3,000 contigs' });
+    const g = b.data.assembly('toy', assembly('Toy', sequences, { order: 'source' } as never));
+    const src = b.data.source('src', { format: 'seq', value: seqToValue({ coverage, pairs }) as never });
+    const bed = b.data.ranges('bed', { target: g, source: src } as never);
+    const links = b.data.pairs('links', { a: g, source: src } as never);
+    b.views.view('v', (v) =>
+      genome(v, 'genome', g, {}, (s) => {
+        s.track('bed').layer('bed', { type: 'ranges', data: bed });
+        s.track('links').layer('links', { type: 'pairs', data: links });
+      }),
+    );
+    const s = await settle(b.build(), [SeqRuntime]);
+    const f = await s.frame({ size: Size, dpr: 1 });
+    const p = f.layout.sections[0].placement as BlockPlacement;
+    const read = new Set<string>();
+    for (let i = 0; i < p.strips.n; i++) read.add(p.strips.axes[i].system.replace(/^.*:name /, '').replace(/\)$/, ''));
+    // most contigs are under a device pixel: no strip, so no read
+    expect(p.strips.n).toBeLessThan(500);
+    const asked = new Set(f.wants.map((w) => w.system));
+    for (const name of asked) expect(read.has(name), name).toBe(true);
+    expect(asked.size).toBeLessThanOrEqual(p.strips.n);
+    expect(f.layout.issues.map((i) => i.code)).not.toContain('seq.render.zoom_in');
+    expect(s.store.issues.value.map((i) => i.code)).not.toContain('seq.store.too_many_tiles');
   });
 });
