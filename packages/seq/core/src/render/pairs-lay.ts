@@ -6,7 +6,8 @@
 
 import { type Key, type Location, location } from '@molstar/seqx-core/query';
 import { theme as themeForm } from '@molstar/seqx-core/lang';
-import type { PairsData, StaticModel } from '@molstar/seqx-core/resolve';
+import type { Node, Value } from '@molstar/core/repr/tree';
+import { type PairsData, segmentPairs, type StaticModel } from '@molstar/seqx-core/resolve';
 import type { Channel, ThemeDatum } from '@molstar/seqx-core/theme/index';
 import type { ResolvedLayer, ResolvedSection } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
@@ -206,11 +207,23 @@ export function annotationOf(model: StaticModel, address: string) {
   return undefined;
 }
 
+/** A segments map's runs as pairs, its `from` and `to` the two systems (a map as a pairs layer's data). */
+function mapData(model: StaticModel, address: string) {
+  const map = model.maps.get(address);
+  if (map?.kind !== 'segments') return undefined;
+  let n: Node | undefined = model.spec;
+  for (const id of address.split('/').slice(1)) n = n?.children?.find((c) => c.id === id);
+  const table = n?.params?.segments;
+  const data = segmentPairs(table && typeof table === 'object' ? (table as Record<string, Value>) : undefined);
+  return { data, from: map.from, to: map.to };
+}
+
 export function prepare(layer: ResolvedLayer, model: StaticModel): PairsPrep {
   const named = annotationOf(model, layer.data?.address ?? '');
-  const owner = named?.address ?? '';
+  const runs = named ? undefined : mapData(model, layer.data?.address ?? '');
+  const owner = named?.address ?? (runs ? layer.data!.address : '');
   const a = named?.entry;
-  const data = a?.shape === 'pairs' ? a.pairs : undefined;
+  const data = a?.shape === 'pairs' ? a.pairs : runs?.data;
   const p = layer.params;
   const index = new Map<string | number, number>();
   if (data) for (let k = 0; k < data.n; k++) if (!index.has(data.keys[k])) index.set(data.keys[k], k);
@@ -247,8 +260,8 @@ export function prepare(layer: ResolvedLayer, model: StaticModel): PairsPrep {
     shown,
     filtered,
     unreadFilter: (form !== undefined && !filter) || (baseForm !== undefined && !base) || layer.data?.unread === true,
-    aSystem: a?.target ?? '',
-    bSystem: a?.ySystem ?? '',
+    aSystem: a?.target ?? runs?.from ?? '',
+    bSystem: a?.ySystem ?? runs?.to ?? '',
     ...(a?.units ? { endUnits: a.units } : {}),
     side: p.side === 'below' ? 'below' : 'above',
     reach: typeof p.reach === 'number' && p.reach >= 0 ? p.reach : 0.25,

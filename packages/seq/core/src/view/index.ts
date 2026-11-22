@@ -27,6 +27,7 @@ export {
   positionAt,
   wholePieces,
 } from './axis.js';
+export { type ResolvedBridge, type StackEntry } from './bridges.js';
 export { type BlockGroup, blockOverridesOf, blockUnits, opensComplexes } from './blocks.js';
 export {
   type BlockPlace,

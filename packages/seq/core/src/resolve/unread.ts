@@ -14,7 +14,6 @@ import { ResolveIssues } from './issues.js';
 const Unread: Readonly<Record<string, string>> = {
   map: 'source FR',
   section: 'member_order LA member_order_y LA',
-  bridge: '* LA',
   assembly: 'names GF',
 };
 

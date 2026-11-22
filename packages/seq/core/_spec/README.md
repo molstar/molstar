@@ -333,16 +333,17 @@ never chemistry: a component code, a SMILES, a GlyTouCan id are strings it match
   `direction` (`section` when absent, `reversed`) and `scale` (1 when absent, positive: `seq.lang.block.scale`) are the
   figure's; a block child overrides a derived block by its `of` (the derived sequence's address), or by an id that is
   the sequence's name. `navigator.switch` (`none` when absent, `include`).
-- **Declared, read by later lanes** (a reader that lacks one says so by the existing issue, never silently): the
-  `bridge` kind under a view (`a`, `b` two sections, `seq.lang.bridge.sides`; `label`, `height`, `lock` `none` or `px`,
-  `hidden`; its children layers); `pairs.source` and `grid.source` with `field` (one of `rows`/`values` and `source`:
-  `seq.lang.pairs.content`, `seq.lang.grid.content`); the `matrix` kind (`target`, inline `values` or `codes` with
-  `states`, or `source` and `field`: `seq.lang.matrix.content`) and the `matrix` layer type (its data a matrix);
-  `map.source` (a `segments` map's runs from a pairs source, instead of `segments`: `seq.lang.map.params`); a `pairs`
-  layer's data a segments `map`; a grid section's `of_y` a rows system (an alignment's, a matrix's states),
-  `member_order`, `member_order_y` (the rows layer's order values); a source's `features` (`transcripts` when absent,
-  `genes`, `rows`) and `samples`; BED's columns named by number through `fields` (`{ stain: '4' }`); the `line` word
-  `gene` and, in a bridge, the `shape` words `ribbon` and `line`.
+- **Bridges**: the `bridge` kind under a view (`a`, `b` two sections, `seq.lang.bridge.sides`; `label`, `height`, `lock`
+  `none` or `px`, `hidden`; its children layers), read by the resolved view (Resolved view, Bridges); a `pairs` layer's
+  data a segments `map` (a run a pair), anywhere; in a bridge the `shape` words `ribbon` and `line`.
+- **Declared, read by later lanes** (a reader that lacks one says so by the existing issue, never silently):
+  `pairs.source` and `grid.source` with `field` (one of `rows`/`values` and `source`: `seq.lang.pairs.content`,
+  `seq.lang.grid.content`); the `matrix` kind (`target`, inline `values` or `codes` with `states`, or `source` and
+  `field`: `seq.lang.matrix.content`) and the `matrix` layer type (its data a matrix); `map.source` (a `segments` map's
+  runs from a pairs source, instead of `segments`: `seq.lang.map.params`); a grid section's `of_y` a rows system (an
+  alignment's, a matrix's states), `member_order`, `member_order_y` (the rows layer's order values); a source's
+  `features` (`transcripts` when absent, `genes`, `rows`) and `samples`; BED's columns named by number through `fields`
+  (`{ stain: '4' }`); the `line` word `gene`.
 
 | Item                                                                       | Whose       | Default                                                   | Why the default; the alternatives                                           |
 | -------------------------------------------------------------------------- | ----------- | --------------------------------------------------------- | --------------------------------------------------------------------------- |
@@ -2208,9 +2209,8 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
 
 - **Said, never dropped in silence** (`resolve/unread.ts`): a param the language declares and this version reads nowhere
   is `seq.resolve.param.unread` (info), one a node, naming the lane that reads it: `map.source` (FR),
-  `section.member_order` and `member_order_y` (LA), a `bridge` (LA), `assembly.names` (GF: the printed names stay the
-  assembly's). The lane that reads one drops it from `Unread`. Why: a reader shown a spec drawn without what it says
-  should be told why.
+  `section.member_order` and `member_order_y` (LA), `assembly.names` (GF: the printed names stay the assembly's). The
+  lane that reads one drops it from `Unread`. Why: a reader shown a spec drawn without what it says should be told why.
 
 ### Maps
 
@@ -2530,6 +2530,23 @@ Overlay, Opened sources), kept per model and view. No data, no dynamic node, no 
   section's system (a hover's and a highlight's), else only what it adds where it has no part (a selection's);
   `linked: false` keeps the own parts alone. Why keyed by system, not a function per section: the renderer reads a part
   per axis with an indexed loop, nothing called or made per draw.
+- **Bridges** (`bridges.ts`; `ResolvedView.bridges`, `ResolvedBridge`; `ResolvedView.stack`, the view's sections and
+  bridges in the order written, `{ kind, index }` each, what the layout stacks): a bridge is its address, its sides `a`
+  and `b` (section addresses), `label` (absent: "a to b" by the sides' ids), `height` as written (absent: the render
+  config's `bridges.height`), `lock` (`none`, `px`), `hidden`, its layers, `above` (which side is the section above it),
+  `placed` and its issues (in the view's too). Placed when its sides are the sections just above and below it in the
+  stack, in either order (else `seq.view.bridge.neighbours`, an error: a ribbon to a section past a neighbour crosses
+  its tracks; a bridge beside a bridge has none), each a row of tracks (the `tracks` layout, blocks not
+  `arrange: stack`; else `seq.view.bridge.layout`, an error: a ring's rim, a text's line or a stack's block faces the
+  band on part of its box only). Not placed, it is not drawn and takes no room. Its layers are `pairs`: a layer's chain
+  is read for its first type that reads pairs (another type is `seq.view.bridge.layer`, a warning: drawn as that
+  `pairs`, else not drawn; an extension's ribbons fall back so); its data a `pairs` node or a segments `map`
+  (`segmentPairs`: a run a pair of equal length, `a` its `from` range, `b` its `to` range, `b_strand` its strand, keyed
+  by its row; any other map, or a layer of another shape, `seq.view.layer.shape`), placed with no path (each end is
+  placed at layout by the systems the sides show: pairs are never projected). `lock: px` between a leader and its
+  follower is `seq.view.bridge.lock` (info: the follow moves both already). A view without a bridge has empty lists and
+  nothing else read. A reader without bridges says the kind by the language's unknown-kind rule and draws the sides
+  stacked: no `seq.view` code of its own.
 - **A track**: its address, its label (its id when absent), its height, and its `template` when it has `for_each`. A
   hidden track (`hidden: true`) is left out of the view, so its row collapses; the spec keeps it.
 - **A layer**: its address (with an id) and index, its type and fallback chain (Layer kinds, below), the `shape` its
@@ -2587,8 +2604,8 @@ Overlay, Opened sources), kept per model and view. No data, no dynamic node, no 
   complement of a nucleotide on a reversed axis and the item key that drops a range seen in an earlier tile (both spec
   text, read again). Not drawn: a layer behind a path (the maps are public, `projectRanges`; not built).
 - `seq.view.*` (`ViewIssues`): `section.system`, `section.complex`, `block.unit`, `layer.type`, `layer.data`,
-  `layer.shape`, `layer.unplaced`, `follow.unplaced`, `section.pieces`, `direction.unresolved`, `direction.mixed`
-  (info); a test checks the catalog.
+  `layer.shape`, `layer.unplaced`, `bridge.neighbours`, `bridge.layout`, `bridge.layer`, `bridge.lock` (info),
+  `follow.unplaced`, `section.pieces`, `direction.unresolved`, `direction.mixed` (info); a test checks the catalog.
 
 ## Render
 
@@ -3888,6 +3905,9 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
 ### The pairs layer
 
 `render/pairs.ts` (`PairsType`, `scope: 'section'`, fallback `ranges`): a `pairs` entry's items, each two ends.
+
+- **A segments map as its data** (`pairs-lay.ts`, `segmentPairs`): its runs as held pairs, `a` on its `from` system and
+  `b` on its `to` (Resolved view, Bridges), owned by the map's address: arcs in a track, ribbons in a bridge.
 
 - **By region** (`pairs-region.ts`: a `pairs` node with a `source`): the frame's pairs are read through the store on the
   layer's first system: bins at a pixel's level, always; items once the gate opens (Data, the level rules), drawn with
