@@ -44,8 +44,10 @@ export function indexedExtent(cost: TileCost, name: string, width: number, span:
 
 /**
  * The levels a source lists: 1, and each candidate up to `maxLevel` whose every tile (`level × tileBins` positions from
- * 0, on every system to its length) costs at most `maxRegionBytes`. Each level is checked tile by tile, the first tile
- * past the bound ending its check; level 1 is always listed (a tile past the bound is answered `too-large`). Why every
+ * 0, on every system to its length) costs at most `maxRegionBytes`, finest first: each level checked tile by tile (the
+ * first tile past the bound ending its check), the first level that does not fit ending the list (the coarser ones are
+ * not checked: a file of thousands of scaffolds pays for one failing level, not every candidate); level 1 is always
+ * listed (a tile past the bound is answered `too-large`). Why every
  * tile and from the index: the bytes a tile costs are known exactly before a read, its rows are not (EC-171).
  */
 export function tabixLevels(
@@ -63,7 +65,8 @@ export function tabixLevels(
         fits = cost(name, s, Math.min(extent, s + width)) <= bounds.maxRegionBytes;
       if (!fits) break;
     }
-    if (fits) out.push(level);
+    if (!fits) break;
+    out.push(level);
   }
   return out;
 }

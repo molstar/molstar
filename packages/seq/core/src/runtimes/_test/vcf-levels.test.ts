@@ -20,7 +20,7 @@ import {
   type SourceEntry,
 } from '../../data/protocol.js';
 import { checkAnswer } from '../../data/tables.js';
-import { densityOf, LevelCandidates } from '../internal/levels.js';
+import { densityOf, LevelCandidates, tabixLevels } from '../internal/levels.js';
 import { genotypeClass } from '../vcf-genotypes.js';
 import { alleleKey, VcfRowsBuilder } from '../vcf-parse.js';
 import { VcfRuntime, vcfRuntime } from '../vcf.js';
@@ -57,16 +57,20 @@ const tile = (system: string, level: number, k: number, shapes: RegionRequest['s
   shapes,
 });
 
-/** The levels io's own `regionBytes` allows, every tile of a level checked (the test's reading of the rule). */
+/** The levels io's own `regionBytes` allows, every tile of a level checked, finest first to the first that fails. */
 async function levelsOf(index: Uint8Array, extents: Record<string, number>, maxRegionBytes: number) {
   const ix = await readTabixIndex(index);
-  return LevelCandidates.filter((level) =>
-    Object.entries(extents).every(([name, extent]) => {
+  const out: number[] = [];
+  for (const level of LevelCandidates) {
+    const fits = Object.entries(extents).every(([name, extent]) => {
       for (let s = 0; s < extent; s += level * 1024)
         if (level > 1 && regionBytes(ix, name, s, Math.min(extent, s + level * 1024)) > maxRegionBytes) return false;
       return true;
-    }),
-  );
+    });
+    if (!fits) break;
+    out.push(level);
+  }
+  return out;
 }
 
 describe('levels from the index’s bytes', () => {
@@ -87,6 +91,18 @@ describe('levels from the index’s bytes', () => {
     // `maxLevel` caps them
     const capped = await vcfRuntime({ maxLevel: 256 }).open(entry({ index: 'i' }), context({ f: s.file, i: s.index }));
     expect(capped.coverage.levels).toEqual([1, 16, 256]);
+  });
+
+  it('the first level that does not fit ends the list: the coarser ones are never asked their cost', () => {
+    const asked = new Set<number>();
+    // a tile's cost its width: 16 kb tiles fit a bound of 20,000, 256 kb ones do not
+    const cost = (_: string, a: number, b: number) => {
+      asked.add(b - a);
+      return b - a;
+    };
+    const systems = Array.from({ length: 1000 }, (_, k) => ({ name: `scaffold${k}`, extent: 8 * 1024 * 1024 }));
+    expect(tabixLevels(cost, systems, { maxLevel: 4096, tileBins: 1024, maxRegionBytes: 20_000 })).toEqual([1, 16]);
+    expect(asked.has(4096 * 1024)).toBe(false);
   });
 
   it('a sequence without `##contig` is read to the end of its last indexed 4 Mb tile', async () => {

@@ -1299,13 +1299,15 @@ runtimes only).
 - **Levels** (`levels.ts`; `indexedLevels` in `lines.ts`): a source by region lists level 1 and each of `16, 256, 4096`
   up to the runtime's `maxLevel` whose **every tile** (`level × tileBins` positions from 0) on every indexed sequence
   costs at most `maxRegionBytes` by the index (`regionBytes`, nothing read); a sequence to its length when the file says
-  one, else to the end of its last 4 Mb tile with a cost. Each level is checked tile by tile (the first tile past the
-  bound ends it), never inferred from another: io's cost is conservative (64 KiB for a chunk's last block), so a finer
-  tile can cost more than a coarser one holding it. Above level 1 a ranges request is a `density` (`densityOf`): each
-  item (by `id`, else `row`; pieces by their item's extent, else their hull) counted once in every bin its extent
-  touches inside the tile, from the tile's own records; a request with `items` is the tile's list. A tile's `readCost`
-  is its `regionBytes`. Why from bytes, per source: one runtime reads sparse and dense files, and a tile's bytes are
-  known exactly before a read, its rows are not (EC-171: counts exact or absent, never estimated).
+  one, else to the end of its last 4 Mb tile with a cost. Levels are checked finest first, each tile by tile (the first
+  tile past the bound ends it), and the first level that does not fit ends the list: its coarser ones are not checked (a
+  GTF of thousands of scaffolds pays for one failing level). io's cost is conservative (64 KiB for a chunk's last
+  block), so a finer tile can cost more than a coarser one holding it: a coarser level that would fit after a failing
+  one is not listed. Above level 1 a ranges request is a `density` (`densityOf`): each item (by `id`, else `row`; pieces
+  by their item's extent, else their hull) counted once in every bin its extent touches inside the tile, from the tile's
+  own records; a request with `items` is the tile's list. A tile's `readCost` is its `regionBytes`. Why from bytes, per
+  source: one runtime reads sparse and dense files, and a tile's bytes are known exactly before a read, its rows are not
+  (EC-171: counts exact or absent, never estimated).
 - **Shared helpers**: `causes.ts` (`Causes`: one issue a cause with its count and first ten places, EC-86; each format's
   `BedCauses`, `GffCauses`, `VcfCauses` over its own codes), `answers.ts` (`failure` by kind, `refuse` at open,
   `wholeSource` over what a whole read holds), `intervals.ts` (`intervalIndex`: the short intervals by start and the
