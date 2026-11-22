@@ -40,6 +40,9 @@ export { DefaultVcfOptions, type VcfOptions, type VcfSource } from './vcf-read.j
 
 export const VcfFormats = ['vcf'] as const;
 
+/** What a whole read keeps of the file when it holds no samples: nothing (the rows have their fields). */
+const NoBytes = new Uint8Array(0);
+
 /** The bytes a whole read parses: inline `value` or the file at `uri`, inflated by its magic within `maxBytes`. */
 async function wholeBytes(o: VcfOpened): Promise<Uint8Array> {
   const { source, ctx } = o;
@@ -73,6 +76,8 @@ async function openWhole(o: VcfOpened): Promise<VcfSource> {
   const read = readVcfHeader(bytes.subarray(0, headerEnd), options);
   if (!read.ok) refuse(at, 'seq.source.malformed', read.message);
   const { schema, lengths, refused } = headerSchema(o, read.header);
+  // the samples held, before the rows: the file's bytes are kept for the matrix only when there are some
+  const genotypes = genotypesOf(o, read.header);
   const refusedSet = new Set(refused);
 
   const builders = new Map<string, VcfRowsBuilder>();
@@ -93,7 +98,8 @@ async function openWhole(o: VcfOpened): Promise<VcfSource> {
     made += got;
   }
   const rows = new Map<string, VcfRows>();
-  for (const [name, b] of builders) rows.set(name, b.finish(bytes));
+  const kept = genotypes ? bytes : NoBytes;
+  for (const [name, b] of builders) rows.set(name, b.finish(kept));
   const names = [...lengths.keys()];
   for (const name of rows.keys()) if (!lengths.has(name)) names.push(name);
   let extent = 1;
@@ -101,7 +107,6 @@ async function openWhole(o: VcfOpened): Promise<VcfSource> {
   // read whole, sites are served at level 1 and at the level whose one tile holds the longest system (the inline rule)
   const whole = wholeLevel(extent);
   const header = read.header;
-  const genotypes = genotypesOf(o, header);
   const coverage = coverageOf(names, lengths, schema, whole > 1 ? [1, whole] : [1], genotypes);
   const answer = { maxRows, genotypes, matrix: { maxBytes: options.maxMatrixBytes }, density: false };
   const served = new Set(names);

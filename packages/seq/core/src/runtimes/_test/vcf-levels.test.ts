@@ -7,7 +7,7 @@
 import { PCG } from '@molstar/core/data/util/hash-functions';
 import { columnValues } from '@molstar/core/repr/tree';
 import { readTabixIndex, regionBytes } from '@molstar/io/common/tabix';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { sourceSuite } from '../../data/_test/source-suite.js';
 import {
   DefaultOpenLimits,
@@ -22,7 +22,7 @@ import {
 import { checkAnswer } from '../../data/tables.js';
 import { densityOf, LevelCandidates } from '../internal/levels.js';
 import { genotypeClass } from '../vcf-genotypes.js';
-import { alleleKey } from '../vcf-parse.js';
+import { alleleKey, VcfRowsBuilder } from '../vcf-parse.js';
 import { VcfRuntime, vcfRuntime } from '../vcf.js';
 import { memoryAssets, plainRows } from './bed-fixtures.js';
 import { denseVcf, type GeneratedVcf, generateVcf, indexedVcf } from './vcf-fixtures.js';
@@ -290,6 +290,22 @@ describe('the matrix (genotypes, read only when asked)', () => {
     const small = await vcfRuntime({ maxMatrixBytes: 100 }).open(entry(), context({ f: g.text }));
     const big = await small.read({ system: 'chr1', start: 0, end: 600_000, level: 1, shapes: ['matrix'] }, signal);
     expect(big).toMatchObject({ ok: false, kind: 'too-large' });
+  });
+
+  it('a whole read keeps the file’s bytes only when it holds samples (a sites file’s rows hold no copy of it)', async () => {
+    const kept: number[] = [];
+    const finish = VcfRowsBuilder.prototype.finish;
+    const spy = vi.spyOn(VcfRowsBuilder.prototype, 'finish').mockImplementation(function (this: VcfRowsBuilder, b) {
+      kept.push(b.length);
+      return finish.call(this, b);
+    });
+    await VcfRuntime.open(entry(), context({ f: generateVcf(50, names, 2, 100_000).text }));
+    expect(kept.length).toBeGreaterThan(0);
+    expect(kept.every((n) => n === 0)).toBe(true);
+    kept.length = 0;
+    await VcfRuntime.open(entry(), context({ f: g.text }));
+    expect(kept.every((n) => n > 0)).toBe(true);
+    spy.mockRestore();
   });
 
   it('a long deletion is one item across the SNVs it covers, each sample’s class its own (EC-222)', async () => {
