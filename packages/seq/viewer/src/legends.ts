@@ -21,6 +21,9 @@ export interface LegendHover {
   readonly number?: number;
 }
 
+/** The items an entry names in view (`LegendModel.entryItems`). */
+export type EntryItems = { readonly elements: Key[]; readonly location: Location };
+
 export class LegendModel extends ReactiveModel {
   private readonly _legends = new State<readonly Legend[]>([], legendsEqual);
   private readonly _hover = new State<LegendHover | undefined>(
@@ -50,14 +53,37 @@ export class LegendModel extends ReactiveModel {
     this._cvdSafe.set(on);
   }
 
-  /** The legends of a settled layout, published when they differ. */
+  /** The legends of a settled layout, published when they differ; and the entries whose items it draws. */
   update(layout: ViewLayout): void {
     this.derived++;
     this._layout = layout;
+    this._items.clear();
     this._legends.set(viewLegends(layout).legends);
+    // the entries with items drawn, read once a settled frame (never a frame, never a redraw of the part)
+    const drawn = new Set<string>();
+    for (const legend of this._legends.value)
+      for (const s of layout.sections)
+        for (const band of [...s.tracks.map((t) => t.layers), ...s.lays])
+          for (const l of band ?? []) {
+            if (l.type.name !== 'ranges' || !legend.layers.includes(l.key)) continue;
+            const lay = l.lay as RangesLay;
+            for (let k = 0; k < lay.hn; k++) {
+              const j = lay.hitem[k];
+              const v = j < 0 ? undefined : lay.painted[j];
+              if (v !== undefined) drawn.add(`${legend.key}\u0000${v}`);
+            }
+          }
+    this._drawnSet = drawn;
+    this._drawn.set([...drawn].sort().join('\n'));
   }
 
   private _layout: ViewLayout | undefined;
+  /** `entryItems` of the layout read (by legend and value; null for none): a hover again on an entry makes nothing. */
+  private readonly _items = new Map<string, EntryItems | null>();
+  private _drawnSet = new Set<string>();
+  private readonly _drawn = new State('');
+  /** The entries with items drawn at the last settled frame, as a key: a part redraws when it moves (a pan, tiles). */
+  readonly drawn: ReadonlyState<string> = this._drawn.asReadonly;
 
   /**
    * The items in view an entry names (_spec/README.md "Legends", both ways): the drawn items of the legend's ranges
@@ -65,10 +91,19 @@ export class LegendModel extends ReactiveModel {
    * systems; undefined when none is drawn. What the entry's hover lights where its address names no items it holds (a
    * source's rows, a derived table).
    */
-  entryItems(layer: string, value: string): { readonly elements: Key[]; readonly location: Location } | undefined {
+  entryItems(layer: string, value: string): EntryItems | undefined {
     const legend = this._legends.value.find((l) => l.layers.includes(layer));
     const layout = this._layout;
     if (!legend || !layout) return undefined;
+    const id = `${legend.key}\u0000${value}`;
+    const known = this._items.get(id);
+    if (known !== undefined) return known ?? undefined;
+    const items = this.readItems(layout, legend.layers, value);
+    this._items.set(id, items ?? null);
+    return items;
+  }
+
+  private readItems(layout: ViewLayout, layers: readonly string[], value: string): EntryItems | undefined {
     const elements: Key[] = [];
     const parts: { system: string; ranges: number[] }[] = [];
     // every strip's lays (a section of blocks has one a block) and its tracks' (the first strip's): an item twice is
@@ -76,7 +111,7 @@ export class LegendModel extends ReactiveModel {
     for (const s of layout.sections)
       for (const band of [...s.tracks.map((t) => t.layers), ...s.lays])
         for (const l of band ?? []) {
-          if (l.type.name !== 'ranges' || !legend.layers.includes(l.key)) continue;
+          if (l.type.name !== 'ranges' || !layers.includes(l.key)) continue;
           const lay = l.lay as RangesLay;
           // the items with a mark drawn (their hit marks: inside a merged run too), never those read and out of view
           for (let k = 0; k < lay.hn; k++) {
@@ -96,9 +131,14 @@ export class LegendModel extends ReactiveModel {
    */
   addressable: ((layer: string, value: string) => boolean) | undefined = undefined;
 
-  /** Whether an entry names items: by an address, or drawn in view (a click selects them, a hover lights them). */
+  /**
+   * Whether an entry names items: by an address, or drawn at the last settled frame (a click selects them, a hover
+   * lights them); a lookup, never a walk of the layout.
+   */
   names(layer: string, value: string): boolean {
-    return this.addressable?.(layer, value) === true || this.entryItems(layer, value) !== undefined;
+    if (this.addressable?.(layer, value) === true) return true;
+    const legend = this._legends.value.find((l) => l.layers.includes(layer));
+    return legend !== undefined && this._drawnSet.has(`${legend.key}\u0000${value}`);
   }
 
   /** The entry a hit is on: the item's painted value on its layer's legend (ranges), else none. */
@@ -106,7 +146,10 @@ export class LegendModel extends ReactiveModel {
     layout: ViewLayout | undefined,
     hit: { readonly layer?: string; readonly element?: { readonly key: string | number } } | undefined,
   ): void {
-    if (layout) this._layout = layout;
+    if (layout && layout !== this._layout) {
+      this._layout = layout;
+      this._items.clear();
+    }
     if (!layout || !hit?.element || hit.layer === undefined) return this._hover.set(undefined);
     const layer = hit.layer;
     const legend = this._legends.value.find((l) => l.layers.includes(layer));

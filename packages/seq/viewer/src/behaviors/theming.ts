@@ -55,7 +55,7 @@ export function itemsAddress(data: string, field: string, value: string | readon
 
 import type { Op } from '@molstar/core/repr/patch';
 import { isNode, type Node, parseAddress, printAddress, resolveAddress, type Value } from '@molstar/core/repr/tree';
-import { keySet } from '@molstar/seqx-core/query';
+import { EmptyLocation, type Key, keySet, type Location, unionLocations } from '@molstar/seqx-core/query';
 import { splitDataForms } from '@molstar/seqx-core/view';
 import {
   builtInSchemes,
@@ -248,6 +248,35 @@ export function themingBehavior(
     return d && { elements: keySet(d.elements), location: d.location, shown: d.location };
   };
 
+  /**
+   * An entry's items over every layer its legend lists (a legend is one over layers that read alike: a light and a heavy
+   * chain's CDRs), by their addresses: undefined where fewer than two of its layers have one (the entry's own layer's
+   * address alone, `itemsOf`, then names them).
+   */
+  const legendItems = (layer: string, values: readonly string[]) => {
+    const layers = legends.legends.value.find((l) => l.layers.includes(layer))?.layers ?? [layer];
+    const named: string[] = [];
+    for (const l of layers)
+      for (const v of values) {
+        const a = itemsOf(l, v);
+        if (a !== undefined) named.push(a);
+      }
+    if (named.length < 2) return undefined;
+    const keys: Key[] = [];
+    let shown: Location = EmptyLocation;
+    let location: Location = EmptyLocation;
+    for (const a of named) {
+      const { resolution, location: at } = addresses.locate(a);
+      const r = resolution.result;
+      if (!r) continue;
+      if (r.type === 'keys') keys.push(...r.keys.keys);
+      else if (r.type === 'location') location = unionLocations(location, r.location);
+      else location = unionLocations(location, at);
+      shown = unionLocations(shown, at);
+    }
+    return { elements: keySet(keys), location, shown };
+  };
+
   /** A layer's color with one value's color set (or removed): a dictionary entry of its palette, or of its scale's. */
   const valueColorOps = (layer: string, value: string, color: string | undefined): Op[] | string => {
     const n = node(layer, 'layer');
@@ -437,6 +466,12 @@ export function themingBehavior(
           addresses.setSelection(undefined);
           return { message: 'Cleared' };
         }
+        // a legend over several layers: the values' items on each
+        const all = legendItems(layer, values);
+        if (all) {
+          addresses.selection.set(all);
+          return { message: 'Selected' };
+        }
         const n = node(layer, 'layer')!;
         const data = n.params?.data;
         const address =
@@ -456,6 +491,12 @@ export function themingBehavior(
         if (ctx.entry === undefined || ctx.address === undefined) {
           addresses.clearHighlight('legend');
           return { message: 'Cleared' };
+        }
+        // a legend over several layers: the entry's items on each
+        const all = legendItems(ctx.address, [ctx.entry]);
+        if (all) {
+          addresses.highlight.set('legend', all);
+          return { message: 'Highlighted' };
         }
         const a = itemsOf(ctx.address, ctx.entry);
         const by = a ? addresses.highlightAddress(a, 'legend') : undefined;

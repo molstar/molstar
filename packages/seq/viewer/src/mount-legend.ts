@@ -274,6 +274,8 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
     viewer.legends.legends.listen(draw),
     viewer.legends.hover.listen(draw),
     viewer.legends.cvdSafe.listen(draw),
+    // what is drawn moved (a pan, a tile arriving): an entry's action with it
+    viewer.legends.drawn.listen(draw),
     // a channel's place changing is no change of what the rows show; a theme's tokens change their colors
     viewer.highlight.version.listen(() => highlightKey() !== shownKey && draw()),
     viewer.tokensVersion.listen(() => highlightKey() !== shownKey && draw()),

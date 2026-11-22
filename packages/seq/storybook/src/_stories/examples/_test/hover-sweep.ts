@@ -269,7 +269,7 @@ export function sweepHover(v: SeqViewer, id: string, per = 4): Swept {
 
 /**
  * Legends both ways (_spec/README.md "Legends"; the hover contract): each entry a hovered item reads as has an action,
- * and hovering it lights its items (a highlight over that item's point); an entry without an action (the default
+ * and hovering it lights its items (a highlight over that item's point and over every item it names in view); an entry without an action (the default
  * cursor) lights nothing when hovered.
  */
 export function sweepLegends(v: SeqViewer, id: string, entries: ReadonlyMap<string, Region>): string[] {
@@ -290,7 +290,18 @@ export function sweepLegends(v: SeqViewer, id: string, entries: ReadonlyMap<stri
       wrong.push(`${id} legend ${key} ${value}: an item reads as it, but the entry has no action`);
       continue;
     }
-    if (!reaches(lit(row.layer, value), point)) wrong.push(`${id} legend ${key} ${value}: its item not lit`);
+    const boxes = lit(row.layer, value);
+    if (!reaches(boxes, point)) wrong.push(`${id} legend ${key} ${value}: its item not lit`);
+    // and every item it names in view, over its positions (the items drawn: `entryItems`)
+    const items = v.legends.entryItems(row.layer, value);
+    let unlit = 0;
+    for (const part of items?.location.parts ?? [])
+      for (let k = 0; k + 1 < part.ranges.length; k += 2) {
+        const one = rangesLocation(part.system, [part.ranges[k], part.ranges[k + 1]]);
+        const regions = v.frame!.layout.sections.flatMap((s) => linkedRegions(s, one));
+        if (regions.length && !regions.some((r) => reaches(boxes, r))) unlit++;
+      }
+    if (unlit) wrong.push(`${id} legend ${key} ${value}: ${unlit} of its items in view not lit`);
   }
   for (const row of rows)
     for (const entry of row.entries)

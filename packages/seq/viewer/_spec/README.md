@@ -1463,11 +1463,14 @@ derived on settle: a legend that changes during a pan reads as noise, and its co
   contract): an item hovered outlines the entry it reads as (`updateHover`: its painted value), and the entry hovered
   lights its items in view; where its address names none the store holds (a source's rows: a VCF's alleles; a derived
   table), the items the layout drew in its value (`LegendModel.entryItems`: their hit marks, never items read and out of
-  view) are lit and selected instead. An entry **has an action** (`LegendEntryRow.action`, `LegendModel.names`) when an
-  address names its items (`addressable`, the behavior's) or items in its value are drawn: only then is it a pointer
-  target with a click, a hover and Enter; a swatch alone keeps the default cursor. Swept by the hover sweep: every entry
-  a hovered item reads as has its action, and every entry with an action and items drawn lights them.
-  `fittingSchemes(layer)` is what a menu offers (the schemes whose subject and measures fit the layer);
+  view) are lit and selected instead. A legend over several layers (one entry for a light and a heavy chain's CDRs)
+  lights and selects the entry's items on every layer it lists. An entry **has an action** (`LegendEntryRow.action`,
+  `LegendModel.names`) when an address names its items (`addressable`, the behavior's) or items in its value are drawn
+  at the last settled frame (`LegendModel.drawn`: the part redraws when it moves, a pan or a tile): only then is it a
+  pointer target with a click, a hover and Enter; a swatch alone keeps the default cursor. `names` is a lookup and
+  `entryItems` is read once a settled frame (a hover again makes nothing). Swept by the hover sweep: every entry a
+  hovered item reads as has its action and lights every item it names in view, over its positions; an entry without one
+  lights nothing. `fittingSchemes(layer)` is what a menu offers (the schemes whose subject and measures fit the layer);
   `preview(layer, channel, value)` shows one hovered (a preview, ended by `layer.channel` or Esc).
 - **The Legend part's groups run one a line** (a column, 12 px apart; each title muted, 600, 11 px: grouping is seen
   without reading) and **its channels row keeps its place**: the row is outside the listbox (a listbox holds options),
