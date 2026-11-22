@@ -80,10 +80,8 @@ export function drawSectionEmphasis(
       break;
     }
     case 'hover':
-      if (
-        emphasis.projected?.hover &&
-        (emphasis.projected.hoverSection !== s.section.address || !hovered || onRuler(s, emphasis.hover?.layer))
-      )
+      // the hover's own section: its layer's own mark (else the view's position box, `drawOwnHover`)
+      if (emphasis.projected?.hover && (emphasis.projected.hoverSection !== s.section.address || !hovered))
         drawProjectedHover(out, axis, box, emphasis.projected.hover, tokens, config);
       break;
     case 'cursor':
@@ -100,16 +98,20 @@ export function drawSectionEmphasis(
 }
 
 /**
- * Whether the hover's layer is a ruler of this section: a ruler draws no mark of its own, so the view the pointer is on
- * draws the hover's position as it draws one carried from a linked section (the ring's and the row's alike).
+ * The hover on its own section where its layer drew no mark of its own (_spec/README.md "Render", Emphasis, The hover
+ * contract): a ruler, a density strip's bin, a matrix's or a pairs layer's cell, an empty band's position. The view
+ * draws what the hover covers as it draws one carried from a linked section (the ring's and the row's position box
+ * alike), so every hover answers with a mark wherever its layer drew none.
  */
-function onRuler(s: SectionLayout, layer: string | undefined): boolean {
-  if (layer === undefined) return false;
-  for (let i = 0; i < s.tracks.length; i++) {
-    const ls = s.tracks[i].layers;
-    for (let j = 0; j < ls.length; j++) if (ls[j].layer.address === layer) return ls[j].type.name === 'ruler';
-  }
-  return false;
+export function drawOwnHover(
+  out: PassWriter,
+  axis: AxisTransform,
+  box: Box,
+  emphasis: Emphasis,
+  tokens: SeqTokens,
+  config: RenderConfig,
+) {
+  if (emphasis.projected?.hover) drawProjectedHover(out, axis, box, emphasis.projected.hover, tokens, config);
 }
 
 // The cursor and the emphasis marks take the layout, not its numbers: a number passed to a call that is not inlined

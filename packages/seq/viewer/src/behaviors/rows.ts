@@ -20,14 +20,12 @@ import {
   cladesAtDepth,
   cladesHolding,
   cladesWithin,
-  MaxRowScale,
-  MinRowScale,
   type RangesLay,
   type RowsLay,
   type ViewLayout,
 } from '@molstar/seqx-core/render';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
-import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
+import { DefaultViewerConfig, type ViewerConfig, validRowsZoom } from '@molstar/seqx-viewer/config';
 import type { EditOutcome, SpecModel, ViewModel } from '@molstar/seqx-viewer/models';
 import type { EditOrigin } from '@molstar/seqx-viewer/ports';
 import { CladeActions } from '@molstar/seqx-viewer/bindings';
@@ -76,7 +74,7 @@ export const RowsCommandIds = {
 /** The actions a binding may name when the viewer has the behavior (a tree node's click). */
 export const RowsActions: readonly string[] = CladeActions;
 
-/** The rows' zoom step a key takes (×2); its bounds are core's (`MinRowScale`, `MaxRowScale`: the rows rail's idle rule reads them). */
+/** The rows' zoom step a key takes (×2); its bounds are the host's (`rows.zoom`, and the source's floor). */
 const ZoomStep = 2;
 
 export interface RowsBehavior {
@@ -131,6 +129,12 @@ export function rowsBehavior(
       if (tree && !(l.clades && l.foldsApply)) return 'The rows are not in tree order';
       return true;
     };
+  /** A zoom command's `when`: the rows, and the host leaves their zoom on (`rows.zoom.enabled`). */
+  const zoomable = (ctx: RowsContext): true | string => {
+    const ok = needs(false)(ctx);
+    if (ok !== true) return ok;
+    return config.rows.zoom.enabled ? true : 'The rows do not zoom here';
+  };
   const setFolds = (track: string, names: readonly string[]) => setBandFolds(view, lay(track), track, names);
   const namesOf = (l: RowsLay, ids: readonly number[]) => ids.map((c) => l.clades!.name[c]);
   const folded = (track: string, l: RowsLay): readonly string[] => bandFolds(view, track, l);
@@ -187,7 +191,10 @@ export function rowsBehavior(
   };
   /** The rows' zoom about the band's middle row: `rowScale` by a factor, `bandTop` keeping that row where it is. */
   const zoom = (track: string, l: RowsLay, factor: number): CommandResult => {
-    const scale = Math.max(MinRowScale, Math.min(MaxRowScale, l.rowScale * factor));
+    const bounds = validRowsZoom(config.rows.zoom);
+    if (!bounds.enabled) return { message: 'The rows do not zoom here' };
+    // the floor the larger of the host's and the source's (a lazy alignment with no row levels: a device pixel a row)
+    const scale = Math.max(bounds.minPx, l.rowFloor, Math.min(bounds.maxPx, l.rowScale * factor));
     if (scale === l.rowScale) return { message: 'Already so' };
     const area = Math.max(0, l.box.height - l.pinnedHeight);
     // the middle row in display rows below the pinned band, at the band's middle before and after
@@ -454,14 +461,14 @@ export function rowsBehavior(
       id: RowsCommandIds.zoomIn,
       title: 'Zoom the rows in',
       category: 'Rows',
-      when: needs(false),
+      when: zoomable,
       run: (_, ctx) => zoom(trackOf(ctx)!, lay(trackOf(ctx))!, ZoomStep),
     },
     {
       id: RowsCommandIds.zoomOut,
       title: 'Zoom the rows out',
       category: 'Rows',
-      when: needs(false),
+      when: zoomable,
       run: (_, ctx) => zoom(trackOf(ctx)!, lay(trackOf(ctx))!, 1 / ZoomStep),
     },
     pageCommand(RowsCommandIds.pageDown, 'Scroll the rows a page down', 1),

@@ -16,6 +16,7 @@ import { type LayerColors, layerColors, viewTheme } from './layer-color.js';
 import { DefaultRenderConfig, type RenderConfig } from './config.js';
 import { DrawLists, EmphasisPasses, type PassName } from './draw-lists.js';
 import { ImageCache } from './images.js';
+import type { RowsZoom } from './rail.js';
 import { EmptyOverlay, type Emphasis, type LayerType, type Overlay, type StoreReader } from './layer-type.js';
 import type { SectionLayoutType } from './layout/types.js';
 import type { TextMetrics } from './text.js';
@@ -96,6 +97,11 @@ export interface FrameInput {
   readonly rails?: Readonly<Record<string, unknown>>;
   readonly railsActive?: Readonly<Record<string, boolean>>;
   /**
+   * The host's rows zoom (the viewer's `rows.zoom`): the bounds and the on/off of the rows rails' grips; part of the
+   * key by identity (a caller keeps the record while it holds). Absent: `DefaultRowsZoom`.
+   */
+  readonly rowsZoom?: RowsZoom;
+  /**
    * Each header's parts (_spec/README.md "Render", Track headers: `LayoutInput.headers`): part of the key by identity (a
    * caller makes a new one when its entries or their state change).
    */
@@ -142,6 +148,7 @@ class KeyParts {
   windows = false;
   folds: FrameInput['folds'] = undefined;
   rails: FrameInput['rails'] = undefined;
+  rowsZoom: FrameInput['rowsZoom'] = undefined;
   headers: FrameInput['headers'] = undefined;
   /** Bumped when `headers` changes: the key's text. */
   headersVersion = 0;
@@ -170,6 +177,7 @@ class KeyParts {
       this.windows === (input.windows ?? false) &&
       this.folds === input.folds &&
       this.rails === input.rails &&
+      this.rowsZoom === input.rowsZoom &&
       this.headers === input.headers &&
       this.domains === (r.options.domains?.state.domainsVersion ?? 0)
     );
@@ -194,6 +202,7 @@ class KeyParts {
     this.figure = input.figure ?? false;
     this.windows = input.windows ?? false;
     this.rails = input.rails;
+    this.rowsZoom = input.rowsZoom;
     if (this.headers !== input.headers) {
       this.headers = input.headers;
       this.headersVersion++;
@@ -220,6 +229,7 @@ class KeyParts {
       this.figure ? 'figure' : '',
       this.windows ? 'windows' : '',
       this.rails ? `rails:${Object.keys(this.rails).sort().join(',')}` : '',
+      this.rowsZoom ? `rows:${this.rowsZoom.minPx}:${this.rowsZoom.maxPx}:${this.rowsZoom.enabled}` : '',
       this.headers ? `headers:${this.headersVersion}` : '',
       configKey,
     ].join('|');
@@ -423,6 +433,7 @@ export class Renderer {
         ...(input.windows ? { windows: true } : {}),
         ...(input.folds ? { folds: input.folds } : {}),
         ...(input.rails ? { rails: input.rails } : {}),
+        ...(input.rowsZoom ? { rowsZoom: input.rowsZoom } : {}),
         ...(input.headers ? { headers: input.headers } : {}),
         ...(this.options.domains ? { domains: this.options.domains } : {}),
         images: this.images,

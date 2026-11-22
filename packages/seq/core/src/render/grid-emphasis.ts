@@ -6,7 +6,7 @@
 
 import type { Location, LocationPart } from '@molstar/seqx-core/query';
 import type { AxisTransform } from './axis.js';
-import { NoColor, type PassName, type PassWriter } from './draw-lists.js';
+import { grown, NoColor, type PassName, type PassWriter } from './draw-lists.js';
 import { walkStripes } from './highlight-stripes.js';
 import { type Emphasis, type EmphasisHighlight } from './layer-type.js';
 import { partOn, rectOver } from './marks.js';
@@ -249,25 +249,182 @@ function paintColumn(lay: GridLay, out: PassWriter) {
   rect(out);
 }
 
-/** Each rect over the plot's two systems in `Ink` (a selected rectangle). */
-function paintRects(lay: GridLay, out: PassWriter, loc: Location) {
+/**
+ * The selection's pieces on a cell (_spec/README.md "Render", The grid layer): each range's extent on each axis cut to
+ * the cell (the axes' data boxes, where a block's gaps end it, and the strip's band), its stroke inside it (an inset
+ * outline: a stroke centred on the edge would overhang the gap by half its width), a row band's fill without what a
+ * column band of the same strip already tints (its intersection with it drawn once).
+ */
+const Piece = new Float64Array(4);
+
+/** The column band's x intervals on this strip (`lo`, `hi` pairs, ascending) the row bands' fills leave out. */
+let Cols = new Float64Array(16);
+let ColCount = 0;
+
+function addCol(lo: number, hi: number) {
+  Cols = grown(Cols, 2 * ColCount + 2);
+  // insertion by lo: the ranges ascend in position, the axis may run either way
+  let k = ColCount;
+  while (k > 0 && Cols[2 * k - 2] > lo) {
+    Cols[2 * k] = Cols[2 * k - 2];
+    Cols[2 * k + 1] = Cols[2 * k - 1];
+    k--;
+  }
+  Cols[2 * k] = lo;
+  Cols[2 * k + 1] = hi;
+  ColCount++;
+}
+
+/** `ranges`' extents on x (the pieces in view, cut to the strip's data box) as the column intervals. */
+function columnsOf(a: AxisTransform, ranges: Int32Array) {
+  ColCount = 0;
+  for (let r = 0; r + 1 < ranges.length; r += 2) {
+    const s = ranges[r];
+    const e = ranges[r + 1];
+    a.piecesIn(s, e);
+    const kb = a.kb;
+    for (let k = a.ka; k <= kb; k++) {
+      if (!a.spanIn(k, s, e)) continue;
+      // the column band's edges are the tracks' own, on device pixels
+      const dpr = a.dpr;
+      const lo = Math.round(a.sx0 * dpr) / dpr;
+      const hi = Math.round(a.sx1 * dpr) / dpr;
+      if (hi > lo) addCol(lo, hi);
+    }
+  }
+}
+
+/** A filled rect, no stroke (the fill's color and the squircle in `RR`), through `out.args`. */
+function fillBox(out: PassWriter, x: number, y: number, w: number, h: number, color: number, round: boolean) {
+  if (!(w > 0) || !(h > 0)) return;
+  const g = out.args;
+  g[0] = x;
+  g[1] = y;
+  g[2] = w;
+  g[3] = h;
+  g[4] = color;
+  g[5] = NoColor;
+  g[6] = 0;
+  g[7] = round ? RR[0] : 0;
+  g[8] = round ? RR[1] : 0;
+  out.rectArgs();
+}
+
+/**
+ * The piece `Piece` holds (x0, y0, x1, y1), in `Ink` (a fill, a stroke and its width): clipped to the cell, its fill (cut
+ * around the columns when `cut`), its outline inside the clipped box (a hairline of the stroke's color where the box
+ * is too thin for one).
+ */
+function drawPiece(lay: GridLay, out: PassWriter, cut: boolean, round: boolean) {
+  const a = lay.axis!;
+  const b = lay.box;
+  const x0 = Math.max(Piece[0], a.x0);
+  const x1 = Math.min(Piece[2], a.x0 + a.width);
+  const y0 = Math.max(Piece[1], b.y);
+  const y1 = Math.min(Piece[3], b.y + b.height);
+  if (!(x1 > x0) || !(y1 > y0)) return;
+  R[0] = x0;
+  R[1] = y0;
+  R[2] = x1 - x0;
+  R[3] = y1 - y0;
+  if (round) rounded(lay);
+  else {
+    RR[0] = 0;
+    RR[1] = 0;
+  }
+  const w = Ink[2];
+  const thin = Ink[1] !== NoColor && w > 0 && (x1 - x0 <= 2 * w || y1 - y0 <= 2 * w);
+  if (Ink[0] !== NoColor) {
+    if (cut && ColCount > 0 && !round) {
+      let x = x0;
+      for (let k = 0; k < ColCount && x < x1; k++) {
+        const lo = Cols[2 * k];
+        const hi = Cols[2 * k + 1];
+        if (hi <= x) continue;
+        if (lo >= x1) break;
+        if (lo > x) fillBox(out, x, y0, lo - x, y1 - y0, Ink[0], false);
+        if (hi > x) x = hi;
+      }
+      if (x < x1) fillBox(out, x, y0, x1 - x, y1 - y0, Ink[0], false);
+    } else fillBox(out, x0, y0, x1 - x0, y1 - y0, Ink[0], round);
+  }
+  if (Ink[1] === NoColor || !(w > 0)) return;
+  if (thin) {
+    fillBox(out, x0, y0, x1 - x0, y1 - y0, Ink[1], round);
+    return;
+  }
+  const g = out.args;
+  g[0] = x0 + w / 2;
+  g[1] = y0 + w / 2;
+  g[2] = x1 - x0 - w;
+  g[3] = y1 - y0 - w;
+  g[4] = NoColor;
+  g[5] = Ink[1];
+  g[6] = w;
+  g[7] = round && RR[0] > 0 ? Math.max(0, RR[0] - w / 2) : 0;
+  g[8] = g[7] > 0 ? RR[1] : 0;
+  out.rectArgs();
+  RR[0] = 0;
+  RR[1] = 0;
+}
+
+/**
+ * A selection's rows across the cell (`xs` undefined) or its rects (`xs`: the ranges on x), per piece of each axis the
+ * ranges touch. The y axis's results are held before x's run (`ay` and `a` may be the one transform).
+ */
+function paintSelection(lay: GridLay, out: PassWriter, ys: Int32Array, xs: Int32Array | undefined, cut: boolean) {
   const a = lay.axis!;
   const ay = lay.axisY!;
+  for (let r = 0; r + 1 < ys.length; r += 2) {
+    const s = ys[r];
+    const e = ys[r + 1];
+    ay.piecesIn(s, e);
+    const ka = ay.ka;
+    const kb = ay.kb;
+    for (let k = ka; k <= kb; k++) {
+      if (!ay.spanIn(k, s, e)) continue;
+      const top = ay.sx0;
+      const bottom = ay.sx1;
+      if (!xs) {
+        Piece[0] = a.x0;
+        Piece[1] = top;
+        Piece[2] = a.x0 + a.width;
+        Piece[3] = bottom;
+        drawPiece(lay, out, cut, false);
+        continue;
+      }
+      for (let q = 0; q + 1 < xs.length; q += 2) {
+        const xs0 = xs[q];
+        const xe0 = xs[q + 1];
+        a.piecesIn(xs0, xe0);
+        const xa = a.ka;
+        const xb = a.kb;
+        for (let m = xa; m <= xb; m++) {
+          if (!a.spanIn(m, xs0, xe0)) continue;
+          Piece[0] = a.sx0;
+          Piece[1] = top;
+          Piece[2] = a.sx1;
+          Piece[3] = bottom;
+          drawPiece(lay, out, false, true);
+        }
+      }
+    }
+  }
+}
+
+/** The selection's rows on the cell: the part's ranges on y, the column bands of the same strip kept out of the fill. */
+function paintSelectionRows(lay: GridLay, out: PassWriter, ranges: Int32Array, columns: LocationPart | undefined) {
+  if (columns) columnsOf(lay.axis!, columns.ranges);
+  else ColCount = 0;
+  paintSelection(lay, out, ranges, undefined, true);
+}
+
+/** The selected rects on the cell: each pair of ranges' pieces, rounded where they end at the plot's sides. */
+function paintSelectionRects(lay: GridLay, out: PassWriter, loc: Location) {
   for (let k = 0; k < loc.rects.length; k++) {
     const r = loc.rects[k];
     if (r.a.system !== lay.system || r.b.system !== lay.ySystem) continue;
-    for (let p = 0; p + 1 < r.a.ranges.length; p += 2)
-      for (let q = 0; q + 1 < r.b.ranges.length; q += 2) {
-        if (!span(a, r.a.ranges[p], r.a.ranges[p + 1], 0) || !span(ay, r.b.ranges[q], r.b.ranges[q + 1], 2)) continue;
-        R[0] = Box4[0];
-        R[1] = Box4[2];
-        R[2] = Box4[1] - Box4[0];
-        R[3] = Box4[3] - Box4[2];
-        rounded(lay);
-        rect(out);
-        RR[0] = 0;
-        RR[1] = 0;
-      }
+    paintSelection(lay, out, r.b.ranges, r.a.ranges, false);
   }
 }
 
@@ -299,7 +456,13 @@ export function drawEmphasis(lay: GridLay, pass: PassName, out: PassWriter, e: E
         Src[3] = em.selectionOutline * k;
         Src[4] = config.outline.selection;
         ink();
-        paintRows(lay, out, part.ranges);
+        // the strip's column band (its x part, the tracks' selection tint over the same cell) is tinted once
+        const columns =
+          em.selectionPlace === 'over'
+            ? (partOn(e.selection, lay.system) ??
+              (rectOver(e.selection, lay.system, lay.ySystem) ? undefined : partOn(e.projected?.selection, lay.system)))
+            : undefined;
+        paintSelectionRows(lay, out, part.ranges, columns);
       }
       if (e.selection?.rects.length) {
         Src[0] = accent;
@@ -308,7 +471,7 @@ export function drawEmphasis(lay: GridLay, pass: PassName, out: PassWriter, e: E
         Src[3] = em.selectionOutline;
         Src[4] = config.outline.selection;
         ink();
-        paintRects(lay, out, e.selection);
+        paintSelectionRects(lay, out, e.selection);
       }
       return;
     }

@@ -99,6 +99,7 @@ export {
   type LayoutContext,
   type Overlay,
   type StoreReader,
+  refuseMuteTypes,
   sectionId,
 } from './layer-type.js';
 export { BlockMetrics, BlockPlacement } from './layout/blocks.js';
@@ -156,6 +157,7 @@ export type { NavigatorPicture, NavigatorPictureContext, NavigatorPictureTracks 
 export { type NarrowColumns, narrowColumns, overviewWidth } from './narrow.js';
 export { type SourceLabelsOptions, withSourceNumberings } from './numberings.js';
 export {
+  DefaultRowsZoom,
   drawRail,
   hitRail,
   LanesRail,
@@ -167,6 +169,7 @@ export {
   placeSectionRail,
   Rail,
   RowsRail,
+  type RowsZoom,
   SectionRail,
   type PositionsRailMode,
   type RailPlace,

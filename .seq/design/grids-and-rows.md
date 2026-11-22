@@ -120,7 +120,11 @@ layer is laid out per strip (`ctx.axis`, `ctx.box` its band in the strip's frame
 `scope: 'section'` and `ctx.place` for marks that cross strips. It owns `FrameInput.viewports` and the whole viewport
 record: the section's `top`, **a band's own scroll and row zoom** (`bandTop`, `rowScale`, by band; `ctx.bandTop`,
 `ctx.rowScale`), the grid's `y`; the y path in the emphasis passes; and the glyph runs' per-letter y, angle and
-vertical scale. This design builds on them and adds only:
+vertical scale. The rows' zoom limits are the host's (the author, 2026-11-21: "seems like this
+needs to be configurable"; FX16): `rows.zoom` in `ViewerConfig` (`minPx` 1/64, `maxPx` 40, `enabled`), the floor the
+larger of `minPx` and a lazy source's device pixel a row while it serves no row levels, a stored `rowScale` clamped
+to them; `enabled: false` leaves a pan-only rail. Open: the source's coarse row levels; a band's own override in the
+spec. This design builds on them and adds only:
 
 - **The grid is a section layout** (`grid`, a `SectionLayoutType` beside tracks, text and rings): one strip, the plot,
   whose transform is x and which **carries a second transform** `strip.y` (an `AxisTransform` down the strip's frame,

@@ -55,6 +55,7 @@ export function itemsAddress(data: string, field: string, value: string | readon
 
 import type { Op } from '@molstar/core/repr/patch';
 import { isNode, type Node, parseAddress, printAddress, resolveAddress, type Value } from '@molstar/core/repr/tree';
+import { EmptyLocation, type Key, keySet, type Location, unionLocations } from '@molstar/seqx-core/query';
 import { splitDataForms } from '@molstar/seqx-core/view';
 import {
   builtInSchemes,
@@ -236,6 +237,45 @@ export function themingBehavior(
     if (typeof data !== 'string' || !field) return undefined;
     return itemsAddress(data, field, value);
   };
+  // an entry names items by its address; the legend's part reads it (its pointer only where an entry has an action)
+  legends.addressable = (layer, value) => itemsOf(layer, value) !== undefined;
+  /**
+   * An entry's items drawn in view, as an emphasis (_spec/README.md "Legends", both ways): where its address names none
+   * the store holds (a source's rows, a derived table), the items the layout painted in its value.
+   */
+  const drawnItems = (layer: string, value: string) => {
+    const d = legends.entryItems(layer, value);
+    return d && { elements: keySet(d.elements), location: d.location, shown: d.location };
+  };
+
+  /**
+   * An entry's items over every layer its legend lists (a legend is one over layers that read alike: a light and a heavy
+   * chain's CDRs), by their addresses: undefined where fewer than two of its layers have one (the entry's own layer's
+   * address alone, `itemsOf`, then names them).
+   */
+  const legendItems = (layer: string, values: readonly string[]) => {
+    const layers = legends.legends.value.find((l) => l.layers.includes(layer))?.layers ?? [layer];
+    const named: string[] = [];
+    for (const l of layers)
+      for (const v of values) {
+        const a = itemsOf(l, v);
+        if (a !== undefined) named.push(a);
+      }
+    if (named.length < 2) return undefined;
+    const keys: Key[] = [];
+    let shown: Location = EmptyLocation;
+    let location: Location = EmptyLocation;
+    for (const a of named) {
+      const { resolution, location: at } = addresses.locate(a);
+      const r = resolution.result;
+      if (!r) continue;
+      if (r.type === 'keys') keys.push(...r.keys.keys);
+      else if (r.type === 'location') location = unionLocations(location, r.location);
+      else location = unionLocations(location, at);
+      shown = unionLocations(shown, at);
+    }
+    return { elements: keySet(keys), location, shown };
+  };
 
   /** A layer's color with one value's color set (or removed): a dictionary entry of its palette, or of its scale's. */
   const valueColorOps = (layer: string, value: string, color: string | undefined): Op[] | string => {
@@ -402,12 +442,19 @@ export function themingBehavior(
       title: 'Select a legend entry’s items',
       category: 'Legend',
       when: live((ctx) =>
-        ctx.entry !== undefined && ctx.address !== undefined && itemsOf(ctx.address, ctx.entry)
+        ctx.entry !== undefined && ctx.address !== undefined && legends.names(ctx.address, ctx.entry)
           ? true
           : 'No entry there',
       ),
       run: (_, ctx) => {
         const layer = ctx.address!;
+        // no address names them: the items drawn in its value (a click on one value: the grammar's clear aside)
+        if (!itemsOf(layer, ctx.entry!)) {
+          const drawn = drawnItems(layer, ctx.entry!);
+          if (!drawn) return { message: 'No entry there' };
+          addresses.selection.set(drawn);
+          return { message: 'Selected' };
+        }
         const prev = toggled.get(layer) ?? [];
         // the grammar's click rule: clicking the only selected value clears the selection
         let values: string[];
@@ -418,6 +465,12 @@ export function themingBehavior(
         if (!values.length) {
           addresses.setSelection(undefined);
           return { message: 'Cleared' };
+        }
+        // a legend over several layers: the values' items on each
+        const all = legendItems(layer, values);
+        if (all) {
+          addresses.selection.set(all);
+          return { message: 'Selected' };
         }
         const n = node(layer, 'layer')!;
         const data = n.params?.data;
@@ -439,8 +492,20 @@ export function themingBehavior(
           addresses.clearHighlight('legend');
           return { message: 'Cleared' };
         }
+        // a legend over several layers: the entry's items on each
+        const all = legendItems(ctx.address, [ctx.entry]);
+        if (all) {
+          addresses.highlight.set('legend', all);
+          return { message: 'Highlighted' };
+        }
         const a = itemsOf(ctx.address, ctx.entry);
-        return { message: a ? addresses.highlightAddress(a, 'legend').message : 'No entry there' };
+        const by = a ? addresses.highlightAddress(a, 'legend') : undefined;
+        if (by?.done) return { message: by.message };
+        // the address names nothing the store holds: the items drawn in the entry's value
+        const drawn = drawnItems(ctx.address, ctx.entry);
+        if (!drawn) return { message: by?.message ?? 'No entry there' };
+        addresses.highlight.set('legend', drawn);
+        return { message: 'Highlighted' };
       },
     },
     {
@@ -464,6 +529,7 @@ export function themingBehavior(
     dispose() {
       disposed = true;
       cancelPreview();
+      if (legends.addressable) legends.addressable = undefined;
     },
   };
 }

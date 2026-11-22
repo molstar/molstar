@@ -97,12 +97,15 @@ describe('the Legend part', () => {
     expect(viewer!.highlight.names.value).not.toContain('legend');
   });
 
-  async function mounted(options: Parameters<typeof mountLegend>[2]) {
+  async function mounted(
+    options: Parameters<typeof mountLegend>[2],
+    config: NonNullable<Parameters<typeof createSeqViewer>[0]['config']> = [],
+  ) {
     frames = installFrames();
     viewer = createSeqViewer({
       ...DefaultSeqViewerSpec(),
       ui: undefined,
-      config: [[viewerItem('viewport.maxPxPerPosition'), 1000]],
+      config: [[viewerItem('viewport.maxPxPerPosition'), 1000], ...config],
     });
     await viewer.load(spec());
     viewer.resize(500);
@@ -113,6 +116,55 @@ describe('the Legend part', () => {
     return { el, dispose: mountLegend(el, viewer, options) };
   }
   const slot = (el: HTMLElement) => el.querySelector<HTMLElement>('[data-channels]');
+
+  it('an entry’s action follows what is drawn: a pan that leaves its items out of view takes its pointer away, and an entry with no action hovers nothing', async () => {
+    // a jump is a cut (no motion to wait out)
+    const { el } = await mounted({ of: '/views/main/p/domains' }, [[viewerItem('view.motion'), 'cut']]);
+    const cursors = () => [...el.querySelectorAll<HTMLElement>('[role="option"]')].map((o) => o.style.cursor);
+    // only what is drawn names items (no address does)
+    viewer!.legends.addressable = () => false;
+    viewer!.legends.setCvdSafe(true);
+    expect(cursors()).toEqual(['pointer', 'pointer']);
+    const focus = async (id: string) => {
+      expect(viewer!.runCommand('address.focus', { address: `/data/d/(item :id ${id})` })).toBe('Focused');
+      // the view rests (its settle timer), and the settled frame is drawn
+      for (let k = 0; k < 3; k++) {
+        await viewer!.settle();
+        frames!.timers.fire();
+        frames!.flush();
+      }
+    };
+    // focused on B: A (0–5) out of view, its entry no target
+    await focus('B');
+    expect(cursors()).toEqual(['default', 'pointer']);
+    // then on A: the legends are the same (nothing republished), what is drawn moved, the actions with it
+    const fired: string[] = [];
+    const off = viewer!.legends.legends.listen(() => fired.push('legends'));
+    await focus('A');
+    off();
+    expect(fired).toEqual([]);
+    expect(cursors()).toEqual(['pointer', 'default']);
+    // no address names B's items and none is drawn: its entry carries no value and hovers nothing
+    const linker = el.querySelectorAll<HTMLElement>('[role="option"]')[1];
+    expect(linker.dataset.value).toBeUndefined();
+    linker.dispatchEvent(new PointerEvent('pointerover', { bubbles: true }));
+    expect(viewer!.highlight.names.value).not.toContain('legend');
+  });
+
+  it('an entry’s items are read once a settled frame: a hover again makes nothing, a pan reads them again', async () => {
+    await mounted({ of: '/views/main/p/domains' }, [[viewerItem('view.motion'), 'cut']]);
+    const legends = viewer!.legends;
+    const first = legends.entryItems('/views/main/p/domains/d', 'linker');
+    expect(new Set(first?.elements.map((k) => k.key))).toEqual(new Set(['B']));
+    expect(legends.entryItems('/views/main/p/domains/d', 'linker')).toBe(first);
+    expect(viewer!.runCommand('address.focus', { address: '/data/d/(item :id A)' })).toBe('Focused');
+    for (let k = 0; k < 3; k++) {
+      await viewer!.settle();
+      frames!.timers.fire();
+      frames!.flush();
+    }
+    expect(legends.entryItems('/views/main/p/domains/d', 'linker')).toBeUndefined();
+  });
 
   it('groups one a line: a column, each title muted, 600, 11 px, 12 px between', async () => {
     const { el } = await mounted({});

@@ -231,6 +231,20 @@ describe('extensions: registration', () => {
     expect(() => createSeqContext({ extensions: [stray] })).toThrow(/not made by defineExtension/);
   });
 
+  it('refuses a layer type that cannot answer a hover (no hit): every offender in one error, nothing registered', () => {
+    const mute = (name: string) => ({ ...DotsType, name, hit: undefined }) as unknown as LayerType;
+    const a = defineExtension({ ...other, id: 'mute', registry: [{ kind: 'layer-type', type: mute('mute:a') }] });
+    const b = defineExtension({ ...other, id: 'still', registry: [{ kind: 'layer-type', type: mute('still:b') }] });
+    expect(() => createSeqContext({ extensions: [a, b] })).toThrow(/seq.render.layer.hover: no hit: mute:a, still:b/);
+    // at run time too: the context's tables stay as they were
+    const ctx = createSeqContext();
+    const before = ctx.types;
+    expect(() => ctx._extend([a])).toThrow(/seq.render.layer.hover/);
+    expect(ctx.types).toBe(before);
+    // a host's own type in the registry alike
+    expect(() => composeSeqContext({ registry: [{ kind: 'layer-type', type: mute('host') }] })).toThrow(/no hit: host/);
+  });
+
   it('is atomic over two extensions: their entries’ conflicts in one error, nothing registered', () => {
     const a = defineExtension({ ...other, id: 'a', registry: [{ kind: 'format-runtime', runtime: runtime('a:x') }] });
     const b = defineExtension({ ...other, id: 'b', registry: [{ kind: 'format-runtime', runtime: runtime('b:y') }] });

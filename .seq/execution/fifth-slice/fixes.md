@@ -6,6 +6,15 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 
 ## Open
 
+- **A hover card's long values overflow its box** (the author, 2026-11-22, Features › Genome formats › VCF › TP53
+  ClinVar, a deletion's allele card: "let's handle overflow on the hover cards to when we next visit them"; kind:
+  look): the `CLNDISDB` value ("MONDO:MONDO:0018875,MedGen:C0085390,OMI…") runs past the card's right edge though HC
+  cut it at 40 characters; the card's width does not bound its value column. Wrap a value within the card (break at
+  `,` `;` `|` `:` and anywhere in a token with no break), up to a few lines, then an ellipsis; the card's width capped
+  (as `hover.cardMaxPx` or a token) and the label column kept. Also from the same card: its title
+  `7674964:469:edaeae47>G` shows a long REF as a length and hash; a reader wants `7674964 del 469 bp>G` or the REF's
+  first letters with its length. To TT (it rebuilds the card as providers), else the next lane that touches the card.
+
 - **A sample selected on the kinship grid does not light its row in the genotype matrix** (the orchestrator,
   2026-11-22, LA3's look, Features › Across sections › Kinship beside the genotypes; kind: bug): a click on the
   "F2-b" label selects the member (the grid's row and column light), but the matrix on the same rows system shows
@@ -13,35 +22,6 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   system with no map. The matrix also draws no member labels. The story's twin asserts the selection as state only.
   Also from the look: the dot plot draws no lines between block-pair cells, so "a cell a pair of chromosomes" is not
   visible. To the next fix lane (after HC, which sets the linked views' emphasis rule).
-
-- **One hover contract for every mark, and a sweep that holds it** (the author, 2026-11-21, Examples › Plasmid › Ring
-  at scale: the strands' density bands on the ring and in the detail show no hover box or card; "we should not be
-  fixing this one-by-one btw. since we already fixed a similar issue, we need a general rule for this and global
-  fix."). The same miss has come back layer by layer: a ring's own hover (fixed alone in FX3), the Regions density row
-  (below), a ligand's score box (below), now density bands on a ring and a strip. **The rule** (to write into
-  ux-foundations.md and the core `_spec`'s Emphasis): every drawn mark of every layer type, in every layout (row,
-  ring, blocks, rows, grid) and at every level of detail (an item, a lane, a density bin or band, a summary, a chip,
-  a reduced tile), answers a hover with the same three things: (1) a hit naming what is under the pointer (the item,
-  else the bin's items or stretch, else the position), (2) an emphasis mark drawn in the hovered view and in every
-  view linked to it, reaching every layer the covered positions reach (arcs, columns, the ring's position box), and
-  (3) a card with that hit's fields; a layer type that can't is refused at registration, not left silent. A drag
-  suspends (2)'s card (the drag item below). **The sweep**: one test (medium lane, canvas and SVG) over every story's
-  spec and every layer instance, probing points on its drawn marks (taken from the draw list, not guessed), asserting
-  the hit, at least one emphasis primitive in the hovered view and each linked view, and a non-empty card; a new
-  layer type or layout is covered by adding nothing. The per-story items below that it covers (the density row, the
-  score box, these bands) are checked by it and closed with it. A strong-model lane (it is a rule across layer types,
-  not a closed list), its brief naming the items it closes.
-
-- **A legend's hover works one way only** (the author, 2026-11-22, Features › Genome formats › VCF › TP53 ClinVar:
-  "there is an asymmetry for many legends ... where the highlight only works one way. add to fix round? or at least
-  don't show 'hand' icon for legends that don't have any action associated with it"; kind: bug, a class): hovering a
-  variant outlines its legend entry ("deletion"), but hovering the "deletion" entry lights no variant, though
-  themes.md lists "hovers a legend entry to see its items" as built (a highlight channel over its items in view). The
-  rule, with the hover contract above and swept by it: every legend entry that names items (a category, a ramp's
-  stretch) lights its items in view when hovered, in every layer type and layout, canvas and SVG alike; an entry with
-  no action (no select, no filter, no highlight: a swatch only) shows the default cursor, never the pointer. The sweep
-  probes each story's legend entries: hover → at least one emphasis primitive over that entry's items in view, or no
-  pointer cursor. Taken by the hover-contract lane (strong), after RG merges (RG changes the hover texts and card).
 
 - **A drag's work is bounded by the screen, not by the selection** (FX8, 2026-11-22: a drag across 3,000 contigs relays out the navigator's strip, about 110 kB a frame, bounded at 256 kB in `navigator-blocks.quick.ts`; its 2 ms bound fails under load: move it to the heavy lane under `itWithin`) (moved by FX12) (the author, 2026-11-21, tRNA › Views › Dot plot
   scale: "selecting a rect on the dotplot here is really laggy. both as a rect on the plot, and a range on the nav.
@@ -109,17 +89,6 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   this story (298 × 298 grid) and bound a box drag to the frame budget, 0 bytes warm, in the perf tier. Same family as
   the readout covering the active control above.
 
-- **A selection's boxes on the grid don't meet the cells' edges** (the author, 2026-11-21, Examples › Complex › PAE and
-  contacts › Over the complex, a range selected on cyclin A2's pLDDT: "mis-alignments on the boxes on the PAE plot (see
-  the gaps at the edges)"). From the screenshot: the row band on the cyclin row runs from about x 597 to 1131 while the
-  CDK2 cell spans 600–1128, so it overhangs a few px into the blocks' gap on both sides; the column band's ends and its
-  grip run past the grid's top and bottom; the column and row bands overlap on the cyclin × cyclin cell (double
-  shading). Likely the mirrored box is placed in the grid's whole extent (or with its stroke centred on the edge)
-  rather than clipped to each cell the blocks' gaps cut it into (the story's text promises "a dragged rectangle split
-  at the boundaries"). Each piece is clipped to its cell, its stroke inside, the intersection of a row and a column band
-  drawn once; a twin test (canvas and SVG) that every selection piece's box lies inside its cell's box, at both a block
-  boundary and the grid's outer edge. Not measured in the browser yet: the fix lane measures first.
-
 - **Zooming a lazy alignment out past a pixel a row leaves a blank plot** (the author, 2026-11-21, Examples › Globins ›
   Rows › Lazy, the rows rail's grip dragged to widen the window: "trying to resize the vertical bar breaks the lazy
   views. does our streaming protocol correctly ask for a window to fill?"). The window is asked correctly while rows
@@ -144,16 +113,7 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   override in the spec (a fixed row height, or zoom off for that band); zoom off keeps the rail as a pan-only bar (no
   grips, the keys and wheel-with-modifier inert, scroll kept); the effective floor the larger of `minPx` and the
   source's (a device pixel a row for a lazy source without row levels, part 1 above). The library rule (memory: the
-  host configures optional behaviour) and grids-and-rows.md's zoom rows updated with it.
-
-- **Hovering a ligand's score box lights its residues but not its arcs** (closed by the hover contract above; the author, 2026-11-21, Examples › Complex ›
-  Views › As a complex: "mouse on empty patch highlights arcs, but on box only the columns"). Over the score track's
-  empty band at PYZ's position, the hover resolves to the position (card "PYZ 1"), its contact arcs light dark and the
-  linked CDK2 columns light. Over PYZ's score box itself (a ranges row over the molecule), the box gets its outline and
-  the linked columns light, but no arc lights and no card shows. A ranges item's emphasis should reach every layer the
-  positions it covers reach (the pairs layer's arcs with an end in it), the same as hovering those positions, and its
-  card show (the item's fields: entry, resolution). A test on this story: hovering the box and hovering the empty band
-  at the same position light the same arcs, and the box shows a card.
+  host configures optional behaviour) and grids-and-rows.md's zoom rows updated with it. Parts (1) and the host's limits built by FX16 (`8c07380aa`): a lazy source without row levels stops at a device pixel a row (keys, grips, a stored `rowScale` clamped), `rows.zoom` (`minPx`, `maxPx`, `enabled`) in `ViewerConfig`, validated. Open: part (2), the coarse row levels (a design), and a band's own override in the spec (a language change).
 
 - **The 3,000-contig story could be faster** (the drag part an instance of the drag rule above; the author, 2026-11-21, on packages-seq's build: "better perf ... although
   still could be faster"): my measure, 40 hover steps along the row each drawn within two frames (about 33 ms, no
@@ -166,11 +126,60 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   address reader turns `01` into 1 before Seq* sees it. Keeping the text would need a raw-token surface in core repr
   (allowed: repr's public API is open to this work); take it only if a real name set needs it.
 
+## Fixed
+
+- **A selection's boxes on the grid don't meet the cells' edges** (the author, 2026-11-21, Examples › Complex › PAE and
+  contacts › Over the complex, a range selected on cyclin A2's pLDDT: "mis-alignments on the boxes on the PAE plot (see
+  the gaps at the edges)"). From the screenshot: the row band on the cyclin row runs from about x 597 to 1131 while the
+  CDK2 cell spans 600–1128, so it overhangs a few px into the blocks' gap on both sides; the column band's ends and its
+  grip run past the grid's top and bottom; the column and row bands overlap on the cyclin × cyclin cell (double
+  shading). Likely the mirrored box is placed in the grid's whole extent (or with its stroke centred on the edge)
+  rather than clipped to each cell the blocks' gaps cut it into (the story's text promises "a dragged rectangle split
+  at the boundaries"). Each piece is clipped to its cell, its stroke inside, the intersection of a row and a column band
+  drawn once; a twin test (canvas and SVG) that every selection piece's box lies inside its cell's box, at both a block
+  boundary and the grid's outer edge. Not measured in the browser yet: the fix lane measures first. Fixed by FX16 (`8c07380aa`): each piece cut to its cell and clipped to the strip, the stroke inset, the row and column bands' intersection tinted once (measured at the fit: a half-stroke overhang and a double tint; the ~3 px overhang at zoom not reproduced). The hover's band at zoom is untouched (HC's).
+
+- **One hover contract for every mark, and a sweep that holds it** (the author, 2026-11-21, Examples › Plasmid › Ring
+  at scale: the strands' density bands on the ring and in the detail show no hover box or card; "we should not be
+  fixing this one-by-one btw. since we already fixed a similar issue, we need a general rule for this and global
+  fix."). The same miss has come back layer by layer: a ring's own hover (fixed alone in FX3), the Regions density row
+  (below), a ligand's score box (below), now density bands on a ring and a strip. **The rule** (to write into
+  ux-foundations.md and the core `_spec`'s Emphasis): every drawn mark of every layer type, in every layout (row,
+  ring, blocks, rows, grid) and at every level of detail (an item, a lane, a density bin or band, a summary, a chip,
+  a reduced tile), answers a hover with the same three things: (1) a hit naming what is under the pointer (the item,
+  else the bin's items or stretch, else the position), (2) an emphasis mark drawn in the hovered view and in every
+  view linked to it, reaching every layer the covered positions reach (arcs, columns, the ring's position box), and
+  (3) a card with that hit's fields; a layer type that can't is refused at registration, not left silent. A drag
+  suspends (2)'s card (the drag item below). **The sweep**: one test (medium lane, canvas and SVG) over every story's
+  spec and every layer instance, probing points on its drawn marks (taken from the draw list, not guessed), asserting
+  the hit, at least one emphasis primitive in the hovered view and each linked view, and a non-empty card; a new
+  layer type or layout is covered by adding nothing. The per-story items below that it covers (the density row, the
+  score box, these bands) are checked by it and closed with it. A strong-model lane (it is a rule across layer types,
+  not a closed list), its brief naming the items it closes. Fixed by HC (`50286b413`).
+
+- **A legend's hover works one way only** (the author, 2026-11-22, Features › Genome formats › VCF › TP53 ClinVar:
+  "there is an asymmetry for many legends ... where the highlight only works one way. add to fix round? or at least
+  don't show 'hand' icon for legends that don't have any action associated with it"; kind: bug, a class): hovering a
+  variant outlines its legend entry ("deletion"), but hovering the "deletion" entry lights no variant, though
+  themes.md lists "hovers a legend entry to see its items" as built (a highlight channel over its items in view). The
+  rule, with the hover contract above and swept by it: every legend entry that names items (a category, a ramp's
+  stretch) lights its items in view when hovered, in every layer type and layout, canvas and SVG alike; an entry with
+  no action (no select, no filter, no highlight: a swatch only) shows the default cursor, never the pointer. The sweep
+  probes each story's legend entries: hover → at least one emphasis primitive over that entry's items in view, or no
+  pointer cursor. Taken by the hover-contract lane (strong), after RG merges (RG changes the hover texts and card). Fixed by HC (`50286b413`).
+
 - **A VCF allele's hover card names the record, not the allele** (VC's look, 2026-11-22, kind: look; for the hover
   contract's lane): hovering a ClinVar variant shows ClinVar's id, Track and Extent; it should name the allele
-  (`pos:ref>alt`), its category and its INFO fields, as the design's matrix row "a variant allele" implies.
+  (`pos:ref>alt`), its category and its INFO fields, as the design's matrix row "a variant allele" implies. Fixed by HC (`50286b413`).
 
-## Fixed
+- **Hovering a ligand's score box lights its residues but not its arcs** (closed by the hover contract above; the author, 2026-11-21, Examples › Complex ›
+  Views › As a complex: "mouse on empty patch highlights arcs, but on box only the columns"). Over the score track's
+  empty band at PYZ's position, the hover resolves to the position (card "PYZ 1"), its contact arcs light dark and the
+  linked CDK2 columns light. Over PYZ's score box itself (a ranges row over the molecule), the box gets its outline and
+  the linked columns light, but no arc lights and no card shows. A ranges item's emphasis should reach every layer the
+  positions it covers reach (the pairs layer's arcs with an end in it), the same as hovering those positions, and its
+  card show (the item's fields: entry, resolution). A test on this story: hovering the box and hovering the empty band
+  at the same position light the same arcs, and the box shows a card. Fixed by HC (`50286b413`).
 
 - **Allocation readings that depend on the process, not the code** (the orchestrator, 2026-11-22, FX14 and LA3; kind:
   perf, a gate's trust): three warm-step cases read differently by what ran before them in the file: the storybook

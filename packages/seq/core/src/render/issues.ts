@@ -231,6 +231,12 @@ export const RenderIssues = defineIssues('seq.render', {
     description: 'No type in a layer’s fallback chain is one this target draws: the layer is not drawn',
     hint: 'Give the layer a fallback this target draws',
   },
+  'seq.render.layer.hover': {
+    severity: 'error',
+    description:
+      'A layer type cannot answer a hover (it has no `hit`): every drawn mark answers with a hit, a mark and a card, so it is refused at registration',
+    hint: 'Give the type a `hit` naming the item, else the bin, else the position under a point',
+  },
   'seq.render.heights': {
     severity: 'warning',
     description: 'A section’s `heights` names a track sizing this target does not have: its tracks fit their content',
