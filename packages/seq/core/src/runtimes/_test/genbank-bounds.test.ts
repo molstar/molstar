@@ -106,6 +106,14 @@ describe('bounds of a feature: the feature left out, said; the file read', () =>
     expect(codes).toEqual(['opened', 'seq.source.genbank.location']);
   });
 
+  it('a quote never closed: the indented lines after it its text, its feature left out at the next line from the first column, the letters read', async () => {
+    const text = one([['note', '"never closed']]);
+    const [codes, s] = await outcome(text);
+    expect(codes).toEqual(['opened', 'seq.source.genbank.feature']);
+    expect(s!.coverage.systems[0].length).toBe(100);
+    expect(await features(s)).toBe(0);
+  });
+
   it('`/translation` is never held: one of 100,000 characters passes a 1,000-character bound', async () => {
     const t = `"${Array.from({ length: 2000 }, () => 'M'.repeat(50)).join('\n                     ')}"`;
     const [codes, s] = await outcome(one([['translation', t]]), { maxQualifierBytes: 1000 });

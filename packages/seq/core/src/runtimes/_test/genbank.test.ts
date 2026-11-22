@@ -106,7 +106,7 @@ describe('the location grammar', () => {
     expect(at('join(2600..2686,1..2686,1..10)', 2686, true)).toMatchObject({ ok: false });
   });
 
-  it('refused per feature: remote references, `a^b` sites, past the length, malformed, too deep, too many pieces', () => {
+  it('refused per feature: remote references, `a^b` sites, past the length (EC-51), malformed, too deep, too many pieces', () => {
     const why = (t: string, length = 1000) => {
       const r = at(t, length);
       return r.ok ? 'read' : r.why;
