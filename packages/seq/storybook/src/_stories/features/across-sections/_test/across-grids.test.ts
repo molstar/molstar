@@ -7,7 +7,14 @@
 import { DarkTokens, LightTokens, type PairsLay, type SectionLayout } from '@molstar/seqx-core/render';
 import { loadMembers } from '@molstar/seqx-core/render/members-hooks';
 import { loadGenome } from '@molstar/seqx-core/resolve';
-import { blocksOf, Inversion, ItemsPitch, PeachToGrape, Translocation } from '@molstar/seqx-examples/across/genomes';
+import {
+  blocksOf,
+  Gap,
+  Inversion,
+  ItemsPitch,
+  PeachToGrape,
+  Translocation,
+} from '@molstar/seqx-examples/across/genomes';
 import {
   ContactBins,
   contactValues,
@@ -17,11 +24,12 @@ import {
   Samples,
   SamplesSystem,
 } from '@molstar/seqx-examples/across/grids';
-import { AcrossViews } from '@molstar/seqx-examples/across/views';
+import { AcrossViews, GrapeSection } from '@molstar/seqx-examples/across/views';
 import { describerFor } from '@molstar/seqx-viewer/describe';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { openExample } from '../../../examples/_test/draw-checks.js';
+import { clickAt } from '../../selection/compose.js';
 
 // Features/Across sections, the grids, headless on a fake clock as the stories compose them (a viewer of the view, its
 // SVG export light and dark): peach against grape as a dot plot over two sections of blocks (EC-209: the inversion an
@@ -98,6 +106,26 @@ describe('Features/Across sections, the grids, headless', () => {
       }
     }
     expect(drawn).toBe(blocks.a.length);
+    // the gap: Pp01's diagonal into chr1 breaks over its lost stretch (no segment's peach end inside it)
+    const p1 = [...Array(strips.n).keys()].find(
+      (i) => named(v, strips.axes[i].system) === 'Pp01' && named(v, strips.ys[i]!.system) === 'chr1',
+    )!;
+    const l1 = s.lays[p1][0].lay as PairsLay;
+    const d1 = l1.prep!.data!;
+    const inGap = [...l1.segPair.subarray(0, l1.ns)].filter((p) => d1.aEnd[p] > Gap[0] && d1.aStart[p] < Gap[1]);
+    expect(l1.ns).toBeGreaterThan(10);
+    expect(inGap).toEqual([]);
+    // a pan of grape (down) moves the plot's y and leaves its x: each axis follows its own section
+    const x0 = [strips.axes[0].u0, strips.axes[0].u1];
+    const n0 = strips.n;
+    v.view.setRange(GrapeSection, 0, 3_000_000);
+    await vi.advanceTimersByTimeAsync(4000);
+    v.draw();
+    const after = sectionOf(v, DotsSection).placement.strips;
+    expect([after.axes[0].u0, after.axes[0].u1]).toEqual(x0);
+    // grape's window now its first chromosomes: fewer block pairs down the plot
+    expect(after.n).toBeLessThan(n0);
+    expect(new Set([...after.yBlock.subarray(0, after.n)]).size).toBeLessThan(5);
     // the translocation: Pp03's tail on grape's chr4
     expect(blocks.a.some((x, k) => x === 'Pp03' && blocks.b[k] === 'chr4' && blocks.aStart[k] >= Translocation)).toBe(
       true,
@@ -154,9 +182,18 @@ describe('Features/Across sections, the grids, headless', () => {
     // the hover model names a section by its address
     v.hover.set({ ...v.hit(cx, cy)!, section: s.section.address }, 'test');
     expect(card(v).title).toBe(`${sorted[0]} × ${sorted[1]}`);
+    // and their kinship as computed
+    const m0 = Samples.indexOf(sorted[0]);
+    const m1 = Samples.indexOf(sorted[1]);
+    const value = card(v).rows.find((r) => r.label === 'Value')!.value;
+    expect(Number(value)).toBeCloseTo(k[m0 * n + m1], 2);
     // a label is its sample, a row of the samples' system
     const label = v.hit(a.x0 - 20, cy)!;
     expect([label.target, label.system, Samples[label.position!]]).toEqual(['row', SamplesSystem, sorted[1]]);
+    // a click on the label selects the sample (a Location on its rows system), the matrix's row lit by it
+    clickAt(v, [a.x0 - 20, cy]);
+    const sel = v.selection.value.value.location.parts.find((part) => part.system === SamplesSystem);
+    expect(sel && [...sel.ranges]).toEqual([label.position, label.position! + 1]);
     const svg = await bothThemes(v);
     for (const name of Samples) expect(svg).toContain(name);
   });
