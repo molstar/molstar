@@ -1365,8 +1365,13 @@ neither io's tabix nor the pairs index.
   two `Int32Array` orders, each by system (a counting sort) then start (float64 keys `start × 2^21 + row`, sorted
   natively; a comparison sort past 2^21 rows). `pairs(system, start, end)` gives every row with an end meeting the
   region once (a row found from its second end is skipped when its first end met it too), in file order, as a
-  `PairsList` (`id` the name, `.` none; `row`). Coverage: the systems, no shape. Held bytes (`summaryBytes`, counted by
-  the store) against `maxPairsBytes`, which is region-reads' `summaries.maxBytes` (`SummariesMaxBytes`, 16 MiB: 600,000
+  `PairsList` (`id` the name, `.` none; `row`). Coverage: the systems, each serving **`pairs`** (RR's shape: a
+  region's read gives the same list, the items at any level when asked), at levels of factor 16 up to the one whose
+  tile holds the longest end's system (`wholeLevel`); a coarser level is the **pairs level** made per tile from the held
+  rows (`binPairs` of the pairs with an end's first position in the tile: each bin pair meeting the tile whole, so a
+  reader deduping bins by key reads the whole file's bins). Why the runtime's levels and not the store's summaries: a
+  BEDPE names no lengths, and the summaries' pairs pyramid needs them; a host adapter is not needed. Held bytes
+  (`summaryBytes`, counted by the store: the source is not wrapped, having levels) against `maxPairsBytes`, which is region-reads' `summaries.maxBytes` (`SummariesMaxBytes`, 16 MiB: 600,000
   six-column rows; the bound the pairs summaries share, the store's setting once RG lands it, the runtime's option until
   then), checked from the line count before a row is parsed and exactly after; past it `seq.source.too_large`, hinting
   pairix or a levelled pairs format.
@@ -1390,7 +1395,8 @@ neither io's tabix nor the pairs index.
   to the whole read clipped over generated files and random regions; fuzzed and truncated files (whole and by region)
   without a throw; BED12 pieces, `fields` by number, identities, chrom.sizes, BEDPE from either end once and its byte
   bound; at every level (`bed-levels.test.ts`) items tiles, densities and a bedGraph's bins equal to the whole read
-  clipped, a tile's read cost the index's, `maxLevel`; its synthetic twin is `delayedRuntime(BedRuntime)`.
+  clipped, a tile's read cost the index's, `maxLevel`; BEDPE's `pairs` through the source suite at every level, its
+  tiles' bin pairs deduped equal to the items binned whole; its synthetic twin is `delayedRuntime(BedRuntime)`.
 - **Performance**: 600,000 BEDPE rows indexed by both ends under 300 ms (heavy, `itWithin`; about 100 ms measured),
   12,000 in the quick lane; a chrom.sizes of 1,000,000 lines under 1.5 s (heavy), 20,000 quick. Size: its own row under
   30 kB (23.2 kB minified, io's BGZF reader in it), its lazy chunks (by region with io's tabix, and BEDPE: 20.5 kB

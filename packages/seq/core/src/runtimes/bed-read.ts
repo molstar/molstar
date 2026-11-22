@@ -212,8 +212,9 @@ export type PairsAnswer =
   | { readonly ok: false; readonly kind: FailureKind; readonly issue: Issue };
 
 /**
- * An opened BEDPE: its systems (no shape yet: the protocol's `pairs` shape is to come), every pair with an end in a
- * region by `pairs`, and what it holds (`summaryBytes`, counted by the store as a pyramid's).
+ * An opened BEDPE: its systems, each serving `pairs` (a region's every pair with an end in it, its bin pairs at the
+ * coarser levels), the same pairs by `pairs` (a host's direct use), and what it holds (`summaryBytes`, counted by the
+ * store as a pyramid's).
  */
 export interface BedpeSource extends OpenedSource {
   readonly summaryBytes: number;

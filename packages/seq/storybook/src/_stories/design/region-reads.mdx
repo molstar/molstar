@@ -58,6 +58,6 @@ first, each the canvas and the SVG of one view, light and dark by the toolbar's 
 - Pairs, grids and matrices read by source **over an assembly** (a ring of chords between a genome's chromosomes, a Hi-C
   over the blocks of an assembly with gaps and labels on both axes, a synteny of two genomes in one section) wait for
   data over an assembly to be read by sequence: the stories above put a genome in one system, or draw one chromosome.
-- A BEDPE file is served by region through a host adapter (the runtime lists no `pairs` shape); a held table of links is
-  not read through the store, so past the gate it bins arcs by device column, not by the pairs level.
+- A held table of links is not read through the store, so past the gate it bins arcs by device column, not by the
+  pairs level (a BEDPE file is: the `bed` runtime serves its `pairs` by region and its bin pairs by level).
 - The matrix's state labels in the header (the `order` and `hidden` of a state) are listed, not built.

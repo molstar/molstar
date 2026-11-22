@@ -9,7 +9,14 @@ import type { SeqRegistryEntry } from '@molstar/seqx-core/context';
 import { type AssetReader, DefaultOpenLimits, delayedRuntime, type StoreClock } from '@molstar/seqx-core/data';
 import { createSeqSpec, theme } from '@molstar/seqx-core/lang';
 import { BedFormats, BedRuntime } from '@molstar/seqx-core/runtimes/bed';
-import { VcfCategories, type VcfHeader, VcfFormats, VcfRuntime, type VcfSource } from '@molstar/seqx-core/runtimes/vcf';
+import {
+  VcfCategories,
+  type VcfHeader,
+  VcfFormats,
+  VcfRuntime,
+  type VcfSource,
+  vcfRuntime,
+} from '@molstar/seqx-core/runtimes/vcf';
 import { recordedAssets, withRecordedPages } from '../recorded-pages.js';
 import {
   Chr17Length,
@@ -110,6 +117,9 @@ export function misread(): Node {
   return b.build();
 }
 
+/** The `vcf` runtime over the recordings: level 1 only, as recorded (TP53's pages). */
+const RecordedVcfRuntime = vcfRuntime({ maxLevel: 1 });
+
 /** A header as a few lines: its format, contigs, INFO and FORMAT keys (`Number`, `Type`) and samples. */
 export function headerSummary(h: VcfHeader): string {
   const keys = (list: VcfHeader['info']) => list.map((d) => `  ${d.id} (Number=${d.number}, ${d.type})`);
@@ -155,7 +165,9 @@ export function registry(options: { readonly delayMs?: number; readonly clock?: 
   return [
     {
       kind: 'format-runtime',
-      runtime: delayedRuntime(withRecordedPages(VcfRuntime, RecordedFiles), {
+      // level 1 alone (`maxLevel`): ClinVar's index lists 1 to 4,096, but its recording holds TP53's pages only, so the
+      // coarser tiles of chr17 at the fit (each within the view's read cost) could not be read from it
+      runtime: delayedRuntime(withRecordedPages(RecordedVcfRuntime, RecordedFiles), {
         name: 'vcf-async',
         formats: VcfFormats,
         ...timing,

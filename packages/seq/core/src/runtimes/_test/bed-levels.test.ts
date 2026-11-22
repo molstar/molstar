@@ -10,15 +10,28 @@ import { describe, expect, it } from 'vitest';
 import {
   DefaultOpenLimits,
   type OpenContext,
+  type PairsBins,
+  type PairsList,
   type RangesList,
+  type RegionAnswer,
   type Shape,
   type SourceEntry,
 } from '../../data/protocol.js';
+import { sourceSuite } from '../../data/_test/source-suite.js';
+import { binPairs } from '../../data/summaries-pairs.js';
 import { binValues } from '../../data/summaries.js';
 import { checkAnswer } from '../../data/tables.js';
 import { BedRuntime, bedRuntime } from '../bed.js';
 import { densityOf } from '../internal/levels.js';
-import { generateBed6, generateBed12, generateBedGraph, indexed, memoryAssets, plainRows } from './bed-fixtures.js';
+import {
+  generateBed6,
+  generateBed12,
+  generateBedGraph,
+  generateBedpe,
+  indexed,
+  memoryAssets,
+  plainRows,
+} from './bed-fixtures.js';
 
 // BED and bedGraph by region past level 1 (_spec/README.md "Data", BED family; Genome runtimes' internals, Levels): the
 // levels the index's bytes allow, a tile's read cost the index's; at every level a region read equals the whole read
@@ -112,5 +125,55 @@ describe('BED and bedGraph by region, at every level', () => {
     const t = { system: 'chr1', start: 0, end: 256 * 1024, level: 256, shapes: ['ranges' as const] };
     expect(s.readCost!(t)).toBeUndefined();
     expect(await s.read(t, signal)).toMatchObject({ ok: false, kind: 'not-served' });
+  });
+});
+
+describe('BEDPE through the store’s protocol (EC-208)', () => {
+  it('lists `pairs` on each system and passes the source suite at every level', async () => {
+    const text = generateBedpe(600, names, 4, 2_000_000);
+    const s = await BedRuntime.open(entry('bedpe', { uri: undefined, value: text as never }), context({}));
+    expect(s.coverage.shapes).toEqual(names.map((system) => ({ system, shape: 'pairs' })));
+    expect(s.coverage.levels).toEqual([1, 16, 256, 4096]);
+    await sourceSuite(BedRuntime, entry('bedpe', { uri: undefined, value: text as never }), context({}));
+  });
+
+  it('a region’s pairs from either end, the items at any level; bin pairs tile by tile, each bin pair whole', async () => {
+    const text = generateBedpe(800, names, 6, 2_000_000);
+    const s = await BedRuntime.open(entry('bedpe', { uri: undefined, value: text as never }), context({}));
+    const all = (await s.read(
+      { system: 'chr1', start: 0, end: 4_194_304, level: 4096, shapes: ['pairs'], items: true },
+      signal,
+    )) as RegionAnswer & { ok: true };
+    const list = all.tables.pairs as PairsList;
+    for (const level of [16, 256, 4096]) {
+      // the bins of every tile over chr1, deduped by their whole key as a reader does: the items' bins on chr1
+      const seen = new Map<string, number>();
+      for (let k = 0; k * level * 1024 < 2_100_000; k++) {
+        const t = {
+          system: 'chr1',
+          start: k * level * 1024,
+          end: (k + 1) * level * 1024,
+          level,
+          shapes: ['pairs' as const],
+        };
+        const a = await s.read(t, signal);
+        expect(checkAnswer(a, t)).toBeUndefined();
+        const b = (a as RegionAnswer & { ok: true }).tables.pairs as PairsBins;
+        for (let i = 0; i < b.count.length; i++) {
+          const key = `${b.aSystem!.get(i)}|${b.bSystem!.get(i)}|${b.aBin[i]}|${b.bBin[i]}|${b.strand?.[i] ?? 0}`;
+          const was = seen.get(key);
+          if (was !== undefined) expect(b.count[i]).toBe(was);
+          seen.set(key, b.count[i]);
+        }
+      }
+      const whole = binPairs(list, level);
+      const want = new Map<string, number>();
+      for (let i = 0; i < whole.count.length; i++)
+        want.set(
+          `${whole.aSystem!.get(i)}|${whole.bSystem!.get(i)}|${whole.aBin[i]}|${whole.bBin[i]}|${whole.strand?.[i] ?? 0}`,
+          whole.count[i],
+        );
+      expect(seen).toEqual(want);
+    }
   });
 });

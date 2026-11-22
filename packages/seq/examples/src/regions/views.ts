@@ -94,7 +94,7 @@ export function generatedRuntime(options: GeneratedOptions = {}): FormatRuntime 
   };
 }
 
-/** What a view needs besides the default registry: the generated runtime, and the `bed` runtime for the BEDPE links. */
+/** What a view needs besides the default registry: the generated runtime (its BEDPE links opened by the `bed` runtime). */
 export function registry(options: { readonly delayMs?: number } = {}): SeqRegistryEntry[] {
   return [
     { kind: 'format-runtime', runtime: generatedRuntime(options) },
@@ -341,7 +341,7 @@ export const RegionReadsViews: readonly ExampleView[] = [
     id: 'pairs-zoomed-out',
     title: 'Pairs zoomed out: bin pairs by count',
     summary:
-      '12,000 generated links on a 2 Mb chromosome, read twice, held in the spec and as a BEDPE file: past the 4,096 arcs a view draws, the BEDPE’s pairs are read as bin pairs, each an arc stroked by its count; the held table, not read through the store, bins its arcs by device column. Hover a bin pair: it names both bins and the count, never a pair. The BEDPE row draws a few seconds after the page, once the store has built its pairs levels.',
+      '12,000 generated links on a 2 Mb chromosome, read twice, held in the spec and as a BEDPE file: past the 4,096 arcs a view draws, the BEDPE’s pairs are read as bin pairs (the `bed` runtime’s pairs levels, binned per tile from the rows it holds), each an arc stroked by its count; the held table, not read through the store, bins its arcs by device column. Hover a bin pair: it names both bins and the count, never a pair.',
     build: pairsZoomedOut,
     registry,
   },
