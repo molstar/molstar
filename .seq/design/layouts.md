@@ -626,6 +626,11 @@ more than a screen can give it, it scrolls inside itself with its name and the t
 - **Loading: the labels stay in the band**: a pending track's placeholder lane clips its labels to the band; nothing
   is drawn below a track's box (the author, 2026-11-22, the TP53 GFF3 while loading: "TP53-227" drawn under the
   placeholder, then the track jumping to its height).
+- **The values look** (the author, 2026-11-22, C picked over today's and two others: "let's go with C with the bars"):
+  below 4 CSS px a value, one stepped profile: the area at 35% of the series colour under a 0.75 px top line in the
+  full colour; from 4 px, bars at 60% with a 1 px gap and 2 px rounded tops. The top 10% of the well is headroom, a
+  hairline marks the baseline, a missing value is a gap, and the fill is clipped to the well. Why: a profile reads as
+  a signal when values are denser than bars can show, bars read as counts once each has room.
 - **A cut edge says so**: a 1 px `msui-border` line at the band's top or bottom where lanes are cut (the scroll's
   affordance at rest, quieter than the rail).
 - **Drag past the edge** (EC-150): a drag-select leaving the band autoscrolls it by time, as the rows band.
