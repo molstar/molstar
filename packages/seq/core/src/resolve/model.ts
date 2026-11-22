@@ -46,7 +46,7 @@ import {
   unionLocations,
 } from '@molstar/seqx-core/query';
 import { type AssemblyEntry, genomeLoaded } from './genome.js';
-import { assemblyLengths, lengthKey, resolveAssemblies } from './model-assemblies.js';
+import { assemblyAnnotations, assemblyLengths, lengthKey, resolveAssemblies } from './model-assemblies.js';
 import type { GeneticCode } from './codon.js';
 import { type GridData, type PairsData } from './held.js';
 import {
@@ -254,6 +254,13 @@ export interface AnnotationEntry {
   readonly units?: readonly string[];
   /** A complex's links' ends on each system as inline ranges: what a `ranges` layer over links reads (`LinkEnds`). */
   readonly ends?: LinkEnds;
+  /**
+   * Data over an assembly (_spec/README.md "Resolve", Assemblies: data over an assembly): `target` (and `ySystem`, a
+   * second assembly) is the assembly's address, and each derived sequence is read on its own system by the plan here
+   * (inline rows split by their `target` field, a source by region under the name it lists the sequence by). A
+   * sequence `include` leaves out, or one no inline row names, has none: a layer on its block reads nothing.
+   */
+  readonly bySystem?: ReadonlyMap<string, AccessPlan>;
 }
 
 /**
@@ -392,8 +399,13 @@ export interface Resolver {
 export function sourceLengths(model: StaticModel, coverage: (source: string) => Coverage | undefined): Lengths {
   const out = new Map<string, number>();
   const hashes = SourceHashes.get(model);
-  // an assembly's source and alias source: their systems ride along (`model-assemblies.ts`)
-  assemblyLengths(model.assemblies.values(), hashes, coverage, out);
+  // an assembly's source and alias source, and the sources of data over one: their systems ride along
+  // (`model-assemblies.ts`)
+  const over: { address: string; source: string }[] = [];
+  for (const a of model.annotations.values())
+    if (a.bySystem && a.access?.kind === 'source')
+      over.push({ address: a.address, source: channelSource(a.access.source) });
+  assemblyLengths(model.assemblies.values(), hashes, coverage, out, over);
   for (const s of model.systems.values()) {
     const hash = s.source && hashes?.get(s.source);
     if (!hash) continue;
@@ -409,7 +421,10 @@ export function sourceLengths(model: StaticModel, coverage: (source: string) => 
     const source = channelSource(a.access.source);
     const hash = hashes?.get(source);
     const target = model.systems.get(a.target);
-    const states = target && coverageStates(coverage(source), target);
+    // over an assembly: the states its source lists for any of its sequences (one matrix, one set of states)
+    const states = target
+      ? coverageStates(coverage(source), target)
+      : a.bySystem && coverage(source)?.shapes.find((s) => s.shape === 'matrix' && s.states)?.states;
     if (hash && states) out.set(lengthKey(a.states, hash), states.length);
   }
   return out;
@@ -653,6 +668,13 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
   }
 
   genomeLoaded()?.checkAssemblyData(data, assemblies, byAddress, issues);
+  // data over an assembly: a plan a derived sequence (`model-assemblies.ts`)
+  assemblyAnnotations(
+    { data, ref, sourceHashes, given, cached, key, systems, issues },
+    assemblies,
+    lengths,
+    annotations,
+  );
 
   // pairs and grids: held whole on their two systems
   for (const at of data) {
@@ -703,7 +725,7 @@ function build(spec: Node, options: ResolveOptions, cached: Cached, carried?: Re
   }
 
   buildLinks(inner, molecular, systems, annotations, cached, key);
-  unreadParams(spec, (n) => overAssembly(n, assemblies), issues);
+  unreadParams(spec, issues);
 
   const compounds = new Map<string, CompoundEntry>();
   for (const at of data)

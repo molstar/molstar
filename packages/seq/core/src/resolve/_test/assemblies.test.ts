@@ -423,7 +423,6 @@ describe('unread params', () => {
       .map((i) => `${i.address} ${i.message}`);
     expect(said).toEqual([
       '/data/g `assembly.names`: read by lane GF',
-      '/data/over A ranges over an assembly: read by lane GC2',
       '/views/v/a `section.member_order`: read by lane LA',
       '/views/v/br A bridge: read by lane LA',
     ]);

@@ -110,7 +110,7 @@ export function assemblyPairs(
 }
 
 /** A table column's rows `rows`, in its own form (a typed array, a category column read out, a list). */
-function pick(v: Value, rows: readonly number[]): Value {
+export function pick(v: Value, rows: readonly number[]): Value {
   const c = v as unknown as {
     get?(i: number): unknown;
     constructor: new (n: number) => ArrayLike<number> & Record<number, number>;

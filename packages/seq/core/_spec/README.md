@@ -2081,9 +2081,20 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
   optional `$`; no groups, alternation, backreferences or counted repeats; at most 256 characters), matched by a table
   over the name and the atoms, never a backtracking search: a spec is untrusted and a pattern runs over 100,000 names.
   One outside it is `seq.lang.include.pattern` (error) and reads as a name.
-- **Data over an assembly**: resolve says a source naming another assembly (`seq.resolve.assembly.mismatch`) and inline
-  rows whose `target` names no sequence, counted once with the first (`seq.resolve.assembly.name`); reading such data by
-  sequence is the store's and the view's (Genomes milestone). Pairs, grids and maps read from a source are not held.
+- **Data over an assembly** (`resolve/genome-data.ts`, the genome chunk): a `ranges`, `values`, `pairs`, `grid` or
+  `matrix` node whose `target` (`a`, `x`) names an assembly is read by sequence: its entry's `target` (and `ySystem`) is
+  the assembly, and `bySystem` holds a plan for each derived sequence, on its own system. Inline ranges are split by
+  their `target` field through the names rule into one inline `seq` source over every sequence named (its systems named
+  by their addresses, every one served at every level listed, a row's key its row in the node's table); inline pairs,
+  grids, matrices and values name no sequence a row and read nothing. A source is read by region on each sequence under
+  the name it lists the sequence by: its coverage's names (and aliases) mapped through the names rule (`17` is `chr17`),
+  carried to the next resolve inside the lengths as an assembly's own source's coverage is (`listedSystems`); before it
+  opens, the sequence's printed name. A sequence `include` leaves out has no plan and reads nothing. Said: a source
+  naming another assembly (`seq.resolve.assembly.mismatch`), inline rows whose `target` names no sequence and the names
+  a source lists that no sequence is, each counted once with the first (`seq.resolve.assembly.name`). A matrix's states
+  are as many as its source lists for any sequence. Pairs over two assemblies plan both's sequences. Why a plan a
+  sequence: each block is a system the store reads by region, and a layer on a block reads its own plan; nothing new in
+  the store or the protocol. Pairs, grids and maps read from a source are not held.
 - **A map between assemblies** is one map over every sequence pair: its inline runs grouped by `from_name` and `to_name`
   into one entry a pair, each keyed apart and stepping as the map (`Edge.map` its address), so a path between two
   sequences is one step of it and the ambiguity rules read one map (EC-207); a run naming no sequence is left out
@@ -2094,8 +2105,7 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
 ### Unread params
 
 - **Said, never dropped in silence** (`resolve/unread.ts`): a param the language declares and this version reads nowhere
-  is `seq.resolve.param.unread` (info), one a node, naming the lane that reads it: `map.source` (FR), data over an
-  assembly (GC2: its rows by sequence not read yet), `section.member_order` and `member_order_y` (LA), a `bridge` (LA),
+  is `seq.resolve.param.unread` (info), one a node, naming the lane that reads it: `map.source` (FR), `section.member_order` and `member_order_y` (LA), a `bridge` (LA),
   `assembly.names` (GF: the printed names stay the assembly's). The lane that reads one drops it from `Unread`. Why: a
   reader shown a spec drawn without what it says should be told why.
 

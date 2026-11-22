@@ -155,7 +155,10 @@ export interface LayerData {
   readonly system: string;
   /** The shape of the node it names (a query on a sequence: undefined, a location of any shape). */
   readonly shape?: Shape;
-  /** A dynamic node's access plan and its system's length (a template's instance: the overlay's, not the model's). */
+  /**
+   * A dynamic node's access plan and its system's length (a template's instance: the overlay's, not the model's), or
+   * data over an assembly's plan on the section's or block's sequence (the annotation's `bySystem`).
+   */
   readonly access?: AccessPlan;
   readonly length?: number;
   /**
@@ -1322,6 +1325,12 @@ function layerData(spec: Node, value: Value | undefined): Value | undefined {
   return 'addresses' in f && f.addresses.length === 1 ? f.addresses[0] : value;
 }
 
+/** A system's length as a layer's data carries it (none when unknown). */
+function lengthOf(model: StaticModel, system: string): { length?: number } {
+  const length = model.systems.get(system)?.length;
+  return length === undefined ? {} : { length };
+}
+
 /** A layer's data: the section's letters when it names none; an address's node; a query's first node. */
 function dataOf(model: StaticModel, value: Value | undefined, type: string, section: string): LayerData | undefined {
   if (value === undefined)
@@ -1353,11 +1362,15 @@ function dataOf(model: StaticModel, value: Value | undefined, type: string, sect
   const base = split?.base;
   const filter = split?.filter;
   const unread = split?.unread;
+  // over an assembly: its plan on the section's (or the block's) sequence, which reads nothing without one (Resolve,
+  // data over an assembly)
+  const plan = a?.bySystem?.get(section);
   return a
     ? {
         kind,
         address,
-        system: a.target,
+        system: plan ? section : a.target,
+        ...(plan ? { access: plan, ...lengthOf(model, section) } : {}),
         shape: a.shape,
         ...(base ? { base } : {}),
         ...(filter ? { filter } : {}),

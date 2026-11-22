@@ -16,6 +16,7 @@ import {
   SourceOpenError,
   type Want,
 } from '@molstar/seqx-core/data';
+import { channelSource } from '@molstar/seqx-core/data/channels';
 import { checkSeqSpec, type SpecBounds } from '@molstar/seqx-core/lang';
 import {
   isEmptyLocation,
@@ -240,6 +241,13 @@ export async function openModel(spec: Node, store: DataStore, options: OpenModel
   );
   // an assembly's sources list its sequences: opened first, so its systems derive at the next resolve
   for (const a of model.assemblies.values()) for (const s of [a.source, a.aliasSource]) if (s) first.add(s);
+  // data over an assembly lists the names it reads each sequence by: opened first too, its plans named at the next
+  // resolve (_spec/README.md "Resolve", Assemblies)
+  for (const a of model.annotations.values())
+    if (a.bySystem && a.access?.kind === 'source') {
+      const s = channelSource(a.access.source);
+      if (!shown || shown.has(s)) first.add(s);
+    }
   const attach = (m: StaticModel, only: Set<string> | undefined) => {
     const { only: _o, ...rest } = options;
     return attachSources(m, store, { ...rest, ...(only ? { only } : {}) });

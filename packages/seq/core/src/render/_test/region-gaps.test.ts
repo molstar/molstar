@@ -146,5 +146,8 @@ describe('region reads: gaps', () => {
     const s = await settle(b.build(), [SeqRuntime]);
     const f = await s.frame({ size: { width: 720, height: 600 } });
     expect(f.layout.sections[0].sectionLays.length).toBe(1);
+    // the two links, each a chord from c1 to c2 (found from either end, once)
+    const lay = f.layout.sections[0].sectionLays[0].lay as unknown as { n: number };
+    expect(lay.n).toBe(2);
   });
 });

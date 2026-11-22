@@ -7,7 +7,16 @@
 // The genome chunk (_spec/README.md "Resolve", Assemblies, Loaded when used): imported by `loadGenome` only.
 
 import { assemblyEntry } from './assemblies.js';
+import { assemblyAnnotation } from './genome-data.js';
 import { assemblyPairs, checkAssemblyData } from './genome-model.js';
-import { assemblyLengths, resolveAssemblies } from './genome-resolve.js';
+import { assemblyLengths, listedSystems, resolveAssemblies } from './genome-resolve.js';
 
-export const Genome = { assemblyEntry, assemblyLengths, assemblyPairs, checkAssemblyData, resolveAssemblies };
+export const Genome = {
+  assemblyAnnotation,
+  assemblyEntry,
+  assemblyLengths,
+  assemblyPairs,
+  checkAssemblyData,
+  listedSystems,
+  resolveAssemblies,
+};

@@ -31,24 +31,45 @@ function contentHash(systems: readonly SystemInfo[]): number {
   return h;
 }
 
-/** The assemblies' sources' coverage into `out` (what `sourceLengths` returns): each keyed by its content's hash. */
+/**
+ * The assemblies' sources' coverage into `out` (what `sourceLengths` returns): each keyed by its content's hash. With
+ * `data`, the sources of data over an assembly too (each by its node's address): resolve reads the names they list a
+ * sequence by (`listedSystems`).
+ */
 export function assemblyLengths(
   assemblies: Iterable<AssemblyEntry>,
   hashes: ReadonlyMap<string, string> | undefined,
   coverage: (source: string) => Coverage | undefined,
   out: Map<string, number>,
+  data: Iterable<{ readonly address: string; readonly source: string }> = [],
 ): void {
   const listed = new Map<string, readonly SystemInfo[]>();
-  for (const a of assemblies)
-    for (const src of [a.source, a.aliasSource]) {
-      const hash = src && hashes?.get(src);
-      const systems = hash ? coverage(src!)?.systems : undefined;
-      if (!systems) continue;
-      const k = lengthKey(`${a.address}#${src}`, hash!);
-      out.set(k, contentHash(systems));
-      listed.set(k, systems);
-    }
+  const add = (owner: string, src: string | undefined) => {
+    const hash = src && hashes?.get(src);
+    const systems = hash ? coverage(src!)?.systems : undefined;
+    if (!systems) return;
+    const k = lengthKey(`${owner}#${src}`, hash!);
+    out.set(k, contentHash(systems));
+    listed.set(k, systems);
+  };
+  for (const a of assemblies) for (const src of [a.source, a.aliasSource]) add(a.address, src);
+  for (const d of data) add(d.address, d.source);
   if (listed.size) Coverages.set(out, listed);
+}
+
+/**
+ * The systems a source listed for `owner` (an assembly, or data over one) as the last `sourceLengths` carried them, and
+ * their content's hash (what an entry built from them is cached by); undefined while the source has not opened.
+ */
+export function listedSystems(
+  given: Lengths,
+  sourceHashes: ReadonlyMap<string, string>,
+  owner: string,
+  source: string | undefined,
+): { readonly systems: readonly SystemInfo[] | undefined; readonly hash: number | undefined } | undefined {
+  const h = source && sourceHashes.get(source);
+  const k = h ? lengthKey(`${owner}#${source}`, h) : undefined;
+  return k ? { systems: Coverages.get(given)?.get(k), hash: given.get(k) } : undefined;
 }
 
 const p = (n: Node, key: string): Value | undefined => n.params?.[key];
@@ -56,16 +77,11 @@ const p = (n: Node, key: string): Value | undefined => n.params?.[key];
 /** The assemblies by address, their derived systems added to the build's. */
 export function resolveAssemblies(b: AssemblyBuild): Map<string, AssemblyEntry> {
   const assemblies = new Map<string, AssemblyEntry>();
-  const listed = Coverages.get(b.given);
   for (const at of b.data) {
     if (at.node.kind !== 'assembly') continue;
     const src = p(at.node, 'source') === undefined ? undefined : b.ref(at, 'source', ['source'])?.address;
     const alias = p(at.node, 'alias_source') === undefined ? undefined : b.ref(at, 'alias_source', ['source'])?.address;
-    const coverageOf = (s: string | undefined) => {
-      const h = s && b.sourceHashes.get(s);
-      const k = h ? lengthKey(`${at.address}#${s}`, h) : undefined;
-      return k ? { systems: listed?.get(k), hash: b.given.get(k) } : undefined;
-    };
+    const coverageOf = (s: string | undefined) => listedSystems(b.given, b.sourceHashes, at.address, s);
     const c = coverageOf(src);
     const t = coverageOf(alias);
     const e = b.cached(`${at.address}|${b.key(at)}|${c?.hash ?? ''}|${t?.hash ?? ''}`, () =>
