@@ -211,16 +211,17 @@ export function drawHighlights(lay: PairsLay, out: PassWriter, highlights: reado
       g[7] = 0;
       out.curveArgs(lay.curve, 8 * i);
     }
-    // a caret (an end whose partner is not drawn) is its pair's mark too: outlined with it (the hover contract)
+    // a caret (an end whose partner is not drawn) is its pair's mark too: outlined in its channel's color
     const cs = lay.carets;
     for (let i = 0; i + 3 < cs.length; i += 4) {
-      if (!lit(lay, pass, e, cs[i + 3], hovered)) continue;
+      const c = lit[cs[i + 3]];
+      if (!c) continue;
       g[0] = cs[i] - Caret / 2 - 1;
       g[1] = (cs[i + 2] > 0 ? cs[i + 1] - 2 * Caret : cs[i + 1]) - 1;
       g[2] = Caret + 2;
       g[3] = 2 * Caret + 2;
       g[4] = NoColor;
-      g[5] = ink;
+      g[5] = highlights[c - 1].color;
       g[6] = width - 1;
       g[7] = 0;
       g[8] = 0;
