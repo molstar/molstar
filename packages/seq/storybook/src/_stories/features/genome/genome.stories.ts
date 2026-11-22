@@ -85,3 +85,22 @@ export const ARingThatSwitches: StoryObj = {
   name: 'A Ring That Switches',
   render: () => exampleStory(view('ring-switch'), { stacked: true, navigators: 'include' }),
 };
+
+/**
+ * A BED over the assembly: one file over every chromosome (its names `1` to `22`, `X`, `Y`; the assembly's `chr1` …:
+ * the names rule maps them), read by region a chromosome at a time; each block draws its own features. Zoom into a
+ * chromosome and its features part.
+ */
+export const ABedOverTheAssembly: StoryObj = {
+  name: 'A BED Over The Assembly',
+  render: () => exampleStory(view('bed-over-rows'), { stacked: true }),
+};
+
+/**
+ * hg38's cytobands over GRCh38's 25 primary sequences (UCSC's cytoBandIdeo, the recorded file), read by sequence: a
+ * bands track on every chromosome, and the ideogram navigator over the genome showing the window. The file's 686
+ * other contigs (alternates, unplaced) are no sequence of the assembly: said once, as an info.
+ */
+export const CytobandsOverTheGenome: StoryObj = {
+  render: () => exampleStory(view('cytobands'), { stacked: true, navigators: 'include' }),
+};

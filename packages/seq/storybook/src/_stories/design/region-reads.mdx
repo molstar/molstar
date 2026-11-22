@@ -41,12 +41,14 @@ and for a grid of several chromosomes a whole-assembly level cut from the blocks
 Generated in the examples (small, seeded, no file read), answered after a delay on the store's clock, the coarse levels
 first, each the canvas and the SVG of one view, light and dark by the toolbar's theme:
 
-- Pairs: [zoomed in](?path=/story/seq-next-features-region-reads-pairs--zoomed-in) (a synteny alignment, items as arcs),
-  [zoomed out](?path=/story/seq-next-features-region-reads-pairs--zoomed-out) (12,000 links, bin pairs by count, held
-  and as a BEDPE), [on a ring](?path=/story/seq-next-features-region-reads-pairs--on-a-ring) (chords between bins)
+- Pairs: [zoomed in](?path=/story/seq-next-features-region-reads-pairs--zoomed-in) (a synteny alignment between two
+  assemblies in one section, items as arcs), [zoomed out](?path=/story/seq-next-features-region-reads-pairs--zoomed-out)
+  (12,000 links, bin pairs by count, held and as a BEDPE one picture: the pairs level),
+  [on a ring](?path=/story/seq-next-features-region-reads-pairs--on-a-ring) (the genome ring: chords between a toy
+  assembly's chromosomes)
 - Hi-C: [by region](?path=/story/seq-next-features-region-reads-hi-c--by-region) (a pending tile drawn coarse, then
-  sharp), [over the genome](?path=/story/seq-next-features-region-reads-hi-c--over-the-genome) (the whole-assembly
-  level)
+  sharp), [over the genome](?path=/story/seq-next-features-region-reads-hi-c--over-the-genome) (an assembly's blocks on
+  both axes, read by block pair)
 - Matrix: [samples by positions](?path=/story/seq-next-features-region-reads-matrix--samples-by-positions) (40 samples,
   a long deletion solid), [on a ring](?path=/story/seq-next-features-region-reads-matrix--on-a-ring),
   [methylation with values missing](?path=/story/seq-next-features-region-reads-matrix--methylation-with-missing-values)
@@ -55,9 +57,7 @@ first, each the canvas and the SVG of one view, light and dark by the toolbar's 
 
 ## Not yet
 
-- Pairs, grids and matrices read by source **over an assembly** (a ring of chords between a genome's chromosomes, a Hi-C
-  over the blocks of an assembly with gaps and labels on both axes, a synteny of two genomes in one section) wait for
-  data over an assembly to be read by sequence: the stories above put a genome in one system, or draw one chromosome.
-- A BEDPE file is served by region through a host adapter (the runtime lists no `pairs` shape); a held table of links is
-  not read through the store, so past the gate it bins arcs by device column, not by the pairs level.
+- Over an assembly, a grid reads by block pair at every zoom: the whole-assembly level cut into block pairs (one want
+  for the section at the fit) is not read yet.
+- A BEDPE file is served by region through a host adapter (the runtime lists no `pairs` shape).
 - The matrix's state labels in the header (the `order` and `hidden` of a state) are listed, not built.

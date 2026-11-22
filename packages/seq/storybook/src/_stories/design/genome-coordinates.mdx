@@ -75,5 +75,11 @@ Toy assemblies generated in the story, each the canvas and the SVG of one view, 
 - [The square over blocks × blocks](?path=/story/seq-next-features-genome-coordinates--the-square)
 - [A ring that switches](?path=/story/seq-next-features-genome-coordinates--a-ring-that-switches)
 
-Not yet built: an ideogram's bands over every chromosome and data over an assembly read by sequence; the square's cells
-(region reads) and its grips; a navigator over a list of assemblies.
+- [A BED over the assembly](?path=/story/seq-next-features-genome-coordinates--a-bed-over-the-assembly): one file over
+  every chromosome, its names mapped by the names rule, each block reading its own sequence
+- [Cytobands over the genome](?path=/story/seq-next-features-genome-coordinates--cytobands-over-the-genome): hg38's
+  bands on every chromosome and as the ideogram navigator
+
+Data over an assembly is read by sequence: a block reads its own sequence's rows (inline rows split by their `target`,
+a source by region under the names it lists). Not yet built: the square's cells (region reads) and its grips; a
+navigator over a list of assemblies; the whole-assembly level cut into block pairs.

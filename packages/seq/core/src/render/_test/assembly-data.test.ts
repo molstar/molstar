@@ -12,7 +12,9 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import type { BlockPlacement } from '../layout/blocks.js';
 import type { Frame } from '../renderer.js';
 import { hitView } from '../tracks-hit.js';
+import { recordDrawLists } from '../record.js';
 import { settle } from './helpers.js';
+import { settleNavigator } from './navigator-fixtures.js';
 
 // Data over an assembly read by sequence (_spec/README.md "Resolve", Assemblies: data over an assembly): each block of
 // a section of the assembly reads its own sequence's rows, inline (split by `target`) or from a source by region.
@@ -129,5 +131,49 @@ describe('ranges over an assembly', () => {
     );
     const f = await s.frame({ size: Size });
     expect(keysByStrip(f, 1)).toEqual({ chr2: ['c'], chr3: [] });
+  });
+});
+
+describe('the ideogram over an assembly', () => {
+  /** A toy assembly's section with cytobands over every chromosome (or `only` those) and an ideogram navigator. */
+  function ideogram(only?: string): Node {
+    const rows = {
+      start: [] as number[],
+      end: [] as number[],
+      id: [] as string[],
+      stain: [] as string[],
+      target: [] as string[],
+    };
+    for (const c of Toy) {
+      if (only && c.name !== only) continue;
+      for (let i = 0; i < 4; i++) {
+        rows.start.push((c.length * i) / 4);
+        rows.end.push((c.length * (i + 1)) / 4);
+        rows.id.push(`${c.name}p${i}`);
+        rows.stain.push(['gneg', 'gpos50', 'acen', 'gpos100'][i]);
+        // the bands file's names without the prefix: `1` is `chr1`
+        rows.target.push(c.name.replace('chr', ''));
+      }
+    }
+    const b = createSeqSpec({ title: 'ideogram over an assembly' });
+    const g = b.data.assembly('toy', assembly('Toy', Toy, { order: 'source' } as never));
+    const bands = b.data.ranges('bands', { target: g, rows } as never);
+    b.views.view('v', (v) => genome(v, 'genome', g, { bands }));
+    return b.build();
+  }
+
+  const rects = async (spec: Node) => {
+    const s = await settleNavigator(spec);
+    const { nav } = await s.frames({ size: Size }, { size: { width: 900, height: 24 } });
+    return recordDrawLists(nav.lists, ['data'])
+      .split('\n')
+      .filter((l) => l.startsWith('rect ')).length;
+  };
+
+  it('reads its bands by sequence: every chromosome’s bands drawn (GC3’s follow-up)', async () => {
+    const all = await rects(ideogram());
+    const one = await rects(ideogram('chr1'));
+    expect(one).toBeGreaterThan(0);
+    expect(all).toBeGreaterThanOrEqual(3 * one - 2);
   });
 });
