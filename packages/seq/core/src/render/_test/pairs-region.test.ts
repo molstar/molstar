@@ -7,10 +7,7 @@
 // Pairs read by region (_spec/README.md "Render", The pairs layer): zoomed out, bin pairs each an arc stroked by count
 // and hit as its bin; zoomed in past the gate, the items themselves; every bin pair in view its arc (EC-208, EC-171).
 
-import { PCG } from '@molstar/core/data/util/hash-functions';
-import { categoryColumn } from '@molstar/core/repr/tree';
-import { binPairs, type PairsList, type SeqData, SeqRuntime, seqToValue } from '@molstar/seqx-core/data';
-import { createSeqSpec } from '@molstar/seqx-core/lang';
+import { SeqRuntime } from '@molstar/seqx-core/data';
 import { describe, expect, it } from 'vitest';
 import { hitView, pairsBinHover } from '../index.js';
 import type { PairsLay } from '../pairs.js';

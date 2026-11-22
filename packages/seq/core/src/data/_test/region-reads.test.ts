@@ -10,7 +10,7 @@ import { dataKey, foldTile } from '../keys.js';
 import type { GridDense, OpenedSource, PairsBins, PairsList, RegionRequest, Tables } from '../protocol.js';
 import { decodeSeq, encodeSeq } from '../seq-format.js';
 import { openSeq } from '../seq-runtime.js';
-import { coarsenBins, withSummaries } from '../summaries.js';
+import { coarsenBins, DefaultSummarySettings, withSummaries } from '../summaries.js';
 import { binPairs } from '../summaries-pairs.js';
 import type { SliceClock } from '../summaries-region.js';
 import { transposeGrid } from '../summaries-grid.js';
@@ -299,7 +299,7 @@ describe('the pairs level (EC-208)', () => {
         dispose: () => inner.dispose(),
       };
     };
-    const tiny = { factor: 16, maxBytes: 100, sliceMs: 4 };
+    const tiny = { ...DefaultSummarySettings, maxBytes: 100 };
     const tile: RegionRequest = { system: 'chr1', start: 0, end: 4096, level: 256, shapes: ['pairs'] };
     const blind = withSummaries(counted(), tiny, undefined, Now);
     const a = await blind.read(tile, signal);

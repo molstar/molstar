@@ -8,7 +8,7 @@
 // extents (a long deletion solid, drawn under the short items, EC-222), missing values transparent (EC-220), coarse bins
 // as image tiles, pending across the band before its tiles land (EC-169), a cell hit as its item and state.
 
-import { SeqRuntime, seqToValue } from '@molstar/seqx-core/data';
+import { SeqRuntime } from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { LightTokens } from '@molstar/seqx-core/render';
 import { describe, expect, it } from 'vitest';
