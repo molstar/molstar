@@ -94,10 +94,18 @@ const ParticlesRepresentation3D = PluginStateTransform.BuiltIn({
       },
     };
 
+    // a type of the theme list's (its params of it: the target's, by the leaves' targets) or the list's own, which
+    // the types drawing a list whole take (flattened) and a slot list's refuse: not of the theme list's alone (a
+    // spacefill's params else mapped to the default type's, a target representation more)
+    const applies = (name: string) => {
+      const provider = registry.get(name);
+      return provider.isApplicable(data) ? data : provider.isApplicable(a.data) ? a.data : undefined;
+    };
+    const types = registry.types.filter(([name]) => applies(name));
     return {
       type: registry.default
-        ? PD.Mapped<any>(registry.default.name, registry.getApplicableTypes(data), (name) =>
-            PD.Group<any>(registry.get(name).getParams(themeCtx, data)),
+        ? PD.Mapped<any>(registry.default.name, types, (name) =>
+            PD.Group<any>(registry.get(name).getParams(themeCtx, applies(name) ?? data)),
           )
         : emptyMappedParams(),
       colorTheme: hasColor

@@ -252,6 +252,12 @@ export function createTemplateCopyMarkers(getBudget?: () => number): TemplateCop
   const copyCounts = new Map<ParticleList, number>();
   /** per template its leaf list's targets (`getLeafList`: the ids its objects draw) */
   const leafTargets = new Map<ParticleList, ParticleList['targets']>();
+  /**
+   * per template the particles marked in every copy by its objects' own markers (`templateWide`), by kind: what a
+   * removal from some of its copies moves into every copy's markers first (the others keep it), what a removal from
+   * every copy takes from the copies' markers too (a copy's own marks of them)
+   */
+  const wide = new Map<ParticleList, Partial<Record<MarkKind, OrderedSet<number>>>>();
   /** advanced as the markers change: what a template's summary is of */
   let version = 0;
   const write = () => {
@@ -292,6 +298,7 @@ export function createTemplateCopyMarkers(getBudget?: () => number): TemplateCop
       copyCounts.clear();
       leafTargets.clear();
       summaries.clear();
+      wide.clear();
       templateOfCopy.length = 0;
       copyOfTop = new Int32Array(list.count).fill(-1);
       let base = 0;
@@ -314,14 +321,15 @@ export function createTemplateCopyMarkers(getBudget?: () => number): TemplateCop
     mark(list, loci, action) {
       const templateWide = new Map<ParticleList, OrderedSet<number>>();
       let changed = false;
+      const kinds = getMarkKinds(action);
+      const removing = isRemovingAction(action);
       if (isEveryLoci(loci)) {
         // every copy's own markers cleared by an action that removes (its objects' own take every particle)
-        if (isRemovingAction(action)) changed = markers.markAll(action);
+        if (removing) {
+          changed = markers.markAll(action);
+          for (const w of wide.values()) for (const k of kinds) delete w[k];
+        }
       } else if (Particle.isLoci(loci) && loci.particles === list && copyOfTop.length === list.count) {
-        OrderedSet.forEach(loci.indices, (top) => {
-          const c = copyOfTop[top];
-          if (c >= 0 && markers.markCopy(c, action)) changed = true;
-        });
         const partial = loci.partial;
         if (partial) {
           // a template's particles in every copy (the same set each, `ofTemplateParticles`): its objects' own
@@ -339,9 +347,68 @@ export function createTemplateCopyMarkers(getBudget?: () => number): TemplateCop
             }
           }
           for (const [t, e] of byTemplate) if (e.locals && e.count === copyCounts.get(t)) templateWide.set(t, e.locals);
+        }
+        const forEachCopy = (t: ParticleList, f: (c: number) => void) => {
+          const base = bases.get(t) ?? 0;
+          for (let c = base, ce = base + (copyCounts.get(t) ?? 0); c < ce; ++c) f(c);
+        };
+        // kept by kind: added to, or taken from in every copy (and from every copy's own markers)
+        for (const [t, locals] of templateWide) {
+          let w = wide.get(t);
+          if (!w) wide.set(t, (w = {}));
+          for (const k of kinds) {
+            const was = w[k];
+            const next = removing
+              ? was && OrderedSet.subtract(was, locals)
+              : was
+                ? OrderedSet.union(was, locals)
+                : locals;
+            if (next && OrderedSet.size(next) > 0) w[k] = next;
+            else delete w[k];
+          }
+          if (removing) {
+            forEachCopy(t, (c) => {
+              if (markers.markIndices(c, locals, action)) changed = true;
+            });
+          }
+        }
+        // a removal from some copies of a template marked in every copy: that mark moved into every copy's markers
+        // first (its objects' own let go of it: `templateWide`), the removal from those copies' after
+        const pushed = new Set<ParticleList>();
+        const pushDown = (c: number) => {
+          const t = templateOfCopy[c];
+          const w = wide.get(t);
+          if (!w || pushed.has(t) || templateWide.has(t)) return;
+          let all: OrderedSet<number> | undefined;
+          for (const k of kinds) {
+            const marked = w[k];
+            if (!marked) continue;
+            const add = k === 'select' ? MarkerAction.Select : MarkerAction.Highlight;
+            forEachCopy(t, (q) => markers.markIndices(q, marked, add));
+            all = all ? OrderedSet.union(all, marked) : marked;
+            delete w[k];
+          }
+          if (!all) return;
+          pushed.add(t);
+          templateWide.set(t, all);
+          changed = true;
+        };
+        if (removing) {
+          OrderedSet.forEach(loci.indices, (top) => {
+            if (copyOfTop[top] >= 0) pushDown(copyOfTop[top]);
+          });
+          if (partial) for (const top of partial.tops) if (copyOfTop[top] >= 0) pushDown(copyOfTop[top]);
+        }
+        OrderedSet.forEach(loci.indices, (top) => {
+          const c = copyOfTop[top];
+          if (c >= 0 && markers.markCopy(c, action)) changed = true;
+        });
+        if (partial) {
           for (let i = 0; i < partial.tops.length; ++i) {
             const c = copyOfTop[partial.tops[i]];
-            if (c < 0 || templateWide.has(templateOfCopy[c])) continue;
+            if (c < 0) continue;
+            const t = templateOfCopy[c];
+            if (templateWide.has(t) && !pushed.has(t)) continue;
             if (markers.markIndices(c, partial.locals[i], action)) changed = true;
           }
         }
@@ -350,6 +417,25 @@ export function createTemplateCopyMarkers(getBudget?: () => number): TemplateCop
       return { changed, templateWide };
     },
   };
+}
+
+/** what a template-wide mark is kept by (`TemplateCopyMarkers`): selected or highlighted */
+type MarkKind = 'select' | 'highlight';
+
+/** the kinds `action` adds to or takes from (none: a toggle, which a template-wide mark is not kept through) */
+function getMarkKinds(action: MarkerAction): readonly MarkKind[] {
+  switch (action) {
+    case MarkerAction.Select:
+    case MarkerAction.Deselect:
+      return ['select'];
+    case MarkerAction.Highlight:
+    case MarkerAction.RemoveHighlight:
+      return ['highlight'];
+    case MarkerAction.Clear:
+      return ['select', 'highlight'];
+    default:
+      return [];
+  }
 }
 
 /** whether `action` only takes markers away */

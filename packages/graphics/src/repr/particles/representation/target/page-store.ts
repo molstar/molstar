@@ -147,7 +147,15 @@ export interface PageStoreOptions {
   readonly pageCapacity?: number;
   /** a deferred list's page values kept once given up (`PageValueCacheBytes` by default) */
   readonly valueCacheBytes?: number;
+  /** a deferred list's read failing: told once a list (by default a console warning), its page read again later */
+  readonly onReadError?: (list: ParticleList, error: unknown) => void;
+  /** the clock a failed read's retry waits by (ms, `performance.now` by default) */
+  readonly now?: () => number;
 }
+
+/** a failed page read's first wait before it is read again (ms), doubled each failure up to `PageReadRetryMaxMs` */
+export const PageReadRetryMs = 250;
+export const PageReadRetryMaxMs = 30_000;
 
 function valuesBytes(v: PageValues) {
   return v.positions.byteLength + (v.rotations?.byteLength ?? 0);
@@ -186,8 +194,20 @@ export class ParticlePageStore {
   /** per page of a deferred list (`Particle.DeferredParticles`): its list and range, its read in flight */
   private readonly deferredPages = new Map<
     number,
-    { readonly list: ParticleList; readonly lo: number; readonly hi: number; reading?: Promise<void> }
+    {
+      readonly list: ParticleList;
+      readonly lo: number;
+      readonly hi: number;
+      reading?: Promise<void>;
+      /** its reads failed in a row, and when it is read again (`now`): not every frame the cull wants it */
+      failures?: number;
+      retryAt?: number;
+    }
   >();
+  private readonly onReadError: (list: ParticleList, error: unknown) => void;
+  private readonly now: () => number;
+  /** the lists whose read failure was told (`onReadError`) */
+  private readonly toldFailures = new WeakSet<ParticleList>();
   /** a deferred list's page values given up (`releaseValues`), by when (the oldest first), their bytes */
   private readonly valueCache = new Map<number, PageValues>();
   private readonly valueCacheLimit: number;
@@ -213,6 +233,10 @@ export class ParticlePageStore {
   constructor(options: PageStoreOptions = {}) {
     const pages = Math.max(4, options.pageCapacity ?? 16);
     this.valueCacheLimit = options.valueCacheBytes ?? PageValueCacheBytes;
+    this.onReadError =
+      options.onReadError ??
+      ((list, error) => console.warn(`particle list '${list.label}': a page's read failed, read again later`, error));
+    this.now = options.now ?? (() => performance.now());
     this.records = new Uint32Array(pages * PageRecordWords);
     this.recordFloats = new Float32Array(this.records.buffer);
     this.runs = new Uint32Array(pages * 64 * RunWords);
@@ -474,7 +498,8 @@ export class ParticlePageStore {
   /**
    * Page `p`'s values read where they are not (a deferred list's page: `Particle.DeferredParticles`), once while in
    * flight: the read (its values set when it arrives, where the page is still that list's; set at once where given up
-   * and kept: `releaseValues`); undefined where the page has its values or is not deferred
+   * and kept: `releaseValues`); undefined where the page has its values or is not deferred, or its read failed and is
+   * waited for (`PageReadRetryMs`, doubled a failure: told once a list, `onReadError`)
    */
   requestValues(p: number): Promise<void> | undefined {
     const d = this.deferredPages.get(p);
@@ -486,12 +511,14 @@ export class ParticlePageStore {
       return Promise.resolve();
     }
     if (d.reading) return d.reading;
+    if (d.retryAt !== undefined && this.now() < d.retryAt) return undefined;
     const format = this.format!;
     const deferred = Particle.getDeferred(d.list)!;
     const grid = d.list.coordinates;
     d.reading = deferred.read(d.lo, d.hi - d.lo).then(
       (read) => {
         d.reading = undefined;
+        d.failures = d.retryAt = undefined;
         if (this.deferredPages.get(p) !== d) return;
         this.readValueBytes += read.positions.byteLength + (read.rotations?.byteLength ?? 0);
         // the read's words on the list's grid, as `getPageValues` takes a list's
@@ -501,9 +528,14 @@ export class ParticlePageStore {
         } as ParticleList;
         this.values[p] = getPageValues(page, format, 0, d.hi - d.lo);
       },
-      () => {
-        // read again when asked
+      (error) => {
+        // read again when asked, after a wait
         d.reading = undefined;
+        d.failures = (d.failures ?? 0) + 1;
+        d.retryAt = this.now() + Math.min(PageReadRetryMaxMs, PageReadRetryMs * 2 ** (d.failures - 1));
+        if (this.deferredPages.get(p) !== d || this.toldFailures.has(d.list)) return;
+        this.toldFailures.add(d.list);
+        this.onReadError(d.list, error);
       },
     );
     return d.reading;

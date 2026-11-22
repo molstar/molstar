@@ -26,6 +26,7 @@ import {
   TemplatePage,
   writeCopyPose,
   NoMember,
+  PageReadRetryMs,
   PageRecordWords,
   ParticlePageStore,
   PerParticleMembers,
@@ -541,5 +542,53 @@ describe('particle page store of a nested list', () => {
     ).pages;
     other.releaseValues(q);
     expect(other.values[q]).toBeDefined();
+  });
+
+  it('waits to read a deferred page whose read failed, longer each failure, told once a list', async () => {
+    const n = StorePageSize;
+    const xyz = new Float32Array(n * 3);
+    const full = GridPositions.fromFloat(xyz);
+    const list = {
+      ...createList(n, () => 1),
+      coordinates: { ...full, data: new Uint32Array(0) },
+      rotations: undefined,
+    };
+    let fail = true;
+    let reads = 0;
+    Particle.setDeferred(list, {
+      read: async (first, count) => {
+        reads += 1;
+        if (fail) throw new Error('offline');
+        return { positions: full.data.slice(first * 2, (first + count) * 2) };
+      },
+    });
+    ParticleTiles.setDirectory(list, {
+      min: Vec3.create(0, 0, 0),
+      max: Vec3.create(1, 1, 1),
+      dimensions: 1,
+      ranges: Int32Array.of(0, 0, n),
+      boxes: Float32Array.of(0, 0, 0, 1, 1, 1),
+    });
+    let time = 0;
+    const errors: unknown[] = [];
+    const store = new ParticlePageStore({ now: () => time, onReadError: (_, e) => errors.push(e) });
+    const [p] = store.add(1, list, 0, placement).pages;
+    await store.requestValues(p);
+    expect(reads).toBe(1);
+    expect(errors.length).toBe(1);
+    // not read again within the wait (a frame's want each), then read; the next wait twice as long, not told again
+    time = PageReadRetryMs - 1;
+    expect(store.requestValues(p)).toBeUndefined();
+    time = PageReadRetryMs;
+    await store.requestValues(p);
+    expect(reads).toBe(2);
+    time += 2 * PageReadRetryMs - 1;
+    expect(store.requestValues(p)).toBeUndefined();
+    time += 1;
+    fail = false;
+    await store.requestValues(p);
+    expect(reads).toBe(3);
+    expect(errors.length).toBe(1);
+    expect(store.values[p]).toBeDefined();
   });
 });

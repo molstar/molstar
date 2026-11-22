@@ -67,6 +67,13 @@ export interface ExpansionCopies {
   readonly levelCount: number;
   /** the radius of its template's sphere about `centers` */
   readonly radius: number;
+  /** its template's sphere's center, in the template's frame (what `centers` place) */
+  readonly center: Vec3;
+  /**
+   * the radius about `centers` its objects' instances reach (`createInstanceExpansion`: their spheres, the targets'
+   * geometry past the particles' centers), at least `radius`: what a copy is culled by
+   */
+  reach: number;
   /**
    * those in the view last asked for (`getCopyBuckets`) by coarse level: `order[offsets[j]]` to `order[offsets[j + 1]]`
    * at level `j`, by their centers' distance from the camera's plane (`distances` theirs, ascending in a level);
@@ -154,12 +161,25 @@ export function createExpansionCopies(
     transform: Mat4(),
   };
   const orders = { views: [], next: 0 };
-  return { count, poses, image, centers, spacing, levelCount, radius: sphere.radius, buckets, orders };
+  const { radius } = sphere;
+  return {
+    count,
+    poses,
+    image,
+    centers,
+    spacing,
+    levelCount,
+    radius,
+    center: Vec3.clone(sphere.center),
+    reach: radius,
+    buckets,
+    orders,
+  };
 }
 
 /**
  * The copies of `copies` in a view by the coarse level each draws its template at (`ExpansionCopies.buckets`): those
- * whose template's sphere reaches into `frustum`, by level (`ExpansionCoarsePixels`: its spacing's pixels at its
+ * whose objects' instances reach into `frustum` (`ExpansionCopies.reach`), by level (`ExpansionCoarsePixels`: its spacing's pixels at its
  * center's distance from `cameraPlane`, `lod`'s scale; orthographic everywhere the same); `transform` moving them
  * (none: identity). Kept for the view's version (`LodView.version`; not where 0) and the transform: a moved
  * representation's objects (a template's alike) the same buckets, not each its own
@@ -178,7 +198,7 @@ export function getCopyBuckets(
   if (transform) Mat4.copy(buckets.transform, transform);
   const ortho = !(lod.depthScale > 0);
   const scale = ortho ? (lod.pixelSize > 0 ? 1 / lod.pixelSize : 0) : 1 / lod.depthScale;
-  const radius = copies.radius * (transform ? Mat4.getMaxScaleOnAxis(transform) : 1);
+  const radius = copies.reach * (transform ? Mat4.getMaxScaleOnAxis(transform) : 1);
   const { normal, constant } = cameraPlane;
   const { levels, order, distances, offsets } = buckets;
   const c = Vec3();
@@ -387,9 +407,17 @@ export function isExpanded(values: object): values is InstanceExpansionValues {
   return !!(values as Partial<InstanceExpansionValues>).dInstanceExpansion?.ref.value;
 }
 
-/** An object's expansion by `copies` at its template's coarse level `level`, `sphere` its instances' */
+/**
+ * An object's expansion by `copies` at its template's coarse level `level`, `sphere` its instances' (in the template's
+ * frame): the copies' reach grown to it (their buckets culled again)
+ */
 export function createInstanceExpansion(copies: ExpansionCopies, sphere: Sphere3D, level: number): InstanceExpansion {
   const { count, poses } = copies;
+  const reach = Vec3.distance(sphere.center, copies.center) + sphere.radius;
+  if (reach > copies.reach) {
+    copies.reach = reach;
+    copies.buckets.version = -1;
+  }
   const spheres = new Float32Array(count * 4);
   // rigid poses: the center placed, the radius kept
   const [x, y, z] = sphere.center;

@@ -2141,15 +2141,17 @@ export function createPagedCuller(
       ValueCell.updateIfChanged(uniforms.uPhase, 0);
       // a bit a selected entry's particle, then a bit its group's (occluded whole in the first phase): by selected
       // entry, not store index (a template's particles drawn once a copy); the entries `bitsRoom` holds, within the
-      // active ones and the device's limit
-      const entryBytes = (PagedCullPageSize + PagedCullGroupsPerPage) / 8;
-      bitsRoom = Math.max(1, Math.min(bitsWanted, activeCount, Math.floor(compute.maxStorageBufferSize / entryBytes)));
-      const particleWords = Math.ceil(bitsRoom * (PagedCullPageSize / 32));
+      // active ones and the device's limit what the words after them leave (the buffer bound whole)
       // the dropped copy groups after them (a word each: the fallback's), cleared every cull
-      const droppedBase = particleWords + Math.ceil((bitsRoom * PagedCullGroupsPerPage) / 32);
       const droppedWords = Math.max(1, groupCount);
       // the copies occluded whole by the pyramid after them (a word each: the second phase's select)
       const copyCount = Math.max(1, copyPoses.length / (CopyVec4s * 4));
+      // two words for the sections' rounding up
+      const bitsWords = Math.floor(compute.maxStorageBufferSize / 4) - droppedWords - copyCount - 2;
+      const bitsLimit = Math.floor((bitsWords * 32) / (PagedCullPageSize + PagedCullGroupsPerPage));
+      bitsRoom = Math.max(1, Math.min(bitsWanted, activeCount, bitsLimit));
+      const particleWords = Math.ceil(bitsRoom * (PagedCullPageSize / 32));
+      const droppedBase = particleWords + Math.ceil((bitsRoom * PagedCullGroupsPerPage) / 32);
       ensure(occludedBits, (droppedBase + droppedWords + copyCount) * 4);
       ValueCell.updateIfChanged(selectValues.uCopyMarksBase, droppedBase + droppedWords);
       ValueCell.updateIfChanged(uniforms.uPageBitsBase, particleWords);

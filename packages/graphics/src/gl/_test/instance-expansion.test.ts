@@ -108,6 +108,30 @@ describe('instance expansion', () => {
     expect(isSharedCopyOrder({ array: new Float32Array(4), width: 1, height: 1 })).toBe(false);
   });
 
+  it("culls a copy by its objects' reach, not its template's sphere alone (targets past the particles' centers)", () => {
+    const copies = createCopies([10, 30]);
+    // the view from z = 40 on: the copy at 30's template sphere (radius 5) short of it, the one at 10's too
+    const plane = (x: number, y: number, z: number, c = 1e6) => Plane3D.create(Vec3.create(x, y, z), c);
+    const beyond40 = Frustum3D.create(
+      plane(-1, 0, 0),
+      plane(1, 0, 0),
+      plane(0, 1, 0),
+      plane(0, -1, 0),
+      plane(0, 0, -1),
+      plane(0, 0, 1, -40),
+    );
+    const seen = (version: number) => {
+      const b = getCopyBuckets(copies, cameraPlane, beyond40, { ...lod, version });
+      return [...b.order.subarray(0, b.offsets[1])];
+    };
+    expect(seen(2)).toEqual([]);
+    // an object whose instances reach 12 past the template's center (a target's geometry): the copy at 30 in view, the
+    // buckets of the same view culled again
+    createInstanceExpansion(copies, Sphere3D.create(Vec3.create(0, 0, 4), 8), 0);
+    expect(copies.reach).toBe(12);
+    expect(seen(2)).toEqual([1]);
+  });
+
   it('keeps a view of moved copies by its transform', () => {
     const copies = createCopies([50, 10, 30, 20, 40]);
     const view = { ...lod, version: 1 };
