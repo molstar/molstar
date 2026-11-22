@@ -103,6 +103,19 @@ describe('Complex blocks, headless', () => {
     expect(p.labels).toEqual(['CDK2 (A) ×2', 'cyclin A (B) ×2', 'ATP ×2']);
   });
 
+  it('blocks-stacked: the ATP chip’s row keeps its letters and leaves out the tracks it has no items in, headed ATP ×2', async () => {
+    viewer = await openExample(ComplexViews.find((v) => v.id === 'blocks-stacked')!, { fixtures: true });
+    const p = viewer.frame!.layout.sections[0].placement as BlockPlacement;
+    const st = p.strips;
+    const chip = [...Array(st.n).keys()].find((i) => st.chip[i])!;
+    const bands = Array.from({ length: st.bands }, (_, j) => st.bandH[chip * st.bands + j]);
+    // features, interface and secondary structure: none on the ATP; the letters kept
+    expect(bands.slice(0, -1)).toEqual([0, 0, 0]);
+    expect(bands[bands.length - 1]).toBeGreaterThan(0);
+    expect(p.labels[chip]).toBe('ATP ×2');
+    expect(st.height[chip]).toBeLessThan(st.height[0] / 2);
+  });
+
   // a one-position block is a chip: its label's width at the fit view and zoomed, its label whole, canvas and SVG
   const chips = [
     { id: 'blocks', labels: ['ATP ×2'], zoom: [500, 559] },

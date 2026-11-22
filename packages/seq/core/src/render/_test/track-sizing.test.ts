@@ -295,7 +295,7 @@ describe('an export draws every lane; a ring compacts', () => {
 
 describe('the rows band with no `height` takes its rows up to `rows.maxPx`', () => {
   it('the config’s caps are the design’s', () => {
-    expect(DefaultRenderConfig.track).toEqual({ maxPx: 240, overflow: 'scroll' });
+    expect(DefaultRenderConfig.track).toEqual({ maxPx: 240, overflow: 'scroll', empty: 'note', emptyPx: 18 });
     expect(DefaultRenderConfig.rows.maxPx).toBe(480);
     expect(DefaultRenderConfig.rings.trackMaxPx).toBe(48);
     expect(DefaultRenderConfig.export).toEqual({ lanes: 'all', maxTrackPx: 4000 });

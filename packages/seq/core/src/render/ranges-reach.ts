@@ -12,7 +12,7 @@ import type { Want } from '@molstar/seqx-core/data';
 import { RenderIssues } from './issues.js';
 import { type LayerSource, boundedLevel, mergeNear, readTiles } from './layer-data.js';
 import { collectItems, newItemRows } from './items.js';
-import { noteLanes, resetLanes } from './known.js';
+import { noteEmpty, noteLanes, resetLanes } from './known.js';
 import type { LayoutContext, StoreReader } from './layer-type.js';
 import { itemHulls, packedLanes } from './ranges-content.js';
 import type { RangesPrep } from './ranges-lay.js';
@@ -91,7 +91,9 @@ export function noteReachable(prep: RangesPrep, src: LayerSource, ctx: LayoutCon
   if (densities.length) return;
   const items: QueryItem[] = [];
   for (let j = 0; j < rows.n; j++) items.push({ key: rows.keys[j], start: rows.starts[j], end: rows.ends[j] });
-  noteLanes(prep, Math.min(packedLanes(prep.line === 'gene' ? itemHulls(items) : items), ctx.config.ranges.maxLanes));
+  if (items.length === 0) noteEmpty(prep);
+  else
+    noteLanes(prep, Math.min(packedLanes(prep.line === 'gene' ? itemHulls(items) : items), ctx.config.ranges.maxLanes));
   r.packed = true;
 }
 

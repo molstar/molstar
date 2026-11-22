@@ -186,6 +186,32 @@ describe('the navigators’ examples, headless', () => {
   });
 });
 
+describe('a strip draws something besides its window (no track is a blank well)', () => {
+  /** The texts and rects a navigator's frame draws inside its box (a track of one pixel draws its ticks outside). */
+  function inside(f: Awaited<ReturnType<typeof navigator>>['f'], height: number) {
+    let n = 0;
+    for (const pass of Object.values(f.lists.passes)) {
+      for (let i = 0; i < pass.texts.n; i++) if (pass.texts.y[i] >= 0 && pass.texts.y[i] <= height) n++;
+    }
+    return n;
+  }
+
+  it('a strip with no content draws its system’s ticks and numbers inside its box (p53’s protein and gene strip)', async () => {
+    viewer = await openExample(P53Views.find((v) => v.id === 'protein-gene-strip')!, { gene: '' });
+    const { nav, f } = await navigator(viewer, 'strip');
+    expect(inside(f, nav.height)).toBeGreaterThan(2);
+  });
+
+  it('the plasmid’s strip draws its detail’s features small, under the detail', async () => {
+    viewer = await openExample(PlasmidViews.find((v) => v.id === 'detail-strip')!, { gene: '' });
+    const { nav, f } = await navigator(viewer, 'strip');
+    const marks = Object.values(f.lists.passes).reduce((n, p) => n + p.rects.n + p.paths.n, 0);
+    expect(marks).toBeGreaterThan(4);
+    expect(nav.height).toBeLessThanOrEqual(20);
+    expect(viewer.view.resolved.value!.navigators.find((x) => x.id === 'strip')!.place).toBe('bottom');
+  });
+});
+
 describe('the zoom strip of chr17’s ideogram over the gene’s region, headless', () => {
   const Region = '/views/main/region';
 

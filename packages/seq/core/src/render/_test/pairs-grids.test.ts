@@ -678,6 +678,20 @@ describe('the pairs layer: arcs', () => {
     expect(f.layout.issues.map((i) => i.code)).toEqual(['seq.render.pairs.limit']);
   });
 
+  it('on a ring past `pairs.maxArcs`: the chords dropped are no ticks along a line above the ring', async () => {
+    const pairs = randomPairs(400, 150, 5);
+    const s = await settle(arcsSpec({ n: 400, pairs, layout: 'rings', side: 'below' }), [], { pairs: { maxArcs: 20 } });
+    const f = await s.renderer.frame({ size: { width: 600, height: 600 }, settled: true });
+    const lay = arcsLay(f.layout.sections[0]);
+    expect(lay.n).toBeLessThanOrEqual(20);
+    expect(lay.densityN).toBe(0);
+    expect(lay.densityMax).toBe(0);
+    // said once, with the count it drops
+    const said = f.layout.issues.filter((i) => i.code === 'seq.render.pairs.limit');
+    expect(said.length).toBe(1);
+    expect(said[0].message).toMatch(/the \d+ strongest are drawn on the ring, \d+ are not/);
+  });
+
   it('on a ring: chords through the hole, ends on the band’s outer edge', async () => {
     const s = await settle(arcsSpec({ pairs: Stems, layout: 'rings', side: 'below' }));
     const f = await s.renderer.frame({ size: { width: 600, height: 600 }, settled: true });
