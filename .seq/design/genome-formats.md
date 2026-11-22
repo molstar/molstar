@@ -348,7 +348,7 @@ export function readHeaderLines(reader: BgzfReader, index: TabixIndex, limits?: 
   Tension). **`id`** `pos:ref>alt` (the VCF `ID` repeats over alleles), with `ref` and `alt` replaced by
   `<length>:<FNV-1a hex>` when longer than 32 characters (a sequence-resolved SV's), and `#2`, `#3` … on a second and
   later identical key in file order (a duplicated record: always read together, being at one `POS`, so the suffix is
-  stable across tiles); the `ID` a field `name`, the label. Fields: `ref`, `alt`, `qual` (float32), `filter` (category), `category` (`SNV`, `MNV`,
+  stable across tiles), and `@<end>` when `INFO/END` extends the record past its REF (two records differing only in `END` are two items, whole and by region; VC's review); the `ID` a field `name`, the label. Fields: `ref`, `alt`, `qual` (float32), `filter` (category), `category` (`SNV`, `MNV`,
   `insertion`, `deletion`, `indel`, `structural` for `<…>`, `breakend` for `]`/`[` alleles), and each declared INFO key
   under its name (`Integer` int32, `Float` float32, `Flag` and `String` categories; `Number=A` split by allele,
   `Number=R` the reference's and the allele's, other numbers their text), up to `maxInfoFields` (256): the keys the
@@ -525,7 +525,7 @@ they change:
 | `findNames`' `max`, `prefix` | option of the call | 20; false | a list a box shows; prefix for typing |
 | a format's base and ends; side `a` the map's from side; the anchor base kept; a line's extent by the index's rule | fixed | — | the reasons in the Decision |
 
-Not built: VC (VCF) and FR (the formats by region); BZ, BE and GG built (GFF3 and GTF read whole).
+Not built: FR (the formats by region past level 1, VCF's matrix); BZ, BE, GG and VC built (GFF3 and GTF read whole; VCF sites whole and by region at level 1).
 
 ## Tensions
 

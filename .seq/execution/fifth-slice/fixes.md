@@ -297,7 +297,11 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   lists each as a story; their tests import them. Move each to a module of its own beside its story and drop it from
   `story-exports.test.ts`'s `Known` list.
 
-## Fixed
+- **A VCF allele's hover card names the record, not the allele** (VC's look, 2026-11-22, kind: look; for the hover
+  contract's lane): hovering a ClinVar variant shows ClinVar's id, Track and Extent; it should name the allele
+  (`pos:ref>alt`), its category and its INFO fields, as the design's matrix row "a variant allele" implies.
+
+
 
 - **The rail's place as a list, and a pinned place**: FX4, `railPlace` one place or a list; `pinned` at the
   frame's foot (story FamilyRailPinned).
