@@ -1024,6 +1024,11 @@ export const SeqLanguage = defineLanguage({
       params: {
         label: { type: 'string', doc: 'The label of the track (its id when absent).' },
         height: { type: 'number', min: 0, doc: 'The height of the track in px.' },
+        empty: {
+          type: 'string',
+          enum: ['note', 'collapse', 'keep'],
+          doc: 'What a track with no items in what it covers draws: `note` (the render config’s `track.empty` when absent) a one-line row naming it with a quiet “no items”, `collapse` the row alone, `keep` its full well. A track still waiting for its data is never empty.',
+        },
         padding: {
           type: 'union',
           of: [

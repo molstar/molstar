@@ -167,6 +167,7 @@ export const TracksLayout: SectionLayoutType<StripPlacement> = {
     const dy = strip > 0 && p instanceof BlockPlacement ? p.strips.bandY[strip * p.strips.bands + band] - t.box.y : 0;
     if (pass === 'labels') {
       drawLabel(out, t, s.tokens, s.config, dy);
+      if (t.empty === 'note') drawEmptyNote(out, t, s.tokens, s.config, dy);
       if (band === 0 && s.mark && strip <= 0) drawMark(out, s, t, s.tokens, s.config);
     }
     // its header's states and, when they show, its actions (in a stack's first row)
@@ -188,6 +189,20 @@ function drawLabel(out: PassWriter, t: TrackLayout, tokens: SeqTokens, config: R
   g[4] = tokens.colors['msui-text-muted'];
   // an empty label (`label: ''`) draws no text
   if (t.labelText) out.textArgs(t.labelText, AnchorStart, config.labelFont);
+}
+
+/** What a track with no items says in its row, quiet: the host's "none found" stays visible (_spec/README.md "Render", Tracks layout). */
+export const EmptyNote = 'no items';
+
+/** A track's note, at the start of its data box, centred on its row. */
+function drawEmptyNote(out: PassWriter, t: TrackLayout, tokens: SeqTokens, config: RenderConfig, dy = 0) {
+  const g = out.args;
+  g[0] = t.box.x + 8;
+  g[1] = t.labelY + dy;
+  g[2] = Math.max(0, t.box.width - 16);
+  g[3] = Math.max(0, t.box.width - 16);
+  g[4] = tokens.colors['msui-text-muted'];
+  out.textArgs(EmptyNote, AnchorStart, config.itemFont);
 }
 
 /** The direction mark after the first track's label, muted, faded at the label column's edge. */

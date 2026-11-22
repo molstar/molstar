@@ -430,6 +430,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     // the kept heights, copied only where this layout changes them (a rows band's)
     let heights = sizedBands.heights as number[];
     const trackContents = sizedBands.contents;
+    const trackEmpties = sizedBands.empties;
     // each track's padding inside its well, `[top, bottom]` a track: its own, else the config's (_spec/README.md
     // "Render", Tracks layout)
     const pads: number[] = [];
@@ -742,6 +743,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         // centred on its well (its padding with it), not on its data
         labelY: head ? head.labelY : well.y + well.height / 2 + labelSize * 0.35,
         layers,
+        ...(trackEmpties[j] && layout === TracksLayout ? { empty: trackEmpties[j] } : {}),
         ...(head ? { header: head.header } : {}),
       });
     }

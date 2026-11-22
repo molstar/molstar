@@ -84,7 +84,18 @@ export interface RenderConfig {
    * lanes and padding, a px number: no view height to take a share of), and `overflow` past it: its lanes `scroll`
    * inside the track (the default), `compact` (squeezed to the band) or the rest in a `density` row.
    */
-  readonly track: { readonly maxPx: number; readonly overflow: 'scroll' | 'compact' | 'density' };
+  readonly track: {
+    readonly maxPx: number;
+    readonly overflow: 'scroll' | 'compact' | 'density';
+    /**
+     * A track with no items in what it covers (its content known whole, no lanes): `note` (the default) a one-line row
+     * of `emptyPx` naming it with a quiet "no items", `collapse` the row alone, `keep` its well as any track's. A
+     * track's own `empty` overrides it; a track still waiting for its data is pending, never empty.
+     */
+    readonly empty: 'note' | 'collapse' | 'keep';
+    /** The height of an empty track's row (px). */
+    readonly emptyPx: number;
+  };
   /**
    * An export's lanes (`all`: every lane of a capped track at its content height; `view`: the band as on screen with
    * its cut edges), and the most a track's px an export draws (4,000), the rest said in its header.
@@ -411,7 +422,7 @@ export const DefaultRenderConfig: RenderConfig = {
   laneHeight: 14,
   laneGap: 2,
   lanePadding: 4,
-  track: { maxPx: 240, overflow: 'scroll' },
+  track: { maxPx: 240, overflow: 'scroll', empty: 'note', emptyPx: 18 },
   export: { lanes: 'all', maxTrackPx: 4000 },
   density: { letters: 10, cells: 3, dots: 1, bars: 1 / 64 },
   densityUnits: { letters: 'css', cells: 'device', dots: 'device', bars: 'device' },

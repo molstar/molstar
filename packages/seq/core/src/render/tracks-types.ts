@@ -52,6 +52,8 @@ export interface TrackLayout {
   readonly labelWidth: number;
   readonly labelY: number;
   readonly layers: readonly LayerLayout[];
+  /** Set when it has no items (`track.empty`): its one-line row, with a note (`note`) or without (`collapse`). */
+  readonly empty?: 'note' | 'collapse';
   /**
    * Its header's line in the label column (_spec/README.md "Render", Track headers): its slots, its states (the "n
    * filtered" chip among them, `seq:filtered`), the "⋯"; in a layout that draws a label column of track headers.
@@ -232,5 +234,7 @@ export interface SizedHeights {
   readonly heights: readonly number[];
   /** Each track's content (one lane block a track), undefined for a track not sized by its content. */
   readonly contents: readonly (LayerContent | undefined)[];
+  /** Each track with no items: how it is drawn (`note` or `collapse`), undefined for any other. */
+  readonly empties: readonly ('note' | 'collapse' | undefined)[];
   readonly issue?: Issue;
 }

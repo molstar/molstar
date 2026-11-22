@@ -60,7 +60,7 @@ async function heightsOf(node: Node, options: Parameters<typeof settle>[3] = {})
 }
 
 describe('a track’s height fits its content, in steps', () => {
-  it('one lane 22 px, two 36, five 78, six 92 (no lane cap), to `track.maxPx`; an empty track one lane', async () => {
+  it('one lane 22 px, two 36, five 78, six 92 (no lane cap), to `track.maxPx`; an empty track one line (`track.empty`)', async () => {
     expect([1, 2, 3, 4, 5, 6].map((n) => lanesHeight(n, DefaultRenderConfig))).toEqual([22, 36, 50, 64, 78, 92]);
     const { heights } = await heightsOf(spec([{ rows: stacked(1) }], 'uniform'));
     expect(heights).toEqual([22]);
@@ -74,7 +74,8 @@ describe('a track’s height fits its content, in steps', () => {
       expect(one.heights, `${n} lanes`).toEqual([h]);
     }
     const empty = await heightsOf(spec([{ rows: { start: [], end: [], id: [] } }]));
-    expect(empty.heights).toEqual([22]);
+    // no items: a one-line row (`track.empty: note`), never a blank well; `keep` is the one lane
+    expect(empty.heights).toEqual([DefaultRenderConfig.track.emptyPx]);
   });
 
   it('tracks of one kind share the tallest; `uniform` and `fixed`; a track’s own height overrides', async () => {
