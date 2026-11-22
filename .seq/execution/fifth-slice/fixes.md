@@ -6,6 +6,15 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 
 ## Open
 
+- **A hover card's long values overflow its box** (the author, 2026-11-22, Features › Genome formats › VCF › TP53
+  ClinVar, a deletion's allele card: "let's handle overflow on the hover cards to when we next visit them"; kind:
+  look): the `CLNDISDB` value ("MONDO:MONDO:0018875,MedGen:C0085390,OMI…") runs past the card's right edge though HC
+  cut it at 40 characters; the card's width does not bound its value column. Wrap a value within the card (break at
+  `,` `;` `|` `:` and anywhere in a token with no break), up to a few lines, then an ellipsis; the card's width capped
+  (as `hover.cardMaxPx` or a token) and the label column kept. Also from the same card: its title
+  `7674964:469:edaeae47>G` shows a long REF as a length and hash; a reader wants `7674964 del 469 bp>G` or the REF's
+  first letters with its length. To TT (it rebuilds the card as providers), else the next lane that touches the card.
+
 - **A sample selected on the kinship grid does not light its row in the genotype matrix** (the orchestrator,
   2026-11-22, LA3's look, Features › Across sections › Kinship beside the genotypes; kind: bug): a click on the
   "F2-b" label selects the member (the grid's row and column light), but the matrix on the same rows system shows
