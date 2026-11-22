@@ -18,4 +18,6 @@ export const BridgeHooks: {
   layout?: typeof import('./bridges.js').layoutBridges;
   /** The pairs layer's region reader (a bridge reads a source's pairs as that layer does). */
   region?: typeof import('./pairs-region.js').regionPairs;
+  /** A region read's kept state (its pending tiles: the pending hatch). */
+  state?: typeof import('./pairs-region.js').regionState;
 } = {};

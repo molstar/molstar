@@ -10,25 +10,34 @@
 // crossed exactly where GA's rule says, by geometry. Each end at every place of a block showing it; an end whose system
 // a side shows on no block a stub (a quarter-height taper from the placed end); an end on a system neither side shows
 // not drawn (`seq.render.bridge.unplaced`). Ends at least `ribbons.minPx` device px wide; both under it, one curve
-// (`shape: line` forces it). Filled at `ribbons.fillOpacity` in the layer's colour (by default the `block` of the end on
-// the bridge's `a` side, EC-218), widest first; past `pairs.maxArcs` the most aligned length kept, the rest a density
-// strip along each edge. The hit is closed form: at the point's height every ribbon's two sides are one multiply-add
-// each, scanned last drawn first. Part of the bridge chunk.
+// (`shape: line` forces it); an alignment's consecutive blocks under a device px apart on both sides one ribbon, their
+// hull. Filled at `ribbons.fillOpacity` in the layer's colour (by default the `block` of the end on the bridge's `a`
+// side, EC-218), widest first; past `pairs.maxArcs` the most aligned length kept, the rest a density strip along each
+// edge. A source's pairs read by region on each side, at that side's level, each pair drawn once by ownership (the
+// finer side's window widened to the far side's bins); a side's tiles pending the hatch along its edge (EC-169). The
+// hit is closed form: at the point's height every ribbon's two sides are one multiply-add each, scanned last drawn
+// first. Part of the bridge chunk: the lay (`pairs-ribbons-lay.ts`), the reads (`pairs-ribbons-read.ts`), the draw and
+// the hit (`pairs-ribbons-draw.ts`).
 
 import { defineIssues, issueOf } from '@molstar/core/repr/tree';
 import { theme as themeForm } from '@molstar/seqx-core/lang';
-import { location } from '@molstar/seqx-core/query';
 import type { PairsData } from '@molstar/seqx-core/resolve';
-import type { Channel, ChannelName, ThemeDatum } from '@molstar/seqx-core/theme/index';
+import type { ChannelName, ThemeDatum } from '@molstar/seqx-core/theme/index';
 import { channelLegends } from './channels.js';
 import type { RenderConfig } from './config.js';
-import { grown, NoColor, Op, PathCommand, type PassName, type PassWriter } from './draw-lists.js';
+import { grown } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
-import type { Box, Emphasis, Hit, LayerType, LayoutContext, StoreReader } from './layer-type.js';
-import type { BridgePlacement, BridgeSide } from './layout/bridge.js';
-import type { PairsLay, PairsPrep, ScratchHit } from './pairs-lay.js';
-import { BridgeHooks } from './bridge-hooks.js';
-import { type SeqTokens, withAlpha } from './tokens.js';
+import type { LayerType, StoreReader } from './layer-type.js';
+import type { BridgeSide } from './layout/bridge.js';
+import type { PairsPrep } from './pairs-lay.js';
+import { drawData, drawEmphasis, hitRibbons } from './pairs-ribbons-draw.js';
+import { aOf, type BridgeLayoutContext, bOf, groupsOf, Line, R, RibbonsLay, Stub } from './pairs-ribbons-lay.js';
+import { type Ownership, readSides } from './pairs-ribbons-read.js';
+import { withAlpha } from './tokens.js';
+
+export type { BridgeContext, BridgeLayoutContext } from './pairs-ribbons-lay.js';
+export { hitRibbons, ribbonPath } from './pairs-ribbons-draw.js';
+export { RibbonsLay };
 
 /** The ribbons' codes, cataloged with the chunk (a composition that draws no bridge says none). */
 export const RibbonIssues = defineIssues('seq.render', {
@@ -38,18 +47,6 @@ export const RibbonIssues = defineIssues('seq.render', {
     hint: 'Show the pairs’ systems on the bridge’s sides (pairs are not projected through maps)',
   },
 });
-
-/** What a layer laid out in a bridge reads besides a layout's context: its bridge (_spec/README.md "Render", Bridges). */
-export interface BridgeContext {
-  /** The bridge's band and sides. */
-  readonly placement: BridgePlacement;
-  /** Its index in `ResolvedView.bridges` (a hit's `bridge`) and its id (a hit's `section`). */
-  readonly index: number;
-  readonly id: string;
-}
-
-/** A layout's context in a bridge: `box` the band, `section` and `axis` its `a` side's, `bridge` the rest. */
-export type BridgeLayoutContext = LayoutContext & { readonly bridge: BridgeContext };
 
 /** The default colour: the block of the end on the bridge's `a` side (chromosome painting, EC-218). */
 const DefaultColor = themeForm.field('block', { list: false });
@@ -80,16 +77,6 @@ class RibbonDatum implements ThemeDatum {
   }
 }
 
-/** A pair's end's system: its row's unit under a complex, else the layer's (the pairs layer's `aOf`, `bOf`). */
-function aOf(prep: PairsPrep, k: number): string {
-  const u = prep.endUnits && prep.data!.aUnit;
-  return u ? (prep.endUnits![u[k]] ?? prep.aSystem) : prep.aSystem;
-}
-function bOf(prep: PairsPrep, k: number): string {
-  const u = prep.endUnits && prep.data!.bUnit;
-  return u ? (prep.endUnits![u[k]] ?? prep.bSystem) : prep.bSystem;
-}
-
 /** Whether a field holds numbers: the ends and the numeric extra columns (the pairs layer's `pairEnv`), kept a data. */
 const Numeric = new WeakMap<PairsData, (n: string) => boolean>();
 function numericOf(d: PairsData): (n: string) => boolean {
@@ -103,52 +90,16 @@ function numericOf(d: PairsData): (n: string) => boolean {
   return f;
 }
 
-/** A ribbon drawn as one curve (its ends both under `minPx`, or `shape: line`), and a stub (its far end not shown). */
-const Line = 1;
-const Stub = 2;
-
-/** A ribbon's numbers: its `a` side's corners and y, then its `b` side's (`x0a, x1a, ya, x0b, x1b, yb`). */
-const R = 6;
-
-export class RibbonsLay {
-  key = '';
-  /** The bridge's id and index (what a hit names). */
-  bridgeId = '';
-  bridge = -1;
-  tokens: SeqTokens | undefined;
-  config: RenderConfig | undefined;
-  prep: PairsPrep | undefined;
-  dpr = 1;
-  colorChannel: Channel | undefined;
-  /** The ribbons in drawing order (widest first): corners, the pair, its colour, flags, its data's `a` end's side (1: a). */
-  n = 0;
-  rib = new Float64Array(6 * 64);
-  pair = new Int32Array(64);
-  color = new Uint32Array(64);
-  flags = new Uint8Array(64);
-  orient = new Int32Array(64);
-  /** The band (the ribbons' clip) and its sides' edges. */
-  band: Box = { x: 0, y: 0, width: 0, height: 0 };
-  /** Ribbons past `maxArcs`: their ends' density a device column along each edge, from the band's x. */
-  density = new Uint16Array(0);
-  densityN = 0;
-  densityMax = 0;
-  edgeA = 0;
-  edgeB = 0;
-  /** Pairs with an end on a system neither side shows (`seq.render.bridge.unplaced`). */
-  unplaced = 0;
-  /** A region read's state (its level, its items gate) is kept by this object (the pairs layer's reader's key). */
-  readonly side = {} as PairsLay;
-  readonly scratch: ScratchHit = { layer: '', section: '', system: '' };
-}
-
 // ---- candidates (kept: grown, never shrunk) ----
 
 let Cand = new Float64Array(6 * 256);
 let CandPair = new Int32Array(256);
+let CandRead = new Uint8Array(256);
 let CandFlags = new Uint8Array(256);
 let CandOrient = new Int32Array(256);
 let CandBlock = new Int32Array(256);
+let CandMerged = new Uint8Array(256);
+let CandHull = new Float64Array(4 * 256);
 let CandWidth = new Float64Array(256);
 let CandRank = new Float64Array(256);
 let Order = new Int32Array(256);
@@ -159,9 +110,12 @@ function room(n: number) {
   const m = Math.max(n, 2 * CandPair.length);
   Cand = grown(Cand, R * m);
   CandPair = grown(CandPair, m);
+  CandRead = grown(CandRead, m);
   CandFlags = grown(CandFlags, m);
   CandOrient = grown(CandOrient, m);
   CandBlock = grown(CandBlock, m);
+  CandMerged = grown(CandMerged, m);
+  CandHull = grown(CandHull, 4 * m);
   CandWidth = grown(CandWidth, m);
   CandRank = grown(CandRank, m);
   Order = grown(Order, m);
@@ -184,6 +138,10 @@ function widen(p: Float64Array, o: number, min: number): boolean {
   p[o + 1] = m + h;
   return true;
 }
+
+/** The read being laid: its data, its index in the lay's reads. */
+let Data: PairsData;
+let Read = 0;
 
 /** A candidate ribbon from the two ends' places (one side's corners in its order, the other's in the run's). */
 function push(
@@ -208,12 +166,121 @@ function push(
   Cand[o + 4] = xb1;
   Cand[o + 5] = yb;
   CandPair[nc] = k;
+  CandRead[nc] = Read;
   CandFlags[nc] = flags;
   CandOrient[nc] = orient;
   CandBlock[nc] = block;
+  CandMerged[nc] = 0;
+  CandHull[4 * nc] = Data.aStart[k];
+  CandHull[4 * nc + 1] = Data.aEnd[k];
+  CandHull[4 * nc + 2] = Data.bStart[k];
+  CandHull[4 * nc + 3] = Data.bEnd[k];
   CandWidth[nc] = Math.abs(xa1 - xa0) + Math.abs(xb1 - xb0);
   CandRank[nc] = rank;
   nc++;
+  Run.c = -1;
+}
+
+// ---- the drawn-once rule (_spec/README.md "Render", Bridges: each pair drawn once, by ownership) ----
+
+/** While a read is laid with two reads: whether it is the near side's, the near side, `R` and the far window. */
+const Own = { on: false, mine: false, near: 0, r: [] as readonly number[], far: [] as readonly number[] };
+
+/** Whether `p` lies in `[start, end, …]`. */
+function inRanges(r: readonly number[], p: number): boolean {
+  for (let i = 0; i + 1 < r.length; i += 2) if (p >= r[i] && p < r[i + 1]) return true;
+  return false;
+}
+
+/**
+ * Whether the read being laid draws a ribbon with these anchors on the bridge's sides (each end's first position): the
+ * near side every one anchored in `R`; the far side those anchored in its window whose near anchor is outside `R`.
+ */
+function owns(anchorA: number, anchorB: number): boolean {
+  const near = Own.near ? anchorB : anchorA;
+  if (Own.mine) return inRanges(Own.r, near);
+  return inRanges(Own.far, Own.near ? anchorA : anchorB) && !inRanges(Own.r, near);
+}
+
+// ---- an alignment's blocks merged under a pixel ----
+
+/** The open run of merged blocks: its candidate (−1 none), what it continues, its raw corners (before widening). */
+const Run = { c: -1, group: -1, orient: 0, turned: false, ba: 0, bb: 0, a0: 0, a1: 0, b0: 0, b1: 0 };
+/** The read's alignments (items only), and a device px. */
+let Groups: Int32Array | undefined;
+let Px = 1;
+
+/** The gap between a hull and an end (negative when they overlap). */
+function gap(h0: number, h1: number, x0: number, x1: number): number {
+  const hl = h0 < h1 ? h0 : h1;
+  const hh = h0 < h1 ? h1 : h0;
+  const l = x0 < x1 ? x0 : x1;
+  const h = x0 < x1 ? x1 : x0;
+  return Math.max(l - hh, hl - h);
+}
+
+/** A hull grown over an end, its direction kept (into `Corner[o]`, `Corner[o + 1]`). */
+function hullOver(h0: number, h1: number, x0: number, x1: number, o: number) {
+  const lo = Math.min(h0, h1, x0, x1);
+  const hi = Math.max(h0, h1, x0, x1);
+  Corner[o] = h0 <= h1 ? lo : hi;
+  Corner[o + 1] = h0 <= h1 ? hi : lo;
+}
+
+/**
+ * A block's ribbon merged into the open run when it continues it (its alignment, orientation, strand and blocks) under
+ * a device px apart on both sides: the run's hull its corners, its rank the sum. True when merged.
+ */
+function merged(
+  k: number,
+  orient: number,
+  turned: boolean,
+  a0: number,
+  a1: number,
+  b0: number,
+  b1: number,
+  min: number,
+  line: boolean,
+  rank: number,
+): boolean {
+  const g = Groups![k];
+  if (g < 0) return false;
+  const r = Run;
+  if (
+    r.c < 0 ||
+    r.group !== g ||
+    r.orient !== orient ||
+    r.turned !== turned ||
+    r.ba !== BlocksA[0] ||
+    r.bb !== BlocksB[0] ||
+    gap(r.a0, r.a1, a0, a1) >= Px ||
+    gap(r.b0, r.b1, b0, b1) >= Px
+  )
+    return false;
+  hullOver(r.a0, r.a1, a0, a1, 0);
+  hullOver(r.b0, r.b1, b0, b1, 2);
+  r.a0 = Corner[0];
+  r.a1 = Corner[1];
+  r.b0 = Corner[2];
+  r.b1 = Corner[3];
+  const thinA = widen(Corner, 0, min);
+  const thinB = widen(Corner, 2, min);
+  const c = r.c;
+  const o = R * c;
+  Cand[o] = Corner[0];
+  Cand[o + 1] = Corner[1];
+  Cand[o + 3] = Corner[2];
+  Cand[o + 4] = Corner[3];
+  CandFlags[c] = line || (thinA && thinB) ? Line : 0;
+  CandWidth[c] = Math.abs(Corner[1] - Corner[0]) + Math.abs(Corner[3] - Corner[2]);
+  CandRank[c] += rank;
+  CandMerged[c] = 1;
+  const h = 4 * c;
+  CandHull[h] = Math.min(CandHull[h], Data.aStart[k]);
+  CandHull[h + 1] = Math.max(CandHull[h + 1], Data.aEnd[k]);
+  CandHull[h + 2] = Math.min(CandHull[h + 2], Data.bStart[k]);
+  CandHull[h + 3] = Math.max(CandHull[h + 3], Data.bEnd[k]);
+  return true;
 }
 
 /**
@@ -238,6 +305,8 @@ function pairRibbons(
   const ae = orient > 0 ? d.aEnd[k] : d.bEnd[k];
   const bs = orient > 0 ? d.bStart[k] : d.aStart[k];
   const be = orient > 0 ? d.bEnd[k] : d.aEnd[k];
+  // another read draws it (or neither: in neither view)
+  if (Own.on && !owns(as, bs)) return true;
   const na = sa.extentInto(orient > 0 ? aSys : bSys, as, ae, PlacesA, BlocksA, MaxPlaces);
   const nb = sb.extentInto(orient > 0 ? bSys : aSys, bs, be, PlacesB, BlocksB, MaxPlaces);
   if (!na && !nb) return false;
@@ -260,24 +329,70 @@ function pairRibbons(
     }
     return true;
   }
+  // the b corners in the order corresponding to a's: turned where the run is against
+  const turned = product < 0;
+  if (na === 1 && nb === 1 && Groups) {
+    const a0 = PlacesA[0];
+    const a1 = PlacesA[1];
+    const b0 = turned ? PlacesB[1] : PlacesB[0];
+    const b1 = turned ? PlacesB[0] : PlacesB[1];
+    if (merged(k, orient, turned, a0, a1, b0, b1, min, line, rank)) return true;
+    push1(a0, a1, ya, b0, b1, yb, k, orient, 0, min, line, rank);
+    const r = Run;
+    r.c = nc - 1;
+    r.group = Groups[k];
+    r.orient = orient;
+    r.turned = turned;
+    r.ba = BlocksA[0];
+    r.bb = BlocksB[0];
+    r.a0 = a0;
+    r.a1 = a1;
+    r.b0 = b0;
+    r.b1 = b1;
+    return true;
+  }
   for (let i = 0; i < na; i++)
-    for (let j = 0; j < nb; j++) {
-      const a0 = PlacesA[2 * i];
-      const a1 = PlacesA[2 * i + 1];
-      // the b corners in the order corresponding to a's: turned where the run is against
-      const turned = product < 0;
-      const b0 = turned ? PlacesB[2 * j + 1] : PlacesB[2 * j];
-      const b1 = turned ? PlacesB[2 * j] : PlacesB[2 * j + 1];
-      Corner[0] = a0;
-      Corner[1] = a1;
-      Corner[2] = b0;
-      Corner[3] = b1;
-      const thinA = widen(Corner, 0, min);
-      const thinB = widen(Corner, 2, min);
-      const flags = line || (thinA && thinB) ? Line : 0;
-      push(Corner[0], Corner[1], ya, Corner[2], Corner[3], yb, k, flags, orient, BlocksA[i], rank);
-    }
+    for (let j = 0; j < nb; j++)
+      push1(
+        PlacesA[2 * i],
+        PlacesA[2 * i + 1],
+        ya,
+        turned ? PlacesB[2 * j + 1] : PlacesB[2 * j],
+        turned ? PlacesB[2 * j] : PlacesB[2 * j + 1],
+        yb,
+        k,
+        orient,
+        i,
+        min,
+        line,
+        rank,
+      );
   return true;
+}
+
+/** A ribbon of two placed ends, each widened to `min` (both under it: a line). */
+function push1(
+  a0: number,
+  a1: number,
+  ya: number,
+  b0: number,
+  b1: number,
+  yb: number,
+  k: number,
+  orient: number,
+  i: number,
+  min: number,
+  line: boolean,
+  rank: number,
+) {
+  Corner[0] = a0;
+  Corner[1] = a1;
+  Corner[2] = b0;
+  Corner[3] = b1;
+  const thinA = widen(Corner, 0, min);
+  const thinB = widen(Corner, 2, min);
+  const flags = line || (thinA && thinB) ? Line : 0;
+  push(Corner[0], Corner[1], ya, Corner[2], Corner[3], yb, k, flags, orient, BlocksA[i], rank);
 }
 
 const Corner = new Float64Array(4);
@@ -286,42 +401,63 @@ const Corner = new Float64Array(4);
 const UnplacedSystems: string[] = [];
 
 /**
- * Lays out a layer's ribbons in a bridge: each pair placed by the systems its sides show (both: the data's `a` end on
- * the bridge's `a` side; `mirror` the swap too), its ribbons ranked past `maxArcs`, the kept ones widest first.
+ * Lays out a layer's ribbons in a bridge from its reads (one, or a read a side with `own`): each pair placed by the
+ * systems its sides show (both: the data's `a` end on the bridge's `a` side; `mirror` the swap too), drawn once by
+ * ownership, an alignment's blocks merged under a pixel, ranked past `maxArcs`, the kept ones widest first.
  */
-export function layoutRibbons(lay: RibbonsLay, prep: PairsPrep, ctx: BridgeLayoutContext): void {
-  const d = prep.data;
+export function layoutRibbons(lay: RibbonsLay, ctx: BridgeLayoutContext, own?: Ownership): void {
+  const reads = lay.reads;
   const { placement } = ctx.bridge;
   const sa = placement.a;
   const sb = placement.b;
   lay.band = placement.box;
   lay.edgeA = sa.edge;
   lay.edgeB = sb.edge;
-  if (!d || !sa.ready || !sb.ready) return;
+  lay.extents.length = 0;
+  if (!reads.length || !sa.ready || !sb.ready) return;
   const config = ctx.config;
   const min = config.ribbons.minPx / ctx.dpr;
   const stub = config.ribbons.stubShare;
-  const line = (prep.channels.forms.shape as unknown) === 'line';
+  const first = reads[0];
+  const line = (first.channels.forms.shape as unknown) === 'line';
+  Px = 1 / ctx.dpr;
   nc = 0;
   UnplacedSystems.length = 0;
   let unplaced = 0;
-  for (let k = 0; k < d.n; k++) {
-    if (!prep.shown[k]) continue;
-    const as = aOf(prep, k);
-    const bs = bOf(prep, k);
-    const fwd = sa.shows(as) && sb.shows(bs);
-    const back = sa.shows(bs) && sb.shows(as);
-    const rank = prep.weight ? prep.weight[k] : d.aEnd[k] - d.aStart[k];
-    if (fwd) pairRibbons(d, k, 1, sa, sb, as, bs, min, stub, line, rank);
-    // turned when the sides show only that way, or (one genome against itself) the mirror's swap too
-    if (back && (!fwd || (prep.mirror && (as !== bs || d.aStart[k] !== d.bStart[k]))))
-      pairRibbons(d, k, -1, sa, sb, as, bs, min, stub, line, rank);
-    if (fwd || back) continue;
-    unplaced++;
-    for (const s of [as, bs])
-      if (!sa.shows(s) && !sb.shows(s) && UnplacedSystems.length < 3 && !UnplacedSystems.includes(s))
-        UnplacedSystems.push(s);
+  for (let r = 0; r < reads.length; r++) {
+    const prep = reads[r];
+    const d = prep.data!;
+    Data = d;
+    Read = r;
+    Run.c = -1;
+    Groups = prep.level === undefined ? groupsOf(d) : undefined;
+    Own.on = own !== undefined;
+    if (own) {
+      Own.mine = lay.readSide[r] === own.near;
+      Own.near = own.near;
+      Own.r = own.r;
+      Own.far = own.far;
+    }
+    for (let k = 0; k < d.n; k++) {
+      if (!prep.shown[k]) continue;
+      const as = aOf(prep, k);
+      const bs = bOf(prep, k);
+      const fwd = sa.shows(as) && sb.shows(bs);
+      const back = sa.shows(bs) && sb.shows(as);
+      const rank = prep.weight ? prep.weight[k] : d.aEnd[k] - d.aStart[k];
+      if (fwd) pairRibbons(d, k, 1, sa, sb, as, bs, min, stub, line, rank);
+      // turned when the sides show only that way, or (one genome against itself) the mirror's swap too
+      if (back && (!fwd || (prep.mirror && (as !== bs || d.aStart[k] !== d.bStart[k]))))
+        pairRibbons(d, k, -1, sa, sb, as, bs, min, stub, line, rank);
+      if (fwd || back) continue;
+      unplaced++;
+      for (const s of [as, bs])
+        if (!sa.shows(s) && !sb.shows(s) && UnplacedSystems.length < 3 && !UnplacedSystems.includes(s))
+          UnplacedSystems.push(s);
+    }
   }
+  Own.on = false;
+  Groups = undefined;
   lay.unplaced = unplaced;
   if (unplaced)
     ctx.report(
@@ -356,44 +492,59 @@ export function layoutRibbons(lay: RibbonsLay, prep: PairsPrep, ctx: BridgeLayou
   lay.n = 0;
   lay.rib = grown(lay.rib, R * kept);
   lay.pair = grown(lay.pair, kept);
+  lay.src = grown(lay.src, kept);
   lay.color = grown(lay.color, kept);
   lay.flags = grown(lay.flags, kept);
   lay.orient = grown(lay.orient, kept);
-  const datum = ribbonDatum(prep);
+  lay.merged = grown(lay.merged, kept);
+  lay.hull = grown(lay.hull, 4 * kept);
   const a = sa.section;
   const domain = a.domains?.block ?? [a.address.slice(a.address.lastIndexOf('/') + 1)];
-  lay.colorChannel = prep.channels.get('color' as ChannelName, DefaultColor, ctx, {
-    numeric: numericOf(d),
+  lay.colorChannel = first.channels.get('color' as ChannelName, DefaultColor, ctx, {
+    numeric: numericOf(first.data!),
     categories: (f) => (f === 'block' ? domain : f === 'system' ? a.domains?.system : undefined),
   });
   const fill = config.ribbons.fillOpacity;
+  // the bins' opacity scale: each read's heaviest bin
+  const heaviest = Heaviest;
+  for (let r = 0; r < reads.length && r < heaviest.length; r++) heaviest[r] = maxOf(reads[r].weight);
   for (let oi = 0; oi < kept; oi++) {
     const c = top[oi];
     const i = lay.n++;
     for (let r = 0; r < R; r++) lay.rib[R * i + r] = Cand[R * c + r];
+    for (let r = 0; r < 4; r++) lay.hull[4 * i + r] = CandHull[4 * c + r];
     const k = CandPair[c];
+    const read = CandRead[c];
+    const prep = reads[read];
     lay.pair[i] = k;
+    lay.src[i] = read;
     lay.flags[i] = CandFlags[c];
     lay.orient[i] = CandOrient[c];
+    lay.merged[i] = CandMerged[c];
     const b = CandBlock[c];
     const block = b >= 0 ? a.blocks?.[b] : undefined;
+    const datum = ribbonDatum(prep);
     datum.set(k);
     datum.block = block ? block.label : domain[0];
     datum.system = block ? (block.name ?? block.axis.system) : a.axis.system;
     const v = lay.colorChannel.at(datum);
     const color = typeof v === 'number' ? v : lay.tokens!.colors['seq-range'];
-    const alpha = ((color & 0xff) / 255) * (prep.weight ? binAlpha(prep, k, config) : fill);
+    const alpha = ((color & 0xff) / 255) * (prep.weight ? binAlpha(prep.weight[k], heaviest[read], config) : fill);
     lay.color[i] = withAlpha(color, alpha);
   }
 }
 
-/** A bin's opacity by its aligned length (its weight) on a square-root scale over the bins in view. */
-function binAlpha(prep: PairsPrep, k: number, config: RenderConfig): number {
-  const w = prep.weight!;
+const Heaviest = new Float64Array(2);
+function maxOf(w: Float32Array | undefined): number {
   let max = 0;
-  for (let i = 0; i < w.length; i++) if (w[i] > max) max = w[i];
+  if (w) for (let i = 0; i < w.length; i++) if (w[i] > max) max = w[i];
+  return max;
+}
+
+/** A bin's opacity by its aligned length (its weight) on a square-root scale over its read's bins. */
+function binAlpha(w: number, max: number, config: RenderConfig): number {
   const { min, max: hi } = config.ribbons.binOpacity;
-  return max > 0 ? min + (hi - min) * Math.sqrt(w[k] / max) : hi;
+  return max > 0 ? min + (hi - min) * Math.sqrt(w / max) : hi;
 }
 
 /** The kept prep's datum for ribbons (one a prep). */
@@ -424,263 +575,6 @@ function densityOf(lay: RibbonsLay, order: Int32Array, max: number, dpr: number)
   }
 }
 
-// ---- draw ----
-
-/** A ribbon's closed path (two cubics with vertical tangents joined by its ends) into a pass, through `args`. */
-export function ribbonPath(out: PassWriter, xy: Float64Array, o: number, close: boolean) {
-  const a = out.args;
-  out.pass.op(Op.path);
-  const p = out.pass.paths;
-  p.begin();
-  p.commands = grown(p.commands, p.commandCount + 5);
-  p.points = grown(p.points, 2 * (p.pointCount + 8));
-  const c = p.commands;
-  const ya = xy[o + 2];
-  const yb = xy[o + 5];
-  const y1 = ya + (yb - ya) / 3;
-  const y2 = ya + (2 * (yb - ya)) / 3;
-  const q = p.points;
-  let k = 2 * p.pointCount;
-  c[p.commandCount++] = PathCommand.move;
-  c[p.commandCount++] = PathCommand.cubic;
-  q[k++] = xy[o];
-  q[k++] = ya;
-  q[k++] = xy[o];
-  q[k++] = y1;
-  q[k++] = xy[o + 3];
-  q[k++] = y2;
-  q[k++] = xy[o + 3];
-  q[k++] = yb;
-  p.pointCount += 4;
-  if (close) {
-    c[p.commandCount++] = PathCommand.line;
-    c[p.commandCount++] = PathCommand.cubic;
-    c[p.commandCount++] = PathCommand.close;
-    q[k++] = xy[o + 4];
-    q[k++] = yb;
-    q[k++] = xy[o + 4];
-    q[k++] = y2;
-    q[k++] = xy[o + 1];
-    q[k++] = y1;
-    q[k++] = xy[o + 1];
-    q[k++] = ya;
-    p.pointCount += 4;
-  }
-  const i = p.n++;
-  p.cmdCount[i] = p.commandCount - p.cmdStart[i];
-  p.fill[i] = a[4];
-  p.stroke[i] = a[5];
-  p.strokeWidth[i] = a[6];
-  p.dash[i] = a[7];
-}
-
-/** A line ribbon's middle curve: its corners collapsed onto the ends' middles (into `Mid`). */
-const Mid = new Float64Array(R);
-function middle(rib: Float64Array, o: number): Float64Array {
-  Mid[0] = Mid[1] = (rib[o] + rib[o + 1]) / 2;
-  Mid[2] = rib[o + 2];
-  Mid[3] = Mid[4] = (rib[o + 3] + rib[o + 4]) / 2;
-  Mid[5] = rib[o + 5];
-  return Mid;
-}
-
-function clipBand(out: PassWriter, b: Box) {
-  const g = out.args;
-  g[0] = b.x;
-  g[1] = b.y;
-  g[2] = b.width;
-  g[3] = b.height;
-  out.clipArgs();
-}
-
-function drawData(lay: RibbonsLay, out: PassWriter) {
-  const g = out.args;
-  clipBand(out, lay.band);
-  for (let i = 0; i < lay.n; i++) {
-    const line = lay.flags[i] & Line;
-    g[4] = line ? NoColor : lay.color[i];
-    g[5] = line ? lay.color[i] | 0xff : NoColor;
-    g[6] = line ? 1 : 0;
-    g[7] = 0;
-    if (line) ribbonPath(out, middle(lay.rib, R * i), 0, false);
-    else ribbonPath(out, lay.rib, R * i, true);
-  }
-  if (lay.densityN && lay.densityMax) {
-    const dens = lay.tokens!.colors['seq-density-high'];
-    const b = lay.band;
-    for (let side = 0; side < 2; side++) {
-      const y = side === 0 ? lay.edgeA : lay.edgeB;
-      const down = y <= b.y + b.height / 2;
-      for (let c = 0; c < lay.densityN; c++) {
-        const v = lay.density[side * lay.densityN + c];
-        if (!v) continue;
-        g[0] = b.x + c / lay.dpr;
-        g[1] = down ? y : y - 3;
-        g[2] = 1 / lay.dpr;
-        g[3] = 3;
-        g[4] = ((dens & 0xffffff00) | Math.round(64 + (191 * v) / lay.densityMax)) >>> 0;
-        g[5] = NoColor;
-        g[6] = 0;
-        g[7] = 0;
-        g[8] = 0;
-        out.rectArgs();
-      }
-    }
-  }
-  out.unclip();
-}
-
-/** Whether a ribbon's pair has an end in a Location's ranges (a hovered position, the selection). */
-function endIn(
-  prep: PairsPrep,
-  k: number,
-  parts: readonly { readonly system: string; readonly ranges: ArrayLike<number> }[],
-): boolean {
-  const d = prep.data!;
-  const as = aOf(prep, k);
-  const bs = bOf(prep, k);
-  for (let i = 0; i < parts.length; i++) {
-    const a = parts[i].system === as;
-    const b = parts[i].system === bs;
-    if (!a && !b) continue;
-    const r = parts[i].ranges;
-    for (let j = 0; j + 1 < r.length; j += 2)
-      if ((a && d.aStart[k] < r[j + 1] && r[j] < d.aEnd[k]) || (b && d.bStart[k] < r[j + 1] && r[j] < d.bEnd[k]))
-        return true;
-  }
-  return false;
-}
-
-/** Whether a ribbon's pair is lit: hovered (its element, or an end at the hovered position), or selected. */
-function lit(lay: RibbonsLay, pass: PassName, e: Emphasis, k: number, hovered: number): boolean {
-  const prep = lay.prep!;
-  if (pass === 'hover') {
-    if (k === hovered) return true;
-    const h = e.hover;
-    if (!h || h.element) return false;
-    if (h.position !== undefined) {
-      const p = Math.floor(h.position);
-      const d = prep.data!;
-      if (h.system === aOf(prep, k) && p >= d.aStart[k] && p < d.aEnd[k]) return true;
-      if (h.system === bOf(prep, k) && p >= d.bStart[k] && p < d.bEnd[k]) return true;
-    }
-    const projected = e.projected?.hover;
-    return projected !== undefined && endIn(prep, k, projected.parts);
-  }
-  const keys = e.elements?.keys;
-  if (keys) {
-    const key = prep.data!.keys[k];
-    for (let i = 0; i < keys.length; i++) if (keys[i].owner === prep.owner && keys[i].key === key) return true;
-  }
-  return e.selection !== undefined && endIn(prep, k, e.selection.parts);
-}
-
-function drawEmphasis(lay: RibbonsLay, pass: PassName, out: PassWriter, e: Emphasis) {
-  const prep = lay.prep!;
-  const h = e.hover;
-  let hovered = -1;
-  if (pass === 'hover') {
-    if (!h && !e.projected?.hover) return;
-    if (h?.element) {
-      if (h.element.owner !== prep.owner) return;
-      hovered = prep.index.get(h.element.key) ?? -1;
-      if (hovered < 0) return;
-    }
-  } else if (!e.elements?.keys.length && !e.selection) return;
-  const tokens = lay.tokens!;
-  const config = lay.config!;
-  const ink = pass === 'hover' ? tokens.colors['seq-hover'] : tokens.colors['msui-accent'];
-  const width = pass === 'hover' ? config.outline.hover + 1 : config.outline.selection + 1;
-  const g = out.args;
-  clipBand(out, lay.band);
-  for (let i = 0; i < lay.n; i++) {
-    const k = lay.pair[i];
-    if (!lit(lay, pass, e, k, hovered)) continue;
-    const line = lay.flags[i] & Line;
-    // the hovered ribbon at full opacity with the hover's ink as its outline; the lit and selected outlined
-    g[4] = pass === 'hover' && k === hovered && !line ? lay.color[i] | 0xff : NoColor;
-    g[5] = ink;
-    g[6] = width;
-    g[7] = 0;
-    if (line) ribbonPath(out, middle(lay.rib, R * i), 0, false);
-    else ribbonPath(out, lay.rib, R * i, true);
-  }
-  out.unclip();
-}
-
-// ---- hit ----
-
-/**
- * The ribbon under a page point, closed form (_spec/README.md "Render", Bridges): at the point's height `u` each
- * ribbon's sides are `x_a + (x_b − x_a)·S(u)`; the point is in it when its x lies between them (widened to
- * `pairs.hitPx` for a thin one), scanned last drawn first (the narrowest on top). Nothing allocated.
- */
-export function hitRibbons(lay: RibbonsLay, at: Float64Array): Hit | undefined {
-  const x = at[0];
-  const y = at[1];
-  const b = lay.band;
-  if (!lay.prep || y < b.y || y >= b.y + b.height || x < b.x || x >= b.x + b.width) return undefined;
-  const r = lay.config!.pairs.hitPx;
-  const rib = lay.rib;
-  for (let i = lay.n - 1; i >= 0; i--) {
-    const o = R * i;
-    const ya = rib[o + 2];
-    const yb = rib[o + 5];
-    const u = (y - ya) / (yb - ya);
-    if (!(u >= 0 && u <= 1)) continue;
-    const s = u * u * (3 - 2 * u);
-    let lo = rib[o] + (rib[o + 3] - rib[o]) * s;
-    let hi = rib[o + 1] + (rib[o + 4] - rib[o + 1]) * s;
-    if (lay.flags[i] & Line) lo = hi = (lo + hi) / 2;
-    if (lo > hi) {
-      const t = lo;
-      lo = hi;
-      hi = t;
-    }
-    if (hi - lo < r) {
-      const m = (lo + hi) / 2;
-      lo = m - r / 2;
-      hi = m + r / 2;
-    }
-    if (x >= lo && x <= hi) return ribbonHit(lay, lay.pair[i]);
-  }
-  return undefined;
-}
-
-/** A ribbon's hit: its pair's element and both ends' extent, its bridge (made once a pair: `elements`, `extents`). */
-function ribbonHit(lay: RibbonsLay, k: number): Hit {
-  const prep = lay.prep!;
-  const d = prep.data!;
-  let element = prep.elements[k];
-  if (!element) element = prep.elements[k] = { owner: prep.owner, key: d.keys[k] };
-  let extent = prep.extents[k];
-  const as = aOf(prep, k);
-  const bs = bOf(prep, k);
-  if (!extent) {
-    const parts =
-      as === bs
-        ? [{ system: as, ranges: [d.aStart[k], d.aEnd[k], d.bStart[k], d.bEnd[k]] }]
-        : [
-            { system: as, ranges: [d.aStart[k], d.aEnd[k]] },
-            { system: bs, ranges: [d.bStart[k], d.bEnd[k]] },
-          ];
-    extent = prep.extents[k] = location({ parts });
-  }
-  const h = lay.scratch;
-  h.layer = lay.key;
-  h.section = lay.bridgeId;
-  h.system = as;
-  h.element = element;
-  h.extent = extent;
-  h.position = undefined;
-  h.ySystem = undefined;
-  h.yPosition = undefined;
-  h.target = undefined;
-  h.bin = prep.level;
-  h.bridge = lay.bridge;
-  return h;
-}
-
 /**
  * The pairs layer in a bridge (`scope: 'bridge'`, internal): laid out once a bridge with its `BridgeLayoutContext`,
  * drawn on the page, clipped to its band.
@@ -703,23 +597,17 @@ export const RibbonsType: LayerType<PairsPrep, RibbonsLay> = {
     lay.dpr = ctx.dpr;
     lay.n = 0;
     lay.densityN = 0;
-    // a source's pairs read by region: this slice, on the bridge's `a` side's window at its level (bins, or items once
-    // they fit), each pair once (_spec/README.md "Render", Bridges: the per-side reads are LA2's)
-    let read = prep;
-    const sa = c.bridge.placement.a;
-    if (prep.region && !prep.data && sa.ready) {
-      const side = { ...ctx, section: sa.section, axis: sa.layout.axis!, place: sa.layout.placement };
-      const r = BridgeHooks.region?.(prep, prep.region, side, data, lay.side);
-      if (r?.data) read = r;
-    }
-    lay.prep = read;
-    layoutRibbons(lay, read, c);
+    lay.band = c.bridge.placement.box;
+    const own = readSides(lay, prep, c, data);
+    layoutRibbons(lay, c, own);
     return lay;
   },
   draw(lay, pass, out, emphasis) {
-    if (!lay.tokens || !lay.prep) return;
-    if (pass === 'data') drawData(lay, out);
-    else if (emphasis && (pass === 'hover' || pass === 'selection')) drawEmphasis(lay, pass, out, emphasis);
+    if (!lay.tokens) return;
+    if (pass === 'data') {
+      if (lay.prep || lay.hatch.length) drawData(lay, out);
+    } else if (lay.prep && emphasis && (pass === 'hover' || pass === 'selection'))
+      drawEmphasis(lay, pass, out, emphasis);
   },
   hit: hitRibbons,
   legend(lay, options) {

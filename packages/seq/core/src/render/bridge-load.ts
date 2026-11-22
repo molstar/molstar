@@ -29,10 +29,14 @@ export function loadBridges(): Promise<void> {
  * Registers bridges with the layout and resolve (the pairs type's module calls it): their room, the pairs layer's region
  * reader, and the chunks loaded when a spec holds a bridge.
  */
-export function registerBridges(region: NonNullable<(typeof BridgeHooks)['region']>): void {
+export function registerBridges(
+  region: NonNullable<(typeof BridgeHooks)['region']>,
+  state: NonNullable<(typeof BridgeHooks)['state']>,
+): void {
   if (BridgeHooks.rooms) return;
   BridgeHooks.rooms = bridgeRooms;
   BridgeHooks.region = region;
+  BridgeHooks.state = state;
   withViewKind('bridge', loadBridges);
 }
 

@@ -68,11 +68,11 @@ const Deferred = [
   /seq\/core\/src\/query\/genome-forms\.ts$/,
   /seq\/core\/src\/lang\/include-pattern\.ts$/,
   // the bridge chunk: a view with a bridge loads it (render's `bridge-load.ts`)
-  /seq\/core\/src\/render\/(bridges|pairs-ribbons|layout\/bridge)\.ts$/,
+  /seq\/core\/src\/render\/(bridges|pairs-ribbons(-lay|-read|-draw)?|layout\/bridge)\.ts$/,
 ];
 
-/** The bridge chunk's row (minified; the design's estimate was about 6 kB, measured 14.6 at LA): the default viewer's chunk holding `render/bridges.ts`. */
-const BridgeChunk = { name: 'bridge chunk (lazy)', file: /seq\/core\/src\/render\/bridges\.ts$/, target: 16_000 };
+/** The bridge chunk's row (minified; the design's estimate was about 6 kB, measured 14.6 at LA, 20.8 with the per-side reads, merged blocks and the hatch): the default viewer's chunk holding `render/bridges.ts`. */
+const BridgeChunk = { name: 'bridge chunk (lazy)', file: /seq\/core\/src\/render\/bridges\.ts$/, target: 24_000 };
 
 /** The opt-in runtimes: loaded only when a composition lists one. */
 const Runtimes = [/seq\/core\/src\/runtimes\//, /seq\/core\/src\/structure\//];

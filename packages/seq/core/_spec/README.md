@@ -3900,14 +3900,14 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
 ### Bridges
 
 A bridge's band and its ribbons (Resolved view, Bridges). The bridge chunk (`bridges.ts`, `layout/bridge.ts`,
-`pairs-ribbons.ts`) is lazy and composed: the built-ins call `registerBridges` (`bridge-load.ts`: the band's room, the
+`pairs-ribbons*.ts`) is lazy and composed: the built-ins call `registerBridges` (`bridge-load.ts`: the band's room, the
 pairs layer's region reader, and the chunk and the view's pass loaded through `withViewKind('bridge', …)`, Resolve, Lazy
 kinds), so a model whose spec holds a bridge waits for them as for the genome chunk, a view without one loads none of
 it, and a composition without the built-ins (the minimal viewer) holds none of it: the layout reads `BridgeHooks`
 (`bridge-hooks.ts`), empty there. Eager are the language's kind, the `ResolvedView` fields, the hooks in the layout, the
 draw, the hit and the export (one optional call each, on `ViewLayout.bridges`), and `Hit.bridge`. The chunk takes the
-pairs layer's prepared form and its region reader through the composition (`types.pairs.prepare`, `BridgeHooks.region`),
-so it imports none of the pairs modules (a module the entry shares would be loaded with the entry); its code
+pairs layer's prepared form and its region reader through the composition (`types.pairs.prepare`, `BridgeHooks.region`,
+`.state`), so it imports none of the pairs modules (a module the entry shares would be loaded with the entry); its code
 `seq.render.bridge.unplaced` is its own catalog (`RibbonIssues`).
 
 - **Its room**: a placed, shown bridge takes its `height` (`bridges.height`, 96, when absent) and a section gap above
@@ -3931,23 +3931,34 @@ so it imports none of the pairs modules (a module the entry shares would be load
   at height `u` is `x_a + (x_b − x_a)·S(u)`, `S(u) = 3u² − 2u³`; a side joins corresponding positions (the `a` end's
   first to `b`'s first when the strands' product is 1, to `b`'s last when −1): crossed exactly where GA's rule says, by
   geometry (EC-206). Each end at least `ribbons.minPx` device px, widened about its middle; both under it, one curve
-  (`shape: line` forces it). Filled at `ribbons.fillOpacity` in the layer's colour, no outline, widest first (by its
-  ends' widths), so narrow ones lie on top. Colour by default `field block` of the end on the bridge's `a` side over
-  that side's block domain (EC-218: a side without blocks is one block, one colour); a bin by its weight
-  (`ribbons.binOpacity`, square root over the bins). Past `pairs.maxArcs` the most aligned length is kept (its length, a
-  bin's weight; ties by width), the rest a density strip along each edge (`seq.render.pairs.limit`).
+  (`shape: line` forces it). **An alignment's blocks merge under a pixel**: consecutive items of one alignment (one
+  `row`, read from its key `r<row>|…`, RR's identity) of one orientation and strand, on the same blocks, under one
+  device px apart on both sides are one ribbon, their hull on each side (its rank their sum); where a gap reaches a px
+  it parts. Filled at `ribbons.fillOpacity` in the layer's colour, no outline, widest first (by its ends' widths), so
+  narrow ones lie on top. Colour by default `field block` of the end on the bridge's `a` side over that side's block
+  domain (EC-218: a side without blocks is one block, one colour); a bin by its weight (`ribbons.binOpacity`, square
+  root over the bins). Past `pairs.maxArcs` the most aligned length is kept (its length, a bin's weight; ties by width),
+  the rest a density strip along each edge (`seq.render.pairs.limit`).
 - **The hit, closed form** (`hitRibbons`): at the point's height `S(u)` is one value; each ribbon's sides are one
   multiply-add, the point in it when its x lies between them (widened to `pairs.hitPx` for a thin one), scanned last
-  drawn first; nothing allocated (a property test: the hit is the sampled polygon's topmost cover). The hit is the
-  pair's element and both ends' extent (its card's and its selection's).
+  drawn first; nothing allocated (a property test: the hit is the sampled polygon's topmost cover). The hit is the drawn
+  run: the pair's element (a merged ribbon's first block) and both ends' extent (a merged ribbon's hull, made on its
+  first hit), its card's and its selection's.
 - **Emphasis**: the hovered ribbon at full opacity outlined in `seq-hover`; the ribbons with an end at a hovered
   position or in the projected hover outlined; the selected (its elements, or an end in the selection) in the accent.
   Clipped to the band. Warm draw and hover allocate nothing (`bridge.quick.ts`); 4,096 ribbons a frame under 8 ms and a
   hover under 2 ms (heavy, `bridge-time.test.ts`).
-- **Reads**: held pairs and a segments map's runs whole; a source's pairs by region on the bridge's `a` side's window at
-  its level (bins, or items once they fit: the pairs layer's reader), each pair once. The per-side reads (each side its
-  own level, a pair drawn once by ownership: the finer side's region widened to the far bins), the merge of an
-  alignment's blocks under a pixel and the pending hatch along an edge are not built (LA2).
+- **Reads** (`pairs-ribbons-read.ts`): held pairs and a segments map's runs whole. A source's pairs by region **on each
+  side**, on the system it shows (its name in the source), its window at its own level (bins, or items once they fit:
+  the pairs layer's reader, a state a side), the wants of both one layer's (`maxTilesPerLayer` over both). **Each pair
+  drawn once, by ownership**: the near side is the finer read (items finest), the bridge's `a` on a tie; `R` its window
+  widened outward to the far level's grid (items: the window), read again over `R` (the reader's `over`); the near side
+  draws every ribbon whose end on it starts in `R`, the far side those whose end on it starts in its window and whose
+  near end does not start in `R`. Levels nested, so no far bin straddles `R`: a property test (every block over a whole
+  far side drawn exactly once, by its item or its bin). Over an assembly or a side of blocks: one read, on the `a`
+  side's window (a block's own system read a side is LA2's). **Pending** (EC-169): each side's bins' tiles not loaded
+  (`RegionState.pending`) are the pending hatch along its edge (4 px stripes every 8 px, `seq-pending`), so a bridge
+  waiting is never an empty band. The gate per side after ownership is LA2's (each side's own count).
 - **Export**: a bridge is an empty group (`data-bridge`, `data-a`, `data-b`, `data-y`, `data-height`, `data-count`)
   after the sections' (written by the chunk, `BridgesLayout.svg`); its ribbons are the passes' paths (two cubics joined
   by lines, closed).
