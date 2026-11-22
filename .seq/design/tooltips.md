@@ -1,5 +1,7 @@
 # Tooltips: an author's words on places, in the hover card
 
+**Draft for the author's review** (2026-11-22): not yet agreed, not in the index; its open questions are at the end.
+
 ## Intent
 
 The author, 2026-11-22: "we should be able to associate arbitrary tooltips with data points. MolViewSpec has this too
