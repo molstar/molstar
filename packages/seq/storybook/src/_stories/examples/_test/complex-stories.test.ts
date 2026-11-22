@@ -163,7 +163,7 @@ describe('the grid over the complex, headless', () => {
     expect(v.frame!.lists.passes.selection.rects.n).toBeGreaterThanOrEqual(4);
   });
 
-  it('every strip’s grid drawn in both themes, canvas and SVG alike; the boundaries the gaps, no line in them', {
+  it('every strip’s grid drawn in both themes, canvas and SVG alike; the boundaries a hairline in each gap', {
     tags: ['medium'],
   }, async () => {
     const s = await open(view('complex-grid'));
@@ -182,8 +182,9 @@ describe('the grid over the complex, headless', () => {
           .split('\n')
           .filter((l) => /^rect \S+ \S+ (1 \d{3,}|\d{3,} 1) /.test(l))
           .map((l) => l.split(' ').slice(3, 5).join(' '));
-      expect(hair(r.lists)).toEqual([]);
-      expect(hair(v.frame!.lists)).toEqual([]);
+      // one down the plot and one across it, canvas and SVG alike
+      expect(hair(r.lists).length).toBe(2);
+      expect(hair(v.frame!.lists)).toEqual(hair(r.lists));
       // each pair's cells and their clip alike in both (x and size: the export's page may place the plot at another top)
       const cells = (lists: Parameters<typeof recordDrawLists>[0]) =>
         recordDrawLists(lists, ['data'])
