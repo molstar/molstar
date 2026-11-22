@@ -3666,8 +3666,9 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   sparse tile's `fill` under its cells, a symmetric grid's mirror tile drawn transposed from the served one), in the
   image LRU by layer, the entry's region and version, the mirror, the colors' version and the triangle. A tile not
   loaded draws the finest held coarser level under it; with none held, a pending rect (`seq-pending`), never empty
-  (EC-169). The color domain is the range of the tiles drawn (a closed domain is kept). A cell hit carries `bin`, the
-  level read.
+  (EC-169). Its wants carry the layer's key, so over blocks every block pair's are bounded together (`maxTilesPerLayer`,
+  `maxBytesPerLayer`: past them the band's "zoom in"). The color domain is the range of the tiles drawn (a closed domain
+  is kept). A cell hit carries `bin`, the level read.
 - **Color**: the value's field theme (`value`), its domain the grid's range; a missing value (NaN) transparent;
   `triangle` keeps `upper` (y before x, above the diagonal) or `lower` (y after x).
 - **Hit**: any point on the plot is the cell under it (`target: 'cell'`, `position` on x, `ySystem`, `yPosition`), drawn

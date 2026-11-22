@@ -116,4 +116,13 @@ describe('a grid by region', () => {
     expect(lay.binLevel).toBe(1);
     expect(lay.images.length).toBeGreaterThan(0);
   });
+
+  it('its wants are bounded together: past `maxTilesPerLayer` none is read and its band says zoom in', async () => {
+    const s = await settle(spec(), [SeqRuntime], {}, {}, { maxTilesPerLayer: 2 });
+    const f = await s.frame({ size: Size });
+    const l = f.layout.sections[1].tracks[0].layers[0] as { lay: GridLay; zoomIn?: boolean };
+    expect(l.zoomIn).toBe(true);
+    expect(l.lay.images.length).toBe(0);
+    expect(f.layout.issues.map((i) => i.code)).toContain('seq.render.zoom_in');
+  });
 });

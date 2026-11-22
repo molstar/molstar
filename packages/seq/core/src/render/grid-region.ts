@@ -58,6 +58,9 @@ export interface Placed {
   readonly key: string;
 }
 
+/** A reader that asks for nothing (what a coarser level holds is read, never wanted). */
+const NoWants = { want: () => {} };
+
 /** The tiles loaded over the view at `level`, as drawn (no want: what a coarser level holds under a pending one). */
 function loadedAt(
   ctx: LayoutContext,
@@ -69,7 +72,7 @@ function loadedAt(
   want: boolean,
   marginTiles: number,
 ) {
-  const read = readGridTiles(want ? ctx : { want: () => {} }, data, region.src, x, y, level, want ? marginTiles : 0);
+  const read = readGridTiles(want ? ctx : NoWants, data, region.src, x, y, level, want ? marginTiles : 0);
   const out: Placed[] = [];
   for (const { entry, transposed } of read.entries) {
     const t = entry.tables.grid;

@@ -259,7 +259,7 @@ export interface GridRead {
  * a tile not loaded is a pending rect (EC-169: never drawn or hit as empty), a failed one a failed rect.
  */
 export function readGridTiles(
-  ctx: Pick<LayoutContext, 'want'>,
+  ctx: Pick<LayoutContext, 'want'> & { readonly key?: string },
   data: StoreReader,
   src: LayerSource,
   x: readonly [number, number],
@@ -268,7 +268,17 @@ export function readGridTiles(
   marginTiles = 1,
 ): GridRead {
   const out: GridRead = { entries: [], pending: [], failed: [] };
-  const want = { source: src.source, system: src.system, start: x[0], end: x[1], level, y, priority: 'view' as const };
+  // the layer's key on its wants: a layer's wants over every block pair are bounded together (`maxTilesPerLayer`)
+  const want: Want = {
+    source: src.source,
+    system: src.system,
+    start: x[0],
+    end: x[1],
+    level,
+    y,
+    priority: 'view',
+    layer: ctx.key,
+  };
   ctx.want(want);
   if (marginTiles > 0) {
     const m = marginTiles * level * (data.settings?.gridTileBins ?? 256);
@@ -277,6 +287,12 @@ export function readGridTiles(
   }
   if (data.coverage(src.source) === undefined || !data.tilesOf) {
     out.pending.push(x[0], x[1], y.start, y.end);
+    return out;
+  }
+  // the layer's wants together past the store's bounds: none asked, its band "zoom in" (drawn by the track)
+  if (ctx.key !== undefined && data.layerRefused?.(ctx.key)) {
+    out.pending.push(x[0], x[1], y.start, y.end);
+    out.tooMany = true;
     return out;
   }
   const tiles = data.tilesOf(want);
