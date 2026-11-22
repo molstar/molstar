@@ -6,11 +6,6 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 
 ## Open
 
-- **Arcs jump, vanish and fly out of the band as the view pans** (the author, 2026-11-22, Examples › Complex, Contacts
-  (≤ 4 Å) over CDK2 and cyclin A, the rail dragged: "the arc rendering doesn't really work when moving the rail.
-  similar issues were present in packages/sequences too. bad these came back again"): at one window every arc gone
-  (ticks at the foot), at the next back; a partner past the edge a long line out of the band. The previous Seq*'s rules
-  and tests (`packages/sequences/viewer/_test/arcs-off-window`, `arcs-continuous`, `arcs-pan`) to port. To FX13.
 - **One hover contract for every mark, and a sweep that holds it** (the author, 2026-11-21, Examples › Plasmid › Ring
   at scale: the strands' density bands on the ring and in the detail show no hover box or card; "we should not be
   fixing this one-by-one btw. since we already fixed a similar issue, we need a general rule for this and global
@@ -168,6 +163,12 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   (`pos:ref>alt`), its category and its INFO fields, as the design's matrix row "a variant allele" implies.
 
 ## Fixed
+
+- **Arcs jump, vanish and fly out of the band as the view pans** (the author, 2026-11-22, Examples › Complex, Contacts
+  (≤ 4 Å) over CDK2 and cyclin A, the rail dragged: "the arc rendering doesn't really work when moving the rail.
+  similar issues were present in packages/sequences too. bad these came back again"): at one window every arc gone
+  (ticks at the foot), at the next back; a partner past the edge a long line out of the band. The previous Seq*'s rules
+  and tests (`packages/sequences/viewer/_test/arcs-off-window`, `arcs-continuous`, `arcs-pan`) to port. To FX13. Fixed by FX13: an end past the window a virtual end at most `reach` (0.25 of the window, the previous Seq*'s `ARC_MARGIN`) past the edge on one line of strips; the scale counting pairs within reach; the held gate counting what the arcs reach; a scaled block's ends at their offset. Stacked rows and text keep carets (TODO).
 
 - **No track drawn as an empty well, and a sweep that holds it** (the author, 2026-11-21: "Yes, group them", after
   the Promoters track, the stacked ATP block's tracks and the plasmid's strip each showed a blank band). Three causes,

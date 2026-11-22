@@ -24,6 +24,9 @@ loaded when used, sections over a source's complex, the genome axis and layouts)
 - **A component query on a source-backed sequence** (`(elements :component X)`) is pending until the source's letters
   are read (EC-169); a format with a component index could answer it without the letters.
 
+- **Arcs' follow-ups** (FX13, 2026-11-22): an end past the window on a stacked row or a text line is still a caret (only
+  one line of translate strips gets virtual ends); a ring's arcs are unchanged.
+
 - **Bridges' follow-ups** (LA, 2026-11-22; across-sections.md): over assemblies a bridge reads once, on side `a` (LA2);
   grids over two sections, categorical axes, the liftover (LA3); the resize grip, bridge menus, a ribbon's double-click,
   `bridge.pointer`; sections have no label, so a card names a side by its section id; Shift+A is the command's own
