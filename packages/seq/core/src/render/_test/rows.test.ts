@@ -259,7 +259,8 @@ describe('the rows layer', () => {
     it('a folded clade’s wedge ends at its deepest leaf’s x, a light fill outlined in the branch ink, canvas and SVG alike', async () => {
       const { lay, f } = await branches(1);
       // hb's leaves lie 2 from the root of a tree 3 deep (GLB, CYG): two thirds across
-      const far = lay.treeX0 + ((lay.treeX1 - lay.treeX0) * 2) / 3;
+      // (the tree inset by half a stroke each side, so its strokes lie inside the column)
+      const far = lay.treeX0 + 0.5 + ((lay.treeX1 - lay.treeX0 - 1) * 2) / 3;
       expect(lay.wedges[2]).toBeCloseTo(far, 5);
       const paths = recordDrawLists(f.lists, ['labels'])
         .split('\n')
@@ -300,7 +301,7 @@ describe('the rows layer', () => {
     const f = await s.frame({ size: Size, dpr: 1, settled: true });
     const lay = rowsLay(f as never);
     const [x0, y0, x1, y1] = lay.wedges;
-    expect(x1).toBeCloseTo(lay.treeX1, 6);
+    expect(x1).toBeCloseTo(lay.treeX1 - 0.5, 6);
     expect(x1 - x0).toBeGreaterThanOrEqual(6 - 1e-9);
     expect(hitView(f.layout, x0 + 2, (y0 + y1) / 2)).toMatchObject({ target: 'tree-node', element: { key: 'hb' } });
   });
