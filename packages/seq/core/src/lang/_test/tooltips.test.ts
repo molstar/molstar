@@ -29,7 +29,9 @@ function designSpec() {
   b.views.tooltip('curated', {
     target: p53,
     schema: 'address',
-    rows: { address: ['(at :label 175)'], tooltip: ['R175H, [a hotspot](!seq-focus=/refs/hotspots)'] },
+    rows: { address: ['(at :label 175)'], tooltip: ['R175H'] },
+    // the link is the template's (Markdown is the template's; a value is text, escaped)
+    text: '{}, [a hotspot](!seq-focus=/refs/hotspots)',
   });
   b.views.tooltip('mvs', {
     target: p53,

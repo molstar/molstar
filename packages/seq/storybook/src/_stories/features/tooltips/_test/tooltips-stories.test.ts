@@ -9,7 +9,7 @@
 // inline and from a source, over an assembly, Markdown with an in-view link); the SVG story's export titles its items by
 // their cards; a canvas's card and the SVG's title say the same.
 
-import { loadGenome } from '@molstar/seqx-core/resolve';
+import { loadGenome, loadTooltips } from '@molstar/seqx-core/resolve';
 import { checkSeqSpec } from '@molstar/seqx-core/lang';
 import { describerFor } from '@molstar/seqx-viewer/describe';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
@@ -21,6 +21,8 @@ let viewer: SeqViewer | undefined;
 
 beforeAll(async () => {
   await loadGenome();
+  // the tooltips' door landed first: its import is real I/O, never on the fake clock
+  await loadTooltips();
 });
 
 afterEach(() => {

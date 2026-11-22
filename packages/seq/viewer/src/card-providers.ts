@@ -209,7 +209,7 @@ const ItemSection: CardProviderEntry = {
     const el = at.place.element;
     const l = at.layer;
     if (out.whole || !el || !l?.type.items) return;
-    const it = at.words.itemsOf(l).find((d) => d.key === el.key);
+    const it = at.item ?? at.words.itemsOf(l).find((d) => d.key === el.key);
     if (!it) return;
     const system = at.words.systemName(it.system ?? l.layer.data?.system ?? at.section.section.axis.system);
     // a source's allele (a VCF's: its row holds `ref` and `alt`) is named by its id, `pos:ref>alt`, never its record's ID

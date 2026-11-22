@@ -81,6 +81,9 @@ function partsOf(at: CardAt): number {
       return part(1, bs, d.bStart[k], d.bEnd[k]);
     }
   }
+  // an item the caller gives (an export's title, an item each): its whole extent, as the headless titles read it
+  const it = at.item;
+  if (it && el) return part(0, it.system ?? l.layer.data?.system ?? p.system ?? '', it.start, it.end);
   if (p.system === undefined || Number.isNaN(at.position)) return 0;
   // a density bin: the positions its pixel column spans
   if (!el && l.type.name === 'ranges' && (l.lay as RangesLay).mode === 'density') {
@@ -99,7 +102,8 @@ function isGap(at: CardAt): boolean {
   const p = at.place;
   switch (l.type.name) {
     case 'letters':
-      return GapLetters.has(at.words.letterAt(at.section, at.position));
+      // the hovered system's own letter (a table read, no layout: a warm show allocates nothing for it)
+      return p.system === undefined || GapLetters.has(at.words.letterOn(p.system, at.position));
     case 'values': {
       const axis = at.section.axis;
       if (!axis) return true;
@@ -129,7 +133,7 @@ export function describeTooltips(at: CardAt, out: CardParts): void {
   if (p.element === undefined && !density && (!PositionMarks.has(l.type.name) || isGap(at))) return;
   const n = partsOf(at);
   const el = p.element;
-  const it = el && l.type.items ? at.words.itemsOf(l).find((d) => d.key === el.key) : undefined;
+  const it = at.item ?? (el && l.type.items ? at.words.itemsOf(l).find((d) => d.key === el.key) : undefined);
   // the cap shared with the place's items, after them; a single row on the mark always shows
   let items = 0;
   for (const r of out.rows) if (r.item) items++;

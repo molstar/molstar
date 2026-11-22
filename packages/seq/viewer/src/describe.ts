@@ -157,6 +157,15 @@ class Words implements CardReads {
     // a ribbon in a bridge's band (its `section` the bridge's id): the bridge chunk's card
     if (!section) return BridgeView.parts?.card(this._src.view, layout, place);
     const layer = place.layer === undefined ? undefined : layerOf(section, place.layer);
+    return this.compose(section, layer, place);
+  }
+
+  /**
+   * The card of a place on a section and a layer the caller holds (an export's own layout: nothing looked up in the
+   * viewer's frame), with its item when the caller has it (read before a lookup by key).
+   */
+  compose(section: SectionLayout, layer: LayerLayout | undefined, place: Place, item?: ItemDescription) {
+    const t = place.target;
     const out = new Parts();
     const at: CardAt = {
       words: this,
@@ -170,6 +179,7 @@ class Words implements CardReads {
       yPosition:
         place.yPosition === undefined || Number.isNaN(place.yPosition) ? Number.NaN : Math.floor(place.yPosition),
       cardItems: this.cardItems,
+      ...(item ? { item } : {}),
     };
     // a run of small blocks says its block and the run alone
     const run = t === 'run' || place.count !== undefined;
@@ -476,6 +486,11 @@ export class Describer {
     return this._words.describe('cursor' in place ? this._words.cursorPlace(place.cursor) : place);
   }
 
+  /** The card of a place on a section and layer the caller holds (an export's layout), its item given (`cardTitles`). */
+  composeAt(section: SectionLayout, layer: LayerLayout, place: Place, item: ItemDescription): HoverCard | undefined {
+    return this._words.compose(section, layer, place, item);
+  }
+
   /** Sets the providers the card is composed by, the cap they read, and where a throw is said (`composeCard`). */
   compose(
     providers: readonly CardProviderEntry[],
@@ -517,17 +532,19 @@ export function describerFor(src: DescribeSource): Describer {
  * and its rows as plain text, a line each, as the composed providers give it at the item's middle.
  */
 export function cardTitles(describer: Describer): ItemTitle {
+  // the export's own section, layer and item (its layout, never the viewer's frame): no lookup an item (linear)
   return (s, l, it) => {
     const owner = l.layer.data?.address;
     const x = (it.x0 + it.x1) / 2;
     const position = s.axis ? s.axis.positionAt(x) : Number.NaN;
-    const card = describer.describe({
+    const place: Place = {
       section: s.section.address,
       layer: l.key,
       system: s.section.axis.system,
       position,
       ...(owner !== undefined ? { element: { owner, key: it.key } } : {}),
-    });
+    };
+    const card = describer.composeAt(s, l, place, it);
     if (!card) return undefined;
     return [card.title, ...card.rows.map((r) => (r.value ? `${r.label}: ${r.value}` : r.label))].join('\n');
   };

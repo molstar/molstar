@@ -82,7 +82,8 @@ const MaxText = 1000;
 export function tooltipsAt(ctx: TooltipContext, place: TooltipPlace, out: TooltipOut, cap = 8): void {
   const tips = ctx.view.tooltips;
   if (!tips) return;
-  for (const t of tips) {
+  for (let j = 0; j < tips.length; j++) {
+    const t = tips[j];
     if (!t.template || t.category) continue;
     if (t.data !== undefined || t.layer !== undefined) byData(ctx, t, place, out);
     else if (t.addresses) byAddresses(ctx, t, place, out, cap);
@@ -107,13 +108,7 @@ function byData(ctx: TooltipContext, t: ResolvedTooltip, place: TooltipPlace, ou
   if (!src) return;
   // the item's row in the loaded list tile holding its first position (a layer reads one of its source's levels)
   for (const level of ctx.data.coverage(src.source)?.levels ?? [1])
-    for (const k of ctx.data.keysOf({
-      source: src.source,
-      system: src.system,
-      start: item.start,
-      end: item.start + 1,
-      level,
-    })) {
+    for (const k of keysAt(ctx.data, src.source, src.system, item.start, item.start + 1, level)) {
       const e = ctx.data.get(k);
       const table = e?.status === 'loaded' ? e.tables.ranges : undefined;
       if (!table || table.form !== 'list') continue;
@@ -156,7 +151,8 @@ function byRanges(ctx: TooltipContext, t: ResolvedTooltip, place: TooltipPlace, 
   let count = 0;
   let pending = false;
   let seen = 0;
-  for (const part of place.parts) {
+  for (let q = 0; q < place.parts.length; q++) {
+    const part = place.parts[q];
     // the table's plan on the part's system (an assembly's by its sequence), the part carried onto the table's system
     const plan = a.bySystem ? a.bySystem.get(part.system) : a.access;
     const dataSystem = a.bySystem ? part.system : a.target;
@@ -189,7 +185,7 @@ function byRanges(ctx: TooltipContext, t: ResolvedTooltip, place: TooltipPlace, 
       if (level === undefined) {
         // nothing here has come: pending, or failed where a tile failed
         for (const l of levels)
-          for (const k of ctx.data.keysOf({ source, system: plan.system, start: s, end: e, level: l })) {
+          for (const k of keysAt(ctx.data, source, plan.system, s, e, l)) {
             const st = ctx.data.get(k)?.status;
             if (st === 'failed') {
               if (!out.failed.includes(t.address)) out.failed.push(t.address);
@@ -197,7 +193,9 @@ function byRanges(ctx: TooltipContext, t: ResolvedTooltip, place: TooltipPlace, 
           }
         continue;
       }
-      for (const k of ctx.data.keysOf({ source, system: plan.system, start: s, end: e, level })) {
+      const keys = keysAt(ctx.data, source, plan.system, s, e, level);
+      for (let kk = 0; kk < keys.length; kk++) {
+        const k = keys[kk];
         const entry = ctx.data.get(k);
         if (!entry || entry.status !== 'loaded') {
           if (entry?.status === 'failed' && !out.failed.includes(t.address)) out.failed.push(t.address);
@@ -234,6 +232,37 @@ function byRanges(ctx: TooltipContext, t: ResolvedTooltip, place: TooltipPlace, 
   emit(t, made, count, out);
 }
 
+/** The last keys asked of a reader by source, system and level (`keysAt`). */
+interface LastKeys {
+  start: number;
+  end: number;
+  keys: readonly string[];
+}
+const KeysAsked = new WeakMap<StoreReader, Map<string, Map<string, Map<number, LastKeys>>>>();
+
+/**
+ * The store's keys over `[s, e)` at a level, the last answer kept by source, system and level: a card held at a place
+ * asks the same again (the store's `keysOf` makes its keys anew each call). Keys name tiles, never their state: the
+ * entries are read anew (`get`).
+ */
+function keysAt(data: StoreReader, source: string, system: string, s: number, e: number, level: number) {
+  let bySource = KeysAsked.get(data);
+  if (!bySource) KeysAsked.set(data, (bySource = new Map()));
+  let bySystem = bySource.get(source);
+  if (!bySystem) bySource.set(source, (bySystem = new Map()));
+  let byLevel = bySystem.get(system);
+  if (!byLevel) bySystem.set(system, (byLevel = new Map()));
+  const last = byLevel.get(level);
+  if (last && last.start === s && last.end === e) return last.keys;
+  const keys = data.keysOf({ source, system, start: s, end: e, level });
+  if (last) {
+    last.start = s;
+    last.end = e;
+    last.keys = keys;
+  } else byLevel.set(level, { start: s, end: e, keys });
+  return keys;
+}
+
 /** The finest of `levels` with a loaded list tile over `[s, e)`; undefined when none has one. */
 function listLevel(
   data: StoreReader,
@@ -243,11 +272,15 @@ function listLevel(
   e: number,
   levels: readonly number[],
 ): number | undefined {
-  for (const level of levels)
-    for (const k of data.keysOf({ source, system, start: s, end: e, level })) {
+  for (let li = 0; li < levels.length; li++) {
+    const level = levels[li];
+    const keys = keysAt(data, source, system, s, e, level);
+    for (let kk = 0; kk < keys.length; kk++) {
+      const k = keys[kk];
       const entry = data.get(k);
       if (entry?.status === 'loaded' && entry.tables.ranges?.form === 'list') return level;
     }
+  }
   return undefined;
 }
 
@@ -398,30 +431,38 @@ function emit(t: ResolvedTooltip, made: typeof Made, count: number, out: Tooltip
 }
 
 /** Rows kept by tooltip and text (a plain one and an item one): a warm card makes none. Bounded a tooltip. */
-const Rows = new WeakMap<ResolvedTooltip, Map<string, TooltipRow>>();
+/** A tooltip's rows by text: plain (its one match) and items (one of several), and its `loading` row. */
+interface TooltipRows {
+  readonly plain: Map<string, TooltipRow>;
+  readonly items: Map<string, TooltipRow>;
+  loading?: TooltipRow;
+}
+const Rows = new WeakMap<ResolvedTooltip, TooltipRows>();
 const RowsPerTooltip = 256;
 
+function rowsOf(t: ResolvedTooltip): TooltipRows {
+  let r = Rows.get(t);
+  if (!r) Rows.set(t, (r = { plain: new Map(), items: new Map() }));
+  return r;
+}
+
 function rowOf(t: ResolvedTooltip, text: string, item: boolean): TooltipRow {
-  let byText = Rows.get(t);
-  if (!byText) Rows.set(t, (byText = new Map()));
-  const key = item ? `\u0001${text}` : text;
-  let row = byText.get(key);
+  const byText = item ? rowsOf(t).items : rowsOf(t).plain;
+  let row = byText.get(text);
   if (row) return row;
   const rich = t.format === 'markdown' ? richOf(text) : undefined;
   const value = rich ? markdownInlineText(rich) : clean(text);
   const base = t.label !== undefined ? { label: t.label, value } : { label: value, value: '' };
   row = { ...base, ...(rich && hasMarks(rich) ? { rich } : {}), ...(item ? { item: true } : {}) };
   if (byText.size >= RowsPerTooltip) byText.delete(byText.keys().next().value!);
-  byText.set(key, row);
+  byText.set(text, row);
   return row;
 }
 
 function loadingRow(t: ResolvedTooltip): TooltipRow {
-  let byText = Rows.get(t);
-  if (!byText) Rows.set(t, (byText = new Map()));
-  let row = byText.get('\u0002');
-  if (!row) byText.set('\u0002', (row = { ...rowOf(t, 'loading', false), loading: true }));
-  return row;
+  const r = rowsOf(t);
+  r.loading ??= { ...rowOf(t, 'loading', false), loading: true };
+  return r.loading;
 }
 
 /** Whether a tree has more than plain text (a mark or a link): its `rich` is worth carrying. */
@@ -431,29 +472,57 @@ const hasMarks = (nodes: readonly MarkdownInline[]) => nodes.some((n) => n.kind 
 const TableTexts = new WeakMap<object, Map<ResolvedTooltip, Map<number, string | null>>>();
 const TextsPerTable = 4096;
 
-function cachedText(key: object, t: ResolvedTooltip, i: number, make: () => string | undefined): string | undefined {
+/** A row's texts by tooltip (made once a key: a table, an inline table's rows, the tooltip itself). */
+function textsOf(key: object, t: ResolvedTooltip): Map<number, string | null> {
   let byTip = TableTexts.get(key);
   if (!byTip) TableTexts.set(key, (byTip = new Map()));
   let texts = byTip.get(t);
   if (!texts) byTip.set(t, (texts = new Map()));
-  const c = texts.get(i);
-  if (c !== undefined) return c ?? undefined;
-  const text = make();
+  return texts;
+}
+
+/** Keeps a row's text (null: none), the oldest let go past the bound. */
+function keep(texts: Map<number, string | null>, i: number, text: string | undefined): string | undefined {
   if (texts.size >= TextsPerTable) texts.delete(texts.keys().next().value!);
   texts.set(i, text ?? null);
   return text;
 }
 
-/** A list table's row's text (cached by the row). */
-const tableText = (t: ResolvedTooltip, table: RangesList, i: number) =>
-  cachedText(table, t, i, () => formatRow(t, (name) => listField(table, i, name)));
+/** A list table's row's text (cached by the row: no closure made on a hit). */
+function tableText(t: ResolvedTooltip, table: RangesList, i: number): string | undefined {
+  const texts = textsOf(table, t);
+  const c = texts.get(i);
+  if (c !== undefined) return c ?? undefined;
+  return keep(
+    texts,
+    i,
+    formatRow(t, (name) => listField(table, i, name)),
+  );
+}
 
 /** An inline table's row's text (cached by the row). */
-const inlineText = (t: ResolvedTooltip, rows: Record<string, Value>, i: number) =>
-  cachedText(rows, t, i, () => formatRow(t, (name) => cellOf(rows[name], i)));
+function inlineText(t: ResolvedTooltip, rows: Record<string, Value>, i: number): string | undefined {
+  const texts = textsOf(rows, t);
+  const c = texts.get(i);
+  if (c !== undefined) return c ?? undefined;
+  return keep(
+    texts,
+    i,
+    formatRow(t, (name) => cellOf(rows[name], i)),
+  );
+}
 
 /** An address's text (no fields: the template alone, cached). */
-const constantText = (t: ResolvedTooltip) => cachedText(t, t, -1, () => formatRow(t, () => undefined));
+function constantText(t: ResolvedTooltip): string | undefined {
+  const texts = textsOf(t, t);
+  const c = texts.get(-1);
+  if (c !== undefined) return c ?? undefined;
+  return keep(
+    texts,
+    -1,
+    formatRow(t, () => undefined),
+  );
+}
 
 /** A row's text: the template over its fields (`{}` the tooltip's field), values escaped; undefined when one is missing. */
 function formatRow(t: ResolvedTooltip, field: (name: string) => string | undefined): string | undefined {

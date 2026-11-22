@@ -84,6 +84,8 @@ export interface CardAt {
   readonly yPosition: number;
   /** The `hover.cardItems` cap: a provider listing matches stops past it and counts the rest (`moreCount`). */
   readonly cardItems: number;
+  /** The item under the place when the caller has it (an export's, an item each): read before looking it up by key. */
+  readonly item?: ItemDescription;
 }
 
 /**

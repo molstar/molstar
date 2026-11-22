@@ -72,6 +72,26 @@ describe('the card’s overflow', () => {
     expect(value.textContent!.split('​').length).toBeGreaterThan(8);
     port.show(card, place, { lines: 5 });
     expect(value.style.getPropertyValue('-webkit-line-clamp')).toBe('5');
+    // shown as a clamped box: the line clamp holds only with its display
+    expect(value.style.display).toBe('-webkit-box');
+    port.dispose?.();
+  });
+
+  it('a long text with no label spans the row and wraps as a value does', () => {
+    const host = document.createElement('div');
+    document.body.append(host);
+    const port = hoverCardOverlay()(host);
+    port.show({ title: 'p 4', rows: [{ label: LongValue, value: '' }], text: '' }, place, { lines: 3 });
+    const label = host.querySelector<HTMLElement>('.msui-label')!;
+    const value = host.querySelector<HTMLElement>('.msui-value')!;
+    expect(label.style.gridColumn).toBe('1 / -1');
+    expect(label.style.getPropertyValue('-webkit-line-clamp')).toBe('3');
+    expect(label.textContent).toBe(breakable(LongValue));
+    expect(value.style.display).toBe('none');
+    // the next card's row with a value: the columns again
+    port.show({ title: 'p 4', rows: [{ label: 'Note', value: 'x' }], text: '' }, place, { lines: 3 });
+    expect(label.style.gridColumn).toBe('');
+    expect(value.style.display).toBe('-webkit-box');
     port.dispose?.();
   });
 

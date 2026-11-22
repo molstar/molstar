@@ -301,9 +301,11 @@ function hoverCardBehavior(context: BehaviorContext, params: HoverCardParams = {
     showing = by;
     // the card drawn lists `hover.cardItems` items at most (`cutItems`); the state keeps it whole
     shown.set({ card, place });
-    linked = cardHasLink(card);
+    // linked by what is drawn: a link in a row cut past the cap is not on the card, never enterable for it
+    const drawn = cutItems(card, config.hover.cardItems);
+    linked = cardHasLink(drawn);
     entered = false;
-    portOf()?.show(cutItems(card, config.hover.cardItems), place, linked ? linkedOptions : plainOptions);
+    portOf()?.show(drawn, place, linked ? linkedOptions : plainOptions);
   };
 
   // the enterable card (_spec/README.md "Behaviors", hoverCard, The enterable card): a card with a link stays a grace

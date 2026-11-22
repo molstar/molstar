@@ -131,15 +131,20 @@ export function hoverCardOverlay(options: { readonly maxWidth?: number } = {}): 
           const r = c.rows[i];
           pair[0].textContent = '';
           pair[1].textContent = '';
-          // a row with no value is its text alone (a tooltip with no label): its Markdown in the label's place
-          const richInLabel = r.rich !== undefined && !r.value;
-          if (richInLabel) drawRich(doc, pair[0], r.rich!, link);
-          else pair[0].textContent = r.label;
-          if (r.rich && !richInLabel) drawRich(doc, pair[1], r.rich, link);
-          else pair[1].textContent = breakable(r.value);
-          clamp(pair[1], lines);
+          // a row with no value is its text alone (a tooltip with no label): it spans the row and wraps as a value
+          // does (the label column is as wide as its longest label: a long text there would never wrap)
+          const alone = !r.value;
+          if (alone && r.rich) drawRich(doc, pair[0], r.rich, link);
+          else pair[0].textContent = alone ? breakable(r.label) : r.label;
+          if (!alone) {
+            if (r.rich) drawRich(doc, pair[1], r.rich, link);
+            else pair[1].textContent = breakable(r.value);
+          }
+          pair[0].style.gridColumn = alone ? '1 / -1' : '';
+          // shown as clamped boxes (`clamp`'s display: a plain display would drop the line clamp)
           clamp(pair[0], lines);
-          pair[0].style.display = pair[1].style.display = '';
+          clamp(pair[1], lines);
+          if (alone) pair[1].style.display = 'none';
         }
         for (let i = c.rows.length; i < pool.length; i++) pool[i][0].style.display = pool[i][1].style.display = 'none';
         // `display`, not `hidden`: the surface's own `display` would win over the attribute's
