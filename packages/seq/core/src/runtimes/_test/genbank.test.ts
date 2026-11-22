@@ -102,6 +102,11 @@ describe('the location grammar', () => {
     expect(at('join(2600..2680,10..120)', 2686, true)).toMatchObject({ ok: true, pieces: [2599, 2680, 2695, 2806] });
     // on a linear record the same text is two pieces where they are
     expect(at('join(2600..2686,1..120)', 2686, false)).toMatchObject({ ok: true, pieces: [0, 120, 2599, 2686] });
+    // a join over the origin of a record near 2^31 would pass int32 positions: refused, never a negative end
+    const max = 0x7fffffff;
+    const far = parseLocation(`join(${max - 10}..${max},1..20)`, max, true, 10);
+    expect(far).toMatchObject({ ok: false, why: expect.stringMatching(/2\^31/) });
+    expect(parseLocation(`join(${max - 10}..${max})`, max, true, 10)).toMatchObject({ ok: true, end: max });
     // more than one lap is refused
     expect(at('join(2600..2686,1..2686,1..10)', 2686, true)).toMatchObject({ ok: false });
   });
@@ -122,7 +127,10 @@ describe('the location grammar', () => {
       expect(why(bad), bad).not.toBe('read');
     const deep = `${'complement('.repeat(17)}1..5${')'.repeat(17)}`;
     expect(why(deep)).toMatch(/deeper than 16/);
-    expect(why(`${'complement('.repeat(15)}1..5${')'.repeat(15)}`)).toBe('read');
+    // exactly 16 operators nest; a 17th is refused (complement, join and order alike)
+    expect(why(`${'complement('.repeat(16)}1..5${')'.repeat(16)}`)).toBe('read');
+    expect(why(`${'join('.repeat(16)}1..5${')'.repeat(16)}`)).toBe('read');
+    expect(why(`${'order('.repeat(17)}1..5${')'.repeat(17)}`)).toMatch(/deeper than 16/);
     const many = `join(${Array.from({ length: 11 }, (_, k) => `${k * 2 + 1}..${k * 2 + 1}`).join(',')})`;
     expect(parseLocation(many, 1000, false, 10)).toMatchObject({ ok: false });
     expect(parseLocation(many, 1000, false, 11)).toMatchObject({ ok: true });

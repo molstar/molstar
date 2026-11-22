@@ -112,9 +112,10 @@ export function parseLocation(text: string, length: number, circular: boolean, m
     if (++count > maxPieces) throw new Refused(`more than ${maxPieces} pieces`);
     out.push({ start: a - 1, end: b, strand: 1 });
   };
+  /** `depth` the operators around this location: at most `MaxDepth` nest. */
   const loc = (depth: number, out: Leaf[]) => {
-    if (depth > MaxDepth) throw new Refused(`nested deeper than ${MaxDepth}`);
     if (word('complement(')) {
+      if (depth >= MaxDepth) throw new Refused(`nested deeper than ${MaxDepth}`);
       const inner: Leaf[] = [];
       loc(depth + 1, inner);
       expect(')');
@@ -127,6 +128,7 @@ export function parseLocation(text: string, length: number, circular: boolean, m
       return;
     }
     if (word('join(') || word('order(')) {
+      if (depth >= MaxDepth) throw new Refused(`nested deeper than ${MaxDepth}`);
       loc(depth + 1, out);
       while (word(',')) loc(depth + 1, out);
       expect(')');
@@ -138,7 +140,7 @@ export function parseLocation(text: string, length: number, circular: boolean, m
   const leaves: Leaf[] = [];
   try {
     if (!text.length) throw new Refused('empty');
-    loc(1, leaves);
+    loc(0, leaves);
     if (i !== text.length) throw new Refused(`\`${text.slice(i, i + 8)}\` after the location`);
   } catch (e) {
     if (e instanceof Refused) return { ok: false, why: e.why };
@@ -168,6 +170,8 @@ export function parseLocation(text: string, length: number, circular: boolean, m
   const start = pieces[0];
   const end = pieces[pieces.length - 1];
   if (end - start > length && circular) return { ok: false, why: 'more than one lap of the circular record' };
+  // a wrap near 2^31 would pass the int32 positions a table holds
+  if (end > MaxPosition) return { ok: false, why: 'a join over the origin past 2^31 − 1' };
   return { ok: true, pieces, start, end, strand, partialStart, partialEnd, approximate, wraps };
 }
 
