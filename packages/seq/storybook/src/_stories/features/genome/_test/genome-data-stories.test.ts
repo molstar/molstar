@@ -12,8 +12,9 @@ import { openExample } from '../../../examples/_test/draw-checks.js';
 import { GenomeViews } from '../views.js';
 
 // Features/Genome Coordinates, data over an assembly, headless on a fake clock as the stories compose them (a viewer of
-// the view, its navigator, its SVG export light and dark): a BED over the toy assembly's rows, and hg38's cytobands over
-// every chromosome as a bands track and as the ideogram navigator (EC-187, EC-189).
+// the view, its navigator, its SVG export light and dark): a BED over the toy assembly's rows, hg38's cytobands over
+// every chromosome as a bands track and as the ideogram navigator (EC-187, EC-189), and data written in the spec over
+// an assembly by its name columns: links on a chord ring (`a_name`, `b_name`), a matrix over two chromosomes (`name`).
 
 let viewer: SeqViewer | undefined;
 
@@ -101,5 +102,56 @@ describe('Genome coordinates: data over an assembly, headless', () => {
         .split('\n')
         .filter((l) => l.startsWith('rect ')).length,
     ).toBeGreaterThan(500);
+  });
+
+  it('links written in the spec on a ring (`a_name`, `b_name`): chords between chromosomes, every row read', async () => {
+    const v = await open('inline-links-ring');
+    expect(v.view.model.value.issues).toEqual([]);
+    const lists = recordDrawLists(v.frame!.lists, ['data']);
+    const chords = lists.split('\n').filter((l) => l.startsWith('path ') && l.includes(' C '));
+    // sixty links, a few within one chromosome: every one drawn (none past the gate at the fit)
+    expect(chords.length).toBe(60);
+    // a link between two chromosomes has its ends on two units
+    const keys = new Set<string>();
+    const { width, height } = v.frame!.layout;
+    for (let x = 0; x < width; x += 4)
+      for (let y = 0; y < height; y += 4) {
+        const h = hitView(v.frame!.layout, x, y);
+        if (h?.element && h.layer.endsWith('/links')) keys.add(String(h.element.key));
+      }
+    // held as a complex's links are, each end on its chromosome's unit: the links hit by their rows
+    const pairs = v.view.model.value.annotations.get('/data/links')!.pairs!;
+    expect(pairs.n).toBe(60);
+    const across = [...keys].filter((k) => pairs.aUnit![Number(k)] !== pairs.bUnit![Number(k)]);
+    expect(across.length).toBeGreaterThan(10);
+    for (const dark of [false, true]) {
+      const svg = await exported(v, dark);
+      expect([svg.settled, svg.issues]).toEqual([true, []]);
+      expect(svg.svg.match(/<path/g)?.length ?? 0).toBeGreaterThanOrEqual(60);
+    }
+  });
+
+  it('a matrix written in the spec over two chromosomes (`name`): each block draws its own items', async () => {
+    const v = await open('inline-matrix');
+    expect(v.view.model.value.issues).toEqual([]);
+    const p = v.frame!.layout.sections[0].placement as BlockPlacement;
+    expect(p.labels).toEqual(['chrI', 'chrII']);
+    // the matrix band (after the ruler) holds cells over each block: a rect a run of items and sample
+    const s = p.strips;
+    const y0 = s.bandY[1];
+    const y1 = y0 + s.bandH[1];
+    const rects = recordDrawLists(v.frame!.lists, ['data'])
+      .split('\n')
+      .filter((l) => l.startsWith('rect '))
+      .map((l) => l.split(' ').slice(1, 3).map(Number));
+    for (const i of [0, 1]) {
+      const a = s.axes[i];
+      const cells = rects.filter(([x, y]) => x >= a.x0 && x < a.x0 + a.width && y >= y0 && y < y1);
+      expect(cells.length, p.labels[i]).toBeGreaterThan(20);
+    }
+    const light = await exported(v, false);
+    const dark = await exported(v, true);
+    expect([light.settled, light.issues, dark.settled, dark.issues]).toEqual([true, [], true, []]);
+    expect(dark.svg).not.toBe(light.svg);
   });
 });

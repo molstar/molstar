@@ -486,6 +486,19 @@ export function checkDataNode(
     const length = inlineLength(t) ?? ctx.length?.(key);
     return { cyclic: p(t, 'cyclic') === true, length };
   };
+  // inline rows over an assembly name each row's sequence (`a_name`, `x_name`, `name`), and over anything else none
+  // (_spec/README.md, Language, Assemblies: inline data over an assembly); `count` the rows the column is one a row of
+  const names = (side: string, at: Record<string, Value>, column: string, table?: string, count?: number) => {
+    const c = at[column] as ArrayLike<unknown> | undefined;
+    const over = ctx.target(side)?.kind === 'assembly';
+    const place = table ? [table, column] : [column];
+    if (over && c === undefined)
+      say('seq.lang.data.names', `Rows over an assembly name their sequences: \`${column}\``, ...place.slice(0, -1));
+    else if (!over && c !== undefined)
+      say('seq.lang.data.names', `\`${column}\` names sequences of an assembly only`, ...place);
+    else if (c && count && c.length !== count)
+      say('seq.lang.data.names', `\`${column}\` has ${c.length} names, not ${count}`, ...place);
+  };
   switch (n.kind) {
     case 'source': {
       // a host's `ref` beside a `uri`, or alone (not portable, said once: EC-185); inline data is never a host's
@@ -576,6 +589,8 @@ export function checkDataNode(
       if (!xor(rows !== undefined, p(n, 'source') !== undefined) || (p(n, 'field') !== undefined && !p(n, 'source')))
         say('seq.lang.pairs.content', 'A pairs node has one of `rows` and `source`, `field` with a source');
       if (!rows) break;
+      names('a', rows, 'a_name', 'rows');
+      names(p(n, 'b') === undefined ? 'a' : 'b', rows, 'b_name', 'rows');
       // each end an interval within its system, never wrapping (EC-10)
       for (const side of ['a', 'b'] as const) {
         const s = rows[`${side}_start`];
@@ -614,6 +629,10 @@ export function checkDataNode(
         (p(n, 'field') !== undefined && !source)
       )
         say('seq.lang.matrix.content', 'A matrix has one of `values`, `codes` and `source`, inline cells their states');
+      const cells = (p(n, 'values') ?? p(n, 'codes')) as ArrayLike<number> | undefined;
+      const states = p(n, 'states') as unknown[] | undefined;
+      if (inline)
+        names('target', n.params!, 'name', undefined, cells && states?.length && cells.length / states.length);
       break;
     }
     case 'grid': {
@@ -624,6 +643,11 @@ export function checkDataNode(
       const y = p(n, 'y') === undefined ? x : systemOf('y')?.length;
       if (isColumn(values) && x !== undefined && y !== undefined && (values as ArrayLike<number>).length !== x * y)
         say('seq.lang.grid.length', `There are not ${x * y} values, one a pair of positions`, 'values');
+      if (isColumn(values)) {
+        const count = (values as ArrayLike<number>).length;
+        names('x', n.params!, 'x_name', undefined, count);
+        names(p(n, 'y') === undefined ? 'x' : 'y', n.params!, 'y_name', undefined, count);
+      }
       break;
     }
     case 'values': {

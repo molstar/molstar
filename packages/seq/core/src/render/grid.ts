@@ -154,7 +154,8 @@ function prepare(layer: ResolvedLayer, model: StaticModel): GridPrep {
     pyramid.setValues(grid.nx, grid.ny, kept);
   }
   // a source's grid, read by region on its two systems (`grid-region.ts`)
-  const src = !grid && a?.shape === 'grid' && a.access?.kind === 'source' ? layerSource(model, layer) : undefined;
+  const src =
+    !grid && a?.shape === 'grid' && (a.access?.kind === 'source' || a.bySystem) ? layerSource(model, layer) : undefined;
   const yName = a?.ySystem ? model.systems.get(a.ySystem)?.name : undefined;
   // over an assembly: the layer is on its x block's sequence; each strip's y block is its own (`layout`)
   const over = src && a?.bySystem;
@@ -226,6 +227,15 @@ export const GridType: LayerType<GridPrep, GridLay> = {
     // over an assembly: any pair of its blocks, the y block's plan naming the region's y
     const yPlan = prep.over?.get(ay.system);
     if (prep.over && prep.region && yPlan && prep.xSystem === axis.system) {
+      // a pair of blocks the source serves no grid on (its coverage lists each x's y systems, a symmetric one each
+      // pair once, the other mirrored): nothing to read
+      const shape = data
+        .coverage(prep.region.src.source)
+        ?.shapes.find((s) => s.shape === 'grid' && s.system === prep.region!.src.system);
+      if (Array.isArray(shape?.y) && !shape.symmetric && !shape.y.includes(yPlan.system)) {
+        lay.off = true;
+        return lay;
+      }
       let r = prep.yRegions!.get(ay.system);
       if (!r) prep.yRegions!.set(ay.system, (r = { src: prep.region.src, yName: yPlan.system }));
       lay.ySystem = ay.system;

@@ -45,7 +45,7 @@ function tp53(format: 'gff3' | 'gtf'): Node {
     licence: 'LicenseRef-EMBL-EBI-terms',
   };
   const file = b.data.source('tp53-file', common);
-  const genesFile = b.data.source('tp53-genes', { ...common, features: 'genes' } as never);
+  const genesFile = b.data.source('tp53-genes', { ...common, features: 'genes' });
   const name = gff ? '17' : 'chr17';
   // GFF3's chromosome length is its `##sequence-region`'s; a GTF's from an inline chrom.sizes
   const lengths = gff ? file : b.data.source('sizes', { format: 'chrom-sizes', value: `chr17\t${Chr17}\n` as never });

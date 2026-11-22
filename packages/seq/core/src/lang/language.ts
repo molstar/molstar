@@ -25,7 +25,7 @@ import { ScaleParamsDescription, ThemeLanguage, ThemeLanguageId } from './theme-
  * The version of the language this description is (the package's `LanguageVersion` is the same). Pre-release (`0.x`):
  * a change moves it with no migration (_spec/README.md, Versions).
  */
-export const SeqLanguageVersion = '0.6.0';
+export const SeqLanguageVersion = '0.7.0';
 
 /**
  * What `pairs.a`/`b`, `ranges.target` and `map.to` take: a system, or an alignment by its columns system (its address;
@@ -537,6 +537,8 @@ export const SeqLanguage = defineLanguage({
             label: { type: 'list', of: { type: 'string', doc: 'A label.' }, doc: 'A label of each pair.' },
             a_strand: { type: 'column', of: 'category', doc: 'The strand of each first end: `+` or `-`.' },
             b_strand: { type: 'column', of: 'category', doc: 'The strand of each second end: `+` or `-`.' },
+            a_name: { type: 'column', of: 'category', doc: 'Over an assembly: each first end’s sequence.' },
+            b_name: { type: 'column', of: 'category', doc: 'Over an assembly: each second end’s sequence.' },
             ...LinkColumns,
           },
           doc: 'The pairs inline (or `source`), a column a field; an end never wraps. Other columns ride along as fields (`(item :tertiary yes)`).',
@@ -560,6 +562,8 @@ export const SeqLanguage = defineLanguage({
           of: 'float32',
           doc: 'One value per pair, `x`-major; NaN missing (or `source`).',
         },
+        x_name: { type: 'column', of: 'category', doc: 'Over an assembly: each value’s sequence on `x`.' },
+        y_name: { type: 'column', of: 'category', doc: 'Over an assembly: each value’s sequence on `y`.' },
         ...fromSource('values'),
       },
     },
@@ -693,6 +697,7 @@ export const SeqLanguage = defineLanguage({
         values: { type: 'column', of: 'float32', doc: 'Values inline, item-major.' },
         codes: { type: 'column', of: 'uint8', doc: 'Codes inline, item-major.' },
         states: { type: 'list', of: { type: 'string', doc: 'A state.' }, doc: 'The states’ names, in order.' },
+        name: { type: 'column', of: 'category', doc: 'Over an assembly: each item’s sequence.' },
         ...fromSource('values'),
       },
     },

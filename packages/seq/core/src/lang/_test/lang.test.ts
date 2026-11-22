@@ -370,6 +370,12 @@ const Misuses: Record<keyof typeof LangIssues.codes, () => Node> = {
     b.data.matrix('m', { target: s, values: [0.5] });
     return b.build();
   },
+  'seq.lang.data.names': () => {
+    const b = createSeqSpec();
+    const g = b.data.assembly('g', { sequences: { name: ['chr1'], length: [100] } });
+    b.data.pairs('p', { a: g, rows: { a_start: [0], a_end: [1], b_start: [2], b_end: [3] } });
+    return b.build();
+  },
   'seq.lang.navigator.bands': () => {
     const b = createSeqSpec();
     const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
@@ -555,6 +561,46 @@ describe('pairs, grids and a grid section', () => {
       });
     });
     expect(b.check()).toEqual([]);
+  });
+});
+
+describe('inline data over an assembly', () => {
+  const build = (fill: (b: ReturnType<typeof createSeqSpec>) => void) => {
+    const b = createSeqSpec();
+    fill(b);
+    return checkSeqSpec(b.build()).map((i) => [i.code, i.message, i.path?.slice(-2)]);
+  };
+  const toy = (b: ReturnType<typeof createSeqSpec>) =>
+    b.data.assembly('g', { sequences: { name: ['chr1', 'chr2'], length: [100, 50] } });
+  const pair = { a_start: [0], a_end: [1], b_start: [2], b_end: [3] };
+
+  it('names each row’s sequence a side on an assembly: pairs, grid cells and matrix items', () => {
+    expect(
+      build((b) => {
+        const g = toy(b);
+        b.data.pairs('p', { a: g, rows: { ...pair, a_name: ['chr1'], b_name: ['2'] } });
+        b.data.grid('h', { x: g, values: [1, 2], x_name: ['chr1', 'chr1'], y_name: ['chr2', 'chr2'] });
+        b.data.matrix('m', { target: g, values: [1, 2, 3, 4], states: ['s1', 's2'], name: ['chr1', 'chr2'] });
+      }),
+    ).toEqual([]);
+  });
+
+  it('a side on a sequence names none; a column one a row (a grid’s values, a matrix’s items)', () => {
+    expect(
+      build((b) => {
+        const g = toy(b);
+        const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGTACGT' });
+        // b on a sequence: `b_name` refused, `a_name` required
+        b.data.pairs('p', { a: g, b: s, rows: { ...pair, b_name: ['chr1'] } });
+        b.data.grid('h', { x: g, values: [1, 2], x_name: ['chr1'], y_name: ['chr1', 'chr1'] });
+        b.data.matrix('m', { target: g, values: [1, 2, 3, 4], states: ['s1', 's2'], name: ['chr1'] });
+      }),
+    ).toEqual([
+      ['seq.lang.data.names', 'Rows over an assembly name their sequences: `a_name`', ['params', 'rows']],
+      ['seq.lang.data.names', '`b_name` names sequences of an assembly only', ['rows', 'b_name']],
+      ['seq.lang.data.names', '`x_name` has 1 names, not 2', ['params', 'x_name']],
+      ['seq.lang.data.names', '`name` has 1 names, not 2', ['params', 'name']],
+    ]);
   });
 });
 

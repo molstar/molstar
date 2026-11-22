@@ -80,7 +80,7 @@ export const BuilderCases: readonly BuilderCase[] = [
   make(
     'genome',
     'A genome view',
-    'An assembly from its sequences, a genome section of it (a block a sequence, a ruler in bases), and a section of one chromosome of it.',
+    'An assembly from its sequences, a genome section of it (a block a sequence, a ruler in bases) with a link between two chromosomes (`a_name`, `b_name`: its ends’ sequences), and a section of one chromosome of it.',
     genome.build,
     genomeSource,
   ),

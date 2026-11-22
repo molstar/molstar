@@ -116,8 +116,8 @@ export const GenotypesSection = '/views/main/chr';
 
 /** The two toy genomes of the synteny as assemblies (their chromosomes' lengths inline). */
 function syntenyAssemblies(b: ReturnType<typeof createSeqSpec>) {
-  const a = b.data.assembly('a', assembly(SyntenyAssemblyA, SyntenyA, { order: 'source' } as never));
-  const g = b.data.assembly('b', assembly(SyntenyAssemblyB, SyntenyB, { order: 'source' } as never));
+  const a = b.data.assembly('a', assembly(SyntenyAssemblyA, SyntenyA, { order: 'source' }));
+  const g = b.data.assembly('b', assembly(SyntenyAssemblyB, SyntenyB, { order: 'source' }));
   return { a, g };
 }
 
@@ -130,14 +130,14 @@ export function pairsZoomedIn(): Node {
   const b = createSeqSpec({ title: 'Synteny, zoomed in' });
   const src = b.data.source('alignment', generated('generated:synteny'));
   const { a, g } = syntenyAssemblies(b);
-  const pairs = b.data.pairs('synteny', { a, b: g, source: src } as never);
+  const pairs = b.data.pairs('synteny', { a, b: g, source: src });
   b.views.view('main', (v) => {
     genome(v, 'synteny', [a, g], { include: ['chrA2', 'chrB2'] }, (s) => {
       s.track('synteny', { label: 'Synteny', height: 120 }).layer('synteny', {
         type: 'pairs',
         data: pairs,
         legend: 'none',
-      } as never);
+      });
     });
   });
   return b.build();
@@ -169,24 +169,24 @@ export function pairsZoomedOut(): Node {
       b_end: t.bEnd,
       id: t.id!,
     },
-  } as never);
+  });
   const bedpe = b.data.pairs('bedpe', {
     a: chr,
     source: b.data.source('links-bedpe', generated(BedpeUri)),
-  } as never);
+  });
   b.views.view('main', (v) => {
     const s = v.section('links', { of: chr });
-    s.track('ruler').layer('ruler', { type: 'ruler', units: 'bases' } as never);
+    s.track('ruler').layer('ruler', { type: 'ruler', units: 'bases' });
     s.track('held', { label: 'Held', height: 120 }).layer('held', {
       type: 'pairs',
       data: held,
       legend: 'none',
-    } as never);
+    });
     s.track('bedpe', { label: 'BEDPE', height: 120 }).layer('bedpe', {
       type: 'pairs',
       data: bedpe,
       legend: 'none',
-    } as never);
+    });
   });
   return b.build();
 }
@@ -198,12 +198,12 @@ export function pairsZoomedOut(): Node {
  */
 export function pairsRing(): Node {
   const b = createSeqSpec({ title: 'Links on a genome ring' });
-  const g = b.data.assembly('toy', assembly(HicAssemblyName, RingChromosomes, { order: 'source' } as never));
+  const g = b.data.assembly('toy', assembly(HicAssemblyName, RingChromosomes, { order: 'source' }));
   const src = b.data.source('links-source', generated('generated:links-ring'));
-  const links = b.data.pairs('links', { a: g, source: src } as never);
+  const links = b.data.pairs('links', { a: g, source: src });
   b.views.view('main', (v) => {
     genome(v, 'ring', g, { layout: 'rings' }, (s) => {
-      s.track('links', { label: 'Links' }).layer('links', { type: 'pairs', data: links, legend: 'none' } as never);
+      s.track('links', { label: 'Links' }).layer('links', { type: 'pairs', data: links, legend: 'none' });
     });
   });
   return b.build();
@@ -218,12 +218,12 @@ export function hicByRegion(): Node {
   const b = createSeqSpec({ title: 'Hi-C by region' });
   const src = b.data.source('hic', generated('generated:hic'));
   const chr = b.data.sequence('chr1', { alphabet: 'dna', source: src, name: 'chr1' });
-  const contacts = b.data.grid('contacts', { x: chr, source: src } as never);
+  const contacts = b.data.grid('contacts', { x: chr, source: src });
   b.views.view('main', (v) => {
     const top = v.section('chr1', { of: chr });
-    top.track('ruler').layer('ruler', { type: 'ruler', units: 'bases' } as never);
-    v.section('plot', { layout: 'grid', of: chr, follow: top.address } as never).track('plot', {}, (t) => {
-      t.layer('contacts', { type: 'grid', data: contacts, color: counts() } as never);
+    top.track('ruler').layer('ruler', { type: 'ruler', units: 'bases' });
+    v.section('plot', { layout: 'grid', of: chr, follow: top.address }).track('plot', {}, (t) => {
+      t.layer('contacts', { type: 'grid', data: contacts, color: counts() });
     });
   });
   return b.build();
@@ -236,12 +236,12 @@ export function hicByRegion(): Node {
  */
 export function hicOverGenome(): Node {
   const b = createSeqSpec({ title: 'Hi-C over the genome' });
-  const g = b.data.assembly('toy', assembly(HicAssemblyName, HicChromosomes, { order: 'source' } as never));
-  const contacts = b.data.grid('contacts', { x: g, source: b.data.source('hic', generated('generated:hic')) } as never);
+  const g = b.data.assembly('toy', assembly(HicAssemblyName, HicChromosomes, { order: 'source' }));
+  const contacts = b.data.grid('contacts', { x: g, source: b.data.source('hic', generated('generated:hic')) });
   b.views.view('main', (v) => {
     const top = genome(v, 'genome', g);
-    v.section('plot', { layout: 'grid', follow: top.address } as never).track('plot', {}, (t) => {
-      t.layer('contacts', { type: 'grid', data: contacts, color: counts() } as never);
+    v.section('plot', { layout: 'grid', follow: top.address }).track('plot', {}, (t) => {
+      t.layer('contacts', { type: 'grid', data: contacts, color: counts() });
     });
   });
   return b.build();
@@ -252,10 +252,10 @@ export function matrixSamples(): Node {
   const b = createSeqSpec({ title: 'Samples by positions' });
   const src = b.data.source('genotypes', generated('generated:genotypes'));
   const chr = b.data.sequence('chr', { alphabet: 'dna', source: src, name: 'chr' });
-  const gt = b.data.matrix('gt', { target: chr, source: src } as never);
+  const gt = b.data.matrix('gt', { target: chr, source: src });
   b.views.view('main', (v) => {
     v.section('chr', { of: chr }, (s) => {
-      s.track('ruler').layer('ruler', { type: 'ruler', units: 'bases' } as never);
+      s.track('ruler').layer('ruler', { type: 'ruler', units: 'bases' });
       s.track('gt', { label: 'Genotypes', height: 260 }).layer('gt', { type: 'matrix', data: gt });
     });
   });
@@ -267,7 +267,7 @@ export function matrixRing(): Node {
   const b = createSeqSpec({ title: 'A matrix on a ring' });
   const src = b.data.source('genotypes', generated('generated:genotypes'));
   const chr = b.data.sequence('chr', { alphabet: 'dna', source: src, name: 'chr' });
-  const gt = b.data.matrix('gt', { target: chr, source: src } as never);
+  const gt = b.data.matrix('gt', { target: chr, source: src });
   b.views.view('main', (v) => {
     v.section('chr', { of: chr, layout: 'rings' }, (s) => {
       s.track('gt', { label: 'Genotypes', height: 220 }).layer('gt', { type: 'matrix', data: gt });
@@ -281,10 +281,10 @@ export function matrixMethylation(): Node {
   const b = createSeqSpec({ title: 'Methylation with missing values' });
   const src = b.data.source('cpgs', generated('generated:methylation'));
   const chr = b.data.sequence('chr', { alphabet: 'dna', source: src, name: 'chr' });
-  const m = b.data.matrix('methylation', { target: chr, source: src } as never);
+  const m = b.data.matrix('methylation', { target: chr, source: src });
   b.views.view('main', (v) => {
     v.section('chr', { of: chr }, (s) => {
-      s.track('ruler').layer('ruler', { type: 'ruler', units: 'bases' } as never);
+      s.track('ruler').layer('ruler', { type: 'ruler', units: 'bases' });
       s.track('methylation', { label: 'Methylation', height: 120 }).layer('methylation', { type: 'matrix', data: m });
     });
   });
@@ -299,17 +299,17 @@ export function zoomIn(): Node {
   const b = createSeqSpec({ title: 'Zoom in to read, and bins with nothing' });
   const src = b.data.source('genotypes', generated('generated:genotypes-items'));
   const chr = b.data.sequence('chr', { alphabet: 'dna', source: src, name: 'chr' });
-  const gt = b.data.matrix('gt', { target: chr, source: src } as never);
-  const links = b.data.pairs('links', { a: chr, rows: emptyLinks() } as never);
+  const gt = b.data.matrix('gt', { target: chr, source: src });
+  const links = b.data.pairs('links', { a: chr, rows: emptyLinks() });
   b.views.view('main', (v) => {
     v.section('chr', { of: chr }, (s) => {
-      s.track('ruler').layer('ruler', { type: 'ruler', units: 'bases' } as never);
+      s.track('ruler').layer('ruler', { type: 'ruler', units: 'bases' });
       s.track('gt', { label: 'Genotypes', height: 100 }).layer('gt', { type: 'matrix', data: gt });
       s.track('links', { label: 'Links', height: 60 }).layer('links', {
         type: 'pairs',
         data: links,
         legend: 'none',
-      } as never);
+      });
     });
   });
   return b.build();

@@ -104,3 +104,21 @@ export const ABedOverTheAssembly: StoryObj = {
 export const CytobandsOverTheGenome: StoryObj = {
   render: () => exampleStory(view('cytobands'), { stacked: true, navigators: 'include' }),
 };
+
+/**
+ * Links written in the spec over the toy assembly: each row names its two chromosomes (`a_name`, `b_name`; some
+ * without `chr`, the names rule maps them; each block labelled by the assembly's name), held, each end on its
+ * chromosome, so past `pairs.maxArcs` they bin by the pairs level as a BEDPE's would. A link between two chromosomes is
+ * a chord between their arcs.
+ */
+export const LinksWrittenInTheSpec: StoryObj = {
+  render: () => exampleStory(view('inline-links-ring'), { stacked: true }),
+};
+
+/**
+ * A matrix written in the spec over two short chromosomes: four samples, `name` each item's chromosome (`I` is `chrI`),
+ * a chromosome's items its positions in order, each block drawing its own.
+ */
+export const AMatrixWrittenInTheSpec: StoryObj = {
+  render: () => exampleStory(view('inline-matrix'), { stacked: true }),
+};
