@@ -487,9 +487,22 @@ export function itemHit(
   return {
     ...base,
     element: { owner: lay.owner, key },
-    extent: rangesLocation(lay.dataSystem, [s, e]),
+    extent: rangesLocation(lay.dataSystem, lay.axis.cyclic ? piecesOf(lay.rows, key, s, e) : [s, e]),
     ...(lo < hi ? { hull: [lo, hi] as const } : {}),
   };
+}
+
+/**
+ * An item's pieces over a cyclic axis (a feature across the ring's end is one row for each): the ranges of every row of
+ * `key` in view, the row hit `[s, e)` first. A click selects the item's extent, not the piece under the pointer.
+ */
+function piecesOf(rows: ItemRows, key: string | number, s: number, e: number): number[] {
+  const out = [s, e];
+  for (let i = 0; i < rows.n; i++) {
+    if (rows.keys[i] !== key || (rows.starts[i] === s && rows.ends[i] === e)) continue;
+    out.push(rows.starts[i], rows.ends[i]);
+  }
+  return out;
 }
 
 /** The rows of every item of an inline annotation, by key: what an end is decided from (undefined: a source's). */

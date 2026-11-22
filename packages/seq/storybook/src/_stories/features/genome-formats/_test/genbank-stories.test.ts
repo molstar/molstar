@@ -10,13 +10,14 @@ import { MisreadGenbankSection, PlasmidRingSection } from '@molstar/seqx-example
 import { PackageFolder } from '@molstar/seqx-examples/node-assets';
 import type { FormatRuntime } from '@molstar/seqx-core/data';
 import type { SeqRegistryEntry } from '@molstar/seqx-core/context';
-import { recordDrawLists } from '@molstar/seqx-core/render';
+import { recordDrawLists, type RangesLay } from '@molstar/seqx-core/render';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { DomHost } from '@molstar/ui/dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { statusIssues } from '../../../examples/status-issues.js';
 import { withViewRegistry } from '../../../examples/view-registry.js';
+import { clickAt } from '../../selection/compose.js';
 import { fileText, filesOf, printSources } from '../../files/file-head.js';
 
 // Features/Genome formats/GenBank, headless on a fake clock, composed as the story composes it (`example-root.ts`): the
@@ -140,5 +141,55 @@ describe('Features/Genome formats/GenBank, headless', () => {
     expect(text).toContain('Cloning vector pUC19c; 19 features');
     expect(text).toContain('LOCUS       pUC19c');
     expect(printSources(spec)).toContain('genbank');
+  });
+});
+
+describe('Features/Genome formats/GenBank: a click on a feature across the cyclic origin', () => {
+  // bla (`complement(join(2312..2686,1..486))`): two pieces, one item; both views, the ring and its detail
+  const Whole = [['/data/plasmid', [0, 486, 2311, 2686]]];
+  const shown = (viewer: SeqViewer) =>
+    viewer.selection.value.value.shown.parts.map((p) => [p.system, [...p.ranges]] as const);
+
+  it.each([
+    ['GenBank', () => view('genbank-plasmid'), 'CDS@2312-3172'],
+    ['GFF3', () => gff3, 'bla'],
+  ])('%s: a click on either piece in the detail selects the item’s whole extent', async (_name, v, key) => {
+    const viewer = await open(v());
+    const lay = viewer.frame!.layout.sections[1].tracks.find((t) => t.track.label === 'CDS')!.layers[0]
+      .lay as RangesLay;
+    const pieces: number[] = [];
+    for (let j = 0; j < lay.hn; j++) if (String(lay.keys[lay.hitem[j]]) === key) pieces.push(j);
+    expect(pieces.length).toBe(2);
+    for (const j of pieces) {
+      const at: [number, number] = [
+        (lay.hx0[j] + lay.hx1[j]) / 2,
+        lay.laneY + lay.hlane[j] * lay.laneHeight + lay.laneHeight / 2,
+      ];
+      expect(viewer.hit(...at)?.element?.key).toBe(key);
+      clickAt(viewer, at);
+      expect(shown(viewer)).toEqual(Whole);
+      clickAt(viewer, at);
+    }
+  });
+
+  it.each([
+    ['GenBank', () => view('genbank-plasmid'), 'CDS@2312-3172'],
+    ['GFF3', () => gff3, 'bla'],
+  ])('%s: and in the ring', async (_name, v, key) => {
+    const viewer = await open(v());
+    // the points of the ring's CDS band over the item, found by a scan of the page
+    const at: [number, number][] = [];
+    for (let y = 0; y < 720; y += 3)
+      for (let x = 0; x < 720; x += 3) {
+        const h = viewer.hit(x, y);
+        if (h?.element?.key === key && h.section === 'ring') at.push([x, y]);
+      }
+    expect(at.length).toBeGreaterThan(1);
+    // the first and the last point found: its two pieces
+    for (const p of [at[0], at[at.length - 1]]) {
+      clickAt(viewer, p);
+      expect(shown(viewer)).toEqual(Whole);
+      clickAt(viewer, p);
+    }
   });
 });
