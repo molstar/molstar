@@ -10,7 +10,7 @@
 // ruler, letters or any layer of a fixed height is never empty.
 
 import type { Node } from '@molstar/core/repr/tree';
-import { createSeqSpec } from '@molstar/seqx-core/lang';
+import { createSeqSpec, SeqLanguage } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
 import { GffRuntime } from '../../runtimes/gff.js';
 import { rangesLocation } from '@molstar/seqx-core/query';
@@ -43,6 +43,13 @@ const heights = async (n: Node, config = {}) => {
   const f = await s.frame({ size: Size, settled: true });
   return { f, h: f.layout.sections[0].tracks.map((t) => t.box.height) };
 };
+
+describe('the language has no `empty` on a track (the host’s config alone)', () => {
+  it('the track kind’s params carry none', () => {
+    const params = (SeqLanguage.kinds.track as { params?: Record<string, unknown> }).params ?? {};
+    expect(Object.keys(params)).not.toContain('empty');
+  });
+});
 
 describe('a track with no items is one line, not a blank well', () => {
   it('collapses to its row with a quiet note by default; its neighbours keep theirs', async () => {
