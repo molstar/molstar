@@ -18,7 +18,6 @@ import { settle } from './helpers.js';
 import { layerLay, outside } from './small-helpers.js';
 
 const SIZE = { width: 1000, height: 300 } as const;
-const Section = '/views/main/c';
 const Tiles = 6;
 
 beforeEach(() => {

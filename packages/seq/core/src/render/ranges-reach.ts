@@ -35,8 +35,7 @@ interface Reach {
   issue: Issue | undefined;
   regions: number[];
   level: number;
-  /** The entries the lanes were packed from (their versions, in the order read): another set is other data. */
-  versions: number[];
+  /** The lanes are noted: until the data's identity (its coverage) changes. */
   packed: boolean;
 }
 
@@ -63,7 +62,6 @@ export function noteReachable(prep: RangesPrep, src: LayerSource, ctx: LayoutCon
       issue: undefined,
       regions: [],
       level: 1,
-      versions: [],
       packed: false,
     };
     Reaches.set(prep, r);
@@ -82,12 +80,11 @@ export function noteReachable(prep: RangesPrep, src: LayerSource, ctx: LayoutCon
     fit(r, src, ctx, data, coverage.levels ?? [1]);
   }
   if (r.issue && !data.layerRefused?.(ctx.key)) ctx.report(r.issue);
-  if (!r.read) return;
+  // packed: its lanes are noted, nothing is asked again (the layout of a warm frame does no work here)
+  if (!r.read || r.packed) return;
   const read = readTiles(ctx, data, src, r.regions, r.level, { priority: 'margin' });
   if (read.tooMany || read.failed.length || read.pending.length) return;
   const entries = read.entries;
-  if (r.packed && sameEntries(r.versions, entries)) return;
-  if (r.packed) resetLanes(prep);
   if (!ctx.settled) return;
   const rows = newItemRows();
   const densities = collectItems(rows, entries, [], src.filter, src.base);
@@ -95,15 +92,7 @@ export function noteReachable(prep: RangesPrep, src: LayerSource, ctx: LayoutCon
   const items: QueryItem[] = [];
   for (let j = 0; j < rows.n; j++) items.push({ key: rows.keys[j], start: rows.starts[j], end: rows.ends[j] });
   noteLanes(prep, Math.min(packedLanes(prep.line === 'gene' ? itemHulls(items) : items), ctx.config.ranges.maxLanes));
-  r.versions.length = 0;
-  for (const e of entries) r.versions.push(e.version);
   r.packed = true;
-}
-
-function sameEntries(versions: readonly number[], entries: readonly { readonly version: number }[]): boolean {
-  if (versions.length !== entries.length) return false;
-  for (let i = 0; i < entries.length; i++) if (versions[i] !== entries[i].version) return false;
-  return true;
 }
 
 /** The verdict for a fit: the regions, the level, whether the layer's bounds hold them (`Reach.read`, `issue`). */
@@ -124,7 +113,14 @@ function fit(r: Reach, src: LayerSource, ctx: LayoutContext, data: StoreReader, 
   // within the layer's bounds as the view's reads are (the same layer, its tiles by key: the view's are among them)
   const wants: Want[] = [];
   for (let i = 0; i + 1 < r.regions.length; i += 2)
-    wants.push({ source: src.source, system: src.system, start: r.regions[i], end: r.regions[i + 1], level, layer: ctx.key });
+    wants.push({
+      source: src.source,
+      system: src.system,
+      start: r.regions[i],
+      end: r.regions[i + 1],
+      level,
+      layer: ctx.key,
+    });
   if (data.layerLoad && !data.layerLoad(wants).fits) {
     r.issue = issueOf(
       RenderIssues,
