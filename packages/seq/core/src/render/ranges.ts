@@ -197,7 +197,8 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
       arrow: arrow === 'end' ? 1 : arrow === 'start' ? 2 : arrow === 'both' ? 3 : 0,
       connector: layer.params.connector !== 'none',
       cyclic: model.systems.get(layer.data?.system ?? '')?.cyclic ?? false,
-      ...(itemExtents(model, layer) ? { extents: itemExtents(model, layer) } : {}),
+      // a lifted layer's items are its far rows' images, none known whole
+      ...(!src?.lift && itemExtents(model, layer) ? { extents: itemExtents(model, layer) } : {}),
       ...(src ? { src } : {}),
       owner: layer.data?.address ?? '',
       channels: channelForms(layer.theme),
@@ -314,7 +315,7 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     }
     // a source's lanes as known grow once the view settles (its track grows with them, `ranges-content.ts`)
     // its reachable region's, once read (the track keeps the height a pan will, `ranges-reach.ts`), and the view's
-    if (!prep.extents) {
+    if (!prep.extents && !src.lift) {
       noteReachable(prep, src, ctx, data);
       if (ctx.settled) noteLanes(prep, lay.laneCount);
     }

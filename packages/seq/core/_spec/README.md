@@ -2591,6 +2591,10 @@ Overlay, Opened sources), kept per model and view. No data, no dynamic node, no 
   knows is not placed; data naming nothing is `seq.view.layer.data`; data of a shape the type does not draw is
   `seq.view.layer.shape`; data no static path brings to the section is `seq.view.layer.unplaced`. Each leaves the layer
   not placed.
+- **A lifted layer** (`view/lift.ts`, a liftover, EC-212): data over one assembly on a block of another that a map read
+  by region joins (Resolve, Maps read by region: the data's assembly its `from` and the block's its `to`, or the other
+  way) is placed with `data.lift` (the map, the end of its runs on the block's system, `b` on its `to`, and the map's
+  plan there) and `data.system` the block's; no static path (the runs arrive by region, EC-211).
 - **Layer kinds** (`LayerKinds`: the types a reader knows, each its shape and fallback, and its extensions by id with
   their versions; `resolveView(model, address, kinds?)`, kept per kinds, model and view; the built-ins' `LayerTypes`
   when absent; a composition's is `SeqContext.kinds`): a layer's chain is its type, its `fallback` (an extension's type
@@ -4080,6 +4084,26 @@ pairs layer's prepared form and its region reader through the composition (`type
   said and wants what it wanted. So a pan of an unrelated section lays out that section alone.
 - **The bands' room** (`bridgeRooms`) is the chunk's: a view with a bridge waits for it. A composition listing the pairs
   type without `registerBridges` resolves a bridge to `seq.view.bridge.unregistered` (a warning), its sides stacked.
+
+### A liftover
+
+`render/lift.ts`, loaded with the genome chunk (a liftover is over assemblies): a lifted layer's items (Resolved view, A
+lifted layer), read by `readItems` as any items layer's, its rows on the block's system.
+
+- **The runs by the near end**: the map's source read as items tiles on the block's system by `lift.side`
+  (`RegionRequest.side`: `b`, the map's `to`), the window's span at the finest level whose tiles a want's bound holds;
+  each row a run from its far end to its near end (its direction the ends' relative strand), once across tiles (by
+  `row`); a row of unequal ends is no run (left out). Why the near end: the block's window asks for the runs that land
+  in it, and the `seq` runtime indexes both ends, so it is the bridge's read again (no second read).
+- **The data along them**: the window carried back along each far system's runs onto that system, the data read there as
+  items (its plan by the far system: `bySystem` of the data's annotation, matched to the runs by the name the map's
+  source lists), each row carried forward: a row an image, an item's images its rows (EC-20, a duplicated stretch drawn
+  in both places), a part with no image not drawn (EC-21: a deletion), an inverted run's image in its order. Pending and
+  failed spans are the runs' and the far reads' carried onto the block. No density tables: the far data is read as
+  items. Not built: a lifted item's ends drawn square where a run cuts it (each image is round), lifting over single
+  sequences (assemblies only), `mapSummary` and the builder's `liftover()` (deferred).
+- **Kept** as a section's reads are (the entries read, by version): a pan of the new section lays out that section and
+  the bridge only.
 
 ### Lanes and Hits
 

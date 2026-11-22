@@ -6,7 +6,7 @@
 
 import { HalfOpenRanges } from '@molstar/core/data/int/half-open-ranges';
 import { type DataEntry, fitLevel, type Shape, type Want } from '@molstar/seqx-core/data';
-import { inversePath, type Path, projectRanges, type StaticModel } from '@molstar/seqx-core/resolve';
+import { type AccessPlan, inversePath, type Path, projectRanges, type StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
 import { compileRowFilter, type RowFilter } from './filter.js';
@@ -42,12 +42,28 @@ export interface LayerSource {
   /** A leading item form's predicate: its rejected rows are left out and not counted as filtered. */
   readonly base?: RowFilter;
   readonly unreadFilter?: boolean;
+  /** Data over another assembly carried onto the section's sequence through a map read by region (`lift.ts`). */
+  readonly lift?: LiftSource;
+}
+
+/**
+ * A lifted layer's reads (_spec/README.md "Render", A liftover): the map's runs on the section's system, read by the
+ * end on it (`side`), and the data on each far system, by the name the map's source lists that system by.
+ */
+export interface LiftSource {
+  readonly map: string;
+  readonly side: 'a' | 'b';
+  /** The map's runs: a pairs source read on the section's system by `side`. */
+  readonly near: LayerSource;
+  /** The data on each far system (no path: its rows are carried along the runs), by the far name the runs give. */
+  readonly far: ReadonlyMap<string, LayerSource>;
 }
 
 /** The store's source of a placed layer's data; undefined when its node has no access plan. */
 export function layerSource(model: StaticModel, layer: ResolvedLayer): LayerSource | undefined {
   const data = layer.data;
   if (!data || !layer.placed) return undefined;
+  if (data.lift) return liftSource(model, data);
   // a template instance's data is the overlay's: its plan and length travel with it
   let access = data.access ?? model.systems.get(data.address)?.access;
   if (!access) {
@@ -91,6 +107,63 @@ export function layerSource(model: StaticModel, layer: ResolvedLayer): LayerSour
     ...(filter ? { filter } : {}),
     ...(base ? { base } : {}),
     ...((data.filter && !filter) || (data.base && !base) || data.unread ? { unreadFilter: true } : {}),
+  };
+}
+
+/** The annotation a layer's data reads: its address's, else the one a query starts at. */
+function annotationOf(model: StaticModel, address: string) {
+  const a = model.annotations.get(address);
+  if (a) return a;
+  for (const [at, entry] of model.annotations) if (address.startsWith(`${at}/`)) return entry;
+  return undefined;
+}
+
+/** A plan's store source and system (an inline node's own address). */
+const planOf = (p: AccessPlan) =>
+  p.kind === 'inline'
+    ? { source: p.source.address, system: p.system, shape: p.shape }
+    : { source: p.source, system: p.system, shape: p.shape, ...(p.side ? { side: p.side } : {}) };
+
+/**
+ * A lifted layer's source (_spec/README.md "Render", A liftover): its rows on the section's system, read as the map's
+ * runs there and the data along them on each far system the map's source names and the data's annotation reads.
+ */
+function liftSource(model: StaticModel, data: NonNullable<ResolvedLayer['data']>): LayerSource | undefined {
+  const lift = data.lift!;
+  const m = model.annotations.get(lift.map);
+  const a = annotationOf(model, data.address);
+  if (!m?.bySystem || !a?.bySystem) return undefined;
+  const filter = data.filter ? compileRowFilter(data.filter) : undefined;
+  const base = data.base ? compileRowFilter(data.base) : undefined;
+  const length = model.systems.get(data.system)?.length;
+  const len = (n: number | undefined) => (n !== undefined ? { length: n } : {});
+  const far = new Map<string, LayerSource>();
+  for (const [system, plan] of a.bySystem) {
+    const named = m.bySystem.get(system);
+    if (!named) continue;
+    const n = model.systems.get(system)?.length;
+    far.set(named.system, {
+      ...planOf(plan),
+      dataSystem: system,
+      ...len(n),
+      ...(n !== undefined && plan.kind !== 'inline' ? { wraps: true } : {}),
+      ratio: 1,
+      ...(filter ? { filter } : {}),
+      ...(base ? { base } : {}),
+    });
+  }
+  const near: LayerSource = { ...planOf(lift.near), dataSystem: data.system, ...len(length), ratio: 1 };
+  return {
+    source: near.source,
+    system: near.system,
+    dataSystem: data.system,
+    shape: 'ranges',
+    ...len(length),
+    ratio: 1,
+    ...(filter ? { filter } : {}),
+    ...(base ? { base } : {}),
+    ...((data.filter && !filter) || (data.base && !base) || data.unread ? { unreadFilter: true } : {}),
+    lift: { map: lift.map, side: lift.side, near, far },
   };
 }
 
