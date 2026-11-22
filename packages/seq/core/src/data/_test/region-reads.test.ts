@@ -9,13 +9,13 @@ import { describe, expect, it } from 'vitest';
 import { dataKey, foldTile } from '../keys.js';
 import type { GridDense, OpenedSource, PairsBins, PairsList, RegionRequest, Tables } from '../protocol.js';
 import { decodeSeq, encodeSeq } from '../seq-format.js';
-import { openSeq } from '../seq-runtime.js';
+import { openSeq, SeqRuntime } from '../seq-runtime.js';
 import { coarsenBins, DefaultSummarySettings, withSummaries } from '../summaries.js';
 import { binPairs } from '../summaries-pairs.js';
 import type { SliceClock } from '../summaries-region.js';
 import { transposeGrid } from '../summaries-grid.js';
 import { answerBytes, checkAnswer, checkTables, joinTables, sliceTable } from '../tables.js';
-import { checkRegionReads } from './conformance.js';
+import { checkAdapter, checkRegionReads } from './conformance.js';
 import {
   Chr1,
   genotypes,
@@ -319,6 +319,17 @@ describe('the pairs level (EC-208)', () => {
     const a = await s.read(r, signal);
     expect(checkAnswer(a, r)).toBeUndefined();
     expect(a.ok && a.tables.pairs?.form).toBe('list');
+  });
+});
+
+describe('the adapter conformance over the region shapes', () => {
+  it('passes a region grid, read by both axes, and sided pairs on their side', async () => {
+    for (const data of [twoLevelGrid(64, 40), sidedPairsSource()])
+      await checkAdapter({
+        runtime: { ...SeqRuntime, open: async () => openSeq(data) },
+        entry: { address: '/data/src', format: 'seq', uri: 'x.seq' },
+        assets: { read: async () => new Uint8Array(0) } as never,
+      });
   });
 });
 

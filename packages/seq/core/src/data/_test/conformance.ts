@@ -49,17 +49,29 @@ export async function checkAdapter(c: AdapterCase): Promise<OpenedSource> {
     expect(validateAndNormalize(SeqLanguage, spec, SeqValidateOptions).issues).toEqual([]);
   }
   for (const s of cov.shapes) {
-    const length = cov.systems.find((x) => x.name === s.system)?.length ?? 1;
+    const info = cov.systems.find((x) => x.name === s.system);
+    const length = info?.length ?? 1;
+    // a grid is read by both axes (its first listed y system, else its own), a sided system on its side
+    const yName = s.shape === 'grid' ? (Array.isArray(s.y) ? s.y[0] : s.system) : undefined;
+    const y =
+      yName === undefined
+        ? undefined
+        : { system: yName, start: 0, end: cov.systems.find((x) => x.name === yName)?.length ?? 1 };
     for (const field of [undefined, 'b_factor', 'no-such-field']) {
-      const request = {
+      const request: RegionRequest = {
         system: s.system,
         start: 0,
         end: length,
         level: 1,
         shapes: [s.shape],
         ...(field ? { field } : {}),
+        ...(y && { y }),
+        ...(info?.side && { side: info.side }),
       };
-      expect(checkAnswer(await opened.read(request, signal), request)).toBeUndefined();
+      const answer = await opened.read(request, signal);
+      expect(checkAnswer(answer, request)).toBeUndefined();
+      // a region shape listed is served over its whole system at level 1 (a grid by both axes): never a failure
+      if (s.shape === 'grid' || s.shape === 'pairs' || s.shape === 'matrix') expect(answer.ok).toBe(true);
     }
   }
   if (cov.shapes.length) {

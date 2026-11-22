@@ -336,7 +336,8 @@ export const MatrixType: LayerType<MatrixPrep, MatrixLay> = {
         lay.cache.put(key, img);
       }
       Pieces.length = 0;
-      toSection(src, t.start, t.start + n * lay.level, Pieces);
+      // the last bin of a system ending inside it is cut at the system's end (its image a column the narrower)
+      toSection(src, t.start, Math.min(t.start + n * lay.level, src.length ?? Number.MAX_SAFE_INTEGER), Pieces);
       if (Pieces.length !== 2) continue;
       const d = axis.dpr;
       const x0 = Math.round(axis.x(Pieces[0]) * d) / d;

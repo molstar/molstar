@@ -120,4 +120,13 @@ describe('the matrix layer', () => {
     expect(g.layout.issues.map((i) => [i.code, i.severity])).toEqual([['seq.render.ring.image', 'info']]);
     expect(g.lists.passes.data.paths.n).toBeLessThanOrEqual(4096 + 64);
   });
+
+  it('past the store’s bounds at every level, its band says zoom in (the layer’s wants bounded together)', async () => {
+    const s = await settle(sourced(), [SeqRuntime], {}, {}, { maxTilesPerLayer: 0 });
+    const f = await s.frame({ size: { width: 800, height: 200 } });
+    const l = f.layout.sections[0].tracks[0].layers[0] as { lay: MatrixLay; zoomIn?: boolean };
+    expect(l.zoomIn).toBe(true);
+    expect(l.lay.n + l.lay.images.length).toBe(0);
+    expect(f.layout.issues.map((i) => i.code)).toContain('seq.render.zoom_in');
+  });
 });
