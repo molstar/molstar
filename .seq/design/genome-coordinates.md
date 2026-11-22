@@ -122,7 +122,8 @@ coverage, which exists.
 - **Annotations over an assembly**: `target` (ranges, values, pairs, grid) may name an assembly; each row is on the
   sequence its `target` field names, through the names rule. A row naming none is counted and said once
   (`seq.resolve.assembly.name`, info, with the first unknown names), never dropped silently. Why: a BED or a bigWig is
-  one file over every chromosome.
+  one file over every chromosome. Inline rows of two ends or axes name their sequences in columns parallel to maps' `from_name`/`to_name`: `a_name`
+  and `b_name` for pairs, `x_name` and `y_name` for a grid's cells, `name` for a matrix's items (the author, 2026-11-22).
 - **`order`** (spec param): `natural` (the default), `length` (longest first: a draft assembly of scaffolds), `source`
   (as listed), or a list of names. `natural` ranks, on the name less a leading `chr` (case-insensitive), so UCSC's and
   Ensembl's unprefixed names sort alike: (1) a whole number, ascending (`1` … `22`; `2` before `10`); (2) `X`, then `Y`

@@ -76,6 +76,10 @@
 - **DL's two drafts promoted** (the author, 2026-11-22: "Yes, as recommended", all twelve gaps): the window's look and
   readout into navigators.md, track sizing into layouts.md, each with its Design page line; the drafts kept as the
   record. Fix lanes: the navigator's (now, clear of RG), track sizing after RG (tracks*.ts are RG's).
+- **Inline data over an assembly names its sequences** (the author, 2026-11-22: "Ok we can use this naming"):
+  `a_name`/`b_name` for pairs, `x_name`/`y_name` for grids (`name` for a matrix's items), parallel to maps'
+  `from_name`/`to_name`; a language param (a minor bump), built with the matrix's `source` typing in one language
+  lane (GA3) after GA2 and FR merge; until then the info `seq.resolve.assembly.inline`.
 - **A GenBank lane in stage 2** (the author, 2026-11-21: "Add a GenBank lane", after "Try pUC19.gb" in Services ›
   Your own file showed only a refusal): GB after VC, strong, a short design section first (plan, Stage 2); GenBank
   leaves Out of scope.
