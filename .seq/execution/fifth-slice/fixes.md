@@ -6,6 +6,14 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 
 ## Open
 
+- **A sample selected on the kinship grid does not light its row in the genotype matrix** (the orchestrator,
+  2026-11-22, LA3's look, Features › Across sections › Kinship beside the genotypes; kind: bug): a click on the
+  "F2-b" label selects the member (the grid's row and column light), but the matrix on the same rows system shows
+  nothing, though across-sections.md says a member selected on the grid lights its row in a matrix layer of the same
+  system with no map. The matrix also draws no member labels. The story's twin asserts the selection as state only.
+  Also from the look: the dot plot draws no lines between block-pair cells, so "a cell a pair of chromosomes" is not
+  visible. To the next fix lane (after HC, which sets the linked views' emphasis rule).
+
 - **Allocation readings that depend on the process, not the code** (the orchestrator, 2026-11-22, FX14 and LA3; kind:
   perf, a gate's trust): three warm-step cases read differently by what ran before them in the file: the storybook
   `section-scroll.quick.ts` wheel step (0 B alone, 40 B and 80 B in a full-file run, with the fast path taken at every
