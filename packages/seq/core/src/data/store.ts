@@ -5,10 +5,10 @@
  */
 
 import { batch, KeyedState, ReactiveModel, type ReadonlyState, State } from '@molstar/core/reactive';
-import { type Issue, issueOf, type Node, nodesEqual } from '@molstar/core/repr/tree';
+import { type Issue, issueOf, nodesEqual } from '@molstar/core/repr/tree';
 import { channelSource } from './channels.js';
 import { SourceIssues, StoreIssues } from './issues.js';
-import { DefaultTileBins, dataKey, fitLevel, nodeKey, tileRegion, tileSpan } from './keys.js';
+import { dataKey, nodeKey } from './keys.js';
 import {
   type Coverage,
   type DynamicNode,
@@ -20,165 +20,42 @@ import {
   type Shape,
   type Tables,
 } from './protocol.js';
+import { StoreReports, StoreWide } from './store-reports.js';
 import { StoreSources } from './store-sources.js';
-import { DefaultSummarySettings, type SummarySettings } from './summaries.js';
 import {
-  answerBytes,
-  checkAnswer,
-  DefaultAnswerBounds,
-  DefaultMaxBlockValues,
-  DefaultMaxColumnLength,
-  DefaultMaxRows,
-  isEmptyAnswer,
-} from './tables.js';
-import { sourceNameOf } from './system-names.js';
+  type DataEntry,
+  DefaultStoreSettings,
+  type NodeEntry,
+  Rank,
+  RealClock,
+  type StoreClock,
+  type StoreSettings,
+  type TileRegion,
+  Unwanted,
+  type Want,
+  type Wanter,
+} from './store-types.js';
+import { type PlannedTile, planWants, WantSet, wantTiles } from './store-wants.js';
+import { answerBytes, checkAnswer, isEmptyAnswer } from './tables.js';
+
+export {
+  type DataEntry,
+  DefaultStoreSettings,
+  type EntryStatus,
+  type NodeEntry,
+  type Priority,
+  RealClock,
+  type StoreClock,
+  type StoreSettings,
+  type TileRegion,
+  type Want,
+  type Wanter,
+} from './store-types.js';
 
 // The data store (_spec/README.md "Data", Store): entries by key in keyed states, versioned; the want sets of its
 // consumers merged; requests deduped by tile, ordered and bounded in flight, cancelled after a grace (at once when the
 // view waits), retried by policy; a byte-bounded cache that never drops what is wanted; nodes held by what carried
 // them.
-
-/** Where a wanted region stands: in the view, its margin, or prefetched (EC-172's order). */
-export type Priority = 'view' | 'margin' | 'prefetch';
-
-const Rank: Record<Priority, number> = { view: 0, margin: 1, prefetch: 2 };
-const Unwanted = 3;
-
-/** A region a visible layer needs: positions `[start, end)` of a system of an attached source, at a level. */
-export interface Want {
-  readonly source: string;
-  readonly system: string;
-  readonly start: number;
-  readonly end: number;
-  /** A bin width; an unlisted one falls back to the coarsest listed no wider (EC-170). */
-  readonly level: number;
-  /** `view` by default. */
-  readonly priority?: Priority;
-}
-
-/** The tile an entry holds: its parts and its positions. */
-export interface TileRegion {
-  readonly source: string;
-  /** The coverage's name of the system (an alias resolved). */
-  readonly system: string;
-  readonly level: number;
-  readonly tile: number;
-  readonly start: number;
-  readonly end: number;
-}
-
-/**
- * A data entry: pending is never drawn or hit as empty (EC-169); failed carries its issue; evicted is wanted but
- * dropped for the byte bound, not asked again while it stays wanted.
- */
-export type DataEntry =
-  | { readonly status: 'pending'; readonly version: number; readonly region: TileRegion }
-  | {
-      readonly status: 'loaded';
-      readonly version: number;
-      readonly region: TileRegion;
-      readonly tables: Tables;
-      /** The node keys (`<source>#<key>`) this region carried. */
-      readonly nodes: readonly string[];
-      readonly bytes: number;
-    }
-  | { readonly status: 'empty'; readonly version: number; readonly region: TileRegion }
-  | {
-      readonly status: 'failed';
-      readonly version: number;
-      readonly region: TileRegion;
-      readonly kind: FailureKind;
-      readonly issue: Issue;
-    }
-  | { readonly status: 'evicted'; readonly version: number; readonly region: TileRegion };
-
-export type EntryStatus = DataEntry['status'];
-
-/** A node entry: a dynamic node of a source, held while something holds it. */
-export interface NodeEntry {
-  readonly source: string;
-  readonly key: string;
-  readonly node: Node;
-  readonly version: number;
-}
-
-/** The store's time: real timers by default, a fake one in tests. */
-export interface StoreClock {
-  now(): number;
-  setTimeout(fn: () => void, ms: number): unknown;
-  clearTimeout(handle: unknown): void;
-}
-
-export const RealClock: StoreClock = {
-  now: () => performance.now(),
-  setTimeout: (fn, ms) => setTimeout(fn, ms),
-  clearTimeout: (h) => clearTimeout(h as ReturnType<typeof setTimeout>),
-};
-
-export interface StoreSettings {
-  /** Bins per tile. */
-  readonly tileBins: number;
-  /** The data entries' byte bound. */
-  readonly maxBytes: number;
-  /** Requests in flight at most (EC-172). */
-  readonly maxInFlight: number;
-  /** Tiles one want may cover; more is an issue and the want is not requested (work bounded before it starts). */
-  readonly maxTilesPerWant: number;
-  /** Rows a list or density table may hold in one answer. */
-  readonly maxRows: number;
-  /** The longest column an answer may hold: 2^31 − 1. */
-  readonly maxColumnLength: number;
-  /** The most values (rows times columns) one table of an answer may hold: 2^24. */
-  readonly maxBlockValues: number;
-  /** Dynamic nodes in one answer: 10,000. */
-  readonly maxNodes: number;
-  /** What the nodes of one answer weigh together (the spec's size estimate): 16 MB. */
-  readonly maxNodeBytes: number;
-  /** Issues kept; then one `seq.store.limit_exceeded`. */
-  readonly maxIssues: number;
-  /** How long a request that left the wanted set stays in flight before it is cancelled (EC-173). */
-  readonly graceMs: number;
-  /**
-   * A `failed` answer: tried `attempts` times with backoff `baseMs · factor^n`, then a cooldown (a `malformed` one goes
-   * to the cooldown at once).
-   */
-  readonly retry: {
-    readonly attempts: number;
-    readonly baseMs: number;
-    readonly factor: number;
-    readonly cooldownMs: number;
-  };
-  /** The value pyramid given a source that serves level 1 only (`withSummaries`); `false`: none. */
-  readonly summaries: SummarySettings | false;
-}
-
-export const DefaultStoreSettings: StoreSettings = {
-  tileBins: DefaultTileBins,
-  maxBytes: 64 * 1024 * 1024,
-  maxInFlight: 6,
-  maxTilesPerWant: 256,
-  maxRows: DefaultMaxRows,
-  maxColumnLength: DefaultMaxColumnLength,
-  maxBlockValues: DefaultMaxBlockValues,
-  maxNodes: DefaultAnswerBounds.maxNodes,
-  maxNodeBytes: DefaultAnswerBounds.maxNodeBytes,
-  maxIssues: 100,
-  graceMs: 300,
-  retry: { attempts: 3, baseMs: 500, factor: 2, cooldownMs: 30_000 },
-  summaries: DefaultSummarySettings,
-};
-
-/** A consumer's want set (the live view, an export): merged with the others by best priority. */
-export interface Wanter {
-  /** The regions this consumer needs now, all of them. */
-  want(wants: readonly Want[]): void;
-  /** `true` when none of this consumer's tiles is pending; `false` after `timeoutMs` (if given) without (EC-125). */
-  whenSettled(timeoutMs?: number): Promise<boolean>;
-  /** The keys of the entries this consumer wants. */
-  readonly keys: ReadonlySet<string>;
-  /** Withdraws its wants. */
-  dispose(): void;
-}
 
 /**
  * `queued`, `flight`: being asked; `backoff`: waiting to be asked again after a failure; `cooldown`: failed, waiting
@@ -186,12 +63,6 @@ export interface Wanter {
  * the bound.
  */
 type Phase = 'queued' | 'flight' | 'backoff' | 'cooldown' | 'done' | 'evicted';
-
-interface PlannedTile {
-  rank: number;
-  readonly region: TileRegion;
-  readonly shapes: readonly Shape[];
-}
 
 /** A tile's bookkeeping (one per entry key). */
 interface Slot {
@@ -217,15 +88,6 @@ interface Slot {
   nodes: readonly string[];
 }
 
-interface Reported {
-  readonly source: string;
-  readonly id: string;
-  readonly issue: Issue;
-}
-
-/** The store-wide reports' source. */
-const StoreWide = '';
-
 /**
  * One store per viewer: data entries by `<source>|<system>|<level>|<tile>`, node entries by `<source>#<key>`, each a
  * keyed state so only what reads an entry is told. Each consumer's `Wanter` (the live view's is `want`) sets the
@@ -247,13 +109,12 @@ export class DataStore extends ReactiveModel {
   private _bytes = 0;
   private _counter = 0;
   private _order = 0;
-  private readonly _reported: Reported[] = [];
-  private _capped = false;
   private readonly _version = new State(0);
   private readonly _nodeVersion = new State(0);
   private readonly _settled = new State(true);
   private readonly _overBudget = new State(false);
   private readonly _issues = new State<readonly Issue[]>([]);
+  private readonly _reports: StoreReports;
 
   /** The clock the store's timers run on (a caller sharing the store keeps time on it). */
   get clock(): StoreClock {
@@ -265,6 +126,7 @@ export class DataStore extends ReactiveModel {
     this.settings = { ...DefaultStoreSettings, ...options.settings };
     this._clock = options.clock ?? RealClock;
     this._sources = new StoreSources(this.settings);
+    this._reports = new StoreReports(this.settings.maxIssues, (list) => this._issues.set(list));
     this._live = this.wanter() as WantSet;
   }
 
@@ -361,7 +223,7 @@ export class DataStore extends ReactiveModel {
       for (const k of old.nodes) this._release(k);
       for (const k of old.nodes) if (!kept.has(k)) this._remove(k);
       this._sources.set(address, { ...prepared, nodes });
-      this._clearReports(address);
+      this._reports.clear(address);
       for (const set of this._wanters) set.tiles = this._plan(set.wants);
     });
     old.opened.dispose();
@@ -373,7 +235,7 @@ export class DataStore extends ReactiveModel {
   private _prepare(address: string, source: OpenedSource) {
     const prepared = this._sources.prepare(source);
     if ('opened' in prepared) return prepared;
-    this._run(() => this._report(address, { ...prepared, address }));
+    this._run(() => this._reports.report(address, { ...prepared, address }));
     return undefined;
   }
 
@@ -395,7 +257,7 @@ export class DataStore extends ReactiveModel {
       this._dropTiles(address);
       for (const k of s.nodes) this._release(k);
       this._sources.delete(address);
-      this._clearReports(address);
+      this._reports.clear(address);
     });
     s.opened.dispose();
   }
@@ -489,33 +351,13 @@ export class DataStore extends ReactiveModel {
 
   /** @internal Plans a consumer's wants into tiles. */
   _plan(wants: readonly Want[]): Map<string, PlannedTile> {
-    const next = new Map<string, PlannedTile>();
-    for (const w of wants) {
-      const t = this._tiles(w);
-      if (!t || t.last < t.first) continue;
-      if (t.last - t.first + 1 > this.settings.maxTilesPerWant) {
-        const message = `A wanted region covers ${t.last - t.first + 1} tiles, more than ${this.settings.maxTilesPerWant}`;
-        this._run(() =>
-          this._report(
-            channelSource(w.source),
-            issueOf(StoreIssues, 'seq.store.too_many_tiles', message, { address: channelSource(w.source) }),
-          ),
-        );
-        continue;
-      }
-      const rank = Rank[w.priority ?? 'view'];
-      for (let tile = t.first; tile <= t.last; tile++) {
-        const key = dataKey(w.source, t.system, t.level, tile);
-        const at = next.get(key);
-        if (at) at.rank = Math.min(at.rank, rank);
-        else {
-          const { start, end } = tileRegion(tile, t.level, this.settings.tileBins, t.length);
-          const region = { source: w.source, system: t.system, level: t.level, tile, start, end };
-          next.set(key, { rank, region, shapes: t.shapes });
-        }
-      }
-    }
-    return next;
+    return planWants(wants, this._sources, this.settings, (w, n) => {
+      const message = `A wanted region covers ${n} tiles, more than ${this.settings.maxTilesPerWant}`;
+      const address = channelSource(w.source);
+      this._run(() =>
+        this._reports.report(address, issueOf(StoreIssues, 'seq.store.too_many_tiles', message, { address })),
+      );
+    });
   }
 
   /**
@@ -571,16 +413,7 @@ export class DataStore extends ReactiveModel {
   // Tiles and slots
 
   private _tiles(w: Want) {
-    const s = this._sources.get(w.source);
-    const system = s && sourceNameOf(s.names, w.system);
-    if (!s || system === undefined) return undefined;
-    const cov = s.opened.coverage;
-    const level = cov.levels.includes(w.level) ? w.level : fitLevel(cov.levels, w.level);
-    const length = cov.systems.find((x) => x.name === system)?.length;
-    const end = length === undefined ? w.end : Math.min(w.end, length);
-    const [first, last] = tileSpan(w.start, end, level, this.settings.tileBins);
-    const shapes = cov.shapes.filter((x) => x.system === system).map((x) => x.shape);
-    return { system, level, length, first, last, shapes };
+    return wantTiles(w, this._sources, this.settings);
   }
 
   /** Runs a change in one batch, then starts what may start, keeps the bound and the settled state. */
@@ -846,7 +679,7 @@ export class DataStore extends ReactiveModel {
    */
   private _failure(slot: Slot, kind: FailureKind, issue: Issue): void {
     const source = channelSource(slot.region.source);
-    this._report(source, { ...issue, address: issue.address ?? source });
+    this._reports.report(source, { ...issue, address: issue.address ?? source });
     const retry = this.settings.retry;
     if (kind === 'failed' && slot.attempts + 1 < retry.attempts) {
       slot.attempts++;
@@ -872,38 +705,6 @@ export class DataStore extends ReactiveModel {
       slot.retryable = true;
       if (slot.rank !== Unwanted) this._enqueue(slot);
     });
-  }
-
-  // Reports
-
-  private _report(source: string, issue: Issue): void {
-    const id = `${source}\u0000${issue.code}`;
-    if (this._reported.some((r) => r.id === id)) return;
-    if (this._reported.length >= this.settings.maxIssues) {
-      if (!this._capped) {
-        this._capped = true;
-        this._publishIssues();
-      }
-      return;
-    }
-    this._reported.push({ source, id, issue });
-    this._publishIssues();
-  }
-
-  private _clearReports(source: string): void {
-    const before = this._reported.length;
-    for (let i = this._reported.length - 1; i >= 0; i--)
-      if (this._reported[i].source === source) this._reported.splice(i, 1);
-    if (this._reported.length === before) return;
-    this._capped = false;
-    this._publishIssues();
-  }
-
-  private _publishIssues(): void {
-    const list = this._reported.map((r) => r.issue);
-    if (this._capped)
-      list.push(issueOf(StoreIssues, 'seq.store.limit_exceeded', `More than ${this.settings.maxIssues} issues`));
-    this._issues.set(list);
   }
 
   private _updateSettled(): void {
@@ -942,8 +743,8 @@ export class DataStore extends ReactiveModel {
     const over = this._bytes > max;
     if (over && !this._overBudget.value) {
       const message = 'What is in view is over the store’s byte bound';
-      this._report(StoreWide, issueOf(StoreIssues, 'seq.store.over_budget', message));
-    } else if (!over && this._overBudget.value) this._clearReports(StoreWide);
+      this._reports.report(StoreWide, issueOf(StoreIssues, 'seq.store.over_budget', message));
+    } else if (!over && this._overBudget.value) this._reports.clear(StoreWide);
     this._overBudget.set(over);
   }
 
@@ -974,7 +775,7 @@ export class DataStore extends ReactiveModel {
         this._nodeVersion.set(version);
       } else {
         const message = 'A node came again with other content: kept';
-        this._report(source, issueOf(StoreIssues, 'seq.store.node_conflict', message, { address: source }));
+        this._reports.report(source, issueOf(StoreIssues, 'seq.store.node_conflict', message, { address: source }));
       }
     }
     return keys;
@@ -1003,40 +804,5 @@ export class DataStore extends ReactiveModel {
       this._version.set(version);
       this._nodeVersion.set(version);
     }
-  }
-}
-
-class WantSet implements Wanter {
-  tiles = new Map<string, PlannedTile>();
-  /** As last asked: planned again when a source is read anew. */
-  wants: readonly Want[] = [];
-  private _disposed = false;
-
-  constructor(private readonly _store: DataStore) {}
-
-  get keys(): ReadonlySet<string> {
-    return new Set(this.tiles.keys());
-  }
-
-  want(wants: readonly Want[]): void {
-    if (this._disposed) return;
-    this.wants = wants;
-    this.tiles = this._store._plan(wants);
-    this._store._apply();
-  }
-
-  whenSettled(timeoutMs?: number): Promise<boolean> {
-    return this._store._waitFor(() => {
-      for (const k of this.tiles.keys()) if (this._store.get(k)?.status === 'pending') return false;
-      return true;
-    }, timeoutMs);
-  }
-
-  dispose(): void {
-    if (this._disposed) return;
-    this._disposed = true;
-    this.tiles = new Map();
-    this.wants = [];
-    this._store._removeSet(this);
   }
 }
