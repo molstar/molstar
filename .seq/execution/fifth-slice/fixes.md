@@ -42,6 +42,16 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   (genome-formats.md, Defaults 2, amended); ties by the legend's order. Test against the drawn lists: the run holding
   1174011 is deletion pink; a run of equal-width items keeps the count rule.
 
+- **The navigator's readout: one fixed place outside, and its text lagging a gesture** (the author, 2026-11-22, Features ›
+  Genome formats › BED › cytobands, after FX5: "it's better if the label stays outside in top right instead of jumping
+  around all the time. maybe we can do the same thing for the 'vertical maps' as well, where it appears 'above' the map
+  instead."; kind: look, and a bug): (1) the readout sits in one place outside the navigator, above it at its top-right
+  corner (above a vertical navigator for the vertical maps), never moving with the window or pointer; it replaces FX5's
+  `readout-place.ts` rule; designed in DL's `drafts/navigator-window-look.md` first. (2) Its text lags a gesture: the
+  window at 21 Mb while it reads `chr17:1–83,257,441`, at 59 Mb while it reads `20,145,469–27,700,018`: the readout
+  shows the window it draws, in the same frame. Test: after a drag and after a click-to-jump, the readout's text equals
+  the window's range.
+
 - **No track drawn as an empty well, and a sweep that holds it** (the author, 2026-11-21: "Yes, group them", after
   the Promoters track, the stacked ATP block's tracks and the plasmid's strip each showed a blank band). Three causes,
   one symptom: (a) the data has nothing for a declared track (Promoters: a fixture gap, the story's fault); (b) a

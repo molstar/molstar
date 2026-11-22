@@ -70,6 +70,9 @@
 - **Sizes raised again** (the author, 2026-11-22: "Raise again", offered a trim after the review first): headless
   920 kB (was 910), the default viewer 1,460 (1,450); RG after the merged lanes measured 912.1 and 1,450.1. The review's
   `tables-region.ts` cut stays a minimal-code item for RG, no longer a size gate.
+- **The navigator's readout in one fixed place outside** (the author, 2026-11-22: "it's better if the label stays
+  outside in top right instead of jumping around all the time … the same thing for the 'vertical maps' … 'above' the
+  map"): top-right above a horizontal navigator, above a vertical one; into DL's navigator draft, then a fix lane.
 - **A GenBank lane in stage 2** (the author, 2026-11-21: "Add a GenBank lane", after "Try pUC19.gb" in Services ›
   Your own file showed only a refusal): GB after VC, strong, a short design section first (plan, Stage 2); GenBank
   leaves Out of scope.
