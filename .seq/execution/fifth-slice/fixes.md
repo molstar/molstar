@@ -105,7 +105,7 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   chr22 selected on the row, mirrored on the ring): profile the drag's frames (the selection's blocks and their
   emphasis on both views), bound a drag across 12 blocks to the frame budget at 0 bytes warm.
 
-- **The novice pass's bugs** (stage 5, 2026-11-23, [novice-findings.md](novice-findings.md) 1–4; for FX24):
+- **The novice pass's bugs** (fixed by FX24, `b386475be`; stage 5, 2026-11-23, [novice-findings.md](novice-findings.md) 1–4; for FX24):
   - the ring's hover card shows a wrong position (confirmed): its position and band rows don't match. "chr1 58,720,257"
     comes with "q32.2 chr1 207,100,001–211,300,000", that band row appears twice, and on a chr14 stem it shows the same
     chr1 band. Find where those rows are built and make them name the block and band under the pointer;
@@ -114,7 +114,7 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   - check by hand, then fix if real: a click on a menu's "Show with a partner" item doesn't open its submenu (the Right
     arrow does); the wheel over the ring never scrolls the page.
 
-- **The hover card story test failed once** (stage 4's gate, 2026-11-23, quick lane over `packages/seq/`,
+- **The hover card story test failed once** (fixed by FX24, `b386475be`: lazy header chunks relaid the headers and hid the card; stage 4's gate, 2026-11-23, quick lane over `packages/seq/`,
   `cli/seqx-render/` and `packages/core/src/util` at load about 3): `hover-card-stories.test.ts`, "a host's adapter is
   told the viewer's card and place on rest". The adapter had been called, but `HoverCardProvider.shown.value` was undefined. Three
   reruns were green, one of them the same set. The test runs under fake timers, so find what still reads the real clock
