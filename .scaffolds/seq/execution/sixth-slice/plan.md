@@ -61,7 +61,7 @@ A next scaffold starts as `.scaffolds/<name>/` from `_method/`, its manifest lis
       `cli/structure-info` match `.seq` in their text: check that it is a file extension, not a link).
 - [x] **Stage 4: the method** (done 2026-11-23, S4 `35ded94db`, `briefs/s4-method.md`): templates in `_method/` from the fifth slice's files (loop with its fold-back, brief,
       state, plan, fixes, record), the generic checks taking the instance as an argument; `.scaffolds/AGENTS.md`.
-- [ ] **Stage 4b: the principles re-synced and compressed** (re-synced 2026-11-23 at upstream `c1ccd14`; the re-adaptation running as S4B, `briefs/s4b-readapt.md`; was waiting on the author: "i think i
+- [x] **Stage 4b: the principles re-synced and compressed** (done 2026-11-23: re-synced at upstream `c1ccd14` (`af15684a8`), the instance re-adapted by S4B (`26dcae39e`); the reading path about 34.3k to 26.5k tokens; was waiting on the author: "i think i
       will do one more change to the upstream oz first and then get back here with it"). Re-sync `.scaffolds/principles/`
       from the upstream package after that change (it already has a rule budget, a lighter `_core` and Seq\*'s slices 3
       to 5 folded back), reapplying the rename and the two removed modules; then re-adapt Seq\*'s instance under the

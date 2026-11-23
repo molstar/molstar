@@ -1,4 +1,4 @@
-// The edge-case id check (§mechanical-drift-checks; the manifest, "Folded back from the first slice"): every `EC-<n>`
+// The edge-case id check (§mechanical-drift-checks; the manifest's §ec-tested-by-name): every `EC-<n>`
 // cited in a tracked file under `packages/seq` (built output in `lib/` aside) names an item of the catalog,
 // `.scaffolds/seq/sources/seqstar/edge-cases.md`, where an item is a top-level numbered line (`143. ...`). A range written
 // `EC-<a>–<b>` or `EC-<a> to EC-<b>` cites each id in it. The ids are numbers only, so code citing them names no
