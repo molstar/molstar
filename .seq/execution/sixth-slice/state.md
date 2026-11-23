@@ -12,7 +12,7 @@
 ## In progress
 
 - 2026-11-23: stage 1 started. `.seq/_checks/designs-in-specs.ts` written (46 designs pending). Running: **S1A**
-  (strong, `briefs/s1a-specs.md`) and **S1B** (strong, `briefs/s1b-specs.md`); next S1C and S1D.
+  (strong, `briefs/s1a-specs.md`) and **S1B** (strong, `briefs/s1b-specs.md`, merged `81a82d453`); S1A in its fix round; **S1D** (Sonnet, `briefs/s1d-specs.md`) started beside it; S1C after S1A merges.
 
 ## Findings by lane
 
