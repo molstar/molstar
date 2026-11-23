@@ -56,7 +56,8 @@ A next scaffold starts as `.scaffolds/<name>/` from `_method/`, its manifest lis
       state, plan, fixes, record), the generic checks taking the instance as an argument; `.scaffolds/AGENTS.md`.
 - [ ] **Stage 5: verify**: every check run from the new place on the Seq\* instance; a link check over `.scaffolds/`
       (no dangling relative links); the root `AGENTS.md`'s table gains the `.scaffolds/` row; `.seq/` gone.
-- [ ] **Docs** (the author, 2026-11-23: "we should write "Docs" folder in storybook in slice 6 too, that explains
+- [ ] **Docs** (taken early as lane DX, 2026-11-23, `briefs/dx-storybook-docs.md`: written from the current `_spec`s;
+      stage 1's reconciliation checks the docs too) (the author, 2026-11-23: "we should write "Docs" folder in storybook in slice 6 too, that explains
       this very well right of the bat, so people dont expect opiniated viewer like jalview out of this. and in general
       the docs should go high level around how this works etc. similar to what the docs for the previous version do"):
       a `Docs/` folder in the Seq\* (next) storybook, high level, in the shape of the previous version's
