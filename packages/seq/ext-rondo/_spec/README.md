@@ -92,12 +92,12 @@ bins), the readout's after the pair (`chr4 × chr7 · 37 links`).
   one chromosome's ring the block is everything, so lighting the block for a band lit all. The emphasis draw keeps no
   lay past itself (module state cleared after each pass). **Selection**: ribbons with an end in it in the accent.
   **Highlights**: ribbons touching each channel's Location.
-- **The stem menu** (`menu.ts`, `StemMenu`, registered on the viewer's headers by `rondoViewer`'s behavior, so
-  `viewer.extend` brings it too): a secondary click on a stem opens its element menu, the viewer's label menu's shape
-  scoped to `rondo:ribbons`' stems (`element.type`, a `stem:` key): "Show with a partner ▸" (its partners by count, at
-  most 8, each `chr17 · 140 links`, shown with it as a pair in the section the layer `opens`, else its own), "Select the
-  stem and its partners" (`rondo:select-partners` with the element: one selection), "Show only chr4". The entries find
-  the stem in the lays of the viewers composed with `rondoViewer` (`Viewers`, kept by its behavior: one a viewer). Not
+- **The stem menu** (`menu.ts`, `StemMenu`, the descriptor's `headerActions`, so `viewer.extend` brings it too): a
+  secondary click on a stem opens its element menu, the viewer's label menu's shape scoped to `rondo:ribbons`' stems
+  (`element.type`, a `stem:` key): "Show with a partner ▸" (its partners by count, at most 8, each `chr17 · 140 links`,
+  shown with it as a pair in the section the layer `opens`, else its own), "Select the stem and its partners"
+  (`rondo:select-partners` with the element: one selection), "Show only chr4". The entries find the stem in the lays of
+  the viewer the menu is in (`HeaderFacts.viewer`: no state of their own, two viewers of one spec each their own). Not
   built: the menu from the keyboard at a stem (Shift+F10 opens the header's menu at the cursor).
 - **The keys**: `.` (`rondo:partner`) and `,` (`rondo:partner-back`), the commands' shortcuts on the canvas: the cursor
   to the next or the previous partner of its stem by count, said by the announcer (the command moved the cursor: "chr17,

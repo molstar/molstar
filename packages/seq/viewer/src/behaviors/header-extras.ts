@@ -208,6 +208,7 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
           }
         : {}),
       ...(target.element ? { element: target.element } : {}),
+      viewer,
       ...blockFacts(model, section, specNode, target.block),
     };
   };

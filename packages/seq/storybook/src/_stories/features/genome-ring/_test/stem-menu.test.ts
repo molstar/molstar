@@ -123,3 +123,52 @@ describe('The partner keys', () => {
     announcer.dispose();
   });
 });
+
+describe('The stem menu in two viewers of one spec', () => {
+  it('each lists its own viewer’s partners (the menu reads the viewer from its facts, no state of its own)', async () => {
+    const { v: a } = await open();
+    viewer = undefined;
+    const { v: b, headers } = await open();
+    try {
+      const la = ribbonsOf(a)!;
+      const { stem } = strongestStem(la);
+      const name = la.names[la.stemSystem[stem]];
+      const partnersA = partnersOf(la, stem);
+      // b shows the stem's chromosome and its strongest partner only: its partners on those two, a's all over
+      const first = la.names[la.stemSystem[partnersA[0].stem]];
+      await b.execute('section.include', { address: '/views/main/ring', include: [name, first] });
+      await b.settle();
+      b.draw();
+      const lb = ribbonsOf(b)!;
+      const sb = strongestStem(lb);
+      expect(lb.names[lb.stemSystem[sb.stem]]).toBe(name);
+      const partnersB = partnersOf(lb, sb.stem);
+      expect(partnersB.length).toBeLessThan(partnersA.length);
+      expect(headers.context(sb.x, sb.y)).toBe(true);
+      const items = headers.menu.value!.menu.groups[0][0].items!;
+      expect(items.length).toBe(Math.min(8, partnersB.length));
+      // b's partners only: on the two chromosomes it shows (a's are all over the genome)
+      for (const i of items) expect([name, first]).toContain(String(i.label).split(' · ')[0]);
+    } finally {
+      a.retire();
+    }
+  });
+
+  it('the same stem in both: its menu in the second viewer selects there, never in the first', async () => {
+    const { v: a } = await open();
+    viewer = undefined;
+    const { v: b, headers } = await open();
+    try {
+      const l = ribbonsOf(b)!;
+      const { stem, x, y } = strongestStem(l);
+      expect(headers.context(x, y)).toBe(true);
+      const select = headers.menu.value!.menu.groups[0][1];
+      const n = partnersOf(l, stem).length;
+      expect(await headers.runItem(select)).toBe(`${n} partner${n === 1 ? '' : 's'} selected`);
+      expect(b.selection.value.value.shown.parts.length).toBeGreaterThan(0);
+      expect(a.selection.value.value.shown.parts.length).toBe(0);
+    } finally {
+      a.retire();
+    }
+  });
+});

@@ -8,14 +8,13 @@ import { type Hit, rangesLocation } from '@molstar/seqx-core/extension';
 import {
   type BehaviorProvider,
   defineViewerExtension,
-  type HeaderEntry,
   type SeqViewer,
   type SeqViewerExtension,
   type ViewerCommand,
 } from '@molstar/seqx-viewer';
 import { rondo, RondoParams, RondoVersion } from './index.js';
 import { Kind, type RondoLay } from './lay.js';
-import { laysOf, partnersOf, StemMenu, selectStemPartners, Viewers } from './menu.js';
+import { laysOf, partnersOf, StemMenu, selectStemPartners } from './menu.js';
 
 // The genome ring extension's viewer parts (_spec/README.md, The viewer): `rondoViewer`, the headless `rondo` and
 // its commands (`rondo:partner`, along the links by count from the cursor's stem; `rondo:select-partners`, the far
@@ -49,7 +48,6 @@ const Walk = new WeakMap<RondoLay, { from: number; next: number }>();
 /** A viewer's commands (each viewer its own: they act on the viewer that composed them). */
 function viewerParts() {
   let viewer: SeqViewer | undefined;
-  let unregister: (() => void) | undefined;
   /** The cursor to the next (or the previous) partner of its stem by count, said. */
   const walk = (args: { back?: boolean }) => {
     const v = viewer;
@@ -158,18 +156,8 @@ function viewerParts() {
     commands,
     composed(v: SeqViewer) {
       viewer = v;
-      Viewers.add(v);
-      // the stem menu: registered on the viewer's headers at run time (so `viewer.extend` brings it too), once the
-      // composition holds this behavior's commands (its entries name them), taken away on dispose
-      void Promise.resolve().then(() => {
-        if (viewer !== v || unregister) return;
-        unregister = v.behavior<{ register(...e: HeaderEntry[]): () => void }>('headers')?.register(...StemMenu);
-      });
     },
     dispose() {
-      unregister?.();
-      unregister = undefined;
-      if (viewer) Viewers.delete(viewer);
       viewer = undefined;
     },
   };
@@ -189,5 +177,7 @@ export const rondoViewer: SeqViewerExtension = defineViewerExtension({
   registry: rondo.registry,
   params: RondoParams as never,
   behaviors: [{ provider: behavior() }],
+  // the stem menu (its entries read the viewer from the menu's facts): composed, or registered by `viewer.extend`
+  headerActions: StemMenu,
   bindings: [{ gesture: 'double-click', target: 'item', action: 'rondo:open', layer: 'rondo:ribbons' }],
 });

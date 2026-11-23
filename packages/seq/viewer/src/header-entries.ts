@@ -69,6 +69,11 @@ export interface HeaderFacts {
   /** The element a menu was opened on (`on: 'element'`): its layer and key. */
   readonly element?: HeaderElement;
   /**
+   * The viewer whose header it is: an entry reads what it shows there (an extension's lays), never another viewer's
+   * of the same spec. Why here: an entry is one object, shared by every viewer composed with it.
+   */
+  readonly viewer?: SeqViewer;
+  /**
    * The block a section's menu was opened on (its label, its band: genome coordinates): its address, label, its
    * system's name and whether it reads against the section.
    */

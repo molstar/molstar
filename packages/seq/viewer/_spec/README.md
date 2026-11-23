@@ -524,13 +524,14 @@ selection moves (`viewer-selection.ts`) and the frame (`viewer-frame.ts`).
   `<id>:commands`), its bindings a layer over the spec's naming the viewer's actions or its own (`<id>:…`), its header
   entries beside the built-ins'; one with viewer parts and no `composeViewer` is refused (they would be dropped).
   `viewer.extend(ext)` registers one at run time and resolves to its undo: the context's checks (nothing changed on an
-  error; a format runtime or a query entry is refused, since it changes what the open spec resolves to; so are header
-  entries, settings and a behavior with a part over the canvas, `attach`, since nothing reads them late), its behaviors
-  (`composed` called), commands and bindings; a failure takes away only what it made; the view is resolved again with
-  the new layer kinds (`ViewModel.setKinds`), so the frame is a new renderer's and a layer drawn as its fallback is
-  drawn as its type; the undo takes them away in reverse (behaviors disposed) and the fallback comes back. The same
-  descriptor again is counted; one composed is the viewer's. A lazy chunk (`viewer-extend.ts`): registering late is
-  rare, and a composition that never does bundles none of it.
+  error; a format runtime or a query entry is refused, since it changes what the open spec resolves to; so are settings
+  and a behavior with a part over the canvas, `attach`, since nothing reads them late), its behaviors (`composed`
+  called), commands and bindings, its header entries on the `headers` behavior (`register`, once its commands are there;
+  none composed: unread); a failure takes away only what it made; the view is resolved again with the new layer kinds
+  (`ViewModel.setKinds`), so the frame is a new renderer's and a layer drawn as its fallback is drawn as its type; the
+  undo takes them away in reverse (behaviors disposed) and the fallback comes back. The same descriptor again is
+  counted; one composed is the viewer's. A lazy chunk (`viewer-extend.ts`): registering late is rare, and a composition
+  that never does bundles none of it.
 
 - **Navigators** (`mount-navigator.ts`): parts the host places, like the legends. `mountNavigator(element, viewer, id)`
   draws one navigator (a declared node's id, or a host's `viewer.navigator(def)`) into an element the host owns: its own
@@ -1314,9 +1315,10 @@ rows' commands) reads the last frame's rows layers through the behavior context'
     not built (the TODO).
   - **`HeaderFacts`**: plain data from the resolved view, the spec and the last layout (the address, label, section,
     system, linear, the section's track ids, the track's layers with type, label, hidden, filtered rows, color and
-    fitting schemes, the hidden tracks, the element). Entries' functions are pure over them, run once a layout a shown
-    header (`partsOf`, the frame's `headers`, a new function when the entries change: a new layout) and when a menu
-    opens.
+    fitting schemes, the hidden tracks, the element, and the viewer whose header it is: an entry is one object shared by
+    every viewer composed with it, so it reads what that viewer shows, never module state). Entries' functions are pure
+    over them, run once a layout a shown header (`partsOf`, the frame's `headers`, a new function when the entries
+    change: a new layout) and when a menu opens.
   - **Shown or enabled**: an entry's `when` decides whether it shows, its command's `when` whether it runs (a disabled
     item muted, its reason its `why`). An action with `items` opens them (its slot opens the menu at it); a state's
     click runs it, its secondary click lists its items, then itself (the `hiddenChip: menu` param: the click lists

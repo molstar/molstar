@@ -11,10 +11,8 @@ import { Kind, type RondoLay } from './lay.js';
 // The stem menu (_spec/README.md, The viewer, The stem menu): a stem's element menu, the viewer's label menu's shape
 // scoped to `rondo:ribbons`' stems (`HeaderFacts.element.type`): its partners by count, each shown with it as a pair
 // (in the section the layer `opens`, else its own); the stem and its partners selected; its chromosome alone. Its
-// entries read the lay of the viewer the menu is in: the viewers composed with `rondoViewer` (one a behavior).
-
-/** The viewers composed with `rondoViewer` (added and removed by its behavior). */
-export const Viewers = new Set<SeqViewer>();
+// entries read the lays of the viewer the menu is in (`HeaderFacts.viewer`): no state of their own, so two viewers of
+// one spec each list their own.
 
 /** How many partners the menu lists. */
 const MenuPartners = 8;
@@ -37,26 +35,26 @@ export function partnersOf(lay: RondoLay, stem: number): { stem: number; count: 
   return out.sort((a, b) => b.count - a.count || a.stem - b.stem);
 }
 
-/** The stem a layer's element key names in a viewer's lays (a fan is its stem), with its viewer and lay. */
+/** The stem a layer's element key names in a viewer's lays (a fan is its stem), with its lay. */
 export function stemOf(
+  viewer: SeqViewer,
   layer: string,
   key: string | number,
-): { viewer: SeqViewer; lay: RondoLay; stem: number } | undefined {
+): { lay: RondoLay; stem: number } | undefined {
   if (typeof key !== 'string' || !key.startsWith('stem:')) return undefined;
-  for (const viewer of Viewers)
-    for (const lay of laysOf(viewer)) {
-      if (lay.key !== layer) continue;
-      const i = lay.byKey.get(key);
-      if (i === undefined) continue;
-      const kind = lay.polyKind[i];
-      if (kind === Kind.trumpet || kind === Kind.fan) return { viewer, lay, stem: lay.polyRef[i] };
-    }
+  for (const lay of laysOf(viewer)) {
+    if (lay.key !== layer) continue;
+    const i = lay.byKey.get(key);
+    if (i === undefined) continue;
+    const kind = lay.polyKind[i];
+    if (kind === Kind.trumpet || kind === Kind.fan) return { lay, stem: lay.polyRef[i] };
+  }
   return undefined;
 }
 
-/** A menu's stem from its facts. */
+/** A menu's stem from its facts: in the viewer whose menu it is. */
 const stemOfFacts = (f: HeaderFacts) =>
-  f.element?.type === 'rondo:ribbons' ? stemOf(f.element.layer, f.element.key) : undefined;
+  f.element?.type === 'rondo:ribbons' && f.viewer ? stemOf(f.viewer, f.element.layer, f.element.key) : undefined;
 
 /** The names of two systems of a lay in the assembly's order (one when equal). */
 function pairNames(lay: RondoLay, a: number, b: number): string[] {
@@ -65,8 +63,8 @@ function pairNames(lay: RondoLay, a: number, b: number): string[] {
 
 /** The stem and its partners' stems selected (one selection); its message. */
 export function selectStemPartners(viewer: SeqViewer, layer: string, key: string): { message: string } {
-  const s = stemOf(layer, key);
-  if (!s || s.viewer !== viewer) return { message: 'No stem here' };
+  const s = stemOf(viewer, layer, key);
+  if (!s) return { message: 'No stem here' };
   const { lay, stem } = s;
   const loc = (k: number) => rangesLocation(lay.systems[lay.stemSystem[k]], [lay.stemStart[k], lay.stemEnd[k]]);
   viewer.selection.clear();
