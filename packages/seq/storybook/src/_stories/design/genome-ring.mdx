@@ -30,6 +30,19 @@ A hue a chromosome by its `a` end's system, in the assembly's order before any `
 every ring. The default is the safe `categories` (repeating past eight); `rondo:hues` gives 24 distinct hues, not
 colour-blind safe, with `categories` as its substitute. In the dark theme its hues are derived from the light ones.
 
+A layer may write another colour: a fixed one (every ribbon, stem and stub in it) or a field read link by link (at the
+item level a ribbon a value; at the bins level, where a bin sums links of any value, the layer's one colour, said when
+its links' values are mixed); `opacity` makes a layer faint.
+
+## Kinds of links
+
+A link's geometry says nothing of what it means (a 3D contact, a translocation, a fusion, synteny): the kind is in the
+data (`type`), so a view shows it through layers. `rondoRing({ kinds })` writes a `rondo:ribbons` layer a kind over the
+same links, each its data filter on `type`, its track, name, colour, width rule and legend entry, the last listed drawn
+on top; a card names a ribbon's kind, strands, `q` and genes, and a bin's card its count on each layer. Which kinds a
+view layers is the application's: the showcase draws the contacts faint in the hues and five made-up translocations (one
+a chr9–chr22 junction in the style of BCR-ABL1) in the accent over them.
+
 ## Opening a chromosome or a pair
 
 A cut, not a zoom: a section's `include` names the chromosomes shown (one patch, undone by undo). With `opens`, a
@@ -66,3 +79,9 @@ canvas and the SVG of one view, light and dark by the toolbar's theme:
    [failed](?path=/story/seq-next-features-genome-ring--links-failed) and
    [none](?path=/story/seq-next-features-genome-ring--no-links)
 10. [Dark](?path=/story/seq-next-features-genome-ring--dark)
+11. [Kinds of links](?path=/story/seq-next-features-genome-ring--kinds-of-links), on
+    [one chromosome](?path=/story/seq-next-features-genome-ring--kinds-of-links-on-one-chromosome) and
+    [a pair](?path=/story/seq-next-features-genome-ring--kinds-of-links-on-a-pair); each kind hidden in turn
+    ([contacts](?path=/story/seq-next-features-genome-ring--kinds-of-links-contacts-hidden),
+    [translocations](?path=/story/seq-next-features-genome-ring--kinds-of-links-translocations-hidden));
+    [dark](?path=/story/seq-next-features-genome-ring--kinds-of-links-dark)

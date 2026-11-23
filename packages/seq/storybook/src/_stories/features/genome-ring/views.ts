@@ -177,4 +177,52 @@ export const RingStoryViews: readonly ExampleView[] = [
   },
 ];
 
-export const ringStoryView = (id: string): ExampleView => RingStoryViews.find((v) => v.id === id)!;
+/**
+ * Kinds of links (Features › Genome ring, Kinds of links): the showcase's links as two layers, the contacts faint in the
+ * chromosomes' hues and the made-up translocations in the accent over them (`RingKinds`), at the fit, on chr9 (its
+ * translocation to chr22 a stub) and on the pair chr9 × chr22 (the BCR-ABL1-like junction a ribbon of its own).
+ */
+export const KindsViews: readonly ExampleView[] = [
+  {
+    ...ring('ring'),
+    id: 'ring-kinds',
+    title: 'Kinds of links',
+    summary:
+      'The links as two layers: 3D contacts faint in the chromosomes’ hues, five made-up translocations in the accent over them; each its legend entry. Hover a ribbon: its card names its kind, strands and genes.',
+    build: () => ringSpec({ kinds: true, title: 'Kinds of links' }),
+  },
+  {
+    ...ring('ring'),
+    id: 'ring-kinds-chromosome',
+    title: 'Kinds of links on chr9',
+    summary: 'chr9 alone: its contacts as ribbons, its made-up translocation to chr22 a stub in the accent.',
+    build: () => ringSpec({ kinds: true, include: ['chr9'], title: 'Kinds of links on chr9' }),
+  },
+  {
+    ...ring('ring'),
+    id: 'ring-kinds-pair',
+    title: 'Kinds of links on chr9 × chr22',
+    summary: 'chr9 and chr22: the contacts between them, the BCR-ABL1-like junction (made up) a ribbon over them.',
+    build: () => ringSpec({ kinds: true, include: ['chr9', 'chr22'], title: 'Kinds of links on chr9 × chr22' }),
+  },
+];
+
+/** A kind's layer (its track's): `contact` or `translocation`. */
+export const kindLayer = (type: string) => `/views/main/${RingSectionId}/links-${type}/ribbons`;
+
+/** The story's opening: a kind's layer hidden (`layer.hide`, as the track's Layers menu does), the other shown. */
+export const hideKind = (type: string) => async (viewer: SeqViewer) => {
+  await viewer.execute('layer.hide', { address: kindLayer(type) });
+  viewer.draw();
+};
+
+/** Every `rondo:ribbons` lay of a viewer's last frame, in draw order. */
+export function kindsOf(viewer: SeqViewer): RondoLay[] {
+  const out: RondoLay[] = [];
+  for (const s of viewer.frame?.layout.sections ?? [])
+    for (const l of s.sectionLays) if (l.type.name === 'rondo:ribbons') out.push(l.lay as RondoLay);
+  return out;
+}
+
+export const ringStoryView = (id: string): ExampleView =>
+  RingStoryViews.find((v) => v.id === id) ?? KindsViews.find((v) => v.id === id)!;

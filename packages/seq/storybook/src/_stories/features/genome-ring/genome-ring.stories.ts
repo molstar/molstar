@@ -15,7 +15,7 @@ import {
   squareScattered,
   stemMenuOpen,
 } from './square-gestures.js';
-import { hoverStrongestStem, ringStoryView } from './views.js';
+import { hideKind, hoverStrongestStem, ringStoryView } from './views.js';
 
 // The genome ring (Design › Genome ring), `@molstar/seqx-ext-rondo`'s showcase: GRCh38's 23 chromosomes, 12,000
 // generated links, UCSC's recorded cytobands, through `rondoRing`; a viewer composed with `rondoViewer` (the fallback's
@@ -113,6 +113,33 @@ export const LinksFailed: StoryObj = { render: () => ring('ring-failed', { sourc
 
 /** No links at all: an empty hole, its ARIA description "no links". */
 export const NoLinks: StoryObj = { render: () => ring('ring-no-links') };
+
+/**
+ * Kinds of links: the showcase's links as two layers over one pairs node, each its data filter on `type`: 3D contacts
+ * faint in the chromosomes' hues, five made-up translocations (one a chr9–chr22 junction in the style of BCR-ABL1) in
+ * the accent over them, each its legend entry. Hover a ribbon: its card names its kind, strands, q and genes; a bin's
+ * card its count on each layer.
+ */
+export const KindsOfLinks: StoryObj = { render: () => ring('ring-kinds') };
+
+/** Kinds of links on chr9: its contacts as ribbons, its translocation to chr22 a stub in the accent. */
+export const KindsOfLinksOnOneChromosome: StoryObj = { render: () => ring('ring-kinds-chromosome') };
+
+/** Kinds of links on chr9 × chr22: the contacts between them, the made-up BCR-ABL1-like junction a ribbon over them. */
+export const KindsOfLinksOnAPair: StoryObj = { render: () => ring('ring-kinds-pair') };
+
+/** The contacts hidden (`layer.hide`, the track's Layers menu): the translocations alone, their legend entry kept. */
+export const KindsOfLinksContactsHidden: StoryObj = {
+  render: () => ring('ring-kinds', { opening: hideKind('contact') }),
+};
+
+/** The translocations hidden: the contacts alone, faint in the hues. */
+export const KindsOfLinksTranslocationsHidden: StoryObj = {
+  render: () => ring('ring-kinds', { opening: hideKind('translocation') }),
+};
+
+/** Kinds of links, dark: the hues' derived dark, the accent the theme's. */
+export const KindsOfLinksDark: StoryObj = { globals: { theme: 'dark' }, render: () => ring('ring-kinds') };
 
 /**
  * Dark: tokens only (the hues `rondo:hues`' derived dark, the cytobands' stain from the text token, the wash and the
