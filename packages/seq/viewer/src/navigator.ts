@@ -770,12 +770,14 @@ export class NavigatorModel extends ReactiveModel {
     this.lastPress = undefined;
     const b = this.behavior;
     const nav = this.navigator;
-    if (!d || d.moved || !b || !nav || detail > 1) return false;
+    const square = this.renderer instanceof SquareNavigator ? this.renderer : undefined;
+    // the square with a switch: every click on a cell shows its pair at once, a quick second one too (a platform's
+    // double-click count never turns a click into a select first: Decided 16)
+    if (!d || d.moved || !b || !nav || (detail > 1 && !(square && nav.switch === 'include'))) return false;
     // `navigator.switch: include`: a click on a block shows it alone on the bound section (on what it already shows
     // alone: no change); the window, where it has one, keeps its gestures
     const ctx = !!d.hit.context;
     // the square: a click on a cell shows its two blocks with a switch, else centres the section on the x block
-    const square = this.renderer instanceof SquareNavigator ? this.renderer : undefined;
     if (square && nav.switch === 'include') return this.switchToPair(square, d.hit.section, x, y);
     // the square: a click on a cell outside the window centres both axes there (one step; one section on both axes:
     // its window on the x block's place); on the window nothing
@@ -882,6 +884,8 @@ export class NavigatorModel extends ReactiveModel {
     // from that fit the whole
     // the square: the cell's two blocks fitted (one section on both axes: their hull), again the whole
     if (r instanceof SquareNavigator) {
+      // with a switch the clicks did it (each shows its pair): a double-click adds no zoom
+      if (nav.switch === 'include') return false;
       const pair = r.pairAt(h.section, x, y);
       const v = this.viewer.view.get(h.section);
       if (!pair || !v) return false;
@@ -1029,8 +1033,10 @@ export class NavigatorModel extends ReactiveModel {
   private switchToPair(square: SquareNavigator, section: string, x: number, y: number): boolean {
     const cell = square.cellAt(x, y);
     if (!cell) return false;
-    const systems = this.viewer.spec.model.value.systems;
-    const names = [...new Set([cell.xSystem, cell.ySystem])].map((s) => systems.get(s)?.name ?? '').filter(Boolean);
+    // in the lattice's order (the ring's), whichever axis the click came by
+    const names = [...new Set([Math.min(cell.x, cell.y), Math.max(cell.x, cell.y)])]
+      .map((k) => square.blockName(k))
+      .filter(Boolean);
     return names.length > 0 && this.runIf('section.include', { address: section, include: names });
   }
 

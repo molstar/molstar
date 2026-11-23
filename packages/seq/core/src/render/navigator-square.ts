@@ -24,6 +24,7 @@ import type { SeqTokens } from './tokens.js';
 import type { ViewLayout } from './tracks.js';
 import type { NavigatorFrame, NavigatorFrameInput, NavigatorHit } from './navigator.js';
 import { NavigatorWindow } from './navigator.js';
+import { drawShownSet, gripOf, type SquareGripHit, type SquareRun, shownRun } from './navigator-square-set.js';
 
 // The square (_spec/README.md "Render", Navigators, The square): a navigator on two axes over blocks × blocks, its
 // lattice the assembly's chromosome pairs (after the assembly's `include`, never a section's), the cells the bound
@@ -126,6 +127,18 @@ export class SquareNavigator {
   /** What the base passes (the wash, the lattice, the labels) were drawn for: drawn again on a change only. */
   private baseKey = '';
   private baseTokens: SeqTokens | undefined;
+  /**
+   * One section on both axes with a switch (`navigator.switch: include`): the window is the blocks it shows (a run on
+   * the diagonal, or scattered cells), its gestures the viewer's (_spec/README.md "Render", Navigators, The square).
+   */
+  readonly setMode: boolean;
+  /** The shown run `[i0, i1)` of lattice blocks (`i0` -1: scattered), and a gesture's preview of another (-1: none). */
+  readonly run: SquareRun = { i0: -1, i1: -1 };
+  private readonly preview: SquareRun = { i0: -1, i1: -1 };
+  /** The bound section's view shows its whole axis (else its window is drawn too: a followed ring's, EC-110). */
+  private wholeView = true;
+  private readonly gripHit: SquareGripHit = { grip: 'body', axis: 'both' };
+  private readonly edgeFn = (k: number, horizontal: boolean) => this.edgePx(k, horizontal);
   private readonly frameRecord: {
     lists: DrawLists;
     rebuilt: boolean;
@@ -157,6 +170,9 @@ export class SquareNavigator {
     const max = this.config.navigator.square.maxCells;
     const within = blocks.length * blocks.length <= max;
     this.washRuns = within ? washRuns(this.shownX, this.shownY) : new Int32Array(0);
+    this.setMode =
+      this.navigator.switch === 'include' && this.navigator.of[0] === this.navigator.of[1] && blocks.length > 0;
+    if (this.setMode) shownRun(this.shownX, this.run);
     if (!within)
       this.issues.push(
         issueOf(
@@ -271,7 +287,14 @@ export class SquareNavigator {
     const out = lists.writer('window');
     const w = this.windows[0];
     const wy = this.windows[1];
-    if (w.shown) {
+    if (this.setMode) {
+      const p = this.preview;
+      const shown = p.i0 >= 0 ? p : this.run;
+      const grips = shown.i0 >= 0 ? this.config.navigator.window.handlePx : 0;
+      drawShownSet(out, this.shownX, shown, this.edgeFn, c['seq-window'], Math.max(px, 1.5), this.maxCells, grips);
+    }
+    // over a set the window is drawn too where the view does not show the whole section (a followed ring's, EC-110)
+    if (w.shown && (!this.setMode || !this.wholeView)) {
       const y0 = wy.shown ? wy.y0 : w.y0;
       const y1 = wy.shown ? wy.y1 : w.y1;
       const g = out.args;
@@ -379,6 +402,7 @@ export class SquareNavigator {
       if (k === 1 && nav.of[1] === nav.of[0]) continue;
       const s = view?.sections.find((x) => x.section.address === nav.of[k]);
       if (!s?.axis) continue;
+      if (k === 0) this.wholeView = s.axis.u0 <= 1e-6 && s.axis.u1 >= sectionTotal(s.section) - 1e-6;
       const r = this.windowOn(s.section, s.axis.u0, s.axis.u1);
       if (!r) continue;
       const horizontal = k === 0;
@@ -407,6 +431,102 @@ export class SquareNavigator {
       w.axes = 1;
       w.shown = true;
     }
+  }
+
+  /** The lattice's blocks a side. */
+  get blockCount(): number {
+    return this.lattice?.blocks?.length ?? 0;
+  }
+
+  /** A lattice block's name (its system's). */
+  blockName(k: number): string {
+    return this.names[k] ?? '';
+  }
+
+  /** A lattice block's system. */
+  blockSystem(k: number): string {
+    return this.lattice?.blocks?.[k]?.axis.system ?? '';
+  }
+
+  /** Whether the bound section shows lattice block `k` (along x: with one section on both axes, the set's). */
+  shows(k: number): boolean {
+    return this.shownX[k] === true;
+  }
+
+  /** The px of lattice block `k`'s start along x (or y); `k` the count: the lattice's end. */
+  edgePx(k: number, horizontal: boolean): number {
+    const blocks = this.lattice?.blocks;
+    const u = !blocks || k >= blocks.length ? this.total : (blocks[Math.max(0, k)].offset ?? 0);
+    return this.at(u, horizontal);
+  }
+
+  private get maxCells(): number {
+    return this.config.navigator.square.maxCells;
+  }
+
+  /** A gesture's run drawn instead of the shown one (`[i0, i1)` of lattice blocks); `i0` -1 clears it. */
+  setPreview(i0: number, i1: number): void {
+    this.preview.i0 = i0;
+    this.preview.i1 = i0 < 0 ? -1 : i1;
+  }
+
+  /**
+   * The grip of the shown run's box under a point (its body, its start or end edge or corner), within
+   * `navigator.window.hitPx` / 2 of an edge; undefined off the box, over a scattered set, or not a set. The object
+   * returned is reused.
+   */
+  gripAt(x: number, y: number, touch = false): SquareGripHit | undefined {
+    const r = this.run;
+    if (!this.setMode || r.i0 < 0) return undefined;
+    const cfg = this.config.navigator.window;
+    const slop = (touch ? cfg.touchHitPx : cfg.hitPx) / 2;
+    const x0 = this.edgePx(r.i0, true);
+    const x1 = this.edgePx(r.i1, true);
+    const y0 = this.edgePx(r.i0, false);
+    const y1 = this.edgePx(r.i1, false);
+    return gripOf(x, y, x0, x1, y0, y1, slop, this.gripHit) ? this.gripHit : undefined;
+  }
+
+  /**
+   * The lattice edge nearest a point (0 to the count) along x, y, or the diagonal (`both`: the mean of its two units):
+   * where a resized run's edge snaps (whole blocks).
+   */
+  edgeAt(x: number, y: number, axis: 'x' | 'y' | 'both'): number {
+    const blocks = this.lattice?.blocks;
+    if (!blocks?.length) return 0;
+    const u = this.diagonalUnit(x, y, axis);
+    let best = 0;
+    let d = Number.POSITIVE_INFINITY;
+    for (let k = 0; k <= blocks.length; k++) {
+      const e = k < blocks.length ? (blocks[k].offset ?? 0) : this.total;
+      const dk = Math.abs(e - u);
+      if (dk < d) {
+        d = dk;
+        best = k;
+      }
+    }
+    return best;
+  }
+
+  /** The lattice block under a point along x, y or the diagonal (a run's move: the block the pointer is over). */
+  blockAtPoint(x: number, y: number, axis: 'x' | 'y' | 'both'): number {
+    return this.blockOf(this.diagonalUnit(x, y, axis));
+  }
+
+  private diagonalUnit(x: number, y: number, axis: 'x' | 'y' | 'both'): number {
+    if (axis === 'x') return this.unitAt(x, true);
+    if (axis === 'y') return this.unitAt(y, false);
+    return (this.unitAt(x, true) + this.unitAt(y, false)) / 2;
+  }
+
+  /** The block whose name is under a point (the x labels' band above the lattice, the y labels' column left); -1 else. */
+  labelAt(x: number, y: number): number {
+    const blocks = this.lattice?.blocks;
+    const g = this.grid;
+    if (!blocks?.length) return -1;
+    if (y < g.y && y >= 0 && x >= g.x && x < g.x + g.width) return this.blockOf(this.unitAt(x, true));
+    if (x < g.x && x >= 0 && y >= g.y && y < g.y + g.height) return this.blockOf(this.unitAt(y, false));
+    return -1;
   }
 
   /** Whether a point is inside the window's rectangle (both axes). */
@@ -438,10 +558,12 @@ export class SquareNavigator {
     const u = this.unitAt(x, true);
     const block = blocks[cell.x];
     const position = Math.max(0, (u - (block.offset ?? 0)) / (block.scale ?? 1)) + (block.axis.ranges?.[0] ?? 0);
-    const inside = this.inWindow(x, y);
+    // over a set: the run's grip under the point (its body, an edge or corner), never the scattered cells
+    const grip = this.setMode ? this.gripAt(x, y) : undefined;
+    const inside = this.setMode ? grip !== undefined : this.inWindow(x, y);
     return {
       section,
-      part: inside ? 'body' : 'outside',
+      part: !inside ? 'outside' : (grip?.grip ?? 'body'),
       axis: 'positions',
       position,
       system: cell.xSystem,
@@ -562,6 +684,13 @@ function sharedPrefix(names: readonly string[]): string {
   while (p && names.some((n) => n.length === p.length)) p = p.slice(0, -1);
   // letters only (never a digit of the name: `chr1` and `chr12` share `chr1`)
   return p.replace(/[0-9]+$/, '');
+}
+
+/** A section's units end to end: its last block's end. */
+function sectionTotal(s: ResolvedSection): number {
+  let t = 0;
+  for (const b of s.blocks ?? []) t = Math.max(t, (b.offset ?? 0) + blockSpan(b));
+  return t;
 }
 
 /** Whether a bound section shows a system (one of its blocks is on it). */

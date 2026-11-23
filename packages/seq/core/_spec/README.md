@@ -3541,7 +3541,17 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   coarsest tiles read by block (one want a block), summed into one image of block × block cells and reduced to its
   pixels by the shared reduction; for a grid source, its coarsest 2D tiles by block pair (the upper triangle when
   symmetric), at most `maxCells` wants, past it the whole-assembly level; until then the square is the lattice and what
-  static data gives. Not built: its grips and drags per axis.
+  static data gives. Not built: its grips and drags per axis. **Over a set** (`setMode`: one section on both axes with
+  `navigator.switch: include`, a ring's square): the window is the blocks the section shows, not its axis's hull on the
+  lattice (a pair chr2, chr6 is not the box chr2 to chr6): a contiguous run of lattice blocks one box on the diagonal
+  (`run`, `shownRun`) with grips at its two diagonal corners (`navigator.window.handlePx`), a scattered set each cell of
+  two shown blocks outlined (each one's diagonal cell and the cross cells; within `maxCells`), no grips
+  (`navigator-square-set.ts`, `drawShownSet`); the axis's window drawn too only where the view does not show the whole
+  section (a followed ring's, EC-110). A hit's part is the run box's grip (`gripAt`, `gripOf`: `body`, `start` the left
+  or top edge or top-left corner, `end` the right or bottom or bottom-right; an off-diagonal corner the nearer edge's;
+  within `hitPx` / 2), else `outside`. `edgeAt`, `blockAtPoint` snap a point to a lattice edge or block along x, y or
+  the diagonal; `labelAt` the block whose name is under a point; `setPreview(i0, i1)` draws a gesture's run instead of
+  the shown one (nothing allocated).
 - **The window stays the navigator's**, whatever the picture: its geometry, floor, parts, gestures, keys, idle rule,
   zoom strip and announcements. A host that draws its own navigator keeps them through the viewer's `NavigatorModel`.
 - **The picture**: a navigator lays its system whole out (the fit window, in the bound section's display order;
