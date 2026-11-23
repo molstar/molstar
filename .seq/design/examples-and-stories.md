@@ -51,7 +51,8 @@ columns. Each with its headless twin checking the result's location.
 
 | Decision | Where |
 |---|---|
-| An examples package (`@molstar/seqx-examples`, private), `build()` a view, its dependencies | examples › Dependencies |
+| An examples package (`@molstar/seqx-examples`, private), `build()` a view | examples › Dependencies |
+| Its dependencies: `@molstar/seqx-core` and `@molstar/core` only; `build(): Spec` | design-only: not built as designed (drift note) |
 | Fixtures committed small, generated ones made from a seed | examples › Fixtures |
 | Reading fixtures by relative location, in Node and in Storybook | examples › Reading fixtures |
 | Features and examples apart in the Storybook | design-only: the Storybook's organization, no package spec |

@@ -43,7 +43,7 @@ description of the language that everything else derives from.
     readable, diffable, readable by any tool and any other viewer without Seq\* code; columns as plain arrays.
   - **MessagePack is the option for large inline data**: typed columns as extension types `0x11`–`0x18`
     (little-endian), decoded without a copy where aligned. A reader tells the two apart by the first byte. Built (lane
-    L, in io's `repr` codec) with three more extensions, confirmed by the author (2026-11-18): `0x10` the numbers
+    L, then moved down into `@molstar/core/repr/codecs/msgpack`, io re-exporting it) with three more extensions, confirmed by the author (2026-11-18): `0x10` the numbers
     MessagePack drops (NaN, ±Infinity, −0), `0x19` a category column (its dictionary, then int32 codes), `0x1a` a
     bigint.
   - **Large data belongs in sources**, not inline (§bulk-data-not-nodes): a spec carries small inline values; a
@@ -82,3 +82,29 @@ description of the language that everything else derives from.
 - `decode(encode(x)) = x` for both codecs, `json(msgpack(x)) = json(x)`, `parse(print(x)) = x` (columns aside) and
   `apply(a, diff(a, b)) = b` are tested properties at small sizes.
 - The language reference (generated docs pages) documents the JSON for readers without the core.
+
+## In the specs
+
+| Decision | Where |
+|---|---|
+| One language, one version; the levels are containers | core › Versions |
+| A newer major refused with an issue | core › Gate order of checkSeqSpec |
+| Older specs migrated by tree-to-tree functions | design-only: not built (pre-release `0.x` moves with no migration, core › Versions; the version-migration hook is in `packages/seq/TODO.md`, under `repr`) |
+| The tree and its values codec-independent | repr › repr: the tree core |
+| Typed columns declared, not guessed; codecs and the builder give the typed array | repr › Codecs stay schema-free |
+| Identity by bytes and element type | repr › Columns by element type and bytes |
+| Missing is NaN in float columns, `null` in JSON; integer columns have none | repr › Param types |
+| Undeclared columns tagged; declared ones plain given the language | repr › Where a column is plain and where tagged |
+| Printing elides columns; the reader refuses an elided one | repr › S-expressions |
+| JSON the default interchange | repr › JSON |
+| MessagePack for large inline data, its extensions | repr › MessagePack |
+| Large data belongs in sources, not inline | core › Bounds |
+| S-expressions a printing, never stored | repr › S-expressions |
+| One node shape | repr › One node shape |
+| The language is data; validation, defaults, builder types and docs from it | repr › A language is plain data |
+| Unknown kinds in an extension namespace kept, reported, skipped | repr › An unknown kind in a foreign namespace |
+| Unknown kinds of a newer minor kept with the kind's fallback | design-only: not built as designed, an unknown kind without a namespace is an error and `fallback` is not acted on (drift note `unknown-kinds.md`); a layer type is read as its fallback (core › Extensions) |
+| Revisions, patches, `diff`, `merge3`; columns replaced whole | repr › Patches |
+| The builder the main way to write a spec | core › Language builder |
+| No published JSON Schema, initially | design-only: not built (until a consumer needs one) |
+| The properties as tests | repr › Tests |

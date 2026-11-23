@@ -36,8 +36,10 @@ the viewer needs).
 | Decision | Where |
 |---|---|
 | Four packages: core, viewer, examples, storybook, and what each holds | design-only: the table is the package guide's; core and viewer open their specs with theirs |
-| What each may import (core: `@molstar/core` and an allowlist; viewer: core, `@molstar/core`, `@molstar/ui`) | core › @molstar/seqx-core |
-| The examples package's imports | examples › Dependencies |
+| What core may import (`@molstar/core` and an allowlist) | core › @molstar/seqx-core |
+| What the viewer may import (core, `@molstar/core`, `@molstar/ui`) | viewer › @molstar/seqx-viewer |
+| The examples package's imports | design-only: not built as designed (drift note) |
+| What the examples package imports as built | examples › Dependencies |
 | Imports from other Mol\* packages: entries on an allowlist, each with its reason, never a whole package | core › @molstar/seqx-core |
 | `seqx` names while the previous packages exist | design-only: temporary naming (the package guide) |
 | The core's folders follow the pipeline | design-only: a layout of the code, no rule beyond it |

@@ -395,3 +395,45 @@ A validator's own issue is carried as is: one carrier, no duplicate.
 - **viewer-models.md**: `SpecModel`'s checkpoints are commits, it keeps the recent roots, applies previews as patches,
   and composes a shown story step over them (changes.md).
 - **Citations**: the lane's code and `_spec` cite their own sections, never `.seq/` or a principle's id.
+
+## In the specs
+
+| Decision | Where |
+|---|---|
+| Git's model: revisions the truth, patches derived; no commit type or undo stack in the core | repr › A revision |
+| Branches, a store of revisions, sync | design-only: not built (waiting) |
+| `layer` ids required; every child of the spec has an id | core › Every child of the spec has an id |
+| Dangling refs refused by default, `allowDangling` | repr › Link integrity |
+| A stale patch refused, never rebased automatically | repr › A patch |
+| The host's rebase through `merge3`, opt-in | viewer › A stale patch |
+| Commits are `SpecModel`'s; an undo moves the pointer | viewer › SpecModel |
+| The recent roots (`revisions.keepRecent`) and `root(revision)` | viewer › Recent roots |
+| *Snapshot* means a story step only | core › Story steps |
+| Not git: a stale edit under a renamed node is a conflict, not rebased through the move | design-only: a tension (with the reuse of ids) |
+| The patch's shape, no metadata, the order of checks; the hash no security boundary | repr › A patch |
+| `requireBase` for agent and remote channels | viewer › SpecModel |
+| The patch as a tree, `patchLanguage`, `AnyPatchLanguage` | repr › The patch as a tree |
+| A stored patch: what is a ref (by the language), what it resolves against (its dry run), `place.after` not rewritten | repr › A stored patch |
+| The six ops, on the root, siblings without ids | repr › Six ops |
+| `applyPatch` owns the columns it is given | repr › The tree owns a column it is given |
+| The inverse | repr › The inverse |
+| All or nothing; the bounds (`maxOps`, `MaxDepth`) | repr › All or nothing |
+| The Seq spec's tighter depth (256) | core › Bounds |
+| Normalization of what the patch made | repr › Normalization |
+| Refs follow a move or a rename; what is walked, what is not | repr › Refs follow a move or a rename |
+| The ref index, derived lazily, measured | repr › The ref index |
+| Validation of what the patch introduced; `validateChanges` | repr › Validation |
+| Link integrity: dangling, "written by this patch", rebound, identity by lineage | repr › Link integrity |
+| The language's validators; Seq's incremental checks | core › Checks of a change |
+| The result check | repr › The result check |
+| `Changes` net | repr › Changes |
+| The inverse's allowances (`inverseNeeds`) | repr › The allowances turned around |
+| The inverse's restoring sets | repr › The inverse's restoring sets |
+| Issue paths and codes | repr › Issue paths |
+| `diff`: Merkle descent, matching by id, fallbacks, moves by a longest increasing subsequence, emission order | repr › diff(a, b) |
+| The three laws as seeded property tests | repr › Tests |
+| Previews: re-applied on a new root, without the language's own validators, committed in full | viewer › Previews are patches |
+| The API and the conformance suite | repr › The conformance suite |
+| Seq's conformance cases and the 10-op p53 bound | core › Patches |
+| Lane N's tests over the composition | viewer › SpecModel |
+| What else changes (format, changes, viewer-models, citations) | design-only: pointers to other designs |

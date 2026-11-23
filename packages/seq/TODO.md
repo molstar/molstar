@@ -105,6 +105,8 @@ extension kinds.
 
 ## `@molstar/seqx-core`
 
+- **Assets: a bound on the bytes of all reads in flight** (security): the store caps their count (`maxInFlight`, 6); a
+  total in bytes across reads is not built.
 - **A bare number as a block name** (`:name 01`) is refused with "quote it": keeping the text needs a raw-token surface
   in core repr; take it when a real name set needs it.
 - **The liftover's follow-ups** (LA4, 2026-11-22): a pan frame of the Liftover story allocates ~1.4 MB (about as the

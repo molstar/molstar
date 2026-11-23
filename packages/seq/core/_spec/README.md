@@ -178,11 +178,13 @@ checks it cannot express.
   columns typed, so a spec read from JSON is checked as one built); (3) the language's checks (`seq.lang.*`), only when
   step 2 found no error, so they read a valid, normalized tree. Why: each gate assumes what the one before settled.
 - **What the checks cover**: one of two params (`letters` or `source`, `rows` or `source`, `values` or `source`, `uri`
-  or `value`), an `index` only for a file, letters of the alphabet, row intervals, bounds and strands (the issue's path
-  carries the row), what a map method needs, exons, a codon map's alphabets, section ranges, that a reference names a
-  node of a kind its param takes, that a layer's data is what its type draws (reported once: a kind the param does not
-  take is the reference's issue alone; a template's layer without data draws each instance's node), that a template's
-  `source` names a source, that `follow` chains end. Extents are checked where the letters are inline.
+  or `value`), an `index` only for a file, letters of the alphabet (protein `A`–`Z` and `a`–`z`, `*`, `-`; DNA the IUPAC
+  codes and `-`, either case; RNA the same with `U` for `T`: a letter outside is an error, since every reader of letters
+  assumes its alphabet), row intervals, bounds and strands (the issue's path carries the row), what a map method needs,
+  exons, a codon map's alphabets, section ranges, that a reference names a node of a kind its param takes, that a
+  layer's data is what its type draws (reported once: a kind the param does not take is the reference's issue alone; a
+  template's layer without data draws each instance's node), that a template's `source` names a source, that `follow`
+  chains end. Extents are checked where the letters are inline.
 - **Patches** are `@molstar/core/repr/patch`'s, applied with `SeqLanguage`: its conformance suite runs over the core's
   cases and Seq's own (a layer hidden, a track moved with a section's `follow` following a rename, a dangling ref
   refused, a layer without an id refused; with the checks of a change and the slots, a `seq.lang` refusal, a story step
@@ -1899,6 +1901,9 @@ over the assets port, with `@molstar/core/util/zip` (never a private zip). Not a
   once; after it a wanted tile is asked again, the entry failed meanwhile (no flicker). `not-served` and `too-large` are
   never retried. Nothing stays in flight after an answer of any kind.
 - **Reports**: each cause once per source, at most `maxIssues`, then `seq.store.limit_exceeded`.
+- **Arrivals never touch the spec** (EC-175): what the store loads, evicts or holds changes entries and versions, never
+  the spec, its revision or the history; data enters the spec only by a patch written on purpose (an inline copy, a
+  ref). Why: undo, saving and sharing are the spec's alone, and a document must read the same whatever was streamed.
 - **Eviction**: the loaded bytes are bounded (`maxBytes`, 64 MB); least recently used first among what is not wanted;
   still over, the wanted prefetch then margin tiles become `evicted` and are not asked again until they leave the set
   and come back, so a planner that wants again on every change does not loop. Never the view, never a request on its
@@ -2428,7 +2433,9 @@ of it (`buildOverlay(model, reader)`; `OverlayBuilder` keeps one a node version 
 - **Checked by the description**: each node is validated and normalized as a node of its kind under `data` (cached per
   node object); an invalid one is left out (`seq.resolve.node.invalid`). Refs are absolute addresses (the description's
   `ref` spelling): a `target` names a spec system or an item system the overlay holds, a `source` a spec source or a
-  held source node; anything else leaves the node out (`seq.resolve.node.ref`). Each issue once per overlay.
+  held source node; anything else leaves the node out (`seq.resolve.node.ref`). Each issue once per overlay. An issue on
+  a node has the node's form as its `address` and, where it has a `path`, the place inside the node (`['params', …]`),
+  never a spec path: the node is no part of the spec.
 - **Annotations** resolve as the spec's (`resolveAnnotationNode`): inline rows are a `seq` source named by the node's
   address; a `source` reads by region on the target's name.
 - **Item systems** (EC-177): an item of a ranges node with `map: 'codon'` (its rows by `id`, else by row; genomic order,
@@ -4320,6 +4327,9 @@ cost to the minimal viewer is the names the chunk imports from it).
   Location on the data's system), `position` on the section's system. Cells by arithmetic on the axis; items by
   `LaneIndex` (a lane's marks by left edge with a running maximum of right edges). In a track, the topmost layer with an
   element under the point wins, else the topmost with a position.
+- **Targets are closed**: `HitTarget` (`render/layer-type.ts`) is a closed union of the built-in layouts' and layers'
+  targets; an extension's layer type answers `hit` with an element, a position or both, never a target of its own. Why:
+  the viewer's behaviors switch on the targets, and an extension's gestures are its own behaviors over its own commands.
 - **What a break hides is not dropped** (fixed): a `ranges` layer reads the stretches its breaks in view hide too
   (`dataRegions(src, axis, true)`), and its items wholly in one draw one tick on the break a lane in the break ink,
   whatever their number (`ticks`: x, lane, count, the hidden stretch), hit as the break (its `count`); a Location there

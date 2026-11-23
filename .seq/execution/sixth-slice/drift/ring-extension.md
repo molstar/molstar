@@ -20,3 +20,17 @@ that wants one passes a ranges node.
 **Recommendation**: (1) (b): a fan is a normal drawing at the width rule, not a loss, and an info issue on every busy
 ring is noise. (2) (b): inferring a node from inline lengths only works for one kind of assembly and hides a data
 choice in a helper.
+
+## Added in the fix round
+
+3. **A hit is not `(rect :a :b)`.** The design says a ribbon is hit as its drawn run, `(rect :a ... :b ...)`, a stub as
+   the stem's range by the partner ends' hull. The code's hit is `{ element: { owner, key }, system, position, bin, count }`
+   (`shapes.ts`, `hitsOf`), keyed `ribbon:`, `stem:`, `stub:`; no rect is built. Options: (a) amend the design to the
+   key hit; (b) build the rect (a bookmark of a ribbon needs one). Recommendation: (a) until a bookmark of a ribbon is
+   asked for.
+4. **"No lazy chunk inside the package."** The viewer entry lazy-loads `menu.js` and `card.js` (`viewer.ts`) once
+   composed; the design says the package is itself the opt-in. Recommendation: amend the design (the chunk keeps the
+   headless entry free of the card and the menu).
+5. **`rondoRing` does not write the spec's `extensions`.** The design says it writes `extensions: { rondo: '0.1' }`; the
+   code leaves it to the writer (`createSeqSpec({ extensions: [rondo] })`), as the spec says. Recommendation: amend the
+   design; the writer owns what the spec requires.

@@ -6,6 +6,11 @@ not shown, 24 hues. Two entries: `.` (`rondo`, headless: the layer type, the sch
 nothing for the viewer's parts. It imports `@molstar/seqx-core/extension` and `@molstar/seqx-viewer`'s root only: a gap
 is the contract's, brought to the core, never a reach into `src`.
 
+The descriptors carry `version` (0.1.0, what a spec's `extensions: { rondo: '0.1' }` is read against) and `requires`
+(`'0.10'`, the language version that has `section.center`). A host lists `rondoViewer` in its spec or registers it late
+(`viewer.extend`); never in the minimal or default viewer. The viewer entry loads `menu.js` and `card.js` as one lazy
+chunk once composed.
+
 ## What it ships
 
 | Entry                   | Kind                                                                                                                                                             | Fallback                                                  | Reads                                                                  |
@@ -52,6 +57,13 @@ waiting; its entries `StemMenu` in `viewer.ts`).
   the sum of its ribbons, stubs and fan; at least a device px as a whole. Why linear, not core's square root for arcs:
   arcs are strokes that never add, but a neck is a sum a reader checks; the cap (`rondo.maxWidthPx`) keeps the hole
   readable and the fan keeps the sum exact however thin the ribbons under it.
+- **Drawn widest first**: the polygons are trumpets, then ribbons by count descending (ties by index), then stubs, then
+  fans, the hole last (skipped in the data pass); hits are tested last drawn first. Why: the narrow lie on top, so they
+  stay hittable. Ribbons are filled at `ribbons.fillOpacity` with no outline (an outline is the hover's).
+- **Items are ribbons of one count**: past the gate each pair is a ribbon from its ends' own extents, still grouped into
+  its stems' necks, so the bundle holds while its members show. An end is placed by core's `placesOf` (every block that
+  shows the position, each place counted). Layout makes stems, ribbons and hits; hover and a window's move only draw
+  from them.
 - **Order in a neck**: ribbons by their partner's place clockwise from the stem (the nearest clockwise last), then stubs
   by partner order, then the fan.
 - **The twist**: a slice's edges in display order; `s` = strand × the two blocks' directions; `s` +1 (or a strand of 0)

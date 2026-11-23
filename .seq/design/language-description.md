@@ -145,3 +145,32 @@ Handles are addresses (`p53` is `/data/p53`), so a builder value can stand where
 - The first slice's step 1 builds the delta, the codecs and normalization; step 2 writes `SeqLanguage` with the kinds
   above and the builder, tested by the p53 example built, printed, encoded both ways and validated with every misuse
   giving its code.
+
+## In the specs
+
+| Decision | Where |
+|---|---|
+| The node gains `custom` | repr › custom |
+| Typed columns and categories | repr › Typed columns |
+| Column identity by element type and bytes, cached | repr › Columns by element type and bytes |
+| NaN: tagged outside columns, `null` in a float column in JSON | repr › JSON |
+| The issue gains `severity` | repr › Issues |
+| Namespaced kind names | repr › Kinds |
+| `column` and `table` params; `missing` refused on integer columns; extra table columns kept | repr › Param types |
+| Codecs schema-free; reading types the columns | repr › Codecs stay schema-free |
+| Fork now, migrate meso\* later | design-only: a plan (meso\* in another repository) |
+| The description's shape per kind (`doc`, `parents`, `ids`, `params`, `fallback`, `data`) | repr › Kinds |
+| Slots: a theme slot | core › The theme slots |
+| Slots: a query slot in a layer's `data` | design-only: not built (waits for its sublanguage, core TODO) |
+| Extensions merged by `composeLanguage(base, entries)` | design-only: not built as designed, extensions ride on namespaced types and keys instead (drift note `language-description.md`, item 1) |
+| The kinds built and their params | core › Kinds |
+| The 0.5.0 additions; versions moved with no migration | core › Versions |
+| The builder; handles are addresses | core › Language builder |
+| Issue namespaces | core › Issues |
+| `seq.resolve.system.unnamed`, `seq.resolve.ref.system`, `length.unknown` transient | core › Systems, sources, annotations |
+| Letters checked against the alphabet | core › What the checks cover |
+| `layer.color` and `layer.data` until the sublanguages | core › The theme slots |
+| A catalog per namespace, a test on uncataloged codes | repr › Catalogs |
+| Dedupe (EC-86): one code reported with a count, the first ten places | core › Bounds |
+| On a dynamic node: `address` its form, never a spec path | core › Overlay |
+| On a dynamic node: `path` the node's place in its answer | design-only: not built as designed, `path` is the place inside the node (drift note `language-description.md`, item 2) |

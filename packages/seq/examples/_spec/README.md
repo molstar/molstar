@@ -13,11 +13,12 @@ This spec holds the package's rules, each a rule and its reason; code comments c
 - **`@molstar/core`, `@molstar/seqx-core` and `@molstar/seqx-ext-rondo`** (the genome ring's views). Never the viewer: a
   view is a spec, and what draws it is the consumer's. Why: the core's tests import the examples, so a dependency the
   other way would be a cycle.
-- **`@molstar/io` is a devDependency**: the record scripts read mmCIF through its text CIF parser (`scripts/cif.ts`); no
-  view and no test imports it.
-- **Entries**: `.` (the views, with no `node:` import: a browser bundle of the views pulls in nothing of Node) and
-  `./node-assets` (the Node assets adapter, which imports `node:fs`). `./_test/*` is `null` in the exports: the tests
-  are never published.
+- **`@molstar/io` is a devDependency**: the record scripts read mmCIF through its text CIF parser (`scripts/cif.ts`),
+  and the medium tests that derive from a structure import that script; no view imports it.
+- **Entries**: `.` (the views) and a `./*` wildcard onto the modules, so any module is reachable. `.` pulls in nothing
+  of Node; `./node-assets` (the Node assets adapter, `node:fs`) and `./trna/generated` (`node:child_process`, `node:fs`)
+  are Node-only, so a browser bundle imports neither. `./_test/*` is `null` in the exports: the tests are never
+  published.
 
 ## Fixtures
 

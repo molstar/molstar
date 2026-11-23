@@ -337,6 +337,38 @@ Files add no gesture: what a file holds is drawn by the layers that read it, as 
 | issues kept | fixed | one a cause, the first 10 places (EC-86) | the spec's own bound | — |
 | `limits.maxRows`, `limits.maxBytes` | the store's settings, passed at open | 1,000,000; 64 MB | a parse's bound, before it allocates | larger by the host |
 
+## In the specs
+
+| Decision | Where |
+|---|---|
+| One records runtime (`tsv`, `csv`, `json`, `msgpack`, `gff3`), its own entry | core › Records |
+| Read whole at open into `seq` data, answered by region by the `seq` runtime | core › Read whole at open |
+| What a source serves, its systems by name, rows sorted once keeping `row` | core › Fields |
+| Inline `value` too, its defaults `0` and `exclusive` (decided 3) | core › Positions |
+| TSV and CSV by RFC 4180 on a core tokenizer, cells not trimmed (decided 4, EC-92) | core › The syntax |
+| UTF-8 only; JSON a plain value; members own only | core › The syntax |
+| GFF3 a preset of the same reader (decided 5) | core › GFF3 |
+| A feature across a cyclic origin | core › A row past the system's end is the row reader's |
+| Records and columns, AoS and SoA read the same; a path | core › Records and columns |
+| Default fields the scalar members | core › Fields |
+| Typed columns kept without a copy | core › Typed columns kept without a copy |
+| The transform on the `source` node; why there, why `base` | core › A source's transform |
+| Roles and their types are the protocol's; positions converted once (EC-195) | core › Positions |
+| No expressions, no recoding (decided 10: UniProt's own words) | core › A source's transform |
+| One track a feature type by a leading item form, no `where` (decided 2) | core › Filters |
+| The transform runs in the runtime once opened; the store keys a source by address; an edit reopens in place | core › Reattach |
+| Issues: one a cause, a count, ten places; one severity a code | core › Issues |
+| Bounds: `limits` at open | core › limits |
+| Trees from files (a whole-read tier, or the loader first; decided 6) | design-only: not built (the tree stays inline) |
+| Pairs from files, read by region | core › Declared, read by later lanes |
+| MessagePack wherever JSON is read; the assets port reads bytes | core › format runtime |
+| UniProt's entry read as it is: modifiers kept as fields, isoform features on their own system | design-only: the examples' builder helper (`seqx-examples`, no spec the check reads) |
+| Examples and stories read files as published (decided 7, 8) | design-only: the examples' rule (examples.md) |
+| Labels of a declared numbering in a file (decided 9) | design-only: not built (waits for a converting runtime) |
+| The params in `0.4.0` with no migration (decided 1) | core › Versions |
+| The interaction matrix's cells | design-only: no cell beyond the transform's edit, a patch of the source (core › A source's transform) |
+| The configuration table | core › Records |
+
 ## Tensions
 
 - **The source holds the transform, so one file read two ways is two sources**: one file read for two systems by two

@@ -396,7 +396,7 @@ host's chrome).
 | The spec's `extensions` versions | core › The spec's `extensions` |
 | Registered late, drawn again (the type table's version in the key) | viewer › Extensions |
 | The contract an extension imports is one entry | core › Extensions |
-| Hits are closed: an extension's `hit` adds no `HitTarget` | design-only: followed by the code, owed to the core spec (reported to its lane) |
+| Hits are closed: an extension's `hit` adds no `HitTarget` | core › Targets are closed |
 | Layer words (`describe`, `summary`, `announce`); a binding scoped to its layer type | core › Words |
 | A binding scoped to an extension's layer type wins there | viewer › Scoped to a layer type |
 | Enough for the genome ring | ext-rondo › What it ships |

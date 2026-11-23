@@ -25,3 +25,6 @@ sentence. 5: add a row to the package guide (it is not a spec; the orchestrator'
 
 **Recommendation**: 1 to 3: amend. 4: (a), since the rule is cheap to hold and the spec's "an entry of its own" rules
 (core's) depend on folders staying entries. 5: add the row.
+
+**Note (fix round)**: items 1 and 2 are rows "design-only: not built as designed" in `packages` and
+`examples-and-stories`; `examples › Dependencies` states what is built.
