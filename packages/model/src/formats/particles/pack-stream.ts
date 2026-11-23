@@ -32,6 +32,7 @@ import {
   ParticleTiles,
 } from '../../model/particles/particle-tiles.js';
 import type { ModelFormat } from '../format.js';
+import { DeferredPageCacheBytes, ParticlePageCache } from '../../model/particles/particle-page-cache.js';
 import {
   createParticleListFromPack,
   type ParticlePack,
@@ -299,9 +300,13 @@ const isDeferredBlock = (name: string) => name === 'position' || name === 'rotat
  * runs, tile directories, stored levels, density grids, sites), its templates' particles (positions, rotations,
  * attributes) not: read by range when asked (`Particle.DeferredParticles`, a page store's page when the cull wants
  * it). Why: a nested pack read whole (the yeast nested 2x2: 822 MB in memory) where a view draws its coarse levels and
- * the pages near it
+ * the pages near it. Its templates' pages read kept in one cache (`ParticlePageCache`, `pageCacheBytes`): every
+ * reader's
  */
-export async function openParticleListFromPackStream(stream: ParticlePackStream): Promise<ParticleList> {
+export async function openParticleListFromPackStream(
+  stream: ParticlePackStream,
+  options: { readonly pageCacheBytes?: number } = {},
+): Promise<ParticleList> {
   const doc = stream.document;
   if (!isParticlePackListStreamable(doc)) throw new Error('particle pack not read by range as a nested list');
   const toRead = [...doc.blocks];
@@ -312,7 +317,11 @@ export async function openParticleListFromPackStream(stream: ParticlePackStream)
     document: doc,
     buffer: new ArrayBuffer(0),
     byteOffset: 0,
-    blocks: { arrays, read: (b, first, count, signal) => readItems(stream.source, b, first, count, signal) },
+    blocks: {
+      arrays,
+      read: (b, first, count, signal) => readItems(stream.source, b, first, count, signal),
+      pages: new ParticlePageCache(options.pageCacheBytes ?? DeferredPageCacheBytes),
+    },
   };
   return createParticleListFromPack(pack);
 }

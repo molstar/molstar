@@ -10,6 +10,7 @@ import { Cell } from '@molstar/core/math/geometry/spacegroup/cell';
 import { GridPositions } from '@molstar/core/math/geometry/grid-positions';
 import type { ModelFormat } from '../format.js';
 import { CustomProperties } from '../../model/custom-property.js';
+import { ParticlePageCache } from '../../model/particles/particle-page-cache.js';
 import {
   Particle,
   ParticleRangeBoundsValues,
@@ -435,6 +436,8 @@ export interface ParticlePackBlocks {
     count: number,
     signal?: AbortSignal,
   ) => Promise<Float32Array | Int32Array | Int16Array | Uint32Array>;
+  /** the pages read of its templates' particles, kept (one copy for their readers; a list's own where none) */
+  readonly pages?: ParticlePageCache;
 }
 
 /** The view of block `name` of `pack` (its bytes, no copy), none where the pack has no such block */
@@ -711,8 +714,10 @@ export function createParticleListFromPack(pack: ParticlePack): ParticleList {
   if (doc.tiles) ParticleTiles.setDirectory(list, getTileDirectory(pack, doc.tiles));
   if (deferred) {
     const blocks = pack.blocks!;
-    Particle.setDeferred(list, {
-      read: async (first, count, signal) => {
+    const pages = blocks.pages ?? new ParticlePageCache();
+    Particle.setDeferred(
+      list,
+      pages.deferred(list, async (first, count, signal) => {
         const [positions, rotations] = await Promise.all([
           blocks.read(positionBlock!, first, count, signal),
           rotationBlock ? blocks.read(rotationBlock, first, count, signal) : Promise.resolve(undefined),
@@ -721,8 +726,8 @@ export function createParticleListFromPack(pack: ParticlePack): ParticleList {
         if (rotations && !(rotations instanceof Int16Array || rotations instanceof Float32Array))
           throw new Error("particle pack block 'rotation' not snorm16 or float32");
         return { positions, rotations };
-      },
-    });
+      }),
+    );
   }
   if (doc.templateLevels && GridPositions.is(coordinates)) {
     const levels = getStoredLevels(pack, coordinates);

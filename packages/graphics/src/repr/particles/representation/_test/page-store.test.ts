@@ -17,6 +17,7 @@ import {
   ParticleValues,
 } from '@molstar/model/model/particles/particle-list';
 import { ParticleNesting } from '@molstar/model/model/particles/particle-nesting';
+import { ParticlePageCache } from '@molstar/model/model/particles/particle-page-cache';
 import { ParticleTiles } from '@molstar/model/model/particles/particle-tiles';
 import {
   CopyPoseFloats,
@@ -470,7 +471,7 @@ describe('particle page store of a nested list', () => {
     expect(() => store.setCopies(-1, { tops: new Int32Array(0), poses: new Float32Array(0) })).toThrow(/no copies/);
   });
 
-  it("reads a deferred list's page when asked, keeps its values given up within the cache's bytes", async () => {
+  it("reads a deferred list's page when asked through its cache: once for every store, again past its bytes", async () => {
     // three pages of particles on a grid, no rotations, deferred: read by range (counted), a tile a page
     const n = 3 * StorePageSize;
     const xyz = new Float32Array(n * 3);
@@ -482,12 +483,15 @@ describe('particle page store of a nested list', () => {
       rotations: undefined,
     };
     const reads: number[] = [];
-    Particle.setDeferred(list, {
-      read: async (first, count) => {
+    const pageBytes = StorePageSize * 8;
+    const cache = new ParticlePageCache(pageBytes);
+    Particle.setDeferred(
+      list,
+      cache.deferred(list, async (first, count) => {
         reads.push(first);
         return { positions: full.data.slice(first * 2, (first + count) * 2) };
-      },
-    });
+      }),
+    );
     ParticleTiles.setDirectory(list, {
       min: Vec3.create(0, 0, 0),
       max: Vec3.create(300, 10, 10),
@@ -496,8 +500,7 @@ describe('particle page store of a nested list', () => {
       ranges: Int32Array.of(0, 0, StorePageSize, 1, StorePageSize, StorePageSize, 2, 2 * StorePageSize, StorePageSize),
       boxes: Float32Array.of(0, 0, 0, 49, 6, 10, 100, 0, 0, 149, 6, 10, 200, 0, 0, 249, 6, 10),
     });
-    const pageBytes = StorePageSize * 8;
-    const store = new ParticlePageStore({ valueCacheBytes: pageBytes });
+    const store = new ParticlePageStore();
     const { pages } = store.add(1, list, 0, placement);
     expect(pages.length).toBe(3);
     expect([...pages].map((p) => store.values[p])).toEqual([undefined, undefined, undefined]);
@@ -515,30 +518,28 @@ describe('particle page store of a nested list', () => {
     expect(store.requestValues(a)).toBeUndefined();
     await store.requestValues(b);
     expect(reads).toEqual([0, StorePageSize]);
-    expect(store.readValueBytes).toBe(2 * pageBytes);
+    expect(cache.readBytes).toBe(2 * pageBytes);
+    // the cache a page's bytes: the last read kept
+    expect(cache.bytes).toBe(pageBytes);
 
-    // given up: kept, set again at once (no read)
-    store.releaseValues(a);
-    expect(store.values[a]).toBeUndefined();
-    expect(store.cachedValueBytes).toBe(pageBytes);
-    await store.requestValues(a);
-    expect(store.values[a]).toBeDefined();
-    expect(store.cachedValueBytes).toBe(0);
-    expect(reads.length).toBe(2);
-
-    // past the cache's bytes the least recently given up let go: read again
-    store.releaseValues(a);
+    // given up: the cache's kept, set again at once (no read); a page let go by it read again
     store.releaseValues(b);
-    expect(store.cachedValueBytes).toBe(pageBytes);
-    await store.requestValues(b);
+    expect(store.values[b]).toBeUndefined();
+    expect(store.requestValues(b)).toBeDefined();
+    expect(store.values[b]).toBeDefined();
     expect(reads.length).toBe(2);
+    store.releaseValues(a);
     await store.requestValues(a);
     expect(reads).toEqual([0, StorePageSize, 0]);
 
-    // a list's values not deferred not given up; a block removed its kept values let go
-    store.releaseValues(a);
-    store.remove(1);
-    expect(store.cachedValueBytes).toBe(0);
+    // a second store of the list reads through the same cache: its kept page not read again
+    const second = new ParticlePageStore();
+    const [a2] = second.add(1, list, 0, placement).pages;
+    second.requestValues(a2);
+    expect(second.values[a2]!.positions).toEqual(full.data.subarray(0, StorePageSize * 2));
+    expect(reads.length).toBe(3);
+
+    // a list's values not deferred not given up
     const other = new ParticlePageStore();
     const [q] = other.add(
       2,
@@ -561,13 +562,14 @@ describe('particle page store of a nested list', () => {
     };
     let fail = true;
     let reads = 0;
-    Particle.setDeferred(list, {
-      read: async (first, count) => {
+    Particle.setDeferred(
+      list,
+      new ParticlePageCache().deferred(list, async (first, count) => {
         reads += 1;
         if (fail) throw new Error('offline');
         return { positions: full.data.slice(first * 2, (first + count) * 2) };
-      },
-    });
+      }),
+    );
     ParticleTiles.setDirectory(list, {
       min: Vec3.create(0, 0, 0),
       max: Vec3.create(1, 1, 1),

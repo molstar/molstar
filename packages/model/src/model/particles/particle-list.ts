@@ -23,6 +23,7 @@ import { GridPositions, type Positions } from '@molstar/core/math/geometry/grid-
 import type { Cell } from '@molstar/core/math/geometry/spacegroup/cell';
 import { type ParticlePages, type ParticlePagesChange, type ParticleSlot, ParticleSlots } from './particle-slots.js';
 import { ParticleNesting } from './particle-nesting.js';
+import type { DeferredPage, DeferredRead } from './particle-page-cache.js';
 
 /**
  * A single named per-particle scalar attribute (e.g. `'cc'`, `'class'`, `'score'`).
@@ -2392,16 +2393,17 @@ export namespace Particle {
    * A list's particles not read yet (a pack opened by range: `openParticleListFromPackStream`): its positions and
    * rotations read by range when asked (`read`: `[first, first + count)`, as stored: a grid's words, snorm16 or
    * float32), its `coordinates` and `rotations` empty meanwhile (of the right kinds: a grid of its origin and step);
-   * its counts, runs, boundary, density grid and stored levels the list's as read. What a page store of a template
-   * reads its pages by, a page when the cull wants it; what reads all of a list's particles refuses one
-   * (`assertRead`)
+   * its counts, runs, boundary, density grid and stored levels the list's as read. Read by page
+   * (`DeferredPageSize`) through its pack's cache (`ParticlePageCache.deferred`): `readPage` read once and kept,
+   * `getPage` a kept page at once. What a page store of a template reads its pages by, a page when the cull wants it,
+   * and a loci's sphere by where kept; what reads all of a list's particles refuses one (`assertRead`)
    */
   export interface DeferredParticles {
-    readonly read: (
-      first: number,
-      count: number,
-      signal?: AbortSignal,
-    ) => Promise<{ readonly positions: Uint32Array; readonly rotations?: ParticleRotations }>;
+    readonly read: DeferredRead;
+    /** page `page`'s particles where kept, at once (no read begun): undefined where not */
+    readonly getPage: (page: number) => DeferredPage | undefined;
+    /** page `page`'s particles: kept, or read (once while in flight) and kept */
+    readonly readPage: (page: number) => Promise<DeferredPage>;
   }
   export const DeferredDescriptor: CustomPropertyDescriptor<DeferredParticles> = CustomPropertyDescriptor({
     name: 'particle-deferred',

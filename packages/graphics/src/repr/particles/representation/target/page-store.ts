@@ -8,6 +8,7 @@ import { GridPositions } from '@molstar/core/math/geometry/grid-positions';
 import type { Box3D } from '@molstar/core/math/geometry/primitives/box3d';
 import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
 import { Particle, type ParticleList, ParticleValues } from '@molstar/model/model/particles/particle-list';
+import { type DeferredPage, DeferredPageBits } from '@molstar/model/model/particles/particle-page-cache';
 import { ParticleTiles } from '@molstar/model/model/particles/particle-tiles';
 import { createRangeAllocator, type RangeAllocator } from '@molstar/graphics/gl/range-allocator';
 import {
@@ -27,6 +28,8 @@ import { TargetMemberPool } from './member-pool.js';
 // What changed (`takeChanges`) what a GPU uploads.
 
 export const StorePageBits = PagedCullPageBits;
+// a store page a deferred list's page (`DeferredPageSize`): read through its cache as one
+if (StorePageBits !== DeferredPageBits) throw new Error("particle page store: its page not a deferred list's");
 /** particles a store page */
 export const StorePageSize = 1 << StorePageBits;
 /**
@@ -58,12 +61,6 @@ export const ScaleByParticle = -1;
 export const NoMember = 0xffffffff;
 /** a page whose runs are more than its particles divided by this: its members a particle instead */
 const RunsShare = 8;
-
-/**
- * The bytes of a deferred list's page values kept in memory once given up (`releaseValues`: a culler wrote them), least
- * recently given up let go first: read again by range past it
- */
-export const PageValueCacheBytes = 256 * 1024 * 1024;
 
 /**
  * an add's scratch, kept between adds (grown, never shrunk): its runs (first, count, member, scale), its members'
@@ -145,8 +142,6 @@ export interface PageStoreChanges {
 export interface PageStoreOptions {
   /** the pages there is room for at first */
   readonly pageCapacity?: number;
-  /** a deferred list's page values kept once given up (`PageValueCacheBytes` by default) */
-  readonly valueCacheBytes?: number;
   /** a deferred list's read failing: told once a list (by default a console warning), its page read again later */
   readonly onReadError?: (list: ParticleList, error: unknown) => void;
   /** the clock a failed read's retry waits by (ms, `performance.now` by default) */
@@ -156,10 +151,6 @@ export interface PageStoreOptions {
 /** a failed page read's first wait before it is read again (ms), doubled each failure up to `PageReadRetryMaxMs` */
 export const PageReadRetryMs = 250;
 export const PageReadRetryMaxMs = 30_000;
-
-function valuesBytes(v: PageValues) {
-  return v.positions.byteLength + (v.rotations?.byteLength ?? 0);
-}
 
 function emptyChanges(): PageStoreChanges {
   return { written: [], released: [], runs: [], extras: [], copies: [], members: new Set(), freed: [], grown: false };
@@ -191,13 +182,17 @@ export class ParticlePageStore {
   extraFloats: Float32Array;
   /** per page its values as uploaded (none: a free page, or a deferred list's page not read: `requestValues`) */
   values: (PageValues | undefined)[] = [];
-  /** per page of a deferred list (`Particle.DeferredParticles`): its list and range, its read in flight */
+  /**
+   * per page of a deferred list (`Particle.DeferredParticles`): its list, its range and page in it, its read in flight
+   * (its values read through the list's cache, `readPage`: kept there, one copy for every store)
+   */
   private readonly deferredPages = new Map<
     number,
     {
       readonly list: ParticleList;
       readonly lo: number;
       readonly hi: number;
+      readonly page: number;
       reading?: Promise<void>;
       /** its reads failed in a row, and when it is read again (`now`): not every frame the cull wants it */
       failures?: number;
@@ -208,13 +203,6 @@ export class ParticlePageStore {
   private readonly now: () => number;
   /** the lists whose read failure was told (`onReadError`) */
   private readonly toldFailures = new WeakSet<ParticleList>();
-  /** a deferred list's page values given up (`releaseValues`), by when (the oldest first), their bytes */
-  private readonly valueCache = new Map<number, PageValues>();
-  private readonly valueCacheLimit: number;
-  /** the bytes of the values given up and kept (`releaseValues`) */
-  cachedValueBytes = 0;
-  /** the bytes of a deferred list's particles read (`requestValues`: its positions and rotations as read) */
-  readValueBytes = 0;
   /** the pages there are (used and free): `[0, pageCount)` */
   pageCount = 0;
 
@@ -232,7 +220,6 @@ export class ParticlePageStore {
 
   constructor(options: PageStoreOptions = {}) {
     const pages = Math.max(4, options.pageCapacity ?? 16);
-    this.valueCacheLimit = options.valueCacheBytes ?? PageValueCacheBytes;
     this.onReadError =
       options.onReadError ??
       ((list, error) => console.warn(`particle list '${list.label}': a page's read failed, read again later`, error));
@@ -437,7 +424,7 @@ export class ParticlePageStore {
       else if (values) writeBox(values.positions, format, f, o, count);
       else tile = writeTilesBox(directory!, tile, lo, hi, f, o);
       this.values[p] = values;
-      if (deferred) this.deferredPages.set(p, { list, lo, hi });
+      if (deferred) this.deferredPages.set(p, { list, lo, hi, page: k });
       const perParticle = runCount > count / RunsShare;
       // a member and a scale a particle: its members a particle (a flat list's targets alternating), or a run scaled
       // by its particles' radii
@@ -514,37 +501,28 @@ export class ParticlePageStore {
 
   /** The block of `key` let go: its pages and runs free, its members' counts less, a member of none freed */
   /**
-   * Page `p`'s values read where they are not (a deferred list's page: `Particle.DeferredParticles`), once while in
-   * flight: the read (its values set when it arrives, where the page is still that list's; set at once where given up
-   * and kept: `releaseValues`); undefined where the page has its values or is not deferred, or its read failed and is
-   * waited for (`PageReadRetryMs`, doubled a failure: told once a list, `onReadError`)
+   * Page `p`'s values read where they are not (a deferred list's page: `Particle.DeferredParticles`), through its
+   * list's cache (`readPage`: once while in flight, kept there): the read (its values set when it arrives, where the
+   * page is still that list's; set at once where kept); undefined where the page has its values or is not deferred, or
+   * its read failed and is waited for (`PageReadRetryMs`, doubled a failure: told once a list, `onReadError`)
    */
   requestValues(p: number): Promise<void> | undefined {
     const d = this.deferredPages.get(p);
     if (!d || this.values[p]) return undefined;
-    const kept = this.valueCache.get(p);
+    const deferred = Particle.getDeferred(d.list)!;
+    const kept = deferred.getPage(d.page);
     if (kept) {
-      this.uncache(p, kept);
-      this.values[p] = kept;
+      this.values[p] = this.pageValues(d.list, kept, d.hi - d.lo);
       return Promise.resolve();
     }
     if (d.reading) return d.reading;
     if (d.retryAt !== undefined && this.now() < d.retryAt) return undefined;
-    const format = this.format!;
-    const deferred = Particle.getDeferred(d.list)!;
-    const grid = d.list.coordinates;
-    d.reading = deferred.read(d.lo, d.hi - d.lo).then(
+    d.reading = deferred.readPage(d.page).then(
       (read) => {
         d.reading = undefined;
         d.failures = d.retryAt = undefined;
         if (this.deferredPages.get(p) !== d) return;
-        this.readValueBytes += read.positions.byteLength + (read.rotations?.byteLength ?? 0);
-        // the read's words on the list's grid, as `getPageValues` takes a list's
-        const page = {
-          coordinates: GridPositions.is(grid) ? { ...grid, data: read.positions } : read.positions,
-          rotations: read.rotations,
-        } as ParticleList;
-        this.values[p] = getPageValues(page, format, 0, d.hi - d.lo);
+        this.values[p] = this.pageValues(d.list, read, d.hi - d.lo);
       },
       (error) => {
         // read again when asked, after a wait
@@ -559,25 +537,24 @@ export class ParticlePageStore {
     return d.reading;
   }
 
-  /**
-   * Page `p`'s values given up where they are a deferred list's (a culler wrote them: its copy on the GPU), kept within
-   * the cache's bytes (the least recently given up let go first): read again when asked (`requestValues`)
-   */
-  releaseValues(p: number) {
-    const values = this.values[p];
-    if (!values || !this.deferredPages.has(p)) return;
-    this.values[p] = undefined;
-    this.valueCache.set(p, values);
-    this.cachedValueBytes += valuesBytes(values);
-    for (const [q, v] of this.valueCache) {
-      if (this.cachedValueBytes <= this.valueCacheLimit) break;
-      this.uncache(q, v);
-    }
+  /** a deferred page's values as read (`read`), in the store's format: a view of them where it is theirs, else a copy */
+  private pageValues(list: ParticleList, read: DeferredPage, count: number) {
+    const grid = list.coordinates;
+    // the read's words on the list's grid, as `getPageValues` takes a list's
+    const page = {
+      coordinates: GridPositions.is(grid) ? { ...grid, data: read.positions } : read.positions,
+      rotations: read.rotations,
+    } as ParticleList;
+    return getPageValues(page, this.format!, 0, count);
   }
 
-  private uncache(p: number, values: PageValues) {
-    this.valueCache.delete(p);
-    this.cachedValueBytes -= valuesBytes(values);
+  /**
+   * Page `p`'s values given up where they are a deferred list's (a culler wrote them: its copy on the GPU): kept by its
+   * list's cache within its bytes, read again when asked past them (`requestValues`)
+   */
+  releaseValues(p: number) {
+    if (!this.values[p] || !this.deferredPages.has(p)) return;
+    this.values[p] = undefined;
   }
 
   remove(key: number) {
@@ -595,8 +572,6 @@ export class ParticlePageStore {
       this.records.fill(0, o, o + PageRecordWords);
       this.values[p] = undefined;
       this.deferredPages.delete(p);
-      const kept = this.valueCache.get(p);
-      if (kept) this.uncache(p, kept);
       this.freePages.push(p);
       this.changes.released.push(p);
     }

@@ -20,6 +20,7 @@ import {
   type ParticleTargetInfo,
   ParticleValues,
 } from './particle-list.js';
+import { DeferredPageBits } from './particle-page-cache.js';
 import { type ParticlePage, ParticleSlots } from './particle-slots.js';
 import { ParticleDensityGrid, ParticleTileOpaque } from './particle-tile-opaque.js';
 import { ParticleTileCatalog, ParticleTiles } from './particle-tiles.js';
@@ -1104,52 +1105,92 @@ export namespace ParticleNesting {
   const _boundaryHelper = new BoundaryHelper('98');
   const _deferredHelper = new BoundaryHelper('98');
   const _tileCenter = Vec3();
+  const _keptPosition = Vec3();
 
   /**
    * The sphere bounding particles `indices` of `list` whose particles are not read (`Particle.DeferredParticles`, a
-   * pack opened by range): the boxes of its tiles holding them (its tile directory: conservative, at once, no read),
-   * each grown by the largest radius among them; its boundary's where it has no directory
+   * pack opened by range): where their page is kept (`DeferredParticles.getPage`: its pack's cache) their positions
+   * and radii, else the boxes of their tiles (its tile directory: conservative), each grown by the largest radius among
+   * them; its boundary's where it has no directory. At once: no read begun (a page read later, tighter then)
    */
   export function getDeferredBoundingSphere(list: ParticleList, indices: OrderedSet<number>, out?: Sphere3D): Sphere3D {
+    const helper = _deferredHelper;
+    helper.reset();
+    forEachDeferredSphere(list, indices, (c, r) => helper.includePositionRadius(c, r));
+    helper.finishedIncludeStep();
+    forEachDeferredSphere(list, indices, (c, r) => helper.radiusPositionRadius(c, r));
+    return helper.getSphere(out);
+  }
+
+  /** `getDeferredBoundingSphere`'s spheres: a kept page's particles each, a tile's box for those of a page not kept */
+  function forEachDeferredSphere(
+    list: ParticleList,
+    indices: OrderedSet<number>,
+    f: (center: Vec3, radius: number) => void,
+  ) {
+    const size = OrderedSet.size(indices);
+    if (size === 0) return;
+    const deferred = Particle.getDeferred(list)!;
+    const { radii } = list;
+    const grid = list.coordinates as GridPositions;
+    // per page holding some: kept, its particles by their positions; else noted for its tiles
+    const missing = new Set<number>();
+    for (let a = 0; a < size; ) {
+      const page = OrderedSet.getAt(indices, a) >> DeferredPageBits;
+      const lo = page << DeferredPageBits;
+      const b = OrderedSet.findPredecessorIndex(indices, lo + (1 << DeferredPageBits));
+      const kept = deferred.getPage(page);
+      if (kept) {
+        const view: GridPositions = { ...grid, data: kept.positions };
+        for (let k = a; k < b; ++k) {
+          const i = OrderedSet.getAt(indices, k);
+          GridPositions.get(view, i - lo, _keptPosition);
+          f(_keptPosition, radii ? ParticleValues.get(radii, i) : 0);
+        }
+      } else {
+        missing.add(page);
+      }
+      a = b;
+    }
+    if (missing.size === 0) return;
     const directory = ParticleTiles.getDirectory(list);
     if (!directory) {
-      const sphere = Particle.getBoundary(list).sphere;
-      return out ? Sphere3D.copy(out, sphere) : Sphere3D.clone(sphere);
+      const { sphere } = Particle.getBoundary(list);
+      f(sphere.center, sphere.radius);
+      return;
     }
     const { ranges, boxes } = directory;
-    const { radii } = list;
     const tiles = ranges.length / 3;
-    // per tile holding some: its box's center and half diagonal grown by its particles' largest radius
-    const spheres: number[] = [];
+    // per tile holding some in a page not kept: its box's center and half diagonal grown by their largest radius
     for (let t = 0; t < tiles; ++t) {
       const lo = ranges[t * 3 + 1];
-      const a = OrderedSet.findPredecessorIndex(indices, lo);
-      const b = OrderedSet.findPredecessorIndex(indices, lo + ranges[t * 3 + 2]);
-      if (b <= a) continue;
+      const hi = lo + ranges[t * 3 + 2];
+      let any = false;
       let reach = 0;
-      if (radii)
-        for (let k = a; k < b; ++k) reach = Math.max(reach, ParticleValues.get(radii, OrderedSet.getAt(indices, k)));
+      for (let page = lo >> DeferredPageBits; page << DeferredPageBits < hi; ++page) {
+        if (!missing.has(page)) continue;
+        const s = Math.max(lo, page << DeferredPageBits);
+        const e = Math.min(hi, (page + 1) << DeferredPageBits);
+        const a = OrderedSet.findPredecessorIndex(indices, s);
+        const b = OrderedSet.findPredecessorIndex(indices, e);
+        if (b <= a) continue;
+        any = true;
+        if (radii)
+          for (let k = a; k < b; ++k) reach = Math.max(reach, ParticleValues.get(radii, OrderedSet.getAt(indices, k)));
+      }
+      if (!any) continue;
       const o = t * 6;
       const dx = boxes[o + 3] - boxes[o];
       const dy = boxes[o + 4] - boxes[o + 1];
       const dz = boxes[o + 5] - boxes[o + 2];
-      spheres.push(
+      Vec3.set(
+        _tileCenter,
         (boxes[o] + boxes[o + 3]) / 2,
         (boxes[o + 1] + boxes[o + 4]) / 2,
         (boxes[o + 2] + boxes[o + 5]) / 2,
-        Math.sqrt(dx * dx + dy * dy + dz * dz) / 2 + reach,
       );
+      f(_tileCenter, Math.sqrt(dx * dx + dy * dy + dz * dz) / 2 + reach);
     }
-    const helper = _deferredHelper;
-    helper.reset();
-    for (let i = 0; i < spheres.length; i += 4) {
-      helper.includePositionRadius(Vec3.fromArray(_tileCenter, spheres, i), spheres[i + 3]);
-    }
-    helper.finishedIncludeStep();
-    for (let i = 0; i < spheres.length; i += 4) {
-      helper.radiusPositionRadius(Vec3.fromArray(_tileCenter, spheres, i), spheres[i + 3]);
-    }
-    return helper.getSphere(out);
   }
 
   /** The sphere bounding `loci`'s instances (`forEachLociSphere`): all of them the list's cached boundary */

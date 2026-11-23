@@ -270,16 +270,25 @@ to gain (their template and levels 67 pages, 9 MB; 85-98% needed once a copy is 
          default color; no particle read), a particle's radii are read at open (not deferred: the levels gather them),
          the yeast nested 2x2 has no attribute blocks (its radii and entities a target's). Themes of a template's own
          particles (its attributes, its indices) a feature of their own for lists with templates, by page then.
-      4. **A loci's particles** (tiles done, pages read open): a focus or a measurement of a copy held in part by its
+      4. **A loci's particles** (done): a focus or a measurement of a copy held in part by its
          particles' pages read (or, not yet read, its tiles' boxes: conservative, at once), not the template read whole.
          Done: by its tiles' boxes alone (`ParticleNesting.getDeferredBoundingSphere`: the tiles holding the loci's
          particles, each grown by their largest radius; `Particle.getBoundingSphere`, `forEachLociSphere`), a deferred
          list's boundary not stored refused. The yeast nested 2x2, a copy's: its largest target (8.2 M particles) 26,536
          Å not 23,508, one of 398 particles 13,747 not 10,967, a particle 2,360-2,440 not 44-123 (a click's focus a
-         tile's). Open: the pages read used where in memory: the values' cache moved to the model (the deferred
-         particles' reader keeping its pages read, least recently used past its bytes; the page store reading through
-         it: one copy), the sphere of a loci's particles by their positions where their page is kept, by its tiles'
-         where not.
+         tile's). Then the pages read kept in the model (`ParticlePageCache`): a deferred list's
+         particles read by page (`DeferredPageSize`, the cull's page: `StorePageBits` checked equal), once while in
+         flight, kept least recently used past its bytes (256 MB), a failure not kept; one a pack opened by range
+         (`pageCacheBytes`), its templates' and their leaf lists' (no module state: the test files share their worker's
+         modules); `DeferredParticles.getPage` (kept, at once) and `readPage`. The page store reads through it (its own
+         cache gone; a page's values a view of the read where its format is the pack's; its retry kept): two stores of a
+         template read a page once. A loci's sphere by page: a kept page's particles by their positions and radii, the
+         rest by their tiles' boxes; no read begun. The yeast nested 2x2, a particle of a copy: 44-66 Å once its page is
+         kept (the whole read's), 358-2,366 by its tiles, under 1 ms either way, nothing read. Not measured: the heap
+         with two representations. Not here: reads begun by a focus or a measurement (its sphere refined then), one
+         budget across packs. Tests: `particle-page-cache.test.ts`, `pack-stream.test.ts` (a page read once, a loci by
+         its particles where kept, by its tiles past the cache's bytes), `page-store.test.ts` (a second store's page
+         from the cache).
       5. **The comparison** (e's decision): a single yeast cell as a template of one copy (the grid script at 1x1x1)
          against its tile view (`yeast_cell_atoms.tiles16.levels.mspk`): GPU and heap memory, the time to the first
          frame and to full detail, the CPU's work a view, the features each has (trajectory frames, editing, targets on
@@ -302,4 +311,4 @@ to gain (their template and levels 67 pages, 9 MB; 85-98% needed once a copy is 
 - **The fallback**: by copy (step 2) or by region (step 3, a tile order's).
 - **The budget**: the value blocks within the device's storage buffer limit (a lower share: the device's memory not
   known to WebGPU), an unwanted page let go 10 s after the last cull that wanted it or for room; a page's values on the
-  CPU a 256 MB cache; the values' buffer never shrunk.
+  CPU a 256 MB cache (a pack's, in the model); the values' buffer never shrunk.

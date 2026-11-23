@@ -7,6 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import { CustomProperties } from '@molstar/model/model/custom-property';
 import { Particle, type ParticleList, type ParticleTarget } from '@molstar/model/model/particles/particle-list';
+import { ParticlePageCache } from '@molstar/model/model/particles/particle-page-cache';
 import { getComplexVisualsPlan } from '../provider.js';
 
 // The default visuals of a particle list: by its leaves where it has templates (their targets and infos), not by the
@@ -57,7 +58,10 @@ describe('the default particle visuals', () => {
 
   it('leaves out the untargeted of a template read by range (flattening refuses it)', () => {
     const template = createTemplate();
-    Particle.setDeferred(template, { read: () => Promise.reject(new Error('not read')) });
+    Particle.setDeferred(
+      template,
+      new ParticlePageCache().deferred(template, () => Promise.reject(new Error('not read'))),
+    );
     expect(getComplexVisualsPlan(createTop(template)).hasUntargeted).toBe(false);
   });
 

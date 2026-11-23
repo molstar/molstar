@@ -486,4 +486,53 @@ describe('a nested particle pack read by range', () => {
     const [cw, cs] = spheres((l) => ParticleNesting.ofCopy(l, 0));
     expect(cs.radius).toBeCloseTo(cw.radius, 3);
   });
+
+  it("keeps its templates' pages read in one cache: a page read once, a loci bounded by its particles where kept", async () => {
+    const bytes = writeParticlePack(createNestedList());
+    const whole = createParticleListFromPack(readParticlePack(bytes));
+    const tw = ParticleNesting.getTemplate(whole, 0)!.particles;
+    /** the list read by range from a source counting its reads, its cache of `pageCacheBytes` */
+    const open = async (pageCacheBytes?: number) => {
+      const inner = ParticlePackSource.fromBytes(bytes);
+      const counter = { reads: 0 };
+      const source = {
+        byteLength: inner.byteLength,
+        read: (offset: number, length: number) => {
+          counter.reads += 1;
+          return inner.read(offset, length);
+        },
+      };
+      const list = await openParticleListFromPackStream(await openParticlePackStream(source), { pageCacheBytes });
+      counter.reads = 0;
+      return { list, counter, deferred: Particle.getDeferred(ParticleNesting.getTemplate(list, 0)!.particles)! };
+    };
+    const { list, counter, deferred } = await open();
+    // a particle of the second copy: by its tile's box, no read begun
+    const loci = ParticleNesting.ofInstance(list, 1, 5);
+    const exact = Particle.getBoundingSphere(ParticleNesting.ofInstance(whole, 1, 5), Sphere3D());
+    const byTile = Particle.getBoundingSphere(loci, Sphere3D());
+    expect(counter.reads).toBe(0);
+    expect(deferred.getPage(0)).toBeUndefined();
+    // its page read (its positions and rotations: a read each), once while in flight, kept: by its position then
+    const [p0, again] = await Promise.all([deferred.readPage(0), deferred.readPage(0)]);
+    expect(again).toBe(p0);
+    expect(counter.reads).toBe(2);
+    expect(Array.from(p0.positions)).toEqual(Array.from((tw.coordinates as GridPositions).data.subarray(0, 8192 * 2)));
+    expect(deferred.getPage(0)).toBe(p0);
+    await deferred.readPage(0);
+    expect(counter.reads).toBe(2);
+    const byPosition = Particle.getBoundingSphere(loci, Sphere3D());
+    expect(Vec3.distance(byPosition.center, exact.center)).toBeLessThan(1e-3);
+    expect(byPosition.radius).toBeCloseTo(exact.radius, 3);
+    expect(byPosition.radius).toBeLessThan(byTile.radius / 10);
+
+    // a cache of a page's bytes: the next page read lets the first go, its loci by its tile again
+    const small = await open(p0.positions.byteLength + (p0.rotations?.byteLength ?? 0));
+    await small.deferred.readPage(0);
+    await small.deferred.readPage(1);
+    expect(small.deferred.getPage(0)).toBeUndefined();
+    expect(small.deferred.getPage(1)).toBeDefined();
+    const later = Particle.getBoundingSphere(ParticleNesting.ofInstance(small.list, 1, 5), Sphere3D());
+    expect(later.radius).toBeCloseTo(byTile.radius, 3);
+  });
 });
