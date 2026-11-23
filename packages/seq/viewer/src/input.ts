@@ -288,6 +288,40 @@ export class ViewerInput {
     return this._sectionOf(section)?.rail;
   }
 
+  /** The type name of a section's layer by its key (a scoped binding's), in the last frame. */
+  /** A click's binding scoped to the hit's layer type, run with the hit (`_runScoped`). */
+  private _scoped(gesture: 'click', section: string, x: number, y: number, mods: ModifierState): boolean {
+    const hit = this._hitAt(x, y);
+    return !!hit && hit.layer !== undefined && this._runScoped(gesture, section, hit, mods, hitTarget(hit));
+  }
+
+  /**
+   * Runs the action a binding scoped to the hit's layer type gives the gesture there, with a copy of the hit; false when
+   * there is none (_spec/README.md "Bindings", Scoped).
+   */
+  private _runScoped(
+    gesture: 'click' | 'double-click',
+    section: string,
+    hit: Hit,
+    mods: ModifierState,
+    target: HitTarget,
+  ): boolean {
+    const type = hit.layer === undefined ? undefined : this._layerTypeOf(section, hit.layer);
+    const own = type && this.viewer.bindings.resolveIn(type, gesture, mods, target);
+    if (!own) return false;
+    this.viewer.runCommand(own, { section, hit: { ...hit } });
+    return true;
+  }
+
+  private _layerTypeOf(section: string, key: string): string | undefined {
+    const s = this._sectionOf(section);
+    if (!s) return undefined;
+    for (const l of s.sectionLays) if (l.key === key) return l.type.name;
+    for (const t of s.tracks) for (const l of t.layers) if (l.key === key) return l.type.name;
+    for (const ls of s.lays) for (const l of ls) if (l.key === key) return l.type.name;
+    return undefined;
+  }
+
   /** A section's layout in the last frame, by address. */
   private _sectionOf(section: string): SectionLayout | undefined {
     const sections = this.viewer.frame?.layout.sections;
@@ -790,10 +824,12 @@ export class ViewerInput {
       }
       return true;
     }
+    // a binding scoped to the hit's layer type (an extension's) wins there: run with the hit
+    const section = this.sectionAt(y);
+    if (section !== undefined && this._scoped('click', section, x, y, this._modifiers(e))) return true;
     // the rest is a selection's (none without the select behavior)
     const select = this.selectBehavior;
     if (!select) return false;
-    const section = this.sectionAt(y);
     // a tree node's click: its bound command (toggles the clade's fold by default), unless it is a selection's
     if (chip?.target === 'tree-node' && chip.element) {
       const action = this.viewer.bindings.resolve('click', this._modifiers(e), 'tree-node');
@@ -979,6 +1015,8 @@ export class ViewerInput {
     const p = this.viewer.placementOf(section);
     const inPlot = this._overPlot(section, x, y);
     const target = inPlot ? 'cell' : hitTarget(hit);
+    // a binding scoped to the hit's layer type (an extension's) wins there: run with the hit
+    if (hit && this._runScoped('double-click', section, hit, mods, target)) return true;
     const action = this.viewer.bindings.resolve('double-click', mods, target);
     if (action === undefined) return false;
     // a clade's command on a summary row (its element the clade): the clade it names

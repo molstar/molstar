@@ -15,7 +15,7 @@ is added in the change that builds what it describes.
 
 ## Versions
 
-- The language has one version, `LanguageVersion` (`0.9.0`). Why: one language, one description, one number for readers
+- The language has one version, `LanguageVersion` (`0.10.0`). Why: one language, one description, one number for readers
   to check.
 - **Pre-release** (`0.x`): a change to the language moves the version with no migration (`0.1.0`: every child of the
   spec has an id, `layer` included; `0.2.0`: the `refs` container and the `ref` kind; `0.3.0`: the `snapshots` container
@@ -51,11 +51,12 @@ is added in the change that builds what it describes.
   (Language, Assemblies): a pairs row's `a_name` and `b_name`, a grid's `x_name` and `y_name`, a matrix's `name`;
   `0.8.0`: the `values` encoding `points` (Render, Layer types, `values`); `0.9.0`: the `tooltip` kind under `views` and
   a `view` (`on`, `target`, `rows`, `source`, `schema`, `block`, `category`, `field`, `text`, `label`, `format`;
-  Language, Tooltips) and a view's `export.titles`. A spec in an earlier `0.x` reads as one in this one, and is reported
-  where it no longer fits: a `0.6.0` spec reads unchanged (every addition is optional; inline pairs, grids or matrices
-  over an assembly, never read in 0.6, now need their names: `seq.lang.data.names`), with one change of behaviour:
-  `a_name`/`b_name` columns on pairs over a sequence, a ride-along field before, are refused (`seq.lang.data.names`),
-  but an extension's `requires: '0.6'` no longer covers it (0.x: the minor).
+  Language, Tooltips) and a view's `export.titles`; `0.10.0`: a rings section's `center` (`title`, `none`: what the hole
+  holds; the render config's `rings.center` the default when absent). A spec in an earlier `0.x` reads as one in this
+  one, and is reported where it no longer fits: a `0.6.0` spec reads unchanged (every addition is optional; inline
+  pairs, grids or matrices over an assembly, never read in 0.6, now need their names: `seq.lang.data.names`), with one
+  change of behaviour: `a_name`/`b_name` columns on pairs over a sequence, a ride-along field before, are refused
+  (`seq.lang.data.names`), but an extension's `requires: '0.6'` no longer covers it (0.x: the minor).
 
 ## Language
 
@@ -476,8 +477,8 @@ of it.
 - **Genomes**: `b.data.assembly(id, params, (a) => a.sequence(id, override))`, `b.data.matrix`,
   `view.bridge(id, params, (br) => br.layer(…))`; and the helpers in their own module (`lang/genome-builder.ts`,
   exported from `lang`, so a writer that writes no genome bundles none of them): `assembly(name, sequences, extra)` (an
-  assembly's params from rows), `genome(view, id, of, { include, layout, bands })` (a section of the assemblies with a
-  ruler in bases and, given bands, an ideogram navigator: spelled, never inferred) and
+  assembly's params from rows), `genome(view, id, of, { include, layout, center, bands })` (a section of the assemblies
+  with a ruler in bases and, given bands, an ideogram navigator: spelled, never inferred) and
   `colinearBlocks(runs, of, { minLength })` (the blocks of `of` in the order of a map's runs read once: a block a run of
   at least `minLength`, 100 kb by default, shorter runs merged into the block before as their hull, `reversed` where a
   run is; explicit data, exported as drawn). Why a helper and not a block's `{ along }`: a map read by region would turn
@@ -2476,9 +2477,9 @@ Overlay, Opened sources), kept per model and view. No data, no dynamic node, no 
   its node.
 - **A section's layout**: its own `layout`, else its view's (`tracks`, `text`, `rings`, `grid`), with its layout's
   params as written (`params`: `group`, `numbers`, `group_labels`, `align`, `max_width`, `height`, `rotation`, `labels`,
-  `arrange`, `copies`, `aspect`); the layout reads them with its defaults. Why on the section: a view mixes layouts (a
-  ring and its linear detail; a text figure under a tracks overview). What the figure means (group size, numbers) is the
-  spec's; spacing is the render config's.
+  `center`, `arrange`, `copies`, `aspect`); the layout reads them with its defaults. Why on the section: a view mixes
+  layouts (a ring and its linear detail; a text figure under a tracks overview). What the figure means (group size,
+  numbers) is the spec's; spacing is the render config's.
 - **A section**: an axis, its tracks, and its follow; its `blocks` when it has `block` children; a grid section its `y`.
 - **Via**: a section's `via` (`ResolvedSection.via`, sorted; absent when none) is what its paths take where two maps
   join one pair of systems (Resolve, Paths): its follow, its `direction: { along }` (where the map does not reach its
@@ -3058,6 +3059,12 @@ the layer knows its lanes), `scope` (`strip`, the default, laid out a strip at a
 in page coordinates: what crosses strips; `bridge`, internal, once a bridge with its `BridgeLayoutContext`: Bridges),
 `axes` (2: a second axis of its own, the y path in Emphasis).
 
+- **Words** (optional, built-ins need none): `describe?(hit, lay)` (the hover card's lines for a hit of its layer: the
+  first its title, the rest its rows, `label: value`), `summary?(lay)` (its layer's ARIA description, set when the frame
+  settles) and `announce?(lay, system, position)` (what the keyboard cursor adds at a position). The viewer calls them,
+  its own text after (viewer "Hover card", `seq:layer`). Why hooks, not exports: the card, ARIA and the cursor stay the
+  viewer's; a layer (an extension's ribbons) supplies only its words.
+
 - **The ranges layer's modules**: `render/ranges.ts` (the layer type: its prepared form, lanes and marks, hit, legend)
   and beside it, a concern each, `ranges-lay.ts` (what it keeps), `ranges-content.ts` (its content: Track heights),
   `ranges-beside.ts` (labels beside), `ranges-draw.ts`, `ranges-density.ts` (the heat strip) and `ranges-theme.ts` (its
@@ -3250,7 +3257,8 @@ in page coordinates: what crosses strips; `bridge`, internal, once a bridge with
 - **`bands`** (`render/bands.ts`, fallback `ranges`): a chromosome's stained bands in one band, an ideogram: each item a
   block colored by its `stain` through the `giemsa` scheme (grays from the text ink; `acen` in `seq-centromere`), the
   centromere's two `acen` bands as triangles meeting at it (the p arm's tip at its end, the q arm's at its start, turned
-  on a reversed axis), a hairline where no band is; its hit names the band (`state`: its label).
+  on a reversed axis), a hairline where no band is; its hit names the band (`state`: its label); its items are the bands
+  (`items`) and its `describe` the band's name and stain, so a hover card names the band on tracks and rings.
 
 ### Data
 
@@ -3712,9 +3720,9 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   leader from its member's own angle; a larger group opens no fan, its card lists every member (no "more": the card is
   its only opening). Why: a dozen leaders over the group's own few degrees run together; past a dozen lines a fan cannot
   be read.
-- **The hole holds the title** (`rings.center: 'title'`): the system's name and its length (`bp`, `aa`; a section of
-  assemblies their names and the blocks' length in bases, `GRCh38`, `3.1 Gb`; another section of blocks its id and its
-  units).
+- **The hole holds the title** (the section's `center`, else `rings.center`: `title`): the system's name and its length
+  (`bp`, `aa`; a section of assemblies their names and the blocks' length in bases, `GRCh38`, `3.1 Gb`; another section
+  of blocks its id and its units).
 - **The window** (`window` on the layout type, set on a kept placement too): the section's viewport (a ring that
   follows, its leader's range on its own axis), drawn in the `window` pass through the warp: a faint sector over the
   rings, and on a 12 px rim outside the outer ring (the design's least hit) its body and grips (`render/window.ts`), hit
@@ -4321,6 +4329,15 @@ cost to the minimal viewer is the names the chunk imports from it).
   level built when first read and kept; the assembly's part (units as the bins' systems, the blocks' scale) loads with
   the genome chunk (`OverAssembly`). Why: a held table and the same pairs from a file are one picture (one reader,
   region-reads Decided 7).
+- **The reader** (`pairs-reader.ts`, `readPairs`, `PairsReader`): the three reads above are one reader of a pairs node,
+  the layer reading through it with the pairs config and an extension's layer type with its own numbers
+  (`PairsReadOptions`: `binPx`, `gate`, `hysteresis`; `pairsLevels` takes the gate beside the bin width and returns it).
+  Its state is its owner's (a lay, a bridge side, a `PairsReader`), so two readers of one layer at two gates never share
+  a read. It gives `PairsRead`: the rows, the bins' level and counts (absent: items), over an assembly the ends' units;
+  `waiting` says a bins' tile it wanted is still to come (a region's or a block's; a failed one is not waiting), so a
+  layer tells pending from empty when the view has settled before this frame's wants were asked. Why one reader: what
+  the pairs layer draws and what an extension draws over the same data are the same bins and items, read once each by
+  one rule (the extension's gate its own: it gates at what it draws).
 - **A bin pair's element** (`Key.key`, what a selection and a bookmark keep):
   `bin:<a>:<aBin>|<b>:<bBin>|<strand>|<category>`, `<a>` and `<b>` the ends' system names as the source gives them
   (empty: the request's system), `<aBin>` and `<bBin>` the bins' indices at the level read (positions `bin × level` to
@@ -4342,9 +4359,11 @@ cost to the minimal viewer is the names the chunk imports from it).
   changed with the view. `reach` is the previous Seq\*'s `ARC_MARGIN` (0.25 of the window); its `ARC_PAST` (4 px, a
   piece cut at the edge drawn that far past it so the stroke's cap lies outside the clip) is not kept: the whole cubic
   is drawn to its virtual ends and clipped to the data box, so no cap falls at the edge. On a polar strip the apex goes
-  toward the centre (`side: below` reaches the hole): a chord, its depth by span. An end not placed in the view, or the
-  ends on different lines without `across_lines`, draws a caret at the placed end, never a dangling arc. A curve is one
-  cubic (`curveArgs`), clipped to the data box.
+  toward the centre (`side: below` reaches the hole): a chord, its depth by span, its span and its control's place the
+  shorter way round (a ring shows its whole axis, so its first and last units are neighbours: a chord between them is
+  short and stays at the rim, never bent across the hole). An end not placed in the view, or the ends on different lines
+  without `across_lines`, draws a caret at the placed end, never a dangling arc. A curve is one cubic (`curveArgs`),
+  clipped to the data box.
 - **Crossing pairs** (`crossing`): `same` draws them crossing; `split` the largest nested subset on `side`, the rest on
   the other (`splitCrossing`: exact up to `SplitExact`, 2,000 pairs, by an interval DP over the sorted ends; greedy past
   it, fixed: the exact subset is quadratic and no figure asks for another bound). On one system only.
@@ -5017,8 +5036,10 @@ same pieces. Nothing registers on import and there is no global registry.
   extension imports is one entry**, `@molstar/seqx-core/extension` (the descriptor, `defineExtension`, `LayerType` and
   what it is given, `SectionLayoutType`, `Placement` and the warps, `NavigatorPicture` and what it is given, the
   window's `floorExtent`, `navigatorPart`, `drawNavigatorWindow`, `NavWindowFlags` and `NavigatorWindow`,
-  `FormatRuntime`, `SchemeEntry`, `Legend`, the resolved layer and section); the rest may change in a 0.x minor. Why a
-  descriptor: the namespace check, the version check and the undo need the extension as one thing.
+  `FormatRuntime`, `SchemeEntry`, `Legend`, the resolved layer and section; the pairs reader's family, `PairsReader`,
+  `PairsRead`, `PairsSource`, `PairsReadOptions`, the bins' types, `pairsLevels`, `coarsenBins`; `placesOf`,
+  `BlockPlace` and `PlacePoint`; the builder's types an extension's helper writes with); the rest may change in a 0.x
+  minor. Why a descriptor: the namespace check, the version check and the undo need the extension as one thing.
 - **The tracks layout is the one fixed fallback**: a section whose layout is not listed (or every section, with no
   layouts given) is laid out as tracks, and the viewer's navigation reads tracks likewise; tracks needs no entry. Why:
   the tracks layout is the frame's own (the label column, the rails, the bands), a section must be placed somehow, and

@@ -47,6 +47,8 @@ type ExampleModel = ExampleView & {
   readonly config?: SeqViewerSpec['config'];
   /** Behaviors besides the default spec's (a host's choice the story shows on: `links.hover`). */
   readonly behaviors?: SeqViewerSpec['behaviors'];
+  /** The extensions the viewer is composed with (an extension's showcase: the genome ring's `rondoViewer`). */
+  readonly extensions?: SeqViewerSpec['extensions'];
 };
 
 const Title =
@@ -123,6 +125,7 @@ class ExampleRoot extends UiElement<ExampleModel> {
         registry: withViewRegistry(base.registry ?? [], extra),
         ...(view.config ? { config: [...(base.config ?? []), ...view.config] } : {}),
         ...(view.behaviors ? { behaviors: [...base.behaviors, ...view.behaviors] } : {}),
+        ...(view.extensions ? { extensions: [...(base.extensions ?? []), ...view.extensions] } : {}),
       },
       canvasHost,
     );
@@ -209,7 +212,8 @@ defineElements([ExampleRoot]);
 
 /**
  * A Storybook `render` result for an example view (`navigators`: its SVG draws the view's navigators; `files`: the view's
- * source nodes and the head of each file they name are printed beside it; `config`: the viewer's items).
+ * source nodes and the head of each file they name are printed beside it; `config`: the viewer's items; `extensions`:
+ * the viewer's extensions).
  */
 export function exampleStory(
   view: ExampleView,
@@ -223,6 +227,7 @@ export function exampleStory(
     readonly summary?: string;
     readonly config?: SeqViewerSpec['config'];
     readonly behaviors?: SeqViewerSpec['behaviors'];
+    readonly extensions?: SeqViewerSpec['extensions'];
   } = {},
 ): HTMLElement {
   const el = document.createElement(ExampleRoot.tag) as ExampleRoot;
@@ -235,7 +240,8 @@ export function exampleStory(
     options.find ||
     options.summary ||
     options.config ||
-    options.behaviors
+    options.behaviors ||
+    options.extensions
       ? { ...view, ...options }
       : view;
   return el;

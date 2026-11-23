@@ -16,6 +16,8 @@ export { type KeyState, ViewerInput, type WheelState } from './input.js';
 export { createDragSession, type DragSession } from './drag-session.js';
 export type { HiddenTrackEntry } from './models/hidden-tracks.js';
 export { createSeqViewer, SeqViewer, type ViewerCommand } from './viewer.js';
+export { defineViewerExtension } from './extension.js';
+export type { GestureBinding } from './bindings.js';
 export { type NavigatorDef, NavigatorModel, type NavigatorPointer, type NavigatorValue } from './navigator.js';
 export {
   type BehaviorContext,

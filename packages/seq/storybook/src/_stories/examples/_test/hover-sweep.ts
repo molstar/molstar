@@ -78,7 +78,12 @@ function recordingContext() {
     beginPath: () => void (path = undefined),
     moveTo: add,
     lineTo: add,
-    bezierCurveTo: (_a: number, _b: number, _c: number, _d: number, x: number, y: number) => add(x, y),
+    // the curve's hull (its controls and its end), as the lists' and the SVG's boxes: a chord bulges between its ends
+    bezierCurveTo: (a: number, b: number, c: number, d: number, x: number, y: number) => {
+      add(a, b);
+      add(c, d);
+      add(x, y);
+    },
     rect: (x: number, y: number, w: number, h: number) => {
       add(x, y);
       add(x + w, y + h);

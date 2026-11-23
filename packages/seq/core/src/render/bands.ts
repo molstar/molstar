@@ -13,6 +13,7 @@ import { drawPass, grown, NoColor, type PassName, type PassWriter, passDraws } f
 import {
   beginItems,
   countStrip,
+  describeItems,
   drawTicks,
   type ItemsBase,
   type ItemsPrep,
@@ -187,6 +188,19 @@ export const BandsType: LayerType<BandsPrep, BandsLay> = {
 
   filtered: (lay) => lay.rows.filtered,
   used: itemsUsed,
+  // a band's card names it (its row's name and range), as a ranges layer's item, and says its stain
+  items: describeItems,
+  describe(hit, lay) {
+    const key = hit.element?.key;
+    if (key === undefined) return undefined;
+    const rows = lay.rows;
+    for (let i = 0; i < rows.n; i++)
+      if (rows.keys[i] === key) {
+        const stain = rows.values[i];
+        return [rows.labels[i] ?? String(key), ...(stain ? [`Stain: ${stain}`] : [])];
+      }
+    return undefined;
+  },
 
   legend(lay, options) {
     if (lay.density) return [];

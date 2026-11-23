@@ -41,7 +41,7 @@ export async function settle(
   spec: Node,
   runtimes: readonly FormatRuntime[] = [],
   config: RenderConfigOverrides = {},
-  options: Pick<RendererOptions, 'sizings' | 'trackSizing'> = {},
+  options: Pick<RendererOptions, 'sizings' | 'trackSizing'> & Partial<Pick<RendererOptions, 'types'>> = {},
   storeSettings: Partial<StoreSettings> = {},
 ): Promise<Settled> {
   const store = new DataStore({ settings: storeSettings });

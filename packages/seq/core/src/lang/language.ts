@@ -26,7 +26,7 @@ import { TooltipKinds } from './tooltip-language.js';
  * The version of the language this description is (the package's `LanguageVersion` is the same). Pre-release (`0.x`):
  * a change moves it with no migration (_spec/README.md, Versions).
  */
-export const SeqLanguageVersion = '0.9.0';
+export const SeqLanguageVersion = '0.10.0';
 
 /**
  * What `pairs.a`/`b`, `ranges.target` and `map.to` take: a system, or an alignment by its columns system (its address;
@@ -983,6 +983,11 @@ export const SeqLanguage = defineLanguage({
           type: 'string',
           enum: ['outside', 'none'],
           doc: 'Rings: the items’ labels placed outside the rings with leaders (`outside`, when absent), or none.',
+        },
+        center: {
+          type: 'string',
+          enum: ['title', 'none'],
+          doc: 'Rings: the hole’s title (`title`) or nothing (`none`: a layer draws there).',
         },
         arrange: {
           type: 'string',

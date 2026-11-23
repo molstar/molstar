@@ -101,6 +101,8 @@ export interface Place {
   readonly members?: readonly { readonly element?: Key | undefined }[] | undefined;
   /** A run's blocks (`target` `run`). */
   readonly count?: number | undefined;
+  /** The keyboard cursor's cell (`cursorPlace`): a layer's `announce` adds to it. */
+  readonly keyboard?: boolean | undefined;
 }
 
 /** The parts a description collects. */
@@ -156,7 +158,7 @@ class Words implements CardReads {
     const section = layout.sections.find((s) => s.section.address === place.section);
     // a ribbon in a bridge's band (its `section` the bridge's id): the bridge chunk's card
     if (!section) return BridgeView.parts?.card(this._src.view, layout, place);
-    const layer = place.layer === undefined ? undefined : layerOf(section, place.layer);
+    const layer = place.layer === undefined ? undefined : layerOf(section, place.layer, place.block);
     return this.compose(section, layer, place);
   }
 
@@ -218,7 +220,7 @@ class Words implements CardReads {
    * header the header (`state: 'cursor'`: its words say the key that opens its actions).
    */
   cursorPlace(c: Cursor): Place {
-    const cell: Place = { section: c.section, system: c.system, position: c.position };
+    const cell: Place = { section: c.section, system: c.system, position: c.position, keyboard: true };
     if (c.track !== undefined)
       return {
         ...cell,
@@ -598,8 +600,18 @@ function twoAxesOf(section: SectionLayout, ySystem: string): LayerLayout | undef
   return undefined;
 }
 
-/** A layer of a section by its key: its tracks', its strips' (a section of blocks), its section layers'. */
-function layerOf(section: SectionLayout, key: string): LayerLayout | undefined {
+/**
+ * A layer of a section by its key: on a section of blocks the hit's block's strip first (each strip lays its own rows:
+ * the item is there, never in the tracks' template), then its tracks', its strips', its section layers'.
+ */
+function layerOf(section: SectionLayout, key: string, block?: number): LayerLayout | undefined {
+  const st = section.placement.strips;
+  if (block !== undefined && section.section.blocks)
+    for (let i = 0; i < st.n; i++) {
+      if (st.block[i] !== block) continue;
+      for (let b = 0; b < st.bands; b++)
+        for (const l of section.lays[i * st.bands + b] ?? []) if (l.key === key) return l;
+    }
   for (const t of section.tracks) for (const l of t.layers) if (l.key === key) return l;
   for (const ls of section.lays) for (const l of ls) if (l.key === key) return l;
   for (const l of section.sectionLays) if (l.key === key) return l;

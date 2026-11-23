@@ -10,7 +10,8 @@ import type { AxisTransform } from './axis.js';
 import { dataRegions, itemsGate, type LayerSource, pairsLevels, readTiles } from './layer-data.js';
 import type { LayoutContext, StoreReader } from './layer-type.js';
 import { OverAssembly } from './pairs-held.js';
-import type { PairsLay, PairsPrep } from './pairs-lay.js';
+import type { PairsPrep } from './pairs-lay.js';
+import type { PairsReadOptions } from './pairs-reader.js';
 import {
   type AssemblyRegion,
   Gather,
@@ -89,13 +90,13 @@ function countOf(
   return c.count;
 }
 
-const States = new WeakMap<PairsLay, AssemblyState>();
+const States = new WeakMap<object, AssemblyState>();
 
-function stateOf(lay: PairsLay): AssemblyState {
-  let s = States.get(lay);
+function stateOf(owner: object): AssemblyState {
+  let s = States.get(owner);
   if (!s)
     States.set(
-      lay,
+      owner,
       (s = {
         blocks: [],
         inView: [],
@@ -261,7 +262,10 @@ function fitBlocks(
   return fitted;
 }
 
-/** Tiles of every block in view at `level`, each entry with its block's unit (`units`, parallel). */
+/**
+ * Tiles of every block in view at `level`, each entry with its block's unit (`units`, parallel); `pending` when a tile is
+ * not loaded (waiting or failed), `waiting` when one is still to come.
+ */
 function readBlocks(
   ctx: LayoutContext,
   data: StoreReader,
@@ -270,20 +274,22 @@ function readBlocks(
   level: number,
   items: boolean,
   units: number[],
-): { entries: Loaded[]; pending: boolean } {
+): { entries: Loaded[]; pending: boolean; waiting: boolean } {
   const entries: Loaded[] = [];
   let pending = false;
+  let waiting = false;
   units.length = 0;
   for (let b = 0; b < n; b++) {
     const { src, regions, unit } = st.blocks[b];
     const r = readTiles(ctx, data, src, regions, level, items ? { items: true } : undefined);
     if (r.pending.length || r.failed.length) pending = true;
+    if (r.pending.length) waiting = true;
     for (const e of r.entries) {
       entries.push(e);
       units.push(unit);
     }
   }
-  return { entries, pending };
+  return { entries, pending, waiting };
 }
 
 /** The unit of a row's end: its listed name's (on its side over a sided source), else (no name) the block's read. */
@@ -378,7 +384,7 @@ const ItemUnits: number[] = [];
 
 /**
  * The frame's pairs of a layer over an assembly: each block in view read on its sequence, bins then items (the gate),
- * the rows found once with their ends' units. `undefined` while nothing is read.
+ * the rows found once with their ends' units, the state its owner's. `undefined` while nothing is read.
  */
 export function assemblyPairs(
   prep: PairsPrep,
@@ -386,13 +392,14 @@ export function assemblyPairs(
   over: AssemblyRegion,
   ctx: LayoutContext,
   data: StoreReader,
-  lay: PairsLay,
+  owner: object,
   at?: RegionOver,
   side?: 'a' | 'b',
+  options?: PairsReadOptions,
 ): PairsPrep | undefined {
   if (!ctx.place) return undefined;
-  const state = regionState(lay);
-  const st = stateOf(lay);
+  const state = regionState(owner);
+  const st = stateOf(owner);
   const n = blocksInView(over, ctx, st, side, at);
   // the positions in view by system (the arrays reused: a bridge's drawn-once rule normalizes them)
   if (!at) for (let u = 0; u < over.units.length; u++) state.windows.set(over.units[u], st.inView[u]);
@@ -412,7 +419,8 @@ export function assemblyPairs(
   // no block in view: nothing read (a read kept from before is stale)
   if (!n || !Number.isFinite(ppp)) return undefined;
   const cfg = ctx.config.pairs;
-  const fit = pairsLevels(levels, ppp, span, data, cfg.binPx);
+  const fit = pairsLevels(levels, ppp, span, data, options?.binPx ?? cfg.binPx, options?.gate ?? cfg.maxArcs);
+  const hysteresis = options?.hysteresis ?? cfg.itemsHysteresis;
   if (at) {
     // a bridge's `R`: at the near side's level, no gate; items pending, nothing
     const items = at.level === undefined;
@@ -424,25 +432,20 @@ export function assemblyPairs(
   }
   const bins = fitBlocks(ctx, data, st, n, levels, fit.bins);
   const binRead = readBlocks(ctx, data, st, n, bins, false, Units);
+  state.waiting = binRead.waiting;
   const binned = binRead.entries.some((e) => e.tables.pairs?.form === 'bins');
   state.binPairs = countOf(st.bins, over, st, binRead.entries, Units, bins, binned);
   let mode = binned ? 0 : 1;
   let read = binRead.entries;
   let units = Units;
   if (binned) {
-    const ask = itemsGate(
-      state.items,
-      state.binPairs,
-      state.items ? state.itemCount : undefined,
-      cfg.maxArcs,
-      cfg.itemsHysteresis,
-    );
+    const ask = itemsGate(state.items, state.binPairs, state.items ? state.itemCount : undefined, fit.gate, hysteresis);
     state.items = false;
     if (ask) {
       const itemRead = readBlocks(ctx, data, st, n, fit.items, true, ItemUnits);
       if (!itemRead.pending) {
         state.itemCount = countOf(st.items, over, st, itemRead.entries, ItemUnits, fit.items, false);
-        state.items = state.itemCount <= cfg.maxArcs * Math.max(1, cfg.itemsHysteresis);
+        state.items = state.itemCount <= fit.gate * Math.max(1, hysteresis);
         if (state.items) {
           mode = 1;
           read = itemRead.entries;

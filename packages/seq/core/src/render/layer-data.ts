@@ -246,16 +246,22 @@ export function gridLevel(
   return levels[i];
 }
 
-/** A pairs layer's two reads: bins at a pixel's level, items at a tile size (`RegionRequest.items`). */
+/**
+ * A pairs read's levels: bins at a pixel's level, items at a tile size (`RegionRequest.items`), and the items gate the
+ * read asks them under (`itemsGate`).
+ */
 export interface PairsLevels {
   readonly bins: number;
   readonly items: number;
+  /** Items are asked once the bin pairs with an end in view sum to at most this (the reader's own: what it draws). */
+  readonly gate: number;
 }
 
 /**
- * A pairs layer's levels: **bins** at the coarsest level no wider than `binPx` device pixels' positions (bounded as
+ * A pairs read's levels: **bins** at the coarsest level no wider than `binPx` device pixels' positions (bounded as
  * `boundedLevel`); **items** at the finest level whose tiles over the view fit the store's bound (no pixel floor: a
- * 10 Mb view reads its items in a few large tiles, never thousands of small ones).
+ * 10 Mb view reads its items in a few large tiles, never thousands of small ones); `gate`, the reader's items gate
+ * (the pairs layer's `pairs.maxArcs`; a reader that draws fewer gates at what it draws), none when absent.
  */
 export function pairsLevels(
   levels: readonly number[],
@@ -263,6 +269,7 @@ export function pairsLevels(
   span: number,
   data: Pick<StoreReader, 'settings'>,
   binPx = 2,
+  gate = Number.POSITIVE_INFINITY,
 ): PairsLevels {
   const bins = boundedLevel(levels, binPx * positionsPerPixel, span, data);
   const s = data.settings;
@@ -274,7 +281,7 @@ export function pairsLevels(
         items = l;
         break;
       }
-  return { bins, items };
+  return { bins, items, gate };
 }
 
 /**

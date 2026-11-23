@@ -714,16 +714,18 @@ param (`port`, a `HoverCardPortFactory` given the canvas's element, none headles
   the `hover.cardItems` cap) and the viewer's lookups (`CardReads`); `out` is the parts so far (`CardParts`: `title`,
   set when empty; `rows`; `words`, the sentence's phrases, never one a row; `whole`, set by a provider that says all
   there is; `moreCount`, matches past the cap not made into rows). The viewer's own sections are `BuiltInCardProviders`
-  (`seq:region` 10, `seq:pair` 20, `seq:group` 30, `seq:item` 40, `seq:columns-hidden` 50, `seq:row` 60, `seq:grid` 70,
-  `seq:residue` 80, `seq:place` 90, `seq:tooltips` 95, `seq:block` 110), listed by the default spec; their rows and
-  words are the card's and the live region's as they were (the hover sweep's digests hold them). A host adds an entry,
-  leaves one out of the registry it spreads, or lists its own under a built-in's name (a later entry under a name
-  replaces the earlier). A registry listing none keeps the built-ins. Providers change rows, never the hit or the
-  emphasis: the hover contract's floor is `seq:item` and `seq:place`, and a composition without either is said
-  (`seq.viewer.card.floor`, a warning). A provider that throws has what it added dropped (rows, words, title), the rest
-  shown, said once a provider (`seq.viewer.card.provider`). A run of small blocks is said by `seq:block` alone. Why
-  entries, not internal sections: the application composing the card is the outside user; one registry rule orders
-  header entries and providers.
+  (`seq:layer` 1: a layer type's own words, core's `LayerType.describe` for a hit of its layer, the first line the title
+  (`seq:item` keeps a title set), the rest rows, and at the keyboard cursor's cell what each layer of its section
+  `announce`s, never `whole`; `seq:region` 10, `seq:pair` 20, `seq:group` 30, `seq:item` 40, `seq:columns-hidden` 50,
+  `seq:row` 60, `seq:grid` 70, `seq:residue` 80, `seq:place` 90, `seq:tooltips` 95, `seq:block` 110), listed by the
+  default spec; their rows and words are the card's and the live region's as they were (the hover sweep's digests hold
+  them). A host adds an entry, leaves one out of the registry it spreads, or lists its own under a built-in's name (a
+  later entry under a name replaces the earlier). A registry listing none keeps the built-ins. Providers change rows,
+  never the hit or the emphasis: the hover contract's floor is `seq:item` and `seq:place`, and a composition without
+  either is said (`seq.viewer.card.floor`, a warning). A provider that throws has what it added dropped (rows, words,
+  title), the rest shown, said once a provider (`seq.viewer.card.provider`). A run of small blocks is said by
+  `seq:block` alone. Why entries, not internal sections: the application composing the card is the outside user; one
+  registry rule orders header entries and providers.
 - **Tooltips** (`card-tooltips.ts`, `seq:tooltips`, order 95): the spec's tooltips over the core's `tooltipsAt` (core
   "Render", Tooltips), its body loaded with the tooltips (core "Resolve", Tooltip tables, Loaded when used; the entry
   stays in the registry). It answers only on drawn marks (an element under the pointer, a layer that marks every
@@ -999,6 +1001,10 @@ binding table; per move one hit record and one modifiers record are reused.
   scroll the page while the canvas has focus), a `ResizeObserver` for the width, a media query for the device pixel
   ratio now (made again after each change, a frame asked for), a web font arriving measures text again; the function
   `mountCanvas` returns takes away every listener, the observer and the nodes.
+- **A layer's summary** (`layer-aria.ts`, `layerAria`, `setLayerAria`): each layer whose type gives `summary` (core's
+  `LayerType`) a visually hidden `role="group"` beside the canvas, labelled by its track's label (a section layer: its
+  key), its text the summary, set when a frame settles. A lazy chunk: the mount loads it the first time a layer type
+  summarizes, so a viewer without one bundles none of it. Why: ribbons are not focusable one by one; their counts are.
 - **Announcements** (`announcer.ts`, `Announcer`, DOM-free; the mount owns its one `role="status"` `aria-live="polite"`
   region, visually hidden, in the container, and shows `announcer.message` in it, cleared and set so the same words
   twice are heard twice). The words are `describe.ts`'s (`Describer`), the hover card's too: a place goes through the
@@ -1374,6 +1380,12 @@ The cells the molecules design names, each built or not and why (the core's "Res
   keys go through `@molstar/ui`'s keymap, and a `key` binding here is reported. Modifiers are `shift`, `mod` (Cmd on
   macOS, Ctrl elsewhere, `modifiersOf`, which fills a reused record), `alt`, `space`; exact, or `'*'` for whatever is
   held, tried after the exact ones. Why: a modifier held for something else must not kill the hover.
+- **Scoped to a layer type** (`layer`, an extension's type name): the binding holds on that type's hits only and wins
+  over the grammar's binding of the same gesture there (`BindingTable.resolveIn`, `changeKind` given the type); a click
+  or a double-click runs its command with `{ section, hit }` (a copy of the hit), never the selection or the focus. Only
+  those two are scoped: the table refuses a scoped hover, drag, wheel, pinch or button (`seq.viewer.binding.scope`),
+  which drive model methods over the view or the history and would never run. Why: an extension's element opens what it
+  names (the genome ring's `opens`) without taking the gesture from every other layer.
 - **Targets** are a hit's kind or `any`; a binding for the kind beats `any`'s. A collapsed break is its own target
   (`break`, the render hit's `target`): no default binding but the hover, so a double-click on it does nothing (the
   pointer aimed at the break; showing its stretch is `section.collapse`, a spec change). A header's parts are targets

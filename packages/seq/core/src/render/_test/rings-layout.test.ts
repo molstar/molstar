@@ -57,6 +57,16 @@ describe('the rings layout', () => {
     expect(f.layout.issues.filter((i) => i.severity === 'error')).toEqual([]);
   });
 
+  it('a section’s `center: none` leaves the hole empty, over the render config’s `rings.center`', async () => {
+    const none = ringOf(await (await settle(ringSpec({ center: 'none' }))).frame({ size: Size }));
+    expect([(none.placement as RingPlacement).title, (none.placement as RingPlacement).subtitle]).toEqual(['', '']);
+    // the param wins over the preset either way
+    const title = await settle(ringSpec({ center: 'title' }), [], { rings: { center: 'none' } });
+    expect((ringOf(await title.frame({ size: Size })).placement as RingPlacement).title).toBe('construct');
+    const preset = await settle(ringSpec(), [], { rings: { center: 'none' } });
+    expect((ringOf(await preset.frame({ size: Size })).placement as RingPlacement).title).toBe('');
+  });
+
   it('placement is the inverse of hit-testing over rotations: every position placed once, `at` gives it back, `offsetAt` monotone in angle', async () => {
     const r = rng(3);
     for (let n = 0; n < 4; n++) {

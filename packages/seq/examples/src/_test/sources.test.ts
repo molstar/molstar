@@ -21,6 +21,7 @@ import {
   MisreadGffFile,
   MisreadVcfFile,
 } from '../genomes/files.js';
+import { RingLinks1000File } from '../genomes/ring/data.js';
 import { PackageFolder } from '../node-assets.js';
 
 // Provenance is data (examples.md, "One rule for every fixture"): each dataset's `sources.json` lists every file of its
@@ -59,6 +60,7 @@ const Generated = new Set(
     GeneratedGenotypesFile,
     MisreadVcfFile,
     MisreadGenbankFile,
+    RingLinks1000File,
   ].map((f) => f.slice('fixtures/'.length)),
 );
 

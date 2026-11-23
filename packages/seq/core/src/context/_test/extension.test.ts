@@ -80,7 +80,7 @@ const DotsType: LayerType<DotsPrep, DotsLay> = {
 const Demo: SeqExtension = defineExtension({
   id: 'demo',
   version: '0.2.0',
-  requires: '0.9',
+  requires: '0.10',
   registry: [{ kind: 'layer-type', type: DotsType }],
   params: { 'demo:dots': { radius: { type: 'number', min: 0, doc: 'The dots’ radius, px.' } } },
 });
@@ -212,7 +212,7 @@ describe('extensions: a namespaced layer type', () => {
 });
 
 describe('extensions: registration', () => {
-  const other = defineExtension({ id: 'other', version: '1.0.0', requires: '0.9', registry: [] });
+  const other = defineExtension({ id: 'other', version: '1.0.0', requires: '0.10', registry: [] });
   const runtime = (name: string) => ({ name, formats: ['shared'], open: () => Promise.reject(new Error('none')) });
 
   it('checks a descriptor where it is defined: every offender in one error', () => {
@@ -269,8 +269,8 @@ describe('extensions: registration', () => {
       requiresCovers('1.2', '1.3.0'),
       requiresCovers('1.2', '1.1.0'),
     ]).toEqual([true, false, false, true, false]);
-    // a reader at 0.9 of a spec written for 1.0: the old contract, so the fallback, said
-    const old = createSeqContext({ extensions: [defineExtension({ ...Demo, version: '0.9.0' })] });
+    // a reader at 0.10 of a spec written for 1.0: the old contract, so the fallback, said
+    const old = createSeqContext({ extensions: [defineExtension({ ...Demo, version: '0.10.0' })] });
     const root = spec();
     const v = old.view(old.resolve({ ...root, params: { ...root.params, extensions: { demo: '1.0' } } }))!;
     expect(v.sections[0].tracks[0].layers[0].fallbacks).toEqual(['ranges']);

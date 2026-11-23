@@ -16,6 +16,7 @@ import type { AxisTransform } from './axis.js';
 import { boundedLevel } from './layer-data.js';
 import type { LayoutContext, StoreReader } from './layer-type.js';
 import { endsIn, type PairsPrep } from './pairs-lay.js';
+import type { PairsReadOptions } from './pairs-reader.js';
 import { Gather, withData } from './pairs-region.js';
 
 // Held pairs by the pairs level (_spec/README.md "Render", The pairs layer: held pairs past the gate): a held table
@@ -143,9 +144,15 @@ function buildTo(p: HeldPyramid, target: number): void {
 
 /**
  * The binned prep of held pairs past the gate, or undefined when they draw as items (under it, at the items' level,
- * a complex's links, a grid's dots: not binned).
+ * a complex's links, a grid's dots: not binned). `options`: the reader's bin width and gate (the pairs config's when
+ * absent).
  */
-export function heldBins(prep: PairsPrep, ctx: LayoutContext, data: StoreReader): PairsPrep | undefined {
+export function heldBins(
+  prep: PairsPrep,
+  ctx: LayoutContext,
+  data: StoreReader,
+  options?: PairsReadOptions,
+): PairsPrep | undefined {
   const d = prep.data;
   if (!d || prep.region || prep.weight || ctx.axisY) return undefined;
   // a complex's links stay items (their units are a structure's, binned by device column past the bound); over an
@@ -153,10 +160,11 @@ export function heldBins(prep: PairsPrep, ctx: LayoutContext, data: StoreReader)
   if (prep.endUnits && (!OverAssembly.list || prep.model.systems.get(prep.endUnits[0])?.kind === 'unit'))
     return undefined;
   const cfg = ctx.config.pairs;
-  if (d.n <= cfg.maxArcs || inView(prep, ctx, ctx.axis) <= cfg.maxArcs) return undefined;
+  const gate = options?.gate ?? cfg.maxArcs;
+  if (d.n <= gate || inView(prep, ctx, ctx.axis) <= gate) return undefined;
   const p = pyramidOf(prep);
   const { ppp, span } = OverAssembly.scale?.(ctx) ?? { ppp: 1 / ctx.axis.devicePx, span: ctx.axis.u1 - ctx.axis.u0 };
-  const need = cfg.binPx * ppp;
+  const need = (options?.binPx ?? cfg.binPx) * ppp;
   // as a source's bins are read (`boundedLevel`): no wider than `binPx` pixels, coarser while the view's tiles at it
   // would pass the store's bound, so a held table and the same pairs from a file read one level
   const s = data.settings;

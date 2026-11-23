@@ -16,10 +16,26 @@ export {
   type SeqExtension,
   type SeqRegistryEntry,
 } from '@molstar/seqx-core/context';
-export type { FormatRuntime } from '@molstar/seqx-core/data';
+export {
+  coarsenBins,
+  type FormatRuntime,
+  type PairsBins,
+  type PairsList,
+  type PairsTable,
+} from '@molstar/seqx-core/data';
 export { defineExtension, requiresCovers } from '@molstar/seqx-core/context/define';
-export type { Key, Keys, Location } from '@molstar/seqx-core/query';
-export type { Overlay, StaticModel } from '@molstar/seqx-core/resolve';
+export {
+  type Address,
+  type NavigatorParams,
+  type Params,
+  type RefValue,
+  type SectionBuilder,
+  theme,
+  type TrackBuilder,
+  type ViewBuilder,
+} from '@molstar/seqx-core/lang';
+export { type Key, type Keys, type Location, rangesLocation } from '@molstar/seqx-core/query';
+export type { Overlay, PairsData, StaticModel } from '@molstar/seqx-core/resolve';
 export {
   type Box,
   type ContentContext,
@@ -27,6 +43,7 @@ export {
   type Hit,
   type HitMark,
   type ItemDescription,
+  type LayerPlace,
   type LayerType,
   drawNavigatorWindow,
   floorExtent,
@@ -36,9 +53,16 @@ export {
   type NavigatorPictureTracks,
   navigatorPart,
   NavWindowFlags,
+  type PairsLevels,
+  pairsLevels,
+  type PairsRead,
+  PairsReader,
+  type PairsReadOptions,
+  type PairsSource,
   type PassName,
   type PassWriter,
   type Placement,
+  PlacePoint,
   PolarWarp,
   type SectionLayoutType,
   type StoreReader,
@@ -48,4 +72,10 @@ export {
 } from '@molstar/seqx-core/render';
 export type { Legend, SchemeEntry, SchemeSubject } from '@molstar/seqx-core/theme';
 export type { NavigatorWindow } from '@molstar/seqx-core/render/navigator';
-export type { LayerShape, ResolvedLayer, ResolvedSection } from '@molstar/seqx-core/view';
+export {
+  type BlockPlace,
+  type LayerShape,
+  placesOf,
+  type ResolvedLayer,
+  type ResolvedSection,
+} from '@molstar/seqx-core/view';

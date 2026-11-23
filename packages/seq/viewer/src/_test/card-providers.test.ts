@@ -9,7 +9,7 @@
 // order, then name; the built-ins in the default spec; a host's added, filtered out, replaced; the floor said; a
 // provider that throws dropped and said once (EC-262).
 
-import { createSeqSpec } from '@molstar/seqx-core/lang';
+import { assembly, createSeqSpec, genome } from '@molstar/seqx-core/lang';
 import { DomHost } from '@molstar/ui/dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type CardProviderEntry, composeCardProviders } from '../card-provider.js';
@@ -92,7 +92,8 @@ describe('card providers', () => {
       note('lab:a', 5),
       ...BuiltInCardProviders,
     ]).map((p) => p.name);
-    expect(names.slice(0, 3)).toEqual(['lab:a', 'lab:b', CardProviderNames.region]);
+    // a layer type's own words first (`seq:layer`, 1)
+    expect(names.slice(0, 4)).toEqual([CardProviderNames.layer, 'lab:a', 'lab:b', CardProviderNames.region]);
     expect(names.at(-1)).toBe('lab:none');
     expect(names.indexOf(CardProviderNames.place)).toBeLessThan(names.indexOf(CardProviderNames.block));
   });
@@ -157,5 +158,47 @@ describe('card providers', () => {
     const said = v.behaviorIssues.value.filter((i) => i.code === 'seq.viewer.card.provider');
     expect(said).toHaveLength(1);
     expect(said[0].message).toContain('lab:bad');
+  });
+
+  it('with no layer hook the built-in cards are byte-equal with and without `seq:layer`', async () => {
+    const withIt = cards(await make((r) => r));
+    const without = cards(
+      await make((r) => r.filter((e) => e.kind !== 'card-provider' || e.name !== CardProviderNames.layer)),
+    );
+    expect(JSON.stringify(withIt)).toBe(JSON.stringify(without));
+  });
+
+  it('a host provider’s title by its order: an earlier one under the item’s title, a later one over it', async () => {
+    const titled = (name: string, order: number): CardProviderEntry => ({
+      kind: 'card-provider',
+      name,
+      order,
+      describe(at, out) {
+        if (at.place.element) out.title = `${name} title`;
+      },
+    });
+    expect(cards(await make((r) => [...r, titled('lab:early', 5)])).item?.title).toBe('Domain');
+    expect(cards(await make((r) => [...r, titled('lab:late', 95)])).item?.title).toBe('lab:late title');
+  });
+
+  it('a genome’s base has no index row (its number is its position); a protein’s residue keeps it', async () => {
+    const b = createSeqSpec({ title: 'genome' });
+    const g = b.data.assembly('toy', assembly('Toy', [{ name: 'chr1', length: 10_000 }]));
+    b.views.view('v', (vw) => {
+      genome(vw, 'g', g);
+    });
+    const v = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined });
+    viewers.push(v);
+    await v.load(b.build());
+    v.resize(900);
+    await v.settle();
+    frames.flush();
+    v.draw();
+    const d = describerFor({ ...v, layout: () => v.frame?.layout });
+    const s = v.frame!.layout.sections[0];
+    const card = d.describe({ section: s.section.address, system: '/data/toy/(sequence :name chr1)', position: 41 })!;
+    expect(card.title).toBe('chr1 42');
+    expect(card.rows.map((r) => r.label)).not.toContain('index');
+    expect(cards(await make((r) => r)).letter?.rows.map((r) => r.label)).toContain('index');
   });
 });

@@ -80,7 +80,23 @@ export { type LayerColors, layerColors, type ThemeInput, viewTheme } from './lay
 export { LegendBand, layoutLegends, legendsHeight, viewLegends } from './legends.js';
 export { OverlaySources } from './overlay-sources.js';
 export { LaneIndex, StickyLanes } from './lanes.js';
-export { type LayerSource, layerSource, readTiles, type TileContext, type TileRead } from './layer-data.js';
+export {
+  itemsGate,
+  type LayerSource,
+  layerSource,
+  type PairsLevels,
+  pairsLevels,
+  readTiles,
+  type TileContext,
+  type TileRead,
+} from './layer-data.js';
+export {
+  type PairsRead,
+  PairsReader,
+  type PairsReadOptions,
+  type PairsSource,
+  readPairs,
+} from './pairs-reader.js';
 export { regionProjector } from './lift-project.js';
 export {
   type Box,
@@ -94,6 +110,7 @@ export {
   type HitTarget,
   type LabelSink,
   type ItemDescription,
+  type LayerPlace,
   type LayerType,
   type ContentContext,
   type LayoutContext,

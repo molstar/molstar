@@ -46,7 +46,7 @@ function demo() {
   const base: SeqViewerExtension = {
     id: 'demo',
     version: '0.1.0',
-    requires: '0.9',
+    requires: '0.10',
     registry: [{ kind: 'layer-type', type: Bars }],
     behaviors: [{ provider: { name: 'demo:behavior', create: () => ({ dispose: disposed }) } }],
     commands: [command],

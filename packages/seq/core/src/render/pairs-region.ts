@@ -19,9 +19,10 @@ import {
 import type { LayoutContext, StoreReader } from './layer-type.js';
 import { withGenome } from '@molstar/seqx-core/resolve';
 import { sidedName } from '@molstar/seqx-core/data';
-import { PairDatum, type PairsLay, type PairsPrep } from './pairs-lay.js';
+import { PairDatum, type PairsPrep } from './pairs-lay.js';
+import type { PairsReadOptions } from './pairs-reader.js';
 
-// Pairs read by region (_spec/README.md "Render", The pairs layer: by region): the layer's one reader over a source's
+// Pairs read by region (_spec/README.md "Render", The pairs layer: by region): the reader's (`pairs-reader.ts`) over a source's
 // pairs, as held pairs are read. Two reads: bins at a pixel's level (`pairs.binPx`), always; items as items tiles at the
 // finest level whose tiles fit, asked once the bin pairs with an end in view sum to at most `pairs.maxArcs` and kept
 // while the items in view stay within `pairs.itemsHysteresis` × it. Bins draw until the items land (EC-169: pending is
@@ -40,7 +41,7 @@ withGenome(() =>
   }),
 );
 
-/** What a region read of pairs keeps on its lay between frames. */
+/** What a region read of pairs keeps on its owner (a lay, a reader) between frames. */
 export interface RegionState {
   /** What the data was built from: the mode (0 bins, 1 items), the level, then each entry's tile and version. */
   readonly read: number[];
@@ -52,6 +53,8 @@ export interface RegionState {
   itemCount: number;
   /** The bins' tiles not loaded, `[start, end, …]` on the data's system (a bridge's pending hatch, EC-169). */
   pending?: readonly number[];
+  /** Whether the last read waits on a bins' tile it wanted (a region's or an assembly's block's). */
+  waiting: boolean;
   /**
    * The data's positions read this frame by its system (`dataRegions`: projected, normalized, merged near; over an
    * assembly each block's system): a bridge's drawn-once rule reads them.
@@ -59,13 +62,24 @@ export interface RegionState {
   readonly windows: Map<string, number[]>;
 }
 
-/** A lay's region state, made on first read. */
-const States = new WeakMap<PairsLay, RegionState>();
+/** An owner's region state (a pairs lay's, a bridge side's, a reader's), made on first read. */
+const States = new WeakMap<object, RegionState>();
 
-export function regionState(lay: PairsLay): RegionState {
-  let s = States.get(lay);
+export function regionState(owner: object): RegionState {
+  let s = States.get(owner);
   if (!s)
-    States.set(lay, (s = { read: [], prep: undefined, items: false, binPairs: 0, itemCount: 0, windows: new Map() }));
+    States.set(
+      owner,
+      (s = {
+        read: [],
+        prep: undefined,
+        items: false,
+        binPairs: 0,
+        itemCount: 0,
+        windows: new Map(),
+        waiting: false,
+      }),
+    );
   return s;
 }
 
@@ -192,21 +206,24 @@ function inView(regions: readonly number[], s: number, e: number): boolean {
 
 /**
  * The frame's pairs of a region layer: reads bins, gates items, and gives the prep the arcs lay out (`undefined` while
- * nothing is read). The read's state is the lay's. Over an assembly, a read a block (`pairs-assembly.ts`; `side`, a
- * bridge side's of one genome against itself). `over`: the regions read instead of the view's at a level given (a
- * bridge's near side reads its `R`); items pending, nothing.
+ * nothing is read). The read's state is its owner's (`regionState`). Over an assembly, a read a block
+ * (`pairs-assembly.ts`; `side`, a bridge side's of one genome against itself). `over`: the regions read instead of the
+ * view's at a level given (a bridge's near side reads its `R`); items pending, nothing. `options`: the reader's bin
+ * width and gate (the pairs config's when absent).
  */
 export function regionPairs(
   prep: PairsPrep,
   region: PairsRegion,
   ctx: LayoutContext,
   data: StoreReader,
-  lay: PairsLay,
+  owner: object,
   over?: RegionOver,
   side?: 'a' | 'b',
+  options?: PairsReadOptions,
 ): PairsPrep | undefined {
-  if (region.assembly) return AssemblyPairs.read?.(prep, region, region.assembly, ctx, data, lay, over, side);
-  const state = regionState(lay);
+  if (region.assembly)
+    return AssemblyPairs.read?.(prep, region, region.assembly, ctx, data, owner, over, side, options);
+  const state = regionState(owner);
   const { src } = region;
   const cov = data.coverage(src.source);
   const levels = cov?.levels ?? [1];
@@ -220,13 +237,22 @@ export function regionPairs(
   }
   const span = (ctx.axis.u1 - ctx.axis.u0) * src.ratio;
   const cfg = ctx.config.pairs;
-  const fit = pairsLevels(levels, src.ratio / ctx.axis.devicePx, span, data, cfg.binPx);
+  const fit = pairsLevels(
+    levels,
+    src.ratio / ctx.axis.devicePx,
+    span,
+    data,
+    options?.binPx ?? cfg.binPx,
+    options?.gate ?? cfg.maxArcs,
+  );
+  const hysteresis = options?.hysteresis ?? cfg.itemsHysteresis;
   const items = fit.items;
   if (over) return overRead(prep, region, ctx, data, state, regions, over, items);
   // past the store's bounds on the layer's wants together: coarser bins, then zoom in
   const bins = fittedLevel(ctx, data, src, regions, fit.bins);
   const binRead = readTiles(ctx, data, src, regions, bins);
   state.pending = binRead.pending;
+  state.waiting = binRead.pending.length > 0;
   // at the finest level the bins are the items themselves
   const binned = binRead.entries.some((e) => e.tables.pairs?.form === 'bins');
   state.binPairs = binned
@@ -235,19 +261,13 @@ export function regionPairs(
   let mode = binned ? 0 : 1;
   let read = binRead.entries;
   if (binned) {
-    const ask = itemsGate(
-      state.items,
-      state.binPairs,
-      state.items ? state.itemCount : undefined,
-      cfg.maxArcs,
-      cfg.itemsHysteresis,
-    );
+    const ask = itemsGate(state.items, state.binPairs, state.items ? state.itemCount : undefined, fit.gate, hysteresis);
     state.items = false;
     if (ask) {
       const itemRead = readTiles(ctx, data, src, regions, items, { items: true });
       if (!itemRead.pending.length && !itemRead.failed.length) {
         state.itemCount = countItems(itemRead.entries, region, regions);
-        state.items = state.itemCount <= cfg.maxArcs * Math.max(1, cfg.itemsHysteresis);
+        state.items = state.itemCount <= fit.gate * Math.max(1, hysteresis);
         if (state.items) {
           mode = 1;
           read = itemRead.entries;
