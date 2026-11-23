@@ -25,6 +25,7 @@ things are, the contracts a reader keeps, and the decisions (the rule, then why)
 | `src/common/binary-cif/`                        | BinaryCIF: `encoding.ts` (file and encoding types), `decoder.ts`, `array-encoder.ts`, `classifier.ts`, `header.ts` |
 | `src/common/msgpack/`                           | MessagePack decode (with extensions and skipping) and encode                                                       |
 | `src/common/netcdf/`                            | NetCDF reader (NCTRAJ)                                                                                             |
+| `src/common/image.ts`                           | images decoded by the browser as stored (`decodeImage`, `decodeImageBitmap`: not premultiplied, no color change)   |
 | `src/common/` (rest)                            | `FileHandle` (random-access reads), `SimpleBuffer` and `IOBuffer` (endian-aware), typed-array reads, ASCII helpers |
 | `src/writer/cif.ts`, `src/writer/cif/`          | `CifWriter`: categories and fields to text or BinaryCIF (cif.md §6)                                                |
 | `src/utils/short-string-pool.ts`                | string interning for short strings                                                                                 |
@@ -51,6 +52,12 @@ things are, the contracts a reader keeps, and the decisions (the rule, then why)
 
 ## Decisions
 
+- **Images decode as stored, read back through WebGL** (`common/image.ts`). A format's image channels may be data, not
+  colors (SOG's codebook indices, an opacity in alpha): decoded without premultiplying or converting colors
+  (`createImageBitmap`), and read back through a texture of its own WebGL context (WebGL2, else WebGL1: all it needs),
+  not a 2D canvas, which premultiplies and so changes the rgb of every pixel whose alpha is below 255. Only in a
+  browser: Node has no image decoder, so a reader takes its decoder as an argument (SOG's `SogImageDecoder`) and tests
+  pass their own.
 - **Text is tokenized as bytes.** A downloaded or read file is its bytes; a byte tokenizer neither decodes the whole
   text nor holds a string of it, and indexing bytes is about 2× faster than `charCodeAt` (slower still at a call site
   that has seen a `ChunkedBigString`). The delimiters of every text format here are ASCII, which never occurs inside a

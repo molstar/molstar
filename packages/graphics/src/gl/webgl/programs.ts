@@ -62,6 +62,8 @@ import { ssaoBlur_frag } from './shader/ssao-blur.frag.js';
 import { ssao_frag } from './shader/ssao.frag.js';
 import { text_frag } from './shader/text.frag.js';
 import { text_vert } from './shader/text.vert.js';
+import { gaussianSplats_frag } from './shader/gaussian-splats.frag.js';
+import { gaussianSplats_vert } from './shader/gaussian-splats.vert.js';
 import { registerGlslProgram } from './program-registry.js';
 
 export {
@@ -82,6 +84,7 @@ registerGlslProgram('lines', lines_vert, lines_frag);
 registerGlslProgram('mesh', mesh_vert, mesh_frag);
 registerGlslProgram('direct-volume', directVolume_vert, directVolume_frag);
 registerGlslProgram('image', image_vert, image_frag);
+registerGlslProgram('gaussian-splats', gaussianSplats_vert, gaussianSplats_frag);
 
 // passes
 registerGlslProgram('background', background_vert, background_frag);

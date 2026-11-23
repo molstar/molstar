@@ -27,6 +27,24 @@ export function convertGroupsToFloat(data: DataArray<any>, itemTexels: number): 
 }
 
 /**
+ * `rgba16i` data as floats (WebGL1, no integer textures): the int16s as floats, the fourth unsigned, as the WebGL2 and
+ * WebGPU accessors read them (a copy; WebGL1 the fallback)
+ */
+export function convertInt16ToFloat(data: DataArray<any>): DataArray<Float32Array> {
+  const n = data.count * 4;
+  const array = data.array as Int16Array | SegmentedArray<Int16Array>;
+  const src = SegmentedArray.is(array) ? SegmentedArray.read(array, 0, n) : array.subarray(0, n);
+  const out = new Float32Array(src.length);
+  for (let i = 0; i < src.length; i += 4) {
+    out[i] = src[i];
+    out[i + 1] = src[i + 1];
+    out[i + 2] = src[i + 2];
+    out[i + 3] = src[i + 3] & 0xffff;
+  }
+  return { array: out, count: data.count };
+}
+
+/**
  * WebGL's pages of data arrays (`DataSpec`), as WebGPU's storage pages: textures of one format shared by the data of
  * many items, each in a range of elements (texels, row by row), its offset an object uniform (`u<Name>Offset`). Draws of
  * items in the same pages bind the same textures, which the programs skip (`WebGLState.boundTextures`)
@@ -85,6 +103,8 @@ export function createDataTexturePages(
   format: DataFormat,
   createTexture: (format: DataFormat) => GLTexture,
   maxTextureSize: number,
+  /** of the pages' textures: `rgba16i` 16 as floats (WebGL1) */
+  bytesPerElement = DataFormatBytes[format],
 ): DataTexturePages {
   type Page = { readonly texture: GLTexture; readonly allocator: RangeAllocator; readonly dedicated: boolean };
   type Range = DataTextureRange & { readonly page: Page };
@@ -102,14 +122,14 @@ export function createDataTexturePages(
     texture.define(width, height);
     const page = { texture, allocator: createRangeAllocator(width * height, Alignment), dedicated };
     pages.push(page);
-    pageBytes += width * height * DataFormatBytes[format];
+    pageBytes += width * height * bytesPerElement;
     return page;
   };
 
   const drop = (page: Page) => {
     pages.splice(pages.indexOf(page), 1);
     const { capacity } = page.allocator;
-    pageBytes -= capacity * DataFormatBytes[format];
+    pageBytes -= capacity * bytesPerElement;
     page.texture.destroy();
   };
 
@@ -152,7 +172,7 @@ export function createDataTexturePages(
     get pageBytes() {
       return pageBytes;
     },
-    bytesPerElement: DataFormatBytes[format],
+    bytesPerElement,
     destroy() {
       for (const p of pages) p.texture.destroy();
       pages.length = 0;

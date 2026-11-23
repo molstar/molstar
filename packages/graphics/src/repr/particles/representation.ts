@@ -6,7 +6,8 @@
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import type { ParticleList } from '@molstar/model/model/particles/particle-list';
+import { Particle, type ParticleList } from '@molstar/model/model/particles/particle-list';
+import { ParticleNesting } from '@molstar/model/model/particles/particle-nesting';
 import { Theme } from '@molstar/graphics/theme/theme';
 import { getNextMaterialId, type GraphicsRenderObject } from '@molstar/graphics/gl/render-object';
 import type { PickingId } from '@molstar/graphics/geo/geometry/picking';
@@ -61,7 +62,16 @@ export function ParticleRepresentation<P extends ParticleParams>(
   let _theme = Theme.createEmpty();
 
   let visual: ParticleVisual<P> | undefined;
+  /** the list drawn: `_list` flattened (`ParticleNesting.flatten`), `_list` itself without templates */
   let _particles: ParticleList;
+  /** the list given: its loci what the representation gives and marks (a list with templates' by path) */
+  let _list: ParticleList;
+
+  /** a loci of the drawn list as the given list's (a flattened list's instances by path) */
+  function toListLoci(loci: ModelLoci): ModelLoci {
+    if (_list === _particles || !Particle.isLoci(loci) || loci.particles !== _particles) return loci;
+    return ParticleNesting.fromFlatIndices(_list, loci.indices);
+  }
   let _params: P;
   let _props: PD.Values<P>;
 
@@ -83,7 +93,10 @@ export function ParticleRepresentation<P extends ParticleParams>(
 
   /** updates one after another, see `Representation.createUpdateQueue` */
   const serialize = Representation.createUpdateQueue();
-  function createOrUpdate(props: Partial<PD.Values<P>> = {}, particles?: ParticleList) {
+  function createOrUpdate(props: Partial<PD.Values<P>> = {}, nested?: ParticleList) {
+    // a list with templates drawn by its leaves, flattened (cached on it; a list without as it is)
+    const particles = nested && ParticleNesting.flatten(nested);
+    if (nested) _list = nested;
     if (particles && particles !== _particles) {
       _params = getParams(ctx, particles);
       _particles = particles;
@@ -174,17 +187,22 @@ export function ParticleRepresentation<P extends ParticleParams>(
     setState,
     setTheme,
     getLoci: (pickingId: PickingId) => {
-      return visual?.getLoci(pickingId) ?? EmptyLoci;
+      return toListLoci(visual?.getLoci(pickingId) ?? EmptyLoci);
     },
     getAllLoci: () => {
       if (!_particles) return [];
-      return [getLoci(_particles, _props)];
+      return [toListLoci(getLoci(_particles, _props))];
     },
     eachLocation: (cb: LocationCallback) => {
       visual?.eachLocation(cb);
     },
     mark: (loci: ModelLoci, action: MarkerAction) => {
-      return visual?.mark(loci, action) ?? false;
+      // a loci of the given list with templates marked as its flattened list's
+      const drawn =
+        _list !== _particles && Particle.isLoci(loci) && loci.particles === _list
+          ? ParticleNesting.toFlatLoci(loci)
+          : loci;
+      return visual?.mark(drawn, action) ?? false;
     },
     setGraphics: (value: GraphicsContext) => {
       graphics = value;

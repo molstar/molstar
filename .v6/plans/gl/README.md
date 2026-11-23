@@ -154,6 +154,18 @@ Follow-ups from the review of the WebGPU branch (correctness, memory, one decisi
   corner axes and a scale line; the gizmo library and Prism on the overlay, with facing fade, drag
   dimming, hit areas (the clipping gizmos' too), billboards and unlit handles with a rim; DOF before the overlay).
 
+- [gaussian-splats.md](gaussian-splats.md): steps 1 to 10 of 10 done: Gaussian splats (3DGS) as a geometry kind on WebGL2
+  and WebGPU: rotation, scales and opacity per splat (`tSplat`, `rgba16i`) beside `tPositionGroup`, EWA projection, a
+  back-to-front order (`tSplatOrder`, a counting sort when the view turns, on the GPU on WebGPU), one blended pass after
+  the other transparency; PLY (3DGS and the compressed layout), `.splat`, `.spz` and `.sog` files, picking, marking,
+  layers, view-dependent color; data-layer pages by the schema's layers; WebGL1 by float pages; SOG read in place on
+  the GPU (its images as textures, decoded by the shaders), upright as the shape's transform. Next: depth for
+  post-processing (proposed), [gaussian-splats-lod.md](gaussian-splats-lod.md).
+
+- [gaussian-splats-lod.md](gaussian-splats-lod.md): planned: PlayCanvas's streamed SOG (`lod-meta.json` over chunk
+  files, levels of detail by distance within a splat budget): the loaded files' images as layers of texture arrays read
+  in place, the selected ranges drawn and sorted as one object; the folder SOG, the manifest, layers, streaming.
+
 - [gizmo-controls.md](gizmo-controls.md): proposed: z-fighting of solid-interior caps with clip visuals; gizmo rings at a
   constant rate, free rotation as the trackball; the clip gizmos' turn handle, the slide arrow's fade an option.
 
@@ -189,6 +201,9 @@ Follow-ups from the review of the WebGPU branch (correctness, memory, one decisi
 - [merged-segment-draws.md](merged-segment-draws.md): merged objects of many single-instance segments: the cull view
   by one version done (70 → 50 ms a moving frame of the NPC capsid); item-range draws (GPU 1.31 → 0.23 ms) and
   flattening rejected (complexity, clipping by the original unit); culling by batches open.
+- [chunked-impostor-draws.md](chunked-impostor-draws.md): paused (its reason an uncapped benchmark's): sphere impostors of merged objects culled on the GPU
+  drawn from chunks of culled instances, one indirect draw an object and phase, not a record a member, level and phase
+  (the yeast inside: about 11,000 records a frame, Chrome's GPU process busy, every write waiting).
 
 - [sphere-compute-raster.md](sphere-compute-raster.md): small opaque spheres rasterized by compute kernels into a
   visibility buffer (64-bit `atomicStoreMax` of depth and id, `atomic-vec2u-min-max`), shaded once per pixel by a
@@ -215,6 +230,13 @@ Follow-ups from the review of the WebGPU branch (correctness, memory, one decisi
   `Canvas3D.asyncIdentify(…).wait()`).
 
 ## Not started
+
+- [mesoscale-lod.md](mesoscale-lod.md): proposed: levels of detail for mesoscale scenes: one metric (error on screen
+  in CSS pixels), bands (several representations of a target over one instance source, chosen by the cull), exact
+  dithered crossfades (nested sphere levels by a geomorph), fades in time for loads, proxies a particle, instance
+  overrides (a few posed, pinned or hidden; the nearest promoted), moving instances (bounds by reach or law, a
+  spatial index for free motion), motion evaluated on the GPU, mesh levels by index ranges, aggregates a region
+  far away; how it fits meso\*'s render IR and runtimes.
 
 - [clip-drag.md](clip-drag.md): a clip object's drag on the yeast cell was about 74 ms a mousemove, all CPU (every
   particle target updated in full, every merged group checked); the merge check cheap and a clip-only path done

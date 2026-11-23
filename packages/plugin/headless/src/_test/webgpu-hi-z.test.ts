@@ -135,6 +135,24 @@ describe.skipIf(!WebGPU.module)('Hi-Z on WebGPU', () => {
       const moved = await primed(grid, other);
       expect(moved.left).toBe(whole.left);
       expect(moved.right).toBeLessThan(whole.right / 2);
+
+      // a grid updated in place (a view's step: its array written, a new version naming the cells written): its cells
+      // alone uploaded, the level as a copy of it uploaded whole primes it
+      const density = new Float32Array(n * n * n).fill(1);
+      const base = { ...grid, density, version: 1 };
+      expect(await primed(base)).toEqual(whole);
+      const texture = (hiZ as unknown as { occluderTexture: { loadRows: (...a: unknown[]) => void } }).occluderTexture;
+      const rows = vi.spyOn(texture, 'loadRows');
+      for (let z = 0; z < n; ++z) {
+        for (let y = 0; y < n; ++y) density.fill(0, (z * n + y) * n, (z * n + y) * n + n / 2);
+      }
+      const updated = { ...base, version: 2, update: { from: 1, boxes: Int32Array.of(0, 0, 0, n / 2, n, n) } };
+      const partial = await primed(updated);
+      expect(rows).toHaveBeenCalledTimes(1);
+      rows.mockRestore();
+      const copy = await primed({ ...grid, density: density.slice() });
+      expect(partial).toEqual(copy);
+      expect(partial.left).toBeLessThan(whole.left);
       expect(graphics.takeErrors?.() ?? []).toEqual([]);
       hiZ.dispose();
     } finally {
@@ -273,6 +291,93 @@ describe.skipIf(!WebGPU.module)('Hi-Z on WebGPU', () => {
       await draw(false);
       expect(context.passes.draw.opaqueDepthDrawn).toBe(false);
       expect(levelPasses).toBe(0);
+    } finally {
+      plugin.dispose();
+    }
+  }, 60_000);
+
+  it("asks for a frame again once the levels of a stopped camera's view arrive, once a camera pose", async () => {
+    const plugin = await HeadlessPluginContext.create(
+      { webgpu: WebGPU.module! },
+      DefaultPluginSpec(),
+      { width: Size, height: Size },
+      { backend: 'webgpu' },
+    );
+    try {
+      await plugin.init();
+      const data = await plugin.builders.data.rawData({ data: Pdb, label: 'test' });
+      const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
+      const model = await plugin.builders.structure.createModel(trajectory);
+      const structure = await plugin.builders.structure.createStructure(model);
+      await plugin.builders.structure.representation.addRepresentation(structure, { type: 'spacefill' });
+      const canvas = plugin.canvas3d!;
+      canvas.setProps({ multiSample: { ...canvas.props.multiSample, mode: 'off' } });
+      const { graphics, camera } = canvas;
+      const passes = plugin.renderer.canvas3dContext!.passes;
+      // a pass of its own on the canvas's draw pass, driven as the canvas's frames drive theirs
+      const hiZ = new HiZPass(graphics, passes.draw, undefined, { enabled: true, minLevel: 1 });
+      hiZ.setViewport(0, 0, Size, Size);
+      const prepare = createPrepareBuilder(graphics, Renderer.create(graphics));
+      let time = now();
+      const { target } = camera.state;
+      const at = (z: number) => {
+        camera.setState({ target, position: Vec3.create(target[0], target[1], target[2] + z) }, 0);
+        camera.update();
+      };
+      /** a frame: culled with the levels so far (noted), its levels built from a camera at `levelsZ` (the frame's) */
+      const frame = async (levelsZ?: number) => {
+        canvas.commit(true);
+        canvas.requestDraw();
+        canvas.tick((time += 1000) as now.Timestamp, { isSynchronous: true });
+        await graphics.resources.pending.whenReady();
+        hiZ.noteCulled(camera);
+        const z = camera.state.position[2] - target[2];
+        if (levelsZ !== undefined) at(levelsZ);
+        hiZ.plan(prepare, camera);
+        hiZ.render(camera);
+        if (levelsZ !== undefined) at(z);
+      };
+      /** the levels read back (`tick` polled, as the canvas's ticks do) */
+      const arrive = async () => {
+        for (let i = 0; i < 200 && hiZ.isPending; ++i) {
+          await new Promise((resolve) => setTimeout(resolve, 5));
+          hiZ.tick();
+        }
+        expect(hiZ.isPending).toBe(false);
+      };
+
+      // the levels of a view, a frame of it culled with them: nothing to draw again
+      at(40);
+      await frame();
+      await arrive();
+      await frame();
+      await arrive();
+      expect(hiZ.takeCatchUp()).toBe(false);
+      // the camera moved and stopped: its frame culled with the levels of the view before, those of its own arriving
+      at(25);
+      await frame();
+      await arrive();
+      expect(hiZ.takeCatchUp()).toBe(true);
+      expect(hiZ.takeCatchUp()).toBe(false);
+      // that frame drawn again, with the levels of its view: no more
+      await frame();
+      await arrive();
+      expect(hiZ.takeCatchUp()).toBe(false);
+      // levels never of the frame's view (built of another): drawn again once, not again until the camera moves
+      at(30);
+      await frame(31);
+      await arrive();
+      expect(hiZ.takeCatchUp()).toBe(true);
+      await frame(31);
+      await arrive();
+      expect(hiZ.takeCatchUp()).toBe(false);
+      await frame(31);
+      await arrive();
+      expect(hiZ.takeCatchUp()).toBe(false);
+      at(35);
+      await frame();
+      await arrive();
+      expect(hiZ.takeCatchUp()).toBe(true);
     } finally {
       plugin.dispose();
     }

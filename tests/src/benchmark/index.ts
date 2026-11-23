@@ -50,6 +50,9 @@ import {
   MergingPostsynPixelModeCases,
   MergingPostsynPackCases,
   MergingYeastPackCases,
+  MergingIsgPackCases,
+  MergingIsgGridCases,
+  MergingYeastGridCases,
   ParticleFrameCases,
   MergingPostsynUpdateCases,
   ClipDragCases,
@@ -84,6 +87,9 @@ const AllCases: BenchmarkCase<any>[] = [
 /** Cases run only when a filter selects them (measurements for a decision, not the default run) */
 const OnDemandCases: BenchmarkCase<any>[] = [
   ...MergingYeastPackCases,
+  ...MergingIsgPackCases,
+  ...MergingIsgGridCases,
+  ...MergingYeastGridCases,
   ...ParticleFrameCases,
   ...SphereRasterCases,
   ...GaussianSurfaceCutoffCases,

@@ -135,11 +135,17 @@ export function setJitter(camera: Camera | StereoCamera, offset: number[]) {
   if (camera instanceof Camera && !camera.viewOffset.enabled) setJitterCullView(camera);
   camera.viewOffset.enabled = true;
   Camera.setViewOffset(camera.viewOffset, width, height, offset[0], offset[1], width, height);
-  camera.update();
+  updateSilently(camera);
+}
+
+/** a sample's jitter no move of the camera: its `changed` not told (a scene changed: a frame's samples, two each) */
+function updateSilently(camera: Camera | StereoCamera) {
+  if (camera instanceof Camera) camera.update(true);
+  else camera.update(undefined, true);
 }
 
 export function clearJitter(camera: Camera | StereoCamera) {
   camera.viewOffset.enabled = false;
   if (camera instanceof Camera) camera.cullView = undefined;
-  camera.update();
+  updateSilently(camera);
 }

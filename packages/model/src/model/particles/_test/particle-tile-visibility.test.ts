@@ -13,7 +13,11 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
 import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
 import type { ParticleTarget } from '../particle-list.js';
-import { type ParticleTileCamera, ParticleTileVisibility } from '../particle-tile-visibility.js';
+import {
+  getParticleTileSetRadius,
+  type ParticleTileCamera,
+  ParticleTileVisibility,
+} from '../particle-tile-visibility.js';
 import { type ParticleTile, ParticleTileCatalog, ParticleTileGrid, type ParticleTileSet } from '../particle-tiles.js';
 
 type B = [number, number, number, number, number, number];
@@ -90,6 +94,37 @@ describe('particle tile visibility', () => {
     expect(v.tiles[0].size).toBeCloseTo(256 / 89);
     // a smaller threshold keeps the far one
     expect(ids(ParticleTileVisibility.get(set, camera(eye), { minPixels: 1e-3 }))).toEqual([1, 0, 3]);
+  });
+
+  it('gives tiles alike far one scale whatever they hold; the set its largest radius', () => {
+    // two tiles side by side, alike far: one of a target of 1 Å, the other of 4 Å
+    const base = createSet([{ box: [-15, -5, -10, -5, 5, 0] }, { box: [5, -5, -10, 15, 5, 0] }]);
+    const set: ParticleTileSet = {
+      ...base,
+      catalog: {
+        ...base.catalog,
+        targets: new Map([
+          [1, { id: 1, kind: 'sites', radius: 1 }],
+          [2, { id: 2, kind: 'sites', radius: 4 }],
+        ]),
+      },
+      tiles: new Map([
+        [0, base.tiles.get(0)!],
+        [1, { ...base.tiles.get(1)!, targets: Int32Array.of(2) }],
+      ]),
+    };
+    expect(getParticleTileSetRadius(set)).toBe(4);
+    const v = ParticleTileVisibility.get(set, camera(eye), { occlusion: false });
+    const [a, b] = [0, 1].map((id) => v.tiles.find((t) => t.id === id)!);
+    // their sizes their own targets', their scale the same: the pixels an Å makes at their boxes (100 Å away)
+    expect(b.size).toBeGreaterThan(a.size * 3);
+    expect(a.scale).toBeCloseTo(b.scale);
+    expect(a.scale).toBeCloseTo(HalfHeight / Math.hypot(5, 100));
+    // within a box: Infinity
+    expect(ParticleTileVisibility.get(set, camera(Vec3.create(10, 0, -5))).tiles.find((t) => t.id === 1)!.scale).toBe(
+      Infinity,
+    );
+    expect(getParticleTileSetRadius(createSet([{ box: [0, 0, 0, 1, 1, 1] }], null))).toBeUndefined();
   });
 
   it("keeps a tile whose box is out of view but its targets' reach in, keeps a tile of an unknown radius", () => {
@@ -187,18 +222,19 @@ describe('particle tile visibility', () => {
   });
 
   it('gathers the optical depth of the tiles in front: two that each let much through hide together', () => {
-    // 0.2/Å over 20 Å: 4, under 7 alone; two: 8
+    // 0.2/Å over 20 Å: 4, under a threshold of 7 alone; two: 8
+    const at7 = { opticalDepth: 7 };
     const one = cells([
       [0, 4, 0.2],
       [0, 1, 0],
     ]);
-    expect(ParticleTileVisibility.get(one, camera(eye)).tiles.length).toBe(2);
+    expect(ParticleTileVisibility.get(one, camera(eye), at7).tiles.length).toBe(2);
     const two = cells([
       [0, 4, 0.2],
       [0, 3, 0.2],
       [0, 1, 0],
     ]);
-    const v = ParticleTileVisibility.get(two, camera(eye));
+    const v = ParticleTileVisibility.get(two, camera(eye), at7);
     expect(zIds(two, v).sort()).toEqual([3, 4]);
     expect(v.culled.occluded).toBe(1);
     // a higher threshold: not
@@ -291,6 +327,37 @@ describe('particle tile visibility', () => {
       [0, 4, 1],
       [0, 1, 0],
     ]);
+
+  it('walks the rays through a tile of blocks of other densities: its dense blocks hide, its empty ones let through', () => {
+    // the front tile's 2³ blocks (x fastest) of `density`, none behind it; the blocks' densities not one (a factor of 3:
+    // walked block by block, not one box)
+    const of = (density: number[]) => {
+      const set = front();
+      const tile = [...set.tiles.values()].find((t) => t.opacity)!;
+      const tiles = new Map(set.tiles);
+      tiles.set(tile.id, { ...tile, opacity: { dimensions: [2, 2, 2], density: Float32Array.from(density) } });
+      return { ...set, tiles };
+    };
+    // a plane clipping nothing (z below -1000): the blocks one by one (`add`), as before
+    const none = clipped([
+      {
+        type: 'plane',
+        position: Vec3.create(0, 0, -1000),
+        rotation: { axis: Vec3.create(1, 0, 0), angle: 90 },
+        invert: true,
+      },
+    ]);
+    const both = (set: ParticleTileSet) => {
+      const walked = ParticleTileVisibility.get(set, camera(eye));
+      const byBlock = ParticleTileVisibility.get(set, camera(eye), { drawings: [none] });
+      expect(ids(walked)).toEqual(ids(byBlock));
+      return zIds(set, walked);
+    };
+    // dense all over (1 and 3/Å over 20 Å): the tile behind hidden
+    expect(both(of([1, 3, 1, 3, 3, 1, 3, 1]))).toEqual([4]);
+    // the lower half (y below 0) dense, the upper empty: the tile behind seen through it
+    expect(both(of([1, 3, 0, 0, 3, 1, 0, 0]))).toEqual([4, 1]);
+  });
 
   it('cuts the blocks by clip planes, leaves out a tile all clipped away, inverted the other side', () => {
     const set = front();
@@ -393,12 +460,13 @@ describe('particle tile visibility', () => {
 
   it('gathers from the near plane where the camera is inside a tile, sizes a tile around it as Infinity', () => {
     const inside = Vec3.create(0, 0, 0);
-    // from the near plane (1 Å) to the cell's back at -10: 9 Å, 1/Å: 9
+    // from the near plane (1 Å) to the cell's back at -10: 9 Å, 1/Å: 9 (a threshold of 7)
+    const at7 = { opticalDepth: 7 };
     const dense = cells([
       [0, 4, 1],
       [0, 1, 0],
     ]);
-    const v = ParticleTileVisibility.get(dense, camera(inside));
+    const v = ParticleTileVisibility.get(dense, camera(inside), at7);
     expect(zIds(dense, v)).toEqual([4]);
     expect(v.tiles[0].size).toBe(Infinity);
     expect(v.tiles[0].distance).toBe(0);
@@ -407,7 +475,7 @@ describe('particle tile visibility', () => {
       [0, 4, 0.5],
       [0, 1, 0],
     ]);
-    expect(ParticleTileVisibility.get(thin, camera(inside)).tiles.length).toBe(2);
+    expect(ParticleTileVisibility.get(thin, camera(inside), at7).tiles.length).toBe(2);
   });
 
   it('gives the catalog a sites target radius around its center', () => {

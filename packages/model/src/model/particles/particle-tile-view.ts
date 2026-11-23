@@ -9,6 +9,7 @@ import {
   concatAttributes,
   concatPositions,
   concatRotations,
+  concatScales,
   concatValues,
   findSegment,
   type Segment,
@@ -46,6 +47,8 @@ export interface ParticleTileView {
   readonly composition: ReadonlyMap<number, ParticleTileViewPart>;
   /** a slot view (`createSlots`): its list a slot list, a tile a page at its base */
   readonly slots?: boolean;
+  /** a slot view's: its source's `targetsVersion` its mapping is of */
+  readonly targetsVersion?: number;
 }
 
 /** What gives a view its tiles' lists and targets: a loader's ready ones (`ParticleTileLoader`) */
@@ -54,6 +57,8 @@ export interface ParticleTileViewSource {
   getTarget(id: number): ParticleTarget | undefined;
   /** the targets loaded (a loader's): a slot view's mapping, else each tile's looked up */
   readonly targets?: ReadonlyMap<number, ParticleTarget>;
+  /** advanced as `targets` changes: a slot view of the same version keeps its mapping (`createSlots`) */
+  readonly targetsVersion?: number;
 }
 
 const ViewDescriptor = CustomPropertyDescriptor({ name: 'particle-tile-view' });
@@ -209,6 +214,8 @@ export namespace ParticleTileView {
       coordinates,
       rotations,
       radii: all((l) => l.radii) ? concatValues(segments, count, (l) => l.radii!, Float32Array) : undefined,
+      // a coarse node's particles drawn larger (`ParticleList.scale`, its runs' `scales`): by particle where a tile's are
+      scales: concatScales(segments, count),
       attributes: concatAttributes(segments, count),
       getParticleLabel: (index) => {
         const s = findSegment(segmentStarts, index);
@@ -291,7 +298,18 @@ export namespace ParticleTileView {
       pages.push(kept && kept.list === list ? kept : { start, list });
     }
     let targetMapping: Map<number, ParticleTarget>;
-    if (source.targets) {
+    // the last view's mapping where its source's targets are as they were (a step: thousands of targets not copied
+    // again, the representation's check of them by identity)
+    const last = from ? of(from) : undefined;
+    const version = source.targetsVersion;
+    if (
+      source.targets &&
+      last?.targetsVersion !== undefined &&
+      last.targetsVersion === version &&
+      from?.targetMapping
+    ) {
+      targetMapping = from.targetMapping as Map<number, ParticleTarget>;
+    } else if (source.targets) {
       targetMapping = new Map(source.targets);
     } else {
       targetMapping = new Map();
@@ -320,7 +338,15 @@ export namespace ParticleTileView {
       from,
       set.boundingSphere,
     );
-    const view: ParticleTileView = { set, frame, tiles: ids, list, composition: new Map(), slots: true };
+    const view: ParticleTileView = {
+      set,
+      frame,
+      tiles: ids,
+      list,
+      composition: new Map(),
+      slots: true,
+      targetsVersion: source.targets ? version : undefined,
+    };
     attach(list, view);
     return view;
   }

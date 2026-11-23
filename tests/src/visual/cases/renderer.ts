@@ -47,6 +47,10 @@ import { OrderedSet } from '@molstar/core/data/int/ordered-set';
 import { Volume } from '@molstar/model/model/volume';
 import { DirectVolumeRepresentationProvider } from '@molstar/graphics/repr/volume/direct-volume';
 import { blobVolume, volumeRepr } from '../scenes/volume.js';
+import { GaussianSplats } from '@molstar/graphics/geo/geometry/gaussian-splats/gaussian-splats';
+import { setSplat } from '@molstar/graphics/geo/geometry/gaussian-splats/splat-data';
+import { int32ToFloatBits } from '@molstar/graphics/geo/geometry/center-group';
+import { ShapeGroup } from '@molstar/model/model/shape/shape';
 
 async function primitivesScene() {
   return [await shapeRepr('mesh', meshPrimitives())];
@@ -57,6 +61,46 @@ async function illuminationScene() {
     await shapeRepr('mesh', meshPrimitives()),
     await shapeRepr('backdrop', meshBackdrop(12, -2), { colors: [Color(0xcccccc)] }),
   ];
+}
+
+/** The scene of `renderer/pick/gaussian-splats`: two opaque splats apart, groups 0 and 1 */
+async function splatPickScene() {
+  const { positionGroup, splatData } = GaussianSplats.createArrays(2);
+  for (const [i, x] of [-4, 4].entries()) {
+    positionGroup.set([x, 0, 0, int32ToFloatBits(i)], i * 4);
+    setSplat(splatData, i, Math.log(1.5), Math.log(1.5), Math.log(1.5), 0, 0, 0, 1, 1);
+  }
+  return [await shapeRepr('splats', GaussianSplats.create(positionGroup, splatData, 2))];
+}
+
+/**
+ * Picks the centers of both splats (each its group: the pick variant, on WebGL its GLSL too) and the corner (nothing),
+ * selects the second
+ */
+async function pickGaussianSplats({ graphics, canvas3d }: SceneContext, reprs: Representation.Any[]) {
+  const [splats] = reprs;
+  const errors: string[] = [];
+  const pick = async (world: Vec3 | undefined) => {
+    const p = world ? canvas3d.camera.project(Vec4(), world) : Vec4.create(1, 1, 0, 0);
+    const data = await canvas3d
+      .asyncIdentify(Vec2.create(p[0] / graphics.pixelRatio, p[1] / graphics.pixelRatio))
+      ?.wait();
+    return data ? canvas3d.getLoci(data.id) : undefined;
+  };
+  for (const [group, x] of [-4, 4].entries()) {
+    const picked = await pick(Vec3.create(x, 0, 0));
+    const loci = picked?.loci;
+    if (!loci || !ShapeGroup.isLoci(loci) || picked.repr !== splats) {
+      errors.push(`splat ${group}: picked ${loci?.kind ?? 'nothing'}, not the splat`);
+    } else if (OrderedSet.getAt(loci.groups[0].ids, 0) !== group) {
+      errors.push(`splat ${group}: picked group ${OrderedSet.getAt(loci.groups[0].ids, 0)}`);
+    } else if (group === 1) {
+      canvas3d.mark(picked, MarkerAction.Select);
+    }
+  }
+  const corner = await pick(undefined);
+  if (corner && corner.loci.kind !== 'empty-loci') errors.push(`corner: picked ${corner.loci.kind}, not nothing`);
+  return errors;
 }
 
 /** The scene of `renderer/pick/direct-volume`: a direct volume of blobs and an opaque box beside it */
@@ -437,6 +481,13 @@ export const RendererCases: VisualTestCase[] = [
     view: ObliqueView,
     scene: pickScene,
     interact: pickDirectVolume,
+  },
+  {
+    id: 'renderer/pick/gaussian-splats',
+    description: 'Picking two opaque splats at their centers (their groups) and the background; the second selected.',
+    view: ObliqueView,
+    scene: splatPickScene,
+    interact: pickGaussianSplats,
   },
   ...[1, 0.5].flatMap((resolutionScale): VisualTestCase[] => {
     const suffix = resolutionScale === 1 ? '' : '-half-resolution';

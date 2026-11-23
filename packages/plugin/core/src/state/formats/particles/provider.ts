@@ -7,7 +7,8 @@
 
 import { StateObjectRef } from '@molstar/core/state';
 import type { PluginStateObject } from '@molstar/plugin/state/objects';
-import { type ParticleList, getParticleTargetGroups } from '@molstar/model/model/particles/particle-list';
+import { Particle, type ParticleList, getParticleTargetGroups } from '@molstar/model/model/particles/particle-list';
+import { ParticleNesting } from '@molstar/model/model/particles/particle-nesting';
 import type { PluginContext } from '@molstar/plugin/context';
 import { ParticlesRepresentation3D } from '@molstar/plugin/state/transforms/particles/representation';
 import { ParticleListUnitcell3D } from '@molstar/plugin/state/transforms/particles/unitcell';
@@ -28,21 +29,58 @@ export interface ParticleFormatData {
   list: StateObjectRef<PluginStateObject.Particle.List>;
 }
 
-/** Whether the particle list has target objects and whether some particles are without one. */
+/**
+ * Whether the particle list has target objects and whether some particles are without one. A list with templates by
+ * its leaves: its own particles (a template's copy drawn by the target representation) and its templates' (the
+ * untargeted drawn flattened; not those of a template read by range, which flattening refuses)
+ */
 function getParticleTargetCoverage(particles: ParticleList | undefined) {
-  const mapping = particles?.targetMapping;
-  if (!particles || !mapping || mapping.size === 0) {
-    return { hasTargets: false, hasUntargeted: !!particles && particles.count > 0 };
-  }
-
-  const { targetIds } = getParticleTargetGroups(particles);
+  if (!particles) return { hasTargets: false, hasUntargeted: false };
   let hasTargets = false;
   let hasUntargeted = false;
-  for (let i = 0; i < targetIds.length; ++i) {
-    if (mapping.has(targetIds[i])) hasTargets = true;
-    else hasUntargeted = true;
+  const visit = (list: ParticleList, drawsUntargeted = true) => {
+    const mapping = list.targetMapping;
+    if (!mapping || mapping.size === 0) {
+      if (list.count > 0 && drawsUntargeted) hasUntargeted = true;
+      return;
+    }
+    const { targetIds } = getParticleTargetGroups(list);
+    for (let i = 0; i < targetIds.length; ++i) {
+      if (mapping.has(targetIds[i])) hasTargets = true;
+      else if (drawsUntargeted) hasUntargeted = true;
+    }
+  };
+  visit(particles);
+  if (ParticleNesting.hasTemplates(particles)) {
+    for (const template of ParticleNesting.getIdSpace(particles).moves.keys()) {
+      visit(template, !Particle.getDeferred(template));
+    }
   }
   return { hasTargets, hasUntargeted };
+}
+
+/**
+ * What `complexVisuals` draws of `particleList`: the target representation where it has targets, spacefill where some
+ * particles have none, fibers with them where it has fibers (not kept for a list with templates:
+ * `ParticleNesting.flatten`); colored by what infos it has (a list with templates by its leaves',
+ * `ParticleNesting.getThemeList`)
+ */
+export function getComplexVisualsPlan(particleList: ParticleList | undefined) {
+  const { hasTargets, hasUntargeted } = getParticleTargetCoverage(particleList);
+  const nested = !!particleList && ParticleNesting.hasTemplates(particleList);
+  const themed = particleList && nested ? ParticleNesting.getThemeList(particleList) : particleList;
+  const hasEntities = !!themed?.entityInfo;
+  const hasCompartments = !!themed?.compartmentInfo;
+  const colorTheme =
+    hasEntities && hasCompartments
+      ? 'particle-hierarchy'
+      : hasEntities
+        ? 'particle-entity'
+        : hasCompartments
+          ? 'particle-compartment'
+          : 'particle-index';
+  const hasFibers = hasUntargeted && !nested && !!particleList?.fibers && particleList.fibers.count > 0;
+  return { hasTargets, hasUntargeted, hasFibers, colorTheme };
 }
 
 export function complexVisuals(
@@ -52,19 +90,7 @@ export function complexVisuals(
 ) {
   const builder = plugin.state.data.build();
   const particleList = StateObjectRef.resolveAndCheck(plugin.state.data, data.list)?.obj?.data;
-
-  const { hasTargets, hasUntargeted } = getParticleTargetCoverage(particleList);
-  const hasEntities = !!particleList?.entityInfo;
-  const hasCompartments = !!particleList?.compartmentInfo;
-
-  const colorTheme =
-    hasEntities && hasCompartments
-      ? 'particle-hierarchy'
-      : hasEntities
-        ? 'particle-entity'
-        : hasCompartments
-          ? 'particle-compartment'
-          : 'particle-index';
+  const { hasTargets, hasUntargeted, hasFibers, colorTheme } = getComplexVisualsPlan(particleList);
 
   if (hasTargets) {
     builder.to(data.list).apply(ParticlesRepresentation3D, {
@@ -80,7 +106,7 @@ export function complexVisuals(
       ...(targetProps?.sizeTheme && { sizeTheme: targetProps.sizeTheme }),
     });
 
-    if (particleList?.fibers && particleList.fibers.count > 0) {
+    if (hasFibers) {
       builder.to(data.list).apply(ParticlesRepresentation3D, {
         type: { name: FibersRepresentationProvider.name, params: {} },
         colorTheme: targetProps?.colorTheme ?? { name: colorTheme, params: {} },

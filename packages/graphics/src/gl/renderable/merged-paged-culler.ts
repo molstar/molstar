@@ -4,9 +4,12 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { UserTiming } from '@molstar/core/task/util/user-timing';
 import { ValueCell } from '@molstar/core/util';
 import { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
 import { Vec4 } from '@molstar/core/math/linear-algebra/3d/vec4';
+import { Quat } from '@molstar/core/math/linear-algebra/3d/quat';
+import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
 import type { Frustum3D } from '@molstar/core/math/geometry/primitives/frustum3d';
 import type { Plane3D } from '@molstar/core/math/geometry/primitives/plane3d';
 import type { ComputeContext, ComputeKernel, StorageBuffer } from '../compute.js';
@@ -27,8 +30,8 @@ import { type LodLevelsValue, LodView } from '../renderable.js';
 import { CulledPagedFlag, CulledSegmentVec4s, getCulledSegmentData } from '../culled-data.js';
 import { ClipStorageVec4s, getCullClipCount, getInstanceClipCount, packStorageClipObjects } from '../clip-storage.js';
 import type { DataArray } from './util.js';
-import type { CulledValues, Merged, MergeableValues } from './merged.js';
-import type { MergedCuller, MergedRasterInput, MergedRasterParams } from './merged-culler.js';
+import type { CulledValues, Merged, MergeRecord } from './merged.js';
+import { isRasterSize, type MergedCuller, type MergedRasterInput, type MergedRasterParams } from './merged-culler.js';
 
 // The culler of a merged object of a page store (`MergedInstanceSource.paged`): its instances'
 // poses composed on the GPU as their pages are written, culled each frame into regions of their store indices by
@@ -42,6 +45,19 @@ import type { MergedCuller, MergedRasterInput, MergedRasterParams } from './merg
 const EmptyInt = new Int32Array(0);
 const EmptyUint = new Uint32Array(0);
 
+/**
+ * a template's spacing in CSS pixels below which a copy draws it at a coarse level (a level coarser each halving: its
+ * sample's spacing twice its level's before), `PagedCullView.coarse`
+ */
+export const PagedCoarsePixels = 4;
+
+/** the view's pixels a unit for a copy's coarse level (`LodView`: perspective by depth, orthographic everywhere) */
+function getCoarse(lod: LodView) {
+  if (lod.depthScale > 0) return { scale: 1 / lod.depthScale, ortho: false, pixels: PagedCoarsePixels };
+  if (lod.pixelSize > 0) return { scale: 1 / lod.pixelSize, ortho: true, pixels: PagedCoarsePixels };
+  return undefined;
+}
+
 const dispatchItems = (kernel: ComputeKernel, n: number) => {
   kernel.dispatch(Math.max(1, Math.ceil(n / 64)));
 };
@@ -50,7 +66,7 @@ export function createPagedMergedCuller(
   compute: ComputeContext,
   resources: GraphicsResources,
   merged: Merged,
-  members: readonly MergeableValues[],
+  members: readonly MergeRecord[],
   indexed: boolean,
   items?: ItemIndexPattern,
 ): MergedCuller {
@@ -75,12 +91,69 @@ export function createPagedMergedCuller(
   /** the poses, a page store's `CulledData` (its segments in front), and the regions' store indices */
   const poses = ValueCell.create(culler.poses);
   const indices = ValueCell.create(culler.indices);
+  /** its copies' markers (`MergedInstanceSource.paged.copyMarkers`) as last uploaded */
+  const copyMarkers = ValueCell.create(createBuffer(16, 'paged copy markers'));
+  let copyMarkersVersion = -1;
+  /** its copies' own layers (`MergedInstanceSource.paged.copyLayers`) as last uploaded */
+  const copyLayers = ValueCell.create(createBuffer(16, 'paged copy layers'));
+  let copyLayersVersion = -1;
   const culledValues: CulledValues = {
     sCulledIndices: indices,
     sCulledData: poses,
     dCulled: ValueCell.create(true),
     dCulledPaged: ValueCell.create(true),
+    sCopyMarkers: copyMarkers,
+    dCopyMarkers: ValueCell.create(false),
+    sCopyLayers: copyLayers,
+    dCopyLayers: ValueCell.create(false),
   };
+  /** its copies' own layers uploaded whole where they changed (a state's), the buffer grown to half again */
+  function syncCopyLayers() {
+    const l = paged.copyLayers;
+    if (!l || l.version === copyLayersVersion) return;
+    copyLayersVersion = l.version;
+    ValueCell.updateIfChanged(culledValues.dCopyLayers, l.buffer.length > 0);
+    if (l.buffer.length === 0) return;
+    if (copyLayers.ref.value.byteLength < l.buffer.byteLength) {
+      copyLayers.ref.value.destroy();
+      ValueCell.update(copyLayers, createBuffer(Math.ceil(l.buffer.byteLength * 1.5), 'paged copy layers'));
+    }
+    copyLayers.ref.value.write(l.buffer);
+  }
+  /**
+   * the copies' markers uploaded where they changed (a mark between frames: before the frame's draws, its cull), the
+   * buffer grown to half again; read where the source has copies
+   */
+  function syncCopyMarkers() {
+    const m = paged.copyMarkers;
+    if (!m || m.version === copyMarkersVersion) return;
+    const first = copyMarkersVersion < 0;
+    copyMarkersVersion = m.version;
+    // the blocks' bytes changed (all where the buffer is new, the first sync's)
+    let ranges = m.takeChanged();
+    ValueCell.updateIfChanged(culledValues.dCopyMarkers, m.words.length > 0);
+    if (m.words.length === 0) return;
+    if (copyMarkers.ref.value.byteLength < m.byteLength) {
+      copyMarkers.ref.value.destroy();
+      ValueCell.update(copyMarkers, createBuffer(Math.ceil(m.byteLength * 1.5), 'paged copy markers'));
+      ranges = undefined;
+    }
+    if (first) ranges = undefined;
+    const buffer = copyMarkers.ref.value;
+    buffer.write(m.words);
+    // whole words (the blocks' bytes a multiple of four)
+    const blocks = Math.min(Math.ceil((m.byteLength - m.words.byteLength) / 4) * 4, m.bytes.length);
+    if (blocks === 0) return;
+    if (!ranges) {
+      buffer.write(new Uint8Array(m.bytes.buffer, 0, blocks), m.words.byteLength);
+      return;
+    }
+    for (let k = 0; k < ranges.length; k += 2) {
+      const start = Math.floor(ranges[k] / 4) * 4;
+      const end = Math.min(Math.ceil(ranges[k + 1] / 4) * 4, blocks);
+      if (end > start) buffer.write(new Uint8Array(m.bytes.buffer, start, end - start), m.words.byteLength + start);
+    }
+  }
   const argsValues = {
     uRecordCount: ValueCell.create(0),
     uRecordWords: ValueCell.create(words),
@@ -90,6 +163,7 @@ export function createPagedMergedCuller(
     uSecond: ValueCell.create(0),
     uIndexRoom: ValueCell.create(0),
     uRasterLevels: ValueCell.create(0),
+    uRoomsBase: ValueCell.create(0),
     counts: ValueCell.create(culler.counts),
     bases: ValueCell.create(culler.bases),
     prior: ValueCell.create(culler.secondCounts),
@@ -107,17 +181,30 @@ export function createPagedMergedCuller(
   };
 
   let dataVersion = 0;
+  /** the culler's frame version (`PagedCuller.frameVersion`) as the last dispatch saw it */
+  let seenFrameVersion = 0;
   let dispatchVersion = 0;
   let levelCount = 0;
   let segmentCount = 0;
   /** the records' words as written; per segment its member's changes and its offset as read (`layoutRecords`) */
   let writtenRecords = new Uint32Array(0);
+  /**
+   * the records' template written (`layoutRecords`), and as the second phase's buffer last had it: written there only
+   * where it changed (the kernel writes a record's instance count and first alone), not a phase (a frame while moving)
+   */
+  let templateVersion = 0;
+  let secondTemplate = -1;
+  /** the members whose records changed since the second phase's buffer was last written (all: -1 to `segmentCount`) */
+  let secondLo = 0;
+  let secondHi = -1;
+  let secondAll = true;
   let seenChanges = new Uint32Array(0);
   let seenOffsets = new Float64Array(0);
   let seenBlocks = -1;
   /** the view of the last dispatch and the data's version: a still view culls nothing again (its records stand) */
-  // the frustum, the camera plane, the level ranges, the rest, the raster's split, the transient transform
-  const dispatchedKey = new Float64Array(6 * 4 + 4 + 16 + 4 + 3 + 16).fill(NaN);
+  // the frustum, the camera plane, the level ranges, the rest, the raster's split, the transient transform, the view's
+  // pixels a unit, the budget
+  const dispatchedKey = new Float64Array(6 * 4 + 4 + 16 + 4 + 3 + 16 + 2 + 1).fill(NaN);
   const dispatchKey = new Float64Array(dispatchedKey.length);
   let segmentDataVersion = -1;
   let frontSegments = -1;
@@ -156,6 +243,9 @@ export function createPagedMergedCuller(
     const records = all ? new Uint32Array(size) : writtenRecords;
     const changes = merged.memberChanges;
     let changed = all;
+    // the changed members' span: a block's records of it written, not all (a step changes a few members of thousands)
+    let lo = segmentCount;
+    let hi = -1;
     for (let s = 0; s < segmentCount; ++s) {
       // a member's row read again where its cells changed (`Merged.memberChanges`) or its offsets moved: thousands of
       // members an update, a values object's reads scattered and slow
@@ -164,6 +254,8 @@ export function createPagedMergedCuller(
       seenChanges[s] = changes[s];
       seenOffsets[s] = offset;
       changed = true;
+      if (s < lo) lo = s;
+      hi = s;
       const member = members[s];
       const memberLevels = levelCount > 0 ? (member.lodLevels?.ref.value as LodLevelsValue | undefined) : undefined;
       const draws = member.drawCount.ref.value as number;
@@ -181,13 +273,40 @@ export function createPagedMergedCuller(
     }
     if (!changed) return false;
     seenBlocks = blocks * 16 + levelCount;
+    let grown = false;
     if (args.ref.value.byteLength < records.byteLength) {
       args.ref.value.destroy();
       ValueCell.update(args, createBuffer(records.byteLength, 'paged draw records'));
+      grown = true;
     }
-    args.ref.value.write(records);
+    if (all || grown) args.ref.value.write(records);
+    else writeSpan(args.ref.value, records, blocks, lo, hi);
+    // the members whose records changed, for the chunk capacity: all, or a span (`setChunkCapacity`)
+    laidOut = all ? undefined : [lo, hi];
     writtenRecords = records;
+    templateVersion += 1;
+    if (all) secondAll = true;
+    else if (!secondAll) {
+      secondLo = Math.min(secondLo, lo);
+      secondHi = Math.max(secondHi, hi);
+    }
     return true;
+  }
+
+  /** `records`' members `lo` to `hi` of each of its `blocks` (level-major: a block's members together) written */
+  function writeSpan(
+    buffer: { write(data: Uint32Array, offset: number): void },
+    records: Uint32Array,
+    blocks: number,
+    lo: number,
+    hi: number,
+  ) {
+    if (hi < lo) return;
+    for (let k = 0; k < blocks; ++k) {
+      const from = (k * segmentCount + lo) * words;
+      const to = (k * segmentCount + hi + 1) * words;
+      buffer.write(records.subarray(from, to), from * 4);
+    }
   }
 
   /**
@@ -225,7 +344,7 @@ export function createPagedMergedCuller(
     for (let s = 0; s < segmentCount; ++s) {
       if (!all && rowChanges[s] === changes[s]) continue;
       rowChanges[s] = changes[s];
-      const member = members[s] as MergeableValues & { padding?: ValueCell<number> };
+      const member = members[s] as MergeRecord & { padding?: ValueCell<number> };
       const padding = member.padding?.ref.value ?? 0;
       const memberLevels = member.lodLevels?.ref.value as LodLevelsValue | undefined;
       for (let j = 0; j < 4; ++j) {
@@ -242,14 +361,35 @@ export function createPagedMergedCuller(
 
   /** chunks of 64 spheres of all raster regions full (each member's instances at each level, `MergedRasterInput`) */
   let chunkCapacity = 0;
-  function setChunkCapacity() {
+  /** the last `layoutRecords`' members whose records it wrote: a span, or all (undefined) */
+  let laidOut: [number, number] | undefined;
+  /** per member its chunks (`setChunkCapacity`): the capacity kept by the members that changed */
+  let memberChunks = new Float64Array(0);
+  /**
+   * the raster's chunks at most (per member and level its instances times its chunks); `changed`: the members whose
+   * counts changed alone (a step's: a few of thousands), else all (the records laid out again, other members)
+   */
+  function setChunkCapacity(changed?: Iterable<number>) {
     const counts = paged.source.pool.counts;
     const n = Math.min(segmentCount, paged.source.pool.count);
-    chunkCapacity = 0;
-    for (let s = 0; s < n; ++s) {
-      for (let j = 0; j < levelBlocks(); ++j) {
-        chunkCapacity += Math.ceil(writtenRecords[(j * segmentCount + s) * words] / 6 / 64) * counts[s];
-      }
+    const levels = levelBlocks();
+    const chunksOf = (s: number) => {
+      let c = 0;
+      for (let j = 0; j < levels; ++j)
+        c += Math.ceil(writtenRecords[(j * segmentCount + s) * words] / 6 / 64) * counts[s];
+      return c;
+    };
+    if (!changed || memberChunks.length !== n) {
+      memberChunks = new Float64Array(n);
+      chunkCapacity = 0;
+      for (let s = 0; s < n; ++s) chunkCapacity += memberChunks[s] = chunksOf(s);
+      return;
+    }
+    for (const s of changed) {
+      if (s < 0 || s >= n) continue;
+      const c = chunksOf(s);
+      chunkCapacity += c - memberChunks[s];
+      memberChunks[s] = c;
     }
   }
 
@@ -319,8 +459,23 @@ export function createPagedMergedCuller(
         last = m;
       }
     } else {
+      // inline, not `add` a run: a tile-ordered template's 2.3 M runs
       const runs = src.runs;
-      for (let k = 0, k0 = r[o + 4], kn = r[o + 5]; k < kn; ++k) add(runs[(k0 + k) * 4 + 2]);
+      const k0 = r[o + 4];
+      const kn = r[o + 5];
+      if (pageList.length < n + kn) {
+        const grown = new Int32Array(Math.max(64, (n + kn) * 2));
+        grown.set(pageList.subarray(0, n));
+        pageList = grown;
+      }
+      for (let k = 0; k < kn; ++k) {
+        const m = runs[(k0 + k) * 4 + 2];
+        if (m >= 0 && m < stamps.length) {
+          if (stamps[m] === stamp) continue;
+          stamps[m] = stamp;
+        }
+        pageList[n++] = m;
+      }
     }
     return pageList.slice(0, n);
   }
@@ -337,20 +492,95 @@ export function createPagedMergedCuller(
     }
     return recordFloats;
   }
-  /** the boxes of page `p`'s members (those in range) grown by its box, read once */
+  /**
+   * per template page (a nested list's) the box its copies place it in: its template's pages' box (in the template's
+   * frame, as its records hold it) placed by each copy, their union. Why: a member's sphere of a template's page's box
+   * is where no copy need be, a near copy's records not predicted (its spheres through the near plane, not the
+   * raster's, not drawn at all)
+   */
+  let placedBoxes = new Map<number, Float64Array>();
+  /** the template pages `placedBoxes` was made of */
+  let placedPages = new Set<number>();
+  /**
+   * a placed box's id (never one again), and per member the id of the placed box its box was last grown by (-1 none,
+   * reset with its box): a template's pages share one box, a member of many of them grown by it once, not once a page
+   */
+  const placedIds = new Map<Float64Array, number>();
+  let placedIdCount = 0;
+  let memberPlaced = new Int32Array(0);
+  function setPlacedBoxes() {
+    placedBoxes = new Map();
+    placedPages = new Set();
+    placedIds.clear();
+    const src = paged.source;
+    const r = src.records;
+    const f = getRecordFloats();
+    const q = Quat();
+    const v = Vec3();
+    for (const t of src.templates ?? []) {
+      for (let i = 0; i < t.pages.length; ++i) placedPages.add(t.pages[i]);
+      const lo = [Infinity, Infinity, Infinity];
+      const hi = [-Infinity, -Infinity, -Infinity];
+      for (let i = 0; i < t.pages.length; ++i) {
+        const o = t.pages[i] * PagedRecordWords;
+        if (r[o + 6] === 0) continue;
+        for (let a = 0; a < 3; ++a) {
+          if (f[o + 8 + a] < lo[a]) lo[a] = f[o + 8 + a];
+          if (f[o + 12 + a] > hi[a]) hi[a] = f[o + 12 + a];
+        }
+      }
+      if (!(hi[0] >= lo[0])) continue;
+      const box = new Float64Array([Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity]);
+      const poses = t.copies.poses;
+      // as the kernel places a point (`copyPoint`: t + R v), a corner at a time
+      for (let k = 0, n = poses.length / 8; k < n; ++k) {
+        const o = k * 8;
+        Quat.set(q, poses[o + 4], poses[o + 5], poses[o + 6], poses[o + 7]);
+        for (let c = 0; c < 8; ++c) {
+          Vec3.set(v, c & 1 ? hi[0] : lo[0], c & 2 ? hi[1] : lo[1], c & 4 ? hi[2] : lo[2]);
+          Vec3.transformQuat(v, v, q);
+          for (let a = 0; a < 3; ++a) {
+            const x = v[a] + poses[o + a];
+            if (x < box[a]) box[a] = x;
+            if (x > box[3 + a]) box[3 + a] = x;
+          }
+        }
+      }
+      for (let i = 0; i < t.pages.length; ++i) placedBoxes.set(t.pages[i], box);
+      placedIds.set(box, placedIdCount++);
+    }
+  }
+  /** whether a sync's changes move a template page's placed box (its copies, or a template page written or let go) */
+  function changesPlacement(changes: PagedCullChanges) {
+    if (changes.copies && changes.copies.length > 0) return true;
+    if (placedPages.size === 0 && !paged.source.templates?.length) return false;
+    const templatePages = new Set<number>();
+    for (const t of paged.source.templates ?? [])
+      for (let i = 0; i < t.pages.length; ++i) templatePages.add(t.pages[i]);
+    for (const p of changes.written) if (templatePages.has(p) || placedPages.has(p)) return true;
+    for (const p of changes.released) if (templatePages.has(p) || placedPages.has(p)) return true;
+    return false;
+  }
+  /** the boxes of page `p`'s members (those in range) grown by its box (a template page's as placed), read once */
   function growBoxes(members: Int32Array, p: number) {
     const f = getRecordFloats();
     const o = p * PagedRecordWords;
-    const x0 = f[o + 8];
-    const y0 = f[o + 9];
-    const z0 = f[o + 10];
-    const x1 = f[o + 12];
-    const y1 = f[o + 13];
-    const z1 = f[o + 14];
+    const placed = placedBoxes.get(p);
+    const x0 = placed ? placed[0] : f[o + 8];
+    const y0 = placed ? placed[1] : f[o + 9];
+    const z0 = placed ? placed[2] : f[o + 10];
+    const x1 = placed ? placed[3] : f[o + 12];
+    const y1 = placed ? placed[4] : f[o + 13];
+    const z1 = placed ? placed[5] : f[o + 14];
     const box = memberBoxes;
+    const id = placed ? placedIds.get(placed)! : -1;
     for (let i = 0; i < members.length; ++i) {
       const m = members[i];
       if (m < 0 || m >= segmentCount) continue;
+      if (placed) {
+        if (memberPlaced[m] === id) continue;
+        memberPlaced[m] = id;
+      }
       const b = m * 6;
       if (x0 < box[b]) box[b] = x0;
       if (y0 < box[b + 1]) box[b + 1] = y0;
@@ -373,6 +603,7 @@ export function createPagedMergedCuller(
     const b = m * 6;
     memberBoxes.fill(Infinity, b, b + 3);
     memberBoxes.fill(-Infinity, b + 3, b + 6);
+    memberPlaced[m] = -1;
   }
   /** member `m`'s sphere from its box and reach */
   function setMemberSphere(m: number) {
@@ -423,10 +654,14 @@ export function createPagedMergedCuller(
         }
       }
     };
-    if (spheresSource !== src || memberSpheres.length !== segmentCount * 4) {
+    // a template page's placed box another: all again (its members' boxes grown by the old one)
+    const placement = changesPlacement(changes);
+    if (spheresSource !== src || memberSpheres.length !== segmentCount * 4 || placement) {
       spheresSource = src;
+      setPlacedBoxes();
       memberSpheres = new Float64Array(segmentCount * 4).fill(-1);
       memberBoxes = new Float64Array(segmentCount * 6);
+      memberPlaced = new Int32Array(segmentCount);
       memberPageCounts = new Int32Array(segmentCount);
       for (let m = 0; m < segmentCount; ++m) emptyBox(m);
       pageMembers = [];
@@ -441,13 +676,15 @@ export function createPagedMergedCuller(
     // as many boxes larger than their pages' as there are pairs: all again from the pages' members (their records'
     // boxes), its cost a pair a removal
     if (staleBoxes > Math.max(1024, pagePairs)) {
-      staleBoxes = 0;
-      for (let m = 0; m < segmentCount; ++m) emptyBox(m);
-      for (let p = 0; p < pageMembers.length; ++p) {
-        const members = pageMembers[p];
-        if (members) growBoxes(members, p);
-      }
-      for (let m = 0; m < segmentCount; ++m) setMemberSphere(m);
+      UserTiming.span('cull: spheres again', () => {
+        staleBoxes = 0;
+        for (let m = 0; m < segmentCount; ++m) emptyBox(m);
+        for (let p = 0; p < pageMembers.length; ++p) {
+          const members = pageMembers[p];
+          if (members) growBoxes(members, p);
+        }
+        for (let m = 0; m < segmentCount; ++m) setMemberSphere(m);
+      });
     } else {
       for (let i = 0; i < affectedCount; ++i) setMemberSphere(affectedList[i]);
     }
@@ -457,10 +694,18 @@ export function createPagedMergedCuller(
 
   /**
    * per block and segment whether it may draw: its member's sphere in the frustum and the level's range (the raster's
-   * blocks as their levels' where the split is on, the ghost's in the frustum)
+   * blocks as their levels' where the split is on, the ghost's in the frustum); a level's impostors none where the
+   * raster takes all of it (`raster`: its member's largest sphere, by the largest scale uploaded, raster-sized at the
+   * level's nearest distance, as the kernel's `rasterized` decides per instance: conservative). Why: inside a cell
+   * every member's sphere is in view and the near levels' ranges, its records all predicted and nearly all empty
    */
   let predicted = new Uint8Array(0);
-  function predictRecords(cameraPlane: Plane3D, frustum: Frustum3D, raster: boolean, objectTransform: Mat4) {
+  function predictRecords(
+    cameraPlane: Plane3D,
+    frustum: Frustum3D,
+    raster: MergedRasterParams | undefined,
+    objectTransform: Mat4,
+  ) {
     const levels = levelBlocks();
     const blocks = recordBlocks();
     if (predicted.length !== blocks * segmentCount) predicted = new Uint8Array(blocks * segmentCount);
@@ -488,8 +733,14 @@ export function createPagedMergedCuller(
       const d = n[0] * x + n[1] * y + n[2] * z + cameraPlane.constant;
       for (let j = 0; j < levels; ++j) {
         if (levelCount > 0 && (d + r < levelRanges[j * 4] || d - r >= levelRanges[j * 4 + 1])) continue;
+        if (raster) {
+          predicted[(levels + j) * segmentCount + s] = 1;
+          // its instances' nearest distance at the level, their largest sphere
+          const nearest = Math.max(d - r, levelCount > 0 ? levelRanges[j * 4] : -Infinity);
+          const largest = (rasterRows[s * 4 + Math.min(j, 3)] ?? 0) * culler.maxScale * objectScale * 1.001;
+          if (largest > 0 && nearest - largest > raster.near && isRasterSize(raster, largest, nearest)) continue;
+        }
         predicted[j * segmentCount + s] = 1;
-        if (raster) predicted[(levels + j) * segmentCount + s] = 1;
       }
     }
   }
@@ -548,8 +799,13 @@ export function createPagedMergedCuller(
   /** the merged values' cull version as `sync` last read it */
   let syncedCullVersion = -1;
   function sync() {
+    UserTiming.span('cull: sync', syncPaged);
+    syncCopyMarkers();
+    syncCopyLayers();
+  }
+  function syncPaged() {
     const changes = paged.takeChanges();
-    culler.sync(paged.source, changes, paged.reaches);
+    UserTiming.span('cull: upload', () => culler.sync(paged.source, changes, paged.reaches));
     const counts = segmentCount !== segments.count || levelCount !== getLevelCount();
     segmentCount = segments.count;
     levelCount = getLevelCount();
@@ -562,8 +818,18 @@ export function createPagedMergedCuller(
     const rows = writeRasterRows();
     const records = layoutRecords();
     if (records) recordsVersion += 1;
-    setChunkCapacity();
-    setMemberSpheres(changes);
+    // the members whose counts changed, and those whose records did (a span where not all)
+    let changedChunks: Iterable<number> | undefined = counts ? undefined : changes.members;
+    if (changedChunks && records) {
+      if (!laidOut) changedChunks = undefined;
+      else {
+        const span = new Set(changedChunks);
+        for (let m = laidOut[0]; m <= laidOut[1]; ++m) span.add(m);
+        changedChunks = span;
+      }
+    }
+    setChunkCapacity(changedChunks);
+    UserTiming.span('cull: spheres', () => setMemberSpheres(changes));
     const members = changes.members;
     const cull = merged.cullVersion.ref.value !== syncedCullVersion;
     syncedCullVersion = merged.cullVersion.ref.value;
@@ -733,7 +999,10 @@ export function createPagedMergedCuller(
       indices: indices.ref.value,
       data: poses.ref.value,
       records: args.ref.value,
-      secondRecords: secondArgs,
+      // read when the second phase is drawn: its dispatch grows them (the buffer of the first's let go)
+      get secondRecords() {
+        return secondArgs;
+      },
       get secondDispatched() {
         return secondDispatched;
       },
@@ -741,8 +1010,8 @@ export function createPagedMergedCuller(
       levels,
       levelCount,
       lodLevels: members[0].lodLevels?.ref.value as LodLevelsValue | undefined,
-      // a block of regions a level the store's instances (its raster region's slots in it, down from a member's end)
-      instanceCount: culler.instanceTotal,
+      // the raster regions' slots (their rooms: the chunks' first capacity)
+      instanceCount: culler.rasterRoom,
       segmentCount,
       chunkCapacity,
       dispatchVersion,
@@ -761,7 +1030,18 @@ export function createPagedMergedCuller(
       return dataVersion;
     },
     areKernelsReady: kernelsReady,
-    dispatch(cameraPlane, frustum, lod, pyramid, raster?: MergedRasterParams, _batch?, ghost = false) {
+    dispatch(
+      cameraPlane,
+      frustum,
+      lod,
+      pyramid,
+      raster?: MergedRasterParams,
+      _batch?,
+      ghost = false,
+      twoPhase = false,
+    ) {
+      syncCopyMarkers();
+      syncCopyLayers();
       if (segmentCount === 0 || !kernelsReady()) return false;
       argsKernel ??= compute.createKernel(PagedCullArgsKernel, PagedCullArgsSchema, argsValues);
       // the raster's and the ghost's blocks laid out where first asked for (kept after)
@@ -769,6 +1049,11 @@ export function createPagedMergedCuller(
       if (ghost && !ghostRegion) addBlocks(() => (ghostRegion = true));
       // clipped instances culled: a change of the clip objects culls again
       if (syncClip()) dataVersion += 1;
+      // a cull's instances past the frame's slots (not drawn): culled again (the room grown, or with a pyramid)
+      if (culler.frameVersion !== seenFrameVersion) {
+        seenFrameVersion = culler.frameVersion;
+        dataVersion += 1;
+      }
       setLevelRanges(lod);
       // the same view of the same data: the last dispatch's records stand
       const key = dispatchKey;
@@ -795,6 +1080,12 @@ export function createPagedMergedCuller(
       // the object's transient transform (a drag's preview): what is drawn moves, culled again
       const objectTransform = values.uObjectTransform.ref.value;
       key.set(objectTransform, 51);
+      // a copy's coarse level by the view's pixels a unit (`LodView`)
+      key[67] = lod.depthScale;
+      key[68] = lod.pixelSize;
+      // the copies' levels by a budget (`PagedCullView.maxInstances`): a new one culls again
+      const maxInstances = paged.maxInstances ?? 0;
+      key[69] = maxInstances;
       let same = true;
       for (let i = 0; same && i < key.length; ++i) same = key[i] === dispatchedKey[i];
       if (same) {
@@ -805,8 +1096,10 @@ export function createPagedMergedCuller(
       recordsGeneration += 1;
       recordsCompact = false;
       dispatchVersion += 1;
-      predictRecords(cameraPlane, frustum, rasterRegion && !!raster, objectTransform);
+      predictRecords(cameraPlane, frustum, rasterRegion ? raster : undefined, objectTransform);
       setAllRecords();
+      // the last cull's second phase not run (another view first): its cursors read, its rooms grown
+      if (secondPending) culler.endFirst();
       culler.cull(
         {
           frustum,
@@ -817,6 +1110,10 @@ export function createPagedMergedCuller(
           rasterRegions: rasterRegion,
           raster,
           objectTransform,
+          pyramidToCome: twoPhase && !pyramid,
+          secondPhase: twoPhase,
+          coarse: getCoarse(lod),
+          maxInstances,
         },
         pyramid,
       );
@@ -836,6 +1133,7 @@ export function createPagedMergedCuller(
       ValueCell.updateIfChanged(argsValues.uMemberCount, culler.culled ? culler.memberCount : 0);
       ValueCell.updateIfChanged(argsValues.uRasterLevels, rasterRegion ? levels : 0);
       ValueCell.updateIfChanged(argsValues.uIndexRoom, culler.indexRoom);
+      ValueCell.updateIfChanged(argsValues.uRoomsBase, culler.regionCount * 2);
       compute.beginComputePass({ label: 'paged draw records' });
       dispatchItems(argsKernel, recordCount);
       compute.endComputePass();
@@ -854,15 +1152,27 @@ export function createPagedMergedCuller(
     dispatchSecond(pyramid) {
       if (!secondPending) return false;
       secondPending = false;
-      if (!pyramid || !argsKernel || !culler.cullSecond(pyramid)) return false;
+      if (!pyramid || !argsKernel || !culler.cullSecond(pyramid)) {
+        // none to run: the first's cursors read (its rooms grown)
+        culler.endFirst();
+        return false;
+      }
       // the second's records: its regions' counts and bases into records of the same draws
       const bytes = writtenRecords.byteLength;
       if (secondArgs.byteLength < bytes) {
         secondArgs.destroy();
         secondArgs = createBuffer(bytes, 'paged draw records, second phase');
         secondKey = '';
+        secondTemplate = -1;
       }
-      secondArgs.write(writtenRecords);
+      if (secondTemplate !== templateVersion) {
+        if (secondTemplate < 0 || secondAll) secondArgs.write(writtenRecords);
+        else writeSpan(secondArgs, writtenRecords, recordBlocks(), secondLo, secondHi);
+        secondTemplate = templateVersion;
+        secondAll = false;
+        secondLo = segmentCount;
+        secondHi = -1;
+      }
       // the second's records: its cursors, its regions' firsts after the first's instances (`prior`)
       const first = { args: args.ref.value };
       ValueCell.update(argsValues.counts, culler.secondCounts);
@@ -907,6 +1217,8 @@ export function createPagedMergedCuller(
       return recordsVersion;
     },
     destroy() {
+      copyMarkers.ref.value.destroy();
+      copyLayers.ref.value.destroy();
       argsKernel?.destroy();
       culler.destroy();
       args.ref.value.destroy();

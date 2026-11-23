@@ -7,6 +7,7 @@
  */
 
 import { getItemIndices, isItemIndexing } from '../quad-indices.js';
+import { InstanceExpansionSchema, isSharedCopyOrder } from '../instance-expansion.js';
 import type { UniformBlockWriter } from '../uniform-layout.js';
 import { createAttributeBuffers, type ElementsBuffer, type AttributeBuffers } from './buffer.js';
 import type { AttributeKind } from '../buffer.js';
@@ -52,7 +53,12 @@ import {
 } from './data-textures.js';
 import { Vec2 } from '@molstar/core/math/linear-algebra';
 import { SegmentedArray } from '../segmented-array.js';
-import { convertGroupsToFloat, type DataTexturePages, type DataTextureRange } from './data-pages.js';
+import {
+  convertGroupsToFloat,
+  convertInt16ToFloat,
+  type DataTexturePages,
+  type DataTextureRange,
+} from './data-pages.js';
 import { getInstanceDataSegmentCount, InstanceDataVec4s, packInstanceData } from '../renderable/merged.js';
 import { TextureChanges } from '../renderable/texture-changes.js';
 import { isDebugMode, isTimingMode } from '@molstar/core/util/debug';
@@ -244,13 +250,8 @@ function getProgramItemSchema(ctx: WebGLContext, schema: RenderableSchema, defin
       }
     }
   }
-  const { multiDrawInstancedBaseVertexBaseInstance, drawInstancedBaseVertexBaseInstance } = ctx.extensions;
-  const instanceData =
-    ctx.isWebGL2 &&
-    !multiDrawInstancedBaseVertexBaseInstance &&
-    !drawInstancedBaseVertexBaseInstance &&
-    !!values.dSegmented?.ref.value &&
-    adapted.aSegment !== undefined;
+  if (values.dInstanceExpansion?.ref.value) adapted = getExpansionSchema(adapted);
+  const instanceData = usesInstanceData(ctx, values, adapted);
   if (instanceData) {
     adapted = getInstanceDataSchema(adapted);
     values = { ...values, dInstanceData: ValueCell.create(true) };
@@ -268,18 +269,46 @@ function getWebGL1Schema(schema: RenderableSchema): RenderableSchema {
   let adapted: { [k: string]: RenderableSchema[string] } | undefined;
   for (const k of Object.keys(schema)) {
     const spec = schema[k];
-    if (spec.type === 'data' && spec.format === 'rgba16i') {
-      // no integer textures: the data never used (spheres' quantized centers, `Spheres.isSitesSupported`)
-      adapted ??= { ...schema };
-      delete adapted[k];
-      continue;
-    }
     if (spec.type !== 'uniform' || !(spec as UniformSpec<UniformKind>).loopBound) continue;
     adapted ??= { ...schema };
     adapted[k] = DefineSpec('number');
   }
   const result = adapted ?? schema;
   webGL1Schemas.set(schema, result);
+  return result;
+}
+
+/**
+ * Whether a render item reads its instance data from a texture (`dInstanceData`): merged items on WebGL2 without base
+ * instances, and expanded ones (`dInstanceExpansion`, `instance-expansion.ts`: an instance by `gl_InstanceID` divided
+ * by the draw's poses, which no instanced attribute steps by)
+ */
+function usesInstanceData(
+  ctx: WebGLContext,
+  values: { [k: string]: ValueCell<any> | undefined },
+  schema: RenderableSchema,
+) {
+  if (!ctx.isWebGL2) return false;
+  if (values.dInstanceExpansion?.ref.value && schema.dInstanceExpansion !== undefined) return true;
+  const { multiDrawInstancedBaseVertexBaseInstance, drawInstancedBaseVertexBaseInstance } = ctx.extensions;
+  return (
+    !multiDrawInstancedBaseVertexBaseInstance &&
+    !drawInstancedBaseVertexBaseInstance &&
+    !!values.dSegmented?.ref.value &&
+    schema.aSegment !== undefined
+  );
+}
+
+/** The schemas of expanded objects of schemas, one per schema (the program cache keys declarations by the schema) */
+const expansionSchemas = new WeakMap<RenderableSchema, RenderableSchema>();
+
+/** `schema` with an expanded object's values (`InstanceExpansionSchema`) */
+function getExpansionSchema(schema: RenderableSchema): RenderableSchema {
+  let result = expansionSchemas.get(schema);
+  if (!result) {
+    result = { ...schema, ...InstanceExpansionSchema };
+    expansionSchemas.set(schema, result);
+  }
   return result;
 }
 
@@ -367,24 +396,27 @@ export function createRenderItem<T extends string>(
   const id = getNextRenderItemId();
   const { stats, state, resources } = ctx;
   if (!ctx.isWebGL2) schema = getWebGL1Schema(schema);
+  if (values.dInstanceExpansion?.ref.value) {
+    if (!ctx.isWebGL2) throw new Error('expanded objects need WebGL2 (`instanceExpansion`)');
+    schema = getExpansionSchema(schema);
+  }
   const {
     instancedArrays,
     vertexArrayObject,
     multiDrawInstancedBaseVertexBaseInstance,
     drawInstancedBaseVertexBaseInstance,
   } = ctx.extensions;
-  const instanceData =
-    ctx.isWebGL2 &&
-    !multiDrawInstancedBaseVertexBaseInstance &&
-    !drawInstancedBaseVertexBaseInstance &&
-    !!values.dSegmented?.ref.value &&
-    schema.aSegment !== undefined;
+  const instanceData = usesInstanceData(ctx, values, schema);
+  /** an expanded object's: its instances drawn by `gl_InstanceID` divided by the draw's poses (`dInstanceExpansion`) */
+  const expanded = instanceData && !!values.dInstanceExpansion?.ref.value;
   /** the versions of the instance values `tInstanceData` was written from */
   const instanceDataVersions: number[] = [];
   /** the instances a page of the instance data, the pages after the first (`tInstanceData`'s), textures of their own */
   let instanceDataPageSize = Infinity;
   const instanceDataPages: Texture[] = [];
-  const instanceDataKeys = ['instanceCount', 'aTransform', 'aInstance', 'aSegment'];
+  const instanceDataKeys = ['instanceCount', 'aTransform', 'aInstance', 'aSegment', 'expansionLocals'].filter(
+    (k) => values[k],
+  );
   const syncInstanceData = () => {
     let changed = false;
     for (let i = 0; i < instanceDataKeys.length; ++i) {
@@ -396,6 +428,9 @@ export function createRenderItem<T extends string>(
     }
     if (!changed) return;
     const { size, pages } = updateInstanceData(values, resources.limits.maxTextureSize);
+    // an expanded object's draws address its instances from the first page alone (`uInstanceBase` plus the draw's
+    // instance modulo its count)
+    if (expanded && pages.length > 0) throw new Error('an expanded object of more instances than a page of its data');
     instanceDataPageSize = size;
     while (instanceDataPages.length > pages.length) instanceDataPages.pop()!.destroy();
     for (let p = 0; p < pages.length; ++p) {
@@ -419,12 +454,21 @@ export function createRenderItem<T extends string>(
   // the data arrays (`DataSpec`) in ranges of the context's data pages, the texture's size and the offset object uniforms
   // of this backend (`data-pages.ts`, `data-textures.ts`)
   const dataTextures = new Map<string, DataTextureState>();
-  /** WebGL1: the `rgb32f-i32` arrays by their items' elements, the groups converted to floats where written */
-  const groupTexels = new Map<string, number>();
+  /**
+   * WebGL1, no integer textures: the integer data arrays converted to floats where written, the `rgb32f-i32` groups (by
+   * their items' elements) and the `rgba16i` integers
+   */
+  const toFloats = new Map<string, (data: DataArray<any>) => DataArray<Float32Array>>();
   if (!ctx.isWebGL2) {
     for (const name of Object.keys(schema)) {
       const spec = schema[name];
-      if (spec.type === 'data' && spec.format === 'rgb32f-i32') groupTexels.set(name, spec.itemTexels ?? 1);
+      if (spec.type !== 'data') continue;
+      if (spec.format === 'rgb32f-i32') {
+        const texels = spec.itemTexels ?? 1;
+        toFloats.set(name, (data) => convertGroupsToFloat(data, texels));
+      } else if (spec.format === 'rgba16i') {
+        toFloats.set(name, convertInt16ToFloat);
+      }
     }
   }
   const dataSchema = getDataTextureSchema(schema);
@@ -450,9 +494,9 @@ export function createRenderItem<T extends string>(
    */
   const writeData = (name: string, data: DataArray<any>, ranges?: readonly number[]) => {
     const d = dataTextures.get(name)!;
-    const texels = groupTexels.get(name);
-    if (texels !== undefined) data = convertGroupsToFloat(data, texels);
-    let all = ranges === undefined;
+    const toFloat = toFloats.get(name);
+    if (toFloat) data = toFloat(data);
+    let resized = false;
     if (data.count > d.range.size) {
       d.pages.free(d.range);
       d.range = d.pages.allocate(data.count);
@@ -460,12 +504,13 @@ export function createRenderItem<T extends string>(
       if (d.dim.ref.value[0] !== d.range.width || d.dim.ref.value[1] !== d.range.height) {
         ValueCell.update(d.dim, Vec2.create(d.range.width, d.range.height));
       }
-      all = true;
+      resized = true;
     }
     const array = data.array as unknown;
     if (SegmentedArray.is(array)) {
-      // the parts' ranges are by component, the texels by element
-      const parts = all ? undefined : SegmentedArray.changedRanges(array, d.parts);
+      // the parts' ranges are by component, the texels by element; its changed parts whether ranges were logged or not
+      // (a merged object's layers: a mark of one member of 100k uploaded the whole layer), as WebGPU's layers
+      const parts = resized ? undefined : SegmentedArray.changedRanges(array, d.parts);
       if (parts) {
         const elements: number[] = [];
         for (let k = 0; k < parts.length; k += 2) {
@@ -478,7 +523,7 @@ export function createRenderItem<T extends string>(
       }
     } else {
       d.parts = undefined;
-      d.pages.write(d.range, data, all ? undefined : ranges);
+      d.pages.write(d.range, data, resized ? undefined : ranges);
     }
   };
 
@@ -592,6 +637,47 @@ export function createRenderItem<T extends string>(
   const textures = createTextures(ctx, schema, textureValues, sharedTextures);
   /** the first page of the instance data, bound with the others (`instanceDataPages` the rest) */
   const instanceDataTexture = instanceData ? textures.find(([k]) => k === 'tInstanceData')?.[1] : undefined;
+  /** an expanded object's copies seen, written by its cull before each pass's draws (not by an update) */
+  const copyOrder = expanded ? textures.findIndex(([k]) => k === 'tCopyOrder') : -1;
+  const ownCopyOrder = copyOrder >= 0 ? textures[copyOrder][1] : undefined;
+  let copyOrderVersion = expanded ? values.tCopyOrder.ref.version : -1;
+  /** its template's order where its lists read that (`isSharedCopyOrder`): one texture for the template's objects */
+  let heldCopyOrder: SharedTexture | undefined;
+  const syncCopyOrder = () => {
+    const cell = values.tCopyOrder;
+    const image = cell.ref.value as TextureImage<Float32Array>;
+    if (isSharedCopyOrder(image)) {
+      // synced where drawn, uploaded once a view for all of them (the image's version)
+      const spec = schema.tCopyOrder as TextureSpec<TextureKind>;
+      heldCopyOrder = heldCopyOrder
+        ? updateSharedTexture(resources.sharedTextures, heldCopyOrder, spec, image)
+        : resources.sharedTextures.acquire(spec, image);
+      textures[copyOrder][1] = heldCopyOrder.texture;
+      return;
+    }
+    if (heldCopyOrder) {
+      heldCopyOrder.release();
+      heldCopyOrder = undefined;
+    }
+    textures[copyOrder][1] = ownCopyOrder!;
+    if (cell.ref.version === copyOrderVersion) return;
+    copyOrderVersion = cell.ref.version;
+    ownCopyOrder!.load(image);
+  };
+  /**
+   * an expanded object's copies' markers (shared by the representation's objects): marked between updates (a hover),
+   * uploaded where drawn once for all of them (the image's version), a grown image another texture
+   */
+  const syncCopyTexture = (name: 'tCopyMarkers' | 'tCopyLayers') => {
+    const held = sharedTextures.get(name);
+    if (!held) return;
+    const image = values[name].ref.value as SharedTextureImage;
+    const next = updateSharedTexture(resources.sharedTextures, held, schema[name] as TextureSpec<TextureKind>, image);
+    if (next !== held) {
+      sharedTextures.set(name, next);
+      textures[textures.findIndex(([k]) => k === name)][1] = next.texture;
+    }
+  };
   for (const [name, d] of dataTextures) {
     writeData(name, textureValues[name].ref.value as unknown as DataArray<any>);
     textures.push([name, d.range.texture]);
@@ -669,6 +755,11 @@ export function createRenderItem<T extends string>(
       if (objectUniforms) count += objectUniforms.buffer.getByteCount();
       // a shared texture by the item's share (§5), a data array by its range of the page
       for (let i = 0, il = textures.length; i < il; ++i) {
+        if (i === copyOrder) {
+          // its own, and its share of its template's
+          count += ownCopyOrder!.getByteCount() + (heldCopyOrder?.getByteCount() ?? 0);
+          continue;
+        }
         const d = dataTextures.get(textures[i][0]);
         count += d ? d.range.size * d.pages.bytesPerElement : getTextureByteCount(textures[i][0], textures[i][1]);
       }
@@ -698,6 +789,12 @@ export function createRenderItem<T extends string>(
     render: (variant: T, globals?: GlobalBindings, mdbDataList?: MultiDrawBaseData[]) => {
       if (drawCount === 0 || instanceCount === 0) return;
       checkRenderPass(state, 'draw');
+      if (expanded) {
+        syncCopyOrder();
+        // and their layers (the representation's state)
+        syncCopyTexture('tCopyMarkers');
+        syncCopyTexture('tCopyLayers');
+      }
 
       const program = programs[variant];
       if (globals) asWebGLGlobalBindings(globals).apply(program);
@@ -767,7 +864,30 @@ export function createRenderItem<T extends string>(
 
           program.setUniforms(mdbData.uniforms);
           // console.log(mdbData.uniforms)
-          if (multiDrawInstancedBaseVertexBaseInstance) {
+          if (expanded) {
+            // a draw's instances its object's instances from its first times its poses (one page of instance data)
+            for (let i = 0; i < mdbData.count; ++i) {
+              if (mdbData.counts[i] === 0) continue;
+              program.uniform('uDrawId', i);
+              program.uniform('uInstanceBase', mdbData.baseInstances[i]);
+              if (eb) {
+                instancedArrays.drawElementsInstanced(
+                  glDrawMode,
+                  mdbData.counts[i],
+                  eb._dataType,
+                  mdbData.offsets[i],
+                  mdbData.instanceCounts[i],
+                );
+              } else {
+                instancedArrays.drawArraysInstanced(
+                  glDrawMode,
+                  mdbData.firsts[i],
+                  mdbData.counts[i],
+                  mdbData.instanceCounts[i],
+                );
+              }
+            }
+          } else if (multiDrawInstancedBaseVertexBaseInstance) {
             if (eb) {
               multiDrawInstancedBaseVertexBaseInstance.multiDrawElementsInstancedBaseVertexBaseInstance(
                 glDrawMode,
@@ -1018,6 +1138,8 @@ export function createRenderItem<T extends string>(
       }
 
       for (let i = 0, il = textures.length; i < il; ++i) {
+        // written by the cull, synced where drawn (`syncCopyOrder`)
+        if (i === copyOrder) continue;
         const [k, texture] = textures[i];
         const value = textureValues[k];
         if (value.ref.version !== textureVersions[i]) {
@@ -1098,6 +1220,11 @@ export function createRenderItem<T extends string>(
         if (vertexArray) vertexArray.destroy();
         for (const page of instanceDataPages) page.destroy();
         instanceDataPages.length = 0;
+        if (copyOrder >= 0) {
+          heldCopyOrder?.release();
+          heldCopyOrder = undefined;
+          textures[copyOrder][1] = ownCopyOrder!;
+        }
         for (const list of [textures, materialTextures]) {
           for (const [k, texture] of list) {
             const held = sharedTextures.get(k);

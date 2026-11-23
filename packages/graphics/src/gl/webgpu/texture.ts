@@ -290,11 +290,12 @@ export function createWebGPUTexture(
 
   function load(image: TextureImage<any> | TextureVolume<any> | HTMLImageElement | ImageBitmap) {
     if (destroyed) return;
-    loaded = image;
-    mipmapped = false;
-    const { device } = env;
     const isElement = typeof HTMLImageElement !== 'undefined' && image instanceof HTMLImageElement;
     const isBitmap = typeof ImageBitmap !== 'undefined' && image instanceof ImageBitmap;
+    // a bitmap not kept: its owner may close it (`Texture.load`)
+    loaded = isBitmap ? undefined : image;
+    mipmapped = false;
+    const { device } = env;
     if (isElement || isBitmap) {
       if (format !== 'rgba' || type !== 'ubyte') notSupported(`images in '${format}' '${type}' textures`);
       const w = isElement ? image.naturalWidth || image.width : image.width;
@@ -345,10 +346,13 @@ export function createWebGPUTexture(
       const start = rows[k];
       const end = Math.min(rows[k + 1], image.height);
       if (end <= start) continue;
+      // a view of the rows alone, not the array at an offset: the data a write is given is sent whole to the GPU
+      // process (its layout read there), an atlas of a few rows written per write otherwise
+      const rowsView = new Uint8Array(array.buffer, array.byteOffset + start * stride, (end - start) * stride);
       env.device.queue.writeTexture(
         { texture, origin: { x: 0, y: start } },
-        array,
-        { offset: start * stride, bytesPerRow: stride, rowsPerImage: end - start },
+        rowsView,
+        { offset: 0, bytesPerRow: stride, rowsPerImage: end - start },
         { width, height: end - start },
       );
     }

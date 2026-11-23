@@ -279,6 +279,123 @@ describe('ply reader', () => {
     expect.assertions(8);
   });
 
+  /** a binary little-endian PLY of `elements` (name, properties of a type each, rows), the header padded by `pad` */
+  function binaryPly(
+    elements: { name: string; props: [string, 'float' | 'uint' | 'int' | 'uchar'][]; rows: number[][] }[],
+    pad = '',
+  ) {
+    let header = `ply\nformat binary_little_endian 1.0\ncomment ${pad}\n`;
+    for (const e of elements) {
+      header += `element ${e.name} ${e.rows.length}\n`;
+      for (const [name, type] of e.props) header += `property ${type} ${name}\n`;
+    }
+    header += 'end_header\n';
+    const headerBytes = new TextEncoder().encode(header);
+    const size = { float: 4, uint: 4, int: 4, uchar: 1 };
+    let length = headerBytes.length;
+    for (const e of elements) for (const _ of e.rows) for (const [, t] of e.props) length += size[t];
+    const data = new Uint8Array(length);
+    data.set(headerBytes);
+    const dv = new DataView(data.buffer);
+    let o = headerBytes.length;
+    for (const e of elements) {
+      for (const row of e.rows) {
+        e.props.forEach(([, t], j) => {
+          if (t === 'float') dv.setFloat32(o, row[j], true);
+          else if (t === 'uint') dv.setUint32(o, row[j], true);
+          else if (t === 'int') dv.setInt32(o, row[j], true);
+          else dv.setUint8(o, row[j]);
+          o += size[t];
+        });
+      }
+    }
+    return data;
+  }
+
+  it('binary tables of one type: aligned or not, one after another, mixed ones value by value', async () => {
+    const vertex = {
+      name: 'vertex',
+      props: [
+        ['x', 'float'],
+        ['y', 'float'],
+        ['f_dc_0', 'float'],
+      ] as [string, 'float'][],
+      rows: [
+        [1.5, -2, 0.25],
+        [3, 4.5, -1],
+      ],
+    };
+    const packed = {
+      name: 'packed',
+      props: [
+        ['a', 'uint'],
+        ['b', 'uint'],
+      ] as [string, 'uint'][],
+      rows: [
+        [4294967295, 7],
+        [0, 2147483648],
+      ],
+    };
+    const mixed = {
+      name: 'mixed',
+      props: [
+        ['u', 'uchar'],
+        ['i', 'int'],
+        ['v', 'uint'],
+      ] as [string, 'uchar' | 'int' | 'uint'][],
+      rows: [[200, -3, 9]],
+    };
+    // headers of every length modulo 4: the rows at every alignment
+    for (const pad of ['', 'a', 'ab', 'abc']) {
+      const parsed = await parsePly(binaryPly([vertex, packed, mixed], pad)).run();
+      if (parsed.isError) throw new Error(parsed.message);
+      const v = parsed.result.getElement('vertex') as PlyTable;
+      expect(
+        [0, 1].map((i) => [
+          v.getProperty('x')!.value(i),
+          v.getProperty('y')!.value(i),
+          v.getProperty('f_dc_0')!.value(i),
+        ]),
+      ).toEqual(vertex.rows);
+      const p = parsed.result.getElement('packed') as PlyTable;
+      expect([0, 1].map((i) => [p.getProperty('a')!.value(i), p.getProperty('b')!.value(i)])).toEqual(packed.rows);
+      const m = parsed.result.getElement('mixed') as PlyTable;
+      expect([m.getProperty('u')!.value(0), m.getProperty('i')!.value(0), m.getProperty('v')!.value(0)]).toEqual(
+        mixed.rows[0],
+      );
+    }
+  });
+
+  it("reads a binary table of a Node Buffer at an offset in a larger one (a pool's view)", async () => {
+    const vertex = {
+      name: 'vertex',
+      props: [
+        ['x', 'float'],
+        ['y', 'float'],
+      ] as [string, 'float'][],
+      rows: [
+        [1.5, -2],
+        [3, 4.5],
+      ],
+    };
+    for (const pad of ['', 'a', 'ab', 'abc']) {
+      const bytes = binaryPly([vertex], pad);
+      // the bytes from 1 in a buffer of other bytes before and after them: `slice` of a Buffer a view of it
+      const pool = new Uint8Array(bytes.length + 16).fill(0xee);
+      pool.set(bytes, 1);
+      const data = Buffer.from(pool.buffer, 1, bytes.length);
+      const parsed = await parsePly(data).run();
+      if (parsed.isError) throw new Error(parsed.message);
+      const v = parsed.result.getElement('vertex') as PlyTable;
+      expect([0, 1].map((i) => [v.getProperty('x')!.value(i), v.getProperty('y')!.value(i)])).toEqual(vertex.rows);
+    }
+  });
+
+  it('rejects a binary table past the end of the data', async () => {
+    const data = binaryPly([{ name: 'vertex', props: [['x', 'float']], rows: [[1], [2]] }]);
+    await expect(parsePly(data.subarray(0, data.length - 2)).run()).rejects.toThrow(/ends before its table/);
+  });
+
   it('binary big-endian', async () => {
     const header =
       'ply\nformat binary_big_endian 1.0\nelement vertex 2\nproperty float x\nproperty float y\nend_header\n';

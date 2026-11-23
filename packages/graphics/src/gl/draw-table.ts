@@ -74,6 +74,8 @@ export enum DrawFact {
   ClipCull = 1 << 26,
   /** clip objects (`dClipObjects`) and not opted out of the ghost (`clipGhost`): drawn by the ghost pass */
   ClipGhost = 1 << 27,
+  /** `dGeometryType` 'gaussianSplats': blended back to front by a pass of their own, after the other transparency */
+  GaussianSplats = 1 << 28,
 }
 
 /** The cells `getDrawFacts` and the row's bounds read: a change of any refreshes the row */
@@ -158,11 +160,11 @@ function writeContributions(c: DrawContributions, slot: number, values: Values, 
   c.emissive[slot] = values.emissiveAverage.ref.value + values.uEmissive.ref.value;
   c.wiggle[slot] = (getValue(values, 'wiggleAverage') as number | undefined) ?? 0;
   const alpha = values.uAlpha.ref.value;
-  // x-ray shaded, fuzzy points, text and images are half transparent
-  const half = (facts & (DrawFact.Xray | DrawFact.FuzzyPoints | DrawFact.TextOrImage)) !== 0;
+  // x-ray shaded, fuzzy points, text, images and gaussian splats are half transparent
+  const half = (facts & (DrawFact.Xray | DrawFact.FuzzyPoints | DrawFact.TextOrImage | DrawFact.GaussianSplats)) !== 0;
   const xray = (facts & DrawFact.Xray) !== 0 ? 0.5 : 1;
   const fuzzy = (facts & DrawFact.FuzzyPoints) !== 0 ? 0.5 : 1;
-  const textOrImage = (facts & DrawFact.TextOrImage) !== 0 ? 0.5 : 1;
+  const textOrImage = (facts & (DrawFact.TextOrImage | DrawFact.GaussianSplats)) !== 0 ? 0.5 : 1;
   c.opacity[slot] = (1 - values.transparencyAverage.ref.value) * alpha * xray * fuzzy * textOrImage;
   let min = 1;
   if (alpha < 1) min = Math.min(min, 1 - alpha);
@@ -171,7 +173,10 @@ function writeContributions(c: DrawContributions, slot: number, values: Values, 
   if (transparencyMin > 0) min = Math.min(min, transparencyMin);
   c.transparencyMin[slot] = min;
   c.opaque[slot] =
-    (alpha === 1 && values.transparencyAverage.ref.value !== 1) || (facts & DrawFact.BackfacesOpaque) !== 0 ? 1 : 0;
+    (facts & DrawFact.GaussianSplats) === 0 &&
+    ((alpha === 1 && values.transparencyAverage.ref.value !== 1) || (facts & DrawFact.BackfacesOpaque) !== 0)
+      ? 1
+      : 0;
 }
 
 /** Whether `values` are of an object whose world bounds depend on the camera: constant on screen (`uScreenSize`) */
@@ -215,6 +220,7 @@ export function getCheckFacts(values: Values): number {
   const geometryType = values.dGeometryType.ref.value;
   if (geometryType === 'directVolume') f |= DrawFact.DirectVolume;
   if (geometryType === 'text' || geometryType === 'image') f |= DrawFact.TextOrImage;
+  if (geometryType === 'gaussianSplats') f |= DrawFact.GaussianSplats;
   if (getValue(values, 'dPointStyle') === 'fuzzy') f |= DrawFact.FuzzyPoints;
   const xray = getValue(values, 'dXrayShaded');
   if (xray === 'on' || xray === 'inverted') f |= DrawFact.Xray;

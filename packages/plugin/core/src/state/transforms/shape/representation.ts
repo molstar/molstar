@@ -40,7 +40,10 @@ const ShapeRepresentation3D = PluginStateTransform.BuiltIn({
   apply({ a, params }, plugin: PluginContext) {
     return Task.create('Shape Representation', async (ctx) => {
       const props = { ...PD.getDefaultValues(a.data.params), ...params };
-      const repr = ShapeRepresentation(a.data.getShape, a.data.geometryUtils, { graphics: plugin.canvas3d?.graphics });
+      const repr = ShapeRepresentation(a.data.getShape, a.data.geometryUtils, {
+        graphics: plugin.canvas3d?.graphics,
+        dispose: a.data.dispose,
+      });
       // compiling what it draws while it builds
       prepareRepresentation(plugin, repr, props, 'shape-group', a.data.data);
       await repr.createOrUpdate(props, a.data.data).runInContext(ctx);

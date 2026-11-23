@@ -124,6 +124,25 @@ export function concatValues<A extends Int32Array | Float32Array>(
   return ParticleValues.compact(out);
 }
 
+/** a list's scale for all its particles (`ParticleList.scale`), 1 where none or not positive */
+function getScale(list: ParticleList) {
+  return list.scale !== undefined && list.scale > 0 ? list.scale : 1;
+}
+
+/** a list's particles' scales (`ParticleList.scales`, else its `scale` a run of all) */
+function getScaleValues(list: ParticleList): ParticleValues<Float32Array> {
+  return list.scales ?? ParticleValues.ofRuns(Int32Array.of(0, list.count), Float32Array.of(getScale(list)));
+}
+
+/**
+ * the segments' lists' scales concatenated (a coarse node's particles drawn larger: `ParticleList.scale`, its runs'
+ * `scales`), by particle; none where no list has one
+ */
+export function concatScales(segments: readonly Segment[], count: number) {
+  if (!segments.some(({ list }) => list.scales || getScale(list) !== 1)) return undefined;
+  return concatValues(segments, count, getScaleValues, Float32Array);
+}
+
 /** the attributes every segment's list has, concatenated; their label, range from the first */
 export function concatAttributes(
   segments: readonly Segment[],

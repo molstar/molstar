@@ -86,7 +86,7 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
       const culler = createMergedCuller(
         graphics.compute!,
         graphics.resources,
-        createMergedValues('spheres', values, true),
+        createMergedValues('spheres', values[0], values, true),
         values,
         true,
       );
@@ -248,12 +248,26 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
       for (let i = 0; i < 10; ++i) await frame(gpuScene);
       expect(await frame(gpuScene)).toEqual(gpuImage);
 
-      // another view not culled on the GPU (no `prepareCull`) draws the CPU culling's lists from the instances in their
-      // own order after the regions (the identity region): its transforms as the rows the regions hold
+      // another view not culled on the GPU (no `prepareCull`) draws none: culled there alone, no CPU culling
       camera.setState(camera.getFocus(Vec3.add(Vec3(), center, Vec3.create(-radius * 0.3, 0, 0)), radius * 0.35), 0);
       camera.update();
-      const identityImage = await frame(gpuScene, false);
-      expect(drawn.get(gpuScene)![0].indirect).toBeUndefined();
+      const unculled = await frame(gpuScene, false);
+      expect(unculled).toEqual(await frame(Scene.create(graphics), false));
+      // culled on the GPU for the sphere raster alone, which does not take it here (off): the CPU culling's lists from
+      // the instances in their own order after the regions (the identity region), its transforms as the rows the
+      // regions hold
+      const rasterScene = createScene(createMergedRenderObject(members, { gpuCulling: true, rasterOnly: true }));
+      await graphics.resources.preparePipelines(
+        renderer.collect({ name: 'opaque' }, rasterScene, graphics.describeTarget(target)),
+      );
+      const rasterItem = rasterScene.renderables[0].renderItem;
+      const rasterRender = rasterItem.render;
+      rasterItem.render = (variant, globals, list) => {
+        if (list) drawn.set(rasterScene, list);
+        rasterRender(variant, globals, list);
+      };
+      const identityImage = await frame(rasterScene);
+      expect(drawn.get(rasterScene)![0].indirect).toBeUndefined();
       const movedImage = await frame(cpuScene);
       expect(new Set(movedImage).size).toBeGreaterThan(2);
       expect(identityImage).toEqual(movedImage);
@@ -653,6 +667,44 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
       expect(objects.length).toBe(1);
       expect(isMergedRenderObject(objects[0])).toBe(true);
       expect((objects[0].values as { gpuCulling?: { ref: { value: boolean } } }).gpuCulling?.ref.value).toBe(true);
+    } finally {
+      plugin.dispose();
+    }
+  }, 60_000);
+
+  // an object culled on the GPU draws no CPU lists: the overlay culls its camera's view there for it
+  it('draws and picks an object culled on the GPU in the overlay layer', async () => {
+    const plugin = await createPlugin();
+    try {
+      const structure = await copiesStructure(plugin);
+      const repr = await plugin.builders.structure.representation.addRepresentation(structure, {
+        type: 'spacefill',
+        typeParams: { gpuCulling: true },
+      });
+      const canvas = plugin.canvas3d!;
+      const r = repr.data!.repr;
+      r.setState({ layer: 'overlay' });
+      canvas.update(r);
+      canvas.commit(true);
+      expect(r.renderObjects.some((o) => isMergedRenderObject(o))).toBe(true);
+      const pixelRatio = canvas.graphics.pixelRatio;
+      let time = now();
+      let picked: number | undefined;
+      // its culling's kernels may compile after the frame's
+      for (let i = 0; i < 20 && picked === undefined; ++i) {
+        canvas.commit(true);
+        canvas.requestDraw();
+        canvas.tick((time += 1000) as now.Timestamp, { isSynchronous: true });
+        await canvas.graphics.resources.pending.whenReady();
+        const pick = await canvas.asyncIdentify(Vec2.create(Size / 2 / pixelRatio, Size / 2 / pixelRatio))?.wait();
+        picked = pick?.id.objectId;
+      }
+      expect(picked).toBeGreaterThanOrEqual(0);
+      plugin.renderer.imagePass.setProps({ overlay: true });
+      const { data } = await plugin.getImageRaw({ width: Size, height: Size });
+      const background = [data[0], data[1], data[2]];
+      const center = ((Size / 2) * Size + Size / 2) * 4;
+      expect([data[center], data[center + 1], data[center + 2]]).not.toEqual(background);
     } finally {
       plugin.dispose();
     }
@@ -1087,7 +1139,7 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
     }
   });
 
-  it('draws members with pending grids as with built ones: their data in their order, the grids built for a CPU cull', async () => {
+  it('draws members with pending grids as with built ones: their data in their order, the grids built for a CPU cull (raster alone)', async () => {
     const plugin = await createPlugin();
     try {
       const graphics = plugin.canvas3d!.graphics;
@@ -1103,9 +1155,14 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
         s.commit();
         return s;
       };
+      const pendingRaster = createPosedMembers(true);
+      // culled on the GPU (alone), and for the sphere raster alone (culled on the CPU where the raster does not take it:
+      // here, `sphereRaster` off)
       const scenes = [
         scene([createMergedRenderObject(pending.poses, { gpuCulling: true })]),
         scene([createMergedRenderObject(built.poses, { gpuCulling: true })]),
+        scene([createMergedRenderObject(pendingRaster.poses, { gpuCulling: true, rasterOnly: true })]),
+        scene([createMergedRenderObject(createPosedMembers().poses, { gpuCulling: true, rasterOnly: true })]),
       ];
       const camera = new Camera();
       Viewport.set(camera.viewport, 0, 0, Size, Size);
@@ -1153,14 +1210,18 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
           Array.from({ length: t.instanceCount.ref.value }, (_, k) => k),
         );
       }
-      // a view culled on the CPU (no `prepareCull`): the grids built, the lists their cells' in the identity region,
+      // a view not culled on the GPU (no `prepareCull`): none drawn where culled there alone (no CPU culling, no grid
+      // built); for the raster alone culled on the CPU, the grids built, the lists their cells' in the identity region,
       // what the built grids draw; the members' data as it was
       camera.setState(camera.getFocus(Vec3.add(Vec3(), center, Vec3.create(-radius * 0.3, 0, 0)), radius * 0.4), 0);
       camera.update();
-      const cpu = [await frame(scenes[0], false), await frame(scenes[1], false)];
+      const empty = await frame(scene([]), false);
+      expect(await frame(scenes[0], false)).toEqual(empty);
+      expect(await frame(scenes[1], false)).toEqual(empty);
+      const cpu = [await frame(scenes[2]), await frame(scenes[3])];
       expect(new Set(cpu[1]).size).toBeGreaterThan(2);
       expect(countDifferentPixels(cpu[0], cpu[1])).toBeLessThanOrEqual(Size * Size * 0.002);
-      for (const t of pending.poseTransforms) expect(t.instanceGrid.ref.value.pending).toBeDefined();
+      for (const t of pendingRaster.poseTransforms) expect(t.instanceGrid.ref.value.pending).toBeDefined();
       // back on the GPU: as before
       expect(countDifferentPixels(await frame(scenes[0]), await frame(scenes[1]))).toBeLessThanOrEqual(
         Size * Size * 0.002,
@@ -1180,6 +1241,108 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
         );
       }
       expect(countDifferentPixels(await frame(plain, false), await frame(reference, false))).toBe(0);
+      target.destroy();
+      expect(graphics.takeErrors?.() ?? []).toEqual([]);
+    } finally {
+      plugin.dispose();
+    }
+  }, 60_000);
+
+  it("culls on the GPU alone: views of their own (the thickness pass, a ray's pick), a frame's second camera, none meanwhile", async () => {
+    const plugin = await createPlugin();
+    try {
+      const graphics = plugin.canvas3d!.graphics;
+      // the culling's kernels compiling, as the context tells (an earlier test may have compiled them): from before the
+      // object is made, which creates them where compiled
+      const hasKernels = vi.spyOn(graphics.compute!, 'hasKernels').mockReturnValue(false);
+      const pending = createPosedMembers(true);
+      const scene = Scene.create(graphics);
+      scene.add(createMergedRenderObject(pending.poses, { gpuCulling: true }));
+      scene.commit();
+      const { center, radius } = scene.boundingSphere;
+      const cameraAt = (offset: number, distance: number) => {
+        const camera = new Camera();
+        Viewport.set(camera.viewport, 0, 0, Size, Size);
+        camera.setState(camera.getFocus(Vec3.add(Vec3(), center, Vec3.create(radius * offset, 0, 0)), distance), 0);
+        camera.update();
+        return camera;
+      };
+      // the main camera at a part of the members, the other at all of them
+      const main = cameraAt(0.2, radius * 0.5);
+      const other = cameraAt(0, radius * 1.2);
+      const renderer = Renderer.create(graphics, { sphereRaster: 'off' });
+      const target = graphics.createRenderTarget(Size, Size, 'depth-stencil');
+      await graphics.resources.preparePipelines(
+        renderer.collect({ name: 'opaque' }, scene, graphics.describeTarget(target)),
+      );
+      const item = scene.renderables[0].renderItem;
+      const render = item.render;
+      let indirect = false;
+      item.render = (variant, globals, list) => {
+        indirect = !!list?.[0]?.indirect;
+        render(variant, globals, list);
+      };
+      /** a frame's view of `camera`: culled by `prepare` (the frame's, a view of its own's, none) */
+      const draw = async (
+        camera: Camera,
+        frame: ReturnType<typeof createFrame>,
+        prepare: 'frame' | 'view' | 'none',
+      ) => {
+        renderer.update(camera, scene, frame);
+        if (prepare === 'frame') renderer.prepareCull(scene);
+        else if (prepare === 'view') renderer.prepareCullView(scene);
+        graphics.beginRenderPass(target);
+        renderer.clear(true);
+        renderer.setViewport(0, 0, Size, Size);
+        renderer.renderOpaque(scene, camera);
+        graphics.flush();
+        const pixels = Array.from(await graphics.readRenderTarget(target, 0, 0, Size, Size));
+        await graphics.resources.pending.whenReady();
+        return pixels;
+      };
+      const empty = Scene.create(graphics);
+      renderer.setViewport(0, 0, Size, Size);
+      renderer.update(other, empty, createFrame());
+      graphics.beginRenderPass(target);
+      renderer.clear(true);
+      graphics.flush();
+      const background = Array.from(await graphics.readRenderTarget(target, 0, 0, Size, Size));
+      // the kernels waited for: nothing drawn until they are ready, no CPU culling meanwhile
+      for (let i = 0; i < 2; ++i) expect(await draw(main, createFrame(), 'frame')).toEqual(background);
+      hasKernels.mockRestore();
+      for (let i = 0; i < 20 && !indirect; ++i) await draw(main, createFrame(), 'frame');
+      const mainImage = await draw(main, createFrame(), 'frame');
+      expect(indirect).toBe(true);
+      const otherImage = await draw(other, createFrame(), 'frame');
+      expect(new Set(mainImage).size).toBeGreaterThan(2);
+      expect(countDifferentPixels(mainImage, otherImage)).toBeGreaterThan(20);
+
+      // a frame and camera of its own (a ray's pick): culled on the GPU, the frame's image of that camera
+      await draw(main, createFrame(), 'frame');
+      expect(countDifferentPixels(await draw(other, createFrame(), 'view'), otherImage)).toBe(0);
+      expect(indirect).toBe(true);
+      // the main view's next frame culled again
+      expect(countDifferentPixels(await draw(main, createFrame(), 'frame'), mainImage)).toBe(0);
+      // the same camera's frame of its own (the thickness pass) after the frame's: culled for it, and the frame's
+      // passes after it draw that view's lists
+      const frame = createFrame();
+      await draw(main, frame, 'frame');
+      expect(countDifferentPixels(await draw(main, createFrame(), 'view'), mainImage)).toBe(0);
+      expect(indirect).toBe(true);
+      expect(countDifferentPixels(await draw(main, frame, 'none'), mainImage)).toBe(0);
+      expect(indirect).toBe(true);
+      // a second camera of a frame (a stereo or XR eye): culled for it, the first's again by the next frame
+      const eyes = createFrame();
+      expect(countDifferentPixels(await draw(main, eyes, 'frame'), mainImage)).toBe(0);
+      expect(countDifferentPixels(await draw(other, eyes, 'frame'), otherImage)).toBe(0);
+      expect(indirect).toBe(true);
+      expect(countDifferentPixels(await draw(main, createFrame(), 'frame'), mainImage)).toBe(0);
+      // each of these views drew the GPU culling's lists: none culled on the CPU (no grid built for it); a frame of
+      // another view not culled for it draws none
+      expect(await draw(other, createFrame(), 'none')).toEqual(background);
+
+      renderer.dispose();
+      scene.clear();
       target.destroy();
       expect(graphics.takeErrors?.() ?? []).toEqual([]);
     } finally {

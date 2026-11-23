@@ -4,9 +4,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { Column } from '@molstar/core/data/db';
-import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
+import { Mat4, Quat, Vec3 } from '@molstar/core/math/linear-algebra';
 import { GridPositions } from '@molstar/core/math/geometry/grid-positions';
 import { Cell } from '@molstar/core/math/geometry/spacegroup/cell';
 import { RuntimeContext } from '@molstar/core/task';
@@ -24,6 +24,7 @@ import { ParticleTileCatalog, ParticleTileGrid, ParticleTiles } from '../../../m
 import { mortonOrder3d } from '@molstar/core/data/util/hash-functions';
 import { ParticleTileView } from '../../../model/particles/particle-tile-view.js';
 import { ParticleSlots } from '../../../model/particles/particle-slots.js';
+import { ParticleNesting } from '../../../model/particles/particle-nesting.js';
 import { ParticleDensityGrid, ParticleTileOpaque } from '../../../model/particles/particle-tile-opaque.js';
 import { createParticleListFromMmcifAssembly } from '../mmcif.js';
 import {
@@ -787,3 +788,350 @@ _pdbx_struct_oper_list.vector[3]
 3 'general operation' 1 0 0 0 0 0 -1 5 0 1 0 0
 4 'general operation' -1 0 0 -4 0 -1 0 2 0 0 1 1
 `;
+
+describe('particle pack templates', () => {
+  /** four copies of `template` on a 2x2 grid (one turned 90° about z), about the origin, a leaf particle of target 3 */
+  function createNested(template: ParticleList, other?: ParticleList): ParticleList {
+    const turn = [0, 0, Math.SQRT1_2, Math.SQRT1_2];
+    return {
+      label: 'nested',
+      count: 5,
+      coordinates: Float32Array.of(0, 0, 0, 40, 0, 0, 0, 40, 0, 40, 40, 0, 20, 20, 20),
+      rotations: Float32Array.of(0, 0, 0, 1, ...turn, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1),
+      targets: Int32Array.of(0, 0, 1, 0, 3),
+      targetInfo: new Map([
+        [0, { name: 'copy' }],
+        [1, { name: 'other copy' }],
+        [3, { name: 'leaf' }],
+      ]),
+      targetMapping: new Map<number, ParticleTarget>([
+        [0, { kind: 'particles', particles: template, center: Vec3.create(0, 0, 0) }],
+        [1, { kind: 'particles', particles: other ?? template, center: Vec3.create(0, 0, 0) }],
+      ]),
+      radii: Float32Array.of(30, 30, 30, 30, 2),
+      getParticleLabel: (i) => `copy ${i}`,
+      sourceData: { kind: 'test', name: 'test', data: undefined },
+      customProperties: new CustomProperties(),
+      _propertyData: Object.create(null),
+    };
+  }
+
+  /** each instance of `list` flattened: its target's and entity's names, radius, position and rotation, sorted */
+  function getInstances(list: ParticleList) {
+    const flat = ParticleNesting.flatten(list);
+    const p = Vec3();
+    const q = Quat();
+    const out = [];
+    for (let i = 0; i < flat.count; ++i) {
+      GridPositions.get(flat.coordinates, i, p);
+      ParticleRotations.get(flat.rotations, i, q);
+      out.push({
+        target: flat.targetInfo.get(ParticleValues.get(flat.targets, i))?.name,
+        entity: flat.entities ? flat.entityInfo?.get(ParticleValues.get(flat.entities, i))?.name : undefined,
+        radius: flat.radii ? ParticleValues.get(flat.radii, i) : undefined,
+        position: Vec3.clone(p),
+        rotation: Quat.clone(q),
+      });
+    }
+    const key = (a: (typeof out)[number]) => `${a.target} ${a.position.map((v) => v.toFixed(1)).join(' ')}`;
+    return out.sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));
+  }
+
+  it('writes a list with templates (version 7): read back, its flattened instances the same as the written one’s', () => {
+    const nested = createNested(createList());
+    const bytes = writeParticlePack(nested);
+    expect(new DataView(bytes.buffer).getUint32(4, true)).toBe(7);
+    const read = createParticleListFromPack(readParticlePack(bytes));
+    expect(read.count).toBe(5);
+    expect(ParticleNesting.getExpandedCount(read)).toBe(4 * 7 + 1);
+    // one template read for the two targets placing it, its particles views of the same bytes
+    const a = ParticleNesting.getTemplate(read, 0)!;
+    expect(ParticleNesting.getTemplate(read, 1)!.particles).toBe(a.particles);
+    expect((a.particles.coordinates as GridPositions).data.buffer).toBe(
+      (read.coordinates as GridPositions).data.buffer,
+    );
+    const expected = getInstances(nested);
+    const actual = getInstances(read);
+    expect(actual.map((x) => [x.target, x.entity, x.radius])).toEqual(
+      expected.map((x) => [x.target, x.entity, x.radius]),
+    );
+    for (let i = 0; i < expected.length; ++i) {
+      expect(Vec3.distance(actual[i].position, expected[i].position)).toBeLessThan(1e-2);
+      expect(Math.abs(Quat.dot(actual[i].rotation, expected[i].rotation))).toBeCloseTo(1, 3);
+    }
+    // the template's sites as a list without templates reads them
+    const sites = createParticleListFromPack(readParticlePack(writeParticlePack(createList()))).targetMapping!;
+    expect(a.particles.targetMapping!.get(5)!.kind).toBe('sites');
+    expect([...a.particles.targetMapping!.keys()].sort()).toEqual([...sites.keys()].sort());
+  });
+
+  it("writes a template by target in its levels' sample order and its boundary: read, neither computed again", () => {
+    // 3,000 particles of three targets interleaved, spread over a box (a generator of its own: the same each run)
+    let seed = 7;
+    const random = () => ((seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31) * 80 - 40;
+    const n = 3000;
+    const targets = Int32Array.from({ length: n }, (_, i) => [4, 1, 8][i % 3]);
+    const template: ParticleList = {
+      label: 'spread',
+      count: n,
+      coordinates: Float32Array.from({ length: n * 3 }, random),
+      targets,
+      targetInfo: new Map([
+        [1, { name: 'a' }],
+        [4, { name: 'b' }],
+        [8, { name: 'c' }],
+      ]),
+      radii: Float32Array.from(targets, (t) => t / 2),
+      getParticleLabel: (i) => `${i}`,
+      sourceData: { kind: 'test', name: 'test', data: undefined },
+      customProperties: new CustomProperties(),
+      _propertyData: Object.create(null),
+    };
+    const pack = readParticlePack(writeParticlePack(createNested(template)));
+    expect(pack.document.sampleOrdered).toBeUndefined();
+    expect(pack.document.templates![0].sampleOrdered).toBe(true);
+    const read = createParticleListFromPack(pack);
+    const tpl = ParticleNesting.getTemplate(read, 0)!.particles;
+    expect(Particle.isSampleOrdered(tpl)).toBe(true);
+    expect(Particle.hasBoundary(tpl)).toBe(true);
+    /** the same particles, nothing set: computed */
+    const bare = (l: ParticleList): ParticleList => ({
+      ...l,
+      customProperties: new CustomProperties(),
+      _propertyData: Object.create(null),
+    });
+    // the boundary as computed, rounded outward
+    const stored = Particle.getBoundary(tpl);
+    const computed = Particle.getBoundary(bare(tpl));
+    for (let k = 0; k < 3; ++k) {
+      expect(stored.box.min[k]).toBeLessThanOrEqual(computed.box.min[k]);
+      expect(stored.box.min[k]).toBeGreaterThan(computed.box.min[k] - 0.002);
+      expect(stored.box.max[k]).toBeGreaterThanOrEqual(computed.box.max[k]);
+      expect(stored.box.max[k]).toBeLessThan(computed.box.max[k] + 0.002);
+    }
+    expect(Vec3.distance(stored.sphere.center, computed.sphere.center)).toBeLessThan(1e-4);
+    expect(stored.sphere.radius).toBeGreaterThanOrEqual(computed.sphere.radius);
+    expect(stored.sphere.radius).toBeLessThan(computed.sphere.radius + 0.003);
+    // the leaf list the levels are of takes both
+    const leaves = ParticleNesting.getLeafList(read, tpl);
+    expect(Particle.isSampleOrdered(leaves)).toBe(true);
+    expect(Particle.getBoundary(leaves)).toBe(stored);
+    // the levels' picks the sorted order's: each target's the same particles
+    const byTarget = (s: Particle.SampleLevel | undefined, list: ParticleList) => {
+      const out = new Map<number, number[]>();
+      for (const i of s!.indices) {
+        const t = ParticleValues.get(list.targets, i);
+        if (!out.has(t)) out.set(t, []);
+        out.get(t)!.push(i);
+      }
+      for (const v of out.values()) v.sort((a, b) => a - b);
+      return out;
+    };
+    for (const level of [1, 2]) {
+      const fromStored = byTarget(Particle.sampleByTarget(leaves, level), leaves);
+      const fromSorted = byTarget(Particle.sampleByTarget(bare(leaves), level), leaves);
+      expect(fromStored).toEqual(fromSorted);
+    }
+  });
+
+  it('writes a template tile-ordered (a tile by target, its sample order kept): its pick by runs the order’s', () => {
+    let seed = 11;
+    const random = () => ((seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31) * 80 - 40;
+    const n = 3000;
+    const targets = Int32Array.from({ length: n }, (_, i) => [4, 1, 8][i % 3]);
+    const template: ParticleList = {
+      label: 'spread',
+      count: n,
+      coordinates: Float32Array.from({ length: n * 3 }, random),
+      targets,
+      targetInfo: new Map([
+        [1, { name: 'a' }],
+        [4, { name: 'b' }],
+        [8, { name: 'c' }],
+      ]),
+      radii: Float32Array.from(targets, (t) => t / 2),
+      getParticleLabel: (i) => `${i}`,
+      sourceData: { kind: 'test', name: 'test', data: undefined },
+      customProperties: new CustomProperties(),
+      _propertyData: Object.create(null),
+    };
+    const nested = createNested(template);
+    const pack = readParticlePack(writeParticlePack(nested, { templateTiles: 4 }));
+    const doc = pack.document.templates![0];
+    expect(doc.tiles?.dimensions).toBe(4);
+    expect(doc.sampleOrdered).toBe(true);
+    const read = createParticleListFromPack(pack);
+    const tpl = ParticleNesting.getTemplate(read, 0)!.particles;
+    // its instances the written list's (in another order)
+    const expected = getInstances(nested);
+    const actual = getInstances(read);
+    expect(actual.map((x) => [x.target, x.radius])).toEqual(expected.map((x) => [x.target, x.radius]));
+    for (let i = 0; i < expected.length; ++i) {
+      expect(Vec3.distance(actual[i].position, expected[i].position)).toBeLessThan(1e-2);
+    }
+    // a target a run a tile it is in: its runs apart
+    expect(ParticleValues.isRuns(tpl.targets)).toBe(true);
+    const runs = tpl.targets as { values: Int32Array };
+    expect(runs.values.length).toBeGreaterThan(3 * 8);
+    // the boundary of every particle as written
+    const bare = (l: ParticleList): ParticleList => ({
+      ...l,
+      customProperties: new CustomProperties(),
+      _propertyData: Object.create(null),
+    });
+    const stored = Particle.getBoundary(tpl).sphere;
+    const computed = Particle.getBoundary(bare(tpl)).sphere;
+    expect(stored.radius).toBeGreaterThanOrEqual(computed.radius);
+    expect(stored.radius).toBeLessThan(computed.radius + 0.003);
+    // the levels' picks by its runs (the stored order: no sort) the same as a pass over it in that order
+    const leaves = ParticleNesting.getLeafList(read, tpl);
+    const identity = Int32Array.from({ length: leaves.count }, (_, i) => i);
+    for (const level of [1, 2]) {
+      const byRuns = Particle.sampleByTarget(leaves, level)!;
+      const byPass = Particle.sampleByTarget(leaves, level, identity)!;
+      expect(Array.from(byRuns.indices)).toEqual(Array.from(byPass.indices));
+      expect(byRuns.list.scales).toEqual(byPass.list.scales);
+    }
+    // a target's picks spread over the template (every octant of its box), not a corner of it
+    const level1 = Particle.sampleByTarget(leaves, 1)!;
+    const octants = new Set<number>();
+    const p = Vec3();
+    for (const i of level1.indices) {
+      GridPositions.get(leaves.coordinates, i, p);
+      octants.add((p[0] >= 0 ? 1 : 0) + (p[1] >= 0 ? 2 : 0) + (p[2] >= 0 ? 4 : 0));
+    }
+    expect(octants.size).toBe(8);
+  });
+
+  it("writes a template's coarse levels: read, not sampled, the samples its load would take", () => {
+    let seed = 7;
+    const random = () => ((seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31) * 80 - 40;
+    const n = 3000;
+    const targets = Int32Array.from({ length: n }, (_, i) => [4, 1, 8][i % 3]);
+    const template: ParticleList = {
+      label: 'spread',
+      count: n,
+      coordinates: Float32Array.from({ length: n * 3 }, random),
+      rotations: Float32Array.from({ length: n * 4 }, (_, k) => (k % 4 === 3 ? 1 : 0)),
+      targets,
+      targetInfo: new Map([
+        [1, { name: 'a' }],
+        [4, { name: 'b' }],
+        [8, { name: 'c' }],
+      ]),
+      getParticleLabel: (i) => `${i}`,
+      sourceData: { kind: 'test', name: 'test', data: undefined },
+      customProperties: new CustomProperties(),
+      _propertyData: Object.create(null),
+    };
+    const bytes = writeParticlePack(createNested(template), { templateTiles: 4 });
+    expect(readParticlePack(bytes).document.templates![0].templateLevels).toBe(ParticleNesting.MaxTemplateLevels);
+    const read = () => {
+      const list = createParticleListFromPack(readParticlePack(bytes));
+      return { list, tpl: ParticleNesting.getTemplate(list, 0)!.particles };
+    };
+    const a = read();
+    expect(Particle.getStoredLevels(a.tpl)?.length).toBe(ParticleNesting.MaxTemplateLevels);
+    const stored = ParticleNesting.getTemplateLevels(a.list, a.tpl);
+    // the same pack's levels sampled (its stored ones left out)
+    const b = read();
+    delete b.tpl._propertyData[Particle.StoredLevelsDescriptor.name];
+    const sampled = ParticleNesting.getTemplateLevels(b.list, b.tpl);
+    expect(sampled.length).toBeGreaterThan(0);
+    expect(stored.map((l) => l.level)).toEqual(sampled.map((l) => l.level));
+    const p = Vec3();
+    const q = Vec3();
+    for (let k = 0; k < stored.length; ++k) {
+      const [x, y] = [stored[k].list, sampled[k].list];
+      expect(Array.from(stored[k].indices)).toEqual(Array.from(sampled[k].indices));
+      expect(x.targets).toEqual(y.targets);
+      expect(x.scales).toEqual(y.scales);
+      expect(Array.from(x.rotations!)).toEqual(Array.from(y.rotations!));
+      for (let i = 0; i < x.count; ++i) {
+        GridPositions.get(x.coordinates, i, p);
+        GridPositions.get(y.coordinates, i, q);
+        expect(Vec3.distance(p, q)).toBe(0);
+      }
+    }
+  });
+
+  it('warns of a template an older writer wrote (by target, its levels not stored), not of one written now', () => {
+    // more than a tile's particles (`templateTilesOf`: tile-ordered by default)
+    let seed = 3;
+    const random = () => ((seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31) * 200 - 100;
+    const n = 40_000;
+    const template: ParticleList = {
+      label: 'spread',
+      count: n,
+      coordinates: Float32Array.from({ length: n * 3 }, random),
+      targets: Int32Array.from({ length: n }, (_, i) => i % 3),
+      targetInfo: new Map([
+        [0, { name: 'a' }],
+        [1, { name: 'b' }],
+        [2, { name: 'c' }],
+      ]),
+      getParticleLabel: (i) => `${i}`,
+      sourceData: { kind: 'test', name: 'test', data: undefined },
+      customProperties: new CustomProperties(),
+      _propertyData: Object.create(null),
+    };
+    const pack = readParticlePack(writeParticlePack(createNested(template)));
+    expect(pack.document.templates![0].tiles).toBeDefined();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      createParticleListFromPack(pack);
+      expect(warn).not.toHaveBeenCalled();
+      // by target (tiles 1: as before tile order)
+      createParticleListFromPack(readParticlePack(writeParticlePack(createNested(template), { templateTiles: 1 })));
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(String(warn.mock.calls[0][0])).toMatch(/not tile-ordered/);
+      // its levels not stored (as before they were)
+      const [t] = pack.document.templates!;
+      const older = { ...t, templateLevels: undefined };
+      createParticleListFromPack({ ...pack, document: { ...pack.document, templates: [older] } });
+      expect(warn).toHaveBeenCalledTimes(2);
+      expect(String(warn.mock.calls[1][0])).toMatch(/coarse levels not stored/);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('writes each template once, a list without templates as version 6', () => {
+    const template = createList();
+    const once = writeParticlePack(createNested(template));
+    const twice = writeParticlePack(createNested(template, createList()));
+    const templates = (b: Uint8Array) => readParticlePack(b).document.templates?.length;
+    expect(templates(once)).toBe(1);
+    expect(templates(twice)).toBe(2);
+    expect(twice.byteLength).toBeGreaterThan(once.byteLength);
+    const plain = writeParticlePack(template);
+    expect(new DataView(plain.buffer).getUint32(4, true)).toBe(6);
+    expect(readParticlePack(plain).document.templates).toBeUndefined();
+  });
+
+  it('refuses a list with templates tile-ordered, nesting deeper than a level, a template not in the pack', () => {
+    const nested = createNested(createList());
+    expect(() => writeParticlePack(nested, { tiles: 4 })).toThrow(/not tile-ordered/);
+    expect(() => writeParticlePack(createNested(nested))).toThrow(/templates/);
+    const doc = (targets: unknown[], templates?: unknown[]) =>
+      new TextEncoder().encode(
+        JSON.stringify({
+          count: 0,
+          entities: [],
+          compartments: [],
+          attributes: [],
+          siteRadii: [],
+          blocks: [],
+          targets,
+          templates,
+        }),
+      );
+    const target = { id: 0, entity: -1, compartment: -1, particleOffset: 0, particleCount: 0 };
+    const placing = { ...target, template: { index: 1, center: [0, 0, 0] } };
+    expect(() => parseParticlePackDocument(doc([placing]), 0)).toThrow(/has none/);
+    const template = JSON.parse(new TextDecoder().decode(doc([])));
+    expect(() => parseParticlePackDocument(doc([placing], [template]), 0)).toThrow(/not a template/);
+    const deeper = { ...template, templates: [template] };
+    expect(() => parseParticlePackDocument(doc([], [deeper]), 0)).toThrow(/templates of its own/);
+  });
+});

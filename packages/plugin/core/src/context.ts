@@ -169,7 +169,31 @@ export class PluginContext {
    * A canvas set by a subclass itself (not `initViewer`'s, e.g. a headless one): told as initialized, so what waits for
    * it (`behaviors.canvas3d.initialized`, `canvas3dInitialized`: a behavior following the camera) does
    */
+  /**
+   * What the canvas reports as failed, told the user (the log: a UI's notifications): GPU memory not got, a
+   * representation the canvas updated itself (a new graphics context) failing, by the cell that owns it where one
+   * does (not its cell's error: its update was not the state's)
+   */
+  private logCanvas3dFailures() {
+    const canvas3d = this.canvas3d!;
+    this.subs.push(canvas3d.outOfMemory.subscribe((message) => this.log.error(message)));
+    this.subs.push(
+      canvas3d.representationFailed.subscribe(({ repr, error }) => {
+        let name = repr.label;
+        for (const cell of this.state.data.cells.values()) {
+          if ((cell.obj?.data as { repr?: unknown } | undefined)?.repr !== repr) continue;
+          name = cell.obj!.label;
+          break;
+        }
+        const backend = canvas3d.graphics.capabilities.backend;
+        const reason = error instanceof Error ? error.message : String(error);
+        this.log.error(`'${name}' could not be drawn with ${backend}: ${reason}`);
+      }),
+    );
+  }
+
   protected canvas3dReady() {
+    this.logCanvas3dFailures();
     this.canvas3dInit.next(true);
     Scheduler.setImmediate(() => this.initCanvas3dPromiseCallbacks[0]());
   }
@@ -456,7 +480,7 @@ export class PluginContext {
         this.canvas3d!.xr.isPresenting.subscribe((e) => this.log.info(`WebXR ${e ? 'enabled' : 'disabled'}`)),
       );
       this.subs.push(this.canvas3d!.xr.requestFailed.subscribe((e) => this.log.error(`WebXR request failed: ${e}`)));
-      this.subs.push(this.canvas3d!.outOfMemory.subscribe((message) => this.log.error(message)));
+      this.logCanvas3dFailures();
       this.subs.push(this.layout.events.updated.subscribe(() => requestAnimationFrame(() => this.handleResize())));
       this.subs.push(
         this.canvas3d!.contextChanged.subscribe(({ reason }) => {

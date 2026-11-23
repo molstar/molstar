@@ -55,7 +55,10 @@ export function createSubstance(count: number, type: SubstanceType, substanceDat
     Math.max(1, count),
     4,
     Uint8Array,
-    substanceData && substanceData.tSubstance.ref.value.array,
+    // its array reused, not the empty one: shared by every object (one's layer another's)
+    substanceData && substanceData.tSubstance.ref.value !== emptySubstanceTexture
+      ? substanceData.tSubstance.ref.value.array
+      : undefined,
   );
   if (substanceData) {
     ValueCell.update(substanceData.tSubstance, substance);

@@ -17,6 +17,7 @@ import {
 } from './render-object.js';
 import { getDefineLookup, isUsed, type RenderableSchema } from './renderable/schema.js';
 import { canCullOnGpu } from './renderable/merged.js';
+import { isSplatSortSupported } from './compute/splat-sort.js';
 import type { ProgramItem, Transparency } from './render-item.js';
 import type { GraphicsRenderable } from './renderable.js';
 import type { GlobalDefines } from './renderable/schema.js';
@@ -124,16 +125,71 @@ export function getSchemaLinearTextures(schema: RenderableSchema, defines: { rea
   return linear.sort();
 }
 
+/** per program schema its defines a signature takes (`getDefines`), once: a schema has hundreds of keys */
+const signatureDefineKeys = new WeakMap<RenderableSchema, readonly string[]>();
+function getSignatureDefineKeys(schema: RenderableSchema) {
+  let keys = signatureDefineKeys.get(schema);
+  if (!keys) {
+    keys = Object.keys(schema).filter(
+      (k) =>
+        schema[k].type === 'define' &&
+        k !== 'dRenderVariant' &&
+        !ContextDefines.has(k) &&
+        // by the context where a program item is made (`createSignatureProgramItem`: `gpuCulled` and a culler's
+        // support)
+        k !== 'dCulled' &&
+        k !== 'dCulledPaged' &&
+        k !== 'dCopyMarkers' &&
+        k !== 'dCopyLayers' &&
+        k !== InstanceStorageDefine,
+    );
+    signatureDefineKeys.set(schema, keys);
+  }
+  return keys;
+}
+
 function getDefines(schema: RenderableSchema, values: { [k: string]: ValueCell<unknown> | undefined }) {
   const defines: { [k: string]: DefineValue } = {};
-  for (const k of Object.keys(schema)) {
-    if (schema[k].type !== 'define' || k === 'dRenderVariant' || ContextDefines.has(k)) continue;
-    // by the context where a program item is made (`createSignatureProgramItem`: `gpuCulled` and a culler's support)
-    if (k === 'dCulled' || k === 'dCulledPaged' || k === InstanceStorageDefine) continue;
+  for (const k of getSignatureDefineKeys(schema)) {
     const value = values[k]?.ref.value;
     if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') defines[k] = value;
   }
   return defines;
+}
+
+/** The values a signature reads besides the defines (`getObjectSignature`, `getDrawFlags`) */
+const SignatureValueKeys = [
+  'uDoubleSided',
+  'hasReflection',
+  'uAlpha',
+  'transparencyAverage',
+  'emissiveAverage',
+  'uEmissive',
+  'gpuCulling',
+  'instancePoses',
+] as const;
+
+/**
+ * The cells `renderable`'s signature is made of (`getObjectSignature`: its defines and the values it reads), with their
+ * versions: the same cells at the same versions the same signature (its linear textures by its defines)
+ */
+function getSignatureInputs(renderable: GraphicsRenderable) {
+  const kind = getRenderableKind(renderable);
+  const source = kind && getRenderableProgramSource(kind);
+  if (!kind || !source) return undefined;
+  const values = renderable.values as { [k: string]: ValueCell<unknown> | undefined };
+  const cells: (ValueCell<unknown> | undefined)[] = [];
+  for (const k of getSignatureDefineKeys(source.schema)) cells.push(values[k]);
+  for (const k of SignatureValueKeys) cells.push(values[k]);
+  return { cells, versions: cells.map((c) => c?.ref.version ?? -1) };
+}
+
+function isSameInputs(a: ReturnType<typeof getSignatureInputs>, b: ReturnType<typeof getSignatureInputs>) {
+  if (!a || !b || a.cells.length !== b.cells.length) return false;
+  for (let i = 0, il = a.cells.length; i < il; ++i) {
+    if (a.cells[i] !== b.cells[i] || a.versions[i] !== b.versions[i]) return false;
+  }
+  return true;
 }
 
 /**
@@ -196,17 +252,22 @@ export function createSignatureProgramItem(
     // culled programs where the object is culled on the GPU in this context (its culler sets it, `CulledSchema`), not
     // as recorded (a list recorded where it was not)
     const gpuCulled = !!signature.merged && !!signature.gpuCulled && canCullOnGpu(graphics);
-    // a page store's culled programs (`dCulledPaged`) not of params: its objects compile theirs as they come
+    // a page store's culled programs (`dCulledPaged`) and a list's copies' markers and layers (`dCopyMarkers`,
+    // `dCopyLayers`) not of params: its objects compile theirs as they come; splats in the order of the GPU's sort
+    // where it runs in this context (its kernels prepared with them, `Canvas3DPreparer.precompile`), not as recorded
+    // (before their first sort)
     const value =
       k === 'dCulled'
         ? !!signature.gpuCulled && canCullOnGpu(graphics)
-        : k === 'dCulledPaged'
-          ? false
-          : k === InstanceStorageDefine
-            ? !!signature.instancePoses && !gpuCulled && canUseInstanceStorage(graphics)
-            : ContextDefines.has(k)
-              ? globals[k as keyof GlobalDefines]
-              : signature.defines[k];
+        : k === 'dSplatGpuOrder'
+          ? !!graphics.compute && isSplatSortSupported(graphics.compute)
+          : k === 'dCulledPaged' || k === 'dCopyMarkers' || k === 'dCopyLayers'
+            ? false
+            : k === InstanceStorageDefine
+              ? !!signature.instancePoses && !gpuCulled && canUseInstanceStorage(graphics)
+              : ContextDefines.has(k)
+                ? globals[k as keyof GlobalDefines]
+                : signature.defines[k];
     // number defines (e.g. counts) are define values as well, see `getWgslDefines`
     if (value !== undefined) defineValues[k] = ValueCell.create(value as DefineType);
   }
@@ -234,6 +295,11 @@ export class PrecompileRecorder {
   private recorded = new WeakSet<GraphicsRenderable>();
   /** each renderable's signature when last recorded, kept across `reset` (what `recordAgain` compares) */
   private readonly keys = new WeakMap<GraphicsRenderable, string>();
+  /**
+   * each renderable's signature's cells and versions when last recorded: none changed, its signature the same, not
+   * made again (a representation's objects all recorded again on each of its updates: a state set, a hover)
+   */
+  private readonly inputs = new WeakMap<GraphicsRenderable, ReturnType<typeof getSignatureInputs>>();
 
   /** records the renderables not recorded before, or since `invalidate` */
   record(renderables: Iterable<GraphicsRenderable>) {
@@ -258,6 +324,11 @@ export class PrecompileRecorder {
   /** whether `r`'s signature differs from when it was last recorded */
   private add(r: GraphicsRenderable) {
     this.recorded.add(r);
+    const inputs = getSignatureInputs(r);
+    const last = this.keys.get(r);
+    // its signature as recorded (and still among them: not reset since)
+    if (last !== undefined && this.signatures.has(last) && isSameInputs(inputs, this.inputs.get(r))) return false;
+    this.inputs.set(r, inputs);
     const signature = getObjectSignature(r);
     if (!signature) return false;
     const key = getSignatureKey(signature);

@@ -10,17 +10,22 @@ import { ColorNames } from '@molstar/core/util/color/names';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Spheres } from '@molstar/graphics/geo/geometry/spheres/spheres';
 import { SpheresBuilder } from '@molstar/graphics/geo/geometry/spheres/spheres-builder';
-import { isSharedSerial } from '@molstar/core/util/array';
 import { Color } from '@molstar/core/util/color';
 import { createObjectColor } from '@molstar/graphics/geo/geometry/color-data';
 import { createDataArray } from '../renderable/util.js';
 import {
   createMergedValues,
-  fillMergeMember,
+  fillMergeRecord,
+  getSourceRecordFillKeys,
   type MergeableValues,
   type MergedInstanceSource,
 } from '../renderable/merged.js';
 import { SegmentedArray } from '../segmented-array.js';
+
+/** `member`'s record filled with `values` as a source's member is (`getSourceRecordFillKeys`) */
+function fill(member: MergeableValues, values: MergeableValues) {
+  fillMergeRecord(member, values, getSourceRecordFillKeys('spheres', member, new Set(['tColor', 'tMarker'])));
+}
 
 /** `n` members of spheres, their colors and markers an instance each (a page store's members) */
 function createMembers(n: number) {
@@ -92,15 +97,15 @@ describe('merged values of an instance source', () => {
     const members = createMembers(4);
     setCounts(members, [3, 0, 5, 2]);
     const source = createSource(64);
-    const merged = createMergedValues('spheres', members, true, false, source);
+    const merged = createMergedValues('spheres', members[0], members, true, false, source);
     const { values, segments } = merged;
     expect(values.tColor).toBe(source.layers.get('tColor'));
     expect(values.tMarker).toBe(source.layers.get('tMarker'));
     expect(segments.instanceBases).toEqual([0, 3, 3, 8]);
     expect(segments.instanceCounts).toEqual([3, 0, 5, 2]);
     expect(values.instanceCount.ref.value).toBe(10);
-    expect(isSharedSerial(values.aInstance.ref.value as Uint32Array)).toBe(true);
-    expect((values.aInstance.ref.value as Uint32Array).length).toBe(10);
+    // a page store's: no array of its instances' ids (its culled poses' words hold them)
+    expect((values.aInstance.ref.value as Uint32Array).length).toBe(0);
     expect((values.aTransform.ref.value as SegmentedArray).length).toBe(0);
     expect(values.instancePoses.ref.value).toBeUndefined();
   });
@@ -109,7 +114,7 @@ describe('merged values of an instance source', () => {
     const members = createMembers(4);
     setCounts(members, [3, 0, 5, 2]);
     const source = createSource(64);
-    const merged = createMergedValues('spheres', members, true, false, source);
+    const merged = createMergedValues('spheres', members[0], members, true, false, source);
     const values = merged.values as unknown as Record<string, ValueCell<unknown>>;
     const geometry = geometryArrays(values);
     expect(geometry.length).toBeGreaterThan(0);
@@ -141,7 +146,7 @@ describe('merged values of an instance source', () => {
         return taken;
       },
     };
-    const merged = createMergedValues('spheres', members, true, false, source);
+    const merged = createMergedValues('spheres', members[0], members, true, false, source);
     // the first sync reads all of them
     expect(merged.sync()).toBe(false);
     const seen = Array.from(merged.memberChanges);
@@ -190,7 +195,7 @@ describe('merged values of an instance source', () => {
         },
       },
     };
-    const merged = createMergedValues('spheres', members, true, false, source);
+    const merged = createMergedValues('spheres', members[0], members, true, false, source);
     expect(merged.sync()).toBe(false);
     const seen = Array.from(merged.memberChanges);
     const cull = merged.cullVersion.ref.value;
@@ -240,7 +245,7 @@ describe('merged values of an instance source', () => {
         },
       },
     };
-    const merged = createMergedValues('spheres', members, true, false, source);
+    const merged = createMergedValues('spheres', members[0], members, true, false, source);
     merged.sync();
     // the copies of all three read
     counted = [0, 1, 2];
@@ -248,12 +253,19 @@ describe('merged values of an instance source', () => {
     const bounds = merged.values.boundingSphere.ref.value;
     expect(Array.from(bounds.center)).toEqual([10, 20, 30]);
     expect(bounds.radius).toBeCloseTo(50, 6);
+    // a count changed alone (its sphere NaN as before: NaN as itself): the bounds not unioned again
+    const version = merged.values.boundingSphere.ref.version;
+    source.counts!.instanceCounts[0] = 4;
+    counted = [0];
+    merged.sync();
+    expect(merged.segments.instanceCounts[0]).toBe(4);
+    expect(merged.values.boundingSphere.ref.version).toBe(version);
   });
 
   it("grows a source's arrays where a member's new geometry outgrows their room: extended longer, the parts kept", () => {
     const members = createMembers(4);
     setCounts(members, [1, 1, 1, 0]);
-    const merged = createMergedValues('spheres', members, true, false, createSource(64));
+    const merged = createMergedValues('spheres', members[0], members, true, false, createSource(64));
     const values = merged.values as unknown as Record<string, ValueCell<unknown>>;
     const before = geometryArrays(values) as SegmentedArray[];
     // a member of another geometry, more vertices than the arrays have room for (at least 16k)
@@ -269,7 +281,7 @@ describe('merged values of an instance source', () => {
     ) as unknown as MergeableValues;
     ValueCell.update(big.colorType, 'instance');
     ValueCell.update(big.markerType, 'instance');
-    fillMergeMember(members[1], big);
+    fill(members[1], big);
     merged.replaceGeometry(1);
     merged.sync();
     const after = geometryArrays(values) as SegmentedArray[];
@@ -290,6 +302,50 @@ describe('merged values of an instance source', () => {
     });
   });
 
+  it("lays out a member's new geometry after the others', theirs kept; the draws' max of the live ones", () => {
+    const members = createMembers(4);
+    setCounts(members, [1, 1, 1, 0]);
+    const merged = createMergedValues('spheres', members[0], members, true, false, createSource(64));
+    const p = PD.getDefaultValues(Spheres.Params);
+    const spheres = (count: number) => {
+      const builder = SpheresBuilder.create(count);
+      for (let i = 0; i < count; ++i) builder.add(i, 0, 0, i);
+      const v = Spheres.Utils.createValuesSimple(
+        builder.getSpheres(),
+        p,
+        ColorNames.orange,
+        1,
+      ) as unknown as MergeableValues;
+      ValueCell.update(v.colorType, 'instance');
+      ValueCell.update(v.markerType, 'instance');
+      return v;
+    };
+    const fillWith = (i: number, count: number) => {
+      const v = spheres(count);
+      fill(members[i], v);
+      merged.replaceGeometry(i);
+      merged.sync();
+      return v;
+    };
+    const { segments, values } = merged;
+    const a = fillWith(1, 100);
+    const end = segments.vertexBases[1] + a.uVertexCount.ref.value;
+    const drawEnd = segments.drawBases[1] + a.drawCount.ref.value;
+    expect(values.drawCountMax.ref.value).toBe(a.drawCount.ref.value);
+    const kept = Array.from(segments.vertexBases);
+    const b = fillWith(2, 50);
+    // appended: after the first's, the others where they were
+    expect(segments.vertexBases[2]).toBe(end);
+    expect(segments.drawBases[2]).toBe(drawEnd);
+    expect(segments.elementOffsets[2]).toBe(drawEnd * 4);
+    for (const i of [0, 1, 3]) expect(segments.vertexBases[i]).toBe(kept[i]);
+    expect(values.drawCountMax.ref.value).toBe(a.drawCount.ref.value);
+    // the first's smaller again: its unused allocation more than the used, laid out whole; the max the live draws'
+    fillWith(1, 10);
+    expect(values.drawCountMax.ref.value).toBe(b.drawCount.ref.value);
+    expect(segments.vertexBases[2]).toBe(segments.vertexBases[1] + members[1].uVertexCount.ref.value);
+  });
+
   it("keeps a member's color by member (colorType 'object') at its index: filled again, recolored, after the layout", () => {
     // a member its color (as a page store's object colors its members: `setMemberColor`)
     const setColor = (values: MergeableValues, color: Color) => {
@@ -302,7 +358,7 @@ describe('merged values of an instance source', () => {
     const colors = [Color(0x112233), Color(0x445566), Color(0x778899), Color(0xaabbcc)];
     members.forEach((m, i) => setColor(m, colors[i]));
     setCounts(members, [1, 1, 1, 0]);
-    const merged = createMergedValues('spheres', members, true, false, createSource(64));
+    const merged = createMergedValues('spheres', members[0], members, true, false, createSource(64));
     // member i's texel at i: what the shader reads (`ColorTypeIndex` 'object', the segment's index)
     const texel = (i: number) => {
       const array = (merged.values.tColor.ref.value as { array: SegmentedArray }).array;
@@ -320,7 +376,7 @@ describe('merged values of an instance source', () => {
       ColorNames.orange,
       1,
     ) as unknown as MergeableValues;
-    fillMergeMember(members[1], other);
+    fill(members[1], other);
     setColor(members[1], Color(0x0000ff));
     merged.replaceGeometry(1);
     merged.sync();
@@ -335,7 +391,7 @@ describe('merged values of an instance source', () => {
   it('without a source an instance count changed is a new layout, the geometry merged again', () => {
     const members = createMembers(2);
     setCounts(members, [3, 2]);
-    const merged = createMergedValues('spheres', members, true, false);
+    const merged = createMergedValues('spheres', members[0], members, true, false);
     const values = merged.values as unknown as Record<string, ValueCell<unknown>>;
     const geometry = geometryArrays(values);
     expect(geometry.length).toBeGreaterThan(0);

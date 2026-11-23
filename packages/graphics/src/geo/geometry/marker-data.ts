@@ -151,7 +151,13 @@ function resetInstanceCounts(markerData: MarkerData) {
 
 export function createMarkers(count: number, type: MarkerType, markerData?: MarkerData): MarkerData {
   if (markerData) {
-    const markers = createDataArray(Math.max(1, count), 1, Uint8Array, markerData.tMarker.ref.value.array);
+    // its array reused, not the empty one: shared by every object (one's layer another's)
+    const markers = createDataArray(
+      Math.max(1, count),
+      1,
+      Uint8Array,
+      markerData.tMarker.ref.value !== emptyMarkerTexture ? markerData.tMarker.ref.value.array : undefined,
+    );
     markers.array.fill(0, 0, count);
     ValueCell.updateIfChanged(markerData.uMarker, 0);
     ValueCell.update(markerData.tMarker, markers);

@@ -125,6 +125,43 @@ describe('particle tile view', () => {
     expect(v.entityInfo).toBe(list.entityInfo);
   });
 
+  it("carries its tiles' scales (a coarse node's: `scale`, its runs' `scales`) by particle, none where no tile has one", () => {
+    expect(ParticleTileView.create(set, source, ids, 0).list.scales).toBeUndefined();
+    // the first tile drawn 2 times larger, the second by its runs (its first half 1.5, the rest 3), the others not
+    const [a, b] = ids;
+    const scaleOf = new Map<number, (i: number, n: number) => number>([
+      [a, () => 2],
+      [b, (i, n) => (i < n >> 1 ? 1.5 : 3)],
+    ]);
+    const scaled: ParticleTileViewSource = {
+      ...source,
+      getTile: (id, frame) => {
+        const tile = source.getTile(id, frame)!;
+        if (id === a) return { ...tile, scale: 2 };
+        if (id !== b) return tile;
+        const half = tile.count >> 1;
+        return {
+          ...tile,
+          scales: ParticleValues.ofRuns(Int32Array.of(0, half, tile.count), Float32Array.of(1.5, 3)),
+        };
+      },
+    };
+    const view = ParticleTileView.create(set, scaled, ids, 0);
+    const v = view.list;
+    expect(v.scales).toBeDefined();
+    // a view's particle's scale its tile's at its index there (a tile's particles by label: the source's index)
+    const tileOf = new Map<number, { id: number; index: number; count: number }>();
+    for (const id of ids) {
+      const tile = source.getTile(id, 0)!;
+      for (let i = 0; i < tile.count; ++i)
+        tileOf.set(Number(tile.getParticleLabel(i).split(' ')[1]), { id, index: i, count: tile.count });
+    }
+    for (let i = 0; i < v.count; ++i) {
+      const { id, index, count } = tileOf.get(sourceIndex(v, i))!;
+      expect(ParticleValues.get(v.scales!, i)).toBe(scaleOf.get(id)?.(index, count) ?? 1);
+    }
+  });
+
   it('keys a particle by its index in the whole, the same in views of other tiles', () => {
     const a = ParticleTileView.create(set, source, ids.slice(0, 4), 0);
     const b = ParticleTileView.create(set, source, ids.slice(2), 0);
@@ -307,6 +344,27 @@ describe('particle tile slot view', () => {
     const other = ParticleTiles.fromList(list, [2, 2, 2]);
     const v3 = ParticleTileView.createSlots(other, sourceOf(other), ids.slice(1, 4), 0, v2.list);
     expect(ParticleSlots.getChanges(v2.list, v3.list)).toBeUndefined();
+  });
+
+  it("keeps a slot view's mapping where its source's targets are as they were, a new one where they changed", () => {
+    const targets = new Map<number, ParticleTarget>();
+    for (const t of [1, 2, 3]) targets.set(t, set.provider.getTarget(t) as ParticleTarget);
+    const s: { -readonly [K in keyof ParticleTileViewSource]: ParticleTileViewSource[K] } = {
+      ...source,
+      targets,
+      targetsVersion: 1,
+    };
+    const v1 = ParticleTileView.createSlots(set, s, ids.slice(0, 3), 0);
+    const v2 = ParticleTileView.createSlots(set, s, ids.slice(1, 4), 0, v1.list);
+    // the same targets: the same mapping (not copied again a step)
+    expect(v2.list.targetMapping).toBe(v1.list.targetMapping);
+    expect([...v2.list.targetMapping!.keys()]).toEqual([1, 2, 3]);
+    // a target let go (the version advanced): a mapping of the targets now
+    targets.delete(3);
+    s.targetsVersion = 2;
+    const v3 = ParticleTileView.createSlots(set, s, ids, 0, v2.list);
+    expect(v3.list.targetMapping).not.toBe(v2.list.targetMapping);
+    expect([...v3.list.targetMapping!.keys()]).toEqual([1, 2]);
   });
 
   it('steps a frame as its pages posed otherwise', () => {

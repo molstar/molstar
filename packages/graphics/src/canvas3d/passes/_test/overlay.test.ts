@@ -29,6 +29,7 @@ function setup(count = 1) {
   const renderer = {
     clearDepth: () => calls.push('clearDepth'),
     update: (camera: { near: number }) => calls.push(`update near ${camera.near.toFixed(1)}`),
+    prepareCullView: () => calls.push('prepareCullView'),
     renderOverlay: (_: Scene, __: Camera, occluder: Renderer.Occluder | null) => {
       calls.push(`renderOverlay occlusion ${current === null ? 'off' : 'on'}`);
       occluders.push(occluder);
@@ -117,8 +118,15 @@ describe('overlay pass', () => {
     expect(isRenderPassAttachments(attachments)).toBe(true);
     expect(attachments.color).toEqual([texture]);
     expect(attachments.depth).toBe(depthRenderbuffer);
-    // the overlay's bounds, 10 around the origin, 100 in front of the camera
-    expect(calls).toEqual(['clearDepth', 'update near 89.9', 'renderOverlay occlusion off']);
+    // its objects culled on the GPU for the overlay's camera before the pass, then drawn: the overlay's bounds, 10
+    // around the origin, 100 in front of the camera
+    expect(calls).toEqual([
+      'update near 89.9',
+      'prepareCullView',
+      'clearDepth',
+      'update near 89.9',
+      'renderOverlay occlusion off',
+    ]);
     // the scene's occlusion test is back
     expect(ctx.renderer.occlusionTest).not.toBeNull();
 

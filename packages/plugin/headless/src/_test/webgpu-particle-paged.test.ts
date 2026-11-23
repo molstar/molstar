@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { setTimingMode } from '@molstar/core/util/debug';
 import { describe, expect, it, vi } from 'vitest';
 import { Mat4, Quat, Vec2, Vec3 } from '@molstar/core/math/linear-algebra';
 import { ClipGhostParams } from '@molstar/graphics/canvas3d/passes/clip-ghost';
@@ -603,7 +604,8 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles as a page store o
             item.renderFullscreen = renderFullscreen;
           });
         }
-        const renderer = Renderer.create(graphics, props);
+        // drawn directly (no draw lists: a replayed recording counts no draw)
+        const renderer = Renderer.create(graphics, { ...props, drawLists: false });
         await graphics.resources.preparePipelines(
           renderer.collect({ name: 'opaque' }, scene, graphics.describeTarget(target)),
         );
@@ -625,7 +627,20 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles as a page store o
           await graphics.resources.pending.whenReady();
           if (props.sphereRaster === 'off' ? i > 3 : resolved > 0 && i > 3) break;
         }
-        pixels = await frame();
+        // the indirect records the last frame encoded, the camera moved a little (a view still keeps the records its
+        // read-back counted: the predicted ones alone while it moves; counted in timing mode)
+        const { calls } = graphics.stats;
+        const { position } = camera.state;
+        camera.setState({ position: Vec3.create(position[0] + 0.01, position[1], position[2]) }, 0);
+        camera.update();
+        setTimingMode(true);
+        const encoded = calls.drawInstancedBase;
+        try {
+          pixels = await frame();
+        } finally {
+          setTimingMode(false);
+        }
+        const records = calls.drawInstancedBase - encoded;
         // the raster's regions' instances, by its records
         let rastered = 0;
         for (const input of inputs.values()) {
@@ -636,7 +651,7 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles as a page store o
         for (const restore of restores) restore();
         renderer.dispose();
         scene.clear();
-        return { pixels, resolved, rastered };
+        return { pixels, resolved, rastered, records };
       };
       const differing = (a: number[], b: number[]) => {
         let n = 0;
@@ -656,6 +671,10 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles as a page store o
       expect(paged.resolved).toBeGreaterThan(0);
       // every particle in view the raster's (the flat view's objects split by the raster per instance)
       expect(paged.rastered).toBe(Count);
+      // a member the raster takes all of (its largest sphere within its radius at the member's nearest): its impostor
+      // record not predicted, fewer encoded than the impostors alone draw (a member reaching near the camera kept)
+      expect(impostors.records).toBe(2);
+      expect(paged.records).toBe(1);
       expect(differing(paged.pixels, flat.pixels)).toBeLessThanOrEqual(8);
       // the raster's image the impostors', but where its arithmetic and the fragment stage's decide an edge differently
       expect(differing(paged.pixels, impostors.pixels)).toBeLessThanOrEqual(Size * Size * 0.02);

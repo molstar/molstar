@@ -25,6 +25,8 @@ import {
   shapeRepr,
   sphereGrid,
   sphereSitesGrid,
+  splatSphere,
+  splatSphereSog,
   textLabels,
   textureMeshFromMesh,
 } from '../scenes/primitives.js';
@@ -41,6 +43,11 @@ import { SegmentRepresentationProvider } from '@molstar/graphics/repr/volume/seg
 import { exampleStructure, globuleStructure, helixStructure, structureRepr } from '../scenes/structure.js';
 import { GaussianSurfaceRepresentationProvider } from '@molstar/graphics/repr/structure/representation/gaussian-surface';
 import { GaussianVolumeRepresentationProvider } from '@molstar/graphics/repr/structure/representation/gaussian-volume';
+import { EveryLoci } from '@molstar/model/model/loci';
+import { ShapeGroup } from '@molstar/model/model/shape/shape';
+import { MarkerAction } from '@molstar/core/util/marker-action';
+import { Overpaint } from '@molstar/graphics/theme/overpaint';
+import { Transparency } from '@molstar/graphics/theme/transparency';
 import { OrderedSet } from '@molstar/core/data/int';
 import { ValueCell } from '@molstar/core/util';
 import type { SpheresValues } from '@molstar/graphics/gl/renderable/spheres';
@@ -552,6 +559,73 @@ export const GeometryCases: VisualTestCase[] = [
         props: { pointStyle: 'circle', sizeFactor: 2, pointSizeAttenuation: true },
       }),
     ],
+  },
+  {
+    id: 'geometry/gaussian-splats/sphere',
+    tags: ['smoke'],
+    description: 'Flat Gaussian splats on a sphere, turned and of several opacities, blended back to front.',
+    view: ObliqueView,
+    scene: async () => [await shapeRepr('splats', splatSphere(300, 4, 0.07))],
+  },
+  {
+    id: 'geometry/gaussian-splats/instances',
+    description: 'Three instances of the splat sphere, each sorted in its own block of the order.',
+    view: ObliqueView,
+    scene: async () => [await shapeRepr('splats', splatSphere(200, 2, 0.05), { transforms: rowTransforms(3, 5) })],
+  },
+  {
+    id: 'geometry/gaussian-splats/size-kernel',
+    description: 'Splats 1.5 times as large, cut at 2 standard deviations (their edges visible).',
+    view: ObliqueView,
+    scene: async () => [
+      await shapeRepr('splats', splatSphere(300, 4, 0.07), { props: { sizeFactor: 1.5, kernelSize: 2 } }),
+    ],
+  },
+  {
+    id: 'geometry/gaussian-splats/view-dependent-color',
+    description:
+      'Splats with view-dependent color of degree 2 (spherical harmonics of a fixed pattern) over their base color.',
+    view: ObliqueView,
+    scene: async () => [await shapeRepr('splats', splatSphere(300, 4, 0.07, 2))],
+  },
+  {
+    id: 'geometry/gaussian-splats/sog',
+    description:
+      'The splat sphere as SOG read in place (version 3): positions, scales, rotations, colors and opacities decoded by the shaders, a palette of view-dependent color of degree 2.',
+    view: ObliqueView,
+    scene: async (ctx) => [await shapeRepr('splats', splatSphereSog(ctx.graphics, 300, 4, 0.07, 2))],
+  },
+  {
+    id: 'geometry/gaussian-splats/highlight-select',
+    description: 'Two splat spheres, the left highlighted, the right selected: outlined where at least half opaque.',
+    view: ObliqueView,
+    scene: async () => {
+      const highlighted = await shapeRepr('splats', splatSphere(200, 2, 0.07), {
+        transforms: [Mat4.fromTranslation(Mat4(), Vec3.create(-3, 0, 0))],
+      });
+      highlighted.mark(EveryLoci, MarkerAction.Highlight);
+      const selected = await shapeRepr('splats', splatSphere(200, 2, 0.07), {
+        transforms: [Mat4.fromTranslation(Mat4(), Vec3.create(3, 0, 0))],
+      });
+      selected.mark(EveryLoci, MarkerAction.Select);
+      return [highlighted, selected];
+    },
+  },
+  {
+    id: 'geometry/gaussian-splats/overpaint-transparency',
+    description: 'The splats of groups 0 to 2 overpainted red, of groups 3 to 5 70% transparent (groups of 8).',
+    view: ObliqueView,
+    scene: async () => {
+      const repr = await shapeRepr('splats', splatSphere(300, 4, 0.07));
+      const { shape } = repr.getAllLoci()[0] as ShapeGroup.Loci;
+      const groups = (from: number, to: number) =>
+        ShapeGroup.Loci(shape, [{ ids: OrderedSet.ofRange(from, to), instance: 0 }]);
+      repr.setState({
+        overpaint: Overpaint('group-loci', [{ loci: groups(0, 2), color: Color(0xff0000), clear: false }]),
+        transparency: Transparency('group-loci', [{ loci: groups(3, 5), value: 0.7 }]),
+      });
+      return [repr];
+    },
   },
   {
     id: 'geometry/lines/cages',

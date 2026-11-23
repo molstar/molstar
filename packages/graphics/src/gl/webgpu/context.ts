@@ -1673,6 +1673,7 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     multiDrawIndirect: device.features.has('chromium-experimental-multi-draw-indirect' as GPUFeatureName),
     atomicMinMax64: device.features.has('atomic-vec2u-min-max' as GPUFeatureName),
     parallelCompile: true,
+    instanceExpansion: false,
   };
 
   const attachmentsBackend: RenderPassAttachmentsBackend<WebGPUAttachmentSet> = {

@@ -94,6 +94,28 @@ describe('camera', () => {
     }
   });
 
+  it("tells no change for a sample's jitter, the projection jittered and restored; a move told", () => {
+    const camera = new Camera(
+      { position: Vec3.create(2, 3, 20), target: Vec3.create(0, 0, 0), radiusMax: 20 },
+      Viewport.create(0, 0, 300, 200),
+    );
+    camera.update();
+    const unjittered = Mat4.copy(Mat4(), camera.projection);
+    let changes = 0;
+    const sub = camera.changed.subscribe(() => ++changes);
+    setJitter(camera, [0.25, -0.375]);
+    expect(Mat4.areEqual(camera.projection, unjittered, 0)).toBe(false);
+    clearJitter(camera);
+    expect(Array.from(camera.projection)).toEqual(Array.from(unjittered));
+    // the frame's update after the samples: nothing changed since the last told
+    expect(camera.update()).toBe(false);
+    expect(changes).toBe(0);
+    camera.position = Vec3.create(2, 3, 25);
+    expect(camera.update()).toBe(true);
+    expect(changes).toBe(1);
+    sub.unsubscribe();
+  });
+
   it('culls jittered samples as the camera unjittered, to the bit, until the jitter is cleared', () => {
     const camera = new Camera(
       { position: Vec3.create(2, 3, 20), target: Vec3.create(0, 0, 0), radiusMax: 20 },

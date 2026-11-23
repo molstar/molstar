@@ -83,7 +83,7 @@ export class Camera implements ICamera {
 
   readonly transition: CameraTransitionManager = new CameraTransitionManager(this);
   readonly stateChanged = new BehaviorSubject<Partial<Camera.Snapshot>>(this.state);
-  /** Fires whenever update() produces a changed view/projection (covers all mutations, including direct ones from controls). */
+  /** Fires whenever update() produces a changed view/projection (covers all mutations, including direct ones from controls), not a sample's jitter (`update(true)`). */
   readonly changed = new Subject<void>();
 
   get position() {
@@ -112,7 +112,11 @@ export class Camera implements ICamera {
   private deltaDirection = Vec3();
   private newPosition = Vec3();
 
-  update() {
+  /**
+   * the matrices from the state; `changed` told where they changed, not where `silent` (a sample's jitter,
+   * `setJitter`: no move of the camera, its listeners would take each sample's frame for one)
+   */
+  update(silent = false) {
     const snapshot = this.state as Camera.Snapshot;
     if (snapshot.radiusMax === 0) {
       return false;
@@ -157,7 +161,7 @@ export class Camera implements ICamera {
 
       Mat4.copy(this.prevView, this.view);
       Mat4.copy(this.prevProjection, this.projection);
-      this.changed.next();
+      if (!silent) this.changed.next();
     }
 
     return changed;

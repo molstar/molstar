@@ -50,6 +50,8 @@ export interface ShapeBuilder<G extends Geometry, P extends Geometry.Params<G>> 
    * `GeometryUtils.isCompatible`); `setGraphics` replaces it
    */
   graphics?: GraphicsContext;
+  /** Releases what the shape's geometry owns on the GPU, when the representation is destroyed */
+  dispose?: (geometry: G) => void;
 }
 
 export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Params<G>>(
@@ -71,6 +73,8 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
   let locationIt: LocationIterator;
   let positionIt: LocationIterator;
   let graphics = builder.graphics;
+  /** the data of the last shape, its getter called again for a new context (`isCompatible` false, no `makeCompatible`) */
+  let _data: D | undefined;
 
   if (builder.modifyState) Representation.updateState(_state, builder.modifyState(_state));
 
@@ -122,7 +126,16 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
 
     const task = Task.create('ShapeRepresentation.create', async (runtime) => {
       const newProps = Object.assign(currentProps, props);
-      const shape = data ? await getShape(runtime, data, newProps, _shape) : undefined;
+      if (data !== undefined) _data = data;
+      // geometry made on the previous context (e.g. GPU textures) made again on this one, by the getter
+      const remake =
+        data === undefined &&
+        _data !== undefined &&
+        !!graphics &&
+        !!_shape &&
+        !geometryUtils.makeCompatible &&
+        geometryUtils.isCompatible?.(_shape.geometry, graphics) === false;
+      const shape = data || remake ? await getShape(runtime, (data ?? _data)!, newProps, _shape, graphics) : undefined;
 
       prepareUpdate(props, shape);
 
@@ -366,6 +379,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
     getSignatures: (props: PD.Values<P>, ctx: SignatureContext) =>
       getGeometrySignatures(geometryUtils, { ...PD.getDefaultValues(currentParams), ...props }, ctx),
     destroy() {
+      if (_shape) builder.dispose?.(_shape.geometry);
       renderObjects.length = 0;
       if (_renderObject) {
         _renderObject.state.disposed = true;

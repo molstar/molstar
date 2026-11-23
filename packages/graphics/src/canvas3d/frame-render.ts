@@ -211,6 +211,8 @@ export function createCanvas3DFrameRender(host: Canvas3DFrameRenderHost) {
         } else {
           passes.draw.render(ctx, p, true);
         }
+        // culled by the CPU test against levels of another view: drawn again once these levels are read back
+        if (cam === camera && !xrFrame) hiZ.noteCulled(camera);
         // the GPU's occlusion test of the objects culled there needs the levels (also with Hi-Z off)
         hiZ.setGpuCulling(renderer.gpuCulledCount > 0);
         // stereo's eyes: the levels of both (side by side; XR's views where laid out so); none of a frame drawn straight

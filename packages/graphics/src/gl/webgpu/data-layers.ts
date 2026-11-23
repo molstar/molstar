@@ -16,7 +16,10 @@ import { type RenderableSchema, UniformSpec } from '../renderable/schema.js';
  * text's (`tText`, four per item) are layers too (`rgb32f-i32`: the groups integers, `readGroup_<layer>`), and so is
  * merged items' segment data (`tSegment`, `SegmentTexels` per segment). Spheres'
  * quantized centers (`tSite`, `rgba16i`: int16 x, y, z and a uint16, two `u32` an element) are one too, and their second
- * color (`tSiteColor`, a table by site type or an element a site). Sixteen layers: the page define's 32 bits
+ * color (`tSiteColor`, a table by site type or an element a site). Gaussian splats' rotation, scales and opacity
+ * (`tSplat`, `rgba16i`, two elements a splat) too, and their draw order (`tSplatOrder`, a `u32` index an `rgba8`
+ * element). A schema has at most `MaxSchemaDataLayers` of them (the page define's
+ * 32 bits, two a layer of the schema), the list any number
  */
 export const DataLayers = {
   tColor: 'rgba8',
@@ -35,6 +38,9 @@ export const DataLayers = {
   tText: 'rgb32f-i32',
   tSite: 'rgba16i',
   tSiteColor: 'rgba8',
+  tSplat: 'rgba16i',
+  tSplatOrder: 'rgba8',
+  tSplatSh: 'rgba8',
 } as const;
 export type DataLayer = keyof typeof DataLayers;
 /** Bytes per element of the encodings of `DataLayers` */
@@ -56,21 +62,31 @@ export const DataPageNames = [DataPageName, 'sDataPage1', 'sDataPage2', 'sDataPa
 export const MaxDataPages = DataPageNames.length;
 
 /**
- * The define of the page each layer is in (`DataPageNames`), two bits per layer in `DataLayerNames` order: 0 (all in
- * the first) for items within the limit, whose programs are those of before; not in the schema: in an item's defines
- * only where not 0
+ * The define of the page each layer is in (`DataPageNames`), two bits per layer in the order of the schema's layers
+ * (`getSchemaDataLayers`), not of all layers: the list may grow past 16, a schema has fewer; 0 (all in the first) for
+ * items within the limit, whose programs are those of before; not in the schema: in an item's defines only where not 0
  */
 export const DataLayerPagesName = 'dDataLayerPages';
 
-/** The page of `layer` in the layout `pages` (`DataLayerPagesName`) */
-export function getDataLayerPage(pages: number, layer: DataLayer) {
-  return (pages >>> (2 * DataLayerNames.indexOf(layer))) & 3;
+/** The most layers a schema may have: two bits each in the 32 of `DataLayerPagesName` */
+export const MaxSchemaDataLayers = 16;
+
+/** The page of the `index`-th layer of a schema (`getSchemaDataLayers`) in the layout `pages` (`DataLayerPagesName`) */
+export function getDataLayerPage(pages: number, index: number) {
+  return (pages >>> (2 * index)) & 3;
 }
 
-/** The layout of `pageOf` (a page per layer of `layers`), see `DataLayerPagesName` */
-export function getDataLayerPages(layers: readonly DataLayer[], pageOf: readonly number[]) {
+/**
+ * The layout of `pageOf` (a page per layer of `layers`) for a schema of the layers `schemaLayers`
+ * (`getSchemaDataLayers`, `layers` among them), see `DataLayerPagesName`
+ */
+export function getDataLayerPages(
+  schemaLayers: readonly DataLayer[],
+  layers: readonly DataLayer[],
+  pageOf: readonly number[],
+) {
   let pages = 0;
-  for (let i = 0; i < layers.length; ++i) pages |= pageOf[i] << (2 * DataLayerNames.indexOf(layers[i]));
+  for (let i = 0; i < layers.length; ++i) pages |= pageOf[i] << (2 * schemaLayers.indexOf(layers[i]));
   return pages;
 }
 
@@ -89,6 +105,11 @@ export function getDataLayerSchema(schema: RenderableSchema): RenderableSchema {
   let extended = dataSchemas.get(schema);
   if (extended) return extended;
   const layers = DataLayerNames.filter((n) => schema[n]?.type === 'data');
+  if (layers.length > MaxSchemaDataLayers) {
+    throw new Error(
+      `a schema with ${layers.length} data layers, more than ${MaxSchemaDataLayers}: ${layers.join(', ')}`,
+    );
+  }
   if (layers.length === 0) {
     extended = schema;
   } else {
@@ -101,9 +122,19 @@ export function getDataLayerSchema(schema: RenderableSchema): RenderableSchema {
   return extended;
 }
 
-/** The layers of `schema` read from the pages (its offsets, see `getDataLayerSchema`) */
-function getSchemaLayers(schema: RenderableSchema) {
-  return DataLayerNames.filter((n) => schema[getDataOffsetName(n)] !== undefined);
+const schemaLayers = new WeakMap<RenderableSchema, readonly DataLayer[]>();
+
+/**
+ * The layers of `schema` read from the pages (its offsets, see `getDataLayerSchema`), in `DataLayerNames` order: the
+ * order of their bits in `DataLayerPagesName`
+ */
+export function getSchemaDataLayers(schema: RenderableSchema): readonly DataLayer[] {
+  let layers = schemaLayers.get(schema);
+  if (!layers) {
+    layers = DataLayerNames.filter((n) => schema[getDataOffsetName(n)] !== undefined);
+    schemaLayers.set(schema, layers);
+  }
+  return layers;
 }
 
 /**
@@ -113,9 +144,11 @@ function getSchemaLayers(schema: RenderableSchema) {
  */
 export function getDataLayerAccessors(schema: RenderableSchema, isReferenced: (name: string) => boolean, pages = 0) {
   const lines: string[] = [];
-  for (const layer of getSchemaLayers(schema)) {
+  const layers = getSchemaDataLayers(schema);
+  for (let index = 0; index < layers.length; ++index) {
+    const layer = layers[index];
     const fn = `read_${layer}`;
-    const DataPageName = DataPageNames[getDataLayerPage(pages, layer)];
+    const DataPageName = DataPageNames[getDataLayerPage(pages, index)];
     const offset = `u32(uObject.${getDataOffsetName(layer)})`;
     if (DataLayers[layer] === 'rgb32f-i32' && isReferenced(`readGroup_${layer}`)) {
       // the group an integer: its word never read as a float (integer bits a denormal, which GPUs flush)
@@ -156,15 +189,17 @@ export function getDataLayerAccessors(schema: RenderableSchema, isReferenced: (n
 
 /** Whether `isReferenced` names an accessor of a layer of `schema`: the page is bound then */
 export function usesDataLayers(schema: RenderableSchema, isReferenced: (name: string) => boolean) {
-  return getSchemaLayers(schema).some((n) => isReferenced(`read_${n}`) || isReferenced(`readGroup_${n}`));
+  return getSchemaDataLayers(schema).some((n) => isReferenced(`read_${n}`) || isReferenced(`readGroup_${n}`));
 }
 
 /** The pages (`DataPageNames`) the accessors `isReferenced` names read in the layout `pages`: those bound */
 export function getReadDataPages(schema: RenderableSchema, isReferenced: (name: string) => boolean, pages = 0) {
   const read = new Set<string>();
-  for (const layer of getSchemaLayers(schema)) {
+  const layers = getSchemaDataLayers(schema);
+  for (let index = 0; index < layers.length; ++index) {
+    const layer = layers[index];
     if (isReferenced(`read_${layer}`) || isReferenced(`readGroup_${layer}`)) {
-      read.add(DataPageNames[getDataLayerPage(pages, layer)]);
+      read.add(DataPageNames[getDataLayerPage(pages, index)]);
     }
   }
   return read;

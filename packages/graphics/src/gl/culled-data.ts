@@ -96,6 +96,17 @@ export interface CulledPoseSlots {
  */
 /** the header's last word of a page store's `CulledData` */
 export const CulledPagedFlag = 1;
+/**
+ * a page store's pose's last word: its segment (a member: below 2^16, `PagedSegmentMask`) and, a copy's instance, the
+ * copy plus one above it (`PagedCopyShift`: a pick's copy, gathered from the slot it drew, `paged-pick.ts`)
+ */
+export const PagedCopyShift = 16;
+/**
+ * a page store's copy's first word of its markers (`sCopyMarkers`): its block's flag, its second word then the block's
+ * first byte less its template's first store index; else its marker for all of it
+ */
+export const CopyMarkerBlock = 0x80000000;
+export const PagedSegmentMask = 0xffff;
 /** vec4s of a segment's data in `CulledData` */
 export const CulledSegmentVec4s = 3;
 
@@ -112,7 +123,10 @@ export const CulledData = {
   wgsl: (data: string, prefix = 'culled') => /* wgsl */ `
 fn ${prefix}Quarter() -> u32 { return (bitcast<u32>(${data}[0].x) + 3u) / 4u; }
 fn ${prefix}Paged() -> bool { return bitcast<u32>(${data}[0].w) == ${CulledPagedFlag}u; }
-/** a page store's pose i: its second vec4's words (the quaternion snorm16, aInstance, the segment) */
+/**
+ * a page store's pose i: its second vec4's words (the quaternion snorm16, aInstance, the segment in the low 16 bits
+ * and a copy's plus one in the high 16: \`PagedCopyShift\`)
+ */
 fn ${prefix}PagedWords(i: u32) -> vec4<u32> {
     return bitcast<vec4<u32>>(${data}[bitcast<u32>(${data}[0].z) + 2u * i + 1u]);
 }
@@ -123,7 +137,7 @@ fn ${prefix}Instance(i: u32) -> u32 {
 fn ${prefix}Segment(i: u32) -> vec4<i32> {
     let q = ${prefix}Quarter();
     var s: u32;
-    if (${prefix}Paged()) { s = ${prefix}PagedWords(i).w; } else { s = u32(${data}[1u + 2u * q + i / 4u][i % 4u]); }
+    if (${prefix}Paged()) { s = ${prefix}PagedWords(i).w & ${PagedSegmentMask}u; } else { s = u32(${data}[1u + 2u * q + i / 4u][i % 4u]); }
     return vec4<i32>(bitcast<vec3<i32>>(${data}[1u + 3u * q + ${CulledSegmentVec4s}u * s].xyz), i32(s));
 }
 fn ${prefix}SegmentItem(s: u32) -> u32 {

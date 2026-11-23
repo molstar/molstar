@@ -9,15 +9,17 @@
  * (as the levels of detail measure it): from none at `uSiteColorRange.x` to whole at `.y`, a table entry's alpha 0
  * none (a carbon its particle's). Expects `out.vColor` (`assign_varyings_wgsl`, its `groupIndex`), `radius` and
  * `mvPosition`, and for `siteType` the site (`site`) and, merged, `tableBase` its table's first entry; not
- * for palette colors (indices, not colors)
+ * for palette colors (indices, not colors). The radius without `instanceScale` (the instance's: a coarse level's
+ * particles drawn up to 63 times larger to fill a far copy's space, their atoms not near by that)
  */
-export const assign_site_color_wgsl = (tableBase: string) => /* wgsl */ `
+export const assign_site_color_wgsl = (tableBase: string, instanceScale: string) => /* wgsl */ `
 #if defined(dSiteColor_siteType) || defined(dSiteColor_group)
 #if defined(dColorType_texture) && !defined(dUsePalette)
 #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing) || defined(dRenderVariant_emissive)
     {
         let siteColorDepth = select(max(-mvPosition.z, uGlobal.uNear), 1.0, uGlobal.uIsOrtho == 1.0);
-        let siteColorPixels = radius * uGlobal.uProjection[1][1] * 0.5 * uGlobal.uCssHeight / siteColorDepth;
+        let siteColorRadius = radius / max(${instanceScale}, 1e-6);
+        let siteColorPixels = siteColorRadius * uGlobal.uProjection[1][1] * 0.5 * uGlobal.uCssHeight / siteColorDepth;
         let siteColorRange = uMaterial.uSiteColorRange;
         let siteColorT = smoothstep(siteColorRange.x, max(siteColorRange.y, siteColorRange.x + 0.001), siteColorPixels);
         if (siteColorT > 0.0) {

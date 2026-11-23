@@ -65,9 +65,11 @@ export interface Texture {
   define: (width: number, height: number, depth?: number) => void;
   /**
    * The `sub` option requires an existing allocation on the GPU, that is, either
-   * `define` or `load` without `sub` must have been called before.
+   * `define` or `load` without `sub` must have been called before. Images (`rgba` `ubyte` textures) are uploaded as
+   * decoded, not premultiplied nor color converted; an `ImageBitmap` is not kept as the source (`getSource`): its owner
+   * may close it once uploaded.
    */
-  load: (image: TextureImage<any> | TextureVolume<any> | HTMLImageElement, sub?: boolean) => void;
+  load: (image: TextureImage<any> | TextureVolume<any> | HTMLImageElement | ImageBitmap, sub?: boolean) => void;
   /**
    * Writes the data array `data` (`DataSpec`) at element `offset` of the texture of `width` × `height` texels (allocated
    * at that size where it is another), an element per texel row by row: its element `ranges` (`[start, end)` pairs, see

@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from 'vitest';
 import type { DataFormat } from '../renderable/schema.js';
-import { createDataTexturePages } from '../webgl/data-pages.js';
+import { convertInt16ToFloat, createDataTexturePages } from '../webgl/data-pages.js';
 
 /** A texture that only records its size: allocating defines it, nothing is written */
 function stubTexture() {
@@ -41,5 +41,21 @@ describe('WebGL data pages', () => {
       }
       pages.destroy();
     }
+  });
+
+  // WebGL1 has no integer textures: the values the WebGL2 accessor unpacks, as floats
+  it('convert int16 data to floats for WebGL1, the fourth unsigned', () => {
+    const array = new Int16Array([-32768, 32767, -1, -1, 0, 1, -2, 0x7fff]);
+    const { array: floats, count } = convertInt16ToFloat({ array, count: 2 });
+    expect(count).toBe(2);
+    expect(Array.from(floats)).toEqual([-32768, 32767, -1, 65535, 0, 1, -2, 32767]);
+  });
+
+  it('count the bytes of the elements as the pages store them (`rgba16i` 16 as floats)', () => {
+    expect(createDataTexturePages('rgba16i', stubTexture, 4096).bytesPerElement).toBe(8);
+    const floats = createDataTexturePages('rgba16i', stubTexture, 4096, 16);
+    expect(floats.bytesPerElement).toBe(16);
+    floats.allocate(4);
+    expect(floats.pageBytes % 16).toBe(0);
   });
 });

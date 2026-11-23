@@ -152,6 +152,10 @@ describe('the default spec', () => {
       'ply',
       'obj',
       'vtp',
+      // new in v6: gaussian splats
+      'splat',
+      'spz',
+      'sog',
       'mmcif',
       'cifCore',
       'pdb',

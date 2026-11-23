@@ -64,10 +64,10 @@ function getDataTextureSpec(spec: DataSpec) {
     spec.format === 'rgba32f'
       ? TextureSpec('image-float32', 'rgba', 'float', 'nearest', undefined, { usedIf: spec.usedIf })
       : spec.format === 'rgba16i'
-        ? // int16 x 4 as one `RG32I` texel (WebGL2: the accessor unpacks it)
+        ? // int16 x 4 as one `RG32I` texel (WebGL2: the accessor unpacks it; WebGL1's pages `RGBA32F`, converted)
           TextureSpec('image-int32', 'rg', 'int', 'nearest', undefined, { usedIf: spec.usedIf })
         : spec.format === 'rgb32f-i32'
-          ? // the words as one `RGBA32I` texel (WebGL2; WebGL1's pages `RGBA32F`, the fourth converted, `resources.ts`)
+          ? // the words as one `RGBA32I` texel (WebGL2; WebGL1's pages `RGBA32F`, the fourth converted, `data-pages.ts`)
             TextureSpec('image-int32', 'rgba', 'int', 'nearest', undefined, { usedIf: spec.usedIf })
           : TextureSpec('image-uint8', spec.format === 'r8' ? 'r' : 'rgba', 'ubyte', 'nearest', undefined, {
               usedIf: spec.usedIf,
@@ -134,20 +134,21 @@ export function getDataTextureAccessors(schema: RenderableSchema, isWebGL2: bool
       );
     }
     if (format === 'rgba16i') {
-      // int16 x 4 in an `RG32I` texel, little-endian: x and y in the first int, z and the uint16 in the second (WebGL2
-      // only: WebGL1 has no integer textures)
-      if (!isWebGL2) continue;
-      lines.push(
-        `vec4 ${fn}(const in int i) {`,
-        `    int width = int(${dim}.x);`,
-        `    int j = ${offset} + i;`,
-        '    int y = j / width;',
-        `    ivec2 v = texelFetch(${name}, ivec2(j - y * width, y), 0).xy;`,
-        '    return vec4(float((v.x << 16) >> 16), float(v.x >> 16), float((v.y << 16) >> 16), float((v.y >> 16) & 0xffff));',
-        '}',
-        `vec4 ${fn}(const in float i) { return ${fn}(int(i)); }`,
-      );
-      continue;
+      // int16 x 4 in an `RG32I` texel, little-endian: x and y in the first int, z and the uint16 in the second; WebGL1:
+      // float pages, the integers converted where written (`convertInt16ToFloat`), the float accessors below
+      if (isWebGL2) {
+        lines.push(
+          `vec4 ${fn}(const in int i) {`,
+          `    int width = int(${dim}.x);`,
+          `    int j = ${offset} + i;`,
+          '    int y = j / width;',
+          `    ivec2 v = texelFetch(${name}, ivec2(j - y * width, y), 0).xy;`,
+          '    return vec4(float((v.x << 16) >> 16), float(v.x >> 16), float((v.y << 16) >> 16), float((v.y >> 16) & 0xffff));',
+          '}',
+          `vec4 ${fn}(const in float i) { return ${fn}(int(i)); }`,
+        );
+        continue;
+      }
     }
     if (isWebGL2) {
       lines.push(

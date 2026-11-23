@@ -92,7 +92,7 @@ whose atom, residue and chain tables equal the previous one's (`createModels`).
 - **ParticleList** (`model/particles/`): packed coordinates (float32 or on a grid, `Positions`: loops over all branch on
   the kind once, the others read `GridPositions.get`), optional rotations (unit float32 or snorm16 quaternions,
   `ParticleRotations`: readers rotate by `2 / |q|²`, no decoded copy), radii, fibers and attributes; targets (a
-  structure, shape or volume per particle); lazily derived transforms and target groups.
+  structure, shape, volume or template per particle); lazily derived transforms and target groups.
 - **Particle tiles** (`model/particles/particle-tiles.ts`, `.v6/plans/particle-tiles.md`): a list subdivided on a
   regular grid, a particle in the tile of its center; a light catalog of what the tiles share known up front (a target's
   kind and what decides its programs, the targets' info, entities, compartments), the tiles' particles and the targets'
@@ -103,9 +103,9 @@ whose atom, residue and chain tables equal the previous one's (`createModels`).
   targets loaded once for all tiles; what is ready kept until released (letting go is the app's). The visibility
   (`particle-tile-visibility.ts`): the tiles a camera would see something of (in view by their reach, the box grown by
   their targets' radius; not sub-pixel; not hidden behind the tiles in front: their optical depth gathered front to back
-  along a small grid of the camera's rays on the CPU, a ray opaque at 7, from the back of what made it so). The
-  opacities (`particle-tile-opaque.ts`): per block of a tile's cell the optical depth a length of its content, by its
-  density (molecules of volume fraction φ and mean chord ℓ pass a line of length L with probability exp(-φL/ℓ); a
+  along a small grid of the camera's rays on the CPU, a ray opaque at 3 by default, from the back of what made it so).
+  The opacities (`particle-tile-opaque.ts`): per block of a tile's cell the optical depth a length of its content, by
+  its density (molecules of volume fraction φ and mean chord ℓ pass a line of length L with probability exp(-φL/ℓ); a
   molecule a solid sphere of its volume, its mass's). A heuristic (densities a mean, gaps finer than the rays not seen),
   erring towards keeping. The view (`particle-tile-view.ts`): one list of some ready tiles at a frame, by target (a
   target one run), a particle's key its index in the whole (kept across views of other tiles), per target its
@@ -119,6 +119,29 @@ whose atom, residue and chain tables equal the previous one's (`createModels`).
   (no pages) as it is; a consumer that does not read pages takes `ParticleSlots.flatten`. A tile set's slot view
   (`ParticleTileView.createSlots`): a tile's list its page at its base, a particle's slot its key; a tile added or let
   go a page.
+- **Nested lists** (`model/particles/particle-nesting.ts`, `.v6/plans/particle-nesting.md`): a target of kind
+  `particles` (a template) places a whole list at each of its particles, its pose composed with each one's
+  (`q (p - c) + t`, `q qc`; `c` the template's center, its boundary's by default). Two levels (`MaxNestingDepth`: a
+  template places no template; `ParticleNesting.check`), so memory is copies + placements, not copies x placements. An
+  expanded instance's identity its path (`ParticlePath`: its top particle and its index in the template), one index by
+  the top particles' prefix sums (`getExpansion`, cached; none for a list without templates). `ParticleNesting.flatten`
+  the reference (the templates' target, entity and compartment ids moved past the top list's; an instance without an
+  entity or compartment its top particle's); `Particle.getBoundary` by the copies' spheres. Drawn by the leaves only: a
+  template never a target geometry; drawn as it is where a GPU culls the store's (its copies expanded there: the target
+  representation's store object), else the particle representations draw `flatten`'s list, their loci the given list's
+  (`toFlatLoci`, `fromFlatIndices`). Themed by its leaves by level, no copy expanded (`getThemeList`: a slot list of its
+  top list's leaves, `getTopList`, and each template's, `getLeafList`, in the flattened list's ids, `getIdSpace`). What
+  it hides as drawn whole (the GPU's occlusion primed, as a flat list's density grid): its templates' grids placed by
+  their copies, into the blocks a copy covers whole (`getDensityGrid`: a block on a copy's edge none, the gaps between
+  copies open). Read and written by packs (formats.md §3). Loci by path sets: `Particle.Loci.indices` the top particles
+  held whole (a copy its every instance), `partial` the copies held in part (ascending tops, a template particle set
+  each), canonical (`createLoci`: a set neither empty nor all, no top in both), so loci compare by their parts; one
+  instance (`ofInstance`), a copy (`ofCopy`), template particles in every copy (`ofTemplateParticles`), queries by level
+  (`selectTop`, `selectInTemplate`: a template's particles tested once), `union`, `intersect`, `subtract`; size, bounds
+  (a whole copy by its template's sphere placed, a copy's many held particles by their set's sphere, once a template and
+  set: the isg 2x2x2's half in every copy 21 ms, not 316) and labels by path (`Particle 2 › Particle 7`). Nothing a copy
+  expanded but where asked (`forEachInstance`, `toFlatLoci`). Why not the flattened list's indices: a loci of a template
+  particle in every copy, or of the whole list, would be a set as large as the expansion.
 - **Sequence** (`model/sequence/`): protein, DNA, RNA or generic sequences with seq ids and microheterogeneity;
   alignment (`alignment/`).
 - **Shape** (`model/shape/`): structural only; graphics builds the renderable one.

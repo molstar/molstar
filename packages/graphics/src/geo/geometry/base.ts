@@ -342,10 +342,23 @@ export namespace BaseGeometry {
     return a.variant === b.variant && count(a) === count(b);
   }
 
+  /**
+   * Whether `props` differ from `before` by their clip alone (a clip object moved, a clipping gizmo's drag): the other
+   * props compared by reference, as the representations keep a prop's value while it is unchanged
+   */
+  export function isClipChangeOnly(props: { readonly clip: Clip.Props }, before: { readonly clip: Clip.Props }) {
+    if (props === before || props.clip === before.clip) return false;
+    const p = props as { readonly [k: string]: unknown };
+    const b = before as { readonly [k: string]: unknown };
+    for (const k in p) if (k !== 'clip' && p[k] !== b[k]) return false;
+    for (const k in b) if (!(k in p)) return false;
+    return true;
+  }
+
   /** The clip values of `values` for `clip` (as `updateValues` sets them), nothing else */
   /**
    * `clip` into `values`, not again where it is what they were updated with last; `force`: whatever they were (their
-   * cells written by another, e.g. `fillMergeMember` copying a member's)
+   * cells written by another, e.g. `createEmptyMergeMember` copying a member's)
    */
   export function updateClip(values: BaseValues, clip: Clip.Props, force = false) {
     if (!force && clipProps.get(values) === clip) return;

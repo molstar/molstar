@@ -24,6 +24,7 @@ import {
 import { AtomicNumbers, VdwRadius } from '@molstar/model/model/structure/model/properties/atomic/measures';
 import { type ElementSymbol, getElementFromAtomicNumber } from '@molstar/model/model/structure/model/types';
 import { ParticleTiles } from '@molstar/model/model/particles/particle-tiles';
+import { ParticleNesting } from '@molstar/model/model/particles/particle-nesting';
 
 export interface MmcifToPackOptions {
   /** the assembly the particles are (the file's first by default) */
@@ -71,13 +72,19 @@ export function packToPack(
 
  * particle an operator (its pose placing the target's center: `R`, `p - R c`), a target a gen row (a fiber one each).
  * cellPACK's layout where every target is one chain (its entity's description its compartment and name, the fibers
- * kept), PetWorld's otherwise (a model a target, `PDB_model_num`). `unmatchedRadii`: sites of a radius no element has,
- * written as carbon
+ * kept), PetWorld's otherwise (a model a target, `PDB_model_num`). A nested pack flattened (mmCIF has no templates: a
+ * copy's particles each its own, its fibers not kept). `unmatchedRadii`: sites of a radius no element has, written as
+ * carbon
  */
 export function packToMmcif(data: Uint8Array, binary: boolean): { data: Uint8Array | string; unmatchedRadii: number } {
   let list = createParticleListFromPack(readParticlePack(data));
-  // tile-ordered: its particles by tile, a target's not consecutive; written again sorted by target
-  if (ParticleTiles.getDirectory(list)) list = createParticleListFromPack(readParticlePack(writeParticlePack(list)));
+  // nested: its copies' particles placed, a template's targets its own (as a target, a template places no atoms)
+  const nested = ParticleNesting.hasTemplates(list);
+  if (nested) list = ParticleNesting.flatten(list);
+  // tile-ordered, or flattened: its particles by tile or by copy, a target's not consecutive; written again by target
+  if (nested || ParticleTiles.getDirectory(list)) {
+    list = createParticleListFromPack(readParticlePack(writeParticlePack(list)));
+  }
   return writeParticleListMmcif(list, binary);
 }
 

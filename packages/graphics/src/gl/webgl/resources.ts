@@ -347,11 +347,13 @@ export function createResources(
 
   // gone with the resources, their textures with the others
   const dataPages: { [F in DataFormat]?: DataTexturePages } = {};
+  // WebGL1 has no integer textures: `rgb32f-i32` and `rgba16i` as floats, converted where written (`data-pages.ts`)
+  const asFloats = (format: DataFormat) => !isWebGL2(gl) && (format === 'rgb32f-i32' || format === 'rgba16i');
   const createDataPageTexture = (format: DataFormat) =>
-    format === 'rgba32f' || (format === 'rgb32f-i32' && !isWebGL2(gl))
+    format === 'rgba32f' || asFloats(format)
       ? texture('image-float32', 'rgba', 'float', 'nearest')
       : format === 'rgb32f-i32'
-        ? // the words as one `RGBA32I` texel (WebGL2; WebGL1 floats, the groups converted, `convertGroupsToFloat`)
+        ? // the words as one `RGBA32I` texel (WebGL2)
           texture('image-int32', 'rgba', 'int', 'nearest')
         : format === 'rgba16i'
           ? // int16 x 4 as one `RG32I` texel (WebGL2)
@@ -361,7 +363,12 @@ export function createResources(
   return {
     limits,
     dataPages: (format: DataFormat) =>
-      (dataPages[format] ??= createDataTexturePages(format, createDataPageTexture, parameters.maxTextureSize)),
+      (dataPages[format] ??= createDataTexturePages(
+        format,
+        createDataPageTexture,
+        parameters.maxTextureSize,
+        asFloats(format) ? 16 : undefined,
+      )),
     attribute: (
       array: ArrayType | SegmentedArray,
       itemSize: AttributeItemSize,

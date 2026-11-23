@@ -6,7 +6,7 @@
  */
 
 import { sort, arraySwap } from '@molstar/core/data/util';
-import { type GraphicsRenderObject, isMergedRenderObject } from '@molstar/graphics/gl/render-object';
+import { type GraphicsRenderObject, getMergedMembers, isMergedRenderObject } from '@molstar/graphics/gl/render-object';
 import type { MeshValues } from '@molstar/graphics/gl/renderable/mesh';
 import type { LinesValues } from '@molstar/graphics/gl/renderable/lines';
 import type { PointsValues } from '@molstar/graphics/gl/renderable/points';
@@ -1042,7 +1042,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     // a merged object's values are its members' in segments (group and layer offsets per member): its members are
     // exported, each with its own values
     if (isMergedRenderObject(renderObject)) {
-      for (const member of renderObject.members) await this.add(member, graphics, ctx);
+      for (const member of getMergedMembers(renderObject)) await this.add(member, graphics, ctx);
       return;
     }
     if (renderObject.values.drawCount.ref.value === 0) return;

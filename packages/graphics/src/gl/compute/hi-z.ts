@@ -93,7 +93,7 @@ export function createHiZOccluderRenderable(
     uGridMax: ValueCell.create(Vec3()),
     uGridDims: ValueCell.create(Vec3()),
     uGridColumns: ValueCell.create(1),
-    uOpticalDepth: ValueCell.create(7),
+    uOpticalDepth: ValueCell.create(5),
     uClipCount: ValueCell.create(0),
     uClipData: ValueCell.create(new Array<number>(Clip.MaxObjectCount * ClipStorageVec4s * 4).fill(0)),
   };

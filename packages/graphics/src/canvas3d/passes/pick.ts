@@ -23,6 +23,13 @@ import type { ICamera } from '../camera.js';
 import { Viewport } from '../camera/util.js';
 import type { Helper } from '../helper/helper.js';
 import { createRenderPassAttachments, type RenderPassAttachments } from '@molstar/graphics/gl/render-pass-attachments';
+import type { ValueCell } from '@molstar/core/util/value-cell';
+import type { StorageBuffer } from '@molstar/graphics/gl/compute';
+import {
+  createPagedPickResolver,
+  type PagedPickObject,
+  type PagedPickResolver,
+} from '@molstar/graphics/gl/compute/paged-pick';
 
 export type PickData = { id: PickingId; position: Vec3 };
 
@@ -139,6 +146,8 @@ export class PickPass {
         this.instancePickTexture.getByteCount() +
         this.groupPickTexture.getByteCount() +
         this.depthPickTexture.getByteCount() +
+        (this.resolvedInstanceTexture?.getByteCount() ?? 0) +
+        (this.copyTexture?.getByteCount() ?? 0) +
         this.depthRenderbuffer.getByteCount()
       );
     } else {
@@ -159,6 +168,9 @@ export class PickPass {
       this.instancePickTexture.destroy();
       this.groupPickTexture.destroy();
       this.depthPickTexture.destroy();
+      this.resolvedInstanceTexture?.destroy();
+      this.copyTexture?.destroy();
+      this.pagedResolver?.destroy();
 
       this.depthRenderbuffer.destroy();
     } else {
@@ -178,9 +190,71 @@ export class PickPass {
     this.setSize(this.width, this.height);
   }
 
-  /** The object, instance, group and depth pick textures */
-  getTextures(): [Texture, Texture, Texture, Texture] {
+  /** a page store's picks resolved (`paged-pick.ts`): its instances' slots their identity, the copy a texture more */
+  private pagedResolver: PagedPickResolver | undefined;
+  private resolvedInstanceTexture: Texture | undefined;
+  private copyTexture: Texture | undefined;
+  /** whether the last pick drawn was resolved (`resolvePaged`): its textures five, the instance the resolved one */
+  private resolved = false;
+
+  /**
+   * The last pick drawn's page store objects' texels resolved (`createPagedPickResolver`: a page store's object picks
+   * its composed pose's slot; its record's store index and copy read here, in the pick's submission, before it is
+   * read: the next cull rewrites the frame's slots); `getTextures` then five, the copy last. False where a page store's
+   * object is drawn but the kernel not ready (compiling): the pick incomplete
+   */
+  resolvePaged(scene: Scene): boolean {
+    this.resolved = false;
+    const compute = this.graphics.compute;
+    if (!compute || !this.graphics.capabilities.multipleRenderTargets) return true;
+    const objects: PagedPickObject[] = [];
+    for (const r of scene.primitives.renderables) {
+      const v = r.values as unknown as {
+        dCulledPaged?: ValueCell<boolean>;
+        sCulledData?: ValueCell<StorageBuffer>;
+        uObjectId: ValueCell<number>;
+      };
+      if (!v.dCulledPaged?.ref.value || !v.sCulledData || !r.state.visible || !r.state.pickable) continue;
+      objects.push({ objectId: v.uObjectId.ref.value, poses: v.sCulledData.ref.value });
+    }
+    if (objects.length === 0) return true;
+    this.pagedResolver ??= createPagedPickResolver(compute);
+    const { resources } = this.graphics;
+    if (!this.resolvedInstanceTexture || !this.copyTexture) {
+      this.resolvedInstanceTexture = resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
+      this.resolvedInstanceTexture.define(this.pickWidth, this.pickHeight);
+      this.copyTexture = resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
+      this.copyTexture.define(this.pickWidth, this.pickHeight);
+    }
+    const ready = this.pagedResolver.resolve(
+      {
+        object: this.objectPickTexture,
+        instance: this.instancePickTexture,
+        outInstance: this.resolvedInstanceTexture,
+        outCopy: this.copyTexture,
+      },
+      { x: 0, y: 0, width: this.pickWidth, height: this.pickHeight },
+      objects,
+    );
+    this.resolved = ready;
+    return ready;
+  }
+
+  /**
+   * The object, instance, group and depth pick textures; resolved (`resolvePaged`) the instance the resolved one and
+   * the copy fifth
+   */
+  getTextures(): Texture[] {
     if (this.graphics.capabilities.multipleRenderTargets) {
+      if (this.resolved && this.resolvedInstanceTexture && this.copyTexture) {
+        return [
+          this.objectPickTexture,
+          this.resolvedInstanceTexture,
+          this.groupPickTexture,
+          this.depthPickTexture,
+          this.copyTexture,
+        ];
+      }
       return [this.objectPickTexture, this.instancePickTexture, this.groupPickTexture, this.depthPickTexture];
     } else {
       return [
@@ -209,6 +283,8 @@ export class PickPass {
         this.instancePickTexture.define(this.pickWidth, this.pickHeight);
         this.groupPickTexture.define(this.pickWidth, this.pickHeight);
         this.depthPickTexture.define(this.pickWidth, this.pickHeight);
+        this.resolvedInstanceTexture?.define(this.pickWidth, this.pickHeight);
+        this.copyTexture?.define(this.pickWidth, this.pickHeight);
 
         this.depthRenderbuffer.setSize(this.pickWidth, this.pickHeight);
       } else {
@@ -344,12 +420,16 @@ const ReadStatus = {
 export class PickBuffers {
   readonly supported = true;
 
-  private readonly arrays: [Uint8Array, Uint8Array, Uint8Array, Uint8Array] = [
+  /** the object, instance, group and depth textures' copies, and a resolved pick's copies' (`resolvePaged`) */
+  private readonly arrays: [Uint8Array, Uint8Array, Uint8Array, Uint8Array, Uint8Array] = [
+    new Uint8Array(0),
     new Uint8Array(0),
     new Uint8Array(0),
     new Uint8Array(0),
     new Uint8Array(0),
   ];
+  /** the textures the last read read: five a resolved pick's */
+  private textureCount = 4;
   private viewport = Viewport.create(0, 0, 0, 0);
   private ready = false;
   /** frames the started read has been pending (checks less than a frame apart count once), and the last counted */
@@ -370,7 +450,7 @@ export class PickBuffers {
     Viewport.set(this.viewport, x, y, width, height);
     const size = width * height * 4;
     if (this.arrays[0].length !== size) {
-      for (let i = 0; i < 4; ++i) this.arrays[i] = new Uint8Array(size);
+      for (let i = 0; i < 5; ++i) this.arrays[i] = new Uint8Array(size);
     }
     this.reset();
   }
@@ -382,7 +462,9 @@ export class PickBuffers {
     }
     if (isTimingMode) this.graphics.timer.group('PickBuffers.read');
     const { x, y, width, height } = this.viewport;
-    this.reader.read(this.pickPass.getTextures(), x, y, width, height, this.arrays);
+    const textures = this.pickPass.getTextures();
+    this.textureCount = textures.length;
+    this.reader.read(textures, x, y, width, height, this.arrays);
     this.ready = true;
     if (isTimingMode) this.graphics.timer.groupEnd('PickBuffers.read');
   }
@@ -391,7 +473,9 @@ export class PickBuffers {
     if (!this.reader.asynchronous) return;
     if (isTimingMode) this.graphics.timer.group('PickBuffers.asyncRead');
     const { x, y, width, height } = this.viewport;
-    this.reader.start(this.pickPass.getTextures(), x, y, width, height);
+    const textures = this.pickPass.getTextures();
+    this.textureCount = textures.length;
+    this.reader.start(textures, x, y, width, height);
     this.ready = false;
     this.lag = 0;
     this.lagTimestamp = now();
@@ -451,6 +535,11 @@ export class PickBuffers {
     const groupId = this.getId(x, y, group);
     if (groupId === -1) return;
 
+    // a resolved pick's copy plus one (`resolvePaged`), 0 none
+    if (this.textureCount > 4) {
+      const copy = this.getId(x, y, this.arrays[4]);
+      if (copy > 0) return { objectId, instanceId, groupId, copyId: copy - 1 };
+    }
     return { objectId, instanceId, groupId };
   }
 

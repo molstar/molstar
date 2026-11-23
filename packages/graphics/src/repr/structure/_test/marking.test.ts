@@ -155,7 +155,9 @@ function members(repr: Representation<Structure>): GraphicsRenderObject[] {
   for (const o of repr.renderObjects) {
     if (isMergedRenderObject(o)) {
       o.merged.sync();
-      out.push(...o.members);
+      if (o.members.length) out.push(...o.members);
+      // of records (a merged visual): a member its record's cells over the object's values (the shared types)
+      else for (const r of o.merged.records) out.push({ ...o, values: { ...o.values, ...r } } as GraphicsRenderObject);
     } else {
       out.push(o);
     }

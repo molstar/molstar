@@ -12,6 +12,28 @@ import type { RenderContext } from '../util.js';
 import type { PassBuilder } from './pass-builder.js';
 import type { PassTargets } from './pass-targets.js';
 import { createRenderPassAttachments, type RenderPassAttachments } from '@molstar/graphics/gl/render-pass-attachments';
+import type { Renderer } from '@molstar/graphics/gl/renderer';
+import type { Frame } from '@molstar/graphics/gl/renderable';
+import type { Helper } from '../helper/helper.js';
+
+/**
+ * The overlay's and the screen layer's objects culled on the GPU (a merged object culled there draws no CPU lists) for
+ * their cameras of `camera` (`Renderer.prepareCullView`), no pass open: before the layers are drawn or picked. A pick
+ * of the drawn camera draws the draw's (the same planes), a ray's culls its own
+ */
+export function prepareLayerCulls(renderer: Renderer, camera: ICamera, helper: Helper, frame: Frame) {
+  const { overlay, screen } = helper;
+  if (overlay.isEnabled) {
+    renderer.update(overlay.getCamera(camera), overlay.scene, frame);
+    renderer.prepareCullView(overlay.scene);
+  }
+  if (screen.isEnabled) {
+    screen.forEach(camera, (scene, screenCamera) => {
+      renderer.update(screenCamera, scene, frame);
+      renderer.prepareCullView(scene);
+    });
+  }
+}
 
 /**
  * Draws the overlay layer (`OverlayHelper`) and then the screen layer (`ScreenHelper`) onto a finished image: after the
@@ -58,6 +80,7 @@ export class OverlayPass {
     const overlayEnabled = overlay.isEnabled;
     const screenEnabled = screen.isEnabled;
     if (!overlayEnabled && !screenEnabled) return;
+    if (b.drawing) prepareLayerCulls(ctx.renderer, ctx.camera, ctx.helper, ctx.frame);
 
     if (targetDepth) {
       b.begin(target, { label: 'overlay' });

@@ -4,14 +4,17 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import type { TimerSource } from '../timer.js';
+import type { TimerSource, TimerSpan } from '../timer.js';
 import { BufferUsage, MapMode } from './constants.js';
 
 /** Timestamp queries per submission (two per pass encoder) */
 const QueryCount = 4096;
 
-/** A pass segment: the summed durations of its pass encoders */
-type Segment = { sum: number; pending: number; ended: boolean; invalid: boolean };
+/**
+ * A pass segment: the summed durations of its pass encoders, and where they ran (the first's begin, the last's end on
+ * the GPU's clock, nanoseconds)
+ */
+type Segment = { sum: number; start: number; end: number; pending: number; ended: boolean; invalid: boolean };
 
 /** `TimerSource` from pass timestamps, plus the hooks of the context that encodes the passes */
 export interface WebGPUTimerSource extends TimerSource {
@@ -36,7 +39,7 @@ export function createWebGPUTimerSource(device: GPUDevice): WebGPUTimerSource | 
   const readbacks: GPUBuffer[] = [];
 
   const segments = new Map<number, Segment>();
-  const finished: [number, number | undefined][] = [];
+  const finished: [number, number | undefined, TimerSpan?][] = [];
   /** encoders of the current submission: their segment and first query index */
   let encoders: { segment: number; index: number }[] = [];
   let used = 0;
@@ -46,7 +49,9 @@ export function createWebGPUTimerSource(device: GPUDevice): WebGPUTimerSource | 
   const finish = (id: number) => {
     const s = segments.get(id);
     if (!s || !s.ended || s.pending > 0) return;
-    finished.push([id, s.invalid ? undefined : s.sum]);
+    // a pass without encoders: no span (it ran nowhere)
+    if (s.invalid) finished.push([id, undefined]);
+    else finished.push(s.start <= s.end ? [id, s.sum, { start: s.start, end: s.end }] : [id, s.sum]);
     segments.delete(id);
   };
 
@@ -58,7 +63,7 @@ export function createWebGPUTimerSource(device: GPUDevice): WebGPUTimerSource | 
         usage: BufferUsage.QUERY_RESOLVE | BufferUsage.COPY_SRC,
       });
       const id = nextId++;
-      segments.set(id, { sum: 0, pending: 0, ended: false, invalid: false });
+      segments.set(id, { sum: 0, start: Infinity, end: -Infinity, pending: 0, ended: false, invalid: false });
       current = id;
       return id;
     },
@@ -110,7 +115,12 @@ export function createWebGPUTimerSource(device: GPUDevice): WebGPUTimerSource | 
           const elapsed = times ? times[index + 1] - times[index] : -1n;
           // timestamps can be invalid (e.g. after power state changes)
           if (elapsed < 0n) s.invalid = true;
-          else s.sum += Number(elapsed);
+          else {
+            s.sum += Number(elapsed);
+            // the clock's nanoseconds (below 2^53: a few months of uptime) as numbers
+            s.start = Math.min(s.start, Number(times![index]));
+            s.end = Math.max(s.end, Number(times![index + 1]));
+          }
           s.pending -= 1;
           finish(segment);
         }

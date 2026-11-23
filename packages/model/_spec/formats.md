@@ -65,6 +65,26 @@ provider gives a value a reader set.
     particle; no keys (a particle's key is its index in the pack). The writer refuses a target whose particles differ in
     what it stores once. A target's particles' radius is one by definition: stored once (the largest where a list's
     differ: an operator's scale read from its quantized matrix, 0.15% in MG_1184).
+  - Templates (version 7, written only where the list has them; 6 otherwise, so older readers keep reading the rest): a
+    target of kind `particles` a row's `template` (an index of `templates`, the center it is placed about), a template a
+    document of its own (`templates`: its targets, tables and blocks, the blocks in the same file after the top list's),
+    written by target once for every target placing it, read once into one list (views of the same bytes);
+    `ParticleNesting.check` on read. A template has no templates (two levels, model.md §5), and a list with templates is
+    not tile-ordered (refused: a tile set's ranges are of its own particles, not a copy's) and has no density grid of
+    its own (a copy's volume is its template's particles'). Why in one file: the template's bytes once, a copy 8 bytes
+    of position and 8 of rotation (the isg cell 2×2×2: 17.2 MB nested, 68.7 MB flat). `scripts/particle-grid-pack.mjs`
+    writes its grids nested (`--nz` a third axis; `--flat` the copies written out, tile-ordered where asked). A template
+    written by target, each target's particles in its levels' sample order (`sampleOrdered`: `Particle.getSampleOrder`
+    its own order, no sort), with its boundary of the positions as written, rounded outward (`boundary`); both optional,
+    without them computed where read (older packs, older readers ignore them: no version of their own). Why: the yeast
+    cell's template's levels sorted its 31.5 M particles at each load, its sphere a pass over them (the nested 2×2's
+    representation 3.2 s, 1.1 s with them). A flat list keeps its order (by target, by tile where tile-ordered). A
+    template larger than a store page's particles a tile tile-ordered (`templateTiles`, by default a tile about a store
+    page's 8,192 particles: the yeast cell 16 an axis), a tile's by target, each target's in its sample order (the
+    levels' pick by its runs across the tiles), its density grid kept (no tiles' opacities: what places its copies'
+    occlusion). Why: a store page of a target spread over the template reached by every near view; by tile near each
+    other (the yeast 2×2's leaf values inside a copy 448 to 214 MB, its load 0.7 s more: thousands of targets a tile,
+    their runs 2.3 M).
   - A 64-byte header (`MSPK`, version, byte order mark, the JSON's offset and length), the blocks at multiples of 256
     bytes (WebGPU's copy alignment), then the JSON of the small tables and the blocks' directory: raw little-endian
     arrays, no encoding, so they are views of the file (a compressed block cannot be viewed; transport compression is
@@ -121,14 +141,18 @@ provider gives a value a reader set.
 
   - Coarse levels of a tile-ordered pack (`tiles.levels`, `WriteParticlePackOptions.levels`, the CLI's `--levels`): an
     octree over the tiles' grid, level `L` (1 to `log2(dimensions)`) a node a cell of the grid of `dimensions >> L`
-    cells an axis, every `8^L`-th of its tiles' particles (in Morton order of a 512³ grid over the box: spread over it),
-    copies in blocks of their own (`node.position`, `node.rotation`, `node.attribute.<name>`; `node.keys` a copy's index
-    in the pack, `node.runs` its targets' runs, `node.ranges` a node's level, cell, first and count, `node.boxes` its
-    centers' box). Read by range a node is a tile of the set (`ParticleTileLevels`: its slots after the particles', its
-    particles drawn `2^L` larger, `ParticleList.scale`); a reader of none, and the whole read, ignore them. Why: a far
-    region drawn as a few thousand particles read as one range (the yeast's root 7.7 k of 31.5 M), a whole cell within a
-    phone's memory; copies, not the tiles' prefixes (a node's sample of 512 tiles one read, not 512). About a seventh
-    more particles written (the yeast's 731 -> 825 MB, 17 s).
+    cells an axis, of each target every `8^L`-th of its particles in the node's tiles (at least one; in Morton order of
+    a 512³ grid over the box: spread over it), copies in blocks of their own (`node.position`, `node.rotation`,
+    `node.attribute.<name>`; `node.keys` a copy's index in the pack, `node.runs` its targets' runs, `node.scales` a
+    run's scale: the cube root of its target's particles there over those kept, `node.ranges` a node's level, cell,
+    first and count, `node.boxes` its centers' box). Read by range a node is a tile of the set (`ParticleTileLevels`:
+    its slots after the particles', a run's particles drawn larger by its scale, `ParticleList.scales`; a pack of no
+    `node.scales` by `2^L`, `ParticleList.scale`); a reader of none, and the whole read, ignore them. By target, each
+    its own scale: each target's volume in a node kept, a target rarer than `8^L` there kept (a sample by count keeps
+    the volume only on average, its large molecules sampled more or less than its small). Why: a far region drawn as a
+    few thousand particles read as one range (the yeast's root 7.7 k of 31.5 M), a whole cell within a phone's memory;
+    copies, not the tiles' prefixes (a node's sample of 512 tiles one read, not 512). About a seventh more particles
+    written (the yeast's 731 -> 825 MB, 17 s).
   - A target's reach and volume (`reach`, `volume`, version 6: `ParticleTileCatalog.getTargetRadius` and
     `getTargetVolume` of its sites as written, what a reader computes): a tile set's catalog without a pass over the
     sites (the yeast's 0.8 s); computed where absent.

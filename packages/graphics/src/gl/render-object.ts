@@ -15,6 +15,12 @@ import {
 } from './renderable/direct-volume.js';
 import { type MeshValues, MeshRenderable, MeshRenderableSchema } from './renderable/mesh.js';
 import { type PointsValues, PointsRenderable, PointsRenderableSchema } from './renderable/points.js';
+import {
+  type GaussianSplatsValues,
+  GaussianSplatsRenderable,
+  GaussianSplatsRenderableSchema,
+} from './renderable/gaussian-splats.js';
+import { releaseForeignSplatOrder } from './renderable/gaussian-splats-order.js';
 import { type LinesValues, LinesRenderable, LinesRenderableSchema } from './renderable/lines.js';
 import { type SpheresValues, SpheresRenderable, SpheresRenderableSchema } from './renderable/spheres.js';
 import { type TextValues, TextRenderable, TextRenderableSchema } from './renderable/text.js';
@@ -30,6 +36,7 @@ import type { GlobalDefines, RenderableSchema } from './renderable/schema.js';
 import {
   CylindersShaderCode,
   DirectVolumeShaderCode,
+  GaussianSplatsShaderCode,
   ImageShaderCode,
   LinesShaderCode,
   MeshShaderCode,
@@ -44,11 +51,13 @@ import type { StorageBuffer } from './compute.js';
 import { ValueCell } from '@molstar/core/util/value-cell';
 import { applyPendingGrid, type InstanceGridValues } from './transform-parts.js';
 import {
+  canCullOnGpu,
   canMergeValues,
   createMergedValues,
   isMergeableType,
   type Merged,
   type MergeableValues,
+  type MergeRecord,
   type MergedInstanceSource,
   MergedRenderable,
   type MergedType,
@@ -77,7 +86,8 @@ export type RenderObjectType =
   | 'lines'
   | 'direct-volume'
   | 'image'
-  | 'texture-mesh';
+  | 'texture-mesh'
+  | 'gaussian-splats';
 
 export type RenderObjectValues<T extends RenderObjectType> = T extends 'mesh'
   ? MeshValues
@@ -97,7 +107,9 @@ export type RenderObjectValues<T extends RenderObjectType> = T extends 'mesh'
                 ? ImageValues
                 : T extends 'texture-mesh'
                   ? TextureMeshValues
-                  : never;
+                  : T extends 'gaussian-splats'
+                    ? GaussianSplatsValues
+                    : never;
 
 //
 
@@ -121,12 +133,48 @@ export interface MergedGraphicsRenderObject<T extends RenderObjectType = RenderO
   extends GraphicsRenderObject<T> {
   readonly members: ReadonlyArray<GraphicsRenderObject<T>>;
   readonly merged: Merged;
+  /**
+   * the values its records share, where it is made of records (`createMergedRecordsRenderObject`) that hold its
+   * instances (no `MergedInstanceSource`): read through `getMergedMembers`
+   */
+  readonly shared?: RenderObjectValues<T>;
 }
 
 export function isMergedRenderObject<T extends RenderObjectType>(
   o: GraphicsRenderObject<T>,
 ): o is MergedGraphicsRenderObject<T> {
   return 'members' in o;
+}
+
+const mergedMemberViews = new WeakMap<
+  MergedGraphicsRenderObject,
+  { readonly records: readonly MergeRecord[]; readonly members: readonly GraphicsRenderObject[] }
+>();
+
+/**
+ * The members of `o` to read one by one (geometry export, debug helpers, benchmarks), in its records' order: its member
+ * objects, or where it is made of records a view of each (its cells over the shared values, its state and material the
+ * object's; the same views while its records are); none where its instances are kept elsewhere (`MergedInstanceSource`)
+ */
+export function getMergedMembers<T extends RenderObjectType>(
+  o: MergedGraphicsRenderObject<T>,
+): ReadonlyArray<GraphicsRenderObject<T>> {
+  if (o.members.length > 0 || !o.shared) return o.members;
+  const { records } = o.merged;
+  const cached = mergedMemberViews.get(o);
+  if (cached?.records === records) return cached.members as GraphicsRenderObject<T>[];
+  const { shared } = o;
+  const members = records.map(
+    (r): GraphicsRenderObject<T> => ({
+      id: o.id,
+      type: o.type,
+      values: Object.setPrototypeOf({ ...r }, shared) as RenderObjectValues<T>,
+      state: o.state,
+      materialId: o.materialId,
+    }),
+  );
+  mergedMemberViews.set(o, { records, members });
+  return members;
 }
 
 /** `minCount`: 1 for a merged object of one member (culled on the GPU, `mergeRenderObjectsByType`) */
@@ -161,8 +209,10 @@ export function createMergedRenderObject<T extends RenderObjectType>(
   options?: { readonly gpuCulling?: boolean; readonly rasterOnly?: boolean; readonly source?: MergedInstanceSource },
 ): MergedGraphicsRenderObject<T> {
   if (!isMergeableType(members[0].type)) throw new Error(`unsupported merged render object type '${members[0].type}'`);
+  // the members' values their records (a record view: their cells, no copies), the first's the shared values
   const merged = createMergedValues(
     members[0].type,
+    members[0].values as MergeableValues,
     members.map((m) => m.values as MergeableValues),
     options?.gpuCulling,
     options?.rasterOnly,
@@ -176,6 +226,47 @@ export function createMergedRenderObject<T extends RenderObjectType>(
     materialId: members[0].materialId,
     members,
     merged,
+  };
+}
+
+/**
+ * A merged render object of `records` (`MergeRecord`) and the values they share `shared` (of `type`, their merge key:
+ * the object's defines, uniforms, props and clip): no member render objects (`members` empty: `getMergedMembers` views
+ * its records), its state its own
+ */
+export function createMergedRecordsRenderObject<T extends RenderObjectType>(
+  type: T,
+  shared: RenderObjectValues<T>,
+  records: readonly MergeRecord[],
+  state: RenderableState,
+  materialId: number,
+  options?: {
+    readonly gpuCulling?: boolean;
+    readonly rasterOnly?: boolean;
+    readonly source?: MergedInstanceSource;
+    /** advanced by the records' owner where it writes their cells but observed ones (`Merged.recordsUnchanged`) */
+    readonly recordsVersion?: ValueCell<number>;
+  },
+): MergedGraphicsRenderObject<T> {
+  if (!isMergeableType(type)) throw new Error(`unsupported merged render object type '${type}'`);
+  const merged = createMergedValues(
+    type,
+    shared as unknown as MergeableValues,
+    records,
+    options?.gpuCulling,
+    options?.rasterOnly,
+    options?.source,
+    options?.recordsVersion,
+  );
+  return {
+    id: getNextId(),
+    type,
+    values: merged.values as unknown as RenderObjectValues<T>,
+    state,
+    materialId,
+    members: [],
+    merged,
+    shared: options?.source ? undefined : shared,
   };
 }
 
@@ -206,12 +297,15 @@ function getStorageBuffer(v: unknown): StorageBuffer | undefined {
 /** Calls `f` with the value cells of `o` and of its members */
 function forEachCell(o: GraphicsRenderObject, f: (cell: ValueCell<unknown>) => void) {
   const add = (values: object) => {
-    for (const k in values) {
+    // own keys: a record's prototype may be its object's shared values (`UnitsMergedVisual`), walked once as `o.values`
+    for (const k of Object.keys(values)) {
       const cell = (values as Record<string, ValueCell<unknown> | undefined>)[k];
-      if (cell?.ref) f(cell);
+      // a lazy value (a getter: a page store's `aSegment`, its every instance's, gigabytes for a template's copies) not
+      // read: computed on the CPU where drawn so, never a texture or a buffer
+      if (cell?.ref && !Object.getOwnPropertyDescriptor(cell.ref, 'value')?.get) f(cell);
     }
   };
-  if (isMergedRenderObject(o)) for (const m of o.members) add(m.values);
+  if (isMergedRenderObject(o)) for (const r of o.merged.records) add(r);
   add(o.values);
 }
 
@@ -280,6 +374,11 @@ export function createForeignResourcesCheck() {
  * storage buffers are of another context, which their producers create again
  */
 export function transferTextures(o: GraphicsRenderObject, graphics: GraphicsContext): boolean {
+  // a page store's object drawn by the GPU's cull alone (its instances the culler's): none on `graphics`, its visual
+  // makes what it draws there
+  if (isMergedRenderObject(o) && o.merged.source?.paged && !canCullOnGpu(graphics)) return false;
+  // the gaussian splats' order on the GPU: the renderer's, sorted again on `graphics`, not the object's own data
+  if (o.type === 'gaussian-splats') releaseForeignSplatOrder(o.values as GaussianSplatsValues, graphics.compute);
   let complete = !hasForeignBuffers(o, graphics);
   for (const cell of getForeignTextureCells(o, graphics)) {
     // a volume's 2d grid (WebGL1) on a context with 3d textures: its visual makes the 3d grid they draw, not the 2d one
@@ -317,6 +416,7 @@ const RenderablePrograms: { [T in RenderObjectType]: { shaderCode: ShaderCode; s
   'direct-volume': { shaderCode: DirectVolumeShaderCode, schema: DirectVolumeRenderableSchema },
   image: { shaderCode: ImageShaderCode, schema: ImageRenderableSchema },
   'texture-mesh': { shaderCode: MeshShaderCode, schema: TextureMeshRenderableSchema },
+  'gaussian-splats': { shaderCode: GaussianSplatsShaderCode, schema: GaussianSplatsRenderableSchema },
 };
 
 /**
@@ -363,16 +463,7 @@ function _createRenderable<T extends RenderObjectType>(
   globals: GlobalDefines,
 ): Renderable<any> {
   if (isMergedRenderObject(o)) {
-    return MergedRenderable(
-      ctx,
-      o.id,
-      o.merged,
-      o.members.map((m) => m.values as MergeableValues),
-      o.state,
-      o.materialId,
-      transparency,
-      globals,
-    );
+    return MergedRenderable(ctx, o.id, o.merged, o.state, o.materialId, transparency, globals);
   }
   switch (o.type) {
     case 'mesh':
@@ -399,6 +490,16 @@ function _createRenderable<T extends RenderObjectType>(
       );
     case 'image':
       return ImageRenderable(ctx, o.id, o.values as ImageValues, o.state, o.materialId, transparency, globals);
+    case 'gaussian-splats':
+      return GaussianSplatsRenderable(
+        ctx,
+        o.id,
+        o.values as GaussianSplatsValues,
+        o.state,
+        o.materialId,
+        transparency,
+        globals,
+      );
     case 'texture-mesh':
       return TextureMeshRenderable(
         ctx,

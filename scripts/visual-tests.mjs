@@ -141,6 +141,7 @@ const GeometryCases = {
   text: ['geometry/text/**', 'overlay/**', 'screen/**'],
   image: ['geometry/image/**'],
   'direct-volume': ['geometry/direct-volume/**'],
+  'gaussian-splats': ['geometry/gaussian-splats/**', 'transparency/*/splats'],
 };
 
 /**
@@ -168,7 +169,7 @@ const ChangedCases = [
     ],
   ],
   [
-    /\/(geo\/geometry|gl\/renderable|gl\/webgl\/shader|gl\/webgpu\/shader)\/(mesh|texture-mesh|lines|points|spheres|cylinders|text|image|direct-volume)[/.]/,
+    /\/(geo\/geometry|gl\/renderable|gl\/webgl\/shader|gl\/webgpu\/shader)\/(mesh|texture-mesh|lines|points|spheres|cylinders|text|image|direct-volume|gaussian-splats)[/.-]/,
     (m) => GeometryCases[m[2]],
   ],
   [/\/util\/gizmo\/|\/canvas3d\/helper\/overlay-helper\.ts$/, () => ['overlay/**']],

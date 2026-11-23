@@ -227,8 +227,14 @@ export function getAttachment(
   throw new Error('unknown texture attachment');
 }
 
-function isImage(x: TextureImage<any> | TextureVolume<any> | HTMLImageElement): x is HTMLImageElement {
-  return typeof HTMLImageElement !== 'undefined' && x instanceof HTMLImageElement;
+function isBitmap(x: TextureImage<any> | TextureVolume<any> | HTMLImageElement | ImageBitmap): x is ImageBitmap {
+  return typeof ImageBitmap !== 'undefined' && x instanceof ImageBitmap;
+}
+
+function isImage(
+  x: TextureImage<any> | TextureVolume<any> | HTMLImageElement | ImageBitmap,
+): x is HTMLImageElement | ImageBitmap {
+  return (typeof HTMLImageElement !== 'undefined' && x instanceof HTMLImageElement) || isBitmap(x);
 }
 
 /** Bytes of rows composed per upload of a segmented data array */
@@ -489,7 +495,7 @@ export function createTexture(
     sourceData = undefined;
   }
 
-  function load(data: TextureImage<any> | TextureVolume<any> | HTMLImageElement, sub = false) {
+  function load(data: TextureImage<any> | TextureVolume<any> | HTMLImageElement | ImageBitmap, sub = false) {
     // as `loadData`: an image decoded after the texture was destroyed (a background changed meanwhile)
     if (destroyed) return;
     if (
@@ -539,7 +545,8 @@ export function createTexture(
       throw new Error('unknown texture target');
     }
     gl.bindTexture(target, null);
-    sourceData = sub ? undefined : data;
+    // a bitmap not kept: its owner may close it
+    sourceData = sub || isBitmap(data) ? undefined : data;
   }
 
   /** `Texture.loadRows`: the rows from views of the array, as `loadData` writes */
