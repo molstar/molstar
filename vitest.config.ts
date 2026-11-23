@@ -90,10 +90,14 @@ const Alone = new Set([
   'packages/seq/core/src/data/_test/intervals.test.ts',
   'packages/seq/core/src/data/_test/region-reads.test.ts',
   'packages/seq/core/src/render/_test/themes.test.ts',
-  // every other file of Seq* with a bound under 50 ms, or a per-frame or per-hover bound under it (the manifest's rule)
+  // every other file of Seq* with a bound of at most 50 ms, or a per-frame or per-hover bound under it (the
+  // manifest's rule)
   'packages/seq/core/src/resolve/_test/molecules.test.ts',
   'packages/seq/core/src/resolve/_test/addressing.test.ts',
   'packages/seq/core/src/resolve/_test/resolve-time.test.ts',
+  'packages/seq/core/src/resolve/_test/assemblies.test.ts',
+  'packages/seq/core/src/runtimes/_test/bigwig.test.ts',
+  'packages/seq/core/src/story/_test/story-time.test.ts',
   'packages/seq/core/src/render/_test/navigator-drag-time.test.ts',
   'packages/seq/core/src/render/_test/navigator-time.test.ts',
   'packages/seq/core/src/render/_test/small-layers-time.test.ts',
