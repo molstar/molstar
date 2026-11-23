@@ -431,7 +431,9 @@ Rows and columns of ux-foundations section 8; "as an element" means the grammar'
 | Held whole; a source's complex the overlay's | core › Overlay › Molecules and complexes |
 | The resolved model: unit and atoms systems, copy groups, the modified index | core › Molecules and units |
 | The interaction matrix's cells | viewer › Molecules: the interaction matrix's cells |
-| The configuration table | core › Language › Molecules and complexes |
+| The configuration table: the spec params (`block.form`, `section.classes`, `copies`, `modified`, `code`, `class`) | core › Language › Molecules and complexes |
+| The configuration table: the config items (`letters.modifiedMark`) | core › Render › Configuration |
+| The configuration table: `ResolveConfig.maxUnits` | core › Resolve › Configuration |
 | The one CIF-to-nodes converter (decided 11) | core › Seq io |
 | Structure integration shown on a fake 3D viewer (decided 15); DC's ATP (decided 14) | design-only: history (the fourth slice's scope) |
 | The fourth slice's lanes, the consequences | design-only: a plan |

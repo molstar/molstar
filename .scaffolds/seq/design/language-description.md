@@ -157,7 +157,7 @@ Handles are addresses (`p53` is `/data/p53`), so a builder value can stand where
 | Typed columns and categories | repr › Typed columns |
 | Column identity by element type and bytes, cached | repr › Columns by element type and bytes |
 | NaN: tagged outside columns, `null` in a float column in JSON | repr › JSON |
-| The issue gains `severity` | repr › Issues |
+| The issue gains `severity` | repr › repr: the tree core › Issues |
 | Namespaced kind names | repr › The tree › Kinds |
 | `column` and `table` params; `missing` refused on integer columns; extra table columns kept | repr › Param types |
 | Codecs schema-free; reading types the columns | repr › Codecs stay schema-free |
@@ -169,7 +169,7 @@ Handles are addresses (`p53` is `/data/p53`), so a builder value can stand where
 | The kinds built and their params | core › Kinds |
 | The 0.5.0 additions; versions moved with no migration | core › Versions |
 | The builder; handles are addresses | core › Language builder |
-| Issue namespaces | core › Issues |
+| Issue namespaces | core › @molstar/seqx-core › Issues |
 | `seq.resolve.system.unnamed`, `seq.resolve.ref.system`, `length.unknown` transient | core › Systems, sources, annotations |
 | Letters checked against the alphabet | core › What the checks cover |
 | `layer.color` and `layer.data` until the sublanguages | core › The theme slots |

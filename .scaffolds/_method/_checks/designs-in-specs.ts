@@ -8,9 +8,8 @@
 // `design-only: <reason>`. Designs with no decision heading (plans, catalogs, the vision) are not checked.
 // A pointer must be unambiguous: when its text starts more than one heading or bold lead of the spec, it fails and
 // names the candidates with their headings, unless exactly one of them is the pointer's whole text (and its immediate
-// heading the pointer's last heading's whole text, when it names one), or exactly one
-// whole-text match is a top-level section (right under the title, which no heading above can name); a heading above
-// it in the pointer settles it. Why: the first match was taken, and about ten pointers landed on the wrong section
+// heading the pointer's last heading's whole text, when it names one); a heading above it in the pointer settles it,
+// the spec's title for a top-level section (`<spec> › <title prefix> › <section>`). Why: the first match was taken, and about ten pointers landed on the wrong section
 // while the check passed.
 // `--worklist` prints every design that fails, pending or not; `--self-check` resolves planted pointers.
 // The method's, not an instance's: the rule holds for every scaffold that governs code. The instance's part is
@@ -94,9 +93,7 @@ function resolve(specLeads: readonly Lead[], pointer: string): { ok: true } | { 
   const whole = hits.filter(
     (l) => norm(l.text) === want && (parent === undefined || norm(l.under[l.under.length - 1] as string) === parent),
   );
-  // a top-level section (right under the title) has no heading to name it by: its whole text names it
-  if (hits.length === 1 || whole.length === 1 || whole.filter((l) => l.under.length === 1).length === 1)
-    return { ok: true };
+  if (hits.length === 1 || whole.length === 1) return { ok: true };
   const named = hits.map((h) => `"${[...h.under.slice(1), h.text].join(" › ")}"`);
   return { ok: false, why: `${hits.length} sections start with it: ${named.join(", ")}` };
 }
@@ -139,9 +136,12 @@ if (flags.has("--self-check")) {
     ["Resolved view › Bridges", false], // its immediate heading is Configuration
     ["Rendering › Bridges", true],
     ["Spec › Configuration", false], // neither Configuration is right under the title
+    ["History", false], // a top-level one and two nested ones
+    ["Spec › History", true],
     ["Rendering › Links", false], // not under that heading
     ["Ranges", false], // none
-    ["Issues", true], // the top-level one, by its whole text
+    ["Issues", false], // a top-level one and a nested one
+    ["Spec › Issues", true], // the top-level one, by the title
     ["Rendering › Issues", true],
     ["Ports › History", true],
     ["History › History", false], // two under the top-level History

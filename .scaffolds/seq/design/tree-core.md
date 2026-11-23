@@ -59,7 +59,7 @@ the edge, beside the libraries they need.
 | MessagePack in core's `repr/codecs/msgpack`, on `data/msgpack` (io re-exports) | repr › Codecs |
 | The first move minimal; `patch` later | design-only: history (the slice's plan) |
 | `locators`, `context`, `units` stay in meso\*; units a hook | repr › Units are a hook |
-| Issues: one shape, namespaced codes, one meaning of severity | repr › Issues |
+| Issues: one shape, namespaced codes, one meaning of severity | repr › repr: the tree core › Issues |
 | No undo stack in the core; inverses only | repr › A revision |
 | The history port and its adapters | viewer › Ports › History |
 | Headers | design-only: the repository's rule (root `AGENTS.md`) |

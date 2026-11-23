@@ -102,10 +102,10 @@ spec ─read─▶ checked spec ─resolve─▶ static model ─▶ resolved vi
 
 | Decision | Where |
 |---|---|
-| One language, one version; four levels as containers with reserved ids | core › Language |
-| Data kinds under `data`, referring by address, in any order | core › Language |
+| One language, one version; four levels as containers with reserved ids | core › @molstar/seqx-core › Language |
+| Data kinds under `data`, referring by address, in any order | core › @molstar/seqx-core › Language |
 | Sublanguages in slots (queries, themes, patches) | core › Queries |
-| Named themes and styles referred to by address; templates over dynamic nodes | core › Language |
+| Named themes and styles referred to by address; templates over dynamic nodes | core › @molstar/seqx-core › Language |
 | `def` with arguments and overrides | design-only: waits for an example, not built |
 | Extension kinds under their namespace, with a fallback | core › Extensions › Names |
 | Session is not the spec | viewer › Models |

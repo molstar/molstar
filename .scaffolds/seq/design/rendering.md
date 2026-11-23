@@ -73,7 +73,7 @@ Four forms, each public, documented in the core's `_spec`, and each a stable pla
 | Decision | Where |
 |---|---|
 | Four public forms, each a place another renderer attaches | core › Render |
-| The spec, read by a viewer mapping the language | core › Language |
+| The spec, read by a viewer mapping the language | core › @molstar/seqx-core › Language |
 | The resolved view: no data, pixels or target; other viewers read it | core › Resolved view |
 | Draw lists: laid out for a size, viewport, target and the store; pure by contract; hits on the same layout | core › Render › Draw lists |
 | Backends: Canvas2D, SVG, PNG, recording; an application may add its own | core › Backends |

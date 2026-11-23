@@ -419,10 +419,10 @@ A validator's own issue is carried as is: one carrier, no duplicate.
 | The inverse | repr › The inverse |
 | All or nothing; the bounds (`maxOps`, `MaxDepth`) | repr › All or nothing |
 | The Seq spec's tighter depth (256) | core › Language › Bounds |
-| Normalization of what the patch made | repr › Normalization |
+| Normalization of what the patch made | repr › Patches › Normalization |
 | Refs follow a move or a rename; what is walked, what is not | repr › Refs follow a move or a rename |
 | The ref index, derived lazily, measured | repr › The ref index |
-| Validation of what the patch introduced; `validateChanges` | repr › Validation |
+| Validation of what the patch introduced; `validateChanges` | repr › Patches › Validation |
 | Link integrity: dangling, "written by this patch", rebound, identity by lineage | repr › Link integrity |
 | The language's validators; Seq's incremental checks | core › Checks of a change |
 | The result check | repr › The result check |
