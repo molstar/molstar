@@ -570,6 +570,14 @@ The claim: **this design covers what a user does with a Rondo-like genome ring, 
 `rondo:cells` and the `rondo:square` picture, element menus and the stem menu, `.` and `,`, the extension's config read
 by its layer types, a failed source's status; and Decided 16 to 18.
 
+**Built by RX2** (merged 2026-11-23): Decided 16 to 18 (the square a window: move, edge and corner resize, one patch
+a gesture, the keyboard; Cmd/Ctrl+click sets outlined cell by cell; one click on a cell shows its pair), the square's
+cells (`LayerType.square`, `rondo:cells` by count on a square-root ramp), element menus by layer type and the stem menu,
+`.` and `,` walking partners, `settingOf` (an extension's settings, recomposed on a late extend), a failed source read
+failed (the store's `unopened`), on one chromosome or a pair lighter stems (`focusStems` 0.35) and stubs under
+`rondo.stubMin` folded unlabelled, unfolding on hover. The square, its gestures, cells and lattice load as one lazy
+chunk. Not built: Shift+F10 at a stem; `rondo:cells` lazy (needs `withViewKind` on the extension entry).
+
 ## Decided by the author
 
 2026-11-21: every gap as recommended (the author on the drafts: "generally reasonable and we can fold in the reviews";

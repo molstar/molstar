@@ -426,3 +426,6 @@ extension kinds.
 - **The dot plot's square cells** are asserted only as "the box's shape" (the headless box 368×104).
 - **A 1-bp mark at a block's right edge is not hit** (`ranges.ts:484` or `:503`); the samples view moved its window to
   avoid it.
+- **RX2's leftovers** (2026-11-23): Shift+F10 at a stem; `rondo:cells` lazy needs `withViewKind` on the extension entry
+  (a contract change: the author's call); `viewer/src/navigator.ts` (1,290) and `viewer/src/viewer.ts` (860) past 800
+  lines: split.

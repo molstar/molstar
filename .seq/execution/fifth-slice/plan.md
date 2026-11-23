@@ -258,7 +258,7 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
       descriptor, `rondo:ribbons`, `rondo:cells`, the `rondo:square` picture, `rondo:hues`, commands and the binding,
       `rondoRing`; the entry's exports and the `LayerType` hooks in core; the fallback; its stories (hot: the new
       package's files, inventory row, root reference).
-- [ ] **RX2** (`briefs/rx2-ring-square-menus.md`; strong, after RX) what RX could not ship (the square's cells, element
+- [x] **RX2** (merged 2026-11-23) (`briefs/rx2-ring-square-menus.md`; strong, after RX) what RX could not ship (the square's cells, element
       menus and the stem menu, `.` and `,`, the extension's config, a failed source's status) and the square over a ring
       as a real window (the author, 2026-11-23; ring-extension.md Decided 16).
 - [ ] **RX3** (`briefs/rx3-ring-link-kinds.md`; strong, after RX2) kinds of links (the author, 2026-11-23: "make it
