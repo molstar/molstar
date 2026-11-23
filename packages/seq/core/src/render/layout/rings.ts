@@ -60,6 +60,8 @@ export interface RingParams {
   /** Where the origin is, radians clockwise from the top. */
   readonly rotation: number;
   readonly labels: 'outside' | 'none';
+  /** What the hole holds (`section.center`): absent, the render config's `rings.center`. */
+  readonly center: 'title' | 'none' | undefined;
 }
 
 export function ringParams(params: ResolvedSection['params']): RingParams {
@@ -67,6 +69,7 @@ export function ringParams(params: ResolvedSection['params']): RingParams {
   return {
     rotation: typeof r === 'number' && Number.isFinite(r) ? (r * Math.PI) / 180 : 0,
     labels: params.labels === 'none' ? 'none' : 'outside',
+    center: params.center === 'title' || params.center === 'none' ? params.center : undefined,
   };
 }
 
@@ -760,7 +763,7 @@ export const RingsLayout: SectionLayoutType<RingPlacement> = {
     if (outside) layoutLabels(p, config, size, ctx.text);
     layGroupArcs(p, section, blocks, x);
     if (outside) placeGroupNames(p, ctx.text, config.labelFont);
-    const [title, sub] = rc.center === 'title' ? ringTitle(section, ctx, total) : ['', ''];
+    const [title, sub] = (params.center ?? rc.center) === 'title' ? ringTitle(section, ctx, total) : ['', ''];
     p.title = title;
     p.subtitle = sub;
     p.titleW = title ? Math.max(ctx.text.measure(config.labelFont, title), ctx.text.measure(config.labelFont, sub)) : 0;

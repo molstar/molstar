@@ -46,6 +46,8 @@ export interface GenomeOptions {
   readonly include?: Params<'section'>['include'];
   /** `tracks` (the view's when absent) or `rings`. */
   readonly layout?: 'tracks' | 'rings';
+  /** Rings: what the hole holds (`section.center`), `title` or `none`; the render config's when absent. */
+  readonly center?: 'title' | 'none';
   /** A bands annotation over the assembly: an ideogram navigator over the section (its id `ideogram`). */
   readonly bands?: RefValue<'ranges'>;
 }
@@ -65,6 +67,7 @@ export function genome(
     of: of as Params<'section'>['of'],
     ...(options.include !== undefined ? { include: options.include } : {}),
     ...(options.layout ? { layout: options.layout } : {}),
+    ...(options.center ? { center: options.center } : {}),
   };
   const section = view.section(id, params, (s) => {
     s.track('ruler').layer('ruler', { type: 'ruler', units: 'bases' });

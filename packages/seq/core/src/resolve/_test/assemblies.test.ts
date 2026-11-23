@@ -8,7 +8,7 @@ import { PCG } from '@molstar/core/data/util/hash-functions';
 import type { Node, Value } from '@molstar/core/repr/tree';
 import { itWithin } from '@molstar/test-harness/timing';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import { assembly, colinearBlocks, createSeqSpec, genome } from '@molstar/seqx-core/lang';
+import { assembly, checkSeqSpec, colinearBlocks, createSeqSpec, genome } from '@molstar/seqx-core/lang';
 import { includePattern } from '@molstar/seqx-core/lang/include-pattern';
 import { locationOfResult, resolveAddressIn } from '@molstar/seqx-core/query';
 import { resolveView } from '@molstar/seqx-core/view';
@@ -463,6 +463,12 @@ describe('sections of assemblies', () => {
     const capped = resolveView(resolveSpec(root, { config: { maxAssemblyBlocks: 2 } }), '/views/v')!;
     expect(capped.sections[0].blocks?.length).toBe(2);
     expect(codes(capped.issues)).toContain('seq.view.section.blocks');
+  });
+
+  it('a ring’s `center` written by the builder and carried to the layout (language 0.10)', () => {
+    const root = spec({}, (b) => b.views.view('v', (v) => genome(v, 'g', A, { layout: 'rings', center: 'none' })));
+    expect(checkSeqSpec(root)).toEqual([]);
+    expect(resolveView(resolveSpec(root), '/views/v')!.sections[0].params.center).toBe('none');
   });
 });
 

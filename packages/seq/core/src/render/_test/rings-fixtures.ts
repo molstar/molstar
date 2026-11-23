@@ -36,6 +36,7 @@ export interface RingOptions {
   readonly detail?: boolean;
   readonly ringFollows?: boolean;
   readonly labels?: 'outside' | 'none';
+  readonly center?: 'title' | 'none';
 }
 
 /** The construct as a ring (features, letters, a ruler) and its linear detail. */
@@ -49,6 +50,7 @@ export function ringSpec(options: RingOptions = {}): Node {
       layout: 'rings' as const,
       ...(options.rotation !== undefined ? { rotation: options.rotation } : {}),
       ...(options.labels ? { labels: options.labels } : {}),
+      ...(options.center ? { center: options.center } : {}),
     };
     const detailFirst = options.ringFollows === true;
     const detail = detailFirst ? v.section('detail', { of: c }) : undefined;

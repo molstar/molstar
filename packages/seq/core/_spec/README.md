@@ -15,7 +15,7 @@ is added in the change that builds what it describes.
 
 ## Versions
 
-- The language has one version, `LanguageVersion` (`0.9.0`). Why: one language, one description, one number for readers
+- The language has one version, `LanguageVersion` (`0.10.0`). Why: one language, one description, one number for readers
   to check.
 - **Pre-release** (`0.x`): a change to the language moves the version with no migration (`0.1.0`: every child of the
   spec has an id, `layer` included; `0.2.0`: the `refs` container and the `ref` kind; `0.3.0`: the `snapshots` container
@@ -51,11 +51,12 @@ is added in the change that builds what it describes.
   (Language, Assemblies): a pairs row's `a_name` and `b_name`, a grid's `x_name` and `y_name`, a matrix's `name`;
   `0.8.0`: the `values` encoding `points` (Render, Layer types, `values`); `0.9.0`: the `tooltip` kind under `views` and
   a `view` (`on`, `target`, `rows`, `source`, `schema`, `block`, `category`, `field`, `text`, `label`, `format`;
-  Language, Tooltips) and a view's `export.titles`. A spec in an earlier `0.x` reads as one in this one, and is reported
-  where it no longer fits: a `0.6.0` spec reads unchanged (every addition is optional; inline pairs, grids or matrices
-  over an assembly, never read in 0.6, now need their names: `seq.lang.data.names`), with one change of behaviour:
-  `a_name`/`b_name` columns on pairs over a sequence, a ride-along field before, are refused (`seq.lang.data.names`),
-  but an extension's `requires: '0.6'` no longer covers it (0.x: the minor).
+  Language, Tooltips) and a view's `export.titles`; `0.10.0`: a rings section's `center` (`title`, `none`: what the hole
+  holds; the render config's `rings.center` the default when absent). A spec in an earlier `0.x` reads as one in this
+  one, and is reported where it no longer fits: a `0.6.0` spec reads unchanged (every addition is optional; inline
+  pairs, grids or matrices over an assembly, never read in 0.6, now need their names: `seq.lang.data.names`), with one
+  change of behaviour: `a_name`/`b_name` columns on pairs over a sequence, a ride-along field before, are refused
+  (`seq.lang.data.names`), but an extension's `requires: '0.6'` no longer covers it (0.x: the minor).
 
 ## Language
 
@@ -476,8 +477,8 @@ of it.
 - **Genomes**: `b.data.assembly(id, params, (a) => a.sequence(id, override))`, `b.data.matrix`,
   `view.bridge(id, params, (br) => br.layer(…))`; and the helpers in their own module (`lang/genome-builder.ts`,
   exported from `lang`, so a writer that writes no genome bundles none of them): `assembly(name, sequences, extra)` (an
-  assembly's params from rows), `genome(view, id, of, { include, layout, bands })` (a section of the assemblies with a
-  ruler in bases and, given bands, an ideogram navigator: spelled, never inferred) and
+  assembly's params from rows), `genome(view, id, of, { include, layout, center, bands })` (a section of the assemblies
+  with a ruler in bases and, given bands, an ideogram navigator: spelled, never inferred) and
   `colinearBlocks(runs, of, { minLength })` (the blocks of `of` in the order of a map's runs read once: a block a run of
   at least `minLength`, 100 kb by default, shorter runs merged into the block before as their hull, `reversed` where a
   run is; explicit data, exported as drawn). Why a helper and not a block's `{ along }`: a map read by region would turn
@@ -2476,9 +2477,9 @@ Overlay, Opened sources), kept per model and view. No data, no dynamic node, no 
   its node.
 - **A section's layout**: its own `layout`, else its view's (`tracks`, `text`, `rings`, `grid`), with its layout's
   params as written (`params`: `group`, `numbers`, `group_labels`, `align`, `max_width`, `height`, `rotation`, `labels`,
-  `arrange`, `copies`, `aspect`); the layout reads them with its defaults. Why on the section: a view mixes layouts (a
-  ring and its linear detail; a text figure under a tracks overview). What the figure means (group size, numbers) is the
-  spec's; spacing is the render config's.
+  `center`, `arrange`, `copies`, `aspect`); the layout reads them with its defaults. Why on the section: a view mixes
+  layouts (a ring and its linear detail; a text figure under a tracks overview). What the figure means (group size,
+  numbers) is the spec's; spacing is the render config's.
 - **A section**: an axis, its tracks, and its follow; its `blocks` when it has `block` children; a grid section its `y`.
 - **Via**: a section's `via` (`ResolvedSection.via`, sorted; absent when none) is what its paths take where two maps
   join one pair of systems (Resolve, Paths): its follow, its `direction: { along }` (where the map does not reach its
@@ -3709,9 +3710,9 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   leader from its member's own angle; a larger group opens no fan, its card lists every member (no "more": the card is
   its only opening). Why: a dozen leaders over the group's own few degrees run together; past a dozen lines a fan cannot
   be read.
-- **The hole holds the title** (`rings.center: 'title'`): the system's name and its length (`bp`, `aa`; a section of
-  assemblies their names and the blocks' length in bases, `GRCh38`, `3.1 Gb`; another section of blocks its id and its
-  units).
+- **The hole holds the title** (the section's `center`, else `rings.center`: `title`): the system's name and its length
+  (`bp`, `aa`; a section of assemblies their names and the blocks' length in bases, `GRCh38`, `3.1 Gb`; another section
+  of blocks its id and its units).
 - **The window** (`window` on the layout type, set on a kept placement too): the section's viewport (a ring that
   follows, its leader's range on its own axis), drawn in the `window` pass through the warp: a faint sector over the
   rings, and on a 12 px rim outside the outer ring (the design's least hit) its body and grips (`render/window.ts`), hit

@@ -430,7 +430,7 @@ describe('the gates and the places', () => {
       children: [{ kind: 'from-the-future', id: 'x' }],
     };
     expect(checkSeqSpec(future).map((i) => i.code)).toEqual(['seq.lang.version.unsupported']);
-    expect(checkSeqSpec({ ...future, params: { version: '0.9.0' } }).map((i) => i.code)).toEqual([
+    expect(checkSeqSpec({ ...future, params: { version: '0.10.0' } }).map((i) => i.code)).toEqual([
       'repr.schema.kind.unknown',
     ]);
   });

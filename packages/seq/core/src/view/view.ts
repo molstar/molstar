@@ -253,7 +253,7 @@ export interface ResolvedSection {
   readonly layout: string;
   /**
    * Its layout's params as written (text: `group`, `numbers`, `group_labels`, `align`, `max_width`, `height`; rings:
-   * `rotation`, `labels`, `height`; blocks: `arrange`, `copies`; tracks and rings: `heights`, the track sizing), and the
+   * `rotation`, `labels`, `center`, `height`; blocks: `arrange`, `copies`; tracks and rings: `heights`, the track sizing), and the
    * extensions' namespaced keys (`rondo:bundle`), carried for the extension that reads them.
    */
   readonly params: Readonly<Record<string, Value>>;
@@ -350,6 +350,7 @@ const LayoutParams = [
   'height',
   'rotation',
   'labels',
+  'center',
   'arrange',
   'copies',
   'aspect',
