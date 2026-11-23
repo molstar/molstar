@@ -67,6 +67,26 @@ A next scaffold starts as `.scaffolds/<name>/` from `_method/`, its manifest lis
       it works: the language and its levels, data and the store, layers and layouts, navigators, hover and commands,
       extensions, the CLI and headless use; each page with live examples and links into the stories. Written from the
       reconciled `_spec`s (stage 1), so the docs and the specs say the same thing.
+- [ ] **Prism on the new Seq\*** (the author, 2026-11-23: "as part of slice 6, we should replace the old seq. viewer in
+      prism with the new one, so we should plan that. should be fairly straightforward if we did things right."). Only
+      `packages/prism/viewer` depends on the old Seq\* (`@molstar/seq-core`, `@molstar/seq-viewer`: about 6,000 lines with
+      tests in `src/sequence/`, `src/sequence/molstar/`, `src/api/`, `src/sources/`, a story); no other package does.
+      Prism is the application here and Seq\* the engine ([the engine, not the game](../../design/README.md)): what
+      Prism's sequence band shows and how it navigates stays Prism's; the swap is its plumbing.
+  - **A design first** (a draft, the author's agreement), from Prism's `viewer/_spec/sequence.md` §1–10 mapped onto the
+    new packages: the data read once through the plugin onto Seq\*'s units and structure syncing
+    (`@molstar/seqx-core/structure`, `linkStructure`), the document and sequence behaviors onto the language and
+    builder, the link both ways, MolViewSpec beside SeqViewSpec, snapshots, checkpoints and the one history (the saved
+    sequence state's version and a migration from today's version 4), the band and its menu, the skin, colours,
+    legend and hover label (onto tokens, legends and card providers), PAE, secondary structure and coverage (onto the
+    new layers). It lists what the new Seq\* lacks for parity, each a Seq\* lane before the swap or a stated loss.
+  - **Public API**: Prism's `ViewerExtension.sequence` (`tracks`, `behaviors`) and `api/sequence.ts` change shape: a
+    v6 break recorded in `.v6/plans/breaking-v6-changes.md`, the extension docs and Prism's `_spec` in the same change.
+  - **Lanes after the design**: Seq\* gaps first, then the swap in Prism (by Prism's own AGENTS.md and checks: its
+    perf, heap and browser tiers, the axe sweep, its stories), then parity checks against today's behaviour (the
+    sequence tests ported, a look at each sequence story beside the old one).
+  - **Then `packages/sequences`**: with no dependent left, its removal (and Seq\*'s `seqx` names becoming `seq`) is the
+    author's call, asked at the slice's gate.
 - [ ] **Record** in `.scaffolds/seq/records/sixth-slice.md`.
 
 ## Questions for the author (stage 0)

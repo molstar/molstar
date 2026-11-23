@@ -2,6 +2,9 @@
 
 ## Decided
 
+- The loop pauses after RX2 (the author, 2026-11-23: "let's pause the loop after RX2 is done"): RX2 checked, reviewed,
+  looked at and merged, then the loop stops; RX3 and the use gate wait for the author.
+- Prism on the new Seq\* in the sixth slice (the author, 2026-11-23): planned in `sixth-slice/plan.md`.
 - The engine, not the game (the author, 2026-11-23): Seq\* makes the pictures; composition and navigation are the
   application's; said in `design/README.md` and ring-extension's Intent; the sixth slice writes a storybook `Docs/`
   folder leading with it (not an opinionated viewer like Jalview).
