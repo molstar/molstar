@@ -70,3 +70,11 @@ built, cut, or deferred past version 1 by the author's word. Known now:
   lanes are written into this plan and [checklist.md](checklist.md) at stage 0.
 
 The items are [checklist.md](checklist.md); this plan holds no status (the method's plan template).
+
+## Re-plans
+
+- 2026-11-23: the 14 design questions take no mocks (the author: "i think we can design/implement these directly. the
+  mocks are generally designed for more complex stuff"; then "yes, write it that way and draft the answers"). Each is
+  answered in its design and its package's spec; the three that are interactions (a layer's legend, items 5 and 13;
+  the stem menu, 8, 26 and 28; the square's way home, 6) are agreed in text, gesture by gesture, before a lane. Items
+  8 and 26 are one question. The drafts are [drafts/novice-questions.md](drafts/novice-questions.md).
