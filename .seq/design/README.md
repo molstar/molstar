@@ -4,7 +4,10 @@ One file per topic. A design says what is true and why: intent, precedents, tens
 alternatives, consequences (§design-first). No status field: what is here is agreed. A section marked **Provisional**
 is the agreed direction with its details still open; it says what would settle them. A design that adds a layer, a
 layout or a part has a **Defaults** section: what a reader sees with no setting, with a sketch or a reference picture
-(§defaults-designed).
+(§defaults-designed). A design for a new visible part or gesture names its **precedent** (the tool whose
+behaviour it borrows, and where it departs) and links its **Mock** (`Design/Mocks/`, one story per gesture), agreed
+with the text at its gate (principles, #mocks-at-design). A design of application-level work says so in its Intent
+(#engine-not-game).
 
 **The engine, not the game** (the author, 2026-11-23: "the base library is like a "game engine", not the "game
 itself". We should be explicit about this."): Seq\* is a library that makes the pictures (the language, layers,

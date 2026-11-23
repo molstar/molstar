@@ -250,6 +250,47 @@ until the package's home takes it. B10 (module and bundle sizes) went to the pac
   Storybook's perf tier at the stage that builds it, not only the core's draw loop. Why: stage 7 found the viewer's
   emphasis frame at 800 B while every core case passed.
 
+## Folded back from the fifth slice (the author, 2026-11-23)
+
+Rules learned in the fifth slice (56 lanes, the Genomes milestone; its fold-back in `execution/fifth-slice/foldback.md`),
+merged by the author ("Apply all ten"). Each extends the rule it cites, and stands here until the package's home takes
+it. The loop's own changes (B3, B4, B6, B8) are in the fifth slice's `loop.md`, "Folded back at the close", for the
+method's loop.
+
+- **A lane's model follows its scope** {#model-by-scope} (extends "Lanes at once" in the loop): a lane with a closed
+  item list and named stories (a fix lane, a storybook-only lane, a pure split, a fast review) runs on the fast model;
+  a lane that builds a design's core (the language, resolve, layouts, runtimes on untrusted input) and its independent
+  review keep the strong one. The brief names the model and the findings row records it; the orchestrator's look and
+  checks gate both alike. Why: 21 fast lanes this slice, their reviews finding bugs at the strong lanes' rate per item,
+  none reverted.
+- **A repeated finding is a class** {#findings-are-classes} (extends §whole-composition-tested): a finding that matches
+  one already fixed is not logged again per story; its rule goes into the design or `_spec` it belongs to, a sweep test
+  covers every story and layer under the rule, and the open instances fold into that one item, briefed to a strong
+  lane. Why: the author, "we should not be fixing this one-by-one"; the hover contract (FX9) closed four instances, and
+  the card over blocks (FX24) seventeen stories' cards at once.
+- **The engine, not the game** {#engine-not-game} (extends §design-first): a design or brief that composes views,
+  navigation or optional analyses says in its Intent that it is application-level work on the public surface, names
+  the library parts it uses and what the library had to gain for it, and never makes that composition the library's
+  only way. Why: the author, "the base library is like a "game engine", not the "game itself"" (the design README).
+- **The heavy lane's tight bounds run isolated** {#heavy-bounds-isolated} (amends #heavy-lane-alone): a heavy test
+  with a wall-clock bound under 50 ms runs alone in its worker, and its bound is never raised to pass under contention.
+  Why: at load 1.2 two such bounds failed in the full heavy lane and passed alone (M5): a quiet machine is not enough
+  when the lane's own workers contend.
+- **The picture is agreed before it is built** {#mocks-at-design} (extends #defaults-designed; amends
+  #use-continuous): a design for a new visible part or gesture comes with an interactive mock and a named precedent.
+  - The mock is crude on purpose (fake data, plain SVG or DOM, no performance work), one story per gesture in
+    `Seq* (next)/Design/Mocks/`, built by a fast lane beside the draft. It works where the design speaks: what is seen,
+    what a press, drag, hover, wheel or key does, what a menu offers.
+  - The author plays with it at the design gate; the design is agreed with the mock.
+  - The lane's brief links it; the orchestrator's look and the novice pass compare the built view with it, gesture by
+    gesture.
+  - No package imports it, and the merge that brings the built story deletes it.
+  - A use finding that contradicts an agreed mock corrects the design; a second of its kind is a class.
+
+  Why: the slice's largest findings were imaginations that differed, not bugs: the square, letters centred on the
+  whole cell, "+n", what a link means. Each design's text was met and only the author's use found them, at the end
+  (the author: "how about instead we mocked the interactions too during the design stage?").
+
 ## For the package's home
 
 Fold-back proposals for the oz package, from this instance (2026-11-18); until merged there they stand as the

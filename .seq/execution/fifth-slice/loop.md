@@ -211,3 +211,27 @@ plan (B11: the fourth slice reached it with two unticked). Then, when every item
 6. **Clean up the worktrees**: every merged lane's worktree and branch removed (`git worktree remove`, then the branch
    deleted when `git branch --merged` lists it); a parked lane's kept and named in the record; nothing unmerged deleted
    without the author's word.
+
+## Folded back at the close (the author, 2026-11-23: "Apply all ten")
+
+For the method's loop (the sixth slice writes `_method/` from this file): the fold-back's loop changes, in force for
+the next loop. The principles' side is in `principles/README.md`, "Folded back from the fifth slice".
+
+- **Model by scope** (B1, #model-by-scope): the brief names the model by the lane's scope; the findings row records it.
+- **Classify before logging** (B2, #findings-are-classes): at a fix point, a finding matching a fixed one becomes the
+  class's item (its rule and its sweep), never a new per-story line.
+- **Items landed, not reported** (B3): at a merge the orchestrator ticks each numbered item of the brief against a test
+  or a story by name in the findings row; an unticked item goes back to the lane or into `fixes.md`; a design's "Built"
+  note lists ticked items only. `features-planned` extended to a brief's items (the next plan's check).
+- **What the orchestrator owns** (B4): its scripts in its scratchpad; every brief says "write only in your worktree and
+  your own temporary space"; the orchestrator stages by path, never `commit -a` or `.`.
+- **The engine and the game** (B5, #engine-not-game): a brief for application-level work says so in its Why.
+- **Novice findings confirmed** (B6): every bug a novice pass reports is reproduced by the orchestrator in a visible
+  pane before it is placed; the pass is split by story groups from the start.
+- **Heavy bounds isolated** (B7, #heavy-bounds-isolated): `vitest.config.ts` isolates them (the next plan's change).
+- **Size lines are budgets** (B8): a plan states each bundle's expected growth per stage, as a number.
+- **A lazy part awaited** (B9): the viewer `_spec`'s lazy rule; a lane's tests follow it.
+- **Mocks at the design stage** (B10, #mocks-at-design): a design stage with a new visible part runs a mock lane beside
+  its draft; the gate is played, not read; each lane's brief links its mock, the look and the novice pass compare
+  against it, and the merge that lands the built story deletes the mock.
+

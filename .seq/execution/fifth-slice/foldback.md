@@ -227,4 +227,17 @@ From the earlier slices:
 
 ## Decided by the author
 
-Not yet.
+The author, 2026-11-23: "Apply all ten" (B10 as refined: "how about instead we mocked the interactions too during the
+design stage?"). Applied:
+- B1, B2, B5, B7 and B10 in `principles/README.md`, "Folded back from the fifth slice";
+- B5 and B10 in `design/README.md`;
+- B9 in the viewer `_spec` (the lazy square's paragraph);
+- the loop changes in `loop.md`, "Folded back at the close", for the method's loop.
+
+The check and the config change (B3's extension of `features-planned`, B7's isolation in `vitest.config.ts`) are the
+next plan's items.
+
+Questions:
+- **The 14 design questions and the use gate**: carried to the next plan (the use gate by the author's word; the
+  questions with it, as the close's default).
+- **The minimal viewer's +150.7 kB**: carried as a question to the next plan.
