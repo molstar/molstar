@@ -62,7 +62,7 @@ Slices, each closed with its record:
 
 ## Next
 
-The sixth slice's finalize. Then version 1's close-out (the planned rows no milestone took, the carried items, the use
+Version 1's close-out (`execution/close-out/`: a plan and its checklist, drafts; its stage 0 the author's) (the planned rows no milestone took, the carried items, the use
 gate). Prism on the new Seq\*, then removing `packages/sequences` and renaming `seqx` to `seq`, are separate work (the
 author, 2026-11-23). Design before code ([AGENTS.md](AGENTS.md), How work happens here).
 

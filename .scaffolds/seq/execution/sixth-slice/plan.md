@@ -88,7 +88,7 @@ A next scaffold starts as `.scaffolds/<name>/` from `_method/`, its manifest lis
   a separate piece of work."). Not this slice. The draft stays as a reference for that work:
   [drafts/prism-on-new-seq.md](drafts/prism-on-new-seq.md) (a Mol\* adapter of the seq data port, the mapping, the
   gaps G1–G7, the questions).
-- [ ] **Record** in `.scaffolds/seq/records/sixth-slice.md`.
+- [x] **Record** (closed 2026-11-23: `records/sixth-slice/2026-11-23-sixth-slice.md`).
 
 ## Decided at stage 0 (the author, 2026-11-23)
 
