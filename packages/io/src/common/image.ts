@@ -20,9 +20,7 @@ export interface DecodedImage {
 export type ImageType = `image/${string}`;
 
 function assertBrowser(name: string) {
-  if (typeof createImageBitmap === 'undefined' || typeof OffscreenCanvas === 'undefined') {
-    throw new Error(`decoding the image '${name}' needs a browser`);
-  }
+  if (typeof createImageBitmap === 'undefined') throw new Error(`decoding the image '${name}' needs a browser`);
 }
 
 /** The bitmap of `bytes` (of `type`) as stored: not premultiplied, no color conversion; for an upload as it is */
@@ -38,13 +36,21 @@ let gl: WebGL2RenderingContext | WebGLRenderingContext | null | undefined;
 
 /**
  * A context of its own, kept (images decode one after another): WebGL2, else WebGL1 (all the readback needs: unpacked
- * not premultiplied nor converted, an RGBA byte texture of any size without mipmaps a framebuffer's, `readPixels`)
+ * not premultiplied nor converted, an RGBA byte texture of any size without mipmaps a framebuffer's, `readPixels`); of
+ * an `OffscreenCanvas`, else of a document's canvas (Safari before 16.4 has none offscreen; a worker no document)
  */
 function getContext() {
   if (gl === undefined) {
-    const canvas = new OffscreenCanvas(1, 1);
-    const attributes = { premultipliedAlpha: false, antialias: false };
-    gl = canvas.getContext('webgl2', attributes) ?? canvas.getContext('webgl', attributes);
+    const attributes: WebGLContextAttributes = { premultipliedAlpha: false, antialias: false };
+    if (typeof OffscreenCanvas !== 'undefined') {
+      const canvas = new OffscreenCanvas(1, 1);
+      gl = canvas.getContext('webgl2', attributes) ?? canvas.getContext('webgl', attributes);
+    } else if (typeof document !== 'undefined') {
+      const canvas = document.createElement('canvas');
+      gl = canvas.getContext('webgl2', attributes) ?? canvas.getContext('webgl', attributes);
+    } else {
+      gl = null;
+    }
   }
   return gl;
 }
