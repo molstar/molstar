@@ -180,11 +180,11 @@ checks it cannot express.
 - **What the checks cover**: one of two params (`letters` or `source`, `rows` or `source`, `values` or `source`, `uri`
   or `value`), an `index` only for a file, letters of the alphabet (protein `A`–`Z` and `a`–`z`, `*`, `-`; DNA the IUPAC
   codes and `-`, either case; RNA the same with `U` for `T`: a letter outside is an error, since every reader of letters
-  assumes its alphabet), row intervals, bounds and strands (the issue's path
-  carries the row), what a map method needs, exons, a codon map's alphabets, section ranges, that a reference names a
-  node of a kind its param takes, that a layer's data is what its type draws (reported once: a kind the param does not
-  take is the reference's issue alone; a template's layer without data draws each instance's node), that a template's
-  `source` names a source, that `follow` chains end. Extents are checked where the letters are inline.
+  assumes its alphabet), row intervals, bounds and strands (the issue's path carries the row), what a map method needs,
+  exons, a codon map's alphabets, section ranges, that a reference names a node of a kind its param takes, that a
+  layer's data is what its type draws (reported once: a kind the param does not take is the reference's issue alone; a
+  template's layer without data draws each instance's node), that a template's `source` names a source, that `follow`
+  chains end. Extents are checked where the letters are inline.
 - **Patches** are `@molstar/core/repr/patch`'s, applied with `SeqLanguage`: its conformance suite runs over the core's
   cases and Seq's own (a layer hidden, a track moved with a section's `follow` following a rename, a dangling ref
   refused, a layer without an id refused; with the checks of a change and the slots, a `seq.lang` refusal, a story step
@@ -2433,9 +2433,9 @@ of it (`buildOverlay(model, reader)`; `OverlayBuilder` keeps one a node version 
 - **Checked by the description**: each node is validated and normalized as a node of its kind under `data` (cached per
   node object); an invalid one is left out (`seq.resolve.node.invalid`). Refs are absolute addresses (the description's
   `ref` spelling): a `target` names a spec system or an item system the overlay holds, a `source` a spec source or a
-  held source node; anything else leaves the node out (`seq.resolve.node.ref`). Each issue once per overlay. An issue
-  on a node has the node's form as its `address` and, where it has a `path`, the place inside the node
-  (`['params', …]`), never a spec path: the node is no part of the spec.
+  held source node; anything else leaves the node out (`seq.resolve.node.ref`). Each issue once per overlay. An issue on
+  a node has the node's form as its `address` and, where it has a `path`, the place inside the node (`['params', …]`),
+  never a spec path: the node is no part of the spec.
 - **Annotations** resolve as the spec's (`resolveAnnotationNode`): inline rows are a `seq` source named by the node's
   address; a `source` reads by region on the target's name.
 - **Item systems** (EC-177): an item of a ranges node with `map: 'codon'` (its rows by `id`, else by row; genomic order,

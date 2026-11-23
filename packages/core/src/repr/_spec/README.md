@@ -31,9 +31,9 @@ at their old paths: a reader of JSON's binary twin needs no io dependency.
 - **One node shape**: `{ kind, id?, params?, custom?, children?, args? }`. `id` is local (unique among siblings), so an
   address is the path of ids. `args` holds a data form's positional values (a query, a theme expression); a node with
   `args` has no id and no children. Why: one recursive form every language is spelled in.
-- **Ids** (`IdPattern`): a letter, digit or `_`, then letters, digits, `_`, `.`, `+` or `-` (Unicode letters and digits).
-  A name outside it (an HLA contig, a row label with `/`) is reached by a form, never by loosening the pattern. Why: an
-  address of ids is a bare word with nothing to quote.
+- **Ids** (`IdPattern`): a letter, digit or `_`, then letters, digits, `_`, `.`, `+` or `-` (Unicode letters and
+  digits). A name outside it (an HLA contig, a row label with `/`) is reached by a form, never by loosening the pattern.
+  Why: an address of ids is a bare word with nothing to quote.
 - **`custom`** is extension data on any node: kept, hashed and encoded, never validated against the kind. Its columns
   are encoded tagged (Codecs), so they come back typed with no language.
 - **Kinds** are words, optionally namespaced: `^([a-z][a-z0-9_-]*:)?[a-z][a-z0-9_-]*$` (`ext:track`). Why: extension
@@ -52,9 +52,9 @@ at their old paths: a reader of JSON's binary twin needs no io dependency.
   use with no unused entry. Why: its identity is then the sequence of its values, so an encoding that writes the values
   (JSON's plain array) gives the same bytes back.
 - **The tree owns a column it is given** (`toColumn`, `normalize`, the builder, and `applyPatch` for the values and
-  nodes a patch carries, hashed as the tree's): no copy is made, its NaNs are made the
-  canonical NaN in place, its hash is cached per column object as a node's is per node, so it is never mutated after.
-  Why: a large column costs no copy, and its hash is computed once.
+  nodes a patch carries, hashed as the tree's): no copy is made, its NaNs are made the canonical NaN in place, its hash
+  is cached per column object as a node's is per node, so it is never mutated after. Why: a large column costs no copy,
+  and its hash is computed once.
 - **One NaN**: every NaN of a float column is the canonical NaN (any payload or sign bit rewritten, `canonicalColumn`,
   once per column, also before hashing and comparing). Why: identity is by bytes, and NaN means missing, one value.
 
