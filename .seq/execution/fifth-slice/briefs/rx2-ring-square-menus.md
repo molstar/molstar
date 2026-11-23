@@ -23,6 +23,13 @@ section... very confusing".
    Home shows all; keyboard on the focused square too (arrows move, Shift+arrows resize, Enter on a cell). Core's square
    (GC3's), not the extension's: a square over a grid section keeps today's behaviour. Tests per gesture, its patch and
    its undo; EC-110 kept (a ring's window followed or not).
+2b. **A non-contiguous selection** (the author, 2026-11-23: "would it be possible to have "non-continous" window too?
+    and e.g. show chr4 and 9 only for example?"; then "yes, fold it into RX2"): Cmd/Ctrl+click a cell adds or removes
+    its two chromosomes, Cmd/Ctrl+click a row or column label adds or removes that chromosome, a click on a label shows
+    only it. A contiguous run keeps the one draggable box; a scattered set (chr4, chr9) is outlined cell by cell (each
+    shown chromosome's diagonal cell and the cross cells between them), with no drag grips. The keyboard adds and removes
+    too; Home shows all. Each change one patch, one undo step. Tests per gesture, the outline's cells, and the ring
+    showing exactly the set.
 3. **A navigator picture** (CN's contract, "Without CN" in the design): core's square calls a picture hook when one is
    registered; `rondo:square` returns one `rondo:cells` track over the bound ribbons' data, a cell a block pair by count
    on a square-root ramp, the diagonal included, mirrored for unsided data, sided data in both triangles; hover "chr4 ×

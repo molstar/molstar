@@ -603,3 +603,7 @@ the author decided by name carries its own date.
 17. **On one chromosome or a pair, the information first** (the author, 2026-11-23, "yes, fold the stem and stub idea
     into RX2"): stems drawn lighter so the ribbons read over them; stubs under `rondo.stubMin` (2) folded into one "other
     chromosomes · n" stub a stem, the card listing the partners, a neck still the sum of its parts.
+18. **The square selects any set** (the author, 2026-11-23, "yes, fold it into RX2"): Cmd/Ctrl+click on a cell or a
+    label adds or removes chromosomes from `section.include`, a label's click shows only it; a contiguous run is one
+    draggable box, a scattered set outlined cell by cell (its diagonal and cross cells) without grips; the cells
+    coloured by count with self-connections on the diagonal (`rondo:cells`).
