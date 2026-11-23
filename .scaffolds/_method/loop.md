@@ -3,7 +3,7 @@
 <!-- The template for a work folder's loop file (§loop-file), written from the slices that built Seq*: each rule below
      carries a fold-back the author merged. Copy it to `.scaffolds/<name>/execution/<work-id>/loop.md`, replace every
      <placeholder>, and delete a section's comment once it is filled. Cut a section only where the work has no such
-     step (a slice that draws nothing has no look and no novice pass); say so in one line, as the sixth slice did. -->
+     step (a work that draws nothing has no look, no mock and no novice pass); say so in one line. -->
 
 Governs the implementation of `plan.md` (§loop-file). The orchestrator is the session that runs this loop; lanes are
 subagents it starts. Read this file and `state.md` before every step. <!-- Name the loop this one descends from and the
@@ -33,7 +33,7 @@ two heavy test runs at once.
 1. **Read** `state.md`, `gaps.md`, `drift/` and `fixes.md`. If `state.md` is missing, rebuild it from `plan.md` and the
    git log.
 2. **Pick** the next unchecked items whose dependencies are merged (plan, Order and parallelism), within the limit
-   above, counted from the list of what runs. At a fix point an FX lane takes the open items of `fixes.md`;
+   above, counted from the list of what runs. At a fix point a <fix lane> takes the open items of `fixes.md`;
    **classify before logging**: a finding that matches one already fixed is the class's item
    (its rule in the design or `_spec` it belongs to, a sweep test over every case the rule covers, briefed to a strong
    lane), never a new line per instance.
@@ -58,16 +58,24 @@ two heavy test runs at once.
      with a second one after the pointer moved off, or with the DOM or the pixels agreeing.
    - **review**: a separate reviewer **in a worktree of its own**, given the diff, the designs and the screenshots,
      never the lane's conclusions; strong for a design's core, fast for a pure split (with the "no behaviour change"
-     check). It checks the design followed (its rules, its Configuration table, its matrix cells), minimal code and
-     module size (§module-size), what is drawn against the data, each edge case the brief names in a test title, a
-     changed test expectation explained against the design, and that each fix's test fails on the fix's parent (a fix
-     of an unreachable state says so instead).
+     check). It checks:
+     - the design followed: its rules, its Configuration table, its matrix cells;
+     - host neutrality: nothing the host owns taken (<the undo stack, the keymap, the chrome, the animation loop>);
+     - minimal code and module size (§module-size): reuse before new helpers; a file past 800 lines is a question in
+       the report, past 1500 a failure;
+     - a shared piece tested with its two consumers, live in one test;
+     - what is drawn against the data; each edge case the brief names in a test title;
+     - a test over lazy parts awaits them before the gesture it measures (a flake under fake timers suspects a late
+       part or a real clock first);
+     - a changed test expectation explained against the design;
+     - each fix's test failing on the fix's parent (a fix of an unreachable state says so instead).
    - **fix round**: one round (SendMessage to the lane), or the orchestrator's; a finding that is a design question
      becomes a drift note.
    - **merge** with `--no-ff`, after the size check shows no failing row on the merged tree (read its rows, never only
      its exit code). The merge commit names the lane and the review's refuted or unfixed findings, and why. Then apply
-     the hot-file changes the lane asked for, install, run the checks on the merged tree, remove the lane's worktree and
-     branch. The orchestrator stages by path, never `commit -a` or `.`, and keeps its own scripts in its scratchpad.
+     the hot-file changes the lane asked for; lower the file-size baseline (`file-size.ts --update`) when a listed file
+     shrank; delete the design's mock when this merge lands the built view; install, run the checks on the merged
+     tree, remove the lane's worktree and branch. The orchestrator stages by path, never `commit -a` or `.`, and keeps its own scripts in its scratchpad.
    - **record**: the lane's row in `state.md`'s findings table: the model, the items ticked, the review's and the
      look's findings by kind (bug, missing design, look), who looked and at what; its drift, gaps and followups into
      `drift/`, `gaps.md` and `followups.md`.
@@ -78,7 +86,8 @@ two heavy test runs at once.
 7. **The author's findings**: a look or a bug that needs no design goes into `fixes.md` (what is seen, where, the kind,
    the author's words) for the next fix point; one that blocks their use jumps the queue; one that needs a design is a
    drift note asked at once.
-8. **What is drawn** lands with its <story> and a headless twin composed as the <story> composes it, on a fake clock.
+8. **What is drawn** lands with its <example view> and a headless twin composed as the <example view> composes it, on a
+   fake clock.
 9. **Designs and their pages move together**: a change to an agreed design updates its file and <its published page>
    in one commit.
 10. **Update** `state.md` and tick `plan.md` after every merged item, before starting a new lane, and before stopping.
@@ -116,15 +125,16 @@ At every `GATE` in `plan.md`:
 - the sizes against the plan's budgets (a number a stage, from its designs); a growth past one is trimmed first, then lazy-loaded
   only where it is rare, then raised with its cause. Timing and allocation bounds are hard: never loosened to land a
   lane;
-- drawing checked against the data in every view the stage touched; the matrix cells the stage fills, each by the test
-  that exercises its gesture;
+- drawing checked against the data in every view the stage touched;
+- the interaction matrix's cells the stage fills: a cell built (a test names its gesture), or "no, because" stated;
 - the gaps and drift notes raised since the last gate, each a yes or no with a recommendation;
 - a short report to the author: what merged, the checks, screenshots from a visible pane, the representatives' numbers,
   the sizes, the decisions needed. The loop continues unless a decision is needed.
 
 **The novice pass** runs after the last lane that draws: a light agent plays a user in a visible browser with a task
 script per new view (a pointer path onto each menu and submenu), split by groups from the start. The orchestrator
-reproduces every bug it reports in a visible pane before placing it. **Use is continuous**: the author's use as lanes
+compares what it finds with the design's mock, gesture by gesture, and reproduces every bug it reports in a
+visible pane before placing it. **Use is continuous**: the author's use as lanes
 merge is the use gate. At both, each finding is fixed or placed (`fixes.md`, a lane, the TODO, a drift note) and
 counted by kind in `state.md`.
 
@@ -165,7 +175,8 @@ The work folder stays in `.scaffolds/<name>/execution/<work-id>/`, closed and ke
 author says so; `records/<work-id>/` holds only the record file. It starts with the unticked plan items listed in
 `state.md`, each run, cut by the author's word, or carried to the next plan. Then:
 
-1. **Reconcile**: designs and their pages; `drift/` emptied (each note resolved or a line in the TODO); the `_spec`s and
+1. **Reconcile**: designs and their pages; `drift/` emptied (each note resolved and deleted, or turned into a
+   followup); `followups.md` filed (each an issue or a line in <the TODO>) and cleared; the `_spec`s and
    their Configuration tables; `status.md`, the features rows, the edge cases' outcomes; `fixes.md`'s open items fixed
    or placed.
 2. **Fold back**: `foldback.md` ([foldback.md](foldback.md)). The author decides on its own line; what was decided is

@@ -1,6 +1,8 @@
 // The link check: every relative Markdown link in a tracked file under `.scaffolds/` resolves to a tracked or present
-// file or folder, and every `node .scaffolds/<path>.ts` command names a check that exists. A link inside a closed work
-// folder (an `execution/<id>/` whose `state.md` ends with a `Closed` line) or a record (`records/`) is history, never
+// file or folder, and every `node .scaffolds/<path>.ts` command names a check that exists, and the paths its
+// `--instance`, `--package`, `--plan` and `--features` arguments name. A link inside a closed work folder (an
+// `execution/<id>/` whose `state.md` ends with a `Closed` line) or a record (`records/<work-id>/`; the records'
+// `README.md` is a live index, checked) is history, never
 // edited after its close: reported as a count with `--history` listing them, not failed. A link or path with a
 // `<placeholder>` in it (the method's templates) is skipped, as are links in code spans and fenced blocks, external
 // links (`scheme:`), absolute paths and bare fragments; a fragment is not checked (the package's id check checks the
@@ -38,7 +40,7 @@ for (const f of tracked) {
   if (/^Closed\b/.test(lines[lines.length - 1] ?? "")) closed.add(`${m[1]}/`);
 }
 const isHistory = (f: string): boolean =>
-  /^\.scaffolds\/[^/]+\/records\//.test(f) || [...closed].some((c) => f.startsWith(c));
+  /^\.scaffolds\/[^/]+\/records\/[^/]+\//.test(f) || [...closed].some((c) => f.startsWith(c));
 
 /** Relative link targets of a Markdown text, code spans and fenced blocks blanked first. */
 function links(text: string): { target: string; line: number }[] {
@@ -80,11 +82,15 @@ for (const f of tracked) {
       if (!exists(to)) found.push(`${f}:${line}: link to ${target} does not resolve (${to})`);
     }
   text.split("\n").forEach((line, i) => {
-    for (const m of line.matchAll(/\bnode\s+(\.scaffolds\/[^\s`'"()]+\.ts)\b/g)) {
-      const path = m[1] as string;
-      if (/[<>]/.test(path)) continue;
-      checked++;
-      if (!exists(path)) found.push(`${f}:${i + 1}: command names ${path}, which does not exist`);
+    for (const m of line.matchAll(/\bnode\s+(\.scaffolds\/[^\s`'"()]+\.ts)\b([^`\n]*)/g)) {
+      const paths = [m[1] as string];
+      for (const a of (m[2] as string).matchAll(/--(?:instance|package|plan|features)\s+['"]?([^\s'"`]+)/g))
+        paths.push(a[1] as string);
+      for (const path of paths) {
+        if (/[<>]/.test(path)) continue;
+        checked++;
+        if (!exists(path.replace(/\/$/, ""))) found.push(`${f}:${i + 1}: command names ${path}, which does not exist`);
+      }
     }
   });
   (isHistory(f) ? history : problems).push(...found);

@@ -7,9 +7,15 @@
 
 ## Decided
 
-<!-- Newest first: the decision, the author's words and date, where it now lives (a design, a brief, the plan). -->
+<!-- Decisions taken, newest first: the decision, the author's words and date, where it now lives (a design, a brief, the plan). -->
 
 - <decision> (the author, <date>: "<words>"); <where>.
+
+## Done
+
+<!-- What is merged or finished, newest first, with its commit: enough to know what not to redo. -->
+
+- <date>: <lane or stage> (`<commit>`).
 
 ## Next
 

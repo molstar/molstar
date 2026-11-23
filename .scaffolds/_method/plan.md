@@ -54,7 +54,7 @@ it.>
 
 ### Fix points
 
-- [ ] **FX<n>** after <stage>: `fixes.md`'s open items.
+- [ ] **<fix lane>** after <stage>: `fixes.md`'s open items.
 
 ### Stage <n>: <name>
 
@@ -63,9 +63,9 @@ it.>
 
 ### Last stage: use, measure, finalize
 
-- [ ] **NOVICE PASS** after the last lane that draws.
-- [ ] **MEASURE**: <the representatives at full size, the bundles against their budgets>.
-- [ ] **FINALIZE** (loop, Finalize).
+- [ ] **<the novice pass>**: a light agent plays a user of each new view, after the last lane that draws.
+- [ ] **<the measurements>**: <the representatives at full size, the bundles against their budgets>.
+- [ ] **<finalize>** (loop, Finalize).
 
 ## Measurements
 

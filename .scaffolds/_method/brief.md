@@ -23,6 +23,16 @@ the rule sections by id>.
 1. **<item>**: <what, where>. Proof: <the test, the output, the section>.
 2. ...
 
+**How**:
+- **host neutral**: <what the host owns that the lane never takes>;
+- **two consumers**: a shared piece is tested with <its two consumers>, live in one test;
+- **minimal code**: reuse <the base library's helpers> before writing new ones; a file grown past 800 lines is a
+  question in the report, past 1500 a failure (§module-size);
+- **its performance representative**: <one quick case; a bound under the heavy lane for a time; an allocation case
+  when it adds to a frame's path>;
+- **lazy parts awaited**: a test over a view with lazy parts awaits them before the gesture it checks;
+- **the mock**: <the design's mock, when the lane draws a new part>; the built view matches it gesture by gesture.
+
 **Where**: a worktree on `<prefix>/<lane>`. Touches <files>; out of scope <files, parts>. Headers <the repository's
 rule>. Hot files never staged: <the lockfile, manifests, configs, the work folder, the changelog folder, the TODO>;
 declare what you need in the report. <What stops the lane: a change past the agreed surface of a base library.> Write

@@ -24,12 +24,12 @@
 
 ## Defaults
 
-<!-- For a design that adds a layer, a layout or a part (the defaults-designed check reads Consequences for those
-     words): what a reader sees with no setting (sizes, labels, colours, legends; empty, crowded, at the widest and the
+<!-- For a design that adds something drawn (a layer, a layout, a part: the defaults-designed check reads Consequences
+     for the instance's words): what a reader sees with no setting (sizes, labels, colours, legends; empty, crowded, at the widest and the
      closest view, in dark), each with a sketch or a reference picture, reviewed at the gate. -->
 
-**Mock**: <the mock's stories, one per gesture: crude on purpose, fake data, no performance work; played by the author
-at the design gate, linked by each lane's brief, deleted by the merge that lands the built view>. **Precedent**: <the
+**Mock**: <the mock, one interactive example a gesture: crude on purpose, fake data, no performance work; played by
+the author at the design gate, linked by each lane's brief, deleted by the merge that lands the built view>. **Precedent**: <the
 tool it follows here>.
 
 ## Configuration

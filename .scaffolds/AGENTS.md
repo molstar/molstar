@@ -38,8 +38,9 @@ One folder per scaffold, `.scaffolds/<name>/`, laid out as the method's README s
   especially (the author, 2026-11-23: "i think we can still edit if needed (and prolly will, especialyl some of the
   designs)"). A closed work folder and a record are the exception: never edited after their close.
 - **Never cited by code.** Code, comments, tests and specs never cite a scaffold: no `.scaffolds/` path, no design or
-  source file name, no principle `§` id; a decision is cited by the `_spec` section that holds it (the method's
-  `no-design-citations` check). Outside `.scaffolds/`, only the root `AGENTS.md`'s table and the governed package's
+  source file name, no principle `§` id; a decision is cited by the `_spec` section that holds it. The method's
+  `no-design-citations` check fails all three in the code it governs; specs and comments elsewhere are held to it by
+  review. Outside `.scaffolds/`, only the root `AGENTS.md`'s table and the governed package's
   `AGENTS.md` point at a scaffold. Another scaffold's designs may cite one.
 - **A module moves into the package when a second scaffold needs it.** A scaffold's own principles modules (Seq\*'s
   `queries` and `agent-interface`, from meso\*) stay in its instance until then (the author, 2026-11-23: "keep inside

@@ -1,7 +1,9 @@
 // The no-design-citations check (§execution-unreferenced, carried to the whole scaffold: a scaffold is never cited by
 // code, comments, tests or specs): nothing in the repository's code names a design or a source file of the scaffold
-// (`<instance>/design/*.md`, `<instance>/sources/**/*.md`, read at run time) or a path into `.scaffolds/`; a decision
-// is cited by the spec section that holds it. A file name passes only in a file of a package that holds a file of that
+// (`<instance>/design/*.md`, `<instance>/sources/**/*.md`, read at run time), a path into `.scaffolds/`, or a
+// principle id (`§<id>` where `<id>` is defined by a `{#<id>}` in `.scaffolds/principles/` or the instance's
+// `principles/`; the repository's own numbered section signs (`harness.md`, section 6) are not ids and pass); a decision is cited by the
+// spec section that holds it. A file name passes only in a file of a package that holds a file of that
 // name itself (its own `_spec/` documents), never because some other package has one.
 // The method's, not an instance's: every scaffold is kept and never cited. The instance's part is
 // `<instance>/_checks/no-design-citations.json`, required:
@@ -11,7 +13,8 @@
 // cite or to police: a name any of them holds passes there. `pending` lists files that a lane may not edit (the
 // orchestrator's hot files) and only shrinks; a file leaves it when it is clean (the check then says so).
 // Usage: no-design-citations.ts [root] --instance .scaffolds/<name> [--self-check] (self-check: a planted design file
-// name in a comment of the scaffold's own package must fail, one in a package that holds that name itself must pass).
+// name in a comment of the scaffold's own package must fail, one in a package that holds that name itself must pass,
+// and a planted principle id must fail anywhere in the code).
 import { existsSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { finish, instanceFile, methodArgs, trackedFiles, usage } from "./lib.ts";
@@ -59,6 +62,13 @@ const NAMED = scaffold.size
   ? new RegExp(`(?<![\\w.-])(${[...scaffold].map(escape).join("|")})(?![\\w-])`, "g")
   : undefined;
 const PATH = /(?<![\w.-])\.scaffolds\//;
+/** The principle ids, from the package and the instance's own modules. */
+const ids = new Set<string>();
+for (const f of files) {
+  if (!f.endsWith(".md") || !(f.startsWith(".scaffolds/principles/") || f.startsWith(`${SCAFFOLD}principles/`))) continue;
+  for (const m of readFileSync(join(ROOT, f), "utf8").matchAll(/\{#([a-z][a-z0-9-]*)\}/g)) ids.add(m[1] as string);
+}
+const ID = /§([a-z][a-z0-9-]*)/g;
 
 const outside = new Set(files.filter((f) => !f.startsWith(".scaffolds/") && !OWN.test(f)).map((f) => basename(f)));
 
@@ -66,6 +76,7 @@ const outside = new Set(files.filter((f) => !f.startsWith(".scaffolds/") && !OWN
 function names(f: string, line: string): string | undefined {
   const own = OWN.test(f) ? held.get(packageOf(f)) : outside;
   if (NAMED) for (const m of line.matchAll(NAMED)) if (!own?.has(m[1] as string)) return m[0];
+  for (const m of line.matchAll(ID)) if (ids.has(m[1] as string)) return m[0];
   return PATH.exec(line)?.[0];
 }
 
@@ -84,6 +95,11 @@ if (SELF) {
   const holder = [...held].find(([p, n]) => n.has(name) && !OWN.test(`${p}/x`));
   if (holder && names(`${holder[0]}/src/x.ts`, planted) !== undefined)
     problems.push(`${holder[0]} holds a ${name} of its own and the citation failed there`);
+  const id = [...ids].sort()[0];
+  if (id === undefined) problems.push("no principle ids found");
+  else if (names(`${ownPackage}/src/x.ts`, `// as the rule says (§${id})`) === undefined)
+    problems.push(`a planted §${id} in ${ownPackage} passed`);
+  if (names(`${ownPackage}/src/x.ts`, "// harness.md \u00a76") !== undefined) problems.push("a numbered section sign failed");
   finish("no-design-citations --self-check", problems);
 }
 
