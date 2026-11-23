@@ -37,6 +37,7 @@ const Css = `
 .fv-cell[data-lit] { box-shadow: 0 0 0 2px var(--msui-accent, #d6336c); position: relative; z-index: 1; }
 .fv-cell[data-selected] { border-bottom: 3px solid var(--msui-text); }
 .fv-card { position: absolute; display: none; pointer-events: none; z-index: 4; padding: 2px 6px; white-space: nowrap; font-family: var(--msui-font-mono); box-shadow: 0 0 0 1px var(--msui-line), var(--msui-shadow-float); }
+.fv-note { margin: 4px 0; width: fit-content; padding: 2px 6px; font-family: var(--msui-font-mono); box-shadow: 0 0 0 1px var(--msui-line); }
 .fv-frame { position: absolute; pointer-events: none; box-sizing: border-box; border: 2px dashed var(--msui-accent, #d6336c); border-radius: 4px; z-index: 3; }
 `;
 
@@ -84,6 +85,11 @@ class FakeStructureElement extends UiElement<FakeStructureViewer> {
     const card = document.createElement('div');
     card.className = 'fv-card msui-surface';
     card.setAttribute('aria-hidden', 'true');
+    // the card of "Within 5 Å": how many residues, of which chain's neighbors
+    const note = document.createElement('div');
+    note.className = 'fv-note msui-surface';
+    note.setAttribute('role', 'status');
+    note.style.display = 'none';
     let cells: HTMLElement[][] = [];
     // the rows as the table has them now (an edit builds them again)
     const buildRows = () => {
@@ -119,7 +125,7 @@ class FakeStructureElement extends UiElement<FakeStructureViewer> {
       rowsEl.replaceChildren(...children, frame, card);
     };
     buildRows();
-    root.append(style, tools, rowsEl);
+    root.append(style, tools, note, rowsEl);
 
     const draw = () => {
       const hover = fake.hover.value;
@@ -149,6 +155,11 @@ class FakeStructureElement extends UiElement<FakeStructureViewer> {
         card.style.top = `${box.bottom - host.top + rowsEl.scrollTop + 4}px`;
       } else card.style.display = 'none';
       status.textContent = `${fake.entry}: ${fake.rows.length} rows, ${sel.reduce((n, s) => n + s.end - s.start, 0)} selected`;
+    };
+    const drawNote = () => {
+      const text = fake.note.value;
+      note.textContent = text ?? '';
+      note.style.display = text ? 'block' : 'none';
     };
     const place = () => {
       const cam = fake.camera.value;
@@ -184,6 +195,9 @@ class FakeStructureElement extends UiElement<FakeStructureViewer> {
       const off = s.listen(draw);
       onCleanup(() => off());
     }
+    drawNote();
+    const offNote = fake.note.listen(drawNote);
+    onCleanup(() => offNote());
     const offCamera = fake.camera.listen(place);
     onCleanup(() => offCamera());
 
