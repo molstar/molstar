@@ -50,7 +50,7 @@ const ringInclude = (v: SeqViewer) => {
 };
 
 describe('The stem menu', () => {
-  it('a secondary click on a stem: its partners by count, its partners selected, its chromosome alone', async () => {
+  it('a secondary click on a stem: only its actions; its partners by chromosome, selected, its chromosome alone', async () => {
     const { v, headers } = await open();
     const l = ribbonsOf(v)!;
     const { stem, x, y } = strongestStem(l);
@@ -63,6 +63,23 @@ describe('The stem menu', () => {
       'rondo:select-stem-partners',
       'rondo:show-chromosome',
     ]);
+    // only the stem's actions: the track's (Move up, Reverse, Hide track) stay in its header's menu
+    expect(menu.groups).toHaveLength(1);
+    {
+      const track = l.key.slice(0, l.key.lastIndexOf('/'));
+      const names = headers
+        .menuOf({ section: l.section, track })!
+        .groups.flat()
+        .map((i) => i.name);
+      expect(names).toEqual(expect.arrayContaining(['seq:hide', 'seq:move-up', 'seq:reverse']));
+      // an element with no entries of its own (a ribbon) keeps its track's menu
+      const ribbon = headers.menuOf({
+        section: l.section,
+        track,
+        element: { layer: l.key, key: l.ribKey[l.strongest], type: 'rondo:ribbons' },
+      })!;
+      expect(ribbon.groups.flat().map((i) => i.name)).toContain('seq:hide');
+    }
     // the partners by chromosome, most links first, each a pair; the stem's own chromosome last, within
     const partners = partnersOf(l, stem);
     const rows = partnerChromosomes(l, stem);
@@ -80,36 +97,6 @@ describe('The stem menu', () => {
     expect(element[2].label).toBe(`Show only ${name}`);
     await headers.runItem(items[0]);
     expect(new Set(ringInclude(v) as string[])).toEqual(new Set([name, first]));
-  });
-
-  it('only the stem’s actions: the track’s (Move up, Reverse, Hide track) stay in its header’s menu', async () => {
-    const { v, headers } = await open();
-    const l = ribbonsOf(v)!;
-    const { x, y } = strongestStem(l);
-    expect(headers.context(x, y)).toBe(true);
-    const menu = headers.menu.value!.menu;
-    expect(menu.groups).toHaveLength(1);
-    expect(menu.groups[0].map((i) => i.name)).toEqual([
-      'rondo:show-partner',
-      'rondo:select-stem-partners',
-      'rondo:show-chromosome',
-    ]);
-    headers.closeMenu();
-    // the track's header menu keeps them
-    const track = l.key.slice(0, l.key.lastIndexOf('/'));
-    const names = headers
-      .menuOf({ section: l.section, track })!
-      .groups.flat()
-      .map((i) => i.name);
-    expect(names).toEqual(expect.arrayContaining(['seq:hide', 'seq:move-up', 'seq:reverse']));
-    // an element with no entries of its own (a ribbon) keeps its track's menu
-    const r = l.strongest;
-    const ribbon = headers.menuOf({
-      section: l.section,
-      track,
-      element: { layer: l.key, key: l.ribKey[r], type: 'rondo:ribbons' },
-    })!;
-    expect(ribbon.groups.flat().map((i) => i.name)).toContain('seq:hide');
   });
 
   it('“Show only” shows the stem’s chromosome alone', async () => {

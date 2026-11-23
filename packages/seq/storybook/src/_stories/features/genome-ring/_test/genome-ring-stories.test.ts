@@ -99,6 +99,12 @@ describe('Genome ring stories, headless', () => {
     expect(new Set(Array.from(l.stemSystem.subarray(0, l.ns))).size).toBe(23);
     expect(l.nr).toBeGreaterThan(100);
     expect(descriptions(v).some((d) => /ribbons, 23 chromosomes; strongest/.test(d))).toBe(true);
+    // a bin ribbon's card: "n bins: zoom in to see them"
+    const card = RibbonsType.describe!(
+      { element: { owner: l.owner, key: l.ribKey[l.strongest] }, position: 0 } as never,
+      l,
+    )!;
+    expect(card).toContain(`${basesText(l.level)} bins: zoom in to see them`);
     const { light } = await exported(v);
     expect(light.issues.filter((i) => i.code === 'seq.view.layer.extension')).toEqual([]);
   });
@@ -178,17 +184,6 @@ describe('Genome ring stories, headless', () => {
     })!;
     expect(card.title).toBe(`${a} ↔ ${b}`);
     expect(card.rows.slice(0, 2).map((x) => x.label)).toEqual([a, b]);
-  });
-
-  it('a bin ribbon’s card: “n bins: zoom in to see them”', async () => {
-    const v = await open(ringStoryView('ring'));
-    const l = ribbonsOf(v)!;
-    expect(l.items).toBe(false);
-    const lines = RibbonsType.describe!(
-      { element: { owner: l.owner, key: l.ribKey[l.strongest] }, position: 0 } as never,
-      l,
-    )!;
-    expect(lines).toContain(`${basesText(l.level)} bins: zoom in to see them`);
   });
 
   it('9. links pending: the hole says “Loading links…”, muted and centred; said once, politely', async () => {
