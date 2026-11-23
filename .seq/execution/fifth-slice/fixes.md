@@ -105,6 +105,12 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   chr22 selected on the row, mirrored on the ring): profile the drag's frames (the selection's blocks and their
   emphasis on both views), bound a drag across 12 blocks to the frame budget at 0 bytes warm.
 
+- **The hover card story test failed once** (stage 4's gate, 2026-11-23, quick lane over `packages/seq/`,
+  `cli/seqx-render/` and `packages/core/src/util` at load about 3): `hover-card-stories.test.ts`, "a host's adapter is
+  told the viewer's card and place on rest". The adapter had been called, but `HoverCardProvider.shown.value` was undefined. Three
+  reruns were green, one of them the same set. The test runs under fake timers, so find what still reads the real clock
+  (the card's rest or hide) or what another file leaves behind (`isolate: false`). Fix it, don't retry it.
+
 - **A bare number as a block name** (`:name 01`): GC1 refuses it with "quote it" (`seq.query.form.param`), since core's
   address reader turns `01` into 1 before Seq* sees it. Keeping the text would need a raw-token surface in core repr
   (allowed: repr's public API is open to this work); take it only if a real name set needs it.

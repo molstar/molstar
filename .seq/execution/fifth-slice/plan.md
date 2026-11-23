@@ -269,8 +269,14 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
       reverses the fourth slice's "dropped" for stories only): Nightingale's web components a dev dependency of the
       Seq* storybook alone, a few stories feeding its tracks from the resolved view and the store, the NG consumer
       beside them; no package of Seq* depends on it.
-- [ ] **USE GATE** (not blocking): the author tries the genome views and the ring; findings fixed or placed.
-- [ ] **GATE**.
+- [ ] **USE GATE** (not blocking): the author tries the genome views and the ring; findings fixed or placed. Deferred
+      to the author, not passed (2026-11-23).
+- [x] **GATE** (passed 2026-11-23, after RX3 and DX): `tsc -b`, the test typechecks, lint, format, the `.seq` checks,
+      build, workspace, all green. Medium 676. perf-core 245/245 and perf-sb 22/22. Sizes: default 1,537.8 of 1,545 kB,
+      minimal 1,085.3 of 1,090, the ring 43.9 of 45. Quick 4,698 in 19.7 s. Heavy over `packages/seq/`: 176 green at
+      load 2.5. In the first run at load 4 the interval lookup and the pairs pyramid's slices failed their wall-clock
+      bounds, so those runs are not counted. One quick-lane flake (the hover card story's adapter test) is in
+      [fixes.md](fixes.md) for FX5.
 
 ### Stage 5: use, measure, finalize
 
