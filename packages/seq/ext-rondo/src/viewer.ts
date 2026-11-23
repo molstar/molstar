@@ -16,7 +16,7 @@ import {
 import { rondo, RondoParams, RondoVersion } from './index.js';
 import { Kind, type RondoLay } from './lay.js';
 import { laysOf, partnerChromosomes, partnersOf } from './partners.js';
-import { links } from './words.js';
+import { CardLines, links } from './words.js';
 
 // The genome ring extension's viewer parts (_spec/README.md, The viewer): `rondoViewer`, the headless `rondo` and
 // its commands (`rondo:partner`, along the stem menu's partners from the cursor's stem; `rondo:select-partners`, the far
@@ -35,6 +35,15 @@ export function cardLanded(viewer: Pick<SeqViewer, 'behaviors'>): void {
   (viewer.behaviors.get('hoverCard') as { framed?: (relaid: boolean) => void } | undefined)?.framed?.(true);
 }
 
+/** Every viewer composed with `rondoViewer`, until disposed: whose frame holds a lay a card names the bands of. */
+const Composed = new Set<SeqViewer>();
+
+/** A range's cytobands as the viewer whose last frame holds the lay draws them (a pair's card's ends). */
+function bandOfLay(lay: RondoLay, system: string, start: number, end: number): string | undefined {
+  for (const v of Composed) if (lays(v).includes(lay)) return Menu?.bandsOf(v, lay, system, start, end);
+  return undefined;
+}
+
 /** The stem menu's chunk once landed (`menu.ts`: loaded when a viewer composes `rondoViewer`). */
 let Menu: typeof import('./menu.js') | undefined;
 let menuLoading: Promise<void> | undefined;
@@ -44,6 +53,7 @@ const loadMenu = (): Promise<void> => {
     ([m, c]) => {
       Menu = m;
       c.install();
+      CardLines.band = bandOfLay;
       // a card shown before its lines landed is made again (the next rest gives it them)
       for (const v of Viewers) cardLanded(v);
     },
@@ -226,6 +236,7 @@ function viewerParts() {
     commands,
     composed(v: SeqViewer) {
       viewer = v;
+      Composed.add(v);
       // the stem menu's chunk, after the composition (its first chunk pays nothing for it); its card made again then
       if (!Menu) Viewers.add(v);
       void loadMenu()
@@ -234,7 +245,10 @@ function viewerParts() {
     },
     loaded: () => loadMenu().catch(() => undefined),
     dispose() {
-      if (viewer) Viewers.delete(viewer);
+      if (viewer) {
+        Viewers.delete(viewer);
+        Composed.delete(viewer);
+      }
       viewer = undefined;
     },
   };

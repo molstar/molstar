@@ -92,6 +92,17 @@ export function selectStemPartners(viewer: SeqViewer, layer: string, key: string
  * span in bases when no band is drawn there (`88–104 Mb`).
  */
 export function bandRange(viewer: SeqViewer, lay: RondoLay, system: string, start: number, end: number): string {
+  return bandsOf(viewer, lay, system, start, end) ?? spanText(start, end);
+}
+
+/** A range's cytobands as `bandRange` names them; undefined when the section draws none there. */
+export function bandsOf(
+  viewer: SeqViewer,
+  lay: RondoLay,
+  system: string,
+  start: number,
+  end: number,
+): string | undefined {
   const s = viewer.frame?.layout.sections.find((x) => x.section.address === lay.section);
   const st = s?.placement.strips;
   const blocks = s?.section.blocks;
@@ -110,7 +121,7 @@ export function bandRange(viewer: SeqViewer, lay: RondoLay, system: string, star
           }
         }
     }
-  if (!first || !last) return spanText(start, end);
+  if (!first || !last) return undefined;
   return first.label === last.label ? first.label : `${first.label}–${last.label}`;
 }
 

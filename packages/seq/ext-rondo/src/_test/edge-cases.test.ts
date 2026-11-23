@@ -100,12 +100,12 @@ describe('the words', () => {
     const l = lay(await (await settle(ringSpec())).frame({ size: Size }))!;
     const r = l.strongest;
     const card = RibbonsType.describe!({ element: { owner: l.owner, key: l.ribKey[r] }, position: 0 }, l)!;
-    expect(card[0]).toMatch(/^chr\d:[\d.]+–[\d.]+ Mb ↔ chr\d:[\d.]+–[\d.]+ Mb$/);
-    expect(card[1]).toMatch(new RegExp(`^Links: ${Math.round(l.ribCount[r]).toLocaleString('en-US')} links`));
-    expect(card).toContain(
-      `Bins: ${l.level >= 1e3 ? Math.round(l.level / 1024) : l.level}`.slice(0, 6) +
-        card.find((x) => x.startsWith('Bins: '))!.slice(6),
-    );
+    // both ends, each its chromosome and span (no cytobands here: no band named)
+    expect(card[0]).toMatch(/^chr\d ↔ chr\d$/);
+    expect(card[1]).toMatch(/^chr\d: [\d.]+–[\d.]+ Mb$/);
+    expect(card[2]).toMatch(/^chr\d: [\d.]+–[\d.]+ Mb$/);
+    expect(card[3]).toMatch(new RegExp(`^Links: ${Math.round(l.ribCount[r]).toLocaleString('en-US')} links`));
+    expect(card.some((x) => /^[\d.]+ (bp|kb|Mb) bins: zoom in to see them$/.test(x))).toBe(true);
     const stem = l.ribA[r];
     const s = RibbonsType.describe!({ element: { owner: l.owner, key: l.stemKey[stem] }, position: 0 }, l)!;
     expect(s[1]).toMatch(/^This stem: [\d,]+ links? to (\d+ chromosomes|chr\d)$/);

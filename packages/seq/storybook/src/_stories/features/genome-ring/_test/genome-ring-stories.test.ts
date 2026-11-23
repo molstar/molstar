@@ -14,7 +14,7 @@ import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { openExample } from '../../../examples/_test/draw-checks.js';
 import { describerFor } from '@molstar/seqx-viewer/describe';
-import { emphasisHeld, Kind, RibbonsType } from '@molstar/seqx-ext-rondo';
+import { basesText, emphasisHeld, Kind, RibbonsType } from '@molstar/seqx-ext-rondo';
 import { hoverStrongestStem, ribbonsOf, ringStoryView, strongestStem } from '../views.js';
 import { bandsLanded } from './ring-helpers.js';
 
@@ -135,6 +135,47 @@ describe('Genome ring stories, headless', () => {
     expect(l.nr).toBeGreaterThan(0);
     expect(l.nb).toBeGreaterThan(0);
     await exported(v);
+  });
+
+  it('4. a pair’s ribbon card: both ends, each with its band and span', async () => {
+    const v = await open(ringStoryView('ring-pair'));
+    await bandsLanded(v);
+    const l = ribbonsOf(v)!;
+    const r = l.strongest;
+    const lines = RibbonsType.describe!({ element: { owner: l.owner, key: l.ribKey[r] }, position: 0 } as never, l)!;
+    const [a, b] = [l.ribA[r], l.ribB[r]].map((s) => l.names[l.stemSystem[s]]);
+    expect(new Set([a, b])).toEqual(new Set(['chr4', 'chr7']));
+    expect(lines[0]).toBe(`${a} ↔ ${b}`);
+    // each end: its cytobands (one, or the first and the last it meets) and its span
+    expect(lines[1]).toMatch(new RegExp(`^${a}: [pq][\\d.]+(–[pq][\\d.]+)? · [\\d.]+–[\\d.]+ (Mb|kb)$`));
+    expect(lines[2]).toMatch(new RegExp(`^${b}: [pq][\\d.]+(–[pq][\\d.]+)? · [\\d.]+–[\\d.]+ (Mb|kb)$`));
+    // on the card: a row an end, labelled by its chromosome
+    const card = describerFor({
+      spec: v.spec,
+      store: v.store,
+      addresses: v.addresses,
+      view: v.view,
+      layout: () => v.frame?.layout,
+    }).describe({
+      section: l.section,
+      layer: l.key,
+      system: l.systems[l.stemSystem[l.ribA[r]]],
+      position: l.stemStart[l.ribA[r]],
+      element: { owner: l.owner, key: l.ribKey[r] } as never,
+    })!;
+    expect(card.title).toBe(`${a} ↔ ${b}`);
+    expect(card.rows.slice(0, 2).map((x) => x.label)).toEqual([a, b]);
+  });
+
+  it('a bin ribbon’s card: “n bins: zoom in to see them”', async () => {
+    const v = await open(ringStoryView('ring'));
+    const l = ribbonsOf(v)!;
+    expect(l.items).toBe(false);
+    const lines = RibbonsType.describe!(
+      { element: { owner: l.owner, key: l.ribKey[l.strongest] }, position: 0 } as never,
+      l,
+    )!;
+    expect(lines).toContain(`${basesText(l.level)} bins: zoom in to see them`);
   });
 
   it('5. the square beside: the export with the navigators draws more than without', async () => {

@@ -50,6 +50,8 @@ export const CardLines: {
   perLayer?: (lay: RondoLay, sysA: string, a0: number, a1: number, sysB?: string, b0?: number, b1?: number) => string[];
   /** The layer's legend (Colour, The legend). */
   legend?: (lay: RondoLay, options: { readonly title: string }) => readonly Legend[];
+  /** A range's cytobands as the viewer whose frame holds the lay draws them (`q21.3`, `q21.1–q22.3`); none: none. */
+  band?: (lay: RondoLay, system: string, start: number, end: number) => string | undefined;
 } = {};
 
 /** The card's lines for a hit of the layer: a ribbon's two stems and count, a stem's, a stub's partner. */
@@ -65,8 +67,15 @@ export function describeRondo(hit: LayerPlace, lay: RondoLay): readonly string[]
     const a = lay.ribA[ref];
     const b = lay.ribB[ref];
     const kindName = lay.kinds[lay.ribKind[ref]];
+    // both ends, each its chromosome, band and span (novice 25: the card named one end)
+    const end = (s: number) => {
+      const band = CardLines.band?.(lay, lay.systems[lay.stemSystem[s]], lay.stemStart[s], lay.stemEnd[s]);
+      return `${lay.names[lay.stemSystem[s]]}: ${band ? `${band} · ` : ''}${spanText(lay.stemStart[s], lay.stemEnd[s])}`;
+    };
     const lines = [
-      `${rangeText(lay, a)} ↔ ${rangeText(lay, b)}`,
+      `${lay.names[lay.stemSystem[a]]} ↔ ${lay.names[lay.stemSystem[b]]}`,
+      end(a),
+      end(b),
       `Links: ${links(lay.ribLinks[ref])}${kindName ? ` (${kindName})` : ''}`,
     ];
     if (lay.width !== 'count') lines.push(`Width: ${lay.width} ${valueText(lay.ribCount[ref])}`);
@@ -74,7 +83,7 @@ export function describeRondo(hit: LayerPlace, lay: RondoLay): readonly string[]
     // its links' fields (one link's own: its kind, strands, q, gene names); a bin: its count on each layer of the section
     if (lay.items && CardLines.fields) lines.push(...CardLines.fields(lay, ref));
     if (bins) {
-      lines.push(`Bins: ${bins} bins, zoom in to see them`);
+      lines.push(`${bins} bins: zoom in to see them`);
       const sa = lay.systems[lay.stemSystem[a]];
       const sb = lay.systems[lay.stemSystem[b]];
       if (CardLines.perLayer)

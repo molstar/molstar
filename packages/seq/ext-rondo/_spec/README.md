@@ -201,10 +201,12 @@ waiting; its entries `StemMenu` in `viewer.ts`).
 - **The keys**: `.` (`rondo:partner`) and `,` (`rondo:partner-back`), the commands' shortcuts on the canvas: the cursor
   to the next or the previous partner stem of its stem in the stem menu's order (its rows' pieces in turn: one list, two
   readers), said by the announcer (the command moved the cursor: "chr17, 40,000,000 · 140 links, reversed").
-- **Words** (core's `LayerType` hooks): `describe` (a ribbon "chr1:12–28 Mb ↔ chr17:40–52 Mb", its count and kind, its
-  bins; a stem "This stem: 24 links to chr9", its one partner chromosome by name, else "to 23 chromosomes", then within
-  and fan; a stub its partner, "not shown"), `summary` ("612 ribbons, 23 chromosomes; strongest chr1 ↔ chr17, 140"),
-  `announce` ("stem of 312 links").
+- **Words** (core's `LayerType` hooks): `describe` (a ribbon "chr4 ↔ chr7", then both ends, a row each labelled by its
+  chromosome, "q13.2–q22.1 · 67.11–100.66 Mb": the cytobands the section draws over its stem, `CardLines.band`, read
+  from the viewer whose frame holds the lay, its span alone where none or headless; its count and kind; a bin's "16.8 Mb
+  bins: zoom in to see them"; a stem "This stem: 24 links to chr9", its one partner chromosome by name, else "to 23
+  chromosomes", then within and fan; a stub its partner, "not shown"), `summary` ("612 ribbons, 23 chromosomes;
+  strongest chr1 ↔ chr17, 140"), `announce` ("stem of 312 links").
 
 ## What is the core's
 

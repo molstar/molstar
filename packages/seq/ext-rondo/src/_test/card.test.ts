@@ -81,7 +81,8 @@ describe('the card names the kind', () => {
     expect(tx.items).toBe(true);
     expect(tx.nr).toBe(3);
     const fusion = card(tx, Kind.ribbon, (r) => tx.read!.data!.aStart[tx.ribRow[r]] === 2_000_000).lines;
-    expect(fusion.slice(1)).toEqual([
+    // after its two ends' rows (each its chromosome and span)
+    expect(fusion.slice(3)).toEqual([
       'Links: 2 links (translocation)',
       'Strand: reversed',
       'Type: translocation',
@@ -92,7 +93,7 @@ describe('the card names the kind', () => {
     ]);
     const plain = card(tx, Kind.ribbon, (r) => tx.read!.data!.aStart[tx.ribRow[r]] === 5_000_000).lines;
     // unstranded (`.`): no strand line, never `+ +`
-    expect(plain.slice(1)).toEqual(['Links: 1 link (translocation)', 'Type: translocation', 'q: 0.03']);
+    expect(plain.slice(3)).toEqual(['Links: 1 link (translocation)', 'Type: translocation', 'q: 0.03']);
   });
 
   it('a bin and a stem: their count on each kind’s layer', async () => {

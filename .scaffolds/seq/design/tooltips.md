@@ -120,6 +120,10 @@ A layer type's `describe` gives `seq:layer`'s lines (its first the title, the re
   name; else "to 23 chromosomes"). Each layer's links on its chromosome follow under a heading of their own, "chr22,
   all links" ("Contacts: 800 links", "Translocations: 24 links"), when the section has more than one kind. Why: "Links:
   24 links to 1 chromosome" over "Contacts 638" read as one count against the other (novice 21).
+- **A pair's ribbon card** names both ends: its title "chr4 ↔ chr7", then a row an end, labelled by its chromosome,
+  its cytobands and span ("q13.2–q22.1 · 67.11–100.66 Mb": the bands the section draws over the end's stem, read from
+  the viewer whose frame holds the layer; its span alone where none is drawn). A bin's row reads "16.8 Mb bins: zoom in
+  to see them". Why: the card named one end and its band (the place's row), chr7's nowhere (novice 25).
 
 ### What the reader sees of the spec's tooltips (`seq:tooltips`)
 
