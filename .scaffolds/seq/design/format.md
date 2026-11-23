@@ -43,7 +43,7 @@ description of the language that everything else derives from.
     readable, diffable, readable by any tool and any other viewer without Seq\* code; columns as plain arrays.
   - **MessagePack is the option for large inline data**: typed columns as extension types `0x11`–`0x18`
     (little-endian), decoded without a copy where aligned. A reader tells the two apart by the first byte. Built (lane
-    L, then moved down into `@molstar/core/repr/codecs/msgpack`, io re-exporting it) with three more extensions, confirmed by the author (2026-11-18): `0x10` the numbers
+    L, then moved down: the encoder and decoder into `@molstar/core/data/msgpack`, the tree's codec into `@molstar/core/repr/codecs/msgpack`, io re-exporting both) with three more extensions, confirmed by the author (2026-11-18): `0x10` the numbers
     MessagePack drops (NaN, ±Infinity, −0), `0x19` a category column (its dictionary, then int32 codes), `0x1a` a
     bigint.
   - **Large data belongs in sources**, not inline (§bulk-data-not-nodes): a spec carries small inline values; a
