@@ -145,8 +145,6 @@ describe('The square over a ring: one click shows a pair', () => {
     await settle(v, n);
     expect(include(v)).toEqual(['chr7']);
     expect(outline(n)).toEqual(cellsOf(n, [6]));
-    // and its double-click adds no zoom
-    expect(n.doubleClick(...cell(n, 6, 6))).toBe(false);
     // each a step: undone back to the whole
     await undo(v);
     await undo(v);
@@ -499,7 +497,7 @@ describe('The square over two sections', () => {
     return views.children![0].children!.find((c) => c.id === id)!.params?.include as string[] | undefined;
   };
 
-  it('with a switch: a quick second click switches too; the double-click adds no zoom', async () => {
+  it('with a switch: a quick second click switches too; the double-click shows the whole genome', async () => {
     const { v, n } = await makeTwo(true);
     expect(square(n).setMode).toBe(false);
     expect(click(n, ...cell(n, 1, 4))).toBe(true);
@@ -508,9 +506,10 @@ describe('The square over two sections', () => {
     expect(click(n, ...cell(n, 6, 2), 2)).toBe(true);
     await settle(v, n);
     expect(includeOf(v, 'a')).toEqual(['chr3', 'chr7']);
-    const before = v.view.get(A)!;
-    expect(n.doubleClick(...cell(n, 6, 2))).toBe(false);
-    expect(v.view.get(A)).toEqual(before);
+    // its double-click is the whole genome (the square's way home), never a zoom
+    expect(n.doubleClick(...cell(n, 6, 2))).toBe(true);
+    await settle(v, n);
+    expect(includeOf(v, 'a')).toBeUndefined();
   });
 
   it('without a switch: a second click is the double-click’s, which fits the cell’s pair', async () => {
@@ -521,5 +520,45 @@ describe('The square over two sections', () => {
     await settle(v, n);
     expect(v.view.get(A)!.end - v.view.get(A)!.start).toBeLessThan(whole.end - whole.start);
     expect(includeOf(v, 'a')).toBeUndefined();
+  });
+});
+
+describe('The square over a ring: the way home (table C)', () => {
+  it('a double-click anywhere is the whole genome, one history step; Back returns the window before', async () => {
+    const { v, n } = await make(['chr2', 'chr3']);
+    // the platform's order: down, up, click, down, up, click (count 2), dblclick; the clicks show the pair under them
+    expect(click(n, ...cell(n, 5, 5))).toBe(true);
+    await settle(v, n);
+    expect(click(n, ...cell(n, 5, 5), 2)).toBe(false);
+    expect(include(v)).toEqual(['chr6']);
+    const back = v.view.history.value.back;
+    // anywhere: on a cell off the window, the moved window's own cell, a label
+    expect(n.doubleClick(...cell(n, 0, 7))).toBe(true);
+    await settle(v, n);
+    expect(include(v)).toBeUndefined();
+    expect(outline(n)).toEqual(cellsOf(n, [0, 1, 2, 3, 4, 5, 6, 7]));
+    expect(v.view.history.value.back).toBe(back + 1);
+    // the whole already: nothing more, no step
+    expect(n.doubleClick(...cell(n, 2, 2))).toBe(false);
+    expect(v.view.history.value.back).toBe(back + 1);
+    // Back: the window it replaced; undo likewise
+    expect(v.view.back()).toBe(true);
+    await settle(v, n);
+    expect(include(v)).toEqual(['chr6']);
+  });
+
+  it('0 on the focused square is the whole genome, one step; at the whole, nothing', async () => {
+    const { v, n } = await make(['chr2', 'chr3']);
+    n.setFocus(true);
+    const back = v.view.history.value.back;
+    expect(n.key('0')).toBe(true);
+    await settle(v, n);
+    expect(include(v)).toBeUndefined();
+    expect(v.view.history.value.back).toBe(back + 1);
+    expect(n.key('0')).toBe(false);
+    expect(v.view.history.value.back).toBe(back + 1);
+    expect(v.view.back()).toBe(true);
+    await settle(v, n);
+    expect(include(v)).toEqual(['chr2', 'chr3']);
   });
 });

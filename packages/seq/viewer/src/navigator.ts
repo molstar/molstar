@@ -1062,6 +1062,9 @@ export class NavigatorModel extends ReactiveModel {
   doubleClick(x: number, y: number): boolean {
     const b = this.behavior;
     const nav = this.navigator;
+    // a square with a switch: anywhere on it the whole genome (the clicks before it showed pairs; _spec/README.md,
+    // The square over a set), one step
+    if (nav?.switch === 'include' && isSquare(this.renderer)) return this.showAllOnSquare();
     const h = this.hit(x, y);
     // over blocks a double-click opens a chromosome from the fit too (its window idle there), on the context too
     const blocks = !!nav?.blocks && !!h && this.viewer.view.canMove(h.section);
@@ -1078,8 +1081,6 @@ export class NavigatorModel extends ReactiveModel {
     // from that fit the whole
     // the square: the cell's two blocks fitted (one section on both axes: their hull), again the whole
     if (isSquare(r)) {
-      // with a switch the clicks did it (each shows its pair): a double-click adds no zoom
-      if (nav.switch === 'include') return false;
       const pair = r.pairAt(h.section, x, y);
       const v = this.viewer.view.get(h.section);
       if (!pair || !v) return false;
@@ -1168,7 +1169,8 @@ export class NavigatorModel extends ReactiveModel {
     // over blocks the slider's large step is a block (`block.next`, `block.previous`); Home with a switch shows all
     if (nav.blocks && (key === 'PageDown' || key === 'PageUp'))
       return this.runIf(key === 'PageDown' ? 'block.next' : 'block.previous', { section });
-    if (nav.switch === 'include' && key === 'Home') return this.showAll();
+    if (nav.switch === 'include' && (key === 'Home' || (key === '0' && isSquare(this.renderer))))
+      return this.showAllOnSquare(key === '0');
     if (key === 'PageDown' || key === 'PageUp') return this.focusNext(key === 'PageDown' ? 1 : -1);
     const view = this.viewer.view;
     if (modifiers.altKey && (key === 'ArrowLeft' || key === 'ArrowRight'))
@@ -1259,6 +1261,17 @@ export class NavigatorModel extends ReactiveModel {
     const section = this.navigator?.of[0];
     if (!section) return false;
     return this.runIf('section.include', include ? { address: section, include } : { address: section });
+  }
+
+  /** The square's way home: every block shown, nothing when they all are (no step); one step otherwise. */
+  private showAllOnSquare(guard = true): boolean {
+    const set = this.setSquare;
+    if (guard && set) {
+      let all = true;
+      for (let k = 0; k < set.blockCount && all; k++) all = set.shows(k);
+      if (all) return false;
+    }
+    return this.showAll();
   }
 
   showAll(): boolean {
