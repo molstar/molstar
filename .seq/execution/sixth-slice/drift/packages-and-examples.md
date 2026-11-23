@@ -28,3 +28,5 @@ sentence. 5: add a row to the package guide (it is not a spec; the orchestrator'
 
 **Note (fix round)**: items 1 and 2 are rows "design-only: not built as designed" in `packages` and
 `examples-and-stories`; `examples › Dependencies` states what is built.
+
+**Resolved** (the author, 2026-11-23, as recommended): items 1 to 3 amended in the designs: packages.md (the examples row and the allowlist's MessagePack reason), examples-and-stories.md (dependencies, `build()` returns the builder's tree), examples.md (the licences list, twice); the two "In the specs" rows now point at examples › Dependencies. Code items for the orchestrator: item 4, the folder-graph test (`packages/seq/core`, a quick test over `src/*/`: each folder an entry, no cycles; packages.md's row stays "not built: the close-out's"); item 5, a row for the examples package in `packages/seq/AGENTS.md` (outside my lane).

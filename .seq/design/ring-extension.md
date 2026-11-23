@@ -15,7 +15,7 @@ in 1D by either end, the pairs level of bin-pair counts by strand, `PairsReader`
 by counts with hysteresis, "a lattice, not a clustering: clustering over bins is RN's picture"),
 [genome-formats](genome-formats.md) (GF: BED's `fields` by column number for cytobands, BEDPE read whole and indexed
 by both ends, GFF by region for a host's gene detail, the real-slice table), [across-sections](across-sections.md) (LX: ribbons and stubs are core's in a bridge only, on a ring RN's; the
-twist drawn by corresponding positions; one hit rule, the drawn run as a `rect`; the `ribbons.*` look). On the extension
+twist drawn by corresponding positions; one hit rule, a key (`ribbon:`, `stem:`, `stub:`) with no rect built; the `ribbons.*` look). On the extension
 contract as the fourth slice's EX builds it ([extension-openings](extension-openings.md), Part 1: the
 descriptor, namespaced types with plain params and a `fallback`, one `extension` entry) and CN (Part 2: navigator
 pictures as registry entries).
@@ -92,7 +92,8 @@ store, the placement and the theme through the `extension` entry.
 - **`requires`**: the language version GC1 lands (0.6 expected); `version` 0.1.0. A host lists it
   (`spec.extensions: [rondoViewer]`) or registers it late (`viewer.extend`); never in the minimal or default viewer.
 - **Its own size row**: under 30 kB minified (GR's estimate: 650 to 950 lines), the minimal and default viewers not
-  grown. No lazy chunk inside: the package is itself the opt-in.
+  grown. The viewer entry lazy-loads `menu.js` and `card.js` once composed, so the headless entry stays free of the card and
+  the menu (amended 2026-11-23: the code's way, the author as recommended); the package is itself the opt-in.
 - **What it costs the core and the viewer** (the default viewer is a few hundred bytes under its bound): `section.include`
   in the language and resolve (about 0.5 kB, in reading a spec: every reader needs it), `section.center` (about
   0.1 kB), the hooks below (about 0.3 kB: three optional members and their callers); `navigator.switch`, the
@@ -185,8 +186,8 @@ No node kind, no data shape, no format runtime (extension-openings, Part 1): RR'
 - **Items** (past the gate, a chromosome's ring): each pair a ribbon of one count from its ends' own extents, still
   grouped into its stems' necks, so the bundle holds while its members show.
 - **Bounded**: at most `rondo.maxRibbons` (1,024) ribbons, the strongest by count across the view (ties by span, then
-  key), the rest in their stems' fans; said once (`rondo.ribbons.limit`, info: "612 links drawn in fans"), not core's
-  `seq.render.pairs.limit`, whose words are arcs and a density strip. Below the items gate nothing is culled.
+  key), the rest in their stems' fans, drawn at the width rule and listed by the stem's card, not reported: a fan is a
+  normal drawing, not a loss, and an info issue on every busy ring would be noise (no `rondo.ribbons.limit`) (amended 2026-11-23: the code's way, the author as recommended). Below the items gate nothing is culled.
 - **Drawn widest first**, so narrow ribbons lie on top and stay hittable (LX's rule); fill at `ribbons.fillOpacity`
   (0.35), no outline.
 
@@ -199,7 +200,7 @@ No node kind, no data shape, no format runtime (extension-openings, Part 1): RR'
   floor), labelled at its tip with the partner's name and count when the tip has `rondo.stubLabelPx` (24 CSS px) of
   room ("chr7 · 37"). Why inward: the labels own the outside of the ring. Why aggregated: a chromosome's ring may have
   thousands of outward pairs; one stub a partner a stem is the question asked.
-- **Hit as the drawn run** (LX): `(rect :a <the stem's range> :b <the hull of the partner ends>)`; hovered as "→ chr7 ·
+- **Hit as a key** (a stub is `stub:<key>`, the stem's range by the partner ends' hull; no rect is built, and a bookmark of a ribbon would need one) (amended 2026-11-23: the code's way, the author as recommended); hovered as "→ chr7 ·
   37 links, not shown". **`stubs`** (param): `partner` (the default), `none` (core's caret instead).
 
 ### Colour: a hue per block
@@ -224,8 +225,9 @@ No node kind, no data shape, no format runtime (extension-openings, Part 1): RR'
 - **Cytobands are core's `bands` layer** (giemsa, `acen` triangles) on the outer ring, over a BED annotation with
   `fields: { stain: '4' }` (GF) whose `target` is the assembly (GA). Nothing in the extension.
 - **The hue ring**: a thin second `bands` layer over the same data coloured by `(field :name system)` (the bands cover
-  each chromosome, so the ring is solid hue with the centromere's notch); without bands, `rondoRing` writes a ranges
-  annotation of whole sequences from the assembly's inline `sequences`. Why no layer type of its own: the bands already
+  each chromosome, so the ring is solid hue with the centromere's notch); with no bands, a ring has no hue ring: a host that wants
+  one passes a ranges node, since inferring one from inline lengths works for one kind of assembly only and hides a data
+  choice in a helper (amended 2026-11-23: the code's way, the author as recommended). Why no layer type of its own: the bands already
   cover the block, and a reader without the extension draws it.
 - **Synthetic bands for tests** (Gate 0, 6): `syntheticBands(sequences, seed)` in `seqx-examples` (alternating `gneg`
   and `gpos25`…`gpos100` of lengths drawn from the seed, an `acen` pair at 40 % of each length, a `gvar` on the last
@@ -287,7 +289,8 @@ No node kind, no data shape, no format runtime (extension-openings, Part 1): RR'
   (`seq-wash` at `rondo.fade`, 0.6: d3-chord's fade), card "chr4:50–58 Mb · 312 links to 9 chromosomes, 12 within".
   **Hover a block's arc or label**: every ribbon touching it, the same wash. All overlay passes: the base is not drawn
   again.
-- **Hits** (closed, extension-openings): a ribbon is its drawn run, `(rect :a … :b …)` (LX's one rule); a stem its
+- **Hits** (closed, extension-openings): a ribbon is a key hit (`ribbon:`, `stem:`, `stub:`; `{ element: { owner, key }, system, position, bin, count }`), not a
+  `(rect :a … :b …)` (amended 2026-11-23: the code's way, the author as recommended; the rect when a bookmark of a ribbon is asked for); a stem its
   range on its system; a stub as above. Polygons flattened at layout (each cubic `rondo.flatten`, 12 segments), a
   uniform grid over the hole (`rondo.hitCellPx`, 16 CSS px cells) listing candidates, tested topmost first: under 2 ms, 0 bytes warm.
 - **Select**: click selects the hit's element (a ribbon both ranges; a stem its range); the selection's ribbons (with an
@@ -332,7 +335,7 @@ only the bundling and the stems are missing.
 `rondoRing(b, { assembly, links, bands?, detail?: 'inplace' | 'below', square?: true, hues?: true, opens?: true })`
 writes the ring section(s), the bands and hue tracks, the `rondo:ribbons` layer with `fallback: 'pairs'`, the square
 navigator with `content: 'rondo:square'`, `switch: 'include'`, `of: [ring, ring]`, the section's `center: none`
-(below) and the spec's `extensions`. Spelled, never inferred; nothing added the call does not name (no genes track).
+(below); the spec's `extensions` is the writer's (`createSeqSpec({ extensions: [rondo] })`) (amended 2026-11-23: the code's way, the author as recommended). Spelled, never inferred; nothing added the call does not name (no genes track).
 
 ### The hole
 
@@ -424,16 +427,16 @@ Cells this design fills; the others stand as layouts, GA, RR and LX give them.
 | | select | extend | add / remove | focus | back | zoom | pan | hide | edit |
 |---|---|---|---|---|---|---|---|---|---|
 | **a section: the genome ring** | no (its blocks or a range) | — | — | 0 fits; the label menu's "Show only" | undo returns the blocks shown | no: a ring shows its whole axis; opening a chromosome is `section.include` | no; `rotation` by patch | no: `include` by patch | `include` (patch, one undo step), `center`, `rotation` |
-| **an element: a ribbon** | click: its drawn run, both ends lit | Shift+click: from the anchor end | Cmd/Ctrl+click | double-click: core's focus (the ring's window, idle unless followed); with `opens`, the pair shown there (Decided, 7) | Alt+Left; undo | — | — | no: a data filter (`count`, `type`) | no: data |
+| **an element: a ribbon** | click: its key hit (`ribbon:`), both ends lit | Shift+click: from the anchor end | Cmd/Ctrl+click | double-click: core's focus (the ring's window, idle unless followed); with `opens`, the pair shown there (Decided, 7) | Alt+Left; undo | — | — | no: a data filter (`count`, `type`) | no: data |
 | **an element: a stem** | click: its range | Shift+click | Cmd/Ctrl+click | double-click: as a ribbon's, the stem's block with `opens` | as above | — | — | no | no |
-| **an element: a stub** | click: its rect (the stem's range, the partner's hull) | Shift+click | Cmd/Ctrl+click | double-click with `opens`: the pair | as above | — | — | `stubs: none` by patch | no |
+| **an element: a stub** | click: its key hit (`stub:`: the stem's range, the partner's hull) | Shift+click | Cmd/Ctrl+click | double-click with `opens`: the pair | as above | — | — | `stubs: none` by patch | no |
 | **a block** (a chromosome's arc or label) | click on its label: the whole block (GA) | Shift+click | Cmd/Ctrl+click | label menu: "Show only" (`section.include`) | undo | — | — | no: `include` | no |
 | **the selection** | — | — | `rondo:select-partners`: the far ends of its ribbons | Enter: as built | Alt+Left | — | — | — | as built |
 | **the keyboard cursor** on the ring | Enter: the stem under it | Shift+arrows: as built | — | `.` and `,`: `rondo:partner`, to the next partner by count, announced | Alt+Left | — | — | — | — |
 | **a track or layer** (`rondo:ribbons`) | — | — | — | — | — | — | — | `layer.hidden` | `width`, `stems`, `bundle`, `stubs`, `opens` by `layer.set` (one patch) |
 | **a navigator: the square** | no | no | no | one click on a cell: show that pair at once (`navigator.switch: include`); its title or Home: show all | undo | over a ring: drag an edge or corner of the window to grow or shrink the run of blocks shown (Decided 16) | over a ring: drag the window along the diagonal to move the run shown (Decided 16) | as navigators | its params by patch |
 | **the view** | — | — | — | — | — | — | — | — | undo returns the blocks shown |
-| **a bookmark or link** | — | — | a ribbon's rect or a stem's range as a ref (positions, never the level or the stem) | runs it; a ring nobody follows highlights it | Alt+Left | — | — | — | — |
+| **a bookmark or link** | — | — | a stem's range as a ref (a ribbon's rect when a bookmark of a ribbon is asked for) (positions, never the level or the stem) | runs it; a ring nobody follows highlights it | Alt+Left | — | — | — | — |
 
 ## Configuration
 
@@ -469,7 +472,7 @@ Cells this design fills; the others stand as layouts, GA, RR and LX give them.
 |---|---|
 | Whose each choice is: spec params, extension config, core's look | ext-rondo › Configuration |
 | The package: two entries, imports the extension entry alone, `version` and `requires` | ext-rondo › @molstar/seqx-ext-rondo |
-| No lazy chunk inside the package | design-only: not built as designed (drift note: the viewer entry lazy-loads the menu and the card) |
+| The package the opt-in; the viewer entry lazy-loads the menu and the card | ext-rondo › @molstar/seqx-ext-rondo |
 | What it ships (layer types, scheme, commands, binding, picture) and what each reads | ext-rondo › What it ships |
 | Its size row and what the feature cost the core | design-only: sizes are the measure file's and the plan's, per row |
 | Two reads with the gate `rondo.maxRibbons`, bins until items; pending, failed, "no links" | ext-rondo › Ribbons |
@@ -479,16 +482,16 @@ Cells this design fills; the others stand as layouts, GA, RR and LX give them.
 | Items past the gate as one-count ribbons grouped into stems; ends placed on every block showing the position | ext-rondo › Items are ribbons of one count |
 | Stems and ribbons recomputed on a stem-level change or a tile landing, never on hover or a window move | ext-rondo › Items are ribbons of one count |
 | Two assemblies on one ring read by each side (EC-210) | core › Sided pairs |
-| "limit" issue (`rondo.ribbons.limit`, "612 links drawn in fans") | design-only: not built as designed (drift note) |
+| Ribbons past `rondo.maxRibbons` drawn in their stems' fans, listed by the card, no "limit" issue | ext-rondo › Ribbons |
 | Stubs inward, one a stem a partner, labels, `stubs: none`, small stubs folded | ext-rondo › Stubs |
-| A hit as the drawn run, `(rect :a … :b …)` | design-only: not built as designed (drift note) |
+| A hit as a key (`ribbon:`, `stem:`, `stub:`), not a rect | ext-rondo › Hits, emphasis, words |
 | Hit keys `ribbon:`, `stem:`, `stub:`, a fan hit as its stem, the grid over the polygons | ext-rondo › Hits, emphasis, words |
 | A hue a block by the `system` domain before `include`; the repeat on a subset; `rondo:hues` unsafe, never the default | ext-rondo › Colour |
 | The `system` domain taken before `include` | core › Derived sequences |
 | `section.include` and its grammar | core › A section of assemblies' blocks |
 | `section.center` promoted from the render config's `rings.center` | core › Versions |
 | Cytobands and the hue ring as core's `bands` layers | ext-rondo › What is the core's |
-| The hue ring written from the assembly's sequences when no bands | design-only: not built as designed (drift note) |
+| The hue ring the bands' second layer, absent without bands (a host passes a ranges node) | ext-rondo › The builder helper |
 | Synthetic bands for tests (`syntheticBands`) | examples › Views |
 | The ring zoom as a cut by `section.include`, in place or `detail: 'below'` | ext-rondo › What is the core's |
 | The square: lattice the assembly's, `navigator.switch`, cells by count, the window, selecting any set (Decided 4, 15 to 18) | core › Navigators |
@@ -499,7 +502,7 @@ Cells this design fills; the others stand as layouts, GA, RR and LX give them.
 | Other layouts: a `tracks` row, text and grid refused | ext-rondo › What is the core's |
 | What a reader without the extension draws (EC-235) | ext-rondo › The fallback |
 | The builder helper `rondoRing`; the hole's `center: none` | ext-rondo › The builder helper |
-| `rondoRing` writing the spec's `extensions` and the colour channel's fallback by the spec | design-only: not built as designed (drift note: `extensions` is the writer's) |
+| `rondoRing` leaving the spec's `extensions` to the writer; the colour channel's fallback by the spec | ext-rondo › The builder helper |
 | Showcase data: GRCh38 lengths, seeded links held and as BEDPE | examples › Views |
 | Cytobands recorded from UCSC, its licence asked first | examples › Fixtures |
 | Edge cases taken or assigned; defaults with a picture; the matrix's cells | design-only: catalogs and pictures for the stories and tests |

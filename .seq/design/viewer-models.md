@@ -69,8 +69,10 @@ All are `ReactiveModel`s on `@molstar/core/reactive`, DOM-free, tested in Node (
 ### Behaviors (the first list)
 
 `hover` (pointer to `HoverModel`), `select` (clicks and drags to `SelectionModel`), `navigate` (drag, wheel, pinch,
-keys to viewports), `follow` (keeps followers in step), `cursor` (the keyboard cursor), `focus` (focus and reveal), each
-with its params as config items; `hoverCard` and the keys panel (ux-foundations, 9. Chrome; the third slice's HC). Later:
+keys to viewports), `cursor` (the keyboard cursor), each with its params as config items; following is the
+`ViewModel`'s own (`follow.followerMoves`, `follow.cyclicArc` are `ViewerConfig` items it reads: a viewport derived through
+a map must hold with no behavior listed, or a follower drifts), and focus and reveal are commands (`address.focus`,
+`address.reveal`; the `navigate` behavior's double-click focus) (amended 2026-11-23: the code's way, the author as recommended); `hoverCard` and the keys panel (ux-foundations, 9. Chrome; the third slice's HC). Later:
 `contextMenu`, `snapshots`, `reveal-on-highlight`.
 
 **`linkedPairs`** (decided, the author, 2026-11-19: "Behavior, on by default"; asked on Complex › Contacts: "should
@@ -155,7 +157,7 @@ the viewer's `_spec` (Configuration) lists every item with its default.
 | Projection onto linked sections; a nucleotide lifts to its codon | viewer › Projection |
 | Selection: element keys and a Location, toggle and extend | viewer › SelectionModel and HighlightModel |
 | The first behaviors (`hover`, `select`, `navigate`, `cursor`, `hoverCard`, keys panel) | viewer › Behaviors |
-| `follow` and `focus` as behaviors | design-only: not built as designed (drift note): follow is the `ViewModel`'s, focus a command |
+| Follow the `ViewModel`'s own rule (`follow.*` config items); focus and reveal commands | viewer › ViewModel |
 | `linkedPairs`: a behavior on by default, the highlight channel | viewer › Behaviors |
 | Pairs answer `items` a row per end (`QueryItem.system`) | core › Pairs answer |
 | A highlight channel carries element keys (`EmphasisHighlight.elements`) | viewer › Emphasis |

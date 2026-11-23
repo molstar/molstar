@@ -26,9 +26,9 @@ the edge, beside the libraries they need.
     conformance suite; no codec in it.
 - **Codecs live where their libraries do**:
   - JSON and the S-expression reader and printer: `@molstar/core/repr/codecs/json` and `…/sexpr` (no dependencies).
-  - MessagePack: in `@molstar/io`, on its existing `encodeMsgPack` and `decodeMsgPack` and their extension hooks (no
-    change to io's codec), as a repr codec with typed columns `0x11`–`0x18`; `@molstar/seqx-core` imports it through
-    its allowlist.
+  - MessagePack: in `@molstar/core/repr/codecs/msgpack`, on `@molstar/core/data/msgpack` (moved down from io, which
+    re-exports both at their old paths), as a repr codec with typed columns `0x11`–`0x18`; `@molstar/seqx-core` imports
+    it from core, with no io dependency (amended 2026-11-23: the code's way, the author as recommended).
 - **The first move is minimal** (the review's first slice): `tree`, `schema`, `builder`, the codec interface and the
   JSON and S-expression codecs, enough for the first Seq\* slice; `patch` and `descriptors` follow when the slice needs
   them. Definitions and uses (`def`, arguments, overrides) wait ([composition.md](composition.md)).
@@ -47,7 +47,7 @@ the edge, beside the libraries they need.
 
 ## Consequences
 
-- `@molstar/seqx-core` describes its one language on `repr` and picks its codecs (JSON by default, MessagePack from io).
+- `@molstar/seqx-core` describes its one language on `repr` and picks its codecs (JSON by default, MessagePack from core's `repr/codecs/msgpack`).
 - A public API is added to `@molstar/core`; the change goes into the v6 changelog entry of its branch.
 
 ## In the specs
@@ -56,7 +56,7 @@ the edge, beside the libraries they need.
 |---|---|
 | `@molstar/core/repr` codec-independent; its folders and import direction | repr › Imports go one way |
 | JSON and S-expression codecs in core | repr › Codecs |
-| MessagePack in `@molstar/io` | design-only: not built as designed, the codec moved down into core's `repr/codecs/msgpack` (drift note `msgpack-codec.md`) |
+| MessagePack in core's `repr/codecs/msgpack`, on `data/msgpack` (io re-exports) | repr › Codecs |
 | The first move minimal; `patch` later | design-only: history (the slice's plan) |
 | `locators`, `context`, `units` stay in meso\*; units a hook | repr › Units are a hook |
 | Issues: one shape, namespaced codes, one meaning of severity | repr › Issues |

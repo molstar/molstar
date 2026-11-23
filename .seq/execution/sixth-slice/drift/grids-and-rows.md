@@ -36,3 +36,5 @@ source.
 
 **Recommendation**: (a): no runtime serves rows in leaf order (the alignment readers hold their rows), so the case has
 no data yet.
+
+**Resolved** (the author, 2026-11-23, as recommended): `rowsValue` and the design's text kept; its row now reads "not built: the close-out's" (the TODO's navigator item: code, the orchestrator places it). A lazy alignment ordered by data only: the design's Order, Lazy order and clade summary text amended in grids-and-rows.md, its row pointing at core › The rows layer.

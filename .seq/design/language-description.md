@@ -69,10 +69,12 @@ const SeqLanguage = defineLanguage({
   extra columns allowed and kept (custom fields of a table, [extensibility.md](extensibility.md)).
 - **Slots**: a param of `type: 'node'` naming a sublanguage (`query`, `theme`) holds a data form of it, read and printed
   in place ([locations-and-queries.md](locations-and-queries.md)).
-- **Extensions merge** by `composeLanguage(base, entries)`: kinds and params under their namespace, checked for
-  conflicts, as registration is ([viewer-composition.md](viewer-composition.md)). The builder's static types follow the
-  composed language when the composition is written statically (`composeLanguage(SeqLanguage, [MyExt] as const)`);
-  kinds registered at run time are checked at run time only.
+- **Extensions ride on the one description**: `SeqLanguage` is one description; an extension's layer type is a namespaced
+  word on `layer.type` with its params plain beside the built-in ones, keys `<id>:<name>` ride on any node, an unknown
+  namespaced kind is kept with a warning, and each extension checks its own (`SeqExtension.check`) where it is composed,
+  as registration is ([viewer-composition.md](viewer-composition.md), [extension-openings.md](extension-openings.md)) (amended 2026-11-23: the code's way, the author as recommended).
+  No `composeLanguage`: the later extension design superseded it; it returns only when an extension needs kinds of its
+  own with builder types.
 
 ### The kinds built (first and second slices)
 
@@ -137,8 +139,9 @@ Handles are addresses (`p53` is `/data/p53`), so a builder value can stand where
 - **A catalog**, as meso\*'s `IssueCodeInfo`: each code with its severity, doc and hint, generated into the docs; a test
   fails on a code used and not cataloged.
 - **Dedupe** (EC-86): issues of one code and cause are reported once with a count; the first ten places are kept.
-- **On a dynamic node**: `path` is the node's place in its answer, and `address` its form
-  (`/data/genes/(node :key T1)`); never a spec path.
+- **On a dynamic node**: `address` is the node's form (`/data/genes/(node :key T1)`); `path`, where the language's checks
+  give one, is a place inside the node (`['params', …]`); the overlay's own resolve issues carry no path; never a spec
+  path (amended 2026-11-23: the code's way, the author as recommended).
 
 ## Consequences
 
@@ -162,7 +165,7 @@ Handles are addresses (`p53` is `/data/p53`), so a builder value can stand where
 | The description's shape per kind (`doc`, `parents`, `ids`, `params`, `fallback`, `data`) | repr › Kinds |
 | Slots: a theme slot | core › The theme slots |
 | Slots: a query slot in a layer's `data` | design-only: not built (waits for its sublanguage, core TODO) |
-| Extensions merged by `composeLanguage(base, entries)` | design-only: not built as designed, extensions ride on namespaced types and keys instead (drift note `language-description.md`, item 1) |
+| Extensions ride on one description: namespaced layer types and keys, each extension checking its own (no `composeLanguage`) | core › Extensions |
 | The kinds built and their params | core › Kinds |
 | The 0.5.0 additions; versions moved with no migration | core › Versions |
 | The builder; handles are addresses | core › Language builder |
@@ -173,4 +176,4 @@ Handles are addresses (`p53` is `/data/p53`), so a builder value can stand where
 | A catalog per namespace, a test on uncataloged codes | repr › Catalogs |
 | Dedupe (EC-86): one code reported with a count, the first ten places | core › Bounds |
 | On a dynamic node: `address` its form, never a spec path | core › Overlay |
-| On a dynamic node: `path` the node's place in its answer | design-only: not built as designed, `path` is the place inside the node (drift note `language-description.md`, item 2) |
+| On a dynamic node: `address` the node's form, `path` a place inside the node (none on the overlay's own issues) | core › Overlay |

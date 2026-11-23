@@ -13,3 +13,5 @@ band (the first item of the top lane in view as its key, found again by its lane
 
 **Recommendation**: (b) as a small fix lane's item when a filter or a new file is seen to move a band's step back; (a)
 until then. The difference shows only when the lanes change between the step and the return (a filter, EC-246).
+
+**Resolved** (the author, 2026-11-23, as recommended): option (b), a code item: a namer for a lanes band (its top lane's first item key, found again by its lane) as a small fix lane's item, when a filter or a new file is seen to move a band's step back; until then (a), the code's `bandTop`. layouts.md's text is kept; its row reads "not built: the close-out's". The orchestrator places it.

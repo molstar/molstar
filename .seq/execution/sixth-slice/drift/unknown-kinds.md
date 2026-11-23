@@ -21,3 +21,5 @@ readers refuse what they do not know; (c) narrow the design to layer types and e
 **Recommendation**: (b) now, (a) before 1.0. While the language is `0.x` every minor may break, so a reader cannot
 promise a newer minor reads; once it is 1.x the design's rule is what lets an older viewer open a newer figure. The TODO
 entry stands as it is.
+
+**Resolved** (the author, 2026-11-23, as recommended): option (b) now, (a) before 1.0: format.md's Unknown kinds decision says a `0.x` reader refuses a bare unknown kind and the newer-minor rule comes before 1.0; its row stays "not built: the close-out's". Code item (before 1.0, not this slice): the version-aware validate; the TODO entry stands as it is.

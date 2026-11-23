@@ -157,7 +157,7 @@ It does not cover:
   | Entry | On | Kind | Icon | Command | When |
   |---|---|---|---|---|---|
   | `seq:hide` | track | action, slot 1 | `eye-off` | `track.hide` | always |
-  | `seq:color` | track | action, slot 2 | `palette` | `layer.channel` (its scheme param a submenu, below) | a layer with a color channel and more than one fitting scheme |
+  | `seq:color` | track | action, menu only (amended 2026-11-23: the code's way, the author as recommended; `header.slots` stays 2, so a host's entry takes the second column) | `palette` | `layer.channel` (its scheme param a submenu, below) | a layer with a color channel and more than one fitting scheme |
   | `seq:layers` | track | action, menu only | — | `layer.hide` and `layer.show` as checked items | more than one layer |
   | `seq:move-up`, `seq:move-down` | track | action, menu only | — | `track.move` | a sibling there |
   | `seq:filtered` | track | state | — (a text chip) | `layer.filter` (no value: cleared) | a layer with a user filter ("12 filtered", as today) |
@@ -421,7 +421,7 @@ Items are `ViewerConfig` unless the table says otherwise.
 | Label and icon default to the command's; registration atomic, counted, a conflict one error | viewer › Entries |
 | A command whose one param is a select is a submenu | viewer › Entries |
 | The built-in entries | viewer › Built-ins |
-| `seq:color` a slot (slot 2) | design-only: not built as designed (drift note): built menu only |
+| `seq:color` in the menu only ("Color ▸", one place, never also a slot); `header.slots` stays 2 | viewer › Built-ins |
 | `seq:pending` | design-only: not built (the package's TODO) |
 | A host adds, replaces or removes entries | viewer › Built-ins |
 | The line's fixed slots, the "⋯", chips before the action columns | core › Parts given, geometry laid out |

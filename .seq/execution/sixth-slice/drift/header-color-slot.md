@@ -11,3 +11,5 @@ Built-ins.
 slot that opens the menu anyway); (b) give it its slot back; (c) lower `header.slots` to 1 to match.
 
 **Recommendation**: (a), keeping `header.slots` at 2 so a host's entry takes the second column without a setting.
+
+**Resolved** (the author, 2026-11-23, as recommended): option (a): track-header-parts.md's built-ins table says `seq:color` is menu only (`header.slots` stays 2, a host's entry takes the second column); its "In the specs" row points at viewer › Built-ins.

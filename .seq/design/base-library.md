@@ -27,7 +27,7 @@ a guide and writing the generic piece in core with its test; `packages/seq` neve
 | assets: downloads and files, ref-counted, one download shared, gzip inflated once | `@molstar/core/util/assets` | `AssetManager`, `Asset.Url`, `Asset.File`, `resolve(asset, type, { shared, decompress })` |
 | tasks, cancellation, progress | `@molstar/core/task` | `Task`, `RuntimeContext`, `Progress`, `chunkedSubtask`, `Scheduler` |
 | zip, gzip, inflate, deflate | `@molstar/core/util/zip/zip` | `unzip`, `zip`, `ungzip`, `inflate`, `deflate` (limits included) |
-| MessagePack | `@molstar/io/common/msgpack` (on the allowlist) | `encodeMsgPack`, `decodeMsgPack` with their extension hooks: the repr codec with typed columns is built on them, no change to io's codec ([tree-core.md](tree-core.md)) |
+| MessagePack | `@molstar/core/data/msgpack` (moved down from io, which re-exports it; no allowlist entry needed) | `encodeMsgPack`, `decodeMsgPack` with their extension hooks: the repr codec with typed columns (`@molstar/core/repr/codecs/msgpack`) is built on them ([tree-core.md](tree-core.md)) |
 | global alignment | `@molstar/core/algorithms/sequence/needleman-wunsch` | `globalAlign`, `GlobalAlignScoring` |
 | color, contrast, lists, scales | `@molstar/core/util/color/*` | `Color.luminance`, `Color.contrast`, `ColorLists` (Okabe–Ito, Cividis), `ColorScale`, `distinctColors` |
 | histograms, array statistics | `@molstar/core/math/histogram`, `@molstar/core/util/array` | `calculateHistogram`, `arrayMinMax`, `arrayStats` |

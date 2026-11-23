@@ -14,3 +14,5 @@ codec back to io.
 **Recommendation**: (a). The move took an io dependency away from every reader of JSON's binary twin, and the spec
 already says it. tree-core.md's text stays as history, its "In the specs" row pointing here; format.md's Built note was
 corrected in this pass.
+
+**Resolved** (the author, 2026-11-23, as recommended): option (a): tree-core.md's Codecs text and Consequences say the codec is core's (`repr/codecs/msgpack`, on `data/msgpack`, io re-exporting); its row points at repr › Codecs. format.md's Built note was already corrected. packages.md's allowlist reason names io's MessagePack codec: see packages-and-examples.md.

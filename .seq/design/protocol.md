@@ -104,8 +104,10 @@ type RegionAnswer =
 ### Lifetime and eviction
 
 - **Data entries are a byte-bounded cache** (64 MB by default), least recently used, never an entry in view. When what
-  is in view alone exceeds the bound, the store asks for the next coarser level for the widest layers and reports it
-  once (`seq.store.over_budget`, info).
+  is in view alone exceeds the bound, the store reports it once (`seq.store.over_budget`, info) and never asks a coarser
+  level itself: a coarser level is the planner's, and the per-layer bounds (`maxTilesPerLayer`, `maxBytesPerLayer`,
+  `maxTileBytes`, a region layer reading the first coarser level that fits) keep a view's reads within the cache before
+  it is asked (amended 2026-11-23: the code's way, the author as recommended). Revisit if a view is seen over budget with its layers each within their bounds.
 - **Node entries are held, not cached**: each counts its holders (data entries that carried it, placements shown, the
   selection, highlights, other held nodes naming it). A data entry's eviction releases its holds; a node with no holder
   is evicted, quietly, with what it alone named. A ref or bookmark in the spec does not hold a node: it waits for it.
@@ -138,6 +140,6 @@ type RegionAnswer =
 | A dynamic map not held: the layer pending until it arrives | core › Described ends |
 | Order and bounds: view, margin, prefetch; in flight; cancel after a grace | core › Want sets |
 | Data entries a byte-bounded LRU cache, never in view | core › Eviction |
-| Over the bound, the store itself asks a coarser level for the widest layers | design-only: not built as designed (drift note `store-over-budget`) |
+| Over the bound the store evicts and reports; a coarser level is the planner's, by the per-layer bounds | core › Eviction |
 | Node entries held, not cached; a ref does not hold a node, it waits | core › Store |
 | Summaries belong to the attached source, go when it is detached | core › Summaries |

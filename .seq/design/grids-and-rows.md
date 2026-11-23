@@ -296,8 +296,8 @@ unavailable (`seq.render.rows.measure`).
 
 **Order** (EC-106): `order`: `data`, `tree`, or a field of the rows table (`{ field, direction }`, missing last, ties
 in data order); `filter` by a field's values or range; `hidden` (row keys). The tree is drawn, and clades fold, only in
-tree order (a clade is a band only there). A lazy alignment is ordered `data`, or `tree` when its source serves rows in
-leaf order; any other order is `seq.render.rows.order` and draws in data order (why: ordering needs every row's field).
+tree order (a clade is a band only there). A lazy alignment is ordered `data` only; any other order is `seq.render.rows.order` and draws in data order (why:
+ordering needs every row's field; tree order waits for a source serving rows in leaf order, and none does) (amended 2026-11-23: the code's way, the author as recommended).
 
 **The rows axis** (tracks): display rows over the expanded order, one display row a row, or one for a folded clade.
 Rows in view are found by arithmetic, O(1) a row, never a scan.
@@ -389,8 +389,8 @@ position it say to the right of the sequence data"; the base's data columns, Jal
 - **The summary row**: the label "first +n" beside a wedge; its cells the clade's per-column consensus (the layer's `summary`:
   `consensus`, majority letter opaque by share; `logo`, a small logo; `bar`, the non-gap share), **computed exactly
   from the cells when the clade folds** and cached by (clade, entry version, theme): folded clades are disjoint, so
-  folding all costs at most one pass over the cells (3M at 10,000 × 300, about 10 ms); a lazy clade summarizes from
-  the served row bins (approximate, said once). Framed as one discrete mark, square where the view cuts it (EC-100).
+  folding all costs at most one pass over the cells (3M at 10,000 × 300, about 10 ms); a lazy alignment has no clades,
+  so no clade summary from served row bins (amended 2026-11-23: the code's way, the author as recommended). Framed as one discrete mark, square where the view cuts it (EC-100).
   **Hit**: target `summary-row`, its element the clade (its extent its rows on the rows system, the column as
   `position`); a tree node hits as `tree-node`, its element the clade.
   **Hovered** (ux-foundations section 8: the element is hovered, here and on linked sections): a hover on a tree node
@@ -432,7 +432,7 @@ position it say to the right of the sequence data"; the base's data columns, Jal
   classes and the pyramid (3M cells: under 50 ms, a target with its test). A lazy source's served row bins are by
   letter (`letter`), said once (`seq.render.rows.reduced`, info);
 - built for held alignments at the first layout, up to `maxBlockValues` cells, in about 0.8 of the codes' bytes (2
-  bytes a sample); larger and lazy alignments read the source's row levels (data or leaf order only);
+  bytes a sample); larger and lazy alignments read the source's row levels (data order only);
 - drawn as `image` primitives a tile (256 × 256 samples), never smoothed, coarse under fine while a tile arrives
   (EC-169: never drawn as empty); images in the shared image LRU.
 
@@ -649,7 +649,7 @@ registry entry, an option of a call, or fixed with its reason).
 | The rows layer's data: `cells` on 1D tiles, columns whole; readers; the tree | core › `cells` |
 | Column measures for themes (`share`, `identity`, `matches-reference`) | core › Themes |
 | Order (`data`, `tree`, a field); filter; hidden | core › The rows layer |
-| A lazy alignment in tree order, a lazy clade's summary from row bins | design-only: not built as designed (drift note `grids-and-rows`) |
+| A lazy alignment ordered by data only (tree order when a source serves leaf order); no clade summary from row bins | core › The rows layer |
 | The rows axis by arithmetic | core › Display rows |
 | Clades named by a unique non-support label, else first and last | core › Clades |
 | Pinned rows in a band and in place | core › Display rows |
@@ -671,7 +671,7 @@ registry entry, an option of a call, or fixed with its reason).
 | Row zoom keys `]` and `[`; the keys check | viewer › The keys check |
 | Projection onto the rows | viewer › Projection |
 | What a navigator reads: the rows track itself | core › The picture |
-| One value a row as a navigator's fallback (`rowsValue`) | design-only: not built as designed (drift note `grids-and-rows`) |
+| One value a row as a navigator's fallback (`rowsValue`) | design-only: not built: the close-out's (a navigator over a lazy alignment draws it instead of leaving the rows out; the package's TODO, Navigators) |
 | The logo: scale, correction, profile, bars below 2 device px, glyph colors with the chroma floor; hit | core › The logo |
 | Data this slice added (`cells`, inline `pairs` and `grid`, the profile) | core › Cells |
 | Performance and size targets | design-only: measures, held by the tests and the performance tiers |
@@ -692,7 +692,8 @@ registry entry, an option of a call, or fixed with its reason).
   bytes. Majorities, tested within a tolerance; clade summaries exact.
 - **Images in SVG**: an `image` is runs of rects, so a zoomed-out 10,000-row export is large; a PNG inside SVG needs an
   encoder in core. Rects in this slice; measured with the PNG export, which decides.
-- **Lazy order**: tree order only when a source serves leaf order; a field order on a lazy alignment is refused.
+- **Lazy order**: data order only until a source serves rows in leaf order; any other order on a lazy alignment is
+  refused (`seq.render.rows.order`).
 - **No navigator for a grid's own y window**: a grid whose y has its own window (not following a section) has no
   navigator over y; answered by [genome-coordinates](genome-coordinates.md)'s square (two axes over blocks × blocks).
 - **Arcs between sections** (ribbons, EC-209): closed by [across-sections](across-sections.md) (a `bridge`, the `pairs`

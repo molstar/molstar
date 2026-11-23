@@ -84,7 +84,7 @@ On the review of the decisions: "ok" to its recommendations.
    ligands come from CC0 PDB entries of CDK2.
 2. The PAE between CDK2 and cyclin A is generated from 1FIN's interface, said to be synthetic, unless a permissive
    prediction is found at recording.
-3. ANARCI's labels-only output is committed as `LicenseRef-anarci-numbering`.
+3. ANARCI's labels-only output is committed as `LicenseRef-anarci-numbering` (not built: the licence is not in the allowed list, and no output is committed; amended 2026-11-23).
 4. A source's attribution and licence are two optional params of a source node, carried into exported files (a
    language change).
 5. `@molstar/io` is a devDependency of the examples package for the record script; [examples-and-stories.md](examples-and-stories.md) amended.
@@ -181,8 +181,8 @@ On the review of the decisions: "ok" to its recommendations.
   trimmed, and which parts are **derived** (computed by the script or in code, not in the source: annotations found in
   a sequence, contacts, a converted numbering). Why: a test can check it; prose cannot.
 - **Licences allowed**: `CC0-1.0` (PDB, Pfam, Rfam), `CC-BY-4.0` (UniProt, AlphaFold DB, SAbDab, and AlphaFill if
-  a licence is stated: the data's decisions, 1), `LicenseRef-NCBI-public-data` (INSDC records and ClinVar, on which NCBI places no restriction), and
-  `LicenseRef-seqx-generated` (what the package generates: its own, under the repository's licence). Anything else is
+  a licence is stated: the data's decisions, 1), `LicenseRef-NCBI-public-data` (INSDC records and ClinVar, on which NCBI places no restriction), `LicenseRef-EMBL-EBI-terms` (PDBe SIFTS), `LicenseRef-UCSC-freely-usable` (UCSC's cytobands: "freely usable for any purpose") and
+  `LicenseRef-seqx-generated` (what the package generates: its own, under the repository's licence) (amended 2026-11-23: the code's way, the author as recommended). Anything else is
   refused at recording. A CC BY dataset's attribution is shown on its Storybook index and carried with an exported spec
   file (the data's decisions, 4).
 - **Under 1 MB a file** (decided, 2026-11-18), **under 2 MB a dataset**: checked by a test. Why: the repository carries them and the
@@ -581,7 +581,7 @@ list, `seqx-examples` having no `_spec`) or a fixed rule of the fixtures, checke
 | Item | Whose | Default | Why | Alternatives |
 |---|---|---|---|---|
 | `fixtures.maxFileBytes`, `fixtures.maxDatasetBytes` | fixed (the fixtures test) | 1 MB, 2 MB | decided; the repository and the Storybook's assets | larger for a dataset the author names |
-| `fixtures.licences` | fixed (the record script and the fixtures test) | `CC0-1.0`, `CC-BY-4.0`, `LicenseRef-NCBI-public-data`, `LicenseRef-seqx-generated`, `LicenseRef-anarci-numbering` | permissive, attributable (decided) | one added by the author's decision |
+| `fixtures.licences` | fixed (the record script and the fixtures test) | `CC0-1.0`, `CC-BY-4.0`, `LicenseRef-NCBI-public-data`, `LicenseRef-EMBL-EBI-terms`, `LicenseRef-UCSC-freely-usable`, `LicenseRef-seqx-generated` (amended 2026-11-23: the code's list, the author as recommended) | permissive, attributable (decided) | one added by the author's decision |
 | `p53.variants.sources` | option of the record script | UniProt, ClinVar | licences known per source (decided) | gnomAD once its licence is checked |
 | `chromosome.length`, `.genes`, `.seed` | option of the generator | 83,257,441 (GRCh38 chr17), about 1,200, one fixed seed | p53's chromosome at its real size, TP53 in place | a whole genome's 3.1 Gb by chromosome (heavy only) |
 | `globins.seedRows` | option of the record script | at most 60 | the dataset table's "about 50"; a figure that fits a screen | the whole seed |
@@ -626,8 +626,8 @@ list, `seqx-examples` having no `_spec`) or a fixed rule of the fixtures, checke
   as decided (native where the core reads it, converted elsewhere, the download's checksum kept so the conversion can
   be repeated); the fourth slice's structure runtime may later read a trimmed mmCIF instead.
 - **The record script needs structure readers.** Contacts, helices and observed residues come from mmCIF, which
-  `@molstar/io`'s CIF parser reads; the examples package declares `@molstar/core` and `@molstar/seqx-core` only, and
-  examples-and-stories.md says it depends on `seqx-core`. No `noRestrictedImports` rule in `biome.json` covers
+  `@molstar/io`'s CIF parser reads; the examples package declares `@molstar/core`, `@molstar/seqx-core` and `@molstar/seqx-ext-rondo`, with `@molstar/io` a
+  devDependency (amended 2026-11-23). No `noRestrictedImports` rule in `biome.json` covers
   `packages/seq/examples` (only the repository-wide zod and graphics-backend rules apply), so the boundary is the
   package's declared dependencies and that design. Decided (the data's decisions, 5): `@molstar/io` as a devDependency for the record script.
 - **Real data moves.** A Pfam, Rfam or AlphaFold DB release changes rows, scores or models; a recording again breaks
