@@ -11,4 +11,4 @@ Decisions a gate asks for (the loop, Gates).
 ## Decided overnight
 
 Each made as recommended while the author was away (2026-11-24 night), for the morning's reconcile.
-
+- **The zoom hatch over a track that draws nothing** ([drift/zoom-hatch-empty.md](drift/zoom-hatch-empty.md)): the hatch where data exists but this level does not draw it; the empty-well row where the region has none. The author to confirm.
