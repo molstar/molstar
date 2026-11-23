@@ -12,7 +12,7 @@
 ## In progress
 
 - 2026-11-23: stage 1 started. `.seq/_checks/designs-in-specs.ts` written (46 designs pending). Running: **S1A**
-  (strong, `briefs/s1a-specs.md`) and **S1B** (strong, `briefs/s1b-specs.md`, merged `81a82d453`); S1A merged (`936242251`); **S1D** (Sonnet, `briefs/s1d-specs.md`) started beside it; **S1C** (strong, `briefs/s1c-specs.md`) started after S1A's merge.
+  (strong, `briefs/s1a-specs.md`) and **S1B** (strong, `briefs/s1b-specs.md`, merged `81a82d453`); S1A merged (`936242251`); **S1D** (Sonnet, `briefs/s1d-specs.md`) started beside it; S1C merged; stage 1's PENDING empty.
 
 ## Findings by lane
 
@@ -21,3 +21,4 @@
 | S1B | 2026-11-23 (`81a82d453`) | about 245 rows across 13 designs | 41 | 2 (viewer-models-behaviors, header-color-slot) | strong | 13 of 13 designs out of PENDING | review: the clipboard rule wrong (a behavior's param, fixed), the clock's port, a drift list, the tooltips row split, 3 rows missing (added); the examples package has no spec (S1D writes it); a HitTarget rule owed to core (S1A) |
 | S1A | 2026-11-23 (`936242251`) | 15 designs, about 310 rows (core, repr, viewer) | about 50 | 5 (msgpack-codec, unknown-kinds, language-description, locations-and-queries, molecules) | strong | 15 of 15 out of PENDING | review: drift notes against existing TODO entries, security's bytes in flight (TODO line added), ambiguous pointers, an HLA example in core's repr spec, a wrong path; fixed; Targets are closed added to core for S1B's row |
 | S1D | 2026-11-23 | 7 designs, about 95 rows (ext-rondo, examples, core) | about 30 | 2 (ring-extension, packages-and-examples) | Sonnet | 7 of 7 out of PENDING; the examples spec written | review: the stubs row wrong (hit keys), draw order missing (added), lazy chunks and requires, unmarked drifts, five rows missing, the examples spec's io and entries; fixed; the orchestrator added ext-rondo and examples to packages/seq/AGENTS.md |
+| S1C | 2026-11-23 | 12 designs, about 350 rows (core, viewer) | about 50 | 5 (store-over-budget, region-reads, genome-formats, grids-and-rows, layouts) + blosum62-provenance | strong | 12 of 12; PENDING empty | review: the hover outline's 3:1 a missed rule (added), five pointers on the wrong section, int32 positions' rule, reasons missing, a provenance string contradicting the code (drift); fixed; the Tables' Bounds lead renamed (a test comment cites the old name: stage 1b) |

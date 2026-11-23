@@ -50,7 +50,7 @@ A next scaffold starts as `.scaffolds/<name>/` from `_method/`, its manifest lis
       lane (Sonnet; mechanical) rewrites each to the spec section the design's `## In the specs` table names for that
       decision (`core _spec, Links`), or drops the citation where the row is design-only; a package's own `_spec/*.md`
       (e.g. core's `util/_spec/assets.md`) stays. Done when a grep for the designs' file names in `packages/` finds none
-      (a check, kept with the method's checks). Runs after stage 1, before stage 3.
+      (a check, kept with the method's checks). Also: comments citing a spec section by an old name (`data/_test/bounds.test.ts`, "Data, Bounds", renamed "An answer's bounds" by S1C), and the core spec's own citations of design files (about line 587). Runs after stage 1, before stage 3.
 - [ ] **Stage 2: rename oz to principles**, in place first (`.seq/oz` → `.seq/principles-package` or straight to the
       target in stage 3): folder names, text ("the oz principles" → "the principles"), skill descriptions, the
       manifest's folder map, the checks' `--package` argument. One provenance line keeps the upstream repository and
