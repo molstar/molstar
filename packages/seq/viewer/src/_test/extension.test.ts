@@ -13,6 +13,7 @@ import { SeqRuntime } from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { type LayerType, RangesType, TracksLayout } from '@molstar/seqx-core/render';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { type HeadersBehavior, HeadersProvider } from '../behaviors/headers.js';
 import { HoverProvider } from '../behaviors/providers.js';
 import { defineViewerExtension } from '../extension.js';
 import type { SeqViewerExtension, SeqViewerSpec } from '../viewer-spec.js';
@@ -140,7 +141,6 @@ describe('a viewer’s extensions', () => {
     const late = [
       with_({ registry: [{ kind: 'format-runtime', runtime: { ...SeqRuntime, name: 'demo:x' } }] }),
       with_({ config: [{ key: 'demo.size' }] }),
-      with_({ headerActions: [{ name: 'demo:act' } as never] }),
       // a part over the canvas would never be attached on a viewer already mounted
       with_({ behaviors: [{ provider: { name: 'demo:part', create: () => ({ attach: () => () => {} }) } }] }),
     ];
@@ -148,6 +148,21 @@ describe('a viewer’s extensions', () => {
     expect([v.context.extensions, v.behaviors.has('demo:part'), drawn(v)]).toEqual([[], false, ['ranges']]);
     // an extension without its viewer maker loses no part silently
     await expect(v.extend({ ...with_({}), composeViewer: undefined })).rejects.toThrow(/defineViewerExtension/);
+  });
+
+  it('its header entries registered late go on the viewer’s headers, and with its undo; one naming no command refused', async () => {
+    const v = await make({ behaviors: [{ provider: HoverProvider }, { provider: HeadersProvider }] });
+    const headers = v.behavior<HeadersBehavior>('headers')!;
+    const { with_ } = demo();
+    const act = { name: 'demo:act', on: 'track' as const, label: 'Hello', command: 'demo:hello' };
+    const undo = await v.extend(with_({ headerActions: [act] }));
+    expect(headers.entries.includes(act)).toBe(true);
+    undo();
+    expect(headers.entries.includes(act)).toBe(false);
+    // an entry naming a command nobody has: refused, the viewer as it was
+    const bad = with_({ headerActions: [{ ...act, name: 'demo:bad', command: 'demo:none' }] });
+    await expect(v.extend(bad)).rejects.toThrow(/no command demo:none/);
+    expect([v.context.extensions, v.commands.some((c) => c.id === 'demo:hello')]).toEqual([[], false]);
   });
 
   it('a failed registration takes away only what it made, never the viewer’s own behaviors', async () => {

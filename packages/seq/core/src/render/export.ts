@@ -173,6 +173,8 @@ export async function attachSources(
         if (store.attach(address, opened)) options.attached?.add(address);
       } catch (e) {
         if (ctx.signal.aborted) return;
+        // its tiles failed, not pending (a layer waits for nothing)
+        store.markUnopened?.(address);
         if (e instanceof SourceOpenError) issues.push(...e.issues.map((i) => ({ ...i, address })));
         else
           issues.push(
@@ -565,6 +567,9 @@ export async function exportSvg(spec: Node, given: RenderSvgOptions): Promise<Re
     const windows = options.window ?? view.export?.window === true;
     // the navigators an export includes (shown ones), drawn as outlines; the rails plain (a figure's)
     const included = (options.navigators ?? view.export?.navigators ?? 'omit') === 'include';
+    // what the navigators' drawing waits for first (a square's chunk: a view without one loads nothing)
+    const ready = included ? options.navigatorExport?.ready?.(view) : undefined;
+    if (ready) await ready;
     const navs =
       included && options.navigatorExport
         ? options.navigatorExport({

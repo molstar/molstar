@@ -95,6 +95,17 @@ export async function openExample(view: ExampleView, options: OpenOptions): Prom
       await vi.advanceTimersByTimeAsync(200);
     }
   }
+  // a lazy part the spec's model waits for (the square's chunk, a bridge's): its import is real I/O, never the fake
+  // clock's, so it lands first (each load once)
+  await Promise.resolve();
+  for (
+    let seen = new Set<unknown>(), m = v.spec.model.value;
+    m.loading && !seen.has(m.loading);
+    m = v.spec.model.value
+  ) {
+    seen.add(m.loading);
+    await m.loading.catch(() => undefined);
+  }
   await vi.advanceTimersByTimeAsync(wait);
   v.draw();
   return v;

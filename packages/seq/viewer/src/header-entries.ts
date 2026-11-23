@@ -18,6 +18,16 @@ import type { SeqViewer } from './viewer.js';
 // built-ins are entries like a host's (`BuiltInHeaderEntries`), in the default spec's registry. Data and types only:
 // the `headers` behavior reads them.
 
+/**
+ * The element a menu was opened on: its layer's key, its key, and its layer's type (an extension's entries on
+ * `element` are scoped by it: `rondo:ribbons`' stem menu).
+ */
+export interface HeaderElement {
+  readonly layer: string;
+  readonly key: string | number;
+  readonly type?: string;
+}
+
 /** A layer of a header's track, as the entries read it. */
 export interface HeaderLayerFacts {
   /** Its address (a layer with no id: its key, `<track>:<n>`, which no command takes). */
@@ -57,7 +67,12 @@ export interface HeaderFacts {
   /** The section's tracks the spec hides, in spec order. */
   readonly hiddenTracks: readonly HiddenTrack[];
   /** The element a menu was opened on (`on: 'element'`): its layer and key. */
-  readonly element?: { readonly layer: string; readonly key: string | number };
+  readonly element?: HeaderElement;
+  /**
+   * The viewer whose header it is: an entry reads what it shows there (an extension's lays), never another viewer's
+   * of the same spec. Why here: an entry is one object, shared by every viewer composed with it.
+   */
+  readonly viewer?: SeqViewer;
   /**
    * The block a section's menu was opened on (its label, its band: genome coordinates): its address, label, its
    * system's name and whether it reads against the section.
@@ -137,7 +152,7 @@ export type SeqViewerRegistryEntry = SeqRegistryEntry | HeaderActionEntry | Card
 export interface HeaderTarget {
   readonly section: string;
   readonly track?: string;
-  readonly element?: { readonly layer: string; readonly key: string | number };
+  readonly element?: HeaderElement;
   /** The block under the point (its index in the section's blocks), on a section of blocks. */
   readonly block?: number;
 }

@@ -34,6 +34,7 @@ export {
   type SeqContext,
   type SeqContextSpec,
   SeqCoreConfig,
+  settingOf,
   type SeqPorts,
   type SeqRegistryEntry,
   type TextMetricsPort,

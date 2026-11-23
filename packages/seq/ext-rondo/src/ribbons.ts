@@ -8,7 +8,7 @@ import type { Emphasis, LayerType, Location, PassName, PassWriter } from '@molst
 import { PairsReader } from '@molstar/seqx-core/extension';
 import { DefaultRondoConfig, type RondoConfig } from './config.js';
 import { Kind, layoutRondo, RondoLay, type RondoPrep, stemAt } from './lay.js';
-import { polygonAt } from './shapes.js';
+import { hueOf, polygonAt } from './shapes.js';
 import { announceRondo, describeRondo, summaryRondo } from './words.js';
 
 // `rondo:ribbons` (_spec/README.md): a `scope: 'section'` layer over core's pairs reader, on a ring (through its warp)
@@ -111,6 +111,53 @@ function outlined(lay: RondoLay, out: PassWriter, i: number) {
   drawPoly(lay, out, i);
 }
 
+/** A folded stub's tips spread at least this far apart (CSS px): each partner's taper seen. */
+const UnfoldTipPx = 7;
+
+/**
+ * A folded stub drawn unfolded (_spec/README.md, Stubs, Folding): its base split among its partners by count, each a
+ * taper in its partner's hue toward its own tip, the tips spread along the stubs' depth at least `UnfoldTipPx` apart
+ * about the folded tip (outlined in `seq-hover`). Drawn in the hover pass: nothing laid out again, nothing allocated.
+ */
+function unfold(lay: RondoLay, out: PassWriter, stub: number, cfg: RondoConfig) {
+  const f = lay.frame;
+  const dn = cfg.stemDepth * f.room;
+  const tipD = dn + cfg.stubShare * f.room;
+  const t0 = lay.stubT0[stub];
+  const t1 = lay.stubT1[stub];
+  const total = lay.stubCount[stub];
+  let n = 0;
+  for (let e = 0; e < lay.nf; e++) if (lay.foldOwner[e] === stub) n++;
+  if (n === 0 || !(total > 0)) return;
+  const sep = UnfoldTipPx * f.perPx(tipD);
+  const spread = Math.max(t1 - t0, (n - 1) * sep);
+  const mid = (t0 + t1) / 2;
+  let base = t0;
+  let k = 0;
+  for (let e = 0; e < lay.nf; e++) {
+    if (lay.foldOwner[e] !== stub) continue;
+    const b1 = base + ((t1 - t0) * lay.foldCount[e]) / total;
+    const tip = n === 1 ? mid : mid - spread / 2 + (spread * k) / (n - 1);
+    f.point(base, dn);
+    Scratch[0] = f.px;
+    Scratch[1] = f.py;
+    f.point(b1, dn);
+    Scratch[2] = f.px;
+    Scratch[3] = f.py;
+    f.point(tip, tipD);
+    Scratch[4] = f.px;
+    Scratch[5] = f.py;
+    const a = out.args;
+    a[4] = alpha(hueOf(lay, lay.foldPartner[e]), 1);
+    a[5] = lay.hover;
+    a[6] = 0.5;
+    a[7] = 0;
+    out.pathArgs(Scratch, 3, true);
+    base = b1;
+    k++;
+  }
+}
+
 function drawHover(lay: RondoLay, out: PassWriter, e: Emphasis, cfg: RondoConfig) {
   const h = e.hover;
   if (!h) return;
@@ -130,7 +177,9 @@ function drawHover(lay: RondoLay, out: PassWriter, e: Emphasis, cfg: RondoConfig
     const a = kind === Kind.ribbon ? lay.ribA[lay.polyRef[i]] : lay.stubStem[lay.polyRef[i]];
     lit(lay, out, lay.stemPoly[a]);
     if (kind === Kind.ribbon) lit(lay, out, lay.stemPoly[lay.ribB[lay.polyRef[i]]]);
-    outlined(lay, out, i);
+    // a folded stub unfolds: its partners' stubs fanned out in their hues (their names and counts in its card)
+    if (kind === Kind.stub && lay.stubPartner[lay.polyRef[i]] < 0) unfold(lay, out, lay.polyRef[i], cfg);
+    else outlined(lay, out, i);
     return;
   }
   // another layer's hover on the section, the same wash over what it touches: an item (a band) the ribbons with an end
@@ -208,7 +257,7 @@ export function ribbonsType(config: RondoConfig = DefaultRondoConfig): LayerType
       return lay;
     },
     draw(lay, pass: PassName, out, emphasis) {
-      const cfg = lay.prep?.config ?? config;
+      const cfg = lay.prep ? lay.cfg : config;
       if (pass === 'data') {
         for (let j = 0; j < lay.polys.n; j++) {
           const i = lay.order[j];

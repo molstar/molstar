@@ -137,6 +137,18 @@ export class ViewerRails {
     this.viewer.schedule();
   }
 
+  /** What a draw of the navigators waits for (the view's and a host's: the square's chunk), else nothing. */
+  loaded(): Promise<void> | undefined {
+    const view = this.viewer.view.resolved.value;
+    if (!view || !this.part?.loaded) return undefined;
+    const navs: ResolvedNavigator[] = [...view.navigators];
+    for (const m of this._navigators.values()) {
+      const n = m.isHosted ? m.navigator : undefined;
+      if (n) navs.push(n);
+    }
+    return this.part.loaded(view, navs);
+  }
+
   /** A navigator's model by its id (`SeqViewer.navigatorModel`): made once and kept with the viewer. */
   model(id: string): NavigatorModel | undefined {
     const kept = this._navigators.get(id);

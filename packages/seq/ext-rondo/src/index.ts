@@ -5,7 +5,8 @@
  */
 
 import { defineExtension, type SeqExtension } from '@molstar/seqx-core/extension';
-import { type RondoConfig, rondoConfig } from './config.js';
+import { type RondoConfig, RondoConfigItems, rondoConfig } from './config.js';
+import { CellsType, RondoSquare } from './cells.js';
 import { RondoHues } from './hues.js';
 import { ribbonsType } from './ribbons.js';
 
@@ -14,6 +15,7 @@ import { ribbonsType } from './ribbons.js';
 // and the builder helper `rondoRing`. The viewer's commands and binding are `./viewer`'s (`rondoViewer`).
 
 export { DefaultRondoConfig, type RondoConfig, RondoConfigItems, rondoConfig } from './config.js';
+export { CellsLay, type CellsPrep, CellsType, RondoSquare } from './cells.js';
 export { hueList, RondoHues } from './hues.js';
 export { Kind, RondoLay, type RondoPrep, stemAt } from './lay.js';
 export { emphasisHeld, RibbonsType, ribbonsType } from './ribbons.js';
@@ -32,6 +34,12 @@ export const RondoParams = {
     stubs: { type: 'string', enum: ['partner', 'none'], doc: 'Links to blocks not shown: a stub a partner, or none.' },
     opens: { type: 'string', doc: 'The section a double-click opens a ribbon’s, stem’s or stub’s chromosomes in.' },
   },
+  'rondo:square': {
+    of_layer: {
+      type: 'string',
+      doc: 'The bound section’s layer whose data the cells count (its id); the first `rondo:ribbons` layer when absent.',
+    },
+  },
 } as const;
 
 /**
@@ -47,9 +55,13 @@ export function rondoWith(over: Partial<RondoConfig> = {}): SeqExtension {
     doc: 'A genome ring like Rondo’s: ribbons wide by count between stems, stubs to blocks not shown, 24 hues.',
     registry: [
       { kind: 'layer-type', type: ribbonsType(rondoConfig(over)) },
+      { kind: 'layer-type', type: CellsType },
+      { kind: 'navigator-picture', picture: RondoSquare },
       { kind: 'scheme', scheme: RondoHues },
     ],
     params: RondoParams as never,
+    // its settings, readable by its layer types as the composition sets them (`rondo.*`)
+    config: Object.values(RondoConfigItems),
   });
 }
 

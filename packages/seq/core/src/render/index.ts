@@ -112,6 +112,8 @@ export {
   type ItemDescription,
   type LayerPlace,
   type LayerType,
+  type SquareCells,
+  type SquareLattice,
   type ContentContext,
   type LayoutContext,
   type Overlay,

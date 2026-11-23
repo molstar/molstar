@@ -154,7 +154,7 @@ function mountModel(element: HTMLElement, viewer: SeqViewer, model: NavigatorMod
     ],
     ['pointercancel', () => (drag.end(), model.cancel()), undefined],
     ['lostpointercapture', () => (drag.end(), model.up()), undefined],
-    ['click', (e: MouseEvent) => e.button === 0 && model.click(...local(e), e.detail), undefined],
+    ['click', (e: MouseEvent) => e.button === 0 && model.click(...local(e), e.detail, e), undefined],
     ['dblclick', (e: MouseEvent) => model.doubleClick(...local(e)), undefined],
     ['focus', () => model.setFocus(true), undefined],
     ['blur', () => model.setFocus(false), undefined],

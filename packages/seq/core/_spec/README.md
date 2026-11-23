@@ -1919,6 +1919,12 @@ over the assets port, with `@molstar/core/util/zip` (never a private zip). Not a
   tile that brought it is read again without it (`store-sources.ts`). A malformed coverage is an issue and the old
   reading stays. Why: EC-176's "a conflict keeps the held node" is right for two answers of one reading, wrong for a new
   reading.
+- **A failed opening** (`markUnopened(address)`, `unopened(address)`; `StoreReader.unopened`): the opener (the viewer's
+  store model, an export's opening) says a source's opening failed, its issue its own; until a source attaches under the
+  address (or it is let go) its tiles read as failed, not pending (`readTiles`), and a layout records it with its
+  coverage (`coverageRead`), so a section is laid out again when the source opens or fails. Why: a source never opened
+  has no coverage, and without the store's word a reader cannot tell it from one still opening: its hatch would wait
+  forever.
 - **Channels** (`channels.ts`, internal to the package: not in the `data` entry, read by the resolver and the context
   through `data/channels`): a values node's `field` is read under its own address, `channelAddress(source, field)` (the
   source's and the field's joined by a control character no address holds), made when a tile of it is first read, from
@@ -3530,22 +3536,50 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
 - **The square** (`render/navigator-square.ts`, `SquareNavigator`, `isSquareNavigator`: a navigator over blocks with
   `axes: both` bound to two sections of blocks, or one section on both axes, `of: [s, s]`): its lattice the assembly's
   blocks on both axes (after the assembly's `include`, never a section's; no `system`: the first bound section's `of`),
-  proportional to their display units (a cell as long as its chromosomes), each block's name above its column and left
-  of its row where it fits (along x without the names' shared prefix where the column is narrow: `7`), a line at each
-  block's edge; the cells a bound section does not show washed (`seq-wash`) by runs (`washRuns`: a column run of blocks
-  the x section leaves out, a row run the y section leaves out over each run of shown columns; no cell twice, at most as
-  many rectangles as cells), the rest plain. Past `navigator.square.maxCells` block pairs (4,096) neither lattice nor
-  wash is drawn, said once (`seq.render.navigator.square`): never n² rectangles. The base (background, wash, lattice,
-  names) is drawn once a size and tokens; a window move redraws the window pass alone (`rebuilt: false`). The window the
-  first section's range along x and the second's along y as one rectangle (one section on both axes: on the diagonal);
-  its title names its ends as places (`chr3: 1–198,295,559 of GRCh38`). A hit names the cell's two blocks and systems
+  **lazy** (`navigator-square-load.ts`: `loadSquareNavigator`, `SquareChunk`, `squareDue`; `isSquareNavigator` in
+  `navigator-square-kind.ts`, no dynamic import, since one is a chunk of every bundle reaching its module): the square,
+  its cells, its set and its lattice are one chunk, loaded the first time a view shows a square (an export waits for
+  `NavigatorExport.ready`, `NavigatorSvgExport`'s the square's; a renderer is a type guard's `square`, never
+  `instanceof`). Why: a composition whose views have no square pays nothing for one (about 16 kB); proportional to their
+  display units (a cell as long as its chromosomes), each block's name above its column and left of its row where it
+  fits (along x without the names' shared prefix where the column is narrow: `7`), a line at each block's edge; the
+  cells a bound section does not show washed (`seq-wash`) by runs (`washRuns`: a column run of blocks the x section
+  leaves out, a row run the y section leaves out over each run of shown columns; no cell twice, at most as many
+  rectangles as cells), the rest plain. Past `navigator.square.maxCells` block pairs (4,096) neither lattice nor wash is
+  drawn, said once (`seq.render.navigator.square`): never n² rectangles. The base (background, wash, lattice, names) is
+  drawn once a size and tokens; a window move redraws the window pass alone (`rebuilt: false`). The window the first
+  section's range along x and the second's along y as one rectangle (one section on both axes: on the diagonal); its
+  title names its ends as places (`chr3: 1–198,295,559 of GRCh38`). A hit names the cell's two blocks and systems
   (`block`, `yBlock`, `system`, `ySystem`), its part `outside` off the window's rectangle; `pairAt` gives the hull of
   the cell's two blocks on a bound section (what a double-click fits), `cellAt` the cell, `sectionUnitAtY` a second
   section's unit along y. **What region reads add** (RG, stage 3): the cells' content: for pairs, the pairs level's
   coarsest tiles read by block (one want a block), summed into one image of block × block cells and reduced to its
   pixels by the shared reduction; for a grid source, its coarsest 2D tiles by block pair (the upper triangle when
   symmetric), at most `maxCells` wants, past it the whole-assembly level; until then the square is the lattice and what
-  static data gives. Not built: its grips and drags per axis.
+  static data gives. Not built: its grips and drags per axis. **Over a set** (`setMode`: one section on both axes with
+  `navigator.switch: include`, a ring's square): the window is the blocks the section shows, not its axis's hull on the
+  lattice (a pair chr2, chr6 is not the box chr2 to chr6): a contiguous run of lattice blocks one box on the diagonal
+  (`run`, `shownRun`) with grips at its two diagonal corners (`navigator.window.handlePx`), a scattered set each cell of
+  two shown blocks outlined (each one's diagonal cell and the cross cells; within `maxCells`), no grips
+  (`navigator-square-set.ts`, `drawShownSet`); the axis's window drawn too only where the view does not show the whole
+  section (a followed ring's, EC-110). A hit's part is the run box's grip (`gripAt`, `gripOf`: `body`, `start` the left
+  or top edge or top-left corner, `end` the right or bottom or bottom-right; an off-diagonal corner the nearer edge's;
+  within `hitPx` / 2), else `outside`. `edgeAt`, `blockAtPoint` snap a point to a lattice edge or block along x, y or
+  the diagonal; `labelAt` the block whose name is under a point; `setPreview(i0, i1)` draws a gesture's run instead of
+  the shown one; `setKeyCell(i, j)` the keyboard's cell in the accent, inset and rounded (a cursor, never read as the
+  window). A drag frame allocates nothing (a gesture's point in `pointer`, read by `blockAtPointer` and `edgeAtPointer`;
+  the windows' placing kept while their section, units and the lattice's box hold; the set's paint through an array).
+  **A picture's cells** (`navigator-square-cells.ts`, `SquarePictureCells`; the pictures' contract): when the
+  navigator's `content` names a registered picture and the square is given the store and the composition (`data`,
+  `text`, `types`, `layouts`, `pictures`, `kinds`: the viewer's and an export's), the picture's first track is laid out
+  as a hidden section over the lattice's assembly (every block) by a renderer of its own, and when its first layer's
+  type has `square` (`LayerType.square`, `SquareCells`: `draw(lay, out, lattice)`, `text(lay, i, j, lattice)`,
+  `pending(lay)`; `SquareLattice` its blocks' systems and names, `edge(k, horizontal)` and the tokens) its cells are
+  drawn in the base pass under the wash and the lines, never bounded by `maxCells`; `cellText(i, j)` is its words. The
+  hidden section is laid out again only when the base is (a size, the tokens), the store's settled state moves, or its
+  cells still wait (`pending`): a window's move or a gesture's preview lays out nothing. Its wants are the navigator's
+  (a frame whose cells changed is `rebuilt`). Without a picture with cells (the `axis`, a reader without the extension)
+  the lattice alone. The base's key is numbers (its size, pixel ratio and tokens), never a string a frame.
 - **The window stays the navigator's**, whatever the picture: its geometry, floor, parts, gestures, keys, idle rule,
   zoom strip and announcements. A host that draws its own navigator keeps them through the viewer's `NavigatorModel`.
 - **The picture**: a navigator lays its system whole out (the fit window, in the bound section's display order;
@@ -4339,9 +4373,10 @@ cost to the minimal viewer is the names the chunk imports from it).
   Its state is its owner's (a lay, a bridge side, a `PairsReader`), so two readers of one layer at two gates never share
   a read. It gives `PairsRead`: the rows, the bins' level and counts (absent: items), over an assembly the ends' units;
   `waiting` says a bins' tile it wanted is still to come (a region's or a block's; a failed one is not waiting), so a
-  layer tells pending from empty when the view has settled before this frame's wants were asked. Why one reader: what
-  the pairs layer draws and what an extension draws over the same data are the same bins and items, read once each by
-  one rule (the extension's gate its own: it gates at what it draws).
+  layer tells pending from empty when the view has settled before this frame's wants were asked; `failed` says one
+  failed (a source whose opening failed among them), so a layer tells failed from pending. Why one reader: what the
+  pairs layer draws and what an extension draws over the same data are the same bins and items, read once each by one
+  rule (the extension's gate its own: it gates at what it draws).
 - **A bin pair's element** (`Key.key`, what a selection and a bookmark keep):
   `bin:<a>:<aBin>|<b>:<bBin>|<strand>|<category>`, `<a>` and `<b>` the ends' system names as the source gives them
   (empty: the request's system), `<aBin>` and `<bBin>` the bins' indices at the level read (positions `bin × level` to
@@ -5044,6 +5079,12 @@ same pieces. Nothing registers on import and there is no global registry.
   `PairsRead`, `PairsSource`, `PairsReadOptions`, the bins' types, `pairsLevels`, `coarsenBins`; `placesOf`,
   `BlockPlace` and `PlacePoint`; the builder's types an extension's helper writes with); the rest may change in a 0.x
   minor. Why a descriptor: the namespace check, the version check and the undo need the extension as one thing.
+  **Settings** (`settingOf`, the entry's): the composition's `config` pairs under a composed extension's namespace
+  (`rondo.stemPx` of `rondo`; its descriptor listing them in `config` or not) are kept as `RenderConfig.settings`, by
+  key, so its layer types read them from the render config they are given (`settingOf(ctx.config, item)`); an extension
+  registered late (`_extend`) reads them too (the render config composed again with the extensions as they stand, a gone
+  one's dropped). Why the render config: it reaches every layout, section, picture and export already, and a layer type
+  reads nothing of its context.
 - **The tracks layout is the one fixed fallback**: a section whose layout is not listed (or every section, with no
   layouts given) is laid out as tracks, and the viewer's navigation reads tracks likewise; tracks needs no entry. Why:
   the tracks layout is the frame's own (the label column, the rails, the bands), a section must be placed somehow, and

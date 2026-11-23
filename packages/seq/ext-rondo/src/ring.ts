@@ -89,6 +89,8 @@ export function rondoRing(view: ViewBuilder, o: RondoRingOptions): RondoRing {
       of: [of, of],
       axes: 'both',
       system: o.assembly,
+      // its cells by count (`rondo:cells`); a reader without the extension draws the lattice (`axis`), said
+      content: 'rondo:square',
       switch: 'include',
       size: [220, 220],
     } as never);

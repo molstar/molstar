@@ -285,15 +285,36 @@ gestures; on what the section already shows alone, nothing), Home (and `showAll(
 square** (core's `SquareNavigator`: two axes over blocks × blocks): the same model draws it; a click on a cell off the
 window moves each axis by the switching rule (one section on both axes: by the x block), one step; a double-click fits a
 cell's pair (one section on both axes: the hull of its two blocks), again the whole; a click with a switch shows the
-cell's two blocks. A drag from a cell off the window sweeps the x section (one section on both axes: both), the
-rectangle its release zooms to drawn live, snapped to whole cells (the blocks under its ends, both included: what is
-drawn is what the release fits; `SquareNavigator.snapSweep`, the behavior's `dragTo(at, from)`), tinted and outlined as
-the window is (the same range on y for one section, else the y window as it is); Escape cancels it. Not built on the
-square: its grips and drags per axis. **Switching blocks** (`blockSwitchRange`, `block-switch.ts`; the author,
-2026-11-21, IGV's: a picked chromosome whole): from a view showing its block whole (within a pixel) the new block whole;
-zoomed inside a block, the same width centred at the same relative place in the new block, clamped to its ends; a width
-past the new block's length, the new block whole. One rule for a click on the navigator, `block.next` and
-`block.previous`, and the square's click.
+cell's two blocks (in the lattice's order), every click at once (a platform's count past 1 too: never a select first),
+and its double-click adds nothing. A drag from a cell off the window sweeps the x section (one section on both axes:
+both), the rectangle its release zooms to drawn live, snapped to whole cells (the blocks under its ends, both included:
+what is drawn is what the release fits; `SquareNavigator.snapSweep`, the behavior's `dragTo(at, from)`), tinted and
+outlined as the window is (the same range on y for one section, else the y window as it is); Escape cancels it. Not
+built on the square: its grips and drags per axis. **Lazy**: the square and the set's gestures are one chunk
+(`square-chunk.ts`, `loadSquare` through `SquareDoor`, which the navigators part sets: `navigator.ts` holds no dynamic
+import, so the minimal viewer reaches no chunk of it), loaded when a spec's view may show one (`navigators.ts` registers
+it with resolve's lazy kinds: the model waits), a host's square in `settle` (the navigators part's `loaded`), and drawn
+when it lands otherwise. **The square over a set** (one section on both axes with `navigator.switch: include`, a ring's
+square; `square-set.ts`, `SquareSetGesture`): its window is the blocks the section shows (core's `setMode`), and each
+change writes the section's `include` once (in the lattice's order; every block: no `include`; none: refused), one patch
+and one undo step. A run is one box: its body dragged moves the run along the diagonal (by the blocks the pointer
+crossed along its larger offset, x or y: a drag across of 4 blocks moves it 4; clamped to the lattice), an edge or
+corner resizes it (the nearest lattice edge, at least one block), drawn as a preview while it runs (`setPreview`),
+written on release, Escape cancelling; the cursor `move`, `ew-resize`, `ns-resize` or `nwse-resize`. A click on a cell
+shows its pair, on a name (above a column, left of a row) its block alone; Cmd or Ctrl adds the cell's two blocks (both
+shown: removes them) or the name's block. A scattered set is outlined cell by cell, no grips: a press there is a
+click's, and dragged it moves nothing and says so (the cursor `not-allowed`, the readout a hint: only a run's box drags;
+chosen over turning the set into the run it spans, which would add blocks the reader never picked). The keys on the
+focused square: arrows move the run a block (Left and Up back), Shift+arrows grow or shrink its end; Cmd or Ctrl+arrows
+move the keyboard's cell (outlined in the accent, inset, while focused and a key drives it, a press hiding it; picked
+again on a cell of the set when the set changes under it; over a scattered set plain arrows), said as the readout
+(`chr3 × chr5`); Enter shows its pair, Cmd or Ctrl+Enter adds or removes it; Home shows all; the other keys are the
+slider's (PageDown, PageUp: `block.next`, `block.previous`; End the view's end). The readout over a cell names its pair,
+over a name its block. **Switching blocks** (`blockSwitchRange`, `block-switch.ts`; the author, 2026-11-21, IGV's: a
+picked chromosome whole): from a view showing its block whole (within a pixel) the new block whole; zoomed inside a
+block, the same width centred at the same relative place in the new block, clamped to its ends; a width past the new
+block's length, the new block whole. One rule for a click on the navigator, `block.next` and `block.previous`, and the
+square's click.
 
 ### HoverModel
 
@@ -507,13 +528,14 @@ selection moves (`viewer-selection.ts`) and the frame (`viewer-frame.ts`).
   `<id>:commands`), its bindings a layer over the spec's naming the viewer's actions or its own (`<id>:…`), its header
   entries beside the built-ins'; one with viewer parts and no `composeViewer` is refused (they would be dropped).
   `viewer.extend(ext)` registers one at run time and resolves to its undo: the context's checks (nothing changed on an
-  error; a format runtime or a query entry is refused, since it changes what the open spec resolves to; so are header
-  entries, settings and a behavior with a part over the canvas, `attach`, since nothing reads them late), its behaviors
-  (`composed` called), commands and bindings; a failure takes away only what it made; the view is resolved again with
-  the new layer kinds (`ViewModel.setKinds`), so the frame is a new renderer's and a layer drawn as its fallback is
-  drawn as its type; the undo takes them away in reverse (behaviors disposed) and the fallback comes back. The same
-  descriptor again is counted; one composed is the viewer's. A lazy chunk (`viewer-extend.ts`): registering late is
-  rare, and a composition that never does bundles none of it.
+  error; a format runtime or a query entry is refused, since it changes what the open spec resolves to; so are settings
+  and a behavior with a part over the canvas, `attach`, since nothing reads them late), its behaviors (`composed`
+  called), commands and bindings, its header entries on the `headers` behavior (`register`, once its commands are there;
+  none composed: unread); a failure takes away only what it made; the view is resolved again with the new layer kinds
+  (`ViewModel.setKinds`), so the frame is a new renderer's and a layer drawn as its fallback is drawn as its type; the
+  undo takes them away in reverse (behaviors disposed) and the fallback comes back. The same descriptor again is
+  counted; one composed is the viewer's. A lazy chunk (`viewer-extend.ts`): registering late is rare, and a composition
+  that never does bundles none of it.
 
 - **Navigators** (`mount-navigator.ts`): parts the host places, like the legends. `mountNavigator(element, viewer, id)`
   draws one navigator (a declared node's id, or a host's `viewer.navigator(def)`) into an element the host owns: its own
@@ -1027,12 +1049,13 @@ binding table; per move one hit record and one modifiers record are reused.
   (`minGapMs`, 700 ms): a message never follows another sooner, the latest one waiting its turn (a held arrow key says
   where it is each gap, not each key). A message is a token (a counter and its text), so equal words are said again: a
   cursor key that leaves the cursor in place (the end of its axis) is announced (`viewer.commandRan` moves after every
-  command). A message waiting its turn is replaced only by one of the same or a higher priority (selection over cursor
-  over hover), and the pointer leaving drops a waiting hover. While a gesture is dragged the cursor and the hover say
-  nothing and the selection says its end once, after the drag. Why one region and a limit: a live region queues what it
-  is given and a reader hears the queue after the cursor moved on. A navigator slider's value is its own
-  (`aria-valuetext`), never this region's. The highlight legend's Clear buttons and the legend's entries are real
-  buttons and options in the page's tab order, so they need nothing here.
+  command, with its message when it ran at once); another command that moved the keyboard cursor says its own message
+  (an extension's walk, `rondo:partner`'s: where, and why there). A message waiting its turn is replaced only by one of
+  the same or a higher priority (selection over cursor over hover), and the pointer leaving drops a waiting hover. While
+  a gesture is dragged the cursor and the hover say nothing and the selection says its end once, after the drag. Why one
+  region and a limit: a live region queues what it is given and a reader hears the queue after the cursor moved on. A
+  navigator slider's value is its own (`aria-valuetext`), never this region's. The highlight legend's Clear buttons and
+  the legend's entries are real buttons and options in the page's tab order, so they need nothing here.
 - **Forced colors** (`forced-colors: active`, whatever the `theme.source`: the root's CSS tokens through
   `readCssTokens`, a configured theme's table through `forcedColorTokens` over `readSystemColors`; `css-tokens.ts`):
   `readCssTokens` reads the system colors (`Canvas`, `CanvasText`, `Highlight`, `GrayText`, resolved by a probe
@@ -1192,11 +1215,12 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   (`navigator.zoom-to`; `navigator.dragOutside: pan` centres and then pans); a double-click fits, or fitted zooms so the
   window is `navigator.zoomPx` navigator px wide (`navigator.doubleClick`); Esc cancels, the view back where the press
   found it. One gesture is one step: a click centres with its own step (a jump), and the double-click it begins (the
-  platform's, by the click's count: its second click does nothing, its `dblclick` follows) moves within that step, as
-  input's first click defers a clear (no timer: the platform knows a double-click); a drag pushes the viewports at its
-  press on release when the view went farther than one window width (`navigator.dragStep: far`; `never`, `always`). A
-  window bound to a follower moves its leader (`follow.followerMoves`). The ruler rails take the same gestures at the
-  rail's scale (Input).
+  platform's, by the click's count: its second click does nothing, its `dblclick` follows; on a square with a switch,
+  over a set or two sections, every click switches, the second too, and the double-click adds no zoom) moves within that
+  step, as input's first click defers a clear (no timer: the platform knows a double-click); a drag pushes the viewports
+  at its press on release when the view went farther than one window width (`navigator.dragStep: far`; `never`,
+  `always`). A window bound to a follower moves its leader (`follow.followerMoves`). The ruler rails take the same
+  gestures at the rail's scale (Input).
 - **A linked selection is revealed** (`reveal.linked`, the viewer's): a selection made elsewhere (another section, a
   link, a structure) scrolls each text section (`all`: each section; `none`) that shows none of its projection to its
   first part, the layout's least move, as a move by hand (no history step); never the section it is being made in (a
@@ -1297,9 +1321,10 @@ rows' commands) reads the last frame's rows layers through the behavior context'
     not built (the TODO).
   - **`HeaderFacts`**: plain data from the resolved view, the spec and the last layout (the address, label, section,
     system, linear, the section's track ids, the track's layers with type, label, hidden, filtered rows, color and
-    fitting schemes, the hidden tracks, the element). Entries' functions are pure over them, run once a layout a shown
-    header (`partsOf`, the frame's `headers`, a new function when the entries change: a new layout) and when a menu
-    opens.
+    fitting schemes, the hidden tracks, the element, and the viewer whose header it is: an entry is one object shared by
+    every viewer composed with it, so it reads what that viewer shows, never module state). Entries' functions are pure
+    over them, run once a layout a shown header (`partsOf`, the frame's `headers`, a new function when the entries
+    change: a new layout) and when a menu opens.
   - **Shown or enabled**: an entry's `when` decides whether it shows, its command's `when` whether it runs (a disabled
     item muted, its reason its `why`). An action with `items` opens them (its slot opens the menu at it); a state's
     click runs it, its secondary click lists its items, then itself (the `hiddenChip: menu` param: the click lists
@@ -1313,12 +1338,13 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   - **Gestures**: a click on a slot runs it (the "⋯" opens the menu), on a chip runs its state, on a label nothing (on
     touch it shows the slots, as a hover there, so a second tap on a slot runs it); never a selection's. A secondary
     click (`contextmenu` on the mounted canvas) opens the menu under `contextClick` (`everywhere`, the default spec's:
-    at what it hits, an element's entries first, then its track's and its section's; `header`, the label column only;
-    `none`, the browser's); Shift+secondary click is always the browser's. A long press (touch, the `longPressMs`
-    param, 500) opens it. The gestures are a lazy chunk loaded at the mount (`header-gestures.ts`). The menu key and
-    Shift+F10 (`headers.menu`, `view.keys`) and Enter on a header open it at the cursor's header (its section's first
-    track's on data), once per ask: the browser's secondary click that follows within a second is taken and opens
-    nothing (EC-156).
+    at what it hits, an element's entries first, then its track's and its section's; the element's facts carry its
+    layer's type, `element.type`, so an extension's `on: 'element'` entries are scoped to its own type's hits: a section
+    layer's hit, an extension's ribbons, is found on the track that holds it; `header`, the label column only; `none`,
+    the browser's); Shift+secondary click is always the browser's. A long press (touch, the `longPressMs` param, 500)
+    opens it. The gestures are a lazy chunk loaded at the mount (`header-gestures.ts`). The menu key and Shift+F10
+    (`headers.menu`, `view.keys`) and Enter on a header open it at the cursor's header (its section's first track's on
+    data), once per ask: the browser's secondary click that follows within a second is taken and opens nothing (EC-156).
   - **The cursor off what was hidden**: a frame whose layout no longer has the cursor's track moves it to the next
     track's header, else the previous one's, else the section's line.
   - **Published on change** (by name from the frame, `framed()`: no listener; a frame that kept its layout reads one

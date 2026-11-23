@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { type Issue, issueOf, type Node, type Value } from '@molstar/core/repr/tree';
+import { type Issue, issueOf } from '@molstar/core/repr/tree';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
 import {
   blockSpan,
@@ -12,29 +12,31 @@ import {
   type ResolvedNavigator,
   type ResolvedSection,
   type ResolvedView,
-  resolveViewNode,
   sameBlocks,
   unitOfPlace,
 } from '@molstar/seqx-core/view';
 import { DefaultRenderConfig, type RenderConfig } from './config.js';
-import { Anchor, DrawLists, EmphasisPasses, NoColor, type PassName, type PassWriter } from './draw-lists.js';
+import { Anchor, DrawLists, EmphasisPasses, NoColor, type PassName, type PassWriter, Round } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
 import { bundledWidth } from './text.js';
 import type { SeqTokens } from './tokens.js';
 import type { ViewLayout } from './tracks.js';
 import type { NavigatorFrame, NavigatorFrameInput, NavigatorHit } from './navigator.js';
 import { NavigatorWindow } from './navigator.js';
+import { SquarePictureCells, type SquarePictureOptions } from './navigator-square-cells.js';
+import { latticeAssembly, latticeOf, sectionTotal, sharedPrefix, shows, washRuns } from './navigator-square-lattice.js';
+import { drawShownSet, gripOf, type SquareGripHit, type SquareRun, shownRun } from './navigator-square-set.js';
+import type { SquareLattice } from './layer-type.js';
+
+export { washRuns } from './navigator-square-lattice.js';
+export type { SquareGrip, SquareGripAxis, SquareGripHit, SquareRun } from './navigator-square-set.js';
 
 // The square (_spec/README.md "Render", Navigators, The square): a navigator on two axes over blocks × blocks, its
 // lattice the assembly's chromosome pairs (after the assembly's `include`, never a section's), the cells the bound
 // sections show plain and the rest washed, the window the x and y windows as one rectangle. What the cells hold (pairs
 // by block, a grid's tiles by block pair) is region reads': the picture here is the lattice and what static data gives.
 
-/** Whether a navigator is a square: two axes over blocks, bound to two sections of blocks (or one section twice). */
-export function isSquareNavigator(nav: ResolvedNavigator, view: ResolvedView): boolean {
-  if (!nav.blocks || nav.axes !== 'both' || nav.of.length !== 2) return false;
-  return nav.of.every((a) => view.sections.find((s) => s.address === a)?.blocks?.length);
-}
+export { isSquareNavigator } from './navigator-square-kind.js';
 
 /** A cell of the square: its x and y blocks (indices in the lattice), their systems. */
 export interface SquareCell {
@@ -44,7 +46,8 @@ export interface SquareCell {
   readonly ySystem: string;
 }
 
-export interface SquareNavigatorOptions {
+/** The square's options; a picture's cells read the store and the composition's types (`SquarePictureOptions`). */
+export interface SquareNavigatorOptions extends SquarePictureOptions {
   readonly model: StaticModel;
   readonly view: ResolvedView;
   readonly navigator: ResolvedNavigator;
@@ -52,6 +55,10 @@ export interface SquareNavigatorOptions {
   readonly config?: RenderConfig;
 }
 
+/** No wants (a square without a picture): one array, never one a frame. */
+const NoWants: readonly never[] = [];
+/** The keyboard's cell's inset in its cell and its corners' radius (CSS px). */
+const KeyInset = 2;
 /** The lattice's inset from the box (CSS px): its outer lines are seen. */
 const Inset = 1;
 /** The x labels' band above the lattice (CSS px); the y labels' column is as wide as the longest (at most a fifth). */
@@ -63,39 +70,10 @@ const LabelPad = 2;
 const SweepTint = 0x2e;
 const AnchorMiddle: number = Anchor.middle;
 const AnchorEnd: number = Anchor.end;
+/** The set's paint (`drawShownSet`): its ink, stroke width and grips' size. */
+const SetStyle = new Float64Array(3);
 /** What a window's move redraws (the base kept). */
 const WindowPasses: readonly PassName[] = EmphasisPasses;
-
-/**
- * The washed cells (a cell washed when a bound section does not show its x block or its y block) as rectangles of
- * block indices, `[i0, i1, j0, j1]` each: a column run of x blocks not shown (every row), then for each row run of y
- * blocks not shown, a rectangle over each column run of x blocks shown (no cell twice: a wash is translucent).
- */
-export function washRuns(shownX: readonly boolean[], shownY: readonly boolean[]): Int32Array {
-  const runs = (shown: readonly boolean[], want: boolean): number[] => {
-    const out: number[] = [];
-    for (let k = 0; k < shown.length; ) {
-      if (shown[k] !== want) {
-        k++;
-        continue;
-      }
-      const a = k;
-      while (k < shown.length && shown[k] === want) k++;
-      out.push(a, k);
-    }
-    return out;
-  };
-  const n = shownY.length;
-  const hiddenX = runs(shownX, false);
-  const shownXRuns = runs(shownX, true);
-  const hiddenY = runs(shownY, false);
-  const out: number[] = [];
-  for (let r = 0; r < hiddenX.length; r += 2) out.push(hiddenX[r], hiddenX[r + 1], 0, n);
-  for (let s = 0; s < hiddenY.length; s += 2)
-    for (let r = 0; r < shownXRuns.length; r += 2)
-      out.push(shownXRuns[r], shownXRuns[r + 1], hiddenY[s], hiddenY[s + 1]);
-  return Int32Array.from(out);
-}
 
 /**
  * Draws a square: its lattice over the blocks of the assembly on both axes (its lines past `navigator.square.maxCells`
@@ -103,6 +81,8 @@ export function washRuns(shownX: readonly boolean[], shownY: readonly boolean[])
  * cell. Its draw lists are its own, made again on a size, a token or a window change.
  */
 export class SquareNavigator {
+  /** A square (a caller's type guard: the class is in a lazy chunk, so `instanceof` would load it). */
+  readonly square = true;
   readonly navigator: ResolvedNavigator;
   readonly config: RenderConfig;
   private tokens: SeqTokens;
@@ -124,8 +104,38 @@ export class SquareNavigator {
   /** The washed cells as rectangles of lattice block indices (i0, i1, j0, j1 each), made once a layout. */
   private readonly washRuns: Int32Array;
   /** What the base passes (the wash, the lattice, the labels) were drawn for: drawn again on a change only. */
-  private baseKey = '';
+  private baseW = Number.NaN;
+  private baseH = Number.NaN;
+  private basePx = Number.NaN;
   private baseTokens: SeqTokens | undefined;
+  /** The picture's cells (a registered picture's layer type with `square`), else none: the lattice alone. */
+  private readonly cells: SquarePictureCells | undefined;
+  /** The lattice as the cells see it. */
+  private readonly latticeView: SquareLattice;
+  /**
+   * One section on both axes with a switch (`navigator.switch: include`): the window is the blocks it shows (a run on
+   * the diagonal, or scattered cells), its gestures the viewer's (_spec/README.md "Render", Navigators, The square).
+   */
+  readonly setMode: boolean;
+  /** The shown run `[i0, i1)` of lattice blocks (`i0` -1: scattered), and a gesture's preview of another (-1: none). */
+  readonly run: SquareRun = { i0: -1, i1: -1 };
+  private readonly preview: SquareRun = { i0: -1, i1: -1 };
+  /** The bound section's view shows its whole axis (else its window is drawn too: a followed ring's, EC-110). */
+  private wholeView = true;
+  private readonly gripHit: SquareGripHit = { grip: 'body', axis: 'both' };
+  /** What each window was last placed from (its section, its units, the lattice's box) and whether it showed. */
+  private readonly placed = [0, 1].map(() => ({
+    section: undefined as unknown,
+    u0: Number.NaN,
+    u1: Number.NaN,
+    box0: Number.NaN,
+    box1: Number.NaN,
+    box2: Number.NaN,
+    box3: Number.NaN,
+    shown: false,
+    whole: true,
+  }));
+  private readonly edgeFn = (k: number, horizontal: boolean) => this.edgePx(k, horizontal);
   private readonly frameRecord: {
     lists: DrawLists;
     rebuilt: boolean;
@@ -157,6 +167,23 @@ export class SquareNavigator {
     const max = this.config.navigator.square.maxCells;
     const within = blocks.length * blocks.length <= max;
     this.washRuns = within ? washRuns(this.shownX, this.shownY) : new Int32Array(0);
+    this.setMode =
+      this.navigator.switch === 'include' && this.navigator.of[0] === this.navigator.of[1] && blocks.length > 0;
+    if (this.setMode) shownRun(this.shownX, this.run);
+    const of = this.lattice ? latticeAssembly(options.model, options.view, options.navigator) : undefined;
+    this.cells =
+      of !== undefined
+        ? SquarePictureCells.of(options.model, options.view, this.navigator, of, this.tokens, this.config, options)
+        : undefined;
+    const self = this;
+    this.latticeView = {
+      systems: blocks.map((b) => b.axis.system),
+      names: this.names,
+      edge: this.edgeFn,
+      get tokens() {
+        return self.tokens;
+      },
+    };
     if (!within)
       this.issues.push(
         issueOf(
@@ -178,6 +205,7 @@ export class SquareNavigator {
 
   setTokens(tokens: SeqTokens): void {
     this.tokens = tokens;
+    this.cells?.setTokens(tokens);
   }
 
   /** The square adds no zoom strip. */
@@ -253,13 +281,26 @@ export class SquareNavigator {
     const lists = this.lists;
     const c = this.tokens.colors;
     const px = 1 / (input.dpr ?? 1);
-    // the base (the wash, the lattice, the labels) drawn once a size and tokens; a window move redraws the window alone
-    const key = `${width}x${height}@${px}`;
-    const rebuilt = key !== this.baseKey || this.tokens !== this.baseTokens;
-    if (rebuilt) {
-      this.baseKey = key;
+    // the base (the cells, the wash, the lattice, the labels) drawn once a size and tokens, and when the cells change; a
+    // window move redraws the window alone (nothing made: the key is numbers)
+    const sized =
+      width !== this.baseW || height !== this.baseH || px !== this.basePx || this.tokens !== this.baseTokens;
+    if (sized) {
+      this.baseW = width;
+      this.baseH = height;
+      this.basePx = px;
       this.baseTokens = this.tokens;
       this.place(width, height);
+    }
+    const cells = this.cells;
+    // asked first with no number passed (a call that is not inlined boxes one): a window's move lays nothing out
+    const settled = input.settled ?? false;
+    const changed =
+      !!cells &&
+      cells.due(settled, sized) &&
+      cells.layout(this.grid.width, input.dpr ?? 1, settled, input.overlay, sized);
+    const rebuilt = sized || changed;
+    if (rebuilt) {
       lists.reset();
       lists.width = width;
       lists.height = height;
@@ -267,11 +308,37 @@ export class SquareNavigator {
     } else lists.reset(WindowPasses);
     this.frameRecord.rebuilt = rebuilt;
     this.frameRecord.base = rebuilt;
+    this.frameRecord.wants = (cells?.wants ?? NoWants) as never[];
     this.placeWindows(input.view);
     const out = lists.writer('window');
     const w = this.windows[0];
     const wy = this.windows[1];
-    if (w.shown) {
+    if (this.setMode) {
+      const p = this.preview;
+      const shown = p.i0 >= 0 ? p : this.run;
+      // its paint through an array (a number passed to a call that is not inlined is boxed)
+      const style = SetStyle;
+      style[0] = c['seq-window'];
+      style[1] = Math.max(px, 1.5);
+      style[2] = shown.i0 >= 0 ? this.config.navigator.window.handlePx : 0;
+      drawShownSet(out, this.shownX, shown, this.edgeFn, style, this.maxCells);
+      if (this.keyI >= 0 && this.keyJ >= 0 && this.keyI < this.blockCount && this.keyJ < this.blockCount) {
+        // inset and rounded in the accent: a cursor, never read as the window's outline
+        const g = out.args;
+        g[0] = this.edgePx(this.keyI, true) + KeyInset;
+        g[1] = this.edgePx(this.keyJ, false) + KeyInset;
+        g[2] = Math.max(px, this.edgePx(this.keyI + 1, true) - g[0] - KeyInset);
+        g[3] = Math.max(px, this.edgePx(this.keyJ + 1, false) - g[1] - KeyInset);
+        g[4] = NoColor;
+        g[5] = c['msui-accent'];
+        g[6] = Math.max(px, 1.5);
+        g[7] = KeyInset;
+        g[8] = Round.both;
+        out.rectArgs();
+      }
+    }
+    // over a set the window is drawn too where the view does not show the whole section (a followed ring's, EC-110)
+    if (w.shown && (!this.setMode || !this.wholeView)) {
       const y0 = wy.shown ? wy.y0 : w.y0;
       const y1 = wy.shown ? wy.y1 : w.y1;
       const g = out.args;
@@ -328,6 +395,8 @@ export class SquareNavigator {
     const g = this.grid;
     lists.writer('background').fill(0, 0, this.box.width, this.box.height, c['seq-track']);
     const data = lists.writer('data');
+    // the picture's cells under the wash and the lines (always drawn: never bounded by `maxCells`)
+    this.cells?.draw(data, this.latticeView);
     if (blocks.length * blocks.length > this.config.navigator.square.maxCells) return;
     const edge = (k: number) => (k < blocks.length ? (blocks[k].offset ?? 0) : this.total);
     const runs = this.washRuns;
@@ -377,8 +446,40 @@ export class SquareNavigator {
       w.axes = 0;
       // one section on both axes: its one window, drawn on the diagonal
       if (k === 1 && nav.of[1] === nav.of[0]) continue;
-      const s = view?.sections.find((x) => x.section.address === nav.of[k]);
+      // (a loop, not `find`: a frame allocates no closure)
+      let s: ViewLayout['sections'][number] | undefined;
+      const sections = view?.sections;
+      for (let i = 0; sections && i < sections.length && !s; i++)
+        if (sections[i].section.address === nav.of[k]) s = sections[i];
       if (!s?.axis) continue;
+      // the same window over the same lattice as last placed: its numbers and places kept (a gesture's preview, a
+      // move of another window: nothing made)
+      const last = this.placed[k];
+      const box = this.grid;
+      if (
+        last.section === s.section &&
+        last.u0 === s.axis.u0 &&
+        last.u1 === s.axis.u1 &&
+        last.box0 === box.x &&
+        last.box1 === box.y &&
+        last.box2 === box.width &&
+        last.box3 === box.height
+      ) {
+        if (k === 0) this.wholeView = last.whole;
+        w.shown = last.shown;
+        w.axes = last.shown ? 1 : 0;
+        continue;
+      }
+      last.section = s.section;
+      last.u0 = s.axis.u0;
+      last.u1 = s.axis.u1;
+      last.box0 = box.x;
+      last.box1 = box.y;
+      last.box2 = box.width;
+      last.box3 = box.height;
+      last.shown = false;
+      last.whole = s.axis.u0 <= 1e-6 && s.axis.u1 >= sectionTotal(s.section) - 1e-6;
+      if (k === 0) this.wholeView = last.whole;
       const r = this.windowOn(s.section, s.axis.u0, s.axis.u1);
       if (!r) continue;
       const horizontal = k === 0;
@@ -406,7 +507,140 @@ export class SquareNavigator {
       w.p1 = pb?.position ?? 0;
       w.axes = 1;
       w.shown = true;
+      last.shown = true;
     }
+  }
+
+  /** The lattice's blocks a side. */
+  get blockCount(): number {
+    return this.lattice?.blocks?.length ?? 0;
+  }
+
+  /** A lattice block's name (its system's). */
+  blockName(k: number): string {
+    return this.names[k] ?? '';
+  }
+
+  /** A lattice block's system. */
+  blockSystem(k: number): string {
+    return this.lattice?.blocks?.[k]?.axis.system ?? '';
+  }
+
+  /** Whether the bound section shows lattice block `k` (along x: with one section on both axes, the set's). */
+  shows(k: number): boolean {
+    return this.shownX[k] === true;
+  }
+
+  /** The px of lattice block `k`'s start along x (or y); `k` the count: the lattice's end. */
+  edgePx(k: number, horizontal: boolean): number {
+    const blocks = this.lattice?.blocks;
+    const u = !blocks || k >= blocks.length ? this.total : (blocks[Math.max(0, k)].offset ?? 0);
+    return this.at(u, horizontal);
+  }
+
+  private get maxCells(): number {
+    return this.config.navigator.square.maxCells;
+  }
+
+  /** What a cell's picture says of it (`37 links`), undefined without one. */
+  cellText(i: number, j: number): string | undefined {
+    return this.cells?.text(i, j, this.latticeView);
+  }
+
+  /** The keyboard's cell (lattice indices; -1 none), outlined in the accent while the square has the focus. */
+  setKeyCell(i: number, j: number): void {
+    this.keyI = i;
+    this.keyJ = j;
+  }
+
+  private keyI = -1;
+  private keyJ = -1;
+
+  /** A gesture's run drawn instead of the shown one (`[i0, i1)` of lattice blocks); `i0` -1 clears it. */
+  setPreview(i0: number, i1: number): void {
+    this.preview.i0 = i0;
+    this.preview.i1 = i0 < 0 ? -1 : i1;
+  }
+
+  /**
+   * The grip of the shown run's box under a point (its body, its start or end edge or corner), within
+   * `navigator.window.hitPx` / 2 of an edge; undefined off the box, over a scattered set, or not a set. The object
+   * returned is reused.
+   */
+  gripAt(x: number, y: number, touch = false): SquareGripHit | undefined {
+    const r = this.run;
+    if (!this.setMode || r.i0 < 0) return undefined;
+    const cfg = this.config.navigator.window;
+    const slop = (touch ? cfg.touchHitPx : cfg.hitPx) / 2;
+    const x0 = this.edgePx(r.i0, true);
+    const x1 = this.edgePx(r.i1, true);
+    const y0 = this.edgePx(r.i0, false);
+    const y1 = this.edgePx(r.i1, false);
+    return gripOf(x, y, x0, x1, y0, y1, slop, this.gripHit) ? this.gripHit : undefined;
+  }
+
+  /**
+   * The lattice edge nearest a point (0 to the count) along x, y, or the diagonal (`both`: the mean of its two units):
+   * where a resized run's edge snaps (whole blocks).
+   */
+  edgeAt(x: number, y: number, axis: 'x' | 'y' | 'both'): number {
+    this.pointer[0] = x;
+    this.pointer[1] = y;
+    return this.edgeAtPointer(axis);
+  }
+
+  /** The lattice block under a point along x, y or the diagonal (a run's move: the block the pointer is over). */
+  blockAtPoint(x: number, y: number, axis: 'x' | 'y' | 'both'): number {
+    this.pointer[0] = x;
+    this.pointer[1] = y;
+    return this.blockAtPointer(axis);
+  }
+
+  /**
+   * A gesture's point, set by the caller before `blockAtPointer` and `edgeAtPointer` (a number passed to a call that is
+   * not inlined is boxed: a drag's moves read it here, nothing allocated).
+   */
+  readonly pointer = new Float64Array(2);
+
+  /** `blockAtPoint` of `pointer`. */
+  blockAtPointer(axis: 'x' | 'y' | 'both'): number {
+    return this.blockOf(this.pointerUnit(axis));
+  }
+
+  /** `edgeAt` of `pointer`. */
+  edgeAtPointer(axis: 'x' | 'y' | 'both'): number {
+    const blocks = this.lattice?.blocks;
+    if (!blocks?.length) return 0;
+    const u = this.pointerUnit(axis);
+    let best = 0;
+    let d = Number.POSITIVE_INFINITY;
+    for (let k = 0; k <= blocks.length; k++) {
+      const dk = Math.abs((k < blocks.length ? (blocks[k].offset ?? 0) : this.total) - u);
+      if (dk < d) {
+        d = dk;
+        best = k;
+      }
+    }
+    return best;
+  }
+
+  /** `pointer`'s lattice unit along x, y or the diagonal (read from the array: nothing boxed). */
+  private pointerUnit(axis: 'x' | 'y' | 'both'): number {
+    const g = this.grid;
+    const p = this.pointer;
+    const ux = Math.max(0, Math.min(this.total, ((p[0] - g.x) / Math.max(1e-9, g.width)) * this.total));
+    const uy = Math.max(0, Math.min(this.total, ((p[1] - g.y) / Math.max(1e-9, g.height)) * this.total));
+    return axis === 'x' ? ux : axis === 'y' ? uy : (ux + uy) / 2;
+  }
+
+  /** The block whose name is under a point (the x labels' band above the lattice, the y labels' column left); -1 else. */
+  labelAt(x: number, y: number): number {
+    const blocks = this.lattice?.blocks;
+    const g = this.grid;
+    if (!blocks?.length) return -1;
+    if (y < g.y && y >= 0 && x >= g.x && x < g.x + g.width) return this.blockOf(this.unitAt(x, true));
+    if (x < g.x && x >= 0 && y >= g.y && y < g.y + g.height) return this.blockOf(this.unitAt(y, false));
+    return -1;
   }
 
   /** Whether a point is inside the window's rectangle (both axes). */
@@ -438,10 +672,12 @@ export class SquareNavigator {
     const u = this.unitAt(x, true);
     const block = blocks[cell.x];
     const position = Math.max(0, (u - (block.offset ?? 0)) / (block.scale ?? 1)) + (block.axis.ranges?.[0] ?? 0);
-    const inside = this.inWindow(x, y);
+    // over a set: the run's grip under the point (its body, an edge or corner), never the scattered cells
+    const grip = this.setMode ? this.gripAt(x, y) : undefined;
+    const inside = this.setMode ? grip !== undefined : this.inWindow(x, y);
     return {
       section,
-      part: inside ? 'body' : 'outside',
+      part: !inside ? 'outside' : (grip?.grip ?? 'body'),
       axis: 'positions',
       position,
       system: cell.xSystem,
@@ -552,42 +788,4 @@ export class SquareNavigator {
   rowAt(_y: number): number | undefined {
     return undefined;
   }
-}
-
-/** The letters every name starts with, never a whole name (`chr` of `chr1`…`chrX`; none of `chr1` alone). */
-function sharedPrefix(names: readonly string[]): string {
-  if (names.length < 2) return '';
-  let p = names[0];
-  for (const n of names) while (p && !n.startsWith(p)) p = p.slice(0, -1);
-  while (p && names.some((n) => n.length === p.length)) p = p.slice(0, -1);
-  // letters only (never a digit of the name: `chr1` and `chr12` share `chr1`)
-  return p.replace(/[0-9]+$/, '');
-}
-
-/** Whether a bound section shows a system (one of its blocks is on it). */
-function shows(s: ResolvedSection | undefined, system: string): boolean {
-  return !!s?.blocks?.some((b) => b.axis.system === system);
-}
-
-/** The lattice: a section of the navigator's assembly (its `include` alone), else of the first bound section's `of`. */
-function latticeOf(model: StaticModel, view: ResolvedView, nav: ResolvedNavigator): ResolvedSection | undefined {
-  const first = view.sections.find((s) => s.address === nav.of[0]);
-  let of: Value | undefined = nav.assemblies
-    ? nav.assemblies.length === 1
-      ? nav.assemblies[0]
-      : (nav.assemblies as Value)
-    : undefined;
-  if (of === undefined && first) {
-    let n: Node | undefined = model.spec;
-    for (const id of first.address.split('/').filter(Boolean)) n = n?.children?.find((c) => c.id === id);
-    of = n?.params?.of as Value | undefined;
-  }
-  if (of === undefined) return undefined;
-  const node: Node = {
-    kind: 'view',
-    id: nav.id,
-    params: { layout: 'tracks' },
-    children: [{ kind: 'section', id: 'square', params: { of } }],
-  };
-  return resolveViewNode(model, node, nav.address).sections[0];
 }

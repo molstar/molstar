@@ -27,6 +27,8 @@ import type { SeqTokens } from './tokens.js';
 /** What a layout reads of the data store: `DataStore` is one. */
 export interface StoreReader {
   coverage(source: string): Coverage | undefined;
+  /** Whether a source's opening failed (its issue said): its tiles read as failed, not pending; absent: never. */
+  unopened?(source: string): boolean;
   keysOf(want: Want): string[];
   /** Whether a want is past the store's bound on its tiles (\`keysOf\` then lists none), where the reader says it. */
   tooMany?(want: Want): boolean;
@@ -44,6 +46,17 @@ export interface StoreReader {
 }
 
 /** The dynamic nodes of tier 2 (the resolve pass's overlay): its version is part of the draw lists' key. */
+/** A failed opening's coverage as a layout read it (none, failed): a stand-in compared by identity. @internal */
+const UnopenedCoverage = {} as Coverage;
+
+/**
+ * A source's coverage as a layout records it to tell whether its reads hold: the coverage, else the failed opening's
+ * stand-in when the store says the source's opening failed, else undefined (pending). @internal
+ */
+export function coverageRead(data: StoreReader, source: string, c: Coverage | undefined): Coverage | undefined {
+  return c ?? (data.unopened?.(source) ? UnopenedCoverage : undefined);
+}
+
 export type { Overlay } from '@molstar/seqx-core/resolve';
 export { EmptyOverlay } from '@molstar/seqx-core/resolve';
 
@@ -466,6 +479,32 @@ export interface LayerType<Prep = unknown, Lay = unknown> {
    * parts on its y systems it paints through its own y transform; the strip paints x.
    */
   readonly axes?: 1 | 2;
+  /**
+   * Its cells over a square's lattice (_spec/README.md "Render", Navigators, The square, A picture's cells): a type a
+   * square's picture names in its track draws there through this, from the lay its own `layout` made over the
+   * assembly's blocks (a hidden section the square lays out). Absent: the square draws only its lattice.
+   */
+  readonly square?: SquareCells<Lay>;
+}
+
+/** The square's lattice as a type's cells see it: its blocks' systems in order and each edge's px. */
+export interface SquareLattice {
+  /** The lattice's blocks' systems and names, in its order. */
+  readonly systems: readonly string[];
+  readonly names: readonly string[];
+  /** The px of block `k`'s start along x (`horizontal`) or y; `k` the count: the lattice's end. */
+  edge(k: number, horizontal: boolean): number;
+  readonly tokens: SeqTokens;
+}
+
+/** A layer type's cells over a square (`LayerType.square`). */
+export interface SquareCells<Lay> {
+  /** Draws its cells (the base pass, under the wash and the lattice's lines); nothing allocated once warm. */
+  draw(lay: Lay, out: PassWriter, lattice: SquareLattice): void;
+  /** What a cell says, block `i` along x and `j` along y (`37 links`); undefined: nothing. */
+  text?(lay: Lay, i: number, j: number, lattice: SquareLattice): string | undefined;
+  /** Whether its lay still waits on data (the square lays it out again each frame until it does not). */
+  pending?(lay: Lay): boolean;
 }
 
 /**

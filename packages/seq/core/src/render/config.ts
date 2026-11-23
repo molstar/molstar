@@ -33,6 +33,11 @@ export interface RenderConfig {
   /** The page's inset around everything, in CSS px. */
   readonly inset: number;
   /**
+   * The composed extensions' settings by key (`rondo.stemPx`), as the composition's `config` gave them: what an
+   * extension's layer types read through `settingOf` (_spec/README.md "Context", Extensions, Settings). Absent: none.
+   */
+  readonly settings?: Readonly<Record<string, unknown>>;
+  /**
    * The one label column: its width, and the gap between it and the data. With `labelColumn.measure` (the default) the
    * width is the widest track label's in the view (a direction mark fades at its end), between `labelColumn.min` and
    * `labelColumn.max` (80 and 160 px), and a label past it ends in an ellipsis; without, `labelWidth` (112) is the width

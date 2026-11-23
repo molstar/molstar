@@ -195,9 +195,12 @@ describe('Genome ring stories, headless', () => {
     expect(descriptions(v)).toContain('links loading');
     v = await open(ringStoryView('ring-failed'), Rondo, 10_000);
     expect(v.store.issues.value.filter((i) => i.severity === 'error').length).toBe(1);
-    // a source that never opened has no coverage, so core's tile reads call its tiles pending: no ribbon, the hatch
-    // stays (the issue says why)
-    expect(ribbonsOf(v)!.nr).toBe(0);
+    // a source that never opened is failed on the store (its issue says why): no ribbon, no hatch waiting, said
+    const failed = ribbonsOf(v)!;
+    expect(failed.nr).toBe(0);
+    expect(failed.empty).toBe('failed');
+    expect(failed.reader.pending ?? []).toEqual([]);
+    expect(descriptions(v)).toContain('links failed');
     v = await open(ringStoryView('ring-no-links'));
     expect(ribbonsOf(v)!.empty).toBe('none');
     expect(descriptions(v)).toContain('no links');

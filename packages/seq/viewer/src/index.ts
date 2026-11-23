@@ -28,3 +28,13 @@ export {
   type SeqViewerExtension,
   type SeqViewerUI,
 } from './viewer-spec.js';
+export type {
+  HeaderElement,
+  HeaderEntry,
+  HeaderFacts,
+  HeaderMenu,
+  HeaderMenuItem,
+  HeaderSubEntry,
+  HeaderTarget,
+} from './header-entries.js';
+export type { CommandRan } from './viewer.js';

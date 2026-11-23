@@ -5,6 +5,7 @@
  */
 
 import type { BindingTable } from '@molstar/seqx-viewer/bindings';
+import type { HeaderEntry } from './header-entries.js';
 import type { SeqViewer, ViewerCommand } from './viewer.js';
 import type { createBehaviors } from './viewer-behaviors.js';
 import type { BehaviorContext, BehaviorHandle, SeqViewerExtension, SeqViewerSpec } from './viewer-spec.js';
@@ -39,8 +40,9 @@ function kindsChanged(viewer: SeqViewer, x: ViewerExtensions): void {
  * Registers `ext` on a viewer: the context's entries (its checks throw first, nothing changed), its behaviors (made
  * after the viewer's, `composed` called), its commands and bindings; the undo takes them away in reverse. The same
  * descriptor again is counted: its parts are made once and go with its last undo (one composed is the viewer's). What
- * a late registration would leave unread is refused, as a format is: header entries and settings (read when the viewer
- * is composed), a behavior with a part over the canvas (`attach`, called when it is mounted).
+ * a late registration would leave unread is refused, as a format is: settings (read when the viewer is composed), a
+ * behavior with a part over the canvas (`attach`, called when it is mounted). Its header entries go on the viewer's
+ * headers (`register`), with it.
  */
 export function extendViewer(viewer: SeqViewer, ext: SeqViewerExtension, x: ViewerExtensions): () => void {
   const context = viewer.context;
@@ -49,10 +51,8 @@ export function extendViewer(viewer: SeqViewer, ext: SeqViewerExtension, x: View
   if (!held) {
     if (ext.bindings && !ext.composeViewer)
       throw new Error(`${ext.id}: a viewer extension is made by defineViewerExtension`);
-    if (ext.registry.some((e) => /^(format|query)/.test(e.kind)) || ext.headerActions?.length || ext.config?.length)
-      throw new Error(
-        `${ext.id}: formats, query entries, header entries and settings are composed, not registered late`,
-      );
+    if (ext.registry.some((e) => /^(format|query)/.test(e.kind)) || ext.config?.length)
+      throw new Error(`${ext.id}: formats, query entries and settings are composed, not registered late`);
     context._extend([...context.extensions, ext]);
     const disposers: (() => void)[] = [];
     const commands: ViewerCommand[] = [...(ext.commands ?? [])];
@@ -78,6 +78,17 @@ export function extendViewer(viewer: SeqViewer, ext: SeqViewerExtension, x: View
       throw e;
     }
     viewer.commands.push(...commands);
+    // its header entries on the viewer's headers (none composed: nothing reads them), once its commands are there
+    // (an entry names one); taken away with it
+    const headers = viewer.behavior<{ register(...e: HeaderEntry[]): () => void }>('headers');
+    if (ext.headerActions?.length && headers)
+      try {
+        disposers.push(headers.register(...ext.headerActions));
+      } catch (e) {
+        remove();
+        for (const c of commands) viewer.commands.splice(viewer.commands.indexOf(c), 1);
+        throw e;
+      }
     held = {
       n: 0,
       dispose: () => disposers.forEach((d) => d()),

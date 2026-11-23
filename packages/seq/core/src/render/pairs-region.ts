@@ -55,6 +55,8 @@ export interface RegionState {
   pending?: readonly number[];
   /** Whether the last read waits on a bins' tile it wanted (a region's or an assembly's block's). */
   waiting: boolean;
+  /** Whether a bins' tile of the last read failed (its source's opening, a read): nothing to wait for. */
+  failed: boolean;
   /**
    * The data's positions read this frame by its system (`dataRegions`: projected, normalized, merged near; over an
    * assembly each block's system): a bridge's drawn-once rule reads them.
@@ -78,6 +80,7 @@ export function regionState(owner: object): RegionState {
         itemCount: 0,
         windows: new Map(),
         waiting: false,
+        failed: false,
       }),
     );
   return s;
@@ -253,6 +256,7 @@ export function regionPairs(
   const binRead = readTiles(ctx, data, src, regions, bins);
   state.pending = binRead.pending;
   state.waiting = binRead.pending.length > 0;
+  state.failed = binRead.failed.length > 0;
   // at the finest level the bins are the items themselves
   const binned = binRead.entries.some((e) => e.tables.pairs?.form === 'bins');
   state.binPairs = binned

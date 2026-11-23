@@ -9,7 +9,16 @@ import type { WindowPart } from '@molstar/seqx-core/render';
 // The cursor over a window's part (_spec/README.md "Composition", Navigators): the canvas's rails and the navigators
 // read it, so it is here, not with the navigators (a viewer that lists none draws rails).
 
-export type PartCursor = 'ew-resize' | 'ns-resize' | 'grab' | 'grabbing' | 'pointer' | 'default';
+export type PartCursor =
+  | 'ew-resize'
+  | 'ns-resize'
+  | 'nwse-resize'
+  | 'move'
+  | 'grab'
+  | 'grabbing'
+  | 'pointer'
+  | 'not-allowed'
+  | 'default';
 
 /**
  * The cursor that says the gesture over a window's part: a grip resizes along the axis it moves (`ew-resize` along

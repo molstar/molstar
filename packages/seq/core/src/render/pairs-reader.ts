@@ -107,4 +107,9 @@ export class PairsReader {
   get waiting(): boolean {
     return regionState(this).waiting;
   }
+
+  /** Whether a bins' tile of the last read failed (a source whose opening failed): failed, not pending. */
+  get failed(): boolean {
+    return regionState(this).failed;
+  }
 }

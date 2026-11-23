@@ -95,6 +95,16 @@ const ViewerKinds: ReadonlySet<string> = new Set(['header-action', 'card-provide
 /** A command a behavior provides, with the context it runs in. */
 export type ViewerCommand = CommandDefinition<any>;
 
+/**
+ * A command that ran (`commandRan`): its id, a count, and its message when it ran at once (a command that moves the
+ * keyboard cursor and says where, `rondo:partner`'s, is said by the announcer).
+ */
+export interface CommandRan {
+  readonly id: string;
+  readonly n: number;
+  readonly message?: string;
+}
+
 export class SeqViewer extends ReactiveModel {
   readonly context: SeqContext;
   /** The spec's registry as listed: the core's entries and the viewer's own kinds (header entries). */
@@ -150,7 +160,7 @@ export class SeqViewer extends ReactiveModel {
    * Moves (a new record each time) after each command has run, whether or not it changed anything: what says what a
    * key did when the state it moves stays (the announcements: a cursor key at the end of its axis).
    */
-  readonly commandRan: ReadonlyState<{ readonly id: string; readonly n: number }>;
+  readonly commandRan: ReadonlyState<CommandRan>;
 
   /** Moves to the token table's version each time the tokens change (`setTokens`): what follows the picture redraws. */
   readonly tokensVersion: ReadonlyState<number>;
@@ -189,7 +199,7 @@ export class SeqViewer extends ReactiveModel {
   /** Moves when the issues do, not with each layout: what follows them (a story's SVG export) runs once a change. */
   private readonly _issues = new State<readonly Issue[]>([], sameIssues);
   private readonly _behaviorIssues = new State<readonly Issue[]>([], sameIssues);
-  private readonly _ran = new State<{ readonly id: string; readonly n: number }>({ id: '', n: 0 });
+  private readonly _ran = new State<CommandRan>({ id: '', n: 0 });
   private readonly _tokensVersion = new State(0);
   /**
    * The collaborators, each a module beside this one given what it reads (the frame calls them without allocating):
@@ -530,6 +540,8 @@ export class SeqViewer extends ReactiveModel {
     }
     await this._syncing;
     for (const h of this.behaviors.values() as Iterable<BehaviorHandle | undefined>) await h?.loaded?.();
+    // the navigators' chunks (a square's) a view shows
+    await this._rails.loaded()?.catch(() => undefined);
     const until = DomHost.now() + timeoutMs;
     this._clock.quiet = true;
     for (let round = 0; round < 8; round++) {
@@ -770,7 +782,8 @@ export class SeqViewer extends ReactiveModel {
     const can = c.when?.(context);
     if (can !== undefined && can !== true) return typeof can === 'string' ? can : 'Not available';
     const r = c.run({}, context as never, NeverAborted);
-    this._ran.set({ id, n: this._ran.value.n + 1 });
+    const message = r instanceof Promise ? undefined : r.message;
+    this._ran.set(message ? { id, n: this._ran.value.n + 1, message } : { id, n: this._ran.value.n + 1 });
     return r instanceof Promise ? r.then((x: CommandResult) => x.message ?? '') : (r.message ?? '');
   }
 

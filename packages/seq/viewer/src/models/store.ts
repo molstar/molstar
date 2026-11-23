@@ -321,8 +321,9 @@ export class StoreModel extends ReactiveModel {
       } else this._watch(address, o, opened, runtime, assets);
     } catch (e) {
       if (isAbortError(e) || o.abort.signal.aborted) return;
-      // forgotten, so a later sync tries again
+      // forgotten, so a later sync tries again; its tiles failed meanwhile (a layer waits for nothing)
       if (this._open.get(address) === o) this._open.delete(address);
+      this.store.markUnopened(address);
       this._report(address, unopened(e, address));
     }
   }

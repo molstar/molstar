@@ -12,6 +12,7 @@
 
 export {
   configItem,
+  settingOf,
   type SeqConfigItem,
   type SeqExtension,
   type SeqRegistryEntry,
@@ -45,6 +46,8 @@ export {
   type ItemDescription,
   type LayerPlace,
   type LayerType,
+  type SquareCells,
+  type SquareLattice,
   drawNavigatorWindow,
   floorExtent,
   type LayoutContext,

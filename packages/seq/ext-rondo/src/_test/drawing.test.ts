@@ -84,11 +84,26 @@ function accounted(l: RondoLay) {
     if (ribbons.get(key) !== l.ribCount[r]) wrong.push(`ribbon ${key}: ${l.ribCount[r]}, pairs ${ribbons.get(key)}`);
   }
   for (const key of ribbons.keys()) if (!held.has(key)) wrong.push(`pairs of ${key} in no ribbon`);
+  // a folded stub (`rondo.stubMin`): its count the sum of its partners', each partner's pairs its own entry
+  const parts: { stem: number; partner: number; count: number }[] = [];
   for (let b = 0; b < l.nb; b++) {
-    const key = `${l.stubStem[b]}|${l.stubPartner[b]}`;
+    if (l.stubPartner[b] >= 0) {
+      parts.push({ stem: l.stubStem[b], partner: l.stubPartner[b], count: l.stubCount[b] });
+      continue;
+    }
+    let sum = 0;
+    for (let e = 0; e < l.nf; e++)
+      if (l.foldOwner[e] === b) {
+        sum += l.foldCount[e];
+        parts.push({ stem: l.stubStem[b], partner: l.foldPartner[e], count: l.foldCount[e] });
+      }
+    if (sum !== l.stubCount[b]) wrong.push(`folded stub ${b}: ${l.stubCount[b]}, its partners ${sum}`);
+  }
+  for (const p of parts) {
+    const key = `${p.stem}|${p.partner}`;
     if (held.has(`stub ${key}`)) wrong.push(`stub ${key} twice`);
     held.add(`stub ${key}`);
-    if (stubs.get(key) !== l.stubCount[b]) wrong.push(`stub ${key}: ${l.stubCount[b]}, pairs ${stubs.get(key)}`);
+    if (stubs.get(key) !== p.count) wrong.push(`stub ${key}: ${p.count}, pairs ${stubs.get(key)}`);
   }
   for (const key of stubs.keys()) if (!held.has(`stub ${key}`)) wrong.push(`pairs of ${key} in no stub`);
   for (let s = 0; s < l.ns; s++)
@@ -201,6 +216,14 @@ describe('drawing against the data', () => {
       const st = l.stubStem[b];
       expect(l.stemPlaced[st]).toBe(1);
       expect(l.names[l.stemSystem[st]]).toBe('chr2');
+      // a folded stub (its stem's small stubs as one) in the muted text's colour, one a stem
+      if (l.stubPartner[b] < 0) {
+        const key = `${st}|folded`;
+        expect(seen.has(key)).toBe(false);
+        seen.add(key);
+        if (l.stubPoly[b] >= 0) expect(l.polyColor[l.stubPoly[b]] >>> 8).toBe(l.muted >>> 8);
+        continue;
+      }
       expect(l.names[l.stubPartner[b]]).not.toBe('chr2');
       const key = `${st}|${l.stubPartner[b]}`;
       expect(seen.has(key)).toBe(false);

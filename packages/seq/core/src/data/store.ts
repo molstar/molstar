@@ -205,6 +205,7 @@ export class DataStore extends ReactiveModel {
     // a late opening after the store is retired is the caller's to dispose
     if (this.isRetired) return false;
     if (this._sources.attached(address)) this.detach(address);
+    this._unopened.delete(address);
     const prepared = this._prepare(address, source);
     if (!prepared) return false;
     this._run(() => {
@@ -276,6 +277,7 @@ export class DataStore extends ReactiveModel {
    * with a source attached under the address.
    */
   detach(address: string): void {
+    this._unopened.delete(address);
     const s = this._sources.attached(address);
     if (!s) return;
     this._run(() => {
@@ -289,6 +291,23 @@ export class DataStore extends ReactiveModel {
 
   coverage(address: string): Coverage | undefined {
     return this._sources.get(address)?.opened.coverage;
+  }
+
+  /** The sources whose opening failed, by address (the opener's word): cleared when one attaches or is let go. */
+  private readonly _unopened = new Set<string>();
+
+  /**
+   * The opener says a source's opening failed (its issue its own, said where it opens): until a source attaches under
+   * the address, its tiles read as failed, not pending (`unopened`), so a layer waits for nothing (_spec/README.md
+   * "Data", Store, A failed opening).
+   */
+  markUnopened(address: string): void {
+    if (!this.isRetired && !this._sources.attached(address)) this._unopened.add(address);
+  }
+
+  /** Whether a source's opening failed and none is attached under its address. */
+  unopened(address: string): boolean {
+    return this._unopened.has(address);
   }
 
   // Entries

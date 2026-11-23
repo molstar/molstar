@@ -208,6 +208,7 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
           }
         : {}),
       ...(target.element ? { element: target.element } : {}),
+      viewer,
       ...blockFacts(model, section, specNode, target.block),
     };
   };
@@ -482,14 +483,21 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
     const header = hit && headerTarget(hit, layout);
     if (header) return header;
     if (hit)
-      for (const s of layout.sections)
-        for (const t of s.tracks)
-          if (t.layers.some((l) => l.key === hit.layer))
+      for (const s of layout.sections) {
+        // a strip's layer, else a section's (an extension's ribbons), on the track that holds it
+        const sl = s.sectionLays.find((l) => l.key === hit.layer);
+        for (const t of s.tracks) {
+          const l =
+            sl && sl.layer.address?.startsWith(`${t.track.address}/`) ? sl : t.layers.find((x) => x.key === hit.layer);
+          if (l)
             return {
               section: s.section.address,
               track: t.track.address,
-              ...(hit.element ? { element: { layer: hit.layer, key: hit.element.key } } : {}),
+              // the element with its layer's type: an extension's entries are scoped by it (its stem menu)
+              ...(hit.element ? { element: { layer: hit.layer, key: hit.element.key, type: l.type.name } } : {}),
             };
+        }
+      }
     // a track's band under the point, else its section; on a row of blocks the block under it (its label's menu)
     const section = viewer.input.sectionAt(y);
     const s = section === undefined ? undefined : sectionLayout(layout, section);
