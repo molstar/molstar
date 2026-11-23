@@ -1710,6 +1710,9 @@ each. Why lazy: a viewer that never shows a bridge pays for none of it (eager: t
   the sides by their ids; a stub's far end ", not shown"; a bin pair's count and its bins' width ("37 pairs · 16 kb bins
   · zoom in to see them"), never an aligned length. Built from the hit ribbon alone (`BridgeLayout.ribbon(key)`), never
   the list. The commands' change kinds are the commands table's (`commands.ts`).
+- **Its legend**: the bridge's layers' colour channels are keyed in the view's legends like any layer's (core's
+  `viewLegends`, titled by the bridge's `label`, noted "width: aligned length"), unless the layer says `legend: none`;
+  coloured by `orientation`, its entries are `same` and `inverted`.
 - **ARIA words** (`bridgeAria`): each bridge its `label` and the ribbons in view ("3 ribbons between peach and grape in
   view"; none: "no ribbons in view"); the mount sets them as visually hidden `role="group"` nodes, labelled, beside the
   canvas each time a frame settles (`aria`).

@@ -43,6 +43,8 @@ export function viewLegends(layout: ViewLayout, maxItems = 12): { legends: Legen
     // a section's own layers (pairs' arcs and dots), titled by the track that holds them
     for (const l of s.sectionLays) add(l, s.section.tracks.find((t) => t.layers.includes(l.layer))?.label ?? '');
   }
+  // a bridge's layers (its ribbons), titled by the bridge's label, after the sections' (_spec/README.md "Render", Bridges)
+  for (const b of layout.bridges?.list ?? []) for (const l of b.lays) add(l, b.label);
   // after the merge: legends of one title but of different channels say their channel (`Variants (size)`)
   const legends = qualifyLegends(mergeLegends(all));
   const issues: Issue[] = [];

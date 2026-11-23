@@ -73,9 +73,15 @@ class RibbonDatum implements ThemeDatum {
   field(name: string): string | number | undefined {
     if (name === 'block') return this.block;
     if (name === 'system') return this.system;
+    // its ends on one strand or on opposite ones (an inversion): a ribbon crossed where the strands' product is −1
+    if (name === 'orientation')
+      return (this.pair.field('a_strand') === '-') !== (this.pair.field('b_strand') === '-') ? 'inverted' : 'same';
     return this.pair.field(name);
   }
 }
+
+/** The `orientation` field's values, in order: a palette listing none takes them (both keyed, one painted or not). */
+const Orientations = ['same', 'inverted'];
 
 /** Whether a field holds numbers: the ends and the numeric extra columns (the pairs layer's `pairEnv`), kept a data. */
 const Numeric = new WeakMap<PairsData, (n: string) => boolean>();
@@ -591,7 +597,8 @@ export function layoutRibbons(lay: RibbonsLay, ctx: BridgeLayoutContext, own?: O
   const domain = a.domains?.block ?? [a.address.slice(a.address.lastIndexOf('/') + 1)];
   lay.colorChannel = first.channels.get('color' as ChannelName, DefaultColor, ctx, {
     numeric: numericOf(first.data!),
-    categories: (f) => (f === 'block' ? domain : f === 'system' ? a.domains?.system : undefined),
+    categories: (f) =>
+      f === 'block' ? domain : f === 'system' ? a.domains?.system : f === 'orientation' ? Orientations : undefined,
   });
   const fill = config.ribbons.fillOpacity;
   // the bins' opacity scale: each read's heaviest bin
@@ -700,7 +707,11 @@ export const RibbonsType: LayerType<PairsPrep, RibbonsLay> = {
   },
   hit: hitRibbons,
   legend(lay, options) {
-    return channelLegends([lay.colorChannel], { ...options, layer: lay.key });
+    // a ribbon's width is its aligned length (its block's): said once, beside its colours
+    return channelLegends([lay.colorChannel], { ...options, layer: lay.key }).map((l) => ({
+      ...l,
+      notes: [...l.notes, 'width'],
+    }));
   },
   filtered: (lay) => lay.prep?.filtered ?? 0,
 };

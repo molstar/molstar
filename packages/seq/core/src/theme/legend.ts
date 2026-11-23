@@ -34,7 +34,7 @@ export type LegendEntries =
   | { readonly kind: 'sizes'; readonly items: readonly { readonly value: number; readonly size: number }[] };
 
 /** What a legend says once (`Legend.notes`). */
-export type LegendNote = 'unlisted' | 'substituted';
+export type LegendNote = 'unlisted' | 'substituted' | 'width';
 
 export interface Legend {
   /** What two legends that say the same share: they merge into one. */
@@ -55,7 +55,7 @@ export interface Legend {
   readonly more: number;
   /**
    * `unlisted`: values the palette does not list take hashed colors, listed only once painted. `substituted`: a reader's
-   * color-blind substitution.
+   * color-blind substitution. `width`: a mark's width is its item's length (a bridge's ribbons: their aligned length).
    */
   readonly notes: readonly LegendNote[];
   /** The layers (keys) it keys. */

@@ -26,7 +26,8 @@ export const LiftoverBridge = '/views/main/a-a2';
 /**
  * Toy A above, toy B below, a bridge between them drawing the alignment's blocks as ribbons (sided pairs from the
  * `seq` file, read by region from either end, EC-208): A's chr1 inversion crossed (its blocks read reversed on B,
- * EC-206), A's chr3 tail carried to B's `2` (a translocation), chr1's run of N no ribbon (a gap).
+ * EC-206), A's chr3 tail carried to B's `2` (a translocation), chr1's run of N no ribbon (a gap). The ribbons coloured
+ * by orientation (same, inverted), so the inversion reads apart from the translocation; the legend keys both.
  */
 export function synteny(files: Files = GenomesFiles): Node {
   const b = createSeqSpec({ title: 'Toy A over toy B' });
@@ -35,8 +36,9 @@ export function synteny(files: Files = GenomesFiles): Node {
   const aln = b.data.pairs('alignment', { a, b: g, source: fileSource(b, 'alignment-file', 'seq', files.alignment) });
   b.views.view('main', (v) => {
     genome(v, 'toy-a', a);
+    // coloured by orientation (an inversion apart from a same-strand block or a translocation), keyed in the legend
     v.bridge('a-b', { a: ASection, b: BSection, label: 'A to B' } as never, (br) =>
-      br.layer('blocks', { type: 'pairs', data: aln, legend: 'none' } as never),
+      br.layer('blocks', { type: 'pairs', data: aln, color: theme.field('orientation', { list: false }) } as never),
     );
     genome(v, 'toy-b', g);
   });

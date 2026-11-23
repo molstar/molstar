@@ -18,7 +18,8 @@ export default meta;
 /**
  * Toy A over toy B (the dataset's generated genomes; B names its sequences unprefixed), their alignment's blocks as
  * ribbons, read by region from either end of a `seq` file of sided pairs: A's chr1 inversion crossed, A's chr3 tail on
- * B's 2 (a translocation), chr1's run of N no ribbon (a gap). Hover a ribbon: both ends light.
+ * B's 2 (a translocation), chr1's run of N no ribbon (a gap). The ribbons coloured by orientation, keyed in the
+ * legend ("A to B": same, inverted; a ribbon's width its aligned length). Hover a ribbon: both ends light.
  */
 export const Synteny: StoryObj = { render: () => exampleStory(view('synteny'), { files: true }) };
 
