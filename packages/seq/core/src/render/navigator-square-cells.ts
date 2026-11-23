@@ -156,6 +156,11 @@ export class SquarePictureCells {
     if (this.lay !== undefined) this.cells.draw(this.lay, out, lattice);
   }
 
+  /** What the square says while its cells have nothing to show (the hatch's words), else undefined. */
+  note(): string | undefined {
+    return this.lay !== undefined ? this.cells.note?.(this.lay) : undefined;
+  }
+
   /** What a cell says. */
   text(i: number, j: number, lattice: SquareLattice): string | undefined {
     return this.lay !== undefined ? this.cells.text?.(this.lay, i, j, lattice) : undefined;

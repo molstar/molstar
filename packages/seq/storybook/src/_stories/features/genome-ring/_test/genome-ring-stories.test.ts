@@ -16,6 +16,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { openExample } from '../../../examples/_test/draw-checks.js';
 import { describerFor } from '@molstar/seqx-viewer/describe';
 import { basesText, emphasisHeld, Kind, RibbonsType, type RondoLay } from '@molstar/seqx-ext-rondo';
+import { squareOf } from '../square-gestures.js';
 import { hoverStrongestStem, ribbonsOf, ringStoryView, strongestStem } from '../views.js';
 import { bandsLanded } from './ring-helpers.js';
 
@@ -252,6 +253,29 @@ describe('Genome ring stories, headless', () => {
     expect(ribbonsOf(v)!.empty).toBe('none');
     expect(descriptions(v)).toContain('no links');
     expect(ribbonsOf(v)!.holeText).toBe('');
+  });
+
+  it('35. the square while the links load: the pending hatch and “Loading…”; on a failure, the issue’s text', async () => {
+    /** The square's labels-pass texts, and whether its data pass drew the pending hatch (its stripes). */
+    const squareWords = (v: SeqViewer) => {
+      const n = squareOf(v);
+      const lists = n.frame!.lists;
+      const t = lists.passes.labels.texts;
+      const texts: string[] = [];
+      for (let i = 0; i < t.n; i++) texts.push(lists.string(t.str[i]));
+      return texts;
+    };
+    // pending: the answer never comes
+    let v = await open(ringStoryView('ring-pending'), Rondo, 1000);
+    expect(squareWords(v)).toContain('Loading…');
+    // failed: the issue its source raised, as the hole says it, never an empty grid
+    v = await open(ringStoryView('ring-failed'), Rondo, 10_000);
+    const issue = v.store.issues.value.find((i) => i.severity === 'error')!;
+    expect(squareWords(v)).toContain(issue.message);
+    expect(squareWords(v)).not.toContain('Loading…');
+    // loaded: the cells, no words
+    v = await open(ringStoryView('ring'));
+    expect(squareWords(v)).not.toContain('Loading…');
   });
 
   it('5. the square beside: the export with the navigators draws more than without', async () => {

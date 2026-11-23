@@ -14,7 +14,11 @@ import type { RondoLay, RondoPrep } from './lay.js';
  * with `rondoViewer` (it sets `of`), found by the resolved section laid out (the viewer's view's, its export's too);
  * headless: none, the hole says "Links failed".
  */
-export const HoleIssue: { of?: (section: ResolvedSection, source: string) => string | undefined } = {};
+export const HoleIssue: {
+  of?: (section: ResolvedSection, source: string) => string | undefined;
+  /** The same by the source alone (the square's hidden section is no viewer's): the first composed viewer's error. */
+  bySource?: (source: string) => string | undefined;
+} = {};
 
 /**
  * The hole's words: pending "Loading links…"; failed the issue its source's failure raised as the section's viewer holds

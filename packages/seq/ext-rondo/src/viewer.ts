@@ -56,6 +56,14 @@ HoleIssue.of = (section, source) => {
   return undefined;
 };
 
+HoleIssue.bySource = (source) => {
+  for (const v of Composed) {
+    const m = errorAt(v, source);
+    if (m) return m;
+  }
+  return undefined;
+};
+
 /** The stem menu's chunk once landed (`menu.ts`: loaded when a viewer composes `rondoViewer`). */
 let Menu: typeof import('./menu.js') | undefined;
 let menuLoading: Promise<void> | undefined;

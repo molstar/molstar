@@ -12,6 +12,7 @@ import {
   type PairsSource,
   type SquareLattice,
 } from '@molstar/seqx-core/extension';
+import { HoleIssue } from './hole.js';
 
 // The square's picture (_spec/README.md, The square navigator): `rondo:square` names one `rondo:cells` track over the
 // bound ring's ribbons' data; `rondo:cells` reads that data's coarsest bins over the assembly (its section a hidden
@@ -40,6 +41,9 @@ export class CellsLay {
   max = 0;
   /** No bins read yet, or a tile still awaited. */
   pending = true;
+  /** A tile of the read failed (its source never opened), and the source's address. */
+  failed = false;
+  source: string | undefined;
 }
 
 function countCells(lay: CellsLay, prep: CellsPrep, settled: boolean): void {
@@ -110,6 +114,8 @@ export const CellsType: LayerType<CellsPrep, CellsLay> = {
     const lay = prev ?? new CellsLay();
     lay.reader.read(prep.source, ctx, data, CellRead);
     countCells(lay, prep, ctx.settled);
+    lay.failed = lay.reader.failed;
+    lay.source = prep.source.region?.src.source;
     return lay;
   },
   // nothing on a strip: its cells are the square's
@@ -136,6 +142,13 @@ export const CellsType: LayerType<CellsPrep, CellsLay> = {
       return `${c.toLocaleString('en-US')} link${c === 1 ? '' : 's'}${i === j ? ' within' : ''}`;
     },
     pending: (lay) => lay.pending,
+    // links pending: the hatch and `Loading…`; failed: the issue the source raised (as the ring's hole says it)
+    note: (lay) =>
+      lay.failed
+        ? ((lay.source !== undefined ? HoleIssue.bySource?.(lay.source) : undefined) ?? 'Links failed')
+        : lay.pending && !(lay.max > 0)
+          ? 'Loading…'
+          : undefined,
   },
 };
 

@@ -397,6 +397,23 @@ export class SquareNavigator {
     const data = lists.writer('data');
     // the picture's cells under the wash and the lines (always drawn: never bounded by `maxCells`)
     this.cells?.draw(data, this.latticeView);
+    // nothing to show yet: the pending hatch over the lattice's box, the cells' words in its middle (`Loading…`, a failure)
+    const note = this.cells?.note();
+    if (note) {
+      const pending = c['seq-pending'];
+      for (let x = g.x; x < g.x + g.width; x += 8) data.fill(x, g.y, Math.min(4, g.x + g.width - x), g.height, pending);
+      lists
+        .writer('labels')
+        .text(
+          note,
+          g.x + g.width / 2,
+          g.y + g.height / 2 + 4,
+          AnchorMiddle,
+          LabelFont,
+          c['msui-text-muted'],
+          bundledWidth(LabelFont, note),
+        );
+    }
     if (blocks.length * blocks.length > this.config.navigator.square.maxCells) return;
     const edge = (k: number) => (k < blocks.length ? (blocks[k].offset ?? 0) : this.total);
     const runs = this.washRuns;
