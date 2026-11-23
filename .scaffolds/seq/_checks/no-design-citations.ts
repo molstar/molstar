@@ -1,9 +1,9 @@
-// The no-design-citations check (stage 1b of the sixth slice): this folder is temporary, so nothing under `packages/`
+// The no-design-citations check (stage 1b of the sixth slice): the scaffold is never cited by code, so nothing under `packages/`
 // (or the command-line packages in `cli/`) names a design or a source file of the scaffold (`.scaffolds/seq/design/*.md`,
 // `.scaffolds/seq/sources/**/*.md`, read at run time) or a path into `.scaffolds/seq/`; a decision is cited by the spec section that holds
 // it. A file name passes only in a file of a package that holds a file of that name itself (its own `_spec/`
 // documents), never because some other package has one. The one pointer to the scaffold is
-// `packages/seq/AGENTS.md`, until the scaffold is deleted.
+// `packages/seq/AGENTS.md`.
 // Usage: no-design-citations.ts [root] [--self-check] (self-check: a planted `sources.md` in a `packages/seq` comment
 // must fail, one in a package that has its own `sources.md` must pass).
 import { existsSync, readFileSync } from "node:fs";

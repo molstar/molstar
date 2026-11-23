@@ -32,7 +32,7 @@ the previous implementation good. Simplicity here is fewer mechanisms, not fewer
   `packages/seq` (a test, a comment, a `_spec`) resolves against it, checked by `.scaffolds/seq/_checks/ec-ids.ts` at the gate.
   Why: the ids are numbers only, so code cites them without a `.scaffolds/seq/` path, and an id looked up in the wrong file was
   once recorded as missing when it was not.
-- **Before `.scaffolds/seq/` is deleted**, the kept items live on as the packages' tests and their `_spec` statements; the catalog
+- **At the scaffold's close**, the kept items live on as the packages' tests and their `_spec` statements; the catalog
   goes with the scaffold, so the kept items it numbers need a home in a `_spec` first, or the citations go.
 
 ## Consequences
@@ -301,4 +301,4 @@ Paths relative to `packages/seq/`.
 | Known flaws fixed, not ported (EC-130, 135, 151, 181) | design-only: the catalog's outcomes; the fixes are in the areas' specs |
 | The reply's cases are cases (EC-185 to EC-244) | design-only: the catalog's outcomes; the areas' specs hold the behaviors |
 | An area is not done until each item has an outcome | design-only: a process (status and the plan's gates) |
-| Before `.scaffolds/seq/` is deleted the kept items need a home in a `_spec` | design-only: the close's work (the coverage worklist), not a package rule |
+| At the scaffold's close the kept items need a home in a `_spec` | design-only: the close's work (the coverage worklist), not a package rule |
