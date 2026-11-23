@@ -1,0 +1,135 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Docs/Extending" />
+
+# Extending
+
+A viewer is **composed**: an explicit spec lists its registry entries, behaviors, bindings, configuration and ports, as
+a Mol\* plugin's spec does. Nothing registers itself on import, and there is no global registry, so what a composition
+does not list is not in its bundle. The built-in layer types, layouts and runtimes are registry entries too, written the
+way an extension's are.
+
+## The application composes
+
+`DefaultSeqViewerSpec()` is one composition, as data. An application spreads it and changes what it needs, or writes a
+smaller one:
+
+```ts
+import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
+import { viewerItem } from '@molstar/seqx-viewer/config';
+import { createSeqViewer } from '@molstar/seqx-viewer/viewer';
+import { rondoViewer } from '@molstar/seqx-ext-rondo/viewer';
+import { BedRuntime } from '@molstar/seqx-core/runtimes/bed';
+
+const base = DefaultSeqViewerSpec();
+const viewer = createSeqViewer(
+  {
+    ...base,
+    // what it reads and draws: a BED reader and the application's own card rows beside the built-ins
+    registry: [...(base.registry ?? []), { kind: 'format-runtime', runtime: BedRuntime }, assayCard],
+    // an extension, registered whole
+    extensions: [rondoViewer],
+    // the gesture preset where a drag on data pans
+    config: [[viewerItem('bindings.preset'), 'genome-browser']],
+  },
+  element,
+);
+await viewer.load(spec);
+```
+
+What the library provides, and what stays with the application:
+
+| The library                                            | The application                                                     |
+| ------------------------------------------------------ | ------------------------------------------------------------------- |
+| layer types, layouts, navigator pictures, schemes      | which of them a composition lists                                   |
+| format runtimes and the store                          | which formats it reads, where files come from, and its own adapters |
+| the models, commands and a default grammar of gestures | the bindings, which commands a menu or a toolbar shows              |
+| the hover contract and the card's floor                | the card's other rows, its look, or a card of its own               |
+| the history port                                       | the undo stack, and what else it holds                              |
+| a view, its navigators and its exports                 | which views sit side by side, what a click opens, the panels        |
+
+## An extension
+
+An extension is one descriptor, made by `defineExtension` (`@molstar/seqx-core/extension`) or, with viewer parts,
+`defineViewerExtension` (`@molstar/seqx-viewer/extension`):
+
+- **`id`**: its namespace. Every name it adds is `<id>:<name>`, and `seq` is reserved.
+- **`version`**, and **`requires`**: the language versions it was written for.
+- **`registry`**: what it adds. That can be layer types (each declaring the data shape it reads), layouts, track
+  sizings, navigator pictures, color schemes, format runtimes, and query forms and properties. It adds no node kinds and
+  no data shapes: those are the language's.
+- **`params`** and **`check`**: its params on its own types, and on other nodes as keys in its namespace
+  (`'rondo:bundle'`), checked only where it is composed.
+- **`config`**: its settings, given in the composition's `config` under its namespace (`rondo.stemPx`).
+- With viewer parts: **behaviors**, **commands**, **bindings** (a click or a double-click scoped to its own layer type),
+  and **track header actions**.
+
+Composition is checked whole before anything changes. A name outside the namespace, a `requires` that does not cover the
+language, or two entries under one name is an error that lists every conflict, and nothing is registered. The result
+never depends on the order of the list.
+
+**At run time**, `viewer.extend(extension)` registers one and resolves to its undo. The view is resolved again, so a
+layer drawn as its fallback is drawn as its type, and the undo brings the fallback back. Format runtimes and query
+entries are refused at run time, because they would change what an open spec resolves to.
+[Features › Extensibility](?path=/story/seq-next-features-extensibility--toggled-at-run-time).
+
+**The contract** an extension imports is one entry, `@molstar/seqx-core/extension`. The rest of the core may change in a
+`0.x` minor version.
+
+## Fallbacks
+
+A spec names an extension's type, and the layer carries a `fallback`: the built-in type that a reader without the
+extension draws (such as `pairs`), or `none`. A reader without it opens the spec, draws the fallback, says so once with
+the version the spec needs, and keeps the extension's params unread. See
+[The language](?path=/docs/seq-next-docs-the-language--docs).
+
+## The example: the genome ring
+
+`@molstar/seqx-ext-rondo` is built only on the public extension contract, with two entries. `rondo` is headless (the CLI
+and `createSeqContext` compose it), and `rondoViewer` adds its commands and binding.
+
+| It ships           | Kind                                                  | Without it                       |
+| ------------------ | ----------------------------------------------------- | -------------------------------- |
+| `rondo:ribbons`    | a layer type: ribbons between stems, wide by count    | `pairs`: core's chords, by count |
+| `rondo:hues`       | a color scheme: hues round the wheel                  | the layer type's default         |
+| `rondo:square`     | a navigator picture: every pair of chromosomes a cell | the axis                         |
+| `rondo:cells`      | the square's cells, a layer type                      | none (only the square names it)  |
+| `rondo:open`       | a command, bound to a double-click on a ribbon        | —                                |
+| `rondo:partner`, … | commands: to the next partner stem, select partners   | —                                |
+
+Stories: [the genome at the fit](?path=/story/seq-next-features-genome-ring--the-genome-at-the-fit),
+[without the extension](?path=/story/seq-next-features-genome-ring--without-the-extension),
+[the square beside](?path=/story/seq-next-features-genome-ring--the-square-beside) and
+[the stem menu](?path=/story/seq-next-features-genome-ring--the-stem-menu). The ring is an application of the library:
+another host could put the square elsewhere, open a linear view on a double-click, or never show the square.
+
+## The hover card's providers
+
+The hover card is composed by **card providers**, registry entries of kind `card-provider`. They run by `order`, then by
+name, and each adds rows to the card and phrases to the live region:
+
+```ts
+import type { CardProviderEntry } from '@molstar/seqx-viewer/card-provider';
+
+const assayCard: CardProviderEntry = {
+  kind: 'card-provider',
+  name: 'lab:assay',
+  order: 85,
+  describe(at, out) {
+    if (Number.isFinite(at.position)) out.row('Assay', assayAt(at.position));
+  },
+};
+```
+
+The viewer's own sections are providers too (`seq:item`, `seq:place`, `seq:tooltips`, …). A host adds one, lists its own
+under a built-in's name to replace it, or leaves one out. Providers change the rows, never the hit or the emphasis, and
+a provider that throws has only what it added dropped. The card is drawn by a port the host can replace, so it can have
+the host's own styles. Track headers work the same way, with `header-action` entries:
+[Features › Track headers](?path=/story/seq-next-features-track-headers--host-entry-and-a-left-out-built-in).
+
+## Where next
+
+- [Embedding](?path=/docs/seq-next-docs-embedding--docs): where the composed viewer goes.
+- For contributors: [Design › Extensibility](?path=/docs/seq-next-design-extensibility--docs),
+  [Design › Extension openings](?path=/docs/seq-next-design-extension-openings--docs) and
+  [Design › Genome ring](?path=/docs/seq-next-design-genome-ring--docs).
