@@ -508,10 +508,11 @@ layout per token table, held domains and the reader's substitution (`LayerChanne
   steel blue for every colourless layer reads as a placeholder (the defaults audit); counted over the coloured too, a
   layer's default never moves when another is coloured (or previewed).
 - **Scales**: `linear`, `log`, `sqrt`; a `domain` with an open end follows the data in view, computed when the view
-  settles and held while it does not; `non_positive` on `log`: `missing` (before any bin or end color) or `clamp` (the
-  domain's low end) (`seq.render.scale.log`). A center (`mid`) makes a number's default palette the diverging one. A
-  `scale` node (`/views/<id>`) is shared: every layer and channel naming it reads one domain, its open ends the union
-  over them at settle (one relayout).
+  settles and held while it does not (a `log` scale's open low end the smallest positive value in view, a tenth of its
+  high end before any is held: zero has no place on it); `non_positive` on `log`: `missing` (no color, before any bin or
+  end color) or `clamp` (the domain's low end) (`seq.render.scale.log`). A center (`mid`) makes a number's default
+  palette the diverging one. A `scale` node (`/views/<id>`) is shared: every layer and channel naming it reads one
+  domain, its open ends the union over them at settle (one relayout).
 - **Palettes are Mol\*'s value palettes**, evaluated by `@molstar/core/util/color/value-palette-eval` (scale, mid,
   unlisted hash; the module without Mol\*'s named lists, which `value-palette` re-exports with them), converted both
   ways with MolViewSpec's palettes, their scale with them (`toMvsPalette`; `fromMvsPalette` and `fromMvsScale`: type,

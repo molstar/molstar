@@ -24,26 +24,25 @@ export interface GridRegion {
   readonly yName: string;
 }
 
-/** The value range of a table, kept by the table (a tile's colours are held to the range of the tiles read). */
-const Ranges = new WeakMap<GridTable, readonly [number, number]>();
+/** The value range of a table and its smallest positive value (a log scale's open end), kept by the table. */
+const Ranges = new WeakMap<GridTable, readonly [number, number, number]>();
 
-function rangeOf(t: GridTable): readonly [number, number] {
+function rangeOf(t: GridTable): readonly [number, number, number] {
   let r = Ranges.get(t);
   if (r) return r;
   let lo = Number.NaN;
   let hi = Number.NaN;
-  const v = t.value;
-  for (let i = 0; i < v.length; i++) {
-    const x = v[i];
-    if (Number.isNaN(x)) continue;
+  let pos = Number.NaN;
+  const see = (x: number) => {
+    if (Number.isNaN(x)) return;
     if (!(x >= lo)) lo = x;
     if (!(x <= hi)) hi = x;
-  }
-  if (t.form === 'sparse' && !Number.isNaN(t.fill)) {
-    if (!(t.fill >= lo)) lo = t.fill;
-    if (!(t.fill <= hi)) hi = t.fill;
-  }
-  Ranges.set(t, (r = [lo, hi]));
+    if (x > 0 && !(x >= pos)) pos = x;
+  };
+  const v = t.value;
+  for (let i = 0; i < v.length; i++) see(v[i]);
+  if (t.form === 'sparse') see(t.fill);
+  Ranges.set(t, (r = [lo, hi, pos]));
   return r;
 }
 
@@ -224,14 +223,21 @@ export function layoutRegionGrid(
   // the colours' domain: the range of the tiles drawn (open domains held to it)
   let lo = Number.NaN;
   let hi = Number.NaN;
+  let pos = Number.NaN;
   for (const p of [...under, ...now.tiles]) {
-    const [l, h] = rangeOf(p.table);
+    const [l, h, q] = rangeOf(p.table);
     if (!(l >= lo)) lo = l;
     if (!(h <= hi)) hi = h;
+    if (!(q >= pos)) pos = q;
   }
   if (lay.extents.any && !Number.isNaN(lo)) {
+    // the smallest positive value too: a log scale's open end (its channel reads zero and below as missing)
     lay.datum.value = lo;
     lay.extents.add(lay.datum);
+    if (!Number.isNaN(pos)) {
+      lay.datum.value = pos;
+      lay.extents.add(lay.datum);
+    }
     lay.datum.value = hi;
     lay.extents.add(lay.datum);
     lay.extents.flush(ctx.theme);

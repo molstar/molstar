@@ -10,7 +10,7 @@
 // bin (Default 4).
 
 import { type GridDense, SeqRuntime, type SeqData, seqToValue } from '@molstar/seqx-core/data';
-import { createSeqSpec } from '@molstar/seqx-core/lang';
+import { createSeqSpec, theme } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
 import type { GridLay } from '../grid.js';
 import { gridCellHover, hitView } from '../index.js';
@@ -127,6 +127,25 @@ describe('a grid by region', () => {
     expect(lay.ic[1] + lay.ic[3]).toBeLessThanOrEqual(lay.box.y + lay.box.height + 1);
   });
 
+  it('a log palette over counts with zeros: the domain from the smallest positive, the zeros missing, the rest drawn', async () => {
+    // a third of the cells 0, the others 1 to 100
+    const lay = await pastTheEnd(
+      64,
+      4,
+      undefined,
+      (k) => (k % 3 === 0 ? 0 : 1 + (k % 100)),
+      theme.field('value', { type: 'log', palette: theme.continuous({ colors: 'blues' }) }),
+    );
+    expect(lay.images.length).toBe(1);
+    const d = lay.images[0].data;
+    let drawn = 0;
+    let clear = 0;
+    for (let q = 3; q < d.length; q += 4) d[q] ? drawn++ : clear++;
+    // 16 × 16 cells: the zeros (86) clear, every other one coloured
+    expect(clear).toBe(86);
+    expect(drawn).toBe(256 - 86);
+  });
+
   it('a section’s range cutting bins at both edges: its edge tiles drawn, clipped to the range, cells never squeezed (EC-223)', async () => {
     // 1,000 to 2,999 at level 16: both edges inside a bin
     const lay = await pastTheEnd(4001, 16, [1000, 2999]);
@@ -147,7 +166,13 @@ describe('a grid by region', () => {
 });
 
 /** A grid read by region over one system of length `n` at level `l` (a section's `range` when given), settled. */
-async function pastTheEnd(n: number, l: number, range?: [number, number]): Promise<GridLay> {
+async function pastTheEnd(
+  n: number,
+  l: number,
+  range?: [number, number],
+  value?: (k: number) => number,
+  color?: unknown,
+): Promise<GridLay> {
   const cells = Math.ceil(n / l);
   const grid: GridDense = {
     form: 'dense',
@@ -155,7 +180,7 @@ async function pastTheEnd(n: number, l: number, range?: [number, number]): Promi
     y: 0,
     nx: cells,
     ny: cells,
-    value: new Float32Array(cells * cells).fill(1),
+    value: Float32Array.from({ length: cells * cells }, (_, k) => value?.(k) ?? 1),
   };
   const data: SeqData = {
     coverage: {
@@ -185,10 +210,12 @@ async function pastTheEnd(n: number, l: number, range?: [number, number]): Promi
     const top = v.section('chr', { of: chr, ...(range ? { range } : {}) });
     top.track('ruler').layer('ruler', { type: 'ruler' });
     v.section('plot', { layout: 'grid', of: chr, follow: top.address }).track('plot', {}, (t) =>
-      t.layer('g', { type: 'grid', data: g } as never),
+      t.layer('g', { type: 'grid', data: g, ...(color ? { color } : {}) } as never),
     );
   });
   const s = await settle(b.build(), [SeqRuntime]);
+  // the tiles read, then the colours' domain held from them, then drawn with it
+  await s.frame({ size: Size });
   await s.frame({ size: Size });
   return gridLay(await s.frame({ size: Size }));
 }
