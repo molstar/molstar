@@ -386,6 +386,56 @@ Rows and columns of ux-foundations section 8; "as an element" means the grammar'
 | links and contacts as maps | fixed | never | a glycan's selection never selects its site | — |
 | group maps on paths | fixed | never: at a path's ends only | a path is runs at one scale | — |
 
+## In the specs
+
+| Decision | Where |
+|---|---|
+| A sequence's sparse `modified`; the letter the parent's; a component over several positions; several at one position (decided 2, 6, 8) | core › A sequence's modified |
+| The standard component per letter in `@molstar/core` (decided 13) | core › The modified index |
+| Drawn: `modified` `mark` by default, `code`, `tint`, `none`; compact, no cell widened (decided 3) | core › Layer types |
+| The mark's size and place (`letters.modifiedMark`) | core › Configuration |
+| Hover: letter, code, name, alternatives | viewer › HoverModel |
+| Names from `compound` nodes, else the host's `componentNames`; no CCD shipped | core › Compounds |
+| A modification known by name only: a `ranges` item the `modified` property finds (decided 7) | core › Built in |
+| A `molecule` kind beside `sequence` (decided 1); residues, atoms, class, name, identifiers; two systems | core › A molecule |
+| Hydrogens refused (EC-64) | core › A molecule |
+| Altlocs: the first `label_alt_id`, the others said once | core › Left out, said once |
+| `compounds` container and `compound` nodes | core › Compounds |
+| Identifiers match by string; the host's `identifierResolver` adds equivalents | core › Molecule node forms |
+| Namespaces open words (decided 9) | core › A molecule |
+| A `complex` of `unit`s; a unit a system counted from 0 | core › A complex |
+| A unit's `auth` numbering, read by the mmCIF runtime | core › What is read |
+| Entities are molecules; a construct a complex with no structure | core › What is read |
+| A unit instantiates one molecule; a PRD's units carry `group` | core › A complex |
+| Copies derived (EC-65); the copy rule | core › Copies are derived |
+| Annotations on any positions (EC-48) | core › Systems |
+| Bounded by `maxUnits` | core › Bounded |
+| Links a `pairs` child of a complex or a molecule; one shape; never maps | core › Links |
+| Ends on per-row units; the `pairs` layer and a `ranges` layer over links | core › A complex's links |
+| Atoms onto residues: a group map at a path's ends; focus projects, follow does not | core › The atoms group map |
+| A writer's own group map (`map.method: group`) | design-only: not built (no view needs one) |
+| `block.form`; `whole` by default for a molecule (decided 4) | core › Views of them |
+| A chip: one unit of its section, hit and hover its whole range | core › A chip |
+| A chip's label | core › A section of a complex |
+| A section of a complex: `classes`, water left out (decided 5), overrides of one unit | core › A section of a complex |
+| A section of units on several systems never follows | core › Follow |
+| `links.hover` a behavior, off by default (decided 10) | viewer › Behaviors |
+| The hover carries identifiers; no depiction port | viewer › HoverModel |
+| `block.form` in the context menu | design-only: not built as designed, a command in no built-in menu (drift note `molecules.md`) |
+| The query forms | core › Molecule node forms |
+| mmCIF through an opt-in runtime on `@molstar/io`'s reader (decided 12) | core › mmCIF |
+| Its options `assembly`, `water`, `name` | core › Configuration |
+| A molecule's atoms from a CCD source's `chem_comp_atom` | design-only: not built (atoms from the first unit only) |
+| The `seq` format carries the same nodes | core › The seq format |
+| The language's 0.5.0 additions and checks | core › Versions |
+| Held whole; a source's complex the overlay's | core › Molecules and complexes |
+| The resolved model: unit and atoms systems, copy groups, the modified index | core › Molecules and units |
+| The interaction matrix's cells | viewer › Molecules: the interaction matrix's cells |
+| The configuration table | core › Molecules and complexes |
+| The one CIF-to-nodes converter (decided 11) | core › Seq io |
+| Structure integration shown on a fake 3D viewer (decided 15); DC's ATP (decided 14) | design-only: history (the fourth slice's scope) |
+| The fourth slice's lanes, the consequences | design-only: a plan |
+
 ## Tensions
 
 - **A new kind against a generalized `sequence`.** One kind with an alphabet of components would keep the language

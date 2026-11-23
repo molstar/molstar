@@ -27,7 +27,7 @@ const PENDING = new Set([
   "across-sections", "axis", "composition", "data-store", "dynamic-nodes", "edge-cases",
   "examples", "examples-and-stories", "extensibility", "extension-openings", "files", "genome-coordinates",
   "genome-formats", "grids-and-rows", "layout-and-draw-lists", "layouts",
-  "maps", "molecules", "navigators", "packages", "ports", "properties",
+  "navigators", "packages", "ports", "properties",
   "protocol", "region-reads", "rendering", "ring-extension", "security", "seq-data-ports", "sources", "stories",
   "structure-syncing", "testing", "themes", "tooltips", "track-header-parts", "viewer-composition",
   "viewer-models",
