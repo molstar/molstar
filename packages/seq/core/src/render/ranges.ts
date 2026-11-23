@@ -525,9 +525,12 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     // the density strip is a count, not a theme: its key is the strip itself
     if (lay.mode === 'density') return [];
     const painted = new Set<string>();
+    // the values of the items drawn (their hit marks: inside a merged run too), never those only read: a legend of
+    // "values in view" lists no more than the view holds
     if (lay.color?.legend?.kind === 'palette')
-      for (let j = 0; j < lay.items; j++) {
-        const v = lay.painted[j];
+      for (let k = 0; k < lay.hn; k++) {
+        const j = lay.hitem[k];
+        const v = j >= 0 ? lay.painted[j] : undefined;
         if (v !== undefined) painted.add(v);
       }
     return channelLegends([lay.color, lay.size], { ...options, layer: lay.key, painted });

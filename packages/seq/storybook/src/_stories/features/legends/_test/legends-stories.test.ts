@@ -9,7 +9,7 @@ import { legendTitle } from '@molstar/seqx-core/theme';
 import { DomHost } from '@molstar/ui/dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { placementsOf, trackOf } from '../legends-compose.js';
-import { LegendPlacements } from '../legends.stories.js';
+import { LegendPlacements, LongLegend } from '../legends.stories.js';
 import type { LegendPlacementsRoot } from '../legends-root.js';
 
 // The legend placements story in a DOM (jsdom) on a fake clock, mounted as Storybook mounts it: the same legends in
@@ -93,5 +93,25 @@ describe('Legends placements, headless', () => {
     // the export's band, below the figure
     const svg = (await s.viewer.renderSvg({ legend: 'below' })).svg;
     expect(svg).toMatch(/missense/);
+  });
+
+  it('a long legend: the panel lists 12 and a "+28" button that opens the rest in place and closes it', {
+    tags: ['medium'],
+  }, async () => {
+    const el = (LongLegend.render as () => LegendPlacementsRoot)();
+    document.body.append(el);
+    mounted = el;
+    await el.loaded;
+    await vi.advanceTimersByTimeAsync(600);
+    const panel = el.hosts!.panel;
+    const options = () => panel.querySelectorAll('[role="option"]').length;
+    const more = () => panel.querySelector<HTMLButtonElement>('button[data-legend-more]')!;
+    const lettersLegend = options();
+    expect(more().textContent).toMatch(/^\+/);
+    more().click();
+    expect(options()).toBeGreaterThan(lettersLegend);
+    expect(more().getAttribute('aria-expanded')).toBe('true');
+    more().click();
+    expect(options()).toBe(lettersLegend);
   });
 });

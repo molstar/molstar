@@ -431,7 +431,7 @@ export interface LayerType<Prep = unknown, Lay = unknown> {
    */
   hitOutside?(lay: Lay, at: Float64Array): Hit | undefined;
   /** The legends of its themed channels as last laid out (_spec/README.md "Themes", Legends), titled by its track. */
-  legend?(lay: Lay, options: { readonly title: string }): readonly Legend[];
+  legend?(lay: Lay, options: { readonly title: string; readonly maxItems?: number }): readonly Legend[];
   /** The y domain it drew (a values layer's), recorded by an export. */
   domain?(lay: Lay): readonly [number, number] | undefined;
   /**

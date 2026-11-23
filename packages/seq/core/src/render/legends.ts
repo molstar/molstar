@@ -25,14 +25,18 @@ import type { LayerLayout, ViewLayout } from './tracks.js';
 // when they say the same, never drawn on the canvas over data. An export draws them when asked, laid out here into a
 // band outside the data box (a ramp as one row of the `image` primitive, as density strips are).
 
-/** The legends of a layout: each layer's, titled by its track's label, merged; with the notes they say once. */
+/**
+ * The legends of a layout: each layer's, titled by its track's label, merged; with the notes they say once. A
+ * categorical legend lists `maxItems` entries and counts the rest in `more` (the viewer asks for all of them: its part
+ * opens a legend in place).
+ */
 export function viewLegends(layout: ViewLayout, maxItems = 12): { legends: Legend[]; issues: Issue[] } {
   const all: Legend[] = [];
   const add = (l: { type: LayerLayout['type']; lay: unknown; layer: LayerLayout['layer'] }, title: string) => {
     // the figure's own say: a layer's `legend: none` keys nothing (_spec/README.md "Themes", Legends)
     if (l.layer.params.legend === 'none') return;
-    const ls = l.type.legend?.(l.lay, { title });
-    if (ls) for (const x of ls) all.push(maxItems < 12 ? trim(x, maxItems) : x);
+    const ls = l.type.legend?.(l.lay, { title, maxItems });
+    if (ls) all.push(...ls);
   };
   for (const s of layout.sections) {
     for (const t of s.tracks) for (const l of t.layers) add(l, t.track.label);
@@ -58,12 +62,6 @@ export function viewLegends(layout: ViewLayout, maxItems = 12): { legends: Legen
   return { legends, issues };
 }
 
-function trim(l: Legend, maxItems: number): Legend {
-  const e = l.entries;
-  if (e.kind !== 'swatches' || e.items.length <= maxItems) return l;
-  return { ...l, entries: { ...e, items: e.items.slice(0, maxItems) }, more: l.more + e.items.length - maxItems };
-}
-
 /** The legend band's numbers (CSS px): a row's height, a swatch's side, gaps, the ramp's width. */
 export const LegendBand = { row: 18, swatch: 10, gap: 6, ramp: 96, font: '11px sans' } as const;
 
@@ -85,10 +83,10 @@ export function layoutLegends(
   let y = box.y;
   for (const l of legends) {
     let x = box.x;
-    const base = y + B.row / 2 + 4;
     const label = (s: string, color: number) => {
       const w = text.measure(B.font, s);
-      out.text(s, x, base, Anchor.start, B.font, color, w);
+      // the baseline of the line the text is on now (a wrapped entry's label follows its swatch down)
+      out.text(s, x, y + B.row / 2 + 4, Anchor.start, B.font, color, w);
       x += w + B.gap;
     };
     const wrap = (w: number) => {
@@ -107,7 +105,10 @@ export function layoutLegends(
         x += B.swatch + 3;
         label(i.label, ink);
       }
-      if (l.more) label(`+${l.more} more`, muted);
+      if (l.more) {
+        wrap(text.measure(B.font, `+${l.more} more`));
+        label(`+${l.more} more`, muted);
+      }
     } else if (e.kind === 'ramp') {
       const [lo, hi] = l.domain ?? [0, 1];
       label(formatValue(lo), ink);

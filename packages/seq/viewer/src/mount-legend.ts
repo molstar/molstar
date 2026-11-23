@@ -30,7 +30,7 @@ export interface LegendPartOptions extends LegendSelection {
   /**
    * `full` (the default): a group a legend, its entries labelled. `compact`: one line a legend, its title then its
    * swatches unlabelled (each named for the accessible name and on hover), a ramp a short bar with its domain's ends,
-   * steps joined cells, "+n" past `maxItems`; the same entries, focus and gestures.
+   * steps joined cells, a "+n" button past `maxItems` (it opens the full list in place); the same entries, focus and gestures.
    */
   readonly form?: 'full' | 'compact';
   /** `vertical` (the default): the legends stacked. `horizontal`: in a row, wrapping (a band under the canvas). */
@@ -44,6 +44,9 @@ export interface LegendPartOptions extends LegendSelection {
 }
 
 let mounts = 0;
+
+/** An open legend's height: its list scrolls past it. */
+const OpenMaxHeight = '14em';
 
 /** Mounts the legends of a viewer into `element` (`ToolbarMount`'s shape with options). */
 export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: LegendPartOptions = {}): () => void {
@@ -104,6 +107,7 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
     // a Clear button that has the focus keeps it across the redraw (its channel's new button, else the part itself)
     const active = doc.activeElement;
     const focusedClear = active instanceof HTMLElement && root.contains(active) ? active.dataset.clear : undefined;
+    const focusedMore = active instanceof HTMLElement && host.contains(active) ? active.dataset.legendMore : undefined;
     shownKey = highlightKey();
     host.replaceChildren();
     items = [];
@@ -112,7 +116,10 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
       const group = doc.createElement('div');
       group.setAttribute('role', 'group');
       group.setAttribute('aria-label', row.title);
-      group.style.cssText = `display: flex; flex-wrap: ${compact && !horizontal ? 'nowrap' : 'wrap'}; max-width: 100%;${compact && !horizontal ? ' overflow: hidden;' : ''} align-items: center; gap: ${compact ? '0 2px' : '4px 8px'};`;
+      // an open legend wraps and is bounded (a legend over hundreds of values scrolls, never the whole page)
+      const nowrap = compact && !horizontal && !row.open;
+      group.style.cssText = `display: flex; flex-wrap: ${nowrap ? 'nowrap' : 'wrap'}; max-width: 100%;${nowrap ? ' overflow: hidden;' : ''}${row.open ? ` max-height: ${OpenMaxHeight}; overflow-y: auto;` : ''} align-items: center; gap: ${compact ? '0 2px' : '4px 8px'};`;
+      group.dataset.open = String(row.open);
       const title = doc.createElement('span');
       title.textContent = row.title + (row.note ? ` (${row.note})` : '');
       // a group's title: muted, 600, 11 px (_spec/README.md "Legends")
@@ -159,10 +166,30 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
         items.push(item);
         group.append(item);
       }
-      if (row.more) {
-        const more = doc.createElement('span');
-        more.textContent = `+${row.more}`;
-        more.title = `${row.more} more`;
+      if (row.beyond) {
+        const rest = doc.createElement('span');
+        rest.dataset.beyond = String(row.beyond);
+        rest.textContent = `${row.beyond} more not shown`;
+        rest.style.cssText = 'color: var(--msui-text-muted, gray); font-size: 11px;';
+        group.append(rest);
+      }
+      if (row.more || row.open) {
+        // "+n" opens the legend's full list in place, "Show fewer" closes it (the session's state, per legend)
+        const more = doc.createElement('button');
+        more.type = 'button';
+        more.dataset.legendMore = row.id;
+        more.setAttribute('aria-expanded', String(row.open));
+        const label = row.open ? 'Show fewer' : `Show ${row.more} more`;
+        // the accessible name starts with the visible text (WCAG 2.5.3)
+        more.setAttribute(
+          'aria-label',
+          `${row.open ? 'Show fewer' : `+${row.more}, show ${row.more} more`}: ${row.title}`,
+        );
+        more.title = label;
+        more.textContent = row.open ? 'Show fewer' : `+${row.more}`;
+        more.style.cssText =
+          'font: inherit; color: inherit; background: none; border: 0; padding: 0 2px; cursor: pointer; text-decoration: underline dotted;';
+        more.addEventListener('click', () => viewer.legends.setOpen(row.id, !row.open));
         group.append(more);
       }
       host.append(group);
@@ -222,6 +249,12 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
       } else channelsEl.append(channelItem('legend', true));
       if (channelsEl.parentNode !== root) root.append(channelsEl);
     } else channelsEl.remove();
+    if (focusedMore !== undefined)
+      (
+        [...host.querySelectorAll<HTMLElement>('button[data-legend-more]')].find(
+          (b) => b.dataset.legendMore === focusedMore,
+        ) ?? host
+      ).focus();
     if (focusedClear !== undefined) {
       const again = [...root.querySelectorAll<HTMLElement>('button[data-clear]')].find(
         (b) => b.dataset.clear === focusedClear,
@@ -235,6 +268,8 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
 
   const entryAt = (i: number) => items[i];
   const onKey = (ev: KeyboardEvent) => {
+    // a "+n" button has its own keys (Enter, Space: a click)
+    if (ev.target instanceof HTMLButtonElement) return;
     if (!items.length) return;
     const it = entryAt(focus);
     if (ev.key === 'ArrowRight' || ev.key === 'ArrowDown') focus = Math.min(items.length - 1, focus + 1);
@@ -274,6 +309,7 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
     viewer.legends.legends.listen(draw),
     viewer.legends.hover.listen(draw),
     viewer.legends.cvdSafe.listen(draw),
+    viewer.legends.open.listen(draw),
     // what is drawn moved (a pan, a tile arriving): an entry's action with it
     viewer.legends.drawn.listen(draw),
     // a channel's place changing is no change of what the rows show; a theme's tokens change their colors

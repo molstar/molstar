@@ -205,8 +205,9 @@ export const BandsType: LayerType<BandsPrep, BandsLay> = {
   legend(lay, options) {
     if (lay.density) return [];
     const painted = new Set<string>();
-    for (let i = 0; i < lay.rows.n; i++) {
-      const v = lay.rows.values[i];
+    // the bands with a mark in view, never the rows only read
+    for (let j = 0; j < lay.m; j++) {
+      const v = lay.rows.values[lay.mitem[j]];
       if (v !== undefined) painted.add(v);
     }
     return channelLegends([lay.color], { ...options, layer: lay.key, painted });
