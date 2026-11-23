@@ -260,6 +260,8 @@ const Cases: Record<string, { ctx: unknown; before?: (v: SeqViewer) => unknown }
   'cursor.add-next': { ctx: { section: Protein }, before: cursorAt(Protein) },
   'cursor.add-up': { ctx: { section: Text }, before: cursorAtText(15) },
   'cursor.add-down': { ctx: { section: Text }, before: cursorAtText(5) },
+  'cursor.next-feature': { ctx: { section: Protein }, before: cursorAt(Protein) },
+  'cursor.prev-feature': { ctx: { section: Protein }, before: cursorAt(Protein) },
   'cursor.page-down': { ctx: {}, before: cursorOnRow(0) },
   'cursor.page-up': { ctx: {}, before: cursorOnRow(3) },
   // the rows band under the pointer (its layer): its end, then back to its start

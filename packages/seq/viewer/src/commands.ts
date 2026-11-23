@@ -58,6 +58,8 @@ export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   'cursor.add-next': 'session',
   'cursor.add-up': 'session',
   'cursor.add-down': 'session',
+  'cursor.next-feature': 'session',
+  'cursor.prev-feature': 'session',
   'cursor.page-down': 'session',
   'cursor.page-up': 'session',
   // Home and End scroll the scroller under the pointer and move no cursor: a scroll is a viewport's (a band's top, a

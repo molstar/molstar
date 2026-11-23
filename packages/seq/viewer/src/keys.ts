@@ -85,7 +85,7 @@ const TargetWords: Readonly<Record<string, string>> = {
 
 /** The group of a command or a method, by what it changes. */
 function groupOf(action: string): KeyGroupId {
-  if (action === 'pan' || /^(view\.pan-|cursor\.(prev|next|up|down)$|window\.pan-)/.test(action)) return 'move';
+  if (action === 'pan' || /^(view\.pan-|cursor\.(prev|next|up|down|prev-feature|next-feature)$|window\.pan-)/.test(action)) return 'move';
   if (action === 'zoom' || /^(view\.(zoom-|fit)|rows\.zoom-|window\.(grow|shrink)|navigator\.zoom)/.test(action))
     return 'zoom';
   if (/^drag-|^selection\.(?!bookmark|copy)|^cursor\.|^clades\.select/.test(action) && action !== 'cursor.focus')
