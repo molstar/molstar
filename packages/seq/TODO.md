@@ -55,11 +55,9 @@ extension kinds.
 
 ## Base library (`@molstar/core`, `@molstar/io`)
 
-- **The harness's leak control scaled by the case** (PF, 2026-11-22; `test-harness/src/quick.ts`, shared): when a case
-  reads above ~1 KB a step or spreads above ~8 B, size the control to ~1% of the case (at least 4 KB) and check 75% of
-  it, or alternate case and control windows and take the median of the pairs' differences; then seq's `scaledControl`
-  and the storybook cases still on the 88 B control (bridge ribbon hover, a pan through a lock, a connector, linked
-  pairs) need nothing of their own. The author's call (a shared package).
+- **The old Seq\*'s `sequences/viewer` perf tier fails three label-churn cases** (`input.quick.ts`: over a position,
+  an aligned cell, a column; 752 B against a 594 B baseline), on main too (FX20's checks, 2026-11-23): not this slice's
+  package; for its owner.
 - **The perf tier's slow warm-ups** (FX19's checks, 2026-11-23): the ring of 8 matrix states takes 50 to 125 s to warm
   (its timeout 120 s), and three others timed out under load (a bridge pan, the 3,000-contig strip, 4,096 arcs): warm
   them faster or give them their own timeouts.
