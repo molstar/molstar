@@ -1,4 +1,4 @@
-## Seq\*: version 1's close-out
+## Seq* (next): version 1's close-out
 
 - Seq\* viewer: a legend's eye hides or shows its layer, one undo step; a hidden layer's row stays in place, dimmed,
   with the eye that shows it again, also for a layer hidden from the start and a bridge's layer (`mountLegend` option
