@@ -84,7 +84,7 @@ On the review of the decisions: "ok" to its recommendations.
    ligands come from CC0 PDB entries of CDK2.
 2. The PAE between CDK2 and cyclin A is generated from 1FIN's interface, said to be synthetic, unless a permissive
    prediction is found at recording.
-3. ANARCI's labels-only output is committed as `LicenseRef-anarci-numbering`.
+3. ANARCI's labels-only output is committed as `LicenseRef-anarci-numbering` (not built: the licence is not in the allowed list, and no output is committed; amended 2026-11-23).
 4. A source's attribution and licence are two optional params of a source node, carried into exported files (a
    language change).
 5. `@molstar/io` is a devDependency of the examples package for the record script; [examples-and-stories.md](examples-and-stories.md) amended.
@@ -626,8 +626,8 @@ list, `seqx-examples` having no `_spec`) or a fixed rule of the fixtures, checke
   as decided (native where the core reads it, converted elsewhere, the download's checksum kept so the conversion can
   be repeated); the fourth slice's structure runtime may later read a trimmed mmCIF instead.
 - **The record script needs structure readers.** Contacts, helices and observed residues come from mmCIF, which
-  `@molstar/io`'s CIF parser reads; the examples package declares `@molstar/core` and `@molstar/seqx-core` only, and
-  examples-and-stories.md says it depends on `seqx-core`. No `noRestrictedImports` rule in `biome.json` covers
+  `@molstar/io`'s CIF parser reads; the examples package declares `@molstar/core`, `@molstar/seqx-core` and `@molstar/seqx-ext-rondo`, with `@molstar/io` a
+  devDependency (amended 2026-11-23). No `noRestrictedImports` rule in `biome.json` covers
   `packages/seq/examples` (only the repository-wide zod and graphics-backend rules apply), so the boundary is the
   package's declared dependencies and that design. Decided (the data's decisions, 5): `@molstar/io` as a devDependency for the record script.
 - **Real data moves.** A Pfam, Rfam or AlphaFold DB release changes rows, scores or models; a recording again breaks

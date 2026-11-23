@@ -58,7 +58,7 @@ description of the language that everything else derives from.
 - **Unknown kinds** in an extension namespace the reader lacks are kept, reported and skipped, never a failure of the
   whole spec. A bare kind a `0.x` reader does not know is an error (every `0.x` minor may break), and a layer type of a
   newer version is read as its fallback (core's Extensions); before 1.0 an unknown bare kind in a newer minor of the same
-  major becomes a warning, kept and skipped with the kind's declared fallback (the package's TODO, under `repr`) (amended 2026-11-23: the code's way until 1.0, the author as recommended).
+  major becomes a warning, kept and skipped with the kind's declared fallback (not built: before 1.0, the package's TODO under `repr`) (amended 2026-11-23: the code's way until 1.0, the author as recommended).
 - **Revisions and patches** ([patches.md](patches.md)): a spec's revision is an immutable root named by its hash; a
   change is a commit (a root and its parent revisions), and the patch between two revisions is derived (`diff`).
   Patches (`set`, `unset`, `insert`, `remove`, `move`, `replace`, by addresses of ids) are how a writer asks for a

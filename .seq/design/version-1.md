@@ -14,7 +14,7 @@ previous implementation and the JBrowse reply, what it defers, and the order of 
 
 - **One language, one version**, four levels: `data`, `views`, `refs`, `snapshots` ([composition.md](composition.md)).
 - **A codec-independent tree core** in `@molstar/core/repr` (tree, schema, patch, builder, codec interface); JSON and
-  S-expression codecs in core, MessagePack in io ([tree-core.md](tree-core.md)).
+  S-expression codecs in core, MessagePack in core's `repr/codecs/msgpack`, io re-exporting ([tree-core.md](tree-core.md)).
 - **JSON by default, MessagePack for large inline data**; typed columns declared in the description, hashed by bytes,
   printed elided; large data in sources ([format.md](format.md)).
 - **Three compiled forms in three tiers**: the static model and the resolved view (from the spec), the overlay (dynamic

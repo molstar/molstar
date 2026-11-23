@@ -15,7 +15,7 @@ in 1D by either end, the pairs level of bin-pair counts by strand, `PairsReader`
 by counts with hysteresis, "a lattice, not a clustering: clustering over bins is RN's picture"),
 [genome-formats](genome-formats.md) (GF: BED's `fields` by column number for cytobands, BEDPE read whole and indexed
 by both ends, GFF by region for a host's gene detail, the real-slice table), [across-sections](across-sections.md) (LX: ribbons and stubs are core's in a bridge only, on a ring RN's; the
-twist drawn by corresponding positions; one hit rule, the drawn run as a `rect`; the `ribbons.*` look). On the extension
+twist drawn by corresponding positions; one hit rule, a key (`ribbon:`, `stem:`, `stub:`) with no rect built; the `ribbons.*` look). On the extension
 contract as the fourth slice's EX builds it ([extension-openings](extension-openings.md), Part 1: the
 descriptor, namespaced types with plain params and a `fallback`, one `extension` entry) and CN (Part 2: navigator
 pictures as registry entries).
@@ -200,7 +200,7 @@ No node kind, no data shape, no format runtime (extension-openings, Part 1): RR'
   floor), labelled at its tip with the partner's name and count when the tip has `rondo.stubLabelPx` (24 CSS px) of
   room ("chr7 · 37"). Why inward: the labels own the outside of the ring. Why aggregated: a chromosome's ring may have
   thousands of outward pairs; one stub a partner a stem is the question asked.
-- **Hit as a key** (a stub is `stub:<key>`, the stem's range by the partner ends' hull; no rect is built ; amended 2026-11-23: the code's way, the author as recommended); a bookmark of a ribbon would need one); hovered as "→ chr7 ·
+- **Hit as a key** (a stub is `stub:<key>`, the stem's range by the partner ends' hull; no rect is built, and a bookmark of a ribbon would need one) (amended 2026-11-23: the code's way, the author as recommended); hovered as "→ chr7 ·
   37 links, not shown". **`stubs`** (param): `partner` (the default), `none` (core's caret instead).
 
 ### Colour: a hue per block
@@ -427,16 +427,16 @@ Cells this design fills; the others stand as layouts, GA, RR and LX give them.
 | | select | extend | add / remove | focus | back | zoom | pan | hide | edit |
 |---|---|---|---|---|---|---|---|---|---|
 | **a section: the genome ring** | no (its blocks or a range) | — | — | 0 fits; the label menu's "Show only" | undo returns the blocks shown | no: a ring shows its whole axis; opening a chromosome is `section.include` | no; `rotation` by patch | no: `include` by patch | `include` (patch, one undo step), `center`, `rotation` |
-| **an element: a ribbon** | click: its drawn run, both ends lit | Shift+click: from the anchor end | Cmd/Ctrl+click | double-click: core's focus (the ring's window, idle unless followed); with `opens`, the pair shown there (Decided, 7) | Alt+Left; undo | — | — | no: a data filter (`count`, `type`) | no: data |
+| **an element: a ribbon** | click: its key hit (`ribbon:`), both ends lit | Shift+click: from the anchor end | Cmd/Ctrl+click | double-click: core's focus (the ring's window, idle unless followed); with `opens`, the pair shown there (Decided, 7) | Alt+Left; undo | — | — | no: a data filter (`count`, `type`) | no: data |
 | **an element: a stem** | click: its range | Shift+click | Cmd/Ctrl+click | double-click: as a ribbon's, the stem's block with `opens` | as above | — | — | no | no |
-| **an element: a stub** | click: its rect (the stem's range, the partner's hull) | Shift+click | Cmd/Ctrl+click | double-click with `opens`: the pair | as above | — | — | `stubs: none` by patch | no |
+| **an element: a stub** | click: its key hit (`stub:`: the stem's range, the partner's hull) | Shift+click | Cmd/Ctrl+click | double-click with `opens`: the pair | as above | — | — | `stubs: none` by patch | no |
 | **a block** (a chromosome's arc or label) | click on its label: the whole block (GA) | Shift+click | Cmd/Ctrl+click | label menu: "Show only" (`section.include`) | undo | — | — | no: `include` | no |
 | **the selection** | — | — | `rondo:select-partners`: the far ends of its ribbons | Enter: as built | Alt+Left | — | — | — | as built |
 | **the keyboard cursor** on the ring | Enter: the stem under it | Shift+arrows: as built | — | `.` and `,`: `rondo:partner`, to the next partner by count, announced | Alt+Left | — | — | — | — |
 | **a track or layer** (`rondo:ribbons`) | — | — | — | — | — | — | — | `layer.hidden` | `width`, `stems`, `bundle`, `stubs`, `opens` by `layer.set` (one patch) |
 | **a navigator: the square** | no | no | no | one click on a cell: show that pair at once (`navigator.switch: include`); its title or Home: show all | undo | over a ring: drag an edge or corner of the window to grow or shrink the run of blocks shown (Decided 16) | over a ring: drag the window along the diagonal to move the run shown (Decided 16) | as navigators | its params by patch |
 | **the view** | — | — | — | — | — | — | — | — | undo returns the blocks shown |
-| **a bookmark or link** | — | — | a ribbon's rect or a stem's range as a ref (positions, never the level or the stem) | runs it; a ring nobody follows highlights it | Alt+Left | — | — | — | — |
+| **a bookmark or link** | — | — | a stem's range as a ref (a ribbon's rect when a bookmark of a ribbon is asked for) (positions, never the level or the stem) | runs it; a ring nobody follows highlights it | Alt+Left | — | — | — | — |
 
 ## Configuration
 
