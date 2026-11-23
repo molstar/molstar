@@ -4,9 +4,9 @@
 (focus and reveal) as behaviors with their params as config items. The code has neither: following is the
 `ViewModel`'s own (`follow.followerMoves`, `follow.cyclicArc` are `ViewerConfig` items the model reads; viewer spec,
 ViewModel, Follow), and focus and reveal are commands (`address.focus`, `address.reveal` of `addressing`; the
-`navigate` behavior's double-click focus). The behaviors built are `hover`, `select`, `navigate`, `cursor`,
-`addressing`, `editing`, `window`, `navigator`, `rows`, `hoverCard`, `keysPanel`, `headers`, `linkedPairs`, `legend`,
-`category`.
+`navigate` behavior's double-click focus). The behaviors built (the providers' names in `behaviors/`) are
+`addressing`, `cursor`, `editing`, `headers`, `hover`, `hoverCard`, `keysPanel`, `legend`, `linkedPairs`,
+`links.hover`, `navigate`, `navigator`, `rows`, `select`, `window`.
 
 **Where**: `packages/seq/viewer/src/behaviors/`, `models/view.ts`.
 

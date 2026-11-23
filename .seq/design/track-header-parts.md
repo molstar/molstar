@@ -446,6 +446,9 @@ Items are `ViewerConfig` unless the table says otherwise.
 | Said: one description for the live region and the card | viewer › Words |
 | After a hide by keyboard the cursor moves on | viewer › The cursor off what was hidden |
 | Touch: a tap shows the slots, a long press opens the menu | viewer › Gestures |
+| Keyboard in the menu is `@molstar/ui`'s; closed, the focus back to the canvas | viewer › The menu |
+| A header hover lights none of the track's items (EC-146) | viewer › Words |
+| Element actions in the menu, not the card (`on: 'element'` entries, the menu opened on the element) | viewer › Gestures |
 | `viewer.headers`, the geometry, published on change | viewer › Published on change |
 | A widget's slot (`kind: 'widget'`) | design-only: planned, not built (the author's "later") |
 | The built-ins are patches, one undo step each | viewer › Commands |

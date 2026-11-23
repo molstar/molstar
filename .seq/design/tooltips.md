@@ -259,7 +259,8 @@ nothing with tooltips but the language bump.
 | The SVG export's `<title>`s (`export.titles`, `card`) | core › A view's `export.titles` |
 | Export titles composed by the viewer's providers | viewer › Export titles |
 | The builder's `views.tooltip`; `check()` reports a missing field | core › `field`, `text`, `label`, `format` |
-| Performance: 0 B warm per hover step, the interval index, parses cached | viewer › Tooltips |
+| Performance: a warm card show allocates within a few hundred bytes of the card without tooltips | viewer › Tooltips |
+| Performance: the lookup through the store entry's interval index; parses cached by text (64) | core › Tooltips |
 | Performance targets (1,000,000 ranges, export cost) | design-only: measurement targets for the heavy lane, not rules |
 | Defaults: no `tooltip` node, the card as before | viewer › Providers |
 | The matrix's member labels (`member_labels`) | design-only: not built |

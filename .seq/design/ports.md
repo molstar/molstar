@@ -66,7 +66,8 @@ format, a map runtime, a backend) is a registry entry. Each has a default, so th
 | The hover card port | viewer › Hover card |
 | A UI port a behavior owns lives on that behavior | viewer › Supplied, never imported |
 | Data adapters are registry entries by format | core › Data adapters, one a format |
-| Not ports: a structure viewer, time and frames, archives, clipboard and links | viewer › A port or a registry entry |
+| Not ports: a structure viewer, `DomHost`'s frame scheduling (the application's clock is the animation port), archives, links | viewer › A port or a registry entry |
+| The clipboard: a behavior's param (`select`'s `write`), not a port | viewer › A port or a registry entry |
 | Archives as functions over the assets port | core › Archives |
 | Compute (a worker pool) | design-only: a plan for when a profile asks |
 | Suites only where a second adapter exists (assets, text metrics) | core › assets |
