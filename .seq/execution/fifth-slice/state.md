@@ -2,6 +2,9 @@
 
 ## Decided
 
+- `.seq/` reconciled, not deleted (the author, 2026-11-23: "let's do the scaffolds as 6th slice. do a draft plan there
+  for this"): a sixth slice moves it into a common place for scaffolds, oz renamed principles ("oz" was a working
+  name); draft in [sixth-slice/plan.md](../sixth-slice/plan.md), after this slice closes.
 - Stage 2's and 3's gate (the author, 2026-11-23, each "as recommended"): the recorded ClinVar slice stays committed
   and ships in the examples (NCBI public data, attribution kept); genotype codes get tokens of their own
   (`seq-genotype-0` to `-3` beside `seq-missing`, today's colours; drift/matrix-colours.md closed); the shared test

@@ -19,6 +19,7 @@ the fourth slice built (EX, CN).
 | first to third (closed) | the slice, 1, 2 | the tree core to figures |
 | fourth (closed) | 3, integration | molecules and units, structure syncing, track headers, seq data ports, services, bigWig, archives, extension kinds |
 | **fifth (this plan)** | 4, Genomes | the designs below, built |
+| sixth (draft, [plan](../sixth-slice/plan.md)) | scaffolds | `.seq/` reconciled into a common `.scaffolds/` for this and later scaffolds; oz renamed principles (the author, 2026-11-23) |
 | after | version 1's close-out | the planned rows no milestone took (Gate 0, 9), and what this slice deferred: the Manhattan family (EC-214, 216, 217, 219), `split`, EC-224's join, the designed-only formats when a use asks |
 
 ## The designs (promoted 2026-11-21)
