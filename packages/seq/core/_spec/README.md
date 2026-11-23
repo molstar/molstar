@@ -3056,6 +3056,12 @@ the layer knows its lanes), `scope` (`strip`, the default, laid out a strip at a
 in page coordinates: what crosses strips; `bridge`, internal, once a bridge with its `BridgeLayoutContext`: Bridges),
 `axes` (2: a second axis of its own, the y path in Emphasis).
 
+- **Words** (optional, built-ins need none): `describe?(hit, lay)` (the hover card's lines for a hit of its layer: the
+  first its title, the rest its rows, `label: value`), `summary?(lay)` (its layer's ARIA description, set when the frame
+  settles) and `announce?(lay, system, position)` (what the keyboard cursor adds at a position). The viewer calls them,
+  its own text after (viewer "Hover card", `seq:layer`). Why hooks, not exports: the card, ARIA and the cursor stay the
+  viewer's; a layer (an extension's ribbons) supplies only its words.
+
 - **The ranges layer's modules**: `render/ranges.ts` (the layer type: its prepared form, lanes and marks, hit, legend)
   and beside it, a concern each, `ranges-lay.ts` (what it keeps), `ranges-content.ts` (its content: Track heights),
   `ranges-beside.ts` (labels beside), `ranges-draw.ts`, `ranges-density.ts` (the heat strip) and `ranges-theme.ts` (its

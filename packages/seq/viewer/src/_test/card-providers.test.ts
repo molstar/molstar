@@ -92,7 +92,8 @@ describe('card providers', () => {
       note('lab:a', 5),
       ...BuiltInCardProviders,
     ]).map((p) => p.name);
-    expect(names.slice(0, 3)).toEqual(['lab:a', 'lab:b', CardProviderNames.region]);
+    // a layer type's own words first (`seq:layer`, 1)
+    expect(names.slice(0, 4)).toEqual([CardProviderNames.layer, 'lab:a', 'lab:b', CardProviderNames.region]);
     expect(names.at(-1)).toBe('lab:none');
     expect(names.indexOf(CardProviderNames.place)).toBeLessThan(names.indexOf(CardProviderNames.block));
   });

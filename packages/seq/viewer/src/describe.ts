@@ -101,6 +101,8 @@ export interface Place {
   readonly members?: readonly { readonly element?: Key | undefined }[] | undefined;
   /** A run's blocks (`target` `run`). */
   readonly count?: number | undefined;
+  /** The keyboard cursor's cell (`cursorPlace`): a layer's `announce` adds to it. */
+  readonly keyboard?: boolean | undefined;
 }
 
 /** The parts a description collects. */
@@ -218,7 +220,7 @@ class Words implements CardReads {
    * header the header (`state: 'cursor'`: its words say the key that opens its actions).
    */
   cursorPlace(c: Cursor): Place {
-    const cell: Place = { section: c.section, system: c.system, position: c.position };
+    const cell: Place = { section: c.section, system: c.system, position: c.position, keyboard: true };
     if (c.track !== undefined)
       return {
         ...cell,

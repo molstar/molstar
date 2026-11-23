@@ -39,6 +39,11 @@ export interface GestureBinding {
   readonly target: BindingTarget;
   /** A method (`hover`, `pan`, `zoom`) or a command id; null in an override removes the binding. */
   readonly action: string | null;
+  /**
+   * A layer type's name (an extension's, `rondo:ribbons`): the binding holds on that type's hits only, and wins over
+   * the grammar's binding of the same gesture there (`resolveIn`); the input runs it with the hit.
+   */
+  readonly layer?: string;
 }
 
 /** The modifiers held, platform-aware. */
@@ -253,6 +258,8 @@ export interface BindingTable {
    * else `any`'s), then the any-modifiers' one. Map lookups: no allocation.
    */
   resolve(gesture: PointerGesture, modifiers: ModifierState, target: HitTarget): string | undefined;
+  /** The action a binding scoped to a layer type gives a gesture on that type's hit (`GestureBinding.layer`), if any. */
+  resolveIn(layer: string, gesture: PointerGesture, modifiers: ModifierState, target: HitTarget): string | undefined;
   /** The change kind of the action a gesture resolves to: undefined for a method or nothing. */
   changeKind(gesture: PointerGesture, modifiers: ModifierState, target: HitTarget): ChangeKind | undefined;
 }
@@ -269,7 +276,7 @@ function maskOf(mods: readonly Modifier[] | '*' | undefined): number {
 
 const stateMask = (s: ModifierState) => (s.shift ? 1 : 0) | (s.mod ? 2 : 0) | (s.alt ? 4 : 0) | (s.space ? 8 : 0);
 
-const keyOf = (gesture: string, mask: number, target: string) => `${gesture}|${mask}|${target}`;
+const keyOf = (gesture: string, mask: number, target: string, layer = '') => `${gesture}|${mask}|${target}|${layer}`;
 
 export interface BindingTableOptions {
   /**
@@ -358,7 +365,7 @@ export function bindingTable(
         issues.push(issueOf(ViewerIssues, 'seq.viewer.binding.key', `A key binding for ${b.action}`));
         continue;
       }
-      const key = keyOf(b.gesture, maskOf(b.modifiers), b.target);
+      const key = keyOf(b.gesture, maskOf(b.modifiers), b.target, b.layer);
       if (seen.has(key))
         issues.push(issueOf(ViewerIssues, 'seq.viewer.binding.conflict', `Two bindings for ${describe(b)}`));
       seen.add(key);
@@ -378,18 +385,29 @@ export function bindingTable(
       table.set(key, b);
     }
   }
-  // a lookup per gesture, mask and target, so resolving allocates nothing
+  // a lookup per gesture, mask and target, so resolving allocates nothing; a layer type's scoped bindings their own
   const index = new Map<string, Map<number, Map<string, string>>>();
+  const scoped = new Map<string, Map<string, Map<number, Map<string, string>>>>();
   for (const b of table.values()) {
-    let byMask = index.get(b.gesture);
-    if (!byMask) index.set(b.gesture, (byMask = new Map()));
+    let byLayer = index;
+    if (b.layer !== undefined) {
+      byLayer = scoped.get(b.layer) ?? new Map();
+      scoped.set(b.layer, byLayer);
+    }
+    let byMask = byLayer.get(b.gesture);
+    if (!byMask) byLayer.set(b.gesture, (byMask = new Map()));
     const mask = maskOf(b.modifiers);
     let byTarget = byMask.get(mask);
     if (!byTarget) byMask.set(mask, (byTarget = new Map()));
     byTarget.set(b.target, b.action!);
   }
-  const resolve = (gesture: PointerGesture, modifiers: ModifierState, target: HitTarget) => {
-    const byMask = index.get(gesture);
+  const lookup = (
+    by: Map<string, Map<number, Map<string, string>>>,
+    gesture: PointerGesture,
+    modifiers: ModifierState,
+    target: HitTarget,
+  ) => {
+    const byMask = by.get(gesture);
     if (!byMask) return undefined;
     const exact = byMask.get(stateMask(modifiers));
     const hit = exact?.get(target) ?? exact?.get('any');
@@ -397,10 +415,16 @@ export function bindingTable(
     const any = byMask.get(AnyModifiers);
     return any?.get(target) ?? any?.get('any');
   };
+  const resolve = (gesture: PointerGesture, modifiers: ModifierState, target: HitTarget) =>
+    lookup(index, gesture, modifiers, target);
   return {
     bindings: [...table.values()],
     issues,
     resolve,
+    resolveIn: (layer, gesture, modifiers, target) => {
+      const by = scoped.get(layer);
+      return by && lookup(by, gesture, modifiers, target);
+    },
     changeKind: (gesture, modifiers, target) => {
       const action = resolve(gesture, modifiers, target);
       return action === undefined || isMethodAction(action) ? undefined : changeKindOf(action, options.kinds);
@@ -410,5 +434,5 @@ export function bindingTable(
 
 function describe(b: GestureBinding): string {
   const mods = b.modifiers === '*' ? '(any)+' : b.modifiers?.length ? `${b.modifiers.join('+')}+` : '';
-  return `${mods}${b.gesture} on ${b.target}`;
+  return `${mods}${b.gesture} on ${b.target}${b.layer ? ` of ${b.layer}` : ''}`;
 }

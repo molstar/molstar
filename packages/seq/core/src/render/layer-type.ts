@@ -269,6 +269,18 @@ export type HitTarget =
   | 'group'
   | 'run';
 
+/** What a layer type's `describe` is given: the hover's place (a hit's fields as the hover keeps them). */
+export interface LayerPlace {
+  readonly element?: Key | undefined;
+  readonly system?: string | undefined;
+  /** NaN when none. */
+  readonly position: number;
+  readonly target?: string | undefined;
+  readonly block?: number | undefined;
+  readonly state?: string | undefined;
+  readonly count?: number | undefined;
+}
+
 /** A section's id: the last step of its address. */
 export function sectionId(section: { readonly address: string }): string {
   const a = section.address;
@@ -427,6 +439,15 @@ export interface LayerType<Prep = unknown, Lay = unknown> {
    * each item once, its pieces' hull. Absent: the layer has no items to name (letters, values).
    */
   items?(lay: Lay): readonly ItemDescription[];
+  /**
+   * The hover card's lines for a hit of its layer (_spec/README.md "Render", Layer types, Words): the first the card's
+   * title, the rest its rows (`label: value`); the viewer's own text after. Absent: the viewer's words alone.
+   */
+  describe?(hit: LayerPlace, lay: Lay): readonly string[] | undefined;
+  /** Its layer's ARIA description, set when the frame settles ("612 ribbons, 23 chromosomes"); absent: none. */
+  summary?(lay: Lay): string | undefined;
+  /** What the keyboard cursor adds at a position of its section ("stem of 312 links"); absent or undefined: nothing. */
+  announce?(lay: Lay, system: string, position: number): string | undefined;
   /** The rows its data's filter left out of what it read (the track's "n filtered" chip). */
   filtered?(lay: Lay): number;
   /**

@@ -15,6 +15,7 @@ import {
   ThemeAttribute,
 } from '@molstar/seqx-viewer/canvas';
 import { Announcer } from './announcer.js';
+import { setLayerAria } from './layer-aria.js';
 import { BridgeView } from './models/bridge-hooks.js';
 import { createDragSession } from './drag-session.js';
 import { isViewEvent } from './overlay-events.js';
@@ -64,7 +65,11 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
     live.textContent = said.text;
   });
   // each bridge an ARIA group, its words set when the frame settles (the bridge chunk's: none without a bridge)
-  const stopBands = viewer.rested.listen(() => BridgeView.parts?.aria(viewer, container));
+  // and each layer whose type summarizes it (an extension's ribbons: `LayerType.summary`)
+  const stopBands = viewer.rested.listen(() => {
+    BridgeView.parts?.aria(viewer, container);
+    setLayerAria(container, viewer.frame?.layout);
+  });
 
   // the token table: the root's computed style (`theme.source: 'root'`) read before the first frame, and again when
   // `data-msui-theme` changes on the document element or the nearest ancestor that has it; else the config's

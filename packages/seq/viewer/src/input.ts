@@ -288,6 +288,16 @@ export class ViewerInput {
     return this._sectionOf(section)?.rail;
   }
 
+  /** The type name of a section's layer by its key (a scoped binding's), in the last frame. */
+  private _layerTypeOf(section: string, key: string): string | undefined {
+    const s = this._sectionOf(section);
+    if (!s) return undefined;
+    for (const l of s.sectionLays) if (l.key === key) return l.type.name;
+    for (const t of s.tracks) for (const l of t.layers) if (l.key === key) return l.type.name;
+    for (const ls of s.lays) for (const l of ls) if (l.key === key) return l.type.name;
+    return undefined;
+  }
+
   /** A section's layout in the last frame, by address. */
   private _sectionOf(section: string): SectionLayout | undefined {
     const sections = this.viewer.frame?.layout.sections;
@@ -979,6 +989,13 @@ export class ViewerInput {
     const p = this.viewer.placementOf(section);
     const inPlot = this._overPlot(section, x, y);
     const target = inPlot ? 'cell' : hitTarget(hit);
+    // a binding scoped to the hit's layer type (an extension's) wins there: run with the hit
+    const type = hit?.layer === undefined ? undefined : this._layerTypeOf(section, hit.layer);
+    const own = type && this.viewer.bindings.resolveIn(type, 'double-click', mods, target);
+    if (own !== undefined && hit) {
+      this.viewer.runCommand(own, { section, hit: { ...hit } });
+      return true;
+    }
     const action = this.viewer.bindings.resolve('double-click', mods, target);
     if (action === undefined) return false;
     // a clade's command on a summary row (its element the clade): the clade it names

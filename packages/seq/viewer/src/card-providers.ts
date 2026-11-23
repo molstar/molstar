@@ -21,6 +21,7 @@ import { regionHoverOf } from './describe-region.js';
 
 /** The built-in providers' names. */
 export const CardProviderNames = {
+  layer: 'seq:layer',
   region: 'seq:region',
   pair: 'seq:pair',
   group: 'seq:group',
@@ -70,6 +71,39 @@ export function unitOf(l: LayerLayout): string {
 }
 
 // ---- the built-ins ----
+
+/**
+ * A layer type's own words (core's `LayerType.describe`, `announce`: an extension's layer says what it draws): a hit
+ * of its layer its lines, the first the title, the rest rows (`label: value`); the keyboard cursor's cell what each
+ * layer of its section adds there. The viewer's own text after: never `whole`.
+ */
+const LayerWordsSection: CardProviderEntry = {
+  kind: 'card-provider',
+  name: CardProviderNames.layer,
+  order: 1,
+  describe(at, out) {
+    const l = at.layer;
+    const lines = l?.type.describe?.(at.place, l.lay);
+    if (lines?.length) {
+      out.title ||= lines[0];
+      for (let i = 1; i < lines.length; i++) {
+        const c = lines[i].indexOf(': ');
+        out.row(c < 0 ? lines[i] : lines[i].slice(0, c), c < 0 ? '' : lines[i].slice(c + 2));
+      }
+      out.words.push(lines.join(', '));
+      return;
+    }
+    const s = at.section;
+    const system = at.place.system;
+    if (!at.place.keyboard || system === undefined || Number.isNaN(at.position)) return;
+    const say = (x: { type: LayerLayout['type']; lay: unknown }) => {
+      const t = x.type.announce?.(x.lay, system, at.position);
+      if (t) out.words.push(t);
+    };
+    for (const t of s.tracks) for (const x of t.layers) say(x);
+    for (const x of s.sectionLays) say(x);
+  },
+};
 
 /** A block of a section of blocks (a chain of a complex): its label, and which copy when its system has several. */
 const BlockSection: CardProviderEntry = {
@@ -220,7 +254,8 @@ const ItemSection: CardProviderEntry = {
     const strand = at.words.strandOf(l, el.key, it.start, row ?? null);
     // an allele by its id; a long REF or ALT (hashed in the id) by its first letters and its length
     const name = allele ? alleleTitle(el.key, allele) : '';
-    out.title = allele ? name : it.label;
+    // a layer type's own title (`seq:layer`) kept
+    out.title ||= allele ? name : it.label;
     // the track's name: a short drawn label (`CDR-H1`) is told apart by it (`CDRs (Kabat)`)
     const track = at.section.tracks.find((t) => t.layers.includes(l))?.track.label;
     if (track) out.row('Track', track);
@@ -463,6 +498,7 @@ export const TooltipsCardProvider: CardProviderEntry = {
  * out of the registry it spreads to remove it, or lists its own under the same name to replace it.
  */
 export const BuiltInCardProviders: readonly CardProviderEntry[] = [
+  LayerWordsSection,
   RegionSection,
   PairSection,
   GroupSection,
