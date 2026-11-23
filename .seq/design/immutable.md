@@ -272,3 +272,26 @@ namespace HashMap {
   mutably is a native `Map` there.
 - **The persistent ref index, the RRB vector, sorted maps, and nodes holding persistent collections**: each when its
   trigger is met.
+
+## In the specs
+
+The collections' own decisions live in the module's spec, `packages/core/src/data/immutable/_spec/README.md` (not one
+of the four the check reads), so their rows say where there.
+
+| Decision | Where |
+|---|---|
+| `repr` uses the collections only behind an interface, once measured; nodes keep their plain shape | repr › The ref index |
+| The ref index on plain `Map`s, derived by node identity; the trie not needed at 10,000 refs | repr › The ref index |
+| The child index: a native `Map` cached per children array past 8 children | repr › The child index |
+| The address index and `ValueKeys` dropped; `diff`'s and `merge3`'s maps native | design-only: what was not built |
+| CHAMP maps and sets, the flat threshold (16), collision nodes | design-only: in data/immutable's own spec, §2 The collections |
+| Ordered maps and sets, the vector | design-only: in data/immutable's own spec, §2 The collections |
+| Transients (reads, owner token, `asImmutable` kills the handle) | design-only: in data/immutable's own spec, §3 Transients |
+| Allocation (reads allocate nothing, no global caches) | design-only: in data/immutable's own spec, §5 Allocation |
+| Hashing and equality per collection, `defaultHash`, collections as values | design-only: in data/immutable's own spec, §4 Hashing and equality |
+| Not `repr`'s Merkle hash | repr › hashNode |
+| Configuration: hash and equality only, the rest fixed | design-only: in data/immutable's own spec, §6 Configuration |
+| `update` and absent values | design-only: in data/immutable's own spec, §7 |
+| The API, the folder and the entry | design-only: in data/immutable's own spec, §1 Surface |
+| Tests, measurements, the `StateTree` spike | design-only: in data/immutable's own spec, §8 and §9 |
+| Moving Mol\*'s state tree off immutable.js; the RRB vector, sorted maps, nodes holding collections | design-only: not built (later work, each on its trigger) |
