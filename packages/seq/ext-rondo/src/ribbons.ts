@@ -7,7 +7,8 @@
 import type { Emphasis, LayerType, Location, PassName, PassWriter } from '@molstar/seqx-core/extension';
 import { PairsReader } from '@molstar/seqx-core/extension';
 import { DefaultRondoConfig, type RondoConfig } from './config.js';
-import { Kind, layoutRondo, polygonAt, RondoLay, type RondoPrep } from './lay.js';
+import { Kind, layoutRondo, RondoLay, type RondoPrep } from './lay.js';
+import { polygonAt } from './shapes.js';
 import { announceRondo, describeRondo, summaryRondo } from './words.js';
 
 // `rondo:ribbons` (_spec/README.md): a `scope: 'section'` layer over core's pairs reader, on a ring (through its warp)
