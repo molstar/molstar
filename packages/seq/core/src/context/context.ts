@@ -234,7 +234,7 @@ function withSettings(
   pairs: readonly (readonly [SeqConfigItem<any>, unknown])[] | undefined,
 ): RenderConfig {
   // under a composed extension's namespace (`rondo.stemPx` of `rondo`), its descriptor listing them or not (a viewer's
-  // descriptor of the same extension may not: settings are never registered late), the last pair of a key
+  // descriptor of the same extension may not), the last pair of a key; composed again by `_extend`
   const ids = new Set(extensions.map((e) => e.id));
   const settings: Record<string, unknown> = {};
   let any = false;
@@ -438,7 +438,10 @@ export function composeSeqContext(spec: SeqContextSpec = {}): SeqContext {
       }),
     _extend(next) {
       t = tablesOf(registry, checkExtensions(next));
-      Object.assign(context, t, { version: context.version + 1 });
+      // the settings again under the extensions as they now stand (a late one's set, a gone one's dropped)
+      const { settings: _, ...plain } = renderCfg;
+      renderCfg = withSettings(plain, t.extensions, spec.config);
+      Object.assign(context, t, { renderConfig: renderCfg, version: context.version + 1 });
     },
     retire() {
       if (retired) return;
