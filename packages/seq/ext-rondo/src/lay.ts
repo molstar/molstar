@@ -128,6 +128,8 @@ export class RondoLay {
   stubLabel: string[] = [];
   stubLabelX = new Float64Array(16);
   stubLabelY = new Float64Array(16);
+  /** A label's measured width, CSS px. */
+  stubLabelW = new Float64Array(16);
   stubKey: string[] = [];
 
   // ---- polygons, in draw order, and the hit grid over them ----
@@ -220,6 +222,7 @@ function growStubs(lay: RondoLay, n: number) {
   lay.stubPoly = grow(lay.stubPoly, n);
   lay.stubLabelX = grow(lay.stubLabelX, n);
   lay.stubLabelY = grow(lay.stubLabelY, n);
+  lay.stubLabelW = grow(lay.stubLabelW, n);
 }
 
 /** The read's systems: the assembly's sequences (the ends' units index them), else the layer's two. */

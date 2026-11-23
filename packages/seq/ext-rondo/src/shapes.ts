@@ -16,6 +16,57 @@ import type { RondoLay, RondoPrep } from './lay.js';
 /** A polygon's kind. */
 export const Kind = { trumpet: 0, ribbon: 1, stub: 2, fan: 3 } as const;
 
+/** The labels taken so far: their box and tip (x0, y0, x1, y1, x, y a label), reused. */
+let Boxes = new Float64Array(64);
+let ByCount = new Int32Array(16);
+
+/**
+ * The stubs' labels (`chr7 · 37` at the tip, centred): the strongest first, each only where its box (padded 2 px) meets
+ * no label taken and its tip is `stubLabelPx` from every taken tip; the rest unlabelled (their partner in the card).
+ */
+function stubLabels(lay: RondoLay, cfg: RondoConfig, ctx: LayoutContext, tipD: number) {
+  const f = lay.frame;
+  const font = lay.font;
+  const size = Number.parseFloat(font) || 12;
+  if (ByCount.length < lay.nb) ByCount = new Int32Array(lay.nb);
+  let n = 0;
+  for (let s = 0; s < lay.nb; s++) if (lay.stubPoly[s] >= 0) ByCount[n++] = s;
+  const order = ByCount.subarray(0, n).sort((a, b) => lay.stubCount[b] - lay.stubCount[a] || a - b);
+  let taken = 0;
+  for (const s of order) {
+    const text = `${lay.names[lay.stubPartner[s]]} · ${Math.round(lay.stubCount[s]).toLocaleString('en-US')}`;
+    f.point((lay.stubT0[s] + lay.stubT1[s]) / 2, tipD + 4);
+    const x = f.px;
+    const y = f.py;
+    const w = ctx.text.measure(font, text);
+    // the box about the baseline (`y + 4`): the cap height above, a descent below
+    const x0 = x - w / 2 - 2;
+    const x1 = x + w / 2 + 2;
+    const y0 = y + 4 - size - 2;
+    const y1 = y + 4 + size * 0.3 + 2;
+    let free = true;
+    for (let j = 0; j < taken && free; j++) {
+      const o = 6 * j;
+      const overlaps = x0 < Boxes[o + 2] && x1 > Boxes[o] && y0 < Boxes[o + 3] && y1 > Boxes[o + 1];
+      if (overlaps || Math.hypot(Boxes[o + 4] - x, Boxes[o + 5] - y) < cfg.stubLabelPx) free = false;
+    }
+    if (!free) continue;
+    if (Boxes.length < 6 * (taken + 1)) Boxes = grow(Boxes, 12 * (taken + 1));
+    const o = 6 * taken;
+    Boxes[o] = x0;
+    Boxes[o + 1] = y0;
+    Boxes[o + 2] = x1;
+    Boxes[o + 3] = y1;
+    Boxes[o + 4] = x;
+    Boxes[o + 5] = y;
+    taken++;
+    lay.stubLabel[s] = text;
+    lay.stubLabelX[s] = x;
+    lay.stubLabelY[s] = y;
+    lay.stubLabelW[s] = w;
+  }
+}
+
 /** A polygon made: its kind, what it stands for, its colour. */
 function made(lay: RondoLay, kind: number, ref: number, color: number): number {
   const i = lay.polys.end();
@@ -99,7 +150,6 @@ export function polygons(lay: RondoLay, prep: RondoPrep, cfg: RondoConfig, ctx: 
   }
   // stubs: a taper from the neck toward the centre, in the partner's hue, labelled at its tip where it has room
   const tipD = dn + cfg.stubShare * f.room;
-  let lastLabel = Number.NEGATIVE_INFINITY;
   for (let s = 0; s < lay.nb; s++) {
     lay.stubPoly[s] = -1;
     lay.stubLabel[s] = '';
@@ -115,16 +165,8 @@ export function polygons(lay: RondoLay, prep: RondoPrep, cfg: RondoConfig, ctx: 
     f.point(mid, tipD);
     P.add(f.px, f.py);
     lay.stubPoly[s] = made(lay, Kind.stub, s, alpha(hueOf(lay, lay.stubPartner[s]), op));
-    // its label: where the tip is `stubLabelPx` from the last labelled one along the tips' circle
-    const along = mid / f.perPx(tipD);
-    if (along - lastLabel >= cfg.stubLabelPx) {
-      lastLabel = along;
-      f.point(mid, tipD + 4);
-      lay.stubLabel[s] = `${lay.names[lay.stubPartner[s]]} · ${Math.round(lay.stubCount[s]).toLocaleString('en-US')}`;
-      lay.stubLabelX[s] = f.px;
-      lay.stubLabelY[s] = f.py;
-    }
   }
+  stubLabels(lay, cfg, ctx, tipD);
   // fans: a stem's weak links, one taper of their summed width, last in its neck
   for (let s = 0; s < lay.ns; s++) {
     lay.stemFanPoly[s] = -1;

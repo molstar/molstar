@@ -55,8 +55,9 @@ rule without pictures holds. The stem menu waits for element menus in the viewer
 
 - **An end with no place** (its system not in the section) makes its pairs a stub, one a stem a partner: a taper from
   the neck toward the centre `rondo.stubShare` (0.2) of the hole, in the partner's hue, `k ×` its count wide (a fan
-  member under a device px), labelled at its tip ("chr7 · 37") where the tips are `rondo.stubLabelPx` (24) apart.
-  `stubs: none`: not drawn (their counts in the fan).
+  member under a device px), labelled at its tip ("chr7 · 37", centred), the strongest first, a label only where its box
+  (padded 2 px) meets no label taken and its tip is `rondo.stubLabelPx` (24) from every labelled tip. Why: tips crowd at
+  a hub, and two labels over each other read as neither. `stubs: none`: not drawn (their counts in the fan).
 
 ## Hits, emphasis, words
 

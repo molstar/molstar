@@ -197,7 +197,7 @@ export function ribbonsType(config: RondoConfig = DefaultRondoConfig): LayerType
           if (!t) continue;
           a[0] = lay.stubLabelX[s];
           a[1] = lay.stubLabelY[s] + 4;
-          a[2] = 0;
+          a[2] = lay.stubLabelW[s];
           a[3] = Number.POSITIVE_INFINITY;
           a[4] = lay.ink;
           out.textArgs(t, 1, lay.font);

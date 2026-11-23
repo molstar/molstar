@@ -10,6 +10,7 @@
 // its stems’ necks; stubs only for ends with no place, one a stem a partner; a reversed block, pairs across a tile edge.
 
 import { assembly, createSeqSpec } from '@molstar/seqx-core/lang';
+import { bundledTextMetrics } from '@molstar/seqx-core/render';
 import { describe, expect, it } from 'vitest';
 import { rondo } from '../index.js';
 import { Kind, type RondoLay } from '../lay.js';
@@ -242,6 +243,40 @@ function reversedSpec() {
   );
   return b.build();
 }
+
+describe('the stubs’ labels', () => {
+  it('never overlap: the strongest labelled first, a label only where its box is free', async () => {
+    const text = bundledTextMetrics();
+    // one chromosome of a genome with many partners: a stub a stem a partner, many tips near each other
+    const chroms = toyChromosomes(12);
+    const links = toyLinks(chroms, 3000, 9, 0.2);
+    for (const include of [['chr1'], ['chr3'], ['chr2', 'chr7']]) {
+      const l = lay(await (await settle(ringSpec({ chroms, links, include }))).frame({ size: Size }))!;
+      const size = Number.parseFloat(l.font);
+      const boxes: [number, number, number, number, string][] = [];
+      for (let s = 0; s < l.nb; s++) {
+        const t = l.stubLabel[s];
+        if (!t) continue;
+        const w = text.measure(l.font, t);
+        expect(l.stubLabelW[s]).toBeCloseTo(w, 6);
+        const y = l.stubLabelY[s] + 4;
+        boxes.push([l.stubLabelX[s] - w / 2, y - size, l.stubLabelX[s] + w / 2, y + size * 0.3, t]);
+      }
+      expect(boxes.length, include.join()).toBeGreaterThan(0);
+      for (let i = 0; i < boxes.length; i++)
+        for (let j = i + 1; j < boxes.length; j++) {
+          const [a, b] = [boxes[i], boxes[j]];
+          const overlap = a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1];
+          expect(overlap, `${include.join()}: ${a[4]} and ${b[4]}`).toBe(false);
+        }
+      // the strongest stub is labelled
+      let strongest = -1;
+      for (let s = 0; s < l.nb; s++)
+        if (l.stubPoly[s] >= 0 && (strongest < 0 || l.stubCount[s] > l.stubCount[strongest])) strongest = s;
+      expect(l.stubLabel[strongest]).not.toBe('');
+    }
+  });
+});
 
 describe('drawing against the data: a reversed block, a tile edge', () => {
   it('a reversed block: its stems run counterclockwise (`stemDir` −1), every pair in one place, the necks add', async () => {

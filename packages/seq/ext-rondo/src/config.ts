@@ -20,7 +20,7 @@ export interface RondoConfig {
   readonly maxRibbons: number;
   /** A stub's length, a share of the hole's radius. */
   readonly stubShare: number;
-  /** The room a stub's tip needs for its label, CSS px. */
+  /** The least distance between two labelled stub tips, CSS px (their boxes never overlap either). */
   readonly stubLabelPx: number;
   /** The hit grid's cell over the hole, CSS px. */
   readonly hitCellPx: number;
