@@ -39,6 +39,7 @@
     "tslib": "catalog:"
   },
   "devDependencies": {
+    "@molstar/test-harness": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

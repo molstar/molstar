@@ -1068,7 +1068,7 @@
       }
     },
     {
-      "includes": ["packages/seq/ext-rondo/src/**"],
+      "includes": ["packages/seq/ext-rondo/src/**", "!packages/seq/ext-rondo/src/**/_test/**"],
       "linter": {
         "rules": {
           "style": {

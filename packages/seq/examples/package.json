@@ -35,6 +35,7 @@
   "dependencies": {
     "@molstar/core": "workspace:*",
     "@molstar/seqx-core": "workspace:*",
+    "@molstar/seqx-ext-rondo": "workspace:*",
     "tslib": "catalog:"
   },
   "devDependencies": {
