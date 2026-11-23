@@ -528,7 +528,11 @@ function fromBins(entries: readonly Loaded[], level: number, region: PairsRegion
   return { data: g.data({ count: g.weight }), weight: Float32Array.from(g.weight) };
 }
 
-/** The layer's prep over the frame's pairs: every pair shown, its index by key, its elements made on hit. */
+/**
+ * The layer's prep over the frame's pairs, its index by key, its elements made on hit: items read by region filtered by
+ * the layer's base and filter as they land (_spec/README.md "Themes", Filters; its filter's rows counted); bins (a
+ * `level`) every one shown, a bin having no fields to read.
+ */
 export function withData(
   prep: PairsPrep,
   data: PairsData,
@@ -537,12 +541,23 @@ export function withData(
 ): PairsPrep {
   const index = new Map<string | number, number>();
   for (let k = 0; k < data.n; k++) if (!index.has(data.keys[k])) index.set(data.keys[k], k);
+  const datum = new PairDatum(data);
+  const shown = new Uint8Array(data.n).fill(1);
+  let filtered = 0;
+  const { rowBase: base, rowFilter: filter } = prep;
+  if (level === undefined && (base || filter))
+    for (let k = 0; k < data.n; k++)
+      if (base && !base(datum.set(k))) shown[k] = 0;
+      else if (filter && !filter(datum.set(k))) {
+        shown[k] = 0;
+        filtered++;
+      }
   return {
     ...prep,
     data,
-    datum: new PairDatum(data),
-    shown: new Uint8Array(data.n).fill(1),
-    filtered: 0,
+    datum,
+    shown,
+    filtered,
     index,
     elements: [],
     extents: [],

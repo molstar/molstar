@@ -80,11 +80,14 @@ export function toyLinks(chroms: readonly { length: number }[], n: number, seed 
   return out;
 }
 
-/** The links as BEDPE (`chrom1 start1 end1 chrom2 start2 end2 name score strand1 strand2`): read whole, by either end. */
+/**
+ * The links as BEDPE (`chrom1 start1 end1 chrom2 start2 end2 name score strand1 strand2 type`): read whole, by either
+ * end; its `type` column mapped by the source (`fields: { type: '10' }`).
+ */
 export function linksBedpe(chroms: readonly { name: string }[], links: readonly Link[]): string {
   return `${links
     .map((l, i) =>
-      [chroms[l.a].name, l.as, l.as + 500, chroms[l.b].name, l.bs, l.bs + 500, `l${i}`, 0, '+', '+'].join('\t'),
+      [chroms[l.a].name, l.as, l.as + 500, chroms[l.b].name, l.bs, l.bs + 500, `l${i}`, 0, '+', '+', l.type].join('\t'),
     )
     .join('\n')}\n`;
 }
@@ -126,7 +129,12 @@ export function ringSpec(o: RingSpecOptions = {}): Node {
       } as never)
     : b.data.pairs('links', {
         a: g,
-        source: b.data.source('src', { format: 'bedpe', value: linksBedpe(chroms, links) as never }),
+        source: b.data.source('src', {
+          format: 'bedpe',
+          value: linksBedpe(chroms, links) as never,
+          // no lines, no columns to map
+          ...(links.length ? { fields: { type: '10' } } : {}),
+        } as never),
       } as never);
   b.views.view('v', (v) => {
     const { ring } = rondoRing(v, {

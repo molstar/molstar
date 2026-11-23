@@ -112,9 +112,11 @@ waiting; its entries `StemMenu` in `viewer.ts`).
   edge (the hole's), whichever track holds it.
 - **Widths by a layer's own rule**: `width: count` (the links), or a numeric field summed (`q`): an item its value, a
   held bin its field's sum (core's `PairsReadOptions.sum`); links that carry none (a source's bins) are counted and
-  `rondo.ribbons.width` (info) says so. A filter over links read by region (a source's) is not read on them (core's
-  region reads keep every row): every link is drawn and `rondo.ribbons.filter` (warning) says so; kinds are written over
-  held links until the reads filter.
+  `rondo.ribbons.width` (info) says so. Over links read by region (a source's, its `type` column mapped), core's reads
+  filter their items by each layer's base; their bins carry no fields, so a filter is not read on them: the first layer
+  over the links draws the bins, the next draws nothing (`empty: shared`, "links drawn by another layer"), and
+  `rondo.ribbons.filter` (warning) says so on each. Never once a layer: kinds that cannot be told apart are drawn once.
+  How bins read by region should split by kind is open.
 - **The card names the kind** (`describe`): a ribbon at the item level lists the fields its links share (one link: its
   own), its `type`, its ends' strands (`Strands: + −`), then every other field its data carries (`q`, gene names where
   the file has them): a shared value, a number's range where they differ (`q: 0.001–0.04`), absent values and differing

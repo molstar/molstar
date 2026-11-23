@@ -130,12 +130,24 @@ describe('kinds of links', () => {
     expect(pairs.map((l) => (l.lay as { prep?: { filtered: number } }).prep?.filtered)).toEqual([0, 0]);
   });
 
-  it('kinds over links read by region: the filter not read there, said (every link drawn)', async () => {
+  it('kinds over links read by region: their items each its kind; their bins drawn once, said', async () => {
+    // items (under the gate): core's region reads keep each layer's base, so each layer reads its kind alone
+    const few = toyLinks(chroms, 300, 5);
+    const byKind = (type: string) => few.filter((l) => l.type === type).length;
+    const items = await frame(ringSpec({ links: few, kinds }));
+    const [c, o] = lays(items);
+    expect([c.items, o.items]).toEqual([true, true]);
+    expect([total(c), total(o)]).toEqual([byKind('contact'), byKind('other')]);
+    expect(items.layout.issues.filter((i) => i.code === 'rondo.ribbons.filter')).toEqual([]);
+    // bins: no fields to filter by, so the first layer draws them, the next draws nothing, both say why
     const f = await frame(ringSpec({ links, kinds }));
+    const [first, next] = lays(f);
+    expect(first.items).toBe(false);
+    expect(total(first)).toBe(links.length);
+    expect([next.empty, next.polys.n]).toEqual(['shared', 0]);
     expect(new Set(f.layout.issues.filter((i) => i.code === 'rondo.ribbons.filter').map((i) => i.address)).size).toBe(
       2,
     );
-    for (const l of lays(f)) expect(total(l)).toBe(links.length);
   });
 
   it('a kind hidden (`layer.hidden`): its layer draws nothing, the other unchanged', async () => {

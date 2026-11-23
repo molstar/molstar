@@ -45,8 +45,8 @@ export interface RondoPrep {
   readonly width: string;
   /** The layer's name in its card and legend (its kind's: `rondoRing`'s `kinds`); empty when none. */
   readonly label: string;
-  /** Whether its data names a filter its links, read by region, cannot be read against (said, every link drawn). */
-  readonly unfiltered: boolean;
+  /** Whether its data names a filter and its links are read by region (their bins cannot be filtered). */
+  readonly regionFilter: boolean;
   readonly config: RondoConfig;
 }
 
@@ -70,7 +70,12 @@ export class RondoLay {
   readonly reader = new PairsReader();
   read: PairsRead | undefined = undefined;
   /** Why nothing is drawn: `pending` (bins not landed), `layout` (text or grid), `none` (no pairs), `failed` (its source). */
-  empty: '' | 'pending' | 'layout' | 'none' | 'failed' = '';
+  empty: '' | 'pending' | 'layout' | 'none' | 'failed' | 'shared' = '';
+  /**
+   * Its bins are read by region under a filter they cannot be read against (`rondo.ribbons.filter`); `shared`: another
+   * layer over the same links draws them (the bins drawn once, never once a layer).
+   */
+  regionBins = false;
   dpr = 1;
   readonly frame = new RibbonFrame();
   /** The read's level (1: items) and the stems' (positions a stem). */
@@ -428,6 +433,7 @@ export function layoutRondo(lay: RondoLay, prep: RondoPrep, ctx: LayoutContext, 
   lay.hole = -1;
   lay.strongest = -1;
   lay.empty = '';
+  lay.regionBins = false;
   const tokens = ctx.tokens;
   lay.fillOpacity = ctx.config.ribbons.fillOpacity;
   lay.hover = tokens.colors['seq-hover'];
@@ -461,6 +467,15 @@ export function layoutRondo(lay: RondoLay, prep: RondoPrep, ctx: LayoutContext, 
   lay.names = lay.systems.map((s) => prep.model.systems.get(s)?.name ?? s);
   lay.kinds = d.kinds;
   lay.items = read.level === undefined;
+  // bins read by region carry no fields: a filter is not read on them, so the first layer over the links draws them
+  lay.regionBins = prep.regionFilter && !lay.items;
+  if (lay.regionBins) {
+    const first = lay.peers.find((p) => p.owner === lay.owner && p.regionBins);
+    if (first && first !== lay) {
+      lay.empty = 'shared';
+      return;
+    }
+  }
   lay.level = read.level ?? 1;
   // the stem level: the largest 2^j × the read's level no wider than `stemPx` CSS px; `stems: none`, the read's own
   const target = cfg.stemPx * positionsPerCssPx(ctx);
