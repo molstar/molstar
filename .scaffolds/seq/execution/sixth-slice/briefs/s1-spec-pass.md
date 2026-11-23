@@ -45,7 +45,7 @@ worktree and your own temporary space. Never touch the network.
 
 **Checks**: `pnpm format:check` (run `pnpm prettier --write` on the specs you changed), `pnpm lint`, `pnpm test:unit
 packages/seq/ packages/core/src/repr` (the config-table tests read the specs), and the scaffold's checks after
-`git add .seq packages`: `node .scaffolds/seq/_checks/designs-in-specs.ts`, `node .scaffolds/principles/_checks/paths-check.ts --allow
+`git add .seq packages`: `node .scaffolds/_method/_checks/designs-in-specs.ts --instance .scaffolds/seq`, `node .scaffolds/principles/_checks/paths-check.ts --allow
 '^(?!\.scaffolds/|packages/seq/)'`, `node .scaffolds/principles/_checks/merge-gate.ts --package .scaffolds/principles --instance .scaffolds/seq`, and
 `git grep -n '\.scaffolds/' -- packages` (no new hit).
 

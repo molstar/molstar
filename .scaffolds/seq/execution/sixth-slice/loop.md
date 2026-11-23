@@ -113,13 +113,17 @@ pnpm format:check
 node .scaffolds/principles/_checks/principles-ids.ts --package .scaffolds/principles --instance .scaffolds/seq --allow '^(?!\.scaffolds/)'
 node .scaffolds/principles/_checks/paths-check.ts --allow '^(?!\.scaffolds/|packages/seq/)'
 node .scaffolds/principles/_checks/merge-gate.ts --package .scaffolds/principles --instance .scaffolds/seq
+node .scaffolds/_method/_checks/closed-work.ts --instance .scaffolds/seq
+node .scaffolds/_method/_checks/defaults-designed.ts --instance .scaffolds/seq
+node .scaffolds/_method/_checks/designs-in-specs.ts --instance .scaffolds/seq
+node .scaffolds/_method/_checks/no-design-citations.ts --instance .scaffolds/seq
+node .scaffolds/_method/_checks/file-size.ts --instance .scaffolds/seq
+node .scaffolds/_method/_checks/links.ts            # stage 5's link check: closed history reported, not failed
 node .scaffolds/seq/_checks/ec-ids.ts
-node .scaffolds/seq/_checks/closed-work.ts
-node .scaffolds/seq/_checks/file-size.ts
-node .scaffolds/seq/_checks/defaults-designed.ts
 ```
 
-The scaffold's checks read the git index: stage first. At stage 5 also `pnpm build` and `pnpm check:workspace` (the
+From stage 4 on the generic checks are the method's (`.scaffolds/_method/_checks/`, each given the instance), their
+Seq\* parts in `.scaffolds/seq/_checks/*.json`. The scaffold's checks read the git index: stage first. At stage 5 also `pnpm build` and `pnpm check:workspace` (the
 moved `.prettierignore`, `biome.json` and `.gitignore` entries) and the Storybook build (the Design pages link to
 nothing in the scaffold, checked).
 

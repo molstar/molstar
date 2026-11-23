@@ -22,7 +22,7 @@ packages-seq` first). Branch `seq/s1f`.
 `state.md`, `plan.md` or `loop.md`. Another lane (S1E) edits comments in `packages/` and the core spec at the same time:
 do not touch them. Write only in your worktree and your own temp space. No network.
 
-**Checks** (after `git add .seq`): `node .scaffolds/seq/_checks/designs-in-specs.ts`, `node .scaffolds/principles/_checks/principles-ids.ts
+**Checks** (after `git add .seq`): `node .scaffolds/_method/_checks/designs-in-specs.ts --instance .scaffolds/seq`, `node .scaffolds/principles/_checks/principles-ids.ts
 --package .scaffolds/principles --instance .scaffolds/seq --allow '^(?!\.scaffolds/)'`, `node .scaffolds/principles/_checks/merge-gate.ts --package .scaffolds/principles
 --instance .scaffolds/seq`, `pnpm format:check`.
 

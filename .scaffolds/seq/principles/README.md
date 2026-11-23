@@ -136,7 +136,7 @@ files are frozen with its work folder; these rules govern the next loops, which 
   `Decided by the author, <date>: <merged | merged in part | not merged>: "<their words>"`. Work whose lessons should
   not spread (an exploration, a prototype, a spike) is `not merged`: its fold-back stays in its archive as evidence for
   a later one. Nothing in it is applied outside the folder before that line, and what was decided is applied before
-  the record and the closing line of `state.md`. Checked: `_checks/closed-work.ts` (a closed folder has `foldback.md`
+  the record and the closing line of `state.md`. Checked: the method's `_checks/closed-work.ts` (`.scaffolds/_method/`; a closed folder has `foldback.md`
   with a decision line). The author, 2026-11-18: "all work should have the foldback file, not every foldback should be
   "merged" .. some exploration work for example should not merge its lessons". Why: the fold-back is how the
   principles learn from the work; as only one category of reconciliation it could be skipped or folded into the

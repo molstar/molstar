@@ -32,7 +32,7 @@ same thing (package rules, tests, headers, changelog) the root wins.
 | [records/](records/README.md) | one permanent record per execution session |
 | `execution/<work-id>/` | plan, loop, state and drafts of work in flight; committed and kept, never cited from outside; stays after the close, never moved or deleted unless the author says so (the record alone goes to `records/`) |
 | `_skills/seq/` | the instance skill |
-| `_checks/` | this scaffold's own checks, beside the package's (Checks, below) |
+| `_checks/` | this scaffold's own check (`ec-ids.ts`) and its parts of the method's checks: the spec map, the scopes, the baselines (Checks, below) |
 
 ## How work happens here
 
@@ -53,25 +53,34 @@ paths in committed files).
 
 ## Checks
 
-They read the git index: stage first (`git add .seq packages/seq`).
+They read the git index: stage first (`git add .scaffolds packages/seq`).
 
 ```sh
 node .scaffolds/principles/_checks/principles-ids.ts --package .scaffolds/principles --instance .scaffolds/seq --allow '^(?!\.scaffolds/)'
 node .scaffolds/principles/_checks/paths-check.ts --allow '^(?!\.scaffolds/|packages/seq/)'
 node .scaffolds/principles/_checks/merge-gate.ts --package .scaffolds/principles --instance .scaffolds/seq
+node .scaffolds/_method/_checks/closed-work.ts --instance .scaffolds/seq
+node .scaffolds/_method/_checks/defaults-designed.ts --instance .scaffolds/seq
+node .scaffolds/_method/_checks/designs-in-specs.ts --instance .scaffolds/seq
+node .scaffolds/_method/_checks/no-design-citations.ts --instance .scaffolds/seq
+node .scaffolds/_method/_checks/file-size.ts --instance .scaffolds/seq
+node .scaffolds/_method/_checks/links.ts
 node .scaffolds/seq/_checks/ec-ids.ts
-node .scaffolds/seq/_checks/closed-work.ts
-node .scaffolds/seq/_checks/file-size.ts
 ```
 
-The last two are this scaffold's own: every `EC-<n>` cited in `packages/seq` names an item of the edge-case catalog
+The first three are the principles package's, the next six the method's ([../_method/README.md](../_method/README.md),
+Checks), each reading its Seq\* part from a file here in `_checks/`: `closed-work.json` (the folders closed before the
+fold-back rule), `defaults-designed.json` (the designs exempt, only shrinks), `designs-in-specs.json` (the packages'
+specs by key), `no-design-citations.json` (Seq\*'s packages, the one pointer), `file-size.json` (`packages/seq`) with
+`file-size-baseline.json` (only shrinks, lowered by `--update`); `links.ts` needs none (it reads all of `.scaffolds/`, closed
+work folders and records reported, not failed). A loop also runs the method's `features-planned.ts
+--instance .scaffolds/seq --plan <the slice's plan.md>`.
+
+`ec-ids.ts` is this scaffold's own: every `EC-<n>` cited in `packages/seq` names an item of the edge-case catalog
 ([sources/seqstar/edge-cases.md](sources/seqstar/edge-cases.md); [design/edge-cases.md](design/edge-cases.md)), and
 a feature marked `done` in [design/features.md](design/features.md) has each item it covers named by a test or given an
 outcome (rows done before the rule in `_checks/ec-coverage-baseline.json`, which only shrinks; `--worklist` prints the
-built rows' items no test names, the close's list); and a
-closed work folder has a `foldback.md` with the author's decision on it (merged, in part, or not) ([principles](principles/README.md), "The fold-back is a step
-of every close"). `file-size.ts` bounds a source file in `packages/seq` (§module-size: 800 lines a note, 1500 a failure, tests
-2500; the files already past it in `_checks/file-size-baseline.json`, which only shrinks, lowered by `--update`).
+built rows' items no test names, the close's list).
 
 The `--allow` patterns limit the id and path checks to what this scaffold governs: the rest of the repository uses
 the section sign for its own spec sections (`harness.md`, section 6).

@@ -1,30 +1,33 @@
-// The module-size check (§module-size): a tracked source file in the checked folders has at most HARD lines (tests
-// TEST_HARD), unless the baseline lists it, and then at most its listed count: the baseline only shrinks. A file past
-// SOFT is printed as a note (a question at review), not a failure. `--update` lowers the baseline to what the files now
-// hold and drops the files back under the bound; it never raises a count or adds a file (the orchestrator runs it after
-// a split; a lane never edits the baseline, §lanes-dont-edit-checks).
-// Usage: file-size.ts [root] [--update]
+// The module-size check (§module-size): a tracked source file in the scaffold's checked folders has at most `hard`
+// lines (tests `testHard`), unless the baseline lists it, and then at most its listed count: the baseline only
+// shrinks. A file past `soft` is printed as a note (a question at review), not a failure. `--update` lowers the
+// baseline to what the files now hold and drops the files back under the bound; it never raises a count or adds a
+// file (the orchestrator runs it after a split; a lane never edits the baseline, §lanes-dont-edit-checks).
+// The method's, not an instance's: the bound is the package's rule; which folders it governs is the scaffold's. The
+// instance's part: `<instance>/_checks/file-size.json`, required, `{ "checked": "<regex over tracked paths>" }` and
+// optionally `soft`, `hard`, `testHard` (default 800, 1500, 2500, §module-size's); and
+// `<instance>/_checks/file-size-baseline.json`, the files past the bound when the check was written (absent, none).
+// Usage: file-size.ts [root] --instance .scaffolds/<name> [--update]
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { finish, trackedFiles } from "../../principles/_checks/lib.ts";
+import { finish, instanceFile, methodArgs, trackedFiles, usage } from "./lib.ts";
 
-/** The folders checked: Seq*'s packages. */
-const CHECKED = /^packages\/seq\/.*\.(ts|tsx|mts|mjs|js)$/;
+const { root: ROOT, instance: INSTANCE, flags } = methodArgs({ flags: ["--update"] });
+const update = flags.has("--update");
+const config = instanceFile<{ checked?: string; soft?: number; hard?: number; testHard?: number }>(
+  ROOT,
+  INSTANCE,
+  "file-size.json",
+);
+if (!config.checked) usage(`${INSTANCE}/_checks/file-size.json: "checked" (a regex over tracked paths) is required`);
+/** The folders checked: the scaffold's packages. */
+const CHECKED = new RegExp(config.checked);
 const SKIPPED = /(^|\/)(node_modules|dist|lib|build)\//;
 const TEST = /(\/_test\/|\.test\.|\.quick\.|\.heap\.)/;
-const SOFT = 800;
-const HARD = 1500;
-const TEST_HARD = 2500;
-const BASELINE = ".scaffolds/seq/_checks/file-size-baseline.json";
-
-const argv = process.argv.slice(2);
-const update = argv.includes("--update");
-const rest = argv.filter((a) => a !== "--update");
-if (rest.some((a) => a.startsWith("-")) || rest.length > 1) {
-  console.error("usage: file-size.ts [root] [--update]");
-  process.exit(2);
-}
-const ROOT = rest[0] ?? ".";
+const SOFT = config.soft ?? 800;
+const HARD = config.hard ?? 1500;
+const TEST_HARD = config.testHard ?? 2500;
+const BASELINE = `${INSTANCE}/_checks/file-size-baseline.json`;
 
 const lineCount = (text: string): number => {
   if (!text) return 0;
