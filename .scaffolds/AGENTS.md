@@ -49,6 +49,13 @@ One folder per scaffold, `.scaffolds/<name>/`, laid out as the method's README s
   for now, once we have more scaffolds we generalize"). Likewise a scaffold's own check moves into `_method/_checks/`
   when a second scaffold needs it, and the rules an instance's fold-backs add stand in its manifest until the package
   takes them.
+- **Rule ids are checked per scaffold.** `principles-ids` runs once per instance: the package's ids and that
+  instance's own, never another instance's. An instance's rule moves upstream when a second scaffold needs it, as a
+  module does (the author, 2026-11-23, the sixth slice's fold-back: "with questions go as recommended").
+- **An instance keeps only what is its own.** Its manifest holds its own rules and how it applies a package rule (a
+  number, a path, a tightening), within the rule budget; the evidence is in its records. Updates re-sync the package
+  from upstream, never fork it; a rule dropped at a re-sync names the package clause that covers it
+  ([_method/README.md](_method/README.md), "An instance and its package").
 - **The method learns from every close.** A fold-back's loop changes go into the next loop and into `_method/`'s
   templates, in words with no scaffold in them.
 - **Agent context**: never auto-formatted (`.prettierignore`, `biome.json`), machine-invariant (no local paths).

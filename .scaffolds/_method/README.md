@@ -72,6 +72,21 @@ takes no instance, imports the package's directly.
    [state.md](state.md) and [findings.md](findings.md); a brief per lane; the loop runs until its checklist is ticked.
 4. **Close**: the loop's Finalize: reconcile, `foldback.md` with the author's decision, the gate, the record, the
    closing line of `state.md`, the next plan. The work folder stays, never moved or deleted unless the author says so.
-5. **Keep**: when the governed packages stand on their own, the scaffold stays, closed and editable. What the code
+5. **Re-sync**: when the package changes upstream, see below.
+6. **Keep**: when the governed packages stand on their own, the scaffold stays, closed and editable. What the code
    follows has moved into the packages' `_spec/`; the scaffold keeps the reasons, the history and the work, and is
    never cited by code, comments, tests or specs.
+
+## An instance and its package
+
+- **An instance keeps only what is its own.** Its manifest holds its own rules and how it applies a package rule (a
+  number, a path, a tool, a tightening), one line each, within the package's rule budget; the evidence behind a line
+  is in the records, not the manifest. Why: re-adapted after a re-sync, one instance's reading path fell from about
+  34.3k to 26.5k tokens (its manifest from 32k to 9k characters), and the re-sync alone had added about 1k.
+- **Updates re-sync from upstream, never fork.** The package folder is replaced by upstream's, edited only as the
+  manifest's Provenance says; a change the package needs is proposed upstream, never made in the copy.
+- **A rule dropped as "the package's" names what covers it.** Re-adapting an instance after a re-sync, each rule
+  dropped because the package states it names the package's id and quotes the clause that covers it, in the
+  re-adaptation's report. Where the package states it more weakly ("may", "optional", a default of none), the
+  instance keeps one line that tightens it, naming the id. Why: three rules were weakened by being dropped as the
+  package's when the package said less (a fold-back at every close, the standing novice pass, a mock's deletion).
