@@ -54,6 +54,13 @@ describe('a ribbons layer’s colour', () => {
     expect(colours(l, Kind.ribbon).size).toBeGreaterThan(1);
   });
 
+  it('`rondo:hues` (a scheme over `system` by default): the blocks’ hues, never one colour', async () => {
+    const { l } = await frame({ hues: true });
+    expect(l.mode).toBe(ColorMode.system);
+    expect(colours(l, Kind.trumpet).size).toBeGreaterThan(1);
+    expect(colours(l, Kind.ribbon).size).toBeGreaterThan(1);
+  });
+
   it('a field at the item level: each ribbon its links’ colour, a stem pair split by it; stems the ranges’ ink', async () => {
     const { f, l } = await frame({ links: toyLinks(chroms, 300, 3), layer: { color: byType } });
     expect(l.items).toBe(true);

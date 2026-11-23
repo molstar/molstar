@@ -145,6 +145,8 @@ export class RondoLay {
   ribLinks = new Float64Array(64);
   ribColor = new Uint32Array(64);
   ribRow = new Int32Array(64);
+  /** Each row's ribbon (−1: none), so a card lists the fields a ribbon's links share. */
+  rowRib = new Int32Array(64);
   ribDrawn = new Uint8Array(64);
   ribKind = new Int32Array(64);
   /** Its slices: at A (low, high place) and at B. */
@@ -610,6 +612,8 @@ function aggregate(lay: RondoLay, read: PairsRead) {
   RibbonKeys.clear();
   ColorClass.clear();
   StubKeys.clear();
+  lay.rowRib = grow(lay.rowRib, d.n);
+  lay.rowRib.fill(-1, 0, d.n);
   for (let k = 0; k < d.n; k++) {
     const a = RowA[k];
     if (a < 0) continue;
@@ -646,6 +650,7 @@ function aggregate(lay: RondoLay, read: PairsRead) {
       }
       lay.ribCount[r] += c;
       lay.ribLinks[r] += w ? w[k] : 1;
+      lay.rowRib[k] = r;
       lay.stemCount[a] += c;
       lay.stemCount[b] += c;
       continue;

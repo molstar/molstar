@@ -18,13 +18,18 @@ import { lays, Size, settle, toyChromosomes, toyLinks } from './helpers.js';
 
 const chroms = toyChromosomes();
 
-/** 3,000 contacts (bins at the fit) and three translocations (items), two of them fusions with gene names. */
+/**
+ * 3,000 contacts (bins at the fit) and three translocations (items), two of them fusions with gene names, the first
+ * read twice.
+ */
 function spec() {
   const contacts = toyLinks(chroms, 3000, 9).map((l) => ({ ...l, type: 'contact' }));
   const tx = [
     { a: 0, as: 2_000_000, b: 3, bs: 4_000_000, sa: '+', sb: '-', genes: ['XBCR', 'XABL1'] },
     { a: 1, as: 1_000_000, b: 4, bs: 3_000_000, sa: '-', sb: '-', genes: ['XETV6', 'XRUNX'] },
     { a: 2, as: 5_000_000, b: 5, bs: 1_000_000, sa: '+', sb: '+', genes: [null, null] },
+    // a second read of the first junction: one ribbon of two links
+    { a: 0, as: 2_001_000, b: 3, bs: 4_001_000, sa: '+', sb: '-', genes: ['XBCR', 'XABL1'] },
   ];
   const rows = {
     a_name: [...contacts.map((l) => chroms[l.a].name), ...tx.map((t) => chroms[t.a].name)],
@@ -36,7 +41,7 @@ function spec() {
     a_strand: [...contacts.map(() => '+'), ...tx.map((t) => t.sa)],
     b_strand: [...contacts.map(() => '+'), ...tx.map((t) => t.sb)],
     type: [...contacts.map(() => 'contact'), ...tx.map(() => 'translocation')],
-    q: [...contacts.map(() => 0.01), 0.0012, 0.004, 0.03],
+    q: [...contacts.map(() => 0.01), 0.0012, 0.004, 0.03, 0.002],
     gene_a: [...contacts.map(() => null), ...tx.map((t) => t.genes[0])],
     gene_b: [...contacts.map(() => null), ...tx.map((t) => t.genes[1])],
   };
@@ -66,18 +71,18 @@ function card(l: RondoLay, kind: number, pick: (ref: number) => boolean = () => 
 }
 
 describe('the card names the kind', () => {
-  it('a link: its type, strands, q and gene names (none where the data has none)', async () => {
+  it('a ribbon’s links: their type, strands, q (a range where they differ) and gene names (none where none)', async () => {
     const f = await (await settle(spec())).frame({ size: Size });
     const [, tx] = lays(f);
     expect(tx.items).toBe(true);
     expect(tx.nr).toBe(3);
     const fusion = card(tx, Kind.ribbon, (r) => tx.read!.data!.aStart[tx.ribRow[r]] === 2_000_000).lines;
     expect(fusion.slice(1)).toEqual([
-      'Links: 1 link (translocation)',
+      'Links: 2 links (translocation)',
       'Strand: reversed',
       'Type: translocation',
       'Strands: + −',
-      'q: 0.0012',
+      'q: 0.0012–0.002',
       'gene_a: XBCR',
       'gene_b: XABL1',
     ]);
@@ -122,7 +127,7 @@ describe('the card names the kind', () => {
       contacts.names[contacts.stemSystem[s]] === name && contacts.stemStart[s] <= x && x < contacts.stemEnd[s];
     const stem = card(contacts, Kind.trumpet, (s) => at(s, 'chr1', 2_000_000)).lines;
     expect(stem.some((x) => /^Contacts: \d+ links$/.test(x))).toBe(true);
-    expect(stem).toContain('Translocations: 1 link');
+    expect(stem).toContain('Translocations: 2 links');
   });
 
   it('one layer alone: no count per layer', async () => {

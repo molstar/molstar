@@ -38,24 +38,46 @@ const links = (n: number) => `${Math.round(n).toLocaleString('en-US')} link${Mat
 const valueText = (v: string | number) => (typeof v === 'number' ? String(Number(v.toPrecision(4))) : v);
 
 /**
- * A link's fields (_spec/README.md, Kinds of links, The card): its kind, its ends' strands, then every other field the
- * data carries for it (`q`, gene names where the file has them), absent values left out.
+ * The fields a ribbon's links share (_spec/README.md, Kinds of links, The card): their kind, their ends' strands, then
+ * every other field the data carries (`q`, gene names where the file has them): a value they all share, a number's
+ * range where they differ (`q: 0.001–0.04`), absent values and differing text left out. One link: its own fields.
  */
-function fieldLines(lay: RondoLay, k: number): string[] {
+function fieldLines(lay: RondoLay, r: number): string[] {
   const read = lay.read as PairsSource | undefined;
   const d = read?.data;
   const datum = read?.datum;
   if (!d || !datum) return [];
-  datum.set(k);
+  const rows: number[] = [];
+  for (let k = 0; k < d.n; k++) if (lay.rowRib[k] === r) rows.push(k);
+  if (!rows.length) return [];
+  const shared = (name: string): string | number | undefined => {
+    let v: string | number | undefined;
+    let lo = Number.POSITIVE_INFINITY;
+    let hi = Number.NEGATIVE_INFINITY;
+    let same = true;
+    for (let i = 0; i < rows.length; i++) {
+      const x = datum.set(rows[i]).field(name);
+      if (x === undefined || x === null || x === '' || (typeof x === 'number' && Number.isNaN(x))) return undefined;
+      if (i === 0) v = x;
+      else if (x !== v) same = false;
+      if (typeof x === 'number') {
+        lo = Math.min(lo, x);
+        hi = Math.max(hi, x);
+      }
+    }
+    if (same) return v;
+    return typeof v === 'number' ? `${valueText(lo)}–${valueText(hi)}` : undefined;
+  };
   const out: string[] = [];
-  const type = datum.field('type');
+  const type = shared('type');
   if (type !== undefined) out.push(`Type: ${type}`);
-  out.push(`Strands: ${datum.field('a_strand') === '-' ? '−' : '+'} ${datum.field('b_strand') === '-' ? '−' : '+'}`);
+  const sa = shared('a_strand');
+  const sb = shared('b_strand');
+  if (sa !== undefined && sb !== undefined) out.push(`Strands: ${sa === '-' ? '−' : '+'} ${sb === '-' ? '−' : '+'}`);
   for (const name of Object.keys(d.extra ?? {})) {
     if (name === 'count') continue;
-    const v = datum.field(name);
-    if (v !== undefined && v !== null && v !== '' && !(typeof v === 'number' && Number.isNaN(v)))
-      out.push(`${name}: ${valueText(v)}`);
+    const v = shared(name);
+    if (v !== undefined) out.push(`${name}: ${valueText(v)}`);
   }
   return out;
 }
@@ -65,15 +87,7 @@ function fieldLines(lay: RondoLay, k: number): string[] {
  * (`Contacts: 140 links`) when the section has more than one: a bin's or a stem's count per kind. Counted from each
  * layer's rows as read (bins' starts, items' ends), each row once.
  */
-function perLayer(
-  lay: RondoLay,
-  sysA: string,
-  a0: number,
-  a1: number,
-  sysB?: string,
-  b0 = 0,
-  b1 = 0,
-): string[] {
+function perLayer(lay: RondoLay, sysA: string, a0: number, a1: number, sysB?: string, b0 = 0, b1 = 0): string[] {
   if (lay.peers.length < 2) return [];
   const out: string[] = [];
   for (const p of lay.peers) {
@@ -119,8 +133,8 @@ export function describeRondo(hit: LayerPlace, lay: RondoLay): readonly string[]
     ];
     if (lay.width !== 'count') lines.push(`Width: ${lay.width} ${valueText(lay.ribCount[ref])}`);
     if (lay.ribStrand[ref] < 0) lines.push('Strand: reversed');
-    // one link: its own fields (its kind, strands, q, gene names); a bin: its count on each layer of the section
-    if (lay.items && lay.ribLinks[ref] === 1) lines.push(...fieldLines(lay, lay.ribRow[ref]));
+    // its links' fields (one link's own: its kind, strands, q, gene names); a bin: its count on each layer of the section
+    if (lay.items) lines.push(...fieldLines(lay, ref));
     if (bins) {
       lines.push(`Bins: ${bins} bins, zoom in to see them`);
       const sa = lay.systems[lay.stemSystem[a]];

@@ -245,6 +245,19 @@ function legendRondo(lay: RondoLay, options: { readonly title: string }): readon
   ];
 }
 
+/**
+ * Whether a colour form is the blocks' hues (_spec/README.md, Colour): none, a field of `system`, or a scheme over
+ * `system` (`rondo:hues`, whose field is `system` when it names none): drawn by the hues a system, never compiled.
+ */
+function bySystem(form: unknown): boolean {
+  if (form === undefined) return true;
+  if (typeof form !== 'object' || form === null) return false;
+  const f = form as { kind?: unknown; params?: Readonly<Record<string, unknown>> };
+  if (f.kind === 'field') return f.params?.name === 'system';
+  if (f.kind === 'scheme') return (f.params?.field ?? 'system') === 'system';
+  return false;
+}
+
 export interface RibbonsOptions {
   readonly config?: RondoConfig;
 }
@@ -271,7 +284,7 @@ export function ribbonsType(config: RondoConfig = DefaultRondoConfig): LayerType
         stubs: p.stubs === 'none' ? 'none' : 'partner',
         ...(typeof p.opens === 'string' ? { opens: p.opens } : {}),
         hues: theme.includes('rondo:hues'),
-        colored: layer.theme.color !== undefined,
+        colored: !bySystem(layer.theme.color),
         width: typeof p.width === 'string' && p.width !== '' ? p.width : 'count',
         label: typeof p.label === 'string' ? p.label : '',
         config,

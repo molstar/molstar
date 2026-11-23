@@ -84,16 +84,17 @@ waiting; its entries `StemMenu` in `viewer.ts`).
 
 ## Colour
 
-- **The layer's `color` channel**, compiled as other layer types compile theirs (core's kept channels): absent, or a
-  field of `system` (what `rondoRing` writes), a hue a block: a stem its block's, a ribbon its `a` stem's, a stub its
-  partner's (`rondo:hues`, else the categorical tokens, by the systems' order). **A fixed colour**: every polygon in it
-  (stems, ribbons, stubs, fans, a folded stub). **Another field** (`type`, any form over the links' fields) is read link
-  by link, and kinds are layers, never mixed inside one ribbon: at the item level a stem pair's links split into a
-  ribbon a colour (its key the colour's hex after the strand); at the bins level a bin sums its links whatever their
-  values, so the layer has one colour: the value every link read shares (a layer filtered to one kind), else the ranges'
-  ink (`seq-range`) and `rondo.ribbons.color` (info, once). Stems, stubs and fans take the layer's one colour (the ink
-  when its links' values are mixed). Why: a bin's count is every link's in it; a colour a value would need a bin a
-  value, which is a layer a value.
+- **The layer's `color` channel**, compiled as other layer types compile theirs (core's kept channels): absent, a field
+  of `system` (what `rondoRing` writes) or a scheme over `system` (`rondo:hues`, its field `system` when it names none),
+  a hue a block, never compiled: a stem its block's, a ribbon its `a` stem's, a stub its partner's (`rondo:hues`, else
+  the categorical tokens, by the systems' order). **A fixed colour**: every polygon in it (stems, ribbons, stubs, fans,
+  a folded stub). **Another field** (`type`, any form over the links' fields) is read link by link, and kinds are
+  layers, never mixed inside one ribbon: at the item level a stem pair's links split into a ribbon a colour (its key the
+  colour's hex after the strand); at the bins level a bin sums its links whatever their values, so the layer has one
+  colour: the value every link read shares (a layer filtered to one kind), else the ranges' ink (`seq-range`) and
+  `rondo.ribbons.color` (info, once). Stems, stubs and fans take the layer's one colour (the ink when its links' values
+  are mixed). Why: a bin's count is every link's in it; a colour a value would need a bin a value, which is a layer a
+  value.
 - **`opacity`** (its channel's uniform value) scales `ribbons.fillOpacity`: a faint layer under a strong one.
 - **The legend** (`LayerType.legend`): a field colour its channel's values (core's `channelLegends`); a fixed colour one
   swatch named by the layer's `label` (else its track's); a labelled layer in the hues one swatch "`<label>` (chromosome
@@ -114,12 +115,14 @@ waiting; its entries `StemMenu` in `viewer.ts`).
   `rondo.ribbons.width` (info) says so. A filter over links read by region (a source's) is not read on them (core's
   region reads keep every row): every link is drawn and `rondo.ribbons.filter` (warning) says so; kinds are written over
   held links until the reads filter.
-- **The card names the kind** (`describe`): a ribbon of one link (items) lists its fields, its `type`, its ends' strands
-  (`Strands: + −`), then every other field its data carries (`q`, gene names where the file has them; absent values left
-  out); a ribbon wide by a field says its sum (`Width: q 0.07`). A bin's ribbon and a stem list, when the section has
-  more than one `rondo:ribbons` layer, each layer's links there (`Contacts: 140 links`, `Translocations: 3 links`),
-  counted from each layer's rows as read (a bin's start, an item's), so a kind under another is never lost under its
-  ribbons. The layers of a section know each other by its resolved section (a new resolve, a new list).
+- **The card names the kind** (`describe`): a ribbon at the item level lists the fields its links share (one link: its
+  own), its `type`, its ends' strands (`Strands: + −`), then every other field its data carries (`q`, gene names where
+  the file has them): a shared value, a number's range where they differ (`q: 0.001–0.04`), absent values and differing
+  text left out; a ribbon wide by a field says its sum (`Width: q 0.07`). A bin's ribbon and a stem list, when the
+  section has more than one `rondo:ribbons` layer, each layer's links there (`Contacts: 140 links`,
+  `Translocations: 3 links`), counted from each layer's rows as read (a bin's start, an item's), so a kind under another
+  is never lost under its ribbons. The layers of a section know each other by its resolved section (a new resolve, a new
+  list).
 - **`rondoRing`'s `kinds`** (`{ type, label?, color?, opacity?, width? }[]`) writes those layers, the colour the
   chromosomes' hues when a kind names none; absent, one layer of every link. Which kinds, their order and colours are
   the application's (the showcase: faint contacts in the hues, translocations in one accent over them).
