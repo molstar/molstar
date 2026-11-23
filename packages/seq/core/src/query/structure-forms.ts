@@ -4,12 +4,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The structure forms beside `elements` (_spec/README.md "Queries", Language; locations-and-queries.md, The
-// language): the generator `groups` (Keys: one a group, by atom, residue, unit or molecule, each level's test reading
-// that level's properties), the generic `filter :test` (the prefix's type, a subset: per position of a Location, per
-// key of Keys, per unit of nodes) and the modifiers `expand :to` (atoms to their residues, residues to their units or
-// their molecule's units) and `linked :via :type` (the prefix and what a `pairs` annotation's rows join to it, never a
-// projection through them: links are never maps, molecules.md). Every form is monadic over its prefix's frames.
+// The structure forms beside `elements` (_spec/README.md "Queries", Language): the generator `groups` (Keys: one a
+// group, by atom, residue, unit or molecule, each level's test reading that level's properties), the generic `filter
+// :test` (the prefix's type, a subset: per position of a Location, per key of Keys, per unit of nodes) and the
+// modifiers `expand :to` (atoms to their residues, residues to their units or their molecule's units) and `linked :via
+// :type` (the prefix and what a `pairs` annotation's rows join to it, never a projection through them: links are never
+// maps). Every form is monadic over its prefix's frames.
 
 import { type Atom, printAddress, type Selected, type Value } from '@molstar/core/repr/tree';
 import { readersOf, reportAbsent, reportPending } from './elements-form.js';

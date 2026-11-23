@@ -33,7 +33,7 @@ const AnchorStart: number = Anchor.start;
 // never shrunk.
 // It labels the positions where they are, so a reversed axis counts down and a collapsed one labels its pieces. Where a
 // numbering has no label (past its coverage: a light chain's constant domain under Kabat) `unnumbered` says what is
-// there (axis.md, "Where a numbering does not reach"): `mark` (default) a muted dashed line over the run, one muted note
+// there: `mark` (default) a muted dashed line over the run, one muted note
 // at its start and no ticks; `fallback` the run labelled by `fallbackNumbering` (ordinal when absent) in the muted
 // style. A run is only the head and the tail past the numbering's labelled extent (its first and last labelled
 // position, found once a numbering): a position without a label between them stays blank, as it was.

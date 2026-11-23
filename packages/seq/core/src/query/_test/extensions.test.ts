@@ -4,10 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// Extensions of the query language (extension-openings.md; properties.md): a property by a function and by a values
-// annotation's field, a form of a role, registered through the registry and composed by the context; one missing, one
-// not namespaced, two under one name; a filter giving what its prefix does not hold refused by its role; a values
-// channel pending while its tiles have not arrived, staging its system.
+// Extensions of the query language (_spec/README.md "Queries", Extensions; _spec/README.md "Queries", Properties): a
+// property by a function and by a values annotation's field, a form of a role, registered through the registry and
+// composed by the context; one missing, one not namespaced, two under one name; a filter giving what its prefix does
+// not hold refused by its role; a values channel pending while its tiles have not arrived, staging its system.
 
 import type { Node } from '@molstar/core/repr/tree';
 import { composeSeqContext, queryExtensionsOf } from '@molstar/seqx-core/context';

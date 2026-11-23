@@ -8,7 +8,7 @@
 // unit of a complex (or a lone molecule or sequence) with its residues system and, when it has them, its atoms; and how
 // each property is read for an element of a frame. A prefix is nodes (a complex, a unit, a molecule, a source holding
 // complexes), a Location (positions on residues or atoms systems) or Keys (read as their extents): every form is
-// monadic over it, each frame a part, one with nothing giving nothing (locations-and-queries.md, The language).
+// monadic over it, each frame a part, one with nothing giving nothing (_spec/README.md "Queries", Language).
 
 import { type Atom, type Named, parseAddress, printAddress } from '@molstar/core/repr/tree';
 import { type Ctx, fail, prefixNodes, stage, tick } from './form-kit.js';

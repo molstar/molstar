@@ -4,10 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// Labels beside their marks (_spec/README.md "Render", Labels inside if they fit, else beside; layouts.md "Labels
-// inside if they fit, else beside"): a leader never crosses another label or a mark (a label that cannot be placed so
-// is dropped), neighbouring items of one layer with the same label are labeled once at the run's start (the hover
-// still names each). A geometric check over the draw lists, the canvas's and the SVG's.
+// Labels beside their marks (_spec/README.md "Render", Labels inside if they fit, else beside): a leader never crosses
+// another label or a mark (a label that cannot be placed so is dropped), neighbouring items of one layer with the same
+// label are labeled once at the run's start (the hover still names each). A geometric check over the draw lists, the
+// canvas's and the SVG's.
 
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';

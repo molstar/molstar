@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The allocation targets (performance.md, Memory; _spec/README.md "Render", Draw lists): a warm draw (every pass of a
+// The allocation targets (_spec/README.md "Render", Draw lists): a warm draw (every pass of a
 // laid-out view into its lists) and a warm hover (the renderer's frame with an equal key: the check and the emphasis
 // redraw) allocate nothing; a pan or zoom frame (a layout and a draw) allocates at most a bound per scenario, a size
 // that follows the screen and the view, not the data's size. `quickCase` (test-harness) reads the bytes allocated a

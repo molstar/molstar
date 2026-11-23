@@ -4,9 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The mmCIF runtime's conformance on the larger PDB entries (molecules.md, Reading): 1FIN, 4HHB and 3SGJ read against
-// the counts recorded from each file, counted again from the file's categories, and valid by the language. Medium
-// lane: each file is a few hundred kilobytes parsed; the quick representative is 1EHZ (`mmcif.test.ts`).
+// The mmCIF runtime's conformance on the larger PDB entries (_spec/README.md "Data", mmCIF): 1FIN, 4HHB and 3SGJ read
+// against the counts recorded from each file, counted again from the file's categories, and valid by the language.
+// Medium lane: each file is a few hundred kilobytes parsed; the quick representative is 1EHZ (`mmcif.test.ts`).
 
 import { describe, expect, it } from 'vitest';
 import {

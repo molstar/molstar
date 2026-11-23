@@ -273,7 +273,7 @@ export function compareRanks(a: readonly number[], b: readonly number[]): number
  * step; a candidate that pairs nothing is dropped first; equal compositions count once; of those that differ, the
  * one ranked highest by its maps' priorities sorted weakest first and compared in turn (`pathRank`, `compareRanks`)
  * is taken, and a tie is ambiguous (_spec/README.md "Resolve",
- * Paths; structure-syncing.md, Choosing between two maps). Rank orders candidates of one length only, so a priority
+ * Paths). Rank orders candidates of one length only, so a priority
  * never makes a longer path beat a shorter one. The copy rule is part of the search: no path climbs from a unit to its
  * molecule and down to another unit of it, so a longer legal path beats a shorter illegal one.
  */

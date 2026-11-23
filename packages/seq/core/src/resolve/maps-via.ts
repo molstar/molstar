@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// A use's `via` (_spec/README.md "Resolve", Paths; structure-syncing.md, Choosing between two maps): the maps a
+// A use's `via` (_spec/README.md "Resolve", Paths): the maps a
 // section (or a structure binding) names; for that use the search leaves out their rivals, the other maps joining the
 // same two systems, and paths that never reach such a pair are unchanged.
 

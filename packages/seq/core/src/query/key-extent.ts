@@ -5,7 +5,7 @@
  */
 
 // The extent of Keys (_spec/README.md "Queries", Keys): an annotation's items by their ranges; a structure group's
-// (`groups`' keys, locations-and-queries.md, The language) by its owner: a system's position (a residue, an atom), a
+// (`groups`' keys, _spec/README.md "Queries", Language) by its owner: a system's position (a residue, an atom), a
 // complex's unit by its id, or its entity's units.
 
 import { type Ctx, fail, stage, tick } from './form-kit.js';

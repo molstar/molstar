@@ -16,7 +16,7 @@ import { fieldInfos, MaxPosition, type VcfSchema, vcfSchema } from './vcf-parse.
 // What a VCF's whole and region reads share (_spec/README.md "Data", VCF): the runtime's bounds, the schema and the
 // systems a header gives, and the coverage of them.
 
-/** What the runtime may hold and read, whatever a file says (security.md: a file is untrusted input). */
+/** What the runtime may hold and read, whatever a file says (a file is untrusted input). */
 export interface VcfOptions {
   /** One line's bytes (16 MiB: a line of 100,000 samples at about 160 bytes each). */
   readonly maxLineBytes: number;

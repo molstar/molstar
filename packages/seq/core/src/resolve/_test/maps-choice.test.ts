@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// Two maps joining one pair of systems (structure-syncing.md, Choosing between two maps; _spec/README.md "Resolve",
+// Two maps joining one pair of systems (_spec/README.md "Resolve",
 // Paths): a map's `priority` ranks the distinct shortest candidates by their maps' priorities sorted weakest first
 // and compared in turn, a full tie stays ambiguous; a
 // use's `via` leaves out the named maps' rivals. EC-22 to EC-27 on every encoding (implicit, runs, expanded) with a

@@ -9,12 +9,12 @@ import { grown, NoColor, type PassWriter } from './draw-lists.js';
 import type { LayoutContext } from './layer-type.js';
 import type { RangesLay } from './ranges-lay.js';
 
-// A ranges layer's connectors (_spec/README.md "Render", Layer types; axis.md, An item split by a path is joined by a
-// connector): an item projected through a path into pieces with shown positions between them that the path does not
-// reach (a domain through the codon map over a gene whose intron is shown) is joined by a hairline at its lane's
-// mid-height, from one piece's end to the next's start, in the item's colour. Across a break (zero units wide) the
-// two x are the same and nothing is drawn. The line is part of its item: a hit on it is the item's, and the hover
-// outlines it with the item. The layout writes the connectors and the draw reads them: no number is made a frame.
+// A ranges layer's connectors (_spec/README.md "Render", Layer types): an item projected through a path into pieces
+// with shown positions between them that the path does not reach (a domain through the codon map over a gene whose
+// intron is shown) is joined by a hairline at its lane's mid-height, from one piece's end to the next's start, in the
+// item's colour. Across a break (zero units wide) the two x are the same and nothing is drawn. The line is part of its
+// item: a hit on it is the item's, and the hover outlines it with the item. The layout writes the connectors and the
+// draw reads them: no number is made a frame.
 
 /** The least reach, CSS px, of a connector: two ends this close are a break's (zero units wide) and join nothing. */
 const MinReach = 1e-6;

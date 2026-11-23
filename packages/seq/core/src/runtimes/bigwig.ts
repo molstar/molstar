@@ -41,7 +41,7 @@ class Malformed extends Error {}
 class TooLarge extends Error {}
 
 /**
- * What one open or one region may cost, whatever the file says (security.md: a file is untrusted input): a crafted tree
+ * What one open or one region may cost, whatever the file says (a file is untrusted input): a crafted tree
  * or block is refused with an issue before it allocates. Each a reason in _spec/README.md "Data", bigWig.
  */
 export interface BigWigLimits {

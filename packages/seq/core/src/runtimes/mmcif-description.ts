@@ -10,14 +10,14 @@ import type { EntityType, StructureDescription } from '../io/structure.js';
 import { natural } from '../io/structure-read.js';
 import { MmcifIssues } from './mmcif-issues.js';
 
-// An mmCIF frame read into a structure description (_spec/README.md "Data", mmCIF; molecules.md, Reading): the CIF
+// An mmCIF frame read into a structure description (_spec/README.md "Data", mmCIF): the CIF
 // categories as `@molstar/io`'s parser gives them, read by field name (no schema: its size), into the columns
 // `structureNodes` turns into nodes. Only what the description holds is read: entities and their components, the
 // units of the deposited model or of the assembly asked, their modeled residues from `atom_site` (the first model,
 // the first `label_alt_id` an atom name has), links from `struct_conn` and the branches' own, compounds from
 // `chem_comp`, a molecule's atoms from its first unit and the per-residue values (`b_factor`, `occupancy`, `plddt`).
 
-/** How the file is read (molecules.md, Reading; the source params). */
+/** How the file is read (_spec/README.md "Data", mmCIF; the source params). */
 export interface MmcifReadOptions {
   /** `pdbx_struct_assembly_gen.assembly_id`; absent: the deposited model (units without an operator). */
   readonly assembly?: string;
@@ -37,7 +37,7 @@ export interface MmcifRead {
 /** The assembly asked is not in the file. */
 export class MmcifAssemblyError extends Error {}
 
-/** The link types read from `struct_conn.conn_type_id` (molecules.md, Links). */
+/** The link types read from `struct_conn.conn_type_id` (_spec/README.md "Language", Molecules and complexes). */
 const ConnTypes: Readonly<Record<string, string>> = { covale: 'covalent', disulf: 'disulfide', metalc: 'metal' };
 const EntityTypes = new Set<string>(['polymer', 'non-polymer', 'branched', 'water']);
 /** `Column.ValueKinds.Present` (a const enum of `@molstar/core/data/db`, whose module this one does not load). */
@@ -517,7 +517,8 @@ export function mmcifDescription(frame: CifFrame, options: MmcifReadOptions, add
     issues.push(
       issueOf(MmcifIssues, 'seq.io.mmcif.links', `${unread} struct_conn rows not read as links`, { address }),
     );
-  // a branch's own links: the molecule's (molecules.md, Links), once an entity, not once a unit
+  // a branch's own links: the molecule's (_spec/README.md "Language", Molecules and complexes), once an entity, not
+  // once a unit
   const own = {
     entity: [] as number[],
     a: [] as number[],

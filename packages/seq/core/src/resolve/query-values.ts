@@ -4,11 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The query model's property hook over values channels (_spec/README.md "Queries", Properties; properties.md, How a
-// property is read): a `values` annotation on a system read from the store's tiles, per position; pending while a tile
-// is not loaded (the forms stage the system, as a numbering not arrived), undefined when the system has no such
-// channel. `b-factor` and `occupancy` are the channels of those fields on the system (the mmCIF runtime writes them on
-// a unit's atoms); any other name is a values annotation by its address or its id.
+// The query model's property hook over values channels (_spec/README.md "Queries", Properties): a `values` annotation
+// on a system read from the store's tiles, per position; pending while a tile is not loaded (the forms stage the
+// system, as a numbering not arrived), undefined when the system has no such channel. `b-factor` and `occupancy` are
+// the channels of those fields on the system (the mmCIF runtime writes them on a unit's atoms); any other name is a
+// values annotation by its address or its id.
 
 import type { PropertyColumn, PropertyRead } from '@molstar/seqx-core/query';
 import type { AnnotationEntry, StaticModel } from './model.js';

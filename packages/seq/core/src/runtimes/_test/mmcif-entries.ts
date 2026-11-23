@@ -16,7 +16,7 @@ import { expect } from 'vitest';
 import { DefaultOpenLimits, type OpenedSource } from '../../data/protocol.js';
 import { type MmcifOptions, openMmcif } from '../mmcif.js';
 
-// The mmCIF runtime's conformance suite's entries (molecules.md, Reading): the PDB files recorded by
+// The mmCIF runtime's conformance suite's entries (_spec/README.md "Data", mmCIF): the PDB files recorded by
 // `examples/scripts/record-structures.ts`, a summary of the nodes the runtime reads from each, the counts recorded from
 // each file (read by hand from its categories, 2026-11-20), and the same counts counted again from the file's own
 // categories by `@molstar/io`'s parser alone (no code of the runtime's), so a count is held twice.
@@ -253,7 +253,7 @@ export const unitLabels = (s: Summary) =>
  * The links the runtime reads, against the file's plain counts, each difference said: a `metalc` row with an end on a
  * water is not read (waters are not read); a `covale` row with both ends on one chain is the chain itself (a polymer's
  * backbone at a modified residue) or a glycan's own bond, which is read from `pdbx_entity_branch_link` instead, as
- * the molecule's links; `hydrog` and the other types are not links (molecules.md, Reading).
+ * the molecule's links; `hydrog` and the other types are not links (_spec/README.md "Data", mmCIF).
  */
 export function expectLinksAsCounted(s: Summary, counted: ReturnType<typeof countedFromFile>) {
   const c = (t: string) => counted.conn[t] ?? { rows: 0, onWater: 0, oneChain: 0 };

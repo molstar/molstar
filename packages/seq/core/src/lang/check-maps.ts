@@ -55,8 +55,8 @@ export function mapParamsFit(n: Node): boolean {
 /**
  * A `segments` or `structure` map's runs: each at least one position, none overlapping another on `from`, a strand
  * `+` or `-`; a structure map's none overlapping on `to` either (one residue of the structure is one of the sequence;
- * a segments map may be many-to-one, a fusion onto its part, EC-20: maps.md, One interface); its status rows each
- * `[start, end)` and `conflict` or `unobserved`.
+ * a segments map may be many-to-one, a fusion onto its part, EC-20: _spec/README.md "Resolve", Maps); its status rows
+ * each `[start, end)` and `conflict` or `unobserved`.
  */
 export function checkMapSegments(n: Node, say: Say): void {
   const t = p(n, 'segments') as Record<string, Value> | undefined;

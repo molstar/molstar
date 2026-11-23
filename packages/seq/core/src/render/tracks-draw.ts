@@ -277,8 +277,8 @@ function hasRows(s: SectionLayout): boolean {
 
 /**
  * Whether the hover is a letters layer's lifted through a codon map on this section (a residue over its codon): only
- * that lights the hover's own section, on its own-system letters tracks (axis.md, An item split by a path). An item
- * through a path lights its own outline and connector, nothing else.
+ * that lights the hover's own section, on its own-system letters tracks (_spec/README.md "Render", Layer types). An
+ * item through a path lights its own outline and connector, nothing else.
  */
 function liftedLetters(s: SectionLayout, emphasis: Emphasis): boolean {
   const h = emphasis.hover;

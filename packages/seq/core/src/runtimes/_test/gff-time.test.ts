@@ -15,7 +15,7 @@ import { GffCauses } from '../gff-issues.js';
 import { memoryAssets } from './bed-fixtures.js';
 import { generateGff3 } from './gff-fixtures.js';
 
-// The GFF runtime's time (_spec/README.md "Data", GFF3 and GTF; performance.md's rows): 100,000 GFF3 lines assembled
+// The GFF runtime's time (_spec/README.md "Data", GFF3 and GTF): 100,000 GFF3 lines assembled
 // into transcripts under 500 ms (its quick representative, 10,000 lines and no clock, in `gff.test.ts`); `features:
 // rows` of 40,000 lines of one `ID` opened under 500 ms (its pieces collected once: 65 s when each row merged them
 // again); 2,000 region reads beside a chromosome-long feature under 200 ms (the long feature apart, not scanned from);

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// A whole genome's layout at the fit (_spec/README.md "Render", Blocks; performance.md, a frame): 25 chromosomes × 3
+// A whole genome's layout at the fit (_spec/README.md "Render", Blocks): 25 chromosomes × 3
 // layers, and 3,400 sequences (25 chromosomes and 3,375 contigs, GRCh38 with its alternates and decoys) in runs, each a
 // frame laid out again (its width changed by a pixel) under its bound. Each bound is the heavy lane's (`itWithin`, best
 // of three); the quick lane runs them unbounded.

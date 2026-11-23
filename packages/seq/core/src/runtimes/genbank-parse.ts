@@ -12,7 +12,7 @@ import type { GenbankCauses } from './genbank-issues.js';
 // One pass over the lines; every scan bounded to its line, every text it holds to its bound before it is held; never a
 // throw for a file's content.
 
-/** The bounds of a read (security.md: a file is untrusted input). */
+/** The bounds of a read (a file is untrusted input). */
 export interface GenbankLimits {
   /** Records a file. */
   readonly maxRecords: number;

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// A source's row ending past its system's length (files.md, The file's own syntax): two rows of one item on a cyclic
+// A source's row ending past its system's length (_spec/README.md "Data", Records): two rows of one item on a cyclic
 // system, drawn as one item across the origin; clipped on a linear one, and said. A layer's leading item form is the
 // track's own: its rejected rows are not counted in the "n filtered" chip, a trailing `(not …)` is.
 

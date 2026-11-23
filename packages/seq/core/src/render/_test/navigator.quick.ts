@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The navigators' allocation targets (performance.md, Memory): a window move redraws the navigator over its kept
+// The navigators' allocation targets: a window move redraws the navigator over its kept
 // picture with nothing allocated once warm (the windows carried from the view's layouts, the marks); a rail drawn with
 // its window lit; a window move on a zoom strip. By hand, never in CI: `pnpm -C packages/seq/core test:perf`.
 

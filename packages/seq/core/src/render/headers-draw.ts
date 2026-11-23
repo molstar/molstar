@@ -35,7 +35,7 @@ function inBox(b: { x: number; y: number; width: number; height: number }, x: nu
 }
 
 /**
- * Whether a header's actions show (`header.actions.show`, track-header-parts.md "Actions show on hover"): `always`; on
+ * Whether a header's actions show (`header.actions.show`, _spec/README.md "Render", Track headers): `always`; on
  * `hover` only while the pointer is over the track's header (its label line, its slots, its states), the keyboard
  * cursor is on its header, or its menu is open, never on its data or a rail. A slot is hit only while they show.
  */

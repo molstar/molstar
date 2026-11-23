@@ -13,7 +13,7 @@ import { VcfRuntime } from '../vcf.js';
 import { memoryAssets } from './bed-fixtures.js';
 import { flagsLine, generateVcf, indexedVcf, tablessLines, VcfHeaderText } from './vcf-fixtures.js';
 
-// The VCF runtime's time (_spec/README.md "Data", VCF; performance.md's row): a region of 10,000 records decoded under
+// The VCF runtime's time (_spec/README.md "Data", VCF): a region of 10,000 records decoded under
 // 100 ms, sites (its BGZF blocks inflated, its lines parsed, its rows answered), and with 100 samples' genotypes under
 // 200 ms. Their quick representatives (1,000 records) are in `vcf.test.ts`. A hostile file's lines cost their own length: 40,000 lines without tabs, and a line of
 // 100,000 flags, read whole at once (their quick counts in `vcf-cost.test.ts`).

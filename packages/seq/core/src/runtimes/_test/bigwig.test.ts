@@ -361,7 +361,7 @@ describe('the bigWig runtime', () => {
   );
 });
 
-// security.md: a file is untrusted input. Each crafted file is refused with a coded issue, before it allocates.
+// A file is untrusted input. Each crafted file is refused with a coded issue, before it allocates.
 describe('a crafted bigWig is refused by the runtime’s bounds', () => {
   /** The fixture with `patch` applied to a copy (offsets from its header: little-endian). */
   function crafted(patch: (dv: DataView, at: { chromTree: number; fullIndex: number }) => void) {

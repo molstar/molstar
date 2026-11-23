@@ -6,7 +6,7 @@
 
 // @module-tag heavy
 
-// The spec targets (performance.md, Time): validate and resolve a spec of about 1,000 nodes (inline data aside) under
+// The spec targets: validate and resolve a spec of about 1,000 nodes (inline data aside) under
 // 20 ms (the model, then the views' resolution: the part a viewer waits for). The spec is generated: 100 short sequences, each with ranges and values over it, and a section of three tracks
 // for each. Measured warm (the median of 200 runs after 100); the first, cold run is printed too.
 

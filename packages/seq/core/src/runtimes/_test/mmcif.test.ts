@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The mmCIF runtime (_spec/README.md "Data", mmCIF; molecules.md, Reading): 1EHZ read against the counts recorded
+// The mmCIF runtime (_spec/README.md "Data", mmCIF): 1EHZ read against the counts recorded
 // from the file (the quick representative of the PDB entries, `mmcif-pdb.test.ts`), and a small hand-written file
 // for what no entry has: a polymer without canonical letters, an altloc, a hydrogen, an assembly of two operators,
 // waters, pLDDT, the source's answers and its refusals.

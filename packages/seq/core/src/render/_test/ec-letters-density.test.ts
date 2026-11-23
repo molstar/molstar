@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// EC-116 (.seq/sources/seqstar/edge-cases.md): a row of letters shows text for all its columns or none; as density
+// EC-116: a row of letters shows text for all its columns or none; as density
 // grows it goes to cells, then dots, then bars. The steps are `densityStep`'s; the letters step never starts below the
 // width the smallest letter needs, so there is no step with some cells lettered and some not.
 

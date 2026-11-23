@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The data bounds (_spec/README.md, Data, Bounds): a column's length and a grid or matrix block's values, refused when
-// an answer or a file is read, before its tables are cut, joined or kept.
+// The data bounds (_spec/README.md "Data", Tables, An answer's bounds): a column's length and a grid or matrix block's
+// values, refused when an answer or a file is read, before its tables are cut, joined or kept.
 
 import { describe, expect, it } from 'vitest';
 import { dataKey } from '../keys.js';

@@ -278,8 +278,9 @@ export function chipSlots(
 
 /**
  * A chip's label as its pill shows it in a slot of `slot` px (less its padding), by the one rule of a label inside a mark
- * (`labelsInside`'s, layouts.md): whole; else cut with an ellipsis keeping at least `labels.minChars` letters (a label
- * of so many or fewer only whole); else none, the pill without text (its label in the label row and its card).
+ * (`labelsInside`'s, _spec/README.md "Render", Section layouts): whole; else cut with an ellipsis keeping at least
+ * `labels.minChars` letters (a label of so many or fewer only whole); else none, the pill without text (its label in
+ * the label row and its card).
  */
 export function chipText(text: TextMetrics, config: RenderConfig, label: string, slot: number): string {
   return fitLabel(text, config, label, slot - 2 * BlockMetrics.chipPad);

@@ -283,7 +283,7 @@ describe('the index walk (the quick representative)', () => {
   });
 });
 
-describe('the designs’ examples as text (locations-and-queries.md, properties.md, addressing.md)', () => {
+describe('the designs’ examples as text', () => {
   const examples = [
     '/data/4hhb/(elements :component HEM :atom FE)',
     '/data/4hhb/(elements :auth-chain [A C] :auth-seq 87)',

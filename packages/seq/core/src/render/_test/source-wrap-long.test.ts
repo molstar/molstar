@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The row reader's wrap past one tile and past one lap (files.md, The file's own syntax): the origin's piece of a row
+// The row reader's wrap past one tile and past one lap (_spec/README.md "Data", Records): the origin's piece of a row
 // ending past the length is read though the view is at the first positions of a system longer than a tile; a row longer
 // than one lap is one lap; a start past the length wraps on a cyclic system and is left out on a linear one, said.
 

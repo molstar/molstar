@@ -160,7 +160,7 @@ export class DataStore extends ReactiveModel {
     return this._version;
   }
 
-  /** Moves when a node entry comes or goes (the overlay's version, composition.md's tier 2). */
+  /** Moves when a node entry comes or goes (the overlay's version, _spec/README.md "Overlay"). */
   get nodeVersion(): ReadonlyState<number> {
     return this._nodeVersion;
   }

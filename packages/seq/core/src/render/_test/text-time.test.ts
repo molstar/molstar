@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The text layout's targets (performance.md, text layout): a reflow frame (line breaking and line heights, then the
+// The text layout's targets: a reflow frame (line breaking and line heights, then the
 // lines in view laid out and drawn) under 8 ms for the p53 text figure and a 35,000-residue sequence, flat in the
 // sequence's length (35,000 against 3,500 at most 1.2×); a hover (the placement's `at`, the layer's hit, the emphasis
 // redraw) under 2 ms. Each bound is the heavy lane's (`itWithin`, best of three); the quick lane runs them unbounded.

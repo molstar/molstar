@@ -32,7 +32,7 @@ export const DefaultZoomStrip: {
 } = { minPx: 48, heightPx: 16, overBlocks: 'always' };
 
 /**
- * When a navigator over blocks (a genome) has the zoom strip (navigators.md, "The window's look"): `always`, the
+ * When a navigator over blocks (a genome) has the zoom strip (_spec/README.md "Render", Navigators): `always`, the
  * chromosome the control row under the genome whatever the window's width (the default: a rule a reader can see);
  * `narrow`, only while the window is narrower than `minPx` (with hysteresis: the earlier look, for a host short of
  * height); `never`, one row with a floored window.

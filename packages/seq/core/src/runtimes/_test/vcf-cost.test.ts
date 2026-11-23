@@ -10,7 +10,7 @@ import { VcfCauses } from '../vcf-issues.js';
 import { parseLine, VcfRowsBuilder, vcfSchema } from '../vcf-parse.js';
 import { flagsLine, tablessLines, VcfHeaderText } from './vcf-fixtures.js';
 
-// A line costs its own length (_spec/README.md "Data", VCF; security.md: a file is untrusted input): the line parser's
+// A line costs its own length (_spec/README.md "Data", VCF): the line parser's
 // searches stay in the line and in an INFO field, counted here as the bytes and characters they scan (no clock), and
 // `Number=A` and `R` values are split once a line. Their wall-clock bounds are in `vcf-time.test.ts` (heavy).
 

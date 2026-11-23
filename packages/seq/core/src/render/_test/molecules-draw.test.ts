@@ -68,8 +68,8 @@ describe('a complex drawn against its data', () => {
         expect(svg).toContain(`>${label}<`);
       }
       expect(blocks.filter((b) => b.form === 'whole').map((b) => b.label)).toEqual(['Glycan', 'ATP', 'NA']);
-      // the glycan's five residues are one chip, one unit of the section (layouts.md): its label's width, whatever the
-      // zoom; its strip shows its block's every residue (its pieces)
+      // the glycan's five residues are one chip, one unit of the section (_spec/README.md "Render", Section layouts):
+      // its label's width, whatever the zoom; its strip shows its block's every residue (its pieces)
       const g = p.strips.axes.findIndex((a) => a.system === '/data/c/g');
       expect([p.strips.axes[g].u0, p.strips.axes[g].u1]).toEqual([0, 1]);
       expect(Array.from(p.strips.axes[g].pieces)).toEqual([0, 5]);

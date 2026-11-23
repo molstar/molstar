@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// Extensions of the query language (_spec/README.md "Queries", Extensions; extension-openings.md; properties.md): a
+// Extensions of the query language (_spec/README.md "Queries", Extensions): a
 // `query-form` registry entry adds a form of a role (a generator, filter, modifier or combinator over results, or an
 // operator over values), a `query-property` entry a property every test and filter reads and `elements` takes as a
 // field ("basically just adding a few symbols", the author, 2026-11-20). Checked when composed: names `<id>:<name>`

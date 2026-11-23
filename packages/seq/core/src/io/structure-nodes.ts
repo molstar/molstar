@@ -24,7 +24,7 @@ import {
 // observed runs and links. Read first (`readStructure`: checked, bounded, keyed and ordered by the data's identifiers),
 // so every adapter of one structure gives equal nodes, and a row removed or moved changes nothing else.
 
-/** How a description is read: as the mmCIF runtime reads a file (molecules.md, Reading). */
+/** How a description is read: as the mmCIF runtime reads a file (_spec/README.md "Data", mmCIF). */
 export interface StructureNodesOptions {
   /** The address of the source the nodes are under: what a unit's `of` names its entity through. */
   readonly source: string;

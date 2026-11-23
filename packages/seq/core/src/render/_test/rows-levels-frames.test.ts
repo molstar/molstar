@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The rows' levels across frames, through the rows layer's frames (performance.md, Levels): a moving frame at a new
+// The rows' levels across frames, through the rows layer's frames: a moving frame at a new
 // level pair builds a budget of it and draws the level drawn last; a settled frame builds the rest and draws it.
 
 import { describe, expect, it } from 'vitest';

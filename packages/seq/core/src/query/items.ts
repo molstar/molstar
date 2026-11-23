@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The schema selection's items (_spec/README.md "Queries", Language; addressing.md, Schema selections): `elements`
+// The schema selection's items (_spec/README.md "Queries", Language): `elements`
 // takes a table of items, each a record of properties: one item as the form's params, columns as lists (row i across
 // them one item, a scalar the same in every row; several lists zip, never a product), or records as
 // `:items [(fields …) …]` (`fields` a record, never evaluated); in JSON and the builder an object (columns where its
@@ -213,7 +213,7 @@ export function itemsLevel(t: PropertyTable, items: Items): number {
 const prop = (name: string): Node => ({ kind: 'prop', args: [name] });
 
 /**
- * The predicate items are sugar for, exactly (locations-and-queries.md, The language): a field `:f v` is
+ * The predicate items are sugar for, exactly (_spec/README.md "Queries", Language): a field `:f v` is
  * `(= (prop f) v)`, `:beg b :end e` is `(in-range (prop seq) b e)` (an end alone `>=` or `<=`), and `:auth-beg`,
  * `:auth-end` the same over `auth-seq` for integer labels; a row is `and` of its fields, items `or` of their rows.
  */

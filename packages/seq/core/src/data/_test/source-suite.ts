@@ -9,7 +9,7 @@ import type { FormatRuntime, OpenContext, SourceEntry } from '../protocol.js';
 import { checkCoverage } from '../seq-format.js';
 import { checkAnswer } from '../tables.js';
 
-// The format runtimes' shared contract (sources.md, Consequences: one suite every runtime passes): a coverage that
+// The format runtimes' shared contract (_spec/README.md "Data", Protocol): a coverage that
 // checks; answers that check over the whole of each system, an empty region, its last position and a region past its
 // end, at every level the coverage lists; a system it does not have not served; an aborted read rejected as aborted.
 // The records suite's (`records.test.ts`) with the levels: a runtime with levels of its own (bigWig) is read at each.

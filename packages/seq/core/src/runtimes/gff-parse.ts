@@ -17,7 +17,7 @@ export type GffFormat = 'gff3' | 'gtf';
 /** The largest position a column holds (int32). */
 export const MaxPosition = 0x7fffffff;
 
-/** Attributes a row keeps (security.md: a file is untrusted input); the rest dropped, said. */
+/** Attributes a row keeps (a file is untrusted input); the rest dropped, said. */
 export const MaxAttributes = 256;
 
 /** A line of the file as a row: positions 0-based, end exclusive. */

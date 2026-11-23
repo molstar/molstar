@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The structure language's examples (locations-and-queries.md, The language) on PDB entries read whole by the mmCIF
+// The structure language's examples (_spec/README.md "Queries", Language) on PDB entries read whole by the mmCIF
 // runtime: 4HHB's irons and its α chains' proximal His, 1FIN's glycine loop and the properties at each level, 3SGJ's
 // glycans and the Asn297 they hang on. Medium lane: each file is a few hundred kilobytes parsed; the quick
 // representatives are the 3SGJ glycan fixture and 1EHZ (`elements.test.ts`).

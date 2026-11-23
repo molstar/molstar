@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// A complex's frame target (performance.md, a pan or zoom frame under 8 ms): 200 copies of a chain merged into one
+// A complex's frame target: 200 copies of a chain merged into one
 // block (EC-67: one block's cost, not 200), its glycan, ATP and an ion as chips, the modified residues marked and the
 // links as arcs; a pan of the merged block and a zoom about it; the 200 copies split, pairs within the chain's molecule
 // on each copy (EC-48, EC-65), a pan along them. The bound is the heavy lane's (`itWithin`, best of

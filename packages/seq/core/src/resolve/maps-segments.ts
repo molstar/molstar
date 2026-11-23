@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// `segments` and `structure` maps (_spec/README.md "Resolve", Maps; maps.md, Structure maps): runs of positions,
+// `segments` and `structure` maps (_spec/README.md "Resolve", Maps): runs of positions,
 // `from + i ↦ to + dir·i`, in their cheapest encoding (one run is arithmetic); a structure map adds each run's
 // provenance and the residues' status on `to` (conflict, unobserved; what no run holds is unpaired). Unobserved is a
 // unit's own fact: where a structure map onto a unit says otherwise, it is reported once and the unit wins.

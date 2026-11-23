@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The rings layout's allocation targets (performance.md, Memory: draw and hover 0 bytes warm through the warp): a warm
+// The rings layout's allocation targets: a warm
 // draw of the plasmid-sized ring and its detail (every pass, the ring through the polar warp), a warm hover over the
 // ring (the emphasis redraw through the warp, the window lit), the selection and cursor walking on it. By hand, never
 // in CI: `pnpm -C packages/seq/core test:perf`. A row of blocks hovered the same.

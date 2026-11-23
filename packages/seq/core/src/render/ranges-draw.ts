@@ -268,7 +268,7 @@ function drawScroll(lay: RangesLay, out: PassWriter) {
 /** The labels pass: the labels inside their marks (whole or cut), and those beside in the label lane with their leaders. */
 function drawLabels(lay: RangesLay, out: PassWriter, _emphasis: Emphasis | undefined) {
   // a pending track's placeholder lane and a scrolled band's lanes cut by its top and bottom draw no label, leader or
-  // backdrop outside the band's box (layouts.md, Loading: the labels stay in the band); a band at rest has none to clip
+  // backdrop outside the band's box (the labels stay in the band); a band at rest has none to clip
   const clip = lay.scrolls || lay.pending.length > 0;
   if (clip) {
     const { box } = lay;

@@ -157,8 +157,7 @@ export class Pyramid {
 
   /**
    * A level as `level` gives it when it is built; else its build goes on by about `cells` cells read (its finer levels
-   * first; at least a row of samples a call) and undefined until it is whole: what a frame asks while the view moves
-   * (performance.md, Levels).
+   * first; at least a row of samples a call) and undefined until it is whole: what a frame asks while the view moves.
    */
   levelWithin(rowLevel: number, columnLevel: number, cells: number): PyramidLevel | undefined {
     this._clamp(rowLevel, columnLevel);

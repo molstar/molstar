@@ -23,16 +23,16 @@ import { DefaultStructureLimits, type StructureLimits, structureNodes } from '..
 import type { MmcifReadOptions } from './mmcif-description.js';
 import { MmcifIssues } from './mmcif-issues.js';
 
-// mmCIF (_spec/README.md "Data", mmCIF; molecules.md, Reading), the opt-in runtime `@molstar/seqx-core/runtimes/mmcif`:
+// mmCIF (_spec/README.md "Data", mmCIF), the opt-in runtime `@molstar/seqx-core/runtimes/mmcif`:
 // a source of format `mmcif` read whole (gzipped or not) by `@molstar/io`'s text CIF parser, its categories read into
 // a `StructureDescription` (`mmcif-description.ts`; both loaded when a source first opens, a chunk a viewer that lists
 // the runtime and opens none never pays) and that into nodes by `structureNodes`, the one converter every adapter of a
-// structure shares (seq-data-ports.md, Seq io). It serves the nodes up front and, by region, the units'
+// structure shares (_spec/README.md "Seq io"). It serves the nodes up front and, by region, the units'
 // per-residue values by `field`: `b_factor`, `occupancy` and, in a model with them, `plddt` (the default when present).
 
 export { MmcifIssues } from './mmcif-issues.js';
 
-/** The source params (molecules.md, Configuration) a runtime is made with; a source's own `assembly` wins. */
+/** The source params (_spec/README.md "Data", mmCIF) a runtime is made with; a source's own `assembly` wins. */
 export interface MmcifOptions {
   /** The assembly read; absent: the deposited model. */
   readonly assembly?: string;
@@ -202,7 +202,7 @@ async function open(source: SourceEntry, ctx: OpenContext, options: MmcifOptions
   return openMmcif(bytes, ctx, source, options);
 }
 
-/** An mmCIF runtime with its own source params and bounds (molecules.md, Configuration). */
+/** An mmCIF runtime with its own source params and bounds (_spec/README.md "Data", mmCIF). */
 export function mmcifRuntime(options: MmcifOptions = {}): FormatRuntime {
   return { name: 'mmcif', formats: ['mmcif'], open: (source, ctx) => open(source, ctx, options) };
 }

@@ -286,7 +286,7 @@ export function windowAtFit(w: NavigatorWindow): boolean {
 }
 
 /**
- * Whether a positions navigator has a zoom strip (navigators.md, "The window's look", 1): over blocks by `mode`
+ * Whether a positions navigator has a zoom strip (_spec/README.md "Render", Navigators): over blocks by `mode`
  * (`always`; `narrow`: the window's width `px` under `minPx`, held `hysteresis` px past it while `on`; `never`), else by
  * the one-system reachable span `span` px narrower than `min`.
  */
