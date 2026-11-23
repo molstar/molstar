@@ -292,10 +292,23 @@ to gain (their template and levels 67 pages, 9 MB; 85-98% needed once a copy is 
          budget across packs. Tests: `particle-page-cache.test.ts`, `pack-stream.test.ts` (a page read once, a loci by
          its particles where kept, by its tiles past the cache's bytes), `page-store.test.ts` (a second store's page
          from the cache).
-      5. **The comparison** (e's decision): a single yeast cell as a template of one copy (the grid script at 1x1x1)
-         against its tile view (`yeast_cell_atoms.tiles16.levels.mspk`): GPU and heap memory, the time to the first
-         frame and to full detail, the CPU's work a view, the features each has (trajectory frames, editing, targets on
-         demand: the tile view's).
+      5. **The comparison** (measured; e's decision open): a single yeast cell as a template of one copy
+         (`yeast_cell_atoms_nested-1x1.mspk`, the grid script at 1x1, 822 MB) against its tile view
+         (`yeast_cell_atoms.tiles16.levels.mspk`), in the Prism viewer (Chrome, WebGPU, 1920x1080:
+         `scripts/benchmark-particle-tiles.mjs`, its path outside, an orbit, a dolly in, an orbit inside, still inside;
+         two rounds alike). Not alike in what is drawn: outside the template's copy is at full detail by the level rule
+         (its pages all read, 480 MiB), the tile view's CPU pick about 10 M particles (`maxParticles`). Opened (its
+         bounding sphere): tiles 1.2 s and 157-161 MiB read, the template 2.0-2.2 s and 307 MiB (its sites, levels,
+         runs). Outside to full detail: tiles 9.2-9.4 s after the view rests (about 470 MiB read in all), the template
+         2.0-2.2 s (787 MiB in all); inside nothing more read by either. GPU buffers at the end 1.78-1.82 GB both (peaks
+         2.08-2.12 and 2.33). Frames moving (p50 and the display's frames missed in 4 s): orbit outside tiles 2.3-4.4
+         ms and 336-698 missed (long tasks 285-711 ms), the template 6.9-7.0 ms and 12-24 (none; its GPU 5.3 ms a frame
+         against 2.9-3.0, three times the particles); the dolly in 2.0-2.5 ms and 1,152-1,416 missed (long tasks
+         1.4-1.6 s) against 6.3-6.4 ms and 71-78 (0.36-0.39 s); orbit inside 2.1 ms and 1,393-1,454 (1.4-1.5 s) against
+         5.0 ms and 15-18 (none). The JS heap at the end (ArrayBuffers not counted) 175 MiB against 148. Not
+         measured: the CPU's ArrayBuffers (the tiles' loader 430 MiB, the template's page cache at most 256 MiB), a
+         remote pack's latency, the template under a particle budget. The features only the tile view has: trajectory
+         frames, editing by slots and targets, targets on demand.
    e. **The tile views' migration**, decided by d's comparison: a tiled pack written as one template of one copy, the
       tile views and their slot lists retired, their features (trajectory frames, editing, targets on demand) moved or
       given up; the CPU's pick replaced by the wants: their occlusion by the occluder grid (what was drawn not read: no

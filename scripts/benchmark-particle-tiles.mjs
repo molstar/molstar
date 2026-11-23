@@ -8,7 +8,11 @@
 // `.benchmark/` opened as a dropped file is (a file input's, read by range), the camera along a path (still outside, an
 // orbit outside, a dolly into the cell through the levels, an orbit inside, still inside), per segment the frames, the
 // long tasks, the stages the code measures in timing mode (`UserTiming.span`: the pick, the step, the store, the cull)
-// and the uploads (`GPUQueue.writeBuffer` and `writeTexture`: calls, bytes, time; by buffer, its label or usage). Needs the Prism viewer built (`pnpm build`, or
+// and the uploads (`GPUQueue.writeBuffer` and `writeTexture`: calls, bytes, time; by buffer, its label or usage); the
+// file's bytes read, the GPU's buffers and textures (live and peak), the load's time where the camera rests (outside
+// and inside: until no read and no upload past 16 KiB for a second). A nested pack read by range (its template's
+// pages on demand: `yeast_cell_atoms_nested-1x1.mspk`, `scripts/particle-grid-pack.mjs --nx 1 --ny 1`) along the same
+// path: the tile view against a template of one copy. Needs the Prism viewer built (`pnpm build`, or
 // `pnpm dev:apps -- prism-viewer` running: its build folder is served). Run on demand on an otherwise idle machine.
 //
 // usage: node scripts/benchmark-particle-tiles.mjs [--pack yeast_cell_atoms.tiles16.levels.mspk] [--segment-ms 4000]
@@ -185,13 +189,71 @@ function serve() {
  * label, else its usage and size), `writeTexture` too
  */
 function countUploads() {
-  const uploads = { calls: 0, bytes: 0, ms: 0, byBuffer: {}, bySize: {} };
+  const uploads = { calls: 0, bytes: 0, ms: 0, byBuffer: {}, bySize: {}, last: 0 };
   globalThis.__uploads = uploads;
+  // the file's bytes read (a pack read by range: `Blob.slice` then `arrayBuffer`), when last
+  const reads = { calls: 0, bytes: 0, last: 0 };
+  globalThis.__reads = reads;
+  const blob = globalThis.Blob?.prototype;
+  if (blob) {
+    const arrayBuffer = blob.arrayBuffer;
+    blob.arrayBuffer = function () {
+      reads.calls += 1;
+      reads.bytes += this.size;
+      return arrayBuffer.call(this).finally(() => {
+        reads.last = performance.now();
+      });
+    };
+  }
+  // the GPU's buffers and textures live (created, not destroyed) and their peaks; a texture's bytes 4 a texel a
+  // sample (its mips not counted: an estimate)
+  const memory = { buffers: 0, peakBuffers: 0, textures: 0, peakTextures: 0 };
+  globalThis.__gpuMemory = memory;
+  const sizes = new WeakMap();
   // the shader modules created (when, their label: the timeline's frames those compiled in, a GPU process' compile)
   const modules = [];
   globalThis.__modules = modules;
   const device = globalThis.GPUDevice?.prototype;
   if (device) {
+    const createBuffer = device.createBuffer;
+    device.createBuffer = function (descriptor) {
+      const buffer = createBuffer.call(this, descriptor);
+      sizes.set(buffer, descriptor.size);
+      memory.buffers += descriptor.size;
+      memory.peakBuffers = Math.max(memory.peakBuffers, memory.buffers);
+      return buffer;
+    };
+    const destroyBuffer = globalThis.GPUBuffer.prototype.destroy;
+    globalThis.GPUBuffer.prototype.destroy = function () {
+      const size = sizes.get(this);
+      if (size !== undefined) {
+        sizes.delete(this);
+        memory.buffers -= size;
+      }
+      return destroyBuffer.call(this);
+    };
+    const createTexture = device.createTexture;
+    device.createTexture = function (descriptor) {
+      const texture = createTexture.call(this, descriptor);
+      const s = descriptor.size;
+      const [w, h, d] = Array.isArray(s)
+        ? [s[0], s[1] ?? 1, s[2] ?? 1]
+        : [s.width, s.height ?? 1, s.depthOrArrayLayers ?? 1];
+      const bytes = w * h * d * 4 * (descriptor.sampleCount ?? 1);
+      sizes.set(texture, bytes);
+      memory.textures += bytes;
+      memory.peakTextures = Math.max(memory.peakTextures, memory.textures);
+      return texture;
+    };
+    const destroyTexture = globalThis.GPUTexture.prototype.destroy;
+    globalThis.GPUTexture.prototype.destroy = function () {
+      const bytes = sizes.get(this);
+      if (bytes !== undefined) {
+        sizes.delete(this);
+        memory.textures -= bytes;
+      }
+      return destroyTexture.call(this);
+    };
     const create = device.createShaderModule;
     device.createShaderModule = function (descriptor) {
       modules.push({ t: performance.now(), label: descriptor.label ?? '', length: descriptor.code?.length ?? 0 });
@@ -201,6 +263,8 @@ function countUploads() {
   const queue = globalThis.GPUQueue?.prototype;
   if (!queue) return;
   const count = (key, bytes, ms) => {
+    // a load's upload (a frame's uniforms below it)
+    if (bytes > 16384) uploads.last = performance.now();
     uploads.ms += ms;
     uploads.calls += 1;
     uploads.bytes += bytes;
@@ -305,6 +369,7 @@ async function runSegment({ kind, ms }) {
   performance.clearMeasures();
   const uploads0 = structuredClone(globalThis.__uploads);
   const gpu0 = structuredClone(globalThis.__gpu);
+  const reads0 = structuredClone(globalThis.__reads);
   let longMs = 0;
   const observer = new PerformanceObserver((list) => {
     for (const e of list.getEntries()) longMs += e.duration;
@@ -371,9 +436,12 @@ async function runSegment({ kind, ms }) {
   const g = globalThis.__gpu;
   const sorted = [...frames].sort((a, b) => a - b);
   const q = (p) => sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))] ?? 0;
+  const reads = globalThis.__reads;
   const result = {
     kind,
     ms: performance.now() - t0,
+    reads: { calls: reads.calls - reads0.calls, bytes: reads.bytes - reads0.bytes },
+    memory: structuredClone(globalThis.__gpuMemory),
     frames: { count: frames.length, p50: q(0.5), p95: q(0.95), max: sorted[sorted.length - 1] ?? 0 },
     longMs,
     dropped,
@@ -411,22 +479,25 @@ async function runSegment({ kind, ms }) {
 }
 
 /**
- * in the page, after a segment begun at `t0` (the still segment outside: the first tiles): the load's time until done,
- * its last step's end, the frames drawn on (not counted in the segment, nor profiled or traced) until no step for half
- * a second, at most `limitMs` (`--load-ms`, 30 s)
+ * in the page, after a segment begun at `t0` (a still segment: outside the first tiles, inside the near ones): the
+ * load's time until done, its last activity's end (a tiles step, a file read, an upload past 16 KiB: a tile view's
+ * steps, a nested pack's page reads and writes), the frames drawn on (not counted in the segment, nor profiled or
+ * traced) until none for a second, at most `limitMs` (`--load-ms`, 30 s); the bytes read meanwhile
  */
 async function waitForLoad({ t0, limitMs }) {
   const canvas = globalThis.molstar.viewer.plugin.canvas3d;
+  const reads0 = globalThis.__reads.bytes;
   const lastStep = () => {
     const steps = performance.getEntriesByName('tiles: step', 'measure');
     const e = steps[steps.length - 1];
-    return e ? e.startTime + e.duration : t0;
+    const step = e ? e.startTime + e.duration : t0;
+    return Math.max(step, globalThis.__reads.last, globalThis.__uploads.last, t0);
   };
   for (;;) {
     canvas.requestDraw();
     await new Promise((r) => requestAnimationFrame(r));
     const now = performance.now();
-    if (now - lastStep() > 500 || now - t0 > limitMs) break;
+    if (now - lastStep() > 1000 || now - t0 > limitMs) break;
   }
   const end = lastStep();
   // what the steps past the segment did: their count and the stages in them (a view that never settles)
@@ -435,7 +506,13 @@ async function waitForLoad({ t0, limitMs }) {
     if (m.startTime < t0 + 4000) continue;
     after[m.name] = (after[m.name] ?? 0) + 1;
   }
-  return { ms: end - t0, done: performance.now() - end > 500, after };
+  return {
+    ms: end - t0,
+    done: performance.now() - end > 1000,
+    after,
+    readBytes: globalThis.__reads.bytes - reads0,
+    memory: structuredClone(globalThis.__gpuMemory),
+  };
 }
 
 const fmt = (ms) => (ms < 10 ? ms.toFixed(2) : ms < 100 ? ms.toFixed(1) : ms.toFixed(0));
@@ -449,10 +526,16 @@ function report(segments) {
     console.log(
       `  uploads: ${uploads.calls} calls, ${(uploads.bytes / 1024 / 1024).toFixed(1)} MiB, ${fmt(uploads.ms)} ms`,
     );
+    const mib = (b) => (b / 2 ** 20).toFixed(1);
+    console.log(`  file read: ${s.reads.calls} reads, ${mib(s.reads.bytes)} MiB`);
+    const m = s.memory;
+    console.log(
+      `  GPU: buffers ${mib(m.buffers)} MiB (peak ${mib(m.peakBuffers)}), textures about ${mib(m.textures)} MiB (peak ${mib(m.peakTextures)})`,
+    );
     if (s.particles !== undefined) console.log(`  particles shown: ${s.particles.toLocaleString('en')}`);
     if (s.load) {
       console.log(
-        `  load: steps until ${fmt(s.load.ms)} ms${s.load.done ? '' : ` (not done at ${fmt(loadMs / 1000)} s)`}`,
+        `  load: until ${fmt(s.load.ms)} ms${s.load.done ? '' : ` (not done at ${fmt(loadMs / 1000)} s)`}, ${mib(s.load.readBytes)} MiB read, GPU buffers then ${mib(s.load.memory.buffers)} MiB`,
       );
       if (s.load.after) console.log(`    after the segment, stages by count: ${JSON.stringify(s.load.after)}`);
     }
@@ -581,7 +664,10 @@ async function main() {
     await page.waitForFunction(() => globalThis.molstar.viewer.plugin.canvas3d.boundingSphere.radius > 0, null, {
       timeout: 600_000,
     });
-    console.log(`${path.basename(pack)} opened in ${((Date.now() - t) / 1000).toFixed(1)} s`);
+    const opened = await page.evaluate(() => ({ reads: globalThis.__reads, memory: globalThis.__gpuMemory }));
+    console.log(
+      `${path.basename(pack)} opened in ${((Date.now() - t) / 1000).toFixed(1)} s: ${(opened.reads.bytes / 2 ** 20).toFixed(1)} MiB read, GPU buffers ${(opened.memory.buffers / 2 ** 20).toFixed(1)} MiB`,
+    );
     await page.evaluate(collectGpuTimes);
 
     // the views' steps by time (`stepMs` of the following views: their particles by how long the last steps took)
@@ -682,7 +768,7 @@ ${kind}: CPU profile in ${profileOut}, by self time:`);
         for (const [name, ms] of topSelf(profile, 25)) console.log(`  ${fmt(ms).padStart(7)} ms  ${name}`);
       }
       const segment = segments[segments.length - 1];
-      if (kind === 'still-outside')
+      if (kind === 'still-outside' || kind === 'still-inside')
         segment.load = await page.evaluate(waitForLoad, { t0: segment.t0, limitMs: loadMs });
       // where the camera rests (outside after the load, inside): the views' particles, the canvas saved (`--shots`)
       if (kind === 'still-outside' || kind === 'still-inside') {
