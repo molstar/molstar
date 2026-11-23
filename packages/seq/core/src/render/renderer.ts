@@ -17,7 +17,14 @@ import { DefaultRenderConfig, type RenderConfig } from './config.js';
 import { DrawLists, EmphasisPasses, type PassName } from './draw-lists.js';
 import { ImageCache } from './images.js';
 import type { RowsZoom } from './rail.js';
-import { EmptyOverlay, type Emphasis, type LayerType, type Overlay, type StoreReader } from './layer-type.js';
+import {
+  coverageRead,
+  EmptyOverlay,
+  type Emphasis,
+  type LayerType,
+  type Overlay,
+  type StoreReader,
+} from './layer-type.js';
 import type { SectionLayoutType } from './layout/types.js';
 import type { TextMetrics } from './text.js';
 import type { SeqTokens } from './tokens.js';
@@ -335,9 +342,11 @@ export class Renderer {
       ...(data.settings ? { settings: data.settings } : {}),
       coverage: (s) => {
         const c = data.coverage(s);
-        this.coverages.set(s, c);
+        // a source whose opening failed is read as such: the layout is made again when it opens or fails
+        this.coverages.set(s, coverageRead(data, s, c));
         return c;
       },
+      ...(data.unopened ? { unopened: (s: string) => data.unopened!(s) } : {}),
       keysOf: (w) => data.keysOf(w),
       ...(data.tooMany ? { tooMany: (w: Want) => data.tooMany!(w) } : {}),
       ...(data.tilesOf ? { tilesOf: (w: Want) => data.tilesOf!(w) } : {}),
@@ -362,7 +371,10 @@ export class Renderer {
     for (let i = 0; i < keys.length; i++) if ((data.get(keys[i])?.version ?? -1) !== versions[i]) return false;
     const sources = this.coverageKeys;
     const coverages = this.coverageValues;
-    for (let i = 0; i < sources.length; i++) if (data.coverage(sources[i]) !== coverages[i]) return false;
+    for (let i = 0; i < sources.length; i++) {
+      const s = sources[i];
+      if (coverageRead(data, s, data.coverage(s)) !== coverages[i]) return false;
+    }
     if (data.refusals !== this.refusals) return false;
     return true;
   }

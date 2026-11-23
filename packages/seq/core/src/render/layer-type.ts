@@ -27,6 +27,8 @@ import type { SeqTokens } from './tokens.js';
 /** What a layout reads of the data store: `DataStore` is one. */
 export interface StoreReader {
   coverage(source: string): Coverage | undefined;
+  /** Whether a source's opening failed (its issue said): its tiles read as failed, not pending; absent: never. */
+  unopened?(source: string): boolean;
   keysOf(want: Want): string[];
   /** Whether a want is past the store's bound on its tiles (\`keysOf\` then lists none), where the reader says it. */
   tooMany?(want: Want): boolean;
@@ -44,6 +46,17 @@ export interface StoreReader {
 }
 
 /** The dynamic nodes of tier 2 (the resolve pass's overlay): its version is part of the draw lists' key. */
+/** A failed opening's coverage as a layout read it (none, failed): a stand-in compared by identity. @internal */
+const UnopenedCoverage = {} as Coverage;
+
+/**
+ * A source's coverage as a layout records it to tell whether its reads hold: the coverage, else the failed opening's
+ * stand-in when the store says the source's opening failed, else undefined (pending). @internal
+ */
+export function coverageRead(data: StoreReader, source: string, c: Coverage | undefined): Coverage | undefined {
+  return c ?? (data.unopened?.(source) ? UnopenedCoverage : undefined);
+}
+
 export type { Overlay } from '@molstar/seqx-core/resolve';
 export { EmptyOverlay } from '@molstar/seqx-core/resolve';
 

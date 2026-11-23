@@ -509,7 +509,9 @@ export function readTiles(
       if (end < max) ctx.want(wantOf(src, end, Math.min(max, end + m), level, 'margin', layer, items));
     }
     if (!known) {
-      out.pending.push(start, end);
+      // a source whose opening failed (the store says): failed, never pending (its issue says why; no hatch waits)
+      if (data.unopened?.(src.source)) out.failed.push(start, end);
+      else out.pending.push(start, end);
       continue;
     }
     // the layer's wants together past the store's bounds: none asked, its band "zoom in" (drawn by the track)

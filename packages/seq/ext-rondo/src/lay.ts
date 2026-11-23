@@ -54,8 +54,8 @@ export class RondoLay {
   cfg: RondoConfig = DefaultRondoConfig;
   readonly reader = new PairsReader();
   read: PairsRead | undefined = undefined;
-  /** Why nothing is drawn: `pending` (bins not landed), `layout` (text or grid), `none` (no pairs). */
-  empty: '' | 'pending' | 'layout' | 'none' = '';
+  /** Why nothing is drawn: `pending` (bins not landed), `layout` (text or grid), `none` (no pairs), `failed` (its source). */
+  empty: '' | 'pending' | 'layout' | 'none' | 'failed' = '';
   dpr = 1;
   readonly frame = new RibbonFrame();
   /** The read's level (1: items) and the stems' (positions a stem). */
@@ -373,7 +373,7 @@ export function layoutRondo(lay: RondoLay, prep: RondoPrep, ctx: LayoutContext, 
   const d = read?.data;
   if (!read || !d) {
     // none only once settled with no bins' tile awaited (a frame between a source's open and its tiles' wants is not)
-    lay.empty = ctx.settled && !lay.reader.waiting ? 'none' : 'pending';
+    lay.empty = lay.reader.failed ? 'failed' : ctx.settled && !lay.reader.waiting ? 'none' : 'pending';
     return;
   }
   lay.systems = systemsOf(read);
@@ -398,7 +398,12 @@ export function layoutRondo(lay: RondoLay, prep: RondoPrep, ctx: LayoutContext, 
   aggregate(lay, read);
   if (!lay.nr && !lay.nb && !lay.ns) {
     // nothing read yet while the view waits for its data (EC-169: pending is said, never an empty hole), else none
-    lay.empty = d.n === 0 && (!ctx.settled || lay.reader.waiting) ? 'pending' : 'none';
+    lay.empty =
+      d.n === 0 && lay.reader.failed
+        ? 'failed'
+        : d.n === 0 && (!ctx.settled || lay.reader.waiting)
+          ? 'pending'
+          : 'none';
     return;
   }
   widths(lay, cfg, ctx.config.ribbons.minPx);

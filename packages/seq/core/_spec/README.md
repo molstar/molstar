@@ -1918,6 +1918,12 @@ over the assets port, with `@molstar/core/util/zip` (never a private zip). Not a
   tile that brought it is read again without it (`store-sources.ts`). A malformed coverage is an issue and the old
   reading stays. Why: EC-176's "a conflict keeps the held node" is right for two answers of one reading, wrong for a new
   reading.
+- **A failed opening** (`markUnopened(address)`, `unopened(address)`; `StoreReader.unopened`): the opener (the viewer's
+  store model, an export's opening) says a source's opening failed, its issue its own; until a source attaches under the
+  address (or it is let go) its tiles read as failed, not pending (`readTiles`), and a layout records it with its
+  coverage (`coverageRead`), so a section is laid out again when the source opens or fails. Why: a source never opened
+  has no coverage, and without the store's word a reader cannot tell it from one still opening: its hatch would wait
+  forever.
 - **Channels** (`channels.ts`, internal to the package: not in the `data` entry, read by the resolver and the context
   through `data/channels`): a values node's `field` is read under its own address, `channelAddress(source, field)` (the
   source's and the field's joined by a control character no address holds), made when a tile of it is first read, from
@@ -4356,9 +4362,10 @@ cost to the minimal viewer is the names the chunk imports from it).
   Its state is its owner's (a lay, a bridge side, a `PairsReader`), so two readers of one layer at two gates never share
   a read. It gives `PairsRead`: the rows, the bins' level and counts (absent: items), over an assembly the ends' units;
   `waiting` says a bins' tile it wanted is still to come (a region's or a block's; a failed one is not waiting), so a
-  layer tells pending from empty when the view has settled before this frame's wants were asked. Why one reader: what
-  the pairs layer draws and what an extension draws over the same data are the same bins and items, read once each by
-  one rule (the extension's gate its own: it gates at what it draws).
+  layer tells pending from empty when the view has settled before this frame's wants were asked; `failed` says one
+  failed (a source whose opening failed among them), so a layer tells failed from pending. Why one reader: what the
+  pairs layer draws and what an extension draws over the same data are the same bins and items, read once each by one
+  rule (the extension's gate its own: it gates at what it draws).
 - **A bin pair's element** (`Key.key`, what a selection and a bookmark keep):
   `bin:<a>:<aBin>|<b>:<bBin>|<strand>|<category>`, `<a>` and `<b>` the ends' system names as the source gives them
   (empty: the request's system), `<aBin>` and `<bBin>` the bins' indices at the level read (positions `bin × level` to

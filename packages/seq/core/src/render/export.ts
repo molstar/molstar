@@ -173,6 +173,8 @@ export async function attachSources(
         if (store.attach(address, opened)) options.attached?.add(address);
       } catch (e) {
         if (ctx.signal.aborted) return;
+        // its tiles failed, not pending (a layer waits for nothing)
+        store.markUnopened?.(address);
         if (e instanceof SourceOpenError) issues.push(...e.issues.map((i) => ({ ...i, address })));
         else
           issues.push(

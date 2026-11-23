@@ -38,6 +38,26 @@ const view = (start: number, end: number, extra: Partial<Want> = {}): Want => ({
   ...extra,
 });
 const key = (tile: number, level = 1) => dataKey(S, 'chr1', level, tile);
+
+describe('a failed opening', () => {
+  it('is the store’s word until a source attaches under its address (or it is let go)', () => {
+    const clock = new FakeClock();
+    const store = new DataStore({ clock });
+    expect(store.unopened(S)).toBe(false);
+    store.markUnopened(S);
+    expect(store.unopened(S)).toBe(true);
+    store.attach(S, new SyntheticSource(syntheticCoverage(), clock));
+    expect(store.unopened(S)).toBe(false);
+    // an attached source is never unopened
+    store.markUnopened(S);
+    expect(store.unopened(S)).toBe(false);
+    store.detach(S);
+    store.markUnopened(S);
+    expect(store.unopened(S)).toBe(true);
+    store.detach(S);
+    expect(store.unopened(S)).toBe(false);
+  });
+});
 const failed = (): RegionAnswer => ({
   ok: false,
   kind: 'failed',

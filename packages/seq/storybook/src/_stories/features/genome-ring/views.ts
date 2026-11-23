@@ -165,7 +165,7 @@ export const RingStoryViews: readonly ExampleView[] = [
     id: 'ring-failed',
     title: 'The links failed',
     summary:
-      'The links’ file is not there: its issue said once; no ribbon, the hole’s hatch kept (a source never opened reads as pending).',
+      'The links’ file is not there: its issue said once; no ribbon, no hatch waiting (a source that never opened is failed), its ARIA “links failed”.',
     build: () => ringSpec({ failed: true, title: 'The links failed' }),
   },
   {

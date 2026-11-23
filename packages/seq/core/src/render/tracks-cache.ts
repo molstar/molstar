@@ -10,7 +10,7 @@ import type { Coverage, Want } from '@molstar/seqx-core/data';
 import type { ResolvedSection } from '@molstar/seqx-core/view';
 import { AxisTransform, type Viewport } from './axis.js';
 import type { RenderConfig } from './config.js';
-import type { Overlay, StoreReader } from './layer-type.js';
+import { coverageRead, type Overlay, type StoreReader } from './layer-type.js';
 import type { ThemeContext } from './channels.js';
 import type { PlaceContext, SectionLayoutType } from './layout/types.js';
 import type { LayoutInput, LayoutState, SectionLayout } from './tracks-types.js';
@@ -60,8 +60,12 @@ class SectionReads implements StoreReader {
   coverage(source: string) {
     const c = this.data.coverage(source);
     this.sources[this.m] = source;
-    this.coverages[this.m++] = c;
+    // a failed opening is read as such: the section laid out again when the source opens or fails
+    this.coverages[this.m++] = coverageRead(this.data, source, c);
     return c;
+  }
+  unopened(source: string) {
+    return this.data.unopened?.(source) ?? false;
   }
   keysOf(w: Want) {
     return this.data.keysOf(w);
@@ -87,7 +91,10 @@ class SectionReads implements StoreReader {
   /** Whether they read the same again (read through `data`, so a renderer's reader records them as read). */
   hold(data: StoreReader): boolean {
     for (let i = 0; i < this.n; i++) if ((data.get(this.keys[i])?.version ?? -1) !== this.versions[i]) return false;
-    for (let i = 0; i < this.m; i++) if (data.coverage(this.sources[i]) !== this.coverages[i]) return false;
+    for (let i = 0; i < this.m; i++) {
+      const s = this.sources[i];
+      if (coverageRead(data, s, data.coverage(s)) !== this.coverages[i]) return false;
+    }
     if (data.refusals !== this.refusalsAt) return false;
     return true;
   }

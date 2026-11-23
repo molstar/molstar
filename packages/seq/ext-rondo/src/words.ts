@@ -87,6 +87,7 @@ export function describeRondo(hit: LayerPlace, lay: RondoLay): readonly string[]
 export function summaryRondo(lay: RondoLay): string | undefined {
   if (lay.empty === 'layout') return undefined;
   if (lay.empty === 'pending') return 'links loading';
+  if (lay.empty === 'failed') return 'links failed';
   let drawn = 0;
   for (let r = 0; r < lay.nr; r++) drawn += lay.ribDrawn[r];
   if (!drawn && !lay.nb) return 'no links';

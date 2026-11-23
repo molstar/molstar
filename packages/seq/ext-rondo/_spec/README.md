@@ -54,8 +54,10 @@ bins), the readout's after the pair (`chr4 × chr7 · 37 links`).
 - **Read**: core's pairs reader with the gate `rondo.maxRibbons`: bins until the stem pairs with an end in view sum to
   at most it, then items (held pairs past it binned by the same level rule). Pending (nothing landed, the view not
   settled or the reader `waiting` on a tile it wanted): drawn empty and said ("links loading", EC-169); settled with no
-  rows and nothing awaited: "no links". Why the reader's word too: the view settles for a frame between a source's open
-  and its tiles' wants, and "no links" there is a flicker.
+  rows and nothing awaited: "no links"; a tile failed (the reader's `failed`: its source's opening failed, the store
+  says) and nothing read: `failed`, no hatch waiting, said "links failed" beside the store's issue. Why the reader's
+  word too: the view settles for a frame between a source's open and its tiles' wants, and "no links" there is a
+  flicker.
 
 ## Stubs
 
