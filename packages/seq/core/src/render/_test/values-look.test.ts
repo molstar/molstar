@@ -151,3 +151,38 @@ describe('the values look', () => {
     expect(readPaths(line.lists).filter((p) => !p.closed).length).toBe(2);
   });
 });
+
+describe('the values look on a log scale (EC-215)', () => {
+  /** Bars over `values` on a log scale node with `domain`, rendered; each bar's height in x order. */
+  async function heights(values: readonly number[], domain?: readonly [number | null, number | null]) {
+    const b = createSeqSpec({ title: 'log' });
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'A'.repeat(values.length) });
+    const v = b.data.values('v', { target: s, values: Float32Array.from(values) });
+    const log = b.views.scale('log', { type: 'log', ...(domain ? { domain } : {}) } as never);
+    b.views.view('main', (view) =>
+      view
+        .section('s', { of: s })
+        .track('v')
+        .layer('values', { type: 'values', data: v, scale: log } as never),
+    );
+    const r = await renderSvg(b.build(), { size: Size });
+    return barsOf(r)
+      .sort((a, b) => a.x - b.x)
+      .map((x) => x.h);
+  }
+
+  it('heights by the values’ log: each decade an equal step; an open low end the smallest positive value in view', async () => {
+    // 1 to 10^4: 10, 100 and 1,000 a quarter, a half and three quarters of 10^4's height (1 at the baseline: no bar)
+    const closed = await heights([1, 10, 100, 1_000, 10_000], [1, 10_000]);
+    expect(closed).toHaveLength(4);
+    const top = closed[3];
+    expect(top).toBeGreaterThan(20);
+    expect(closed[0] / top).toBeCloseTo(0.25, 1);
+    expect(closed[1] / top).toBeCloseTo(0.5, 1);
+    expect(closed[2] / top).toBeCloseTo(0.75, 1);
+    // open: from 10 (the smallest in view, its bar at the baseline) to 10^3; 0 below the domain, no bar
+    const open = await heights([0, 10, 100, 1_000]);
+    expect(open).toHaveLength(2);
+    expect(open[0] / open[1]).toBeCloseTo(0.5, 1);
+  });
+});

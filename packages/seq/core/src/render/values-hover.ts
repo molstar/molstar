@@ -8,7 +8,7 @@ import { perPosition } from './config.js';
 import { NoColor, type PassWriter, Round } from './draw-lists.js';
 import type { Emphasis } from './layer-type.js';
 import { hoverCell } from './marks.js';
-import { Fill, hoverDot } from './values-marks.js';
+import { hoverDot, yFrame, ys } from './values-marks.js';
 import type { ValuesLay } from './values.js';
 
 /**
@@ -37,15 +37,12 @@ export function hoverValue(lay: ValuesLay, out: PassWriter, emphasis: Emphasis |
     return;
   }
   const { box } = lay;
-  const lo = lay.domain ? lay.domain[0] : 0;
-  const hi = lay.domain ? lay.domain[1] : 1;
-  const base = lo <= 0 && hi >= 0 ? 0 : lo;
-  const span = (hi - lo || 1) / Fill;
+  const { lo, hi, base, span } = yFrame(lay);
   const y1 = box.y + box.height;
   const bh = box.height;
-  const yBase = y1 - ((Math.max(lo, Math.min(hi, base)) - lo) / span) * bh;
-  const yv = y1 - ((Math.max(lo, Math.min(hi, lay.v[j])) - lo) / span) * bh;
-  const yl = y1 - ((Math.max(lo, Math.min(hi, Math.min(lay.lo[j], base))) - lo) / span) * bh;
+  const yBase = y1 - ((Math.max(lo, Math.min(hi, ys(lay, base))) - lo) / span) * bh;
+  const yv = y1 - ((Math.max(lo, Math.min(hi, ys(lay, lay.v[j]))) - lo) / span) * bh;
+  const yl = y1 - ((Math.max(lo, Math.min(hi, ys(lay, Math.min(lay.lo[j], base)))) - lo) / span) * bh;
   const top = Math.min(yv, yBase);
   const bottom = Math.max(yv, yl, yBase);
   // outside the extent by the offset, as every hover outline; a sliver of a bar still gets a visible frame

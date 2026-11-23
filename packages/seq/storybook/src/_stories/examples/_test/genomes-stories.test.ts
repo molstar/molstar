@@ -228,8 +228,10 @@ describe('Examples/Genomes, headless', () => {
     expect(zero[0]).toBe(0);
     // the scale's open end a union over its layers in view (every block's), the open layer's its own block's
     expect(zero[1]).toBeGreaterThanOrEqual(openDomain[1]);
-    // the log track's closed domain, TPM 1 to 10^4 (EC-215)
+    // the log track's closed domain, TPM 1 to 10^4, its heights by the values' log10 (EC-215)
     expect(layer<{ domain?: [number, number] }>(v, 'TPM (log)')!.domain).toEqual([1, 10_000]);
+    expect(layer<{ yLog: boolean }>(v, 'TPM (log)')!.yLog).toBe(true);
+    expect(layer<{ yLog: boolean }>(v, 'TPM (open)')!.yLog).toBe(false);
     // read at a level above 1 at the fit (EC-170): no item a pixel
     // streamed data never enters the document (EC-175)
     expect(JSON.stringify(v.spec.root.value)).toBe(before);

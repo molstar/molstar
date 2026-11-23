@@ -31,7 +31,7 @@ import {
   sectionId,
 } from './layer-type.js';
 import { drawFailed, drawSpans } from './marks.js';
-import { drawBaseline, drawDots, DotMinPx, drawPoints, Fill } from './values-marks.js';
+import { drawBaseline, drawDots, DotMinPx, drawPoints, yFrame, ys } from './values-marks.js';
 import { hoverValue } from './values-hover.js';
 import type { SeqTokens } from './tokens.js';
 import { sortArrayRange } from '@molstar/core/data/util/sort';
@@ -93,6 +93,8 @@ export interface ValuesLay {
   /** Bars followed on the screen by a break of the axis (a line does not cross it: it is held, as at a gap). */
   cut: Uint8Array;
   domain: [number, number] | undefined;
+  /** The y scale is a log scale (its scale node's `type`): heights by the values' log10 (`ys`). */
+  yLog: boolean;
   /** Bars: snapped x extents and the low and high value of each (equal for a position; NaN: missing). */
   n: number;
   x0: Float32Array;
@@ -162,6 +164,7 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
       extents: new Extents(),
       cut: new Uint8Array(0),
       domain: undefined,
+      yLog: false,
       n: 0,
       x0: new Float32Array(64),
       x1: new Float32Array(64),
@@ -260,6 +263,7 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
         lay.v[j] = colHi[c];
       }
     if (lay.perBar) colorBars(lay, color, ctx);
+    lay.yLog = !!prep.scale && ctx.theme.scale(prep.scale)?.type === 'log';
     lay.domain = yDomain(prep, ctx, lay);
     orderLine(lay);
     return lay;
@@ -325,13 +329,10 @@ function drawBars(lay: ValuesLay, out: PassWriter) {
   const { box, tokens } = lay;
   drawSpans(out, lay.pending, box.y, box.height, tokens.colors['seq-pending']);
   drawFailed(out, lay.failed, box.y, box.height, tokens);
-  const lo = lay.domain ? lay.domain[0] : 0;
-  const hi = lay.domain ? lay.domain[1] : 1;
-  const base = lo <= 0 && hi >= 0 ? 0 : lo;
-  const span = (hi - lo || 1) / Fill;
+  const { lo, hi, base, span } = yFrame(lay);
   const y1 = box.y + box.height;
   const bh = box.height;
-  const yBase = y1 - ((Math.max(lo, Math.min(hi, base)) - lo) / span) * bh;
+  const yBase = y1 - ((Math.max(lo, Math.min(hi, ys(lay, base))) - lo) / span) * bh;
   const px = 1 / lay.axis.dpr;
   drawBaseline(lay, out);
   const a = out.args;
@@ -342,8 +343,8 @@ function drawBars(lay: ValuesLay, out: PassWriter) {
       const v = lay.v[j];
       if (Number.isNaN(v)) continue;
       // from the baseline to the value (a column's extent past it too): the free end is the round one
-      const yv = y1 - ((Math.max(lo, Math.min(hi, v)) - lo) / span) * bh;
-      const yl = y1 - ((Math.max(lo, Math.min(hi, Math.min(lay.lo[j], base))) - lo) / span) * bh;
+      const yv = y1 - ((Math.max(lo, Math.min(hi, ys(lay, v))) - lo) / span) * bh;
+      const yl = y1 - ((Math.max(lo, Math.min(hi, ys(lay, Math.min(lay.lo[j], base)))) - lo) / span) * bh;
       const top = Math.min(yv, yBase);
       const w = lay.x1[j] - lay.x0[j];
       // a bar narrower than the gap and a device pixel (a cut at the window's edge) takes no gap
@@ -367,8 +368,8 @@ function drawBars(lay: ValuesLay, out: PassWriter) {
   if (!perPosition(lay.step)) {
     for (let j = 0; j < n; j++) {
       if (Number.isNaN(lay.v[j]) || !(lay.lo[j] < base)) continue;
-      const yv = y1 - ((Math.max(lo, Math.min(hi, lay.v[j])) - lo) / span) * bh;
-      const yl = y1 - ((Math.max(lo, Math.min(hi, lay.lo[j])) - lo) / span) * bh;
+      const yv = y1 - ((Math.max(lo, Math.min(hi, ys(lay, lay.v[j]))) - lo) / span) * bh;
+      const yl = y1 - ((Math.max(lo, Math.min(hi, ys(lay, lay.lo[j]))) - lo) / span) * bh;
       // the profile's area covers the baseline to the maximum: this block is what lies beyond it
       const from = Math.max(yv, yBase);
       a[0] = lay.x0[j];
@@ -427,7 +428,7 @@ function drawBars(lay: ValuesLay, out: PassWriter) {
       if (recolor) {
         // the next run's line starts where this one ended: the top line stays one line
         pts[0] = lay.x1[prev];
-        pts[1] = y1 - ((Math.max(lo, Math.min(hi, lay.v[prev])) - lo) / span) * bh;
+        pts[1] = y1 - ((Math.max(lo, Math.min(hi, ys(lay, lay.v[prev]))) - lo) / span) * bh;
         count = 1;
       }
     }
@@ -435,7 +436,7 @@ function drawBars(lay: ValuesLay, out: PassWriter) {
       prev = -1;
       continue;
     }
-    const y = y1 - ((Math.max(lo, Math.min(hi, lay.v[j])) - lo) / span) * bh;
+    const y = y1 - ((Math.max(lo, Math.min(hi, ys(lay, lay.v[j]))) - lo) / span) * bh;
     if (count < 2) a[0] = lay.col[j];
     pts[2 * count] = lay.x0[j];
     pts[2 * count + 1] = y;
@@ -548,12 +549,17 @@ function overlapsRegions(regions: readonly number[], a: number, b: number): bool
 function openDomain(lay: ValuesLay): [number, number] {
   let lo = Number.POSITIVE_INFINITY;
   let hi = Number.NEGATIVE_INFINITY;
+  let pos = Number.POSITIVE_INFINITY;
   for (let j = 0; j < lay.n; j++) {
     const v = lay.v[j];
     if (Number.isNaN(v)) continue;
     if (lay.lo[j] < lo) lo = lay.lo[j];
     if (v > hi) hi = v;
+    const p = lay.lo[j] > 0 ? lay.lo[j] : v;
+    if (p > 0 && p < pos) pos = p;
   }
+  // a log scale's open low end: the smallest positive value in view (a tenth of its top when there is one alone)
+  if (lay.yLog) return hi > 0 ? [pos < hi ? pos : hi / 10, hi] : [1, 10];
   if (lo > hi) return [0, 1];
   if (lo === hi) return lo >= 0 ? [0, hi || 1] : [lo, 0];
   return [Math.min(lo, 0), hi];
@@ -615,13 +621,10 @@ function drawLine(lay: ValuesLay, out: PassWriter) {
   const { box, tokens } = lay;
   drawSpans(out, lay.pending, box.y, box.height, tokens.colors['seq-pending']);
   drawFailed(out, lay.failed, box.y, box.height, tokens);
-  const lo = lay.domain ? lay.domain[0] : 0;
-  const hi = lay.domain ? lay.domain[1] : 1;
-  const base = lo <= 0 && hi >= 0 ? 0 : lo;
-  const span = (hi - lo || 1) / Fill;
+  const { lo, hi, base, span } = yFrame(lay);
   const y1 = box.y + box.height;
   const bh = box.height;
-  const yBase = y1 - ((Math.max(lo, Math.min(hi, base)) - lo) / span) * bh;
+  const yBase = y1 - ((Math.max(lo, Math.min(hi, ys(lay, base))) - lo) / span) * bh;
   const each = perPosition(lay.step);
   const px = 1 / lay.axis.dpr;
   drawBaseline(lay, out);
@@ -640,8 +643,8 @@ function drawLine(lay: ValuesLay, out: PassWriter) {
     if (Number.isNaN(v)) continue;
     // the extent a column holds below its maximum, as a bar over it
     if (!each && lay.lo[j] < v) {
-      const top = y1 - ((Math.max(lo, Math.min(hi, Math.max(v, base))) - lo) / span) * bh;
-      const h = y1 - ((Math.max(lo, Math.min(hi, Math.min(lay.lo[j], base))) - lo) / span) * bh - top;
+      const top = y1 - ((Math.max(lo, Math.min(hi, ys(lay, Math.max(v, base)))) - lo) / span) * bh;
+      const h = y1 - ((Math.max(lo, Math.min(hi, ys(lay, Math.min(lay.lo[j], base)))) - lo) / span) * bh - top;
       out.fill(lay.x0[j], top, lay.x1[j] - lay.x0[j], h, lay.col[j]);
     }
   }
@@ -658,10 +661,10 @@ function drawLine(lay: ValuesLay, out: PassWriter) {
       lay.x0[j] >= lay.x1[prev] - px * 1.01;
     if (count > 0 && (!joins || (valid && lay.col[j] !== color))) {
       const last = prev;
-      const yl = y1 - ((Math.max(lo, Math.min(hi, lay.v[last])) - lo) / span) * bh;
+      const yl = y1 - ((Math.max(lo, Math.min(hi, ys(lay, lay.v[last]))) - lo) / span) * bh;
       if (joins) {
         // the color changes at the boundary: the line goes on to it, halfway to the next center
-        const yn = y1 - ((Math.max(lo, Math.min(hi, lay.v[j])) - lo) / span) * bh;
+        const yn = y1 - ((Math.max(lo, Math.min(hi, ys(lay, lay.v[j]))) - lo) / span) * bh;
         pts[2 * count] = lay.x1[last];
         pts[2 * count + 1] = (yl + yn) / 2;
         count++;
@@ -678,12 +681,12 @@ function drawLine(lay: ValuesLay, out: PassWriter) {
       continue;
     }
     const v = lay.v[j];
-    const y = y1 - ((Math.max(lo, Math.min(hi, v)) - lo) / span) * bh;
+    const y = y1 - ((Math.max(lo, Math.min(hi, ys(lay, v))) - lo) / span) * bh;
     if (count === 0) {
       color = lay.col[j];
       if (joins && prev >= 0) {
         // a run starting at a color change: from the boundary, halfway between the centers
-        const yp = y1 - ((Math.max(lo, Math.min(hi, lay.v[prev])) - lo) / span) * bh;
+        const yp = y1 - ((Math.max(lo, Math.min(hi, ys(lay, lay.v[prev]))) - lo) / span) * bh;
         pts[0] = lay.x0[j];
         pts[1] = (yp + y) / 2;
         count = 1;
