@@ -106,7 +106,7 @@ What the novice reported as working:
 
 ### Bugs → fixes.md
 
-27. **After a stem menu opens a pair, the square isn't checked.** The novice saw the whole genome on the square after
+27. **Not a bug** (the orchestrator, on the Canvas copy: the square reads "chr9:1 – chr22:50,818,468" with the pair's cells outlined). **After a stem menu opens a pair, the square isn't checked.** The novice saw the whole genome on the square after
     the ring opened chr22–chr9. Its screenshot shows the SVG copy, which has no square of its own, so check this on the
     Canvas copy. (The stem menu)
 
@@ -151,6 +151,6 @@ What the novice reported as working:
 
 | Kind | Count |
 |---|---|
-| Bugs | 5 (2 fixed by FX24, 2 not bugs, 1 to check) |
+| Bugs | 5 (2 fixed by FX24, 3 not bugs) |
 | Missing design | 14 |
 | Looks | 15 |
