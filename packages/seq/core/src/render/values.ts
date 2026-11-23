@@ -31,7 +31,7 @@ import {
   sectionId,
 } from './layer-type.js';
 import { drawFailed, drawSpans } from './marks.js';
-import { drawBaseline, drawDots, DotMinPx, drawPoints, yFrame, ys } from './values-marks.js';
+import { drawBaseline, drawDots, DotMinPx, drawPoints, baseOf, domainHi, domainLo, Fill, ys } from './values-marks.js';
 import { hoverValue } from './values-hover.js';
 import type { SeqTokens } from './tokens.js';
 import { sortArrayRange } from '@molstar/core/data/util/sort';
@@ -329,7 +329,10 @@ function drawBars(lay: ValuesLay, out: PassWriter) {
   const { box, tokens } = lay;
   drawSpans(out, lay.pending, box.y, box.height, tokens.colors['seq-pending']);
   drawFailed(out, lay.failed, box.y, box.height, tokens);
-  const { lo, hi, base, span } = yFrame(lay);
+  const lo = ys(lay, domainLo(lay));
+  const hi = ys(lay, domainHi(lay));
+  const base = baseOf(lay);
+  const span = (hi - lo || 1) / Fill;
   const y1 = box.y + box.height;
   const bh = box.height;
   const yBase = y1 - ((Math.max(lo, Math.min(hi, ys(lay, base))) - lo) / span) * bh;
@@ -621,7 +624,10 @@ function drawLine(lay: ValuesLay, out: PassWriter) {
   const { box, tokens } = lay;
   drawSpans(out, lay.pending, box.y, box.height, tokens.colors['seq-pending']);
   drawFailed(out, lay.failed, box.y, box.height, tokens);
-  const { lo, hi, base, span } = yFrame(lay);
+  const lo = ys(lay, domainLo(lay));
+  const hi = ys(lay, domainHi(lay));
+  const base = baseOf(lay);
+  const span = (hi - lo || 1) / Fill;
   const y1 = box.y + box.height;
   const bh = box.height;
   const yBase = y1 - ((Math.max(lo, Math.min(hi, ys(lay, base))) - lo) / span) * bh;

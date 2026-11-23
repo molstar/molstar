@@ -27,22 +27,14 @@ export function ys(lay: Pick<ValuesLay, 'yLog'>, v: number): number {
   return lay.yLog ? (v > 0 ? Math.log10(v) : Number.NEGATIVE_INFINITY) : v;
 }
 
-/**
- * The well's y frame: the domain's ends on the y scale (`ys`), the baseline (zero inside the domain, else its low end;
- * in values, compared with values) and the scaled span a well's fill.
- */
-export function yFrame(lay: Pick<ValuesLay, 'yLog' | 'domain'>): {
-  lo: number;
-  hi: number;
-  base: number;
-  span: number;
-} {
-  const d0 = lay.domain ? lay.domain[0] : 0;
-  const d1 = lay.domain ? lay.domain[1] : 1;
-  const base = d0 <= 0 && d1 >= 0 ? 0 : d0;
-  const lo = ys(lay, d0);
-  const hi = ys(lay, d1);
-  return { lo, hi, base, span: (hi - lo || 1) / Fill };
+/** The y domain's low and high ends (`[0, 1]` before one is computed), in values. */
+export const domainLo = (lay: Pick<ValuesLay, 'domain'>) => (lay.domain ? lay.domain[0] : 0);
+export const domainHi = (lay: Pick<ValuesLay, 'domain'>) => (lay.domain ? lay.domain[1] : 1);
+
+/** The baseline, in values: zero inside the domain, else its low end. Heights are `ys` of values over the scaled span. */
+export function baseOf(lay: Pick<ValuesLay, 'domain'>): number {
+  const d0 = domainLo(lay);
+  return d0 <= 0 && domainHi(lay) >= 0 ? 0 : d0;
 }
 
 /** A line and an area show a dot a value from this many CSS px a value. */
@@ -66,7 +58,10 @@ function polygon(x: number, y: number, r: number) {
 /** The hairline at the baseline (zero, else the domain's low), a device pixel thick. No number is passed to a call. */
 export function drawBaseline(lay: ValuesLay, out: PassWriter) {
   const { box } = lay;
-  const { lo, hi, base, span } = yFrame(lay);
+  const lo = ys(lay, domainLo(lay));
+  const hi = ys(lay, domainHi(lay));
+  const base = baseOf(lay);
+  const span = (hi - lo || 1) / Fill;
   const yBase = box.y + box.height - ((Math.max(lo, Math.min(hi, ys(lay, base))) - lo) / span) * box.height;
   const px = 1 / lay.axis.dpr;
   const a = out.args;
@@ -85,7 +80,9 @@ export function drawBaseline(lay: ValuesLay, out: PassWriter) {
 /** A dot a value, in x order: its ring of the well's ground, then the dot in the value's color. */
 export function drawDots(lay: ValuesLay, out: PassWriter) {
   const { box } = lay;
-  const { lo, hi, span } = yFrame(lay);
+  const lo = ys(lay, domainLo(lay));
+  const hi = ys(lay, domainHi(lay));
+  const span = (hi - lo || 1) / Fill;
   const y1 = box.y + box.height;
   const bh = box.height;
   const ground = lay.tokens.colors['seq-track'];
@@ -119,7 +116,9 @@ export function drawPoints(lay: ValuesLay, out: PassWriter) {
     return;
   }
   const { box } = lay;
-  const { lo, hi, span } = yFrame(lay);
+  const lo = ys(lay, domainLo(lay));
+  const hi = ys(lay, domainHi(lay));
+  const span = (hi - lo || 1) / Fill;
   const y1 = box.y + box.height;
   const bh = box.height;
   const px = 1 / lay.axis.dpr;
@@ -146,7 +145,9 @@ export function drawPoints(lay: ValuesLay, out: PassWriter) {
 /** The hover's ring on the dot of bar `j`, outside it by its ring and the offset. */
 export function hoverDot(lay: ValuesLay, out: PassWriter, j: number) {
   const { box } = lay;
-  const { lo, hi, span } = yFrame(lay);
+  const lo = ys(lay, domainLo(lay));
+  const hi = ys(lay, domainHi(lay));
+  const span = (hi - lo || 1) / Fill;
   const y = box.y + box.height - ((Math.max(lo, Math.min(hi, ys(lay, lay.v[j]))) - lo) / span) * box.height;
   polygon((lay.x0[j] + lay.x1[j]) / 2, y, DotRadius + DotRing + lay.hoverOffset + lay.hoverWidth / 2);
   const a = out.args;

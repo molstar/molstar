@@ -8,7 +8,7 @@ import { perPosition } from './config.js';
 import { NoColor, type PassWriter, Round } from './draw-lists.js';
 import type { Emphasis } from './layer-type.js';
 import { hoverCell } from './marks.js';
-import { hoverDot, yFrame, ys } from './values-marks.js';
+import { Fill, hoverDot } from './values-marks.js';
 import type { ValuesLay } from './values.js';
 
 /**
@@ -37,12 +37,24 @@ export function hoverValue(lay: ValuesLay, out: PassWriter, emphasis: Emphasis |
     return;
   }
   const { box } = lay;
-  const { lo, hi, base, span } = yFrame(lay);
+  // `yFrame`'s and `ys`'s arithmetic written out: a hover allocates nothing (no number crosses a call boxed)
+  const log = lay.yLog;
+  const d0 = lay.domain ? lay.domain[0] : 0;
+  const d1 = lay.domain ? lay.domain[1] : 1;
+  const base = d0 <= 0 && d1 >= 0 ? 0 : d0;
+  const v = lay.v[j];
+  const l = Math.min(lay.lo[j], base);
+  const lo = !log ? d0 : d0 > 0 ? Math.log10(d0) : Number.NEGATIVE_INFINITY;
+  const hi = !log ? d1 : d1 > 0 ? Math.log10(d1) : Number.NEGATIVE_INFINITY;
+  const sb = !log ? base : base > 0 ? Math.log10(base) : Number.NEGATIVE_INFINITY;
+  const sv = !log ? v : v > 0 ? Math.log10(v) : Number.NEGATIVE_INFINITY;
+  const sl = !log ? l : l > 0 ? Math.log10(l) : Number.NEGATIVE_INFINITY;
+  const span = (hi - lo || 1) / Fill;
   const y1 = box.y + box.height;
   const bh = box.height;
-  const yBase = y1 - ((Math.max(lo, Math.min(hi, ys(lay, base))) - lo) / span) * bh;
-  const yv = y1 - ((Math.max(lo, Math.min(hi, ys(lay, lay.v[j]))) - lo) / span) * bh;
-  const yl = y1 - ((Math.max(lo, Math.min(hi, ys(lay, Math.min(lay.lo[j], base)))) - lo) / span) * bh;
+  const yBase = y1 - ((Math.max(lo, Math.min(hi, sb)) - lo) / span) * bh;
+  const yv = y1 - ((Math.max(lo, Math.min(hi, sv)) - lo) / span) * bh;
+  const yl = y1 - ((Math.max(lo, Math.min(hi, sl)) - lo) / span) * bh;
   const top = Math.min(yv, yBase);
   const bottom = Math.max(yv, yl, yBase);
   // outside the extent by the offset, as every hover outline; a sliver of a bar still gets a visible frame
