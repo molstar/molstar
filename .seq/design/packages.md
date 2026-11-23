@@ -30,3 +30,20 @@ the viewer needs).
   needs one.
 - **Headers**: `Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.` and the
   `@author` lines.
+
+## In the specs
+
+| Decision | Where |
+|---|---|
+| Four packages: core, viewer, examples, storybook, and what each holds | design-only: the table is the package guide's; core and viewer open their specs with theirs |
+| What core may import (`@molstar/core` and an allowlist) | core › @molstar/seqx-core |
+| What the viewer may import (core, `@molstar/core`, `@molstar/ui`) | viewer › @molstar/seqx-viewer |
+| The examples package's imports | design-only: not built as designed (drift note) |
+| What the examples package imports as built | examples › Dependencies |
+| Imports from other Mol\* packages: entries on an allowlist, each with its reason, never a whole package | core › @molstar/seqx-core |
+| `seqx` names while the previous packages exist | design-only: temporary naming (the package guide) |
+| The core's folders follow the pipeline | design-only: a layout of the code, no rule beyond it |
+| Each folder an entry; across folders a module names the entry; the folder graph a test | design-only: not built as designed (drift note) |
+| Storybook registered under `Seq* (next)` | design-only: the Storybook's own registration, a hot file |
+| Tests in the repository's one Vitest run, three lanes | design-only: the root AGENTS.md's lanes |
+| Headers | design-only: the root AGENTS.md's headers rule |
