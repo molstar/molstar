@@ -5,6 +5,7 @@
  */
 
 import { Button } from '@molstar/ui/components/button/button';
+import { classes as iconClasses } from '@molstar/ui/components/icon/_generated/icon.module.css';
 import { lucideEye } from '@molstar/ui/components/icon/_generated/lucide/eye';
 import { lucideEyeOff } from '@molstar/ui/components/icon/_generated/lucide/eye-off';
 import { installTooltips } from '@molstar/ui/components/tooltip/tooltip';
@@ -15,7 +16,7 @@ import { onCleanup } from '@molstar/ui/dom/scope';
 // a chunk of their own that the part loads the first time it draws an eye (the default viewer's first chunk carries
 // none of the button, the tooltip or the DOM runtime they need). Each returns what takes it away.
 
-/** A Lucide icon's markup as an element (one icon imported by itself, never the registry of every icon). */
+/** A Lucide icon's markup as an element (one icon imported by itself, never the registry of every icon), sized as `Icon` sizes one. */
 function iconOf(doc: Document, markup: string): SVGSVGElement {
   const svg = doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('viewBox', '0 0 24 24');
@@ -25,6 +26,9 @@ function iconOf(doc: Document, markup: string): SVGSVGElement {
   svg.setAttribute('stroke-linecap', 'round');
   svg.setAttribute('stroke-linejoin', 'round');
   svg.setAttribute('aria-hidden', 'true');
+  // `@molstar/ui`'s icon class sizes it by where it sits (`--msui-icon-size`, set by the button); without it the
+  // `<svg>` lays out at 0 by 0 and the eye is invisible (the close-out's look, CL1).
+  svg.setAttribute('class', iconClasses.icon);
   svg.innerHTML = markup;
   return svg;
 }

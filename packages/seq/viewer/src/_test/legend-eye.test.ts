@@ -222,6 +222,16 @@ describe('a layer’s eye (the agreed gestures)', () => {
     // the part installs the tooltip its buttons' `data-tip` shows
     expect(el.querySelector('[role="tooltip"]')).not.toBeNull();
   });
+
+  it('the eye and the eye-off are sized as `@molstar/ui` icons (its icon class: an unclassed svg lays out at 0 by 0)', async () => {
+    const { v, el } = await mounted();
+    const iconClass = (await import('@molstar/ui/components/icon/_generated/icon.module.css')).classes.icon;
+    expect(eye(el, 'Domains').querySelector('svg')!.getAttribute('class')).toBe(iconClass);
+    eye(el, 'Domains').click();
+    await landed(v);
+    expect(eye(el, 'Domains').getAttribute('aria-label')).toBe('Show Domains');
+    expect(eye(el, 'Domains').querySelector('svg')!.getAttribute('class')).toBe(iconClass);
+  });
 });
 
 describe('a legend over several layers', () => {
