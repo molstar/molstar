@@ -292,7 +292,7 @@ export function matrixMethylation(): Node {
 }
 
 /**
- * a matrix served at its items' level alone, past what a view reads ("zoom in to read this track"), and
+ * a matrix served at its items' level alone, past what a view reads ("Zoom in to read: ⌘/Ctrl+scroll, or +"), and
  * links over a stretch with no link end (nothing drawn: no arc, no placeholder).
  */
 export function zoomIn(): Node {
@@ -405,7 +405,7 @@ export const RegionReadsViews: readonly ExampleView[] = [
     id: 'zoom-in',
     title: 'Zoom in to read, and bins with nothing',
     summary:
-      'A matrix served at its items’ level alone (past what a view reads: its band hatched and saying “zoom in to read this track”, an info issue, no wait resolving it) and links with no end in the stretch in view (nothing drawn: no arc, no placeholder). Zoom in to 20 kb and the genotypes are read.',
+      'A matrix served at its items’ level alone (past what a view reads: its band hatched and saying “Zoom in to read: ⌘/Ctrl+scroll, or +”, an info issue, no wait resolving it) and links with no end in the stretch in view (nothing drawn: no arc, no placeholder). Zoom in to 20 kb and the genotypes are read.',
     build: zoomIn,
     registry,
   },

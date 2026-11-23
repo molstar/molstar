@@ -5,7 +5,7 @@
  */
 
 // A layer whose wants together pass the store's bound on a layer's tiles or read cost (_spec/README.md "Render", Data):
-// its band hatched with "zoom in to read this track", an info issue said, distinct from pending (which settles by
+// its band hatched with "Zoom in to read: ⌘/Ctrl+scroll, or +", an info issue said, distinct from pending (which settles by
 // itself); zoomed in, the layer reads and draws again. The drawn list is what the canvas and the SVG both draw.
 
 import type { Coverage, FormatRuntime, OpenedSource } from '@molstar/seqx-core/data';
@@ -27,7 +27,7 @@ function texts(f: Frame): string[] {
 const Size = { width: 720, height: 300 };
 
 describe('the zoom-in state', () => {
-  it('a layer past maxTilesPerLayer draws its band hatched with “zoom in to read this track”, said once', async () => {
+  it('a layer past maxTilesPerLayer draws its band hatched with “Zoom in to read: ⌘/Ctrl+scroll, or +”, said once', async () => {
     // 2 tiles a layer at most: 30 kb at its level (16 positions a bin, 16 kb a tile) with its margins are more
     const s = await settle(bigSpec(), [BigRuntime], {}, {}, { maxTilesPerLayer: 2, summaries: false });
     const f = await s.frame({ size: Size, viewport: { start: 0, end: 30_000 } });

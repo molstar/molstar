@@ -259,7 +259,7 @@ describe('Features/Genome formats/VCF, headless', () => {
     const texts: string[] = [];
     for (const p of Object.values(v.frame!.lists.passes))
       for (let i = 0; i < p.texts.n; i++) texts.push(v.frame!.lists.string(p.texts.str[i]));
-    expect(texts).toContain('zoom in to read this track');
+    expect(texts).toContain('Zoom in to read: ⌘/Ctrl+scroll, or +');
     expect(v.layoutIssues.value.map((i) => i.code)).toContain('seq.render.zoom_in');
     // the whole band waiting: 81,307 level-1 tiles, more than a want asks (`maxTilesPerWant`), so none is read
     expect(lay.pending.length).toBeGreaterThan(0);

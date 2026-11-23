@@ -3364,7 +3364,7 @@ in page coordinates: what crosses strips; `bridge`, internal, once a bridge with
 - **Zoom in** (a layer's wants carry its key, `Want.layer`): a layer whose wants together the store refused (past
   `maxTilesPerLayer` tiles or `maxBytesPerLayer` of read cost, `layerRefused`), or one of whose wants is past its own
   bound at the coarsest level there is (`maxTilesPerWant`: a VCF's one level over 83 Mb, a matrix of items only; the
-  section's reads note it, `wantRefused`), draws its band hatched with "zoom in to read this track" (`ZoomInText`) and
+  section's reads note it, `wantRefused`), draws its band hatched with "Zoom in to read: ⌘/Ctrl+scroll, or +" (`ZoomInText`) and
   says `seq.render.zoom_in` (info); distinct from pending, which settles by itself. A change of refusal lays the view
   out again (the renderer's and a section's reads keep it). Canvas and SVG draw the same list.
 - **An item's key** is its `id`, else its `row` (a null `id` falls back to `row`), else its tile and index; never its

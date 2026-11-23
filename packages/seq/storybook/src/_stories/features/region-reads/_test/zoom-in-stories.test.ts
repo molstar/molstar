@@ -49,7 +49,7 @@ describe('Features/Region reads/Zoom in, headless', () => {
       expect(matrix(v).tables.length).toBe(0);
       expect(matrix(v).n).toBe(0);
       // said, not waited for: the band's text and the issue, no wait resolves it
-      expect(textsOf(v)).toContain('zoom in to read this track');
+      expect(textsOf(v)).toContain('Zoom in to read: ⌘/Ctrl+scroll, or +');
       expect(v.layoutIssues.value.map((i) => i.code)).toContain('seq.render.zoom_in');
     }
     // the links: no end in 400 to 700 kb, no arc, no caret, no density strip, nothing pending
@@ -60,7 +60,7 @@ describe('Features/Region reads/Zoom in, headless', () => {
       const svg = await exported(v, dark);
       expect(svg.settled).toBe(true);
       expect(svg.issues.map((i) => i.code)).toEqual(['seq.render.zoom_in']);
-      expect(svg.svg).toContain('zoom in to read this track');
+      expect(svg.svg).toContain('Zoom in to read: ⌘/Ctrl+scroll, or +');
     }
   });
 
@@ -72,7 +72,7 @@ describe('Features/Region reads/Zoom in, headless', () => {
     expect(matrix(v).tables.length).toBe(0);
     go(v, 'chr', ReadableWindow);
     await advance(v, 5000);
-    expect(textsOf(v)).not.toContain('zoom in to read this track');
+    expect(textsOf(v)).not.toContain('Zoom in to read: ⌘/Ctrl+scroll, or +');
     expect(matrix(v).pend.length).toBe(0);
     expect(matrix(v).tables.length).toBeGreaterThan(0);
     expect(matrix(v).n).toBeGreaterThan(0);
