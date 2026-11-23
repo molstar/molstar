@@ -22,8 +22,8 @@ viewer.retire(); // releases everything it made
 ```
 
 - **The viewer spec** is the composition (see [Extending](?path=/docs/seq-next-docs-extending--docs)). Its `ui` lists
-  the parts mounted with the canvas: the toolbar, the legends, the navigators around the view, the history. Leave out
-  `ui` for a viewer with no DOM.
+  the parts mounted with the canvas: in the default spec the legends, the navigators around the view and the history; a
+  toolbar is a part a host adds (`ui.toolbar`). Leave out `ui` for a viewer with no DOM.
 - **Size**: the canvas takes its element's width, and its height follows the view unless the host fixes one
   (`viewer.resize`). A host that fits the viewer into its own panel decides the tracks' heights through the track sizing
   port.
@@ -36,10 +36,11 @@ viewer.retire(); // releases everything it made
 
 ## The canvas and its SVG
 
-`viewer.renderSvg()` exports the view as an SVG string from the same draw lists as the canvas. It waits for the data,
-and it shows the current selection and highlights. The SVG is accessible: a figure with a title and a description, each
-track a group, and each named item an image with its label and extent. Below, the canvas on the left and its export on
-the right, drawn again each time the canvas comes to rest:
+`viewer.renderSvg()` exports the view from the same draw lists as the canvas. It resolves to a result: the `svg` string,
+whether the data `settled`, the `issues`, and the draw `lists`. It waits for the data, and it shows the current
+selection and highlights. The SVG is accessible: a figure with a title and a description, each track a group, and each
+named item an image with its label and extent. Below, the canvas on the left and its export on the right, drawn again
+each time the canvas comes to rest:
 
 <Canvas of={Live.CanvasAndSvg} />
 

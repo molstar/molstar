@@ -17,15 +17,20 @@ fit, and press `?` for the keys.
 
 ## Hover: the contract
 
-- A **hit** says what is under the pointer: an item (a domain, a pair, a row), a cell (a position, or two positions in a
-  grid), or nothing.
-- **It follows the maps.** A hovered residue lights its codon on the gene, its column in an alignment and its residue in
-  a linked structure: every section the hover reaches through the view's maps.
-- **One owner at a time.** The canvas, a structure viewer or a host's list may each set the hover. A stale owner's clear
-  does nothing, so two sources never fight.
+- A **hit** says what is under the pointer. It is one of:
+  - an item: a domain, a pair, a row;
+  - a cell: a position, or two positions in a grid;
+  - nothing.
+- **It follows the maps.** A hovered residue lights:
+  - its codon on the gene;
+  - its column in an alignment;
+  - its residue in a linked structure.
+- **One owner at a time.**
+  - The canvas, a structure viewer or a host's list may each set the hover.
+  - A stale owner's clear does nothing, so two sources never fight.
 - **A location with no hit.** A structure viewer's hover, carried in by a link, is drawn on every section it reaches,
   with no card.
-- The hover is a method, never a command: it runs on every pointer move, and it allocates nothing once warm.
+- **A method, never a command.** It runs on every pointer move, and it allocates nothing once warm.
 
 ## Selection, highlights and focus
 
@@ -39,10 +44,21 @@ fit, and press `?` for the keys.
 
 ## Navigators
 
-A **navigator** is a part placed around the view that moves its window: the ruler **rail**, a **strip** of the whole
-sequence, a chromosome **ideogram**, a vertical **overview** of an alignment's rows, a **miniature**. Navigators are
-nodes in the spec (`views/<view>/navigators/<id>`), so an export can draw them. Where they go is the host's choice
-(`place` is a hint). A host can draw a navigator itself, over the same `NavigatorModel`.
+A **navigator** is a part placed around the view that moves its window. Navigators are nodes in the spec
+(`views/<view>/navigators/<id>`), so an export can draw them. A spec author writes a `navigator` with `of` (the sections
+it moves), `axes` (`positions`, `rows` or `both`) and `content` (what it draws), or uses the builder's helpers, which
+fill those in:
+
+| What it is called | Builder helper       | `content`          | `axes`      |
+| ----------------- | -------------------- | ------------------ | ----------- |
+| a strip           | `stripNavigator`     | `axis` or `tracks` | `positions` |
+| an ideogram       | `ideogramNavigator`  | `bands` (`bands`)  | `positions` |
+| an overview       | `overviewNavigator`  | `rows`             | `rows`      |
+| a miniature       | `miniatureNavigator` | `tracks`           | `both`      |
+
+An extension's picture is named the same way (`content: 'rondo:square'`). The ruler **rail** is no node: it is what a
+section shows when no navigator replaces it. Where navigators go is the host's choice (`place` and `size` are hints),
+and a host can draw one itself over the same `NavigatorModel`.
 
 [Features › Navigators](?path=/story/seq-next-features-navigators--rail) shows each one, including a
 [gene region on chromosome 17](?path=/story/seq-next-features-navigators--gene-region-on-chr-17) and

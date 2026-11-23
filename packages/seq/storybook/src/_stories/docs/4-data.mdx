@@ -18,17 +18,19 @@ on the source and every node that reads it shares one open.
 
 The readers come as format runtimes:
 
-| Runtime                                 | Formats                                    | Where                                         |
-| --------------------------------------- | ------------------------------------------ | --------------------------------------------- |
-| the `seq` format                        | the protocol written down                  | in the default viewer spec                    |
-| records                                 | TSV, CSV, JSON, MessagePack, GFF3 records  | in the default viewer spec                    |
-| FASTA, aligned FASTA, Stockholm, Newick | sequences, alignments, trees               | `@molstar/seqx-core/data/…`, listed by a host |
-| bigWig                                  | values by region and zoom level            | `@molstar/seqx-core/runtimes/bigwig`, opt in  |
-| BED, bedGraph, BEDPE, chrom sizes       | intervals, values, pairs                   | `@molstar/seqx-core/runtimes/bed`, opt in     |
-| GFF3, GTF                               | genes and transcripts                      | `@molstar/seqx-core/runtimes/gff`, opt in     |
-| VCF (tabix)                             | variants and genotypes                     | `@molstar/seqx-core/runtimes/vcf`, opt in     |
-| GenBank                                 | a record's sequence and features           | `@molstar/seqx-core/runtimes/genbank`, opt in |
-| mmCIF                                   | a structure's molecules, chains and values | `@molstar/seqx-core/runtimes/mmcif`, opt in   |
+| Runtime                           | Formats                                    | Where                                         |
+| --------------------------------- | ------------------------------------------ | --------------------------------------------- |
+| the `seq` format                  | the protocol written down                  | in the default viewer spec                    |
+| records                           | TSV, CSV, JSON, MessagePack, GFF3 records  | in the default viewer spec                    |
+| FASTA; aligned FASTA, Stockholm   | sequences; alignments                      | `@molstar/seqx-core/data/…`, listed by a host |
+| bigWig                            | values by region and zoom level            | `@molstar/seqx-core/runtimes/bigwig`, opt in  |
+| BED, bedGraph, BEDPE, chrom sizes | intervals, values, pairs                   | `@molstar/seqx-core/runtimes/bed`, opt in     |
+| GFF3, GTF                         | genes and transcripts                      | `@molstar/seqx-core/runtimes/gff`, opt in     |
+| VCF (tabix)                       | variants and genotypes                     | `@molstar/seqx-core/runtimes/vcf`, opt in     |
+| GenBank                           | a record's sequence and features           | `@molstar/seqx-core/runtimes/genbank`, opt in |
+| mmCIF                             | a structure's molecules, chains and values | `@molstar/seqx-core/runtimes/mmcif`, opt in   |
+
+A tree's Newick text is no file format here: it is written inline, on the `tree` node's `newick` param.
 
 A runtime is opt in so that a host that never reads VCF never bundles it. A format that two runtimes registered both
 read is an error, so which runtime reads a source never depends on the order they are listed in. A spec and its files

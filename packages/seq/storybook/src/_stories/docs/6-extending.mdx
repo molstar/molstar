@@ -58,8 +58,8 @@ An extension is one descriptor, made by `defineExtension` (`@molstar/seqx-core/e
 - **`registry`**: what it adds. That can be layer types (each declaring the data shape it reads), layouts, track
   sizings, navigator pictures, color schemes, format runtimes, and query forms and properties. It adds no node kinds and
   no data shapes: those are the language's.
-- **`params`** and **`check`**: its params on its own types, and on other nodes as keys in its namespace
-  (`'rondo:bundle'`), checked only where it is composed.
+- **`params`** and **`check`**: its params, plain on its own layer types (`bundle` on `rondo:ribbons`) and as keys in
+  its namespace on other kinds' nodes, checked only where it is composed.
 - **`config`**: its settings, given in the composition's `config` under its namespace (`rondo.stemPx`).
 - With viewer parts: **behaviors**, **commands**, **bindings** (a click or a double-click scoped to its own layer type),
   and **track header actions**.
@@ -69,9 +69,14 @@ language, or two entries under one name is an error that lists every conflict, a
 never depends on the order of the list.
 
 **At run time**, `viewer.extend(extension)` registers one and resolves to its undo. The view is resolved again, so a
-layer drawn as its fallback is drawn as its type, and the undo brings the fallback back. Format runtimes and query
-entries are refused at run time, because they would change what an open spec resolves to.
-[Features › Extensibility](?path=/story/seq-next-features-extensibility--toggled-at-run-time).
+layer drawn as its fallback is drawn as its type, and the undo brings the fallback back. Refused at run time, with
+nothing changed:
+
+- format runtimes and query entries, which would change what an open spec resolves to;
+- settings: an extension whose descriptor lists `config` (the headless `rondo` does; `rondoViewer` does not, and is
+  added late);
+- a behavior with a part over the canvas (`attach`), called only when the viewer is mounted.
+  [Features › Extensibility](?path=/story/seq-next-features-extensibility--toggled-at-run-time).
 
 **The contract** an extension imports is one entry, `@molstar/seqx-core/extension`. The rest of the core may change in a
 `0.x` minor version.

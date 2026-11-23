@@ -46,11 +46,21 @@ directly. [Features › Builder](?path=/story/seq-next-features-builder--first-v
 
 ## Checks and issues
 
-`check()` runs in gates. First the **bounds** (a spec from a URL, a link or an agent is untrusted, so its size, depth
-and columns are bounded before any work). Then the **version**, the **description** (types, required params, defaults)
-and the **language's checks** (that a reference names a node of a kind it takes, that ranges fit their sequence, that
-letters belong to their alphabet, …). Each issue has a stable code, a severity, the path of the node and a hint. A spec
-with errors in one place still opens everywhere else.
+`check()` runs in gates, each reading what the one before settled:
+
+1. **Bounds**: size, depth and columns, before any work. A spec from a URL, a link or an agent is untrusted.
+2. **Version**: a newer major is refused alone.
+3. **Description**: types, required params, defaults.
+4. **The language's checks**: that a reference names a node of a kind it takes, that ranges fit their sequence, that
+   letters belong to their alphabet, and so on.
+
+Each issue has:
+
+- a stable code (`seq.lang.ref.target`);
+- a severity;
+- the path of the node, and a hint.
+
+A spec with errors in one place still opens everywhere else.
 
 ## Edits are patches
 
@@ -69,10 +79,12 @@ this reader cannot know what it means.
 
 ## What a reader without an extension draws
 
-Names from an extension are namespaced, `<id>:<name>`: a layer type `rondo:ribbons`, a param `'rondo:bundle'` on another
-kind's node. A spec lists the extensions it was written for, with the least version of each
-(`extensions: { rondo: '1.2' }`). An extension's layer says what to draw without it, with its `fallback`, a built-in
-type such as `pairs`, or `none`.
+Names from an extension are namespaced, `<id>:<name>`: a layer type `rondo:ribbons`, a layout, a navigator's picture
+(`rondo:square`). An extension's layer type takes its own params plainly beside the built-in ones (`bundle` on a
+`rondo:ribbons` layer); on another kind's node, the language takes a param as a key in the extension's namespace
+(`'<id>:<param>'`). A spec lists the extensions it was written for, with the least version of each, as `major.minor`
+(`extensions: { rondo: '0.1' }`: the ring is at 0.1.0). An extension's layer says what to draw without it, with its
+`fallback`, a built-in type such as `pairs`, or `none`.
 
 A reader that lacks the extension:
 

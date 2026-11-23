@@ -12,7 +12,7 @@ import { GlobinsViews, P53Views } from '@molstar/seqx-examples';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { openExample } from '../../examples/_test/draw-checks.js';
-import { sanitize, TitlePrefix } from '../../story-id.js';
+import { sanitize, storyId, TitlePrefix } from '../../story-id.js';
 import * as smallSpec from '../small-spec.js';
 
 // The Docs pages: every page they link exists (a docs page by its title, as Storybook makes its id; the stories'
@@ -62,6 +62,26 @@ describe('the Docs pages', () => {
       }
     }
     expect(found).toBeGreaterThan(20);
+    expect(dead).toEqual([]);
+  });
+
+  it('every ?path=/story/seq-next-… on a page names a story that exists', () => {
+    const ids = new Set<string>();
+    for (const f of all.filter((x) => x.endsWith('.stories.ts'))) {
+      const text = readFileSync(f, 'utf8');
+      const title = /title:\s*'([^']+)'/.exec(text)?.[1];
+      if (!title) continue;
+      for (const m of text.matchAll(/^export const (\w+)\s*(?::[^=]+)?=/gm)) ids.add(storyId(title, m[1]));
+    }
+    expect(ids.has('seq-next-features-genome-ring--the-genome-at-the-fit')).toBe(true);
+    const dead: string[] = [];
+    let found = 0;
+    for (const f of docsPages)
+      for (const m of readFileSync(join(docs, f), 'utf8').matchAll(/\?path=\/story\/(seq-next-[a-z0-9-]+)/g)) {
+        found++;
+        if (!ids.has(m[1])) dead.push(`${f}: ${m[1]}`);
+      }
+    expect(found).toBeGreaterThan(40);
     expect(dead).toEqual([]);
   });
 

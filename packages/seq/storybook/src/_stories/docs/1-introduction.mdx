@@ -13,9 +13,10 @@ together.
 
 - **A language**, SeqViewSpec. A spec is a tree, stored as JSON, that says what data there is (sequences, alignments,
   annotations and the maps between them) and how to show it (views of sections, tracks and layers).
-- **Layers and layouts**: letters, ranges, values, pairs, grids, rows, logos and rulers. They are laid out as tracks,
-  text, rings, grids or blocks.
-- **Navigators**: rails, strips, ideograms, overviews and miniatures that move a view's window.
+- **Layers and layouts**: letters, ranges, values, pairs, grids, rows, logos and rulers. A section is laid out as
+  tracks, text, a ring or a grid, and can be made of blocks, pieces on systems of their own.
+- **Navigators**: strips, ideograms, overviews and miniatures that move a view's window (and the ruler rail when a view
+  declares none).
 - **Data by region**: one source protocol, a store that reads only what is on screen, and readers for common formats.
 - **Hover and commands**: the hover contract, selection, focus and the keyboard cursor. Every action is a named command,
   and edits can be undone.
@@ -25,9 +26,9 @@ together.
   (and as PNG, with a rasterizer the application provides).
 
 **What the library leaves to your application:** which views sit side by side, what a click opens, which menus and
-panels are shown, how a user moves from one view to another, what the hover card says beyond its floor, and where the
-undo stack lives. The examples and showcases in this Storybook are applications built on the public surface. They are
-not defaults of the library.
+panels are shown, how a user moves from one view to another, what the hover card says beyond what the library shows on
+its own (the item and the place), and where the undo stack lives. The examples and showcases in this Storybook are
+applications built on the public surface. They are not defaults of the library.
 
 So Seq\* is **not an opinionated viewer** like Jalview. Jalview is an application with its own windows, menus and
 workflow. Seq\* is what such an application, a structure viewer's sequence panel, a genome browser's tracks or a figure

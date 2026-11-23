@@ -59,6 +59,11 @@ A tracks overview of the domains, with the protein as text under it. Each sectio
 
 ## From a spec to a picture
 
+Two more words first. A **runtime** (a format runtime) is the reader of one or more formats: it opens a source and
+answers requests for its data by region. The **overlay** holds the nodes that data brings with it as it arrives (a
+gene's transcripts, a structure's chains), apart from the spec, so arriving data never changes the spec or what was
+resolved from it.
+
 ```
 spec ─check─▶ checked spec ─resolve─▶ static model ─▶ resolved view
                                                           │
