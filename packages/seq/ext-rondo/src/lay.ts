@@ -137,6 +137,8 @@ export class RondoLay {
   polyKind = new Int8Array(64);
   polyRef = new Int32Array(64);
   polyColor = new Uint32Array(64);
+  /** A thin polygon's hit slop past its outline, CSS px (a ribbon or stub under `2 × rondo.hitSlopPx` wide); else 0. */
+  polySlop = new Float64Array(64);
   order = new Int32Array(64);
   hits: Hit[] = [];
   byKey = new Map<string, number>();

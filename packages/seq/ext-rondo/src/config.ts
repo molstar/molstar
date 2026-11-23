@@ -24,6 +24,8 @@ export interface RondoConfig {
   readonly stubLabelPx: number;
   /** The hit grid's cell over the hole, CSS px. */
   readonly hitCellPx: number;
+  /** A thin ribbon's or stub's hit: within this of its centre line, CSS px (either side). */
+  readonly hitSlopPx: number;
   /** The wash over the rest of the hole when a stem or a block is hovered (0: none). */
   readonly fade: number;
   /** Segments a cubic is flattened into (drawn and hit alike). */
@@ -38,6 +40,7 @@ export const DefaultRondoConfig: RondoConfig = {
   stubShare: 0.2,
   stubLabelPx: 24,
   hitCellPx: 16,
+  hitSlopPx: 4,
   fade: 0.6,
   flatten: 12,
 };
@@ -51,6 +54,7 @@ export const RondoConfigItems = {
   stubShare: configItem<number>('rondo.stubShare'),
   stubLabelPx: configItem<number>('rondo.stubLabelPx'),
   hitCellPx: configItem<number>('rondo.hitCellPx'),
+  hitSlopPx: configItem<number>('rondo.hitSlopPx'),
   fade: configItem<number>('rondo.fade'),
   flatten: configItem<number>('rondo.flatten'),
 } as const;

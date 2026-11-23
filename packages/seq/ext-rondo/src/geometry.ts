@@ -109,6 +109,32 @@ export class Polygons {
     }
     return inside;
   }
+
+  /**
+   * The distance from a point (`io[0]`, `io[1]`) to polygon `i`'s outline, CSS px (its nearest edge), into `io[2]` (a
+   * double passed to or returned from a call not inlined is boxed: through the array, a hit allocates nothing).
+   */
+  distance(i: number, io: Float64Array): void {
+    const x = io[0];
+    const y = io[1];
+    const s = this.start[i];
+    const n = this.len[i];
+    const p = this.xy;
+    let best = Infinity;
+    for (let k = 0, j = n - 1; k < n; j = k++) {
+      const ax = p[2 * (s + j)];
+      const ay = p[2 * (s + j) + 1];
+      const dx = p[2 * (s + k)] - ax;
+      const dy = p[2 * (s + k) + 1] - ay;
+      const l2 = dx * dx + dy * dy;
+      const t = l2 > 0 ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l2)) : 0;
+      const ex = ax + t * dx - x;
+      const ey = ay + t * dy - y;
+      const d = ex * ex + ey * ey;
+      if (d < best) best = d;
+    }
+    io[2] = Math.sqrt(best);
+  }
 }
 
 export function grow<T extends Int32Array | Float64Array | Uint32Array | Uint8Array | Int8Array>(

@@ -67,6 +67,14 @@ function stubLabels(lay: RondoLay, cfg: RondoConfig, ctx: LayoutContext, tipD: n
   }
 }
 
+/**
+ * A thin polygon's slop: a ribbon or stub under `2 × hitSlopPx` wide is hit within `hitSlopPx` of its centre line, so
+ * past its outline by what its half width leaves (a hairline ribbon a pointer can stay on).
+ */
+function slop(lay: RondoLay, i: number, widthPx: number, hitSlopPx: number) {
+  lay.polySlop[i] = Math.max(0, hitSlopPx - widthPx / 2);
+}
+
 /** A polygon made: its kind, what it stands for, its colour. */
 function made(lay: RondoLay, kind: number, ref: number, color: number): number {
   const i = lay.polys.end();
@@ -74,7 +82,9 @@ function made(lay: RondoLay, kind: number, ref: number, color: number): number {
     lay.polyKind = grow(lay.polyKind, i + 1);
     lay.polyRef = grow(lay.polyRef, i + 1);
     lay.polyColor = grow(lay.polyColor, i + 1);
+    lay.polySlop = grow(lay.polySlop, i + 1);
   }
+  lay.polySlop[i] = 0;
   lay.polyKind[i] = kind;
   lay.polyRef[i] = ref;
   lay.polyColor[i] = color;
@@ -147,6 +157,7 @@ export function polygons(lay: RondoLay, prep: RondoPrep, cfg: RondoConfig, ctx: 
     P.add(f.px, f.py);
     addCubic(f, P, seg, C4[2], dn, C4[2], dc2, C4[3], dc2, C4[3], dn);
     lay.ribPoly[r] = made(lay, Kind.ribbon, r, alpha(hueOf(lay, lay.stemSystem[a]), op));
+    slop(lay, lay.ribPoly[r], lay.k * lay.ribCount[r], cfg.hitSlopPx);
   }
   // stubs: a taper from the neck toward the centre, in the partner's hue, labelled at its tip where it has room
   const tipD = dn + cfg.stubShare * f.room;
@@ -165,6 +176,7 @@ export function polygons(lay: RondoLay, prep: RondoPrep, cfg: RondoConfig, ctx: 
     f.point(mid, tipD);
     P.add(f.px, f.py);
     lay.stubPoly[s] = made(lay, Kind.stub, s, alpha(hueOf(lay, lay.stubPartner[s]), op));
+    slop(lay, lay.stubPoly[s], lay.k * lay.stubCount[s], cfg.hitSlopPx);
   }
   stubLabels(lay, cfg, ctx, tipD);
   // fans: a stem's weak links, one taper of their summed width, last in its neck
@@ -259,10 +271,11 @@ export function hitGrid(lay: RondoLay, cellPx: number) {
   let y1 = -Infinity;
   for (let i = 0; i < P.n; i++) {
     if (i === lay.hole) continue;
-    x0 = Math.min(x0, P.box[4 * i]);
-    y0 = Math.min(y0, P.box[4 * i + 1]);
-    x1 = Math.max(x1, P.box[4 * i + 2]);
-    y1 = Math.max(y1, P.box[4 * i + 3]);
+    const e = lay.polySlop[i];
+    x0 = Math.min(x0, P.box[4 * i] - e);
+    y0 = Math.min(y0, P.box[4 * i + 1] - e);
+    x1 = Math.max(x1, P.box[4 * i + 2] + e);
+    y1 = Math.max(y1, P.box[4 * i + 3] + e);
   }
   const c = Math.max(1, cellPx);
   lay.cell = c;
@@ -278,10 +291,11 @@ export function hitGrid(lay: RondoLay, cellPx: number) {
   lay.gridStart = grow(lay.gridStart, cells + 1);
   lay.gridStart.fill(0, 0, cells + 1);
   const span = (i: number, add: (cell: number) => void) => {
-    const cx0 = Math.floor((P.box[4 * i] - x0) / c);
-    const cy0 = Math.floor((P.box[4 * i + 1] - y0) / c);
-    const cx1 = Math.floor((P.box[4 * i + 2] - x0) / c);
-    const cy1 = Math.floor((P.box[4 * i + 3] - y0) / c);
+    const e = lay.polySlop[i];
+    const cx0 = Math.floor((P.box[4 * i] - e - x0) / c);
+    const cy0 = Math.floor((P.box[4 * i + 1] - e - y0) / c);
+    const cx1 = Math.floor((P.box[4 * i + 2] + e - x0) / c);
+    const cy1 = Math.floor((P.box[4 * i + 3] + e - y0) / c);
     for (let y = cy0; y <= cy1; y++) for (let x = cx0; x <= cx1; x++) add(y * lay.gridCols + x);
   };
   for (let i = 0; i < P.n; i++) if (i !== lay.hole) span(i, (k) => lay.gridStart[k + 1]++);
@@ -293,16 +307,44 @@ export function hitGrid(lay: RondoLay, cellPx: number) {
     if (i !== lay.hole) span(i, (k) => (lay.gridItems[lay.gridStart[k] + fill[k]++] = i));
 }
 
-/** The polygon under a page point, topmost first, or −1 (through the grid: a few candidates; nothing allocated). */
-export function polygonAt(lay: RondoLay, x: number, y: number): number {
+/** A point in and its distance out (`Polygons.distance`). */
+const Dist = new Float64Array(3);
+
+/**
+ * The polygon under a page point (`at`), or −1 (through the grid: a few candidates; nothing allocated), topmost drawn first:
+ * a thin ribbon or stub covers its outline and `rondo.hitSlopPx` about its centre line, so a hairline drawn over a
+ * wide ribbon is hit along it; where thin covers overlap, the nearest centre line; the first wide cover below ends it.
+ */
+export function polygonAt(lay: RondoLay, at: ArrayLike<number>): number {
   if (!lay.gridCols) return -1;
+  // the point read here, never passed: a double passed to a call not inlined is boxed
+  const x = at[0];
+  const y = at[1];
   const cx = Math.floor((x - lay.gridX) / lay.cell);
   const cy = Math.floor((y - lay.gridY) / lay.cell);
   if (cx < 0 || cy < 0 || cx >= lay.gridCols || cy >= lay.gridRows) return -1;
   const k = cy * lay.gridCols + cx;
+  const P = lay.polys;
+  const b = P.box;
+  let near = -1;
+  let best = Infinity;
   for (let j = lay.gridStart[k]; j < lay.gridStart[k + 1]; j++) {
     const i = lay.gridItems[j];
-    if (lay.polys.contains(i, x, y)) return i;
+    const e = lay.polySlop[i];
+    if (e <= 0) {
+      if (P.contains(i, x, y)) return near >= 0 ? near : i;
+      continue;
+    }
+    if (x < b[4 * i] - e || x > b[4 * i + 2] + e || y < b[4 * i + 1] - e || y > b[4 * i + 3] + e) continue;
+    // the centre line's distance less the slop (inside: the outline's distance taken off)
+    Dist[0] = x;
+    Dist[1] = y;
+    P.distance(i, Dist);
+    const d = P.contains(i, x, y) ? -Dist[2] - e : Dist[2] - e;
+    if (d <= 0 && d < best) {
+      best = d;
+      near = i;
+    }
   }
-  return -1;
+  return near;
 }

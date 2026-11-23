@@ -243,7 +243,7 @@ export function ribbonsType(config: RondoConfig = DefaultRondoConfig): LayerType
       }
     },
     hit(lay, at) {
-      const i = polygonAt(lay, at[0], at[1]);
+      const i = polygonAt(lay, at);
       return i < 0 ? undefined : lay.hits[i];
     },
     filtered: (lay) => lay.read?.filtered ?? 0,

@@ -15,7 +15,7 @@ import { describe, expect, it } from 'vitest';
 import { crossed, ribbonCorners, segmentsCross } from '../geometry.js';
 import { rondo } from '../index.js';
 import type { RondoLay } from '../lay.js';
-import { lay, ringSpec, rng, Size, settle } from './helpers.js';
+import { type Link, lay, ringSpec, rng, Size, settle } from './helpers.js';
 
 /** The placed stems by key: system, bin, count. */
 const stems = (l: RondoLay) => {
@@ -128,7 +128,7 @@ describe('the twist (EC-206)', () => {
 });
 
 describe('the hit', () => {
-  it('the closed hit is the drawn cover’s topmost polygon, sampled', async () => {
+  it('the closed hit is the drawn cover’s topmost polygon (a thin one’s slop its cover), sampled', async () => {
     const f = await (await settle(ringSpec())).frame({ size: Size });
     const l = lay(f)!;
     const type = f.layout.sections[0].sectionLays.find((x) => x.type.name === 'rondo:ribbons')!.type;
@@ -138,16 +138,76 @@ describe('the hit', () => {
     for (let i = 0; i < 3000; i++) {
       at[0] = l.frame.cx + (r() * 2 - 1) * l.frame.r;
       at[1] = l.frame.cy + (r() * 2 - 1) * l.frame.r;
-      // the brute force: the last drawn polygon (not the hole) containing the point
+      // the brute force, topmost drawn first: a thin polygon covers its slop about its centre line (the nearest centre
+      // among thin covers), the first wide cover below ends it
       let top = -1;
-      for (let j = 0; j < l.polys.n; j++) {
+      let best = Number.POSITIVE_INFINITY;
+      for (let j = l.polys.n - 1; j >= 0; j--) {
         const p = l.order[j];
-        if (p !== l.hole && l.polys.contains(p, at[0], at[1])) top = p;
+        if (p === l.hole) continue;
+        const e = l.polySlop[p];
+        const inside = l.polys.contains(p, at[0], at[1]);
+        if (e <= 0) {
+          if (inside) {
+            if (top < 0) top = p;
+            break;
+          }
+          continue;
+        }
+        const io = Float64Array.of(at[0], at[1], 0);
+        l.polys.distance(p, io);
+        const d = inside ? -io[2] - e : io[2] - e;
+        if (d <= 0 && d < best) {
+          best = d;
+          top = p;
+        }
       }
       const h = type.hit(l, at);
       expect(h).toBe(top < 0 ? undefined : l.hits[top]);
       if (h) hits++;
     }
     expect(hits).toBeGreaterThan(100);
+  });
+});
+
+describe('a thin ribbon’s hit', () => {
+  it('a hairline ribbon is hit all along it, at its centre and 2 px either side', async () => {
+    // a hub of 30 links (chr4 ↔ chr5) sets the scale: one link (chr1 ↔ chr2) is a ribbon under a CSS px
+    const links: Link[] = [{ a: 0, b: 1, as: 3_000_000, bs: 4_000_000, type: 'contact' }];
+    for (let i = 0; i < 30; i++) links.push({ a: 3, b: 4, as: 2_000_000 + i, bs: 2_500_000 + i, type: 'contact' });
+    const f = await (await settle(ringSpec({ links }))).frame({ size: Size, dpr: 2 });
+    const l = lay(f)!;
+    const type = f.layout.sections[0].sectionLays.find((x) => x.type.name === 'rondo:ribbons')!.type;
+    let r = -1;
+    for (let k = 0; k < l.nr; k++) if (l.ribDrawn[k] && l.ribCount[k] === 1) r = k;
+    expect(r).toBeGreaterThanOrEqual(0);
+    expect(l.k * l.ribCount[r]).toBeLessThan(1);
+    const poly = l.ribPoly[r];
+    const want = l.hits[poly];
+    const P = l.polys;
+    const s0 = P.start[poly];
+    const n = P.len[poly];
+    const xy = (k: number) => [P.xy[2 * (s0 + ((k + n) % n))], P.xy[2 * (s0 + ((k + n) % n)) + 1]];
+    // the mouths: the ribbon's first point and the far end's, kept 25 px away from (trumpets and fans there)
+    const ends = [xy(0), xy(Math.floor(n / 2))];
+    const at = new Float64Array(2);
+    let sampled = 0;
+    for (let k = 0; k < n; k++) {
+      const [x, y] = xy(k);
+      if (ends.some(([ex, ey]) => Math.hypot(x - ex, y - ey) < 25)) continue;
+      const [ax, ay] = xy(k - 1);
+      const [bx, by] = xy(k + 1);
+      const len = Math.hypot(bx - ax, by - ay);
+      if (len < 1e-6) continue;
+      const nx = -(by - ay) / len;
+      const ny = (bx - ax) / len;
+      for (const o of [0, 2, -2]) {
+        at[0] = x + o * nx;
+        at[1] = y + o * ny;
+        expect(type.hit(l, at), `${k} ${o}`).toBe(want);
+        sampled++;
+      }
+    }
+    expect(sampled).toBeGreaterThan(30);
   });
 });
