@@ -24,12 +24,15 @@ export const GenomeSection = '/views/main/toy-a';
 export const Chr1Section = '/views/main/chr1';
 
 /** The signal's sources and layers (`values` over toy A, from the indexed bedGraph). */
-const SignalTracks = ['open', 'zero-up', 'log'] as const;
+const SignalTracks = ['open', 'floor-up', 'log'] as const;
+/** The one-sided row's set low end: TPM 20, above most of the data's floor (its bars stand on it, EC-202). */
+export const SignalFloor = 20;
 
 /**
  * The signal over toy A by region (EC-169 to EC-171, EC-175): three tracks of one bedGraph read through its tabix
- * index, at the coarsest of its levels that fits a device column: its domain open (the data in view, EC-201), open at
- * its upper end (`[0, null]`, EC-202), and on a log scale (TPM over 0 to 10^4, EC-215). The missing stretches (chr1's
+ * index, at the coarsest of its levels that fits a device column: its domain open (the values in view down to zero,
+ * EC-201), open at its upper end only, its low end set at `SignalFloor` (`[20, null]`, EC-202: its baseline there, the
+ * values below it flat), and on a log scale (TPM over 0 to 10^4, EC-215). The missing stretches (chr1's
  * run of N, 10 kb of chr2) are gaps, never zero.
  */
 export function signal(files: Files = GenomesFiles): Node {
@@ -39,15 +42,18 @@ export function signal(files: Files = GenomesFiles): Node {
     target: a,
     source: fileSource(b, 'signal-file', 'bedgraph', files.signal, files.signalIndex),
   } as never);
-  const zeroUp = b.views.scale('zero-up', { label: 'TPM', domain: [0, null] as unknown as [number, number] });
+  const floorUp = b.views.scale('floor-up', {
+    label: 'TPM',
+    domain: [SignalFloor, null] as unknown as [number, number],
+  });
   const log = b.views.scale('log', { label: 'TPM (log)', type: 'log', domain: [1, 10_000] } as never);
   b.views.view('main', (v) =>
     genome(v, 'toy-a', a, { include: ['chr1', 'chr2', 'chr3'] }, (s) => {
       s.track(SignalTracks[0], { label: 'TPM (open)', height: 48 }).layer('values', { type: 'values', data: values });
-      s.track(SignalTracks[1], { label: 'TPM (from 0)', height: 48 }).layer('values', {
+      s.track(SignalTracks[1], { label: `TPM (from ${SignalFloor})`, height: 48 }).layer('values', {
         type: 'values',
         data: values,
-        scale: zeroUp,
+        scale: floorUp,
       } as never);
       s.track(SignalTracks[2], { label: 'TPM (log)', height: 48 }).layer('values', {
         type: 'values',

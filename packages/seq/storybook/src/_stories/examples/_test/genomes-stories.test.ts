@@ -24,7 +24,7 @@ import { NGap } from '@molstar/seqx-examples/genomes/generate/assemblies';
 import { Hotspot } from '@molstar/seqx-examples/genomes/generate/contacts';
 import { Duplicated } from '@molstar/seqx-examples/genomes/generate/liftover';
 import { DeletionCarriers, DeletionExtent, SampleCount } from '@molstar/seqx-examples/genomes/generate/variants';
-import { findGene, GenomeSection, geneRange, OpenedGene } from '@molstar/seqx-examples/genomes/tracks';
+import { findGene, GenomeSection, geneRange, OpenedGene, SignalFloor } from '@molstar/seqx-examples/genomes/tracks';
 import { PackageFolder } from '@molstar/seqx-examples/node-assets';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
@@ -261,16 +261,21 @@ describe('Examples/Genomes, headless', () => {
   it('the signal by region (EC-169, EC-170, EC-175, EC-201, EC-202, EC-215): three tracks drawn from the indexed bedGraph at a coarse level, pending till read, the streamed tiles never in the spec', async () => {
     const v = await open('signal');
     const before = JSON.stringify(view('signal').build());
-    for (const t of ['TPM (open)', 'TPM (from 0)', 'TPM (log)']) {
+    const fromFloor = `TPM (from ${SignalFloor})`;
+    for (const t of ['TPM (open)', fromFloor, 'TPM (log)']) {
       const lay = layer<{ n: number; pending: number[]; domain?: [number, number] }>(v, t)!;
       expect(lay.pending, t).toEqual([]);
       expect(lay.n, t).toBeGreaterThan(100);
     }
-    // the open domain is the data in view (EC-201), the one-sided one starts at 0 (EC-202)
-    const openDomain = layer<{ domain?: [number, number] }>(v, 'TPM (open)')!.domain!;
-    const zero = layer<{ domain?: [number, number] }>(v, 'TPM (from 0)')!.domain!;
+    // the open domain is the values in view down to zero, its baseline at zero (EC-201); the one-sided one's low end set
+    // above zero, its baseline at the set floor (EC-202): the values under it flat there, so the rows differ
+    const openLay = layer<{ domain?: [number, number]; v: Float32Array; n: number }>(v, 'TPM (open)')!;
+    const openDomain = openLay.domain!;
+    const zero = layer<{ domain?: [number, number] }>(v, fromFloor)!.domain!;
     expect(openDomain[1]).toBeGreaterThan(100);
-    expect(zero[0]).toBe(0);
+    expect(openDomain[0]).toBe(0);
+    expect(zero[0]).toBe(SignalFloor);
+    expect(Array.from(openLay.v.subarray(0, openLay.n)).some((x) => x < SignalFloor)).toBe(true);
     // the scale's open end a union over its layers in view (every block's), the open layer's its own block's
     expect(zero[1]).toBeGreaterThanOrEqual(openDomain[1]);
     // the log track's closed domain, TPM 1 to 10^4, its heights by the values' log10 (EC-215)

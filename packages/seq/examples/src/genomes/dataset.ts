@@ -32,7 +32,7 @@ export const GenomesViews: readonly ExampleView[] = [
   view(
     'signal',
     'Signal by region',
-    'A TPM-like bedGraph over toy A (100 bp bins, 0 to 10^4) read by region through its tabix index at the coarsest level that fits a device column, three ways: its domain open (the data in view), open at its upper end only (from 0), and on a log scale. chr1’s run of N and 10 kb of chr2 have no value: gaps, never zero.',
+    'A TPM-like bedGraph over toy A (100 bp bins, 0 to 10^4) read by region through its tabix index at the coarsest level that fits a device column, three ways: its domain open (the values in view, down to zero), open at its upper end only (from TPM 20, its bars standing there), and on a log scale. chr1’s run of N and 10 kb of chr2 have no value: gaps, never zero.',
     () => tracks.signal(),
   ),
   view(
