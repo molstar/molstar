@@ -134,3 +134,32 @@ the viewer's `_spec` (Configuration) lists every item with its default.
   previews, story steps, followers that lead and the view's history of jumps.
 - Tests in Node: viewport rules EC-111 to EC-114, hover ownership EC-141, projection through the codon map, the
   bindings' table resolving gestures by target.
+
+## In the specs
+
+| Decision | Where |
+|---|---|
+| `SpecModel`: the root, revisions, commits, previews, patches, story steps, the history port | viewer › SpecModel |
+| `ViewModel`, `HoverModel`, `SelectionModel`, `HighlightModel`, `StoreModel` | viewer › Models |
+| `ConfigModel` (built as a plain object read when the viewer is made) | viewer › Configuration |
+| The viewer's hit is the render hit with a `target` | viewer › A hit |
+| Session state in the models, never in the spec | viewer › Models |
+| `viewer.session()` and `viewer.restore(session)` | design-only: not built (the spec says "to come") |
+| A viewport per section: offsets, its record, a saved session in positions | viewer › A viewport |
+| The view's history: whole records, restored by position when the axis changed | viewer › History |
+| Scroll groups on equal axes (`viewport.groupEqualAxes`) | viewer › Scroll groups |
+| A follow through a map; a follower leads; a cyclic follower wraps | viewer › Follow |
+| Viewports survive updates; a move before a width is an intent | viewer › Updates |
+| The clamp and resizes (`viewport.maxPxPerPosition`, `viewport.onResize`) | viewer › Resizes |
+| Hover is a method, one owner, a stale owner's clear does nothing | viewer › HoverModel |
+| Projection onto linked sections; a nucleotide lifts to its codon | viewer › Projection |
+| Selection: element keys and a Location, toggle and extend | viewer › SelectionModel and HighlightModel |
+| The first behaviors (`hover`, `select`, `navigate`, `cursor`, `hoverCard`, keys panel) | viewer › Behaviors |
+| `follow` and `focus` as behaviors | design-only: not built as designed (drift note): follow is the `ViewModel`'s, focus a command |
+| `linkedPairs`: a behavior on by default, the highlight channel | viewer › Behaviors |
+| Pairs answer `items` a row per end (`QueryItem.system`) | core › Pairs answer |
+| A highlight channel carries element keys (`EmphasisHighlight.elements`) | viewer › Emphasis |
+| A gesture binding `{ gesture, modifiers, target, action }`; `'*'` modifiers; presets | viewer › Pointer gestures |
+| Commands' change kinds kept by command id | viewer › Commands |
+| An issue of a pending address is held; `viewer.modelIssues` a state | viewer › Issues of a pending address |
+| The configuration items and their defaults | viewer › Configuration |

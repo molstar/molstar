@@ -897,7 +897,9 @@ the passes.
   so a value that is no hex or `rgb()` is resolved by the browser through a probe element's `color`. A token the CSS
   does not define falls back to the built-in table of the theme the root shows (`data-msui-theme` on the nearest
   ancestor or the document element, `light` by default; a theme whose `color-scheme` is dark takes the dark table). Why
-  not the config's theme: a host's theme switch is CSS, and the viewer must follow it without being told.
+  not the config's theme: a host's theme switch is CSS, and the viewer must follow it without being told. That is
+  `theme.source: root` (the default); `config` reads the core's `theme` item instead, and so does a headless viewer
+  always (it has no root). Why the choice: a host that sets the theme in its spec wants no CSS to override it.
 - **A theme switch**: a `MutationObserver` on `data-msui-theme` of the document element and of the nearest ancestor that
   has it reads the table again; `viewer.setTokens` keeps the current one when its version is equal (no redraw, no new
   layout key), else the renderer's tokens change, the base canvas is redrawn and `tokensVersion` moves (the SVG beside
