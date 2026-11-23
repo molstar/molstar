@@ -72,10 +72,12 @@ bins), the readout's after the pair (`chr4 × chr7 · 37 links`).
   a hub, and two labels over each other read as neither. `stubs: none`: not drawn (their counts in the fan).
 - **Small stubs fold**: a stem's stubs of fewer than `rondo.stubMin` (2) links, when it has two or more, are one stub of
   partner −1 (`foldStubs`; its count their sum, so the neck is still the sum of its parts), in the muted text's colour,
-  labelled "other chromosomes · 12" (its links), keyed `stub:<system>:<bin>|other`; its card lists them ("Partners: chr3
-  (1), chr9 (1)", `foldedOf`), its double-click with `opens` the stem's chromosome alone. A lone small stub stays. Why:
-  on one chromosome a stem's single links to every other chromosome are a comb of hairlines that hides the strong
-  partners. Not built: the folded stub unfolded on hover (its card lists them).
+  unlabelled (every stem has one: the text would repeat round the ring; its count in its card), keyed
+  `stub:<system>:<bin>|other`; its card lists them ("Partners: chr3 (1), chr9 (1)", `foldedOf`), its double-click with
+  `opens` the stem's chromosome alone. A lone small stub stays. Why: on one chromosome a stem's single links to every
+  other chromosome are a comb of hairlines that hides the strong partners. Hovered it unfolds (`unfold`, the hover
+  pass): its base split among its partners by count, each a taper in its partner's hue to its own tip, the tips at least
+  7 px apart; nothing laid out again.
 
 ## Hits, emphasis, words
 

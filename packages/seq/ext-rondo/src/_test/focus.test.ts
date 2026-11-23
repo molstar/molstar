@@ -4,10 +4,14 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import type { PassWriter } from '@molstar/seqx-core/extension';
+import { DrawLists } from '@molstar/seqx-core/render';
 import { describe, expect, it } from 'vitest';
 import { DefaultRondoConfig } from '../config.js';
 import { rondoWith } from '../index.js';
 import { foldedOf, Kind, type RondoLay } from '../lay.js';
+import { RibbonsType } from '../ribbons.js';
+import { hueOf } from '../shapes.js';
 import { describeRondo } from '../words.js';
 import { type Link, lay, ringSpec, Size, settle, toyChromosomes } from './helpers.js';
 
@@ -76,8 +80,8 @@ describe('one chromosome or a pair: the information first', () => {
     for (let b = 0; b < l.nb; b++) if (l.stubStem[b] === stem) sum += l.stubCount[b];
     for (let r = 0; r < l.nr; r++) if (l.ribA[r] === stem || l.ribB[r] === stem) sum += l.ribCount[r];
     expect(sum).toBe(l.stemCount[stem]);
-    // its label and its card
-    if (l.stubLabel[folded]) expect(l.stubLabel[folded]).toBe('other chromosomes · 3');
+    // unlabelled (every stem has one: the text would repeat round the ring), its count and partners in its card
+    expect(l.stubLabel[folded]).toBe('');
     const card = describeRondo({ element: { key: l.stubKey[folded] } } as never, l)!;
     expect(card[0]).toMatch(/→ other chromosomes$/);
     expect(card[2]).toBe('Partners: chr3 (1), chr4 (1), chr5 (1)');
@@ -92,5 +96,23 @@ describe('one chromosome or a pair: the information first', () => {
     const folded = Array.from({ length: more.nb }, (_, b) => b).find((b) => more.stubPartner[b] < 0)!;
     expect(more.stubCount[folded]).toBe(8);
     expect(more.nb).toBe(2);
+  });
+
+  it('a folded stub unfolds on hover: its partners’ tapers in their hues, its base split by their counts', async () => {
+    const l = await ring(['chr1']);
+    const folded = Array.from({ length: l.nb }, (_, b) => b).find((b) => l.stubPartner[b] < 0)!;
+    const lists = new DrawLists();
+    const out = lists.writer('hover') as PassWriter;
+    RibbonsType.draw(l, 'hover', out, { hover: { layer: l.key, element: { key: l.stubKey[folded] } } } as never);
+    const paths = lists.passes.hover.paths;
+    // the stem's trumpet lit, then one taper a partner (chr3, chr4, chr5), each in its hue
+    const fills = Array.from({ length: paths.n }, (_, i) => paths.fill[i]);
+    const parts = foldedOf(l, folded);
+    expect(parts.length).toBe(3);
+    expect(new Set(fills.slice(-parts.length))).toEqual(
+      new Set(parts.map((f) => ((hueOf(l, f.partner) & 0xffffff00) | 0xff) >>> 0)),
+    );
+    // an unfolded stub draws no outline of the folded one: no path in the muted colour
+    expect(fills.every((c) => (c & 0xffffff00) !== (l.muted & 0xffffff00))).toBe(true);
   });
 });

@@ -30,12 +30,14 @@ function stubLabels(lay: RondoLay, cfg: RondoConfig, ctx: LayoutContext, tipD: n
   const size = Number.parseFloat(font) || 12;
   if (ByCount.length < lay.nb) ByCount = new Int32Array(lay.nb);
   let n = 0;
-  for (let s = 0; s < lay.nb; s++) if (lay.stubPoly[s] >= 0) ByCount[n++] = s;
+  // a folded stub unlabelled (every stem has one: its text would repeat round the ring); its count in its card, its
+  // partners unfolded on hover
+  for (let s = 0; s < lay.nb; s++) if (lay.stubPoly[s] >= 0 && lay.stubPartner[s] >= 0) ByCount[n++] = s;
   const order = ByCount.subarray(0, n).sort((a, b) => lay.stubCount[b] - lay.stubCount[a] || a - b);
   let taken = 0;
   for (const s of order) {
     const partner = lay.stubPartner[s];
-    const text = `${partner < 0 ? 'other chromosomes' : lay.names[partner]} · ${Math.round(lay.stubCount[s]).toLocaleString('en-US')}`;
+    const text = `${lay.names[partner]} · ${Math.round(lay.stubCount[s]).toLocaleString('en-US')}`;
     f.point((lay.stubT0[s] + lay.stubT1[s]) / 2, tipD + 4);
     const x = f.px;
     const y = f.py;
