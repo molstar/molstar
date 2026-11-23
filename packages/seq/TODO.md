@@ -412,6 +412,8 @@ extension kinds.
 - **The link card shows raw field names** (`gene_a`, `q`, `Strands`): a label per field, the host's, offered by the
   ring.
 - **The keys panel scrolls past its end** into blank grey; its bottom rows are cut by a short story frame.
+- **The wheel's pan direction on a ring looks reversed** (FX24): a plain wheel pans the window as on a track; on a ring
+  the turn reads opposite.
 - **A lone stub label inside the ring** ("chr22 · 403") at load in The square dragged, the ring clipped below.
 
 ## The genome ring (RX, 2026-11-23)

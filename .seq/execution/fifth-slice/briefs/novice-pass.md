@@ -54,3 +54,12 @@ more than five screenshots (the worst cases), saved in your scratchpad, their fu
 placed (`fixes.md`, a lane, `packages/seq/TODO.md`, a drift note).
 
 **Model**: fast (sonnet). Read-only: no edits, no commits, no servers, nothing outside the browser and your scratchpad.
+
+## Second short pass (2026-11-23)
+
+The author, after the first pass's partial coverage: "Ok run the other short novice pass". It runs on the same brief,
+on FX24's Storybook (the fixed cards and the square's history), over only what the first pass did not reach: Hovering a
+stem; A pair; the scattered pick (chr4 and chr9 only) and the square's Back; the made-up chr9–chr22 fusion on Kinds of
+links (its card, its genes); open a pair from a stem's menu (right-click a stem, and Shift+F10); expand a folded stub;
+Views › Dot plot and Liftover; a Hi-C cell (Region reads › Hi-C, Matrix); GenBank and BED; the loading state (Links
+pending); and dark on each. Report under 800 words, with the first pass's table shape and its numbering continued from 21.
