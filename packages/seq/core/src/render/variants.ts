@@ -201,8 +201,9 @@ export const VariantsType: LayerType<VariantsPrep, VariantsLay> = {
     if (lay.density) return [];
     const painted = new Set<string>();
     if (lay.color?.legend?.kind === 'palette')
-      for (let i = 0; i < lay.rows.n; i++) {
-        const v = lay.painted[i];
+      // the rows with a mark in view, never the rows only read
+      for (let j = 0; j < lay.m; j++) {
+        const v = lay.painted[lay.mrow[j]];
         if (v !== undefined) painted.add(v);
       }
     return channelLegends([lay.color, lay.size], { ...options, layer: lay.key, painted });

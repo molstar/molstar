@@ -55,8 +55,8 @@ extension kinds.
 
 ## Base library (`@molstar/core`, `@molstar/io`)
 
-- **The old Seq\*'s `sequences/viewer` perf tier fails three label-churn cases** (`input.quick.ts`: over a position,
-  an aligned cell, a column; 752 B against a 594 B baseline), on main too (FX20's checks, 2026-11-23): not this slice's
+- **The old Seq\*'s `sequences/viewer` perf tier fails three label-churn cases** (`input.quick.ts`: over a position, an
+  aligned cell, a column; 752 B against a 594 B baseline), on main too (FX20's checks, 2026-11-23): not this slice's
   package; for its owner.
 - **The perf tier's slow warm-ups** (FX19's checks, 2026-11-23): the ring of 8 matrix states takes 50 to 125 s to warm
   (its timeout 120 s), and three others timed out under load (a bridge pan, the 3,000-contig strip, 4,096 arcs): warm
