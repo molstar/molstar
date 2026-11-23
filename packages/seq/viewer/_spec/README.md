@@ -786,9 +786,9 @@ param (`port`, a `HoverCardPortFactory` given the canvas's element, none headles
   the item's middle) for an export with `card` titles, composed over the export's own section, layer and item
   (`Describer.composeAt`, `CardAt.item`): nothing looked up in the viewer's frame, linear in the items.
 - **By region** (`describe-region.ts`): a pairs bin, a region grid's cell and a matrix cell are said in the core's words
-  (`pairsBinHover`, `gridCellHover`, `matrixCellHover`: core "Render", Hover texts by region), their rows the card's;
-  first of the sections, the whole description. Why the core's: an export's accessible layer and a host's own card say a
-  bin as the viewer does.
+  (`pairsBinHover`, `gridCellHover`, `matrixCellHover`: core "Render", Hover texts by region), their rows the card's (a
+  matrix cell's `Sample` row reads `S11 · 0/1 (heterozygous)`); first of the sections, the whole description. Why the
+  core's: an export's accessible layer and a host's own card say a bin as the viewer does.
 - **A liftover's places** (the store's `regions.places`, the core's): an item with at least two images through a map
   read by region (a duplicated stretch, EC-20) has a row `Places` listing them
   (`2 places: chr1 62,001–68,000, chr2 62,001–68,000`, at most four named), and its words say `in 2 places`, the same

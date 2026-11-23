@@ -7,6 +7,7 @@
 import { Anchor, NoColor, type PassWriter } from './draw-lists.js';
 import { cellEdge } from './letters-draw.js';
 import { drawColumnCells, drawTitles } from './rows-columns.js';
+import { drawNames } from './row-names.js';
 import { TogglePx } from './rows-header.js';
 import type { Clades } from './rows-model.js';
 import type { RowsLay } from './rows-lay.js';
@@ -163,14 +164,7 @@ export function drawHeader(lay: RowsLay, out: PassWriter) {
   if (lay.wedges.length) drawWedges(lay, out, ink, -1, false);
   if (lay.toggleX >= 0) drawToggle(lay, out, ink);
   const text = tokens.colors['msui-text'];
-  for (let k = 0; k < lay.labelText.length; k++) {
-    g[0] = lay.labelX;
-    g[1] = lay.labelY[k];
-    g[2] = lay.labelW[k];
-    g[3] = lay.labelMax;
-    g[4] = text;
-    out.textArgs(lay.labelText[k], AnchorStart, lay.labelFont);
-  }
+  drawNames(out, lay.labelText, lay.labelY, lay.labelW, lay.labelFont, text, lay.labelX, lay.labelMax);
   for (let k = 0; k < lay.numberText.length; k++) {
     g[0] = lay.numberX;
     g[1] = lay.numberY[k];

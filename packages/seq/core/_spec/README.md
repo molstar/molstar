@@ -4616,6 +4616,26 @@ cost to the minimal viewer is the names the chunk imports from it).
   within the layer's `triangle`, missing values left out; NaN with no cell. A library function, no state: a host's
   readout reads it (a selected rect's mean PAE).
 
+### Row names
+
+`render/row-names.ts` (`addName`, `drawNames`): the names of a rows system in the label column, one part for every layer
+whose rows are a system's members: the rows layer's labels (an alignment's sequences) and the matrix layer's states (a
+VCF's samples, a methylation matrix's samples).
+
+- **What**: a name a row in view, at the items' font (`itemFont`), the text ink (`msui-text`), from the column's inset,
+  cut with an ellipsis within the column (`elide`, the column's room less the gap); drawn in the `labels` pass, clipped
+  to the column and the band. A row under `rows.labelMinPx` (8 px) has none: a band is then no longer than it can name
+  (a track of 40 samples is 320 px or more for every name).
+- **Laid out with the layer**, for the rows in view only (no frame's work past them); a layer holds its names in its own
+  lists (`LayerType.rowNames` says whether it names its rows), so a hover or a pan allocates nothing the layout did not.
+- **The track's label**: a track whose layer names its rows draws no label of its own (`TrackLayout.labelText` empty):
+  the names are what the column holds, as a rows track's are; with no row named (under the minimum, or unnamed states)
+  the label is kept.
+- **The first strip's**: a section of blocks lays its layers a strip at a time; only the first strip is at the label
+  column (a later strip's data starts mid-page), so a later strip names none.
+- **Why one part**: a second would drift in font, room and elision from the first; a reader moving from an alignment to
+  a genotype matrix reads names the same way.
+
 ### The matrix layer
 
 `render/matrix.ts` (`MatrixType`, `shape: 'matrix'`, fallback `values`): a `matrix` entry's items × states in a track's
@@ -4631,9 +4651,13 @@ band (EC-220 to EC-222), inline or a source's, read through the store either way
 - **Bins at a coarser level** (`layerLevel`): a store tile one image tile (bins × states, never smoothed) in the shared
   image LRU by layer, the tile and its version, the colors' version and the axis's direction, placed on the device grid.
 - **Color**: values by the layer's `color` channel by value (its open domain the range of the tiles read), a missing
-  value transparent; codes by class (`0` `seq-genotype-0`, `1` `seq-genotype-1`, `2` `seq-genotype-2`, `3`
-  `seq-genotype-3`; tokens of their own, so a theme changing the value ramp leaves genotypes alone), uncalled (`255`)
-  `seq-missing`; a bin's code its majority class at its share's strength (the colour's alpha × share).
+  value (NaN: a cell, or a bin of none) `seq-missing`, as an uncalled genotype is (never the ramp's low end: on a dark
+  page a dark ramp's low end and a clear cell were one colour; never 0, EC-221); codes by class (`0` `seq-genotype-0`,
+  `1` `seq-genotype-1`, `2` `seq-genotype-2`, `3` `seq-genotype-3`; tokens of their own, so a theme changing the value
+  ramp leaves genotypes alone), uncalled (`255`) `seq-missing`; a bin's code its majority class at its share's strength
+  (the colour's alpha × share).
+- **Names**: the states' names (inline `states`, else the coverage's) in the label column, the rows layer's part (Row
+  names): a name a state row in view from `rows.labelMinPx` on; unnamed states none (a hover says `state 3`).
 - **Legend**: values the `color` channel's; codes their classes as swatches in the cells' colours (`no copy`,
   `some copies`, `every copy`, `partly called`, `uncalled`), never a ramp: a code is a class, not a value. The classes'
   tokens are `seq-genotype-*`.
@@ -4657,8 +4681,11 @@ label and value, the sentence), read on a hover from what the frame drew; a host
   (a mirror's cell the served one's, a sparse tile's unlisted cell its `fill`), NaN `no data`, a tile not loaded
   `loading`; undefined for a held grid (the viewer's own words).
 - **A matrix cell** (`matrixCellHover`): its item (its `id` when the table keeps one, its extent; the shortest item
-  there, a SNP over a deletion) and state (inline `states`, else the coverage's), its value or genotype (`genotypeText`:
-  `0/0`, `0/1`, `1/1`, `./1`, `./.`); at a coarse level its bin, its mean or its majority with its share, and its level.
+  there, a SNP over a deletion) and its sample (inline `states`, else the coverage's), one `Sample` row
+  `S11 · 0/1 (heterozygous)` (a genotype `genotypeWords`: `0/0 (homozygous reference)`, `0/1 (heterozygous)`,
+  `1/1 (homozygous alternate)`, `./1 (partly called)`, `./. (uncalled)`; a value its number, `no data` for NaN), the
+  sentence `Sample S11 · 0/1 (heterozygous)`; at a coarse level its bin, the sample with its mean or its majority
+  genotype and its share (`73% of the bin`), and its level. Never `State` or `Value`: a state is a sample to a reader.
 
 ### Tensions (pairs and grids)
 

@@ -368,7 +368,9 @@ export function readHeaderLines(reader: BgzfReader, index: TabixIndex, limits?: 
   a haploid `1` and a heterozygote's `1` are different genotypes a theme must not paint alike; the exact copy count is
   `value` float32 by `RegionRequest.field: 'GT'` (copies of the allele, NaN uncalled), as any FORMAT field (`DS`, `GQ`;
   `Number=1` or `A`). Coarse levels: `bins` counted
-  from the tile (majority and share, `mean`), as ranges. Bounded by RR's `maxTileBytes`. A long deletion is one item
+  from the tile (majority and share, `mean`), as ranges. **The samples are named in the label column** by the rows'
+  names part (the header's order; a row 8 px or more), and the card reads `Sample S11 · 0/1 (heterozygous)`, never
+  `State S11 / Value 0/1` (agreed 2026-11-23). Bounded by RR's `maxTileBytes`. A long deletion is one item
   across the SNPs it covers (EC-222).
 - **Without an index**: a plain or bgzipped VCF read whole within `limits`.
 - **Dense files** (1000 Genomes, a biobank): the levels the index's bytes allow and the view's read cost (above), so a
