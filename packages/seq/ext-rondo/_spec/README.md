@@ -99,6 +99,25 @@ waiting; its entries `StemMenu` in `viewer.ts`).
   swatch named by the layer's `label` (else its track's); a labelled layer in the hues one swatch "`<label>` (chromosome
   hues)"; an unlabelled one in the hues none (the hue ring keys the chromosomes).
 
+## Kinds of links
+
+- **A link's geometry says nothing of its meaning** (a 3D contact, a structural variant or translocation, a fusion, a
+  synteny block): the kind is in the data (`type`), so the view shows it through layers, never inside one ribbon. **A
+  kind is a `rondo:ribbons` layer** over the same pairs node, its data the kind's rows (`<links>/(item :type <kind>)`, a
+  base: its rows left out are not "filtered"), in a track of its own (its label the kind's name: its legend's title and
+  the card's word for it). Layers draw in their tracks' order, the last on top: a writer lists the rarer kind last. Each
+  reads, stems, widths and bounds by itself: its own `k` (its widest stem's), its own fans, its necks the sum of its own
+  ribbons, stubs and fan; `layer.hidden` hides a kind. Every layer's mouths are on one rim, the innermost band's inner
+  edge (the hole's), whichever track holds it.
+- **Widths by a layer's own rule**: `width: count` (the links), or a numeric field summed (`q`): an item its value, a
+  held bin its field's sum (core's `PairsReadOptions.sum`); links that carry none (a source's bins) are counted and
+  `rondo.ribbons.width` (info) says so. A filter over links read by region (a source's) is not read on them (core's
+  region reads keep every row): every link is drawn and `rondo.ribbons.filter` (warning) says so; kinds are written over
+  held links until the reads filter.
+- **`rondoRing`'s `kinds`** (`{ type, label?, color?, opacity?, width? }[]`) writes those layers, the colour the
+  chromosomes' hues when a kind names none; absent, one layer of every link. Which kinds, their order and colours are
+  the application's (the showcase: faint contacts in the hues, translocations in one accent over them).
+
 ## Hits, emphasis, words
 
 - **Hits**: a uniform grid over the polygons (`rondo.hitCellPx`, 16 CSS px), candidates topmost first (the last drawn),
@@ -142,17 +161,18 @@ colour channel explicitly (`(field :name system)` and its palette), so the fallb
 
 ## The builder helper
 
-`rondoRing(view, { assembly, links, bands?, detail?, square?, hues?, opens?, height? })`: the ring section
+`rondoRing(view, { assembly, links, bands?, detail?, square?, hues?, opens?, height?, kinds? })`: the ring section
 (`center: none`), the cytobands and the hue ring (two `bands` layers over `bands`), the ribbons with `fallback: pairs`
-and their colour, `opens` (the detail ring with `detail: 'below'`, else the ring), and the square navigator over the
-ring (`of: [ring, ring]`, `content: rondo:square`, `switch: include`). The spec's `extensions` is the writer's
-(`createSeqSpec({ extensions: [rondo] })`).
+and their colour (a layer a kind with `kinds`: Kinds of links), `opens` (the detail ring with `detail: 'below'`, else
+the ring), and the square navigator over the ring (`of: [ring, ring]`, `content: rondo:square`, `switch: include`). The
+spec's `extensions` is the writer's (`createSeqSpec({ extensions: [rondo] })`).
 
 ## Configuration
 
 | Item                                   | Whose            | Default                              | Why                                                                                                    |
 | -------------------------------------- | ---------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------ |
-| `width`                                | layer param      | `count`                              | the pairs counted                                                                                      |
+| `width`                                | layer param      | `count`                              | the pairs counted; a numeric field summed (`q`)                                                        |
+| `label`                                | layer param      | absent                               | a kind's name in its card and legend                                                                   |
 | `stems`                                | layer param      | `level`                              | Rondo's trumpets; `none`                                                                               |
 | `bundle`                               | layer param      | 0.7                                  | ribbons of a stem stay together into the hole                                                          |
 | `stubs`                                | layer param      | `partner`                            | where else a stem's links go; `none`                                                                   |

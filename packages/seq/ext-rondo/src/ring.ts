@@ -35,7 +35,29 @@ export interface RondoRingOptions {
   readonly opens?: boolean;
   /** The ring's diameter, px; the width's when absent. */
   readonly height?: number;
+  /**
+   * Kinds of links (`type`), a `rondo:ribbons` layer each in a track of its own, in this order (the last on top: list
+   * the rarer last); one layer of every link when absent.
+   */
+  readonly kinds?: readonly RondoKind[];
 }
+
+/** A kind of link (_spec/README.md, Kinds of links): its layer's filter, name, colour and width. */
+export interface RondoKind {
+  /** The `type` its links carry: its layer's data is the links' `(item :type <type>)`. */
+  readonly type: string;
+  /** Its name in its track, card and legend (its `type` when absent). */
+  readonly label?: string;
+  /** Its colour: a fixed one (`#d62728`, `token:msui-accent`) or a theme form; the chromosomes' hues when absent. */
+  readonly color?: unknown;
+  /** Its fill's opacity, a factor of `ribbons.fillOpacity` (a faint kind under a strong one). */
+  readonly opacity?: number;
+  /** What its ribbons are wide by: `count` (the default) or a numeric field summed (`q`). */
+  readonly width?: string;
+}
+
+/** A word as a query's atom: bare when it reads as one, else quoted. */
+const atom = (v: string) => (/^[A-Za-z_][\w-]*$/.test(v) ? v : JSON.stringify(v));
 
 /** What `rondoRing` wrote: the ring section, the detail ring (`below`), the ribbons' track. */
 export interface RondoRing {
@@ -60,13 +82,29 @@ function ringTracks(s: SectionBuilder, o: RondoRingOptions, opens: string | unde
       color,
     } as never);
   }
-  s.track('links', { label: 'Links', height: 4 }).layer('ribbons', {
-    type: 'rondo:ribbons',
-    fallback: 'pairs',
-    data: o.links,
-    color,
-    ...(opens ? { opens } : {}),
-  } as never);
+  if (!o.kinds?.length) {
+    s.track('links', { label: 'Links', height: 4 }).layer('ribbons', {
+      type: 'rondo:ribbons',
+      fallback: 'pairs',
+      data: o.links,
+      color,
+      ...(opens ? { opens } : {}),
+    } as never);
+    return;
+  }
+  for (const k of o.kinds) {
+    const label = k.label ?? k.type;
+    s.track(`links-${k.type.replace(/[^A-Za-z0-9_-]/g, '-')}`, { label, height: 4 }).layer('ribbons', {
+      type: 'rondo:ribbons',
+      fallback: 'pairs',
+      data: `${o.links}/(item :type ${atom(k.type)})`,
+      color: k.color ?? color,
+      label,
+      ...(k.opacity !== undefined ? { opacity: k.opacity } : {}),
+      ...(k.width !== undefined ? { width: k.width } : {}),
+      ...(opens ? { opens } : {}),
+    } as never);
+  }
 }
 
 /** Writes the genome ring into a view (_spec/README.md, The builder helper). */

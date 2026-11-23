@@ -135,6 +135,7 @@ export function ringSpec(o: RingSpecOptions = {}): Node {
       ...(o.square !== undefined ? { square: o.square } : { square: false }),
       ...(o.hues !== undefined ? { hues: o.hues } : {}),
       ...(o.opens !== undefined ? { opens: o.opens } : {}),
+      ...(o.kinds !== undefined ? { kinds: o.kinds } : {}),
     });
     void ring;
   });

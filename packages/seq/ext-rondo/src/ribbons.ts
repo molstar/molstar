@@ -260,8 +260,11 @@ export function ribbonsType(config: RondoConfig = DefaultRondoConfig): LayerType
     prepare(layer, model) {
       const p = layer.params;
       const theme = JSON.stringify(layer.theme.color ?? '');
+      const source = PairsReader.source(layer, model);
       return {
-        source: PairsReader.source(layer, model),
+        source,
+        // a filter (a kind's `(item :type …)`) over links read by region: not read on them (core's region reads)
+        unfiltered: !!(layer.data?.base || layer.data?.filter) && source.region !== undefined,
         model,
         stems: p.stems === 'none' ? 'none' : 'level',
         bundle: typeof p.bundle === 'number' ? Math.max(0, Math.min(1, p.bundle)) : 0.7,
@@ -277,6 +280,13 @@ export function ribbonsType(config: RondoConfig = DefaultRondoConfig): LayerType
     layout(prep, ctx, data, _overlay, prev) {
       const lay = prev ?? new RondoLay();
       layoutRondo(lay, prep, ctx, data);
+      if (prep.unfiltered)
+        ctx.report({
+          code: 'rondo.ribbons.filter',
+          severity: 'warning',
+          message: 'The links are read by region: the layer’s filter is not read on them, every link is drawn',
+          address: ctx.key,
+        } as never);
       if (lay.empty === 'layout')
         ctx.report({
           code: 'rondo.ribbons.layout',

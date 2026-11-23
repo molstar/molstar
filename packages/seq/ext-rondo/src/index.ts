@@ -19,7 +19,7 @@ export { CellsLay, type CellsPrep, CellsType, RondoSquare } from './cells.js';
 export { hueList, RondoHues } from './hues.js';
 export { ColorMode, Kind, RondoLay, type RondoPrep, stemAt } from './lay.js';
 export { emphasisHeld, RibbonsType, ribbonsType } from './ribbons.js';
-export { ribbonsColor, type RondoRing, rondoRing, type RondoRingOptions } from './ring.js';
+export { ribbonsColor, type RondoKind, type RondoRing, rondoRing, type RondoRingOptions } from './ring.js';
 export { announceRondo, basesText, describeRondo, summaryRondo } from './words.js';
 
 /** The extension's version: what a spec's `extensions: { rondo: '0.1' }` is read against. */

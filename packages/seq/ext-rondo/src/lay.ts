@@ -45,6 +45,8 @@ export interface RondoPrep {
   readonly width: string;
   /** The layer's name in its card and legend (its kind's: `rondoRing`'s `kinds`); empty when none. */
   readonly label: string;
+  /** Whether its data names a filter its links, read by region, cannot be read against (said, every link drawn). */
+  readonly unfiltered: boolean;
   readonly config: RondoConfig;
 }
 
