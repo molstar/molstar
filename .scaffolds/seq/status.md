@@ -45,7 +45,7 @@ Slices, each closed with its record:
 - Third, figures: [record](records/third-slice/2026-11-20-third-slice.md).
 - Fourth, integration (molecules, maps, structures): [record](records/fourth-slice/2026-11-21-fourth-slice.md).
 - Fifth, Genomes: [record](records/fifth-slice/2026-11-23-fifth-slice.md).
-- Sixth, scaffolds (`.scaffolds/`, the specs reconciled with the designs): in progress, `execution/sixth-slice/`.
+- Sixth, scaffolds (`.scaffolds/`, the specs reconciled with the designs): [record](records/sixth-slice/2026-11-23-sixth-slice.md).
 
 ## Open
 

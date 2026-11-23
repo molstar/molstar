@@ -8,7 +8,7 @@
   "level" and should not leak into the common libraries. and afterwards write the loop file"; then "Yes, start it".
 - On compressing the principles: "the base repo ... did this and it saved quite a few tokens. let's do something
   similar here too? or maybe re-adapt for the principles we use in this repo?"; then "i think i will do one more change
-  to the upstream oz first and then get back here with it", and "ok, /Users/... oz is updated" (the upstream at
+  to the upstream oz first and then get back here with it", and "ok, <the upstream repository> is updated" (the upstream at
   `c1ccd14`).
 - "do we need to update .scaffolds/_method too with the checklist.md, updated plan, etc templates; since this changed
   in the upstream version?".
