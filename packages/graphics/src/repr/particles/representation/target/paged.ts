@@ -379,6 +379,9 @@ export function createTargetPagedObject(materialId: number, graphics: GraphicsCo
           return reaches;
         },
         copyMarkers: copyMarkersSource,
+        get maxInstances() {
+          return currentProps?.maxParticles ?? 0;
+        },
         copyLayers: {
           get version() {
             return copyLayerVersion;
@@ -662,7 +665,13 @@ export function createTargetPagedObject(materialId: number, graphics: GraphicsCo
     const targets = nested
       ? (ParticleNesting.getIdSpace(next).targetMapping as ReadonlyMap<number, ParticleTarget>)
       : (next.targetMapping ?? new Map<number, ParticleTarget>());
-    const propsChanged = !currentProps || !PD.areEqual(ParticleTargetRepresentationParams, currentProps, props);
+    // the budget read by the culler each cull (`maxInstances`): no page or member of it, none made again
+    const propsChanged =
+      !currentProps ||
+      !PD.areEqual(ParticleTargetRepresentationParams, currentProps, {
+        ...props,
+        maxParticles: currentProps.maxParticles,
+      });
     const sizeChanged = !currentTheme || !SizeTheme.areEqual(theme.size, currentTheme.size);
     const colorChanged = !currentTheme || !ColorTheme.areEqual(theme.color, currentTheme.color);
     const newMembers = propsChanged || sizeChanged || !currentTargets || !isSameTargets(currentTargets, targets);

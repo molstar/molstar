@@ -681,17 +681,30 @@ async function main() {
         ...(budget !== undefined && { budget: Number(budget) }),
         ...(maxParticles !== undefined && { maxParticles: Number(maxParticles) }),
       };
-      await page.evaluate(async (set) => {
-        const plugin = globalThis.molstar.viewer.plugin;
-        const state = plugin.state.data;
-        const update = state.build();
-        for (const cell of state.cells.values()) {
-          const p = cell.transform.params;
-          if (p?.tiles?.name !== 'camera') continue;
-          update.to(cell).update({ ...p, tiles: { ...p.tiles, params: { ...p.tiles.params, ...set } } });
-        }
-        await plugin.runTask(state.updateTree(update));
-      }, set);
+      await page
+        .evaluate(async (set) => {
+          const plugin = globalThis.molstar.viewer.plugin;
+          const state = plugin.state.data;
+          const update = state.build();
+          const updated = [];
+          for (const cell of state.cells.values()) {
+            const p = cell.transform.params;
+            // a representation's budget (a nested pack's copies by their levels: `maxParticles`)
+            if (p?.type?.params?.maxParticles !== undefined && set.maxParticles !== undefined) {
+              update
+                .to(cell)
+                .update({ ...p, type: { ...p.type, params: { ...p.type.params, maxParticles: set.maxParticles } } });
+              updated.push(cell.transform.transformer.definition.name);
+              continue;
+            }
+            if (p?.tiles?.name !== 'camera') continue;
+            update.to(cell).update({ ...p, tiles: { ...p.tiles, params: { ...p.tiles.params, ...set } } });
+            updated.push(cell.transform.transformer.definition.name);
+          }
+          await plugin.runTask(state.updateTree(update));
+          return updated;
+        }, set)
+        .then((updated) => console.log(`  set on: ${updated.join(', ') || 'none'}`));
       console.log(`steps: ${JSON.stringify(set)}`);
     }
     if (phone) {

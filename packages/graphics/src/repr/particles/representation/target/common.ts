@@ -210,6 +210,16 @@ export const ParticleTargetRepresentationParams = {
       isEssential: false,
     },
   ),
+  maxParticles: PD.Numeric(
+    0,
+    { min: 0, max: 50_000_000, step: 100_000 },
+    {
+      label: 'Max Particles',
+      description:
+        "The copies' particles drawn at most (0: no cap), WebGPU: the copies of a list with templates drawn a level coarser while a frame needs more, finer again where it fits; their pages read only where drawn at full detail. What bounds a view's reads and draws whatever its distance.",
+      isEssential: false,
+    },
+  ),
   structure: PD.Group(ParticleTargetStructureParams, {
     isExpanded: false,
     description: 'Parameters applied to targets that are structures.',

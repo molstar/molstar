@@ -202,8 +202,9 @@ export function createPagedMergedCuller(
   let seenOffsets = new Float64Array(0);
   let seenBlocks = -1;
   /** the view of the last dispatch and the data's version: a still view culls nothing again (its records stand) */
-  // the frustum, the camera plane, the level ranges, the rest, the raster's split, the transient transform
-  const dispatchedKey = new Float64Array(6 * 4 + 4 + 16 + 4 + 3 + 16 + 2).fill(NaN);
+  // the frustum, the camera plane, the level ranges, the rest, the raster's split, the transient transform, the view's
+  // pixels a unit, the budget
+  const dispatchedKey = new Float64Array(6 * 4 + 4 + 16 + 4 + 3 + 16 + 2 + 1).fill(NaN);
   const dispatchKey = new Float64Array(dispatchedKey.length);
   let segmentDataVersion = -1;
   let frontSegments = -1;
@@ -1082,6 +1083,9 @@ export function createPagedMergedCuller(
       // a copy's coarse level by the view's pixels a unit (`LodView`)
       key[67] = lod.depthScale;
       key[68] = lod.pixelSize;
+      // the copies' levels by a budget (`PagedCullView.maxInstances`): a new one culls again
+      const maxInstances = paged.maxInstances ?? 0;
+      key[69] = maxInstances;
       let same = true;
       for (let i = 0; same && i < key.length; ++i) same = key[i] === dispatchedKey[i];
       if (same) {
@@ -1109,6 +1113,7 @@ export function createPagedMergedCuller(
           pyramidToCome: twoPhase && !pyramid,
           secondPhase: twoPhase,
           coarse: getCoarse(lod),
+          maxInstances,
         },
         pyramid,
       );

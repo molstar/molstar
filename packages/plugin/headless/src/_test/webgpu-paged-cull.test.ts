@@ -17,6 +17,7 @@ import { CustomProperties } from '@molstar/model/model/custom-property';
 import type { ParticleList } from '@molstar/model/model/particles/particle-list';
 import {
   createPagedCuller,
+  PagedMaxCoarseBias,
   PagedPoseWords,
   PagedRegionMinRoom,
   PagedRegionRoomShare,
@@ -1248,6 +1249,80 @@ describe.skipIf(!WebGPU.module)('a page store culled on the GPU', () => {
       for (const slots of near.regions) {
         for (const k of slots) expect(pages.has(near.poses[k * PagedPoseWords + 6] >> StorePageBits)).toBe(true);
       }
+      expect(graphics.takeErrors?.() ?? []).toEqual([]);
+      culler.destroy();
+    } finally {
+      plugin.dispose();
+    }
+  }, 120_000);
+
+  it("draws a template's copies coarser while a frame needs more than its budget, finer again where it fits", async () => {
+    const plugin = await HeadlessPluginContext.create(
+      { webgpu: WebGPU.module! },
+      DefaultPluginSpec(),
+      { width: 16, height: 16 },
+      { backend: 'webgpu' },
+    );
+    try {
+      await plugin.init();
+      const graphics = plugin.canvas3d!.graphics;
+      const store = new ParticlePageStore();
+      // a template of 300 particles and its coarse level of 40, placed by three copies
+      store.add(
+        -1,
+        createList(300, (i) => (i < 150 ? 1 : 3), true),
+        0,
+        placement,
+        undefined,
+        true,
+      );
+      store.add(
+        -2,
+        createList(40, (i) => (i < 20 ? 1 : 3), true),
+        0,
+        placement,
+        undefined,
+        true,
+      );
+      const center = Vec3.create(50, 50, 40);
+      const poses = new Float32Array(3 * CopyPoseFloats);
+      writeCopyPose(poses, 0, Vec3.create(0, 0, 0), Quat.identity(), center);
+      writeCopyPose(poses, 8, Vec3.create(200, 0, 0), Quat.identity(), center);
+      writeCopyPose(poses, 16, Vec3.create(0, 200, 0), Quat.identity(), center);
+      const of = { tops: Int32Array.of(5, 6, 7), poses, levels: 1, center, spacing: 5, radius: 100 };
+      store.setCopies(-1, { ...of, level: 0 });
+      store.setCopies(-2, { ...of, level: 1 });
+      const culler = createPagedCuller(graphics.compute!, graphics.resources, { ...FullRooms, wantsReadMs: 0 });
+      culler.sync(store, store.takeChanges(), [2, 3, 1.5, 4]);
+      // near (the spacing about 17 px): every copy the template whole, its leaves written after a read of the wants
+      const wide = createView(Vec3.create(130, 130, 300), Vec3.create(130, 130, 0), 1.2);
+      const near = { ...wide, coarse: { scale: 1000, ortho: false, pixels: 4 } };
+      const version = culler.frameVersion;
+      culler.cull(near);
+      expect(await advancedPast(culler, version)).toBe(true);
+      culler.cull(near);
+      expect((await readRegions(culler, culler.counts)).total).toBe(3 * 300);
+      expect(culler.coarseBias).toBe(0);
+      /** culled within `max` till its bias settles (a read back changing it culls again), its instances then */
+      const settle = async (max: number) => {
+        for (let i = 0; i < 2 * PagedMaxCoarseBias; ++i) {
+          const v = culler.frameVersion;
+          culler.cull({ ...near, maxInstances: max });
+          await readRegions(culler, culler.counts);
+          if (!(await advancedPast(culler, v))) break;
+        }
+        return (await readRegions(culler, culler.counts)).total;
+      };
+      // a budget of 500 (the leaves' 900 past it): a step coarser each read back (the coarse pixels doubled) till the
+      // copies draw their coarse level, kept there (its 120 times eight past the budget)
+      expect(await settle(500)).toBe(3 * 40);
+      expect(culler.coarseBias).toBeGreaterThan(0);
+      expect(culler.frameNeed).toBe(3 * 40);
+      // a budget of 2,000: finer again (its 120 times eight within it) till the template whole, kept (900 times eight
+      // past it); none: no bias
+      expect(await settle(2000)).toBe(3 * 300);
+      expect(await settle(0)).toBe(3 * 300);
+      expect(culler.coarseBias).toBe(0);
       expect(graphics.takeErrors?.() ?? []).toEqual([]);
       culler.destroy();
     } finally {

@@ -606,7 +606,21 @@ export interface PagedCullView {
    * pixels a unit at a distance of 1 (orthographic at any); none: every copy the template whole
    */
   readonly coarse?: { readonly scale: number; readonly ortho: boolean; readonly pixels: number };
+  /**
+   * the instances a frame draws at most (0 or none: no cap), by the copies' levels (`coarse`): its pixels doubled a
+   * step of `coarseBias` (every copy finer than its coarsest a level coarser). Begun at the coarsest
+   * (`PagedMaxCoarseBias`: no leaf page wanted before a read back tells what the view needs), a step finer where a
+   * read back needs few enough that the step's growth keeps it within (eight times: a level keeps at least every
+   * eighth particle of a target; more where a step finer was seen to grow it more, what is visible not scaling with
+   * the level: kept till the budget changes), coarser where one needs more
+   */
+  readonly maxInstances?: number;
 }
+
+/** the most steps of a budget's bias (`PagedCullView.maxInstances`): the coarse pixels 2^8 times theirs */
+export const PagedMaxCoarseBias = 8;
+/** a level finer draws at most this many times a copy's instances (a level every eighth particle of a target) */
+const PagedLevelRatio = 8;
 
 /** The clip objects a cull is of (`packStorageClipObjects`'s, `ClipStorageVec4s` a clip object) */
 export interface PagedCullClip {
@@ -687,6 +701,12 @@ export interface PagedCuller {
    * again (the room grown, or a pyramid of the frame drawn)
    */
   readonly frameVersion: number;
+  /**
+   * the steps its coarse pixels are doubled by for a budget (`PagedCullView.maxInstances`, 0 without one), as of the last
+   * cull read back; the instances that read found the frame needed (`frameNeed`)
+   */
+  readonly coarseBias: number;
+  readonly frameNeed: number;
   /** the pages of the templates' leaf blocks not written (`paged-cull-wants`), as of the last sync or cull */
   readonly deferredPages: number;
   /** the value blocks in use: the pages written (their positions and rotations in the values' buffer) */
@@ -969,6 +989,15 @@ export function createPagedCuller(
   let selectedRead = false;
   /** advanced where a cull overflowed the frame's slots or a region's: the view culled again (`PagedCuller.frameVersion`) */
   let frameVersion = 0;
+  /** a budget's bias (`PagedCullView.maxInstances`): now, as the last cull was culled with; the budget then */
+  let coarseBias = 0;
+  let cullBias = 0;
+  let maxInstances = 0;
+  let frameNeed = 0;
+  /** per bias the growth of a step finer to it seen (at least `PagedLevelRatio`); the last read's bias and need */
+  const biasGrowth = new Float64Array(PagedMaxCoarseBias + 1).fill(PagedLevelRatio);
+  let readBias = -1;
+  let readNeed = 0;
   let positionWords = 2;
   let rotationWords = 0;
   let activeCount = 0;
@@ -1359,8 +1388,10 @@ export function createPagedCuller(
    */
   const readCursors = (phaseCounts: StorageBuffer, grow: boolean, second: boolean, tested: boolean) => {
     const frameBudgeted = frameRoom > 0 && frameRoom < frameInstances;
-    if (cursorsRead || !(frameBudgeted || budgeted)) return;
+    if (cursorsRead || !(frameBudgeted || budgeted || maxInstances > 0)) return;
     cursorsRead = true;
+    const bias = cullBias;
+    const max = maxInstances;
     const n = regionCount;
     const rooms = regionRooms;
     const bits = bitsRoom;
@@ -1373,6 +1404,31 @@ export function createPagedCuller(
         cursorsRead = false;
         const c = new Uint32Array(data);
         const prior = priorData ? new Uint32Array(priorData) : undefined;
+        frameNeed = c[n];
+        // a budget's bias by what the frame needed (`PagedCullView.maxInstances`), where no later cull changed it
+        if (max > 0 && bias === coarseBias && max === maxInstances) {
+          // the steps finer just taken: their growth seen, a step's its share (a later step to them as careful)
+          if (readBias > bias && readNeed > 0) {
+            const step = (c[n] / readNeed) ** (1 / (readBias - bias));
+            for (let b = bias; b < readBias; ++b) biasGrowth[b] = Math.max(biasGrowth[b], step);
+          }
+          readBias = bias;
+          readNeed = c[n];
+          let next = bias;
+          if (c[n] > max) {
+            const steps = Math.ceil(Math.log(c[n] / max) / Math.log(PagedLevelRatio));
+            next = Math.min(PagedMaxCoarseBias, bias + Math.max(1, steps));
+          } else {
+            // as many steps finer as their growths keep within (a read back each step a second where the GPU is busy)
+            let grown = c[n];
+            while (next > 0 && grown * biasGrowth[next - 1] <= max) grown *= biasGrowth[--next];
+          }
+          if (next !== bias) {
+            coarseBias = next;
+            frameVersion += 1;
+            void resources.pending.track(Promise.resolve(), 'paged cull: budget');
+          }
+        }
         // every selected entry tested against the pyramid, else what it needed not what the view will
         if (tested && new Uint32Array(selectedData)[0] > bits) grow = false;
         let overflowed = false;
@@ -2109,7 +2165,17 @@ export function createPagedCuller(
       ValueCell.updateIfChanged(uniforms.uRasterOrtho, split?.ortho ? 1 : 0);
       ValueCell.updateIfChanged(uniforms.uCoarseScale, view.coarse?.scale ?? 0);
       ValueCell.updateIfChanged(uniforms.uCoarseOrtho, view.coarse?.ortho ? 1 : 0);
-      ValueCell.updateIfChanged(uniforms.uCoarsePixels, view.coarse?.pixels ?? 0);
+      // a budget's bias (`maxInstances`): none without one
+      const max = view.maxInstances && view.maxInstances > 0 ? view.maxInstances : 0;
+      if (max !== maxInstances) {
+        // a new budget: begun at the coarsest, its growths not seen
+        maxInstances = max;
+        coarseBias = max > 0 ? PagedMaxCoarseBias : 0;
+        biasGrowth.fill(PagedLevelRatio);
+        readBias = -1;
+      }
+      cullBias = coarseBias;
+      ValueCell.updateIfChanged(uniforms.uCoarsePixels, (view.coarse?.pixels ?? 0) * 2 ** cullBias);
       // the phases' cursors (the second's bound as the first's prior)
       ValueCell.update(counts, firstCounts);
       ValueCell.update(prior, secondCounts);
@@ -2272,6 +2338,12 @@ export function createPagedCuller(
     },
     get frameVersion() {
       return frameVersion;
+    },
+    get coarseBias() {
+      return coarseBias;
+    },
+    get frameNeed() {
+      return frameNeed;
     },
     async readSelectedEntries() {
       const base = uniforms.uSelectedBase.ref.value * 16;

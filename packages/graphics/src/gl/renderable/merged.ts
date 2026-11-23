@@ -804,6 +804,8 @@ export interface MergedInstanceSource {
      * none without a copy's
      */
     readonly copyLayers?: { readonly version: number; readonly buffer: Uint32Array };
+    /** the copies' instances a frame draws at most, by their levels (`PagedCullView.maxInstances`; 0: no cap) */
+    readonly maxInstances?: number;
   };
 }
 

@@ -308,7 +308,16 @@ to gain (their template and levels 67 pages, 9 MB; 85-98% needed once a copy is 
          5.0 ms and 15-18 (none). The JS heap at the end (ArrayBuffers not counted) 175 MiB against 148. Not
          measured: the CPU's ArrayBuffers (the tiles' loader 430 MiB, the template's page cache at most 256 MiB), a
          remote pack's latency, the template under a particle budget. The features only the tile view has: trajectory
-         frames, editing by slots and targets, targets on demand.
+         frames, editing by slots and targets, targets on demand.
+         Then a budget (`maxParticles`, the representation's: `PagedCullView.maxInstances`): the copies' coarse pixels
+         doubled a step of a bias, begun at the coarsest (no leaf page wanted before a read back), as many steps finer
+         a read back as their growths keep within (eight a step, more where one was seen: the visible not scaling with
+         the level, 11,618 to 118,529 once), coarser where over; a read back about a second where the GPU is busy.
+         The yeast as a template: 10 M does not bind outside (about 0.5 M visible a step coarse, Hi-Z), full detail in
+         four read backs (3.7 s) and its 480 MiB read then (the wants the frustum's, not the budget's); 100 k coarse
+         throughout, nothing read, its GPU 8.8 ms a frame orbiting inside against 5.0 (the coarse level's particles
+         larger: more fill). Open: a budget of bytes read (at full detail the frustum's wants read the occluded pages
+         too), a default, a budget across representations.
    e. **The tile views' migration**, decided by d's comparison: a tiled pack written as one template of one copy, the
       tile views and their slot lists retired, their features (trajectory frames, editing, targets on demand) moved or
       given up; the CPU's pick replaced by the wants: their occlusion by the occluder grid (what was drawn not read: no
