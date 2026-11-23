@@ -1507,8 +1507,10 @@ marks, never of the items only read: "values in view" is true). **A legend's "+n
 `setOpen(legendId, on)`): the session's state per legend (`legendId`: channel, scale, first layer, so it survives a
 redraw and a pan that changes the values, never in the spec), a `row.open` and `more` 0 while open. The part draws it a
 `<button aria-expanded>` ("Show n more", then "Show fewer"; Enter and Space click it, never select an entry) and an open
-group wraps and scrolls past a maximum height (14em), so a legend over hundreds of values never takes the page. Why
-derived on settle: a legend that changes during a pan reads as noise, and its cost stays off the frame.
+group wraps and scrolls past a maximum height (14em) and builds at most `OpenCap` (200) rows, the rest counted inside
+the box (`row.beyond`); closed, rows are built for the first `maxItems` only. The button's accessible name starts with
+its visible text ("+28, show 28 more"). Bands and variants list drawn values as ranges does. Why derived on settle: a
+legend that changes during a pan reads as noise, and its cost stays off the frame.
 
 - **The legend behavior's commands** (`behaviors/theming.ts`, patches unless said): `layer.channel` (a channel's value
   or form set or unset, on one layer or several in one patch; on one layer's color its choices are a select param,
