@@ -113,9 +113,11 @@ describe('kinds of links', () => {
     expect(
       mine.map((l) => [l.title, l.entries.kind === 'swatches' ? l.entries.items.map((i) => i.label) : []]),
     ).toEqual([
-      ['Contacts', ['Contacts (chromosome hues)']],
+      ['Contacts', ['Contacts: by chromosome']],
       ['Others', ['Others']],
     ]);
+    // the hued kind's entry is its words alone (no one hue's swatch: it draws in every chromosome's)
+    expect(mine[0].entries.kind === 'swatches' && mine[0].entries.items[0].color & 0xff).toBe(0);
     const red = mine[1].entries.kind === 'swatches' ? mine[1].entries.items[0].color : 0;
     expect((red >>> 8).toString(16)).toBe('d62728');
   });

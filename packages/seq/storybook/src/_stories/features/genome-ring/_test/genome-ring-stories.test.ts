@@ -234,7 +234,9 @@ describe('Genome ring stories, headless', () => {
   it('the hue ring’s legend lists the assembly’s chromosomes alone, never the stains its bands carry', async () => {
     const v = await open(ringStoryView('ring'));
     await bandsLanded(v);
-    const legend = viewLegends(v.frame!.layout, Number.POSITIVE_INFINITY).legends.find((l) => l.title === 'Chromosomes')!;
+    const legend = viewLegends(v.frame!.layout, Number.POSITIVE_INFINITY).legends.find(
+      (l) => l.title === 'Chromosomes',
+    )!;
     const labels = legend.entries.kind === 'swatches' ? legend.entries.items.map((i) => i.label) : [];
     // the assembly's 24 (its hue domain, taken before `include`: chrY keeps its hue when it joins)
     expect(labels).toEqual([...Array.from({ length: 22 }, (_, i) => `chr${i + 1}`), 'chrX', 'chrY']);

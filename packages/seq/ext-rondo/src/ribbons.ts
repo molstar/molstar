@@ -234,14 +234,15 @@ function legendRondo(lay: RondoLay, options: { readonly title: string }): readon
     ? `${name} (bins in one colour: ${lay.channel?.field ?? 'the colour'} read link by link)`
     : fixed
       ? name
-      : `${name} (chromosome hues)`;
-  const color = fixed ? lay.one : lay.hues[0];
+      : `${name}: by chromosome`;
+  // by chromosome: the words alone (a transparent swatch), never one hue for a layer drawn in all of them
+  const color = fixed ? lay.one : 0;
   return [
     {
       key: `rondo:${lay.key}`,
       title: options.title,
       channel: 'color',
-      entries: { kind: 'swatches', items: [{ label, color: alpha(color, 1) }] },
+      entries: { kind: 'swatches', items: [{ label, color: fixed ? alpha(color, 1) : 0 }] },
       open: false,
       source: 'vocabulary',
       more: 0,

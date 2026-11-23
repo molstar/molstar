@@ -91,6 +91,8 @@ describe('Kinds of links, headless', () => {
     expect(tx.mode).toBe(ColorMode.fixed);
     expect(tx.one >>> 8).toBe(LightTokens.colors['msui-accent'] >>> 8);
     expect(tx.items).toBe(true);
+    // one kind reads as one colour: its ribbons opaque, never a tint of the hues under them
+    for (let r = 0; r < tx.nr; r++) if (tx.ribDrawn[r]) expect(tx.polyColor[tx.ribPoly[r]] & 0xff).toBe(255);
     // the five made-up translocations, each a ribbon between its two chromosomes
     for (const [a, b] of [
       ['chr9', 'chr22'],

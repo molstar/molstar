@@ -88,12 +88,14 @@ waiting; its entries `StemMenu` in `viewer.ts`).
   of `system` (what `rondoRing` writes) or a scheme over `system` (`rondo:hues`, its field `system` when it names none),
   a hue a block, never compiled: a stem its block's, a ribbon its `a` stem's, a stub its partner's (`rondo:hues`, else
   the categorical tokens, by the systems' order). **A fixed colour**: every polygon in it (stems, ribbons, stubs, fans,
-  a folded stub). **Another field** (`type`, any form over the links' fields) is read link by link, and kinds are
-  layers, never mixed inside one ribbon: where every row read gives the field (items; held bins, which are split by
-  `type`) a stem pair's rows split into a ribbon a colour (its key the colour's hex after the strand; past 64 colours in
-  one pair the last share a ribbon and `rondo.ribbons.colors` says so); where the rows carry none (bins by another
-  field, a source's bins, which carry no fields) the layer has one colour, the ranges' ink (`seq-range`),
-  `rondo.ribbons.color` (info) says so and the legend names it
+  a folded stub), opaque (`opacity` its alpha, never `ribbons.fillOpacity`): a kind drawn over the hues reads as one
+  colour, never a tint of each hue under it (a look at the showcase, light and dark: at 0.35 the accent read brown over
+  one chromosome and grey-green over another). **Another field** (`type`, any form over the links' fields) is read link
+  by link, and kinds are layers, never mixed inside one ribbon: where every row read gives the field (items; held bins,
+  which are split by `type`) a stem pair's rows split into a ribbon a colour (its key the colour's hex after the strand;
+  past 64 colours in one pair the last share a ribbon and `rondo.ribbons.colors` says so); where the rows carry none
+  (bins by another field, a source's bins, which carry no fields) the layer has one colour, the ranges' ink
+  (`seq-range`), `rondo.ribbons.color` (info) says so and the legend names it
   (`<label> (bins in one colour: <field> read link by link)`). The issue follows the level read: at the item level every
   link has its colour, so it is said only while such bins are drawn. Stems, stubs and fans take the layer's one colour
   (the ink when its links' values differ). The scan of a field's colours is kept by the read and the channel: a warm
@@ -101,8 +103,9 @@ waiting; its entries `StemMenu` in `viewer.ts`).
   have for `type` and nothing else.
 - **`opacity`** (its channel's uniform value) scales `ribbons.fillOpacity`: a faint layer under a strong one.
 - **The legend** (`LayerType.legend`): a field colour its channel's values (core's `channelLegends`); a fixed colour one
-  swatch named by the layer's `label` (else its track's); a labelled layer in the hues one swatch "`<label>` (chromosome
-  hues)"; an unlabelled one in the hues none (the hue ring keys the chromosomes).
+  swatch named by the layer's `label` (else its track's); a labelled layer in the hues its words alone ("`<label>`: by
+  chromosome", a transparent swatch: no one hue stands for a layer drawn in all of them); an unlabelled one in the hues
+  none (the hue ring keys the chromosomes).
 
 ## Kinds of links
 

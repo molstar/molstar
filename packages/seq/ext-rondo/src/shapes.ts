@@ -5,6 +5,7 @@
  */
 
 import type { LayoutContext } from '@molstar/seqx-core/extension';
+import { ColorMode } from './colour.js';
 import type { RondoConfig } from './config.js';
 import { addArc, addCubic, grow, type RibbonFrame, ribbonCorners } from './geometry.js';
 import type { RondoLay, RondoPrep } from './lay.js';
@@ -112,7 +113,8 @@ export function polygons(lay: RondoLay, prep: RondoPrep, cfg: RondoConfig, ctx: 
   const P = lay.polys;
   const seg = Math.max(2, cfg.flatten);
   const dn = cfg.stemDepth * f.room;
-  const op = lay.fillOpacity * lay.opacity;
+  // a fixed colour (a kind over others) opaque, so it reads as one colour over any hue; else `ribbons.fillOpacity`
+  const op = lay.mode === ColorMode.fixed ? lay.opacity : lay.fillOpacity * lay.opacity;
   // trumpets (a stem's mouth to its neck: two cubics flaring), stems: `none` draws none
   for (let s = 0; s < lay.ns; s++) {
     if (!lay.stemPlaced[s] || lay.stemCount[s] <= 0) continue;
