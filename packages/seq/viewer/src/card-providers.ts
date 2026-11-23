@@ -77,6 +77,9 @@ export function unitOf(l: LayerLayout): string {
  * of its layer its lines, the first the title, the rest rows (`label: value`); the keyboard cursor's cell what each
  * layer of its section adds there. The viewer's own text after: never `whole`.
  */
+/** The cards whose title a layer type's `describe` gave: the item's title leaves it (never a host provider's). */
+const LayerTitled = new WeakSet<object>();
+
 const LayerWordsSection: CardProviderEntry = {
   kind: 'card-provider',
   name: CardProviderNames.layer,
@@ -85,7 +88,10 @@ const LayerWordsSection: CardProviderEntry = {
     const l = at.layer;
     const lines = l?.type.describe?.(at.place, l.lay);
     if (lines?.length) {
-      out.title ||= lines[0];
+      if (!out.title) {
+        out.title = lines[0];
+        LayerTitled.add(out);
+      }
       for (let i = 1; i < lines.length; i++) {
         const c = lines[i].indexOf(': ');
         out.row(c < 0 ? lines[i] : lines[i].slice(0, c), c < 0 ? '' : lines[i].slice(c + 2));
@@ -254,8 +260,8 @@ const ItemSection: CardProviderEntry = {
     const strand = at.words.strandOf(l, el.key, it.start, row ?? null);
     // an allele by its id; a long REF or ALT (hashed in the id) by its first letters and its length
     const name = allele ? alleleTitle(el.key, allele) : '';
-    // a layer type's own title (`seq:layer`) kept
-    out.title ||= allele ? name : it.label;
+    // the item's title, as ever over an earlier provider's; a layer type's own (`seq:layer`) kept
+    if (!LayerTitled.has(out)) out.title = allele ? name : it.label;
     // the track's name: a short drawn label (`CDR-H1`) is told apart by it (`CDRs (Kabat)`)
     const track = at.section.tracks.find((t) => t.layers.includes(l))?.track.label;
     if (track) out.row('Track', track);
@@ -421,12 +427,23 @@ function runsOf(loc: Location, system: string): ArrayLike<number> {
   return loc.parts.find((p) => p.system === system)?.ranges ?? [];
 }
 
+/** Whether a system is a sequence of an assembly (its address under the assembly's). */
+function onAssembly(
+  model: { readonly assemblies?: ReadonlyMap<string, unknown> } | undefined,
+  system: string,
+): boolean {
+  if (!model?.assemblies) return false;
+  for (const a of model.assemblies.keys())
+    if (system.length > a.length && system.charCodeAt(a.length) === 47 && system.startsWith(a)) return true;
+  return false;
+}
+
 /** The row's value for a position a numbering has no label for (the ruler's note, `unnumbered`). */
 export const NotNumbered = 'not numbered';
 
 /**
- * A cell: the section, the system and the position in every numbering of the system (the ordinal, the index, the
- * declared ones: the section's shown numbering first), the letter shown there, a value track's value and the items
+ * A cell: the section, the system and the position in every numbering of the system (the ordinal, the index but on an
+ * assembly's sequence, the declared ones: the section's shown numbering first), the letter shown there, a value track's value and the items
  * under it.
  */
 const PlaceSection: CardProviderEntry = {
@@ -445,7 +462,9 @@ const PlaceSection: CardProviderEntry = {
     // the title says the system and the ordinal when nothing else named the place; else a row does
     if (!out.title) out.title = `${name} ${ordinal}`;
     else out.row(name, ordinal);
-    out.row('index', String(position));
+    // the 0-based index beside the ordinal: a protein's residue, never a genome's base (a chromosome's position is its
+    // number; the index there is the same number less one, noise)
+    if (!onAssembly(at.model, system)) out.row('index', String(position));
     for (const [id, label] of declared) out.row(id, label);
     // a numbering with no label there is said as not numbering it (the ruler marks the same run), apart from the labels
     const labels = declared
