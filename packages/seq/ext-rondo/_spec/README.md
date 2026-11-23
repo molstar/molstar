@@ -114,6 +114,12 @@ waiting; its entries `StemMenu` in `viewer.ts`).
   `rondo.ribbons.width` (info) says so. A filter over links read by region (a source's) is not read on them (core's
   region reads keep every row): every link is drawn and `rondo.ribbons.filter` (warning) says so; kinds are written over
   held links until the reads filter.
+- **The card names the kind** (`describe`): a ribbon of one link (items) lists its fields, its `type`, its ends' strands
+  (`Strands: + −`), then every other field its data carries (`q`, gene names where the file has them; absent values left
+  out); a ribbon wide by a field says its sum (`Width: q 0.07`). A bin's ribbon and a stem list, when the section has
+  more than one `rondo:ribbons` layer, each layer's links there (`Contacts: 140 links`, `Translocations: 3 links`),
+  counted from each layer's rows as read (a bin's start, an item's), so a kind under another is never lost under its
+  ribbons. The layers of a section know each other by its resolved section (a new resolve, a new list).
 - **`rondoRing`'s `kinds`** (`{ type, label?, color?, opacity?, width? }[]`) writes those layers, the colour the
   chromosomes' hues when a kind names none; absent, one layer of every link. Which kinds, their order and colours are
   the application's (the showcase: faint contacts in the hues, translocations in one accent over them).
