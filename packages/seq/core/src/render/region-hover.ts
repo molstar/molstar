@@ -37,6 +37,26 @@ export function binsText(level: number): string {
 }
 
 /**
+ * A range of positions in bases as a genome's card says it: `88.5–89.0 Mb` or `212.0–214.5 kb` once the range lies past
+ * 10,000 (one decimal at least, more only where the bin's ends need them), else the bases as they are (`9–12`: 1-based,
+ * inclusive, as every label in Seq*).
+ */
+export function baseSpanText(start: number, end: number): string {
+  if (end < 1e4) return spanText(start, end);
+  const [k, u] = end >= 1e6 ? [1e6, 'Mb'] : [1e3, 'kb'];
+  let d = 1;
+  while (
+    d < 3 &&
+    (Math.abs(start / k - +(start / k).toFixed(d)) > 1e-9 || Math.abs(end / k - +(end / k).toFixed(d)) > 1e-9)
+  )
+    d++;
+  return `${(start / k).toFixed(d)}–${(end / k).toFixed(d)} ${u}`;
+}
+
+/** A name with a range of bases (`chr1 88.5–89.0 Mb`, `chr1 9–12` in bases). */
+const placeText = (name: string, start: number, end: number) => `${name} ${baseSpanText(start, end)}`;
+
+/**
  * A genotype class as the legend names it (`no copy`, `some copies`, `every copy`, `partly called`, `uncalled`): what a
  * cell with no recorded call (inline codes, a bin's majority) says. A class counts the copies of one allele; it is no
  * call, so it is never written as one.
@@ -119,13 +139,14 @@ export function gridCellHover(lay: GridLay, i: number, j: number, name: SystemNa
   const L = lay.binLevel;
   const x0 = Math.floor(i / L) * L;
   const y0 = Math.floor(j / L) * L;
-  const x = `${name(lay.system)}:${spanText(x0, x0 + L)}`;
-  const y = `${name(lay.ySystem)}:${spanText(y0, y0 + L)}`;
+  // in bases, never bin indices: `chr1 88.5–89.0 Mb`
+  const x = placeText(name(lay.system), x0, x0 + L);
+  const y = placeText(name(lay.ySystem), y0, y0 + L);
   const v = regionCellAt(lay, i, j);
   const value = v === undefined ? 'loading' : Number.isNaN(v) ? 'no data' : numberText(v);
   const rows: (readonly [string, string])[] = [
-    ['x', x],
-    ['y', y],
+    ['Across', x],
+    ['Down', y],
     ['Value', value],
   ];
   if (L > 1) rows.push(['Bins', binsText(L)]);

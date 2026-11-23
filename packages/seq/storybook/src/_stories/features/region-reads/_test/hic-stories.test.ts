@@ -94,8 +94,8 @@ describe('Features/Region reads/Hi-C, headless', () => {
     const value = (c: typeof above) => c.rows.find((r) => r[0] === 'Value')![1];
     expect(value(above)).toMatch(/^\d/);
     expect(value(below)).toBe(value(above));
-    expect(above.rows.find((r) => r[0] === 'x')![1]).toMatch(/^\/data\/chr1:\d+/);
-    expect(above.rows.find((r) => r[0] === 'y')![1]).toMatch(/^\/data\/chr1:\d+/);
+    expect(above.rows.find((r) => r[0] === 'Across')![1]).toMatch(/^\/data\/chr1 \d+/);
+    expect(above.rows.find((r) => r[0] === 'Down')![1]).toMatch(/^\/data\/chr1 \d+/);
   });
 
   it('over the genome at the fit (EC-223, EC-191): a block pair a cell of chromosomes, each read by block pair, the lower ones mirrored; in both themes', async () => {

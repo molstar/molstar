@@ -287,6 +287,7 @@ export { LogoLay, type LogoPrep, LogoType, MinLogoGlyphPx } from './logo.js';
 export { GridLay, type GridPrep, type GridSummary, GridType, gridSummary } from './grid.js';
 export { MatrixLay, type MatrixPrep, MatrixType } from './matrix.js';
 export {
+  baseSpanText,
   binsText,
   callWords,
   genotypeWords,
