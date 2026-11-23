@@ -305,7 +305,10 @@ export interface LegendRow {
   readonly beyond?: number;
   /** The legend lists its entries (up to `OpenCap`), and a "Show fewer" button closes it (only where it has more than `maxItems`). */
   readonly open: boolean;
-  /** What the legend says once: substituted colors, hashed values listed as painted, a ribbon's width. */
+  /**
+   * What the legend says once: an open domain's "in view", substituted colors, hashed values listed as painted, a
+   * ribbon's width.
+   */
   readonly note?: string;
   /**
    * The layers it keys that a spec address names (the eye's: one button for one, a menu for several; a layer of no id
@@ -397,6 +400,8 @@ export function legendRows(viewer: { readonly legends: LegendModel }, options: L
       }));
     }
     const notes = [
+      // a continuous legend over an open domain states it: its ends are the settled values in view (the ramp's label)
+      ...(l.open && (e.kind === 'ramp' || e.kind === 'steps') ? ['in view'] : []),
       ...(l.notes.includes('substituted') ? ['colors substituted'] : []),
       ...(l.notes.includes('unlisted') ? ['values in view'] : []),
       ...(l.notes.includes('width') ? ['width: aligned length'] : []),

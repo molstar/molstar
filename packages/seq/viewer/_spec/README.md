@@ -1571,8 +1571,14 @@ redraw and a pan that changes the values, never in the spec), a `row.open` and `
 `<button aria-expanded>` ("Show n more", then "Show fewer"; Enter and Space click it, never select an entry) and an open
 group wraps and scrolls past a maximum height (14em) and builds at most `OpenCap` (200) rows, the rest counted inside
 the box (`row.beyond`); closed, rows are built for the first `maxItems` only. The button's accessible name starts with
-its visible text ("+28, show 28 more"). Bands and variants list drawn values as ranges does. Why derived on settle: a
-legend that changes during a pan reads as noise, and its cost stays off the frame.
+its visible text ("+28, show 28 more"). Bands and variants list drawn values as ranges does. **A legend states its
+domain**: a continuous legend (a ramp, steps) over an open domain notes "in view" (`row.note`, shown after its title in
+both forms, as the export's band writes "(in view)"), its ends the domain the view settled on (the label "0 to 25", the
+name "Score: 0 to 25, in view"), derived again when a pan or zoom settles; a closed one states its own ends and no note;
+a palette's domain is its own, never the y domain beside it. A categorical legend says which values it lists: a palette
+listing its values keys all of them (`source: vocabulary`, no note), one listing none keys what was painted (`painted`,
+"values in view"). Why derived on settle: a legend that changes during a pan reads as noise, and its cost stays off the
+frame.
 
 - **The legend behavior's commands** (`behaviors/theming.ts`, patches unless said): `layer.channel` (a channel's value
   or form set or unset, on one layer or several in one patch; on one layer's color its choices are a select param,

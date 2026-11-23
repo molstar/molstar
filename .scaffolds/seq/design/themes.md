@@ -320,6 +320,10 @@ and another viewer); a host recolors through `--seq-*` tokens.
   mount is a `SeqViewerSpec.ui` entry (`ui.legends`, the same call), its gestures a `BehaviorProvider` (`legend`), as
   the navigators' are. Seq\* never draws a legend on its canvas.
 - **The legend follows the hover**: the hovered item's entry is outlined; on a ramp, its value is ticked.
+- **A legend states its domain** (features, "Settle and open domains"; planned for version 1, the author, 2026-11-23):
+  a continuous legend over an open domain says "in view" beside its title, in the part as in the export, its ends the
+  values the view settled on; a closed one its own ends. A categorical legend says whether it is the vocabulary or
+  what was painted ("values in view", EC-204).
 - **A layer with no color takes the next categorical color** (decided, the author, 2026-11-19, the defaults audit: one
   steel blue for every colourless layer "reads as a placeholder"; "Yes, per layer"): by layer order within the view,
   from the theme's categorical palette, so two layers in a track differ; a spec's own color always wins; a layer's
@@ -551,6 +555,7 @@ real use is **fixed**, with its reason. **No new port**: themes need no provider
 | Highlight channels in the legend part (`highlight.clear`) | viewer › The Legend part lists the active highlight channels |
 | A layer's eye in the legend part (`layer.hide`, `layer.show`; a menu over several layers; `layers: false`) | viewer › A layer's eye |
 | A hidden layer's row keeps its place, dimmed, its entries no action | viewer › A layer's row keeps its place when hidden |
+| A legend states its domain: "in view" over an open one, its settled ends | viewer › Legends |
 | Editing a theme: one patch, previewed; the commands | viewer › The legend behavior's commands |
 | `theme.color-selection` | design-only: planned |
 | Legend selection follows the grammar's click rule (the only selected value clicked clears it) | viewer › click rule |
