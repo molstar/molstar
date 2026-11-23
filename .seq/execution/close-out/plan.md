@@ -40,6 +40,16 @@ are done, and the author's use of the genome views and the ring has passed.
 - **M5's leftovers** (`packages/seq/TODO.md`): the 200-copy split patch over 16 ms, one Signal zoom frame of 25.7 ms,
   Cmd+wheel on the ring at the fit.
 
+- **The sixth slice's drift, decided as recommended** (the author, 2026-11-23; the notes in
+  `../sixth-slice/drift/`), the code items:
+  - the theme picker's BLOSUM62 text (`theme/provenance.ts`) says what the scheme does: it compares with the
+    reference row;
+  - a folder-graph test in `packages/seq/core` (each folder an entry, no cycles);
+  - a lanes band's history step keyed by item, not `bandTop`;
+  - `rowsValue` drawn by a navigator over a lazy alignment (the TODO's Navigators);
+  - the info issue `seq.render.pairs.filter` (a data filter not applied to bins);
+  - the version-aware validate (an unknown kind of a newer minor a warning), before 1.0.
+
 ## Version 1's rows no milestone took
 
 To be listed from `design/features.md` (every `planned` row) and `design/version-1.md` at this plan's stage 0, each
