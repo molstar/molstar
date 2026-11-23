@@ -9,7 +9,7 @@ description: "Load first in any session working on packages/seq (Seq*, SeqViewSp
 model, with its model, query language and viewer, in the Mol\* v6 repository.
 
 It is an instance of the principles package: the package is `.scaffolds/principles/` (copied from the upstream exploration repository at
-`7d03f60`, 2026-11-17); this project's own modules, designs, sources, records and work folders are in `.scaffolds/seq/`.
+`7d03f60`, 2026-11-17, re-synced at `c1ccd14`, 2026-11-23); this project's own modules, designs, sources, records and work folders are in `.scaffolds/seq/`.
 
 1. **Read the manifest**, `.scaffolds/seq/principles/README.md`: the folder map, the modules and the adaptations.
 2. **Read `principles`** (`.scaffolds/principles/_skills/principles/SKILL.md`, how work is run), then **`principles-router`**

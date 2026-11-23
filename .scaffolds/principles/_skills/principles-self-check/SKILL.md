@@ -1,12 +1,15 @@
 ---
 name: principles-self-check
-description: "Load when work is about to change the principles or the designs: folding back what an execution session or a prototype taught (a fold-back), finalizing a session whose work touched .principles/ or .design/, writing a session record's Self-check section, or when a tension doesn't dissolve under clarification. Runs the four-step self-check on the change and records its delta."
+description: "Load when a design is about to be agreed, and when work is about to change the principles or the designs: folding back what an execution session or a prototype taught (a fold-back), finalizing a session whose work touched .principles/ or .design/, writing a session record's Self-check section, or when a tension doesn't dissolve under clarification. Runs the four-step self-check on the change and records its delta."
 ---
 
 # Principles self-check
 
 Recommend it to the session, then run it, when:
 
+- **a design is about to be agreed**: the claim is the design's own, step 2 negates its premise (for an action, its
+  inverse or symmetric case), and the result is a short section of the design
+  ([recurrence.md, "On a design"](../../_core/recurrence.md#self-check));
 - **a fold-back** turns what a session or prototype taught into changes to `.principles/` or `.design/` (its
   drift notes, gaps and residuals becoming rules, designs or open items);
 - **finalizing** work that changed the principles or a design, before the session record is written;

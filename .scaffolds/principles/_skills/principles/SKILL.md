@@ -9,7 +9,7 @@ How work is run. Load only what the work needs:
 
 - **Always:** the "In brief" of [workflow.md](../../_core/workflow.md), then the full section for what you are about
   to do (design, close, drift).
-- **Running or joining lanes:** its "Lanes" section ([workflow.md](../../_core/workflow.md#lanes)) and the lane brief
+- **Running or joining lanes:** [lanes.md](../../_core/lanes.md) and the lane brief
   in the [workflow-files pattern](../../_core/patterns/workflow-files.md#lane-brief). A lane reads its brief and the
   rule sections the brief names, not all of `_core`.
 - **Changing the principles or a design** (a fold-back, finalizing): [recurrence.md](../../_core/recurrence.md) and

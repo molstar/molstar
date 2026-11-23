@@ -66,5 +66,14 @@ The check for the package (and for any claim the package makes about itself) is 
 
 The run's delta (what it changed, what it carries) goes in the session record (§permanent-record). A run that
 changes nothing and carries nothing is suspect: it is the warning that "every merge creates new work" names above. Run
-it whenever the package changes, and on any tension that clarification alone doesn't dissolve.
+it whenever the package changes, on any tension that clarification alone doesn't dissolve, and on every design when it
+is agreed (§design-first).
+
+**On a design**, the claim is the design's own ("this design covers what a user does with X", "this store serves every
+reader it names"). Step 2 negates the premise it rests on; for an action that is usually its inverse or its symmetric
+case (going to X and leaving it, the leader and the follower, one range and several, one direction and the other); for
+something drawn, its unset case (what it looks like before anyone sets anything: empty, crowded, at another zoom).
+Step 4 builds what integrates, or plans it, and keeps the rest in the design as a standing tension. Why: the gaps a
+design leaves are mostly the negation of its own premise, and they surface at once when its author first uses what was
+built, too late and all together; asked at the design gate, they cost a line each.
 

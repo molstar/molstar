@@ -13,6 +13,7 @@
 | [recurrence.md](recurrence.md) | how work accumulates: a session reads a slice of `main`, works through it, and a merge folds it back; the frame for the rest |
 | [system.md](system.md) | how the package is built: modules, kinds, the `_` rule, ids and tombstones, skills, adapting |
 | [workflow.md](workflow.md) | how work is run: agent context, design → plan → loop → state → record, iteration, the recursive loop, meeting the author |
+| [lanes.md](lanes.md) | running work in parallel: worktrees, models, briefs, merges, hot files; read only when fanning out |
 | [patterns/drift-triage.md](patterns/drift-triage.md) | drift triage |
 | [patterns/workflow-files.md](patterns/workflow-files.md) | the workflow files: designs, plans, loops, state, records |
 | [patterns/spec-mirror.md](patterns/spec-mirror.md) | the spec mirror |

@@ -20,6 +20,8 @@ const BASE = join(ROOT, PKG);
 const IN_PKG = (rel: string): boolean => rel.startsWith(`${PKG}/`);
 /** The package and the instance: modules in both define ids; rule sets are laid out the same; pattern folders differ (below). */
 const BASES = [BASE, ...(INSTANCE ? [join(ROOT, INSTANCE, "principles")] : [])];
+/** A package rule's word budget (§rule-budget): a rule states what and why; the how and the evidence live elsewhere. */
+const RULE_WORDS = 180;
 const S = "§"; // the section sign; no citation in this file is followed by an id
 /** _core stands alone (system.md, "Adapting"): what it and its skill cite must be defined in _core. */
 const STANDALONE_DIRS = ["_core/", "_skills/principles/"].map((d) => `${PKG}/${d}`);
@@ -72,7 +74,19 @@ const patternDirs = new Map<string, boolean>(); // <base>/<module>/<pattern-dir>
 for (const { f, base } of principleFiles) {
   const rel = relative(ROOT, f);
   const parts = relative(base, f).split("/");
-  const isRuleSet = (parts.length === 2 && parts[1] === "rules.md") || rel === `${PKG}/_core/workflow.md`;
+  const isRuleSet =
+    (parts.length === 2 && parts[1] === "rules.md") ||
+    rel === `${PKG}/_core/workflow.md` ||
+    rel === `${PKG}/_core/lanes.md`;
+  const budgeted = isRuleSet && base === BASE; // the package's rules have a word budget; an instance sets its own
+  let item: { id: string; n: number; words: number } | undefined;
+  const closeItem = (): void => {
+    if (item && item.words > RULE_WORDS)
+      problems.push(
+        `${rel}:${item.n}: rule {#${item.id}} has ${item.words} words, over ${RULE_WORDS} (§rule-budget: move the how to a pattern, the evidence to a record)`,
+      );
+    item = undefined;
+  };
   const allowed = base === BASE ? PACKAGE_PATTERN_DIRS : INSTANCE_PATTERN_DIRS;
   const other = base === BASE ? INSTANCE_PATTERN_DIRS : PACKAGE_PATTERN_DIRS;
   const inPatterns = parts[0] !== "_template" && allowed.has(parts[1] ?? "");
@@ -98,6 +112,12 @@ for (const { f, base } of principleFiles) {
     }
     const r = REDIRECT.exec(line.replace(/^\s*(?:[-*]|\d+\.)\s+/, ""));
     if (r) redirects.set(r[1] as string, r[2] as string);
+    if (budgeted) {
+      if (/^\d+\. /.test(raw) || raw.startsWith("#") || !raw.trim()) closeItem();
+      const anchor = /^\d+\. /.test(raw) && section !== "## In brief" ? HAS_ANCHOR.exec(line)?.[1] : undefined;
+      if (anchor) item = { id: anchor, n, words: 0 };
+      if (item) item.words += raw.split(/\s+/).filter(Boolean).length;
+    }
     if (isRuleSet) {
       if (raw.startsWith("## ")) {
         section = raw.trim();
@@ -111,6 +131,7 @@ for (const { f, base } of principleFiles) {
       else if (id !== parts[2]) problems.push(`${rel}: pattern id {#${id}} differs from its folder name ${parts[2]}`);
     }
   }
+  closeItem();
 }
 
 for (const [dir, hasReadme] of patternDirs)

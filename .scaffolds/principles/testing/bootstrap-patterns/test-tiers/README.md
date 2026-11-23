@@ -51,7 +51,12 @@ again), since stores freed late read as growth; a positive control plants growth
 noise on a loaded machine, several times the bound. A scaling guard drives the path as the app calls it (its
 operation, its event, its frame), at sizes where the per-item part dominates the fixed cost, and its positive control
 injects a scan into that same path, not into a separate function. A guard is never quieted by a raised bound or a
-dropped control. Why: guards that flake under a loaded gate get ignored, and a guard timed on a function the app
+dropped control. A timing bound takes the best of three runs of the whole test (setup included; one run when the test
+is about one run's time). Timed runs (the quick tier's time, heavy, allocation) start only when nothing else runs,
+with the machine's load recorded beside the numbers; a bound under about 50 ms runs alone in its worker, since a
+quiet machine is not enough when the tier's own workers contend; a test that fails once under load is rerun alone
+and watched, a second failure is a fix. A lane whose packages pass the quick tier's time guide moves its own slow
+tests (keeping a quick representative) before its review. Why: guards that flake under a loaded gate get ignored, and a guard timed on a function the app
 does not call, or at sizes where the fixed cost dominates, stays green on a quadratic path.
 
 ## CI layer

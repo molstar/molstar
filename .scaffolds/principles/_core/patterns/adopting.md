@@ -33,7 +33,7 @@ it:
   [_template/instance-manifest/README.md](../../_template/instance-manifest/README.md). Write step 0's answers into
   it now; the rest of this step fills in its sections.
 - **The adoption is itself work**, with the work id `adopt-principles`: create its work folder,
-  `.<instance>/execution/adopt-principles/`, with a plan of these steps and a `state.md` (§state-file), and add
+  `.<instance>/execution/adopt-principles/`, with a plan of these steps, a checklist and a `state.md` (§plan-and-checklist, §state-file), and add
   `.tmp/` to `.gitignore` (the work folder is committed, §permanent-record). Its session record comes at the end (bootstrap, step 4).
 - Copy `.principles/` only. Not the home repository's designs, records, sources or prototypes: those are its own
   instance, not the package.
@@ -81,13 +81,18 @@ it:
 ## 4. Wire the checks
 
 A rule a tool can check is a check from day one. Each runs as its own command and gates on its exit code
-(§green-is-exit-code). The package ships the first three in `_checks/` ([the checks](../../_checks/README.md): how to
+(§green-is-exit-code). The package ships the first five in `_checks/` ([the checks](../../_checks/README.md): how to
 run them, their arguments, the planted error each must fail on); pass them the instance (`--instance .<instance>`).
 
 - **The id check** (`_checks/principles-ids.ts`): ids unique, citations resolve, `_core` stands alone, links stay
   inside the package, the package cites no instance id. The checks are TypeScript run with Node; a project without
   Node ports them or runs them with a pinned runtime, and says which in the manifest.
 - **The path check** (`_checks/paths-check.ts`): nothing committed names a path on one machine (§machine-invariant).
+- **The module-size check** (`_checks/file-size.ts`): no source file past the hard bound unless the baseline lists
+  it, and the baseline only shrinks (the architecture module's rule on module size, if used); a project with files already past it starts its baseline with
+  `--update` once, at adoption.
+- **The fold-back check** (`_checks/foldback-check.ts`): every session record answers the fold-back question, and a
+  closed folder's `foldback.md` carries the author's decision (§reconcile-before-merge).
 - **The merge check** (`_checks/merge-gate.ts`): nothing tracked outside the work folder points into it
   (§execution-unreferenced).
 - **Host exemptions**: each check takes `--allow <regex>` for file paths it skips (the host's own text that uses `§`

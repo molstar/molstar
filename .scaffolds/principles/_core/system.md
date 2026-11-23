@@ -1,7 +1,8 @@
 # How the principles are built {#principles-system}
 
 The principles are a package a project copies and adapts: a stable core, skeletons for new areas, and modules that
-each cover one area. This file says how the package is put together; `workflow.md` beside it says how work is run.
+each cover one area. This file says how the package is put together; `workflow.md` beside it says how work is run, and `lanes.md` how
+work runs in parallel.
 
 ## Modules
 
@@ -24,9 +25,16 @@ each cover one area. This file says how the package is put together; `workflow.m
 
 | Kind | Holds | Skeleton |
 |---|---|---|
-| rule set | `rules.md`: an "in brief", then sections of rules, each rule with an id; its code patterns in `bootstrap-patterns/` (in the package) or `stable-patterns/` and `sketch-patterns/` (in a project's instance; below) | `_template/rule-set/` |
+| rule set | `rules.md`: an "in brief", then sections of rules, each rule with an id (`_core`'s are `workflow.md` and `lanes.md`, whose in brief is `workflow.md`'s); its code patterns in `bootstrap-patterns/` (in the package) or `stable-patterns/` and `sketch-patterns/` (in a project's instance; below) | `_template/rule-set/` |
 | pattern collection | patterns that are the module itself, by source folder (look and feel, say): one entry per pattern | `_template/pattern-collection/` |
 | layout | `tree.md`: how a codebase built on the principles is laid out | `_template/layout/` |
+
+**A rule fits its budget.** {#rule-budget} A numbered rule in the package's rule sets states what and why in at most 180
+words, and keeps its why; how a step is run goes into a pattern (the workflow-files pattern, a module's bootstrap
+patterns), and the evidence that brought it goes into the session record. A fold-back that would push a rule past the budget condenses it, splits it into two rules
+with one concern each, or moves its how out; the id check counts. `_core` keeps what every session needs in
+`workflow.md` and what only parallel work needs in `lanes.md`. Why: fold-backs add, and nothing else removes; every word
+of a rule is read by every session that loads its module.
 
 In a text-only pattern collection (look and feel, say), an entry may be a single Markdown file in a source folder
 (`<collection>/<source>/<pattern-id>.md`) instead of a folder with implementation files. The file is named

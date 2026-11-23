@@ -13,7 +13,8 @@ code follows, the decisions, what the format means) moves into the packages' `_s
 ## Provenance
 
 - The package is `.scaffolds/principles/`: the principles (`.principles/` in the upstream exploration repository), copied at commit
-  `7d03f60` (2026-11-17). An update from it is a merge from that base. Edited once: its `workspace` and `layout`
+  `7d03f60` (2026-11-17), re-synced at `c1ccd14` (2026-11-23: its rule budget, a lighter `_core`, Seq\*'s slices 3 to 5
+  folded back). An update from it is a merge from that base. Edited on each sync: its `workspace` and `layout`
   modules removed (not adopted here) and their citations reworded, at the review's recommendation.
 - `queries/` and `agent-interface/` here: from the meso\* instance of the same package (`.meso/principles/` in the
   molstar-ludo repository), copied at commit `84c41cd84` (2026-11-17). Their links were repointed at `.scaffolds/principles/`, and
@@ -202,7 +203,7 @@ Rules learned in the third slice (over sixty lanes, figures; its fold-back in `e
 merged by the author ("and then you can apply the foldback"). Each extends the package rule it cites, and stands here
 until the package's home takes it. B10 (module and bundle sizes) went to the package as §module-size.
 
-- **Defaults are designed with a picture** {#defaults-designed} (extends §design-first; amends "Defaults are confirmed
+- **Defaults are designed with a picture** (now the package's §defaults-designed, taken upstream; was this instance's, extending §design-first; amends "Defaults are confirmed
   from tables" and the self-check on every design, above): a design that adds a layer, a layout or a part has a
   Defaults section, what a reader sees with no setting (heights, labels, colors, legends; empty, crowded, at the fit
   view and the closest zoom, in dark), each with a sketch or a reference picture, and its gate reviews it. Why: eleven
