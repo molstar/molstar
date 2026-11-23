@@ -1206,11 +1206,12 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   (`navigator.zoom-to`; `navigator.dragOutside: pan` centres and then pans); a double-click fits, or fitted zooms so the
   window is `navigator.zoomPx` navigator px wide (`navigator.doubleClick`); Esc cancels, the view back where the press
   found it. One gesture is one step: a click centres with its own step (a jump), and the double-click it begins (the
-  platform's, by the click's count: its second click does nothing, its `dblclick` follows) moves within that step, as
-  input's first click defers a clear (no timer: the platform knows a double-click); a drag pushes the viewports at its
-  press on release when the view went farther than one window width (`navigator.dragStep: far`; `never`, `always`). A
-  window bound to a follower moves its leader (`follow.followerMoves`). The ruler rails take the same gestures at the
-  rail's scale (Input).
+  platform's, by the click's count: its second click does nothing, its `dblclick` follows; on a square with a switch,
+  over a set or two sections, every click switches, the second too, and the double-click adds no zoom) moves within that
+  step, as input's first click defers a clear (no timer: the platform knows a double-click); a drag pushes the viewports
+  at its press on release when the view went farther than one window width (`navigator.dragStep: far`; `never`,
+  `always`). A window bound to a follower moves its leader (`follow.followerMoves`). The ruler rails take the same
+  gestures at the rail's scale (Input).
 - **A linked selection is revealed** (`reveal.linked`, the viewer's): a selection made elsewhere (another section, a
   link, a structure) scrolls each text section (`all`: each section; `none`) that shows none of its projection to its
   first part, the layout's least move, as a move by hand (no history step); never the section it is being made in (a

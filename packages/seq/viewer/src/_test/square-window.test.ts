@@ -439,3 +439,73 @@ describe('The square over a ring: any set', () => {
     expect(n.cursor).toBe('move');
   });
 });
+
+// A square over two sections (x one ring, y another): with a switch it behaves as the square over a set does, as
+// intended (the author's "a second click switches" holds for every square with a switch): each click on a cell shows
+// that pair on the clicked section, a quick second click (count 2) too, and the double-click adds no zoom. Without a
+// switch, as before: a second click is the double-click's, which fits the cell's pair.
+describe('The square over two sections', () => {
+  const A = '/views/main/a';
+  const B = '/views/main/b';
+  async function makeTwo(withSwitch: boolean) {
+    const b = createSeqSpec({ title: 'the square over two rings' });
+    const g = b.data.assembly(
+      'g',
+      assembly(
+        'Eight',
+        Names.map((name) => ({ name, length: 1_000_000 })),
+      ),
+    );
+    b.views.view('main', (v) => {
+      genome(v, 'a', g, { layout: 'rings' } as never);
+      genome(v, 'b', g, { layout: 'rings' } as never);
+      v.navigator('square', {
+        of: [A, B],
+        axes: 'both',
+        system: g,
+        ...(withSwitch ? { switch: 'include' } : {}),
+        size: [200, 200],
+      } as never);
+    });
+    frames = installFrames();
+    const viewer = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined, history: uiHistory() });
+    viewers.push(viewer);
+    await viewer.load(b.build());
+    viewer.resize(600, 600);
+    await viewer.settle();
+    frames.flush();
+    viewer.draw();
+    const n = viewer.navigatorModel('square')!;
+    n.resize(200, 200);
+    n.draw();
+    return { v: viewer, n };
+  }
+  const includeOf = (v: SeqViewer, id: string) => {
+    const views = v.spec.root.value.children!.find((c) => c.kind === 'views')!;
+    return views.children![0].children!.find((c) => c.id === id)!.params?.include as string[] | undefined;
+  };
+
+  it('with a switch: a quick second click switches too; the double-click adds no zoom', async () => {
+    const { v, n } = await makeTwo(true);
+    expect(square(n).setMode).toBe(false);
+    expect(click(n, ...cell(n, 1, 4))).toBe(true);
+    await settle(v, n);
+    expect(includeOf(v, 'a')).toEqual(['chr2', 'chr5']);
+    expect(click(n, ...cell(n, 6, 2), 2)).toBe(true);
+    await settle(v, n);
+    expect(includeOf(v, 'a')).toEqual(['chr3', 'chr7']);
+    const before = v.view.get(A)!;
+    expect(n.doubleClick(...cell(n, 6, 2))).toBe(false);
+    expect(v.view.get(A)).toEqual(before);
+  });
+
+  it('without a switch: a second click is the double-click’s, which fits the cell’s pair', async () => {
+    const { v, n } = await makeTwo(false);
+    expect(click(n, ...cell(n, 6, 2), 2)).toBe(false);
+    const whole = v.view.get(A)!;
+    expect(n.doubleClick(...cell(n, 6, 2))).toBe(true);
+    await settle(v, n);
+    expect(v.view.get(A)!.end - v.view.get(A)!.start).toBeLessThan(whole.end - whole.start);
+    expect(includeOf(v, 'a')).toBeUndefined();
+  });
+});
