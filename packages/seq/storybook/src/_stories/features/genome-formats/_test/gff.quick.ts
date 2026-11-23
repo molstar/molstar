@@ -33,8 +33,6 @@ const LayoutOptions = {
   steps: 128,
   windows: 3,
   maxWarmSteps: 2000,
-  control: false,
-  why: 'a layout allocates kilobytes: they hide the control',
 } as const;
 
 async function settled() {

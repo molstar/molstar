@@ -69,8 +69,6 @@ describe('a genome’s row of blocks: pans across a gap, draws and hovers', () =
       steps: 120,
       windows: 3,
       maxWarmSteps: 2000,
-      control: false,
-      why: 'a layout allocates kilobytes: they hide the control',
     });
     console.info(`genome row pan frame: ${r.bytesPerStep.toFixed(0)} bytes a frame (${r.note})`);
     // measured 31.7 KB (2026-11-21): the tracks' lays of two blocks, the ruler's ticks and labels, the key; 31.6 KB

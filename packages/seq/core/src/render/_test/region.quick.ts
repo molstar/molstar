@@ -97,8 +97,6 @@ describe('region reads draw with nothing allocated once warm', () => {
     steps: 100,
     windows: 3,
     maxWarmSteps: 2000,
-    control: false,
-    why: 'a layout',
   } as const;
   for (const n of [6000, 60_000])
     it(`region pairs, ${n.toLocaleString('en-US')} links: a warm pan's layout allocates no key a row`, async ({
