@@ -13,6 +13,7 @@ import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 import type { PlyFile } from '@molstar/io/reader/ply/schema';
 import { parseSplat } from '@molstar/io/reader/splat/parser';
 import { parseSpz } from '@molstar/io/reader/spz/parser';
+import { decodeImageBitmap } from '@molstar/io/common/image';
 import { decodeSogImage, parseSog, parseSogArchive } from '@molstar/io/reader/sog/parser';
 import type { SogImage, SogImageBytes, SogMeta } from '@molstar/io/reader/sog/schema';
 import { Sphere3D } from '@molstar/core/math/geometry/primitives/sphere3d';
@@ -217,12 +218,9 @@ function canUploadImagesAsStored(graphics: GraphicsContext) {
 
 let warnedPremultiplied = false;
 
-/** The browser's decode of a lossless WebP as stored: not premultiplied, no color conversion (`sh0`'s alpha) */
+/** The browser's decode of a SOG image's lossless WebP as stored: not premultiplied, no color conversion (`sh0`'s alpha) */
 function decodeBitmap(image: SogImageBytes) {
-  return createImageBitmap(new Blob([image.bytes as Uint8Array<ArrayBuffer>], { type: 'image/webp' }), {
-    premultiplyAlpha: 'none',
-    colorSpaceConversion: 'none',
-  });
+  return decodeImageBitmap(image.bytes, 'image/webp', image.name);
 }
 
 /** The centers of `count` splats decoded from SOG's means (`meansLow`, `meansHigh`: RGBA bytes) */

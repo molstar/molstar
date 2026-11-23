@@ -10,7 +10,10 @@ import { unzip } from '@molstar/core/util/zip/zip';
 import { utf8Read } from '@molstar/core/util/utf8';
 import { ReaderResult as Result } from '../result.js';
 import type { SogArchive, SogFile, SogImage, SogImageBytes, SogImageDecoder, SogMeta } from './schema.js';
-import { decodeWebpInBrowser } from './webp-decoder.js';
+import { decodeImage } from '../../common/image.js';
+
+/** A SOG image's lossless WebP decoded by the browser, as stored (its rgb data: codebook indices, alpha an opacity) */
+const decodeSogWebp: SogImageDecoder = (bytes, name) => decodeImage(bytes, { type: 'image/webp', name });
 
 async function parseArchive(ctx: RuntimeContext, data: ReadonlyUint8Array): Promise<Result<SogArchive>> {
   // the archive's buffer as it is where the bytes are all of it (no copy)
@@ -52,7 +55,7 @@ async function parseArchive(ctx: RuntimeContext, data: ReadonlyUint8Array): Prom
 export async function decodeSogImage(
   archive: SogArchive,
   image: SogImageBytes,
-  decode: SogImageDecoder = decodeWebpInBrowser,
+  decode: SogImageDecoder = decodeSogWebp,
 ): Promise<SogImage> {
   const decoded = await decode(image.bytes, image.name);
   if (decoded.width * decoded.height < archive.count && image !== archive.shN?.centroids) {
@@ -62,10 +65,7 @@ export async function decodeSogImage(
 }
 
 /** The images of `archive` decoded by `decode` */
-export async function decodeSogArchive(
-  archive: SogArchive,
-  decode: SogImageDecoder = decodeWebpInBrowser,
-): Promise<SogFile> {
+export async function decodeSogArchive(archive: SogArchive, decode: SogImageDecoder = decodeSogWebp): Promise<SogFile> {
   const image = (i: SogImageBytes) => decodeSogImage(archive, i, decode);
   const { shN } = archive;
   const [meansLow, meansHigh, scales, quats, sh0, centroids, labels] = await Promise.all([
@@ -106,9 +106,9 @@ export function parseSogArchive(data: ReadonlyUint8Array) {
 
 /**
  * Parses PlayCanvas's SOG (a zip of `meta.json` and lossless WebP images, versions 2 and 3): the images decoded by
- * `decode` (by default the browser's, `decodeWebpInBrowser`: none in Node)
+ * `decode` (by default the browser's, `decodeImage`: none in Node)
  */
-export function parseSog(data: ReadonlyUint8Array, decode: SogImageDecoder = decodeWebpInBrowser) {
+export function parseSog(data: ReadonlyUint8Array, decode: SogImageDecoder = decodeSogWebp) {
   return Task.create<Result<SogFile>>('Parse SOG', async (ctx) => {
     try {
       const archive = await parseArchive(ctx, data);

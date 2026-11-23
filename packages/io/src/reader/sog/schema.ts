@@ -4,6 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import type { DecodedImage } from '../../common/image.js';
+
 /**
  * PlayCanvas's SOG gaussian splats, versions 2 and 3 (`meta.json`, see `SogFile`). Unknown fields ignored
  */
@@ -34,12 +36,8 @@ export interface SogMeta {
   readonly model?: string;
 }
 
-/** A decoded image: RGBA bytes, row-major from the top-left, not premultiplied */
-export interface SogImage {
-  readonly width: number;
-  readonly height: number;
-  readonly data: Uint8Array;
-}
+/** A decoded image of a SOG file: RGBA bytes, row-major from the top-left, not premultiplied (`decodeImage`) */
+export type SogImage = DecodedImage;
 
 /** An image of a SOG file as stored: its name and lossless WebP bytes (a view of the archive's entry) */
 export interface SogImageBytes {

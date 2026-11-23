@@ -208,7 +208,7 @@ Per splat, once, in the layout the shaders read:
 ### SOG on the GPU (step 10, in progress)
 
 SOG's images are already the layout a shader can read (a pixel a splat, 4 bytes an image); today they make a round trip:
-the browser decodes each WebP, `readPixels` brings it to the CPU (`decodeWebpInBrowser`), the model decodes each splat,
+the browser decodes each WebP, `readPixels` brings it to the CPU (`decodeImage`), the model decodes each splat,
 graphics encodes it into `tSplat` and `tSplatSh` and uploads them. The view-dependent color is expanded per splat (15
 texels, 60 bytes at degree 3) where SOG stores a palette (≤ 64K entries) and a label a splat: at 1 M splats of degree
 3 about 100 bytes a splat on the CPU and as much on the GPU, against about 40 on the GPU read in place.
@@ -259,7 +259,7 @@ texels, 60 bytes at degree 3) where SOG stores a palette (≤ 64K entries) and a
   - upright (decided): the shape's transform, for every format (below), so the sog decode has no turn;
   - bounds from `meta.json` (exact, before the means are read), the group bounds from `positionGroup` once read.
 - **Textures from `ImageBitmap`s**: WebGPU's textures load them (`copyExternalImageToTexture`), WebGL's need it
-  (`texImage2D` with the unpack state of `decodeWebpInBrowser`). The bitmaps closed once uploaded. A context restore
+  (`texImage2D` with the unpack state of `decodeImage`). The bitmaps closed once uploaded. A context restore
   or a backend switch decodes again from the file's bytes, which the state tree holds anyway (decided: nothing kept,
   unlike PlayCanvas's bitmaps at 4 bytes a pixel each; the restore asynchronous, the representation built again for
   the new context as `GeometryUtils.isCompatible` does, the splats missing for its frames).
@@ -327,7 +327,7 @@ texels, 60 bytes at degree 3) where SOG stores a palette (≤ 64K entries) and a
    antimatter15's nike (`.splat`) and Niantic's horned lizard (`.spz`).
 
 9. **SOG** (done): `io/src/reader/sog` (zip, `meta.json`, versions 2 and 3, the images by the given decoder,
-   `decodeWebpInBrowser` by default), `model/.../gaussian-splat/sog.ts`, the `sog` provider. Tests: zips of fake images
+   `decodeImage` by default), `model/.../gaussian-splat/sog.ts`, the `sog` provider. Tests: zips of fake images
    (the decoder given), splats encoded into images as splat-transform's writer does (both rotations, the clamped
    opacity, the palette by label); by eye on PlayCanvas's skull (version 2, with harmonics: the bronze's highlights) and
    apartment, WebGL2 and WebGPU.
