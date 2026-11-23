@@ -9,10 +9,13 @@
   and should not leak into the common libraries"): `351d9e9fc`.
 - Started (the author, 2026-11-23: "Yes, start it").
 
+- Stage 1's fifteen drift notes (the author, 2026-11-23: "All as recommended"): designs amended to the code's way by
+  S1F; the code items to the close-out plan.
+
 ## In progress
 
 - 2026-11-23: stage 1 started. `.seq/_checks/designs-in-specs.ts` written (46 designs pending). Running: **S1A**
-  (strong, `briefs/s1a-specs.md`) and **S1B** (strong, `briefs/s1b-specs.md`, merged `81a82d453`); S1A merged (`936242251`); **S1D** (Sonnet, `briefs/s1d-specs.md`) started beside it; S1C merged; stage 1's gate passed (15 drift notes to the author). Running: **S1E** (Sonnet, `briefs/s1b2-citations.md`, stage 1b).
+  (strong, `briefs/s1a-specs.md`) and **S1B** (strong, `briefs/s1b-specs.md`, merged `81a82d453`); S1A merged (`936242251`); **S1D** (Sonnet, `briefs/s1d-specs.md`) started beside it; S1C merged; stage 1's gate passed (15 drift notes to the author). Running: **S1E** (Sonnet, `briefs/s1b2-citations.md`, stage 1b) and **S1F** (Sonnet, `briefs/s1f-drift.md`).
 
 ## Findings by lane
 
