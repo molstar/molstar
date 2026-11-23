@@ -499,7 +499,7 @@ Cells this design fills or changes; the others stand as the axis, layouts and na
 | a block's ruler at its own density; overlapping blocks lit together; a ribbon's twist by the three directions | fixed | — | the reasons in the Decision |
 | the hue per block's domain (the blocks in order) | fixed | — | known up front, never by region (EC-191) |
 
-Not built: `system` as a list of assemblies; the square's cells (RG) and its grips.
+Built (the fifth slice): GC1 (the language and resolve), SC (sections over a complex), GC2 (the axis and layouts), GC3 (navigators and the viewer), GA2 and GA3 (the genome ring's axis and many contigs), RX2 (the square's cells, `LayerType.square`, and its window moved and resized). Not built: `system` as a list of assemblies; grips drawn on the square per axis.
 
 ## Tensions
 

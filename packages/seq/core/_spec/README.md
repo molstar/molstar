@@ -601,6 +601,9 @@ address, `/data/p53/(range :from 94 :to 292)`.
   `label`, its other columns); `extent` and a result's location cover both ends. Why: a host asks which pairs touch a
   range (the viewer's `linkedPairs`). A location part on neither target is read against the rows' systems before it is
   said unreachable.
+- **An end without a strand** (`.` in BEDPE) is held unknown (`strandKnown` false), never read as `+`: a card says it
+  as `.`, and a rule over strands (reversed, same) does not count it. Why: a contact file's ends are often unstranded,
+  and reading them as `+` called half the links reversed.
 
 ### Location
 

@@ -145,9 +145,17 @@ What this version contains and will contain. Each feature links its story here o
   [Examples › Services](?path=/story/seq-next-examples-services--composing-services).
 - **Archives**: a spec with its data files saved and opened as a zip over the assets port, bounded:
   [Features › Archives](?path=/story/seq-next-features-archives--plasmid-saved).
-- **Range reads and bigWig**: range reads of assets in `@molstar/core` and an opt-in bigWig reader: tested, not shown in
-  a story.
-- **A second consumer of the resolved view**: a test-only renderer from the resolved view and the store alone: tested.
+- **Range reads and bigWig**: range reads of assets in `@molstar/core` and an opt-in bigWig reader:
+  [Examples › p53 › Signal from a bigWig](?path=/story/seq-next-examples-p53-signal-from-a-bigwig--signal-from-a-big-wig).
+- **A second consumer of the resolved view**: a test-only renderer from the resolved view and the store alone, and a
+  Nightingale showcase on it as a dev dependency:
+  [Showcases › Nightingale](?path=/story/seq-next-showcases-nightingale--sequence-and-features).
+- **Genomes**: assemblies and blocks on rows and rings, navigators over blocks and the square, data by region (pairs,
+  matrices, grids, rows), BED, GFF3, GTF, VCF and GenBank with BGZF and tabix, bridges across sections (synteny, the dot
+  plot, liftover), contact maps, points and log scales, variants by sample, names indexed; the genome ring as an
+  extension (`@molstar/seqx-ext-rondo`):
+  [Examples › Genomes › Views](?path=/story/seq-next-examples-genomes-views--synteny),
+  [Features › Genome Ring](?path=/story/seq-next-features-genome-ring--kinds-of-links).
 
 ## Planned
 
@@ -155,9 +163,9 @@ What this version contains and will contain. Each feature links its story here o
   agent skill.
 - **Coordinates and maps**: the `pairwise` and `alignment` map kinds, computed maps.
 - **Data and sources**:
-  - A3M and Clustal; the matrix shape (with the Genomes milestone);
+  - A3M and Clustal;
   - patches on streamed things and a command to keep a region; patch streams from an agent or a host;
-  - a source's assembly; a bigWig view (its reader is built).
+  - a source's assembly.
 - **Layers and themes**: track groups and summaries.
 - **Interaction and editing**: search and its results; track and group editing beyond hide, reorder and themes; drags
   snapped to whole codons.
@@ -176,9 +184,8 @@ What this version contains and will contain. Each feature links its story here o
 Each is deferred until the trigger named for it.
 
 - **A published JSON Schema**: until an outside reader or an agent tool needs one.
-- **The Genomes milestone**: layers across sections and synteny, contact maps, a MAF over a genome, values for genomics
-  (points, split, log scale), variants by sample, matrices, keyed joins, gene hierarchies, and the genome formats beyond
-  bigWig: after version 1's views run.
+- **The rest of the Genomes milestone**: a MAF over a genome (cut), values split by sample and reference lines, keyed
+  joins, 2bit, BigBed and PAF: version 1's close-out.
 - **Writers (FASTA, PDF)**: until the first writer extension.
 - **Agent tools**: until the language description and addressing are built.
 - **A React adapter**: until a React host asks.

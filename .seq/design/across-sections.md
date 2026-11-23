@@ -480,7 +480,7 @@ Cells this design fills; the others stand as GA, RR, grids-and-rows and ux-found
 | the twist by corresponding positions; ends at their true x, clamped one box width out | fixed | — | GA's rule by geometry; continuity on pan |
 | each side read at its own level, a pair drawn once by ownership (the finer side's region widened to the far bins) | fixed | — | one ribbon drawn once at the level its side needs |
 
-Not built: every row (LA; `follow_y`'s second section and categorical axes LA too).
+Built (the fifth slice): LA, LA2, LA3, LA4 (bridges, grids over two sections, categorical axes, liftover). Not built: a bridge's resize grip, bridge menus, a ribbon's double-click, `bridge.pointer` (TODO).
 
 ## Tensions
 

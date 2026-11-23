@@ -463,8 +463,6 @@ Cells this design fills; the others stand as layouts, GA, RR and LX give them.
 | keys of `rondo:partner` | `ViewerConfig` (`view.keys`) | `.` and `,` | a keyboard way along the links; checked at RX |
 | neck order (partners by angle, stubs, the fan last); the twist by low and high edges; width linear, no floor inside a neck | fixed | — | the reasons in the Decision |
 
-Not built: every row (RX; `section.include`, `navigator.switch` in GC3; `center` in GC2).
-
 ## Tensions
 
 - **Stems are a lattice, not clusters**: a cluster across a stem edge is two stems, and a resize past a power of two

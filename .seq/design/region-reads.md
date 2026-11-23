@@ -516,8 +516,7 @@ Cells this design fills or changes; the others stand as grids-and-rows and GA gi
 | pairs tiled in 1D by either end; grids in 2D at square levels; one value a grid cell; symmetric grids served once | fixed | — | the reasons in the Decision |
 | the level rules by shape | fixed | — | one rule a shape, each with its reason; their bounds are the presets above |
 
-Not built: every row above but `pairs.maxArcs`, `summaries.factor` and the `OpenLimits` (RG; `blocks.readPx` GC2,
-`navigator.square.maxCells` GC3).
+Built (the fifth slice): RG with RS (the shapes, 2D tiles, levels, summaries), GA2 (pairs on the ring), FR (the formats by region past level 1), RX (`PairsReader`). Not built: the matrix's state labels, `order` and `hidden` (TODO).
 
 ## Tensions
 

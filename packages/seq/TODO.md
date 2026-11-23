@@ -105,6 +105,8 @@ extension kinds.
 
 ## `@molstar/seqx-core`
 
+- **A bare number as a block name** (`:name 01`) is refused with "quote it": keeping the text needs a raw-token surface
+  in core repr; take it when a real name set needs it.
 - **The liftover's follow-ups** (LA4, 2026-11-22): a pan frame of the Liftover story allocates ~1.4 MB (about as the
   same genes read directly, ~1.5 MB; ~1.1 MB the bridge's and the sections' relayout): a pan that keeps the layout;
   lifted pieces with square cut ends; lifting over single sequences (assemblies only today); `mapSummary` and the
@@ -298,6 +300,13 @@ extension kinds.
 
 ## `@molstar/seqx-viewer`
 
+- **Canvas and SVG laid out apart** (fifth slice, tRNA › Views › Seed and chain): a twin sweep (medium) over every
+  story's spec, laying it out for the canvas and the SVG at one frame size, each section's, track's and band's box and
+  scroll equal; the first row below the track above it.
+- **The hover card's place and rows**: one side while the pointer stays in a track, never over the hovered row; a range
+  value never wraps; an unnamed item titled by its type and range.
+- **Coarse row levels for lazy rows**: `readTiles` at level 2^k from rows per device pixel, bins drawn by class (a
+  design with region-reads and the protocol); a band's own row height, or zoom off, in the spec (a language change).
 - **Tooltips' follow-ups** (TT, 2026-11-22): MolViewSpec and address tables read from a `source` (today
   `seq.resolve.tooltip.source`, unread); a CIF category of a structure's source; the card's links in the keyboard
   cursor's menu (Shift+F10, EC-156); the matrix's `member_labels` (the design's separate change); `data/intervals.ts` is

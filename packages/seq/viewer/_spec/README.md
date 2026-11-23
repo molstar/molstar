@@ -734,6 +734,10 @@ param (`port`, a `HoverCardPortFactory` given the canvas's element, none headles
   then a row `+k more`, the rest in `more`; the behavior's `shown` keeps the whole card and the live region says every
   item. Why: a ring's position under 20 features filled the page; a host that wants the list whole draws its own card
   from `more` (the port).
+- **Items under a place**: one item seen through two layers of one data node is one row; two distinct items sharing a
+  label and an extent stay two (by identity: the data, the item's key, its system). Over blocks the items are read from
+  the pointer's block's own strip; a place naming no block (an extension's hit) takes the block of its system whose
+  range holds the position, never the system's first. Why: a stem on chr14 listed chr1's band, twice.
 - **Providers** (`card-provider.ts`, `card-providers.ts`): the card is composed by the application, as Mol\*'s plugin
   composes its labels: registry entries `{ kind: 'card-provider', name, order?, describe(at, out) }` in the viewer spec,
   beside `header-action`, run by `order`, then name (the header entries' rule; no order: after the ordered ones). `at`

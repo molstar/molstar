@@ -554,7 +554,7 @@ they change:
 | `findNames`' `max`, `prefix` | option of the call | 20; false | a list a box shows; prefix for typing |
 | a format's base and ends; side `a` the map's from side; the anchor base kept; a line's extent by the index's rule | fixed | — | the reasons in the Decision |
 
-Not built: FR (the formats by region past level 1, VCF's matrix); BZ, BE, GG, VC and GB built (GFF3, GTF and GenBank read whole; VCF sites whole and by region at level 1).
+Built (the fifth slice): BZ, BE, GG, VC, GB, FR (by region with levels, VCF's matrix). Not built: bigBed, 2bit, FASTA by region, PAF, PIF and chain (designed only).
 
 ## Tensions
 

@@ -264,7 +264,7 @@ and another viewer); a host recolors through `--seq-*` tokens.
   `seq-ss-strand`, `seq-ss-turn`, `seq-variant`, `seq-ruler`; chrome the other designs draw: `seq-break` (the axis
   design's break ink), `seq-window` (a window's fill and edge: rings and navigators), `seq-grip` (its grips),
   `seq-wash` (outside a navigator's window and its unreachable span), `seq-centromere` (a hue, 3:1 against the surface in
-  both themes). The `seq-density-*` pair stays the density strip's. A host recolors any of them through `--seq-*`.
+  both themes). `seq-genotype-0` … `seq-genotype-3` (a genotype matrix's classes: no copy, some copies, every copy, partly called; beside `seq-missing`, never the value ramp; region-reads, Defaults 6). The `seq-density-*` pair stays the density strip's. A host recolors any of them through `--seq-*`.
 - **Ink follows its fill** for letters and labels on any colored mark (4.5:1). The tables' inks are not pure black and
   white, so a mid-tone fill can leave both under 4.5:1 (a saturated scheme color between them): there the ink is pure
   black or white, whichever is higher (the better of the two is always above 4.5:1). An `ink` theme's color under 3:1

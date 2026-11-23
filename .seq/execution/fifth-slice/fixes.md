@@ -4,9 +4,9 @@ Small findings that need no design collect here for the slice's fix points, as t
 2026-11-21: "lets have a 'fix phase' for slice 5 too where we accumulate these smaller things?"). An FX lane takes the
 open items at each fix point (plan, Fix points); a finding that needs a design becomes a drift note instead.
 
-## Open
+## Open (placed at the close, 2026-11-23)
 
-- **A drag's work is bounded by the screen, not by the selection** (FX8, 2026-11-22: a drag across 3,000 contigs relays out the navigator's strip, about 110 kB a frame, bounded at 256 kB in `navigator-blocks.quick.ts`; its 2 ms bound fails under load: move it to the heavy lane under `itWithin`) (moved by FX12) (the author, 2026-11-21, tRNA › Views › Dot plot
+- **A drag's work is bounded by the screen, not by the selection** **Carried to the next plan** (the close, 2026-11-23: still open, the selection written on every move; a strong lane with the PAE drag and the 3,000 contigs). (FX8, 2026-11-22: a drag across 3,000 contigs relays out the navigator's strip, about 110 kB a frame, bounded at 256 kB in `navigator-blocks.quick.ts`; its 2 ms bound fails under load: move it to the heavy lane under `itWithin`) (moved by FX12) (the author, 2026-11-21, tRNA › Views › Dot plot
   scale: "selecting a rect on the dotplot here is really laggy. both as a rect on the plot, and a range on the nav.
   are we doing too much work here? maybe related to the other perf issue? and similar lag to selecting on the genome
   ring with the contigs"). One class with the PAE drag and the 3,000-contig drag-select below. What I read (not yet
@@ -22,7 +22,8 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   full selection resolved once on release. Bound each drag kind's frame to the budget at 0 bytes warm in the perf
   tier. A strong-model lane; it closes the PAE drag item and the 3,000-contig drag-select part below.
 
-- **The novice decisions, to build** (stage 1's gate, the author, 2026-11-21: "Yes, all five"; novice-findings.md):
+
+- **The novice decisions, to build** **F25 fixed** (`1e03310ae`); **F3, F9, F11, F14 carried to the next plan** (the close, 2026-11-23). (stage 1's gate, the author, 2026-11-21: "Yes, all five"; novice-findings.md):
   F3 the fake's "Within 5 Å" on a selection that is already the chain selects the residues of the other chains within
   5 Å (never the selection again), its card "n residues within 5 Å of chain A"; F9 the track the structure is coloured
   by shows its icon pressed (one at a time, the icon fixed in place, its tooltip naming it); F11 an empty section says
@@ -30,7 +31,8 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   Species = Human") and says "click to clear"; F25 a navigator window at the fit is drawn as one quiet frame, no grips
   and no drag target (with the strip item), the Coverage strip story opening zoomed. Tests one a decision.
 
-- **The canvas and the SVG of one spec lay out differently** (the author, 2026-11-21, tRNA › Views › Seed and chain:
+
+- **The canvas and the SVG of one spec lay out differently** **Placed in the TODO** (the close, 2026-11-23: a twin sweep). (the author, 2026-11-21, tRNA › Views › Seed and chain:
   "seems like a layout issue. the canvas is big, svg small"). Same spec, two sizes: on the canvas the seed's rows band
   grows to every row (the page scrolls, the 1EHZ chain track pushed out of sight below it); on the SVG the band stops
   at about twelve rows with its own scroll and 1EHZ shows under it. In both, the first row is half hidden under the
@@ -42,7 +44,8 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   sizes on its own fails at once. With it the rows band's height follows the track-sizing design (content height to a
   cap, then its own scroll; the item below), the same on both, and the first row starts below the track above it.
 
-- **The hover card: placement, wrapping, and the density row's missing highlight** (the highlight part closed by the hover contract above; the author, 2026-11-21, Files ›
+
+- **The hover card: placement, wrapping, and the density row's missing highlight** **Partly fixed** (HC `50286b413`, TT `94c76d0b9`); **the rest placed in the TODO** (the close, 2026-11-23). (the highlight part closed by the hover contract above; the author, 2026-11-21, Files ›
   UniProt entry: "hovering the bottom 'regions' … is missing a highlight", "the hover placement is quite
   inconsistent"):
   - the Regions track's bottom row (its density row of overlapping regions) shows a card but draws no hover mark: the
@@ -57,13 +60,8 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   Tests: the density row's hover draws a mark; the card's box never intersects the hovered row; a range value on
   one line.
 
-- **The vertical overview cut at the right on a wide page** (FX5 2026-11-22: not reproduced at 960, 1600, 2200 px; the grids made shrinkable, `minmax(0, 1fr)`, as hardening; open until seen at a wide page) (the author, 2026-11-21, Globins rows family-rail-pinned):
-  at full width the story's canvas runs past the page's right edge, so the vertical overview is clipped (a narrow
-  page, where canvas and SVG stack differently, shows it whole). The story's layout gives the canvas its measured width
-  at every page width, the overview inside it; a story-layout test at a wide and a narrow width that the overview's box
-  lies inside the canvas and the canvas inside the page.
 
-- **The hover card follows a drag on the grid and makes it laggy** (the drag part an instance of the drag rule above; the author, 2026-11-21, Examples › Complex › PAE
+- **The hover card follows a drag on the grid and makes it laggy** **Partly fixed** (the card hides during drags); **carried with the drag rule** (the close, 2026-11-23). (the drag part an instance of the drag rule above; the author, 2026-11-21, Examples › Complex › PAE
   and contacts › CDK2 monomer: "showing the hover when dragging on the PAE plot makes the view feel really laggy"):
   while a drag sweeps a box on the PAE grid, the hover card (x, y, value) and the crosshair are re-resolved and redrawn
   on every move, on top of the selection box and its mirror on the section above. During any drag (a grid's box, a
@@ -72,7 +70,8 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   this story (298 × 298 grid) and bound a box drag to the frame budget, 0 bytes warm, in the perf tier. Same family as
   the readout covering the active control above.
 
-- **Zooming a lazy alignment out past a pixel a row leaves a blank plot** (the author, 2026-11-21, Examples › Globins ›
+
+- **Zooming a lazy alignment out past a pixel a row leaves a blank plot** **Part fixed by FX16** (`8c07380aa`); **coarse row levels placed in the TODO** (the close, 2026-11-23). (the author, 2026-11-21, Examples › Globins ›
   Rows › Lazy, the rows rail's grip dragged to widen the window: "trying to resize the vertical bar breaks the lazy
   views. does our streaming protocol correctly ask for a window to fill?"). The window is asked correctly while rows
   are a pixel or more: `readLazy` (`core/src/render/rows-read.ts:196`) reads the tiles of rows `[first, last]` at level
@@ -98,12 +97,27 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   source's (a device pixel a row for a lazy source without row levels, part 1 above). The library rule (memory: the
   host configures optional behaviour) and grids-and-rows.md's zoom rows updated with it. Parts (1) and the host's limits built by FX16 (`8c07380aa`): a lazy source without row levels stops at a device pixel a row (keys, grips, a stored `rowScale` clamped), `rows.zoom` (`minPx`, `maxPx`, `enabled`) in `ViewerConfig`, validated. Open: part (2), the coarse row levels (a design), and a band's own override in the spec (a language change).
 
-- **The 3,000-contig story could be faster** (the drag part an instance of the drag rule above; the author, 2026-11-21, on packages-seq's build: "better perf ... although
+
+- **The 3,000-contig story could be faster** **Carried with the drag rule** (the close, 2026-11-23; M5 measured only the square's drag). (the drag part an instance of the drag rule above; the author, 2026-11-21, on packages-seq's build: "better perf ... although
   still could be faster"): my measure, 40 hover steps along the row each drawn within two frames (about 33 ms, no
   drops). Take it at M5: profile hover and pan on three-thousand-contigs (ring and row), find the per-frame cost, and
   set a bound in the perf tier. **A drag-select across many chromosomes is slow** (the author, 2026-11-21: chr11 to
   chr22 selected on the row, mirrored on the ring): profile the drag's frames (the selection's blocks and their
   emphasis on both views), bound a drag across 12 blocks to the frame budget at 0 bytes warm.
+
+
+- **A bare number as a block name** **Placed in the TODO** (the close, 2026-11-23; open by design). (`:name 01`): GC1 refuses it with "quote it" (`seq.query.form.param`), since core's
+  address reader turns `01` into 1 before Seq* sees it. Keeping the text would need a raw-token surface in core repr
+  (allowed: repr's public API is open to this work); take it only if a real name set needs it.
+
+## Fixed
+
+- **The vertical overview cut at the right on a wide page** (not reproduced, hardened, `ec05a2d4e`; reopen if seen; FX5 2026-11-22: not reproduced at 960, 1600, 2200 px; the grids made shrinkable, `minmax(0, 1fr)`, as hardening; open until seen at a wide page) (the author, 2026-11-21, Globins rows family-rail-pinned):
+  at full width the story's canvas runs past the page's right edge, so the vertical overview is clipped (a narrow
+  page, where canvas and SVG stack differently, shows it whole). The story's layout gives the canvas its measured width
+  at every page width, the overview inside it; a story-layout test at a wide and a narrow width that the overview's box
+  lies inside the canvas and the canvas inside the page.
+
 
 - **The novice pass's bugs** (fixed by FX24, `b386475be`; stage 5, 2026-11-23, [novice-findings.md](novice-findings.md) 1–4; for FX24):
   - the ring's hover card shows a wrong position (confirmed): its position and band rows don't match. "chr1 58,720,257"
@@ -114,17 +128,13 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   - check by hand, then fix if real: a click on a menu's "Show with a partner" item doesn't open its submenu (the Right
     arrow does); the wheel over the ring never scrolls the page.
 
+
 - **The hover card story test failed once** (fixed by FX24, `b386475be`: lazy header chunks relaid the headers and hid the card; stage 4's gate, 2026-11-23, quick lane over `packages/seq/`,
   `cli/seqx-render/` and `packages/core/src/util` at load about 3): `hover-card-stories.test.ts`, "a host's adapter is
   told the viewer's card and place on rest". The adapter had been called, but `HoverCardProvider.shown.value` was undefined. Three
   reruns were green, one of them the same set. The test runs under fake timers, so find what still reads the real clock
   (the card's rest or hide) or what another file leaves behind (`isolate: false`). Fix it, don't retry it. (FX24)
 
-- **A bare number as a block name** (`:name 01`): GC1 refuses it with "quote it" (`seq.query.form.param`), since core's
-  address reader turns `01` into 1 before Seq* sees it. Keeping the text would need a raw-token surface in core repr
-  (allowed: repr's public API is open to this work); take it only if a real name set needs it.
-
-## Fixed
 
 - **A hover card's long values overflow its box** (the author, 2026-11-22, Features › Genome formats › VCF › TP53
   ClinVar, a deletion's allele card: "let's handle overflow on the hover cards to when we next visit them"; kind:
