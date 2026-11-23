@@ -136,3 +136,30 @@ The legend member becomes `Legend` data derived from a layer's resolved channel 
   passes, the recording and SVG backends and a Canvas2D backend with its overlay.
 - Tests: draw lists bounded by the screen (device columns × lanes), hits where marks are, lanes stable across an
   arrival, the token table's version invalidating, the recording format.
+
+## In the specs
+
+| Decision | Where |
+|---|---|
+| The layer-type contract (`name`, `fallback`, `prepare`, `layout`, `draw`, `hit`, `legend`); built-ins written to it | core › Layer types |
+| `LayoutContext`: the box, the transform, the ratio, densities, tokens, text | core › Layer types |
+| `prev` the layer's last layout, passed as an argument | core › Layer types |
+| Emphasis reaches `draw` as an argument; selection over a section's band or per track | core › A box a track |
+| One window per leading section (`FrameInput.viewports`: `top`, `bands`, `y`) | core › Section layouts |
+| Projected hover and selection at `emphasis.projected` | core › Emphasis |
+| The layout interface: strips, layers per strip, the key per section | core › Section layouts |
+| Units and passes | core › Draw lists |
+| The base, overlay and labels canvases | viewer › Canvas2D backend |
+| Primitives as structs of arrays reused frame to frame | core › Primitives |
+| Reused buffers compared against fresh ones | core › Reused buffers are tested against fresh ones |
+| One squircle curve (`squirclePath`) | core › Every emphasis is a squircle |
+| Colors 32-bit RGBA | core › Primitives |
+| The recording backend's format | core › Recording |
+| Hit-testing: a hit index per layout; every drawn mark has a hit box; the hit's fields | core › Lanes and Hits |
+| An item's key | core › An item's key |
+| Overflow past the lanes (`ranges.overflow`) | core › Layer types |
+| Values aggregate (`values.aggregate`, `minmax`) | core › Layer types |
+| `query` layers read the whole annotation; filtering later | design-only: history (data filters are built: core › Filters) |
+| Sticky lanes while data streams | core › Sticky lanes |
+| A token table in the context; its version in the key; colors in a spec literal or `token:` | core › Tokens |
+| Fonts: letters centered, labels measured through the port, Node's bundled table | core › Text |

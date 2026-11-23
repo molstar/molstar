@@ -556,6 +556,55 @@ they change:
 
 Built (the fifth slice): BZ, BE, GG, VC, GB, FR (by region with levels, VCF's matrix). Not built: bigBed, 2bit, FASTA by region, PAF, PIF and chain (designed only).
 
+## In the specs
+
+| Decision | Where |
+|---|---|
+| Whose each choice is: meaning a source param, cost a runtime option or the store's, conventions fixed | core › Genome runtimes' internals |
+| One opt-in entry a format family; `gff3` taken over by `withAdapter` | core › BED family |
+| Internals shared, not published (`runtimes/internal/*`) | core › Genome runtimes' internals |
+| Each runtime with its synthetic twin on a fake clock | core › Genome runtimes' internals |
+| BGZF and tabix in `@molstar/io` (the surface, lines as bytes, extents by the index's rule, CSI with TBI, the EOF block, no `.gzi`) | design-only: io's own spec (`packages/io/_spec/bgzf.md`), outside these specs |
+| Core's `ungzip` over multi-member streams | design-only: core's codec, not Seq\*'s spec (a fix recorded in the v6 changelog) |
+| Positions stay int32: a sequence past 2^31 − 1 refused at open, the others read | core › Positions stay int32 |
+| Bytes to text: plain, gzip or BGZF by magic, bounded before and after inflating | core › Bytes to text |
+| Whole or by region, one line parser | core › Lines by region |
+| Levels of a tab-line source from its index's bytes; counts exact or absent | core › the levels its index's bytes allow |
+| A view's tiles bounded by read cost (`readCost`, `maxBytesPerLayer`) | core › A layer's wants together |
+| Issues one a cause with a count and first places; a bound passed `too-large` | core › Shared helpers |
+| Range reads; `AssetRangeError` fails the region | core › Assets |
+| A format's conventions fixed; `base` and `ends` not read, said | core › Conventions fixed |
+| Names are the file's; lengths where the file says | core › chrom.sizes |
+| BED: columns by place, `bed N+M` named by `fields` with a column number; BED12 blocks as pieces; identity `name@start-end` | core › BED family |
+| bedGraph as values | core › bedGraph |
+| BEDPE read whole and indexed by both ends within `summaries.maxBytes` | core › BEDPE |
+| chrom.sizes a coverage of lengths | core › chrom.sizes |
+| GFF3 and GTF: the hierarchy by the line's type (`transcriptTypes`), a piece of each parent | core › The hierarchy |
+| A transcript an item with its pieces, thick hull, `cds_phase`, its own extent | core › The hierarchy |
+| A span row in an intron-only tile | core › A tile's lines are assembled alone |
+| GTF attributes; without transcript lines partial extents by region, said | core › GFF3 and GTF |
+| `features` (`transcripts`, `genes`, `rows`) | core › `features` |
+| `##sequence-region` lengths; a whole-sequence feature describes it; `##FASTA` ignored; bounds | core › GFF3 and GTF |
+| The gene line (`line: 'gene'`) | core › The gene line |
+| No dynamic transcript nodes from a GFF | design-only: a decision not to build (Decided 7) |
+| VCF: the header; a row an ALT allele with the index's extent; ids; fields and INFO typed by the header | core › A row an ALT allele |
+| The matrix: genotype classes, `samples`, `field: 'GT'` the copy count | core › genotype class |
+| Genotypes parsed only for a `matrix` request; dense files by the levels the index allows | core › Genotypes are read only for a `matrix` request |
+| One file a chromosome one source | core › A source is one file |
+| VCF runs merged under a pixel take the majority category by width | core › Layer types |
+| GenBank: records, features as ranges, locations, names, bounds | core › GenBank |
+| The `seq` runtime's sided pairs from either end; side `a` the map's `from` | core › Sided pairs |
+| A map's runs from a pairs source (`map.source`) | core › Maps read by region |
+| A row of unequal ends refused by the runtime (`seq.source.seq.run`) | design-only: not built as designed (drift note `genome-formats`) |
+| A name index: `findNames`, served by a GFF3 or GTF read whole; who calls it | core › A capability, not a shape |
+| Protocol additions (item extents, span rows, `side`, items, `readCost`, `findNames`) | core › Protocol |
+| Field names fixed by convention (`thick_start`, `cds_phase`, `item_rgb`, `gene_name`) | core › BED family |
+| The language additions (`features`, `samples`, `map.source`, `line: 'gene'`) | core › Versions |
+| Bounds a format (BGZF, tabix, VCF, GFF, BEDPE, whole reads), each family's own Bounds | core › Genome runtimes' internals |
+| Real slices recorded as pages | design-only: fixtures (the examples' and the tests'), no rule the code follows |
+| bigBed, 2bit, FASTA by region, PAF, PIF, chain | design-only: not built (the appendix) |
+| Precedents, the defaults' pictures, the interaction cells (formats add no gesture) | design-only: intent |
+
 ## Tensions
 
 - **The anchor base**: a VCF indel spans its REF with the anchor (the index's extent), where igv draws the deletion

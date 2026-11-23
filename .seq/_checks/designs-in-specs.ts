@@ -27,10 +27,7 @@ const SPECS: Record<string, string> = {
   examples: "packages/seq/examples/_spec/README.md",
 };
 /** Designs not reconciled when the check was written (file names without `.md`). Only ever shrinks. */
-const PENDING = new Set([
-  "across-sections", "axis", "data-store", "genome-formats", "grids-and-rows",
-  "layout-and-draw-lists", "layouts", "properties", "protocol", "region-reads", "rendering", "themes",
-]);
+const PENDING = new Set<string>([]);
 
 const argv = process.argv.slice(2);
 const WORKLIST = argv.includes("--worklist");

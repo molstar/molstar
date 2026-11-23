@@ -535,6 +535,15 @@ layout per token table, held domains and the reader's substitution (`LayerChanne
   literal colors are the light table's; the dark table's are derived (lightness mapped into the dark band, Oklab L
   0.30–0.62, hue kept) unless it is safe as it is. The band is bounded by the ink: above about 0.62 neither ink reaches
   4.5:1. Provenance is `theme/provenance`'s (`schemeProvenance`), read by a picker, never by drawing.
+- **Column schemes** read the rows layer's measures (`share`, `identity`, `matches-reference`: Render, The rows layer):
+  `clustal-x` (`share`), `percent-identity` (`identity` above 0.8, 0.6, 0.4 in three blues), `blosum62` (by
+  `matches-reference`: a letter matching the reference row's; no substitution score yet), `espript` (EC-135: identical
+  where every row of the column has the letter, gaps counted against it, `gaps: count` by default; similar where the
+  letter's group holds at least `similarity`, 0.7, of the column; `mode: bw` black and grey, so it reads in print with
+  no hue): rules forms over the measures, stated as an approximation of ESPript's score by groups. A scheme that does
+  not fit the layer (another alphabet, a measure the layer does not register) draws the layer's default and says what it
+  needs (`seq.render.theme.scheme`). Why: a column's conservation is a measure of the alignment, so the schemes stay
+  data and the layer that holds the cells computes it once.
 - **Colors as spelled** (`theme/spelling`: `parseColor`, `isColorSpelling`, `resolveColor`) need no color space: the
   spec reader's checks import them alone.
 - **Legends** are data (`Legend`: swatches, a ramp with ticks placed by its scale (a log scale's decades, a center at
@@ -782,7 +791,14 @@ source's).
 
 ### Properties
 
-properties.md (`query/properties.ts`): a typed symbol read per element of one level, apart from the language.
+`query/properties.ts`: a typed symbol read per element of one level, apart from the language.
+
+- **Typed, read two ways**: `word`, `integer`, `number`, `boolean`, `words` (a set: `=` on it is membership, a
+  position's alternative components); `(prop chain)` in a predicate, or `:chain A` as an `elements` field (sugar for
+  `(= (prop chain) A)`). A row giving one property under both its names is `seq.query.form.param`. Not held:
+  `label_alt_id`, `auth_comp_id`, `auth_atom_id`, `atom_id` (one atom name a residue, no author names). Why short names
+  printed: one printed form keeps equal selections equal as text; the long names are a structure viewer's, so reading
+  them is a copy.
 
 - **Built in**, the short name printed and the long one read: molecule `entity` (`label_entity_id`), `molecule-class`,
   `identifier` (words); unit `chain` (`label_asym_id`), `auth-chain` (`auth_asym_id`), `operator` (`instance_id`);
@@ -962,6 +978,11 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
 - **Coverage**: systems (unique names, lengths ≥ 0, alphabet, cyclic, aliases), shapes per listed system (with a ranges
   table's fields), integer levels ≥ 1 as bin widths, ascending, at least one (`[1]` without levels), nodes known up
   front (`checkCoverage`).
+- **Positions stay int32** (the tables' columns): a sequence a file declares longer than 2^31 − 1 (an axolotl or
+  lungfish chromosome) is refused at open by its runtime, said by name (`seq.source.too_large`: VCF's `##contig`,
+  chrom.sizes), the others read (a `seq` file's system past it is malformed); a position past it in a line is that
+  line's issue, never wrapped. Why: widening every position column for a handful of genomes is the protocol's change,
+  not a format's.
 - **An answer** is tables by shape and the dynamic nodes the region brings (`{ key, node }`, a spec node of its kind),
   or a failure: `failed` (retried with backoff), `malformed` (fails at once, with a cooldown), `not-served` and
   `too-large` (never retried; too large asks a coarser level). Cancellation rejects with an `AbortError`, never an error
@@ -1051,13 +1072,13 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
 - `checkTables` checks forms, column types and equal lengths. `checkAnswer(answer, request)` checks an answer against
   its request: a record, a known failure with an issue, nodes with string keys, only the shapes asked, each table within
   the region, ranges with `start ≤ end` and strands −1, 0, 1, codes within their alphabet, at most `maxRows` rows.
-- **Bounds**: `checkAnswer` refuses a table whose column is longer than `maxColumnLength` (2^31 − 1) or whose values
-  (rows times columns) pass `maxBlockValues` (2^24, a grid or matrix block's bound), before it walks the extent, and the
-  store settings carry both; a file's `seq` reader refuses the same (`checkTableBounds`) and a system declared longer
-  than a column can be. The dynamic nodes of an answer are at most `maxNodes` (10,000) and weigh at most `maxNodeBytes`
-  (16 MB) together by the spec's size estimate, each within the spec's depth and shape (`measureNode`); `answerBytes`
-  charges them by that estimate, a flat floor under it. Why: an answer's size is a claim of its source, refused before
-  it is cut, joined or kept.
+- **An answer's bounds**: `checkAnswer` refuses a table whose column is longer than `maxColumnLength` (2^31 − 1) or
+  whose values (rows times columns) pass `maxBlockValues` (2^24, a grid or matrix block's bound), before it walks the
+  extent, and the store settings carry both; a file's `seq` reader refuses the same (`checkTableBounds`) and a system
+  declared longer than a column can be. The dynamic nodes of an answer are at most `maxNodes` (10,000) and weigh at most
+  `maxNodeBytes` (16 MB) together by the spec's size estimate, each within the spec's depth and shape (`measureNode`);
+  `answerBytes` charges them by that estimate, a flat floor under it. Why: an answer's size is a claim of its source,
+  refused before it is cut, joined or kept.
 - Cutting (`sliceTable`) keeps letters, positions and bins by offset, and a range or a density bin by its anchor (its
   first position in the region) within the part cut; `joinTables` joins consecutive parts, so each row is held once. A
   pair or bin pair is kept by its ends meeting the region on its system (`Cut.system`; a sided cut its side's end), its
@@ -1627,7 +1648,9 @@ share), and two chunks loaded on first use: `vcf-indexed.ts` (the first indexed 
   longest system (`wholeLevel`, a list at both). One parser either way, so a region read equals the whole read clipped
   at every level (the property test). The systems are the header's contigs, then those the file (or the index) names; a
   contig with no line serves empty answers. A region's line issues are not said (no place in an answer); the whole read
-  says them. Rows are answered in order of start, then of the file; found by `intervalIndex`.
+  says them. Rows are answered in order of start, then of the file; found by `intervalIndex`. **A source is one file**
+  (with its index): a set published a file a chromosome (1000 Genomes, gnomAD) is a source a file, each naming the
+  systems it holds. Why: a `uri` template by system waits for a view that asks for it.
 - **The matrix** (EC-220 to EC-222): a source whose file has samples serves a `matrix` on each system beside its
   `ranges`: items the ALT alleles of the region (the sites' rows, their ids) × states the samples held
   (`ShapeInfo.states`: the header's order, narrowed by the source's `samples`; names the file lacks, or `samples` on a
@@ -2614,6 +2637,10 @@ Overlay, Opened sources), kept per model and view. No data, no dynamic node, no 
   (a map: its own linear part) to the section's. One that cannot be resolved (`follow` written with no placed leader,
   `along` a system no path reaches) is `seq.view.direction.unresolved` and `genomic`. One direction an axis; a block's
   own direction is its block's (Blocks, above), a direction per piece inside one block stays open.
+- **A reversed axis says so**: its ruler counts down, and the section's first label carries the direction mark (an arrow
+  and "reversed", or "along" what it reads along) in the labels pass, so an export says it too (`axis.directionMark`,
+  `none` for a host whose chrome says it). Why: a picture that runs backwards with nothing said reads as data that runs
+  forwards.
 - **Its pieces** (`pieces`, the form as written for an export, and `ranges`): `whole`; `coding`, the coding ranges of
   the follow path, else of the path it reads along; a ranges node's inline items on its system, a codon map's coding
   ranges onto it, or their union; widened by `pad` each side (merged), within `range`. Start below end, in display
@@ -2880,6 +2907,11 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 - **A spec's color** is a hex literal, `token:<name>` (`seq-<name>`, then `msui-<name>`, then `<name>`) or
   `light-dark(a, b)`; anything else is `seq.render.color` and the layer's default. **Ink follows its fill**: the dark or
   the light ink, whichever contrasts more.
+- **The hover outline holds 3:1** (EC-138): `seq-hover` against what it rings, the page (`msui-bg`), the track, the
+  sequence's cells, the missing and pending fills, a range's fill and every residue and nucleotide class fill, in both
+  tables (a test over the tables). Why: WCAG's 3:1 for graphics; a hover the reader cannot see on a cell is no hover. A
+  fill outside those (a saturated categorical, ramp or secondary colour) is not held to it: its double outline is in the
+  package's TODO.
 
 ### Text
 
@@ -2938,6 +2970,18 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 - **Reused buffers are tested against fresh ones**: a layer's layout of an input into buffers warmed by another, smaller
   input gives the same lists as a layout into fresh buffers. Why: purity is by contract, not by new objects, and a
   buffer that grows without keeping its contents passes every test whose input fits the first size.
+
+### The shared reduction
+
+- **One 2D reduction** (`render/pyramid.ts`): a pyramid over a typed grid of samples, its levels by a factor and a
+  pairing the caller gives (square levels for a grid; a row level and a column level apart for rows, so a row stays a
+  row zoomed out on columns) and a reducer (`mean`, `max`, `min`, or the majority with its share); levels built on
+  demand from the finer one beside them into kept buffers, at once or a budget of cells a frame (`levelWithin`). The
+  grid, the rows layer and the navigators' rows read it; the logo's bars are its one-axis case. Why one: the same level
+  arithmetic written three times would drift.
+- **One image cache** (`render/images.ts`): every `image` tile a layer draws (a grid's, the rows', a navigator's), 256 ×
+  256 samples, in one LRU on core's `LRUCache`, keyed by (layer, level, tile, theme version), its capacity `imageBytes`
+  (64 MB) over a tile's bytes. Why one budget: two caches could not lend each other room.
 
 ### Emphasis
 
@@ -3136,18 +3180,19 @@ in page coordinates: what crosses strips; `bridge`, internal, once a bridge with
 - `ranges`: items in sticky lanes, carried onto the section along the layer's path (a domain on its gene: a piece an
   exon); labels inside marks 24 px or wider (faded past the mark), or inside a narrower one when they fit whole with 3
   px a side (a modified residue's code over its one position; none below 8 px), drawn in the `labels` pass. At `bars` a
-  lane's marks touching within a device pixel merge into a run, drawn in the fill of its items' majority color group (a
-  palette's value, in the legend's order on a tie; never the neutral colour), and a hover over a run of several
-  categories lists them (`Hit.categories`, the card's "Categories"); at `density`, or a density table, one heat strip, a
-  device column a pixel, except a list of few rows (at most one a CSS pixel of the band): those stay items, each its own
-  mark, so a chromosome's bands at its fit keep their labels, hits and arrows. Items past the lanes collapse into a
-  density row in the last lane, the rest drawn as items (`ranges.overflow: 'extra-lanes'`), or the whole layer becomes
-  the strip (`'layer'`). In a band under a lane's height (a text line's underline) the strip uses only the light
-  `ThinStripShare` (0.3) of the density ramp, so it reads as a band, not as a dark rule. **The connector** (`connector`,
-  `line` when absent, or `none`): an item the path splits into pieces with shown positions between them that it does not
-  reach (a domain over a gene whose intron is shown) is joined by a hairline at its lane's mid-height from one piece's
-  end to the next's start, in the item's colour at `ranges.connector.alpha` (0.6), `ranges.connector.width` thick (1 CSS
-  px; `ink: 'muted'` the muted ink instead), in the data pass, so the canvas and the SVG draw it alike; the pieces' ends
+  lane's marks touching within a device pixel merge into a run, drawn in the fill of its items' majority color group by
+  width (each mark weighs its width, so a long deletion merged with the SNVs at its ends keeps its colour; a palette's
+  value, in the legend's order on a tie; never the neutral colour), and a hover over a run of several categories lists
+  them (`Hit.categories`, the card's "Categories"); at `density`, or a density table, one heat strip, a device column a
+  pixel, except a list of few rows (at most one a CSS pixel of the band): those stay items, each its own mark, so a
+  chromosome's bands at its fit keep their labels, hits and arrows. Items past the lanes collapse into a density row in
+  the last lane, the rest drawn as items (`ranges.overflow: 'extra-lanes'`), or the whole layer becomes the strip
+  (`'layer'`). In a band under a lane's height (a text line's underline) the strip uses only the light `ThinStripShare`
+  (0.3) of the density ramp, so it reads as a band, not as a dark rule. **The connector** (`connector`, `line` when
+  absent, or `none`): an item the path splits into pieces with shown positions between them that it does not reach (a
+  domain over a gene whose intron is shown) is joined by a hairline at its lane's mid-height from one piece's end to the
+  next's start, in the item's colour at `ranges.connector.alpha` (0.6), `ranges.connector.width` thick (1 CSS px;
+  `ink: 'muted'` the muted ink instead), in the data pass, so the canvas and the SVG draw it alike; the pieces' ends
   there stay square. Across a collapsed break (zero units wide) nothing is drawn; with `pad`, a gap with shown positions
   on both sides of a break is one, the line through it (the break's hairline over it); only at `items` (not `bars`,
   `density`). A hit on it is the item's; the hover draws it in the hover ink as thick as the outline, a selected item's
@@ -3954,10 +3999,12 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   the node is evicted as any other when the store needs room. Why: an instance held its node, so every place browsed
   left its track (29 empty after five places on a chromosome); a track whose node's region is on screen never vanishes,
   a zoom included.
-- Cell edges snap to the device grid (`snap`). One label column for every track of a view (`labelColumn`, measured over
-  the view's own track labels: a template's instances, named once expanded, and a direction mark fade or end in an
-  ellipsis at its end, so a reverse or an arriving region never moves the data box); a track's label is centred on its
-  well (its padding with it), in tracks and on a text's first line.
+- **One label column for every track of a view** (`labelColumn`, measured over the view's own track labels between 80
+  and 160 px, an ellipsis past it, never a hard clip: a template's instances, named once expanded, and a direction mark
+  fade or end in an ellipsis at its end, so a reverse or an arriving region never moves the data box); a track's label
+  is centred on its well (its padding with it), in tracks and on a text's first line; sections `sectionGap` (20) apart,
+  tracks `trackGap` (4). Why measured: a fixed column clipped real names (the defaults audit). Cell edges snap to the
+  device grid (`snap`).
 - **A track's padding** (its `padding`, else `trackPadding`): px inside its well above and below its data, never left or
   right. The well (`TrackLayout.well`) is the track's height plus its padding; its data's band (`TrackLayout.box`, the
   strips' `bandY`, `bandH`: what every layer lays out, hits and emphasizes in) is inset by it, and `Strips.padT`, `padB`
@@ -4057,14 +4104,22 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   sticky lane, the band's top lane is its `bandTop` in lanes (the section's band viewport, as a rows band's, clamped to
   the lanes: `RangesLay.top`, `scrollMax`; `laneY` is shifted by it), the lanes out of the band are no marks (draw
   lists, hit index and labels hold the lanes in view), a thin rail at the band's right edge shows the window while the
-  lanes overflow (`drawRail`), the header, the label and the tracks around stay in place. A track's own `height` is its
-  cap and its height: lanes past it scroll; a band under one lane draws one lane centred (EC-249). Rings and text never
-  scroll: past the ring's width the lanes compact, then the density row. `track.overflow: compact` squeezes the lanes
-  into the band, `density` puts what does not fit in a density row at its bottom (`ranges.overflow` then says whether
-  the rest or the whole layer). The most lanes a layer packs is `ranges.maxLanes` (1,000). **An export** draws every
-  lane up to `export.maxTrackPx` (4,000) (`export.lanes: all`; `view` draws the band as on screen), the live scroll
-  untouched. **A gene model's label with no room before its model floats at the data's left edge** over its hairline, on
-  a backdrop, never dropped while its lane is shown.
+  lanes overflow (`drawRail`), a 1 px edge in the line ink (`msui-line`) where lanes are cut, above the first lane in
+  view and below the last (`drawScroll`), the header, the label and the tracks around stay in place. Why the edge: the
+  rail is drawn only while the lanes overflow and is easily missed at rest; a cut edge says "more here" where the cut
+  is, quieter than the rail. **A source's reachable region** (the section's own extent, its tiles at the level that fits
+  it) is read as a margin want of its own under the layer's bounds (`ranges-reach.ts`) and its items packed once all are
+  read and the view has settled; past the bounds nothing is read and its track is as tall as the lanes in view, said
+  once (`seq.render.reach`, info); where the fit level is coarser than items (a density, whose lanes nobody knows)
+  nothing is read and nothing is said. Why: a source's track sized by the view's items alone grows and shrinks as it
+  pans, while the reachable region is what a pan can reach, bounded as the view's own reads are. A track's own `height`
+  is its cap and its height: lanes past it scroll; a band under one lane draws one lane centred (EC-249). Rings and text
+  never scroll: past the ring's width the lanes compact, then the density row. `track.overflow: compact` squeezes the
+  lanes into the band, `density` puts what does not fit in a density row at its bottom (`ranges.overflow` then says
+  whether the rest or the whole layer). The most lanes a layer packs is `ranges.maxLanes` (1,000). **An export** draws
+  every lane up to `export.maxTrackPx` (4,000) (`export.lanes: all`; `view` draws the band as on screen), the live
+  scroll untouched. **A gene model's label with no room before its model floats at the data's left edge** over its
+  hairline, on a backdrop, never dropped while its lane is shown.
 - **The section's `heights` names the sizing**: `content` (the default: tracks of one kind, their shown layers' types in
   order, share the tallest lanes **when close** (their lanes, content less the label lane, within 2 lanes or 2x of the
   cluster's smallest: clusters by sorted lanes, so the tracks' order never matters, 1, 3 and 5 lanes are {1, 3} and {5};

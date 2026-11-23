@@ -518,6 +518,56 @@ Cells this design fills or changes; the others stand as grids-and-rows and GA gi
 
 Built (the fifth slice): RG with RS (the shapes, 2D tiles, levels, summaries), GA2 (pairs on the ring), FR (the formats by region past level 1), RX (`PairsReader`). Not built: the matrix's state labels, `order` and `hidden` (TODO).
 
+## In the specs
+
+| Decision | Where |
+|---|---|
+| Whose each choice is: no new port; meaning a spec param, planning a store setting or a preset | core › Render |
+| The answer shapes `pairs`, `grid`, `matrix`, `rows` and their forms | core › The region shapes' forms |
+| A matrix's coarse form named `bins` | design-only: not built as designed, `summary` (drift note `region-reads`) |
+| Pairs tiled in 1D by either end; a pair's identity its row or id with both ends | core › The region shapes |
+| Sided pairs between two genomes | core › Sided pairs |
+| Items tiles at any listed level (`RegionRequest.items`, `i<level>`) | core › Items tiles |
+| A source indexed by one end or none read whole within `summaries.maxBytes` | core › The pairs level |
+| Item extents and span rows | core › An item's extent on its pieces |
+| The pairs level: bin-pair counts by strand, `type`, a field summed | core › The pairs level |
+| Grids in 2D tiles of 256 bins at square levels; symmetric grids served once; one value a cell by `aggregate` | core › 2D wants |
+| A matrix: positions tiled, states whole, bounded in bytes | core › The region shapes |
+| `rows` as keyed records; the join (EC-224) deferred | core › The region shapes |
+| Bounds in bytes for every shape (`maxTileBytes`, `summaries.maxBytes`); counts the parse's guards | core › An answer's bytes |
+| Coverage's `ShapeInfo` members and `SystemInfo.side` | core › Coverage of a shape |
+| The 2D key; a 2D want's tiles, folded, and its margin ring | core › 2D wants |
+| A layer's wants together (`maxTilesPerLayer`) and read cost (`maxBytesPerLayer`, `readCost`) | core › A layer's wants together |
+| The whole-assembly level read by a grid over blocks | core › Grid levels |
+| The whole-assembly level cut into block pairs | design-only: not built (the package's TODO) |
+| A second grid on one pair over budget reads coarser | design-only: not built as designed (drift note `store-over-budget`) |
+| Pending in 2D: the held coarser tile, else a pending rectangle | core › The grid layer |
+| Summaries for one-level sources: time-sliced; pairs (only the levels that halve kept); grids at factor 2 | core › Summaries |
+| Held pairs get the same bins (`binPairs`, one `PairsReader`); `coarsenBins` | core › The reader |
+| Held pairs over blocks still binned by device column | design-only: not built (the package's TODO, Decided 7 partial) |
+| A data filter on an item's field narrowing bins; `seq.render.pairs.filter` | design-only: not built as designed (drift note `region-reads`) |
+| The level rules by shape (values, matrix, grid, pairs with the items gate and hysteresis) | core › The level rules by shape |
+| In a bridge, each side its own window and level | core › sided source |
+| Past `pairs.maxArcs`, the strongest bins kept | core › The pairs layer |
+| Copies: bins fold by copy group | core › Ends on blocks |
+| On blocks and on a ring: a block at its own scale; the outer circumference's columns | core › The pairs layer |
+| Small blocks drawn in runs, read while a device pixel wide | core › Runs of small blocks |
+| Host adapters serve the new shapes; the conformance suite | core › Conformance |
+| The pairs layer at a bins level: one arc a bin pair, stroked by count | core › The pairs layer |
+| The grid layer over a region grid: a store tile an image tile, mirrored | core › The grid layer |
+| The `matrix` layer on the rows layer's band | core › The matrix layer |
+| The matrix's state labels in the header, `order`, `hidden` | design-only: not built (the package's TODO) |
+| Dense matrices on a ring as sector runs (`rings.imageRuns`) | core › An image is drawn as runs |
+| A hover over a bin, a region grid's cell, a matrix cell | core › Hover texts by region |
+| A pairs bin card's per-category breakdown (`hover.maxCategories`) | design-only: not built (the package's TODO) |
+| `Hit.bin`, the level read | core › A bin hit |
+| The interaction matrix's cells (a bin pair, a grid cell, a matrix cell) | viewer › Input |
+| Genotype classes coloured by their own tokens | core › The matrix layer |
+| The spec params (`pairs.source`, `grid.source`, the `matrix` kind, `field`) | core › Kinds |
+| The configuration items (`gridTileBins`, `maxTileBytes`, `summaries.*`, the presets) | core › Render |
+| `.hic` and `.mcool` runtimes; the Hi-C example generated | design-only: not built (a later slice, Decided 10) |
+| Precedents, the interaction precedents, the defaults' pictures | design-only: intent |
+
 ## Tensions
 
 - **No `max` across a region grid's levels**: one value a cell keeps the bytes within the cache; a PAE-like `min` or a

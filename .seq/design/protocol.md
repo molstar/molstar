@@ -117,3 +117,27 @@ type RegionAnswer =
   lifetime from here.
 - Tests: the `seq` format round trip; a synthetic source with a fake clock covering levels, tiles, errors, cancellation,
   planning through a static and a dynamic map, and node lifetime against eviction.
+
+## In the specs
+
+| Decision | Where |
+|---|---|
+| Tiles of 1,024 bins, the shapes' columns, levels as bin widths (Settled) | core › Store |
+| Range reads in `AssetManager` wait for bigWig; the slice's FASTA read whole | design-only: history (bigWig reads by range now: core › bigWig) |
+| A format runtime, its `OpenContext` (assets, signal, limits) and `OpenedSource` | core › format runtime |
+| Coverage: systems with aliases, shapes, levels as bin widths, nodes up front; `[1]` without levels | core › Coverage |
+| Requests and answers; the failure kinds and their retries; cancellation an `AbortError` | core › An answer |
+| Table shapes and their `form`s | core › Tables |
+| The region shapes (`pairs`, `matrix`, `grid`, `rows`) | core › The region shapes |
+| Nodes in an answer: refs absolute | core › Checked by the description |
+| The `seq` format: the protocol written down, inline or a JSON or MessagePack file | core › The seq format |
+| The store's keys (data, node), the tile of `tileBins` bins | core › Store |
+| Nested sources addressed through their parent's node | core › Nested sources |
+| Inline data a `seq` source of one tile per system | core › Its runtime |
+| Planning: the view carried back along the layer's path, the level that fits a device pixel | core › The level rules by shape |
+| A dynamic map not held: the layer pending until it arrives | core › Described ends |
+| Order and bounds: view, margin, prefetch; in flight; cancel after a grace | core › Want sets |
+| Data entries a byte-bounded LRU cache, never in view | core › Eviction |
+| Over the bound, the store itself asks a coarser level for the widest layers | design-only: not built as designed (drift note `store-over-budget`) |
+| Node entries held, not cached; a ref does not hold a node, it waits | core › Store |
+| Summaries belong to the attached source, go when it is detached | core › Summaries |

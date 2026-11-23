@@ -482,6 +482,53 @@ Cells this design fills; the others stand as GA, RR, grids-and-rows and ux-found
 
 Built (the fifth slice): LA, LA2, LA3, LA4 (bridges, grids over two sections, categorical axes, liftover). Not built: a bridge's resize grip, bridge menus, a ribbon's double-click, `bridge.pointer` (TODO).
 
+## In the specs
+
+| Decision | Where |
+|---|---|
+| Whose each choice is: which sections a spec param, drawing a preset, gestures the viewer's | core › Render |
+| A new kind `bridge` under `view`, layers only (Decided 1, 2) | core › Bridges |
+| Sides neighbours in the stack, rows only; the errors | core › The pass is lazy and composed |
+| Its layers `pairs`; another type its fallback (`seq.view.bridge.layer`); `scope: 'bridge'` internal (Decided 16) | core › Layer types |
+| Its data: pairs, or a segments map read as pairs (Decided 6) | core › Bridges |
+| Which systems: ends by the side showing them, `a` to `a`, `mirror`; no path (`seq.render.bridge.unplaced`) | core › Which side an end is on |
+| A reader without bridges leaves the bridge out, its sides stacked | core › The pass is lazy and composed |
+| Placed after its sides; its room; the key a pan of one side relays that side and the bridge | core › Laid out after its sides |
+| Lazy, all but the language and the resolved view | core › The bands' room |
+| Height by drag (the resize grip) | design-only: not built (the design's Built note) |
+| A layer of scope `bridge` with its context | core › Laid out after its sides |
+| An end's x: off the window clamped, in a hidden stretch at the break, a stub with no place | core › An end's x |
+| A ribbon's shape, corresponding positions, the twist by geometry | core › A ribbon joins corresponding positions |
+| Width at least `ribbons.minPx`; `shape: line`; blocks merged under a pixel | core › An alignment's blocks merge under a pixel |
+| Fill, order, colour by the `a` side's block | core › A ribbon |
+| Each side reads its own view at its own level; drawn once by ownership (Decided 8, 17) | core › sided source |
+| The items gate per side after ownership | design-only: not built (core spec, Bridges, "Not built") |
+| Bins in a bridge: opacity by weight; one cull past `pairs.maxArcs` | core › A ribbon |
+| Pending: the hatch along a side's edge | core › sided source |
+| The hit, closed form; the hit is the drawn run (Decided 18) | core › The hit, closed form |
+| Hover a ribbon; ribbons lit by a hovered or selected position; the card | viewer › A ribbon's card |
+| Select a ribbon (click, Shift, Cmd/Ctrl) | viewer › Input |
+| A ribbon's double-click focusing each side | design-only: not built (the design's Built note) |
+| `bridge.selectAcross` (Decided 10) | viewer › `bridge.selectAcross` |
+| The bridge menus | design-only: not built (the design's Built note) |
+| The cursor across a bridge (Decided 9) | viewer › The cursor across a band |
+| ARIA words | viewer › ARIA words |
+| No follow across a bridge; `lock: px`; one closure moves each section once (Decided 7, 19) | viewer › One move a section a gesture |
+| A drag or wheel over the band moves both | viewer › The band's pointer |
+| `bridge.pointer` (`none`) | design-only: not built (the design's Built note) |
+| `bridge.align` | viewer › `bridge.align` |
+| A liftover from the nodes; runs read by either side; many to one | core › A liftover |
+| `mapSummary` and the `liftover()` builder deferred (Decided 15) | design-only: deferred |
+| A grid over two sections of blocks; a block pair at the coarser axis' level | core › Over two sections of blocks |
+| A dot plot of two genomes | core › The pairs layer |
+| Categorical grid axes: rows systems, `member_order`, chrome, mixed and moved (Decided 14) | core › Categorical axes |
+| Ribbons in a bridge only; ribbons on a ring RN's; inside one row an extension's | core › A ribbon |
+| Tracks beside a grid (Decided 13) | design-only: deferred (sections side by side) |
+| Export: a bridge a group, its ribbons paths | core › Export |
+| The language (`bridge`, `pairs.shape`, a map as data, `follow_y`, rows axes; Decided 12) | core › Bridges |
+| The configuration items | core › Render |
+| Precedents, the interaction cells, the defaults' pictures | design-only: intent |
+
 ## Tensions
 
 - **No follow across a bridge** (GA, EC-211): two genomes drift apart as the reader moves one. Options: a follow

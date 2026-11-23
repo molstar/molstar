@@ -606,6 +606,77 @@ registry entry, an option of a call, or fixed with its reason).
 | the folds an export draws | option of `renderSvg` (`folds`) | the layer's `collapsed` | the viewer passes its own | — |
 | folds as session state; a fold's motion (`view.motion`, `view.jumpMs`); split exact to 2,000 pairs | fixed | — | decided; the jump's motion reused; no second use | — |
 
+## In the specs
+
+| Decision | Where |
+|---|---|
+| Clade folds session state, `collapsed` the opening set, `clades.keep` a patch; an edit of `collapsed` resets them (Decided 1) | viewer › The rows' commands |
+| A click on a tree node toggles its fold; a summary row selects (Decided 2) | viewer › A tree's nodes |
+| A reveal opens folded clades, back folds them (Decided 3) | viewer › The rows' commands |
+| Hiding alignment columns waits (Decided 4) | design-only: not built (decided to wait) |
+| The selection's bookmark command (Decided 5) | viewer › `selection.bookmark` |
+| `mirror` a plain `false` (Decided 6) | core › The pairs layer |
+| A drag on a ruler: the lower part the rail's, the upper selects columns; a grid's axes pan (Decided 7) | viewer › A ruler rail |
+| Figure-meaning settings are spec params; `selection.copyLetters` copies FASTA (Decided 8) | viewer › Copy |
+| The grid a section layout with a second transform (`strip.y`, `ctx.axisY`) | core › One strip, the plot |
+| The rows' zoom limits the host's (`rows.zoom`) | viewer › Configuration |
+| The rows layer owns its y inside its band (`bandTop`, `rowScale`) | core › The transform |
+| An order under the rows' pieces | core › Display rows |
+| Hits stay flat; `ySystem`, `yPosition`; the targets `row`, `tree-node`, `summary-row` | core › The rows layer |
+| Emphasis along y | core › Emphasis along y |
+| The rows' window kept by a row key, restored by position | viewer › Bands |
+| Per strip by layout: rows in a text section, every clade unfolded | core › In a text section |
+| Pairs: data, either end, self-pairs, an end never wrapping | core › Kinds |
+| Pairs laid out by section through `ctx.place`; arcs, `reach`, `height`; on a ring a chord; in text `across_lines` | core › Arcs |
+| An end on split copies placed by unit; never on a guessed copy (`seq.render.pairs.copy`) | core › Ends on blocks |
+| Crossing pairs (`same`, `split` exact to 2,000) | core › Crossing pairs |
+| Kinds at one cell sliced (EC-63) | core › The pairs layer |
+| A glyph per kind with "+" | design-only: not built (the package's TODO) |
+| Pairs bounded by the screen (`pairs.maxArcs`); copies fold by group; the hit by hull and distance | core › The pairs layer |
+| The grid section: `of_y`, `follow_y` | core › The grid layout |
+| A grid layer draws only on its own systems | core › Only on its own systems |
+| A grid over a complex (blocks on both axes), gaps, tinted gaps in a dot plot | core › The grid layout |
+| A summary of a grid over a rect | core › A summary over a rect |
+| Layers in it: `grid`, `pairs` as dots; `mirror`, `triangle`; later over earlier | core › Triangles |
+| A plot's box fixed | core › A plot's box is fixed |
+| A double-click on a cell zooms a step; the wheel over a plot is the plot's | viewer › Wheel |
+| Size and aspect (EC-109) | core › The grid layout |
+| Grid data inline, bounded by `maxBlockValues` | core › An answer's bounds |
+| Drawn: rects at `grid.rectMinPx`, image tiles from the shared reduction, `grid.buildBudget` | core › The grid layer |
+| The crosshair | core › Emphasis along y |
+| Rectangles subtract exactly | core › rects subtract |
+| One 2D reduction and one image LRU (`imageBytes`) | core › The shared reduction |
+| The rows layer's data: `cells` on 1D tiles, columns whole; readers; the tree | core › `cells` |
+| Column measures for themes (`share`, `identity`, `matches-reference`) | core › Themes |
+| Order (`data`, `tree`, a field); filter; hidden | core › The rows layer |
+| A lazy alignment in tree order, a lazy clade's summary from row bins | design-only: not built as designed (drift note `grids-and-rows`) |
+| The rows axis by arithmetic | core › Display rows |
+| Clades named by a unique non-support label, else first and last | core › Clades |
+| Pinned rows in a band and in place | core › Display rows |
+| The band: the rows take the section's room left; one rows layer a section | core › One rows layer a section |
+| The row header: tree, label, numbers of the residues in view, `rows.labelMinPx`, the hidden chip | core › The header |
+| Row columns (`columns`), their fields, titles ordering, a cut value whole under the pointer | core › Row columns |
+| A narrow frame gives way in one order | core › A narrow frame |
+| Narrow: columns yield, a chip naming them | core › Narrow |
+| Gestures and commands of the clades | viewer › The rows' commands |
+| The tree's look | core › The tree's look |
+| The summary row, its hit, hover and partial selection mark | core › The rows layer |
+| What a fold does to the selection, cursor, focus, history | viewer › The rows' commands |
+| Clades announced with their state (`aria-expanded`) | design-only: planned with accessibility |
+| Drawing by density: the shared reduction by theme classes, majority of majorities within tolerance | core › The rows layer |
+| Lazy rows: the rows' window wanted, bounded allocation | core › The rows layer |
+| Selection: rows as a Location part on the rows system; blocks as rects | viewer › A cell of two axes |
+| The keyboard cursor on rows | viewer › The cursor |
+| Drag past a scrolling box's edge | viewer › Pointer |
+| Row zoom keys `]` and `[`; the keys check | viewer › The keys check |
+| Projection onto the rows | viewer › Projection |
+| What a navigator reads: the rows track itself | core › The picture |
+| One value a row as a navigator's fallback (`rowsValue`) | design-only: not built as designed (drift note `grids-and-rows`) |
+| The logo: scale, correction, profile, bars below 2 device px, glyph colors with the chroma floor; hit | core › The logo |
+| Data this slice added (`cells`, inline `pairs` and `grid`, the profile) | core › Cells |
+| Performance and size targets | design-only: measures, held by the tests and the performance tiers |
+| Precedents, the interaction matrix's cells | design-only: intent |
+
 ## Tensions
 
 - **Folds as session state against spec edits**: a figure needs the folds saved; an undo step per fold buries the

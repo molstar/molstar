@@ -68,6 +68,25 @@ Four forms, each public, documented in the core's `_spec`, and each a stable pla
 - Exposing only the spec: every other viewer would reimplement maps, themes and fallbacks, and draw something subtly
   different.
 
+## In the specs
+
+| Decision | Where |
+|---|---|
+| Four public forms, each a place another renderer attaches | core › Render |
+| The spec, read by a viewer mapping the language | core › Language |
+| The resolved view: no data, pixels or target; other viewers read it | core › Resolved view |
+| Draw lists: laid out for a size, viewport, target and the store; pure by contract; hits on the same layout | core › Draw lists |
+| Backends: Canvas2D, SVG, PNG, recording; an application may add its own | core › Backends |
+| Headless: the core and the SVG backend in Node; text measured through a port, Node's bundled table | core › Text |
+| Seq\*'s needs past `TextMeasure` proposed as an extension of core's module | design-only: a proposal for `@molstar/core`, not this package's |
+| One picture: both backends draw the same lists; the recording in the quick lane | core › Backends |
+| `renderSvg` asynchronous, waiting to settle; the render CLI | core › The render CLI |
+| `renderSvg` answers `{ svg, settled, issues, lists }`; the SVG's `data-*` | core › Call options |
+| A length unknown waits (`seq.render.axis.pending`) | core › Tracks layout |
+| Light to depend on: the resolved view and draw lists without the viewer, UI or runtimes | core › Entries carry what their readers need |
+| A second consumer, in tests only | core › A second consumer |
+| Canvas only; the spec only | design-only: rejected alternatives |
+
 ## Consequences
 
 - The resolved view's and draw lists' shapes are contracts with their own section in the core's `_spec`; a change to

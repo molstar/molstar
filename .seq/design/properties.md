@@ -61,6 +61,17 @@ apart from its generators and filters.
 - **Outward**: no property reaches a structure viewer; the adapter translates the Location selected
   ([structure-syncing.md](structure-syncing.md)).
 
+## In the specs
+
+| Decision | Where |
+|---|---|
+| A property a typed symbol read per element of one level; `(prop …)` or an `elements` field; types; one given under both names refused; the names not held | core › Typed, read two ways |
+| The built-ins, short printed, long read | core › Built in |
+| How a property is read (`QueryModel.property`, columns, `pending`; a residue's on an atom) | core › How each is read |
+| An element that lacks a property: false, one warning | core › An element that lacks a property |
+| Extensions add properties (`query-property`), namespaced; unknown names | core › Composed |
+| Outward: no property reaches a structure viewer; the Location is translated | core › Structures |
+
 ## Consequences
 
 - `seqx-core` `query/`: the property table, `prop`, `value`, `QueryModel.property`; `context/`: `query-property`.
