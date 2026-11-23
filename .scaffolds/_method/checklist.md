@@ -9,7 +9,7 @@
 
 <!-- Stage 0: designs -->
 - [ ] <draft>, its mock and its review
-- [ ] GATE: the drafts agreed, with their mocks
+- [ ] GATE 0: the drafts agreed, with their mocks; the plan agreed (the author's words in the tick's commit)
 
 <!-- Stage <n>: <name> -->
 - [ ] **<LANE>** (`briefs/<lane>.md`, <model>) <what>

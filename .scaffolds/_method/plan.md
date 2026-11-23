@@ -5,8 +5,8 @@
      plan. No status and no ticks here: the items and their ticks are in `checklist.md` beside it ([checklist.md](checklist.md)),
      where the current state is `state.md`'s. -->
 
-<**Draft, <date>** | **Agreed, <date>** (the author: "<words>")>. The loop is [loop.md](loop.md); the items are
-[checklist.md](checklist.md).
+The loop is [loop.md](loop.md); the items are [checklist.md](checklist.md). <!-- No status line: whether the plan is
+agreed is the checklist's first gate, ticked with the author's words in its commit. -->
 
 Work id `<work-id>`. <The milestone in one paragraph: what is built, from which designs, the author's words that set
 it.>

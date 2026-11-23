@@ -1,3 +1,5 @@
+# Checklist: version 1's close-out (draft)
+
 <!-- Stage 0 -->
 - [ ] Version 1's rows listed from `design/features.md` and `design/version-1.md`, each built, cut or deferred by the author
 - [ ] The novice passes' 14 design questions designed, each with its mock

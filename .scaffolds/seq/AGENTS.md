@@ -29,7 +29,7 @@ same thing (package rules, tests, headers, changelog) the root wins.
 | [sources/](sources/README.md) | what Seq\* is drawn from, each reconciled against the principles |
 | [design/](design/README.md) | agreed designs, one file per topic; if it is here it is agreed |
 | [records/](records/README.md) | one permanent record per execution session |
-| `execution/<work-id>/` | plan, loop, state and drafts of work in flight; committed and kept, never cited from outside; stays after the close, never moved or deleted unless the author says so (the record alone goes to `records/`) |
+| `execution/<work-id>/` | plan, checklist, loop, state, findings and drafts of work in flight; committed and kept, never cited from outside; stays after the close, never moved or deleted unless the author says so (the record alone goes to `records/`) |
 | `_skills/seq/` | the instance skill |
 | `_checks/` | this scaffold's own check (`ec-ids.ts`) and its parts of the method's checks: the spec map, the scopes, the baselines (Checks, below) |
 
@@ -39,8 +39,9 @@ same thing (package rules, tests, headers, changelog) the root wins.
 1. Read the `principles` skill ([../principles/_skills/principles/SKILL.md](../principles/_skills/principles/SKILL.md)), then the router
    ([../principles/_skills/principles-router/SKILL.md](../principles/_skills/principles-router/SKILL.md)) with the manifest for the modules
    of the area you touch. The skills are not linked into the harness; read them as files.
-2. Design first: a draft in `execution/<work-id>/`, agreed into `design/<topic>.md`; then plan, loop and `state.md` in
-   the execution folder (read `state.md` first when resuming).
+2. Design first: a draft in `execution/<work-id>/`, agreed into `design/<topic>.md`; then `plan.md`, `checklist.md`,
+   `loop.md`, `state.md` and `findings.md` in the execution folder, from the method's templates (read `state.md` first
+   when resuming).
 3. Code, spec and design disagree: write a drift note, don't bend either side. Changes to `principles/`, `sources/` or
    an agreed design are the author's call (David): bring the evidence and a recommendation.
 4. Before calling work done, run the checks yourself, the repository's and these; a report, yours or a subagent's, is
