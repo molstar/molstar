@@ -92,6 +92,22 @@ const preview: Preview = {
             'File formats',
             'Performance',
           ],
+          // Seq* (next): the docs pages first (in reading order), then the design pages
+          'Seq* (next)',
+          [
+            'Docs',
+            [
+              'Introduction',
+              'Concepts',
+              'The language',
+              'Data',
+              'Interaction',
+              'Extending',
+              'Embedding',
+              'Performance and limits',
+            ],
+            'Design',
+          ],
         ],
       },
     },
