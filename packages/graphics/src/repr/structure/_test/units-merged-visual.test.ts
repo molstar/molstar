@@ -316,12 +316,34 @@ describe('the merged units visual', async () => {
     expect(made).toBe(1 + groups);
     const objects = repr.renderObjects.slice();
 
-    // the props again: the merged visual tried (its first group), the per-group visuals updated, not made again
+    // the props again: the per-group visuals updated, not made again, their values deciding (no geometry made to try)
     made = 0;
     await repr.createOrUpdate({ emissive: 0.2 }).run();
-    expect(made).toBe(1);
+    expect(made).toBe(0);
     expect(repr.renderObjects).toEqual(objects);
     expect((repr.renderObjects[0].values as any).uEmissive.ref.value).toBe(0.2);
+    // a new structure alike
+    await repr.createOrUpdate({}, Structure.ofModel(structure.model)).run();
+    expect(made).toBe(0);
+    repr.destroy();
+  });
+
+  it('merges again where the per-group visuals’ values do after an update', async () => {
+    let palette = true;
+    const base = splitBuilder();
+    const builder: UnitsVisualGeometryBuilder<ElementSphereParams, Spheres> = {
+      ...base,
+      processValues: (values: any, geometry: Spheres) => {
+        base.processValues!(values, geometry, undefined as any, undefined as any);
+        ValueCell.updateIfChanged(values.dUsePalette, palette);
+      },
+    };
+    const repr = await createRepr(structure, true, {}, builder);
+    expect(repr.renderObjects.some((o) => isMergedRenderObject(o))).toBe(false);
+    palette = false;
+    await repr.createOrUpdate({ emissive: 0.2 }).run();
+    expect(repr.renderObjects.length).toBeGreaterThan(0);
+    expect(repr.renderObjects.every((o) => isMergedRenderObject(o))).toBe(true);
     repr.destroy();
   });
 

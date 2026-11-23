@@ -170,19 +170,24 @@ const SignatureValueKeys = [
 ] as const;
 
 /**
- * The cells `renderable`'s signature is made of (`getObjectSignature`: its defines and the values it reads), with their
- * versions: the same cells at the same versions the same signature (its linear textures by its defines)
+ * the schema of a renderable's kind's programs, once a kind: by its type, merged or not (a kind is an object of each
+ * renderable's, and a merged kind's program source is made at each call)
  */
-/** the schema of a renderable's kind's programs, once a kind (a merged kind's program source is made at each call) */
-const kindSchemas = new WeakMap<object, RenderableSchema | null>();
+const kindSchemas = new Map<string, RenderableSchema | null>();
+const mergedKindSchemas = new Map<string, RenderableSchema | null>();
 function getSignatureSchema(renderable: GraphicsRenderable) {
   const kind = getRenderableKind(renderable);
   if (!kind) return undefined;
-  let schema = kindSchemas.get(kind);
-  if (schema === undefined) kindSchemas.set(kind, (schema = getRenderableProgramSource(kind)?.schema ?? null));
+  const schemas = kind.merged ? mergedKindSchemas : kindSchemas;
+  let schema = schemas.get(kind.type);
+  if (schema === undefined) schemas.set(kind.type, (schema = getRenderableProgramSource(kind)?.schema ?? null));
   return schema ?? undefined;
 }
 
+/**
+ * The cells `renderable`'s signature is made of (`getObjectSignature`: its defines and the values it reads), with their
+ * versions: the same cells at the same versions the same signature (its linear textures by its defines)
+ */
 function getSignatureInputs(renderable: GraphicsRenderable) {
   const schema = getSignatureSchema(renderable);
   if (!schema) return undefined;

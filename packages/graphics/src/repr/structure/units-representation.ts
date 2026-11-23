@@ -40,7 +40,12 @@ import { Wiggle } from '@molstar/graphics/theme/wiggle';
 import { HashMap } from '@molstar/core/util/map';
 import { hash2 } from '@molstar/core/data/util';
 import { type GpuCullingValue, type RenderMergedValue, resolveRenderMerged } from '@molstar/graphics/geo/geometry/base';
-import { canCullOnGpu, isMergeableType } from '@molstar/graphics/gl/renderable/merged';
+import {
+  canCullOnGpu,
+  canMergeValues,
+  isMergeableType,
+  type MergeableValues,
+} from '@molstar/graphics/gl/renderable/merged';
 import { mergeRenderObjectsByType, pickMergedLoci, type MergedEntry } from '../merged.js';
 import { type SignatureContext, withMergedSignatures } from '../signatures.js';
 import { choosesByProps, createVisual, getFactorySignatures, type VisualFactory } from '../visual-factory.js';
@@ -87,8 +92,9 @@ export function UnitsRepresentation<P extends StructureParams>(
   let visualCount = 0;
 
   /**
-   * The visual over all groups where they merge (`UnitsMergedVisual`): no per-group visuals then. Not where it was
-   * found not to merge (`unmergeableAt`: per-group visuals until the props or structure change)
+   * The visual over all groups where they merge (`UnitsMergedVisual`): no per-group visuals then. Where it was found
+   * not to merge (`unmergeableAt`) the per-group visuals, tried again only where their own values merge after an
+   * update (`mergesAgain`), not by a geometry made to find out, and not at the props and structure it failed at
    */
   let mergedVisual: UnitsMergedVisual<P> | undefined;
   let unmergeableAt: { props: PD.Values<P>; structure: Structure } | undefined;
@@ -121,7 +127,10 @@ export function UnitsRepresentation<P extends StructureParams>(
     if (groups.length < 2 || !choosesByProps(visualCtor)) return;
     const renderMerged = (_props as { renderMerged?: RenderMergedValue }).renderMerged ?? false;
     if (!resolveRenderMerged(renderMerged, groups.length)) return;
-    if (unmergeableAt && unmergeableAt.props === _props && unmergeableAt.structure === structure) return;
+    // found not to merge: the per-group visuals decide after their update (`mergesAgain`)
+    if (unmergeableAt && (hasVisuals() || (unmergeableAt.props === _props && unmergeableAt.structure === structure))) {
+      return;
+    }
     const probe = createVisual(
       visualCtor,
       -1,
@@ -132,6 +141,40 @@ export function UnitsRepresentation<P extends StructureParams>(
     const builder = probe.builder as UnitsVisualGeometryBuilder<P, any> | undefined;
     if (!builder || !isMergeableType(builder.geometryUtils.createEmpty().kind)) return;
     return builder;
+  }
+
+  /**
+   * The builder of a merged visual over `groups` where the per-group visuals, made since a merged one did not merge,
+   * now do by their own values (`canMergeValues` of each, as the merged visual checks its parts): undefined where they
+   * do not, or where the merged one failed at these props and structure
+   */
+  function mergesAgain(structure: Structure, groups: ReadonlyArray<Unit.SymmetryGroup>) {
+    if (!unmergeableAt || (unmergeableAt.props === _props && unmergeableAt.structure === structure)) return;
+    if (groups.length < 2 || !choosesByProps(visualCtor)) return;
+    const renderMerged = (_props as { renderMerged?: RenderMergedValue }).renderMerged ?? false;
+    if (!resolveRenderMerged(renderMerged, groups.length)) return;
+    let builder: UnitsVisualGeometryBuilder<P, any> | undefined;
+    let type = '';
+    let merges = true;
+    visuals.forEach(({ visual }) => {
+      if (!merges) return;
+      const b = (visual as UnitsBuilderVisual<P>).builder as UnitsVisualGeometryBuilder<P, any> | undefined;
+      if (!b) {
+        merges = false;
+        return;
+      }
+      if (!builder) {
+        builder = b;
+        type = b.geometryUtils.createEmpty().kind;
+      } else if (b.createGeometry !== builder.createGeometry || b.geometryUtils !== builder.geometryUtils) {
+        merges = false;
+        return;
+      }
+      // a group without an object (nothing drawn) none to check
+      const ro = visual.renderObject;
+      if (ro && !canMergeValues(type, [ro.values as unknown as MergeableValues])) merges = false;
+    });
+    return merges ? builder : undefined;
   }
 
   /**
@@ -168,6 +211,7 @@ export function UnitsRepresentation<P extends StructureParams>(
       unmergeableAt = { props: _props, structure };
       return false;
     }
+    unmergeableAt = undefined;
     if (hasVisuals()) destroyVisuals();
     // remove highlight, as the per-group visuals do on a new structure
     if (changed) mv.mark(EveryLoci, MarkerAction.RemoveHighlight);
@@ -339,6 +383,13 @@ export function UnitsRepresentation<P extends StructureParams>(
           if (runtime.shouldUpdate)
             await runtime.update({ message: 'Creating or updating UnitsVisual', current: i, max: il });
         }
+      }
+      // the per-group visuals' values merging again (by a theme or props that now do): the merged visual instead
+      const againBuilder = mergesAgain(target, _groups);
+      if (againBuilder && (await createOrUpdateMerged(runtime, againBuilder, target, _groups))) {
+        _structure = target;
+        updated.next(version++);
+        return;
       }
       // update list of renderObjects
       renderObjects.length = 0;
