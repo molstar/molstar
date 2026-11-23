@@ -10,7 +10,8 @@
 
 import type { Node } from '@molstar/core/repr/tree';
 import { theme } from '@molstar/seqx-core/lang';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { loadBridges } from '../bridge-load.js';
 import { viewLegends } from '../legends.js';
 import { bridgeSpec, type BridgeSpecOptions } from './bridge-fixtures.js';
 import { settle } from './helpers.js';
@@ -37,6 +38,10 @@ const labels = (l: { entries: { kind: string; items?: readonly { label: string }
   l.entries.kind === 'swatches' ? l.entries.items!.map((i) => i.label) : [];
 
 describe('a bridge’s legend', () => {
+  // the bridge chunk is lazy: a frame before it lands has no bridges (passed alone, failed after a file whose first
+  // frame had not loaded it in a shared worker)
+  beforeAll(loadBridges);
+
   it('keys its ribbons’ orientation, same and inverted, titled by the bridge, noting a ribbon’s width', async () => {
     const legends = await legendsOf({});
     expect(labels(legends[0])).toEqual(['same', 'inverted']);
