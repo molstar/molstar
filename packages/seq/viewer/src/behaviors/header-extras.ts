@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { type Node as SpecNode, resolveAddress } from '@molstar/core/repr/tree';
+import { isNode, type Node as SpecNode, parseAddress, resolveAddress } from '@molstar/core/repr/tree';
 import {
   actionColumns,
   BlockPlacement,
@@ -24,7 +24,7 @@ import {
 import { hiddenTracksOf, layerName } from '@molstar/seqx-core/render/headers';
 import { actionsShown } from '@molstar/seqx-core/render/headers-draw';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
-import type { ResolvedSection, ResolvedTrack } from '@molstar/seqx-core/view';
+import { type ResolvedSection, type ResolvedTrack, splitDataForms } from '@molstar/seqx-core/view';
 import { formatChord, isMac } from '@molstar/ui/commands/keys';
 import type { CommandResult } from '@molstar/ui/commands/types';
 import { DomHost } from '@molstar/ui/dom/host';
@@ -167,19 +167,27 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
     const model = inner.context.spec.model.value;
     const at = input ?? lastInput.get(target.track ?? target.section);
     const legend = viewer.behaviors.get('legend') as ThemingBehavior | undefined;
-    const specNode = resolveAddress(inner.context.spec.root.value, target.section.split('/').filter(Boolean));
+    const root = inner.context.spec.root.value;
+    const specNode = resolveAddress(root, target.section.split('/').filter(Boolean));
     const layers: HeaderLayerFacts[] = [];
     for (const l of track?.layers ?? []) {
       const address = l.address ?? `${track!.address}:${l.index}`;
       const filtered = at?.filtered.find((x) => x.layer === address)?.count ?? 0;
       // the one name every list of layers says (core's `layerName`: the legend's eye says it too)
       const label = layerName(l, track);
+      // what its user filter leaves out, said by the chip's card
+      const data =
+        filtered > 0 && l.address
+          ? resolveAddress(root, l.address.split('/').filter(Boolean))?.params?.data
+          : undefined;
+      const words = typeof data === 'string' ? filterWords(data) : undefined;
       layers.push({
         address,
         type: l.type,
         label,
         hidden: l.params.hidden === true,
         filtered,
+        ...(words ? { filter: words } : {}),
         ...(l.type === 'rows' && l.params.order === 'tree' && l.params.tree !== undefined ? { tree: true } : {}),
         ...(l.params.color !== undefined ? { color: l.params.color } : {}),
         schemes: l.address && legend && Colored.has(l.type) ? legend.fittingSchemes(l.address) : [],
@@ -331,6 +339,7 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
       ...(key ? { key } : {}),
       enabled: why === undefined,
       ...(why !== undefined ? { why } : {}),
+      ...(e.pressed ? { pressed: e.pressed(f) } : {}),
       ...(slot ? { slot } : {}),
       ...(e.command !== undefined ? { command: e.command, args } : {}),
       ...(subs?.length ? { items: subs.map((s) => subItemOf(e.name, s)) } : {}),
@@ -631,6 +640,16 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
   };
 }
 
+/** A layer's user filter (its data's trailing `(except …)`) as words: "Species ≠ Human", "a ≠ x, y". */
+function filterWords(data: string): string | undefined {
+  const segs = parseAddress(data).pattern?.segments ?? [];
+  const i = segs.findIndex((s) => typeof s !== 'string');
+  const of = i < 0 ? undefined : splitDataForms(segs.slice(i)).filter?.params?.of;
+  if (!isNode(of) || of.kind !== 'item') return undefined;
+  const parts = Object.entries(of.params ?? {}).map(([k, v]) => `${k} ≠ ${(Array.isArray(v) ? v : [v]).join(', ')}`);
+  return parts.length ? parts.join('; ') : undefined;
+}
+
 /**
  * The words of a header's part (_spec/README.md "Behaviors", Headers: Words): a slot its entry's label and key, and why
  * not; a chip its text and what a click does; a label its track's label, its states, and its layers (the card) or the
@@ -652,6 +671,13 @@ function headerWords(
   if (t === 'header-state') {
     const it = items.find((i) => i.name === place.state);
     if (!it?.text) return undefined;
+    // the chip that clears a filter names it ("1 filtered: Species ≠ Human, click to clear"), another says what a click does
+    const named =
+      it.command === 'layer.filter'
+        ? [...new Set(f.layers.flatMap((l) => (l.filter ? [l.filter] : [])))].join('; ')
+        : '';
+    if (it.command === 'layer.filter')
+      return { title: it.text, text: `${it.text}${named ? `: ${named}` : ''}, click to clear` };
     return { title: it.text, text: it.command ? `${it.text}: click ${it.label.toLowerCase()}` : it.text };
   }
   if (t === 'header-label' || t === 'section-header') {

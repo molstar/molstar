@@ -39,6 +39,8 @@ export interface HeaderLayerFacts {
   readonly tree?: boolean;
   /** The rows its user filter leaves out (0: none). */
   readonly filtered: number;
+  /** What its user filter leaves out, as words ("Species ≠ Human"; absent: no `(except …)` form to read). */
+  readonly filter?: string;
   /** Its color as written (absent: its type's default). */
   readonly color?: Value;
   /** The schemes that fit it (what "Color ▸" offers): none for a layer with no color channel. */
@@ -135,6 +137,11 @@ export interface HeaderEntry {
   readonly args?: (f: HeaderFacts) => Readonly<Record<string, unknown>>;
   /** A state's chip text ("12 filtered"); none: no chip. */
   readonly text?: (f: HeaderFacts) => string | undefined;
+  /**
+   * An action that is on now (the track the structure is colored by): its slot is drawn pressed, `aria-pressed`, and
+   * stays drawn when the actions are not shown (a host's DOM parts; the entry's label says what it is).
+   */
+  readonly pressed?: (f: HeaderFacts) => boolean;
   /** Slots by order, then name. */
   readonly order?: number;
   /** false: the menu only (default: true when it has an icon). */
@@ -194,6 +201,8 @@ export interface HeaderMenuItem {
   readonly enabled: boolean;
   readonly why?: string;
   readonly checked?: boolean;
+  /** Its entry's `pressed` now (absent: the entry has none). */
+  readonly pressed?: boolean;
   /** Whether it is drawn in a slot (an action with an icon, in the first `header.slots`). */
   readonly slot?: boolean;
   readonly command?: string;

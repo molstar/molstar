@@ -18,7 +18,7 @@ import {
 } from '@molstar/seqx-core/structure';
 import type { BehaviorProvider, SeqViewerBehavior } from '@molstar/seqx-viewer';
 import type { ViewerCommand } from '@molstar/seqx-viewer/viewer';
-import type { HeaderActionEntry } from '@molstar/seqx-viewer/header-entries';
+import type { HeaderActionEntry, HeaderFacts } from '@molstar/seqx-viewer/header-entries';
 import type { StructureSide } from '@molstar/seqx-viewer/link-structure';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import type { FakeStructureViewer, Selectors } from './fake-structure/fake-viewer.js';
@@ -136,6 +136,8 @@ export function colorNodesOfRuns(
 
 /** The track each fake is colored by (a snapshot of it). */
 const ColoredBy = new WeakMap<FakeStructureViewer, string>();
+/** The layer each viewer's structure is colored by: what the header's pressed icon shows (one at a time). */
+const SourceOf = new WeakMap<SeqViewer, string>();
 
 /**
  * "Color by this track": the layer's colors as runs on the units (`colorRuns`, the drawn track's: the viewer's renderer
@@ -160,6 +162,7 @@ export function colorByLayer(
   // the same track again: back to the base state
   if (ColoredBy.get(fake) === layerAddress) {
     ColoredBy.delete(fake);
+    SourceOf.delete(viewer);
     fake.setState(structureState(fake.entry, []));
     return `Restored the base colors`;
   }
@@ -167,6 +170,7 @@ export function colorByLayer(
   const issues = fake.setState(structureState(fake.entry, colorNodesOfRuns(adapter, r.runs, scheme), layerAddress));
   if (issues) return `The structure refused the state: ${issues[0]}`;
   ColoredBy.set(fake, layerAddress);
+  SourceOf.set(viewer, layerAddress);
   return `Colored ${r.runs.length} runs${r.complete ? '' : ' (some of the track’s data is still pending)'}`;
 }
 
@@ -191,6 +195,10 @@ export function colorByBehavior(run: (layer: string) => string): SeqViewerBehavi
   return { provider, params: undefined };
 }
 
+const colorLayer = (f: HeaderFacts) => f.layers.find((l) => !l.address.includes(':') && l.schemes.length > 0);
+/** Whether the structure is colored by this header's track. */
+const colorSource = (f: HeaderFacts) => !!f.viewer && SourceOf.get(f.viewer) === colorLayer(f)?.address;
+
 /** The host's header entry: on a track with a letters, values or ranges layer, "Color the structure by this track". */
 export const ColorByEntry: HeaderActionEntry = {
   kind: 'header-action',
@@ -199,10 +207,14 @@ export const ColorByEntry: HeaderActionEntry = {
     on: 'track',
     icon: 'box',
     iconMarkup: lucideBox,
-    label: 'Color the structure by this track',
+    label: (f) =>
+      colorSource(f)
+        ? 'The structure is colored by this track (click to restore)'
+        : 'Color the structure by this track',
     command: ColorByCommand,
     order: 0,
     when: (f) => f.layers.some((l) => !l.address.includes(':') && l.schemes.length > 0),
-    args: (f) => ({ layer: f.layers.find((l) => !l.address.includes(':') && l.schemes.length > 0)!.address }),
+    args: (f) => ({ layer: colorLayer(f)!.address }),
+    pressed: (f) => colorSource(f),
   },
 };

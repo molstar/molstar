@@ -98,22 +98,24 @@ export function partsDomPort(): HeaderPartsPortFactory {
             if (cut) back.textContent = '…';
             group.append(back);
           }
-          if (h.actions)
-            for (const s of h.geometry.slots) {
-              const it = h.items.find((i) => i.name === s.name);
-              const b = Button({
-                variant: 'ghost',
-                size: 'sm',
-                icon: Icon({ name: it?.icon ?? 'ellipsis' }),
-                title: it ? it.label : 'Actions',
-                ...(it && !it.enabled ? { 'aria-description': it.why } : {}),
-                onClick: () => press(h, it, s.box),
-              }) as HTMLElement;
-              b.dataset.part = s.name;
-              if (it && !it.enabled) b.setAttribute('aria-disabled', 'true');
-              at(b, s.box);
-              buttons.push(b);
-            }
+          for (const s of h.geometry.slots) {
+            const it = h.items.find((i) => i.name === s.name);
+            // a pressed part stays where it is when the others go with the hover
+            if (!h.actions && !it?.pressed) continue;
+            const b = Button({
+              variant: 'ghost',
+              size: 'sm',
+              icon: Icon({ name: it?.icon ?? 'ellipsis' }),
+              title: it ? it.label : 'Actions',
+              ...(it?.pressed !== undefined ? { pressed: it.pressed } : {}),
+              ...(it && !it.enabled ? { 'aria-description': it.why } : {}),
+              onClick: () => press(h, it, s.box),
+            }) as HTMLElement;
+            b.dataset.part = s.name;
+            if (it && !it.enabled) b.setAttribute('aria-disabled', 'true');
+            at(b, s.box);
+            buttons.push(b);
+          }
           for (const s of h.geometry.states) {
             const it = h.items.find((i) => i.name === s.name);
             const b = doc.createElement('button');

@@ -1325,11 +1325,11 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   reader, `headersBehavior` (the provider is the way in), and the handle's `partsOf`, `framed`, `click`, `context`,
   `loaded` and `preview`.
   - **Entries** (`header-entries.ts`): `HeaderEntry` (`name` namespaced `<id>:<name>`, `on` `track`, `section` or
-    `element`, `kind` `action` or `state`, `icon` `@molstar/ui`'s, `label`, `when`, `command`, `args`, `text`, `order`,
-    `slot`, `items` a submenu of other commands or args: a layer's checkboxes, a chip's list, an item's own `items` a
-    flyout of the flyout; on `element` only: `alone`, its element's menu its entries without the track's and the
-    section's, and `atCursor(viewer)`, the element at the keyboard cursor the menu key opens: Gestures), listed in the
-    registry as `{ kind: 'header-action', entry }` (`SeqViewerRegistryEntry`) or registered at run time
+    `element`, `kind` `action` or `state`, `icon` `@molstar/ui`'s, `label`, `when`, `command`, `args`, `text`,
+    `pressed`, `order`, `slot`, `items` a submenu of other commands or args: a layer's checkboxes, a chip's list, an
+    item's own `items` a flyout of the flyout; on `element` only: `alone`, its element's menu its entries without the
+    track's and the section's, and `atCursor(viewer)`, the element at the keyboard cursor the menu key opens: Gestures),
+    listed in the registry as `{ kind: 'header-action', entry }` (`SeqViewerRegistryEntry`) or registered at run time
     (`register(...entries)`, returning its undo). Registration is atomic: every problem in one error before anything
     changes (a name twice, no namespace, a command the viewer lacks, `seq.viewer.header.command`); the registry's are
     checked once every behavior is made (`BehaviorHandle.composed`). The label and icon default to the command's. **A
@@ -1338,6 +1338,10 @@ rows' commands) reads the last frame's rows layers through the behavior context'
     command's `preview`; a command reads the choice from its args (a palette's) or its context (`viewer.execute`'s).
     Why: the command owns its choices, so the menu, a palette and an agent offer the same. Why entries: one list for a
     slot, a menu item, a DOM part, a key and an agent; the registry's rules (atomic, undoable, namespaced) for free.
+    **`pressed`** (an action that is on now: the track the structure is colored by) makes its item `pressed` and a DOM
+    part's `aria-pressed`; a pressed part is drawn where it is also when the other slots go with the hover, and the
+    parts are made again after a run, so one at a time follows the source (its label says what it is: the tooltip). Why:
+    a host's state is told where the reader looks for the action, not in a line of its own.
   - **Built-ins** (`BuiltInHeaderEntries`, in the default spec's registry; a host leaves one out to remove it):
     `seq:hide` (`eye-off`, `track.hide`), `seq:color` (menu only, "Color ▸": one place, never also a slot; the first
     shown layer with more than one fitting scheme: `layer.channel`'s choices a submenu, previewed while focused or
@@ -1387,9 +1391,10 @@ rows' commands) reads the last frame's rows layers through the behavior context'
     with their names, the well, `shown`), compared structurally; `parts` (`HeaderPartsState`) only with a parts port,
     again when the header whose actions show changes.
   - **Words** (`describe.ts`, the describer's `headers`): a slot its label and key ("Hide track", why when disabled), a
-    chip its text and what a click does ("12 filtered: click clear the filter"), a label its track's label and states
-    (its layers for the card), the cursor on a header "…, Enter for actions". The card of a header part is a title
-    alone. A header's hover lights none of the track's items (EC-146: refused by default).
+    chip its text and what a click does ("12 filtered: click to clear"; the filter chip names what its layers' filters
+    leave out, `HeaderLayerFacts.filter`: "1 filtered: category ≠ Human, click to clear"), a label its track's label and
+    states (its layers for the card), the cursor on a header "…, Enter for actions". The card of a header part is a
+    title alone. A header's hover lights none of the track's items (EC-146: refused by default).
 - `links.hover` (`LinksHoverProvider`, `links-hover.ts`; not in the default spec: how events from different parts
   compose is the application's, the examples list it): hovering a molecule (a chip, a residue, an atom) lights the
   positions its links reach (a complex's `pairs` children, each end on its row's unit); hovering a linked site lights

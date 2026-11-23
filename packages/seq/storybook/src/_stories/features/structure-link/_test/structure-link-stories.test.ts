@@ -355,4 +355,30 @@ describe('Color by this track', () => {
     expect(fake.colorOf(0, 20)).toBe(BaseColor);
     colorLink = undefined;
   });
+
+  it('the track the structure is colored by has its icon pressed, one at a time; its tooltip names it (F9)', () => {
+    restore = fakeClock();
+    colored.draw();
+    colorLink = link = linkFake(colored, table, Complex);
+    const headers = colored.behavior<HeadersBehavior>(HeadersProvider)!;
+    const target = (id: string) => ({ section: Section, track: `${Section}/${id}` });
+    const item = (id: string) =>
+      headers
+        .menuOf(target(id))!
+        .groups.flat()
+        .find((i) => i.name === 'fake-host:color-by')!;
+    const pressed = () => ['domains', 'letters'].map((id) => item(id).pressed);
+    expect(pressed()).toEqual([false, false]);
+    expect(item('letters').label).toBe('Color the structure by this track');
+    headers.run('fake-host:color-by', target('letters'));
+    expect(pressed()).toEqual([false, true]);
+    expect(item('letters').label).toBe('The structure is colored by this track (click to restore)');
+    // another track takes the color: the press moves, never two at once
+    headers.run('fake-host:color-by', target('domains'));
+    expect(pressed()).toEqual([true, false]);
+    // the same again restores the base colors: none pressed
+    headers.run('fake-host:color-by', target('domains'));
+    expect(pressed()).toEqual([false, false]);
+    colorLink = undefined;
+  });
 });
