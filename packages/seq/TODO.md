@@ -404,6 +404,16 @@ extension kinds.
   it ran (F19); a chip's count by width, a swatch outline on a light ground (F24); the keys panel scrolls or opens
   upward (F26).
 
+## The novice pass's looks (2026-11-23)
+
+- **The faint contacts vanish in the dark** (Kinds of links, dark): the layer's opacity is tuned for light.
+- **Ring labels in two forms**: "chr1 … chr20" then "19", "21", "22" where the room is short; shorten all or none.
+- **The chromosome legend lists chrY** on a ring of 23 blocks without it (the hues' table, not the blocks').
+- **The link card shows raw field names** (`gene_a`, `q`, `Strands`): a label per field, the host's, offered by the
+  ring.
+- **The keys panel scrolls past its end** into blank grey; its bottom rows are cut by a short story frame.
+- **A lone stub label inside the ring** ("chr22 · 403") at load in The square dragged, the ring clipped below.
+
 ## The genome ring (RX, 2026-11-23)
 
 - **The viewers grew 3.6 / 3.0 kB with RX** (the design said ~0.3): hooks, card providers, `center`'s doc, bindings;
