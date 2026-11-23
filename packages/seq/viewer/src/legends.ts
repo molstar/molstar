@@ -6,7 +6,7 @@
 
 import { ReactiveModel, type ReadonlyState, State } from '@molstar/core/reactive';
 import {
-  layerKey,
+  keepHiddenLegends,
   type RangesLay,
   resolveColor,
   type SeqTokens,
@@ -14,6 +14,7 @@ import {
   viewLegends,
 } from '@molstar/seqx-core/render';
 import { type Key, type Location, location } from '@molstar/seqx-core/query';
+import type { ResolvedView } from '@molstar/seqx-core/view';
 import type { ViewerConfig } from './config.js';
 import { formatValue, type Legend, legendsEqual, legendTitle } from '@molstar/seqx-core/theme/index';
 
@@ -96,12 +97,14 @@ export class LegendModel extends ReactiveModel {
   }
 
   /** The legends of a settled layout, published when they differ; and the entries whose items it draws. */
-  update(layout: ViewLayout): void {
+  update(layout: ViewLayout, view?: ResolvedView): void {
     this.derived++;
     this._layout = layout;
     this._items.clear();
     // every entry, not the first 12: a part opens a legend in place (`legendRows` caps what it shows)
-    this._legends.set(this.keepHidden(layout, viewLegends(layout, Number.POSITIVE_INFINITY).legends));
+    this._legends.set(
+      keepHiddenLegends(layout, view, viewLegends(layout, Number.POSITIVE_INFINITY).legends, this._last, this._names),
+    );
     // the entries with items drawn, read once a settled frame (never a frame, never a redraw of the part)
     const drawn = new Set<string>();
     for (const legend of this._legends.value)
@@ -110,63 +113,14 @@ export class LegendModel extends ReactiveModel {
     this._drawn.set([...drawn].sort().join('\n'));
   }
 
-  /** The legend each layer last had while shown (its row kept in place while the spec hides it). */
-  private readonly _last = new Map<string, Legend>();
-  /** Each layer of the view's tracks by key: its name (a legend's eye names it). */
+  /** The legends each layer last had while shown (its rows kept in place while the spec hides it). */
+  private readonly _last = new Map<string, readonly Legend[]>();
+  /** Each layer of the view by key: its name (`layerName`, the header menu's too). */
   private readonly _names = new Map<string, string>();
 
-  /**
-   * A layer's name (the eye's "Hide <name>"): its `label`, else its track's when it is the track's one layer, else its
-   * track's and its id ("Domains · d").
-   */
+  /** A layer's name (the eye's "Hide <name>"): core's `layerName`, the one the track header's menus say (`keepHiddenLegends`). */
   layerName(key: string): string {
     return this._names.get(key) ?? key.slice(key.lastIndexOf('/') + 1);
-  }
-
-  /**
-   * A layer's row keeps its place when the spec hides it (_spec/README.md "Legends"): a hidden layer draws nothing, so it
-   * derives no legend; the one it last had is kept, its layer listed in `hidden`, joined to a shown legend of the same
-   * key (a merged legend, one of its layers hidden) or a row of its own before the first legend after it in the view.
-   * A layer hidden before it was ever shown has no row (it never had a key).
-   */
-  private keepHidden(layout: ViewLayout, shown: readonly Legend[]): readonly Legend[] {
-    const place = new Map<string, number>();
-    const hidden: string[] = [];
-    this._names.clear();
-    for (const s of layout.sections)
-      for (const t of s.section.tracks)
-        for (const l of t.layers) {
-          const k = layerKey(t, l);
-          place.set(k, place.size);
-          // its own label, else its track's when it is the track's one layer, else the track's and its id
-          const label = l.params.label;
-          const id = k.slice(k.lastIndexOf('/') + 1);
-          const named = (typeof label === 'string' && label) || (t.layers.length === 1 ? t.label : '');
-          this._names.set(k, named || (t.label ? `${t.label} · ${id}` : id));
-          if (l.params.hidden === true) hidden.push(k);
-        }
-    for (const l of shown) for (const k of l.layers) this._last.set(k, l);
-    for (const k of [...this._last.keys()]) if (!place.has(k)) this._last.delete(k);
-    if (!hidden.length) return shown;
-    const out = [...shown];
-    const own = new Map<string, { legend: Legend; layers: string[] }>();
-    for (const k of hidden) {
-      const was = this._last.get(k);
-      if (!was) continue;
-      const i = out.findIndex((l) => l.key === was.key);
-      if (i >= 0) out[i] = { ...out[i], layers: [...out[i].layers, k], hidden: [...(out[i].hidden ?? []), k] };
-      else {
-        const g = own.get(was.key);
-        if (g) g.layers.push(k);
-        else own.set(was.key, { legend: was, layers: [k] });
-      }
-    }
-    for (const { legend, layers } of own.values()) {
-      const at = place.get(layers[0])!;
-      const i = out.findIndex((l) => (place.get(l.layers[0]) ?? Number.POSITIVE_INFINITY) > at);
-      out.splice(i < 0 ? out.length : i, 0, { ...legend, layers, hidden: layers });
-    }
-    return out;
   }
 
   private _layout: ViewLayout | undefined;

@@ -18,7 +18,7 @@ import { loadBridges } from '@molstar/seqx-core/render/bridge-load';
 import { loadGenome } from '@molstar/seqx-core/resolve';
 import { GenomesViews } from '@molstar/seqx-examples';
 import { AliasedMarks } from '@molstar/seqx-examples/genomes/by-region';
-import { ASection, BSection } from '@molstar/seqx-examples/genomes/compare';
+import { ASection, BSection, SyntenyBridge } from '@molstar/seqx-examples/genomes/compare';
 import { DotLevels, Inversion } from '@molstar/seqx-examples/genomes/generate/alignment';
 import { NGap } from '@molstar/seqx-examples/genomes/generate/assemblies';
 import { Hotspot } from '@molstar/seqx-examples/genomes/generate/contacts';
@@ -225,12 +225,26 @@ describe('Examples/Genomes, headless', () => {
       true,
     ]);
     expect(legend.note).toBe('width: aligned length');
+    expect(legend.layers).toEqual([{ address: `${SyntenyBridge}/blocks`, name: 'A to B', hidden: false }]);
     // hovered: the ribbon lights (the hover pass draws)
     const r = ribbons.find((x) => x.ax1 - x.ax0 > 4)!;
     v.hover.set(v.hit((r.ax0 + r.ax1) / 2, b.box.y + 1), 'test');
     v.draw();
     expect(recordDrawLists(v.frame!.lists, ['hover']).split('\n').length).toBeGreaterThan(2);
     await bothThemes(v);
+  });
+
+  it('synteny, its bridge layer hidden: the "A to B" row and its eye stay, dimmed, "Show A to B"', async () => {
+    const v = await open('synteny');
+    const titles = legendRows(v).map((r) => r.title);
+    await v.execute('layer.hide', { address: `${SyntenyBridge}/blocks` });
+    await settle(v);
+    expect(bridges(v)[0]?.lays ?? []).toEqual([]);
+    expect(legendRows(v).map((r) => r.title)).toEqual(titles);
+    const row = legendRows(v).find((r) => r.title === 'A to B')!;
+    expect(row.hidden).toBe(true);
+    expect(row.entries.every((e) => !e.action)).toBe(true);
+    expect(row.layers).toEqual([{ address: `${SyntenyBridge}/blocks`, name: 'A to B', hidden: true }]);
   });
 
   it('the dot plot (EC-109, EC-145, EC-209, EC-223): grid tiles of the alignment under its blocks; a cell is two positions, a drag selects a rectangle', async () => {

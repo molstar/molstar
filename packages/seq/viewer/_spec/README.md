@@ -1634,9 +1634,9 @@ frame.
   icon button (eye; eye-off while hidden), named "Hide <layer>" or "Show <layer>" (its tooltip the same), runs
   `layer.hide` or `layer.show` on the layer it keys: a patch, one undo step. A legend over several layers has one button
   ("Layers of <title>", `aria-haspopup`) opening `@molstar/ui`'s context menu of its layers, each checked while shown
-  (the track header's Layers menu's shape), a choice the same command. A layer's name (`LegendModel.layerName`): its
-  `label`, else its track's when it is the track's one layer, else the track's and its id ("Domains · d"); a layer of no
-  id (`<track>:<index>`) has no eye. The button is a native one in the part's tab order: Enter and Space click it, never
+  (the track header's Layers menu's shape), a choice the same command. A layer's name (`LegendModel.layerName`) is
+  core's `layerName`, the one the track header's Layers and "Hidden layers" menus say too; a layer of no id
+  (`<track>:<index>`) has no eye. The button is a native one in the part's tab order: Enter and Space click it, never
   select an entry; the focus stays on it across the redraw a hide brings. The gestures: click the eye, hidden and the
   row dimmed; click the eye-off, shown and the row as it was; a shown layer's entry unchanged (the click rule); a hidden
   layer's entry nothing; undo one step. `layers: false` drops it (a figure's legend, printed, where the button is
@@ -1645,14 +1645,17 @@ frame.
   loaded the first time a part draws an eye, its room (20 px) held until it lands: the default viewer's first chunk
   carries none of them (measured: 22.6 kB eager, 3.0 kB with the chunk).
 - **A layer's row keeps its place when hidden**: a hidden layer draws nothing and derives no legend, so `LegendModel`
-  keeps the legend each layer last had while shown and, at each settle, puts it back for a layer the spec hides
-  (`Legend.hidden`, the hidden layers among `layers`): joined to a shown legend of the same key (a legend over several
-  layers, one hidden: the row stays as it is, its menu saying which) or a row of its own before the first legend after
-  it in the view. A row whose every layer is hidden (`LegendRow.hidden`) is dimmed (its title and swatches at 0.45), its
-  eye the eye-off, its entries with no action, never hovered, `aria-disabled` and a `not-allowed` pointer. A layer
-  hidden before it was ever shown has no row (it never had a key); a layer gone from the view is forgotten. Why: a key
-  that vanished on a hide reads as data that vanished; the row says where the layer is and how to bring it back. The
-  track header's "Hidden layers" reads the same spec param, so the two always agree.
+  keeps the legends each layer last had while shown and, at each settle, puts them back for a layer the spec hides
+  (core's `keepHiddenLegends`; `Legend.hidden`, the hidden layers among `layers`): each joined to a shown legend of the
+  same key (a legend over several layers, one hidden: the row stays as it is, its menu saying which) or a row of its own
+  (a layer with a color and a size legend: both rows), before the first legend after it in the view (the tracks' layers,
+  then the bridges'). A hidden layer with no legend kept (hidden from the start, or its key not derived yet) has a row
+  of its name alone, no entries, so a hidden layer always shows where its key is and its eye-off shows it. A row whose
+  every layer is hidden (`LegendRow.hidden`) is dimmed (its title and swatches at 0.45), its eye the eye-off, its
+  entries with no action, never hovered, `aria-disabled` and a `not-allowed` pointer. A layer saying `legend: none` has
+  no row, hidden or not; a layer gone from the view is forgotten. Why: a key that vanished on a hide reads as data that
+  vanished; the row says where the layer is and how to bring it back. The track header's "Hidden layers" reads the same
+  spec param, so the two always agree.
 - **Hidden tracks** (the author, 2026-11-21: "hiding a track moves the UI around … give this to control of the app
   layer"): the view draws nothing for a track the spec hides (`hidden: true`): no section line, no chip, no stub, so a
   hide moves only the tracks below it, by its height (core's Track headers); a section whose tracks are all hidden

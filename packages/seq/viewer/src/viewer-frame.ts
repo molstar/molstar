@@ -189,7 +189,7 @@ export class ViewerFrame {
       this._wanter?.want(frame.wants);
       this.issues.set(frame.layout.issues);
       // legends on settle only (a pan's frames derive none), compared structurally
-      if (input.settled) viewer.legends.update(frame.layout);
+      if (input.settled) viewer.legends.update(frame.layout, viewer.view.resolved.value);
       store.holdShown(frame.layout.shown);
     }
     this._frame = frame;

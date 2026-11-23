@@ -28,7 +28,9 @@ const DomainsLayer = `${Domains}/d`;
 const Pair = `${Section}/pair`;
 
 /** Domains (one layer, by category) above Pair (two layers of one data and field: one legend over both). */
-function spec() {
+function spec(
+  edit?: (s: { track: (id: string, p: object) => { layer: (id: string, p: object) => unknown } }, d: unknown) => void,
+) {
   const b = createSeqSpec();
   const p = b.data.sequence('p', { alphabet: 'protein', letters: 'MEEPQSDPSVEPPLSQETFSDLWKLL' });
   const d = b.data.ranges('d', {
@@ -47,6 +49,7 @@ function spec() {
     const t = s.track('pair', { label: 'Pair' });
     t.layer('a', { type: 'ranges', data: d, color: theme.field('family') });
     t.layer('b', { type: 'ranges', data: d, color: theme.field('family') });
+    edit?.(s as never, d);
   });
   return b.build();
 }
@@ -63,12 +66,12 @@ afterEach(() => {
   document.body.replaceChildren();
 });
 
-async function mounted(options: Parameters<typeof mountLegend>[2] = {}) {
+async function mounted(options: Parameters<typeof mountLegend>[2] = {}, root = spec()) {
   stubCanvasContext();
   frames = installFrames();
   const v = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined, history: uiHistory() });
   viewer = v;
-  await v.load(spec());
+  await v.load(root);
   v.resize(600);
   await v.settle();
   frames.flush();
@@ -117,12 +120,13 @@ describe('a layer’s eye (the agreed gestures)', () => {
     expect(g.querySelector<HTMLElement>('span')!.style.opacity).toBe('0.45');
     for (const o of g.querySelectorAll<HTMLElement>('[role="option"]')) expect(o.style.opacity).toBe('0.45');
     expect(eye(el, 'Domains').getAttribute('aria-label')).toBe('Show Domains');
-    // two consumers, one state: the track header's "Hidden layers" lists the layer the eye hid
+    // two consumers, one state and one name: the track header's "Hidden layers" lists the layer the eye hid, by the
+    // eye's own words
     const hiddenLayers = headerMenu(v, { section: Section, track: Domains })!
       .groups.flat()
       .find((i) => i.name === 'seq:hidden-layers')!;
     expect(hiddenLayers.items!.map((i) => [i.label, i.command, i.args])).toEqual([
-      ['Show d', 'layer.show', { address: DomainsLayer }],
+      [eye(el, 'Domains').getAttribute('aria-label'), 'layer.show', { address: DomainsLayer }],
     ]);
     expect(legendRows(v).find((r) => r.title === 'Domains')!.layers).toEqual([
       { address: DomainsLayer, name: 'Domains', hidden: true },
@@ -224,7 +228,12 @@ describe('a legend over several layers', () => {
   it('has one button opening a menu of its layers, each checked while shown; a hidden one keeps the row, undimmed', async () => {
     const { v, el } = await mounted();
     const row = legendRows(v).find((r) => r.title === 'Pair')!;
-    expect(row.layers.map((l) => l.name)).toEqual(['Pair · a', 'Pair · b']);
+    expect(row.layers.map((l) => l.name)).toEqual(['a', 'b']);
+    // one name a layer: the track header's Layers menu says the eye menu's words
+    const layersMenu = headerMenu(v, { section: Section, track: Pair })!
+      .groups.flat()
+      .find((i) => i.name === 'seq:layers')!;
+    expect(layersMenu.items!.map((i) => i.label)).toEqual(['a', 'b']);
     const b = eye(el, 'Pair');
     expect(group(el, 'Pair').querySelectorAll('[data-legend-eye]')).toHaveLength(1);
     expect(b.getAttribute('aria-label')).toBe('Layers of Pair');
@@ -237,8 +246,8 @@ describe('a legend over several layers', () => {
     });
     const rows = [...menu.querySelectorAll<HTMLElement>('[role^="menuitem"]')];
     expect(rows.map((r) => [r.textContent?.trim(), r.getAttribute('aria-checked')])).toEqual([
-      ['Pair · a', 'true'],
-      ['Pair · b', 'true'],
+      ['a', 'true'],
+      ['b', 'true'],
     ]);
     rows[1].click();
     await landed(v);
@@ -251,6 +260,51 @@ describe('a legend over several layers', () => {
       [`${Pair}/b`, true],
     ]);
     expect(group(el, 'Pair').dataset.hidden).toBeUndefined();
+  });
+});
+
+describe('a hidden layer’s rows', () => {
+  it('a layer hidden from the start: a row of its name alone, dimmed, at its place, its eye-off "Show Notes" showing it', async () => {
+    const root = spec((s, d) =>
+      s.track('notes', { label: 'Notes' }).layer('n', { type: 'ranges', data: d, hidden: true }),
+    );
+    const { v, el } = await mounted({}, root);
+    expect(titles(el)).toEqual(['Domains', 'Pair', 'Notes']);
+    const row = legendRows(v).find((r) => r.title === 'Notes')!;
+    expect(row.hidden).toBe(true);
+    expect(row.entries).toEqual([]);
+    expect(group(el, 'Notes').dataset.hidden).toBe('true');
+    expect(eye(el, 'Notes').getAttribute('aria-label')).toBe('Show Notes');
+    eye(el, 'Notes').click();
+    await landed(v);
+    expect(hiddenParam(v, `${Section}/notes/n`)).toBeUndefined();
+    // shown: its legend says what the Domains' does (one data, one field), so it joins that row
+    expect(titles(el)).toEqual(['Domains', 'Pair']);
+    expect(
+      legendRows(v)
+        .find((r) => r.title === 'Domains')!
+        .layers.map((l) => l.address),
+    ).toContain(`${Section}/notes/n`);
+  });
+
+  it('a layer with two legends (color and size) hidden: both rows stay, dimmed, in place', async () => {
+    const root = spec((s, d) =>
+      s.track('sized', { label: 'Sized', height: 40 }).layer('v', {
+        type: 'variants',
+        data: d,
+        color: theme.field('id'),
+        size: theme.field('start', { domain: [0, 20], range: [0.3, 1] }),
+      }),
+    );
+    const { v, el } = await mounted({}, root);
+    const before = titles(el);
+    expect(before.filter((t) => t?.startsWith('Sized'))).toHaveLength(2);
+    await landed(v, v.execute('layer.hide', { address: `${Section}/sized/v` }));
+    expect(titles(el)).toEqual(before);
+    for (const r of legendRows(v).filter((x) => x.title.startsWith('Sized'))) {
+      expect(r.hidden).toBe(true);
+      expect(group(el, r.title).dataset.hidden).toBe('true');
+    }
   });
 });
 

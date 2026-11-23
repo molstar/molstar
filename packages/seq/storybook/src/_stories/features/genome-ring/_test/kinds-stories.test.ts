@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { resolveAddress } from '@molstar/core/repr/tree';
 import { DarkTokens, LightTokens } from '@molstar/seqx-core/render';
 import { describerFor } from '@molstar/seqx-viewer/describe';
 import { loadGenome } from '@molstar/seqx-core/resolve';
@@ -229,5 +230,32 @@ describe('Kinds of links, headless', () => {
     v.draw();
     expect(kindsOf(v).map((l) => [l.label, l.nr])).toEqual([before[0]]);
     await exported(v);
+  });
+
+  it('the contacts hidden from the start (the story "Kinds Of Links Contacts Hidden" before its first frame): a Contacts row of its name alone, dimmed, its eye "Show Contacts", in its place', async () => {
+    const shown = await open('ring-kinds');
+    const titles = legendRows(shown).map((r) => r.title);
+    shown.retire();
+    viewer = undefined;
+    const view = ringStoryView('ring-kinds');
+    const build = () => {
+      const root = view.build();
+      const layer = resolveAddress(root, kindLayer('contact').split('/').filter(Boolean))!;
+      (layer as { params: Record<string, unknown> }).params = { ...layer.params, hidden: true };
+      return root;
+    };
+    viewer = await openExample({ ...view, build } as never, {
+      delayMs: 0,
+      wait: 3000,
+      fixtures: true,
+      extensions: [rondoViewer],
+    });
+    const v = viewer;
+    v.draw();
+    expect(legendRows(v).map((r) => r.title)).toEqual(titles);
+    const contacts = legendRows(v).find((r) => r.title === 'Contacts')!;
+    expect(contacts.hidden).toBe(true);
+    expect(contacts.entries).toEqual([]);
+    expect(contacts.layers).toEqual([{ address: kindLayer('contact'), name: 'Contacts', hidden: true }]);
   });
 });
