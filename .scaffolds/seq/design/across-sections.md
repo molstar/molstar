@@ -487,10 +487,10 @@ Built (the fifth slice): LA, LA2, LA3, LA4 (bridges, grids over two sections, ca
 | Decision | Where |
 |---|---|
 | Whose each choice is: which sections a spec param, drawing a preset, gestures the viewer's | core › Render |
-| A new kind `bridge` under `view`, layers only (Decided 1, 2) | core › Bridges |
+| A new kind `bridge` under `view`, layers only (Decided 1, 2) | core › Language › Assemblies › Bridges |
 | Sides neighbours in the stack, rows only; the errors | core › The pass is lazy and composed |
 | Its layers `pairs`; another type its fallback (`seq.view.bridge.layer`); `scope: 'bridge'` internal (Decided 16) | core › Layer types |
-| Its data: pairs, or a segments map read as pairs (Decided 6) | core › Bridges |
+| Its data: pairs, or a segments map read as pairs (Decided 6) | core › Language › Assemblies › Bridges |
 | Which systems: ends by the side showing them, `a` to `a`, `mirror`; no path (`seq.render.bridge.unplaced`) | core › Which side an end is on |
 | A reader without bridges leaves the bridge out, its sides stacked | core › The pass is lazy and composed |
 | Placed after its sides; its room; the key a pan of one side relays that side and the bridge | core › Laid out after its sides |
@@ -521,11 +521,11 @@ Built (the fifth slice): LA, LA2, LA3, LA4 (bridges, grids over two sections, ca
 | `mapSummary` and the `liftover()` builder deferred (Decided 15) | design-only: deferred |
 | A grid over two sections of blocks; a block pair at the coarser axis' level | core › Over two sections of blocks |
 | A dot plot of two genomes | core › The pairs layer |
-| Categorical grid axes: rows systems, `member_order`, chrome, mixed and moved (Decided 14) | core › Categorical axes |
+| Categorical grid axes: rows systems, `member_order`, chrome, mixed and moved (Decided 14) | core › Resolved view › Categorical axes |
 | Ribbons in a bridge only; ribbons on a ring RN's; inside one row an extension's | core › A ribbon |
 | Tracks beside a grid (Decided 13) | design-only: deferred (sections side by side) |
-| Export: a bridge a group, its ribbons paths | core › Export |
-| The language (`bridge`, `pairs.shape`, a map as data, `follow_y`, rows axes; Decided 12) | core › Bridges |
+| Export: a bridge a group, its ribbons paths | core › Bridges › Export |
+| The language (`bridge`, `pairs.shape`, a map as data, `follow_y`, rows axes; Decided 12) | core › Language › Assemblies › Bridges |
 | The configuration items | core › Render |
 | Precedents, the interaction cells, the defaults' pictures | design-only: intent |
 

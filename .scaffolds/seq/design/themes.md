@@ -496,9 +496,9 @@ real use is **fixed**, with its reason. **No new port**: themes need no provider
 |---|---|
 | Shared domains are `scale` nodes (Decided 1) | core › Scales |
 | Palettes by Mol\*'s value palettes, converted with MolViewSpec's; the lists-free module and named lists (Decided 2, 11) | core › Palettes are Mol\*'s value palettes |
-| Unlisted values hashed (FNV-1a over UTF-8); the builder lists an inline column (Decided 3) | core › Forms |
+| Unlisted values hashed (FNV-1a over UTF-8); the builder lists an inline column (Decided 3) | core › Themes › Forms |
 | `seq-cat-*` redesigned for the color-vision check (Decided 4) | core › Tokens |
-| The default continuous palette the token ramp (Decided 5) | core › Forms |
+| The default continuous palette the token ramp (Decided 5) | core › Themes › Forms |
 | The color-blind substitution a reader's setting (Decided 6) | viewer › Legends |
 | Sizes: no cut, measured (Decided 7); the size estimates | design-only: a stance and estimates, measured at the gates |
 | No ramp-end drag this slice (Decided 8) | design-only: not built (decided) |
@@ -509,10 +509,10 @@ real use is **fixed**, with its reason. **No new port**: themes need no provider
 | Themes never hide; a filter does | core › Filters |
 | The theme sublanguage: slots, channels, a channel never moves a slot | core › The theme slots |
 | Which channels each layer type reads | core › Channels a type reads |
-| The forms (`uniform`, `field`, `rules`, `scheme`, `letters`); the JSON shape | core › Forms |
-| `field`: a column, another data node, the default palette by the column's type | core › Forms |
-| `rules`: clauses, measures, types, nesting bounded | core › Forms |
-| Palette kinds (`categorical`, `direct`, `binned`, `continuous`) in oklab | core › Forms |
+| The forms (`uniform`, `field`, `rules`, `scheme`, `letters`); the JSON shape | core › Themes › Forms |
+| `field`: a column, another data node, the default palette by the column's type | core › Themes › Forms |
+| `rules`: clauses, measures, types, nesting bounded | core › Themes › Forms |
+| Palette kinds (`categorical`, `direct`, `binned`, `continuous`) in oklab | core › Themes › Forms |
 | A `scale` node: type, domain, range; one scale two tracks; an export's domain recorded; a navigator's the view's | core › Scales |
 | Log and `non_positive`; values drawn at their value; missing not zero | core › Scales |
 | Schemes as registry entries; the built-ins; color-blind safe, substitutes; dark derived | core › Schemes |
@@ -526,7 +526,7 @@ real use is **fixed**, with its reason. **No new port**: themes need no provider
 | A reader's color-blind substitution; every substitute safe | core › Schemes |
 | Letter cells in dark: a hairline edge | core › A letter cell's edge |
 | Forced colors | viewer › Forced colors |
-| Legends derived, merged, qualified by channel; a layer's `legend: none` | core › Legends |
+| Legends derived, merged, qualified by channel; a layer's `legend: none` | core › Themes › Legends |
 | Legends published on settle; a part a host places; follows the hover; keyboard | viewer › Legends |
 | The legend's groups one a line; the channels row reserved | viewer › The Legend part's groups run one a line |
 | Highlight channels in the legend part (`highlight.clear`) | viewer › The Legend part lists the active highlight channels |

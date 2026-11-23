@@ -238,7 +238,7 @@ nothing with tooltips but the language bump.
 |---|---|
 | A tooltip answers only on rendered marks; no outline of its own | core › Tied to something rendered |
 | Two ways to attach (by data, by range from a table), one result | core › Two ways to attach |
-| The `tooltip` node and its params (`on`, `target`, `rows`, `source`, `schema`, `block`, `category`, `field`, `text`, `label`, `format`) | core › Tooltips |
+| The `tooltip` node and its params (`on`, `target`, `rows`, `source`, `schema`, `block`, `category`, `field`, `text`, `label`, `format`) | core › Language › Tooltips |
 | MVS's forms mapped; a CIF category before the structure runtime reads one | core › MVS mapped |
 | Schema is said, never guessed | core › `schema` |
 | One mechanism with a `ranges` column; every table through the store as items | core › Tooltip tables |
@@ -260,7 +260,7 @@ nothing with tooltips but the language bump.
 | Export titles composed by the viewer's providers | viewer › Export titles |
 | The builder's `views.tooltip`; `check()` reports a missing field | core › `field`, `text`, `label`, `format` |
 | Performance: a warm card show allocates within a few hundred bytes of the card without tooltips | viewer › Tooltips |
-| Performance: the lookup through the store entry's interval index; parses cached by text (64) | core › Tooltips |
+| Performance: the lookup through the store entry's interval index; parses cached by text (64) | core › Render › Tooltips |
 | Performance targets (1,000,000 ranges, export cost) | design-only: measurement targets for the heavy lane, not rules |
 | Defaults: no `tooltip` node, the card as before | viewer › Providers |
 | The matrix's member labels (`member_labels`) | design-only: not built |

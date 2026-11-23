@@ -655,7 +655,7 @@ registry entry, an option of a call, or fixed with its reason).
 
 | Decision | Where |
 |---|---|
-| A navigator is a node of the view (`of`, `axes`, `content`, `tracks`, `bands`, `system`, `place`, `size`, `hidden`); the four forms are presets | core › Navigators |
+| A navigator is a node of the view (`of`, `axes`, `content`, `tracks`, `bands`, `system`, `place`, `size`, `hidden`); the four forms are presets | core › Language › Navigators |
 | Navigators placed by the host; the default mount a `ui` entry, the gestures a behavior | viewer › Navigators |
 | `mountNavigator` and `viewer.navigator(def)` public; a host-drawn navigator's contract | viewer › NavigatorModel |
 | The rail's look (hairline, heavier segment, knobs) | core › The look |
@@ -669,15 +669,15 @@ registry entry, an option of a call, or fixed with its reason).
 | Other sections: a ring's own window, reversed, collapsed, follower, blocks, narrow data area | core › The windows |
 | The picture: the whole axis from summaries, the view's colors, pending drawn pending, rows, the ideogram, marks | core › The picture |
 | Navigator pictures as registry entries | core › Pictures |
-| Draw lists and the `window` pass; hits one `window` target with a `part` | core › Draw lists |
+| Draw lists and the `window` pass; hits one `window` target with a `part` | core › Navigators › Draw lists |
 | A window per bound section, the reachable span, moving it leads, a cyclic window, display order | core › The windows |
 | The zoom strip; two rows by what the section reaches; one stroke, two inks; the funnel | core › The zoom strip |
 | Gestures: click centres, sweep from outside (`navigator.dragOutside`), double-click, wheel, a far drag a step | viewer › Behaviors |
 | Idle per axis, keys while focused, announcements on settle | viewer › NavigatorModel |
 | The readout: one line above the part, right-aligned, at rest the window's region | viewer › Navigators |
 | Over blocks and the square: switching blocks | viewer › NavigatorModel |
-| SVG export leaves navigators out unless `include` | core › Export |
-| Tokens `seq-window`, `seq-grip`, `seq-wash`, `seq-centromere`; the `giemsa` scheme | core › Navigators |
+| SVG export leaves navigators out unless `include` | core › Export › Navigators |
+| Tokens `seq-window`, `seq-grip`, `seq-wash`, `seq-centromere`; the `giemsa` scheme | core › Render › Navigators |
 | The configuration items | viewer › Configuration |
 | The readout lagging a gesture | design-only: a bug handed to a fix lane, not a decision |
 | Removing `placeReadout`'s candidate search | design-only: done, history (the module is gone) |

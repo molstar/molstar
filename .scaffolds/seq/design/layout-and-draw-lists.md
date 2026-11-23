@@ -146,9 +146,9 @@ The legend member becomes `Legend` data derived from a layer's resolved channel 
 | `prev` the layer's last layout, passed as an argument | core › Layer types |
 | Emphasis reaches `draw` as an argument; selection over a section's band or per track | core › A box a track |
 | One window per leading section (`FrameInput.viewports`: `top`, `bands`, `y`) | core › Section layouts |
-| Projected hover and selection at `emphasis.projected` | core › Emphasis |
+| Projected hover and selection at `emphasis.projected` | core › Render › Emphasis |
 | The layout interface: strips, layers per strip, the key per section | core › Section layouts |
-| Units and passes | core › Draw lists |
+| Units and passes | core › Render › Draw lists |
 | The base, overlay and labels canvases | viewer › Canvas2D backend |
 | Primitives as structs of arrays reused frame to frame | core › Primitives |
 | Reused buffers compared against fresh ones | core › Reused buffers are tested against fresh ones |
@@ -162,4 +162,4 @@ The legend member becomes `Legend` data derived from a layer's resolved channel 
 | `query` layers read the whole annotation; filtering later | design-only: history (data filters are built: core › Filters) |
 | Sticky lanes while data streams | core › Sticky lanes |
 | A token table in the context; its version in the key; colors in a spec literal or `token:` | core › Tokens |
-| Fonts: letters centered, labels measured through the port, Node's bundled table | core › Text |
+| Fonts: letters centered, labels measured through the port, Node's bundled table | core › Render › Text |

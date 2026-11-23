@@ -518,7 +518,7 @@ Built (the fifth slice): GC1 (the language and resolve), SC (sections over a com
 | `maxAssemblyBlocks` and the closing run (decided 8) | core › A section of assemblies' blocks |
 | Resolve's cost at scale, linear | core › Derived sequences |
 | A map between two assemblies, one map over every pair; read by region | core › A map between assemblies |
-| Loaded when used | core › Loaded when used |
+| Loaded when used | core › Assemblies › Loaded when used |
 | `section.of` an assembly or a list (groups, EC-210); `section.include` and its command | core › A section of assemblies' blocks |
 | The axis of several systems; hits name their block | viewer › A section of blocks on several systems |
 | Navigation across blocks, `cross` by default (decided 10) | viewer › navigate.acrossBlocks |
@@ -528,19 +528,19 @@ Built (the fifth slice): GC1 (the language and resolve), SC (sections over a com
 | No `{ along }` on a block; `colinearBlocks` (decided 2) | core › Genomes |
 | Overlapping blocks on one system; places | core › Places |
 | `block.scale` (decided 9); a zoomed ring a cut | core › A block's own direction and scale |
-| Positions the system's, display order the section's; a Location by system | core › Location |
+| Positions the system's, display order the section's; a Location by system | core › Queries › Location |
 | `(locus :text …)` (decided 14) | core › The genome forms |
 | Selection in display order; the cursor crosses blocks (decided 11) | viewer › A section of blocks on several systems |
 | Follow for equal block lists only (decided 12) | core › Follow |
-| The view history and saved state by block | viewer › History |
-| Export: a group a block with its data attributes | core › Export |
+| The view history and saved state by block | viewer › ViewModel › History |
+| Export: a group a block with its data attributes | core › Render › Export |
 | A hue per block: the `block` field and its domain (decided 16) | core › The built-in fields' domains |
 | A ribbon's twist | core › The pairs layer |
 | From a system and a position to its places | core › Places |
 | Pairs and grids across blocks (decided 15) | core › The pairs layer |
 | A navigator over an assembly; the zoom strip; the square; the readout | core › A navigator over blocks |
 | `navigator.system` a list of assemblies; grips on the square per axis | design-only: not built (the Built note) |
-| The configuration table | core › Assemblies |
+| The configuration table | core › Resolve › Assemblies |
 | The edge cases taken or assigned; the self-check; the lanes | design-only: a plan |
 
 ## Tensions

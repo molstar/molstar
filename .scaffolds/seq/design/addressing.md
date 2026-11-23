@@ -140,16 +140,16 @@ and AoS interchangeable representations we have"; records in an address as `:ite
 | An id is local; the address the path of ids | repr › One node shape |
 | The id pattern; names outside it go through a form (EC-200) | repr › Ids |
 | Prefixes name subtrees, `/*`; no elision | repr › Grammar |
-| What data makes is reached by forms (`chain`, `row`, `item`, `node`, `sequence :name`) | core › Forms |
+| What data makes is reached by forms (`chain`, `row`, `item`, `node`, `sequence :name`) | core › Queries › Forms |
 | The grammar; canonical printing, keys sorted, `parse(print(a)) = a` | repr › Grammar |
 | Positional values before keywords, operator heads | repr › Positional values |
 | Positional values only in expression forms, else `seq.query.form.param` | core › Expressions take positional operands |
 | Percent-encoded as a whole in a link | core › Mol\*'s link grammar |
-| Forms are the query language's; one language with queries | core › Forms |
-| Rects first-class: Locations of two axes, set operations | core › Location |
+| Forms are the query language's; one language with queries | core › Queries › Forms |
+| Rects first-class: Locations of two axes, set operations | core › Queries › Location |
 | Bounded: a limit and a depth, an issue never a truncation | core › Resolving |
 | Positions in labels of a named numbering (EC-1 to EC-8) | core › Numberings and labels |
-| An address that no longer resolves is reported with what it named, never re-bound | core › Status |
+| An address that no longer resolves is reported with what it named, never re-bound | core › Resolving › Status |
 | `(elements …)` items: one item, columns, records; zipped, never a product | core › elements |
 | Short and long names both read, the short printed; one field twice an error | core › Built in |
 | Normalized to columns, printed in the shorter layout | core › elements |
@@ -158,7 +158,7 @@ and AoS interchangeable representations we have"; records in an address as `:ite
 | Refs refused for now in data nodes' params and a section's `of` and `follow` | core › Not followed yet |
 | Bookmarks and sets are refs, one patch | core › Adding one is one patch |
 | Refs follow edits; dangling and rebinding refused | repr › Link integrity |
-| An unresolved ref on read reported, the rest opens | core › Checks |
+| An unresolved ref on read reported, the rest opens | core › Refs › Checks |
 | The `ref` param type | repr › Refs |
 | Commands take addresses; a link drives the view as a menu or an agent does | viewer › AddressModel |
 | Links in Mol\*'s grammar, prefixed keys, their own hover channel (EC-182) | core › Mol\*'s link grammar |

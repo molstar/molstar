@@ -260,7 +260,7 @@ side" is what the side is told. Nothing here exists without the link.
 | No port, no behavior, nothing in the composition | viewer › Structure link |
 | Two entries: `@molstar/seqx-core/structure` (translation) and `@molstar/seqx-viewer/link-structure` (wiring) | core › Structures |
 | `structureFacts` and its residue rows | core › Facts |
-| `unitRows` | core › Rows |
+| `unitRows` | core › Structures › Rows |
 | `toUnits`: along static or overlay paths, the use's `via`, unobserved cut, a molecule whole | core › To units |
 | The size gate (EC-167) | core › The size gate |
 | `fromUnits`, the rest counted | core › From units |
@@ -276,13 +276,13 @@ side" is what the side is told. Nothing here exists without the link.
 | "Color by this track": a host's header entry over `colorRuns` | design-only: a host's entry (the Storybook's), never Seq\*'s |
 | The fake host's adapter (the reference translation to MolViewSpec) | design-only: the Storybook's, not a package rule |
 | A map's `priority`, sorted weakest first | core › Search |
-| A use's `via` | core › Via |
+| A use's `via` | core › Resolved view › Via |
 | Not chosen silently; the ambiguity's hint | core › Search |
 | Links carry no `via` | core › A section's `via` |
 | `priority` and `via` in the 0.5.0 language | core › Versions |
 | The fake structure viewer (Storybook) | design-only: the Storybook's test fixture |
 | Datasets (p53 with 2OCJ, the complex with 1FIN) | design-only: example fixtures |
-| The `structure` map kind kept, with provenance and status | core › Language |
+| The `structure` map kind kept, with provenance and status | core › Language › Maps |
 | The link's options and defaults | viewer › Structure link |
 
 ## Tensions

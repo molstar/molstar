@@ -525,7 +525,7 @@ Built (the fifth slice): RG with RS (the shapes, 2D tiles, levels, summaries), G
 |---|---|
 | Whose each choice is: no new port; meaning a spec param, planning a store setting or a preset | core › Render |
 | The answer shapes `pairs`, `grid`, `matrix`, `rows` and their forms | core › The region shapes' forms |
-| A matrix's coarse form named `summary` (pairs' is `bins`) | core › Tables |
+| A matrix's coarse form named `summary` (pairs' is `bins`) | core › Data › Tables |
 | Pairs tiled in 1D by either end; a pair's identity its row or id with both ends | core › The region shapes |
 | Sided pairs between two genomes | core › Sided pairs |
 | Items tiles at any listed level (`RegionRequest.items`, `i<level>`) | core › Items tiles |

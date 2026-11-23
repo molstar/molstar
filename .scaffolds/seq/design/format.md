@@ -100,7 +100,7 @@ description of the language that everything else derives from.
 | Printing elides columns; the reader refuses an elided one | repr › S-expressions |
 | JSON the default interchange | repr › JSON |
 | MessagePack for large inline data, its extensions | repr › MessagePack |
-| Large data belongs in sources, not inline | core › Bounds |
+| Large data belongs in sources, not inline | core › Language › Bounds |
 | S-expressions a printing, never stored | repr › S-expressions |
 | One node shape | repr › One node shape |
 | The language is data; validation, defaults, builder types and docs from it | repr › A language is plain data |

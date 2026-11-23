@@ -3,10 +3,13 @@
 // or say why they stay in the design. A design with a decision heading (`## Decision`, `## Decisions`, `## Decided …`)
 // has an `## In the specs` section: a table whose rows are `| <decision> | <where> |`, `<where>` either
 // `<spec> › <section>` (the section a heading or a bold lead, `- **<section>**`, in that spec, matched by its start;
-// `<spec> › <heading> › <section>` names headings above it, outermost first, each matched by its start) or
+// `<spec> › <heading> › <section>` names headings above it, outermost first, each matched by its start, the last one
+// its immediate heading) or
 // `design-only: <reason>`. Designs with no decision heading (plans, catalogs, the vision) are not checked.
 // A pointer must be unambiguous: when its text starts more than one heading or bold lead of the spec, it fails and
-// names the candidates with their headings, unless exactly one of them is the pointer's whole text; a heading above
+// names the candidates with their headings, unless exactly one of them is the pointer's whole text (and its immediate
+// heading the pointer's last heading's whole text, when it names one), or exactly one
+// whole-text match is a top-level section (right under the title, which no heading above can name); a heading above
 // it in the pointer settles it. Why: the first match was taken, and about ten pointers landed on the wrong section
 // while the check passed.
 // `--worklist` prints every design that fails, pending or not; `--self-check` resolves planted pointers.
@@ -66,12 +69,16 @@ function parseLeads(text: string): Lead[] {
 }
 const norm = (s: string) => s.replace(/\\/g, "").replace(/[`*]/g, "").toLowerCase().trim();
 
-/** Whether each of `parents` starts a heading of `under`, in order (not necessarily adjacent). */
+/** Whether `parents` name the headings above a section: the last its immediate heading, the others headings further
+ * up, in order (not necessarily adjacent); each matched by its start. */
 function within(under: readonly string[], parents: readonly string[]): boolean {
+  if (parents.length === 0) return true;
+  const up = under.length - 1;
+  if (up < 0 || !norm(under[up] as string).startsWith(parents[parents.length - 1] as string)) return false;
   let i = 0;
-  for (const p of parents) {
-    while (i < under.length && !norm(under[i] as string).startsWith(p)) i++;
-    if (i++ >= under.length) return false;
+  for (const p of parents.slice(0, -1)) {
+    while (i < up && !norm(under[i] as string).startsWith(p)) i++;
+    if (i++ >= up) return false;
   }
   return true;
 }
@@ -83,7 +90,13 @@ function resolve(specLeads: readonly Lead[], pointer: string): { ok: true } | { 
   const want = parts.pop() as string;
   const hits = specLeads.filter((l) => norm(l.text).startsWith(want) && within(l.under, parts));
   if (hits.length === 0) return { ok: false, why: "no section" };
-  if (hits.length === 1 || hits.filter((l) => norm(l.text) === want).length === 1) return { ok: true };
+  const parent = parts[parts.length - 1];
+  const whole = hits.filter(
+    (l) => norm(l.text) === want && (parent === undefined || norm(l.under[l.under.length - 1] as string) === parent),
+  );
+  // a top-level section (right under the title) has no heading to name it by: its whole text names it
+  if (hits.length === 1 || whole.length === 1 || whole.filter((l) => l.under.length === 1).length === 1)
+    return { ok: true };
   const named = hits.map((h) => `"${[...h.under.slice(1), h.text].join(" › ")}"`);
   return { ok: false, why: `${hits.length} sections start with it: ${named.join(", ")}` };
 }
@@ -103,20 +116,38 @@ if (flags.has("--self-check")) {
       "- **Bridges**: e",
       "## Rendering",
       "### Bridges",
+      "### Issues",
+      "## Language builder",
+      "- **Links**: h",
+      "## Issues",
+      "## History",
+      "### Ports",
+      "- **History**: f",
+      "### Models",
+      "- **History**: g",
     ].join("\n"),
   );
   const cases: [string, boolean][] = [
-    ["Links", true], // the whole text of one, a prefix of another
-    ["Links between", true],
+    ["Language › Links between", true],
     ["Bounds", false], // starts two, the whole text of neither
     ["Bounds of the ring", true],
     ["Configuration", false], // two sections of one name
     ["Language › Configuration", true], // settled by the heading above it
     ["Bridges", false],
-    ["Resolved view › Bridges", true],
+    ["Resolved view › Configuration › Bridges", true],
+    ["Configuration › Bridges", true],
+    ["Resolved view › Bridges", false], // its immediate heading is Configuration
     ["Rendering › Bridges", true],
+    ["Spec › Configuration", false], // neither Configuration is right under the title
     ["Rendering › Links", false], // not under that heading
     ["Ranges", false], // none
+    ["Issues", true], // the top-level one, by its whole text
+    ["Rendering › Issues", true],
+    ["Ports › History", true],
+    ["History › History", false], // two under the top-level History
+    ["Links", false], // now two of that whole text
+    ["Language builder › Links", true],
+    ["Language › Links", true], // the whole-text heading, not the longer one it starts
   ];
   const wrong = cases
     .filter(([p, ok]) => resolve(planted, p).ok !== ok)

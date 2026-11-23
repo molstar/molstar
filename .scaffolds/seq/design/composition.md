@@ -107,12 +107,12 @@ spec ─read─▶ checked spec ─resolve─▶ static model ─▶ resolved vi
 | Sublanguages in slots (queries, themes, patches) | core › Queries |
 | Named themes and styles referred to by address; templates over dynamic nodes | core › Language |
 | `def` with arguments and overrides | design-only: waits for an example, not built |
-| Extension kinds under their namespace, with a fallback | core › Names |
+| Extension kinds under their namespace, with a fallback | core › Extensions › Names |
 | Session is not the spec | viewer › Models |
 | Tier 1: the static model, pure, keyed by the spec's hashes | core › Resolve |
 | Tier 1: the resolved view, renderer-independent, no data | core › Resolved view |
 | Tier 2: the overlay, never part of tier 1 | core › Overlay |
-| Tier 3: the draw lists, laid out per frame into reused buffers | core › Draw lists |
+| Tier 3: the draw lists, laid out per frame into reused buffers | core › Render › Draw lists |
 | The data store beside the tiers | core › Store |
 | Summaries belong to their store entry | core › Summaries |
 | No track drawn as an empty well (`track.empty`, `blocks.emptyTracks`) | core › Tracks layout |

@@ -573,8 +573,8 @@ Built (the fifth slice): BZ, BE, GG, VC, GB, FR (by region with levels, VCF's ma
 | Levels of a tab-line source from its index's bytes; counts exact or absent | core › the levels its index's bytes allow |
 | A view's tiles bounded by read cost (`readCost`, `maxBytesPerLayer`) | core › A layer's wants together |
 | Issues one a cause with a count and first places; a bound passed `too-large` | core › Shared helpers |
-| Range reads; `AssetRangeError` fails the region | core › Assets |
-| A format's conventions fixed; `base` and `ends` not read, said | core › Conventions fixed |
+| Range reads; `AssetRangeError` fails the region | core › bigWig › Assets |
+| A format's conventions fixed; `base` and `ends` not read, said | core › BED family › Conventions fixed |
 | Names are the file's; lengths where the file says | core › chrom.sizes |
 | BED: columns by place, `bed N+M` named by `fields` with a column number; BED12 blocks as pieces; identity `name@start-end` | core › BED family |
 | bedGraph as values | core › bedGraph |

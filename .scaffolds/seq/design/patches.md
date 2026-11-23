@@ -418,7 +418,7 @@ A validator's own issue is carried as is: one carrier, no duplicate.
 | `applyPatch` owns the columns it is given | repr › The tree owns a column it is given |
 | The inverse | repr › The inverse |
 | All or nothing; the bounds (`maxOps`, `MaxDepth`) | repr › All or nothing |
-| The Seq spec's tighter depth (256) | core › Bounds |
+| The Seq spec's tighter depth (256) | core › Language › Bounds |
 | Normalization of what the patch made | repr › Normalization |
 | Refs follow a move or a rename; what is walked, what is not | repr › Refs follow a move or a rename |
 | The ref index, derived lazily, measured | repr › The ref index |
@@ -433,7 +433,7 @@ A validator's own issue is carried as is: one carrier, no duplicate.
 | `diff`: Merkle descent, matching by id, fallbacks, moves by a longest increasing subsequence, emission order | repr › diff(a, b) |
 | The three laws as seeded property tests | repr › Tests |
 | Previews: re-applied on a new root, without the language's own validators, committed in full | viewer › Previews are patches |
-| The API and the conformance suite | repr › The conformance suite |
+| The API and the conformance suite | repr › Patches › The conformance suite |
 | Seq's conformance cases and the 10-op p53 bound | core › Patches |
 | Lane N's tests over the composition | viewer › SpecModel |
 | What else changes (format, changes, viewer-models, citations) | design-only: pointers to other designs |

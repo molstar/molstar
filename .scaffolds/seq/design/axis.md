@@ -313,7 +313,7 @@ position.
 | A collapsed intron zero width on every layout (Decided 3) | core › Breaks |
 | A drag across a break selects what is shown (`selection.acrossBreaks`) (Decided 4) | viewer › Configuration |
 | Expanding one intron refused; Shift+C the whole section (Decided 5) | viewer › The axis's commands |
-| A history step over a changed axis restored by position (Decided 6) | viewer › History |
+| A history step over a changed axis restored by position (Decided 6) | viewer › ViewModel › History |
 | Whose each choice is; a config item needs a second use | design-only: the rule designs place their choices by, applied in each spec's Configuration |
 | `direction` (`genomic`, `reversed`, `follow`, `{ along }`); unresolved and mixed paths | core › Its direction |
 | One direction per axis; a reversed piece's positions | core › An axis |
@@ -321,7 +321,7 @@ position.
 | A reversed axis says so: the ruler counts down, the direction mark (`axis.directionMark`) | core › A reversed axis says so |
 | A ruler's insertion labels, `units`, `unnumbered` | core › Units |
 | Complement (`auto`, `always`, `never`) | core › Complement |
-| Navigation in display order | core › Navigation |
+| Navigation in display order | core › Section layouts › Navigation |
 | `pieces`, `collapsed`, `pad`; the stop codon; a ref with no piece | core › Its pieces |
 | A break: a zero-width hairline; its hit | core › Breaks |
 | What a break hides is not dropped | core › What a break hides is not dropped |
@@ -330,11 +330,11 @@ position.
 | Letters through a path: one to one or a residue to a codon; `code`; density; status | core › Layer types |
 | Offsets and positions through pieces and direction | core › Offsets and positions |
 | Hit-testing keeps the section's system and position; letters through a path add `extent` and `hull` | core › Lanes and Hits |
-| Selection by residues; arrows by the row's granularity, a crossed break announced | viewer › The cursor |
+| Selection by residues; arrows by the row's granularity, a crossed break announced | viewer › SelectionModel and HighlightModel › The cursor |
 | Follow both ways; three units a residue on a coding follower; `projectPoint` exported | core › A follow |
 | Scroll groups need equal axes | core › Scroll groups' key |
 | Focus and reveal through hidden stretches | viewer › Actions |
-| The view history over a changed axis | viewer › History |
+| The view history over a changed axis | viewer › ViewModel › History |
 | Updates keep the centre and the zoom | viewer › Updates |
 | Commands `section.reverse` and `section.collapse` | viewer › The axis's commands |
 | Export: `data-direction`, `data-pieces`; a viewport in positions | core › A viewport in positions |

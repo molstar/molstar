@@ -114,7 +114,7 @@ with the same options on both calls, so `p`'s moves rewrite refs as they would h
 | Only `ok: true` has a `root`; `changes` against ours | repr › Only ok: true has a root |
 | `partial`: ours with theirs' independent changes, else ours (decided 1) | repr › partial |
 | `invalid`: its `at`, `theirs`, `partial` | repr › partial |
-| Without a language an info; warnings kept | repr › Issues |
+| Without a language an info; warnings kept | repr › Merge › Issues |
 | Keyed by node from two diffs | repr › Keyed by node |
 | Changes that both apply | repr › Changes that both apply |
 | The conflict table, both ways round; `move` reserved | repr › Conflicts |

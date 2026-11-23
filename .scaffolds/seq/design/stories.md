@@ -143,7 +143,7 @@ the viewer's one item, `view.motion` (`platform`: animate unless the platform as
 | `sample(plan, t)`: pure, deterministic, allocation-free warm | core › Sampling |
 | A frame is shown in the frame slot, never committed | viewer › The frame slot |
 | The animation port: the application drives, or Seq\* asks | viewer › Animation |
-| Adapters: the default on the page's frames, a headless fake clock | viewer › Adapters |
+| Adapters: the default on the page's frames, a headless fake clock | viewer › Animation › Adapters |
 | Timing is data on the step | core › Story steps |
 | Playing a step in the viewer (`playStep`) | viewer › Stories |
 | Export: a story rendered to frames headlessly, the render CLI's video | design-only: not built (the headless clock is there; no CLI output) |

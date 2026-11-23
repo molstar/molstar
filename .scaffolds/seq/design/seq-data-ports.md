@@ -201,7 +201,7 @@ Every other cell: no, because a data adapter carries no gesture.
 | Host updates: `changes` reopens in place, coalesced a frame | viewer › Host updates |
 | The store's `reattach`: identity by key | core › Reattach |
 | What referred to what went | viewer › What referred to what went |
-| Annotations given back: `unitRows`, a pure function; no writer in Seq\* | core › Rows |
+| Annotations given back: `unitRows`, a pure function; no writer in Seq\* | core › Structures › Rows |
 | Layering: no package of its own; `io/structure` in `seqx-core`, `runtimes/mmcif` opt-in | core › Seq io |
 | A Mol\* adapter never in `seqx-core` | design-only: not built (a host's or a bridge package, later) |
 | The fake host's adapter and the proof of one path | design-only: the Storybook's test fixture |

@@ -148,7 +148,7 @@ the viewer's `_spec` (Configuration) lists every item with its default.
 | Session state in the models, never in the spec | viewer › Models |
 | `viewer.session()` and `viewer.restore(session)` | design-only: not built (the spec says "to come") |
 | A viewport per section: offsets, its record, a saved session in positions | viewer › A viewport |
-| The view's history: whole records, restored by position when the axis changed | viewer › History |
+| The view's history: whole records, restored by position when the axis changed | viewer › ViewModel › History |
 | Scroll groups on equal axes (`viewport.groupEqualAxes`) | viewer › Scroll groups |
 | A follow through a map; a follower leads; a cyclic follower wraps | viewer › Follow |
 | Viewports survive updates; a move before a width is an intent | viewer › Updates |
