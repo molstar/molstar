@@ -284,7 +284,7 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
       whichever merges last; B10): a task script per new view (find a gene by name, compare two assemblies across a
       bridge, follow a contact on the ring, switch chromosomes on the square), with a pointer path onto each menu and
       submenu; findings counted by kind and placed (`fixes.md` for FX6, a drift note, `TODO.md`).
-- [ ] **M5** (running 2026-11-23, `briefs/m5-measurements.md`) (alone, quiet machine; `measurements.md`): the heavy lane and the opt-in tiers; a whole human genome by
+- [x] **M5** (done 2026-11-23, [measurements.md](measurements.md): every frame target met but the split patch (median 16.2 ms) and one Signal zoom frame; vsync without drops; tiers green, two heavy bounds flaky under the lane's contention; the minimal viewer +150.7 kB, the author's question) (`briefs/m5-measurements.md`) (alone, quiet machine; `measurements.md`): the heavy lane and the opt-in tiers; a whole human genome by
       region (by chromosome); a VCF region of 10,000 records decoded; the ring of 12,000 links at full scale in the
       browser at dpr 2; a bridge frame; the bundles (each runtime its own row, the extension its own, the minimal
       viewer not grown). **M4's carried measurements**: a bigWig pan (FX1's story), real-vsync frames with the pane in

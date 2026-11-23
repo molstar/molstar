@@ -419,6 +419,12 @@ extension kinds.
   legend entry without a swatch, its label doubled; the scattered pick's grid lines in dark; the dot plot's white empty
   cells in dark and "chr1" against "1"; Liftover's overlapping labels, jargon and no bridge legend; the methylation
   matrix's missing cells as dark as low ones, samples called "State"; BED12 tracks unnamed.
+- **M5's leftovers** (2026-11-23):
+  - The 200-copy split patch, from a click to drawn: median 16.2 ms, max 20.4 (edit < 16).
+  - The Signal story's zoom had one frame of 25.7 ms.
+  - The heavy lane's 1M-range lookup and pairs-pyramid slice bounds fail under the lane's own worker contention (load
+    1.2) and pass alone. Isolate them, or give them a quiet-run guard; don't raise them.
+  - Cmd/Ctrl+wheel over the ring at the fit is taken but changes nothing.
 
 ## The genome ring (RX, 2026-11-23)
 
