@@ -58,3 +58,24 @@ author, 2026-11-17).
   entries feed the draw lists and legends (tier 3) ([composition.md](composition.md)).
 - The store's conformance tests: pending vs empty, dedupe, cancellation, eviction never in view, versions, settle and
   open domains, with a synthetic asynchronous source and a fake clock.
+
+## In the specs
+
+| Decision | Where |
+|---|---|
+| One store per viewer or headless context; keys by source, system, level, tile and by node | viewer › StoreModel |
+| An entry's state; pending never empty; failed shown and retried | core › Store |
+| Versions per entry and store; the frame keyed by the versions it read | core › The key |
+| Notification: entries a `KeyedState`, the viewer's frame on change | core › Store |
+| Requests: deduped, ordered, bounded in flight, cancelled after a grace | core › Want sets |
+| Summaries per attached source, factor 16, `maxLength`, binned per tile past it | core › Summaries |
+| A detached source's tiles leave the queue; overlay sources shared by count | core › Store |
+| What two consumers share held per holder, tested with two interleaved | core › Shared per holder |
+| Eviction byte-bounded, LRU, never in view; nodes held, not cached | core › Eviction |
+| Answers carry nodes, the overlay's dynamic nodes | core › Overlay |
+| The store's clock readable; an export's deadline on it | core › One deadline |
+| Inline data through the same store | core › Its runtime |
+| Want sets per consumer; prefetch and margin may be `evicted`, view and in flight never | core › Want sets |
+| Headless and export: `renderSvg` asynchronous, waits to settle or times out, the live viewport untouched | core › One deadline |
+| Open domains computed at settle, held during a gesture, an export's recorded in the SVG | core › Scales |
+| Tooltip tables read by region beside the sections they decorate | core › Tooltip tables wanted |
