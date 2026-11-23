@@ -501,6 +501,48 @@ Cells this design fills or changes; the others stand as the axis, layouts and na
 
 Built (the fifth slice): GC1 (the language and resolve), SC (sections over a complex), GC2 (the axis and layouts), GC3 (navigators and the viewer), GA2 and GA3 (the genome ring's axis and many contigs), RX2 (the square's cells, `LayerType.square`, and its window moved and resized). Not built: `system` as a list of assemblies; grips drawn on the square per axis.
 
+## In the specs
+
+| Decision | Where |
+|---|---|
+| Whose each choice is; no new port | design-only: the method (axis.md's rule) |
+| The `assembly` kind and its params; the name kept (decided 6) | core › The kind |
+| Its sequences derived; a `sequence` child overrides one | core › Derived sequences |
+| Every sequence has a length (`seq.resolve.assembly.lengths`) | core › Derived sequences |
+| Static after open: the coverage enters resolve with the lengths, hashed by content (decided 3) | core › The coverage enters resolve with the lengths |
+| A derived sequence's address `(sequence :name …)`; a derived block's `(block :name …)`, overrides by `of` | core › A section of assemblies' blocks |
+| Names through aliases, then the `chr` prefix; ambiguous aliases dropped (decided 5) | core › The names rule |
+| A source on an assembly checked against its names | core › The names rule |
+| Annotations over an assembly; inline rows name their sequences | core › Data over an assembly |
+| `order`, natural by default (decided 4); `include` | core › The kind |
+| `maxAssemblyBlocks` and the closing run (decided 8) | core › A section of assemblies' blocks |
+| Resolve's cost at scale, linear | core › Derived sequences |
+| A map between two assemblies, one map over every pair; read by region | core › A map between assemblies |
+| Loaded when used | core › Loaded when used |
+| `section.of` an assembly or a list (groups, EC-210); `section.include` and its command | core › A section of assemblies' blocks |
+| The axis of several systems; hits name their block | viewer › A section of blocks on several systems |
+| Navigation across blocks, `cross` by default (decided 10) | viewer › navigate.acrossBlocks |
+| Gaps at scale on rows and rings (decided 7) | core › Gaps at scale, one rule for rows and rings |
+| Small blocks run together | core › Runs of small blocks |
+| A direction per block (decided 1); `section.reverse` keeps the order (decided 13); `block.reverse` | core › A block's direction and scale |
+| No `{ along }` on a block; `colinearBlocks` (decided 2) | core › Genomes |
+| Overlapping blocks on one system; places | core › Places |
+| `block.scale` (decided 9); a zoomed ring a cut | core › A block's own direction and scale |
+| Positions the system's, display order the section's; a Location by system | core › Location |
+| `(locus :text …)` (decided 14) | core › The genome forms |
+| Selection in display order; the cursor crosses blocks (decided 11) | viewer › A section of blocks on several systems |
+| Follow for equal block lists only (decided 12) | core › Follow |
+| The view history and saved state by block | viewer › History |
+| Export: a group a block with its data attributes | core › Export |
+| A hue per block: the `block` field and its domain (decided 16) | core › The built-in fields' domains |
+| A ribbon's twist | core › The pairs layer |
+| From a system and a position to its places | core › Places |
+| Pairs and grids across blocks (decided 15) | core › The pairs layer |
+| A navigator over an assembly; the zoom strip; the square; the readout | core › A navigator over blocks |
+| `navigator.system` a list of assemblies; grips on the square per axis | design-only: not built (the Built note) |
+| The configuration table | core › Configuration |
+| The edge cases taken or assigned; the self-check; the lanes | design-only: a plan |
+
 ## Tensions
 
 - **A direction per block, not per piece**: an inversion inside a collapsed (exons-only) axis on one system, reversed

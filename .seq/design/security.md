@@ -72,3 +72,26 @@ bounded before it starts (§bounded-work).
   its policy too.
 - Tests: each bound refused before allocating (a 20,000-deep spec, a huge declared column, a backtracking regex), the
   headless default refusing the network and paths above its root, SVG escaping.
+
+## In the specs
+
+| Decision | Where |
+|---|---|
+| A policy wraps the asset manager (`policyAssets`); a refusal an issue on its source | core › The asset policy |
+| Locations, sizes, credentials, redirects, time: decided on the resolved URL | core › The asset policy |
+| The bound on all reads in flight | design-only: not built (TODO) |
+| The interface carries `credentials`, `redirect`, `signal`, `maxBytes`; each app composes its manager; the suite | core › What a read passes to the manager |
+| A manager that downloads by other means than `fetch`; `maxBytes` on `file://` in Node | design-only: not built (TODO) |
+| Defaults in a browser: `https:` and relative, no credentials, 256 MB | core › The asset policy |
+| Headless: files under a root and listed hosts, no network by default (EC-126) | core › The headless policy |
+| Tests read no network (the test adapter) | core › Ports |
+| Bounds on what a spec sizes: size, depth, query depth, a column's length, the issues kept | core › Bounds |
+| Nested sources (depth 4) | core › Configuration |
+| A block's values (2^24) and an answer's dynamic nodes | core › Tables |
+| Regular expressions in search | design-only: not built (with search) |
+| `custom` counted in the size, never interpreted | core › Bounds |
+| An archive's bounds | core › Archives |
+| Output escaped in the SVG; labels never markup | core › SVG |
+| Links act only through commands on addresses; a link is data | core › Links |
+| Agents act as a user would; a patch validated before it applies | viewer › SpecModel |
+| Tooltips: text and rows bounded, Markdown the template's only, `!seq-` links, controls and bidi stripped | core › Tooltips |
