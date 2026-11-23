@@ -108,7 +108,7 @@ describe('the words', () => {
     );
     const stem = l.ribA[r];
     const s = RibbonsType.describe!({ element: { owner: l.owner, key: l.stemKey[stem] }, position: 0 }, l)!;
-    expect(s[1]).toMatch(/^Links: [\d,]+ links to \d+ chromosomes?$/);
+    expect(s[1]).toMatch(/^This stem: [\d,]+ links? to (\d+ chromosomes|chr\d)$/);
     expect(RibbonsType.summary!(l)).toMatch(/^[\d,]+ ribbons, 6 chromosomes; strongest chr\d ↔ chr\d, [\d,]+$/);
     // the cursor at a stem's start: its links
     expect(RibbonsType.announce!(l, l.systems[l.stemSystem[stem]], l.stemStart[stem])).toBe(

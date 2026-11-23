@@ -110,6 +110,17 @@ one by patch).
   never the hit or the emphasis. Its floor is `seq:item` and `seq:place`; a composition without either is
   `seq.viewer.card.floor` (a warning). The HC sweep runs on the default spec.
 
+### An extension's lines: the genome ring's cards
+
+A layer type's `describe` gives `seq:layer`'s lines (its first the title, the rest rows `label: value`; a line with no
+`: ` a row with no value, a heading). The ring's (close-out, the novice questions' D; decided by the author,
+2026-11-23: "Agree as drafted"):
+
+- **A stem's card** names what its first row counts: "This stem: 24 links to chr9" (its one partner chromosome by
+  name; else "to 23 chromosomes"). Each layer's links on its chromosome follow under a heading of their own, "chr22,
+  all links" ("Contacts: 800 links", "Translocations: 24 links"), when the section has more than one kind. Why: "Links:
+  24 links to 1 chromosome" over "Contacts 638" read as one count against the other (novice 21).
+
 ### What the reader sees of the spec's tooltips (`seq:tooltips`)
 
 - **The mark's place**: the hit's item by key; the position under the pointer on the mark (a cell: both positions; a

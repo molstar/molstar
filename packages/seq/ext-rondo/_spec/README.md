@@ -154,13 +154,15 @@ waiting; its entries `StemMenu` in `viewer.ts`).
   own), its `type`, its ends' strands (`Strands: + −`; none for unstranded ends, `.`: a contact's), then every other
   field its data carries (`q`, gene names where the file has them): a shared value, a number's range where they differ
   (`q: 0.001–0.04`), absent values and differing text left out; a ribbon wide by a field says its sum (`Width: q 0.07`).
-  A bin's ribbon and a stem list, when the section has more than one `rondo:ribbons` layer, each layer's links there
-  (`Contacts: 140 links`, `Translocations: 3 links`), read from each layer's own stems and ribbons as laid out (their
-  links counted at layout, those meeting the ranges): bounded by what the layers drew, no row read again on a hover, so
-  a kind under another is never lost under its ribbons; a hidden layer is no peer (laid out no more). The layers of a
-  section know each other by its resolved section (a new resolve, a new list). These lines are a chunk (`card.ts`)
-  `rondoViewer` loads once composed, as the stem menu's: the headless entry pays nothing for them (no card there); a
-  card shown before they land is made again when they do (`cardLanded`: the hover-card behavior's `framed`).
+  A bin's ribbon lists, when the section has more than one `rondo:ribbons` layer, each layer's links between its two
+  stems (`Contacts: 140 links`, `Translocations: 3 links`); a stem each layer's links on its chromosome, under a heading
+  `chr22, all links` (a line with no value); read from each layer's own stems and ribbons as laid out (their links
+  counted at layout, those meeting the ranges, a ribbon with both ends in the range once): bounded by what the layers
+  drew, no row read again on a hover, so a kind under another is never lost under its ribbons; a hidden layer is no peer
+  (laid out no more). The layers of a section know each other by its resolved section (a new resolve, a new list). These
+  lines are a chunk (`card.ts`) `rondoViewer` loads once composed, as the stem menu's: the headless entry pays nothing
+  for them (no card there); a card shown before they land is made again when they do (`cardLanded`: the hover-card
+  behavior's `framed`).
 - **`rondoRing`'s `kinds`** (`{ type, label?, color?, opacity?, width? }[]`) writes those layers, the colour the
   chromosomes' hues when a kind names none; absent, one layer of every link. Which kinds, their order and colours are
   the application's (the showcase: faint contacts in the hues, translocations in one accent over them).
@@ -200,8 +202,9 @@ waiting; its entries `StemMenu` in `viewer.ts`).
   to the next or the previous partner stem of its stem in the stem menu's order (its rows' pieces in turn: one list, two
   readers), said by the announcer (the command moved the cursor: "chr17, 40,000,000 · 140 links, reversed").
 - **Words** (core's `LayerType` hooks): `describe` (a ribbon "chr1:12–28 Mb ↔ chr17:40–52 Mb", its count and kind, its
-  bins; a stem its links, partners, within and fan; a stub its partner, "not shown"), `summary` ("612 ribbons, 23
-  chromosomes; strongest chr1 ↔ chr17, 140"), `announce` ("stem of 312 links").
+  bins; a stem "This stem: 24 links to chr9", its one partner chromosome by name, else "to 23 chromosomes", then within
+  and fan; a stub its partner, "not shown"), `summary` ("612 ribbons, 23 chromosomes; strongest chr1 ↔ chr17, 140"),
+  `announce` ("stem of 312 links").
 
 ## What is the core's
 

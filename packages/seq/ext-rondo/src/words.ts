@@ -107,18 +107,18 @@ export function describeRondo(hit: LayerPlace, lay: RondoLay): readonly string[]
     for (let b = 0; b < lay.nb; b++)
       if (lay.stubStem[b] === ref && lay.stubPartner[b] >= 0) partners.add(lay.stubPartner[b]);
     for (let e = 0; e < lay.nf; e++) if (lay.stubStem[lay.foldOwner[e]] === ref) partners.add(lay.foldPartner[e]);
-    const lines = [
-      rangeText(lay, ref),
-      `Links: ${links(lay.stemLinks[ref])} to ${partners.size} chromosome${partners.size === 1 ? '' : 's'}`,
-    ];
+    // the first row names what it counts: this stem's links, to its one partner by name (novice 21)
+    const to = partners.size === 1 ? lay.names[partners.values().next().value!] : `${partners.size} chromosomes`;
+    const lines = [rangeText(lay, ref), `This stem: ${links(lay.stemLinks[ref])} to ${to}`];
     if (lay.width !== 'count') lines.push(`Width: ${lay.width} ${valueText(lay.stemCount[ref])}`);
     if (lay.withinLinks[ref] > 0) lines.push(`Within: ${links(lay.withinLinks[ref])}`);
     if (lay.stemFan[ref] > 0)
       lines.push(
         `Fan: +${Math.round(lay.fanLinks[ref]).toLocaleString('en-US')} weaker links to ${lay.stemFanTo[ref]} stems`,
       );
-    if (CardLines.perLayer)
-      lines.push(...CardLines.perLayer(lay, lay.systems[lay.stemSystem[ref]], lay.stemStart[ref], lay.stemEnd[ref]));
+    // each layer's links on the stem's chromosome, under a heading of their own (a row with no value)
+    const all = CardLines.perLayer?.(lay, lay.systems[lay.stemSystem[ref]], 0, Number.POSITIVE_INFINITY) ?? [];
+    if (all.length) lines.push(`${lay.names[lay.stemSystem[ref]]}, all links`, ...all);
     return lines;
   }
   return undefined;

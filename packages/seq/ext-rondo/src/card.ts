@@ -73,9 +73,10 @@ export function perLayer(lay: RondoLay, sysA: string, a0: number, a1: number, sy
     if (!p.read || (p.empty && p !== lay)) continue;
     let n = 0;
     if (sysB === undefined) {
-      for (let s = 0; s < p.ns; s++)
-        if (p.systems[p.stemSystem[s]] === sysA && p.stemStart[s] < a1 && p.stemEnd[s] > a0)
-          n += p.stemLinks[s] + p.withinLinks[s];
+      const inA = (s: number) => p.systems[p.stemSystem[s]] === sysA && p.stemStart[s] < a1 && p.stemEnd[s] > a0;
+      for (let s = 0; s < p.ns; s++) if (inA(s)) n += p.stemLinks[s] + p.withinLinks[s];
+      // a ribbon with both ends in the range (two stems of a chromosome) counted at each: once
+      for (let r = 0; r < p.nr; r++) if (inA(p.ribA[r]) && inA(p.ribB[r])) n -= p.ribLinks[r];
     } else
       for (let r = 0; r < p.nr; r++) {
         const x = p.ribA[r];
