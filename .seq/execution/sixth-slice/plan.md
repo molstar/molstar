@@ -56,6 +56,17 @@ A next scaffold starts as `.scaffolds/<name>/` from `_method/`, its manifest lis
       state, plan, fixes, record), the generic checks taking the instance as an argument; `.scaffolds/AGENTS.md`.
 - [ ] **Stage 5: verify**: every check run from the new place on the Seq\* instance; a link check over `.scaffolds/`
       (no dangling relative links); the root `AGENTS.md`'s table gains the `.scaffolds/` row; `.seq/` gone.
+- [ ] **Docs** (the author, 2026-11-23: "we should write "Docs" folder in storybook in slice 6 too, that explains
+      this very well right of the bat, so people dont expect opiniated viewer like jalview out of this. and in general
+      the docs should go high level around how this works etc. similar to what the docs for the previous version do"):
+      a `Docs/` folder in the Seq\* (next) storybook, high level, in the shape of the previous version's
+      (`packages/sequences/storybook/src/_stories/docs/`: introduction, concepts, principles, format, features,
+      extending, query language, streaming, colour schemes), written new for `packages/seq`. It opens with what Seq\* is
+      and is not: a library that makes the pictures, the engine and not the game; composition and navigation are the
+      application's (the ring and its square as the worked example of an application built on the library). Then how
+      it works: the language and its levels, data and the store, layers and layouts, navigators, hover and commands,
+      extensions, the CLI and headless use; each page with live examples and links into the stories. Written from the
+      reconciled `_spec`s (stage 1), so the docs and the specs say the same thing.
 - [ ] **Record** in `.scaffolds/seq/records/sixth-slice.md`.
 
 ## Questions for the author (stage 0)

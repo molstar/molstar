@@ -2,6 +2,9 @@
 
 ## Decided
 
+- The engine, not the game (the author, 2026-11-23): Seq\* makes the pictures; composition and navigation are the
+  application's; said in `design/README.md` and ring-extension's Intent; the sixth slice writes a storybook `Docs/`
+  folder leading with it (not an opinionated viewer like Jalview).
 - Kinds of links on the ring (the author, 2026-11-23, "make it RX3 after RX2"): layers per kind filtered on `type`,
   a ribbons layer's own colour, the card naming the kind, a story; RX3's brief.
 - The ring's square is a real window (the author, 2026-11-23, "a real window, as recommended", after finding the box

@@ -6,6 +6,15 @@ is the agreed direction with its details still open; it says what would settle t
 layout or a part has a **Defaults** section: what a reader sees with no setting, with a sketch or a reference picture
 (§defaults-designed).
 
+**The engine, not the game** (the author, 2026-11-23: "the base library is like a "game engine", not the "game
+itself". We should be explicit about this."): Seq\* is a library that makes the pictures (the language, layers,
+layouts, navigators, the store, hover, commands, extensions) and leaves to the application how they are composed and
+navigated between: which views sit beside which, what a click opens, which menus a host shows, what a showcase story
+tells. It is not an opinionated viewer (not Jalview). So every design says which of its parts are the library's and
+which are application-level choices a host makes (the examples and showcases are such applications, built on the
+public surface, never defaults of the library); an extension ships building blocks and may ship a builder helper as
+one composition, never the only one.
+
 | Design | Covers |
 |---|---|
 | [version-1.md](version-1.md) | **start here**: version 1's architecture as reconciled after the review, what it fixes, what it defers, and the order of work |

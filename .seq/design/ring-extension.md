@@ -32,6 +32,12 @@ strong clusters, open one chromosome (or a pair) to see its own links and where 
 partners, read it with the keyboard, export it as a figure; and a reader without the extension still sees the links,
 honestly simpler.
 
+**Library and application** (the author, 2026-11-23, [the engine, not the game](README.md)): the extension is
+building blocks (`rondo:ribbons`, `rondo:cells`, the `rondo:square` picture, `rondo:hues`, commands, a scoped binding)
+on the library's public surface; how they are composed (a square beside a ring, what `opens` names, which menus a host
+shows, which kinds of links a story layers, the named translocations) is application-level. `rondoRing` is one such
+composition, a convenience, not the definition of a genome ring; the showcase is an application built from them.
+
 ## Precedents
 
 | Precedent | Taken | Not taken |
