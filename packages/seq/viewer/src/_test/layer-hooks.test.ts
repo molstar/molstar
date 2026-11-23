@@ -8,14 +8,16 @@
 // A layer type's words (core's `LayerType.describe`, `summary`, `announce`; _spec/README.md "Hover card", Providers,
 // `seq:layer`): an extension's layer says what it draws: its lines head the hover card (the viewer's own text after),
 // its summary is its layer's ARIA group, and what it adds at the keyboard cursor's position is said by the live region.
-// A binding scoped to its type (`GestureBinding.layer`) wins over the grammar's double-click on its hits.
+// A binding scoped to its type (`GestureBinding.layer`) wins over the grammar's click or double-click on its hits; the
+// table refuses a scope on any other gesture.
 
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { type LayerType, RangesType } from '@molstar/seqx-core/render';
 import { DomHost } from '@molstar/ui/dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Announcer } from '../announcer.js';
-import { bindingTable } from '../bindings.js';
+import { bindingTable, type GestureBinding } from '../bindings.js';
+import { changeKindOf } from '../commands.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
 import { describerFor } from '../describe.js';
 import { defineViewerExtension } from '../extension.js';
@@ -66,7 +68,11 @@ function spec() {
   return b.build();
 }
 
-async function make() {
+async function make(
+  bindings: readonly GestureBinding[] = [
+    { gesture: 'double-click', target: 'item', action: 'demo:open', layer: 'demo:bars' },
+  ],
+) {
   const opened: unknown[] = [];
   const open = {
     id: 'demo:open',
@@ -80,7 +86,7 @@ async function make() {
     requires: '0.10',
     registry: [{ kind: 'layer-type', type: Bars }],
     commands: [open],
-    bindings: [{ gesture: 'double-click', target: 'item', action: 'demo:open', layer: 'demo:bars' }],
+    bindings,
   });
   const v = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined, extensions: [ext] });
   viewers.push(v);
@@ -157,5 +163,41 @@ describe('a binding scoped to a layer type', () => {
     expect(opened.length).toBe(1);
     expect((opened[0] as { hit: { element: { key: string } } }).hit.element.key).toBe('A');
     expect(v.view.get(Section)).toEqual(before);
+  });
+
+  it('a click on its hit runs its command with the hit, never the selection', async () => {
+    const { v, opened } = await make([{ gesture: 'click', target: 'item', action: 'demo:open', layer: 'demo:bars' }]);
+    const t = bars(v);
+    const x = t.box.x + (4.5 / 20) * t.box.width;
+    const y = t.box.y + t.box.height / 2;
+    const before = v.selection.value.value;
+    expect(v.input.click(x, y)).toBe(true);
+    await v.settle();
+    expect(opened.length).toBe(1);
+    expect((opened[0] as { hit: { element: { key: string } } }).hit.element.key).toBe('A');
+    expect(v.selection.value.value).toBe(before);
+    // on another layer's hit (the letters) the grammar's click selects as before
+    const letters = v.frame!.layout.sections[0].tracks[0];
+    v.input.click(x, letters.box.y + letters.box.height / 2);
+    expect(opened.length).toBe(1);
+  });
+
+  it('a click or a double-click may be scoped; hover, drag, wheel, pinch and the buttons are refused, said', () => {
+    const scoped = (gesture: GestureBinding['gesture']): GestureBinding => ({
+      gesture,
+      target: 'any',
+      action: 'view.fit',
+      layer: 'demo:bars',
+    });
+    const refused = ['hover', 'drag', 'wheel', 'pinch', 'back-button', 'forward-button'] as const;
+    const t = bindingTable(undefined, [[scoped('click'), scoped('double-click'), ...refused.map(scoped)]], {});
+    expect(t.resolveIn('demo:bars', 'click', {}, 'item')).toBe('view.fit');
+    expect(t.resolveIn('demo:bars', 'double-click', {}, 'item')).toBe('view.fit');
+    for (const g of refused) expect(t.resolveIn('demo:bars', g, {}, 'item'), g).toBeUndefined();
+    const said = t.issues.filter((i) => i.code === 'seq.viewer.binding.scope').map((i) => i.message);
+    expect(said).toEqual(refused.map((g) => `A scoped binding for ${g} on any of demo:bars`));
+    // the change kind of a gesture on the type's hit is its scoped binding's; elsewhere the grammar's
+    expect(t.changeKind('click', {}, 'item', 'demo:bars')).toBe(changeKindOf('view.fit'));
+    expect(t.changeKind('click', {}, 'item')).toBe(changeKindOf('selection.set'));
   });
 });

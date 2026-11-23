@@ -260,8 +260,13 @@ export interface BindingTable {
   resolve(gesture: PointerGesture, modifiers: ModifierState, target: HitTarget): string | undefined;
   /** The action a binding scoped to a layer type gives a gesture on that type's hit (`GestureBinding.layer`), if any. */
   resolveIn(layer: string, gesture: PointerGesture, modifiers: ModifierState, target: HitTarget): string | undefined;
-  /** The change kind of the action a gesture resolves to: undefined for a method or nothing. */
-  changeKind(gesture: PointerGesture, modifiers: ModifierState, target: HitTarget): ChangeKind | undefined;
+  /** The change kind of the action a gesture resolves to (on a hit of `layer`'s type: its scoped binding's first). */
+  changeKind(
+    gesture: PointerGesture,
+    modifiers: ModifierState,
+    target: HitTarget,
+    layer?: string,
+  ): ChangeKind | undefined;
 }
 
 const ModifierOrder: readonly Modifier[] = ['shift', 'mod', 'alt', 'space'];
@@ -365,6 +370,10 @@ export function bindingTable(
         issues.push(issueOf(ViewerIssues, 'seq.viewer.binding.key', `A key binding for ${b.action}`));
         continue;
       }
+      if (b.layer !== undefined && !ScopedGestures.has(b.gesture)) {
+        issues.push(issueOf(ViewerIssues, 'seq.viewer.binding.scope', `A scoped binding for ${describe(b)}`));
+        continue;
+      }
       const key = keyOf(b.gesture, maskOf(b.modifiers), b.target, b.layer);
       if (seen.has(key))
         issues.push(issueOf(ViewerIssues, 'seq.viewer.binding.conflict', `Two bindings for ${describe(b)}`));
@@ -425,12 +434,20 @@ export function bindingTable(
       const by = scoped.get(layer);
       return by && lookup(by, gesture, modifiers, target);
     },
-    changeKind: (gesture, modifiers, target) => {
-      const action = resolve(gesture, modifiers, target);
+    changeKind: (gesture, modifiers, target, layer) => {
+      const own = layer === undefined ? undefined : scoped.get(layer);
+      const action = (own && lookup(own, gesture, modifiers, target)) ?? resolve(gesture, modifiers, target);
       return action === undefined || isMethodAction(action) ? undefined : changeKindOf(action, options.kinds);
     },
   };
 }
+
+/**
+ * The gestures a binding may scope to a layer type: the discrete ones whose hit is a layer element's, run as a command
+ * with it (_spec/README.md "Bindings", Scoped). Hover, drag, wheel and pinch drive model methods over the view, the
+ * buttons the history: scoped there they would never run, so the table refuses them.
+ */
+const ScopedGestures: ReadonlySet<string> = new Set(['click', 'double-click']);
 
 function describe(b: GestureBinding): string {
   const mods = b.modifiers === '*' ? '(any)+' : b.modifiers?.length ? `${b.modifiers.join('+')}+` : '';

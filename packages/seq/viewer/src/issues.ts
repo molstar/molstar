@@ -25,6 +25,12 @@ export const ViewerIssues = defineIssues('seq.viewer', {
     description: 'A gesture needs a behavior the viewer spec does not list; the gesture does nothing',
     hint: 'List the behavior in the viewer spec (the default spec has it)',
   },
+  'seq.viewer.binding.scope': {
+    severity: 'error',
+    description:
+      'A binding scoped to a layer type for a gesture scoping does not hold for (only click and double-click run on a layer element’s hit); it is left out',
+    hint: 'Scope a click or a double-click, or drop the layer',
+  },
   'seq.viewer.binding.key': {
     severity: 'warning',
     description: 'A key gesture in the pointer bindings: keys are bound through the keymap',

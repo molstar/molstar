@@ -1380,9 +1380,11 @@ The cells the molecules design names, each built or not and why (the core's "Res
   macOS, Ctrl elsewhere, `modifiersOf`, which fills a reused record), `alt`, `space`; exact, or `'*'` for whatever is
   held, tried after the exact ones. Why: a modifier held for something else must not kill the hover.
 - **Scoped to a layer type** (`layer`, an extension's type name): the binding holds on that type's hits only and wins
-  over the grammar's binding of the same gesture there (`BindingTable.resolveIn`); a double-click runs its command with
-  `{ section, hit }` (a copy of the hit), never the focus. Why: an extension's element opens what it names (the genome
-  ring's `opens`) without taking the double-click from every other layer.
+  over the grammar's binding of the same gesture there (`BindingTable.resolveIn`, `changeKind` given the type); a click
+  or a double-click runs its command with `{ section, hit }` (a copy of the hit), never the selection or the focus. Only
+  those two are scoped: the table refuses a scoped hover, drag, wheel, pinch or button (`seq.viewer.binding.scope`),
+  which drive model methods over the view or the history and would never run. Why: an extension's element opens what it
+  names (the genome ring's `opens`) without taking the gesture from every other layer.
 - **Targets** are a hit's kind or `any`; a binding for the kind beats `any`'s. A collapsed break is its own target
   (`break`, the render hit's `target`): no default binding but the hover, so a double-click on it does nothing (the
   pointer aimed at the break; showing its stretch is `section.collapse`, a spec change). A header's parts are targets
