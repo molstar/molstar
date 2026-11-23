@@ -81,15 +81,48 @@ const Isolated = new Set([
 const isolated = (f: (typeof files)[number]) => f.mocks || Isolated.has(f.path);
 
 // The heavy lane's tight wall-clock bounds run alone (principles README, {#heavy-lane-alone}): the lane runs two workers,
-// and a bound of a few milliseconds met the other worker's burst (the 1,000,000-range lookup's ratio, the pairs
-// pyramid's longest slice and the field theme's 1.1x ratio failed under that load and passed alone). These files run
-// in a project of their own after every other project, one file at a time and so one worker, with the machine to
-// themselves; no bound is raised and no `tries` added. Only the heavy lane: the other lanes run these files' tests
-// unbounded, with the rest.
+// and a bound of a few milliseconds met the other worker's burst. These files run in a project of their own after every
+// other project, one file at a time and so one worker, with the machine to themselves; no bound is raised and no
+// `tries` added. Only the heavy lane: the other lanes run these files' tests unbounded, with the rest.
 const Alone = new Set([
+  // the three that failed under the lane's own load and passed alone (Seq*'s TODO, M5): the 1,000,000-range lookup's
+  // ratio, the pairs pyramid's longest slice, the field theme's 1.1x ratio
   'packages/seq/core/src/data/_test/intervals.test.ts',
   'packages/seq/core/src/data/_test/region-reads.test.ts',
   'packages/seq/core/src/render/_test/themes.test.ts',
+  // every other file of Seq* with a bound under 50 ms, or a per-frame or per-hover bound under it (the manifest's rule)
+  'packages/seq/core/src/resolve/_test/molecules.test.ts',
+  'packages/seq/core/src/resolve/_test/addressing.test.ts',
+  'packages/seq/core/src/resolve/_test/resolve-time.test.ts',
+  'packages/seq/core/src/render/_test/navigator-drag-time.test.ts',
+  'packages/seq/core/src/render/_test/navigator-time.test.ts',
+  'packages/seq/core/src/render/_test/small-layers-time.test.ts',
+  'packages/seq/core/src/render/_test/genome-time.test.ts',
+  'packages/seq/core/src/render/_test/molecules-time.test.ts',
+  'packages/seq/core/src/render/_test/text-time.test.ts',
+  'packages/seq/core/src/render/_test/bridge-time.test.ts',
+  'packages/seq/core/src/render/_test/rings-time.test.ts',
+  'packages/seq/core/src/render/_test/axis-perf.test.ts',
+  'packages/seq/core/src/render/_test/rows-time.test.ts',
+  'packages/seq/core/src/render/_test/region-time.test.ts',
+  'packages/seq/core/src/render/_test/frame-time.test.ts',
+  'packages/seq/core/src/render/_test/pairs-grids-time.test.ts',
+  'packages/seq/core/src/lang/_test/patches.test.ts',
+  'packages/seq/core/src/lang/_test/merge.test.ts',
+  'packages/seq/core/src/view/_test/genome-blocks.test.ts',
+  'packages/seq/core/src/structure/_test/hover-time.test.ts',
+  'packages/seq/ext-rondo/src/_test/time.test.ts',
+  'packages/seq/storybook/src/_stories/features/editing/_test/editing.test.ts',
+  'packages/seq/storybook/src/_stories/features/selection/_test/selection.test.ts',
+  'packages/seq/storybook/src/_stories/features/text/_test/text-viewer-time.test.ts',
+  'packages/seq/storybook/src/_stories/examples/_test/bookmark-perf.test.ts',
+  'packages/seq/storybook/src/_stories/examples/_test/globins-time.test.ts',
+  'packages/seq/storybook/src/_stories/examples/_test/link-structure-time.test.ts',
+  'packages/seq/storybook/src/_stories/examples/_test/complex-scale.test.ts',
+  'packages/seq/storybook/src/_stories/examples/_test/zoom-out.test.ts',
+  'packages/seq/examples/src/_test/chromosome.test.ts',
+  'packages/seq/examples/src/_test/plasmid.test.ts',
+  'packages/seq/examples/src/_test/trna-scale.test.ts',
 ]);
 const setupFiles = [`${import.meta.dirname}/vitest.setup.ts`];
 
@@ -166,7 +199,7 @@ export default defineConfig(({ mode }) => {
           ),
           project('sequences-isolated', seqFiles.filter(isolated), true),
           // after the other projects (`groupOrder` 0), one file at a time
-          project('heavy-alone', alone, false, 1),
+          project('heavy-alone', alone, true, 1),
         ].filter((p) => p.test.include.length > 0),
       ],
     },
