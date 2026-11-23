@@ -59,7 +59,7 @@ A next scaffold starts as `.scaffolds/<name>/` from `_method/`, its manifest lis
       instance's links, the checks, the skill, `packages/seq/AGENTS.md`'s one pointer, `biome.json`,
       `.prettierignore`, `.gitignore`; and the five tests in `packages/seq/core` whose header comment cites `.scaffolds/seq/sources/seqstar/edge-cases.md` (found 2026-11-23: the citation goes, the `EC-<n>` id stays). Confirm nothing in code cites `.scaffolds/seq/` (the rule; `cli/seqx-render` and
       `cli/structure-info` match `.seq` in their text: check that it is a file extension, not a link).
-- [ ] **Stage 4: the method**: templates in `_method/` from the fifth slice's files (loop with its fold-back, brief,
+- [ ] **Stage 4: the method** (running 2026-11-23, lane S4, `briefs/s4-method.md`): templates in `_method/` from the fifth slice's files (loop with its fold-back, brief,
       state, plan, fixes, record), the generic checks taking the instance as an argument; `.scaffolds/AGENTS.md`.
 - [ ] **Stage 5: verify**: every check run from the new place on the Seq\* instance; a link check over `.scaffolds/`
       (no dangling relative links); the root `AGENTS.md`'s table gains the `.scaffolds/` row; `.scaffolds/seq/` gone.
