@@ -59,6 +59,34 @@ describe('settings as composed', () => {
 });
 
 describe('settings of a late extension', () => {
+  it('`viewer.extend(rondo)` (a descriptor listing its settings): registered, its `rondo.*` applied, gone with its undo', async () => {
+    const base = DefaultSeqViewerSpec();
+    const v = createSeqViewer({
+      ...base,
+      registry: [...(base.registry ?? []), { kind: 'format-runtime' as const, runtime: BedRuntime }],
+      config: [...(base.config ?? []), [RondoConfigItems.stemPx, 64]],
+      ui: undefined,
+    });
+    try {
+      await v.load(ringSpec());
+      v.resize(720, 760);
+      await v.settle();
+      expect(rondo.config?.length).toBeGreaterThan(0);
+      const undo = await v.extend(rondo as never);
+      await v.settle();
+      v.draw();
+      expect(v.context.renderConfig.settings).toEqual({ 'rondo.stemPx': 64 });
+      const l = v.frame?.layout.sections.flatMap((s) => s.sectionLays).find((x) => x.type.name === 'rondo:ribbons')
+        ?.lay as RondoLay | undefined;
+      expect(l?.cfg.stemPx).toBe(64);
+      undo();
+      await v.settle();
+      expect(v.context.renderConfig.settings).toBeUndefined();
+    } finally {
+      v.retire();
+    }
+  });
+
   it('`viewer.extend(rondoViewer)`: the `rondo.*` the composition set apply (the render config composed again)', async () => {
     const base = DefaultSeqViewerSpec();
     const v = createSeqViewer({
