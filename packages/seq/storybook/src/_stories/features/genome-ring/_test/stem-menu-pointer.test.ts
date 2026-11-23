@@ -82,7 +82,14 @@ afterEach(() => {
 /** Six chromosomes and 300 links between them (seeded by arithmetic: the pairs around the ring). */
 function spec() {
   const chroms = Array.from({ length: 6 }, (_, i) => ({ name: `chr${i + 1}`, length: 8_000_000 - i * 700_000 }));
-  const rows = { a_name: [] as string[], b_name: [] as string[], a_start: [] as number[], a_end: [] as number[], b_start: [] as number[], b_end: [] as number[] };
+  const rows = {
+    a_name: [] as string[],
+    b_name: [] as string[],
+    a_start: [] as number[],
+    a_end: [] as number[],
+    b_start: [] as number[],
+    b_end: [] as number[],
+  };
   for (let k = 0; k < 300; k++) {
     const a = k % 6;
     const b = (a + 1 + (k % 5)) % 6;

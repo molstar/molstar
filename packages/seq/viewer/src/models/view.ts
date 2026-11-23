@@ -549,7 +549,10 @@ export class ViewModel extends ReactiveModel {
     const now = this._snapshot(!!kept.includes);
     if (snapshotsEqual(kept, now) && !includesDiffer(kept, now)) return false;
     const named = this._named(kept);
-    this._steps.push(kept.includes && !named.includes ? { ...named, includes: kept.includes } : named, this.config.view.historyLimit);
+    this._steps.push(
+      kept.includes && !named.includes ? { ...named, includes: kept.includes } : named,
+      this.config.view.historyLimit,
+    );
     return true;
   }
 
