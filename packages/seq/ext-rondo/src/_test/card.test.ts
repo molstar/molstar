@@ -9,7 +9,7 @@
 // count on each kind's layer of the section.
 
 import { assembly, createSeqSpec } from '@molstar/seqx-core/lang';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { install } from '../card.js';
 import { rondo } from '../index.js';
 import { Kind, type RondoLay } from '../lay.js';
@@ -133,6 +133,13 @@ describe('the card names the kind', () => {
     const stem = card(contacts, Kind.trumpet, (s) => at(s, 'chr1', 2_000_000)).lines;
     expect(stem.some((x) => /^Contacts: \d+ links$/.test(x))).toBe(true);
     expect(stem).toContain('Translocations: 2 links');
+  });
+
+  it('the card made again when its lines land (its hover-card behavior told the view moved)', async () => {
+    const { cardLanded } = await import('../viewer.js');
+    const framed = vi.fn();
+    cardLanded({ behaviors: new Map([['hoverCard', { framed }]]) } as never);
+    expect(framed).toHaveBeenCalledWith(true);
   });
 
   it('one layer alone: no count per layer', async () => {

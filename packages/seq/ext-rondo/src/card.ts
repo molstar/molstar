@@ -60,31 +60,31 @@ export function fieldLines(lay: RondoLay, r: number): string[] {
 
 /**
  * Each layer's links on the section between two ranges (`b` absent: with an end in `a`), one line a layer
- * (`Contacts: 140 links`) when the section has more than one: a bin's or a stem's count per kind. Counted from each
- * layer's rows as read (bins' starts, items' ends), each row once.
+ * (`Contacts: 140 links`) when the section has more than one laid out: a bin's or a stem's count per kind. Read from
+ * each layer's own stems and ribbons as laid out (their links counted at layout), those meeting the ranges: bounded by
+ * what the layers drew, no row read again, nothing made but the lines.
  */
 export function perLayer(lay: RondoLay, sysA: string, a0: number, a1: number, sysB?: string, b0 = 0, b1 = 0): string[] {
   if (lay.peers.length < 2) return [];
   const out: string[] = [];
-  for (const p of lay.peers) {
-    const read = p.read;
-    const d = read?.data;
-    if (!read || !d || p.empty) continue;
-    const sysOf = (unit: Int32Array | undefined, k: number, side: 0 | 1) =>
-      unit ? p.systems[unit[k]] : p.systems[Math.min(side, p.systems.length - 1)];
+  for (let i = 0; i < lay.peers.length; i++) {
+    const p = lay.peers[i];
+    if (!p.read || (p.empty && p !== lay)) continue;
     let n = 0;
-    for (let k = 0; k < d.n; k++) {
-      if (!read.shown[k]) continue;
-      const sa = sysOf(d.aUnit, k, 0);
-      const sb = sysOf(d.bUnit, k, 1);
-      const inA = (s: string, x: number) => s === sysA && x >= a0 && x < a1;
-      const inB = (s: string, x: number) => s === sysB && x >= b0 && x < b1;
-      const hit =
-        sysB === undefined
-          ? inA(sa, d.aStart[k]) || inA(sb, d.bStart[k])
-          : (inA(sa, d.aStart[k]) && inB(sb, d.bStart[k])) || (inA(sb, d.bStart[k]) && inB(sa, d.aStart[k]));
-      if (hit) n += read.weight ? read.weight[k] : 1;
-    }
+    if (sysB === undefined) {
+      for (let s = 0; s < p.ns; s++)
+        if (p.systems[p.stemSystem[s]] === sysA && p.stemStart[s] < a1 && p.stemEnd[s] > a0)
+          n += p.stemLinks[s] + p.withinLinks[s];
+    } else
+      for (let r = 0; r < p.nr; r++) {
+        const x = p.ribA[r];
+        const y = p.ribB[r];
+        const xa = p.systems[p.stemSystem[x]] === sysA && p.stemStart[x] < a1 && p.stemEnd[x] > a0;
+        const yb = p.systems[p.stemSystem[y]] === sysB && p.stemStart[y] < b1 && p.stemEnd[y] > b0;
+        const xb = p.systems[p.stemSystem[x]] === sysB && p.stemStart[x] < b1 && p.stemEnd[x] > b0;
+        const ya = p.systems[p.stemSystem[y]] === sysA && p.stemStart[y] < a1 && p.stemEnd[y] > a0;
+        if ((xa && yb) || (xb && ya)) n += p.ribLinks[r];
+      }
     out.push(`${p.label || 'Links'}: ${links(n)}`);
   }
   return out;

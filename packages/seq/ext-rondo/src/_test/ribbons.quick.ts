@@ -12,6 +12,7 @@ import type { Hit, PassWriter } from '@molstar/seqx-core/extension';
 import { DrawLists } from '@molstar/seqx-core/render';
 import { quickCase } from '@molstar/test-harness/quick';
 import { describe, expect, inject, it } from 'vitest';
+import { install, perLayer } from '../card.js';
 import { RibbonsType } from '../ribbons.js';
 import type { RondoLay } from '../lay.js';
 import { genomeChromosomes, lay, lays, ringSpec, Size, settle, toyLinks } from './helpers.js';
@@ -54,6 +55,19 @@ describe('the ribbons draw and hover with nothing allocated once warm', () => {
     });
     console.info(`ribbons two kinds: ${r.bytesPerStep.toFixed(0)} bytes a frame (${r.note})`);
     expect(r.bytesPerStep, r.note).toBeLessThanOrEqual(inject('perfThreshold'));
+  });
+
+  it('a bin’s card counted on each kind’s layer: no row read, nothing made but the lines', async ({ task }) => {
+    install();
+    const both = await kinds();
+    const l = both[0];
+    const sys = l.systems[l.stemSystem[0]];
+    const { r } = quickCase(task, 'ribbons card per layer', () => {
+      perLayer(l, sys, l.stemStart[0], l.stemEnd[0]);
+    });
+    console.info(`ribbons card per layer: ${r.bytesPerStep.toFixed(0)} bytes a card (${r.note})`);
+    // the lines alone (two short strings, their numbers' text and their array: about 450 B)
+    expect(r.bytesPerStep, r.note).toBeLessThanOrEqual(512);
   });
 
   it('a warm draw of the data pass', async ({ task }) => {

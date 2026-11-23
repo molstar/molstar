@@ -26,6 +26,14 @@ const lays = laysOf;
 
 export { partnersOf };
 
+/** The viewers composed with `rondoViewer` whose card waits for the chunk (cleared once it lands). */
+const Viewers = new Set<SeqViewer>();
+
+/** The card's lines landed: a card a viewer shows is made again, with them (its hover-card behavior's `framed`). */
+export function cardLanded(viewer: Pick<SeqViewer, 'behaviors'>): void {
+  (viewer.behaviors.get('hoverCard') as { framed?: (relaid: boolean) => void } | undefined)?.framed?.(true);
+}
+
 /** The stem menu's chunk once landed (`menu.ts`: loaded when a viewer composes `rondoViewer`). */
 let Menu: typeof import('./menu.js') | undefined;
 let menuLoading: Promise<void> | undefined;
@@ -35,6 +43,8 @@ const loadMenu = (): Promise<void> => {
     ([m, c]) => {
       Menu = m;
       c.install();
+      // a card shown before its lines landed is made again (the next rest gives it them)
+      for (const v of Viewers) cardLanded(v);
     },
     (e) => {
       menuLoading = undefined;
@@ -209,11 +219,15 @@ function viewerParts() {
     commands,
     composed(v: SeqViewer) {
       viewer = v;
-      // the stem menu's chunk, after the composition (its first chunk pays nothing for it)
-      void loadMenu().catch(() => undefined);
+      // the stem menu's chunk, after the composition (its first chunk pays nothing for it); its card made again then
+      if (!Menu) Viewers.add(v);
+      void loadMenu()
+        .catch(() => undefined)
+        .finally(() => Viewers.delete(v));
     },
     loaded: () => loadMenu().catch(() => undefined),
     dispose() {
+      if (viewer) Viewers.delete(viewer);
       viewer = undefined;
     },
   };

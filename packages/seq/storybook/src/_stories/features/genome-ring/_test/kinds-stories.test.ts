@@ -166,6 +166,11 @@ describe('Kinds of links, headless', () => {
     await v.settle();
     v.draw();
     expect(kindsOf(v).map((l) => [l.label, l.nr])).toEqual([before[1]]);
+    // the hidden kind is no peer: a stem's card counts no layer apart
+    const [alone] = kindsOf(v);
+    expect(alone.peers.filter((p) => p !== alone && !p.empty)).toEqual([]);
+    const stem = alone.polyKind.subarray(0, alone.polys.n).indexOf(Kind.trumpet);
+    expect(describeRondo(alone.hits[stem] as never, alone)!.some((x) => x.startsWith('Contacts:'))).toBe(false);
     v = await open('ring-kinds');
     await hideKind('translocation')(v);
     await v.settle();
