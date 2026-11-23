@@ -8,6 +8,7 @@ import { cancelFrameCallback, requestFrameCallback } from '@molstar/ui/dom/frame
 import { modifiersOf } from '@molstar/seqx-viewer/bindings';
 import { CanvasBackend, type CanvasLike, FontCache } from '@molstar/seqx-viewer/canvas';
 import { createDragSession } from './drag-session.js';
+import { isSquareNavigator } from '@molstar/seqx-core/render/navigator-square-kind';
 import { type NavigatorModel, ReadoutLinePx } from './navigator.js';
 import type { SeqViewer } from './viewer.js';
 
@@ -21,13 +22,33 @@ import type { SeqViewer } from './viewer.js';
 // reader's session). Everything each adds is taken away by the function it returns.
 
 /** Mounts navigator `id` of the viewer into `element`; the function it returns takes it away. */
-export function mountNavigator(element: HTMLElement, viewer: SeqViewer, id: string): () => void {
+export function mountNavigator(
+  element: HTMLElement,
+  viewer: SeqViewer,
+  id: string,
+  options: MountNavigatorOptions = {},
+): () => void {
   const model = viewer.navigatorModel(id);
   if (!model) return () => {};
-  return mountModel(element, viewer, model);
+  return mountModel(element, viewer, model, options);
 }
 
-function mountModel(element: HTMLElement, viewer: SeqViewer, model: NavigatorModel): () => void {
+/** `mountNavigator`'s options: `hint: false` leaves the square's line of gestures out (default `navigator.squareHint`). */
+export interface MountNavigatorOptions {
+  readonly hint?: boolean;
+}
+
+/** What the square says of its gestures (_spec/README.md "Composition", Navigators, The square's hint). */
+export const SquareHintBase = 'Drag to move · drag an edge to resize';
+/** With a switch (`include`) a double-click is the way home. */
+export const SquareHint = `${SquareHintBase} · double-click for the whole genome`;
+
+function mountModel(
+  element: HTMLElement,
+  viewer: SeqViewer,
+  model: NavigatorModel,
+  options: MountNavigatorOptions,
+): () => void {
   const doc = element.ownerDocument;
   const container = doc.createElement('div');
   container.tabIndex = 0;
@@ -78,6 +99,24 @@ function mountModel(element: HTMLElement, viewer: SeqViewer, model: NavigatorMod
   readout.append(readName, readValue);
   container.append(base, overlay, labels, readout);
   element.append(container);
+  // a square's hint: a muted line under it (wrapped to the square's width), no event of its own; made when the view
+  // resolves a square (its blocks may land after the part is mounted), said by what the square does
+  const hint = doc.createElement('div');
+  hint.className = 'seqx-navigator-hint';
+  Object.assign(hint.style, {
+    font: `var(--msui-text-xs, 11px) / ${ReadoutLinePx}px var(--msui-font-sans, sans-serif)`,
+    color: 'var(--msui-text-muted, gray)',
+    pointerEvents: 'none',
+  });
+  const syncHint = () => {
+    const view = viewer.view.resolved.value;
+    const nav = model.navigator;
+    const square =
+      !!(options.hint ?? viewer.config.navigator.squareHint) && !!nav && !!view && isSquareNavigator(nav, view);
+    if (!square) return hint.remove();
+    hint.textContent = nav!.switch === 'include' ? SquareHint : SquareHintBase;
+    if (!hint.isConnected) element.append(hint);
+  };
   const backend = new CanvasBackend(
     base as unknown as CanvasLike,
     overlay as unknown as CanvasLike,
@@ -111,11 +150,13 @@ function mountModel(element: HTMLElement, viewer: SeqViewer, model: NavigatorMod
     else container.removeAttribute('aria-disabled');
   };
   say();
+  syncHint();
   const unsubscribe = [
     model.version.listen(schedule),
     viewer.drawn.listen(schedule),
     model.values.listen(say),
     model.focused.listen(say),
+    viewer.view.resolved.listen(syncHint),
   ];
 
   const local = (e: MouseEvent) => {
@@ -188,6 +229,7 @@ function mountModel(element: HTMLElement, viewer: SeqViewer, model: NavigatorMod
     container.style.width = across() ? '' : `${model.width}px`;
     // the picture's height; the readout's line is the container's padding above it
     container.style.height = `${model.height || 0}px`;
+    hint.style.width = across() ? '' : `${model.width}px`;
   };
   let observer: ResizeObserver | undefined;
   const measure = () => {
@@ -213,6 +255,7 @@ function mountModel(element: HTMLElement, viewer: SeqViewer, model: NavigatorMod
     observer?.disconnect();
     if (frame !== undefined) cancelFrameCallback(frame);
     container.remove();
+    hint.remove();
   };
 }
 

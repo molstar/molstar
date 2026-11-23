@@ -10,11 +10,11 @@ import type { RondoLay, RondoPrep } from './lay.js';
 // What an empty hole says (_spec/README.md, Hits, emphasis, words: The hole's words).
 
 /**
- * A source's failure as the viewer whose ring it is said it (its store's issue's message), when a viewer is composed
+ * A source's failure (no section: by the source alone, the square's hidden section being no viewer's) as the viewer whose ring it is said it (its store's issue's message), when a viewer is composed
  * with `rondoViewer` (it sets `of`), found by the resolved section laid out (the viewer's view's, its export's too);
  * headless: none, the hole says "Links failed".
  */
-export const HoleIssue: { of?: (section: ResolvedSection, source: string) => string | undefined } = {};
+export const HoleIssue: { of?: (section: ResolvedSection | undefined, source: string) => string | undefined } = {};
 
 /**
  * The hole's words: pending "Loading links…"; failed the issue its source's failure raised as the section's viewer holds

@@ -803,6 +803,11 @@ describe('the keys panel', () => {
     expect(entries.find((e) => e.action === 'help.keys')?.keys).toEqual(['?']);
     expect(entries.find((e) => e.action === 'pan')?.gestures).toContain('Drag on an axis');
     expect(entries.find((e) => e.action === 'view.zoom-in')?.keys).toEqual(['=', '+']);
+    // the next and the previous feature of the focused track, with the moves; the rows' zoom keeps `]` and `[`
+    const move = groups.find((g) => g.id === 'move')!.entries;
+    expect(move.find((e) => e.action === 'cursor.next-feature')?.keys).toEqual(['.']);
+    expect(move.find((e) => e.action === 'cursor.prev-feature')?.keys).toEqual([',']);
+    expect(v.config.view.keys['rows.zoom-in']).toEqual([']']);
   });
 
   it('opens with ?, draws the list, and closes with Esc', async () => {

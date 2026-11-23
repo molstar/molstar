@@ -270,6 +270,39 @@ describe('Features/Genome formats/GFF3 and GTF, headless', () => {
     expect(after.end).toBeLessThan(29_000);
   });
 
+  it('`.` and `,` step the cursor to the next and previous feature of the track, over the stretches with none', async () => {
+    const v = await open('gff-tp53');
+    const section = v.frame!.layout.sections[0];
+    const track = section.tracks.find((t) => t.layers.some((l) => l.type.items?.(l.lay).length))!;
+    const starts = [...new Set(track.layers.flatMap((l) => (l.type.items?.(l.lay) ?? []).map((i) => i.start)))].sort(
+      (a, b) => a - b,
+    );
+    expect(starts.length).toBeGreaterThan(1);
+    const system = section.section.axis.system;
+    // before the first feature, then each feature in turn, then the last: no step
+    v.selection.setCursor({ section: section.section.address, system, position: starts[0] - 1, keyboard: true });
+    const at = () => v.selection.cursor.value?.position;
+    expect(v.input.key({ key: '.' })).toBe(true);
+    expect(at()).toBe(starts[0]);
+    expect(v.input.key({ key: '.' })).toBe(true);
+    expect(at()).toBe(starts[1]);
+    expect(v.input.key({ key: ',' })).toBe(true);
+    expect(at()).toBe(starts[0]);
+    // between two features: the next one starts after the cursor, the previous before it
+    const gap = Math.floor((starts[0] + starts[1]) / 2);
+    expect(gap).toBeGreaterThan(starts[0]);
+    v.selection.setCursor({ section: section.section.address, system, position: gap, keyboard: true });
+    v.input.key({ key: '.' });
+    expect(at()).toBe(starts[1]);
+    v.selection.setCursor({ section: section.section.address, system, position: gap, keyboard: true });
+    v.input.key({ key: ',' });
+    expect(at()).toBe(starts[0]);
+    v.selection.setCursor({ section: section.section.address, system, position: starts.at(-1)!, keyboard: true });
+    // at the last feature the key is still the command's: it says so and stops
+    expect(v.input.key({ key: '.' })).toBe(true);
+    expect(at()).toBe(starts.at(-1));
+  });
+
   it('the misread GFF3: its good transcript drawn, every fault said once with its line numbers', async () => {
     const v = await open('gff-misread');
     expect(v.view.get(MisreadGffSection)).toBeDefined();

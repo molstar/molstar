@@ -381,6 +381,12 @@ export class JumpSteps {
     this._tell();
   }
 
+  /** Takes the last `n` steps back away (a gesture's own steps, replaced by its last one). */
+  drop(n: number): void {
+    this._back.length = Math.max(0, this._back.length - n);
+    this._tell();
+  }
+
   /** Forgets every step. */
   clear(): void {
     this._back.length = 0;

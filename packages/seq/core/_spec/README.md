@@ -3364,9 +3364,9 @@ in page coordinates: what crosses strips; `bridge`, internal, once a bridge with
 - **Zoom in** (a layer's wants carry its key, `Want.layer`): a layer whose wants together the store refused (past
   `maxTilesPerLayer` tiles or `maxBytesPerLayer` of read cost, `layerRefused`), or one of whose wants is past its own
   bound at the coarsest level there is (`maxTilesPerWant`: a VCF's one level over 83 Mb, a matrix of items only; the
-  section's reads note it, `wantRefused`), draws its band hatched with "zoom in to read this track" (`ZoomInText`) and
-  says `seq.render.zoom_in` (info); distinct from pending, which settles by itself. A change of refusal lays the view
-  out again (the renderer's and a section's reads keep it). Canvas and SVG draw the same list.
+  section's reads note it, `wantRefused`), draws its band hatched with "Zoom in to read: ⌘/Ctrl+scroll, or +"
+  (`ZoomInText`) and says `seq.render.zoom_in` (info); distinct from pending, which settles by itself. A change of
+  refusal lays the view out again (the renderer's and a section's reads keep it). Canvas and SVG draw the same list.
 - **An item's key** is its `id`, else its `row` (a null `id` falls back to `row`), else its tile and index; never its
   extent. A key seen in an earlier tile is that range again and is not drawn twice; within one tile a repeated key is
   another piece of one item (a wrapped row).
@@ -3646,12 +3646,14 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   `text`, `types`, `layouts`, `pictures`, `kinds`: the viewer's and an export's), the picture's first track is laid out
   as a hidden section over the lattice's assembly (every block) by a renderer of its own, and when its first layer's
   type has `square` (`LayerType.square`, `SquareCells`: `draw(lay, out, lattice)`, `text(lay, i, j, lattice)`,
-  `pending(lay)`; `SquareLattice` its blocks' systems and names, `edge(k, horizontal)` and the tokens) its cells are
-  drawn in the base pass under the wash and the lines, never bounded by `maxCells`; `cellText(i, j)` is its words. The
-  hidden section is laid out again only when the base is (a size, the tokens), the store's settled state moves, or its
-  cells still wait (`pending`): a window's move or a gesture's preview lays out nothing. Its wants are the navigator's
-  (a frame whose cells changed is `rebuilt`). Without a picture with cells (the `axis`, a reader without the extension)
-  the lattice alone. The base's key is numbers (its size, pixel ratio and tokens), never a string a frame.
+  `pending(lay)`, `note(lay)`: the words the square says while its cells have nothing to show, drawn as the pending
+  hatch over the lattice's box with the words in its middle; `SquareLattice` its blocks' systems and names,
+  `edge(k, horizontal)` and the tokens) its cells are drawn in the base pass under the wash and the lines, never bounded
+  by `maxCells`; `cellText(i, j)` is its words. The hidden section is laid out again only when the base is (a size, the
+  tokens), the store's settled state moves, or its cells still wait (`pending`): a window's move or a gesture's preview
+  lays out nothing. Its wants are the navigator's (a frame whose cells changed is `rebuilt`). Without a picture with
+  cells (the `axis`, a reader without the extension) the lattice alone. The base's key is numbers (its size, pixel ratio
+  and tokens), never a string a frame.
 - **The window stays the navigator's**, whatever the picture: its geometry, floor, parts, gestures, keys, idle rule,
   zoom strip and announcements. A host that draws its own navigator keeps them through the viewer's `NavigatorModel`.
 - **The picture**: a navigator lays its system whole out (the fit window, in the bound section's display order;
@@ -4698,8 +4700,9 @@ label and value, the sentence), read on a hover from what the frame drew; a host
 
 - **A pairs bin** (`pairsBinHover`, its `bin:` key): its two bin ranges, its count (with its kind when the bins keep
   one), its level (`binsText`: `1 kb bins`), `reversed` when a bin's strand is −1, "zoom in to see them"; never a pair.
-- **A region grid's cell** (`gridCellHover`): its bin on each axis and its value from the tiles drawn at the level read
-  (a mirror's cell the served one's, a sparse tile's unlisted cell its `fill`), NaN `no data`, a tile not loaded
+- **A region grid's cell** (`gridCellHover`): its bin on each axis, in bases (`chr1 88.5–89.0 Mb`, kb or Mb once past
+  10,000: `baseSpanText`; rows `Across` and `Down`, never bin indices) and its value from the tiles drawn at the level
+  read (a mirror's cell the served one's, a sparse tile's unlisted cell its `fill`), NaN `no data`, a tile not loaded
   `loading`; undefined for a held grid (the viewer's own words).
 - **A matrix cell** (`matrixCellHover`): its item (its `id` when the table keeps one, its extent; the shortest item
   there, a SNP over a deletion) and its sample (inline `states`, else the coverage's), one `Sample` row

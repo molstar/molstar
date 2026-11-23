@@ -510,6 +510,11 @@ export interface SquareCells<Lay> {
   text?(lay: Lay, i: number, j: number, lattice: SquareLattice): string | undefined;
   /** Whether its lay still waits on data (the square lays it out again each frame until it does not). */
   pending?(lay: Lay): boolean;
+  /**
+   * What the cells say while they have nothing to show (`Loading…`, a failure's text): the square draws its pending
+   * hatch over the lattice with these words in the middle (the hatch of a band waiting for data); undefined: none.
+   */
+  note?(lay: Lay): string | undefined;
 }
 
 /**

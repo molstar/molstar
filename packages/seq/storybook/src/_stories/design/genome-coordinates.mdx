@@ -65,6 +65,12 @@ Toy assemblies generated in the story, each the canvas and the SVG of one view, 
   is the genome's ring with `include` patched: one undo step); Home shows every one again.
 - **The square**: a navigator on both axes over blocks × blocks, the chromosome pairs a lattice, the window one
   rectangle. What its cells hold (pairs by block, a contact map's tiles by block pair) is region reads'.
+- **The square's way home**: a muted line under the square names its gestures ("Drag to move · drag an edge to resize ·
+  double-click for the whole genome"; `navigator.squareHint: false`, or `hint: false` on the mounted part, leaves it
+  out). A double-click anywhere on the square, and 0 on its focus, show the whole genome (every block, one history step,
+  nothing when all are shown); Back returns the window before. While the links load the square shows the pending hatch
+  with "Loading…", and on a failure the issue's text, as the ring's hole says it. A contact map's cell card reads in
+  bases (`chr1 88.5–89.0 Mb × chr1 86.5–87.0 Mb`, its value), never bin indices.
 - **The viewer**: `navigate.acrossBlocks` (`cross`, or `stop`: one chromosome at a time); `block.next`, `block.previous`
   (Alt+PageDown, Alt+PageUp); `block.reverse` and `section.include` from a block's menu ("Reverse", "Show only", "Show
   all"); the keyboard cursor crosses into the next block (EC-154, amended); a drag across blocks selects each block's

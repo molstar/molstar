@@ -473,11 +473,11 @@ function drawBreaks(out: PassWriter, b: readonly number[], axis: AxisTransform, 
 }
 
 /** The text a layer refused by the store's bounds says over its band (_spec/README.md "Render", Data). */
-export const ZoomInText = 'zoom in to read this track';
+export const ZoomInText = 'Zoom in to read: ⌘/Ctrl+scroll, or +';
 
 /**
  * A refused layer's band: the pending hatch (stripes of the pending ink, as a band read nothing shows) with the text
- * "zoom in to read this track" in the middle, the label's font and the muted ink: distinct from pending, which settles
+ * "Zoom in to read: ⌘/Ctrl+scroll, or +" in the middle, the label's font and the muted ink: distinct from pending, which settles
  * by itself.
  */
 function drawZoomIn(w: PassWriter, box: Box, tokens: SeqTokens, config: RenderConfig): void {

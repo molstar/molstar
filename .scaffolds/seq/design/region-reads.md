@@ -469,7 +469,7 @@ What a reader sees with no setting but the data's `source` and a layer.
         ╭┼─┼░▓▓▒░░▒─┼─┼╮ sample 2
         ││ │  hole  │ ││
    ```
-8. **Bins with nothing in view**: no arc, no placeholder; pending: the band's pending hatch (built); failed: the
+8. **Bins with nothing in view**: no arc, no placeholder (open: whether a track that draws nothing at this zoom gets the hatch, which would say the wrong thing for data that is simply not there); the zoom-in hatch the hatch names the gesture ("Zoom in to read: ⌘/Ctrl+scroll, or +"), never a bare "zoom in".  pending: the band's pending hatch (built); failed: the
    placeholder with its issue (built).
 9. **Dark**: tokens only (the value and categorical themes, `seq-hover`, the pending hatch); nothing hard-coded.
 

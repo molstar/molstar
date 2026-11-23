@@ -127,4 +127,19 @@ describe('commands’ change kinds', () => {
     expect(changeKindOf('view.fit', { 'view.fit': 'session' })).toBe('session');
     expect(Object.values(CommandChangeKinds).every((k) => ChangeKinds.includes(k))).toBe(true);
   });
+
+  it('the cursor’s moves are session state by name, the viewer’s own only: an extension’s cursor command declares its kind', () => {
+    for (const id of [
+      'cursor.next',
+      'cursor.extend-prev',
+      'cursor.add-down',
+      'cursor.page-up',
+      'cursor.next-feature',
+      'cursor.toggle',
+    ])
+      expect(changeKindOf(id), id).toBe('session');
+    expect(changeKindOf('cursor.scroll-end')).toBe('navigate');
+    expect(changeKindOf('cursor.mine')).toBeUndefined();
+    expect(changeKindOf('cursor.mine', { 'cursor.mine': 'patch' })).toBe('patch');
+  });
 });

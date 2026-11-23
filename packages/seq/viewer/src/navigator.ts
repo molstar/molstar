@@ -943,6 +943,9 @@ export class NavigatorModel extends ReactiveModel {
     this.changed();
   }
 
+  /** A square's click chain (its double-click's clicks): the view before the first, its history's count, the last click's time. */
+  private chain: { before: ViewSnapshot; back0: number; t: number } | undefined;
+
   /** The last press that ended: its click (the platform's, after the button went up) reads it. */
   private lastPress: Press | undefined;
 
@@ -957,6 +960,13 @@ export class NavigatorModel extends ReactiveModel {
     const b = this.behavior;
     const nav = this.navigator;
     const square = isSquare(this.renderer) ? this.renderer : undefined;
+    // a square with a switch: the clicks of one double-click are one gesture with its `dblclick` (it replaces their steps)
+    if (square && nav?.switch === 'include') {
+      const view = this.viewer.view;
+      if (detail === 1 || !this.chain)
+        this.chain = { before: view.snapshot({ includes: true }), back0: view.history.value.back, t: 0 };
+      this.chain.t = performance.now();
+    }
     // the square with a switch: every click on a cell shows its pair at once, a quick second one too (a platform's
     // double-click count never turns a click into a select first: _spec/README.md, The square over a set)
     if (!d || d.moved || !b || !nav || (detail > 1 && !(square && nav.switch === 'include'))) return false;
@@ -1062,6 +1072,17 @@ export class NavigatorModel extends ReactiveModel {
   doubleClick(x: number, y: number): boolean {
     const b = this.behavior;
     const nav = this.navigator;
+    // a square with a switch: anywhere on it the whole genome (the clicks before it showed pairs; _spec/README.md,
+    // The square over a set), one step
+    if (nav?.switch === 'include' && isSquare(this.renderer)) {
+      // the steps its own clicks pushed (they showed the cell's pair) are replaced by its one: Back returns the window
+      // before the gesture
+      const c = this.chain;
+      this.chain = undefined;
+      const fresh = c !== undefined && performance.now() - c.t < 600;
+      if (fresh) this.viewer.view.dropSteps(this.viewer.view.history.value.back - c.back0);
+      return this.showAllOnSquare(true, fresh ? c.before : undefined);
+    }
     const h = this.hit(x, y);
     // over blocks a double-click opens a chromosome from the fit too (its window idle there), on the context too
     const blocks = !!nav?.blocks && !!h && this.viewer.view.canMove(h.section);
@@ -1078,8 +1099,6 @@ export class NavigatorModel extends ReactiveModel {
     // from that fit the whole
     // the square: the cell's two blocks fitted (one section on both axes: their hull), again the whole
     if (isSquare(r)) {
-      // with a switch the clicks did it (each shows its pair): a double-click adds no zoom
-      if (nav.switch === 'include') return false;
       const pair = r.pairAt(h.section, x, y);
       const v = this.viewer.view.get(h.section);
       if (!pair || !v) return false;
@@ -1168,7 +1187,8 @@ export class NavigatorModel extends ReactiveModel {
     // over blocks the slider's large step is a block (`block.next`, `block.previous`); Home with a switch shows all
     if (nav.blocks && (key === 'PageDown' || key === 'PageUp'))
       return this.runIf(key === 'PageDown' ? 'block.next' : 'block.previous', { section });
-    if (nav.switch === 'include' && key === 'Home') return this.showAll();
+    if (nav.switch === 'include' && (key === 'Home' || (key === '0' && isSquare(this.renderer))))
+      return this.showAllOnSquare(key === '0');
     if (key === 'PageDown' || key === 'PageUp') return this.focusNext(key === 'PageDown' ? 1 : -1);
     const view = this.viewer.view;
     if (modifiers.altKey && (key === 'ArrowLeft' || key === 'ArrowRight'))
@@ -1261,22 +1281,33 @@ export class NavigatorModel extends ReactiveModel {
     return this.runIf('section.include', include ? { address: section, include } : { address: section });
   }
 
-  showAll(): boolean {
+  /** The square's way home: every block shown, nothing when they all are (no step); one step otherwise. */
+  private showAllOnSquare(guard = true, before?: ViewSnapshot): boolean {
+    const set = this.setSquare;
+    if (guard && set) {
+      let all = true;
+      for (let k = 0; k < set.blockCount && all; k++) all = set.shows(k);
+      if (all) return false;
+    }
+    return this.showAll(before);
+  }
+
+  showAll(before?: ViewSnapshot): boolean {
     const nav = this.navigator;
     const section = nav?.of[0];
     if (!nav || nav.switch !== 'include' || !section) return false;
-    return this.runIf('section.include', { address: section });
+    return this.runIf('section.include', { address: section }, before);
   }
 
   /** Runs a command when it can run now; true when it ran. */
-  private runIf(id: string, context: unknown): boolean {
+  private runIf(id: string, context: unknown, taken?: ViewSnapshot): boolean {
     const c = this.viewer.commands.find((x) => x.id === id);
     const can = c?.when?.(context as never);
     if (!c || (can !== undefined && can !== true)) return false;
     // a change of the blocks shown is one step of the view's history, pushed once it landed (a drag's on release:
     // never a frame's): Back shows the blocks it left
     const view = this.viewer.view;
-    const before = id === 'section.include' ? view.snapshot({ includes: true }) : undefined;
+    const before = id === 'section.include' ? (taken ?? view.snapshot({ includes: true })) : undefined;
     const done = this.viewer.execute(id, context);
     if (before) {
       if (typeof done === 'string') view.record(before);

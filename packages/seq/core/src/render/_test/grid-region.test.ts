@@ -13,7 +13,7 @@ import { type GridDense, SeqRuntime, type SeqData, seqToValue } from '@molstar/s
 import { createSeqSpec, theme } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
 import type { GridLay } from '../grid.js';
-import { gridCellHover, hitView } from '../index.js';
+import { baseSpanText, gridCellHover, hitView } from '../index.js';
 import { renderSvg } from '../render-svg.js';
 import { settle } from './helpers.js';
 import { gridRegionSpec as spec } from './region-render-fixtures.js';
@@ -48,7 +48,7 @@ describe('a grid by region', () => {
     expect(h?.bin).toBe(4);
     // its hover: its bin on each axis and its value (a mirror's cell as the served one's), its level
     const card = gridCellHover(lay, 10, 9, () => 'chr')!;
-    expect(card.title).toBe('chr:9–12 × chr:9–12');
+    expect(card.title).toBe('chr 9–12 × chr 9–12');
     expect(card.rows).toContainEqual(['Value', '1,600']);
     expect(card.rows).toContainEqual(['Bins', '4 bp bins']);
     // across the diagonal: the mirror of the served tile
@@ -219,3 +219,41 @@ async function pastTheEnd(
   await s.frame({ size: Size });
   return gridLay(await s.frame({ size: Size }));
 }
+
+describe('a Hi-C card in bases', () => {
+  it('a range past 10,000 reads in kb or Mb, never bin indices; small ones stay in bases', () => {
+    expect(baseSpanText(88_500_000, 89_000_000)).toBe('88.5–89.0 Mb');
+    expect(baseSpanText(86_500_000, 87_000_000)).toBe('86.5–87.0 Mb');
+    expect(baseSpanText(1_250_000, 1_500_000)).toBe('1.25–1.50 Mb');
+    expect(baseSpanText(212_000, 214_500)).toBe('212.0–214.5 kb');
+    expect(baseSpanText(8, 12)).toBe('9–12');
+  });
+
+  it('a cell of a 500 kb map: chr1 88.5–89.0 Mb × chr1 86.5–87.0 Mb, its value, its bins', () => {
+    const L = 500_000;
+    const lay = {
+      region: {},
+      binLevel: L,
+      system: '/data/chr1',
+      ySystem: '/data/chr1',
+      tiles: [
+        {
+          x: 0,
+          y: 0,
+          w: 400,
+          h: 400,
+          table: { form: 'dense', x: 0, y: 0, nx: 400, ny: 400, value: new Float32Array(160_000).fill(7) },
+        },
+      ],
+    } as unknown as GridLay;
+    const card = gridCellHover(lay, 88_700_000, 86_700_000, () => 'chr1')!;
+    expect(card.title).toBe('chr1 88.5–89.0 Mb × chr1 86.5–87.0 Mb');
+    expect(card.rows).toEqual([
+      ['Across', 'chr1 88.5–89.0 Mb'],
+      ['Down', 'chr1 86.5–87.0 Mb'],
+      ['Value', '7'],
+      ['Bins', '500 kb bins'],
+    ]);
+    expect(card.text).toContain('value 7');
+  });
+});

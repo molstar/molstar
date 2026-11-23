@@ -157,6 +157,8 @@ export interface ViewerConfig {
     readonly dragStep: 'far' | 'never' | 'always';
     readonly doubleClick: 'toggle-fit' | 'fit' | 'none';
     readonly zoomPx: number;
+    /** A square's muted line of its gestures under it (true); false: none (a figure's, a host's own words). */
+    readonly squareHint: boolean;
     readonly direction: 'display' | 'genomic';
     readonly zoomStrip: { readonly minPx: number; readonly heightPx: number; readonly overBlocks: ZoomOverBlocks };
   };
@@ -326,6 +328,7 @@ export const DefaultViewerConfig: ViewerConfig = {
     dragStep: 'far',
     doubleClick: 'toggle-fit',
     zoomPx: 48,
+    squareHint: true,
     direction: 'display',
     zoomStrip: DefaultZoomStrip,
   },

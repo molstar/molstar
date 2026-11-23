@@ -618,6 +618,11 @@ export class ViewModel extends ReactiveModel {
     return this._step(true);
   }
 
+  /** Takes the last `n` steps back away: a gesture whose steps a later one of its own replaces (a double-click's clicks). */
+  dropSteps(n: number): void {
+    this._steps.drop(n);
+  }
+
   /** Forgets the history (a new spec loaded). */
   clearHistory(): void {
     this._steps.clear();

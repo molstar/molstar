@@ -183,6 +183,7 @@ settings layer over it. The rules that stay fixed whatever the bindings:
   and dot plots of one viewer. Why: consistency is the point of a grammar; configurability must not bring back
   per-view behavior.
 - **Granularity comes from the hit, not the binding**: a binding says "select", the hit says a codon or an item.
+- **Next and previous in the focused part**: `.` and `,` mean next and previous **in the focused part** (`cursor.next-feature`, `cursor.prev-feature`, the commands' own shortcuts): on a track of items the cursor steps to the next or previous item by start, over the stretches with none; on a genome ring's stem the same keys walk its partners (`rondo:partner`), one meaning. A command that cannot run lets the key through to the other, so a ring and tracks in one viewer never fight (the cursor on a tracks section takes them, anywhere else the ring's). The rows' zoom keeps `]` and `[`. Why: one meaning for the pair, and `]` `[` already zoom the rows.
 - **Modifiers are platform-aware** (Cmd on macOS, Ctrl elsewhere), never browser zoom keys or Tab (EC-155).
 - **Every action stays reachable** by a command and from the keyboard, whatever the pointer bindings.
 - **Conflicts are reported**: two bindings for one gesture is an issue when the configuration is built, not a race at
@@ -232,7 +233,7 @@ table has the cells of its sub-rows: a text or ring section, a residue through a
 
 | | select | extend | add / remove | focus | back | zoom in / out | pan | hide | edit |
 |---|---|---|---|---|---|---|---|---|---|
-| **an element** (a cell, an item) | click; `selection.set` | Shift+click (the anchor's range) | Cmd/Ctrl+click toggles | double-click; `address.focus` | double-click on it when focused | — | — | no: hide a track or layer | no: data is not edited in the viewer |
+| **an element** (a cell, an item) | click; `selection.set` | Shift+click (the anchor's range) | Cmd/Ctrl+click toggles | double-click; `address.focus`; `.` and `,` the cursor to the next and previous item of the focused track (`cursor.next-feature`, `cursor.prev-feature`) | double-click on it when focused | — | — | no: hide a track or layer | no: data is not edited in the viewer |
 | **a range** (positions) | drag on data | Shift+drag | Cmd/Ctrl+drag adds, Alt+drag removes; `selection.add`, `selection.subtract` | Enter at the cursor | Alt+Left | — | — | — | — |
 | **the selection** | — | Shift+arrows | Cmd/Ctrl+Shift+arrows start a range | Enter | Alt+Left | — | — | — | a bookmark from it (`selection.bookmark`, Cmd/Ctrl+D); copy its letters as shown (`selection.copyLetters`, Cmd/Ctrl+C); color it on a layer: planned (`theme.color-selection`) |
 | **a leading section** | — | — | — | — | — | Cmd/Ctrl+wheel, pinch, -, =, Shift+double-click; in display order (a reversed axis) | wheel, drag on the ruler rail, Space+drag, Shift+Alt+arrows; in display order | no: hide its tracks | its params by patch (height); Shift+R `section.reverse`, Shift+C `section.collapse` (patches) |

@@ -45,28 +45,12 @@ export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   'selection.copy-letters': 'none',
   // the keys panel opens and closes: the reader's, nothing in the models
   'help.keys': 'none',
-  // the keyboard cursor and what it selects are session state; Enter's focus moves the view
-  'cursor.prev': 'session',
-  'cursor.next': 'session',
-  'cursor.up': 'session',
-  'cursor.down': 'session',
-  'cursor.extend-prev': 'session',
-  'cursor.extend-next': 'session',
-  'cursor.extend-up': 'session',
-  'cursor.extend-down': 'session',
-  'cursor.add-prev': 'session',
-  'cursor.add-next': 'session',
-  'cursor.add-up': 'session',
-  'cursor.add-down': 'session',
-  'cursor.page-down': 'session',
-  'cursor.page-up': 'session',
+  // the keyboard cursor and what it selects are session state (every other `cursor.*`: `changeKindOf`); Enter's focus
+  // moves the view
   // Home and End scroll the scroller under the pointer and move no cursor: a scroll is a viewport's (a band's top, a
   // section's `top`), so a navigation, as `rows.page-*` (the page keys are the cursor's: a shown cursor moves with them)
   'cursor.scroll-start': 'navigate',
   'cursor.scroll-end': 'navigate',
-  'cursor.first-row': 'session',
-  'cursor.last-row': 'session',
-  'cursor.toggle': 'session',
   'cursor.focus': 'navigate',
   'view.focus': 'navigate',
   'view.fit': 'navigate',
@@ -160,13 +144,20 @@ export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   'bridge.lock': 'patch',
 };
 
+/** The viewer's own cursor commands that are session state (an extension's `cursor.x` declares its kind). */
+const CursorMoves =
+  /^cursor\.((prev|next|up|down)(-feature)?|(extend|add)-(prev|next|up|down)|page-(up|down)|(first|last)-row|toggle)$/;
+
 /** A command's change kind: the table's, then `extra` (an extension's commands); undefined when unknown. */
 export function changeKindOf(id: string, extra: Readonly<Record<string, ChangeKind>> = {}): ChangeKind | undefined {
   return Object.hasOwn(extra, id)
     ? extra[id]
     : Object.hasOwn(CommandChangeKinds, id)
       ? CommandChangeKinds[id]
-      : undefined;
+      : // the cursor's moves are session state (the ones above, the scrolls and the focus, navigate)
+        CursorMoves.test(id)
+        ? 'session'
+        : undefined;
 }
 
 export function isMethodAction(action: string): action is MethodAction {
