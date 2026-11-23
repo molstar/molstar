@@ -83,10 +83,10 @@ export function layoutLegends(
   let y = box.y;
   for (const l of legends) {
     let x = box.x;
-    const base = y + B.row / 2 + 4;
     const label = (s: string, color: number) => {
       const w = text.measure(B.font, s);
-      out.text(s, x, base, Anchor.start, B.font, color, w);
+      // the baseline of the line the text is on now (a wrapped entry's label follows its swatch down)
+      out.text(s, x, y + B.row / 2 + 4, Anchor.start, B.font, color, w);
       x += w + B.gap;
     };
     const wrap = (w: number) => {
@@ -105,7 +105,10 @@ export function layoutLegends(
         x += B.swatch + 3;
         label(i.label, ink);
       }
-      if (l.more) label(`+${l.more} more`, muted);
+      if (l.more) {
+        wrap(text.measure(B.font, `+${l.more} more`));
+        label(`+${l.more} more`, muted);
+      }
     } else if (e.kind === 'ramp') {
       const [lo, hi] = l.domain ?? [0, 1];
       label(formatValue(lo), ink);
