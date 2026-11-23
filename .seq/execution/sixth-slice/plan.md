@@ -41,7 +41,8 @@ A next scaffold starts as `.scaffolds/<name>/` from `_method/`, its manifest lis
 ## Stages
 
 - [x] **Stage 0: decisions** (2026-11-23, below). The plan itself is agreed when the slice starts.
-- [ ] **Stage 1: reconcile the specs**. Every design's decisions that the code follows are in a package's `_spec/`
+- [ ] **Stage 1: reconcile the specs** (started 2026-11-23: lanes S1A–S1D, `briefs/s1-spec-pass.md`; the check is
+      `.seq/_checks/designs-in-specs.ts`, done when its `PENDING` is empty). Every design's decisions that the code follows are in a package's `_spec/`
       (core, viewer, ext-rondo, examples where it has one): a pass per design, its gaps written into the spec. Done
       when a check lists no design decision without a spec section citing it, or a reason it stays design-only.
 - [ ] **Stage 2: rename oz to principles**, in place first (`.seq/oz` → `.seq/principles-package` or straight to the
