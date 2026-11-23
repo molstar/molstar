@@ -378,7 +378,11 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
     }
     const groups: HeaderMenuItem[][] = [];
     const f = target.element ? factsOf(target) : undefined;
-    if (f) groups.push(itemsOf(f, 'element'));
+    // an element whose entries ask for it (`alone`: a ring's stem) is their menu alone: the track's and the section's
+    // actions are their headers' (a stem's menu offered "Move up" and "Hide track")
+    const own = f ? itemsOf(f, 'element') : [];
+    if (own.length && applying(f!, 'element').some((e) => e.alone)) return { target, groups: [own] };
+    if (own.length) groups.push(own);
     const tf = target.track !== undefined ? factsOf({ section: target.section, track: target.track }) : undefined;
     if (tf) groups.push(itemsOf(tf, 'track'));
     const sf = factsOf({ section: target.section });

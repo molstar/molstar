@@ -151,6 +151,11 @@ export interface HeaderEntry {
    * menu key opens before the cursor's header, at the element. Undefined: none there.
    */
   readonly atCursor?: (viewer: SeqViewer) => HeaderElementAt | undefined;
+  /**
+   * An `element` entry that applies makes the element's menu its entries alone: the track's and the section's actions
+   * stay in their headers' menus (a ring's stem: "Move up" and "Hide track" are not the stem's). Absent: after them.
+   */
+  readonly alone?: boolean;
 }
 
 /** A registry entry of the viewer: a header entry (`SeqViewerSpec.registry`, beside the core's kinds). */

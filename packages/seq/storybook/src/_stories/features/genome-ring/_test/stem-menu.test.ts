@@ -82,6 +82,36 @@ describe('The stem menu', () => {
     expect(new Set(ringInclude(v) as string[])).toEqual(new Set([name, first]));
   });
 
+  it('only the stem’s actions: the track’s (Move up, Reverse, Hide track) stay in its header’s menu', async () => {
+    const { v, headers } = await open();
+    const l = ribbonsOf(v)!;
+    const { x, y } = strongestStem(l);
+    expect(headers.context(x, y)).toBe(true);
+    const menu = headers.menu.value!.menu;
+    expect(menu.groups).toHaveLength(1);
+    expect(menu.groups[0].map((i) => i.name)).toEqual([
+      'rondo:show-partner',
+      'rondo:select-stem-partners',
+      'rondo:show-chromosome',
+    ]);
+    headers.closeMenu();
+    // the track's header menu keeps them
+    const track = l.key.slice(0, l.key.lastIndexOf('/'));
+    const names = headers
+      .menuOf({ section: l.section, track })!
+      .groups.flat()
+      .map((i) => i.name);
+    expect(names).toEqual(expect.arrayContaining(['seq:hide', 'seq:move-up', 'seq:reverse']));
+    // an element with no entries of its own (a ribbon) keeps its track's menu
+    const r = l.strongest;
+    const ribbon = headers.menuOf({
+      section: l.section,
+      track,
+      element: { layer: l.key, key: l.ribKey[r], type: 'rondo:ribbons' },
+    })!;
+    expect(ribbon.groups.flat().map((i) => i.name)).toContain('seq:hide');
+  });
+
   it('“Show only” shows the stem’s chromosome alone', async () => {
     const { v, headers } = await open();
     const l = ribbonsOf(v)!;

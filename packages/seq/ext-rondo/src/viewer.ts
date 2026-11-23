@@ -63,6 +63,7 @@ export const StemMenu: readonly HeaderEntry[] = [
   {
     name: 'rondo:show-partner',
     on: 'element',
+    alone: true,
     label: 'Show with a partner',
     order: 1,
     when: (f) => !!Menu?.stemOfFacts(f),
@@ -73,6 +74,7 @@ export const StemMenu: readonly HeaderEntry[] = [
   {
     name: 'rondo:select-stem-partners',
     on: 'element',
+    alone: true,
     label: 'Select the stem and its partners',
     order: 2,
     when: (f) => !!Menu?.stemOfFacts(f),
@@ -83,6 +85,7 @@ export const StemMenu: readonly HeaderEntry[] = [
     name: 'rondo:show-chromosome',
     order: 3,
     on: 'element',
+    alone: true,
     label: (f) => Menu?.onlyStem(f)?.label ?? 'Show only this chromosome',
     when: (f) => !!Menu?.stemOfFacts(f),
     command: 'section.include',

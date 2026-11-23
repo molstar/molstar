@@ -355,6 +355,25 @@ describe('the menu', () => {
     expect(item(v, undefined, 'seq:reverse')).toMatchObject({ key: expect.stringMatching(/R/), enabled: true });
   });
 
+  it('an element entry `alone`: the element’s entries are its menu, the track’s and the section’s in their headers', async () => {
+    const v = await make();
+    headers(v).register({
+      name: 'myapp:stem',
+      on: 'element',
+      alone: true,
+      label: 'Stem things',
+      command: 'address.focus',
+      args: (f) => ({ address: `${f.element!.layer}` }),
+    });
+    const m = headerMenu(v, { section: Section, track: Domains, element: { layer: `${Domains}/d`, key: 'A' } })!;
+    expect(m.groups.map((g) => g.map((i) => i.name))).toEqual([['myapp:stem']]);
+    expect(
+      headerMenu(v, { section: Section, track: Domains })!
+        .groups.flat()
+        .map((i) => i.name),
+    ).toContain('seq:hide');
+  });
+
   it('a secondary click opens it under each contextClick; Shift+secondary click is never taken', async () => {
     for (const contextClick of ['everywhere', 'header', 'none'] as const) {
       const v = await make({ contextClick });

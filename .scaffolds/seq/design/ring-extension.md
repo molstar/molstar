@@ -335,6 +335,10 @@ offered as a partner, and the track's actions in it (close-out, the novice quest
   row did. Why: "chr9 · 375 links", "chr9 · 65 links" said nothing of what parted them (novice 8, 26).
 - **Links within**: the stem's own chromosome is never a partner: "Within chr22 · 229 links", listed last, its pieces
   the ribbons to its other stems and the stem's own links within itself ("this stem"); it shows the chromosome alone.
+- **Only the stem's actions**: the menu holds what acts on the stem ("Show with a partner", "Select the stem and its
+  partners", "Show only chr22"). Move up, Reverse and Hide track are the track's and stay in its header's menu: the
+  stem's entries are `alone` (a viewer header entry's flag), so its element menu is theirs without the track's and the
+  section's groups.
 - **One list, two readers**: the partner keys (`.` and `,`) walk the menu's pieces in its order, so the keys and the
   menu name partners alike.
 

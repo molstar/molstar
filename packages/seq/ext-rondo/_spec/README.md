@@ -190,7 +190,8 @@ waiting; its entries `StemMenu` in `viewer.ts`).
   within itself, `this stem`; each row and piece shows its chromosome with the stem's as a pair in the section the layer
   `opens`, else its own, within alone. Why by chromosome: bare rows `chr9 · 375 links`, `chr9 · 65 links` said nothing
   of what parted them), "Select the stem and its partners" (`rondo:select-partners` with the element: one selection),
-  "Show only chr4". The entries find the stem in the lays of the viewer the menu is in (`HeaderFacts.viewer`: no state
+  "Show only chr4"; only these: the entries are `alone`, so the track's actions (Move up, Reverse, Hide track) stay in
+  its header's menu. The entries find the stem in the lays of the viewer the menu is in (`HeaderFacts.viewer`: no state
   of their own, two viewers of one spec each their own). **Its route**: a secondary click on a stem opens it at the
   pointer; on a ring's empty space (no hit) the browser's menu opens (the viewer's rule for rings); the menu key and
   Shift+F10 with the keyboard cursor on a placed stem's range (the topmost layer's) open it at the stem's mouth

@@ -1360,7 +1360,8 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   - **Gestures**: a click on a slot runs it (the "⋯" opens the menu), on a chip runs its state, on a label nothing (on
     touch it shows the slots, as a hover there, so a second tap on a slot runs it); never a selection's. A secondary
     click (`contextmenu` on the mounted canvas) opens the menu under `contextClick` (`everywhere`, the default spec's:
-    at what it hits, an element's entries first, then its track's and its section's; the element's facts carry its
+    at what it hits, an element's entries first, then its track's and its section's, or the element's alone when an
+    applying entry is `alone` (a ring's stem: "Move up" is the track's, not the stem's); the element's facts carry its
     layer's type, `element.type`, so an extension's `on: 'element'` entries are scoped to its own type's hits: a section
     layer's hit, an extension's ribbons, is found on the track that holds it; `header`, the label column only; `none`,
     the browser's); Shift+secondary click is always the browser's. On a ring a point that hits nothing (the hole between
