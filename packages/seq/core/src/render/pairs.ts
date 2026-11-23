@@ -198,6 +198,20 @@ function virtualX(ax: AxisTransform, u: number, reach: number) {
     u < ax.u0 ? ax.x0 - Math.min(m, (ax.u0 - u) * ax.scale) : ax.x0 + ax.width + Math.min(m, (u - ax.u1) * ax.scale);
 }
 
+/** Two units' distance round a ring of `total` units, the shorter way. */
+function ringSpan(d: number, total: number): number {
+  return total > 0 ? Math.min(d, total - d) : d;
+}
+
+/** The unit between two on a ring of `[u0, u1)`, the shorter way round. */
+function ringMid(a: number, b: number, u0: number, u1: number): number {
+  const total = u1 - u0;
+  const mid = (a + b) / 2;
+  if (!(total > 0) || Math.abs(b - a) <= total / 2) return mid;
+  const other = mid + total / 2;
+  return other >= u1 ? other - total : other;
+}
+
 function layoutArcs(lay: PairsLay, prep: PairsPrep, ctx: LayoutContext, place: Placement) {
   const s = place.strips;
   if (!s.n) return;
@@ -276,14 +290,17 @@ function layoutArcs(lay: PairsLay, prep: PairsPrep, ctx: LayoutContext, place: P
       if (!Number.isNaN(xb)) caret(lay, prep, place, sb, band, xb, k);
       continue;
     }
-    // the span: px on a straight strip, display units round a ring
-    const span = s.warp[sa] === WarpKind.polar ? Math.abs(ob - oa) : Math.abs(xb - xa);
+    // the span: px on a straight strip, display units round a ring, the shorter way (the ring shows its whole axis:
+    // chr1's start and the last chromosome's end are neighbours, never the widest pair)
+    const polarSpan = s.warp[sa] === WarpKind.polar;
+    const span = polarSpan ? ringSpan(Math.abs(ob - oa), ax.u1 - ax.u0) : Math.abs(xb - xa);
     Spans[m] = span;
     StripOf[2 * m] = sa;
     StripOf[2 * m + 1] = sb;
     Raw[4 * m] = xa;
     Raw[4 * m + 1] = xb;
-    Raw[4 * m + 2] = (oa + ob) / 2;
+    // the control's unit: between the ends, the shorter way round a ring (past the circle's half, the other side)
+    Raw[4 * m + 2] = polarSpan ? ringMid(oa, ob, ax.u0, ax.u1) : (oa + ob) / 2;
     Raw[4 * m + 3] = k;
     if (span > widest) widest = span;
     m++;

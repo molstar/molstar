@@ -119,7 +119,8 @@ const Before = {
   binsOneSystem: '190884:3637016521',
   itemsOneSystem: '296570:4050371117',
   held: '72599:608758320',
-  assemblyFit: '351770:3501582133',
+  // a ring's chords bent the shorter way round (their span and control's unit), since the split
+  assemblyFit: '351380:2924283320',
   assemblyBlock: '17728:569659795',
   bridge: '14125:4255137094',
 };

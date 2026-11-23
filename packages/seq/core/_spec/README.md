@@ -4355,9 +4355,11 @@ cost to the minimal viewer is the names the chunk imports from it).
   changed with the view. `reach` is the previous Seq\*'s `ARC_MARGIN` (0.25 of the window); its `ARC_PAST` (4 px, a
   piece cut at the edge drawn that far past it so the stroke's cap lies outside the clip) is not kept: the whole cubic
   is drawn to its virtual ends and clipped to the data box, so no cap falls at the edge. On a polar strip the apex goes
-  toward the centre (`side: below` reaches the hole): a chord, its depth by span. An end not placed in the view, or the
-  ends on different lines without `across_lines`, draws a caret at the placed end, never a dangling arc. A curve is one
-  cubic (`curveArgs`), clipped to the data box.
+  toward the centre (`side: below` reaches the hole): a chord, its depth by span, its span and its control's place the
+  shorter way round (a ring shows its whole axis, so its first and last units are neighbours: a chord between them is
+  short and stays at the rim, never bent across the hole). An end not placed in the view, or the ends on different lines
+  without `across_lines`, draws a caret at the placed end, never a dangling arc. A curve is one cubic (`curveArgs`),
+  clipped to the data box.
 - **Crossing pairs** (`crossing`): `same` draws them crossing; `split` the largest nested subset on `side`, the rest on
   the other (`splitCrossing`: exact up to `SplitExact`, 2,000 pairs, by an interval DP over the sorted ends; greedy past
   it, fixed: the exact subset is quadratic and no figure asks for another bound). On one system only.
