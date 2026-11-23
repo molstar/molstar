@@ -82,3 +82,75 @@ resizing it from an edge or a corner, and the translocation card's kind, strands
 | Stem menu | pre-opened by the story. The right-click route was not tried, and neither was Shift+F10. "Show with a partner" opened with Right only |
 | Hover cards | rest on a ribbon or stem |
 | Square window | drag inside the window to move it, drag an edge or corner to resize it (found by guessing) |
+
+## Second short pass (2026-11-23, on FX24's Storybook)
+
+The author asked for it ("Ok run the other short novice pass"). It covered every item the first pass missed, at least
+briefly. Not reached: the chr9–chr22 fusion's card, a double-click on a ribbon, a folded stub (none seen), the matrix
+story's Hi-C cell, BED's cytobands, and dark on the stem stories.
+
+**Counted by kind**:
+
+| Kind | Count |
+|---|---|
+| Bugs | 1 (to check) |
+| Missing design | 5 |
+| Looks | 8 |
+| Unverified | 2 |
+
+What the novice reported as working:
+- the square's Back from a scattered pick, in one step;
+- GenBank's card;
+- BED12's whole-gene highlight;
+- a pair opened from the stem menu's submenu by a click.
+
+### Bugs → fixes.md
+
+27. **After a stem menu opens a pair, the square isn't checked.** The novice saw the whole genome on the square after
+    the ring opened chr22–chr9. Its screenshot shows the SVG copy, which has no square of its own, so check this on the
+    Canvas copy. (The stem menu)
+
+### Missing design → questions for the author
+
+21. **The stem card's "Links" row reads against the rows under it**: "Links 24 links to 1 chromosome" is the hovered
+    stem's own links (to one partner), while "Contacts 638" and "Translocations 24" are the chromosome's totals per
+    layer (confirmed). The orchestrator's proposal is to name the first row by what it is ("This stem 24 links to
+    chr9"), with the totals under "chr22, all links".
+25. **A pair's ribbon card names one end only** (chr4 and its band); chr7's position and band are missing. The bins row
+    "zoom in to see them" is the only hint.
+26. **The partner submenu repeats chromosomes** (chr9 three times, chr22 twice) without saying which stem piece each
+    row is (by kind, by strand). This is first-pass 8, seen again.
+28. **A right-click on a stem opens nothing**. The menu exists only pre-opened in its story, so there is no route a
+    user finds.
+33. **A Hi-C card gives bin indices** ("chr1:177 × chr1:173, x 177, y 173"), with no kb or Mb on the card or the ruler.
+35. **The links-pending state says nothing**: the ring's hole is empty, the square is an empty grid, and there is no
+    hatch and no "loading" text.
+
+### Looks → packages/seq/TODO.md
+
+22. The translocation card: raw keys (`gene_a`, `event`, `q`), "Strands – –" unclear, and the chr12 and band rows
+    repeated (check after FX24).
+24. The Contacts legend entry has no swatch, and its label doubles ("Contacts: by chromosome").
+30. The scattered pick in dark: bright blue grid lines over the cells, and a stray "chr9 · 470" stub label inside the
+    ring.
+31. The dot plot in dark: empty cells glaring white, and the axes named "chr1" against "1" (assembly B's names), each
+    ruler labelled "ruler".
+32. Liftover: overlapping gene labels, jargon in the description (A′, `seq`), no legend for bridges, and no card on a
+    lifted gene.
+34. The methylation matrix in dark: a missing cell is as dark as the ramp's low end; the samples are unnamed and called
+    "State"; the chromosome is called "chr".
+36. BED12: no names on the tracks, and the strand "–" is easy to misread.
+
+### Unverified
+
+23. The fusion's card was not found on the Canvas copy, and the SVG copy gives no hover card (it is a picture, by
+    design).
+29. Shift+F10 after a click opens nothing. The novice's click may not have been on a stem.
+
+**The totals over both passes**:
+
+| Kind | Count |
+|---|---|
+| Bugs | 5 (2 fixed by FX24, 2 not bugs, 1 to check) |
+| Missing design | 14 |
+| Looks | 15 |

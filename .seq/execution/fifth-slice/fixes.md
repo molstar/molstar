@@ -114,6 +114,8 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   - check by hand, then fix if real: a click on a menu's "Show with a partner" item doesn't open its submenu (the Right
     arrow does); the wheel over the ring never scrolls the page.
 
+- **To check: the square after a stem menu opens a pair** (second novice pass 27): on the Canvas copy of The stem menu, pick a partner and see whether the square follows the pair; a bug if it keeps the whole genome.
+
 - **The hover card story test failed once** (fixed by FX24, `b386475be`: lazy header chunks relaid the headers and hid the card; stage 4's gate, 2026-11-23, quick lane over `packages/seq/`,
   `cli/seqx-render/` and `packages/core/src/util` at load about 3): `hover-card-stories.test.ts`, "a host's adapter is
   told the viewer's card and place on rest". The adapter had been called, but `HoverCardProvider.shown.value` was undefined. Three

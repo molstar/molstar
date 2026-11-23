@@ -415,6 +415,10 @@ extension kinds.
 - **The wheel's pan direction on a ring looks reversed** (FX24): a plain wheel pans the window as on a track; on a ring
   the turn reads opposite.
 - **A lone stub label inside the ring** ("chr22 · 403") at load in The square dragged, the ring clipped below.
+- **The second novice pass's looks** (2026-11-23): the translocation card's raw keys and "Strands – –"; the Contacts
+  legend entry without a swatch, its label doubled; the scattered pick's grid lines in dark; the dot plot's white empty
+  cells in dark and "chr1" against "1"; Liftover's overlapping labels, jargon and no bridge legend; the methylation
+  matrix's missing cells as dark as low ones, samples called "State"; BED12 tracks unnamed.
 
 ## The genome ring (RX, 2026-11-23)
 
