@@ -429,3 +429,7 @@ extension kinds.
 - **RX2's leftovers** (2026-11-23): Shift+F10 at a stem; `rondo:cells` lazy needs `withViewKind` on the extension entry
   (a contract change: the author's call); `viewer/src/navigator.ts` (1,290) and `viewer/src/viewer.ts` (860) past 800
   lines: split.
+- **Kinds over bins read by region** (RX3, 2026-11-23): a source's bins carry no categories, so a type filter can't
+  split them; bins read by region draw once and say so. A design question: bin by a declared field, or take the filter
+  in the request.
+- **A later layer's widest stem is read as last laid out** with `scale: 'section'`: a growth shows one frame late.

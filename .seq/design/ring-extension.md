@@ -578,6 +578,13 @@ failed (the store's `unopened`), on one chromosome or a pair lighter stems (`foc
 `rondo.stubMin` folded unlabelled, unfolding on hover. The square, its gestures, cells and lattice load as one lazy
 chunk. Not built: Shift+F10 at a stem; `rondo:cells` lazy (needs `withViewKind` on the extension entry).
 
+**Built by RX3** (merged 2026-11-23): kinds of links as layers (`rondoRing({ kinds })`, the `(item :type …)` base
+filter), a ribbons layer's colour (fixed, drawn opaque; or a field per link, exact per bin where held bins carry the
+field, else ink and said), `opacity`, a legend entry per layer with its scale ("1 px = n links"), widths per layer by
+default and `scale: 'section'` to share one (Decided 19), the card naming a link's fields and a bin's count per layer,
+invented translocations named "(made up)". Core: filters applied to pairs read by region (items; bins read by region
+drawn once and said), `strandKnown` for unstranded ends, settings composed on a late extend.
+
 ## Decided by the author
 
 2026-11-21: every gap as recommended (the author on the drafts: "generally reasonable and we can fold in the reviews";
@@ -627,3 +634,6 @@ the author decided by name carries its own date.
     label adds or removes chromosomes from `section.include`, a label's click shows only it; a contiguous run is one
     draggable box, a scattered set outlined cell by cell (its diagonal and cross cells) without grips; the cells
     coloured by count with self-connections on the diagonal (`rondo:cells`).
+19. **Widths per layer, said** (the author, 2026-11-23, "Per layer, said"): each kind's widths on its own scale, each
+    legend entry stating it ("1 px = n links"), and `scale: 'section'` for a host that wants widths comparable across
+    kinds.
