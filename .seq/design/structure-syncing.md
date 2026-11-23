@@ -252,6 +252,39 @@ side" is what the side is told. Nothing here exists without the link.
 | unobserved positions | fixed | never sent | nothing to light | — |
 | the vocabulary | fixed | Locations on units | the application's (decided) | MolViewSpec types, Mol\* `Loci`: the host's |
 
+## In the specs
+
+| Decision | Where |
+|---|---|
+| Three parts; Seq\* imports nothing of a structure viewer and names none of its words | core › Structures |
+| No port, no behavior, nothing in the composition | viewer › Structure link |
+| Two entries: `@molstar/seqx-core/structure` (translation) and `@molstar/seqx-viewer/link-structure` (wiring) | core › Structures |
+| `structureFacts` and its residue rows | core › Facts |
+| `unitRows` | core › Rows |
+| `toUnits`: along static or overlay paths, the use's `via`, unobserved cut, a molecule whole | core › To units |
+| The size gate (EC-167) | core › The size gate |
+| `fromUnits`, the rest counted | core › From units |
+| `colorRuns` | core › Colors |
+| The round trip as a property test | core › From units |
+| The side (`StructureSide`), targets structured-cloneable | viewer › The side |
+| Out: hover by image, selection once a frame, jumps naming a Location | viewer › Out |
+| In: the link's own hover, the selection revealed, focus one jump | viewer › In |
+| Echoes never go back | viewer › Echoes |
+| Clearing | viewer › Clearing |
+| The link's options, not `ViewerConfig` | viewer › Structure link |
+| A hover or selection pending is held | viewer › Pending |
+| "Color by this track": a host's header entry over `colorRuns` | design-only: a host's entry (the Storybook's), never Seq\*'s |
+| The fake host's adapter (the reference translation to MolViewSpec) | design-only: the Storybook's, not a package rule |
+| A map's `priority`, sorted weakest first | core › Search |
+| A use's `via` | core › Via |
+| Not chosen silently; the ambiguity's hint | core › Search |
+| Links carry no `via` | core › A section's `via` |
+| `priority` and `via` in the 0.5.0 language | core › Versions |
+| The fake structure viewer (Storybook) | design-only: the Storybook's test fixture |
+| Datasets (p53 with 2OCJ, the complex with 1FIN) | design-only: example fixtures |
+| The `structure` map kind kept, with provenance and status | core › Language |
+| The link's options and defaults | viewer › Structure link |
+
 ## Tensions
 
 - **A library, against a behavior every host gets.** Each host calls `linkStructure` itself; two hosts may wire

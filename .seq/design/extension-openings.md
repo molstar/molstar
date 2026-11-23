@@ -377,3 +377,37 @@ host's chrome).
 7. A navigator over several systems refused here, designed in the fifth slice: **decided yes**.
 8. Legends: no session command hides one; the layer's `legend: none` and the host's `omit` only: **decided yes**.
 9. The CLI loading an extension by module path: **decided no**: a CLI host composes its own context.
+
+## In the specs
+
+| Decision | Where |
+|---|---|
+| An extension is a descriptor (`SeqExtension`), given at composition beside the registry | core › Extensions |
+| The viewer's descriptor (`SeqViewerExtension`: behaviors, commands, bindings, header actions) | viewer › Extensions |
+| What an extension may ship; no node kinds or data shapes | core › Extensions |
+| Query forms and properties as registry entries, checked by role, no fallback | core › Composed |
+| Names namespaced by the descriptor's id; `seq` reserved; built-ins bare | core › Names |
+| Registration: one error, nothing changed; counted; `requires` checked | core › Extensions |
+| `viewer.extend(ext)` at run time and its undo; `retire` undoes it | viewer › Extensions |
+| A spec names an extension type in the built-in slot, with a `fallback` | core › A layer's `fallback` |
+| An extension's params: plain on its own type, a namespaced key on another's node | core › Params |
+| What a reader without it draws; one warning a namespace and view; a format runtime has no fallback | core › Layer kinds |
+| The same rule for a newer built-in type | core › Layer kinds |
+| The spec's `extensions` versions | core › The spec's `extensions` |
+| Registered late, drawn again (the type table's version in the key) | viewer › Extensions |
+| The contract an extension imports is one entry | core › Extensions |
+| Hits are closed: an extension's `hit` adds no `HitTarget` | design-only: followed by the code, owed to the core spec (reported to its lane) |
+| Layer words (`describe`, `summary`, `announce`); a binding scoped to its layer type | core › Words |
+| A binding scoped to an extension's layer type wins there | viewer › Scoped to a layer type |
+| Enough for the genome ring | ext-rondo › What it ships |
+| A navigator's picture is a registry entry; a reader without it draws `axis` | core › Pictures |
+| A picture is spec tracks, drawn by the navigator's renderer | core › Pictures |
+| The window stays the navigator's | core › The window stays the navigator's |
+| The window public: drawn by the library (`render/window.ts`) or by the host (`NavigatorModel`) | viewer › NavigatorModel |
+| A navigator over several systems | core › A navigator over blocks |
+| Legends' placement the host's; `of`, `omit`, `form`, `orient`, `maxItems`, `channels` | viewer › The Legend part's options |
+| Hiding has two owners; no session command hides a legend | viewer › The Legend part's options |
+| The compact form | viewer › The Legend part's options |
+| Editing stays the application's (commands) | viewer › The legend behavior's commands |
+| The export keeps `none`, `below`, `right` and the full form | core › Export |
+| The CLI loading an extension by module path | design-only: rejected (a CLI host composes its own context) |
