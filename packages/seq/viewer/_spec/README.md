@@ -1501,7 +1501,13 @@ merged), the entry under the hover (`updateHover`: a mark's value), and the read
 `theme.cvdSafe`, part of the frame's key). `legendRows(viewer, { of, omit, maxItems })` is what a view of them shows (a
 size entry's `size` is the channel's value in the layer's own units; the part draws circles by ratio to the row's
 largest; titles by `legendTitle`) (`of` an address or a list, then `omit` removes those; `selectLegends` is the one
-rule): a row a legend, its entries with accessible names (`<title>: <value>`), the entries past `maxItems` counted. Why
+rule): a row a legend, its entries with accessible names (`<title>: <value>`), the entries past `maxItems` counted (the
+model holds every entry, `viewLegends(layout, Infinity)`; a ranges layer's hashed palette lists the values of its drawn
+marks, never of the items only read: "values in view" is true). **A legend's "+n" opens** (`LegendModel.open`,
+`setOpen(legendId, on)`): the session's state per legend (`legendId`: channel, scale, first layer, so it survives a
+redraw and a pan that changes the values, never in the spec), a `row.open` and `more` 0 while open. The part draws it a
+`<button aria-expanded>` ("Show n more", then "Show fewer"; Enter and Space click it, never select an entry) and an open
+group wraps and scrolls past a maximum height (14em), so a legend over hundreds of values never takes the page. Why
 derived on settle: a legend that changes during a pan reads as noise, and its cost stays off the frame.
 
 - **The legend behavior's commands** (`behaviors/theming.ts`, patches unless said): `layer.channel` (a channel's value
@@ -1543,14 +1549,15 @@ derived on settle: a legend that changes during a pan reads as noise, and its co
   (`full`, the default; `compact`), `orient` (`vertical`, the default: legends stacked; `horizontal`: in a row,
   wrapping) and `channels`; an unknown `form`, `orient` or `channels` throws. **The compact form** is one line a legend
   (`nowrap`): its title, then its swatches unlabelled (each entry's `title` and accessible name carry the label), a ramp
-  a 40 px bar with its domain's ends as text, steps joined cells, `+n` past `maxItems` (its title "n more"; the full
-  form writes "+n more"); the same entries, roving focus, gestures and hover outline, only the drawing differs.
-  **Focus**: items have ids and the listbox's `aria-activedescendant` follows the roving focus, so a screen reader says
-  the entry's name; in the compact form it is also shown beside the groups while the part has focus. An `of` naming no
-  layer gives an empty part, nothing said; rows come in the view's order, never `of`'s. A compact group wraps in a
-  horizontal band and is clipped in a vertical one. **Hiding has two owners**: the figure's, the layer's `legend: none`
-  (core, Themes), and the host's, `of` and `omit`; no session command hides a legend, and editing stays the
-  application's. Why: a legend derives from the spec, so a third owner would make "why is there no key" unanswerable.
+  a 40 px bar with its domain's ends as text, steps joined cells, a `+n` button past `maxItems` (its title "Show n
+  more"; the full form writes the same; it opens the list in place, see above); the same entries, roving focus, gestures
+  and hover outline, only the drawing differs. **Focus**: items have ids and the listbox's `aria-activedescendant`
+  follows the roving focus, so a screen reader says the entry's name; in the compact form it is also shown beside the
+  groups while the part has focus. An `of` naming no layer gives an empty part, nothing said; rows come in the view's
+  order, never `of`'s. A compact group wraps in a horizontal band and is clipped in a vertical one. **Hiding has two
+  owners**: the figure's, the layer's `legend: none` (core, Themes), and the host's, `of` and `omit`; no session command
+  hides a legend, and editing stays the application's. Why: a legend derives from the spec, so a third owner would make
+  "why is there no key" unanswerable.
 - **Hidden tracks** (the author, 2026-11-21: "hiding a track moves the UI around … give this to control of the app
   layer"): the view draws nothing for a track the spec hides (`hidden: true`): no section line, no chip, no stub, so a
   hide moves only the tracks below it, by its height (core's Track headers); a section whose tracks are all hidden

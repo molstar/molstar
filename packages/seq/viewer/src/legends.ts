@@ -53,6 +53,15 @@ export class LegendModel extends ReactiveModel {
   readonly hover: ReadonlyState<LegendHover | undefined>;
   /** The reader's color-blind substitution: each unsafe scheme drawn as its substitute, a palette as Okabe–Ito. */
   readonly cvdSafe: ReadonlyState<boolean>;
+  private readonly _open = new State<ReadonlySet<string>>(
+    new Set(),
+    (a, b) => a.size === b.size && [...a].every((x) => b.has(x)),
+  );
+  /**
+   * The legends opened to their full list (`legendId`s): the session's, per legend, kept across redraws and a pan that
+   * keeps the legend; never written in the spec (_spec/README.md "Legends").
+   */
+  readonly open: ReadonlyState<ReadonlySet<string>> = this._open.asReadonly;
   /** Legends' derivations done (a test reads that a frame alone does not derive them). */
   derived = 0;
 
@@ -62,6 +71,16 @@ export class LegendModel extends ReactiveModel {
     this.legends = this._legends.asReadonly;
     this.hover = this._hover.asReadonly;
     this.cvdSafe = this._cvdSafe.asReadonly;
+  }
+
+  /** Opens a legend's full list, or closes it back to its first entries. */
+  setOpen(id: string, on: boolean): void {
+    const now = this._open.value;
+    if (now.has(id) === on) return;
+    const next = new Set(now);
+    if (on) next.add(id);
+    else next.delete(id);
+    this._open.set(next);
   }
 
   /** Sets the reader's substitution (a reader's setting, never written into the spec). */
@@ -74,7 +93,8 @@ export class LegendModel extends ReactiveModel {
     this.derived++;
     this._layout = layout;
     this._items.clear();
-    this._legends.set(viewLegends(layout).legends);
+    // every entry, not the first 12: a part opens a legend in place (`legendRows` caps what it shows)
+    this._legends.set(viewLegends(layout, Number.POSITIVE_INFINITY).legends);
     // the entries with items drawn, read once a settled frame (never a frame, never a redraw of the part)
     const drawn = new Set<string>();
     for (const legend of this._legends.value)
@@ -188,13 +208,25 @@ export interface LegendEntryRow {
   readonly hovered: boolean;
 }
 
+/**
+ * What tells a legend from another across a redraw or a pan (its `key` follows its entries, which a pan changes): its
+ * channel, scale and first layer.
+ */
+export const legendId = (l: Pick<Legend, 'channel' | 'scale' | 'layers'>): string =>
+  `${l.channel}|${l.scale ?? ''}|${l.layers[0]}`;
+
 export interface LegendRow {
   readonly key: string;
+  /** `legendId`: the open state's key. */
+  readonly id: string;
   readonly title: string;
   /** The layer whose items an entry selects (the first the legend keys). */
   readonly layer: string;
   readonly entries: readonly LegendEntryRow[];
+  /** Entries past `maxItems` while the legend is closed (a "+n" button); 0 when open or when there are none. */
   readonly more: number;
+  /** The legend lists all its entries, and a "Show fewer" button closes it (only where it has more than `maxItems`). */
+  readonly open: boolean;
   /** What the legend says once: substituted colors, hashed values listed as painted. */
   readonly note?: string;
 }
@@ -228,10 +260,13 @@ export function legendRows(viewer: { readonly legends: LegendModel }, options: L
     value !== undefined && viewer.legends.names(layer, value) ? ({ action: true } as const) : {};
   const max = options.maxItems ?? 12;
   const out: LegendRow[] = [];
+  const opened = viewer.legends.open.value;
   for (const l of selectLegends(viewer.legends.legends.value, options)) {
     const e = l.entries;
+    const id = legendId(l);
+    const isOpen = opened.has(id);
     let entries: LegendEntryRow[] = [];
-    let more = l.more;
+    let more = 0;
     if (e.kind === 'swatches') {
       entries = e.items.map((i) => ({
         label: i.label,
@@ -241,10 +276,8 @@ export function legendRows(viewer: { readonly legends: LegendModel }, options: L
         ...names(l.layers[0], i.value),
         hovered: hover?.key === l.key && hover.value === (i.value ?? i.label),
       }));
-      if (entries.length > max) {
-        more += entries.length - max;
-        entries = entries.slice(0, max);
-      }
+      more = Math.max(0, entries.length - max);
+      if (more && !isOpen) entries = entries.slice(0, max);
     } else if (e.kind === 'ramp') {
       const [lo, hi] = l.domain ?? [0, 1];
       const range = `${formatValue(lo)} to ${formatValue(hi)}`;
@@ -276,10 +309,12 @@ export function legendRows(viewer: { readonly legends: LegendModel }, options: L
     ];
     out.push({
       key: l.key,
+      id,
       title: legendTitle(l),
       layer: l.layers[0],
       entries,
-      more,
+      more: isOpen ? 0 : more,
+      open: isOpen && more > 0,
       ...(notes.length ? { note: notes.join('; ') } : {}),
     });
   }

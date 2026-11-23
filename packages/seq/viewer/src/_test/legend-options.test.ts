@@ -181,7 +181,7 @@ describe('the part’s focus', () => {
 
   it('past maxItems the compact group says +n; an `of` naming no layer is an empty part', async () => {
     const { el } = await mounted({ form: 'compact', of: Domains, maxItems: 1 });
-    expect([...el.querySelectorAll('[role="group"] > span')].map((s) => s.textContent)).toContain('+1');
+    expect([...el.querySelectorAll('[role="group"] > button')].map((s) => s.textContent)).toContain('+1');
     expect(legendRows(viewer!, { of: '/views/main/nowhere' })).toEqual([]);
   });
 });
