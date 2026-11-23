@@ -474,12 +474,19 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         shown.push(t);
       }
     }
+    // a section that cannot be placed and says why (its issue, not a section still waiting for its source): one row
+    // naming it, never a blank well per track (_spec/README.md "Render", Empty tracks)
+    const said =
+      !axis && layout === TracksLayout
+        ? input.view.issues.find((i) => i.address === section.address && PlacedNowhere.test(i.code))
+        : undefined;
+    if (said) shown.length = Math.min(shown.length, 1);
     const byType = layout.heights?.(config) ?? config.heights;
     const sizedBands = bandHeights(input, state, config, types, dataW, section, shown, layout, false, sectionReport);
     // the kept heights, copied only where this layout changes them (a rows band's)
     let heights = sizedBands.heights as number[];
     const trackContents = sizedBands.contents;
-    const trackEmpties = sizedBands.empties;
+    let trackEmpties = sizedBands.empties;
     // each track's padding inside its well, `[top, bottom]` a track: its own, else the config's (_spec/README.md
     // "Render", Tracks layout)
     const pads: number[] = [];
@@ -529,6 +536,10 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       const fl = shown[fill].layers;
       for (let q = 0; q < fl.length; q++) if (fl[q].type === 'rows' && fl[q].params.height === 'fill') explicit = true;
       heights[fill] = explicit ? filled : Math.min(filled, config.rows.maxPx);
+    }
+    if (said) {
+      heights = [config.track.emptyPx];
+      trackEmpties = ['note'];
     }
     const nb = shown.length;
     const lays: LayerLayout[][] = [];
@@ -977,6 +988,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       height: y - sectionTop,
       tracks,
       empties: trackEmpties,
+      note: said?.message,
       ...(sectionHeader ? { header: sectionHeader } : {}),
       breaks: axis && band ? (stripBreaks[0] ?? NoBreaks) : NoBreaks,
       ...(mark ? { mark } : {}),
@@ -1060,6 +1072,9 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
 }
 
 const NoBreaks: readonly number[] = [];
+/** The view's issues that say a section is placed nowhere (an unrelated issue at its address changes nothing). */
+const PlacedNowhere = /^seq\.view\.section\.(system|complex)$/;
+
 const NoRows: readonly RailRow[] = [];
 
 /**

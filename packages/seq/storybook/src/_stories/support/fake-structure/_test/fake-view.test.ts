@@ -53,3 +53,21 @@ describe('the fake structure viewer’s card', () => {
     expect(card.style.display).toBe('none');
   });
 });
+
+describe('the fake structure viewer’s "Within 5 Å" card', () => {
+  it('reads how many residues of which chain’s neighbors a chain selection took, and goes with the next selection', () => {
+    const two: ChainTable = { ...table, chains: [{ ...table.chains[0], operators: ['1_555', '2_555'] }] };
+    const fake = new FakeStructureViewer(two);
+    mounted = fakeStructureElement(fake);
+    document.body.append(mounted);
+    const note = mounted.querySelector<HTMLElement>('.fv-note')!;
+    expect(note.style.display).toBe('none');
+    fake.click({ row: 0, index: 0 });
+    fake.selectChain();
+    fake.within();
+    expect(note.style.display).toBe('block');
+    expect(note.textContent).toBe('2 residues within 5 Å of chain A');
+    fake.clear();
+    expect(note.style.display).toBe('none');
+  });
+});

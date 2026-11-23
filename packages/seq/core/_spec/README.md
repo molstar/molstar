@@ -4113,7 +4113,11 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   not yet settled is pending and keeps its loading lane, never empty. A track's own `height` does not keep it (the note
   row, unless `keep`). Why: a full-height blank band reads as a failure to draw, while a host's "none found" stays
   visible in one line. A stacked block's tracks with no items for that block are left out of that block
-  (`blocks.emptyTracks`, below).
+  (`blocks.emptyTracks`, below). **A section placed nowhere that says why** (its `of` names no system, its complex gone:
+  an issue at its address, not a section waiting for its source) is the same rule at its size: one row of
+  `track.emptyPx` naming the issue (`SectionLayout.note`, quiet, in its first track's row), its other tracks not drawn,
+  never a blank well per track; the canvas and the SVG draw the same list. Why: the issue was only in the messages, and
+  the section drew its tracks as blank bands.
 - **Past the cap, a track's lanes scroll inside it** (`track.overflow: scroll`, the default): the lanes keep their
   sticky lane, the band's top lane is its `bandTop` in lanes (the section's band viewport, as a rows band's, clamped to
   the lanes: `RangesLay.top`, `scrollMax`; `laneY` is shifted by it), the lanes out of the band are no marks (draw
