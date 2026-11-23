@@ -110,6 +110,12 @@ command and from the keyboard.
   line a row, the value beside its label, an item's track named) and capped: past eight items it shows the first and "+k
   more"; the screen reader still hears every one.
 - **The keys panel** (`?`) lists what the view answers to, generated from its keys and gestures.
+- **Next and previous in the focused part**: `.` and `,` mean next and previous **in the focused part**
+  (`cursor.next-feature`, `cursor.prev-feature`, keys in `view.keys`): on a track of items the cursor steps to the next
+  or previous item by start, over the stretches with none; on a genome ring's stem the same keys walk its partners
+  (`rondo:partner`), one meaning. A command that cannot run lets the key through to the other, so a ring and tracks in
+  one viewer never fight (the cursor on a tracks section takes them, anywhere else the ring's). The rows' zoom keeps `]`
+  and `[`.
 
 ## The interaction matrix
 

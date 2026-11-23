@@ -367,6 +367,7 @@ opens a genome pays nothing for it, and the minimal and headless entries keep th
   block or pair (a click on what it already shows: no change), a click on the navigator's title or Home on its focus
   removes it; the window, where the bound section has one, keeps its gestures. Why in core: a ring's window is idle
   unless followed, so a centring click does nothing there.
+- **The square's way home**: a muted line under the square names its gestures ("Drag to move · drag an edge to resize · double-click for the whole genome"; `navigator.squareHint: false`, or `hint: false` on the mounted part, leaves it out). A double-click anywhere on the square, and 0 on its focus, show the whole genome (every block, one history step, nothing when all are shown); Back returns the window before. While the links load the square shows the pending hatch with "Loading…", and on a failure the issue's text, as the ring's hole says it. A contact map's cell card reads in bases (`chr1 88.5–89.0 Mb × chr1 86.5–87.0 Mb`, its value), never bin indices.
 - **What the square reads, bounded**: each axis lays out by the rows' run rule, so at 3,000 contigs it is the primary
   chromosomes and a few runs, never 9 million cells. For pairs there is no 2D summary: the picture reads the pairs
   level's coarsest tiles **by block** (one want a block: a pairs tile holds every pair with an end in it, RR), sums the
