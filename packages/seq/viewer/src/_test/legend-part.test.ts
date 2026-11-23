@@ -206,7 +206,8 @@ describe('the Legend part', () => {
     el.style.width = '120px';
     const box = el.querySelector<HTMLElement>('[role="listbox"]')!;
     expect(box.querySelector('[data-channels]')).toBeNull();
-    expect(box.querySelector('button')).toBeNull();
+    // the channels' Clear buttons outside it (the legends' own buttons, an eye and a "+n", are in their groups)
+    expect(box.querySelector('button[data-clear]')).toBeNull();
     for (const name of ['a', 'b', 'c']) viewer!.runLink(`!seq-highlight=/data/d&seq-channel=${name}`);
     expect(viewer!.highlight.names.value).toEqual(['a', 'b', 'c']);
     frames!.flush();

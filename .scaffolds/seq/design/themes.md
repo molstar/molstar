@@ -320,6 +320,10 @@ and another viewer); a host recolors through `--seq-*` tokens.
   mount is a `SeqViewerSpec.ui` entry (`ui.legends`, the same call), its gestures a `BehaviorProvider` (`legend`), as
   the navigators' are. Seq\* never draws a legend on its canvas.
 - **The legend follows the hover**: the hovered item's entry is outlined; on a ramp, its value is ticked.
+- **A legend states its domain** (features, "Settle and open domains"; planned for version 1, the author, 2026-11-23):
+  a continuous legend over an open domain says "in view" beside its title, in the part as in the export, its ends the
+  values the view settled on; a closed one its own ends. A categorical legend says whether it is the vocabulary or
+  what was painted ("values in view", EC-204).
 - **A layer with no color takes the next categorical color** (decided, the author, 2026-11-19, the defaults audit: one
   steel blue for every colourless layer "reads as a placeholder"; "Yes, per layer"): by layer order within the view,
   from the theme's categorical palette, so two layers in a track differ; a spec's own color always wins; a layer's
@@ -333,6 +337,25 @@ and another viewer); a host recolors through `--seq-*` tokens.
   by default"): the legend part's `channels` param, `reserve` (the default: the row's height held whenever the part can
   show channels, empty with none, so nothing moves) or `collapse` (the row only while a channel is active, for a host
   that wants the space).
+- **A layer's eye** (decided, the author, 2026-11-23, the fifth slice's novice passes 5 and 13: "Agree as drafted"):
+  hiding cannot be an entry's click (that selects, the click rule), so a legend's row gets an `@molstar/ui` icon button
+  after its title, "Hide Contacts", running `layer.hide` (the spec's existing command: one patch, one undo step); a
+  legend merged over several layers gets one button opening a menu of its layers. **Hidden, the row stays** in its
+  place: its title and swatches dimmed, the button eye-off ("Show Contacts", `layer.show`), its entries with no action
+  (no hover light, no select; a `not-allowed` pointer), so a hidden layer shows where its key was. A host turns the eye
+  off (`mountLegend(…, { layers: false })`, on by default): a printed figure's legend has no chrome. The gestures:
+
+  | Gesture | What it does |
+  |---|---|
+  | Click the eye | `layer.hide`; the row dims; the button reads "Show Contacts" |
+  | Click the eye-off | `layer.show`; the row back as it was |
+  | Tab to the button, Enter or Space | as a click |
+  | Click an entry of a shown layer | unchanged: selects its items (the click rule) |
+  | Click an entry of a hidden layer | nothing; the pointer says so (not-allowed) |
+  | Undo | the hide or show undone, one step |
+  | Hover the eye | a tooltip with the button's name |
+
+  "Hiding has two owners" stays: it is about hiding a **legend**; the eye hides a **layer**, and its legend stays.
 - **Every entry is reached from the keyboard** (ux-foundations section 8: every gesture has a keyboard way): the part
   is one tab stop, a list with a roving focus; arrows move between entries, Enter or Space selects (as a click),
   Cmd/Ctrl+Enter toggles, the context-menu key opens its actions (the color input, the scheme picker); focus on an
@@ -530,6 +553,9 @@ real use is **fixed**, with its reason. **No new port**: themes need no provider
 | Legends published on settle; a part a host places; follows the hover; keyboard | viewer › Legends |
 | The legend's groups one a line; the channels row reserved | viewer › The Legend part's groups run one a line |
 | Highlight channels in the legend part (`highlight.clear`) | viewer › The Legend part lists the active highlight channels |
+| A layer's eye in the legend part (`layer.hide`, `layer.show`; a menu over several layers; `layers: false`) | viewer › A layer's eye |
+| A hidden layer's row keeps its place, dimmed, its entries no action | viewer › A layer's row keeps its place when hidden |
+| A legend states its domain: "in view" over an open one, its settled ends | viewer › Legends |
 | Editing a theme: one patch, previewed; the commands | viewer › The legend behavior's commands |
 | `theme.color-selection` | design-only: planned |
 | Legend selection follows the grammar's click rule (the only selected value clicked clears it) | viewer › click rule |

@@ -5,8 +5,16 @@
  */
 
 import { ReactiveModel, type ReadonlyState, State } from '@molstar/core/reactive';
-import { type RangesLay, resolveColor, type SeqTokens, type ViewLayout, viewLegends } from '@molstar/seqx-core/render';
+import {
+  keepHiddenLegends,
+  type RangesLay,
+  resolveColor,
+  type SeqTokens,
+  type ViewLayout,
+  viewLegends,
+} from '@molstar/seqx-core/render';
 import { type Key, type Location, location } from '@molstar/seqx-core/query';
+import type { ResolvedView } from '@molstar/seqx-core/view';
 import type { ViewerConfig } from './config.js';
 import { formatValue, type Legend, legendsEqual, legendTitle } from '@molstar/seqx-core/theme/index';
 
@@ -89,18 +97,30 @@ export class LegendModel extends ReactiveModel {
   }
 
   /** The legends of a settled layout, published when they differ; and the entries whose items it draws. */
-  update(layout: ViewLayout): void {
+  update(layout: ViewLayout, view?: ResolvedView): void {
     this.derived++;
     this._layout = layout;
     this._items.clear();
     // every entry, not the first 12: a part opens a legend in place (`legendRows` caps what it shows)
-    this._legends.set(viewLegends(layout, Number.POSITIVE_INFINITY).legends);
+    this._legends.set(
+      keepHiddenLegends(layout, view, viewLegends(layout, Number.POSITIVE_INFINITY).legends, this._last, this._names),
+    );
     // the entries with items drawn, read once a settled frame (never a frame, never a redraw of the part)
     const drawn = new Set<string>();
     for (const legend of this._legends.value)
       drawnOf(layout, legend.layers, (lay, j) => drawn.add(`${legend.key}\u0000${lay.painted[j]}`));
     this._drawnSet = drawn;
     this._drawn.set([...drawn].sort().join('\n'));
+  }
+
+  /** The legends each layer last had while shown (its rows kept in place while the spec hides it). */
+  private readonly _last = new Map<string, readonly Legend[]>();
+  /** Each layer of the view by key: its name (`layerName`, the header menu's too). */
+  private readonly _names = new Map<string, string>();
+
+  /** A layer's name (the eye's "Hide <name>"): core's `layerName`, the one the track header's menus say (`keepHiddenLegends`). */
+  layerName(key: string): string {
+    return this._names.get(key) ?? key.slice(key.lastIndexOf('/') + 1);
   }
 
   private _layout: ViewLayout | undefined;
@@ -218,6 +238,13 @@ export const legendId = (l: Pick<Legend, 'channel' | 'scale' | 'layers'>): strin
 /** The most entries an open legend builds rows for: a legend over thousands of values stays bounded. */
 export const OpenCap = 200;
 
+/** A layer a legend keys, as its eye shows it: its address, its name, and whether the spec hides it. */
+export interface LegendLayer {
+  readonly address: string;
+  readonly name: string;
+  readonly hidden: boolean;
+}
+
 export interface LegendRow {
   readonly key: string;
   /** `legendId`: the open state's key. */
@@ -232,8 +259,18 @@ export interface LegendRow {
   readonly beyond?: number;
   /** The legend lists its entries (up to `OpenCap`), and a "Show fewer" button closes it (only where it has more than `maxItems`). */
   readonly open: boolean;
-  /** What the legend says once: substituted colors, hashed values listed as painted. */
+  /**
+   * What the legend says once: an open domain's "in view", substituted colors, hashed values listed as painted, a
+   * ribbon's width.
+   */
   readonly note?: string;
+  /**
+   * The layers it keys that a spec address names (the eye's: one button for one, a menu for several; a layer of no id
+   * has none), in the view's order.
+   */
+  readonly layers: readonly LegendLayer[];
+  /** Every layer it keys is hidden: the row dimmed, its entries no action (_spec/README.md "Legends"). */
+  readonly hidden: boolean;
 }
 
 /** Which legends a part shows (_spec/README.md "Legends"): `of` and `omit` name addresses (a track's, a layer's, a scale's). */
@@ -261,14 +298,17 @@ export function selectLegends(all: readonly Legend[], { of, omit }: LegendSelect
  */
 export function legendRows(viewer: { readonly legends: LegendModel }, options: LegendSelection = {}): LegendRow[] {
   const hover = viewer.legends.hover.value;
+  let off = false;
   const names = (layer: string, value: string | undefined) =>
-    value !== undefined && viewer.legends.names(layer, value) ? ({ action: true } as const) : {};
+    !off && value !== undefined && viewer.legends.names(layer, value) ? ({ action: true } as const) : {};
   const max = options.maxItems ?? 12;
   const out: LegendRow[] = [];
   const opened = viewer.legends.open.value;
   for (const l of selectLegends(viewer.legends.legends.value, options)) {
     const e = l.entries;
     const id = legendId(l);
+    // every layer hidden: its entries no action, never hovered
+    off = l.hidden !== undefined && l.hidden.length === l.layers.length;
     const isOpen = opened.has(id);
     let entries: LegendEntryRow[] = [];
     let more = 0;
@@ -286,7 +326,7 @@ export function legendRows(viewer: { readonly legends: LegendModel }, options: L
         color: i.color,
         ...(i.value !== undefined ? { value: i.value } : {}),
         ...names(l.layers[0], i.value),
-        hovered: hover?.key === l.key && hover.value === (i.value ?? i.label),
+        hovered: !off && hover?.key === l.key && hover.value === (i.value ?? i.label),
       }));
     } else if (e.kind === 'ramp') {
       const [lo, hi] = l.domain ?? [0, 1];
@@ -297,7 +337,7 @@ export function legendRows(viewer: { readonly legends: LegendModel }, options: L
           name: `${legendTitle(l)}: ${range}${l.open ? ', in view' : ''}`,
           ramp: e.stops.map((s) => s.color),
           ends: [formatValue(lo), formatValue(hi)],
-          hovered: hover?.key === l.key,
+          hovered: !off && hover?.key === l.key,
         },
       ];
     } else if (e.kind === 'steps') {
@@ -314,9 +354,13 @@ export function legendRows(viewer: { readonly legends: LegendModel }, options: L
       }));
     }
     const notes = [
+      // a continuous legend over an open domain states it: its ends are the settled values in view (the ramp's label)
+      ...(l.open && (e.kind === 'ramp' || e.kind === 'steps') ? ['in view'] : []),
       ...(l.notes.includes('substituted') ? ['colors substituted'] : []),
       ...(l.notes.includes('unlisted') ? ['values in view'] : []),
+      ...(l.notes.includes('width') ? ['width: aligned length'] : []),
     ];
+    const hiddenOf = new Set(l.hidden);
     out.push({
       key: l.key,
       id,
@@ -327,6 +371,10 @@ export function legendRows(viewer: { readonly legends: LegendModel }, options: L
       open: isOpen && more > 0,
       ...(beyond ? { beyond } : {}),
       ...(notes.length ? { note: notes.join('; ') } : {}),
+      layers: l.layers
+        .filter((a) => !a.includes(':'))
+        .map((a) => ({ address: a, name: viewer.legends.layerName(a), hidden: hiddenOf.has(a) })),
+      hidden: off,
     });
   }
   return out;

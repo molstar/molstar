@@ -56,6 +56,7 @@ export {
   formatValue,
   type Legend,
   type LegendEntries,
+  type LegendNote,
   type LegendOptions,
   legendOf,
   legendsEqual,
