@@ -45,7 +45,7 @@ that scaffold's `_checks/`.
 
 | Check | Rejects | Instance file |
 |---|---|---|
-| [closed-work.ts](_checks/closed-work.ts) | a closed work folder without `foldback.md` and the author's decision line | `closed-work.json` (folders closed before the rule) |
+| [closed-work.ts](_checks/closed-work.ts) | a closed work folder without `foldback.md` and the author's decision line, or with an unticked `checklist.md` line; notes an open folder's `state.md` past 600 words (`--self-check`) | `closed-work.json` (folders closed before the rule) |
 | [defaults-designed.ts](_checks/defaults-designed.ts) | a design whose Consequences name something drawn, with no `## Defaults` | `defaults-designed.json` (the words of a drawn thing; exempt designs, only shrinks) |
 | [designs-in-specs.ts](_checks/designs-in-specs.ts) | a design with a decision and no `## In the specs` row resolving to a spec section or `design-only: <reason>` | `designs-in-specs.json` (the spec map; pending designs) |
 | [no-design-citations.ts](_checks/no-design-citations.ts) | code naming a design or source file of the scaffold, a `.scaffolds/` path or a principle `§<id>` | `no-design-citations.json` (the scaffold's packages, the pointer files) |
