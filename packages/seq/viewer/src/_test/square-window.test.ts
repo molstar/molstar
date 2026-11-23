@@ -205,6 +205,21 @@ describe('The square over a ring: its box a window', () => {
     expect(include(v)).toEqual(['chr2', 'chr3']);
   });
 
+  it('a body drag off the diagonal moves the run by its larger offset: 4 blocks across moves it 4', async () => {
+    const { v, n } = await make(['chr1', 'chr2']);
+    const e = edge(n);
+    const mid = [e(1, true), e(1, false)] as const;
+    // straight across, 4 blocks (no y offset)
+    drag(n, mid, [mid[0] + 4 * (e(1, true) - e(0, true)), mid[1]]);
+    await settle(v, n);
+    expect(include(v)).toEqual(['chr5', 'chr6']);
+    // straight down 2 blocks
+    const at = [e(5, true), e(5, false)] as const;
+    drag(n, at, [at[0], at[1] + 2 * (e(1, false) - e(0, false))]);
+    await settle(v, n);
+    expect(include(v)).toEqual(['chr7', 'chr8']);
+  });
+
   it('an edge or a corner grows or shrinks the run; the cursor says which; Escape cancels the preview', async () => {
     const { v, n } = await make(['chr3', 'chr4']);
     const e = edge(n);

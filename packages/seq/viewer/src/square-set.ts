@@ -65,7 +65,11 @@ export class SquareSetGesture {
   /** The grip pressed (`none`: no drag of the box), its axis, where, and the run then. */
   private grip: 'none' | 'body' | 'start' | 'end' = 'none';
   private axis: SquareGripAxis = 'both';
-  private b0 = 0;
+  /** The press's block along x and along y, and its point (px). */
+  private bx0 = 0;
+  private by0 = 0;
+  private px0 = 0;
+  private py0 = 0;
   private i0 = -1;
   private i1 = -1;
   /** The run the drag shows now. */
@@ -101,7 +105,10 @@ export class SquareSetGesture {
     this.axis = g.axis;
     this.i0 = this.n0 = r.i0;
     this.i1 = this.n1 = r.i1;
-    this.b0 = square.blockAtPoint(x, y, 'both');
+    this.bx0 = square.blockAtPoint(x, y, 'x');
+    this.by0 = square.blockAtPoint(x, y, 'y');
+    this.px0 = x;
+    this.py0 = y;
     return true;
   }
 
@@ -111,18 +118,27 @@ export class SquareSetGesture {
     if (this.grip === 'none') return;
     const n = square.blockCount;
     const len = this.i1 - this.i0;
+    // along the diagonal the pointer's larger offset leads (a horizontal drag of 4 blocks moves the run 4; the mean of
+    // the two axes, or a projection on the diagonal, would move it 2)
+    const p = square.pointer;
+    const alongX = Math.abs(p[0] - this.px0) >= Math.abs(p[1] - this.py0);
     if (this.grip === 'body') {
-      const shift = square.blockAtPointer('both') - this.b0;
+      const shift = alongX ? square.blockAtPointer('x') - this.bx0 : square.blockAtPointer('y') - this.by0;
       this.n0 = Math.max(0, Math.min(n - len, this.i0 + shift));
       this.n1 = this.n0 + len;
     } else if (this.grip === 'start') {
-      this.n0 = Math.max(0, Math.min(this.i1 - 1, square.edgeAtPointer(this.axis)));
+      this.n0 = Math.max(0, Math.min(this.i1 - 1, square.edgeAtPointer(this.leading(alongX))));
       this.n1 = this.i1;
     } else {
       this.n0 = this.i0;
-      this.n1 = Math.max(this.i0 + 1, Math.min(n, square.edgeAtPointer(this.axis)));
+      this.n1 = Math.max(this.i0 + 1, Math.min(n, square.edgeAtPointer(this.leading(alongX))));
     }
     square.setPreview(this.n0, this.n1);
+  }
+
+  /** A grip's axis, a corner's the pointer's leading one. */
+  private leading(alongX: boolean): SquareGripAxis {
+    return this.axis !== 'both' ? this.axis : alongX ? 'x' : 'y';
   }
 
   /** The drag ends: its run written when it changed (one patch); true when it was. */
