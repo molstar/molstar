@@ -1,4 +1,4 @@
-# Checklist: version 1's close-out (draft)
+# Checklist: version 1's close-out
 
 <!-- Stage 0 -->
 - [x] Version 1's rows listed from `design/features.md` and `design/version-1.md`, each built, cut or deferred by the author
@@ -6,19 +6,33 @@
 - [x] The minimal viewer's growth: accepted as the budget, 1,090 kB (the author, 2026-11-23: "accept as is")
 - [x] The stage 1 novice decisions F3, F9, F11, F14: one Sonnet lane, a test a decision (the author, 2026-11-23: "Yes, one lane")
 - [x] The five feature rows out of `deferred` (all built: the evidence, then the rows moved): `done`, each with its edge case tested (EC-209, 210, 222, 227, 228) and its stories
-- [ ] GATE 0: the designs agreed; this plan agreed, its lanes written in
+- [x] GATE 0: the designs agreed; this plan agreed, its lanes written in (the author, 2026-11-23: "Write them in")
 
-<!-- Carried items, each a lane once stage 0 places it -->
-- [ ] The drag rule: a drag's work bounded by the screen (the PAE drag's card, the 3,000-contig drag), a perf-tier bound
-- [ ] `features-planned` extended to a brief's numbered items (the fifth fold-back's B3)
-- [ ] The heavy lane's tight bounds isolated in `vitest.config.ts` (the fifth fold-back's B7)
-- [ ] M5's leftovers: the 200-copy split patch, the Signal zoom frame, Cmd+wheel on the ring at the fit
-- [ ] The theme picker's BLOSUM62 text says it compares with the reference row
-- [ ] A folder-graph test in `packages/seq/core` (each folder an entry, no cycles)
-- [ ] A lanes band's history step keyed by item, not `bandTop`
-- [ ] `rowsValue` drawn by a navigator over a lazy alignment
-- [ ] The info issue `seq.render.pairs.filter`
-- [ ] The version-aware validate (an unknown kind of a newer minor a warning)
+<!-- Wave 1 -->
+- [ ] CL14 Scaffold checks: `features-planned` over a brief's numbered items; the heavy lane's tight bounds isolated
+- [ ] CL1 Legend and layers: a layer's eye, a hidden layer's row, the Contacts swatch, synteny's legend, legends' domains
+- [ ] CL2 Ring: the stem menu's route and partners, the stem and pair cards, links pending on the ring
+
+<!-- Wave 2 -->
+- [ ] CL3 Square and keys: the square's hint and way home, Hi-C in bases, `]` and `[`, the zoom hint, links pending on the square
+- [ ] CL4 Formats: a canonical transcript, the VCF's sample names, the methylation matrix's names
+- [ ] CL10 Novice decisions: F3, F9, F11, F14
+- [ ] GATE 1
+
+<!-- Wave 3 -->
+- [ ] CL5 Search: the matchers, the viewer's search state and commands, a matcher registry, a story's search box
+- [ ] CL6 Track groups: groups, summaries and collapse; the Ranges' collapse
+- [ ] CL9 Small items: codon snapping, the cursor across block gaps, the Antibody view's labels, built-in fallbacks with the version-aware validate, fixtures through MessagePack
+
+<!-- Wave 4 -->
+- [ ] CL7 Streamed patches: a bookmark or ref naming a dynamic node
+- [ ] CL8 Values marks: points, log scale, reference lines
+- [ ] CL13 Carried small items: the BLOSUM62 text, a folder-graph test, a lanes band's history by item, `rowsValue` over a lazy alignment, `seq.render.pairs.filter`
+
+<!-- Wave 5 -->
+- [ ] CL11 The drag rule: a drag's work bounded by the screen, a perf-tier bound
+- [ ] CL12 M5's leftovers: the split patch, the Signal zoom frame, Cmd+wheel on the ring at the fit
+- [ ] GATE 2
 
 <!-- Last stage -->
 - [ ] The use gate: the author tries the genome views and the ring, each story against its agreed picture
