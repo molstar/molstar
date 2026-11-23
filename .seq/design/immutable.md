@@ -284,14 +284,14 @@ of the four the check reads), so their rows say where there.
 | The ref index on plain `Map`s, derived by node identity; the trie not needed at 10,000 refs | repr › The ref index |
 | The child index: a native `Map` cached per children array past 8 children | repr › The child index |
 | The address index and `ValueKeys` dropped; `diff`'s and `merge3`'s maps native | design-only: what was not built |
-| CHAMP maps and sets, the flat threshold (16), collision nodes | design-only: in data/immutable's own spec, §2 The collections |
-| Ordered maps and sets, the vector | design-only: in data/immutable's own spec, §2 The collections |
-| Transients (reads, owner token, `asImmutable` kills the handle) | design-only: in data/immutable's own spec, §3 Transients |
-| Allocation (reads allocate nothing, no global caches) | design-only: in data/immutable's own spec, §5 Allocation |
-| Hashing and equality per collection, `defaultHash`, collections as values | design-only: in data/immutable's own spec, §4 Hashing and equality |
+| CHAMP maps and sets, the flat threshold (16), collision nodes | immutable › 2. The collections |
+| Ordered maps and sets, the vector | immutable › 2. The collections |
+| Transients (reads, owner token, `asImmutable` kills the handle) | immutable › 3. Transients |
+| Allocation (reads allocate nothing, no global caches) | immutable › 5. Allocation |
+| Hashing and equality per collection, `defaultHash`, collections as values | immutable › 4. Hashing and equality |
 | Not `repr`'s Merkle hash | repr › hashNode |
-| Configuration: hash and equality only, the rest fixed | design-only: in data/immutable's own spec, §6 Configuration |
-| `update` and absent values | design-only: in data/immutable's own spec, §7 |
-| The API, the folder and the entry | design-only: in data/immutable's own spec, §1 Surface |
-| Tests, measurements, the `StateTree` spike | design-only: in data/immutable's own spec, §8 and §9 |
+| Configuration: hash and equality only, the rest fixed | immutable › 6. Configuration |
+| `update` and absent values | immutable › 7. `update` and absent values |
+| The API, the folder and the entry | immutable › 1. Surface |
+| Tests, measurements, the `StateTree` spike | immutable › 8. Tests and measurements |
 | Moving Mol\*'s state tree off immutable.js; the RRB vector, sorted maps, nodes holding collections | design-only: not built (later work, each on its trigger) |

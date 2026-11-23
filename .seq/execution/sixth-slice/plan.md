@@ -41,11 +41,11 @@ A next scaffold starts as `.scaffolds/<name>/` from `_method/`, its manifest lis
 ## Stages
 
 - [x] **Stage 0: decisions** (2026-11-23, below). The plan itself is agreed when the slice starts.
-- [ ] **Stage 1: reconcile the specs** (started 2026-11-23: lanes S1A–S1D, `briefs/s1-spec-pass.md`; the check is
+- [x] **Stage 1: reconcile the specs** (done 2026-11-23: S1A `936242251`, S1B `81a82d453`, S1C `3001f67d2`, S1D; 46 designs placed, `PENDING` empty; the gate green: quick 4,887, lint, format, every scaffold check; 15 drift notes to the author) (started 2026-11-23: lanes S1A–S1D, `briefs/s1-spec-pass.md`; the check is
       `.seq/_checks/designs-in-specs.ts`, done when its `PENDING` is empty). Every design's decisions that the code follows are in a package's `_spec/`
       (core, viewer, ext-rondo, examples where it has one): a pass per design, its gaps written into the spec. Done
       when a check lists no design decision without a spec section citing it, or a reason it stays design-only.
-- [ ] **Stage 1b: comments cite specs, not designs** (found 2026-11-23 during stage 1: about 160 comments and test
+- [ ] **Stage 1b: comments cite specs, not designs** (running 2026-11-23, `briefs/s1b2-citations.md`) (found 2026-11-23 during stage 1: about 160 comments and test
       headers in `packages/seq` cite a design by file name, e.g. "molecules.md, Links"; a design is the scaffold's). A
       lane (Sonnet; mechanical) rewrites each to the spec section the design's `## In the specs` table names for that
       decision (`core _spec, Links`), or drops the citation where the row is design-only; a package's own `_spec/*.md`
