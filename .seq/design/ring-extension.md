@@ -425,7 +425,7 @@ Cells this design fills; the others stand as layouts, GA, RR and LX give them.
 | **the selection** | — | — | `rondo:select-partners`: the far ends of its ribbons | Enter: as built | Alt+Left | — | — | — | as built |
 | **the keyboard cursor** on the ring | Enter: the stem under it | Shift+arrows: as built | — | `.` and `,`: `rondo:partner`, to the next partner by count, announced | Alt+Left | — | — | — | — |
 | **a track or layer** (`rondo:ribbons`) | — | — | — | — | — | — | — | `layer.hidden` | `width`, `stems`, `bundle`, `stubs`, `opens` by `layer.set` (one patch) |
-| **a navigator: the square** | no | no | no | click a cell: show that pair (`navigator.switch: include`); its title or Home: show all | undo | as GA's square when bound to a grid section; idle over a ring | idle over a ring | as navigators | its params by patch |
+| **a navigator: the square** | no | no | no | one click on a cell: show that pair at once (`navigator.switch: include`); its title or Home: show all | undo | over a ring: drag an edge or corner of the window to grow or shrink the run of blocks shown (Decided 16) | over a ring: drag the window along the diagonal to move the run shown (Decided 16) | as navigators | its params by patch |
 | **the view** | — | — | — | — | — | — | — | — | undo returns the blocks shown |
 | **a bookmark or link** | — | — | a ribbon's rect or a stem's range as a ref (positions, never the level or the stem) | runs it; a ring nobody follows highlights it | Alt+Left | — | — | — | — |
 
@@ -592,3 +592,11 @@ the author decided by name carries its own date.
 14. **Three optional `LayerType` hooks** (`describe`, `summary`, `announce`) for the hover card, ARIA and the cursor
     (EX amended): **decided yes**.
 15. **The square's lattice the assembly's**, washed cells clickable under the switch (GA's): **decided yes**.
+16. **The square over a ring is a real window** (the author, 2026-11-23, on trying it: "i dont understand how this
+    control works ... its impossible to drag or resize the box. what works is clicking once to select a grid point, and
+    then the 2nd click enlarges that section... very confusing"; then "a real window, as recommended"): its box is the
+    blocks the ring shows (`section.include` as a run of blocks on the diagonal, or a pair off it); dragging the box
+    moves the run along the diagonal, dragging an edge or corner grows or shrinks it (snapped to whole blocks), one
+    click on a cell shows that pair at once (never a select first), its title or Home shows all; each gesture one patch
+    and one undo step; the cells coloured by count (`rondo:cells`) so the window is read against the links. Replaces
+    "idle over a ring" for zoom and pan in the matrix above.

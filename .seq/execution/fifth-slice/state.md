@@ -2,6 +2,9 @@
 
 ## Decided
 
+- The ring's square is a real window (the author, 2026-11-23, "a real window, as recommended", after finding the box
+  undraggable and the two-click switch confusing): drag to move the run of chromosomes shown, edges to resize, one click
+  on a cell shows a pair; ring-extension.md Decided 16; RX2's.
 - `.seq/` reconciled, not deleted (the author, 2026-11-23: "let's do the scaffolds as 6th slice. do a draft plan there
   for this"): a sixth slice moves it into a common place for scaffolds, oz renamed principles ("oz" was a working
   name); draft in [sixth-slice/plan.md](../sixth-slice/plan.md), after this slice closes.

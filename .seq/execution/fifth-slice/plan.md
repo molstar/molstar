@@ -258,6 +258,9 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
       descriptor, `rondo:ribbons`, `rondo:cells`, the `rondo:square` picture, `rondo:hues`, commands and the binding,
       `rondoRing`; the entry's exports and the `LayerType` hooks in core; the fallback; its stories (hot: the new
       package's files, inventory row, root reference).
+- [ ] **RX2** (`briefs/rx2-ring-square-menus.md`; strong, after RX) what RX could not ship (the square's cells, element
+      menus and the stem menu, `.` and `,`, the extension's config, a failed source's status) and the square over a ring
+      as a real window (the author, 2026-11-23; ring-extension.md Decided 16).
 - [x] **NS** (merged 2026-11-21, `190dfc135`; a Sonnet subagent) (`briefs/ns-nightingale-showcase.md`; fast, any time, alone: storybook only) **a Nightingale showcase**
       (the author, 2026-11-21: "yes, we can do a dev dependency version. maybe add a phase for this to slice 5?";
       reverses the fourth slice's "dropped" for stories only): Nightingale's web components a dev dependency of the
