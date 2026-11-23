@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { type Issue, issueOf, type Node, type Value } from '@molstar/core/repr/tree';
+import { type Issue, issueOf } from '@molstar/core/repr/tree';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
 import {
   blockSpan,
@@ -12,7 +12,6 @@ import {
   type ResolvedNavigator,
   type ResolvedSection,
   type ResolvedView,
-  resolveViewNode,
   sameBlocks,
   unitOfPlace,
 } from '@molstar/seqx-core/view';
@@ -25,9 +24,11 @@ import type { ViewLayout } from './tracks.js';
 import type { NavigatorFrame, NavigatorFrameInput, NavigatorHit } from './navigator.js';
 import { NavigatorWindow } from './navigator.js';
 import { SquarePictureCells, type SquarePictureOptions } from './navigator-square-cells.js';
+import { latticeAssembly, latticeOf, sectionTotal, sharedPrefix, shows, washRuns } from './navigator-square-lattice.js';
 import { drawShownSet, gripOf, type SquareGripHit, type SquareRun, shownRun } from './navigator-square-set.js';
 import type { SquareLattice } from './layer-type.js';
 
+export { washRuns } from './navigator-square-lattice.js';
 export type { SquareGrip, SquareGripAxis, SquareGripHit, SquareRun } from './navigator-square-set.js';
 
 // The square (_spec/README.md "Render", Navigators, The square): a navigator on two axes over blocks × blocks, its
@@ -73,37 +74,6 @@ const AnchorEnd: number = Anchor.end;
 const SetStyle = new Float64Array(3);
 /** What a window's move redraws (the base kept). */
 const WindowPasses: readonly PassName[] = EmphasisPasses;
-
-/**
- * The washed cells (a cell washed when a bound section does not show its x block or its y block) as rectangles of
- * block indices, `[i0, i1, j0, j1]` each: a column run of x blocks not shown (every row), then for each row run of y
- * blocks not shown, a rectangle over each column run of x blocks shown (no cell twice: a wash is translucent).
- */
-export function washRuns(shownX: readonly boolean[], shownY: readonly boolean[]): Int32Array {
-  const runs = (shown: readonly boolean[], want: boolean): number[] => {
-    const out: number[] = [];
-    for (let k = 0; k < shown.length; ) {
-      if (shown[k] !== want) {
-        k++;
-        continue;
-      }
-      const a = k;
-      while (k < shown.length && shown[k] === want) k++;
-      out.push(a, k);
-    }
-    return out;
-  };
-  const n = shownY.length;
-  const hiddenX = runs(shownX, false);
-  const shownXRuns = runs(shownX, true);
-  const hiddenY = runs(shownY, false);
-  const out: number[] = [];
-  for (let r = 0; r < hiddenX.length; r += 2) out.push(hiddenX[r], hiddenX[r + 1], 0, n);
-  for (let s = 0; s < hiddenY.length; s += 2)
-    for (let r = 0; r < shownXRuns.length; r += 2)
-      out.push(shownXRuns[r], shownXRuns[r + 1], hiddenY[s], hiddenY[s + 1]);
-  return Int32Array.from(out);
-}
 
 /**
  * Draws a square: its lattice over the blocks of the assembly on both axes (its lines past `navigator.square.maxCells`
@@ -611,25 +581,16 @@ export class SquareNavigator {
    * where a resized run's edge snaps (whole blocks).
    */
   edgeAt(x: number, y: number, axis: 'x' | 'y' | 'both'): number {
-    const blocks = this.lattice?.blocks;
-    if (!blocks?.length) return 0;
-    const u = this.diagonalUnit(x, y, axis);
-    let best = 0;
-    let d = Number.POSITIVE_INFINITY;
-    for (let k = 0; k <= blocks.length; k++) {
-      const e = k < blocks.length ? (blocks[k].offset ?? 0) : this.total;
-      const dk = Math.abs(e - u);
-      if (dk < d) {
-        d = dk;
-        best = k;
-      }
-    }
-    return best;
+    this.pointer[0] = x;
+    this.pointer[1] = y;
+    return this.edgeAtPointer(axis);
   }
 
   /** The lattice block under a point along x, y or the diagonal (a run's move: the block the pointer is over). */
   blockAtPoint(x: number, y: number, axis: 'x' | 'y' | 'both'): number {
-    return this.blockOf(this.diagonalUnit(x, y, axis));
+    this.pointer[0] = x;
+    this.pointer[1] = y;
+    return this.blockAtPointer(axis);
   }
 
   /**
@@ -667,12 +628,6 @@ export class SquareNavigator {
     const ux = Math.max(0, Math.min(this.total, ((p[0] - g.x) / Math.max(1e-9, g.width)) * this.total));
     const uy = Math.max(0, Math.min(this.total, ((p[1] - g.y) / Math.max(1e-9, g.height)) * this.total));
     return axis === 'x' ? ux : axis === 'y' ? uy : (ux + uy) / 2;
-  }
-
-  private diagonalUnit(x: number, y: number, axis: 'x' | 'y' | 'both'): number {
-    if (axis === 'x') return this.unitAt(x, true);
-    if (axis === 'y') return this.unitAt(y, false);
-    return (this.unitAt(x, true) + this.unitAt(y, false)) / 2;
   }
 
   /** The block whose name is under a point (the x labels' band above the lattice, the y labels' column left); -1 else. */
@@ -830,55 +785,4 @@ export class SquareNavigator {
   rowAt(_y: number): number | undefined {
     return undefined;
   }
-}
-
-/** The letters every name starts with, never a whole name (`chr` of `chr1`…`chrX`; none of `chr1` alone). */
-function sharedPrefix(names: readonly string[]): string {
-  if (names.length < 2) return '';
-  let p = names[0];
-  for (const n of names) while (p && !n.startsWith(p)) p = p.slice(0, -1);
-  while (p && names.some((n) => n.length === p.length)) p = p.slice(0, -1);
-  // letters only (never a digit of the name: `chr1` and `chr12` share `chr1`)
-  return p.replace(/[0-9]+$/, '');
-}
-
-/** A section's units end to end: its last block's end. */
-function sectionTotal(s: ResolvedSection): number {
-  let t = 0;
-  for (const b of s.blocks ?? []) t = Math.max(t, (b.offset ?? 0) + blockSpan(b));
-  return t;
-}
-
-/** Whether a bound section shows a system (one of its blocks is on it). */
-function shows(s: ResolvedSection | undefined, system: string): boolean {
-  return !!s?.blocks?.some((b) => b.axis.system === system);
-}
-
-/** The lattice: a section of the navigator's assembly (its `include` alone), else of the first bound section's `of`. */
-function latticeOf(model: StaticModel, view: ResolvedView, nav: ResolvedNavigator): ResolvedSection | undefined {
-  const of = latticeAssembly(model, view, nav);
-  if (of === undefined) return undefined;
-  const node: Node = {
-    kind: 'view',
-    id: nav.id,
-    params: { layout: 'tracks' },
-    children: [{ kind: 'section', id: 'square', params: { of } }],
-  };
-  return resolveViewNode(model, node, nav.address).sections[0];
-}
-
-/** What the lattice shows: the navigator's assembly, else the first bound section's `of`. */
-function latticeAssembly(model: StaticModel, view: ResolvedView, nav: ResolvedNavigator): Value | undefined {
-  const first = view.sections.find((s) => s.address === nav.of[0]);
-  let of: Value | undefined = nav.assemblies
-    ? nav.assemblies.length === 1
-      ? nav.assemblies[0]
-      : (nav.assemblies as Value)
-    : undefined;
-  if (of === undefined && first) {
-    let n: Node | undefined = model.spec;
-    for (const id of first.address.split('/').filter(Boolean)) n = n?.children?.find((c) => c.id === id);
-    of = n?.params?.of as Value | undefined;
-  }
-  return of;
 }
