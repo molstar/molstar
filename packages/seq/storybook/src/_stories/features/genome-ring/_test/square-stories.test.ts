@@ -12,6 +12,7 @@ import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { openExample } from '../../../examples/_test/draw-checks.js';
 import {
+  cellPoint,
   partnerKeys,
   RingSection,
   squareClicked,
@@ -106,6 +107,66 @@ describe('The square beside the ring, its gestures replayed', () => {
     expect(include(v)).toEqual(['chr4', 'chr9']);
     expect(v.view.resolved.value!.sections.find((s) => s.address === RingSection)!.blocks!.length).toBe(2);
     await exportedBoth(v);
+  });
+});
+
+describe('The square’s moves are steps of the view’s history', () => {
+  /** The gesture run, its patches landed, the view drawn. */
+  async function settled(v: SeqViewer, gesture: (v: SeqViewer) => unknown) {
+    await replay(v, gesture);
+    for (let i = 0; i < 10; i++) {
+      await vi.advanceTimersByTimeAsync(100);
+      v.draw();
+    }
+  }
+
+  const each = [
+    ['a click', squareClicked, ['chr4', 'chr7']],
+    ['a drag', squareDragged, ['chr7', 'chr8', 'chr9']],
+    ['a resize', squareResized, ['chr4', 'chr5', 'chr6', 'chr7', 'chr8', 'chr9']],
+  ] as const;
+
+  for (const [name, gesture, shown] of each)
+    it(`${name}: Back is possible, shows the blocks it left, Forward again`, async () => {
+      const v = await open();
+      // the opening's own include (a drag and a resize begin on a run), one step already
+      const steps = v.view.history.value.back;
+      await settled(v, gesture);
+      expect(include(v)).toEqual(shown);
+      expect(v.view.canBack).toBe(true);
+      // one step for the whole gesture: a drag's frames add none
+      const made = v.view.history.value.back - steps;
+      expect(made).toBeGreaterThanOrEqual(1);
+      expect(made).toBeLessThanOrEqual(2);
+      expect(v.view.back()).toBe(true);
+      await settled(v, () => undefined);
+      expect(include(v)).not.toEqual(shown);
+      expect(v.view.canForward).toBe(true);
+      expect(v.view.forward()).toBe(true);
+      await settled(v, () => undefined);
+      expect(include(v)).toEqual(shown);
+    });
+
+  it('a drag’s frames push nothing: the step is the release’s', async () => {
+    const v = await open();
+    await v.execute('section.include', { address: RingSection, include: ['chr4', 'chr5', 'chr6'] });
+    await settled(v, () => undefined);
+    const before = v.view.history.value.back;
+    const n = squareOf(v);
+    const from = cellPoint(v, n, 'chr5', 'chr5');
+    const to = cellPoint(v, n, 'chr8', 'chr8');
+    n.down(from[0], from[1]);
+    for (let s = 1; s <= 6; s++) {
+      n.move(from[0] + ((to[0] - from[0]) * s) / 6, from[1] + ((to[1] - from[1]) * s) / 6);
+      expect(v.view.history.value.back).toBe(before);
+    }
+    n.up();
+    await settled(v, () => undefined);
+    expect(v.view.history.value.back).toBe(before + 1);
+    expect(include(v)).toEqual(['chr7', 'chr8', 'chr9']);
+    expect(v.view.back()).toBe(true);
+    await settled(v, () => undefined);
+    expect(include(v)).toEqual(['chr4', 'chr5', 'chr6']);
   });
 });
 

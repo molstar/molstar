@@ -203,6 +203,10 @@ nothing and tells nothing. Beside `models/view.ts` (the moves and the publish): 
   jump, back and forward. `snapshot()` gives every group's range and band now, as a jump keeps them, and
   `record(snapshot)` pushes one taken earlier as a step (unless the view is there now): a gesture's one step, pushed
   when it ends (a navigator's far drag, of its window or its rows); `jump` pushes through it.
+  `snapshot({ includes: true })` also keeps each section of blocks's `include`: a step recorded from it is never skipped
+  for looking like the view now (the blocks shown differ), and a step back or forward writes the `include` again
+  (`setIncludeWriter`: the viewer's `section.include`, an undo step of its own). The navigator's writes of `include` (a
+  switch's click, the square's click, drag on release, resize, keys) record one such step each once they land.
 - **The last jump** (`lastJump`, set before `jumps` moves, so a listener of `jumps` reads it):
   `{ n, kind, location?, durationMs }`, `n` the count `jumps` moves to, `kind` `focus` (an address's or a Location's,
   the cursor's Enter, a double-click on an element or a cell), `reveal`, `fit`, `zoom` (a step zoom, a grid cell's

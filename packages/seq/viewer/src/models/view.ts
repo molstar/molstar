@@ -56,6 +56,8 @@ import {
   JumpSteps,
   type KeptBand,
   type LastJump,
+  includesDiffer,
+  includesOf,
   restoredOf,
   restoreInto,
   type Snapshot,
@@ -534,8 +536,8 @@ export class ViewModel extends ReactiveModel {
    * Every group's range and every band's scroll now, as `jump` keeps them (_spec/README.md "ViewModel", History): what
    * a gesture that moves by hand reads at its press, to `record` on its release when it went far (a navigator's drag).
    */
-  snapshot(): ViewSnapshot {
-    return this._snapshot() as ViewSnapshot;
+  snapshot(options?: { readonly includes?: boolean }): ViewSnapshot {
+    return this._snapshot(options?.includes) as ViewSnapshot;
   }
 
   /**
@@ -544,10 +546,21 @@ export class ViewModel extends ReactiveModel {
    */
   record(snapshot: ViewSnapshot): boolean {
     const kept = snapshot as unknown as Snapshot;
-    if (snapshotsEqual(kept, this._snapshot())) return false;
-    this._steps.push(this._named(kept), this.config.view.historyLimit);
+    const now = this._snapshot(!!kept.includes);
+    if (snapshotsEqual(kept, now) && !includesDiffer(kept, now)) return false;
+    const named = this._named(kept);
+    this._steps.push(kept.includes && !named.includes ? { ...named, includes: kept.includes } : named, this.config.view.historyLimit);
     return true;
   }
+
+  /**
+   * What writes a section's `include` again when a step back or forward restores one that kept it (the viewer's:
+   * `section.include`, one step of the spec's history); undefined `include`: every block.
+   */
+  setIncludeWriter(write: ((section: string, include: unknown) => void) | undefined): void {
+    this._writeInclude = write;
+  }
+  private _writeInclude: ((section: string, include: unknown) => void) | undefined;
 
   /** What names the bands' rows for the history (the viewer's rows layers); none: a band kept as its `bandTop`. */
   setBandRows(rows: BandRows | undefined): void {
@@ -613,12 +626,22 @@ export class ViewModel extends ReactiveModel {
     let location: Location | undefined;
     const moved = this._steps.step(
       forward,
-      this._named(this._snapshot()),
+      (includes) => {
+        const now = this._snapshot(includes);
+        const named = this._named(now);
+        return includes && !named.includes ? { ...named, includes: now.includes } : named;
+      },
       (t) => restoredOf(t, this._groups, this._sections, own),
       (t) => {
         location = t.location;
+        const shown = t.includes && includesOf(this._sections, this._spec.root.value);
         restoreInto(t, this._groups, this._sections, this._bands, own);
         this._publish();
+        // the blocks shown then, written again (the window above fits them once they are)
+        if (t.includes && shown)
+          for (const [address, include] of t.includes)
+            if (shown.has(address) && JSON.stringify(shown.get(address)) !== JSON.stringify(include))
+              this._writeInclude?.(address, include);
       },
     );
     if (moved) this._jumped(forward ? 'forward' : 'back', location, this._snapshot());
@@ -626,8 +649,9 @@ export class ViewModel extends ReactiveModel {
   }
 
   /** Each group's range now, with its axis's signature, its centre as a position and its members. */
-  private _snapshot(): Snapshot {
-    return snapshotOf(this._groups, this._sections, this._bands);
+  private _snapshot(includes = false): Snapshot {
+    const s = snapshotOf(this._groups, this._sections, this._bands);
+    return includes ? { ...s, includes: includesOf(this._sections, this._spec.root.value) } : s;
   }
 
   // ---- internals ----

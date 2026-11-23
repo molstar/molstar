@@ -6,6 +6,7 @@
 
 import { hash2, hashString } from '@molstar/core/data/util/hash-functions';
 import { type ReadonlyState, State } from '@molstar/core/reactive';
+import { type Node, resolveAddress } from '@molstar/core/repr/tree';
 import type { Location } from '@molstar/seqx-core/query';
 import type { BandViewport } from '@molstar/seqx-core/render';
 import {
@@ -65,6 +66,27 @@ export interface Snapshot {
   readonly ys: ReadonlyMap<string, { readonly start: number; readonly end: number }>;
   /** The Location the jump that left the view here named, while no hand moved it since (`ViewModel.lastJump`). */
   readonly location?: Location;
+  /**
+   * The `include` of each section of blocks (by address; undefined: every block), kept by a step a gesture of the
+   * blocks shown makes (a square's, `ViewModel.snapshot`): a step back writes them again.
+   */
+  readonly includes?: ReadonlyMap<string, unknown>;
+}
+
+/** The `include` each section of blocks has now, by address. */
+export function includesOf(sections: ReadonlyMap<string, SectionState>, root: Node): Map<string, unknown> {
+  const out = new Map<string, unknown>();
+  for (const [address, s] of sections)
+    if (s.section.blocks) out.set(address, resolveAddress(root, address.split('/').filter(Boolean))?.params?.include);
+  return out;
+}
+
+/** Whether two steps (the second's `includes` read now) show other blocks on a section both keep. */
+export function includesDiffer(a: Snapshot, b: Snapshot): boolean {
+  if (!a.includes || !b.includes) return false;
+  for (const [address, v] of a.includes)
+    if (b.includes.has(address) && JSON.stringify(v) !== JSON.stringify(b.includes.get(address))) return true;
+  return false;
 }
 
 /** What a jump was (_spec/README.md "ViewModel", History, The last jump). */
@@ -368,11 +390,12 @@ export class JumpSteps {
 
   /**
    * A step back (or forward): the first step whose restoring is not the view `now` (one to where the view is now, a
-   * group gone, a hand that returned, is skipped) is restored, `now` pushed the other way. False when there is none.
+   * group gone, a hand that returned, is skipped; one with other blocks shown never) is restored, `now` pushed the
+   * other way (with the blocks shown when the step kept them). False when there is none.
    */
   step(
     forward: boolean,
-    now: Snapshot,
+    now: (includes: boolean) => Snapshot,
     restored: (snap: Snapshot) => Snapshot,
     restore: (snap: Snapshot) => void,
   ): boolean {
@@ -381,7 +404,8 @@ export class JumpSteps {
     let target: Snapshot | undefined;
     while (from.length) {
       const t = from.pop()!;
-      if (!snapshotsEqual(restored(t), now)) {
+      // a step that shows other blocks is never skipped: the view it restores may look the same on the blocks shown now
+      if (!snapshotsEqual(restored(t), now(false)) || (t.includes && includesDiffer(t, now(true)))) {
         target = t;
         break;
       }
@@ -390,7 +414,7 @@ export class JumpSteps {
       this._tell();
       return false;
     }
-    to.push(now);
+    to.push(now(!!target.includes));
     restore(target);
     this._tell();
     return true;

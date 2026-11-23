@@ -1273,7 +1273,15 @@ export class NavigatorModel extends ReactiveModel {
     const c = this.viewer.commands.find((x) => x.id === id);
     const can = c?.when?.(context as never);
     if (!c || (can !== undefined && can !== true)) return false;
-    void this.viewer.execute(id, context);
+    // a change of the blocks shown is one step of the view's history, pushed once it landed (a drag's on release:
+    // never a frame's): Back shows the blocks it left
+    const view = this.viewer.view;
+    const before = id === 'section.include' ? view.snapshot({ includes: true }) : undefined;
+    const done = this.viewer.execute(id, context);
+    if (before) {
+      if (typeof done === 'string') view.record(before);
+      else void done.then(() => view.record(before));
+    }
     return true;
   }
 
