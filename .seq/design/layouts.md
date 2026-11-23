@@ -824,6 +824,66 @@ registry entry, an option of a call, or fixed with its reason).
 | the ring's window in an export | spec param of the view (`export.window`, optional), `renderSvg`'s `window` overriding it (decided) | false | an exported map is a figure | true |
 | groups bridged; a collapsed piece edge zero width on rings | fixed | — | no second use; one rule for breaks on every layout (decided) | — |
 
+## In the specs
+
+| Decision | Where |
+|---|---|
+| Blocks a cut every layout takes, not a `layout` value (Decided 1) | core › Blocks |
+| A layout per section, sections stacked (Decided 2) | core › Section layouts |
+| A text section exports every line (Decided 3) | core › An export shows all of it |
+| A text box capped, scrolling inside, the wheel chained at its ends (Decided 4); one cap for every layout (`section.maxPx`) | core › A section scrolls past its cap |
+| A collapsed intron zero width on every layout, rings included (Decided 5) | core › Rings layout |
+| The viewport record owned here; a step over a changed layout restored by position (Decided 6) | core › The viewport record |
+| No size cut order (Decided 7); the size estimate | design-only: a stance, measured at the gates |
+| A drag on a ruler pans (the ruler rail) (Decided 8) | core › The ruler rail |
+| `selection.copyLetters` copies what is shown (Decided 9) | viewer › Configuration |
+| `export.window` an optional spec param, `renderSvg`'s `window` overriding | core › A ring's window |
+| A layout cuts a section into strips and warps them; layer types keep their contract | core › Section layouts |
+| The lay cache bounded by the strips in view | core › The lay cache is bounded by the strips in view |
+| Additions to the layer contract: `used`, `scope`, `ctx.labels`, `ctx.span` | core › Layers a strip or a section |
+| Frames across tracks | core › Layer types |
+| A track's height fits its content in steps; tracks of a kind share when close; `heights`; the `trackSizing` port | core › The section's `heights` names the sizing |
+| Defaults from the audit: the label column measured, the gaps | core › Render |
+| Ring labels grouped past six within 12°, fanned up to `rings.cluster.fanMax` | core › Labels outside with leaders |
+| A band may scroll inside its section (`bandTop`, `rowScale`) | core › The transform |
+| Glyph runs with a per-letter y, angle and vertical scale | core › Primitives |
+| The interface (`SectionLayoutType`, `Placement`, `PlaceContext`); one viewport a section; follow reads the leader's viewport; the view stacks its sections | core › Section layouts |
+| Placement and hit-testing as its inverse; the kinds of point; property tests | core › Kinds of point |
+| Emphasis per strip: the band column, cut ends, the y path | core › Emphasis |
+| The key per section; the ring under a moving window | core › Per section |
+| The `window` pass | core › Draw lists |
+| The hover index: the placement's `at` then the layer's `hit` | core › The placement |
+| Navigation: `SectionNav` per layout | core › Navigation |
+| Saved state as positions and row keys | viewer › Bands |
+| Text with rows: the cursor across line blocks | viewer › The cursor |
+| A drag past a scrolling box's edge | viewer › Pointer |
+| Text: wheel, letter size, reflow by the anchor | core › Text layout |
+| Rings: the window round, its zoom, idle with no follower | core › Rings layout |
+| A cyclic section's viewport wraps | core › A cyclic axis's window past its total |
+| Blocks: a zoom about the block under the pointer; the cursor crosses gaps | viewer › A section of blocks on several systems |
+| The story `view` channel | core › Stories |
+| Follow between a ring and a linear section; the window shared with the navigators | core › Window |
+| The tracks layout restated | core › Tracks layout |
+| Blocks: systems a strip, the scroll group's key, follow refused on several systems, `arrange`, chips, `copies` | core › Blocks |
+| Text: lines of whole groups, groups bridged, pieces, bands, numbers, alignment figures, `align`, reflow, `text.maxLines` | core › Text layout |
+| A linked selection revealed in text | viewer › A linked selection is revealed |
+| Rings: outside in, pieces, the unrolled frame, the polar warp, an image as runs | core › Rings layout |
+| Labels inside if they fit, else beside | core › Labels inside if they fit, else beside |
+| The hole holds the title; a feature across the origin | core › The hole holds the title |
+| Export: what the layouts place, `size.height: auto` | core › What the layouts place |
+| Language: `section.layout`, the text and ring params, blocks | core › A section's layout |
+| Track sizing: content as known, a source's lanes grown at settle, pending one lane | core › A track with no `height` fits its content |
+| The cap `track.maxPx`; a track's `height` its cap; `track.overflow`; `ranges.maxLanes` | core › Past the cap, a track's lanes scroll inside it |
+| Lanes scroll in the band; the wheel's chain; Page keys; one rail for every scrolling box | viewer › The one rail |
+| A source's reachable region read under the layer's bounds (`seq.render.reach`) | core › A source's reachable region |
+| The cut edge where lanes are cut | core › Past the cap, a track's lanes scroll inside it |
+| The values look; colour by value and points | core › Layer types |
+| History keeps a lanes band's scroll by its top item | design-only: not built as designed (drift note `layouts`) |
+| A label with no room floats at the data's left edge | core › Past the cap, a track's lanes scroll inside it |
+| Export draws every lane (`export.lanes`, `export.maxTrackPx`) | core › Past the cap, a track's lanes scroll inside it |
+| The rows band to `rows.maxPx`; a ring compacts past `rings.trackMaxPx` | core › A track with no `height` fits its content |
+| Precedents, the interaction cells, the defaults' pictures | design-only: intent |
+
 ## Tensions
 
 - **Data decides a text line's height** (empty bands collapse, a frame's title row only where a region starts), but

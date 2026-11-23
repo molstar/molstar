@@ -4057,7 +4057,10 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   sticky lane, the band's top lane is its `bandTop` in lanes (the section's band viewport, as a rows band's, clamped to
   the lanes: `RangesLay.top`, `scrollMax`; `laneY` is shifted by it), the lanes out of the band are no marks (draw
   lists, hit index and labels hold the lanes in view), a thin rail at the band's right edge shows the window while the
-  lanes overflow (`drawRail`), the header, the label and the tracks around stay in place. A track's own `height` is its
+  lanes overflow (`drawRail`), a 1 px edge in the line ink (`msui-line`) where lanes are cut, above the first lane in
+  view and below the last (`drawScroll`: the scroll's sign at rest, quieter than the rail), the header, the label and
+  the tracks around stay in place. **A source's reachable region** is read as a margin want of its own under the layer's
+  bounds (`ranges-reach.ts`); refused, its track is as tall as the lanes in view, said once (`seq.render.reach`, info). A track's own `height` is its
   cap and its height: lanes past it scroll; a band under one lane draws one lane centred (EC-249). Rings and text never
   scroll: past the ring's width the lanes compact, then the density row. `track.overflow: compact` squeezes the lanes
   into the band, `density` puts what does not fit in a density row at its bottom (`ranges.overflow` then says whether
