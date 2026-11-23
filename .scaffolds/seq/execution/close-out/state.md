@@ -10,8 +10,10 @@ to CL14, are written into `plan.md` (Lanes; Order and parallelism) and `checklis
 
 ## In progress
 
+- 2026-11-24: CL10, Sonnet, resumed for F9 and F14 on `seq/cl10`.
+- 2026-11-24: CL3, Sonnet, the square and keys, worktree on `seq/cl3` (`briefs/cl3-square-keys.md`).
 
-- CL10 paused at F9 and F14, its worktree on `seq/cl10` kept; CL3 can start (CL2 merged).
+
 
 ## Next
 
