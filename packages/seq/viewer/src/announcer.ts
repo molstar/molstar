@@ -58,6 +58,8 @@ export class Announcer {
   private _restTimer: unknown;
   private readonly _stop: (() => void)[] = [];
   private _selected = '';
+  /** The keyboard cursor when the last command ran: a command that moved it says its message. */
+  private _cursor: unknown;
   private _disposed = false;
 
   constructor(viewer: SeqViewer, options: AnnouncerOptions = {}) {
@@ -72,11 +74,18 @@ export class Announcer {
       view: viewer.view,
       layout: () => viewer.frame?.layout,
     });
+    this._cursor = viewer.selection.cursor.value;
     this._stop.push(
       // a cursor key is said whether or not the cursor moved (at the end of its axis it stays: the key is still heard);
       // the pointer's own cursor is shown, not said
-      viewer.commandRan.listen(({ id }) => {
-        if (CursorKeys.test(id) && !this.dragging) this.say(this.cursorText(), 'cursor');
+      viewer.commandRan.listen(({ id, message }) => {
+        const cursor = viewer.selection.cursor.value;
+        const moved = cursor !== this._cursor;
+        this._cursor = cursor;
+        if (this.dragging) return;
+        if (CursorKeys.test(id)) this.say(this.cursorText(), 'cursor');
+        // another command that moved the keyboard cursor says its own words (`rondo:partner`: where, and why there)
+        else if (moved && cursor && message) this.say(message, 'cursor');
       }),
       viewer.hover.version.listen(() => this.hovered()),
       viewer.selection.value.listen(() => this.selectionChanged()),

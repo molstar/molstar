@@ -8,35 +8,23 @@ import { type Hit, rangesLocation } from '@molstar/seqx-core/extension';
 import {
   type BehaviorProvider,
   defineViewerExtension,
+  type HeaderEntry,
   type SeqViewer,
   type SeqViewerExtension,
   type ViewerCommand,
 } from '@molstar/seqx-viewer';
 import { rondo, RondoParams, RondoVersion } from './index.js';
 import { Kind, type RondoLay } from './lay.js';
+import { laysOf, partnersOf, StemMenu, selectStemPartners, Viewers } from './menu.js';
 
 // The genome ring extension's viewer parts (_spec/README.md, The viewer): `rondoViewer`, the headless `rondo` and
 // its commands (`rondo:partner`, along the links by count from the cursor's stem; `rondo:select-partners`, the far
 // ends of the selection's ribbons added; `rondo:open`, the hit's chromosomes shown in the section the layer `opens`),
 // and the double-click scoped to `rondo:ribbons`' hits that runs `rondo:open` (it wins over the focus there only).
 
-/** The ribbons' lays of the viewer's last frame. */
-function lays(viewer: SeqViewer): RondoLay[] {
-  const out: RondoLay[] = [];
-  for (const s of viewer.frame?.layout.sections ?? [])
-    for (const l of s.sectionLays) if (l.type.name === 'rondo:ribbons') out.push(l.lay as RondoLay);
-  return out;
-}
+const lays = laysOf;
 
-/** A stem's partners by count, strongest first: each the partner stem and the count between them. */
-export function partnersOf(lay: RondoLay, stem: number): { stem: number; count: number; strand: number }[] {
-  const out: { stem: number; count: number; strand: number }[] = [];
-  for (let r = 0; r < lay.nr; r++) {
-    if (lay.ribA[r] === stem) out.push({ stem: lay.ribB[r], count: lay.ribCount[r], strand: lay.ribStrand[r] });
-    else if (lay.ribB[r] === stem) out.push({ stem: lay.ribA[r], count: lay.ribCount[r], strand: lay.ribStrand[r] });
-  }
-  return out.sort((a, b) => b.count - a.count || a.stem - b.stem);
-}
+export { partnersOf, StemMenu };
 
 /** The chromosomes a hit names: a ribbon's two, a stem's one, a stub's stem's and its partner's. */
 export function chromosomesOf(lay: RondoLay, hit: Hit): string[] {
@@ -54,54 +42,71 @@ export function chromosomesOf(lay: RondoLay, hit: Hit): string[] {
 /** Where `rondo:partner` stands: the stem it last moved to and the partner it is on (by count), by lay. */
 const Walk = new WeakMap<RondoLay, { from: number; next: number }>();
 
-function behavior(): BehaviorProvider {
+/** A viewer's commands (each viewer its own: they act on the viewer that composed them). */
+function viewerParts() {
   let viewer: SeqViewer | undefined;
+  let unregister: (() => void) | undefined;
+  /** The cursor to the next (or the previous) partner of its stem by count, said. */
+  const walk = (args: { back?: boolean }) => {
+    const v = viewer;
+    const c = v?.selection.cursor.value;
+    if (!v || !c) return { message: 'No cursor' };
+    for (const lay of lays(v)) {
+      if (lay.section !== c.section) continue;
+      let from = -1;
+      for (let s = 0; s < lay.ns; s++)
+        if (
+          lay.stemPlaced[s] &&
+          lay.systems[lay.stemSystem[s]] === c.system &&
+          c.position >= lay.stemStart[s] &&
+          c.position < lay.stemEnd[s]
+        )
+          from = s;
+      const w = Walk.get(lay);
+      // on a partner reached by the walk: the walk goes on from its stem
+      if (w && from !== w.from && w.next >= 0) from = w.from;
+      if (from < 0) return { message: 'No stem here' };
+      const partners = partnersOf(lay, from);
+      if (!partners.length) return { message: 'No partners' };
+      const k0 = w && w.from === from ? w.next : -1;
+      const k = (((k0 + (args.back ? -1 : 1)) % partners.length) + partners.length) % partners.length;
+      Walk.set(lay, { from, next: k });
+      const p = partners[k];
+      const position = lay.stemStart[p.stem];
+      v.selection.setCursor({ section: c.section, system: lay.systems[lay.stemSystem[p.stem]], position });
+      return {
+        message: `${lay.names[lay.stemSystem[p.stem]]}, ${position.toLocaleString('en-US')} · ${Math.round(p.count).toLocaleString('en-US')} links${p.strand < 0 ? ', reversed' : ''}`,
+      };
+    }
+    return { message: 'No genome ring' };
+  };
   const commands: ViewerCommand[] = [
     {
       id: 'rondo:partner',
       title: 'Go to the next partner',
       category: 'Genome ring',
-      run: (args: { back?: boolean } = {}) => {
-        const v = viewer;
-        const c = v?.selection.cursor.value;
-        if (!v || !c) return { message: 'No cursor' };
-        for (const lay of lays(v)) {
-          if (lay.section !== c.section) continue;
-          let from = -1;
-          for (let s = 0; s < lay.ns; s++)
-            if (
-              lay.stemPlaced[s] &&
-              lay.systems[lay.stemSystem[s]] === c.system &&
-              c.position >= lay.stemStart[s] &&
-              c.position < lay.stemEnd[s]
-            )
-              from = s;
-          const w = Walk.get(lay);
-          // on a partner reached by the walk: the walk goes on from its stem
-          if (w && from !== w.from && w.next >= 0) from = w.from;
-          if (from < 0) return { message: 'No stem here' };
-          const partners = partnersOf(lay, from);
-          if (!partners.length) return { message: 'No partners' };
-          const k0 = w && w.from === from ? w.next : -1;
-          const k = (((k0 + (args.back ? -1 : 1)) % partners.length) + partners.length) % partners.length;
-          Walk.set(lay, { from, next: k });
-          const p = partners[k];
-          const position = lay.stemStart[p.stem];
-          v.selection.setCursor({ section: c.section, system: lay.systems[lay.stemSystem[p.stem]], position });
-          return {
-            message: `${lay.names[lay.stemSystem[p.stem]]}, ${position.toLocaleString('en-US')} · ${Math.round(p.count).toLocaleString('en-US')} links${p.strand < 0 ? ', reversed' : ''}`,
-          };
-        }
-        return { message: 'No genome ring' };
-      },
+      // `.` and `,` (the design's; free in the viewer's keys): along a stem's partners by count, back and forth
+      shortcut: { key: '.' },
+      scope: 'canvas',
+      run: () => walk({}),
+    },
+    {
+      id: 'rondo:partner-back',
+      title: 'Go to the previous partner',
+      category: 'Genome ring',
+      shortcut: { key: ',' },
+      scope: 'canvas',
+      run: () => walk({ back: true }),
     },
     {
       id: 'rondo:select-partners',
       title: 'Select the partners',
       category: 'Genome ring',
-      run: () => {
+      run: (_args: unknown, ctx: { layer?: string; key?: string } = {}) => {
         const v = viewer;
         if (!v) return { message: '' };
+        // from a stem's menu: the stem and its partners' stems, one selection
+        if (ctx.layer !== undefined && ctx.key !== undefined) return selectStemPartners(v, ctx.layer, ctx.key);
         const shown = v.selection.value.value.shown;
         let added = 0;
         for (const lay of lays(v))
@@ -146,17 +151,29 @@ function behavior(): BehaviorProvider {
     },
   ] as unknown as ViewerCommand[];
   return {
-    name: 'rondo:behavior',
-    create: () => ({
-      commands,
-      composed(v: SeqViewer) {
-        viewer = v;
-      },
-      dispose() {
-        viewer = undefined;
-      },
-    }),
+    commands,
+    composed(v: SeqViewer) {
+      viewer = v;
+      Viewers.add(v);
+      // the stem menu: registered on the viewer's headers at run time (so `viewer.extend` brings it too), once the
+      // composition holds this behavior's commands (its entries name them), taken away on dispose
+      void Promise.resolve().then(() => {
+        if (viewer !== v || unregister) return;
+        unregister = v.behavior<{ register(...e: HeaderEntry[]): () => void }>('headers')?.register(...StemMenu);
+      });
+    },
+    dispose() {
+      unregister?.();
+      unregister = undefined;
+      if (viewer) Viewers.delete(viewer);
+      viewer = undefined;
+    },
   };
+}
+
+/** The behavior: its commands and the viewer they act on, one a viewer. */
+function behavior(): BehaviorProvider {
+  return { name: 'rondo:behavior', create: () => viewerParts() };
 }
 
 /** The genome ring extension with the viewer's parts: commands, the `opens` double-click. */

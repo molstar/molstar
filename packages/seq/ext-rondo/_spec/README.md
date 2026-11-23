@@ -12,7 +12,7 @@ is the contract's, brought to the core, never a reach into `src`.
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------- |
 | `rondo:ribbons`         | layer type, `scope: 'section'`, shape `pairs`, on `rings` and a `tracks` row                                                                                     | `pairs`                                                   | core's `PairsReader`: bins at a level, items under its gate            |
 | `rondo:hues`            | scheme over categories: n hues round the Oklch wheel, not colour-blind safe, substitute `categories`                                                             | the layer type's default                                  | —                                                                      |
-| `rondo:partner`         | command: the cursor to the next partner stem by count, said                                                                                                      | —                                                         | the stem under the cursor                                              |
+| `rondo:partner`         | command (`.`; `rondo:partner-back` `,`): the cursor to the next partner stem by count, said                                                                      | —                                                         | the stem under the cursor                                              |
 | `rondo:select-partners` | command: the far ends of the selection's ribbons added                                                                                                           | —                                                         | the selection                                                          |
 | `rondo:open`            | command, bound to a double-click scoped to `rondo:ribbons`' hits                                                                                                 | —                                                         | the hit's chromosomes, set as `opens`' `include`                       |
 | `rondo:cells`           | layer type, `scope: 'section'`, shape `pairs`, with core's `square` cells (nothing drawn on a strip)                                                             | none (only `rondo:square` names it)                       | core's `PairsReader` at the coarsest bins (`gate` 0) over the assembly |
@@ -80,6 +80,16 @@ bins), the readout's after the pair (`chr4 × chr7 · 37 links`).
   one chromosome's ring the block is everything, so lighting the block for a band lit all. The emphasis draw keeps no
   lay past itself (module state cleared after each pass). **Selection**: ribbons with an end in it in the accent.
   **Highlights**: ribbons touching each channel's Location.
+- **The stem menu** (`menu.ts`, `StemMenu`, registered on the viewer's headers by `rondoViewer`'s behavior, so
+  `viewer.extend` brings it too): a secondary click on a stem opens its element menu, the viewer's label menu's shape
+  scoped to `rondo:ribbons`' stems (`element.type`, a `stem:` key): "Show with a partner ▸" (its partners by count, at
+  most 8, each `chr17 · 140 links`, shown with it as a pair in the section the layer `opens`, else its own), "Select the
+  stem and its partners" (`rondo:select-partners` with the element: one selection), "Show only chr4". The entries find
+  the stem in the lays of the viewers composed with `rondoViewer` (`Viewers`, kept by its behavior: one a viewer). Not
+  built: the menu from the keyboard at a stem (Shift+F10 opens the header's menu at the cursor).
+- **The keys**: `.` (`rondo:partner`) and `,` (`rondo:partner-back`), the commands' shortcuts on the canvas: the cursor
+  to the next or the previous partner of its stem by count, said by the announcer (the command moved the cursor: "chr17,
+  40,000,000 · 140 links, reversed").
 - **Words** (core's `LayerType` hooks): `describe` (a ribbon "chr1:12–28 Mb ↔ chr17:40–52 Mb", its count and kind, its
   bins; a stem its links, partners, within and fan; a stub its partner, "not shown"), `summary` ("612 ribbons, 23
   chromosomes; strongest chr1 ↔ chr17, 140"), `announce` ("stem of 312 links").
