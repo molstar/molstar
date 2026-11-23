@@ -8,6 +8,7 @@ import { cancelFrameCallback, requestFrameCallback } from '@molstar/ui/dom/frame
 import { modifiersOf } from '@molstar/seqx-viewer/bindings';
 import { CanvasBackend, type CanvasLike, FontCache } from '@molstar/seqx-viewer/canvas';
 import { createDragSession } from './drag-session.js';
+import { isSquareNavigator } from '@molstar/seqx-core/render/navigator-square-kind';
 import { type NavigatorModel, ReadoutLinePx } from './navigator.js';
 import type { SeqViewer } from './viewer.js';
 
@@ -21,13 +22,31 @@ import type { SeqViewer } from './viewer.js';
 // reader's session). Everything each adds is taken away by the function it returns.
 
 /** Mounts navigator `id` of the viewer into `element`; the function it returns takes it away. */
-export function mountNavigator(element: HTMLElement, viewer: SeqViewer, id: string): () => void {
+export function mountNavigator(
+  element: HTMLElement,
+  viewer: SeqViewer,
+  id: string,
+  options: MountNavigatorOptions = {},
+): () => void {
   const model = viewer.navigatorModel(id);
   if (!model) return () => {};
-  return mountModel(element, viewer, model);
+  return mountModel(element, viewer, model, options);
 }
 
-function mountModel(element: HTMLElement, viewer: SeqViewer, model: NavigatorModel): () => void {
+/** `mountNavigator`'s options: `hint: false` leaves the square's line of gestures out (default `navigator.squareHint`). */
+export interface MountNavigatorOptions {
+  readonly hint?: boolean;
+}
+
+/** What the square says of its gestures (_spec/README.md "Composition", Navigators, The square's hint). */
+export const SquareHint = 'Drag to move · drag an edge to resize · double-click for the whole genome';
+
+function mountModel(
+  element: HTMLElement,
+  viewer: SeqViewer,
+  model: NavigatorModel,
+  options: MountNavigatorOptions,
+): () => void {
   const doc = element.ownerDocument;
   const container = doc.createElement('div');
   container.tabIndex = 0;
@@ -78,6 +97,28 @@ function mountModel(element: HTMLElement, viewer: SeqViewer, model: NavigatorMod
   readout.append(readName, readValue);
   container.append(base, overlay, labels, readout);
   element.append(container);
+  // a square's hint: one muted line under it, no event of its own (the part's, never the pointer's)
+  let hint: HTMLElement | undefined;
+  const view = viewer.view.resolved.value;
+  if (
+    (options.hint ?? viewer.config.navigator.squareHint) &&
+    model.navigator &&
+    view &&
+    isSquareNavigator(model.navigator, view)
+  ) {
+    hint = doc.createElement('div');
+    hint.className = 'seqx-navigator-hint';
+    hint.textContent = SquareHint;
+    Object.assign(hint.style, {
+      font: `var(--msui-text-xs, 11px) / ${ReadoutLinePx}px var(--msui-font-sans, sans-serif)`,
+      color: 'var(--msui-text-muted, gray)',
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      pointerEvents: 'none',
+    });
+    element.append(hint);
+  }
   const backend = new CanvasBackend(
     base as unknown as CanvasLike,
     overlay as unknown as CanvasLike,
@@ -213,6 +254,7 @@ function mountModel(element: HTMLElement, viewer: SeqViewer, model: NavigatorMod
     observer?.disconnect();
     if (frame !== undefined) cancelFrameCallback(frame);
     container.remove();
+    hint?.remove();
   };
 }
 

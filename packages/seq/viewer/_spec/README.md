@@ -288,38 +288,43 @@ never moved runs `section.include` with the block under it on the bound section 
 gestures; on what the section already shows alone, nothing), Home (and `showAll()`, a host's title) removes it. **The
 square** (core's `SquareNavigator`: two axes over blocks × blocks): the same model draws it; a click on a cell off the
 window moves each axis by the switching rule (one section on both axes: by the x block), one step; a double-click fits a
-cell's pair (one section on both axes: the hull of its two blocks), again the whole; a click with a switch shows the
-cell's two blocks (in the lattice's order), every click at once (a platform's count past 1 too: never a select first),
-and its double-click adds nothing. A drag from a cell off the window sweeps the x section (one section on both axes:
-both), the rectangle its release zooms to drawn live, snapped to whole cells (the blocks under its ends, both included:
-what is drawn is what the release fits; `SquareNavigator.snapSweep`, the behavior's `dragTo(at, from)`), tinted and
-outlined as the window is (the same range on y for one section, else the y window as it is); Escape cancels it. Not
-built on the square: its grips and drags per axis. **Lazy**: the square and the set's gestures are one chunk
-(`square-chunk.ts`, `loadSquare` through `SquareDoor`, which the navigators part sets: `navigator.ts` holds no dynamic
-import, so the minimal viewer reaches no chunk of it), loaded when a spec's view may show one (`navigators.ts` registers
-it with resolve's lazy kinds: the model waits), a host's square in `settle` (the navigators part's `loaded`), and drawn
-when it lands otherwise. A test over a view with lazy chunks awaits them (`loaded()` of the part, the card's chunk)
-before the gesture it checks: a chunk landing late relays the headers and hides a shown card (the hover card story's
-flake). **The square over a set** (one section on both axes with `navigator.switch: include`, a ring's square;
-`square-set.ts`, `SquareSetGesture`): its window is the blocks the section shows (core's `setMode`), and each change
-writes the section's `include` once (in the lattice's order; every block: no `include`; none: refused), one patch and
-one undo step. A run is one box: its body dragged moves the run along the diagonal (by the blocks the pointer crossed
-along its larger offset, x or y: a drag across of 4 blocks moves it 4; clamped to the lattice), an edge or corner
-resizes it (the nearest lattice edge, at least one block), drawn as a preview while it runs (`setPreview`), written on
-release, Escape cancelling; the cursor `move`, `ew-resize`, `ns-resize` or `nwse-resize`. A click on a cell shows its
-pair, on a name (above a column, left of a row) its block alone; Cmd or Ctrl adds the cell's two blocks (both shown:
-removes them) or the name's block. A scattered set is outlined cell by cell, no grips: a press there is a click's, and
-dragged it moves nothing and says so (the cursor `not-allowed`, the readout a hint: only a run's box drags; chosen over
-turning the set into the run it spans, which would add blocks the reader never picked). The keys on the focused square:
-arrows move the run a block (Left and Up back), Shift+arrows grow or shrink its end; Cmd or Ctrl+arrows move the
-keyboard's cell (outlined in the accent, inset, while focused and a key drives it, a press hiding it; picked again on a
-cell of the set when the set changes under it; over a scattered set plain arrows), said as the readout (`chr3 × chr5`);
-Enter shows its pair, Cmd or Ctrl+Enter adds or removes it; Home shows all; the other keys are the slider's (PageDown,
-PageUp: `block.next`, `block.previous`; End the view's end). The readout over a cell names its pair, over a name its
-block. **Switching blocks** (`blockSwitchRange`, `block-switch.ts`; the author, 2026-11-21, IGV's: a picked chromosome
-whole): from a view showing its block whole (within a pixel) the new block whole; zoomed inside a block, the same width
-centred at the same relative place in the new block, clamped to its ends; a width past the new block's length, the new
-block whole. One rule for a click on the navigator, `block.next` and `block.previous`, and the square's click.
+cell's pair (one section on both axes: the hull of its two blocks), again the whole; with a switch a double-click
+anywhere on the square is the whole genome (every block shown: one step, none when all are shown; the clicks before it
+showed their pairs), and 0 on the focused square the same; a click with a switch shows the cell's two blocks (in the
+lattice's order), every click at once (a platform's count past 1 too: never a select first). **The square's hint**
+(`mount-navigator.ts`): one muted line under a mounted square, "Drag to move · drag an edge to resize · double-click for
+the whole genome" (the gestures are the reader's only way to know them); `navigator.squareHint: false` or
+`mountNavigator(el, viewer, id, { hint: false })` leaves it out (a figure's, a host with its own words). A drag from a
+cell off the window sweeps the x section (one section on both axes: both), the rectangle its release zooms to drawn
+live, snapped to whole cells (the blocks under its ends, both included: what is drawn is what the release fits;
+`SquareNavigator.snapSweep`, the behavior's `dragTo(at, from)`), tinted and outlined as the window is (the same range on
+y for one section, else the y window as it is); Escape cancels it. Not built on the square: its grips and drags per
+axis. **Lazy**: the square and the set's gestures are one chunk (`square-chunk.ts`, `loadSquare` through `SquareDoor`,
+which the navigators part sets: `navigator.ts` holds no dynamic import, so the minimal viewer reaches no chunk of it),
+loaded when a spec's view may show one (`navigators.ts` registers it with resolve's lazy kinds: the model waits), a
+host's square in `settle` (the navigators part's `loaded`), and drawn when it lands otherwise. A test over a view with
+lazy chunks awaits them (`loaded()` of the part, the card's chunk) before the gesture it checks: a chunk landing late
+relays the headers and hides a shown card (the hover card story's flake). **The square over a set** (one section on both
+axes with `navigator.switch: include`, a ring's square; `square-set.ts`, `SquareSetGesture`): its window is the blocks
+the section shows (core's `setMode`), and each change writes the section's `include` once (in the lattice's order; every
+block: no `include`; none: refused), one patch and one undo step. A run is one box: its body dragged moves the run along
+the diagonal (by the blocks the pointer crossed along its larger offset, x or y: a drag across of 4 blocks moves it 4;
+clamped to the lattice), an edge or corner resizes it (the nearest lattice edge, at least one block), drawn as a preview
+while it runs (`setPreview`), written on release, Escape cancelling; the cursor `move`, `ew-resize`, `ns-resize` or
+`nwse-resize`. A click on a cell shows its pair, on a name (above a column, left of a row) its block alone; Cmd or Ctrl
+adds the cell's two blocks (both shown: removes them) or the name's block. A scattered set is outlined cell by cell, no
+grips: a press there is a click's, and dragged it moves nothing and says so (the cursor `not-allowed`, the readout a
+hint: only a run's box drags; chosen over turning the set into the run it spans, which would add blocks the reader never
+picked). The keys on the focused square: arrows move the run a block (Left and Up back), Shift+arrows grow or shrink its
+end; Cmd or Ctrl+arrows move the keyboard's cell (outlined in the accent, inset, while focused and a key drives it, a
+press hiding it; picked again on a cell of the set when the set changes under it; over a scattered set plain arrows),
+said as the readout (`chr3 × chr5`); Enter shows its pair, Cmd or Ctrl+Enter adds or removes it; Home and 0 show all (one step); the
+other keys are the slider's (PageDown, PageUp: `block.next`, `block.previous`; End the view's end). The readout over a
+cell names its pair, over a name its block. **Switching blocks** (`blockSwitchRange`, `block-switch.ts`; the author,
+2026-11-21, IGV's: a picked chromosome whole): from a view showing its block whole (within a pixel) the new block whole;
+zoomed inside a block, the same width centred at the same relative place in the new block, clamped to its ends; a width
+past the new block's length, the new block whole. One rule for a click on the navigator, `block.next` and
+`block.previous`, and the square's click.
 
 ### HoverModel
 
@@ -1832,6 +1837,7 @@ settings form.
 | `navigator.dragOutside`                                          | `sweep`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | a drag from outside the window sweeps a region and zooms to it (IGV, UCSC, JBrowse); `pan` (centre there, then pan)                                                                                                                                                                                                                                    |
 | `navigator.dragStep`                                             | `far`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | back undoes a trip, not a nudge (a default to be confirmed by use); `never`, `always`                                                                                                                                                                                                                                                                  |
 | `navigator.doubleClick`, `navigator.zoomPx`                      | `toggle-fit`, 48                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | the whole, then back in, scale-free; `fit`, `none`; any px                                                                                                                                                                                                                                                                                             |
+| `navigator.squareHint`                                           | `true`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | a square's muted line of its gestures under it (`mountNavigator`'s `hint` option overrides it); `false`: none                                                                                                                                                                                                                                          |
 | `navigator.direction`                                            | `display`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | a drag right moves the view right (decided); `genomic` (positions up whatever the section's direction)                                                                                                                                                                                                                                                 |
 | `navigator.zoomStrip`                                            | `{ minPx: 48, heightPx: 16, overBlocks: 'always' }`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | a one-system span under `minPx` gets a zoom strip `heightPx` more (a mark above it); over blocks `overBlocks`: `always` the chromosome is the control row, `narrow` only for a window under `minPx`, `never` one row; any px                                                                                                                           |
 | `rows.zoom`                                                      | `{ minPx: 1/64, maxPx: 40, enabled: true }`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | the rows' zoom bounds, px a row, and whether the rows zoom at all: the zoom keys (`[` `]`), the rows rail's grips and its idle rule read them; the floor is the larger of `minPx` and the source's (a lazy alignment with no row levels: a device pixel a row); `enabled: false` keeps the rail a pan-only bar (no grips, the keys inert, scroll kept) |
