@@ -1,0 +1,99 @@
+import { Canvas, Meta } from '@storybook/addon-docs/blocks';
+import * as Live from './live.stories';
+
+<Meta title="Docs/Data" />
+
+# Data
+
+Data reaches a view by one path. A spec names a **source**, a **format runtime** opens it, and the **store** reads from
+it by region what the view needs. Your application chooses the runtimes. Seq\* never fetches on its own: files are read
+through an assets port with a policy, and in-memory data comes through an adapter.
+
+## Sources and formats
+
+A `source` node says where the data is (`uri`, or an inline `value`) and in what `format`. Next to that, it can say what
+the file's columns mean: which `fields` are the start, the end or the label, whether positions are 0- or 1-based
+(`base`), whether ends are inclusive (`ends`), and the column `types`. These conventions belong to the file, so they sit
+on the source and every node that reads it shares one open.
+
+The readers come as format runtimes:
+
+| Runtime                                 | Formats                                    | Where                                         |
+| --------------------------------------- | ------------------------------------------ | --------------------------------------------- |
+| the `seq` format                        | the protocol written down                  | in the default viewer spec                    |
+| records                                 | TSV, CSV, JSON, MessagePack, GFF3 records  | in the default viewer spec                    |
+| FASTA, aligned FASTA, Stockholm, Newick | sequences, alignments, trees               | `@molstar/seqx-core/data/…`, listed by a host |
+| bigWig                                  | values by region and zoom level            | `@molstar/seqx-core/runtimes/bigwig`, opt in  |
+| BED, bedGraph, BEDPE, chrom sizes       | intervals, values, pairs                   | `@molstar/seqx-core/runtimes/bed`, opt in     |
+| GFF3, GTF                               | genes and transcripts                      | `@molstar/seqx-core/runtimes/gff`, opt in     |
+| VCF (tabix)                             | variants and genotypes                     | `@molstar/seqx-core/runtimes/vcf`, opt in     |
+| GenBank                                 | a record's sequence and features           | `@molstar/seqx-core/runtimes/genbank`, opt in |
+| mmCIF                                   | a structure's molecules, chains and values | `@molstar/seqx-core/runtimes/mmcif`, opt in   |
+
+A runtime is opt in so that a host that never reads VCF never bundles it. A format that two runtimes registered both
+read is an error, so which runtime reads a source never depends on the order they are listed in. A spec and its files
+can also be saved as one zip archive.
+
+Stories: [Features › Files](?path=/story/seq-next-features-files--uniprot-entry),
+[Genome formats › GFF3](?path=/story/seq-next-features-genome-formats-gff3--tp-53),
+[› VCF](?path=/story/seq-next-features-genome-formats-vcf--tp-53-clin-var),
+[› BED](?path=/story/seq-next-features-genome-formats-bed--cytobands),
+[› GenBank](?path=/story/seq-next-features-genome-formats-genbank--plasmid) and
+[Features › Archives](?path=/story/seq-next-features-archives--plasmid-saved).
+
+## Whole or by region
+
+A small file is read whole once. A large one, such as a genome's signal or its variants, is **read by region**. The
+store asks for tiles, of 1,024 bins at a level, that cover what is on screen plus a margin. A coarser level is read when
+zoomed out. Pairs, grids and matrices are read by region on one or two axes, so a contact map of a whole genome costs
+what the screen shows.
+
+The gene's region below arrives region by region: each transcript is a node the source brings with its tiles, becomes a
+track of its own, and shows its domains through its codon map.
+
+<Canvas of={Live.GeneByRegion} />
+
+## The store
+
+Every tile has a state: **pending**, **loaded**, **empty** (nothing there), **failed** (with an issue) or **evicted**.
+Only what reads an entry is told when it changes.
+
+- **Pending is never empty.** A track that is still waiting looks different from one with nothing in it, and an export
+  waits for its data before it draws (a timeout ends the wait).
+- **Bounded before the work starts.** Too many tiles for a view, or too many bytes for a layer, and nothing is asked:
+  the layer reads a coarser level, or says "zoom in". A parse checks its rows and bytes before it allocates.
+- **Failures are retried with backoff.** A malformed answer waits out a cooldown. "Not served" and "too large" are never
+  retried. Each cause is reported once per source.
+- **The cache is bounded** (64 MB by default). The least recently used tiles go first, and never the ones in view.
+- **Shared.** The viewer and an export share one store, and an export's requests never disturb the view's.
+
+Stories: [Region reads › Zoom in](?path=/story/seq-next-features-region-reads-zoom-in--zoom-in-to-read),
+[› Pairs](?path=/story/seq-next-features-region-reads-pairs--zoomed-in),
+[› Hi-C](?path=/story/seq-next-features-region-reads-hi-c--over-the-genome) and
+[Genome formats › VCF, zoom in](?path=/story/seq-next-features-genome-formats-vcf--zoom-in).
+
+## A host's own data: seq data ports
+
+A structure viewer already holds its model in memory, so reading the file again would be waste. Instead, the host gives
+Seq\* an **adapter**: a format runtime for the same format (`mmcif`, say), put in place of the default with
+`withAdapter`. The spec does not change. With the host, the data comes from memory; without it, the default runtime
+reads the `uri`.
+
+- The adapter passes the same conformance suite as the built-in runtimes, so reading by region, pending, issues and node
+  identity behave the same.
+- When the host's data changes (a chain removed, a model edited), the adapter says so. The source reopens in place, and
+  nodes that are still there keep their identity, so selections and bookmarks hold.
+- A source can carry a host's name for data that has no file (`ref`, for an edited or predicted model). Next to a `uri`
+  the spec stays portable; on its own, an issue says that only that host can open it.
+
+[Features › Host data](?path=/story/seq-next-features-host-data--served-by-the-fake) shows a fake structure viewer
+serving PDB 2OCJ from memory, then dropping a chain.
+[Examples › Services](?path=/story/seq-next-examples-services--composing-services) composes several services the same
+way.
+
+## Where next
+
+- [Interaction](?path=/docs/seq-next-docs-interaction--docs): what a user does with the view.
+- For contributors: [Design › Sources](?path=/docs/seq-next-design-sources--docs),
+  [Design › Region reads](?path=/docs/seq-next-design-region-reads--docs) and
+  [Design › Seq data ports](?path=/docs/seq-next-design-seq-data-ports--docs).
