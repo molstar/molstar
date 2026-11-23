@@ -45,6 +45,25 @@ describe('stems', () => {
         expect(b).toBeGreaterThan(a);
       }
     }
+    // every non-empty bin (an end of a pair read) in exactly one stem of its system
+    const read = l.read!;
+    const d = read.data!;
+    const sysOf = (k: number, end: 'a' | 'b') =>
+      end === 'a' ? (d.aUnit ? d.aUnit[k] : 0) : d.bUnit ? d.bUnit[k] : l.systems.length > 1 ? 1 : 0;
+    let ends = 0;
+    for (let k = 0; k < d.n; k++) {
+      if (!read.shown[k]) continue;
+      for (const end of ['a', 'b'] as const) {
+        const sys = sysOf(k, end);
+        const pos = end === 'a' ? d.aStart[k] : d.bStart[k];
+        let holders = 0;
+        for (let s = 0; s < l.ns; s++)
+          if (l.stemSystem[s] === sys && pos >= l.stemStart[s] && pos < l.stemEnd[s]) holders++;
+        expect(holders, `row ${k} ${end}`).toBe(1);
+        ends++;
+      }
+    }
+    expect(ends).toBeGreaterThan(0);
   });
 
   it('are the same at DPR 1 and 2, and in the SVG (EC-108)', async () => {
