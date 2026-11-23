@@ -18,7 +18,7 @@ pass over them is a question for the author.
 What the novice reported as working: finding a gene by name, the legend's "+n", dragging the square's window and
 resizing it from an edge or a corner, and the translocation card's kind, strands and genes.
 
-## Bugs → fixes.md (FX5)
+## Bugs → fixes.md (FX24)
 
 1. **The ring's hover card shows a wrong position** (confirmed, screenshot). Hovering the t(1;17) ribbon gives
    "chr1 58,720,257", then "q32.2 chr1 207,100,001–211,300,000" twice. The band does not hold the position, and the band

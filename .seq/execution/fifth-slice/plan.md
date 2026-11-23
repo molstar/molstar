@@ -276,7 +276,7 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
       minimal 1,085.3 of 1,090, the ring 43.9 of 45. Quick 4,698 in 19.7 s. Heavy over `packages/seq/`: 176 green at
       load 2.5. In the first run at load 4 the interval lookup and the pairs pyramid's slices failed their wall-clock
       bounds, so those runs are not counted. One quick-lane flake (the hover card story's adapter test) is in
-      [fixes.md](fixes.md) for FX5.
+      [fixes.md](fixes.md) for FX24.
 
 ### Stage 5: use, measure, finalize
 
