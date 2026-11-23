@@ -620,12 +620,15 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
         return canMergeValues(type, [seg.part.shared]);
       };
       let written = !sameGroups;
+      // the previous segments this update keeps: the visual's own map untouched till it ends (one that does not, by a
+      // throw or an abort, leaves the visual's segments as they were, none lost)
+      const kept = new Set<Segment<G>>();
       for (let i = 0, il = groups.length; i < il; ++i) {
         const group = groups[i];
         const structureGroup: StructureGroup = { group, structure };
         let seg = sameGroups ? segments[i] : previous.get(group);
         if (seg) {
-          if (!sameGroups) previous.delete(group);
+          if (!sameGroups) kept.add(seg);
           if (propsOnly && seg.group === group) {
             const probed = sharedOnly.get(seg.part);
             if (probed) continue;
@@ -673,7 +676,9 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
       }
       if (written) recordsWritten();
       if (!sameGroups) {
-        previous.forEach((seg) => builder.dispose?.(seg.geometry));
+        previous.forEach((seg) => {
+          if (!kept.has(seg)) builder.dispose?.(seg.geometry);
+        });
         byGroup = next;
         segments = nextSegments;
         byUnitId = undefined;

@@ -325,6 +325,50 @@ describe('the merged units visual', async () => {
     repr.destroy();
   });
 
+  /** `builder` counting the geometries it makes and disposes (by identity: one updated in place counted once) */
+  function countingBuilder(builder: UnitsVisualGeometryBuilder<ElementSphereParams, Spheres>) {
+    const made = new Set<Spheres>();
+    const disposed = new Set<Spheres>();
+    const counted: UnitsVisualGeometryBuilder<ElementSphereParams, Spheres> = {
+      ...builder,
+      createGeometry: (...args) => {
+        const geometry = builder.createGeometry(...args) as Spheres;
+        made.add(geometry);
+        return geometry;
+      },
+      dispose: (geometry) => {
+        disposed.add(geometry);
+      },
+    };
+    const undisposed = () => [...made].filter((g) => !disposed.has(g)).length;
+    return { builder: counted, undisposed };
+  }
+
+  it('keeps its groups through an update that fails, disposing what that update made', async () => {
+    let fail = false;
+    let updates = 0;
+    const base = splitBuilder();
+    const { builder, undisposed } = countingBuilder({
+      ...base,
+      setUpdateState: (state, ...rest) => {
+        base.setUpdateState(state, ...rest);
+        // the second group's update of a failing update throws (an abort mid-way)
+        if (fail && ++updates === 2) throw new Error('aborted');
+      },
+    });
+    const repr = await createRepr(structure, true, {}, builder);
+    // the same groups of another structure (found by group, not the same list): the first group's segment reused
+    const again = Structure.ofModel(structure.model);
+    fail = true;
+    await expect(repr.createOrUpdate({}, again).run()).rejects.toThrow('aborted');
+    fail = false;
+    // the next update finds every group as it was: none made again and lost
+    await repr.createOrUpdate({}, again).run();
+    expect(repr.renderObjects.some((o) => isMergedRenderObject(o))).toBe(true);
+    repr.destroy();
+    expect(undisposed()).toBe(0);
+  });
+
   it("adjusts every group's levels to a new size factor, not its part's first group's alone", async () => {
     const levels = (r: Awaited<ReturnType<typeof createRepr>>) =>
       (r.renderObjects as MergedGraphicsRenderObject[])
