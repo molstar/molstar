@@ -24,7 +24,17 @@ export {
   type PairsTable,
 } from '@molstar/seqx-core/data';
 export { defineExtension, requiresCovers } from '@molstar/seqx-core/context/define';
-export type { Key, Keys, Location } from '@molstar/seqx-core/query';
+export {
+  type Address,
+  type NavigatorParams,
+  type Params,
+  type RefValue,
+  type SectionBuilder,
+  theme,
+  type TrackBuilder,
+  type ViewBuilder,
+} from '@molstar/seqx-core/lang';
+export { type Key, type Keys, type Location, rangesLocation } from '@molstar/seqx-core/query';
 export type { Overlay, PairsData, StaticModel } from '@molstar/seqx-core/resolve';
 export {
   type Box,
@@ -52,6 +62,7 @@ export {
   type PassName,
   type PassWriter,
   type Placement,
+  PlacePoint,
   PolarWarp,
   type SectionLayoutType,
   type StoreReader,

@@ -30,7 +30,14 @@ export interface PairsReadOptions {
  * over an assembly each end's unit, an index into `endUnits`), and for bins their level and counts.
  */
 export interface PairsRead {
+  /** The pairs node's address (a hit's element owner). */
+  readonly owner: string;
+  /** The layer's two systems: the ends' when no unit is given. */
+  readonly aSystem: string;
+  readonly bSystem: string;
   readonly data?: PairsData;
+  /** 1 where the layer's data filter keeps a row. */
+  readonly shown: Uint8Array;
   /** The bins' level in positions; absent: the rows are items. */
   readonly level?: number;
   /** A bin pair's count (absent: items, one each). */
