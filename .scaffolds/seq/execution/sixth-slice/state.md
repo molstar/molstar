@@ -18,7 +18,7 @@
 ## In progress
 
 - 2026-11-23: stage 1 started. `.scaffolds/seq/_checks/designs-in-specs.ts` written (46 designs pending). Running: **S1A**
-  (strong, `briefs/s1a-specs.md`) and **S1B** (strong, `briefs/s1b-specs.md`, merged `81a82d453`); S1A merged (`936242251`); **S1D** (Sonnet, `briefs/s1d-specs.md`) started beside it; S1C merged; stage 1's gate passed (15 drift notes to the author). S1E and S1F merged; stage 1b done. Stages 2 and 3 done by the orchestrator (`0be663880`, `88f55a78c`, `e0f554e49`), reviewed (no blockers; six stale lines fixed); stage 3's gate passed (quick 4,949, lint, format, check:workspace, every scaffold check from its new place, 612 links in the changed files resolve). S4 merged (`35ded94db`); stage 5 verified. Waiting: stage 4b on the author's upstream change, then the finalize.
+  (strong, `briefs/s1a-specs.md`) and **S1B** (strong, `briefs/s1b-specs.md`, merged `81a82d453`); S1A merged (`936242251`); **S1D** (Sonnet, `briefs/s1d-specs.md`) started beside it; S1C merged; stage 1's gate passed (15 drift notes to the author). S1E and S1F merged; stage 1b done. Stages 2 and 3 done by the orchestrator (`0be663880`, `88f55a78c`, `e0f554e49`), reviewed (no blockers; six stale lines fixed); stage 3's gate passed (quick 4,949, lint, format, check:workspace, every scaffold check from its new place, 612 links in the changed files resolve). S4 merged (`35ded94db`); stage 5 verified. Stage 4b: the package re-synced at `c1ccd14` (the reading path 33.4k → 34.3k tokens: the gain is the instance's); running **S4B** (strong, `briefs/s4b-readapt.md`). Then the finalize.
 
 ## Findings by lane
 
