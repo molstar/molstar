@@ -6,6 +6,8 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import { now } from '@molstar/core/util/now';
+import { Task } from '@molstar/core/task';
+import { Representation } from '@molstar/graphics/repr/representation';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import type { WebGPUContext } from '@molstar/graphics/gl/contexts/webgpu';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
@@ -120,6 +122,42 @@ describe.skipIf(!WebGPU.module)('HeadlessPluginContext on WebGPU', () => {
       expect(reacquired.isContextLost).toBe(false);
       const reacquiredImage = await plugin.getImageRaw({ width: 64, height: 64 });
       expect(reacquiredImage.data).toEqual(image.data);
+    } finally {
+      plugin.dispose();
+    }
+  });
+
+  it("tells the plugin's log of a representation that fails on a new context, by its name", async () => {
+    const plugin = await HeadlessPluginContext.create(
+      { webgpu: WebGPU.module! },
+      DefaultPluginSpec(),
+      { width: 16, height: 16 },
+      { backend: 'webgpu' },
+    );
+    try {
+      await plugin.init();
+      // a representation the canvas updates itself for the new context, failing there
+      const repr: Representation.Any = {
+        ...Representation.Empty,
+        label: 'failing',
+        createOrUpdate: () =>
+          Task.create('failing', async () => {
+            throw new Error('not on this context');
+          }),
+      };
+      plugin.canvas3d!.add(repr);
+      const errors: string[] = [];
+      const failed = new Promise<void>((resolve) => plugin.canvas3d!.representationFailed.subscribe(() => resolve()));
+      plugin.events.log.subscribe((e) => {
+        if (e.type === 'error') errors.push(String(e.message));
+      });
+      const context = plugin.renderer.canvas3dContext!;
+      const lost = new Promise<void>((resolve) => context.contextLost!.subscribe(() => resolve()));
+      expect(context.release!()).toBe(true);
+      await lost;
+      expect(await context.restore!()).toBe(true);
+      await failed;
+      expect(errors).toEqual(["'failing' could not be drawn with webgpu: not on this context"]);
     } finally {
       plugin.dispose();
     }

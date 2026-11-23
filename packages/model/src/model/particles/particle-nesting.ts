@@ -643,6 +643,20 @@ export namespace ParticleNesting {
     if (!hasTemplates(list)) return list;
     const cached = list._propertyData[FlattenDescriptor.name] as ParticleList | undefined;
     if (cached) return cached;
+    // its arrays past what memory or an array holds (a grid of copies' hundreds of millions): said so, not a bare
+    // allocation failure
+    try {
+      return flattenList(list);
+    } catch (e) {
+      if (!(e instanceof RangeError)) throw e;
+      const n = getExpansion(list).count;
+      throw new Error(
+        `particle list '${list.label}': its ${n.toLocaleString('en')} particles flattened are too many for memory (${e.message})`,
+      );
+    }
+  }
+
+  function flattenList(list: ParticleList): ParticleList {
     check(list);
     // every copy's particles: its templates' read (not by range: `Particle.DeferredParticles`)
     for (const t of getIdSpace(list).moves.keys()) Particle.assertRead(t, 'flattening a list with templates');

@@ -18,7 +18,16 @@
   no longer wanted; their GPU memory within the device's storage buffer limit (the yeast nested 2x2 whole: 1,728 ->
   773 MB of GPU storage).
 - A nested pack opened from a file or URL by range where the GPU's cull draws it: its templates' particles read by
-  page as the view wants them, kept in a 256 MB cache once on the GPU (the yeast nested 2x2 opened: 304 of 784 MB read,
-  371 MB held instead of 855, 173 ms instead of 275). What needs all of a template's particles (flattening, spacefill,
-  orientation, fibers, writing a pack, WebGL's copies) refuses such a template; a loci of part of a copy is bounded by
-  its tiles' boxes (a single particle's sphere a tile's).
+  page as the view wants them, kept in a 256 MB cache of the pack's (`ParticlePageCache`: one copy for every
+  representation drawing it) (the yeast nested 2x2 opened: 304 of 784 MB read, 371 MB held instead of 855, 173 ms
+  instead of 275). What needs all of a template's particles (flattening, spacefill, orientation, fibers, writing a pack,
+  WebGL's copies) refuses such a template; switched to a backend without the GPU's cull (WebGL), the pack is read whole
+  and drawn, by range again on WebGPU. A loci of part of a copy is bounded by its particles' positions where in memory
+  (their page read, or in a stored coarse level: a click on a coarse copy), by its tiles' boxes where not (the yeast's
+  particle 44-76 Å, not about 2,360).
+- A particle budget for a list with templates on WebGPU (`maxParticles` of the particle representation, 0 by default:
+  none): the copies drawn a level coarser while a frame needs more, finer again where it fits; begun coarse, so no leaf
+  page is read before the view's need is known.
+- `Canvas3D.representationFailed`: a representation the canvas updated itself for a new graphics context (a backend
+  switch, a restore) that failed; the plugin logs it with the cell's name (Prism: an error notification), so the
+  user sees it, not only the console.

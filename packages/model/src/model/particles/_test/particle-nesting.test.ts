@@ -165,6 +165,27 @@ describe('particle nesting', () => {
     expect(flat.getParticleLabel(6)).toBe('particle 3');
   });
 
+  it('says how many particles a flattening too large for memory has, not a bare allocation failure', () => {
+    // 100,000 copies of 50,000 particles: 5 billion, past what an array holds
+    const t = 50_000;
+    const template = createList({
+      label: 'large',
+      count: t,
+      coordinates: new Float32Array(t * 3),
+      targets: new Int32Array(t),
+      targetMapping: new Map([[0, leaf('a')]]),
+    });
+    const copies = 100_000;
+    const top = createList({
+      label: 'grid',
+      count: copies,
+      coordinates: new Float32Array(copies * 3),
+      targets: new Int32Array(copies),
+      targetMapping: new Map<number, ParticleTarget>([[0, { kind: 'particles', particles: template }]]),
+    });
+    expect(() => ParticleNesting.flatten(top)).toThrow(/'grid': its 5,000,000,000 particles flattened are too many/);
+  });
+
   it('places a template about its center: given, or its boundary’s by default', () => {
     const template = createTemplate();
     const center = Particle.getBoundary(template).sphere.center;

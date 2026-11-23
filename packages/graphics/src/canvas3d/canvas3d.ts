@@ -765,6 +765,11 @@ interface Canvas3D {
   readonly contextChanged: Subject<Canvas3D.ContextChange>;
   /** What the graphics context reports as not getting the GPU memory it needed (`GraphicsResources.outOfMemory`) */
   readonly outOfMemory: Subject<string>;
+  /**
+   * A representation the canvas updated itself that failed (for a new graphics context: `contextChanged`), and why:
+   * not its owner's update (a state's reports its own), so its owner told here (an app's log)
+   */
+  readonly representationFailed: Subject<Canvas3D.RepresentationFailure>;
 
   add(repr: Representation.Any): void;
   remove(repr: Representation.Any): void;
@@ -931,6 +936,14 @@ namespace Canvas3D {
     readonly dropped: readonly GraphicsRenderObject[];
     /** `switch` (`Canvas3DContext.setBackend`) or `fallback` (the previous context was lost for good) */
     readonly reason: Canvas3DContext.ContextChange['reason'];
+  }
+
+  /** A representation the canvas updated itself that failed (`Canvas3D.representationFailed`) */
+  export interface RepresentationFailure {
+    readonly repr: Representation.Any;
+    readonly error: unknown;
+    /** `context`: updated for a new graphics context (`contextChanged`) */
+    readonly reason: 'context';
   }
 
   export interface HoverEvent {
@@ -1645,6 +1658,7 @@ namespace Canvas3D {
     // e.g. images loaded into textures: drawn with placeholders until then
     const onPendingSettled = () => requestDraw();
     const outOfMemory = new Subject<string>();
+    const representationFailed = new Subject<Canvas3D.RepresentationFailure>();
     const subscribeContext = () => [
       graphics.resources.pending.settled.subscribe(onPendingSettled),
       graphics.resources.outOfMemory.subscribe((message) => outOfMemory.next(message)),
@@ -1736,7 +1750,10 @@ namespace Canvas3D {
           .then(() => {
             if (reprs.has(repr)) reprs.add(repr);
           })
-          .catch((e) => console.error('Updating a representation for the new graphics context failed', e));
+          .catch((e) => {
+            console.error('Updating a representation for the new graphics context failed', e);
+            representationFailed.next({ repr, error: e, reason: 'context' });
+          });
       }
 
       const unowned = dropped.filter((o) => reprs.isDropped(o) && !reprs.owns(o));
@@ -1829,6 +1846,7 @@ namespace Canvas3D {
       },
       contextChanged,
       outOfMemory,
+      representationFailed,
 
       add: reprs.add,
       remove: reprs.remove,
@@ -2128,6 +2146,7 @@ namespace Canvas3D {
         xr.requestFailed.complete();
         contextChanged.complete();
         outOfMemory.complete();
+        representationFailed.complete();
 
         removeConsoleStatsProvider(consoleStats);
       },
