@@ -1,0 +1,92 @@
+import { Canvas, Meta } from '@storybook/addon-docs/blocks';
+import * as Live from './live.stories';
+
+<Meta title="Docs/Introduction" />
+
+# Seq\* (next)
+
+Seq\* is a **library for sequence pictures**, not a sequence viewer application. Think of it as a game engine, not the
+game: it makes the pictures and the pieces you need to work with them, and your application decides how they fit
+together.
+
+**What the library gives you:**
+
+- **A language**, SeqViewSpec. A spec is a tree, stored as JSON, that says what data there is (sequences, alignments,
+  annotations and the maps between them) and how to show it (views of sections, tracks and layers).
+- **Layers and layouts**: letters, ranges, values, pairs, grids, rows, logos and rulers. They are laid out as tracks,
+  text, rings, grids or blocks.
+- **Navigators**: rails, strips, ideograms, overviews and miniatures that move a view's window.
+- **Data by region**: one source protocol, a store that reads only what is on screen, and readers for common formats.
+- **Hover and commands**: the hover contract, selection, focus and the keyboard cursor. Every action is a named command,
+  and edits can be undone.
+- **Extensions**: new layer types, layouts, navigator pictures, color schemes, formats and query forms, each with a
+  fallback for readers that lack it.
+- **Headless and SVG**: the same picture drawn on a Canvas2D or exported as SVG, in a browser or in Node with no DOM
+  (and as PNG, with a rasterizer the application provides).
+
+**What the library leaves to your application:** which views sit side by side, what a click opens, which menus and
+panels are shown, how a user moves from one view to another, what the hover card says beyond its floor, and where the
+undo stack lives. The examples and showcases in this Storybook are applications built on the public surface. They are
+not defaults of the library.
+
+So Seq\* is **not an opinionated viewer** like Jalview. Jalview is an application with its own windows, menus and
+workflow. Seq\* is what such an application, a structure viewer's sequence panel, a genome browser's tracks or a figure
+in a paper could be built from.
+
+## One view, live
+
+p53, drawn by a viewer composed from the default spec: the protein's letters, its domains in lanes and a conservation
+signal. Hover a residue or a domain, drag across the letters to select, hold Cmd or Ctrl and scroll to zoom, and press
+`?` for the keys.
+
+<Canvas of={Live.Tracks} />
+
+The same view with the canvas and the SVG side by side is
+[Examples › p53 › Tracks](?path=/story/seq-next-examples-p53-tracks--tracks). The other p53 views are listed in the
+[p53 index](?path=/story/seq-next-examples-p53-index--views).
+
+## An application built on the library: the genome ring
+
+The [genome ring](?path=/story/seq-next-features-genome-ring--the-genome-at-the-fit) shows GRCh38's chromosomes round a
+ring, with 12,000 links between them as ribbons. Next to it, the
+[square](?path=/story/seq-next-features-genome-ring--the-square-beside) shows every pair of chromosomes as a cell, and
+clicking a cell shows that pair on the ring. Each piece comes from the library:
+
+- the chromosomes are an `assembly` and the links are `pairs` data, read by region;
+- the ring is the core's `rings` layout;
+- the ribbons, the stems and the square come from an extension, `@molstar/seqx-ext-rondo`, built only on the public
+  extension contract;
+- the square is a navigator picture, placed beside the view by the host.
+
+What the ring shows when you click, which chromosome opens and how the square and the ring move together are the
+application's choices. Without the extension, the
+[same spec](?path=/story/seq-next-features-genome-ring--without-the-extension) still opens: the links are drawn as core
+chords, and an issue says what was left out. [Extending](?path=/docs/seq-next-docs-extending--docs) explains how.
+
+## The packages
+
+| Package                    | What                                                                                                                |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `@molstar/seqx-core`       | the language and builder, coordinates and maps, sources and the store, queries, resolve, layout and draw lists, SVG |
+| `@molstar/seqx-viewer`     | DOM-free models, the Canvas2D backend, input, behaviors, commands and the default UI                                |
+| `@molstar/seqx-ext-rondo`  | the genome ring, an extension                                                                                       |
+| `@molstar/seqx-render-cli` | `seqx-render`: a spec file to SVG or PNG from the command line                                                      |
+
+`seqx` is a working name. The packages become `@molstar/seq-*` when they replace the current Seq\*.
+
+## Read next
+
+1. [**Concepts**](?path=/docs/seq-next-docs-concepts--docs): the building blocks, and how a spec becomes a picture.
+2. [**The language**](?path=/docs/seq-next-docs-the-language--docs): SeqViewSpec, the builder, and versions.
+3. [**Data**](?path=/docs/seq-next-docs-data--docs): sources, formats, the store, and a host's own data.
+4. [**Interaction**](?path=/docs/seq-next-docs-interaction--docs): hover, selection, navigators, commands, undo and the
+   keyboard.
+5. [**Extending**](?path=/docs/seq-next-docs-extending--docs): extensions, card providers, and what is your
+   application's.
+6. [**Embedding**](?path=/docs/seq-next-docs-embedding--docs): mounting the viewer, headless use, the CLI, and linking
+   to a structure viewer.
+7. [**Performance and limits**](?path=/docs/seq-next-docs-performance-and-limits--docs): what it holds, and at which
+   sizes.
+
+These pages are for people who use and embed Seq\*. The **Design** pages say why it is built this way, and the
+**Features** and **Examples** stories show each part working.

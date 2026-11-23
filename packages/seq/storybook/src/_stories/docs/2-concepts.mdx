@@ -1,0 +1,96 @@
+import { Canvas, Meta } from '@storybook/addon-docs/blocks';
+import * as Live from './live.stories';
+
+<Meta title="Docs/Concepts" />
+
+# Concepts
+
+A few building blocks, each a node kind in the spec, and one pipeline that turns a spec into a picture.
+
+## The building blocks
+
+**Spec.** The root of the tree. Its `data` says what there is, its `views` say how to show it, its `refs` name places
+(bookmarks, regions, sets) and its `snapshots` hold a story's steps. Every node has an id, so every node has an
+**address**: `/data/p53`, `/views/main`, `/refs/dbd`.
+
+**Data and sources.** A `source` names a file or a host's data in its own format (`uri`, `format`) or holds the data
+inline. The other data nodes read from a source or carry their rows inline: `sequence`, `alignment`, `tree`, and the
+annotations `ranges` (intervals with fields), `values` (a number per position), `pairs` (two locations that belong
+together), `grid` (a value per pair of positions) and `matrix`. Molecules, complexes and their units describe
+structures, and an `assembly` describes a genome.
+
+**Coordinate systems and maps.** Every position lives on a **system**: a sequence, an alignment's columns or rows, a
+structure's chain. Positions are 0-based and ranges half-open. A **map** connects two systems: an `offset`, a `codon`
+map (a protein onto its gene's exons), `segments` (runs, either strand), or a `structure` map (a sequence onto a chain's
+residues, SIFTS-like). Maps compose into paths, so **data placed on one system shows on every system it maps to**, and
+hover, selection and focus follow it there. A **numbering** labels a sequence's positions (UniProt, author, Kabat, IMGT)
+without changing them.
+
+**Views, sections, tracks, layers.** A `view` lays out `section`s. A section is one axis: a system, or part of one (a
+range, reversed, its introns collapsed), drawn by a **layout**: `tracks`, `text`, `rings` or `grid`. A section can also
+be made of `block`s, pieces on systems of their own. A section holds `track`s, and a track stacks `layer`s. A layer is
+one way of drawing one piece of data: `letters`, `ranges`, `values`, `ruler`, `secondary`, `variants`, `pairs`, `grid`,
+`matrix`, `rows`, `logo`, `bands`, `frame`. A section can `follow` another, so a gene scrolls with its protein.
+
+**Themes.** A layer's channels (`color`, `ink`, `size`, `opacity`, `shape`, …) take a value or a theme: one value, a
+field through a palette or a scale, rules, a named scheme, or colors by letter. Themes are data, never code, so a spec
+looks the same in every reader.
+
+**Queries and addresses.** An address can go on past a node with query forms: `/data/p53/(range :from 94 :to 292)`.
+Forms find positions, items and nodes (by range, by a field, by numbering, onto another system), and they combine.
+Hover, selection, bookmarks, links and commands all hold addresses or locations.
+
+**Issues.** Every pass reports what it cannot do as an issue, `{ code, severity, path, message, hint }`, with a stable
+code such as `seq.lang.ref.target`. A spec with issues still opens and draws what it can; nothing is thrown.
+
+## Maps at work
+
+The gene's section follows the protein's through a codon map on the minus strand: each intron is a hairline, three
+nucleotides sit under each residue, and both move together. Hover a residue and its codon lights; hover a nucleotide and
+its residue lights.
+
+<Canvas of={Live.ProteinOnItsGene} />
+
+## Two layouts in one view
+
+A tracks overview of the domains, with the protein as text under it. Each section has its own layout.
+
+<Canvas of={Live.TextUnderTracks} />
+
+## From a spec to a picture
+
+```
+spec ─check─▶ checked spec ─resolve─▶ static model ─▶ resolved view
+                                                          │
+                     data store ◀── runtimes ◀── requests (the view and its viewport)
+                          │
+                          ▼
+                       overlay ───▶ layout ─▶ draw lists ─▶ Canvas2D, SVG, recording
+```
+
+1. **Check.** Bounds first (size, depth), then the version, then the language's description (types, defaults), then the
+   language's own checks (references, bounds, alphabets). Each step reads what the one before settled.
+2. **Resolve.** A pure pass over the checked spec gives the **static model**: every system and numbering, maps resolved
+   and composed into paths, each source bound to the runtime of its format. Over it, the **resolved view**: sections,
+   tracks and layers with their themes and their data's paths. The resolved view holds no data and no pixels. It is
+   public, so another renderer can draw from it.
+3. **Read.** The view and its viewport ask the **store** for tiles. Runtimes answer, and the answers land in the store
+   with versions. Data that brings new nodes (a transcript, a chain) goes into the **overlay**, never back into the
+   spec.
+4. **Lay out and draw.** For a size, a viewport and the store's entries, each layout places its sections and each layer
+   type draws into **draw lists**: plain arrays of rectangles, paths and glyphs, pass by pass. The draw lists are what
+   the Canvas2D backend paints, what the SVG backend writes and what the tests record.
+
+The canvas and the SVG export read the same draw lists, so they show the same picture. The pipeline runs with no DOM
+until the backend.
+
+## Where next
+
+- [The language](?path=/docs/seq-next-docs-the-language--docs): how a spec is written, printed and versioned.
+- [Data](?path=/docs/seq-next-docs-data--docs): sources, formats and the store.
+- [Features › Coordinates](?path=/story/seq-next-features-coordinates--protein-and-gene-on-one-axis),
+  [Features › Layers](?path=/story/seq-next-features-layers--ruler),
+  [Features › Themes](?path=/story/seq-next-features-themes--themes) and
+  [Features › Query](?path=/story/seq-next-features-query--query-box) show each block on its own.
+- For contributors: [Design › Building blocks](?path=/docs/seq-next-design-building-blocks--docs) and
+  [Design › Composition](?path=/docs/seq-next-design-composition--docs).
