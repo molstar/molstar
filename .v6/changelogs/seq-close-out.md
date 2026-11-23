@@ -16,3 +16,6 @@
 - Seq\* viewer: a host's header entry can be shown pressed (`pressed`, `aria-pressed`), as the structure link's
   "colored by this track"; the "n filtered" chip's card names its filters ("Species ≠ Human") and says "click to
   clear"; a section the view cannot place says its issue in one row.
+- Seq\* viewer: the square under the ring says its gestures; a double-click or 0 shows the whole genome, Back the
+  window before; a Hi-C cell's card reads in kb or Mb; `.` and `,` step to the next and previous feature on a track
+  (the ring's partners on a ring); the zoom-in hatch names the gesture; the square shows "Loading…" or the failure.

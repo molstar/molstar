@@ -14,7 +14,7 @@
 - [x] CL2 (`a0397521c`) Ring: the stem menu's route and partners, the stem and pair cards, links pending on the ring
 
 <!-- Wave 2 -->
-- [ ] CL3 Square and keys: the square's hint and way home, Hi-C in bases, `]` and `[`, the zoom hint, links pending on the square
+- [x] CL3 (`ae0230231`) Square and keys: the square's hint and way home, Hi-C in bases, `]` and `[`, the zoom hint, links pending on the square
 - [x] CL4 (`6756eb150`) Formats: a canonical transcript, the VCF's sample names, the methylation matrix's names
 - [x] CL10 (`ece4406a3`) Novice decisions: F3, F9, F11, F14
 - [ ] GATE 1

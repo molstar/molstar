@@ -25,3 +25,7 @@ Open items for the next fix point or a running lane's fix round (the loop, Each 
 - **The pressed state refreshes only on a header run** (CL10's report, in the viewer spec): a host whose colouring
   changes outside a command is not seen until the next layout, hover change or header run. Kind: followup (TODO at
   the close).
+- **The square's failure text found by its source alone** (CL3's size trim, `ext-rondo/src/viewer.ts` `HoleIssue.of`
+  with no section): the square passes no section, so two viewers with one source address and different failures show
+  the first viewer's text on both squares (the class of CL2's fixed hole bug). Pass the square's own ring's section or
+  viewer. Kind: bug. To FX25, with the two-rings test extended to their squares.

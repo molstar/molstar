@@ -16,4 +16,9 @@ Each made as recommended while the author was away (2026-11-24 night), for the m
   drafts are written (`drafts/search.md`, `drafts/track-groups.md`, no code) for the author's agreement in the morning;
   CL5 and CL6 start after it. Wave 3 runs CL9 first (after CL3, which shares its cursor code), then wave 4's lanes
   with designs (CL7, CL8, CL13) and FX25, before CL5 and CL6. Recommended: agree the drafts, or amend them.
+- **Track groups need a language change** (`drafts/track-groups.md`: a `group` node, 0.10.0 → 0.11.0, no migration):
+  a language change is never decided overnight; CL6 waits for the author's word on the draft.
+- **Search's draft** (`drafts/search.md`) adds public API (a matcher registry, `SearchModel`, `search.*` commands,
+  two highlight channels, Mod+G and F3): within what the author agreed for search, but an API is never decided
+  overnight; CL5 waits for the author's word.
 
