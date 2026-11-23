@@ -127,6 +127,8 @@ export class GridLay {
   /** Image tiles: their boxes (x, y, w, h each) and images. */
   readonly images: ImageData[] = [];
   readonly ib: number[] = [];
+  /** A region grid's image tiles' clips (x, y, w, h each, parallel to `ib`): the part of each its axes show. */
+  readonly ic: number[] = [];
   cache: ImageCache | undefined;
   /** The level the tiles were drawn at (−1: rects). */
   level = -1;
@@ -221,6 +223,7 @@ export const GridType: LayerType<GridPrep, GridLay> = {
     lay.off = false;
     lay.images.length = 0;
     lay.ib.length = 0;
+    lay.ic.length = 0;
     lay.level = -1;
     lay.grid = undefined;
     lay.region = prep.region !== undefined;
@@ -620,11 +623,15 @@ function drawData(lay: GridLay, out: PassWriter) {
       out.fill(lay.pend[k], lay.pend[k + 1], lay.pend[k + 2], lay.pend[k + 3], pending);
   }
   for (let k = 0; k < lay.images.length; k++) {
+    // a region tile clipped to the part its axes show (its cells at their true positions)
+    const clipped = 4 * k < lay.ic.length;
+    if (clipped) out.clip(lay.ic[4 * k], lay.ic[4 * k + 1], lay.ic[4 * k + 2], lay.ic[4 * k + 3]);
     g[0] = lay.ib[4 * k];
     g[1] = lay.ib[4 * k + 1];
     g[2] = lay.ib[4 * k + 2];
     g[3] = lay.ib[4 * k + 3];
     out.imageArgs(lay.images[k]);
+    if (clipped) out.unclip();
   }
   // rects with a thin outline in the page's ink: cells read apart
   const line = lay.tokens!.colors['msui-bg'];
