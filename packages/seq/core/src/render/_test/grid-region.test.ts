@@ -126,7 +126,14 @@ describe('a grid by region', () => {
       },
       pairs: [
         {
-          request: { system: 'chr', start: 0, end: N, level: L, shapes: ['grid'], y: { system: 'chr', start: 0, end: N } },
+          request: {
+            system: 'chr',
+            start: 0,
+            end: N,
+            level: L,
+            shapes: ['grid'],
+            y: { system: 'chr', start: 0, end: N },
+          },
           answer: { ok: true, tables: { grid } },
         },
       ],

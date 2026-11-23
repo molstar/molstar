@@ -49,7 +49,7 @@ export const GenomesProvenance: Readonly<Record<Described, { readonly entry: str
   },
   liftover: {
     entry: 'toy A to toy A′: gapless runs as sided pairs in the seq format (side a A, side b A′, named alike)',
-    derived: `the revision’s runs: 10 kb of chr1 held twice, 5 kb inserted in chr2, 4 kb of chr3 lost ${From}`,
+    derived: `the revision’s runs: 10 kb of chr1 held twice, 5 kb inserted in chr2, 4 kb of chr3 lost; at level 1 and as bin pairs of 16,384 ${From}`,
   },
   gff3: {
     entry: '150 genes on toy A in GFF3 (gene, mRNA, exon, CDS), bgzipped',

@@ -10,7 +10,8 @@ import type { ToyAssembly } from './assemblies.js';
 // Step 2's liftover (examples.md, Genomes; EC-211, EC-212): toy A′, a revision of toy A named alike, with a tandem
 // duplication on chr1 (10 kb held twice), an insertion on chr2 (5 kb of new letters) and a deletion on chr3 (4 kb
 // lost); the map between them as gapless runs (written as sided pairs in the `seq` format, side `a` A, `b` A′: their
-// names collide), and positions of A with their images on A′ computed from the runs (the truths the tests read).
+// names collide; at level 1 and as bin pairs of 16,384, the level a bridge reads at the fit), and positions of A with
+// their images on A′ computed from the runs (the truths the tests read).
 
 /** A's chr1 stretch A′ holds twice, the copy right after it. */
 export const Duplicated: readonly [number, number] = [200_000, 210_000];

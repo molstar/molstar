@@ -139,7 +139,8 @@ export async function generateGenomes(options: GenomesOptions = {}): Promise<Gen
   put('aliases', encodeSeq(aliasTable(a)));
   put('alignment', encodeSeq(sidedPairs(a, b, alignment.blocks)));
   put('dots', msgpack(dotGrid(a, b, alignment.blocks)));
-  put('liftover', encodeSeq(sidedPairs(a, a2, liftoverBlocks(runs))));
+  // the map's runs at level 1 and as bin pairs of 16,384 (a map read through a bridge at the fit reads its own levels)
+  put('liftover', encodeSeq(sidedPairs(a, a2, liftoverBlocks(runs), [1, 16_384])));
   const generic = { format: 0, zeroBased: false, meta: '#' } as const;
   const gff3 = await indexed(genesGff3(a, genes), { ...generic, columns: [1, 4, 5], names: names(a) }, gffExtent);
   put('gff3', gff3.file);

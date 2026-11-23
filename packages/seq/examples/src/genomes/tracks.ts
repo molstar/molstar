@@ -5,7 +5,9 @@
  */
 
 import type { Node } from '@molstar/core/repr/tree';
+import { type AssetReader, DefaultOpenLimits, type NameHit } from '@molstar/seqx-core/data';
 import { createSeqSpec, genome, theme } from '@molstar/seqx-core/lang';
+import { GffRuntime } from '@molstar/seqx-core/runtimes/gff';
 import { VcfCategories } from '@molstar/seqx-core/runtimes/vcf';
 import { CpgStretch } from './generate/methylation.js';
 import { DeletionExtent } from './generate/variants.js';
@@ -76,8 +78,8 @@ export function samples(files: Files = GenomesFiles): Node {
   const [d0, d1] = DeletionExtent;
   b.views.view('main', (v) =>
     genome(v, 'chr1', a, { include: ['chr1'] }, (s) => {
-      // chr1's block kept to the deletion and 2 kb each side (a block overriding the derived one by its name)
-      s.block('chr1', { range: [d0 - 2_000, d1 + 2_000] } as never);
+      // chr1's block kept to the deletion and about 2 kb each side (a block overriding the derived one by its name)
+      s.block('chr1', { range: [d0 - 2_000, d1 + 1_800] } as never);
       s.track('variants', { label: 'Sites', height: 48 }).layer('variants', {
         type: 'ranges',
         data: sites,
@@ -145,8 +147,8 @@ export function transcripts(files: Files = GenomesFiles): Node {
   const model = (data: string) => ({ type: 'ranges', data, line: 'gene' }) as never;
   b.views.view('main', (v) =>
     genome(v, 'toy-a', a, { include: ['chr1'] }, (s) => {
-      // chr1's first 12 kb: three genes, their transcripts in lanes (under 16 positions a pixel: items, not density)
-      s.block('chr1', { range: [0, 12_000] } as never);
+      // chr1's first 8 kb: two genes, their transcripts in lanes (under 16 positions a pixel: items, not density)
+      s.block('chr1', { range: [0, 8_000] } as never);
       s.track('genes', { label: 'Genes (GFF3)' }).layer('genes', model(genes));
       s.track('transcripts', { label: 'Transcripts (GFF3)' }).layer('transcripts', model(tx));
       s.track('gtf', { label: 'Transcripts (GTF)' }).layer('gtf', model(gtf));
@@ -180,4 +182,30 @@ export function byName(files: Files = GenomesFiles): Node {
     ),
   );
   return b.build();
+}
+
+/**
+ * Genes of the GFF3 found by name (EC-228): the `gff` runtime's `findNames` over the file read whole (through
+ * `assets`), exact names first, then by prefix. What the story's find box asks.
+ */
+export async function findGene(
+  text: string,
+  assets: AssetReader,
+  signal: AbortSignal,
+  files: Files = GenomesFiles,
+): Promise<readonly NameHit[]> {
+  const s = await GffRuntime.open(
+    { address: '/data/gff3-whole', format: 'gff3', uri: files.gff3 },
+    { assets, signal, limits: DefaultOpenLimits },
+  );
+  try {
+    return (await s.findNames?.(text, { max: 8, prefix: true }, signal)) ?? [];
+  } finally {
+    s.dispose();
+  }
+}
+
+/** The range a hit focuses: its item's extent on toy A's sequence, known from the hit without reading a tile. */
+export function geneRange(hit: NameHit): string {
+  return `/data/toy-a/(sequence :name ${JSON.stringify(hit.system)})/(range :from ${hit.start} :to ${hit.end})`;
 }

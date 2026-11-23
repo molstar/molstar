@@ -5,7 +5,7 @@
  */
 
 import { categoryColumn } from '@molstar/core/repr/tree';
-import type { GridSparse, PairsList, SeqData, SeqPair } from '@molstar/seqx-core/data';
+import { binPairs, type GridSparse, type PairsList, type SeqData, type SeqPair } from '@molstar/seqx-core/data';
 import { NGap, type ToyAssembly } from './assemblies.js';
 import { between, Concern, stream } from './streams.js';
 
@@ -156,13 +156,14 @@ function pairsList(blocks: readonly Block[]): PairsList {
 
 /**
  * Two assemblies' runs as a sided `seq` source: `a`'s sequences on side `a`, `b`'s on side `b`, a request on a side
- * answered with the runs whose end on that side is on its sequence (found from either end, EC-208). Level 1 alone: the
- * store's summaries give the pairs their levels.
+ * answered with the runs whose end on that side is on its sequence (found from either end, EC-208). Level 1 alone by
+ * default (the store's summaries give the pairs their levels), else bin pairs at each coarser level of `levels`.
  */
 export function sidedPairs(
   a: ToyAssembly,
   b: ToyAssembly,
   runs: readonly Pick<Block, 'a' | 'aStart' | 'aEnd' | 'b' | 'bStart' | 'bEnd' | 'strand' | 'row'>[],
+  levels: readonly number[] = [1],
 ): SeqData {
   const sides = [
     ['a', a.sequences],
@@ -171,17 +172,18 @@ export function sidedPairs(
   const pairs: SeqPair[] = [];
   for (const [side, seqs] of sides)
     for (const s of seqs) {
-      const mine = runs.filter((r) => (side === 'a' ? r.a : r.b) === s.name);
-      pairs.push({
-        request: { system: s.name, start: 0, end: s.length, level: 1, shapes: ['pairs'], side },
-        answer: { ok: true, tables: { pairs: pairsList(mine as Block[]) } },
-      });
+      const list = pairsList(runs.filter((r) => (side === 'a' ? r.a : r.b) === s.name) as Block[]);
+      for (const level of levels)
+        pairs.push({
+          request: { system: s.name, start: 0, end: s.length, level, shapes: ['pairs'], side },
+          answer: { ok: true, tables: { pairs: level === 1 ? list : binPairs(list, level) } },
+        });
     }
   return {
     coverage: {
       systems: sides.flatMap(([side, seqs]) => seqs.map((s) => ({ name: s.name, length: s.length, side }))),
       shapes: a.sequences.map((s) => ({ system: s.name, shape: 'pairs' as const })),
-      levels: [1],
+      levels: [...levels],
     },
     pairs,
   };

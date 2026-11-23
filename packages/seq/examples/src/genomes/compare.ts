@@ -102,7 +102,7 @@ export function contactMap(files: Files = GenomesFiles): Node {
 /**
  * Toy A above with its genes, the map to toy A′ as a bridge's ribbons (the map's runs a `seq` source's sided pairs,
  * read by region: `map.source`, EC-211), A′ below with A's genes drawn through the map (EC-212): chr1's duplicated
- * 10 kb fanning to two places (its gene drawn twice), chr2 shifted after its insertion, chr3's lost 4 kb no ribbon.
+ * 10 kb fanning to two places (held twice, side by side), chr2 shifted after its insertion, chr3's lost 4 kb no ribbon.
  */
 export function liftover(files: Files = GenomesFiles): Node {
   const b = createSeqSpec({ title: 'Toy A lifted to A′' });

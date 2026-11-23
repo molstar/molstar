@@ -74,7 +74,7 @@ export const GenomesViews: readonly ExampleView[] = [
   view(
     'liftover',
     'Toy A lifted to A′',
-    'Toy A’s genes lifted to its revision A′ through the map between them (gapless runs as sided pairs in the `seq` format, read by region): chr1’s duplicated 10 kb fanning to two places (its gene drawn twice), chr2 shifted by its 5 kb insertion, chr3’s lost 4 kb no ribbon. Hover a gene: its images light below.',
+    'Toy A’s genes lifted to its revision A′ through the map between them (gapless runs as sided pairs in the `seq` format, read by region): chr1’s duplicated 10 kb fanning to two places side by side, chr2 shifted by its 5 kb insertion, chr3’s lost 4 kb no ribbon. Hover a gene: its images light below.',
     () => compare.liftover(),
   ),
 ];
