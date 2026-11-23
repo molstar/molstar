@@ -40,7 +40,8 @@ export interface RingSpecOptions {
   readonly bare?: boolean;
   /**
    * The kinds of links as layers (`RingKinds`: faint contacts in the chromosomes' hues, the translocations in one
-   * accent over them), the links held (a filter is read on held links).
+   * accent over them), the links held unless `held: false` (read by region, the BEDPE's `type` mapped: items filtered
+   * by kind, bins drawn once).
    */
   readonly kinds?: boolean;
   readonly title?: string;
@@ -64,7 +65,7 @@ export function ringSpec(o: RingSpecOptions = {}): Node {
   const g = b.data.assembly('grch38', assembly('GRCh38', Grch38Chromosomes, { include: [...RingInclude] } as never));
   const links = ringLinks(o.links ?? 12_000);
   const pairs =
-    o.held || o.kinds
+    (o.held ?? o.kinds === true)
       ? b.data.pairs('links', { a: g, rows: ringRows(links) } as never)
       : b.data.pairs('links', {
           a: g,
@@ -72,7 +73,12 @@ export function ringSpec(o: RingSpecOptions = {}): Node {
             'links-bedpe',
             o.failed
               ? { format: 'bedpe', uri: MissingLinksFile }
-              : { format: 'bedpe', value: ringBedpe(links) as never },
+              : // the kind of link a layer's filter and colour read (column 10: `type`)
+                {
+                  format: 'bedpe',
+                  value: ringBedpe(links) as never,
+                  ...(links.length ? { fields: { type: '10' } } : {}),
+                },
           ),
         } as never);
   const bandsSource = o.synthetic

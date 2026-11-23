@@ -205,6 +205,16 @@ export const KindsViews: readonly ExampleView[] = [
     summary: 'chr9 and chr22: the contacts between them, the BCR-ABL1-like junction (made up) a ribbon over them.',
     build: () => ringSpec({ kinds: true, include: ['chr9', 'chr22'], title: 'Kinds of links on chr9 × chr22' }),
   },
+  {
+    ...ring('ring'),
+    id: 'ring-kinds-region',
+    title: 'Kinds of links read by region',
+    summary:
+      'chr22 alone, 6,000 links read by region from BEDPE (its `type` column mapped): each kind’s layer reads its own links as they land; bins, which carry no kind, would be drawn once and said.',
+    // 6,000 links: chr22's under the items gate (at 12,000 its bins, which carry no kind, would be drawn once)
+    build: () =>
+      ringSpec({ kinds: true, held: false, links: 6000, include: ['chr22'], title: 'Kinds of links read by region' }),
+  },
 ];
 
 /** A kind's layer (its track's): `contact` or `translocation`. */

@@ -128,6 +128,29 @@ describe('Kinds of links, headless', () => {
     await exported(v);
   });
 
+  it('read by region (BEDPE, `type` mapped): each kind’s layer its own links, at the item level', async () => {
+    const v = await open('ring-kinds-region');
+    // the bins land first, then each layer's items (a want of their own): the clock turned until they have
+    for (let i = 0; i < 40 && !kindsOf(v).every((l) => l.items); i++) {
+      await vi.advanceTimersByTimeAsync(100);
+      v.draw();
+    }
+    expect(errors(v)).toEqual([]);
+    const [contacts, tx] = kindsOf(v);
+    for (const [l, type] of [
+      [contacts, 'contact'],
+      [tx, 'translocation'],
+    ] as const) {
+      expect(l.items, type).toBe(true);
+      const d = l.read!.data!;
+      let n = 0;
+      for (let k = 0; k < d.n; k++) if (l.read!.shown[k]) n++, expect(d.kinds[d.kind[k]]).toBe(type);
+      expect(n, type).toBeGreaterThan(0);
+    }
+    expect(between(tx, 'chr22', 'chr9').stubs.length).toBeGreaterThan(0);
+    await exported(v);
+  });
+
   it('each kind hidden in turn: the other alone, drawn as before', async () => {
     let v = await open('ring-kinds');
     const before = kindsOf(v).map((l) => [l.label, l.nr]);

@@ -138,6 +138,12 @@ export const KindsOfLinksTranslocationsHidden: StoryObj = {
   render: () => ring('ring-kinds', { opening: hideKind('translocation') }),
 };
 
+/**
+ * Kinds of links read by region: chr22's links from BEDPE by region, its `type` column mapped; each kind's layer reads
+ * its own links as they land (bins carry no kind: drawn once, by the first layer, and said).
+ */
+export const KindsOfLinksReadByRegion: StoryObj = { render: () => ring('ring-kinds-region') };
+
 /** Kinds of links, dark: the hues' derived dark, the accent the theme's. */
 export const KindsOfLinksDark: StoryObj = { globals: { theme: 'dark' }, render: () => ring('ring-kinds') };
 
