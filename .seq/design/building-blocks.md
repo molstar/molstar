@@ -27,6 +27,10 @@ another unit through the sequence they share.
 
 **Map.** A directed relation between two systems. Three questions, answered separately:
 
+> **As built** (2026-11-23, lane DX's docs against the core `_spec`, which wins): the language's maps name a **method**
+> (`offset`, `codon`, `segments`, `structure`), not the kinds below; layouts are `tracks`, `text`, `rings` and `grid`;
+> theme forms include `letters`. The table below is the first slice's model, kept for its reasons.
+
 1. **What it means: its kind.**
 
    | Kind | Meaning | Compact form |

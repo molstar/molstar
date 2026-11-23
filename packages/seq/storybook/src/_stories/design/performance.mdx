@@ -68,15 +68,16 @@ frame of a 300-residue protein cost the same; only the level of detail differs.
 
 ## Size
 
-Bounds, checked at every gate: the third slice's sizes after its render reduction, with about 10 % room. The default
-composition holds every built-in layer and layout; a smaller host composes the minimal viewer.
+Bounds, checked at every gate (`packages/seq/_measure/sizes.mjs`): the third slice's sizes with about 10 % room, raised
+since with the tooltips and card providers (the soft-size rule). The default composition holds every built-in layer and
+layout; a smaller host composes the minimal viewer.
 
 | What                                       | Target (minified) |
 | ------------------------------------------ | ----------------- |
-| Reading a spec (decode, validate, resolve) | under 230 kB      |
-| Headless rendering to SVG                  | under 830 kB      |
-| The viewer, default configuration          | under 1,330 kB    |
-| The viewer, minimal                        | under 930 kB      |
+| Reading a spec (decode, validate, resolve) | under 265 kB      |
+| Headless rendering to SVG                  | under 980 kB      |
+| The viewer, default configuration          | under 1,545 kB    |
+| The viewer, minimal                        | under 1,090 kB    |
 | A format runtime such as bigWig            | under 30 kB       |
 
 ## At what scale

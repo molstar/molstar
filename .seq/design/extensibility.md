@@ -39,6 +39,11 @@ should be fixed when it can be a setting or an extension.
 
 ### Extensibility: every registry is open
 
+> **As built** (2026-11-23, lane DX's docs against the core `_spec`, which wins): an extension adds no node kinds and no
+> data shapes, there is no structure port, and namespaced keys live outside `custom` (see
+> [extension-openings](extension-openings.md), Part 1). The table below is the design's first reach, kept for its
+> reasons.
+
 - **Extension points**, each a typed contract with the core's or the viewer's built-ins as its first implementations:
 
   | Point | What an extension adds |

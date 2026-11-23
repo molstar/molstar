@@ -15,7 +15,7 @@ is added in the change that builds what it describes.
 
 ## Versions
 
-- The language has one version, `LanguageVersion` (`0.10.0`). Why: one language, one description, one number for readers
+- The language has one version, `SeqLanguageVersion` (`0.10.0`). Why: one language, one description, one number for readers
   to check.
 - **Pre-release** (`0.x`): a change to the language moves the version with no migration (`0.1.0`: every child of the
   spec has an id, `layer` included; `0.2.0`: the `refs` container and the `ref` kind; `0.3.0`: the `snapshots` container
