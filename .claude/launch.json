@@ -4,100 +4,44 @@
     {
       "name": "storybook",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": [
-        "--filter",
-        "@molstar/storybook",
-        "storybook",
-        "--ci",
-        "--no-open"
-      ],
+      "runtimeArgs": ["--filter", "@molstar/storybook", "storybook", "--ci", "--no-open"],
       "port": 6006
     },
     {
       "name": "storybook-6007",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": [
-        "--filter",
-        "@molstar/storybook",
-        "exec",
-        "storybook",
-        "dev",
-        "-p",
-        "6007",
-        "--ci",
-        "--no-open"
-      ],
+      "runtimeArgs": ["--filter", "@molstar/storybook", "exec", "storybook", "dev", "-p", "6007", "--ci", "--no-open"],
       "port": 6007
     },
     {
       "name": "docs",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": [
-        "--filter",
-        "@molstar/docs",
-        "dev",
-        "--port",
-        "4321"
-      ],
+      "runtimeArgs": ["--filter", "@molstar/docs", "dev", "--port", "4321"],
       "port": 4321
     },
     {
       "name": "prism-viewer",
       "runtimeExecutable": "node",
-      "runtimeArgs": [
-        "scripts/esbuild/app.mjs",
-        "apps/prism-viewer",
-        "--dev",
-        "--port",
-        "1340"
-      ],
+      "runtimeArgs": ["scripts/esbuild/app.mjs", "apps/prism-viewer", "--dev", "--port", "1340"],
       "port": 1340
     },
     {
       "name": "minimal-prism-viewer",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": [
-        "-C",
-        "examples/minimal-prism-viewer",
-        "dev",
-        "--port",
-        "5180",
-        "--strictPort"
-      ],
+      "runtimeArgs": ["-C", "examples/minimal-prism-viewer", "dev", "--port", "5180", "--strictPort"],
       "port": 5180
     },
     {
       "name": "distribution",
       "runtimeExecutable": "python3",
-      "runtimeArgs": [
-        "-m",
-        "http.server",
-        "1350",
-        "--directory",
-        "distributions/molstar/build"
-      ],
+      "runtimeArgs": ["-m", "http.server", "1350", "--directory", "distributions/molstar/build"],
       "port": 1350
     },
     {
       "name": "deploy",
       "runtimeExecutable": "python3",
-      "runtimeArgs": [
-        "-m",
-        "http.server",
-        "1360",
-        "--directory",
-        "deploy/data"
-      ],
+      "runtimeArgs": ["-m", "http.server", "1360", "--directory", "deploy/data"],
       "port": 1360
-    },
-    {
-      "name": "storybook-fx24",
-      "runtimeExecutable": "sh",
-      "runtimeArgs": [
-        "-c",
-        "cd /Users/davinci001/projects/molstar/molstar-v6/.claude/worktrees/agent-a6957ef5c379b5c90/storybook && ./node_modules/.bin/storybook dev -p 6011 --ci --no-open"
-      ],
-      "port": 6011
     }
   ]
 }
