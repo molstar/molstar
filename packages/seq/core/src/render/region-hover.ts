@@ -36,17 +36,33 @@ export function binsText(level: number): string {
   return `${level.toLocaleString('en-US')} bp bins`;
 }
 
-/** A genotype class as VCF writes it (`0/0`, `0/1`, `1/1`, a partly called `./1`, an uncalled `./.`). */
-export function genotypeText(code: number): string {
-  return Genotypes[code] ?? './.';
+/**
+ * A genotype class as the legend names it (`no copy`, `some copies`, `every copy`, `partly called`, `uncalled`): what a
+ * cell with no recorded call (inline codes, a bin's majority) says. A class counts the copies of one allele; it is no
+ * call, so it is never written as one.
+ */
+export function genotypeWords(code: number): string {
+  return ClassWords[code] ?? 'uncalled';
 }
 
-const Genotypes = ['0/0', '0/1', '1/1', './1'];
-const GenotypeWords = ['homozygous reference', 'heterozygous', 'homozygous alternate', 'partly called'];
+const ClassWords = ['no copy', 'some copies', 'every copy', 'partly called'];
 
-/** A genotype call with what it is: `0/1 (heterozygous)`, `./. (uncalled)`. */
-export function genotypeWords(code: number): string {
-  return `${genotypeText(code)} (${GenotypeWords[code] ?? 'uncalled'})`;
+/**
+ * A call as the VCF wrote it with what it is (`0|1 (heterozygous)`, `1 (alternate)`, `./. (no call)`): all alleles
+ * missing no call, some `./1` partly called; a haploid call (one allele) reference or alternate, no zygosity; else
+ * homozygous reference or alternate when the alleles agree, heterozygous when they differ (`1/2` too).
+ */
+export function callWords(call: string): string {
+  const alleles = call.split(/[/|]/);
+  const missing = alleles.filter((a) => a === '.' || a === '').length;
+  let word: string;
+  if (missing === alleles.length) word = 'no call';
+  else if (missing > 0) word = 'partly called';
+  else if (alleles.length === 1) word = alleles[0] === '0' ? 'reference' : 'alternate';
+  else if (alleles.every((a) => a === alleles[0]))
+    word = alleles[0] === '0' ? 'homozygous reference' : 'homozygous alternate';
+  else word = 'heterozygous';
+  return `${call} (${word})`;
 }
 
 function numberText(v: number): string {
@@ -136,7 +152,8 @@ export function matrixCellHover(lay: MatrixLay, i: number, s: number, name: Syst
       const id = t.id?.get(best);
       const item = id ? `${id} (${at})` : at;
       const c = best * t.states + s;
-      const value = t.codes ? genotypeWords(t.codes[c]) : t.value ? valueOf(t.value[c]) : '';
+      const call = t.calls?.[c] ? t.callTexts?.[t.calls[c]] : undefined;
+      const value = t.codes ? (call ? callWords(call) : genotypeWords(t.codes[c])) : t.value ? valueOf(t.value[c]) : '';
       const sample = value ? `${state} · ${value}` : state;
       return hover(
         item,

@@ -119,10 +119,10 @@ describe('the matrix layer', () => {
     expect(found).toBe(true);
     // a hover: the shortest item there, its state, its genotype
     const name = () => 'chr';
-    expect(matrixCellHover(lay, 500, 0, name)!.text).toBe('chr:501, Sample NA12878 · 1/1 (homozygous alternate)');
-    expect(matrixCellHover(lay, 550, 0, name)!.text).toBe('chr:501–1,500, Sample NA12878 · 1/1 (homozygous alternate)');
-    expect(matrixCellHover(lay, 550, 1, name)!.rows[1][1]).toMatch(/ · 0\/0 \(homozygous reference\)$/);
-    expect(matrixCellHover(lay, 0, 1, name)!.rows[1][1]).toMatch(/ · \.\/\. \(uncalled\)$/);
+    expect(matrixCellHover(lay, 500, 0, name)!.text).toBe('chr:501, Sample NA12878 · every copy');
+    expect(matrixCellHover(lay, 550, 0, name)!.text).toBe('chr:501–1,500, Sample NA12878 · every copy');
+    expect(matrixCellHover(lay, 550, 1, name)!.rows[1][1]).toMatch(/ · no copy$/);
+    expect(matrixCellHover(lay, 0, 1, name)!.rows[1][1]).toMatch(/ · uncalled$/);
   });
 
   it('zoomed out, draws the bins as an image tile of bins × states, a hit with its bin', async () => {
@@ -142,7 +142,7 @@ describe('the matrix layer', () => {
     expect(h?.yPosition).toBe(0);
     // a bin's hover: its range, its state, its majority with its share, its level
     expect(matrixCellHover(lay, 300, 1, () => 'chr')!.text).toBe(
-      'chr:257–512, Sample NA12891 · 1/1 (homozygous alternate), 78% of the bin, 256 bp bins',
+      'chr:257–512, Sample NA12891 · every copy, 78% of the bin, 256 bp bins',
     );
   });
 

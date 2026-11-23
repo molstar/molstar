@@ -288,7 +288,8 @@ export { GridLay, type GridPrep, type GridSummary, GridType, gridSummary } from 
 export { MatrixLay, type MatrixPrep, MatrixType } from './matrix.js';
 export {
   binsText,
-  genotypeText,
+  callWords,
+  genotypeWords,
   gridCellHover,
   matrixCellHover,
   pairsBinHover,

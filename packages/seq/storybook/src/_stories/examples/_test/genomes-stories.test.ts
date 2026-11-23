@@ -356,7 +356,7 @@ describe('Examples/Genomes, headless', () => {
     expect(carrier?.yPosition).toBe(DeletionCarriers[0]);
     // the deletion's allele across its carriers' rows (the first homozygous), the reference in a non-carrier's
     const sys = (x: string) => named(v, x) ?? x;
-    // the call in the Sample row, `S11 · 0/1 (heterozygous)`: its genotype
+    // the call in the Sample row, `S11 · 0|1 (heterozygous)`: the call as the file wrote it
     const allele = (sample: number) =>
       matrixCellHover(m, mid, sample, sys)
         ?.rows.find((r) => r[0] === 'Sample')?.[1]
@@ -367,7 +367,7 @@ describe('Examples/Genomes, headless', () => {
     const deletion = `chr1:${spanText(ref[0], ref[1])}`;
     for (const c of DeletionCarriers) {
       expect(matrixCellHover(m, mid, c, sys)?.rows[0][1], `sample ${c}`).toContain(`(${deletion})`);
-      expect(allele(c), `sample ${c}`).toBe(c === DeletionCarriers[0] ? '1/1' : '0/1');
+      expect(allele(c), `sample ${c}`).toBe(c === DeletionCarriers[0] ? '1/1' : '0|1');
     }
     const other = Array.from({ length: SampleCount }, (_, i) => i).find((i) => !DeletionCarriers.includes(i))!;
     expect(allele(other)).toBe('0/0');

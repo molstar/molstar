@@ -362,7 +362,7 @@ export function readHeaderLines(reader: BgzfReader, index: TabixIndex, limits?: 
   with a fixed field is said once (`.cell`, the records' rule). ALT `.`, `*` and `<NON_REF>` are no item (counted, info).
 - **The matrix** (RR's `matrix` shape, `MatrixItems`): items the ALT alleles in the tile × states the samples
   (`ShapeInfo.states`, in the header's order, narrowed by **`samples`**, a new source param: a list of names);
-  `codes` the **genotype class** of that allele in `GT`, whatever the ploidy: `0` no copy, `1` some but not every copy
+  `codes` the **genotype class** of that allele in `GT`, whatever the ploidy (the call as written rides beside it, `calls` and `callTexts`, for the card: `0|1`, `1/2`, `1`, `./.`): `0` no copy, `1` some but not every copy
   (`0/1`, `1/2` for either allele), `2` every copy (`1/1`, and a haploid `1`: chrY, chrM, a male's chrX), `3` partly
   called (`./1`, `./0`: a `.` beside called alleles), `255` uncalled (`.`, `./.`). Why classes and not a dosage count:
   a haploid `1` and a heterozygote's `1` are different genotypes a theme must not paint alike; the exact copy count is

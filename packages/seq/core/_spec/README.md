@@ -1665,19 +1665,20 @@ share), and two chunks loaded on first use: `vcf-indexed.ts` (the first indexed 
 - **The matrix** (EC-220 to EC-222): a source whose file has samples serves a `matrix` on each system beside its
   `ranges`: items the ALT alleles of the region (the sites' rows, their ids) × states the samples held
   (`ShapeInfo.states`: the header's order, narrowed by the source's `samples`; names the file lacks, or `samples` on a
-  file without any, said once: `.samples`, info). `codes` the allele's **genotype class** in `GT`, whatever the ploidy:
-  `0` no copy, `1` some but not every copy (`0/1`, `1/2` for either allele), `2` every copy (`1/1`, a haploid `1`), `3`
-  partly called (a `.` beside called alleles), `255` uncalled (`.`, `./.`, no `GT`, a column the line lacks). Why
-  classes and not a count: a haploid `1` and a heterozygote's `1` are different genotypes a theme must not paint alike.
-  `value` float32 by `RegionRequest.field`: `GT` the allele's copies among the called (NaN uncalled), or a numeric
-  FORMAT key of `Number=1` or `A` (the allele's), the coverage's `fields`; NaN missing. A long deletion is one item
-  across the SNVs it covers (EC-222). **Genotypes are read only for a `matrix` request**, only for the samples held,
-  from the lines' bytes the read already holds (each row keeps its line's span and its allele's number), each line once.
-  Above level 1 (not as items) a `summary` counted from the tile's items, each in every bin its extent touches (as a
-  density): codes as each bin's majority class (0 to 3, ties to the lower) and its share of the called (0 to 255; 255
-  and 0 where none is called), values as `mean`, `min`, `max`, `count` (NaN not counted). A matrix's bytes (its items'
-  cells and a summary's counts) are counted before it is allocated, within `maxMatrixBytes` (region-reads'
-  `maxTileBytes`), else `too-large`.
+  file without any, said once: `.samples`, info). `codes` the allele's **genotype class** in `GT`, whatever the ploidy
+  (and `calls`, `callTexts` the call each cell was written as, `0|1`, `1/2`, `1`, `./.`, up to 255 distinct of 16 bytes,
+  for the card: a class counts one allele's copies, the call says what the sample has): `0` no copy, `1` some but not
+  every copy (`0/1`, `1/2` for either allele), `2` every copy (`1/1`, a haploid `1`), `3` partly called (a `.` beside
+  called alleles), `255` uncalled (`.`, `./.`, no `GT`, a column the line lacks). Why classes and not a count: a haploid
+  `1` and a heterozygote's `1` are different genotypes a theme must not paint alike. `value` float32 by
+  `RegionRequest.field`: `GT` the allele's copies among the called (NaN uncalled), or a numeric FORMAT key of `Number=1`
+  or `A` (the allele's), the coverage's `fields`; NaN missing. A long deletion is one item across the SNVs it covers
+  (EC-222). **Genotypes are read only for a `matrix` request**, only for the samples held, from the lines' bytes the
+  read already holds (each row keeps its line's span and its allele's number), each line once. Above level 1 (not as
+  items) a `summary` counted from the tile's items, each in every bin its extent touches (as a density): codes as each
+  bin's majority class (0 to 3, ties to the lower) and its share of the called (0 to 255; 255 and 0 where none is
+  called), values as `mean`, `min`, `max`, `count` (NaN not counted). A matrix's bytes (its items' cells and a summary's
+  counts) are counted before it is allocated, within `maxMatrixBytes` (region-reads' `maxTileBytes`), else `too-large`.
 - **Bounds**: a whole read's bytes (`limits.maxBytes`) and lines (`limits.maxRows`) before the lines are spanned; its
   alleles (`limits.maxRows`); a region's lines and alleles within `limits.maxRows`; one line `maxLineBytes`; io's tabix
   bounds by region (`VcfOptions.tabix`; its `maxLineBytes` and `maxHeaderBytes` the runtime's own); a matrix within
@@ -4642,9 +4643,11 @@ VCF's samples, a methylation matrix's samples).
   (a track of 40 samples is 320 px or more for every name).
 - **Laid out with the layer**, for the rows in view only (no frame's work past them); a layer holds its names in its own
   lists (`LayerType.rowNames` says whether it names its rows), so a hover or a pan allocates nothing the layout did not.
-- **The track's label**: a track whose layer names its rows draws no label of its own (`TrackLayout.labelText` empty):
-  the names are what the column holds, as a rows track's are; with no row named (under the minimum, or unnamed states)
-  the label is kept.
+- **The track's label**: a track whose layer names its rows shows the names in place of its own label
+  (`TrackLayout.labelText` is empty): the label column holds one or the other, as a rows track's holds its rows. The
+  label returns when no row is named: rows under `rows.labelMinPx` (a band too short for its states, a view zoomed out
+  of its rows), states with no names, or a later strip of blocks. The legend's title and the track's address keep the
+  name.
 - **The first strip's**: a section of blocks lays its layers a strip at a time; only the first strip is at the label
   column (a later strip's data starts mid-page), so a later strip names none.
 - **Why one part**: a second would drift in font, room and elision from the first; a reader moving from an alignment to
@@ -4665,11 +4668,11 @@ band (EC-220 to EC-222), inline or a source's, read through the store either way
 - **Bins at a coarser level** (`layerLevel`): a store tile one image tile (bins × states, never smoothed) in the shared
   image LRU by layer, the tile and its version, the colors' version and the axis's direction, placed on the device grid.
 - **Color**: values by the layer's `color` channel by value (its open domain the range of the tiles read), a missing
-  value (NaN: a cell, or a bin of none) `seq-missing`, as an uncalled genotype is (never the ramp's low end: on a dark
-  page a dark ramp's low end and a clear cell were one colour; never 0, EC-221); codes by class (`0` `seq-genotype-0`,
-  `1` `seq-genotype-1`, `2` `seq-genotype-2`, `3` `seq-genotype-3`; tokens of their own, so a theme changing the value
-  ramp leaves genotypes alone), uncalled (`255`) `seq-missing`; a bin's code its majority class at its share's strength
-  (the colour's alpha × share).
+  value (NaN: a cell, or a bin of none) `seq-missing`, as an uncalled genotype is (at least 2:1 against the ramp's low
+  end and the page in both themes; never the ramp's low end: on a dark page a dark ramp's low end and a clear cell were
+  one colour; never 0, EC-221); codes by class (`0` `seq-genotype-0`, `1` `seq-genotype-1`, `2` `seq-genotype-2`, `3`
+  `seq-genotype-3`; tokens of their own, so a theme changing the value ramp leaves genotypes alone), uncalled (`255`)
+  `seq-missing`; a bin's code its majority class at its share's strength (the colour's alpha × share).
 - **Names**: the states' names (inline `states`, else the coverage's) in the label column, the rows layer's part (Row
   names): a name a state row in view from `rows.labelMinPx` on; unnamed states none (a hover says `state 3`).
 - **Legend**: values the `color` channel's; codes their classes as swatches in the cells' colours (`no copy`,
@@ -4696,10 +4699,15 @@ label and value, the sentence), read on a hover from what the frame drew; a host
   `loading`; undefined for a held grid (the viewer's own words).
 - **A matrix cell** (`matrixCellHover`): its item (its `id` when the table keeps one, its extent; the shortest item
   there, a SNP over a deletion) and its sample (inline `states`, else the coverage's), one `Sample` row
-  `S11 · 0/1 (heterozygous)` (a genotype `genotypeWords`: `0/0 (homozygous reference)`, `0/1 (heterozygous)`,
-  `1/1 (homozygous alternate)`, `./1 (partly called)`, `./. (uncalled)`; a value its number, `no data` for NaN), the
-  sentence `Sample S11 · 0/1 (heterozygous)`; at a coarse level its bin, the sample with its mean or its majority
-  genotype and its share (`73% of the bin`), and its level. Never `State` or `Value`: a state is a sample to a reader.
+  `S11 · 0|1 (heterozygous)`. A genotype cell with a recorded call (`MatrixItems.calls`, `callTexts`: the VCF's) says
+  **the call as the file wrote it** with what it is (`callWords`): all alleles missing `no call`, some `partly called`;
+  a haploid call `reference` or `alternate` (no zygosity); else `homozygous reference` or `homozygous alternate` when
+  the alleles agree, `heterozygous` when they differ (`1/2` too, on each ALT's column alike: a call is the sample's, not
+  the allele's). A cell with none (inline codes, a bin's majority) says its class (`genotypeWords`: `no copy`,
+  `some copies`, `every copy`, `partly called`, `uncalled`), never written as a call; a value its number, `no data` for
+  NaN. The sentence `Sample S11 · 0|1 (heterozygous)`; at a coarse level its bin, the sample with its mean or its
+  majority class and its share (`73% of the bin`), and its level. Never `State` or `Value`: a state is a sample to a
+  reader.
 
 ### Tensions (pairs and grids)
 

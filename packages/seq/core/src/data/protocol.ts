@@ -253,6 +253,12 @@ export interface MatrixItems {
   readonly states: number;
   readonly value?: Float32Array;
   readonly codes?: Uint8Array;
+  /**
+   * With `codes`, the call a cell was written as (a VCF's `0|1`, `1/2`, `1`, `./.`): an index a cell into `callTexts`
+   * (0 none). The class says how many copies of this allele; the call says what the sample has.
+   */
+  readonly calls?: Uint8Array;
+  readonly callTexts?: readonly string[];
   readonly id?: CategoryColumn;
   readonly row?: Int32Array;
 }

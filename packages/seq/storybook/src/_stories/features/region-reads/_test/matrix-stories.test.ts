@@ -60,7 +60,7 @@ describe('Features/Region reads/Matrix, headless', () => {
     // its card: a bin, the sample, a majority genotype with its share
     const card = matrixCellHover(l as never, 100_000, 3, (s) => s)!;
     expect(card.rows.map((r) => r[0])).toEqual(['Bin', 'Sample', 'Bins']);
-    expect(card.rows[1][1]).toMatch(new RegExp(`^${GenotypeSamples[3]} · \\S+ \\(.+\\), \\d+% of the bin$`));
+    expect(card.rows[1][1]).toMatch(new RegExp(`^${GenotypeSamples[3]} · [a-z ]+, \\d+% of the bin$`));
     for (const dark of [false, true]) {
       const svg = await exported(v, dark);
       expect(svg.settled).toBe(true);
@@ -84,7 +84,7 @@ describe('Features/Region reads/Matrix, headless', () => {
     expect(bars.length).toBe(40);
     expect(new Set(bars.map(([x]) => x)).size).toBe(1);
     expect(new Set(bars.map(([, y]) => y)).size).toBe(40);
-    // hovering inside it where no SNV is: the deletion, the sample and its genotype (a carrier's `0/1`)
+    // hovering inside it where no SNV is: the deletion, the sample and its genotype (inline codes carry no call: the class)
     const g = genotypeItems();
     const snvs = new Set(Array.from(g.start, (s, k) => (k === g.deletion ? -1 : s)));
     let at = GenotypeDeletion.start + 1000;
@@ -93,8 +93,8 @@ describe('Features/Region reads/Matrix, headless', () => {
     const card = matrixCellHover(l as never, at, carrier, (s) => s)!;
     expect(card.rows[0][1]).toMatch(/^del1 \(.+:200,001–260,000\)$/);
     expect(card.rows.map((r) => r[0])).toEqual(['Item', 'Sample']);
-    expect(card.rows[1][1]).toBe(`${GenotypeSamples[carrier]} · 0/1 (heterozygous)`);
-    expect(card.text).toContain(`Sample ${GenotypeSamples[carrier]} · 0/1 (heterozygous)`);
+    expect(card.rows[1][1]).toBe(`${GenotypeSamples[carrier]} · some copies`);
+    expect(card.text).toContain(`Sample ${GenotypeSamples[carrier]} · some copies`);
     for (const dark of [false, true]) {
       const svg = await exported(v, dark);
       expect(svg.settled).toBe(true);
