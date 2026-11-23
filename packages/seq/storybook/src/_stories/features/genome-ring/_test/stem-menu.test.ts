@@ -131,7 +131,7 @@ function partnerRowsOf(headers: HeadersBehavior, l: RondoLay, stem: number) {
   const track = l.key.slice(0, l.key.lastIndexOf('/'));
   const element = { layer: l.key, key: l.stemKey[stem], type: 'rondo:ribbons' };
   expect(headers.openMenu({ section: l.section, track, element }, { x: 0, y: 0 })).toBe(true);
-  const rows = headers.menu.value!.menu.groups[0].find((i) => i.name === 'rondo:show-partner')!.items!;
+  const rows = headers.menu.value!.menu.groups[0].find((i) => i.name === 'rondo:show-partner')?.items ?? [];
   headers.closeMenu();
   return rows;
 }
