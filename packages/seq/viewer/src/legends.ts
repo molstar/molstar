@@ -215,6 +215,9 @@ export interface LegendEntryRow {
 export const legendId = (l: Pick<Legend, 'channel' | 'scale' | 'layers'>): string =>
   `${l.channel}|${l.scale ?? ''}|${l.layers[0]}`;
 
+/** The most entries an open legend builds rows for: a legend over thousands of values stays bounded. */
+export const OpenCap = 200;
+
 export interface LegendRow {
   readonly key: string;
   /** `legendId`: the open state's key. */
@@ -225,7 +228,9 @@ export interface LegendRow {
   readonly entries: readonly LegendEntryRow[];
   /** Entries past `maxItems` while the legend is closed (a "+n" button); 0 when open or when there are none. */
   readonly more: number;
-  /** The legend lists all its entries, and a "Show fewer" button closes it (only where it has more than `maxItems`). */
+  /** Entries an open legend does not list either (past `OpenCap`: the part's DOM stays bounded). */
+  readonly beyond?: number;
+  /** The legend lists its entries (up to `OpenCap`), and a "Show fewer" button closes it (only where it has more than `maxItems`). */
   readonly open: boolean;
   /** What the legend says once: substituted colors, hashed values listed as painted. */
   readonly note?: string;
@@ -267,8 +272,15 @@ export function legendRows(viewer: { readonly legends: LegendModel }, options: L
     const isOpen = opened.has(id);
     let entries: LegendEntryRow[] = [];
     let more = 0;
+    let beyond = 0;
     if (e.kind === 'swatches') {
-      entries = e.items.map((i) => ({
+      // only the entries shown get a row (a hover compare and a lookup each): the first `max` while closed, at most
+      // `OpenCap` open, the rest counted
+      const total = e.items.length;
+      const shown = Math.min(total, isOpen ? OpenCap : max);
+      more = Math.max(0, total - max);
+      beyond = isOpen ? Math.max(0, total - shown) : 0;
+      entries = e.items.slice(0, shown).map((i) => ({
         label: i.label,
         name: `${legendTitle(l)}: ${i.label}`,
         color: i.color,
@@ -276,8 +288,6 @@ export function legendRows(viewer: { readonly legends: LegendModel }, options: L
         ...names(l.layers[0], i.value),
         hovered: hover?.key === l.key && hover.value === (i.value ?? i.label),
       }));
-      more = Math.max(0, entries.length - max);
-      if (more && !isOpen) entries = entries.slice(0, max);
     } else if (e.kind === 'ramp') {
       const [lo, hi] = l.domain ?? [0, 1];
       const range = `${formatValue(lo)} to ${formatValue(hi)}`;
@@ -315,6 +325,7 @@ export function legendRows(viewer: { readonly legends: LegendModel }, options: L
       entries,
       more: isOpen ? 0 : more,
       open: isOpen && more > 0,
+      ...(beyond ? { beyond } : {}),
       ...(notes.length ? { note: notes.join('; ') } : {}),
     });
   }

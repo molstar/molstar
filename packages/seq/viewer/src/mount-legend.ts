@@ -166,6 +166,13 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
         items.push(item);
         group.append(item);
       }
+      if (row.beyond) {
+        const rest = doc.createElement('span');
+        rest.dataset.beyond = String(row.beyond);
+        rest.textContent = `${row.beyond} more not shown`;
+        rest.style.cssText = 'color: var(--msui-text-muted, gray); font-size: 11px;';
+        group.append(rest);
+      }
       if (row.more || row.open) {
         // "+n" opens the legend's full list in place, "Show fewer" closes it (the session's state, per legend)
         const more = doc.createElement('button');

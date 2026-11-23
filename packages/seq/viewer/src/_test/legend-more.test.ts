@@ -6,7 +6,7 @@
  */
 
 import { createSeqSpec, theme } from '@molstar/seqx-core/lang';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { viewerItem } from '../config.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
 import { legendRows } from '../legends.js';
@@ -70,7 +70,7 @@ async function load(n: number) {
     ],
   });
   await viewer.load(spec(n));
-  viewer.resize(500);
+  viewer.resize(n > 1000 ? 30000 : 500);
   await viewer.settle();
   frames.flush();
 }
@@ -144,11 +144,29 @@ describe('a legend’s "+n"', () => {
     expect(labels(el)).toHaveLength(12);
     expect(more(el)!.textContent).toBe('+488');
     more(el)!.click();
-    expect(labels(el)).toHaveLength(500);
+    // the DOM stays bounded: the first 200, the rest counted inside the box
+    expect(labels(el)).toHaveLength(200);
+    expect(el.querySelector<HTMLElement>('[data-beyond]')!.dataset.beyond).toBe('300');
     const group = el.querySelector<HTMLElement>('[role="group"]')!;
     expect(group.style.maxHeight).not.toBe('');
     expect(group.style.overflowY).toBe('auto');
     more(el)!.click();
     expect(el.querySelector<HTMLElement>('[role="group"]')!.style.maxHeight).toBe('');
+  });
+
+  it('builds rows only for what is shown: 12 closed, a bounded number open, over 3,000 values', async () => {
+    await mounted(3000);
+    const names = vi.spyOn(viewer!.legends, 'names');
+    const closed = legendRows(viewer!, { of: Chromosomes })[0];
+    expect(closed.entries).toHaveLength(12);
+    expect(closed.more).toBe(2988);
+    expect(names).toHaveBeenCalledTimes(12);
+    names.mockClear();
+    viewer!.legends.setOpen(closed.id, true);
+    names.mockClear();
+    const open = legendRows(viewer!, { of: Chromosomes })[0];
+    expect(open.entries).toHaveLength(200);
+    expect(open.beyond).toBe(2800);
+    expect(names).toHaveBeenCalledTimes(200);
   });
 });
