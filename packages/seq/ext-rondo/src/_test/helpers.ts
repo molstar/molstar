@@ -144,6 +144,7 @@ export function ringSpec(o: RingSpecOptions = {}): Node {
       ...(o.hues !== undefined ? { hues: o.hues } : {}),
       ...(o.opens !== undefined ? { opens: o.opens } : {}),
       ...(o.kinds !== undefined ? { kinds: o.kinds } : {}),
+      ...(o.scale !== undefined ? { scale: o.scale } : {}),
     });
     void ring;
   });

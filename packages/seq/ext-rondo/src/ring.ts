@@ -40,6 +40,8 @@ export interface RondoRingOptions {
    * the rarer last); one layer of every link when absent.
    */
   readonly kinds?: readonly RondoKind[];
+  /** The kinds' widths on one scale (`section`), comparable across kinds; each its own (`layer`, the default). */
+  readonly scale?: 'layer' | 'section';
 }
 
 /** A kind of link (_spec/README.md, Kinds of links): its layer's filter, name, colour and width. */
@@ -102,6 +104,7 @@ function ringTracks(s: SectionBuilder, o: RondoRingOptions, opens: string | unde
       label,
       ...(k.opacity !== undefined ? { opacity: k.opacity } : {}),
       ...(k.width !== undefined ? { width: k.width } : {}),
+      ...(o.scale !== undefined ? { scale: o.scale } : {}),
       ...(opens ? { opens } : {}),
     } as never);
   }

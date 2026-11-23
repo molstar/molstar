@@ -45,6 +45,11 @@ export interface RondoPrep {
   readonly width: string;
   /** The layer's name in its card and legend (its kind's: `rondoRing`'s `kinds`); empty when none. */
   readonly label: string;
+  /**
+   * Its widths' scale: `layer` (its own `k`, the default) or `section` (one `k` over the section's layers of
+   * `section` and its `width`, so widths compare across kinds).
+   */
+  readonly scale: 'layer' | 'section';
   /** Whether its data names a filter and its links are read by region (their bins cannot be filtered). */
   readonly regionFilter: boolean;
   readonly config: RondoConfig;
@@ -119,6 +124,9 @@ export class RondoLay {
   /** Its name (`label`) and what it is wide by (`count`, or a field summed). */
   label = '';
   width = 'count';
+  /** Its own widest stem's measure, and whether it shares a scale with its section (`scale: section`). */
+  ownMax = 0;
+  shared = false;
   /** The lays of its section (itself among them): a bin's card counts each layer's links there. */
   peers: readonly RondoLay[] = [];
   font = '';
@@ -711,6 +719,13 @@ let Rank = new Int32Array(64);
 function widths(lay: RondoLay, cfg: RondoConfig, minPx: number) {
   let max = 0;
   for (let s = 0; s < lay.ns; s++) if (lay.stemPlaced[s] && lay.stemCount[s] > max) max = lay.stemCount[s];
+  lay.ownMax = max;
+  lay.shared = lay.prep?.scale === 'section';
+  // one scale over the section (`scale: section`): the widest stem of its layers of that scale and width rule (a layer
+  // laid out after this one is read as last laid out: a frame late when its widest stem grows)
+  if (lay.shared)
+    for (const p of lay.peers)
+      if (p !== lay && p.shared && p.width === lay.width && p.read && !p.empty && p.ownMax > max) max = p.ownMax;
   lay.k = max > 0 ? cfg.maxWidthPx / max : 0;
   const floor = minPx / lay.dpr;
   Rank = grow(Rank, lay.nr);

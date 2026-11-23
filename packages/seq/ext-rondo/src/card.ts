@@ -97,17 +97,27 @@ export function perLayer(lay: RondoLay, sysA: string, a0: number, a1: number, sy
  * an unnamed one in the hues none (the hue ring keys them).
  */
 export function legendRondo(lay: RondoLay, options: { readonly title: string }): readonly Legend[] {
+  // its widths' scale: a CSS px a measure (links, or the field summed), its own or the section's
+  const per = lay.k > 0 ? Number((1 / lay.k).toPrecision(2)) : 0;
+  const scale =
+    per > 0
+      ? `1 px = ${per.toLocaleString('en-US')} ${lay.width === 'count' ? (per === 1 ? 'link' : 'links') : lay.width}${lay.shared ? ', shared' : ''}`
+      : '';
   // a field's values, unless these bins carry none (drawn in one colour): then the legend says that
   if (lay.mode === ColorMode.field && !lay.inkBins)
-    return channelLegends([lay.channel], { title: options.title, layer: lay.key });
+    return channelLegends([lay.channel], {
+      title: scale ? `${options.title} (${scale})` : options.title,
+      layer: lay.key,
+    });
   if (lay.mode === ColorMode.system && !lay.label) return [];
   const fixed = lay.mode !== ColorMode.system;
   const name = lay.label || options.title;
-  const label = lay.inkBins
+  const what = lay.inkBins
     ? `${name} (bins in one colour: ${lay.channel?.field ?? 'the colour'} read link by link)`
     : fixed
       ? name
       : `${name}: by chromosome`;
+  const label = scale ? `${what} · ${scale}` : what;
   // by chromosome: the words alone (a transparent swatch), never one hue for a layer drawn in all of them
   const color = fixed ? lay.one : 0;
   return [

@@ -118,13 +118,18 @@ waiting; its entries `StemMenu` in `viewer.ts`).
   reads, stems, widths and bounds by itself: its own `k` (its widest stem's), its own fans, its necks the sum of its own
   ribbons, stubs and fan; `layer.hidden` hides a kind. Every layer's mouths are on one rim, the innermost band's inner
   edge (the hole's), whichever track holds it.
-- **Widths by a layer's own rule**: `width: count` (the links), or a numeric field summed (`q`): an item its value, a
-  held bin its field's sum (core's `PairsReadOptions.sum`); links that carry none (a source's bins) are counted and
-  `rondo.ribbons.width` (info) says so. Over links read by region (a source's, its `type` column mapped), core's reads
-  filter their items by each layer's base; their bins carry no fields, so a filter is not read on them: the first layer
-  over the links draws the bins, the next draws nothing (`empty: shared`, "links drawn by another layer"), and
-  `rondo.ribbons.filter` (warning) says so on each. Never once a layer: kinds that cannot be told apart are drawn once.
-  How bins read by region should split by kind is open.
+- **Widths by a layer's own rule and on its own scale** (the author, 2026-11-23: "per layer, said"): its own `k`, stated
+  in its legend entry (`1 px = 1.3 links`, or `n q` for a summed field); `scale: section` (a plain param, beside
+  `width`, which stays a word: the measure; `rondoRing`'s `scale`) puts the section's layers of `section` and one
+  `width` rule on one `k`, their widest stem's (a layer laid out later read as last laid out: a frame late when its
+  widest stem grows), so widths compare across kinds; necks stay sums of their parts. The measure: `width: count` (the
+  links), or a numeric field summed (`q`): an item its value, a held bin its field's sum (core's
+  `PairsReadOptions.sum`); links that carry none (a source's bins) are counted and `rondo.ribbons.width` (info) says so.
+  Over links read by region (a source's, its `type` column mapped), core's reads filter their items by each layer's
+  base; their bins carry no fields, so a filter is not read on them: the first layer over the links draws the bins, the
+  next draws nothing (`empty: shared`, "links drawn by another layer"), and `rondo.ribbons.filter` (warning) says so on
+  each. Never once a layer: kinds that cannot be told apart are drawn once. How bins read by region should split by kind
+  is open.
 - **The card names the kind** (`describe`): a ribbon at the item level lists the fields its links share (one link: its
   own), its `type`, its ends' strands (`Strands: + −`; none for unstranded ends, `.`: a contact's), then every other
   field its data carries (`q`, gene names where the file has them): a shared value, a number's range where they differ
@@ -191,27 +196,29 @@ spec's `extensions` is the writer's (`createSeqSpec({ extensions: [rondo] })`).
 
 ## Configuration
 
-| Item                                   | Whose            | Default                              | Why                                                                                                    |
-| -------------------------------------- | ---------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------ |
-| `width`                                | layer param      | `count`                              | the pairs counted; a numeric field summed (`q`)                                                        |
-| `label`                                | layer param      | absent                               | a kind's name in its card and legend                                                                   |
-| `stems`                                | layer param      | `level`                              | Rondo's trumpets; `none`                                                                               |
-| `bundle`                               | layer param      | 0.7                                  | ribbons of a stem stay together into the hole                                                          |
-| `stubs`                                | layer param      | `partner`                            | where else a stem's links go; `none`                                                                   |
-| `opens`                                | layer param      | absent                               | the section a double-click sets `include` on                                                           |
-| the colour                             | layer theme slot | `(field :name system)`, `categories` | a hue per chromosome, safe; `rondo:hues` named by the writer; a fixed colour or another field (Colour) |
-| `opacity`                              | layer theme slot | 1                                    | a factor of `ribbons.fillOpacity`: a faint kind under a strong one                                     |
-| `rondo.stemPx`                         | setting          | 16 CSS px                            | a stem a reader can point at                                                                           |
-| `rondo.stemDepth`                      | setting          | 0.12 of the hole                     | room for the flare                                                                                     |
-| `rondo.maxWidthPx`                     | setting          | 24 CSS px                            | one px a count for the view                                                                            |
-| `rondo.maxRibbons`                     | setting          | 1,024                                | the items gate and the drawn bound in one                                                              |
-| `rondo.stubShare`, `rondo.stubLabelPx` | setting          | 0.2; 24 CSS px                       | a stub short of the centre; a label where it reads                                                     |
-| `rondo.hitCellPx`                      | setting          | 16 CSS px                            | few candidates a cell                                                                                  |
-| `rondo.hitSlopPx`                      | setting          | 4 CSS px                             | a hairline ribbon or stub a pointer can stay on; 3 to 4 px either side                                 |
-| `rondo.fade`                           | setting          | 0.6                                  | the hovered stem's ribbons read over the rest                                                          |
-| `rondo.flatten`                        | setting          | 12                                   | hit within a device px at 720 px                                                                       |
-| `rondo.focusStems`                     | setting          | 0.35                                 | the ribbons read over the stems on one chromosome or a pair                                            |
-| `rondo.stubMin`                        | setting          | 2                                    | single links fold into one "other chromosomes" stub a stem                                             |
+| Item                                   | Whose            | Default                              | Why                                                                                                                                                                                                                  |
+| -------------------------------------- | ---------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `width`                                | layer param      | `count`                              | the pairs counted; a numeric field summed (`q`)                                                                                                                                                                      |
+| `label`                                | layer param      | absent                               | a kind's name in its card and legend                                                                                                                                                                                 |
+| `scale`                                | layer param      | `layer`                              | each layer's widths on its own `k` (the author, 2026-11-23: "per layer, said"): a rare kind readable; `section`: one `k` over the section's layers of `section` and the same `width`, so widths compare across kinds |
+| the legend's scale                     | fixed            | —                                    | each layer's entry states its scale, `1 px = n links` (or `n <field>`), `, shared` under `section`                                                                                                                   |
+| `stems`                                | layer param      | `level`                              | Rondo's trumpets; `none`                                                                                                                                                                                             |
+| `bundle`                               | layer param      | 0.7                                  | ribbons of a stem stay together into the hole                                                                                                                                                                        |
+| `stubs`                                | layer param      | `partner`                            | where else a stem's links go; `none`                                                                                                                                                                                 |
+| `opens`                                | layer param      | absent                               | the section a double-click sets `include` on                                                                                                                                                                         |
+| the colour                             | layer theme slot | `(field :name system)`, `categories` | a hue per chromosome, safe; `rondo:hues` named by the writer; a fixed colour or another field (Colour)                                                                                                               |
+| `opacity`                              | layer theme slot | 1                                    | a factor of `ribbons.fillOpacity`: a faint kind under a strong one                                                                                                                                                   |
+| `rondo.stemPx`                         | setting          | 16 CSS px                            | a stem a reader can point at                                                                                                                                                                                         |
+| `rondo.stemDepth`                      | setting          | 0.12 of the hole                     | room for the flare                                                                                                                                                                                                   |
+| `rondo.maxWidthPx`                     | setting          | 24 CSS px                            | one px a count for the view                                                                                                                                                                                          |
+| `rondo.maxRibbons`                     | setting          | 1,024                                | the items gate and the drawn bound in one                                                                                                                                                                            |
+| `rondo.stubShare`, `rondo.stubLabelPx` | setting          | 0.2; 24 CSS px                       | a stub short of the centre; a label where it reads                                                                                                                                                                   |
+| `rondo.hitCellPx`                      | setting          | 16 CSS px                            | few candidates a cell                                                                                                                                                                                                |
+| `rondo.hitSlopPx`                      | setting          | 4 CSS px                             | a hairline ribbon or stub a pointer can stay on; 3 to 4 px either side                                                                                                                                               |
+| `rondo.fade`                           | setting          | 0.6                                  | the hovered stem's ribbons read over the rest                                                                                                                                                                        |
+| `rondo.flatten`                        | setting          | 12                                   | hit within a device px at 720 px                                                                                                                                                                                     |
+| `rondo.focusStems`                     | setting          | 0.35                                 | the ribbons read over the stems on one chromosome or a pair                                                                                                                                                          |
+| `rondo.stubMin`                        | setting          | 2                                    | single links fold into one "other chromosomes" stub a stem                                                                                                                                                           |
 
 **Settings are the descriptor's and the composition's** (`rondoWith(config)`, `rondo` the defaults; `RondoConfigItems`
 name them, listed as the descriptor's `config`): a layout reads the composition's `rondo.*` pairs (`settingOf`, from the

@@ -32,6 +32,11 @@ export const RondoParams = {
       type: 'string',
       doc: 'What a ribbon is wide by: `count` (the links, the default) or a numeric field summed (`q`).',
     },
+    scale: {
+      type: 'string',
+      enum: ['layer', 'section'],
+      doc: 'The widths’ scale: the layer’s own (`layer`, the default) or one over the section’s layers of `section` (widths compare across kinds).',
+    },
     label: { type: 'string', doc: 'The layer’s name in its card and legend (a kind of link: `Translocations`).' },
     stems: { type: 'string', enum: ['level', 'none'], doc: 'Stems as trumpets (`level`, the default) or none.' },
     bundle: { type: 'number', min: 0, max: 1, doc: 'How far a ribbon is pulled toward the centre (0.7).' },

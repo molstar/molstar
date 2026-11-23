@@ -111,8 +111,8 @@ describe('a ribbons layer’s colour', () => {
       [['info', 'A colour by q is read link by link: these bins carry no q, drawn in one colour']],
     );
     const legend = viewLegends(f.layout).legends.find((x) => x.layers.includes(l.key))!;
-    expect(legend.entries.kind === 'swatches' && legend.entries.items[0].label).toBe(
-      'Links (bins in one colour: q read link by link)',
+    expect(legend.entries.kind === 'swatches' && legend.entries.items[0].label).toMatch(
+      /^Links \(bins in one colour: q read link by link\) · 1 px = [\d.,]+ links$/,
     );
   });
 

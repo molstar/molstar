@@ -114,16 +114,43 @@ describe('kinds of links', () => {
     const f = await frame(ringSpec({ held: true, links, kinds }));
     const { legends } = viewLegends(f.layout);
     const mine = legends.filter((l) => l.layers.some((k) => k.includes('/links-')));
+    // each states its own scale: a CSS px a number of links (1 / its k, two significant digits)
+    const [c, o] = lays(f);
+    const per = (l: RondoLay) => Number((1 / l.k).toPrecision(2)).toLocaleString('en-US');
     expect(
       mine.map((l) => [l.title, l.entries.kind === 'swatches' ? l.entries.items.map((i) => i.label) : []]),
     ).toEqual([
-      ['Contacts', ['Contacts: by chromosome']],
-      ['Others', ['Others']],
+      ['Contacts', [`Contacts: by chromosome · 1 px = ${per(c)} links`]],
+      ['Others', [`Others · 1 px = ${per(o)} links`]],
     ]);
+    expect(c.k).not.toBe(o.k);
     // the hued kind's entry is its words alone (no one hue's swatch: it draws in every chromosome's)
     expect(mine[0].entries.kind === 'swatches' && mine[0].entries.items[0].color & 0xff).toBe(0);
     const red = mine[1].entries.kind === 'swatches' ? mine[1].entries.items[0].color : 0;
     expect((red >>> 8).toString(16)).toBe('d62728');
+  });
+
+  it('`scale: section`: the kinds’ necks on one k, each neck still the sum of its parts; the legend says shared', async () => {
+    const f = await frame(ringSpec({ held: true, links, kinds, scale: 'section' }));
+    const [c, o] = lays(f);
+    expect([c.shared, o.shared]).toEqual([true, true]);
+    // one k: the widest stem over both layers
+    expect(c.k).toBe(o.k);
+    expect(c.k).toBeCloseTo(DefaultRondoConfig.maxWidthPx / Math.max(c.ownMax, o.ownMax), 12);
+    necksAdd(c);
+    necksAdd(o);
+    const labels = viewLegends(f.layout)
+      .legends.filter((l) => l.layers.some((k) => k.includes('/links-')))
+      .map((l) => (l.entries.kind === 'swatches' ? l.entries.items[0].label : ''));
+    for (const x of labels) expect(x).toMatch(/1 px = [\d.,]+ links, shared$/);
+  });
+
+  it('a width by a field states its field: 1 px = n q', async () => {
+    const f = await frame(
+      ringSpec({ held: true, links, kinds: [{ type: 'other', label: 'Others', color: Red, width: 'q' }] }),
+    );
+    const label = viewLegends(f.layout).legends.find((l) => l.title === 'Others')!;
+    expect(label.entries.kind === 'swatches' && label.entries.items[0].label).toMatch(/^Others · 1 px = [\d.,]+ q$/);
   });
 
   it('the spec checks clean; a reader without the extension draws each kind as `pairs`, its filter kept', async () => {

@@ -260,6 +260,7 @@ export function ribbonsType(config: RondoConfig = DefaultRondoConfig): LayerType
         colored: !bySystem(layer.theme.color),
         width: typeof p.width === 'string' && p.width !== '' ? p.width : 'count',
         label: typeof p.label === 'string' ? p.label : '',
+        scale: p.scale === 'section' ? 'section' : 'layer',
         config,
       };
     },
