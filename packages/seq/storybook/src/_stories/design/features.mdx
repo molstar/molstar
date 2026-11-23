@@ -159,33 +159,34 @@ What this version contains and will contain. Each feature links its story here o
 
 ## Planned
 
-- **Language**: validation shown on the Antibody view's invalid labels; versions and migrations; the language's docs and
-  agent skill.
-- **Coordinates and maps**: the `pairwise` and `alignment` map kinds, computed maps.
-- **Data and sources**:
-  - A3M and Clustal;
-  - patches on streamed things and a command to keep a region; patch streams from an agent or a host;
-  - a source's assembly.
-- **Layers and themes**: track groups and summaries.
-- **Interaction and editing**: search and its results; track and group editing beyond hide, reorder and themes; drags
-  snapped to whole codons.
-- **Rendering**: the glyph atlas and band copy.
-- **Configuration and extensions**:
-  - one typed configuration (settings in layers and a generated form come later);
-  - layout and spacing in presets;
-  - node kinds beyond an extension's layer types;
-  - every registry open (built: formats, layer types, layouts, header actions, schemes, navigator pictures).
-- **Addressing**: rects as addresses; one href driving Mol\* too.
-- **Integration and showcases**: the structure link on Mol\*'s new viewer (the fake one is built); services live
-  (recorded ones are built); BinaryCIF and Mol\*'s readers.
+Version 1's close-out builds these (the author, 2026-11-23).
+
+- **Language**: validation shown on the Antibody view's invalid labels; a newer minor's unknown kinds read as a warning;
+  the built-in layer types' declared fallbacks.
+- **Data and sources**: patches on streamed things.
+- **Layers and themes**: track groups, summaries and collapse; points, log scales and reference lines on values; a
+  legend stating its domain.
+- **Interaction and editing**: search: matchers for exact, degenerate and regex patterns, stepping through the hits and
+  saving them as a set, with the search box and its results left to the application; drags snapped to whole codons; the
+  cursor across block gaps.
 
 ## Deferred
 
 Each is deferred until the trigger named for it.
 
 - **A published JSON Schema**: until an outside reader or an agent tool needs one.
-- **The rest of the Genomes milestone**: a MAF over a genome (cut), values split by sample and reference lines, keyed
-  joins, 2bit, BigBed and PAF: version 1's close-out.
 - **Writers (FASTA, PDF)**: until the first writer extension.
-- **Agent tools**: until the language description and addressing are built.
+- **Agent tools**, with the language's docs and agent skill and an agent's editing story: until the language description
+  and addressing are built.
 - **A React adapter**: until a React host asks.
+- **Past version 1** (the author, 2026-11-23), each until a dataset, a host or a measurement needs it:
+  - keyed joins, and a command to keep a streamed region;
+  - the `pairwise` and `alignment` map kinds with the orthologs view, computed maps, reversed pairs rows;
+  - A3M and Clustal, 2bit, BigBed and PAF, a source's assembly, every dataset as an archive;
+  - values and ranges split by sample, two grids on one block pair, a MAF over a genome;
+  - approximate search (an application's matcher);
+  - the glyph atlas and band copy, bigWig's own levels;
+  - one typed configuration, presets, node kinds beyond layer types, the other registries;
+  - rects as addresses, refs in data params, query extension forms;
+  - the structure link on Mol\*'s new viewer, one href driving it, BinaryCIF, services live, AlphaFill's transplants;
+  - explicit migrations, until the first breaking change after 1.0.

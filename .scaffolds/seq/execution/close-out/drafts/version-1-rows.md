@@ -1,4 +1,4 @@
-# Version 1's rows no milestone took: draft decisions (for the author)
+# Version 1's rows no milestone took: the decisions
 
 Listed on 2026-11-23 from [design/features.md](../../../design/features.md):
 - every `planned` row;
@@ -21,7 +21,7 @@ built by the fifth slice. The rows move once the evidence is linked; there is no
 
 | Row | What | Rec. | Why |
 |---|---|---|---|
-| Search and results (182) | matchers, stepping, saved as sets | **build**: exact, degenerate, regex; stepping; saved as a set. Defer approximate | three other rows wait on it (Focus and reveal, Highlight channels, Security bounds' search bounds); p53's search story |
+| Search and results (182) | matchers, stepping, saved as sets | **build**: exact, degenerate and regex matchers in the core, bounded, giving a location set; the viewer's search state and commands (run, next, previous, save as a set) and a highlight channel of its own; a matcher registry where an application adds others (approximate, a server's); the search box and results list the application's, with a small one in the Storybook composition | three other rows wait on it; the UI is the application's, as the author said ("engine, not the game"), and approximate search, often a service, stays out of the library |
 | Patches on streamed things (95) | a bookmark or ref naming a dynamic node; waits while not held | **build** | p53's transcripts already stream: without it, a bookmark to one is unsafe |
 | Keep this region (96) | streamed data turned into spec content on purpose | **defer**: a host asks to save streamed data in a spec | a new command with no view needing it |
 
@@ -97,3 +97,16 @@ Lanes, beside the four from the design questions:
 | Small items | 178, 179/142, 37, 143 with the version-aware validate, 39 | Sonnet |
 
 113 joins the legend lane. 206 is a row's wording, the orchestrator's.
+
+## Decided by the author
+
+Decided by the author, 2026-11-23. On Search: "this should likely be "app port" as well, where the app provides the UI
+etc, agree?", then "yes, update it and take the rest as recommended". Search is built as the row above says: the engine
+and the commands in the library, the matcher registry for an application's matchers, the UI the application's. Every
+other row went as recommended, and the questions went to their recommendations.
+
+Versions and migrations (38) was not in the list: its unbuilt part is explicit migrations. It is deferred to the first
+breaking change after 1.0; the version-aware validate (lenient minors) is already a carried item.
+
+Applied in [design/features.md](../../../design/features.md) and the Storybook's Design page "Features" (Planned,
+Deferred) in this commit.
