@@ -37,7 +37,7 @@ function judge(planText: string, checklistText: string | undefined, features: st
   const lanesOf = new Map<string, string[]>();
   for (const line of planText.split("\n")) {
     if (!line.startsWith("|")) continue;
-    const cells = line.split("|").slice(1, -1).map((c) => c.trim());
+    const cells = line.split(/(?<!\\)\|/).slice(1, -1).map((c) => c.trim());
     const design = /^\[([^\]]+)\]\(/.exec(cells[0] ?? "")?.[1];
     if (design && cells[1]) lanesOf.set(design, cells[1].match(LaneId) ?? []);
   }
@@ -50,7 +50,7 @@ function judge(planText: string, checklistText: string | undefined, features: st
   let header: string[] = [];
   for (const line of features.split("\n")) {
     if (!line.startsWith("|") || line.startsWith("|---")) continue;
-    const cells = line.split("|").slice(1, -1).map((c) => c.trim());
+    const cells = line.split(/(?<!\\)\|/).slice(1, -1).map((c) => c.trim());
     if (cells[0] === "Feature") {
       header = cells;
       continue;
@@ -93,7 +93,7 @@ function judgeBrief(brief: string, findings: string): string[] {
   let itemsCell: string | undefined;
   for (const line of findings.split("\n")) {
     if (!line.startsWith("|") || line.startsWith("|---")) continue;
-    const cells = line.split("|").slice(1, -1).map((c) => c.trim());
+    const cells = line.split(/(?<!\\)\|/).slice(1, -1).map((c) => c.trim());
     if (cells[0] === "Lane or gate") {
       header = cells;
       continue;
@@ -103,6 +103,8 @@ function judgeBrief(brief: string, findings: string): string[] {
   if (itemsCell === undefined) return [`${lane}: no row in findings.md (its first cell is the lane id)`];
   const answers = new Map<number, { mark: string; text: string }>();
   // answers split where the next one starts (`; <n> ✓|✗`), so a proof may hold a semicolon of its own
+  // a cell copied from the template may be wrapped in backticks
+  itemsCell = itemsCell.replace(/^`+|`+$/g, "");
   for (const part of itemsCell.split(/;\s*(?=\d+\s*[✓✗])/)) {
     const m = /^(\d+)\s*([✓✗])\s*(.*)$/s.exec(part.trim());
     if (m) answers.set(Number(m[1]), { mark: m[2] as string, text: (m[3] as string).trim() });
@@ -139,6 +141,8 @@ if (flags.has("--self-check")) {
   const briefCases: [string, string, string, string][] = [
     ["a row ticking every item with a proof", brief, row("1 ✓ test a; 2 ✓ output b"), ""],
     ["an item marked not landed", brief, row("1 ✓ test a; 2 ✗ not landed: followups"), ""],
+    ["a cell wrapped in backticks", brief, row("`1 ✓ test a; 2 ✓ output b`"), ""],
+    ["a proof with an escaped pipe", brief, row("1 ✓ a \\| b; 2 ✓ c"), ""],
     ["a proof with a semicolon", brief, row("1 ✓ a; then b; 2 ✓ c"), ""],
     ["an item missing from the row", brief, row("1 ✓ test a"), "item 2"],
     ["an item ticked without a proof", brief, row("1 ✓ test a; 2 ✓"), "item 2"],
