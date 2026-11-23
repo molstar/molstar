@@ -5,7 +5,7 @@
  */
 
 import type { LayerPlace } from '@molstar/seqx-core/extension';
-import { Kind, type RondoLay, stemAt } from './lay.js';
+import { foldedOf, Kind, type RondoLay, stemAt } from './lay.js';
 
 // What the ribbons say (_spec/README.md, Hover, the keyboard): the card's lines for a hit (core's `LayerType.describe`:
 // the viewer's own text after), the layer's ARIA summary, and what the keyboard cursor adds at a stem.
@@ -57,10 +57,17 @@ export function describeRondo(hit: LayerPlace, lay: RondoLay): readonly string[]
   }
   if (kind === Kind.stub) {
     const s = lay.stubStem[ref];
-    return [
-      `${rangeText(lay, s)} → ${lay.names[lay.stubPartner[ref]]}`,
-      `Links: ${links(lay.stubCount[ref])}, not shown`,
-    ];
+    const partner = lay.stubPartner[ref];
+    if (partner < 0) {
+      // a folded stub: its partners listed, each with its links
+      const folded = foldedOf(lay, ref);
+      return [
+        `${rangeText(lay, s)} → other chromosomes`,
+        `Links: ${links(lay.stubCount[ref])} to ${folded.length} chromosomes, not shown`,
+        `Partners: ${folded.map((f) => `${lay.names[f.partner]} (${Math.round(f.count).toLocaleString('en-US')})`).join(', ')}`,
+      ];
+    }
+    return [`${rangeText(lay, s)} → ${lay.names[partner]}`, `Links: ${links(lay.stubCount[ref])}, not shown`];
   }
   if (kind === Kind.trumpet || kind === Kind.fan) {
     const partners = new Set<number>();
@@ -68,7 +75,9 @@ export function describeRondo(hit: LayerPlace, lay: RondoLay): readonly string[]
       if (lay.ribA[r] === ref) partners.add(lay.stemSystem[lay.ribB[r]]);
       else if (lay.ribB[r] === ref) partners.add(lay.stemSystem[lay.ribA[r]]);
     }
-    for (let b = 0; b < lay.nb; b++) if (lay.stubStem[b] === ref) partners.add(lay.stubPartner[b]);
+    for (let b = 0; b < lay.nb; b++)
+      if (lay.stubStem[b] === ref && lay.stubPartner[b] >= 0) partners.add(lay.stubPartner[b]);
+    for (let e = 0; e < lay.nf; e++) if (lay.stubStem[lay.foldOwner[e]] === ref) partners.add(lay.foldPartner[e]);
     const lines = [
       rangeText(lay, ref),
       `Links: ${links(lay.stemCount[ref])} to ${partners.size} chromosome${partners.size === 1 ? '' : 's'}`,

@@ -71,6 +71,8 @@ export class RondoLay {
   wash = 0;
   accent = 0;
   ink = 0;
+  /** A folded stub's colour (no one partner's hue). */
+  muted = 0;
   font = '';
   /** The systems the ends are on, in the assembly's order (the hue domain, taken before `include`), and their names. */
   systems: readonly string[] = [];
@@ -133,6 +135,16 @@ export class RondoLay {
   /** A label's measured width, CSS px. */
   stubLabelW = new Float64Array(16);
   stubKey: string[] = [];
+  /**
+   * Folded stubs (`rondo.stubMin`): a stub of partner −1 is a stem's small stubs as one; its partners and counts are the
+   * entries `e < nf` with `foldOwner[e]` the stub.
+   */
+  nf = 0;
+  foldOwner = new Int32Array(16);
+  foldPartner = new Int32Array(16);
+  foldCount = new Float64Array(16);
+  /** The ring shows one chromosome or a pair: the stems drawn lighter (`rondo.focusStems`). */
+  focus = false;
 
   // ---- polygons, in draw order, and the hit grid over them ----
   readonly polys = new Polygons();
@@ -362,6 +374,7 @@ export function layoutRondo(lay: RondoLay, prep: RondoPrep, ctx: LayoutContext, 
   lay.wash = tokens.colors['seq-wash'];
   lay.accent = tokens.colors['msui-accent'];
   lay.ink = tokens.colors['msui-text'];
+  lay.muted = tokens.colors['msui-text-muted'];
   lay.font = ctx.config.labelFont;
   if (!frameOf(lay, ctx)) {
     lay.empty = 'layout';
@@ -396,6 +409,8 @@ export function layoutRondo(lay: RondoLay, prep: RondoPrep, ctx: LayoutContext, 
   gather(lay, read, d.aUnit, d.bUnit);
   placeStems(lay, ctx, prep.model);
   aggregate(lay, read);
+  foldStubs(lay, cfg.stubMin);
+  lay.focus = (ctx.section.blocks?.length ?? 1) <= 2;
   if (!lay.nr && !lay.nb && !lay.ns) {
     // nothing read yet while the view waits for its data (EC-169: pending is said, never an empty hole), else none
     lay.empty =
@@ -492,6 +507,73 @@ function aggregate(lay: RondoLay, read: PairsRead) {
     lay.stubCount[s] += c;
     lay.stemCount[near] += c;
   }
+}
+
+/** A stem's small stubs (scratch, grown): how many, its folded stub's index. */
+let SmallN = new Int32Array(64);
+let FoldAt = new Int32Array(64);
+let TmpStem = new Int32Array(16);
+let TmpPartner = new Int32Array(16);
+let TmpCount = new Float64Array(16);
+
+/**
+ * Folds a stem's stubs of fewer than `min` links into one stub of partner −1 when it has two or more (its count their
+ * sum, so a neck is still the sum of its parts), their partners kept for its card (`foldOwner`, `foldPartner`).
+ */
+function foldStubs(lay: RondoLay, min: number) {
+  lay.nf = 0;
+  const n0 = lay.nb;
+  if (!(min > 1) || n0 < 2) return;
+  SmallN = grow(SmallN, lay.ns);
+  FoldAt = grow(FoldAt, lay.ns);
+  SmallN.fill(0, 0, lay.ns);
+  FoldAt.fill(-1, 0, lay.ns);
+  let folds = false;
+  for (let b = 0; b < n0; b++) if (lay.stubCount[b] < min && ++SmallN[lay.stubStem[b]] >= 2) folds = true;
+  if (!folds) return;
+  TmpStem = grow(TmpStem, n0);
+  TmpPartner = grow(TmpPartner, n0);
+  TmpCount = grow(TmpCount, n0);
+  for (let b = 0; b < n0; b++) {
+    TmpStem[b] = lay.stubStem[b];
+    TmpPartner[b] = lay.stubPartner[b];
+    TmpCount[b] = lay.stubCount[b];
+  }
+  lay.foldOwner = grow(lay.foldOwner, n0);
+  lay.foldPartner = grow(lay.foldPartner, n0);
+  lay.foldCount = grow(lay.foldCount, n0);
+  lay.nb = 0;
+  for (let b = 0; b < n0; b++) {
+    const stem = TmpStem[b];
+    const c = TmpCount[b];
+    if (c < min && SmallN[stem] >= 2) {
+      let f = FoldAt[stem];
+      if (f < 0) {
+        f = FoldAt[stem] = lay.nb++;
+        lay.stubStem[f] = stem;
+        lay.stubPartner[f] = -1;
+        lay.stubCount[f] = 0;
+      }
+      lay.stubCount[f] += c;
+      const e = lay.nf++;
+      lay.foldOwner[e] = f;
+      lay.foldPartner[e] = TmpPartner[b];
+      lay.foldCount[e] = c;
+      continue;
+    }
+    const k = lay.nb++;
+    lay.stubStem[k] = stem;
+    lay.stubPartner[k] = TmpPartner[b];
+    lay.stubCount[k] = c;
+  }
+}
+
+/** A folded stub's partners and counts, strongest first. */
+export function foldedOf(lay: RondoLay, stub: number): { partner: number; count: number }[] {
+  const out: { partner: number; count: number }[] = [];
+  for (let e = 0; e < lay.nf; e++)
+    if (lay.foldOwner[e] === stub) out.push({ partner: lay.foldPartner[e], count: lay.foldCount[e] });
+  return out.sort((a, b) => b.count - a.count || a.partner - b.partner);
 }
 
 /** Ribbons by count, strongest first (ties: the wider span, then the key): the drawn bound's order. */

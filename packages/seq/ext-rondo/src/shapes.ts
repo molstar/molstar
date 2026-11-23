@@ -34,7 +34,8 @@ function stubLabels(lay: RondoLay, cfg: RondoConfig, ctx: LayoutContext, tipD: n
   const order = ByCount.subarray(0, n).sort((a, b) => lay.stubCount[b] - lay.stubCount[a] || a - b);
   let taken = 0;
   for (const s of order) {
-    const text = `${lay.names[lay.stubPartner[s]]} · ${Math.round(lay.stubCount[s]).toLocaleString('en-US')}`;
+    const partner = lay.stubPartner[s];
+    const text = `${partner < 0 ? 'other chromosomes' : lay.names[partner]} · ${Math.round(lay.stubCount[s]).toLocaleString('en-US')}`;
     f.point((lay.stubT0[s] + lay.stubT1[s]) / 2, tipD + 4);
     const x = f.px;
     const y = f.py;
@@ -126,7 +127,9 @@ export function polygons(lay: RondoLay, prep: RondoPrep, cfg: RondoConfig, ctx: 
     addCubic(f, P, seg, t1, 0, t1, dn / 2, n1, dn / 2, n1, dn);
     addArc(f, P, n1, n0, dn);
     addCubic(f, P, seg, n0, dn, n0, dn / 2, t0, dn / 2, t0, 0);
-    lay.stemPoly[s] = made(lay, Kind.trumpet, s, alpha(hueOf(lay, lay.stemSystem[s]), op));
+    // on one chromosome or a pair the ribbons and stubs carry the information: the trumpets lighter there
+    const stemOp = lay.focus ? op * cfg.focusStems : op;
+    lay.stemPoly[s] = made(lay, Kind.trumpet, s, alpha(hueOf(lay, lay.stemSystem[s]), stemOp));
   }
   // ribbons widest first
   const ribs: number[] = [];
@@ -175,7 +178,9 @@ export function polygons(lay: RondoLay, prep: RondoPrep, cfg: RondoConfig, ctx: 
     P.add(f.px, f.py);
     f.point(mid, tipD);
     P.add(f.px, f.py);
-    lay.stubPoly[s] = made(lay, Kind.stub, s, alpha(hueOf(lay, lay.stubPartner[s]), op));
+    // a folded stub (partner −1) in the muted text's colour: no one partner's hue
+    const hue = lay.stubPartner[s] < 0 ? lay.muted : hueOf(lay, lay.stubPartner[s]);
+    lay.stubPoly[s] = made(lay, Kind.stub, s, alpha(hue, op));
     slop(lay, lay.stubPoly[s], lay.k * lay.stubCount[s], cfg.hitSlopPx);
   }
   stubLabels(lay, cfg, ctx, tipD);
@@ -240,7 +245,8 @@ function hitsOf(lay: RondoLay) {
       lay.ribKey[ref] = key;
     } else if (kind === Kind.stub) {
       stem = lay.stubStem[ref];
-      key = `stub:${lay.systems[lay.stemSystem[stem]]}:${lay.stemBin[stem]}|${lay.systems[lay.stubPartner[ref]]}`;
+      const partner = lay.stubPartner[ref];
+      key = `stub:${lay.systems[lay.stemSystem[stem]]}:${lay.stemBin[stem]}|${partner < 0 ? 'other' : lay.systems[partner]}`;
       count = lay.stubCount[ref];
       lay.stubKey[ref] = key;
     } else {

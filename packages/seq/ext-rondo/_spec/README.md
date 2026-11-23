@@ -35,7 +35,11 @@ bins), the readout's after the pair (`chr4 × chr7 · 37 links`).
 - **Its count** is the pairs leaving it (ribbons, stubs, fan); pairs with both ends in it are counted apart ("within")
   and drawn once a finer level parts them.
 - **The trumpet**: its mouth on the layer's band's inner edge (the hole's rim) to its neck `rondo.stemDepth` (0.12) of
-  the hole inward, two cubics flaring, in its system's hue at `ribbons.fillOpacity`.
+  the hole inward, two cubics flaring, in its system's hue at `ribbons.fillOpacity`; on a ring of one chromosome or a
+  pair (the section shows two blocks or fewer) at `rondo.focusStems` (0.35) of it. Why: there the information is in the
+  ribbons and stubs, and full trumpets dominate them (a look at the SVG of a 23-chromosome toy genome, chr4 alone and
+  chr4 × chr7: 0.35 read the stubs over the stems with the block's hue kept, 0.25 nearly washed it out, 0.5 kept the
+  trumpets the louder; to confirm in a pane).
 
 ## Ribbons
 
@@ -66,6 +70,12 @@ bins), the readout's after the pair (`chr4 × chr7 · 37 links`).
   member under a device px), labelled at its tip ("chr7 · 37", centred), the strongest first, a label only where its box
   (padded 2 px) meets no label taken and its tip is `rondo.stubLabelPx` (24) from every labelled tip. Why: tips crowd at
   a hub, and two labels over each other read as neither. `stubs: none`: not drawn (their counts in the fan).
+- **Small stubs fold**: a stem's stubs of fewer than `rondo.stubMin` (2) links, when it has two or more, are one stub of
+  partner −1 (`foldStubs`; its count their sum, so the neck is still the sum of its parts), in the muted text's colour,
+  labelled "other chromosomes · 12" (its links), keyed `stub:<system>:<bin>|other`; its card lists them ("Partners: chr3
+  (1), chr9 (1)", `foldedOf`), its double-click with `opens` the stem's chromosome alone. A lone small stub stays. Why:
+  on one chromosome a stem's single links to every other chromosome are a comb of hairlines that hides the strong
+  partners. Not built: the folded stub unfolded on hover (its card lists them).
 
 ## Hits, emphasis, words
 
@@ -135,6 +145,8 @@ ring (`of: [ring, ring]`, `content: rondo:square`, `switch: include`). The spec'
 | `rondo.hitSlopPx`                      | setting          | 4 CSS px                             | a hairline ribbon or stub a pointer can stay on; 3 to 4 px either side |
 | `rondo.fade`                           | setting          | 0.6                                  | the hovered stem's ribbons read over the rest                          |
 | `rondo.flatten`                        | setting          | 12                                   | hit within a device px at 720 px                                       |
+| `rondo.focusStems`                     | setting          | 0.35                                 | the ribbons read over the stems on one chromosome or a pair            |
+| `rondo.stubMin`                        | setting          | 2                                    | single links fold into one "other chromosomes" stub a stem             |
 
 **Settings are the descriptor's and the composition's** (`rondoWith(config)`, `rondo` the defaults; `RondoConfigItems`
 name them, listed as the descriptor's `config`): a layout reads the composition's `rondo.*` pairs (`settingOf`, from the

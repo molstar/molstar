@@ -30,6 +30,13 @@ export interface RondoConfig {
   readonly fade: number;
   /** Segments a cubic is flattened into (drawn and hit alike). */
   readonly flatten: number;
+  /**
+   * The stems' opacity on a ring of one chromosome or a pair, a share of the ribbons' (the information is in the
+   * ribbons and stubs there; the trumpets would dominate).
+   */
+  readonly focusStems: number;
+  /** A stub of fewer links than this folds with the stem's other small stubs into one "other chromosomes" stub. */
+  readonly stubMin: number;
 }
 
 export const DefaultRondoConfig: RondoConfig = {
@@ -43,6 +50,8 @@ export const DefaultRondoConfig: RondoConfig = {
   hitSlopPx: 4,
   fade: 0.6,
   flatten: 12,
+  focusStems: 0.35,
+  stubMin: 2,
 };
 
 /** The settings as items (`rondo.stemPx`, …): what a spec's `config` names. */
@@ -57,6 +66,8 @@ export const RondoConfigItems = {
   hitSlopPx: configItem<number>('rondo.hitSlopPx'),
   fade: configItem<number>('rondo.fade'),
   flatten: configItem<number>('rondo.flatten'),
+  focusStems: configItem<number>('rondo.focusStems'),
+  stubMin: configItem<number>('rondo.stubMin'),
 } as const;
 
 /** The settings with some overridden (a host's `rondoWith`). */

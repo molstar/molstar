@@ -35,7 +35,11 @@ export function chromosomesOf(lay: RondoLay, hit: Hit): string[] {
   const name = (sys: number) => lay.names[sys];
   if (kind === Kind.ribbon)
     return [...new Set([name(lay.stemSystem[lay.ribA[ref]]), name(lay.stemSystem[lay.ribB[ref]])])];
-  if (kind === Kind.stub) return [name(lay.stemSystem[lay.stubStem[ref]]), name(lay.stubPartner[ref])];
+  // a folded stub: its stem's chromosome (its partners are many)
+  if (kind === Kind.stub)
+    return lay.stubPartner[ref] < 0
+      ? [name(lay.stemSystem[lay.stubStem[ref]])]
+      : [name(lay.stemSystem[lay.stubStem[ref]]), name(lay.stubPartner[ref])];
   return [name(lay.stemSystem[ref])];
 }
 
