@@ -393,7 +393,7 @@ Rows and columns of ux-foundations section 8; "as an element" means the grammar'
 | A sequence's sparse `modified`; the letter the parent's; a component over several positions; several at one position (decided 2, 6, 8) | core › A sequence's modified |
 | The standard component per letter in `@molstar/core` (decided 13) | core › The modified index |
 | Drawn: `modified` `mark` by default, `code`, `tint`, `none`; compact, no cell widened (decided 3) | core › Layer types |
-| The mark's size and place (`letters.modifiedMark`) | core › Configuration |
+| The mark's size and place (`letters.modifiedMark`) | core › Layer types |
 | Hover: letter, code, name, alternatives | viewer › HoverModel |
 | Names from `compound` nodes, else the host's `componentNames`; no CCD shipped | core › Compounds |
 | A modification known by name only: a `ranges` item the `modified` property finds (decided 7) | core › Built in |
@@ -409,8 +409,8 @@ Rows and columns of ux-foundations section 8; "as an element" means the grammar'
 | A unit instantiates one molecule; a PRD's units carry `group` | core › A complex |
 | Copies derived (EC-65); the copy rule | core › Copies are derived |
 | Annotations on any positions (EC-48) | core › Systems |
-| Bounded by `maxUnits` | core › Bounded |
-| Links a `pairs` child of a complex or a molecule; one shape; never maps | core › Links |
+| Bounded by `maxUnits` | core › Molecules and units |
+| Links a `pairs` child of a complex or a molecule; one shape; never maps | core › Molecules and complexes |
 | Ends on per-row units; the `pairs` layer and a `ranges` layer over links | core › A complex's links |
 | Atoms onto residues: a group map at a path's ends; focus projects, follow does not | core › The atoms group map |
 | A writer's own group map (`map.method: group`) | design-only: not built (no view needs one) |
@@ -424,7 +424,7 @@ Rows and columns of ux-foundations section 8; "as an element" means the grammar'
 | `block.form` in the context menu | design-only: not built as designed, a command in no built-in menu (drift note `molecules.md`) |
 | The query forms | core › Molecule node forms |
 | mmCIF through an opt-in runtime on `@molstar/io`'s reader (decided 12) | core › mmCIF |
-| Its options `assembly`, `water`, `name` | core › Configuration |
+| Its options `assembly`, `water`, `name` | core › mmCIF |
 | A molecule's atoms from a CCD source's `chem_comp_atom` | design-only: not built (atoms from the first unit only) |
 | The `seq` format carries the same nodes | core › The seq format |
 | The language's 0.5.0 additions and checks | core › Versions |

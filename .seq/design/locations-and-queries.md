@@ -176,6 +176,7 @@ residues (three atoms); `/data/1ehz/(groups :residue-test (= (prop modified) tru
 | The meaning is the form's: a resolver table, child selection the default | repr › The form-resolver table |
 | Seq\*'s resolvers registered as a table | core › The table |
 | Atoms: a number if it parses as one, else a symbol | repr › Atoms' spelling |
+| Labels 1-based by default (Settled) | core › Built-ins |
 | `:numbering`, the built-ins `index` and `ordinal`, `ordinal` by default (EC-195) | core › Built-ins |
 | `.n` labels quoted | core › A label |
 | A boundary's overlap | core › Overlap |
@@ -198,5 +199,5 @@ residues (three atoms); `/data/1ehz/(groups :residue-test (= (prop modified) tru
 | Replaced forms (`atom`, `component`, `entity`) | core › Molecule node forms |
 | Staged evaluation over data read by region | core › Staged |
 | A query needing the whole data asks the source, else refused | design-only: not built (with `search`) |
-| Bounded: a limit, a depth, a deadline | core › Bounded |
+| Bounded: a limit, a depth, a deadline | core › Staged and bounded |
 | Tests | core › Examples |

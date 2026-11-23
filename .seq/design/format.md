@@ -89,7 +89,7 @@ description of the language that everything else derives from.
 |---|---|
 | One language, one version; the levels are containers | core › Versions |
 | A newer major refused with an issue | core › Gate order of checkSeqSpec |
-| Older specs migrated by tree-to-tree functions | design-only: not built (pre-release `0.x` moves with no migration, core › Versions) |
+| Older specs migrated by tree-to-tree functions | design-only: not built (pre-release `0.x` moves with no migration, core › Versions; the version-migration hook is in `packages/seq/TODO.md`, under `repr`) |
 | The tree and its values codec-independent | repr › repr: the tree core |
 | Typed columns declared, not guessed; codecs and the builder give the typed array | repr › Codecs stay schema-free |
 | Identity by bytes and element type | repr › Columns by element type and bytes |

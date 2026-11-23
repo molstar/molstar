@@ -10,12 +10,14 @@ an extension's layer type is a namespaced word on `layer.type` with its params p
 extension checks its own (`SeqExtension.check`) where it is composed (core spec, Language, Extensions; repr spec,
 Validation).
 
-**Where**: `packages/seq/core/src/lang/language.ts`, `packages/seq/core/src/extension.ts`.
+**Where**: `packages/seq/core/src/lang/language.ts`, `packages/seq/core/src/context/extension.ts` (`SeqExtension`). `packages/seq/TODO.md` lists
+`composeLanguage` under `repr`.
 
 **Options**: (a) the design follows the code: the later extension design superseded `composeLanguage`; (b) build it
 for extension kinds that need typed builders.
 
-**Recommendation**: (a); (b) only when an extension needs kinds of its own with builder types.
+**Recommendation**: (a); (b) only when an extension needs kinds of its own with builder types. If (a) is taken, the
+TODO's `composeLanguage` entry is dropped.
 
 ## 2. An issue's `path` on a dynamic node
 

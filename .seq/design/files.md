@@ -367,7 +367,7 @@ Files add no gesture: what a file holds is drawn by the layers that read it, as 
 | Labels of a declared numbering in a file (decided 9) | design-only: not built (waits for a converting runtime) |
 | The params in `0.4.0` with no migration (decided 1) | core › Versions |
 | The interaction matrix's cells | design-only: no cell beyond the transform's edit, a patch of the source (core › A source's transform) |
-| The configuration table | core › Configuration |
+| The configuration table | core › Records |
 
 ## Tensions
 

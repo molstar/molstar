@@ -144,10 +144,10 @@ and AoS interchangeable representations we have"; records in an address as `:ite
 | The grammar; canonical printing, keys sorted, `parse(print(a)) = a` | repr › Grammar |
 | Positional values before keywords, operator heads | repr › Positional values |
 | Positional values only in expression forms, else `seq.query.form.param` | core › Expressions take positional operands |
-| Percent-encoded as a whole in a link | core › Links |
+| Percent-encoded as a whole in a link | core › Mol\*'s link grammar |
 | Forms are the query language's; one language with queries | core › Forms |
 | Rects first-class: Locations of two axes, set operations | core › Location |
-| Bounded: a limit and a depth, an issue never a truncation | core › Bounded |
+| Bounded: a limit and a depth, an issue never a truncation | core › Resolving |
 | Positions in labels of a named numbering (EC-1 to EC-8) | core › Numberings and labels |
 | An address that no longer resolves is reported with what it named, never re-bound | core › Status |
 | `(elements …)` items: one item, columns, records; zipped, never a product | core › elements |
@@ -161,7 +161,7 @@ and AoS interchangeable representations we have"; records in an address as `:ite
 | An unresolved ref on read reported, the rest opens | core › Checks |
 | The `ref` param type | repr › Refs |
 | Commands take addresses; a link drives the view as a menu or an agent does | viewer › AddressModel |
-| Links in Mol\*'s grammar, prefixed keys, their own hover channel (EC-182) | core › Links |
+| Links in Mol\*'s grammar, prefixed keys, their own hover channel (EC-182) | core › Mol\*'s link grammar |
 | Copy link: the shortest stable address, a ref first | core › Back |
 | Local ids vs stable identity; the strict id pattern | design-only: tensions |
 

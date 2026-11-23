@@ -4327,6 +4327,9 @@ cost to the minimal viewer is the names the chunk imports from it).
   Location on the data's system), `position` on the section's system. Cells by arithmetic on the axis; items by
   `LaneIndex` (a lane's marks by left edge with a running maximum of right edges). In a track, the topmost layer with an
   element under the point wins, else the topmost with a position.
+- **Targets are closed**: `HitTarget` (`render/layer-type.ts`) is a closed union of the built-in layouts' and layers'
+  targets; an extension's layer type answers `hit` with an element, a position or both, never a target of its own. Why:
+  the viewer's behaviors switch on the targets, and an extension's gestures are its own behaviors over its own commands.
 - **What a break hides is not dropped** (fixed): a `ranges` layer reads the stretches its breaks in view hide too
   (`dataRegions(src, axis, true)`), and its items wholly in one draw one tick on the break a lane in the break ink,
   whatever their number (`ticks`: x, lane, count, the hidden stretch), hit as the break (its `count`); a Location there

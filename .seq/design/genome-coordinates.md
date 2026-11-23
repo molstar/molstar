@@ -540,7 +540,7 @@ Built (the fifth slice): GC1 (the language and resolve), SC (sections over a com
 | Pairs and grids across blocks (decided 15) | core › The pairs layer |
 | A navigator over an assembly; the zoom strip; the square; the readout | core › A navigator over blocks |
 | `navigator.system` a list of assemblies; grips on the square per axis | design-only: not built (the Built note) |
-| The configuration table | core › Configuration |
+| The configuration table | core › Assemblies |
 | The edge cases taken or assigned; the self-check; the lanes | design-only: a plan |
 
 ## Tensions

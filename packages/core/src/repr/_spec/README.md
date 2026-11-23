@@ -32,7 +32,7 @@ at their old paths: a reader of JSON's binary twin needs no io dependency.
   address is the path of ids. `args` holds a data form's positional values (a query, a theme expression); a node with
   `args` has no id and no children. Why: one recursive form every language is spelled in.
 - **Ids** (`IdPattern`): a letter, digit or `_`, then letters, digits, `_`, `.`, `+` or `-` (Unicode letters and
-  digits). A name outside it (an HLA contig, a row label with `/`) is reached by a form, never by loosening the pattern.
+  digits). A name outside it (one with a space, a `:` or a `/`) is reached by a form, never by loosening the pattern.
   Why: an address of ids is a bare word with nothing to quote.
 - **`custom`** is extension data on any node: kept, hashed and encoded, never validated against the kind. Its columns
   are encoded tagged (Codecs), so they come back typed with no language.
