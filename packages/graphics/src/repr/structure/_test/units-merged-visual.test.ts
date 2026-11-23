@@ -344,6 +344,24 @@ describe('the merged units visual', async () => {
     return { builder: counted, undisposed };
   }
 
+  it('disposes the group it made where its values do not merge, each update', async () => {
+    const base = splitBuilder();
+    const { builder, undisposed } = countingBuilder({
+      ...base,
+      processValues: (values: any, geometry: Spheres) => {
+        base.processValues!(values, geometry, undefined as any, undefined as any);
+        ValueCell.updateIfChanged(values.dUsePalette, true);
+      },
+    });
+    const repr = await createRepr(structure, true, {}, builder);
+    await repr.createOrUpdate({ emissive: 0.2 }).run();
+    await repr.createOrUpdate({ emissive: 0.3 }).run();
+    // the per-group visuals' alone not disposed while drawn; the merged visual's tries each disposed
+    expect(undisposed()).toBe(structure.unitSymmetryGroups.length);
+    repr.destroy();
+    expect(undisposed()).toBe(0);
+  });
+
   it('keeps its groups through an update that fails, disposing what that update made', async () => {
     let fail = false;
     let updates = 0;

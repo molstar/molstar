@@ -620,58 +620,72 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
         return canMergeValues(type, [seg.part.shared]);
       };
       let written = !sameGroups;
-      // the previous segments this update keeps: the visual's own map untouched till it ends (one that does not, by a
-      // throw or an abort, leaves the visual's segments as they were, none lost)
+      // what this update made and which of the previous segments it kept: the visual's own map and segments untouched
+      // till it ends (one that does not, by a part not to merge, a throw or an abort, disposes what it made and leaves
+      // the visual as it was)
+      const made: Segment<G>[] = [];
       const kept = new Set<Segment<G>>();
-      for (let i = 0, il = groups.length; i < il; ++i) {
-        const group = groups[i];
-        const structureGroup: StructureGroup = { group, structure };
-        let seg = sameGroups ? segments[i] : previous.get(group);
-        if (seg) {
-          if (!sameGroups) kept.add(seg);
-          if (propsOnly && seg.group === group) {
-            const probed = sharedOnly.get(seg.part);
-            if (probed) continue;
-            if (probed === undefined) {
-              const versions = recordVersions(seg);
+      const partsBefore = new Set(parts);
+      let completed = false;
+      try {
+        for (let i = 0, il = groups.length; i < il; ++i) {
+          const group = groups[i];
+          const structureGroup: StructureGroup = { group, structure };
+          let seg = sameGroups ? segments[i] : previous.get(group);
+          if (seg) {
+            if (!sameGroups) kept.add(seg);
+            if (propsOnly && seg.group === group) {
+              const probed = sharedOnly.get(seg.part);
+              if (probed) continue;
+              if (probed === undefined) {
+                const versions = recordVersions(seg);
+                const updating = updateSegment(ctx, seg, structureGroup, props, theme);
+                if (isPromiseLike(updating)) await updating;
+                const clean = !hasRecordUpdates(updateState) && isSameVersions(versions, recordVersions(seg));
+                sharedOnly.set(seg.part, clean);
+                if (!clean) written = true;
+                if (!merges(seg)) {
+                  unmergeable = true;
+                  return;
+                }
+                continue;
+              }
+            }
+            if (!unchanged || seg.group !== group) {
+              written = true;
               const updating = updateSegment(ctx, seg, structureGroup, props, theme);
               if (isPromiseLike(updating)) await updating;
-              const clean = !hasRecordUpdates(updateState) && isSameVersions(versions, recordVersions(seg));
-              sharedOnly.set(seg.part, clean);
-              if (!clean) written = true;
-              if (!merges(seg)) {
-                unmergeable = true;
-                return;
-              }
-              continue;
             }
+          } else {
+            const geometry = createGeometry(ctx, structureGroup, props, theme);
+            let segment: Segment<G> | undefined;
+            const preparing = Visual.withPreparedGeometry(geometry, utils, theme, graphics, (g) => {
+              segment = createSegment(ctx, structureGroup, g, props, theme);
+            });
+            if (isPromiseLike(preparing)) await preparing;
+            seg = segment!;
+            made.push(seg);
+            geometryVersion += 1;
+            // a new segment of a marked representation: its markers as made, clear (as a new units visual's)
           }
-          if (!unchanged || seg.group !== group) {
-            written = true;
-            const updating = updateSegment(ctx, seg, structureGroup, props, theme);
-            if (isPromiseLike(updating)) await updating;
+          if (!merges(seg)) {
+            unmergeable = true;
+            return;
           }
-        } else {
-          const geometry = createGeometry(ctx, structureGroup, props, theme);
-          let made: Segment<G> | undefined;
-          const preparing = Visual.withPreparedGeometry(geometry, utils, theme, graphics, (g) => {
-            made = createSegment(ctx, structureGroup, g, props, theme);
-          });
-          if (isPromiseLike(preparing)) await preparing;
-          seg = made!;
-          geometryVersion += 1;
-          // a new segment of a marked representation: its markers as made, clear (as a new units visual's)
+          if (!sameGroups) {
+            next.set(group, seg);
+            nextSegments.push(seg);
+          }
+          if (ctx.runtime.shouldUpdate) {
+            await ctx.runtime.update({ message: 'Creating or updating merged units visual', current: i, max: il });
+          }
         }
-        if (!merges(seg)) {
-          unmergeable = true;
-          return;
-        }
-        if (!sameGroups) {
-          next.set(group, seg);
-          nextSegments.push(seg);
-        }
-        if (ctx.runtime.shouldUpdate) {
-          await ctx.runtime.update({ message: 'Creating or updating merged units visual', current: i, max: il });
+        completed = true;
+      } finally {
+        if (!completed) {
+          for (const seg of made) builder.dispose?.(seg.geometry);
+          // the parts made for them alone: no object yet (made with the render objects), dropped
+          parts = parts.filter((part) => partsBefore.has(part));
         }
       }
       if (written) recordsWritten();
