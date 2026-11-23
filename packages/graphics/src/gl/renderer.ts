@@ -113,7 +113,9 @@ interface Renderer {
   /**
    * Culls on the GPU for a view of its own (a frame of its own: the thickness pass, a ray's pick) with the planes of the
    * last `update`, no pass open: the objects culled on the GPU (`Renderable.prepareCullView`); the others draw the CPU
-   * culling's lists there. Not tested against a pyramid
+   * culling's lists there. Not tested against a pyramid. Required of every pass of a view of its own (a shadow map, a
+   * custom camera): the objects culled on the GPU have no CPU fallback, so a view not culled for them draws none of
+   * them (a warning once an object in debug mode)
    */
   prepareCullView: (scene: Scene.Group) => void;
   /** The objects whose second phase is to run after the last `prepareCull` with `twoPhase` (none: no second part) */

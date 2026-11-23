@@ -9,6 +9,7 @@ import { getCulledSegmentData } from '../culled-data.js';
 import type { PagedCullChanges, PagedCullSource } from '../compute/paged-cull.js';
 import { createPagedMergedCuller } from './merged-paged-culler.js';
 import { fillSerial, getSharedSerial, isSharedSerial } from '@molstar/core/util/array';
+import { isDebugMode } from '@molstar/core/util/debug';
 import type { OcclusionPyramid } from '../compute/cell-cull.js';
 import { createMergedCuller, type MergedRasterParams } from './merged-culler.js';
 import { isSphereRasterEligible } from '../compute/sphere-raster-pass.js';
@@ -2574,6 +2575,8 @@ export function MergedRenderable(
 
   /** the frame culled on the GPU (its first view) and the planes it was culled with */
   let gpuFrame: Frame | undefined;
+  /** told once (debug mode) that a view not culled on the GPU for it drew none of it (`prepareCullView` not called) */
+  let warnedUnculledView = false;
   const gpuPlanes = new Float64Array(28);
   let gpuLists: MultiDrawBaseData[] = [];
   const getPlane = (i: number, cameraPlane: Plane3D, frustum: Frustum3D) => (i < 6 ? frustum[i as 0] : cameraPlane);
@@ -2831,6 +2834,14 @@ export function MergedRenderable(
     // alone, `rasterOnly`): a view not culled on the GPU for it draws none, as while the kernels compile (`'none'`; no
     // CPU lists, no grids built for them; `prepareCullView` culls a view of its own)
     if (culler && (culler.paged || !rasterOnly)) {
+      // its kernels ready: a pass of a view of its own (a shadow map, a custom camera) that did not cull it on the GPU
+      // (`Renderer.prepareCullView`), no CPU fallback: said once in debug mode, the cause hard to see otherwise
+      if (isDebugMode && !warnedUnculledView && gpuFrame !== undefined && culler.areKernelsReady()) {
+        warnedUnculledView = true;
+        console.warn(
+          'merged object culled on the GPU: drawn in a view not culled for it (Renderer.prepareCullView), nothing drawn',
+        );
+      }
       set.mdb.prepare(memberCull[0].lodLevels, 0, true, lod);
       set.mode = 'none';
       set.lastCullFrame = frame;

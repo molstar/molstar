@@ -6,7 +6,9 @@
   thickness pass, a ray's pick, a frame's second camera, the overlay's and the screen layer's cameras), as a page
   store's object does since
   [particle-slots.md](../particle-slots.md) step 7, and draws by the GPU culling alone: no CPU lists or grids, the
-  kernels waited for (but for the sphere raster alone, `rasterOnly`). WebGL culls on the CPU as before.
+  kernels waited for (but for the sphere raster alone, `rasterOnly`). WebGL culls on the CPU as before. So every
+  pass of a view of its own calls `Renderer.prepareCullView` (a shadow map, a custom camera too): one that does not
+  draws none of these objects, no CPU fallback; a debug warning once an object says so (`merged.ts`).
 
 ## Question
 
