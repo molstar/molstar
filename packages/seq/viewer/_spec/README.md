@@ -1363,10 +1363,14 @@ rows' commands) reads the last frame's rows layers through the behavior context'
     at what it hits, an element's entries first, then its track's and its section's; the element's facts carry its
     layer's type, `element.type`, so an extension's `on: 'element'` entries are scoped to its own type's hits: a section
     layer's hit, an extension's ribbons, is found on the track that holds it; `header`, the label column only; `none`,
-    the browser's); Shift+secondary click is always the browser's. A long press (touch, the `longPressMs` param, 500)
-    opens it. The gestures are a lazy chunk loaded at the mount (`header-gestures.ts`). The menu key and Shift+F10
-    (`headers.menu`, `view.keys`) and Enter on a header open it at the cursor's header (its section's first track's on
-    data), once per ask: the browser's secondary click that follows within a second is taken and opens nothing (EC-156).
+    the browser's); Shift+secondary click is always the browser's. On a ring a point that hits nothing (the hole between
+    ribbons, the corners) opens no menu: the browser's (a track's band by y is not a ring's). A long press (touch, the
+    `longPressMs` param, 500) opens it. The gestures are a lazy chunk loaded at the mount (`header-gestures.ts`). The
+    menu key and Shift+F10 (`headers.menu`, `view.keys`) and Enter on a header open it at the cursor's header (its
+    section's first track's on data), once per ask: the browser's secondary click that follows within a second is taken
+    and opens nothing (EC-156). Before the header, an `element` entry's `atCursor(viewer)` (`HeaderElementAt`: a target
+    with its element and a canvas point) names the element the cursor stands on (a ring's stem): its menu opens there. A
+    submenu's item may hold its own (`HeaderSubEntry.items`: a flyout of the flyout).
   - **The cursor off what was hidden**: a frame whose layout no longer has the cursor's track moves it to the next
     track's header, else the previous one's, else the section's line.
   - **Published on change** (by name from the frame, `framed()`: no listener; a frame that kept its layout reads one

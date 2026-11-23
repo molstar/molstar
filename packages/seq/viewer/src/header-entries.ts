@@ -97,6 +97,15 @@ export interface HeaderSubEntry {
   readonly args: Readonly<Record<string, unknown>>;
   /** A checked item (a shown layer), or the chosen one of a choice. */
   readonly checked?: boolean;
+  /** Its own submenu (a partner chromosome's pieces), a flyout of the flyout: its row opens it. */
+  readonly items?: readonly HeaderSubEntry[];
+}
+
+/** An element at the keyboard cursor (`HeaderEntry.atCursor`): its menu's target and where it opens, canvas px. */
+export interface HeaderElementAt {
+  readonly target: HeaderTarget;
+  readonly x: number;
+  readonly y: number;
 }
 
 /**
@@ -137,6 +146,11 @@ export interface HeaderEntry {
    * choice (the command owns its choices: the menu, a palette and an agent read the same).
    */
   readonly items?: (f: HeaderFacts) => readonly HeaderSubEntry[];
+  /**
+   * An `element` entry's element at the keyboard cursor of a viewer (a ring's stem at the cursor's position): what the
+   * menu key opens before the cursor's header, at the element. Undefined: none there.
+   */
+  readonly atCursor?: (viewer: SeqViewer) => HeaderElementAt | undefined;
 }
 
 /** A registry entry of the viewer: a header entry (`SeqViewerSpec.registry`, beside the core's kinds). */

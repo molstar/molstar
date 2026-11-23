@@ -185,8 +185,11 @@ waiting; its entries `StemMenu` in `viewer.ts`).
   (`element.type`, a `stem:` key): "Show with a partner ▸" (its partners by count, at most 8, each `chr17 · 140 links`,
   shown with it as a pair in the section the layer `opens`, else its own), "Select the stem and its partners"
   (`rondo:select-partners` with the element: one selection), "Show only chr4". The entries find the stem in the lays of
-  the viewer the menu is in (`HeaderFacts.viewer`: no state of their own, two viewers of one spec each their own). Not
-  built: the menu from the keyboard at a stem (Shift+F10 opens the header's menu at the cursor).
+  the viewer the menu is in (`HeaderFacts.viewer`: no state of their own, two viewers of one spec each their own). **Its
+  route**: a secondary click on a stem opens it at the pointer; on a ring's empty space (no hit) the browser's menu
+  opens (the viewer's rule for rings); the menu key and Shift+F10 with the keyboard cursor on a placed stem's range (the
+  topmost layer's) open it at the stem's mouth (`atCursor` on its first entry, `stemAtCursor`). Why: a menu a reader
+  cannot reach is none.
 - **The keys**: `.` (`rondo:partner`) and `,` (`rondo:partner-back`), the commands' shortcuts on the canvas: the cursor
   to the next or the previous partner of its stem by count, said by the announcer (the command moved the cursor: "chr17,
   40,000,000 · 140 links, reversed").

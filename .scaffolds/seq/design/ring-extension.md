@@ -306,6 +306,27 @@ No node kind, no data shape, no format runtime (extension-openings, Part 1): RR'
   ARIA: the layer's group described by its counts in view ("612 ribbons, 23 chromosomes; strongest chr1 ↔ chr17,
   140"), set when the frame settles; ribbons not focusable one by one.
 
+### The stem menu
+
+The novice passes found it unreachable, its partners repeated with no word on what separates them, its own chromosome
+offered as a partner, and the track's actions in it (close-out, the novice questions' B; decided by the author,
+2026-11-23: "Agree as drafted").
+
+| Gesture | What it does |
+|---|---|
+| Right-click a stem | the stem menu at the pointer |
+| Right-click the ring's empty space | the browser's menu |
+| Focus a stem, Shift+F10 or the Menu key | the stem menu at the stem |
+| Click a partner | shows the pair, one history step |
+| Escape | closes the submenu, then the menu |
+
+- **The route**: a secondary click on a stem opens its element menu at the pointer (the viewer's, scoped to
+  `rondo:ribbons`' stems). A point of a ring that hits nothing (its hole between ribbons, the corners outside it) is no
+  track's: the browser's menu opens there (a band by y is not a ring's). The menu key and Shift+F10 with the keyboard
+  cursor on a stem's range (a click on the stem puts it there) open the stem menu at the stem's mouth: the viewer asks
+  an element entry for its element at the cursor (`HeaderEntry.atCursor`) before the cursor's header. Why: the menu
+  existed only pre-opened in its story, and Shift+F10 opened the track's menu (item 29, checked on the code).
+
 ### On other layouts
 
 - **A `tracks` row of blocks**: the same stems below the band and ribbons as filled arcs between them (the polar warp's

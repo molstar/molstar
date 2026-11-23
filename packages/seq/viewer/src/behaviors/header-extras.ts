@@ -9,6 +9,7 @@ import {
   actionColumns,
   BlockPlacement,
   type Box,
+  RingPlacement,
   type HeaderIcon,
   type HeaderInputFacts,
   type HeaderLine,
@@ -332,23 +333,23 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
       ...(why !== undefined ? { why } : {}),
       ...(slot ? { slot } : {}),
       ...(e.command !== undefined ? { command: e.command, args } : {}),
-      ...(subs?.length
-        ? {
-            items: subs.map((s): HeaderMenuItem => {
-              const w = whyNot(s.command, s.args);
-              return {
-                name: e.name,
-                kind: 'action',
-                label: s.label,
-                enabled: w === undefined,
-                ...(w !== undefined ? { why: w } : {}),
-                ...(s.checked !== undefined ? { checked: s.checked } : {}),
-                command: s.command,
-                args: s.args,
-              };
-            }),
-          }
-        : {}),
+      ...(subs?.length ? { items: subs.map((s) => subItemOf(e.name, s)) } : {}),
+    };
+  };
+  /** A submenu's item, with its own submenu (a partner chromosome's pieces): enabled when any of those runs. */
+  const subItemOf = (name: string, s: HeaderSubEntry): HeaderMenuItem => {
+    const items = s.items?.length ? s.items.map((x) => subItemOf(name, x)) : undefined;
+    const w = items ? undefined : whyNot(s.command, s.args);
+    return {
+      name,
+      kind: 'action',
+      label: s.label,
+      enabled: w === undefined,
+      ...(w !== undefined ? { why: w } : {}),
+      ...(s.checked !== undefined ? { checked: s.checked } : {}),
+      command: s.command,
+      args: s.args,
+      ...(items ? { items } : {}),
     };
   };
 
@@ -503,6 +504,8 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
     const s = section === undefined ? undefined : sectionLayout(layout, section);
     if (!s) return undefined;
     const p = s.placement;
+    // a ring's empty space (its hole, its corners) is no track's: the browser's menu there (a band by y is not a ring's)
+    if (!hit && p instanceof RingPlacement) return undefined;
     const b = hit?.block ?? (p instanceof BlockPlacement && !p.stacked && s.section.blocks ? p.row.blockAt(x) : -1);
     if (b >= 0 && s.section.blocks) return { section: s.section.address, block: b };
     const t = s.tracks.find((t) => y >= t.box.y && y < t.box.y + t.box.height);
@@ -552,8 +555,18 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
   };
   /** When the keyboard (or a long press) last opened the menu: the secondary click after it is the same ask. */
   let askedAt = Number.NEGATIVE_INFINITY;
-  /** Opens the menu of the cursor's header under its line's label start. */
+  /**
+   * Opens the menu of the element at the cursor (an `element` entry's `atCursor`: a ring's stem) at it, else of the
+   * cursor's header under its line's label start.
+   */
   const menuAtCursor = (): CommandResult => {
+    for (const e of inner.entries()) {
+      const at = e.on === 'element' ? e.atCursor?.(viewer) : undefined;
+      if (at && openMenu(at.target, { x: at.x, y: at.y })) {
+        askedAt = DomHost.now();
+        return { message: 'Actions' };
+      }
+    }
     const target = cursorTarget();
     const g =
       target && inner.geometry().find((x) => x.target.section === target.section && x.target.track === target.track);

@@ -66,6 +66,8 @@ export const StemMenu: readonly HeaderEntry[] = [
     order: 1,
     when: (f) => !!Menu?.stemOfFacts(f),
     items: (f) => Menu?.partnerItems(f) ?? [],
+    // the menu key and Shift+F10 on a stem the keyboard cursor stands on: the stem menu at its mouth
+    atCursor: (v) => Menu?.stemAtCursor(v),
   },
   {
     name: 'rondo:select-stem-partners',

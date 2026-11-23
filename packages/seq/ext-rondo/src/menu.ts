@@ -5,7 +5,7 @@
  */
 
 import { rangesLocation } from '@molstar/seqx-core/extension';
-import type { HeaderFacts, HeaderSubEntry, SeqViewer } from '@molstar/seqx-viewer';
+import type { HeaderElementAt, HeaderFacts, HeaderSubEntry, SeqViewer } from '@molstar/seqx-viewer';
 import { Kind, type RondoLay } from './lay.js';
 import { laysOf, partnersOf } from './partners.js';
 
@@ -29,6 +29,36 @@ export function stemOf(
     if (i === undefined) continue;
     const kind = lay.polyKind[i];
     if (kind === Kind.trumpet || kind === Kind.fan) return { lay, stem: lay.polyRef[i] };
+  }
+  return undefined;
+}
+
+/**
+ * The stem at a viewer's keyboard cursor (its position on a placed stem with a trumpet, the topmost layer's), its menu's
+ * target and its mouth two px inward (where the menu opens): what the menu key opens there (`HeaderEntry.atCursor`).
+ */
+export function stemAtCursor(viewer: SeqViewer): HeaderElementAt | undefined {
+  const c = viewer.selection.cursor.value;
+  if (!c || c.track !== undefined) return undefined;
+  const lays = laysOf(viewer);
+  // the last drawn is on top: the layer a pointer there would hit first
+  for (let k = lays.length - 1; k >= 0; k--) {
+    const lay = lays[k];
+    if (lay.section !== c.section) continue;
+    for (let s = 0; s < lay.ns; s++) {
+      if (!lay.stemPlaced[s] || lay.stemPoly[s] < 0 || lay.systems[lay.stemSystem[s]] !== c.system) continue;
+      if (c.position < lay.stemStart[s] || c.position >= lay.stemEnd[s]) continue;
+      lay.frame.point((lay.stemT0[s] + lay.stemT1[s]) / 2, 2);
+      return {
+        target: {
+          section: lay.section,
+          track: lay.key.slice(0, lay.key.lastIndexOf('/')),
+          element: { layer: lay.key, key: lay.stemKey[s], type: 'rondo:ribbons' },
+        },
+        x: lay.frame.px,
+        y: lay.frame.py,
+      };
+    }
   }
   return undefined;
 }
