@@ -58,6 +58,7 @@ import { LegendBand, layoutLegends, legendsHeight, viewLegends } from './legends
 import { OverlaySources } from './overlay-sources.js';
 import type { NavigatorRendererOptions } from './navigator.js';
 import type { NavigatorExport } from './navigator-export.js';
+import { loadSquareNavigator, squareDue } from './navigator-square-load.js';
 import { type PositionsRailMode, railSections } from './rail.js';
 import { Renderer, type RendererOptions } from './renderer.js';
 import type { ViewLayout } from './tracks.js';
@@ -567,6 +568,8 @@ export async function exportSvg(spec: Node, given: RenderSvgOptions): Promise<Re
     const windows = options.window ?? view.export?.window === true;
     // the navigators an export includes (shown ones), drawn as outlines; the rails plain (a figure's)
     const included = (options.navigators ?? view.export?.navigators ?? 'omit') === 'include';
+    // a square's chunk first (its door: a view without one loads nothing)
+    if (included && options.navigatorExport && squareDue(view)) await loadSquareNavigator();
     const navs =
       included && options.navigatorExport
         ? options.navigatorExport({

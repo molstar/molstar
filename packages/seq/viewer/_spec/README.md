@@ -290,27 +290,29 @@ and its double-click adds nothing. A drag from a cell off the window sweeps the 
 both), the rectangle its release zooms to drawn live, snapped to whole cells (the blocks under its ends, both included:
 what is drawn is what the release fits; `SquareNavigator.snapSweep`, the behavior's `dragTo(at, from)`), tinted and
 outlined as the window is (the same range on y for one section, else the y window as it is); Escape cancels it. Not
-built on the square: its grips and drags per axis. **The square over a set** (one section on both axes with
-`navigator.switch: include`, a ring's square; `square-set.ts`, `SquareSetGesture`): its window is the blocks the section
-shows (core's `setMode`), and each change writes the section's `include` once (in the lattice's order; every block: no
-`include`; none: refused), one patch and one undo step. A run is one box: its body dragged moves the run along the
-diagonal (by the blocks the pointer crossed along its larger offset, x or y: a drag across of 4 blocks moves it 4;
-clamped to the lattice), an edge or corner resizes it (the nearest lattice edge, at least one block), drawn as a preview
-while it runs (`setPreview`), written on release, Escape cancelling; the cursor `move`, `ew-resize`, `ns-resize` or
-`nwse-resize`. A click on a cell shows its pair, on a name (above a column, left of a row) its block alone; Cmd or Ctrl
-adds the cell's two blocks (both shown: removes them) or the name's block. A scattered set is outlined cell by cell, no
-grips: a press there is a click's, and dragged it moves nothing and says so (the cursor `not-allowed`, the readout a
-hint: only a run's box drags; chosen over turning the set into the run it spans, which would add blocks the reader never
-picked). The keys on the focused square: arrows move the run a block (Left and Up back), Shift+arrows grow or shrink its
-end; Cmd or Ctrl+arrows move the keyboard's cell (outlined in the accent, inset, while focused and a key drives it, a
-press hiding it; picked again on a cell of the set when the set changes under it; over a scattered set plain arrows),
-said as the readout (`chr3 × chr5`); Enter shows its pair, Cmd or Ctrl+Enter adds or removes it; Home shows all; the
-other keys are the slider's (PageDown, PageUp: `block.next`, `block.previous`; End the view's end). The readout over a
-cell names its pair, over a name its block. **Switching blocks** (`blockSwitchRange`, `block-switch.ts`; the author,
-2026-11-21, IGV's: a picked chromosome whole): from a view showing its block whole (within a pixel) the new block whole;
-zoomed inside a block, the same width centred at the same relative place in the new block, clamped to its ends; a width
-past the new block's length, the new block whole. One rule for a click on the navigator, `block.next` and
-`block.previous`, and the square's click.
+built on the square: its grips and drags per axis. **Lazy**: the square and the set's gestures are one chunk
+(`square-chunk.ts`, `loadSquare`), loaded when a spec's view may show one (`navigators.ts` registers it with resolve's
+lazy kinds: the model waits), a host's square in `settle` (the navigators part's `loaded`), and drawn when it lands
+otherwise. **The square over a set** (one section on both axes with `navigator.switch: include`, a ring's square;
+`square-set.ts`, `SquareSetGesture`): its window is the blocks the section shows (core's `setMode`), and each change
+writes the section's `include` once (in the lattice's order; every block: no `include`; none: refused), one patch and
+one undo step. A run is one box: its body dragged moves the run along the diagonal (by the blocks the pointer crossed
+along its larger offset, x or y: a drag across of 4 blocks moves it 4; clamped to the lattice), an edge or corner
+resizes it (the nearest lattice edge, at least one block), drawn as a preview while it runs (`setPreview`), written on
+release, Escape cancelling; the cursor `move`, `ew-resize`, `ns-resize` or `nwse-resize`. A click on a cell shows its
+pair, on a name (above a column, left of a row) its block alone; Cmd or Ctrl adds the cell's two blocks (both shown:
+removes them) or the name's block. A scattered set is outlined cell by cell, no grips: a press there is a click's, and
+dragged it moves nothing and says so (the cursor `not-allowed`, the readout a hint: only a run's box drags; chosen over
+turning the set into the run it spans, which would add blocks the reader never picked). The keys on the focused square:
+arrows move the run a block (Left and Up back), Shift+arrows grow or shrink its end; Cmd or Ctrl+arrows move the
+keyboard's cell (outlined in the accent, inset, while focused and a key drives it, a press hiding it; picked again on a
+cell of the set when the set changes under it; over a scattered set plain arrows), said as the readout (`chr3 × chr5`);
+Enter shows its pair, Cmd or Ctrl+Enter adds or removes it; Home shows all; the other keys are the slider's (PageDown,
+PageUp: `block.next`, `block.previous`; End the view's end). The readout over a cell names its pair, over a name its
+block. **Switching blocks** (`blockSwitchRange`, `block-switch.ts`; the author, 2026-11-21, IGV's: a picked chromosome
+whole): from a view showing its block whole (within a pixel) the new block whole; zoomed inside a block, the same width
+centred at the same relative place in the new block, clamped to its ends; a width past the new block's length, the new
+block whole. One rule for a click on the navigator, `block.next` and `block.previous`, and the square's click.
 
 ### HoverModel
 

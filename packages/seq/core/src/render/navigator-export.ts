@@ -16,7 +16,8 @@ import {
   navigatorBox,
   windowText,
 } from './navigator.js';
-import { isSquareNavigator, SquareNavigator } from './navigator-square.js';
+import type { SquareNavigator } from './navigator-square.js';
+import { isSquareNavigator, SquareChunk } from './navigator-square-load.js';
 import { drawListsToSvg, escapeXml, type SvgOptions } from './svg.js';
 import type { ViewLayout } from './tracks.js';
 
@@ -56,12 +57,14 @@ export type NavigatorExport = (input: NavigatorExportInput) => ExportedNavigator
 /** The core's navigators of an export: outlines and wash, the windows' text as titles. */
 export const NavigatorSvgExport: NavigatorExport = (input) => {
   const { dpr, cvdSafe, overlay, ...options } = input;
-  // a square (two axes over blocks × blocks) draws its lattice; the rest their pictures
+  // a square (two axes over blocks × blocks) draws its lattice, from its chunk (`exportSvg` waits for it); the rest
+  // their pictures
+  const Square = SquareChunk.module?.SquareNavigator;
   const navs = input.view.navigators
-    .filter((n) => !n.hidden)
+    .filter((n) => !n.hidden && (Square || !isSquareNavigator(n, input.view)))
     .map((navigator) =>
-      isSquareNavigator(navigator, input.view)
-        ? new SquareNavigator({
+      Square && isSquareNavigator(navigator, input.view)
+        ? new Square({
             model: options.model,
             view: input.view,
             navigator,

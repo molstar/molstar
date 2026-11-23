@@ -17,7 +17,8 @@ import {
   type NavigatorWindow,
   windowText,
 } from '@molstar/seqx-core/render/navigator';
-import { isSquareNavigator, SquareNavigator } from '@molstar/seqx-core/render/navigator-square';
+import type { SquareNavigator } from '@molstar/seqx-core/render/navigator-square';
+import { isSquareNavigator } from '@molstar/seqx-core/render/navigator-square-load';
 import {
   axisTotal,
   type ResolvedNavigator,
@@ -40,7 +41,7 @@ import { blockOfUnit, blockSwitchRange } from './block-switch.js';
 import { DragSlop } from './input.js';
 import { setNarrowed } from './narrowed.js';
 import { type PartCursor, partCursor } from './part-cursor.js';
-import { SquareSetGesture, setCellReadout, setCursor, setReadout } from './square-set.js';
+import type { SquareSetGesture } from './square-set.js';
 import type { SeqViewer } from './viewer.js';
 
 // The navigator's model (_spec/README.md "Models", NavigatorModel): DOM-free, one a navigator a viewer shows (a
@@ -57,6 +58,35 @@ import type { SeqViewer } from './viewer.js';
  * The readout). A side part's picture is the form's box less it, so the part is the view's height.
  */
 export const ReadoutLinePx = 16;
+
+/** The square's chunk (`square-chunk.ts`: core's square, the set's gestures) once landed. */
+let Square: typeof import('./square-chunk.js') | undefined;
+let squareLoading: Promise<void> | undefined;
+
+/**
+ * Loads the square's chunk (once; a failed load is tried again by the next ask): a view showing a square waits for it
+ * (the navigators part's `loaded`, `settle`), a host's square draws once it landed. Why lazy: a viewer whose views have
+ * no square pays nothing for one (_spec/README.md "Composition", Navigators, The square).
+ */
+export function loadSquare(): Promise<void> {
+  squareLoading ??= import('./square-chunk.js').then(
+    (m) => {
+      Square = m;
+    },
+    (e) => {
+      squareLoading = undefined;
+      throw e;
+    },
+  );
+  return squareLoading;
+}
+
+/** Whether the square's chunk landed. */
+export const squareLoaded = (): boolean => Square !== undefined;
+
+/** A square's renderer (a type guard: the class is the chunk's, never imported here). */
+const isSquare = (r: NavigatorRenderer | SquareNavigator | undefined): r is SquareNavigator =>
+  (r as { square?: boolean } | undefined)?.square === true;
 
 /** A host's navigator: the params of a `navigator` node with its id, not saved in the spec. */
 export interface NavigatorDef {
@@ -167,7 +197,12 @@ export class NavigatorModel extends ReactiveModel {
   private readonly moves: Record<string, number> = {};
   private press: Press | undefined;
   /** The square over a set: its box's drag, its clicks and keys (each change one `section.include`), the hover's cursor. */
-  private readonly setGesture = new SquareSetGesture((include) => this.writeSet(include));
+  private _setGesture: SquareSetGesture | undefined;
+  /** Made on the first square over a set (the chunk landed: a set's square is the chunk's). */
+  private get setGesture(): SquareSetGesture {
+    this._setGesture ??= new Square!.SquareSetGesture((include) => this.writeSet(include));
+    return this._setGesture;
+  }
   private setHover: PartCursor = 'default';
   /** A key drove the square over a set since the last press or focus: its keyboard's cell is drawn. */
   private keyed = false;
@@ -285,14 +320,26 @@ export class NavigatorModel extends ReactiveModel {
     this._version.set(this._version.value + 1);
   }
 
-  private rendererOf(nav: ResolvedNavigator): NavigatorRenderer | SquareNavigator {
+  private rendererOf(nav: ResolvedNavigator): NavigatorRenderer | SquareNavigator | undefined {
     const model = this.viewer.spec.model.value;
     const view = this.viewer.view.resolved.value!;
     const viewRenderer = this.viewer.renderer;
     const f = this.rendererFor;
     if (!this.renderer || f[0] !== model || f[1] !== view || f[2] !== nav || f[3] !== viewRenderer) {
-      this.renderer = isSquareNavigator(nav, view)
-        ? new SquareNavigator({
+      const square = isSquareNavigator(nav, view);
+      // a square before its chunk landed: nothing drawn, drawn when it lands
+      if (square && !Square) {
+        loadSquare().then(
+          () => {
+            this.changed();
+            this.viewer.schedule();
+          },
+          () => undefined,
+        );
+        return undefined;
+      }
+      this.renderer = square
+        ? new Square!.SquareNavigator({
             model,
             view,
             navigator: nav,
@@ -371,6 +418,7 @@ export class NavigatorModel extends ReactiveModel {
     this.place();
     if (!(this.width > 0) || !(this.height > 0)) return undefined;
     const r = this.rendererOf(nav);
+    if (!r) return undefined;
     this.updateMoves(nav);
     let f = this.drawFrame(r);
     let rebuilt = f.rebuilt;
@@ -404,7 +452,7 @@ export class NavigatorModel extends ReactiveModel {
     const sweep = this.behavior?.sweep.value;
     // over a set the keyboard's cell is drawn while the part has the focus and the keys drive it (a pointer's press
     // hides it: a cursor no key moved is no part of the window)
-    if (r instanceof SquareNavigator && r.setMode) {
+    if (isSquare(r) && r.setMode) {
       const g = this.setGesture;
       const keyed = this.hasFocus && this.keyed;
       if (keyed) g.ensureKeyCell(r);
@@ -543,7 +591,7 @@ export class NavigatorModel extends ReactiveModel {
   /** The square over a set (one section on both axes with a switch), else undefined. */
   private get setSquare(): SquareNavigator | undefined {
     const r = this.renderer;
-    return r instanceof SquareNavigator && r.setMode ? r : undefined;
+    return isSquare(r) && r.setMode ? r : undefined;
   }
 
   /** The pointer moved over the navigator: the lit part and the readout follow; a drag moves its window. */
@@ -571,11 +619,11 @@ export class NavigatorModel extends ReactiveModel {
     if (set) {
       const g = set.gripAt(x, y, p.touch);
       this.setHover = g
-        ? setCursor(g.grip, g.axis)
+        ? Square!.setCursor(g.grip, g.axis)
         : set.cellAt(x, y) || set.labelAt(x, y) >= 0
           ? 'pointer'
           : 'default';
-      this.say(setReadout(set, x, y));
+      this.say(Square!.setReadout(set, x, y));
       this.changed();
       return;
     }
@@ -836,7 +884,7 @@ export class NavigatorModel extends ReactiveModel {
     }
     if (!d.positions) return;
     // the square's sweep (from a cell off the window): whole cells, the drawn rectangle and the release's zoom alike
-    if (r instanceof SquareNavigator && d.hit.part === 'outside') {
+    if (isSquare(r) && d.hit.part === 'outside') {
       const snapped = r.snapSweep(d.hit.section, d.x0, x);
       if (snapped) {
         // the end the pointer is at is the one away from the press's cell
@@ -897,7 +945,7 @@ export class NavigatorModel extends ReactiveModel {
     this.lastPress = undefined;
     const b = this.behavior;
     const nav = this.navigator;
-    const square = this.renderer instanceof SquareNavigator ? this.renderer : undefined;
+    const square = isSquare(this.renderer) ? this.renderer : undefined;
     // the square with a switch: every click on a cell shows its pair at once, a quick second one too (a platform's
     // double-click count never turns a click into a select first: _spec/README.md, The square over a set)
     if (!d || d.moved || !b || !nav || (detail > 1 && !(square && nav.switch === 'include'))) return false;
@@ -1018,7 +1066,7 @@ export class NavigatorModel extends ReactiveModel {
     // over blocks (`navigator.doubleClick: toggle-fit`, one level deeper): the block under the pointer fitted, and
     // from that fit the whole
     // the square: the cell's two blocks fitted (one section on both axes: their hull), again the whole
-    if (r instanceof SquareNavigator) {
+    if (isSquare(r)) {
       // with a switch the clicks did it (each shows its pair): a double-click adds no zoom
       if (nav.switch === 'include') return false;
       const pair = r.pairAt(h.section, x, y);
@@ -1103,7 +1151,7 @@ export class NavigatorModel extends ReactiveModel {
         this.changed();
       }
       // the keyboard's cell said (a move of the run says its run through the slider)
-      if (taken) this.say(setCellReadout(set, this.setGesture.keyX, this.setGesture.keyY));
+      if (taken) this.say(Square!.setCellReadout(set, this.setGesture.keyX, this.setGesture.keyY));
       return taken;
     }
     // over blocks the slider's large step is a block (`block.next`, `block.previous`); Home with a switch shows all

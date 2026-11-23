@@ -36,11 +36,7 @@ export type { SquareGrip, SquareGripAxis, SquareGripHit, SquareRun } from './nav
 // sections show plain and the rest washed, the window the x and y windows as one rectangle. What the cells hold (pairs
 // by block, a grid's tiles by block pair) is region reads': the picture here is the lattice and what static data gives.
 
-/** Whether a navigator is a square: two axes over blocks, bound to two sections of blocks (or one section twice). */
-export function isSquareNavigator(nav: ResolvedNavigator, view: ResolvedView): boolean {
-  if (!nav.blocks || nav.axes !== 'both' || nav.of.length !== 2) return false;
-  return nav.of.every((a) => view.sections.find((s) => s.address === a)?.blocks?.length);
-}
+export { isSquareNavigator } from './navigator-square-load.js';
 
 /** A cell of the square: its x and y blocks (indices in the lattice), their systems. */
 export interface SquareCell {
@@ -85,6 +81,8 @@ const WindowPasses: readonly PassName[] = EmphasisPasses;
  * cell. Its draw lists are its own, made again on a size, a token or a window change.
  */
 export class SquareNavigator {
+  /** A square (a caller's type guard: the class is in a lazy chunk, so `instanceof` would load it). */
+  readonly square = true;
   readonly navigator: ResolvedNavigator;
   readonly config: RenderConfig;
   private tokens: SeqTokens;

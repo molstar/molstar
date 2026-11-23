@@ -540,6 +540,8 @@ export class SeqViewer extends ReactiveModel {
     }
     await this._syncing;
     for (const h of this.behaviors.values() as Iterable<BehaviorHandle | undefined>) await h?.loaded?.();
+    // the navigators' chunks (a square's) a view shows
+    await this._rails.loaded()?.catch(() => undefined);
     const until = DomHost.now() + timeoutMs;
     this._clock.quiet = true;
     for (let round = 0; round < 8; round++) {
