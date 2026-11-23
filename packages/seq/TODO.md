@@ -60,8 +60,6 @@ extension kinds.
   it, or alternate case and control windows and take the median of the pairs' differences; then seq's `scaledControl`
   and the storybook cases still on the 88 B control (bridge ribbon hover, a pan through a lock, a connector, linked
   pairs) need nothing of their own. The author's call (a shared package).
-- **`formatGenomic` parses its spec on every call** (PF; `@molstar/core` `string-format`): parse each `,.Nf` once and
-  pass the parsed spec to `formatValue`; the seq ruler caches its labels meanwhile. The author's call.
 - **Tighten the chromosome pan's bound** (PF): 56,000 B with the pan now at ~39.6 KB and the fit at ~38.4 KB; lower both
   bounds to keep the gain.
 
