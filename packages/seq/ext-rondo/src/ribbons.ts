@@ -208,7 +208,7 @@ export function ribbonsType(config: RondoConfig = DefaultRondoConfig): LayerType
       return lay;
     },
     draw(lay, pass: PassName, out, emphasis) {
-      const cfg = lay.prep?.config ?? config;
+      const cfg = lay.prep ? lay.cfg : config;
       if (pass === 'data') {
         for (let j = 0; j < lay.polys.n; j++) {
           const i = lay.order[j];

@@ -5,7 +5,7 @@
  */
 
 import { defineExtension, type SeqExtension } from '@molstar/seqx-core/extension';
-import { type RondoConfig, rondoConfig } from './config.js';
+import { type RondoConfig, RondoConfigItems, rondoConfig } from './config.js';
 import { CellsType, RondoSquare } from './cells.js';
 import { RondoHues } from './hues.js';
 import { ribbonsType } from './ribbons.js';
@@ -60,6 +60,8 @@ export function rondoWith(over: Partial<RondoConfig> = {}): SeqExtension {
       { kind: 'scheme', scheme: RondoHues },
     ],
     params: RondoParams as never,
+    // its settings, readable by its layer types as the composition sets them (`rondo.*`)
+    config: Object.values(RondoConfigItems),
   });
 }
 

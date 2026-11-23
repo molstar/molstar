@@ -227,6 +227,34 @@ export function configValue<T>(
   return out;
 }
 
+/** A render config with the extensions' settings the pairs set (`settings`; unchanged when they set none). */
+function withSettings(
+  config: RenderConfig,
+  extensions: readonly SeqExtension[],
+  pairs: readonly (readonly [SeqConfigItem<any>, unknown])[] | undefined,
+): RenderConfig {
+  // under a composed extension's namespace (`rondo.stemPx` of `rondo`), its descriptor listing them or not (a viewer's
+  // descriptor of the same extension may not: settings are never registered late), the last pair of a key
+  const ids = new Set(extensions.map((e) => e.id));
+  const settings: Record<string, unknown> = {};
+  let any = false;
+  for (const [item, v] of pairs ?? []) {
+    const dot = item.key.indexOf('.');
+    if (dot <= 0 || !ids.has(item.key.slice(0, dot)) || v === undefined) continue;
+    settings[item.key] = v;
+    any = true;
+  }
+  return any ? { ...config, settings } : config;
+}
+
+/**
+ * An extension's setting as composed (_spec/README.md "Context", Extensions, Settings): the value the composition's
+ * `config` gave its item, read from the render config a layer type is given (`ctx.config`); undefined when unset.
+ */
+export function settingOf<T>(config: Pick<RenderConfig, 'settings'>, item: SeqConfigItem<T>): T | undefined {
+  return config.settings?.[item.key] as T | undefined;
+}
+
 /** The registry's tables, composed from its entries and its extensions': what `_extend` swaps whole. */
 type Tables = Pick<
   SeqContext,
@@ -329,7 +357,8 @@ export function composeSeqContext(spec: SeqContextSpec = {}): SeqContext {
   const registry = spec.registry ?? [];
   let t = tablesOf(registry, checkExtensions(spec.extensions ?? []));
   const theme = configValue(spec.config, SeqCoreConfig.theme) ?? 'light';
-  let renderCfg = renderConfig(configValue(spec.config, SeqCoreConfig.render));
+  // the composed extensions' settings the composition sets, readable by their layer types (`settingOf`)
+  let renderCfg = withSettings(renderConfig(configValue(spec.config, SeqCoreConfig.render)), t.extensions, spec.config);
   const resolveCfg = configValue(spec.config, SeqCoreConfig.resolve) ?? {};
   const bounds = specBounds(configValue(spec.config, SeqCoreConfig.bounds));
   const disposers: (() => void)[] = [];

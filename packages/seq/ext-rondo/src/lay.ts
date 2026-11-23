@@ -16,7 +16,7 @@ import {
   type StaticModel,
   type StoreReader,
 } from '@molstar/seqx-core/extension';
-import type { RondoConfig } from './config.js';
+import { composedConfig, DefaultRondoConfig, type RondoConfig } from './config.js';
 import { grow, Polygons, RibbonFrame } from './geometry.js';
 import { hueColors } from './hues.js';
 import { hitGrid, polygons } from './shapes.js';
@@ -50,6 +50,8 @@ export class RondoLay {
   sectionId = '';
   owner = '';
   prep: RondoPrep | undefined = undefined;
+  /** The settings it was laid out with (the descriptor's, the composition's over them). */
+  cfg: RondoConfig = DefaultRondoConfig;
   readonly reader = new PairsReader();
   read: PairsRead | undefined = undefined;
   /** Why nothing is drawn: `pending` (bins not landed), `layout` (text or grid), `none` (no pairs). */
@@ -338,7 +340,9 @@ const Options = { gate: 1024 };
  * stems' and ribbons' keys made as they appear).
  */
 export function layoutRondo(lay: RondoLay, prep: RondoPrep, ctx: LayoutContext, data: StoreReader): void {
-  const cfg = prep.config;
+  // the descriptor's numbers, the composition's `rondo.*` settings over them
+  const cfg = composedConfig(prep.config, ctx.config);
+  lay.cfg = cfg;
   lay.prep = prep;
   lay.key = ctx.key;
   lay.section = ctx.section.address;

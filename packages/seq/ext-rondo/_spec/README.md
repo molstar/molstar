@@ -134,6 +134,8 @@ ring (`of: [ring, ring]`, `content: rondo:square`, `switch: include`). The spec'
 | `rondo.fade`                           | setting          | 0.6                                  | the hovered stem's ribbons read over the rest                          |
 | `rondo.flatten`                        | setting          | 12                                   | hit within a device px at 720 px                                       |
 
-**Settings are the descriptor's** (`rondoWith(config)`; `rondo` the defaults; `RondoConfigItems` name them). Why not the
-spec's `config`: a layer type reads nothing of its context's settings, and a descriptor listing settings is composed,
-never registered late (`viewer.extend`).
+**Settings are the descriptor's and the composition's** (`rondoWith(config)`, `rondo` the defaults; `RondoConfigItems`
+name them, listed as the descriptor's `config`): a layout reads the composition's `rondo.*` pairs (`settingOf`, from the
+render config it is given) over the descriptor's numbers (`composedConfig`, one object a pair: a warm layout makes
+none), so `rondoWith` is a convenience, not the only door. A viewer extended late with `rondoViewer` (which lists no
+settings: they are never registered late) reads the descriptor's alone.

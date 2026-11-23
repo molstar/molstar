@@ -5061,6 +5061,11 @@ same pieces. Nothing registers on import and there is no global registry.
   `PairsRead`, `PairsSource`, `PairsReadOptions`, the bins' types, `pairsLevels`, `coarsenBins`; `placesOf`,
   `BlockPlace` and `PlacePoint`; the builder's types an extension's helper writes with); the rest may change in a 0.x
   minor. Why a descriptor: the namespace check, the version check and the undo need the extension as one thing.
+  **Settings** (`settingOf`, the entry's): the composition's `config` pairs under a composed extension's namespace
+  (`rondo.stemPx` of `rondo`; its descriptor listing them in `config` or not) are kept as `RenderConfig.settings`, by
+  key, so its layer types read them from the render config they are given (`settingOf(ctx.config, item)`); an extension
+  registered late (`_extend`) reads none (the render config is the composition's). Why the render config: it reaches
+  every layout, section, picture and export already, and a layer type reads nothing of its context.
 - **The tracks layout is the one fixed fallback**: a section whose layout is not listed (or every section, with no
   layouts given) is laid out as tracks, and the viewer's navigation reads tracks likewise; tracks needs no entry. Why:
   the tracks layout is the frame's own (the label column, the rails, the bands), a section must be placed somehow, and

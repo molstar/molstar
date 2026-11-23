@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { configItem } from '@molstar/seqx-core/extension';
+import { configItem, settingOf } from '@molstar/seqx-core/extension';
 
 // The extension's settings (_spec/README.md, Configuration): how stems and ribbons are built and bounded, keys under
 // its namespace (`rondo.*`). The look shared with bridges is core's `ribbons.*` (`RenderConfig`).
@@ -62,4 +62,29 @@ export const RondoConfigItems = {
 /** The settings with some overridden (a host's `rondoWith`). */
 export function rondoConfig(over: Partial<RondoConfig> = {}): RondoConfig {
   return { ...DefaultRondoConfig, ...over };
+}
+
+/** The settings as composed, by the descriptor's numbers they override (kept: one object a pair). */
+const Composed = new WeakMap<RondoConfig, WeakMap<object, RondoConfig>>();
+
+/**
+ * The settings a layout reads (_spec/README.md, Configuration): the composition's `config` (`rondo.*` items, read
+ * from the render config a layer type is given, `settingOf`) over the descriptor's (`rondoWith`'s, else the defaults).
+ * The same object while neither changes: a warm layout makes none.
+ */
+export function composedConfig(base: RondoConfig, render: { readonly settings?: Readonly<Record<string, unknown>> }) {
+  const settings = render.settings;
+  if (!settings) return base;
+  let byBase = Composed.get(base);
+  if (!byBase) Composed.set(base, (byBase = new WeakMap()));
+  let out = byBase.get(settings);
+  if (out) return out;
+  const over: Record<string, number> = {};
+  for (const [name, item] of Object.entries(RondoConfigItems)) {
+    const v = settingOf(render, item);
+    if (typeof v === 'number' && Number.isFinite(v)) over[name] = v;
+  }
+  out = { ...base, ...over };
+  byBase.set(settings, out);
+  return out;
 }

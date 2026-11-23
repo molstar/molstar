@@ -8,7 +8,7 @@
 // source by region, one picture), a spec through `rondoRing`, and a frame settled on a composition with the extension
 // (or without it: the fallback), its ribbons' lay at hand.
 
-import type { SeqExtension } from '@molstar/seqx-core/context';
+import type { SeqConfigItem, SeqExtension } from '@molstar/seqx-core/context';
 import { createSeqContext } from '@molstar/seqx-core/context/default';
 import { DataStore } from '@molstar/seqx-core/data';
 import { assembly, createSeqSpec } from '@molstar/seqx-core/lang';
@@ -166,8 +166,10 @@ export async function settle(
   extensions: readonly SeqExtension[] = [rondo],
   config: RenderConfigOverrides = {},
   dark = false,
+  /** The composition's settings (`[item, value]` pairs), read by the layer types as composed. */
+  settings: readonly (readonly [SeqConfigItem<any>, unknown])[] = [],
 ): Promise<Settled> {
-  const ctx = createSeqContext({ extensions });
+  const ctx = createSeqContext({ extensions, config: settings });
   const store = new DataStore();
   const { model, view } = await openModel(spec, store, { runtimes: [BedRuntime], kinds: ctx.kinds });
   const renderer = new Renderer({
@@ -178,7 +180,9 @@ export async function settle(
     data: store,
     tokens: dark ? DarkTokens : LightTokens,
     text: bundledTextMetrics(),
-    config: renderConfig(config),
+    config: ctx.renderConfig.settings
+      ? { ...renderConfig(config), settings: ctx.renderConfig.settings }
+      : renderConfig(config),
     ...(ctx.schemes ? { schemes: ctx.schemes } : {}),
   } as never);
   return {

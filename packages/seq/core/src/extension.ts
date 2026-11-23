@@ -12,6 +12,7 @@
 
 export {
   configItem,
+  settingOf,
   type SeqConfigItem,
   type SeqExtension,
   type SeqRegistryEntry,
