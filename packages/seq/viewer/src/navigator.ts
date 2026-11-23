@@ -283,6 +283,13 @@ export class NavigatorModel extends ReactiveModel {
             navigator: nav,
             tokens: this.viewer.tokens,
             config: this.viewer.context.renderConfig,
+            // a picture's cells over the lattice: read from the viewer's store with the composition's types
+            data: this.viewer.store.store,
+            text: this.viewer.context.text,
+            types: this.viewer.context.types,
+            layouts: this.viewer.context.layouts,
+            pictures: this.viewer.context.pictures,
+            kinds: this.viewer.context.kinds,
           })
         : this.pictureRenderer(nav, model, view);
       this.rendererFor = [model, view, nav, viewRenderer];

@@ -8,17 +8,23 @@ is the contract's, brought to the core, never a reach into `src`.
 
 ## What it ships
 
-| Entry                   | Kind                                                                                                 | Fallback                 | Reads                                                       |
-| ----------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------ | ----------------------------------------------------------- |
-| `rondo:ribbons`         | layer type, `scope: 'section'`, shape `pairs`, on `rings` and a `tracks` row                         | `pairs`                  | core's `PairsReader`: bins at a level, items under its gate |
-| `rondo:hues`            | scheme over categories: n hues round the Oklch wheel, not colour-blind safe, substitute `categories` | the layer type's default | —                                                           |
-| `rondo:partner`         | command: the cursor to the next partner stem by count, said                                          | —                        | the stem under the cursor                                   |
-| `rondo:select-partners` | command: the far ends of the selection's ribbons added                                               | —                        | the selection                                               |
-| `rondo:open`            | command, bound to a double-click scoped to `rondo:ribbons`' hits                                     | —                        | the hit's chromosomes, set as `opens`' `include`            |
+| Entry                   | Kind                                                                                                                                                             | Fallback                                                  | Reads                                                                  |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `rondo:ribbons`         | layer type, `scope: 'section'`, shape `pairs`, on `rings` and a `tracks` row                                                                                     | `pairs`                                                   | core's `PairsReader`: bins at a level, items under its gate            |
+| `rondo:hues`            | scheme over categories: n hues round the Oklch wheel, not colour-blind safe, substitute `categories`                                                             | the layer type's default                                  | —                                                                      |
+| `rondo:partner`         | command: the cursor to the next partner stem by count, said                                                                                                      | —                                                         | the stem under the cursor                                              |
+| `rondo:select-partners` | command: the far ends of the selection's ribbons added                                                                                                           | —                                                         | the selection                                                          |
+| `rondo:open`            | command, bound to a double-click scoped to `rondo:ribbons`' hits                                                                                                 | —                                                         | the hit's chromosomes, set as `opens`' `include`                       |
+| `rondo:cells`           | layer type, `scope: 'section'`, shape `pairs`, with core's `square` cells (nothing drawn on a strip)                                                             | none (only `rondo:square` names it)                       | core's `PairsReader` at the coarsest bins (`gate` 0) over the assembly |
+| `rondo:square`          | navigator picture, `axes: both`: one `rondo:cells` track over the bound section's ribbons' data (`of_layer`, else the first `rondo:ribbons`, else `pairs` layer) | `axis` (the lattice), said (`seq.view.navigator.picture`) | —                                                                      |
 
-Not shipped: `rondo:cells` and the `rondo:square` picture. Why: core's square navigator draws its lattice and never a
-picture, so its cells would be a private rebuild; `rondoRing` writes core's square (`switch: include`) and the design's
-rule without pictures holds. The stem menu waits for element menus in the viewer.
+**The square's cells** (`cells.ts`): core's square lays the picture's track out over the assembly's blocks (a hidden
+section of its own) and draws `rondo:cells`' cells over its lattice: the read's bins summed by block pair (a row's `a`
+end along x, its `b` end along y), mirrored for unsided data (one assembly), each pair in its own cell for sided data
+(two); a cell's colour its count on a square-root ramp of the five `seq-ramp-*` stops over the largest; the diagonal
+(links within a chromosome) included. Whatever the ring shows (`include`), the cells are the whole assembly's: the
+square is where the rest is chosen. A cell's words `37 links` (`within` on the diagonal; `links loading` before the
+bins), the readout's after the pair (`chr4 × chr7 · 37 links`).
 
 ## Stems
 
@@ -84,6 +90,7 @@ rule without pictures holds. The stem menu waits for element menus in the viewer
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | `rondo:ribbons` (`fallback: pairs`)    | core's chords: a bin pair one chord stroked by count, items as chords under `pairs.maxArcs`, an end with no place a caret |
 | `rondo:hues`                           | the layer type's default colour (the categorical palette over `system`)                                                   |
+| `rondo:square`                         | core's `axis` picture: the lattice and its window, its gestures the same                                                  |
 | the commands, the `opens` double-click | absent; the label menu's "Show only" (core) remains                                                                       |
 
 One `seq.view.layer.extension` issue a view ("1 layer(s) need `rondo` 0.1: drawn as `pairs`"); `rondoRing` writes the
@@ -94,7 +101,7 @@ colour channel explicitly (`(field :name system)` and its palette), so the fallb
 `rondoRing(view, { assembly, links, bands?, detail?, square?, hues?, opens?, height? })`: the ring section
 (`center: none`), the cytobands and the hue ring (two `bands` layers over `bands`), the ribbons with `fallback: pairs`
 and their colour, `opens` (the detail ring with `detail: 'below'`, else the ring), and the square navigator over the
-ring (`of: [ring, ring]`, `switch: include`). The spec's `extensions` is the writer's
+ring (`of: [ring, ring]`, `content: rondo:square`, `switch: include`). The spec's `extensions` is the writer's
 (`createSeqSpec({ extensions: [rondo] })`).
 
 ## Configuration

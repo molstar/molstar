@@ -67,6 +67,13 @@ export const NavigatorSvgExport: NavigatorExport = (input) => {
             navigator,
             tokens: options.tokens,
             ...(options.config ? { config: options.config } : {}),
+            // a picture's cells over the lattice, read as the view's tracks are
+            data: options.data,
+            text: options.text,
+            types: options.types,
+            layouts: options.layouts,
+            pictures: options.pictures,
+            ...(options.kinds ? { kinds: options.kinds } : {}),
           })
         : new NavigatorRenderer({ ...options, navigator }),
     );

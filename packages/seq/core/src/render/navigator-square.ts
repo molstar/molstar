@@ -24,7 +24,9 @@ import type { SeqTokens } from './tokens.js';
 import type { ViewLayout } from './tracks.js';
 import type { NavigatorFrame, NavigatorFrameInput, NavigatorHit } from './navigator.js';
 import { NavigatorWindow } from './navigator.js';
+import { SquarePictureCells, type SquarePictureOptions } from './navigator-square-cells.js';
 import { drawShownSet, gripOf, type SquareGripHit, type SquareRun, shownRun } from './navigator-square-set.js';
+import type { SquareLattice } from './layer-type.js';
 
 export type { SquareGrip, SquareGripAxis, SquareGripHit, SquareRun } from './navigator-square-set.js';
 
@@ -47,7 +49,8 @@ export interface SquareCell {
   readonly ySystem: string;
 }
 
-export interface SquareNavigatorOptions {
+/** The square's options; a picture's cells read the store and the composition's types (`SquarePictureOptions`). */
+export interface SquareNavigatorOptions extends SquarePictureOptions {
   readonly model: StaticModel;
   readonly view: ResolvedView;
   readonly navigator: ResolvedNavigator;
@@ -127,8 +130,14 @@ export class SquareNavigator {
   /** The washed cells as rectangles of lattice block indices (i0, i1, j0, j1 each), made once a layout. */
   private readonly washRuns: Int32Array;
   /** What the base passes (the wash, the lattice, the labels) were drawn for: drawn again on a change only. */
-  private baseKey = '';
+  private baseW = Number.NaN;
+  private baseH = Number.NaN;
+  private basePx = Number.NaN;
   private baseTokens: SeqTokens | undefined;
+  /** The picture's cells (a registered picture's layer type with `square`), else none: the lattice alone. */
+  private readonly cells: SquarePictureCells | undefined;
+  /** The lattice as the cells see it. */
+  private readonly latticeView: SquareLattice;
   /**
    * One section on both axes with a switch (`navigator.switch: include`): the window is the blocks it shows (a run on
    * the diagonal, or scattered cells), its gestures the viewer's (_spec/README.md "Render", Navigators, The square).
@@ -175,6 +184,20 @@ export class SquareNavigator {
     this.setMode =
       this.navigator.switch === 'include' && this.navigator.of[0] === this.navigator.of[1] && blocks.length > 0;
     if (this.setMode) shownRun(this.shownX, this.run);
+    const of = this.lattice ? latticeAssembly(options.model, options.view, options.navigator) : undefined;
+    this.cells =
+      of !== undefined
+        ? SquarePictureCells.of(options.model, options.view, this.navigator, of, this.tokens, this.config, options)
+        : undefined;
+    const self = this;
+    this.latticeView = {
+      systems: blocks.map((b) => b.axis.system),
+      names: this.names,
+      edge: this.edgeFn,
+      get tokens() {
+        return self.tokens;
+      },
+    };
     if (!within)
       this.issues.push(
         issueOf(
@@ -196,6 +219,7 @@ export class SquareNavigator {
 
   setTokens(tokens: SeqTokens): void {
     this.tokens = tokens;
+    this.cells?.setTokens(tokens);
   }
 
   /** The square adds no zoom strip. */
@@ -271,13 +295,22 @@ export class SquareNavigator {
     const lists = this.lists;
     const c = this.tokens.colors;
     const px = 1 / (input.dpr ?? 1);
-    // the base (the wash, the lattice, the labels) drawn once a size and tokens; a window move redraws the window alone
-    const key = `${width}x${height}@${px}`;
-    const rebuilt = key !== this.baseKey || this.tokens !== this.baseTokens;
-    if (rebuilt) {
-      this.baseKey = key;
+    // the base (the cells, the wash, the lattice, the labels) drawn once a size and tokens, and when the cells change; a
+    // window move redraws the window alone (nothing made: the key is numbers)
+    const sized =
+      width !== this.baseW || height !== this.baseH || px !== this.basePx || this.tokens !== this.baseTokens;
+    if (sized) {
+      this.baseW = width;
+      this.baseH = height;
+      this.basePx = px;
       this.baseTokens = this.tokens;
       this.place(width, height);
+    }
+    const cells = this.cells;
+    const changed =
+      !!cells && cells.layout(this.grid.width, input.dpr ?? 1, input.settled ?? false, input.overlay, sized);
+    const rebuilt = sized || changed;
+    if (rebuilt) {
       lists.reset();
       lists.width = width;
       lists.height = height;
@@ -285,6 +318,7 @@ export class SquareNavigator {
     } else lists.reset(WindowPasses);
     this.frameRecord.rebuilt = rebuilt;
     this.frameRecord.base = rebuilt;
+    this.frameRecord.wants = (cells?.wants ?? []) as never[];
     this.placeWindows(input.view);
     const out = lists.writer('window');
     const w = this.windows[0];
@@ -366,6 +400,8 @@ export class SquareNavigator {
     const g = this.grid;
     lists.writer('background').fill(0, 0, this.box.width, this.box.height, c['seq-track']);
     const data = lists.writer('data');
+    // the picture's cells under the wash and the lines (always drawn: never bounded by `maxCells`)
+    this.cells?.draw(data, this.latticeView);
     if (blocks.length * blocks.length > this.config.navigator.square.maxCells) return;
     const edge = (k: number) => (k < blocks.length ? (blocks[k].offset ?? 0) : this.total);
     const runs = this.washRuns;
@@ -480,8 +516,8 @@ export class SquareNavigator {
   }
 
   /** What a cell's picture says of it (`37 links`), undefined without one. */
-  cellText(_i: number, _j: number): string | undefined {
-    return undefined;
+  cellText(i: number, j: number): string | undefined {
+    return this.cells?.text(i, j, this.latticeView);
   }
 
   /** The keyboard's cell (lattice indices; -1 none), outlined in the accent while the square has the focus. */
@@ -729,6 +765,19 @@ function shows(s: ResolvedSection | undefined, system: string): boolean {
 
 /** The lattice: a section of the navigator's assembly (its `include` alone), else of the first bound section's `of`. */
 function latticeOf(model: StaticModel, view: ResolvedView, nav: ResolvedNavigator): ResolvedSection | undefined {
+  const of = latticeAssembly(model, view, nav);
+  if (of === undefined) return undefined;
+  const node: Node = {
+    kind: 'view',
+    id: nav.id,
+    params: { layout: 'tracks' },
+    children: [{ kind: 'section', id: 'square', params: { of } }],
+  };
+  return resolveViewNode(model, node, nav.address).sections[0];
+}
+
+/** What the lattice shows: the navigator's assembly, else the first bound section's `of`. */
+function latticeAssembly(model: StaticModel, view: ResolvedView, nav: ResolvedNavigator): Value | undefined {
   const first = view.sections.find((s) => s.address === nav.of[0]);
   let of: Value | undefined = nav.assemblies
     ? nav.assemblies.length === 1
@@ -740,12 +789,5 @@ function latticeOf(model: StaticModel, view: ResolvedView, nav: ResolvedNavigato
     for (const id of first.address.split('/').filter(Boolean)) n = n?.children?.find((c) => c.id === id);
     of = n?.params?.of as Value | undefined;
   }
-  if (of === undefined) return undefined;
-  const node: Node = {
-    kind: 'view',
-    id: nav.id,
-    params: { layout: 'tracks' },
-    children: [{ kind: 'section', id: 'square', params: { of } }],
-  };
-  return resolveViewNode(model, node, nav.address).sections[0];
+  return of;
 }
