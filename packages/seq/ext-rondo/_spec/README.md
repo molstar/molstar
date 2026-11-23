@@ -49,7 +49,9 @@ waiting; its entries `StemMenu` in `viewer.ts`).
 - **A ribbon is a stem pair a strand** (the rows' relative strand), its `a` the stem earlier in the systems' order (its
   hue). Width: `k` = `rondo.maxWidthPx` (24) / the largest stem count in view, a ribbon `k ×` its count; under
   `ribbons.minPx` device px, or past the strongest `rondo.maxRibbons` (1,024), it goes to both stems' fans. So a neck is
-  the sum of its ribbons, stubs and fan; at least a device px as a whole.
+  the sum of its ribbons, stubs and fan; at least a device px as a whole. Why linear, not core's square root for arcs:
+  arcs are strokes that never add, but a neck is a sum a reader checks; the cap (`rondo.maxWidthPx`) keeps the hole
+  readable and the fan keeps the sum exact however thin the ribbons under it.
 - **Order in a neck**: ribbons by their partner's place clockwise from the stem (the nearest clockwise last), then stubs
   by partner order, then the fan.
 - **The twist**: a slice's edges in display order; `s` = strand × the two blocks' directions; `s` +1 (or a strand of 0)
@@ -101,6 +103,12 @@ waiting; its entries `StemMenu` in `viewer.ts`).
   (the ink when its links' values differ). The scan of a field's colours is kept by the read and the channel: a warm
   layout scans none. Why: a bin's count is every link's in it; a colour a value needs a bin a value, which held bins
   have for `type` and nothing else.
+- **Hues repeat on a subset**: the default palette is the theme's `categories` (8 tokens, safe in both themes), taken by
+  the systems' order (the assembly's, before any `include`), so chr7 has one hue on the genome's ring, on its own ring
+  and on a stub pointing at it. On a subset two chromosomes eight apart (chr4 and chr12) draw in one hue: stated, not
+  fixed. Why: re-deriving the domain from the blocks shown would give one chromosome two hues across two sections, which
+  is worse; the pair's ribbons are labelled and its stubs named at their tips. `rondo:hues` has no repeat but is not
+  colour-blind safe, so the layer never defaults to it: the writer names it.
 - **`opacity`** (its channel's uniform value) scales `ribbons.fillOpacity`: a faint layer under a strong one.
 - **The legend** (`LayerType.legend`, its code in the card's chunk, `card.ts`, loaded with `rondoViewer`: a viewer's
   legends derive once it lands, the settle waiting for it; the headless entry keys none): a field colour its channel's
@@ -173,6 +181,26 @@ waiting; its entries `StemMenu` in `viewer.ts`).
 - **Words** (core's `LayerType` hooks): `describe` (a ribbon "chr1:12–28 Mb ↔ chr17:40–52 Mb", its count and kind, its
   bins; a stem its links, partners, within and fan; a stub its partner, "not shown"), `summary` ("612 ribbons, 23
   chromosomes; strongest chr1 ↔ chr17, 140"), `announce` ("stem of 312 links").
+
+## What is the core's
+
+- **The zoom is a cut by `section.include`** (core's section param and `patch` command, one undo step): "show only chr4"
+  patches `include: ['chr4']`, a pair `['chr4', 'chr7']`, "show all" removes it. The ring is laid out again with no
+  tween; the hue domain and the viewports by `{ system, position }` are untouched. Why a param and not new `block`
+  nodes: one patch to apply and to undo, the assembly's grammar, and rows get the same switch. In place by default;
+  `detail: 'below'` of `rondoRing` writes a second ring section under it, so the genome stays in view.
+- **The hole**: ribbons own it, so `rondoRing` writes the section's `center: none` (core's section param, the assembly's
+  name and length then in the section's label line).
+- **Cytobands and the hue ring are core's `bands` layers**, the hue ring a thin second one over the same data coloured
+  by `(field :name system)`; the extension has no layer type for them. Why: the bands cover each chromosome, and a
+  reader without the extension draws them too.
+- **The square's window, its click that shows a pair, `navigator.switch: include` and the lattice over the assembly's
+  blocks are core's navigator**; the extension draws the cells only.
+- **Words**: the card, the ARIA description and the keyboard cursor are the viewer's; a layer type supplies its lines
+  through the optional `describe`, `summary` and `announce`, so built-in layers need nothing.
+- **On a row** (a `tracks` section of blocks) the same stems sit below the band and the ribbons are filled arcs between
+  them, the polar warp's absence the only difference. A text or a grid layout is not drawn: `rondo.ribbons.layout`
+  (warning, once). Why: its fallback is for readers without the type, not for layouts.
 
 ## The fallback
 

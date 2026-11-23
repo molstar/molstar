@@ -51,12 +51,12 @@ columns. Each with its headless twin checking the result's location.
 
 | Decision | Where |
 |---|---|
-| An examples package (`@molstar/seqx-examples`, private), `build(): Spec` a view, depending on the core alone | design-only: the examples package's own layout; it has no `_spec` (a gap: `packages/seq/AGENTS.md` does not list it) |
-| Fixtures committed small, generated ones made from a seed | design-only: the examples package's layout (as above) |
-| Reading fixtures by relative location, in Node and in Storybook | design-only: the examples package's and the Storybook's wiring (as above) |
+| An examples package (`@molstar/seqx-examples`, private), `build()` a view, its dependencies | examples › Dependencies |
+| Fixtures committed small, generated ones made from a seed | examples › Fixtures |
+| Reading fixtures by relative location, in Node and in Storybook | examples › Reading fixtures |
 | Features and examples apart in the Storybook | design-only: the Storybook's organization, no package spec |
-| Examples load their data from files | design-only: the Storybook's organization, no package spec |
+| Examples load their data from files | examples › Reading fixtures |
 | One story per view, canvas and SVG side by side | design-only: the Storybook's organization, no package spec |
-| Tests per view: built, validated, resolved, laid out, rendered | design-only: the examples package's tests (as above) |
+| Tests per view: built, validated, resolved, laid out, rendered | examples › Tests |
 | Exported JSON specs, not committed | design-only: a script's output, not a package rule |
 | The query language in Features | core › Examples |

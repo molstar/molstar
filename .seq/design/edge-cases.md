@@ -291,3 +291,14 @@ Paths relative to `packages/seq/`.
   Fallbacks, Host data, A second consumer) have their items in the table above.
 - EC-63, 115, 116, 135, 195 were the third slice's not-met items: tested before this slice (plan, Gate 0, 10); EC-59 and
   EC-209 to the fifth slice; EC-99 kept here (MR).
+
+## In the specs
+
+| Decision | Where |
+|---|---|
+| The catalog, its numbering, where it lives, and `ec-ids.ts` checking every cited id | design-only: the scaffold's catalog; the ids a spec cites are checked by the scaffold |
+| Three outcomes (kept, changed, dropped), decided when an area is built | design-only: a process; each outcome is a test or a spec rule of its area |
+| Known flaws fixed, not ported (EC-130, 135, 151, 181) | design-only: the catalog's outcomes; the fixes are in the areas' specs |
+| The reply's cases are cases (EC-185 to EC-244) | design-only: the catalog's outcomes; the areas' specs hold the behaviors |
+| An area is not done until each item has an outcome | design-only: a process (status and the plan's gates) |
+| Before `.seq/` is deleted the kept items need a home in a `_spec` | design-only: the close's work (the coverage worklist), not a package rule |

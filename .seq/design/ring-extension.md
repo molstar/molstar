@@ -463,6 +463,39 @@ Cells this design fills; the others stand as layouts, GA, RR and LX give them.
 | keys of `rondo:partner` | `ViewerConfig` (`view.keys`) | `.` and `,` | a keyboard way along the links; checked at RX |
 | neck order (partners by angle, stubs, the fan last); the twist by low and high edges; width linear, no floor inside a neck | fixed | — | the reasons in the Decision |
 
+## In the specs
+
+| Decision | Where |
+|---|---|
+| Whose each choice is: spec params, extension config, core's look | ext-rondo › Configuration |
+| The package: two entries, imports the extension entry alone, `requires`, no lazy chunk inside | ext-rondo › @molstar/seqx-ext-rondo |
+| What it ships (layer types, scheme, commands, binding, picture) and what each reads | ext-rondo › What it ships |
+| Its size row and what the feature cost the core | design-only: sizes are the measure file's and the plan's, per row |
+| Two reads with the gate `rondo.maxRibbons`, bins until items; pending, failed, "no links" | ext-rondo › Ribbons |
+| Stems a coarser level, counts as sums, the trumpet, links within a stem, `stems: none` | ext-rondo › Stems |
+| Ribbon width by count with the fan, the twist, the order in a neck, the cubic, the bound | ext-rondo › Ribbons |
+| "limit" issue (`rondo.ribbons.limit`, "612 links drawn in fans") | design-only: not built as designed (drift note) |
+| Stubs inward, one a stem a partner, labels, hit as the drawn run, `stubs: none`, small stubs folded | ext-rondo › Stubs |
+| A hue a block by the `system` domain before `include`; the repeat on a subset; `rondo:hues` unsafe, never the default | ext-rondo › Colour |
+| The `system` domain taken before `include`, `section.center`, `section.include` and its grammar | core › Assemblies |
+| Cytobands and the hue ring as core's `bands` layers | ext-rondo › What is the core's |
+| The hue ring written from the assembly's sequences when no bands | design-only: not built as designed (drift note) |
+| Synthetic bands for tests (`syntheticBands`) | examples › Views |
+| The ring zoom as a cut by `section.include`, in place or `detail: 'below'` | ext-rondo › What is the core's |
+| The square: lattice the assembly's, `navigator.switch`, cells by count, the window, selecting any set (Decided 4, 15 to 18) | core › Navigators |
+| The square's cells (`rondo:cells`, `rondo:square`) and without the picture the `axis` fallback | ext-rondo › What it ships |
+| Hover, selection, emphasis, the stem menu, the keys | ext-rondo › Hits, emphasis, words |
+| The hooks `describe`, `summary`, `announce` | ext-rondo › What is the core's |
+| Shift+F10 opening the stem's menu from the keyboard | design-only: not built (the spec says so) |
+| Other layouts: a `tracks` row, text and grid refused | ext-rondo › What is the core's |
+| What a reader without the extension draws (EC-235) | ext-rondo › The fallback |
+| The builder helper `rondoRing`; the hole's `center: none` | ext-rondo › The builder helper |
+| Showcase data: GRCh38 lengths, seeded links held and as BEDPE | examples › Views |
+| Cytobands recorded from UCSC, its licence asked first | examples › Fixtures |
+| Edge cases taken or assigned; defaults with a picture; the matrix's cells | design-only: catalogs and pictures for the stories and tests |
+| The configuration table | ext-rondo › Configuration |
+| Tensions, self-check, consequences, built notes | design-only: history and plans |
+
 ## Tensions
 
 - **Stems are a lattice, not clusters**: a cluster across a stem edge is two stems, and a resize past a power of two

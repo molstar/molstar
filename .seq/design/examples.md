@@ -598,6 +598,27 @@ list, `seqx-examples` having no `_spec`) or a fixed rule of the fixtures, checke
 | `contacts.cutoff` | option of the record script | 4 Å between heavy atoms | the common definition | 5 Å |
 | the seeded generator | fixed: core's `PCG` | — | one generator, no private copy | — |
 
+## In the specs
+
+| Decision | Where |
+|---|---|
+| The author's decisions on the data (licences of AlphaFill, the PAE, ANARCI, the variants' sources, the old cases' homes) | design-only: choices of what to record and why, kept in the fixtures' `sources.json` rows |
+| A source's attribution and licence as params of a source node | core › A source's transform |
+| `@molstar/io` a devDependency for the record script | examples › Dependencies |
+| The datasets and their views, the showcases, the editing views | design-only: a catalog of what the examples show, plans per slice |
+| Every view runs three ways: Storybook, a quick test, an exported spec | examples › Tests |
+| Real entries read as published, converted only where no reader exists | examples › Fixtures |
+| Recorded by hand, never in tests; real slices recorded as pages | examples › Fixtures |
+| Provenance is data (`sources.json`); licences allowed; the size bounds | examples › Fixtures |
+| Generated, never stored, on core's `PCG`; a generated file compared with its generator | examples › Fixtures |
+| Facts checked against the data | examples › Fixtures |
+| Each view over the instance that carries its edge case | examples › Views |
+| The datasets' details (each dataset's entries, views and anchors) | design-only: a catalog; the fixtures and the views are the record |
+| What is not here (deferred views, loading by URI) | design-only: scope |
+| The interaction matrix's cells | design-only: which view exercises a gesture; the gestures are the viewer's and core's |
+| Configuration: bounds, licences, generator options | examples › Fixtures |
+| Tensions, self-check, consequences | design-only: history and plans |
+
 ## Tensions
 
 - **Published files against converted ones.** A Stockholm seed committed as published is what a reader without Seq\*

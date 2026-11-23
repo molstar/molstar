@@ -88,3 +88,22 @@ slowed the edit loop; here speed is a requirement with numbers:
   outcomes; a performance target holds only once its test exists.
 - Each port, layout and language ships its suite beside it, so an extension is tested by the same suite as the
   built-ins.
+
+## In the specs
+
+| Decision | Where |
+|---|---|
+| What is tested by what (language, encodings, patches, addresses, maps, ports, layouts, grammar, rendering, size, parsers) | design-only: the test plan; the tests are the record and each area's spec states its contract |
+| Conformance suites per port and adapter, never the network | core › Protocol |
+| Every example validates, resolves, lays out and renders; a few keep a record | examples › Tests |
+| Performance targets: time bounds, scaling ratios, allocation, heap | design-only: the performance targets and the root AGENTS.md's tiers hold them |
+| The quick lane's budgets (30 s the package, 2 s a folder, 1 s a file), no warm-ups or wall clocks | design-only: the package guide's Tests and the root AGENTS.md's lanes |
+| Records few, at one size, compared as text, reviewed as diffs | examples › Tests |
+| The opt-in tiers stay opt-in | design-only: the root AGENTS.md's "Not lanes" |
+| Which lane each test goes to (quick, medium, heavy) | design-only: the root AGENTS.md's lanes |
+| Models tested in Node, views opt into jsdom | viewer › Models |
+| Fixtures small and committed, large ones generated from a seed | examples › Fixtures |
+| The previous implementation's answers are guidelines, not fixtures | design-only: a working rule for writing tests |
+| Proportionate tests: slow by nature moves lane, slow by waste is fixed | design-only: the root AGENTS.md's lanes |
+| A story composing more than one consumer has a headless twin | examples › Tests |
+| Every asynchronous source has a synthetic twin with an injectable clock | core › Asynchronous sources |

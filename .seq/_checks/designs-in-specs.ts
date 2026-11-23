@@ -28,12 +28,12 @@ const SPECS: Record<string, string> = {
 };
 /** Designs not reconciled when the check was written (file names without `.md`). Only ever shrinks. */
 const PENDING = new Set([
-  "across-sections", "addressing", "axis", "changes", "data-store", "dynamic-nodes", "edge-cases",
-  "examples", "files", "format", "genome-coordinates",
+  "across-sections", "addressing", "axis", "changes", "data-store", "dynamic-nodes",
+  "files", "format", "genome-coordinates",
   "genome-formats", "grids-and-rows", "immutable", "language-description", "layout-and-draw-lists", "layouts",
-  "locations-and-queries", "maps", "merge", "molecules", "packages", "patches", "properties",
-  "protocol", "region-reads", "rendering", "ring-extension", "security", "sources",
-  "testing", "themes", "tree-core",
+  "locations-and-queries", "maps", "merge", "molecules", "patches", "properties",
+  "protocol", "region-reads", "rendering", "security",
+  "themes", "tree-core",
 ]);
 
 const argv = process.argv.slice(2);
