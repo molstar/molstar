@@ -62,12 +62,14 @@ describe('the genome ring’s data', () => {
       for (const l of own) {
         expect(Math.abs(l.as - t.at), t.name).toBeLessThanOrEqual(2e4);
         expect(Math.abs(l.bs - t.bt), t.name).toBeLessThanOrEqual(2e4);
-        expect([l.sa, l.sb, l.genes], t.name).toEqual([t.sa, t.sb, t.genes]);
+        expect([l.sa, l.sb, l.genes, l.event], t.name).toEqual([t.sa, t.sb, t.genes, t.name]);
       }
     }
     // the BCR-ABL1-like one: chr9 with chr22, its genes named as invented
     expect(RingTranslocations[0]).toMatchObject({ a: 8, b: 21, genes: ['XABL', 'XBCR'] });
-    expect(RingTranslocations[0].name).toMatch(/made up/);
+    // every translocation's name says it is made up, and its reads carry it (the card shows it)
+    for (const t of RingTranslocations) expect(t.name).toMatch(/made up/);
+    expect(ringBedpe(tx.slice(0, 1))).toMatch(/\(made up\)\n$/);
   });
 
   it('synthetic bands: alternating stains, an acen pair at 40 %, a gvar on Y’s last third, the chromosome covered', () => {

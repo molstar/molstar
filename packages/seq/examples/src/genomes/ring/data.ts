@@ -43,6 +43,8 @@ export interface RingLink {
   readonly sb: '+' | '-' | '.';
   /** A fusion's two genes (made up); absent elsewhere. */
   readonly genes?: readonly [string, string];
+  /** A translocation's read: its event's name, saying it is made up (the card shows it); absent elsewhere. */
+  readonly event?: string;
 }
 
 /** A link's end's length in bases. */
@@ -146,14 +148,25 @@ export function ringLinks(n = 12_000, seed = 38, count = 23): RingLink[] {
     }
     const q = Math.max(1e-6, Math.round(f() * 0.05 * 1e6) / 1e6);
     if (t)
-      out.push({ a, as, b, bs, type: 'translocation', q, sa: t.sa, sb: t.sb, ...(t.genes ? { genes: t.genes } : {}) });
+      out.push({
+        a,
+        as,
+        b,
+        bs,
+        type: 'translocation',
+        q,
+        sa: t.sa,
+        sb: t.sb,
+        ...(t.genes ? { genes: t.genes } : {}),
+        event: t.name,
+      });
     else out.push({ a, as, b, bs, type: 'contact', q, sa: '.', sb: '.' });
   }
   return out;
 }
 
 /**
- * The links as BEDPE (`chrom1 start1 end1 chrom2 start2 end2 name score strand1 strand2 type q gene1 gene2`, `.` where
+ * The links as BEDPE (`chrom1 start1 end1 chrom2 start2 end2 name score strand1 strand2 type q gene1 gene2 event`, `.` where
  * none): read whole.
  */
 export function ringBedpe(links: readonly RingLink[]): string {
@@ -174,6 +187,7 @@ export function ringBedpe(links: readonly RingLink[]): string {
       l.q,
       l.genes?.[0] ?? '.',
       l.genes?.[1] ?? '.',
+      l.event ?? '.',
     ].join('\t'),
   );
   return `${lines.join('\n')}\n`;
@@ -195,6 +209,7 @@ export function ringRows(links: readonly RingLink[]) {
     q: Float64Array.from(links, (l) => l.q),
     gene_a: links.map((l) => l.genes?.[0] ?? null),
     gene_b: links.map((l) => l.genes?.[1] ?? null),
+    event: links.map((l) => l.event ?? null),
   };
 }
 
