@@ -7,8 +7,7 @@ designs, the work folders and the records.
 
 **It is kept, and never cited by code.** What the code follows (the rules, the decisions, what the format means) is in
 the packages' `_spec/` (each design's `## In the specs` table says where). This folder keeps the reasons, the history
-and the work, and may still be edited, the designs especially (the author, 2026-11-23: "i think we can still edit if
-needed"). So:
+and the work, and may still be edited, the designs especially ([../AGENTS.md](../AGENTS.md), Rules). So:
 
 - nothing outside `.scaffolds/` links into it except the pointer in `packages/seq/AGENTS.md` and the root `AGENTS.md`'s
   table;
@@ -25,7 +24,7 @@ same thing (package rules, tests, headers, changelog) the root wins.
 |---|---|
 | [status.md](status.md) | **start here**: what is built, what is open, what is next, which design to read |
 | [principles/README.md](principles/README.md) | the manifest: which modules apply, the folder map, the adaptations |
-| `../principles/` | the principles package, copied unedited ([its README](../principles/README.md)) |
+| `../principles/` | the principles package, upstream's, edited only as the manifest's Provenance says ([its README](../principles/README.md)) |
 | `principles/{queries,agent-interface}/` | the project's own modules, from meso\* |
 | [sources/](sources/README.md) | what Seq\* is drawn from, each reconciled against the principles |
 | [design/](design/README.md) | agreed designs, one file per topic; if it is here it is agreed |
@@ -39,8 +38,7 @@ same thing (package rules, tests, headers, changelog) the root wins.
 0. Read [status.md](status.md), then the [instance skill](_skills/seq/SKILL.md).
 1. Read the `principles` skill ([../principles/_skills/principles/SKILL.md](../principles/_skills/principles/SKILL.md)), then the router
    ([../principles/_skills/principles-router/SKILL.md](../principles/_skills/principles-router/SKILL.md)) with the manifest for the modules
-   of the area you touch. The skills are not linked into the harness (so deleting `.scaffolds/seq/` leaves nothing); read them as
-   files.
+   of the area you touch. The skills are not linked into the harness; read them as files.
 2. Design first: a draft in `execution/<work-id>/`, agreed into `design/<topic>.md`; then plan, loop and `state.md` in
    the execution folder (read `state.md` first when resuming).
 3. Code, spec and design disagree: write a drift note, don't bend either side. Changes to `principles/`, `sources/` or
