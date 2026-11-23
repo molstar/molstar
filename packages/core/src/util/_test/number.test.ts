@@ -6,6 +6,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { formatGenomic } from '../number.js';
+import { formatValue } from '../string-format.js';
 
 describe('formatGenomic', () => {
   it('bases below a step of 1,000, grouped by thousands', () => {
@@ -37,5 +38,35 @@ describe('formatGenomic', () => {
     expect(formatGenomic(-0.3, 1)).toBe('0');
     expect(formatGenomic(-400, 1000)).toBe('0 kb');
     expect(formatGenomic(-1000, 10_000)).toBe('0.00 Mb');
+  });
+});
+
+describe('formatGenomic output is byte-equal', () => {
+  const group = (s: string) => s.replace(/^(-?)(\d+)/, (_, sign, d) => sign + d.replace(/\B(?=(\d{3})+(?!\d))/g, ','));
+
+  it('formatValue `,.Nf` (N 0 to 6) is byte-equal to toFixed and grouping, for random numbers', () => {
+    let seed = 12345;
+    const rnd = () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
+    for (let i = 0; i < 3000; i++) {
+      const v = (rnd() - 0.4) * 10 ** Math.floor(rnd() * 12);
+      for (let d = 0; d <= 6; d++) {
+        expect(formatValue(String(v), `,.${d}f`)).toBe(group(v.toFixed(d)));
+      }
+    }
+  });
+
+  it('formatGenomic equals the unit and decimals it documents, for random numbers and steps', () => {
+    let seed = 777;
+    const rnd = () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
+    for (let i = 0; i < 3000; i++) {
+      const n = Math.round((rnd() - 0.3) * 10 ** Math.floor(rnd() * 11));
+      const step = 10 ** Math.floor(rnd() * 10) * [1, 2, 5][Math.floor(rnd() * 3)];
+      const unit = step < 1e3 ? 1 : step < 1e4 ? 1e3 : 1e6;
+      const decimals = unit === 1e6 ? Math.max(0, 6 - Math.floor(Math.log10(step) + 1e-9)) : 0;
+      const v = n / unit;
+      const shown = Number(v.toFixed(decimals)) === 0 ? 0 : v;
+      const expected = group(shown.toFixed(decimals)) + (unit === 1 ? '' : unit === 1e3 ? ' kb' : ' Mb');
+      expect(formatGenomic(n, step)).toBe(expected);
+    }
   });
 });
