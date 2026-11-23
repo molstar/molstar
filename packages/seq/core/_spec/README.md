@@ -537,13 +537,13 @@ layout per token table, held domains and the reader's substitution (`LayerChanne
   4.5:1. Provenance is `theme/provenance`'s (`schemeProvenance`), read by a picker, never by drawing.
 - **Column schemes** read the rows layer's measures (`share`, `identity`, `matches-reference`: Render, The rows layer):
   `clustal-x` (`share`), `percent-identity` (`identity` above 0.8, 0.6, 0.4 in three blues), `blosum62` (by
-  `matches-reference`: a letter matching the reference row's; no substitution score yet), `espript` (EC-135: identical where every row of the column has the
-  letter, gaps counted against it, `gaps: count` by default; similar where the letter's group holds at least
-  `similarity`, 0.7, of the column; `mode: bw` black and grey, so it reads in print with no hue): rules forms over the
-  measures, stated as an approximation of ESPript's score by groups. A scheme that does not fit the layer (another
-  alphabet, a measure the layer does not register) draws the layer's default and says what it needs
-  (`seq.render.theme.scheme`). Why: a column's conservation is a measure of the alignment, so the schemes stay data and
-  the layer that holds the cells computes it once.
+  `matches-reference`: a letter matching the reference row's; no substitution score yet), `espript` (EC-135: identical
+  where every row of the column has the letter, gaps counted against it, `gaps: count` by default; similar where the
+  letter's group holds at least `similarity`, 0.7, of the column; `mode: bw` black and grey, so it reads in print with
+  no hue): rules forms over the measures, stated as an approximation of ESPript's score by groups. A scheme that does
+  not fit the layer (another alphabet, a measure the layer does not register) draws the layer's default and says what it
+  needs (`seq.render.theme.scheme`). Why: a column's conservation is a measure of the alignment, so the schemes stay
+  data and the layer that holds the cells computes it once.
 - **Colors as spelled** (`theme/spelling`: `parseColor`, `isColorSpelling`, `resolveColor`) need no color space: the
   spec reader's checks import them alone.
 - **Legends** are data (`Legend`: swatches, a ramp with ticks placed by its scale (a log scale's decades, a center at
@@ -4076,14 +4076,14 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   lanes overflow (`drawRail`), a 1 px edge in the line ink (`msui-line`) where lanes are cut, above the first lane in
   view and below the last (`drawScroll`: the scroll's sign at rest, quieter than the rail), the header, the label and
   the tracks around stay in place. **A source's reachable region** is read as a margin want of its own under the layer's
-  bounds (`ranges-reach.ts`); refused, its track is as tall as the lanes in view, said once (`seq.render.reach`, info). A track's own `height` is its
-  cap and its height: lanes past it scroll; a band under one lane draws one lane centred (EC-249). Rings and text never
-  scroll: past the ring's width the lanes compact, then the density row. `track.overflow: compact` squeezes the lanes
-  into the band, `density` puts what does not fit in a density row at its bottom (`ranges.overflow` then says whether
-  the rest or the whole layer). The most lanes a layer packs is `ranges.maxLanes` (1,000). **An export** draws every
-  lane up to `export.maxTrackPx` (4,000) (`export.lanes: all`; `view` draws the band as on screen), the live scroll
-  untouched. **A gene model's label with no room before its model floats at the data's left edge** over its hairline, on
-  a backdrop, never dropped while its lane is shown.
+  bounds (`ranges-reach.ts`); refused, its track is as tall as the lanes in view, said once (`seq.render.reach`, info).
+  A track's own `height` is its cap and its height: lanes past it scroll; a band under one lane draws one lane centred
+  (EC-249). Rings and text never scroll: past the ring's width the lanes compact, then the density row.
+  `track.overflow: compact` squeezes the lanes into the band, `density` puts what does not fit in a density row at its
+  bottom (`ranges.overflow` then says whether the rest or the whole layer). The most lanes a layer packs is
+  `ranges.maxLanes` (1,000). **An export** draws every lane up to `export.maxTrackPx` (4,000) (`export.lanes: all`;
+  `view` draws the band as on screen), the live scroll untouched. **A gene model's label with no room before its model
+  floats at the data's left edge** over its hairline, on a backdrop, never dropped while its lane is shown.
 - **The section's `heights` names the sizing**: `content` (the default: tracks of one kind, their shown layers' types in
   order, share the tallest lanes **when close** (their lanes, content less the label lane, within 2 lanes or 2x of the
   cluster's smallest: clusters by sorted lanes, so the tracks' order never matters, 1, 3 and 5 lanes are {1, 3} and {5};
