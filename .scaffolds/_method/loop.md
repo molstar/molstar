@@ -5,8 +5,9 @@
      <placeholder>, and delete a section's comment once it is filled. Cut a section only where the work has no such
      step (a work that draws nothing has no look, no mock and no novice pass); say so in one line. -->
 
-Governs the implementation of `plan.md` (§loop-file). The orchestrator is the session that runs this loop; lanes are
-subagents it starts. Read this file and `state.md` before every step. <!-- Name the loop this one descends from and the
+Governs the implementation of `plan.md` (§loop-file), item by item of `checklist.md` (§plan-and-checklist). The
+orchestrator is the session that runs this loop; lanes are subagents it starts. Read this file and `state.md` before
+every step. <!-- Name the loop this one descends from and the
 fold-back it applies ("the <previous> slice's loop with its fold-back, B1–Bn, applied"), so the rules have a source. -->
 
 ## Lanes at once
@@ -19,7 +20,10 @@ two heavy test runs at once.
 
 - **Every agent counts**: a lane's reviewer and fix round count as that lane, and so does every other agent the
   orchestrator runs (a review of designs, a measurement, a draft). Before starting one, the orchestrator lists what
-  runs, with start times, in `state.md`'s In progress.
+  runs, with start times, in `state.md`'s In progress, and takes a finished one off it.
+- **The orchestrator stays in its own directory**: every command it runs on a lane's tree names it, by absolute path
+  or `git -C <worktree>`, `pnpm -C <worktree>`; never a bare `cd` into a lane's worktree. Why: a `cd` moved the
+  session's working directory, and the next commands ran against the wrong tree until it was noticed.
 - **A lane's model follows its scope**: a closed item list and named outputs (a fix lane, a showcase,
   a pure split, a fast review) runs on the fast model; a lane that builds a design's core (<the language, the model,
   runtimes on untrusted input>) and its independent review keep the strong one. The brief names the model, the
@@ -30,10 +34,10 @@ two heavy test runs at once.
 <!-- The orchestrator's cycle for one lane, from pick to record. Every step is a rule a slice paid for; keep its
      order: the look and the review come before the merge, never after. -->
 
-1. **Read** `state.md`, `gaps.md`, `drift/` and `fixes.md`. If `state.md` is missing, rebuild it from `plan.md` and the
-   git log.
-2. **Pick** the next unchecked items whose dependencies are merged (plan, Order and parallelism), within the limit
-   above, counted from the list of what runs. At a fix point a <fix lane> takes the open items of `fixes.md`;
+1. **Read** `state.md`, `checklist.md`, `gaps.md`, `drift/` and `fixes.md`. If `state.md` is missing, rebuild it from
+   `plan.md`, `checklist.md` and the git log.
+2. **Pick** the next unticked items of `checklist.md` whose dependencies are merged (plan, Order and parallelism),
+   within the limit above, counted from the list of what runs. At a fix point a <fix lane> takes the open items of `fixes.md`;
    **classify before logging**: a finding that matches one already fixed is the class's item
    (its rule in the design or `_spec` it belongs to, a sweep test over every case the rule covers, briefed to a strong
    lane), never a new line per instance.
@@ -68,7 +72,10 @@ two heavy test runs at once.
      - a test over lazy parts awaits them before the gesture it measures (a flake under fake timers suspects a late
        part or a real clock first);
      - a changed test expectation explained against the design;
-     - each fix's test failing on the fix's parent (a fix of an unreachable state says so instead).
+     - each fix's test failing on the fix's parent (a fix of an unreachable state says so instead);
+     - a lane that rewrites text across many files (citations, ids, links): the identifiers it touched (`EC-<n>`, rule
+       ids, spec sections), the set before and the set after, from its report, compared; one gone with no reason is a
+       finding. Why: a rewrite of 240 citations dropped one id that was still cited elsewhere, and every check passed.
    - **fix round**: one round (SendMessage to the lane), or the orchestrator's; a finding that is a design question
      becomes a drift note.
    - **merge** with `--no-ff`, after the size check shows no failing row on the merged tree (read its rows, never only
@@ -76,9 +83,10 @@ two heavy test runs at once.
      the hot-file changes the lane asked for; lower the file-size baseline (`file-size.ts --update`) when a listed file
      shrank; delete the design's mock when this merge lands the built view; install, run the checks on the merged
      tree, remove the lane's worktree and branch. The orchestrator stages by path, never `commit -a` or `.`, and keeps its own scripts in its scratchpad.
-   - **record**: the lane's row in `state.md`'s findings table: the model, the items ticked, the review's and the
-     look's findings by kind (bug, missing design, look), who looked and at what; its drift, gaps and followups into
-     `drift/`, `gaps.md` and `followups.md`.
+   - **record**: the lane's row appended to `findings.md` ([findings.md](findings.md)): the model, the items ticked,
+     the review's and the look's findings by kind (bug, missing design, look), who looked and at what; its drift, gaps
+     and followups into `drift/`, `gaps.md` and `followups.md`; its line of `checklist.md` ticked with the merge
+     commit.
    - **features**: the lane's built rows in <the features table> moved to built, with their links, in the merge's
      commit or the next.
 6. **Drift** (§drift-notes): where code and a design disagree, write `drift/<topic>.md` ([drift-note.md](drift-note.md)).
@@ -90,15 +98,17 @@ two heavy test runs at once.
    fake clock.
 9. **Designs and their pages move together**: a change to an agreed design updates its file and <its published page>
    in one commit.
-10. **Update** `state.md` and tick `plan.md` after every merged item, before starting a new lane, and before stopping.
-    Commit the work folder (orchestrator only).
+10. **Tick and rewrite**: tick `checklist.md` with the commit of every item that landed, and rewrite `state.md` in
+    place to where the work now stands (never appended: what happened is in git, the ticks and `findings.md`), after
+    every merged item, before starting a new lane, and before stopping. `plan.md` is not touched; a re-plan is a dated
+    line at its end, with the author's word. Commit the work folder (orchestrator only).
 
 ## Pausing
 
 <!-- What happens when the author pauses or usage runs short, so a cold session can pick the work up. -->
 
-No new lane starts; running lanes finish or are stopped with their branch committed; `resume.md` is written (where it
-stands, what is merged, what runs, the next steps, the open questions), and `state.md` points at it.
+No new lane starts; running lanes finish or are stopped with their branch committed; `state.md` is rewritten for a
+cold pickup (where it stands, what runs, the next steps, the open questions) and committed.
 
 ## Running while the author is away
 
@@ -113,7 +123,7 @@ beyond what a design agreed is never decided this way; use gates are deferred, n
 <!-- What every GATE in the plan runs and reports. Timing is read on a quiet machine only: every timing miss the slices
      recorded was load. -->
 
-At every `GATE` in `plan.md`:
+At every `GATE` in `checklist.md`:
 
 - all of Checks on the merged tree, green by exit code with a non-zero test count (§green-is-exit-code);
 - the quick lane's time per touched folder and in total, on a quiet machine (`uptime` under <n>) **with no lane
@@ -129,14 +139,15 @@ At every `GATE` in `plan.md`:
 - the interaction matrix's cells the stage fills: a cell built (a test names its gesture), or "no, because" stated;
 - the gaps and drift notes raised since the last gate, each a yes or no with a recommendation;
 - a short report to the author: what merged, the checks, screenshots from a visible pane, the representatives' numbers,
-  the sizes, the decisions needed. The loop continues unless a decision is needed.
+  the sizes, the decisions needed. The gate's row goes into `findings.md` and its line of `checklist.md` is ticked. The
+  loop continues unless a decision is needed.
 
 **The novice pass** runs after the last lane that draws: a light agent plays a user in a visible browser with a task
 script per new view (a pointer path onto each menu and submenu), split by groups from the start. The orchestrator
 compares what it finds with the design's mock, gesture by gesture, and reproduces every bug it reports in a
 visible pane before placing it. **Use is continuous**: the author's use as lanes
 merge is the use gate. At both, each finding is fixed or placed (`fixes.md`, a lane, the TODO, a drift note) and
-counted by kind in `state.md`.
+counted by kind in a row of `findings.md`.
 
 ## Checks
 
@@ -172,8 +183,8 @@ node .scaffolds/<name>/_checks/<check>.ts
 <!-- The close, in order. The fold-back is a step of every close; the work folder stays. -->
 
 The work folder stays in `.scaffolds/<name>/execution/<work-id>/`, closed and kept, never moved or deleted unless the
-author says so; `records/<work-id>/` holds only the record file. It starts with the unticked plan items listed in
-`state.md`, each run, cut by the author's word, or carried to the next plan. Then:
+author says so; `records/<work-id>/` holds only the record file. It starts from `checklist.md`'s unticked items, each
+run, cut by the author's word or carried to the next plan, and ticked so ("cut (the author, <date>)", "carried"). Then:
 
 1. **Reconcile**: designs and their pages; `drift/` emptied (each note resolved and deleted, or turned into a
    followup); `followups.md` filed (each an issue or a line in <the TODO>) and cleared; the `_spec`s and
@@ -182,8 +193,9 @@ author says so; `records/<work-id>/` holds only the record file. It starts with 
 2. **Fold back**: `foldback.md` ([foldback.md](foldback.md)). The author decides on its own line; what was decided is
    applied and committed before the record.
 3. Run the gate once more.
-4. Write the record ([record.md](record.md)) in `.scaffolds/<name>/records/<work-id>/`, end `state.md` with
-   "Closed <date>: <record file>", and edit nothing in this folder after that.
+4. Write the record ([record.md](record.md)) in `.scaffolds/<name>/records/<work-id>/`, tick FINALIZE, end `state.md`
+   with "Closed <date>: <record file>" in the same commit, and edit nothing in this folder after that. The closed-work
+   check fails a closed folder with an unticked line.
 5. Write the next plan with what this work taught.
 6. **Clean up**: every merged lane's worktree and branch removed; a parked lane's kept and named in the record;
    nothing unmerged deleted without the author's word.

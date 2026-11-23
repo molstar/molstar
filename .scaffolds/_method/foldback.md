@@ -19,7 +19,7 @@ Each proposed change is one item the author decides: "Proposed: … Why: … Whe
 
 ## A. What each gate, lane and use found, by kind
 
-<!-- Counted from `state.md`'s findings table, the novice findings, the measurements, `fixes.md`: which source found
+<!-- Counted from `findings.md`, the novice findings, the measurements, `fixes.md`: which source found
      what. Then two or three lines on what the counts say. -->
 
 | Gate, lane or use | Bug | Missing design | Look | Other |

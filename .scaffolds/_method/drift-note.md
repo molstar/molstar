@@ -21,4 +21,5 @@ outcome**: <code-wrong | spec-stale | design-wrong | undecided>.
 
 <!-- Once answered, the outcome is applied (code-wrong and spec-stale by an agent; above code-vs-design every outcome
      edits an agreed document, so it is the author's call) and the note deleted; the decision, with the author's words,
-     goes into the design or `state.md`'s Decided. -->
+     goes into the design, or into the plan as a dated line when it changes the plan (never `state.md`, which holds
+     only the current state). -->

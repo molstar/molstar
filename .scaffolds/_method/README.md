@@ -15,8 +15,11 @@ The rules behind it are the principles package's ([`_core`](../principles/_core/
 | File | For | Copied to |
 |---|---|---|
 | [loop.md](loop.md) | how the orchestrator runs a work: lanes at once, each step from brief to record, pausing, running alone, gates, checks, stop and ask, finalize | `execution/<work-id>/loop.md` |
-| [plan.md](plan.md) | stages and lanes, gates, the designs and their lanes, measurements as budgets | `execution/<work-id>/plan.md` |
-| [state.md](state.md) | the cold-pickup state: decided, next, in progress, blockers, verify, findings by lane | `execution/<work-id>/state.md` |
+| [plan.md](plan.md) | what and why, written once: stages and lanes, gates, the designs and their lanes, measurements as budgets; a re-plan a dated line; no status, no ticks | `execution/<work-id>/plan.md` |
+| [checklist.md](checklist.md) | one line per item (lanes, gates, fix lanes, the novice pass, the measurements, FINALIZE), ticked with its commit | `execution/<work-id>/checklist.md` |
+| [state.md](state.md) | the current state only, rewritten in place, about a screen: where it stands, in progress, next, blockers, verify | `execution/<work-id>/state.md` |
+| [findings.md](findings.md) | append-only: a row per merged lane and gate, the findings by kind | `execution/<work-id>/findings.md` |
+| [status.md](status.md) | optional, an instance's routing page: built and open now, edited in place | `status.md` |
 | [brief.md](brief.md) | one lane's whole instructions: model, base, numbered items with their proof, where, checks, report | `execution/<work-id>/briefs/<lane>.md` |
 | [fixes.md](fixes.md) | the fix phase's queue of small findings that need no design | `execution/<work-id>/fixes.md` |
 | [drift-note.md](drift-note.md) | a disagreement between code, spec and design, with options and a recommendation | `execution/<work-id>/drift/<topic>.md` |
@@ -25,6 +28,12 @@ The rules behind it are the principles package's ([`_core`](../principles/_core/
 | [design.md](design.md) | an agreed design: intent, precedents, decision, defaults with a mock, configuration, consequences, tensions, in the specs | `design/<topic>.md` |
 
 A template's comments say what goes in each section and why; delete them as the section is filled.
+
+The work folder's files follow the package's (§plan-and-checklist, §state-file; the templates in
+[workflow-files](../principles/_core/patterns/workflow-files.md)): the plan says what and why and is not edited for
+status; the loop reads `checklist.md` and ticks it with each commit; `state.md` is rewritten, never appended (the
+closed-work check notes one past 600 words); a lane's and a gate's findings are rows of `findings.md`; Finalize starts
+from the checklist's unticked items, and a closed folder has none.
 
 ## Checks
 
@@ -59,8 +68,8 @@ takes no instance, imports the package's directly.
    nothing else outside `.scaffolds/` names it.
 2. **Design**: drafts in `execution/<work-id>/drafts/`, agreed by the author into `design/<topic>.md` from
    [design.md](design.md), each with its mock when it adds something visible.
-3. **Run**: a work folder per slice, from [plan.md](plan.md), [loop.md](loop.md) and [state.md](state.md); a brief
-   per lane; the loop runs until its plan is ticked.
+3. **Run**: a work folder per slice, from [plan.md](plan.md), [checklist.md](checklist.md), [loop.md](loop.md),
+   [state.md](state.md) and [findings.md](findings.md); a brief per lane; the loop runs until its checklist is ticked.
 4. **Close**: the loop's Finalize: reconcile, `foldback.md` with the author's decision, the gate, the record, the
    closing line of `state.md`, the next plan. The work folder stays, never moved or deleted unless the author says so.
 5. **Keep**: when the governed packages stand on their own, the scaffold stays, closed and editable. What the code

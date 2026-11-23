@@ -1,33 +1,30 @@
-# State: <work id>
+# State: <work id>   (updated <date time>, by <the orchestrator>)
 
-<!-- The template for a work folder's state, `execution/<work-id>/state.md` (§state-file): written for a cold pickup,
-     updated after every merge, before every new lane and before stopping. If a fresh agent cannot continue from it in a
-     few minutes it is too thin. Its last line, at the close, is "Closed <date>: <record file>"; the closed-work check
-     reads it. -->
+<!-- The template for a work folder's state, `execution/<work-id>/state.md` (§state-file): the current state only,
+     about a screen, written for a cold pickup. Rewritten in place after every merge, before every new lane and before
+     stopping; never appended. What happened is in git, `checklist.md`'s ticks, `findings.md` and the record; decisions
+     are in their design or the plan's dated lines. If a fresh agent cannot continue from it in a few minutes it is too
+     thin; past 600 words the closed-work check notes it. Its last line, at the close, is "Closed <date>: <record
+     file>"; the checks read it. Delete the comments once filled. -->
 
-## Decided
+Branch: `<integration branch>`   Head: `<commit>`
 
-<!-- Decisions taken, newest first: the decision, the author's words and date, where it now lives (a design, a brief, the plan). -->
+## Where it stands
 
-- <decision> (the author, <date>: "<words>"); <where>.
-
-## Done
-
-<!-- What is merged or finished, newest first, with its commit: enough to know what not to redo. -->
-
-- <date>: <lane or stage> (`<commit>`).
-
-## Next
-
-<!-- The next steps in order, enough to resume: which brief, which model, what it waits on. -->
-
-1. <step>
+<!-- A few lines: what is merged of the checklist, what is half done and where. -->
 
 ## In progress
 
-<!-- Every agent that runs, with its start time, before it starts: lanes, reviewers, measurements. -->
+<!-- Every agent that runs now, with its start time, written before it starts: lanes, reviewers, measurements. A
+     finished one leaves this list. -->
 
-- <date time>: <agent>, <model>, <what>.
+- <date time>: <agent>, <model>, <what>, worktree <path from the repository root>.
+
+## Next
+
+<!-- The next steps in order, enough to resume: which checklist item, which brief, which model, what it waits on. -->
+
+1. <step>
 
 ## Blockers and open questions
 
@@ -36,11 +33,3 @@
 ## Verify
 
 <!-- The commands that show where it stands, and when they were last green. -->
-
-## Findings by lane
-
-One row a merged lane: the model, the brief's items ticked, the review's and the look's findings by kind, who looked
-and at what.
-
-| Lane | Merged | Model | Items | Bug | Missing design | Look | Who looked | Notes |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
