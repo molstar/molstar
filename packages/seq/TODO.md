@@ -412,3 +412,17 @@ extension kinds.
   guard test holds it. Re-check at the author's width at the use gate.
 - **A legend issue in every ring story**: "The legend Chromosomes lists the hashed values painted in view" (info); a
   showcase should settle clean.
+
+## The Genomes dataset (GX, 2026-11-23)
+
+- **Two BGZF/TBI writers**: `examples/src/genomes/generate/bgzf.ts` nearly copies
+  `test-harness/src/genome/bgzf-writer.ts` (only the deflate differs). One shared writer taking a deflate function needs
+  a public export in `@molstar/io` or `@molstar/core`: the author's call.
+- **An indexed GFF draws transcripts only under 16 bp/px** (`gff-indexed.ts:186` serves density at any level above 1
+  unless items are asked): by design, but a transcripts row zoomed out shows density, not genes; say so or ask for
+  items.
+- **A gene already in the window reports waiting** (EC-229, GX's finding).
+- **`scripts/record.ts` (858) and `examples/src/views.ts` (887)** past 800 lines: split.
+- **The dot plot's square cells** are asserted only as "the box's shape" (the headless box 368×104).
+- **A 1-bp mark at a block's right edge is not hit** (`ranges.ts:484` or `:503`); the samples view moved its window to
+  avoid it.

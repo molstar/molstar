@@ -251,7 +251,7 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
 
 ### Stage 4: the dataset and the ring (beside each other)
 
-- [ ] **GX** (`briefs/gx-genomes-dataset.md`; strong, after stages 2 and 3) the Genomes dataset generated
+- [x] **GX** (merged 2026-11-23) (`briefs/gx-genomes-dataset.md`; strong, after stages 2 and 3) the Genomes dataset generated
       (`generateGenomes`, byte-identical, under the dataset bound) and its views (examples.md, Genomes), the four real
       slices recorded as pages (each fetch asked), stories and twins; the views' matrix cells.
 - [x] **RX** (merged 2026-11-23) (`briefs/rx-ring-extension.md`; strong, after RG and GC3; on EX and CN) `packages/seq/ext-rondo`: the

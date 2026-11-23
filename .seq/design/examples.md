@@ -453,6 +453,17 @@ reference line, whole genome by chromosome, LD colouring, a coarse bin keeping i
 217, 219), **many signals from one file** (`split` on values, EC-214), and **transcripts coloured by joined results**
 (the keyed join, EC-224; RR's `rows` shape is its data). Their generator steps go with them.
 
+**Built** (GX, merged 2026-11-23): all ten views (synteny, dot plot, signal, samples and the genotype matrix,
+methylation and the gene heatmap, transcripts, by name, names aliased, the contact map, the liftover); the ring views
+are RX's. Moved from the table as written: the bedGraph covers toy A only (B's `1` joins A's `chr1` by the `chr` rule);
+methylation wide only (no records pivot to a matrix exists); the Hi-C generated over toy A, not binned from the ring's
+links; no plain GFF/GTF beside the bgzipped ones (size); grids and methylation as MessagePack `seq` files; a new
+2,000-site VCF (`generated-genotypes.vcf` and `generated-genes.bed` folded in unchanged); the alias table a
+coverage-only `seq` file; the liftover map with a coarse level (16,384) so a bridge draws it; the contact map on the
+`ramp` palette, log, zeros clear; the signal's rows open (down to zero, by the open domain's rule), one-sided from 20,
+and log. The generator uses `+ − × ÷` only (no `Math` transcendental, no `**`), so its bytes hold across engines;
+the dataset 1.86 MB of 2 MB.
+
 ##### The generator: outline
 
 `packages/seq/examples/src/genomes/` (modules under 800 lines, §module-size), one `generateGenomes(options)` returning
