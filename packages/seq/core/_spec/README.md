@@ -15,8 +15,8 @@ is added in the change that builds what it describes.
 
 ## Versions
 
-- The language has one version, `SeqLanguageVersion` (`0.10.0`). Why: one language, one description, one number for readers
-  to check.
+- The language has one version, `SeqLanguageVersion` (`0.10.0`). Why: one language, one description, one number for
+  readers to check.
 - **Pre-release** (`0.x`): a change to the language moves the version with no migration (`0.1.0`: every child of the
   spec has an id, `layer` included; `0.2.0`: the `refs` container and the `ref` kind; `0.3.0`: the `snapshots` container
   and the `snapshot` kind; `0.4.0`: a section's `direction`, `pieces`, `collapsed`, `pad` and a layer's `complement`,
@@ -373,10 +373,11 @@ never chemistry: a component code, a SMILES, a GlyTouCan id are strings it match
   descriptor's: a reader without the extension knows nothing of it.
 - **Params**: an extension's type takes plain params beside the built-in ones (`layer`'s `extensionParam` is `type`:
   `repr` keeps them unchecked; so does a given `fallback`, `fallbackParam`, for a newer built-in's params); on another's
-  node an extension's param is a key in its namespace (`'rondo:bundle'`), carried on any kind. Both are checked only
-  where the extension is composed (`SeqExtension.check`). Why: a reader without the extension keeps them, so a spec
-  prints, patches and diffs the same with and without it.
-- **The spec's `extensions`**: a map of id to the least version written for (`{ rondo: '1.2' }`), written by the builder
+  node an extension's param is a key in its namespace (`'<id>:<param>'`, e.g. a hypothetical `'rondo:label'` on a
+  `bands` layer; no shipped extension writes one yet: `rondo`'s `bundle` is a plain param of its own `rondo:ribbons`),
+  carried on any kind. Both are checked only where the extension is composed (`SeqExtension.check`). Why: a reader
+  without the extension keeps them, so a spec prints, patches and diffs the same with and without it.
+- **The spec's `extensions`**: a map of id to the least version written for (`{ rondo: '0.1' }`), written by the builder
   for the extensions it is given (`createSeqSpec({ extensions })`, at `major.minor`); read by the resolved view (Layer
   kinds).
 - The language check leaves an extension's layer's data to the resolved view (`seq.view.layer.shape`): what the type
