@@ -97,3 +97,23 @@ should be fixed when it can be a setting or an extension.
 - The Storybook's Extensibility page shows a small extension end to end (a layer type, a theme, a command and a
   binding) and a composed viewer's configuration.
 - The docs and the agent skill list every setting and extension point from their descriptions.
+
+## In the specs
+
+| Decision | Where |
+|---|---|
+| What can be configured, is: one typed configuration set at composition | viewer › Configuration |
+| `ParamDefinition`s, user settings layered over the configuration, a generated settings form | design-only: a plan (later), not built |
+| What is configurable (the first list) | viewer › Configuration |
+| Configurable does not mean inconsistent: one configuration for every view | viewer › Configuration |
+| Extension points: formats, layer types, layouts, schemes, query forms and properties | core › Extensions |
+| Extension points: commands, behaviors, bindings, header actions | viewer › Extensions |
+| Extension points: node kinds, custom fields under `custom`, map runtimes, numbering schemes, codon tables, backends, a structure port | design-only: the design's first reach, not built (its As built note) |
+| Internal until an outside user (chrome parts) | viewer › Extensions |
+| An extension is registry entries; nothing registers on import, no global registry | core › Context |
+| Built-ins use the same points | core › No built-in table a renderer falls back to |
+| Extension kinds namespaced, with a fallback | core › Names |
+| Fields an extension owns are carried by readers that do not know them | core › Params |
+| Registration atomic, counted and undoable; never resolved by order | core › Registry entries |
+| Card providers | viewer › Providers |
+| A fixed registration order; registration on import | design-only: rejected alternatives |

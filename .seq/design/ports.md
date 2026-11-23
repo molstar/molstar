@@ -54,3 +54,21 @@ format, a map runtime, a backend) is a registry entry. Each has a default, so th
 - The core's dependencies stay `@molstar/core` plus its allowlist ([packages.md](packages.md)); an adapter that needs a
   platform or a library lives with the adapter.
 - The Storybook's Extensibility page lists the ports and the registry kinds with their defaults.
+
+## In the specs
+
+| Decision | Where |
+|---|---|
+| The rule: one per viewer and outside-facing a port; several by name a registry entry | viewer › A port or a registry entry |
+| The assets and text metrics ports and their defaults | core › Ports |
+| The viewer's default adapters | viewer › Ports |
+| The header menu and parts ports | viewer › Header menu and Header parts |
+| The hover card port | viewer › Hover card |
+| A UI port a behavior owns lives on that behavior | viewer › Supplied, never imported |
+| Data adapters are registry entries by format | core › Data adapters, one a format |
+| Not ports: a structure viewer, time and frames, archives, clipboard and links | viewer › A port or a registry entry |
+| Archives as functions over the assets port | core › Archives |
+| Compute (a worker pool) | design-only: a plan for when a profile asks |
+| Suites only where a second adapter exists (assets, text metrics) | core › assets |
+| The asset manager reused; the policy wraps it | core › The asset policy |
+| Range reads as an extension of the asset manager | design-only: a proposed public API change of `@molstar/core` (base library) |

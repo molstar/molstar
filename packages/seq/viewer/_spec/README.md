@@ -694,6 +694,15 @@ selection moves (`viewer-selection.ts`) and the frame (`viewer-frame.ts`).
 own manager with `disposeWithViewer: false`). Text metrics: a canvas where there is a DOM (`browserTextMetrics`, the
 same CSS fonts the backend draws with), else the core's bundled table.
 
+- **A port or a registry entry**: what is one per viewer and reaches outside it is a port, a factory with ownership;
+  what there are several of, looked up by name (formats, layer types, schemes, pictures, header and card entries), is a
+  registry entry; nothing is both. A UI port a behavior owns is that behavior's param (the hover card, the header menu
+  and parts), so a viewer without the behavior carries no adapter. Not ports: time and frames (`DomHost`, which the UI
+  runtime reads directly: a per-viewer host would diverge from its scheduling), a structure viewer (Structure link),
+  archives (functions over the assets port, core's Archives), the clipboard and links (commands over the platform, a
+  port only once a host needs a second implementation). Why: a port has one adapter a viewer and a lifetime to own; a
+  name lookup needs neither.
+
 ### Animation
 
 `ports/animation.ts`: Seq* owns no clock; the application does (the history port's twin). `SeqViewerSpec.animation` is a
