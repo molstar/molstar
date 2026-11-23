@@ -51,11 +51,11 @@ export interface PartnerChromosome {
 /**
  * A stem's partners by chromosome (_spec/README.md, The stem menu): a row a partner chromosome by its links, most
  * first (ties by the assembly's order), each its pieces by count; the stem's own chromosome last ("within"), its pieces
- * the ribbons to its other stems and, with links inside the stem, the stem itself. At most `max` partner rows and `max`
- * pieces a row (the within row besides): bounded however many stems a ring has. The stem menu lists them; the partner
- * keys walk their pieces in this order.
+ * the ribbons to its other stems and, with links inside the stem, the stem itself. Every partner (as many as the
+ * ribbons laid out, `rondo.maxRibbons` at most): the stem menu caps what it lists and puts the rest under "n more"; the
+ * partner keys walk every piece in this order.
  */
-export function partnerChromosomes(lay: RondoLay, stem: number, max = 8): PartnerChromosome[] {
+export function partnerChromosomes(lay: RondoLay, stem: number): PartnerChromosome[] {
   const own = lay.stemSystem[stem];
   const bySystem = new Map<number, Partner[]>();
   for (const p of partnersOf(lay, stem)) {
@@ -76,12 +76,11 @@ export function partnerChromosomes(lay: RondoLay, stem: number, max = 8): Partne
   for (const [system, pieces] of bySystem) {
     let links = 0;
     for (const p of pieces) links += p.links;
-    const row = { system, links, within: system === own, pieces: pieces.slice(0, max) };
+    const row = { system, links, within: system === own, pieces };
     if (row.within) mine = row;
     else rows.push(row);
   }
   rows.sort((a, b) => b.links - a.links || a.system - b.system);
-  if (rows.length > max) rows.length = max;
   if (mine) rows.push(mine);
   return rows;
 }

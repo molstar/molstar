@@ -329,11 +329,14 @@ offered as a partner, and the track's actions in it (close-out, the novice quest
   an element entry for its element at the cursor (`HeaderEntry.atCursor`) before the cursor's header. Why: the menu
   existed only pre-opened in its story, and Shift+F10 opened the track's menu (item 29, checked on the code).
 - **Partners by chromosome**: "Show with a partner ▸" lists a row a partner chromosome with its links in all, most
-  first (at most 8). A chromosome reached by more than one ribbon gets a submenu of its pieces (at most 8), a piece
+  first. A chromosome reached by more than one ribbon gets a submenu of its pieces, a piece
   being a partner stem and a strand (a stem is one bin of the stem level on one system: one contiguous run, so a band
   range names it, checked on `RondoLay`): "q31.1–q34.2 · 379 links", "p13.3 · 2 links, reversed"; the first and last
   cytoband the section draws over the stem's range, else its span in bases. Each row and piece shows the pair, as a
   row did. Why: "chr9 · 375 links", "chr9 · 65 links" said nothing of what parted them (novice 8, 26).
+- **The cap is the menu's**: a level lists at most 8 rows; past them a last row "n more" opens the rest, same rows,
+  same order, so every partner the keys reach the pointer reaches too (the review: a card said "91 links to 21
+  chromosomes" and the menu listed 8).
 - **Links within**: the stem's own chromosome is never a partner: "Within chr22 · 229 links", listed last, its pieces
   the ribbons to its other stems and the stem's own links within itself ("this stem"); it shows the chromosome alone.
 - **Only the stem's actions**: the menu holds what acts on the stem ("Show with a partner", "Select the stem and its

@@ -7,7 +7,7 @@
 import { rangesLocation } from '@molstar/seqx-core/extension';
 import type { HeaderElementAt, HeaderFacts, HeaderSubEntry, SeqViewer } from '@molstar/seqx-viewer';
 import { Kind, type RondoLay } from './lay.js';
-import { laysOf, type Partner, partnerChromosomes, partnersOf } from './partners.js';
+import { laysOf, type Partner, type PartnerChromosome, partnerChromosomes, partnersOf } from './partners.js';
 import { links, spanText } from './words.js';
 
 // The stem menu's chunk (_spec/README.md, The viewer, The stem menu): what its entries (`StemMenu`, `viewer.ts`) read,
@@ -140,20 +140,40 @@ export function partnerItems(f: HeaderFacts): HeaderSubEntry[] {
   const { lay, stem } = s;
   const v = f.viewer;
   const address = lay.prep?.opens ?? lay.section;
-  return partnerChromosomes(lay, stem, MenuPartners).map((c) => {
-    const args = { address, include: pairNames(lay, lay.stemSystem[stem], c.system) };
+  const rows = partnerChromosomes(lay, stem);
+  // the stem's own chromosome stays last, past the cap
+  const within = rows.at(-1)?.within ? rows.pop() : undefined;
+  const row = (c: PartnerChromosome): HeaderSubEntry => {
     const name = lay.names[c.system];
+    const args = { address, include: pairNames(lay, lay.stemSystem[stem], c.system) };
     const one = c.pieces.length === 1 ? c.pieces[0] : undefined;
     const reversed = one && one.strand < 0 ? ', reversed' : '';
+    const pieces = c.pieces.map((p) => ({ label: pieceLabel(v, lay, stem, p), command: 'section.include', args }));
     return {
       label: `${c.within ? `Within ${name}` : name} · ${links(c.links)}${reversed}`,
       command: 'section.include',
       args,
-      ...(one
-        ? {}
-        : { items: c.pieces.map((p) => ({ label: pieceLabel(v, lay, stem, p), command: 'section.include', args })) }),
+      ...(one ? {} : { items: capped(pieces) }),
     };
-  });
+  };
+  const out = capped(rows.map(row));
+  if (within) out.push(row(within));
+  return out;
+}
+
+/**
+ * A menu's rows, at most `max` (`MenuPartners`): past it the first `max` and a last row "n more" whose submenu holds the
+ * rest in the same order (capped the same way), so every partner is reachable by the pointer too. Its command is its
+ * first row's (a click on a row with a submenu opens it).
+ */
+export function capped(rows: HeaderSubEntry[], max = MenuPartners): HeaderSubEntry[] {
+  if (rows.length <= max) return rows;
+  const rest = rows.slice(max);
+  const { command, args } = rest[0];
+  return [
+    ...rows.slice(0, max),
+    { label: `${rest.length.toLocaleString('en-US')} more`, command, args, items: capped(rest, max) },
+  ];
 }
 
 /** "Show only chr4": its stem's chromosome alone, in the section the layer opens (else its own). */

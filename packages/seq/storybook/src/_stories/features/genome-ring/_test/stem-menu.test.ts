@@ -8,6 +8,7 @@ import { loadGenome } from '@molstar/seqx-core/resolve';
 import type { RondoLay } from '@molstar/seqx-ext-rondo';
 import { partnerChromosomes, partnersOf, rondoViewer } from '@molstar/seqx-ext-rondo/viewer';
 import { Announcer } from '@molstar/seqx-viewer/announcer';
+import type { HeaderMenuItem } from '@molstar/seqx-viewer';
 import type { HeadersBehavior } from '@molstar/seqx-viewer/behaviors/headers';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -84,7 +85,13 @@ describe('The stem menu', () => {
     const partners = partnersOf(l, stem);
     const rows = partnerChromosomes(l, stem);
     const items = element[0].items!;
-    expect(items.length).toBe(rows.length);
+    // the menu caps at 8 rows: "n more" holds the rest, in order, so every partner is reachable
+    const shown = (xs: readonly HeaderMenuItem[]): string[] =>
+      xs.flatMap((x) => (x.items && / more$/.test(x.label) ? shown(x.items) : [x.label.split(' · ')[0]]));
+    expect(rows.length).toBeGreaterThan(9);
+    expect(items.length).toBeLessThanOrEqual(10);
+    expect(items[8].label).toMatch(/^\d+ more$/);
+    expect(shown(items).map((t) => t.replace(/^Within /, ''))).toEqual(rows.map((c) => l.names[c.system]));
     const name = l.names[l.stemSystem[stem]];
     const first = l.names[rows[0].system];
     expect(items[0].label).toMatch(new RegExp(`^${first} · [\\d,]+ links`));
@@ -170,11 +177,20 @@ describe('The stem menu’s partners, by chromosome (Kinds of links)', () => {
     expect(within.items!.some((i) => /, this stem$/.test(i.label))).toBe(true);
     expect(within.args).toMatchObject({ include: ['chr22'] });
     // a chromosome reached by one ribbon is a plain row (no submenu)
-    for (const r of rows) if (!r.items) expect(r.label).toMatch(/^chr\w+ · [\d,]+ links?(, reversed)?$/);
+    for (const r of rows) if (!r.items) expect(r.label).toMatch(/^(chr\w+ · [\d,]+ links?(, reversed)?|\d+ more)$/);
+    // the translocations' chr22 stem: chr9 a plain row, reversed
+    const tx = kindsOf(v)[1];
+    const txStem = Array.from({ length: tx.ns }, (_, k) => k).find(
+      (k) => tx.stemPlaced[k] && tx.names[tx.stemSystem[k]] === 'chr22' && tx.stemPoly[k] >= 0,
+    )!;
+    const txRows = partnerRowsOf(headers, tx, txStem);
+    expect(txRows.map((r) => [r.label, !!r.items])).toEqual([['chr9 · 24 links, reversed', false]]);
   });
 
-  it('the translocations’ chr22 stem: chr9 a plain row, reversed', async () => {
-    viewer = await openExample(ringStoryView('ring-kinds'), {
+  it('on a crowded ring the menu lists at most 8 rows a level, “n more” the rest, within besides', {
+    tags: ['medium'],
+  }, async () => {
+    viewer = await openExample(ringStoryView('ring-crowded'), {
       delayMs: 0,
       wait: 3000,
       fixtures: true,
@@ -183,38 +199,24 @@ describe('The stem menu’s partners, by chromosome (Kinds of links)', () => {
     const v = viewer;
     const headers = v.behavior<HeadersBehavior>('headers')!;
     await headers.loaded();
-    const tx = kindsOf(v)[1];
-    const stem = Array.from({ length: tx.ns }, (_, s) => s).find(
-      (s) => tx.stemPlaced[s] && tx.names[tx.stemSystem[s]] === 'chr22' && tx.stemPoly[s] >= 0,
-    )!;
-    const rows = partnerRowsOf(headers, tx, stem);
-    expect(rows.map((r) => [r.label, !!r.items])).toEqual([['chr9 · 24 links, reversed', false]]);
-  });
-
-  it('bounded on a crowded ring: at most 8 partner rows and 8 pieces a row, the within row besides', async () => {
-    viewer = await openExample(ringStoryView('ring-crowded'), {
-      delayMs: 0,
-      wait: 3000,
-      fixtures: true,
-      extensions: [rondoViewer],
-    });
-    const l = ribbonsOf(viewer)!;
+    const l = ribbonsOf(v)!;
     let most = 0;
     for (let s = 0; s < l.ns; s++) {
-      if (!l.stemPlaced[s]) continue;
-      const rows = partnerChromosomes(l, s);
-      most = Math.max(most, partnersOf(l, s).length);
-      expect(rows.filter((r) => !r.within).length).toBeLessThanOrEqual(8);
-      expect(rows.filter((r) => r.within).length).toBeLessThanOrEqual(1);
-      for (const r of rows) expect(r.pieces.length).toBeLessThanOrEqual(8);
+      if (!l.stemPlaced[s] || l.stemPoly[s] < 0) continue;
+      most = Math.max(most, partnerChromosomes(l, s).length);
+      const level = (xs: readonly HeaderMenuItem[]) => {
+        expect(xs.length).toBeLessThanOrEqual(10);
+        for (const x of xs) if (x.items) level(x.items);
+      };
+      level(partnerRowsOf(headers, l, s));
     }
-    // the bound bites: a stem there has more partners than the menu lists
-    expect(most).toBeGreaterThan(8);
+    // the cap bites: a stem there has more partner chromosomes than a level lists
+    expect(most).toBeGreaterThan(9);
   });
 });
 
 describe('The partner keys', () => {
-  it('`.` and `,` walk the stem menu’s partners in its order (the menu and the keys read one list), said', async () => {
+  it('`.` and `,` walk every partner in the stem menu’s order, past its 8 rows (the menu and the keys read one list), said', async () => {
     const { v, headers } = await open();
     const announcer = new Announcer(v, { minGapMs: 0, restMs: 0 });
     const said: string[] = [];
@@ -224,9 +226,11 @@ describe('The partner keys', () => {
     // the menu's rows and their pieces, in order: the keys' steps
     const rows = partnerRowsOf(headers, l, stem);
     const steps = partnerChromosomes(l, stem).flatMap((c) => c.pieces.filter((p) => p.stem !== stem));
-    expect(rows.map((r) => r.label.split(' · ')[0].replace(/^Within /, ''))).toEqual(
-      partnerChromosomes(l, stem).map((c) => l.names[c.system]),
-    );
+    const flat = (xs: readonly HeaderMenuItem[]): string[] =>
+      xs.flatMap((x) =>
+        x.items && / more$/.test(x.label) ? flat(x.items) : [x.label.split(' · ')[0].replace(/^Within /, '')],
+      );
+    expect(flat(rows)).toEqual(partnerChromosomes(l, stem).map((c) => l.names[c.system]));
     v.selection.setCursor({ section: l.section, system: l.systems[l.stemSystem[stem]], position: l.stemStart[stem] });
     const partners = steps;
     expect(v.input.key({ key: '.' })).toBe(true);
@@ -238,6 +242,15 @@ describe('The partner keys', () => {
     expect(v.selection.cursor.value?.system).toBe(at(1 % partners.length));
     expect(v.input.key({ key: ',' })).toBe(true);
     expect(v.selection.cursor.value?.system).toBe(at(0));
+    // the keys walk every partner, past the menu's 8 rows: each step in turn, then round to the first
+    expect(partners.length).toBeGreaterThan(8);
+    for (let k = 1; k < partners.length; k++) {
+      v.input.key({ key: '.' });
+      const c = v.selection.cursor.value!;
+      expect([c.system, c.position]).toEqual([at(k), l.stemStart[partners[k].stem]]);
+    }
+    v.input.key({ key: '.' });
+    expect(v.selection.cursor.value?.position).toBe(l.stemStart[partners[0].stem]);
     // the keys are listed with their commands
     const keys = v.commands.filter((c) => c.id.startsWith('rondo:partner')).map((c) => c.shortcut?.key);
     expect(keys).toEqual(['.', ',']);
