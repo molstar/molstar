@@ -5,11 +5,13 @@ for it. A spec says what data there is (sequences, alignments, annotations, the 
 (sections of tracks of layers); data placed on one coordinate system shows on every system it maps to. This folder is a
 new implementation, built on `@molstar/core/reactive` and `@molstar/ui`.
 
-| Package                           | What                                                                                                                                                                            |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `core` (`@molstar/seqx-core`)     | the language, the coordinate model, the source protocol and data store, queries, the resolve passes, draw lists, the SVG and recording backends ([_spec](core/_spec/README.md)) |
-| `viewer` (`@molstar/seqx-viewer`) | DOM-free models, the Canvas2D backend, the default UI ([_spec](viewer/_spec/README.md))                                                                                         |
-| `storybook` (private)             | the docs pages and the examples, shown under `Seq* (next)` in the repository's Storybook                                                                                        |
+| Package                                 | What                                                                                                                                                                            |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `core` (`@molstar/seqx-core`)           | the language, the coordinate model, the source protocol and data store, queries, the resolve passes, draw lists, the SVG and recording backends ([_spec](core/_spec/README.md)) |
+| `viewer` (`@molstar/seqx-viewer`)       | DOM-free models, the Canvas2D backend, the default UI ([_spec](viewer/_spec/README.md))                                                                                         |
+| `ext-rondo` (`@molstar/seqx-ext-rondo`) | the genome ring, an extension on the public surface: an application-level composition of the library's parts ([_spec](ext-rondo/_spec/README.md))                               |
+| `examples` (`@molstar/seqx-examples`)   | the example views as builder modules, their fixtures and generators ([_spec](examples/_spec/README.md))                                                                         |
+| `storybook` (private)                   | the docs pages and the examples, shown under `Seq* (next)` in the repository's Storybook                                                                                        |
 
 - **Names**: `seqx` is temporary; the packages become `@molstar/seq-*` when they replace the current Seq\* packages.
 - **The spec** of each package is its `_spec/`: what, never how; code comments cite its sections. Where code and spec

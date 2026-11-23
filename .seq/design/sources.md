@@ -65,3 +65,20 @@ format, the store's keys and request planning across maps.
   against fixtures without the network.
 - A runtime lands with its synthetic twin: a source of the same protocol whose answers are delayed on an injectable
   clock, which its stories and tests use ([testing.md](testing.md), How tests are written).
+
+## In the specs
+
+| Decision | Where |
+|---|---|
+| A source names its data in the data's terms: `format`, `uri` and `index`, an inline `value`, the transform | core › A source's transform |
+| One protocol the model and the viewer read: coverage, then a region at a level as typed tables, inline data the same path | core › Protocol |
+| Answers carry nodes as well as tables, identified by (source, key) | core › Protocol |
+| Runtimes bind to resolved sources, never to the spec node; a format with no runtime is unavailable with an issue | core › Systems, sources, annotations |
+| A runtime per format, a host's adapter replacing the default; the core ships the protocol, `seq` and the small text formats, genome formats are opt-in entries | core › Protocol |
+| No whole-data manifest: an open domain follows the data in view | core › Scales |
+| No whole-data manifest: an unlisted category takes a colour by a stable hash | core › Themes |
+| The protocol's types | design-only: settled in the protocol design, whose rows place them |
+| Rejected alternatives (opaque stream ids, a protocol per format) | design-only: rejected alternatives |
+| The model's annotation shapes are the protocol's answer shapes | core › Protocol |
+| One conformance suite for every runtime, with no network | core › Protocol |
+| A runtime lands with its synthetic twin on an injectable clock | core › Asynchronous sources |
