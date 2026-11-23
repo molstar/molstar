@@ -1,0 +1,105 @@
+import { Canvas, Meta } from '@storybook/addon-docs/blocks';
+import { SeqLanguageVersion } from '@molstar/seqx-core/lang';
+import * as Live from './live.stories';
+
+<Meta title="Docs/The language" />
+
+# The language: SeqViewSpec
+
+A spec is one tree. Each node has a `kind`, an `id`, `params` and `children`. It is stored and exchanged as JSON, it
+prints as a compact S-expression, and it can be packed as MessagePack. One description of the language (its kinds, their
+parents, their params and their docs) drives validation, defaults, the builder's types and the reference. Nothing is
+written twice.
+
+## Its levels
+
+```
+spec
+├── data        sources, sequences, alignments, trees, molecules and complexes, assemblies,
+│               numberings, maps, annotations (ranges, values, pairs, grid, matrix)
+├── views       views → sections → tracks → layers; navigators; tooltips
+├── refs        names for addresses: bookmarks, regions, sets
+└── snapshots   a story's steps: patches over the spec, or full states
+```
+
+A small spec writes `data` and `views` only. Data nodes refer to each other by address, in any order, and views refer to
+the data they draw.
+
+**What is not in the spec:** the session. The view shown, the viewport, the hover, the selection and the cursor belong
+to the viewer's models. A spec names a view state on purpose only through a ref or a snapshot.
+
+## The builder
+
+Most specs are written with the typed builder, `createSeqSpec` from `@molstar/seqx-core/lang`. Every call that adds a
+node returns its **address**, typed by its kind. You pass that handle wherever a reference is wanted, and passing a
+handle of the wrong kind is a type error. `build()` gives the normalized tree, and `check()` gives its issues.
+
+<Canvas of={Live.ASmallSpec} />
+
+The tree `build()` returns is what a host sends without the builder: an application or an agent may write the JSON
+directly. [Features › Builder](?path=/story/seq-next-features-builder--first-view) has more:
+[handles](?path=/story/seq-next-features-builder--handles-and-references),
+[themes](?path=/story/seq-next-features-builder--layers-and-themes),
+[a genome](?path=/story/seq-next-features-builder--a-genome-view),
+[`check()`](?path=/story/seq-next-features-builder--check) and
+[tooltips](?path=/story/seq-next-features-builder--tooltips).
+
+## Checks and issues
+
+`check()` runs in gates, each reading what the one before settled:
+
+1. **Bounds**: size, depth and columns, before any work. A spec from a URL, a link or an agent is untrusted.
+2. **Version**: a newer major is refused alone.
+3. **Description**: types, required params, defaults.
+4. **The language's checks**: that a reference names a node of a kind it takes, that ranges fit their sequence, that
+   letters belong to their alphabet, and so on.
+
+Each issue has:
+
+- a stable code (`seq.lang.ref.target`);
+- a severity;
+- the path of the node, and a hint.
+
+A spec with errors in one place still opens everywhere else.
+
+## Edits are patches
+
+A change to a spec is a **patch**: insert, remove, move or set, by address. Ids make every node addressable, so hiding a
+layer is a one-key patch. A patch is checked against what it changed, never refused for an error that was already there.
+In the viewer, each edit is one undo step (see [Interaction](?path=/docs/seq-next-docs-interaction--docs)). A story's
+steps are stored patches too, applied over whatever the spec is now, so a story written once still works after later
+edits.
+
+## Versions
+
+The language has one version, currently <code>{SeqLanguageVersion}</code>. It is pre-release (`0.x`): a change to the
+language moves the version, with no migration. A spec from an earlier `0.x` reads as one of this version and is reported
+where it no longer fits. A spec of a newer major version is refused with `seq.lang.version.unsupported` alone, since
+this reader cannot know what it means.
+
+## What a reader without an extension draws
+
+Names from an extension are namespaced, `<id>:<name>`: a layer type `rondo:ribbons`, a layout, a navigator's picture
+(`rondo:square`). An extension's layer type takes its own params plainly beside the built-in ones (`bundle` on a
+`rondo:ribbons` layer); on another kind's node, the language takes a param as a key in the extension's namespace
+(`'<id>:<param>'`). A spec lists the extensions it was written for, with the least version of each, as `major.minor`
+(`extensions: { rondo: '0.1' }`: the ring is at 0.1.0). An extension's layer says what to draw without it, with its
+`fallback`, a built-in type such as `pairs`, or `none`.
+
+A reader that lacks the extension:
+
+- **opens the spec**: nothing is refused for an unknown type;
+- **draws each layer's fallback** and says so once, with the version the spec needs;
+- **keeps the extension's params**, unchecked, so the spec prints, patches and diffs the same with or without it.
+
+The genome ring [with](?path=/story/seq-next-features-genome-ring--the-genome-at-the-fit) and
+[without](?path=/story/seq-next-features-genome-ring--without-the-extension) its extension is one spec in two readers.
+
+## Where next
+
+- [Data](?path=/docs/seq-next-docs-data--docs): what a source is, and how data arrives.
+- [Features › Archives](?path=/story/seq-next-features-archives--plasmid-saved): a spec with its data files, saved as
+  one zip.
+- For contributors: [Design › Format](?path=/docs/seq-next-design-format--docs),
+  [Design › Streaming and patches](?path=/docs/seq-next-design-streaming-and-patches--docs) and
+  [Design › Extension openings](?path=/docs/seq-next-design-extension-openings--docs).
