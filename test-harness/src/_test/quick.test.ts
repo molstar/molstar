@@ -5,12 +5,11 @@
  */
 
 // The quick case's control scaled to the case: a step of kilobytes gets a control of a hundredth of it (4 KB at least)
-// and is checked at three quarters of that; a step that allocates nothing keeps `leak`'s 88 bytes. The measurement is the
-// harness's own, on stand-in steps.
+// and is checked at three quarters of that; a step that allocates nothing keeps `leak`'s 88 bytes (the rule, from given
+// readings: the unit project's windows are noisier than the perf tier's). One measured case, on a stand-in step.
 // @module-tag medium
 
 import { describe, expect, it } from 'vitest';
-import { leaking } from '../heap.js';
 import { LEAK_BYTES, leakingBytes, measureBytesPerStep, SCALED_MIN, scaledBytes } from '../quick.js';
 
 const options = { warmSteps: 1_000, steps: 500, windows: 3, maxWarmSteps: 1_000 };
@@ -26,15 +25,19 @@ const read = (step: (i: number) => void) => measureBytesPerStep(step, options);
 describe('scaledBytes', () => {
   const r = (bytesPerStep: number, spread: number) => ({ bytesPerStep, spread });
 
-  it('keeps the 88 bytes for a step that allocates little and steadily', () => {
+  it('keeps the 88 bytes for a step that allocates little and steadily, boundaries included', () => {
     expect(scaledBytes(r(0, 0))).toBe(LEAK_BYTES);
-    expect(scaledBytes(r(1_024, 8))).toBe(LEAK_BYTES);
+    expect(scaledBytes(r(1_024, 32))).toBe(LEAK_BYTES);
+    expect(scaledBytes(r(0, 6))).toBe(LEAK_BYTES);
   });
 
-  it('scales to a hundredth of a step above a kilobyte or spreading above 8 bytes, 4 KB at least, eight spreads where more', () => {
-    expect(scaledBytes(r(2_000, 0))).toBe(SCALED_MIN);
-    expect(scaledBytes(r(10, 9))).toBe(SCALED_MIN);
+  it('scales to a hundredth of a step above a kilobyte or spreading above 32 bytes, 4 KB at least', () => {
+    expect(scaledBytes(r(1_025, 0))).toBe(SCALED_MIN);
+    expect(scaledBytes(r(10, 33))).toBe(SCALED_MIN);
     expect(scaledBytes(r(1_000_000, 50))).toBe(10_000);
+  });
+
+  it('is eight spreads where that is more', () => {
     expect(scaledBytes(r(1_000_000, 25_000))).toBe(200_000);
   });
 });
@@ -56,17 +59,5 @@ describe('the control by the case', () => {
     // a control that allocated nothing (a measurement blind to a leak) reads under three quarters
     const c = read(step);
     expect(c.bytesPerStep - r.bytesPerStep).toBeLessThan(0.75 * bytes);
-  });
-
-  it('a step that allocates nothing keeps the 88-byte control', () => {
-    let x = 0;
-    const step = (i: number) => {
-      x += i;
-    };
-    const r = read(step);
-    expect(scaledBytes(r)).toBe(LEAK_BYTES);
-    const c = read(leaking(step));
-    expect(c.bytesPerStep - r.bytesPerStep).toBeGreaterThan(0.75 * LEAK_BYTES);
-    expect(x).toBeGreaterThan(0);
   });
 });

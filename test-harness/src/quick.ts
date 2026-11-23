@@ -60,8 +60,11 @@ export const LEAK_BYTES = 88;
 
 /** A case reading above this (bytes a step) has its control scaled (`scaledBytes`). */
 export const SCALED_ABOVE = 1_024;
-/** So has a case whose windows spread above this (bytes a step). */
-export const SPREAD_ABOVE = 8;
+/**
+ * So has a case whose windows spread above this (bytes a step): half of what the 88-byte control must clear (66). The
+ * quiet cases of the seq perf runs spread by 6 B at most (2026-11-23, under load).
+ */
+export const SPREAD_ABOVE = 32;
 /** A scaled control is at least this many bytes. */
 export const SCALED_MIN = 4_096;
 
