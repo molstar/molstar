@@ -8,10 +8,11 @@ import type { ToyAssembly } from './assemblies.js';
 import { NGap } from './assemblies.js';
 import { Concern, decimal, stream } from './streams.js';
 
-// Step 4 of the Genomes generator (examples.md, Genomes; EC-215): one bedGraph over both toy genomes, 100 bp bins, a
-// TPM-like value from 0 to 10^4 (smooth waves in log space plus noise, so a linear scale shows a few peaks and a log
+// Step 4 of the Genomes generator (examples.md, Genomes; EC-215): one bedGraph over toy A, 100 bp bins, a
+// TPM-like value from 0.1 to 10^4 (smooth waves in log space plus noise, so a linear scale shows a few peaks and a log
 // scale the rest), and stretches with no line (missing values: chr1's run of N, and 10 kb of A's chr2). Sorted by
-// sequence, then start: what tabix indexes.
+// sequence, then start: what tabix indexes. Why not over toy B too (the design's "both toy genomes"): B's `1` is A's
+// `chr1` by the names rule's `chr` prefix, so one file naming both would join their values onto one sequence.
 
 /** The signal's bin (positions a line). */
 export const SignalBin = 100;
@@ -44,7 +45,8 @@ export function bedGraph(assemblies: readonly ToyAssembly[], seed: number): stri
           1.1 * Math.sin((2 * Math.PI * start) / 37_000 + phase) +
           0.9 * Math.sin((2 * Math.PI * start) / 9_100 + 2 * phase) ** 7 +
           0.35 * (rng.float() - 0.5);
-        const v = Math.min(SignalMax, Math.max(0, 10 ** Math.max(0, w) - 1));
+        // at least 0.1: a log scale reads every value (a zero would be missing there)
+        const v = Math.min(SignalMax, Math.max(0.1, 10 ** Math.max(0, w) - 1));
         out += `${s.name}\t${start}\t${end}\t${decimal(v, 1)}\n`;
       }
     }

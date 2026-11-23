@@ -68,7 +68,7 @@ export const GenomesProvenance: Readonly<Record<Described, { readonly entry: str
     derived: `written as tabix writes it over the bgzipped GTF ${From}`,
   },
   signal: {
-    entry: 'a TPM-like signal over toy A and toy B as a bedGraph of 100 bp bins (0 to 10^4), bgzipped',
+    entry: 'a TPM-like signal over toy A as a bedGraph of 100 bp bins (0 to 10^4), bgzipped',
     derived: `waves in log space and noise, no line over chr1’s run of N and 10 kb of chr2 (missing values) ${From}`,
   },
   signalIndex: {

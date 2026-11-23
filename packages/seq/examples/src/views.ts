@@ -15,6 +15,7 @@ import * as codingDna from './coordinates/coding-dna.js';
 import * as complexBlocks from './complex/blocks.js';
 import * as navigators from './navigators.js';
 import { GenomeFormatsViews } from './genomes/views.js';
+import { GenomesViews } from './genomes/dataset.js';
 import * as complexConfidence from './complex/confidence.js';
 import * as complexGrid from './complex/complex-grid.js';
 import * as complexLigands from './complex/ligands.js';
@@ -55,7 +56,7 @@ import * as tables from './files/tables.js';
 // The examples' views by dataset: what a dataset's index lists and a test walks (the genome formats' in
 // `genomes/views.ts`).
 
-export { GenomeFormatsViews };
+export { GenomeFormatsViews, GenomesViews };
 
 export interface ExampleView {
   readonly dataset: string;
@@ -882,4 +883,5 @@ export const ExampleViews: readonly ExampleView[] = [
   ...TrnaViews,
   ...MoleculeViews,
   ...GenomeFormatsViews,
+  ...GenomesViews,
 ];

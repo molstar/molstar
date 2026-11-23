@@ -15,6 +15,7 @@ import { GeneCount } from '../genomes/generate/genes.js';
 import { EstimatedBytes, GenomesFiles, generateGenomes } from '../genomes/generate/index.js';
 import { CpgCount, MissingShare, MethylationSamples } from '../genomes/generate/methylation.js';
 import { DeletionExtent, deletionSnvPositions, SampleCount, SiteCount } from '../genomes/generate/variants.js';
+import { ToyBSequences } from '../genomes/toys.js';
 import { PackageFolder } from '../node-assets.js';
 
 // The Genomes dataset's generator (examples.md, Genomes): its output byte-identical to the committed fixtures (by
@@ -74,7 +75,7 @@ describe('the Genomes dataset’s facts (anchors)', () => {
   it('toy A and toy B: A prefixed with chrM and the HLA contig, B unprefixed, the letters A’s lengths and N in chr1’s gap', async () => {
     const { truth } = await generated;
     expect(truth.a.sequences.map((s) => s.name)).toEqual(['chr1', 'chr2', 'chr3', 'chrM', HlaName]);
-    expect(truth.alignment.b.sequences.map((s) => s.name)).toEqual(['1', '2', '3', 'MT']);
+    expect(truth.alignment.b.sequences).toEqual(ToyBSequences);
     for (const s of truth.a.sequences) expect(truth.lettersA.get(s.name)!.length).toBe(s.length);
     expect(truth.lettersA.get('chr1')!.slice(NGap[0], NGap[1])).toBe('N'.repeat(NGap[1] - NGap[0]));
     // B's 2 holds A's chr2 and A's chr3 tail: about 260 kb (the small indels move it a little)
@@ -139,7 +140,7 @@ describe('the Genomes dataset’s facts (anchors)', () => {
     const starts = lines.map((l) => Number(l.split('\t')[1]));
     expect(starts.filter((s) => s >= NGap[0] && s < NGap[1])).toEqual([]);
     expect(starts.length).toBe(20);
-    const b = await region(GenomesFiles.signal, GenomesFiles.signalIndex, '1', 0, 300_000);
+    const b = await region(GenomesFiles.signal, GenomesFiles.signalIndex, 'chr1', 0, 300_000);
     const values = b.map((l) => Number(l.split('\t')[3]));
     expect(Math.min(...values)).toBeGreaterThanOrEqual(0);
     expect(Math.max(...values)).toBeLessThanOrEqual(10_000);

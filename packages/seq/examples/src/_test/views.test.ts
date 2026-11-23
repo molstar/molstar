@@ -77,6 +77,8 @@ const Known: Readonly<Record<string, readonly string[]>> = {
     'seq.source.genbank.length',
     'seq.source.genbank.record',
   ],
+  // a mark written `MT` on toy A, whose chrM has no such alias: refused, never guessed (the story's point, EC-189)
+  'genomes/names': ['seq.resolve.assembly.name'],
   // ClinVar's chr17 at the fit: more tiles than a view reads, the "zoom in" state (the story's point)
   'genomes/vcf-zoom-in': ['seq.store.too_many_tiles', 'seq.render.zoom_in', 'seq.render.reach'],
 };
@@ -104,7 +106,12 @@ describe.each(ExampleViews.map((v) => [`${v.dataset}/${v.id}`, v] as const))('%s
     expect(ctx.check(spec)).toEqual([]);
     // resolved before any source opens: rows across the origin of a sequence read from a file wait for its length
     // (said, and only of a system read from a source); resolved again once the files are open, with no issue
-    const model = ctx.resolve(spec);
+    let model = ctx.resolve(spec);
+    // a view whose chunks load on demand (the genome's, a bridge's) is resolved again once they have landed
+    if (model.loading) {
+      await model.loading;
+      model = ctx.resolve(spec);
+    }
     const systemOf = (address = '') => model.annotations.get(address)?.target ?? model.maps.get(address)?.to;
     const fromSource = (address?: string) => model.systems.get(systemOf(address) ?? '')?.source !== undefined;
     expect(model.issues.filter((i) => i.code !== 'seq.resolve.length.unknown' || !fromSource(i.address))).toEqual([]);
@@ -117,7 +124,7 @@ describe.each(ExampleViews.map((v) => [`${v.dataset}/${v.id}`, v] as const))('%s
       assets: ctx.assets,
       model,
     });
-    expect(opened.model.issues).toEqual([]);
+    expect(unexpected(opened.model.issues)).toEqual([]);
     expect(unexpected(opened.issues)).toEqual([]);
     ctx.retire();
   });

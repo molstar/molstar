@@ -17,6 +17,7 @@ export {
   FeatureViews,
   FilesViews,
   GenomeFormatsViews,
+  GenomesViews,
   TableFiles,
   GlobinsViews,
   LayerViews,

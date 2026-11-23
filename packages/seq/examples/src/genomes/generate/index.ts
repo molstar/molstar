@@ -58,8 +58,8 @@ export const GenomesFiles = {
   gff3Index: 'fixtures/genomes/toy-a.genes.gff3.gz.tbi',
   gtf: 'fixtures/genomes/toy-a.genes.gtf.gz',
   gtfIndex: 'fixtures/genomes/toy-a.genes.gtf.gz.tbi',
-  signal: 'fixtures/genomes/toy.signal.bedgraph.gz',
-  signalIndex: 'fixtures/genomes/toy.signal.bedgraph.gz.tbi',
+  signal: 'fixtures/genomes/toy-a.signal.bedgraph.gz',
+  signalIndex: 'fixtures/genomes/toy-a.signal.bedgraph.gz.tbi',
   vcf: 'fixtures/genomes/toy-a.variants.vcf.gz',
   vcfIndex: 'fixtures/genomes/toy-a.variants.vcf.gz.tbi',
   methylation: 'fixtures/genomes/toy-a.methylation.seq.msgpack',
@@ -148,8 +148,8 @@ export async function generateGenomes(options: GenomesOptions = {}): Promise<Gen
   put('gtf', gtf.file);
   put('gtfIndex', gtf.index);
   const signal = await indexed(
-    bedGraph([a, b], seed),
-    { format: 0, zeroBased: true, meta: '#', columns: [1, 2, 3], names: names(a, b) },
+    bedGraph([a], seed),
+    { format: 0, zeroBased: true, meta: '#', columns: [1, 2, 3], names: names(a) },
     bedExtent,
   );
   put('signal', signal.file);

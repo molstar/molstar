@@ -272,8 +272,8 @@
     "sha256Fixture": "713238ecc6cc275ddd769fc9830359a19000b5cddfa4394f6debfece6ee970a2"
   },
   {
-    "file": "genomes/toy.signal.bedgraph.gz",
-    "entry": "a TPM-like signal over toy A and toy B as a bedGraph of 100 bp bins (0 to 10^4), bgzipped",
+    "file": "genomes/toy-a.signal.bedgraph.gz",
+    "entry": "a TPM-like signal over toy A as a bedGraph of 100 bp bins (0 to 10^4), bgzipped",
     "url": "none",
     "recorded": "2026-11-23",
     "licence": [
@@ -283,12 +283,12 @@
     "trimmed": "none",
     "derived": "waves in log space and noise, no line over chr1’s run of N and 10 kb of chr2 (missing values) (src/genomes/generate/, seeded on core’s PCG and hash3, a stream per seed, concern and index)",
     "bytesDownloaded": 0,
-    "bytesFixture": 78273,
+    "bytesFixture": 39256,
     "sha256Download": "",
-    "sha256Fixture": "15778c11818e38dd0725c408175286d3cd416469a89960029f5b6f11faef2439"
+    "sha256Fixture": "c0646ab330b13fdedbd949f50e1a387ffdcb80c1e3b8a3bb0b181fc2ba89b727"
   },
   {
-    "file": "genomes/toy.signal.bedgraph.gz.tbi",
+    "file": "genomes/toy-a.signal.bedgraph.gz.tbi",
     "entry": "the bedGraph’s tabix index (TBI)",
     "url": "none",
     "recorded": "2026-11-23",
@@ -299,9 +299,9 @@
     "trimmed": "none",
     "derived": "written as tabix writes it over the bgzipped bedGraph (src/genomes/generate/, seeded on core’s PCG and hash3, a stream per seed, concern and index)",
     "bytesDownloaded": 0,
-    "bytesFixture": 1254,
+    "bytesFixture": 727,
     "sha256Download": "",
-    "sha256Fixture": "5f197a041fb088321c69961887f1cc309f516e265d13a2e088db2ec26676b063"
+    "sha256Fixture": "cb34c46626e7abb8f1e8890ca40c1e3679e746f8934276aac39ddf8fa9aca774"
   },
   {
     "file": "genomes/toy-a.variants.vcf.gz",
