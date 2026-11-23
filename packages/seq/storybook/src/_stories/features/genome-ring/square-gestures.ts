@@ -87,9 +87,10 @@ export async function squareDragged(viewer: SeqViewer): Promise<void> {
   await viewer.execute('section.include', { address: RingSection, include: ['chr4', 'chr5', 'chr6'] });
   viewer.draw();
   const n = squareOf(viewer);
-  const body = gripPoint(n, 'body');
+  // pressed on the run's middle cell (chr5 × chr5, in its body) and dragged to chr8 × chr8: three on along both axes
+  const body = cellPoint(viewer, n, 'chr5', 'chr5');
   const to = cellPoint(viewer, n, 'chr8', 'chr8');
-  if (body) dragSquare(n, body, to);
+  dragSquare(n, body, to);
   viewer.draw();
 }
 
