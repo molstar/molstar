@@ -987,7 +987,7 @@ export const SeqLanguage = defineLanguage({
         center: {
           type: 'string',
           enum: ['title', 'none'],
-          doc: 'Rings: what the hole holds: the system’s name and length (`title`) or nothing (`none`, for what a layer draws there); the render config’s `rings.center` when absent.',
+          doc: 'Rings: the hole’s title (`title`) or nothing (`none`: a layer draws there).',
         },
         arrange: {
           type: 'string',
