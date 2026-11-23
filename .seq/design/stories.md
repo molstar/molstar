@@ -123,6 +123,32 @@ is that you can store it as a patch when it makes sense."
 the viewer's one item, `view.motion` (`platform`: animate unless the platform asks for reduced motion; `cut`;
 `animate`), read by jumps and stories alike (decided, 2026-11-19: one item, `story.reducedMotion` dropped).
 
+## In the specs
+
+| Decision | Where |
+|---|---|
+| The `snapshots` container; a step's id, label, content, view and timing | core › Story steps |
+| A step is a patch or a full state, the writer's choice; converted by `diff` and `applyPatch` | core › Story steps |
+| Keyframes and deltas; `story.maxChain`; the encoder (`story.store`) | core › The encoder |
+| States in memory share subtrees; sampled frames never stored | core › Sampling |
+| A step's state (`stateOf`), cached by revision and step; `from` chains, a cycle an issue | core › A step's state |
+| A step's view is part of its state | core › Story steps |
+| Refs in a patch step follow renames and moves | core › Its addresses are refs of the spec |
+| A patch step that no longer applies: the ops that still do, flagged | core › A patch that no longer applies whole |
+| Entering a step is navigation; edits patch the base; a full-state step refuses edits | viewer › Story steps |
+| A mode and command for editing a step's own content | design-only: not built |
+| `plan(from, to)`: plain data, channels and their kinds and rules | core › A plan |
+| Data does not animate; a channel waiting on data says so | core › A plan |
+| Reduced motion makes every channel a cut at the end (`view.motion`) | core › A plan |
+| `sample(plan, t)`: pure, deterministic, allocation-free warm | core › Sampling |
+| A frame is shown in the frame slot, never committed | viewer › The frame slot |
+| The animation port: the application drives, or Seq\* asks | viewer › Animation |
+| Adapters: the default on the page's frames, a headless fake clock | viewer › Adapters |
+| Timing is data on the step | core › Story steps |
+| Playing a step in the viewer (`playStep`) | viewer › Stories |
+| Export: a story rendered to frames headlessly, the render CLI's video | design-only: not built (the headless clock is there; no CLI output) |
+| The configuration items | viewer › Configuration |
+
 ## Tensions
 
 - **Full states vs small storage**: a patch over the spec repeats what an earlier step changed, and a full state

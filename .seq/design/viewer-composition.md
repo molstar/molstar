@@ -127,3 +127,28 @@ interface SeqViewerSpec {
   default spec, and a spec bound to a Mol\* plugin's ports.
 - A conformance test composes a viewer from the default spec and from an empty one, and checks registration is atomic,
   counted and undone on retire.
+
+## In the specs
+
+| Decision | Where |
+|---|---|
+| The spec's fields (registry, behaviors, bindings, config, ports, ui) | viewer › Composition |
+| Registry entries are pure data, keyed by name, the kinds | core › Registry entries |
+| Layer types and layouts are registry entries; tracks the one fixed fallback | core › The tracks layout is the one fixed fallback |
+| An export of a spec with errors draws what resolves, the errors in `<desc>`; past the bounds blank | core › Export |
+| Ports are factories with ownership (`disposeWithViewer`); a manager or a bare reader | core › Ports |
+| The viewer's default port adapters | viewer › Ports |
+| Keys matched against the commands' shortcuts until a command manager | viewer › Keys |
+| `theme.source` (`root`, `config`; headless reads the config) | viewer › Tokens |
+| `rested` and a signal named for the picture follows every cause | viewer › A signal named for the picture |
+| Behaviors: a provider and its params, after the registry; run-time registration and its undo | viewer › Extensions |
+| Config items as `[item, value]` pairs | viewer › Configuration |
+| Config items described with `ParamDefinition`, user settings, a settings form | design-only: not built (the defaults are a plain object; the form comes later) |
+| `createSeqViewer(spec, target?)` and its order; headless without a target | viewer › Composition |
+| Registration atomic, counted, undoable | core › Registry entries |
+| Defaults are a spec (`DefaultSeqViewerSpec`) | viewer › Composition |
+| Injected, opt in; lazy chunks | viewer › Injected, opt in |
+| Headless without a viewer (`createSeqContext`) | core › Context |
+| Disposal (`retire`) | viewer › Retire |
+| Inside a Mol\* plugin: a plugin behavior building the spec from the plugin's adapters | design-only: not built (no Mol\* plugin behavior yet) |
+| `linkStructure` beside the composition, a library not a port | viewer › Structure link |

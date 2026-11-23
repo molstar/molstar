@@ -694,6 +694,16 @@ selection moves (`viewer-selection.ts`) and the frame (`viewer-frame.ts`).
 own manager with `disposeWithViewer: false`). Text metrics: a canvas where there is a DOM (`browserTextMetrics`, the
 same CSS fonts the backend draws with), else the core's bundled table.
 
+- **A port or a registry entry**: what is one per viewer and reaches outside it is a port, a factory with ownership;
+  what there are several of, looked up by name (formats, layer types, schemes, pictures, header and card entries), is a
+  registry entry; nothing is both. A UI port a behavior owns is that behavior's param (the hover card, the header menu
+  and parts), and so is a behavior's write to the platform (the clipboard: the `select` behavior's `write`, a
+  `CopyWrite`, `clipboardWrite` by default), so a viewer without the behavior carries no adapter. The application's
+  clock is a port (Animation); the frame scheduling under it is not: `DomHost`, which the UI runtime reads directly (a
+  per-viewer host would diverge from its scheduling). Not ports either: a structure viewer (Structure link), archives
+  (functions over the assets port, core's Archives), links (commands over addresses). Why: a port has one adapter a
+  viewer and a lifetime to own; a name lookup needs neither.
+
 ### Animation
 
 `ports/animation.ts`: Seq* owns no clock; the application does (the history port's twin). `SeqViewerSpec.animation` is a
@@ -897,7 +907,9 @@ the passes.
   so a value that is no hex or `rgb()` is resolved by the browser through a probe element's `color`. A token the CSS
   does not define falls back to the built-in table of the theme the root shows (`data-msui-theme` on the nearest
   ancestor or the document element, `light` by default; a theme whose `color-scheme` is dark takes the dark table). Why
-  not the config's theme: a host's theme switch is CSS, and the viewer must follow it without being told.
+  not the config's theme: a host's theme switch is CSS, and the viewer must follow it without being told. That is
+  `theme.source: root` (the default); `config` reads the core's `theme` item instead, and so does a headless viewer
+  always (it has no root). Why the choice: a host that sets the theme in its spec wants no CSS to override it.
 - **A theme switch**: a `MutationObserver` on `data-msui-theme` of the document element and of the nearest ancestor that
   has it reads the table again; `viewer.setTokens` keeps the current one when its version is equal (no redraw, no new
   layout key), else the renderer's tokens change, the base canvas is redrawn and `tokensVersion` moves (the SVG beside

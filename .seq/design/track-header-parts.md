@@ -410,6 +410,50 @@ Items are `ViewerConfig` unless the table says otherwise.
 | a slot's and a chip's hit targets | fixed: `header-slot`, `header-state`, `section-header` | the bindings name them | — |
 | entries' functions | fixed: pure over `HeaderFacts`, once a layout | no DOM, no per-frame work | — |
 
+## In the specs
+
+| Decision | Where |
+|---|---|
+| A track's header and a section's header, drawn by the layout's chrome by default | core › Track headers |
+| A header entry: a `header-action` registry entry, namespaced, its fields; an extension's `headerActions` | viewer › Entries |
+| `HeaderFacts`: plain data, functions pure over them, run once a layout | viewer › `HeaderFacts` |
+| Shown (`when`) against enabled (the command's `when`) | viewer › Shown or enabled |
+| Label and icon default to the command's; registration atomic, counted, a conflict one error | viewer › Entries |
+| A command whose one param is a select is a submenu | viewer › Entries |
+| The built-in entries | viewer › Built-ins |
+| `seq:color` a slot (slot 2) | design-only: not built as designed (drift note): built menu only |
+| `seq:pending` | design-only: not built (the package's TODO) |
+| A host adds, replaces or removes entries | viewer › Built-ins |
+| The line's fixed slots, the "⋯", chips before the action columns | core › Parts given, geometry laid out |
+| Actions show on hover of the header (not its data); states always drawn; the chip clears in minimal | core › Track headers |
+| Slot assignment by `order` then name; every entry in the menu | viewer › Slots |
+| Short tracks and a narrow column draw states as marks | core › Track headers |
+| Layouts: tracks, text, grid, blocks, rings, a rows track's title row | core › Where |
+| Icons as paths, read once; a lazy chunk; the label's first letter as fallback | viewer › Slots |
+| One set of entries, two renderings; the parts port; `headerPartsDom()` shipped | viewer › The parts |
+| Keyboard with DOM parts (one tab stop, Tab never captured) | viewer › The parts |
+| Export draws the canvas's chips in both renderings; slots never; `header.states.export` | core › Drawn |
+| Hidden tracks are the application's: nothing drawn, `viewer.hiddenTracks`, `track.show`, `mountHiddenTracks` | viewer › Hidden tracks |
+| The section's line (`section.header: auto`) | core › The section's line |
+| A section whose tracks are all hidden collapses | core › A collapsed section |
+| A count chip undoes its state in one patch; its menu lists each | viewer › Shown or enabled |
+| `track.show` and `layer.show` take several addresses | viewer › Commands |
+| `headers` owns the slots' gestures, the menu, the geometry; the menu port | viewer › Header menu and Header parts |
+| The menu's data and groups; submenus as flyouts | viewer › The menu |
+| Opened by "⋯", a secondary click (`contextClick`), the menu key; Shift+secondary the browser's | viewer › Gestures |
+| Hits: `header-slot`, `header-state`, `header-label`, `section-header`; never selection or navigation | viewer › Targets |
+| The keyboard cursor reaches headers | viewer › The cursor on track headers |
+| Said: one description for the live region and the card | viewer › Words |
+| After a hide by keyboard the cursor moves on | viewer › The cursor off what was hidden |
+| Touch: a tap shows the slots, a long press opens the menu | viewer › Gestures |
+| Keyboard in the menu is `@molstar/ui`'s; closed, the focus back to the canvas | viewer › The menu |
+| A header hover lights none of the track's items (EC-146) | viewer › Words |
+| Element actions in the menu, not the card (`on: 'element'` entries, the menu opened on the element) | viewer › Gestures |
+| `viewer.headers`, the geometry, published on change | viewer › Published on change |
+| A widget's slot (`kind: 'widget'`) | design-only: planned, not built (the author's "later") |
+| The built-ins are patches, one undo step each | viewer › Commands |
+| The configuration items | core › Configuration |
+
 ## Tensions
 
 - **Drawn slots against DOM buttons.** Decided: both, drawn by default. Drawn slots are not focusable, so under

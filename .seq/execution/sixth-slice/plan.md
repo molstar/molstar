@@ -51,7 +51,7 @@ A next scaffold starts as `.scaffolds/<name>/` from `_method/`, its manifest lis
       commit. A check that no "oz" is left outside that line.
 - [ ] **Stage 3: move** with `git mv` (history kept): the layout above. Rewrite every path that names `.seq/`: the
       instance's links, the checks, the skill, `packages/seq/AGENTS.md`'s one pointer, `biome.json`,
-      `.prettierignore`, `.gitignore`. Confirm nothing in code cites `.seq/` (the rule; `cli/seqx-render` and
+      `.prettierignore`, `.gitignore`; and the five tests in `packages/seq/core` whose header comment cites `.seq/sources/seqstar/edge-cases.md` (found 2026-11-23: the citation goes, the `EC-<n>` id stays). Confirm nothing in code cites `.seq/` (the rule; `cli/seqx-render` and
       `cli/structure-info` match `.seq` in their text: check that it is a file extension, not a link).
 - [ ] **Stage 4: the method**: templates in `_method/` from the fifth slice's files (loop with its fold-back, brief,
       state, plan, fixes, record), the generic checks taking the instance as an argument; `.scaffolds/AGENTS.md`.
