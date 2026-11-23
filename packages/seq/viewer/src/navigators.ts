@@ -6,10 +6,10 @@
 
 import { type NavigatorExport, NavigatorSvgExport } from '@molstar/seqx-core/render/navigator-export';
 import type { Node } from '@molstar/core/repr/tree';
-import { isSquareNavigator } from '@molstar/seqx-core/render/navigator-square-load';
+import { isSquareNavigator } from '@molstar/seqx-core/render/navigator-square-kind';
 import { withViewKind } from '@molstar/seqx-core/resolve';
 import type { ResolvedNavigator, ResolvedView } from '@molstar/seqx-core/view';
-import { loadSquare, type NavigatorDef, NavigatorModel, squareLoaded } from './navigator.js';
+import { loadSquare, type NavigatorDef, NavigatorModel, SquareDoor, squareLoaded } from './navigator.js';
 import type { SeqViewer } from './viewer.js';
 
 // The viewer's navigators part (_spec/README.md "Composition", Navigators): their models and their part of an SVG
@@ -39,6 +39,7 @@ function maySquare(navigators: Node): boolean {
 
 // a model of a spec whose view may show a square waits for the square's chunk (core's "Resolve", Lazy kinds), so a
 // declared square is drawn at its first frame; a host's square (`viewer.navigator(def)`) waits in `settle`
+SquareDoor.load = () => import('./square-chunk.js');
 withViewKind('navigators', loadSquare, maySquare);
 
 /** The viewer's navigators: what the default spec lists. */

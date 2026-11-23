@@ -3532,49 +3532,50 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
 - **The square** (`render/navigator-square.ts`, `SquareNavigator`, `isSquareNavigator`: a navigator over blocks with
   `axes: both` bound to two sections of blocks, or one section on both axes, `of: [s, s]`): its lattice the assembly's
   blocks on both axes (after the assembly's `include`, never a section's; no `system`: the first bound section's `of`),
-  **lazy** (`navigator-square-load.ts`: `isSquareNavigator`, `loadSquareNavigator`, `SquareChunk`, `squareDue`): the
-  square, its cells, its set and its lattice are one chunk, loaded the first time a view shows a square (`exportSvg`
-  waits for it; a renderer is a type guard's `square`, never `instanceof`). Why: a composition whose views have no
-  square pays nothing for one (about 16 kB); proportional to their display units (a cell as long as its chromosomes),
-  each block's name above its column and left of its row where it fits (along x without the names' shared prefix where
-  the column is narrow: `7`), a line at each block's edge; the cells a bound section does not show washed (`seq-wash`)
-  by runs (`washRuns`: a column run of blocks the x section leaves out, a row run the y section leaves out over each run
-  of shown columns; no cell twice, at most as many rectangles as cells), the rest plain. Past
-  `navigator.square.maxCells` block pairs (4,096) neither lattice nor wash is drawn, said once
-  (`seq.render.navigator.square`): never n² rectangles. The base (background, wash, lattice, names) is drawn once a size
-  and tokens; a window move redraws the window pass alone (`rebuilt: false`). The window the first section's range along
-  x and the second's along y as one rectangle (one section on both axes: on the diagonal); its title names its ends as
-  places (`chr3: 1–198,295,559 of GRCh38`). A hit names the cell's two blocks and systems (`block`, `yBlock`, `system`,
-  `ySystem`), its part `outside` off the window's rectangle; `pairAt` gives the hull of the cell's two blocks on a bound
-  section (what a double-click fits), `cellAt` the cell, `sectionUnitAtY` a second section's unit along y. **What region
-  reads add** (RG, stage 3): the cells' content: for pairs, the pairs level's coarsest tiles read by block (one want a
-  block), summed into one image of block × block cells and reduced to its pixels by the shared reduction; for a grid
-  source, its coarsest 2D tiles by block pair (the upper triangle when symmetric), at most `maxCells` wants, past it the
-  whole-assembly level; until then the square is the lattice and what static data gives. Not built: its grips and drags
-  per axis. **Over a set** (`setMode`: one section on both axes with `navigator.switch: include`, a ring's square): the
-  window is the blocks the section shows, not its axis's hull on the lattice (a pair chr2, chr6 is not the box chr2 to
-  chr6): a contiguous run of lattice blocks one box on the diagonal (`run`, `shownRun`) with grips at its two diagonal
-  corners (`navigator.window.handlePx`), a scattered set each cell of two shown blocks outlined (each one's diagonal
-  cell and the cross cells; within `maxCells`), no grips (`navigator-square-set.ts`, `drawShownSet`); the axis's window
-  drawn too only where the view does not show the whole section (a followed ring's, EC-110). A hit's part is the run
-  box's grip (`gripAt`, `gripOf`: `body`, `start` the left or top edge or top-left corner, `end` the right or bottom or
-  bottom-right; an off-diagonal corner the nearer edge's; within `hitPx` / 2), else `outside`. `edgeAt`, `blockAtPoint`
-  snap a point to a lattice edge or block along x, y or the diagonal; `labelAt` the block whose name is under a point;
-  `setPreview(i0, i1)` draws a gesture's run instead of the shown one; `setKeyCell(i, j)` the keyboard's cell in the
-  accent, inset and rounded (a cursor, never read as the window). A drag frame allocates nothing (a gesture's point in
-  `pointer`, read by `blockAtPointer` and `edgeAtPointer`; the windows' placing kept while their section, units and the
-  lattice's box hold; the set's paint through an array). **A picture's cells** (`navigator-square-cells.ts`,
-  `SquarePictureCells`; the pictures' contract): when the navigator's `content` names a registered picture and the
-  square is given the store and the composition (`data`, `text`, `types`, `layouts`, `pictures`, `kinds`: the viewer's
-  and an export's), the picture's first track is laid out as a hidden section over the lattice's assembly (every block)
-  by a renderer of its own, and when its first layer's type has `square` (`LayerType.square`, `SquareCells`:
-  `draw(lay, out, lattice)`, `text(lay, i, j, lattice)`, `pending(lay)`; `SquareLattice` its blocks' systems and names,
-  `edge(k, horizontal)` and the tokens) its cells are drawn in the base pass under the wash and the lines, never bounded
-  by `maxCells`; `cellText(i, j)` is its words. The hidden section is laid out again only when the base is (a size, the
-  tokens), the store's settled state moves, or its cells still wait (`pending`): a window's move or a gesture's preview
-  lays out nothing. Its wants are the navigator's (a frame whose cells changed is `rebuilt`). Without a picture with
-  cells (the `axis`, a reader without the extension) the lattice alone. The base's key is numbers (its size, pixel ratio
-  and tokens), never a string a frame.
+  **lazy** (`navigator-square-load.ts`: `loadSquareNavigator`, `SquareChunk`, `squareDue`; `isSquareNavigator` in
+  `navigator-square-kind.ts`, no dynamic import, since one is a chunk of every bundle reaching its module): the square,
+  its cells, its set and its lattice are one chunk, loaded the first time a view shows a square (an export waits for
+  `NavigatorExport.ready`, `NavigatorSvgExport`'s the square's; a renderer is a type guard's `square`, never
+  `instanceof`). Why: a composition whose views have no square pays nothing for one (about 16 kB); proportional to their
+  display units (a cell as long as its chromosomes), each block's name above its column and left of its row where it
+  fits (along x without the names' shared prefix where the column is narrow: `7`), a line at each block's edge; the
+  cells a bound section does not show washed (`seq-wash`) by runs (`washRuns`: a column run of blocks the x section
+  leaves out, a row run the y section leaves out over each run of shown columns; no cell twice, at most as many
+  rectangles as cells), the rest plain. Past `navigator.square.maxCells` block pairs (4,096) neither lattice nor wash is
+  drawn, said once (`seq.render.navigator.square`): never n² rectangles. The base (background, wash, lattice, names) is
+  drawn once a size and tokens; a window move redraws the window pass alone (`rebuilt: false`). The window the first
+  section's range along x and the second's along y as one rectangle (one section on both axes: on the diagonal); its
+  title names its ends as places (`chr3: 1–198,295,559 of GRCh38`). A hit names the cell's two blocks and systems
+  (`block`, `yBlock`, `system`, `ySystem`), its part `outside` off the window's rectangle; `pairAt` gives the hull of
+  the cell's two blocks on a bound section (what a double-click fits), `cellAt` the cell, `sectionUnitAtY` a second
+  section's unit along y. **What region reads add** (RG, stage 3): the cells' content: for pairs, the pairs level's
+  coarsest tiles read by block (one want a block), summed into one image of block × block cells and reduced to its
+  pixels by the shared reduction; for a grid source, its coarsest 2D tiles by block pair (the upper triangle when
+  symmetric), at most `maxCells` wants, past it the whole-assembly level; until then the square is the lattice and what
+  static data gives. Not built: its grips and drags per axis. **Over a set** (`setMode`: one section on both axes with
+  `navigator.switch: include`, a ring's square): the window is the blocks the section shows, not its axis's hull on the
+  lattice (a pair chr2, chr6 is not the box chr2 to chr6): a contiguous run of lattice blocks one box on the diagonal
+  (`run`, `shownRun`) with grips at its two diagonal corners (`navigator.window.handlePx`), a scattered set each cell of
+  two shown blocks outlined (each one's diagonal cell and the cross cells; within `maxCells`), no grips
+  (`navigator-square-set.ts`, `drawShownSet`); the axis's window drawn too only where the view does not show the whole
+  section (a followed ring's, EC-110). A hit's part is the run box's grip (`gripAt`, `gripOf`: `body`, `start` the left
+  or top edge or top-left corner, `end` the right or bottom or bottom-right; an off-diagonal corner the nearer edge's;
+  within `hitPx` / 2), else `outside`. `edgeAt`, `blockAtPoint` snap a point to a lattice edge or block along x, y or
+  the diagonal; `labelAt` the block whose name is under a point; `setPreview(i0, i1)` draws a gesture's run instead of
+  the shown one; `setKeyCell(i, j)` the keyboard's cell in the accent, inset and rounded (a cursor, never read as the
+  window). A drag frame allocates nothing (a gesture's point in `pointer`, read by `blockAtPointer` and `edgeAtPointer`;
+  the windows' placing kept while their section, units and the lattice's box hold; the set's paint through an array).
+  **A picture's cells** (`navigator-square-cells.ts`, `SquarePictureCells`; the pictures' contract): when the
+  navigator's `content` names a registered picture and the square is given the store and the composition (`data`,
+  `text`, `types`, `layouts`, `pictures`, `kinds`: the viewer's and an export's), the picture's first track is laid out
+  as a hidden section over the lattice's assembly (every block) by a renderer of its own, and when its first layer's
+  type has `square` (`LayerType.square`, `SquareCells`: `draw(lay, out, lattice)`, `text(lay, i, j, lattice)`,
+  `pending(lay)`; `SquareLattice` its blocks' systems and names, `edge(k, horizontal)` and the tokens) its cells are
+  drawn in the base pass under the wash and the lines, never bounded by `maxCells`; `cellText(i, j)` is its words. The
+  hidden section is laid out again only when the base is (a size, the tokens), the store's settled state moves, or its
+  cells still wait (`pending`): a window's move or a gesture's preview lays out nothing. Its wants are the navigator's
+  (a frame whose cells changed is `rebuilt`). Without a picture with cells (the `axis`, a reader without the extension)
+  the lattice alone. The base's key is numbers (its size, pixel ratio and tokens), never a string a frame.
 - **The window stays the navigator's**, whatever the picture: its geometry, floor, parts, gestures, keys, idle rule,
   zoom strip and announcements. A host that draws its own navigator keeps them through the viewer's `NavigatorModel`.
 - **The picture**: a navigator lays its system whole out (the fit window, in the bound section's display order;

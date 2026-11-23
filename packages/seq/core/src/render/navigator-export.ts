@@ -17,7 +17,7 @@ import {
   windowText,
 } from './navigator.js';
 import type { SquareNavigator } from './navigator-square.js';
-import { isSquareNavigator, SquareChunk } from './navigator-square-load.js';
+import { isSquareNavigator, loadSquareNavigator, SquareChunk, squareDue } from './navigator-square-load.js';
 import { drawListsToSvg, escapeXml, type SvgOptions } from './svg.js';
 import type { ViewLayout } from './tracks.js';
 
@@ -51,11 +51,20 @@ export interface ExportedNavigators {
   ): string;
 }
 
-/** Makes an export's navigators: the view's shown ones. */
-export type NavigatorExport = (input: NavigatorExportInput) => ExportedNavigators;
+/**
+ * Makes an export's navigators: the view's shown ones; `ready`, what their drawing waits for first (a lazy chunk a
+ * view needs), awaited by `exportSvg` before it makes them.
+ */
+export type NavigatorExport = ((input: NavigatorExportInput) => ExportedNavigators) & {
+  readonly ready?: (view: NavigatorExportInput['view']) => Promise<unknown> | undefined;
+};
 
-/** The core's navigators of an export: outlines and wash, the windows' text as titles. */
-export const NavigatorSvgExport: NavigatorExport = (input) => {
+/** The core's navigators of an export: outlines and wash, the windows' text as titles; a square's chunk first. */
+export const NavigatorSvgExport: NavigatorExport = Object.assign((input: NavigatorExportInput) => navigatorsOf(input), {
+  ready: (view: NavigatorExportInput['view']) => (squareDue(view) ? loadSquareNavigator() : undefined),
+});
+
+function navigatorsOf(input: NavigatorExportInput): ExportedNavigators {
   const { dpr, cvdSafe, overlay, ...options } = input;
   // a square (two axes over blocks × blocks) draws its lattice, from its chunk (`exportSvg` waits for it); the rest
   // their pictures
@@ -98,7 +107,7 @@ export const NavigatorSvgExport: NavigatorExport = (input) => {
     issues: () => navs.flatMap((n) => n.allIssues),
     wrap: (view, lists, model, frames, svg) => withNavigators(options.pictures, view, lists, model, navs, frames, svg),
   };
-};
+}
 
 /**
  * The view's SVG with its navigators stacked by `place` around it (top and bottom across its width, left and right

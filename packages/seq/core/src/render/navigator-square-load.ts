@@ -4,7 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { ResolvedNavigator, ResolvedView } from '@molstar/seqx-core/view';
+import type { ResolvedView } from '@molstar/seqx-core/view';
+import { isSquareNavigator } from './navigator-square-kind.js';
 
 // The square's door (_spec/README.md "Render", Navigators, The square: lazy): `navigator-square.ts` and what it imports
 // (its cells, its set, its lattice) load the first time a view shows a square (an export waits for it, a viewer's
@@ -13,11 +14,7 @@ import type { ResolvedNavigator, ResolvedView } from '@molstar/seqx-core/view';
 
 type SquareModule = typeof import('./navigator-square.js');
 
-/** Whether a navigator is a square: two axes over blocks, bound to two sections of blocks (or one section twice). */
-export function isSquareNavigator(nav: ResolvedNavigator, view: ResolvedView): boolean {
-  if (!nav.blocks || nav.axes !== 'both' || nav.of.length !== 2) return false;
-  return nav.of.every((a) => view.sections.find((s) => s.address === a)?.blocks?.length);
-}
+export { isSquareNavigator };
 
 /** The square's chunk once landed (`loadSquareNavigator`). */
 export const SquareChunk: { module?: SquareModule } = {};

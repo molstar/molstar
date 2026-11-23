@@ -36,7 +36,7 @@ export type { SquareGrip, SquareGripAxis, SquareGripHit, SquareRun } from './nav
 // sections show plain and the rest washed, the window the x and y windows as one rectangle. What the cells hold (pairs
 // by block, a grid's tiles by block pair) is region reads': the picture here is the lattice and what static data gives.
 
-export { isSquareNavigator } from './navigator-square-load.js';
+export { isSquareNavigator } from './navigator-square-kind.js';
 
 /** A cell of the square: its x and y blocks (indices in the lattice), their systems. */
 export interface SquareCell {

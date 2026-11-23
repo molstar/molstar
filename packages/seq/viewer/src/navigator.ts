@@ -18,7 +18,7 @@ import {
   windowText,
 } from '@molstar/seqx-core/render/navigator';
 import type { SquareNavigator } from '@molstar/seqx-core/render/navigator-square';
-import { isSquareNavigator } from '@molstar/seqx-core/render/navigator-square-load';
+import { isSquareNavigator } from '@molstar/seqx-core/render/navigator-square-kind';
 import {
   axisTotal,
   type ResolvedNavigator,
@@ -59,17 +59,28 @@ import type { SeqViewer } from './viewer.js';
  */
 export const ReadoutLinePx = 16;
 
-/** The square's chunk (`square-chunk.ts`: core's square, the set's gestures) once landed. */
-let Square: typeof import('./square-chunk.js') | undefined;
+/** The square's chunk (`square-chunk.ts`: core's square, the set's gestures). */
+type SquareModule = typeof import('./square-chunk.js');
+
+/**
+ * The square's door: how its chunk loads, set by the navigators part (`navigators.ts`), never imported here (a dynamic
+ * import is a chunk of every bundle that reaches its module, the minimal viewer's too). Why lazy: a viewer whose views
+ * have no square pays nothing for one (_spec/README.md "Composition", Navigators, The square).
+ */
+export const SquareDoor: { load?: () => Promise<SquareModule> } = {};
+
+/** The square's chunk once landed. */
+let Square: SquareModule | undefined;
 let squareLoading: Promise<void> | undefined;
 
 /**
  * Loads the square's chunk (once; a failed load is tried again by the next ask): a view showing a square waits for it
- * (the navigators part's `loaded`, `settle`), a host's square draws once it landed. Why lazy: a viewer whose views have
- * no square pays nothing for one (_spec/README.md "Composition", Navigators, The square).
+ * (resolve's lazy kinds, the navigators part's `loaded`), a host's square draws once it landed.
  */
 export function loadSquare(): Promise<void> {
-  squareLoading ??= import('./square-chunk.js').then(
+  const load = SquareDoor.load;
+  if (!load) return Promise.reject(new Error('No square here: the navigators part is not composed'));
+  squareLoading ??= load().then(
     (m) => {
       Square = m;
     },
