@@ -316,6 +316,7 @@ offered as a partner, and the track's actions in it (close-out, the novice quest
 |---|---|
 | Right-click a stem | the stem menu at the pointer |
 | Right-click the ring's empty space | the browser's menu |
+| Right-click a ribbon | the track's menu (Hide track, Reverse, Collapse): the ring has no header in view, so a ribbon is the pointer's route to the track's actions (the author, 2026-11-24: "ok with the right click") |
 | Focus a stem, Shift+F10 or the Menu key | the stem menu at the stem |
 | Hover or Right arrow on a chromosome with pieces | its submenu |
 | Click a partner (or a piece) | shows the pair, one history step |

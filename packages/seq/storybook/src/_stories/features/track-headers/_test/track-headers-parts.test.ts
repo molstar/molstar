@@ -60,6 +60,51 @@ describe('the story’s DOM parts', () => {
     port.dispose?.();
   });
 
+  it('a pressed entry’s part is a button with aria-pressed that stays at rest, where the other slots go with the hover (F9)', async () => {
+    let on: string | undefined = '/views/main/protein/letters';
+    const entry = {
+      kind: 'header-action' as const,
+      entry: {
+        name: 'story-host:pressed',
+        on: 'track' as const,
+        icon: 'box' as const,
+        label: (f: { address: string }) => (f.address === on ? 'On: click to restore' : 'Turn on'),
+        command: 'track.hide',
+        when: (f: { address: string }) => f.address.endsWith('/letters') || f.address.endsWith('/domains'),
+        pressed: (f: { address: string }) => f.address === on,
+        order: 0,
+      },
+    };
+    const view = ExampleViews.find((v) => v.id === 'headers')!;
+    const v = (viewer = createSeqViewer({
+      ...headersSpec({ parts: 'dom', registry: [entry], labelWidth: 170 }),
+      ui: undefined,
+      history: uiHistory(),
+    }));
+    v.resize(1440);
+    await v.load(view.build());
+    await v.settle();
+    const container = document.createElement('div');
+    document.body.append(container);
+    const port = partsDomPort()(container, headersOf(v));
+    const part = (id: string) =>
+      container.querySelector<HTMLElement>(
+        `[role="group"][data-track="/views/main/protein/${id}"] [data-part="story-host:pressed"]`,
+      );
+    // no header shows its actions: the pressed one alone is drawn, pressed, its tooltip naming it
+    port.update(headersOf(v).partsState());
+    expect(part('letters')?.getAttribute('aria-pressed')).toBe('true');
+    expect(part('letters')?.dataset.tip).toBe('On: click to restore');
+    expect(part('domains')).toBeNull();
+    expect(container.querySelector('[data-part="seq:hide"]')).toBeNull();
+    // the source moves: one at a time
+    on = '/views/main/protein/domains';
+    port.update(headersOf(v).partsState());
+    expect(part('letters')).toBeNull();
+    expect(part('domains')?.getAttribute('aria-pressed')).toBe('true');
+    port.dispose?.();
+  });
+
   it('an update between pointerdown and click does not lose the click: the pressed button stays until the press ends', async () => {
     vi.useFakeTimers();
     try {

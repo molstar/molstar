@@ -50,6 +50,12 @@ export type Selectors = readonly ComponentExpressionT[];
 /** Cells within `RadiusCells` of a selected cell on its row are "within 5 Å" (the fake has no coordinates). */
 export const RadiusCells = 3;
 
+/**
+ * Where another chain touches the selected one (the fake has no coordinates): the cells of a polymer row whose index
+ * is in the first `RadiusCells` of each ten, a fixed interface in patches.
+ */
+const touches = (index: number) => index % 10 < RadiusCells;
+
 export class FakeStructureViewer {
   private _rows: readonly Row[];
   private _table: ChainTable;
@@ -65,6 +71,8 @@ export class FakeStructureViewer {
   /** What the host lit (apart from the hover: a host's `highlight(null)` never clears the pointer's). */
   readonly highlight = new State<readonly Span[]>([]);
   readonly selection = new State<readonly Span[]>([]);
+  /** What the last "within 5 Å" says in its card ("12 residues within 5 Å of chain A"); gone with the next selection. */
+  readonly note = new State<string | undefined>(undefined);
   /** The camera frame; null: it has not moved. */
   readonly camera = new State<Camera | null>(null);
   /** The MolViewSpec state: its `color` nodes are what the cells are drawn with. */
@@ -88,6 +96,7 @@ export class FakeStructureViewer {
     this.latency = options.latency ?? 0;
     this._focusMs = options.focusMs ?? 400;
     this.mvs = new State<MVSData>(structureState(table.entry, []));
+    this.selection.listen(() => this.note.set(undefined));
   }
 
   /** The rows now: a chain instance each, as the table (edited or not) has them. */
@@ -285,27 +294,49 @@ export class FakeStructureViewer {
     this.tell('focus', spans, this._focusFns);
   }
 
-  /** "Select chain": every observed residue of the rows of the selection's chains (with none: the hovered cell's, else the first). */
-  selectChain() {
-    const picked = this.selection.value.length ? this.selection.value : this.hover.value;
+  /** The cells of the chains (an asym and an operator) the spans are on, every observed residue. */
+  private chainSpans(picked: readonly Span[]): Span[] {
     const rows = new Set(picked.map((s) => s.row));
     const chains = [...(rows.size ? rows : [0])].map((r) => this.rows[r]);
     const same = this.rows.filter((r) => chains.some((c) => c.asym === r.asym && c.operator === r.operator));
-    this.setSpans(
-      observedSpans(
-        this.rows,
-        same.map((r) => ({ row: r.index, start: 0, end: r.residues.length })),
-      ),
+    return observedSpans(
+      this.rows,
+      same.map((r) => ({ row: r.index, start: 0, end: r.residues.length })),
     );
+  }
+
+  /** "Select chain": every observed residue of the rows of the selection's chains (with none: the hovered cell's, else the first). */
+  selectChain() {
+    this.setSpans(this.chainSpans(this.selection.value.length ? this.selection.value : this.hover.value));
   }
 
   /**
    * "Within 5 Å": the selection grown by `RadiusCells` residues along each row, and by the ligands of its chain in its
-   * copy (the fake has no coordinates, so a neighbor is a neighbor along the chain).
+   * copy (the fake has no coordinates, so a neighbor is a neighbor along the chain). A selection that is already its
+   * chain has nothing to grow along: it selects the residues of the other chains within 5 Å (`touches`), never the
+   * selection again, and its `note` says how many.
    */
   within() {
     const sel = this.selection.value;
     if (!sel.length) return;
+    const chain = this.chainSpans(sel);
+    if (sameSpans(normalizeSpans(sel), normalizeSpans(chain))) {
+      const mine = new Set(sel.map((s) => `${this.rows[s.row].asym} ${this.rows[s.row].operator}`));
+      const near = observedSpans(
+        this.rows,
+        this.rows
+          .filter((r) => r.polymer && !mine.has(`${r.asym} ${r.operator}`))
+          .flatMap((r) => r.residues.flatMap((_, i) => (touches(i) ? [{ row: r.index, start: i, end: i + 1 }] : []))),
+      );
+      const n = near.reduce((k, s) => k + s.end - s.start, 0);
+      const names = [...new Set(sel.map((s) => this.rows[s.row].asym))].join(', ');
+      // no other chain to take: the selection stays, and the note says so
+      if (near.length) this.setSpans(near);
+      this.note.set(
+        n ? `${n} ${n === 1 ? 'residue' : 'residues'} within 5 Å of chain ${names}` : 'no other chain within 5 Å',
+      );
+      return;
+    }
     const grown: Span[] = sel.map((s) => ({
       row: s.row,
       start: Math.max(0, s.start - RadiusCells),

@@ -519,6 +519,70 @@ describe('the geometry and the parts', () => {
   });
 });
 
+describe('the "n filtered" chip’s card (F14)', () => {
+  const filtered = (hidden: string[][] | string, columns?: unknown): Node => {
+    const b = createSeqSpec({ title: 'filtered' });
+    const p = b.data.sequence('p', { alphabet: 'protein', letters: 'MEEPQSDPSVEPPLSQETFSDLWKLLPENN' });
+    const d = b.data.ranges('domains', {
+      target: p,
+      rows: {
+        start: new Int32Array([0, 12, 20]),
+        end: new Int32Array([10, 18, 26]),
+        id: ['A', 'B', 'C'],
+        category: ['Human', 'Mouse', 'Human'],
+      },
+    });
+    b.views.view('main', (v) => {
+      const t = v.section('protein', { of: p }).track('domains', { label: 'Domains' });
+      const forms =
+        typeof hidden === 'string'
+          ? [hidden]
+          : hidden.map((h) => `(except :of (item :category ${h.length === 1 ? h[0] : `[${h.join(' ')}]`}))`);
+      forms.forEach((form, i) => {
+        t.layer(`l${i}`, { type: 'ranges', data: `${d}/${form}`, ...(columns ? { columns } : {}) } as never);
+      });
+    });
+    return b.build();
+  };
+  const words = async (root: Node) => {
+    const v = await make(undefined, root);
+    const d = (await import('../describe.js')).describerFor({ ...v, layout: () => v.frame?.layout });
+    return d.text({
+      section: Section,
+      layer: Domains,
+      system: undefined,
+      position: Number.NaN,
+      target: 'header-state',
+      state: 'seq:filtered',
+    });
+  };
+
+  it('names the filter and says a click clears it', async () => {
+    expect(await words(filtered([['Human']]))).toBe('2 filtered: category ≠ Human, click to clear');
+  });
+
+  it('names the column as the reader knows it: its title when the layer declares one, else the key', async () => {
+    expect(await words(filtered([['Human']], [{ field: 'category', title: 'Species' }]))).toBe(
+      '2 filtered: Species ≠ Human, click to clear',
+    );
+    expect(await words(filtered([['Human']], [{ field: 'other', title: 'Other' }]))).toBe(
+      '2 filtered: category ≠ Human, click to clear',
+    );
+  });
+
+  it('a filter in another form is named by its printed form, never left out', async () => {
+    const form = '(except :of (intersect :of [(item :category Human) (item :id A)]))';
+    const said = await words(filtered(form));
+    expect(said).toMatch(/^\d+ filtered: \(intersect.*, click to clear$/);
+  });
+
+  it('two filters: each named once, in layer order', async () => {
+    expect(await words(filtered([['Human'], ['Mouse']]))).toBe(
+      '3 filtered: category ≠ Human; category ≠ Mouse, click to clear',
+    );
+  });
+});
+
 describe('the hover path (the quick representative; the allocation case is the storybook tier’s)', () => {
   it('a pointer down the label column of 200 tracks lays nothing out and publishes nothing', async () => {
     const b = createSeqSpec({ title: '200 tracks' });

@@ -274,7 +274,11 @@ function headersBehavior(context: BehaviorContext, params: HeadersParams = {}): 
     facts: (target) => extras?.factsOf(target),
     menuOf: (target) => extras?.menuOf(target),
     partsState: () => extras?.partsState() ?? { headers: [] },
-    run: (name, target) => extras?.run(name, target),
+    // a pressed part follows what the run changed: the parts are made again at the next frame
+    run: (name, target) => {
+      showingKey = '';
+      return extras?.run(name, target);
+    },
     runItem: (item) => extras?.runItem(item),
     preview: (item) => !!extras?.preview(item),
     openMenu: (target, place, only) => !!extras?.openMenu(target, place, only),

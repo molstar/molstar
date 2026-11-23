@@ -147,6 +147,37 @@ describe('the fake structure viewer’s grammar and latency', () => {
   });
 });
 
+describe('the fake structure viewer’s "within 5 Å" on a whole chain', () => {
+  it('selects the residues of the other chains within 5 Å, never the selection again, and its note says how many', () => {
+    const fake = new FakeStructureViewer(table);
+    fake.click({ row: 0, index: 2 });
+    fake.selectChain();
+    const chain = fake.selection.value;
+    expect(chain).toEqual([{ row: 0, start: 1, end: 5 }]);
+    fake.within();
+    // the copy 2_555 of the chain: its residues in the interface, the unobserved cell never taken
+    expect(fake.selection.value).toEqual([{ row: 1, start: 1, end: 3 }]);
+    expect(fake.selection.value).not.toEqual(chain);
+    expect(fake.note.value).toBe('2 residues within 5 Å of chain A');
+    // the note goes with the next selection
+    fake.clear();
+    expect(fake.note.value).toBeUndefined();
+  });
+});
+
+describe('the fake structure viewer’s "within 5 Å" with no other chain', () => {
+  it('changes nothing on a chain selection and says so, never the selection again', () => {
+    const one: ChainTable = { ...table, chains: [table.chains[0]].map((c) => ({ ...c, operators: ['1_555'] })) };
+    const fake = new FakeStructureViewer(one);
+    fake.click({ row: 0, index: 2 });
+    fake.selectChain();
+    const chain = fake.selection.value;
+    fake.within();
+    expect(fake.selection.value).toBe(chain);
+    expect(fake.note.value).toBe('no other chain within 5 Å');
+  });
+});
+
 describe('the fake structure viewer’s camera frame', () => {
   it('is placed against its container, cell rectangles scrolled, so a cell of the third row is on the third row', () => {
     const cells = [
