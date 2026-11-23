@@ -10,7 +10,7 @@
 
 <!-- Wave 1 -->
 - [x] CL14 (`60c2dc572`) Scaffold checks: `features-planned` over a brief's numbered items; the heavy lane's tight bounds isolated
-- [ ] CL1 Legend and layers: a layer's eye, a hidden layer's row, the Contacts swatch, synteny's legend, legends' domains
+- [x] CL1 (`228c6cfa9`) Legend and layers: a layer's eye, a hidden layer's row, the Contacts swatch, synteny's legend, legends' domains
 - [ ] CL2 Ring: the stem menu's route and partners, the stem and pair cards, links pending on the ring
 
 <!-- Wave 2 -->

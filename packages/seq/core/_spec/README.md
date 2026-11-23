@@ -552,14 +552,23 @@ layout per token table, held domains and the reader's substitution (`LayerChanne
   scale: one legend), and converted to Mol*'s legends. A letters form's swatches name their letters: a letters layer
   passes the letters it laid out (`painted`), so its key lists only those (an RNA's U, never its T; no gap swatch where
   there is no gap), then a color once; before any is drawn, every letter. A view's legends (`viewLegends`) are its
-  tracks' layers' and its sections' own layers' (a pairs layer's arcs and dots), titled by the track holding the layer;
-  after the merge, legends of one title but of different channels (a layer's colors and sizes) carry `qualifier` (the
-  channel; `legendTitle`: "Variants (size)"), `title` staying the track's (the Mol* converter has no title and drops
-  sizes). **A layer's `legend` param** (`auto`, the default; `none`) is the figure's say on its key: `viewLegends` skips
-  a layer that says `none` (a constant color that says nothing), so the viewer's legends, the export's band and the Mol*
-  legends follow; a legend two layers share stays while one of them keys it (the items of the `none` layer then no
-  longer outline that entry on hover: the entry is the keyed layers'). Why the layer's: what a figure keys is the
-  figure's (a spec's), where a key sits is the host's, and no session command hides one (language 0.5.0).
+  tracks' layers' and its sections' own layers' (a pairs layer's arcs and dots), titled by the track holding the layer,
+  then its bridges' layers' (their ribbons), titled by the bridge's `label` and noting `width` (a ribbon's width is its
+  aligned length) where a drawn ribbon's width is (an item's, never a bin's or a `shape: line`'s); after the merge,
+  legends of one title but of different channels (a layer's colors and sizes) carry `qualifier` (the channel;
+  `legendTitle`: "Variants (size)"), `title` staying the track's (the Mol* converter has no title and drops sizes). **A
+  layer's `legend` param** (`auto`, the default; `none`) is the figure's say on its key: `viewLegends` skips a layer
+  that says `none` (a constant color that says nothing), so the viewer's legends, the export's band and the Mol* legends
+  follow; a legend two layers share stays while one of them keys it (the items of the `none` layer then no longer
+  outline that entry on hover: the entry is the keyed layers'). Why the layer's: what a figure keys is the figure's (a
+  spec's), where a key sits is the host's, and no session command hides one (language 0.5.0). `Legend.hidden` lists the
+  layers of `layers` the spec hides: never set by `viewLegends` (a hidden layer is not laid out, so it keys nothing
+  here); `keepHiddenLegends(layout, view, shown, last, names)` puts a hidden layer's last legends back in their place,
+  or a row of its name alone where it has none kept (the viewer's Legends: a layer's row keeps its place when hidden),
+  the caller keeping `last` across settles. **A layer's name** (`layerName`, beside `hiddenTrackName`): its `label`,
+  else its `title`, else its track's or bridge's label where it is the only layer there, else its id (its type without
+  one); every list of layers says it (a track header's menus, a legend's eye). Why one: two consumers naming one layer
+  apart read as two layers.
 - **Builder**: `theme.uniform|field|rules|scheme|letters|categorical|…` and `measure.*`; a layer's `field` form over an
   inline table's text column gets the column's values listed (the legend is the vocabulary); a `ranges` layer over a
   `category` column, a `variants` one over a `consequence` column and a `pairs` one over a `type` column default to a
@@ -4257,10 +4266,15 @@ pairs layer's prepared form and its region reader through the composition (`type
   device px apart on both sides are one ribbon, their hull on each side (its rank their sum); where a gap reaches a px
   it parts. Filled at `ribbons.fillOpacity` in the layer's colour, no outline, widest first (by its ends' widths), so
   narrow ones lie on top. Colour by default `field block` of the end on the bridge's `a` side over that side's block
-  domain (EC-218: a side without blocks is one block, one colour); a bin by its weight (`ribbons.binOpacity`, square
-  root over the bins). Past `pairs.maxArcs` **a side** (its reads' ribbons after ownership; each side its own, so a side
-  at the fit never pushes the zoomed side's items out) the most aligned length is kept (its length, a bin's weight; ties
-  by width), the rest a density strip along each edge (`seq.render.pairs.limit`).
+  domain (EC-218: a side without blocks is one block, one colour); a ribbon's built-in fields are `block`, `system` and
+  `orientation` (`same`, or `inverted` where its ends' strands differ: a crossed ribbon), a palette listing no values
+  over `orientation` taking both in that order, so its legend keys both whichever is drawn; a column of the data named
+  `orientation` wins (its values, its painted list), the built-in read only where the data has none. Why a field: a
+  reader tells an inversion from a same-strand block or a translocation by its colour, keyed as every other channel is;
+  a bin by its weight (`ribbons.binOpacity`, square root over the bins). Past `pairs.maxArcs` **a side** (its reads'
+  ribbons after ownership; each side its own, so a side at the fit never pushes the zoomed side's items out) the most
+  aligned length is kept (its length, a bin's weight; ties by width), the rest a density strip along each edge
+  (`seq.render.pairs.limit`).
 - **The hit, closed form** (`hitRibbons`): at the point's height `S(u)` is one value; each ribbon's sides are one
   multiply-add, the point in it when its x lies between them (widened to `pairs.hitPx` for a thin one), scanned last
   drawn first; nothing allocated (a property test: the hit is the sampled polygon's topmost cover). The hit is the drawn

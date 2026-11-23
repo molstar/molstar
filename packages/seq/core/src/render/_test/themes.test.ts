@@ -9,7 +9,7 @@
 // channel never moving a hit box, a shared scale's open domain unioned over its layers at settle, the export's legend
 // band and scale records, a scheme that does not fit, the reader's substitution in an export; and the performance
 // representatives: a layout with a field theme at most 1.1× the same layout uniform (the two timed in turn), legends
-// for 100 tracks under 1 ms.
+// for 100 tracks under 1 ms, and 100 layers half hidden kept in place under 1 ms.
 
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec, theme } from '@molstar/seqx-core/lang';
@@ -20,6 +20,7 @@ import {
   DefaultThemeContext,
   type DrawLists,
   hitView,
+  keepHiddenLegends,
   LightTokens,
   type RangesLay,
   recordDrawLists,
@@ -305,5 +306,42 @@ describe('performance representatives', () => {
     };
     run();
     expect(bestOf(within, 1, run).length).toBe(1);
+  });
+
+  itWithin('legends for 100 layers, half hidden, are kept in place in under 1 ms (`keepHiddenLegends`)', (within) => {
+    const ch = compileChannel('color', theme.field('kind', { list: false }) as never, 'token:range', {
+      tokens: LightTokens,
+      schemes: DefaultThemeContext.schemes,
+    });
+    // 100 tracks of a layer each, the odd ones hidden; each shown one its own legend (a title of its own)
+    const layer = (i: number, hidden: boolean) => ({
+      address: `/v/s/t${i}/l`,
+      index: 0,
+      type: 'ranges',
+      params: hidden ? { hidden: true } : {},
+    });
+    const tracks = (hide: boolean) =>
+      Array.from({ length: 100 }, (_, i) => ({
+        address: `/v/s/t${i}`,
+        label: `Track ${i}`,
+        layers: [layer(i, hide && i % 2 === 1)],
+      }));
+    const layoutOf = (hide: boolean) => ({ sections: [{ section: { tracks: tracks(hide) } }] }) as never;
+    const legends = (hide: boolean) =>
+      Array.from({ length: 100 }, (_, i) => i).flatMap((i) =>
+        hide && i % 2 === 1 ? [] : [legendOf(ch, { title: `Track ${i}`, layer: `/v/s/t${i}/l`, painted: [`${i}`] })!],
+      );
+    const last = new Map();
+    const names = new Map<string, string>();
+    // shown once (each layer's legend kept), then settled with half hidden
+    expect(keepHiddenLegends(layoutOf(false), undefined, legends(false), last, names)).toHaveLength(100);
+    const layout = layoutOf(true);
+    const shown = legends(true);
+    const run = () => keepHiddenLegends(layout, undefined, shown, last, names);
+    const out = run();
+    expect(out).toHaveLength(100);
+    expect(out.map((l) => l.title)).toEqual(Array.from({ length: 100 }, (_, i) => `Track ${i}`));
+    expect(out.filter((l) => l.hidden?.length)).toHaveLength(50);
+    expect(bestOf(within, 1, run)).toHaveLength(100);
   });
 });

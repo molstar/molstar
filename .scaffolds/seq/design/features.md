@@ -110,7 +110,7 @@ what undo does to each.
 | The data store | entries by (source, region, level), versioned; pending, loaded, empty, failed; reactive per entry | no: data | done | [data-store](data-store.md) | 169 | p53: the gene's region by region |
 | Prefetch and cancellation | view, margin, prefetch; grace; retries | no: data | done | [data-store](data-store.md) | 172–174 | p53: the gene's region by region |
 | Eviction | byte-bounded, least recently used, never what is in view | no: data | done | [data-store](data-store.md) | — | p53: the gene's region by region |
-| Settle and open domains | open value domains computed when the view settles; legends state their domain | no: data | building: settle and open value domains; legends not | [data-store](data-store.md) | 201–205 | p53: tracks |
+| Settle and open domains | open value domains computed when the view settles; legends state their domain | no: data | done (legends: CL1, "in view" over an open domain, vocabulary or painted said) | [data-store](data-store.md) | 201–205 | p53: tracks |
 | Export waits for data | `renderSvg` requests what its viewport needs and waits to settle, or says it is unsettled | no: data | done | [data-store](data-store.md), [rendering](rendering.md) | 125 | every view (SVG) |
 | Dynamic nodes and templates | data nodes that arrive with regions (item coordinate systems, nested sources); a track per node by template | no: data | done | [dynamic-nodes](dynamic-nodes.md) | 175–180 | p53: transcripts by region |
 | Item coordinate systems | an item's own system from its `map`, made on demand, keeping its id when it returns | no: data | done | [dynamic-nodes](dynamic-nodes.md) | 176, 177 | p53: transcripts by region |

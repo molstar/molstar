@@ -18,7 +18,7 @@ import { loadBridges } from '@molstar/seqx-core/render/bridge-load';
 import { loadGenome } from '@molstar/seqx-core/resolve';
 import { GenomesViews } from '@molstar/seqx-examples';
 import { AliasedMarks } from '@molstar/seqx-examples/genomes/by-region';
-import { ASection, BSection } from '@molstar/seqx-examples/genomes/compare';
+import { ASection, BSection, SyntenyBridge } from '@molstar/seqx-examples/genomes/compare';
 import { DotLevels, Inversion } from '@molstar/seqx-examples/genomes/generate/alignment';
 import { NGap } from '@molstar/seqx-examples/genomes/generate/assemblies';
 import { Hotspot } from '@molstar/seqx-examples/genomes/generate/contacts';
@@ -29,6 +29,7 @@ import { findGene, GenomeSection, geneRange, OpenedGene, SignalFloor } from '@mo
 import { PackageFolder } from '@molstar/seqx-examples/node-assets';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import { Describer } from '@molstar/seqx-viewer/describe';
+import { legendRows } from '@molstar/seqx-viewer/legends';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { DomHost } from '@molstar/ui/dom';
 import type { SeqRegistryEntry } from '@molstar/seqx-core/context';
@@ -192,7 +193,7 @@ const tileCentre = (g: GridLay, k: number): [number, number] => [
 ];
 
 describe('Examples/Genomes, headless', () => {
-  it('synteny (EC-206 to EC-209, EC-218): a ribbon a block, the inversion crossed, the translocation onto B’s 2, no ribbon over chr1’s run of N, one map over every sequence pair, each ribbon its A chromosome’s colour; a ribbon hovered lights', async () => {
+  it('synteny (EC-206 to EC-209): a ribbon a block, the inversion crossed, the translocation onto B’s 2, no ribbon over chr1’s run of N, one map over every sequence pair, each ribbon its orientation’s colour, keyed by the legend; a ribbon hovered lights', async () => {
     const v = await open('synteny');
     const [b] = bridges(v);
     const ribbons = b.ribbons();
@@ -207,23 +208,45 @@ describe('Examples/Genomes, headless', () => {
     const pairs = new Set(ribbons.map((r) => on(r).join(' to ')));
     for (const p of ['chr1 to 1', 'chr2 to 2', 'chr3 to 3', 'chr3 to 2']) expect(pairs.has(p), p).toBe(true);
     // (an ambiguous path would be an issue: `bothThemes` below allows none)
-    // chromosome painting (EC-218): a ribbon's colour its A end's block's, one a chromosome and a different one each
+    // coloured by orientation (the view's `color`; chromosome painting, EC-218, is the bridge's default, the Across
+    // sections stories'): every inverted ribbon one colour, every same-strand one another, so chr3's translocation reads
+    // as the same-strand blocks and chr1's inversion apart
     const lay = (b as unknown as { lays: { lay: { n: number; color: Uint32Array } }[] }).lays[0].lay;
     expect(lay.n).toBe(ribbons.length);
-    const colours = new Map<string, Set<number>>();
-    ribbons.forEach((r, i) => {
-      const k = on(r)[0]!;
-      if (!colours.has(k)) colours.set(k, new Set());
-      colours.get(k)!.add(lay.color[i]);
-    });
-    for (const [k, c] of colours) expect(c.size, k).toBe(1);
-    expect(new Set([...colours.values()].map((c) => [...c][0])).size).toBe(colours.size);
+    const colours = { same: new Set<number>(), inverted: new Set<number>() };
+    ribbons.forEach((r, i) => colours[r.reversed ? 'inverted' : 'same'].add(lay.color[i]));
+    expect([colours.same.size, colours.inverted.size]).toEqual([1, 1]);
+    expect([...colours.same][0]).not.toBe([...colours.inverted][0]);
+    // the bridge's legend (E7): its orientations as entries, both listed though the view paints them in any order,
+    // titled by the bridge, saying a ribbon's width is its aligned length
+    const legend = legendRows(v).find((r) => r.title === 'A to B')!;
+    expect(legend.entries.map((e) => e.label)).toEqual(['same', 'inverted']);
+    expect(legend.entries[0].color).not.toBe(legend.entries[1].color);
+    expect(legend.entries.map((e) => e.color! >>> 8 === [...colours[e.label as 'same']][0] >>> 8)).toEqual([
+      true,
+      true,
+    ]);
+    expect(legend.note).toBe('width: aligned length');
+    expect(legend.layers).toEqual([{ address: `${SyntenyBridge}/blocks`, name: 'A to B', hidden: false }]);
     // hovered: the ribbon lights (the hover pass draws)
     const r = ribbons.find((x) => x.ax1 - x.ax0 > 4)!;
     v.hover.set(v.hit((r.ax0 + r.ax1) / 2, b.box.y + 1), 'test');
     v.draw();
     expect(recordDrawLists(v.frame!.lists, ['hover']).split('\n').length).toBeGreaterThan(2);
     await bothThemes(v);
+  });
+
+  it('synteny, its bridge layer hidden: the "A to B" row and its eye stay, dimmed, "Show A to B"', async () => {
+    const v = await open('synteny');
+    const titles = legendRows(v).map((r) => r.title);
+    await v.execute('layer.hide', { address: `${SyntenyBridge}/blocks` });
+    await settle(v);
+    expect(bridges(v)[0]?.lays ?? []).toEqual([]);
+    expect(legendRows(v).map((r) => r.title)).toEqual(titles);
+    const row = legendRows(v).find((r) => r.title === 'A to B')!;
+    expect(row.hidden).toBe(true);
+    expect(row.entries.every((e) => !e.action)).toBe(true);
+    expect(row.layers).toEqual([{ address: `${SyntenyBridge}/blocks`, name: 'A to B', hidden: true }]);
   });
 
   it('the dot plot (EC-109, EC-145, EC-209, EC-223): grid tiles of the alignment under its blocks; a cell is two positions, a drag selects a rectangle', async () => {
