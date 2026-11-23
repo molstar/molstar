@@ -75,15 +75,15 @@ One spelling for addresses and the S-expression printing (`tree/atoms.ts`), so a
 spec: `true false nil nan +inf -inf`, bigints `123n`, a word that parses as a JavaScript decimal number is a number
 (`-1`, `1e5`, `.5`), any other word is a symbol, a string (`94A`, `0x10`, `2nm`). A string prints bare when it reads
 back as itself and holds no `/` (else quoted: `"HBA_HUMAN/1-141"`), except a canonical address. Why: residue labels and
-quantities need no quotes, and no units table is needed to read them (locations-and-queries.md "Atoms").
+quantities need no quotes, and no units table is needed to read them.
 
 ## Addresses
 
-- **Grammar** (addressing.md): `address = "/" | ("/" step)+ ["/*"]`, `step = id | form`,
-  `form = "(" head value* (":" key value)* ")"`, `head = kind | operator`, `value = atom | list | form | address`. Read
-  by the tree's own small reader (no codec), printed canonically on one line, a form's keys sorted:
-  `(range :from 94 :to 292)` whatever order it was written in, so equal addresses print alike. `parse(print(a)) = a` up
-  to key order. Messages never quote the address: an offset says where.
+- **Grammar**: `address = "/" | ("/" step)+ ["/*"]`, `step = id | form`, `form = "(" head value* (":" key value)* ")"`,
+  `head = kind | operator`, `value = atom | list | form | address`. Read by the tree's own small reader (no codec),
+  printed canonically on one line, a form's keys sorted: `(range :from 94 :to 292)` whatever order it was written in, so
+  equal addresses print alike. `parse(print(a)) = a` up to key order. Messages never quote the address: an offset says
+  where.
 - **Positional values** (a form's `args`) come before its keyword params, in order: an expression's operands,
   `(filter :test (> (prop b-factor) 60))` (decided by Seq\*'s author, 2026-11-20, "Accept the core change"). Which forms
   take them is the language's that reads the form; the tree reads and prints them. A positional value after a keyword is
@@ -142,7 +142,7 @@ quantities need no quotes, and no units table is needed to read them (locations-
     equal lengths checked; extra columns kept, each a column or a list; `key` values unique.
 - **Units are a hook** (`UnitsHook`): with it, `checkLanguage` checks a param's `unit` and validation reads a quantity
   string in a number slot; without it, `unit` is documentation and a string there is a type issue. Why: units stay
-  outside the core for now (tree-core.md).
+  outside the core for now.
 - **Definitions wait**: no `def` type, no uses, no `(arg …)`, no containers of definitions.
 
 ## Validation

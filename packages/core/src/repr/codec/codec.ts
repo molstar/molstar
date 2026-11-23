@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The codec interface (_spec/README.md "Codecs"; tree-core.md): a tree to text or bytes and back. No codec lives here:
+// The codec interface (_spec/README.md "Codecs"): a tree to text or bytes and back. No codec lives here:
 // JSON and the S-expression printing are `repr/codecs/*`, MessagePack is `@molstar/io`'s, beside its library. A codec
 // is schema-free: it needs no language, so it may give a column back as a plain array, and the read pipeline's
 // normalization (`schema/normalize.ts`) types it. What every codec guarantees is checked by the conformance suite

@@ -5,7 +5,7 @@
  */
 
 // The spelling of atoms and keywords, one for addresses (address.ts) and the S-expression codec (codecs/sexpr), so an
-// address reads the same inside a spec and alone (_spec/README.md "Atoms"; locations-and-queries.md):
+// address reads the same inside a spec and alone (_spec/README.md "Atoms"):
 //
 //   true false nil            the booleans and null (JSON's `null`)
 //   nan +inf -inf             the numbers JSON lacks

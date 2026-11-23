@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// A small language in the shape of the first Seq* slice's (language-description.md), for the schema's and the
+// A small language in the shape of the first Seq* slice's, for the schema's and the
 // builder's tests: containers, ids, refs, an enum, a default, a typed column, a table, a slot, a data form.
 
 import { defineLanguage } from '../index.js';

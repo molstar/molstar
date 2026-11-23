@@ -376,7 +376,7 @@ describe('header lines with no line indexed', () => {
 });
 
 describe('performance', () => {
-  // genome-formats.md, Consequences (Performance): a region read, quick here, bounded in the heavy lane
+  // Performance: a region read, quick here, bounded in the heavy lane
   const gen = generateVcf(30_000, ['chr1'], 31);
   const file = bgzip(gen.text);
   const indexBytes = tabixIndex(gen.lines, file, { ...vcfOptions('tbi'), names: ['chr1'] });
