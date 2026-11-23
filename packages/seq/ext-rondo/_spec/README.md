@@ -17,7 +17,7 @@ chunk once composed.
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------- |
 | `rondo:ribbons`         | layer type, `scope: 'section'`, shape `pairs`, on `rings` and a `tracks` row                                                                                     | `pairs`                                                   | core's `PairsReader`: bins at a level, items under its gate            |
 | `rondo:hues`            | scheme over categories: n hues round the Oklch wheel, not colour-blind safe, substitute `categories`                                                             | the layer type's default                                  | —                                                                      |
-| `rondo:partner`         | command (`.`; `rondo:partner-back` `,`): the cursor to the next partner stem by count, said                                                                      | —                                                         | the stem under the cursor                                              |
+| `rondo:partner`         | command (`.`; `rondo:partner-back` `,`): the cursor to the next partner stem, the stem menu's order, said                                                        | —                                                         | the stem under the cursor                                              |
 | `rondo:select-partners` | command: the far ends of the selection's ribbons added                                                                                                           | —                                                         | the selection                                                          |
 | `rondo:open`            | command, bound to a double-click scoped to `rondo:ribbons`' hits                                                                                                 | —                                                         | the hit's chromosomes, set as `opens`' `include`                       |
 | `rondo:cells`           | layer type, `scope: 'section'`, shape `pairs`, with core's `square` cells (nothing drawn on a strip)                                                             | none (only `rondo:square` names it)                       | core's `PairsReader` at the coarsest bins (`gate` 0) over the assembly |
@@ -182,17 +182,22 @@ waiting; its entries `StemMenu` in `viewer.ts`).
   **Highlights**: ribbons touching each channel's Location.
 - **The stem menu** (`menu.ts`, `StemMenu`, the descriptor's `headerActions`, so `viewer.extend` brings it too): a
   secondary click on a stem opens its element menu, the viewer's label menu's shape scoped to `rondo:ribbons`' stems
-  (`element.type`, a `stem:` key): "Show with a partner ▸" (its partners by count, at most 8, each `chr17 · 140 links`,
-  shown with it as a pair in the section the layer `opens`, else its own), "Select the stem and its partners"
-  (`rondo:select-partners` with the element: one selection), "Show only chr4". The entries find the stem in the lays of
-  the viewer the menu is in (`HeaderFacts.viewer`: no state of their own, two viewers of one spec each their own). **Its
-  route**: a secondary click on a stem opens it at the pointer; on a ring's empty space (no hit) the browser's menu
-  opens (the viewer's rule for rings); the menu key and Shift+F10 with the keyboard cursor on a placed stem's range (the
-  topmost layer's) open it at the stem's mouth (`atCursor` on its first entry, `stemAtCursor`). Why: a menu a reader
-  cannot reach is none.
+  (`element.type`, a `stem:` key): "Show with a partner ▸" (its partners by chromosome, `partnerChromosomes`: a row a
+  partner chromosome with its links in all, most first, at most 8, `chr9 · 449 links`; a chromosome reached by more than
+  one ribbon its pieces in a submenu, at most 8, each named by its band range and strand, `q31.1–q34.2 · 379 links`,
+  `p13.3 · 2 links, reversed`: the cytobands the section draws there, else its span in bases; the stem's own chromosome
+  never a partner but last, `Within chr22 · 229 links`, its pieces the ribbons to its other stems and the stem's links
+  within itself, `this stem`; each row and piece shows its chromosome with the stem's as a pair in the section the layer
+  `opens`, else its own, within alone. Why by chromosome: bare rows `chr9 · 375 links`, `chr9 · 65 links` said nothing
+  of what parted them), "Select the stem and its partners" (`rondo:select-partners` with the element: one selection),
+  "Show only chr4". The entries find the stem in the lays of the viewer the menu is in (`HeaderFacts.viewer`: no state
+  of their own, two viewers of one spec each their own). **Its route**: a secondary click on a stem opens it at the
+  pointer; on a ring's empty space (no hit) the browser's menu opens (the viewer's rule for rings); the menu key and
+  Shift+F10 with the keyboard cursor on a placed stem's range (the topmost layer's) open it at the stem's mouth
+  (`atCursor` on its first entry, `stemAtCursor`). Why: a menu a reader cannot reach is none.
 - **The keys**: `.` (`rondo:partner`) and `,` (`rondo:partner-back`), the commands' shortcuts on the canvas: the cursor
-  to the next or the previous partner of its stem by count, said by the announcer (the command moved the cursor: "chr17,
-  40,000,000 · 140 links, reversed").
+  to the next or the previous partner stem of its stem in the stem menu's order (its rows' pieces in turn: one list, two
+  readers), said by the announcer (the command moved the cursor: "chr17, 40,000,000 · 140 links, reversed").
 - **Words** (core's `LayerType` hooks): `describe` (a ribbon "chr1:12–28 Mb ↔ chr17:40–52 Mb", its count and kind, its
   bins; a stem its links, partners, within and fan; a stub its partner, "not shown"), `summary` ("612 ribbons, 23
   chromosomes; strongest chr1 ↔ chr17, 140"), `announce` ("stem of 312 links").

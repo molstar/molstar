@@ -17,7 +17,7 @@ import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import { afterEach, describe, expect, it } from 'vitest';
 import { rondo } from '../index.js';
 import type { RondoLay } from '../lay.js';
-import { rondoViewer } from '../viewer.js';
+import { partnerChromosomes, rondoViewer } from '../viewer.js';
 import { type Link, ringSpec, Size, settle, toyChromosomes, toyLinks } from './helpers.js';
 
 const Bed = { kind: 'format-runtime' as const, runtime: BedRuntime };
@@ -191,7 +191,7 @@ describe('the viewer', () => {
     expect(section.blocks!.map((b) => b.label).sort()).toEqual([...new Set(names)].sort());
   });
 
-  it('`rondo:partner` moves the cursor to the strongest partner, then the next by count', async () => {
+  it('`rondo:partner` moves the cursor to the stem menu’s first partner (its chromosome with the most links)', async () => {
     const v = await viewerOf(ringSpec(), [rondoViewer as never]);
     const l = layOf(v)!;
     const r = l.strongest;
@@ -199,7 +199,7 @@ describe('the viewer', () => {
     v.selection.setCursor({ section: l.section, system: l.systems[l.stemSystem[a]], position: l.stemStart[a] });
     const said = await v.execute('rondo:partner', {});
     const c = v.selection.cursor.value!;
-    const b = l.ribB[r];
+    const b = partnerChromosomes(l, a)[0].pieces.find((p) => p.stem !== a)!.stem;
     expect([c.system, c.position]).toEqual([l.systems[l.stemSystem[b]], l.stemStart[b]]);
     expect(said).toMatch(/^chr\d, [\d,]+ · [\d,]+ links/);
   });

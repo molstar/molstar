@@ -15,16 +15,17 @@ import {
 } from '@molstar/seqx-viewer';
 import { rondo, RondoParams, RondoVersion } from './index.js';
 import { Kind, type RondoLay } from './lay.js';
-import { laysOf, partnersOf } from './partners.js';
+import { laysOf, partnerChromosomes, partnersOf } from './partners.js';
+import { links } from './words.js';
 
 // The genome ring extension's viewer parts (_spec/README.md, The viewer): `rondoViewer`, the headless `rondo` and
-// its commands (`rondo:partner`, along the links by count from the cursor's stem; `rondo:select-partners`, the far
+// its commands (`rondo:partner`, along the stem menu's partners from the cursor's stem; `rondo:select-partners`, the far
 // ends of the selection's ribbons added; `rondo:open`, the hit's chromosomes shown in the section the layer `opens`),
 // and the double-click scoped to `rondo:ribbons`' hits that runs `rondo:open` (it wins over the focus there only).
 
 const lays = laysOf;
 
-export { partnersOf };
+export { partnerChromosomes, partnersOf };
 
 /** The viewers composed with `rondoViewer` whose card waits for the chunk (cleared once it lands). */
 const Viewers = new Set<SeqViewer>();
@@ -132,7 +133,8 @@ function viewerParts() {
       // on a partner reached by the walk: the walk goes on from its stem
       if (w && from !== w.from && w.next >= 0) from = w.from;
       if (from < 0) return { message: 'No stem here' };
-      const partners = partnersOf(lay, from);
+      // the stem menu's list, its pieces in its order (the stem itself, a piece of its links within, is no step)
+      const partners = partnerChromosomes(lay, from).flatMap((c) => c.pieces.filter((p) => p.stem !== from));
       if (!partners.length) return { message: 'No partners' };
       const k0 = w && w.from === from ? w.next : -1;
       const k = (((k0 + (args.back ? -1 : 1)) % partners.length) + partners.length) % partners.length;
@@ -141,7 +143,7 @@ function viewerParts() {
       const position = lay.stemStart[p.stem];
       v.selection.setCursor({ section: c.section, system: lay.systems[lay.stemSystem[p.stem]], position });
       return {
-        message: `${lay.names[lay.stemSystem[p.stem]]}, ${position.toLocaleString('en-US')} · ${Math.round(p.count).toLocaleString('en-US')} links${p.strand < 0 ? ', reversed' : ''}`,
+        message: `${lay.names[lay.stemSystem[p.stem]]}, ${position.toLocaleString('en-US')} · ${links(p.links)}${p.strand < 0 ? ', reversed' : ''}`,
       };
     }
     return { message: 'No genome ring' };

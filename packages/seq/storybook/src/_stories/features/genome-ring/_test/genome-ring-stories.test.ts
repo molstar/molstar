@@ -16,6 +16,7 @@ import { openExample } from '../../../examples/_test/draw-checks.js';
 import { describerFor } from '@molstar/seqx-viewer/describe';
 import { emphasisHeld, Kind, RibbonsType } from '@molstar/seqx-ext-rondo';
 import { hoverStrongestStem, ribbonsOf, ringStoryView, strongestStem } from '../views.js';
+import { bandsLanded } from './ring-helpers.js';
 
 // Features/Genome Ring, headless on a fake clock as the stories compose them (a viewer with `rondoViewer`, or none for
 // the fallback's, its SVG export light and dark): a twin a default of Design › Genome ring, chr4's ring stepped through
@@ -73,23 +74,6 @@ const errors = (v: SeqViewer) => [
   ...v.store.issues.value.filter((i) => i.severity === 'error'),
   ...v.layoutIssues.value.filter((i) => i.severity === 'error'),
 ];
-
-/**
- * The recorded cytobands' rows in view: their pages inflate on the platform's thread pool (no clock), so the clock is
- * turned and real I/O let through until a bands layer has rows (or a bound of turns).
- */
-async function bandsLanded(v: SeqViewer) {
-  const rows = () =>
-    v
-      .frame!.layout.sections[0].lays.flat()
-      .some((l) => l.key.endsWith('/bands/bands') && (l.lay as { rows?: { n: number } }).rows!.n > 0);
-  for (let i = 0; i < 50 && !rows(); i++) {
-    await new Promise((r) => setImmediate(r));
-    await vi.advanceTimersByTimeAsync(200);
-    v.draw();
-  }
-  expect(rows()).toBe(true);
-}
 
 const descriptions = (v: SeqViewer) => layerAria(v.frame!.layout).map((a) => a.description);
 

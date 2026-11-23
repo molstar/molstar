@@ -317,7 +317,8 @@ offered as a partner, and the track's actions in it (close-out, the novice quest
 | Right-click a stem | the stem menu at the pointer |
 | Right-click the ring's empty space | the browser's menu |
 | Focus a stem, Shift+F10 or the Menu key | the stem menu at the stem |
-| Click a partner | shows the pair, one history step |
+| Hover or Right arrow on a chromosome with pieces | its submenu |
+| Click a partner (or a piece) | shows the pair, one history step |
 | Escape | closes the submenu, then the menu |
 
 - **The route**: a secondary click on a stem opens its element menu at the pointer (the viewer's, scoped to
@@ -326,6 +327,16 @@ offered as a partner, and the track's actions in it (close-out, the novice quest
   cursor on a stem's range (a click on the stem puts it there) open the stem menu at the stem's mouth: the viewer asks
   an element entry for its element at the cursor (`HeaderEntry.atCursor`) before the cursor's header. Why: the menu
   existed only pre-opened in its story, and Shift+F10 opened the track's menu (item 29, checked on the code).
+- **Partners by chromosome**: "Show with a partner ▸" lists a row a partner chromosome with its links in all, most
+  first (at most 8). A chromosome reached by more than one ribbon gets a submenu of its pieces (at most 8), a piece
+  being a partner stem and a strand (a stem is one bin of the stem level on one system: one contiguous run, so a band
+  range names it, checked on `RondoLay`): "q31.1–q34.2 · 379 links", "p13.3 · 2 links, reversed"; the first and last
+  cytoband the section draws over the stem's range, else its span in bases. Each row and piece shows the pair, as a
+  row did. Why: "chr9 · 375 links", "chr9 · 65 links" said nothing of what parted them (novice 8, 26).
+- **Links within**: the stem's own chromosome is never a partner: "Within chr22 · 229 links", listed last, its pieces
+  the ribbons to its other stems and the stem's own links within itself ("this stem"); it shows the chromosome alone.
+- **One list, two readers**: the partner keys (`.` and `,`) walk the menu's pieces in its order, so the keys and the
+  menu name partners alike.
 
 ### On other layouts
 

@@ -5,13 +5,15 @@
  */
 
 import { loadGenome } from '@molstar/seqx-core/resolve';
-import { partnersOf, rondoViewer } from '@molstar/seqx-ext-rondo/viewer';
+import type { RondoLay } from '@molstar/seqx-ext-rondo';
+import { partnerChromosomes, partnersOf, rondoViewer } from '@molstar/seqx-ext-rondo/viewer';
 import { Announcer } from '@molstar/seqx-viewer/announcer';
 import type { HeadersBehavior } from '@molstar/seqx-viewer/behaviors/headers';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { openExample } from '../../../examples/_test/draw-checks.js';
-import { ribbonsOf, ringStoryView, strongestStem } from '../views.js';
+import { kindsOf, ribbonsOf, ringStoryView, strongestStem } from '../views.js';
+import { bandsLanded } from './ring-helpers.js';
 
 // The stem menu and the partner keys (`rondoViewer`): a secondary click on a stem opens its element menu (the label
 // menu's shape, scoped to `rondo:ribbons`' stems): its partners by count shown as a pair, the stem and its partners
@@ -61,12 +63,13 @@ describe('The stem menu', () => {
       'rondo:select-stem-partners',
       'rondo:show-chromosome',
     ]);
-    // the partners by count, strongest first, each a pair
+    // the partners by chromosome, most links first, each a pair; the stem's own chromosome last, within
     const partners = partnersOf(l, stem);
+    const rows = partnerChromosomes(l, stem);
     const items = element[0].items!;
-    expect(items.length).toBe(Math.min(8, partners.length));
+    expect(items.length).toBe(rows.length);
     const name = l.names[l.stemSystem[stem]];
-    const first = l.names[l.stemSystem[partners[0].stem]];
+    const first = l.names[rows[0].system];
     expect(items[0].label).toMatch(new RegExp(`^${first} · [\\d,]+ links`));
     // the partners selected: the stem's range and each partner's
     expect(await headers.runItem(element[1])).toBe(
@@ -99,19 +102,120 @@ describe('The stem menu', () => {
   });
 });
 
+/** The stem menu of a lay's stem (a layer under another: its menu by its own element), its partner rows. */
+function partnerRowsOf(headers: HeadersBehavior, l: RondoLay, stem: number) {
+  const track = l.key.slice(0, l.key.lastIndexOf('/'));
+  const element = { layer: l.key, key: l.stemKey[stem], type: 'rondo:ribbons' };
+  expect(headers.openMenu({ section: l.section, track, element }, { x: 0, y: 0 })).toBe(true);
+  const rows = headers.menu.value!.menu.groups[0].find((i) => i.name === 'rondo:show-partner')!.items!;
+  headers.closeMenu();
+  return rows;
+}
+
+describe('The stem menu’s partners, by chromosome (Kinds of links)', () => {
+  it('a row a partner chromosome with its links; its pieces by band range and strand; within last', async () => {
+    viewer = await openExample(ringStoryView('ring-kinds'), {
+      delayMs: 0,
+      wait: 3000,
+      fixtures: true,
+      extensions: [rondoViewer],
+    });
+    const v = viewer;
+    await bandsLanded(v);
+    const headers = v.behavior<HeadersBehavior>('headers')!;
+    await headers.loaded();
+    // the contacts' strongest stem: chr22's first (under the translocations' stem there, so opened by its element)
+    const contacts = kindsOf(v)[0];
+    const { stem } = strongestStem(contacts);
+    expect(contacts.names[contacts.stemSystem[stem]]).toBe('chr22');
+    const rows = partnerRowsOf(headers, contacts, stem);
+    const labels = rows.map((r) => r.label);
+    // one row a chromosome: chr9 once, its links the sum of its pieces, most first
+    const chr9 = rows.filter((r) => /^chr9 /.test(r.label));
+    expect(chr9).toHaveLength(1);
+    expect(labels[0]).toBe(chr9[0].label);
+    const pieces = partnersOf(contacts, stem).filter((p) => contacts.names[contacts.stemSystem[p.stem]] === 'chr9');
+    expect(pieces.length).toBeGreaterThan(1);
+    const total = pieces.reduce((n, p) => n + p.links, 0);
+    expect(chr9[0].label).toBe(`chr9 · ${total.toLocaleString('en-US')} links`);
+    // its pieces in a submenu, named by band range and strand, by count: q34.1-like names, never a bare chr9
+    const sub = chr9[0].items!.map((i) => i.label);
+    expect(sub).toHaveLength(pieces.length);
+    for (const s of sub) expect(s).toMatch(/^[pq][\d.]+(–[pq][\d.]+)? · [\d,]+ links?(, reversed)?$/);
+    expect(sub[0]).toMatch(new RegExp(` · ${pieces[0].links.toLocaleString('en-US')} links$`));
+    // each piece shows the same pair as its row
+    for (const i of chr9[0].items!) expect(i.args).toEqual(chr9[0].args);
+    // chr22 is never its own partner: "Within chr22", listed last, its two pieces (its other stem, this stem's own)
+    expect(labels.filter((t) => /^chr22 /.test(t))).toEqual([]);
+    const within = rows.at(-1)!;
+    expect(within.label).toMatch(/^Within chr22 · [\d,]+ links$/);
+    expect(within.items!.map((i) => i.label)).toHaveLength(2);
+    expect(within.items!.some((i) => /, this stem$/.test(i.label))).toBe(true);
+    expect(within.args).toMatchObject({ include: ['chr22'] });
+    // a chromosome reached by one ribbon is a plain row (no submenu)
+    for (const r of rows) if (!r.items) expect(r.label).toMatch(/^chr\w+ · [\d,]+ links?(, reversed)?$/);
+  });
+
+  it('the translocations’ chr22 stem: chr9 a plain row, reversed', async () => {
+    viewer = await openExample(ringStoryView('ring-kinds'), {
+      delayMs: 0,
+      wait: 3000,
+      fixtures: true,
+      extensions: [rondoViewer],
+    });
+    const v = viewer;
+    const headers = v.behavior<HeadersBehavior>('headers')!;
+    await headers.loaded();
+    const tx = kindsOf(v)[1];
+    const stem = Array.from({ length: tx.ns }, (_, s) => s).find(
+      (s) => tx.stemPlaced[s] && tx.names[tx.stemSystem[s]] === 'chr22' && tx.stemPoly[s] >= 0,
+    )!;
+    const rows = partnerRowsOf(headers, tx, stem);
+    expect(rows.map((r) => [r.label, !!r.items])).toEqual([['chr9 · 24 links, reversed', false]]);
+  });
+
+  it('bounded on a crowded ring: at most 8 partner rows and 8 pieces a row, the within row besides', async () => {
+    viewer = await openExample(ringStoryView('ring-crowded'), {
+      delayMs: 0,
+      wait: 3000,
+      fixtures: true,
+      extensions: [rondoViewer],
+    });
+    const l = ribbonsOf(viewer)!;
+    let most = 0;
+    for (let s = 0; s < l.ns; s++) {
+      if (!l.stemPlaced[s]) continue;
+      const rows = partnerChromosomes(l, s);
+      most = Math.max(most, partnersOf(l, s).length);
+      expect(rows.filter((r) => !r.within).length).toBeLessThanOrEqual(8);
+      expect(rows.filter((r) => r.within).length).toBeLessThanOrEqual(1);
+      for (const r of rows) expect(r.pieces.length).toBeLessThanOrEqual(8);
+    }
+    // the bound bites: a stem there has more partners than the menu lists
+    expect(most).toBeGreaterThan(8);
+  });
+});
+
 describe('The partner keys', () => {
-  it('`.` and `,` walk the cursor’s stem’s partners by count, said', async () => {
-    const { v } = await open();
+  it('`.` and `,` walk the stem menu’s partners in its order (the menu and the keys read one list), said', async () => {
+    const { v, headers } = await open();
     const announcer = new Announcer(v, { minGapMs: 0, restMs: 0 });
     const said: string[] = [];
     announcer.message.listen((m) => said.push(m.text));
     const l = ribbonsOf(v)!;
     const { stem } = strongestStem(l);
+    // the menu's rows and their pieces, in order: the keys' steps
+    const rows = partnerRowsOf(headers, l, stem);
+    const steps = partnerChromosomes(l, stem).flatMap((c) => c.pieces.filter((p) => p.stem !== stem));
+    expect(rows.map((r) => r.label.split(' · ')[0].replace(/^Within /, ''))).toEqual(
+      partnerChromosomes(l, stem).map((c) => l.names[c.system]),
+    );
     v.selection.setCursor({ section: l.section, system: l.systems[l.stemSystem[stem]], position: l.stemStart[stem] });
-    const partners = partnersOf(l, stem);
+    const partners = steps;
     expect(v.input.key({ key: '.' })).toBe(true);
     const at = (k: number) => l.systems[l.stemSystem[partners[k].stem]];
     expect(v.selection.cursor.value?.system).toBe(at(0));
+    expect(rows[0].label.startsWith(l.names[l.stemSystem[partners[0].stem]])).toBe(true);
     expect(said.at(-1)).toMatch(new RegExp(`^${l.names[l.stemSystem[partners[0].stem]]}, [\\d,]+ · [\\d,]+ links`));
     expect(v.input.key({ key: '.' })).toBe(true);
     expect(v.selection.cursor.value?.system).toBe(at(1 % partners.length));
@@ -147,9 +251,14 @@ describe('The stem menu in two viewers of one spec', () => {
       expect(partnersB.length).toBeLessThan(partnersA.length);
       expect(headers.context(sb.x, sb.y)).toBe(true);
       const items = headers.menu.value!.menu.groups[0][0].items!;
-      expect(items.length).toBe(Math.min(8, partnersB.length));
+      expect(items.length).toBe(partnerChromosomes(lb, sb.stem).length);
       // b's partners only: on the two chromosomes it shows (a's are all over the genome)
-      for (const i of items) expect([name, first]).toContain(String(i.label).split(' · ')[0]);
+      for (const i of items)
+        expect([name, first]).toContain(
+          String(i.label)
+            .split(' · ')[0]
+            .replace(/^Within /, ''),
+        );
     } finally {
       a.retire();
     }

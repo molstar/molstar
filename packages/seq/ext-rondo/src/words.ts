@@ -24,12 +24,15 @@ function at(n: number): string {
   return `${n}`;
 }
 
+/** A range as a span: `50–58 Mb`. */
+export function spanText(start: number, end: number): string {
+  const unit = end >= 1e6 ? ' Mb' : end >= 1e3 ? ' kb' : '';
+  return `${at(start)}–${at(end)}${unit}`;
+}
+
 /** A stem's range on its system: `chr4:50–58 Mb`. */
 function rangeText(lay: RondoLay, s: number): string {
-  const start = lay.stemStart[s];
-  const end = lay.stemEnd[s];
-  const unit = end >= 1e6 ? ' Mb' : end >= 1e3 ? ' kb' : '';
-  return `${lay.names[lay.stemSystem[s]]}:${at(start)}–${at(end)}${unit}`;
+  return `${lay.names[lay.stemSystem[s]]}:${spanText(lay.stemStart[s], lay.stemEnd[s])}`;
 }
 
 export const links = (n: number) => `${Math.round(n).toLocaleString('en-US')} link${Math.round(n) === 1 ? '' : 's'}`;

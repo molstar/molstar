@@ -7,7 +7,7 @@
 
 import { assembly, createSeqSpec } from '@molstar/seqx-core/lang';
 import { rondo, rondoRing } from '@molstar/seqx-ext-rondo';
-import { rondoViewer } from '@molstar/seqx-ext-rondo/viewer';
+import { partnerChromosomes, rondoViewer } from '@molstar/seqx-ext-rondo/viewer';
 import { SeqCoreConfig } from '@molstar/seqx-core/context';
 import { type HeadersBehavior, HeadersProvider } from '@molstar/seqx-viewer/behaviors/headers';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
@@ -315,7 +315,13 @@ describe('The stem menu’s gestures', () => {
     const partner = menusOf(container)[1].querySelector<HTMLElement>('[role^="menuitem"]')!;
     const name = l.names[l.stemSystem[stem]];
     const other = /(chr\d)/.exec(partner.textContent ?? '')![1];
-    partner.click();
+    // a chromosome with pieces opens them: a piece shows the same pair
+    if (partner.getAttribute('aria-haspopup') === 'menu') {
+      partner.focus();
+      press('ArrowRight');
+      await vi.advanceTimersByTimeAsync(50);
+      menusOf(container)[2].querySelector<HTMLElement>('[role^="menuitem"]')!.click();
+    } else partner.click();
     await vi.advanceTimersByTimeAsync(300);
     await v.settle();
     expect(new Set(ringNode(v).params?.include as string[])).toEqual(new Set([name, other]));
@@ -323,6 +329,49 @@ describe('The stem menu’s gestures', () => {
     await (v.spec.history as UiHistory).stack.undo();
     await v.settle();
     expect(ringNode(v).params?.include).toBeUndefined();
+  });
+
+  it('hover or Right arrow on a chromosome with pieces: its submenu', async () => {
+    const { headers, l, container, canvas } = await mounted();
+    // a stem with a partner chromosome reached by more than one ribbon
+    let stem = -1;
+    for (let s = 0; s < l.ns && stem < 0; s++)
+      if (l.stemPlaced[s] && l.stemPoly[s] >= 0 && partnerChromosomes(l, s).some((c) => c.pieces.length > 1)) stem = s;
+    expect(stem).toBeGreaterThanOrEqual(0);
+    const c = partnerChromosomes(l, stem).find((x) => x.pieces.length > 1)!;
+    l.frame.point((l.stemT0[stem] + l.stemT1[stem]) / 2, 2);
+    expect(secondaryClick(canvas, l.frame.px, l.frame.py)).toBe(true);
+    await menuLanded(headers);
+    rowOf(container, /Show with a partner/).focus();
+    press('ArrowRight');
+    await vi.advanceTimersByTimeAsync(50);
+    const name = c.within ? `Within ${l.names[c.system]}` : l.names[c.system];
+    const row = rowOf(menusOf(container)[1], new RegExp(`^${name} · `));
+    expect(row.getAttribute('aria-haspopup')).toBe('menu');
+    // the Right arrow on it: its pieces, each named by its range (the toy has no cytobands: in bases)
+    row.focus();
+    press('ArrowRight');
+    await vi.advanceTimersByTimeAsync(50);
+    expect(menusOf(container)).toHaveLength(3);
+    const pieces = [...menusOf(container)[2].querySelectorAll('[role^="menuitem"]')].map((p) => p.textContent);
+    expect(pieces).toHaveLength(c.pieces.length);
+    for (const p of pieces) expect(p).toMatch(/^[\d.]+–[\d.]+ (Mb|kb) · [\d,]+ links?/);
+    // ← back to the row, its submenu closed; the pointer resting on the row opens it again
+    press('ArrowLeft');
+    await vi.advanceTimersByTimeAsync(50);
+    expect(menusOf(container)).toHaveLength(2);
+    const r = row.getBoundingClientRect();
+    row.dispatchEvent(
+      new PointerEvent('pointerover', {
+        clientX: r.left + 2,
+        clientY: r.top + 2,
+        bubbles: true,
+        pointerId: 1,
+        pointerType: 'mouse',
+      }),
+    );
+    await vi.advanceTimersByTimeAsync(500);
+    expect(menusOf(container)).toHaveLength(3);
   });
 
   it('Escape: closes the submenu, then the menu', async () => {
