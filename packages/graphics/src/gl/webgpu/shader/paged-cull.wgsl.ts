@@ -210,7 +210,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>, @builtin(local_invocation
 
 /**
  * The active entries and the copies (the select's and the cull's): an entry's page word and copy, a copy's pose,
- * sphere and level, the selected entries (\`uSelectedBase\`: a header vec4, their count in x, then an entry a word)
+ * sphere and level, the selected entries (\`uSelectedBase\`: a header vec4, their count in x, then an entry a vec4: its x)
  */
 const entries_wgsl = /* wgsl */ `
 /** active entry a's page word (two words an entry: its page and its levels, its copy) */
@@ -326,8 +326,7 @@ fn selectedEntry(k: u32) -> u32 {
     if (k >= tables[base].x) {
         return 0xffffffffu;
     }
-    let i = 4u + k;
-    return tables[base + i / 4u][i % 4u];
+    return tables[base + 1u + k].x;
 }
 `;
 
@@ -872,9 +871,10 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
         atomicAdd(&selectArgs[bucket], 1u);
         return;
     }
+    // an entry a vec4 of its own: a store to a vector's component may write the whole vector (WGSL; Metal does), four
+    // threads' entries in one vec4 lost but one
     let k = atomicAdd(&selectArgs[bucket], 1u);
-    let i = 4u + k;
-    tables[u32(uParams.uSelectedBase) + i / 4u][i % 4u] = a;
+    tables[u32(uParams.uSelectedBase) + 1u + k] = vec4<u32>(a, 0u, 0u, 0u);
 }
 `;
 

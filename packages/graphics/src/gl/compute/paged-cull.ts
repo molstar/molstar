@@ -1986,7 +1986,8 @@ export function createPagedCuller(
         ValueCell.updateIfChanged(uniforms.uRasterRowsBase, rasterRowsBase);
         const selectedBase = rasterRowsBase + tablesMembers;
         ValueCell.updateIfChanged(uniforms.uSelectedBase, selectedBase);
-        const copiesBase = selectedBase + 1 + Math.ceil(tablesActive / 4);
+        // the selected entries a vec4 each (a thread's store its own vector: `paged-cull-select`)
+        const copiesBase = selectedBase + 1 + tablesActive;
         ValueCell.updateIfChanged(uniforms.uCopiesBase, copiesBase);
         // the extras last: grown in place, no other section moved (`growExtras`)
         const extrasBase = copiesBase + tablesCopies * CopyVec4s;
@@ -2350,11 +2351,11 @@ export function createPagedCuller(
       compute.submit();
       const count = new Uint32Array(await tables.ref.value.readAsync(base, 16))[0];
       if (count === 0) return [];
-      const list = new Uint32Array(await tables.ref.value.readAsync(base + 16, count * 4));
-      return Array.from(list, (a) => ({
-        page: activeEntries[a * 2] & PagedEntryPageMask,
-        copy: activeEntries[a * 2 + 1],
-      }));
+      const words = new Uint32Array(await tables.ref.value.readAsync(base + 16, count * 16));
+      return Array.from({ length: count }, (_, k) => {
+        const a = words[k * 4];
+        return { page: activeEntries[a * 2] & PagedEntryPageMask, copy: activeEntries[a * 2 + 1] };
+      });
     },
     get valueBlocks() {
       return blockCount - freeBlocks.length;
