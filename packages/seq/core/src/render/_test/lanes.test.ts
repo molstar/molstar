@@ -147,4 +147,15 @@ describe('sticky lanes', () => {
     expect(lanes.assign(['a', 'b', 'c'], [0, 1, 2], [10, 10, 10], [0, 1, 2], 2, false, out)).toBe(2);
     expect([...out]).toEqual([0, 1, -1]);
   });
+
+  // a pan's frame packs again (the layout each frame): the work follows the lanes the data takes, not the bound
+  // `ranges.maxLanes` (1,000) it is given: FX18, a frame at TP53 spent a third of its time clearing empty lanes
+  it('the work follows the lanes used, not the bound given', () => {
+    const lanes = new StickyLanes();
+    const out = new Int32Array(3);
+    for (let k = 0; k < 3; k++)
+      expect(lanes.assign(['a', 'b', 'c'], [0, 1, 2], [10, 10, 10], [0, 1, 2], 1000, k > 0, out)).toBe(3);
+    expect([...out]).toEqual([0, 1, 2]);
+    expect(lanes.held).toBeLessThanOrEqual(4);
+  });
 });

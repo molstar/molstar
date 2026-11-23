@@ -490,6 +490,11 @@ const pieces: number[] = [];
 function place(pl: Placer, a: number, b: number) {
   const axis = pl.axis!;
   if (pl.direct) {
+    // one forward piece (a chromosome, a gene): the per-bin span without the piece search and the break asks
+    if (axis.plain) {
+      if (axis.spanPlain(a, b)) mark(pl, axis);
+      return;
+    }
     axis.piecesIn(a, b);
     const ka = axis.ka;
     const kb = axis.kb;

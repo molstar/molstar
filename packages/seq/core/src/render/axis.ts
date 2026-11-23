@@ -356,6 +356,11 @@ export class AxisTransform {
     if (!this.sorted || this.k1 < this.k0) return;
     const r = this.pieces;
     const n = r.length >> 1;
+    // one piece (a chromosome, a gene: what a pan's per-bin loops meet): it, when the range touches it
+    if (n === 1) {
+      if (r[1] < s || r[0] > e) this.kb = this.ka - 1;
+      return;
+    }
     // genomic order: the first piece ending at or after `s`, the last starting at or before `e`
     let lo = 0;
     let hi = n;
@@ -418,6 +423,33 @@ export class AxisTransform {
     this.sx0 = xa;
     this.sx1 = xb;
     this.scut = cut;
+    return true;
+  }
+
+  /** Whether the axis is one forward piece with no groups or members: `spanPlain` is `spanIn` of it, cheaper. */
+  get plain(): boolean {
+    return this.pieces.length === 2 && this.dir === 1 && this.gsize === 0 && !this.members && this.k1 >= this.k0;
+  }
+
+  /**
+   * `spanIn(0, s, e)` of a `plain` axis for a layout's per-bin loop (a pan's frame meets thousands of bins): no break
+   * is asked, so `scut` is not set. The same extents and the same answer in `sx0` and `sx1` as `spanIn`.
+   */
+  spanPlain(s: number, e: number): boolean {
+    const ps = this.pieces[0];
+    const pe = this.pieces[1];
+    const a = s > ps ? s : ps;
+    const b = e < pe ? e : pe;
+    if (b < a || (b === a && (a === pe || s !== e))) return false;
+    let xa = this.x0 + (a - ps - this.u0) * this.scale;
+    let xb = this.x0 + (b - ps - this.u0) * this.scale;
+    const left = this.x0;
+    const right = this.x0 + this.width;
+    if (s === e ? xb < left || xa > right : xb <= left || xa >= right) return false;
+    if (xa < left) xa = left;
+    if (xb > right) xb = right;
+    this.sx0 = xa;
+    this.sx1 = xb;
     return true;
   }
 
