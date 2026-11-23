@@ -145,6 +145,16 @@ describe('the text layout', () => {
     expect(r.lists.height).toBeGreaterThan(300);
   });
 
+  it('a viewport record handed again with new numbers is laid out again (a caller may reuse its record)', async () => {
+    const s = await settle(p53TextSpec());
+    const vp = { start: 0, end: 393 };
+    const a = await s.frame({ size: Size, viewport: vp });
+    expect((a.layout.sections[0].placement as TextPlacement).anchor).toBe(0);
+    vp.start = 120;
+    const b = s.renderer.frame({ size: Size, viewport: vp });
+    expect((b.layout.sections[0].placement as TextPlacement).anchor).toBe(120);
+  });
+
   it('numbers at both ends: a line’s first and last position; inline group labels in the gap after their group', async () => {
     const s = await settle(p53TextSpec({ numbers: 'both', group_labels: 'inline' }));
     const f = await s.frame({ size: Size });
