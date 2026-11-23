@@ -1,0 +1,7 @@
+{
+  "why": "Seq*'s packages and command-line packages are held to their own documents; packages/seq/AGENTS.md is the one pointer to the scaffold.",
+  "code": "^(packages/|cli/)",
+  "own": "^(packages/seq/|cli/seqx)",
+  "pointers": ["packages/seq/AGENTS.md"],
+  "pending": []
+}

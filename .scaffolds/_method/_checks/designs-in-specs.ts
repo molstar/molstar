@@ -1,65 +1,47 @@
-// The designs-in-specs check (the sixth slice's stage 1, `execution/sixth-slice/plan.md`): every agreed design's
-// decisions that the code follows are in a package's `_spec`, or say why they stay in the design. A design with a
-// decision heading (`## Decision`, `## Decisions`, `## Decided …`) has an `## In the specs` section: a table whose rows
-// are `| <decision> | <where> |`, `<where>` either `<spec> › <section>` (the section a heading or a bold lead,
-// `- **<section>**`, in that spec, matched by its start) or `design-only: <reason>`. The specs:
-//   core      packages/seq/core/_spec/README.md
-//   viewer    packages/seq/viewer/_spec/README.md
-//   ext-rondo packages/seq/ext-rondo/_spec/README.md
-//   repr      packages/core/src/repr/_spec/README.md
-//   immutable packages/core/src/data/immutable/_spec/README.md
-//   examples  packages/seq/examples/_spec/README.md
-// Designs with no decision heading (plans, catalogs, the vision) are not checked. `PENDING` lists the designs not yet
-// reconciled when the check was written (2026-11-23); it only shrinks, and stage 1 is done when it is empty.
+// The designs-in-specs check (§mechanical-drift-checks; a scaffold is never cited by code, so what the code follows
+// lives in the packages' `_spec`): every agreed design's decisions that the code follows are in a package's `_spec`,
+// or say why they stay in the design. A design with a decision heading (`## Decision`, `## Decisions`, `## Decided …`)
+// has an `## In the specs` section: a table whose rows are `| <decision> | <where> |`, `<where>` either
+// `<spec> › <section>` (the section a heading or a bold lead, `- **<section>**`, in that spec, matched by its start) or
+// `design-only: <reason>`. Designs with no decision heading (plans, catalogs, the vision) are not checked.
 // `--worklist` prints every design that fails, pending or not.
-// Usage: designs-in-specs.ts [root] [--worklist]
+// The method's, not an instance's: the rule holds for every scaffold that governs code. The instance's part is
+// `<instance>/_checks/designs-in-specs.json`, required: `{ "specs": { "<key>": "<path of a _spec file>" },
+// "pending": ["<design file name without .md>"] }`; `pending` lists the designs not yet reconciled and only shrinks.
+// A spec that does not exist yet reads as one with no sections.
+// Usage: designs-in-specs.ts [root] --instance .scaffolds/<name> [--worklist]
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { args, finish, trackedFiles } from "../../principles/_checks/lib.ts";
+import { finish, instanceFile, methodArgs, section, trackedFiles } from "./lib.ts";
 
-const DESIGNS = ".scaffolds/seq/design/";
-const SPECS: Record<string, string> = {
-  core: "packages/seq/core/_spec/README.md",
-  viewer: "packages/seq/viewer/_spec/README.md",
-  "ext-rondo": "packages/seq/ext-rondo/_spec/README.md",
-  repr: "packages/core/src/repr/_spec/README.md",
-  immutable: "packages/core/src/data/immutable/_spec/README.md",
-  examples: "packages/seq/examples/_spec/README.md",
-};
-/** Designs not reconciled when the check was written (file names without `.md`). Only ever shrinks. */
-const PENDING = new Set<string>([]);
-
-const argv = process.argv.slice(2);
-const WORKLIST = argv.includes("--worklist");
-if (WORKLIST) process.argv.splice(process.argv.indexOf("--worklist"), 1);
-const { root: ROOT } = args();
-
-function section(text: string, title: RegExp): string | undefined {
-  const lines = text.split("\n");
-  const from = lines.findIndex((l) => /^## /.test(l) && title.test(l.slice(3)));
-  if (from < 0) return undefined;
-  let to = lines.findIndex((l, i) => i > from && /^## /.test(l));
-  if (to < 0) to = lines.length;
-  return lines.slice(from + 1, to).join("\n");
-}
+const { root: ROOT, instance: INSTANCE, flags } = methodArgs({ flags: ["--worklist"] });
+const WORKLIST = flags.has("--worklist");
+const DESIGNS = `${INSTANCE}/design/`;
+const { specs: SPECS = {}, pending = [] } = instanceFile<{ specs?: Record<string, string>; pending?: string[] }>(
+  ROOT,
+  INSTANCE,
+  "designs-in-specs.json",
+);
+/** Designs not reconciled when the check was written. Only ever shrinks. */
+const PENDING = new Set(pending);
 
 const specLeads = new Map<string, string[]>();
 function leads(spec: string): string[] {
   let l = specLeads.get(spec);
   if (l) return l;
-  const path = join(ROOT, SPECS[spec]);
+  const path = join(ROOT, SPECS[spec] as string);
   const text = existsSync(path) ? readFileSync(path, "utf8") : "";
   l = [];
   for (const line of text.split("\n")) {
     const h = /^#+\s+(.*)$/.exec(line);
-    if (h) l.push(h[1].trim());
-    for (const m of line.replace(/\\\*/g, "\u2217").matchAll(/\*\*([^*]+)\*\*/g)) l.push(m[1].replace(/\u2217/g, "*").trim());
+    if (h) l.push((h[1] as string).trim());
+    for (const m of line.replace(/\\\*/g, "∗").matchAll(/\*\*([^*]+)\*\*/g))
+      l.push((m[1] as string).replace(/∗/g, "*").trim());
   }
   specLeads.set(spec, l);
   return l;
 }
 const norm = (s: string) => s.replace(/\\/g, "").replace(/[`*]/g, "").toLowerCase().trim();
-// a spec that does not exist yet (examples, before its lane) reads as no sections
 
 const problems: string[] = [];
 const worklist: string[] = [];
@@ -79,12 +61,12 @@ for (const f of trackedFiles(ROOT)) {
       const where = cells[1] ?? "";
       if (/^design-only:\s*\S/.test(where)) continue;
       const m = /^`?([a-z-]+)`?\s*›\s*(.+)$/.exec(where);
-      if (!m || !(m[1] in SPECS)) {
+      if (!m || !((m[1] as string) in SPECS)) {
         own.push(`${f}: "${cells[0]}": where is neither "<spec> › <section>" nor "design-only: <reason>"`);
         continue;
       }
-      const want = norm(m[2]);
-      if (!leads(m[1]).some((l) => norm(l).startsWith(want)))
+      const want = norm(m[2] as string);
+      if (!leads(m[1] as string).some((l) => norm(l).startsWith(want)))
         own.push(`${f}: "${cells[0]}": ${m[1]} has no section "${m[2]}"`);
     }
   }
@@ -95,5 +77,5 @@ for (const f of trackedFiles(ROOT)) {
 if (WORKLIST) console.log(`designs-in-specs: owed\n${worklist.map((w) => `  - ${w}`).join("\n")}`);
 for (const id of PENDING)
   if (!worklist.some((w) => w.startsWith(`${DESIGNS}${id}.md:`)) && existsSync(join(ROOT, `${DESIGNS}${id}.md`)))
-    problems.push(`${DESIGNS}${id}.md: passes now: drop it from PENDING`);
+    problems.push(`${DESIGNS}${id}.md: passes now: drop it from designs-in-specs.json's pending`);
 finish("designs-in-specs", problems);

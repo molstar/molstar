@@ -1,0 +1,12 @@
+{
+  "why": "The packages' specs a design's In the specs rows name by key; pending: the designs not reconciled (empty since the sixth slice's stage 1, 2026-11-23; only shrinks).",
+  "specs": {
+    "core": "packages/seq/core/_spec/README.md",
+    "viewer": "packages/seq/viewer/_spec/README.md",
+    "ext-rondo": "packages/seq/ext-rondo/_spec/README.md",
+    "repr": "packages/core/src/repr/_spec/README.md",
+    "immutable": "packages/core/src/data/immutable/_spec/README.md",
+    "examples": "packages/seq/examples/_spec/README.md"
+  },
+  "pending": []
+}

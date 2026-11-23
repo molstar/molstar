@@ -1,40 +1,25 @@
-// The features-planned check (the fourth slice's fold-back, B7): a row of `.scaffolds/seq/design/features.md` whose status says
-// "planned" or "to come" fails once every lane of its design is merged in the plan (§features-move-with-merges: the
-// lane that builds a feature moves its row in its own change). The rows name designs, not lanes: the plan's "The
-// designs" table (`| [<design>](<file>.md) ... | <lane>, <lane>; ... |`) maps each design to its lanes, and a lane is
-// merged by a line `- [x] **<LANE>**`, `- [x] **<LANE>, <LANE>**` or `- [x] <LANE>`. A row names its designs by the
-// links of its Design column; a row whose designs are not in the table cannot be checked. The status column is found
-// by the header's index. The plan is the fifth slice's by default.
-// Usage: features-planned.ts [root] [--plan <path, relative to the root>]
+// The features-planned check (the rule "the features table moves with the merges", from Seq*'s fold-backs): a row of
+// the scaffold's features table whose status says "planned" or "to come" fails once every lane of its design is merged
+// in the plan (the lane that builds a feature moves its row in its own change). The rows name designs, not lanes: the
+// plan's "The designs" table (`| [<design>](<file>.md) ... | <lane>, <lane>; ... |`, the method's plan template) maps
+// each design to its lanes, and a lane is merged by a line `- [x] **<LANE>**`, `- [x] **<LANE>, <LANE>**` or
+// `- [x] <LANE>`. A row names its designs by the links of its Design column; a row whose designs are not in the table
+// cannot be checked. The status column is found by the header's index (`Feature`, `Status`, `Design`).
+// The method's, not an instance's: it reads only the method's plan shape and a features table; a scaffold with no
+// features table passes `--features` to another or does not run it. No instance file: the plan is always given, since
+// a check never names a work folder (§execution-unreferenced).
+// Usage: features-planned.ts [root] --instance .scaffolds/<name> --plan <plan.md, from the root>
+//        [--features <table, from the root; default <instance>/design/features.md>]
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { args, finish } from "../../principles/_checks/lib.ts";
+import { finish, methodArgs, usage } from "./lib.ts";
 
-const FEATURES = ".scaffolds/seq/design/features.md";
-const argv = process.argv.slice(2);
-let plan: string | undefined; // the slice's plan, always given: a check never names a work folder (§execution-unreferenced)
-const at = argv.indexOf("--plan");
-if (at >= 0) {
-  const v = argv[at + 1];
-  if (v === undefined || v.startsWith("--")) {
-    console.error("usage: --plan needs a value");
-    process.exit(2);
-  }
-  plan = v;
-  argv.splice(at, 2);
-}
-if (plan === undefined) {
-  console.error("usage: features-planned.ts --plan <the slice's plan.md>");
-  process.exit(2);
-}
-process.argv.splice(2, process.argv.length, ...argv);
-const { root: ROOT } = args();
+const { root: ROOT, instance: INSTANCE, values } = methodArgs({ values: ["--plan", "--features"] });
+const plan = values.get("--plan") ?? usage("features-planned.ts --instance <dir> --plan <the work's plan.md>");
+const FEATURES = values.get("--features") ?? `${INSTANCE}/design/features.md`;
 
 function read(file: string): string {
-  if (!existsSync(join(ROOT, file))) {
-    console.error(`usage: no ${file} under ${ROOT}`);
-    process.exit(2);
-  }
+  if (!existsSync(join(ROOT, file))) usage(`no ${file} under ${ROOT}`);
   return readFileSync(join(ROOT, file), "utf8");
 }
 
@@ -54,7 +39,7 @@ for (const line of planText.split("\n")) {
 const merged = new Set<string>();
 for (const line of planText.split("\n")) {
   const m = /^\s*- \[x\]\s+\**((?:[A-Z][A-Z0-9]*)(?:\s*[,;]\s*[A-Z][A-Z0-9]*)*)/.exec(line);
-  if (m) for (const id of m[1].match(LaneId) ?? []) merged.add(id);
+  if (m) for (const id of (m[1] as string).match(LaneId) ?? []) merged.add(id);
 }
 
 const problems: string[] = [];
