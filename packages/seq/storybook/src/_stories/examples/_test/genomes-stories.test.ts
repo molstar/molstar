@@ -310,7 +310,9 @@ describe('Examples/Genomes, headless', () => {
     expect(AliasedMarks.target).toContain('MT');
     // toy A's lengths are the adapter's (no manifest, EC-188); the HLA contig's from the FASTA, read by its name
     const systems = v.view.model.value.systems;
-    expect(systems.get('/data/hla')?.length).toBe(3_503);
+    const hla = [...systems.values()].filter((x) => x.name === 'HLA-A*01:01:01:01');
+    // twice: toy A's (the adapter's) and the small FASTA's, each 3,503 long
+    expect(hla.map((x) => x.length)).toEqual([3_503, 3_503]);
     expect([...systems.values()].some((x) => x.name === 'chr1' && x.length === 300_000)).toBe(true);
     await bothThemes(v, ['seq.resolve.assembly.name']);
   });

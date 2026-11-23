@@ -17,7 +17,7 @@ import { type Files, fileSource, GenomesFiles, LettersA, LettersFormat } from '.
 // EC-200).
 
 export const NamesSection = '/views/main/toy-a';
-export const HlaSection = '/views/main/hla';
+export const FastaSection = '/views/main/fasta';
 
 /** The marks' rows: each named as another file would name its sequence. */
 export const AliasedMarks = {
@@ -35,17 +35,19 @@ export function namesAliased(files: Files = GenomesFiles): Node {
     alias_source: fileSource(b, 'aliases', 'seq', files.aliases),
   } as never);
   const marks = b.data.ranges('marks', { target: a, rows: { ...AliasedMarks } } as never);
-  const fasta = fileSource(b, 'small-fasta', 'fasta', files.fasta);
-  const hla = b.data.sequence('hla', { alphabet: 'dna', source: fasta, name: HlaName } as never);
+  // the small FASTA (chrM and the HLA contig) as an assembly of its own: its sequences and lengths the file's
+  const fasta = b.data.assembly('small-fasta', {
+    name: 'Toy A, the small FASTA',
+    source: fileSource(b, 'small-fasta-file', 'fasta', files.fasta),
+  } as never);
   b.views.view('main', (v) => {
     genome(v, 'toy-a', a, {}, (s) => {
       s.track('letters', { label: 'Letters', height: 18 }).layer('letters', { type: 'letters' });
       s.track('marks', { label: 'Named elsewhere' }).layer('marks', { type: 'ranges', data: marks } as never);
     });
-    v.section('hla', { of: hla }, (s) => {
-      s.track('ruler', { label: '' }).layer('ruler', { type: 'ruler', units: 'bases' });
-      s.track('letters', { label: 'HLA-A*01:01:01:01 (FASTA)', height: 18 }).layer('letters', { type: 'letters' });
-    });
+    genome(v, 'fasta', fasta, {}, (s) =>
+      s.track('letters', { label: 'Letters (FASTA)', height: 18 }).layer('letters', { type: 'letters' }),
+    );
   });
   return b.build();
 }
