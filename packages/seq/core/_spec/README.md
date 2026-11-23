@@ -2845,11 +2845,12 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 
 - `SeqTokens`: every color the lists use (`msui-*` chrome, `seq-*` data: tracks, ink, missing, pending, conflict, the
   break ink (`seq-break`), residue and nucleotide classes, eight categories (chosen apart under the three color-vision
-  deficiencies in both tables), the density ramp, a five-stop ramp and a diverging triple, secondary structure
-  (`seq-ss-helix`, `-strand`, `-turn`), `seq-variant`, `seq-ruler`, a modified position's outline (`seq-modified`, the
-  letters' `modified: tint`), the navigator's window, grip and wash, the centromere, a letter cell's edge), as
-  `0xRRGGBBAA`, the logo's chroma floor (`seq-logo-chroma`, a number) and the font stacks of the two family roles. Node
-  has a light and a dark table (`LightTokens`, `DarkTokens`); the viewer reads its own from CSS.
+  deficiencies in both tables), the density ramp, a five-stop ramp and a diverging triple, four genotype classes
+  (`seq-genotype-0` to `-3`, beside `seq-missing` for uncalled), secondary structure (`seq-ss-helix`, `-strand`,
+  `-turn`), `seq-variant`, `seq-ruler`, a modified position's outline (`seq-modified`, the letters' `modified: tint`),
+  the navigator's window, grip and wash, the centromere, a letter cell's edge), as `0xRRGGBBAA`, the logo's chroma floor
+  (`seq-logo-chroma`, a number) and the font stacks of the two family roles. Node has a light and a dark table
+  (`LightTokens`, `DarkTokens`); the viewer reads its own from CSS.
 - **A letter cell's edge** (`seq-cell-edge`): in the dark table a hairline, 1 device px, around each cell drawn with its
   letter (the letters layer's `letters` step, a rows layer's letter cells), at 3:1 against the page; none (transparent)
   in the light table. Why: the dark scheme colors sit at 1.4–1.7:1 against the dark page and cannot go lighter without
@@ -4493,11 +4494,12 @@ band (EC-220 to EC-222), inline or a source's, read through the store either way
 - **Bins at a coarser level** (`layerLevel`): a store tile one image tile (bins × states, never smoothed) in the shared
   image LRU by layer, the tile and its version, the colors' version and the axis's direction, placed on the device grid.
 - **Color**: values by the layer's `color` channel by value (its open domain the range of the tiles read), a missing
-  value transparent; codes by class (`0` `seq-ramp-0`, `1` `seq-ramp-2`, `2` `seq-ramp-4`, `3` `seq-ramp-1`), uncalled
-  (`255`) `seq-missing`; a bin's code its majority class at its share's strength (the colour's alpha × share).
+  value transparent; codes by class (`0` `seq-genotype-0`, `1` `seq-genotype-1`, `2` `seq-genotype-2`, `3`
+  `seq-genotype-3`; tokens of their own, so a theme changing the value ramp leaves genotypes alone), uncalled (`255`)
+  `seq-missing`; a bin's code its majority class at its share's strength (the colour's alpha × share).
 - **Legend**: values the `color` channel's; codes their classes as swatches in the cells' colours (`no copy`,
   `some copies`, `every copy`, `partly called`, `uncalled`), never a ramp: a code is a class, not a value. The classes'
-  tokens are an open question for the author.
+  tokens are `seq-genotype-*`.
 - **Pending**: a region not loaded is the pending fill across the band, never empty (EC-169); the layer's wants are
   bounded together (`readTiles`'s layer key: past them the band's "zoom in").
 - **Hit**: `target: 'cell'`, `position` on x, `ySystem` the states system, `yPosition` the state; `bin` at a coarse

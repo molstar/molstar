@@ -10,7 +10,7 @@
 // is a rect a state row at its own extent, a long one solid across the columns it covers (drawn first: the short ones
 // over it); at a coarser level the bins are one image tile a store tile (bins × states, never smoothed) in the shared
 // image cache. Values are coloured by the layer's `color` channel by value (its open domain the range of the tiles
-// read), codes by the genotype classes' tokens; a missing value transparent, an uncalled code `seq-missing`. A tile not
+// read), codes by the genotype classes' own tokens (`seq-genotype-*`, not the value ramp); a missing value transparent, an uncalled code `seq-missing`. A tile not
 // loaded is pending across the band, never empty (EC-169); the layer's wants are bounded together (`readTiles`'s key).
 
 import type { Node, Value } from '@molstar/core/repr/tree';
@@ -51,7 +51,7 @@ const ValueEnv = { numeric: (n: string) => n === 'value' };
 const DefaultColor = themeForm.field('value', { list: false });
 
 /** A genotype class's token (`0` no copy, `1` some, `2` every copy, `3` partly called); `255` uncalled. */
-const CodeTokens = ['seq-ramp-0', 'seq-ramp-2', 'seq-ramp-4', 'seq-ramp-1'] as const;
+const CodeTokens = ['seq-genotype-0', 'seq-genotype-1', 'seq-genotype-2', 'seq-genotype-3'] as const;
 const Uncalled = 255;
 
 /** A row's height when the band does not say and the states do not fit it: a state at least this many px. */
