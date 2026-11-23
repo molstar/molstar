@@ -39,6 +39,7 @@ export { type Key, type Keys, type Location, rangesLocation } from '@molstar/seq
 export type { Overlay, PairsData, StaticModel } from '@molstar/seqx-core/resolve';
 export {
   type Box,
+  channelLegends,
   type ContentContext,
   type Emphasis,
   type Hit,

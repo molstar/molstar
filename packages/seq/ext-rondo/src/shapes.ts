@@ -96,9 +96,12 @@ function made(lay: RondoLay, kind: number, ref: number, color: number): number {
 
 const alpha = (c: number, a: number) => ((c & 0xffffff00) | Math.round(Math.max(0, Math.min(1, a)) * 255)) >>> 0;
 
-/** A system's hue (its index in the systems' order: the domain taken before `include`). */
+/**
+ * A system's hue (its index in the systems' order: the domain taken before `include`); the layer's one colour when it
+ * has one (a fixed colour, a field's): stems, stubs and fans take it.
+ */
 export function hueOf(lay: RondoLay, sys: number): number {
-  return lay.hues[sys % lay.hues.length];
+  return lay.one >= 0 ? lay.one : lay.hues[sys % lay.hues.length];
 }
 
 const C4 = new Float64Array(4);
@@ -109,7 +112,7 @@ export function polygons(lay: RondoLay, prep: RondoPrep, cfg: RondoConfig, ctx: 
   const P = lay.polys;
   const seg = Math.max(2, cfg.flatten);
   const dn = cfg.stemDepth * f.room;
-  const op = lay.fillOpacity;
+  const op = lay.fillOpacity * lay.opacity;
   // trumpets (a stem's mouth to its neck: two cubics flaring), stems: `none` draws none
   for (let s = 0; s < lay.ns; s++) {
     if (!lay.stemPlaced[s] || lay.stemCount[s] <= 0) continue;
@@ -161,7 +164,8 @@ export function polygons(lay: RondoLay, prep: RondoPrep, cfg: RondoConfig, ctx: 
     f.point(C4[2], dn);
     P.add(f.px, f.py);
     addCubic(f, P, seg, C4[2], dn, C4[2], dc2, C4[3], dc2, C4[3], dn);
-    lay.ribPoly[r] = made(lay, Kind.ribbon, r, alpha(hueOf(lay, lay.stemSystem[a]), op));
+    const color = lay.byRow ? lay.ribColor[r] : hueOf(lay, lay.stemSystem[a]);
+    lay.ribPoly[r] = made(lay, Kind.ribbon, r, alpha(color, op));
     slop(lay, lay.ribPoly[r], lay.k * lay.ribCount[r], cfg.hitSlopPx);
   }
   // stubs: a taper from the neck toward the centre, in the partner's hue, labelled at its tip where it has room
@@ -180,8 +184,8 @@ export function polygons(lay: RondoLay, prep: RondoPrep, cfg: RondoConfig, ctx: 
     P.add(f.px, f.py);
     f.point(mid, tipD);
     P.add(f.px, f.py);
-    // a folded stub (partner −1) in the muted text's colour: no one partner's hue
-    const hue = lay.stubPartner[s] < 0 ? lay.muted : hueOf(lay, lay.stubPartner[s]);
+    // a folded stub (partner −1) in the muted text's colour (no one partner's hue), or the layer's one colour
+    const hue = lay.stubPartner[s] < 0 ? (lay.one >= 0 ? lay.one : lay.muted) : hueOf(lay, lay.stubPartner[s]);
     lay.stubPoly[s] = made(lay, Kind.stub, s, alpha(hue, op));
     slop(lay, lay.stubPoly[s], lay.k * lay.stubCount[s], cfg.hitSlopPx);
   }
@@ -243,6 +247,8 @@ function hitsOf(lay: RondoLay) {
       stem = lay.ribA[ref];
       const b = lay.ribB[ref];
       key = `ribbon:${lay.systems[lay.stemSystem[stem]]}:${lay.stemBin[stem]}|${lay.systems[lay.stemSystem[b]]}:${lay.stemBin[b]}|${lay.ribStrand[ref]}`;
+      // a field colour by link: the stem pair's ribbons told apart by colour
+      if (lay.byRow) key += `|${(lay.ribColor[ref] >>> 8).toString(16).padStart(6, '0')}`;
       count = lay.ribCount[ref];
       lay.ribKey[ref] = key;
     } else if (kind === Kind.stub) {

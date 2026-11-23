@@ -9,12 +9,14 @@ import {
   type LayoutContext,
   type PairsRead,
   PairsReader,
+  type PairsReadOptions,
   type PairsSource,
   PlacePoint,
   placesOf,
   type ResolvedSection,
   type StaticModel,
   type StoreReader,
+  theme,
 } from '@molstar/seqx-core/extension';
 import { composedConfig, DefaultRondoConfig, type RondoConfig } from './config.js';
 import { grow, Polygons, RibbonFrame } from './geometry.js';
@@ -37,10 +39,22 @@ export interface RondoPrep {
   readonly opens?: string;
   /** The colours: the 24 hues (`rondo:hues` named by the layer's colour), else the categorical tokens. */
   readonly hues: boolean;
+  /** Whether the layer writes its colour (its `color` channel read: a fixed colour, a field's); else the block hue. */
+  readonly colored: boolean;
+  /** What a ribbon is wide by: `count` (the links), or a numeric field summed (`q`). */
+  readonly width: string;
+  /** The layer's name in its card and legend (its kind's: `rondoRing`'s `kinds`); empty when none. */
+  readonly label: string;
   readonly config: RondoConfig;
 }
 
+/** How the layer is coloured (_spec/README.md, Colour): its blocks' hues, one colour, or a field's colour a link. */
+export const ColorMode = { system: 0, fixed: 1, field: 2 } as const;
+
 export { Kind } from './shapes.js';
+
+/** A compiled colour channel (the layer's kept channels' `get`). */
+type Channel = ReturnType<PairsSource['channels']['get']>;
 
 /** The layer's layout: its stems, ribbons, stubs and fans, their polygons, its hit grid. */
 export class RondoLay {
@@ -73,6 +87,23 @@ export class RondoLay {
   ink = 0;
   /** A folded stub's colour (no one partner's hue). */
   muted = 0;
+  /** How it is coloured (`ColorMode`), its colour channel when it reads one. */
+  mode: number = ColorMode.system;
+  channel: Channel | undefined = undefined;
+  /**
+   * The layer's one colour (`0xRRGGBBAA`), stems', stubs' and fans' and every ribbon's but a field's at the item level:
+   * the fixed colour; a field colour's value when every link read shares it, else the ranges' ink. −1: the blocks' hues.
+   */
+  one = -1;
+  /** A field colour read link by link (items, its values mixed): each ribbon its links' colour. */
+  byRow = false;
+  /** The layer's `opacity` (its channel's uniform value), a factor of `ribbons.fillOpacity`. */
+  opacity = 1;
+  /** Its name (`label`) and what it is wide by (`count`, or a field summed). */
+  label = '';
+  width = 'count';
+  /** The lays of its section (itself among them): a bin's card counts each layer's links there. */
+  peers: readonly RondoLay[] = [];
   font = '';
   /** The systems the ends are on, in the assembly's order (the hue domain, taken before `include`), and their names. */
   systems: readonly string[] = [];
@@ -108,6 +139,10 @@ export class RondoLay {
   ribB = new Int32Array(64);
   ribStrand = new Int8Array(64);
   ribCount = new Float64Array(64);
+  /** Its links (its count when wide by `count`), its colour (a field colour by link), its first row (its card's fields). */
+  ribLinks = new Float64Array(64);
+  ribColor = new Uint32Array(64);
+  ribRow = new Int32Array(64);
   ribDrawn = new Uint8Array(64);
   ribKind = new Int32Array(64);
   /** Its slices: at A (low, high place) and at B. */
@@ -219,6 +254,9 @@ function growRibbons(lay: RondoLay, n: number) {
   lay.ribB = grow(lay.ribB, n);
   lay.ribStrand = grow(lay.ribStrand, n);
   lay.ribCount = grow(lay.ribCount, n);
+  lay.ribLinks = grow(lay.ribLinks, n);
+  lay.ribColor = grow(lay.ribColor, n);
+  lay.ribRow = grow(lay.ribRow, n);
   lay.ribDrawn = grow(lay.ribDrawn, n);
   lay.ribKind = grow(lay.ribKind, n);
   lay.ribA0 = grow(lay.ribA0, n);
@@ -300,7 +338,9 @@ function frameOf(lay: RondoLay, ctx: LayoutContext): boolean {
     f.polar = true;
     f.cx = w.cx;
     f.cy = w.cy;
-    f.r = w.r0 - (s.bandY[band] + s.bandH[band]);
+    // the hole's rim: the innermost band's inner edge, whichever band holds the layer (kinds of links in tracks of
+    // their own share one rim)
+    f.r = w.r0 - (s.bandY[nb - 1] + s.bandH[nb - 1]);
     f.room = Math.max(1, f.r);
     return true;
   }
@@ -344,8 +384,9 @@ function placeStems(lay: RondoLay, ctx: LayoutContext, model: StaticModel) {
   }
 }
 
-/** The ribbons' read options (the gate the drawn bound: `rondo.maxRibbons`), kept. */
+/** The ribbons' read options (the gate the drawn bound: `rondo.maxRibbons`; a field summed when wide by one), kept. */
 const Options = { gate: 1024 };
+const OptionsSum = { gate: 1024, sum: '' };
 
 /**
  * Lays out the ribbons of a frame (allocation bounded a frame: the polygons and the hit grid are kept buffers, the
@@ -380,8 +421,16 @@ export function layoutRondo(lay: RondoLay, prep: RondoPrep, ctx: LayoutContext, 
     lay.empty = 'layout';
     return;
   }
-  Options.gate = cfg.maxRibbons;
-  const read = lay.reader.read(prep.source, ctx, data, Options);
+  lay.label = prep.label;
+  lay.width = prep.width;
+  peersOf(lay, ctx);
+  let options: PairsReadOptions = Options;
+  if (prep.width !== 'count') {
+    OptionsSum.gate = cfg.maxRibbons;
+    OptionsSum.sum = prep.width;
+    options = OptionsSum;
+  } else Options.gate = cfg.maxRibbons;
+  const read = lay.reader.read(prep.source, ctx, data, options);
   lay.read = read;
   const d = read?.data;
   if (!read || !d) {
@@ -406,6 +455,8 @@ export function layoutRondo(lay: RondoLay, prep: RondoPrep, ctx: LayoutContext, 
     lay.hues = new Uint32Array(8);
     for (let i = 0; i < 8; i++) lay.hues[i] = tokens.colors[`seq-cat-${i}` as 'seq-cat-0'];
   }
+  colorsOf(lay, prep, ctx, read);
+  weightsOf(lay, prep, ctx, read);
   gather(lay, read, d.aUnit, d.bUnit);
   placeStems(lay, ctx, prep.model);
   aggregate(lay, read);
@@ -425,6 +476,105 @@ export function layoutRondo(lay: RondoLay, prep: RondoPrep, ctx: LayoutContext, 
   necks(lay, cfg);
   polygons(lay, prep, cfg, ctx);
   hitGrid(lay, cfg.hitCellPx);
+}
+
+/** The section's lays by its resolved section (a new resolve, a new list): each layout adds its own once. */
+const Peers = new WeakMap<object, RondoLay[]>();
+
+function peersOf(lay: RondoLay, ctx: LayoutContext) {
+  let list = Peers.get(ctx.section);
+  if (!list) Peers.set(ctx.section, (list = []));
+  // one lay a layer: a lay laid out again for the same key replaces the one before it
+  const at = list.findIndex((l) => l === lay || l.key === lay.key);
+  if (at < 0) list.push(lay);
+  else list[at] = lay;
+  lay.peers = list;
+}
+
+/** Each row's colour (a field colour), its ribbon's colour class by colour, made a layout; kept buffers. */
+let RowColor = new Uint32Array(256);
+const ColorClass = new Map<number, number>();
+const classOf = (c: number) => {
+  let k = ColorClass.get(c);
+  if (k === undefined) ColorClass.set(c, (k = Math.min(63, ColorClass.size)));
+  return k;
+};
+
+/** The colour channel's default where the layer writes one it cannot read (a scheme that does not fit): the hues. */
+const SystemColor = theme.field('system', { palette: theme.categorical({ colors: 'categories', repeat: true }) });
+const PairEnds = new Set(['a_start', 'a_end', 'b_start', 'b_end']);
+
+/**
+ * The layer's colour (_spec/README.md, Colour): absent or by `system`, the blocks' hues; a fixed colour, every polygon's;
+ * another field (`type`) read link by link: at the item level each ribbon its links' colour (a stem pair split by
+ * colour), at the bins level the layer's one colour, its value when every link read shares it, else the ranges' ink and
+ * `rondo.ribbons.color` said (a bin sums links of several values). The `opacity` channel's uniform value scales the
+ * fill.
+ */
+function colorsOf(lay: RondoLay, prep: RondoPrep, ctx: LayoutContext, read: PairsRead) {
+  lay.mode = ColorMode.system;
+  lay.channel = undefined;
+  lay.one = -1;
+  lay.byRow = false;
+  const channels = prep.source.channels;
+  const o = channels.get('opacity', 1, ctx).constant;
+  lay.opacity = typeof o === 'number' && o >= 0 ? Math.min(1, o) : 1;
+  if (!prep.colored) return;
+  const d = read.data!;
+  const domain = ctx.section.domains?.system;
+  const c = channels.get('color', SystemColor, ctx, {
+    numeric: (n: string) => PairEnds.has(n) || !!d.extra?.[n]?.some((v) => typeof v === 'number'),
+    categories: (f: string) => (f === 'system' ? domain : undefined),
+  });
+  lay.channel = c;
+  if (c.field === 'system') return;
+  if (typeof c.constant === 'number') {
+    lay.mode = ColorMode.fixed;
+    lay.one = c.constant;
+    return;
+  }
+  lay.mode = ColorMode.field;
+  const datum = (read as PairsSource).datum;
+  const ink = ctx.tokens.colors['seq-range'];
+  RowColor = grow(RowColor, d.n);
+  let first = -1;
+  let mixed = false;
+  for (let k = 0; k < d.n; k++) {
+    if (!read.shown[k]) continue;
+    const v = datum ? c.at(datum.set(k)) : undefined;
+    const col = typeof v === 'number' ? v >>> 0 : ink;
+    RowColor[k] = col;
+    if (first < 0) first = col;
+    else if (col !== first) mixed = true;
+  }
+  lay.one = first < 0 || mixed ? ink : first;
+  lay.byRow = lay.items && mixed;
+  if (mixed && !lay.items)
+    ctx.report({
+      code: 'rondo.ribbons.color',
+      severity: 'info',
+      message: `A colour by ${c.field ?? 'a field'} is read link by link: the bins sum links of several values, drawn in one colour`,
+      address: ctx.key,
+    } as never);
+}
+
+/** Each row's weight (`width`): its count, or the field summed (a held bin's sum, an item's value), kept. */
+let RowW = new Float64Array(256);
+
+function weightsOf(lay: RondoLay, prep: RondoPrep, ctx: LayoutContext, read: PairsRead) {
+  const d = read.data!;
+  const w = read.weight;
+  const col = prep.width === 'count' ? undefined : d.extra?.[prep.width];
+  const numeric = !!col?.some((v) => typeof v === 'number');
+  if (prep.width !== 'count' && !numeric)
+    ctx.report({
+      code: 'rondo.ribbons.width',
+      severity: 'info',
+      message: `Ribbons wide by count: the links read carry no numeric ${prep.width}`,
+      address: ctx.key,
+    } as never);
+  RowW = grow(RowW, d.n);
+  for (let k = 0; k < d.n; k++) RowW[k] = numeric ? Number(col![k]) || 0 : w ? w[k] : 1;
 }
 
 /** Row ends into stems (each row once), counted: `rows` its stems by row. */
@@ -454,13 +604,15 @@ function gather(lay: RondoLay, read: PairsRead, aUnit: Int32Array | undefined, b
 function aggregate(lay: RondoLay, read: PairsRead) {
   const d = read.data!;
   const w = read.weight;
+  const W = RowW;
   RibbonKeys.clear();
+  ColorClass.clear();
   StubKeys.clear();
   for (let k = 0; k < d.n; k++) {
     const a = RowA[k];
     if (a < 0) continue;
     const b = RowB[k];
-    const c = w ? w[k] : 1;
+    const c = W[k];
     const pa = lay.stemPlaced[a];
     const pb = lay.stemPlaced[b];
     if (!pa && !pb) continue;
@@ -474,7 +626,8 @@ function aggregate(lay: RondoLay, read: PairsRead) {
       const hi = Math.max(a, b);
       const first = lay.stemSystem[a] < lay.stemSystem[b] || (lay.stemSystem[a] === lay.stemSystem[b] && a < b) ? a : b;
       const strand = d.aStrand[k] * d.bStrand[k] < 0 ? -1 : 1;
-      const key = (lo * 1048576 + hi) * 2 + (strand < 0 ? 1 : 0);
+      // a field colour by link: one ribbon a stem pair, a strand and a colour (kinds are layers, never mixed in a ribbon)
+      const key = ((lo * 1048576 + hi) * 2 + (strand < 0 ? 1 : 0)) * 64 + (lay.byRow ? classOf(RowColor[k]) : 0);
       let r = RibbonKeys.get(key);
       if (r === undefined) {
         r = lay.nr++;
@@ -484,9 +637,13 @@ function aggregate(lay: RondoLay, read: PairsRead) {
         lay.ribStrand[r] = strand;
         lay.ribCount[r] = 0;
         lay.ribKind[r] = d.kind[k];
+        lay.ribLinks[r] = 0;
+        lay.ribColor[r] = lay.byRow ? RowColor[k] : 0;
+        lay.ribRow[r] = k;
         RibbonKeys.set(key, r);
       }
       lay.ribCount[r] += c;
+      lay.ribLinks[r] += w ? w[k] : 1;
       lay.stemCount[a] += c;
       lay.stemCount[b] += c;
       continue;

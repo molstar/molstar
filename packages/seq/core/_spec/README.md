@@ -4369,14 +4369,16 @@ cost to the minimal viewer is the names the chunk imports from it).
   region-reads Decided 7).
 - **The reader** (`pairs-reader.ts`, `readPairs`, `PairsReader`): the three reads above are one reader of a pairs node,
   the layer reading through it with the pairs config and an extension's layer type with its own numbers
-  (`PairsReadOptions`: `binPx`, `gate`, `hysteresis`; `pairsLevels` takes the gate beside the bin width and returns it).
-  Its state is its owner's (a lay, a bridge side, a `PairsReader`), so two readers of one layer at two gates never share
-  a read. It gives `PairsRead`: the rows, the bins' level and counts (absent: items), over an assembly the ends' units;
-  `waiting` says a bins' tile it wanted is still to come (a region's or a block's; a failed one is not waiting), so a
-  layer tells pending from empty when the view has settled before this frame's wants were asked; `failed` says one
-  failed (a source whose opening failed among them), so a layer tells failed from pending. Why one reader: what the
-  pairs layer draws and what an extension draws over the same data are the same bins and items, read once each by one
-  rule (the extension's gate its own: it gates at what it draws).
+  (`PairsReadOptions`: `binPx`, `gate`, `hysteresis`, `sum`; `pairsLevels` takes the gate beside the bin width and
+  returns it). `sum` names a numeric field held bins sum beside their counts (a column of its name in the bins' data, a
+  pyramid a field; a source's bins carry none): what an extension's layer may be wide by. Its state is its owner's (a
+  lay, a bridge side, a `PairsReader`), so two readers of one layer at two gates never share a read. It gives
+  `PairsRead`: the rows, the bins' level and counts (absent: items), over an assembly the ends' units; `waiting` says a
+  bins' tile it wanted is still to come (a region's or a block's; a failed one is not waiting), so a layer tells pending
+  from empty when the view has settled before this frame's wants were asked; `failed` says one failed (a source whose
+  opening failed among them), so a layer tells failed from pending. Why one reader: what the pairs layer draws and what
+  an extension draws over the same data are the same bins and items, read once each by one rule (the extension's gate
+  its own: it gates at what it draws).
 - **A bin pair's element** (`Key.key`, what a selection and a bookmark keep):
   `bin:<a>:<aBin>|<b>:<bBin>|<strand>|<category>`, `<a>` and `<b>` the ends' system names as the source gives them
   (empty: the request's system), `<aBin>` and `<bBin>` the bins' indices at the level read (positions `bin × level` to
@@ -5075,16 +5077,16 @@ same pieces. Nothing registers on import and there is no global registry.
   extension imports is one entry**, `@molstar/seqx-core/extension` (the descriptor, `defineExtension`, `LayerType` and
   what it is given, `SectionLayoutType`, `Placement` and the warps, `NavigatorPicture` and what it is given, the
   window's `floorExtent`, `navigatorPart`, `drawNavigatorWindow`, `NavWindowFlags` and `NavigatorWindow`,
-  `FormatRuntime`, `SchemeEntry`, `Legend`, the resolved layer and section; the pairs reader's family, `PairsReader`,
-  `PairsRead`, `PairsSource`, `PairsReadOptions`, the bins' types, `pairsLevels`, `coarsenBins`; `placesOf`,
-  `BlockPlace` and `PlacePoint`; the builder's types an extension's helper writes with); the rest may change in a 0.x
-  minor. Why a descriptor: the namespace check, the version check and the undo need the extension as one thing.
-  **Settings** (`settingOf`, the entry's): the composition's `config` pairs under a composed extension's namespace
-  (`rondo.stemPx` of `rondo`; its descriptor listing them in `config` or not) are kept as `RenderConfig.settings`, by
-  key, so its layer types read them from the render config they are given (`settingOf(ctx.config, item)`); an extension
-  registered late (`_extend`) reads them too (the render config composed again with the extensions as they stand, a gone
-  one's dropped). Why the render config: it reaches every layout, section, picture and export already, and a layer type
-  reads nothing of its context.
+  `FormatRuntime`, `SchemeEntry`, `Legend` and `channelLegends` (a layer's legend from its compiled channels), the
+  resolved layer and section; the pairs reader's family, `PairsReader`, `PairsRead`, `PairsSource`, `PairsReadOptions`,
+  the bins' types, `pairsLevels`, `coarsenBins`; `placesOf`, `BlockPlace` and `PlacePoint`; the builder's types an
+  extension's helper writes with); the rest may change in a 0.x minor. Why a descriptor: the namespace check, the
+  version check and the undo need the extension as one thing. **Settings** (`settingOf`, the entry's): the composition's
+  `config` pairs under a composed extension's namespace (`rondo.stemPx` of `rondo`; its descriptor listing them in
+  `config` or not) are kept as `RenderConfig.settings`, by key, so its layer types read them from the render config they
+  are given (`settingOf(ctx.config, item)`); an extension registered late (`_extend`) reads them too (the render config
+  composed again with the extensions as they stand, a gone one's dropped). Why the render config: it reaches every
+  layout, section, picture and export already, and a layer type reads nothing of its context.
 - **The tracks layout is the one fixed fallback**: a section whose layout is not listed (or every section, with no
   layouts given) is laid out as tracks, and the viewer's navigation reads tracks likewise; tracks needs no entry. Why:
   the tracks layout is the frame's own (the label column, the rails, the bands), a section must be placed somehow, and

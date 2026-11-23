@@ -4,10 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Emphasis, LayerType, Location, PassName, PassWriter } from '@molstar/seqx-core/extension';
-import { PairsReader } from '@molstar/seqx-core/extension';
+import type { Emphasis, LayerType, Legend, Location, PassName, PassWriter } from '@molstar/seqx-core/extension';
+import { channelLegends, PairsReader } from '@molstar/seqx-core/extension';
 import { DefaultRondoConfig, type RondoConfig } from './config.js';
-import { Kind, layoutRondo, RondoLay, type RondoPrep, stemAt } from './lay.js';
+import { ColorMode, Kind, layoutRondo, RondoLay, type RondoPrep, stemAt } from './lay.js';
 import { hueOf, polygonAt } from './shapes.js';
 import { announceRondo, describeRondo, summaryRondo } from './words.js';
 
@@ -218,6 +218,33 @@ function emphasized(lay: RondoLay, pass: PassName, out: PassWriter, emphasis: Em
     }
 }
 
+/**
+ * The layer's legend (_spec/README.md, Colour, The legend): a field colour its channel's values; a fixed colour one
+ * swatch named by the layer (its `label`, else its track's); a named layer in the blocks' hues one swatch saying so;
+ * an unnamed one in the hues none (the hue ring keys them).
+ */
+function legendRondo(lay: RondoLay, options: { readonly title: string }): readonly Legend[] {
+  if (lay.mode === ColorMode.field) return channelLegends([lay.channel], { title: options.title, layer: lay.key });
+  if (lay.mode === ColorMode.system && !lay.label) return [];
+  const fixed = lay.mode === ColorMode.fixed;
+  const name = lay.label || options.title;
+  const label = fixed ? name : `${name} (chromosome hues)`;
+  const color = fixed ? lay.one : lay.hues[0];
+  return [
+    {
+      key: `rondo:${lay.key}`,
+      title: options.title,
+      channel: 'color',
+      entries: { kind: 'swatches', items: [{ label, color: alpha(color, 1) }] },
+      open: false,
+      source: 'vocabulary',
+      more: 0,
+      notes: [],
+      layers: [lay.key],
+    },
+  ];
+}
+
 export interface RibbonsOptions {
   readonly config?: RondoConfig;
 }
@@ -241,6 +268,9 @@ export function ribbonsType(config: RondoConfig = DefaultRondoConfig): LayerType
         stubs: p.stubs === 'none' ? 'none' : 'partner',
         ...(typeof p.opens === 'string' ? { opens: p.opens } : {}),
         hues: theme.includes('rondo:hues'),
+        colored: layer.theme.color !== undefined,
+        width: typeof p.width === 'string' && p.width !== '' ? p.width : 'count',
+        label: typeof p.label === 'string' ? p.label : '',
         config,
       };
     },
@@ -296,6 +326,7 @@ export function ribbonsType(config: RondoConfig = DefaultRondoConfig): LayerType
       return i < 0 ? undefined : lay.hits[i];
     },
     filtered: (lay) => lay.read?.filtered ?? 0,
+    legend: legendRondo,
     describe: describeRondo,
     summary: summaryRondo,
     announce: announceRondo,
