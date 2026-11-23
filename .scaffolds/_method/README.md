@@ -50,7 +50,7 @@ that scaffold's `_checks/`.
 | [designs-in-specs.ts](_checks/designs-in-specs.ts) | a design with a decision and no `## In the specs` row resolving to a spec section or `design-only: <reason>` | `designs-in-specs.json` (the spec map; pending designs) |
 | [no-design-citations.ts](_checks/no-design-citations.ts) | code naming a design or source file of the scaffold, a `.scaffolds/` path or a principle `§<id>` | `no-design-citations.json` (the scaffold's packages, the pointer files) |
 | [file-size.ts](_checks/file-size.ts) | a source file past §module-size's bound, or past its baseline | `file-size.json` (the folders), `file-size-baseline.json` |
-| [features-planned.ts](_checks/features-planned.ts) | a features row still planned when every lane of its design is merged in the plan | none (`--plan`, the features table at `design/features.md`) |
+| [features-planned.ts](_checks/features-planned.ts) | a features row still planned when every lane of its design is merged in the plan; a brief's item its findings row leaves unanswered | none (`--plan`, the features table at `design/features.md`; or `--brief`/`--findings`: a brief's items against its findings row) |
 | [links.ts](_checks/links.ts) | a relative link or a `node .scaffolds/…` command in `.scaffolds/` that does not resolve | none (closed work folders and records reported, not failed) |
 
 They read tracked files (the git index): stage first. They import [`_checks/lib.ts`](_checks/lib.ts), which wraps the
