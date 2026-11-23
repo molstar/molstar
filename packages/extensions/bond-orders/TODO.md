@@ -5,9 +5,9 @@ then). The spec: [\_spec](_spec/README.md).
 
 ## Next
 
-- **Benchmark over the CCD**: every component perceived from coordinates (CCD ideal and model coordinates, with and
-  without H; the representative entry in context), compared by InChI with RDKit; a private package in `benchmark/`,
-  never installed with the extension. Replaces the v5 Labute CLI (`_spec §1.10`). [Plan](plans/benchmark.md).
+- **Benchmark: bonding by distance** (`--connectivity distance`, plan §3.3): `chem_comp_bond` removed, the bond graph
+  compared with the CCD's before the orders, a `connectivity` bucket; in the viewer too (plan §7). The rest of the
+  benchmark is done (`_spec §1.10`).
 - **Kekulé assignment of aromatic sets inside Hückel**: the Hückel typing (which atoms take a ring double) does not
   reach step 8 of `kekule.ts`; the benchmark's baseline first, then the change. [Plan](plans/aromatic-kekulization.md).
 - **Flag `OrderUnknown` in the bond-table readers** where the file gives no order: mol2 `un`, LAMMPS, topologies (PSF,
@@ -17,9 +17,16 @@ then). The spec: [\_spec](_spec/README.md).
 
 ## Later
 
-- **Benchmark**: perception over a large set (the Labute 2005 set, then the whole PDB), the data fetched on demand,
-  never committed; connectivity and order comparison possibly with RDKit (RDKit-esm). A project of its own
-  (`_spec §1.10`). Perception accross the PDB
+- **Doubles on borderline CH2 in saturated rings**: with H removed, a ring CH2 (degree 2, ~110°) stays ambiguous when
+  one of its bonds passes the dihedral test (5-rings, or just under 15° in a half-chair), and the general Kekulé step
+  can place a double on it (59H, 8DA, 1QB: 40 tier A and 78 tier B regressions once the stranded-atom demotion checks
+  for unambiguous singles, `hybridization.ts` `markAmbiguous`). The false aromatic set they used to fall into hid it.
+  Idea: count the ambiguity status in the Kekulé matching's scoring (`edgeWeight`, `kekule.ts`), so a double between
+  trigonal atoms is preferred over one on an ambiguous atom.
+- **Benchmark report: no highlight for Kekulé swaps**: the L0 diff highlights every bond whose order differs, the
+  swapped doubles of an aromatic ring and of a carboxylate included (197 in tier C: three phenyls lit, the failure is
+  the thioacid's C71-O72). Highlight only what the canonical SMILES does not absorb.
+- **Perception over the whole PDB**: every entry, not one instance per component; on the benchmark's pipeline.
 - **Protonation and charge** (deferred: decide on the benchmark, which shows how often they cause errors; no
   case-by-case rule before then):
   - Functional groups check one multiple bond per neighbour, not its open valence, so a stated H does not keep a

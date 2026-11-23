@@ -19,6 +19,9 @@
       "path": "../../packages/graphics"
     },
     {
+      "path": "../../packages/io"
+    },
+    {
       "path": "../../packages/model"
     },
     {

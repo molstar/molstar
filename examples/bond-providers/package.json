@@ -17,6 +17,7 @@
     "@molstar/bond-orders-extension": "workspace:*",
     "@molstar/core": "workspace:*",
     "@molstar/graphics": "workspace:*",
+    "@molstar/io": "workspace:*",
     "@molstar/model": "workspace:*",
     "@molstar/plugin": "workspace:*",
     "@molstar/prism-viewer": "workspace:*",

@@ -33,12 +33,29 @@ the same params give the same bonds, as a provider must. None is meant to be rig
 
 ## The page
 
-[`src/index.ts`](src/index.ts) loads a PDB entry, polymers as cartoon and ligands as ball-and-stick: 1HSG (HIV protease
-with an inhibitor), 1NCO (the neocarzinostatin chromophore CHR: double, triple and aromatic bonds, a non-aromatic
-five-membered ring) or 5KRE (6WG, a covalent inhibitor bonded to SER A 124). It reads the PDB format: the connectivity
-the file states (CONECT, LINK) without orders, so `auto` has orders to perceive; the mmCIF files state the ligands'
-orders (`chem_comp_bond`), which `auto` keeps. Ball-and-stick draws Kekulé orders rather than dashed aromatic bonds: the
-page patches that param's default before the viewer starts, as no plugin setting does it. The header switches the
-structure's bonds through the `structure.bonds` operation, as the Bonds field of the structure's inspector does
-(Structure panel, pick the structure). A button unregisters and registers `naive-orders` at run time: the field and the
-operation follow the registry, and a structure keeps the bonds it has until it is rebuilt.
+One page, two viewers side by side, their cameras linked (`syncCameras`): the left one shows a file as served, the right
+one the same file with the bonds of the provider under test. Built for the bond-order benchmark's failures (its
+[plan](../../packages/extensions/bond-orders/plans/benchmark.md) §7), it shows any provider.
+
+- **Header**: a PDB ID or a CCD code (4 characters starting with a digit read as a PDB ID; the PDB / CCD switch
+  overrides the guess), and for a CCD code its ideal or model coordinates. An entry is `models.rcsb.org`'s BinaryCIF, a
+  component the CCD's mmCIF file; downloaded once, the bytes given to both viewers.
+- **Left**: the built-in bonds, the file's orders. No controls.
+- **Right**: the bond provider (bond-order perception by default, the providers above in the list), its mode for
+  perception (`forceCompute` by default; `auto` disabled when the model states its orders, as these files do), and two
+  removals made on the parsed block, never on the file ([`src/removals.ts`](src/removals.ts), the example's copy of the
+  benchmark's `benchmark/src/input.ts`): Remove H (off) and Remove charges (on). Model 1 and a residue's first altloc
+  always. The provider and the mode switch the bonds in place (`structure.bonds`, as the Bonds field of the structure's
+  inspector); a removal re-parses the right side only, keeping the camera.
+- **URL**: follows the state, so a view is a link; the benchmark report's links fill it:
+
+  ```
+  ?pdb=1HSG                                   an entry
+  ?ccd=197&coords=model                       a CCD component, model coordinates (ideal by default)
+  ?pdb=1O4I&asym=B&seq=300                    an entry, focused on a copy (label_asym_id, auth_seq_id)
+  &bonds=naive-orders  &mode=auto  &removeH=1  &removeCharges=0
+  ```
+
+The right side is the current code: an edit to the algorithm shows on reload, while the report's 2D drawings are the
+run's. Ball-and-stick draws Kekulé orders rather than dashed aromatic bonds: the page patches that param's default
+before the viewers start, as no plugin setting does it.

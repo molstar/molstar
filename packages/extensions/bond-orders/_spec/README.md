@@ -66,8 +66,12 @@ at the top of `src/perception/perceive.ts` and in each step's module.
    unknown. Why: a residue whose own orders are stated has nothing to perceive, and perception would only cost time and
    `canRemap`; the inter-unit neighbours (§1.3) are built only once a residue needs perceiving. Consequence: tables
    without orders (LAMMPS, topologies, CIF core without valence, mol2 `un`) are not perceived in `auto` (TODO).
-10. **No benchmark here yet**: validation over a large set (the Labute 2005 set, or the whole PDB, possibly compared
-    with RDKit) is a project of its own (TODO). The tests are hard cases with their fixtures (§4).
+10. **The benchmark is beside the package, not in it**: `benchmark/` measures perception over the whole CCD (tiers 0, A,
+    B, C) and datasets from the literature (Labute 2005), by InChI with RDKit, against committed baselines
+    (`benchmark/baseline/`), each run diffed with its own ([plan](../plans/benchmark.md)). A pnpm workspace of its own,
+    never published. Why: RDKit must never reach the package's users or Mol\* developers. A change to the algorithm
+    comes with its diff, and the baselines updated in the same commit. The tests stay hard cases with their fixtures
+    (§4).
 11. **Bonds leaving a residue are counted, never written**: a bond from a residue atom to another residue of the unit or
     to another unit keeps its order during perception (`forceCompute`: single, as reset; `auto`: the input's; between
     units: the model structure's, from §1.3). So its contribution is known when `State` is built (`outsideValence`,
@@ -107,6 +111,7 @@ at the top of `src/perception/perceive.ts` and in each step's module.
 | `src/perception/thresholds.ts`                     | bond-length and planarity thresholds                                        |
 | `src/perception/chemcomp-cache.ts`                 | the pattern cache (§1.5)                                                    |
 | `src/perception/known-components.ts`               | canonical residues (§1.4)                                                   |
+| `benchmark/`                                       | the benchmark (§1.10): not part of the package, its own workspace           |
 
 ## 3. Use
 
@@ -121,6 +126,9 @@ Or in a state tree: a `StructureFromModel` with `bonds: { name: 'bond-order-perc
 running example: `examples/bond-providers`.
 
 ## 4. Tests
+
+Beyond the tests, the benchmark (§1.10): a change to the algorithm runs `run --tier 0,A,B,C` and
+`run --dataset labute2005` (`benchmark/README.md`), and the regressions it lists are fixed or explained.
 
 Quick lane, no network (`src/_test/`). Fixtures in `src/_test/fixtures/`, named entry id + the residues kept:
 

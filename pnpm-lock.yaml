@@ -1362,6 +1362,9 @@ importers:
       '@molstar/graphics':
         specifier: workspace:*
         version: link:../../packages/graphics
+      '@molstar/io':
+        specifier: workspace:*
+        version: link:../../packages/io
       '@molstar/model':
         specifier: workspace:*
         version: link:../../packages/model
