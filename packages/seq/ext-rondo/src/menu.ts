@@ -163,3 +163,72 @@ export function onlyStem(f: HeaderFacts): { label: string; args: { address: stri
   const name = s.lay.names[s.lay.stemSystem[s.stem]];
   return { label: `Show only ${name}`, args: { address: s.lay.prep?.opens ?? s.lay.section, include: [name] } };
 }
+
+/** Where `rondo:partner` stands: the stem it last moved to and the partner it is on, by lay. */
+const Walk = new WeakMap<RondoLay, { from: number; next: number }>();
+
+/**
+ * The cursor to the next (or the previous) partner stem of its stem, in the stem menu's order (its rows' pieces in
+ * turn: one list, two readers), said.
+ */
+export function walkPartners(v: SeqViewer, back: boolean): { message: string } {
+  const c = v.selection.cursor.value;
+  if (!c) return { message: 'No cursor' };
+  for (const lay of laysOf(v)) {
+    if (lay.section !== c.section) continue;
+    let from = -1;
+    for (let s = 0; s < lay.ns; s++)
+      if (
+        lay.stemPlaced[s] &&
+        lay.systems[lay.stemSystem[s]] === c.system &&
+        c.position >= lay.stemStart[s] &&
+        c.position < lay.stemEnd[s]
+      )
+        from = s;
+    const w = Walk.get(lay);
+    // on a partner reached by the walk: the walk goes on from its stem
+    if (w && from !== w.from && w.next >= 0) from = w.from;
+    if (from < 0) return { message: 'No stem here' };
+    // the stem itself, a piece of its links within, is no step
+    const partners = partnerChromosomes(lay, from).flatMap((x) => x.pieces.filter((p) => p.stem !== from));
+    if (!partners.length) return { message: 'No partners' };
+    const k0 = w && w.from === from ? w.next : -1;
+    const k = (((k0 + (back ? -1 : 1)) % partners.length) + partners.length) % partners.length;
+    Walk.set(lay, { from, next: k });
+    const p = partners[k];
+    const position = lay.stemStart[p.stem];
+    v.selection.setCursor({ section: c.section, system: lay.systems[lay.stemSystem[p.stem]], position });
+    return {
+      message: `${lay.names[lay.stemSystem[p.stem]]}, ${position.toLocaleString('en-US')} · ${links(p.links)}${p.strand < 0 ? ', reversed' : ''}`,
+    };
+  }
+  return { message: 'No genome ring' };
+}
+
+/** A range's cytobands as the composed viewer whose last frame holds the lay draws them (a pair's card's ends). */
+export function bandOfLay(
+  viewers: ReadonlySet<SeqViewer>,
+  lay: RondoLay,
+  system: string,
+  start: number,
+  end: number,
+): string | undefined {
+  for (const v of viewers) if (laysOf(v).includes(lay)) return bandsOf(v, lay, system, start, end);
+  return undefined;
+}
+
+/**
+ * At a rest: each empty hole's words said once, politely (`viewer.notify`; `said` the viewer's, by layer), again only
+ * after the hole had other words or none.
+ */
+export function sayHoles(v: SeqViewer, said: Map<string, string>): void {
+  const now = new Set<string>();
+  for (const lay of laysOf(v)) {
+    if (!lay.holeText) continue;
+    now.add(lay.key);
+    if (said.get(lay.key) === lay.holeText) continue;
+    said.set(lay.key, lay.holeText);
+    v.notify(lay.holeText);
+  }
+  for (const k of [...said.keys()]) if (!now.has(k)) said.delete(k);
+}

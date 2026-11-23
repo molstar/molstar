@@ -9,7 +9,7 @@ is the contract's, brought to the core, never a reach into `src`.
 The descriptors carry `version` (0.1.0, what a spec's `extensions: { rondo: '0.1' }` is read against) and `requires`
 (`'0.10'`, the language version that has `section.center`). A host lists `rondoViewer` in its spec or registers it late
 (`viewer.extend`); never in the minimal or default viewer. The viewer entry loads `menu.js` and `card.js` as one lazy
-chunk once composed.
+chunk once composed (the stem menu, the partner keys' walk, the hole's announcements, the card's lines).
 
 ## What it ships
 

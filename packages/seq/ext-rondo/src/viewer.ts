@@ -16,7 +16,7 @@ import {
 import { rondo, RondoParams, RondoVersion } from './index.js';
 import { HoleIssue, Kind, type RondoLay } from './lay.js';
 import { laysOf, partnerChromosomes, partnersOf } from './partners.js';
-import { CardLines, links } from './words.js';
+import { CardLines } from './words.js';
 
 // The genome ring extension's viewer parts (_spec/README.md, The viewer): `rondoViewer`, the headless `rondo` and
 // its commands (`rondo:partner`, along the stem menu's partners from the cursor's stem; `rondo:select-partners`, the far
@@ -45,12 +45,6 @@ HoleIssue.of = (source) => {
   return undefined;
 };
 
-/** A range's cytobands as the viewer whose last frame holds the lay draws them (a pair's card's ends). */
-function bandOfLay(lay: RondoLay, system: string, start: number, end: number): string | undefined {
-  for (const v of Composed) if (lays(v).includes(lay)) return Menu?.bandsOf(v, lay, system, start, end);
-  return undefined;
-}
-
 /** The stem menu's chunk once landed (`menu.ts`: loaded when a viewer composes `rondoViewer`). */
 let Menu: typeof import('./menu.js') | undefined;
 let menuLoading: Promise<void> | undefined;
@@ -60,7 +54,8 @@ const loadMenu = (): Promise<void> => {
     ([m, c]) => {
       Menu = m;
       c.install();
-      CardLines.band = bandOfLay;
+      // a pair's card's ends: their cytobands as the viewer whose frame holds the lay draws them
+      CardLines.band = (lay, system, a, b) => m.bandOfLay(Composed, lay, system, a, b);
       // a card shown before its lines landed is made again (the next rest gives it them)
       for (const v of Viewers) cardLanded(v);
     },
@@ -127,47 +122,12 @@ export function chromosomesOf(lay: RondoLay, hit: Hit): string[] {
   return [name(lay.stemSystem[ref])];
 }
 
-/** Where `rondo:partner` stands: the stem it last moved to and the partner it is on (by count), by lay. */
-const Walk = new WeakMap<RondoLay, { from: number; next: number }>();
-
 /** A viewer's commands (each viewer its own: they act on the viewer that composed them). */
 function viewerParts() {
   let viewer: SeqViewer | undefined;
-  /** The cursor to the next (or the previous) partner of its stem by count, said. */
-  const walk = (args: { back?: boolean }) => {
-    const v = viewer;
-    const c = v?.selection.cursor.value;
-    if (!v || !c) return { message: 'No cursor' };
-    for (const lay of lays(v)) {
-      if (lay.section !== c.section) continue;
-      let from = -1;
-      for (let s = 0; s < lay.ns; s++)
-        if (
-          lay.stemPlaced[s] &&
-          lay.systems[lay.stemSystem[s]] === c.system &&
-          c.position >= lay.stemStart[s] &&
-          c.position < lay.stemEnd[s]
-        )
-          from = s;
-      const w = Walk.get(lay);
-      // on a partner reached by the walk: the walk goes on from its stem
-      if (w && from !== w.from && w.next >= 0) from = w.from;
-      if (from < 0) return { message: 'No stem here' };
-      // the stem menu's list, its pieces in its order (the stem itself, a piece of its links within, is no step)
-      const partners = partnerChromosomes(lay, from).flatMap((c) => c.pieces.filter((p) => p.stem !== from));
-      if (!partners.length) return { message: 'No partners' };
-      const k0 = w && w.from === from ? w.next : -1;
-      const k = (((k0 + (args.back ? -1 : 1)) % partners.length) + partners.length) % partners.length;
-      Walk.set(lay, { from, next: k });
-      const p = partners[k];
-      const position = lay.stemStart[p.stem];
-      v.selection.setCursor({ section: c.section, system: lay.systems[lay.stemSystem[p.stem]], position });
-      return {
-        message: `${lay.names[lay.stemSystem[p.stem]]}, ${position.toLocaleString('en-US')} · ${links(p.links)}${p.strand < 0 ? ', reversed' : ''}`,
-      };
-    }
-    return { message: 'No genome ring' };
-  };
+  /** The cursor to the next (or the previous) partner of its stem, the stem menu's order, said (the menu's chunk). */
+  const walk = (args: { back?: boolean }) =>
+    viewer && Menu ? Menu.walkPartners(viewer, args.back === true) : { message: viewer ? '' : 'No cursor' };
   const commands: ViewerCommand[] = [
     {
       id: 'rondo:partner',
@@ -239,29 +199,15 @@ function viewerParts() {
       },
     },
   ] as unknown as ViewerCommand[];
-  /** What the empty holes said, by layer (said once a state: "Loading links…" again only after it ended). */
+  /** What the empty holes said, by layer (the menu's chunk says them at each rest: `sayHoles`). */
   const said = new Map<string, string>();
   let stopSaying: (() => void) | undefined;
-  /** At each rest: an empty hole's words said once, politely (`viewer.notify`), a hole no longer empty forgotten. */
-  const sayHoles = () => {
-    const v = viewer;
-    if (!v) return;
-    const now = new Set<string>();
-    for (const lay of lays(v)) {
-      if (!lay.holeText) continue;
-      now.add(lay.key);
-      if (said.get(lay.key) === lay.holeText) continue;
-      said.set(lay.key, lay.holeText);
-      v.notify(lay.holeText);
-    }
-    for (const k of [...said.keys()]) if (!now.has(k)) said.delete(k);
-  };
   return {
     commands,
     composed(v: SeqViewer) {
       viewer = v;
       Composed.add(v);
-      stopSaying = v.rested.listen(sayHoles);
+      stopSaying = v.rested.listen(() => Menu?.sayHoles(v, said));
       // the stem menu's chunk, after the composition (its first chunk pays nothing for it); its card made again then
       if (!Menu) Viewers.add(v);
       void loadMenu()
