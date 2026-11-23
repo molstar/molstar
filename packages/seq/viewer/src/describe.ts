@@ -361,8 +361,12 @@ class Words implements CardReads {
     block?: number,
   ): { label: string; extent: string }[] {
     const out: { label: string; extent: string }[] = [];
-    const add = (label: string, extent: string) => {
-      for (const o of out) if (o.label === label && o.extent === extent) return;
+    // by the item's identity (its data and its key): the same item seen through two layers is one row, two distinct
+    // items that share a label and an extent are two
+    const seen = new Set<string>();
+    const add = (label: string, extent: string, id: string) => {
+      if (seen.has(id)) return;
+      seen.add(id);
       out.push({ label, extent });
     };
     const st = section.placement.strips;
@@ -402,13 +406,17 @@ class Words implements CardReads {
     axisSystem: string,
     position: number,
     x: number,
-    add: (label: string, extent: string) => void,
+    add: (label: string, extent: string, id: string) => void,
   ): void {
     const data = l.layer.data?.system;
     const own = (it: ItemDescription) => (it.system ?? data ?? axisSystem) === axisSystem;
     for (const it of this.itemsOf(l))
       if (it.y === undefined && (it.runs ? own(it) && inRuns(it.runs, position) : it.x0 <= x && x <= it.x1))
-        add(it.label, `${this.systemName(it.system ?? data ?? axisSystem)} ${extentText(it)}`);
+        add(
+          it.label,
+          `${this.systemName(it.system ?? data ?? axisSystem)} ${extentText(it)}`,
+          `${l.layer.data?.address ?? l.key}\u0000${it.key}\u0000${it.system ?? ''}`,
+        );
   }
 
   /** The letter a letters layer of the section shows at a position (none while it is not loaded). */
