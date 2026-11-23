@@ -18,3 +18,10 @@ Open items for the next fix point or a running lane's fix round (the loop, Each 
   same spot ("chr11 · 335" and "chr1 · 3…" overprinted into one smear), and their wedges overlap. A stub's label needs
   the ring's label collision rule (stagger or drop the weaker with a "+n"), as the chromosome labels have. Kind: bug.
   Next fix point (a fix lane, with a test on the zoomed ring's label boxes not overlapping).
+- **F9's pressed slot is not drawn on canvas headers** (the orchestrator's look at CL10, Features › Structure link ›
+  Color By This Track; CL10's review): `pressed` reaches the DOM header parts (`aria-pressed`) but not the canvas
+  header's slots (`headers-draw`), so the story the decision came from shows no pressed icon. Kind: bug. To a fix lane:
+  the canvas slot drawn pressed at rest, one at a time, a test on the canvas draw list.
+- **The pressed state refreshes only on a header run** (CL10's report, in the viewer spec): a host whose colouring
+  changes outside a command is not seen until the next layout, hover change or header run. Kind: followup (TODO at
+  the close).

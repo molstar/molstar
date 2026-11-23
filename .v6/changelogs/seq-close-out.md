@@ -13,3 +13,6 @@
   each with its pieces named by band and strand, the rest under "n more", links within the stem's own chromosome
   last; the stem card says what it counts, a pair's card names both ends; the hole says "Loading links…" or the
   failure.
+- Seq\* viewer: a host's header entry can be shown pressed (`pressed`, `aria-pressed`), as the structure link's
+  "colored by this track"; the "n filtered" chip's card names its filters ("Species ≠ Human") and says "click to
+  clear"; a section the view cannot place says its issue in one row.
