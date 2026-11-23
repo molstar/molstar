@@ -22,7 +22,13 @@ let Scratch = new Float64Array(256);
 /** `0xRRGGBBAA` at an opacity. */
 const alpha = (c: number, a: number) => ((c & 0xffffff00) | Math.round(Math.max(0, Math.min(1, a)) * 255)) >>> 0;
 
-function drawPoly(lay: RondoLay, out: PassWriter, i: number, fill: number, stroke = NoColor, width = 0) {
+/**
+ * A polygon's paint, set by the caller before `drawPoly`: fill, stroke, stroke width (a colour past 2^31 passed to a
+ * call that is not inlined is boxed: the emphasis passes paint through here, nothing allocated once warm).
+ */
+const Paint = new Float64Array(3);
+
+function drawPoly(lay: RondoLay, out: PassWriter, i: number) {
   const P = lay.polys;
   const n = P.len[i];
   if (n < 3) return;
@@ -30,11 +36,18 @@ function drawPoly(lay: RondoLay, out: PassWriter, i: number, fill: number, strok
   const s = 2 * P.start[i];
   for (let k = 0; k < 2 * n; k++) Scratch[k] = P.xy[s + k];
   const a = out.args;
-  a[4] = fill;
-  a[5] = stroke;
-  a[6] = width;
+  a[4] = Paint[0];
+  a[5] = Paint[1];
+  a[6] = Paint[2];
   a[7] = 0;
   out.pathArgs(Scratch, n, true);
+}
+
+/** Sets the paint: a fill, no stroke. */
+function fill(c: number) {
+  Paint[0] = c;
+  Paint[1] = NoColor;
+  Paint[2] = 0;
 }
 
 /** Whether a Location covers any of a stem's positions on its system. */
@@ -54,7 +67,10 @@ function touches(lay: RondoLay, loc: Location | undefined, stem: number): boolea
 
 /** The ribbons with a stem `lit(stem)` at full opacity over a wash of the hole (`rondo.fade`). */
 function washed(lay: RondoLay, out: PassWriter, fade: number, lit: (stem: number) => boolean, color = -1) {
-  if (fade > 0 && lay.hole >= 0) drawPoly(lay, out, lay.hole, alpha(lay.wash, fade));
+  if (fade > 0 && lay.hole >= 0) {
+    fill(alpha(lay.wash, fade));
+    drawPoly(lay, out, lay.hole);
+  }
   const P = lay.polys;
   for (let i = 0; i < P.n; i++) {
     const kind = lay.polyKind[i];
@@ -63,7 +79,9 @@ function washed(lay: RondoLay, out: PassWriter, fade: number, lit: (stem: number
     if (kind === Kind.ribbon) on = lit(lay.ribA[ref]) || lit(lay.ribB[ref]);
     else if (kind === Kind.trumpet || kind === Kind.fan) on = lit(ref);
     else if (kind === Kind.stub) on = lit(lay.stubStem[ref]);
-    if (on) drawPoly(lay, out, i, color >= 0 ? alpha(color, 0.75) : alpha(lay.polyColor[i], 1));
+    if (!on) continue;
+    fill(color >= 0 ? alpha(color, 0.75) : alpha(lay.polyColor[i], 1));
+    drawPoly(lay, out, i);
   }
 }
 
@@ -73,6 +91,21 @@ const litStem = (s: number) => s === Lit.stem;
 const litSystem = (s: number) => Lit.lay.systems[Lit.lay.stemSystem[s]] === Lit.system;
 const Loc = { loc: undefined as Location | undefined };
 const litLocation = (s: number) => touches(Lit.lay, Loc.loc, s);
+
+/** A polygon at full opacity. */
+function lit(lay: RondoLay, out: PassWriter, i: number) {
+  if (i < 0) return;
+  fill(alpha(lay.polyColor[i], 1));
+  drawPoly(lay, out, i);
+}
+
+/** A polygon at full opacity outlined in `seq-hover`. */
+function outlined(lay: RondoLay, out: PassWriter, i: number) {
+  Paint[0] = alpha(lay.polyColor[i], 1);
+  Paint[1] = lay.hover;
+  Paint[2] = 1;
+  drawPoly(lay, out, i);
+}
 
 function drawHover(lay: RondoLay, out: PassWriter, e: Emphasis, cfg: RondoConfig) {
   const h = e.hover;
@@ -86,17 +119,14 @@ function drawHover(lay: RondoLay, out: PassWriter, e: Emphasis, cfg: RondoConfig
       // a stem: its ribbons lit, the rest of the hole washed (d3-chord's fade)
       Lit.stem = lay.polyRef[i];
       washed(lay, out, cfg.fade, litStem);
-      drawPoly(lay, out, i, alpha(lay.polyColor[i], 1), lay.hover, 1);
+      outlined(lay, out, i);
       return;
     }
     // a ribbon or a stub: at full opacity, outlined, its two stems' mouths lit
     const a = kind === Kind.ribbon ? lay.ribA[lay.polyRef[i]] : lay.stubStem[lay.polyRef[i]];
-    if (lay.stemPoly[a] >= 0) drawPoly(lay, out, lay.stemPoly[a], alpha(lay.polyColor[lay.stemPoly[a]], 1));
-    if (kind === Kind.ribbon) {
-      const b = lay.ribB[lay.polyRef[i]];
-      if (lay.stemPoly[b] >= 0) drawPoly(lay, out, lay.stemPoly[b], alpha(lay.polyColor[lay.stemPoly[b]], 1));
-    }
-    drawPoly(lay, out, i, alpha(lay.polyColor[i], 1), lay.hover, 1);
+    lit(lay, out, lay.stemPoly[a]);
+    if (kind === Kind.ribbon) lit(lay, out, lay.stemPoly[lay.ribB[lay.polyRef[i]]]);
+    outlined(lay, out, i);
     return;
   }
   // a block's arc or label on the section: every ribbon touching it, the same wash
@@ -153,7 +183,9 @@ export function ribbonsType(config: RondoConfig = DefaultRondoConfig): LayerType
       if (pass === 'data') {
         for (let j = 0; j < lay.polys.n; j++) {
           const i = lay.order[j];
-          if (i !== lay.hole) drawPoly(lay, out, i, lay.polyColor[i]);
+          if (i === lay.hole) continue;
+          fill(lay.polyColor[i]);
+          drawPoly(lay, out, i);
         }
         return;
       }

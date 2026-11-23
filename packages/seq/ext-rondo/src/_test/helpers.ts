@@ -42,6 +42,11 @@ export function toyChromosomes(n = 6): { name: string; length: number }[] {
   return Array.from({ length: n }, (_, i) => ({ name: `chr${i + 1}`, length: 8_000_000 - i * 700_000 }));
 }
 
+/** `n` chromosomes of a human-sized genome (250 Mb down to about 45 Mb): the performance cases' 23. */
+export function genomeChromosomes(n = 23): { name: string; length: number }[] {
+  return Array.from({ length: n }, (_, i) => ({ name: `chr${i + 1}`, length: Math.round(250e6 / (1 + i * 0.2)) }));
+}
+
 export interface Link {
   readonly a: number;
   readonly b: number;
