@@ -23,18 +23,57 @@ const colon = 58;
 const comma = 44;
 const dot = 46;
 
+/** The longest call kept as text (`0|1|1|0`): a longer one is read as its class alone. */
+const MaxCallBytes = 16;
+
+/**
+ * The distinct genotype calls of one matrix read, by their bytes (a hash, checked against the text): an index a cell
+ * holds instead of a string. At most 255 distinct; a call past that, or past `MaxCallBytes`, has index 0 (its class).
+ */
+class CallDictionary {
+  readonly texts: string[] = [''];
+  private readonly byHash = new Map<number, number>();
+
+  index(bytes: Uint8Array, s: number, e: number): number {
+    const n = e - s;
+    if (n <= 0 || n > MaxCallBytes) return 0;
+    let h = n;
+    for (let i = s; i < e; i++) h = Math.imul(h ^ bytes[i], 16777619);
+    const k = this.byHash.get(h);
+    if (k !== undefined) {
+      const t = this.texts[k];
+      if (t.length !== n) return 0;
+      for (let i = 0; i < n; i++) if (t.charCodeAt(i) !== bytes[s + i]) return 0;
+      return k;
+    }
+    if (this.texts.length >= 256) return 0;
+    let text = '';
+    for (let i = s; i < e; i++) text += String.fromCharCode(bytes[i]);
+    this.texts.push(text);
+    this.byHash.set(h, this.texts.length - 1);
+    return this.texts.length - 1;
+  }
+}
+
 /**
  * Buffers one matrix read reuses across its lines, sized once for its states and its highest allele (counted in its
  * bound): per state the ploidy, the `.` alleles and the field's span, per allele and state the copies.
  */
 class LineGenotypes {
+  /** Per state, the call's index in the read's `CallDictionary` (0 none). */
+  readonly call: Uint8Array;
   readonly ploidy: Uint8Array;
   readonly dots: Uint8Array;
   readonly copies: Uint8Array;
   readonly fieldStart: Int32Array;
   readonly fieldEnd: Int32Array;
 
-  constructor(states: number, alleles: number) {
+  constructor(
+    states: number,
+    alleles: number,
+    readonly calls = new CallDictionary(),
+  ) {
+    this.call = new Uint8Array(states);
     this.ploidy = new Uint8Array(states);
     this.dots = new Uint8Array(states);
     this.fieldStart = new Int32Array(states);
@@ -43,6 +82,7 @@ class LineGenotypes {
   }
 
   reset(states: number, alleles: number) {
+    this.call.fill(0, 0, states);
     this.ploidy.fill(0, 0, states);
     this.dots.fill(0, 0, states);
     this.fieldStart.fill(-1, 0, states);
@@ -149,6 +189,7 @@ function readLine(
           }
         } else i++;
       }
+      g.call[st] = g.calls.index(bytes, span[0], span[1]);
       g.ploidy[st] = Math.min(255, p);
       g.dots[st] = Math.min(255, d);
     }
@@ -257,11 +298,12 @@ export function matrixAnswer(
   if (data) for (let k = 0; k < n; k++) alleles = Math.max(alleles, data.allele[rows[k]]);
   // the items' cells, a summary's with what it counts in (codes: four counts and two bytes; values: five and a sum),
   // and the line's buffers (copies a state and an allele; ploidy, missing alleles and a field's span a state)
-  const bytes = n * S * (values ? 4 : 1) + (summary ? bins * S * (values ? 24 : 18) : 0) + (n ? S * (alleles + 10) : 0);
+  const bytes = n * S * (values ? 4 : 2) + (summary ? bins * S * (values ? 24 : 18) : 0) + (n ? S * (alleles + 10) : 0);
   if (bytes > bounds.maxBytes)
     return failure('too-large', `A matrix of ${n} items × ${S} samples: ${bytes} bytes, over ${bounds.maxBytes}`);
   const genotypes = new LineGenotypes(S, alleles);
   const codes = values ? undefined : new Uint8Array(n * S);
+  const calls = values ? undefined : new Uint8Array(n * S);
   const value = values ? new Float32Array(n * S) : undefined;
   const number = values ? g.number.get(field!)! : '1';
   if (data) {
@@ -282,8 +324,10 @@ export function matrixAnswer(
         const c = genotypes.copies[a * S + st];
         const p = genotypes.ploidy[st];
         const d = genotypes.dots[st];
-        if (codes) codes[i * S + st] = genotypeClass(c, p, d);
-        else if (field === 'GT') value![i * S + st] = p === 0 || d === p ? Number.NaN : c;
+        if (codes) {
+          codes[i * S + st] = genotypeClass(c, p, d);
+          calls![i * S + st] = genotypes.call[st];
+        } else if (field === 'GT') value![i * S + st] = p === 0 || d === p ? Number.NaN : c;
         else {
           const fs = genotypes.fieldStart[st];
           value![i * S + st] =
@@ -304,7 +348,7 @@ export function matrixAnswer(
       start,
       end,
       states: S,
-      ...(codes ? { codes } : { value: value! }),
+      ...(codes ? { codes, calls: calls!, callTexts: genotypes.calls.texts } : { value: value! }),
       id: categoryColumn(data ? rows.map((r) => data.key[r]) : []),
     };
     return { ok: true, tables: { matrix: items } };

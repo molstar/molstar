@@ -9,7 +9,7 @@ is the contract's, brought to the core, never a reach into `src`.
 The descriptors carry `version` (0.1.0, what a spec's `extensions: { rondo: '0.1' }` is read against) and `requires`
 (`'0.10'`, the language version that has `section.center`). A host lists `rondoViewer` in its spec or registers it late
 (`viewer.extend`); never in the minimal or default viewer. The viewer entry loads `menu.js` and `card.js` as one lazy
-chunk once composed.
+chunk once composed (the stem menu, the partner keys' walk, the hole's announcements, the card's lines).
 
 ## What it ships
 
@@ -17,7 +17,7 @@ chunk once composed.
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------- |
 | `rondo:ribbons`         | layer type, `scope: 'section'`, shape `pairs`, on `rings` and a `tracks` row                                                                                     | `pairs`                                                   | core's `PairsReader`: bins at a level, items under its gate            |
 | `rondo:hues`            | scheme over categories: n hues round the Oklch wheel, not colour-blind safe, substitute `categories`                                                             | the layer type's default                                  | —                                                                      |
-| `rondo:partner`         | command (`.`; `rondo:partner-back` `,`): the cursor to the next partner stem by count, said                                                                      | —                                                         | the stem under the cursor                                              |
+| `rondo:partner`         | command (`.`; `rondo:partner-back` `,`): the cursor to the next partner stem, the stem menu's order, said                                                        | —                                                         | the stem under the cursor                                              |
 | `rondo:select-partners` | command: the far ends of the selection's ribbons added                                                                                                           | —                                                         | the selection                                                          |
 | `rondo:open`            | command, bound to a double-click scoped to `rondo:ribbons`' hits                                                                                                 | —                                                         | the hit's chromosomes, set as `opens`' `include`                       |
 | `rondo:cells`           | layer type, `scope: 'section'`, shape `pairs`, with core's `square` cells (nothing drawn on a strip)                                                             | none (only `rondo:square` names it)                       | core's `PairsReader` at the coarsest bins (`gate` 0) over the assembly |
@@ -125,8 +125,9 @@ waiting; its entries `StemMenu` in `viewer.ts`).
 - **The legend** (`LayerType.legend`, its code in the card's chunk, `card.ts`, loaded with `rondoViewer`: a viewer's
   legends derive once it lands, the settle waiting for it; the headless entry keys none): a field colour its channel's
   values (core's `channelLegends`); a fixed colour one swatch named by the layer's `label` (else its track's); a
-  labelled layer in the hues its words alone ("`<label>`: by chromosome", a transparent swatch: no one hue stands for a
-  layer drawn in all of them); an unlabelled one in the hues none (the hue ring keys the chromosomes).
+  labelled layer in the hues "`<label>`: by chromosome", its label dropped where the legend's title already says it ("by
+  chromosome" under "Contacts"), with the first chromosome's hue as its swatch (look 24: a row with no swatch read as
+  broken, and its label doubled); an unlabelled one in the hues none (the hue ring keys the chromosomes).
 
 ## Kinds of links
 
@@ -154,13 +155,15 @@ waiting; its entries `StemMenu` in `viewer.ts`).
   own), its `type`, its ends' strands (`Strands: + −`; none for unstranded ends, `.`: a contact's), then every other
   field its data carries (`q`, gene names where the file has them): a shared value, a number's range where they differ
   (`q: 0.001–0.04`), absent values and differing text left out; a ribbon wide by a field says its sum (`Width: q 0.07`).
-  A bin's ribbon and a stem list, when the section has more than one `rondo:ribbons` layer, each layer's links there
-  (`Contacts: 140 links`, `Translocations: 3 links`), read from each layer's own stems and ribbons as laid out (their
-  links counted at layout, those meeting the ranges): bounded by what the layers drew, no row read again on a hover, so
-  a kind under another is never lost under its ribbons; a hidden layer is no peer (laid out no more). The layers of a
-  section know each other by its resolved section (a new resolve, a new list). These lines are a chunk (`card.ts`)
-  `rondoViewer` loads once composed, as the stem menu's: the headless entry pays nothing for them (no card there); a
-  card shown before they land is made again when they do (`cardLanded`: the hover-card behavior's `framed`).
+  A bin's ribbon lists, when the section has more than one `rondo:ribbons` layer, each layer's links between its two
+  stems (`Contacts: 140 links`, `Translocations: 3 links`); a stem each layer's links on its chromosome, under a heading
+  `chr22, all links` (a line with no value); read from each layer's own stems and ribbons as laid out (their links
+  counted at layout, those meeting the ranges, a ribbon with both ends in the range once): bounded by what the layers
+  drew, no row read again on a hover, so a kind under another is never lost under its ribbons; a hidden layer is no peer
+  (laid out no more). The layers of a section know each other by its resolved section (a new resolve, a new list). These
+  lines are a chunk (`card.ts`) `rondoViewer` loads once composed, as the stem menu's: the headless entry pays nothing
+  for them (no card there); a card shown before they land is made again when they do (`cardLanded`: the hover-card
+  behavior's `framed`).
 - **`rondoRing`'s `kinds`** (`{ type, label?, color?, opacity?, width? }[]`) writes those layers, the colour the
   chromosomes' hues when a kind names none; absent, one layer of every link. Which kinds, their order and colours are
   the application's (the showcase: faint contacts in the hues, translocations in one accent over them).
@@ -182,17 +185,38 @@ waiting; its entries `StemMenu` in `viewer.ts`).
   **Highlights**: ribbons touching each channel's Location.
 - **The stem menu** (`menu.ts`, `StemMenu`, the descriptor's `headerActions`, so `viewer.extend` brings it too): a
   secondary click on a stem opens its element menu, the viewer's label menu's shape scoped to `rondo:ribbons`' stems
-  (`element.type`, a `stem:` key): "Show with a partner ▸" (its partners by count, at most 8, each `chr17 · 140 links`,
-  shown with it as a pair in the section the layer `opens`, else its own), "Select the stem and its partners"
-  (`rondo:select-partners` with the element: one selection), "Show only chr4". The entries find the stem in the lays of
-  the viewer the menu is in (`HeaderFacts.viewer`: no state of their own, two viewers of one spec each their own). Not
-  built: the menu from the keyboard at a stem (Shift+F10 opens the header's menu at the cursor).
+  (`element.type`, a `stem:` key): "Show with a partner ▸" (its partners by chromosome, `partnerChromosomes`: a row a
+  partner chromosome with its links in all, most first, `chr9 · 449 links`; a chromosome reached by more than one ribbon
+  its pieces in a submenu, each named by its band range and strand, `q31.1–q34.2 · 379 links`,
+  `p13.3 · 2 links, reversed`: the cytobands the section draws there, else its span in bases; the stem's own chromosome
+  never a partner but last, `Within chr22 · 229 links`, its pieces the ribbons to its other stems and the stem's links
+  within itself, `this stem`; each row and piece shows its chromosome with the stem's as a pair in the section the layer
+  `opens`, else its own, within alone. Why by chromosome: bare rows `chr9 · 375 links`, `chr9 · 65 links` said nothing
+  of what parted them; a level lists at most 8 rows, past them `n more` with the rest in the same order, `capped`, so
+  the pointer reaches every partner the keys do), "Select the stem and its partners" (`rondo:select-partners` with the
+  element: one selection), "Show only chr4"; only these: the entries are `alone`, so the track's actions (Move up,
+  Reverse, Hide track) stay in its header's menu. The entries find the stem in the lays of the viewer the menu is in
+  (`HeaderFacts.viewer`: no state of their own, two viewers of one spec each their own). **Its route**: a secondary
+  click on a stem opens it at the pointer; on a ring's empty space (no hit) the browser's menu opens (the viewer's rule
+  for rings whose hole a section layer draws); the menu key and Shift+F10 with the keyboard cursor on a placed stem's
+  range (the topmost layer's) open it at the stem's mouth (`atCursor` on its first entry, `stemAtCursor`). Why: a menu a
+  reader cannot reach is none.
 - **The keys**: `.` (`rondo:partner`) and `,` (`rondo:partner-back`), the commands' shortcuts on the canvas: the cursor
-  to the next or the previous partner of its stem by count, said by the announcer (the command moved the cursor: "chr17,
-  40,000,000 · 140 links, reversed").
-- **Words** (core's `LayerType` hooks): `describe` (a ribbon "chr1:12–28 Mb ↔ chr17:40–52 Mb", its count and kind, its
-  bins; a stem its links, partners, within and fan; a stub its partner, "not shown"), `summary` ("612 ribbons, 23
-  chromosomes; strongest chr1 ↔ chr17, 140"), `announce` ("stem of 312 links").
+  to the next or the previous partner stem of its stem in the stem menu's order (its rows' pieces in turn: one list, two
+  readers), said by the announcer (the command moved the cursor: "chr17, 40,000,000 · 140 links, reversed").
+- **Words** (core's `LayerType` hooks): `describe` (a ribbon "chr4 ↔ chr7", then both ends, a row each labelled by its
+  chromosome, "q13.2–q22.1 · 67.11–100.66 Mb": the cytobands the section draws over its stem, `CardLines.band`, read
+  from the viewer whose frame holds the lay, its span alone where none or headless; its count and kind; a bin's "16.8 Mb
+  bins: zoom in to see them"; a stem "This stem: 24 links to chr9", its one partner chromosome by name, else "to 23
+  chromosomes", then within and fan; a stub its partner, "not shown"), `summary` ("612 ribbons, 23 chromosomes;
+  strongest chr1 ↔ chr17, 140"), `announce` ("stem of 312 links").
+- **The hole's words**: on a ring whose links are pending the hole says "Loading links…", muted (`msui-text-muted`) and
+  centred (the labels pass, measured at layout: the SVG too); on a failure the error its links' source raised replaces
+  it (the store's issue at the source's address, `HoleIssue`, of the viewer whose resolved view holds the section laid
+  out: two rings of one source address each their own; an export, which resolves its own view, by the section's address;
+  headless "Links failed"). Each is said once, politely (`viewer.notify` at a rest, a notice a hover never replaces,
+  again only after the hole had other words or none). Why: the pending hole was empty and silent (novice 35). The
+  square's pending state is the square's.
 
 ## What is the core's
 

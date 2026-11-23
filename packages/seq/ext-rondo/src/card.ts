@@ -73,9 +73,10 @@ export function perLayer(lay: RondoLay, sysA: string, a0: number, a1: number, sy
     if (!p.read || (p.empty && p !== lay)) continue;
     let n = 0;
     if (sysB === undefined) {
-      for (let s = 0; s < p.ns; s++)
-        if (p.systems[p.stemSystem[s]] === sysA && p.stemStart[s] < a1 && p.stemEnd[s] > a0)
-          n += p.stemLinks[s] + p.withinLinks[s];
+      const inA = (s: number) => p.systems[p.stemSystem[s]] === sysA && p.stemStart[s] < a1 && p.stemEnd[s] > a0;
+      for (let s = 0; s < p.ns; s++) if (inA(s)) n += p.stemLinks[s] + p.withinLinks[s];
+      // a ribbon with both ends in the range (two stems of a chromosome) counted at each: once
+      for (let r = 0; r < p.nr; r++) if (inA(p.ribA[r]) && inA(p.ribB[r])) n -= p.ribLinks[r];
     } else
       for (let r = 0; r < p.nr; r++) {
         const x = p.ribA[r];
@@ -112,20 +113,23 @@ export function legendRondo(lay: RondoLay, options: { readonly title: string }):
   if (lay.mode === ColorMode.system && !lay.label) return [];
   const fixed = lay.mode !== ColorMode.system;
   const name = lay.label || options.title;
+  // by chromosome, its name dropped where it repeats the legend's title (look 24: "Contacts: by chromosome" under
+  // "Contacts")
+  const hued = name === options.title ? 'by chromosome' : `${name}: by chromosome`;
   const what = lay.inkBins
     ? `${name} (bins in one colour: ${lay.channel?.field ?? 'the colour'} read link by link)`
     : fixed
       ? name
-      : `${name}: by chromosome`;
+      : hued;
   const label = scale ? `${what} · ${scale}` : what;
-  // by chromosome: the words alone (a transparent swatch), never one hue for a layer drawn in all of them
-  const color = fixed ? lay.one : 0;
+  // by chromosome: a hue's swatch (the first chromosome's) beside the words, so the entry reads as the others do
+  const color = alpha(fixed ? lay.one : lay.hues[0] || 0, 1);
   return [
     {
       key: `rondo:${lay.key}`,
       title: options.title,
       channel: 'color',
-      entries: { kind: 'swatches', items: [{ label, color: fixed ? alpha(color, 1) : 0 }] },
+      entries: { kind: 'swatches', items: [{ label, color }] },
       open: false,
       source: 'vocabulary',
       more: 0,

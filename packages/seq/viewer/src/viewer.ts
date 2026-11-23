@@ -161,6 +161,11 @@ export class SeqViewer extends ReactiveModel {
    * key did when the state it moves stays (the announcements: a cursor key at the end of its axis).
    */
   readonly commandRan: ReadonlyState<CommandRan>;
+  /**
+   * A part's state said once, politely (`notify`: a ring's links loading, why they failed): each a new record, so equal
+   * words are said again; the announcer says it (_spec/README.md "Input", Announcements).
+   */
+  readonly notice: ReadonlyState<{ readonly n: number; readonly text: string }>;
 
   /** Moves to the token table's version each time the tokens change (`setTokens`): what follows the picture redraws. */
   readonly tokensVersion: ReadonlyState<number>;
@@ -200,6 +205,7 @@ export class SeqViewer extends ReactiveModel {
   private readonly _issues = new State<readonly Issue[]>([], sameIssues);
   private readonly _behaviorIssues = new State<readonly Issue[]>([], sameIssues);
   private readonly _ran = new State<CommandRan>({ id: '', n: 0 });
+  private readonly _notice = new State<{ readonly n: number; readonly text: string }>({ n: 0, text: '' });
   private readonly _tokensVersion = new State(0);
   /**
    * The collaborators, each a module beside this one given what it reads (the frame calls them without allocating):
@@ -255,6 +261,7 @@ export class SeqViewer extends ReactiveModel {
     this.behaviorIssues = this._behaviorIssues.asReadonly;
     this.rested = clock.rested;
     this.commandRan = this._ran.asReadonly;
+    this.notice = this._notice.asReadonly;
     this.tokensVersion = this._tokensVersion.asReadonly;
     this.railsShown = rails.shown;
     this.tokens = context.tokens;
@@ -780,6 +787,11 @@ export class SeqViewer extends ReactiveModel {
   runCommand(id: string, context: unknown): string {
     const r = this.execute(id, context);
     return typeof r === 'string' ? r : '';
+  }
+
+  /** Says a part's state once, politely (`notice`): what the announcer says, above the hover (never replaced by one). */
+  notify(text: string): void {
+    if (text && !this.retired) this._notice.set({ n: this._notice.value.n + 1, text });
   }
 
   /** Runs a command; its message, at once for a command that runs at once, else when it has run. */

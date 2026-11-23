@@ -120,6 +120,48 @@ describe('the source suite', () => {
     }
   });
 
+  it('a canonical transcript: `canonical` from the tags `MANE_Select` and `Ensembl_canonical`, none without a tag, never a gene (EC-227)', async () => {
+    const text = gff(
+      ['c', '.', 'gene', '1', '1000', '.', '+', '.', 'ID=g;Name=G;tag=Ensembl_canonical'],
+      ['c', '.', 'mRNA', '1', '900', '.', '+', '.', 'ID=a;Parent=g;Name=G-a;tag=basic,Ensembl_canonical'],
+      ['c', '.', 'mRNA', '1', '800', '.', '+', '.', 'ID=b;Parent=g;Name=G-b;tag=MANE_Select,Ensembl_canonical'],
+      ['c', '.', 'mRNA', '1', '700', '.', '+', '.', 'ID=c;Parent=g;Name=G-c;tag=basic'],
+      ['c', '.', 'mRNA', '1', '600', '.', '+', '.', 'ID=d;Parent=g;Name=G-d'],
+    );
+    const s = await GffRuntime.open(entry('gff3'), context({ f: text }));
+    const r = await read(s, 'c', 0, 1000);
+    const byLabel = new Map(field(r, 'label').map((l, i) => [l, field(r, 'canonical')[i]]));
+    expect(byLabel.get('G-a')).toBe('Canonical');
+    expect(byLabel.get('G-b')).toBe('MANE Select');
+    expect(byLabel.get('G-c')).toBeNull();
+    expect(byLabel.get('G-d')).toBeNull();
+    // the gene line's own tag marks nothing: a gene is no transcript
+    s.dispose();
+    const genes = await GffRuntime.open(entry('gff3', { features: 'genes' }), context({ f: text }));
+    expect(field(await read(genes, 'c', 0, 1000), 'canonical')).toEqual([null]);
+    genes.dispose();
+    // no tag in the file: nothing is marked
+    const plain = await GffRuntime.open(entry('gff3'), context({ f: text.replace(/;tag=[^\n]*/g, '') }));
+    const p = await read(plain, 'c', 0, 1000);
+    expect(field(p, 'canonical').every((v) => v === null)).toBe(true);
+    plain.dispose();
+  });
+
+  it('the recorded slices: TP53-201 (both tags) is the one MANE Select transcript, in GFF3 and GTF', async () => {
+    for (const [format, name, system] of [
+      ['gff3', EnsemblTp53, '17'],
+      ['gtf', GencodeTp53, 'chr17'],
+    ] as const) {
+      const s = await GffRuntime.open(entry(format), context({ f: recordedSlice(name) }));
+      const r = await read(s, system, 7_660_000, 7_700_000);
+      const labels = field(r, 'label');
+      const canonical = field(r, 'canonical');
+      expect(canonical[labels.indexOf('TP53-201')]).toBe('MANE Select');
+      expect(new Set(labels.filter((_, i) => canonical[i] === 'MANE Select'))).toEqual(new Set(['TP53-201']));
+      s.dispose();
+    }
+  });
+
   it('the recorded GFF3 slice: chromosome 17’s length from `##sequence-region` (EC-188), its chromosome line no item', async () => {
     const s = await GffRuntime.open(entry('gff3'), context({ f: recordedSlice(EnsemblTp53) }));
     expect(s.coverage.systems).toEqual([{ name: '17', length: 83_257_441 }]);

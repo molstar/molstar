@@ -314,10 +314,10 @@ describe('the matrix (genotypes, read only when asked)', () => {
       ok: true;
     };
     const cells = (all.tables.matrix as MatrixItems).codes!.length;
-    // the items' cells alone fit, with the buffers they do not
-    const s = await vcfRuntime({ maxMatrixBytes: cells }).open(entry(), context({ f: g.text }));
+    // the items' cells (a code and a call each) alone fit, with the buffers they do not
+    const s = await vcfRuntime({ maxMatrixBytes: 2 * cells }).open(entry(), context({ f: g.text }));
     expect(await s.read(r, signal)).toMatchObject({ ok: false, kind: 'too-large' });
-    const t = await vcfRuntime({ maxMatrixBytes: cells + 20 * (3 + 10) }).open(entry(), context({ f: g.text }));
+    const t = await vcfRuntime({ maxMatrixBytes: 2 * cells + 20 * (3 + 10) }).open(entry(), context({ f: g.text }));
     expect((await t.read(r, signal)).ok).toBe(true);
   });
 

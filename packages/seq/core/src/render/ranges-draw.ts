@@ -10,6 +10,7 @@ import type { Emphasis } from './layer-type.js';
 import { drawConnectors, hoverConnectors, selectConnectors } from './ranges-connector.js';
 import { arrowArgs, drawFailed, drawSpans } from './marks.js';
 import { labelText, labelX } from './range-labels.js';
+import { boldOf } from './ranges-gene.js';
 import { Gene, type RangesLay, Solid } from './ranges-lay.js';
 
 // A ranges layer's draw (_spec/README.md "Render", Layer types; Shapes): its marks as squircles, lines or arrows, its
@@ -312,7 +313,7 @@ function drawLabelsIn(lay: RangesLay, out: PassWriter) {
       g[2] = gl.lw[k];
       g[3] = gl.lw[k];
       g[4] = ink;
-      out.textArgs(lay.labels[gl.litem[k]] as string, AnchorStart, lay.font);
+      out.textArgs(lay.labels[gl.litem[k]] as string, AnchorStart, gl.lbold[k] ? boldOf(lay.font) : lay.font);
     }
     return;
   }

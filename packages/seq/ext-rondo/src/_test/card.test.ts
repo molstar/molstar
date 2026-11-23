@@ -10,9 +10,9 @@
 
 import { assembly, createSeqSpec } from '@molstar/seqx-core/lang';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import { install } from '../card.js';
+import { install, legendRondo } from '../card.js';
 import { rondo } from '../index.js';
-import { Kind, type RondoLay } from '../lay.js';
+import { ColorMode, Kind, RondoLay } from '../lay.js';
 import { rondoRing } from '../ring.js';
 import { describeRondo } from '../words.js';
 import { lays, Size, settle, toyChromosomes, toyLinks } from './helpers.js';
@@ -81,7 +81,8 @@ describe('the card names the kind', () => {
     expect(tx.items).toBe(true);
     expect(tx.nr).toBe(3);
     const fusion = card(tx, Kind.ribbon, (r) => tx.read!.data!.aStart[tx.ribRow[r]] === 2_000_000).lines;
-    expect(fusion.slice(1)).toEqual([
+    // after its two ends' rows (each its chromosome and span)
+    expect(fusion.slice(3)).toEqual([
       'Links: 2 links (translocation)',
       'Strand: reversed',
       'Type: translocation',
@@ -92,7 +93,7 @@ describe('the card names the kind', () => {
     ]);
     const plain = card(tx, Kind.ribbon, (r) => tx.read!.data!.aStart[tx.ribRow[r]] === 5_000_000).lines;
     // unstranded (`.`): no strand line, never `+ +`
-    expect(plain.slice(1)).toEqual(['Links: 1 link (translocation)', 'Type: translocation', 'q: 0.03']);
+    expect(plain.slice(3)).toEqual(['Links: 1 link (translocation)', 'Type: translocation', 'q: 0.03']);
   });
 
   it('a bin and a stem: their count on each kind’s layer', async () => {
@@ -148,5 +149,30 @@ describe('the card names the kind', () => {
     const only = { ...contacts, peers: [contacts] } as RondoLay;
     const { lines } = card(only, Kind.trumpet);
     expect(lines.some((x) => x.startsWith('Contacts:'))).toBe(false);
+  });
+});
+
+describe('the legend of a layer in the chromosomes’ hues (look 24)', () => {
+  /** A laid-out-looking lay in the hues, named. */
+  const hued = (label: string) => {
+    const l = new RondoLay();
+    l.mode = ColorMode.system;
+    l.label = label;
+    l.key = '/views/main/ring/links/ribbons';
+    l.hues = new Uint32Array([0x1f77b4ff, 0xff7f0eff]);
+    return l;
+  };
+  const entry = (l: RondoLay, title: string) => {
+    const e = legendRondo(l, { title })[0].entries;
+    return e.kind === 'swatches' ? e.items[0] : undefined;
+  };
+
+  it('its name not doubled under a title that says it; kept under another', () => {
+    expect(entry(hued('Contacts'), 'Contacts')!.label).toBe('by chromosome');
+    expect(entry(hued('Contacts'), 'Links')!.label).toBe('Contacts: by chromosome');
+  });
+
+  it('a hue’s swatch beside the words (the first chromosome’s, opaque)', () => {
+    expect(entry(hued('Contacts'), 'Contacts')!.color).toBe(0x1f77b4ff);
   });
 });

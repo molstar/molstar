@@ -23,10 +23,12 @@ import { DotLevels, Inversion } from '@molstar/seqx-examples/genomes/generate/al
 import { NGap } from '@molstar/seqx-examples/genomes/generate/assemblies';
 import { Hotspot } from '@molstar/seqx-examples/genomes/generate/contacts';
 import { Duplicated } from '@molstar/seqx-examples/genomes/generate/liftover';
+import { MethylationSamples } from '@molstar/seqx-examples/genomes/generate/methylation';
 import { DeletionCarriers, DeletionExtent, SampleCount } from '@molstar/seqx-examples/genomes/generate/variants';
 import { findGene, GenomeSection, geneRange, OpenedGene, SignalFloor } from '@molstar/seqx-examples/genomes/tracks';
 import { PackageFolder } from '@molstar/seqx-examples/node-assets';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
+import { Describer } from '@molstar/seqx-viewer/describe';
 import { legendRows } from '@molstar/seqx-viewer/legends';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { DomHost } from '@molstar/ui/dom';
@@ -327,6 +329,15 @@ describe('Examples/Genomes, headless', () => {
     const v = await open('samples');
     const m = layer<MatrixLay>(v, 'Genotypes')!;
     expect(m.states).toBe(SampleCount);
+    // the samples named by the rows' part, a name a row in the header's order (never "State"), the track's label gone
+    expect(m.nameText).toHaveLength(SampleCount);
+    expect(m.nameText.slice(0, 3)).toEqual(m.names.slice(0, 3));
+    expect(v.frame!.layout.sections[0].tracks.find((x) => x.track.label === 'Genotypes')?.labelText).toBe('');
+    for (const dark of [false, true]) {
+      const themed = await v.renderSvg({ idPrefix: dark ? 'sd-' : 'sl-', tokens: dark ? DarkTokens : LightTokens });
+      await vi.advanceTimersByTimeAsync(4000);
+      expect((await themed).svg).toContain(`>${m.names[10]}<`);
+    }
     expect(m.n).toBeGreaterThan(12);
     const sites = layer<RangesLay>(v, 'Sites')!;
     expect(sites.pending).toEqual([]);
@@ -345,13 +356,18 @@ describe('Examples/Genomes, headless', () => {
     expect(carrier?.yPosition).toBe(DeletionCarriers[0]);
     // the deletion's allele across its carriers' rows (the first homozygous), the reference in a non-carrier's
     const sys = (x: string) => named(v, x) ?? x;
-    const allele = (sample: number) => matrixCellHover(m, mid, sample, sys)?.rows.find((r) => r[0] === 'Value')?.[1];
+    // the call in the Sample row, `S11 · 0|1 (heterozygous)`: the call as the file wrote it
+    const allele = (sample: number) =>
+      matrixCellHover(m, mid, sample, sys)
+        ?.rows.find((r) => r[0] === 'Sample')?.[1]
+        .split(' · ')[1]
+        ?.split(' ')[0];
     // its REF: the anchor letter and the 600 deleted (VCF's padding base)
     const ref = [DeletionExtent[0], DeletionExtent[1] + 1];
     const deletion = `chr1:${spanText(ref[0], ref[1])}`;
     for (const c of DeletionCarriers) {
       expect(matrixCellHover(m, mid, c, sys)?.rows[0][1], `sample ${c}`).toContain(`(${deletion})`);
-      expect(allele(c), `sample ${c}`).toBe(c === DeletionCarriers[0] ? '1/1' : '0/1');
+      expect(allele(c), `sample ${c}`).toBe(c === DeletionCarriers[0] ? '1/1' : '0|1');
     }
     const other = Array.from({ length: SampleCount }, (_, i) => i).find((i) => !DeletionCarriers.includes(i))!;
     expect(allele(other)).toBe('0/0');
@@ -384,6 +400,49 @@ describe('Examples/Genomes, headless', () => {
     expect(genes.states).toBe(20);
     expect(cpg.n + cpg.images.length).toBeGreaterThan(0);
     expect(genes.n + genes.images.length).toBeGreaterThan(0);
+    // the samples named in the label column by the rows' part (a name a row, the section's first strip), never "State"
+    const names = recordDrawLists(v.frame!.lists, ['labels'])
+      .split('\n')
+      .filter((l) => l.startsWith('text ') && l.includes('"10px sans"'))
+      .map((l) => /^text "([^"]*)" ([\d.-]+)/.exec(l)![1]);
+    expect(names.filter((n) => n === MethylationSamples[0])).toHaveLength(2);
+    for (const sample of MethylationSamples) expect(names.filter((n) => n === sample)).toHaveLength(2);
+    expect(cpg.nameText).toEqual([...MethylationSamples]);
+    // the matrix's names replace the track's label in the column
+    const labelled = v.frame!.layout.sections.flatMap((x) => x.tracks).filter((t) => t.track.label.length > 0);
+    expect(labelled.filter((t) => t.track.label !== 'ruler').map((t) => t.labelText)).toEqual(['', '']);
+    // its card names the sample and the chromosome as the data does, never "State" or a bare "chr"
+    const secs = v.frame!.layout.sections;
+    const items = cpg.tables.find((t) => t.form === 'items' && t.start.length > 2) as never as { start: Int32Array };
+    v.input.move(
+      secs[0].axis!.x(items.start[2] + 0.5),
+      secs[0].tracks.find((t) => t.track.label === 'CpG methylation')!.box.y + 3 * 8 + 4,
+    );
+    await vi.advanceTimersByTimeAsync(300);
+    const card = new Describer({
+      spec: v.spec,
+      store: v.store,
+      addresses: v.addresses,
+      view: v.view,
+      layout: () => v.frame?.layout,
+    }).describe(v.hover.current);
+    expect(card?.rows.map((r) => r.label)).toEqual(['Item', 'Sample', 'Sequence']);
+    expect(card?.rows[0].value).toMatch(/^chr1:\d/);
+    expect(card?.rows[1].value).toMatch(/^lung-1 · 0\.\d+$/);
+    expect(card?.rows[2].value).toBe('chr1');
+    expect(card?.text).not.toMatch(/State|Value/);
+    // a missing value is the missing colour in both themes, never the ramp's low end or the page
+    const [light, dark] = await Promise.all(
+      [false, true].map(async (isDark) => {
+        const r = v.renderSvg({ idPrefix: isDark ? 'md-' : 'ml-', tokens: isDark ? DarkTokens : LightTokens });
+        await vi.advanceTimersByTimeAsync(4000);
+        return (await r).svg;
+      }),
+    );
+    const hex = (c: number) => `#${(c >>> 8).toString(16).padStart(6, '0')}`;
+    expect(light).toContain(hex(LightTokens.colors['seq-missing']));
+    expect(dark).toContain(hex(DarkTokens.colors['seq-missing']));
+    expect(DarkTokens.colors['seq-missing']).not.toBe(DarkTokens.colors['msui-bg']);
     await bothThemes(v);
   });
 

@@ -386,8 +386,11 @@ does not own, read through the same bounds.
   `fill` ("0"), a NaN "no data", a pending tile "loading". A click selects the bin's rect (what is drawn is what is
   selected); a double-click zooms a step about it (built). `Hit` gains one flat field, `bin` (the level read, in
   positions; absent at 1), so the card computes the ranges and a hit still allocates nothing.
-- **A matrix cell** hovers as its item, its state and its value or genotype ("rs123 (chr7:117,559,590) · sample
-  NA12878 · 0/1"), at a coarse level the bin and its mean or majority with its share.
+- **A matrix cell** hovers as its item and its sample with its value or genotype ("rs123 (chr7:117,559,590)",
+  "Sample NA12878 · 0/1 (heterozygous)"), at a coarse level the bin and its mean or majority with its share. **The
+  states are named in the label column** by the same part as an alignment's rows (a row 8 px or more; the track's own
+  label gives way to them), and **a missing value is the missing colour**, as an uncalled genotype is: never the
+  ramp's low end (agreed 2026-11-23, look 34).
 
 ## Edge cases this design takes or assigns
 

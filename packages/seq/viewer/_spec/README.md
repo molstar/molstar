@@ -786,9 +786,9 @@ param (`port`, a `HoverCardPortFactory` given the canvas's element, none headles
   the item's middle) for an export with `card` titles, composed over the export's own section, layer and item
   (`Describer.composeAt`, `CardAt.item`): nothing looked up in the viewer's frame, linear in the items.
 - **By region** (`describe-region.ts`): a pairs bin, a region grid's cell and a matrix cell are said in the core's words
-  (`pairsBinHover`, `gridCellHover`, `matrixCellHover`: core "Render", Hover texts by region), their rows the card's;
-  first of the sections, the whole description. Why the core's: an export's accessible layer and a host's own card say a
-  bin as the viewer does.
+  (`pairsBinHover`, `gridCellHover`, `matrixCellHover`: core "Render", Hover texts by region), their rows the card's (a
+  matrix cell's `Sample` row reads `S11 · 0/1 (heterozygous)`); first of the sections, the whole description. Why the
+  core's: an export's accessible layer and a host's own card say a bin as the viewer does.
 - **A liftover's places** (the store's `regions.places`, the core's): an item with at least two images through a map
   read by region (a duplicated stretch, EC-20) has a row `Places` listing them
   (`2 places: chr1 62,001–68,000, chr2 62,001–68,000`, at most four named), and its words say `in 2 places`, the same
@@ -1072,12 +1072,15 @@ binding table; per move one hit record and one modifiers record are reused.
   where it is each gap, not each key). A message is a token (a counter and its text), so equal words are said again: a
   cursor key that leaves the cursor in place (the end of its axis) is announced (`viewer.commandRan` moves after every
   command, with its message when it ran at once); another command that moved the keyboard cursor says its own message
-  (an extension's walk, `rondo:partner`'s: where, and why there). A message waiting its turn is replaced only by one of
-  the same or a higher priority (selection over cursor over hover), and the pointer leaving drops a waiting hover. While
-  a gesture is dragged the cursor and the hover say nothing and the selection says its end once, after the drag. Why one
-  region and a limit: a live region queues what it is given and a reader hears the queue after the cursor moved on. A
-  navigator slider's value is its own (`aria-valuetext`), never this region's. The highlight legend's Clear buttons and
-  the legend's entries are real buttons and options in the page's tab order, so they need nothing here.
+  (an extension's walk, `rondo:partner`'s: where, and why there); a part's state is said through `viewer.notify(text)`
+  (`viewer.notice`, a token too), at a priority of its own over the hover's (a hover never replaces it, the pointer
+  leaving never drops it; a ring's "Loading links…", once: the part decides when). A message waiting its turn is
+  replaced only by one of the same or a higher priority (selection over cursor over a notice over hover), and the
+  pointer leaving drops a waiting hover. While a gesture is dragged the cursor and the hover say nothing and the
+  selection says its end once, after the drag. Why one region and a limit: a live region queues what it is given and a
+  reader hears the queue after the cursor moved on. A navigator slider's value is its own (`aria-valuetext`), never this
+  region's. The highlight legend's Clear buttons and the legend's entries are real buttons and options in the page's tab
+  order, so they need nothing here.
 - **Forced colors** (`forced-colors: active`, whatever the `theme.source`: the root's CSS tokens through
   `readCssTokens`, a configured theme's table through `forcedColorTokens` over `readSystemColors`; `css-tokens.ts`):
   `readCssTokens` reads the system colors (`Canvas`, `CanvasText`, `Highlight`, `GrayText`, resolved by a probe
@@ -1272,14 +1275,16 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   to it; entered (the adapter's `enter`), it stays while the pointer is over it, the hover frozen; its `leave` hides it
   and arms the next rest; the grace ended without an entry, it goes. Esc, a press and a drag hide it at once. Why: a
   link a reader cannot reach is no link; a card with none never takes the pointer. `hover.card` is read at composition
-  (the configuration is read-only after it): off, no card is shown and no port made. **A variant allele's card** (the
-  genome formats' matrix row "a variant allele"): an item whose source row holds `ref` and `alt` (a VCF's, core's Data,
-  VCF) is titled by its id `pos:ref>alt` (an allele past 32 letters, hashed in the id, as its first letters and its
-  length: `7674964:GAGGCT… 469 bp>G`, `alleleTitle`), never its record's ID, with its Category, its record's `ID`,
-  `QUAL` and `FILTER`, and its INFO fields with a value (every field not in core's VCF `FixedFields`, the source's
-  order, the first 8, then `INFO: +k more`; a value past 40 characters cut with an ellipsis; an integer written as it
-  is: an id is never grouped). Its words are read once a hover (`alleleOf` keeps a list's last, a weak map: 0 B a held
-  hover, the storybook's `allele-card.quick.ts`). A behavior's part over the canvas is
+  (the configuration is read-only after it): off, no card is shown and no port made. **A transcript's card** (core's
+  `canonical` field, GFF3 and GTF): an item whose source row has a `canonical` value has a `Transcript` row, `Canonical`
+  or `MANE Select` (`canonicalOf`), and its sentence ends `, canonical` or `, mane select`; none says nothing. **A
+  variant allele's card** (the genome formats' matrix row "a variant allele"): an item whose source row holds `ref` and
+  `alt` (a VCF's, core's Data, VCF) is titled by its id `pos:ref>alt` (an allele past 32 letters, hashed in the id, as
+  its first letters and its length: `7674964:GAGGCT… 469 bp>G`, `alleleTitle`), never its record's ID, with its
+  Category, its record's `ID`, `QUAL` and `FILTER`, and its INFO fields with a value (every field not in core's VCF
+  `FixedFields`, the source's order, the first 8, then `INFO: +k more`; a value past 40 characters cut with an ellipsis;
+  an integer written as it is: an id is never grouped). Its words are read once a hover (`alleleOf` keeps a list's last,
+  a weak map: 0 B a held hover, the storybook's `allele-card.quick.ts`). A behavior's part over the canvas is
   `BehaviorHandle.attach(container, viewer)` (`viewer-spec.ts`): `mountCanvas` calls it for every behavior that has one,
   and the function it returns takes the part away.
 - `keysPanel` (`KeysPanelProvider`, in the default spec): `help.keys` (`?` in `view.keys`; the toolbar's button) opens a
@@ -1321,16 +1326,18 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   `loaded` and `preview`.
   - **Entries** (`header-entries.ts`): `HeaderEntry` (`name` namespaced `<id>:<name>`, `on` `track`, `section` or
     `element`, `kind` `action` or `state`, `icon` `@molstar/ui`'s, `label`, `when`, `command`, `args`, `text`, `order`,
-    `slot`, `items` a submenu of other commands or args: a layer's checkboxes, a chip's list), listed in the registry as
-    `{ kind: 'header-action', entry }` (`SeqViewerRegistryEntry`) or registered at run time (`register(...entries)`,
-    returning its undo). Registration is atomic: every problem in one error before anything changes (a name twice, no
-    namespace, a command the viewer lacks, `seq.viewer.header.command`); the registry's are checked once every behavior
-    is made (`BehaviorHandle.composed`). The label and icon default to the command's. **A command whose one param is a
-    select is a submenu** of its options (an entry with no `items`): each item the entry's args with the choice under
-    the param's name, the param's default checked, previewed while hovered through the command's `preview`; a command
-    reads the choice from its args (a palette's) or its context (`viewer.execute`'s). Why: the command owns its choices,
-    so the menu, a palette and an agent offer the same. Why entries: one list for a slot, a menu item, a DOM part, a key
-    and an agent; the registry's rules (atomic, undoable, namespaced) for free.
+    `slot`, `items` a submenu of other commands or args: a layer's checkboxes, a chip's list, an item's own `items` a
+    flyout of the flyout; on `element` only: `alone`, its element's menu its entries without the track's and the
+    section's, and `atCursor(viewer)`, the element at the keyboard cursor the menu key opens: Gestures), listed in the
+    registry as `{ kind: 'header-action', entry }` (`SeqViewerRegistryEntry`) or registered at run time
+    (`register(...entries)`, returning its undo). Registration is atomic: every problem in one error before anything
+    changes (a name twice, no namespace, a command the viewer lacks, `seq.viewer.header.command`); the registry's are
+    checked once every behavior is made (`BehaviorHandle.composed`). The label and icon default to the command's. **A
+    command whose one param is a select is a submenu** of its options (an entry with no `items`): each item the entry's
+    args with the choice under the param's name, the param's default checked, previewed while hovered through the
+    command's `preview`; a command reads the choice from its args (a palette's) or its context (`viewer.execute`'s).
+    Why: the command owns its choices, so the menu, a palette and an agent offer the same. Why entries: one list for a
+    slot, a menu item, a DOM part, a key and an agent; the registry's rules (atomic, undoable, namespaced) for free.
   - **Built-ins** (`BuiltInHeaderEntries`, in the default spec's registry; a host leaves one out to remove it):
     `seq:hide` (`eye-off`, `track.hide`), `seq:color` (menu only, "Color ▸": one place, never also a slot; the first
     shown layer with more than one fitting scheme: `layer.channel`'s choices a submenu, previewed while focused or
@@ -1360,13 +1367,19 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   - **Gestures**: a click on a slot runs it (the "⋯" opens the menu), on a chip runs its state, on a label nothing (on
     touch it shows the slots, as a hover there, so a second tap on a slot runs it); never a selection's. A secondary
     click (`contextmenu` on the mounted canvas) opens the menu under `contextClick` (`everywhere`, the default spec's:
-    at what it hits, an element's entries first, then its track's and its section's; the element's facts carry its
+    at what it hits, an element's entries first, then its track's and its section's, or the element's alone when an
+    applying entry is `alone` (a ring's stem: "Move up" is the track's, not the stem's); the element's facts carry its
     layer's type, `element.type`, so an extension's `on: 'element'` entries are scoped to its own type's hits: a section
     layer's hit, an extension's ribbons, is found on the track that holds it; `header`, the label column only; `none`,
-    the browser's); Shift+secondary click is always the browser's. A long press (touch, the `longPressMs` param, 500)
-    opens it. The gestures are a lazy chunk loaded at the mount (`header-gestures.ts`). The menu key and Shift+F10
-    (`headers.menu`, `view.keys`) and Enter on a header open it at the cursor's header (its section's first track's on
-    data), once per ask: the browser's secondary click that follows within a second is taken and opens nothing (EC-156).
+    the browser's); Shift+secondary click is always the browser's. On a ring whose hole a section layer draws (the
+    genome ring's ribbons) a point that hits nothing (the hole between ribbons, the corners) opens no menu: the
+    browser's; a ring of tracks alone, which has no header line, keeps its tracks' menu anywhere on it. A long press
+    (touch, the `longPressMs` param, 500) opens it. The gestures are a lazy chunk loaded at the mount
+    (`header-gestures.ts`). The menu key and Shift+F10 (`headers.menu`, `view.keys`) and Enter on a header open it at
+    the cursor's header (its section's first track's on data), once per ask: the browser's secondary click that follows
+    within a second is taken and opens nothing (EC-156). Before the header, an `element` entry's `atCursor(viewer)`
+    (`HeaderElementAt`: a target with its element and a canvas point) names the element the cursor stands on (a ring's
+    stem): its menu opens there. A submenu's item may hold its own (`HeaderSubEntry.items`: a flyout of the flyout).
   - **The cursor off what was hidden**: a frame whose layout no longer has the cursor's track moves it to the next
     track's header, else the previous one's, else the section's line.
   - **Published on change** (by name from the frame, `framed()`: no listener; a frame that kept its layout reads one

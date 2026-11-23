@@ -256,7 +256,7 @@ export function matrixSamples(): Node {
   b.views.view('main', (v) => {
     v.section('chr', { of: chr }, (s) => {
       s.track('ruler').layer('ruler', { type: 'ruler', units: 'bases' });
-      s.track('gt', { label: 'Genotypes', height: 260 }).layer('gt', { type: 'matrix', data: gt });
+      s.track('gt', { label: 'Genotypes', height: 330 }).layer('gt', { type: 'matrix', data: gt });
     });
   });
   return b.build();

@@ -7,7 +7,8 @@
 // What a hover over data read by region says (_spec/README.md "Render", Hover texts by region): a pairs bin as its two
 // bin ranges, its count and its level, never as a pair; a region grid's cell as its bin on each axis and its value (a
 // sparse tile's unlisted cell its `fill`, a NaN "no data", a tile not loaded "loading"); a matrix cell as its item, its
-// state and its value or genotype, at a coarse level its bin and its mean or majority with its share. Texts only: a
+// sample (the state's name) with its value or genotype, `Sample S11 · 0/1 (heterozygous)`, at a coarse level its bin
+// and its mean or majority with its share. Texts only: a
 // host's card lays them out (the viewer's hover card), nothing is drawn. Read on a hover, from what the frame drew.
 
 import { tableRows } from '@molstar/seqx-core/data';
@@ -35,12 +36,34 @@ export function binsText(level: number): string {
   return `${level.toLocaleString('en-US')} bp bins`;
 }
 
-/** A genotype class as VCF writes it (`0/0`, `0/1`, `1/1`, a partly called `./1`, an uncalled `./.`). */
-export function genotypeText(code: number): string {
-  return Genotypes[code] ?? './.';
+/**
+ * A genotype class as the legend names it (`no copy`, `some copies`, `every copy`, `partly called`, `uncalled`): what a
+ * cell with no recorded call (inline codes, a bin's majority) says. A class counts the copies of one allele; it is no
+ * call, so it is never written as one.
+ */
+export function genotypeWords(code: number): string {
+  return ClassWords[code] ?? 'uncalled';
 }
 
-const Genotypes = ['0/0', '0/1', '1/1', './1'];
+const ClassWords = ['no copy', 'some copies', 'every copy', 'partly called'];
+
+/**
+ * A call as the VCF wrote it with what it is (`0|1 (heterozygous)`, `1 (alternate)`, `./. (no call)`): all alleles
+ * missing no call, some `./1` partly called; a haploid call (one allele) reference or alternate, no zygosity; else
+ * homozygous reference or alternate when the alleles agree, heterozygous when they differ (`1/2` too).
+ */
+export function callWords(call: string): string {
+  const alleles = call.split(/[/|]/);
+  const missing = alleles.filter((a) => a === '.' || a === '').length;
+  let word: string;
+  if (missing === alleles.length) word = 'no call';
+  else if (missing > 0) word = 'partly called';
+  else if (alleles.length === 1) word = alleles[0] === '0' ? 'reference' : 'alternate';
+  else if (alleles.every((a) => a === alleles[0]))
+    word = alleles[0] === '0' ? 'homozygous reference' : 'homozygous alternate';
+  else word = 'heterozygous';
+  return `${call} (${word})`;
+}
 
 function numberText(v: number): string {
   if (!Number.isFinite(v)) return String(v);
@@ -129,11 +152,16 @@ export function matrixCellHover(lay: MatrixLay, i: number, s: number, name: Syst
       const id = t.id?.get(best);
       const item = id ? `${id} (${at})` : at;
       const c = best * t.states + s;
-      const value = t.codes ? genotypeText(t.codes[c]) : t.value ? valueOf(t.value[c]) : '';
+      const call = t.calls?.[c] ? t.callTexts?.[t.calls[c]] : undefined;
+      const value = t.codes ? (call ? callWords(call) : genotypeWords(t.codes[c])) : t.value ? valueOf(t.value[c]) : '';
+      const sample = value ? `${state} · ${value}` : state;
       return hover(
         item,
-        [['Item', item], ['State', state], ...(value ? [['Value', value] as const] : [])],
-        [item, state, ...(value ? [value] : [])],
+        [
+          ['Item', item],
+          ['Sample', sample],
+        ],
+        [item, `Sample ${sample}`],
       );
     }
     const n = tableRows(t);
@@ -144,14 +172,19 @@ export function matrixCellHover(lay: MatrixLay, i: number, s: number, name: Syst
     const at = `${system}:${spanText(start, start + level)}`;
     const c = b * t.states + s;
     const value = t.classes
-      ? `${genotypeText(t.classes[c])}${t.shares ? ` (${Math.round((t.shares[c] / 255) * 100)}%)` : ''}`
+      ? `${genotypeWords(t.classes[c])}${t.shares ? `, ${Math.round((t.shares[c] / 255) * 100)}% of the bin` : ''}`
       : t.mean
         ? `mean ${valueOf(t.mean[c])}`
         : '';
+    const sample = value ? `${state} · ${value}` : state;
     return hover(
       at,
-      [['Bin', at], ['State', state], ...(value ? [['Value', value] as const] : []), ['Bins', binsText(level)]],
-      [at, state, ...(value ? [value] : []), binsText(level)],
+      [
+        ['Bin', at],
+        ['Sample', sample],
+        ['Bins', binsText(level)],
+      ],
+      [at, `Sample ${sample}`, binsText(level)],
     );
   }
   return undefined;

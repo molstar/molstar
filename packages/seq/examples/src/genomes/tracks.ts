@@ -91,7 +91,8 @@ export function samples(files: Files = GenomesFiles): Node {
         data: sites,
         color: byCategory(),
       });
-      s.track('gt', { label: 'Genotypes', height: 280 }).layer('gt', { type: 'matrix', data: gt });
+      // a row 8 px or more: the samples' names are drawn (`rows.labelMinPx`)
+      s.track('gt', { label: 'Genotypes', height: 330 }).layer('gt', { type: 'matrix', data: gt });
     }),
   );
   return b.build();

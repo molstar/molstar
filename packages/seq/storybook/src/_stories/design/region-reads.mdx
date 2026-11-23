@@ -30,7 +30,9 @@ and for a grid of several chromosomes a whole-assembly level cut from the blocks
 - **A grid**: the finest level whose bin is at least a device pixel, in tiles of 256 bins and a ring of tiles round the
   view. A tile not loaded draws the coarser one held under it, else a pending rect, and the plot's box never moves.
 - **A matrix**: a row a state in the band, an item a rect at its extent, **a long deletion one solid bar** across the
-  SNVs it covers with the short ones over it; zoomed out a bin's majority class, its share the colour's strength.
+  SNVs it covers with the short ones over it; zoomed out a bin's majority class, its share the colour's strength. The
+  states are named in the label column (a row 8 px or more) as an alignment's rows are, a missing value is the missing
+  colour (never the ramp's low end), and a hover reads `Sample S11 · 0/1 (heterozygous)`.
 - **On a ring**: a matrix's states are thin rings, an image drawn as runs (at most a run a device column a ring), so the
   SVG is paths, never a picture.
 - **Nothing in view** is no arc and no placeholder; pending is the hatched band; a layer whose wants pass the store's
@@ -61,4 +63,5 @@ first, each the canvas and the SVG of one view, light and dark by the toolbar's 
   for the section at the fit) is not read yet.
 - Held links over an assembly's blocks bin by device column past the gate, not by the pairs level (a BEDPE file is: the
   `bed` runtime serves its `pairs` by region and its bin pairs by level).
-- The matrix's state labels in the header (the `order` and `hidden` of a state) are listed, not built.
+- The matrix's state header (the `order` and `hidden` of a state) is listed, not built; its names are in the label
+  column.

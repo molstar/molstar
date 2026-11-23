@@ -301,7 +301,9 @@ export function readHeaderLines(reader: BgzfReader, index: TabixIndex, limits?: 
   `thick_start`, `thick_end` the hull of its CDS (in GTF with `start_codon` and `stop_codon`, which GTF writes outside
   the CDS), `cds_phase` the phase of its first CDS piece in the transcript's direction (what a codon map later needs;
   `rows` keeps every line's `phase` as an int8 field); its strand its own; its fields its line's attributes, with
-  `gene` (the gene's `ID`), `gene_name` (the gene's `Name`, GTF's `gene_name`) and `type`; **its extent its own
+  `gene` (the gene's `ID`), `gene_name` (the gene's `Name`, GTF's `gene_name`), `type` and **`canonical`** (what the
+  tags say: `MANE Select` for `MANE_Select`, else `Canonical` for `Ensembl_canonical`, GFF3's `tag=a,b` and GTF's
+  repeated `tag "a"` alike; null with neither, and for a gene: the viewer never guesses one; agreed 2026-11-23); **its extent its own
   line's** (`itemStart`, `itemEnd` on every row). A child naming several parents (`Parent=tx1,tx2`: a shared exon) is a
   piece of each. Every other feature is an item of its own by `ID` (rows sharing an `ID` its pieces, as built).
 - **A span row**: a transcript whose pieces all fall outside a tile (the tile inside an intron, or between its UTRs)
@@ -335,7 +337,10 @@ export function readHeaderLines(reader: BgzfReader, index: TabixIndex, limits?: 
   transcripts): a protein's coordinate system from a GFF's CDS is a figure no Genomes view needs yet (Decided, 7).
 - **The picture**: the ranges layer's `line: 'gene'` (new `LineStyles` member, GG): pieces as boxes, thick between
   `thick_start` and `thick_end`, thin outside, a hairline between pieces across the item's extent with strand
-  chevrons. Why a line style: the ranges layer already lays out items with pieces; a gene model is how they are joined.
+  chevrons. A transcript with a `canonical` value is **drawn first in its gene's stack** (packed before the others, so
+  it takes the first lane its extent leaves free), **its label bold**, and its card has a Transcript row, `Canonical` or
+  `MANE Select`; with no tag nothing is marked. A collapsed gene keeps every transcript in version 1 (drawing only the
+  canonical one is a new display mode: the package's TODO). Why a line style: the ranges layer already lays out items with pieces; a gene model is how they are joined.
 
 ### VCF (`runtimes/vcf`)
 
@@ -357,13 +362,15 @@ export function readHeaderLines(reader: BgzfReader, index: TabixIndex, limits?: 
   with a fixed field is said once (`.cell`, the records' rule). ALT `.`, `*` and `<NON_REF>` are no item (counted, info).
 - **The matrix** (RR's `matrix` shape, `MatrixItems`): items the ALT alleles in the tile × states the samples
   (`ShapeInfo.states`, in the header's order, narrowed by **`samples`**, a new source param: a list of names);
-  `codes` the **genotype class** of that allele in `GT`, whatever the ploidy: `0` no copy, `1` some but not every copy
+  `codes` the **genotype class** of that allele in `GT`, whatever the ploidy (the call as written rides beside it, `calls` and `callTexts`, for the card: `0|1`, `1/2`, `1`, `./.`): `0` no copy, `1` some but not every copy
   (`0/1`, `1/2` for either allele), `2` every copy (`1/1`, and a haploid `1`: chrY, chrM, a male's chrX), `3` partly
   called (`./1`, `./0`: a `.` beside called alleles), `255` uncalled (`.`, `./.`). Why classes and not a dosage count:
   a haploid `1` and a heterozygote's `1` are different genotypes a theme must not paint alike; the exact copy count is
   `value` float32 by `RegionRequest.field: 'GT'` (copies of the allele, NaN uncalled), as any FORMAT field (`DS`, `GQ`;
   `Number=1` or `A`). Coarse levels: `bins` counted
-  from the tile (majority and share, `mean`), as ranges. Bounded by RR's `maxTileBytes`. A long deletion is one item
+  from the tile (majority and share, `mean`), as ranges. **The samples are named in the label column** by the rows'
+  names part (the header's order; a row 8 px or more), and the card reads `Sample S11 · 0/1 (heterozygous)`, never
+  `State S11 / Value 0/1` (agreed 2026-11-23). Bounded by RR's `maxTileBytes`. A long deletion is one item
   across the SNPs it covers (EC-222).
 - **Without an index**: a plain or bgzipped VCF read whole within `limits`.
 - **Dense files** (1000 Genomes, a biobank): the levels the index's bytes allow and the view's read cost (above), so a

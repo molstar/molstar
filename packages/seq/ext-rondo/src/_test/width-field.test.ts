@@ -62,7 +62,7 @@ describe('a width by a field: folding and the cards count links', () => {
     for (let i = 0; i < l.polys.n; i++) {
       if (l.polyKind[i] !== Kind.stub && l.polyKind[i] !== Kind.trumpet) continue;
       const lines = describeRondo(l.hits[i] as never, l)!;
-      const m = lines.join('\n').match(/Links: (\d+) links?/);
+      const m = lines.join('\n').match(/(?:Links|This stem): (\d+) links?/);
       expect(Number(m![1]), lines.join(' | ')).toBeGreaterThanOrEqual(1);
       for (const p of lines.join('\n').matchAll(/chr\d+ \((\d+)\)/g)) expect(Number(p[1])).toBeGreaterThanOrEqual(1);
     }

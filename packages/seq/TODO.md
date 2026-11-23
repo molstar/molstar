@@ -437,6 +437,8 @@ extension kinds.
     `Alone`). Left: the 1M-range lookup's ratio (1.5× of 10,000, about 0.5 ms) failed about 2 in 6 alone under a loaded
     machine; read it at a quiet gate, and if it still fails, measure it at a larger scale rather than raise it.
     `bed-time.test.ts` (300 ms) flaked once under load: watch it.
+  - A collapsed gene draws only its canonical transcript: a new display mode, not in version 1 (the close-out's answer
+    F10, the author, 2026-11-23).
   - `vitest.config.ts`'s `seq` constant names `packages/sequences/` (the previous implementation), so `packages/seq`'s
     tests run in the generic projects, not the `sequences*` ones. Decide whether `packages/seq` gets projects of its
     own.

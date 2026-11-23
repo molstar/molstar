@@ -59,9 +59,8 @@ describe('Features/Region reads/Matrix, headless', () => {
     expect(drawn(v, 'image')).toBe(1);
     // its card: a bin, the sample, a majority genotype with its share
     const card = matrixCellHover(l as never, 100_000, 3, (s) => s)!;
-    expect(card.rows.map((r) => r[0])).toEqual(['Bin', 'State', 'Value', 'Bins']);
-    expect(card.rows[1][1]).toBe(GenotypeSamples[3]);
-    expect(card.rows[2][1]).toMatch(/\(\d+%\)$/);
+    expect(card.rows.map((r) => r[0])).toEqual(['Bin', 'Sample', 'Bins']);
+    expect(card.rows[1][1]).toMatch(new RegExp(`^${GenotypeSamples[3]} · [a-z ]+, \\d+% of the bin$`));
     for (const dark of [false, true]) {
       const svg = await exported(v, dark);
       expect(svg.settled).toBe(true);
@@ -85,7 +84,7 @@ describe('Features/Region reads/Matrix, headless', () => {
     expect(bars.length).toBe(40);
     expect(new Set(bars.map(([x]) => x)).size).toBe(1);
     expect(new Set(bars.map(([, y]) => y)).size).toBe(40);
-    // hovering inside it where no SNV is: the deletion, the sample and its genotype (a carrier's `0/1`)
+    // hovering inside it where no SNV is: the deletion, the sample and its genotype (inline codes carry no call: the class)
     const g = genotypeItems();
     const snvs = new Set(Array.from(g.start, (s, k) => (k === g.deletion ? -1 : s)));
     let at = GenotypeDeletion.start + 1000;
@@ -93,8 +92,9 @@ describe('Features/Region reads/Matrix, headless', () => {
     const carrier = GenotypeDeletion.carriers[0];
     const card = matrixCellHover(l as never, at, carrier, (s) => s)!;
     expect(card.rows[0][1]).toMatch(/^del1 \(.+:200,001–260,000\)$/);
-    expect(card.rows[1][1]).toBe(GenotypeSamples[carrier]);
-    expect(card.rows[2][1]).toBe('0/1');
+    expect(card.rows.map((r) => r[0])).toEqual(['Item', 'Sample']);
+    expect(card.rows[1][1]).toBe(`${GenotypeSamples[carrier]} · some copies`);
+    expect(card.text).toContain(`Sample ${GenotypeSamples[carrier]} · some copies`);
     for (const dark of [false, true]) {
       const svg = await exported(v, dark);
       expect(svg.settled).toBe(true);
@@ -121,7 +121,7 @@ describe('Features/Region reads/Matrix, headless', () => {
     }
   });
 
-  it('methylation (EC-221): values by the field’s colours, a missing one clear, bins of their mean', async () => {
+  it('methylation (EC-221): values by the field’s colours, a missing one in the missing colour, bins of their mean', async () => {
     const v = (viewer = await openRegion('matrix-methylation'));
     await advance(v, 8000);
     const l = lay(v, 'Methylation');
@@ -129,15 +129,14 @@ describe('Features/Region reads/Matrix, headless', () => {
     expect(l.images.length).toBe(1);
     expect(drawn(v, 'image')).toBe(1);
     const card = matrixCellHover(l as never, 250_000, 2, (s) => s)!;
-    expect(card.rows[1][1]).toBe('brain 1');
-    expect(card.rows[2][1]).toMatch(/^mean (0|1|\d\.\d+)/);
-    // zoomed in: items, a missing value left clear (its cell is no rect)
+    expect(card.rows[1][1]).toMatch(/^brain 1 · mean (0|1|\d\.\d+)/);
+    // zoomed in: items, a missing value in the missing colour
     v.runCommand('address.focus', { address: '/data/chr/(range :from 245000 :to 255000)' });
     await advance(v, 8000);
     const items = lay(v, 'Methylation');
     expect(items.items).toBe(true);
     expect(items.n).toBeGreaterThan(0);
-    // every state's cell of every CpG in view, less the missing ones (left clear: no rect, never a zero)
+    // every state's cell of every CpG in view, the missing ones in the missing colour (never the ramp's low end, never a zero)
     const m = methylationItems();
     let cells = 0;
     let missing = 0;
@@ -145,7 +144,9 @@ describe('Features/Region reads/Matrix, headless', () => {
       if (m.start[k] >= 245_000 && m.start[k] < 255_000)
         for (let s = 0; s < m.states; s++) Number.isNaN(m.value![k * m.states + s]) ? missing++ : cells++;
     expect(missing).toBeGreaterThan(0);
-    expect(items.n).toBe(cells);
+    expect(items.n).toBe(cells + missing);
+    const gone = items.tokens!.colors['seq-missing'];
+    expect(Array.from(items.rc.subarray(0, items.n)).filter((c) => c === gone)).toHaveLength(missing);
     for (const dark of [false, true]) {
       const svg = await exported(v, dark);
       expect(svg.settled).toBe(true);
