@@ -34,10 +34,15 @@ export interface RingSpecOptions {
   /** The 24 hues (not colour-blind safe) rather than the safe categories. */
   readonly hues?: boolean;
   readonly square?: boolean;
+  /** The links read from a file that is not there (the failed default: the placeholder and its issue). */
+  readonly failed?: boolean;
   /** Written without the extension listed (a reader of it draws the same; what the fallback story shows). */
   readonly bare?: boolean;
   readonly title?: string;
 }
+
+/** A BEDPE the views name that is not committed (the failed default's read). */
+export const MissingLinksFile = 'fixtures/genomes/ring-links-missing.bedpe';
 
 /** The genome ring over GRCh38 (`rondoRing`), its links read from BEDPE or held. */
 export function ringSpec(o: RingSpecOptions = {}): Node {
@@ -48,7 +53,10 @@ export function ringSpec(o: RingSpecOptions = {}): Node {
     ? b.data.pairs('links', { a: g, rows: ringRows(links) } as never)
     : b.data.pairs('links', {
         a: g,
-        source: b.data.source('links-bedpe', { format: 'bedpe', value: ringBedpe(links) as never }),
+        source: b.data.source(
+          'links-bedpe',
+          o.failed ? { format: 'bedpe', uri: MissingLinksFile } : { format: 'bedpe', value: ringBedpe(links) as never },
+        ),
       } as never);
   const bandsSource = o.synthetic
     ? b.data.source('bands-bed', {
