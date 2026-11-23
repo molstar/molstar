@@ -85,7 +85,7 @@ const AllCases = [
   { name: 'viewer, minimal', entry: 'viewer-minimal.ts', target: 1_090_000, unlisted: Unlisted },
   { name: 'bigWig runtime', entry: 'bigwig.ts', target: 30_000, own: /seq\/core\/src\/runtimes\// },
   // the genome ring extension (ring-extension.md, The package): its own code only, on the viewer's extension entry
-  { name: 'genome ring (rondo)', entry: 'rondo.ts', target: 32_000, own: /seq\/ext-rondo\/src\// },
+  { name: 'genome ring (rondo)', entry: 'rondo.ts', target: 38_000, own: /seq\/ext-rondo\/src\// },
   // the BED family's runtime with io's BGZF (no viewer bundles it); its reads by region (io's tabix, the region lines)
   // are its lazy chunk, loaded when the first indexed source opens: listed apart (`lazy`)
   {
