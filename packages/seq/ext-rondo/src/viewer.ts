@@ -47,11 +47,11 @@ const errorAt = (v: SeqViewer, source: string) =>
 // resolved view's: two viewers of one source address each their own); an export resolves its own view, so its
 // section is matched by address among the viewers that show it (one spec in two viewers: the first's)
 HoleIssue.of = (section, source) => {
-  // no section: the first viewer holding the source's error
-  if (!section) return [...Composed].map((v) => errorAt(v, source)).find(Boolean);
-  for (const v of Composed) if (v.view.resolved.value?.sections.includes(section)) return errorAt(v, source);
+  // no section (the square's hidden one): the first viewer's
   for (const v of Composed)
-    if (v.view.resolved.value?.sections.some((s) => s.address === section.address)) {
+    if (!section || v.view.resolved.value?.sections.includes(section)) return errorAt(v, source);
+  for (const v of Composed)
+    if (v.view.resolved.value?.sections.some((s) => s.address === section?.address)) {
       const m = errorAt(v, source);
       if (m) return m;
     }
@@ -139,26 +139,26 @@ export function chromosomesOf(lay: RondoLay, hit: Hit): string[] {
 function viewerParts() {
   let viewer: SeqViewer | undefined;
   /** The cursor to the next (or the previous) partner of its stem, the stem menu's order, said (the menu's chunk). */
-  const walk = (args: { back?: boolean }) =>
-    viewer && Menu ? Menu.walkPartners(viewer, args.back === true) : { message: viewer ? '' : 'No cursor' };
+  const walk = (back: boolean) =>
+    viewer && Menu ? Menu.walkPartners(viewer, back) : { message: viewer ? '' : 'No cursor' };
+  // the keys are the ring's when the cursor is on a ring's section: on a section of tracks they are the feature keys'
+  const onRing = () => {
+    const c = viewer?.selection.cursor.value;
+    return lays(viewer!).some((l) => l.section === c?.section) || 'No ring';
+  };
+  // `.` and `,` (the design's): along a stem's partners by count, back and forth
+  const partner = (back: boolean): ViewerCommand => ({
+    id: back ? 'rondo:partner-back' : 'rondo:partner',
+    title: `Go to the ${back ? 'previous' : 'next'} partner`,
+    category: 'Genome ring',
+    shortcut: { key: back ? ',' : '.' },
+    scope: 'canvas',
+    when: onRing,
+    run: () => walk(back),
+  });
   const commands: ViewerCommand[] = [
-    {
-      id: 'rondo:partner',
-      title: 'Go to the next partner',
-      category: 'Genome ring',
-      // `.` and `,` (the design's; free in the viewer's keys): along a stem's partners by count, back and forth
-      shortcut: { key: '.' },
-      scope: 'canvas',
-      run: () => walk({}),
-    },
-    {
-      id: 'rondo:partner-back',
-      title: 'Go to the previous partner',
-      category: 'Genome ring',
-      shortcut: { key: ',' },
-      scope: 'canvas',
-      run: () => walk({ back: true }),
-    },
+    partner(false),
+    partner(true),
     {
       id: 'rondo:select-partners',
       title: 'Select the partners',

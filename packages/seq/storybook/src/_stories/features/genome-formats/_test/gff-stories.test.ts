@@ -298,7 +298,8 @@ describe('Features/Genome formats/GFF3 and GTF, headless', () => {
     v.input.key({ key: ',' });
     expect(at()).toBe(starts[0]);
     v.selection.setCursor({ section: section.section.address, system, position: starts.at(-1)!, keyboard: true });
-    expect(v.input.key({ key: '.' })).toBe(false);
+    // at the last feature the key is still the command's: it says so and stops
+    expect(v.input.key({ key: '.' })).toBe(true);
     expect(at()).toBe(starts.at(-1));
   });
 

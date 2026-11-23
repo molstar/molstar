@@ -135,7 +135,7 @@ export const CellsType: LayerType<CellsPrep, CellsLay> = {
       }
     },
     text(lay, i, j, lattice) {
-      if (lay.pending && !(lay.max > 0)) return 'links loading';
+      if (lay.pending && !lay.max) return 'links loading';
       const c = Math.round(countAt(lay, lattice, i, j));
       return `${c.toLocaleString('en-US')} link${c === 1 ? '' : 's'}${i === j ? ' within' : ''}`;
     },
@@ -144,7 +144,7 @@ export const CellsType: LayerType<CellsPrep, CellsLay> = {
     note: (lay) =>
       lay.reader.failed
         ? (HoleIssue.of?.(undefined, lay.source ?? '') ?? 'Links failed')
-        : lay.pending && !(lay.max > 0)
+        : lay.pending && !lay.max
           ? 'Loading…'
           : undefined,
   },

@@ -695,28 +695,36 @@ export function createCursor(
    * cursor (before it), so an empty stretch is stepped over. Only on a section of tracks (a ring's keys are its own: the
    * same keys walk a stem's partners, and a command that cannot run lets them through).
    */
-  const featureStep = (ctx: CursorContext, back: boolean): Cursor | undefined => {
+  const featureStep = (ctx: CursorContext, back: boolean): { readonly next?: Cursor } | undefined => {
     const c = selection.cursor.value && current(ctx);
     const s = c && layout()?.sections.find((x) => x.section.address === c.section);
     if (!c || !s || s.layout.name !== 'tracks') return undefined;
     const focused = c.part === 'header' ? s.tracks.find((t) => t.track.address === c.track) : undefined;
-    const tracks = focused ? [focused] : s.tracks.filter((t) => t.layers.some((l) => l.type.items)).slice(0, 1);
+    const t = focused ?? s.tracks.find((x) => x.layers.some((l) => l.type.items));
+    // no track of items here: the key is not this command's (a ring's partners, the page's)
+    if (!t) return undefined;
     const eps = 1e-9;
-    for (const t of tracks) {
-      let best: number | undefined;
-      for (const l of t.layers) {
-        if (!l.type.items) continue;
-        const system = (l.lay as { system?: string }).system;
-        if (system !== undefined && system !== c.system) continue;
-        for (const it of l.type.items(l.lay)) {
-          const p = it.start;
-          const ok = back ? p < c.position - eps : p > c.position + eps;
-          if (ok && (best === undefined || (back ? p > best : p < best))) best = p;
-        }
+    let best: number | undefined;
+    for (const l of t.layers) {
+      if (!l.type.items) continue;
+      const system = (l.lay as { system?: string }).system;
+      if (system !== undefined && system !== c.system) continue;
+      for (const it of l.type.items(l.lay)) {
+        const p = it.start;
+        const ok = back ? p < c.position - eps : p > c.position + eps;
+        if (ok && (best === undefined || (back ? p > best : p < best))) best = p;
       }
-      if (best !== undefined) return { section: c.section, system: c.system, position: best };
     }
-    return undefined;
+    return best === undefined ? {} : { next: { section: c.section, system: c.system, position: best } };
+  };
+  // one scan a key press: `when` and `run` read the same (the cursor, the layout and the direction are its key)
+  let scanned: { c: unknown; l: unknown; back: boolean; r: ReturnType<typeof featureStep> } | undefined;
+  const scan = (ctx: CursorContext, back: boolean) => {
+    const c = selection.cursor.value;
+    const l = layout();
+    if (!scanned || scanned.c !== c || scanned.l !== l || scanned.back !== back)
+      scanned = { c, l, back, r: featureStep(ctx, back) };
+    return scanned.r;
   };
   const feature = (id: string, title: string, key: string, back: boolean): CommandDefinition<CursorContext> => ({
     id,
@@ -724,10 +732,11 @@ export function createCursor(
     category: 'Cursor',
     shortcut: { key },
     scope: 'canvas',
-    when: (ctx) => (featureStep(ctx, back) ? true : 'No feature there'),
+    // the key is this command's on a track of items, at its last feature too (it says so and stops)
+    when: (ctx) => (scan(ctx, back) ? true : 'No track of features here'),
     run: (_, ctx): CommandResult => {
-      const next = featureStep(ctx, back);
-      if (!next) return { message: '' };
+      const next = scan(ctx, back)?.next;
+      if (!next) return { message: back ? 'No previous feature' : 'No next feature' };
       moveTo(next);
       return { message: `Feature at ${(next.position + 1).toLocaleString('en-US')}` };
     },
