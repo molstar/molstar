@@ -133,7 +133,37 @@ and AoS interchangeable representations we have"; records in an address as `:ite
 - **Copy link**: the view gives the address of whatever is under the pointer or selected, as the shortest stable form
   (a ref if one names it, else ids and forms).
 
-## Tensions
+## In the specs
+
+| Decision | Where |
+|---|---|
+| An id is local; the address the path of ids | repr › One node shape |
+| The id pattern; names outside it go through a form (EC-200) | repr › Ids |
+| Prefixes name subtrees, `/*`; no elision | repr › Grammar |
+| What data makes is reached by forms (`chain`, `row`, `item`, `node`, `sequence :name`) | core › Forms |
+| The grammar; canonical printing, keys sorted, `parse(print(a)) = a` | repr › Grammar |
+| Positional values before keywords, operator heads | repr › Positional values |
+| Positional values only in expression forms, else `seq.query.form.param` | core › Expressions take positional operands |
+| Percent-encoded as a whole in a link | core › Links |
+| Forms are the query language's; one language with queries | core › Forms |
+| Rects first-class: Locations of two axes, set operations | core › Location |
+| Bounded: a limit and a depth, an issue never a truncation | core › Bounded |
+| Positions in labels of a named numbering (EC-1 to EC-8) | core › Numberings and labels |
+| An address that no longer resolves is reported with what it named, never re-bound | core › Status |
+| `(elements …)` items: one item, columns, records; zipped, never a product | core › elements |
+| Short and long names both read, the short printed; one field twice an error | core › Built in |
+| Normalized to columns, printed in the shorter layout | core › elements |
+| The elements bounds (unequal columns, `seq` with `beg`, `beg` past `end`) | core › elements |
+| A `refs` container of named refs; `/refs/<id>` wherever an address stands | core › A ref |
+| Refs refused for now in data nodes' params and a section's `of` and `follow` | core › Not followed yet |
+| Bookmarks and sets are refs, one patch | core › Adding one is one patch |
+| Refs follow edits; dangling and rebinding refused | repr › Link integrity |
+| An unresolved ref on read reported, the rest opens | core › Checks |
+| The `ref` param type | repr › Refs |
+| Commands take addresses; a link drives the view as a menu or an agent does | viewer › AddressModel |
+| Links in Mol\*'s grammar, prefixed keys, their own hover channel (EC-182) | core › Links |
+| Copy link: the shortest stable address, a ref first | core › Back |
+| Local ids vs stable identity; the strict id pattern | design-only: tensions |
 
 - **Local ids vs stable identity**: an address changes when a node moves; a move is an operation that rewrites what
   names it (meso\*'s resolution). Accepted for short, composable specs. The principles' "an id is never reused among

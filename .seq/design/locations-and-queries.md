@@ -162,3 +162,41 @@ residues (three atoms); `/data/1ehz/(groups :residue-test (= (prop modified) tru
 - `repr` gains the form-resolver table in the tree core's first move; its default keeps meso\*'s meaning.
 - Tests: every form's result type and examples; `elements` equal to its `filter` (a property); SoA equal to AoS; atoms; numbering cases EC-1 to EC-8; conversions; staged evaluation
   with a pending region.
+
+## In the specs
+
+| Decision | Where |
+|---|---|
+| Three result types: Nodes, Keys, Location | core › Result types |
+| A Location's shape; a value, comparable and hashable | core › Location |
+| A key `{ owner, key }`, its extent | core › Keys |
+| Conversions are forms, explicit; mixed types an issue | core › Conversions are forms |
+| Pairs answer `items` | core › Pairs answer items |
+| meso\*'s syntax with lists, strings, addresses | repr › Grammar |
+| The meaning is the form's: a resolver table, child selection the default | repr › The form-resolver table |
+| Seq\*'s resolvers registered as a table | core › The table |
+| Atoms: a number if it parses as one, else a symbol | repr › Atoms' spelling |
+| `:numbering`, the built-ins `index` and `ordinal`, `ordinal` by default (EC-195) | core › Built-ins |
+| `.n` labels quoted | core › A label |
+| A boundary's overlap | core › Overlap |
+| Labels resolve at the edge (EC-1 to EC-8) | core › Resolving a range |
+| Monadic composition | core › Composition |
+| The first forms | core › Forms |
+| `(row :id k)` giving Keys; a `(pair …)` form | design-only: not built as designed, `(row :key k)` gives a Location and pairs answer `items` (drift note `locations-and-queries.md`) |
+| `onto` and `search` | design-only: not built (later, with their examples) |
+| The forms by role, MolQL's split, a common prefix | core › Language |
+| `elements`: the schema selection, its depth its finest field | core › elements |
+| `elements` sugar over `filter`, exactly; rows plus matches | core › Sugar, exactly |
+| `groups` | core › groups |
+| `filter` | core › filter |
+| `expand` and `linked`; `include-surroundings` not built | core › expand |
+| Combinators renamed to `merge`, `intersect`, `except` | core › Combinators take :of |
+| Positional operands in expressions only | core › Expressions take positional operands |
+| Types checked when the query is read | core › Types are checked when a test is compiled |
+| Extensions add forms: namespaced, checked at composition and by role, no fallback | core › Composed |
+| An extension form's params printed in declared order | design-only: not built as designed, printed sorted by the grammar (drift note `locations-and-queries.md`) |
+| Replaced forms (`atom`, `component`, `entity`) | core › Molecule node forms |
+| Staged evaluation over data read by region | core › Staged |
+| A query needing the whole data asks the source, else refused | design-only: not built (with `search`) |
+| Bounded: a limit, a depth, a deadline | core › Bounded |
+| Tests | core › Examples |
