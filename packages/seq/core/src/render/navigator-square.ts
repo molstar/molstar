@@ -16,7 +16,7 @@ import {
   unitOfPlace,
 } from '@molstar/seqx-core/view';
 import { DefaultRenderConfig, type RenderConfig } from './config.js';
-import { Anchor, DrawLists, EmphasisPasses, NoColor, type PassName, type PassWriter } from './draw-lists.js';
+import { Anchor, DrawLists, EmphasisPasses, NoColor, type PassName, type PassWriter, Round } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
 import { bundledWidth } from './text.js';
 import type { SeqTokens } from './tokens.js';
@@ -59,6 +59,8 @@ export interface SquareNavigatorOptions extends SquarePictureOptions {
   readonly config?: RenderConfig;
 }
 
+/** The keyboard's cell's inset in its cell and its corners' radius (CSS px). */
+const KeyInset = 2;
 /** The lattice's inset from the box (CSS px): its outer lines are seen. */
 const Inset = 1;
 /** The x labels' band above the lattice (CSS px); the y labels' column is as wide as the longest (at most a fifth). */
@@ -321,16 +323,17 @@ export class SquareNavigator {
       style[2] = shown.i0 >= 0 ? this.config.navigator.window.handlePx : 0;
       drawShownSet(out, this.shownX, shown, this.edgeFn, style, this.maxCells);
       if (this.keyI >= 0 && this.keyJ >= 0 && this.keyI < this.blockCount && this.keyJ < this.blockCount) {
+        // inset and rounded in the accent: a cursor, never read as the window's outline
         const g = out.args;
-        g[0] = this.edgePx(this.keyI, true);
-        g[1] = this.edgePx(this.keyJ, false);
-        g[2] = Math.max(px, this.edgePx(this.keyI + 1, true) - g[0]);
-        g[3] = Math.max(px, this.edgePx(this.keyJ + 1, false) - g[1]);
+        g[0] = this.edgePx(this.keyI, true) + KeyInset;
+        g[1] = this.edgePx(this.keyJ, false) + KeyInset;
+        g[2] = Math.max(px, this.edgePx(this.keyI + 1, true) - g[0] - KeyInset);
+        g[3] = Math.max(px, this.edgePx(this.keyJ + 1, false) - g[1] - KeyInset);
         g[4] = NoColor;
         g[5] = c['msui-accent'];
         g[6] = Math.max(px, 1.5);
-        g[7] = 0;
-        g[8] = 0;
+        g[7] = KeyInset;
+        g[8] = Round.both;
         out.rectArgs();
       }
     }

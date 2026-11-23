@@ -74,6 +74,8 @@ export class SquareSetGesture {
   /** The keyboard's cell (lattice indices, -1: none yet): what Enter shows. */
   keyX = -1;
   keyY = -1;
+  /** The square (its set) the keyboard's cell was placed on. */
+  private keyOf: SquareNavigator | undefined;
 
   constructor(private readonly write: SquareSetWrite) {}
 
@@ -199,9 +201,16 @@ export class SquareSetGesture {
     return this.writeRun(square, i0, i0 + len);
   }
 
-  /** The keyboard's cell, first the run's first diagonal cell (or the first shown block's). */
+  /**
+   * The keyboard's cell, first the run's first diagonal cell (or the first shown block's); picked again when the set
+   * shown changed under it (`square` a new set's: a cell of blocks no longer shown is none of the window's).
+   */
   ensureKeyCell(square: SquareNavigator): void {
     const n = square.blockCount;
+    if (square !== this.keyOf) {
+      this.keyOf = square;
+      if (!square.shows(this.keyX) || !square.shows(this.keyY)) this.keyX = this.keyY = -1;
+    }
     if (this.keyX >= 0 && this.keyX < n && this.keyY >= 0 && this.keyY < n) return;
     let k = Math.max(0, square.run.i0);
     if (square.run.i0 < 0) for (k = 0; k < n && !square.shows(k); k++);

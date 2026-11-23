@@ -371,6 +371,31 @@ describe('The square over a ring: any set', () => {
     expect(include(v)).toBeUndefined();
   });
 
+  it('the outline is only the cells the ring shows: no stray cell on chr1 × chr1, focused or not', async () => {
+    const { v, n } = await make();
+    // the part focused while the whole genome is shown (its keyboard's cell would be chr1 × chr1)
+    n.setFocus(true);
+    n.draw();
+    expect(click(n, ...cell(n, 4, 6))).toBe(true);
+    await settle(v, n);
+    expect(include(v)).toEqual(['chr5', 'chr7']);
+    // a pointer's click: the outline is the set's cells, nothing more
+    expect(outline(n)).toEqual(cellsOf(n, [4, 6]));
+    n.setFocus(false);
+    n.draw();
+    expect(outline(n)).toEqual(cellsOf(n, [4, 6]));
+    // a key drives the cell: drawn inset and rounded, on a cell of the set (never chr1 × chr1)
+    n.setFocus(true);
+    expect(n.key('ArrowRight', { ctrlKey: true })).toBe(true);
+    n.draw();
+    const e = edge(n);
+    const extra = outline(n).filter((r) => !cellsOf(n, [4, 6]).some((c) => c.join() === r.join()));
+    expect(extra).toHaveLength(1);
+    expect(extra[0][0]).toBeGreaterThan(Math.round(e(4, true)));
+    expect(extra[0][1]).toBeGreaterThan(Math.round(e(4, false)));
+    expect(n.frame!.lists.passes.window.rects.radius[n.frame!.lists.passes.window.rects.n - 1]).toBeGreaterThan(0);
+  });
+
   it('EC-110: a ring’s view zoomed (its window idle unless followed): the square’s window stays its set', async () => {
     const { v, n } = await make(['chr2', 'chr3']);
     expect(outline(n)).toEqual(cellsOf(n, [1, 2]));

@@ -158,6 +158,8 @@ export class NavigatorModel extends ReactiveModel {
   /** The square over a set: its box's drag, its clicks and keys (each change one `section.include`), the hover's cursor. */
   private readonly setGesture = new SquareSetGesture((include) => this.writeSet(include));
   private setHover: PartCursor = 'default';
+  /** A key drove the square over a set since the last press or focus: its keyboard's cell is drawn. */
+  private keyed = false;
   /** The part has the keyboard focus (the host says: `setFocus`): a move made elsewhere then announces nothing. */
   private hasFocus = false;
   /** The view rested since the last draw; this part's own gesture or key moved it. */
@@ -382,11 +384,13 @@ export class NavigatorModel extends ReactiveModel {
   private drawFrame(r: NavigatorRenderer | SquareNavigator): NavigatorFrame {
     const layout = this.viewer.frame!.layout;
     const sweep = this.behavior?.sweep.value;
-    // over a set the keyboard's cell is drawn while the part has the focus
+    // over a set the keyboard's cell is drawn while the part has the focus and the keys drive it (a pointer's press
+    // hides it: a cursor no key moved is no part of the window)
     if (r instanceof SquareNavigator && r.setMode) {
       const g = this.setGesture;
-      if (this.hasFocus) g.ensureKeyCell(r);
-      r.setKeyCell(this.hasFocus ? g.keyX : -1, this.hasFocus ? g.keyY : -1);
+      const keyed = this.hasFocus && this.keyed;
+      if (keyed) g.ensureKeyCell(r);
+      r.setKeyCell(keyed ? g.keyX : -1, keyed ? g.keyY : -1);
     }
     return r.frame({
       size: { width: this.width, height: this.boxHeight },
@@ -438,6 +442,7 @@ export class NavigatorModel extends ReactiveModel {
   setFocus(focused: boolean): void {
     if (this.hasFocus === focused) return;
     this.hasFocus = focused;
+    this.keyed = false;
     const nav = this.navigator;
     if (!focused && nav && this.lastFrame) this.settle(nav, this.lastFrame);
   }
@@ -691,6 +696,7 @@ export class NavigatorModel extends ReactiveModel {
       if (!h && label < 0) return false;
       const hit: NavigatorHit = h ?? { section: nav.of[0], part: 'outside', axis: 'positions' };
       this.setGesture.press(set, x, y, p.touch);
+      this.keyed = false;
       this.press = { x0: x, y0: y, hit, moved: false, positions: false, set: true };
       this.changed();
       return true;
@@ -1043,6 +1049,10 @@ export class NavigatorModel extends ReactiveModel {
     if (set && key !== 'Home' && !modifiers.altKey) {
       const toggle = !!(modifiers.metaKey || modifiers.ctrlKey);
       const taken = this.setGesture.key(set, key, !!modifiers.shiftKey, toggle);
+      if (taken && !this.keyed) {
+        this.keyed = true;
+        this.changed();
+      }
       // the keyboard's cell said (a move of the run says its run through the slider)
       if (taken) this.say(setCellReadout(set, this.setGesture.keyX, this.setGesture.keyY));
       return taken;
