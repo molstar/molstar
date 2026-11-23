@@ -180,7 +180,11 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
         more.dataset.legendMore = row.id;
         more.setAttribute('aria-expanded', String(row.open));
         const label = row.open ? 'Show fewer' : `Show ${row.more} more`;
-        more.setAttribute('aria-label', `${label}: ${row.title}`);
+        // the accessible name starts with the visible text (WCAG 2.5.3)
+        more.setAttribute(
+          'aria-label',
+          `${row.open ? 'Show fewer' : `+${row.more}, show ${row.more} more`}: ${row.title}`,
+        );
         more.title = label;
         more.textContent = row.open ? 'Show fewer' : `+${row.more}`;
         more.style.cssText =

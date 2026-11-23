@@ -94,7 +94,7 @@ describe('a legend’s "+n"', () => {
     expect(button.tagName).toBe('BUTTON');
     expect(button.textContent).toBe('+18');
     expect(button.getAttribute('aria-expanded')).toBe('false');
-    expect(button.getAttribute('aria-label')).toBe('Show 18 more: Chromosomes');
+    expect(button.getAttribute('aria-label')).toBe('+18, show 18 more: Chromosomes');
     button.click();
     expect(labels(el)).toHaveLength(30);
     expect(labels(el)[29]).toBe('chr30');
