@@ -79,6 +79,8 @@ const Known: Readonly<Record<string, readonly string[]>> = {
   ],
   // a mark written `MT` on toy A, whose chrM has no such alias: refused, never guessed (the story's point, EC-189)
   'genomes/names': ['seq.resolve.assembly.name'],
+  // a contact map's empty cells (0) on its log palette: missing, said once (no contact: left clear)
+  'genomes/contact-map': ['seq.render.scale.log'],
   // ClinVar's chr17 at the fit: more tiles than a view reads, the "zoom in" state (the story's point)
   'genomes/vcf-zoom-in': ['seq.store.too_many_tiles', 'seq.render.zoom_in', 'seq.render.reach'],
 };

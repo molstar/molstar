@@ -327,7 +327,13 @@ describe('Examples/Genomes, headless', () => {
     expect([4096, 16_384]).toContain(g.binLevel);
     expect(g.pend).toEqual([]);
     expect(g.images.length).toBeGreaterThan(0);
-    await bothThemes(v);
+    // counts on a log palette: an empty cell (0, no contact) left clear, every count from 1 coloured
+    let clear = 0;
+    let drawn = 0;
+    for (const img of g.images) for (let q = 3; q < img.data.length; q += 4) img.data[q] ? drawn++ : clear++;
+    expect(clear).toBeGreaterThan(0);
+    expect(drawn).toBeGreaterThan(clear);
+    await bothThemes(v, ['seq.render.scale.log']);
   });
 
   it('the liftover (EC-211, EC-212): A’s genes drawn on A′ through the map read by region, the duplicated stretch twice', async () => {
