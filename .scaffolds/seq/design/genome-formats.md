@@ -301,7 +301,9 @@ export function readHeaderLines(reader: BgzfReader, index: TabixIndex, limits?: 
   `thick_start`, `thick_end` the hull of its CDS (in GTF with `start_codon` and `stop_codon`, which GTF writes outside
   the CDS), `cds_phase` the phase of its first CDS piece in the transcript's direction (what a codon map later needs;
   `rows` keeps every line's `phase` as an int8 field); its strand its own; its fields its line's attributes, with
-  `gene` (the gene's `ID`), `gene_name` (the gene's `Name`, GTF's `gene_name`) and `type`; **its extent its own
+  `gene` (the gene's `ID`), `gene_name` (the gene's `Name`, GTF's `gene_name`), `type` and **`canonical`** (what the
+  tags say: `MANE Select` for `MANE_Select`, else `Canonical` for `Ensembl_canonical`, GFF3's `tag=a,b` and GTF's
+  repeated `tag "a"` alike; null with neither, and for a gene: the viewer never guesses one; agreed 2026-11-23); **its extent its own
   line's** (`itemStart`, `itemEnd` on every row). A child naming several parents (`Parent=tx1,tx2`: a shared exon) is a
   piece of each. Every other feature is an item of its own by `ID` (rows sharing an `ID` its pieces, as built).
 - **A span row**: a transcript whose pieces all fall outside a tile (the tile inside an intron, or between its UTRs)
@@ -335,7 +337,10 @@ export function readHeaderLines(reader: BgzfReader, index: TabixIndex, limits?: 
   transcripts): a protein's coordinate system from a GFF's CDS is a figure no Genomes view needs yet (Decided, 7).
 - **The picture**: the ranges layer's `line: 'gene'` (new `LineStyles` member, GG): pieces as boxes, thick between
   `thick_start` and `thick_end`, thin outside, a hairline between pieces across the item's extent with strand
-  chevrons. Why a line style: the ranges layer already lays out items with pieces; a gene model is how they are joined.
+  chevrons. A transcript with a `canonical` value is **drawn first in its gene's stack** (packed before the others, so
+  it takes the first lane its extent leaves free), **its label bold**, and its card has a Transcript row, `Canonical` or
+  `MANE Select`; with no tag nothing is marked. A collapsed gene keeps every transcript in version 1 (drawing only the
+  canonical one is a new display mode: the package's TODO). Why a line style: the ranges layer already lays out items with pieces; a gene model is how they are joined.
 
 ### VCF (`runtimes/vcf`)
 

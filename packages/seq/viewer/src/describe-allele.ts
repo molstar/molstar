@@ -106,3 +106,12 @@ function cellText(c: Column, i: number): string {
   const a = Math.abs(v);
   return Number(v.toFixed(a >= 100 ? 1 : a >= 1 ? 2 : 3)).toString();
 }
+
+/**
+ * What a source's row says of a transcript (core _spec "Data", GFF3 and GTF, Tables): its `canonical` field, `Canonical`
+ * or `MANE Select` when the file's tags say so; '' when the row has none (the viewer never guesses one).
+ */
+export function canonicalOf(t: RangesList, i: number): string {
+  const f = t.fields?.find((x) => x.name === 'canonical');
+  return f ? cellText(f.column, i) : '';
+}

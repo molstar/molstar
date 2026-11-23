@@ -1272,14 +1272,16 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   to it; entered (the adapter's `enter`), it stays while the pointer is over it, the hover frozen; its `leave` hides it
   and arms the next rest; the grace ended without an entry, it goes. Esc, a press and a drag hide it at once. Why: a
   link a reader cannot reach is no link; a card with none never takes the pointer. `hover.card` is read at composition
-  (the configuration is read-only after it): off, no card is shown and no port made. **A variant allele's card** (the
-  genome formats' matrix row "a variant allele"): an item whose source row holds `ref` and `alt` (a VCF's, core's Data,
-  VCF) is titled by its id `pos:ref>alt` (an allele past 32 letters, hashed in the id, as its first letters and its
-  length: `7674964:GAGGCT… 469 bp>G`, `alleleTitle`), never its record's ID, with its Category, its record's `ID`,
-  `QUAL` and `FILTER`, and its INFO fields with a value (every field not in core's VCF `FixedFields`, the source's
-  order, the first 8, then `INFO: +k more`; a value past 40 characters cut with an ellipsis; an integer written as it
-  is: an id is never grouped). Its words are read once a hover (`alleleOf` keeps a list's last, a weak map: 0 B a held
-  hover, the storybook's `allele-card.quick.ts`). A behavior's part over the canvas is
+  (the configuration is read-only after it): off, no card is shown and no port made. **A transcript's card** (core's
+  `canonical` field, GFF3 and GTF): an item whose source row has a `canonical` value has a `Transcript` row, `Canonical`
+  or `MANE Select` (`canonicalOf`), and its sentence ends `, canonical` or `, mane select`; none says nothing. **A
+  variant allele's card** (the genome formats' matrix row "a variant allele"): an item whose source row holds `ref` and
+  `alt` (a VCF's, core's Data, VCF) is titled by its id `pos:ref>alt` (an allele past 32 letters, hashed in the id, as
+  its first letters and its length: `7674964:GAGGCT… 469 bp>G`, `alleleTitle`), never its record's ID, with its
+  Category, its record's `ID`, `QUAL` and `FILTER`, and its INFO fields with a value (every field not in core's VCF
+  `FixedFields`, the source's order, the first 8, then `INFO: +k more`; a value past 40 characters cut with an ellipsis;
+  an integer written as it is: an id is never grouped). Its words are read once a hover (`alleleOf` keeps a list's last,
+  a weak map: 0 B a held hover, the storybook's `allele-card.quick.ts`). A behavior's part over the canvas is
   `BehaviorHandle.attach(container, viewer)` (`viewer-spec.ts`): `mountCanvas` calls it for every behavior that has one,
   and the function it returns takes the part away.
 - `keysPanel` (`KeysPanelProvider`, in the default spec): `help.keys` (`?` in `view.keys`; the toolbar's button) opens a

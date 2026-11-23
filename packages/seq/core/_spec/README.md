@@ -1539,13 +1539,15 @@ format). Why opt in: the default viewer is at its size bound.
   chromosome.
 - **Tables**: `ranges` lists at level 1 and at the level whose one tile holds the longest system (`wholeLevel`). Each
   row a piece with its item's `id`, `strand` (and a field `strand`), `itemStart`, `itemEnd`, and fields `label` (`Name`,
-  GTF's `transcript_name` or `gene_name`, else the id), `type`, `gene`, `gene_name`, `thick_start`, `thick_end`
-  (float64, NaN none), `cds_phase` (int8, −1 none), then the attributes as categories in order of first use, at most 256
-  names (`ID` and `Parent` not fields); `rows` has `source`, `score` (float32) and `phase` (int8) instead of the gene's.
-  A region meeting an item with no piece in it (inside an intron) gives one **span row** (`start = end` at the region's
-  clipped start of the item, with its extent: EC-229). Pieces and items are found by a region from an index by start of
-  the short ones (a binary search, then what is near) and a list of the long ones (past 64 times the median span, at
-  least 4,096), so one chromosome-long feature never makes every read scan the sequence.
+  GTF's `transcript_name` or `gene_name`, else the id), `type`, `gene`, `gene_name`, `canonical` (`MANE Select` for the
+  tag `MANE_Select`, else `Canonical` for `Ensembl_canonical`; null otherwise and for a gene: the data says it, nothing
+  is guessed), `thick_start`, `thick_end` (float64, NaN none), `cds_phase` (int8, −1 none), then the attributes as
+  categories in order of first use, at most 256 names (`ID` and `Parent` not fields); `rows` has `source`, `score`
+  (float32) and `phase` (int8) instead of the gene's. A region meeting an item with no piece in it (inside an intron)
+  gives one **span row** (`start = end` at the region's clipped start of the item, with its extent: EC-229). Pieces and
+  items are found by a region from an index by start of the short ones (a binary search, then what is near) and a list
+  of the long ones (past 64 times the median span, at least 4,096), so one chromosome-long feature never makes every
+  read scan the sequence.
 - **By region** (a bgzipped, sorted file with a tabix `index`, never `<uri>.tbi`: EC-186): the header's directives at
   open (`##sequence-region` lengths), the levels its index's bytes allow (Genome runtimes' internals, Levels), a tile's
   `readCost` its `regionBytes`. **A tile's lines are assembled alone, by type**, as the whole file's are: a transcript's
@@ -3212,11 +3214,15 @@ in page coordinates: what crosses strips; `bridge`, internal, once a bridge with
   CSS px) before the model's start on the screen: the lanes are packed with that room before each item (its width and
   the gap, in positions at the view's scale), so each model whose room lies inside the band has its label whole; one
   whose room runs past the band's left edge has none. Never a box, never over the pieces; a hit on it is the item's; no
-  label lane (a lane under 10 px draws none). The boxes are never merged into runs (`bars` keeps them; `density` is the
-  strip). Why: igv's and UCSC's gene model; a GFF's transcripts are items with pieces, and a line style is how they are
-  joined. A warm draw and hover allocate nothing (the gene models scenario). A source's lanes (its whole data's not
-  known) are centred by the most the layer has shown, every lane when the last is the density row, so no lane runs past
-  the band.
+  label lane (a lane under 10 px draws none). **A canonical item** (a `canonical` field with a value, the GFF3 and GTF
+  readers': `Canonical`, `MANE Select`) is packed before the others (`GeneScratch.marked`, the sort's first key, then
+  the start), so it takes the first lane its extent leaves free, its gene's stack first, and its label is bold (the item
+  font in bold, `boldOf`, measured so: its room is its bold width); no item marked, the order and the labels are the
+  unmarked ones. Why: the data says which transcript is the one to read; the viewer never picks. The boxes are never
+  merged into runs (`bars` keeps them; `density` is the strip). Why: igv's and UCSC's gene model; a GFF's transcripts
+  are items with pieces, and a line style is how they are joined. A warm draw and hover allocate nothing (the gene
+  models scenario). A source's lanes (its whole data's not known) are centred by the most the layer has shown, every
+  lane when the last is the density row, so no lane runs past the band.
 
 - `values`: bars, or a profile where a position is under 4 CSS px. From 4 px a bar a position: a 1 px gap, rounded tops
   (2 px), at 60% of the series color. Below, one stepped profile over the device columns' extent

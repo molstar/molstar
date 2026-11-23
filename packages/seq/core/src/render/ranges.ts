@@ -28,7 +28,7 @@ import { channelForms, channelLegends } from './channels.js';
 import { layerSource, toSection } from './layer-data.js';
 import type { Emphasis, Hit, LayerType, LayoutContext, Overlay, StoreReader } from './layer-type.js';
 import { squircleRadius } from './squircle.js';
-import { geneGroups, geneLabelAt, geneMarks, placeGeneLabels } from './ranges-gene.js';
+import { boldOf, geneGroups, geneLabelAt, geneMarks, placeGeneLabels } from './ranges-gene.js';
 import {
   Gene,
   itemPiece,
@@ -277,14 +277,21 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
           lay.order,
           perPx,
           lay.laneHeight >= 10 && (ctx.labels === undefined || ctx.labels === 'inside')
-            ? (l) => text.measure(font, l)
+            ? (l, bold) => text.measure(bold ? boldOf(font) : font, l)
             : undefined,
         );
       } else for (let i = 0; i < n; i++) lay.order[i] = i;
       const order = lay.order.subarray(0, count);
       const starts: ArrayLike<number> = gene ? lay.gene.packStart : lay.starts;
       const ends: ArrayLike<number> = gene ? lay.gene.gEnd : lay.ends;
-      sortArrayRange(order, 0, count, (o, a, b) => starts[o[a]] - starts[o[b]] || o[a] - o[b]);
+      // a canonical item first (a gene line's `marked`), then by start: its lane is the first its extent leaves free
+      const marked = gene ? lay.gene.marked : undefined;
+      sortArrayRange(
+        order,
+        0,
+        count,
+        (o, a, b) => (marked ? marked[o[b]] - marked[o[a]] : 0) || starts[o[a]] - starts[o[b]] || o[a] - o[b],
+      );
       lay.lanes = grown(lay.lanes, n);
       const lanes = lay.lanes.subarray(0, n);
       const repOf = lay.gene.repOf;
