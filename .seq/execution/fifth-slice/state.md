@@ -2,6 +2,12 @@
 
 ## Decided
 
+- Stage 2's and 3's gate (the author, 2026-11-23, each "as recommended"): the recorded ClinVar slice stays committed
+  and ships in the examples (NCBI public data, attribution kept); genotype codes get tokens of their own
+  (`seq-genotype-0` to `-3` beside `seq-missing`, today's colours; drift/matrix-colours.md closed); the shared test
+  harness gets a leak control scaled to the case (a small lane); `@molstar/core`'s `formatGenomic` parses each spec once
+  (a small lane).
+
 - The dot plot's block-pair cells: the gaps tinted a little darker than the ground (the author, 2026-11-22: "Tint the
   gaps"), never a line in a gap (2026-11-19). A grid over two sections of blocks only; the single-section grid (the
   PAE plot) as it is. To FX17.

@@ -12,3 +12,5 @@ colours; (c) keep the ramp steps, the design saying so.
 
 **Recommendation**: (a) now (a small token addition, the design's Defaults 6 naming them), (b) when a figure needs
 another palette. Asked at stage 3's gate.
+
+**Decided** (the author, 2026-11-23, at stage 3's gate): (a), tokens of their own. To a fix lane.
