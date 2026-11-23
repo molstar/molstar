@@ -13,3 +13,8 @@ Open items for the next fix point or a running lane's fix round (the loop, Each 
 - **A variant's card title is its raw id** ("20001:601:f95ba8e6>C"; the orchestrator's look, Examples › Genomes ›
   Views › Samples): before CL4, not its change. The title names the variant (its kind and position, or its ID). Kind:
   look. To a fix lane.
+- **Stub labels drawn over each other** (the author, 2026-11-24, Features › Genome Ring › Kinds Of Links, the ring
+  zoomed to chr2 from the square: "also a visual bug", a screenshot): two stubs at one angle draw their labels on the
+  same spot ("chr11 · 335" and "chr1 · 3…" overprinted into one smear), and their wedges overlap. A stub's label needs
+  the ring's label collision rule (stagger or drop the weaker with a "+n"), as the chromosome labels have. Kind: bug.
+  Next fix point (a fix lane, with a test on the zoomed ring's label boxes not overlapping).

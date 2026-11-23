@@ -16,3 +16,7 @@ Bindings and Configuration). Alt+Right and Alt+Left are the view's forward and b
 
 **Recommended**: `.` and `,`: next and previous in the focused part, whatever its items are (a track's features, the
 ring's partners), one meaning across the viewer; the rows keep `]` and `[`. Alternative: `n` and `Shift+N`.
+
+**Decided by the author**, 2026-11-24: ". and , as recommended". `.` and `,` step to the next and previous item in the
+focused part (a track's features, the ring's partners); the rows keep `]` and `[`. To CL3's item 4; the note is
+deleted when CL3 merges with the answer in its design and spec.
