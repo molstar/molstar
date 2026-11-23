@@ -10,7 +10,6 @@ import {
   expandTemplate,
   type ResolvedLayer,
   type ResolvedSection,
-  type ResolvedView,
   type ResolvedTrack,
   sameBlocks,
   templateNodes,
@@ -477,8 +476,11 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     }
     // a section that cannot be placed and says why (its issue, not a section still waiting for its source): one row
     // naming it, never a blank well per track (_spec/README.md "Render", Empty tracks)
-    const said = !axis && layout === TracksLayout ? sectionIssue(input.view, section) : undefined;
-    if (said && shown.length > 1) shown.length = 1;
+    const said =
+      !axis && layout === TracksLayout
+        ? input.view.issues.find((i) => i.address === section.address && i.severity !== 'info')
+        : undefined;
+    if (said) shown.length = Math.min(shown.length, 1);
     const byType = layout.heights?.(config) ?? config.heights;
     const sizedBands = bandHeights(input, state, config, types, dataW, section, shown, layout, false, sectionReport);
     // the kept heights, copied only where this layout changes them (a rows band's)
@@ -535,7 +537,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       for (let q = 0; q < fl.length; q++) if (fl[q].type === 'rows' && fl[q].params.height === 'fill') explicit = true;
       heights[fill] = explicit ? filled : Math.min(filled, config.rows.maxPx);
     }
-    if (said && shown.length) {
+    if (said) {
       heights = [config.track.emptyPx];
       trackEmpties = ['note'];
     }
@@ -986,7 +988,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       height: y - sectionTop,
       tracks,
       empties: trackEmpties,
-      ...(said ? { note: said.message } : {}),
+      note: said?.message,
       ...(sectionHeader ? { header: sectionHeader } : {}),
       breaks: axis && band ? (stripBreaks[0] ?? NoBreaks) : NoBreaks,
       ...(mark ? { mark } : {}),
@@ -1071,11 +1073,6 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
 
 const NoBreaks: readonly number[] = [];
 const NoRows: readonly RailRow[] = [];
-
-/** The issue a section that is placed nowhere says (its address's, an error or a warning), if it has one. */
-function sectionIssue(view: ResolvedView, section: ResolvedSection): Issue | undefined {
-  return view.issues.find((i) => i.address === section.address && i.severity !== 'info');
-}
 
 /**
  * A placement's window (a ring's), out of its key: set on a kept placement too. Active while something follows the

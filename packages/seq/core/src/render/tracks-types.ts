@@ -81,7 +81,7 @@ export interface SectionLayout {
    */
   readonly empties: readonly ('note' | 'collapse' | undefined)[];
   /** What its one row says when the section is placed nowhere and has an issue (its message), else the track's "no items". */
-  readonly note?: string;
+  readonly note: string | undefined;
   /** Its header line above its first track (`section.header`), when drawn: its hidden tracks' chip, its slots. */
   readonly header?: SectionHeaderLine;
   /** The breaks in view, `[x, hiddenStart, hiddenEnd, …]` (x unsnapped): a hairline each across the band. */
