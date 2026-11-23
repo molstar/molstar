@@ -12,6 +12,7 @@ to CL14, are written into `plan.md` (Lanes; Order and parallelism) and `checklis
 
 - 2026-11-23: CL1, strong, the legend and layers, worktree on `seq/cl1` (`briefs/cl1-legend-layers.md`).
 - 2026-11-23: CL2, strong, the ring, worktree on `seq/cl2` (`briefs/cl2-ring.md`).
+- 2026-11-23: CL4, Sonnet, formats, worktree on `seq/cl4` (`briefs/cl4-formats.md`): wave 2 started early in CL14's slot; CL3 waits on CL2 (the ring's stories file).
 
 ## Next
 
