@@ -5,9 +5,16 @@
  */
 
 import { colorHex } from '@molstar/seqx-core/theme/index';
+import { Button } from '@molstar/ui/components/button/button';
+import { lucideEye } from '@molstar/ui/components/icon/_generated/lucide/eye';
+import { lucideEyeOff } from '@molstar/ui/components/icon/_generated/lucide/eye-off';
+import { installTooltips } from '@molstar/ui/components/tooltip/tooltip';
+import { render } from '@molstar/ui/dom/render';
+import { onCleanup } from '@molstar/ui/dom/scope';
 import {
   type LegendChannels,
   LegendChannelsModes,
+  type LegendRow,
   type LegendSelection,
   channelsRow,
   highlightColorOf,
@@ -41,7 +48,30 @@ export interface LegendPartOptions extends LegendSelection {
    * is active.
    */
   readonly channels?: LegendChannels;
+  /**
+   * A legend's eye (_spec/README.md "Legends", A layer's eye): a button after its title hiding or showing its layer
+   * (`layer.hide`, `layer.show`), a menu of its layers on a legend over several; true by default. `false` drops it (a
+   * figure's legend, printed, where the button is chrome).
+   */
+  readonly layers?: boolean;
 }
+
+/** A Lucide icon's markup as an element (one icon imported by itself, never the registry of every icon). */
+function iconOf(doc: Document, markup: string): SVGSVGElement {
+  const svg = doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('stroke', 'currentColor');
+  svg.setAttribute('stroke-width', '2');
+  svg.setAttribute('stroke-linecap', 'round');
+  svg.setAttribute('stroke-linejoin', 'round');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.innerHTML = markup;
+  return svg;
+}
+
+/** A hidden layer's row: its title and swatches dimmed (_spec/README.md "Legends", a layer's row keeps its place). */
+const HiddenOpacity = '0.45';
 
 let mounts = 0;
 
@@ -54,6 +84,7 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
   if (!LegendChannelsModes.includes(channels))
     throw new RangeError(`legend part: channels must be one of ${LegendChannelsModes.join(', ')}, not "${channels}"`);
   const compact = options.form === 'compact';
+  const eyes = options.layers !== false;
   const horizontal = options.orient === 'horizontal';
   if (options.form !== undefined && !['full', 'compact'].includes(options.form))
     throw new RangeError(`legend part: form must be full or compact, not "${options.form}"`);
@@ -77,6 +108,65 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
   const channelsEl = doc.createElement('div');
   root.append(host);
   element.append(root);
+  // the eye's tooltip (its name, as the toolbar's buttons say theirs)
+  const untips = eyes
+    ? render(() => {
+        onCleanup(installTooltips(root));
+        return null;
+      }, root)
+    : undefined;
+  /** The eyes' scopes, ended on each draw. */
+  let eyeScopes: (() => void)[] = [];
+  let closeMenu: (() => void) | undefined;
+  /**
+   * A row's eye: one layer, a button hiding or showing it; several, a button opening a menu of them, each checked while
+   * shown (the track header's Layers menu's shape). Every one a patch, one undo step (`layer.hide`, `layer.show`).
+   */
+  const eyeOf = (row: LegendRow): HTMLElement => {
+    const holder = doc.createElement('span');
+    holder.dataset.legendEye = row.id;
+    holder.style.cssText = 'display: inline-flex; margin: -4px 0;';
+    const one = row.layers.length === 1 ? row.layers[0] : undefined;
+    const title = one ? `${one.hidden ? 'Show' : 'Hide'} ${one.name}` : `Layers of ${row.title}`;
+    const toggle = (l: { address: string; hidden: boolean }) =>
+      void viewer.execute(l.hidden ? 'layer.show' : 'layer.hide', { address: l.address });
+    const open = (button: HTMLElement) => {
+      closeMenu?.();
+      const r = button.getBoundingClientRect();
+      // the menu's own chunk (`@molstar/ui`'s context menu), loaded the first time a legend over several layers opens it
+      void import('@molstar/ui/components/context-menu/context-menu').then((m) => {
+        if (!button.isConnected) return;
+        closeMenu = m.openContextMenu(
+          doc.body,
+          { x: r.left, y: r.bottom },
+          row.layers.map((l) => ({
+            id: l.address,
+            label: l.name,
+            icon: l.hidden ? 'eye-off' : 'eye',
+            checked: !l.hidden,
+            run: () => toggle(l),
+          })),
+          () => {
+            closeMenu = undefined;
+          },
+        );
+      });
+    };
+    eyeScopes.push(
+      render(() => {
+        const b = Button({
+          variant: 'ghost',
+          size: 'xs',
+          icon: iconOf(doc, row.hidden || one?.hidden ? lucideEyeOff : lucideEye),
+          title,
+          onClick: (ev) => (one ? toggle(one) : open(ev.currentTarget as HTMLElement)),
+        }) as HTMLElement;
+        if (!one) b.setAttribute('aria-haspopup', 'menu');
+        return b;
+      }, holder),
+    );
+    return holder;
+  };
   let focus = 0;
   // the focused entry's name, said to a screen reader through `aria-activedescendant` and, in the compact form (where
   // the labels are not text), shown beside the groups while the part has the focus
@@ -108,7 +198,13 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
     const active = doc.activeElement;
     const focusedClear = active instanceof HTMLElement && root.contains(active) ? active.dataset.clear : undefined;
     const focusedMore = active instanceof HTMLElement && host.contains(active) ? active.dataset.legendMore : undefined;
+    const focusedEye =
+      active instanceof HTMLElement && host.contains(active)
+        ? active.closest<HTMLElement>('[data-legend-eye]')?.dataset.legendEye
+        : undefined;
     shownKey = highlightKey();
+    for (const end of eyeScopes) end();
+    eyeScopes = [];
     host.replaceChildren();
     items = [];
     const rows = legendRows(viewer, options);
@@ -120,11 +216,14 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
       const nowrap = compact && !horizontal && !row.open;
       group.style.cssText = `display: flex; flex-wrap: ${nowrap ? 'nowrap' : 'wrap'}; max-width: 100%;${nowrap ? ' overflow: hidden;' : ''}${row.open ? ` max-height: ${OpenMaxHeight}; overflow-y: auto;` : ''} align-items: center; gap: ${compact ? '0 2px' : '4px 8px'};`;
       group.dataset.open = String(row.open);
+      if (row.hidden) group.dataset.hidden = 'true';
+      const dim = row.hidden ? ` opacity: ${HiddenOpacity};` : '';
       const title = doc.createElement('span');
       title.textContent = row.title + (row.note ? ` (${row.note})` : '');
       // a group's title: muted, 600, 11 px (_spec/README.md "Legends")
-      title.style.cssText = `color: var(--msui-text-muted, gray); font-weight: 600; font-size: 11px;${compact ? ' margin-right: 6px;' : ''}`;
+      title.style.cssText = `color: var(--msui-text-muted, gray); font-weight: 600; font-size: 11px;${compact ? ' margin-right: 6px;' : ''}${dim}`;
       group.append(title);
+      if (eyes && row.layers.length) group.append(eyeOf(row));
       const largest = Math.max(1e-9, ...row.entries.map((x) => x.size ?? 0));
       for (const e of row.entries) {
         const item = doc.createElement('span');
@@ -136,7 +235,9 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
         if (e.action && e.value !== undefined) item.dataset.value = e.value;
         // the compact form: the label on hover and in the name, never as text (a ramp's ends aside)
         if (compact) item.title = e.name;
-        item.style.cssText = `display: inline-flex; align-items: center; gap: 4px; cursor: ${e.action ? 'pointer' : 'default'}; border-radius: 3px; padding: 0 2px;${e.hovered ? ' outline: 2px solid var(--msui-accent, currentColor);' : ''}`;
+        // a hidden layer's entries: no action, and the pointer says so
+        item.style.cssText = `display: inline-flex; align-items: center; gap: 4px; cursor: ${row.hidden ? 'not-allowed' : e.action ? 'pointer' : 'default'}; border-radius: 3px; padding: 0 2px;${e.hovered ? ' outline: 2px solid var(--msui-accent, currentColor);' : ''}${dim}`;
+        if (row.hidden) item.setAttribute('aria-disabled', 'true');
         const swatch = doc.createElement('span');
         // the swatches match the canvas: never forced (forced colors keep data colors)
         // a size key's mark is a circle, its size relative to the row's largest (14 px across, in a 14 px cell): the
@@ -249,6 +350,12 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
       } else channelsEl.append(channelItem('legend', true));
       if (channelsEl.parentNode !== root) root.append(channelsEl);
     } else channelsEl.remove();
+    if (focusedEye !== undefined)
+      (
+        [...host.querySelectorAll<HTMLElement>('[data-legend-eye] button')].find(
+          (b) => b.closest<HTMLElement>('[data-legend-eye]')!.dataset.legendEye === focusedEye,
+        ) ?? host
+      ).focus();
     if (focusedMore !== undefined)
       (
         [...host.querySelectorAll<HTMLElement>('button[data-legend-more]')].find(
@@ -319,6 +426,9 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
   draw();
   return () => {
     for (const u of unlisten) u();
+    for (const end of eyeScopes) end();
+    closeMenu?.();
+    untips?.();
     root.remove();
   };
 }

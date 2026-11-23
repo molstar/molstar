@@ -33,6 +33,9 @@ export type LegendEntries =
     }
   | { readonly kind: 'sizes'; readonly items: readonly { readonly value: number; readonly size: number }[] };
 
+/** What a legend says once (`Legend.notes`). */
+export type LegendNote = 'unlisted' | 'substituted';
+
 export interface Legend {
   /** What two legends that say the same share: they merge into one. */
   readonly key: string;
@@ -50,10 +53,18 @@ export interface Legend {
   readonly source: 'vocabulary' | 'painted';
   /** Entries past `maxItems`. */
   readonly more: number;
-  /** `unlisted`: values the palette does not list take hashed colors, listed only once painted. `substituted`: a reader's color-blind substitution. */
-  readonly notes: readonly ('unlisted' | 'substituted')[];
+  /**
+   * `unlisted`: values the palette does not list take hashed colors, listed only once painted. `substituted`: a reader's
+   * color-blind substitution.
+   */
+  readonly notes: readonly LegendNote[];
   /** The layers (keys) it keys. */
   readonly layers: readonly string[];
+  /**
+   * The layers of `layers` the spec hides (`hidden: true`): a viewer keeps a hidden layer's legend in its place, its
+   * entries with no action (the viewer's legends); absent when none is.
+   */
+  readonly hidden?: readonly string[];
   /**
    * The channel that tells it from another legend of the same title (a layer's colors and sizes, `Variants` twice): set
    * after the merge, only where one title has legends of more than one channel. `title` itself stays the track's.
@@ -106,7 +117,7 @@ export function legendOf(channel: Channel, options: LegendOptions): Legend | und
   const src = channel.legend;
   if (!src) return undefined;
   const maxItems = options.maxItems ?? 12;
-  const notes: ('unlisted' | 'substituted')[] = channel.scheme?.substituted ? ['substituted'] : [];
+  const notes: LegendNote[] = channel.scheme?.substituted ? ['substituted'] : [];
   let entries: LegendEntries;
   let source: Legend['source'] = 'vocabulary';
   let domain: [number, number] | undefined;
@@ -273,7 +284,9 @@ export function legendsEqual(a: readonly Legend[], b: readonly Legend[]): boolea
       a[i].title !== b[i].title ||
       a[i].qualifier !== b[i].qualifier ||
       a[i].more !== b[i].more ||
-      a[i].layers.join() !== b[i].layers.join()
+      a[i].layers.join() !== b[i].layers.join() ||
+      (a[i].hidden ?? []).join() !== (b[i].hidden ?? []).join() ||
+      a[i].notes.join() !== b[i].notes.join()
     )
       return false;
   return true;

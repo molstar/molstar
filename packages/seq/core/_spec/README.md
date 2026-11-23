@@ -560,6 +560,9 @@ layout per token table, held domains and the reader's substitution (`LayerChanne
   legends follow; a legend two layers share stays while one of them keys it (the items of the `none` layer then no
   longer outline that entry on hover: the entry is the keyed layers'). Why the layer's: what a figure keys is the
   figure's (a spec's), where a key sits is the host's, and no session command hides one (language 0.5.0).
+  `Legend.hidden` lists the layers of `layers` the spec hides: never set by `viewLegends` (a hidden layer is not laid
+  out, so it keys nothing here); the viewer keeps a hidden layer's last legend in its place and sets it (viewer,
+  Legends).
 - **Builder**: `theme.uniform|field|rules|scheme|letters|categorical|…` and `measure.*`; a layer's `field` form over an
   inline table's text column gets the column's values listed (the legend is the vocabulary); a `ranges` layer over a
   `category` column, a `variants` one over a `consequence` column and a `pairs` one over a `type` column default to a
