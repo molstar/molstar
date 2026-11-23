@@ -36,7 +36,7 @@ where the lessons on building such languages were learned. Its `.meso/` is the p
 
 ## Reconciliation
 
-- Its principles copy is richer than the oz package's (queries, agent-interface, a larger representations module).
-  queries and agent-interface are taken as this instance's own modules; citations of its representations ids the oz
+- Its principles copy is richer than the principles package's (queries, agent-interface, a larger representations module).
+  queries and agent-interface are taken as this instance's own modules; citations of its representations ids the principles
   package lacks are reworded ("not adopted here"). If the language work needs one of them, it is brought in through
   the self-check.

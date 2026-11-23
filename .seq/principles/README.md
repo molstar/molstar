@@ -1,7 +1,7 @@
 # seq: the principles here
 
 `packages/seq` is a new implementation of Seq\*: SeqViewSpec, the language for sequence views, with its model and its
-viewer, in the Mol\* v6 repository. `.seq/` is its instance of the oz principles package, and this README is the
+viewer, in the Mol\* v6 repository. `.seq/` is its instance of the principles package, and this README is the
 manifest the `principles-router` skill reads. It governs `packages/seq/` and `.seq/` only; the rest of the repository
 follows its root `AGENTS.md` and `.v6/`, which win where both speak about the same thing.
 
@@ -11,7 +11,7 @@ code follows, the decisions, what the format means) moves into the packages' `_s
 
 ## Provenance
 
-- The package is `.seq/oz/`: the oz principles (`.principles/` in the oz exploration repository), copied at commit
+- The package is `.seq/oz/`: the principles (`.principles/` in the upstream exploration repository), copied at commit
   `7d03f60` (2026-11-17). An update from it is a merge from that base. Edited once: its `workspace` and `layout`
   modules removed (not adopted here) and their citations reworded, at the review's recommendation.
 - `queries/` and `agent-interface/` here: from the meso\* instance of the same package (`.meso/principles/` in the
@@ -293,7 +293,7 @@ method's loop.
 
 ## For the package's home
 
-Fold-back proposals for the oz package, from this instance (2026-11-18); until merged there they stand as the
+Fold-back proposals for the principles package, from this instance (2026-11-18); until merged there they stand as the
 adaptations above.
 
 - §reconcile-before-merge: the fold-back is a step of every close, not a category of reconciliation: a `foldback.md`

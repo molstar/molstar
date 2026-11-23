@@ -31,5 +31,5 @@ a `_spec` per folder). Seq\* is the first package built on `@molstar/ui`.
 ## Reconciliation
 
 - §frontend-state as written: the view is thin, models own state, simple actions are bound closures.
-- The oz reactive-models bootstrap pattern is replaced by `@molstar/core/reactive`, which the host provides
+- The principles package's reactive-models bootstrap pattern is replaced by `@molstar/core/reactive`, which the host provides
   (manifest, Adaptations).

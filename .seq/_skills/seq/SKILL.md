@@ -8,7 +8,7 @@ description: "Load first in any session working on packages/seq (Seq*, SeqViewSp
 `packages/seq` is a new implementation of Seq\*: SeqViewSpec, a JSON language for sequence views over one coordinate
 model, with its model, query language and viewer, in the Mol\* v6 repository.
 
-It is an instance of the principles package: the package is `.seq/oz/` (copied from the oz exploration repository at
+It is an instance of the principles package: the package is `.seq/oz/` (copied from the upstream exploration repository at
 `7d03f60`, 2026-11-17); this project's own modules, designs, sources, records and work folders are in `.seq/`.
 
 1. **Read the manifest**, `.seq/principles/README.md`: the folder map, the modules and the adaptations.

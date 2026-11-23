@@ -12,7 +12,7 @@ David Sehnal, 2026-11-17, starting the work (lightly condensed; the decisions ar
 - `@molstar/core/reactive` and `@molstar/ui` where appropriate: "no more rxjs", reusing the reactive model, state and
   the other primitives, and whatever of `packages/ui` is useful.
 
-`.seq` is bootstrapped from the oz principles, on the current patterns "and perhaps some new ones" from the references.
+`.seq` is bootstrapped from the principles package, on the current patterns "and perhaps some new ones" from the references.
 
 - "this will be a temporary scaffold during development of packages/seq, which will then be deleted. so no references
   to it from code"
@@ -39,7 +39,7 @@ David Sehnal, 2026-11-17, starting the work (lightly condensed; the decisions ar
     `packages/seq/AGENTS.md`;
   - header `Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.` with `@author`
     lines only (the request quoted `2019-2022`, read as the template's shape; new files take the current year);
-  - modules: oz's `_core`, architecture, representations, ui, testing, and meso\*'s queries and agent-interface; the
+  - modules: the package's `_core`, architecture, representations, ui, testing, and meso\*'s queries and agent-interface; the
     repository's three test lanes, none of the previous implementation's tiers, allocation guards only for the draw
     and hover loops once they exist;
   - from the JBrowse reply, in the first design: self-describing sources, fetch by region (nothing depends on a

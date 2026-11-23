@@ -5,7 +5,7 @@ Structure, boundaries, wiring, errors, commands, performance and access.
 ## In brief
 
 **Structure** (§structure). `lib/` is common and knows no product; `packages/<product>/*` are a product's building blocks;
-`apps/` and `services/` are thin compositions; `tooling/` never ships (oz's `top-level-layout` (not adopted here)). Dependencies point lib ← packages ← apps/services.
+`apps/` and `services/` are thin compositions; `tooling/` never ships (the upstream package's `top-level-layout` (not adopted here)). Dependencies point lib ← packages ← apps/services.
 Every boundary is a port (an interface) with adapters; a provider SDK lives only in its own `<module>-<provider>-runtime`
 package. Promote to `lib/` on the 2nd-3rd real use, not before. `lib/core/` depends on nothing else.
 
@@ -50,7 +50,7 @@ Patterns: §ports-and-adapters, §api-surfaces, §hot-loop-allocations, §comman
 
 ## Structure: common and product {#structure}
 
-1. **Split common from product, and compositions from building blocks.** {#common-vs-product} `lib/*` holds common modules: abstract, configurable, no product knowledge. `packages/<product>/<module>` (package `@scope/<product>-<module>`, oz's `family-folders` (not adopted here)) holds a product's building blocks (models, commands, adapters, runtimes, UI). `apps/*` (user-facing) and `services/*` (deployable backends) hold only top-level compositions: a composition root, entry points, configuration and deployment, no building blocks. Dependencies point one way (apps and services → product packages → lib, never the reverse), enforced by an import-boundary lint rather than by convention.
+1. **Split common from product, and compositions from building blocks.** {#common-vs-product} `lib/*` holds common modules: abstract, configurable, no product knowledge. `packages/<product>/<module>` (package `@scope/<product>-<module>`, the upstream package's `family-folders` (not adopted here)) holds a product's building blocks (models, commands, adapters, runtimes, UI). `apps/*` (user-facing) and `services/*` (deployable backends) hold only top-level compositions: a composition root, entry points, configuration and deployment, no building blocks. Dependencies point one way (apps and services → product packages → lib, never the reverse), enforced by an import-boundary lint rather than by convention.
 2. **Compose through ports.** {#compose-through-ports} Common code depends on interfaces (ports/clients), never on concrete providers. The application layer implements the ports and wires them in a single composition root (§composition-root). → [§ports-and-adapters](bootstrap-patterns/ports-and-adapters/README.md)
 3. **Every dependency boundary is an interface**: {#interface-boundaries} cloud services and storage (a hosted database, a cloud provider, a sandbox host, ..., on client and server alike), transport, and rendering/compute backends. Provider code never leaks past its adapter; swapping a provider means writing one adapter.
 4. **Everything is testable in isolation.** {#testable-in-isolation} Each module and each app composition runs on in-memory implementations with nothing deployed, which is what makes local tests and evals cheap.
