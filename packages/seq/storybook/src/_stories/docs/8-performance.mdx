@@ -1,0 +1,72 @@
+import { Canvas, Meta } from '@storybook/addon-docs/blocks';
+import * as Live from './live.stories';
+
+<Meta title="Docs/Performance and limits" />
+
+# Performance and limits
+
+**Cost follows pixels, not data.** A frame costs about what the screen shows. A frame of a whole genome and a frame of a
+300-residue protein cost about the same; only the level of detail differs. Layers read from multi-resolution data
+(summary pyramids, interval indexes, tiles by region), and the data's size is paid once, when it is read.
+
+Ten million alignment rows, generated: only the rows in view are ever made, and a row not yet read is labeled by its
+number until its tile arrives.
+
+<Canvas of={Live.TenMillionRows} />
+
+## At what sizes
+
+The targets hold at these sizes, and the stories show them:
+
+- a 35,000-residue protein, and 3 million nucleotides from a file;
+- a whole human genome, read by region
+  ([links over the genome](?path=/story/seq-next-features-region-reads-hi-c--over-the-genome),
+  [3,000 contigs](?path=/story/seq-next-features-genome-coordinates--three-thousand-contigs));
+- alignments of 10,000 × 300 ([10,000 rows](?path=/story/seq-next-examples-globins-rows--scale)) and ten million rows
+  read lazily ([the view above](?path=/story/seq-next-examples-globins-rows--lazy));
+- 200 copies of one chain ([Features › Molecules](?path=/story/seq-next-features-molecules--two-hundred-copies));
+- 100 tracks in one view ([past the cap](?path=/story/seq-next-features-layouts--tracks-past-the-cap));
+- a 4,000 × 4,000 grid.
+
+## What is held, and how
+
+- **Drawing and hover allocate nothing** once warm: pan, zoom and hover make no garbage, and a layout allocates a
+  bounded amount per frame. Checked by the allocation tests at checkpoints.
+- **Scaling is tested as ratios**, which hold on any machine: more data must not make a frame proportionally slower.
+- **Edits cost what they change.** A patch is checked against the nodes it reached, not the whole spec. A 10-op patch on
+  the p53 spec, applied and diffed back, takes under 1 ms.
+- **Headless is quick to start.** `seqx-render` goes from process start to a written file in under a second.
+- **A retired viewer releases everything** it made.
+
+The time, memory and size targets, with how they are measured, are in
+[Design › Performance](?path=/docs/seq-next-design-performance--docs).
+
+## Limits
+
+Input is bounded before work starts: a spec or a file may come from a URL, a link or an agent. Each limit is a setting
+with a default, and going past one gives an issue, never a hang or a throw.
+
+| What                    | Default                                       | Past it                                     |
+| ----------------------- | --------------------------------------------- | ------------------------------------------- |
+| a spec                  | 64 MB, 256 levels deep, 64 nested query forms | refused with `seq.lang.bound.*`             |
+| one source's parse      | 1,000,000 rows, 64 MB                         | not read, with an issue at the source       |
+| a structure description | 1,000,000 positions an entity, 10,000 units   | the rest left out, said once                |
+| the store's cache       | 64 MB; 6 requests in flight                   | least recently used tiles go, never in view |
+| one tile's answer       | 16 MB                                         | "too large": a coarser level is asked       |
+| one layer's tiles       | 1,024 tiles and 16 MiB a view                 | a coarser level, or "zoom in"               |
+| a file read by a viewer | 256 MB and 30 s (the browser policy)          | refused, with an issue at the source        |
+| issues                  | the first 10 places of a code, 100 a node     | the rest counted in one warning             |
+| accessible names        | 200 items a track, 2,000 a figure             | "n more not named"                          |
+| the hover card          | 8 item rows                                   | `+k more`; the live region says them all    |
+
+## Bundle size
+
+What a host bundles is what its composition lists: the format runtimes are opt in, and an extension that is not composed
+costs nothing. Reading a spec (decode, check, resolve) is about a quarter of a megabyte minified, headless rendering to
+SVG about a megabyte, and the default viewer about one and a half. A format runtime such as bigWig is under 30 kB, and
+the genome ring under 40 kB. The bounds are checked at each checkpoint.
+
+## Where next
+
+- Back to the [Introduction](?path=/docs/seq-next-docs-introduction--docs).
+- For contributors: [Design › Performance](?path=/docs/seq-next-design-performance--docs).
