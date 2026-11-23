@@ -110,4 +110,9 @@ true.
 
 ## Decided by the author
 
-Not yet.
+Decided by the author, 2026-11-23: merged: "ok apply all 5, and with questions go as recommended". Rule ids are checked
+per scaffold, and an instance's rule moves upstream when a second scaffold needs it. B3 and B4 go into the method here,
+and are written up as a proposal for the upstream package, not applied there (another repository; the author's).
+Applied by lane S5M with the upstream workflow files (`c1ccd14`, §plan-and-checklist, §state-file): the author, the
+same day, "do we need to update .scaffolds/_method too with the checklist.md, updated plan, etc templates; since this
+changed in the upstream version?".
