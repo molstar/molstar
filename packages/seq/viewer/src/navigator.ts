@@ -39,6 +39,7 @@ import { blockOfUnit, blockSwitchRange } from './block-switch.js';
 import { DragSlop } from './input.js';
 import { setNarrowed } from './narrowed.js';
 import { type PartCursor, partCursor } from './part-cursor.js';
+import { SquareSetGesture, setCellReadout, setCursor, setReadout } from './square-set.js';
 import type { SeqViewer } from './viewer.js';
 
 // The navigator's model (_spec/README.md "Models", NavigatorModel): DOM-free, one a navigator a viewer shows (a
@@ -87,6 +88,18 @@ export interface NavigatorValue {
 }
 
 /** The pointer's state for a gesture: touch widens the hits. */
+/** A click's modifiers: Cmd (Mac) or Ctrl adds or removes on a square over a set. */
+export interface ClickModifiers {
+  readonly metaKey?: boolean;
+  readonly ctrlKey?: boolean;
+}
+
+/** A key's modifiers. */
+export interface KeyModifiers extends ClickModifiers {
+  readonly shiftKey?: boolean;
+  readonly altKey?: boolean;
+}
+
 export interface NavigatorPointer {
   readonly touch?: boolean;
 }
@@ -103,6 +116,8 @@ interface Press {
   readonly rows?: { readonly track: string; readonly top: number; readonly before: ViewSnapshot };
   /** The press is on a rows grip: the rows rail's gesture zooms them about the other end (`RowsRailGesture`). */
   readonly grip?: RowsRailGesture;
+  /** The press is on a square over a set: a drag of its run's box (`SquareSetGesture`), else a click's. */
+  readonly set?: true;
 }
 
 export class NavigatorModel extends ReactiveModel {
@@ -140,6 +155,9 @@ export class NavigatorModel extends ReactiveModel {
   private top: string | undefined;
   private readonly moves: Record<string, number> = {};
   private press: Press | undefined;
+  /** The square over a set: its box's drag, its clicks and keys (each change one `section.include`), the hover's cursor. */
+  private readonly setGesture = new SquareSetGesture((include) => this.writeSet(include));
+  private setHover: PartCursor = 'default';
   /** The part has the keyboard focus (the host says: `setFocus`): a move made elsewhere then announces nothing. */
   private hasFocus = false;
   /** The view rested since the last draw; this part's own gesture or key moved it. */
@@ -357,6 +375,12 @@ export class NavigatorModel extends ReactiveModel {
   private drawFrame(r: NavigatorRenderer | SquareNavigator): NavigatorFrame {
     const layout = this.viewer.frame!.layout;
     const sweep = this.behavior?.sweep.value;
+    // over a set the keyboard's cell is drawn while the part has the focus
+    if (r instanceof SquareNavigator && r.setMode) {
+      const g = this.setGesture;
+      if (this.hasFocus) g.ensureKeyCell(r);
+      r.setKeyCell(this.hasFocus ? g.keyX : -1, this.hasFocus ? g.keyY : -1);
+    }
     return r.frame({
       size: { width: this.width, height: this.boxHeight },
       dpr: this.viewer.dpr,
@@ -445,7 +469,8 @@ export class NavigatorModel extends ReactiveModel {
   /** What is under a point, idle windows' parts read as `outside` (an idle window is no target). */
   hit(x: number, y: number, touch = false): NavigatorHit | undefined {
     const h = this.renderer?.hit(x, y, touch, this.top);
-    if (!h || h.context) return h;
+    // over a set the parts are the run's box's, whatever the axis's window does
+    if (!h || h.context || this.setSquare) return h;
     const m = this.moves[h.section] ?? 0;
     const along = h.axis === 'rows' ? NavWindowFlags.y : NavWindowFlags.x;
     if (!m) return { ...h, part: 'outside' };
@@ -455,9 +480,17 @@ export class NavigatorModel extends ReactiveModel {
 
   /** The cursor over the navigator, by the part and the gesture (`partCursor`), held through a drag. */
   get cursor(): PartCursor {
+    if (this.press?.set) return this.setGesture.dragging ? this.setGesture.cursor : 'pointer';
     if (this.press) return partCursor(this.press.hit.part, this.press.hit.axis, true);
+    if (this.setSquare) return this.setHover;
     const l = this.lit;
     return l ? partCursor(l.part, l.axis, false) : 'default';
+  }
+
+  /** The square over a set (one section on both axes with a switch), else undefined. */
+  private get setSquare(): SquareNavigator | undefined {
+    const r = this.renderer;
+    return r instanceof SquareNavigator && r.setMode ? r : undefined;
   }
 
   /** The pointer moved over the navigator: the lit part and the readout follow; a drag moves its window. */
@@ -467,7 +500,20 @@ export class NavigatorModel extends ReactiveModel {
     const d = this.press;
     if (d) {
       if (!d.moved && Math.max(Math.abs(x - d.x0), Math.abs(y - d.y0)) >= DragSlop) d.moved = true;
-      if (d.moved) this.dragTo(d, x, y);
+      if (d.moved && d.set) this.setGesture.drag(this.setSquare!, x, y);
+      else if (d.moved) this.dragTo(d, x, y);
+      this.changed();
+      return;
+    }
+    const set = this.setSquare;
+    if (set) {
+      const g = set.gripAt(x, y, p.touch);
+      this.setHover = g
+        ? setCursor(g.grip, g.axis)
+        : set.cellAt(x, y) || set.labelAt(x, y) >= 0
+          ? 'pointer'
+          : 'default';
+      this.say(setReadout(set, x, y));
       this.changed();
       return;
     }
@@ -627,6 +673,17 @@ export class NavigatorModel extends ReactiveModel {
     const b = this.behavior;
     const nav = this.navigator;
     const h = this.hit(x, y, p.touch);
+    // over a set: a press on the run's box drags it, on a cell or a label it is a click's
+    const set = this.setSquare;
+    if (set && b && nav) {
+      const label = set.labelAt(x, y);
+      if (!h && label < 0) return false;
+      const hit: NavigatorHit = h ?? { section: nav.of[0], part: 'outside', axis: 'positions' };
+      this.setGesture.press(set, x, y, p.touch);
+      this.press = { x0: x, y0: y, hit, moved: false, positions: false, set: true };
+      this.changed();
+      return true;
+    }
     // over blocks the context is the genome: a press there is a click's (a jump to the block, a switch)
     if (h?.context && nav?.blocks && b) {
       this.press = { x0: x, y0: y, hit: h, moved: false, positions: false };
@@ -736,7 +793,12 @@ export class NavigatorModel extends ReactiveModel {
     if (!d) return;
     this.press = undefined;
     const b = this.behavior;
-    if (d.grip) {
+    const set = d.set && this.setSquare;
+    if (set) {
+      // a drag of the run's box writes its run once (one patch, one undo step); a press that never moved is a click's
+      if (d.moved) this.setGesture.release(set);
+      else this.setGesture.cancel(set);
+    } else if (d.grip) {
       if (d.moved) d.grip.release();
       else d.grip.cancel();
       if (d.moved) this.ownMove = true;
@@ -765,15 +827,23 @@ export class NavigatorModel extends ReactiveModel {
    * there, both axes on a miniature (a jump, its own step); on the window nothing. A second click is a
    * double-click's: nothing (`doubleClick` follows).
    */
-  click(x: number, y: number, detail = 1): boolean {
+  click(x: number, y: number, detail = 1, modifiers: ClickModifiers = {}): boolean {
     const d = this.lastPress;
     this.lastPress = undefined;
     const b = this.behavior;
     const nav = this.navigator;
     const square = this.renderer instanceof SquareNavigator ? this.renderer : undefined;
     // the square with a switch: every click on a cell shows its pair at once, a quick second one too (a platform's
-    // double-click count never turns a click into a select first: Decided 16)
+    // double-click count never turns a click into a select first: _spec/README.md, The square over a set)
     if (!d || d.moved || !b || !nav || (detail > 1 && !(square && nav.switch === 'include'))) return false;
+    // over a set: a cell its pair, a label its block; Cmd or Ctrl adds or removes them
+    if (square?.setMode) {
+      const toggle = !!(modifiers.metaKey || modifiers.ctrlKey);
+      const label = square.labelAt(x, y);
+      if (label >= 0) return this.setGesture.label(square, label, toggle);
+      const cell = square.cellAt(x, y);
+      return !!cell && this.setGesture.cell(square, cell.x, cell.y, toggle);
+    }
     // `navigator.switch: include`: a click on a block shows it alone on the bound section (on what it already shows
     // alone: no change); the window, where it has one, keeps its gestures
     const ctx = !!d.hit.context;
@@ -938,6 +1008,8 @@ export class NavigatorModel extends ReactiveModel {
     if (!d) return false;
     this.press = undefined;
     d.grip?.cancel();
+    const set = d.set && this.setSquare;
+    if (set) this.setGesture.cancel(set);
     if (d.rows) this.viewer.view.setBand(d.rows.track, { bandTop: d.rows.top });
     if (d.positions) this.behavior?.cancel();
     this.changed();
@@ -948,13 +1020,22 @@ export class NavigatorModel extends ReactiveModel {
    * A key while the part has the focus (its window sliders, roving: PageDown and PageUp move the focus to the next
    * and the previous window): arrows pan (Up and Down on rows), Shift+arrows resize about the centre, Home and End go
    * to the ends (jumps), Enter centres on the readout's position, Esc cancels; the view's keys act on the focused
-   * window's section (Alt+Left and Alt+Right whether it can move or not: they walk the history). True when taken.
+   * window's section (Alt+Left and Alt+Right whether it can move or not: they walk the history). Over a set the keys
+   * are the set's (`SquareSetGesture.key`), Home showing all. True when taken.
    */
-  key(key: string, modifiers: { readonly shiftKey?: boolean; readonly altKey?: boolean } = {}): boolean {
+  key(key: string, modifiers: KeyModifiers = {}): boolean {
     const nav = this.navigator;
     const section = nav?.of[this._focused.value] ?? nav?.of[0];
     if (!nav || !section) return false;
     if (key === 'Escape') return this.cancel();
+    const set = this.setSquare;
+    if (set && key !== 'Home' && !modifiers.altKey) {
+      const toggle = !!(modifiers.metaKey || modifiers.ctrlKey);
+      const taken = this.setGesture.key(set, key, !!modifiers.shiftKey, toggle);
+      // the keyboard's cell said (a move of the run says its run through the slider)
+      if (taken) this.say(setCellReadout(set, this.setGesture.keyX, this.setGesture.keyY));
+      return taken;
+    }
     // over blocks the slider's large step is a block (`block.next`, `block.previous`); Home with a switch shows all
     if (nav.blocks && (key === 'PageDown' || key === 'PageUp'))
       return this.runIf(key === 'PageDown' ? 'block.next' : 'block.previous', { section });
@@ -1044,6 +1125,13 @@ export class NavigatorModel extends ReactiveModel {
    * `navigator.switch: include`: every block shown again on the bound section (its `include` removed; a click on the
    * navigator's title, Home on its focus). True when the command ran.
    */
+  /** A square over a set writes its bound section's `include` (undefined: every block), one patch. */
+  private writeSet(include: readonly string[] | undefined): boolean {
+    const section = this.navigator?.of[0];
+    if (!section) return false;
+    return this.runIf('section.include', include ? { address: section, include } : { address: section });
+  }
+
   showAll(): boolean {
     const nav = this.navigator;
     const section = nav?.of[0];

@@ -26,6 +26,8 @@ import type { NavigatorFrame, NavigatorFrameInput, NavigatorHit } from './naviga
 import { NavigatorWindow } from './navigator.js';
 import { drawShownSet, gripOf, type SquareGripHit, type SquareRun, shownRun } from './navigator-square-set.js';
 
+export type { SquareGrip, SquareGripAxis, SquareGripHit, SquareRun } from './navigator-square-set.js';
+
 // The square (_spec/README.md "Render", Navigators, The square): a navigator on two axes over blocks × blocks, its
 // lattice the assembly's chromosome pairs (after the assembly's `include`, never a section's), the cells the bound
 // sections show plain and the rest washed, the window the x and y windows as one rectangle. What the cells hold (pairs
@@ -292,6 +294,19 @@ export class SquareNavigator {
       const shown = p.i0 >= 0 ? p : this.run;
       const grips = shown.i0 >= 0 ? this.config.navigator.window.handlePx : 0;
       drawShownSet(out, this.shownX, shown, this.edgeFn, c['seq-window'], Math.max(px, 1.5), this.maxCells, grips);
+      if (this.keyI >= 0 && this.keyJ >= 0 && this.keyI < this.blockCount && this.keyJ < this.blockCount) {
+        const g = out.args;
+        g[0] = this.edgePx(this.keyI, true);
+        g[1] = this.edgePx(this.keyJ, false);
+        g[2] = Math.max(px, this.edgePx(this.keyI + 1, true) - g[0]);
+        g[3] = Math.max(px, this.edgePx(this.keyJ + 1, false) - g[1]);
+        g[4] = NoColor;
+        g[5] = c['msui-accent'];
+        g[6] = Math.max(px, 1.5);
+        g[7] = 0;
+        g[8] = 0;
+        out.rectArgs();
+      }
     }
     // over a set the window is drawn too where the view does not show the whole section (a followed ring's, EC-110)
     if (w.shown && (!this.setMode || !this.wholeView)) {
@@ -463,6 +478,20 @@ export class SquareNavigator {
   private get maxCells(): number {
     return this.config.navigator.square.maxCells;
   }
+
+  /** What a cell's picture says of it (`37 links`), undefined without one. */
+  cellText(_i: number, _j: number): string | undefined {
+    return undefined;
+  }
+
+  /** The keyboard's cell (lattice indices; -1 none), outlined in the accent while the square has the focus. */
+  setKeyCell(i: number, j: number): void {
+    this.keyI = i;
+    this.keyJ = j;
+  }
+
+  private keyI = -1;
+  private keyJ = -1;
 
   /** A gesture's run drawn instead of the shown one (`[i0, i1)` of lattice blocks); `i0` -1 clears it. */
   setPreview(i0: number, i1: number): void {
