@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import { dataFilter } from '../behaviors/theming.js';
 
-// The viewer's filter is a layer's trailing `(except …)` only (files.md, One track a feature type): what leads it, the
+// The viewer's filter is a layer's trailing `(except …)` only (seqx-core _spec "Data", Records): what leads it, the
 // annotation and a leading item form, is the track's base, kept when the filter is set, toggled or cleared.
 
 describe('dataFilter', () => {

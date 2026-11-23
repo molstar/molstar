@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// Tracks of one kind share the tallest lanes only when close (_spec/README.md "Render", Track heights; layouts.md
-// "Tracks of one kind"): within 2 lanes or 2x of the cluster's smallest, clusters by sorted lanes, so never by order.
+// Tracks of one kind share the tallest lanes only when close (_spec/README.md "Render", Track heights): within 2 lanes
+// or 2x of the cluster's smallest, clusters by sorted lanes, so never by order.
 
 import { describe, expect, it } from 'vitest';
 import { DefaultRenderConfig } from '../index.js';

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// Property access (_spec/README.md "Queries", Properties; properties.md): a property is a typed symbol read per
+// Property access (_spec/README.md "Queries", Properties): a property is a typed symbol read per
 // element of one level (molecule, unit, residue, atom), apart from the language that combines forms. The built-ins
 // have a short name (printed) and a long one (MolViewSpec's, mmCIF's: read); an extension adds its own through the
 // registry (`query-property`), namespaced. A name resolves to its definition here; how a value is read for an element
@@ -39,7 +39,7 @@ export interface PropertyDef {
 const def = (name: string, level: PropertyLevel, type: PropertyType, ...aliases: string[]): PropertyDef =>
   Object.freeze({ name, aliases: Object.freeze(aliases), level, type });
 
-/** The built-in properties (properties.md, Built in), in the docs' order. */
+/** The built-in properties (_spec/README.md "Queries", Properties), in the docs' order. */
 export const BuiltInProperties: readonly PropertyDef[] = Object.freeze([
   def('entity', 'molecule', 'word', 'label_entity_id'),
   def('molecule-class', 'molecule', 'word'),

@@ -169,7 +169,7 @@ describe('a host-drawn navigator through NavigatorModel', () => {
     expect((range(v)[0] + range(v)[1]) / 2).toBeCloseTo(mid, 0);
     expect(m.cancel()).toBe(false);
     m.leave();
-    // at rest the window's region, never a blank line (navigators.md, "The window's look", 4)
+    // at rest the window's region, never a blank line (seqx-core _spec "Render", Navigators)
     expect(m.readout.value).toMatch(/^p:\d[\d,]*–[\d,]+ of p$/);
     // the sliders' values once the view rests
     v.draw();

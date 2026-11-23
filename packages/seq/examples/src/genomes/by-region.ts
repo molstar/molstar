@@ -9,7 +9,7 @@ import { createSeqSpec, genome } from '@molstar/seqx-core/lang';
 import { HlaName } from './generate/assemblies.js';
 import { type Files, fileSource, GenomesFiles, LettersA, LettersFormat } from './toys.js';
 
-// The genome by region with its names aliased (examples.md, Genomes; EC-186 to EC-189, EC-200): toy A from the
+// The genome by region with its names aliased (EC-186 to EC-189, EC-200): toy A from the
 // in-memory letters adapter (its sequences, lengths and letters by region, from the seed: no manifest, no file, EC-188)
 // with its alias table (a `seq` source of systems and their aliases: `1`, `NC_900001.1` for chr1; chrM its accession,
 // no `MT`), data written in other namings drawn on it (`1`, an accession, `chr3`, and `MT`, refused: never guessed

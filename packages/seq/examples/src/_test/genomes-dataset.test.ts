@@ -29,7 +29,7 @@ import { ToyBSequences } from '../genomes/toys.js';
 import { PackageFolder } from '../node-assets.js';
 import { tabixRegion } from './tabix-region.js';
 
-// The Genomes dataset's generator (examples.md, Genomes): its output byte-identical to the committed fixtures (by
+// The Genomes dataset's generator: its output byte-identical to the committed fixtures (by
 // checksum), each file under its estimated size, the same bytes on a second run. `SEQ_RECORDS=update` writes the
 // fixtures again (the record script's `genomes` case writes them with their `sources.json` rows).
 

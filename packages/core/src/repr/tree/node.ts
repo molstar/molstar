@@ -29,7 +29,7 @@ export interface Node {
   /** Local: unique among its siblings (IdPattern); the node's address is the path of ids from the root. */
   readonly id?: string;
   readonly params?: Params;
-  /** Extension data: kept, hashed and encoded with the node, never validated against its kind (extensibility.md). */
+  /** Extension data: kept, hashed and encoded with the node, never validated against its kind. */
   readonly custom?: Params;
   readonly children?: readonly Node[];
   /** A data form's positional values, in order; a node with `args` has no id and no children. */

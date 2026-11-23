@@ -593,8 +593,8 @@ and a misuse for each code is in `_test/lang.test.ts`. The namespaces are `repr.
 
 `src/query/` (`@molstar/seqx-core/query`): locations, keys, the three result types, and the query forms as `repr` form
 resolvers over a model of systems, numberings, annotations and structures; property access apart from the language
-(locations-and-queries.md, The language; properties.md). Forms and addresses are one language: a form is a segment of an
-address, `/data/p53/(range :from 94 :to 292)`.
+(Queries, Language; Properties). Forms and addresses are one language: a form is a segment of an address,
+`/data/p53/(range :from 94 :to 292)`.
 
 ### Result types
 
@@ -736,10 +736,10 @@ address, `/data/p53/(range :from 94 :to 292)`.
 
 ### Language
 
-The forms by role (locations-and-queries.md, The language; MolQL's split): generators `elements` and `groups`, the
-filter `filter`, the modifiers `expand` and `linked`, the combinators, and the expression forms a predicate is written
-in (`query/expressions.ts`). Structure forms walk a prefix's **frames** (`query/structure.ts`): a unit of a complex (or
-a lone molecule or sequence) with its residues system and its atoms when it has them, and what the prefix holds of them;
+The forms by role (Queries, Language; MolQL's split): generators `elements` and `groups`, the filter `filter`, the
+modifiers `expand` and `linked`, the combinators, and the expression forms a predicate is written in
+(`query/expressions.ts`). Structure forms walk a prefix's **frames** (`query/structure.ts`): a unit of a complex (or a
+lone molecule or sequence) with its residues system and its atoms when it has them, and what the prefix holds of them;
 over nodes, a complex's units, a unit, a molecule, else the complexes under the node (`QueryModel.complexes`: a
 source's).
 
@@ -822,7 +822,7 @@ source's).
 
 ### Extensions
 
-`query/extensions.ts`; extension-openings.md, the `query-form` and `query-property` entries.
+`query/extensions.ts`; the `query-form` and `query-property` entries.
 
 - `{ kind: 'query-form', name, role, params, result, resolve(ctx) }` for a generator, filter, modifier or combinator
   (`ctx`: the model, the form, the prefix as a result, `evaluate`, `tick`, `limit`);
@@ -1323,12 +1323,12 @@ by fuzz tests (mutated text read without a throw).
 - **Assets**: `AssetReader.openRange(uri, signal)` when the host has it (`policyAssets`: core's `openRanges` under the
   policy), else the file whole through `readBytes`, bounded by `limits.maxBytes`. A range read that fails (core's
   `AssetRangeError`: a changed file, a mangled `Content-Range`) fails the region (`failed`), never wrong values.
-- **Bounds** (security.md: a file is untrusted input): blocks of one region over `limits.maxBytes`, bins over
-  `limits.maxRows` and blocks inflating past `maxInflatedBytes` together are `too-large`; a tree node listing more than
-  `maxNodeItems`, a tree level wider than `maxLevelNodes` (its offsets de-duplicated), more than `maxIndexBytes` of
-  nodes for one open or region, a tree deeper than 16 and a node past its size are `malformed`. Blocks are inflated one
-  after another into what they hold, never a buffer of the header's `uncompressBufSize` each. Decoded blocks: the last
-  16 kept for a pan back; pages are core's.
+- **Bounds** (a file is untrusted input): blocks of one region over `limits.maxBytes`, bins over `limits.maxRows` and
+  blocks inflating past `maxInflatedBytes` together are `too-large`; a tree node listing more than `maxNodeItems`, a
+  tree level wider than `maxLevelNodes` (its offsets de-duplicated), more than `maxIndexBytes` of nodes for one open or
+  region, a tree deeper than 16 and a node past its size are `malformed`. Blocks are inflated one after another into
+  what they hold, never a buffer of the header's `uncompressBufSize` each. Decoded blocks: the last 16 kept for a pan
+  back; pages are core's.
 - **Configuration**: `bigWigRuntime(over)` (`BigWigRuntime` is `bigWigRuntime()`), `BigWigLimits`,
   `DefaultBigWigLimits`:
 
@@ -1787,7 +1787,7 @@ accession, DEFINITION, organism, molecule, length, topology, features; what a ho
 ### mmCIF
 
 `runtimes/mmcif.ts` (`@molstar/seqx-core/runtimes/mmcif`, opt in: `MmcifRuntime`, `mmcifRuntime`, `openMmcif`,
-`MmcifIssues`): a format runtime (`mmcif`) of a structure's nodes and its units' values (molecules.md, Reading).
+`MmcifIssues`): a format runtime (`mmcif`) of a structure's nodes and its units' values.
 
 - **One converter**: the file is read whole (gzipped or not, by its magic; `DecompressionStream`, bounded by
   `limits.maxBytes` before and after inflating), parsed by `@molstar/io`'s text CIF parser (an allowlisted entry; the
@@ -1823,7 +1823,7 @@ accession, DEFINITION, organism, molecule, length, topology, features; what a ho
   | Item       | Default             | Why the default; the alternatives                                                           |
   | ---------- | ------------------- | ------------------------------------------------------------------------------------------- |
   | `assembly` | the deposited model | what the entry is; an assembly id of `pdbx_struct_assembly_gen`                             |
-  | `water`    | `false`             | waters say nothing on an axis (molecules.md); `true`                                        |
+  | `water`    | `false`             | waters say nothing on an axis; `true`                                                       |
   | `name`     | `description`       | the entity's own words (`pdbx_description`); `composition` for a branch (`NAG2 BMA`)        |
   | `limits`   | `structureNodes`'   | the description's bounds (Seq io); an assembly's units are made up to `maxUnits`, then said |
 
@@ -1855,9 +1855,9 @@ over the assets port, with `@molstar/core/util/zip` (never a private zip). Not a
   spec the reader opens is as written, not yet checked against the language (`checkSeqSpec` is the viewer's). The reader
   serves the files by name (`archiveReader`; `./` dropped; a location not an entry is `ArchiveEntryMissing`, so an
   archive's spec reads nothing of the network or the disk). Why: the archive is the only place its view reads from.
-- **Bounds** (EC-91, `ArchiveLimits`; a host raises them for a trusted archive; security.md): `maxEntries` 1,000,
-  `maxBytes` 256 MB (the archive's own bytes and the entries' declared sizes together), `maxEntryBytes` 64 MB (the bound
-  of a file parsed whole), `maxRatio` 200 for an entry over `ratioFloor` (64 KB), `maxNameLength` 256, the spec within
+- **Bounds** (EC-91, `ArchiveLimits`; a host raises them for a trusted archive): `maxEntries` 1,000, `maxBytes` 256 MB
+  (the archive's own bytes and the entries' declared sizes together), `maxEntryBytes` 64 MB (the bound of a file parsed
+  whole), `maxRatio` 200 for an entry over `ratioFloor` (64 KB), `maxNameLength` 256, the spec within
   `SpecBounds.maxBytes` and its checks. All but the spec are read from the central directory before anything is inflated
   (core's `unzip` limits, and the listing), so a bomb is refused by its declared sizes; a declared size that lies is
   caught by core (the inflated length and CRC-32 must match). Why: the declared sizes are what allocates.
@@ -1866,7 +1866,7 @@ over the assets port, with `@molstar/core/util/zip` (never a private zip). Not a
 
   | Key             | Default | Whose                                       | Bounds                                         |
   | --------------- | ------- | ------------------------------------------- | ---------------------------------------------- |
-  | `maxEntries`    | 1,000   | the host's (security.md, EC-91)             | entries, directories included                  |
+  | `maxEntries`    | 1,000   | the host's (EC-91)                          | entries, directories included                  |
   | `maxBytes`      | 256 MB  | the host's                                  | the archive's bytes, and the entries' together |
   | `maxEntryBytes` | 64 MB   | `OpenLimits.maxBytes` (a file parsed whole) | one entry's expanded size                      |
   | `maxRatio`      | 200     | the host's                                  | expanded over compressed, over `ratioFloor`    |
@@ -2015,7 +2015,7 @@ names: `StructureDescription` and its table types, `structureNodes` (with `Struc
 | `limits.maxLength` | 1,000,000  | positions of one entity: titin's 35,000 with room; a description is untrusted input |
 | `limits.maxUnits`  | 10,000     | units of the complex: a large assembly's chains under its operators                 |
 | `limits.maxRows`   | 10,000,000 | rows of one table: a ribosome's residues under its operators with room              |
-| `water`            | `false`    | waters say nothing on an axis (molecules.md); `true`                                |
+| `water`            | `false`    | waters say nothing on an axis; `true`                                               |
 | `complex`          | `complex`  | the complex's id and key; any id                                                    |
 
 ## Structures
@@ -2363,8 +2363,8 @@ Seq\* holds pointers and labels: codes and identifiers are strings.
   rows are not the unit's (on the residues it pairs) is `seq.resolve.map.observed`, once. Why the unit wins: observed is
   the structure's own fact. Status changes no path: a projection through a run pairs its unobserved and conflicting
   residues as any other (a hover on the sequence lights an unobserved residue in Seq\*); cutting what has no atoms is
-  the structure translation's (`toUnits`; maps.md, structure-syncing.md: unobserved positions never sent). Why: one path
-  for every use, and a residue missing from the model is still the sequence's.
+  the structure translation's (`toUnits`: unobserved positions never sent). Why: one path for every use, and a residue
+  missing from the model is still the sequence's.
 - **Priority**: `MapEntry.priority` (0 when absent), on each of its edges.
 - A map that pairs nothing is `seq.resolve.map.empty`; a partial one is no issue.
 - **Maps read by region** (`map.source`, `model-region.ts`): a `segments` map naming a pairs source is never held (no
@@ -2824,7 +2824,7 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 | `maxNumberingPositions`                                                           | 2^18                                                                                                                   | the positions a numbering from a source covers at most; past it `seq.render.numbering.limit` and nothing asked for: its labels are held whole                                                                                                                                                                                                                                                                             |
 | `nodes.holdShown`                                                                 | true                                                                                                                   | a layout lists the nodes it shows, for its owner to hold in the store; false: nothing held by showing                                                                                                                                                                                                                                                                                                                     |
 | `ranges.overflow`                                                                 | `extra-lanes`                                                                                                          | only the items past the lanes collapse into a density row; `layer`, the whole layer                                                                                                                                                                                                                                                                                                                                       |
-| `ranges.connector.width`, `.ink`, `.alpha`                                        | 1, `item`, 0.6                                                                                                         | the hairline joining an item's pieces across shown positions (axis.md): its width in CSS px, its ink (`item`: the item's colour; `muted`) and its alpha                                                                                                                                                                                                                                                                   |
+| `ranges.connector.width`, `.ink`, `.alpha`                                        | 1, `item`, 0.6                                                                                                         | the hairline joining an item's pieces across shown positions: its width in CSS px, its ink (`item`: the item's colour; `muted`) and its alpha                                                                                                                                                                                                                                                                             |
 | `values.aggregate`                                                                | `minmax`                                                                                                               | below a device pixel a position, each column's extent, so negative extremes show; `max`                                                                                                                                                                                                                                                                                                                                   |
 | `values.coarser`                                                                  | 1                                                                                                                      | the coarsest level whose bin is no wider than k device pixels' positions (below)                                                                                                                                                                                                                                                                                                                                          |
 | `values.direct`                                                                   | true                                                                                                                   | data on the section's own system placed with no mapping (below); false: the general mapping, the same lists                                                                                                                                                                                                                                                                                                               |
@@ -3000,20 +3000,20 @@ strip's.
   it holds, the pairs layer's arcs, chords and dots, whatever the Location covers), a color and a `style` (`tint`, the
   default; `band`; `outline`), on every system its Location has (the `highlight` pass), each style a squircle (Shapes:
   round where a channel's range really ends, square where a stripe change cuts its run; a `band` bar, below the minimum,
-  square). **Overlapping channels stay apart** (ux-foundations section 6): a position lit by one channel takes the whole
-  band; by several, the band splits into equal stripes, one a channel present there, in channel order, at most
-  `emphasis.highlightStripes`, the channels past the last sharing it (a ring's band radially). The style draws in the
-  channel's stripe: `tint` fills it at `emphasis.highlightTint`, `band` a bar `emphasis.highlightBand` px along its foot
-  in the color as given. A fill's run is one rect while its slot and the stripe count stay: it is cut only where the set
-  of channels lighting changes (`highlight-stripes.ts`, a merge of the channels' sorted boundaries: nothing allocated).
-  **An `outline` takes no stripe** (it has no fill, so it does not count among the channels lighting): one stroke
-  (`outline.selection`) over the channel's own ranges on the whole band, above the fills, never fragmented by another
-  channel's boundary. Stripe edges and the bar are on device pixels, one edge between two stripes (no overlap, no seam).
-  A range wholly in a hidden stretch lights its break once a channel, at its first run. **The grid** stripes its
-  highlighted rows the same way across the plot (a stripe a channel, in channel order; `band` a bar along a stripe's
-  left edge, `outline` one stroke over the row); the columns are the strip's, drawn with the tracks'. **The navigators'
-  ticks stay one tick a channel** (a tick is a position mark, no band to split). Why stripes: stacked tints of two
-  colors blend into a third that names neither.
+  square). **Overlapping channels stay apart**: a position lit by one channel takes the whole band; by several, the band
+  splits into equal stripes, one a channel present there, in channel order, at most `emphasis.highlightStripes`, the
+  channels past the last sharing it (a ring's band radially). The style draws in the channel's stripe: `tint` fills it
+  at `emphasis.highlightTint`, `band` a bar `emphasis.highlightBand` px along its foot in the color as given. A fill's
+  run is one rect while its slot and the stripe count stay: it is cut only where the set of channels lighting changes
+  (`highlight-stripes.ts`, a merge of the channels' sorted boundaries: nothing allocated). **An `outline` takes no
+  stripe** (it has no fill, so it does not count among the channels lighting): one stroke (`outline.selection`) over the
+  channel's own ranges on the whole band, above the fills, never fragmented by another channel's boundary. Stripe edges
+  and the bar are on device pixels, one edge between two stripes (no overlap, no seam). A range wholly in a hidden
+  stretch lights its break once a channel, at its first run. **The grid** stripes its highlighted rows the same way
+  across the plot (a stripe a channel, in channel order; `band` a bar along a stripe's left edge, `outline` one stroke
+  over the row); the columns are the strip's, drawn with the tracks'. **The navigators' ticks stay one tick a channel**
+  (a tick is a position mark, no band to split). Why stripes: stacked tints of two colors blend into a third that names
+  neither.
 - `selection` (a Location): a soft accent tint at `emphasis.selectionTint` and one thin outline inside it
   (`outline.selection`, 1 px, the accent at `emphasis.selectionOutline`, 0.6), the tints first, then the outlines;
   squircle ends where a range really ends, square where the view or a piece cuts it (the frame rule) (the `selection`
@@ -3039,32 +3039,31 @@ strip's.
   of its own: after its `draw`, the hovered item's mark (`LayerType.mark(lay, key, out)`: its bounds in the strip's
   frame, written into the view's one reused box, and the radius of its corners) is outlined `emphasis.hoverOffset`
   outside it and concentric (its radius plus the offset), in the hover ink; round on the sides the strip does not cut,
-  square where the mark meets the strip's edge. Why: every layer type has the hover, as ux-foundations asks, and a warm
-  frame allocates nothing. A type with no `mark` gets the view's mark over what its hit covers (the hover contract); one
-  that draws its own hover in its `hover` pass sets `ownHover: true` and the view draws none, so it is never outlined
-  twice. The selection is the view's already (a Location's band column).
-- **The hover contract** (ux-foundations sections 6 and 9; the author: "we need a general rule for this and global
-  fix"): every drawn mark of every layer type, in every layout (tracks, text, rings, blocks, rows, grid, a bridge's
-  band) and at every step (an item, a lane's run, a density bin or band, a summary, a chip, a reduced tile), answers a
-  hover with the same three things. (1) **A hit** naming what is under the pointer: the item, else the bin's items or
-  stretch, else the position. A mark is drawn where a point hits it: inside its strip (a mark a device pixel wide at a
-  block's end widens inward, never into the gap after it); a group's gap (a text's) holds no position, so there an
-  element alone answers (an item drawn across it) and a density strip leaves its columns clear. (2) **A hover mark** in
-  the hovered section and in every section the hover is carried to with positions in view, reaching every layer the
-  covered positions reach (a pairs layer's arcs and carets with an end in a hovered item's extent, as hovering those
-  positions lights them; a grid's columns; a ring's position box): the layer's own, and where its layer drew none for
-  the hit, the view's (`drawOwnHover`: what the hover covers, drawn on its own section as one carried from a linked
-  section, at least a device pixel). (3) **A card** with the hit's fields (the viewer's hover card; a bridge's ribbon
-  its own card, its hit naming the bridge). A drag suspends the card. The one exception: a navigator's control over a
-  mark takes the hover as its own (the ruler rail's grab zone over the ruler: Navigators). A layer type that cannot is
-  refused at registration, never silent: one with no `hit` (`seq.render.layer.hover`, every offender in one error,
-  nothing registered). Why one rule: the same miss came back layer by layer (a ring's hover, a density row, a score box,
-  density bands); a rule over every type and layout, held by one sweep, closes the class. **The sweep** (the storybook's
-  `hover-contract.test.ts`, medium lane): every story's view settled as its story composes it, every layer instance,
-  points on its drawn marks read from its own data pass (never guessed), the pointer moved there; it asserts the hit, a
-  hover mark in the hovered section and each linked one (drawn by the canvas's backend and in the SVG's hover group) and
-  a card with words; it reaches every built-in layer type and layout, so a new one is swept by adding nothing. A quick
-  representative holds one view a layout.
+  square where the mark meets the strip's edge. Why: every layer type has the hover, and a warm frame allocates nothing.
+  A type with no `mark` gets the view's mark over what its hit covers (the hover contract); one that draws its own hover
+  in its `hover` pass sets `ownHover: true` and the view draws none, so it is never outlined twice. The selection is the
+  view's already (a Location's band column).
+- **The hover contract** (the author: "we need a general rule for this and global fix"): every drawn mark of every layer
+  type, in every layout (tracks, text, rings, blocks, rows, grid, a bridge's band) and at every step (an item, a lane's
+  run, a density bin or band, a summary, a chip, a reduced tile), answers a hover with the same three things. (1) **A
+  hit** naming what is under the pointer: the item, else the bin's items or stretch, else the position. A mark is drawn
+  where a point hits it: inside its strip (a mark a device pixel wide at a block's end widens inward, never into the gap
+  after it); a group's gap (a text's) holds no position, so there an element alone answers (an item drawn across it) and
+  a density strip leaves its columns clear. (2) **A hover mark** in the hovered section and in every section the hover
+  is carried to with positions in view, reaching every layer the covered positions reach (a pairs layer's arcs and
+  carets with an end in a hovered item's extent, as hovering those positions lights them; a grid's columns; a ring's
+  position box): the layer's own, and where its layer drew none for the hit, the view's (`drawOwnHover`: what the hover
+  covers, drawn on its own section as one carried from a linked section, at least a device pixel). (3) **A card** with
+  the hit's fields (the viewer's hover card; a bridge's ribbon its own card, its hit naming the bridge). A drag suspends
+  the card. The one exception: a navigator's control over a mark takes the hover as its own (the ruler rail's grab zone
+  over the ruler: Navigators). A layer type that cannot is refused at registration, never silent: one with no `hit`
+  (`seq.render.layer.hover`, every offender in one error, nothing registered). Why one rule: the same miss came back
+  layer by layer (a ring's hover, a density row, a score box, density bands); a rule over every type and layout, held by
+  one sweep, closes the class. **The sweep** (the storybook's `hover-contract.test.ts`, medium lane): every story's view
+  settled as its story composes it, every layer instance, points on its drawn marks read from its own data pass (never
+  guessed), the pointer moved there; it asserts the hit, a hover mark in the hovered section and each linked one (drawn
+  by the canvas's backend and in the SVG's hover group) and a card with words; it reaches every built-in layer type and
+  layout, so a new one is swept by adding nothing. A quick representative holds one view a layout.
 - `cursor`: a 1 px outline of its cell (`outline.cursor`) over the band, in a neutral ink (`emphasis.cursorInk`,
   `msui-text`), never the accent (the `cursor` pass); a squircle by the cell over the band, inside it by half its width
   (concentric), square on a side the view cuts. Whether it is shown is the caller's (a viewer shows it once the keyboard
@@ -3690,13 +3689,12 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   viewport. The tokens last set are the renderer's own, so a picture made again keeps them. Why: a region on its
   chromosome is a few kb of tens of Mb, a window there can neither show a move nor take a drag; the chromosome's context
   and a working window are two scales.
-- **The look** (navigators.md, "The window's look"; `navigator.window.strokePx`, `.idleAlpha`,
-  `navigator.zoomStrip.funnel`, `NavWindowFlags.quiet`): one stroke weight (1 CSS px) for every line of the part (the
-  window, the mark, the connectors, an idle frame, a sweep), a lit window said by its fill and grips only; two inks from
-  `seq-window`: the control at full strength, every "where" mark (the context's mark, the connectors, an idle frame) at
-  the quiet alpha. A window at the fit (`atFit`: it moves along x alone and covers all it can reach) is drawn as the
-  idle frame, no grips, and is no target: its whole row is `outside`, so a drag sweeps (`navigator.zoom-to`) and a
-  double-click zooms there.
+- **The look** (`navigator.window.strokePx`, `.idleAlpha`, `navigator.zoomStrip.funnel`, `NavWindowFlags.quiet`): one
+  stroke weight (1 CSS px) for every line of the part (the window, the mark, the connectors, an idle frame, a sweep), a
+  lit window said by its fill and grips only; two inks from `seq-window`: the control at full strength, every "where"
+  mark (the context's mark, the connectors, an idle frame) at the quiet alpha. A window at the fit (`atFit`: it moves
+  along x alone and covers all it can reach) is drawn as the idle frame, no grips, and is no target: its whole row is
+  `outside`, so a drag sweeps (`navigator.zoom-to`) and a double-click zooms there.
 - **Draw lists**: the base (`background`, `data`) is the picture's, keyed as any frame; the `window` pass draws the
   washes, the windows (the one the pointer last acted on on top) and a sweep's outline; then the marks: the selection's
   and the highlights' ticks at the picture's foot (`navigator.marks`), the keyboard cursor's hairline, the pointer's
@@ -3750,23 +3748,23 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   by the same code, the coordinates turned at the rect and at the hit), `SlimRailPx` wide at the right edge (right of
   the last numbers' gutter: the gutter widened by it while any rows rail is on, so the data keeps its width idle or
   live), along the band's scrolled area below its pinned rows, in display rows below the pinned band; its window the
-  rows in view. Idle only while every row is shown and the rows cannot zoom in (navigators.md's idle rule: a rail zoomed
-  out to the whole band keeps its grips, so a grip drags it smaller again) (`whole`, the layout's: every row shown and
-  still at `MaxRowScale`, 40 px a row, the rows' zoom-in limit with `MinRowScale`, 1/64, their least; the renderer sets
-  `active` only when the viewer says it can move and not `whole`). The bounds are the host's (`FrameInput.rowsZoom`,
-  `RowsZoom`: the viewer's `rows.zoom`, defaults those constants; part of the layout's key by identity): `rail.rowMin`
-  the larger of its `minPx` and the source's floor (`RowsLay.rowFloor`: a lazy alignment serves no row levels yet, so a
-  device pixel a row, `1 / dpr`, below which `readLazy` draws the neutral fill: the zoom-out stops there, the window
-  never reaches a blank band; a held one 0), `whole` against its `maxPx`; `enabled: false` sets `rail.pan` (no grips
-  drawn or hit, the window's ends body, `whole` when every row is shown). Why: the limits are a host's choice (a view
-  that must not resize its rows), and a state nothing can draw is not reachable. Its hit is the `window` target with
-  `navigator: 'rows-rail'` (`RowsRail`), its `layer` the track, `position` the display row.
-  `rowsRailTracks(view, hosted, mode)`: each tracks section's tracks with a rows layer shown; by `mode` (the viewer's
-  `navigator.rowsRail`) drawn beside a shown navigator over the section's rows too (`always`, the default), replaced by
-  one (`unlessOverview`: a hidden one brings it back), or never (`none`). Why: the design's "simple slider navigator for
-  vertical scrolling", the rail a linear section has, so a tall alignment can be scrolled and zoomed with no declared
-  part; kept beside an overview because the overview is a picture and the rail the precise control (the positions rail
-  keeps that default too, `positionsRail: always`; its old replace rule is `unlessNavigator`).
+  rows in view. Idle only while every row is shown and the rows cannot zoom in (the idle rule: a rail zoomed out to the
+  whole band keeps its grips, so a grip drags it smaller again) (`whole`, the layout's: every row shown and still at
+  `MaxRowScale`, 40 px a row, the rows' zoom-in limit with `MinRowScale`, 1/64, their least; the renderer sets `active`
+  only when the viewer says it can move and not `whole`). The bounds are the host's (`FrameInput.rowsZoom`, `RowsZoom`:
+  the viewer's `rows.zoom`, defaults those constants; part of the layout's key by identity): `rail.rowMin` the larger of
+  its `minPx` and the source's floor (`RowsLay.rowFloor`: a lazy alignment serves no row levels yet, so a device pixel a
+  row, `1 / dpr`, below which `readLazy` draws the neutral fill: the zoom-out stops there, the window never reaches a
+  blank band; a held one 0), `whole` against its `maxPx`; `enabled: false` sets `rail.pan` (no grips drawn or hit, the
+  window's ends body, `whole` when every row is shown). Why: the limits are a host's choice (a view that must not resize
+  its rows), and a state nothing can draw is not reachable. Its hit is the `window` target with `navigator: 'rows-rail'`
+  (`RowsRail`), its `layer` the track, `position` the display row. `rowsRailTracks(view, hosted, mode)`: each tracks
+  section's tracks with a rows layer shown; by `mode` (the viewer's `navigator.rowsRail`) drawn beside a shown navigator
+  over the section's rows too (`always`, the default), replaced by one (`unlessOverview`: a hidden one brings it back),
+  or never (`none`). Why: the design's "simple slider navigator for vertical scrolling", the rail a linear section has,
+  so a tall alignment can be scrolled and zoomed with no declared part; kept beside an overview because the overview is
+  a picture and the rail the precise control (the positions rail keeps that default too, `positionsRail: always`; its
+  old replace rule is `unlessNavigator`).
 - **A narrow frame** (`render/narrow.ts`: `narrowColumns`, `overviewWidth`; `ViewLayout.narrow`): what gives way when
   the plot (the data's width) runs short, keyed on the plot's width, never the frame's, each rule with a floor (the
   ruler's: never a column squeezed to nothing), cheapest first: (1) a vertical overview at its form's size beside the
@@ -3855,10 +3853,10 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   (EC-102, EC-115). Each block's label in a row above its tracks, faded at its strip's width. Lays are kept by the block
   and its first unit, so a pan keeps them (by the block too: a stack's blocks all start at 0).
 - **A chip** (`isChip`): a block of form `whole` (a molecule's default: its every residue in one slot) or of one
-  position. A chip is **one unit** of its section however many residues it stands for (`blockUnits`; layouts.md): its
-  strip shows its first position's cell, its pill and its hit stand for every position (the hit's `extent`), and a
-  pair's end on it is drawn at its middle. Why one unit: the window, the rail and the navigators skip a chip as a gap,
-  and 200 residues of a glycan never take the polymers' share.
+  position. A chip is **one unit** of its section however many residues it stands for (`blockUnits`): its strip shows
+  its first position's cell, its pill and its hit stand for every position (the hit's `extent`), and a pair's end on it
+  is drawn at its middle. Why one unit: the window, the rail and the navigators skip a chip as a gap, and 200 residues
+  of a glycan never take the polymers' share.
 - **A one-position block is a chip** (`isChip`, `chipWidth`, `chipSlots`, `Strips.chip`): a fixed slot its label's width
   (its label with its `×N` in the label font, `BlockMetrics.chipPad` 5 px either side), never a position's share: zoom
   does not scale it, so it reads at the fit view. Why: a one-position share is a sliver at the fit view (the Complex's
@@ -4640,7 +4638,7 @@ band (EC-220 to EC-222), inline or a source's, read through the store either way
 - **Emphasis** (`render/matrix-emphasis.ts`): a member of the states system selected (its own part, else the projected
   one, lighter) lights its state's row across the band, a tint with an outline; a hover on another layer's hit naming
   one (a kinship grid's label, an alignment's row) or a projected hover outlines it. Rows in view only, cut at the band.
-  Why: one rows system, one member, every layer of it (across-sections.md, Categorical grid axes; ux-foundations §6).
+  Why: one rows system, one member, every layer of it.
 
 ### Hover texts by region
 
@@ -4725,15 +4723,15 @@ rows over its columns, its own y inside its band (`axes: 2`).
   `Pyramid.levelWithin`, its finer levels first) and the level pair drawn last stays drawn meanwhile, its tiles placed
   at the new zoom (the rows in view drawn pending while no level of the base is drawn yet, a zoom out of the letters or
   a fold: never an empty band, EC-169); a settled frame builds the rest (`rows-levels.ts`). Why: a 10,000 × 300 level
-  from its base took two frames of about 100 ms each zoom (performance.md, Levels). A level whose sample covers under 64
-  rows counts its cells' classes exactly, from the base; a larger one is the majority of the majorities below it (shares
-  averaged), approximate within the measured tolerance, tested over seeds 1 to 12: the share within 0.05 on average and
-  0.3 at worst, the letter exact where the exact winner leads by more than 0.25. Why: a majority is not mergeable across
-  levels, and a majority of majorities is wrong for small blocks (measured on an unbiased generator, seeds 1 to 12: the
-  letter missed at leads up to 0.41, shares off by up to 0.41); a few rows a sample are cheap to count; and below 3
-  device px a cell the shade reads, not the letter. The pinned rows are drawn on their own over a band that does not
-  scroll (rects past `pinnedFrom`), the scrolled rows clipped below it. The reducer is the theme's classes, fixed (no
-  item, decided by the author 2026-11-20); a reduction by letter is in the package's TODO.
+  from its base took two frames of about 100 ms each zoom. A level whose sample covers under 64 rows counts its cells'
+  classes exactly, from the base; a larger one is the majority of the majorities below it (shares averaged), approximate
+  within the measured tolerance, tested over seeds 1 to 12: the share within 0.05 on average and 0.3 at worst, the
+  letter exact where the exact winner leads by more than 0.25. Why: a majority is not mergeable across levels, and a
+  majority of majorities is wrong for small blocks (measured on an unbiased generator, seeds 1 to 12: the letter missed
+  at leads up to 0.41, shares off by up to 0.41); a few rows a sample are cheap to count; and below 3 device px a cell
+  the shade reads, not the letter. The pinned rows are drawn on their own over a band that does not scroll (rects past
+  `pinnedFrom`), the scrolled rows clipped below it. The reducer is the theme's classes, fixed (no item, decided by the
+  author 2026-11-20); a reduction by letter is in the package's TODO.
 - **The header**, in the label column: the tree (`tree_width`, 120) and the first residue numbers widen the view's label
   column by their width (the widest of its tracks sections, so every section's data starts at one x), the labels keep
   the column's own; the tree by branch lengths, else depth, a folded clade a wedge at its summary row, its geometry in

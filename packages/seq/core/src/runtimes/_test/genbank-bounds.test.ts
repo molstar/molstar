@@ -12,7 +12,7 @@ import { GenbankRuntime, type GenbankSource, genbankRuntime, parseGenbank } from
 import { memoryAssets } from './bed-fixtures.js';
 import { generated, letters, record } from './genbank-fixtures.js';
 
-// The GenBank runtime's bounds (_spec/README.md "Data", GenBank; security.md: a file is untrusted input): each refused
+// The GenBank runtime's bounds (_spec/README.md "Data", GenBank): each refused
 // before what it bounds is held (the file's: `seq.source.too_large`; a feature's: the feature left out, said), and a
 // file costs its own length: the parser's searches stay in their line, counted here as the characters they scan (no
 // clock; the wall-clock bounds are `genbank-time.test.ts`, heavy).

@@ -5,7 +5,7 @@
  */
 
 // `segments` and `structure` maps and a numbering's `offset` and `segments` methods (_spec/README.md "Resolve", Maps
-// and Numberings; maps.md, Structure maps): the same answers on every encoding, what lies past either end mapping
+// and Numberings): the same answers on every encoding, what lies past either end mapping
 // nowhere (EC-21), a run wrapping a cyclic origin (EC-11), a run read downward (EC-20's mechanism), the structure's
 // residue status with the unit winning on unobserved, and author numbering with gaps and insertion codes (EC-3 to
 // EC-5).

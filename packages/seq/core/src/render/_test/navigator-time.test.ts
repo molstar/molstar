@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The navigators' targets (performance.md, navigators): a window move (the picture's key held: the windows and marks
+// The navigators' targets: a window move (the picture's key held: the windows and marks
 // drawn again over it) under 0.5 ms; the picture laid out again: a strip of p53's tracks under 4 ms, a chromosome's
 // ideogram of about 60 bands under 1 ms, the 10,000-row overview from its summary grid under 8 ms. Each bound the
 // heavy lane's (`itWithin`, the median of a run, best of three); the quick lane runs them unbounded, the 10,000

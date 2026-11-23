@@ -123,7 +123,7 @@ export const contacts = () => build({ contacts: true });
 /** The contacts with the copies split: each copy's contacts between its own blocks. */
 export const contactsSplit = () => build({ contacts: true, copies: 'each' });
 
-/** The copies' scale variant (performance.md, Scale): `n` copies of CDK2 as blocks, merged into one (`×n`) or each. */
+/** The copies' scale variant: `n` copies of CDK2 as blocks, merged into one (`×n`) or each. */
 export function copiesScale(n = 200, copies: 'merge' | 'each' = 'merge'): Node {
   const b = createSeqSpec({ title: `Complex: ${n} copies of CDK2` });
   const x = crystal(b);

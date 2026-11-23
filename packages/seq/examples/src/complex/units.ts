@@ -10,7 +10,7 @@ import { createSeqSpec, identifiers, theme } from '@molstar/seqx-core/lang';
 import type { Derived } from './derived.js';
 import { crystal, Data, entryLigands, Lengths, ligand } from './data.js';
 
-// 1FIN as a complex (molecules.md, A section of a complex; examples.md, Complex): CDK2 and the cyclin A construct read
+// 1FIN as a complex (seqx-core _spec "Resolved view", A section of a complex): CDK2 and the cyclin A construct read
 // from `1FIN.seq`, a complex of the entry's units: CDK2 A and C, cyclin A B and D (two copies of the complex), each
 // with its `auth` numbering (CDK2's from 1, the construct's from 173: P20248's), an ATP on each CDK2 (the ATP molecule
 // with its 31 heavy atoms: `whole`, a chip, or `atoms`, one patch), and the ligands of six CC0 entries of CDK2 standing

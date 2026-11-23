@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// Normalization on read (_spec/README.md "Normalization"; language-description.md "Codecs stay schema-free"): a codec
+// Normalization on read (_spec/README.md "Normalization"): a codec
 // decodes a column as a plain array, and normalizing turns every value of a `column` param (a table's declared columns
 // among them) into its declared typed array. Equality, hashing and printing are defined on normalized trees. The read
 // pipeline is decode, migrate, then validate and normalize (`validateAndNormalize`). Unchanged subtrees are shared:

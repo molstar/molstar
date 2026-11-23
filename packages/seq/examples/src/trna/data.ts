@@ -126,7 +126,7 @@ export function covariationGrid(): Float32Array {
   return v;
 }
 
-/** The scale variant's size: a 4,000 × 4,000 grid (performance.md, Scale). */
+/** The scale variant's size: a 4,000 × 4,000 grid. */
 export const ScaleSize = 4000;
 
 /** The letters of a generated RNA of `n` nucleotides from a seed. */

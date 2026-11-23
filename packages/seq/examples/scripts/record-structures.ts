@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// Records the mmCIF runtime's fixtures, by hand, never in tests (examples.md, "Recorded by hand"): fetches each PDB
+// Records the mmCIF runtime's fixtures, by hand, never in tests (_spec/README.md "Fixtures"): fetches each PDB
 // entry's gzipped mmCIF from RCSB once, as served (not trimmed: the runtime's conformance suite reads the whole file),
 // into `fixtures/structures/`, and writes `structures/sources.json` (URL, date, licence, attribution, size, SHA-256).
 // Run it from the package folder:

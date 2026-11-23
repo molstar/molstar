@@ -4,13 +4,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// Predicates (_spec/README.md "Queries", Language; locations-and-queries.md, The language): the expression forms a
+// Predicates (_spec/README.md "Queries", Language): the expression forms a
 // test is written in, with positional operands (the author, 2026-11-20, "Accept, but allow positional operands"; held
 // in the node's `args`): the operators `=`, `!=`, `<`, `<=`, `>`, `>=`, `in-range`, `in`, `and`, `or`, `not`, and
-// `prop` and `value` reading properties (properties.md). Compiled once a form, typed when read: an operator over a
-// word and a number, a test that is not boolean, is `seq.query.form.type`; a property unknown is a param error, a
-// namespaced one nobody registered `seq.query.extension.missing`. An element lacking a property gives no value, and a
-// test without a value is false: the element yields nothing, counted for one warning a property.
+// `prop` and `value` reading properties (_spec/README.md "Queries", Properties). Compiled once a form, typed when read:
+// an operator over a word and a number, a test that is not boolean, is `seq.query.form.type`; a property unknown is a
+// param error, a namespaced one nobody registered `seq.query.extension.missing`. An element lacking a property gives no
+// value, and a test without a value is false: the element yields nothing, counted for one warning a property.
 
 import { type Atom, isNode, type Node, type Value } from '@molstar/core/repr/tree';
 import { fail } from './form-kit.js';

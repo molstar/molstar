@@ -12,7 +12,7 @@ import { PublishedLetters } from './record.js';
 
 export { PlasmidFiles, PlasmidLength, PlasmidName, RotatedOrigin } from './derive.js';
 
-// The Plasmid dataset (examples.md, Plasmid): pUC19c, INSDC L09137.2 (recorded as a `seq` file, its letters also a
+// The Plasmid dataset: pUC19c, INSDC L09137.2 (recorded as a `seq` file, its letters also a
 // module: `record.ts`), its features found in the sequence and its restriction sites computed on it, in code
 // (`derive.ts`), the rows written inline; the views read the letters from the `seq` files. Two instances: the published
 // one, and the rotated one whose origin is inside bla, so bla and a generated primer site cross it (its letters a `seq`

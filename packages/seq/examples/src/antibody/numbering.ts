@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The schemes' rules, in code (examples.md, Antibody): a label a position of a chain, `null` outside the variable
+// The schemes' rules, in code: a label a position of a chain, `null` outside the variable
 // domain. IMGT numbers by fixed positions: each CDR's positions filled from its ends inward, the gaps at the top of the
 // loop; a CDR3 longer than 13 gains `111.1`, `112.1`, `111.2`, … about its middle, so `112.1` comes before `112` (EC-7).
 // Kabat is derived from IMGT by counting between the domain's anchors (the cysteines at IMGT 23 and 104, the

@@ -43,7 +43,7 @@ import { hemeAtoms, hemeContacts, identity, residuesOf } from '../globins/record
 import { neighborJoining } from '../globins/tree.js';
 import { nodeFixtureAssets, PackageFolder } from '../node-assets.js';
 
-// The Globins dataset's facts checked against its fixtures (examples.md, Globins: Anchors), and its views drawn against
+// The Globins dataset's facts checked against its fixtures, and its views drawn against
 // their data (the examples' rule): at the fit and across a tile edge every row in the band has its band of cells and
 // its label, and every cell at letters is hit as its row and its column.
 

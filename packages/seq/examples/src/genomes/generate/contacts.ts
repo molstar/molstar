@@ -9,7 +9,7 @@ import type { ToyAssembly } from './assemblies.js';
 import type { PCG } from '@molstar/core/data/util/hash-functions';
 import { Concern, stream } from './streams.js';
 
-// Step 8 of the Genomes generator (examples.md, Genomes; EC-223): a Hi-C over toy A's chr1 to chr3, symmetric, counts
+// Step 8 of the Genomes generator (EC-223): a Hi-C over toy A's chr1 to chr3, symmetric, counts
 // in cells of 4,096 and 16,384 positions a side: within a chromosome falling with the distance and stronger inside
 // domains (dense, the whole square), between two chromosomes sparse noise and one hotspot between chr1 and chr3 (a
 // translocation's mark; sparse, the rest 0). The upper triangle's sequence pairs are served; the lower is the

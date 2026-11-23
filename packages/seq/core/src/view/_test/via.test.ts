@@ -4,10 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// A section's `via` in the resolved view (_spec/README.md "Resolved view", Via; structure-syncing.md, Choosing between
-// two maps): two sections of one chain, each naming one of two maps joining the sequence and the chain's molecule, show
-// it each its own way (a figure comparing SIFTS with an alignment); a section naming none is ambiguous (EC-24). Its
-// follow, its `direction: { along }`, its layers' data and the links onto it take its `via`.
+// A section's `via` in the resolved view (_spec/README.md "Resolved view", Via): two sections of one chain, each naming
+// one of two maps joining the sequence and the chain's molecule, show it each its own way (a figure comparing SIFTS
+// with an alignment); a section naming none is ambiguous (EC-24). Its follow, its `direction: { along }`, its layers'
+// data and the links onto it take its `via`.
 
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';

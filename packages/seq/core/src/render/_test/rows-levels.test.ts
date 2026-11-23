@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// A level built across frames (performance.md, Levels): the pyramid's build by a budget of cells a call gives the
+// A level built across frames: the pyramid's build by a budget of cells a call gives the
 // level its whole build gives; the rows keep the level drawn last while the view moves and the wanted one is not whole,
 // and a settled frame builds the rest.
 

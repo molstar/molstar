@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The Plasmid's derived data (examples.md, Plasmid): pUC19c's features found in its sequence, none taken from another
+// The Plasmid's derived data: pUC19c's features found in its sequence, none taken from another
 // annotation, its restriction sites computed on the cyclic sequence (a site across the origin found), the rotated
 // variant, the reverse complement, and the GFF3, GenBank and `seq` texts of the committed fixtures. Plain functions of the
 // letters with no imports (the record script runs them in Node as they are); a test compares each fixture with them.

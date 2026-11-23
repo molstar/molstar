@@ -9,7 +9,7 @@ import { categoryColumn } from '@molstar/core/repr/tree';
 import { encodeSeq, inlineSeq } from '@molstar/seqx-core/data';
 import { type Cif, cifRows } from '../files/cif.js';
 
-// The record rules of p53's structure (examples.md, p53; structure-syncing.md, Datasets), from PDB 2OCJ's mmCIF as
+// The record rules of p53's structure, from PDB 2OCJ's mmCIF as
 // committed (`fixtures/structures/2OCJ.cif.gz`), by `scripts/record.ts p53-structure`: the entity's letters with chain
 // A's secondary structure as Seq*'s `seq` file, and the fake structure viewer's own chain table (every chain instance,
 // its residues with their label and author numbers, observed or not, and the model it holds beside them: entities,

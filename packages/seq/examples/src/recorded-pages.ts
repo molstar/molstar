@@ -7,10 +7,11 @@
 import type { AssetRangeReader } from '@molstar/core/util/assets';
 import type { AssetReader, FormatRuntime } from '@molstar/seqx-core/data';
 
-// Real files recorded as pages (examples.md, "Real slices"): the 64 KiB pages a runtime read of a published file (core's
-// page size), kept byte for byte in one JSON file beside where the file would be (`<uri>.pages.json`), so a test reads
-// the container the real tools wrote. A read of a page the recording did not make fails, naming the page and the file:
-// a change to a runtime's reads is a re-recording (`scripts/record-pages.ts`). Browser-safe: no `node:` import.
+// Real files recorded as pages (_spec/README.md "Fixtures"): the 64 KiB pages a runtime read of a published file
+// (core's page size), kept byte for byte in one JSON file beside where the file would be (`<uri>.pages.json`), so a
+// test reads the container the real tools wrote. A read of a page the recording did not make fails, naming the page and
+// the file: a change to a runtime's reads is a re-recording (`scripts/record-pages.ts`). Browser-safe: no `node:`
+// import.
 //
 //   recordingRanges(bytes)        a range reader over a downloaded file that notes the pages read (to record them)
 //   encodePages(file, bytes, pages)   the recording of those pages (or 'all')

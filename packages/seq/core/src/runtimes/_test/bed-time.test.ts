@@ -14,7 +14,7 @@ import { indexPairs, PairsBuilder, pairsIn, pairsSchema } from '../bed-pairs.js'
 import { BedCauses } from '../bed-issues.js';
 import { generateBedpe, memoryAssets } from './bed-fixtures.js';
 
-// The BED runtime's times (_spec/README.md "Data", BED family; performance.md's rows): 600,000 BEDPE rows, the most
+// The BED runtime's times (_spec/README.md "Data", BED family): 600,000 BEDPE rows, the most
 // `maxPairsBytes` holds of a six-column BEDPE, indexed by both ends under 300 ms; a chrom.sizes of a million lines read
 // in one pass. Their quick representatives (12,000 links, 20,000 lines) are in `bed.test.ts`.
 

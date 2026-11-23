@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// A navigator over a genome's blocks (performance.md, Memory and Time; _spec/README.md "Render", Navigators, A navigator
+// A navigator over a genome's blocks (_spec/README.md "Render", Navigators, A navigator
 // over blocks): a window move over 25 chromosomes, the window carried by identity in units onto the picture's row,
 // redraws with nothing allocated once warm and in at most 0.5 ms a frame, on its zoom strip (always over blocks, its
 // viewport the touched blocks' hull: a move across blocks that changes the hull lays the strip out again, not timed here).

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// Edge cases built but not tested before (.seq/sources/seqstar/edge-cases.md): EC-115 a stacked blocks section zoomed
+// Edge cases built but not tested before: EC-115 a stacked blocks section zoomed
 // about a point keeps the block under the pointer; EC-99 a text section's ligand chips flow in a line with the words
 // and wrap with them.
 

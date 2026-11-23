@@ -26,7 +26,7 @@ import {
 import { PackageFolder } from '../node-assets.js';
 import { structureSeq } from '../p53/structure-record.js';
 
-// The Antibody's Fc glycan, PDB 3AVE (examples.md, Antibody): what the view holds of the entry against the Fc's
+// The Antibody's Fc glycan, PDB 3AVE: what the view holds of the entry against the Fc's
 // committed `seq` file (quick), and against the whole mmCIF (medium): the glycan's residues, links and WURCS, the units'
 // observed runs and author numbers, the complex's links, the file written again.
 

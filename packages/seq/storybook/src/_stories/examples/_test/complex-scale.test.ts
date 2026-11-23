@@ -11,7 +11,7 @@ import { itWithin } from '@molstar/test-harness/timing';
 import { afterEach, describe, expect, vi } from 'vitest';
 import { openExample } from './draw-checks.js';
 
-// The Complex at its scale (performance.md, Scale: the copies' 200): 200 copies of CDK2 split into a block each, a pan
+// The Complex at its scale: 200 copies of CDK2 split into a block each, a pan
 // frame (the move, its layout and its draw) under 8 ms; and the PAE over the complex (730 × 730, four strips) a pan
 // frame under 8 ms once its tiles are built. Quick: each runs once unbounded; heavy: bounded, the best of three.
 

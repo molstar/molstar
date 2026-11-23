@@ -9,7 +9,7 @@ import { NGap } from './assemblies.js';
 import { pow10, powi, wave } from './exact.js';
 import { between, Concern, decimal, stream } from './streams.js';
 
-// Step 4 of the Genomes generator (examples.md, Genomes; EC-215): one bedGraph over toy A, 100 bp bins, a
+// Step 4 of the Genomes generator (EC-215): one bedGraph over toy A, 100 bp bins, a
 // TPM-like value from 0.1 to 10^4 (smooth waves in log space plus noise, so a linear scale shows a few peaks and a log
 // scale the rest), and stretches with no line (missing values: chr1's run of N, and 10 kb of A's chr2). Sorted by
 // sequence, then start: what tabix indexes. Why not over toy B too (the design's "both toy genomes"): B's `1` is A's

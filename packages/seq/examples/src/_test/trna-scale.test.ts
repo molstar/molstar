@@ -22,7 +22,7 @@ import { describe, expect } from 'vitest';
 import { ScaleSize } from '../trna/data.js';
 import { scale } from '../trna/trna.js';
 
-// The tRNA dot plot's scale variant (examples.md, tRNA: the dot plot's scale variant; performance.md, Scale): a generated
+// The tRNA dot plot's scale variant: a generated
 // 4,000 × 4,000 grid drawn at the frame target, a pan frame under 8 ms once its tiles are built, as the core's 2,000 × 2,000
 // bound. The quick lane runs the same at 300 × 300, unbounded; the bound is the heavy lane's (`itWithin`, best of three).
 

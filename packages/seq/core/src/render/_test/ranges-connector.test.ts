@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The connector of a ranges layer (axis.md, An item split by a path is joined by a connector; _spec/README.md "Render",
+// The connector of a ranges layer (_spec/README.md "Render",
 // Layer types and Configuration): an item projected into pieces with shown positions between them is joined by a
 // hairline in the item's colour; across a collapsed break, or in one run, nothing; `connector: none` draws none, the
 // preset gives its width, ink and alpha; a hit on it is the item's and the hover outlines it.

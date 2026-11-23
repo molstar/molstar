@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// EC-63 (.seq/sources/seqstar/edge-cases.md): two pair kinds at one cell of a dot plot are sliced, side by side in the
+// EC-63: two pair kinds at one cell of a dot plot are sliced, side by side in the
 // cell, each slice its own hit.
 
 import { describe, expect, it } from 'vitest';

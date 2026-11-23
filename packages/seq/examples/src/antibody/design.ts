@@ -7,7 +7,7 @@
 import type { Derived } from './derived.js';
 import { type Chain, ImgtCdrs, imgtCdrLabels, kabatFromImgt, type Labels } from './numbering.js';
 
-// The design (examples.md, Antibody): generated from the wild type by an edit list, never recorded (no public design
+// The design: generated from the wild type by an edit list, never recorded (no public design
 // with indels against trastuzumab has a permissive licence). Substitutions in CDR-H2 and CDR-H3, a two-residue
 // insertion in CDR-H3 (which gives IMGT's 111.1 and 112.1, out of index order: EC-7) and a one-residue deletion in
 // CDR-L1; an edit is placed by the wild type's Kabat label. Its numberings follow the schemes' rules (`numbering.ts`):

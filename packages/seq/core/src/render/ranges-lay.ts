@@ -177,9 +177,9 @@ export interface RangesLay extends ItemsBase {
   lwant: Float32Array;
   litem: Int32Array;
   /**
-   * The connectors (`cn` of them; axis.md, An item split by a path): the hairline between two pieces of one item with
-   * shown positions between them, its x extent clipped to the box, lane and item, with the line's width, ink and alpha
-   * as the layout read them (`cwidth`, `cink`, `calpha`: 0 alpha draws none).
+   * The connectors (`cn` of them; _spec/README.md "Render", Layer types): the hairline between two pieces of one item
+   * with shown positions between them, its x extent clipped to the box, lane and item, with the line's width, ink and
+   * alpha as the layout read them (`cwidth`, `cink`, `calpha`: 0 alpha draws none).
    */
   cn: number;
   cx0: Float32Array;

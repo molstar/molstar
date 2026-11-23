@@ -19,7 +19,7 @@ import { statusIssues } from './status-issues.js';
 import { withViewRegistry } from './view-registry.js';
 import { filesOf, fileText, printSources } from '../features/files/file-head.js';
 
-// A story of an example view (examples-and-stories.md): the view's `build()` shown by a viewer composed from the default
+// A story of an example view: the view's `build()` shown by a viewer composed from the default
 // spec, the canvas and the SVG of the same view side by side, and the spec as it prints, beside them (the SVG with the
 // view's navigators where the story asks). The element is a UI root, so the theme's tokens apply; the viewer is retired
 // when Storybook removes the story.

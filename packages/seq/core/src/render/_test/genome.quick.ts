@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// A genome's row of blocks (performance.md, Memory; _spec/README.md "Render", Blocks): a pan across a block gap places
+// A genome's row of blocks (_spec/README.md "Render", Blocks): a pan across a block gap places
 // the row (its gaps, runs and groups, the window's inverse) with nothing allocated once warm; a warm draw of the row
 // with its runs and a group's bracket, and a warm hover on it, allocate nothing; a pan frame across the gap (a layout
 // and a draw) allocates a bounded size. By hand, never in CI: `pnpm -C packages/seq/core test:perf`.

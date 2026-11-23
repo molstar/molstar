@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// EC-195 (.seq/sources/seqstar/edge-cases.md): the default numbering of a streamed sequence (1-based labels) is stated
+// EC-195: the default numbering of a streamed sequence (1-based labels) is stated
 // by the spec and the model, known before any of its data arrives, not learned from a resolver.
 
 import { checkSeqSpec, createSeqSpec } from '@molstar/seqx-core/lang';

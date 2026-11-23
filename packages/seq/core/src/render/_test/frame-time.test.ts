@@ -6,7 +6,7 @@
 
 // @module-tag heavy
 
-// The frame-time targets (performance.md, Time), measured through `Renderer.frame` at 1440 CSS px and dpr 2, warm, over
+// The frame-time targets, measured through `Renderer.frame` at 1440 CSS px and dpr 2, warm, over
 // 200 steps: a pan or zoom frame under 8 ms (median), never over 16 ms (its maximum, in the best of three runs), a hover under 2 ms (the
 // hit-test and the emphasis redraw), the SVG export of p53 as tracks under 200 ms. Each case prints its median, 95th
 // percentile and maximum. Run: `pnpm test:heavy packages/seq/core/src/render`.

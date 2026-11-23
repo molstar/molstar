@@ -7,7 +7,7 @@
 import { AlignmentOp, globalAlign } from '@molstar/core/algorithms/sequence/needleman-wunsch';
 import { readStockholm } from '@molstar/seqx-core/data/alignment-readers';
 
-// What the tRNA dataset computes from its committed fixtures (examples.md, tRNA): 1EHZ's place in the family (a pairwise
+// What the tRNA dataset computes from its committed fixtures: 1EHZ's place in the family (a pairwise
 // alignment of its parent letters to the seed row of highest identity: `globalAlign`), the covariation between its
 // positions (mutual information over the seed's columns they align to, less the Miller–Madow correction for small
 // counts), and the best row's own letters and pairs (the seed's `SS_cons` projected onto it). Generated data on

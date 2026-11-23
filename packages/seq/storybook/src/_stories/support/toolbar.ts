@@ -10,7 +10,7 @@ import type { ToolbarMount } from '@molstar/seqx-viewer/viewer-spec';
 
 // The default viewer's toolbar as the stories compose it: the viewer's own (back, forward, keys) and, beside it, the
 // application's list of the hidden tracks (`mountHiddenTracks`): the view draws nothing for a hidden track, so the
-// host that wants them reachable places the list (track-header-parts.md, "Hidden tracks are the application's"). The
+// host that wants them reachable places the list (seqx-core _spec "Render", Track headers). The
 // minimal viewer mounts none.
 
 /** `ui.toolbar` for a story: `mountToolbar` with the hidden tracks' button in the same bar. */

@@ -323,7 +323,7 @@ describe('the services port', () => {
     expect(JSON.parse(text)['2ocj'].UniProt.P04637.mappings).toHaveLength(4);
   });
 
-  it('the live mode is the asset policy’s: a host no service has is refused before any request, whatever the spec says (no EC: the policy is security.md’s)', async () => {
+  it('the live mode is the asset policy’s: a host no service has is refused before any request, whatever the spec says', async () => {
     const live = reader('live');
     await expect(live.readText('https://example.org/uniprotkb/P04637.json', never)).rejects.toBeInstanceOf(
       AssetRefused,

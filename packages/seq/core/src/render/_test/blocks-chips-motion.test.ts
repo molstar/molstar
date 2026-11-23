@@ -336,7 +336,8 @@ describe('the chips’ floor', () => {
     expect(sum).toBeLessThanOrEqual(axis.width / 2 + 1e-6);
     // the polymers keep the rest
     expect(p.strips.axes[0].width + p.strips.axes[1].width).toBeGreaterThan(axis.width / 2 - 0.25 * axis.width);
-    // each pill's label fits its slot, never past it; a cut keeps at least `labels.minChars` letters (layouts.md)
+    // each pill's label fits its slot, never past it; a cut keeps at least `labels.minChars` letters (_spec/README.md
+    // "Render", Section layouts)
     for (const l of texts(f, 'data')) {
       const w = Number(/ width ([\d.]+)/.exec(l)![1]);
       const max = Number(/ max ([\d.]+)/.exec(l)![1]);

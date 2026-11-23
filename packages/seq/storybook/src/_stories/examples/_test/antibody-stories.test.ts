@@ -27,11 +27,11 @@ import {
   setRuler,
 } from '../antibody/compose.js';
 
-// The Antibody's stories, headless on a fake clock, composed as the stories compose them (examples.md, Antibody:
-// Views): the rulers' labels in both schemes drawn against the data (the wild type's Kabat insertions, the design's
-// IMGT 111.1 and 112.1) in the draw lists and the SVG, both themes; the hover panel's labels in both numberings; a query
-// by label, and a range written backwards in IMGT an issue (EC-7); the ruler's scheme switched, and the CDR bookmarks
-// added, renamed, recolored and removed, each one step undone and redone.
+// The Antibody's stories, headless on a fake clock, composed as the stories compose them: the rulers' labels in both
+// schemes drawn against the data (the wild type's Kabat insertions, the design's IMGT 111.1 and 112.1) in the draw
+// lists and the SVG, both themes; the hover panel's labels in both numberings; a query by label, and a range written
+// backwards in IMGT an issue (EC-7); the ruler's scheme switched, and the CDR bookmarks added, renamed, recolored and
+// removed, each one step undone and redone.
 
 let session: EditingSession | undefined;
 const raf = DomHost.requestAnimationFrame;

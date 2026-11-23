@@ -24,7 +24,7 @@ import { toyA, toyALetters } from './generate/assemblies.js';
 import { GenomesFiles } from './generate/index.js';
 import { GenomesSeed } from './generate/streams.js';
 
-// The Genomes dataset's views share this (examples.md, Genomes): the committed files' sources (each view's builder
+// The Genomes dataset's views share this: the committed files' sources (each view's builder
 // takes the files as an argument, these by default), the assemblies read from their `chrom-sizes` files (no
 // manifest: the lengths are the file's, EC-188), and the registry: the opt-in genome runtimes and the FASTA one, each
 // answering after a delay on a clock (the synthetic twin the stories and tests share), and the in-memory

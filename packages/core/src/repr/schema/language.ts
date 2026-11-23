@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// A language described as data (_spec/README.md "Schema"; language-description.md): its node kinds, which kinds each
+// A language described as data (_spec/README.md "Schema"): its node kinds, which kinds each
 // may sit under, typed params with defaults and docs. A description is plain data (no functions, no classes, a pattern
 // is a string), so it can be printed, hashed, sent to an agent and turned into docs without a second description.
 // Slots (`type: 'node'`) name the language they embed by id, resolved late at validation. Definitions
@@ -133,7 +133,7 @@ export interface Language {
 }
 
 /**
- * The tie to a units table, a hook (tree-core.md: units stay outside the core for now). Without it, a param's `unit`
+ * The tie to a units table, a hook (units stay outside the core for now). Without it, a param's `unit`
  * is documentation and a quantity string in a number slot is a type issue.
  */
 export interface UnitsHook {

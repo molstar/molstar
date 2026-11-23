@@ -163,7 +163,7 @@ describe('BGZF read by virtual offset', () => {
     await expect(reader.read(file.voffset(0), file.voffset(50000), ac.signal)).rejects.toThrow();
   });
 
-  // genome-formats.md, Consequences (Performance): a BGZF region of 64 blocks inflated, quick
+  // A BGZF region of 64 blocks inflated, quick
   const wide = text(80000);
   const wideFile = bgzip(wide, 16384);
   itWithin('a region of 64 blocks inflated', async (within) => {

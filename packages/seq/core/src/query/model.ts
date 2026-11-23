@@ -134,7 +134,7 @@ export interface QueryModel {
    */
   complexes?(owner: string): readonly string[];
   /**
-   * A property read per element of one system (_spec/README.md "Queries", Properties; properties.md): a column over
+   * A property read per element of one system (_spec/README.md "Queries", Properties): a column over
    * its positions, `'pending'` while what it reads has not arrived (a values channel's tiles: the system is staged),
    * undefined when the system lacks it. `name` is a property's short name (`b-factor`, `occupancy`: values channels
    * the mmCIF runtime writes on a unit's atoms) or a values annotation, by its address or its id on the system, with

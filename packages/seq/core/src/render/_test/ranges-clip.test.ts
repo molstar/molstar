@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// A band's label passes are clipped to its box (layouts.md, Loading: the labels stay in the band): a scrolled band's
+// A band's label passes are clipped to its box (the labels stay in the band): a scrolled band's
 // labels, leaders and backdrops cut at its top and bottom (TP53-233 above, TP53-221 below), a pending track's
 // placeholder lane's labels not below it (TP53-227).
 

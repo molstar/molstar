@@ -28,7 +28,7 @@ import {
   toggleLogo,
 } from '../globins/editing.js';
 
-// The Globins' editing views (examples.md, Globins: Views), headless on a fake clock, composed as the story composes
+// The Globins' editing views, headless on a fake clock, composed as the story composes
 // them: each edit one patch, one step of a host's stack, undone to the spec it started from. The family: the residue
 // scheme changed (a theme patch) and the logo hidden; the folded clades: `clades.keep` writes the folds shown, a row
 // pinned above the tree's order; hemoglobin: the copies split and merged again.

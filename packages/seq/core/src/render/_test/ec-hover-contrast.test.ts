@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// EC-138 (.seq/sources/seqstar/edge-cases.md): the hover outline (`seq-hover`) holds 3:1 (WCAG's for graphics) against
+// EC-138: the hover outline (`seq-hover`) holds 3:1 (WCAG's for graphics) against
 // what it outlines, in both themes: the surfaces the outline is drawn on (the page, the track, the sequence's cells,
 // the missing and pending fills), the residue and nucleotide class fills a letter cell has, and a range's fill.
 

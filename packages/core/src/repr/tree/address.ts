@@ -4,14 +4,14 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// Addresses (_spec/README.md "Addresses"; addressing.md): an id is local, unique among its siblings; a node's address
+// Addresses (_spec/README.md "Addresses"): an id is local, unique among its siblings; a node's address
 // is the path of ids from the root, `/data/p53/features`, as an IPv6 address is a path of groups. The root is `/`. A
 // node's address is a prefix of every address below it, so `/data/*` names a subtree. There is no elision: a search at
 // any depth is the query language's.
 //
 // A segment may also be a query form, `(kind :key value …)`: by default it selects the addressable children of the
 // node(s) before it by kind and params (plain child selection); a caller's form resolver table gives a form kind
-// another meaning (a range, an item, a rect), whose result may be no nodes at all (locations-and-queries.md).
+// another meaning (a range, an item, a rect), whose result may be no nodes at all.
 //
 //   address = "/" | ("/" step)+ ["/*"]
 //   step    = id | form
@@ -65,7 +65,7 @@ const FormHint =
 
 /**
  * The operator symbols an address form may have as its head beside a kind (`(> (prop b-factor) 60)`): comparisons, an
- * expression language's (locations-and-queries.md, The language). Forms only: never a node's kind in a tree.
+ * expression language's. Forms only: never a node's kind in a tree.
  */
 export const OperatorKinds: ReadonlySet<string> = new Set(['=', '!=', '<', '<=', '>', '>=']);
 
@@ -604,7 +604,7 @@ export interface FormResolverResult {
   /** Errors fail the selection; warnings and infos are carried into its issues. */
   readonly issues?: readonly Issue[];
   /**
-   * Reserved for evaluation over data read by region (locations-and-queries.md "Staged"): `false` when the result
+   * Reserved for evaluation over data read by region: `false` when the result
    * covers only what is loaded, `pending` what is not. Carried into the selection, not acted on yet.
    */
   readonly complete?: boolean;
@@ -612,7 +612,7 @@ export interface FormResolverResult {
 }
 
 /**
- * What a form of one kind means (locations-and-queries.md): it receives what the prefix names and returns one of its
+ * What a form of one kind means: it receives what the prefix names and returns one of its
  * result types, or issues. A result of nodes lets ids, child selection and `/*` follow it.
  */
 export type FormResolver = (input: FormResolverInput) => FormResolverResult;

@@ -52,7 +52,7 @@ import { decodeText } from './internal/text.js';
 export const BedFormats = ['bed', 'bedgraph', 'bedpe', 'chrom-sizes'] as const;
 export type BedFormat = (typeof BedFormats)[number];
 
-/** What the runtime may hold and read, whatever a file says (security.md: a file is untrusted input). */
+/** What the runtime may hold and read, whatever a file says (a file is untrusted input). */
 /**
  * Region-reads' `summaries.maxBytes`: what a source holds besides the store's entries (a pairs pyramid, a BEDPE's rows
  * and orders), 16 MiB. The store's setting when it has one (RG); until then the BED runtime's `maxPairsBytes` default.

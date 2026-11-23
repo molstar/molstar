@@ -40,10 +40,11 @@ import { deriveFeatures, PlasmidLength, RotatedOrigin, rotate } from '../plasmid
 import { publishedLetters } from './plasmid-helpers.js';
 import { FilesViews, TableFiles } from '../views.js';
 
-// The Files dataset (files.md): the committed files are what their generators write, p53's UniProt entry and its
-// variants are recorded files listed in `sources.json` (under the bounds, with an allowed licence), the entry read by
-// the records runtime says what UniProt says (393 residues; R175, R248 and R273 inside the DNA-binding domain), every
-// form of the domains table draws the same, and the plasmid's GFF3 draws a feature across the origin as one item.
+// The Files dataset (seqx-core _spec "Data", Records): the committed files are what their generators write, p53's
+// UniProt entry and its variants are recorded files listed in `sources.json` (under the bounds, with an allowed
+// licence), the entry read by the records runtime says what UniProt says (393 residues; R175, R248 and R273 inside the
+// DNA-binding domain), every form of the domains table draws the same, and the plasmid's GFF3 draws a feature across
+// the origin as one item.
 
 const update = process.env.SEQ_RECORDS === 'update';
 const dir = (file: string) => `${PackageFolder}${FilesFolder}${file}`;

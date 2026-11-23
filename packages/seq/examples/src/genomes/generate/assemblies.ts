@@ -8,7 +8,7 @@ import type { SeqData } from '@molstar/seqx-core/data';
 import { wave } from './exact.js';
 import { between, Concern, stream } from './streams.js';
 
-// Step 1 of the Genomes generator (examples.md, Genomes, The generator: outline): toy A, prefixed (`chr1` to `chr3`,
+// Step 1 of the Genomes generator: toy A, prefixed (`chr1` to `chr3`,
 // the cyclic `chrM` and an HLA contig whose name carries `*` and `:`, EC-200), its letters a 4 kb tile at a time from
 // a stream per `(seed, sequence, tile)` (a GC share waving along the sequence, a few CA repeats, a run of N inside
 // chr1), its lengths as `chrom-sizes`, a small FASTA of the two short sequences for the built FASTA reader, and an alias

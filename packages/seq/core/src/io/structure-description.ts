@@ -82,7 +82,8 @@ export interface LinkTable {
 
 /**
  * Links between residues of one molecule (a branch's `pdbx_entity_branch_link`): a row a bond, read as the molecule's
- * `links` child (molecules.md, Links). A polymer's are not read: a sequence has no links child.
+ * `links` child (_spec/README.md "Language", Molecules and complexes). A polymer's are not read: a sequence has no
+ * links child.
  */
 export interface EntityLinkTable {
   /** The entity's row. */

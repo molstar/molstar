@@ -49,7 +49,7 @@ export {
   queryExtensions,
 } from './extensions.js';
 // a selection's items, renamed apart from render's `readItems` and the overlay's `itemsOf` (the builder's JSON reads
-// them; addressing.md, Schema selections)
+// them; _spec/README.md "Queries", Language)
 export {
   type Items as SelectionItems,
   type ItemsInput as SelectionItemsInput,

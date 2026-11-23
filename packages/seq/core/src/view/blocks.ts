@@ -238,8 +238,8 @@ export function blockNodes(model: StaticModel, section: Node, at = ''): Node[] {
 }
 
 /**
- * A block's display units in its section: one for a `whole` block (a chip: its molecule one unit, layouts.md), else
- * its positions shown; undefined while its length is unknown.
+ * A block's display units in its section: one for a `whole` block (a chip: its molecule one unit, _spec/README.md
+ * "Render", Section layouts), else its positions shown; undefined while its length is unknown.
  */
 export function blockUnits(block: { readonly form?: string; readonly axis: Axis }): number | undefined {
   if (block.form === 'whole' && block.axis.ranges) return 1;

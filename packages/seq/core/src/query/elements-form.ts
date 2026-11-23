@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// `(elements <items>)` (_spec/README.md "Queries", Language; locations-and-queries.md, The language): the schema
+// `(elements <items>)` (_spec/README.md "Queries", Language): the schema
 // selection, a Location. Its finest field decides how deep it goes: none below a unit, every matching unit's whole
 // residues system; residue fields, those positions; an atom field, positions on the units' atoms systems. It is sugar
 // over `filter` with its items' predicate (`itemsPredicate`), exactly; only speed differs: rows are grouped by their

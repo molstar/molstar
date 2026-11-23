@@ -323,7 +323,7 @@ function layoutLine(
     else if (!Number.isNaN(at.ownLine)) {
       // a line of their own under the label, from the column's start, under the action columns when clear of them;
       // all chips when every one fits, else all marks (a mix reads as two kinds of state: "a narrow column draws its
-      // states as marks too", track-header-parts.md)
+      // states as marks too", _spec/README.md "Render", Track headers)
       const own = actions && at.ownLine - size + 1 < actions.y + actions.height ? chipsEnd : end;
       const widths = given.map((g) => text.measure(config.labelFont, g.text));
       let total = 0;

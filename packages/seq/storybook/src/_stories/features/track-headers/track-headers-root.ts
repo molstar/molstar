@@ -13,9 +13,10 @@ import { defineElements, onCleanup } from '@molstar/ui/dom';
 import { UiElement } from '@molstar/ui/elements/ui-element';
 import { type HeadersComposition, headerLabel, headersOf, headersSpec, undoKey, widgetPlaces } from './compose.js';
 
-// The track headers' stories (track-header-parts.md): a Seq* view composed by `headersSpec`, a hint, buttons that open a
-// header's menu (the only way to a ring track's), and a host's own widgets placed from `viewer.headers`. The element is
-// a UI root, so the theme's tokens apply; the viewer ends when Storybook removes the story.
+// The track headers' stories (seqx-core _spec "Render", Track headers): a Seq* view composed by `headersSpec`, a hint,
+// buttons that open a header's menu (the only way to a ring track's), and a host's own widgets placed from
+// `viewer.headers`. The element is a UI root, so the theme's tokens apply; the viewer ends when Storybook removes the
+// story.
 
 export interface TrackHeadersStory extends HeadersComposition {
   readonly view: ExampleView;

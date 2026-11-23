@@ -8,7 +8,7 @@ import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec, genome, theme } from '@molstar/seqx-core/lang';
 import { assemblyA, assemblyA2, assemblyB, type Files, fileSource, GenomesFiles, inlineA, inlineB } from './toys.js';
 
-// The Genomes dataset's views of two genomes (examples.md, Genomes, The views): toy A over toy B with their alignment
+// The Genomes dataset's views of two genomes: toy A over toy B with their alignment
 // as ribbons (an inversion crossed, a translocation, a gap), the same alignment as a dot plot (two levels of grid
 // tiles under the blocks), the contact map over toy A, and the liftover of A's genes onto A′ through the map between
 // them. Each reads the committed files (`files`, the dataset's by default); the assemblies' lengths are their

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The combinators (_spec/README.md "Queries", Language; locations-and-queries.md, The language): `merge`, `intersect`
+// The combinators (_spec/README.md "Queries", Language): `merge`, `intersect`
 // and `except` over results of one type (renamed from `or`, `and`, `not` by the author, 2026-11-20, "Rename", MolQL's
 // names; `and`, `or`, `not` are predicate logic now). `except` takes its first operand less the others; with one
 // operand it is the complement within what the prefix names (its systems' positions, its annotations' items, its

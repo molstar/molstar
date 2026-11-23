@@ -524,7 +524,7 @@ describe('the hover path (the quick representative; the allocation case is the s
   });
 });
 
-describe('actions show on header hover only (track-header-parts.md "Actions show on hover")', () => {
+describe('actions show on header hover only (seqx-core _spec "Render", Track headers)', () => {
   const shown = (v: SeqViewer) => {
     const sec = v.frame!.layout.sections[0];
     return actionsShown(Letters, sec.id, v.emphasis, v.context.renderConfig);

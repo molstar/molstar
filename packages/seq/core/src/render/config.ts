@@ -224,8 +224,8 @@ export interface RenderConfig {
   readonly nodes: { readonly holdShown: boolean };
   /**
    * Ranges: items past the lanes collapse into a density row at the bottom (`extra-lanes`), or the whole layer does;
-   * the connector joining an item's pieces across shown positions (axis.md, An item split by a path): `width` CSS px
-   * (1), `ink` the item's own colour (`item`) or the muted ink (`muted`), at `alpha` of it (0.6).
+   * the connector joining an item's pieces across shown positions (_spec/README.md "Render", Layer types): `width` CSS
+   * px (1), `ink` the item's own colour (`item`) or the muted ink (`muted`), at `alpha` of it (0.6).
    */
   readonly ranges: {
     readonly overflow: 'extra-lanes' | 'layer';

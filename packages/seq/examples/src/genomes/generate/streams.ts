@@ -6,7 +6,7 @@
 
 import { hash3, PCG } from '@molstar/core/data/util/hash-functions';
 
-// The Genomes dataset's randomness (examples.md, Genomes, The generator: outline): core's `PCG` alone, a stream per
+// The Genomes dataset's randomness: core's `PCG` alone, a stream per
 // `(seed, concern, index)` seeded by core's `hash3`, so adding a concern, or drawing more from one, never moves another
 // concern's bytes. No clock, no `Math.random`.
 

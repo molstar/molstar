@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The rings layout's targets (performance.md, a ring's frame): the plasmid-sized ring (four rings, about 30 labels) and
+// The rings layout's targets: the plasmid-sized ring (four rings, about 30 labels) and
 // its linear detail, a pan of the detail (the ring's window moved: the detail laid out again, the ring drawn from its
 // kept lays, its labels not placed again) under 8 ms a frame; a hover over the ring (the placement's `at` through the
 // warp's inverse, the layer's hit, the emphasis redraw) under 2 ms. Each bound is the heavy lane's (`itWithin`, best of

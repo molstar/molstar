@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The navigator's look (navigators.md, "The window's look: one control row, one stroke, one readout place"): over a
+// The navigator's look (_spec/README.md "Render", Navigators): over a
 // genome two rows always, whatever the window's width (a chromosome whole or a few Mb of it: chr6 and chr13 alike), the
 // grips on the bottom row only; a window at the fit one quiet frame with no grips, its row a sweep; one stroke weight
 // for every line of the part, the window lit by its fill and grips alone.

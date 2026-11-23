@@ -8,10 +8,10 @@ import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { addDomains, addSecondary, addVariants, conservation, P53 } from './data.js';
 
-// p53 for the track headers' stories (track-header-parts.md): tracks with something to say in their header. One has a
-// hidden layer (a second view of the same domains), one a filter (the one linker, PRR, thinned out of its data), and two tracks
-// are hidden (the section header's "2 hidden" chip). The second view has every track of its section hidden; the third
-// a short track beside tall ones.
+// p53 for the track headers' stories (seqx-core _spec "Render", Track headers): tracks with something to say in their
+// header. One has a hidden layer (a second view of the same domains), one a filter (the one linker, PRR, thinned out of
+// its data), and two tracks are hidden (the section header's "2 hidden" chip). The second view has every track of its
+// section hidden; the third a short track beside tall ones.
 
 type Builder = ReturnType<typeof createSeqSpec>;
 
