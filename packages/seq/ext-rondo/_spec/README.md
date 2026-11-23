@@ -24,7 +24,10 @@ end along x, its `b` end along y), mirrored for unsided data (one assembly), eac
 (two); a cell's colour its count on a square-root ramp of the five `seq-ramp-*` stops over the largest; the diagonal
 (links within a chromosome) included. Whatever the ring shows (`include`), the cells are the whole assembly's: the
 square is where the rest is chosen. A cell's words `37 links` (`within` on the diagonal; `links loading` before the
-bins), the readout's after the pair (`chr4 × chr7 · 37 links`).
+bins), the readout's after the pair (`chr4 × chr7 · 37 links`). Not lazy: a chunk loaded when a spec names
+`rondo:square` needs resolve's lazy kinds (`withViewKind`), which the extension entry does not export (a contract
+change, asked). The stem menu's logic is lazy (`menu.ts`, loaded once `rondoViewer` is composed, its behavior's `loaded`
+waiting; its entries `StemMenu` in `viewer.ts`).
 
 ## Stems
 

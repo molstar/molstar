@@ -8,13 +8,14 @@ import { type Hit, rangesLocation } from '@molstar/seqx-core/extension';
 import {
   type BehaviorProvider,
   defineViewerExtension,
+  type HeaderEntry,
   type SeqViewer,
   type SeqViewerExtension,
   type ViewerCommand,
 } from '@molstar/seqx-viewer';
 import { rondo, RondoParams, RondoVersion } from './index.js';
 import { Kind, type RondoLay } from './lay.js';
-import { laysOf, partnersOf, StemMenu, selectStemPartners } from './menu.js';
+import { laysOf, partnersOf } from './partners.js';
 
 // The genome ring extension's viewer parts (_spec/README.md, The viewer): `rondoViewer`, the headless `rondo` and
 // its commands (`rondo:partner`, along the links by count from the cursor's stem; `rondo:select-partners`, the far
@@ -23,7 +24,56 @@ import { laysOf, partnersOf, StemMenu, selectStemPartners } from './menu.js';
 
 const lays = laysOf;
 
-export { partnersOf, StemMenu };
+export { partnersOf };
+
+/** The stem menu's chunk once landed (`menu.ts`: loaded when a viewer composes `rondoViewer`). */
+let Menu: typeof import('./menu.js') | undefined;
+let menuLoading: Promise<void> | undefined;
+const loadMenu = (): Promise<void> => {
+  menuLoading ??= import('./menu.js').then(
+    (m) => {
+      Menu = m;
+    },
+    (e) => {
+      menuLoading = undefined;
+      throw e;
+    },
+  );
+  return menuLoading;
+};
+
+/**
+ * The stem menu's entries (`on: element`, scoped to `rondo:ribbons`' stems; _spec/README.md, The stem menu): what they
+ * read is the menu's chunk, none of them shown before it lands.
+ */
+export const StemMenu: readonly HeaderEntry[] = [
+  {
+    name: 'rondo:show-partner',
+    on: 'element',
+    label: 'Show with a partner',
+    order: 1,
+    when: (f) => !!Menu?.stemOfFacts(f),
+    items: (f) => Menu?.partnerItems(f) ?? [],
+  },
+  {
+    name: 'rondo:select-stem-partners',
+    on: 'element',
+    label: 'Select the stem and its partners',
+    order: 2,
+    when: (f) => !!Menu?.stemOfFacts(f),
+    command: 'rondo:select-partners',
+    args: (f) => ({ layer: f.element!.layer, key: f.element!.key }),
+  },
+  {
+    name: 'rondo:show-chromosome',
+    order: 3,
+    on: 'element',
+    label: (f) => Menu?.onlyStem(f)?.label ?? 'Show only this chromosome',
+    when: (f) => !!Menu?.stemOfFacts(f),
+    command: 'section.include',
+    args: (f) => Menu?.onlyStem(f)?.args ?? {},
+  },
+];
 
 /** The chromosomes a hit names: a ribbon's two, a stem's one, a stub's stem's and its partner's. */
 export function chromosomesOf(lay: RondoLay, hit: Hit): string[] {
@@ -108,7 +158,8 @@ function viewerParts() {
         const v = viewer;
         if (!v) return { message: '' };
         // from a stem's menu: the stem and its partners' stems, one selection
-        if (ctx.layer !== undefined && ctx.key !== undefined) return selectStemPartners(v, ctx.layer, ctx.key);
+        if (ctx.layer !== undefined && ctx.key !== undefined)
+          return Menu?.selectStemPartners(v, ctx.layer, ctx.key) ?? { message: '' };
         const shown = v.selection.value.value.shown;
         let added = 0;
         for (const lay of lays(v))
@@ -156,7 +207,10 @@ function viewerParts() {
     commands,
     composed(v: SeqViewer) {
       viewer = v;
+      // the stem menu's chunk, after the composition (its first chunk pays nothing for it)
+      void loadMenu().catch(() => undefined);
     },
+    loaded: () => loadMenu().catch(() => undefined),
     dispose() {
       viewer = undefined;
     },

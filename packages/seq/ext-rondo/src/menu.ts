@@ -5,35 +5,16 @@
  */
 
 import { rangesLocation } from '@molstar/seqx-core/extension';
-import type { HeaderEntry, HeaderFacts, SeqViewer } from '@molstar/seqx-viewer';
+import type { HeaderFacts, HeaderSubEntry, SeqViewer } from '@molstar/seqx-viewer';
 import { Kind, type RondoLay } from './lay.js';
+import { laysOf, partnersOf } from './partners.js';
 
-// The stem menu (_spec/README.md, The viewer, The stem menu): a stem's element menu, the viewer's label menu's shape
-// scoped to `rondo:ribbons`' stems (`HeaderFacts.element.type`): its partners by count, each shown with it as a pair
-// (in the section the layer `opens`, else its own); the stem and its partners selected; its chromosome alone. Its
-// entries read the lays of the viewer the menu is in (`HeaderFacts.viewer`): no state of their own, so two viewers of
-// one spec each list their own.
+// The stem menu's chunk (_spec/README.md, The viewer, The stem menu): what its entries (`StemMenu`, `viewer.ts`) read,
+// loaded by `rondoViewer`'s behavior once composed (its `loaded` waits for it). Its entries read the lays of the viewer
+// the menu is in (`HeaderFacts.viewer`): no state of their own, so two viewers of one spec each list their own.
 
 /** How many partners the menu lists. */
 const MenuPartners = 8;
-
-/** The ribbons' lays of a viewer's last frame. */
-export function laysOf(viewer: SeqViewer): RondoLay[] {
-  const out: RondoLay[] = [];
-  for (const s of viewer.frame?.layout.sections ?? [])
-    for (const l of s.sectionLays) if (l.type.name === 'rondo:ribbons') out.push(l.lay as RondoLay);
-  return out;
-}
-
-/** A stem's partners by count, strongest first: each the partner stem and the count between them. */
-export function partnersOf(lay: RondoLay, stem: number): { stem: number; count: number; strand: number }[] {
-  const out: { stem: number; count: number; strand: number }[] = [];
-  for (let r = 0; r < lay.nr; r++) {
-    if (lay.ribA[r] === stem) out.push({ stem: lay.ribB[r], count: lay.ribCount[r], strand: lay.ribStrand[r] });
-    else if (lay.ribB[r] === stem) out.push({ stem: lay.ribA[r], count: lay.ribCount[r], strand: lay.ribStrand[r] });
-  }
-  return out.sort((a, b) => b.count - a.count || a.stem - b.stem);
-}
 
 /** The stem a layer's element key names in a viewer's lays (a fan is its stem), with its lay. */
 export function stemOf(
@@ -53,7 +34,7 @@ export function stemOf(
 }
 
 /** A menu's stem from its facts: in the viewer whose menu it is. */
-const stemOfFacts = (f: HeaderFacts) =>
+export const stemOfFacts = (f: HeaderFacts) =>
   f.element?.type === 'rondo:ribbons' && f.viewer ? stemOf(f.viewer, f.element.layer, f.element.key) : undefined;
 
 /** The names of two systems of a lay in the assembly's order (one when equal). */
@@ -74,50 +55,25 @@ export function selectStemPartners(viewer: SeqViewer, layer: string, key: string
   return { message: `${partners.length} partner${partners.length === 1 ? '' : 's'} selected` };
 }
 
-/** The stem menu's entries (`on: element`, scoped to `rondo:ribbons`' stems). */
-export const StemMenu: readonly HeaderEntry[] = [
-  {
-    name: 'rondo:show-partner',
-    on: 'element',
-    label: 'Show with a partner',
-    order: 1,
-    when: (f) => !!stemOfFacts(f),
-    items: (f) => {
-      const s = stemOfFacts(f);
-      if (!s) return [];
-      const { lay, stem } = s;
-      const address = lay.prep?.opens ?? lay.section;
-      return partnersOf(lay, stem)
-        .slice(0, MenuPartners)
-        .map((p) => ({
-          label: `${lay.names[lay.stemSystem[p.stem]]} · ${Math.round(p.count).toLocaleString('en-US')} links${p.strand < 0 ? ', reversed' : ''}`,
-          command: 'section.include',
-          args: { address, include: pairNames(lay, lay.stemSystem[stem], lay.stemSystem[p.stem]) },
-        }));
-    },
-  },
-  {
-    name: 'rondo:select-stem-partners',
-    on: 'element',
-    label: 'Select the stem and its partners',
-    order: 2,
-    when: (f) => !!stemOfFacts(f),
-    command: 'rondo:select-partners',
-    args: (f) => ({ layer: f.element!.layer, key: f.element!.key }),
-  },
-  {
-    name: 'rondo:show-chromosome',
-    order: 3,
-    on: 'element',
-    label: (f) => {
-      const s = stemOfFacts(f);
-      return s ? `Show only ${s.lay.names[s.lay.stemSystem[s.stem]]}` : 'Show only this chromosome';
-    },
-    when: (f) => !!stemOfFacts(f),
-    command: 'section.include',
-    args: (f) => {
-      const s = stemOfFacts(f)!;
-      return { address: s.lay.prep?.opens ?? s.lay.section, include: [s.lay.names[s.lay.stemSystem[s.stem]]] };
-    },
-  },
-];
+/** "Show with a partner ▸": the stem's partners by count, each shown with it as a pair. */
+export function partnerItems(f: HeaderFacts): HeaderSubEntry[] {
+  const s = stemOfFacts(f);
+  if (!s) return [];
+  const { lay, stem } = s;
+  const address = lay.prep?.opens ?? lay.section;
+  return partnersOf(lay, stem)
+    .slice(0, MenuPartners)
+    .map((p) => ({
+      label: `${lay.names[lay.stemSystem[p.stem]]} · ${Math.round(p.count).toLocaleString('en-US')} links${p.strand < 0 ? ', reversed' : ''}`,
+      command: 'section.include',
+      args: { address, include: pairNames(lay, lay.stemSystem[stem], lay.stemSystem[p.stem]) },
+    }));
+}
+
+/** "Show only chr4": its stem's chromosome alone, in the section the layer opens (else its own). */
+export function onlyStem(f: HeaderFacts): { label: string; args: { address: string; include: string[] } } | undefined {
+  const s = stemOfFacts(f);
+  if (!s) return undefined;
+  const name = s.lay.names[s.lay.stemSystem[s.stem]];
+  return { label: `Show only ${name}`, args: { address: s.lay.prep?.opens ?? s.lay.section, include: [name] } };
+}
