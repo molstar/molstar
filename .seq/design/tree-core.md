@@ -49,3 +49,19 @@ the edge, beside the libraries they need.
 
 - `@molstar/seqx-core` describes its one language on `repr` and picks its codecs (JSON by default, MessagePack from io).
 - A public API is added to `@molstar/core`; the change goes into the v6 changelog entry of its branch.
+
+## In the specs
+
+| Decision | Where |
+|---|---|
+| `@molstar/core/repr` codec-independent; its folders and import direction | repr › Imports go one way |
+| JSON and S-expression codecs in core | repr › Codecs |
+| MessagePack in `@molstar/io` | design-only: not built as designed, the codec moved down into core's `repr/codecs/msgpack` (drift note `msgpack-codec.md`) |
+| The first move minimal; `patch` later | design-only: history (the slice's plan) |
+| `locators`, `context`, `units` stay in meso\*; units a hook | repr › Units are a hook |
+| Issues: one shape, namespaced codes, one meaning of severity | repr › Issues |
+| No undo stack in the core; inverses only | repr › A revision |
+| The history port and its adapters | viewer › History |
+| Headers | design-only: the repository's rule (root `AGENTS.md`) |
+| A `_spec` and tests within the quick budgets | repr › Tests |
+| The entry's name, and what `repr` means here | repr › repr: the tree core |

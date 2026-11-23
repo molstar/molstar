@@ -86,3 +86,28 @@ whether it is undoable, keeps that clear.
 - The features catalog has one section, "Streaming and patches", with an Undo column ([features.md](features.md)).
 - Tests check the table: every command's declared kind matches what it changes; undo touches only spec patches; an
   arrival never changes the spec's hash.
+
+## In the specs
+
+| Decision | Where |
+|---|---|
+| A patch recompiles what its changed addresses reach | core › Resolve |
+| An arrival: entries and versions, draw lists and the overlay rebuilt by what read them | core › Entries |
+| Both increments by address with versions, applied alike by any consumer | design-only: intent (no shared API of its own) |
+| The table's rows: patch, preview, session, navigate, none | viewer › Commands |
+| Snapshot steps are navigation | viewer › Story steps |
+| Previews | viewer › Previews are patches |
+| Data arrivals never undoable, never saved | core › Arrivals never touch the spec |
+| Configuration and registration as change kinds | design-only: not command kinds; a registration's undo is viewer › Extensions |
+| Seq\* owns no undo stack; the history port's two faces; adapters | viewer › History |
+| Patches may name streamed things; the ref waits | core › Resolving |
+| Streams never become patches (EC-175) | core › Arrivals never touch the spec |
+| Patches stream from one writer at a time; stale refused; an agent's turn one step | viewer › The history |
+| A host's rebase through `merge3` | viewer › A stale patch |
+| Concurrent writers (EC-93): who merges and when | design-only: not designed (the host's policy) |
+| Revisions the truth, patches derived; *snapshot* a story step only | repr › A revision |
+| Story steps: full states or patches with no base; a step that no longer applies | core › Stories |
+| `shown = step(applyPatch(base, preview))`; refused and masked edits; an agent reads the base | viewer › Story steps |
+| Rebase needs the base root (`revisions.keepRecent`) | viewer › Recent roots |
+| Every command says its change kind | viewer › Commands |
+| The tests of the table | viewer › Tested as the table says |

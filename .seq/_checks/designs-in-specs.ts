@@ -24,12 +24,12 @@ const SPECS: Record<string, string> = {
 };
 /** Designs not reconciled when the check was written (file names without `.md`). Only ever shrinks. */
 const PENDING = new Set([
-  "across-sections", "addressing", "axis", "changes", "composition", "data-store", "dynamic-nodes", "edge-cases",
+  "across-sections", "addressing", "axis", "composition", "data-store", "dynamic-nodes", "edge-cases",
   "examples", "examples-and-stories", "extensibility", "extension-openings", "files", "format", "genome-coordinates",
-  "genome-formats", "grids-and-rows", "immutable", "language-description", "layout-and-draw-lists", "layouts",
-  "locations-and-queries", "maps", "merge", "molecules", "navigators", "packages", "patches", "ports", "properties",
+  "genome-formats", "grids-and-rows", "language-description", "layout-and-draw-lists", "layouts",
+  "locations-and-queries", "maps", "molecules", "navigators", "packages", "ports", "properties",
   "protocol", "region-reads", "rendering", "ring-extension", "security", "seq-data-ports", "sources", "stories",
-  "structure-syncing", "testing", "themes", "tooltips", "track-header-parts", "tree-core", "viewer-composition",
+  "structure-syncing", "testing", "themes", "tooltips", "track-header-parts", "viewer-composition",
   "viewer-models",
 ]);
 

@@ -48,7 +48,8 @@ at their old paths: a reader of JSON's binary twin needs no io dependency.
 - **A category is canonical**: made by `categoryColumn` / `categoryFromCodes` only, its dictionary in the order of first
   use with no unused entry. Why: its identity is then the sequence of its values, so an encoding that writes the values
   (JSON's plain array) gives the same bytes back.
-- **The tree owns a column it is given** (`toColumn`, `normalize`, the builder): no copy is made, its NaNs are made the
+- **The tree owns a column it is given** (`toColumn`, `normalize`, the builder, and `applyPatch` for the values and
+  nodes a patch carries, hashed as the tree's): no copy is made, its NaNs are made the
   canonical NaN in place, its hash is cached per column object as a node's is per node, so it is never mutated after.
   Why: a large column costs no copy, and its hash is computed once.
 - **One NaN**: every NaN of a float column is the canonical NaN (any payload or sign bit rewritten, `canonicalColumn`,

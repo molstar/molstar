@@ -1899,6 +1899,9 @@ over the assets port, with `@molstar/core/util/zip` (never a private zip). Not a
   once; after it a wanted tile is asked again, the entry failed meanwhile (no flicker). `not-served` and `too-large` are
   never retried. Nothing stays in flight after an answer of any kind.
 - **Reports**: each cause once per source, at most `maxIssues`, then `seq.store.limit_exceeded`.
+- **Arrivals never touch the spec** (EC-175): what the store loads, evicts or holds changes entries and versions, never
+  the spec, its revision or the history; data enters the spec only by a patch written on purpose (an inline copy, a
+  ref). Why: undo, saving and sharing are the spec's alone, and a document must read the same whatever was streamed.
 - **Eviction**: the loaded bytes are bounded (`maxBytes`, 64 MB); least recently used first among what is not wanted;
   still over, the wanted prefetch then margin tiles become `evicted` and are not asked again until they leave the set
   and come back, so a planner that wants again on every change does not loop. Never the view, never a request on its
