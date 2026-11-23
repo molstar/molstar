@@ -204,6 +204,12 @@ export const BandsType: LayerType<BandsPrep, BandsLay> = {
 
   legend(lay, options) {
     if (lay.density) return [];
+    // the stains painted key a colour by stain (the default `giemsa`); a colour by another field (`system`: the hue
+    // ring) lists its own values, never the stains
+    // (a scheme over a field names it in its legend's source: `rondo:hues` over `system`)
+    const src = lay.color?.legend as { readonly field?: string } | undefined;
+    const field = lay.color?.field ?? src?.field;
+    if (field !== undefined && field !== 'stain') return channelLegends([lay.color], { ...options, layer: lay.key });
     const painted = new Set<string>();
     // the bands with a mark in view, never the rows only read
     for (let j = 0; j < lay.m; j++) {

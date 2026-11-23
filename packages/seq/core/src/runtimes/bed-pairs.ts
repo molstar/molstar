@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { type Column, type ColumnType, categoryColumn } from '@molstar/core/repr/tree';
+import { CategoryColumn, type Column, type ColumnType, categoryColumn } from '@molstar/core/repr/tree';
 import type { PairsList, RangesField } from '../data/protocol.js';
 import type { BedCauses } from './bed-issues.js';
 import { type DeclaredType, positionOf, strandOf } from './bed-parse.js';
@@ -324,6 +324,10 @@ function gathered(values: readonly (number | string | null)[], type: ColumnType,
 export function pairsList(rows: PairsRows, found: Int32Array): PairsList {
   const fields: RangesField[] = rows.fields.map((f) => ({ name: f.name, column: gathered(f.values, f.type, found) }));
   const pick = (c: Int32Array) => Int32Array.from(found, (r) => c[r]);
+  // a field named `type` (its column mapped: `fields: { type: '10' }`) is the pairs' kind, as a held table's `type`
+  const kind = fields.find((f) => f.name === 'type' && f.column instanceof CategoryColumn)?.column as
+    | CategoryColumn
+    | undefined;
   return {
     form: 'list',
     aSystem: categoryColumn(Array.from(found, (r) => rows.names[rows.aSys[r]])),
@@ -335,6 +339,7 @@ export function pairsList(rows: PairsRows, found: Int32Array): PairsList {
     ...(rows.aStrand && { aStrand: Int8Array.from(found, (r) => rows.aStrand![r]) }),
     ...(rows.bStrand && { bStrand: Int8Array.from(found, (r) => rows.bStrand![r]) }),
     ...(rows.name && { id: categoryColumn(Array.from(found, (r) => rows.name![r])) }),
+    ...(kind && { type: kind }),
     row: found.slice(),
     ...(fields.length && { fields }),
   };

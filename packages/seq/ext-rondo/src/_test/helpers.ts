@@ -80,11 +80,14 @@ export function toyLinks(chroms: readonly { length: number }[], n: number, seed 
   return out;
 }
 
-/** The links as BEDPE (`chrom1 start1 end1 chrom2 start2 end2 name score strand1 strand2`): read whole, by either end. */
+/**
+ * The links as BEDPE (`chrom1 start1 end1 chrom2 start2 end2 name score strand1 strand2 type`): read whole, by either
+ * end; its `type` column mapped by the source (`fields: { type: '10' }`).
+ */
 export function linksBedpe(chroms: readonly { name: string }[], links: readonly Link[]): string {
   return `${links
     .map((l, i) =>
-      [chroms[l.a].name, l.as, l.as + 500, chroms[l.b].name, l.bs, l.bs + 500, `l${i}`, 0, '+', '+'].join('\t'),
+      [chroms[l.a].name, l.as, l.as + 500, chroms[l.b].name, l.bs, l.bs + 500, `l${i}`, 0, '+', '+', l.type].join('\t'),
     )
     .join('\n')}\n`;
 }
@@ -99,6 +102,8 @@ export interface RingSpecOptions extends Partial<Omit<RondoRingOptions, 'assembl
   readonly extensions?: readonly { readonly id: string; readonly version: string }[];
   /** The layer's data filter, a query after the links' address (`/(except :of (item :type other))`). */
   readonly query?: string;
+  /** Params set on every ribbons layer after the build (a colour, an opacity, a width), as a patch would. */
+  readonly layer?: Readonly<Record<string, unknown>>;
 }
 
 /** A genome ring through `rondoRing` over the toy genome and its links. */
@@ -118,11 +123,18 @@ export function ringSpec(o: RingSpecOptions = {}): Node {
           b_start: Int32Array.from(links, (l) => l.bs),
           b_end: Int32Array.from(links, (l) => l.bs + 500),
           type: links.map((l) => l.type),
+          // a numeric field a width sums (deterministic, never 0)
+          q: Float64Array.from(links, (_, i) => 0.001 + ((i * 37) % 100) / 1000),
         },
       } as never)
     : b.data.pairs('links', {
         a: g,
-        source: b.data.source('src', { format: 'bedpe', value: linksBedpe(chroms, links) as never }),
+        source: b.data.source('src', {
+          format: 'bedpe',
+          value: linksBedpe(chroms, links) as never,
+          // no lines, no columns to map
+          ...(links.length ? { fields: { type: '10' } } : {}),
+        } as never),
       } as never);
   b.views.view('v', (v) => {
     const { ring } = rondoRing(v, {
@@ -131,10 +143,13 @@ export function ringSpec(o: RingSpecOptions = {}): Node {
       ...(o.square !== undefined ? { square: o.square } : { square: false }),
       ...(o.hues !== undefined ? { hues: o.hues } : {}),
       ...(o.opens !== undefined ? { opens: o.opens } : {}),
+      ...(o.kinds !== undefined ? { kinds: o.kinds } : {}),
+      ...(o.scale !== undefined ? { scale: o.scale } : {}),
     });
     void ring;
   });
   let root = b.build();
+  if (o.layer) root = withRibbons(root, o.layer);
   // the section's `include`, `layout` as patches would set them
   if (o.include || o.layout) {
     const views = root.children!.find((c) => c.kind === 'views')!;
@@ -152,6 +167,24 @@ export function ringSpec(o: RingSpecOptions = {}): Node {
     root = { ...root, children: root.children!.map((c) => (c === views ? views2 : c)) };
   }
   return root;
+}
+
+/** The spec with params set on every `rondo:ribbons` layer (as a patch would set them). */
+export function withRibbons(root: Node, params: Readonly<Record<string, unknown>>): Node {
+  const map = (n: Node): Node => {
+    if (n.kind === 'layer' && n.params?.type === 'rondo:ribbons')
+      return { ...n, params: { ...n.params, ...params } as never };
+    return n.children ? { ...n, children: n.children.map(map) } : n;
+  };
+  return map(root);
+}
+
+/** Every `rondo:ribbons` lay of a frame, in draw order (the first drawn first). */
+export function lays(f: Frame): RondoLay[] {
+  const out: RondoLay[] = [];
+  for (const s of f.layout.sections)
+    for (const l of s.sectionLays) if (l.type.name === 'rondo:ribbons') out.push(l.lay as RondoLay);
+  return out;
 }
 
 export interface Settled {

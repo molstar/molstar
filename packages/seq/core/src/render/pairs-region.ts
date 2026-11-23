@@ -422,6 +422,8 @@ export class Gather {
   aStrand: number[] = [];
   bStrand: number[] = [];
   kind: number[] = [];
+  /** Which ends' strands the source gave (`PairsData.strandKnown`). */
+  known: number[] = [];
   kinds: string[] = [];
   kindAt = new Map<string, number>();
   keys: (string | number)[] = [];
@@ -443,6 +445,7 @@ export class Gather {
     this.bEnd.push(be);
     this.aStrand.push(sa < 0 ? -1 : 1);
     this.bStrand.push(sb < 0 ? -1 : 1);
+    this.known.push((sa !== 0 ? 1 : 0) | (sb !== 0 ? 2 : 0));
     let k = -1;
     if (kind !== null) {
       k = this.kindAt.get(kind) ?? -1;
@@ -465,6 +468,7 @@ export class Gather {
       keys: this.keys,
       aStrand: Int8Array.from(this.aStrand),
       bStrand: Int8Array.from(this.bStrand),
+      strandKnown: Uint8Array.from(this.known),
       ...(extra ? { extra } : {}),
     };
   }
@@ -528,7 +532,11 @@ function fromBins(entries: readonly Loaded[], level: number, region: PairsRegion
   return { data: g.data({ count: g.weight }), weight: Float32Array.from(g.weight) };
 }
 
-/** The layer's prep over the frame's pairs: every pair shown, its index by key, its elements made on hit. */
+/**
+ * The layer's prep over the frame's pairs, its index by key, its elements made on hit: items read by region filtered by
+ * the layer's base and filter as they land (_spec/README.md "Themes", Filters; its filter's rows counted); bins (a
+ * `level`) every one shown, a bin having no fields to read.
+ */
 export function withData(
   prep: PairsPrep,
   data: PairsData,
@@ -537,12 +545,23 @@ export function withData(
 ): PairsPrep {
   const index = new Map<string | number, number>();
   for (let k = 0; k < data.n; k++) if (!index.has(data.keys[k])) index.set(data.keys[k], k);
+  const datum = new PairDatum(data);
+  const shown = new Uint8Array(data.n).fill(1);
+  let filtered = 0;
+  const { rowBase: base, rowFilter: filter } = prep;
+  if (level === undefined && (base || filter))
+    for (let k = 0; k < data.n; k++)
+      if (base && !base(datum.set(k))) shown[k] = 0;
+      else if (filter && !filter(datum.set(k))) {
+        shown[k] = 0;
+        filtered++;
+      }
   return {
     ...prep,
     data,
-    datum: new PairDatum(data),
-    shown: new Uint8Array(data.n).fill(1),
-    filtered: 0,
+    datum,
+    shown,
+    filtered,
     index,
     elements: [],
     extents: [],

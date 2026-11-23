@@ -14,7 +14,7 @@ import type { AxisTransform } from './axis.js';
 import { channelForms, Extents, type LayerChannels } from './channels.js';
 import type { RenderConfig } from './config.js';
 import type { PassWriter } from './draw-lists.js';
-import { compileRowFilter } from './filter.js';
+import { compileRowFilter, type RowFilter } from './filter.js';
 import { layerSource } from './layer-data.js';
 import { type PairEnds, pairEnds } from './pairs-ends.js';
 import { assemblyRegion, type PairsRegion } from './pairs-region.js';
@@ -73,9 +73,9 @@ export class PairDatum implements ThemeDatum {
       case 'id':
         return d.keys[k];
       case 'a_strand':
-        return d.aStrand[k] < 0 ? '-' : '+';
+        return d.strandKnown && !(d.strandKnown[k] & 1) ? '.' : d.aStrand[k] < 0 ? '-' : '+';
       case 'b_strand':
-        return d.bStrand[k] < 0 ? '-' : '+';
+        return d.strandKnown && !(d.strandKnown[k] & 2) ? '.' : d.bStrand[k] < 0 ? '-' : '+';
       case 'a_start':
         return d.aStart[k];
       case 'a_end':
@@ -119,6 +119,12 @@ export interface PairsPrep {
   readonly channels: LayerChannels;
   /** 1 where the layer's data filter keeps a pair (all when none). */
   readonly shown: Uint8Array;
+  /**
+   * The layer's data forms read row by row (its base, its user's filter), kept for the rows read by region: their items
+   * are filtered as they land (`withData`); bins read by region carry no fields, so a filter is not read on them.
+   */
+  readonly rowBase?: RowFilter;
+  readonly rowFilter?: RowFilter;
   /** The pairs the filter left out (the track's "n filtered"); whether its form is not read row by row (said). */
   readonly filtered: number;
   readonly unreadFilter: boolean;
@@ -260,6 +266,8 @@ export function prepare(layer: ResolvedLayer, model: StaticModel): PairsPrep {
     channels: channelForms(layer.theme),
     shown,
     filtered,
+    ...(base ? { rowBase: base } : {}),
+    ...(filter ? { rowFilter: filter } : {}),
     unreadFilter: (form !== undefined && !filter) || (baseForm !== undefined && !base) || layer.data?.unread === true,
     aSystem: a?.target ?? runs?.from ?? '',
     bSystem: a?.ySystem ?? runs?.to ?? '',

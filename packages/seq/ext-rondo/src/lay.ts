@@ -9,6 +9,7 @@ import {
   type LayoutContext,
   type PairsRead,
   PairsReader,
+  type PairsReadOptions,
   type PairsSource,
   PlacePoint,
   placesOf,
@@ -16,6 +17,7 @@ import {
   type StaticModel,
   type StoreReader,
 } from '@molstar/seqx-core/extension';
+import { ColorMode, classOf, clearClasses, colorsOf, peersOf, rowWeights, weightsOf } from './colour.js';
 import { composedConfig, DefaultRondoConfig, type RondoConfig } from './config.js';
 import { grow, Polygons, RibbonFrame } from './geometry.js';
 import { hueColors } from './hues.js';
@@ -37,10 +39,28 @@ export interface RondoPrep {
   readonly opens?: string;
   /** The colours: the 24 hues (`rondo:hues` named by the layer's colour), else the categorical tokens. */
   readonly hues: boolean;
+  /** Whether the layer writes its colour (its `color` channel read: a fixed colour, a field's); else the block hue. */
+  readonly colored: boolean;
+  /** What a ribbon is wide by: `count` (the links), or a numeric field summed (`q`). */
+  readonly width: string;
+  /** The layer's name in its card and legend (its kind's: `rondoRing`'s `kinds`); empty when none. */
+  readonly label: string;
+  /**
+   * Its widths' scale: `layer` (its own `k`, the default) or `section` (one `k` over the section's layers of
+   * `section` and its `width`, so widths compare across kinds).
+   */
+  readonly scale: 'layer' | 'section';
+  /** Whether its data names a filter and its links are read by region (their bins cannot be filtered). */
+  readonly regionFilter: boolean;
   readonly config: RondoConfig;
 }
 
+export { ColorMode } from './colour.js';
+
 export { Kind } from './shapes.js';
+
+/** A compiled colour channel (the layer's kept channels' `get`). */
+type Channel = ReturnType<PairsSource['channels']['get']>;
 
 /** The layer's layout: its stems, ribbons, stubs and fans, their polygons, its hit grid. */
 export class RondoLay {
@@ -55,7 +75,12 @@ export class RondoLay {
   readonly reader = new PairsReader();
   read: PairsRead | undefined = undefined;
   /** Why nothing is drawn: `pending` (bins not landed), `layout` (text or grid), `none` (no pairs), `failed` (its source). */
-  empty: '' | 'pending' | 'layout' | 'none' | 'failed' = '';
+  empty: '' | 'pending' | 'layout' | 'none' | 'failed' | 'shared' = '';
+  /**
+   * Its bins are read by region under a filter they cannot be read against (`rondo.ribbons.filter`); `shared`: another
+   * layer over the same links draws them (the bins drawn once, never once a layer).
+   */
+  regionBins = false;
   dpr = 1;
   readonly frame = new RibbonFrame();
   /** The read's level (1: items) and the stems' (positions a stem). */
@@ -73,6 +98,37 @@ export class RondoLay {
   ink = 0;
   /** A folded stub's colour (no one partner's hue). */
   muted = 0;
+  /** How it is coloured (`ColorMode`), its colour channel when it reads one. */
+  mode: number = ColorMode.system;
+  channel: Channel | undefined = undefined;
+  /**
+   * The layer's one colour (`0xRRGGBBAA`), stems', stubs' and fans' and every ribbon's but a field's at the item level:
+   * the fixed colour; a field colour's value when every link read shares it, else the ranges' ink. −1: the blocks' hues.
+   */
+  one = -1;
+  /** A field colour read link by link (items, its values mixed): each ribbon its links' colour. */
+  byRow = false;
+  /** Its bins carry not the field it is coloured by: one colour (the ink), said, and the legend says so. */
+  inkBins = false;
+  /** More colours than a stem pair's key holds (`MaxColorClasses`): some ribbons merged, said. */
+  classOverflow = false;
+  /** Each row's colour, and the read and channel it was scanned for (kept: a warm layout scans none). */
+  rowColor = new Uint32Array(64);
+  colorRead: unknown = undefined;
+  colorKept: unknown = undefined;
+  colorFirst = -1;
+  colorMixed = false;
+  colorReadable = false;
+  /** The layer's `opacity` (its channel's uniform value), a factor of `ribbons.fillOpacity`. */
+  opacity = 1;
+  /** Its name (`label`) and what it is wide by (`count`, or a field summed). */
+  label = '';
+  width = 'count';
+  /** Its own widest stem's measure, and whether it shares a scale with its section (`scale: section`). */
+  ownMax = 0;
+  shared = false;
+  /** The lays of its section (itself among them): a bin's card counts each layer's links there. */
+  peers: readonly RondoLay[] = [];
   font = '';
   /** The systems the ends are on, in the assembly's order (the hue domain, taken before `include`), and their names. */
   systems: readonly string[] = [];
@@ -92,6 +148,13 @@ export class RondoLay {
   /** The pairs leaving it (ribbons, stubs, fan), within it, the partner systems it reaches. */
   stemCount = new Float64Array(64);
   stemWithin = new Float64Array(64);
+  /**
+   * Links, apart from the width measure (`stemCount`, `stubCount`, `stemWithin`, `stemFan`: a field's sum with `width`
+   * a field): what folding and the cards count.
+   */
+  stemLinks = new Float64Array(64);
+  withinLinks = new Float64Array(64);
+  fanLinks = new Float64Array(64);
   stemFan = new Float64Array(64);
   stemFanTo = new Int32Array(64);
   stemPartners = new Int32Array(64);
@@ -108,6 +171,12 @@ export class RondoLay {
   ribB = new Int32Array(64);
   ribStrand = new Int8Array(64);
   ribCount = new Float64Array(64);
+  /** Its links (its count when wide by `count`), its colour (a field colour by link), its first row (its card's fields). */
+  ribLinks = new Float64Array(64);
+  ribColor = new Uint32Array(64);
+  ribRow = new Int32Array(64);
+  /** Each row's ribbon (−1: none), so a card lists the fields a ribbon's links share. */
+  rowRib = new Int32Array(64);
   ribDrawn = new Uint8Array(64);
   ribKind = new Int32Array(64);
   /** Its slices: at A (low, high place) and at B. */
@@ -125,6 +194,7 @@ export class RondoLay {
   stubStem = new Int32Array(16);
   stubPartner = new Int32Array(16);
   stubCount = new Float64Array(16);
+  stubLinks = new Float64Array(16);
   stubDrawn = new Uint8Array(16);
   stubT0 = new Float64Array(16);
   stubT1 = new Float64Array(16);
@@ -143,6 +213,7 @@ export class RondoLay {
   foldOwner = new Int32Array(16);
   foldPartner = new Int32Array(16);
   foldCount = new Float64Array(16);
+  foldLinks = new Float64Array(16);
   /** The ring shows one chromosome or a pair: the stems drawn lighter (`rondo.focusStems`). */
   focus = false;
 
@@ -184,6 +255,9 @@ function stemOf(lay: RondoLay, sys: number, pos: number): number {
   lay.stemBin[s] = bin;
   lay.stemCount[s] = 0;
   lay.stemWithin[s] = 0;
+  lay.stemLinks[s] = 0;
+  lay.withinLinks[s] = 0;
+  lay.fanLinks[s] = 0;
   lay.stemFan[s] = 0;
   lay.stemFanTo[s] = 0;
   lay.stemPartners[s] = 0;
@@ -205,6 +279,9 @@ function growStems(lay: RondoLay, n: number) {
   lay.stemT1 = grow(lay.stemT1, n);
   lay.stemCount = grow(lay.stemCount, n);
   lay.stemWithin = grow(lay.stemWithin, n);
+  lay.stemLinks = grow(lay.stemLinks, n);
+  lay.withinLinks = grow(lay.withinLinks, n);
+  lay.fanLinks = grow(lay.fanLinks, n);
   lay.stemFan = grow(lay.stemFan, n);
   lay.stemFanTo = grow(lay.stemFanTo, n);
   lay.stemPartners = grow(lay.stemPartners, n);
@@ -219,6 +296,9 @@ function growRibbons(lay: RondoLay, n: number) {
   lay.ribB = grow(lay.ribB, n);
   lay.ribStrand = grow(lay.ribStrand, n);
   lay.ribCount = grow(lay.ribCount, n);
+  lay.ribLinks = grow(lay.ribLinks, n);
+  lay.ribColor = grow(lay.ribColor, n);
+  lay.ribRow = grow(lay.ribRow, n);
   lay.ribDrawn = grow(lay.ribDrawn, n);
   lay.ribKind = grow(lay.ribKind, n);
   lay.ribA0 = grow(lay.ribA0, n);
@@ -232,6 +312,7 @@ function growStubs(lay: RondoLay, n: number) {
   lay.stubStem = grow(lay.stubStem, n);
   lay.stubPartner = grow(lay.stubPartner, n);
   lay.stubCount = grow(lay.stubCount, n);
+  lay.stubLinks = grow(lay.stubLinks, n);
   lay.stubDrawn = grow(lay.stubDrawn, n);
   lay.stubT0 = grow(lay.stubT0, n);
   lay.stubT1 = grow(lay.stubT1, n);
@@ -300,7 +381,9 @@ function frameOf(lay: RondoLay, ctx: LayoutContext): boolean {
     f.polar = true;
     f.cx = w.cx;
     f.cy = w.cy;
-    f.r = w.r0 - (s.bandY[band] + s.bandH[band]);
+    // the hole's rim: the innermost band's inner edge, whichever band holds the layer (kinds of links in tracks of
+    // their own share one rim)
+    f.r = w.r0 - (s.bandY[nb - 1] + s.bandH[nb - 1]);
     f.room = Math.max(1, f.r);
     return true;
   }
@@ -344,8 +427,9 @@ function placeStems(lay: RondoLay, ctx: LayoutContext, model: StaticModel) {
   }
 }
 
-/** The ribbons' read options (the gate the drawn bound: `rondo.maxRibbons`), kept. */
+/** The ribbons' read options (the gate the drawn bound: `rondo.maxRibbons`; a field summed when wide by one), kept. */
 const Options = { gate: 1024 };
+const OptionsSum = { gate: 1024, sum: '' };
 
 /**
  * Lays out the ribbons of a frame (allocation bounded a frame: the polygons and the hit grid are kept buffers, the
@@ -368,6 +452,7 @@ export function layoutRondo(lay: RondoLay, prep: RondoPrep, ctx: LayoutContext, 
   lay.hole = -1;
   lay.strongest = -1;
   lay.empty = '';
+  lay.regionBins = false;
   const tokens = ctx.tokens;
   lay.fillOpacity = ctx.config.ribbons.fillOpacity;
   lay.hover = tokens.colors['seq-hover'];
@@ -380,8 +465,16 @@ export function layoutRondo(lay: RondoLay, prep: RondoPrep, ctx: LayoutContext, 
     lay.empty = 'layout';
     return;
   }
-  Options.gate = cfg.maxRibbons;
-  const read = lay.reader.read(prep.source, ctx, data, Options);
+  lay.label = prep.label;
+  lay.width = prep.width;
+  peersOf(lay, ctx);
+  let options: PairsReadOptions = Options;
+  if (prep.width !== 'count') {
+    OptionsSum.gate = cfg.maxRibbons;
+    OptionsSum.sum = prep.width;
+    options = OptionsSum;
+  } else Options.gate = cfg.maxRibbons;
+  const read = lay.reader.read(prep.source, ctx, data, options);
   lay.read = read;
   const d = read?.data;
   if (!read || !d) {
@@ -393,6 +486,15 @@ export function layoutRondo(lay: RondoLay, prep: RondoPrep, ctx: LayoutContext, 
   lay.names = lay.systems.map((s) => prep.model.systems.get(s)?.name ?? s);
   lay.kinds = d.kinds;
   lay.items = read.level === undefined;
+  // bins read by region carry no fields: a filter is not read on them, so the first layer over the links draws them
+  lay.regionBins = prep.regionFilter && !lay.items;
+  if (lay.regionBins) {
+    const first = lay.peers.find((p) => p.owner === lay.owner && p.regionBins);
+    if (first && first !== lay) {
+      lay.empty = 'shared';
+      return;
+    }
+  }
   lay.level = read.level ?? 1;
   // the stem level: the largest 2^j × the read's level no wider than `stemPx` CSS px; `stems: none`, the read's own
   const target = cfg.stemPx * positionsPerCssPx(ctx);
@@ -406,6 +508,8 @@ export function layoutRondo(lay: RondoLay, prep: RondoPrep, ctx: LayoutContext, 
     lay.hues = new Uint32Array(8);
     for (let i = 0; i < 8; i++) lay.hues[i] = tokens.colors[`seq-cat-${i}` as 'seq-cat-0'];
   }
+  colorsOf(lay, prep, ctx, read);
+  weightsOf(lay, prep, ctx, read);
   gather(lay, read, d.aUnit, d.bUnit);
   placeStems(lay, ctx, prep.model);
   aggregate(lay, read);
@@ -454,18 +558,26 @@ function gather(lay: RondoLay, read: PairsRead, aUnit: Int32Array | undefined, b
 function aggregate(lay: RondoLay, read: PairsRead) {
   const d = read.data!;
   const w = read.weight;
+  const W = rowWeights();
+  const RowColor = lay.rowColor;
+  lay.classOverflow = false;
   RibbonKeys.clear();
+  clearClasses();
   StubKeys.clear();
+  lay.rowRib = grow(lay.rowRib, d.n);
+  lay.rowRib.fill(-1, 0, d.n);
   for (let k = 0; k < d.n; k++) {
     const a = RowA[k];
     if (a < 0) continue;
     const b = RowB[k];
-    const c = w ? w[k] : 1;
+    const c = W[k];
+    const n = w ? w[k] : 1;
     const pa = lay.stemPlaced[a];
     const pb = lay.stemPlaced[b];
     if (!pa && !pb) continue;
     if (a === b) {
       lay.stemWithin[a] += c;
+      lay.withinLinks[a] += n;
       continue;
     }
     if (pa && pb) {
@@ -474,7 +586,8 @@ function aggregate(lay: RondoLay, read: PairsRead) {
       const hi = Math.max(a, b);
       const first = lay.stemSystem[a] < lay.stemSystem[b] || (lay.stemSystem[a] === lay.stemSystem[b] && a < b) ? a : b;
       const strand = d.aStrand[k] * d.bStrand[k] < 0 ? -1 : 1;
-      const key = (lo * 1048576 + hi) * 2 + (strand < 0 ? 1 : 0);
+      // a field colour by link: one ribbon a stem pair, a strand and a colour (kinds are layers, never mixed in a ribbon)
+      const key = ((lo * 1048576 + hi) * 2 + (strand < 0 ? 1 : 0)) * 64 + (lay.byRow ? classOf(lay, RowColor[k]) : 0);
       let r = RibbonKeys.get(key);
       if (r === undefined) {
         r = lay.nr++;
@@ -484,11 +597,18 @@ function aggregate(lay: RondoLay, read: PairsRead) {
         lay.ribStrand[r] = strand;
         lay.ribCount[r] = 0;
         lay.ribKind[r] = d.kind[k];
+        lay.ribLinks[r] = 0;
+        lay.ribColor[r] = lay.byRow ? RowColor[k] : 0;
+        lay.ribRow[r] = k;
         RibbonKeys.set(key, r);
       }
       lay.ribCount[r] += c;
+      lay.ribLinks[r] += n;
+      lay.rowRib[k] = r;
       lay.stemCount[a] += c;
       lay.stemCount[b] += c;
+      lay.stemLinks[a] += n;
+      lay.stemLinks[b] += n;
       continue;
     }
     // a stub: the placed end's stem toward the partner's system
@@ -502,10 +622,13 @@ function aggregate(lay: RondoLay, read: PairsRead) {
       lay.stubStem[s] = near;
       lay.stubPartner[s] = partner;
       lay.stubCount[s] = 0;
+      lay.stubLinks[s] = 0;
       StubKeys.set(key, s);
     }
     lay.stubCount[s] += c;
+    lay.stubLinks[s] += n;
     lay.stemCount[near] += c;
+    lay.stemLinks[near] += n;
   }
 }
 
@@ -515,6 +638,7 @@ let FoldAt = new Int32Array(64);
 let TmpStem = new Int32Array(16);
 let TmpPartner = new Int32Array(16);
 let TmpCount = new Float64Array(16);
+let TmpLinks = new Float64Array(16);
 
 /**
  * Folds a stem's stubs of fewer than `min` links into one stub of partner −1 when it has two or more (its count their
@@ -529,12 +653,15 @@ function foldStubs(lay: RondoLay, min: number) {
   SmallN.fill(0, 0, lay.ns);
   FoldAt.fill(-1, 0, lay.ns);
   let folds = false;
-  for (let b = 0; b < n0; b++) if (lay.stubCount[b] < min && ++SmallN[lay.stubStem[b]] >= 2) folds = true;
+  // by links, never by a width's field (`q` sums are not counts)
+  for (let b = 0; b < n0; b++) if (lay.stubLinks[b] < min && ++SmallN[lay.stubStem[b]] >= 2) folds = true;
   if (!folds) return;
   TmpStem = grow(TmpStem, n0);
   TmpPartner = grow(TmpPartner, n0);
   TmpCount = grow(TmpCount, n0);
+  TmpLinks = grow(TmpLinks, n0);
   for (let b = 0; b < n0; b++) {
+    TmpLinks[b] = lay.stubLinks[b];
     TmpStem[b] = lay.stubStem[b];
     TmpPartner[b] = lay.stubPartner[b];
     TmpCount[b] = lay.stubCount[b];
@@ -542,29 +669,35 @@ function foldStubs(lay: RondoLay, min: number) {
   lay.foldOwner = grow(lay.foldOwner, n0);
   lay.foldPartner = grow(lay.foldPartner, n0);
   lay.foldCount = grow(lay.foldCount, n0);
+  lay.foldLinks = grow(lay.foldLinks, n0);
   lay.nb = 0;
   for (let b = 0; b < n0; b++) {
     const stem = TmpStem[b];
     const c = TmpCount[b];
-    if (c < min && SmallN[stem] >= 2) {
+    const n = TmpLinks[b];
+    if (n < min && SmallN[stem] >= 2) {
       let f = FoldAt[stem];
       if (f < 0) {
         f = FoldAt[stem] = lay.nb++;
         lay.stubStem[f] = stem;
         lay.stubPartner[f] = -1;
         lay.stubCount[f] = 0;
+        lay.stubLinks[f] = 0;
       }
       lay.stubCount[f] += c;
+      lay.stubLinks[f] += n;
       const e = lay.nf++;
       lay.foldOwner[e] = f;
       lay.foldPartner[e] = TmpPartner[b];
       lay.foldCount[e] = c;
+      lay.foldLinks[e] = n;
       continue;
     }
     const k = lay.nb++;
     lay.stubStem[k] = stem;
     lay.stubPartner[k] = TmpPartner[b];
     lay.stubCount[k] = c;
+    lay.stubLinks[k] = n;
   }
 }
 
@@ -572,7 +705,7 @@ function foldStubs(lay: RondoLay, min: number) {
 export function foldedOf(lay: RondoLay, stub: number): { partner: number; count: number }[] {
   const out: { partner: number; count: number }[] = [];
   for (let e = 0; e < lay.nf; e++)
-    if (lay.foldOwner[e] === stub) out.push({ partner: lay.foldPartner[e], count: lay.foldCount[e] });
+    if (lay.foldOwner[e] === stub) out.push({ partner: lay.foldPartner[e], count: lay.foldLinks[e] });
   return out.sort((a, b) => b.count - a.count || a.partner - b.partner);
 }
 
@@ -586,6 +719,13 @@ let Rank = new Int32Array(64);
 function widths(lay: RondoLay, cfg: RondoConfig, minPx: number) {
   let max = 0;
   for (let s = 0; s < lay.ns; s++) if (lay.stemPlaced[s] && lay.stemCount[s] > max) max = lay.stemCount[s];
+  lay.ownMax = max;
+  lay.shared = lay.prep?.scale === 'section';
+  // one scale over the section (`scale: section`): the widest stem of its layers of that scale and width rule (a layer
+  // laid out after this one is read as last laid out: a frame late when its widest stem grows)
+  if (lay.shared)
+    for (const p of lay.peers)
+      if (p !== lay && p.shared && p.width === lay.width && p.read && !p.empty && p.ownMax > max) max = p.ownMax;
   lay.k = max > 0 ? cfg.maxWidthPx / max : 0;
   const floor = minPx / lay.dpr;
   Rank = grow(Rank, lay.nr);
@@ -606,6 +746,8 @@ function widths(lay: RondoLay, cfg: RondoConfig, minPx: number) {
     }
     lay.stemFan[lay.ribA[r]] += lay.ribCount[r];
     lay.stemFan[lay.ribB[r]] += lay.ribCount[r];
+    lay.fanLinks[lay.ribA[r]] += lay.ribLinks[r];
+    lay.fanLinks[lay.ribB[r]] += lay.ribLinks[r];
     lay.stemFanTo[lay.ribA[r]]++;
     lay.stemFanTo[lay.ribB[r]]++;
   }
@@ -614,6 +756,7 @@ function widths(lay: RondoLay, cfg: RondoConfig, minPx: number) {
     lay.stubDrawn[s] = ok ? 1 : 0;
     if (!ok) {
       lay.stemFan[lay.stubStem[s]] += lay.stubCount[s];
+      lay.fanLinks[lay.stubStem[s]] += lay.stubLinks[s];
       lay.stemFanTo[lay.stubStem[s]]++;
     }
   }

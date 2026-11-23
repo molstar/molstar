@@ -68,6 +68,7 @@ export {
 } from './export.js';
 export { RenderIssues } from './issues.js';
 export {
+  channelLegends,
   DefaultThemeContext,
   Extents,
   LayerChannels,

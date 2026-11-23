@@ -134,13 +134,23 @@ describe('a viewer’s extensions', () => {
     expect(v.context.extensions).toEqual([]);
   });
 
+  it('its settings compose on a late extend: the composition’s pairs under its namespace read, gone with its undo', async () => {
+    const size = { key: 'demo.size' };
+    const v = await make({ config: [[size, 7]] as never });
+    expect(v.context.renderConfig.settings?.['demo.size']).toBeUndefined();
+    const { with_ } = demo();
+    const undo = await v.extend(with_({ config: [size] }));
+    expect(v.context.renderConfig.settings?.['demo.size']).toBe(7);
+    undo();
+    expect(v.context.renderConfig.settings?.['demo.size']).toBeUndefined();
+  });
+
   it('refuses what it cannot register late, and one that does not check, leaving the viewer as it was', async () => {
     const v = await make();
     const { with_ } = demo();
     expect(() => with_({ requires: '0.4' })).toThrow(/seq.context.extension.version/);
     const late = [
       with_({ registry: [{ kind: 'format-runtime', runtime: { ...SeqRuntime, name: 'demo:x' } }] }),
-      with_({ config: [{ key: 'demo.size' }] }),
       // a part over the canvas would never be attached on a viewer already mounted
       with_({ behaviors: [{ provider: { name: 'demo:part', create: () => ({ attach: () => () => {} }) } }] }),
     ];

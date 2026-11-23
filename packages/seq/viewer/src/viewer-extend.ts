@@ -40,8 +40,8 @@ function kindsChanged(viewer: SeqViewer, x: ViewerExtensions): void {
  * Registers `ext` on a viewer: the context's entries (its checks throw first, nothing changed), its behaviors (made
  * after the viewer's, `composed` called), its commands and bindings; the undo takes them away in reverse. The same
  * descriptor again is counted: its parts are made once and go with its last undo (one composed is the viewer's). What
- * a late registration would leave unread is refused, as a format is: settings (read when the viewer is composed), a
- * behavior with a part over the canvas (`attach`, called when it is mounted). Its header entries go on the viewer's
+ * a late registration would leave unread is refused, as a format is: a behavior with a part over the canvas (`attach`,
+ * called when it is mounted); its settings compose (`_extend` reads the composition's pairs under its namespace). Its header entries go on the viewer's
  * headers (`register`), with it.
  */
 export function extendViewer(viewer: SeqViewer, ext: SeqViewerExtension, x: ViewerExtensions): () => void {
@@ -51,8 +51,9 @@ export function extendViewer(viewer: SeqViewer, ext: SeqViewerExtension, x: View
   if (!held) {
     if (ext.bindings && !ext.composeViewer)
       throw new Error(`${ext.id}: a viewer extension is made by defineViewerExtension`);
-    if (ext.registry.some((e) => /^(format|query)/.test(e.kind)) || ext.config?.length)
-      throw new Error(`${ext.id}: formats, query entries and settings are composed, not registered late`);
+    // settings compose again on `_extend` (the composition's pairs under its namespace, core's "Context", Settings)
+    if (ext.registry.some((e) => /^(format|query)/.test(e.kind)))
+      throw new Error(`${ext.id}: formats and query entries are composed, not registered late`);
     context._extend([...context.extensions, ext]);
     const disposers: (() => void)[] = [];
     const commands: ViewerCommand[] = [...(ext.commands ?? [])];

@@ -1430,14 +1430,15 @@ neither io's tabix nor the pairs index.
   two `Int32Array` orders, each by system (a counting sort) then start (float64 keys `start × 2^21 + row`, sorted
   natively; a comparison sort past 2^21 rows). `pairs(system, start, end)` gives every row with an end meeting the
   region once (a row found from its second end is skipped when its first end met it too), in file order, as a
-  `PairsList` (`id` the name, `.` none; `row`). Coverage: the systems, each serving **`pairs`** (RR's shape: a region's
-  read gives the same list, the items at any level when asked), at levels of factor 16 up to the one whose tile holds
-  the longest end's system (`wholeLevel`); a coarser level is the **pairs level** made per tile from the held rows
-  (`binPairs` of the pairs with an end's first position in the tile: each bin pair meeting the tile whole, so a reader
-  deduping bins by key reads the whole file's bins). Why the runtime's levels and not the store's summaries: a BEDPE
-  names no lengths, and the summaries' pairs pyramid needs them; a host adapter is not needed. Held bytes
-  (`summaryBytes`, counted by the store: the source is not wrapped, having levels) against `maxPairsBytes`, which is
-  region-reads' `summaries.maxBytes` (`SummariesMaxBytes`, 16 MiB: 600,000 six-column rows; the bound the pairs
+  `PairsList` (`id` the name, `.` none; `row`; a mapped field named `type`, a category, its `type`: the pairs' kind a
+  layer's filter and colour read, as a held table's `type` column). Coverage: the systems, each serving **`pairs`**
+  (RR's shape: a region's read gives the same list, the items at any level when asked), at levels of factor 16 up to the
+  one whose tile holds the longest end's system (`wholeLevel`); a coarser level is the **pairs level** made per tile
+  from the held rows (`binPairs` of the pairs with an end's first position in the tile: each bin pair meeting the tile
+  whole, so a reader deduping bins by key reads the whole file's bins). Why the runtime's levels and not the store's
+  summaries: a BEDPE names no lengths, and the summaries' pairs pyramid needs them; a host adapter is not needed. Held
+  bytes (`summaryBytes`, counted by the store: the source is not wrapped, having levels) against `maxPairsBytes`, which
+  is region-reads' `summaries.maxBytes` (`SummariesMaxBytes`, 16 MiB: 600,000 six-column rows; the bound the pairs
   summaries share, the store's setting once RG lands it, the runtime's option until then), checked from the line count
   before a row is parsed and exactly after; past it `seq.source.too_large`, hinting pairix or a levelled pairs format.
 - **chrom.sizes** (EC-188): `name length` lines, a coverage of systems and lengths, no shapes; a length past 2^31 − 1
@@ -4370,14 +4371,16 @@ cost to the minimal viewer is the names the chunk imports from it).
   region-reads Decided 7).
 - **The reader** (`pairs-reader.ts`, `readPairs`, `PairsReader`): the three reads above are one reader of a pairs node,
   the layer reading through it with the pairs config and an extension's layer type with its own numbers
-  (`PairsReadOptions`: `binPx`, `gate`, `hysteresis`; `pairsLevels` takes the gate beside the bin width and returns it).
-  Its state is its owner's (a lay, a bridge side, a `PairsReader`), so two readers of one layer at two gates never share
-  a read. It gives `PairsRead`: the rows, the bins' level and counts (absent: items), over an assembly the ends' units;
-  `waiting` says a bins' tile it wanted is still to come (a region's or a block's; a failed one is not waiting), so a
-  layer tells pending from empty when the view has settled before this frame's wants were asked; `failed` says one
-  failed (a source whose opening failed among them), so a layer tells failed from pending. Why one reader: what the
-  pairs layer draws and what an extension draws over the same data are the same bins and items, read once each by one
-  rule (the extension's gate its own: it gates at what it draws).
+  (`PairsReadOptions`: `binPx`, `gate`, `hysteresis`, `sum`; `pairsLevels` takes the gate beside the bin width and
+  returns it). `sum` names a numeric field held bins sum beside their counts (a column of its name in the bins' data, a
+  pyramid a field): what an extension's layer may be wide by. A no-op for bins read by region (a source's bins carry no
+  sum: the layer counts, and says so). Its state is its owner's (a lay, a bridge side, a `PairsReader`), so two readers
+  of one layer at two gates never share a read. It gives `PairsRead`: the rows, the bins' level and counts (absent:
+  items), over an assembly the ends' units; `waiting` says a bins' tile it wanted is still to come (a region's or a
+  block's; a failed one is not waiting), so a layer tells pending from empty when the view has settled before this
+  frame's wants were asked; `failed` says one failed (a source whose opening failed among them), so a layer tells failed
+  from pending. Why one reader: what the pairs layer draws and what an extension draws over the same data are the same
+  bins and items, read once each by one rule (the extension's gate its own: it gates at what it draws).
 - **A bin pair's element** (`Key.key`, what a selection and a bookmark keep):
   `bin:<a>:<aBin>|<b>:<bBin>|<strand>|<category>`, `<a>` and `<b>` the ends' system names as the source gives them
   (empty: the request's system), `<aBin>` and `<bBin>` the bins' indices at the level read (positions `bin × level` to
@@ -4448,9 +4451,10 @@ cost to the minimal viewer is the names the chunk imports from it).
 - **Themes and filter**: its `color` channel (`channelForms`, held extents, its legend), by default `field type` (a
   categorical palette fixed by value; the builder lists an inline table's kinds, as for ranges' `category`); a pair the
   channel gives no color takes the ranges' ink. The layer's data filter (`<pairs>/(except :of (item :type …))`) is read
-  pair by pair at prepare (`id`, `type`, `label`, the strands and ends as fields): a pair left out is not drawn, split
-  or hit, counted on its track's "n filtered" (a `section` layer's too); a form not read pair by pair is
-  `seq.render.filter`.
+  pair by pair at prepare (`id`, `type`, `label`, the strands and ends as fields), and on pairs read by region as their
+  items land (`withData`: the base and the filter kept on the prep); bins read by region carry no fields, so neither is
+  read on them: a pair left out is not drawn, split or hit, counted on its track's "n filtered" (a `section` layer's
+  too); a form not read pair by pair is `seq.render.filter`.
 - **Split order**: at one place the others' closing ends, each self-pair's two ends, then opening ends; equal intervals
   nest: a self-pair, a duplicate and a shared end cross nothing (held against a brute force).
 - **Hit**: candidates by hull over the point's x, then distance to the curve (`pairs.hitPx`), and the carets by the
@@ -5076,16 +5080,16 @@ same pieces. Nothing registers on import and there is no global registry.
   extension imports is one entry**, `@molstar/seqx-core/extension` (the descriptor, `defineExtension`, `LayerType` and
   what it is given, `SectionLayoutType`, `Placement` and the warps, `NavigatorPicture` and what it is given, the
   window's `floorExtent`, `navigatorPart`, `drawNavigatorWindow`, `NavWindowFlags` and `NavigatorWindow`,
-  `FormatRuntime`, `SchemeEntry`, `Legend`, the resolved layer and section; the pairs reader's family, `PairsReader`,
-  `PairsRead`, `PairsSource`, `PairsReadOptions`, the bins' types, `pairsLevels`, `coarsenBins`; `placesOf`,
-  `BlockPlace` and `PlacePoint`; the builder's types an extension's helper writes with); the rest may change in a 0.x
-  minor. Why a descriptor: the namespace check, the version check and the undo need the extension as one thing.
-  **Settings** (`settingOf`, the entry's): the composition's `config` pairs under a composed extension's namespace
-  (`rondo.stemPx` of `rondo`; its descriptor listing them in `config` or not) are kept as `RenderConfig.settings`, by
-  key, so its layer types read them from the render config they are given (`settingOf(ctx.config, item)`); an extension
-  registered late (`_extend`) reads them too (the render config composed again with the extensions as they stand, a gone
-  one's dropped). Why the render config: it reaches every layout, section, picture and export already, and a layer type
-  reads nothing of its context.
+  `FormatRuntime`, `SchemeEntry`, `Legend` and `channelLegends` (a layer's legend from its compiled channels), the
+  resolved layer and section; the pairs reader's family, `PairsReader`, `PairsRead`, `PairsSource`, `PairsReadOptions`,
+  the bins' types, `pairsLevels`, `coarsenBins`; `placesOf`, `BlockPlace` and `PlacePoint`; the builder's types an
+  extension's helper writes with); the rest may change in a 0.x minor. Why a descriptor: the namespace check, the
+  version check and the undo need the extension as one thing. **Settings** (`settingOf`, the entry's): the composition's
+  `config` pairs under a composed extension's namespace (`rondo.stemPx` of `rondo`; its descriptor listing them in
+  `config` or not) are kept as `RenderConfig.settings`, by key, so its layer types read them from the render config they
+  are given (`settingOf(ctx.config, item)`); an extension registered late (`_extend`) reads them too (the render config
+  composed again with the extensions as they stand, a gone one's dropped). Why the render config: it reaches every
+  layout, section, picture and export already, and a layer type reads nothing of its context.
 - **The tracks layout is the one fixed fallback**: a section whose layout is not listed (or every section, with no
   layouts given) is laid out as tracks, and the viewer's navigation reads tracks likewise; tracks needs no entry. Why:
   the tracks layout is the frame's own (the label column, the rails, the bands), a section must be placed somehow, and

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { LayerPlace } from '@molstar/seqx-core/extension';
+import type { LayerPlace, Legend } from '@molstar/seqx-core/extension';
 import { foldedOf, Kind, type RondoLay, stemAt } from './lay.js';
 
 // What the ribbons say (_spec/README.md, Hover, the keyboard): the card's lines for a hit (core's `LayerType.describe`:
@@ -32,7 +32,22 @@ function rangeText(lay: RondoLay, s: number): string {
   return `${lay.names[lay.stemSystem[s]]}:${at(start)}–${at(end)}${unit}`;
 }
 
-const links = (n: number) => `${Math.round(n).toLocaleString('en-US')} link${Math.round(n) === 1 ? '' : 's'}`;
+export const links = (n: number) => `${Math.round(n).toLocaleString('en-US')} link${Math.round(n) === 1 ? '' : 's'}`;
+
+/** A field's value as the card says it: a number to 4 significant digits, a strand's sign as a minus. */
+export const valueText = (v: string | number) => (typeof v === 'number' ? String(Number(v.toPrecision(4))) : v);
+
+/**
+ * The card's lines on kinds of links (_spec/README.md, Kinds of links, The card): a ribbon's links' shared fields and a
+ * bin's or a stem's count on each layer, from `card.ts`, a chunk `rondoViewer` loads once composed (`install`); none
+ * before it lands, and none headless (no card there).
+ */
+export const CardLines: {
+  fields?: (lay: RondoLay, r: number) => string[];
+  perLayer?: (lay: RondoLay, sysA: string, a0: number, a1: number, sysB?: string, b0?: number, b1?: number) => string[];
+  /** The layer's legend (Colour, The legend). */
+  legend?: (lay: RondoLay, options: { readonly title: string }) => readonly Legend[];
+} = {};
 
 /** The card's lines for a hit of the layer: a ribbon's two stems and count, a stem's, a stub's partner. */
 export function describeRondo(hit: LayerPlace, lay: RondoLay): readonly string[] | undefined {
@@ -49,10 +64,21 @@ export function describeRondo(hit: LayerPlace, lay: RondoLay): readonly string[]
     const kindName = lay.kinds[lay.ribKind[ref]];
     const lines = [
       `${rangeText(lay, a)} ↔ ${rangeText(lay, b)}`,
-      `Links: ${links(lay.ribCount[ref])}${kindName ? ` (${kindName})` : ''}`,
+      `Links: ${links(lay.ribLinks[ref])}${kindName ? ` (${kindName})` : ''}`,
     ];
+    if (lay.width !== 'count') lines.push(`Width: ${lay.width} ${valueText(lay.ribCount[ref])}`);
     if (lay.ribStrand[ref] < 0) lines.push('Strand: reversed');
-    if (bins) lines.push(`Bins: ${bins} bins, zoom in to see them`);
+    // its links' fields (one link's own: its kind, strands, q, gene names); a bin: its count on each layer of the section
+    if (lay.items && CardLines.fields) lines.push(...CardLines.fields(lay, ref));
+    if (bins) {
+      lines.push(`Bins: ${bins} bins, zoom in to see them`);
+      const sa = lay.systems[lay.stemSystem[a]];
+      const sb = lay.systems[lay.stemSystem[b]];
+      if (CardLines.perLayer)
+        lines.push(
+          ...CardLines.perLayer(lay, sa, lay.stemStart[a], lay.stemEnd[a], sb, lay.stemStart[b], lay.stemEnd[b]),
+        );
+    }
     return lines;
   }
   if (kind === Kind.stub) {
@@ -63,11 +89,11 @@ export function describeRondo(hit: LayerPlace, lay: RondoLay): readonly string[]
       const folded = foldedOf(lay, ref);
       return [
         `${rangeText(lay, s)} → other chromosomes`,
-        `Links: ${links(lay.stubCount[ref])} to ${folded.length} chromosomes, not shown`,
+        `Links: ${links(lay.stubLinks[ref])} to ${folded.length} chromosomes, not shown`,
         `Partners: ${folded.map((f) => `${lay.names[f.partner]} (${Math.round(f.count).toLocaleString('en-US')})`).join(', ')}`,
       ];
     }
-    return [`${rangeText(lay, s)} → ${lay.names[partner]}`, `Links: ${links(lay.stubCount[ref])}, not shown`];
+    return [`${rangeText(lay, s)} → ${lay.names[partner]}`, `Links: ${links(lay.stubLinks[ref])}, not shown`];
   }
   if (kind === Kind.trumpet || kind === Kind.fan) {
     const partners = new Set<number>();
@@ -80,13 +106,16 @@ export function describeRondo(hit: LayerPlace, lay: RondoLay): readonly string[]
     for (let e = 0; e < lay.nf; e++) if (lay.stubStem[lay.foldOwner[e]] === ref) partners.add(lay.foldPartner[e]);
     const lines = [
       rangeText(lay, ref),
-      `Links: ${links(lay.stemCount[ref])} to ${partners.size} chromosome${partners.size === 1 ? '' : 's'}`,
+      `Links: ${links(lay.stemLinks[ref])} to ${partners.size} chromosome${partners.size === 1 ? '' : 's'}`,
     ];
-    if (lay.stemWithin[ref] > 0) lines.push(`Within: ${links(lay.stemWithin[ref])}`);
+    if (lay.width !== 'count') lines.push(`Width: ${lay.width} ${valueText(lay.stemCount[ref])}`);
+    if (lay.withinLinks[ref] > 0) lines.push(`Within: ${links(lay.withinLinks[ref])}`);
     if (lay.stemFan[ref] > 0)
       lines.push(
-        `Fan: +${Math.round(lay.stemFan[ref]).toLocaleString('en-US')} weaker links to ${lay.stemFanTo[ref]} stems`,
+        `Fan: +${Math.round(lay.fanLinks[ref]).toLocaleString('en-US')} weaker links to ${lay.stemFanTo[ref]} stems`,
       );
+    if (CardLines.perLayer)
+      lines.push(...CardLines.perLayer(lay, lay.systems[lay.stemSystem[ref]], lay.stemStart[ref], lay.stemEnd[ref]));
     return lines;
   }
   return undefined;
@@ -96,6 +125,7 @@ export function describeRondo(hit: LayerPlace, lay: RondoLay): readonly string[]
 export function summaryRondo(lay: RondoLay): string | undefined {
   if (lay.empty === 'layout') return undefined;
   if (lay.empty === 'pending') return 'links loading';
+  if (lay.empty === 'shared') return 'links drawn by another layer';
   if (lay.empty === 'failed') return 'links failed';
   let drawn = 0;
   for (let r = 0; r < lay.nr; r++) drawn += lay.ribDrawn[r];
@@ -114,5 +144,5 @@ export function summaryRondo(lay: RondoLay): string | undefined {
 export function announceRondo(lay: RondoLay, system: string, position: number): string | undefined {
   const s = stemAt(lay, system, position);
   if (s < 0 || lay.stemCount[s] <= 0) return undefined;
-  return `stem of ${links(lay.stemCount[s])}`;
+  return `stem of ${links(lay.stemLinks[s])}`;
 }

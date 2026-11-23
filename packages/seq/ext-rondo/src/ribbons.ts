@@ -9,7 +9,7 @@ import { PairsReader } from '@molstar/seqx-core/extension';
 import { DefaultRondoConfig, type RondoConfig } from './config.js';
 import { Kind, layoutRondo, RondoLay, type RondoPrep, stemAt } from './lay.js';
 import { hueOf, polygonAt } from './shapes.js';
-import { announceRondo, describeRondo, summaryRondo } from './words.js';
+import { announceRondo, CardLines, describeRondo, summaryRondo } from './words.js';
 
 // `rondo:ribbons` (_spec/README.md): a `scope: 'section'` layer over core's pairs reader, on a ring (through its warp)
 // and a row of blocks. Its data pass draws the polygons the layout made; its hover a ribbon lit and outlined, a stem's
@@ -218,6 +218,19 @@ function emphasized(lay: RondoLay, pass: PassName, out: PassWriter, emphasis: Em
     }
 }
 
+/**
+ * Whether a colour form is the blocks' hues (_spec/README.md, Colour): none, a field of `system`, or a scheme over
+ * `system` (`rondo:hues`, whose field is `system` when it names none): drawn by the hues a system, never compiled.
+ */
+function bySystem(form: unknown): boolean {
+  if (form === undefined) return true;
+  if (typeof form !== 'object' || form === null) return false;
+  const f = form as { kind?: unknown; params?: Readonly<Record<string, unknown>> };
+  if (f.kind === 'field') return f.params?.name === 'system';
+  if (f.kind === 'scheme') return (f.params?.field ?? 'system') === 'system';
+  return false;
+}
+
 export interface RibbonsOptions {
   readonly config?: RondoConfig;
 }
@@ -233,20 +246,42 @@ export function ribbonsType(config: RondoConfig = DefaultRondoConfig): LayerType
     prepare(layer, model) {
       const p = layer.params;
       const theme = JSON.stringify(layer.theme.color ?? '');
+      const source = PairsReader.source(layer, model);
       return {
-        source: PairsReader.source(layer, model),
+        source,
+        // a filter (a kind's `(item :type …)`) over links read by region: core's reads filter their items, never bins
+        regionFilter: !!(layer.data?.base || layer.data?.filter) && source.region !== undefined,
         model,
         stems: p.stems === 'none' ? 'none' : 'level',
         bundle: typeof p.bundle === 'number' ? Math.max(0, Math.min(1, p.bundle)) : 0.7,
         stubs: p.stubs === 'none' ? 'none' : 'partner',
         ...(typeof p.opens === 'string' ? { opens: p.opens } : {}),
         hues: theme.includes('rondo:hues'),
+        colored: !bySystem(layer.theme.color),
+        width: typeof p.width === 'string' && p.width !== '' ? p.width : 'count',
+        label: typeof p.label === 'string' ? p.label : '',
+        scale: p.scale === 'section' ? 'section' : 'layer',
         config,
       };
     },
     layout(prep, ctx, data, _overlay, prev) {
       const lay = prev ?? new RondoLay();
       layoutRondo(lay, prep, ctx, data);
+      if (lay.classOverflow)
+        ctx.report({
+          code: 'rondo.ribbons.colors',
+          severity: 'warning',
+          message: 'More than 64 colours meet in one pair of stems: the ribbons of the last ones are drawn as one',
+          address: ctx.key,
+        } as never);
+      if (lay.regionBins)
+        ctx.report({
+          code: 'rondo.ribbons.filter',
+          severity: 'warning',
+          message:
+            'The links are read by region as bins, which carry no fields: the layer’s filter is not read on them, and the bins are drawn once, by the first layer over them',
+          address: ctx.key,
+        } as never);
       if (lay.empty === 'layout')
         ctx.report({
           code: 'rondo.ribbons.layout',
@@ -296,6 +331,8 @@ export function ribbonsType(config: RondoConfig = DefaultRondoConfig): LayerType
       return i < 0 ? undefined : lay.hits[i];
     },
     filtered: (lay) => lay.read?.filtered ?? 0,
+    // its legend from the card's chunk (`card.ts`, loaded with `rondoViewer`); none headless
+    legend: (lay, options) => CardLines.legend?.(lay, options) ?? [],
     describe: describeRondo,
     summary: summaryRondo,
     announce: announceRondo,

@@ -101,6 +101,49 @@ describe('region reads: gaps', () => {
     expect(lay.n).toBe(20);
   });
 
+  it('a BEDPE source’s items read by region keep the layer’s base and filter on `type` (its column mapped)', async () => {
+    const lines = Array.from({ length: 20 }, (_, i) =>
+      [
+        'chr',
+        1000 * i,
+        1000 * i + 10,
+        'chr',
+        90_000 - 1000 * i,
+        90_010 - 1000 * i,
+        `l${i}`,
+        1,
+        '+',
+        '+',
+        i % 4 === 0 ? 'translocation' : 'contact',
+      ].join('\t'),
+    );
+    const frame = async (query: string) => {
+      const b = createSeqSpec({ title: 'bedpe' });
+      const sizes = b.data.source('sizes', { format: 'chrom-sizes', value: 'chr\t2000000\n' as never });
+      const chr = b.data.sequence('chr', { alphabet: 'dna', source: sizes, name: 'chr' });
+      const bp = b.data.source('bp', {
+        format: 'bedpe',
+        value: `${lines.join('\n')}\n` as never,
+        fields: { type: '10' },
+      } as never);
+      const pairs = b.data.pairs('p', { a: chr, source: bp } as never);
+      b.views.view('v', (v) => {
+        v.section('chr', { of: chr })
+          .track('t')
+          .layer('p', { type: 'pairs', data: `${pairs}${query}` as never });
+      });
+      const s = await settle(b.build(), [BedRuntime]);
+      const f = await s.frame({ size: { width: 720, height: 300 } });
+      return f.layout.sections[0].sectionLays[0].lay as unknown as { n: number; prep: { filtered: number } };
+    };
+    // the base (a kind): its rows alone, the rest not counted as filtered
+    const kind = await frame('/(item :type translocation)');
+    expect([kind.n, kind.prep.filtered]).toEqual([5, 0]);
+    // the user's filter: its rows left out and counted
+    const except = await frame('/(except :of (item :type translocation))');
+    expect([except.n, except.prep.filtered]).toEqual([15, 5]);
+  });
+
   it('pairs read by region over an assembly are laid on its blocks (a ring’s chords between chromosomes)', async () => {
     const list: PairsList = {
       form: 'list',

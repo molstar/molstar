@@ -5,7 +5,7 @@
  */
 
 import type { PassWriter } from '@molstar/seqx-core/extension';
-import { DarkTokens, DrawLists, LightTokens } from '@molstar/seqx-core/render';
+import { DarkTokens, DrawLists, LightTokens, viewLegends } from '@molstar/seqx-core/render';
 import { loadGenome } from '@molstar/seqx-core/resolve';
 import type { ExampleView } from '@molstar/seqx-examples';
 import { rondoViewer } from '@molstar/seqx-ext-rondo/viewer';
@@ -229,6 +229,17 @@ describe('Genome ring stories, headless', () => {
       v.draw();
       expect(said(v), id).toEqual([]);
     }
+  });
+
+  it('the hue ring’s legend lists the assembly’s chromosomes alone, never the stains its bands carry', async () => {
+    const v = await open(ringStoryView('ring'));
+    await bandsLanded(v);
+    const legend = viewLegends(v.frame!.layout, Number.POSITIVE_INFINITY).legends.find(
+      (l) => l.title === 'Chromosomes',
+    )!;
+    const labels = legend.entries.kind === 'swatches' ? legend.entries.items.map((i) => i.label) : [];
+    // the assembly's 24 (its hue domain, taken before `include`: chrY keeps its hue when it joins)
+    expect(labels).toEqual([...Array.from({ length: 22 }, (_, i) => `chr${i + 1}`), 'chrX', 'chrY']);
   });
 
   it('hovering a band: the card names it and its stain; the ring lights exactly the ribbons with an end in it', async () => {

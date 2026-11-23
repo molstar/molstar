@@ -23,6 +23,11 @@ export interface PairsReadOptions {
   readonly binPx?: number;
   readonly gate?: number;
   readonly hysteresis?: number;
+  /**
+   * A numeric field summed into each bin pair besides its count (held pairs: a column of the bins' data of the field's
+   * name; a source's bins carry none): what an extension's layer is wide by.
+   */
+  readonly sum?: string;
 }
 
 /**

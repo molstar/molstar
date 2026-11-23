@@ -34,6 +34,8 @@ interface HeldPyramid {
   readonly length: number;
   /** Rows a unit of the ends: the bins' systems are units' indices. */
   readonly units: boolean;
+  /** The numeric field summed into the bins (`PairsReadOptions.sum`), when one is. */
+  readonly sum?: string;
   /** The kept levels built so far, ascending, and their bins. */
   readonly bins: Map<number, PairsBins>;
   readonly preps: Map<number, PairsPrep>;
@@ -44,7 +46,8 @@ interface HeldPyramid {
   next: number;
 }
 
-const Pyramids = new WeakMap<PairsPrep, HeldPyramid>();
+/** A prep's pyramids, by the field summed (`''`: counts alone). */
+const Pyramids = new WeakMap<PairsPrep, Map<string, HeldPyramid>>();
 
 /**
  * Pairs of `prep` the arcs layout reaches at the axis's window (a pair once), its filter's shown ones only: an end in
@@ -87,10 +90,14 @@ export const OverAssembly: {
 } = {};
 
 /** The shown pairs as a list (over an assembly, each end's unit its system), the pyramid's levels yet unbuilt. */
-function pyramidOf(prep: PairsPrep): HeldPyramid {
-  let p = Pyramids.get(prep);
-  if (p) return p;
+function pyramidOf(prep: PairsPrep, sum: string | undefined): HeldPyramid {
+  let byField = Pyramids.get(prep);
+  if (!byField) Pyramids.set(prep, (byField = new Map()));
   const d = prep.data!;
+  // a field summed only when the data holds it as numbers (else the counts alone, said by the reader's owner)
+  const summed = sum !== undefined && d.extra?.[sum]?.some((v) => typeof v === 'number') ? sum : undefined;
+  let p = byField.get(summed ?? '');
+  if (p) return p;
   const rows: number[] = [];
   for (let k = 0; k < d.n; k++) if (prep.shown[k]) rows.push(k);
   const take = <A extends Int32Array | Int8Array>(c: A): A =>
@@ -107,9 +114,15 @@ function pyramidOf(prep: PairsPrep): HeldPyramid {
     aStrand: take(d.aStrand),
     bStrand: take(d.bStrand),
     type: categoryColumn(rows.map((k) => (d.kind[k] < 0 ? null : d.kinds[d.kind[k]]))),
+    ...(summed
+      ? {
+          fields: [{ name: summed, column: Float64Array.from(rows, (k) => Number(d.extra![summed][k]) || 0) as never }],
+        }
+      : {}),
   };
   p = {
     list,
+    ...(summed ? { sum: summed } : {}),
     length: units?.length ?? Math.max(lengthOf(prep.aSystem), lengthOf(prep.bSystem)),
     units: !!units,
     bins: new Map(),
@@ -118,7 +131,7 @@ function pyramidOf(prep: PairsPrep): HeldPyramid {
     rows: rows.length,
     next: DefaultSummarySettings.factor,
   };
-  Pyramids.set(prep, p);
+  byField.set(summed ?? '', p);
   return p;
 }
 
@@ -133,7 +146,7 @@ function buildTo(p: HeldPyramid, target: number): void {
     const level = p.next;
     const b = p.below
       ? coarsenPairBins(p.below, level / p.belowLevel)
-      : binPairs(p.list, level, { category: true, systems: p.units });
+      : binPairs(p.list, level, { category: true, systems: p.units, ...(p.sum ? { field: p.sum } : {}) });
     if (b.count.length * 2 <= p.rows) p.bins.set((top = level), b);
     p.below = b;
     p.belowLevel = level;
@@ -162,7 +175,7 @@ export function heldBins(
   const cfg = ctx.config.pairs;
   const gate = options?.gate ?? cfg.maxArcs;
   if (d.n <= gate || inView(prep, ctx, ctx.axis) <= gate) return undefined;
-  const p = pyramidOf(prep);
+  const p = pyramidOf(prep, options?.sum);
   const { ppp, span } = OverAssembly.scale?.(ctx) ?? { ppp: 1 / ctx.axis.devicePx, span: ctx.axis.u1 - ctx.axis.u0 };
   const need = (options?.binPx ?? cfg.binPx) * ppp;
   // as a source's bins are read (`boundedLevel`): no wider than `binPx` pixels, coarser while the view's tiles at it
@@ -185,7 +198,8 @@ export function heldBins(
     const key = `bin:${a}:${x}|${b}:${y}|${st}|${cat ?? ''}`;
     g.push(x * level, (x + 1) * level, y * level, (y + 1) * level, 1, st < 0 ? -1 : 1, cat, key, bins.count[i]);
   }
-  const pairs = g.data({ count: g.weight });
+  // a summed field rides along as a column of its name (the bins' sums, in the bins' order)
+  const pairs = g.data(p.sum && bins.sum ? { count: g.weight, [p.sum]: Array.from(bins.sum) } : { count: g.weight });
   const binned = withData(
     prep,
     p.units ? { ...pairs, ...OverAssembly.units!(bins) } : pairs,
