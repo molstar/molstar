@@ -263,7 +263,8 @@ const ItemSection: CardProviderEntry = {
     // the item's title, as ever over an earlier provider's; a layer type's own (`seq:layer`) kept
     if (!LayerTitled.has(out)) out.title = allele ? name : it.label;
     // the track's name: a short drawn label (`CDR-H1`) is told apart by it (`CDRs (Kabat)`)
-    const track = at.section.tracks.find((t) => t.layers.includes(l))?.track.label;
+    // (by key: a section of blocks lays each strip its own layer, the tracks' the template)
+    const track = at.section.tracks.find((t) => t.layers.some((x) => x.key === l.key))?.track.label;
     if (track) out.row('Track', track);
     out.row('Extent', `${system} ${extentText(it)}`);
     if (allele) {

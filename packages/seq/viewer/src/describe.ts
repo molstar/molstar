@@ -609,7 +609,8 @@ function layerOf(section: SectionLayout, key: string, block?: number): LayerLayo
   if (block !== undefined && section.section.blocks)
     for (let i = 0; i < st.n; i++) {
       if (st.block[i] !== block) continue;
-      for (let b = 0; b < st.bands; b++) for (const l of section.lays[i * st.bands + b] ?? []) if (l.key === key) return l;
+      for (let b = 0; b < st.bands; b++)
+        for (const l of section.lays[i * st.bands + b] ?? []) if (l.key === key) return l;
     }
   for (const t of section.tracks) for (const l of t.layers) if (l.key === key) return l;
   for (const ls of section.lays) for (const l of ls) if (l.key === key) return l;
