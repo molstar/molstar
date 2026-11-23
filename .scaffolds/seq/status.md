@@ -27,7 +27,8 @@ went is in its record.
   the Features, Examples and Design pages, the showcases and the perf tier.
 - **Shared, in `@molstar/core`**: `repr` (the tree core, its JSON and S-expression codecs, `repr/patch`), half-open
   range sets in `data/int`, CHAMP maps and `Vector` in `data/immutable`, PCG32, the palette module, the asset manager's
-  options and range reads, standard components. **In `@molstar/io`**: the tree's MessagePack codec, BGZF and tabix.
+  options and range reads, standard components. MessagePack in `data/msgpack` and the tree's codec on it in `repr/codecs/msgpack`. **In `@molstar/io`**: BGZF and tabix
+  (and the MessagePack paths re-exported).
   **In `@molstar/ui`**: the history adapters.
 - **Measured** at the fifth slice's close: every frame target met but the 200-copy split patch (median 16.2 ms) and one
   Signal zoom frame (25.7 ms); sizes 260.2 / 974.3 / 1,539.7 / 1,086.9 kB min (reading, headless, default, minimal)
@@ -52,10 +53,11 @@ Slices, each closed with its record:
    viewer's +150.7 kB (accept or trim); five feature rows out of `deferred`.
 2. **Provisional**: the root nouns ([design/building-blocks.md](design/building-blocks.md)) and the UX foundations'
    numbers ([design/ux-foundations.md](design/ux-foundations.md)), confirmed by use where a story shows them.
-3. **Known gaps**: [packages/seq/TODO.md](../../packages/seq/TODO.md) (the drag rule, the stage 1 novice decisions,
+3. **Known gaps**: the close-out plan (`execution/close-out/plan.md`: the drag rule, the stage 1 novice decisions,
    the `pairwise` and `alignment` maps, the query forms `search`, `onto`, `group`, track groups, the Manhattan family,
-   `split`, M5's leftovers).
-4. **To decide as the work reaches them**: worker boundaries, versioning under 0.x
+   `split`) and [packages/seq/TODO.md](../../packages/seq/TODO.md) (M5's leftovers and the rest).
+4. **Defaults no story shows** (store sizes, bounds) are never confirmed by use: they stand as documented and tested.
+5. **To decide as the work reaches them**: worker boundaries, versioning under 0.x
    ([design/version-1.md](design/version-1.md), Open).
 
 ## Next
@@ -79,7 +81,8 @@ author, 2026-11-23). Design before code ([AGENTS.md](AGENTS.md), How work happen
 - The viewer: [design/viewer-composition.md](design/viewer-composition.md), [design/viewer-models.md](design/viewer-models.md),
   [design/tooltips.md](design/tooltips.md).
 - Genomes: [design/genome-coordinates.md](design/genome-coordinates.md), [design/genome-formats.md](design/genome-formats.md),
-  [design/across-sections.md](design/across-sections.md), [design/ring-extension.md](design/ring-extension.md).
+  [design/across-sections.md](design/across-sections.md), [design/ring-extension.md](design/ring-extension.md);
+  [design/examples.md](design/examples.md) (Genomes).
 - What the code says today: each package's `_spec/README.md`.
 
 ## Language version

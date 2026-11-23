@@ -93,10 +93,18 @@ applies them; the evidence behind each line is in the [records](../records/READM
 - **Defaults designed** (§defaults-designed): checked by `.scaffolds/_method/_checks/defaults-designed.ts`, its exempt
   list in `_checks/defaults-designed.json`.
 - **Mocks** {#mocks-at-design}: §interactive-mocks, with the mocks in the Storybook under `Seq* (next)/Design/Mocks/`
-  (not a `prototypes/` package), built by a fast lane beside the draft and deleted by the merge that brings the built
-  story.
+  (not a `prototypes/` package), built by a fast lane beside the draft; no package imports a mock, and the merge that
+  lands the built view deletes it.
+- **A fold-back at every close** (tightens §reconcile-before-merge, which allows "Fold-back: none"): every close writes
+  `foldback.md`, the author's decision on its own line (the method's template; `closed-work.ts` checks it).
+- **The novice pass is standing** (tightens §used-before-done's "may"): it runs in every slice that draws, after the
+  last drawing lane, and the orchestrator confirms its bugs before its findings are placed.
 
-Moved to the package (tombstones; closed work folders cite them):
+Tombstones (closed work folders cite them). Moved within the instance:
+
+- {#heavy-bounds-isolated} *moved to §heavy-lane-alone*
+
+Moved to the package:
 
 - {#drift-notes-are-gaps} *moved to §gaps-queue*
 - {#seeded-generators-checked} *moved to §suites-next-to-ports*
@@ -106,7 +114,6 @@ Moved to the package (tombstones; closed work folders cite them):
 - {#hot-loop-representatives} *moved to §performance-tested*
 - {#findings-are-classes} *moved to §drift-notes*
 - {#engine-not-game} *moved to §application-vs-base*
-- {#heavy-bounds-isolated} *moved to §heavy-lane-alone*
 
 ## For the package's home
 
