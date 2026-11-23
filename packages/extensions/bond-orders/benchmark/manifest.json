@@ -1,0 +1,19 @@
+{
+  "known": {
+    "A1IPL": "CCD inconsistency: tetrahedral boronate B (4 bonds) stated neutral, so its InChI has no /q-1 (tier 0)",
+    "1AAQ_PSI": "Labute 2005 (v5 skipBonds): C5-O4: GEOMETRY: terminal methyl-ester carbonyl C5=O4 missed. C5 is pyramidal, and C5-O distance is 1.47A. Missed in Labute (2005) too for same reasons.",
+    "1AQB_RTL": "Labute 2005 (v5 skipBonds): C13-C14: PLANARITY: both C13/C14 are Trigonal but step-9d isBondPlanar rejects the bond. C14's only non-double heavy neighbour is C15 (sp3 CH2OH, free rotation), so the reference torsion C12-C13-C14-C15=161.9 is ~18 off 180 (> 12 tol). Compounded by C13 ~10 pyramidal (angles 131.4/101.4/117.2 sum 350, methyl C20 bent). Terminal polyene double rejected because its planarity reference is a freely-rotating sp3 substituent.",
+    "1BZM_MZM": "Labute 2005 (v5 skipBonds): C2-N4: Aromatic + protonated form forced; C2-N2: Aromatic + protonated form forced",
+    "1DIH_NDP": "Labute 2005 (v5 skipBonds): C2N-C3N: Aromatic form preferred over reduced form.; C2N-N1N: See above.; C3N-C4N: see above.",
+    "1DR1_HBI": "Labute 2005 (v5 skipBonds): C7-N8: Aromatic form preferred over reduced form. Small ring distortion on planar ring might hint: C7 angle 127.8º",
+    "1PHE_PIY": "Labute 2005 (v5 skipBonds, passing in v5): C6-C2: CCD issue (we are correct): C2-C6 is the inter-ring biaryl linker (imidazole C2 to phenyl C6). The CCD flags it aromatic, but it lies in no ring and is geometrically a single bond (1.51A); perception correctly leaves it single (Covalent|Computed, not AromaticPerceived). Marked pass.",
+    "1PHF_PIM": "Labute 2005 (v5 skipBonds, passing in v5): C6-C5: CCD issue (we are correct): C5-C6 is the inter-ring biaryl linker (imidazole C6 to phenyl C5). The CCD flags it aromatic, but it lies in no ring and is geometrically a single bond (1.51A); perception correctly leaves it single (Covalent|Computed, not AromaticPerceived). Marked pass.",
+    "2CGR_GAS": "Labute 2005 (v5 skipBonds, passing in v5): C8-N8: equivalent to C8-N7; C8-N11: equivalent to C8-N7",
+    "2R04_W71": "Labute 2005 (v5 skipBonds): C4A-C5A: planar ring is forced to aromatic. Distance between C4A and C5A is 1.52A",
+    "3DFR_NDP": "Labute 2005 (v5 skipBonds): C5N-C6N: Not an romatic ring, despite close to planarity. reduced form should be perceived: no charge on Nitrogen.; N1N-C6N: See above; C5N-C4N: see above.",
+    "4FAB_FLU": "Labute 2005 (v5 skipBonds, passing in v5): C10-C14: inter-ring bonds are aromatic in CCD, but not truly aromatic. Issue with CCD.; C1-O1: undecidable kekulization, can be swapped with C6-O3; C6-O3: undecidable kekulization, can be swapped with C1-O1",
+    "5TLN_BAN": "Labute 2005 (v5 skipBonds): C4-O4: GEOMETRY: C4 perceived sp3: average angle 90.53º, distance to O4 1.35Å",
+    "7CAT_NDP": "Labute 2005 (v5 skipBonds): C2N-C3N: Aromatic form preferred.; C2N-N1N: see above.; C3N-C4N: see above.",
+    "8XIA_XLS": "Labute 2005 (v5 skipBonds): C1-O1: GEOMETRY: C1 perceived sp3: average bond angle=97.6º. Distance: 1.42"
+  }
+}
