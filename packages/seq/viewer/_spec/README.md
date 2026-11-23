@@ -290,10 +290,12 @@ square** (core's `SquareNavigator`: two axes over blocks × blocks): the same mo
 window moves each axis by the switching rule (one section on both axes: by the x block), one step; a double-click fits a
 cell's pair (one section on both axes: the hull of its two blocks), again the whole; with a switch a double-click
 anywhere on the square is the whole genome (every block shown: one step, none when all are shown; the clicks before it
-showed their pairs), and 0 on the focused square the same; a click with a switch shows the cell's two blocks (in the
-lattice's order), every click at once (a platform's count past 1 too: never a select first). **The square's hint**
-(`mount-navigator.ts`): one muted line under a mounted square, "Drag to move · drag an edge to resize · double-click for
-the whole genome" (the gestures are the reader's only way to know them); `navigator.squareHint: false` or
+showed their pairs, are replaced by its one step: Back returns the window before the gesture), and 0 on the focused
+square the same; a click with a switch shows the cell's two blocks (in the lattice's order), every click at once (a
+platform's count past 1 too: never a select first). **The square's hint** (`mount-navigator.ts`): one muted line under a
+mounted square, "Drag to move · drag an edge to resize · double-click for the whole genome", wrapped to the square's
+width, the last clause only with a switch (the gestures are the reader's only way to know them; made when the view
+resolves a square: its blocks may land after the part is mounted); `navigator.squareHint: false` or
 `mountNavigator(el, viewer, id, { hint: false })` leaves it out (a figure's, a host with its own words). A drag from a
 cell off the window sweeps the x section (one section on both axes: both), the rectangle its release zooms to drawn
 live, snapped to whole cells (the blocks under its ends, both included: what is drawn is what the release fits;
@@ -1527,12 +1529,12 @@ selection's gestures and the cursor's moves are session state; the cursor's focu
 - **The feature keys**: `.` and `,` mean next and previous **in the focused part** (`cursor.next-feature`,
   `cursor.prev-feature`: the commands' own shortcuts, not in `view.keys`' defaults (the minimal viewer's size),
   overridden there by id): on a track of items the cursor steps to the next or previous item by start, over the
-  stretches with none; on a genome ring's stem the same keys walk its partners (`rondo:partner`), one meaning. A command
-  that cannot run lets the key through to the other, so a ring and tracks in one viewer never fight (the cursor on a
-  tracks section takes them, anywhere else the ring's). The rows' zoom keeps `]` and `[`. The focused track is the one
-  whose header holds the cursor, else the section's first track with items. Why: the novice passes found no key for the
-  next feature; `]` and `[` were taken (the rows' zoom), and the ring already used `.` and `,` for the focused stem's
-  partners.
+  stretches with none; on a genome ring's stem the same keys walk its partners (`rondo:partner`), one meaning. On a
+  track of items the keys are the feature commands' even at the last feature ("No next feature": it says so and stops);
+  `rondo:partner` runs only with the cursor on a ring's section (its `when`), so a ring and tracks in one viewer never
+  fight. The rows' zoom keeps `]` and `[`. The focused track is the one whose header holds the cursor, else the
+  section's first track with items. Why: the novice passes found no key for the next feature; `]` and `[` were taken
+  (the rows' zoom), and the ring already used `.` and `,` for the focused stem's partners.
 - **A block's commands** (genome coordinates): `block.next` and `block.previous` (the `navigate` behavior's, jumps: a
   step of the view's history) go to the next or the previous block of a row in display order from the block holding the
   window's centre, by the switching rule (whole from whole, else the zoom kept) (one with no positions skipped; at the

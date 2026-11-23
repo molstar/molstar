@@ -144,6 +144,10 @@ export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   'bridge.lock': 'patch',
 };
 
+/** The viewer's own cursor commands that are session state (an extension's `cursor.x` declares its kind). */
+const CursorMoves =
+  /^cursor\.((prev|next|up|down)(-feature)?|(extend|add)-(prev|next|up|down)|page-(up|down)|(first|last)-row|toggle)$/;
+
 /** A command's change kind: the table's, then `extra` (an extension's commands); undefined when unknown. */
 export function changeKindOf(id: string, extra: Readonly<Record<string, ChangeKind>> = {}): ChangeKind | undefined {
   return Object.hasOwn(extra, id)
@@ -151,7 +155,7 @@ export function changeKindOf(id: string, extra: Readonly<Record<string, ChangeKi
     : Object.hasOwn(CommandChangeKinds, id)
       ? CommandChangeKinds[id]
       : // the cursor's moves are session state (the ones above, the scrolls and the focus, navigate)
-        id.startsWith('cursor.')
+        CursorMoves.test(id)
         ? 'session'
         : undefined;
 }
