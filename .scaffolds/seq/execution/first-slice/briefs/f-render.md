@@ -15,9 +15,9 @@ escaped); `renderSvg(spec, { size, viewport?, runtimes })`, asynchronous, waitin
 (`seqx-core/data`). Data comes from the store's entries (inline data as `seq` sources); ranges sliced across tiles are
 deduped by `id` or `row`. Draw lists are bounded by the screen (device columns × lanes).
 
-**Read first**: `.seq/design/layout-and-draw-lists.md`, `rendering.md`, `composition.md` (tier 3), `ux-foundations.md`
+**Read first**: `.scaffolds/seq/design/layout-and-draw-lists.md`, `rendering.md`, `composition.md` (tier 3), `ux-foundations.md`
 (density, shapes, emphasis order), `performance.md` (cost follows pixels), `data-store.md`, `protocol.md`, `security.md`
-(SVG escaping), the core `_spec` (Resolve, Resolved view, Data, Queries), `.seq/design/testing.md`.
+(SVG escaping), the core `_spec` (Resolve, Resolved view, Data, Queries), `.scaffolds/seq/design/testing.md`.
 
 **Model**: strong.
 
@@ -34,11 +34,11 @@ SVG escaping; `renderSvg` on the p53 example waits and renders.
 
 **Hot files, never staged**: `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`, `biome.json`,
 `vitest.config.ts`, `storybook/packages.ts`, `.v6/changelogs/`, `packages/seq/*/package.json` (ask in the report for
-the entry exports and `_test` nulls you need), anything in `.seq/` and in `packages/core/`. Ask in the report for
+the entry exports and `_test` nulls you need), anything in `.scaffolds/seq/` and in `packages/core/`. Ask in the report for
 what you need there.
 
 **Headers**: the Mol\* header, `Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more
-info.`, with `@author David Sehnal <david.sehnal@gmail.com>`. No mention of `packages/sequences` or `.seq/` in code,
+info.`, with `@author David Sehnal <david.sehnal@gmail.com>`. No mention of `packages/sequences` or `.scaffolds/seq/` in code,
 comments or tests.
 
 **Checks**, each its own command, green only on exit 0 with a non-zero test count:

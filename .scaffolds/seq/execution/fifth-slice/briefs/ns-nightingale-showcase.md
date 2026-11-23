@@ -29,7 +29,7 @@ packages.
 - no network: fixtures only.
 
 **Where**: a worktree on `seq/ns`. Headers on new files (`@author David Sehnal <david.sehnal@gmail.com>`, 2026). Hot
-files never staged: the storybook `package.json`, the lockfile, `biome.json`, `.seq/`, `.v6/changelogs/`: list exact
+files never staged: the storybook `package.json`, the lockfile, `biome.json`, `.scaffolds/seq/`, `.v6/changelogs/`: list exact
 edits. If installing in the worktree is needed to build, do it there with the exact versions you list and say so.
 
 **Checks**: `pnpm test:unit packages/seq/storybook`, `pnpm -C packages/seq/storybook typecheck`, `pnpm lint`,

@@ -2,7 +2,7 @@
 
 **Base**: `packages-seq` at the orchestrator's head (`git reset --hard packages-seq` first). Branch `seq/fx-3`. Follow
 `fx-fix-lane.md` (one commit per item, a test failing on its parent, a look in light and dark). Read core's and the
-viewer's `_spec` (Render: Navigators, Rings, Blocks; viewer Configuration) and `.seq/design/navigators.md` ("The
+viewer's `_spec` (Render: Navigators, Rings, Blocks; viewer Configuration) and `.scaffolds/seq/design/navigators.md` ("The
 positions rail beside a declared navigator, and its place", and the Configuration row) first.
 
 **Items** (`fixes.md`, Open), in this order:
@@ -23,12 +23,12 @@ positions rail beside a declared navigator, and its place", and the Configuratio
    differs and fix it with a test that fakes the browser's metrics; if it does not reproduce, say so with a screenshot.
 
 **Where**: a worktree on `seq/fx-3`. Headers updated (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); hot files
-never staged (`.seq/`, `.v6/changelogs/`, `packages/seq/TODO.md`, `package.json`s): list the edits. Public API changes
+never staged (`.scaffolds/seq/`, `.v6/changelogs/`, `packages/seq/TODO.md`, `package.json`s): list the edits. Public API changes
 allowed in `packages/seq`; anything else stops the item.
 
 **Checks**: `pnpm test:unit packages/seq/`, `npx tsc -b`, `pnpm -s -C packages/seq/{core,viewer,examples}
 typecheck:test`, `pnpm -C packages/seq/storybook typecheck`, `pnpm lint`, `pnpm format:check`, both perf tiers,
-`pnpm -s -C packages/seq/core size`, `pnpm test:heavy packages/seq/`, the four `.seq/_checks`. Run them all before the
+`pnpm -s -C packages/seq/core size`, `pnpm test:heavy packages/seq/`, the four `.scaffolds/seq/_checks`. Run them all before the
 report and give numbers.
 
 **Report**: under 250 words: commits per item; checks with numbers; the stories to look at; anything left and why; the

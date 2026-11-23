@@ -24,11 +24,11 @@ typecheck`; `pnpm lint`; `pnpm format:check`; `pnpm -C packages/seq/core test:pe
 (`; echo exit=$?`), non-zero test counts.
 
 **Headers**: a modified file keeps its header, year range to 2026, `@author David Sehnal <david.sehnal@gmail.com>` added
-if missing. No mention of `.seq/` in code; the core `_spec`'s "The logo" updated.
+if missing. No mention of `.scaffolds/seq/` in code; the core `_spec`'s "The logo" updated.
 
 **Hot files, never staged**: `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`,
 `biome.json`, `vitest.config.ts`, `storybook/packages.ts`, `.v6/changelogs/` (write the entry's text in the report),
-every `package.json` and `tsconfig*.json`, anything in `.seq/`.
+every `package.json` and `tsconfig*.json`, anything in `.scaffolds/seq/`.
 
 **Stop when** green, or a check fails twice after a fix.
 

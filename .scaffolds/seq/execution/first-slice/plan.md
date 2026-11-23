@@ -1,6 +1,6 @@
 # Plan: the first slice
 
-Work id `first-slice`. Designs: `.seq/design/version-1.md` (Order of work) and the designs each stage names. The
+Work id `first-slice`. Designs: `.scaffolds/seq/design/version-1.md` (Order of work) and the designs each stage names. The
 smallest end-to-end slice that tests the riskiest decisions first; after it, the milestones in version-1.
 
 ## Done when
@@ -124,20 +124,20 @@ design-heavy or ambiguous work, **fast** for well-specified implementation.
 
 - [x] FINALIZE (2026-11-18): reconcile: designs edited where the code taught otherwise (drift notes resolved), `_spec`s with what is
       built, `status.md`, the features rows' status, the edge cases' outcomes for what was built, `TODO.md`; write the
-      record in `.seq/records/first-slice/`; end `state.md` with its closing line
+      record in `.scaffolds/seq/records/first-slice/`; end `state.md` with its closing line
 
 ## Hot files (the orchestrator's only)
 
 `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`, `biome.json` (the allowlist rule for
 `packages/seq` lands with its first allowed import), `storybook/packages.ts`, `vitest.config.ts`, `.v6/changelogs/`,
-and every file in `.seq/`.
+and every file in `.scaffolds/seq/`.
 
 ## Testing strategy ([testing](../../design/testing.md))
 
 - **In the edit loop**: the touched package's quick lane (`pnpm test:unit packages/core/src/repr`,
   `pnpm test:unit packages/seq/`), each folder under 2 s.
 - **At each gate**: the repository's quick lane for the touched packages, `npx tsc -b` for them, `pnpm lint`,
-  `pnpm format:check`, the scaffold checks (`.seq/AGENTS.md`, Checks); at the integration gate the medium lane too.
+  `pnpm format:check`, the scaffold checks (`.scaffolds/seq/AGENTS.md`, Checks); at the integration gate the medium lane too.
 - **Properties** at small fixed seeds: codecs, normalization, addresses, map encodings agreeing.
 - **Records**: two draw-list records (one per view); the rest by properties.
 - **Heavy and opt-in tiers** only in stage 7.

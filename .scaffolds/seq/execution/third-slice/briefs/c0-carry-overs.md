@@ -23,13 +23,13 @@
    drawn mark is hit, at the fit view and across a tile edge, in a quick-lane test per view (the WRAP53 tile-edge case
    is the model).
 
-Update `ux-foundations.md`-mirrored cells only through your report (the orchestrator owns `.seq/`); update the viewer
+Update `ux-foundations.md`-mirrored cells only through your report (the orchestrator owns `.scaffolds/seq/`); update the viewer
 and core `_spec`s (commands, Configuration) and `packages/seq/TODO.md` (remove the items built here).
 
 Not in scope: the axis (direction, pieces), themes, the bookmark's color, navigators, anything in `packages/core`.
 
-**Read first**: `packages/seq/AGENTS.md`; `.seq/design/ux-foundations.md` (section 8, the matrix rows for the
-selection and a bookmark or link), `.seq/design/addressing.md`, `.seq/design/viewer-models.md` (the history rule);
+**Read first**: `packages/seq/AGENTS.md`; `.scaffolds/seq/design/ux-foundations.md` (section 8, the matrix rows for the
+selection and a bookmark or link), `.scaffolds/seq/design/addressing.md`, `.scaffolds/seq/design/viewer-models.md` (the history rule);
 the viewer and core `_spec`s; `packages/seq/viewer/src/{commands.ts,bindings.ts,models/view.ts,models/address.ts,models/selection.ts}`,
 the toolbar's chrome; `packages/seq/core/src/resolve/`; `packages/seq/TODO.md`.
 
@@ -67,7 +67,7 @@ Configuration tables. Nothing configurable without a second use.
 
 **Headers**: a new file has the Mol\* header `Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for
 more info.` with `@author David Sehnal <david.sehnal@gmail.com>`; a modified file keeps its header, its year range
-extended to 2026 and that author line added if missing. No mention of `packages/sequences` or `.seq/` in code, comments,
+extended to 2026 and that author line added if missing. No mention of `packages/sequences` or `.scaffolds/seq/` in code, comments,
 tests or `_spec`s; code cites its own `_spec` sections.
 
 **Fixes land with a test shown failing on the fix's parent**: the report names the command.
@@ -76,7 +76,7 @@ tests or `_spec`s; code cites its own `_spec` sections.
 - `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`, `biome.json`, `vitest.config.ts`;
 - `storybook/packages.ts`, `.v6/changelogs/` (write the changelog entry's text in your report);
 - every `package.json` and `tsconfig*.json` (ask in the report);
-- anything in `.seq/`.
+- anything in `.scaffolds/seq/`.
 
 **Stop when** the checks are green, or a check has failed twice after a fix, or the work needs a public API past this
 brief, or a target cannot be met without changing a design (report the measurement and the options), or a permission

@@ -39,7 +39,7 @@ file gives the same texts as MVS's runtime would, by reading); a cold and a warm
 card show's bytes recorded.
 
 **Where**: a worktree on `seq/tt`. Headers (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); commit at each green
-step; hot files never staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.seq/`, `.v6/changelogs/`,
+step; hot files never staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.scaffolds/seq/`, `.v6/changelogs/`,
 `storybook/packages.ts`, `packages/seq/TODO.md`, `packages/seq/_measure/sizes.mjs`): list them. Anything in
 `@molstar/core` or `@molstar/io` stops the lane with a report (using `util/markdown` and `util/string-format` as they are
 is fine). A file past 800 lines is a question. Sizes soft: trim first, keep the provider machinery lean and tooltip
@@ -49,8 +49,8 @@ the gates.
 **Checks**: the quick lane `pnpm test:unit packages/seq/ cli/seqx-render/`, `npx tsc -b packages/seq/core
 packages/seq/viewer packages/seq/examples`, each `typecheck:test`, the storybook typecheck, `pnpm lint`,
 `pnpm format:check`, both perf tiers to completion, `pnpm -s -C packages/seq/core size` (read the rows for FAIL),
-`pnpm test:medium packages/seq/` (HC's sweep included), the `.seq/_checks` (features-planned with
-`--plan .seq/execution/fifth-slice/plan.md`, `defaults-designed.ts`). A fix's test fails on its parent.
+`pnpm test:medium packages/seq/` (HC's sweep included), the `.scaffolds/seq/_checks` (features-planned with
+`--plan .scaffolds/seq/execution/fifth-slice/plan.md`, `defaults-designed.ts`). A fix's test fails on its parent.
 
 **Report**: under 400 words: commits; checks with numbers; story ids; sizes; the version and its history line; designs
 to amend (extensibility, extension-openings, security as the design's Consequences list); hot-file needs; the

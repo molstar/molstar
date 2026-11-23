@@ -52,7 +52,7 @@ sets anything (B1).
      `ui.canvas`, `ui.history`, `bounds.themeDepth`, no table for `renderSvg`'s options), and six items the designs name
      that the code never had (`rows.clades.cutLine`, `reveal.opensClades`, `navigator.idle`, `rows.reduce`, the
      `figure` preset, a `seqx-examples` table).
-   - *Proposal*: a check in `.seq/_checks/` reads `DefaultRenderConfig`'s and `DefaultViewerConfig`'s keys (flattened)
+   - *Proposal*: a check in `.scaffolds/seq/_checks/` reads `DefaultRenderConfig`'s and `DefaultViewerConfig`'s keys (flattened)
      and fails on a key with no row in its `_spec` table, or a row with no key; a design's Configuration row names a
      key the code has, or says "not built".
 3. **A drift note is a gap: it is asked at the next gate, never parked for the close.** (P: amends "Gaps are asked at
@@ -66,7 +66,7 @@ sets anything (B1).
    - *What happened*: EO reconstructed 56 outcome rows by reading tests for their behavior (12 kept with a stated gap,
      9 not met); test-only lanes ET and AT then added seven tests and found one edge case not wired (EC-135) and two
      accessibility faults. Tests that cite their EC (`(EC-43)`) were found by grep in seconds.
-   - *Proposal*: a lane's test of a catalog item names it in its title; `.seq/_checks/ec-ids.ts` also lists the items a
+   - *Proposal*: a lane's test of a catalog item names it in its title; `.scaffolds/seq/_checks/ec-ids.ts` also lists the items a
      built feature's row covers (`features.md`, Cases) that no test names, as the close's worklist.
 5. **The Features page moves with the merges.** (P: amends Gate 0's "The Storybook's Design pages follow the designs";
    L)
@@ -105,7 +105,7 @@ sets anything (B1).
       with some reasonable limits? so we don't end up with 10k line superfiles?", and for the bundles "reduce render
       first, then move the size targets".
     - *Proposal*: **applied already** (the author, 2026-11-20: "Yes, add all three"): the principle §module-size (oz,
-      architecture rules), the instance check `.seq/_checks/file-size.ts` (800 lines a note, 1500 a failure, tests
+      architecture rules), the instance check `.scaffolds/seq/_checks/file-size.ts` (800 lines a note, 1500 a failure, tests
       2500, a baseline of the four files over 1500 that only shrinks), and a split lane in the fourth slice. For
       bundles: lane RR reduces `render` before the targets reset; from then a size target is a bound checked at every
       gate, moved only by the author's decision, as a test budget is.

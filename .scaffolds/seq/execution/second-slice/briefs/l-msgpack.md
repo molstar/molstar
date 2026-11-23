@@ -10,7 +10,7 @@ suite in `repr/codec/conformance.ts`) from its own test. The p53 specs round-tri
 
 Not in scope: changes to `common/msgpack`, Seq\*'s use of the codec beyond the round-trip test.
 
-**Read first**: `.seq/design/tree-core.md` (Codecs), `format.md`, `performance.md`; `packages/core/src/repr/_spec/README.md`
+**Read first**: `.scaffolds/seq/design/tree-core.md` (Codecs), `format.md`, `performance.md`; `packages/core/src/repr/_spec/README.md`
 (Codecs); `packages/core/src/repr/codec/`, `codecs/json` (as the model to follow); `packages/io/src/common/msgpack/`.
 
 **Model**: fast (sonnet).
@@ -23,7 +23,7 @@ Not in scope: changes to `common/msgpack`, Seq\*'s use of the codec beyond the r
 - `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`, `biome.json`, `vitest.config.ts`;
 - `storybook/packages.ts`, `.v6/changelogs/` (write the changelog entry's text in your report);
 - every `package.json` and `tsconfig*.json` (ask in the report: exports, `_test` nulls, dependencies);
-- anything in `.seq/`.
+- anything in `.scaffolds/seq/`.
 
 **Checks**: each its own command, green only on exit 0 with a non-zero test count.
 - `pnpm test:unit packages/io/src packages/core/src/repr`
@@ -33,7 +33,7 @@ Not in scope: changes to `common/msgpack`, Seq\*'s use of the codec beyond the r
 
 **Headers**: a new file has the Mol\* header `Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for
 more info.` with `@author David Sehnal <david.sehnal@gmail.com>`; a modified file keeps its header, its year range
-extended to 2026 and that author line added if missing. No mention of `packages/sequences` or `.seq/` in code, comments,
+extended to 2026 and that author line added if missing. No mention of `packages/sequences` or `.scaffolds/seq/` in code, comments,
 tests or `_spec`s; code cites its own `_spec` sections.
 
 **Fixes land with a test shown failing on the fix's parent**: the report names the command.

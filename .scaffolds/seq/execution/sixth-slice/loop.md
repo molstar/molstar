@@ -5,7 +5,7 @@ subagents it starts. Read this file and `state.md` before every step.
 
 This is the fifth slice's loop with its fold-back applied (B1–B10; the fifth slice's `loop.md`, "Folded back at the
 close", and `principles/README.md`, "Folded back from the fifth slice"; the author, 2026-11-23: "Apply all ten"). It is
-fitted to a slice whose subject is the scaffold itself: it moves `.seq/` into `.scaffolds/`, renames the principles
+fitted to a slice whose subject is the scaffold itself: it moves `.scaffolds/seq/` into `.scaffolds/`, renames the principles
 package, reconciles the designs into the packages' `_spec`s, and writes the method's templates. There is no new view,
 so no mock (B10), no novice pass and no use gate. Its stage 0 is decided (`plan.md`, "Decided at stage 0").
 
@@ -47,7 +47,7 @@ its scratchpad and stages by path, never `commit -a` or `.` (B4).
    - the model and why (B1), the base commit (`packages-seq`'s head);
    - the files it may edit, and what is out of scope;
    - **numbered items**, each with what proves it landed (a section of the spec, a check's line, a link) (B3);
-   - for a spec pass: the package's `_spec` stays a rule and its reason, terse, no history, no `.seq/` path and no
+   - for a spec pass: the package's `_spec` stays a rule and its reason, terse, no history, no `.scaffolds/seq/` path and no
      principle `§` id (the `.seq` rule; the root AGENTS.md, "Keep the docs true"); a decision that is only history stays
      in the design, marked design-only with its reason.
 4. **Start the lane** as a subagent in its own git worktree (isolation: worktree), on `seq/<lane>`, first `git reset
@@ -60,7 +60,7 @@ its scratchpad and stages by path, never `commit -a` or `.` (B4).
      lane's conclusions. Strong for a spec pass that decided rule against history; fast for a copied template or a
      link fix. It checks:
      - that the spec still says what the code does: a spec claim not in the code is a finding;
-     - that nothing in the spec cites `.seq/` or a principle id;
+     - that nothing in the spec cites `.scaffolds/seq/` or a principle id;
      - that every design decision the brief named is in the spec or marked design-only with its reason.
    - **fix round**: one round by SendMessage; a design question becomes a drift note.
    - **merge** with `--no-ff`, then the record, then remove the lane's worktree and branch.
@@ -77,13 +77,13 @@ its scratchpad and stages by path, never `commit -a` or `.` (B4).
   folder map and the checks' `--package` argument. One provenance line keeps the upstream repository and commit, in
   words (§machine-invariant). Done when `git grep -n -i '\boz\b'` over the scaffold finds only that line.
 - **Stage 3, the move**: `git mv` (history kept) into the layout of `plan.md`, one commit for the moves and one for the
-  path rewrites, so `git log --follow` reads through them. Every path that names `.seq/` is rewritten: the instance's
+  path rewrites, so `git log --follow` reads through them. Every path that names `.scaffolds/seq/` is rewritten: the instance's
   links, the checks and their arguments, the skill, `packages/seq/AGENTS.md`'s one pointer, `biome.json`,
   `.prettierignore`, `.gitignore`, the root `AGENTS.md`'s table (a `.scaffolds/` row). Then confirm that nothing in code,
   comments, tests or specs cites the scaffold (the rule; `cli/seqx-render` and `cli/structure-info` match `.seq` as a
   file extension: check each hit).
 - **Stage 5, verify**: every check run from its new place on the Seq\* instance; a link check over `.scaffolds/` (no
-  dangling relative link; a small script, kept in the method's checks); `.seq/` gone; the closed fifth slice's files
+  dangling relative link; a small script, kept in the method's checks); `.scaffolds/seq/` gone; the closed fifth slice's files
   unchanged but for their moved paths.
 
 Each of them gets a fast reviewer of its own on the diff (moved paths, rewritten links, nothing dropped), before the
@@ -103,20 +103,20 @@ quiet-machine rule does not apply (a lane that changes code was out of scope).
 
 ## Checks
 
-From the repository root. Before stage 3 the scaffold's checks run from `.seq/`, after it from `.scaffolds/`
+From the repository root. Before stage 3 the scaffold's checks run from `.scaffolds/seq/`, after it from `.scaffolds/`
 (their new arguments are part of stage 3's commit):
 
 ```sh
 pnpm test:unit packages/seq/ cli/seqx-render/ packages/core/src/repr   # the specs' config-table tests and repr
 pnpm lint
 pnpm format:check
-node .seq/oz/_checks/principles-ids.ts --package .seq/oz --instance .seq --allow '^(?!\.seq/)'
-node .seq/oz/_checks/paths-check.ts --allow '^(?!\.seq/|packages/seq/)'
-node .seq/oz/_checks/merge-gate.ts --package .seq/oz --instance .seq
-node .seq/_checks/ec-ids.ts
-node .seq/_checks/closed-work.ts
-node .seq/_checks/file-size.ts
-node .seq/_checks/defaults-designed.ts
+node .scaffolds/principles/_checks/principles-ids.ts --package .scaffolds/principles --instance .scaffolds/seq --allow '^(?!\.scaffolds/)'
+node .scaffolds/principles/_checks/paths-check.ts --allow '^(?!\.scaffolds/|packages/seq/)'
+node .scaffolds/principles/_checks/merge-gate.ts --package .scaffolds/principles --instance .scaffolds/seq
+node .scaffolds/seq/_checks/ec-ids.ts
+node .scaffolds/seq/_checks/closed-work.ts
+node .scaffolds/seq/_checks/file-size.ts
+node .scaffolds/seq/_checks/defaults-designed.ts
 ```
 
 The scaffold's checks read the git index: stage first. At stage 5 also `pnpm build` and `pnpm check:workspace` (the

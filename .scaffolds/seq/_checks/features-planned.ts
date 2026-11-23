@@ -1,4 +1,4 @@
-// The features-planned check (the fourth slice's fold-back, B7): a row of `.seq/design/features.md` whose status says
+// The features-planned check (the fourth slice's fold-back, B7): a row of `.scaffolds/seq/design/features.md` whose status says
 // "planned" or "to come" fails once every lane of its design is merged in the plan (§features-move-with-merges: the
 // lane that builds a feature moves its row in its own change). The rows name designs, not lanes: the plan's "The
 // designs" table (`| [<design>](<file>.md) ... | <lane>, <lane>; ... |`) maps each design to its lanes, and a lane is
@@ -8,9 +8,9 @@
 // Usage: features-planned.ts [root] [--plan <path, relative to the root>]
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { args, finish } from "../oz/_checks/lib.ts";
+import { args, finish } from "../../principles/_checks/lib.ts";
 
-const FEATURES = ".seq/design/features.md";
+const FEATURES = ".scaffolds/seq/design/features.md";
 const argv = process.argv.slice(2);
 let plan: string | undefined; // the slice's plan, always given: a check never names a work folder (§execution-unreferenced)
 const at = argv.indexOf("--plan");

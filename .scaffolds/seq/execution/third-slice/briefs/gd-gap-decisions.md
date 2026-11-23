@@ -42,11 +42,11 @@ palettes). Green only on exit 0 with a non-zero test count.
 
 **Headers**: a new file has the Mol\* header `Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file
 for more info.` with `@author David Sehnal <david.sehnal@gmail.com>`; a modified file keeps its header, its year range
-extended to 2026 and that author line added if missing. No mention of `.seq/` in code; code cites its own `_spec`.
+extended to 2026 and that author line added if missing. No mention of `.scaffolds/seq/` in code; code cites its own `_spec`.
 
 **Hot files, never staged**: `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`,
 `biome.json`, `vitest.config.ts`, `storybook/packages.ts`, `.v6/changelogs/` (write the entry's text in the report),
-every `package.json` and `tsconfig*.json` (ask in the report: a new export of `@molstar/core`), anything in `.seq/`.
+every `package.json` and `tsconfig*.json` (ask in the report: a new export of `@molstar/core`), anything in `.scaffolds/seq/`.
 
 **Stop when** green, or a check fails twice after a fix, or the work needs a public API past the agreed surface, or a
 permission is refused.

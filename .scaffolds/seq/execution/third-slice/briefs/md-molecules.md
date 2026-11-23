@@ -1,7 +1,7 @@
 # Lane MD: the molecules design (a design only)
 
 Follow `briefs/design-drafts.md` (Read first, What to write, Rules, Report) for one topic: **molecules**. Draft
-`.seq/execution/third-slice/drafts/molecules.md`. No code; no other file edited. Model: strong (opus). Base:
+`.scaffolds/seq/execution/third-slice/drafts/molecules.md`. No code; no other file edited. Model: strong (opus). Base:
 `packages-seq` at `3675cf38c` (read files there; a worktree is not needed, nothing is committed by you).
 
 ## The topic, in the author's words (2026-11-19)
@@ -29,7 +29,7 @@ Follow `briefs/design-drafts.md` (Read first, What to write, Rules, Report) for 
 - **The complex kind** the layouts design waits for (layouts.md Blocks: "a section `of` a complex ... when the complex
   kind exists"): units, copies, entities, and what a section of it lays out.
 - **Maps between them**: molecule ↔ polymer position (a link, a contact), per-atom ↔ one-position systems (a
-  many-to-one map), a component ↔ its parent letter; on the maps design (`.seq/design/maps.md`) and addressing
+  many-to-one map), a component ↔ its parent letter; on the maps design (`.scaffolds/seq/design/maps.md`) and addressing
   (`addressing.md`, `locations-and-queries.md`).
 - **Reading**: from mmCIF through `@molstar/io` (`chem_comp`, `entity_poly_seq`, the branch tables) and from the
   `seq` format; the base's per-position component codes and its `ligand` node and `ligand_form` read first

@@ -10,7 +10,7 @@ what the version contains, so scope never grows or shrinks silently (the author,
 
 - **Status**: `planned` (in this version, not built), `building`, `done`, `deferred` (not in this version, with its
   trigger). A feature is `done` when its example view runs ([examples.md](examples.md)) and every edge case it covers
-  is named by a test or has an outcome (checked: `.seq/_checks/ec-ids.ts`, §ec-tested-by-name). A `building` row says after a colon what is built so far (the first three slices, lanes named where it helps); the rest of its What is not.
+  is named by a test or has an outcome (checked: `.scaffolds/seq/_checks/ec-ids.ts`, §ec-tested-by-name). A `building` row says after a colon what is built so far (the first three slices, lanes named where it helps); the rest of its What is not.
 - **Moved with the merges** (§features-move-with-merges): the lane that builds a feature moves its row here and its
   line on the Storybook's Design page "Features" (with its story's link) in its own change.
 - **Changes are decisions**: moving a row to or from `deferred` is the author's call, with the reason in its row.
@@ -18,7 +18,7 @@ what the version contains, so scope never grows or shrinks silently (the author,
   previous implementation had that is not listed is an omission to fix, not a decision.
 - **Provisional**: the first pass below is a proposal. `planned` rows are the recommended scope of this version; the
   `deferred` rows are the ones to review first.
-- **Before `.seq/` is deleted**, this list becomes the Storybook's Features page, each row linking its view; the Cases
+- **Before `.scaffolds/seq/` is deleted**, this list becomes the Storybook's Features page, each row linking its view; the Cases
   column goes with the catalog it cites.
 - **Version 1 and later milestones**: what version 1 contains and the order of work is [version-1.md](version-1.md);
   rows deferred to the Genomes milestone come back together.

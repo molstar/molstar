@@ -25,7 +25,7 @@ multi-member streams, by splitting members, its test first). **Anything past tha
   them).
 
 **Where**: a worktree on `seq/bz`. Every modified file's header updated (`@author David Sehnal
-<david.sehnal@gmail.com>`, 2026); hot files never staged (`package.json`s, lockfile, `biome.json`, `.seq/`,
+<david.sehnal@gmail.com>`, 2026); hot files never staged (`package.json`s, lockfile, `biome.json`, `.scaffolds/seq/`,
 `.v6/changelogs/`, `storybook/packages.ts`, `packages/seq/TODO.md`): list what you need; a new `_test/` folder in a
 published package needs its exports' `null` (the orchestrator adds it). The `_spec`s updated with the code. Read
 `packages/io/_spec/README.md`, `packages/core/src/state/_spec/README.md` where relevant, the repo `AGENTS.md`.

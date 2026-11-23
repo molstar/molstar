@@ -87,13 +87,13 @@ hover**, all after lanes and the orchestrator had looked at screenshots (B1).
      between gates unattributed. Where: loop.md step 5 ("check").
 
 6. **Defaults sections were a rule, not a practice.** (P: §defaults-designed; C)
-   - *What happened*: no design in `.seq/design/` has a Defaults section (a heading search at this close), the stage 0
+   - *What happened*: no design in `.scaffolds/seq/design/` has a Defaults section (a heading search at this close), the stage 0
      designs and the amendments since included (track-header-parts' parts, the axis's connector, extension-openings'
      fallback). Two of the author's findings were defaults: the hidden-tracks chip moving the view (HT, a new design)
      and the PAE's colours (FX5).
    - Proposed: a check that a design whose Consequences name a layer, a layout or a part has a `Defaults` heading,
      with the existing designs listed in a baseline that only shrinks. Why: the third slice's rule held nowhere without
-     a check, as its Configuration tables did not. Where: C (`.seq/_checks/`), §defaults-designed.
+     a check, as its Configuration tables did not. Where: C (`.scaffolds/seq/_checks/`), §defaults-designed.
 
 7. **`features.md` did not move with the merges; the Design page did.** (C; L)
    - *What happened*: lanes moved the Storybook Features page (the structure link, host data, track headers, legends,

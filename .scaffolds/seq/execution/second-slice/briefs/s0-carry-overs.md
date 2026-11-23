@@ -36,10 +36,10 @@ Not in scope: anything else, including behavior changes.
 - `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`, `biome.json`, `vitest.config.ts`;
 - `storybook/packages.ts`, `.v6/changelogs/`;
 - `packages/seq/*/package.json` and `tsconfig*.json` (ask in the report);
-- anything in `.seq/` and in `packages/core/`.
+- anything in `.scaffolds/seq/` and in `packages/core/`.
 
 **Headers**: a file you modify keeps the Mol\* header, its year range extended to 2026 and `@author David Sehnal
-<david.sehnal@gmail.com>` present. No mention of `packages/sequences` or `.seq/` in code, comments or tests.
+<david.sehnal@gmail.com>` present. No mention of `packages/sequences` or `.scaffolds/seq/` in code, comments or tests.
 
 **Checks**: each its own command, green only on exit 0 with a non-zero test count.
 - `pnpm test:unit packages/seq/`

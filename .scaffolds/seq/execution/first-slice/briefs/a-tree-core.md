@@ -4,10 +4,10 @@
 delta, enough for the first slice: `repr/tree`, `repr/schema`, `repr/builder`, `repr/codec`, `repr/codecs/json`,
 `repr/codecs/sexpr`.
 
-**Read first** (in this order): `.seq/design/tree-core.md`, `.seq/design/language-description.md` (the delta table, the
-description's shape, issue codes), `.seq/design/format.md` (typed columns, identity by bytes, NaN, printing elided),
-`.seq/design/addressing.md` and `.seq/design/locations-and-queries.md` (the address grammar, atoms, the form-resolver
-table), `.seq/design/testing.md` (budgets, properties at small seeds). The source to write from: meso\*'s
+**Read first** (in this order): `.scaffolds/seq/design/tree-core.md`, `.scaffolds/seq/design/language-description.md` (the delta table, the
+description's shape, issue codes), `.scaffolds/seq/design/format.md` (typed columns, identity by bytes, NaN, printing elided),
+`.scaffolds/seq/design/addressing.md` and `.scaffolds/seq/design/locations-and-queries.md` (the address grammar, atoms, the form-resolver
+table), `.scaffolds/seq/design/testing.md` (budgets, properties at small seeds). The source to write from: meso\*'s
 `packages/meso/core/src/{tree,schema,builder}` and `packages/meso/core/_spec/{schema,builder}.md` in the molstar-ludo
 repository (its path is given in the launch instructions). Root `AGENTS.md` for the repository's rules.
 
@@ -34,7 +34,7 @@ info.`, with `@author David Sehnal <david.sehnal@gmail.com>` (meso\*'s authors c
 theirs).
 
 **Hot files, never staged**: `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`,
-`biome.json`, `vitest.config.ts`, `storybook/packages.ts`, `.v6/changelogs/`, anything in `.seq/`. Ask in the report
+`biome.json`, `vitest.config.ts`, `storybook/packages.ts`, `.v6/changelogs/`, anything in `.scaffolds/seq/`. Ask in the report
 for what you need there (the changelog entry text, a dependency).
 
 **Checks**, each its own command, green only on exit 0 with a non-zero test count:

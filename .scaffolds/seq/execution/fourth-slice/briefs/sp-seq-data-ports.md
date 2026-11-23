@@ -19,7 +19,7 @@ recommendations.
 extensibility.md; the revised structure syncing draft in `../drafts/structure-syncing.md` if DR has written it (DR
 runs beside you: do not edit its files); core `src/data/` and `src/resolve/` for the protocol and store as built.
 
-**Output**: `.seq/execution/fourth-slice/drafts/seq-data-ports.md` only. No code, no commits.
+**Output**: `.scaffolds/seq/execution/fourth-slice/drafts/seq-data-ports.md` only. No code, no commits.
 
 **Model**: strong (opus). **Where**: the main checkout, read only except that file.
 

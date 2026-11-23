@@ -21,18 +21,18 @@ static model, and a dropped unit leaves an empty section and its issue.
   light and dark, with its headless twin on a fake clock;
 - the TODO line closed (list it as a hot-file need, never edit `TODO.md`).
 
-Read: `packages/seq/core/_spec/README.md` (Resolve, Resolved view, the overlay), `.seq/design/seq-data-ports.md`
-(its matrix), `.seq/design/host-data.md` if present, the viewer's spec model and settle (GC1 made them resolve again
+Read: `packages/seq/core/_spec/README.md` (Resolve, Resolved view, the overlay), `.scaffolds/seq/design/seq-data-ports.md`
+(its matrix), `.scaffolds/seq/design/host-data.md` if present, the viewer's spec model and settle (GC1 made them resolve again
 when a chunk lands: the same seam).
 
 **Where**: a worktree on `seq/sc`. Headers updated (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); hot files
-never staged (`package.json`s, lockfile, `biome.json`, `.seq/`, `.v6/changelogs/`, `storybook/packages.ts`,
+never staged (`package.json`s, lockfile, `biome.json`, `.scaffolds/seq/`, `.v6/changelogs/`, `storybook/packages.ts`,
 `packages/seq/TODO.md`): list them. Public API changes allowed in `packages/seq`; anything in `@molstar/core` outside
 `repr` or in `@molstar/io` stops the lane and comes back as a question.
 
 **Checks**: as `fx1-checks-and-carried.md` lists them, both perf tiers, `pnpm -s -C packages/seq/core size` (reading
-has 0.8 kB left: keep the reflow off the reading path; stop and report if a bound would move), the four `.seq/_checks`
-and `features-planned.ts --plan .seq/execution/fifth-slice/plan.md`. A fix's test fails on its parent. Do not claim a
+has 0.8 kB left: keep the reflow off the reading path; stop and report if a bound would move), the four `.scaffolds/seq/_checks`
+and `features-planned.ts --plan .scaffolds/seq/execution/fifth-slice/plan.md`. A fix's test fails on its parent. Do not claim a
 failure is the base's without running it on the base.
 
 **Report**: under 300 words: commits; checks with numbers; the story ids for the orchestrator's look; the public

@@ -2,7 +2,7 @@
 
 This file is for an orchestrator picking the slice up in a new session. Read `loop.md` (the rules), then `state.md`
 (its tail), `plan.md` (the unticked items), `gaps.md`, `followups.md` and `drift/`. Restart with
-`/loop run .seq/execution/third-slice/loop.md`.
+`/loop run .scaffolds/seq/execution/third-slice/loop.md`.
 
 ## Where it stands
 

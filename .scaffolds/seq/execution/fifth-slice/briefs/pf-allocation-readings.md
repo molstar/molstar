@@ -30,7 +30,7 @@ cases flip by what ran before them in their file, so the gate blocks merges at r
 No bound is raised or loosened. Timing bounds are untouched.
 
 **Where**: a worktree on `seq/pf`. Headers (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); hot files never
-staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.seq/`, `.v6/changelogs/`, `storybook/packages.ts`,
+staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.scaffolds/seq/`, `.v6/changelogs/`, `storybook/packages.ts`,
 `packages/seq/TODO.md`). Anything in `@molstar/core`, `@molstar/io` or `test-harness/` stops at a report. The machine runs
 other lanes: measure each case in a fresh process, several times, and say the load average beside each reading.
 

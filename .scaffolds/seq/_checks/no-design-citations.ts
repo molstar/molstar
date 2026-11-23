@@ -1,6 +1,6 @@
 // The no-design-citations check (stage 1b of the sixth slice): this folder is temporary, so nothing under `packages/`
-// (or the command-line packages in `cli/`) names a design or a source file of the scaffold (`.seq/design/*.md`,
-// `.seq/sources/**/*.md`, read at run time) or a path into `.seq/`; a decision is cited by the spec section that holds
+// (or the command-line packages in `cli/`) names a design or a source file of the scaffold (`.scaffolds/seq/design/*.md`,
+// `.scaffolds/seq/sources/**/*.md`, read at run time) or a path into `.scaffolds/seq/`; a decision is cited by the spec section that holds
 // it. A file name passes only in a file of a package that holds a file of that name itself (its own `_spec/`
 // documents), never because some other package has one. The one pointer to the scaffold is
 // `packages/seq/AGENTS.md`, until the scaffold is deleted.
@@ -8,7 +8,7 @@
 // must fail, one in a package that has its own `sources.md` must pass).
 import { existsSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
-import { args, finish, trackedFiles } from "../oz/_checks/lib.ts";
+import { args, finish, trackedFiles } from "../../principles/_checks/lib.ts";
 
 const SELF = process.argv.includes("--self-check");
 if (SELF) process.argv.splice(process.argv.indexOf("--self-check"), 1);
@@ -25,7 +25,7 @@ const files = trackedFiles(ROOT).filter((f) => existsSync(join(ROOT, f)));
 const scaffold = new Set<string>();
 for (const f of files) {
   if (!f.endsWith(".md") || basename(f) === "README.md") continue;
-  if (f.startsWith(".seq/design/") || f.startsWith(".seq/sources/")) scaffold.add(basename(f));
+  if (f.startsWith(".scaffolds/seq/design/") || f.startsWith(".scaffolds/seq/sources/")) scaffold.add(basename(f));
 }
 /** The package folder of a file: the nearest ancestor holding a tracked `package.json`, else its first two folders. */
 const roots = new Set(files.filter((f) => f.endsWith("/package.json")).map((f) => f.slice(0, -"/package.json".length)));
@@ -37,19 +37,19 @@ const packageOf = (f: string): string => {
 /** The names each package holds outside the scaffold: its own documents, not citations of the scaffold. */
 const held = new Map<string, Set<string>>();
 for (const f of files) {
-  if (f.startsWith(".seq/")) continue;
+  if (f.startsWith(".scaffolds/seq/")) continue;
   const p = packageOf(f);
   if (!held.has(p)) held.set(p, new Set());
   held.get(p)?.add(basename(f));
 }
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const NAMED = new RegExp(`(?<![\\w.-])(${[...scaffold].map(escape).join("|")})(?![\\w-])`, "g");
-const PATH = /(?<![\w.-])\.seq\//;
+const PATH = /(?<![\w.-])\.scaffolds\//;
 
 /** Seq*'s own packages are held to their own documents; the other packages' documents (Prism's, the sequences) are
  * not Seq*'s to cite or to police: a name any of them holds passes there. */
 const SEQ = /^(packages\/seq\/|cli\/seqx)/;
-const outside = new Set(files.filter((f) => !f.startsWith(".seq/") && !SEQ.test(f)).map((f) => basename(f)));
+const outside = new Set(files.filter((f) => !f.startsWith(".scaffolds/seq/") && !SEQ.test(f)).map((f) => basename(f)));
 
 /** What a line of the file `f` names of the scaffold, if anything. */
 function names(f: string, line: string): string | undefined {

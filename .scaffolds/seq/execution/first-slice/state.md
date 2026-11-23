@@ -40,7 +40,7 @@ config item (or a param) with the recommendation as its default, and listed in g
 ## Next
 
 - Lane J merged and remeasured; then FINALIZE (reconcile, `status.md`, features rows,
-  edge cases' outcomes, `TODO.md`, the record in `.seq/records/first-slice/`).
+  edge cases' outcomes, `TODO.md`, the record in `.scaffolds/seq/records/first-slice/`).
 - A visible browser pane to recheck the Gene by region story after the last fixes (frames do not run while it is
   hidden).
 
@@ -53,4 +53,4 @@ See gaps.md, "Built but not agreed".
 `pnpm test:unit packages/core/src/repr packages/seq/`, `npx tsc -b packages/core packages/seq/core packages/seq/viewer`,
 `pnpm -C packages/seq/core typecheck:test`, `pnpm lint`, `pnpm format:check`, the scaffold checks.
 
-Closed 2026-11-18: `.seq/records/first-slice/2026-11-18-first-slice.md`
+Closed 2026-11-18: `.scaffolds/seq/records/first-slice/2026-11-18-first-slice.md`

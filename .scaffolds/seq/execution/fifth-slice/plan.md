@@ -19,7 +19,7 @@ the fourth slice built (EX, CN).
 | first to third (closed) | the slice, 1, 2 | the tree core to figures |
 | fourth (closed) | 3, integration | molecules and units, structure syncing, track headers, seq data ports, services, bigWig, archives, extension kinds |
 | **fifth (this plan)** | 4, Genomes | the designs below, built |
-| sixth (draft, [plan](../sixth-slice/plan.md)) | scaffolds | `.seq/` reconciled into a common `.scaffolds/` for this and later scaffolds; oz renamed principles (the author, 2026-11-23) |
+| sixth (draft, [plan](../sixth-slice/plan.md)) | scaffolds | `.scaffolds/seq/` reconciled into a common `.scaffolds/` for this and later scaffolds; oz renamed principles (the author, 2026-11-23) |
 | after | version 1's close-out | the planned rows no milestone took (Gate 0, 9), and what this slice deferred: the Manhattan family (EC-214, 216, 217, 219), `split`, EC-224's join, the designed-only formats when a use asks |
 
 ## The designs (promoted 2026-11-21)
@@ -128,7 +128,7 @@ look in a visible pane in light and dark before the merge.
 
 - [x] GA, RR, GF, LX, RN drafted, reviewed and revised overnight; GD drafted and reviewed (2026-11-20 to 21).
 - [x] GATE (2026-11-21): the drafts agreed ("generally reasonable and we can fold in the reviews"), the twelve
-      recommendations and the fold-in's three taken, promoted to `.seq/design/` (uncommitted at writing).
+      recommendations and the fold-in's three taken, promoted to `.scaffolds/seq/design/` (uncommitted at writing).
 
 ### Fix points (fast; [fixes.md](fixes.md); `briefs/fx-fix-lane.md`, copied from the fourth slice's)
 
@@ -139,7 +139,7 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
 - [x] **FX1** (merged 2026-11-21, `2afb32e91`) (first, before stage 1's lanes; beside BZ when their files differ):
   - the fourth slice's fold-back checks: **B6** a design promoted from now on whose Consequences name a layer, a layout
     or a part has a `Defaults` heading (§defaults-designed; the five designs above are the first it reads); **B7** a
-    `features.md` row still "planned" for a lane `plan.md` marks merged fails; both in `.seq/_checks/`, added to the
+    `features.md` row still "planned" for a lane `plan.md` marks merged fails; both in `.scaffolds/seq/_checks/`, added to the
     loop's Checks;
   - `packages/seq/TODO.md`'s carried items: the services' structure section at the fit (its ruler by author numbering
     at least, or the follower taking the leader's mapped window); the flake watch list (the services story test,
@@ -315,7 +315,7 @@ Never two lanes on the language (GC1 alone owns the bump; a later param goes thr
   `./runtimes/vcf` entries and `"./runtimes/internal/*": null`), `packages/seq/ext-rondo/package.json` and its
   tsconfig, `packages/io/package.json`, `packages/core/package.json`;
 - `packages/seq/*/_spec/README.md` sections shared by lanes: each lane edits its own; GC1 merges the Language section;
-- `.seq/`.
+- `.scaffolds/seq/`.
 
 ## Known risks
 

@@ -35,6 +35,7 @@ new implementation, built on `@molstar/core/reactive` and `@molstar/ui`.
   by its stories and tests. A bug fix lands with a test shown failing on the fix's parent.
 - **Headers**: the Mol\* header with the year and `@author` lines.
 
-**Development scaffold**: while this is being built, its principles, sources, designs and work records are in `.seq/` at
-the repository root (start with `.seq/AGENTS.md`). That folder is temporary: never cite it from code, comments, tests or
-`_spec/`.
+**Development scaffold**: while this is being built, its principles, sources, designs and work records are in
+`.scaffolds/seq/` at the repository root (start with `.scaffolds/seq/AGENTS.md`). It is kept as the reasons and the
+history: never cite it from code, comments, tests or `_spec/` (a design's decisions the code follows are in the
+`_spec/`s).

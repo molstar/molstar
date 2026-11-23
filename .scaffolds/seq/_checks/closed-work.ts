@@ -1,14 +1,14 @@
 // The closed-work check (§reconcile-before-merge; the manifest, "The fold-back is a step of every close"): a work
-// folder under `.seq/execution/` whose `state.md` ends with a `Closed` line has a `foldback.md`, and that file records
+// folder under `.scaffolds/seq/execution/` whose `state.md` ends with a `Closed` line has a `foldback.md`, and that file records
 // the author's decision on a line of its own: `Decided by the author, <date>: <merged | merged in part | not merged>:`.
 // Writing it is required, merging it is not (an exploration's lessons stay in its archive). Folders closed before the
 // rule (listed below) are exempt: closed folders are never edited.
 // Usage: closed-work.ts [root]
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { args, finish } from "../oz/_checks/lib.ts";
+import { args, finish } from "../../principles/_checks/lib.ts";
 
-const WORK = ".seq/execution";
+const WORK = ".scaffolds/seq/execution";
 /** Closed before the rule was written (2026-11-18): their fold-backs, if any, were approved in the session record. */
 const BEFORE_THE_RULE = new Set(["adopt-principles", "first-slice"]);
 

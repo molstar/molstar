@@ -15,10 +15,10 @@ base library is like a "game engine", not the "game itself"".
 (`packages/sequences/storybook/src/_stories/docs/`: `introduction.mdx`, `concepts.mdx`, `principles.mdx`, `format.mdx`,
 `features.mdx`, `extending.mdx`, `query-language.mdx`, `streaming.mdx`, `color-schemes.mdx`, and `live.tsx`); the new
 Seq\*'s `packages/seq/core/_spec/README.md` and `packages/seq/viewer/_spec/README.md` (the truth the docs must agree with);
-`.seq/design/` (`vision.md`, `building-blocks.md`, `composition.md`, `version-1.md`, `extensibility.md`, `README.md`) for
+`.scaffolds/seq/design/` (`vision.md`, `building-blocks.md`, `composition.md`, `version-1.md`, `extensibility.md`, `README.md`) for
 the reasons; the existing `Seq* (next)/Design/*` pages in `packages/seq/storybook/src/_stories/design/` (those are for
 contributors; the Docs are for users and hosts, and never duplicate them, they link). Do not copy the old docs: the
-packages, names and language are new. `.seq/` is never cited from the docs (the `.seq` rule): cite the specs and the
+packages, names and language are new. `.scaffolds/seq/` is never cited from the docs (the `.seq` rule): cite the specs and the
 stories.
 
 **Task**: a `Docs/` folder in the Seq\* (next) storybook (`packages/seq/storybook/src/_stories/docs/`, titles
@@ -47,7 +47,7 @@ in your report. Light and dark; the docs pages pass the storybook's a11y checks 
 
 **Where**: a worktree on `seq/dx`. Headers on any new `.ts`/`.tsx` (`@author David Sehnal <david.sehnal@gmail.com>`,
 2026); a commit per page or two; hot files never staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`,
-`.seq/`, `.v6/changelogs/`, `storybook/packages.ts`, `packages/seq/TODO.md`, `packages/seq/_measure/sizes.mjs`): if the
+`.scaffolds/seq/`, `.v6/changelogs/`, `storybook/packages.ts`, `packages/seq/TODO.md`, `packages/seq/_measure/sizes.mjs`): if the
 storybook needs registration there, list it. No code change outside the storybook's docs folder; a doc that finds a bug
 reports it.
 

@@ -29,10 +29,10 @@ shares" and "BED, bedGraph, BEDPE, chrom.sizes"; Bounds; Configuration rows mark
   cytobands as an ideogram's `bands`; a BEDPE's arcs if the pairs layer draws them; a misread file and its issues),
   light and dark, with the headless twin on the recorded and generated files;
 - core's `_spec` Data section for the runtime; `files.md`'s and `sources.md`'s amendments listed as hot-file needs if
-  they are under `.seq/`.
+  they are under `.scaffolds/seq/`.
 
 **Where**: a worktree on `seq/be`. Headers updated (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); hot files
-never staged (`package.json`s, lockfile, `biome.json`, `.seq/`, `.v6/changelogs/`, `storybook/packages.ts`,
+never staged (`package.json`s, lockfile, `biome.json`, `.scaffolds/seq/`, `.v6/changelogs/`, `storybook/packages.ts`,
 `packages/seq/TODO.md`): list them, with the exact edit (a new package export for `runtimes/bed` is a hot `package.json`
 edit: give the line). Public API changes allowed in `packages/seq`; anything in `@molstar/core` or `@molstar/io`
 stops the lane and comes back as a question. GG and VC may run beside you later in `runtimes/gff` and `runtimes/vcf`:
@@ -40,7 +40,7 @@ shared files (`runtimes/internal/`, `data/protocol.ts`) only grow, listed.
 
 **Checks**: as `fx1-checks-and-carried.md` lists them, `pnpm -s -C packages/seq/core size` (the minimal and default
 viewers unchanged by this lane), `pnpm test:heavy packages/seq/`, both perf tiers if a frame path changes, the four
-`.seq/_checks` and `features-planned.ts --plan .seq/execution/fifth-slice/plan.md`. A fix's test fails on its parent.
+`.scaffolds/seq/_checks` and `features-planned.ts --plan .scaffolds/seq/execution/fifth-slice/plan.md`. A fix's test fails on its parent.
 Do not claim a failure is the base's without running it on the base.
 
 **Report**: under 300 words: commits; checks with numbers; the story ids for the orchestrator's look; the public

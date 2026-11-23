@@ -17,7 +17,7 @@ draws the block-pair cells' boundaries as a hairline (the grid's own boundary to
 its blocks' gaps), never over data; a test on the drawn lines' positions at the blocks' edges.
 
 **Where**: a worktree on `seq/fx17`. Headers (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); a commit per part;
-hot files never staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.seq/`, `.v6/changelogs/`,
+hot files never staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.scaffolds/seq/`, `.v6/changelogs/`,
 `storybook/packages.ts`, `packages/seq/TODO.md`, `packages/seq/_measure/sizes.mjs`). No language change (the matrix's
 `member_labels` is TT's design's separate change: not here). Anything in `@molstar/core` or `@molstar/io` stops the lane.
 Sizes soft: report growth; never edit bounds.
@@ -25,6 +25,6 @@ Sizes soft: report growth; never edit bounds.
 **Checks**: `pnpm test:unit packages/seq/ cli/seqx-render/`, `npx tsc -b packages/seq/core packages/seq/viewer
 packages/seq/examples`, each `typecheck:test`, the storybook typecheck, `pnpm lint`, `pnpm format:check`, both perf tiers
 to completion, `pnpm -s -C packages/seq/core size` (read the rows), `pnpm test:medium packages/seq/` (HC's sweep), the
-`.seq/_checks`. A fix's test fails on its parent.
+`.scaffolds/seq/_checks`. A fix's test fails on its parent.
 
 **Report**: under 200 words: what was fixed, commits, checks with numbers, the `.v6/changelogs/` text.

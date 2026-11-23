@@ -35,7 +35,7 @@ David Sehnal, 2026-11-17, starting the work (lightly condensed; the decisions ar
   - packages `packages/seq/{core,viewer,storybook}`, named `@molstar/seqx-*` while `packages/sequences` exists (its
     names are `@molstar/seq-*`), renamed when it is deleted; alternative not taken: one `@molstar/seq` package with
     subpath entries;
-  - the scaffold all in `.seq/`, skills read as files and not linked into the harness, one pointer from
+  - the scaffold all in `.scaffolds/seq/`, skills read as files and not linked into the harness, one pointer from
     `packages/seq/AGENTS.md`;
   - header `Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.` with `@author`
     lines only (the request quoted `2019-2022`, read as the template's shape; new files take the current year);
@@ -150,7 +150,7 @@ David Sehnal, 2026-11-17, starting the work (lightly condensed; the decisions ar
 - **Second review**: "let's run one more indepedent review with opus, and look for spec and design gaps too"; then
   "Yes, both in order" (fix the contradictions, then write the missing designs in the review's order).
 
-- **The first slice's plan**: "let's do the plan in .seq/execution first, plan different steps, etc as the principles
+- **The first slice's plan**: "let's do the plan in .scaffolds/seq/execution first, plan different steps, etc as the principles
   recommend. once the plan is approved, we do loop and then start"; then "approve both, write the loop file" (the plan
   and Gate 0's recommended choices).
 
@@ -168,5 +168,5 @@ David Sehnal, 2026-11-17, starting the work (lightly condensed; the decisions ar
 - "a single protocol, other formats converted onto it" is §executors-by-composition and ports (architecture): the
   document names data in its own format, an application binds a runtime for that format, and every runtime speaks one
   protocol to the viewer ([design/sources.md](../../design/sources.md)).
-- "temporary scaffold" sits against §permanent-record (records are kept): they are kept for as long as `.seq/` is;
+- "temporary scaffold" sits against §permanent-record (records are kept): they are kept for as long as `.scaffolds/seq/` is;
   what must outlive it moves into `_spec/` first.

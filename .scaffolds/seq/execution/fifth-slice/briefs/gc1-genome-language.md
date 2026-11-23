@@ -29,12 +29,12 @@ declared param a reader lacks says so by the existing issue, never silently.
   if a bound would move (sizes are the author's).
 
 **Where**: a worktree on `seq/gc1`. Headers updated (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); hot
-files never staged (`package.json`s, lockfile, `biome.json`, `.seq/`, `.v6/changelogs/`, `storybook/packages.ts`,
+files never staged (`package.json`s, lockfile, `biome.json`, `.scaffolds/seq/`, `.v6/changelogs/`, `storybook/packages.ts`,
 `packages/seq/TODO.md`): list them. Read `packages/seq/core/_spec/README.md` (Language, Resolve), the language's
 existing 0.5.0 bump (ML1's work) for the pattern, the repo `AGENTS.md`, `packages/seq/AGENTS.md`.
 
 **Checks**: as `fx1-checks-and-carried.md` lists them (both perf tiers if resolve's hot path changes), plus
-`node .seq/_checks/defaults-designed.ts`. Nothing is drawn, so no look.
+`node .scaffolds/seq/_checks/defaults-designed.ts`. Nothing is drawn, so no look.
 
 **Report**: under 300 words: commits; checks; the public surface added (names, against the designs'); the version and
 its history line; the sizes; what each later lane must read; hot-file needs; the `.v6/changelogs/` text.

@@ -4,7 +4,7 @@ Start here. What is built, what is open, what comes next, and where to read.
 
 ## Built: the first slice
 
-- The scaffold: `.seq/` (principles manifest, sources, designs, records), the checks wired ([AGENTS.md](AGENTS.md),
+- The scaffold: `.scaffolds/seq/` (principles manifest, sources, designs, records), the checks wired ([AGENTS.md](AGENTS.md),
   Checks).
 - `@molstar/core/repr`: the tree core (nodes, typed columns, hashes, addresses, issues, schema, builder, JSON and
   S-expression codecs); half-open range sets in `@molstar/core/data/int`.
@@ -141,7 +141,7 @@ outcome: [design/edge-cases.md](design/edge-cases.md), Outcomes.
 2. **Provisional, still to confirm**: the root nouns ([design/building-blocks.md](design/building-blocks.md)) and the UX
    foundations' numbers ([design/ux-foundations.md](design/ux-foundations.md)), confirmed by use where a story shows
    them.
-3. **Known gaps**: [packages/seq/TODO.md](../packages/seq/TODO.md): the drag rule (a drag's work bounded by the
+3. **Known gaps**: [packages/seq/TODO.md](../../packages/seq/TODO.md): the drag rule (a drag's work bounded by the
    screen), the stage 1 novice decisions F3, F9, F11 and F14 (carried), the `pairwise` and `alignment` map kinds, the
    query forms `search`, `onto`, `group`, drags snapped to codons, track groups and summaries, the Manhattan family,
    `split`, EC-224's join (the close-out).
@@ -154,7 +154,7 @@ outcome: [design/edge-cases.md](design/edge-cases.md), Outcomes.
 ## Next
 
 The fifth slice closes: the fold-back with the author's decision, the gate once more, the record. Then the sixth slice
-(`execution/sixth-slice/plan.md`, draft): `.seq/` reconciled into a common place for scaffolds. Then version 1's
+(`execution/sixth-slice/plan.md`, draft): `.scaffolds/seq/` reconciled into a common place for scaffolds. Then version 1's
 close-out (the planned rows no milestone took, the fifth slice's carried items, the use gate). Prism on the new Seq\*
 and the old package's removal are separate work (the author, 2026-11-23). Design before code, as in
 [AGENTS.md](AGENTS.md), How work happens here.

@@ -6,22 +6,22 @@ one design.
 
 ## Read first
 
-- `.seq/AGENTS.md`, `.seq/principles/README.md` (all of it: the rules the first two slices folded back, above all
+- `.scaffolds/seq/AGENTS.md`, `.scaffolds/seq/principles/README.md` (all of it: the rules the first two slices folded back, above all
   "The self-check runs on every design when it is agreed", "Interaction is a matrix", "Precedents cover interactions",
   "What is drawn is checked against the data", "A restriction in a `_spec` states its reason", "Gaps are asked at every
   gate; a default is confirmed by use").
-- `.seq/oz/_core/workflow.md` §design-first, §precedents, §surface-tensions; `.seq/oz/_core/recurrence.md` "Checking
+- `.scaffolds/principles/_core/workflow.md` §design-first, §precedents, §surface-tensions; `.scaffolds/principles/_core/recurrence.md` "Checking
   the loop against itself" (the four steps).
-- `.seq/execution/third-slice/plan.md` (what the slice must deliver, its lanes, its Gate 0 decisions).
-- `.seq/design/README.md` and the designs your topic touches (named in your task); `.seq/design/stories.md` is a good
+- `.scaffolds/seq/execution/third-slice/plan.md` (what the slice must deliver, its lanes, its Gate 0 decisions).
+- `.scaffolds/seq/design/README.md` and the designs your topic touches (named in your task); `.scaffolds/seq/design/stories.md` is a good
   model of a recent design's shape.
 - The code as built: `packages/seq/core/src`, `packages/seq/viewer/src`, and their `_spec/README.md`.
 - Precedents: the current Seq\* implementation in `packages/sequences/` (read it freely; never name it in anything under
-  `packages/seq`), and the outside tools your task names. `.seq/sources/` has material on them.
+  `packages/seq`), and the outside tools your task names. `.scaffolds/seq/sources/` has material on them.
 
 ## What to write
 
-One file, `.seq/execution/third-slice/drafts/<topic>.md`, in the shape of the existing designs (`stories.md`):
+One file, `.scaffolds/seq/execution/third-slice/drafts/<topic>.md`, in the shape of the existing designs (`stories.md`):
 
 1. **Intent**: what the design is for, with the author's words where the plan or the record quotes them.
 2. **Precedents**: how this was solved before (the current Seq\*, the outside tools, this codebase), one line each on
@@ -46,7 +46,7 @@ One file, `.seq/execution/third-slice/drafts/<topic>.md`, in the shape of the ex
    yes/no question with your recommendation. Keep it short: only what changes a picture, a gesture or a public API.
 
 Rules: terse, a rule and its reason, no history; cite edge cases as `EC-<n>` from
-`.seq/sources/seqstar/edge-cases.md`; designs may link each other relatively; never link into `.seq/execution/` from a
+`.scaffolds/seq/sources/seqstar/edge-cases.md`; designs may link each other relatively; never link into `.scaffolds/seq/execution/` from a
 design (your draft lives there until agreed, then moves to `design/`). Do not edit any other file. Do not write code.
 
 ## Report

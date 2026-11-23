@@ -24,7 +24,7 @@ both edges; a cell wider than the view at deep zoom centres its letter off-scree
 the canvas draw list. Allocation: the pan's frame bytes unchanged (the perf tier's sequence cases).
 
 **Where**: a worktree on `seq/fx22`. Headers (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); one commit; hot
-files never staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.seq/`, `.v6/changelogs/`,
+files never staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.scaffolds/seq/`, `.v6/changelogs/`,
 `storybook/packages.ts`, `packages/seq/TODO.md`, `packages/seq/_measure/sizes.mjs`). No language change. Anything in
 `@molstar/core` or `@molstar/io` stops the lane.
 

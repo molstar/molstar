@@ -1,4 +1,4 @@
-// The defaults-designed check (§defaults-designed; the fourth slice's fold-back, B6): a design under `.seq/design/`
+// The defaults-designed check (§defaults-designed; the fourth slice's fold-back, B6): a design under `.scaffolds/seq/design/`
 // whose `## Consequences` section names a layer, a layout or a part has a `## Defaults` heading (what a reader sees
 // with no setting). Every design is checked except the ones in `EXEMPT`, those that failed when the check was written
 // (2026-11-21): the list only shrinks, a design leaves it when it gets its Defaults section. `--worklist` prints every
@@ -6,9 +6,9 @@
 // Usage: defaults-designed.ts [root] [--worklist]
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { args, finish, trackedFiles } from "../oz/_checks/lib.ts";
+import { args, finish, trackedFiles } from "../../principles/_checks/lib.ts";
 
-const DESIGNS = ".seq/design/";
+const DESIGNS = ".scaffolds/seq/design/";
 /** Designs without a Defaults heading when the check was written (file names without `.md`). Only ever shrinks. */
 const EXEMPT = new Set([
   "axis",

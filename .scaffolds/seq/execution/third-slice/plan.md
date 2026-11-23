@@ -373,7 +373,7 @@ and dark before the merge.
 - [x] GATE (2026-11-19, after DA: quick 2594, medium 9, workspace green; sizes 211 / 677 / 1064 / 1000 kB, over
       target as stage 7 records; gaps in followups; the quick lane's examples 2.04 s and storybook 2.45 s over the 2 s
       guide: QT2 merged, core 1.98, viewer 1.96, examples 1.08, storybook 1.96 s, seq 5.4 s; medium 105): merged, reviewed, the checks green, sizes, gaps; MD's design decided (done early: agreed 2026-11-19,
-      `.seq/design/molecules.md`).
+      `.scaffolds/seq/design/molecules.md`).
 
 ### Stage 6: output, accessibility and use
 
@@ -465,7 +465,7 @@ and dark before the merge.
 
 ### Finalize
 
-- [x] FINALIZE (2026-11-20; the record `.seq/records/third-slice/2026-11-20-third-slice.md`): reconcile (designs, `_spec`s, status, features, edge cases, `TODO.md`, drift emptied); the fold-back
+- [x] FINALIZE (2026-11-20; the record `.scaffolds/seq/records/third-slice/2026-11-20-third-slice.md`): reconcile (designs, `_spec`s, status, features, edge cases, `TODO.md`, drift emptied); the fold-back
       as its own step (this slice's lessons, the earlier fold-backs' rules against this slice's evidence, the count of
       what each gate found by kind, the self-check), decided by the author; the record; the fourth slice's plan.
 
@@ -482,7 +482,7 @@ strong lanes at once) → CH beside them, GD after both → SO, FS (its design, 
 - `storybook/packages.ts`, `.v6/changelogs/`;
 - `packages/seq/*/package.json` and `tsconfig*.json`, `packages/core/package.json`, `packages/io/package.json`;
 - a new `cli/` package's inventory entry (OP asks in its report);
-- `.seq/`.
+- `.scaffolds/seq/`.
 
 ## Known risks
 

@@ -42,9 +42,9 @@ EC-212, EC-218, EC-223, EC-235 in titles where they apply. **Performance**: a br
 that side and the bridge only (counted).
 
 **Where**: a worktree on `seq/la`. Headers (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); commit at each
-green step; hot files never staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.seq/`,
+green step; hot files never staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.scaffolds/seq/`,
 `.v6/changelogs/`, `storybook/packages.ts`, `packages/seq/TODO.md`): list them. The `_spec` sections the design lists
-change in the same commits; other designs' amendments listed for the orchestrator (they are in `.seq/`). Anything in
+change in the same commits; other designs' amendments listed for the orchestrator (they are in `.scaffolds/seq/`). Anything in
 `@molstar/core` or `@molstar/io` stops the lane. A file past 800 lines is a question, past 1500 a failure. **Sizes**
 (reading 260, headless 920 — at 919.9 —, default 1,460 — at 1,459.6 —, minimal 1,040 kB; the author is deciding a
 raise): the bridge is lazy; any growth of an eager bundle is reported with its cause; do not edit the bounds.
@@ -52,7 +52,7 @@ raise): the bridge is lazy; any growth of an eager bundle is reported with its c
 **Checks**: the quick lane (under 2 s a touched folder), `npx tsc -b packages/seq/core packages/seq/viewer
 packages/seq/examples`, each `typecheck:test`, the storybook typecheck, `pnpm lint`, `pnpm format:check`, both perf
 tiers, `pnpm -s -C packages/seq/core size`, `pnpm test:medium packages/seq/`, `pnpm test:heavy packages/seq/` when load
-is under 6, the `.seq/_checks` (features-planned with `--plan .seq/execution/fifth-slice/plan.md`). A fix's test fails
+is under 6, the `.scaffolds/seq/_checks` (features-planned with `--plan .scaffolds/seq/execution/fifth-slice/plan.md`). A fix's test fails
 on its parent.
 
 **Report**: under 400 words: commits; the steps done and left; checks with numbers; story ids; sizes (the chunk's row);

@@ -21,12 +21,12 @@ and dark). Read core's and the viewer's `_spec` (Render: Ranges, Headers; viewer
 Leave the "bare number as a block name" item open (it needs a core repr surface).
 
 **Where**: a worktree on `seq/fx-2`. Headers updated (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); hot
-files never staged (`.seq/`, `.v6/changelogs/`, `packages/seq/TODO.md`, `package.json`s): list the edits. Public API
+files never staged (`.scaffolds/seq/`, `.v6/changelogs/`, `packages/seq/TODO.md`, `package.json`s): list the edits. Public API
 changes allowed in `packages/seq`; anything else stops the item.
 
 **Checks**: `pnpm test:unit packages/seq/`, `npx tsc -b`, `pnpm -s -C packages/seq/{core,viewer,examples}
 typecheck:test`, `pnpm -C packages/seq/storybook typecheck`, `pnpm lint`, `pnpm format:check`, both perf tiers
-(`pnpm -s -C packages/seq/{core,storybook} test:perf`), `pnpm -s -C packages/seq/core size`, the four `.seq/_checks`.
+(`pnpm -s -C packages/seq/{core,storybook} test:perf`), `pnpm -s -C packages/seq/core size`, the four `.scaffolds/seq/_checks`.
 
 **Report**: under 250 words: commits per item; checks with numbers; the stories to look at; anything left and why;
 the `.v6/changelogs/` text.

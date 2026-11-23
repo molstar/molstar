@@ -1,33 +1,34 @@
 # seq: the principles here
 
 `packages/seq` is a new implementation of Seq\*: SeqViewSpec, the language for sequence views, with its model and its
-viewer, in the Mol\* v6 repository. `.seq/` is its instance of the principles package, and this README is the
-manifest the `principles-router` skill reads. It governs `packages/seq/` and `.seq/` only; the rest of the repository
+viewer, in the Mol\* v6 repository. `.scaffolds/seq/` is its instance of the principles package, and this README is the
+manifest the `principles-router` skill reads. It governs `packages/seq/` and `.scaffolds/seq/` only; the rest of the repository
 follows its root `AGENTS.md` and `.v6/`, which win where both speak about the same thing.
 
-**`.seq/` is a development scaffold**, deleted once the package stands on its own. Nothing outside `.seq/` links into
-it except the one pointer in `packages/seq/AGENTS.md`, and code never cites it. What must outlive it (the rules the
+**`.scaffolds/seq/` is a development scaffold**, kept after the package stands on its own (the author, 2026-11-23).
+Nothing outside `.scaffolds/` links into it except the pointer in `packages/seq/AGENTS.md` and the root `AGENTS.md`'s
+table, and code never cites it. What must outlive it (the rules the
 code follows, the decisions, what the format means) moves into the packages' `_spec/` folders before then.
 
 ## Provenance
 
-- The package is `.seq/oz/`: the principles (`.principles/` in the upstream exploration repository), copied at commit
+- The package is `.scaffolds/principles/`: the principles (`.principles/` in the upstream exploration repository), copied at commit
   `7d03f60` (2026-11-17). An update from it is a merge from that base. Edited once: its `workspace` and `layout`
   modules removed (not adopted here) and their citations reworded, at the review's recommendation.
 - `queries/` and `agent-interface/` here: from the meso\* instance of the same package (`.meso/principles/` in the
-  molstar-ludo repository), copied at commit `84c41cd84` (2026-11-17). Their links were repointed at `.seq/oz/`, and
+  molstar-ludo repository), copied at commit `84c41cd84` (2026-11-17). Their links were repointed at `.scaffolds/principles/`, and
   queries' rule 14 (§bounded-work) became a pointer, the package's representations module now holding it.
 
 ## Folder map
 
 | The package says | Here |
 |---|---|
-| `.principles/` | `.seq/oz/` |
-| `.design/`, `.sources/`, `.records/` | `.seq/design/`, `.seq/sources/`, `.seq/records/` |
-| `.execution/`, `.tmp/` | `.seq/execution/` (committed and kept, never cited from outside), `.seq/tmp/` (gitignored) |
+| `.principles/` | `.scaffolds/principles/` |
+| `.design/`, `.sources/`, `.records/` | `.scaffolds/seq/design/`, `.scaffolds/seq/sources/`, `.scaffolds/seq/records/` |
+| `.execution/`, `.tmp/` | `.scaffolds/seq/execution/` (committed and kept, never cited from outside), `.scaffolds/seq/tmp/` (gitignored) |
 | `_spec/` | each package's own `_spec/`, as everywhere in Mol\* |
-| skills linked from `.agents/skills/` | not linked: the skill files are read directly ([.seq/AGENTS.md](../AGENTS.md)), so removing `.seq/` leaves nothing behind |
-| the checks: id, path, merge | `node .seq/oz/_checks/<check>.ts --package .seq/oz --instance .seq` ([.seq/AGENTS.md](../AGENTS.md), Checks) |
+| skills linked from `.agents/skills/` | not linked: the skill files are read directly ([.scaffolds/seq/AGENTS.md](../AGENTS.md)), so removing `.scaffolds/seq/` leaves nothing behind |
+| the checks: id, path, merge | `node .scaffolds/principles/_checks/<check>.ts --package .scaffolds/principles --instance .scaffolds/seq` ([.scaffolds/seq/AGENTS.md](../AGENTS.md), Checks) |
 
 ## Modules
 
@@ -38,11 +39,11 @@ it: read the package's first.
 
 | Module | Kind | Read before | Covers |
 |---|---|---|---|
-| [_core](../oz/_core/README.md) | rule set | any non-trivial work (the `principles` skill loads it) | how the principles work and how work is run |
-| [architecture](../oz/architecture/README.md) | rule set | packages, ports, wiring, errors, commands, performance | ports, API surfaces (sync, async, streaming), composition root, error codes, commands, performance |
-| [representations](../oz/representations/README.md) | rule set | the language, documents, ids, patches, derived forms | declarative state as recursive, streamable trees; committed vs transient state; addresses, hashing; derived forms; encodings |
-| [ui](../oz/ui/README.md) | rule set | the viewer's models and views, Storybook | frontend state and logic, design system and Storybook, views as representations |
-| [testing](../oz/testing/README.md) | rule set | tests, conformance suites | test tiers (here the repository's lanes), conformance library |
+| [_core](../../principles/_core/README.md) | rule set | any non-trivial work (the `principles` skill loads it) | how the principles work and how work is run |
+| [architecture](../../principles/architecture/README.md) | rule set | packages, ports, wiring, errors, commands, performance | ports, API surfaces (sync, async, streaming), composition root, error codes, commands, performance |
+| [representations](../../principles/representations/README.md) | rule set | the language, documents, ids, patches, derived forms | declarative state as recursive, streamable trees; committed vs transient state; addresses, hashing; derived forms; encodings |
+| [ui](../../principles/ui/README.md) | rule set | the viewer's models and views, Storybook | frontend state and logic, design system and Storybook, views as representations |
+| [testing](../../principles/testing/README.md) | rule set | tests, conformance suites | test tiers (here the repository's lanes), conformance library |
 
 ### The project's own
 
@@ -53,7 +54,7 @@ it: read the package's first.
 
 ## Adaptations
 
-- **workspace**, **layout**: not adopted, and removed from `.seq/oz/`; citations of their ids read "not adopted here".
+- **workspace**, **layout**: not adopted, and removed from `.scaffolds/principles/`; citations of their ids read "not adopted here".
   The repository's toolchain, tree and package rules (root `AGENTS.md`, `check:workspace`) win.
 - **architecture**: its layout (`lib/`, `packages/<product>/*`, `apps/`) maps onto Mol\*'s. The libraries
   `packages/{core,io,model,graphics}` and `packages/ui` play `lib/`, and Seq\* is the product (`packages/seq/*`). The
@@ -73,10 +74,10 @@ it: read the package's first.
   2026-11-17); otherwise the root `AGENTS.md` header rule.
 - **Bootstrap patterns**: none taken in yet. The reactive-models pattern is replaced by `@molstar/core/reactive`
   (`ReactiveModel`, `State`, `derive`), which the host already provides.
-- **The drift check, edge-case ids**: `.seq/_checks/ec-ids.ts` (the instance's own check, beside the package's three;
-  [.seq/AGENTS.md](../AGENTS.md), Checks) resolves every `EC-<n>` cited in `packages/seq` against the catalog,
+- **The drift check, edge-case ids**: `.scaffolds/seq/_checks/ec-ids.ts` (the instance's own check, beside the package's three;
+  [.scaffolds/seq/AGENTS.md](../AGENTS.md), Checks) resolves every `EC-<n>` cited in `packages/seq` against the catalog,
   [sources/seqstar/edge-cases.md](../sources/seqstar/edge-cases.md) (§mechanical-drift-checks: a registry reference
-  that must resolve). Why: the ids are numbers only, so code cites them without a `.seq/` path, and a wrong reading of
+  that must resolve). Why: the ids are numbers only, so code cites them without a `.scaffolds/seq/` path, and a wrong reading of
   where the catalog lives (the design only refers to it) once recorded an item as missing that was not.
 
 ## Folded back from the first slice (the author, 2026-11-18)
@@ -191,7 +192,7 @@ all of it"). Each extends the package rule it cites, and stands here until the p
 
 - **The Storybook's Design pages follow the designs** (extends §design-in-place): a change to a design in `design/`
   that a reader of the package would need (a new design, a rule, a decision, a table) is folded into the matching page
-  under the Storybook's `Seq* (next)/Design` in the same change, or a new page is added; the pages never cite `.seq/`.
+  under the Storybook's `Seq* (next)/Design` in the same change, or a new page is added; the pages never cite `.scaffolds/seq/`.
   The author: "we should be folding the things we are adding to the designs section in the storybook too". Why: the
   scaffold is deleted once the package stands on its own, and the pages are what readers see meanwhile.
 
@@ -218,7 +219,7 @@ until the package's home takes it. B10 (module and bundle sizes) went to the pac
   with its recommendation; an item leaves its note when asked or resolved, never parked for the close. Why: two lanes'
   design questions waited from their report to the close unasked.
 - **An edge case is tested by name** {#ec-tested-by-name} (extends §whole-composition-tested): a lane's test of a
-  catalog item names it (`(EC-43)` in its title or a comment of its file); `.seq/_checks/ec-ids.ts` fails a feature
+  catalog item names it (`(EC-43)` in its title or a comment of its file); `.scaffolds/seq/_checks/ec-ids.ts` fails a feature
   marked `done` whose items have neither a test naming them nor an outcome, and `--worklist` lists a built row's items
   no test names. Why: the close reconstructed 56 outcomes by reading tests for their behavior, and two test-only lanes
   then found an edge case not wired.
@@ -351,4 +352,4 @@ adaptations above.
 
 ## Open items
 
-`packages/seq/TODO.md` once the package exists; until then [.seq/status.md](../status.md).
+`packages/seq/TODO.md` once the package exists; until then [.scaffolds/seq/status.md](../status.md).

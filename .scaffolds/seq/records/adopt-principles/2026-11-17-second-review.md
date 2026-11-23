@@ -30,4 +30,4 @@ The scaffold checks and `pnpm format:check` pass.
 
 ## Left open
 
-The provisional choices listed in `.seq/status.md`, item 5.
+The provisional choices listed in `.scaffolds/seq/status.md`, item 5.

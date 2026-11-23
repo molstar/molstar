@@ -32,14 +32,14 @@ a pan across the reachable region; a placeholder with long labels draws nothing 
 EC-169 in a title. Each fails on its parent. Both perf tiers (a warm frame while tiles arrive allocates nothing new).
 
 **Where**: a worktree on `seq/fx-11`. Headers (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); hot files never
-staged (`.seq/`, `.v6/changelogs/`, `packages/seq/TODO.md`, `package.json`s, `tsconfig*.json`): list edits. Stop any
+staged (`.scaffolds/seq/`, `.v6/changelogs/`, `packages/seq/TODO.md`, `package.json`s, `tsconfig*.json`): list edits. Stop any
 Storybook server you start and close any browser tab you open.
 
 **Checks** (with numbers): the quick lane (under 2 s a touched folder), `npx tsc -b packages/seq/core
 packages/seq/viewer packages/seq/examples`, each `typecheck:test`, the storybook typecheck, `pnpm lint`,
 `pnpm format:check`, both perf tiers, `pnpm -s -C packages/seq/core size` (headless 923.3 of 930, default 1,464.2 of
-1,470, minimal 1,039.3 of 1,040 kB: a bound passed stops the lane with a report), the `.seq/_checks`
-(features-planned with `--plan .seq/execution/fifth-slice/plan.md`).
+1,470, minimal 1,039.3 of 1,040 kB: a bound passed stops the lane with a report), the `.scaffolds/seq/_checks`
+(features-planned with `--plan .scaffolds/seq/execution/fifth-slice/plan.md`).
 
 **Report**: under 250 words: commits, the tests that failed on the parent, sizes, perf, the look (TP53 GFF3 and GTF
 loading, light and dark), the `.v6/changelogs/` text.

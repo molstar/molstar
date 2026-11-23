@@ -31,7 +31,7 @@ if missing; a moved file keeps its header.
 
 **Hot files, never staged**: `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`,
 `biome.json`, `vitest.config.ts`, `storybook/packages.ts`, `.v6/changelogs/`, every `package.json` and `tsconfig*.json`,
-anything in `.seq/`.
+anything in `.scaffolds/seq/`.
 
 **Stop when** green, or a check fails twice after a fix.
 

@@ -22,7 +22,7 @@ this with our representations, perhaps even as an extension to show this is "eas
 1. **Rondo itself**: what it is, its data (crosslinks of what: Hi-C, XL-MS?), how it bundles (hierarchical edge
    bundling? aggregation by bins?), its levels of detail and interactions. From its public pages only; no sign-in, no
    download. If the site gives little, say so and work from the screenshots.
-2. **Against Seq\*'s designs and code** (`.seq/design/`: layouts.md (ring, blocks), grids-and-rows.md and
+2. **Against Seq\*'s designs and code** (`.scaffolds/seq/design/`: layouts.md (ring, blocks), grids-and-rows.md and
    `pairs`/arcs, navigators.md, themes.md, extensibility.md, sources.md and data-store.md (by region, levels),
    performance.md, features.md's deferred rows: layers across sections EC-209, two assemblies EC-210, contact maps
    EC-223; and `packages/seq/core/src`): for each element above, **built** (the module and a story that shows it,

@@ -19,7 +19,7 @@ Not in scope: new library features; fixes beyond a story's own composition (repo
 failing test if you can).
 
 **Read first**: `packages/seq/AGENTS.md`; the viewer `_spec`; the Features stories and their `compose.ts` under
-`packages/seq/storybook/src/_stories/features/`; `examples/p53/*`; `.seq/design/examples.md`, `examples-and-stories.md`.
+`packages/seq/storybook/src/_stories/features/`; `examples/p53/*`; `.scaffolds/seq/design/examples.md`, `examples-and-stories.md`.
 
 **Model**: fast (sonnet).
 
@@ -39,7 +39,7 @@ needed.
 
 **Headers**: a new file has the Mol\* header `Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for
 more info.` with `@author David Sehnal <david.sehnal@gmail.com>`; a modified file keeps its header, its year range
-extended to 2026 and that author line added if missing. No mention of `packages/sequences` or `.seq/` in code, comments,
+extended to 2026 and that author line added if missing. No mention of `packages/sequences` or `.scaffolds/seq/` in code, comments,
 tests or `_spec`s; code cites its own `_spec` sections.
 
 **Fixes land with a test shown failing on the fix's parent**: the report names the command.
@@ -48,7 +48,7 @@ tests or `_spec`s; code cites its own `_spec` sections.
 - `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`, `biome.json`, `vitest.config.ts`;
 - `storybook/packages.ts`, `.v6/changelogs/` (write the changelog entry's text in your report);
 - every `package.json` and `tsconfig*.json` (ask in the report: exports, `_test` nulls, dependencies);
-- anything in `.seq/`.
+- anything in `.scaffolds/seq/`.
 
 **Stop when** the checks are green, or a check has failed twice after a fix, or the work needs a public API past the
 agreed surface, or a target cannot be met without changing a design (report the measurement and the options), or a

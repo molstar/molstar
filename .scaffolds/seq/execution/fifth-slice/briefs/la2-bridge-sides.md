@@ -38,7 +38,7 @@ passed stops the lane with a report; do not edit bounds.
 
 **Checks**: the quick lane, `npx tsc -b packages/seq/core packages/seq/viewer packages/seq/examples`, each
 `typecheck:test`, the storybook typecheck, `pnpm lint`, `pnpm format:check`, both perf tiers to completion, size,
-`pnpm test:medium packages/seq/`, the heavy `bridge-time` file when load is under 6, the `.seq/_checks`. A fix's test
+`pnpm test:medium packages/seq/`, the heavy `bridge-time` file when load is under 6, the `.scaffolds/seq/_checks`. A fix's test
 fails on its parent.
 
 **Report**: under 350 words.

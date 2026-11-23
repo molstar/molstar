@@ -14,7 +14,7 @@
 Not in scope: the security bounds (lane Q), story steps, anything in `packages/core`. Lane Q edits `render/svg.ts` for
 escaping at the same time: leave that file's text output alone.
 
-**Read first**: `.seq/design/ux-foundations.md` (sections 6 to 8), `viewer-models.md`, `addressing.md`,
+**Read first**: `.scaffolds/seq/design/ux-foundations.md` (sections 6 to 8), `viewer-models.md`, `addressing.md`,
 `locations-and-queries.md`, `layout-and-draw-lists.md` (passes); the viewer and core `_spec`s;
 `packages/seq/viewer/src/{models,behaviors,bindings.ts,commands.ts}`, `packages/seq/core/src/render`; `packages/seq/AGENTS.md`.
 
@@ -48,7 +48,7 @@ the `_spec`s' Configuration tables.
 
 **Headers**: a new file has the Mol\* header `Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for
 more info.` with `@author David Sehnal <david.sehnal@gmail.com>`; a modified file keeps its header, its year range
-extended to 2026 and that author line added if missing. No mention of `packages/sequences` or `.seq/` in code, comments,
+extended to 2026 and that author line added if missing. No mention of `packages/sequences` or `.scaffolds/seq/` in code, comments,
 tests or `_spec`s; code cites its own `_spec` sections.
 
 **Fixes land with a test shown failing on the fix's parent**: the report names the command.
@@ -57,7 +57,7 @@ tests or `_spec`s; code cites its own `_spec` sections.
 - `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`, `biome.json`, `vitest.config.ts`;
 - `storybook/packages.ts`, `.v6/changelogs/` (write the changelog entry's text in your report);
 - every `package.json` and `tsconfig*.json` (ask in the report: exports, `_test` nulls, dependencies);
-- anything in `.seq/`.
+- anything in `.scaffolds/seq/`.
 
 **Stop when** the checks are green, or a check has failed twice after a fix, or the work needs a public API past the
 agreed surface, or a target cannot be met without changing a design (report the measurement and the options), or a

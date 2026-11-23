@@ -39,12 +39,12 @@ size` before and after. Green only on exit 0 with a non-zero test count.
 
 **Headers**: a new file has the Mol\* header `Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file
 for more info.` with `@author David Sehnal <david.sehnal@gmail.com>`; a moved file keeps its header and authors, year to
-2026, that author added; a modified file likewise. No mention of `.seq/` in code; code cites its own `_spec`.
+2026, that author added; a modified file likewise. No mention of `.scaffolds/seq/` in code; code cites its own `_spec`.
 
 **Hot files, never staged**: `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`,
 `biome.json`, `vitest.config.ts`, `storybook/packages.ts`, `.v6/changelogs/` (write the entries' text in the report),
 every `package.json` and `tsconfig*.json` (write the exact export entries for `@molstar/core` and `@molstar/io` in the
-report; for local runs, edit them unstaged), anything in `.seq/`.
+report; for local runs, edit them unstaged), anything in `.scaffolds/seq/`.
 
 **Stop when** green, or a check fails twice after a fix, or the work needs a public API past the agreed surface, or a
 permission is refused.

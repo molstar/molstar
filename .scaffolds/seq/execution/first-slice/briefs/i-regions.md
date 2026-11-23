@@ -28,13 +28,13 @@ node retention, template defaults), make it a config item or an option with your
 list each in the report.
 
 **Read first**:
-- `.seq/design/dynamic-nodes.md`, `data-store.md`, `protocol.md`, `sources.md`, `composition.md`,
+- `.scaffolds/seq/design/dynamic-nodes.md`, `data-store.md`, `protocol.md`, `sources.md`, `composition.md`,
   `layout-and-draw-lists.md` (the overlay's version), `maps.md` (codon maps, paths), `edge-cases.md` (search for the
   EC numbers the designs cite), `testing.md`, `performance.md`;
 - the code: the core `_spec` (`packages/seq/core/_spec/README.md`: Data, Resolve, Resolved view, Render, Context),
   `packages/seq/core/src/{data,resolve,view,render,context,lang}`, `packages/seq/examples/src/p53/`, and
   `packages/seq/storybook/src/_stories/examples/`;
-- `.seq/execution/first-slice/followups.md` lists what earlier lanes deferred to you (the summary pyramid, the overlay
+- `.scaffolds/seq/execution/first-slice/followups.md` lists what earlier lanes deferred to you (the summary pyramid, the overlay
   type).
 
 **Model**: strong (opus).
@@ -69,10 +69,10 @@ A test slow by nature goes in the medium lane with a quick representative.
 - `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`, `biome.json`, `vitest.config.ts`;
 - `storybook/packages.ts`, `.v6/changelogs/`;
 - `packages/seq/*/package.json` and `tsconfig*.json` (ask in the report for exports and `_test` nulls);
-- anything in `.seq/` and in `packages/core/`.
+- anything in `.scaffolds/seq/` and in `packages/core/`.
 
 **Headers**: the Mol\* header, `Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more
-info.`, with `@author David Sehnal <david.sehnal@gmail.com>`. No mention of `packages/sequences` or `.seq/` in code,
+info.`, with `@author David Sehnal <david.sehnal@gmail.com>`. No mention of `packages/sequences` or `.scaffolds/seq/` in code,
 comments or tests.
 
 **Checks**: each its own command, green only on exit 0 with a non-zero test count.

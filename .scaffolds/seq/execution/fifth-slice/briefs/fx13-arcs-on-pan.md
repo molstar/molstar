@@ -43,7 +43,7 @@ default 1,480, minimal 1,060 kB): read the size rows for FAIL (the exit code is 
 
 **Checks**: the quick lane, `npx tsc -b packages/seq/core packages/seq/viewer packages/seq/examples`, each
 `typecheck:test`, the storybook typecheck, `pnpm lint`, `pnpm format:check`, both perf tiers to completion, size,
-`pnpm test:medium packages/seq/`, the `.seq/_checks`.
+`pnpm test:medium packages/seq/`, the `.scaffolds/seq/_checks`.
 
 **Report**: under 300 words: which rules were broken and why, commits, the tests that failed on the parent, the look
 (Examples › Complex contacts, the rail dragged across), sizes.

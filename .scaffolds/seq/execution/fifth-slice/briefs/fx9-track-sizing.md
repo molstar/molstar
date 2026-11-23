@@ -22,13 +22,13 @@ rows band capped); EC-new-1 to EC-new-5 from the section, named as the catalog n
 both perf tiers (a warm frame of a scrolled track allocates nothing); the Configuration rows in the `_spec` tables.
 
 **Where**: a worktree on `seq/fx-9`. Headers (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); hot files never
-staged (`.seq/`, `.v6/changelogs/`, `packages/seq/TODO.md`, `package.json`s, `tsconfig*.json`): list edits. Stop any
+staged (`.scaffolds/seq/`, `.v6/changelogs/`, `packages/seq/TODO.md`, `package.json`s, `tsconfig*.json`): list edits. Stop any
 Storybook server you start and close any browser tab you open.
 
 **Checks** (with numbers): the quick lane (under 2 s a touched folder), `npx tsc -b packages/seq/core
 packages/seq/viewer packages/seq/examples`, each `typecheck:test`, the storybook typecheck, `pnpm lint`,
 `pnpm format:check`, both perf tiers, `pnpm -s -C packages/seq/core size` (headless 917.2 of 920 kB: a bound passed is
-a question), the `.seq/_checks`. No `pnpm test:heavy`.
+a question), the `.scaffolds/seq/_checks`. No `pnpm test:heavy`.
 
 **Report**: under 250 words: commits; checks; story ids for the look (GFF3 TP53, the Globins rows family, a ring, an
 export); what was not built and why; the `.v6/changelogs/` text.

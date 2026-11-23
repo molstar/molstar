@@ -24,8 +24,8 @@ whole tier, every scenario's number before and after). No heavy run needed; neve
 shows one.
 
 **Headers**: a modified file keeps its header, its year range 2026, `@author David Sehnal <david.sehnal@gmail.com>` added
-if missing. No mention of `packages/sequences` or `.seq/` in code. **Hot files**: never stage `package.json`,
-`tsconfig*`, the lockfile, `.v6/changelogs/`, or anything in `.seq/`.
+if missing. No mention of `packages/sequences` or `.scaffolds/seq/` in code. **Hot files**: never stage `package.json`,
+`tsconfig*`, the lockfile, `.v6/changelogs/`, or anything in `.scaffolds/seq/`.
 
 **Report** (under 300 words): the cause, the commits, the tier's numbers before and after for every scenario, each check
 with its exit code and test count.

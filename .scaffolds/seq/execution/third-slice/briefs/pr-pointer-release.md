@@ -30,12 +30,12 @@ a second press after a lost release starts a new drag cleanly.
 `pnpm format:check`. Exit codes explicit (`; echo exit=$?`), non-zero test counts.
 
 **Headers**: a modified file keeps its header, year range to 2026, `@author David Sehnal <david.sehnal@gmail.com>` added
-if missing; a new file has the Mol\* header with that author. No mention of `.seq/` in code; the viewer `_spec`'s Input
+if missing; a new file has the Mol\* header with that author. No mention of `.scaffolds/seq/` in code; the viewer `_spec`'s Input
 says the rule.
 
 **Hot files, never staged**: `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`,
 `biome.json`, `vitest.config.ts`, `storybook/packages.ts`, `.v6/changelogs/` (write the entry's text in the report),
-every `package.json` and `tsconfig*.json`, anything in `.seq/`.
+every `package.json` and `tsconfig*.json`, anything in `.scaffolds/seq/`.
 
 **Stop when** green, or a check fails twice after a fix.
 

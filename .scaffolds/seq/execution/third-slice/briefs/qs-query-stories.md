@@ -35,11 +35,11 @@ format:check`. Exit codes explicit (`; echo exit=$?`), non-zero test counts.
 
 **Headers**: a new file has the Mol\* header `Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE
 file for more info.` with `@author David Sehnal <david.sehnal@gmail.com>`; a modified file keeps its header, year range
-to 2026, that author added if missing. No mention of `.seq/` in code.
+to 2026, that author added if missing. No mention of `.scaffolds/seq/` in code.
 
 **Hot files, never staged**: `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`,
 `biome.json`, `vitest.config.ts`, `storybook/packages.ts`, `.v6/changelogs/` (write the entry's text in the report),
-every `package.json` and `tsconfig*.json`, anything in `.seq/`.
+every `package.json` and `tsconfig*.json`, anything in `.scaffolds/seq/`.
 
 **Stop when** green, or a check fails twice after a fix.
 

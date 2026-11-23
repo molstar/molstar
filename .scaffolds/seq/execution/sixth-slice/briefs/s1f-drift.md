@@ -4,7 +4,7 @@
 packages-seq` first). Branch `seq/s1f`.
 
 **Why**: the author, 2026-11-23, on stage 1's fifteen drift notes: "All as recommended". Each note in
-`.seq/execution/sixth-slice/drift/` has its options and a recommendation; apply the recommendation.
+`.scaffolds/seq/execution/sixth-slice/drift/` has its options and a recommendation; apply the recommendation.
 
 **For each note**:
 
@@ -18,12 +18,12 @@ packages-seq` first). Branch `seq/s1f`.
    row stays design-only ("not built: the close-out's"), and you list it in your report: the orchestrator places it.
 4. Append to the note: "**Resolved** (the author, 2026-11-23, as recommended): <what was done, where>".
 
-**Where**: the designs in `.seq/design/`, the drift notes. Nothing else: no spec, no code, no hot file, never
+**Where**: the designs in `.scaffolds/seq/design/`, the drift notes. Nothing else: no spec, no code, no hot file, never
 `state.md`, `plan.md` or `loop.md`. Another lane (S1E) edits comments in `packages/` and the core spec at the same time:
 do not touch them. Write only in your worktree and your own temp space. No network.
 
-**Checks** (after `git add .seq`): `node .seq/_checks/designs-in-specs.ts`, `node .seq/oz/_checks/principles-ids.ts
---package .seq/oz --instance .seq --allow '^(?!\.seq/)'`, `node .seq/oz/_checks/merge-gate.ts --package .seq/oz
---instance .seq`, `pnpm format:check`.
+**Checks** (after `git add .seq`): `node .scaffolds/seq/_checks/designs-in-specs.ts`, `node .scaffolds/principles/_checks/principles-ids.ts
+--package .scaffolds/principles --instance .scaffolds/seq --allow '^(?!\.scaffolds/)'`, `node .scaffolds/principles/_checks/merge-gate.ts --package .scaffolds/principles
+--instance .scaffolds/seq`, `pnpm format:check`.
 
 **Report** (under 200 words): commits; per note what changed; the code items for the orchestrator to place.

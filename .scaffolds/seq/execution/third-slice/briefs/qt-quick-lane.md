@@ -39,7 +39,7 @@ if missing.
 
 **Hot files, never staged**: `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`,
 `biome.json`, `vitest.config.ts`, `storybook/packages.ts`, `.v6/changelogs/`, every `package.json` and `tsconfig*.json`,
-anything in `.seq/`.
+anything in `.scaffolds/seq/`.
 
 **Stop when** each touched folder is under 2 s with the checks green, or a file cannot get there without dropping
 coverage (report it), or a check fails twice after a fix.

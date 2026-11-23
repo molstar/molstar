@@ -9,9 +9,9 @@ deduped, ordered (view, margin, prefetch) and bounded in flight, cancellation wi
 `failed` and none for `not-served`, byte-bounded LRU eviction never evicting what is in view, settle; all tested with a
 fake clock and a synthetic source (no network, no real timers).
 
-**Read first**: `.seq/design/protocol.md`, `.seq/design/data-store.md`, `.seq/design/dynamic-nodes.md` (types only now),
-the edge cases EC-169 to EC-180 in `.seq/sources/seqstar/edge-cases.md`, `packages/core/src/reactive/_spec/README.md`
-(`State`, `KeyedState`, `ReactiveModel`, `batch`), the `_spec` of `packages/core/src/repr` (columns), `.seq/design/testing.md`.
+**Read first**: `.scaffolds/seq/design/protocol.md`, `.scaffolds/seq/design/data-store.md`, `.scaffolds/seq/design/dynamic-nodes.md` (types only now),
+the edge cases EC-169 to EC-180 in `.scaffolds/seq/sources/seqstar/edge-cases.md`, `packages/core/src/reactive/_spec/README.md`
+(`State`, `KeyedState`, `ReactiveModel`, `batch`), the `_spec` of `packages/core/src/repr` (columns), `.scaffolds/seq/design/testing.md`.
 
 **Model**: strong.
 
@@ -22,11 +22,11 @@ overlay (lane E and stage 6), FASTA and bigWig runtimes (stage 6), the language'
 
 **Hot files, never staged**: `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`, `biome.json`,
 `vitest.config.ts`, `storybook/packages.ts`, `.v6/changelogs/`, `packages/seq/*/package.json` (ask in the report for
-the entry exports and `_test` nulls you need), anything in `.seq/` and in `packages/core/`. Ask in the report for
+the entry exports and `_test` nulls you need), anything in `.scaffolds/seq/` and in `packages/core/`. Ask in the report for
 what you need there.
 
 **Headers**: the Mol\* header, `Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more
-info.`, with `@author David Sehnal <david.sehnal@gmail.com>`. No mention of `packages/sequences` or `.seq/` in code,
+info.`, with `@author David Sehnal <david.sehnal@gmail.com>`. No mention of `packages/sequences` or `.scaffolds/seq/` in code,
 comments or tests.
 
 **Checks**, each its own command, green only on exit 0 with a non-zero test count:

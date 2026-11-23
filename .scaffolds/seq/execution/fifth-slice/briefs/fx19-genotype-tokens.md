@@ -13,7 +13,7 @@ the mapping; a test that every code's drawn colour equals its token in both them
 leaves genotypes unchanged (fails on the parent).
 
 **Where**: a worktree on `seq/fx19`. Headers (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); hot files never
-staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.seq/`, `.v6/changelogs/`, `storybook/packages.ts`,
+staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.scaffolds/seq/`, `.v6/changelogs/`, `storybook/packages.ts`,
 `packages/seq/TODO.md`, `packages/seq/_measure/sizes.mjs`). No language change. Anything in `@molstar/core` or
 `@molstar/io` stops the lane.
 

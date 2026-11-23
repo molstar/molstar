@@ -37,7 +37,7 @@ EC-209, EC-212, EC-223 in titles. **Performance**: a grid frame over two section
 reorder over 2,000 members under its bound (heavy `itWithin`), the liftover's hover at 0 B warm.
 
 **Where**: a worktree on `seq/la3`. Headers (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); commit at each
-green step; hot files never staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.seq/`,
+green step; hot files never staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.scaffolds/seq/`,
 `.v6/changelogs/`, `storybook/packages.ts`, `packages/seq/TODO.md`): list them. The `_spec` sections that move change in
 the same commits; designs to amend listed for the orchestrator. Anything in `@molstar/core` or `@molstar/io` stops the
 lane. A file past 800 lines is a question, past 1500 a failure. **Sizes** (headless 940 — at 937.9 —, default 1,495 —
@@ -49,8 +49,8 @@ the gates: never loosen them.
 **Checks**: the quick lane (under 2 s a touched folder), `npx tsc -b packages/seq/core packages/seq/viewer
 packages/seq/examples`, each `typecheck:test`, the storybook typecheck, `pnpm lint`, `pnpm format:check`, both perf
 tiers to completion, `pnpm -s -C packages/seq/core size` (read the rows for FAIL), `pnpm test:medium packages/seq/`,
-the heavy files you add when load is under 6, the `.seq/_checks` (features-planned with
-`--plan .seq/execution/fifth-slice/plan.md`). A fix's test fails on its parent.
+the heavy files you add when load is under 6, the `.scaffolds/seq/_checks` (features-planned with
+`--plan .scaffolds/seq/execution/fifth-slice/plan.md`). A fix's test fails on its parent.
 
 **Report**: under 400 words: commits; steps done and left; checks with numbers; story ids; sizes; the public surface;
 SX-area files touched; designs to amend; hot-file needs; the `.v6/changelogs/` text.

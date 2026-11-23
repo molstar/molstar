@@ -43,7 +43,7 @@
 option, with your recommendation as the default, and list each in the report.
 
 **Read first**:
-- `.seq/design/viewer-composition.md`, `ports.md`, `rendering.md` (the backends), `examples-and-stories.md`,
+- `.scaffolds/seq/design/viewer-composition.md`, `ports.md`, `rendering.md` (the backends), `examples-and-stories.md`,
   `examples.md` (p53), `ux-foundations.md` (sections on hover, bindings and the grammar), `security.md` (assets),
   `testing.md`, `performance.md`;
 - the code you compose:
@@ -87,13 +87,13 @@ A test that is slow by nature (a whole app session) goes in the medium lane with
 - `storybook/packages.ts`, `.v6/changelogs/`;
 - `packages/seq/*/package.json` and `tsconfig*.json` (ask in the report for exports, dependencies, references and
   `_test` nulls);
-- anything in `.seq/` and in `packages/core/`.
+- anything in `.scaffolds/seq/` and in `packages/core/`.
 
 If a dependency is missing (e.g. the examples package needs the viewer's Node assets adapter, or the storybook package
 needs a reference), ask in the report rather than adding it.
 
 **Headers**: the Mol\* header, `Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more
-info.`, with `@author David Sehnal <david.sehnal@gmail.com>`. No mention of `packages/sequences` or `.seq/` in code,
+info.`, with `@author David Sehnal <david.sehnal@gmail.com>`. No mention of `packages/sequences` or `.scaffolds/seq/` in code,
 comments or tests.
 
 **Checks**: each its own command, green only on exit 0 with a non-zero test count.

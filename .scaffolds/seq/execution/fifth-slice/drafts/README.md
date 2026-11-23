@@ -1,7 +1,7 @@
 # Drafts: promoted
 
 **Promoted 2026-11-21** (the author agreed them that day; the fourth slice's finalize, step 5). These files are the
-record of stage 0 as drafted, reviewed and folded in; the agreed text is in `.seq/design/`, and a change goes there,
+record of stage 0 as drafted, reviewed and folded in; the agreed text is in `.scaffolds/seq/design/`, and a change goes there,
 never here.
 
 | Draft | Lane | Promoted to |

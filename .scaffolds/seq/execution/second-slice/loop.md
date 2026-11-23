@@ -11,7 +11,7 @@ folded in (the manifest, "Folded back from the first slice").
    below). Start at most two heavy lanes (strong model, long work) and two light ones (fast model, reviews, docs) at
    once (§parallelism).
 3. **Brief**: before a lane starts, write its brief in `briefs/<lane>-<name>.md` from the template
-   (`.seq/oz/_core/patterns/workflow-files.md`, Lane brief), and the first slice's briefs as examples. Every brief
+   (`.scaffolds/principles/_core/patterns/workflow-files.md`, Lane brief), and the first slice's briefs as examples. Every brief
    has:
    - the goal and the designs to read;
    - the model, the base commit;
@@ -111,11 +111,11 @@ npx tsc -b packages/core packages/io packages/seq/core packages/seq/viewer packa
 pnpm -C packages/seq/core typecheck:test     # and the same for viewer and examples
 pnpm lint
 pnpm format:check
-node .seq/oz/_checks/principles-ids.ts --package .seq/oz --instance .seq --allow '^(?!\.seq/)'
-node .seq/oz/_checks/paths-check.ts --allow '^(?!\.seq/|packages/seq/)'
-node .seq/oz/_checks/merge-gate.ts --package .seq/oz --instance .seq
-node .seq/_checks/ec-ids.ts
-node .seq/_checks/closed-work.ts
+node .scaffolds/principles/_checks/principles-ids.ts --package .scaffolds/principles --instance .scaffolds/seq --allow '^(?!\.scaffolds/)'
+node .scaffolds/principles/_checks/paths-check.ts --allow '^(?!\.scaffolds/|packages/seq/)'
+node .scaffolds/principles/_checks/merge-gate.ts --package .scaffolds/principles --instance .scaffolds/seq
+node .scaffolds/seq/_checks/ec-ids.ts
+node .scaffolds/seq/_checks/closed-work.ts
 ```
 
 When each also runs:
@@ -154,6 +154,6 @@ When every item is ticked:
    The author decides (merged, merged in part, or not merged); their words go on its `Decided by the author` line;
    then what was decided is applied (principles, designs, `_spec`s, checks) and committed, before the record.
 3. Run the gate once more.
-4. Write the record in `.seq/records/second-slice/`, end `state.md` with "Closed <date>: <record file>", and edit
+4. Write the record in `.scaffolds/seq/records/second-slice/`, end `state.md` with "Closed <date>: <record file>", and edit
    nothing in this folder after that.
 5. Rewrite `third-slice/plan.md` from the draft with what this slice taught.

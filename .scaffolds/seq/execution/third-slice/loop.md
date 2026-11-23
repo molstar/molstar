@@ -10,7 +10,7 @@ folded in (the manifest, "Folded back from the second slice" and "From the autho
 2. **Pick** the next unchecked items whose dependencies are merged (plan, Order and parallelism). Start at most two
    strong lanes (long work) and two fast ones (fast model, reviews, docs) at once (§parallelism).
 3. **Brief**: before a lane starts, write its brief in `briefs/<lane>-<name>.md` from the template
-   (`.seq/oz/_core/patterns/workflow-files.md`, Lane brief), with the second slice's briefs as examples. Every brief
+   (`.scaffolds/principles/_core/patterns/workflow-files.md`, Lane brief), with the second slice's briefs as examples. Every brief
    has:
    - the goal and the designs to read: the agreed design the lane builds (plan, its item) and the sections of
      `ux-foundations.md` whose matrix cells it fills;
@@ -70,7 +70,7 @@ folded in (the manifest, "Folded back from the second slice" and "From the autho
 7. **What is drawn** lands with its story and the story's headless twin, composed as the story composes it, on a fake
    clock. It is looked at before the review (step 5); the gate's screenshots are the record.
 8. **Designs and their pages move together**: a change to an agreed design (a drift resolved, a gap decided) updates
-   its `.seq/design/` file and its Storybook Design page (`packages/seq/storybook/src/_stories/design/`) in one commit
+   its `.scaffolds/seq/design/` file and its Storybook Design page (`packages/seq/storybook/src/_stories/design/`) in one commit
    (principles, "From the author at the third slice's Gate 0").
 9. **Update** `state.md` (done, in progress, next, decided, blockers, how to verify) and tick `plan.md` after every
    merged item, before starting a new lane, and before stopping. Commit the work folder (orchestrator only).
@@ -125,12 +125,12 @@ npx tsc -b packages/seq/core packages/seq/viewer packages/seq/examples   # and p
 pnpm -C packages/seq/core typecheck:test     # and the same for viewer and examples
 pnpm lint
 pnpm format:check
-node .seq/oz/_checks/principles-ids.ts --package .seq/oz --instance .seq --allow '^(?!\.seq/)'
-node .seq/oz/_checks/paths-check.ts --allow '^(?!\.seq/|packages/seq/)'
-node .seq/oz/_checks/merge-gate.ts --package .seq/oz --instance .seq
-node .seq/_checks/ec-ids.ts
-node .seq/_checks/closed-work.ts
-node .seq/_checks/file-size.ts
+node .scaffolds/principles/_checks/principles-ids.ts --package .scaffolds/principles --instance .scaffolds/seq --allow '^(?!\.scaffolds/)'
+node .scaffolds/principles/_checks/paths-check.ts --allow '^(?!\.scaffolds/|packages/seq/)'
+node .scaffolds/principles/_checks/merge-gate.ts --package .scaffolds/principles --instance .scaffolds/seq
+node .scaffolds/seq/_checks/ec-ids.ts
+node .scaffolds/seq/_checks/closed-work.ts
+node .scaffolds/seq/_checks/file-size.ts
 ```
 
 The `.seq` checks read the git index: stage first. When each also runs:
@@ -172,7 +172,7 @@ When every item is ticked:
    The author decides (merged, merged in part, or not merged); their words go on its `Decided by the author` line;
    then what was decided is applied (principles, designs, `_spec`s, checks) and committed, before the record.
 3. Run the gate once more.
-4. Write the record in `.seq/records/third-slice/`, end `state.md` with "Closed <date>: <record file>", and edit
+4. Write the record in `.scaffolds/seq/records/third-slice/`, end `state.md` with "Closed <date>: <record file>", and edit
    nothing in this folder after that.
 5. Write `fourth-slice/plan.md` with what this slice taught.
 6. **Clean up the worktrees** (the author, 2026-11-20: "part of the slice finalize should be cleanup of the

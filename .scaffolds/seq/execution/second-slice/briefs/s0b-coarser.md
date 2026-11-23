@@ -18,10 +18,10 @@ path, level 1 at 100k positions costs about 2 ms, and 1 keeps the picture exact 
 **Touches**: `packages/seq/core/src/render/**` and its `_test/`; the core `_spec`. Nothing else.
 
 **Hot files, never staged**: `pnpm-lock.yaml`, every `package.json` and `tsconfig*.json`, `biome.json`,
-`vitest.config.ts`, `storybook/packages.ts`, `.v6/changelogs/`, anything in `.seq/`.
+`vitest.config.ts`, `storybook/packages.ts`, `.v6/changelogs/`, anything in `.scaffolds/seq/`.
 
 **Headers**: a modified file keeps its header, year 2026, `@author David Sehnal <david.sehnal@gmail.com>`. No mention
-of `packages/sequences` or `.seq/`.
+of `packages/sequences` or `.scaffolds/seq/`.
 
 **Checks**: each its own command, green only on exit 0 with a non-zero test count.
 - `pnpm test:unit packages/seq/`

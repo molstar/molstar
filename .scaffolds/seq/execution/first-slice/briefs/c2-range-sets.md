@@ -6,7 +6,7 @@ ranges in `Int32Array`s: normalize, union, intersect, subtract, overlap by binar
 family: `Interval`, `SortedRanges`, `OrderedSet`), with their property tests (moved, at the same small seeds); then
 make Location use them, with no change in its behavior or tests. The author approved the move (2026-11-17).
 
-**Read first**: `.seq/design/base-library.md` (Promote), `packages/core/src/data/int/` (its conventions: namespaces,
+**Read first**: `.scaffolds/seq/design/base-library.md` (Promote), `packages/core/src/data/int/` (its conventions: namespaces,
 inclusive vs half-open, `_test`), `packages/seq/core/src/query/location.ts` and its tests, root `AGENTS.md` (reuse,
 headers, `_test` null exports).
 
@@ -22,11 +22,11 @@ and `compare.ts` if needed, `packages/core/package.json` (an export only if `dat
 
 **Hot files, never staged**: `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`, `biome.json`,
 `vitest.config.ts`, `storybook/packages.ts`, `.v6/changelogs/`, `packages/seq/*/package.json` (ask in the report for
-the entry exports and `_test` nulls you need), anything in `.seq/`, and in `packages/core/` anything outside `src/data/int/` and its `package.json` export. Ask in the report for
+the entry exports and `_test` nulls you need), anything in `.scaffolds/seq/`, and in `packages/core/` anything outside `src/data/int/` and its `package.json` export. Ask in the report for
 what you need there.
 
 **Headers**: the Mol\* header, `Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more
-info.`, with `@author David Sehnal <david.sehnal@gmail.com>`. No mention of `packages/sequences` or `.seq/` in code,
+info.`, with `@author David Sehnal <david.sehnal@gmail.com>`. No mention of `packages/sequences` or `.scaffolds/seq/` in code,
 comments or tests.
 
 **Checks**, each its own command, green only on exit 0 with a non-zero test count:

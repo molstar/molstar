@@ -3,7 +3,7 @@
 **Base**: `packages-seq` at the orchestrator's head (`git reset --hard packages-seq` first). Branch `seq/fx-5`. Model:
 fast. The fix lane's rules ([fx-fix-lane.md](fx-fix-lane.md)) hold: one commit an item, a quick-lane test failing on
 the parent for each fix, every modified file's header updated (`@author David Sehnal <david.sehnal@gmail.com>` is the
-author line already there; the year range to 2026), hot files (`package.json`s, the lockfile, `biome.json`, `.seq/`,
+author line already there; the year range to 2026), hot files (`package.json`s, the lockfile, `biome.json`, `.scaffolds/seq/`,
 `.v6/changelogs/`, `storybook/packages.ts`, `packages/seq/TODO.md`) never staged: list what you need in the report.
 Fetches are allowed for the items below (the author, 2026-11-21: "download what you need for fixtures etc"): each
 fixture recorded once into the repo with its source URL, date and licence in a `README.md` or the data file's header
@@ -17,7 +17,7 @@ beside it; tests never reach the network; keep fixtures small (trim to what the 
    looks the same everywhere). Find why: the extension layer type's draw path likely emits no hover/selection emphasis
    (or no hit ids the emphasis pass reads). Fix it in the extension contract so every extension layer type gets
    emphasis the way built-ins do (prefer the generic path: the emphasis pass drawing over an item's extent/shape, not a
-   per-extension hook, unless the design says otherwise: read `.seq/design/extension-openings.md` and core's
+   per-extension hook, unless the design says otherwise: read `.scaffolds/seq/design/extension-openings.md` and core's
    `_spec/README.md` on extensions and emphasis). Selection too, if it has the same gap. A test that hovers an
    extension item and finds the emphasis in the draw list, failing on the parent. Look in light and dark.
 2. **The PAE in AlphaFold DB's colours, on real data** (the author: "for PAE maps, can we use the same color theme as
@@ -41,7 +41,7 @@ beside it; tests never reach the network; keep fixtures small (trim to what the 
    `packages/seq/examples/src/antibody/adc.ts`. Look them up in the PDB's Chemical Component Dictionary (fetch
    allowed: rcsb or PDBe pages), use the real ids and names, record the source.
 4. **The hover card on the structure stories' viewers and compact legends** (novice F1, F22; decided):
-   `.seq/execution/fourth-slice/novice-findings.md` says where a first user looked for names and found none (residues in
+   `.scaffolds/seq/execution/fourth-slice/novice-findings.md` says where a first user looked for names and found none (residues in
    the structure link's stories; a compact legend's swatches). Turn the viewer's hover card on in those stories, and
    give compact legend swatches their names on hover (a `title` or the card, whichever `@molstar/ui`'s legend part
    already supports; no new public API past `packages/seq` or `@molstar/ui`).
@@ -53,7 +53,7 @@ beside it; tests never reach the network; keep fixtures small (trim to what the 
 
 `pnpm test:unit packages/seq/`, `npx tsc -b packages/seq/core packages/seq/viewer packages/seq/examples`,
 `pnpm -s -C packages/seq/{core,viewer,examples} typecheck:test`, `pnpm -C packages/seq/storybook typecheck`, `pnpm lint`,
-`pnpm format:check`, `node .seq/_checks/{ec-ids,closed-work,file-size}.ts`, `pnpm -s -C packages/seq/core size` (bounds:
+`pnpm format:check`, `node .scaffolds/seq/_checks/{ec-ids,closed-work,file-size}.ts`, `pnpm -s -C packages/seq/core size` (bounds:
 230 / 830 / 1330 / 940 kB). The look: the stories you touched in a Storybook in your worktree (port 6009:
 `pnpm --filter @molstar/storybook exec storybook dev -p 6009 --ci --no-open`, run in the background and stopped after),
 light and dark (`&globals=theme:dark`); describe what you saw, the orchestrator looks again.

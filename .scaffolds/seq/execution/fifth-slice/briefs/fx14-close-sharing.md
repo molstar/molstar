@@ -21,12 +21,12 @@ order (a property over shuffles); the label lane kept per track; a track's `heig
 the sizing allocates nothing new per settle beyond today's (a Map today: keep it bounded by kinds, or reuse scratch).
 
 **Where**: a worktree on `seq/fx14`. Headers (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); hot files never
-staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.seq/`, `.v6/changelogs/`, `storybook/packages.ts`,
+staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.scaffolds/seq/`, `.v6/changelogs/`, `storybook/packages.ts`,
 `packages/seq/TODO.md`). Anything in `@molstar/core` or `@molstar/io` stops the lane. Sizes soft: report growth.
 
 **Checks**: the quick lane, `npx tsc -b packages/seq/core packages/seq/viewer packages/seq/examples`, each
 `typecheck:test`, the storybook typecheck, `pnpm lint`, `pnpm format:check`, both perf tiers to completion,
 `pnpm -s -C packages/seq/core size` (read the rows), `pnpm test:medium packages/seq/` (snapshots of heights that move:
-list each with why), the `.seq/_checks`.
+list each with why), the `.scaffolds/seq/_checks`.
 
 **Report**: under 250 words: commits; checks with numbers; tests whose heights moved; the `.v6/changelogs/` text.

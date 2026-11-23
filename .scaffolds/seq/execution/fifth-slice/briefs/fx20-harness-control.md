@@ -19,7 +19,7 @@ PF listed: a bridge ribbon hover, a pan through a lock, a connector, linked pair
 passes, a zero-allocation case unchanged.
 
 **Where**: a worktree on `seq/fx20`. Headers (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); hot files never
-staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.seq/`, `.v6/changelogs/`, `storybook/packages.ts`,
+staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.scaffolds/seq/`, `.v6/changelogs/`, `storybook/packages.ts`,
 `packages/seq/TODO.md`, `packages/seq/_measure/sizes.mjs`). Nothing in `@molstar/core` or `@molstar/io`. No bound
 loosened.
 

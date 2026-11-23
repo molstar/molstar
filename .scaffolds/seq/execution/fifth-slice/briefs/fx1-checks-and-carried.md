@@ -3,19 +3,19 @@
 **Base**: `packages-seq` at the orchestrator's head (`git reset --hard packages-seq` first). Branch `seq/fx-1`. Model:
 fast. The fix lane's rules ([fx-fix-lane.md](fx-fix-lane.md)): one commit an item, a quick-lane test failing on the
 parent for each fix, every modified file's header updated (`@author David Sehnal <david.sehnal@gmail.com>`, the year
-range to 2026), hot files never staged (`package.json`s, the lockfile, `biome.json`, `.seq/`, `.v6/changelogs/`,
-`storybook/packages.ts`, `packages/seq/TODO.md`): list what you need in the report. The checks under `.seq/_checks/`
+range to 2026), hot files never staged (`package.json`s, the lockfile, `biome.json`, `.scaffolds/seq/`, `.v6/changelogs/`,
+`storybook/packages.ts`, `packages/seq/TODO.md`): list what you need in the report. The checks under `.scaffolds/seq/_checks/`
 are hot too: write them in your worktree, commit them on your branch, and the orchestrator reviews them like code (the
 one exception to the hot-file rule for this lane, the author's fold-back B6, B7).
 
 ## Items, in order
 
-1. **B6, `.seq/_checks/defaults-designed.ts`**: a design in `.seq/design/` whose `## Consequences` names a layer, a
+1. **B6, `.scaffolds/seq/_checks/defaults-designed.ts`**: a design in `.scaffolds/seq/design/` whose `## Consequences` names a layer, a
    layout or a part has a `## Defaults` heading (§defaults-designed). Applies to the designs promoted from the fifth
    slice on (genome-coordinates, region-reads, genome-formats, across-sections, ring-extension) by a list in the check
    (older designs exempt until they are touched); `--worklist` prints what fails. Match the other checks' style
-   (`.seq/_checks/ec-ids.ts`, `closed-work.ts`: read the git index, exit code, a short message).
-2. **B7, `.seq/_checks/features-planned.ts`** (or in `ec-ids.ts`): a `features.md` row whose status says "planned" or
+   (`.scaffolds/seq/_checks/ec-ids.ts`, `closed-work.ts`: read the git index, exit code, a short message).
+2. **B7, `.scaffolds/seq/_checks/features-planned.ts`** (or in `ec-ids.ts`): a `features.md` row whose status says "planned" or
    "to come" for a lane `plan.md` marks merged (`- [x] **<LANE>**`) fails. Read the fifth slice's plan by default
    (`--plan <path>`).
 3. **The services' structure section at the fit** (`packages/seq/TODO.md`): on `Examples/Services/Composing Services`
@@ -39,7 +39,7 @@ one exception to the hot-file rule for this lane, the author's fold-back B6, B7)
 
 `pnpm test:unit packages/seq/`, `npx tsc -b packages/seq/core packages/seq/viewer packages/seq/examples`,
 `pnpm -s -C packages/seq/{core,viewer,examples} typecheck:test`, `pnpm -C packages/seq/storybook typecheck`, `pnpm lint`,
-`pnpm format:check`, `node .seq/_checks/{ec-ids,closed-work,file-size}.ts` and your two new checks,
+`pnpm format:check`, `node .scaffolds/seq/_checks/{ec-ids,closed-work,file-size}.ts` and your two new checks,
 `pnpm -s -C packages/seq/core size` (bounds 230 / 830 / 1330 / 940 kB), and `pnpm -C packages/seq/{core,storybook}
 test:perf` (item 6 is on a frame's path, B5). The look: a Storybook in your worktree on port 6016, light and dark, by
 clicking and moving the pointer; describe what you saw — the orchestrator looks again.

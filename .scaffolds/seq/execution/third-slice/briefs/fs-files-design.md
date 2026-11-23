@@ -1,7 +1,7 @@
 # Lane FS, part 1: the files-as-sources design (a design only)
 
 Follow `briefs/design-drafts.md` (Read first, What to write, Rules, Report) for one topic: **files as sources, and
-the transforms a file's data needs**. Draft `.seq/execution/third-slice/drafts/files.md`. No code; no other file
+the transforms a file's data needs**. Draft `.scaffolds/seq/execution/third-slice/drafts/files.md`. No code; no other file
 edited. Model: strong (opus). Base: `packages-seq` at the commit this brief is in.
 
 ## The topic, in the author's words (2026-11-19)
@@ -28,7 +28,7 @@ edited. Model: strong (opus). Base: `packages-seq` at the commit this brief is i
   target, start and end; a 1- or 0-based start; an inclusive or exclusive end; the numbering positions are in; renamed
   and typed columns; a filter (the query sublanguage's, as `layer.data`); several annotations from one file (one per
   feature type). Read first: the base's `fields` remap, `from_source`, `uri` with `format` (`packages/sequences/_spec/
-  format.md`, Annotation tables), and this codebase's sources, protocol and data-store designs (`.seq/design/sources.md`,
+  format.md`, Annotation tables), and this codebase's sources, protocol and data-store designs (`.scaffolds/seq/design/sources.md`,
   `protocol.md`, `data-store.md`), and `packages/seq/core/src/data/` as built.
 - **Where a transform runs**: in the runtime, once, producing the protocol's tables (the sources design: "formats
   converted at the edge"); its cache key; its issues (a column missing, a value not a number, a position past the end).

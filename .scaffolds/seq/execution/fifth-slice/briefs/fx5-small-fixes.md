@@ -25,14 +25,14 @@ Out of scope: the hover card, the empty well, the drag rule (class items, the st
 and zoom strip (a look design first), anything in `@molstar/core` or `@molstar/io`, the language.
 
 **Where**: a worktree on `seq/fx-5`. Headers updated (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); hot files
-never staged (`.seq/`, `.v6/changelogs/`, `packages/seq/TODO.md`, `package.json`s, `tsconfig*.json`): list the edits.
+never staged (`.scaffolds/seq/`, `.v6/changelogs/`, `packages/seq/TODO.md`, `package.json`s, `tsconfig*.json`): list the edits.
 Do not leave a storybook server running; stop any you start before you report.
 
 **Checks** (all, with numbers): `pnpm test:unit packages/seq/` (under 2 s a touched folder), `npx tsc -b
 packages/seq/core packages/seq/viewer packages/seq/examples`, `pnpm -s -C packages/seq/{core,viewer,examples}
 typecheck:test`, `pnpm -C packages/seq/storybook typecheck`, `pnpm lint`, `pnpm format:check`, both perf tiers,
-`pnpm -s -C packages/seq/core size`, the `.seq/_checks` (features-planned with `--plan
-.seq/execution/fifth-slice/plan.md`). No `pnpm test:heavy` (another lane runs it); say which items touch a bound.
+`pnpm -s -C packages/seq/core size`, the `.scaffolds/seq/_checks` (features-planned with `--plan
+.scaffolds/seq/execution/fifth-slice/plan.md`). No `pnpm test:heavy` (another lane runs it); say which items touch a bound.
 
 **Report**: under 250 words: commits per item; checks with numbers; the story ids for the orchestrator's look; items
 stopped and why; the `.v6/changelogs/` text.

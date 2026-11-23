@@ -12,7 +12,7 @@ again; the headers' geometry as an API for a host's own widget later. Today: `tr
 the structure syncing draft beside it (`drafts/structure-syncing.md`: its "color by this track" action), and the
 precedents (the current Seq\*, IGV, JBrowse, Nightingale's headers).
 
-**Output**: one file, `.seq/execution/third-slice/drafts/track-header-parts.md` (a fourth-slice draft). No other file,
+**Output**: one file, `.scaffolds/seq/execution/third-slice/drafts/track-header-parts.md` (a fourth-slice draft). No other file,
 no code.
 
 **Model**: strong (opus). **Where**: the main checkout, read only except that one file. CF and MV work in worktrees

@@ -31,14 +31,14 @@ report it; RG's review will see it too); sizes (the author decides; do not add t
 generators are not in them).
 
 **Where**: a worktree on `seq/rs`. Headers (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); commit at each green
-step; hot files never staged (`package.json`s, `tsconfig*.json`, lockfile, `.seq/`, `.v6/changelogs/`,
-`storybook/packages.ts`, `packages/seq/TODO.md`): list them. Feature rows for `.seq/design/features.md` and
+step; hot files never staged (`package.json`s, `tsconfig*.json`, lockfile, `.scaffolds/seq/`, `.v6/changelogs/`,
+`storybook/packages.ts`, `packages/seq/TODO.md`): list them. Feature rows for `.scaffolds/seq/design/features.md` and
 `design/features.mdx`: list them. No network. Stop any Storybook server you start.
 
 **Checks**: the quick lane for the folders touched (under 2 s each), `pnpm test:unit packages/seq/`, `npx tsc -b
 packages/seq/core packages/seq/viewer packages/seq/examples`, each `typecheck:test`, the storybook typecheck,
 `pnpm lint`, `pnpm format:check`, the storybook perf tier, `pnpm -s -C packages/seq/core size` (unchanged by you), the
-`.seq/_checks` (features-planned with `--plan .seq/execution/fifth-slice/plan.md`). EC ids the stories show
+`.scaffolds/seq/_checks` (features-planned with `--plan .scaffolds/seq/execution/fifth-slice/plan.md`). EC ids the stories show
 (EC-169, EC-171, EC-208, EC-220 to EC-223) in the twins' titles.
 
 **Report**: under 300 words: commits; story ids; checks with numbers; core bugs found; what is left; hot-file and

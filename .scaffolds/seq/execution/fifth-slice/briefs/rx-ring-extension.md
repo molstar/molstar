@@ -62,7 +62,7 @@ fallback, EC-108, 169, 171, 206, 210, 218, 225, 235 in titles; the matrix's cell
 `sizes.mjs`, which is the orchestrator's); minimal and default viewers not grown past the hooks.
 
 **Where**: a worktree on `seq/rx`. Headers (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); commit at each green
-step; hot files never staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.seq/`, `.v6/changelogs/`,
+step; hot files never staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.scaffolds/seq/`, `.v6/changelogs/`,
 `storybook/packages.ts`, `packages/seq/TODO.md`, `packages/seq/_measure/sizes.mjs`): list what you need. **No language
 change**: one needed stops the lane with a report. Anything in `@molstar/core` or `@molstar/io` stops the lane. A file
 past 800 lines is a question.
@@ -70,8 +70,8 @@ past 800 lines is a question.
 **Checks**: `pnpm test:unit packages/seq/ cli/seqx-render/`, `npx tsc -b packages/seq/core packages/seq/viewer
 packages/seq/examples packages/seq/ext-rondo`, each `typecheck:test` (ext-rondo's too), the storybook typecheck,
 `pnpm lint`, `pnpm format:check`, both perf tiers to completion, `pnpm -s -C packages/seq/core size` (read the rows for
-FAIL), `pnpm test:medium packages/seq/`, `pnpm check:workspace`, the `.seq/_checks` (features-planned with `--plan
-.seq/execution/fifth-slice/plan.md`, `defaults-designed.ts`).
+FAIL), `pnpm test:medium packages/seq/`, `pnpm check:workspace`, the `.scaffolds/seq/_checks` (features-planned with `--plan
+.scaffolds/seq/execution/fifth-slice/plan.md`, `defaults-designed.ts`).
 
 **Report**: under 450 words: commits; checks with numbers; the core pieces found and built; story ids; sizes (the
 package, the viewers); performance numbers; ECs covered; hot-file needs (the size row); the `.v6/changelogs/` text;

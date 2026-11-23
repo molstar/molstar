@@ -35,4 +35,4 @@ packages/extensions/command-language/_spec/pymol.md
 packages/extensions/command-language/_spec/vmd.md
 
 # Seq* (next): the development scaffold is agent context, never formatted.
-.seq/
+.scaffolds/

@@ -52,7 +52,7 @@ section... very confusing".
    the keys; light and dark, canvas and SVG.
 
 **Where**: a worktree on `seq/rx2`. Headers (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); hot files never
-staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.seq/`, `.v6/changelogs/`, `storybook/packages.ts`,
+staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.scaffolds/seq/`, `.v6/changelogs/`, `storybook/packages.ts`,
 `packages/seq/TODO.md`, `packages/seq/_measure/sizes.mjs`): list them. Anything in `@molstar/core` or `@molstar/io`
 stops the lane. A file past 800 lines is a question. Sizes soft (menus and the window's gestures lazy where they can be;
 report growth with its cause); timing and allocation bounds are gates (a square drag frame 0 B warm).
@@ -60,7 +60,7 @@ report growth with its cause); timing and allocation bounds are gates (a square 
 **Checks**: `pnpm test:unit packages/seq/ cli/seqx-render/`, `npx tsc -b packages/seq/core packages/seq/viewer
 packages/seq/examples packages/seq/ext-rondo`, each `typecheck:test`, the storybook typecheck, `pnpm lint`,
 `pnpm format:check`, both perf tiers to completion, `pnpm -s -C packages/seq/core size` (read the rows), `pnpm
-test:medium packages/seq/`, the `.seq/_checks`.
+test:medium packages/seq/`, the `.scaffolds/seq/_checks`.
 
 **Report**: under 400 words: commits; checks with numbers; per step what was built or stopped; story ids; sizes; the
 `.v6/changelogs/` text; designs to amend (navigators, extension-openings, ring-extension).

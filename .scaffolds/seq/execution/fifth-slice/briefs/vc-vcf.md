@@ -55,10 +55,10 @@ misread file and its issues), light and dark, with the headless twin on a fake c
 click an allele per the design's matrix row "a variant allele" (select its REF extent, double-click focuses it).
 
 **Docs**: core's `_spec` Data section for VCF and the Configuration table rows (the config-keys check); the design's
-"Not built" line and other `.seq/` amendments as hot-file needs.
+"Not built" line and other `.scaffolds/seq/` amendments as hot-file needs.
 
 **Where**: a worktree on `seq/vc`. Headers updated (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); commit at
-each small green step; hot files never staged (`package.json`s, lockfile, `biome.json`, `.seq/`, `.v6/changelogs/`,
+each small green step; hot files never staged (`package.json`s, lockfile, `biome.json`, `.scaffolds/seq/`, `.v6/changelogs/`,
 `storybook/packages.ts`, `packages/seq/TODO.md`): list them with the exact edit (the `./runtimes/vcf` export line).
 Public API changes allowed in `packages/seq`; anything in `@molstar/core` or `@molstar/io` stops the lane and comes
 back as a question. A file grown past 800 lines is a question in the report; past 1500 a failure.
@@ -66,7 +66,7 @@ back as a question. A file grown past 800 lines is a question in the report; pas
 **Checks**: as `fx1-checks-and-carried.md` lists them; the quick lane under 2 s for each folder touched;
 `pnpm -s -C packages/seq/core size` (reading 240, headless 870, default 1,400, minimal 1,000 kB);
 `pnpm test:medium packages/seq/`; `pnpm test:heavy packages/seq/` (alone); both perf tiers if a frame path changes;
-the `.seq/_checks` and `features-planned.ts --plan .seq/execution/fifth-slice/plan.md`. A fix's test fails on its
+the `.scaffolds/seq/_checks` and `features-planned.ts --plan .scaffolds/seq/execution/fifth-slice/plan.md`. A fix's test fails on its
 parent. Do not claim a failure is the base's without running it on the base.
 
 **Report**: under 300 words: commits; checks with numbers; the story ids for the orchestrator's look; the public

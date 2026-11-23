@@ -35,12 +35,12 @@ and hover stay 0 B warm (the allocation tier's rows hover case).
 Green only on exit 0 with a non-zero test count.
 
 **Headers**: a modified file keeps its header, its year range extended to 2026 and `@author David Sehnal
-<david.sehnal@gmail.com>` added if missing. No mention of `.seq/` in code; code cites its own `_spec` sections (add the
+<david.sehnal@gmail.com>` added if missing. No mention of `.scaffolds/seq/` in code; code cites its own `_spec` sections (add the
 hover rule to the core `_spec`'s rows section).
 
 **Hot files, never staged**: `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`,
 `biome.json`, `vitest.config.ts`, `storybook/packages.ts`, `.v6/changelogs/`, every `package.json` and `tsconfig*.json`,
-anything in `.seq/`.
+anything in `.scaffolds/seq/`.
 
 **Stop when** green, or a check fails twice after a fix, or the fix needs a design change.
 

@@ -13,10 +13,10 @@ resolving a gesture by hit target), and the commands' change-kind table. Time an
 `DomHost`, patched in tests. Where a behavior could reasonably go more than one way, make it a config item with the
 recommended default.
 
-**Read first**: `.seq/design/viewer-models.md`, `ux-foundations.md` (section 8), `changes.md`, `viewer-composition.md`
+**Read first**: `.scaffolds/seq/design/viewer-models.md`, `ux-foundations.md` (section 8), `changes.md`, `viewer-composition.md`
 (only what models need), `locations-and-queries.md` (Location), `packages/core/src/reactive/_spec/README.md`,
 `packages/ui/src/history/` and `packages/ui/src/commands/` (types), `packages/ui/src/dom/host.ts`, the core `_spec`
-(Resolve, Resolved view, Data, Queries), `.seq/design/testing.md`.
+(Resolve, Resolved view, Data, Queries), `.scaffolds/seq/design/testing.md`.
 
 **Model**: strong.
 
@@ -32,11 +32,11 @@ by target; undo through the history restoring the spec's root; `hover.set` reusi
 
 **Hot files, never staged**: `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`, `biome.json`,
 `vitest.config.ts`, `storybook/packages.ts`, `.v6/changelogs/`, `packages/seq/*/package.json` (ask in the report for
-the entry exports and `_test` nulls you need), anything in `.seq/` and in `packages/core/`. Ask in the report for
+the entry exports and `_test` nulls you need), anything in `.scaffolds/seq/` and in `packages/core/`. Ask in the report for
 what you need there.
 
 **Headers**: the Mol\* header, `Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more
-info.`, with `@author David Sehnal <david.sehnal@gmail.com>`. No mention of `packages/sequences` or `.seq/` in code,
+info.`, with `@author David Sehnal <david.sehnal@gmail.com>`. No mention of `packages/sequences` or `.scaffolds/seq/` in code,
 comments or tests.
 
 **Checks**, each its own command, green only on exit 0 with a non-zero test count:

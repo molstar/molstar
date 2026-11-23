@@ -15,7 +15,7 @@ test each, citing the EC in its name, in **new test files** under `packages/seq/
 - **EC-138**: the hover outline holds 3:1 against what it outlines, in both themes.
 - **EC-63**: two pair kinds at one cell are sliced, each slice its own hit.
 
-Read each EC's text in `.seq/design/edge-cases.md` first. A test that finds the behavior missing or different from the
+Read each EC's text in `.scaffolds/seq/design/edge-cases.md` first. A test that finds the behavior missing or different from the
 EC: stop on that one and report it (file:line, the scenario), do not change library code; go on with the others.
 
 **Tests only**: no change outside your new files. RK works in `core/src/render/{rows,tracks,grid,layer-type}.ts` and

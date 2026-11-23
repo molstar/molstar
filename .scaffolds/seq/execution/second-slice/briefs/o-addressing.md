@@ -1,6 +1,6 @@
 # Lane O: addressing in Seq\*
 
-**Goal**: build `.seq/design/addressing.md` in `@molstar/seqx-core` and the viewer's commands (plan.md, O):
+**Goal**: build `.scaffolds/seq/design/addressing.md` in `@molstar/seqx-core` and the viewer's commands (plan.md, O):
 - **ids and addresses to what they name and back**: an address (core's `parseAddress`/`selectAddress` grammar, as is)
   resolving to a spec node, a node data makes (forms), or a Location (ranges, rects) through the query model; and
   from a Location or node to its address, the shortest stable form (a ref if one names it, else ids and forms);
@@ -21,7 +21,7 @@ what a command needs to reach them (lane P); markdown rendering.
 **Agreed surface**: nothing new in `@molstar/core`. If core's address grammar or `selectAddress` lacks what the design
 needs, stop and report it.
 
-**Read first**: `.seq/design/addressing.md`, `patches.md` (refs following moves, dangling and rebinding), `changes.md`,
+**Read first**: `.scaffolds/seq/design/addressing.md`, `patches.md` (refs following moves, dangling and rebinding), `changes.md`,
 `viewer-models.md`, `composition.md`, `language-description.md`; `packages/seq/core/_spec/README.md` (Language, Query),
 the viewer `_spec`; `packages/core/src/repr/tree/address.ts`; `packages/seq/core/src/{lang,query,resolve}` and
 `packages/seq/viewer/src/{commands.ts,models}`; `packages/seq/AGENTS.md`.
@@ -55,7 +55,7 @@ order, in the `_spec`s' Configuration tables.
 
 **Headers**: a new file has the Mol\* header `Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for
 more info.` with `@author David Sehnal <david.sehnal@gmail.com>`; a modified file keeps its header, its year range
-extended to 2026 and that author line added if missing. No mention of `packages/sequences` or `.seq/` in code, comments,
+extended to 2026 and that author line added if missing. No mention of `packages/sequences` or `.scaffolds/seq/` in code, comments,
 tests or `_spec`s; code cites its own `_spec` sections.
 
 **Fixes land with a test shown failing on the fix's parent**: the report names the command.
@@ -64,7 +64,7 @@ tests or `_spec`s; code cites its own `_spec` sections.
 - `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`, `biome.json`, `vitest.config.ts`;
 - `storybook/packages.ts`, `.v6/changelogs/` (write the changelog entry's text in your report);
 - every `package.json` and `tsconfig*.json` (ask in the report: exports, `_test` nulls, dependencies);
-- anything in `.seq/`.
+- anything in `.scaffolds/seq/`.
 
 **Stop when** the checks are green, or a check has failed twice after a fix, or the work needs a public API past the
 agreed surface, or a target cannot be met without changing a design (report the measurement and the options), or a

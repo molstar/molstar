@@ -15,9 +15,9 @@
 // Usage: designs-in-specs.ts [root] [--worklist]
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { args, finish, trackedFiles } from "../oz/_checks/lib.ts";
+import { args, finish, trackedFiles } from "../../principles/_checks/lib.ts";
 
-const DESIGNS = ".seq/design/";
+const DESIGNS = ".scaffolds/seq/design/";
 const SPECS: Record<string, string> = {
   core: "packages/seq/core/_spec/README.md",
   viewer: "packages/seq/viewer/_spec/README.md",

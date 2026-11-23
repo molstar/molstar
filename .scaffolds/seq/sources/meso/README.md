@@ -2,7 +2,7 @@
 
 meso\* (the molstar-ludo repository: `.meso/`, `packages/meso/*`, `apps/meso`) is a hierarchy of declarative languages
 for mesoscale biology, with its app a projection of one spec. It is built on the same principles package, and it is
-where the lessons on building such languages were learned. Its `.meso/` is the precedent for `.seq/`.
+where the lessons on building such languages were learned. Its `.meso/` is the precedent for `.scaffolds/seq/`.
 
 ## What we take
 

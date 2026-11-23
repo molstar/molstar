@@ -48,7 +48,7 @@ through the conformance suite, in one test.
 
 **Configuration**: the design's table copied into core `_spec`'s, every default present (`config-table.test.ts`).
 **Docs**: core `_spec` Data (Protocol, Tables, Summaries, Store), Resolve, Render (Data, pairs, grid, the matrix layer,
-rings' images, `bin`, Configuration). The other designs the Consequences amend (`.seq/design/`) are hot: list each
+rings' images, `bin`, Configuration). The other designs the Consequences amend (`.scaffolds/seq/design/`) are hot: list each
 edit for the orchestrator.
 
 **Sizes**: shapes, keys and summaries about 6 kB in headless, the matrix layer about 5 kB; bounds reading 240,
@@ -59,14 +59,14 @@ a design question (write it in the report as a drift note: what, where, options,
 long, stop at a green commit after step 3 or 4 and report what is left rather than rushing the rest.
 
 **Where**: a worktree on `seq/rg`. Headers updated (`@author David Sehnal <david.sehnal@gmail.com>`, 2026). Hot files
-never staged (`package.json`s, lockfile, `biome.json`, `.seq/`, `.v6/changelogs/`, `storybook/packages.ts`,
+never staged (`package.json`s, lockfile, `biome.json`, `.scaffolds/seq/`, `.v6/changelogs/`, `storybook/packages.ts`,
 `packages/seq/TODO.md`): list exact edits. A file grown past 800 lines is a question in the report, past 1500 a
 failure.
 
 **Checks**: as `fx1-checks-and-carried.md` lists them; the quick lane under 2 s per touched folder; both perf tiers;
 `pnpm -s -C packages/seq/core size`; `pnpm test:medium packages/seq/`; `pnpm test:heavy packages/seq/` (alone: not
-while another lane runs its heavy tests; say when you run it); the `.seq/_checks` and `features-planned.ts --plan
-.seq/execution/fifth-slice/plan.md`. A fix's test fails on its parent; a failure is the base's only when run there.
+while another lane runs its heavy tests; say when you run it); the `.scaffolds/seq/_checks` and `features-planned.ts --plan
+.scaffolds/seq/execution/fifth-slice/plan.md`. A fix's test fails on its parent; a failure is the base's only when run there.
 
 **Report**: under 400 words: commits; checks with numbers; story ids for the orchestrator's look; the public surface
 added; sizes; drift notes; what is left if stopped early; hot-file needs; the `.v6/changelogs/` text.

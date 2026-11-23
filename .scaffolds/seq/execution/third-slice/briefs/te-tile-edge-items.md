@@ -5,7 +5,7 @@ edge: on the synthetic 3M source, a tracks view over [1040, 1080] lacks `r1000`,
 The synthetic source answers only items that start in a region. An item in view with no mark is a lost item (the axis
 design; "what is drawn is checked against the data"). Decide where the fix belongs (the source contract: a region's
 answer includes items overlapping it, or the reader: it reads back far enough for the longest item, as the store's
-want sets allow), following the data-store and protocol designs (`.seq/design/data-store.md`, `protocol.md`,
+want sets allow), following the data-store and protocol designs (`.scaffolds/seq/design/data-store.md`, `protocol.md`,
 `layout-and-draw-lists.md`, the `render/ranges.ts` dedupe by key and start from the second slice's WRAP53 fix), and
 fix it there with the least code. Check the real sources (the p53 region, inline tables, any tiled reader) for the
 same miss.
@@ -23,8 +23,8 @@ data reading and the source, small and local; if the fix must touch layout code,
 `pnpm -C packages/seq/core test:perf` (no scenario worse). No heavy run while `pgrep -fl "vitest.*heavy"` shows one.
 
 **Headers**: a modified file keeps its header, year 2026, `@author David Sehnal <david.sehnal@gmail.com>` added if
-missing; a new file gets the Mol\* header. No mention of `packages/sequences` or `.seq/` in code. **Hot files**: never
-stage `package.json`, `tsconfig*`, the lockfile, `.v6/changelogs/` (write the entry's text in the report), `.seq/`.
+missing; a new file gets the Mol\* header. No mention of `packages/sequences` or `.scaffolds/seq/` in code. **Hot files**: never
+stage `package.json`, `tsconfig*`, the lockfile, `.v6/changelogs/` (write the entry's text in the report), `.scaffolds/seq/`.
 Update the `_spec` section the fix changes.
 
 **Report** (under 300 words): where the fix belongs and why, the commits, the test failing on the base (the command),

@@ -1,7 +1,7 @@
 # Lane LL: item labels inside or beside, and an origin-crossing extent (fast)
 
 The author (2026-11-19, the plasmid's ring and linear views): the labels read differently in the two views. Decided:
-"Inside if it fits, else beside" (`.seq/design/layouts.md`, "Labels inside if they fit, else beside"; the Design page
+"Inside if it fits, else beside" (`.scaffolds/seq/design/layouts.md`, "Labels inside if they fit, else beside"; the Design page
 `layouts.mdx`, Rings). Read that section and `ctx.labels` under Layer types first.
 
 ## Do
@@ -35,6 +35,6 @@ a mark it is not inside.
 
 ## Rules
 
-The lane rules of `.seq/execution/third-slice/loop.md` (hot files never staged, headers, changelog file to report, not
+The lane rules of `.scaffolds/seq/execution/third-slice/loop.md` (hot files never staged, headers, changelog file to report, not
 add). Report: checks with exit codes and counts, sizes, the pan perf (the plasmid's linear detail), what you chose for
 linear placement time.

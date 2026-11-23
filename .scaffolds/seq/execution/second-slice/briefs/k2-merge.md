@@ -1,6 +1,6 @@
 # Lane K2: `merge3` in `@molstar/core/repr`
 
-**Goal**: build `.seq/design/merge.md` exactly. Its "The function" section is the agreed surface: `merge3`,
+**Goal**: build `.scaffolds/seq/design/merge.md` exactly. Its "The function" section is the agreed surface: `merge3`,
 `MergeOptions`, `MergeResult`, `Conflict`, `ConflictKind`, exported from `@molstar/core/repr/patch` (no new entry).
 - `diff` both sides from the base, key each change by the node it touches, apply theirs on ours as one patch under the
   options (link integrity and the validators judged on the merged root against ours);
@@ -17,7 +17,7 @@
 Not in scope: `SpecModel` and the viewer (lane N), merging written patches (the reserved `move`), the persistent ref
 index (lane R+K).
 
-**Read first**: `.seq/design/merge.md`, `patches.md` (all of it: Applying, link integrity, "The inverse and the
+**Read first**: `.scaffolds/seq/design/merge.md`, `patches.md` (all of it: Applying, link integrity, "The inverse and the
 allowances"), `tree-core.md`; `packages/core/src/repr/_spec/README.md` and `packages/core/src/repr/patch/`.
 
 **Model**: strong (opus).
@@ -50,7 +50,7 @@ cycle), placement when the predecessor is gone, orders (one side, same, differen
 
 **Headers**: a new file has the Mol\* header `Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for
 more info.` with `@author David Sehnal <david.sehnal@gmail.com>`; a modified file keeps its header, its year range
-extended to 2026 and that author line added if missing. No mention of `packages/sequences` or `.seq/` in code, comments,
+extended to 2026 and that author line added if missing. No mention of `packages/sequences` or `.scaffolds/seq/` in code, comments,
 tests or `_spec`s; code cites its own `_spec` sections.
 
 **Fixes land with a test shown failing on the fix's parent**: the report names the command.
@@ -59,7 +59,7 @@ tests or `_spec`s; code cites its own `_spec` sections.
 - `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`, `biome.json`, `vitest.config.ts`;
 - `storybook/packages.ts`, `.v6/changelogs/` (write the changelog entry's text in your report);
 - every `package.json` and `tsconfig*.json` (ask in the report: exports, `_test` nulls, dependencies);
-- anything in `.seq/`.
+- anything in `.scaffolds/seq/`.
 
 **Stop when** the checks are green, or a check has failed twice after a fix, or the work needs a public API past the
 agreed surface, or a target cannot be met without changing a design (report the measurement and the options), or a

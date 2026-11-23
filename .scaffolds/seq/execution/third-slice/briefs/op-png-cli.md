@@ -3,7 +3,7 @@
 **Goal**: the plan's OP and Gate 0's decision (the author, 2026-11-18): **PNG by rasterizing the SVG** (the same
 picture as SVG, headless) and **the render CLI in `cli/` as `seqx-render`**, under the headless asset policy (EC-126),
 with its cold-start target ([performance](../../../design/performance.md)). Read the "Done when" list in
-`.seq/execution/third-slice/plan.md` ("PNG renders headless with the same picture as SVG; the render CLI turns a spec
+`.scaffolds/seq/execution/third-slice/plan.md` ("PNG renders headless with the same picture as SVG; the render CLI turns a spec
 file into SVG or PNG under the headless asset policy") and `packages/seq/core/src/render/png.ts` (a DOM-free PNG
 encoder used for the SVG's images). Look at how `cli/mvs-render` rasterizes and packages before choosing the
 rasterizer (reuse a dependency the workspace already has; a new dependency is a question in your report, not added).
@@ -33,12 +33,12 @@ exit=$?`), non-zero test counts.
 
 **Headers**: a new file has the Mol\* header `Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE
 file for more info.` with `@author David Sehnal <david.sehnal@gmail.com>`; a modified file keeps its header, year range
-to 2026, that author added if missing. No mention of `.seq/` in code.
+to 2026, that author added if missing. No mention of `.scaffolds/seq/` in code.
 
 **Hot files, never staged**: `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`,
 `biome.json`, `vitest.config.ts`, `storybook/packages.ts`, `.v6/changelogs/` (write the entry's text in the report),
 every `package.json` and `tsconfig*.json` (the new `cli/seqx-render/package.json` and `tsconfig.json` included: write
-them, leave them unstaged, list them and the inventory and root-tsconfig entries in your report), anything in `.seq/`.
+them, leave them unstaged, list them and the inventory and root-tsconfig entries in your report), anything in `.scaffolds/seq/`.
 
 **Stop when** green, or a check fails twice after a fix, or a new dependency is needed.
 

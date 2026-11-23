@@ -1,6 +1,6 @@
 # Agent interface: sketch patterns
 
-Directional: the shape is fixed, the details are not; harden them through a design and a prototype, and report drift. What stable and sketch mean and how to use a pattern: [../../_core/system.md](../../../oz/_core/system.md#code-patterns).
+Directional: the shape is fixed, the details are not; harden them through a design and a prototype, and report drift. What stable and sketch mean and how to use a pattern: [../../_core/system.md](../../../../principles/_core/system.md#code-patterns).
 
 §skills-and-tools has a "Hardened by a prototype" section: read it with the sketch.
 

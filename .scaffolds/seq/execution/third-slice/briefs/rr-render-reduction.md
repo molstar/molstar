@@ -21,7 +21,7 @@ what a spec draws.
 **Output**: the reductions, each a commit with the sizes before and after; tests unchanged and green (quick, medium,
 perf for core and Storybook, tsc, lint, format); `_spec`s' Configuration tables kept. No target is edited by the lane.
 
-**Model**: strong (opus). **Where**: a worktree, branch `seq/rr-render-reduction`. Do not stage `.seq/`, package.json
+**Model**: strong (opus). **Where**: a worktree, branch `seq/rr-render-reduction`. Do not stage `.scaffolds/seq/`, package.json
 (but for `sideEffects`, reported for the orchestrator to apply), tsconfig, the lockfile, `.v6/`, `.claude/`.
 
 **Report**: under 300 words: each entry's size before and after, what was cut and why it was kept before, what still

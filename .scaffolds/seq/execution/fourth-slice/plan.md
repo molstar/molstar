@@ -59,7 +59,7 @@ principles, "Folded back from the third slice"); the bullets below are checked a
     molecules' sections, the header parts, the fake 3D viewer) has a Defaults section, reviewed at stage 0's gate.
   - *Drift notes are gaps* (§drift-notes-are-gaps): every gate's message lists `drift/`'s open items with the gaps.
   - *Edge cases tested by name* (§ec-tested-by-name): a lane's tests name the catalog items they test;
-    `node .seq/_checks/ec-ids.ts` runs with the gate's checks, `--worklist` at the close.
+    `node .scaffolds/seq/_checks/ec-ids.ts` runs with the gate's checks, `--worklist` at the close.
   - *Configuration tables checked* (§config-tables-checked): the core's and the viewer's `config-table` tests run in the
     quick lane; a lane adding a config item adds its row.
   - *Features move with the merges* (§features-move-with-merges); *a changed test expectation explained*
@@ -350,7 +350,7 @@ disagrees with its code writes a drift note and stops.
 - [x] USE GATE (2026-11-21, the author: passed; follow-ups as they appear) (not blocking; at finalize a look at what changed): findings fixed or placed, counted by kind.
 - [x] M4 (2026-11-21; `measurements.md`: the 2OCJ hover and 200 copies pass at dpr 2 on main-thread frames; the bigWig pan, real-vsync frames and the split patch carried to the fifth slice) the heavy lane and the opt-in tiers; the browser at dpr 2 (a 2OCJ hover round trip, a complex of 200 copies,
       a bigWig pan); the bundles; the targets confirmed or moved by the author (below: the minimal viewer's size).
-- [x] FINALIZE (2026-11-21; the record in `.seq/records/fourth-slice/`): reconcile (designs, `_spec`s, status, features, edge cases' outcomes, `TODO.md`, drift emptied); the
+- [x] FINALIZE (2026-11-21; the record in `.scaffolds/seq/records/fourth-slice/`): reconcile (designs, `_spec`s, status, features, edge cases' outcomes, `TODO.md`, drift emptied); the
       fold-back; the record; the fifth slice's plan (Genomes, on extension kinds).
 
 ### The third slice's carried items, placed
@@ -407,7 +407,7 @@ fixes.md lines for the next fix point.
   dependency, `sideEffects` listings), `packages/core/package.json`, `packages/io/package.json`;
 - `packages/seq/*/_spec/README.md` sections shared by lanes (Language, Context, Configuration): each lane edits only
   its own sections; the bump's owner merges the Language section;
-- `.seq/`.
+- `.scaffolds/seq/`.
 No new package is planned (seq-data-ports: no package; structure syncing and extensions are entries).
 
 ## Known risks

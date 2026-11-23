@@ -40,17 +40,17 @@ source, issues and recorded-pages tooling; do not duplicate):
 - stories: `Features/Genome formats/GFF3` and `/GTF` (TP53's transcripts as gene models from the recorded slices, the
   `features` switch, a name found by the locus box if GC3 has merged, else by `findNames` shown; a misread file), light
   and dark, canvas and SVG, with the headless twin on a fake clock (no fixed real-turn waits);
-- core's `_spec` (Data: GFF and GTF, names; Render: the gene line); `files.md`'s GFF3 tension closed and other `.seq/`
+- core's `_spec` (Data: GFF and GTF, names; Render: the gene line); `files.md`'s GFF3 tension closed and other `.scaffolds/seq/`
   amendments as hot-file needs.
 
 **Where**: a worktree on `seq/gg`. Headers updated (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); hot files
-never staged (`package.json`s, lockfile, `biome.json`, `.seq/`, `.v6/changelogs/`, `storybook/packages.ts`,
+never staged (`package.json`s, lockfile, `biome.json`, `.scaffolds/seq/`, `.v6/changelogs/`, `storybook/packages.ts`,
 `packages/seq/TODO.md`): list them with the exact edit. Public API changes allowed in `packages/seq`; anything in
 `@molstar/core` or `@molstar/io` stops the lane and comes back as a question.
 
 **Checks**: as `fx1-checks-and-carried.md` lists them, both perf tiers, `pnpm -s -C packages/seq/core size` (viewers'
 bounds: reading 240, headless 870, default 1,400, minimal 1,000 kB), `pnpm test:medium`, `pnpm test:heavy
-packages/seq/`, the four `.seq/_checks` and `features-planned.ts --plan .seq/execution/fifth-slice/plan.md`. A fix's
+packages/seq/`, the four `.scaffolds/seq/_checks` and `features-planned.ts --plan .scaffolds/seq/execution/fifth-slice/plan.md`. A fix's
 test fails on its parent. Do not claim a failure is the base's without running it on the base.
 
 **Report**: under 300 words: commits; checks with numbers; the story ids for the orchestrator's look; the public

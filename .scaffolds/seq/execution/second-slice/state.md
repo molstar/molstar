@@ -1,6 +1,6 @@
 # State: second-slice   (updated 2026-11-18, by the orchestrator)
 
-Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .seq/execution/second-slice/loop.md`).
+Branch: `packages-seq`. The loop started 2026-11-18 (`/loop run .scaffolds/seq/execution/second-slice/loop.md`).
 
 ## Done
 
@@ -114,4 +114,4 @@ As loop.md, Checks.
   the gate run once more (quick, medium, heavy, build, `check:workspace`, the `.seq` checks), the third slice's plan
   rewritten (`e24b30dea`).
 
-Closed 2026-11-18: `.seq/records/second-slice/2026-11-18-second-slice.md`
+Closed 2026-11-18: `.scaffolds/seq/records/second-slice/2026-11-18-second-slice.md`

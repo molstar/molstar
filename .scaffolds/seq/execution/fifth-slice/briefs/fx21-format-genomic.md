@@ -15,7 +15,7 @@ N); an allocation case or a count showing no parse per call. Then decide whether
 and without it; keep it only if it still saves materially, and say the numbers.
 
 **Where**: a worktree on `seq/fx21`. Headers (`@author David Sehnal <david.sehnal@gmail.com>`, 2026; the core file's
-range extended); hot files never staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.seq/`,
+range extended); hot files never staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.scaffolds/seq/`,
 `.v6/changelogs/`, `storybook/packages.ts`, `packages/seq/TODO.md`, `packages/seq/_measure/sizes.mjs`). No public API
 removed in `@molstar/core` (an addition only, and only if needed); other callers of `formatValue` unchanged.
 

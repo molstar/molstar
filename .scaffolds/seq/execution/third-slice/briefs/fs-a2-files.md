@@ -43,11 +43,11 @@ packages/seq/storybook typecheck`; `pnpm lint`; `pnpm format:check`. Exit codes 
 test counts.
 
 **Headers**: a modified file keeps its header, year range to 2026, `@author David Sehnal <david.sehnal@gmail.com>` added
-if missing; a new file has the Mol\* header with that author. No mention of `.seq/` in code.
+if missing; a new file has the Mol\* header with that author. No mention of `.scaffolds/seq/` in code.
 
 **Hot files, never staged**: `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`,
 `biome.json`, `vitest.config.ts`, `storybook/packages.ts`, `.v6/changelogs/` (write the entry's text in the report),
-every `package.json` and `tsconfig*.json` (write needed entries in the report), anything in `.seq/`.
+every `package.json` and `tsconfig*.json` (write needed entries in the report), anything in `.scaffolds/seq/`.
 
 **Stop when** green, or a check fails twice after a fix, or a public API past the params above is needed.
 

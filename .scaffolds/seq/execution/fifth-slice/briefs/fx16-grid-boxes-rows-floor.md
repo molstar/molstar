@@ -23,14 +23,14 @@ stay out of hover emphasis (`drawOwnHover`, `tracks-draw.ts`'s hover path), lege
    viewer config's docs in the same commit.
 
 **Where**: a worktree on `seq/fx16`. Headers (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); a commit per item;
-hot files never staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.seq/`, `.v6/changelogs/`,
+hot files never staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.scaffolds/seq/`, `.v6/changelogs/`,
 `storybook/packages.ts`, `packages/seq/TODO.md`, `packages/seq/_measure/sizes.mjs`). No language change. Anything in
 `@molstar/core` or `@molstar/io` stops the lane. Sizes soft: report growth; never edit bounds.
 
 **Checks**: `pnpm test:unit packages/seq/ cli/seqx-render/`, `npx tsc -b packages/seq/core packages/seq/viewer
 packages/seq/examples`, each `typecheck:test`, the storybook typecheck, `pnpm lint`, `pnpm format:check`, both perf tiers
-to completion, `pnpm -s -C packages/seq/core size` (read the rows), `pnpm test:medium packages/seq/`, the `.seq/_checks`
-(features-planned with `--plan .seq/execution/fifth-slice/plan.md`). A fix's test fails on its parent.
+to completion, `pnpm -s -C packages/seq/core size` (read the rows), `pnpm test:medium packages/seq/`, the `.scaffolds/seq/_checks`
+(features-planned with `--plan .scaffolds/seq/execution/fifth-slice/plan.md`). A fix's test fails on its parent.
 
 **Report**: under 250 words: per item what was measured and fixed, commits, checks with numbers, story ids, the
 `.v6/changelogs/` text, designs to amend (grids-and-rows.md's zoom rows).

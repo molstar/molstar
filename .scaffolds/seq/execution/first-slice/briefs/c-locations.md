@@ -7,9 +7,9 @@ and their explicit conversions; the first forms as `repr` form resolvers (`range
 annotations that a test fixture implements (the static model comes later, in lane E); numberings `index` and
 `ordinal` (1-based default) and labels with the rules EC-1 to EC-8; staged results (`complete`, `pending`).
 
-**Read first**: `.seq/design/locations-and-queries.md`, `.seq/design/addressing.md`, the edge cases EC-1 to EC-14 in
-`.seq/sources/seqstar/edge-cases.md` (old evidence paths there are only guidance), the `_spec` of
-`packages/core/src/repr` (the form-resolver table, `Named`, segments, bounds), `.seq/design/testing.md`.
+**Read first**: `.scaffolds/seq/design/locations-and-queries.md`, `.scaffolds/seq/design/addressing.md`, the edge cases EC-1 to EC-14 in
+`.scaffolds/seq/sources/seqstar/edge-cases.md` (old evidence paths there are only guidance), the `_spec` of
+`packages/core/src/repr` (the form-resolver table, `Named`, segments, bounds), `.scaffolds/seq/design/testing.md`.
 
 **Model**: strong.
 
@@ -20,11 +20,11 @@ own small test language on `repr`), the protocol and store (lane D), the static 
 
 **Hot files, never staged**: `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`, `biome.json`,
 `vitest.config.ts`, `storybook/packages.ts`, `.v6/changelogs/`, `packages/seq/*/package.json` (ask in the report for
-the entry exports and `_test` nulls you need), anything in `.seq/` and in `packages/core/`. Ask in the report for
+the entry exports and `_test` nulls you need), anything in `.scaffolds/seq/` and in `packages/core/`. Ask in the report for
 what you need there.
 
 **Headers**: the Mol\* header, `Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more
-info.`, with `@author David Sehnal <david.sehnal@gmail.com>`. No mention of `packages/sequences` or `.seq/` in code,
+info.`, with `@author David Sehnal <david.sehnal@gmail.com>`. No mention of `packages/sequences` or `.scaffolds/seq/` in code,
 comments or tests.
 
 **Checks**, each its own command, green only on exit 0 with a non-zero test count:

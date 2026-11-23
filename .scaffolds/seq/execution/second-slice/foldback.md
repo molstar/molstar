@@ -64,7 +64,7 @@ Where to: **P** principles (the instance's adaptations, and the oz package's hom
      add or remove (several ranges), a direction one way only (a reversed follower), a protein's data on its gene but
      not its letters (one axis). The sixth (collapsed introns) was planned but not built. The author: "some things are
      often under-designed. how can we better identify and surface these gaps?"
-   - *Proposal* (the author asked for ways, then: "the .seq/oz/_core/recurrence.md asks for a negation (.. which sort
+   - *Proposal* (the author asked for ways, then: "the .scaffolds/principles/_core/recurrence.md asks for a negation (.. which sort
      of is inverse). should we apply the recurrence to the designs too? the "4 phase cycle" is generally quite good at
      identifying residuals"):
      1. **The self-check runs on every design when it is agreed, not only at a fold-back** (P: §design-first,

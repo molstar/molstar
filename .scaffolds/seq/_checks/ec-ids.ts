@@ -1,29 +1,29 @@
 // The edge-case id check (§mechanical-drift-checks; the manifest, "Folded back from the first slice"): every `EC-<n>`
 // cited in a tracked file under `packages/seq` (built output in `lib/` aside) names an item of the catalog,
-// `.seq/sources/seqstar/edge-cases.md`, where an item is a top-level numbered line (`143. ...`). A range written
+// `.scaffolds/seq/sources/seqstar/edge-cases.md`, where an item is a top-level numbered line (`143. ...`). A range written
 // `EC-<a>–<b>` or `EC-<a> to EC-<b>` cites each id in it. The ids are numbers only, so code citing them names no
-// `.seq/` path; the design's `edge-cases.md` only refers to the catalog.
+// `.scaffolds/seq/` path; the design's `edge-cases.md` only refers to the catalog.
 // Coverage (the third slice's fold-back, B4): a test names the catalog item it tests (`(EC-43)` in its title or a
-// comment of its file under `_test/`). A feature marked `done` in `.seq/design/features.md` covers its Cases: each
-// must be named by a test or have an outcome in `.seq/design/edge-cases.md` ("Outcomes of ..."), else it fails,
+// comment of its file under `_test/`). A feature marked `done` in `.scaffolds/seq/design/features.md` covers its Cases: each
+// must be named by a test or have an outcome in `.scaffolds/seq/design/edge-cases.md` ("Outcomes of ..."), else it fails,
 // unless the baseline lists it (rows marked done before the rule; the baseline only shrinks, and a lane never edits
 // it, §lanes-dont-edit-checks). The items a built row (`done` or `building`) covers that no test names are printed as
 // the close's worklist (`--worklist`).
 // Usage: ec-ids.ts [root] [--worklist]
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { args, finish, trackedFiles } from "../oz/_checks/lib.ts";
+import { args, finish, trackedFiles } from "../../principles/_checks/lib.ts";
 
-const CATALOG = ".seq/sources/seqstar/edge-cases.md";
+const CATALOG = ".scaffolds/seq/sources/seqstar/edge-cases.md";
 const SCOPE = "packages/seq/";
 
 const argv = process.argv.slice(2);
 const WORKLIST = argv.includes("--worklist");
 if (WORKLIST) process.argv.splice(process.argv.indexOf("--worklist"), 1);
 const { root: ROOT } = args();
-const FEATURES = ".seq/design/features.md";
-const OUTCOMES = ".seq/design/edge-cases.md";
-const BASELINE = ".seq/_checks/ec-coverage-baseline.json";
+const FEATURES = ".scaffolds/seq/design/features.md";
+const OUTCOMES = ".scaffolds/seq/design/edge-cases.md";
+const BASELINE = ".scaffolds/seq/_checks/ec-coverage-baseline.json";
 const TEST_FILE = /(\/_test\/|\.test\.|\.quick\.)/;
 
 let catalog: string;

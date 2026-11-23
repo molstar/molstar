@@ -20,7 +20,7 @@ RW's fixes was checked in light only (Scale's tiles in canvas and SVG, labels wh
 - Gate 0 decided (2026-11-18); the size targets are guides, not bounds ("don't overdo it on the limits ... but
   obviously try to minimize the amount of code").
 - The designs drafted, reviewed for their decisions, self-checked as a set (the four steps), decided by the author and
-  agreed into `.seq/design/` (axis, themes, layouts, grids-and-rows, navigators, the datasets in examples) with their
+  agreed into `.scaffolds/seq/design/` (axis, themes, layouts, grids-and-rows, navigators, the datasets in examples) with their
   Storybook Design pages.
 - C0 merged (`6d4b96898`): review's six findings fixed, the look's disabled buttons fixed. Stage 0's gate passed:
   quick 822, heavy 44, typechecks, lint, format, sizes (150.6 / 267.9 / 507.8 kB, all under target); no medium tests
@@ -73,7 +73,7 @@ RW's fixes was checked in light only (Scale's tiles in canvas and SVG, labels wh
 - GD merged (`b69771348`, changelog `seq-gap-decisions.md`): gaps 1-6 and the individual colour-list exports (-13.4 kB);
   review findings fixed; looked at in dark. Every ColorLists importer typechecks; MVS and the base sequences pass.
 
-- SO merged (Features apart from Examples; a story-link test). FS's design agreed (the author, 2026-11-19: "Ok as recommended"): `.seq/design/files.md`, the Design page
+- SO merged (Features apart from Examples; a story-link test). FS's design agreed (the author, 2026-11-19: "Ok as recommended"): `.scaffolds/seq/design/files.md`, the Design page
   "Files and sources", sources, protocol, examples, base-library, themes and performance amended; FS split into FS-A1
   (strong), FS-A2 (fast), FS-B (conditional). Next: FS-A1. The heavy lane capped at 2 workers (the author, 2026-11-19: "Yes, cap at 2"; QT's measurement).
 
@@ -89,7 +89,7 @@ RW's fixes was checked in light only (Scale's tiles in canvas and SVG, labels wh
 
 - MD drafted (`drafts/molecules.md`): a `molecule` kind, `sequence.components`, `complex`/`unit`, a `group` map, 0.5.0
   for the fourth slice (lanes ML, MC, MR, MX); 9 gaps. Reviewed (8 must-changes, all taken) and revised; agreed by the author 2026-11-19 ("Other recommendations from
-  the design ok"; gap 10 off; gap 11 superseded by the seq data ports design, fourth slice): `.seq/design/molecules.md`
+  the design ok"; gap 10 off; gap 11 superseded by the seq data ports design, fourth slice): `.scaffolds/seq/design/molecules.md`
   with its Design page; maps.md, base-library.md, examples.md updated.
 - PG and NV reported (branches `seq/pg-pairs-grids`, `seq/nv-navigators`, base `51787bb2b`); checks rerun by the
   orchestrator: PG green (unit 1433); NV green but heavy, whose two failures (rows-time's theme change, themes' 1.1×
@@ -139,7 +139,7 @@ the dark cell edge, `view.motion`, the pyramid's tolerance), then stage 4's GATE
 | stage 2, RB (review and look) | 9 (an empty ring throws; >24 blocks; blocks on several systems select wrongly; label hits; overlapping label boxes; the start grip across the origin; a wide window flipping; tracks not wrapping, a test changed to fit; a blank view past the fit) | 0 | 2 (a whole-ring window loud; stacked rows empty) |
 | stage 2's gate (look, heavy) | 1 (a max bound flaking under load) | 0 | 2 (gutter labels overlap; a heavy count strip) |
 | stage 2, TA (review) | 0 (a test gap) | 0 | 0 |
-| stage 2, TX's interface (review) | 5 (rings drew no emphasis; contract parts unwired; place not inverse of at; stale glyph values; a `.seq/` edit) | 0 | 0 |
+| stage 2, TX's interface (review) | 5 (rings drew no emphasis; contract parts unwired; place not inverse of at; stale glyph values; a `.scaffolds/seq/` edit) | 0 | 0 |
 | stage 1, TH (review and look) | 8 (log binned; clamp unapplied; the MolViewSpec round trip; mid not diverging; value-color overwriting; two legends off their scale; layer.filter called blocked) | 1 (a safe substitute that is not safe) | 3 (two stories empty; the view not on SL's layers; dark letters dim) |
 | stage 1, SL (review and look) | 4 (heads on the wrong piece off-tile; hidden items untick'd, a design departure; secondary codes misread; an untested stem hit) | 0 | 1 (labels struck through) |
 | stage 1, AX (review and look) | 6 (Shift+C on a lone gene; focus outside a range; pieces outside a range; a deopt hidden by scenario order; the history key's size; a reversed cyclic follower) | 0 | 1 (the protein row solid conflict ink) |
@@ -452,15 +452,15 @@ None.
   the use gate's look at what changed, stage 7 (M3, the targets gate) and finalize. DR to the fourth slice
   (followups.md).
 - The author (2026-11-19): "you can also run another 1-2 lanes for slice 3 now": DS (fast) and PZ (strong) start on
-  9bb9cb088 beside DB's review; the fourth slice's plan drafted by a planning agent (`.seq/execution/fourth-slice/`).
+  9bb9cb088 beside DB's review; the fourth slice's plan drafted by a planning agent (`.scaffolds/seq/execution/fourth-slice/`).
 - The author (2026-11-19): "default is 1+1-2 lanes now": one strong lane and one or two fast lanes at once, for this
   slice's rest and the fourth's default (its plan says one at a time: to amend at its Gate 0). Now running: DB's fix
   round and PZ (strong, both started before), DS (fast); no new strong lane until one of them merges.
-- The author (2026-11-19): DR starts now as an exception (design only, `.seq/` only): the two drafts copied to
-  `fourth-slice/drafts/` and revised there; promoted to `.seq/design/` with their Design pages on the author's OK. The
+- The author (2026-11-19): DR starts now as an exception (design only, `.scaffolds/seq/` only): the two drafts copied to
+  `fourth-slice/drafts/` and revised there; promoted to `.scaffolds/seq/design/` with their Design pages on the author's OK. The
   defaults audit stays a record (its decisions are in the designs). Nightingale kept in the fourth slice.
 - DR done: the two drafts revised, the author's answers folded ("priority + via", the secondary click "Everywhere",
-  `headerPartsDom()` shipped) and promoted (the author: "Yes, after folding") to `.seq/design/structure-syncing.md`
+  `headerPartsDom()` shipped) and promoted (the author: "Yes, after folding") to `.scaffolds/seq/design/structure-syncing.md`
   and `track-header-parts.md` with their Design pages; maps.md, ports.md, viewer-composition.md, ux-foundations.md,
   features.md updated. SP and XD drafting.
 - DB merged (6e290d105, after its review round; checks on the merged head: 2422 quick, 110 medium, perf 135; the p53
@@ -486,4 +486,4 @@ None.
   fold-back applied (merged by the author), the gate green (quick 2465, medium 110, heavy 109, build, workspace), the
   worktrees cleaned (CE's kept; TX's branch kept, its work in through TV), the fourth slice's loop and state written.
 
-Closed 2026-11-20: .seq/records/third-slice/2026-11-20-third-slice.md
+Closed 2026-11-20: .scaffolds/seq/records/third-slice/2026-11-20-third-slice.md

@@ -45,11 +45,11 @@ packages/seq/core size` before and after. Exit codes explicit, non-zero test cou
 and dark.
 
 **Headers**: a modified file keeps its header, year range to 2026, `@author David Sehnal <david.sehnal@gmail.com>` added
-if missing; a new file has the Mol\* header with that author. No mention of `.seq/` in code; code cites its `_spec`.
+if missing; a new file has the Mol\* header with that author. No mention of `.scaffolds/seq/` in code; code cites its `_spec`.
 
 **Hot files, never staged**: `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`,
 `biome.json`, `vitest.config.ts`, `storybook/packages.ts`, `.v6/changelogs/` (the entry's text in the report), every
-`package.json` and `tsconfig*.json`, anything in `.seq/`.
+`package.json` and `tsconfig*.json`, anything in `.scaffolds/seq/`.
 
 **Stop when** green, or a check fails twice after a fix, or the work needs public API past the params above
 (`padding`, `trackPadding`, `trackShape`), or a permission is refused.

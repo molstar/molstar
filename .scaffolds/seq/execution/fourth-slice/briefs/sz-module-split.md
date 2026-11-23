@@ -1,7 +1,7 @@
 # Lane SZ: the files over 1500 lines split by what changes together
 
-**Task**: §module-size (oz, architecture rules) bounds a source file at 1500 lines; `.seq/_checks/file-size.ts` lists
-the files already past it in `.seq/_checks/file-size-baseline.json`, which only shrinks. Split them:
+**Task**: §module-size (oz, architecture rules) bounds a source file at 1500 lines; `.scaffolds/seq/_checks/file-size.ts` lists
+the files already past it in `.scaffolds/seq/_checks/file-size-baseline.json`, which only shrinks. Split them:
 `core/src/render/tracks.ts` (2882 at the rule), `core/src/render/rows.ts` (2520), `core/src/render/ranges.ts` (1543),
 `viewer/src/viewer.ts` (1570); look at `viewer/src/models/view.ts` (1466) and say whether it is one concern. Read each
 file first and name its concerns (for a layer: its layout, its draw, its hit-test, its label placement; for the

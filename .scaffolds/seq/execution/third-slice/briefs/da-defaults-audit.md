@@ -8,8 +8,8 @@ content, in steps" — propose its numbers: the lane, padding, cap), spacing bet
 truncation (LL's rule is decided: inside if it fits, else beside), font sizes, colours and contrast, ruler density,
 legend placement, chips and headers, anything that a reader would call unfinished.
 
-**Output**: `.seq/execution/third-slice/drafts/defaults-audit.md` — **write it in your worktree and report its full
-text** (you may not stage `.seq/`; the orchestrator copies it). Per finding: the story, what looks poor (one line),
+**Output**: `.scaffolds/seq/execution/third-slice/drafts/defaults-audit.md` — **write it in your worktree and report its full
+text** (you may not stage `.scaffolds/seq/`; the orchestrator copies it). Per finding: the story, what looks poor (one line),
 the default that causes it (file:line or param), a proposed default with its reason, and whether a decided design
 already covers it. Group by default (one proposal fixing many stories counts once). Rank by how much it improves the
 first impression. Include the screenshot paths (in the session scratchpad

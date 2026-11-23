@@ -6,7 +6,7 @@
 // Usage: file-size.ts [root] [--update]
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { finish, trackedFiles } from "../oz/_checks/lib.ts";
+import { finish, trackedFiles } from "../../principles/_checks/lib.ts";
 
 /** The folders checked: Seq*'s packages. */
 const CHECKED = /^packages\/seq\/.*\.(ts|tsx|mts|mjs|js)$/;
@@ -15,7 +15,7 @@ const TEST = /(\/_test\/|\.test\.|\.quick\.|\.heap\.)/;
 const SOFT = 800;
 const HARD = 1500;
 const TEST_HARD = 2500;
-const BASELINE = ".seq/_checks/file-size-baseline.json";
+const BASELINE = ".scaffolds/seq/_checks/file-size-baseline.json";
 
 const argv = process.argv.slice(2);
 const update = argv.includes("--update");

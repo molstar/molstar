@@ -1,8 +1,8 @@
 # Lane DL: two short designs the fix lanes wait for
 
 **Model**: strong. **No code, no worktree, no commits**: write two drafts in the main checkout's
-`.seq/execution/fifth-slice/drafts/` (the stage 0 drafts' rule: one file each, the orchestrator commits them). Read
-first: `.seq/design/README.md` (how a design is written: Intent, Precedents, Decision, Defaults with a picture, the
+`.scaffolds/seq/execution/fifth-slice/drafts/` (the stage 0 drafts' rule: one file each, the orchestrator commits them). Read
+first: `.scaffolds/seq/design/README.md` (how a design is written: Intent, Precedents, Decision, Defaults with a picture, the
 interaction matrix's cells, Configuration, Tensions, Self-check, Consequences), `ux-foundations.md`, `navigators.md`,
 `layouts.md`, `grids-and-rows.md` (the rows' scroll and rail), and the two items in `fixes.md` (Open) named below with
 the author's words. Look at the code that draws them today (`packages/seq/core/src/render/navigator*.ts`,
@@ -21,7 +21,7 @@ the author's words. Look at the code that draws them today (`packages/seq/core/s
    fixed), the first row labelled; how this meets the empty-well rule (`fixes.md`), export (an SVG of a capped track:
    all lanes or the cap?), the rows layout, and a ring (no inner scroll on a ring: say what happens); precedents
    (IGV's expanded/squished, JBrowse's max height, UCSC's dense/pack); edge cases by EC id where the catalog has them
-   (`.seq/design/edge-cases.md` or wherever the catalog lives; new ones proposed as `EC-new-n`).
+   (`.scaffolds/seq/design/edge-cases.md` or wherever the catalog lives; new ones proposed as `EC-new-n`).
 
 Each draft ends with "Gaps for the author" (yes/no questions, each with a recommendation) and its self-check. Under
 about 250 lines each. Report under 200 words: the two files, the decisions each proposes, the gaps.

@@ -2,7 +2,7 @@
 
 **Base**: `packages-seq` at the orchestrator's head (`git reset --hard packages-seq` first). Branch `seq/fx-4`. Model:
 Sonnet. Follow `fx-fix-lane.md` (one commit per item, a test failing on its parent, a look in light and dark). Read
-`.seq/design/navigators.md` ("The positions rail beside a declared navigator, and its place" and "A list, and a pinned
+`.scaffolds/seq/design/navigators.md` ("The positions rail beside a declared navigator, and its place" and "A list, and a pinned
 place", and the Configuration row), core's and the viewer's `_spec` (Navigators, Configuration), and FX3's code
 (`railRows`, `railSections`, `RailPlace`, `RailRow`) first.
 
@@ -23,12 +23,12 @@ Keep the default `ruler`; nothing moves for a reader who sets nothing. The viewe
 text.
 
 **Where**: a worktree on `seq/fx-4`. Headers updated (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); hot files
-never staged (`.seq/`, `.v6/changelogs/`, `packages/seq/TODO.md`, `package.json`s): list the edits. Do not start
+never staged (`.scaffolds/seq/`, `.v6/changelogs/`, `packages/seq/TODO.md`, `package.json`s): list the edits. Do not start
 storybook servers you leave running; stop any you start before you report.
 
 **Checks** (all, with numbers): `pnpm test:unit packages/seq/`, `npx tsc -b`, `pnpm -s -C
 packages/seq/{core,viewer,examples} typecheck:test`, `pnpm -C packages/seq/storybook typecheck`, `pnpm lint`,
 `pnpm format:check`, both perf tiers, `pnpm -s -C packages/seq/core size`, `pnpm test:heavy packages/seq/`, the four
-`.seq/_checks`.
+`.scaffolds/seq/_checks`.
 
 **Report**: under 200 words: commits; checks with numbers; the story ids; the `.v6/changelogs/` text.

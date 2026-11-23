@@ -1,6 +1,6 @@
 # The third slice's edge-case outcomes, drafted (EO, 2026-11-19)
 
-Lane EO's read-only draft (`briefs/eo-ec-outcomes.md`), for finalize to paste into `.seq/design/edge-cases.md` under
+Lane EO's read-only draft (`briefs/eo-ec-outcomes.md`), for finalize to paste into `.scaffolds/seq/design/edge-cases.md` under
 "## Outcomes of the third slice", after RK (EC-154, 155) and CS (EC-169–175) fill their rows and ET adds tests for the
 built-but-untested ones. EO ran 34 of the cited files (497 passed); the heavy files, `small-review`, the CLI's and two
 storybook tests it cites were read, not run. Paths relative to `packages/seq/` (EC-126's to the repository root).

@@ -32,7 +32,7 @@ EC-212 in titles. **Performance**: a lifted layer's warm frame 0 B, its hover 0 
 new section relaying that section and the bridge only (counted).
 
 **Where**: a worktree on `seq/la4`. Headers (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); commit at each green
-step; hot files never staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.seq/`, `.v6/changelogs/`,
+step; hot files never staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.scaffolds/seq/`, `.v6/changelogs/`,
 `storybook/packages.ts`, `packages/seq/TODO.md`): list them. No language change (a needed param stops the lane with a
 report). Anything in `@molstar/core` or `@molstar/io` stops the lane. A file past 800 lines is a question. Sizes soft
 (headless 960 at ~951, default 1,510 at ~1,500.5): trim first, keep the liftover behind the bridge's lazy door where it
@@ -41,8 +41,8 @@ vary with file order (fixes.md, PF is on it): if one flips, rerun the file alone
 
 **Checks**: the quick lane, `npx tsc -b packages/seq/core packages/seq/viewer packages/seq/examples`, each
 `typecheck:test`, the storybook typecheck, `pnpm lint`, `pnpm format:check`, both perf tiers to completion,
-`pnpm -s -C packages/seq/core size` (read the rows for FAIL), `pnpm test:medium packages/seq/`, the `.seq/_checks`
-(features-planned with `--plan .seq/execution/fifth-slice/plan.md`). A fix's test fails on its parent.
+`pnpm -s -C packages/seq/core size` (read the rows for FAIL), `pnpm test:medium packages/seq/`, the `.scaffolds/seq/_checks`
+(features-planned with `--plan .scaffolds/seq/execution/fifth-slice/plan.md`). A fix's test fails on its parent.
 
 **Report**: under 350 words: commits; checks with numbers; story ids; sizes; the card change (for HC); designs to amend;
 hot-file needs; the `.v6/changelogs/` text.

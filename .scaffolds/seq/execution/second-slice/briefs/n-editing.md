@@ -1,6 +1,6 @@
 # Lane N: editing in the viewer
 
-**Goal**: build editing as `.seq/design/changes.md`, `viewer-models.md` and `patches.md`/`merge.md` (their consumers)
+**Goal**: build editing as `.scaffolds/seq/design/changes.md`, `viewer-models.md` and `patches.md`/`merge.md` (their consumers)
 say, in `@molstar/seqx-viewer` (and `@molstar/seqx-core` where the model compiles increments) (plan.md, N):
 - **`SpecModel.applyPatch`** with `SeqLanguage`, its validate options, and an **incremental `checkSeqLang`** as the
   patch validator (its cost in proportion to `Changes`); then resolve and the view recompiling only what `Changes`
@@ -30,7 +30,7 @@ reserved `move`), an undo UI beyond what a story needs.
 **Agreed surface**: nothing new in `@molstar/core`; `applyPatch`, `diff`, `merge3` and `patchLanguage` as they are.
 Anything past them stops the lane.
 
-**Read first**: `.seq/design/changes.md` (all of it), `viewer-models.md`, `patches.md` (Applying, the inverse and the
+**Read first**: `.scaffolds/seq/design/changes.md` (all of it), `viewer-models.md`, `patches.md` (Applying, the inverse and the
 allowances, stored patches, previews), `merge.md` (Rebase), `composition.md`, `ports.md`, `addressing.md`; the viewer
 and core `_spec`s; `packages/seq/viewer/src/{models,ports,commands.ts,viewer.ts}`, `packages/seq/core/src/{lang,view,resolve}`;
 `packages/core/src/repr/_spec/README.md` (Patches, Merge); `packages/seq/AGENTS.md`.
@@ -67,7 +67,7 @@ how previews that no longer apply are reported; in the `_spec`s' Configuration t
 
 **Headers**: a new file has the Mol\* header `Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for
 more info.` with `@author David Sehnal <david.sehnal@gmail.com>`; a modified file keeps its header, its year range
-extended to 2026 and that author line added if missing. No mention of `packages/sequences` or `.seq/` in code, comments,
+extended to 2026 and that author line added if missing. No mention of `packages/sequences` or `.scaffolds/seq/` in code, comments,
 tests or `_spec`s; code cites its own `_spec` sections.
 
 **Fixes land with a test shown failing on the fix's parent**: the report names the command.
@@ -76,7 +76,7 @@ tests or `_spec`s; code cites its own `_spec` sections.
 - `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`, `biome.json`, `vitest.config.ts`;
 - `storybook/packages.ts`, `.v6/changelogs/` (write the changelog entry's text in your report);
 - every `package.json` and `tsconfig*.json` (ask in the report: exports, `_test` nulls, dependencies);
-- anything in `.seq/`.
+- anything in `.scaffolds/seq/`.
 
 **Stop when** the checks are green, or a check has failed twice after a fix, or the work needs a public API past the
 agreed surface, or a target cannot be met without changing a design (report the measurement and the options), or a

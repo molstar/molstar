@@ -77,7 +77,7 @@ export interface Mapping {
 }
 ```
 
-The runtime that knows each mapping registers it in the composition root ([§ports-and-adapters](../../../../oz/architecture/bootstrap-patterns/ports-and-adapters/README.md)). Mappings close over their sources, with no globals (§dependencies-passed-in):
+The runtime that knows each mapping registers it in the composition root ([§ports-and-adapters](../../../../../principles/architecture/bootstrap-patterns/ports-and-adapters/README.md)). Mappings close over their sources, with no globals (§dependencies-passed-in):
 
 ```ts
 mappings.push(
@@ -282,4 +282,4 @@ export const semanticGraphSuite = suite<SemanticGraph>("SemanticGraph",
 );
 ```
 
-Error codes and the remaining cases: see [README.md](README.md#conformance-cases). Codes are declared in this module with `defineErrors` ([§error-codes](../../../../oz/architecture/bootstrap-patterns/error-codes/README.md)).
+Error codes and the remaining cases: see [README.md](README.md#conformance-cases). Codes are declared in this module with `defineErrors` ([§error-codes](../../../../../principles/architecture/bootstrap-patterns/error-codes/README.md)).

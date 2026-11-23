@@ -15,7 +15,7 @@
       "!!**/lib",
       "!!deploy",
       "!!.claude",
-      "!!.seq",
+      "!!.scaffolds",
       "!!apps/docs/dist",
       "!!apps/docs/.astro",
       "!build.mjs",

@@ -9,7 +9,7 @@ subagents it starts. Read this file and `state.md` before every step.
 2. **Pick** the next unchecked items whose dependencies are merged (`plan.md`, Order and parallelism). Start at most two
    heavy lanes (strong model, long work) and two light ones (fast model, reviews, docs) at once (§parallelism).
 3. **Brief**: before a lane starts, write its brief in `briefs/<lane>-<name>.md` from the template
-   (`.seq/oz/_core/patterns/workflow-files.md`, Lane brief): goal and the designs to read, model, base commit, the files
+   (`.scaffolds/principles/_core/patterns/workflow-files.md`, Lane brief): goal and the designs to read, model, base commit, the files
    it touches and what is out of scope, the hot files it must not stage, its checks, when to stop, what to report.
 4. **Start the lane** as a subagent in its own git worktree (isolation: worktree), on a branch `seq/<lane>` cut from
    `packages-seq`, with the brief as its whole instructions and the model the brief names. It commits on its branch only
@@ -56,9 +56,9 @@ pnpm test:unit packages/core/src/repr packages/seq/   # the touched folders' qui
 npx tsc -b packages/core packages/seq/core packages/seq/viewer   # and the examples package once it exists
 pnpm lint
 pnpm format:check
-node .seq/oz/_checks/principles-ids.ts --package .seq/oz --instance .seq --allow '^(?!\.seq/)'
-node .seq/oz/_checks/paths-check.ts --allow '^(?!\.seq/|packages/seq/)'
-node .seq/oz/_checks/merge-gate.ts --package .seq/oz --instance .seq
+node .scaffolds/principles/_checks/principles-ids.ts --package .scaffolds/principles --instance .scaffolds/seq --allow '^(?!\.scaffolds/)'
+node .scaffolds/principles/_checks/paths-check.ts --allow '^(?!\.scaffolds/|packages/seq/)'
+node .scaffolds/principles/_checks/merge-gate.ts --package .scaffolds/principles --instance .scaffolds/seq
 ```
 
 At the integration gate (stage 5) also `pnpm test:medium` for the touched packages and the Storybook typecheck; in
@@ -78,5 +78,5 @@ finalize.
 
 When every item is ticked: reconcile (designs edited where the code taught otherwise, drift notes resolved or turned
 into followups in `packages/seq/TODO.md`, the `_spec`s with what is built, `status.md`, the features rows, the edge
-cases' outcomes for what was built); run the gate once more; write the record in `.seq/records/first-slice/`; end
+cases' outcomes for what was built); run the gate once more; write the record in `.scaffolds/seq/records/first-slice/`; end
 `state.md` with "Closed <date>: <record file>"; edit nothing in this folder after that.

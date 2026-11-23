@@ -2,9 +2,9 @@
 
 ## Ready to start
 
-The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`): RR merged, the size bounds set
+The third slice is closed (2026-11-20; its record in `.scaffolds/seq/records/third-slice/`): RR merged, the size bounds set
 (195 / 780 / 1250 / 880 kB), its fold-back applied, its worktrees cleaned (CE's kept, parked). Start with
-`/loop run .seq/execution/fourth-slice/loop.md`.
+`/loop run .scaffolds/seq/execution/fourth-slice/loop.md`.
 
 **Base**: `packages-seq`. Every brief's base is set to its head when the lane starts.
 
@@ -27,7 +27,7 @@ The third slice is closed (2026-11-20; its record in `.seq/records/third-slice/`
   there as they come (the author, 2026-11-20).
 - A label that does not fit its box: an ellipsis inside before it is dropped, at least 4 characters by default,
   configurable (`labels.minChars`; the author, 2026-11-20; `fixes.md`).
-- Module size (§module-size, `.seq/_checks/file-size.ts`): lane SZ splits the four files over 1500 lines after FX1,
+- Module size (§module-size, `.scaffolds/seq/_checks/file-size.ts`): lane SZ splits the four files over 1500 lines after FX1,
   while no other lane is in them (the author, 2026-11-20: "Yes, add all three").
 - MX's drifts (the author, 2026-11-20: "ok for the drifts"): a section's `via` counts every path of the section, its
   projections included (maps.md; MX fixes it with the projection bug); a component query on a source-backed sequence
@@ -161,4 +161,4 @@ One row a merged lane (loop, step 5, record): review findings and look findings 
 
 The loop's Checks on `packages-seq`; the plan's ticks against `git log --merges`.
 
-Closed 2026-11-21: `.seq/records/fourth-slice/2026-11-21-fourth-slice.md`
+Closed 2026-11-21: `.scaffolds/seq/records/fourth-slice/2026-11-21-fourth-slice.md`

@@ -6,7 +6,7 @@ Milestones after the slice), plus the selection the first slice left out and wha
 [tree-core](../../design/tree-core.md), [viewer-models](../../design/viewer-models.md) (Hover and selection),
 [security](../../design/security.md), [performance](../../design/performance.md), and those each stage names.
 
-Starts once the first slice is closed (`.seq/records/first-slice/`), on `packages-seq`.
+Starts once the first slice is closed (`.scaffolds/seq/records/first-slice/`), on `packages-seq`.
 
 ## Done when
 
@@ -253,7 +253,7 @@ slice's letters from K; stage 0's carry-over lane is S0.
   - `status.md`, the features rows, the edge cases' outcomes, `TODO.md`;
   - the fold-back (what this slice taught, for the author).
 
-  Then write the record in `.seq/records/second-slice/` and end `state.md` with its closing line.
+  Then write the record in `.scaffolds/seq/records/second-slice/` and end `state.md` with its closing line.
 
 ## Order and parallelism
 
@@ -268,7 +268,7 @@ The first slice's list:
 - `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`, `biome.json`, `vitest.config.ts`;
 - `storybook/packages.ts`, `.v6/changelogs/`;
 - `packages/seq/*/package.json` and `tsconfig*.json`;
-- `.seq/`.
+- `.scaffolds/seq/`.
 
 New in this slice: `packages/core/package.json` and `packages/io/package.json` (lanes R, K, L and M ask for export
 changes in their reports).

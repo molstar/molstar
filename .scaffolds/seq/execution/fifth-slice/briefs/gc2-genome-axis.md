@@ -36,14 +36,14 @@ the whole genome" closes on your measure of the 3,000-contig fixture), `axis.md`
 Blocks, Rings, Export, Configuration; Resolved view), GC1's commits on `packages-seq` for what it declared.
 
 **Where**: a worktree on `seq/gc2`. Headers updated (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); hot files
-never staged (`package.json`s, lockfile, `biome.json`, `.seq/`, `.v6/changelogs/`, `storybook/packages.ts`,
+never staged (`package.json`s, lockfile, `biome.json`, `.scaffolds/seq/`, `.v6/changelogs/`, `storybook/packages.ts`,
 `packages/seq/TODO.md`): list them. Public API changes allowed in `packages/seq`, core's `repr` and `@molstar/ui`;
 anything else in `@molstar/core` or in `@molstar/io` stops the lane and comes back as a question.
 
 **Checks**: as `fx1-checks-and-carried.md` lists them, both perf tiers (`pnpm -s -C packages/seq/{core,storybook}
 test:perf`, B6), `pnpm -s -C packages/seq/core size` (reading 0.8 kB left, minimal 4.6 kB: the render growth lands in
 the viewers; stop and report if a bound would move), `pnpm test:heavy packages/seq/` for the `itWithin` bounds, the
-four `.seq/_checks` and `features-planned.ts --plan .seq/execution/fifth-slice/plan.md`. A fix's test fails on its
+four `.scaffolds/seq/_checks` and `features-planned.ts --plan .scaffolds/seq/execution/fifth-slice/plan.md`. A fix's test fails on its
 parent. Do not claim a failure is the base's without running it on the base.
 
 **Report**: under 300 words: commits; checks with numbers; the story ids for the orchestrator's look (light and dark,

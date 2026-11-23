@@ -15,7 +15,7 @@
   - **The ring**: "a real window, as recommended" (the square); "make it RX3 after RX2" (kinds of links); "let's pause
     the loop after RX2 is done", then "can we resume the loop?".
   - **Scope**: the Prism swap and the old package's removal deferred ("i was planning to rewrite whole prism anyway");
-    `.seq/` reconciled into a common place for scaffolds as the sixth slice; the storybook's Docs taken early ("i think
+    `.scaffolds/seq/` reconciled into a common place for scaffolds as the sixth slice; the storybook's Docs taken early ("i think
     we can write the slice 6 docs now ?").
 
 ## Decided

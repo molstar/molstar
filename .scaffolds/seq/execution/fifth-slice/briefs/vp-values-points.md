@@ -35,7 +35,7 @@ value; SVG export draws the same dots (circles) as the canvas. **Performance**: 
 allocation case each), points' hover 0 B warm.
 
 **Where**: a worktree on `seq/vp`. Headers (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); commit at each
-green step; hot files never staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.seq/`,
+green step; hot files never staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.scaffolds/seq/`,
 `.v6/changelogs/`, `storybook/packages.ts`, `packages/seq/TODO.md`): list them. The core `_spec`'s values sections
 change in the same commits; design text for `layouts.md` ("The values look") listed for the orchestrator. Anything in
 `@molstar/core` or `@molstar/io` stops the lane. A file past 800 lines is a question (`render/values.ts` is near it:
@@ -44,8 +44,8 @@ trim first, report growth with its cause, do not edit bounds. Timing and allocat
 
 **Checks**: the quick lane, `npx tsc -b packages/seq/core packages/seq/viewer packages/seq/examples`, each
 `typecheck:test`, the storybook typecheck, `pnpm lint`, `pnpm format:check`, both perf tiers to completion,
-`pnpm -s -C packages/seq/core size` (read the rows for FAIL), `pnpm test:medium packages/seq/`, the `.seq/_checks`
-(features-planned with `--plan .seq/execution/fifth-slice/plan.md`, `defaults-designed.ts`). A fix's test fails on its
+`pnpm -s -C packages/seq/core size` (read the rows for FAIL), `pnpm test:medium packages/seq/`, the `.scaffolds/seq/_checks`
+(features-planned with `--plan .scaffolds/seq/execution/fifth-slice/plan.md`, `defaults-designed.ts`). A fix's test fails on its
 parent.
 
 **Report**: under 350 words: commits; checks with numbers; story ids; sizes; the version and its history line; the

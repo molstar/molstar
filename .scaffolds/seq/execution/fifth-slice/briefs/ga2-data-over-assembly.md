@@ -41,7 +41,7 @@ Out of scope: BEDPE through the store (RS's gap 2, FR's); the language (no new p
 already declared); sided pairs on side `b` (LA's).
 
 **Where**: a worktree on `seq/ga2`. Headers (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); commit at each
-green step; hot files never staged (`package.json`s, `tsconfig*.json`, lockfile, `.seq/`, `.v6/changelogs/`,
+green step; hot files never staged (`package.json`s, `tsconfig*.json`, lockfile, `.scaffolds/seq/`, `.v6/changelogs/`,
 `storybook/packages.ts`, `packages/seq/TODO.md`): list them. Anything in `@molstar/core` or `@molstar/io` stops the
 lane. A file past 800 lines is a question; past 1500 a failure. Sizes: reading 260, headless 920, default 1,460,
 minimal 1,040 kB; a bound passed is a question.
@@ -49,7 +49,7 @@ minimal 1,040 kB; a bound passed is a question.
 **Checks**: the quick lane (under 2 s a touched folder), `npx tsc -b packages/seq/core packages/seq/viewer
 packages/seq/examples`, each `typecheck:test`, the storybook typecheck, `pnpm lint`, `pnpm format:check`, both perf
 tiers, `pnpm -s -C packages/seq/core size`, `pnpm test:medium packages/seq/`, `pnpm test:heavy packages/seq/` when
-load is under 6, the `.seq/_checks` (features-planned with `--plan .seq/execution/fifth-slice/plan.md`). A fix's test
+load is under 6, the `.scaffolds/seq/_checks` (features-planned with `--plan .scaffolds/seq/execution/fifth-slice/plan.md`). A fix's test
 fails on its parent.
 
 **Report**: under 350 words: commits; checks with numbers; story ids; sizes; the public surface; what is left; hot-file

@@ -1,6 +1,6 @@
 # Lane K: revisions, patches and diff in `@molstar/core/repr`
 
-**Goal**: build `.seq/design/patches.md` exactly: its API section is the agreed surface (entry
+**Goal**: build `.scaffolds/seq/design/patches.md` exactly: its API section is the agreed surface (entry
 `@molstar/core/repr/patch`, and in `repr/schema` the `Changes` type, `validateChanges` and `normalizeValue`).
 - the six ops with their inverses and `inverseNeeds`; `applyPatch` in the design's eight steps (result then base,
   ops, normalization of what was made, refs following a move, validation by how each object came to be, link
@@ -19,7 +19,7 @@
 
 Not in scope: `merge3` (lane K2), `SpecModel` and the viewer (lane N), the persistent ref index.
 
-**Read first**: `.seq/design/patches.md` (all of it), `tree-core.md`, `format.md`, `addressing.md`,
+**Read first**: `.scaffolds/seq/design/patches.md` (all of it), `tree-core.md`, `format.md`, `addressing.md`,
 `changes.md`, `language-description.md`; `packages/core/src/repr/_spec/README.md` and the code under
 `packages/core/src/repr/`; `packages/seq/core/_spec/README.md` (Language) and `packages/seq/core/src/lang/`.
 
@@ -29,14 +29,14 @@ Not in scope: `merge3` (lane K2), `SpecModel` and the viewer (lane N), the persi
 
 **Touches**: `packages/core/src/repr/**` (new `patch/`, `schema` additions, `tree/address.ts` for the child index) and its
 `_spec`; `packages/seq/core/src/lang/**`, the examples' builders (`packages/seq/examples/src/**`), and tests that build
-layers across `packages/seq`; `.seq/design/format.md` and `tree-core.md` are the orchestrator's (say in the report
+layers across `packages/seq`; `.scaffolds/seq/design/format.md` and `tree-core.md` are the orchestrator's (say in the report
 what they should say).
 
 **Hot files, never staged**:
 - `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`, `biome.json`, `vitest.config.ts`;
 - `storybook/packages.ts`, `.v6/changelogs/` (write the changelog entry's text in your report);
 - every `package.json` and `tsconfig*.json` (ask in the report: exports, `_test` nulls, dependencies);
-- anything in `.seq/`.
+- anything in `.scaffolds/seq/`.
 
 **Two consumers**: `checkPatches` run with `PatchCases` and with a case set over `SeqLanguage` (a few cases: a layer
 hidden, a track moved with a ref following, a dangling ref refused), so the suite runs over the app's language too.
@@ -57,7 +57,7 @@ does not re-report an existing error; a kind-changing `replace` validates its ke
 
 **Headers**: a new file has the Mol\* header `Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for
 more info.` with `@author David Sehnal <david.sehnal@gmail.com>`; a modified file keeps its header, its year range
-extended to 2026 and that author line added if missing. No mention of `packages/sequences` or `.seq/` in code, comments,
+extended to 2026 and that author line added if missing. No mention of `packages/sequences` or `.scaffolds/seq/` in code, comments,
 tests or `_spec`s; code cites its own `_spec` sections.
 
 **Fixes land with a test shown failing on the fix's parent**: the report names the command.

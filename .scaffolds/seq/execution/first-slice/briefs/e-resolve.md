@@ -26,11 +26,11 @@
   (`/data/p53/(range :from 94 :to 292)`) through `QueryModel`; projection of a protein range onto the gene through the
   codon map (both strands).
 
-**Read first**: `.seq/design/composition.md`, `maps.md`, `building-blocks.md` (the nouns), `locations-and-queries.md`,
+**Read first**: `.scaffolds/seq/design/composition.md`, `maps.md`, `building-blocks.md` (the nouns), `locations-and-queries.md`,
 `protocol.md` (sources, the store's keys; the store is `seqx-core/data`), `rendering.md` (the resolved view's contract),
-`viewer-models.md` (follow), the edge cases named above in `.seq/sources/seqstar/edge-cases.md` (old evidence paths
+`viewer-models.md` (follow), the edge cases named above in `.scaffolds/seq/sources/seqstar/edge-cases.md` (old evidence paths
 are guidance only), the `_spec` of `packages/seq/core` (Language, Queries, Data) and of `packages/core/src/repr`,
-`.seq/design/testing.md`.
+`.scaffolds/seq/design/testing.md`.
 
 **Model**: strong.
 
@@ -43,11 +43,11 @@ models (lane G), structures and computed maps.
 
 **Hot files, never staged**: `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`, `biome.json`,
 `vitest.config.ts`, `storybook/packages.ts`, `.v6/changelogs/`, `packages/seq/*/package.json` (ask in the report for
-the entry exports and `_test` nulls you need), anything in `.seq/` and in `packages/core/`. Ask in the report for
+the entry exports and `_test` nulls you need), anything in `.scaffolds/seq/` and in `packages/core/`. Ask in the report for
 what you need there.
 
 **Headers**: the Mol\* header, `Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more
-info.`, with `@author David Sehnal <david.sehnal@gmail.com>`. No mention of `packages/sequences` or `.seq/` in code,
+info.`, with `@author David Sehnal <david.sehnal@gmail.com>`. No mention of `packages/sequences` or `.scaffolds/seq/` in code,
 comments or tests.
 
 **Checks**, each its own command, green only on exit 0 with a non-zero test count:

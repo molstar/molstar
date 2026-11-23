@@ -14,7 +14,7 @@ one draft in three parts, each cut by Gate 0's answer 2 (cut order CN, then LE):
 **Reads**: extensibility.md, viewer-composition.md, navigators.md, themes.md (legends), layouts.md (track sizing's
 `ext:` names and the port), ports.md; core `src/context/`, `src/render/` registry code as built.
 
-**Output**: `.seq/execution/fourth-slice/drafts/extension-openings.md` only. No code, no commits. DR and SP draft
+**Output**: `.scaffolds/seq/execution/fourth-slice/drafts/extension-openings.md` only. No code, no commits. DR and SP draft
 beside you in the same folder: touch only your file.
 
 **Model**: strong (opus). **Where**: the main checkout, read only except that file.

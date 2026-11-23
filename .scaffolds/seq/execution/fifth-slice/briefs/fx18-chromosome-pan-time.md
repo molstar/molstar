@@ -22,7 +22,7 @@ loosen it.
 3. Rerun the heavy file three times alone: every case under its ratio.
 
 **Where**: a worktree on `seq/fx18`. Headers (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); hot files never
-staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.seq/`, `.v6/changelogs/`, `storybook/packages.ts`,
+staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.scaffolds/seq/`, `.v6/changelogs/`, `storybook/packages.ts`,
 `packages/seq/TODO.md`, `packages/seq/_measure/sizes.mjs`). Anything in `@molstar/core` or `@molstar/io` stops the lane.
 Remove the temporary worktrees you create.
 

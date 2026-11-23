@@ -1,6 +1,6 @@
 # Lane M: the asset manager's interface and its conformance suite
 
-**Goal**: the amendment agreed at Gate 0 (`.seq/design/security.md`, What the policy enforces today). The author: "we
+**Goal**: the amendment agreed at Gate 0 (`.scaffolds/seq/design/security.md`, What the policy enforces today). The author: "we
 make sure the interface has all we need, and then app composition still provides that. we should still have basic
 conformance tests for the asset manager that any implementation needs to satisfy."
 - `AssetManager.ResolveOptions` (`packages/core/src/util/assets.ts`) gains `credentials`
@@ -18,7 +18,7 @@ conformance tests for the asset manager that any implementation needs to satisfy
 
 Not in scope: range reads (they wait for bigWig), changes to how the cache works.
 
-**Read first**: `.seq/design/security.md`, `ports.md`, `base-library.md`; `packages/core/src/util/assets.ts`,
+**Read first**: `.scaffolds/seq/design/security.md`, `ports.md`, `base-library.md`; `packages/core/src/util/assets.ts`,
 `data-source.ts`, `util/_spec/assets.md`, `util/_test/assets.test.ts`; Seq\*'s asset policy and its tests.
 
 **Model**: fast (sonnet).
@@ -32,7 +32,7 @@ tests; Seq\*'s asset policy, its `_spec` and tests.
 - `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`, `biome.json`, `vitest.config.ts`;
 - `storybook/packages.ts`, `.v6/changelogs/` (write the changelog entry's text in your report);
 - every `package.json` and `tsconfig*.json` (ask in the report: exports, `_test` nulls, dependencies);
-- anything in `.seq/`.
+- anything in `.scaffolds/seq/`.
 
 **Two consumers**: `checkAssetManager` runs on `DefaultAssetManager` and on a minimal second implementation in the test
 (a derived manager an app could write, adding credentials), so the suite is shown to be implementation-independent.
@@ -45,7 +45,7 @@ tests; Seq\*'s asset policy, its `_spec` and tests.
 
 **Headers**: a new file has the Mol\* header `Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for
 more info.` with `@author David Sehnal <david.sehnal@gmail.com>`; a modified file keeps its header, its year range
-extended to 2026 and that author line added if missing. No mention of `packages/sequences` or `.seq/` in code, comments,
+extended to 2026 and that author line added if missing. No mention of `packages/sequences` or `.scaffolds/seq/` in code, comments,
 tests or `_spec`s; code cites its own `_spec` sections.
 
 **Fixes land with a test shown failing on the fix's parent**: the report names the command.

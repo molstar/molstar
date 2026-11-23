@@ -25,18 +25,18 @@ one copy; say which). Short, each building one idea, a sentence of text each:
 
 Use existing fixtures (`@molstar/seqx-examples`); no network. Light and dark. Each story's headless twin (as the other
 features' `_test` twins do: composed as the story composes it, on a fake clock). A row per story in
-`.seq/design/features.md` and the Storybook Features page (`design/features.mdx`) are hot: list the exact rows.
+`.scaffolds/seq/design/features.md` and the Storybook Features page (`design/features.mdx`) are hot: list the exact rows.
 
 **Out of scope**: no change under `packages/seq/{core,viewer,examples}` (an export a story needs: list it and stop to
 ask); no builder package; no new builder API.
 
 **Where**: a worktree on `seq/bs`. Headers on new and changed files (`@author David Sehnal <david.sehnal@gmail.com>`,
-2026). Commit at each green step. Hot files never staged (`package.json`s, lockfile, `biome.json`, `.seq/`,
+2026). Commit at each green step. Hot files never staged (`package.json`s, lockfile, `biome.json`, `.scaffolds/seq/`,
 `.v6/changelogs/`, `storybook/packages.ts`): list exact edits.
 
 **Checks**: `pnpm test:unit packages/seq/storybook` (under 2 s for the new folder), `pnpm -C packages/seq/storybook
-typecheck`, `pnpm lint`, `pnpm format:check`, `node .seq/_checks/file-size.ts`, `node .seq/_checks/features-planned.ts
---plan .seq/execution/fifth-slice/plan.md`.
+typecheck`, `pnpm lint`, `pnpm format:check`, `node .scaffolds/seq/_checks/file-size.ts`, `node .scaffolds/seq/_checks/features-planned.ts
+--plan .scaffolds/seq/execution/fifth-slice/plan.md`.
 
 **Report**: under 250 words: commits; story ids; how the code is kept one copy; checks with numbers; hot-file edits;
 the `.v6/changelogs/` text.

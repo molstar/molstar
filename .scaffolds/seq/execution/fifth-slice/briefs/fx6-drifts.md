@@ -19,13 +19,13 @@ one, stop that item and say so.
 Out of scope: the hover card's layout (a class item), anything in `@molstar/core` or `@molstar/io`, the language.
 
 **Where**: a worktree on `seq/fx-6`. Headers updated (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); hot files
-never staged (`.seq/`, `.v6/changelogs/`, `packages/seq/TODO.md`, `package.json`s, `tsconfig*.json`): list the edits.
+never staged (`.scaffolds/seq/`, `.v6/changelogs/`, `packages/seq/TODO.md`, `package.json`s, `tsconfig*.json`): list the edits.
 Stop any Storybook server you start before you report.
 
 **Checks** (all, with numbers): `pnpm test:unit packages/seq/` (under 2 s a touched folder), `npx tsc -b
 packages/seq/core packages/seq/viewer packages/seq/examples`, each `typecheck:test`, the storybook typecheck,
 `pnpm lint`, `pnpm format:check`, both perf tiers (the ranges layer is on a frame's path: a warm frame allocates
-nothing), `pnpm -s -C packages/seq/core size`, the `.seq/_checks` (features-planned with `--plan
-.seq/execution/fifth-slice/plan.md`). No `pnpm test:heavy`.
+nothing), `pnpm -s -C packages/seq/core size`, the `.scaffolds/seq/_checks` (features-planned with `--plan
+.scaffolds/seq/execution/fifth-slice/plan.md`). No `pnpm test:heavy`.
 
 **Report**: under 200 words: commits; checks with numbers; story ids; the `.v6/changelogs/` text.

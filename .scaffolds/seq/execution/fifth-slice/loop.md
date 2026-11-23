@@ -82,12 +82,12 @@ limit of two without anyone deciding it).
      the merge commit names the lane and the review's refuted or unfixed findings. Then:
      apply the hot-file changes the lane asked for (dependencies, inventory, tsconfig references, exports' `_test`
      nulls, Storybook registration, its `.v6/changelogs/` entry); lower the file-size baseline when a listed file
-     shrank (`node .seq/_checks/file-size.ts --update`); install; run the checks on the merged tree; remove the lane's
+     shrank (`node .scaffolds/seq/_checks/file-size.ts --update`); install; run the checks on the merged tree; remove the lane's
      worktree and delete its branch.
    - **record**: the lane's row in `state.md`'s findings table (review findings and look findings, by kind: bug,
      missing design, look; who looked, with the stories and themes seen, B2), kept for every lane, not only at gates; its drift, gaps and followups into `drift/`,
      `gaps.md` and `followups.md`.
-   - **features**: the lane's built rows in `.seq/design/features.md` and its entries on the Storybook Features page
+   - **features**: the lane's built rows in `.scaffolds/seq/design/features.md` and its entries on the Storybook Features page
      (`design/features.mdx`), with the story links, in the merge's commit or the next; a check fails a row still
      "planned" for a merged lane (B7).
 6. **Drift** (§drift-notes): where code and a design disagree, write `drift/<topic>.md` (what, where, the options, a
@@ -98,7 +98,7 @@ limit of two without anyone deciding it).
    check of it go into `fixes.md` as they come (the author, 2026-11-20).
 8. **What is drawn** lands with its story and the story's headless twin, composed as the story composes it, on a fake
    clock.
-9. **Designs and their pages move together**: a change to an agreed design updates its `.seq/design/` file and its
+9. **Designs and their pages move together**: a change to an agreed design updates its `.scaffolds/seq/design/` file and its
    Storybook Design page in one commit.
 10. **Update** `state.md` (done, in progress, next, decided, blockers, how to verify) and tick `plan.md` after every
     merged item, before starting a new lane, and before stopping. Commit the work folder (orchestrator only).
@@ -150,14 +150,14 @@ npx tsc -b packages/seq/core packages/seq/viewer packages/seq/examples   # and p
 pnpm -C packages/seq/core typecheck:test     # and the same for viewer and examples
 pnpm lint
 pnpm format:check
-node .seq/oz/_checks/principles-ids.ts --package .seq/oz --instance .seq --allow '^(?!\.seq/)'
-node .seq/oz/_checks/paths-check.ts --allow '^(?!\.seq/|packages/seq/)'
-node .seq/oz/_checks/merge-gate.ts --package .seq/oz --instance .seq
-node .seq/_checks/ec-ids.ts
-node .seq/_checks/closed-work.ts
-node .seq/_checks/file-size.ts
-node .seq/_checks/defaults-designed.ts
-node .seq/_checks/features-planned.ts --plan .seq/execution/fifth-slice/plan.md
+node .scaffolds/principles/_checks/principles-ids.ts --package .scaffolds/principles --instance .scaffolds/seq --allow '^(?!\.scaffolds/)'
+node .scaffolds/principles/_checks/paths-check.ts --allow '^(?!\.scaffolds/|packages/seq/)'
+node .scaffolds/principles/_checks/merge-gate.ts --package .scaffolds/principles --instance .scaffolds/seq
+node .scaffolds/seq/_checks/ec-ids.ts
+node .scaffolds/seq/_checks/closed-work.ts
+node .scaffolds/seq/_checks/file-size.ts
+node .scaffolds/seq/_checks/defaults-designed.ts
+node .scaffolds/seq/_checks/features-planned.ts --plan .scaffolds/seq/execution/fifth-slice/plan.md
 ```
 
 The third slice's fold-back added two of these: the config keys against the `_spec` tables are quick tests
@@ -190,8 +190,8 @@ fails (B7).
 
 ## Finalize
 
-**The work folder stays** in `.seq/execution/fifth-slice/`, closed and kept: never moved or deleted unless the author
-says so (the author, 2026-11-21: "the execution folder stays unless i say otherwise"); `.seq/records/fifth-slice/`
+**The work folder stays** in `.scaffolds/seq/execution/fifth-slice/`, closed and kept: never moved or deleted unless the author
+says so (the author, 2026-11-21: "the execution folder stays unless i say otherwise"); `.scaffolds/seq/records/fifth-slice/`
 holds only the record file.
 
 Starts with the unticked plan items listed in `state.md`, each run, cut by the author's word, or carried to the next
@@ -204,7 +204,7 @@ plan (B11: the fourth slice reached it with two unticked). Then, when every item
    rules held, amended or dropped; the count of what each gate, lane and use found, by kind; the self-check). The
    author decides on its own line; what was decided is applied and committed before the record.
 3. Run the gate once more.
-4. Write the record in `.seq/records/fifth-slice/` (the record file only), end `state.md` with "Closed <date>: <record
+4. Write the record in `.scaffolds/seq/records/fifth-slice/` (the record file only), end `state.md` with "Closed <date>: <record
    file>", and edit
    nothing in this folder after that.
 5. Write the next plan (version 1's close-out) with what this slice taught.

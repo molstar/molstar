@@ -30,7 +30,7 @@ band (GFF3 TP53), light and dark, with a sentence each; a headless twin. Hover a
 default, delete the others, update layouts.md and navigators.md's rail lines and the `_spec`, the tokens if new.)
 
 **Where**: a worktree on `seq/rl`. Headers (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); hot files never
-staged (`.seq/`, `.v6/changelogs/`, `packages/seq/TODO.md`, `package.json`s, `tsconfig*.json`): list edits. Stop any
+staged (`.scaffolds/seq/`, `.v6/changelogs/`, `packages/seq/TODO.md`, `package.json`s, `tsconfig*.json`): list edits. Stop any
 Storybook server you start and close any browser tab you open.
 
 **Checks**: the quick lane, `npx tsc -b packages/seq/core packages/seq/viewer packages/seq/examples`, each

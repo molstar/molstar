@@ -31,7 +31,7 @@ added if missing; code cites its own `_spec` sections; update the core `_spec`'s
 
 **Hot files, never staged**: `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`,
 `biome.json`, `vitest.config.ts`, `storybook/packages.ts`, `.v6/changelogs/`, every `package.json` and `tsconfig*.json`,
-anything in `.seq/`.
+anything in `.scaffolds/seq/`.
 
 **Stop when** green, or a check fails twice after a fix, or the fix needs a design change.
 

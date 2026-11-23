@@ -1,6 +1,6 @@
 # Lane EO: the third slice's edge-case outcomes, drafted (read-only)
 
-**Goal**: SR found `.seq/design/edge-cases.md` has no "Outcomes of the third slice" (`reconcile.md`, list 4). Draft it,
+**Goal**: SR found `.scaffolds/seq/design/edge-cases.md` has no "Outcomes of the third slice" (`reconcile.md`, list 4). Draft it,
 so finalize pastes a checked table. **Read only**: your report is the table.
 
 For each EC cited in `packages/seq` with no outcome row (SR's list: 11, 20, 33, 35, 38–41, 43, 44, 50, 51, 57, 59,

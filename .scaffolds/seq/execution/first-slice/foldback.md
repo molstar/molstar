@@ -4,9 +4,9 @@ The first slice built eleven lanes (A to J, C2) through briefs, an independent r
 after each stage. Each proposal below says what happened (the evidence is the commit or the note), what it would change,
 and where. **Nothing here is applied until the author approves it** (§authors-words-decide). Once approved:
 
-- rules for how the code works go into the packages' `_spec/` (they outlive `.seq/`);
-- rules for how work runs go into `.seq/principles/` as adaptations, and to the oz package's home as a fold-back;
-- design changes go into `.seq/design/`.
+- rules for how the code works go into the packages' `_spec/` (they outlive `.scaffolds/seq/`);
+- rules for how work runs go into `.scaffolds/seq/principles/` as adaptations, and to the oz package's home as a fold-back;
+- design changes go into `.scaffolds/seq/design/`.
 
 Where to: **P** principles (the oz package's home; an adaptation here until it is merged there), **D** a design, **S** a
 package `_spec`, **C** a check.
@@ -118,7 +118,7 @@ package `_spec`, **C** a check.
       The finalize reconcile found the error by hand.
     - *Proposal*: the drift check resolves every `EC-<n>` in `packages/seq` against the catalog, like its other
       registry references (§mechanical-drift-checks). The ids are numbers only, so code citing them stays free of
-      `.seq/` paths. When `.seq/` goes, the catalog's kept items need a home in a `_spec` (or the citations go).
+      `.scaffolds/seq/` paths. When `.scaffolds/seq/` goes, the catalog's kept items need a home in a `_spec` (or the citations go).
 
 15. **The rules found a bug while they were being written.** (evidence for 11, no new rule)
     - *What happened*: writing 11 into the viewer's `_spec` ("a signal named for the picture fires on every cause,

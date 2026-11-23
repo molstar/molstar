@@ -29,7 +29,7 @@ language's layer `filter` and `color` channels in the core `_spec`.
    legend toggling each; at the fit, on one chromosome, and on a pair; light and dark, canvas and SVG, headless twins.
 
 **Where**: a worktree on `seq/rx3`. Headers (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); hot files never
-staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.seq/`, `.v6/changelogs/`, `storybook/packages.ts`,
+staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.scaffolds/seq/`, `.v6/changelogs/`, `storybook/packages.ts`,
 `packages/seq/TODO.md`, `packages/seq/_measure/sizes.mjs`): list them. Anything in `@molstar/core` or `@molstar/io`
 stops the lane. Sizes soft (report growth with its cause); timing and allocation bounds are gates (a frame with two
 ribbons layers 0 B warm; 12,000 links in two layers under the ring's frame bound).
@@ -37,7 +37,7 @@ ribbons layers 0 B warm; 12,000 links in two layers under the ring's frame bound
 **Checks**: `pnpm test:unit packages/seq/ cli/seqx-render/`, `npx tsc -b packages/seq/core packages/seq/viewer
 packages/seq/examples packages/seq/ext-rondo`, each `typecheck:test`, the storybook typecheck, `pnpm lint`,
 `pnpm format:check`, both perf tiers to completion, `pnpm -s -C packages/seq/core size` (read the rows), `pnpm
-test:medium packages/seq/`, the `.seq/_checks`.
+test:medium packages/seq/`, the `.scaffolds/seq/_checks`.
 
 **Report**: under 350 words: commits; checks with numbers; story ids; sizes; the `.v6/changelogs/` text; designs to
 amend (ring-extension's Colour and Configuration).

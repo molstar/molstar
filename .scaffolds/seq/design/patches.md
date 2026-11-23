@@ -394,7 +394,7 @@ A validator's own issue is carried as is: one carrier, no duplicate.
   patches.
 - **viewer-models.md**: `SpecModel`'s checkpoints are commits, it keeps the recent roots, applies previews as patches,
   and composes a shown story step over them (changes.md).
-- **Citations**: the lane's code and `_spec` cite their own sections, never `.seq/` or a principle's id.
+- **Citations**: the lane's code and `_spec` cite their own sections, never `.scaffolds/seq/` or a principle's id.
 
 ## In the specs
 

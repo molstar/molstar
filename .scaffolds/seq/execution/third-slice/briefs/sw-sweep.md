@@ -1,6 +1,6 @@
 # Lane SW: today's small follow-ups
 
-From the lanes merged on 2026-11-19 (`.seq/execution/third-slice/followups.md`), each small, each with a test that fails
+From the lanes merged on 2026-11-19 (`.scaffolds/seq/execution/third-slice/followups.md`), each small, each with a test that fails
 on its parent:
 1. **A pan keeps the content under the pointer** (LB): `SectionNav.pan` gets no pointer x, so a row of blocks pans
    about the view's middle and the content under the pointer drifts when a chip or a gap enters the view. Pass the

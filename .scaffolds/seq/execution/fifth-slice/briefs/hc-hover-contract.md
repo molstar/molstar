@@ -12,7 +12,7 @@ box lights its residues but not its arcs", the strands' density bands on a ring 
 
 **Task**, a green commit at each step:
 
-1. **The rule** in `ux-foundations.md`'s words (list the text for the orchestrator, it is in `.seq/`) and in the core
+1. **The rule** in `ux-foundations.md`'s words (list the text for the orchestrator, it is in `.scaffolds/seq/`) and in the core
    `_spec`'s Emphasis: every drawn mark of every layer type, in every layout (row, ring, blocks, rows, grid, bridge) and
    at every level of detail (item, lane, density bin or band, summary, chip, reduced tile), answers a hover with (1) a
    hit naming what is under the pointer (the item, else the bin's items or stretch, else the position), (2) an
@@ -35,15 +35,15 @@ hover step at 0 B warm per layer type the sweep touches (the allocation tier's c
 do not raise it), a sweep run inside the medium lane's budget (seconds, not minutes: sample marks per layer).
 
 **Where**: a worktree on `seq/hc`. Headers (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); commit at each green
-step; hot files never staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.seq/`, `.v6/changelogs/`,
+step; hot files never staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.scaffolds/seq/`, `.v6/changelogs/`,
 `storybook/packages.ts`, `packages/seq/TODO.md`): list them. No language change (a needed param stops the lane with a
 report). Anything in `@molstar/core` or `@molstar/io` stops the lane. A file past 800 lines is a question. Sizes soft:
 trim first, report growth with its cause; timing and allocation bounds are the gates.
 
 **Checks**: the quick lane, `npx tsc -b packages/seq/core packages/seq/viewer packages/seq/examples`, each
 `typecheck:test`, the storybook typecheck, `pnpm lint`, `pnpm format:check`, both perf tiers to completion,
-`pnpm -s -C packages/seq/core size` (read the rows for FAIL), `pnpm test:medium packages/seq/`, the `.seq/_checks`
-(features-planned with `--plan .seq/execution/fifth-slice/plan.md`). A fix's test fails on its parent.
+`pnpm -s -C packages/seq/core size` (read the rows for FAIL), `pnpm test:medium packages/seq/`, the `.scaffolds/seq/_checks`
+(features-planned with `--plan .scaffolds/seq/execution/fifth-slice/plan.md`). A fix's test fails on its parent.
 
 **Report**: under 400 words: commits; the rule's text; what the sweep found and how each was fixed; checks with
 numbers; story ids; sizes; hot-file needs; the `.v6/changelogs/` text.

@@ -5,8 +5,8 @@ the language builder `createSeqSpec` (handles are addresses), and the issue cata
 test; the p53 example (built in a test) printed, encoded in JSON both ways, validated, and each documented misuse giving
 its code.
 
-**Read first**: `.seq/design/language-description.md` (the description's shape, the slice's kinds table, the builder by
-example, issue codes), `.seq/design/format.md`, `.seq/design/composition.md` (the four levels), the `_spec` of
+**Read first**: `.scaffolds/seq/design/language-description.md` (the description's shape, the slice's kinds table, the builder by
+example, issue codes), `.scaffolds/seq/design/format.md`, `.scaffolds/seq/design/composition.md` (the four levels), the `_spec` of
 `packages/core/src/repr` (what the tree core offers: `defineLanguage`, `column` and `table`, `createBuilder` returning
 addresses, the codecs), root `AGENTS.md`.
 
@@ -19,11 +19,11 @@ protocol and store (lane D), resolving, rendering.
 
 **Hot files, never staged**: `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`, `biome.json`,
 `vitest.config.ts`, `storybook/packages.ts`, `.v6/changelogs/`, `packages/seq/*/package.json` (ask in the report for
-the entry exports and `_test` nulls you need), anything in `.seq/` and in `packages/core/`. Ask in the report for
+the entry exports and `_test` nulls you need), anything in `.scaffolds/seq/` and in `packages/core/`. Ask in the report for
 what you need there.
 
 **Headers**: the Mol\* header, `Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more
-info.`, with `@author David Sehnal <david.sehnal@gmail.com>`. No mention of `packages/sequences` or `.seq/` in code,
+info.`, with `@author David Sehnal <david.sehnal@gmail.com>`. No mention of `packages/sequences` or `.scaffolds/seq/` in code,
 comments or tests.
 
 **Checks**, each its own command, green only on exit 0 with a non-zero test count:

@@ -23,7 +23,7 @@ models first (the legend's model holds `open`, the view renders it; `@molstar/ui
 12 and "+n"; the state survives a redraw; a 500-value legend opens bounded; the count equals the values drawn.
 
 **Where**: a worktree on `seq/fx23`. Headers (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); one commit (two if
-the count is a bug); hot files never staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.seq/`,
+the count is a bug); hot files never staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.scaffolds/seq/`,
 `.v6/changelogs/`, `storybook/packages.ts`, `packages/seq/TODO.md`, `packages/seq/_measure/sizes.mjs`). No language
 change. Anything in `@molstar/core` or `@molstar/io` stops the lane.
 

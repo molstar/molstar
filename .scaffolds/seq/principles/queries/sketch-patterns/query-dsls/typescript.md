@@ -268,7 +268,7 @@ export function scanEngine(lang: QueryLang): QueryEngine {
 }
 ```
 
-Indexed and remote engines: see [README.md](README.md#shape). An indexed engine keeps its tag index in `ctx.cache.forRoot(root, TAG_INDEX, ...)`. Long main-thread runs use `runChunked` ([§reactive-models](../../../../oz/ui/bootstrap-patterns/reactive-models/typescript.md#keeping-the-main-thread-responsive)) inside `runAsync`/`stream`.
+Indexed and remote engines: see [README.md](README.md#shape). An indexed engine keeps its tag index in `ctx.cache.forRoot(root, TAG_INDEX, ...)`. Long main-thread runs use `runChunked` ([§reactive-models](../../../../../principles/ui/bootstrap-patterns/reactive-models/typescript.md#keeping-the-main-thread-responsive)) inside `runAsync`/`stream`.
 
 ## Async in queries
 

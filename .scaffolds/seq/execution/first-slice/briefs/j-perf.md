@@ -28,8 +28,8 @@
 as default; list each in the report.
 
 **Read first**:
-- `.seq/execution/first-slice/measurements.md` (the numbers and where the time goes);
-- `.seq/design/performance.md`, `layout-and-draw-lists.md`, `rendering.md`, `testing.md`;
+- `.scaffolds/seq/execution/first-slice/measurements.md` (the numbers and where the time goes);
+- `.scaffolds/seq/design/performance.md`, `layout-and-draw-lists.md`, `rendering.md`, `testing.md`;
 - the core `_spec` (`packages/seq/core/_spec/README.md`, Render);
 - the code: `packages/seq/core/src/render/{values,letters,ranges,renderer,axis,layer-data,draw-lists,config}.ts`,
   `render/_test/{frame-time.test.ts,scenarios.ts,frame.quick.ts}`, `core/vitest.perf.config.ts`, and how the viewer
@@ -53,10 +53,10 @@ Not in scope: new features, the data store's summaries' factor, browser measurem
 - `pnpm-lock.yaml`, `scripts/workspace/inventory.json`, the root `tsconfig.json`, `biome.json`, `vitest.config.ts`;
 - `storybook/packages.ts`, `.v6/changelogs/`;
 - `packages/seq/*/package.json` and `tsconfig*.json` (ask in the report);
-- anything in `.seq/` and in `packages/core/`.
+- anything in `.scaffolds/seq/` and in `packages/core/`.
 
 **Headers**: the Mol\* header, `Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more
-info.`, with `@author David Sehnal <david.sehnal@gmail.com>`. No mention of `packages/sequences` or `.seq/` in code,
+info.`, with `@author David Sehnal <david.sehnal@gmail.com>`. No mention of `packages/sequences` or `.scaffolds/seq/` in code,
 comments or tests.
 
 **Checks**: each its own command, green only on exit 0 with a non-zero test count.

@@ -20,7 +20,7 @@ read, the nine sections, the rules, the report), on this topic:
 - Host neutrality is the rule to hold: Seq\* imports nothing of a host; the fake viewer is a host and talks only
   through ports and messages a real one would use.
 
-**Output**: one file, `.seq/execution/third-slice/drafts/structure-syncing.md` (a fourth-slice draft, moved to
+**Output**: one file, `.scaffolds/seq/execution/third-slice/drafts/structure-syncing.md` (a fourth-slice draft, moved to
 `design/` when the author agrees). No other file, no code.
 
 **Model**: strong (opus). **Where**: the main checkout, read only except that one file (no installs, builds or git

@@ -27,8 +27,8 @@ other heavy run: `pgrep -fl "vitest.*heavy"`); `npx tsc -b packages/seq/core pac
 `pnpm -C packages/seq/core typecheck:test`; `pnpm -C packages/seq/storybook typecheck`; `pnpm lint`; `pnpm format:check`.
 
 **Headers**: a modified file keeps its header, year 2026, `@author David Sehnal <david.sehnal@gmail.com>` added if
-missing. No mention of `packages/sequences` or `.seq/` in code. **Hot files**: never stage `package.json`,
-`tsconfig*`, the lockfile, `.v6/changelogs/` (write an entry's text in the report if user-facing), `.seq/`. Fixes land
+missing. No mention of `packages/sequences` or `.scaffolds/seq/` in code. **Hot files**: never stage `package.json`,
+`tsconfig*`, the lockfile, `.v6/changelogs/` (write an entry's text in the report if user-facing), `.scaffolds/seq/`. Fixes land
 with a test shown failing on the parent (name the command).
 
 **Report** (under 300 words): the commits, each check with its exit code and test count, what to look at (light and dark).

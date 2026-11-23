@@ -36,7 +36,7 @@ at stage 4's gate ([fixes.md](../fixes.md), "The hover card story test failed on
    under load: run it 20 times beside a busy process, and report how.
 
 **Where**: a worktree on `seq/fx24`. Headers (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); a commit per item;
-hot files never staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.seq/`, `.v6/changelogs/`,
+hot files never staged (`package.json`s, `tsconfig*.json`, lockfile, `biome.json`, `.scaffolds/seq/`, `.v6/changelogs/`,
 `storybook/packages.ts`, `packages/seq/TODO.md`, `packages/seq/_measure/sizes.mjs`). No language change. Anything in
 `@molstar/core` or `@molstar/io` stops the lane. Never touch the network. Never overwrite files outside your worktree.
 

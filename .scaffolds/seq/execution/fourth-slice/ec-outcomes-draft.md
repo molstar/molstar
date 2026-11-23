@@ -1,7 +1,7 @@
 # The fourth slice's edge-case outcomes, drafted (finalize, 2026-11-21)
 
 Drafted at finalize from the tests on `packages-seq` (`5bf619ac6`, HT merged), for the close to paste into
-`.seq/design/edge-cases.md` under "## Outcomes of the fourth slice". The items are those the slice's features cover
+`.scaffolds/seq/design/edge-cases.md` under "## Outcomes of the fourth slice". The items are those the slice's features cover
 (features.md's Cases of the rows it moved, the plan's named items): molecules and units, structure maps and the link,
 seq data ports, archives, the test consumer, extension openings, track headers, services. Tests found by the name they
 cite (`EC-<n>` in the title or a comment of a `_test/` file); where no test names the item, the test that holds the

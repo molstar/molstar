@@ -2,18 +2,18 @@
 
 One record per Seq\* execution session, kept permanently (§permanent-record). A record says **how we got here**: what
 the author asked, what was decided, what was delivered and how it was checked, what was learned, and what was left
-open. The designs in `.seq/design/` say **what is true now**; a record never replaces them.
+open. The designs in `.scaffolds/seq/design/` say **what is true now**; a record never replaces them.
 
 ## Layout
 
 ```
-.seq/records/
+.scaffolds/seq/records/
   <work-id>/
     <yyyy-mm-dd>-<short-name>.md   # one file per execution session, named by the day it ended
 ```
 
-The work id is the one used in `.seq/execution/<work-id>/`. A record folder holds the record file only; the work folder
-stays in `.seq/execution/` after the close, never moved or deleted unless the author says so.
+The work id is the one used in `.scaffolds/seq/execution/<work-id>/`. A record folder holds the record file only; the work folder
+stays in `.scaffolds/seq/execution/` after the close, never moved or deleted unless the author says so.
 
 ## Rules
 
@@ -27,5 +27,5 @@ stays in `.seq/execution/` after the close, never moved or deleted unless the au
 
 ## Template
 
-The session record in [workflow-files](../oz/_core/patterns/workflow-files.md): Asked, Decided, Delivered, Learned,
+The session record in [workflow-files](../../principles/_core/patterns/workflow-files.md): Asked, Decided, Delivered, Learned,
 Left open, and Self-check when the session changed the principles.
