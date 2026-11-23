@@ -1003,7 +1003,8 @@ binding table; per move one hit record and one modifiers record are reused.
   `mountCanvas` returns takes away every listener, the observer and the nodes.
 - **A layer's summary** (`layer-aria.ts`, `layerAria`, `setLayerAria`): each layer whose type gives `summary` (core's
   `LayerType`) a visually hidden `role="group"` beside the canvas, labelled by its track's label (a section layer: its
-  key), its text the summary, set when a frame settles. Why: ribbons are not focusable one by one; their counts are.
+  key), its text the summary, set when a frame settles. A lazy chunk: the mount loads it the first time a layer type
+  summarizes, so a viewer without one bundles none of it. Why: ribbons are not focusable one by one; their counts are.
 - **Announcements** (`announcer.ts`, `Announcer`, DOM-free; the mount owns its one `role="status"` `aria-live="polite"`
   region, visually hidden, in the container, and shows `announcer.message` in it, cleared and set so the same words
   twice are heard twice). The words are `describe.ts`'s (`Describer`), the hover card's too: a place goes through the

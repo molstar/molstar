@@ -15,10 +15,10 @@ import {
   ThemeAttribute,
 } from '@molstar/seqx-viewer/canvas';
 import { Announcer } from './announcer.js';
-import { setLayerAria } from './layer-aria.js';
 import { BridgeView } from './models/bridge-hooks.js';
 import { createDragSession } from './drag-session.js';
 import { isViewEvent } from './overlay-events.js';
+import type { ViewLayout } from '@molstar/seqx-core/render';
 import type { SeqViewer } from './viewer.js';
 import type { BehaviorHandle } from './viewer-spec.js';
 
@@ -66,9 +66,13 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
   });
   // each bridge an ARIA group, its words set when the frame settles (the bridge chunk's: none without a bridge)
   // and each layer whose type summarizes it (an extension's ribbons: `LayerType.summary`)
+  // (a lazy chunk: loaded the first time a layer type summarizes, kept to clear the groups after)
+  let layerAria: Promise<typeof import('./layer-aria.js')> | undefined;
   const stopBands = viewer.rested.listen(() => {
     BridgeView.parts?.aria(viewer, container);
-    setLayerAria(container, viewer.frame?.layout);
+    if (!layerAria && !summarizes(viewer.frame?.layout)) return;
+    layerAria ??= import('./layer-aria.js');
+    void layerAria.then((m) => m.setLayerAria(container, viewer.frame?.layout));
   });
 
   // the token table: the root's computed style (`theme.source: 'root'`) read before the first frame, and again when
@@ -311,4 +315,13 @@ export function mountCanvas(viewer: SeqViewer, target: HTMLElement): () => void 
     viewer.useBackend(undefined);
     container.remove();
   };
+}
+
+/** Whether a layer of the layout has a type that summarizes it (`LayerType.summary`): what loads the ARIA chunk. */
+function summarizes(layout: ViewLayout | undefined): boolean {
+  for (const s of layout?.sections ?? []) {
+    for (const l of s.sectionLays) if (l.type.summary) return true;
+    for (const t of s.tracks) for (const l of t.layers) if (l.type.summary) return true;
+  }
+  return false;
 }

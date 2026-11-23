@@ -11,6 +11,9 @@
 // A binding scoped to its type (`GestureBinding.layer`) wins over the grammar's click or double-click on its hits; the
 // table refuses a scope on any other gesture.
 
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { type LayerType, RangesType } from '@molstar/seqx-core/render';
 import { DomHost } from '@molstar/ui/dom';
@@ -125,6 +128,12 @@ describe('a layer type’s words', () => {
     for (let i = 0; i < 4; i++) await v.execute('cursor.next', { section: Section });
     expect(a.message.value.text).toContain('stem of 3 links');
     a.dispose();
+  });
+
+  it('the ARIA groups are a lazy chunk: the mount imports them only once a layer type summarizes', () => {
+    const mount = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../mount.ts'), 'utf8');
+    expect(mount).not.toMatch(/^import .*'\.\/layer-aria\.js'/m);
+    expect(mount).toContain("import('./layer-aria.js')");
   });
 
   it('its `summary` is its layer’s ARIA group, set when the frame settles', async () => {
