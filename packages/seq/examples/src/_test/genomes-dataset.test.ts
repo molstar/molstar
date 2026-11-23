@@ -27,6 +27,7 @@ import { CpgCount, MissingShare, MethylationSamples } from '../genomes/generate/
 import { DeletionExtent, deletionSnvPositions, SampleCount, SiteCount } from '../genomes/generate/variants.js';
 import { ToyBSequences } from '../genomes/toys.js';
 import { PackageFolder } from '../node-assets.js';
+import { tabixRegion } from './tabix-region.js';
 
 // The Genomes dataset's generator (examples.md, Genomes): its output byte-identical to the committed fixtures (by
 // checksum), each file under its estimated size, the same bytes on a second run. `SEQ_RECORDS=update` writes the
@@ -71,25 +72,23 @@ describe('the Genomes dataset, generated', () => {
   });
 });
 
-/**
- * A region's lines of a bgzipped file (its BGZF members inflated whole, each line kept whose extent meets the region):
- * the index is read by the runtimes in the views' tests.
- */
-async function region(file: string, _index: string, name: string, start: number, end: number): Promise<string[]> {
+/** The bytes a region read inflated, by file (the anchors below read by region, never a file whole). */
+const inflatedBy = new Map<string, number>();
+
+/** A region's lines of a bgzipped file, read through its tabix index (`tabix-region.ts`). */
+async function region(file: string, index: string, name: string, start: number, end: number): Promise<string[]> {
   const { files } = await generated;
-  const bytes = files.get(file)! as Uint8Array<ArrayBuffer>;
-  const text = new TextDecoder().decode(await ungzip(SyncRuntimeContext, bytes));
   const vcf = file.endsWith('.vcf.gz');
-  return text.split('\n').filter((l) => {
-    const c = l.split('\t');
-    if (l.startsWith('#') || c[0] !== name) return false;
-    const [b, e] = vcf
+  const bed = file.includes('bedgraph');
+  const r = await tabixRegion(files.get(file)!, files.get(index)!, name, start, end, (c) =>
+    vcf
       ? [Number(c[1]) - 1, Number(c[1]) - 1 + c[3].length]
-      : file.includes('bedgraph')
+      : bed
         ? [Number(c[1]), Number(c[2])]
-        : [Number(c[3]) - 1, Number(c[4])];
-    return b < end && e > start;
-  });
+        : [Number(c[3]) - 1, Number(c[4])],
+  );
+  inflatedBy.set(file, (inflatedBy.get(file) ?? 0) + r.inflated);
+  return r.lines;
 }
 
 describe('the Genomes dataset’s facts (anchors)', () => {
@@ -139,6 +138,12 @@ describe('the Genomes dataset’s facts (anchors)', () => {
     expect(gff.some((l) => l.includes(`ID=gene:${g.id};`))).toBe(true);
     const gtf = await region(GenomesFiles.gtf, GenomesFiles.gtfIndex, g.chr, g.start, g.end);
     expect(gtf.some((l) => l.includes(`gene_id "${g.id}"`))).toBe(true);
+    // read by region: a gene's lines, a block or two of each file inflated, never the whole
+    for (const f of [GenomesFiles.gff3, GenomesFiles.gtf]) {
+      const whole = (await ungzip(SyncRuntimeContext, (await generated).files.get(f)! as Uint8Array<ArrayBuffer>))
+        .length;
+      expect(inflatedBy.get(f)!, f).toBeLessThan(whole / 2);
+    }
   });
 
   it('the VCF: 2,000 sites of 40 samples, chrM haploid, the 600-base deletion over 12 SNVs (EC-220, EC-222)', async () => {
@@ -191,12 +196,14 @@ describe('the Genomes dataset’s facts (anchors)', () => {
   it('the contact map: its domains squares on the diagonal, its chr1–chr3 hotspot hundreds over a background of 0 and 1', async () => {
     const { truth } = await generated;
     const map = contactMap(truth.a, GenomesSeed);
-    const fine = (x: string, y: string) =>
-      map.pairs.find(
-        (p) => p.request.system === x && p.request.y?.system === y && p.request.level === ContactLevels[0],
-      )!.answer as { tables: { grid: GridDense & GridSparse } };
+    const fine = <G extends GridDense | GridSparse>(x: string, y: string) =>
+      (
+        map.pairs.find(
+          (p) => p.request.system === x && p.request.y?.system === y && p.request.level === ContactLevels[0],
+        )!.answer as unknown as { tables: { grid: G } }
+      ).tables.grid;
     // chr1 (its plane the first): at each distance, the cells inside a domain several times those across one
-    const chr1 = fine('chr1', 'chr1').tables.grid;
+    const chr1 = fine<GridDense>('chr1', 'chr1');
     const domain = contactDomains(chr1.nx, GenomesSeed, 0);
     for (const d of [2, 3, 4]) {
       const inside: number[] = [];
@@ -208,7 +215,7 @@ describe('the Genomes dataset’s facts (anchors)', () => {
       expect(mean(inside) / mean(across), `d ${d}`).toBeGreaterThan(DomainContrast / 2);
     }
     // chr1 × chr3: the hotspot's cell its peak, the background 0 or 1 away from it
-    const cross = fine('chr1', 'chr3').tables.grid;
+    const cross = fine<GridSparse>('chr1', 'chr3');
     const hx = Math.floor(Hotspot[0] / ContactLevels[0]);
     const hy = Math.floor(Hotspot[1] / ContactLevels[0]);
     let peak = 0;

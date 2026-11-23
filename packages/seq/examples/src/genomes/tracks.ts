@@ -16,8 +16,8 @@ import { assemblyA, type Files, fileSource, GenomesFiles } from './toys.js';
 // The Genomes dataset's views of toy A by region (examples.md, Genomes, The views): the signal of a bedGraph read by
 // region through its index (an open domain, a domain open at one end, a log scale), the samples' variants with their
 // genotype matrix (a long deletion solid), methylation by region and the gene-by-sample heatmap, the genes'
-// transcripts in three levels (a GFF3 by region, the GTF of the same model beside it), and a GFF3 read whole whose
-// genes are found by name. Each reads the committed files (`files`, the dataset's by default).
+// transcripts in three levels (a GFF3 by region and read whole, the GTF of the same model beside it), and a GFF3 read
+// whole whose genes are found by name. Each reads the committed files (`files`, the dataset's by default).
 
 /** The sections' addresses (what the tests read). */
 export const GenomeSection = '/views/main/toy-a';
@@ -131,7 +131,8 @@ export function methylation(files: Files = GenomesFiles): Node {
 /**
  * The genes in three levels (EC-227): the GFF3 read by region through its index, its genes (`features: genes`, one
  * model a gene) and its transcripts (gene → transcript → exon: a model a transcript, its exons boxes, its CDS thick, a
- * hairline with chevrons on the minus strand), and the GTF of the same model beside them.
+ * hairline with chevrons on the minus strand), the GTF of the same model beside them, and the GFF3's transcripts read
+ * whole (the design's "whole and by region": the same lanes either way).
  */
 export function transcripts(files: Files = GenomesFiles): Node {
   const b = createSeqSpec({ title: 'Transcripts in three levels' });
@@ -144,6 +145,8 @@ export function transcripts(files: Files = GenomesFiles): Node {
     target: a,
     source: fileSource(b, 'gtf-transcripts', 'gtf', files.gtf, files.gtfIndex),
   } as never);
+  // the GFF3's transcripts read whole too (no index: the runtime's other path), the same lanes as by region
+  const whole = b.data.ranges('whole', { target: a, source: fileSource(b, 'gff3-whole', 'gff3', files.gff3) } as never);
   const model = (data: string) => ({ type: 'ranges', data, line: 'gene' }) as never;
   b.views.view('main', (v) =>
     genome(v, 'toy-a', a, { include: ['chr1'] }, (s) => {
@@ -152,6 +155,7 @@ export function transcripts(files: Files = GenomesFiles): Node {
       s.track('genes', { label: 'Genes (GFF3)' }).layer('genes', model(genes));
       s.track('transcripts', { label: 'Transcripts (GFF3)' }).layer('transcripts', model(tx));
       s.track('gtf', { label: 'Transcripts (GTF)' }).layer('gtf', model(gtf));
+      s.track('whole', { label: 'Transcripts (GFF3, whole)' }).layer('whole', model(whole));
     }),
   );
   return b.build();
