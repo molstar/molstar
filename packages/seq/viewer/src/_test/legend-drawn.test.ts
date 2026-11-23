@@ -5,7 +5,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { RangesLay } from '@molstar/seqx-core/render';
 import { createSeqSpec, theme } from '@molstar/seqx-core/lang';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { viewerItem } from '../config.js';
