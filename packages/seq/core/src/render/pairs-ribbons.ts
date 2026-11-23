@@ -73,10 +73,12 @@ class RibbonDatum implements ThemeDatum {
   field(name: string): string | number | undefined {
     if (name === 'block') return this.block;
     if (name === 'system') return this.system;
-    // its ends on one strand or on opposite ones (an inversion): a ribbon crossed where the strands' product is −1
-    if (name === 'orientation')
+    const own = this.pair.field(name);
+    // its ends on one strand or on opposite ones (an inversion): a ribbon crossed where the strands' product is −1; a
+    // column of the name in the data wins
+    if (name === 'orientation' && own === undefined)
       return (this.pair.field('a_strand') === '-') !== (this.pair.field('b_strand') === '-') ? 'inverted' : 'same';
-    return this.pair.field(name);
+    return own;
   }
 }
 
@@ -488,12 +490,14 @@ export function layoutRibbons(lay: RibbonsLay, ctx: BridgeLayoutContext, own?: O
   lay.edgeA = sa.edge;
   lay.edgeB = sb.edge;
   lay.extents.length = 0;
+  lay.lengths = false;
   if (!reads.length || !sa.ready || !sb.ready) return;
   const config = ctx.config;
   const min = config.ribbons.minPx / ctx.dpr;
   const stub = config.ribbons.stubShare;
   const first = reads[0];
   const line = (first.channels.forms.shape as unknown) === 'line';
+  let lengths = false;
   Px = 1 / ctx.dpr;
   nc = 0;
   UnplacedSystems.length = 0;
@@ -598,7 +602,13 @@ export function layoutRibbons(lay: RibbonsLay, ctx: BridgeLayoutContext, own?: O
   lay.colorChannel = first.channels.get('color' as ChannelName, DefaultColor, ctx, {
     numeric: numericOf(first.data!),
     categories: (f) =>
-      f === 'block' ? domain : f === 'system' ? a.domains?.system : f === 'orientation' ? Orientations : undefined,
+      f === 'block'
+        ? domain
+        : f === 'system'
+          ? a.domains?.system
+          : f === 'orientation' && !first.data?.extra?.orientation
+            ? Orientations
+            : undefined,
   });
   const fill = config.ribbons.fillOpacity;
   // the bins' opacity scale: each read's heaviest bin
@@ -627,7 +637,10 @@ export function layoutRibbons(lay: RibbonsLay, ctx: BridgeLayoutContext, own?: O
     const color = typeof v === 'number' ? v : lay.tokens!.colors['seq-range'];
     const alpha = ((color & 0xff) / 255) * (prep.weight ? binAlpha(prep.weight[k], heaviest[read], config) : fill);
     lay.color[i] = withAlpha(color, alpha);
+    // a ribbon's width is its aligned length unless it is a bin (its width the bin's) or a line
+    if (!line && !prep.weight) lengths = true;
   }
+  lay.lengths = lengths;
 }
 
 const Heaviest = new Float64Array(2);
@@ -707,11 +720,9 @@ export const RibbonsType: LayerType<PairsPrep, RibbonsLay> = {
   },
   hit: hitRibbons,
   legend(lay, options) {
-    // a ribbon's width is its aligned length (its block's): said once, beside its colours
-    return channelLegends([lay.colorChannel], { ...options, layer: lay.key }).map((l) => ({
-      ...l,
-      notes: [...l.notes, 'width'],
-    }));
+    // a ribbon's width is its aligned length (its block's): said once, beside its colours, where a drawn one says it
+    const legends = channelLegends([lay.colorChannel], { ...options, layer: lay.key });
+    return lay.lengths ? legends.map((l) => ({ ...l, notes: [...l.notes, 'width'] })) : legends;
   },
   filtered: (lay) => lay.prep?.filtered ?? 0,
 };
