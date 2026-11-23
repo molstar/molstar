@@ -34,7 +34,7 @@ worktree and your own temp space. No network.
 
 **Checks**: `pnpm test:unit packages/seq/ cli/seqx-render/ packages/core/src/repr`, `npx tsc -b packages/seq/core
 packages/seq/viewer packages/seq/examples packages/seq/ext-rondo`, `pnpm lint`, `pnpm format:check`, and after
-`git add .seq packages`: `node .scaffolds/seq/_checks/no-design-citations.ts`, `node .scaffolds/seq/_checks/designs-in-specs.ts`,
+`git add .seq packages`: `node .scaffolds/_method/_checks/no-design-citations.ts --instance .scaffolds/seq`, `node .scaffolds/_method/_checks/designs-in-specs.ts --instance .scaffolds/seq`,
 `node .scaffolds/principles/_checks/merge-gate.ts --package .scaffolds/principles --instance .scaffolds/seq`.
 
 **Report** (under 250 words): commits; citations rewritten, dropped, kept (counts per package); the check's result;

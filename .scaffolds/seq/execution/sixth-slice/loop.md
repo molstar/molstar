@@ -118,6 +118,7 @@ node .scaffolds/_method/_checks/defaults-designed.ts --instance .scaffolds/seq
 node .scaffolds/_method/_checks/designs-in-specs.ts --instance .scaffolds/seq
 node .scaffolds/_method/_checks/no-design-citations.ts --instance .scaffolds/seq
 node .scaffolds/_method/_checks/file-size.ts --instance .scaffolds/seq
+node .scaffolds/_method/_checks/links.ts            # stage 5's link check: closed history reported, not failed
 node .scaffolds/seq/_checks/ec-ids.ts
 ```
 

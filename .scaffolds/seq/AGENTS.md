@@ -64,14 +64,16 @@ node .scaffolds/_method/_checks/defaults-designed.ts --instance .scaffolds/seq
 node .scaffolds/_method/_checks/designs-in-specs.ts --instance .scaffolds/seq
 node .scaffolds/_method/_checks/no-design-citations.ts --instance .scaffolds/seq
 node .scaffolds/_method/_checks/file-size.ts --instance .scaffolds/seq
+node .scaffolds/_method/_checks/links.ts
 node .scaffolds/seq/_checks/ec-ids.ts
 ```
 
-The first three are the principles package's, the next five the method's ([../_method/README.md](../_method/README.md),
+The first three are the principles package's, the next six the method's ([../_method/README.md](../_method/README.md),
 Checks), each reading its Seq\* part from a file here in `_checks/`: `closed-work.json` (the folders closed before the
 fold-back rule), `defaults-designed.json` (the designs exempt, only shrinks), `designs-in-specs.json` (the packages'
 specs by key), `no-design-citations.json` (Seq\*'s packages, the one pointer), `file-size.json` (`packages/seq`) with
-`file-size-baseline.json` (only shrinks, lowered by `--update`). A loop also runs the method's `features-planned.ts
+`file-size-baseline.json` (only shrinks, lowered by `--update`); `links.ts` needs none (it reads all of `.scaffolds/`, closed
+work folders and records reported, not failed). A loop also runs the method's `features-planned.ts
 --instance .scaffolds/seq --plan <the slice's plan.md>`.
 
 `ec-ids.ts` is this scaffold's own: every `EC-<n>` cited in `packages/seq` names an item of the edge-case catalog
