@@ -74,6 +74,23 @@ const errors = (v: SeqViewer) => [
   ...v.layoutIssues.value.filter((i) => i.severity === 'error'),
 ];
 
+/**
+ * The recorded cytobands' rows in view: their pages inflate on the platform's thread pool (no clock), so the clock is
+ * turned and real I/O let through until a bands layer has rows (or a bound of turns).
+ */
+async function bandsLanded(v: SeqViewer) {
+  const rows = () =>
+    v
+      .frame!.layout.sections[0].lays.flat()
+      .some((l) => l.key.endsWith('/bands/bands') && (l.lay as { rows?: { n: number } }).rows!.n > 0);
+  for (let i = 0; i < 50 && !rows(); i++) {
+    await new Promise((r) => setImmediate(r));
+    await vi.advanceTimersByTimeAsync(200);
+    v.draw();
+  }
+  expect(rows()).toBe(true);
+}
+
 const descriptions = (v: SeqViewer) => layerAria(v.frame!.layout).map((a) => a.description);
 
 describe('Genome ring stories, headless', () => {
@@ -203,6 +220,8 @@ describe('Genome ring stories, headless', () => {
       [...v.modelIssues.value, ...v.layoutIssues.value, ...v.store.issues.value].map((i) => `${i.code}: ${i.message}`);
     for (const id of ['ring', 'ring-chromosome', 'ring-pair', 'ring-two-assemblies', 'ring-crowded']) {
       const v = await open(ringStoryView(id), Rondo, 5000);
+      // the cytobands' rows in (the issue said when their source lists its sequences)
+      if (id === 'ring' || id === 'ring-chromosome' || id === 'ring-pair') await bandsLanded(v);
       await vi.advanceTimersByTimeAsync(2000);
       v.draw();
       expect(said(v), id).toEqual([]);
@@ -212,6 +231,7 @@ describe('Genome ring stories, headless', () => {
   it('hovering a band: the card names it and its stain; the ring lights exactly the ribbons with an end in it', async () => {
     for (const id of ['ring', 'ring-chromosome']) {
       const v = await open(ringStoryView(id));
+      await bandsLanded(v);
       const l = ribbonsOf(v)!;
       const f = l.frame;
       const d = describerFor({ ...v, layout: () => v.frame?.layout });
