@@ -15,7 +15,7 @@
 
 <!-- Wave 2 -->
 - [ ] CL3 Square and keys: the square's hint and way home, Hi-C in bases, `]` and `[`, the zoom hint, links pending on the square
-- [ ] CL4 Formats: a canonical transcript, the VCF's sample names, the methylation matrix's names
+- [x] CL4 (`6756eb150`) Formats: a canonical transcript, the VCF's sample names, the methylation matrix's names
 - [ ] CL10 Novice decisions: F3, F9, F11, F14
 - [ ] GATE 1
 
