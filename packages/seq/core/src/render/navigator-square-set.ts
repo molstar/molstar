@@ -42,19 +42,21 @@ export function shownRun(shown: readonly boolean[], out: SquareRun): boolean {
 export type SquareEdge = (k: number, horizontal: boolean) => number;
 
 /**
- * The window over the blocks shown: a run as one box (its corners' grips when `grips`), else each cell of two shown
- * blocks outlined (k² cells, within `maxCells`); in `out`'s pass, with `ink` and the stroke `w`.
+ * The window over the blocks shown: a run as one box (its corners' grips when `style[2]` > 0), else each cell of two
+ * shown blocks outlined (k² cells, within `maxCells`); in `out`'s pass, with the ink `style[0]` and the stroke
+ * `style[1]` (an array: its numbers are never boxed).
  */
 export function drawShownSet(
   out: PassWriter,
   shown: readonly boolean[],
   run: SquareRun,
   edge: SquareEdge,
-  ink: number,
-  w: number,
+  style: Float64Array,
   maxCells: number,
-  grips: number,
 ): void {
+  const ink = style[0];
+  const w = style[1];
+  const grips = style[2];
   const g = out.args;
   if (run.i0 >= 0) {
     const x0 = edge(run.i0, true);

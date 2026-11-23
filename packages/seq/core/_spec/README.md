@@ -3557,18 +3557,20 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   or top edge or top-left corner, `end` the right or bottom or bottom-right; an off-diagonal corner the nearer edge's;
   within `hitPx` / 2), else `outside`. `edgeAt`, `blockAtPoint` snap a point to a lattice edge or block along x, y or
   the diagonal; `labelAt` the block whose name is under a point; `setPreview(i0, i1)` draws a gesture's run instead of
-  the shown one (nothing allocated); `setKeyCell(i, j)` the keyboard's cell in the accent. **A picture's cells**
-  (`navigator-square-cells.ts`, `SquarePictureCells`; CN's contract): when the navigator's `content` names a registered
-  picture and the square is given the store and the composition (`data`, `text`, `types`, `layouts`, `pictures`,
-  `kinds`: the viewer's and an export's), the picture's first track is laid out as a hidden section over the lattice's
-  assembly (every block) by a renderer of its own, and when its first layer's type has `square` (`LayerType.square`,
-  `SquareCells`: `draw(lay, out, lattice)`, `text(lay, i, j, lattice)`, `pending(lay)`; `SquareLattice` its blocks'
-  systems and names, `edge(k, horizontal)` and the tokens) its cells are drawn in the base pass under the wash and the
-  lines, never bounded by `maxCells`; `cellText(i, j)` is its words. The hidden section is laid out again only when the
-  base is (a size, the tokens), the store's settled state moves, or its cells still wait (`pending`): a window's move or
-  a gesture's preview lays out nothing. Its wants are the navigator's (a frame whose cells changed is `rebuilt`).
-  Without a picture with cells (the `axis`, a reader without the extension) the lattice alone. The base's key is numbers
-  (its size, pixel ratio and tokens), never a string a frame.
+  the shown one; `setKeyCell(i, j)` the keyboard's cell in the accent. A drag frame allocates nothing (a gesture's point
+  in `pointer`, read by `blockAtPointer` and `edgeAtPointer`; the windows' placing kept while their section, units and
+  the lattice's box hold; the set's paint through an array). **A picture's cells** (`navigator-square-cells.ts`,
+  `SquarePictureCells`; the pictures' contract): when the navigator's `content` names a registered picture and the
+  square is given the store and the composition (`data`, `text`, `types`, `layouts`, `pictures`, `kinds`: the viewer's
+  and an export's), the picture's first track is laid out as a hidden section over the lattice's assembly (every block)
+  by a renderer of its own, and when its first layer's type has `square` (`LayerType.square`, `SquareCells`:
+  `draw(lay, out, lattice)`, `text(lay, i, j, lattice)`, `pending(lay)`; `SquareLattice` its blocks' systems and names,
+  `edge(k, horizontal)` and the tokens) its cells are drawn in the base pass under the wash and the lines, never bounded
+  by `maxCells`; `cellText(i, j)` is its words. The hidden section is laid out again only when the base is (a size, the
+  tokens), the store's settled state moves, or its cells still wait (`pending`): a window's move or a gesture's preview
+  lays out nothing. Its wants are the navigator's (a frame whose cells changed is `rebuilt`). Without a picture with
+  cells (the `axis`, a reader without the extension) the lattice alone. The base's key is numbers (its size, pixel ratio
+  and tokens), never a string a frame.
 - **The window stays the navigator's**, whatever the picture: its geometry, floor, parts, gestures, keys, idle rule,
   zoom strip and announcements. A host that draws its own navigator keeps them through the viewer's `NavigatorModel`.
 - **The picture**: a navigator lays its system whole out (the fit window, in the bound section's display order;

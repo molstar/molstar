@@ -7,7 +7,7 @@
 import { loadGenome } from '@molstar/seqx-core/resolve';
 import { partnersOf, rondoViewer } from '@molstar/seqx-ext-rondo/viewer';
 import { Announcer } from '@molstar/seqx-viewer/announcer';
-import type { HeadersBehavior } from '@molstar/seqx-viewer/behaviors';
+import type { HeadersBehavior } from '@molstar/seqx-viewer/behaviors/headers';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { openExample } from '../../../examples/_test/draw-checks.js';

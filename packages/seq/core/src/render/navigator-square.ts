@@ -69,6 +69,8 @@ const LabelPad = 2;
 const SweepTint = 0x2e;
 const AnchorMiddle: number = Anchor.middle;
 const AnchorEnd: number = Anchor.end;
+/** The set's paint (`drawShownSet`): its ink, stroke width and grips' size. */
+const SetStyle = new Float64Array(3);
 /** What a window's move redraws (the base kept). */
 const WindowPasses: readonly PassName[] = EmphasisPasses;
 
@@ -149,6 +151,18 @@ export class SquareNavigator {
   /** The bound section's view shows its whole axis (else its window is drawn too: a followed ring's, EC-110). */
   private wholeView = true;
   private readonly gripHit: SquareGripHit = { grip: 'body', axis: 'both' };
+  /** What each window was last placed from (its section, its units, the lattice's box) and whether it showed. */
+  private readonly placed = [0, 1].map(() => ({
+    section: undefined as unknown,
+    u0: Number.NaN,
+    u1: Number.NaN,
+    box0: Number.NaN,
+    box1: Number.NaN,
+    box2: Number.NaN,
+    box3: Number.NaN,
+    shown: false,
+    whole: true,
+  }));
   private readonly edgeFn = (k: number, horizontal: boolean) => this.edgePx(k, horizontal);
   private readonly frameRecord: {
     lists: DrawLists;
@@ -307,8 +321,12 @@ export class SquareNavigator {
       this.place(width, height);
     }
     const cells = this.cells;
+    // asked first with no number passed (a call that is not inlined boxes one): a window's move lays nothing out
+    const settled = input.settled ?? false;
     const changed =
-      !!cells && cells.layout(this.grid.width, input.dpr ?? 1, input.settled ?? false, input.overlay, sized);
+      !!cells &&
+      cells.due(settled, sized) &&
+      cells.layout(this.grid.width, input.dpr ?? 1, settled, input.overlay, sized);
     const rebuilt = sized || changed;
     if (rebuilt) {
       lists.reset();
@@ -326,8 +344,12 @@ export class SquareNavigator {
     if (this.setMode) {
       const p = this.preview;
       const shown = p.i0 >= 0 ? p : this.run;
-      const grips = shown.i0 >= 0 ? this.config.navigator.window.handlePx : 0;
-      drawShownSet(out, this.shownX, shown, this.edgeFn, c['seq-window'], Math.max(px, 1.5), this.maxCells, grips);
+      // its paint through an array (a number passed to a call that is not inlined is boxed)
+      const style = SetStyle;
+      style[0] = c['seq-window'];
+      style[1] = Math.max(px, 1.5);
+      style[2] = shown.i0 >= 0 ? this.config.navigator.window.handlePx : 0;
+      drawShownSet(out, this.shownX, shown, this.edgeFn, style, this.maxCells);
       if (this.keyI >= 0 && this.keyJ >= 0 && this.keyI < this.blockCount && this.keyJ < this.blockCount) {
         const g = out.args;
         g[0] = this.edgePx(this.keyI, true);
@@ -451,9 +473,40 @@ export class SquareNavigator {
       w.axes = 0;
       // one section on both axes: its one window, drawn on the diagonal
       if (k === 1 && nav.of[1] === nav.of[0]) continue;
-      const s = view?.sections.find((x) => x.section.address === nav.of[k]);
+      // (a loop, not `find`: a frame allocates no closure)
+      let s: ViewLayout['sections'][number] | undefined;
+      const sections = view?.sections;
+      for (let i = 0; sections && i < sections.length && !s; i++)
+        if (sections[i].section.address === nav.of[k]) s = sections[i];
       if (!s?.axis) continue;
-      if (k === 0) this.wholeView = s.axis.u0 <= 1e-6 && s.axis.u1 >= sectionTotal(s.section) - 1e-6;
+      // the same window over the same lattice as last placed: its numbers and places kept (a gesture's preview, a
+      // move of another window: nothing made)
+      const last = this.placed[k];
+      const box = this.grid;
+      if (
+        last.section === s.section &&
+        last.u0 === s.axis.u0 &&
+        last.u1 === s.axis.u1 &&
+        last.box0 === box.x &&
+        last.box1 === box.y &&
+        last.box2 === box.width &&
+        last.box3 === box.height
+      ) {
+        if (k === 0) this.wholeView = last.whole;
+        w.shown = last.shown;
+        w.axes = last.shown ? 1 : 0;
+        continue;
+      }
+      last.section = s.section;
+      last.u0 = s.axis.u0;
+      last.u1 = s.axis.u1;
+      last.box0 = box.x;
+      last.box1 = box.y;
+      last.box2 = box.width;
+      last.box3 = box.height;
+      last.shown = false;
+      last.whole = s.axis.u0 <= 1e-6 && s.axis.u1 >= sectionTotal(s.section) - 1e-6;
+      if (k === 0) this.wholeView = last.whole;
       const r = this.windowOn(s.section, s.axis.u0, s.axis.u1);
       if (!r) continue;
       const horizontal = k === 0;
@@ -481,6 +534,7 @@ export class SquareNavigator {
       w.p1 = pb?.position ?? 0;
       w.axes = 1;
       w.shown = true;
+      last.shown = true;
     }
   }
 
@@ -576,6 +630,43 @@ export class SquareNavigator {
   /** The lattice block under a point along x, y or the diagonal (a run's move: the block the pointer is over). */
   blockAtPoint(x: number, y: number, axis: 'x' | 'y' | 'both'): number {
     return this.blockOf(this.diagonalUnit(x, y, axis));
+  }
+
+  /**
+   * A gesture's point, set by the caller before `blockAtPointer` and `edgeAtPointer` (a number passed to a call that is
+   * not inlined is boxed: a drag's moves read it here, nothing allocated).
+   */
+  readonly pointer = new Float64Array(2);
+
+  /** `blockAtPoint` of `pointer`. */
+  blockAtPointer(axis: 'x' | 'y' | 'both'): number {
+    return this.blockOf(this.pointerUnit(axis));
+  }
+
+  /** `edgeAt` of `pointer`. */
+  edgeAtPointer(axis: 'x' | 'y' | 'both'): number {
+    const blocks = this.lattice?.blocks;
+    if (!blocks?.length) return 0;
+    const u = this.pointerUnit(axis);
+    let best = 0;
+    let d = Number.POSITIVE_INFINITY;
+    for (let k = 0; k <= blocks.length; k++) {
+      const dk = Math.abs((k < blocks.length ? (blocks[k].offset ?? 0) : this.total) - u);
+      if (dk < d) {
+        d = dk;
+        best = k;
+      }
+    }
+    return best;
+  }
+
+  /** `pointer`'s lattice unit along x, y or the diagonal (read from the array: nothing boxed). */
+  private pointerUnit(axis: 'x' | 'y' | 'both'): number {
+    const g = this.grid;
+    const p = this.pointer;
+    const ux = Math.max(0, Math.min(this.total, ((p[0] - g.x) / Math.max(1e-9, g.width)) * this.total));
+    const uy = Math.max(0, Math.min(this.total, ((p[1] - g.y) / Math.max(1e-9, g.height)) * this.total));
+    return axis === 'x' ? ux : axis === 'y' ? uy : (ux + uy) / 2;
   }
 
   private diagonalUnit(x: number, y: number, axis: 'x' | 'y' | 'both'): number {

@@ -7,6 +7,14 @@
 import { rondoViewer } from '@molstar/seqx-ext-rondo/viewer';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { exampleStory } from '../../examples/example-root.js';
+import {
+  partnerKeys,
+  squareClicked,
+  squareDragged,
+  squareResized,
+  squareScattered,
+  stemMenuOpen,
+} from './square-gestures.js';
 import { hoverStrongestStem, ringStoryView } from './views.js';
 
 // The genome ring (Design › Genome ring), `@molstar/seqx-ext-rondo`'s showcase: GRCh38's 23 chromosomes, 12,000
@@ -46,10 +54,41 @@ export const OneChromosome: StoryObj = { render: () => ring('ring-chromosome') }
 export const APair: StoryObj = { render: () => ring('ring-pair') };
 
 /**
- * The square beside the ring: 23 × 23 cells by count, the diagonal darkest; click a cell to show that pair on the ring
- * (`navigator.switch: include`, one undo step), its title or Home to show all again.
+ * The square beside the ring: 23 × 23 cells by count on a square-root ramp, the diagonal the links within; its window
+ * the chromosomes the ring shows. One click on a cell shows that pair at once, on a name that chromosome; drag the box
+ * along the diagonal or by its corner; Cmd or Ctrl+click adds or removes; Home shows all (each one undo step).
  */
 export const TheSquareBeside: StoryObj = { render: () => ring('ring', { navigators: 'include' }) };
+
+/** The square's box dragged: the ring showed chr4 to chr6, its box moved three chromosomes on (chr7 to chr9). */
+export const TheSquareDragged: StoryObj = {
+  render: () => ring('ring', { navigators: 'include', opening: squareDragged }),
+};
+
+/** The square's box resized by its corner: chr4 and chr5 grown to chr4 to chr9. */
+export const TheSquareResized: StoryObj = {
+  render: () => ring('ring', { navigators: 'include', opening: squareResized }),
+};
+
+/** One click on the cell chr4 × chr7: the pair at once, the window that cell's run. */
+export const TheSquareClicked: StoryObj = {
+  render: () => ring('ring', { navigators: 'include', opening: squareClicked }),
+};
+
+/** chr4, then Cmd+click on chr9's cell: a scattered set, outlined cell by cell (its diagonal and cross cells). Dark. */
+export const TheSquareScatteredDark: StoryObj = {
+  globals: { theme: 'dark' },
+  render: () => ring('ring', { navigators: 'include', opening: squareScattered }),
+};
+
+/**
+ * The stem menu: a secondary click on the strongest stem (opened here): its partners by count shown as a pair, the
+ * stem and its partners selected, its chromosome alone.
+ */
+export const TheStemMenu: StoryObj = { render: () => ring('ring', { opening: stemMenuOpen }) };
+
+/** The partner keys: the cursor on the strongest stem, then `.` twice (`,` back): on to its second partner, said. */
+export const ThePartnerKeys: StoryObj = { render: () => ring('ring', { opening: partnerKeys }) };
 
 /** Hovering a stem (the strongest, once placed): its ribbons lit over the washed hole, the card with its counts. */
 export const HoveringAStem: StoryObj = { render: () => ring('ring', { opening: hoverStrongestStem }) };
@@ -69,7 +108,7 @@ export const Crowded: StoryObj = { name: 'Crowded: 3,000 Contigs', render: () =>
 /** The links pending (their answer never comes): the bands drawn, the hole's pending hatch, no stems. */
 export const LinksPending: StoryObj = { render: () => ring('ring-pending') };
 
-/** The links' file missing: the issue said once, no ribbon. */
+/** The links’ file missing: the issue said once, no ribbon, no hatch waiting (“links failed”). */
 export const LinksFailed: StoryObj = { render: () => ring('ring-failed', { sourceIssues: true }) };
 
 /** No links at all: an empty hole, its ARIA description "no links". */

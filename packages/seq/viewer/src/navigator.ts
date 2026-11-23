@@ -507,8 +507,12 @@ export class NavigatorModel extends ReactiveModel {
     const d = this.press;
     if (d) {
       if (!d.moved && Math.max(Math.abs(x - d.x0), Math.abs(y - d.y0)) >= DragSlop) d.moved = true;
-      if (d.moved && d.set) this.setGesture.drag(this.setSquare!, x, y);
-      else if (d.moved) this.dragTo(d, x, y);
+      const set = d.set ? this.setSquare : undefined;
+      if (d.moved && set) {
+        set.pointer[0] = x;
+        set.pointer[1] = y;
+        this.setGesture.drag(set);
+      } else if (d.moved) this.dragTo(d, x, y);
       this.changed();
       return;
     }

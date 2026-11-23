@@ -104,20 +104,21 @@ export class SquareSetGesture {
   }
 
   /** The pointer moved in a drag: the run it would write, snapped to whole blocks, drawn as the preview. */
-  drag(square: SquareNavigator, x: number, y: number): void {
+  drag(square: SquareNavigator): void {
+    // the point is the square's `pointer` (set by the caller: nothing boxed a move)
     if (this.grip === 'none') return;
     const n = square.blockCount;
     const len = this.i1 - this.i0;
     if (this.grip === 'body') {
-      const shift = square.blockAtPoint(x, y, 'both') - this.b0;
+      const shift = square.blockAtPointer('both') - this.b0;
       this.n0 = Math.max(0, Math.min(n - len, this.i0 + shift));
       this.n1 = this.n0 + len;
     } else if (this.grip === 'start') {
-      this.n0 = Math.max(0, Math.min(this.i1 - 1, square.edgeAt(x, y, this.axis)));
+      this.n0 = Math.max(0, Math.min(this.i1 - 1, square.edgeAtPointer(this.axis)));
       this.n1 = this.i1;
     } else {
       this.n0 = this.i0;
-      this.n1 = Math.max(this.i0 + 1, Math.min(n, square.edgeAt(x, y, this.axis)));
+      this.n1 = Math.max(this.i0 + 1, Math.min(n, square.edgeAtPointer(this.axis)));
     }
     square.setPreview(this.n0, this.n1);
   }

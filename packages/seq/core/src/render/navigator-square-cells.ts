@@ -122,12 +122,17 @@ export class SquarePictureCells {
     this.renderer.tokens = tokens;
   }
 
+  /** Whether `layout` would lay the hidden section out now (the base drawn again, the store's settled state moved, waiting). */
+  due(settled: boolean, rebuilt: boolean): boolean {
+    return rebuilt || this.waiting || settled !== this.settled;
+  }
+
   /**
    * Lays the hidden section out when the square's base is drawn again, the store's settled state moved, or the cells
    * still wait on data (never on a window's move: nothing allocated there). True when the cells changed.
    */
   layout(width: number, dpr: number, settled: boolean, overlay: Overlay | undefined, rebuilt: boolean): boolean {
-    if (!rebuilt && !this.waiting && settled === this.settled) return false;
+    if (!this.due(settled, rebuilt)) return false;
     this.settled = settled;
     const fi = this.input;
     fi.size.width = Math.max(1, width);
