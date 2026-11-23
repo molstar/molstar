@@ -2866,7 +2866,9 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 - The port is `measure(font, text)` in CSS px with one `TextMeasure` (`@molstar/core/util/text-measure`) a font behind
   it (`createTextMetrics`). A font is shorthand naming a family role (`12px sans`, `10px mono`); a backend writes the
   role's stack. Node measures with the bundled table (`bundledTextMetrics`): Arial-compatible sans advances, a 0.6 em
-  mono. Letters are never measured: centered in their cells, one size a row, the largest of the scale that fits.
+  mono. Letters are never measured: centered in their whole cells (the cell's extent before the view cuts it, so a
+  letter keeps its place as the row pans; clipped to the band's box where it overhangs), one size a row, the largest of
+  the scale that fits.
 - The port has a `version`, bumped by `clear` (a web font arrived): part of the draw lists' key.
 - Font sizes are read from the config once a layout, never per label per draw.
 

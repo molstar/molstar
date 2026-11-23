@@ -105,6 +105,9 @@ export interface LettersLay extends MoleculeLay {
   ink: Uint32Array;
   x0: Float32Array;
   x1: Float32Array;
+  /** Each cell's whole extent (before the view cut): its letter's centre and its width. */
+  gx: Float32Array;
+  gw: Float32Array;
   show: Uint8Array;
   font: string;
   fontSize: number;
@@ -238,6 +241,8 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
       ink: new Uint32Array(64),
       x0: new Float32Array(64),
       x1: new Float32Array(64),
+      gx: new Float32Array(64),
+      gw: new Float32Array(64),
       show: new Uint8Array(64),
       font: '',
       fontSize: 0,
@@ -348,6 +353,8 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     lay.ink = grown(lay.ink, count);
     lay.x0 = grown(lay.x0, count);
     lay.x1 = grown(lay.x1, count);
+    lay.gx = grown(lay.gx, count);
+    lay.gw = grown(lay.gw, count);
     lay.show = grown(lay.show, count);
     const nucleotides = prep.alphabet !== 'protein';
     const rna = prep.alphabet === 'rna';
@@ -394,6 +401,8 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
               lay.ink = grown(lay.ink, j + 1);
               lay.x0 = grown(lay.x0, j + 1);
               lay.x1 = grown(lay.x1, j + 1);
+              lay.gx = grown(lay.gx, j + 1);
+              lay.gw = grown(lay.gw, j + 1);
               lay.show = grown(lay.show, j + 1);
             }
             lay.pos[j] = p;
@@ -403,6 +412,11 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
             // snapped here, not by a call: a number passed to a call that is not inlined is boxed
             lay.x0[j] = Math.round(axis.sx0 * dpr) / dpr;
             lay.x1[j] = Math.round(axis.sx1 * dpr) / dpr;
+            // the whole cell, not its visible part: the letter stays in the middle of its box as the row scrolls
+            const w0 = Math.round(axis.fx0 * dpr) / dpr;
+            const w1 = Math.round(axis.fx1 * dpr) / dpr;
+            lay.gx[j] = (w0 + w1) / 2;
+            lay.gw[j] = w1 - w0;
             if (bad) lay.conflicts.push(lay.x0[j], lay.x1[j]);
           }
         }
@@ -429,13 +443,13 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
       const advance = lay.fontSize * config.monoAdvance;
       let narrowest = Infinity;
       for (let j = 0; j < lay.n; j++) {
-        const w = lay.x1[j] - lay.x0[j];
+        const w = lay.gw[j];
         lay.show[j] = w >= advance + 1 ? 1 : 0;
         if (w < narrowest) narrowest = w;
       }
       if (prep.through === 'codon' && prep.alphabet === 'protein')
         lay.three = prep.code === 'three' || (prep.code === 'auto' && narrowest >= 3 * advance + 2);
-      if (lay.three) for (let j = 0; j < lay.n; j++) lay.show[j] = lay.x1[j] - lay.x0[j] >= 3 * advance + 1 ? 1 : 0;
+      if (lay.three) for (let j = 0; j < lay.n; j++) lay.show[j] = lay.gw[j] >= 3 * advance + 1 ? 1 : 0;
     }
     return lay;
   },

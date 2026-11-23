@@ -19,7 +19,7 @@ import { Anchor, grown, NoColor, type PassName, type PassWriter } from './draw-l
 import type { LayerSource } from './layer-data.js';
 import type { Emphasis, LayerType } from './layer-type.js';
 import { type LettersLay, type LettersPrep, LettersType } from './letters.js';
-import { chipInk } from './letters-draw.js';
+import { chipInk, clipBox, overhangs } from './letters-draw.js';
 import { inkOn, type SeqTokens } from './tokens.js';
 
 const AnchorMiddle: number = Anchor.middle;
@@ -182,6 +182,9 @@ interface Cells {
   ink: Uint32Array;
   x0: Float32Array;
   x1: Float32Array;
+  /** Each cell's whole extent (before the view cut): its label's centre and its width. */
+  gx: Float32Array;
+  gw: Float32Array;
   show: Uint8Array;
   font: string;
   fontSize: number;
@@ -211,6 +214,8 @@ export function layMoleculeCells(
   lay.ink = grown(lay.ink, count);
   lay.x0 = grown(lay.x0, count);
   lay.x1 = grown(lay.x1, count);
+  lay.gx = grown(lay.gx, count);
+  lay.gw = grown(lay.gw, count);
   lay.show = grown(lay.show, count);
   const ink = inkOn(fill, tokens);
   const dpr = axis.dpr;
@@ -232,8 +237,12 @@ export function layMoleculeCells(
       lay.ink[j] = ink;
       lay.x0[j] = Math.round(axis.sx0 * dpr) / dpr;
       lay.x1[j] = Math.round(axis.sx1 * dpr) / dpr;
+      const w0 = Math.round(axis.fx0 * dpr) / dpr;
+      const w1 = Math.round(axis.fx1 * dpr) / dpr;
+      lay.gx[j] = (w0 + w1) / 2;
+      lay.gw[j] = w1 - w0;
       lay.show[j] = 0;
-      narrowest = Math.min(narrowest, lay.x1[j] - lay.x0[j]);
+      narrowest = Math.min(narrowest, lay.gw[j]);
     }
   lay.fontSize = 0;
   if (!letters || !lay.n) return;
@@ -243,23 +252,26 @@ export function layMoleculeCells(
   const advance = lay.fontSize * config.monoAdvance;
   for (let j = 0; j < lay.n; j++) {
     const label = labels[lay.pos[j]] ?? '';
-    lay.show[j] = label && label.length * advance + 1 <= lay.x1[j] - lay.x0[j] ? 1 : 0;
+    lay.show[j] = label && label.length * advance + 1 <= lay.gw[j] ? 1 : 0;
   }
 }
 
 /** A molecule's labels drawn centred in their cells, where they fit (`show`). */
-export function drawMoleculeLabels(lay: Cells & MoleculeLay, out: PassWriter): void {
+export function drawMoleculeLabels(lay: LettersLay, out: PassWriter): void {
   const labels = lay.labels!;
+  const clipped = overhangs(lay);
+  if (clipped) clipBox(lay, out);
   const g = out.args;
   for (let j = 0; j < lay.n; j++) {
     if (!lay.show[j]) continue;
-    g[0] = (lay.x0[j] + lay.x1[j]) / 2;
+    g[0] = lay.gx[j];
     g[1] = lay.glyphY;
     g[2] = 0;
-    g[3] = lay.x1[j] - lay.x0[j];
+    g[3] = lay.gw[j];
     g[4] = lay.ink[j];
     out.textArgs(labels[lay.pos[j]] ?? '', AnchorMiddle, lay.font);
   }
+  if (clipped) out.unclip();
 }
 
 /**
