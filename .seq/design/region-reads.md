@@ -89,7 +89,8 @@ interface GridSparse { form: 'sparse'; x: number; y: number; xBin: Int32Array; y
 interface MatrixItems { form: 'items'; start: Int32Array; end: Int32Array;   // a column an item: a variant, a CpG, a gene
                         states: number; value?: Float32Array; codes?: Uint8Array; // item-major, states × items values
                         id?: CategoryColumn; row?: Int32Array }
-interface MatrixBins  { form: 'bins'; start: number; states: number;        // a bin per column, a level's width
+interface MatrixSummary { form: 'summary'; start: number; states: number;        // a bin per column, a level's width (`summary`, not `bins`:
+                                                                            // pairs use `bins`, and a table's shape is told by its columns; amended 2026-11-23)
                         mean?: Float32Array; min?: Float32Array; max?: Float32Array; count?: Float32Array; // values
                         classes?: Uint8Array; shares?: Uint8Array }          // codes: majority and share (as cells)
 // rows: keyed records, on the source's records system (a position a record)
@@ -224,8 +225,8 @@ that order, served at the coarse levels only: Juicebox's "All", below). Why on t
   their columns); the cache's bound (64 MB), its least-recently-used order and never evicting the view are as built.
   The reference view (a 1440 × 900 plot at DPR 2, every cell a device pixel) is at most 13 × 9 dense tiles, about
   30 MB, and about 42 MB with its margin ring: inside the bound. **A second grid on the same pair** (EC-59: upper and
-  lower of different data) doubles it, past the bound: `seq.store.over_budget`, and the layer with the most bytes reads
-  a level coarser (a quarter of the bytes), as built. EC-59's "size cap per block pair" is `maxTileBytes` a tile and
+  lower of different data) doubles it, past the bound: `seq.store.over_budget`, and the layers' own bounds (`maxTileBytes`, the first coarser
+  level that fits, a quarter of the bytes) read a level coarser before the store is asked, not the store (amended 2026-11-23: the code's way, the author as recommended). EC-59's "size cap per block pair" is `maxTileBytes` a tile and
   `summaries.maxBytes` a whole read, per block pair.
 - **Pending in 2D** (EC-169): a tile not loaded draws the held coarser tile under it; with none held, a **pending
   rectangle** (the pending hatch over its rect, clipped to the plot), hit as pending ("loading"), never as empty or
@@ -265,10 +266,10 @@ counted against `maxBytes`, gone with it:
   as bins (both systems, both bins, strand, category; `sum` summed), exact because levels are nested (bins aligned on
   position 0). The summaries' further levels and RN's stems call it. Why apart from `binPairs`: a coarser level from
   the one below reads bins, never the items again.
-- **A data filter on an item's field** (a Q-value) narrows the bins only where they are built from items: held pairs
-  and a one-level source summarized whole rebuild their pyramid for the filter (its version in the key); a source's
-  own levels apply it to items only, its bins said once (`seq.render.pairs.filter`, info: "the filter applies when
-  zoomed in"). A filter on `count` or `type` applies to bins as to items.
+- **A data filter on an item's field** (a Q-value) is read pair by pair on held pairs and on items read by region; bins read by region carry no fields, so the
+  filter is not applied to them and no pyramid is rebuilt for it, said once (`seq.render.pairs.filter`, info: "the filter
+  applies when zoomed in"; the issue is not built yet) (amended 2026-11-23: the code's way, the author as recommended); a rebuild per filter waits for a filter on a numeric
+  field over bins (EC-225's Q-value case), since it costs a whole read each time the filter changes. A filter on `count` or `type` applies to bins as to items.
 
 ### How a level is chosen at a zoom
 
@@ -524,7 +525,7 @@ Built (the fifth slice): RG with RS (the shapes, 2D tiles, levels, summaries), G
 |---|---|
 | Whose each choice is: no new port; meaning a spec param, planning a store setting or a preset | core › Render |
 | The answer shapes `pairs`, `grid`, `matrix`, `rows` and their forms | core › The region shapes' forms |
-| A matrix's coarse form named `bins` | design-only: not built as designed, `summary` (drift note `region-reads`) |
+| A matrix's coarse form named `summary` (pairs' is `bins`) | core › Tables |
 | Pairs tiled in 1D by either end; a pair's identity its row or id with both ends | core › The region shapes |
 | Sided pairs between two genomes | core › Sided pairs |
 | Items tiles at any listed level (`RegionRequest.items`, `i<level>`) | core › Items tiles |
@@ -540,12 +541,12 @@ Built (the fifth slice): RG with RS (the shapes, 2D tiles, levels, summaries), G
 | A layer's wants together (`maxTilesPerLayer`) and read cost (`maxBytesPerLayer`, `readCost`) | core › A layer's wants together |
 | The whole-assembly level read by a grid over blocks | core › Grid levels |
 | The whole-assembly level cut into block pairs | design-only: not built (the package's TODO) |
-| A second grid on one pair over budget reads coarser | design-only: not built as designed (drift note `store-over-budget`) |
+| A second grid on one pair over budget reads coarser, by the layers' own bounds | core › A layer's wants together |
 | Pending in 2D: the held coarser tile, else a pending rectangle | core › The grid layer |
 | Summaries for one-level sources: time-sliced; pairs (only the levels that halve kept); grids at factor 2 | core › Summaries |
 | Held pairs get the same bins (`binPairs`, one `PairsReader`); `coarsenBins` | core › The reader |
 | Held pairs over blocks still binned by device column | design-only: not built (the package's TODO, Decided 7 partial) |
-| A data filter on an item's field narrowing bins; `seq.render.pairs.filter` | design-only: not built as designed (drift note `region-reads`) |
+| A data filter on an item's field narrowing bins; `seq.render.pairs.filter` | design-only: not built: the close-out's (the filter is read pair by pair on held pairs and on items read by region, bins carry no fields and are unfiltered, core › The pairs layer; the info issue is a small fix lane's item, the rebuild per filter waits for EC-225's Q-value case) |
 | The level rules by shape (values, matrix, grid, pairs with the items gate and hysteresis) | core › The level rules by shape |
 | In a bridge, each side its own window and level | core › sided source |
 | Past `pairs.maxArcs`, the strongest bins kept | core › The pairs layer |

@@ -418,8 +418,9 @@ alignment truth in code (GD); PAF and chain runtimes are designed only (appendix
   inline `segments`; its runs are the source's rows of equal-length ends, read by region of either side
   (`RegionRequest.side`): the `from` side for projection forward, the `to` side for a layer drawn on the `to` section
   (a liftover's old genes on the new assembly); the runtime indexes both ends once, so it is one read
-  (building-blocks.md: "a genome-scale map is held by region"; GA: one map over every sequence pair). A row of unequal
-  ends is refused as a run (counted, `seq.source.seq.run`). Why the pairs shape: a run is a pair of equal length, so one
+  (building-blocks.md: "a genome-scale map is held by region"; GA: one map over every sequence pair). The runtime serves every
+  row; the liftover's reader of runs leaves out a row of unequal ends and says it by count (`seq.render.lift.run`, info),
+  since the same rows feed a bridge's ribbons, where an unequal block is a fine ribbon (amended 2026-11-23: the code's way, the author as recommended). Why the pairs shape: a run is a pair of equal length, so one
   source serves the ribbons (LX) and the liftover (EC-212) from one read.
 
 ### A name index (EC-228)
@@ -595,7 +596,7 @@ Built (the fifth slice): BZ, BE, GG, VC, GB, FR (by region with levels, VCF's ma
 | GenBank: records, features as ranges, locations, names, bounds | core › GenBank |
 | The `seq` runtime's sided pairs from either end; side `a` the map's `from` | core › Sided pairs |
 | A map's runs from a pairs source (`map.source`) | core › Maps read by region |
-| A row of unequal ends refused by the runtime (`seq.source.seq.run`) | design-only: not built as designed (drift note `genome-formats`) |
+| A row of unequal ends served by the runtime, left out of the runs by the liftover's reader, counted | core › A liftover |
 | A name index: `findNames`, served by a GFF3 or GTF read whole; who calls it | core › A capability, not a shape |
 | Protocol additions (item extents, span rows, `side`, items, `readCost`, `findNames`) | core › Protocol |
 | Field names fixed by convention (`thick_start`, `cds_phase`, `item_rgb`, `gene_name`) | core › BED family |

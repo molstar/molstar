@@ -29,3 +29,5 @@ by region carry no fields, so neither is read on them").
 
 **Recommendation**: (a) now, with the issue as a small fix lane's item; (b) when a filter on a numeric field over bins
 is asked for (EC-225's Q-value case), since a rebuild per filter costs a whole read each time the filter changes.
+
+**Resolved** (the author, 2026-11-23, as recommended): both items (a): the matrix's coarse form is `summary` in region-reads.md (the interface and its row, pointing at core › Tables); the data filter keeps its text and a row "not built: the close-out's" naming the code as built (pair by pair, bins unfiltered). Code item for the orchestrator: the info issue `seq.render.pairs.filter` ("the filter applies when zoomed in") as a small fix lane's item; the pyramid rebuild per filter waits for a filter on a numeric field over bins.

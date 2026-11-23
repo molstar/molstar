@@ -27,7 +27,7 @@ modified/combinator etc. ... you are mixing two things: property access and lang
 | Type | Holds | Made by | Used for |
 |---|---|---|---|
 | **Nodes** | exact addresses of spec nodes, data-made systems and held dynamic nodes | ids, kind forms (`(section :of …)`), `(node :key …)`, `(chain :id …)` | refs, layers' data, commands on tracks and views |
-| **Keys** | keys of things data makes: items of an annotation, rows of an alignment, pairs, groups of a structure | `(item …)`, `(row …)`, `(pair …)`, `(groups …)` | clicking, toggling, bookmarks on features, labels |
+| **Keys** | keys of things data makes: items of an annotation, rows of an alignment, pairs, groups of a structure | `(item …)`, `(groups …)` (`(row …)` is a Location on the rows system, pairs are items) | clicking, toggling, bookmarks on features, labels |
 | **Location** | positions on systems: per system, sorted merged ranges; and rects over two axes | `(range …)`, `(at …)`, `(rect …)`, `(all)`, an element's extent | hover, selection, focus, highlights, layers' placement |
 
 - **A Location** is `{ parts: { system, ranges: Int32Array }[], rects: { a: Part, b: Part }[] }`: ranges as sorted,
@@ -76,7 +76,7 @@ gives; an element with nothing to give yields nothing, never a failure of the wh
 | `(all)` | Location | a whole system |
 | `(item :id k)`, `(item :<field> v)` | Keys | `/data/p53/domains/(item :label DNA-binding)` |
 | `(chain :id k)` | Nodes (a system) | `/data/1tup/(chain :id A)` |
-| `(row :id k)` | Keys | with alignments |
+| `(row :key k)`, or a list of keys | Location (on an alignment's rows system) | with alignments (amended 2026-11-23: the code's way, the author as recommended; no Keys row form, no `(pair …)`: pairs answer `items`) |
 | `(node :key k)` | Nodes | `/data/genes/(node :key T1)` |
 | `(extent :of <keys>)`, `(items :overlapping <location>)` | Location, Keys | conversions |
 | `(merge :of [ … ])`, `(intersect :of [ … ])`, `(except :of [ … ])` | the type of their arguments | combinators over one type (renamed from `or`, `and`, `not`; `except` with one operand the complement within the prefix) |
@@ -135,7 +135,8 @@ Location, or Keys (read as their extents).
   the built-ins' signature (an operator's over values). Checked at composition (namespace, no built-in shadowed,
   conflicts across the descriptor); by role at evaluation (a filter's result a subset of its prefix, of its type; a
   combinator's operands one type; an operator's result a value); bounded through `ctx`. Printed by the grammar, params
-  in declared order. A namespaced form nobody registered is `seq.query.extension.missing`, naming the namespace; no
+  sorted by key, as every form is (one canonical spelling, so an address's text does not depend on whether the reader has
+  the extension) (amended 2026-11-23: the code's way, the author as recommended). A namespaced form nobody registered is `seq.query.extension.missing`, naming the namespace; no
   fallback (a query cannot be approximated). A bare unknown kind keeps meso\*'s meaning (child selection by kind).
 - **Replaced** (ML2's forms): `(atom :name O1G)` by `(elements :atom O1G)`; `(component :id MSE)` by
   `(elements :component MSE)`, its `:standard`, `:class`, `:annotations` by `filter` over the properties `modified`,
@@ -183,7 +184,7 @@ residues (three atoms); `/data/1ehz/(groups :residue-test (= (prop modified) tru
 | Labels resolve at the edge (EC-1 to EC-8) | core › Resolving a range |
 | Monadic composition | core › Composition |
 | The first forms | core › Forms |
-| `(row :id k)` giving Keys; a `(pair …)` form | design-only: not built as designed, `(row :key k)` gives a Location and pairs answer `items` (drift note `locations-and-queries.md`) |
+| `(row :key k)` giving a Location on the rows system, no `(pair …)` form (pairs answer `items`) | core › Forms |
 | `onto` and `search` | design-only: not built (later, with their examples) |
 | The forms by role, MolQL's split, a common prefix | core › Language |
 | `elements`: the schema selection, its depth its finest field | core › elements |
@@ -195,7 +196,7 @@ residues (three atoms); `/data/1ehz/(groups :residue-test (= (prop modified) tru
 | Positional operands in expressions only | core › Expressions take positional operands |
 | Types checked when the query is read | core › Types are checked when a test is compiled |
 | Extensions add forms: namespaced, checked at composition and by role, no fallback | core › Composed |
-| An extension form's params printed in declared order | design-only: not built as designed, printed sorted by the grammar (drift note `locations-and-queries.md`) |
+| An extension form's params printed sorted by the grammar, like every form | core › Extensions |
 | Replaced forms (`atom`, `component`, `entity`) | core › Molecule node forms |
 | Staged evaluation over data read by region | core › Staged |
 | A query needing the whole data asks the source, else refused | design-only: not built (with `search`) |

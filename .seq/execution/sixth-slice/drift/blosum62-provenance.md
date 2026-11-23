@@ -15,3 +15,5 @@ each letter against the column's consensus (a matrix in core's data, a `consensu
 
 **Recommendation**: (a) now, as a fix lane's item: a picker must never claim a score the picture does not show. (b)
 when an alignment view asks for substitution scores; then the name is earned and the spec's row changes with it.
+
+**Resolved** (the author, 2026-11-23, as recommended): option (a), a code item: the picker text of `blosum62` (`theme/provenance.ts`) says what is drawn (matches the reference row's letter, no substitution score), and perhaps the scheme's label; the orchestrator places it. No design says otherwise (themes.md lists the scheme by name); (b) waits for an alignment view that asks for substitution scores.

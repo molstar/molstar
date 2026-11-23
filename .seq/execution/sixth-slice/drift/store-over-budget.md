@@ -16,3 +16,5 @@ render planner reads the widest layers' next coarser level.
 **Recommendation**: (a). The per-layer bounds (tiles, read cost, tile bytes) bound a view's reads before they reach the
 cache; a planner reacting to `overBudget` would be a second, later path to the same end. Revisit if a view is ever
 seen over budget with its layers each within their bounds.
+
+**Resolved** (the author, 2026-11-23, as recommended): option (a): protocol.md's Lifetime and eviction says the store evicts and reports and a coarser level is the planner's (per-layer bounds), region-reads.md's second-grid text likewise; the rows point at core › Eviction and core › A layer's wants together.

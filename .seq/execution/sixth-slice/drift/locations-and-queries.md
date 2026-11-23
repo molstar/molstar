@@ -26,3 +26,5 @@ address grammar, keys sorted (core's printer), whatever the declaration says (co
 (b) a printer that reads the extension's declaration.
 
 **Recommendation**: (a): an address's identity as text must not depend on whether the reader has the extension.
+
+**Resolved** (the author, 2026-11-23, as recommended): both items (a): the design's form table and the printing rule now say the code's way (`(row :key k)` a Location on the rows system, pairs answer `items`; every form printed sorted by key); the two rows point at core › Forms and core › Extensions.

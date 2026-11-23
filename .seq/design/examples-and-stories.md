@@ -9,7 +9,7 @@ structured. This design settles it.
 ## Decision
 
 - **An examples package**, `packages/seq/examples` (`@molstar/seqx-examples`, private): the datasets' fixtures and one
-  module per view, each exporting `build(): Spec` written with the builder. It depends on `@molstar/seqx-core` (and `@molstar/core`) only, so
+  module per view, each exporting `build()`, which returns the builder's tree (`Node`, from `@molstar/core/repr/tree`) (amended 2026-11-23: the code's way, the author as recommended). It depends on `@molstar/core`, `@molstar/seqx-core` and `@molstar/seqx-ext-rondo` (the genome ring's views), never the viewer, so
   the core's and the viewer's tests import it, and the storybook package imports it too; its record script, run by hand
   and never by a test, reads mmCIF through `@molstar/io`, a devDependency ([examples.md](examples.md)).
 - **Fixtures** live in `examples/fixtures/<dataset>/`, small files committed (FASTA, `seq` files, a tiny bigWig);
@@ -52,7 +52,7 @@ columns. Each with its headless twin checking the result's location.
 | Decision | Where |
 |---|---|
 | An examples package (`@molstar/seqx-examples`, private), `build()` a view | examples › Dependencies |
-| Its dependencies: `@molstar/seqx-core` and `@molstar/core` only; `build(): Spec` | design-only: not built as designed (drift note) |
+| Its dependencies: core, seqx-core and the rondo extension; `build()` returns the builder's tree | examples › Dependencies |
 | Fixtures committed small, generated ones made from a seed | examples › Fixtures |
 | Reading fixtures by relative location, in Node and in Storybook | examples › Reading fixtures |
 | Features and examples apart in the Storybook | design-only: the Storybook's organization, no package spec |

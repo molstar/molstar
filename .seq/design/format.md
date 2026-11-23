@@ -55,8 +55,10 @@ description of the language that everything else derives from.
 - **The language is data**: one description declares kinds, where each may sit, the id policy, params with types
   (column types included), defaults, bounds and docs, and refs. Validation (every issue, stable codes), defaults, the
   builder's types, the docs and the agent skill derive from it.
-- **Unknown kinds** in a newer minor version, or in an extension namespace the reader lacks, are kept, reported and
-  skipped (with the kind's declared fallback), never a failure of the whole spec.
+- **Unknown kinds** in an extension namespace the reader lacks are kept, reported and skipped, never a failure of the
+  whole spec. A bare kind a `0.x` reader does not know is an error (every `0.x` minor may break), and a layer type of a
+  newer version is read as its fallback (core's Extensions); before 1.0 an unknown bare kind in a newer minor of the same
+  major becomes a warning, kept and skipped with the kind's declared fallback (the package's TODO, under `repr`) (amended 2026-11-23: the code's way until 1.0, the author as recommended).
 - **Revisions and patches** ([patches.md](patches.md)): a spec's revision is an immutable root named by its hash; a
   change is a commit (a root and its parent revisions), and the patch between two revisions is derived (`diff`).
   Patches (`set`, `unset`, `insert`, `remove`, `move`, `replace`, by addresses of ids) are how a writer asks for a
@@ -103,7 +105,7 @@ description of the language that everything else derives from.
 | One node shape | repr › One node shape |
 | The language is data; validation, defaults, builder types and docs from it | repr › A language is plain data |
 | Unknown kinds in an extension namespace kept, reported, skipped | repr › An unknown kind in a foreign namespace |
-| Unknown kinds of a newer minor kept with the kind's fallback | design-only: not built as designed, an unknown kind without a namespace is an error and `fallback` is not acted on (drift note `unknown-kinds.md`); a layer type is read as its fallback (core › Extensions) |
+| Unknown kinds of a newer minor kept with the kind's fallback (before 1.0) | design-only: not built: the close-out's (the version-aware validate, `packages/seq/TODO.md` under `repr`; until then a bare unknown kind is an error and `fallback` is not acted on; a layer type is read as its fallback, core › Extensions) |
 | Revisions, patches, `diff`, `merge3`; columns replaced whole | repr › Patches |
 | The builder the main way to write a spec | core › Language builder |
 | No published JSON Schema, initially | design-only: not built (until a consumer needs one) |

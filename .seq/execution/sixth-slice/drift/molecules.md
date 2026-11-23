@@ -13,3 +13,5 @@ element menu.
 
 **Recommendation**: (a), matching the library-not-viewer line (composition is the application's); the stories show it
 through a host's header entry.
+
+**Resolved** (the author, 2026-11-23, as recommended): option (a): molecules.md's interaction matrix and Consequences say `block.form` is a command a host's menus may offer; its row points at viewer › Commands.

@@ -13,3 +13,5 @@ refuses them when the source is read as a map.
 
 **Recommendation**: (a). One source serves both the ribbons and the liftover (the design's own reason for the pairs
 shape), so the refusal belongs to the reader that needs equal lengths; the issue's code says where it was found.
+
+**Resolved** (the author, 2026-11-23, as recommended): genome-formats.md (The `seq` runtime, "As a map") now says the runtime serves every row and the liftover's reader leaves out unequal ends, counted (`seq.render.lift.run`); its "In the specs" row points at core › A liftover.

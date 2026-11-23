@@ -348,7 +348,7 @@ Rows and columns of ux-foundations section 8; "as an element" means the grammar'
 | | select | extend | add / remove | focus | back | zoom in / out | pan | hide | edit |
 |---|---|---|---|---|---|---|---|---|---|
 | **a section of a complex** | — | — | — | — | — | as its layout | as its layout | no: its tracks | `classes`, `copies`, `arrange` by patch (`section.set`, previewed) |
-| **a block: a chip** (`form: whole`) | click: the block's whole range (every atom, every merged copy) | Shift+click: each block's part between the anchor and it, in reading order (layouts.md) | Cmd/Ctrl+click | double-click: revealed; a sibling section showing its residues or atoms zooms to them (focus projects through the atoms map, one jump; follow does not, it needs a fixed scale) | double-click again, Alt+Left | no: a chip is fixed in px (layouts.md) | no: the window skips chips | no: `classes` or the blocks list by patch | `block.form` by patch (`whole`, `residues`, `atoms`), no default key, in the context menu (as `copies`) |
+| **a block: a chip** (`form: whole`) | click: the block's whole range (every atom, every merged copy) | Shift+click: each block's part between the anchor and it, in reading order (layouts.md) | Cmd/Ctrl+click | double-click: revealed; a sibling section showing its residues or atoms zooms to them (focus projects through the atoms map, one jump; follow does not, it needs a fixed scale) | double-click again, Alt+Left | no: a chip is fixed in px (layouts.md) | no: the window skips chips | no: `classes` or the blocks list by patch | `block.form` by patch (`whole`, `residues`, `atoms`), no default key; a command, in no built-in menu (a host's `on: 'element'` header entry may name it) (amended 2026-11-23: the code's way, the author as recommended) |
 | **an element**: a modified residue | as an element | as an element | as an element | as an element | as an element | — | — | no: `modified: none` on the layer | no: data |
 | **an element**: a molecule's residue or atom | as an element; atoms collapse onto residues for other sections | as an element | as an element | as an element | as an element | — | — | no | no: data |
 | **an element**: a link (an arc, or a site's mark) | click: the link item; both ends lit | Shift+click | Cmd/Ctrl+click | double-click: its extent, two parts on two systems, each section revealing its own | Alt+Left | — | — | its layer's items by type (`layer.filter`: hide disulfides) | no: data |
@@ -421,7 +421,7 @@ Rows and columns of ux-foundations section 8; "as an element" means the grammar'
 | A section of units on several systems never follows | core › Follow |
 | `links.hover` a behavior, off by default (decided 10) | viewer › Behaviors |
 | The hover carries identifiers; no depiction port | viewer › HoverModel |
-| `block.form` in the context menu | design-only: not built as designed, a command in no built-in menu (drift note `molecules.md`) |
+| `block.form` a command in no built-in menu; a host's header entry may name it | viewer › Commands |
 | The query forms | core › Molecule node forms |
 | mmCIF through an opt-in runtime on `@molstar/io`'s reader (decided 12) | core › mmCIF |
 | Its options `assembly`, `water`, `name` | core › mmCIF |
@@ -520,7 +520,7 @@ The fourth slice builds it, after the third slice's DG, DC, DT and LB (chips) an
   `@molstar/core`'s sequence constants, beside the one-letter codes | the standard component of each letter by
   alphabet (A ↔ ALA, DA, A)".
 - **`seqx-viewer`**: hover text with component, alternatives, atom name and residue; the hover record's identifiers;
-  `links.hover`; `block.form` in the context menu; the matrix cells above.
+  `links.hover`; `block.form` as a command (a host decides which menus offer it); the matrix cells above.
 - **`seqx-examples`**: DT (1EHZ's 11 modified residues, marked and found by query); DC (1FIN as a complex from its
   fixture: units with `auth` numbering, ATP `whole` and `atoms`, AlphaFill's transplants as molecules with scores,
   contacts a `pairs` layer; `links.hover` on, both ways); DG (4HHB's hemes as molecules, `links.hover` on); Antibody gains an Fc glycan (an IgG1 entry with its N297

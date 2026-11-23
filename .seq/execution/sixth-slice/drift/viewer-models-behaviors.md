@@ -16,3 +16,5 @@ it.
 
 **Recommendation**: (a). A follow is part of what the view is, not a policy a host opts out of; the spec already says
 so.
+
+**Resolved** (the author, 2026-11-23, as recommended): option (a): viewer-models.md's first behaviors list drops `follow` and `focus` as behaviors (follow the `ViewModel`'s rule, focus a command); its row points at viewer › ViewModel.

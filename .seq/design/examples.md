@@ -181,8 +181,8 @@ On the review of the decisions: "ok" to its recommendations.
   trimmed, and which parts are **derived** (computed by the script or in code, not in the source: annotations found in
   a sequence, contacts, a converted numbering). Why: a test can check it; prose cannot.
 - **Licences allowed**: `CC0-1.0` (PDB, Pfam, Rfam), `CC-BY-4.0` (UniProt, AlphaFold DB, SAbDab, and AlphaFill if
-  a licence is stated: the data's decisions, 1), `LicenseRef-NCBI-public-data` (INSDC records and ClinVar, on which NCBI places no restriction), and
-  `LicenseRef-seqx-generated` (what the package generates: its own, under the repository's licence). Anything else is
+  a licence is stated: the data's decisions, 1), `LicenseRef-NCBI-public-data` (INSDC records and ClinVar, on which NCBI places no restriction), `LicenseRef-EMBL-EBI-terms` (PDBe SIFTS), `LicenseRef-UCSC-freely-usable` (UCSC's cytobands: "freely usable for any purpose") and
+  `LicenseRef-seqx-generated` (what the package generates: its own, under the repository's licence) (amended 2026-11-23: the code's way, the author as recommended). Anything else is
   refused at recording. A CC BY dataset's attribution is shown on its Storybook index and carried with an exported spec
   file (the data's decisions, 4).
 - **Under 1 MB a file** (decided, 2026-11-18), **under 2 MB a dataset**: checked by a test. Why: the repository carries them and the
@@ -581,7 +581,7 @@ list, `seqx-examples` having no `_spec`) or a fixed rule of the fixtures, checke
 | Item | Whose | Default | Why | Alternatives |
 |---|---|---|---|---|
 | `fixtures.maxFileBytes`, `fixtures.maxDatasetBytes` | fixed (the fixtures test) | 1 MB, 2 MB | decided; the repository and the Storybook's assets | larger for a dataset the author names |
-| `fixtures.licences` | fixed (the record script and the fixtures test) | `CC0-1.0`, `CC-BY-4.0`, `LicenseRef-NCBI-public-data`, `LicenseRef-seqx-generated`, `LicenseRef-anarci-numbering` | permissive, attributable (decided) | one added by the author's decision |
+| `fixtures.licences` | fixed (the record script and the fixtures test) | `CC0-1.0`, `CC-BY-4.0`, `LicenseRef-NCBI-public-data`, `LicenseRef-EMBL-EBI-terms`, `LicenseRef-UCSC-freely-usable`, `LicenseRef-seqx-generated` (amended 2026-11-23: the code's list, the author as recommended) | permissive, attributable (decided) | one added by the author's decision |
 | `p53.variants.sources` | option of the record script | UniProt, ClinVar | licences known per source (decided) | gnomAD once its licence is checked |
 | `chromosome.length`, `.genes`, `.seed` | option of the generator | 83,257,441 (GRCh38 chr17), about 1,200, one fixed seed | p53's chromosome at its real size, TP53 in place | a whole genome's 3.1 Gb by chromosome (heavy only) |
 | `globins.seedRows` | option of the record script | at most 60 | the dataset table's "about 50"; a figure that fits a screen | the whole seed |

@@ -34,3 +34,5 @@ choice in a helper.
 5. **`rondoRing` does not write the spec's `extensions`.** The design says it writes `extensions: { rondo: '0.1' }`; the
    code leaves it to the writer (`createSeqSpec({ extensions: [rondo] })`), as the spec says. Recommendation: amend the
    design; the writer owns what the spec requires.
+
+**Resolved** (the author, 2026-11-23, as recommended): items 1 to 5 as recommended, all amended in ring-extension.md (no limit issue, the hue ring only with bands, a key hit, the lazy menu and card chunks, `extensions` the writer's); the rows now point at ext-rondo › Ribbons, The builder helper, Hits, emphasis, words and @molstar/seqx-ext-rondo.

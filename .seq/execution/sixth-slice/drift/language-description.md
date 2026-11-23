@@ -30,3 +30,5 @@ for the language's checks, a `path` inside the node (`['params', …]`); its own
 reader uses it); (b) add the answer's place.
 
 **Recommendation**: (a).
+
+**Resolved** (the author, 2026-11-23, as recommended): item 1: language-description.md (Extensions merge) now describes extensions on the one description, no `composeLanguage`; its row points at core › Extensions. Item 2: the dynamic node's `address` and `path` text amended, its row pointing at core › Overlay. Code item for the orchestrator: drop the `composeLanguage` entry under `repr` in `packages/seq/TODO.md`.
