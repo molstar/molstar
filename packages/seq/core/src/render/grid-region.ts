@@ -219,6 +219,9 @@ export function layoutRegionGrid(
   }
   const tokens = ctx.tokens.version;
   const xLen = region.src.length ?? Number.MAX_SAFE_INTEGER;
+  // a tile's last bin may run past its system's end on either axis (a level wider than one position): its box ends at
+  // the end, never past it (a position past the axis has no place, and the tile would be dropped)
+  const yLen = cov?.systems.find((s) => s.name === region.yName)?.length ?? Number.MAX_SAFE_INTEGER;
   const place = (p: Placed, level: number) => {
     const key = `${lay.key}|r|${p.key}|${p.transposed ? 't' : ''}|${lay.colorVersion}.${tokens}|${lay.orderKey}`;
     let img = lay.cache!.get(key);
@@ -229,7 +232,8 @@ export function layoutRegionGrid(
     }
     const xs = p.x * level;
     const ys = p.y * level;
-    if (boxOf(a, ay, xs, Math.min(xs + p.w * level, xLen), ys, ys + p.h * level, lay.ib)) lay.images.push(img);
+    if (boxOf(a, ay, xs, Math.min(xs + p.w * level, xLen), ys, Math.min(ys + p.h * level, yLen), lay.ib))
+      lay.images.push(img);
   };
   // nothing held under a pending rect: the pending fill there (EC-169: loading, never empty)
   if (!under.length)
