@@ -16,7 +16,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
 import { headerMenu } from '../header-entries.js';
 import { legendRows } from '../legends.js';
-import { mountLegend } from '../mount-legend.js';
+import { loadLegendEyes, mountLegend } from '../mount-legend.js';
 import { type UiHistory, uiHistory } from '../ui-history.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
 import { stubCanvasContext } from './canvas-stub.js';
@@ -72,9 +72,12 @@ async function mounted(options: Parameters<typeof mountLegend>[2] = {}) {
   v.resize(600);
   await v.settle();
   frames.flush();
+  // the eyes' chunk landed first (a lazy import: real I/O, never the frames' clock), and its tooltip installed after
+  await loadLegendEyes();
   const el = document.createElement('div');
   document.body.append(el);
   disposers.push(mountLegend(el, v, options));
+  await loadLegendEyes();
   return { v, el };
 }
 

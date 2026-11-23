@@ -1641,7 +1641,9 @@ frame.
   row dimmed; click the eye-off, shown and the row as it was; a shown layer's entry unchanged (the click rule); a hidden
   layer's entry nothing; undo one step. `layers: false` drops it (a figure's legend, printed, where the button is
   chrome). Why in the part and never on the view: the part is what a host places, and the edit is the spec's existing
-  command, so the legend gains no owner.
+  command, so the legend gains no owner. The button and its tooltip are a chunk of their own (`legend-eye-dom.ts`),
+  loaded the first time a part draws an eye, its room (20 px) held until it lands: the default viewer's first chunk
+  carries none of them (measured: 22.6 kB eager, 3.0 kB with the chunk).
 - **A layer's row keeps its place when hidden**: a hidden layer draws nothing and derives no legend, so `LegendModel`
   keeps the legend each layer last had while shown and, at each settle, puts it back for a layer the spec hides
   (`Legend.hidden`, the hidden layers among `layers`): joined to a shown legend of the same key (a legend over several

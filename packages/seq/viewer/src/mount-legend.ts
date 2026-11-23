@@ -5,12 +5,6 @@
  */
 
 import { colorHex } from '@molstar/seqx-core/theme/index';
-import { Button } from '@molstar/ui/components/button/button';
-import { lucideEye } from '@molstar/ui/components/icon/_generated/lucide/eye';
-import { lucideEyeOff } from '@molstar/ui/components/icon/_generated/lucide/eye-off';
-import { installTooltips } from '@molstar/ui/components/tooltip/tooltip';
-import { render } from '@molstar/ui/dom/render';
-import { onCleanup } from '@molstar/ui/dom/scope';
 import {
   type LegendChannels,
   LegendChannelsModes,
@@ -56,19 +50,13 @@ export interface LegendPartOptions extends LegendSelection {
   readonly layers?: boolean;
 }
 
-/** A Lucide icon's markup as an element (one icon imported by itself, never the registry of every icon). */
-function iconOf(doc: Document, markup: string): SVGSVGElement {
-  const svg = doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', '0 0 24 24');
-  svg.setAttribute('fill', 'none');
-  svg.setAttribute('stroke', 'currentColor');
-  svg.setAttribute('stroke-width', '2');
-  svg.setAttribute('stroke-linecap', 'round');
-  svg.setAttribute('stroke-linejoin', 'round');
-  svg.setAttribute('aria-hidden', 'true');
-  svg.innerHTML = markup;
-  return svg;
-}
+/** The eyes' chunk (`legend-eye-dom.ts`: `@molstar/ui`'s button, its tooltip, the DOM runtime), loaded on first use. */
+type EyeChunk = typeof import('./legend-eye-dom.js');
+let eyeChunk: EyeChunk | undefined;
+let eyeLoading: Promise<EyeChunk> | undefined;
+/** @internal The eyes' chunk, landed (a test awaits it before its gestures). */
+export const loadLegendEyes = (): Promise<EyeChunk> =>
+  (eyeLoading ??= import('./legend-eye-dom.js').then((m) => (eyeChunk = m)));
 
 /** A hidden layer's row: its title and swatches dimmed (_spec/README.md "Legends", a layer's row keeps its place). */
 const HiddenOpacity = '0.45';
@@ -108,13 +96,9 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
   const channelsEl = doc.createElement('div');
   root.append(host);
   element.append(root);
-  // the eye's tooltip (its name, as the toolbar's buttons say theirs)
-  const untips = eyes
-    ? render(() => {
-        onCleanup(installTooltips(root));
-        return null;
-      }, root)
-    : undefined;
+  // the eye's tooltip (its name, as the toolbar's buttons say theirs), once the eyes' chunk has landed
+  let untips: (() => void) | undefined;
+  let retired = false;
   /** The eyes' scopes, ended on each draw. */
   let eyeScopes: (() => void)[] = [];
   let closeMenu: (() => void) | undefined;
@@ -125,7 +109,8 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
   const eyeOf = (row: LegendRow): HTMLElement => {
     const holder = doc.createElement('span');
     holder.dataset.legendEye = row.id;
-    holder.style.cssText = 'display: inline-flex; margin: -4px 0;';
+    // its room held while the chunk loads (the button's 20 px), so the title never moves when it lands
+    holder.style.cssText = 'display: inline-flex; min-width: 20px; margin: -4px 0;';
     const one = row.layers.length === 1 ? row.layers[0] : undefined;
     const title = one ? `${one.hidden ? 'Show' : 'Hide'} ${one.name}` : `Layers of ${row.title}`;
     const toggle = (l: { address: string; hidden: boolean }) =>
@@ -152,19 +137,16 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
         );
       });
     };
-    eyeScopes.push(
-      render(() => {
-        const b = Button({
-          variant: 'ghost',
-          size: 'xs',
-          icon: iconOf(doc, row.hidden || one?.hidden ? lucideEyeOff : lucideEye),
+    // drawn again once the chunk lands (the first draw holds the room only)
+    if (eyeChunk)
+      eyeScopes.push(
+        eyeChunk.renderEye(holder, {
           title,
-          onClick: (ev) => (one ? toggle(one) : open(ev.currentTarget as HTMLElement)),
-        }) as HTMLElement;
-        if (!one) b.setAttribute('aria-haspopup', 'menu');
-        return b;
-      }, holder),
-    );
+          off: row.hidden || one?.hidden === true,
+          menu: !one,
+          onClick: (button) => (one ? toggle(one) : open(button)),
+        }),
+      );
     return holder;
   };
   let focus = 0;
@@ -424,7 +406,14 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
     viewer.tokensVersion.listen(() => highlightKey() !== shownKey && draw()),
   ];
   draw();
+  if (eyes)
+    void loadLegendEyes().then((m) => {
+      if (retired) return;
+      untips = m.eyeTooltips(root);
+      draw();
+    });
   return () => {
+    retired = true;
     for (const u of unlisten) u();
     for (const end of eyeScopes) end();
     closeMenu?.();
