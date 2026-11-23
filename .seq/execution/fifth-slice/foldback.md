@@ -129,6 +129,34 @@ Read:
      headers (FX24).
    - Where: S (the storybook package's test notes, or the viewer `_spec`'s lazy-chunk section).
 
+10. **The picture is agreed before it is built: what the author imagines and what the orchestrator imagines are made
+    to meet early.** (P; D; L)
+    - Proposed, for a new visible part or a new gesture (not a fix):
+      1. **Name a precedent.** The design names the tool or view whose behaviour it borrows ("a window like IGV's
+         locus box", "a legend like ggplot's") and says where it departs from it. A precedent is a shared picture;
+         words alone are not.
+      2. **Write the expectation as a script, in the reader's words.** The design's Defaults carries a few lines of
+         "you see …; you press here and drag; you see …", plus one rough picture (an SVG sketch or a stub story). The
+         author reads it at the design gate, which is where the imaginations are compared, at the price of a sentence.
+      3. **First touch, mid-lane.** The lane stops after its first drawn and interactive commit, and the author spends a
+         few minutes on one story before the rest is built. The orchestrator's look follows the script, not its own
+         picture.
+      4. **A miss is a design finding.** When the author's use contradicts a script the author agreed to, the
+         orchestrator writes the corrected script into the design, not only into `fixes.md`. The next part with the
+         same gesture then starts from it.
+    - Why: the slice's largest findings were differences of imagination, not bugs. Each design text was met; the author's
+      picture was another:
+      - the square: cells clicked twice in the design; a draggable window in the author's;
+      - letters centred on the visible cell rather than the whole one;
+      - "+n" as a count rather than a button;
+      - the ring's top labels;
+      - what a link between chromosomes means.
+
+      Reviews, tests and the orchestrator's looks all checked against the orchestrator's picture, so none could find
+      them; only the author's use did, at the end.
+    - Where: P (the instance's adaptations: a design for a visible part names a precedent and a script), D (the design
+      template's Defaults), L (the lane's first-touch stop and the look against the script).
+
 ## C. The earlier fold-backs' rules, checked against this slice
 
 From the fourth slice (B1–B11, "All 11"):
