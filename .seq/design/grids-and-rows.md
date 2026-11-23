@@ -614,10 +614,10 @@ registry entry, an option of a call, or fixed with its reason).
 | A click on a tree node toggles its fold; a summary row selects (Decided 2) | viewer › A tree's nodes |
 | A reveal opens folded clades, back folds them (Decided 3) | viewer › The rows' commands |
 | Hiding alignment columns waits (Decided 4) | design-only: not built (decided to wait) |
-| The selection's bookmark command (Decided 5) | viewer › Configuration |
+| The selection's bookmark command (Decided 5) | viewer › `selection.bookmark` |
 | `mirror` a plain `false` (Decided 6) | core › The pairs layer |
 | A drag on a ruler: the lower part the rail's, the upper selects columns; a grid's axes pan (Decided 7) | viewer › A ruler rail |
-| Figure-meaning settings are spec params; `selection.copyLetters` copies FASTA (Decided 8) | viewer › Configuration |
+| Figure-meaning settings are spec params; `selection.copyLetters` copies FASTA (Decided 8) | viewer › Copy |
 | The grid a section layout with a second transform (`strip.y`, `ctx.axisY`) | core › One strip, the plot |
 | The rows' zoom limits the host's (`rows.zoom`) | viewer › Configuration |
 | The rows layer owns its y inside its band (`bandTop`, `rowScale`) | core › The transform |
@@ -641,11 +641,11 @@ registry entry, an option of a call, or fixed with its reason).
 | A plot's box fixed | core › A plot's box is fixed |
 | A double-click on a cell zooms a step; the wheel over a plot is the plot's | viewer › Wheel |
 | Size and aspect (EC-109) | core › The grid layout |
-| Grid data inline, bounded by `maxBlockValues` | core › Only on its own systems |
+| Grid data inline, bounded by `maxBlockValues` | core › An answer's bounds |
 | Drawn: rects at `grid.rectMinPx`, image tiles from the shared reduction, `grid.buildBudget` | core › The grid layer |
 | The crosshair | core › Emphasis along y |
 | Rectangles subtract exactly | core › rects subtract |
-| One 2D reduction and one image LRU (`imageBytes`) | core › Render |
+| One 2D reduction and one image LRU (`imageBytes`) | core › The shared reduction |
 | The rows layer's data: `cells` on 1D tiles, columns whole; readers; the tree | core › `cells` |
 | Column measures for themes (`share`, `identity`, `matches-reference`) | core › Themes |
 | Order (`data`, `tree`, a field); filter; hidden | core › The rows layer |

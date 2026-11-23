@@ -566,7 +566,7 @@ Built (the fifth slice): BZ, BE, GG, VC, GB, FR (by region with levels, VCF's ma
 | Each runtime with its synthetic twin on a fake clock | core › Genome runtimes' internals |
 | BGZF and tabix in `@molstar/io` (the surface, lines as bytes, extents by the index's rule, CSI with TBI, the EOF block, no `.gzi`) | design-only: io's own spec (`packages/io/_spec/bgzf.md`), outside these specs |
 | Core's `ungzip` over multi-member streams | design-only: core's codec, not Seq\*'s spec (a fix recorded in the v6 changelog) |
-| Positions stay int32: a sequence past 2^31 − 1 refused at open, the others read | core › Header |
+| Positions stay int32: a sequence past 2^31 − 1 refused at open, the others read | core › Positions stay int32 |
 | Bytes to text: plain, gzip or BGZF by magic, bounded before and after inflating | core › Bytes to text |
 | Whole or by region, one line parser | core › Lines by region |
 | Levels of a tab-line source from its index's bytes; counts exact or absent | core › the levels its index's bytes allow |
@@ -590,8 +590,8 @@ Built (the fifth slice): BZ, BE, GG, VC, GB, FR (by region with levels, VCF's ma
 | VCF: the header; a row an ALT allele with the index's extent; ids; fields and INFO typed by the header | core › A row an ALT allele |
 | The matrix: genotype classes, `samples`, `field: 'GT'` the copy count | core › genotype class |
 | Genotypes parsed only for a `matrix` request; dense files by the levels the index allows | core › Genotypes are read only for a `matrix` request |
-| One file a chromosome one source | design-only: open (Tensions) |
-| VCF runs merged under a pixel take the majority category by width | core › The ranges layer |
+| One file a chromosome one source | core › A source is one file |
+| VCF runs merged under a pixel take the majority category by width | core › Layer types |
 | GenBank: records, features as ranges, locations, names, bounds | core › GenBank |
 | The `seq` runtime's sided pairs from either end; side `a` the map's `from` | core › Sided pairs |
 | A map's runs from a pairs source (`map.source`) | core › Maps read by region |

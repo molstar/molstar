@@ -318,7 +318,7 @@ position.
 | `direction` (`genomic`, `reversed`, `follow`, `{ along }`); unresolved and mixed paths | core › Its direction |
 | One direction per axis; a reversed piece's positions | core › An axis |
 | A direction per piece inside a block | design-only: not built (a tension) |
-| A reversed axis says so: the ruler counts down, the direction mark (`axis.directionMark`) | core › Render |
+| A reversed axis says so: the ruler counts down, the direction mark (`axis.directionMark`) | core › A reversed axis says so |
 | A ruler's insertion labels, `units`, `unnumbered` | core › Units |
 | Complement (`auto`, `always`, `never`) | core › Complement |
 | Navigation in display order | core › Navigation |

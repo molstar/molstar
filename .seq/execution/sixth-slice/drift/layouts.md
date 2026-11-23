@@ -5,7 +5,7 @@ key and restores it by that key, clamped when the lanes change. The code keeps a
 rows layer (`behaviors/rows.ts` gives `ViewModel.setBandRows`, which names rows); a lanes band has no namer, so a step
 keeps it as its `bandTop` in lanes (viewer spec, ViewModel, "Bands": "with none, a band is kept as its `bandTop`").
 
-**Where**: `packages/seq/viewer/src/behaviors/rows.ts`, `models/view.ts` (`KeptBand`); viewer spec, ViewModel, Bands.
+**Where**: `packages/seq/viewer/src/behaviors/rows.ts`, `models/view.ts` (`setBandRows`), `models/view-history.ts` (`KeptBand`); viewer spec, ViewModel, Bands.
 
 **Options**: (a) the design follows the code: lanes are sticky (an item keeps its lane while in view) and grow only at
 the bottom (EC-245), so a `bandTop` in lanes lands on the same items in most steps back; (b) build the namer for a lanes

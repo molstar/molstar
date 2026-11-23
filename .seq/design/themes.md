@@ -520,7 +520,8 @@ real use is **fixed**, with its reason. **No new port**: themes need no provider
 | Colors: literals, tokens, `light-dark` | core › A spec's color |
 | New tokens (ramp, diverging, secondary, break, window, grip, wash, centromere, genotype) | core › Tokens |
 | Ink follows its fill (4.5:1); an `ink` theme moved to 3:1 | core › Ink follows its fill |
-| The hover outline's 3:1; the double outline on a failing fill | design-only: the double outline not built (the package's TODO) |
+| The hover outline holds 3:1 against the page, the track, the cells, the missing and pending fills | core › The hover outline holds 3:1 |
+| The double outline on a fill the hover fails | design-only: not built (the package's TODO) |
 | Compatibility: a string reads as before; checks at the language | core › A spec's color |
 | A reader's color-blind substitution; every substitute safe | core › Schemes |
 | Letter cells in dark: a hairline edge | core › A letter cell's edge |
@@ -531,6 +532,8 @@ real use is **fixed**, with its reason. **No new port**: themes need no provider
 | Highlight channels in the legend part (`highlight.clear`) | viewer › The Legend part lists the active highlight channels |
 | Editing a theme: one patch, previewed; the commands | viewer › The legend behavior's commands |
 | `theme.color-selection` | design-only: planned |
+| Legend selection follows the grammar's click rule (the only selected value clicked clears it) | viewer › click rule |
+| Story steps: a color channel blends in `story.color.space` | core › A plan |
 | What the SVG export draws; legends in the export when asked (`export.legend`) | core › Call options |
 | The small layers: ruler, secondary, variants, values line and area, ranges line styles and arrows, letters, bands | core › Layer types |
 | Performance: compiled once, a 256-color table, a color a dictionary code | core › Themes |

@@ -836,14 +836,14 @@ registry entry, an option of a call, or fixed with its reason).
 | The viewport record owned here; a step over a changed layout restored by position (Decided 6) | core › The viewport record |
 | No size cut order (Decided 7); the size estimate | design-only: a stance, measured at the gates |
 | A drag on a ruler pans (the ruler rail) (Decided 8) | core › The ruler rail |
-| `selection.copyLetters` copies what is shown (Decided 9) | viewer › Configuration |
+| `selection.copyLetters` copies what is shown (Decided 9) | viewer › Copy |
 | `export.window` an optional spec param, `renderSvg`'s `window` overriding | core › A ring's window |
 | A layout cuts a section into strips and warps them; layer types keep their contract | core › Section layouts |
 | The lay cache bounded by the strips in view | core › The lay cache is bounded by the strips in view |
 | Additions to the layer contract: `used`, `scope`, `ctx.labels`, `ctx.span` | core › Layers a strip or a section |
 | Frames across tracks | core › Layer types |
 | A track's height fits its content in steps; tracks of a kind share when close; `heights`; the `trackSizing` port | core › The section's `heights` names the sizing |
-| Defaults from the audit: the label column measured, the gaps | core › Render |
+| Defaults from the audit: the label column measured, the gaps | core › One label column for every track of a view |
 | Ring labels grouped past six within 12°, fanned up to `rings.cluster.fanMax` | core › Labels outside with leaders |
 | A band may scroll inside its section (`bandTop`, `rowScale`) | core › The transform |
 | Glyph runs with a per-letter y, angle and vertical scale | core › Primitives |

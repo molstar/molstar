@@ -14,9 +14,14 @@ is left out, said once").
 **Options**: (a) the design follows the code, and `rowsValue` goes (an unread member of a public model); (b) a
 navigator draws `rowsValue` when the rows picture is not served (a lazy alignment), instead of leaving the rows out.
 
-**Recommendation**: (a), with `rowsValue`'s removal a fix lane's item: the navigator's picture is the view's own layout
-by design (navigators.md: a miniature drawn by other code drifts), and a lazy alignment's fallback would need its rows
-whole, which is what lazy rows avoid. Keep (b) in mind if a lazy alignment's overview is asked for.
+**The plan says (b)**: `packages/seq/TODO.md` (Navigators, after the first build) lists "the rows' one-value-a-row
+fallback (`rowsValue`) and then the rows' structure where a source serves no row summary" as next work. So the member
+is not dead code but a built half of planned work, and removing it would undo that plan.
+
+**Recommendation**: keep `rowsValue` and the design's text; the row stays "not built as designed" until the TODO's
+item lands, when a navigator over a lazy alignment draws it instead of leaving the rows out (and the core spec's
+Navigators, "What no summary serves is left out", changes with it). Until then the full-rows picture is the rule for
+held alignments: a miniature drawn by the view's own layout cannot drift from it.
 
 ## A lazy alignment in tree order
 
