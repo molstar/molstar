@@ -8,11 +8,21 @@ import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
 import { ungzip } from '@molstar/core/util/zip/zip';
+import type { GridDense, GridSparse } from '@molstar/seqx-core/data';
 import { describe, expect, it, vi } from 'vitest';
 import { HlaName, NGap } from '../genomes/generate/assemblies.js';
 import { Inversion, TranslocationLength, toB } from '../genomes/generate/alignment.js';
+import {
+  ContactLevels,
+  contactDomains,
+  contactMap,
+  DomainContrast,
+  Hotspot,
+  HotspotPeak,
+} from '../genomes/generate/contacts.js';
 import { GeneCount } from '../genomes/generate/genes.js';
 import { EstimatedBytes, GenomesFiles, generateGenomes } from '../genomes/generate/index.js';
+import { GenomesSeed } from '../genomes/generate/streams.js';
 import { CpgCount, MissingShare, MethylationSamples } from '../genomes/generate/methylation.js';
 import { DeletionExtent, deletionSnvPositions, SampleCount, SiteCount } from '../genomes/generate/variants.js';
 import { ToyBSequences } from '../genomes/toys.js';
@@ -176,5 +186,39 @@ describe('the Genomes dataset’s facts (anchors)', () => {
     expect(at('chr2', 60_000)).toEqual([65_000]);
     expect(at('chr3', 32_000)).toEqual([]);
     expect(at('chr3', 50_000)).toEqual([46_000]);
+  });
+
+  it('the contact map: its domains squares on the diagonal, its chr1–chr3 hotspot hundreds over a background of 0 and 1', async () => {
+    const { truth } = await generated;
+    const map = contactMap(truth.a, GenomesSeed);
+    const fine = (x: string, y: string) =>
+      map.pairs.find(
+        (p) => p.request.system === x && p.request.y?.system === y && p.request.level === ContactLevels[0],
+      )!.answer as { tables: { grid: GridDense & GridSparse } };
+    // chr1 (its plane the first): at each distance, the cells inside a domain several times those across one
+    const chr1 = fine('chr1', 'chr1').tables.grid;
+    const domain = contactDomains(chr1.nx, GenomesSeed, 0);
+    for (const d of [2, 3, 4]) {
+      const inside: number[] = [];
+      const across: number[] = [];
+      for (let i = 0; i + d < chr1.nx; i++)
+        (domain[i] === domain[i + d] ? inside : across).push(chr1.value[i * chr1.nx + i + d]);
+      const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+      expect(across.length, `d ${d}`).toBeGreaterThan(5);
+      expect(mean(inside) / mean(across), `d ${d}`).toBeGreaterThan(DomainContrast / 2);
+    }
+    // chr1 × chr3: the hotspot's cell its peak, the background 0 or 1 away from it
+    const cross = fine('chr1', 'chr3').tables.grid;
+    const hx = Math.floor(Hotspot[0] / ContactLevels[0]);
+    const hy = Math.floor(Hotspot[1] / ContactLevels[0]);
+    let peak = 0;
+    let far = 0;
+    for (let k = 0; k < cross.value.length; k++) {
+      const [x, y] = [cross.xBin[k], cross.yBin[k]];
+      if (x === hx && y === hy) peak = cross.value[k];
+      else if ((x - hx) * (x - hx) + (y - hy) * (y - hy) > 100) far = Math.max(far, cross.value[k]);
+    }
+    expect(peak).toBeGreaterThanOrEqual(HotspotPeak);
+    expect(far).toBeLessThanOrEqual(1);
   });
 });

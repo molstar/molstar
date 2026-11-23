@@ -6,6 +6,7 @@
 
 import type { Coverage, GridDense, GridSparse, SeqData, SeqPair, ShapeInfo } from '@molstar/seqx-core/data';
 import type { ToyAssembly } from './assemblies.js';
+import type { PCG } from '@molstar/core/data/util/hash-functions';
 import { Concern, stream } from './streams.js';
 
 // Step 8 of the Genomes generator (examples.md, Genomes; EC-223): a Hi-C over toy A's chr1 to chr3, symmetric, counts
@@ -19,18 +20,33 @@ export const ContactLevels: readonly number[] = [4096, 16_384];
 /** The hotspot between chr1 and chr3, in positions. */
 export const Hotspot: readonly [chr1: number, chr3: number] = [230_000, 40_000];
 
-/** A chromosome's cells at the finest level: counts by distance, domains of 6 to 16 cells along the diagonal. */
-function selfPlane(n: number, seed: number, k: number): Float32Array {
-  const rng = stream(seed, Concern.grids, k);
-  const v = new Float32Array(n * n);
+/** Inside a domain a cell's count is this many times the same distance's across one (TADs, squares on the diagonal). */
+export const DomainContrast = 5;
+/** The hotspot's peak count (the cross planes' noise is 0 or 1). */
+export const HotspotPeak = 400;
+
+/** A chromosome's domains along the diagonal (6 to 16 cells each): each cell's domain index, from `rng`. */
+function drawDomains(n: number, rng: PCG): Int32Array {
   const domain = new Int32Array(n);
   for (let i = 0, d = 0; i < n; d++) {
     const len = 6 + Math.floor(rng.float() * 11);
     for (let j = 0; j < len && i < n; j++) domain[i++] = d;
   }
+  return domain;
+}
+
+/** The domains of the `k`-th plane's chromosome of `n` cells (the tests' truth). */
+export const contactDomains = (n: number, seed: number, k: number) => drawDomains(n, stream(seed, Concern.grids, k));
+
+/** A chromosome's cells at the finest level: counts by distance, `DomainContrast` times higher inside a domain. */
+function selfPlane(n: number, seed: number, k: number): Float32Array {
+  const rng = stream(seed, Concern.grids, k);
+  const v = new Float32Array(n * n);
+  const domain = drawDomains(n, rng);
   for (let i = 0; i < n; i++)
     for (let j = i; j < n; j++) {
-      const c = Math.floor((400 / (1 + j - i)) * (domain[i] === domain[j] ? 1.8 : 1) * (0.7 + 0.6 * rng.float()));
+      const inside = domain[i] === domain[j] ? 1 : 1 / DomainContrast;
+      const c = Math.floor((400 / (1 + j - i)) * inside * (0.7 + 0.6 * rng.float()));
       v[i * n + j] = c;
       v[j * n + i] = c;
     }
@@ -48,7 +64,8 @@ function crossPlane(nx: number, ny: number, hot: readonly [number, number] | und
         // a peak falling as (4 / (4 + r²))² (a rational, not `Math.exp`: `exact.ts`)
         const r2 = (i - hot[0]) * (i - hot[0]) + (j - hot[1]) * (j - hot[1]);
         const q = 4 / (4 + r2);
-        c += Math.floor(60 * q * q);
+        // within 6 cells: the sparse plane's tail past it left out (the file's size)
+        if (r2 <= 36) c += Math.floor(HotspotPeak * q * q);
       }
       v[i * ny + j] = c;
     }

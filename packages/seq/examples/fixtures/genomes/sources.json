@@ -379,8 +379,8 @@
     "trimmed": "none",
     "derived": "counts falling with the distance, domains along the diagonal, a hotspot between chr1 and chr3 (src/genomes/generate/, seeded on core’s PCG and hash3, a stream per seed, concern and index)",
     "bytesDownloaded": 0,
-    "bytesFixture": 59207,
+    "bytesFixture": 59471,
     "sha256Download": "",
-    "sha256Fixture": "ef0828962fbd7315d1ef7c4c91c2603188739eeda6c5800c4fbf18e19dcb8075"
+    "sha256Fixture": "3e7ca9a194a5d5a7b0b6a1766bff7e7b6ae627fa00dfa12928321168c5be8ea9"
   }
 ]
