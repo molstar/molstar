@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 /** Formatting template created from a Python-like f-string.
@@ -151,9 +152,28 @@ function parseFormatSpec(formatSpec: string): FormatSpec {
   return { type, sign, z, alt, zeros, width, grouping, precision, fillChar, align };
 }
 
-/** Format a value a la f-string, e.g. `formatValue('1.2', '.2f')` -> `'1.20'` */
+/** Parsed specs by spec string, so a spec used again (a ruler's `,.2f` on every label) is parsed once. Bounded: cleared when full. */
+const parsedSpecs = new Map<string, FormatSpec>();
+const MaxParsedSpecs = 256;
+/** Parse once per distinct spec string (a spec that does not parse throws and is not cached). */
+function parseFormatSpecCached(formatSpec: string): FormatSpec {
+  let parsed = parsedSpecs.get(formatSpec);
+  if (parsed === undefined) {
+    parsed = parseFormatSpec(formatSpec);
+    if (parsedSpecs.size >= MaxParsedSpecs) parsedSpecs.clear();
+    parsedSpecs.set(formatSpec, parsed);
+  }
+  return parsed;
+}
+
+/** Number of distinct format spec strings parsed and cached (for tests). */
+export function _parsedFormatSpecCount(): number {
+  return parsedSpecs.size;
+}
+
+/** Format a value a la f-string, e.g. `formatValue('1.2', '.2f')` -> `'1.20'`. A spec string is parsed once (cached). */
 export function formatValue(value: string, formatSpec: FormatSpec | string): string {
-  if (typeof formatSpec === 'string') formatSpec = parseFormatSpec(formatSpec);
+  if (typeof formatSpec === 'string') formatSpec = parseFormatSpecCached(formatSpec);
   if (formatSpec.z) throw new Error(`NotImplementedError: Formatting option "z" not supported`);
   if (formatSpec.alt) throw new Error(`NotImplementedError: Formatting option "#" not supported`);
   return alignString(

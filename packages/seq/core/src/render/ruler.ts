@@ -387,8 +387,8 @@ function tickAt(lay: RulerLay, p: number, label: string, major: boolean, muted: 
 
 /**
  * A label in bases (`formatGenomic`) by its step, then its number, kept between layouts: a pan's frame lays out the
- * same ticks again and formats none of them (formatting one parses a format and builds its string: 16 KB a frame of
- * p53's chromosome). Dropped whole past `GenomicLabelsCap` labels.
+ * same ticks again and formats none of them (a format parsed once now, still building its string: 5 to 6 KB a frame of
+ * p53's chromosome, 2026-11-23). Dropped whole past `GenomicLabelsCap` labels.
  */
 const GenomicLabels = new Map<number, Map<number, string>>();
 const GenomicLabelsCap = 4096;

@@ -77,6 +77,9 @@ export function toFixed(v: number, fractionDigits: number) {
   return parseFloat(v.toFixed(fractionDigits));
 }
 
+/** The `,.Nf` spec strings (N 0 to 6) as constants: no template string per call, and `formatValue` parses each once. */
+const GenomicSpecs = [',.0f', ',.1f', ',.2f', ',.3f', ',.4f', ',.5f', ',.6f'];
+
 /**
  * A genomic position or length in bases, in the unit a ruler's tick step chooses: bases below a step of 1,000 (the
  * number grouped, `7,668,402`), kilobases below a step of 10,000 (`7,668 kb`), else megabases with the decimals the
@@ -90,5 +93,8 @@ export function formatGenomic(n: number, step: number): string {
   const v = n / unit;
   // a value that rounds to zero prints unsigned (never `-0`)
   const shown = Number(v.toFixed(decimals)) === 0 ? 0 : v;
-  return formatValue(String(shown), `,.${decimals}f`) + (unit === 1 ? '' : unit === 1e3 ? ' kb' : ' Mb');
+  return (
+    formatValue(String(shown), GenomicSpecs[decimals] ?? `,.${decimals}f`) +
+    (unit === 1 ? '' : unit === 1e3 ? ' kb' : ' Mb')
+  );
 }
