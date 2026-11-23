@@ -565,6 +565,12 @@
       "private": true
     },
     {
+      "name": "@molstar/seqx-ext-rondo",
+      "path": "packages/seq/ext-rondo",
+      "kind": "library",
+      "private": true
+    },
+    {
       "name": "@molstar/seqx-storybook",
       "path": "packages/seq/storybook",
       "kind": "storybook",

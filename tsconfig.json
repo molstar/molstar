@@ -260,6 +260,9 @@
     },
     {
       "path": "./packages/seq/examples"
+    },
+    {
+      "path": "./packages/seq/ext-rondo"
     }
   ]
 }

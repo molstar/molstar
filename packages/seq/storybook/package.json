@@ -20,6 +20,7 @@
     "@molstar/core": "workspace:*",
     "@molstar/seqx-core": "workspace:*",
     "@molstar/seqx-examples": "workspace:*",
+    "@molstar/seqx-ext-rondo": "workspace:*",
     "@molstar/seqx-viewer": "workspace:*",
     "@molstar/ui": "workspace:*"
   },

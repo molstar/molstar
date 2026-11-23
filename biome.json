@@ -1068,6 +1068,40 @@
       }
     },
     {
+      "includes": ["packages/seq/ext-rondo/src/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@molstar/seqx-core", "@molstar/seqx-core/**", "!@molstar/seqx-core/extension"],
+                    "message": "The ring extension imports the core through @molstar/seqx-core/extension only (ring-extension.md, The package: a gap is the contract's, never a reach into src)."
+                  },
+                  {
+                    "group": [
+                      "@molstar/seqx-viewer/**",
+                      "@molstar/seqx-examples",
+                      "@molstar/seqx-examples/**",
+                      "@molstar/core",
+                      "@molstar/core/**",
+                      "@molstar/io",
+                      "@molstar/io/**",
+                      "zod",
+                      "zod/**"
+                    ],
+                    "message": "The ring extension imports only @molstar/seqx-core/extension and @molstar/seqx-viewer's extension types (ring-extension.md, The package)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
       "includes": ["packages/seq/storybook/src/_stories/features/extensibility/demo-extension.ts"],
       "linter": {
         "rules": {
