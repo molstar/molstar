@@ -14,7 +14,8 @@ import {
   type ViewerCommand,
 } from '@molstar/seqx-viewer';
 import { rondo, RondoParams, RondoVersion } from './index.js';
-import { HoleIssue, Kind, type RondoLay } from './lay.js';
+import { HoleIssue } from './hole.js';
+import { Kind, type RondoLay } from './lay.js';
 import { laysOf, partnerChromosomes, partnersOf } from './partners.js';
 import { CardLines } from './words.js';
 
@@ -38,10 +39,20 @@ export function cardLanded(viewer: Pick<SeqViewer, 'behaviors'>): void {
 /** Every viewer composed with `rondoViewer`, until disposed: whose frame holds a lay a card names the bands of. */
 const Composed = new Set<SeqViewer>();
 
-// a links' source's failure in a ring's hole: the error its store raised, in the first composed viewer that holds one
-HoleIssue.of = (source) => {
+/** A source's error in a viewer's store, its message. */
+const errorAt = (v: SeqViewer, source: string) =>
+  v.store.issues.value.find((i) => i.severity === 'error' && i.address === source)?.message;
+
+// a links' source's failure in a ring's hole: the error the store of the section's viewer raised (the section its
+// resolved view's: two viewers of one source address each their own); an export resolves its own view, so its
+// section is matched by address among the viewers that show it (one spec in two viewers: the first's)
+HoleIssue.of = (section, source) => {
+  for (const v of Composed) if (v.view.resolved.value?.sections.includes(section)) return errorAt(v, source);
   for (const v of Composed)
-    for (const i of v.store.issues.value) if (i.severity === 'error' && i.address === source) return i.message;
+    if (v.view.resolved.value?.sections.some((s) => s.address === section.address)) {
+      const m = errorAt(v, source);
+      if (m) return m;
+    }
   return undefined;
 };
 

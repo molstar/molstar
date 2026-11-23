@@ -21,6 +21,7 @@ import { ColorMode, classOf, clearClasses, colorsOf, peersOf, rowWeights, weight
 import { composedConfig, DefaultRondoConfig, type RondoConfig } from './config.js';
 import { grow, Polygons, RibbonFrame } from './geometry.js';
 import { hueColors } from './hues.js';
+import { holeWords } from './hole.js';
 import { hitGrid, polygons } from './shapes.js';
 
 // The ribbons laid out (_spec/README.md, Stems, Ribbons, Stubs): the reader's pairs (bins at a level, or items under
@@ -536,27 +537,6 @@ export function layoutRondo(lay: RondoLay, prep: RondoPrep, ctx: LayoutContext, 
   polygons(lay, prep, cfg, ctx);
   hitGrid(lay, cfg.hitCellPx);
 }
-
-/**
- * What an empty hole says (_spec/README.md, Hits, emphasis, words: The hole's words): pending "Loading links…"; failed
- * the issue its source's failure raised as the viewer holds it (`HoleIssue`), else "Links failed". On a ring only (a
- * row's band has no hole); measured once at layout.
- */
-function holeWords(lay: RondoLay, prep: RondoPrep, ctx: LayoutContext): void {
-  if (!lay.frame.polar || (lay.empty !== 'pending' && lay.empty !== 'failed')) return;
-  const source = prep.source.region?.src.source;
-  lay.holeText =
-    lay.empty === 'pending'
-      ? 'Loading links…'
-      : ((source !== undefined ? HoleIssue.of?.(source) : undefined) ?? 'Links failed');
-  lay.holeW = ctx.text.measure(lay.font, lay.holeText);
-}
-
-/**
- * A source's failure as the viewer said it (its store's issue's message), when a viewer is composed with
- * `rondoViewer` (it sets `of`); headless: none, the hole says "Links failed".
- */
-export const HoleIssue: { of?: (source: string) => string | undefined } = {};
 
 /** Row ends into stems (each row once), counted: `rows` its stems by row. */
 let RowA = new Int32Array(256);

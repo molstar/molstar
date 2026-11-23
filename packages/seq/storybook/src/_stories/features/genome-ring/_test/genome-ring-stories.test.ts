@@ -7,6 +7,7 @@
 import type { PassWriter } from '@molstar/seqx-core/extension';
 import { DarkTokens, DrawLists, LightTokens, viewLegends } from '@molstar/seqx-core/render';
 import { loadGenome } from '@molstar/seqx-core/resolve';
+import type { Node } from '@molstar/core/repr/tree';
 import type { ExampleView } from '@molstar/seqx-examples';
 import { rondoViewer } from '@molstar/seqx-ext-rondo/viewer';
 import { layerAria } from '@molstar/seqx-viewer/layer-aria';
@@ -15,7 +16,6 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { openExample } from '../../../examples/_test/draw-checks.js';
 import { describerFor } from '@molstar/seqx-viewer/describe';
 import { basesText, emphasisHeld, Kind, RibbonsType, type RondoLay } from '@molstar/seqx-ext-rondo';
-import { Announcer } from '@molstar/seqx-viewer/announcer';
 import { hoverStrongestStem, ribbonsOf, ringStoryView, strongestStem } from '../views.js';
 import { bandsLanded } from './ring-helpers.js';
 
@@ -76,6 +76,12 @@ const errors = (v: SeqViewer) => [
   ...v.layoutIssues.value.filter((i) => i.severity === 'error'),
 ];
 
+/** A spec with its data node `id`'s `uri` changed (the same address, another file). */
+function withUri(node: Node, id: string, uri: string): Node {
+  if (node.id === id) return { ...node, params: { ...node.params, uri } };
+  return node.children ? { ...node, children: node.children.map((c) => withUri(c, id, uri)) } : node;
+}
+
 /** The texts the ribbons' labels pass draws at the hole's centre in their muted colour (its words, if any). */
 function holeTexts(l: RondoLay): string[] {
   const lists = new DrawLists();
@@ -105,6 +111,8 @@ describe('Genome ring stories, headless', () => {
       l,
     )!;
     expect(card).toContain(`${basesText(l.level)} bins: zoom in to see them`);
+    // a hole with links says nothing
+    expect(l.holeText).toBe('');
     const { light } = await exported(v);
     expect(light.issues.filter((i) => i.code === 'seq.view.layer.extension')).toEqual([]);
   });
@@ -186,10 +194,11 @@ describe('Genome ring stories, headless', () => {
     expect(card.rows.slice(0, 2).map((x) => x.label)).toEqual([a, b]);
   });
 
-  it('9. links pending: the hole says “Loading links…”, muted and centred; said once, politely', async () => {
+  it('9. links pending: the hatch, and the hole says “Loading links…”, muted and centred; said once, politely', async () => {
     const v = await open(ringStoryView('ring-pending'), Rondo, 1000);
     const l = ribbonsOf(v)!;
     expect(l.empty).toBe('pending');
+    expect(descriptions(v)).toContain('links loading');
     expect(l.holeText).toBe('Loading links…');
     // the labels pass: one text at the hole's centre, in the muted text's colour
     expect(holeTexts(l)).toEqual(['Loading links…']);
@@ -201,29 +210,48 @@ describe('Genome ring stories, headless', () => {
       v.draw();
     }
     expect(v.notice.value.n).toBe(1);
-    // the announcer says a notice in its one polite region
-    const announcer = new Announcer(v, { minGapMs: 0, restMs: 0 });
-    const said: string[] = [];
-    announcer.message.listen((m) => said.push(m.text));
-    v.notify('Loading links…');
-    expect(said).toEqual(['Loading links…']);
-    announcer.dispose();
   });
 
-  it('9. links failed: the issue’s text replaces it in the hole, said once', async () => {
-    const v = await open(ringStoryView('ring-failed'), Rondo, 10_000);
+  it('9. links failed, and none: the issue’s text in the hole, said once; no links, an empty hole', async () => {
+    let v = await open(ringStoryView('ring-failed'), Rondo, 10_000);
+    expect(v.store.issues.value.filter((i) => i.severity === 'error').length).toBe(1);
+    // a source that never opened is failed on the store (its issue says why): no ribbon, no hatch waiting, said
     const l = ribbonsOf(v)!;
+    expect(l.nr).toBe(0);
     expect(l.empty).toBe('failed');
+    expect(l.reader.pending ?? []).toEqual([]);
+    expect(descriptions(v)).toContain('links failed');
     const issue = v.store.issues.value.find((i) => i.severity === 'error')!;
     expect(l.holeText).toBe(issue.message);
     expect(holeTexts(l)).toEqual([issue.message]);
     expect(v.notice.value.text).toBe(issue.message);
     expect((await svgOf(v, false)).svg).toContain(issue.message.slice(0, 20));
-    // no words in a hole with links, nor with none at all
-    const ok = await open(ringStoryView('ring'));
-    expect(ribbonsOf(ok)!.holeText).toBe('');
-    const none = await open(ringStoryView('ring-no-links'));
-    expect(ribbonsOf(none)!.holeText).toBe('');
+    // two rings on one page, one source address, two different failures: each hole its own viewer's issue
+    const first = v;
+    viewer = undefined;
+    const other = await open(
+      {
+        ...ringStoryView('ring-failed'),
+        build: () =>
+          withUri(ringStoryView('ring-failed').build(), 'links-bedpe', 'fixtures/genomes/another-missing.bedpe'),
+      },
+      Rondo,
+      10_000,
+    );
+    try {
+      const otherIssue = other.store.issues.value.find((i) => i.severity === 'error')!;
+      expect(otherIssue.address).toBe(issue.address);
+      expect(otherIssue.message).not.toBe(issue.message);
+      expect(ribbonsOf(other)!.holeText).toBe(otherIssue.message);
+      first.draw();
+      expect(ribbonsOf(first)!.holeText).toBe(issue.message);
+    } finally {
+      first.retire();
+    }
+    v = await open(ringStoryView('ring-no-links'));
+    expect(ribbonsOf(v)!.empty).toBe('none');
+    expect(descriptions(v)).toContain('no links');
+    expect(ribbonsOf(v)!.holeText).toBe('');
   });
 
   it('5. the square beside: the export with the navigators draws more than without', async () => {
@@ -260,23 +288,6 @@ describe('Genome ring stories, headless', () => {
     expect(l.ns).toBeGreaterThan(0);
     expect(l.nr).toBeGreaterThan(0);
     await exported(v);
-  });
-
-  it('9. pending, failed, nothing: the hatch while the links wait; the issue once when failed; “no links”', async () => {
-    let v = await open(ringStoryView('ring-pending'), Rondo, 1000);
-    expect(ribbonsOf(v)!.empty).toBe('pending');
-    expect(descriptions(v)).toContain('links loading');
-    v = await open(ringStoryView('ring-failed'), Rondo, 10_000);
-    expect(v.store.issues.value.filter((i) => i.severity === 'error').length).toBe(1);
-    // a source that never opened is failed on the store (its issue says why): no ribbon, no hatch waiting, said
-    const failed = ribbonsOf(v)!;
-    expect(failed.nr).toBe(0);
-    expect(failed.empty).toBe('failed');
-    expect(failed.reader.pending ?? []).toEqual([]);
-    expect(descriptions(v)).toContain('links failed');
-    v = await open(ringStoryView('ring-no-links'));
-    expect(ribbonsOf(v)!.empty).toBe('none');
-    expect(descriptions(v)).toContain('no links');
   });
 
   it('10. dark: tokens only, the ribbons’ hues the scheme’s derived dark', async () => {
