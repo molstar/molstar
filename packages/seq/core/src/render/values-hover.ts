@@ -37,15 +37,24 @@ export function hoverValue(lay: ValuesLay, out: PassWriter, emphasis: Emphasis |
     return;
   }
   const { box } = lay;
-  const lo = lay.domain ? lay.domain[0] : 0;
-  const hi = lay.domain ? lay.domain[1] : 1;
-  const base = lo <= 0 && hi >= 0 ? 0 : lo;
+  // `yFrame`'s and `ys`'s arithmetic written out: a hover allocates nothing (no number crosses a call boxed)
+  const log = lay.yLog;
+  const d0 = lay.domain ? lay.domain[0] : 0;
+  const d1 = lay.domain ? lay.domain[1] : 1;
+  const base = d0 <= 0 && d1 >= 0 ? 0 : d0;
+  const v = lay.v[j];
+  const l = Math.min(lay.lo[j], base);
+  const lo = !log ? d0 : d0 > 0 ? Math.log10(d0) : Number.NEGATIVE_INFINITY;
+  const hi = !log ? d1 : d1 > 0 ? Math.log10(d1) : Number.NEGATIVE_INFINITY;
+  const sb = !log ? base : base > 0 ? Math.log10(base) : Number.NEGATIVE_INFINITY;
+  const sv = !log ? v : v > 0 ? Math.log10(v) : Number.NEGATIVE_INFINITY;
+  const sl = !log ? l : l > 0 ? Math.log10(l) : Number.NEGATIVE_INFINITY;
   const span = (hi - lo || 1) / Fill;
   const y1 = box.y + box.height;
   const bh = box.height;
-  const yBase = y1 - ((Math.max(lo, Math.min(hi, base)) - lo) / span) * bh;
-  const yv = y1 - ((Math.max(lo, Math.min(hi, lay.v[j])) - lo) / span) * bh;
-  const yl = y1 - ((Math.max(lo, Math.min(hi, Math.min(lay.lo[j], base))) - lo) / span) * bh;
+  const yBase = y1 - ((Math.max(lo, Math.min(hi, sb)) - lo) / span) * bh;
+  const yv = y1 - ((Math.max(lo, Math.min(hi, sv)) - lo) / span) * bh;
+  const yl = y1 - ((Math.max(lo, Math.min(hi, sl)) - lo) / span) * bh;
   const top = Math.min(yv, yBase);
   const bottom = Math.max(yv, yl, yBase);
   // outside the extent by the offset, as every hover outline; a sliver of a bar still gets a visible frame

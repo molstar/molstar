@@ -89,8 +89,12 @@ describe.each(Datasets)('fixtures/%s/sources.json', (dataset) => {
   it('each row: its provenance said, a licence allowed, its size and checksum the file’s', () => {
     for (const r of rows) {
       const text = readFileSync(join(Fixtures, r.file));
+      // a generated file (the package's own, no download) says so: no URL, nothing downloaded
+      const generated = r.licence.includes('LicenseRef-seqx-generated');
       expect(r.entry, r.file).not.toBe('');
-      expect(r.url, r.file).toMatch(/^https:\/\//);
+      if (generated) {
+        expect([r.url, r.bytesDownloaded, r.sha256Download], r.file).toEqual(['none', 0, '']);
+      } else expect(r.url, r.file).toMatch(/^https:\/\//);
       expect(r.recorded, r.file).toMatch(/^\d{4}-\d{2}-\d{2}$/);
       expect(r.attribution, r.file).not.toBe('');
       expect(r.trimmed, r.file).not.toBe('');
@@ -99,6 +103,7 @@ describe.each(Datasets)('fixtures/%s/sources.json', (dataset) => {
       for (const l of r.licence) expect(AllowedLicences, r.file).toContain(l);
       expect(r.bytesFixture, r.file).toBe(text.byteLength);
       expect(r.sha256Fixture, r.file).toBe(createHash('sha256').update(text).digest('hex'));
+      if (generated) continue;
       expect(r.sha256Download, r.file).toMatch(/^[0-9a-f]{64}$/);
       expect(r.bytesDownloaded, r.file).toBeGreaterThan(0);
     }

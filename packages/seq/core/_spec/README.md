@@ -509,10 +509,11 @@ layout per token table, held domains and the reader's substitution (`LayerChanne
   steel blue for every colourless layer reads as a placeholder (the defaults audit); counted over the coloured too, a
   layer's default never moves when another is coloured (or previewed).
 - **Scales**: `linear`, `log`, `sqrt`; a `domain` with an open end follows the data in view, computed when the view
-  settles and held while it does not; `non_positive` on `log`: `missing` (before any bin or end color) or `clamp` (the
-  domain's low end) (`seq.render.scale.log`). A center (`mid`) makes a number's default palette the diverging one. A
-  `scale` node (`/views/<id>`) is shared: every layer and channel naming it reads one domain, its open ends the union
-  over them at settle (one relayout).
+  settles and held while it does not (a `log` scale's open low end the smallest positive value in view, a tenth of its
+  high end before any is held: zero has no place on it); `non_positive` on `log`: `missing` (no color, before any bin or
+  end color) or `clamp` (the domain's low end) (`seq.render.scale.log`). A center (`mid`) makes a number's default
+  palette the diverging one. A `scale` node (`/views/<id>`) is shared: every layer and channel naming it reads one
+  domain, its open ends the union over them at settle (one relayout).
 - **Palettes are Mol\*'s value palettes**, evaluated by `@molstar/core/util/color/value-palette-eval` (scale, mid,
   unlisted hash; the module without Mol\*'s named lists, which `value-palette` re-exports with them), converted both
   ways with MolViewSpec's palettes, their scale with them (`toMvsPalette`; `fromMvsPalette` and `fromMvsScale`: type,
@@ -3167,17 +3168,20 @@ in page coordinates: what crosses strips; `bridge`, internal, once a bridge with
   outlines the value's own extent, from the baseline to its end. The fill is clipped to the well's squircle. Why: at a
   pixel or two a value, full-ink columns read as a jagged block, not a profile; a gap says "no data" where a stub says
   "low". The domain is the layer's `domain` param where given, else open: computed from the values in view when the view
-  settles, held while it does not. **A color from the value** (`color` by `value`: a scheme, a ramp, pLDDT's bands) is
-  the data, and a tint would no longer match its legend: it is drawn at full strength (a bar, a line, a dot), the
-  profile's and the area's fill at 90%; a uniform series keeps the tints above. Why: at 60% pLDDT's "very high" and
-  "confident" blur. **Dots** (`values-marks.ts`): a line and an area draw a dot a value from 6 CSS px a value (a polygon
-  of 16 corners, 3 px across, the value's color or the series', in a ring of the well's ground 1 px wide, over the line;
-  a missing value has none), and `points` draws only dots, at every value of a per-position step; below a pixel a value
-  (the device-column steps) a thin vertical mark of the column's extent, min to max, at least a device pixel tall, in
-  the value's color. `points` has the headroom, the baseline hairline and the clip of the others; its hit is the
-  position under the pointer (the line's), its hover a ring on the hovered dot (outside it by the hover offset; at the
-  column steps the extent's outline). Why a polygon: the draw lists have no circle, and the squircle's corner is not
-  one. A warm frame, draw and hover of each encoding allocate nothing.
+  settles, held while it does not. On a log scale (the `scale` node's `type: 'log'`) heights go by the values' log10,
+  each decade an equal step, a value at or below 0 under the domain (no bar), and an open low end is the smallest
+  positive value in view (EC-215; why: a linear height over a 1 to 10^4 domain puts every value under 10^3 flat). **A
+  color from the value** (`color` by `value`: a scheme, a ramp, pLDDT's bands) is the data, and a tint would no longer
+  match its legend: it is drawn at full strength (a bar, a line, a dot), the profile's and the area's fill at 90%; a
+  uniform series keeps the tints above. Why: at 60% pLDDT's "very high" and "confident" blur. **Dots**
+  (`values-marks.ts`): a line and an area draw a dot a value from 6 CSS px a value (a polygon of 16 corners, 3 px
+  across, the value's color or the series', in a ring of the well's ground 1 px wide, over the line; a missing value has
+  none), and `points` draws only dots, at every value of a per-position step; below a pixel a value (the device-column
+  steps) a thin vertical mark of the column's extent, min to max, at least a device pixel tall, in the value's color.
+  `points` has the headroom, the baseline hairline and the clip of the others; its hit is the position under the pointer
+  (the line's), its hover a ring on the hovered dot (outside it by the hover offset; at the column steps the extent's
+  outline). Why a polygon: the draw lists have no circle, and the squircle's corner is not one. A warm frame, draw and
+  hover of each encoding allocate nothing.
 
 - `frame` (EC-100): an annotation's regions outlined across tracks of its section (`across`: the first and the last
   track's ids, the bands between them too; its own band when absent: `ctx.span`). A strip layer: on each strip a

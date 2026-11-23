@@ -24,26 +24,25 @@ export interface GridRegion {
   readonly yName: string;
 }
 
-/** The value range of a table, kept by the table (a tile's colours are held to the range of the tiles read). */
-const Ranges = new WeakMap<GridTable, readonly [number, number]>();
+/** The value range of a table and its smallest positive value (a log scale's open end), kept by the table. */
+const Ranges = new WeakMap<GridTable, readonly [number, number, number]>();
 
-function rangeOf(t: GridTable): readonly [number, number] {
+function rangeOf(t: GridTable): readonly [number, number, number] {
   let r = Ranges.get(t);
   if (r) return r;
   let lo = Number.NaN;
   let hi = Number.NaN;
-  const v = t.value;
-  for (let i = 0; i < v.length; i++) {
-    const x = v[i];
-    if (Number.isNaN(x)) continue;
+  let pos = Number.NaN;
+  const see = (x: number) => {
+    if (Number.isNaN(x)) return;
     if (!(x >= lo)) lo = x;
     if (!(x <= hi)) hi = x;
-  }
-  if (t.form === 'sparse' && !Number.isNaN(t.fill)) {
-    if (!(t.fill >= lo)) lo = t.fill;
-    if (!(t.fill <= hi)) hi = t.fill;
-  }
-  Ranges.set(t, (r = [lo, hi]));
+    if (x > 0 && !(x >= pos)) pos = x;
+  };
+  const v = t.value;
+  for (let i = 0; i < v.length; i++) see(v[i]);
+  if (t.form === 'sparse') see(t.fill);
+  Ranges.set(t, (r = [lo, hi, pos]));
   return r;
 }
 
@@ -144,16 +143,35 @@ function buildTile(lay: GridLay, p: Placed, level: number): ImageData | undefine
   return img;
 }
 
-/** A box of positions on the plot, snapped to the device grid (tiles meeting at a fraction would seam), into `out`. */
-function boxOf(a: AxisTransform, ay: AxisTransform, xs: number, xe: number, ys: number, ye: number, out: number[]) {
-  const d = a.dpr;
-  const x0 = Math.round(a.x(xs) * d) / d;
-  const x1 = Math.round(a.x(xe) * d) / d;
-  const y0 = Math.round(ay.x(ys) * d) / d;
-  const y1 = Math.round(ay.x(ye) * d) / d;
-  if (Number.isNaN(x0) || Number.isNaN(x1) || Number.isNaN(y0) || Number.isNaN(y1)) return false;
-  out.push(Math.min(x0, x1), Math.min(y0, y1), Math.abs(x1 - x0), Math.abs(y1 - y0));
-  return true;
+/** Scratch: an axis's spans of a range, four numbers a piece shown (`spansOn`). */
+const XSpans: number[] = [];
+const YSpans: number[] = [];
+
+/**
+ * Positions `[s, e)` on axis `t`, a span a piece they meet in view, into `out` (cleared): the range's x at its true
+ * positions on that piece (its unit line extended past the piece's edges) and the x of the part shown (clipped to the
+ * piece and the window), four numbers each.
+ */
+function spansOn(t: AxisTransform, s: number, e: number, out: number[]): void {
+  out.length = 0;
+  t.piecesIn(s, e);
+  for (let k = t.ka; k <= t.kb; k++) {
+    if (!t.spanIn(k, s, e)) continue;
+    const lo = Math.max(t.x0, Math.min(t.sx0, t.sx1));
+    const hi = Math.min(t.x0 + t.width, Math.max(t.sx0, t.sx1));
+    if (!(hi > lo)) continue;
+    // the whole range's x on the piece's line (no groups on a grid's axes)
+    const xa = t.xOfUnit(t.unitOf(k, s));
+    const xb = t.xOfUnit(t.unitOf(k, e));
+    out.push(Math.min(xa, xb), Math.max(xa, xb), lo, hi);
+  }
+}
+
+/** A box from its x and y extents, snapped to the device grid (tiles meeting at a fraction would seam), into `out`. */
+function pushBox(out: number[], x0: number, x1: number, y0: number, y1: number, dpr: number) {
+  const sx0 = Math.round(x0 * dpr) / dpr;
+  const sy0 = Math.round(y0 * dpr) / dpr;
+  out.push(sx0, sy0, Math.round(x1 * dpr) / dpr - sx0, Math.round(y1 * dpr) / dpr - sy0);
 }
 
 /**
@@ -205,20 +223,28 @@ export function layoutRegionGrid(
   // the colours' domain: the range of the tiles drawn (open domains held to it)
   let lo = Number.NaN;
   let hi = Number.NaN;
+  let pos = Number.NaN;
   for (const p of [...under, ...now.tiles]) {
-    const [l, h] = rangeOf(p.table);
+    const [l, h, q] = rangeOf(p.table);
     if (!(l >= lo)) lo = l;
     if (!(h <= hi)) hi = h;
+    if (!(q >= pos)) pos = q;
   }
   if (lay.extents.any && !Number.isNaN(lo)) {
+    // the smallest positive value too: a log scale's open end (its channel reads zero and below as missing)
     lay.datum.value = lo;
     lay.extents.add(lay.datum);
+    if (!Number.isNaN(pos)) {
+      lay.datum.value = pos;
+      lay.extents.add(lay.datum);
+    }
     lay.datum.value = hi;
     lay.extents.add(lay.datum);
     lay.extents.flush(ctx.theme);
   }
   const tokens = ctx.tokens.version;
-  const xLen = region.src.length ?? Number.MAX_SAFE_INTEGER;
+  // a tile's cells at their true positions, clipped to what each axis shows of them (a block's range, the system's
+  // end): a cell cut by a block's edge is drawn cut, never squeezed, and a tile past an axis piece is never dropped
   const place = (p: Placed, level: number) => {
     const key = `${lay.key}|r|${p.key}|${p.transposed ? 't' : ''}|${lay.colorVersion}.${tokens}|${lay.orderKey}`;
     let img = lay.cache!.get(key);
@@ -229,12 +255,24 @@ export function layoutRegionGrid(
     }
     const xs = p.x * level;
     const ys = p.y * level;
-    if (boxOf(a, ay, xs, Math.min(xs + p.w * level, xLen), ys, ys + p.h * level, lay.ib)) lay.images.push(img);
+    spansOn(a, xs, xs + p.w * level, XSpans);
+    spansOn(ay, ys, ys + p.h * level, YSpans);
+    for (let i = 0; i < XSpans.length; i += 4)
+      for (let j = 0; j < YSpans.length; j += 4) {
+        lay.images.push(img);
+        pushBox(lay.ib, XSpans[i], XSpans[i + 1], YSpans[j], YSpans[j + 1], a.dpr);
+        pushBox(lay.ic, XSpans[i + 2], XSpans[i + 3], YSpans[j + 2], YSpans[j + 3], a.dpr);
+      }
   };
-  // nothing held under a pending rect: the pending fill there (EC-169: loading, never empty)
+  // nothing held under a pending rect: the pending fill there, clipped as the tiles are (EC-169: never empty)
   if (!under.length)
-    for (let k = 0; k + 3 < now.pending.length; k += 4)
-      boxOf(a, ay, now.pending[k], now.pending[k + 1], now.pending[k + 2], now.pending[k + 3], lay.pend);
+    for (let k = 0; k + 3 < now.pending.length; k += 4) {
+      spansOn(a, now.pending[k], now.pending[k + 1], XSpans);
+      spansOn(ay, now.pending[k + 2], now.pending[k + 3], YSpans);
+      for (let i = 0; i < XSpans.length; i += 4)
+        for (let j = 0; j < YSpans.length; j += 4)
+          pushBox(lay.pend, XSpans[i + 2], XSpans[i + 3], YSpans[j + 2], YSpans[j + 3], a.dpr);
+    }
   for (const p of under) place(p, underLevel);
   for (const p of now.tiles) place(p, L);
   // what a hover reads (`regionCellAt`): the tiles drawn at the level read

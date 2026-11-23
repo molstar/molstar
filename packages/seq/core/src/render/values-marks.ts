@@ -19,6 +19,24 @@ import type { ValuesLay } from './values.js';
 /** The share of the height the domain's top takes: the rest is headroom (10%). */
 export const Fill = 0.9;
 
+/**
+ * A value on the y scale: its log10 on a log scale (a value at or below 0 under the domain, at its low end), else
+ * itself. Heights are linear in it, so a log scale's decades are equal steps (EC-215).
+ */
+export function ys(lay: Pick<ValuesLay, 'yLog'>, v: number): number {
+  return lay.yLog ? (v > 0 ? Math.log10(v) : Number.NEGATIVE_INFINITY) : v;
+}
+
+/** The y domain's low and high ends (`[0, 1]` before one is computed), in values. */
+export const domainLo = (lay: Pick<ValuesLay, 'domain'>) => (lay.domain ? lay.domain[0] : 0);
+export const domainHi = (lay: Pick<ValuesLay, 'domain'>) => (lay.domain ? lay.domain[1] : 1);
+
+/** The baseline, in values: zero inside the domain, else its low end. Heights are `ys` of values over the scaled span. */
+export function baseOf(lay: Pick<ValuesLay, 'domain'>): number {
+  const d0 = domainLo(lay);
+  return d0 <= 0 && domainHi(lay) >= 0 ? 0 : d0;
+}
+
 /** A line and an area show a dot a value from this many CSS px a value. */
 export const DotMinPx = 6;
 /** A dot's radius (3 px across) and the ring's width round it, CSS px. */
@@ -40,11 +58,11 @@ function polygon(x: number, y: number, r: number) {
 /** The hairline at the baseline (zero, else the domain's low), a device pixel thick. No number is passed to a call. */
 export function drawBaseline(lay: ValuesLay, out: PassWriter) {
   const { box } = lay;
-  const lo = lay.domain ? lay.domain[0] : 0;
-  const hi = lay.domain ? lay.domain[1] : 1;
-  const base = lo <= 0 && hi >= 0 ? 0 : lo;
+  const lo = ys(lay, domainLo(lay));
+  const hi = ys(lay, domainHi(lay));
+  const base = baseOf(lay);
   const span = (hi - lo || 1) / Fill;
-  const yBase = box.y + box.height - ((Math.max(lo, Math.min(hi, base)) - lo) / span) * box.height;
+  const yBase = box.y + box.height - ((Math.max(lo, Math.min(hi, ys(lay, base))) - lo) / span) * box.height;
   const px = 1 / lay.axis.dpr;
   const a = out.args;
   a[0] = box.x;
@@ -62,8 +80,8 @@ export function drawBaseline(lay: ValuesLay, out: PassWriter) {
 /** A dot a value, in x order: its ring of the well's ground, then the dot in the value's color. */
 export function drawDots(lay: ValuesLay, out: PassWriter) {
   const { box } = lay;
-  const lo = lay.domain ? lay.domain[0] : 0;
-  const hi = lay.domain ? lay.domain[1] : 1;
+  const lo = ys(lay, domainLo(lay));
+  const hi = ys(lay, domainHi(lay));
   const span = (hi - lo || 1) / Fill;
   const y1 = box.y + box.height;
   const bh = box.height;
@@ -74,7 +92,7 @@ export function drawDots(lay: ValuesLay, out: PassWriter) {
     const j = ord[k];
     const v = lay.v[j];
     if (Number.isNaN(v)) continue;
-    const y = y1 - ((Math.max(lo, Math.min(hi, v)) - lo) / span) * bh;
+    const y = y1 - ((Math.max(lo, Math.min(hi, ys(lay, v))) - lo) / span) * bh;
     const x = (lay.x0[j] + lay.x1[j]) / 2;
     polygon(x, y, DotRadius + DotRing);
     a[4] = ground;
@@ -98,8 +116,8 @@ export function drawPoints(lay: ValuesLay, out: PassWriter) {
     return;
   }
   const { box } = lay;
-  const lo = lay.domain ? lay.domain[0] : 0;
-  const hi = lay.domain ? lay.domain[1] : 1;
+  const lo = ys(lay, domainLo(lay));
+  const hi = ys(lay, domainHi(lay));
   const span = (hi - lo || 1) / Fill;
   const y1 = box.y + box.height;
   const bh = box.height;
@@ -109,8 +127,8 @@ export function drawPoints(lay: ValuesLay, out: PassWriter) {
     const v = lay.v[j];
     if (Number.isNaN(v)) continue;
     // a column's extent, min to max, at least a device pixel tall (a single value is a pixel, not nothing)
-    const top = y1 - ((Math.max(lo, Math.min(hi, v)) - lo) / span) * bh;
-    const bottom = y1 - ((Math.max(lo, Math.min(hi, lay.lo[j])) - lo) / span) * bh;
+    const top = y1 - ((Math.max(lo, Math.min(hi, ys(lay, v))) - lo) / span) * bh;
+    const bottom = y1 - ((Math.max(lo, Math.min(hi, ys(lay, lay.lo[j]))) - lo) / span) * bh;
     a[0] = lay.x0[j];
     a[1] = top;
     a[2] = lay.x1[j] - lay.x0[j];
@@ -127,10 +145,10 @@ export function drawPoints(lay: ValuesLay, out: PassWriter) {
 /** The hover's ring on the dot of bar `j`, outside it by its ring and the offset. */
 export function hoverDot(lay: ValuesLay, out: PassWriter, j: number) {
   const { box } = lay;
-  const lo = lay.domain ? lay.domain[0] : 0;
-  const hi = lay.domain ? lay.domain[1] : 1;
+  const lo = ys(lay, domainLo(lay));
+  const hi = ys(lay, domainHi(lay));
   const span = (hi - lo || 1) / Fill;
-  const y = box.y + box.height - ((Math.max(lo, Math.min(hi, lay.v[j])) - lo) / span) * box.height;
+  const y = box.y + box.height - ((Math.max(lo, Math.min(hi, ys(lay, lay.v[j]))) - lo) / span) * box.height;
   polygon((lay.x0[j] + lay.x1[j]) / 2, y, DotRadius + DotRing + lay.hoverOffset + lay.hoverWidth / 2);
   const a = out.args;
   a[4] = NoColor;

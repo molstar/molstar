@@ -118,10 +118,14 @@ export function selectBehavior(
   const axisOf = (section: string | undefined, hit?: Hit): Axis | undefined =>
     (hit ? view.rowsAxis(hit.system) : undefined) ?? placeOf(section, hit)?.axis;
 
-  /** A grid's cell: a hit with a position on two axes, its y no alignment's rows (_spec/README.md "Behaviors"). */
+  /**
+   * A grid's cell: a hit with a position on two axes, its y no alignment's rows, and no extent (a matrix's cell is its
+   * item, or bin, selected as a ranges click selects: _spec/README.md "Behaviors").
+   */
   const cellOf = (hit: Hit | undefined): GridCell | undefined =>
     hit &&
     !hit.element &&
+    !hit.extent &&
     hit.ySystem !== undefined &&
     hit.yPosition !== undefined &&
     hit.position !== undefined &&

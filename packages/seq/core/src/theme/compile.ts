@@ -215,7 +215,19 @@ export function compileChannel(
     const read = fieldReader(fieldName);
     const key = address ?? `${env.key ?? ''}|${fieldName}`;
     const domain = resolveDomain(sc, key, env);
-    if (domain.open) open.push({ key, read: (d) => toNumber(read(d)) });
+    // a log scale's open end is the smallest positive value in view: zero and below have no place on it (missing)
+    if (domain.open)
+      open.push(
+        sc.type === 'log'
+          ? {
+              key,
+              read: (d) => {
+                const v = toNumber(read(d));
+                return v > 0 ? v : Number.NaN;
+              },
+            }
+          : { key, read: (d) => toNumber(read(d)) },
+      );
     if (kind === 'number') {
       const range = sc.range ?? [0, 1];
       const type = sc.type ?? (env.radius ? 'sqrt' : 'linear');
@@ -274,9 +286,13 @@ export function compileChannel(
       at: (d) => {
         const v = read(d);
         if (typeof v === 'number') {
-          if (logMissing && v <= 0 && !logWarned) {
-            logWarned = true;
-            report('seq.render.scale.log', `A ${fieldName} value at or below zero is missing on a log scale`);
+          if (logMissing && v <= 0) {
+            if (!logWarned) {
+              logWarned = true;
+              report('seq.render.scale.log', `A ${fieldName} value at or below zero is missing on a log scale`);
+            }
+            // missing: no colour (never the palette's low end)
+            return undefined;
           }
           return palette.num(v);
         }
@@ -492,8 +508,11 @@ function resolveDomain(sc: ScaleParams, key: string, env: ThemeEnv): { value: [n
   const hi = d?.[1] ?? null;
   if (lo !== null && hi !== null) return { value: [lo, hi], open: false };
   const held = env.domain?.(key);
-  const a = lo ?? held?.[0] ?? (hi !== null ? Math.min(0, hi) : 0);
+  let a = lo ?? held?.[0] ?? (hi !== null ? Math.min(0, hi) : 0);
   const b = hi ?? held?.[1] ?? Math.max(a + 1, 1);
+  // a log scale's open low end is positive: zero has no place on it (every value would be missing), a tenth of the
+  // high end until the data in view give the smallest positive value
+  if (sc.type === 'log' && lo === null && !(a > 0)) a = b > 0 ? b / 10 : 1;
   return { value: [a, b], open: true };
 }
 
