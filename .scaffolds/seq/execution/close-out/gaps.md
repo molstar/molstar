@@ -7,3 +7,8 @@ Decisions a gate asks for (the loop, Gates).
   60 kB, the stage 0 option B) as a lane before CL6, rather than raise the budget. Asked at GATE 1.
 - **Decided** (the author, 2026-11-24: "ok with the right click"): kept, written into the design and spec. **A right-click on a ring's ribbon**: the ribbon note (resolved, deleted). Asked at GATE 1.
 - **The keys for the next feature**: decided, `.` and `,` (the author, 2026-11-24); to CL3.
+
+## Decided overnight
+
+Each made as recommended while the author was away (2026-11-24 night), for the morning's reconcile.
+
