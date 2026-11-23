@@ -782,7 +782,14 @@ source's).
 
 ### Properties
 
-properties.md (`query/properties.ts`): a typed symbol read per element of one level, apart from the language.
+`query/properties.ts`: a typed symbol read per element of one level, apart from the language.
+
+- **Typed, read two ways**: `word`, `integer`, `number`, `boolean`, `words` (a set: `=` on it is membership, a
+  position's alternative components); `(prop chain)` in a predicate, or `:chain A` as an `elements` field (sugar for
+  `(= (prop chain) A)`). A row giving one property under both its names is `seq.query.form.param`. Not held:
+  `label_alt_id`, `auth_comp_id`, `auth_atom_id`, `atom_id` (one atom name a residue, no author names). Why short names
+  printed: one printed form keeps equal selections equal as text; the long names are a structure viewer's, so reading
+  them is a copy.
 
 - **Built in**, the short name printed and the long one read: molecule `entity` (`label_entity_id`), `molecule-class`,
   `identifier` (words); unit `chain` (`label_asym_id`), `auth-chain` (`auth_asym_id`), `operator` (`instance_id`);
