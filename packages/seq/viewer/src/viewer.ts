@@ -789,7 +789,7 @@ export class SeqViewer extends ReactiveModel {
     return typeof r === 'string' ? r : '';
   }
 
-  /** Says a part's state once, politely (`notice`): what the announcer says, at the lowest priority. */
+  /** Says a part's state once, politely (`notice`): what the announcer says, above the hover (never replaced by one). */
   notify(text: string): void {
     if (text && !this.retired) this._notice.set({ n: this._notice.value.n + 1, text });
   }

@@ -1073,9 +1073,10 @@ binding table; per move one hit record and one modifiers record are reused.
   cursor key that leaves the cursor in place (the end of its axis) is announced (`viewer.commandRan` moves after every
   command, with its message when it ran at once); another command that moved the keyboard cursor says its own message
   (an extension's walk, `rondo:partner`'s: where, and why there); a part's state is said through `viewer.notify(text)`
-  (`viewer.notice`, a token too), at the hover's priority (a ring's "Loading links…", once: the part decides when). A
-  message waiting its turn is replaced only by one of the same or a higher priority (selection over cursor over hover),
-  and the pointer leaving drops a waiting hover. While a gesture is dragged the cursor and the hover say nothing and the
+  (`viewer.notice`, a token too), at a priority of its own over the hover's (a hover never replaces it, the pointer
+  leaving never drops it; a ring's "Loading links…", once: the part decides when). A message waiting its turn is
+  replaced only by one of the same or a higher priority (selection over cursor over a notice over hover), and the
+  pointer leaving drops a waiting hover. While a gesture is dragged the cursor and the hover say nothing and the
   selection says its end once, after the drag. Why one region and a limit: a live region queues what it is given and a
   reader hears the queue after the cursor moved on. A navigator slider's value is its own (`aria-valuetext`), never this
   region's. The highlight legend's Clear buttons and the legend's entries are real buttons and options in the page's tab
@@ -1323,16 +1324,18 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   `loaded` and `preview`.
   - **Entries** (`header-entries.ts`): `HeaderEntry` (`name` namespaced `<id>:<name>`, `on` `track`, `section` or
     `element`, `kind` `action` or `state`, `icon` `@molstar/ui`'s, `label`, `when`, `command`, `args`, `text`, `order`,
-    `slot`, `items` a submenu of other commands or args: a layer's checkboxes, a chip's list), listed in the registry as
-    `{ kind: 'header-action', entry }` (`SeqViewerRegistryEntry`) or registered at run time (`register(...entries)`,
-    returning its undo). Registration is atomic: every problem in one error before anything changes (a name twice, no
-    namespace, a command the viewer lacks, `seq.viewer.header.command`); the registry's are checked once every behavior
-    is made (`BehaviorHandle.composed`). The label and icon default to the command's. **A command whose one param is a
-    select is a submenu** of its options (an entry with no `items`): each item the entry's args with the choice under
-    the param's name, the param's default checked, previewed while hovered through the command's `preview`; a command
-    reads the choice from its args (a palette's) or its context (`viewer.execute`'s). Why: the command owns its choices,
-    so the menu, a palette and an agent offer the same. Why entries: one list for a slot, a menu item, a DOM part, a key
-    and an agent; the registry's rules (atomic, undoable, namespaced) for free.
+    `slot`, `items` a submenu of other commands or args: a layer's checkboxes, a chip's list, an item's own `items` a
+    flyout of the flyout; on `element` only: `alone`, its element's menu its entries without the track's and the
+    section's, and `atCursor(viewer)`, the element at the keyboard cursor the menu key opens: Gestures), listed in the
+    registry as `{ kind: 'header-action', entry }` (`SeqViewerRegistryEntry`) or registered at run time
+    (`register(...entries)`, returning its undo). Registration is atomic: every problem in one error before anything
+    changes (a name twice, no namespace, a command the viewer lacks, `seq.viewer.header.command`); the registry's are
+    checked once every behavior is made (`BehaviorHandle.composed`). The label and icon default to the command's. **A
+    command whose one param is a select is a submenu** of its options (an entry with no `items`): each item the entry's
+    args with the choice under the param's name, the param's default checked, previewed while hovered through the
+    command's `preview`; a command reads the choice from its args (a palette's) or its context (`viewer.execute`'s).
+    Why: the command owns its choices, so the menu, a palette and an agent offer the same. Why entries: one list for a
+    slot, a menu item, a DOM part, a key and an agent; the registry's rules (atomic, undoable, namespaced) for free.
   - **Built-ins** (`BuiltInHeaderEntries`, in the default spec's registry; a host leaves one out to remove it):
     `seq:hide` (`eye-off`, `track.hide`), `seq:color` (menu only, "Color ▸": one place, never also a slot; the first
     shown layer with more than one fitting scheme: `layer.channel`'s choices a submenu, previewed while focused or

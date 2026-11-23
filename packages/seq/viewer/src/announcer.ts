@@ -35,8 +35,9 @@ export interface Said {
   readonly text: string;
 }
 
-export type AnnouncePriority = 'hover' | 'cursor' | 'selection';
-const Rank: Readonly<Record<AnnouncePriority, number>> = { hover: 1, cursor: 2, selection: 3 };
+export type AnnouncePriority = 'hover' | 'notice' | 'cursor' | 'selection';
+/** A part's notice (`viewer.notify`) over the hover: a hover never replaces it, nor does the pointer leaving drop it. */
+const Rank: Readonly<Record<AnnouncePriority, number>> = { hover: 1, notice: 2, cursor: 3, selection: 4 };
 
 const CursorKeys = /^cursor\.(prev|next|up|down|page-up|page-down|first-row|last-row|extend-.+|add-.+)$/;
 
@@ -87,8 +88,8 @@ export class Announcer {
         // another command that moved the keyboard cursor says its own words (`rondo:partner`: where, and why there)
         else if (moved && cursor && message) this.say(message, 'cursor');
       }),
-      // a part's state (a ring's links loading), once, below everything else said
-      viewer.notice.listen(({ text }) => this.say(text, 'hover')),
+      // a part's state (a ring's links loading), once: above the hover, below the cursor and the selection
+      viewer.notice.listen(({ text }) => this.say(text, 'notice')),
       viewer.hover.version.listen(() => this.hovered()),
       viewer.selection.value.listen(() => this.selectionChanged()),
     );
