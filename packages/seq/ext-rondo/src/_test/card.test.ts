@@ -28,7 +28,7 @@ function spec() {
   const tx = [
     { a: 0, as: 2_000_000, b: 3, bs: 4_000_000, sa: '+', sb: '-', genes: ['XBCR', 'XABL1'] },
     { a: 1, as: 1_000_000, b: 4, bs: 3_000_000, sa: '-', sb: '-', genes: ['XETV6', 'XRUNX'] },
-    { a: 2, as: 5_000_000, b: 5, bs: 1_000_000, sa: '+', sb: '+', genes: [null, null] },
+    { a: 2, as: 5_000_000, b: 5, bs: 1_000_000, sa: '.', sb: '.', genes: [null, null] },
     // a second read of the first junction: one ribbon of two links
     { a: 0, as: 2_001_000, b: 3, bs: 4_001_000, sa: '+', sb: '-', genes: ['XBCR', 'XABL1'] },
   ];
@@ -91,7 +91,8 @@ describe('the card names the kind', () => {
       'gene_b: XABL1',
     ]);
     const plain = card(tx, Kind.ribbon, (r) => tx.read!.data!.aStart[tx.ribRow[r]] === 5_000_000).lines;
-    expect(plain.slice(1)).toEqual(['Links: 1 link (translocation)', 'Type: translocation', 'Strands: + +', 'q: 0.03']);
+    // unstranded (`.`): no strand line, never `+ +`
+    expect(plain.slice(1)).toEqual(['Links: 1 link (translocation)', 'Type: translocation', 'q: 0.03']);
   });
 
   it('a bin and a stem: their count on each kind’s layer', async () => {

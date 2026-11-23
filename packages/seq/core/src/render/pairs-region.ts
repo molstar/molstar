@@ -422,6 +422,8 @@ export class Gather {
   aStrand: number[] = [];
   bStrand: number[] = [];
   kind: number[] = [];
+  /** Which ends' strands the source gave (`PairsData.strandKnown`). */
+  known: number[] = [];
   kinds: string[] = [];
   kindAt = new Map<string, number>();
   keys: (string | number)[] = [];
@@ -443,6 +445,7 @@ export class Gather {
     this.bEnd.push(be);
     this.aStrand.push(sa < 0 ? -1 : 1);
     this.bStrand.push(sb < 0 ? -1 : 1);
+    this.known.push((sa !== 0 ? 1 : 0) | (sb !== 0 ? 2 : 0));
     let k = -1;
     if (kind !== null) {
       k = this.kindAt.get(kind) ?? -1;
@@ -465,6 +468,7 @@ export class Gather {
       keys: this.keys,
       aStrand: Int8Array.from(this.aStrand),
       bStrand: Int8Array.from(this.bStrand),
+      strandKnown: Uint8Array.from(this.known),
       ...(extra ? { extra } : {}),
     };
   }

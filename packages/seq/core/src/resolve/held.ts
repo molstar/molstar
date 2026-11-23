@@ -31,6 +31,11 @@ export interface PairsData {
   readonly aStrand: Int8Array;
   readonly bStrand: Int8Array;
   /**
+   * Which ends' strands the data gives (bit 1 `a`, bit 2 `b`); absent: both. An end unstranded (`.`, none) keeps 1 in
+   * its strand (the twist reads it as `+`), and a theme or a card reads it as `.`.
+   */
+  readonly strandKnown?: Uint8Array;
+  /**
    * Any other column of the rows, by name, a value a kept pair: text (a flag a filter reads: `tertiary`) or numbers (an
    * occupancy a theme reads; NaN read as missing).
    */
@@ -139,6 +144,8 @@ export function readPairs(node: Node, unitOf?: ((id: string) => number) | EndUni
   const bEnd = new Int32Array(n0);
   const kind = new Int16Array(n0);
   const aStrand = new Int8Array(n0);
+  const known = new Uint8Array(n0);
+  const given = (v: string | null | undefined) => v === '+' || v === '-';
   const bStrand = new Int8Array(n0);
   const kinds: string[] = [];
   const kindIndex = new Map<string, number>();
@@ -175,6 +182,7 @@ export function readPairs(node: Node, unitOf?: ((id: string) => number) | EndUni
       }
       kind[n] = ki;
     }
+    known[n] = (given(aStr?.get(i)) ? 1 : 0) | (given(bStr?.get(i)) ? 2 : 0);
     aStrand[n] = aStr?.get(i) === '-' ? -1 : 1;
     bStrand[n] = bStr?.get(i) === '-' ? -1 : 1;
     keys.push(idCol?.get(i) ?? i);
@@ -193,6 +201,7 @@ export function readPairs(node: Node, unitOf?: ((id: string) => number) | EndUni
     keys,
     ...(label ? { labels } : {}),
     aStrand: aStrand.subarray(0, n),
+    strandKnown: known.subarray(0, n),
     bStrand: bStrand.subarray(0, n),
     ...(extraCols.length ? { extra: Object.fromEntries(extraCols.map(([k, , out]) => [k, out])) } : {}),
     ...(aUnit && bUnit ? { aUnit: aUnit.subarray(0, n), bUnit: bUnit.subarray(0, n) } : {}),

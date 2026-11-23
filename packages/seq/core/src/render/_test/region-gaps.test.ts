@@ -128,7 +128,9 @@ describe('region reads: gaps', () => {
       } as never);
       const pairs = b.data.pairs('p', { a: chr, source: bp } as never);
       b.views.view('v', (v) => {
-        v.section('chr', { of: chr }).track('t').layer('p', { type: 'pairs', data: `${pairs}${query}` as never });
+        v.section('chr', { of: chr })
+          .track('t')
+          .layer('p', { type: 'pairs', data: `${pairs}${query}` as never });
       });
       const s = await settle(b.build(), [BedRuntime]);
       const f = await s.frame({ size: { width: 720, height: 300 } });

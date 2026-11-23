@@ -47,7 +47,9 @@ export function fieldLines(lay: RondoLay, r: number): string[] {
   if (type !== undefined) out.push(`Type: ${type}`);
   const sa = shared('a_strand');
   const sb = shared('b_strand');
-  if (sa !== undefined && sb !== undefined) out.push(`Strands: ${sa === '-' ? '−' : '+'} ${sb === '-' ? '−' : '+'}`);
+  // unstranded ends (`.`, a contact's) say none
+  const sign = (x: string | number) => (x === '-' ? '−' : x === '+' ? '+' : '.');
+  if (sa !== undefined && sb !== undefined && (sa !== '.' || sb !== '.')) out.push(`Strands: ${sign(sa)} ${sign(sb)}`);
   for (const name of Object.keys(d.extra ?? {})) {
     if (name === 'count') continue;
     const v = shared(name);

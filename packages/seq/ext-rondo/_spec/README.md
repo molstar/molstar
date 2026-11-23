@@ -122,14 +122,14 @@ waiting; its entries `StemMenu` in `viewer.ts`).
   `rondo.ribbons.filter` (warning) says so on each. Never once a layer: kinds that cannot be told apart are drawn once.
   How bins read by region should split by kind is open.
 - **The card names the kind** (`describe`): a ribbon at the item level lists the fields its links share (one link: its
-  own), its `type`, its ends' strands (`Strands: + −`), then every other field its data carries (`q`, gene names where
-  the file has them): a shared value, a number's range where they differ (`q: 0.001–0.04`), absent values and differing
-  text left out; a ribbon wide by a field says its sum (`Width: q 0.07`). A bin's ribbon and a stem list, when the
-  section has more than one `rondo:ribbons` layer, each layer's links there (`Contacts: 140 links`,
-  `Translocations: 3 links`), counted from each layer's rows as read (a bin's start, an item's), so a kind under another
-  is never lost under its ribbons. The layers of a section know each other by its resolved section (a new resolve, a new
-  list). These lines are a chunk (`card.ts`) `rondoViewer` loads once composed, as the stem menu's: the headless entry
-  pays nothing for them (no card there).
+  own), its `type`, its ends' strands (`Strands: + −`; none for unstranded ends, `.`: a contact's), then every other
+  field its data carries (`q`, gene names where the file has them): a shared value, a number's range where they differ
+  (`q: 0.001–0.04`), absent values and differing text left out; a ribbon wide by a field says its sum (`Width: q 0.07`).
+  A bin's ribbon and a stem list, when the section has more than one `rondo:ribbons` layer, each layer's links there
+  (`Contacts: 140 links`, `Translocations: 3 links`), counted from each layer's rows as read (a bin's start, an item's),
+  so a kind under another is never lost under its ribbons. The layers of a section know each other by its resolved
+  section (a new resolve, a new list). These lines are a chunk (`card.ts`) `rondoViewer` loads once composed, as the
+  stem menu's: the headless entry pays nothing for them (no card there).
 - **`rondoRing`'s `kinds`** (`{ type, label?, color?, opacity?, width? }[]`) writes those layers, the colour the
   chromosomes' hues when a kind names none; absent, one layer of every link. Which kinds, their order and colours are
   the application's (the showcase: faint contacts in the hues, translocations in one accent over them).

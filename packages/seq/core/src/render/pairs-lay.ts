@@ -73,9 +73,9 @@ export class PairDatum implements ThemeDatum {
       case 'id':
         return d.keys[k];
       case 'a_strand':
-        return d.aStrand[k] < 0 ? '-' : '+';
+        return d.strandKnown && !(d.strandKnown[k] & 1) ? '.' : d.aStrand[k] < 0 ? '-' : '+';
       case 'b_strand':
-        return d.bStrand[k] < 0 ? '-' : '+';
+        return d.strandKnown && !(d.strandKnown[k] & 2) ? '.' : d.bStrand[k] < 0 ? '-' : '+';
       case 'a_start':
         return d.aStart[k];
       case 'a_end':

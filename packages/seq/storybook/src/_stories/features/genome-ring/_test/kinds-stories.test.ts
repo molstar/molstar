@@ -80,6 +80,14 @@ describe('Kinds of links, headless', () => {
     expect(contacts.mode).toBe(ColorMode.system);
     expect(contacts.opacity).toBe(0.45);
     expect(contacts.items).toBe(false);
+    // the showcase's contacts are unstranded: read as `.`, never `+`
+    const held = contacts.prep!.source as unknown as {
+      data: { n: number };
+      datum: { set(k: number): { field(n: string): unknown } };
+      shown: Uint8Array;
+    };
+    const k = held.shown.indexOf(1);
+    expect([held.datum.set(k).field('a_strand'), held.datum.set(k).field('b_strand')]).toEqual(['.', '.']);
     expect(tx.mode).toBe(ColorMode.fixed);
     expect(tx.one >>> 8).toBe(LightTokens.colors['msui-accent'] >>> 8);
     expect(tx.items).toBe(true);
