@@ -261,6 +261,9 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
 - [ ] **RX2** (`briefs/rx2-ring-square-menus.md`; strong, after RX) what RX could not ship (the square's cells, element
       menus and the stem menu, `.` and `,`, the extension's config, a failed source's status) and the square over a ring
       as a real window (the author, 2026-11-23; ring-extension.md Decided 16).
+- [ ] **RX3** (`briefs/rx3-ring-link-kinds.md`; strong, after RX2) kinds of links (the author, 2026-11-23: "make it
+      RX3 after RX2"): a ribbons layer's colour by a fixed colour or a field, layers per kind filtered on `type`, the
+      card naming the kind, named translocations in the showcase data, a "Kinds of links" story.
 - [x] **NS** (merged 2026-11-21, `190dfc135`; a Sonnet subagent) (`briefs/ns-nightingale-showcase.md`; fast, any time, alone: storybook only) **a Nightingale showcase**
       (the author, 2026-11-21: "yes, we can do a dev dependency version. maybe add a phase for this to slice 5?";
       reverses the fourth slice's "dropped" for stories only): Nightingale's web components a dev dependency of the

@@ -2,6 +2,8 @@
 
 ## Decided
 
+- Kinds of links on the ring (the author, 2026-11-23, "make it RX3 after RX2"): layers per kind filtered on `type`,
+  a ribbons layer's own colour, the card naming the kind, a story; RX3's brief.
 - The ring's square is a real window (the author, 2026-11-23, "a real window, as recommended", after finding the box
   undraggable and the two-click switch confusing): drag to move the run of chromosomes shown, edges to resize, one click
   on a cell shows a pair; ring-extension.md Decided 16; RX2's.
