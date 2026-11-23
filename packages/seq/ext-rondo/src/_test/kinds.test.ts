@@ -11,7 +11,8 @@
 
 import { createSeqContext } from '@molstar/seqx-core/context/default';
 import { viewLegends } from '@molstar/seqx-core/render';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { install } from '../card.js';
 import { DefaultRondoConfig } from '../config.js';
 import { rondo } from '../index.js';
 import type { RondoLay } from '../lay.js';
@@ -55,6 +56,9 @@ function necksAdd(l: RondoLay) {
     expect(end, `stem ${s}`).toBeCloseTo(mid + l.stemNeck[s], 9);
   }
 }
+
+// the legend is the card chunk's (`rondoViewer` loads it once composed)
+beforeAll(install);
 
 describe('kinds of links', () => {
   it('a layer a kind over one pairs node, in draw order, each reading its kind alone; totals add up', async () => {

@@ -11,7 +11,8 @@
 
 import { theme } from '@molstar/seqx-core/lang';
 import { LightTokens, viewLegends } from '@molstar/seqx-core/render';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { install } from '../card.js';
 import { ColorMode, Kind, type RondoLay } from '../lay.js';
 import { lay, ringSpec, Size, settle, toyChromosomes, toyLinks } from './helpers.js';
 
@@ -36,6 +37,9 @@ async function frame(o: Parameters<typeof ringSpec>[0]) {
 }
 
 const chroms = toyChromosomes();
+
+// the legend is the card chunk's (`rondoViewer` loads it once composed)
+beforeAll(install);
 
 describe('a ribbons layer’s colour', () => {
   it('a fixed colour: every ribbon, stem, stub and fan in it, no issue', async () => {

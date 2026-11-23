@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { LayerPlace } from '@molstar/seqx-core/extension';
+import type { LayerPlace, Legend } from '@molstar/seqx-core/extension';
 import { foldedOf, Kind, type RondoLay, stemAt } from './lay.js';
 
 // What the ribbons say (_spec/README.md, Hover, the keyboard): the card's lines for a hit (core's `LayerType.describe`:
@@ -45,6 +45,8 @@ export const valueText = (v: string | number) => (typeof v === 'number' ? String
 export const CardLines: {
   fields?: (lay: RondoLay, r: number) => string[];
   perLayer?: (lay: RondoLay, sysA: string, a0: number, a1: number, sysB?: string, b0?: number, b1?: number) => string[];
+  /** The layer's legend (Colour, The legend). */
+  legend?: (lay: RondoLay, options: { readonly title: string }) => readonly Legend[];
 } = {};
 
 /** The card's lines for a hit of the layer: a ribbon's two stems and count, a stem's, a stub's partner. */

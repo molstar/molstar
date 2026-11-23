@@ -102,10 +102,11 @@ waiting; its entries `StemMenu` in `viewer.ts`).
   layout scans none. Why: a bin's count is every link's in it; a colour a value needs a bin a value, which held bins
   have for `type` and nothing else.
 - **`opacity`** (its channel's uniform value) scales `ribbons.fillOpacity`: a faint layer under a strong one.
-- **The legend** (`LayerType.legend`): a field colour its channel's values (core's `channelLegends`); a fixed colour one
-  swatch named by the layer's `label` (else its track's); a labelled layer in the hues its words alone ("`<label>`: by
-  chromosome", a transparent swatch: no one hue stands for a layer drawn in all of them); an unlabelled one in the hues
-  none (the hue ring keys the chromosomes).
+- **The legend** (`LayerType.legend`, its code in the card's chunk, `card.ts`, loaded with `rondoViewer`: a viewer's
+  legends derive once it lands, the settle waiting for it; the headless entry keys none): a field colour its channel's
+  values (core's `channelLegends`); a fixed colour one swatch named by the layer's `label` (else its track's); a
+  labelled layer in the hues its words alone ("`<label>`: by chromosome", a transparent swatch: no one hue stands for a
+  layer drawn in all of them); an unlabelled one in the hues none (the hue ring keys the chromosomes).
 
 ## Kinds of links
 

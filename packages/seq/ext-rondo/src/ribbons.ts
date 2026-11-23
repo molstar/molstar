@@ -4,12 +4,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Emphasis, LayerType, Legend, Location, PassName, PassWriter } from '@molstar/seqx-core/extension';
-import { channelLegends, PairsReader } from '@molstar/seqx-core/extension';
+import type { Emphasis, LayerType, Location, PassName, PassWriter } from '@molstar/seqx-core/extension';
+import { PairsReader } from '@molstar/seqx-core/extension';
 import { DefaultRondoConfig, type RondoConfig } from './config.js';
-import { ColorMode, Kind, layoutRondo, RondoLay, type RondoPrep, stemAt } from './lay.js';
+import { Kind, layoutRondo, RondoLay, type RondoPrep, stemAt } from './lay.js';
 import { hueOf, polygonAt } from './shapes.js';
-import { announceRondo, describeRondo, summaryRondo } from './words.js';
+import { announceRondo, CardLines, describeRondo, summaryRondo } from './words.js';
 
 // `rondo:ribbons` (_spec/README.md): a `scope: 'section'` layer over core's pairs reader, on a ring (through its warp)
 // and a row of blocks. Its data pass draws the polygons the layout made; its hover a ribbon lit and outlined, a stem's
@@ -219,40 +219,6 @@ function emphasized(lay: RondoLay, pass: PassName, out: PassWriter, emphasis: Em
 }
 
 /**
- * The layer's legend (_spec/README.md, Colour, The legend): a field colour its channel's values; a fixed colour one
- * swatch named by the layer (its `label`, else its track's); a named layer in the blocks' hues one swatch saying so;
- * an unnamed one in the hues none (the hue ring keys them).
- */
-function legendRondo(lay: RondoLay, options: { readonly title: string }): readonly Legend[] {
-  // a field's values, unless these bins carry none (drawn in one colour): then the legend says that
-  if (lay.mode === ColorMode.field && !lay.inkBins)
-    return channelLegends([lay.channel], { title: options.title, layer: lay.key });
-  if (lay.mode === ColorMode.system && !lay.label) return [];
-  const fixed = lay.mode !== ColorMode.system;
-  const name = lay.label || options.title;
-  const label = lay.inkBins
-    ? `${name} (bins in one colour: ${lay.channel?.field ?? 'the colour'} read link by link)`
-    : fixed
-      ? name
-      : `${name}: by chromosome`;
-  // by chromosome: the words alone (a transparent swatch), never one hue for a layer drawn in all of them
-  const color = fixed ? lay.one : 0;
-  return [
-    {
-      key: `rondo:${lay.key}`,
-      title: options.title,
-      channel: 'color',
-      entries: { kind: 'swatches', items: [{ label, color: fixed ? alpha(color, 1) : 0 }] },
-      open: false,
-      source: 'vocabulary',
-      more: 0,
-      notes: [],
-      layers: [lay.key],
-    },
-  ];
-}
-
-/**
  * Whether a colour form is the blocks' hues (_spec/README.md, Colour): none, a field of `system`, or a scheme over
  * `system` (`rondo:hues`, whose field is `system` when it names none): drawn by the hues a system, never compiled.
  */
@@ -364,7 +330,8 @@ export function ribbonsType(config: RondoConfig = DefaultRondoConfig): LayerType
       return i < 0 ? undefined : lay.hits[i];
     },
     filtered: (lay) => lay.read?.filtered ?? 0,
-    legend: legendRondo,
+    // its legend from the card's chunk (`card.ts`, loaded with `rondoViewer`); none headless
+    legend: (lay, options) => CardLines.legend?.(lay, options) ?? [],
     describe: describeRondo,
     summary: summaryRondo,
     announce: announceRondo,
