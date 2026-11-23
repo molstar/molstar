@@ -10,7 +10,14 @@
 
 import { SeqRuntime } from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
-import { LightTokens } from '@molstar/seqx-core/render';
+import {
+  colorHex,
+  createTokens,
+  DarkTokens,
+  LightTokens,
+  type SeqTokenName,
+  SeqTokenNames,
+} from '@molstar/seqx-core/render';
 import { describe, expect, it } from 'vitest';
 import { hitView, matrixCellHover } from '../index.js';
 import type { MatrixLay } from '../matrix.js';
@@ -38,6 +45,35 @@ type Frame = { layout: { sections: readonly { lays: readonly (readonly { lay: un
 const layOf = (f: Frame) => f.layout.sections[0].lays[0][0].lay as MatrixLay;
 
 describe('the matrix layer', () => {
+  it('colours genotype codes by tokens of their own in both themes, the value ramp changing none of them', async () => {
+    const size = { width: 800, height: 200 };
+    const near = { size, viewport: { start: 0, end: 2000 } };
+    const cells = async (tokens: typeof LightTokens) => {
+      const s = await settle(sourced(), [SeqRuntime]);
+      s.renderer.tokens = tokens;
+      const lay = layOf(await s.frame(near));
+      const used = new Set<number>();
+      for (let k = 0; k < lay.n; k++) used.add(lay.rc[k]);
+      return used;
+    };
+    for (const t of [LightTokens, DarkTokens]) {
+      const used = await cells(t);
+      // the fixture holds codes 0, 1, 2 and uncalled (255)
+      for (const name of ['seq-genotype-0', 'seq-genotype-1', 'seq-genotype-2', 'seq-missing'] as const) {
+        expect(used.has(t.colors[name]), `${t.theme} ${name}`).toBe(true);
+      }
+      expect(used.size).toBe(4);
+      // a theme changing the ramp repaints no genotype
+      const hex = Object.fromEntries(SeqTokenNames.map((n) => [n, colorHex(t.colors[n])])) as Record<
+        SeqTokenName,
+        string
+      >;
+      for (const n of ['seq-ramp-0', 'seq-ramp-1', 'seq-ramp-2', 'seq-ramp-3', 'seq-ramp-4'] as const)
+        hex[n] = '#123456';
+      expect(await cells(createTokens(t.theme, hex))).toEqual(used);
+    }
+  });
+
   it('draws inline values a state a row, a missing one transparent, a cell hit as its position and state (EC-220, EC-221)', async () => {
     const s = await settle(inline(), [SeqRuntime]);
     const f = await s.frame({ size: { width: 400, height: 200 } });
