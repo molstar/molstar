@@ -184,23 +184,24 @@ waiting; its entries `StemMenu` in `viewer.ts`).
   lay past itself (module state cleared after each pass). **Selection**: ribbons with an end in it in the accent.
   **Highlights**: ribbons touching each channel's Location.
 - **The stem menu** (`menu.ts`, `StemMenu`, the descriptor's `headerActions`, so `viewer.extend` brings it too): a
-  secondary click on a stem opens its element menu, the viewer's label menu's shape scoped to `rondo:ribbons`' stems
-  (`element.type`, a `stem:` key): "Show with a partner ▸" (its partners by chromosome, `partnerChromosomes`: a row a
-  partner chromosome with its links in all, most first, `chr9 · 449 links`; a chromosome reached by more than one ribbon
-  its pieces in a submenu, each named by its band range and strand, `q31.1–q34.2 · 379 links`,
-  `p13.3 · 2 links, reversed`: the cytobands the section draws there, else its span in bases; the stem's own chromosome
-  never a partner but last, `Within chr22 · 229 links`, its pieces the ribbons to its other stems and the stem's links
-  within itself, `this stem`; each row and piece shows its chromosome with the stem's as a pair in the section the layer
-  `opens`, else its own, within alone. Why by chromosome: bare rows `chr9 · 375 links`, `chr9 · 65 links` said nothing
-  of what parted them; a level lists at most 8 rows, past them `n more` with the rest in the same order, `capped`, so
-  the pointer reaches every partner the keys do), "Select the stem and its partners" (`rondo:select-partners` with the
-  element: one selection), "Show only chr4"; only these: the entries are `alone`, so the track's actions (Move up,
-  Reverse, Hide track) stay in its header's menu. The entries find the stem in the lays of the viewer the menu is in
-  (`HeaderFacts.viewer`: no state of their own, two viewers of one spec each their own). **Its route**: a secondary
-  click on a stem opens it at the pointer; on a ring's empty space (no hit) the browser's menu opens (the viewer's rule
-  for rings whose hole a section layer draws); the menu key and Shift+F10 with the keyboard cursor on a placed stem's
-  range (the topmost layer's) open it at the stem's mouth (`atCursor` on its first entry, `stemAtCursor`). Why: a menu a
-  reader cannot reach is none.
+  secondary click on a stem opens its element menu (a secondary click on a ribbon opens the track's menu: the ring has
+  no header in view, so a ribbon is the pointer's route to the track's actions), the viewer's label menu's shape scoped
+  to `rondo:ribbons`' stems (`element.type`, a `stem:` key): "Show with a partner ▸" (its partners by chromosome,
+  `partnerChromosomes`: a row a partner chromosome with its links in all, most first, `chr9 · 449 links`; a chromosome
+  reached by more than one ribbon its pieces in a submenu, each named by its band range and strand,
+  `q31.1–q34.2 · 379 links`, `p13.3 · 2 links, reversed`: the cytobands the section draws there, else its span in bases;
+  the stem's own chromosome never a partner but last, `Within chr22 · 229 links`, its pieces the ribbons to its other
+  stems and the stem's links within itself, `this stem`; each row and piece shows its chromosome with the stem's as a
+  pair in the section the layer `opens`, else its own, within alone. Why by chromosome: bare rows `chr9 · 375 links`,
+  `chr9 · 65 links` said nothing of what parted them; a level lists at most 8 rows, past them `n more` with the rest in
+  the same order, `capped`, so the pointer reaches every partner the keys do), "Select the stem and its partners"
+  (`rondo:select-partners` with the element: one selection), "Show only chr4"; only these: the entries are `alone`, so
+  the track's actions (Move up, Reverse, Hide track) stay in its header's menu. The entries find the stem in the lays of
+  the viewer the menu is in (`HeaderFacts.viewer`: no state of their own, two viewers of one spec each their own). **Its
+  route**: a secondary click on a stem opens it at the pointer; on a ring's empty space (no hit) the browser's menu
+  opens (the viewer's rule for rings whose hole a section layer draws); the menu key and Shift+F10 with the keyboard
+  cursor on a placed stem's range (the topmost layer's) open it at the stem's mouth (`atCursor` on its first entry,
+  `stemAtCursor`). Why: a menu a reader cannot reach is none.
 - **The keys**: `.` (`rondo:partner`) and `,` (`rondo:partner-back`), the commands' shortcuts on the canvas: the cursor
   to the next or the previous partner stem of its stem in the stem menu's order (its rows' pieces in turn: one list, two
   readers), said by the announcer (the command moved the cursor: "chr17, 40,000,000 · 140 links, reversed").
