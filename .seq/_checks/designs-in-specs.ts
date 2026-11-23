@@ -7,6 +7,8 @@
 //   viewer    packages/seq/viewer/_spec/README.md
 //   ext-rondo packages/seq/ext-rondo/_spec/README.md
 //   repr      packages/core/src/repr/_spec/README.md
+//   immutable packages/core/src/data/immutable/_spec/README.md
+//   examples  packages/seq/examples/_spec/README.md
 // Designs with no decision heading (plans, catalogs, the vision) are not checked. `PENDING` lists the designs not yet
 // reconciled when the check was written (2026-11-23); it only shrinks, and stage 1 is done when it is empty.
 // `--worklist` prints every design that fails, pending or not.
@@ -21,6 +23,8 @@ const SPECS: Record<string, string> = {
   viewer: "packages/seq/viewer/_spec/README.md",
   "ext-rondo": "packages/seq/ext-rondo/_spec/README.md",
   repr: "packages/core/src/repr/_spec/README.md",
+  immutable: "packages/core/src/data/immutable/_spec/README.md",
+  examples: "packages/seq/examples/_spec/README.md",
 };
 /** Designs not reconciled when the check was written (file names without `.md`). Only ever shrinks. */
 const PENDING = new Set([
@@ -51,17 +55,19 @@ const specLeads = new Map<string, string[]>();
 function leads(spec: string): string[] {
   let l = specLeads.get(spec);
   if (l) return l;
-  const text = readFileSync(join(ROOT, SPECS[spec]), "utf8");
+  const path = join(ROOT, SPECS[spec]);
+  const text = existsSync(path) ? readFileSync(path, "utf8") : "";
   l = [];
   for (const line of text.split("\n")) {
     const h = /^#+\s+(.*)$/.exec(line);
     if (h) l.push(h[1].trim());
-    for (const m of line.matchAll(/\*\*([^*]+)\*\*/g)) l.push(m[1].trim());
+    for (const m of line.replace(/\\\*/g, "\u2217").matchAll(/\*\*([^*]+)\*\*/g)) l.push(m[1].replace(/\u2217/g, "*").trim());
   }
   specLeads.set(spec, l);
   return l;
 }
 const norm = (s: string) => s.replace(/\\/g, "").replace(/[`*]/g, "").toLowerCase().trim();
+// a spec that does not exist yet (examples, before its lane) reads as no sections
 
 const problems: string[] = [];
 const worklist: string[] = [];
