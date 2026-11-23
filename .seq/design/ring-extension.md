@@ -168,8 +168,11 @@ No node kind, no data shape, no format runtime (extension-openings, Part 1): RR'
   tangents, so an uncrossed ribbon joins A's low edge to B's high edge and A's high to B's low (d3.ribbon's and
   Circos's flat ribbon). With `s = strand × display direction of A × display direction of B` (GA): `s = +1` uncrossed,
   `s = −1` crossed (low to low, high to high), strand 0 uncrossed. Items, whose ends are positions, use their extents'
-  ends the same way, so LX's "corresponding positions" holds for items exactly and for bins by this rule; a property
-  test holds it equal to GA's formula over every direction combination.
+  ends the same way: on a ring an uncrossed item joins A's start to B's end, so LX's "corresponding positions" (start
+  to start) is **not** what a ring draws; what holds is GA's meaning (an inversion crossed, a reversed block untwisting
+  it), for items and bins alike, and a property test holds the rule equal to GA's formula over every direction
+  combination (corrected 2026-11-23: RX's review found the earlier "holds for items exactly" false; the code follows
+  GA).
 - **Order in a neck**: its ribbons side by side in the order of their partner necks' angles clockwise from the stem
   (Circos's sorting), then its stubs by the partner's `order`, then its fan last. Fixed: it keeps ribbons of one stem
   from crossing near it, and the fan where the weakest would sit.
@@ -352,7 +355,7 @@ choice, and a reader without the extension draws chords there too.
 
 - **Taken here**: EC-108 (the bins' columns on the outer circumference; labels outside, stubs inside), EC-169 (bins
   drawn until items land; a pending block's stems as the band's hatch), EC-171 (no "load anyway": bins and stems
-  instead, RR's outcome), EC-206 (the twist by corresponding positions on a ring), EC-210 (two assemblies' synteny
+  instead, RR's outcome), EC-206 (the twist on a ring by GA's direction rule), EC-210 (two assemblies' synteny
   ribbons inside one ring, sided), EC-218 (a hue per chromosome, stable across sections), EC-225 (a minimum count by
   the data filter on bins), EC-235 (the fallback table above).
 - **Taken from the other designs, not redesigned**: EC-62 and EC-208 (RR: pairs read by region from either end), EC-102 and
