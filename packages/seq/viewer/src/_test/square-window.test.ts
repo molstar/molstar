@@ -524,27 +524,27 @@ describe('The square over two sections', () => {
 });
 
 describe('The square over a ring: the way home (table C)', () => {
-  it('a double-click anywhere is the whole genome, one history step; Back returns the window before', async () => {
+  it('Back after a double-click returns the window before the gesture, not the pair its own clicks showed', async () => {
     const { v, n } = await make(['chr2', 'chr3']);
+    const back = v.view.history.value.back;
     // the platform's order: down, up, click, down, up, click (count 2), dblclick; the clicks show the pair under them
     expect(click(n, ...cell(n, 5, 5))).toBe(true);
     await settle(v, n);
-    expect(click(n, ...cell(n, 5, 5), 2)).toBe(false);
     expect(include(v)).toEqual(['chr6']);
-    const back = v.view.history.value.back;
-    // anywhere: on a cell off the window, the moved window's own cell, a label
+    expect(click(n, ...cell(n, 5, 5), 2)).toBe(false);
+    // anywhere: a cell off the window
     expect(n.doubleClick(...cell(n, 0, 7))).toBe(true);
     await settle(v, n);
     expect(include(v)).toBeUndefined();
     expect(outline(n)).toEqual(cellsOf(n, [0, 1, 2, 3, 4, 5, 6, 7]));
+    // one gesture, one step
     expect(v.view.history.value.back).toBe(back + 1);
     // the whole already: nothing more, no step
     expect(n.doubleClick(...cell(n, 2, 2))).toBe(false);
     expect(v.view.history.value.back).toBe(back + 1);
-    // Back: the window it replaced; undo likewise
     expect(v.view.back()).toBe(true);
     await settle(v, n);
-    expect(include(v)).toEqual(['chr6']);
+    expect(include(v)).toEqual(['chr2', 'chr3']);
   });
 
   it('0 on the focused square is the whole genome, one step; at the whole, nothing', async () => {
