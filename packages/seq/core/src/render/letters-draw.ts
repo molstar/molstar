@@ -9,6 +9,7 @@
 // in a function of its own called through a table (`drawPass`: nothing allocated once warm).
 
 import { Black, contrastRgba, White } from '@molstar/seqx-core/theme/index';
+import type { AxisTransform } from './axis.js';
 import { Anchor, NoColor, type PassWriter, passDraws } from './draw-lists.js';
 import type { Emphasis } from './layer-type.js';
 import type { LettersLay } from './letters.js';
@@ -101,15 +102,19 @@ function drawCells(lay: LettersLay, out: PassWriter, _emphasis: Emphasis | undef
     drawThree(lay, out);
     return;
   }
+  // a letter centred in its whole cell overhangs the view at an edge: clipped to the band's box
+  const clipped = overhangs(lay);
+  if (clipped) clipBox(lay, out);
   g[1] = lay.glyphY;
   out.beginGlyphsArgs(lay.font, NoColor);
   for (let j = 0; j < lay.n; j++) {
     if (!lay.show[j]) continue;
-    g[0] = (lay.x0[j] + lay.x1[j]) / 2;
+    g[0] = lay.gx[j];
     g[4] = lay.ink[j];
     out.letterArgs(lay.code[j]);
   }
   out.endGlyphs();
+  if (clipped) out.unclip();
 }
 
 /**
@@ -216,18 +221,54 @@ export function chipInk(fill: number, tokens: SeqTokens): number {
   return contrastRgba(Black, fill) >= contrastRgba(White, fill) ? Black : White;
 }
 
-/** Three-letter codes, centred in their parts. */
+/** Whether a shown cell's whole extent reaches past the data box (its letter is cut by the band's box there). */
+export function overhangs(lay: {
+  n: number;
+  show: Uint8Array;
+  gx: Float32Array;
+  gw: Float32Array;
+  axis: AxisTransform;
+}): boolean {
+  // (a cell snapped to the device pixel grid may sit a pixel past an unsnapped edge: that is not an overhang)
+  const px = 1 / lay.axis.dpr;
+  const left = lay.axis.x0 - px;
+  const right = lay.axis.x0 + lay.axis.width + px;
+  for (let j = 0; j < lay.n; j++) {
+    if (!lay.show[j]) continue;
+    const h = lay.gw[j] / 2;
+    if (lay.gx[j] - h < left || lay.gx[j] + h > right) return true;
+  }
+  return false;
+}
+
+/** A clip to the data box of the band's row (numbers by `args`: a fractional number passed to a call is boxed). */
+export function clipBox(
+  lay: { box: { readonly y: number; readonly height: number }; axis: AxisTransform },
+  out: PassWriter,
+) {
+  const g = out.args;
+  g[0] = lay.axis.x0;
+  g[1] = lay.box.y;
+  g[2] = lay.axis.width;
+  g[3] = lay.box.height;
+  out.clipArgs();
+}
+
+/** Three-letter codes, centred in their cells. */
 function drawThree(lay: LettersLay, out: PassWriter) {
+  const clipped = overhangs(lay);
+  if (clipped) clipBox(lay, out);
   const g = out.args;
   for (let j = 0; j < lay.n; j++) {
     if (!lay.show[j]) continue;
-    g[0] = (lay.x0[j] + lay.x1[j]) / 2;
+    g[0] = lay.gx[j];
     g[1] = lay.glyphY;
     g[2] = 0;
-    g[3] = lay.x1[j] - lay.x0[j];
+    g[3] = lay.gw[j];
     g[4] = lay.ink[j];
     out.textArgs(ThreeByCode[lay.code[j] & 127], AnchorMiddle, lay.font);
   }
+  if (clipped) out.unclip();
 }
 
 /**

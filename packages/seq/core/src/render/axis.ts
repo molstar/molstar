@@ -331,6 +331,9 @@ export class AxisTransform {
   }
 
   /** The last `spanIn`'s x extents (unsnapped, clipped to the data box) and which ends were cut: read right after it. */
+  /** The whole cell's x extents of the last `spanIn`/`spanPlain`, before the view cut `sx0`/`sx1` (a letter centres on them). */
+  fx0 = 0.5;
+  fx1 = 0.5;
   sx0 = 0.5;
   sx1 = 0.5;
   scut = 0;
@@ -418,6 +421,8 @@ export class AxisTransform {
     if (this.dir === -1 ? cutStart : cutEnd) cut |= Cut.right;
     if (xa < left) cut |= Cut.left;
     if (xb > right) cut |= Cut.right;
+    this.fx0 = xa;
+    this.fx1 = xb;
     if (xa < left) xa = left;
     if (xb > right) xb = right;
     this.sx0 = xa;
@@ -446,6 +451,8 @@ export class AxisTransform {
     const left = this.x0;
     const right = this.x0 + this.width;
     if (s === e ? xb < left || xa > right : xb <= left || xa >= right) return false;
+    this.fx0 = xa;
+    this.fx1 = xb;
     if (xa < left) xa = left;
     if (xb > right) xb = right;
     this.sx0 = xa;
