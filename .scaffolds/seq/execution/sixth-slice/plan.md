@@ -61,6 +61,13 @@ A next scaffold starts as `.scaffolds/<name>/` from `_method/`, its manifest lis
       `cli/structure-info` match `.seq` in their text: check that it is a file extension, not a link).
 - [ ] **Stage 4: the method** (running 2026-11-23, lane S4, `briefs/s4-method.md`): templates in `_method/` from the fifth slice's files (loop with its fold-back, brief,
       state, plan, fixes, record), the generic checks taking the instance as an argument; `.scaffolds/AGENTS.md`.
+- [ ] **Stage 4b: the principles re-synced and compressed** (proposed 2026-11-23; **waiting on the author**: "i think i
+      will do one more change to the upstream oz first and then get back here with it"). Re-sync `.scaffolds/principles/`
+      from the upstream package after that change (it already has a rule budget, a lighter `_core` and Seq\*'s slices 3
+      to 5 folded back), reapplying the rename and the two removed modules; then re-adapt Seq\*'s instance under the
+      rule budget: the manifest's four "Folded back" sections as one current Adaptations list (what the package now
+      states dropped, the evidence in the records), `status.md` to what is current. Measured before and after on a fixed
+      reading path (the guide's steps 0 and 1 and one module). The slice's finalize waits for it.
 - [ ] **Stage 5: verify**: every check run from the new place on the Seq\* instance; a link check over `.scaffolds/`
       (no dangling relative links); the root `AGENTS.md`'s table gains the `.scaffolds/` row; `.scaffolds/seq/` gone.
 - [x] **Docs** (merged 2026-11-23, `c9d120931`; taken early as lane DX, 2026-11-23, `briefs/dx-storybook-docs.md`: written from the current `_spec`s;

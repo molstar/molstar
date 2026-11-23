@@ -12,6 +12,9 @@
 - Stage 1's fifteen drift notes (the author, 2026-11-23: "All as recommended"): designs amended to the code's way by
   S1F; the code items to the close-out plan.
 
+- Stage 4b (the principles re-synced and compressed) waits for the author's upstream change (2026-11-23); the
+  finalize waits for it.
+
 ## In progress
 
 - 2026-11-23: stage 1 started. `.scaffolds/seq/_checks/designs-in-specs.ts` written (46 designs pending). Running: **S1A**
