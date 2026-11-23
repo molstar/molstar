@@ -41,8 +41,8 @@ export function rowsLevel(
 
 /**
  * While no level is whole to draw (a moving frame's build): the scrolled rows in view pending, the rows' own placeholder
- * over them, never an empty band (_spec/README.md "Data", Store). Their cells still hit as
- * the data they are (held): only their picture waits. True, for the caller's one line.
+ * over them, never an empty band (EC-169; _spec/README.md "Data", Store: pending is never drawn as empty). Their cells
+ * still hit as the data they are (held): only their picture waits. True, for the caller's one line.
  */
 export function rowsPending(lay: RowsLay): boolean {
   const top = Math.max(lay.box.y + lay.pinnedHeight, lay.rowY(lay.display.pinned));
