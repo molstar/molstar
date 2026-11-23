@@ -141,7 +141,7 @@
     "bytesDownloaded": 0,
     "bytesFixture": 20433,
     "sha256Download": "",
-    "sha256Fixture": "10198429e256ecbd5e0afaca96c37dad5ba27e6852dc68efdda017ac08c3e86e"
+    "sha256Fixture": "809280c153f88ef908c8d740678985c0094fe9566f38c2b05fbf5f6bb04b9bc9"
   },
   {
     "file": "genomes/toy-a.aliases.seq",
@@ -283,9 +283,9 @@
     "trimmed": "none",
     "derived": "waves in log space and noise, no line over chr1’s run of N and 10 kb of chr2 (missing values) (src/genomes/generate/, seeded on core’s PCG and hash3, a stream per seed, concern and index)",
     "bytesDownloaded": 0,
-    "bytesFixture": 39256,
+    "bytesFixture": 39301,
     "sha256Download": "",
-    "sha256Fixture": "c0646ab330b13fdedbd949f50e1a387ffdcb80c1e3b8a3bb0b181fc2ba89b727"
+    "sha256Fixture": "c03de951787fef074f9917a4a5165e74222ecc553d08084051eab0caf0771dea"
   },
   {
     "file": "genomes/toy-a.signal.bedgraph.gz.tbi",
@@ -299,9 +299,9 @@
     "trimmed": "none",
     "derived": "written as tabix writes it over the bgzipped bedGraph (src/genomes/generate/, seeded on core’s PCG and hash3, a stream per seed, concern and index)",
     "bytesDownloaded": 0,
-    "bytesFixture": 727,
+    "bytesFixture": 729,
     "sha256Download": "",
-    "sha256Fixture": "cb34c46626e7abb8f1e8890ca40c1e3679e746f8934276aac39ddf8fa9aca774"
+    "sha256Fixture": "48578898b17c65128b1ae0785390e0cd3a4dd0472b654950ff213327e99fbd23"
   },
   {
     "file": "genomes/toy-a.variants.vcf.gz",
@@ -315,9 +315,9 @@
     "trimmed": "none",
     "derived": "SNVs at toy A’s letters, chrM’s calls haploid, phased and unphased lines, partial and no-calls, a 600-base deletion over 12 SNVs carried by six samples (src/genomes/generate/, seeded on core’s PCG and hash3, a stream per seed, concern and index)",
     "bytesDownloaded": 0,
-    "bytesFixture": 57156,
+    "bytesFixture": 57152,
     "sha256Download": "",
-    "sha256Fixture": "99fb0ac7a00f5ab4fd964ccdde254463ecb7f9e04e7eef6a28a004751e7e0800"
+    "sha256Fixture": "1b0b84ba13452f1759666d1510e0f53532630eafa0c743341daec7be363e9f3a"
   },
   {
     "file": "genomes/toy-a.variants.vcf.gz.tbi",
@@ -331,9 +331,9 @@
     "trimmed": "none",
     "derived": "written as tabix writes it over the bgzipped VCF (src/genomes/generate/, seeded on core’s PCG and hash3, a stream per seed, concern and index)",
     "bytesDownloaded": 0,
-    "bytesFixture": 535,
+    "bytesFixture": 537,
     "sha256Download": "",
-    "sha256Fixture": "f99daaf0a307a14527ceb99b35633d66a784b8bd0bc1d8b68b517ffadc9fc042"
+    "sha256Fixture": "880fbf6a9bcebf91f4a248effc70b5c9d14f2db81a9e618a507a2b705062ca17"
   },
   {
     "file": "genomes/toy-a.methylation.seq.msgpack",
@@ -349,7 +349,7 @@
     "bytesDownloaded": 0,
     "bytesFixture": 69430,
     "sha256Download": "",
-    "sha256Fixture": "3d2d7016ebc1a4fcd4fbef23f51b917bc89f83c468dccc05a1ee4675a4110f90"
+    "sha256Fixture": "eed26804c940c024511abeefd58643fd22c0b7baa6293fe0e14d1c25adbeaca0"
   },
   {
     "file": "genomes/toy-a.gene-methylation.seq.msgpack",
@@ -379,8 +379,8 @@
     "trimmed": "none",
     "derived": "counts falling with the distance, domains along the diagonal, a hotspot between chr1 and chr3 (src/genomes/generate/, seeded on core’s PCG and hash3, a stream per seed, concern and index)",
     "bytesDownloaded": 0,
-    "bytesFixture": 58799,
+    "bytesFixture": 59207,
     "sha256Download": "",
-    "sha256Fixture": "0b84d701ae60043b7121e3ee8418d34067ed5af9ffc4665b6f2ba4b561322eb7"
+    "sha256Fixture": "ef0828962fbd7315d1ef7c4c91c2603188739eeda6c5800c4fbf18e19dcb8075"
   }
 ]

@@ -5,10 +5,10 @@
  */
 
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
 import { ungzip } from '@molstar/core/util/zip/zip';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { HlaName, NGap } from '../genomes/generate/assemblies.js';
 import { Inversion, TranslocationLength, toB } from '../genomes/generate/alignment.js';
 import { GeneCount } from '../genomes/generate/genes.js';
@@ -43,10 +43,21 @@ describe('the Genomes dataset, generated', () => {
       expect(files.get(path)!.length, path).toBeLessThan(EstimatedBytes[k as keyof typeof GenomesFiles]);
   });
 
-  it('is the same on every run (no clock, no Math.random)', async () => {
+  it('is the same on every run and every engine: no clock, no Math.random, no transcendental (an engine’s rounding)', async () => {
+    // `exact.ts`: Math's approximations are not required to agree across engines, `+ - * /` round correctly everywhere
+    const Approximate = ['sin', 'cos', 'tan', 'exp', 'expm1', 'log', 'log1p', 'log2', 'log10', 'pow', 'cbrt', 'atan2'];
+    for (const f of Approximate)
+      vi.spyOn(Math, f as 'sin').mockImplementation(() => {
+        throw new Error(`Math.${f} in the generator`);
+      });
     const again = await generateGenomes();
+    vi.restoreAllMocks();
     const { files } = await generated;
     for (const [path, bytes] of files) expect(sha(again.files.get(path)!), path).toBe(sha(bytes));
+    // nor `**`, Math.pow's operator (a spy cannot see it)
+    const folder = `${PackageFolder}src/genomes/generate/`;
+    for (const f of readdirSync(folder).filter((n) => n.endsWith('.ts')))
+      expect(readFileSync(`${folder}${f}`, 'utf8').replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, ''), f).not.toMatch(/\*\*/);
   });
 });
 

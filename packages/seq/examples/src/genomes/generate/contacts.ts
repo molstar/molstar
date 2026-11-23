@@ -30,9 +30,7 @@ function selfPlane(n: number, seed: number, k: number): Float32Array {
   }
   for (let i = 0; i < n; i++)
     for (let j = i; j < n; j++) {
-      const c = Math.floor(
-        (400 / (1 + j - i) ** 1.1) * (domain[i] === domain[j] ? 1.8 : 1) * (0.7 + 0.6 * rng.float()),
-      );
+      const c = Math.floor((400 / (1 + j - i)) * (domain[i] === domain[j] ? 1.8 : 1) * (0.7 + 0.6 * rng.float()));
       v[i * n + j] = c;
       v[j * n + i] = c;
     }
@@ -46,7 +44,12 @@ function crossPlane(nx: number, ny: number, hot: readonly [number, number] | und
   for (let i = 0; i < nx; i++)
     for (let j = 0; j < ny; j++) {
       let c = rng.float() < 0.15 ? 1 : 0;
-      if (hot) c += Math.floor(60 * Math.exp(-((i - hot[0]) ** 2 + (j - hot[1]) ** 2) / 4));
+      if (hot) {
+        // a peak falling as (4 / (4 + r²))² (a rational, not `Math.exp`: `exact.ts`)
+        const r2 = (i - hot[0]) * (i - hot[0]) + (j - hot[1]) * (j - hot[1]);
+        const q = 4 / (4 + r2);
+        c += Math.floor(60 * q * q);
+      }
       v[i * ny + j] = c;
     }
   return v;

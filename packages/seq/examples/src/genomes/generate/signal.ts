@@ -6,7 +6,8 @@
 
 import type { ToyAssembly } from './assemblies.js';
 import { NGap } from './assemblies.js';
-import { Concern, decimal, stream } from './streams.js';
+import { pow10, powi, wave } from './exact.js';
+import { between, Concern, decimal, stream } from './streams.js';
 
 // Step 4 of the Genomes generator (examples.md, Genomes; EC-215): one bedGraph over toy A, 100 bp bins, a
 // TPM-like value from 0.1 to 10^4 (smooth waves in log space plus noise, so a linear scale shows a few peaks and a log
@@ -35,18 +36,18 @@ export function bedGraph(assemblies: readonly ToyAssembly[], seed: number): stri
   for (const a of assemblies)
     for (const s of a.sequences) {
       const rng = stream(seed, Concern.signal, k++);
-      const phase = rng.float() * 2 * Math.PI;
+      const phase = between(rng, 0, 37_000);
       for (let start = 0; start < s.length; start += SignalBin) {
         const end = Math.min(s.length, start + SignalBin);
         if (missing(a.name, s.name, start, end)) continue;
         // log10(1 + v) in [0, 4]: two waves and noise, the high peaks rare
         const w =
           1.6 +
-          1.1 * Math.sin((2 * Math.PI * start) / 37_000 + phase) +
-          0.9 * Math.sin((2 * Math.PI * start) / 9_100 + 2 * phase) ** 7 +
+          1.1 * wave(start + phase, 37_000) +
+          0.9 * powi(wave(start + 2 * phase, 9_100), 7) +
           0.35 * (rng.float() - 0.5);
         // at least 0.1: a log scale reads every value (a zero would be missing there)
-        const v = Math.min(SignalMax, Math.max(0.1, 10 ** Math.max(0, w) - 1));
+        const v = Math.min(SignalMax, Math.max(0.1, pow10(Math.max(0, w)) - 1));
         out += `${s.name}\t${start}\t${end}\t${decimal(v, 1)}\n`;
       }
     }

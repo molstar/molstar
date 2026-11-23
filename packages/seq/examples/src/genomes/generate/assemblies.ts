@@ -5,6 +5,7 @@
  */
 
 import type { SeqData } from '@molstar/seqx-core/data';
+import { wave } from './exact.js';
 import { between, Concern, stream } from './streams.js';
 
 // Step 1 of the Genomes generator (examples.md, Genomes, The generator: outline): toy A, prefixed (`chr1` to `chr3`,
@@ -59,7 +60,8 @@ export function toyALetters(a: ToyAssembly, seed: number): Map<string, string> {
     for (let t = 0; t * Tile < s.length; t++) {
       const rng = stream(seed, Concern.letters, i * 4096 + t);
       for (let p = t * Tile; p < Math.min(s.length, (t + 1) * Tile); p++) {
-        const gc = 0.41 + 0.14 * Math.sin((2 * Math.PI * p) / 47_000 + i);
+        // a GC wave of 47 kb, each sequence's shifted 7,480 positions (exact arithmetic: `exact.ts`)
+        const gc = 0.41 + 0.14 * wave(p + i * 7_480, 47_000);
         const r = rng.float();
         const k = rng.float() < 0.5 ? 0 : 1;
         chars[p] = r < gc ? 'GC'[k] : 'AT'[k];
