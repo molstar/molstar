@@ -27,8 +27,6 @@ const LayoutOptions = {
   steps: 200,
   windows: 3,
   maxWarmSteps: 4000,
-  control: false,
-  why: 'a layout allocates kilobytes: they hide the control',
 } as const;
 
 /**

@@ -117,8 +117,7 @@ describe('a liftover laid out again', () => {
     const plain = await panner(OldSection);
     const reads = [lifted, plain, lifted, plain].map((s) => measureBytesPerStep(s, PanSteps).bytesPerStep);
     const own = Math.min(reads[1], reads[3]);
-    // a frame of a megabyte: `leak`'s 88 bytes are under its noise, so no control
-    const { r } = quickCase(task, 'liftover pan', lifted, { ...PanSteps, control: false, why: 'a megabyte a frame' });
+    const { r } = quickCase(task, 'liftover pan', lifted, PanSteps);
     console.info(
       `liftover pan: ${r.bytesPerStep.toFixed(0)} bytes a frame, the plain genes ${own.toFixed(0)} (${r.note})`,
     );

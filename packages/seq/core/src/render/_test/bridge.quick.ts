@@ -16,7 +16,6 @@ import { SeqRuntime } from '@molstar/seqx-core/data';
 import { bridgeSpec, randomBridgePairs } from './bridge-fixtures.js';
 import { AlnLength, randomAlignments, regionBridgeSpec } from './bridge-region-fixtures.js';
 import { settle } from './helpers.js';
-import { ScaledControlWhy, scaledControl } from './scaled-control.js';
 import { reusedHover } from './scenarios.js';
 
 const N = 20_000;
@@ -96,9 +95,8 @@ describe('a bridge laid out again', () => {
     const frames = [at(0), at(37)];
     for (const f of frames) await s.frame(f);
     const step = (i: number) => void s.renderer.frame(frames[i & 1]);
-    const r = quickCase(task, 'bridge relayout', step, { control: false, why: ScaledControlWhy });
+    const r = quickCase(task, 'bridge relayout', step);
     console.info(`bridge relayout: ${r.r.bytesPerStep.toFixed(0)} bytes a layout (${r.r.note})`);
     expect(r.r.bytesPerStep, r.r.note).toBeLessThanOrEqual(RelayoutBound);
-    scaledControl('bridge relayout', step, r.r);
   });
 });
