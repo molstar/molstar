@@ -127,9 +127,9 @@ type RegionAnswer =
 | Tiles of 1,024 bins, the shapes' columns, levels as bin widths (Settled) | core › Store |
 | Range reads in `AssetManager` wait for bigWig; the slice's FASTA read whole | design-only: history (bigWig reads by range now: core › bigWig) |
 | A format runtime, its `OpenContext` (assets, signal, limits) and `OpenedSource` | core › format runtime |
-| Coverage: systems with aliases, shapes, levels as bin widths, nodes up front; `[1]` without levels | core › Coverage |
+| Coverage: systems with aliases, shapes, levels as bin widths, nodes up front; `[1]` without levels | core › Protocol › Coverage |
 | Requests and answers; the failure kinds and their retries; cancellation an `AbortError` | core › An answer |
-| Table shapes and their `form`s | core › Tables |
+| Table shapes and their `form`s | core › Data › Tables |
 | The region shapes (`pairs`, `matrix`, `grid`, `rows`) | core › The region shapes |
 | Nodes in an answer: refs absolute | core › Checked by the description |
 | The `seq` format: the protocol written down, inline or a JSON or MessagePack file | core › The seq format |

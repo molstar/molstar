@@ -31,7 +31,10 @@ the rule sections by id>.
 - **its performance representative**: <one quick case; a bound under the heavy lane for a time; an allocation case
   when it adds to a frame's path>;
 - **lazy parts awaited**: a test over a view with lazy parts awaits them before the gesture it checks;
-- **the mock**: <the design's mock, when the lane draws a new part>; the built view matches it gesture by gesture.
+- **the mock**: <the design's mock, when the lane draws a new part>; the built view matches it gesture by gesture;
+- **a rewrite keeps its identifiers**: <when the lane rewrites text across many files (citations, ids, links)> list
+  the identifiers the files cite (`EC-<n>`, rule ids, spec sections) at the base and at your head, and name each one
+  gone with why; <the scaffold's id check in its compare mode, against the base, where it has one>.
 
 **Where**: a worktree on `<prefix>/<lane>`. Touches <files>; out of scope <files, parts>. Headers <the repository's
 rule>. Hot files never staged: <the lockfile, manifests, configs, the work folder, the changelog folder, the TODO>;
@@ -47,4 +50,5 @@ system (report the action and why; don't work around it).
 
 **Report** (under <n> words): commits; each item with its proof; each check with its exit code and test count;
 assertions deleted, skipped or weakened, and every changed expectation with why; what you left out, refused or fell
-back on; drift, gaps and followups (you don't write the work folder); the changelog text; what to look at.
+back on; drift, gaps and followups (you don't write the work folder); the changelog text; what to look at; for a
+rewrite across many files, the identifiers before and after and each one gone.

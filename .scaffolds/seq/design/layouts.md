@@ -828,7 +828,7 @@ registry entry, an option of a call, or fixed with its reason).
 
 | Decision | Where |
 |---|---|
-| Blocks a cut every layout takes, not a `layout` value (Decided 1) | core › Blocks |
+| Blocks a cut every layout takes, not a `layout` value (Decided 1) | core › Resolved view › Blocks |
 | A layout per section, sections stacked (Decided 2) | core › Section layouts |
 | A text section exports every line (Decided 3) | core › An export shows all of it |
 | A text box capped, scrolling inside, the wheel chained at its ends (Decided 4); one cap for every layout (`section.maxPx`) | core › A section scrolls past its cap |
@@ -849,13 +849,13 @@ registry entry, an option of a call, or fixed with its reason).
 | Glyph runs with a per-letter y, angle and vertical scale | core › Primitives |
 | The interface (`SectionLayoutType`, `Placement`, `PlaceContext`); one viewport a section; follow reads the leader's viewport; the view stacks its sections | core › Section layouts |
 | Placement and hit-testing as its inverse; the kinds of point; property tests | core › Kinds of point |
-| Emphasis per strip: the band column, cut ends, the y path | core › Emphasis |
+| Emphasis per strip: the band column, cut ends, the y path | core › Render › Emphasis |
 | The key per section; the ring under a moving window | core › Per section |
-| The `window` pass | core › Draw lists |
+| The `window` pass | core › Navigators › Draw lists |
 | The hover index: the placement's `at` then the layer's `hit` | core › The placement |
-| Navigation: `SectionNav` per layout | core › Navigation |
+| Navigation: `SectionNav` per layout | core › Section layouts › Navigation |
 | Saved state as positions and row keys | viewer › Bands |
-| Text with rows: the cursor across line blocks | viewer › The cursor |
+| Text with rows: the cursor across line blocks | viewer › SelectionModel and HighlightModel › The cursor |
 | A drag past a scrolling box's edge | viewer › Pointer |
 | Text: wheel, letter size, reflow by the anchor | core › Text layout |
 | Rings: the window round, its zoom, idle with no follower | core › Rings layout |
@@ -864,7 +864,7 @@ registry entry, an option of a call, or fixed with its reason).
 | The story `view` channel | core › Stories |
 | Follow between a ring and a linear section; the window shared with the navigators | core › Window |
 | The tracks layout restated | core › Tracks layout |
-| Blocks: systems a strip, the scroll group's key, follow refused on several systems, `arrange`, chips, `copies` | core › Blocks |
+| Blocks: systems a strip, the scroll group's key, follow refused on several systems, `arrange`, chips, `copies` | core › Render › Blocks |
 | Text: lines of whole groups, groups bridged, pieces, bands, numbers, alignment figures, `align`, reflow, `text.maxLines` | core › Text layout |
 | A linked selection revealed in text | viewer › A linked selection is revealed |
 | Rings: outside in, pieces, the unrolled frame, the polar warp, an image as runs | core › Rings layout |

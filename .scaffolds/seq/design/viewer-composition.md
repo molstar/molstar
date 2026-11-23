@@ -135,10 +135,10 @@ interface SeqViewerSpec {
 | The spec's fields (registry, behaviors, bindings, config, ports, ui) | viewer › Composition |
 | Registry entries are pure data, keyed by name, the kinds | core › Registry entries |
 | Layer types and layouts are registry entries; tracks the one fixed fallback | core › The tracks layout is the one fixed fallback |
-| An export of a spec with errors draws what resolves, the errors in `<desc>`; past the bounds blank | core › Export |
+| An export of a spec with errors draws what resolves, the errors in `<desc>`; past the bounds blank | core › Render › Export |
 | Ports are factories with ownership (`disposeWithViewer`); a manager or a bare reader | core › Ports |
 | The viewer's default port adapters | viewer › Ports |
-| Keys matched against the commands' shortcuts until a command manager | viewer › Keys |
+| Keys matched against the commands' shortcuts until a command manager | viewer › Input |
 | `theme.source` (`root`, `config`; headless reads the config) | viewer › Tokens |
 | `rested` and a signal named for the picture follows every cause | viewer › A signal named for the picture |
 | Behaviors: a provider and its params, after the registry; run-time registration and its undo | viewer › Extensions |

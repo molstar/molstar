@@ -71,8 +71,8 @@ to structural data .. basically SIFTS, but in abstract form."
 
 | Decision | Where |
 |---|---|
-| Kind, sourcing and encoding answered apart | core › Maps |
-| The kinds built: `offset`, `codon`, `segments`, `structure`; a numbering a kind of its own | core › Maps |
+| Kind, sourcing and encoding answered apart | core › Language › Maps |
+| The kinds built: `offset`, `codon`, `segments`, `structure`; a numbering a kind of its own | core › Language › Maps |
 | The kinds `identity`, `pairwise`, `alignment` | design-only: not built (the alignment map's stopgap is a `segments` map, core › Systems) |
 | Sourcing inline, or a source read by region | core › Maps read by region |
 | Sourcing computed by a runtime bound at composition | design-only: not built |
@@ -80,13 +80,13 @@ to structural data .. basically SIFTS, but in abstract form."
 | A follow continuous within a run; the hull where an end maps nowhere | core › A follow |
 | The follower's window edges, in the viewer and an export | viewer › Follow |
 | One interface; paths compose encodings without expanding | core › One interface |
-| A structure system is a unit of a complex | core › A unit |
+| A structure system is a unit of a complex | core › Molecules and units › A unit |
 | A molecule's atoms onto its residues, at a path's ends only | core › The atoms group map |
-| A `structure` map: runs with provenance, per-residue status | core › Structure |
+| A `structure` map: runs with provenance, per-residue status | core › Maps › Structure |
 | A chain onto several sequences, a sequence onto many chains; the copy rule | core › Search |
 | The binding to atoms is the host's adapter; the core reads no structure file | core › Structures |
-| The `structure` kind kept; the unit's `observed` wins, a disagreement reported | core › Structure |
+| The `structure` kind kept; the unit's `observed` wins, a disagreement reported | core › Maps › Structure |
 | `priority`: sorted priorities compared, weakest first; shortest first | core › Search |
-| A use's `via`; an unused one a warning | core › Via |
+| A use's `via`; an unused one a warning | core › Resolved view › Via |
 | No silent rule ranking kinds | core › Search |
 | The edge cases on every encoding | core › Encodings |

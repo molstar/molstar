@@ -169,8 +169,8 @@ residues (three atoms); `/data/1ehz/(groups :residue-test (= (prop modified) tru
 | Decision | Where |
 |---|---|
 | Three result types: Nodes, Keys, Location | core › Result types |
-| A Location's shape; a value, comparable and hashable | core › Location |
-| A key `{ owner, key }`, its extent | core › Keys |
+| A Location's shape; a value, comparable and hashable | core › Queries › Location |
+| A key `{ owner, key }`, its extent | core › Queries › Keys |
 | Conversions are forms, explicit; mixed types an issue | core › Conversions are forms |
 | Pairs answer `items` | core › Pairs answer items |
 | meso\*'s syntax with lists, strings, addresses | repr › Grammar |
@@ -183,20 +183,20 @@ residues (three atoms); `/data/1ehz/(groups :residue-test (= (prop modified) tru
 | A boundary's overlap | core › Overlap |
 | Labels resolve at the edge (EC-1 to EC-8) | core › Resolving a range |
 | Monadic composition | core › Composition |
-| The first forms | core › Forms |
-| `(row :key k)` giving a Location on the rows system, no `(pair …)` form (pairs answer `items`) | core › Forms |
+| The first forms | core › Queries › Forms |
+| `(row :key k)` giving a Location on the rows system, no `(pair …)` form (pairs answer `items`) | core › Queries › Forms |
 | `onto` and `search` | design-only: not built (later, with their examples) |
-| The forms by role, MolQL's split, a common prefix | core › Language |
+| The forms by role, MolQL's split, a common prefix | core › Queries › Language |
 | `elements`: the schema selection, its depth its finest field | core › elements |
 | `elements` sugar over `filter`, exactly; rows plus matches | core › Sugar, exactly |
-| `groups` | core › groups |
-| `filter` | core › filter |
+| `groups` | core › Queries › Language › `groups` |
+| `filter` | core › Queries › Language › `filter` |
 | `expand` and `linked`; `include-surroundings` not built | core › expand |
 | Combinators renamed to `merge`, `intersect`, `except` | core › Combinators take :of |
 | Positional operands in expressions only | core › Expressions take positional operands |
 | Types checked when the query is read | core › Types are checked when a test is compiled |
 | Extensions add forms: namespaced, checked at composition and by role, no fallback | core › Composed |
-| An extension form's params printed sorted by the grammar, like every form | core › Extensions |
+| An extension form's params printed sorted by the grammar, like every form | core › Queries › Extensions |
 | Replaced forms (`atom`, `component`, `entity`) | core › Molecule node forms |
 | Staged evaluation over data read by region | core › Staged |
 | A query needing the whole data asks the source, else refused | design-only: not built (with `search`) |

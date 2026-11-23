@@ -494,7 +494,7 @@ Cells this design fills; the others stand as layouts, GA, RR and LX give them.
 | The hue ring the bands' second layer, absent without bands (a host passes a ranges node) | ext-rondo › The builder helper |
 | Synthetic bands for tests (`syntheticBands`) | examples › Views |
 | The ring zoom as a cut by `section.include`, in place or `detail: 'below'` | ext-rondo › What is the core's |
-| The square: lattice the assembly's, `navigator.switch`, cells by count, the window, selecting any set (Decided 4, 15 to 18) | core › Navigators |
+| The square: lattice the assembly's, `navigator.switch`, cells by count, the window, selecting any set (Decided 4, 15 to 18) | core › Language › Navigators |
 | The square's cells (`rondo:cells`, `rondo:square`) and without the picture the `axis` fallback | ext-rondo › What it ships |
 | Hover, selection, emphasis, the stem menu, the keys | ext-rondo › Hits, emphasis, words |
 | The hooks `describe`, `summary`, `announce` | ext-rondo › What is the core's |

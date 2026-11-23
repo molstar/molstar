@@ -99,10 +99,10 @@ whether it is undoable, keeps that clear.
 | Previews | viewer › Previews are patches |
 | Data arrivals never undoable, never saved | core › Arrivals never touch the spec |
 | Configuration and registration as change kinds | design-only: not command kinds; a registration's undo is viewer › Extensions |
-| Seq\* owns no undo stack; the history port's two faces; adapters | viewer › History |
+| Seq\* owns no undo stack; the history port's two faces; adapters | viewer › Ports › History |
 | Patches may name streamed things; the ref waits | core › Resolving |
 | Streams never become patches (EC-175) | core › Arrivals never touch the spec |
-| Patches stream from one writer at a time; stale refused; an agent's turn one step | viewer › The history |
+| Patches stream from one writer at a time; stale refused; an agent's turn one step | viewer › SpecModel › The history |
 | A host's rebase through `merge3` | viewer › A stale patch |
 | Concurrent writers (EC-93): who merges and when | design-only: not designed (the host's policy) |
 | Revisions the truth, patches derived; *snapshot* a story step only | repr › A revision |

@@ -24,8 +24,10 @@ One folder per scaffold, `.scaffolds/<name>/`, laid out as the method's README s
 - **Started** from `_method/` ([its README](_method/README.md), "A scaffold's life"): the instance folder, its manifest
   from the package's template, its checks' instance files, a pointer in the root `AGENTS.md`'s table and in the
   governed package's `AGENTS.md`.
-- **Run** as slices: designs agreed first, then a work folder per slice from the method's plan, loop and state, one
-  brief per lane.
+- **Run** as slices: designs agreed first, then a work folder per slice from the method's templates, one brief per
+  lane: `plan.md` (what and why, written once; a re-plan a dated line), `checklist.md` (one line per item, ticked with
+  its commit; the loop reads it), `state.md` (the current state only, rewritten in place), `findings.md` (append-only,
+  a row per lane and gate), the package's workflow files as the method applies them.
 - **Closed** by the loop's Finalize: reconcile, the fold-back with the author's decision, the record, the next plan.
   A work folder stays where it is after its close; only the record goes to `records/`.
 - **Kept** when the governed packages stand on their own (the author, 2026-11-23: "originally i planned to remove it,
@@ -47,6 +49,13 @@ One folder per scaffold, `.scaffolds/<name>/`, laid out as the method's README s
   for now, once we have more scaffolds we generalize"). Likewise a scaffold's own check moves into `_method/_checks/`
   when a second scaffold needs it, and the rules an instance's fold-backs add stand in its manifest until the package
   takes them.
+- **Rule ids are checked per scaffold.** `principles-ids` runs once per instance: the package's ids and that
+  instance's own, never another instance's. An instance's rule moves upstream when a second scaffold needs it, as a
+  module does (the author, 2026-11-23, the sixth slice's fold-back: "with questions go as recommended").
+- **An instance keeps only what is its own.** Its manifest holds its own rules and how it applies a package rule (a
+  number, a path, a tightening), within the rule budget; the evidence is in its records. Updates re-sync the package
+  from upstream, never fork it; a rule dropped at a re-sync names the package clause that covers it
+  ([_method/README.md](_method/README.md), "An instance and its package").
 - **The method learns from every close.** A fold-back's loop changes go into the next loop and into `_method/`'s
   templates, in words with no scaffold in them.
 - **Agent context**: never auto-formatted (`.prettierignore`, `biome.json`), machine-invariant (no local paths).

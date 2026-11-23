@@ -1,9 +1,12 @@
 # Plan: <work id>
 
-<!-- The template for a work folder's plan, `execution/<work-id>/plan.md` (§design-plan-implement). Its stages are the
-     loop's items, ticked as they merge. Draft until the author agrees it; the agreement goes in its first line. -->
+<!-- The template for a work folder's plan, `execution/<work-id>/plan.md` (§plan-and-checklist): what and why, about a
+     page or two, written once when the author agrees it. A re-plan adds a dated line at the end and never rewrites the
+     plan. No status and no ticks here: the items and their ticks are in `checklist.md` beside it ([checklist.md](checklist.md)),
+     where the current state is `state.md`'s. -->
 
-<**Draft, <date>** | **Agreed, <date>** (the author: "<words>")>. The loop is [loop.md](loop.md).
+The loop is [loop.md](loop.md); the items are [checklist.md](checklist.md). <!-- No status line: whether the plan is
+agreed is the checklist's first gate, ticked with the author's words in its commit. -->
 
 Work id `<work-id>`. <The milestone in one paragraph: what is built, from which designs, the author's words that set
 it.>
@@ -18,8 +21,9 @@ it.>
 
 ## The designs
 
-<!-- Each agreed design this work builds and its lanes. The features check reads this table: a design's row in the
-     features table fails once every lane named here is merged and the row still says planned. -->
+<!-- Each agreed design this work builds and its lanes. The features check reads this table with the checklist's
+     ticks: a design's row in the features table fails once every lane named here is ticked and the row still says
+     planned. -->
 
 | Design | Lanes |
 |---|---|
@@ -35,7 +39,8 @@ it.>
 
 ## Gate 0
 
-<!-- The decisions asked before stage 1, each a yes or no with a recommendation; the answers with the author's words. -->
+<!-- The decisions asked before stage 1, each a question with a recommendation. The answers, with the author's words,
+     go into the designs or this plan's dated lines, never into the checklist. -->
 
 ## Testing strategy
 
@@ -44,28 +49,22 @@ it.>
 
 ## Stages and lanes
 
-<!-- One checkbox a lane or a gate: `- [ ] **<LANE>** (<brief>, <model>) <what>`; ticked with the merge commit. A stage
-     with a new visible part starts with its mock lane beside the draft; the gate plays the mock. -->
+<!-- Each stage in a few lines: its lanes (brief, model, what), the gate that ends it, the fix point after it. A stage
+     with a new visible part starts with its mock lane beside the draft; the gate plays the mock. The checklist has one
+     line for each lane, gate, fix point, the novice pass, the measurements and Finalize. -->
 
 ### Stage 0: designs
 
-- [ ] <drafts, their mocks, their reviews>
-- [ ] GATE: the drafts agreed, with their mocks
-
-### Fix points
-
-- [ ] **<fix lane>** after <stage>: `fixes.md`'s open items.
+<The drafts, their mocks, their reviews; the gate where the author agrees them.>
 
 ### Stage <n>: <name>
 
-- [ ] **<LANE>** (`briefs/<lane>.md`, <model>) <what>.
-- [ ] GATE
+<**<LANE>** (`briefs/<lane>.md`, <model>): what. The gate. The fix point after it, if any.>
 
 ### Last stage: use, measure, finalize
 
-- [ ] **<the novice pass>**: a light agent plays a user of each new view, after the last lane that draws.
-- [ ] **<the measurements>**: <the representatives at full size, the bundles against their budgets>.
-- [ ] **<finalize>** (loop, Finalize).
+<The novice pass after the last lane that draws; the measurements at full size against their budgets; Finalize (the
+loop's).>
 
 ## Measurements
 
@@ -92,3 +91,5 @@ it.>
 ## Briefs to write
 
 <!-- The briefs the orchestrator writes before each lane starts. -->
+
+<!-- Re-plans, one dated line each, appended here: "Re-planned <date>: <what changed> (the author: "<words>")." -->

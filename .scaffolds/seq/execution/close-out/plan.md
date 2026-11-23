@@ -65,6 +65,8 @@ built, cut, or deferred past version 1 by the author's word. Known now:
 
 ## Stages
 
-- [ ] **Stage 0**: the rows above listed and decided; the 14 questions designed, with their mocks (B10); this plan
-      agreed.
-- [ ] Then lanes, gates, the use gate, the novice pass, the measurements and the finalize, as the method's loop says.
+- **Stage 0**: the rows above listed and decided; the 14 questions designed, with their mocks (B10); this plan agreed.
+- **Then** lanes, gates, the use gate, the novice pass, the measurements and Finalize, as the method's loop says; the
+  lanes are written into this plan and [checklist.md](checklist.md) at stage 0.
+
+The items are [checklist.md](checklist.md); this plan holds no status (the method's plan template).

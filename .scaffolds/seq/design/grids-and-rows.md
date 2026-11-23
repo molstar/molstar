@@ -623,7 +623,7 @@ registry entry, an option of a call, or fixed with its reason).
 | The rows layer owns its y inside its band (`bandTop`, `rowScale`) | core › The transform |
 | An order under the rows' pieces | core › Display rows |
 | Hits stay flat; `ySystem`, `yPosition`; the targets `row`, `tree-node`, `summary-row` | core › The rows layer |
-| Emphasis along y | core › Emphasis along y |
+| Emphasis along y | core › The grid layer › Emphasis along y |
 | The rows' window kept by a row key, restored by position | viewer › Bands |
 | Per strip by layout: rows in a text section, every clade unfolded | core › In a text section |
 | Pairs: data, either end, self-pairs, an end never wrapping | core › Kinds |
@@ -643,10 +643,10 @@ registry entry, an option of a call, or fixed with its reason).
 | Size and aspect (EC-109) | core › The grid layout |
 | Grid data inline, bounded by `maxBlockValues` | core › An answer's bounds |
 | Drawn: rects at `grid.rectMinPx`, image tiles from the shared reduction, `grid.buildBudget` | core › The grid layer |
-| The crosshair | core › Emphasis along y |
+| The crosshair | core › The grid layer › Emphasis along y |
 | Rectangles subtract exactly | core › rects subtract |
 | One 2D reduction and one image LRU (`imageBytes`) | core › The shared reduction |
-| The rows layer's data: `cells` on 1D tiles, columns whole; readers; the tree | core › `cells` |
+| The rows layer's data: `cells` on 1D tiles, columns whole; readers; the tree | core › Cells › `cells` |
 | Column measures for themes (`share`, `identity`, `matches-reference`) | core › Themes |
 | Order (`data`, `tree`, a field); filter; hidden | core › The rows layer |
 | A lazy alignment ordered by data only (tree order when a source serves leaf order); no clade summary from row bins | core › The rows layer |
@@ -666,14 +666,14 @@ registry entry, an option of a call, or fixed with its reason).
 | Drawing by density: the shared reduction by theme classes, majority of majorities within tolerance | core › The rows layer |
 | Lazy rows: the rows' window wanted, bounded allocation | core › The rows layer |
 | Selection: rows as a Location part on the rows system; blocks as rects | viewer › A cell of two axes |
-| The keyboard cursor on rows | viewer › The cursor |
+| The keyboard cursor on rows | viewer › SelectionModel and HighlightModel › The cursor |
 | Drag past a scrolling box's edge | viewer › Pointer |
 | Row zoom keys `]` and `[`; the keys check | viewer › The keys check |
 | Projection onto the rows | viewer › Projection |
 | What a navigator reads: the rows track itself | core › The picture |
 | One value a row as a navigator's fallback (`rowsValue`) | design-only: not built: the close-out's (a navigator over a lazy alignment draws it instead of leaving the rows out; the package's TODO, Navigators) |
 | The logo: scale, correction, profile, bars below 2 device px, glyph colors with the chroma floor; hit | core › The logo |
-| Data this slice added (`cells`, inline `pairs` and `grid`, the profile) | core › Cells |
+| Data this slice added (`cells`, inline `pairs` and `grid`, the profile) | core › Data › Cells |
 | Performance and size targets | design-only: measures, held by the tests and the performance tiers |
 | Precedents, the interaction matrix's cells | design-only: intent |
 

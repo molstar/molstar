@@ -428,11 +428,11 @@ Items are `ViewerConfig` unless the table says otherwise.
 | Actions show on hover of the header (not its data); states always drawn; the chip clears in minimal | core › Track headers |
 | Slot assignment by `order` then name; every entry in the menu | viewer › Slots |
 | Short tracks and a narrow column draw states as marks | core › Track headers |
-| Layouts: tracks, text, grid, blocks, rings, a rows track's title row | core › Where |
+| Layouts: tracks, text, grid, blocks, rings, a rows track's title row | core › Track headers › Where |
 | Icons as paths, read once; a lazy chunk; the label's first letter as fallback | viewer › Slots |
 | One set of entries, two renderings; the parts port; `headerPartsDom()` shipped | viewer › The parts |
 | Keyboard with DOM parts (one tab stop, Tab never captured) | viewer › The parts |
-| Export draws the canvas's chips in both renderings; slots never; `header.states.export` | core › Drawn |
+| Export draws the canvas's chips in both renderings; slots never; `header.states.export` | core › Track headers › Drawn |
 | Hidden tracks are the application's: nothing drawn, `viewer.hiddenTracks`, `track.show`, `mountHiddenTracks` | viewer › Hidden tracks |
 | The section's line (`section.header: auto`) | core › The section's line |
 | A section whose tracks are all hidden collapses | core › A collapsed section |
@@ -452,7 +452,7 @@ Items are `ViewerConfig` unless the table says otherwise.
 | `viewer.headers`, the geometry, published on change | viewer › Published on change |
 | A widget's slot (`kind: 'widget'`) | design-only: planned, not built (the author's "later") |
 | The built-ins are patches, one undo step each | viewer › Commands |
-| The configuration items | core › Configuration |
+| The configuration items | core › Render › Configuration |
 
 ## Tensions
 

@@ -84,16 +84,16 @@ first slice exercises them.
 | Identity is (source, key); the address `(node :key …)` or a kind's own form | core › A node |
 | A node keeps its identity when it leaves and returns; a reopened source keeps it | core › Reattach |
 | Checked by the same description; refs absolute; a node that fails left out | core › Checked by the description |
-| The same key with other params keeps the held node, with an issue | core › Nodes |
+| The same key with other params keeps the held node, with an issue | core › Store › Nodes |
 | Living in the store, never in the spec, its history or patches (EC-175) | core › Arrivals never touch the spec |
 | The overlay a tier of its own; paths through it per version, never on hover | core › Overlay |
-| Naming before arrival: what names a node waits | core › Status |
+| Naming before arrival: what names a node waits | core › Resolving › Status |
 | Item coordinate systems on demand (EC-177) | core › Item systems |
 | Nested sources on need, bounded by depth (EC-179) | core › Nested sources |
 | Lifetime: held by what carried or names it; `nodes.holdShown`; shown means in view | core › Shown nodes |
-| Holders in the store | core › Nodes |
-| Track templates: one entry of the resolved view, expanded at layout, `node_kind` narrowed | core › Templates |
-| `maxTemplateTracks` (200) | core › Templates |
+| Holders in the store | core › Store › Nodes |
+| Track templates: one entry of the resolved view, expanded at layout, `node_kind` narrowed | core › Resolved view › Templates |
+| `maxTemplateTracks` (200) | core › Tracks layout › Templates |
 | Re-expanding only the arrival's own template | design-only: open (every template re-expands on each overlay version) |
 | A node's own label param | design-only: open (not in the description) |
 | The first slice's synthetic source; the tests | design-only: history (the first slice's plan) |

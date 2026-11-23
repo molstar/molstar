@@ -70,6 +70,6 @@ format, a map runtime, a backend) is a registry entry. Each has a default, so th
 | The clipboard: a behavior's param (`select`'s `write`), not a port | viewer › A port or a registry entry |
 | Archives as functions over the assets port | core › Archives |
 | Compute (a worker pool) | design-only: a plan for when a profile asks |
-| Suites only where a second adapter exists (assets, text metrics) | core › assets |
+| Suites only where a second adapter exists (assets, text metrics) | core › Context › assets |
 | The asset manager reused; the policy wraps it | core › The asset policy |
 | Range reads as an extension of the asset manager | design-only: a proposed public API change of `@molstar/core` (base library) |

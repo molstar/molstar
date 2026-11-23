@@ -382,12 +382,12 @@ host's chrome).
 
 | Decision | Where |
 |---|---|
-| An extension is a descriptor (`SeqExtension`), given at composition beside the registry | core › Extensions |
+| An extension is a descriptor (`SeqExtension`), given at composition beside the registry | core › Context › Extensions |
 | The viewer's descriptor (`SeqViewerExtension`: behaviors, commands, bindings, header actions) | viewer › Extensions |
-| What an extension may ship; no node kinds or data shapes | core › Extensions |
+| What an extension may ship; no node kinds or data shapes | core › Context › Extensions |
 | Query forms and properties as registry entries, checked by role, no fallback | core › Composed |
-| Names namespaced by the descriptor's id; `seq` reserved; built-ins bare | core › Names |
-| Registration: one error, nothing changed; counted; `requires` checked | core › Extensions |
+| Names namespaced by the descriptor's id; `seq` reserved; built-ins bare | core › Extensions › Names |
+| Registration: one error, nothing changed; counted; `requires` checked | core › Context › Extensions |
 | `viewer.extend(ext)` at run time and its undo; `retire` undoes it | viewer › Extensions |
 | A spec names an extension type in the built-in slot, with a `fallback` | core › A layer's `fallback` |
 | An extension's params: plain on its own type, a namespaced key on another's node | core › Params |
@@ -395,7 +395,7 @@ host's chrome).
 | The same rule for a newer built-in type | core › Layer kinds |
 | The spec's `extensions` versions | core › The spec's `extensions` |
 | Registered late, drawn again (the type table's version in the key) | viewer › Extensions |
-| The contract an extension imports is one entry | core › Extensions |
+| The contract an extension imports is one entry | core › Context › Extensions |
 | Hits are closed: an extension's `hit` adds no `HitTarget` | core › Targets are closed |
 | Layer words (`describe`, `summary`, `announce`); a binding scoped to its layer type | core › Words |
 | A binding scoped to an extension's layer type wins there | viewer › Scoped to a layer type |
@@ -409,5 +409,5 @@ host's chrome).
 | Hiding has two owners; no session command hides a legend | viewer › The Legend part's options |
 | The compact form | viewer › The Legend part's options |
 | Editing stays the application's (commands) | viewer › The legend behavior's commands |
-| The export keeps `none`, `below`, `right` and the full form | core › Export |
+| The export keeps `none`, `below`, `right` and the full form | core › Render › Export |
 | The CLI loading an extension by module path | design-only: rejected (a CLI host composes its own context) |

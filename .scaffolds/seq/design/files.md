@@ -341,23 +341,23 @@ Files add no gesture: what a file holds is drawn by the layers that read it, as 
 
 | Decision | Where |
 |---|---|
-| One records runtime (`tsv`, `csv`, `json`, `msgpack`, `gff3`), its own entry | core › Records |
+| One records runtime (`tsv`, `csv`, `json`, `msgpack`, `gff3`), its own entry | core › Data › Records |
 | Read whole at open into `seq` data, answered by region by the `seq` runtime | core › Read whole at open |
-| What a source serves, its systems by name, rows sorted once keeping `row` | core › Fields |
-| Inline `value` too, its defaults `0` and `exclusive` (decided 3) | core › Positions |
+| What a source serves, its systems by name, rows sorted once keeping `row` | core › Records › Fields |
+| Inline `value` too, its defaults `0` and `exclusive` (decided 3) | core › Records › Positions |
 | TSV and CSV by RFC 4180 on a core tokenizer, cells not trimmed (decided 4, EC-92) | core › The syntax |
 | UTF-8 only; JSON a plain value; members own only | core › The syntax |
 | GFF3 a preset of the same reader (decided 5) | core › GFF3 |
 | A feature across a cyclic origin | core › A row past the system's end is the row reader's |
 | Records and columns, AoS and SoA read the same; a path | core › Records and columns |
-| Default fields the scalar members | core › Fields |
+| Default fields the scalar members | core › Records › Fields |
 | Typed columns kept without a copy | core › Typed columns kept without a copy |
 | The transform on the `source` node; why there, why `base` | core › A source's transform |
-| Roles and their types are the protocol's; positions converted once (EC-195) | core › Positions |
+| Roles and their types are the protocol's; positions converted once (EC-195) | core › Records › Positions |
 | No expressions, no recoding (decided 10: UniProt's own words) | core › A source's transform |
 | One track a feature type by a leading item form, no `where` (decided 2) | core › Filters |
 | The transform runs in the runtime once opened; the store keys a source by address; an edit reopens in place | core › Reattach |
-| Issues: one a cause, a count, ten places; one severity a code | core › Issues |
+| Issues: one a cause, a count, ten places; one severity a code | core › Records › Issues |
 | Bounds: `limits` at open | core › limits |
 | Trees from files (a whole-read tier, or the loader first; decided 6) | design-only: not built (the tree stays inline) |
 | Pairs from files, read by region | core › Declared, read by later lanes |
@@ -367,7 +367,7 @@ Files add no gesture: what a file holds is drawn by the layers that read it, as 
 | Labels of a declared numbering in a file (decided 9) | design-only: not built (waits for a converting runtime) |
 | The params in `0.4.0` with no migration (decided 1) | core › Versions |
 | The interaction matrix's cells | design-only: no cell beyond the transform's edit, a patch of the source (core › A source's transform) |
-| The configuration table | core › Records |
+| The configuration table | core › Data › Records |
 
 ## Tensions
 

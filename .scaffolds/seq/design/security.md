@@ -85,13 +85,13 @@ bounded before it starts (§bounded-work).
 | Defaults in a browser: `https:` and relative, no credentials, 256 MB | core › The asset policy |
 | Headless: files under a root and listed hosts, no network by default (EC-126) | core › The headless policy |
 | Tests read no network (the test adapter) | core › Ports |
-| Bounds on what a spec sizes: size, depth, query depth, a column's length, the issues kept | core › Bounds |
+| Bounds on what a spec sizes: size, depth, query depth, a column's length, the issues kept | core › Language › Bounds |
 | Nested sources (depth 4) | core › Nested sources |
-| A block's values (2^24) and an answer's dynamic nodes | core › Tables |
+| A block's values (2^24) and an answer's dynamic nodes | core › Data › Tables |
 | Regular expressions in search | design-only: not built (with search) |
-| `custom` counted in the size, never interpreted | core › Bounds |
+| `custom` counted in the size, never interpreted | core › Language › Bounds |
 | An archive's bounds | core › Archives |
 | Output escaped in the SVG; labels never markup | core › SVG |
 | Links act only through commands on addresses; a link is data | core › Mol\*'s link grammar |
 | Agents act as a user would; a patch validated before it applies | viewer › SpecModel |
-| Tooltips: text and rows bounded, Markdown the template's only, `!seq-` links, controls and bidi stripped | core › Tooltips |
+| Tooltips: text and rows bounded, Markdown the template's only, `!seq-` links, controls and bidi stripped | core › Render › Tooltips |
