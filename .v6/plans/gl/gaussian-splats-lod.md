@@ -5,7 +5,9 @@
 - **Current**: planned, nothing built. Decisions open (see Open).
 - Related: [gaussian-splats.md](gaussian-splats.md) (step 10: SOG read in place, the `sog` encoding this extends; the
   GPU sort, its centers kernel), [storage-buffers.md](storage-buffers.md) (data pages),
-  [particle-residency.md](../particle-residency.md) (pages of a store resident by the view, a budget).
+  [particle-residency.md](../particle-residency.md) (pages of a store resident by the view, a budget),
+  [streaming.md](../streaming.md) (proposed: step 5's loader, residency and cooldown on a streamer shared with the
+  particle tiles; this plan its second consumer).
 
 ## Question
 

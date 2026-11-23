@@ -231,6 +231,13 @@ Follow-ups from the review of the WebGPU branch (correctness, memory, one decisi
 
 ## Not started
 
+- [mesoscale-lod.md](mesoscale-lod.md): proposed: levels of detail for mesoscale scenes: one metric (error on screen
+  in CSS pixels), bands (several representations of a target over one instance source, chosen by the cull), exact
+  dithered crossfades (nested sphere levels by a geomorph), fades in time for loads, proxies a particle, instance
+  overrides (a few posed, pinned or hidden; the nearest promoted), moving instances (bounds by reach or law, a
+  spatial index for free motion), motion evaluated on the GPU, mesh levels by index ranges, aggregates a region
+  far away; how it fits meso\*'s render IR and runtimes.
+
 - [clip-drag.md](clip-drag.md): a clip object's drag on the yeast cell was about 74 ms a mousemove, all CPU (every
   particle target updated in full, every merged group checked); the merge check cheap and a clip-only path done
   (PetWorld's update a frame 1.59 -> 0.22 ms); next: the yeast cell measured.
