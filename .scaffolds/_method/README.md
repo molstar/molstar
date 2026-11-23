@@ -1,0 +1,66 @@
+# The method
+
+How a development scaffold's work is run, written once without any one scaffold in it: templates for the files of a
+work folder and a design, and the checks every scaffold runs on itself. It was written from Seq\*'s slices (the
+fifth's loop with its fold-back, and the rules the earlier fold-backs added); a scaffold adapts a template where its
+work differs, and says so in its loop.
+
+The rules behind it are the principles package's ([`_core`](../principles/_core/README.md), the work-folder files in
+[workflow-files](../principles/_core/patterns/workflow-files.md), drift in
+[drift-triage](../principles/_core/patterns/drift-triage.md)); what a scaffold is and its rules are in
+[../AGENTS.md](../AGENTS.md).
+
+## Templates
+
+| File | For | Copied to |
+|---|---|---|
+| [loop.md](loop.md) | how the orchestrator runs a work: lanes at once, each step from brief to record, pausing, running alone, gates, checks, stop and ask, finalize | `execution/<work-id>/loop.md` |
+| [plan.md](plan.md) | stages and lanes, gates, the designs and their lanes, measurements as budgets | `execution/<work-id>/plan.md` |
+| [state.md](state.md) | the cold-pickup state: decided, next, in progress, blockers, verify, findings by lane | `execution/<work-id>/state.md` |
+| [brief.md](brief.md) | one lane's whole instructions: model, base, numbered items with their proof, where, checks, report | `execution/<work-id>/briefs/<lane>.md` |
+| [fixes.md](fixes.md) | the fix phase's queue of small findings that need no design | `execution/<work-id>/fixes.md` |
+| [drift-note.md](drift-note.md) | a disagreement between code, spec and design, with options and a recommendation | `execution/<work-id>/drift/<topic>.md` |
+| [foldback.md](foldback.md) | what the work taught, the earlier rules checked, the self-check, the author's decision line | `execution/<work-id>/foldback.md` |
+| [record.md](record.md) | the permanent record: asked, decided, delivered, learned, left open | `records/<work-id>/<date>-<name>.md` |
+| [design.md](design.md) | an agreed design: intent, precedents, decision, defaults with a mock, configuration, consequences, tensions, in the specs | `design/<topic>.md` |
+
+A template's comments say what goes in each section and why; delete them as the section is filled.
+
+## Checks
+
+In [`_checks/`](_checks/), each run from the repository root with the instance it checks:
+`node .scaffolds/_method/_checks/<check>.ts --instance .scaffolds/<name> [flags]`. A check's scaffold-specific part (a
+spec map, a baseline, a scope) is a JSON file in the instance's `_checks/`, named in the check's header; a check
+whose file is missing says so, or runs with its defaults where it has them. Checks only one scaffold needs stay in
+that scaffold's `_checks/`.
+
+| Check | Rejects | Instance file |
+|---|---|---|
+| [closed-work.ts](_checks/closed-work.ts) | a closed work folder without `foldback.md` and the author's decision line | `closed-work.json` (folders closed before the rule) |
+| [defaults-designed.ts](_checks/defaults-designed.ts) | a design whose Consequences name a layer, a layout or a part, with no `## Defaults` | `defaults-designed.json` (exempt designs, only shrinks) |
+| [designs-in-specs.ts](_checks/designs-in-specs.ts) | a design with a decision and no `## In the specs` row resolving to a spec section or `design-only: <reason>` | `designs-in-specs.json` (the spec map; pending designs) |
+| [no-design-citations.ts](_checks/no-design-citations.ts) | code naming a design or source file of the scaffold, or a `.scaffolds/` path | `no-design-citations.json` (the scaffold's packages, the pointer files) |
+| [file-size.ts](_checks/file-size.ts) | a source file past §module-size's bound, or past its baseline | `file-size.json` (the folders), `file-size-baseline.json` |
+| [features-planned.ts](_checks/features-planned.ts) | a features row still planned when every lane of its design is merged in the plan | none (`--plan`, the features table at `design/features.md`) |
+| [links.ts](_checks/links.ts) | a relative link or a `node .scaffolds/…` command in `.scaffolds/` that does not resolve | none (closed work folders and records reported, not failed) |
+
+They read tracked files (the git index): stage first. They import the principles package's `lib.ts`.
+
+## A scaffold's life
+
+1. **Start**: ask the author the adopting questions ([adopting](../principles/_core/patterns/adopting.md), step 0)
+   with the answers fixed by this layout: the package is `.scaffolds/principles/`, the instance `.scaffolds/<name>/`.
+   Create the instance from the package's manifest template: `AGENTS.md` (what it builds, where things are, its
+   Checks), `status.md`, `principles/README.md` (the manifest: provenance, folder map, modules, adaptations),
+   `_skills/<name>/SKILL.md`, `sources/`, `design/`, `records/`, `execution/`, `_checks/` (the method's instance files,
+   and its own checks). Add its pointer to the root `AGENTS.md`'s table and to the governed package's `AGENTS.md`;
+   nothing else outside `.scaffolds/` names it.
+2. **Design**: drafts in `execution/<work-id>/drafts/`, agreed by the author into `design/<topic>.md` from
+   [design.md](design.md), each with its mock when it adds something visible.
+3. **Run**: a work folder per slice, from [plan.md](plan.md), [loop.md](loop.md) and [state.md](state.md); a brief
+   per lane; the loop runs until its plan is ticked.
+4. **Close**: the loop's Finalize: reconcile, `foldback.md` with the author's decision, the gate, the record, the
+   closing line of `state.md`, the next plan. The work folder stays, never moved or deleted unless the author says so.
+5. **Keep**: when the governed packages stand on their own, the scaffold stays, closed and editable. What the code
+   follows has moved into the packages' `_spec/`; the scaffold keeps the reasons, the history and the work, and is
+   never cited by code, comments, tests or specs.
