@@ -59,6 +59,8 @@ export interface SquareNavigatorOptions extends SquarePictureOptions {
   readonly config?: RenderConfig;
 }
 
+/** No wants (a square without a picture): one array, never one a frame. */
+const NoWants: readonly never[] = [];
 /** The keyboard's cell's inset in its cell and its corners' radius (CSS px). */
 const KeyInset = 2;
 /** The lattice's inset from the box (CSS px): its outer lines are seen. */
@@ -308,7 +310,7 @@ export class SquareNavigator {
     } else lists.reset(WindowPasses);
     this.frameRecord.rebuilt = rebuilt;
     this.frameRecord.base = rebuilt;
-    this.frameRecord.wants = (cells?.wants ?? []) as never[];
+    this.frameRecord.wants = (cells?.wants ?? NoWants) as never[];
     this.placeWindows(input.view);
     const out = lists.writer('window');
     const w = this.windows[0];

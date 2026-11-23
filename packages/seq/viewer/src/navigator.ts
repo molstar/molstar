@@ -10,6 +10,7 @@ import type { Want } from '@molstar/seqx-core/data';
 import { NavWindowFlags, overviewWidth, type WindowPart } from '@molstar/seqx-core/render';
 import {
   type NavigatorFrame,
+  type NavigatorFrameInput,
   type NavigatorHit,
   NavigatorRenderer,
   navigatorBox,
@@ -99,6 +100,9 @@ export interface KeyModifiers extends ClickModifiers {
   readonly shiftKey?: boolean;
   readonly altKey?: boolean;
 }
+
+/** No pointer state (a mouse): `move`'s default, one object (a move allocates nothing). */
+const NoPointer: NavigatorPointer = Object.freeze({});
 
 export interface NavigatorPointer {
   readonly touch?: boolean;
@@ -329,16 +333,21 @@ export class NavigatorModel extends ReactiveModel {
   private updateMoves(nav: ResolvedNavigator): void {
     const behavior = this.viewer.behaviors.has('navigator');
     const view = this.viewer.view;
-    for (const a of nav.of) {
+    // (loops, not `find`: a frame allocates no closure)
+    for (let k = 0; k < nav.of.length; k++) {
+      const a = nav.of[k];
       let m = 0;
       if (behavior && view.canMove(a)) {
         if (nav.axes !== 'rows' && !windowIdle(view, a, this.viewer.config)) m |= NavWindowFlags.x;
-        if (nav.axes !== 'positions') {
-          const w = this.lastFrame?.windows.find((x) => x.section === a);
-          if (w && w.rows > w.r1 - w.r0 + 1e-9) m |= NavWindowFlags.y;
+        const ws = nav.axes !== 'positions' ? this.lastFrame?.windows : undefined;
+        for (let i = 0; ws && i < ws.length; i++) {
+          const w = ws[i];
+          if (w.section !== a) continue;
+          if (w.rows > w.r1 - w.r0 + 1e-9) m |= NavWindowFlags.y;
+          break;
         }
       }
-      this.moves[a] = m;
+      if (this.moves[a] !== m) this.moves[a] = m;
     }
   }
 
@@ -392,26 +401,47 @@ export class NavigatorModel extends ReactiveModel {
       if (keyed) g.ensureKeyCell(r);
       r.setKeyCell(keyed ? g.keyX : -1, keyed ? g.keyY : -1);
     }
-    return r.frame({
-      size: { width: this.width, height: this.boxHeight },
-      dpr: this.viewer.dpr,
-      settled: this.viewer.store.store.settled.value,
-      overlay: this.viewer.store.overlay(
-        this.viewer.spec.model.value,
-        this.viewer.view.resolved.value!,
-        this.viewer.context,
-      ),
-      view: layout,
-      moves: this.moves,
-      ...(this.lit ? { lit: this.lit } : {}),
-      ...(this.top ? { top: this.top } : {}),
-      pointerX: this.pointerX,
-      pointerY: this.pointerY,
-      emphasis: this.viewer.emphasis,
-      cvdSafe: this.viewer.legends.cvdSafe.value,
-      ...(sweep && this.press ? { sweep: this.sweepPx(sweep) } : {}),
-    });
+    // one input, its fields set a frame (a drag's frame allocates nothing; the renderers read its values, never keep it)
+    const input = this.frameInput;
+    input.size.width = this.width;
+    input.size.height = this.boxHeight;
+    input.dpr = this.viewer.dpr;
+    input.settled = this.viewer.store.store.settled.value;
+    input.overlay = this.viewer.store.overlay(
+      this.viewer.spec.model.value,
+      this.viewer.view.resolved.value!,
+      this.viewer.context,
+    );
+    input.view = layout;
+    input.moves = this.moves;
+    input.lit = this.lit;
+    input.top = this.top;
+    input.pointerX = this.pointerX;
+    input.pointerY = this.pointerY;
+    input.emphasis = this.viewer.emphasis;
+    input.cvdSafe = this.viewer.legends.cvdSafe.value;
+    input.sweep = sweep && this.press ? this.sweepPx(sweep) : undefined;
+    return r.frame(input as NavigatorFrameInput);
   }
+
+  /** The frame's input, reused (`drawFrame`): an absent part undefined. */
+  private readonly frameInput: { -readonly [K in keyof NavigatorFrameInput]: NavigatorFrameInput[K] | undefined } & {
+    size: { width: number; height: number };
+  } = {
+    size: { width: 0, height: 0 },
+    dpr: 1,
+    settled: false,
+    overlay: undefined,
+    view: undefined,
+    moves: undefined,
+    lit: undefined,
+    top: undefined,
+    pointerX: Number.NaN,
+    pointerY: Number.NaN,
+    emphasis: undefined,
+    cvdSafe: false,
+    sweep: undefined,
+  };
 
   /** The navigator's last frame. */
   get frame(): NavigatorFrame | undefined {
@@ -506,7 +536,7 @@ export class NavigatorModel extends ReactiveModel {
   }
 
   /** The pointer moved over the navigator: the lit part and the readout follow; a drag moves its window. */
-  move(x: number, y: number, p: NavigatorPointer = {}): void {
+  move(x: number, y: number, p: NavigatorPointer = NoPointer): void {
     this.pointerX = x;
     this.pointerY = y;
     const d = this.press;

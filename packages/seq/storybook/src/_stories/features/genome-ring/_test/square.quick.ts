@@ -61,10 +61,24 @@ describe('the square over the ring', () => {
       gesture.drag(square);
       square.frame(input as never);
     }).r;
-    console.info(`square drag move: ${move.bytesPerStep.toFixed(0)} B; frame: ${frame.bytesPerStep.toFixed(0)} B`);
+    // the model's own step, as the canvas drives it: `NavigatorModel.move` in the drag, then its `draw` (its frame's
+    // input, the square's frame, the readout)
+    // (the points made once, held as objects, as a pointer event's numbers are: the step measures the model, not the
+    // boxing of a number the test computes)
+    const points: unknown[] = Array.from({ length: 60 }, (_, d) => [x + d - 30 + 0.5, y + d - 30 + 0.5]).flat();
+    points.push('held');
+    const model = quickCase(task, 'square drag, the model (move and draw)', (i) => {
+      const k = 2 * ((i * 7) % 60);
+      n.move(points[k] as number, points[k + 1] as number);
+      n.draw();
+    }).r;
+    console.info(
+      `square drag move: ${move.bytesPerStep.toFixed(0)} B; frame: ${frame.bytesPerStep.toFixed(0)} B; model: ${model.bytesPerStep.toFixed(0)} B`,
+    );
     n.cancel();
     v.retire();
     expect(move.bytesPerStep, move.note).toBeLessThanOrEqual(inject('perfThreshold'));
     expect(frame.bytesPerStep, frame.note).toBeLessThanOrEqual(inject('perfThreshold'));
+    expect(model.bytesPerStep, model.note).toBeLessThanOrEqual(inject('perfThreshold'));
   });
 });
