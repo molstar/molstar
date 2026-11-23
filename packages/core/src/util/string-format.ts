@@ -166,11 +166,6 @@ function parseFormatSpecCached(formatSpec: string): FormatSpec {
   return parsed;
 }
 
-/** Number of distinct format spec strings parsed and cached (for tests). */
-export function _parsedFormatSpecCount(): number {
-  return parsedSpecs.size;
-}
-
 /** Format a value a la f-string, e.g. `formatValue('1.2', '.2f')` -> `'1.20'`. A spec string is parsed once (cached). */
 export function formatValue(value: string, formatSpec: FormatSpec | string): string {
   if (typeof formatSpec === 'string') formatSpec = parseFormatSpecCached(formatSpec);

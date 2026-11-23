@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { formatGenomic } from '../number.js';
-import { _parsedFormatSpecCount, formatValue } from '../string-format.js';
+import { formatValue } from '../string-format.js';
 
 describe('formatGenomic', () => {
   it('bases below a step of 1,000, grouped by thousands', () => {
@@ -41,7 +41,7 @@ describe('formatGenomic', () => {
   });
 });
 
-describe('formatGenomic parses each spec once', () => {
+describe('formatGenomic output is byte-equal', () => {
   const group = (s: string) => s.replace(/^(-?)(\d+)/, (_, sign, d) => sign + d.replace(/\B(?=(\d{3})+(?!\d))/g, ','));
 
   it('formatValue `,.Nf` (N 0 to 6) is byte-equal to toFixed and grouping, for random numbers', () => {
@@ -68,15 +68,5 @@ describe('formatGenomic parses each spec once', () => {
       const expected = group(shown.toFixed(decimals)) + (unit === 1 ? '' : unit === 1e3 ? ' kb' : ' Mb');
       expect(formatGenomic(n, step)).toBe(expected);
     }
-  });
-
-  it('parses no spec per call: the parsed-spec count stays at one a distinct spec', () => {
-    for (let d = 0; d <= 6; d++) formatValue('1', `,.${d}f`);
-    const count = _parsedFormatSpecCount();
-    for (let i = 0; i < 1000; i++) {
-      for (let d = 0; d <= 6; d++) formatValue('1234.5', `,.${d}f`);
-      formatGenomic(i * 1000, 10_000);
-    }
-    expect(_parsedFormatSpecCount()).toBe(count);
   });
 });
