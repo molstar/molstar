@@ -20,11 +20,11 @@ instead of deleted.
 | Its checks | `.seq/oz/_checks/` (ids, paths, merge gate) | generic | with the package |
 | The execution method | the slices' `loop.md`, briefs, `state.md`, `plan.md`, `fixes.md`, `foldback.md`, the record's shape | generic in shape, Seq\*'s in text | `.scaffolds/_method/` templates, written from the fifth slice's files with Seq\* taken out |
 | The instance's checks | `.seq/_checks/` (file size, EC ids, features-planned, defaults-designed, closed-work) | half generic | generic ones parameterised and moved to the method; Seq\*'s baselines stay in its instance |
-| The modules from meso\* | `.seq/principles/{queries,agent-interface}/` | generic rules from another instance | a question (below): into the package, or kept in the instance |
+| The modules from meso\* | `.seq/principles/{queries,agent-interface}/` | generic rules from another instance | kept in Seq\*'s instance for now (decided, 1 below) |
 | Seq\*'s manifest and skill | `.seq/principles/README.md`, `.seq/_skills/seq/` | Seq\*'s | `.scaffolds/seq/` |
 | Designs, sources, edge cases | `.seq/design/`, `.seq/sources/` | Seq\*'s knowledge, with its reasons and history | `.scaffolds/seq/`, read-only, after the reconcile below |
 | Records | `.seq/records/` | Seq\*'s history, small | `.scaffolds/seq/records/` |
-| Execution folders | `.seq/execution/` (2.3 MB) | Seq\*'s history, large | a question (below): kept in the tree or left to git |
+| Execution folders | `.seq/execution/` (2.3 MB) | Seq\*'s history, large | `.scaffolds/seq/execution/`, kept in the tree (decided) |
 
 ## Layout (proposed)
 
@@ -33,14 +33,14 @@ instead of deleted.
   AGENTS.md        what a scaffold is, how one is started, run, closed and archived
   principles/      the principles package (was .seq/oz)
   _method/         templates: loop, brief, state, plan, fixes, record; generic checks
-  seq/             Seq*'s instance: manifest, skill, design/, sources/, records/ (execution/ if kept)
+  seq/             Seq*'s instance: manifest, skill, principles/ (meso*'s modules), design/, sources/, records/, execution/
 ```
 
 A next scaffold starts as `.scaffolds/<name>/` from `_method/`, its manifest listing the package's modules and its own.
 
 ## Stages
 
-- [ ] **Stage 0: decisions** (the questions below), and this plan agreed.
+- [x] **Stage 0: decisions** (2026-11-23, below). The plan itself is agreed when the slice starts.
 - [ ] **Stage 1: reconcile the specs**. Every design's decisions that the code follows are in a package's `_spec/`
       (core, viewer, ext-rondo, examples where it has one): a pass per design, its gaps written into the spec. Done
       when a check lists no design decision without a spec section citing it, or a reason it stays design-only.
@@ -76,13 +76,14 @@ A next scaffold starts as `.scaffolds/<name>/` from `_method/`, its manifest lis
   gaps G1–G7, the questions).
 - [ ] **Record** in `.scaffolds/seq/records/sixth-slice.md`.
 
-## Questions for the author (stage 0)
+## Decided at stage 0 (the author, 2026-11-23)
 
-1. **The name**: `.scaffolds/` (proposed), or another.
-2. **The execution folders**: kept in the tree under `seq/execution/` (browsable, 2.3 MB), or left to git with the
-   records as the index (each record names its slice's last commit).
-3. **The meso\* modules** (`queries`, `agent-interface`): promoted into the package (they are generic rules), or kept
-   as Seq\*'s own modules.
-4. **`.v6/`**: stays where it is (a release line's designs, not a scaffold), or becomes `.scaffolds/v6/` later.
-5. **`.seq/AGENTS.md`'s rule "temporary, deleted"** is replaced by "archived, read-only, never cited by code": the
-   instance stays citable from other scaffolds' designs, never from code or specs.
+1. **The name**: `.scaffolds/` (as recommended).
+2. **The execution folders**: kept in the tree, under `.scaffolds/seq/execution/` (as recommended).
+3. **The meso\* modules** (`queries`, `agent-interface`): "keep inside for now, once we have more scaffolds we
+   generalize. maybe record that in readme in the .scaffolds folder?". They stay in Seq\*'s instance, and
+   `.scaffolds/AGENTS.md` (stage 4) records the rule: a module moves into the package when a second scaffold needs it.
+4. **`.v6/`**: "Moves later": it becomes `.scaffolds/v6/` in later work, not in this slice.
+5. **The rule "temporary, deleted"** becomes: a closed scaffold is kept and never cited by code, comments, tests or
+   specs; its files may still be edited when needed ("i think we can still edit if needed (and prolly will, especialyl
+   some of the designs)"). Not read-only. Other scaffolds' designs may cite it.
