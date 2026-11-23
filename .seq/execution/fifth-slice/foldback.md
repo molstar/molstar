@@ -131,19 +131,28 @@ Read:
 
 10. **The picture is agreed before it is built: what the author imagines and what the orchestrator imagines are made
     to meet early.** (P; D; L)
-    - Proposed, for a new visible part or a new gesture (not a fix):
-      1. **Name a precedent.** The design names the tool or view whose behaviour it borrows ("a window like IGV's
-         locus box", "a legend like ggplot's") and says where it departs from it. A precedent is a shared picture;
-         words alone are not.
-      2. **Write the expectation as a script, in the reader's words.** The design's Defaults carries a few lines of
-         "you see …; you press here and drag; you see …", plus one rough picture (an SVG sketch or a stub story). The
-         author reads it at the design gate, which is where the imaginations are compared, at the price of a sentence.
-      3. **First touch, mid-lane.** The lane stops after its first drawn and interactive commit, and the author spends a
-         few minutes on one story before the rest is built. The orchestrator's look follows the script, not its own
-         picture.
-      4. **A miss is a design finding.** When the author's use contradicts a script the author agreed to, the
-         orchestrator writes the corrected script into the design, not only into `fixes.md`. The next part with the
-         same gesture then starts from it.
+    - Proposed, for a new visible part or a new gesture (not a fix), the author's refinement (2026-11-23: "how about
+      instead we mocked the interactions too during the design stage?"):
+      1. **An interactive mock at the design stage.** Beside the design draft, a scoped lane (Sonnet) builds a mock the
+         author can use, one story per gesture, in `Seq* (next)/Design/Mocks/`:
+         - it is crude on purpose: fake data, plain SVG or DOM, no performance work, no tests beyond a smoke render;
+         - it works where the design speaks: what is seen, what a press, drag, hover, wheel or key does, what a menu
+           offers;
+         - where the library's public surface already does the job (a host composition, an extension's layer), the mock
+           uses it.
+
+         The author plays with it at the design gate, and the design is agreed with the mock, not only the text. It is
+         cheap at that point because nothing is built on it yet.
+      2. **Name a precedent.** The design names the tool or view whose behaviour it borrows ("a window like IGV's
+         locus box") and where it departs from it, and the mock follows that precedent.
+      3. **The mock is the look's reference.** The lane's brief links the mock. The orchestrator's look and the novice
+         pass compare the built view against it, gesture by gesture, not against their own picture.
+      4. **The mock is thrown away, never grown into the code.** It stays as a picture of the agreement until the built
+         story replaces it in the same merge, then it is deleted. Its code is never imported by a package; it is
+         the storybook's alone, so a crude mock never becomes the implementation.
+      5. **A miss corrects the mock.** When the author's use still contradicts something the mock agreed, the
+         orchestrator corrects the design and notes it on the mock's story (as long as the mock exists), not only in
+         `fixes.md`. A second miss of the same kind on a later part is a class (B2).
     - Why: the slice's largest findings were differences of imagination, not bugs. Each design text was met; the author's
       picture was another:
       - the square: cells clicked twice in the design; a draggable window in the author's;
@@ -154,8 +163,9 @@ Read:
 
       Reviews, tests and the orchestrator's looks all checked against the orchestrator's picture, so none could find
       them; only the author's use did, at the end.
-    - Where: P (the instance's adaptations: a design for a visible part names a precedent and a script), D (the design
-      template's Defaults), L (the lane's first-touch stop and the look against the script).
+    - Where: P (the instance's adaptations: a design for a visible part comes with a mock and a precedent), D (the
+      design template: a "Mock" line linking its stories), L (the design stage's mock lane; the look and the novice pass
+      against the mock; the mock deleted at the merge).
 
 ## C. The earlier fold-backs' rules, checked against this slice
 
