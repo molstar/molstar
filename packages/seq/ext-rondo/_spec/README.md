@@ -65,8 +65,12 @@ rule without pictures holds. The stem menu waits for element menus in the viewer
   even-odd inside: a ribbon its key `ribbon:<a>:<bin>|<b>:<bin>|<strand>`, a stem or its fan `stem:<system>:<bin>`, a
   stub `stub:<system>:<bin>|<partner>`; each hit made at layout, so a hit allocates nothing.
 - **Hover** (its own): a ribbon or stub at full opacity outlined in `seq-hover`, its stems lit; a stem its ribbons lit
-  over `seq-wash` at `rondo.fade` (0.6); a block's arc or label on the section every ribbon touching it, the same wash.
-  **Selection**: ribbons with an end in it in the accent. **Highlights**: ribbons touching each channel's Location.
+  over `seq-wash` at `rondo.fade` (0.6). Another layer's hover on the section, the same wash over what it touches: an
+  item (a cytoband) the ribbons, stubs and stems with a stem in its extent; a place with a position (the hue ring's
+  ground, the bare axis) its position's stem; a block's arc or label (no position) every ribbon on the block. Why: on
+  one chromosome's ring the block is everything, so lighting the block for a band lit all. The emphasis draw keeps no
+  lay past itself (module state cleared after each pass). **Selection**: ribbons with an end in it in the accent.
+  **Highlights**: ribbons touching each channel's Location.
 - **Words** (core's `LayerType` hooks): `describe` (a ribbon "chr1:12–28 Mb ↔ chr17:40–52 Mb", its count and kind, its
   bins; a stem its links, partners, within and fan; a stub its partner, "not shown"), `summary` ("612 ribbons, 23
   chromosomes; strongest chr1 ↔ chr17, 140"), `announce` ("stem of 312 links").

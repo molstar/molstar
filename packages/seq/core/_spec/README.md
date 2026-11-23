@@ -3254,7 +3254,8 @@ in page coordinates: what crosses strips; `bridge`, internal, once a bridge with
 - **`bands`** (`render/bands.ts`, fallback `ranges`): a chromosome's stained bands in one band, an ideogram: each item a
   block colored by its `stain` through the `giemsa` scheme (grays from the text ink; `acen` in `seq-centromere`), the
   centromere's two `acen` bands as triangles meeting at it (the p arm's tip at its end, the q arm's at its start, turned
-  on a reversed axis), a hairline where no band is; its hit names the band (`state`: its label).
+  on a reversed axis), a hairline where no band is; its hit names the band (`state`: its label); its items are the bands
+  (`items`) and its `describe` the band's name and stain, so a hover card names the band on tracks and rings.
 
 ### Data
 

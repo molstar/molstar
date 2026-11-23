@@ -278,8 +278,11 @@ const ItemSection: CardProviderEntry = {
     // its images through a map read by region (a liftover's), when several (EC-20)
     const places = at.words.places(it.system ?? l.layer.data?.system, it.start, it.end);
     if (places) out.row('Places', places);
+    // the layer type's words named the item already (its title its label): its extent alone after them
+    const text = itemText(system, it);
+    const named = LayerTitled.has(out) && out.title === it.label && text.startsWith(`${it.label}, `);
     out.words.push(
-      `${allele ? `${name}, ` : ''}${itemText(system, it)}${track ? `, ${track}` : ''}${mixed ? `, ${mixed}` : category ? `, ${category}` : ''}${strand ? `, strand ${strand}` : ''}${places ? `, in ${places}` : ''}`,
+      `${allele ? `${name}, ` : ''}${named ? text.slice(it.label.length + 2) : text}${track ? `, ${track}` : ''}${mixed ? `, ${mixed}` : category ? `, ${category}` : ''}${strand ? `, strand ${strand}` : ''}${places ? `, in ${places}` : ''}`,
     );
     out.whole = true;
   },

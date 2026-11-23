@@ -16,7 +16,7 @@ import { ribbonsType } from './ribbons.js';
 export { DefaultRondoConfig, type RondoConfig, RondoConfigItems, rondoConfig } from './config.js';
 export { hueList, RondoHues } from './hues.js';
 export { Kind, RondoLay, type RondoPrep, stemAt } from './lay.js';
-export { RibbonsType, ribbonsType } from './ribbons.js';
+export { emphasisHeld, RibbonsType, ribbonsType } from './ribbons.js';
 export { ribbonsColor, type RondoRing, rondoRing, type RondoRingOptions } from './ring.js';
 export { announceRondo, basesText, describeRondo, summaryRondo } from './words.js';
 

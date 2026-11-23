@@ -4,7 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { DarkTokens, LightTokens } from '@molstar/seqx-core/render';
+import type { PassWriter } from '@molstar/seqx-core/extension';
+import { DarkTokens, DrawLists, LightTokens } from '@molstar/seqx-core/render';
 import { loadGenome } from '@molstar/seqx-core/resolve';
 import type { ExampleView } from '@molstar/seqx-examples';
 import { rondoViewer } from '@molstar/seqx-ext-rondo/viewer';
@@ -12,6 +13,8 @@ import { layerAria } from '@molstar/seqx-viewer/layer-aria';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { openExample } from '../../../examples/_test/draw-checks.js';
+import { describerFor } from '@molstar/seqx-viewer/describe';
+import { emphasisHeld, Kind, RibbonsType } from '@molstar/seqx-ext-rondo';
 import { hoverStrongestStem, ribbonsOf, ringStoryView, strongestStem } from '../views.js';
 
 // Features/Genome Ring, headless on a fake clock as the stories compose them (a viewer with `rondoViewer`, or none for
@@ -203,6 +206,59 @@ describe('Genome ring stories, headless', () => {
       await vi.advanceTimersByTimeAsync(2000);
       v.draw();
       expect(said(v), id).toEqual([]);
+    }
+  });
+
+  it('hovering a band: the card names it and its stain; the ring lights exactly the ribbons with an end in it', async () => {
+    for (const id of ['ring', 'ring-chromosome']) {
+      const v = await open(ringStoryView(id));
+      const l = ribbonsOf(v)!;
+      const f = l.frame;
+      const d = describerFor({ ...v, layout: () => v.frame?.layout });
+      // three bands under the cytobands' track: a sweep round the ring at its radius
+      const seen = new Set<string>();
+      for (let a = 0.05; a < 2 * Math.PI && seen.size < 3; a += 0.11) {
+        const x = f.cx + (f.r + 24) * Math.sin(a);
+        const y = f.cy - (f.r + 24) * Math.cos(a);
+        const h = v.hit(x, y);
+        if (!h?.element || !h.layer.endsWith('/bands/bands') || seen.has(String(h.element.key))) continue;
+        seen.add(String(h.element.key));
+        v.input.move(x, y);
+        v.draw();
+        const e = v.emphasis.hover!;
+        // the emphasis is the band: its extent the band's, on its chromosome
+        const [, range] = String(h.element.key).split('@');
+        const [start, end] = range.split('-').map(Number);
+        expect(Array.from(e.extent!.parts[0].ranges), `${id} ${h.element.key}`).toEqual([start, end]);
+        // the lit polygons: those whose stem (a ribbon's either end) has a position in the band, the hole washed
+        const touches = (s: number) =>
+          l.systems[l.stemSystem[s]] === h.system && l.stemStart[s] < end && l.stemEnd[s] > start;
+        let lit = 0;
+        for (let i = 0; i < l.polys.n; i++) {
+          const k = l.polyKind[i];
+          const r = l.polyRef[i];
+          if (
+            k === Kind.ribbon
+              ? touches(l.ribA[r]) || touches(l.ribB[r])
+              : k === Kind.stub
+                ? touches(l.stubStem[r])
+                : touches(r)
+          )
+            lit++;
+        }
+        // the ribbons' own hover pass: the wash, then each lit polygon
+        const lists = new DrawLists();
+        RibbonsType.draw(l, 'hover', lists.writer('hover') as PassWriter, v.emphasis);
+        expect(lists.passes.hover.paths.n, `${id} ${h.element.key}`).toBe(1 + lit);
+        expect(lit).toBeLessThan(l.polys.n - 1);
+        // the card's words name the band and its stain
+        const card = d.describe(v.hover.current)!;
+        expect(card.title).toBe(h.state);
+        expect(card.text.startsWith(`${h.state}, Stain: `)).toBe(true);
+      }
+      expect(seen.size, id).toBe(3);
+      // nothing held past the draw
+      expect(emphasisHeld()).toBe(false);
     }
   });
 });

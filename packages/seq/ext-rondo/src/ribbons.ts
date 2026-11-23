@@ -7,7 +7,7 @@
 import type { Emphasis, LayerType, Location, PassName, PassWriter } from '@molstar/seqx-core/extension';
 import { PairsReader } from '@molstar/seqx-core/extension';
 import { DefaultRondoConfig, type RondoConfig } from './config.js';
-import { Kind, layoutRondo, RondoLay, type RondoPrep } from './lay.js';
+import { Kind, layoutRondo, RondoLay, type RondoPrep, stemAt } from './lay.js';
 import { polygonAt } from './shapes.js';
 import { announceRondo, describeRondo, summaryRondo } from './words.js';
 
@@ -86,8 +86,11 @@ function washed(lay: RondoLay, out: PassWriter, fade: number, lit: (stem: number
   }
 }
 
-/** The hover's state, read by the lit test (no closure made a frame). */
+/** The hover's state, read by the lit test (no closure made a frame); cleared after each emphasis draw. */
 const Lit = { lay: undefined as unknown as RondoLay, stem: -1, system: '' };
+
+/** Whether the module holds a lay between draws (a test: none is kept). */
+export const emphasisHeld = (): boolean => Lit.lay !== undefined || Loc.loc !== undefined;
 const litStem = (s: number) => s === Lit.stem;
 const litSystem = (s: number) => Lit.lay.systems[Lit.lay.stemSystem[s]] === Lit.system;
 const Loc = { loc: undefined as Location | undefined };
@@ -130,15 +133,40 @@ function drawHover(lay: RondoLay, out: PassWriter, e: Emphasis, cfg: RondoConfig
     outlined(lay, out, i);
     return;
   }
-  // a block's arc or label on the section: every ribbon touching it, the same wash
-  if (h.section === lay.sectionId && h.layer !== lay.key && h.system) {
-    let any = false;
-    for (let s = 0; s < lay.ns && !any; s++)
-      any = lay.stemPlaced[s] === 1 && lay.systems[lay.stemSystem[s]] === h.system;
-    if (!any) return;
-    Lit.system = h.system;
-    washed(lay, out, cfg.fade, litSystem);
+  // another layer's hover on the section, the same wash over what it touches: an item (a band) the ribbons with an end
+  // in its extent; a place (the hue ring, the bare axis) its position's stem; a block's arc or label (no position) every
+  // ribbon touching the block
+  if (h.section !== lay.sectionId || h.layer === lay.key || !h.system) return;
+  if (h.extent) {
+    Loc.loc = h.extent;
+    washed(lay, out, cfg.fade, litLocation);
+    return;
   }
+  if (h.position !== undefined) {
+    const s = stemAt(lay, h.system, h.position);
+    if (s < 0) return;
+    Lit.stem = s;
+    washed(lay, out, cfg.fade, litStem);
+    return;
+  }
+  let any = false;
+  for (let s = 0; s < lay.ns && !any; s++) any = lay.stemPlaced[s] === 1 && lay.systems[lay.stemSystem[s]] === h.system;
+  if (!any) return;
+  Lit.system = h.system;
+  washed(lay, out, cfg.fade, litSystem);
+}
+
+/** The emphasis passes: the hover, the selection, the highlights. */
+function emphasized(lay: RondoLay, pass: PassName, out: PassWriter, emphasis: Emphasis, cfg: RondoConfig) {
+  if (pass === 'hover') drawHover(lay, out, emphasis, cfg);
+  else if (pass === 'selection' && emphasis.selection) {
+    Loc.loc = emphasis.selection;
+    washed(lay, out, 0, litLocation, lay.accent);
+  } else if (pass === 'highlight' && emphasis.highlights)
+    for (let h = 0; h < emphasis.highlights.length; h++) {
+      Loc.loc = emphasis.highlights[h].location;
+      washed(lay, out, h === 0 ? cfg.fade : 0, litLocation, emphasis.highlights[h].color);
+    }
 }
 
 export interface RibbonsOptions {
@@ -206,15 +234,13 @@ export function ribbonsType(config: RondoConfig = DefaultRondoConfig): LayerType
       }
       if (!emphasis) return;
       Lit.lay = lay;
-      if (pass === 'hover') drawHover(lay, out, emphasis, cfg);
-      else if (pass === 'selection' && emphasis.selection) {
-        Loc.loc = emphasis.selection;
-        washed(lay, out, 0, litLocation, lay.accent);
-      } else if (pass === 'highlight' && emphasis.highlights)
-        for (let h = 0; h < emphasis.highlights.length; h++) {
-          Loc.loc = emphasis.highlights[h].location;
-          washed(lay, out, h === 0 ? cfg.fade : 0, litLocation, emphasis.highlights[h].color);
-        }
+      try {
+        emphasized(lay, pass, out, emphasis, cfg);
+      } finally {
+        // no lay or Location kept past the draw (a viewer disposed is not held by this module)
+        Lit.lay = undefined as unknown as RondoLay;
+        Loc.loc = undefined;
+      }
     },
     hit(lay, at) {
       const i = polygonAt(lay, at[0], at[1]);

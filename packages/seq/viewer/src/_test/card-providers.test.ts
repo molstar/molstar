@@ -162,7 +162,9 @@ describe('card providers', () => {
 
   it('with no layer hook the built-in cards are byte-equal with and without `seq:layer`', async () => {
     const withIt = cards(await make((r) => r));
-    const without = cards(await make((r) => r.filter((e) => e.kind !== 'card-provider' || e.name !== CardProviderNames.layer)));
+    const without = cards(
+      await make((r) => r.filter((e) => e.kind !== 'card-provider' || e.name !== CardProviderNames.layer)),
+    );
     expect(JSON.stringify(withIt)).toBe(JSON.stringify(without));
   });
 
