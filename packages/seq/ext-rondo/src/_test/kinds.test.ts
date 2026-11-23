@@ -120,12 +120,14 @@ describe('kinds of links', () => {
     expect(
       mine.map((l) => [l.title, l.entries.kind === 'swatches' ? l.entries.items.map((i) => i.label) : []]),
     ).toEqual([
-      ['Contacts', [`Contacts: by chromosome · 1 px = ${per(c)} links`]],
+      ['Contacts', [`by chromosome · 1 px = ${per(c)} links`]],
       ['Others', [`Others · 1 px = ${per(o)} links`]],
     ]);
     expect(c.k).not.toBe(o.k);
-    // the hued kind's entry is its words alone (no one hue's swatch: it draws in every chromosome's)
-    expect(mine[0].entries.kind === 'swatches' && mine[0].entries.items[0].color & 0xff).toBe(0);
+    // the hued kind's entry: its name not repeated under its title (look 24), a hue's swatch beside the words
+    const hue = mine[0].entries.kind === 'swatches' ? mine[0].entries.items[0].color : 0;
+    expect(hue & 0xff).toBe(255);
+    expect(hue >>> 8).toBe(c.hues[0] >>> 8);
     const red = mine[1].entries.kind === 'swatches' ? mine[1].entries.items[0].color : 0;
     expect((red >>> 8).toString(16)).toBe('d62728');
   });

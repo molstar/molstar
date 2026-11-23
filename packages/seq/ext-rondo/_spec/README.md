@@ -125,8 +125,9 @@ waiting; its entries `StemMenu` in `viewer.ts`).
 - **The legend** (`LayerType.legend`, its code in the card's chunk, `card.ts`, loaded with `rondoViewer`: a viewer's
   legends derive once it lands, the settle waiting for it; the headless entry keys none): a field colour its channel's
   values (core's `channelLegends`); a fixed colour one swatch named by the layer's `label` (else its track's); a
-  labelled layer in the hues its words alone ("`<label>`: by chromosome", a transparent swatch: no one hue stands for a
-  layer drawn in all of them); an unlabelled one in the hues none (the hue ring keys the chromosomes).
+  labelled layer in the hues "`<label>`: by chromosome", its label dropped where the legend's title already says it ("by
+  chromosome" under "Contacts"), with the first chromosome's hue as its swatch (look 24: a row with no swatch read as
+  broken, and its label doubled); an unlabelled one in the hues none (the hue ring keys the chromosomes).
 
 ## Kinds of links
 
@@ -185,19 +186,21 @@ waiting; its entries `StemMenu` in `viewer.ts`).
 - **The stem menu** (`menu.ts`, `StemMenu`, the descriptor's `headerActions`, so `viewer.extend` brings it too): a
   secondary click on a stem opens its element menu, the viewer's label menu's shape scoped to `rondo:ribbons`' stems
   (`element.type`, a `stem:` key): "Show with a partner ▸" (its partners by chromosome, `partnerChromosomes`: a row a
-  partner chromosome with its links in all, most first, at most 8, `chr9 · 449 links`; a chromosome reached by more than
-  one ribbon its pieces in a submenu, at most 8, each named by its band range and strand, `q31.1–q34.2 · 379 links`,
+  partner chromosome with its links in all, most first, `chr9 · 449 links`; a chromosome reached by more than one ribbon
+  its pieces in a submenu, each named by its band range and strand, `q31.1–q34.2 · 379 links`,
   `p13.3 · 2 links, reversed`: the cytobands the section draws there, else its span in bases; the stem's own chromosome
   never a partner but last, `Within chr22 · 229 links`, its pieces the ribbons to its other stems and the stem's links
   within itself, `this stem`; each row and piece shows its chromosome with the stem's as a pair in the section the layer
   `opens`, else its own, within alone. Why by chromosome: bare rows `chr9 · 375 links`, `chr9 · 65 links` said nothing
-  of what parted them), "Select the stem and its partners" (`rondo:select-partners` with the element: one selection),
-  "Show only chr4"; only these: the entries are `alone`, so the track's actions (Move up, Reverse, Hide track) stay in
-  its header's menu. The entries find the stem in the lays of the viewer the menu is in (`HeaderFacts.viewer`: no state
-  of their own, two viewers of one spec each their own). **Its route**: a secondary click on a stem opens it at the
-  pointer; on a ring's empty space (no hit) the browser's menu opens (the viewer's rule for rings whose hole a section
-  layer draws); the menu key and Shift+F10 with the keyboard cursor on a placed stem's range (the topmost layer's) open
-  it at the stem's mouth (`atCursor` on its first entry, `stemAtCursor`). Why: a menu a reader cannot reach is none.
+  of what parted them; a level lists at most 8 rows, past them `n more` with the rest in the same order, `capped`, so
+  the pointer reaches every partner the keys do), "Select the stem and its partners" (`rondo:select-partners` with the
+  element: one selection), "Show only chr4"; only these: the entries are `alone`, so the track's actions (Move up,
+  Reverse, Hide track) stay in its header's menu. The entries find the stem in the lays of the viewer the menu is in
+  (`HeaderFacts.viewer`: no state of their own, two viewers of one spec each their own). **Its route**: a secondary
+  click on a stem opens it at the pointer; on a ring's empty space (no hit) the browser's menu opens (the viewer's rule
+  for rings whose hole a section layer draws); the menu key and Shift+F10 with the keyboard cursor on a placed stem's
+  range (the topmost layer's) open it at the stem's mouth (`atCursor` on its first entry, `stemAtCursor`). Why: a menu a
+  reader cannot reach is none.
 - **The keys**: `.` (`rondo:partner`) and `,` (`rondo:partner-back`), the commands' shortcuts on the canvas: the cursor
   to the next or the previous partner stem of its stem in the stem menu's order (its rows' pieces in turn: one list, two
   readers), said by the announcer (the command moved the cursor: "chr17, 40,000,000 · 140 links, reversed").
@@ -209,9 +212,11 @@ waiting; its entries `StemMenu` in `viewer.ts`).
   strongest chr1 ↔ chr17, 140"), `announce` ("stem of 312 links").
 - **The hole's words**: on a ring whose links are pending the hole says "Loading links…", muted (`msui-text-muted`) and
   centred (the labels pass, measured at layout: the SVG too); on a failure the error its links' source raised replaces
-  it (the store's issue at the source's address, `HoleIssue`, read from the composed viewers; headless "Links failed").
-  Each is said once, politely (`viewer.notify` at a rest, again only after the hole had other words or none). Why: the
-  pending hole was empty and silent (novice 35). The square's pending state is the square's.
+  it (the store's issue at the source's address, `HoleIssue`, of the viewer whose resolved view holds the section laid
+  out: two rings of one source address each their own; an export, which resolves its own view, by the section's address;
+  headless "Links failed"). Each is said once, politely (`viewer.notify` at a rest, a notice a hover never replaces,
+  again only after the hole had other words or none). Why: the pending hole was empty and silent (novice 35). The
+  square's pending state is the square's.
 
 ## What is the core's
 
