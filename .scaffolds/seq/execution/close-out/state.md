@@ -16,7 +16,10 @@ to CL14, are written into `plan.md` (Lanes; Order and parallelism) and `checklis
 
 ## In progress
 
-- 2026-11-24: CL3, Sonnet, the square and keys, worktree on `seq/cl3` (`briefs/cl3-square-keys.md`).
+- 2026-11-24 night: CL3's fix round, Sonnet, `seq/cl3`.
+- 2026-11-24 night: the search design's draft (`drafts/search.md`), strong, no code.
+- 2026-11-24 night: the track groups design's draft (`drafts/track-groups.md`), strong, no code.
+
 
 
 
