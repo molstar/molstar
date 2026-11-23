@@ -48,7 +48,7 @@ function mountModel(element: HTMLElement, viewer: SeqViewer, model: NavigatorMod
   for (const c of [overlay, labels])
     Object.assign(c.style, { position: 'absolute', left: '0', top: `${ReadoutLinePx}px`, pointerEvents: 'none' });
   // the readout is the part's first line, one place: its top right corner, never moving with the window or the pointer
-  // (navigators.md, "The window's look", 4). One line; the number is the information: the system's name shrinks to an
+  // (seqx-core _spec "Render", Navigators). One line; the number is the information: the system's name shrinks to an
   // ellipsis, then to nothing, the value and what follows never do; a value wider than the part runs left (flex-end)
   const nav = model.navigator;
   const side = nav?.place === 'left' || nav?.place === 'right' || nav?.axes === 'rows';

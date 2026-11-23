@@ -13,7 +13,7 @@ import { composeEditing, historyRows, lastMove, printedSpec } from '../../featur
 import { followSvg } from '../../follow-svg.js';
 import { keepFolds, pinRows, setScheme, toggleCopies, toggleLogo } from './editing.js';
 
-// The Globins' editing views (examples.md, Globins: Views): the family's residue scheme and its logo, the folded
+// The Globins' editing views: the family's residue scheme and its logo, the folded
 // clades kept and a row pinned, hemoglobin's copies split and merged; each edit one patch and one step of a host's
 // stack, Undo and Redo walking them. The printed spec and the SVG export follow what is shown.
 

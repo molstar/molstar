@@ -13,7 +13,7 @@ import { defineElements, onCleanup } from '@molstar/ui/dom';
 import { UiElement } from '@molstar/ui/elements/ui-element';
 import { type Hostile, listArchive, pageAssets, printRefusal, saveView } from './archive-model.js';
 
-// The Archives stories (examples-and-stories.md): a view saved as an archive and drawn from it alone, and archives the
+// The Archives stories: a view saved as an archive and drawn from it alone, and archives the
 // reader refuses. The element is a UI root, so the theme's tokens apply; the viewer is retired when Storybook removes
 // the story.
 

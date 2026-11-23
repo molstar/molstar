@@ -19,7 +19,7 @@ import { createSeqSpec, type SeqSpecBuilder } from '@molstar/seqx-core/lang';
 import { GenbankRuntime } from '@molstar/seqx-core/runtimes/genbank';
 import { MmcifRuntime } from '@molstar/seqx-core/runtimes/mmcif';
 
-// A user's own file dropped onto a view (examples.md, Showcases; the formats built): the file's name says its format,
+// A user's own file dropped onto a view (the formats built): the file's name says its format,
 // the runtime of the format opens it (the same runtimes a spec's source node is read by) and its coverage says what the
 // file holds: sequences (`seq`, FASTA; GenBank's records with their features), the units of a structure (mmCIF), an
 // alignment (Stockholm, aligned FASTA) or rows of ranges (the records: a table with `start` and `end` columns). The spec

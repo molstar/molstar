@@ -10,7 +10,7 @@ import { copiesPatch, HemoglobinSection } from '@molstar/seqx-examples/globins/h
 import type { EditingBehavior } from '@molstar/seqx-viewer/behaviors/editing';
 import type { EditingSession } from '../../features/editing/compose.js';
 
-// The Globins' editing views, DOM-free (examples.md, Globins: Views): the story and its headless twin call these on an
+// The Globins' editing views, DOM-free: the story and its headless twin call these on an
 // editing session (`composeEditing`: a host's stack). Each edit is one patch, one step: the family's residue scheme and
 // its logo hidden; the folds kept (`clades.keep`) and a row pinned; hemoglobin's copies split or merged.
 

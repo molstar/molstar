@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The hover of an extension's layer type costs nothing once warm (performance.md): with the `demo` extension's
+// The hover of an extension's layer type costs nothing once warm: with the `demo` extension's
 // lollipop hovered, a frame drawn again (the view outlines the mark the type reports, `LayerType.mark`, into one reused
 // box) makes no object. By hand, never in CI: `npx vitest run -c packages/seq/storybook/vitest.perf.config.ts`.
 

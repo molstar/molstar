@@ -20,7 +20,7 @@ import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import type { SeqViewerSpec } from '@molstar/seqx-viewer/viewer-spec';
 import { holdReadout, readout } from './compose.js';
 
-// A Complex view with its edits (examples.md, "Editing experiences are views too"): the viewer, a button an edit (one
+// A Complex view with its edits: the viewer, a button an edit (one
 // patch, one step of the host's stack), Undo and Redo, the history and the spec shown printed beside, the SVG export
 // following; with `readout`, the host's panel of a grid over the complex (the selected rect and its mean PAE: the
 // hovered cell is the viewer's hover card's), or with `lines` another dataset's panel (the Antibody's selection and

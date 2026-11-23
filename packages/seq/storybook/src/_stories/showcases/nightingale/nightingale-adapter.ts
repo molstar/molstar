@@ -12,11 +12,11 @@ import type { StaticModel } from '@molstar/seqx-core/resolve';
 import { builtInSchemes, colorHex, compileChannel, type ThemeBody, type ThemeDatum } from '@molstar/seqx-core/theme';
 import type { ResolvedLayer, ResolvedView } from '@molstar/seqx-core/view';
 
-// Nightingale reads the resolved view (rendering.md, "A second consumer"; composition.md: other viewers read it): the
-// first section's letters, ranges and values come from the resolved view and the store through public entries only
-// (`readSection`), then plain functions turn them into the shapes Nightingale's elements take (`toFeatures`,
-// `toLineData`, the sequence string, `toHighlight`). Nothing here imports Nightingale: the shapes are declared as the
-// elements read them, so the mapping runs in Node.
+// Nightingale reads the resolved view (seqx-core _spec "Resolved view", A second consumer): the first section's
+// letters, ranges and values come from the resolved view and the store through public entries only (`readSection`),
+// then plain functions turn them into the shapes Nightingale's elements take (`toFeatures`, `toLineData`, the sequence
+// string, `toHighlight`). Nothing here imports Nightingale: the shapes are declared as the elements read them, so the
+// mapping runs in Node.
 
 /** A range as the store holds it: `[start, end)`, 0-based, on the section's system, with the color its layer's theme gives. */
 export interface RangeRow {

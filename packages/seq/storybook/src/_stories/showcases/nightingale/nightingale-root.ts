@@ -16,7 +16,7 @@ import { composeViewer } from '../../features/selection/compose.js';
 import { highlightOf, nightingaleData, type NightingaleData, Window } from './compose.js';
 import type { ThemeName } from './nightingale-adapter.js';
 
-// The Nightingale showcase's root (composition.md: other viewers read the resolved view). Seq* opens p53's tracks view;
+// The Nightingale showcase's root (seqx-core _spec "Resolved view"). Seq* opens p53's tracks view;
 // the adapter reads its letters, its domains and its conservation from the resolved view and the store, and what it
 // reads is set on Nightingale's own web components (`nightingale-sequence`, `nightingale-track`,
 // `nightingale-linegraph-track`), in the colors of Seq*'s theme tokens. The `link` story adds Seq*'s canvas, whose

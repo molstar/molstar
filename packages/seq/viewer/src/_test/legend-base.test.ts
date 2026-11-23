@@ -13,7 +13,7 @@ import { DefaultSeqViewerSpec } from '../default-spec.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
 import { type Frames, installFrames } from './frames.js';
 
-// A feature-type track (files.md, One track a feature type): its layer's data holds a leading form (the track), and the
+// A feature-type track (seqx-core _spec "Data", Records): its layer's data holds a leading form (the track), and the
 // legend's select, hover and hide act on the items of the track, whatever form leads.
 
 const rows = {

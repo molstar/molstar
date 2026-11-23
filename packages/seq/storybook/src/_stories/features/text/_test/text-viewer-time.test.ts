@@ -11,7 +11,7 @@ import { itWithin } from '@molstar/test-harness/timing';
 import { afterEach, describe, expect, vi } from 'vitest';
 import { openExample } from '../../../examples/_test/draw-checks.js';
 
-// The text viewer's performance representatives (performance.md, text layout): on the p53 text figure in a box that
+// The text viewer's performance representatives: on the p53 text figure in a box that
 // scrolls, a hover (the input's move through the placement, the hover's redraw) under 2 ms; a drag-select's step (the
 // unit under the pointer in reading order, the selection's redraw) and a cursor's key step a line down (the layout's
 // step, the reveal, the redraw) under 4 ms each. The bounds are the heavy lane's (`itWithin`, best of three); the

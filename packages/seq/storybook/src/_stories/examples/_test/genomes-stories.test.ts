@@ -37,7 +37,7 @@ import { checkMarks } from './draw-checks.js';
 
 // Examples/Genomes, headless on a fake clock as the stories compose them (a viewer of each view, the dataset's files
 // read as committed, each answer after the twin's delay; the SVG export in both themes): each view's cells of the
-// interaction matrix (examples.md) and the edge cases of its row, each named in a title.
+// interaction matrix and the edge cases of its row, each named in a title.
 
 let viewer: SeqViewer | undefined;
 

@@ -8,7 +8,7 @@ import { P53Views } from '@molstar/seqx-examples';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { nightingaleStory } from './nightingale-root.js';
 
-// Nightingale reading the resolved view (composition.md: other viewers read it): its web components, fed by an adapter
+// Nightingale reading the resolved view (seqx-core _spec "Resolved view"): its web components, fed by an adapter
 // from the resolved view and the store; the story's root and what it does are in `nightingale-root.ts`.
 
 const meta: Meta = { title: 'Showcases/Nightingale' };

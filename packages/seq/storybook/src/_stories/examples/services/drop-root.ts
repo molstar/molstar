@@ -12,7 +12,7 @@ import { defineElements, onCleanup } from '@molstar/ui/dom';
 import { UiElement } from '@molstar/ui/elements/ui-element';
 import { DropRuntimes, DropSamples, droppedUri, refuseSize, specOfDropped } from '../../support/dropped-file.js';
 
-// Your own file (examples.md, Showcases): drop a file onto the view, or pick one, and it is shown: `.seq`, FASTA, Stockholm,
+// Your own file: drop a file onto the view, or pick one, and it is shown: `.seq`, FASTA, Stockholm,
 // aligned FASTA, TSV, CSV, JSON, MessagePack, GFF3, mmCIF and GenBank files. The page's assets port answers the dropped
 // bytes at one location and nothing else, so a file never leaves the page. The buttons load a sample of each format from
 // the examples' fixtures, as a dropped file (`DropSamples`).

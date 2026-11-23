@@ -427,7 +427,7 @@ export class SpecModel extends ReactiveModel implements SeqHistoryParticipant {
   }
 
   /**
-   * A stale patch rebased (merge.md's rule, the host's opt-in): `merge3(base, current, applyPatch(base, p))` with the
+   * A stale patch rebased: `merge3(base, current, applyPatch(base, p))` with the
    * same options on both, the base root from the recent roots or the history's. Conflicts refuse it, with the partial
    * merge for the host to show or rescue.
    */

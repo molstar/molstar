@@ -23,10 +23,9 @@ import { PackageFolder } from '@molstar/seqx-examples/node-assets';
 import { itWithin } from '@molstar/test-harness/timing';
 import { describe, expect } from 'vitest';
 
-// The Globins' scale view against the frame targets (performance.md: open a 10,000 × 300 alignment under 300 ms to the
-// first frame; a pan frame under 8 ms): the seed's profile sampled to 10,000 rows by a balanced tree, a first frame
-// and pan frames at the fit (image tiles) and at letters. The bounds are the heavy lane's at 10,000 rows; the quick
-// lane runs the same frames unbounded over 1,000.
+// The Globins' scale view against the frame targets (a pan frame under 8 ms): the seed's profile sampled to 10,000 rows
+// by a balanced tree, a first frame and pan frames at the fit (image tiles) and at letters. The bounds are the heavy
+// lane's at 10,000 rows; the quick lane runs the same frames unbounded over 1,000.
 
 const Rows = ['heavy', 'all'].includes((import.meta as { env?: { MODE?: string } }).env?.MODE ?? '') ? 10_000 : 1_000;
 const Section = '/views/main/rows';

@@ -15,7 +15,7 @@ import {
 import type { AssetReader } from '@molstar/seqx-core/data';
 import { Recorded, serviceOf, ServiceHosts } from '@molstar/seqx-examples/services/endpoints';
 
-// The assets port of an application composing services (examples.md, Showcases): a spec names each service's own location
+// The assets port of an application composing services: a spec names each service's own location
 // and this port answers it, in one of two modes the application switches at run time. `fixtures`: the recorded file of that
 // location (a location with none is `NotRecorded`, said so), after a delay on the port's clock (a service's latency: the
 // stories and their twins share it, so a twin runs on a fake clock). `live`: the service itself, through the asset policy

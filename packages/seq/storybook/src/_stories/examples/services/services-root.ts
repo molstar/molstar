@@ -14,7 +14,7 @@ import { fakeStructureElement } from '../../support/fake-structure/fake-view.js'
 import { type Scenario, Scenarios, ServicesApp } from '../../support/services-app.js';
 import type { ServiceMode } from '../../support/services-port.js';
 
-// The services stories' page (examples.md, Showcases): an application composing UniProt, PDBe (SIFTS) and AlphaFold DB,
+// The services stories' page: an application composing UniProt, PDBe (SIFTS) and AlphaFold DB,
 // the Seq* view above the fake structure viewer, linked once SIFTS and the structure are both here. The switch changes
 // where the answers come from, never the spec: the recorded files (after a latency, so the order of arrival is seen), or
 // the services themselves through the asset policy's hosts. The page lists what was asked and from where. The element is a

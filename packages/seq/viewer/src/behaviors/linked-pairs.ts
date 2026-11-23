@@ -10,7 +10,7 @@ import type { ResolvedLayer, ResolvedView } from '@molstar/seqx-core/view';
 import type { Emphasized } from '@molstar/seqx-viewer/models';
 import type { BehaviorContext, BehaviorProvider } from '@molstar/seqx-viewer/viewer-spec';
 
-// The `linkedPairs` behavior (_spec/README.md "Behaviors", Linked pairs; the design's viewer-models.md, Behaviors): on
+// The `linkedPairs` behavior (_spec/README.md "Behaviors", Linked pairs): on
 // a hovered or selected range element (a feature, a CDR), the pairs with an end in its extent, on every pairs layer of
 // the view shown, written to a highlight channel of its own (`linked-pairs`: the highlight pass, in the channel's
 // color, never the selection's: they are related to the selection, not in it), cleared when the hover or selection
