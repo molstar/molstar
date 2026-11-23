@@ -18,3 +18,4 @@
 
 | Lane | Merged | Spec rows | Design-only | Drift | Model | Items ticked | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| S1B | 2026-11-23 (`81a82d453`) | 263 rows across 13 designs | 41 | 2 (viewer-models-behaviors, header-color-slot) | strong | 13 of 13 designs out of PENDING | review: the clipboard rule wrong (a behavior's param, fixed), the clock's port, a drift list, the tooltips row split, 3 rows missing (added); the examples package has no spec (S1D writes it); a HitTarget rule owed to core (S1A) |
