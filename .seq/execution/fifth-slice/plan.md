@@ -280,11 +280,11 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
 
 ### Stage 5: use, measure, finalize
 
-- [ ] **NOVICE PASS** (`briefs/novice-pass.md`, the fourth slice's shape) after the last lane that draws (RX or GX,
+- [x] **NOVICE PASS** (done 2026-11-23, two passes, [novice-findings.md](novice-findings.md): 5 bugs (2 fixed by FX24, 3 not bugs), 14 design questions for the author, 15 looks in the TODO) (`briefs/novice-pass.md`, the fourth slice's shape) after the last lane that draws (RX or GX,
       whichever merges last; B10): a task script per new view (find a gene by name, compare two assemblies across a
       bridge, follow a contact on the ring, switch chromosomes on the square), with a pointer path onto each menu and
       submenu; findings counted by kind and placed (`fixes.md` for FX6, a drift note, `TODO.md`).
-- [ ] **M5** (alone, quiet machine; `measurements.md`): the heavy lane and the opt-in tiers; a whole human genome by
+- [ ] **M5** (running 2026-11-23, `briefs/m5-measurements.md`) (alone, quiet machine; `measurements.md`): the heavy lane and the opt-in tiers; a whole human genome by
       region (by chromosome); a VCF region of 10,000 records decoded; the ring of 12,000 links at full scale in the
       browser at dpr 2; a bridge frame; the bundles (each runtime its own row, the extension its own, the minimal
       viewer not grown). **M4's carried measurements**: a bigWig pan (FX1's story), real-vsync frames with the pane in
