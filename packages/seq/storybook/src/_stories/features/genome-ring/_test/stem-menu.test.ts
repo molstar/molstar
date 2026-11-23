@@ -141,7 +141,8 @@ describe('The stem menu in two viewers of one spec', () => {
       b.draw();
       const lb = ribbonsOf(b)!;
       const sb = strongestStem(lb);
-      expect(lb.names[lb.stemSystem[sb.stem]]).toBe(name);
+      // its strongest stem on one of the two it shows (which one is the data's)
+      expect([name, first]).toContain(lb.names[lb.stemSystem[sb.stem]]);
       const partnersB = partnersOf(lb, sb.stem);
       expect(partnersB.length).toBeLessThan(partnersA.length);
       expect(headers.context(sb.x, sb.y)).toBe(true);

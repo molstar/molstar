@@ -15,7 +15,14 @@ import { bundledTextMetrics, LightTokens, openModel, Renderer, renderConfig } fr
 import { BedRuntime } from '@molstar/seqx-core/runtimes/bed';
 import { rondo, type RondoLay } from '@molstar/seqx-ext-rondo';
 import { describe, expect, it } from 'vitest';
-import { Grch38Chromosomes, RingLinks1000File, ringBedpe, ringLinks, syntheticBands } from '../genomes/ring/data.js';
+import {
+  Grch38Chromosomes,
+  RingLinks1000File,
+  RingTranslocations,
+  ringBedpe,
+  ringLinks,
+  syntheticBands,
+} from '../genomes/ring/data.js';
 import { RingViews, registry, ringSpec } from '../genomes/ring/views.js';
 import { nodeFixtureAssets, PackageFolder } from '../node-assets.js';
 
@@ -40,6 +47,27 @@ describe('the genome ring’s data', () => {
       expect(l.bs).toBeLessThan(Grch38Chromosomes[l.b].length);
       expect(l.q).toBeGreaterThan(0);
     }
+  });
+
+  it('a few named translocations, made up: their reads at the junctions with strands, genes on the fusions', () => {
+    const links = ringLinks();
+    const tx = links.filter((l) => l.type === 'translocation');
+    expect(tx.length).toBeGreaterThan(80);
+    expect(tx.length).toBeLessThan(300);
+    for (const l of links.filter((x) => x.type === 'contact'))
+      expect([l.sa, l.sb, l.genes]).toEqual(['.', '.', undefined]);
+    for (const t of RingTranslocations) {
+      const own = tx.filter((l) => l.a === t.a && l.b === t.b);
+      expect(own.length, t.name).toBeGreaterThan(5);
+      for (const l of own) {
+        expect(Math.abs(l.as - t.at), t.name).toBeLessThanOrEqual(2e4);
+        expect(Math.abs(l.bs - t.bt), t.name).toBeLessThanOrEqual(2e4);
+        expect([l.sa, l.sb, l.genes], t.name).toEqual([t.sa, t.sb, t.genes]);
+      }
+    }
+    // the BCR-ABL1-like one: chr9 with chr22, its genes named as invented
+    expect(RingTranslocations[0]).toMatchObject({ a: 8, b: 21, genes: ['XABL', 'XBCR'] });
+    expect(RingTranslocations[0].name).toMatch(/made up/);
   });
 
   it('synthetic bands: alternating stains, an acen pair at 40 %, a gvar on Y’s last third, the chromosome covered', () => {

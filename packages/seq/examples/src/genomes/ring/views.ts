@@ -9,7 +9,7 @@ import type { SeqRegistryEntry } from '@molstar/seqx-core/context';
 import { delayedRuntime, type FormatRuntime, type StoreClock } from '@molstar/seqx-core/data';
 import { assembly, createSeqSpec } from '@molstar/seqx-core/lang';
 import { BedFormats, BedRuntime } from '@molstar/seqx-core/runtimes/bed';
-import { rondo, rondoRing } from '@molstar/seqx-ext-rondo';
+import { type RondoKind, rondo, rondoRing } from '@molstar/seqx-ext-rondo';
 import { withRecordedPages } from '../../recorded-pages.js';
 import type { ExampleView } from '../../views.js';
 import { CytobandsFile, RecordedFiles } from '../files.js';
@@ -38,8 +38,22 @@ export interface RingSpecOptions {
   readonly failed?: boolean;
   /** Written without the extension listed (a reader of it draws the same; what the fallback story shows). */
   readonly bare?: boolean;
+  /**
+   * The kinds of links as layers (`RingKinds`: faint contacts in the chromosomes' hues, the translocations in one
+   * accent over them), the links held (a filter is read on held links).
+   */
+  readonly kinds?: boolean;
   readonly title?: string;
 }
+
+/**
+ * The showcase's kinds of links (an application's choice, never the extension's default): the contacts faint in the
+ * chromosomes' hues, the translocations, the rarer, over them in the accent; each a layer with its legend entry.
+ */
+export const RingKinds: readonly RondoKind[] = [
+  { type: 'contact', label: 'Contacts', opacity: 0.45 },
+  { type: 'translocation', label: 'Translocations', color: 'token:msui-accent' },
+];
 
 /** A BEDPE the views name that is not committed (the failed default's read). */
 export const MissingLinksFile = 'fixtures/genomes/ring-links-missing.bedpe';
@@ -49,15 +63,18 @@ export function ringSpec(o: RingSpecOptions = {}): Node {
   const b = createSeqSpec({ title: o.title ?? 'The genome ring', ...(o.bare ? {} : { extensions: [rondo] }) });
   const g = b.data.assembly('grch38', assembly('GRCh38', Grch38Chromosomes, { include: [...RingInclude] } as never));
   const links = ringLinks(o.links ?? 12_000);
-  const pairs = o.held
-    ? b.data.pairs('links', { a: g, rows: ringRows(links) } as never)
-    : b.data.pairs('links', {
-        a: g,
-        source: b.data.source(
-          'links-bedpe',
-          o.failed ? { format: 'bedpe', uri: MissingLinksFile } : { format: 'bedpe', value: ringBedpe(links) as never },
-        ),
-      } as never);
+  const pairs =
+    o.held || o.kinds
+      ? b.data.pairs('links', { a: g, rows: ringRows(links) } as never)
+      : b.data.pairs('links', {
+          a: g,
+          source: b.data.source(
+            'links-bedpe',
+            o.failed
+              ? { format: 'bedpe', uri: MissingLinksFile }
+              : { format: 'bedpe', value: ringBedpe(links) as never },
+          ),
+        } as never);
   const bandsSource = o.synthetic
     ? b.data.source('bands-bed', {
         format: 'bed',
@@ -80,6 +97,7 @@ export function ringSpec(o: RingSpecOptions = {}): Node {
       opens: true,
       ...(o.hues !== undefined ? { hues: o.hues } : { hues: true }),
       ...(o.square !== undefined ? { square: o.square } : {}),
+      ...(o.kinds ? { kinds: RingKinds } : {}),
     });
   });
   let root = b.build();
