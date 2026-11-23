@@ -28,7 +28,7 @@ const SPECS: Record<string, string> = {
 };
 /** Designs not reconciled when the check was written (file names without `.md`). Only ever shrinks. */
 const PENDING = new Set([
-  "axis", "edge-cases", "examples",
+  "edge-cases", "examples",
   "packages",
   "ring-extension", "sources", "testing", "themes",
 ]);
