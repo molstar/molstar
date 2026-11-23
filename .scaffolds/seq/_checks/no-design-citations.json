@@ -1,7 +1,9 @@
 {
-  "why": "Seq*'s packages and command-line packages are held to their own documents; packages/seq/AGENTS.md is the one pointer to the scaffold. pending: maps-entry.ts cites §module-size in a comment (found when the check learned principle ids, 2026-11-23; a code fix, not this slice's).",
+  "why": "Seq*'s packages and command-line packages are held to their own documents; packages/seq/AGENTS.md is the one pointer to the scaffold.",
   "code": "^(packages/|cli/)",
   "own": "^(packages/seq/|cli/seqx)",
-  "pointers": ["packages/seq/AGENTS.md"],
-  "pending": ["packages/seq/core/src/resolve/maps-entry.ts"]
+  "pointers": [
+    "packages/seq/AGENTS.md"
+  ],
+  "pending": []
 }

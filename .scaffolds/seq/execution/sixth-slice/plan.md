@@ -59,7 +59,7 @@ A next scaffold starts as `.scaffolds/<name>/` from `_method/`, its manifest lis
       instance's links, the checks, the skill, `packages/seq/AGENTS.md`'s one pointer, `biome.json`,
       `.prettierignore`, `.gitignore`; and the five tests in `packages/seq/core` whose header comment cites `.scaffolds/seq/sources/seqstar/edge-cases.md` (found 2026-11-23: the citation goes, the `EC-<n>` id stays). Confirm nothing in code cites `.scaffolds/seq/` (the rule; `cli/seqx-render` and
       `cli/structure-info` match `.seq` in their text: check that it is a file extension, not a link).
-- [ ] **Stage 4: the method** (running 2026-11-23, lane S4, `briefs/s4-method.md`): templates in `_method/` from the fifth slice's files (loop with its fold-back, brief,
+- [x] **Stage 4: the method** (done 2026-11-23, S4 `35ded94db`, `briefs/s4-method.md`): templates in `_method/` from the fifth slice's files (loop with its fold-back, brief,
       state, plan, fixes, record), the generic checks taking the instance as an argument; `.scaffolds/AGENTS.md`.
 - [ ] **Stage 4b: the principles re-synced and compressed** (proposed 2026-11-23; **waiting on the author**: "i think i
       will do one more change to the upstream oz first and then get back here with it"). Re-sync `.scaffolds/principles/`
@@ -68,7 +68,7 @@ A next scaffold starts as `.scaffolds/<name>/` from `_method/`, its manifest lis
       rule budget: the manifest's four "Folded back" sections as one current Adaptations list (what the package now
       states dropped, the evidence in the records), `status.md` to what is current. Measured before and after on a fixed
       reading path (the guide's steps 0 and 1 and one module). The slice's finalize waits for it.
-- [ ] **Stage 5: verify**: every check run from the new place on the Seq\* instance; a link check over `.scaffolds/`
+- [x] **Stage 5: verify** (done 2026-11-23: every check from its new place green, the link and command check over 2,182 links and commands (102 dangling, all closed history, reported), quick 4,949, lint, format, `pnpm build`, `check:workspace`; `.seq/` gone; the root AGENTS.md's row links `.scaffolds/AGENTS.md`; a principle id in a code comment fixed): every check run from the new place on the Seq\* instance; a link check over `.scaffolds/`
       (no dangling relative links); the root `AGENTS.md`'s table gains the `.scaffolds/` row; `.scaffolds/seq/` gone.
 - [x] **Docs** (merged 2026-11-23, `c9d120931`; taken early as lane DX, 2026-11-23, `briefs/dx-storybook-docs.md`: written from the current `_spec`s;
       stage 1's reconciliation checks the docs too) (the author, 2026-11-23: "we should write "Docs" folder in storybook in slice 6 too, that explains

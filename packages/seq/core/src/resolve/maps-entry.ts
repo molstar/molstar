@@ -6,7 +6,7 @@
 
 // A `map` node and a `numbering` node resolved (_spec/README.md "Resolve", Maps and Numberings): a map's linear part in
 // its encoding, its priority and a structure map's facts; a numbering's labels, offset or runs, or a source's plan.
-// Apart from model.ts, which places them and keeps them by hash (§module-size).
+// Apart from model.ts, which places them and keeps them by hash, so neither file grows past its size bound.
 
 import { CategoryColumn, type Issue, issueOf, type Node, type Value } from '@molstar/core/repr/tree';
 import { labelsNumbering } from '@molstar/seqx-core/query';
