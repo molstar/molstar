@@ -53,6 +53,8 @@ export interface RegionState {
   itemCount: number;
   /** The bins' tiles not loaded, `[start, end, …]` on the data's system (a bridge's pending hatch, EC-169). */
   pending?: readonly number[];
+  /** Whether the last read waits on a bins' tile it wanted (a region's or an assembly's block's). */
+  waiting: boolean;
   /**
    * The data's positions read this frame by its system (`dataRegions`: projected, normalized, merged near; over an
    * assembly each block's system): a bridge's drawn-once rule reads them.
@@ -66,7 +68,18 @@ const States = new WeakMap<object, RegionState>();
 export function regionState(owner: object): RegionState {
   let s = States.get(owner);
   if (!s)
-    States.set(owner, (s = { read: [], prep: undefined, items: false, binPairs: 0, itemCount: 0, windows: new Map() }));
+    States.set(
+      owner,
+      (s = {
+        read: [],
+        prep: undefined,
+        items: false,
+        binPairs: 0,
+        itemCount: 0,
+        windows: new Map(),
+        waiting: false,
+      }),
+    );
   return s;
 }
 
@@ -239,6 +252,7 @@ export function regionPairs(
   const bins = fittedLevel(ctx, data, src, regions, fit.bins);
   const binRead = readTiles(ctx, data, src, regions, bins);
   state.pending = binRead.pending;
+  state.waiting = binRead.pending.length > 0;
   // at the finest level the bins are the items themselves
   const binned = binRead.entries.some((e) => e.tables.pairs?.form === 'bins');
   state.binPairs = binned

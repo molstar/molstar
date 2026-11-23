@@ -27,6 +27,14 @@ describe('edge cases', () => {
     expect([l.empty, l.nr > 0]).toEqual(['', true]);
   });
 
+  it('EC-169: a frame drawn settled while its bins are wanted is still pending, never “no links”', async () => {
+    // a host settles for a frame between a source's open and its tiles' wants: the reader is waiting there
+    const s = await settle(ringSpec());
+    const first = lay(s.renderer.frame({ size: Size, settled: true }))!;
+    expect(first.reader.waiting).toBe(true);
+    expect([first.empty, RibbonsType.summary!(first)]).toEqual(['pending', 'links loading']);
+  });
+
   it('EC-218: a chromosome keeps its hue on the genome’s ring, on a pair’s and on a stub pointing at it', async () => {
     const all = lay(await (await settle(ringSpec())).frame({ size: Size }))!;
     const pair = lay(await (await settle(ringSpec({ include: ['chr5', 'chr3'] }))).frame({ size: Size }))!;

@@ -102,4 +102,9 @@ export class PairsReader {
   get pending(): readonly number[] | undefined {
     return regionState(this).pending;
   }
+
+  /** Whether the last read waits on a bins' tile it wanted (a region's or an assembly's): pending, not empty. */
+  get waiting(): boolean {
+    return regionState(this).waiting;
+  }
 }

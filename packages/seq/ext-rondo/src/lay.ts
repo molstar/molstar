@@ -363,7 +363,8 @@ export function layoutRondo(lay: RondoLay, prep: RondoPrep, ctx: LayoutContext, 
   lay.read = read;
   const d = read?.data;
   if (!read || !d) {
-    lay.empty = ctx.settled ? 'none' : 'pending';
+    // none only once settled with no bins' tile awaited (a frame between a source's open and its tiles' wants is not)
+    lay.empty = ctx.settled && !lay.reader.waiting ? 'none' : 'pending';
     return;
   }
   lay.systems = systemsOf(read);
@@ -388,7 +389,7 @@ export function layoutRondo(lay: RondoLay, prep: RondoPrep, ctx: LayoutContext, 
   aggregate(lay, read);
   if (!lay.nr && !lay.nb && !lay.ns) {
     // nothing read yet while the view waits for its data (EC-169: pending is said, never an empty hole), else none
-    lay.empty = d.n === 0 && !ctx.settled ? 'pending' : 'none';
+    lay.empty = d.n === 0 && (!ctx.settled || lay.reader.waiting) ? 'pending' : 'none';
     return;
   }
   widths(lay, cfg, ctx.config.ribbons.minPx);

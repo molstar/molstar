@@ -262,7 +262,10 @@ function fitBlocks(
   return fitted;
 }
 
-/** Tiles of every block in view at `level`, each entry with its block's unit (`units`, parallel). */
+/**
+ * Tiles of every block in view at `level`, each entry with its block's unit (`units`, parallel); `pending` when a tile is
+ * not loaded (waiting or failed), `waiting` when one is still to come.
+ */
 function readBlocks(
   ctx: LayoutContext,
   data: StoreReader,
@@ -271,20 +274,22 @@ function readBlocks(
   level: number,
   items: boolean,
   units: number[],
-): { entries: Loaded[]; pending: boolean } {
+): { entries: Loaded[]; pending: boolean; waiting: boolean } {
   const entries: Loaded[] = [];
   let pending = false;
+  let waiting = false;
   units.length = 0;
   for (let b = 0; b < n; b++) {
     const { src, regions, unit } = st.blocks[b];
     const r = readTiles(ctx, data, src, regions, level, items ? { items: true } : undefined);
     if (r.pending.length || r.failed.length) pending = true;
+    if (r.pending.length) waiting = true;
     for (const e of r.entries) {
       entries.push(e);
       units.push(unit);
     }
   }
-  return { entries, pending };
+  return { entries, pending, waiting };
 }
 
 /** The unit of a row's end: its listed name's (on its side over a sided source), else (no name) the block's read. */
@@ -427,6 +432,7 @@ export function assemblyPairs(
   }
   const bins = fitBlocks(ctx, data, st, n, levels, fit.bins);
   const binRead = readBlocks(ctx, data, st, n, bins, false, Units);
+  state.waiting = binRead.waiting;
   const binned = binRead.entries.some((e) => e.tables.pairs?.form === 'bins');
   state.binPairs = countOf(st.bins, over, st, binRead.entries, Units, bins, binned);
   let mode = binned ? 0 : 1;

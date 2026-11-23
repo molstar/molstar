@@ -47,7 +47,9 @@ rule without pictures holds. The stem menu waits for element menus in the viewer
   polygon hit.
 - **Read**: core's pairs reader with the gate `rondo.maxRibbons`: bins until the stem pairs with an end in view sum to
   at most it, then items (held pairs past it binned by the same level rule). Pending (nothing landed, the view not
-  settled): drawn empty and said ("links loading", EC-169); settled with no rows: "no links".
+  settled or the reader `waiting` on a tile it wanted): drawn empty and said ("links loading", EC-169); settled with no
+  rows and nothing awaited: "no links". Why the reader's word too: the view settles for a frame between a source's open
+  and its tiles' wants, and "no links" there is a flicker.
 
 ## Stubs
 
