@@ -1,4 +1,4 @@
-# The novice passes' 14 design questions: draft answers (for the author)
+# The novice passes' 14 design questions: the answers
 
 From the fifth slice's [novice-findings.md](../../fifth-slice/novice-findings.md). There are no mocks (`plan.md`,
 Re-plans, 2026-11-23). Groups A to C are interactions: their gestures are agreed here before a lane. Groups D to G are
@@ -153,3 +153,12 @@ At most three run at once, never two in one file.
 | Ring | B (8, 26, 28, 29), D21, D25, G35's ring part | strong: the menu's structure |
 | Square and keys | C (6), D33, E9, G12, G35's square part | Sonnet |
 | Formats | F (10, 11, look 34) | Sonnet |
+
+## Decided by the author
+
+Decided by the author, 2026-11-23: "Agree as drafted". Groups A to C's gestures are agreed as their tables say, and
+the two questions go as recommended: a host can turn the legend's eye off (`layers: false`, on by default), and a
+collapsed gene keeps every transcript in version 1 (canonical-only is a TODO line). Each answer enters its design, the
+design's Storybook page and its package's spec with the lane that builds it, in that lane's commit (the loop, Each
+step 9), so no design says what is not built. Each **Check** is the lane's first step; a check that fails the
+answer stops the lane and comes back as a drift note.
