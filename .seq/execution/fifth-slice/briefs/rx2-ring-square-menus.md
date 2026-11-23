@@ -34,7 +34,14 @@ section... very confusing".
    `rondoWith` is a convenience, not the only door.
 6. **A failed source's status** on the store reader the extension reads, so the ring's hatch ends and the issue shows
    (core-wide: the smallest opening; stop with a report if it is not small).
-7. **Stories**: the square beside the ring dragged, resized and clicked (twins replaying each gesture), the stem menu,
+7. **The one-chromosome look** (the author, 2026-11-23, after the meaning of the links was explained: "yes, fold the
+   stem and stub idea into RX2"): on a ring of one chromosome (or a pair), the stems' trumpets dominate while the
+   information is in the ribbons and stubs. Draw the stems lighter there (a `rondo.*` config value, default from a look
+   in a visible pane at the fit and on chr4), so the ribbons read over them. Stubs of a count under a threshold
+   (`rondo.stubMin`, default 2) fold into one "other chromosomes · n" stub per stem, its card listing the partners, and
+   unfold on hover. Neck additivity holds (the folded stub's width the sum). A test per rule, a look before and after in
+   the report.
+8. **Stories**: the square beside the ring dragged, resized and clicked (twins replaying each gesture), the stem menu,
    the keys; light and dark, canvas and SVG.
 
 **Where**: a worktree on `seq/rx2`. Headers (`@author David Sehnal <david.sehnal@gmail.com>`, 2026); hot files never

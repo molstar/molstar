@@ -600,3 +600,6 @@ the author decided by name carries its own date.
     click on a cell shows that pair at once (never a select first), its title or Home shows all; each gesture one patch
     and one undo step; the cells coloured by count (`rondo:cells`) so the window is read against the links. Replaces
     "idle over a ring" for zoom and pan in the matrix above.
+17. **On one chromosome or a pair, the information first** (the author, 2026-11-23, "yes, fold the stem and stub idea
+    into RX2"): stems drawn lighter so the ribbons read over them; stubs under `rondo.stubMin` (2) folded into one "other
+    chromosomes · n" stub a stem, the card listing the partners, a neck still the sum of its parts.
