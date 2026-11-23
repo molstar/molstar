@@ -222,7 +222,7 @@ settings layer over it. The rules that stay fixed whatever the bindings:
 
 ### The interaction matrix
 
-What a user acts on, against the verbs (the principles, "Interaction is a matrix", from the second slice's fold-back):
+What a user acts on, against the verbs (§interaction-matrix):
 each cell is the gesture or key and the command, **planned** with the slice that builds it, or **no** with why. A slice
 plan names the cells it fills; its gate checks them; a design that adds an action fills its row and column, and its
 self-check's negation (an inverse, a symmetric case, a plural) names the cells to look at. As built after the second
