@@ -60,6 +60,9 @@ extension kinds.
   it, or alternate case and control windows and take the median of the pairs' differences; then seq's `scaledControl`
   and the storybook cases still on the 88 B control (bridge ribbon hover, a pan through a lock, a connector, linked
   pairs) need nothing of their own. The author's call (a shared package).
+- **The perf tier's slow warm-ups** (FX19's checks, 2026-11-23): the ring of 8 matrix states takes 50 to 125 s to warm
+  (its timeout 120 s), and three others timed out under load (a bridge pan, the 3,000-contig strip, 4,096 arcs): warm
+  them faster or give them their own timeouts.
 - **Tighten the chromosome pan's bound** (PF): 56,000 B with the pan now at ~39.6 KB and the fit at ~38.4 KB; lower both
   bounds to keep the gain.
 

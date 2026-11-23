@@ -451,7 +451,9 @@ What a reader sees with no setting but the data's `source` and a layer.
    chr3 ░  ░   ▏ ░ ░   ▏▓▓▓▒  ▏
    ```
 6. **Samples × positions** (a VCF's genotypes, 40 samples): a row a sample, an item a variant at its extent, a long
-   deletion solid; zoomed out, a bin's majority genotype, its share as the colour's strength.
+   deletion solid; zoomed out, a bin's majority genotype, its share as the colour's strength. The genotype classes are
+   coloured by tokens of their own (`seq-genotype-0` to `-3`, `seq-missing` uncalled), never by the value ramp (the
+   author, 2026-11-23).
    ```
    NA12878 ▏▌ ▌▌   ███████   ▌ ▏
    NA12891 ▏ ▌ ▌             ▌▌▏
