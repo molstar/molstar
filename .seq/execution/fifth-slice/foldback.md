@@ -227,7 +227,7 @@ From the earlier slices:
 
 ## Decided by the author
 
-The author, 2026-11-23: "Apply all ten" (B10 as refined: "how about instead we mocked the interactions too during the
+Decided by the author, 2026-11-23: merged: "Apply all ten" (B10 as refined: "how about instead we mocked the interactions too during the
 design stage?"). Applied:
 - B1, B2, B5, B7 and B10 in `principles/README.md`, "Folded back from the fifth slice";
 - B5 and B10 in `design/README.md`;

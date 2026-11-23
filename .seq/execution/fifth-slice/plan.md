@@ -289,7 +289,7 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
       browser at dpr 2; a bridge frame; the bundles (each runtime its own row, the extension its own, the minimal
       viewer not grown). **M4's carried measurements**: a bigWig pan (FX1's story), real-vsync frames with the pane in
       view, the 200-copy split patch re-measured.
-- [ ] **FINALIZE** (loop, Finalize): reconcile, fold back, the record, the next plan (version 1's close-out),
+- [x] **FINALIZE** (closed 2026-11-23: the record in `records/fifth-slice/`, the next plan's draft in `execution/close-out/`) (loop, Finalize): reconcile, fold back, the record, the next plan (version 1's close-out),
       worktrees cleaned.
 
 ## Order and parallelism

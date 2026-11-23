@@ -431,8 +431,8 @@ extension kinds.
 - **M5's leftovers** (2026-11-23):
   - The 200-copy split patch, from a click to drawn: median 16.2 ms, max 20.4 (edit < 16).
   - The Signal story's zoom had one frame of 25.7 ms.
-  - The heavy lane's 1M-range lookup and pairs-pyramid slice bounds fail under the lane's own worker contention (load
-    1.2) and pass alone. Isolate them, or give them a quiet-run guard; don't raise them.
+  - The heavy lane's 1M-range lookup, pairs-pyramid slice and field-theme ratio bounds fail under the lane's own worker
+    contention (load 1.2) and pass alone. Isolate them, or give them a quiet-run guard; don't raise them.
   - Cmd/Ctrl+wheel over the ring at the fit is taken but changes nothing.
 
 ## The genome ring (RX, 2026-11-23)
