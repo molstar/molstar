@@ -815,7 +815,7 @@ registry entry, an option of a call, or fixed with its reason).
 | `rings.hole`, `rings.maxDiameter` | `RenderConfig` preset | 0.35 of the radius; 720 px | room for the title, chords readable; a map, not a wall | 0 to 0.8; px |
 | `rings.blockGap` | `RenderConfig` preset | 1° | a gap between blocks reads as a boundary (Circos) | degrees |
 | `rings.letters` | `RenderConfig` preset | `upright` | readable at any angle | `tangent` |
-| `rings.center` | `RenderConfig` preset | `title` | the name and length in the hole | `none` |
+| `rings.center` | `RenderConfig` preset, and a section's `center` param (language 0.10.0, RX: the spec wins) | `title` | the name and length in the hole | `none` |
 | `rings.labelGap`, `rings.leaderBend` | `RenderConfig` preset | 8 px, 12 px | leaders fan out over the ruler, never through one point | px |
 | `rings.window` | `RenderConfig` preset | `followed` | a window means only what a follower shows | `always` |
 | `reveal.linked` | `ViewerConfig` (the `reveal` group, with `reveal.cursor`) | `text` | a text hides most of itself (Jalview scrolls to a linked selection) | `all`, `none` |

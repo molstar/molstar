@@ -564,6 +564,12 @@ The claim: **this design covers what a user does with a Rondo-like genome ring, 
 > default there. One `seq.view.layer.extension` a namespace and view says every part drawn as its fallback (layers,
 > pictures, schemes).
 
+**Built** (RX, merged 2026-11-23): the package (`rondo` 28 kB, its row 32 kB), `section.center` (language 0.10.0),
+`PairsReader`, the hooks and scoped bindings, the fallback, the showcase data and stories; a hit slop for thin ribbons
+(`rondo.hitSlopPx` 4); stub and block labels without overlap; a band's hover lighting only its links. Not built, RX2's:
+`rondo:cells` and the `rondo:square` picture, element menus and the stem menu, `.` and `,`, the extension's config read
+by its layer types, a failed source's status; and Decided 16 to 18.
+
 ## Decided by the author
 
 2026-11-21: every gap as recommended (the author on the drafts: "generally reasonable and we can fold in the reviews";

@@ -216,6 +216,11 @@ Claim: "this part covers what an outside package needs to add a way to draw, and
   scheme, a command and a binding), toggled at run time to show the fallback; its package's restricted imports.
 - Sizes: the minimal viewer not grown (the extension field is a list).
 - **Card providers** (TT, 2026-11-22): open: a host or an extension registers a `card-provider` ([extensibility](extensibility.md), [tooltips](tooltips.md)).
+- **Built for the genome ring** (RX, 2026-11-23): the `extension` entry exports `PairsReader` (`readPairs`, its
+  `waiting`), the pairs bins' types, `pairsLevels(…, gate)`, `coarsenBins`, `placesOf` beside `PolarWarp`; a `LayerType`
+  may give `describe`, `summary` and `announce` (the `seq:layer` card provider, a layer's ARIA, the cursor's words; the
+  ARIA module lazy); a binding may be scoped to a layer type for click and double-click (and their modifiers), refused on
+  hover, drag, wheel, pinch and the buttons (`seq.viewer.binding.scope`).
 
 ## Part 2: custom navigators (lane CN; cut first)
 

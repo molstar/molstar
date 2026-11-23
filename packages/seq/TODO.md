@@ -403,3 +403,12 @@ extension kinds.
   goes (F10); short tracks keep the layer's colors and a mark's hit target grows (F16); the host entry's copy slot shows
   it ran (F19); a chip's count by width, a swatch outline on a light ground (F24); the keys panel scrolls or opens
   upward (F26).
+
+## The genome ring (RX, 2026-11-23)
+
+- **The viewers grew 3.6 / 3.0 kB with RX** (the design said ~0.3): hooks, card providers, `center`'s doc, bindings;
+  gzip fell. Trim where a hook can be lazier.
+- **Block labels at the ring's top**: the author saw chr22 / 21 overlap; not reproduced headless or at 700 and 940 px; a
+  guard test holds it. Re-check at the author's width at the use gate.
+- **A legend issue in every ring story**: "The legend Chromosomes lists the hashed values painted in view" (info); a
+  showcase should settle clean.

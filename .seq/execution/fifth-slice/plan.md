@@ -254,7 +254,7 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
 - [ ] **GX** (`briefs/gx-genomes-dataset.md`; strong, after stages 2 and 3) the Genomes dataset generated
       (`generateGenomes`, byte-identical, under the dataset bound) and its views (examples.md, Genomes), the four real
       slices recorded as pages (each fetch asked), stories and twins; the views' matrix cells.
-- [ ] **RX** (`briefs/rx-ring-extension.md`; strong, after RG and GC3; on EX and CN) `packages/seq/ext-rondo`: the
+- [x] **RX** (merged 2026-11-23) (`briefs/rx-ring-extension.md`; strong, after RG and GC3; on EX and CN) `packages/seq/ext-rondo`: the
       descriptor, `rondo:ribbons`, `rondo:cells`, the `rondo:square` picture, `rondo:hues`, commands and the binding,
       `rondoRing`; the entry's exports and the `LayerType` hooks in core; the fallback; its stories (hot: the new
       package's files, inventory row, root reference).
