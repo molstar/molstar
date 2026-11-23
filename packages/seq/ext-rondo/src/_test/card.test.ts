@@ -9,7 +9,8 @@
 // count on each kind's layer of the section.
 
 import { assembly, createSeqSpec } from '@molstar/seqx-core/lang';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { install } from '../card.js';
 import { rondo } from '../index.js';
 import { Kind, type RondoLay } from '../lay.js';
 import { rondoRing } from '../ring.js';
@@ -69,6 +70,9 @@ function card(l: RondoLay, kind: number, pick: (ref: number) => boolean = () => 
       return { ref: l.polyRef[i], lines: describeRondo(l.hits[i] as never, l)! };
   throw new Error('no such polygon');
 }
+
+// the card's chunk, as `rondoViewer` loads it once composed
+beforeAll(install);
 
 describe('the card names the kind', () => {
   it('a ribbon’s links: their type, strands, q (a range where they differ) and gene names (none where none)', async () => {

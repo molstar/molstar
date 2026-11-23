@@ -122,7 +122,8 @@ waiting; its entries `StemMenu` in `viewer.ts`).
   section has more than one `rondo:ribbons` layer, each layer's links there (`Contacts: 140 links`,
   `Translocations: 3 links`), counted from each layer's rows as read (a bin's start, an item's), so a kind under another
   is never lost under its ribbons. The layers of a section know each other by its resolved section (a new resolve, a new
-  list).
+  list). These lines are a chunk (`card.ts`) `rondoViewer` loads once composed, as the stem menu's: the headless entry
+  pays nothing for them (no card there).
 - **`rondoRing`'s `kinds`** (`{ type, label?, color?, opacity?, width? }[]`) writes those layers, the colour the
   chromosomes' hues when a kind names none; absent, one layer of every link. Which kinds, their order and colours are
   the application's (the showcase: faint contacts in the hues, translocations in one accent over them).

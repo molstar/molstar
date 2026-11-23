@@ -30,9 +30,11 @@ export { partnersOf };
 let Menu: typeof import('./menu.js') | undefined;
 let menuLoading: Promise<void> | undefined;
 const loadMenu = (): Promise<void> => {
-  menuLoading ??= import('./menu.js').then(
-    (m) => {
+  // the card's lines on kinds of links ride with it (`card.ts`)
+  menuLoading ??= Promise.all([import('./menu.js'), import('./card.js')]).then(
+    ([m, c]) => {
       Menu = m;
+      c.install();
     },
     (e) => {
       menuLoading = undefined;

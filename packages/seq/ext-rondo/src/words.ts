@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { LayerPlace, PairsSource } from '@molstar/seqx-core/extension';
+import type { LayerPlace } from '@molstar/seqx-core/extension';
 import { foldedOf, Kind, type RondoLay, stemAt } from './lay.js';
 
 // What the ribbons say (_spec/README.md, Hover, the keyboard): the card's lines for a hit (core's `LayerType.describe`:
@@ -32,87 +32,20 @@ function rangeText(lay: RondoLay, s: number): string {
   return `${lay.names[lay.stemSystem[s]]}:${at(start)}–${at(end)}${unit}`;
 }
 
-const links = (n: number) => `${Math.round(n).toLocaleString('en-US')} link${Math.round(n) === 1 ? '' : 's'}`;
+export const links = (n: number) => `${Math.round(n).toLocaleString('en-US')} link${Math.round(n) === 1 ? '' : 's'}`;
 
 /** A field's value as the card says it: a number to 4 significant digits, a strand's sign as a minus. */
-const valueText = (v: string | number) => (typeof v === 'number' ? String(Number(v.toPrecision(4))) : v);
+export const valueText = (v: string | number) => (typeof v === 'number' ? String(Number(v.toPrecision(4))) : v);
 
 /**
- * The fields a ribbon's links share (_spec/README.md, Kinds of links, The card): their kind, their ends' strands, then
- * every other field the data carries (`q`, gene names where the file has them): a value they all share, a number's
- * range where they differ (`q: 0.001–0.04`), absent values and differing text left out. One link: its own fields.
+ * The card's lines on kinds of links (_spec/README.md, Kinds of links, The card): a ribbon's links' shared fields and a
+ * bin's or a stem's count on each layer, from `card.ts`, a chunk `rondoViewer` loads once composed (`install`); none
+ * before it lands, and none headless (no card there).
  */
-function fieldLines(lay: RondoLay, r: number): string[] {
-  const read = lay.read as PairsSource | undefined;
-  const d = read?.data;
-  const datum = read?.datum;
-  if (!d || !datum) return [];
-  const rows: number[] = [];
-  for (let k = 0; k < d.n; k++) if (lay.rowRib[k] === r) rows.push(k);
-  if (!rows.length) return [];
-  const shared = (name: string): string | number | undefined => {
-    let v: string | number | undefined;
-    let lo = Number.POSITIVE_INFINITY;
-    let hi = Number.NEGATIVE_INFINITY;
-    let same = true;
-    for (let i = 0; i < rows.length; i++) {
-      const x = datum.set(rows[i]).field(name);
-      if (x === undefined || x === null || x === '' || (typeof x === 'number' && Number.isNaN(x))) return undefined;
-      if (i === 0) v = x;
-      else if (x !== v) same = false;
-      if (typeof x === 'number') {
-        lo = Math.min(lo, x);
-        hi = Math.max(hi, x);
-      }
-    }
-    if (same) return v;
-    return typeof v === 'number' ? `${valueText(lo)}–${valueText(hi)}` : undefined;
-  };
-  const out: string[] = [];
-  const type = shared('type');
-  if (type !== undefined) out.push(`Type: ${type}`);
-  const sa = shared('a_strand');
-  const sb = shared('b_strand');
-  if (sa !== undefined && sb !== undefined) out.push(`Strands: ${sa === '-' ? '−' : '+'} ${sb === '-' ? '−' : '+'}`);
-  for (const name of Object.keys(d.extra ?? {})) {
-    if (name === 'count') continue;
-    const v = shared(name);
-    if (v !== undefined) out.push(`${name}: ${valueText(v)}`);
-  }
-  return out;
-}
-
-/**
- * Each layer's links on the section between two ranges (`b` absent: with an end in `a`), one line a layer
- * (`Contacts: 140 links`) when the section has more than one: a bin's or a stem's count per kind. Counted from each
- * layer's rows as read (bins' starts, items' ends), each row once.
- */
-function perLayer(lay: RondoLay, sysA: string, a0: number, a1: number, sysB?: string, b0 = 0, b1 = 0): string[] {
-  if (lay.peers.length < 2) return [];
-  const out: string[] = [];
-  for (const p of lay.peers) {
-    const read = p.read;
-    const d = read?.data;
-    if (!read || !d || p.empty) continue;
-    const sysOf = (unit: Int32Array | undefined, k: number, side: 0 | 1) =>
-      unit ? p.systems[unit[k]] : p.systems[Math.min(side, p.systems.length - 1)];
-    let n = 0;
-    for (let k = 0; k < d.n; k++) {
-      if (!read.shown[k]) continue;
-      const sa = sysOf(d.aUnit, k, 0);
-      const sb = sysOf(d.bUnit, k, 1);
-      const inA = (s: string, x: number) => s === sysA && x >= a0 && x < a1;
-      const inB = (s: string, x: number) => s === sysB && x >= b0 && x < b1;
-      const hit =
-        sysB === undefined
-          ? inA(sa, d.aStart[k]) || inA(sb, d.bStart[k])
-          : (inA(sa, d.aStart[k]) && inB(sb, d.bStart[k])) || (inA(sb, d.bStart[k]) && inB(sa, d.aStart[k]));
-      if (hit) n += read.weight ? read.weight[k] : 1;
-    }
-    out.push(`${p.label || 'Links'}: ${links(n)}`);
-  }
-  return out;
-}
+export const CardLines: {
+  fields?: (lay: RondoLay, r: number) => string[];
+  perLayer?: (lay: RondoLay, sysA: string, a0: number, a1: number, sysB?: string, b0?: number, b1?: number) => string[];
+} = {};
 
 /** The card's lines for a hit of the layer: a ribbon's two stems and count, a stem's, a stub's partner. */
 export function describeRondo(hit: LayerPlace, lay: RondoLay): readonly string[] | undefined {
@@ -134,12 +67,15 @@ export function describeRondo(hit: LayerPlace, lay: RondoLay): readonly string[]
     if (lay.width !== 'count') lines.push(`Width: ${lay.width} ${valueText(lay.ribCount[ref])}`);
     if (lay.ribStrand[ref] < 0) lines.push('Strand: reversed');
     // its links' fields (one link's own: its kind, strands, q, gene names); a bin: its count on each layer of the section
-    if (lay.items) lines.push(...fieldLines(lay, ref));
+    if (lay.items && CardLines.fields) lines.push(...CardLines.fields(lay, ref));
     if (bins) {
       lines.push(`Bins: ${bins} bins, zoom in to see them`);
       const sa = lay.systems[lay.stemSystem[a]];
       const sb = lay.systems[lay.stemSystem[b]];
-      lines.push(...perLayer(lay, sa, lay.stemStart[a], lay.stemEnd[a], sb, lay.stemStart[b], lay.stemEnd[b]));
+      if (CardLines.perLayer)
+        lines.push(
+          ...CardLines.perLayer(lay, sa, lay.stemStart[a], lay.stemEnd[a], sb, lay.stemStart[b], lay.stemEnd[b]),
+        );
     }
     return lines;
   }
@@ -175,7 +111,8 @@ export function describeRondo(hit: LayerPlace, lay: RondoLay): readonly string[]
       lines.push(
         `Fan: +${Math.round(lay.stemFan[ref]).toLocaleString('en-US')} weaker links to ${lay.stemFanTo[ref]} stems`,
       );
-    lines.push(...perLayer(lay, lay.systems[lay.stemSystem[ref]], lay.stemStart[ref], lay.stemEnd[ref]));
+    if (CardLines.perLayer)
+      lines.push(...CardLines.perLayer(lay, lay.systems[lay.stemSystem[ref]], lay.stemStart[ref], lay.stemEnd[ref]));
     return lines;
   }
   return undefined;
