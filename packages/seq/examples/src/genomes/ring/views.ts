@@ -6,7 +6,7 @@
 
 import type { Node } from '@molstar/core/repr/tree';
 import type { SeqRegistryEntry } from '@molstar/seqx-core/context';
-import { delayedRuntime, type StoreClock } from '@molstar/seqx-core/data';
+import { delayedRuntime, type FormatRuntime, type StoreClock } from '@molstar/seqx-core/data';
 import { assembly, createSeqSpec } from '@molstar/seqx-core/lang';
 import { BedFormats, BedRuntime } from '@molstar/seqx-core/runtimes/bed';
 import { rondo, rondoRing } from '@molstar/seqx-ext-rondo';
@@ -98,11 +98,42 @@ export function withInclude(root: Node, include: readonly string[]): Node {
 }
 
 /**
+ * The cytobands file lists hg38's 711 sequences (alternates, unplaced contigs, chrM); the ring's assembly is GRCh38's 24
+ * chromosomes, so opened as it is, the file says once that it names 687 sequences the assembly lacks (an info, right
+ * where a reader of the whole file is shown it: Features/Genome Coordinates). The ring reads the chromosomes' bands
+ * alone: its runtime lists the 24 and serves nothing else, so the showcase settles with no issue of its data.
+ */
+function primaryBands(runtime: FormatRuntime): FormatRuntime {
+  const names = new Set(Grch38Chromosomes.map((c) => c.name));
+  return {
+    ...runtime,
+    open: async (source, ctx) => {
+      const opened = await runtime.open(source, ctx);
+      if (source.uri !== CytobandsFile) return opened;
+      const c = opened.coverage;
+      // the listing and its shapes: a shape names its system
+      const coverage = {
+        ...c,
+        systems: c.systems.filter((s) => names.has(s.name)),
+        shapes: c.shapes.filter((sh) => names.has(sh.system)),
+      };
+      // a source may be a class: its methods kept by name, never by a spread
+      return {
+        coverage,
+        ...(opened.issues ? { issues: opened.issues } : {}),
+        read: (request, signal) => opened.read(request, signal),
+        dispose: () => opened.dispose(),
+      };
+    },
+  };
+}
+
+/**
  * What the views need besides the default registry: the `bed` runtime (BEDPE, the cytobands), the cytobands read from
- * their recording, each answer after `delayMs` (150) on `clock`.
+ * their recording (their chromosomes alone: `primaryBands`), each answer after `delayMs` (150) on `clock`.
  */
 export function registry(options: { readonly delayMs?: number; readonly clock?: StoreClock } = {}): SeqRegistryEntry[] {
-  const runtime = delayedRuntime(withRecordedPages(BedRuntime, RecordedFiles), {
+  const runtime = delayedRuntime(primaryBands(withRecordedPages(BedRuntime, RecordedFiles)), {
     name: 'bed-ring',
     formats: BedFormats,
     delayMs: options.delayMs ?? 150,

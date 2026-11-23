@@ -194,4 +194,15 @@ describe('Genome ring stories, headless', () => {
     for (const f of lf) if (df.has(f)) shared++;
     expect(shared).toBeLessThan(lf.size / 2);
   });
+
+  it('the showcase settles with no issue: the cytobands read for the assembly’s chromosomes alone', async () => {
+    const said = (v: SeqViewer) =>
+      [...v.modelIssues.value, ...v.layoutIssues.value, ...v.store.issues.value].map((i) => `${i.code}: ${i.message}`);
+    for (const id of ['ring', 'ring-chromosome', 'ring-pair', 'ring-two-assemblies', 'ring-crowded']) {
+      const v = await open(ringStoryView(id), Rondo, 5000);
+      await vi.advanceTimersByTimeAsync(2000);
+      v.draw();
+      expect(said(v), id).toEqual([]);
+    }
+  });
 });
