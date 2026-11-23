@@ -11,7 +11,7 @@ import { Particle, type ParticleList, type ParticleTarget } from '@molstar/model
 import { ParticleNesting } from '@molstar/model/model/particles/particle-nesting';
 import { writeParticlePack } from '@molstar/model/formats/particles/pack';
 import { PluginContext } from '@molstar/plugin/context';
-import { ParticleListFromPackStream } from '../pack.js';
+import { getPackStreamRead, ParticleListFromPackStream } from '../pack.js';
 
 // A nested pack's by-range transform where no GPU cull draws it (a session restored on WebGL, no canvas): read whole
 
@@ -65,8 +65,25 @@ describe('a nested particle pack by range', () => {
       expect(template.count).toBe(300);
       expect(Particle.getDeferred(template)).toBeUndefined();
       expect(list.obj!.description).toBe('Particle Pack');
+      // read whole by its params too (a backend without the GPU's cull: `getPackStreamRead`)
+      const whole = await plugin
+        .build()
+        .toRoot()
+        .apply(ParticleListFromPackStream, { source: { name: 'file', params: file }, read: 'whole' })
+        .commit();
+      expect(Particle.getDeferred(ParticleNesting.getTemplate(whole.data!, 0)!.particles)).toBeUndefined();
     } finally {
       plugin.dispose();
     }
+  });
+
+  it('is read again after a backend change as the new backend draws it', () => {
+    // the GPU's cull gone: its templates not read read whole, a list read whole as it is
+    expect(getPackStreamRead(false, 'range', true)).toBe('whole');
+    expect(getPackStreamRead(false, 'range', false)).toBeUndefined();
+    expect(getPackStreamRead(false, 'whole', false)).toBeUndefined();
+    // the cull back: read whole for it by range again, one read by range as it is
+    expect(getPackStreamRead(true, 'whole', false)).toBe('range');
+    expect(getPackStreamRead(true, 'range', true)).toBeUndefined();
   });
 });

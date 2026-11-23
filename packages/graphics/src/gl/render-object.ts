@@ -51,6 +51,7 @@ import type { StorageBuffer } from './compute.js';
 import { ValueCell } from '@molstar/core/util/value-cell';
 import { applyPendingGrid, type InstanceGridValues } from './transform-parts.js';
 import {
+  canCullOnGpu,
   canMergeValues,
   createMergedValues,
   isMergeableType,
@@ -299,7 +300,9 @@ function forEachCell(o: GraphicsRenderObject, f: (cell: ValueCell<unknown>) => v
     // own keys: a record's prototype may be its object's shared values (`UnitsMergedVisual`), walked once as `o.values`
     for (const k of Object.keys(values)) {
       const cell = (values as Record<string, ValueCell<unknown> | undefined>)[k];
-      if (cell?.ref) f(cell);
+      // a lazy value (a getter: a page store's `aSegment`, its every instance's, gigabytes for a template's copies) not
+      // read: computed on the CPU where drawn so, never a texture or a buffer
+      if (cell?.ref && !Object.getOwnPropertyDescriptor(cell.ref, 'value')?.get) f(cell);
     }
   };
   if (isMergedRenderObject(o)) for (const r of o.merged.records) add(r);
@@ -371,6 +374,9 @@ export function createForeignResourcesCheck() {
  * storage buffers are of another context, which their producers create again
  */
 export function transferTextures(o: GraphicsRenderObject, graphics: GraphicsContext): boolean {
+  // a page store's object drawn by the GPU's cull alone (its instances the culler's): none on `graphics`, its visual
+  // makes what it draws there
+  if (isMergedRenderObject(o) && o.merged.source?.paged && !canCullOnGpu(graphics)) return false;
   // the gaussian splats' order on the GPU: the renderer's, sorted again on `graphics`, not the object's own data
   if (o.type === 'gaussian-splats') releaseForeignSplatOrder(o.values as GaussianSplatsValues, graphics.compute);
   let complete = !hasForeignBuffers(o, graphics);

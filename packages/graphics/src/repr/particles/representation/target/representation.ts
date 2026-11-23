@@ -189,10 +189,13 @@ export function ParticleTargetRepresentation(
     // copies expanded on the CPU only where drawn so; again with the props (a geometry the store does not draw)
     if (_list) {
       // drawn by its copies' poses where the vertex stage composes them (`expanded.ts`, WebGL2)
+      // a template not read (a pack opened by range) without the GPU's cull: not flattened (its particles not there),
+      // drawn as nothing by the task till it is read whole
       _particles =
         ParticleNesting.hasTemplates(_list) &&
         !(canCullOnGpu(graphics) && isNestedPagedDrawable(_list, _props, graphics)) &&
-        !(!canCullOnGpu(graphics) && canExpandTemplates(graphics))
+        !(!canCullOnGpu(graphics) && canExpandTemplates(graphics)) &&
+        !hasUnreadTemplates(_list)
           ? ParticleNesting.flatten(_list)
           : _list;
     }
@@ -272,6 +275,18 @@ export function ParticleTargetRepresentation(
       if (slots) {
         slots.destroy();
         slots = undefined;
+      }
+      // its templates not read (a pack opened by range, the GPU's cull gone: another backend) drawn as nothing, not
+      // refused: the plugin reads the pack whole then (`ParticleListFromPackStream`), its list drawn again
+      if (nested && hasUnreadTemplates(particles)) {
+        for (const visual of targetVisuals.values()) visual.destroy();
+        targetVisuals.clear();
+        expandedVisuals.clear();
+        mergedByType.clear();
+        renderObjects.length = 0;
+        drawn = undefined;
+        updated.next(version++);
+        return;
       }
       if (nested) {
         await updateExpanded(runtime, particles);
@@ -958,4 +973,9 @@ function getSlotsTheme(theme: Theme, list: ParticleList): Theme {
   };
   slotsThemes.set(theme, { list, theme: next });
   return next;
+}
+
+/** whether `list`'s templates are not all read (`Particle.DeferredParticles`: a pack opened by range) */
+function hasUnreadTemplates(list: ParticleList) {
+  return ParticleNesting.hasTemplates(list) && getTemplates(list).some((t) => !!Particle.getDeferred(t));
 }

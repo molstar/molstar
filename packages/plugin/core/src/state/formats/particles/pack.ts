@@ -18,6 +18,7 @@ import { DataFormatProvider } from '@molstar/plugin/state/formats/provider';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 import { Asset } from '@molstar/core/util/assets';
+import { Particle, type ParticleList } from '@molstar/model/model/particles/particle-list';
 import {
   isParticlePackListStreamable,
   isParticlePackStreamable,
@@ -61,7 +62,9 @@ type ParticleListFromPackStream = typeof ParticleListFromPackStream;
 /**
  * The nested list of a pack read by range (`openParticleListFromPackStream`): its top list and its templates' runs,
  * tile directories and coarse levels read, their particles read by page as the GPU's cull wants them (WebGPU's
- * nested draw: what reads all of a template's particles refuses it, read whole then)
+ * nested draw: what reads all of a template's particles refuses it, read whole then). Read whole where the GPU's cull
+ * is not there (`read: 'whole'`, or none at apply); the backend changed, by range or whole again as it can be drawn
+ * (`syncPackStreams`)
  */
 const ParticleListFromPackStream = PluginStateTransform.BuiltIn({
   name: 'particle-list-from-pack-stream',
@@ -78,9 +81,18 @@ const ParticleListFromPackStream = PluginStateTransform.BuiltIn({
       file: PD.File({ accept: '.mspk' }),
     }),
     label: PD.Optional(PD.Text('')),
+    read: PD.Select<'range' | 'whole'>(
+      'range',
+      [
+        ['range', 'By range'],
+        ['whole', 'Whole'],
+      ],
+      { isHidden: true, description: "Read whole: the backend's (no GPU cull to draw it by range)." },
+    ),
   },
 })({
   apply({ params, cache }, plugin: PluginContext) {
+    syncPackStreams(plugin);
     return Task.create('Read Particle Pack by range', async () => {
       const read = await getHeldParticlePackSource(
         params.source,
@@ -90,7 +102,7 @@ const ParticleListFromPackStream = PluginStateTransform.BuiltIn({
       );
       // no GPU cull to draw it by range (a session restored on WebGL, a canvas without one): read whole, as a pack
       // opened without range reads is
-      if (!canCullOnGpu(plugin.canvas3d?.graphics)) {
+      if (params.read === 'whole' || !canCullOnGpu(plugin.canvas3d?.graphics)) {
         plugin.log.warn('Particle pack: read whole, its templates not drawn by range without WebGPU');
         const list = createParticleListFromPack(readParticlePack(await read.read(0, read.byteLength)));
         const label = params.label || list.label || 'Particles';
@@ -106,6 +118,54 @@ const ParticleListFromPackStream = PluginStateTransform.BuiltIn({
     if (held) plugin.managers.asset.delete(held);
   },
 });
+
+/** whether `list`'s templates are not all read (a pack opened by range: `Particle.DeferredParticles`) */
+function hasUnreadTemplates(list: ParticleList) {
+  for (const t of list.targetMapping?.values() ?? [])
+    if (t.kind === 'particles' && Particle.getDeferred(t.particles)) return true;
+  return false;
+}
+
+/**
+ * How a pack read by range (`ParticleListFromPackStream`) is read again after a backend change: whole where its
+ * templates are not read and the GPU's cull is gone, by range again where it was read whole for that and the cull is
+ * back; undefined: as it is
+ */
+export function getPackStreamRead(culls: boolean, read: 'range' | 'whole', unread: boolean) {
+  if (!culls && unread) return 'whole';
+  if (culls && read === 'whole') return 'range';
+  return undefined;
+}
+
+/** the plugins whose backend changes `syncPackStreams` follows */
+const syncedPlugins = new WeakSet<PluginContext>();
+
+/**
+ * Once a plugin: its backend changed, each pack read by range (`ParticleListFromPackStream`) read again as it can be
+ * drawn: whole where its templates are not read and the GPU's cull is gone (their particles what another backend
+ * draws: it drew nothing, not refused), by range again where it was read whole for that and the cull is back
+ */
+function syncPackStreams(plugin: PluginContext) {
+  if (syncedPlugins.has(plugin)) return;
+  syncedPlugins.add(plugin);
+  plugin.events.canvas3d.backendChanged.subscribe(() => {
+    const culls = canCullOnGpu(plugin.canvas3d?.graphics);
+    const state = plugin.state.data;
+    const update = state.build();
+    let changed = false;
+    for (const cell of state.cells.values()) {
+      if (cell.transform.transformer !== ParticleListFromPackStream) continue;
+      const params = cell.transform.params as { readonly read?: 'range' | 'whole' };
+      const list = cell.obj?.data as ParticleList | undefined;
+      const read = getPackStreamRead(culls, params.read ?? 'range', !!list && hasUnreadTemplates(list));
+      if (!read) continue;
+      update.to(cell.transform.ref).update({ ...params, read });
+      changed = true;
+    }
+    if (!changed) return;
+    plugin.runTask(state.updateTree(update)).catch((e) => plugin.log.error(`Particle pack: read again failed: ${e}`));
+  });
+}
 
 export const ParticlePackProvider = DataFormatProvider({
   name: 'particle_pack',
