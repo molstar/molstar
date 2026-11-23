@@ -110,6 +110,24 @@ describe('a ring in the viewer, its input through its placement', () => {
     expect(r.end).toBeCloseTo(200, 0);
   });
 
+  it('a plain wheel turns the window round the ring (a pan, as on a track) and is the view’s, never the page’s', async () => {
+    const v = await make();
+    v.view.setRange(Ring, 100, 160);
+    frames!.flush();
+    const q = pointAt(v, 130, bandY(v));
+    expect(v.input.wheel(q.x, q.y, { deltaX: 0, deltaY: 100, deltaMode: 0 })).toBe(true);
+    frames!.flush();
+    const r = v.view.get(Ring)!;
+    expect(r.start).not.toBeCloseTo(100, 0);
+    expect(r.end - r.start).toBeCloseTo(60, 6);
+    // a window already at the fit has nowhere to turn, and the wheel is still taken (as over a track at its end: a pan
+    // never chains to the page; only a text and a tracks section past its cap do)
+    v.view.setRange(Ring, 0, Length);
+    frames!.flush();
+    const f = pointAt(v, 130, bandY(v));
+    expect(v.input.wheel(f.x, f.y, { deltaX: 0, deltaY: 100, deltaMode: 0 })).toBe(true);
+  });
+
   it('a drag along the ring selects an arc: over the origin, two runs', async () => {
     const v = await make();
     const a = pointAt(v, 590.5, bandY(v, 1));

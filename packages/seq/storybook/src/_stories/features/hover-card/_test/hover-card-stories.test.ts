@@ -10,6 +10,7 @@
 
 import { P53Views } from '@molstar/seqx-examples';
 import { HoverCardProvider } from '@molstar/seqx-viewer/behaviors';
+import type { HeadersBehavior } from '@molstar/seqx-viewer/behaviors/headers';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import { describeKeys } from '@molstar/seqx-viewer/keys';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
@@ -30,6 +31,11 @@ async function open(port: ReturnType<typeof recordingCard>['port']) {
   viewer.resize(720);
   void viewer.load(P53Views.find((v) => v.id === 'tracks')!.build());
   await vi.advanceTimersByTimeAsync(2000);
+  // the headers' lazy chunks (a dynamic import: real I/O, never on the fake clock, slow in a cold worker under load):
+  // one landing after the card shows relays the headers out, and a frame that re-laid out takes a hover's card away
+  // until it rests again (`framed(relaid)`), so the card is measured once they have landed
+  await viewer.behavior<HeadersBehavior>('headers')!.loaded();
+  await vi.advanceTimersByTimeAsync(200);
   viewer.draw();
   return viewer;
 }
@@ -42,6 +48,8 @@ describe('the hover card’s stories, headless', () => {
     const t = s.tracks[0];
     v.input.move((s.axis!.x(9) + s.axis!.x(10)) / 2, t.box.y + t.box.height / 2);
     expect(rec.calls).toHaveLength(0);
+    // the move itself asks for a chunk (the headers' icons, on the track's first hover): landed before the clock runs
+    await v.behavior<HeadersBehavior>('headers')!.loaded();
     await vi.advanceTimersByTimeAsync(600);
     expect(rec.calls).toHaveLength(1);
     const { card, place } = rec.calls[0];

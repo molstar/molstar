@@ -276,6 +276,13 @@ export class SeqViewer extends ReactiveModel {
       opensComplexes(m) ? store.overlayOf(m) : EmptyOverlay,
     );
     const view = (this.view = new ViewModel(spec, config, context.kinds, overlay));
+    // a step back or forward over a change of the blocks shown writes them again (one step of the spec's history)
+    view.setIncludeWriter((address, include) => {
+      void this.execute(
+        'section.include',
+        include === undefined || include === null ? { address } : { address, include },
+      );
+    });
     // a section's moves are its layout's arithmetic over its placement in the last frame (_spec/README.md "ViewModel")
     view.setLayoutSource({
       placement: (section) => this.placementOf(section),

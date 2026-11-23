@@ -442,6 +442,27 @@ function onAssembly(
   return false;
 }
 
+/**
+ * The block of a system a position is on, for a place that names no block (an extension's hit): of the blocks on the
+ * system, the first whose ranges hold the position (one system in two blocks: a repeated chromosome, a split range);
+ * -1 when none is on it.
+ */
+export function blockUnder(
+  blocks: readonly { readonly axis: { readonly system: string; readonly ranges?: readonly number[] } }[],
+  system: string,
+  position: number,
+): number {
+  let first = -1;
+  for (let k = 0; k < blocks.length; k++) {
+    if (blocks[k].axis.system !== system) continue;
+    if (first < 0) first = k;
+    const r = blocks[k].axis.ranges;
+    if (!r) continue;
+    for (let i = 0; i + 1 < r.length; i += 2) if (position >= r[i] && position < r[i + 1]) return k;
+  }
+  return first;
+}
+
 /** The row's value for a position a numbering has no label for (the ruler's note, `unnumbered`). */
 export const NotNumbered = 'not numbered';
 
@@ -491,7 +512,10 @@ const PlaceSection: CardProviderEntry = {
       out.row(label, value);
       out.words.push(`${label} ${value}`);
     }
-    const items = w.itemsAt(at.section, position);
+    // the block the place is on: the hit's, else the one of its system (a ribbon's hit names no block, its place a system)
+    const blocks = at.section.section.blocks;
+    const block = p.block ?? (blocks ? blockUnder(blocks, system, position) : -1);
+    const items = w.itemsAt(at.section, position, undefined, block >= 0 ? block : undefined);
     for (const it of items) out.row(it.label, it.extent, true);
     if (items.length) out.words.push(`items: ${items.map((i) => `${i.label}, ${i.extent}`).join('; ')}`);
   },

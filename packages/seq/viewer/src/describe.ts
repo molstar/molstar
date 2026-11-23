@@ -350,9 +350,41 @@ class Words implements CardReads {
 
   /**
    * The items of a section at a position: its tracks' layers' items under the position's x; an item across a cyclic
-   * origin (its two `runs`) by its runs, never by its drawn x span (the complement of what it covers).
+   * origin (its two `runs`) by its runs, never by its drawn x span (the complement of what it covers). On a section of
+   * blocks (a ring's chromosomes) the position is on the block's own strip: its lays' items, never the template's (the
+   * first block's axis). One item seen by two layers (a ring's cytobands and its hue ring) is one row.
    */
-  itemsAt(section: SectionLayout, position: number, only?: LayerLayout): { label: string; extent: string }[] {
+  itemsAt(
+    section: SectionLayout,
+    position: number,
+    only?: LayerLayout,
+    block?: number,
+  ): { label: string; extent: string }[] {
+    const out: { label: string; extent: string }[] = [];
+    // by the item's identity (its data and its key): the same item seen through two layers is one row, two distinct
+    // items that share a label and an extent are two
+    const seen = new Set<string>();
+    const add = (label: string, extent: string, id: string) => {
+      if (seen.has(id)) return;
+      seen.add(id);
+      out.push({ label, extent });
+    };
+    const st = section.placement.strips;
+    if (block !== undefined && section.section.blocks) {
+      const axisSystem = section.section.blocks[block]?.axis.system ?? section.section.axis.system;
+      for (let i = 0; i < st.n; i++) {
+        if (st.block[i] !== block) continue;
+        const axis = st.axes[i];
+        const x = (axis.x(position) + axis.x(position + 1)) / 2;
+        if (!Number.isFinite(x)) continue;
+        for (let b = 0; b < st.bands; b++)
+          for (const l of section.lays[i * st.bands + b] ?? []) {
+            if (only && l.key !== only.key) continue;
+            this._itemsOn(l, axisSystem, position, x, add);
+          }
+      }
+      return out;
+    }
     const axis = section.axis;
     if (!axis) return [];
     const a = axis.x(position);
@@ -360,20 +392,31 @@ class Words implements CardReads {
     if (!Number.isFinite(a) || !Number.isFinite(b)) return [];
     const x = (a + b) / 2;
     const axisSystem = section.section.axis.system;
-    const out: { label: string; extent: string }[] = [];
     for (const t of section.tracks)
       for (const l of t.layers) {
         if (only && l !== only) continue;
-        const data = l.layer.data?.system;
-        const own = (it: ItemDescription) => (it.system ?? data ?? section.section.axis.system) === axisSystem;
-        for (const it of this.itemsOf(l))
-          if (it.y === undefined && (it.runs ? own(it) && inRuns(it.runs, position) : it.x0 <= x && x <= it.x1))
-            out.push({
-              label: it.label,
-              extent: `${this.systemName(it.system ?? data ?? section.section.axis.system)} ${extentText(it)}`,
-            });
+        this._itemsOn(l, axisSystem, position, x, add);
       }
     return out;
+  }
+
+  /** A layer's items without a row of their own under a position of a system (at x on the axis drawn). */
+  private _itemsOn(
+    l: LayerLayout,
+    axisSystem: string,
+    position: number,
+    x: number,
+    add: (label: string, extent: string, id: string) => void,
+  ): void {
+    const data = l.layer.data?.system;
+    const own = (it: ItemDescription) => (it.system ?? data ?? axisSystem) === axisSystem;
+    for (const it of this.itemsOf(l))
+      if (it.y === undefined && (it.runs ? own(it) && inRuns(it.runs, position) : it.x0 <= x && x <= it.x1))
+        add(
+          it.label,
+          `${this.systemName(it.system ?? data ?? axisSystem)} ${extentText(it)}`,
+          `${l.layer.data?.address ?? l.key}\u0000${it.key}\u0000${it.system ?? ''}`,
+        );
   }
 
   /** The letter a letters layer of the section shows at a position (none while it is not loaded). */
