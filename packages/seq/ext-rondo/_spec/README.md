@@ -89,12 +89,16 @@ waiting; its entries `StemMenu` in `viewer.ts`).
   a hue a block, never compiled: a stem its block's, a ribbon its `a` stem's, a stub its partner's (`rondo:hues`, else
   the categorical tokens, by the systems' order). **A fixed colour**: every polygon in it (stems, ribbons, stubs, fans,
   a folded stub). **Another field** (`type`, any form over the links' fields) is read link by link, and kinds are
-  layers, never mixed inside one ribbon: at the item level a stem pair's links split into a ribbon a colour (its key the
-  colour's hex after the strand); at the bins level a bin sums its links whatever their values, so the layer has one
-  colour: the value every link read shares (a layer filtered to one kind), else the ranges' ink (`seq-range`) and
-  `rondo.ribbons.color` (info, once). Stems, stubs and fans take the layer's one colour (the ink when its links' values
-  are mixed). Why: a bin's count is every link's in it; a colour a value would need a bin a value, which is a layer a
-  value.
+  layers, never mixed inside one ribbon: where every row read gives the field (items; held bins, which are split by
+  `type`) a stem pair's rows split into a ribbon a colour (its key the colour's hex after the strand; past 64 colours in
+  one pair the last share a ribbon and `rondo.ribbons.colors` says so); where the rows carry none (bins by another
+  field, a source's bins, which carry no fields) the layer has one colour, the ranges' ink (`seq-range`),
+  `rondo.ribbons.color` (info) says so and the legend names it
+  (`<label> (bins in one colour: <field> read link by link)`). The issue follows the level read: at the item level every
+  link has its colour, so it is said only while such bins are drawn. Stems, stubs and fans take the layer's one colour
+  (the ink when its links' values differ). The scan of a field's colours is kept by the read and the channel: a warm
+  layout scans none. Why: a bin's count is every link's in it; a colour a value needs a bin a value, which held bins
+  have for `type` and nothing else.
 - **`opacity`** (its channel's uniform value) scales `ribbons.fillOpacity`: a faint layer under a strong one.
 - **The legend** (`LayerType.legend`): a field colour its channel's values (core's `channelLegends`); a fixed colour one
   swatch named by the layer's `label` (else its track's); a labelled layer in the hues one swatch "`<label>` (chromosome

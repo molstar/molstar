@@ -15,8 +15,7 @@ import type { RondoLay, RondoPrep } from './lay.js';
 /** How the layer is coloured (_spec/README.md, Colour): its blocks' hues, one colour, or a field's colour a link. */
 export const ColorMode = { system: 0, fixed: 1, field: 2 } as const;
 
-/** This layout's rows' colours (a field colour's) and weights, as `colorsOf` and `weightsOf` left them. */
-export const rowColors = (): Uint32Array => RowColor;
+/** This layout's rows' weights, as `weightsOf` left them. */
 export const rowWeights = (): Float64Array => RowW;
 /** A layout's colour classes start again (a ribbon's key reads its colour's class). */
 export const clearClasses = () => ColorClass.clear();
@@ -34,12 +33,16 @@ export function peersOf(lay: RondoLay, ctx: LayoutContext) {
   lay.peers = list;
 }
 
-/** Each row's colour (a field colour), its ribbon's colour class by colour, made a layout; kept buffers. */
-let RowColor = new Uint32Array(256);
+/** A ribbon's colour class by colour (64 at most in a stem pair's key), made a layout. */
 const ColorClass = new Map<number, number>();
-export const classOf = (c: number) => {
+/** The classes a key holds: past them, colours share a class (their ribbons merged) and the layer says so. */
+export const MaxColorClasses = 64;
+export const classOf = (lay: RondoLay, c: number) => {
   let k = ColorClass.get(c);
-  if (k === undefined) ColorClass.set(c, (k = Math.min(63, ColorClass.size)));
+  if (k === undefined) {
+    if (ColorClass.size >= MaxColorClasses) lay.classOverflow = true;
+    ColorClass.set(c, (k = Math.min(MaxColorClasses - 1, ColorClass.size)));
+  }
   return k;
 };
 
@@ -49,16 +52,17 @@ const PairEnds = new Set(['a_start', 'a_end', 'b_start', 'b_end']);
 
 /**
  * The layer's colour (_spec/README.md, Colour): absent or by `system`, the blocks' hues; a fixed colour, every polygon's;
- * another field (`type`) read link by link: at the item level each ribbon its links' colour (a stem pair split by
- * colour), at the bins level the layer's one colour, its value when every link read shares it, else the ranges' ink and
- * `rondo.ribbons.color` said (a bin sums links of several values). The `opacity` channel's uniform value scales the
- * fill.
+ * another field read link by link. Where every row read gives the field (items; held bins, split by `type`), each
+ * ribbon its rows' colour (a stem pair split by colour); where the rows carry none (bins of another field, a source's
+ * bins) the layer's one colour, the ranges' ink when its values may differ, `rondo.ribbons.color` said and the legend
+ * saying so. The scan is kept by the read and the channel (a warm layout does it once). `opacity` scales the fill.
  */
 export function colorsOf(lay: RondoLay, prep: RondoPrep, ctx: LayoutContext, read: PairsRead) {
   lay.mode = ColorMode.system;
   lay.channel = undefined;
   lay.one = -1;
   lay.byRow = false;
+  lay.inkBins = false;
   const channels = prep.source.channels;
   const o = channels.get('opacity', 1, ctx).constant;
   lay.opacity = typeof o === 'number' && o >= 0 ? Math.min(1, o) : 1;
@@ -77,28 +81,45 @@ export function colorsOf(lay: RondoLay, prep: RondoPrep, ctx: LayoutContext, rea
     return;
   }
   lay.mode = ColorMode.field;
-  const datum = (read as PairsSource).datum;
   const ink = ctx.tokens.colors['seq-range'];
-  RowColor = grow(RowColor, d.n);
-  let first = -1;
-  let mixed = false;
-  for (let k = 0; k < d.n; k++) {
-    if (!read.shown[k]) continue;
-    const v = datum ? c.at(datum.set(k)) : undefined;
-    const col = typeof v === 'number' ? v >>> 0 : ink;
-    RowColor[k] = col;
-    if (first < 0) first = col;
-    else if (col !== first) mixed = true;
+  if (lay.colorRead !== read || lay.colorKept !== c) {
+    lay.colorRead = read;
+    lay.colorKept = c;
+    const datum = (read as PairsSource).datum;
+    lay.rowColor = grow(lay.rowColor, d.n);
+    let first = -1;
+    let mixed = false;
+    let readable = c.field !== undefined && !!datum;
+    for (let k = 0; k < d.n; k++) {
+      if (!read.shown[k]) continue;
+      if (readable) {
+        const x = datum!.set(k).field(c.field!);
+        if (x === undefined || x === null || x === '') readable = false;
+      }
+      const v = datum ? c.at(datum.set(k)) : undefined;
+      const col = typeof v === 'number' ? v >>> 0 : ink;
+      lay.rowColor[k] = col;
+      if (first < 0) first = col;
+      else if (col !== first) mixed = true;
+    }
+    lay.colorFirst = first;
+    lay.colorMixed = mixed;
+    // items always read their own fields; bins only where they carry the field (held bins: `type`)
+    lay.colorReadable = lay.items || readable;
   }
-  lay.one = first < 0 || mixed ? ink : first;
-  lay.byRow = lay.items && mixed;
-  if (mixed && !lay.items)
-    ctx.report({
-      code: 'rondo.ribbons.color',
-      severity: 'info',
-      message: `A colour by ${c.field ?? 'a field'} is read link by link: the bins sum links of several values, drawn in one colour`,
-      address: ctx.key,
-    } as never);
+  if (lay.colorReadable) {
+    lay.byRow = lay.colorMixed;
+    lay.one = lay.colorFirst < 0 || lay.colorMixed ? ink : lay.colorFirst;
+    return;
+  }
+  lay.one = ink;
+  lay.inkBins = true;
+  ctx.report({
+    code: 'rondo.ribbons.color',
+    severity: 'info',
+    message: `A colour by ${c.field ?? 'a form over the links'} is read link by link: these bins carry no ${c.field ?? 'field'}, drawn in one colour`,
+    address: ctx.key,
+  } as never);
 }
 
 /** Each row's weight (`width`): its count, or the field summed (a held bin's sum, an item's value), kept. */

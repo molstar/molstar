@@ -17,7 +17,7 @@ import {
   type StaticModel,
   type StoreReader,
 } from '@molstar/seqx-core/extension';
-import { ColorMode, classOf, clearClasses, colorsOf, peersOf, rowColors, rowWeights, weightsOf } from './colour.js';
+import { ColorMode, classOf, clearClasses, colorsOf, peersOf, rowWeights, weightsOf } from './colour.js';
 import { composedConfig, DefaultRondoConfig, type RondoConfig } from './config.js';
 import { grow, Polygons, RibbonFrame } from './geometry.js';
 import { hueColors } from './hues.js';
@@ -103,6 +103,17 @@ export class RondoLay {
   one = -1;
   /** A field colour read link by link (items, its values mixed): each ribbon its links' colour. */
   byRow = false;
+  /** Its bins carry not the field it is coloured by: one colour (the ink), said, and the legend says so. */
+  inkBins = false;
+  /** More colours than a stem pair's key holds (`MaxColorClasses`): some ribbons merged, said. */
+  classOverflow = false;
+  /** Each row's colour, and the read and channel it was scanned for (kept: a warm layout scans none). */
+  rowColor = new Uint32Array(64);
+  colorRead: unknown = undefined;
+  colorKept: unknown = undefined;
+  colorFirst = -1;
+  colorMixed = false;
+  colorReadable = false;
   /** The layer's `opacity` (its channel's uniform value), a factor of `ribbons.fillOpacity`. */
   opacity = 1;
   /** Its name (`label`) and what it is wide by (`count`, or a field summed). */
@@ -540,7 +551,8 @@ function aggregate(lay: RondoLay, read: PairsRead) {
   const d = read.data!;
   const w = read.weight;
   const W = rowWeights();
-  const RowColor = rowColors();
+  const RowColor = lay.rowColor;
+  lay.classOverflow = false;
   RibbonKeys.clear();
   clearClasses();
   StubKeys.clear();
@@ -567,7 +579,7 @@ function aggregate(lay: RondoLay, read: PairsRead) {
       const first = lay.stemSystem[a] < lay.stemSystem[b] || (lay.stemSystem[a] === lay.stemSystem[b] && a < b) ? a : b;
       const strand = d.aStrand[k] * d.bStrand[k] < 0 ? -1 : 1;
       // a field colour by link: one ribbon a stem pair, a strand and a colour (kinds are layers, never mixed in a ribbon)
-      const key = ((lo * 1048576 + hi) * 2 + (strand < 0 ? 1 : 0)) * 64 + (lay.byRow ? classOf(RowColor[k]) : 0);
+      const key = ((lo * 1048576 + hi) * 2 + (strand < 0 ? 1 : 0)) * 64 + (lay.byRow ? classOf(lay, RowColor[k]) : 0);
       let r = RibbonKeys.get(key);
       if (r === undefined) {
         r = lay.nr++;

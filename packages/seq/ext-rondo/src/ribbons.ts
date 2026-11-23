@@ -224,11 +224,17 @@ function emphasized(lay: RondoLay, pass: PassName, out: PassWriter, emphasis: Em
  * an unnamed one in the hues none (the hue ring keys them).
  */
 function legendRondo(lay: RondoLay, options: { readonly title: string }): readonly Legend[] {
-  if (lay.mode === ColorMode.field) return channelLegends([lay.channel], { title: options.title, layer: lay.key });
+  // a field's values, unless these bins carry none (drawn in one colour): then the legend says that
+  if (lay.mode === ColorMode.field && !lay.inkBins)
+    return channelLegends([lay.channel], { title: options.title, layer: lay.key });
   if (lay.mode === ColorMode.system && !lay.label) return [];
-  const fixed = lay.mode === ColorMode.fixed;
+  const fixed = lay.mode !== ColorMode.system;
   const name = lay.label || options.title;
-  const label = fixed ? name : `${name} (chromosome hues)`;
+  const label = lay.inkBins
+    ? `${name} (bins in one colour: ${lay.channel?.field ?? 'the colour'} read link by link)`
+    : fixed
+      ? name
+      : `${name} (chromosome hues)`;
   const color = fixed ? lay.one : lay.hues[0];
   return [
     {
@@ -293,6 +299,13 @@ export function ribbonsType(config: RondoConfig = DefaultRondoConfig): LayerType
     layout(prep, ctx, data, _overlay, prev) {
       const lay = prev ?? new RondoLay();
       layoutRondo(lay, prep, ctx, data);
+      if (lay.classOverflow)
+        ctx.report({
+          code: 'rondo.ribbons.colors',
+          severity: 'warning',
+          message: 'More than 64 colours meet in one pair of stems: the ribbons of the last ones are drawn as one',
+          address: ctx.key,
+        } as never);
       if (lay.regionBins)
         ctx.report({
           code: 'rondo.ribbons.filter',

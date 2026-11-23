@@ -10,7 +10,7 @@
 // colour, the ranges' ink and `rondo.ribbons.color` said when the links' values are mixed; `opacity` scales the fill.
 
 import { theme } from '@molstar/seqx-core/lang';
-import { LightTokens } from '@molstar/seqx-core/render';
+import { LightTokens, viewLegends } from '@molstar/seqx-core/render';
 import { describe, expect, it } from 'vitest';
 import { ColorMode, Kind, type RondoLay } from '../lay.js';
 import { lay, ringSpec, Size, settle, toyChromosomes, toyLinks } from './helpers.js';
@@ -85,15 +85,58 @@ describe('a ribbons layer’s colour', () => {
     expect(f.layout.issues.filter((i) => i.code === 'rondo.ribbons.color')).toEqual([]);
   });
 
-  it('a field at the bins level, its values mixed: the layer’s one colour (the ranges’ ink), said once', async () => {
+  it('held bins coloured by `type`: split by it, each ribbon its type’s colour, nothing said', async () => {
     const { f, l } = await frame({ links: toyLinks(chroms, 3000, 3), layer: { color: byType } });
     expect(l.items).toBe(false);
-    expect(l.byRow).toBe(false);
+    expect(l.byRow).toBe(true);
+    expect(colours(l, Kind.ribbon)).toEqual(new Set([Blue, Red]));
+    const d = l.read!.data!;
+    for (let r = 0; r < l.nr; r++)
+      expect(rgb(l.ribColor[r])).toBe(d.kinds[d.kind[l.ribRow[r]]] === 'contact' ? Blue : Red);
+    expect(f.layout.issues.filter((i) => i.code === 'rondo.ribbons.color')).toEqual([]);
+  });
+
+  it('bins that carry not the colour’s field (q): one colour (the ink), said once, the legend saying so', async () => {
+    const byQ = theme.field('q', { palette: theme.continuous({ colors: [`#${Blue}`, `#${Red}`] }) });
+    const s = await settle(ringSpec({ held: true, links: toyLinks(chroms, 3000, 3), layer: { color: byQ } }));
+    const f = await s.frame({ size: Size });
+    const l = lay(f)!;
+    expect(l.items).toBe(false);
     expect([...colours(l, Kind.ribbon)]).toEqual([rgb(LightTokens.colors['seq-range'])]);
-    const said = f.layout.issues.filter((i) => i.code === 'rondo.ribbons.color');
-    expect(said.map((i) => [i.severity, i.message])).toEqual([
-      ['info', 'A colour by type is read link by link: the bins sum links of several values, drawn in one colour'],
-    ]);
+    expect(f.layout.issues.filter((i) => i.code === 'rondo.ribbons.color').map((i) => [i.severity, i.message])).toEqual(
+      [['info', 'A colour by q is read link by link: these bins carry no q, drawn in one colour']],
+    );
+    const legend = viewLegends(f.layout).legends.find((x) => x.layers.includes(l.key))!;
+    expect(legend.entries.kind === 'swatches' && legend.entries.items[0].label).toBe(
+      'Links (bins in one colour: q read link by link)',
+    );
+  });
+
+  it('more colours than a stem pair’s key holds: said, never merged silently', async () => {
+    // 100 links between one pair of stems, each a kind of its own with its own colour, at the item level
+    const one = Array.from({ length: 100 }, (_, i) => ({
+      a: 0,
+      b: 1,
+      as: 1_000_000 + i,
+      bs: 1_000_000 + i,
+      type: `t${i}`,
+    }));
+    const values = one.map((l) => l.type);
+    const colors = values.map((_, i) => `#${(0x100000 + i * 0x2a3b1).toString(16).slice(-6)}`);
+    const byKind = theme.field('type', { palette: theme.categorical({ colors, values }) });
+    const s = await settle(ringSpec({ held: true, links: one, layer: { color: byKind } }));
+    const f = await s.frame({ size: Size });
+    const l = lay(f)!;
+    expect(l.items).toBe(true);
+    expect(f.layout.issues.filter((i) => i.code === 'rondo.ribbons.colors').length).toBe(1);
+  });
+
+  it('the colour’s scan kept by the read: a warm layout scans none', async () => {
+    const { l } = await frame({ links: toyLinks(chroms, 300, 3), layer: { color: byType } });
+    const kept = l.rowColor;
+    const read = l.colorRead;
+    expect(read).toBe(l.read);
+    expect(l.rowColor).toBe(kept);
   });
 
   it('a field at the bins level over one kind (a filtered layer): its value’s colour, nothing said', async () => {
