@@ -4,8 +4,8 @@
 - [x] Version 1's rows listed from `design/features.md` and `design/version-1.md`, each built, cut or deferred by the author
 - [x] The novice passes' 14 design questions answered and agreed, the three interaction groups (a layer's legend, the stem menu, the square's way home) gesture by gesture; each answer enters its design and spec with its lane
 - [x] The minimal viewer's growth: accepted as the budget, 1,090 kB (the author, 2026-11-23: "accept as is")
-- [ ] The stage 1 novice decisions F3, F9, F11, F14
-- [ ] The five feature rows out of `deferred` (all built: the evidence, then the rows moved)
+- [x] The stage 1 novice decisions F3, F9, F11, F14: one Sonnet lane, a test a decision (the author, 2026-11-23: "Yes, one lane")
+- [x] The five feature rows out of `deferred` (all built: the evidence, then the rows moved): `done`, each with its edge case tested (EC-209, 210, 222, 227, 228) and its stories
 - [ ] GATE 0: the designs agreed; this plan agreed, its lanes written in
 
 <!-- Carried items, each a lane once stage 0 places it -->
