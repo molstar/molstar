@@ -306,6 +306,46 @@ No node kind, no data shape, no format runtime (extension-openings, Part 1): RR'
   ARIA: the layer's group described by its counts in view ("612 ribbons, 23 chromosomes; strongest chr1 ↔ chr17,
   140"), set when the frame settles; ribbons not focusable one by one.
 
+### The stem menu
+
+The novice passes found it unreachable, its partners repeated with no word on what separates them, its own chromosome
+offered as a partner, and the track's actions in it (close-out, the novice questions' B; decided by the author,
+2026-11-23: "Agree as drafted").
+
+| Gesture | What it does |
+|---|---|
+| Right-click a stem | the stem menu at the pointer |
+| Right-click the ring's empty space | the browser's menu |
+| Focus a stem, Shift+F10 or the Menu key | the stem menu at the stem |
+| Hover or Right arrow on a chromosome with pieces | its submenu |
+| Click a partner (or a piece) | shows the pair, one history step |
+| Escape | closes the submenu, then the menu |
+
+- **The route**: a secondary click on a stem opens its element menu at the pointer (the viewer's, scoped to
+  `rondo:ribbons`' stems). A point of a ring that hits nothing (its hole between ribbons, the corners outside it) is no
+  track's: the browser's menu opens there. Only on a ring whose hole a section layer draws: a ring of tracks alone has
+  no header line, and its secondary click anywhere stays its tracks' menu (the track headers' design). The menu key and Shift+F10 with the keyboard
+  cursor on a stem's range (a click on the stem puts it there) open the stem menu at the stem's mouth: the viewer asks
+  an element entry for its element at the cursor (`HeaderEntry.atCursor`) before the cursor's header. Why: the menu
+  existed only pre-opened in its story, and Shift+F10 opened the track's menu (item 29, checked on the code).
+- **Partners by chromosome**: "Show with a partner ▸" lists a row a partner chromosome with its links in all, most
+  first. A chromosome reached by more than one ribbon gets a submenu of its pieces, a piece
+  being a partner stem and a strand (a stem is one bin of the stem level on one system: one contiguous run, so a band
+  range names it, checked on `RondoLay`): "q31.1–q34.2 · 379 links", "p13.3 · 2 links, reversed"; the first and last
+  cytoband the section draws over the stem's range, else its span in bases. Each row and piece shows the pair, as a
+  row did. Why: "chr9 · 375 links", "chr9 · 65 links" said nothing of what parted them (novice 8, 26).
+- **The cap is the menu's**: a level lists at most 8 rows; past them a last row "n more" opens the rest, same rows,
+  same order, so every partner the keys reach the pointer reaches too (the review: a card said "91 links to 21
+  chromosomes" and the menu listed 8).
+- **Links within**: the stem's own chromosome is never a partner: "Within chr22 · 229 links", listed last, its pieces
+  the ribbons to its other stems and the stem's own links within itself ("this stem"); it shows the chromosome alone.
+- **Only the stem's actions**: the menu holds what acts on the stem ("Show with a partner", "Select the stem and its
+  partners", "Show only chr22"). Move up, Reverse and Hide track are the track's and stay in its header's menu: the
+  stem's entries are `alone` (a viewer header entry's flag), so its element menu is theirs without the track's and the
+  section's groups.
+- **One list, two readers**: the partner keys (`.` and `,`) walk the menu's pieces in its order, so the keys and the
+  menu name partners alike.
+
 ### On other layouts
 
 - **A `tracks` row of blocks**: the same stems below the band and ribbons as filled arcs between them (the polar warp's
@@ -343,6 +383,12 @@ The ribbons fill the hole, where the ring draws its title (`rings.center: 'title
 built). Layouts' preset is **promoted to a section spec param `center`** (the same values; absent: the preset), written `none` by `rondoRing`, the
 assembly's name and length then in the section's label line. Why a spec param: the title over ribbons is the figure's
 choice, and a reader without the extension draws chords there too.
+
+**An empty hole says why** (close-out, the novice questions' G, the ring's part; decided by the author, 2026-11-23:
+"Agree as drafted"): while the links load the hole says "Loading links…", muted and centred, announced once, politely
+(the viewer's `notify`, at a rest); on a failure the issue's text (the error the links' source raised) replaces it. No
+links at all stays an empty hole ("no links" its ARIA). Why: the pending ring said nothing (novice 35). The square's
+pending state is the square's (another lane).
 
 ### Data for the showcase (no fetch in this lane)
 
@@ -429,10 +475,11 @@ Cells this design fills; the others stand as layouts, GA, RR and LX give them.
 | **a section: the genome ring** | no (its blocks or a range) | — | — | 0 fits; the label menu's "Show only" | undo returns the blocks shown | no: a ring shows its whole axis; opening a chromosome is `section.include` | no; `rotation` by patch | no: `include` by patch | `include` (patch, one undo step), `center`, `rotation` |
 | **an element: a ribbon** | click: its key hit (`ribbon:`), both ends lit | Shift+click: from the anchor end | Cmd/Ctrl+click | double-click: core's focus (the ring's window, idle unless followed); with `opens`, the pair shown there (Decided, 7) | Alt+Left; undo | — | — | no: a data filter (`count`, `type`) | no: data |
 | **an element: a stem** | click: its range | Shift+click | Cmd/Ctrl+click | double-click: as a ribbon's, the stem's block with `opens` | as above | — | — | no | no |
+| **an element: a stem's menu** (right-click; Shift+F10 or the Menu key at the cursor's stem) | "Select the stem and its partners" (one selection) | — | — | "Show with a partner ▸": a partner chromosome or a piece shown with the stem's as a pair; "Within chr22" or "Show only chr22" alone (`section.include`, one undo step) | undo | — | — | no: the track's Hide track stays in its header's menu | no: Move up and Reverse are the track's |
 | **an element: a stub** | click: its key hit (`stub:`: the stem's range, the partner's hull) | Shift+click | Cmd/Ctrl+click | double-click with `opens`: the pair | as above | — | — | `stubs: none` by patch | no |
 | **a block** (a chromosome's arc or label) | click on its label: the whole block (GA) | Shift+click | Cmd/Ctrl+click | label menu: "Show only" (`section.include`) | undo | — | — | no: `include` | no |
 | **the selection** | — | — | `rondo:select-partners`: the far ends of its ribbons | Enter: as built | Alt+Left | — | — | — | as built |
-| **the keyboard cursor** on the ring | Enter: the stem under it | Shift+arrows: as built | — | `.` and `,`: `rondo:partner`, to the next partner by count, announced | Alt+Left | — | — | — | — |
+| **the keyboard cursor** on the ring | Enter: the stem under it | Shift+arrows: as built | — | `.` and `,`: `rondo:partner`, to the next partner in the stem menu's order, announced; Shift+F10 or the Menu key: the stem menu at the stem | Alt+Left | — | — | — | — |
 | **a track or layer** (`rondo:ribbons`) | — | — | — | — | — | — | — | `layer.hidden` | `width`, `stems`, `bundle`, `stubs`, `opens` by `layer.set` (one patch) |
 | **a navigator: the square** | no | no | no | one click on a cell: show that pair at once (`navigator.switch: include`); its title or Home: show all | undo | over a ring: drag an edge or corner of the window to grow or shrink the run of blocks shown (Decided 16) | over a ring: drag the window along the diagonal to move the run shown (Decided 16) | as navigators | its params by patch |
 | **the view** | — | — | — | — | — | — | — | — | undo returns the blocks shown |

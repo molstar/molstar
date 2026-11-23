@@ -24,12 +24,15 @@ function at(n: number): string {
   return `${n}`;
 }
 
+/** A range as a span: `50–58 Mb`. */
+export function spanText(start: number, end: number): string {
+  const unit = end >= 1e6 ? ' Mb' : end >= 1e3 ? ' kb' : '';
+  return `${at(start)}–${at(end)}${unit}`;
+}
+
 /** A stem's range on its system: `chr4:50–58 Mb`. */
 function rangeText(lay: RondoLay, s: number): string {
-  const start = lay.stemStart[s];
-  const end = lay.stemEnd[s];
-  const unit = end >= 1e6 ? ' Mb' : end >= 1e3 ? ' kb' : '';
-  return `${lay.names[lay.stemSystem[s]]}:${at(start)}–${at(end)}${unit}`;
+  return `${lay.names[lay.stemSystem[s]]}:${spanText(lay.stemStart[s], lay.stemEnd[s])}`;
 }
 
 export const links = (n: number) => `${Math.round(n).toLocaleString('en-US')} link${Math.round(n) === 1 ? '' : 's'}`;
@@ -47,6 +50,8 @@ export const CardLines: {
   perLayer?: (lay: RondoLay, sysA: string, a0: number, a1: number, sysB?: string, b0?: number, b1?: number) => string[];
   /** The layer's legend (Colour, The legend). */
   legend?: (lay: RondoLay, options: { readonly title: string }) => readonly Legend[];
+  /** A range's cytobands as the viewer whose frame holds the lay draws them (`q21.3`, `q21.1–q22.3`); none: none. */
+  band?: (lay: RondoLay, system: string, start: number, end: number) => string | undefined;
 } = {};
 
 /** The card's lines for a hit of the layer: a ribbon's two stems and count, a stem's, a stub's partner. */
@@ -62,8 +67,15 @@ export function describeRondo(hit: LayerPlace, lay: RondoLay): readonly string[]
     const a = lay.ribA[ref];
     const b = lay.ribB[ref];
     const kindName = lay.kinds[lay.ribKind[ref]];
+    // both ends, each its chromosome, band and span (novice 25: the card named one end)
+    const end = (s: number) => {
+      const band = CardLines.band?.(lay, lay.systems[lay.stemSystem[s]], lay.stemStart[s], lay.stemEnd[s]);
+      return `${lay.names[lay.stemSystem[s]]}: ${band ? `${band} · ` : ''}${spanText(lay.stemStart[s], lay.stemEnd[s])}`;
+    };
     const lines = [
-      `${rangeText(lay, a)} ↔ ${rangeText(lay, b)}`,
+      `${lay.names[lay.stemSystem[a]]} ↔ ${lay.names[lay.stemSystem[b]]}`,
+      end(a),
+      end(b),
       `Links: ${links(lay.ribLinks[ref])}${kindName ? ` (${kindName})` : ''}`,
     ];
     if (lay.width !== 'count') lines.push(`Width: ${lay.width} ${valueText(lay.ribCount[ref])}`);
@@ -71,7 +83,7 @@ export function describeRondo(hit: LayerPlace, lay: RondoLay): readonly string[]
     // its links' fields (one link's own: its kind, strands, q, gene names); a bin: its count on each layer of the section
     if (lay.items && CardLines.fields) lines.push(...CardLines.fields(lay, ref));
     if (bins) {
-      lines.push(`Bins: ${bins} bins, zoom in to see them`);
+      lines.push(`${bins} bins: zoom in to see them`);
       const sa = lay.systems[lay.stemSystem[a]];
       const sb = lay.systems[lay.stemSystem[b]];
       if (CardLines.perLayer)
@@ -104,18 +116,18 @@ export function describeRondo(hit: LayerPlace, lay: RondoLay): readonly string[]
     for (let b = 0; b < lay.nb; b++)
       if (lay.stubStem[b] === ref && lay.stubPartner[b] >= 0) partners.add(lay.stubPartner[b]);
     for (let e = 0; e < lay.nf; e++) if (lay.stubStem[lay.foldOwner[e]] === ref) partners.add(lay.foldPartner[e]);
-    const lines = [
-      rangeText(lay, ref),
-      `Links: ${links(lay.stemLinks[ref])} to ${partners.size} chromosome${partners.size === 1 ? '' : 's'}`,
-    ];
+    // the first row names what it counts: this stem's links, to its one partner by name (novice 21)
+    const to = partners.size === 1 ? lay.names[partners.values().next().value!] : `${partners.size} chromosomes`;
+    const lines = [rangeText(lay, ref), `This stem: ${links(lay.stemLinks[ref])} to ${to}`];
     if (lay.width !== 'count') lines.push(`Width: ${lay.width} ${valueText(lay.stemCount[ref])}`);
     if (lay.withinLinks[ref] > 0) lines.push(`Within: ${links(lay.withinLinks[ref])}`);
     if (lay.stemFan[ref] > 0)
       lines.push(
         `Fan: +${Math.round(lay.fanLinks[ref]).toLocaleString('en-US')} weaker links to ${lay.stemFanTo[ref]} stems`,
       );
-    if (CardLines.perLayer)
-      lines.push(...CardLines.perLayer(lay, lay.systems[lay.stemSystem[ref]], lay.stemStart[ref], lay.stemEnd[ref]));
+    // each layer's links on the stem's chromosome, under a heading of their own (a row with no value)
+    const all = CardLines.perLayer?.(lay, lay.systems[lay.stemSystem[ref]], 0, Number.POSITIVE_INFINITY) ?? [];
+    if (all.length) lines.push(`${lay.names[lay.stemSystem[ref]]}, all links`, ...all);
     return lines;
   }
   return undefined;

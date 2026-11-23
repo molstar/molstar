@@ -105,10 +105,10 @@ export const TwoAssembliesOnOneRing: StoryObj = { render: () => ring('ring-two-a
  */
 export const Crowded: StoryObj = { name: 'Crowded: 3,000 Contigs', render: () => ring('ring-crowded') };
 
-/** The links pending (their answer never comes): the bands drawn, the hole's pending hatch, no stems. */
+/** The links pending (their answer never comes): the bands drawn, the hole's pending hatch and "Loading links…", no stems. */
 export const LinksPending: StoryObj = { render: () => ring('ring-pending') };
 
-/** The links’ file missing: the issue said once, no ribbon, no hatch waiting (“links failed”). */
+/** The links’ file missing: the issue said once and its text in the hole, no ribbon, no hatch waiting (“links failed”). */
 export const LinksFailed: StoryObj = { render: () => ring('ring-failed', { sourceIssues: true }) };
 
 /** No links at all: an empty hole, its ARIA description "no links". */

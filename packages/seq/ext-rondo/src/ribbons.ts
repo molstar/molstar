@@ -304,6 +304,15 @@ export function ribbonsType(config: RondoConfig = DefaultRondoConfig): LayerType
       }
       if (pass === 'labels') {
         const a = out.args;
+        // an empty hole's words, muted and centred: links loading, or why they failed
+        if (lay.holeText) {
+          a[0] = lay.frame.cx;
+          a[1] = lay.frame.cy + 4;
+          a[2] = lay.holeW;
+          a[3] = 1.8 * lay.frame.room;
+          a[4] = lay.muted;
+          out.textArgs(lay.holeText, 1, lay.font);
+        }
         for (let s = 0; s < lay.nb; s++) {
           const t = lay.stubLabel[s];
           if (!t) continue;

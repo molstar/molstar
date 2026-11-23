@@ -7,6 +7,7 @@
 import type { PassWriter } from '@molstar/seqx-core/extension';
 import { DarkTokens, DrawLists, LightTokens, viewLegends } from '@molstar/seqx-core/render';
 import { loadGenome } from '@molstar/seqx-core/resolve';
+import type { Node } from '@molstar/core/repr/tree';
 import type { ExampleView } from '@molstar/seqx-examples';
 import { rondoViewer } from '@molstar/seqx-ext-rondo/viewer';
 import { layerAria } from '@molstar/seqx-viewer/layer-aria';
@@ -14,8 +15,9 @@ import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { openExample } from '../../../examples/_test/draw-checks.js';
 import { describerFor } from '@molstar/seqx-viewer/describe';
-import { emphasisHeld, Kind, RibbonsType } from '@molstar/seqx-ext-rondo';
+import { basesText, emphasisHeld, Kind, RibbonsType, type RondoLay } from '@molstar/seqx-ext-rondo';
 import { hoverStrongestStem, ribbonsOf, ringStoryView, strongestStem } from '../views.js';
+import { bandsLanded } from './ring-helpers.js';
 
 // Features/Genome Ring, headless on a fake clock as the stories compose them (a viewer with `rondoViewer`, or none for
 // the fallback's, its SVG export light and dark): a twin a default of Design › Genome ring, chr4's ring stepped through
@@ -74,21 +76,22 @@ const errors = (v: SeqViewer) => [
   ...v.layoutIssues.value.filter((i) => i.severity === 'error'),
 ];
 
-/**
- * The recorded cytobands' rows in view: their pages inflate on the platform's thread pool (no clock), so the clock is
- * turned and real I/O let through until a bands layer has rows (or a bound of turns).
- */
-async function bandsLanded(v: SeqViewer) {
-  const rows = () =>
-    v
-      .frame!.layout.sections[0].lays.flat()
-      .some((l) => l.key.endsWith('/bands/bands') && (l.lay as { rows?: { n: number } }).rows!.n > 0);
-  for (let i = 0; i < 50 && !rows(); i++) {
-    await new Promise((r) => setImmediate(r));
-    await vi.advanceTimersByTimeAsync(200);
-    v.draw();
-  }
-  expect(rows()).toBe(true);
+/** A spec with its data node `id`'s `uri` changed (the same address, another file). */
+function withUri(node: Node, id: string, uri: string): Node {
+  if (node.id === id) return { ...node, params: { ...node.params, uri } };
+  return node.children ? { ...node, children: node.children.map((c) => withUri(c, id, uri)) } : node;
+}
+
+/** The texts the ribbons' labels pass draws at the hole's centre in their muted colour (its words, if any). */
+function holeTexts(l: RondoLay): string[] {
+  const lists = new DrawLists();
+  RibbonsType.draw(l, 'labels', lists.writer('labels') as PassWriter);
+  const t = lists.passes.labels.texts;
+  const out: string[] = [];
+  for (let i = 0; i < t.n; i++)
+    if (Math.abs(t.x[i] - l.frame.cx) < 1 && Math.abs(t.y[i] - l.frame.cy) < 8 && t.color[i] === l.muted)
+      out.push(lists.string(t.str[i]));
+  return out;
 }
 
 const descriptions = (v: SeqViewer) => layerAria(v.frame!.layout).map((a) => a.description);
@@ -102,6 +105,14 @@ describe('Genome ring stories, headless', () => {
     expect(new Set(Array.from(l.stemSystem.subarray(0, l.ns))).size).toBe(23);
     expect(l.nr).toBeGreaterThan(100);
     expect(descriptions(v).some((d) => /ribbons, 23 chromosomes; strongest/.test(d))).toBe(true);
+    // a bin ribbon's card: "n bins: zoom in to see them"
+    const card = RibbonsType.describe!(
+      { element: { owner: l.owner, key: l.ribKey[l.strongest] }, position: 0 } as never,
+      l,
+    )!;
+    expect(card).toContain(`${basesText(l.level)} bins: zoom in to see them`);
+    // a hole with links says nothing
+    expect(l.holeText).toBe('');
     const { light } = await exported(v);
     expect(light.issues.filter((i) => i.code === 'seq.view.layer.extension')).toEqual([]);
   });
@@ -153,6 +164,96 @@ describe('Genome ring stories, headless', () => {
     await exported(v);
   });
 
+  it('4. a pair’s ribbon card: both ends, each with its band and span', async () => {
+    const v = await open(ringStoryView('ring-pair'));
+    await bandsLanded(v);
+    const l = ribbonsOf(v)!;
+    const r = l.strongest;
+    const lines = RibbonsType.describe!({ element: { owner: l.owner, key: l.ribKey[r] }, position: 0 } as never, l)!;
+    const [a, b] = [l.ribA[r], l.ribB[r]].map((s) => l.names[l.stemSystem[s]]);
+    expect(new Set([a, b])).toEqual(new Set(['chr4', 'chr7']));
+    expect(lines[0]).toBe(`${a} ↔ ${b}`);
+    // each end: its cytobands (one, or the first and the last it meets) and its span
+    expect(lines[1]).toMatch(new RegExp(`^${a}: [pq][\\d.]+(–[pq][\\d.]+)? · [\\d.]+–[\\d.]+ (Mb|kb)$`));
+    expect(lines[2]).toMatch(new RegExp(`^${b}: [pq][\\d.]+(–[pq][\\d.]+)? · [\\d.]+–[\\d.]+ (Mb|kb)$`));
+    // on the card: a row an end, labelled by its chromosome
+    const card = describerFor({
+      spec: v.spec,
+      store: v.store,
+      addresses: v.addresses,
+      view: v.view,
+      layout: () => v.frame?.layout,
+    }).describe({
+      section: l.section,
+      layer: l.key,
+      system: l.systems[l.stemSystem[l.ribA[r]]],
+      position: l.stemStart[l.ribA[r]],
+      element: { owner: l.owner, key: l.ribKey[r] } as never,
+    })!;
+    expect(card.title).toBe(`${a} ↔ ${b}`);
+    expect(card.rows.slice(0, 2).map((x) => x.label)).toEqual([a, b]);
+  });
+
+  it('9. links pending: the hatch, and the hole says “Loading links…”, muted and centred; said once, politely', async () => {
+    const v = await open(ringStoryView('ring-pending'), Rondo, 1000);
+    const l = ribbonsOf(v)!;
+    expect(l.empty).toBe('pending');
+    expect(descriptions(v)).toContain('links loading');
+    expect(l.holeText).toBe('Loading links…');
+    // the labels pass: one text at the hole's centre, in the muted text's colour
+    expect(holeTexts(l)).toEqual(['Loading links…']);
+    // said once (the viewer's notice, what the announcer says), however many rests pass while the links wait
+    expect(v.notice.value).toEqual({ n: 1, text: 'Loading links…' });
+    for (let i = 0; i < 4; i++) {
+      void v.execute('view.zoom-in', {});
+      await vi.advanceTimersByTimeAsync(1000);
+      v.draw();
+    }
+    expect(v.notice.value.n).toBe(1);
+  });
+
+  it('9. links failed, and none: the issue’s text in the hole, said once; no links, an empty hole', async () => {
+    let v = await open(ringStoryView('ring-failed'), Rondo, 10_000);
+    expect(v.store.issues.value.filter((i) => i.severity === 'error').length).toBe(1);
+    // a source that never opened is failed on the store (its issue says why): no ribbon, no hatch waiting, said
+    const l = ribbonsOf(v)!;
+    expect(l.nr).toBe(0);
+    expect(l.empty).toBe('failed');
+    expect(l.reader.pending ?? []).toEqual([]);
+    expect(descriptions(v)).toContain('links failed');
+    const issue = v.store.issues.value.find((i) => i.severity === 'error')!;
+    expect(l.holeText).toBe(issue.message);
+    expect(holeTexts(l)).toEqual([issue.message]);
+    expect(v.notice.value.text).toBe(issue.message);
+    expect((await svgOf(v, false)).svg).toContain(issue.message.slice(0, 20));
+    // two rings on one page, one source address, two different failures: each hole its own viewer's issue
+    const first = v;
+    viewer = undefined;
+    const other = await open(
+      {
+        ...ringStoryView('ring-failed'),
+        build: () =>
+          withUri(ringStoryView('ring-failed').build(), 'links-bedpe', 'fixtures/genomes/another-missing.bedpe'),
+      },
+      Rondo,
+      10_000,
+    );
+    try {
+      const otherIssue = other.store.issues.value.find((i) => i.severity === 'error')!;
+      expect(otherIssue.address).toBe(issue.address);
+      expect(otherIssue.message).not.toBe(issue.message);
+      expect(ribbonsOf(other)!.holeText).toBe(otherIssue.message);
+      first.draw();
+      expect(ribbonsOf(first)!.holeText).toBe(issue.message);
+    } finally {
+      first.retire();
+    }
+    v = await open(ringStoryView('ring-no-links'));
+    expect(ribbonsOf(v)!.empty).toBe('none');
+    expect(descriptions(v)).toContain('no links');
+    expect(ribbonsOf(v)!.holeText).toBe('');
+  });
+
   it('5. the square beside: the export with the navigators draws more than without', async () => {
     const v = await open(ringStoryView('ring'));
     const without = await svgOf(v, false);
@@ -187,23 +288,6 @@ describe('Genome ring stories, headless', () => {
     expect(l.ns).toBeGreaterThan(0);
     expect(l.nr).toBeGreaterThan(0);
     await exported(v);
-  });
-
-  it('9. pending, failed, nothing: the hatch while the links wait; the issue once when failed; “no links”', async () => {
-    let v = await open(ringStoryView('ring-pending'), Rondo, 1000);
-    expect(ribbonsOf(v)!.empty).toBe('pending');
-    expect(descriptions(v)).toContain('links loading');
-    v = await open(ringStoryView('ring-failed'), Rondo, 10_000);
-    expect(v.store.issues.value.filter((i) => i.severity === 'error').length).toBe(1);
-    // a source that never opened is failed on the store (its issue says why): no ribbon, no hatch waiting, said
-    const failed = ribbonsOf(v)!;
-    expect(failed.nr).toBe(0);
-    expect(failed.empty).toBe('failed');
-    expect(failed.reader.pending ?? []).toEqual([]);
-    expect(descriptions(v)).toContain('links failed');
-    v = await open(ringStoryView('ring-no-links'));
-    expect(ribbonsOf(v)!.empty).toBe('none');
-    expect(descriptions(v)).toContain('no links');
   });
 
   it('10. dark: tokens only, the ribbons’ hues the scheme’s derived dark', async () => {

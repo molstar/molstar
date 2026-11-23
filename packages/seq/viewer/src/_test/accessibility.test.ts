@@ -165,6 +165,29 @@ describe('the announcer', () => {
     a.dispose();
   });
 
+  it('says a notice once its turn comes: a hover that rests after it never replaces it, the pointer leaving never drops it', async () => {
+    const v = await make();
+    const a = new Announcer(v, { minGapMs: 700, restMs: 500 });
+    const said: string[] = [];
+    a.message.listen((m) => said.push(m.text));
+    const axis = v.frame!.layout.sections[0].axis!;
+    const x = (axis.x(3) + axis.x(4)) / 2;
+    // a message has just been said: the notice waits for the gap
+    await v.execute('cursor.next', { section: Section });
+    v.notify('Loading links…');
+    // a hover rests meanwhile, then the pointer leaves
+    v.input.move(x, domainsY(v));
+    frames.flush();
+    frames.timers.fire();
+    v.input.leave();
+    frames.flush();
+    clock += 1000;
+    frames.timers.fire();
+    expect(said).toHaveLength(2);
+    expect(said[1]).toBe('Loading links…');
+    a.dispose();
+  });
+
   it('keeps a waiting selection over a later hover and cursor, which never replace it', async () => {
     const v = await make();
     const a = new Announcer(v, { minGapMs: 700, restMs: 500 });

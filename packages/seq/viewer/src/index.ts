@@ -30,6 +30,7 @@ export {
 } from './viewer-spec.js';
 export type {
   HeaderElement,
+  HeaderElementAt,
   HeaderEntry,
   HeaderFacts,
   HeaderMenu,

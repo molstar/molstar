@@ -116,6 +116,49 @@ describe('Kinds of links, headless', () => {
     await exported(v);
   });
 
+  it('the stem card: its first row names what it counts; each layer’s links on its chromosome under a heading', async () => {
+    const v = await open('ring-kinds');
+    const [contacts, tx] = kindsOf(v);
+    // the translocations' chr22 stem: its 24 links, all to chr9
+    const s = Array.from({ length: tx.ns }, (_, k) => k).find(
+      (k) => tx.stemPlaced[k] && tx.stemPoly[k] >= 0 && tx.names[tx.stemSystem[k]] === 'chr22',
+    )!;
+    const lines = describeRondo({ element: { owner: tx.owner, key: tx.stemKey[s] }, position: 0 } as never, tx)!;
+    expect(lines[1]).toBe('This stem: 24 links to chr9');
+    // the chromosome's links on each layer, counted from the rows (each once, whichever end is on chr22)
+    const onChr22 = (l: RondoLay) => {
+      const d = l.read!.data!;
+      const w = l.read!.weight;
+      let n = 0;
+      for (let k = 0; k < d.n; k++)
+        if (l.read!.shown?.[k] !== 0 && (l.names[d.aUnit![k]] === 'chr22' || l.names[d.bUnit![k]] === 'chr22'))
+          n += w ? w[k] : 1;
+      return n;
+    };
+    const heading = lines.indexOf('chr22, all links');
+    expect(heading).toBeGreaterThan(1);
+    expect(lines.slice(heading + 1)).toEqual([
+      `Contacts: ${onChr22(contacts).toLocaleString('en-US')} links`,
+      `Translocations: ${onChr22(tx)} links`,
+    ]);
+    // on the card: the heading a row of its own, its value empty
+    const card = describerFor({
+      spec: v.spec,
+      store: v.store,
+      addresses: v.addresses,
+      view: v.view,
+      layout: () => v.frame?.layout,
+    }).describe({
+      section: tx.section,
+      layer: tx.key,
+      system: tx.systems[tx.stemSystem[s]],
+      position: tx.stemStart[s],
+      element: { owner: tx.owner, key: tx.stemKey[s] } as never,
+    })!;
+    expect(card.rows.slice(0, 2)).toEqual([{ label: 'This stem', value: '24 links to chr9' }, expect.anything()]);
+    expect(card.rows).toContainEqual({ label: 'chr22, all links', value: '' });
+  });
+
   it('on chr9: its contacts as ribbons, its translocation to chr22 a stub in the accent', async () => {
     const v = await open('ring-kinds-chromosome');
     expect(errors(v)).toEqual([]);
