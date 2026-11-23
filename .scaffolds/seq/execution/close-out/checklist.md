@@ -11,7 +11,7 @@
 <!-- Wave 1 -->
 - [x] CL14 (`60c2dc572`) Scaffold checks: `features-planned` over a brief's numbered items; the heavy lane's tight bounds isolated
 - [x] CL1 (`228c6cfa9`) Legend and layers: a layer's eye, a hidden layer's row, the Contacts swatch, synteny's legend, legends' domains
-- [ ] CL2 Ring: the stem menu's route and partners, the stem and pair cards, links pending on the ring
+- [x] CL2 (`a0397521c`) Ring: the stem menu's route and partners, the stem and pair cards, links pending on the ring
 
 <!-- Wave 2 -->
 - [ ] CL3 Square and keys: the square's hint and way home, Hi-C in bases, `]` and `[`, the zoom hint, links pending on the square

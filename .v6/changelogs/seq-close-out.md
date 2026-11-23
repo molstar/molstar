@@ -9,3 +9,7 @@
   gene's stack with a bold label, and its card says so; a matrix's samples (a VCF's genotypes, a methylation matrix)
   are named beside its rows; a genotype card gives the call as the file wrote it (`0|1`, `1/2`, `1`) and what it is; a
   missing value has a colour of its own.
+- Seq\* genome ring: a right-click, Shift+F10 or the Menu key on a stem opens its menu; partners grouped by chromosome,
+  each with its pieces named by band and strand, the rest under "n more", links within the stem's own chromosome
+  last; the stem card says what it counts, a pair's card names both ends; the hole says "Loading links…" or the
+  failure.
