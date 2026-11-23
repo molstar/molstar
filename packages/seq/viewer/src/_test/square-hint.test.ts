@@ -11,7 +11,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { RecordingContext } from '../canvas/_test/recording.js';
 import { viewerItem } from '../config.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
-import { mountNavigator, SquareHint } from '../mount-navigator.js';
+import { mountNavigator, SquareHint, SquareHintBase } from '../mount-navigator.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
 import { type Frames, installFrames } from './frames.js';
 
@@ -41,7 +41,7 @@ afterEach(() => {
 
 const Ring = '/views/main/ring';
 
-async function make(squareHint?: boolean) {
+async function make(squareHint?: boolean, sw = true) {
   const b = createSeqSpec();
   const g = b.data.assembly(
     'g',
@@ -52,7 +52,13 @@ async function make(squareHint?: boolean) {
   );
   b.views.view('main', (v) => {
     genome(v, 'ring', g, { layout: 'rings' } as never);
-    v.navigator('square', { of: [Ring, Ring], axes: 'both', system: g, switch: 'include', size: [200, 200] } as never);
+    v.navigator('square', {
+      of: [Ring, Ring],
+      axes: 'both',
+      system: g,
+      ...(sw ? { switch: 'include' } : {}),
+      size: [200, 200],
+    } as never);
   });
   viewer = createSeqViewer({
     ...DefaultSeqViewerSpec(),
@@ -91,5 +97,19 @@ describe('the square’s hint', () => {
     document.body.append(other);
     mountNavigator(other, off, 'square');
     expect(other.querySelector('.seqx-navigator-hint')).toBeNull();
+  });
+
+  it('says only what the square does: the way home only on a square with a switch', async () => {
+    const without = await make(undefined, false);
+    const host = document.createElement('div');
+    document.body.append(host);
+    mountNavigator(host, without, 'square');
+    expect(host.querySelector('.seqx-navigator-hint')!.textContent).toBe(SquareHintBase);
+    expect(SquareHintBase).not.toContain('whole genome');
+    const withSwitch = await make();
+    const other = document.createElement('div');
+    document.body.append(other);
+    mountNavigator(other, withSwitch, 'square');
+    expect(other.querySelector('.seqx-navigator-hint')!.textContent).toBe(SquareHint);
   });
 });
