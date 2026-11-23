@@ -28,6 +28,27 @@ export function labelOf(it: GffItem): string {
   return a.Name ?? (it.role === 'gene' ? a.gene_name : (a.transcript_name ?? a.gene_name)) ?? it.id;
 }
 
+/** The `canonical` field's two values (_spec/README.md "Data", GFF3 and GTF, Tables): what a transcript's tags say. */
+export const MANESelect = 'MANE Select';
+export const Canonical = 'Canonical';
+
+/**
+ * What a transcript's `tag` says of it (GFF3's `tag=a,b`, GTF's repeated `tag "a"` joined by `,`): `MANE Select` for
+ * the tag `MANE_Select`, else `Canonical` for `Ensembl_canonical`; null otherwise and for a gene or another feature (a
+ * gene item carries its first transcript's attributes: it is no transcript). The viewer never guesses one.
+ */
+export function canonicalOf(it: GffItem): string | null {
+  const tag = it.attributes.tag;
+  if (it.role !== 'transcript' || tag === undefined) return null;
+  let canonical = false;
+  for (const t of tag.split(',')) {
+    const name = t.trim();
+    if (name === 'MANE_Select') return MANESelect;
+    if (name === 'Ensembl_canonical') canonical = true;
+  }
+  return canonical ? Canonical : null;
+}
+
 /** An entry of the name index: a name's item, the field it was found in. */
 interface NameEntry {
   readonly item: GffItem;
@@ -199,6 +220,7 @@ export function itemFields(features: GffFeatures, items: readonly GffItem[], cau
     fixed.push(
       { name: 'gene', type: 'category', value: (it) => it.gene ?? null },
       { name: 'gene_name', type: 'category', value: (it) => it.geneName ?? null },
+      { name: 'canonical', type: 'category', value: canonicalOf },
       { name: 'thick_start', type: 'float64', value: (it) => nan(it.thickStart) },
       { name: 'thick_end', type: 'float64', value: (it) => nan(it.thickEnd) },
       { name: 'cds_phase', type: 'int8', value: (it) => it.cdsPhase ?? -1 },

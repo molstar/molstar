@@ -17,7 +17,7 @@ import { PackageFolder } from '@molstar/seqx-examples/node-assets';
 import type { SeqRegistryEntry } from '@molstar/seqx-core/context';
 import type { FormatRuntime, OpenedSource, RegionRequest } from '@molstar/seqx-core/data';
 import type { MatrixLay, RangesLay } from '@molstar/seqx-core/render';
-import { matrixCellHover, recordDrawLists, viewLegends } from '@molstar/seqx-core/render';
+import { DarkTokens, LightTokens, matrixCellHover, recordDrawLists, viewLegends } from '@molstar/seqx-core/render';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { DomHost } from '@molstar/ui/dom';
@@ -277,6 +277,14 @@ describe('Features/Genome formats/VCF, headless', () => {
     let m = matrixOf();
     expect(m.states).toBe(GenotypeSampleCount);
     expect(m.names.slice(0, 3)).toEqual(['S01', 'S02', 'S03']);
+    // the samples named in the label column by the rows' part (the header's order, a name a row), the track's label gone
+    expect(m.nameText).toEqual(m.names.slice(0, GenotypeSampleCount));
+    const drawn = recordDrawLists(v.frame!.lists, ['labels'])
+      .split('\n')
+      .filter((l) => l.startsWith('text "S') && l.includes('"10px sans"'));
+    expect(drawn).toHaveLength(GenotypeSampleCount);
+    expect(drawn[10]).toContain('"S11"');
+    expect(v.frame!.layout.sections[0].tracks.find((t) => t.track.label === 'Genotypes')?.labelText).toBe('');
     expect(m.pend).toEqual([]);
     expect(v.view.get(GenotypesSection)).toBeDefined();
     // its legend: the genotype classes as swatches in the cells' colours, never a 0-to-1 ramp
@@ -305,7 +313,17 @@ describe('Features/Genome formats/VCF, headless', () => {
     expect(new Set(bars.map(([x]) => x)).size).toBe(1);
     // a carrier's call over the deletion where no SNV is: the deletion's genotype
     const card = matrixCellHover(m as never, ds + 37, LongDeletionCarriers[1], (s) => s);
-    expect(card?.rows[1][1]).toBe('S04');
+    expect(card?.rows[1][1]).toBe('S04 · 0/1 (heterozygous)');
+    expect(card?.text).toContain('Sample S04 · 0/1 (heterozygous)');
+    // the names in both themes
+    for (const dark of [false, true]) {
+      const themed = await v.renderSvg({
+        idPrefix: dark ? 'vcf-gd-' : 'vcf-gl-',
+        tokens: dark ? DarkTokens : LightTokens,
+      });
+      expect(themed.issues).toEqual([]);
+      expect(themed.svg).toContain('>S11<');
+    }
     const svg = await v.renderSvg({ idPrefix: 'vcf-gt-' });
     expect(svg.issues).toEqual([]);
     expect(svg.settled).toBe(true);

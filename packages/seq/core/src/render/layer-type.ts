@@ -432,6 +432,11 @@ export interface LayerType<Prep = unknown, Lay = unknown> {
    */
   known?(): number;
   layout(prep: Prep, ctx: LayoutContext, data: StoreReader, overlay: Overlay, prev?: Lay): Lay;
+  /**
+   * Whether the layout names its rows in the label column (`row-names.ts`: a matrix's states): the track's own label,
+   * centred there, is then not drawn, as a rows layer's track has none (the names are what the column holds).
+   */
+  rowNames?(lay: Lay): boolean;
   draw(lay: Lay, pass: PassName, out: PassWriter, emphasis?: Emphasis): void;
   /**
    * The mark under a point, `at[0]` and `at[1]` (in the strip's frame; a `section` layer's on the page). The point comes

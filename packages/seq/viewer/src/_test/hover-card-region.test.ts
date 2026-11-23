@@ -90,11 +90,10 @@ describe('the hover card over data read by region', () => {
     const { card, said } = cardOf(v, { ...at, position: 2, ySystem: statesSystem, yPosition: 0 });
     expect(card?.rows).toEqual([
       { label: 'Item', value: 's:3' },
-      { label: 'State', value: 'tumour' },
-      { label: 'Value', value: '0.2' },
+      { label: 'Sample', value: 'tumour · 0.2' },
     ]);
     expect(said).toBe(card!.text);
     const missing = cardOf(v, { ...at, position: 2, ySystem: statesSystem, yPosition: 1 }).card;
-    expect(missing?.text).toMatch(/normal, no data$/);
+    expect(missing?.text).toMatch(/Sample normal · no data$/);
   });
 });

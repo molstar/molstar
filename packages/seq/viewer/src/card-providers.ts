@@ -10,7 +10,7 @@ import { extentText } from '@molstar/seqx-core/render/accessibility';
 import { itemText, type LayerLayout, type RowsLay, spanText } from '@molstar/seqx-core/render';
 import { type StaticModel, withTooltips } from '@molstar/seqx-core/resolve';
 import type { CardAt, CardParts, CardProviderEntry } from './card-provider.js';
-import { alleleOf, alleleTitle } from './describe-allele.js';
+import { alleleOf, alleleTitle, canonicalOf } from './describe-allele.js';
 import { chemistryRows } from './describe-molecules.js';
 import { regionHoverOf } from './describe-region.js';
 
@@ -276,6 +276,10 @@ const ItemSection: CardProviderEntry = {
     if (mixed) out.row('Categories', mixed);
     else if (category && !allele) out.row('Category', category);
     if (strand) out.row('Strand', strand);
+    // a transcript the data marks (GFF3's and GTF's `Ensembl_canonical`, `MANE_Select`: core's `canonical` field), never
+    // guessed: `Canonical` or `MANE Select`
+    const canonical = row ? canonicalOf(row.t, row.i) : '';
+    if (canonical) out.row('Transcript', canonical);
     // its images through a map read by region (a liftover's), when several (EC-20)
     const places = at.words.places(it.system ?? l.layer.data?.system, it.start, it.end);
     if (places) out.row('Places', places);
@@ -283,7 +287,7 @@ const ItemSection: CardProviderEntry = {
     const text = itemText(system, it);
     const named = LayerTitled.has(out) && out.title === it.label && text.startsWith(`${it.label}, `);
     out.words.push(
-      `${allele ? `${name}, ` : ''}${named ? text.slice(it.label.length + 2) : text}${track ? `, ${track}` : ''}${mixed ? `, ${mixed}` : category ? `, ${category}` : ''}${strand ? `, strand ${strand}` : ''}${places ? `, in ${places}` : ''}`,
+      `${allele ? `${name}, ` : ''}${named ? text.slice(it.label.length + 2) : text}${track ? `, ${track}` : ''}${mixed ? `, ${mixed}` : category ? `, ${category}` : ''}${strand ? `, strand ${strand}` : ''}${canonical ? `, ${canonical.toLowerCase()}` : ''}${places ? `, in ${places}` : ''}`,
     );
     out.whole = true;
   },

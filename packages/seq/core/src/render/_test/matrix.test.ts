@@ -74,14 +74,16 @@ describe('the matrix layer', () => {
     }
   });
 
-  it('draws inline values a state a row, a missing one transparent, a cell hit as its position and state (EC-220, EC-221)', async () => {
+  it('draws inline values a state a row, a missing one in the missing colour, a cell hit as its position and state (EC-220, EC-221)', async () => {
     const s = await settle(inline(), [SeqRuntime]);
     const f = await s.frame({ size: { width: 400, height: 200 } });
     const lay = layOf(f);
     expect(lay.states).toBe(2);
     expect(lay.items).toBe(true);
-    // 16 cells, one missing
-    expect(lay.n).toBe(15);
+    // 16 cells, one missing: drawn in the missing colour, never the ramp's low end (dark over dark) nor 0
+    expect(lay.n).toBe(16);
+    const missing = LightTokens.colors['seq-missing'];
+    expect(Array.from(lay.rc.subarray(0, lay.n)).filter((c) => c === missing)).toHaveLength(1);
     expect(lay.rowScale).toBeCloseTo(lay.box.height / 2);
     const h = hitView(f.layout as never, lay.axis!.x(3.5), lay.box.y + lay.box.height * 0.75);
     expect(h?.target).toBe('cell');
@@ -89,8 +91,8 @@ describe('the matrix layer', () => {
     expect(h?.yPosition).toBe(1);
     expect(h?.ySystem).toBe(lay.statesSystem);
     expect(h?.bin).toBeUndefined();
-    expect(matrixCellHover(lay, 2, 1, () => 's')!.text).toBe('s:3, normal, no data');
-    expect(matrixCellHover(lay, 2, 0, () => 's')!.rows).toContainEqual(['Value', '0.2']);
+    expect(matrixCellHover(lay, 2, 1, () => 's')!.text).toBe('s:3, Sample normal · no data');
+    expect(matrixCellHover(lay, 2, 0, () => 's')!.rows).toContainEqual(['Sample', 'tumour · 0.2']);
   });
 
   it('draws items at their extents, a long deletion solid and under the short ones; an uncalled code drawn missing (EC-222)', async () => {
@@ -117,10 +119,10 @@ describe('the matrix layer', () => {
     expect(found).toBe(true);
     // a hover: the shortest item there, its state, its genotype
     const name = () => 'chr';
-    expect(matrixCellHover(lay, 500, 0, name)!.text).toBe('chr:501, NA12878, 1/1');
-    expect(matrixCellHover(lay, 550, 0, name)!.text).toBe('chr:501–1,500, NA12878, 1/1');
-    expect(matrixCellHover(lay, 550, 1, name)!.rows).toContainEqual(['Value', '0/0']);
-    expect(matrixCellHover(lay, 0, 1, name)!.rows).toContainEqual(['Value', './.']);
+    expect(matrixCellHover(lay, 500, 0, name)!.text).toBe('chr:501, Sample NA12878 · every copy');
+    expect(matrixCellHover(lay, 550, 0, name)!.text).toBe('chr:501–1,500, Sample NA12878 · every copy');
+    expect(matrixCellHover(lay, 550, 1, name)!.rows[1][1]).toMatch(/ · no copy$/);
+    expect(matrixCellHover(lay, 0, 1, name)!.rows[1][1]).toMatch(/ · uncalled$/);
   });
 
   it('zoomed out, draws the bins as an image tile of bins × states, a hit with its bin', async () => {
@@ -139,7 +141,9 @@ describe('the matrix layer', () => {
     expect(h?.bin).toBe(256);
     expect(h?.yPosition).toBe(0);
     // a bin's hover: its range, its state, its majority with its share, its level
-    expect(matrixCellHover(lay, 300, 1, () => 'chr')!.text).toBe('chr:257–512, NA12891, 1/1 (78%), 256 bp bins');
+    expect(matrixCellHover(lay, 300, 1, () => 'chr')!.text).toBe(
+      'chr:257–512, Sample NA12891 · every copy, 78% of the bin, 256 bp bins',
+    );
   });
 
   it('on a ring, draws its states as thin rings of runs at the outer circumference’s columns; past `rings.imageRuns` its rows reduced, said once (EC-108)', async () => {

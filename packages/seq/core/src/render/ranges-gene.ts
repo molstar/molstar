@@ -19,7 +19,10 @@ import { mappedPieces, type RangesLay } from './ranges-lay.js';
 // by its strand (`cdir`: 1 pointing right, 2 left; the connectors' arrays: a hit on it is the item's, the hover outlines it). A span row (no piece in its
 // tile) is no box, only the item. Below a position a pixel too (the boxes are never merged into runs). Its label is
 // plain text to the left of its extent, in its lane, whole: the lanes are packed with room for it (`LabelGap` and its
-// width before each item), and a label whose room runs past the band's left edge is not drawn.
+// width before each item), and a label whose room runs past the band's left edge is not drawn. An item the data marks
+// canonical (a `canonical` field with a value: GFF3's and GTF's `Ensembl_canonical`, `MANE_Select`) is packed first,
+// so it takes the first lane its extent leaves free, and its label is bold; none marked, the order and the labels are
+// as ever (_spec/README.md "Render", Layer types, The gene line: the viewer never guesses a canonical transcript).
 
 /** The gap between a gene model's label and its extent, CSS px. */
 export const LabelGap = 4;
@@ -32,6 +35,8 @@ export interface GeneScratch {
   /** Where an item's lane begins, its label's room before its extent (positions), and its label's width (px). */
   packStart: Float64Array;
   labelW: Float64Array;
+  /** 1 for an item (a first row) whose `canonical` field has a value: packed first, its label bold. */
+  marked: Uint8Array;
   /** The labels placed (`ln`): their left x, baseline, width and item. */
   ln: number;
   lx: Float64Array;
@@ -40,6 +45,8 @@ export interface GeneScratch {
   litem: Int32Array;
   /** The label floats at the left edge (it had no room before its model): drawn over a backdrop. */
   lfloat: Uint8Array;
+  /** The label is bold (its item is marked). */
+  lbold: Uint8Array;
   /** The rows by key, cleared each layout. */
   readonly groups: Map<string | number, number>;
   /** The last table's columns (rows of one table share its fields). */
@@ -47,6 +54,16 @@ export interface GeneScratch {
   ts: Column | undefined;
   te: Column | undefined;
   strand: Column | undefined;
+  canon: Column | undefined;
+}
+
+const BoldFonts = new Map<string, string>();
+
+/** A font in bold (`10px sans` → `bold 10px sans`), made once. */
+export function boldOf(font: string): string {
+  let b = BoldFonts.get(font);
+  if (b === undefined) BoldFonts.set(font, (b = `bold ${font}`));
+  return b;
 }
 
 export function newGeneScratch(): GeneScratch {
@@ -56,17 +73,20 @@ export function newGeneScratch(): GeneScratch {
     gEnd: new Float64Array(64),
     packStart: new Float64Array(64),
     labelW: new Float64Array(64),
+    marked: new Uint8Array(64),
     ln: 0,
     lx: new Float64Array(16),
     ly: new Float64Array(16),
     lw: new Float64Array(16),
     litem: new Int32Array(16),
     lfloat: new Uint8Array(16),
+    lbold: new Uint8Array(16),
     groups: new Map(),
     fields: undefined,
     ts: undefined,
     te: undefined,
     strand: undefined,
+    canon: undefined,
   };
 }
 
@@ -81,7 +101,7 @@ export function geneGroups(
   n: number,
   order: Int32Array,
   perPx: number,
-  measure: ((label: string) => number) | undefined,
+  measure: ((label: string, bold: boolean) => number) | undefined,
 ): number {
   const g = lay.gene;
   if (g.repOf.length < n) {
@@ -90,6 +110,7 @@ export function geneGroups(
     g.gEnd = grown(g.gEnd, n);
     g.packStart = grown(g.packStart, n);
     g.labelW = grown(g.labelW, n);
+    g.marked = grown(g.marked, n);
   }
   g.groups.clear();
   const { keys, itemStarts, itemEnds } = lay.rows;
@@ -113,8 +134,11 @@ export function geneGroups(
   }
   for (let k = 0; k < count; k++) {
     const j = order[k];
+    bind(lay, j);
+    const c = g.canon;
+    g.marked[j] = c instanceof CategoryColumn && c.get(lay.rows.row[j]) !== null ? 1 : 0;
     const label = lay.rows.labels[j];
-    const w = measure && label ? measure(label) : 0;
+    const w = measure && label ? measure(label, g.marked[j] === 1) : 0;
     g.labelW[j] = w;
     g.packStart[j] = w > 0 ? g.gStart[j] - (w + LabelGap) * perPx : g.gStart[j];
   }
@@ -145,8 +169,10 @@ export function placeGeneLabels(lay: RangesLay, n: number, left: number, fontSiz
       g.lw = grown(g.lw, k + 1);
       g.litem = grown(g.litem, k + 1);
       g.lfloat = grown(g.lfloat, k + 1);
+      g.lbold = grown(g.lbold, k + 1);
     }
     g.lfloat[k] = room < left ? 1 : 0;
+    g.lbold[k] = g.marked[i];
     g.lx[k] = x;
     g.ly[k] = lay.laneY + lay.lanes[i] * lay.laneHeight + lay.laneHeight / 2 + fontSize * 0.35;
     g.lw[k] = g.labelW[i];
@@ -185,13 +211,14 @@ function bind(lay: RangesLay, j: number) {
   const fields = lay.rows.fields[j];
   if (fields === g.fields) return;
   g.fields = fields;
-  g.ts = g.te = g.strand = undefined;
+  g.ts = g.te = g.strand = g.canon = undefined;
   if (!fields) return;
   for (let k = 0; k < fields.length; k++) {
     const name = fields[k].name;
     if (name === 'thick_start') g.ts = fields[k].column;
     else if (name === 'thick_end') g.te = fields[k].column;
     else if (name === 'strand') g.strand = fields[k].column;
+    else if (name === 'canonical') g.canon = fields[k].column;
   }
 }
 

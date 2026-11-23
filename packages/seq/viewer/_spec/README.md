@@ -786,9 +786,9 @@ param (`port`, a `HoverCardPortFactory` given the canvas's element, none headles
   the item's middle) for an export with `card` titles, composed over the export's own section, layer and item
   (`Describer.composeAt`, `CardAt.item`): nothing looked up in the viewer's frame, linear in the items.
 - **By region** (`describe-region.ts`): a pairs bin, a region grid's cell and a matrix cell are said in the core's words
-  (`pairsBinHover`, `gridCellHover`, `matrixCellHover`: core "Render", Hover texts by region), their rows the card's;
-  first of the sections, the whole description. Why the core's: an export's accessible layer and a host's own card say a
-  bin as the viewer does.
+  (`pairsBinHover`, `gridCellHover`, `matrixCellHover`: core "Render", Hover texts by region), their rows the card's (a
+  matrix cell's `Sample` row reads `S11 · 0/1 (heterozygous)`); first of the sections, the whole description. Why the
+  core's: an export's accessible layer and a host's own card say a bin as the viewer does.
 - **A liftover's places** (the store's `regions.places`, the core's): an item with at least two images through a map
   read by region (a duplicated stretch, EC-20) has a row `Places` listing them
   (`2 places: chr1 62,001–68,000, chr2 62,001–68,000`, at most four named), and its words say `in 2 places`, the same
@@ -1272,14 +1272,16 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   to it; entered (the adapter's `enter`), it stays while the pointer is over it, the hover frozen; its `leave` hides it
   and arms the next rest; the grace ended without an entry, it goes. Esc, a press and a drag hide it at once. Why: a
   link a reader cannot reach is no link; a card with none never takes the pointer. `hover.card` is read at composition
-  (the configuration is read-only after it): off, no card is shown and no port made. **A variant allele's card** (the
-  genome formats' matrix row "a variant allele"): an item whose source row holds `ref` and `alt` (a VCF's, core's Data,
-  VCF) is titled by its id `pos:ref>alt` (an allele past 32 letters, hashed in the id, as its first letters and its
-  length: `7674964:GAGGCT… 469 bp>G`, `alleleTitle`), never its record's ID, with its Category, its record's `ID`,
-  `QUAL` and `FILTER`, and its INFO fields with a value (every field not in core's VCF `FixedFields`, the source's
-  order, the first 8, then `INFO: +k more`; a value past 40 characters cut with an ellipsis; an integer written as it
-  is: an id is never grouped). Its words are read once a hover (`alleleOf` keeps a list's last, a weak map: 0 B a held
-  hover, the storybook's `allele-card.quick.ts`). A behavior's part over the canvas is
+  (the configuration is read-only after it): off, no card is shown and no port made. **A transcript's card** (core's
+  `canonical` field, GFF3 and GTF): an item whose source row has a `canonical` value has a `Transcript` row, `Canonical`
+  or `MANE Select` (`canonicalOf`), and its sentence ends `, canonical` or `, mane select`; none says nothing. **A
+  variant allele's card** (the genome formats' matrix row "a variant allele"): an item whose source row holds `ref` and
+  `alt` (a VCF's, core's Data, VCF) is titled by its id `pos:ref>alt` (an allele past 32 letters, hashed in the id, as
+  its first letters and its length: `7674964:GAGGCT… 469 bp>G`, `alleleTitle`), never its record's ID, with its
+  Category, its record's `ID`, `QUAL` and `FILTER`, and its INFO fields with a value (every field not in core's VCF
+  `FixedFields`, the source's order, the first 8, then `INFO: +k more`; a value past 40 characters cut with an ellipsis;
+  an integer written as it is: an id is never grouped). Its words are read once a hover (`alleleOf` keeps a list's last,
+  a weak map: 0 B a held hover, the storybook's `allele-card.quick.ts`). A behavior's part over the canvas is
   `BehaviorHandle.attach(container, viewer)` (`viewer-spec.ts`): `mountCanvas` calls it for every behavior that has one,
   and the function it returns takes the part away.
 - `keysPanel` (`KeysPanelProvider`, in the default spec): `help.keys` (`?` in `view.keys`; the toolbar's button) opens a

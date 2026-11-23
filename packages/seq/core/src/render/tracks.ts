@@ -812,7 +812,10 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
           ? trackHeaderOf(input, section, sectionId(section), track, layers, sectionLays, well, config)
           : undefined;
       const room = head ? head.header.label.width : config.labelWidth;
-      const labelText = elidedLabel(state, input.text, config.labelFont, track.label, room);
+      // a layer naming its rows in the column (a matrix's states) leaves it to them: no track label over the names
+      const labelText = layers.some((l) => l.type.rowNames?.(l.lay))
+        ? ''
+        : elidedLabel(state, input.text, config.labelFont, track.label, room);
       tracks.push({
         track,
         box,

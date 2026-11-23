@@ -6,6 +6,7 @@
 
 import { fontSize } from './config.js';
 import type { LayoutContext } from './layer-type.js';
+import { addName } from './row-names.js';
 import { elide } from './rows-columns.js';
 import { type Clades, columnsRoom, isGap } from './rows-model.js';
 import { NoNumber, type RowsLay, type RowsPrep } from './rows-lay.js';
@@ -84,9 +85,7 @@ export function layoutHeader(lay: RowsLay, prep: RowsPrep, ctx: LayoutContext) {
       if (lay.display.pinned && i >= lay.display.pinned && config.rows.pinInPlace && isPinned(lay, e)) t = `· ${t}`;
       t = elide(text, lay.labelFont, t, lay.labelMax);
     }
-    lay.labelText.push(t);
-    lay.labelY.push(y);
-    lay.labelW.push(text.measure(lay.labelFont, t));
+    addName(text, lay.labelFont, t, y, lay.labelText, lay.labelY, lay.labelW);
     if (!numbers || e < 0 || !endNumbers(lay, e)) return;
     const n = String(lay.numFirst);
     lay.numberText.push(n);

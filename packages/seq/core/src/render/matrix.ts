@@ -26,6 +26,8 @@ import { grown, type ImageData, NoColor, type PassName, type PassWriter } from '
 import { colorOf } from './grid.js';
 import { drawMatrixEmphasis } from './matrix-emphasis.js';
 import { ImageCache } from './images.js';
+import { addName, drawNames } from './row-names.js';
+import { elide } from './rows-columns.js';
 import {
   dataRegions,
   fittedLevel,
@@ -36,7 +38,7 @@ import {
   readTiles,
   toSection,
 } from './layer-data.js';
-import type { RenderConfig } from './config.js';
+import { fontSize, type RenderConfig } from './config.js';
 import {
   type Box,
   type Emphasis,
@@ -118,6 +120,12 @@ export class MatrixLay {
   /** The tables read (a hover's cell: `matrixCellAt`) and the states' names (inline, else the coverage's). */
   readonly tables: MatrixTable[] = [];
   names: readonly string[] = NoNames;
+  /** The states' names in the label column (`row-names.ts`): the visible rows', their baselines and measured widths. */
+  readonly nameText: string[] = [];
+  readonly nameY: number[] = [];
+  readonly nameW: number[] = [];
+  nameX = 0;
+  nameMax = 0;
   /** Pending spans on x (x0, x1, cut triples): the pending fill across the band. */
   readonly pend: number[] = [];
   readonly scratch: ScratchHit = { layer: '', section: '', system: '' };
@@ -204,17 +212,25 @@ function codeColor(lay: MatrixLay, code: number): number {
   return t ? lay.tokens!.colors[t] : NoColor;
 }
 
+/**
+ * A value's fill: the channel's colour, a missing one (NaN) the `seq-missing` token, as an uncalled genotype is: never
+ * the ramp's low end (a dark ramp over a dark page is no distinction), never 0 (EC-221).
+ */
+function valueColor(lay: MatrixLay, v: number): number {
+  return Number.isNaN(v) ? lay.tokens!.colors['seq-missing'] : colorOf(lay, v);
+}
+
 /** A cell's fill: state `s` of column `i` (an item or a bin). */
 function cellColor(lay: MatrixLay, t: MatrixTable, i: number, s: number): number {
   const k = i * t.states + s;
-  if (t.form === 'items') return t.codes ? codeColor(lay, t.codes[k]) : t.value ? colorOf(lay, t.value[k]) : NoColor;
+  if (t.form === 'items') return t.codes ? codeColor(lay, t.codes[k]) : t.value ? valueColor(lay, t.value[k]) : NoColor;
   if (t.classes) {
     // a bin's majority class, its share the colour's strength (design: "its majority with its share")
     const c = codeColor(lay, t.classes[k]);
     if (c === NoColor || !t.shares) return c;
     return ((c & 0xffffff00) | Math.round(((c & 0xff) * t.shares[k]) / 255)) >>> 0;
   }
-  return t.mean ? colorOf(lay, t.mean[k]) : NoColor;
+  return t.mean ? valueColor(lay, t.mean[k]) : NoColor;
 }
 
 function pushRect(lay: MatrixLay, x: number, y: number, w: number, h: number, c: number) {
@@ -334,6 +350,53 @@ function covers(src: LayerSource, s: number, e: number, at: number): boolean {
   return false;
 }
 
+/**
+ * The states' names in the label column (_spec/README.md "Render", Row names, The matrix layer): the rows in view, a
+ * name a row from `rows.labelMinPx` on, at the items' font, cut past the column's room: the rows layer's part
+ * (`row-names.ts`). None when the states are unnamed (a hover says `state 3`).
+ */
+function layoutNames(lay: MatrixLay, ctx: LayoutContext) {
+  const { config, box, text } = ctx;
+  // the label column is the first strip's (a later strip of blocks is no column: its data starts mid-page)
+  if ((ctx.strip ?? 0) > 0 || lay.rowScale < config.rows.labelMinPx || !lay.names.length) return;
+  const font = config.itemFont;
+  const size = fontSize(font);
+  lay.nameX = config.inset;
+  lay.nameMax = Math.max(0, box.x - config.labelGap - config.inset);
+  for (let s = lay.first; s < lay.last && s < lay.names.length; s++)
+    addName(
+      text,
+      font,
+      elide(text, font, lay.names[s], lay.nameMax),
+      rowY(lay, s) + lay.rowScale / 2 + size * 0.35,
+      lay.nameText,
+      lay.nameY,
+      lay.nameW,
+    );
+}
+
+/** The names, clipped to the label column and the band as the rows layer's header is. */
+function drawStateNames(lay: MatrixLay, out: PassWriter) {
+  if (!lay.tokens || !lay.config || !lay.nameText.length) return;
+  const g = out.args;
+  g[0] = lay.config.inset;
+  g[1] = lay.box.y;
+  g[2] = Math.max(0, lay.box.x - lay.config.inset);
+  g[3] = lay.box.height;
+  out.clipArgs();
+  drawNames(
+    out,
+    lay.nameText,
+    lay.nameY,
+    lay.nameW,
+    lay.config.itemFont,
+    lay.tokens.colors['msui-text'],
+    lay.nameX,
+    lay.nameMax,
+  );
+  out.unclip();
+}
+
 /** A state row's top in the strip's frame. */
 function rowY(lay: MatrixLay, s: number): number {
   return lay.box.y + s * lay.rowScale - lay.bandTop;
@@ -362,6 +425,7 @@ export const MatrixType: LayerType<MatrixPrep, MatrixLay> = {
     lay.ib.length = 0;
     lay.pend.length = 0;
     lay.tables.length = 0;
+    lay.nameText.length = lay.nameY.length = lay.nameW.length = 0;
     if (ctx.images) lay.cache = ctx.images;
     else if (!lay.cache) {
       let own = OwnImages.get(config);
@@ -398,6 +462,7 @@ export const MatrixType: LayerType<MatrixPrep, MatrixLay> = {
     lay.bandTop = Math.max(0, Math.min(ctx.bandTop ?? 0, states * rs - box.height));
     lay.first = Math.max(0, Math.floor(lay.bandTop / rs));
     lay.last = Math.min(states, Math.ceil((lay.bandTop + box.height) / rs));
+    layoutNames(lay, ctx);
     // the color's open domain: the range of the tiles read
     if (lay.extents.any) {
       let lo = Number.NaN;
@@ -451,7 +516,13 @@ export const MatrixType: LayerType<MatrixPrep, MatrixLay> = {
     return lay;
   },
 
+  rowNames: (lay) => lay.nameText.length > 0,
+
   draw(lay, pass: PassName, out: PassWriter, emphasis?: Emphasis) {
+    if (pass === 'labels') {
+      drawStateNames(lay, out);
+      return;
+    }
     if (pass !== 'data') {
       if (emphasis) drawMatrixEmphasis(lay, pass, out, emphasis);
       return;

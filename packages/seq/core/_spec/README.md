@@ -1548,13 +1548,15 @@ format). Why opt in: the default viewer is at its size bound.
   chromosome.
 - **Tables**: `ranges` lists at level 1 and at the level whose one tile holds the longest system (`wholeLevel`). Each
   row a piece with its item's `id`, `strand` (and a field `strand`), `itemStart`, `itemEnd`, and fields `label` (`Name`,
-  GTF's `transcript_name` or `gene_name`, else the id), `type`, `gene`, `gene_name`, `thick_start`, `thick_end`
-  (float64, NaN none), `cds_phase` (int8, −1 none), then the attributes as categories in order of first use, at most 256
-  names (`ID` and `Parent` not fields); `rows` has `source`, `score` (float32) and `phase` (int8) instead of the gene's.
-  A region meeting an item with no piece in it (inside an intron) gives one **span row** (`start = end` at the region's
-  clipped start of the item, with its extent: EC-229). Pieces and items are found by a region from an index by start of
-  the short ones (a binary search, then what is near) and a list of the long ones (past 64 times the median span, at
-  least 4,096), so one chromosome-long feature never makes every read scan the sequence.
+  GTF's `transcript_name` or `gene_name`, else the id), `type`, `gene`, `gene_name`, `canonical` (`MANE Select` for the
+  tag `MANE_Select`, else `Canonical` for `Ensembl_canonical`; null otherwise and for a gene: the data says it, nothing
+  is guessed), `thick_start`, `thick_end` (float64, NaN none), `cds_phase` (int8, −1 none), then the attributes as
+  categories in order of first use, at most 256 names (`ID` and `Parent` not fields); `rows` has `source`, `score`
+  (float32) and `phase` (int8) instead of the gene's. A region meeting an item with no piece in it (inside an intron)
+  gives one **span row** (`start = end` at the region's clipped start of the item, with its extent: EC-229). Pieces and
+  items are found by a region from an index by start of the short ones (a binary search, then what is near) and a list
+  of the long ones (past 64 times the median span, at least 4,096), so one chromosome-long feature never makes every
+  read scan the sequence.
 - **By region** (a bgzipped, sorted file with a tabix `index`, never `<uri>.tbi`: EC-186): the header's directives at
   open (`##sequence-region` lengths), the levels its index's bytes allow (Genome runtimes' internals, Levels), a tile's
   `readCost` its `regionBytes`. **A tile's lines are assembled alone, by type**, as the whole file's are: a transcript's
@@ -1663,19 +1665,20 @@ share), and two chunks loaded on first use: `vcf-indexed.ts` (the first indexed 
 - **The matrix** (EC-220 to EC-222): a source whose file has samples serves a `matrix` on each system beside its
   `ranges`: items the ALT alleles of the region (the sites' rows, their ids) × states the samples held
   (`ShapeInfo.states`: the header's order, narrowed by the source's `samples`; names the file lacks, or `samples` on a
-  file without any, said once: `.samples`, info). `codes` the allele's **genotype class** in `GT`, whatever the ploidy:
-  `0` no copy, `1` some but not every copy (`0/1`, `1/2` for either allele), `2` every copy (`1/1`, a haploid `1`), `3`
-  partly called (a `.` beside called alleles), `255` uncalled (`.`, `./.`, no `GT`, a column the line lacks). Why
-  classes and not a count: a haploid `1` and a heterozygote's `1` are different genotypes a theme must not paint alike.
-  `value` float32 by `RegionRequest.field`: `GT` the allele's copies among the called (NaN uncalled), or a numeric
-  FORMAT key of `Number=1` or `A` (the allele's), the coverage's `fields`; NaN missing. A long deletion is one item
-  across the SNVs it covers (EC-222). **Genotypes are read only for a `matrix` request**, only for the samples held,
-  from the lines' bytes the read already holds (each row keeps its line's span and its allele's number), each line once.
-  Above level 1 (not as items) a `summary` counted from the tile's items, each in every bin its extent touches (as a
-  density): codes as each bin's majority class (0 to 3, ties to the lower) and its share of the called (0 to 255; 255
-  and 0 where none is called), values as `mean`, `min`, `max`, `count` (NaN not counted). A matrix's bytes (its items'
-  cells and a summary's counts) are counted before it is allocated, within `maxMatrixBytes` (region-reads'
-  `maxTileBytes`), else `too-large`.
+  file without any, said once: `.samples`, info). `codes` the allele's **genotype class** in `GT`, whatever the ploidy
+  (and `calls`, `callTexts` the call each cell was written as, `0|1`, `1/2`, `1`, `./.`, up to 255 distinct of 16 bytes,
+  for the card: a class counts one allele's copies, the call says what the sample has): `0` no copy, `1` some but not
+  every copy (`0/1`, `1/2` for either allele), `2` every copy (`1/1`, a haploid `1`), `3` partly called (a `.` beside
+  called alleles), `255` uncalled (`.`, `./.`, no `GT`, a column the line lacks). Why classes and not a count: a haploid
+  `1` and a heterozygote's `1` are different genotypes a theme must not paint alike. `value` float32 by
+  `RegionRequest.field`: `GT` the allele's copies among the called (NaN uncalled), or a numeric FORMAT key of `Number=1`
+  or `A` (the allele's), the coverage's `fields`; NaN missing. A long deletion is one item across the SNVs it covers
+  (EC-222). **Genotypes are read only for a `matrix` request**, only for the samples held, from the lines' bytes the
+  read already holds (each row keeps its line's span and its allele's number), each line once. Above level 1 (not as
+  items) a `summary` counted from the tile's items, each in every bin its extent touches (as a density): codes as each
+  bin's majority class (0 to 3, ties to the lower) and its share of the called (0 to 255; 255 and 0 where none is
+  called), values as `mean`, `min`, `max`, `count` (NaN not counted). A matrix's bytes (its items' cells and a summary's
+  counts) are counted before it is allocated, within `maxMatrixBytes` (region-reads' `maxTileBytes`), else `too-large`.
 - **Bounds**: a whole read's bytes (`limits.maxBytes`) and lines (`limits.maxRows`) before the lines are spanned; its
   alleles (`limits.maxRows`); a region's lines and alleles within `limits.maxRows`; one line `maxLineBytes`; io's tabix
   bounds by region (`VcfOptions.tabix`; its `maxLineBytes` and `maxHeaderBytes` the runtime's own); a matrix within
@@ -3221,11 +3224,15 @@ in page coordinates: what crosses strips; `bridge`, internal, once a bridge with
   CSS px) before the model's start on the screen: the lanes are packed with that room before each item (its width and
   the gap, in positions at the view's scale), so each model whose room lies inside the band has its label whole; one
   whose room runs past the band's left edge has none. Never a box, never over the pieces; a hit on it is the item's; no
-  label lane (a lane under 10 px draws none). The boxes are never merged into runs (`bars` keeps them; `density` is the
-  strip). Why: igv's and UCSC's gene model; a GFF's transcripts are items with pieces, and a line style is how they are
-  joined. A warm draw and hover allocate nothing (the gene models scenario). A source's lanes (its whole data's not
-  known) are centred by the most the layer has shown, every lane when the last is the density row, so no lane runs past
-  the band.
+  label lane (a lane under 10 px draws none). **A canonical item** (a `canonical` field with a value, the GFF3 and GTF
+  readers': `Canonical`, `MANE Select`) is packed before the others (`GeneScratch.marked`, the sort's first key, then
+  the start), so it takes the first lane its extent leaves free, its gene's stack first, and its label is bold (the item
+  font in bold, `boldOf`, measured so: its room is its bold width); no item marked, the order and the labels are the
+  unmarked ones. Why: the data says which transcript is the one to read; the viewer never picks. The boxes are never
+  merged into runs (`bars` keeps them; `density` is the strip). Why: igv's and UCSC's gene model; a GFF's transcripts
+  are items with pieces, and a line style is how they are joined. A warm draw and hover allocate nothing (the gene
+  models scenario). A source's lanes (its whole data's not known) are centred by the most the layer has shown, every
+  lane when the last is the density row, so no lane runs past the band.
 
 - `values`: bars, or a profile where a position is under 4 CSS px. From 4 px a bar a position: a 1 px gap, rounded tops
   (2 px), at 60% of the series color. Below, one stepped profile over the device columns' extent
@@ -4624,6 +4631,28 @@ cost to the minimal viewer is the names the chunk imports from it).
   within the layer's `triangle`, missing values left out; NaN with no cell. A library function, no state: a host's
   readout reads it (a selected rect's mean PAE).
 
+### Row names
+
+`render/row-names.ts` (`addName`, `drawNames`): the names of a rows system in the label column, one part for every layer
+whose rows are a system's members: the rows layer's labels (an alignment's sequences) and the matrix layer's states (a
+VCF's samples, a methylation matrix's samples).
+
+- **What**: a name a row in view, at the items' font (`itemFont`), the text ink (`msui-text`), from the column's inset,
+  cut with an ellipsis within the column (`elide`, the column's room less the gap); drawn in the `labels` pass, clipped
+  to the column and the band. A row under `rows.labelMinPx` (8 px) has none: a band is then no longer than it can name
+  (a track of 40 samples is 320 px or more for every name).
+- **Laid out with the layer**, for the rows in view only (no frame's work past them); a layer holds its names in its own
+  lists (`LayerType.rowNames` says whether it names its rows), so a hover or a pan allocates nothing the layout did not.
+- **The track's label**: a track whose layer names its rows shows the names in place of its own label
+  (`TrackLayout.labelText` is empty): the label column holds one or the other, as a rows track's holds its rows. The
+  label returns when no row is named: rows under `rows.labelMinPx` (a band too short for its states, a view zoomed out
+  of its rows), states with no names, or a later strip of blocks. The legend's title and the track's address keep the
+  name.
+- **The first strip's**: a section of blocks lays its layers a strip at a time; only the first strip is at the label
+  column (a later strip's data starts mid-page), so a later strip names none.
+- **Why one part**: a second would drift in font, room and elision from the first; a reader moving from an alignment to
+  a genotype matrix reads names the same way.
+
 ### The matrix layer
 
 `render/matrix.ts` (`MatrixType`, `shape: 'matrix'`, fallback `values`): a `matrix` entry's items × states in a track's
@@ -4639,9 +4668,13 @@ band (EC-220 to EC-222), inline or a source's, read through the store either way
 - **Bins at a coarser level** (`layerLevel`): a store tile one image tile (bins × states, never smoothed) in the shared
   image LRU by layer, the tile and its version, the colors' version and the axis's direction, placed on the device grid.
 - **Color**: values by the layer's `color` channel by value (its open domain the range of the tiles read), a missing
-  value transparent; codes by class (`0` `seq-genotype-0`, `1` `seq-genotype-1`, `2` `seq-genotype-2`, `3`
+  value (NaN: a cell, or a bin of none) `seq-missing`, as an uncalled genotype is (at least 2:1 against the ramp's low
+  end and the page in both themes; never the ramp's low end: on a dark page a dark ramp's low end and a clear cell were
+  one colour; never 0, EC-221); codes by class (`0` `seq-genotype-0`, `1` `seq-genotype-1`, `2` `seq-genotype-2`, `3`
   `seq-genotype-3`; tokens of their own, so a theme changing the value ramp leaves genotypes alone), uncalled (`255`)
   `seq-missing`; a bin's code its majority class at its share's strength (the colour's alpha × share).
+- **Names**: the states' names (inline `states`, else the coverage's) in the label column, the rows layer's part (Row
+  names): a name a state row in view from `rows.labelMinPx` on; unnamed states none (a hover says `state 3`).
 - **Legend**: values the `color` channel's; codes their classes as swatches in the cells' colours (`no copy`,
   `some copies`, `every copy`, `partly called`, `uncalled`), never a ramp: a code is a class, not a value. The classes'
   tokens are `seq-genotype-*`.
@@ -4665,8 +4698,16 @@ label and value, the sentence), read on a hover from what the frame drew; a host
   (a mirror's cell the served one's, a sparse tile's unlisted cell its `fill`), NaN `no data`, a tile not loaded
   `loading`; undefined for a held grid (the viewer's own words).
 - **A matrix cell** (`matrixCellHover`): its item (its `id` when the table keeps one, its extent; the shortest item
-  there, a SNP over a deletion) and state (inline `states`, else the coverage's), its value or genotype (`genotypeText`:
-  `0/0`, `0/1`, `1/1`, `./1`, `./.`); at a coarse level its bin, its mean or its majority with its share, and its level.
+  there, a SNP over a deletion) and its sample (inline `states`, else the coverage's), one `Sample` row
+  `S11 · 0|1 (heterozygous)`. A genotype cell with a recorded call (`MatrixItems.calls`, `callTexts`: the VCF's) says
+  **the call as the file wrote it** with what it is (`callWords`): all alleles missing `no call`, some `partly called`;
+  a haploid call `reference` or `alternate` (no zygosity); else `homozygous reference` or `homozygous alternate` when
+  the alleles agree, `heterozygous` when they differ (`1/2` too, on each ALT's column alike: a call is the sample's, not
+  the allele's). A cell with none (inline codes, a bin's majority) says its class (`genotypeWords`: `no copy`,
+  `some copies`, `every copy`, `partly called`, `uncalled`), never written as a call; a value its number, `no data` for
+  NaN. The sentence `Sample S11 · 0|1 (heterozygous)`; at a coarse level its bin, the sample with its mean or its
+  majority class and its share (`73% of the bin`), and its level. Never `State` or `Value`: a state is a sample to a
+  reader.
 
 ### Tensions (pairs and grids)
 
