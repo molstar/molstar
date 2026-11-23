@@ -10,8 +10,8 @@
 // kinds it may sit under (`parents`), takes an id exactly when the kind says so (`ids`), and its params are the
 // declared ones, required or not, of the declared type. It builds the normalized tree the read pipeline gives: a column
 // param holds its typed array, whether the builder was handed one or a plain array. The engine knows no language
-// (a language's own builder, with handles and its vocabulary, is written on it). Written from meso*'s builder engine;
-// normalization is the delta, `print` is the codecs' (`printSexpr`).
+// (a language's own builder, with handles and its vocabulary, is written on it). It normalizes as it builds; `print` is
+// the codecs' (`printSexpr`).
 
 import {
   type KindSpec,

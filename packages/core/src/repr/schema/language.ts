@@ -7,8 +7,8 @@
 // A language described as data (_spec/README.md "Schema"; language-description.md): its node kinds, which kinds each
 // may sit under, typed params with defaults and docs. A description is plain data (no functions, no classes, a pattern
 // is a string), so it can be printed, hashed, sent to an agent and turned into docs without a second description.
-// Slots (`type: 'node'`) name the language they embed by id, resolved late at validation. Written from meso*'s schema
-// core; `column`, `table`, `fallback` and the units hook are the delta, definitions (`def`, uses) wait.
+// Slots (`type: 'node'`) name the language they embed by id, resolved late at validation. Definitions
+// (`def`, uses) wait.
 
 import type { CategoryColumn, ColumnType, Node, Value } from '../tree/index.js';
 

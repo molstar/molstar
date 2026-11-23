@@ -35,7 +35,7 @@ describe('repr/tree: nodes and kinds', () => {
 });
 
 describe('repr/tree: hashNode', () => {
-  it("is meso*'s for a tree without the delta: the canonical text and the hash function are a contract", () => {
+  it('is pinned for a tree without custom data: the canonical text and the hash function are a contract', () => {
     const node: Node = { kind: 'population', id: 'p1', params: { name: 'ä', count: 3 } };
     expect(hashNode(node)).toBe('066e920268ab0cde469132d9e0a89ea2');
   });

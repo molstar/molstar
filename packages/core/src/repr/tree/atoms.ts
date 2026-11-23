@@ -15,8 +15,7 @@
 //   "a b" "HBA_HUMAN/1-141"   a string in JSON's grammar, quoted when it would not read back bare
 //
 // A word is printable, non-space code points, no delimiter (`()[]";{},`) and not opening with `:` (a keyword) or `$`
-// (reserved). Changed from meso*'s reader: a word that looks like a number but is not JSON's (`+1`, `.5`) was an
-// issue there; here it is the number JavaScript reads, and a word that is no number (`94A`, `0x10`) is a symbol, so a
+// (reserved). A word that looks like a number but is not JSON's (`+1`, `.5`) is the number JavaScript reads, and a word that is no number (`94A`, `0x10`) is a symbol, so a
 // residue label with an insertion code needs no quotes and a quantity (`2nm`) is a string with no units table.
 
 import type { Atom } from './node.js';

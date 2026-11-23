@@ -12,8 +12,7 @@
 // and -0 tagged as above; a category's values are strings and `null` (missing); decoding gives it back plain, and
 // normalization types it. Any other column is tagged, `{ "$column": "int32", "values": […] }` (a category:
 // `{ "$column": "category", "dict": […], "codes": […] }`), and decodes typed with no language. Parsing is strict
-// (a duplicate key is an issue, not last-wins) and reports every issue it finds, each with its path. Written from meso*'s tree core; `custom` and
-// columns are the delta.
+// (a duplicate key is an issue, not last-wins) and reports every issue it finds, each with its path.
 
 import { type Codec, CodecIssues, type DecodeOptions, type Decoded } from '../../codec/codec.js';
 import { type ColumnPlaces, declaredColumnPlaces, type Language } from '../../schema/index.js';

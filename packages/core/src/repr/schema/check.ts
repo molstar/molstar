@@ -6,7 +6,7 @@
 
 // A language's own consistency (_spec/README.md "Schema"): `defineLanguage` throws on its issues, a broken description
 // written in code being a programmer error. Each issue carries the address of what it is about in the description
-// (`/sequence/alphabet`: a kind, then its params by name). Written from meso*'s schema core.
+// (`/sequence/alphabet`: a kind, then its params by name).
 
 import {
   ColumnTypes,

@@ -8,8 +8,7 @@
 // its severity, a path, the address where the place has one, and an actionable hint. Messages name only the language's
 // own vocabulary (its kinds, its params, their types); what the spec wrote is said by the place, never in the text.
 // Ids are local: unique among siblings. A slot's node is validated against the language the slot names, looked up
-// when it is met, so languages that embed each other validate each other with no import between them. Written from
-// meso*'s schema core; columns, tables, extension kinds and the units hook are the delta.
+// when it is met, so languages that embed each other validate each other with no import between them.
 
 import {
   type CategoryColumn,

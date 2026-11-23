@@ -7,7 +7,6 @@
 // What is generated from a description: defaults filled in, the reference docs (Markdown), and a signature per kind in
 // the S-expression spelling, which is what an agent's skill lists (`(sequence :alphabet "protein" | "dna" | "rna"
 // [:letters string])`). The docs and the skill are one source with the validator, never a second description.
-// Written from meso*'s schema core.
 
 import { isRecord, type Node, own, printKey, type Value, type ValueRecord } from '../tree/index.js';
 import type { Fields, Language, ParamSpec, ParamType } from './language.js';

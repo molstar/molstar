@@ -2,10 +2,8 @@
 
 `@molstar/core/repr` (`packages/core/src/repr/`): the codec-independent tree core languages are described and written
 on: one node shape, values with identity, languages as data, validation with every issue, addresses with query segments,
-a typed builder. Not `@molstar/graphics/repr` (visual representations): `repr` here is a representation of a spec.
-Written from meso\*'s tree core (`@molstar/meso-core` in the molstar-ludo repository) with the delta of
-`.seq/design/language-description.md`; the designs are `.seq/design/tree-core.md`, `format.md`, `addressing.md`,
-`locations-and-queries.md`. This spec is what is built: rules and their reasons.
+a typed builder. Not `@molstar/graphics/repr` (visual representations): `repr` here is a representation of a spec. This
+spec is what is built: rules and their reasons.
 
 | Folder           | What                                                                                 |
 | ---------------- | ------------------------------------------------------------------------------------ |
@@ -60,7 +58,7 @@ at their old paths: a reader of JSON's binary twin needs no io dependency.
 
 - **`hashNode`**: MurmurHash3 x86 128-bit (core's) over a canonical text: record keys sorted, every atom kind told
   apart, children by their hashes (Merkle), cached per node. Absent `params`, `custom`, `children` hash as empty ones.
-  Seed and text are meso\*'s, so a tree without the delta hashes as it did there (a pinned test). Why: equal across key
+  The seed and the text are pinned, so a tree without custom data keeps its hash (a pinned test). Why: equal across key
   order and encodings; an unchanged subtree costs nothing.
 - **Columns by element type and bytes** (`hashColumn`, `columnsEqual`): NaN equals NaN, -0 is not 0, an `Int8Array` is
   not a `Uint8Array` of the same bytes, a typed column is not the plain array of its values. Bytes are the platform's
@@ -99,7 +97,7 @@ quantities need no quotes, and no units table is needed to read them (locations-
   issue, never a truncation. Kinds and params of forms are checked against the caller's when given.
 - **The form-resolver table** (`SelectOptions.resolvers`, by form kind): a resolver receives what the prefix names
   (`Named`: `{ kind: 'nodes', matches }` or `{ kind: 'other', type, value }`) with the caller's `limit`, `maxDepth`,
-  `signal` and `deadline`, and returns a result or issues. A form without a resolver is meso\*'s child selection
+  `signal` and `deadline`, and returns a result or issues. A form without a resolver is plain child selection
   (`matchesForm`), which applies to nodes only; an id, a resolver-less form or `/*` after a result that is not nodes is
   `repr.tree.address.resolver`. Why: one grammar, each language deciding what its forms mean.
 - **A selected node's address is segments**: ids, or a form where a resolver names a node no id path does
@@ -108,7 +106,7 @@ quantities need no quotes, and no units table is needed to read them (locations-
   `complete: false` and `pending` are carried too, reserved for evaluation over data read by region (not acted on).
 - **Staged selection** (a pattern with a resolved form) goes segment by segment: the `limit` bounds the final matches,
   not a step's; the signal and the deadline are read between steps and every `CancelEvery` nodes inside them and the
-  `/*` walk, which keeps one path stack per root. Without resolvers in the pattern, the walk is meso\*'s (one path
+  `/*` walk, which keeps one path stack per root. Without resolvers in the pattern, the walk is the plain one (one path
   stack, an address copied per match).
 - **Matching** (`matchesForm`): the same atom (`Object.is`), an atom held by a list param, an equal list, or a node
   fitting a nested form. Defaults are not applied.
@@ -406,15 +404,15 @@ quantities need no quotes, and no units table is needed to read them (locations-
 
 ## Tests
 
-`_test/` per folder, quick lane: the tree (hash pinned to meso\*'s, columns, atoms), addresses (grammar round trip,
-issues, selection, resolvers), the schema (every misuse by code, severity and address; columns and tables;
-normalization; units hook; docs), both codecs through the conformance suite and their own cases, the builder (normalized
-output, handles, ownership, runtime errors, `@ts-expect-error` misuse), MessagePack (conformance, every column type,
-alignment, malformed input, keys, BOM, surrogates, the plain-value hook; decode throughput in the heavy lane: columns at
-least 200 MB/s, a node-heavy document guarded at 20 MB/s), the issue catalog against the sources, and a short seeded
-fuzz of the three readers (never a throw, always a tree or issues). Patches: the conformance suite, net `Changes`,
-structural sharing, issue paths, the patch tree's round trip, and diff's three laws as seeded property tests (without a
-language, and with one on valid trees with dangling and rebinding allowed); the child index. Merge: its laws as seeded
-property tests (`merge3(b, x, b)` and `merge3(b, x, x)` are `x`, `merge3(b, b, y)` is `y`, symmetry without conflicts up
-to one-side siblings' order, every `partial` valid), every conflict kind both ways round, dependents, placement, orders,
-`invalid`, a rebase, and its result consumed by `applyPatch` and `diff`.
+`_test/` per folder, quick lane: the tree (the pinned hash, columns, atoms), addresses (grammar round trip, issues,
+selection, resolvers), the schema (every misuse by code, severity and address; columns and tables; normalization; units
+hook; docs), both codecs through the conformance suite and their own cases, the builder (normalized output, handles,
+ownership, runtime errors, `@ts-expect-error` misuse), MessagePack (conformance, every column type, alignment, malformed
+input, keys, BOM, surrogates, the plain-value hook; decode throughput in the heavy lane: columns at least 200 MB/s, a
+node-heavy document guarded at 20 MB/s), the issue catalog against the sources, and a short seeded fuzz of the three
+readers (never a throw, always a tree or issues). Patches: the conformance suite, net `Changes`, structural sharing,
+issue paths, the patch tree's round trip, and diff's three laws as seeded property tests (without a language, and with
+one on valid trees with dangling and rebinding allowed); the child index. Merge: its laws as seeded property tests
+(`merge3(b, x, b)` and `merge3(b, x, x)` are `x`, `merge3(b, b, y)` is `y`, symmetry without conflicts up to one-side
+siblings' order, every `partial` valid), every conflict kind both ways round, dependents, placement, orders, `invalid`,
+a rebase, and its result consumed by `applyPatch` and `diff`.

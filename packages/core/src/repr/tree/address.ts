@@ -10,7 +10,7 @@
 // any depth is the query language's.
 //
 // A segment may also be a query form, `(kind :key value …)`: by default it selects the addressable children of the
-// node(s) before it by kind and params (meso*'s child selection); a caller's form resolver table gives a form kind
+// node(s) before it by kind and params (plain child selection); a caller's form resolver table gives a form kind
 // another meaning (a range, an item, a rect), whose result may be no nodes at all (locations-and-queries.md).
 //
 //   address = "/" | ("/" step)+ ["/*"]
@@ -23,9 +23,8 @@
 // Positional values (a form's `args`) come before its keyword params: an expression's operands (`(> (prop b) 60)`),
 // which the language reading the form accepts or refuses; operator symbols (`OperatorKinds`) are heads too.
 //
-// Written from meso*'s tree core. Changed: forms are read here by their own small reader (the tree knows no codec;
-// the S-expression codec reads an address word through this one), values may be lists, strings and addresses, atoms
-// are atoms.ts's (a word that parses as a JavaScript number is a number), relative addresses wait for definitions, and
+// Forms are read here by their own small reader (the tree knows no codec; the S-expression codec reads an address
+// word through this one); values may be lists, strings and addresses; atoms are atoms.ts's (a word that parses as a JavaScript number is a number), relative addresses wait for definitions, and
 // selection takes a form-resolver table.
 
 import { Delimiter, KeywordPattern, printAtom, printKey, readQuoted, readWord } from './atoms.js';
@@ -475,7 +474,7 @@ export function addressOf(root: Node, target: Node): Address | undefined {
 // ---- matching and selection ----
 
 /**
- * Whether `node` fits the query form (meso*'s child selection): its kind, and for each of the form's params a value of
+ * Whether `node` fits the query form (plain child selection): its kind, and for each of the form's params a value of
  * the node's own that is the same atom (`Object.is`: `0` is not `-0`, `nan` is `nan`, `1` is not `1n`, absent is not
  * `nil`), a list param holding that atom, an equal list, or a node fitting the nested form. Params the form does not
  * name, the node's id and its children are not looked at; defaults are not applied.
@@ -637,7 +636,7 @@ export interface SelectOptions {
    */
   readonly params?: ReadonlyMap<string, ReadonlySet<string>>;
   /**
-   * The form-resolver table, by form kind; a form whose kind has none is meso*'s child selection (`matchesForm`), which
+   * The form-resolver table, by form kind; a form whose kind has none is plain child selection (`matchesForm`), which
    * applies to nodes only.
    */
   readonly resolvers?: Readonly<Record<string, FormResolver>>;

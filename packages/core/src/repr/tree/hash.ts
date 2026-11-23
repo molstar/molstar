@@ -10,13 +10,13 @@
 // enters as its own hash (its element type and bytes, column.ts), computed once per column. Cached per immutable node,
 // so an unchanged subtree costs nothing to hash again (Merkle). The hash is @molstar/core's MurmurHash3 x86 128-bit
 // over the text's UTF-8 bytes. Absent `params`, `custom` and `children` hash as empty ones (absent or empty `args` as
-// nothing): `{ kind }` and `{ kind, params: {} }` are the same node. Written from meso*'s tree core.
+// nothing): `{ kind }` and `{ kind, params: {} }` are the same node.
 
 import { murmurHash3_128, murmurHash3_128_fromBytes } from '../../data/util/hash-functions.js';
 import { type Column, columnsEqual, columnType, hashColumn, isColumn } from './column.js';
 import { isNode, type Node, type Value, type ValueRecord } from './node.js';
 
-const Seed = 0x6d65736f; // meso*'s, so a tree without the delta hashes as it did there
+const Seed = 0x6d65736f; // pinned: a stored hash depends on it (the pinned test)
 const Cache = new WeakMap<Node, string>();
 
 /** 32 hex digits; equal for equal trees, whatever the order of record keys. */
@@ -69,7 +69,7 @@ function canonicalNode(node: Node): string {
   out.push(']');
   // a data form's args after its children, only when present: every other node's text is unchanged
   if (node.args?.length) out.push(canonicalValue(node.args));
-  // custom data last, only when present (the delta: a tree without it hashes as meso*'s)
+  // custom data last, only when present: a tree without it hashes as it did before custom data existed
   if (node.custom && Object.keys(node.custom).some((k) => node.custom![k] !== undefined))
     out.push('$', canonicalRecord(node.custom));
   out.push(')');

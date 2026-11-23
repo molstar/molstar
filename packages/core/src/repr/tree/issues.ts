@@ -5,8 +5,8 @@
  */
 
 // The coded issue (_spec/README.md "Issues"): one shape everywhere, a stable namespaced code callers branch on, a
-// severity with one meaning, the place as a step path and, where the place has one, an address. Written from meso*'s
-// tree core, with the severity added and the codes moved under `repr.*`.
+// severity with one meaning, the place as a step path and, where the place has one, an address; the codes
+// under `repr.*`.
 
 /** A position in a tree: keys and child indices from the root (`['children', 3, 'params', 'count']`). */
 export type TreePath = readonly (string | number)[];

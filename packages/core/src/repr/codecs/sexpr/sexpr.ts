@@ -19,9 +19,9 @@
 //                                                 (tree/address.ts): a string value, in its canonical spelling
 //   ;       a comment, to the end of the line
 //
-// Written from meso*'s tree core (canonical there; a printing here). Changed: atoms are tree/atoms.ts's (a word that is
-// no JavaScript number is a symbol, so no number issue and no units table in the reader), every word opening with `/`
-// is read as an address, `:$custom`, columns elided, definitions' declared params gone (definitions wait).
+// A printing, not the canonical text (that is the hash's). Atoms are tree/atoms.ts's (a word that is no JavaScript
+// number is a symbol, so no number issue and no units table in the reader), every word opening with `/` is read as an
+// address, `:$custom` holds custom data, columns are elided, and definitions' declared params wait for definitions.
 
 import { CodecIssues, type Codec, type DecodeOptions, type Decoded } from '../../codec/codec.js';
 import { type ColumnPlaces, declaredColumnPlaces, type Language } from '../../schema/index.js';

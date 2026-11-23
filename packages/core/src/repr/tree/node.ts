@@ -8,8 +8,7 @@
 // `kind`, an optional local `id`, named `params`, extension data in `custom` and ordered `children`. A param value is
 // an atom, a list, a record, a node (a slot: how a language embeds another) or a typed column. A *data form* (a query,
 // a theme expression) holds positional values in `args` instead of an id and children; which kinds are data forms is
-// the language's declaration (schema `KindSpec.data`), passed to the readers that need it. Written from meso*'s tree
-// core; `custom`, typed columns and namespaced kinds are the delta (language-description.md).
+// the language's declaration (schema `KindSpec.data`), passed to the readers that need it.
 
 import { type Column, isColumn } from './column.js';
 
