@@ -330,10 +330,10 @@ export class AxisTransform {
     return this.dir === -1 ? this.pieces[2 * k + 1] - 1 - d : this.pieces[2 * k] + d;
   }
 
-  /** The last `spanIn`'s x extents (unsnapped, clipped to the data box) and which ends were cut: read right after it. */
   /** The whole cell's x extents of the last `spanIn`/`spanPlain`, before the view cut `sx0`/`sx1` (a letter centres on them). */
   fx0 = 0.5;
   fx1 = 0.5;
+  /** The last `spanIn`'s x extents (unsnapped, clipped to the data box) and which ends were cut: read right after it. */
   sx0 = 0.5;
   sx1 = 0.5;
   scut = 0;

@@ -37,7 +37,8 @@ function glyphXs(f: Frame): number[] {
 }
 
 function dataBox(f: Frame): { left: number; right: number } {
-  const m = /^clip ([\d.-]+) [\d.-]+ ([\d.-]+) /m.exec(recordDrawLists(f.lists, ['data']))!;
+  // the letters' own clip: the one pushed right before their glyph run
+  const m = /^clip ([\d.-]+) [\d.-]+ ([\d.-]+) [\d.-]+\nglyphs /m.exec(recordDrawLists(f.lists, ['data']))!;
   return { left: Number(m[1]), right: Number(m[1]) + Number(m[2]) };
 }
 
@@ -83,6 +84,15 @@ describe('a letter is centred in its whole cell', () => {
     // the edge cell's letter at its whole cell's middle (0.4 of the cell is out on the left)
     const { left, right } = dataBox(f);
     expect(fromSvg[0]).toBeCloseTo(left + (0.5 - 0.4) * ((right - left) / 10.2), 0);
-    expect(svg).toContain('clip');
+    // the letters' text sits in a clip group whose box is the row's data box (the wells' clip, the first of the pass)
+    const group = /<g clip-path="url\(#(c\d+)\)"><text y="[^"]+" text-anchor="middle"[^>]*><tspan/.exec(svg);
+    expect(group).not.toBeNull();
+    const box = new RegExp(`<clipPath id="${group![1]}"><rect x="([\\d.-]+)" y="[\\d.-]+" width="([\\d.-]+)"`).exec(
+      svg,
+    );
+    expect(box).not.toBeNull();
+    const well = /^clip ([\d.-]+) [\d.-]+ ([\d.-]+) /m.exec(recordDrawLists(f.lists, ['data']))!;
+    expect(Number(box![1])).toBeCloseTo(Number(well[1]), 1);
+    expect(Number(box![2])).toBeCloseTo(Number(well[2]), 1);
   });
 });
