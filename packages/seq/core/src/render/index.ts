@@ -78,7 +78,7 @@ export {
   type ThemeContext,
 } from './channels.js';
 export { type LayerColors, layerColors, type ThemeInput, viewTheme } from './layer-color.js';
-export { LegendBand, layoutLegends, legendsHeight, viewLegends } from './legends.js';
+export { keepHiddenLegends, LegendBand, layoutLegends, legendsHeight, viewLegends } from './legends.js';
 export { OverlaySources } from './overlay-sources.js';
 export { LaneIndex, StickyLanes } from './lanes.js';
 export {
@@ -277,6 +277,7 @@ export {
   type HeaderStatePart,
   type HiddenTrack,
   hiddenTrackName,
+  layerName,
   type SectionHeaderLine,
 } from './headers.js';
 export { type ValuesLay, type ValuesPrep, ValuesType } from './values.js';

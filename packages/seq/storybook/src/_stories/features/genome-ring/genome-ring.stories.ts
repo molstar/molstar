@@ -128,12 +128,15 @@ export const KindsOfLinksOnOneChromosome: StoryObj = { render: () => ring('ring-
 /** Kinds of links on chr9 × chr22: the contacts between them, the made-up BCR-ABL1-like junction a ribbon over them. */
 export const KindsOfLinksOnAPair: StoryObj = { render: () => ring('ring-kinds-pair') };
 
-/** The contacts hidden (`layer.hide`, the track's Layers menu): the translocations alone, their legend entry kept. */
+/**
+ * The contacts hidden (`layer.hide`, the track's Layers menu or the legend's eye): the translocations alone; the
+ * contacts' legend row kept in its place, dimmed, its eye "Show Contacts" bringing them back.
+ */
 export const KindsOfLinksContactsHidden: StoryObj = {
   render: () => ring('ring-kinds', { opening: hideKind('contact') }),
 };
 
-/** The translocations hidden: the contacts alone, faint in the hues. */
+/** The translocations hidden: the contacts alone, faint in the hues; the translocations' legend row dimmed in place. */
 export const KindsOfLinksTranslocationsHidden: StoryObj = {
   render: () => ring('ring-kinds', { opening: hideKind('translocation') }),
 };

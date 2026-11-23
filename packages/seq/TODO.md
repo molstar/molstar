@@ -433,8 +433,13 @@ extension kinds.
 - **M5's leftovers** (2026-11-23):
   - The 200-copy split patch, from a click to drawn: median 16.2 ms, max 20.4 (edit < 16).
   - The Signal story's zoom had one frame of 25.7 ms.
-  - The heavy lane's 1M-range lookup, pairs-pyramid slice and field-theme ratio bounds fail under the lane's own worker
-    contention (load 1.2) and pass alone. Isolate them, or give them a quiet-run guard; don't raise them.
+  - The heavy lane's bounds of at most 50 ms run alone, one file at a time after the rest (CL14, `vitest.config.ts`'s
+    `Alone`). Left: the 1M-range lookup's ratio (1.5× of 10,000, about 0.5 ms) failed about 2 in 6 alone under a loaded
+    machine; read it at a quiet gate, and if it still fails, measure it at a larger scale rather than raise it.
+    `bed-time.test.ts` (300 ms) flaked once under load: watch it.
+  - `vitest.config.ts`'s `seq` constant names `packages/sequences/` (the previous implementation), so `packages/seq`'s
+    tests run in the generic projects, not the `sequences*` ones. Decide whether `packages/seq` gets projects of its
+    own.
   - Cmd/Ctrl+wheel over the ring at the fit is taken but changes nothing.
 
 ## The genome ring (RX, 2026-11-23)

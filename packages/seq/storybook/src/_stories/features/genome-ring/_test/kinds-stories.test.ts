@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { resolveAddress } from '@molstar/core/repr/tree';
 import { DarkTokens, LightTokens } from '@molstar/seqx-core/render';
 import { describerFor } from '@molstar/seqx-viewer/describe';
 import { loadGenome } from '@molstar/seqx-core/resolve';
@@ -12,7 +13,8 @@ import { rondoViewer } from '@molstar/seqx-ext-rondo/viewer';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { openExample } from '../../../examples/_test/draw-checks.js';
-import { hideKind, kindsOf, ringStoryView } from '../views.js';
+import { legendRows } from '@molstar/seqx-viewer/legends';
+import { hideKind, kindLayer, kindsOf, ringStoryView } from '../views.js';
 
 // Features/Genome Ring's kinds of links, headless on a fake clock as the stories compose them (a viewer with
 // `rondoViewer`, its SVG export light and dark): the contacts faint in the hues and the made-up translocations in the
@@ -244,13 +246,22 @@ describe('Kinds of links, headless', () => {
     expect(seen.size).toBeGreaterThan(3);
   });
 
-  it('each kind hidden in turn: the other alone, drawn as before', async () => {
+  it('each kind hidden in turn: the other alone, drawn as before; the hidden kind’s legend row kept in its place, dimmed', async () => {
     let v = await open('ring-kinds');
     const before = kindsOf(v).map((l) => [l.label, l.nr]);
+    const titles = legendRows(v).map((r) => r.title);
     await hideKind('contact')(v);
     await v.settle();
     v.draw();
     expect(kindsOf(v).map((l) => [l.label, l.nr])).toEqual([before[1]]);
+    // the Contacts row stays where it was (the story "Kinds Of Links Contacts Hidden"): every layer it keys hidden, its
+    // eye "Show Contacts", its entries no action; the translocations' row as before
+    expect(legendRows(v).map((r) => r.title)).toEqual(titles);
+    const contacts = legendRows(v).find((r) => r.title === 'Contacts')!;
+    expect(contacts.hidden).toBe(true);
+    expect(contacts.layers).toEqual([{ address: kindLayer('contact'), name: 'Contacts', hidden: true }]);
+    expect(contacts.entries.every((e) => !e.action)).toBe(true);
+    expect(legendRows(v).find((r) => r.title === 'Translocations')!.hidden).toBe(false);
     // the hidden kind is no peer: a stem's card counts no layer apart
     const [alone] = kindsOf(v);
     expect(alone.peers.filter((p) => p !== alone && !p.empty)).toEqual([]);
@@ -262,5 +273,32 @@ describe('Kinds of links, headless', () => {
     v.draw();
     expect(kindsOf(v).map((l) => [l.label, l.nr])).toEqual([before[0]]);
     await exported(v);
+  });
+
+  it('the contacts hidden from the start (the story "Kinds Of Links Contacts Hidden" before its first frame): a Contacts row of its name alone, dimmed, its eye "Show Contacts", in its place', async () => {
+    const shown = await open('ring-kinds');
+    const titles = legendRows(shown).map((r) => r.title);
+    shown.retire();
+    viewer = undefined;
+    const view = ringStoryView('ring-kinds');
+    const build = () => {
+      const root = view.build();
+      const layer = resolveAddress(root, kindLayer('contact').split('/').filter(Boolean))!;
+      (layer as { params: Record<string, unknown> }).params = { ...layer.params, hidden: true };
+      return root;
+    };
+    viewer = await openExample({ ...view, build } as never, {
+      delayMs: 0,
+      wait: 3000,
+      fixtures: true,
+      extensions: [rondoViewer],
+    });
+    const v = viewer;
+    v.draw();
+    expect(legendRows(v).map((r) => r.title)).toEqual(titles);
+    const contacts = legendRows(v).find((r) => r.title === 'Contacts')!;
+    expect(contacts.hidden).toBe(true);
+    expect(contacts.entries).toEqual([]);
+    expect(contacts.layers).toEqual([{ address: kindLayer('contact'), name: 'Contacts', hidden: true }]);
   });
 });

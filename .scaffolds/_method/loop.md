@@ -53,7 +53,8 @@ two heavy test runs at once.
      it touched (<budget> a folder; a lane over it moves its slow tests, a quick representative kept, before its
      review). A red check goes back to the lane once; red twice after a fix stops the lane and comes to the author.
    - **items landed, not reported**: tick each numbered item of the brief against a test or an output by name in the
-     findings row; an unticked item goes back to the lane or into `fixes.md`. A design's "Built" note lists ticked
+     findings row (`features-planned.ts --brief` fails an item the row leaves unanswered); an unticked item goes back to
+     the lane or into `fixes.md`. A design's "Built" note lists ticked
      items only.
    - **look**, when something is drawn: the orchestrator looks itself, every time, in a **visible** pane, light and
      dark (a hidden pane is never evidence). For an interactive part it drives each gesture of the part's matrix row
@@ -83,8 +84,10 @@ two heavy test runs at once.
      the hot-file changes the lane asked for; lower the file-size baseline (`file-size.ts --update`) when a listed file
      shrank; delete the design's mock when this merge lands the built view; install, run the checks on the merged
      tree, remove the lane's worktree and branch. The orchestrator stages by path, never `commit -a` or `.`, and keeps its own scripts in its scratchpad.
-   - **record**: the lane's row appended to `findings.md` ([findings.md](findings.md)): the model, the items ticked,
-     the review's and the look's findings by kind (bug, missing design, look), who looked and at what; its drift, gaps
+   - **record**: the lane's row appended to `findings.md` ([findings.md](findings.md)): the model, the items answered
+     (`<n> ✓ <proof>` or `<n> ✗ not landed: <where it went>`, one per numbered item, checked by `features-planned.ts
+     --brief <brief.md> --findings <findings.md>`), the review's and the look's findings by kind (bug, missing
+     design, look), who looked and at what; its drift, gaps
      and followups into `drift/`, `gaps.md` and `followups.md`; its line of `checklist.md` ticked with the merge
      commit.
    - **features**: the lane's built rows in <the features table> moved to built, with their links, in the merge's

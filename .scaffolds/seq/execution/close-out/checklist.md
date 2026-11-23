@@ -9,8 +9,8 @@
 - [x] GATE 0: the designs agreed; this plan agreed, its lanes written in (the author, 2026-11-23: "Write them in")
 
 <!-- Wave 1 -->
-- [ ] CL14 Scaffold checks: `features-planned` over a brief's numbered items; the heavy lane's tight bounds isolated
-- [ ] CL1 Legend and layers: a layer's eye, a hidden layer's row, the Contacts swatch, synteny's legend, legends' domains
+- [x] CL14 (`60c2dc572`) Scaffold checks: `features-planned` over a brief's numbered items; the heavy lane's tight bounds isolated
+- [x] CL1 (`228c6cfa9`) Legend and layers: a layer's eye, a hidden layer's row, the Contacts swatch, synteny's legend, legends' domains
 - [ ] CL2 Ring: the stem menu's route and partners, the stem and pair cards, links pending on the ring
 
 <!-- Wave 2 -->

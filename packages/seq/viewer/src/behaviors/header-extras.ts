@@ -21,7 +21,7 @@ import {
   type SectionLayout,
   type ViewLayout,
 } from '@molstar/seqx-core/render';
-import { hiddenTracksOf } from '@molstar/seqx-core/render/headers';
+import { hiddenTracksOf, layerName } from '@molstar/seqx-core/render/headers';
 import { actionsShown } from '@molstar/seqx-core/render/headers-draw';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { ResolvedSection, ResolvedTrack } from '@molstar/seqx-core/view';
@@ -172,8 +172,8 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
     for (const l of track?.layers ?? []) {
       const address = l.address ?? `${track!.address}:${l.index}`;
       const filtered = at?.filtered.find((x) => x.layer === address)?.count ?? 0;
-      // a layer has no label of its own: its id, else its type
-      const label = l.address?.split('/').pop() ?? l.type;
+      // the one name every list of layers says (core's `layerName`: the legend's eye says it too)
+      const label = layerName(l, track);
       layers.push({
         address,
         type: l.type,

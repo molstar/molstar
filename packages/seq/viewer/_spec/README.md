@@ -1579,8 +1579,14 @@ redraw and a pan that changes the values, never in the spec), a `row.open` and `
 `<button aria-expanded>` ("Show n more", then "Show fewer"; Enter and Space click it, never select an entry) and an open
 group wraps and scrolls past a maximum height (14em) and builds at most `OpenCap` (200) rows, the rest counted inside
 the box (`row.beyond`); closed, rows are built for the first `maxItems` only. The button's accessible name starts with
-its visible text ("+28, show 28 more"). Bands and variants list drawn values as ranges does. Why derived on settle: a
-legend that changes during a pan reads as noise, and its cost stays off the frame.
+its visible text ("+28, show 28 more"). Bands and variants list drawn values as ranges does. **A legend states its
+domain**: a continuous legend (a ramp, steps) over an open domain notes "in view" (`row.note`, shown after its title in
+both forms, as the export's band writes "(in view)"), its ends the domain the view settled on (the label "0 to 25", the
+name "Score: 0 to 25, in view"), derived again when a pan or zoom settles; a closed one states its own ends and no note;
+a palette's domain is its own, never the y domain beside it. A categorical legend says which values it lists: a palette
+listing its values keys all of them (`source: vocabulary`, no note), one listing none keys what was painted (`painted`,
+"values in view"). Why derived on settle: a legend that changes during a pan reads as noise, and its cost stays off the
+frame.
 
 - **The legend behavior's commands** (`behaviors/theming.ts`, patches unless said): `layer.channel` (a channel's value
   or form set or unset, on one layer or several in one patch; on one layer's color its choices are a select param,
@@ -1620,17 +1626,44 @@ legend that changes during a pan reads as noise, and its cost stays off the fram
   at any text size; `collapse` has the row only while one is (an unknown value throws).
 - **The Legend part's options** (`mountLegend(element, viewer, options)`): `of`, `omit`, `maxItems` as above, `form`
   (`full`, the default; `compact`), `orient` (`vertical`, the default: legends stacked; `horizontal`: in a row,
-  wrapping) and `channels`; an unknown `form`, `orient` or `channels` throws. **The compact form** is one line a legend
-  (`nowrap`): its title, then its swatches unlabelled (each entry's `title` and accessible name carry the label), a ramp
-  a 40 px bar with its domain's ends as text, steps joined cells, a `+n` button past `maxItems` (its title "Show n
-  more"; the full form writes the same; it opens the list in place, see above); the same entries, roving focus, gestures
-  and hover outline, only the drawing differs. **Focus**: items have ids and the listbox's `aria-activedescendant`
-  follows the roving focus, so a screen reader says the entry's name; in the compact form it is also shown beside the
-  groups while the part has focus. An `of` naming no layer gives an empty part, nothing said; rows come in the view's
-  order, never `of`'s. A compact group wraps in a horizontal band and is clipped in a vertical one. **Hiding has two
-  owners**: the figure's, the layer's `legend: none` (core, Themes), and the host's, `of` and `omit`; no session command
-  hides a legend, and editing stays the application's. Why: a legend derives from the spec, so a third owner would make
-  "why is there no key" unanswerable.
+  wrapping), `channels` and `layers` (the eye, below); an unknown `form`, `orient` or `channels` throws. **The compact
+  form** is one line a legend (`nowrap`): its title, then its swatches unlabelled (each entry's `title` and accessible
+  name carry the label), a ramp a 40 px bar with its domain's ends as text, steps joined cells, a `+n` button past
+  `maxItems` (its title "Show n more"; the full form writes the same; it opens the list in place, see above); the same
+  entries, roving focus, gestures and hover outline, only the drawing differs. **Focus**: items have ids and the
+  listbox's `aria-activedescendant` follows the roving focus, so a screen reader says the entry's name; in the compact
+  form it is also shown beside the groups while the part has focus. An `of` naming no layer gives an empty part, nothing
+  said; rows come in the view's order, never `of`'s. A compact group wraps in a horizontal band and is clipped in a
+  vertical one. **Hiding has two owners**: the figure's, the layer's `legend: none` (core, Themes), and the host's, `of`
+  and `omit`; no session command hides a legend, and editing stays the application's. Why: a legend derives from the
+  spec, so a third owner would make "why is there no key" unanswerable. Hiding a **layer** (the eye, below) is not
+  hiding a legend: it is the spec's `layer.hide`, and the layer's legend stays.
+- **A layer's eye** (`layers`, an option of the part, `true` by default): after a legend's title, an `@molstar/ui` ghost
+  icon button (eye; eye-off while hidden), named "Hide <layer>" or "Show <layer>" (its tooltip the same), runs
+  `layer.hide` or `layer.show` on the layer it keys: a patch, one undo step. A legend over several layers has one button
+  ("Layers of <title>", `aria-haspopup`) opening `@molstar/ui`'s context menu of its layers, each checked while shown
+  (the track header's Layers menu's shape), a choice the same command. A layer's name (`LegendModel.layerName`) is
+  core's `layerName`, the one the track header's Layers and "Hidden layers" menus say too; a layer of no id
+  (`<track>:<index>`) has no eye. The button is a native one in the part's tab order: Enter and Space click it, never
+  select an entry; the focus stays on it across the redraw a hide brings. The gestures: click the eye, hidden and the
+  row dimmed; click the eye-off, shown and the row as it was; a shown layer's entry unchanged (the click rule); a hidden
+  layer's entry nothing; undo one step. `layers: false` drops it (a figure's legend, printed, where the button is
+  chrome). Why in the part and never on the view: the part is what a host places, and the edit is the spec's existing
+  command, so the legend gains no owner. The button and its tooltip are a chunk of their own (`legend-eye-dom.ts`),
+  loaded the first time a part draws an eye, its room (20 px) held until it lands: the default viewer's first chunk
+  carries none of them (measured: 22.6 kB eager, 3.0 kB with the chunk).
+- **A layer's row keeps its place when hidden**: a hidden layer draws nothing and derives no legend, so `LegendModel`
+  keeps the legends each layer last had while shown and, at each settle, puts them back for a layer the spec hides
+  (core's `keepHiddenLegends`; `Legend.hidden`, the hidden layers among `layers`): each joined to a shown legend of the
+  same key (a legend over several layers, one hidden: the row stays as it is, its menu saying which) or a row of its own
+  (a layer with a color and a size legend: both rows), before the first legend after it in the view (the tracks' layers,
+  then the bridges'). A hidden layer with no legend kept (hidden from the start, or its key not derived yet) has a row
+  of its name alone, no entries, so a hidden layer always shows where its key is and its eye-off shows it. A row whose
+  every layer is hidden (`LegendRow.hidden`) is dimmed (its title and swatches at 0.45), its eye the eye-off, its
+  entries with no action, never hovered, `aria-disabled` and a `not-allowed` pointer. A layer saying `legend: none` has
+  no row, hidden or not; a layer gone from the view is forgotten. Why: a key that vanished on a hide reads as data that
+  vanished; the row says where the layer is and how to bring it back. The track header's "Hidden layers" reads the same
+  spec param, so the two always agree.
 - **Hidden tracks** (the author, 2026-11-21: "hiding a track moves the UI around … give this to control of the app
   layer"): the view draws nothing for a track the spec hides (`hidden: true`): no section line, no chip, no stub, so a
   hide moves only the tracks below it, by its height (core's Track headers); a section whose tracks are all hidden
@@ -1696,6 +1729,9 @@ each. Why lazy: a viewer that never shows a bridge pays for none of it (eager: t
   the sides by their ids; a stub's far end ", not shown"; a bin pair's count and its bins' width ("37 pairs · 16 kb bins
   · zoom in to see them"), never an aligned length. Built from the hit ribbon alone (`BridgeLayout.ribbon(key)`), never
   the list. The commands' change kinds are the commands table's (`commands.ts`).
+- **Its legend**: the bridge's layers' colour channels are keyed in the view's legends like any layer's (core's
+  `viewLegends`, titled by the bridge's `label`, noted "width: aligned length"), unless the layer says `legend: none`;
+  coloured by `orientation`, its entries are `same` and `inverted`.
 - **ARIA words** (`bridgeAria`): each bridge its `label` and the ribbons in view ("3 ribbons between peach and grape in
   view"; none: "no ribbons in view"); the mount sets them as visually hidden `role="group"` nodes, labelled, beside the
   canvas each time a frame settles (`aria`).
@@ -1814,7 +1850,7 @@ settings form.
 | `ui.toolbar` (in `SeqViewerSpec`)                                | none                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | a function mounting the bar above the canvas (`mountToolbar`: Back and Forward, their keys and disabled state); the host places it, as it would a legend: the bar is `@molstar/ui`'s and heavy                                                                                                                                                         |
 | `ui.navigators` (in `SeqViewerSpec`)                             | `navigatorsMount`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | the host places parts; `mountNavigator` by hand                                                                                                                                                                                                                                                                                                        |
 | `ui.railToggle` (in `SeqViewerSpec`)                             | none (the standalone viewer); `railToggleMount` in an embedded layout                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | a cell's room is the reader's                                                                                                                                                                                                                                                                                                                          |
-| `ui.legends` (in `SeqViewerSpec`)                                | `legendsMount`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | a function mounting the Legend part (`mountLegend(element, viewer, { of, omit, form, orient, maxItems })`: the legends of the view or of some tracks, at most 12 entries each, its rows options with accessible names, roving focus, a click selecting a value's items, a hover highlighting them)                                                     |
+| `ui.legends` (in `SeqViewerSpec`)                                | `legendsMount`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | a function mounting the Legend part (`mountLegend(element, viewer, { of, omit, form, orient, maxItems, layers })`: the legends of the view or of some tracks, 12 entries each, keyboard and pointer gestures; `layers: false` drops each legend's eye)                                                                                                 |
 | `navigate.wheelZoomStep`                                         | 1.25                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | the zoom of one wheel notch (100 px of delta) with the zoom modifier, and of a key zoom (no reason recorded)                                                                                                                                                                                                                                           |
 | `navigate.doubleClickZoomStep`                                   | 2                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Shift+double-click's zoom out about the pointer                                                                                                                                                                                                                                                                                                        |
 | `navigate.keyPanFraction`                                        | 0.1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | the part of the viewport a key pans (no reason recorded)                                                                                                                                                                                                                                                                                               |

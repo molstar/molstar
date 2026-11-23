@@ -17,8 +17,9 @@ the rule sections by id>.
 **Items**, a commit at each:
 
 <!-- Numbered, each with what proves it landed: a test by name, an output, a section of a spec. The orchestrator ticks
-     them against that proof at the merge; an item with no proof is not landed. Name the edge cases each covers, so the
-     lane's tests name them. A fix's item says how its test is shown failing on the parent. -->
+     them against that proof at the merge, in the findings row's Items cell (`1 ✓ <proof>; 2 ✗ not landed: <where>`,
+     checked by `_checks/features-planned.ts --brief`); an item with no proof is not landed. Name the edge cases each
+     covers, so the lane's tests name them. A fix's item says how its test is shown failing on the parent. -->
 
 1. **<item>**: <what, where>. Proof: <the test, the output, the section>.
 2. ...

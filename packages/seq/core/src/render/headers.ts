@@ -7,7 +7,7 @@
 import { type Node, resolveAddress } from '@molstar/core/repr/tree';
 import { idRunOf } from '@molstar/seqx-core/lang/check';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
-import type { ResolvedSection, ResolvedTrack } from '@molstar/seqx-core/view';
+import type { ResolvedLayer, ResolvedSection, ResolvedTrack } from '@molstar/seqx-core/view';
 import { fontSize, type RenderConfig } from './config.js';
 import type { Box, Hit } from './layer-type.js';
 import type { TextMetrics } from './text.js';
@@ -519,6 +519,25 @@ export function hiddenTrackName(track: Node): string {
     if (type) return type[0].toUpperCase() + type.slice(1);
   }
   return track.id ?? 'Track';
+}
+
+/**
+ * A layer's name, the one every list of layers says (a track header's Layers and "Hidden layers" menus, a legend's eye):
+ * its `label`, else its `title`, else its track's or bridge's label where it is the only layer there, else its id (its
+ * type without one). Why one: two consumers naming one layer apart read as two layers.
+ */
+export function layerName(
+  layer: ResolvedLayer,
+  owner?: { readonly label?: string; readonly layers: readonly unknown[] },
+): string {
+  const text = (v: unknown) => (typeof v === 'string' && v.trim() ? v : undefined);
+  return (
+    text(layer.params.label) ??
+    text(layer.params.title) ??
+    (owner?.layers.length === 1 ? text(owner.label) : undefined) ??
+    layer.address?.slice(layer.address.lastIndexOf('/') + 1) ??
+    layer.type[0].toUpperCase() + layer.type.slice(1)
+  );
 }
 
 const Hidden = new WeakMap<ResolvedSection, readonly HiddenTrack[]>();

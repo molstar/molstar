@@ -91,6 +91,8 @@ export class RibbonsLay {
   densityMax = 0;
   edgeA = 0;
   edgeB = 0;
+  /** A drawn ribbon's width is its aligned length (an item's, not a bin's, not a line): its legend says so. */
+  lengths = false;
   /** Pairs with an end on a system neither side shows (`seq.render.bridge.unplaced`). */
   unplaced = 0;
   /** The stretches of an edge whose tiles are pending (EC-169): `x0, x1, y, down` each, clipped to the band. */

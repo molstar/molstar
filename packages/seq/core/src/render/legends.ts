@@ -19,6 +19,9 @@ import { RenderIssues } from './issues.js';
 import type { Box } from './layer-type.js';
 import type { TextMetrics } from './text.js';
 import type { SeqTokens } from './tokens.js';
+import type { ResolvedLayer, ResolvedView } from '@molstar/seqx-core/view';
+import { layerName } from './headers.js';
+import { layerKey } from './tracks-columns.js';
 import type { LayerLayout, ViewLayout } from './tracks.js';
 
 // Legends (_spec/README.md "Render", Export; "Themes", Legends): derived from each laid-out layer's channels, merged
@@ -43,6 +46,8 @@ export function viewLegends(layout: ViewLayout, maxItems = 12): { legends: Legen
     // a section's own layers (pairs' arcs and dots), titled by the track that holds them
     for (const l of s.sectionLays) add(l, s.section.tracks.find((t) => t.layers.includes(l.layer))?.label ?? '');
   }
+  // a bridge's layers (its ribbons), titled by the bridge's label, after the sections' (_spec/README.md "Render", Bridges)
+  for (const b of layout.bridges?.list ?? []) for (const l of b.lays) add(l, b.label);
   // after the merge: legends of one title but of different channels say their channel (`Variants (size)`)
   const legends = qualifyLegends(mergeLegends(all));
   const issues: Issue[] = [];
@@ -60,6 +65,74 @@ export function viewLegends(layout: ViewLayout, maxItems = 12): { legends: Legen
         ),
       );
   return { legends, issues };
+}
+
+/**
+ * A view's legends with its hidden layers' kept in place (_spec/README.md "Themes", Legends; the viewer's Legends: a
+ * layer's row keeps its place when hidden): a hidden layer draws nothing, so it derives no legend; each legend it last
+ * had (`last`, by layer key: what a caller keeps across settles) comes back, its layer listed in `hidden`, joined to a
+ * shown legend of the same key (a merged legend, one of its layers hidden) or a row of its own; a hidden layer with none
+ * kept (hidden from the start, or its key not derived yet) a row of its name alone, no entries. Each goes before the
+ * first legend after it in the view (its tracks' layers, then its bridges'); a layer gone from the view is forgotten,
+ * and `names` gets each layer's `layerName`. A layer saying `legend: none` keys nothing, hidden or not.
+ */
+export function keepHiddenLegends(
+  layout: ViewLayout,
+  view: ResolvedView | undefined,
+  shown: readonly Legend[],
+  last: Map<string, readonly Legend[]>,
+  names: Map<string, string>,
+): readonly Legend[] {
+  const place = new Map<string, number>();
+  const hidden: string[] = [];
+  names.clear();
+  const add = (k: string, l: ResolvedLayer, owner: { label: string; layers: readonly ResolvedLayer[] }) => {
+    place.set(k, place.size);
+    names.set(k, layerName(l, owner));
+    if (l.params.hidden !== true) last.set(k, []);
+    else if (l.params.legend !== 'none') hidden.push(k);
+  };
+  for (const s of layout.sections)
+    for (const t of s.section.tracks) for (const l of t.layers) add(layerKey(t, l), l, t);
+  for (const b of view?.bridges ?? []) for (const l of b.layers) if (l.address) add(l.address, l, b);
+  for (const l of shown) for (const k of l.layers) last.set(k, [...(last.get(k) ?? []), l]);
+  for (const k of [...last.keys()]) if (!place.has(k)) last.delete(k);
+  if (!hidden.length) return shown;
+  const out = [...shown];
+  const own = new Map<string, { legend: Legend; layers: string[] }>();
+  for (const k of hidden) {
+    const known = last.get(k);
+    const was: readonly Legend[] = known?.length
+      ? known
+      : [
+          {
+            key: `hidden|${k}`,
+            title: names.get(k)!,
+            channel: 'color',
+            entries: { kind: 'swatches', items: [] },
+            open: false,
+            source: 'vocabulary',
+            more: 0,
+            notes: [],
+            layers: [k],
+          },
+        ];
+    for (const w of was) {
+      const i = out.findIndex((l) => l.key === w.key);
+      if (i >= 0) out[i] = { ...out[i], layers: [...out[i].layers, k], hidden: [...(out[i].hidden ?? []), k] };
+      else {
+        const g = own.get(w.key);
+        if (g) g.layers.push(k);
+        else own.set(w.key, { legend: w, layers: [k] });
+      }
+    }
+  }
+  for (const { legend, layers } of own.values()) {
+    const at = place.get(layers[0])!;
+    const i = out.findIndex((l) => (place.get(l.layers[0]) ?? Number.POSITIVE_INFINITY) > at);
+    out.splice(i < 0 ? out.length : i, 0, { ...legend, layers, hidden: layers });
+  }
+  return out;
 }
 
 /** The legend band's numbers (CSS px): a row's height, a swatch's side, gaps, the ramp's width. */

@@ -177,6 +177,13 @@ over a bridge does is the viewer's.
   the block of the ribbon's end on the **bridge's** `a` side (whichever of the data's ends that is) over GA's
   block-ordered domain (EC-218, chromosome painting: each chromosome of the upper genome one hue, carried to the
   other); a side with no blocks has one block, so one colour. Twist already shows the strand.
+- **Colour by orientation, and the bridge's legend** (decided, the author, 2026-11-23, the fifth slice's novice pass
+  7: "Agree as drafted"): a ribbon also has the built-in field `orientation`, `same` or `inverted` (its ends' strands
+  differ: the ribbon crossed), a palette listing none taking both in that order. The colour was already a channel, so
+  a bridge's legend derives as every other one: `viewLegends` keys a bridge's layers after the sections', titled by the
+  bridge's `label`, noting that a ribbon's width is its aligned length. Synteny (the Genomes example) colours by
+  `orientation`, so chr1's inversion reads apart from chr3's translocation, which colour by block alone drew alike;
+  the default stays `field block` (chromosome painting, Decided 11).
 
 ### What is read, and at which level
 
@@ -474,7 +481,7 @@ Cells this design fills; the others stand as GA, RR, grids-and-rows and ux-found
 | `bridge.resize` grip | `RenderConfig` preset (`bridges.gripPx`) | 4 CSS px | JBrowse's resizable levels; 0 for none |
 | categorical x labels at 45° | fixed | — | upright labels overlap at a member a few px wide; vertical ones read sideways |
 | `aspect` with `follow_y` a second section | spec param (built) | 1 | the box fixed from the width, as built; the cells rectangles when the two windows differ in span (built) |
-| the colour of a ribbon | the layer's channel | `field block` (the a end's block) | chromosome painting (EC-218); `strand`, a field, `b_system` |
+| the colour of a ribbon | the layer's channel | `field block` (the a end's block) | chromosome painting (EC-218); `orientation` (same, inverted), `strand`, a field, `b_system` |
 | ends placed by system, `a` to `a` when both sides show it; no path for pairs | fixed | — | the reasons in the Decision |
 | a bridge's sides neighbours and rows | fixed | — | a ribbon must not cross a side's tracks |
 | the twist by corresponding positions; ends at their true x, clamped one box width out | fixed | — | GA's rule by geometry; continuity on pan |
@@ -501,6 +508,7 @@ Built (the fifth slice): LA, LA2, LA3, LA4 (bridges, grids over two sections, ca
 | A ribbon's shape, corresponding positions, the twist by geometry | core › A ribbon joins corresponding positions |
 | Width at least `ribbons.minPx`; `shape: line`; blocks merged under a pixel | core › An alignment's blocks merge under a pixel |
 | Fill, order, colour by the `a` side's block | core › A ribbon |
+| A ribbon's `orientation` field; a bridge's layers keyed in the view's legends | viewer › Its legend |
 | Each side reads its own view at its own level; drawn once by ownership (Decided 8, 17) | core › sided source |
 | The items gate per side after ownership | design-only: not built (core spec, Bridges, "Not built") |
 | Bins in a bridge: opacity by weight; one cull past `pairs.maxArcs` | core › A ribbon |
