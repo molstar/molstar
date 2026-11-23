@@ -47,8 +47,7 @@ import {
   type Side,
 } from './pairs-lay.js';
 import { drawDots, hitDots, layoutDots } from './pairs-dots.js';
-import { heldBins } from './pairs-held.js';
-import { regionPairs } from './pairs-region.js';
+import { readPairs } from './pairs-reader.js';
 import { drawEmphasis, drawHighlights, pairItems } from './pairs-emphasis.js';
 import { PlacePoint, type Placement } from './layout/types.js';
 import { withAlpha } from './tokens.js';
@@ -84,22 +83,12 @@ export const PairsType: LayerType<PairsPrep, PairsLay> = {
     lay.clip = undefined;
     lay.mode = 'none';
     lay.colorChannel = undefined;
-    // a source's pairs: this frame's read (bins, or items once they fit) as the pairs laid out
-    if (prep.region && !prep.data) {
-      const read = ctx.place ? regionPairs(prep, prep.region, ctx, data, lay) : undefined;
-      if (!read?.data) return lay;
-      prep = read;
-      lay.prep = prep;
-    }
-    if (!prep.data) return lay;
-    // held pairs past the gate: bin pairs at the pairs level a source's are read at (`pairs-held.ts`)
-    if (!prep.region && ctx.place) {
-      const binned = heldBins(prep, ctx, data);
-      if (binned) {
-        prep = binned;
-        lay.prep = prep;
-      }
-    }
+    // this frame's pairs through the reader (`pairs-reader.ts`): a source's bins, or its items once they fit; held
+    // pairs past the gate binned at the level a source's are read at
+    const read = readPairs(prep, ctx, data, lay);
+    if (!read) return lay;
+    prep = read;
+    lay.prep = prep;
     if (prep.unreadFilter)
       ctx.report(
         issueOf(

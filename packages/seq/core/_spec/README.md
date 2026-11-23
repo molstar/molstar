@@ -4319,6 +4319,13 @@ cost to the minimal viewer is the names the chunk imports from it).
   level built when first read and kept; the assembly's part (units as the bins' systems, the blocks' scale) loads with
   the genome chunk (`OverAssembly`). Why: a held table and the same pairs from a file are one picture (one reader,
   region-reads Decided 7).
+- **The reader** (`pairs-reader.ts`, `readPairs`, `PairsReader`): the three reads above are one reader of a pairs node,
+  the layer reading through it with the pairs config and an extension's layer type with its own numbers
+  (`PairsReadOptions`: `binPx`, `gate`, `hysteresis`; `pairsLevels` takes the gate beside the bin width and returns it).
+  Its state is its owner's (a lay, a bridge side, a `PairsReader`), so two readers of one layer at two gates never share
+  a read. It gives `PairsRead`: the rows, the bins' level and counts (absent: items), over an assembly the ends' units.
+  Why one reader: what the pairs layer draws and what an extension draws over the same data are the same bins and items,
+  read once each by one rule (the extension's gate its own: it gates at what it draws).
 - **A bin pair's element** (`Key.key`, what a selection and a bookmark keep):
   `bin:<a>:<aBin>|<b>:<bBin>|<strand>|<category>`, `<a>` and `<b>` the ends' system names as the source gives them
   (empty: the request's system), `<aBin>` and `<bBin>` the bins' indices at the level read (positions `bin × level` to
