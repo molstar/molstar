@@ -40,7 +40,7 @@ export const FamilyColumns = [
 ] as const;
 
 /**
- * The vertical overview of an alignment's rows (navigators.md, the vertical overview): the rows summarized down a
+ * The vertical overview of an alignment's rows (seqx-core _spec "Render", Navigators): the rows summarized down a
  * column at the right, its window the rows and the columns in view, a grip each side (top and bottom for the rows, left
  * and right for the columns), 96 px wide.
  */
@@ -48,7 +48,7 @@ export function rowsOverview(of: NavigatorOf): NavigatorParams {
   return { ...overviewNavigator(of), axes: 'both', size: OverviewWidth };
 }
 
-/** The vertical overview's width, px (navigators.md, the forms' table). */
+/** The vertical overview's width, px (seqx-core _spec "Render", Navigators). */
 export const OverviewWidth = 96;
 
 export interface FamilyOptions {

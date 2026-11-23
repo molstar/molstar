@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// Records the examples' published fixtures, by hand, never in tests (examples.md, "Recorded by hand"): fetches each
+// Records the examples' published fixtures, by hand, never in tests (_spec/README.md "Fixtures"): fetches each
 // entry from its service once, trims it to what the views read (members and records removed, none renamed or moved, so
 // a spec's paths read the live response too), writes the fixture and its `sources.json` row (URL, date, licence,
 // attribution, what was trimmed, checksums). Run it from the package folder:
@@ -785,7 +785,7 @@ const antibodyStructure = () =>
   );
 
 /**
- * The Genomes dataset (examples.md, Genomes): every file `generateGenomes` makes, written (no fetch), a row each of
+ * The Genomes dataset: every file `generateGenomes` makes, written (no fetch), a row each of
  * those it describes (`LicenseRef-seqx-generated`); the folded-in `generated-genes.bed` and `generated-genotypes.vcf`
  * are compared with their generators by a test instead, and the real slices keep their rows (`record-pages.ts`).
  */

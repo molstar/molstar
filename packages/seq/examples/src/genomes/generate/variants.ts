@@ -7,7 +7,7 @@
 import { NGap, type ToyAssembly } from './assemblies.js';
 import { Concern, stream } from './streams.js';
 
-// Step 5 of the Genomes generator (examples.md, Genomes; EC-220, EC-222): a VCF of 40 samples over toy A, `GT` alone:
+// Step 5 of the Genomes generator (EC-220, EC-222): a VCF of 40 samples over toy A, `GT` alone:
 // 2,000 sites (SNVs at A's letters, a tenth multi-allelic), a third of the lines' diploid calls phased, a
 // partly called one now and then, and no-calls; chrM's calls haploid (every sample), and one 600-base deletion on chr1
 // (sequence-resolved, its REF A's letters) over 12 SNVs, carried by six samples. Sorted: what tabix indexes. Why a

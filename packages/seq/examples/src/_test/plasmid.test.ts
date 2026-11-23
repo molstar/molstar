@@ -4,12 +4,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The Plasmid dataset (examples.md, Plasmid): pUC19c, INSDC L09137.2, recorded; its features found in the sequence and
+// The Plasmid dataset: pUC19c, INSDC L09137.2, recorded; its features found in the sequence and
 // its sites computed on it, checked against known facts (bla is 861 nt, 286 residues and a stop, MSIQHFRVAL…; EcoRI and
 // HindIII cut once, in the MCS); every derived feature keeps its length under every rotation of the record and of its
 // reverse complement; the views drawn against the data (each feature where its positions are, across the origin one
 // item; the arrows by strand on the piece holding the end they point to, bent through the ring's warp); the scale
-// variant and its frame times (performance.md, a ring).
+// variant and its frame times.
 
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';

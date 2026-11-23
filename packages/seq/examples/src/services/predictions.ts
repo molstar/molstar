@@ -9,7 +9,7 @@ import { createSeqSpec, theme } from '@molstar/seqx-core/lang';
 import { P53, seeded } from '../p53/data.js';
 import { compose, type ComposedOptions, structureSection } from './composed.js';
 
-// A lab's predictions onto a structure (examples.md, Showcases): a score per position of a sequence the lab indexes from 1
+// A lab's predictions onto a structure: a score per position of a sequence the lab indexes from 1
 // and gives no numbering of (a made-up "tolerance" score, SYNTHETIC: generated from a seed, high at the hotspots R175,
 // R248 and R273 and over the DNA-binding domain, never a real model's output), placed on UniProt's P04637 by an offset
 // map of 0 and from there on PDB 2OCJ's chains by SIFTS's maps (`composed.ts`): the two maps chain, so a position of the

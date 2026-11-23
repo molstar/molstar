@@ -24,7 +24,7 @@ import {
 import { RingLinks1000File } from '../genomes/ring/data.js';
 import { PackageFolder } from '../node-assets.js';
 
-// Provenance is data (examples.md, "One rule for every fixture"): each dataset's `sources.json` lists every file of its
+// Provenance is data (_spec/README.md "Fixtures"): each dataset's `sources.json` lists every file of its
 // folder (a file a generator writes and a test compares instead is named here), each row with its entry, URL, date,
 // licence (one allowed), attribution, what was trimmed and derived, and the size and SHA-256 of the file as committed;
 // a file under 1 MB, a dataset under 2 MB.

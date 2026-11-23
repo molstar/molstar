@@ -9,7 +9,7 @@ import { binPairs, type GridSparse, type PairsList, type SeqData, type SeqPair }
 import { NGap, type ToyAssembly } from './assemblies.js';
 import { between, Concern, stream } from './streams.js';
 
-// Step 2 of the Genomes generator (examples.md, Genomes): toy B made from toy A by one alignment truth, and the
+// Step 2 of the Genomes generator: toy B made from toy A by one alignment truth, and the
 // truth written down. B names its sequences unprefixed (`1`, `2`, `3`, `MT`: the alias rule exercised, EC-189); B's
 // `1` holds A's chr1 with an 80 kb inversion (EC-206) and its own letters where A has its run of N (a gap: nothing
 // aligned), B's `2` is A's chr2 with A's chr3 tail after it (a 60 kb translocation), B's `3` the rest of A's chr3.

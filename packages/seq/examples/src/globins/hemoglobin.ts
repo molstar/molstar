@@ -10,7 +10,7 @@ import { addRefPatch, createSeqSpec, identifiers, type RefInput, SeqLanguage } f
 import { HemoglobinFile } from './data.js';
 import { HemeAtoms, HemeContacts, HemeUnitContacts, HemoglobinChains } from './hemes.js';
 
-// Hemoglobin (examples.md, Globins; EC-64, EC-65): PDB 4HHB, α2β2, a complex of eight units: the α chains A and C
+// Hemoglobin (EC-64, EC-65): PDB 4HHB, α2β2, a complex of eight units: the α chains A and C
 // and the β chains B and D (two sequences, a copy group each), and the four hemes, each a unit of the heme molecule
 // (`HEM`, its 43 heavy atoms, its author number) drawn as a chip (its `whole` form); blocks of one section in that
 // order. The chains' helices A to H from the entry; the hemes' contacts (heavy atoms within 4 Å, derived per pair of

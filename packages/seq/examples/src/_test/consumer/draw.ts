@@ -26,11 +26,11 @@ import {
 } from '@molstar/seqx-core/view';
 import { cell, readTables } from './read.js';
 
-// The second consumer of the resolved view (EC-183; `_spec` Resolved view; rendering.md "A second consumer, in tests
-// only"): letters, ranges, values and variants of one section, as plain SVG, from the resolved view, the static model
-// and the store, through the public entries of `@molstar/seqx-core` and nothing else. Its own tiny layout (a label
-// column, a plot, tracks stacked) and no draw list of core's: what it draws is a list of marks, each with the positions
-// it stands for, the x it lands at, its label and its fill, so a test reads what is where.
+// The second consumer of the resolved view (EC-183; `_spec` Resolved view): letters, ranges, values and variants of one
+// section, as plain SVG, from the resolved view, the static model and the store, through the public entries of
+// `@molstar/seqx-core` and nothing else. Its own tiny layout (a label column, a plot, tracks stacked) and no draw list
+// of core's: what it draws is a list of marks, each with the positions it stands for, the x it lands at, its label and
+// its fill, so a test reads what is where.
 
 const Schemes = builtInSchemes();
 

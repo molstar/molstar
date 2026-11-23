@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import { trimEntry, trimVariation } from '../files/record-trim.js';
 
-// What the record script keeps (files.md, UniProt's entry as it is): members and records removed, none renamed or moved.
+// What the record script keeps (seqx-core _spec "Data", Records): members and records removed, none renamed or moved.
 
 const feature = (type: string, extra = {}) => ({
   type,

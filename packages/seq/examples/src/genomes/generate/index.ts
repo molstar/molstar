@@ -27,7 +27,7 @@ import { bedExtent, bedGraph } from './signal.js';
 import { GenomesSeed } from './streams.js';
 import { SampleCount, SiteCount, type VariantsTruth, variantsVcf, vcfExtent } from './variants.js';
 
-// The Genomes dataset's generator (examples.md, Genomes, The generator: outline): `generateGenomes(options)` returns
+// The Genomes dataset's generator: `generateGenomes(options)` returns
 // every generated file of `fixtures/genomes/` as bytes (the record script writes them, a test compares them with the
 // committed ones byte for byte) and the truths the views' tests read. Steps 1 to 6 and 8 here; step 7 (the ring's
 // links) is the ring extension's. The VCF feature's `generated-genotypes.vcf` and the BED feature's
@@ -69,7 +69,7 @@ export const GenomesFiles = {
   genotypes: 'fixtures/genomes/generated-genotypes.vcf',
 } as const;
 
-/** Each file's estimated size (examples.md, Genomes, Sizes), bytes: the generator's test asserts each under its own. */
+/** Each file's estimated size, bytes: the generator's test asserts each under its own. */
 export const EstimatedBytes: Readonly<Record<keyof typeof GenomesFiles, number>> = {
   sizesA: 1_000,
   sizesB: 1_000,

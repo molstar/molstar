@@ -12,7 +12,7 @@ import { Data, entryLigands } from '../complex/data.js';
 import { build, transplantUnit } from '../complex/units.js';
 import { PackageFolder } from '../node-assets.js';
 
-// 1FIN as a complex (examples.md, Complex): the units' author numbers the entry's (the whole mmCIF in the medium lane;
+// 1FIN as a complex: the units' author numbers the entry's (the whole mmCIF in the medium lane;
 // the spec's units, ATP's atoms and the transplants' scores quick), the contacts' rows per pair of units.
 
 const find = (n: Node, id: string): Node | undefined =>

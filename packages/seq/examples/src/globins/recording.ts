@@ -20,7 +20,7 @@ export const SeedAttribution = 'Pfam (EMBL-EBI), PF00042 (Globin) seed alignment
 export const UniprotAttribution =
   'UniProt Consortium, UniProtKB (https://www.uniprot.org), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/); changed: the organism and length kept, the class derived from the taxonomic lineage, each record keyed by its Pfam seed row';
 
-/** How many of the seed's rows are kept (examples.md, Globins: a seed over 60 rows is cut to 60). */
+/** How many of the seed's rows are kept. */
 export const SeedRows = 60;
 
 const Codes = 'ACDEFGHIKLMNPQRSTVWYX';
@@ -192,7 +192,7 @@ export function cifHelices(text: Cif): CifHelix[] {
   }));
 }
 
-/** The heavy-atom distance a residue contacts a heme within, Å (examples.md, Globins). */
+/** The heavy-atom distance a residue contacts a heme within, Å. */
 export const ContactDistance = 4;
 
 /**

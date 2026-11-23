@@ -16,7 +16,7 @@ import { build as predictions, labScores } from '../services/predictions.js';
 import { build as addressing } from '../services/addressing.js';
 import { chainsOf, isOneToOne, parseSifts, siftsIssues, siftsSegments } from '../services/sifts.js';
 
-// The services' fixtures and the SIFTS reading (examples.md, Showcases): what is recorded is where the locations say, the
+// The services' fixtures and the SIFTS reading: what is recorded is where the locations say, the
 // answers parse into the maps the examples' own hand-written p53 structure view holds, and the specs resolve.
 
 const read = (file: string) => readFileSync(`${PackageFolder}${file}`, 'utf8');

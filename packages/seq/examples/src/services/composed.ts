@@ -14,7 +14,7 @@ import { uniprotEntry } from '../files/uniprot.js';
 import { Pdbe, serviceUrl } from './endpoints.js';
 import { addSiftsMaps, chainsOf, hasAuthorRun, isOneToOne, type SiftsMapping, siftsSegments } from './sifts.js';
 
-// An application composing services (examples.md, Showcases): p53 (P04637) from UniProt, its per-residue confidence from
+// An application composing services: p53 (P04637) from UniProt, its per-residue confidence from
 // AlphaFold DB, PDB 2OCJ from PDBe, and PDBe's SIFTS mappings between them, each by the location its service answers at
 // (`endpoints.ts`): the application's assets port answers from recorded fixtures or from the services themselves, the
 // spec is the same. UniProt's and AlphaFold DB's answers are read by the spec's own sources (records, a transform each);

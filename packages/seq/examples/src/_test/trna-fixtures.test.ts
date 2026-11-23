@@ -30,7 +30,7 @@ import {
 import { readCif } from '../../scripts/cif.js';
 import { kindOfSaenger } from '../trna/record-trim.js';
 
-// The tRNA fixtures (examples.md, tRNA): what the recorder wrote is what the dataset's code holds, its checksums are
+// The tRNA fixtures: what the recorder wrote is what the dataset's code holds, its checksums are
 // the sources file's, the Rfam seed is as large as it was recorded, and what is computed from them is what is committed
 // (`SEQ_RECORDS=update` writes `derived-data.ts` again).
 

@@ -8,7 +8,7 @@
 // none renamed or moved, so a spec's paths read the live response too. Kept here, in the package's sources, so a unit
 // test holds the rules; the script imports them.
 
-/** The licences a fixture may carry (examples.md, "Licences allowed"); the script refuses any other. */
+/** The licences a fixture may carry (_spec/README.md "Fixtures"); the script refuses any other. */
 export const AllowedLicences = [
   'CC0-1.0',
   'CC-BY-4.0',

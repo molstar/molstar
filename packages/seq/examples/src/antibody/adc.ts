@@ -10,7 +10,7 @@ import { createSeqSpec, theme } from '@molstar/seqx-core/lang';
 import type { Derived } from './derived.js';
 import { Data } from './data.js';
 
-// The ADC construct (molecules.md, Complexes and units: a construct is a complex with no structure behind it; Tensions,
+// The ADC construct (seqx-core _spec "Language", Molecules and complexes;
 // stochastic conjugation): trastuzumab emtansine (T-DM1), generated, not recorded. Its antibody stands as trastuzumab's
 // Fab chains (PDB 1N8Z's light and heavy chains, the Fc not held), two of each; its payload, emtansine (DM1 through an
 // SMCC linker), a molecule named by its components. Lysine conjugation is stochastic: the payload linked to every

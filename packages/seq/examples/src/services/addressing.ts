@@ -9,7 +9,7 @@ import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { printLink } from '@molstar/seqx-core/query';
 import { compose, type ComposedOptions, Entry, structureSection, unitAddress } from './composed.js';
 
-// Addressing, with a structure beside the view (examples.md, Showcases; addressing.md): a short text whose links act on
+// Addressing, with a structure beside the view: a short text whose links act on
 // addresses in Mol*'s link grammar (`!seq-focus=/refs/dbd`) and reach the view and, through the structure link, the fake
 // structure viewer: a focus moves its camera frame, a highlight and a selection light residues of every chain SIFTS pairs
 // them with. One residue is named in three numberings (UniProt's, the entity's `label_seq_id` and the chain's author

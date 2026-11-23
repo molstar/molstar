@@ -31,7 +31,7 @@ import {
   structureSeq,
 } from '../p53/structure-record.js';
 
-// p53's structure, PDB 2OCJ (examples.md, p53): what the view holds of the entry (its units' observed runs and author
+// p53's structure, PDB 2OCJ: what the view holds of the entry (its units' observed runs and author
 // numbers, the zincs and their ligands, the alignment's segments) against the two committed files the record script
 // writes from the one mmCIF (the entity's `seq` and the fake structure viewer's chain table); the files written again
 // from the whole mmCIF in the medium lane.

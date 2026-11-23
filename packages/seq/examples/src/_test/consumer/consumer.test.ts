@@ -16,12 +16,12 @@ import { ExampleViews } from '../../views.js';
 import { readCoreSvg } from './core-svg.js';
 import { type Drawn, drawSection, type Mark } from './draw.js';
 
-// The second consumer of the resolved view (EC-183; rendering.md "A second consumer, in tests only"): a plain-SVG drawing
-// of letters, ranges, values and variants from the resolved view and the store alone (`./draw.ts`, `./read.ts`: public
-// entries of `@molstar/seqx-core` only). The field test: the same spec drawn by core and by the consumer agrees on what is
-// where, read back from core's SVG as positions (its plot maps a window of positions to its width): which letter at which
-// position in which colour, which range from where to where with which label, which bar at which height, which head at
-// which site. Layouts differ (px, heights, lanes); positions, text and colours by value do not.
+// The second consumer of the resolved view (EC-183; seqx-core _spec "Resolved view", A second consumer): a plain-SVG
+// drawing of letters, ranges, values and variants from the resolved view and the store alone (`./draw.ts`, `./read.ts`:
+// public entries of `@molstar/seqx-core` only). The field test: the same spec drawn by core and by the consumer agrees
+// on what is where, read back from core's SVG as positions (its plot maps a window of positions to its width): which
+// letter at which position in which colour, which range from where to where with which label, which bar at which
+// height, which head at which site. Layouts differ (px, heights, lanes); positions, text and colours by value do not.
 //
 // What is independent: positions, text, heights (shares of the track), the dedupe of a range over a tile edge, the
 // complement on a reversed axis. What is shared: the colours, through the theme compile (`compileChannel`,

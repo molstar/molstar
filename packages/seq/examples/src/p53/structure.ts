@@ -8,7 +8,7 @@ import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec, identifiers } from '@molstar/seqx-core/lang';
 import { addDomains, P53 } from './data.js';
 
-// p53's structure (examples.md, p53; structure-syncing.md, Datasets): PDB 2OCJ, four copies of the DNA-binding domain
+// p53's structure: PDB 2OCJ, four copies of the DNA-binding domain
 // (P04637 94–312) with no DNA, a zinc in each. The entity's letters and chain A's secondary structure from its `seq`
 // file; a complex of its units: the chains A–D (modeled 96–289, the ends unobserved, gray; their `auth` numbering
 // UniProt's) and the zincs E–H (`ZN`, author numbers 501–504), each zinc's four metal links (C176, H179, C238, C242)

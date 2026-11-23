@@ -4,9 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The Globins seed's tree: InterPro serves no tree of the Pfam seed, so it is computed here (examples.md, Globins: neighbor
-// joining on identity) and committed as Newick text (`SeedTree`), compared with this generator over the seed's fixture
-// by a test. The views write it inline: a tree node takes its Newick as text.
+// The Globins seed's tree: InterPro serves no tree of the Pfam seed, so it is computed here and committed as Newick
+// text (`SeedTree`), compared with this generator over the seed's fixture by a test. The views write it inline: a tree
+// node takes its Newick as text.
 
 /** The distance of two aligned rows: 1 less their identity over the columns both have a residue in (1 when none). */
 export function rowDistance(a: string, b: string): number {

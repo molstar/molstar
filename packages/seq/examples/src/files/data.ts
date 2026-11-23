@@ -79,7 +79,7 @@ export const PlasmidGffFile: string = PlasmidFiles.rotatedFeatures;
 export const PlasmidSeqId: string = PlasmidName;
 export const FilesFolder = 'fixtures/files/';
 
-// One table, two sequences (files.md, "Its systems, by name"): a `target` column names each row's sequence, an empty
+// One table, two sequences (seqx-core _spec "Data", Records): a `target` column names each row's sequence, an empty
 // target is the source's own system. The rows are generated here (p53's domains from the Domains data, CDK2's loops as
 // illustrative bounds) and committed like the domains table.
 

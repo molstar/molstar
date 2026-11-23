@@ -30,7 +30,7 @@ import {
 } from './data.js';
 import { DerivedData } from './derived-data.js';
 
-// The tRNA views (examples.md, tRNA): PDB 1EHZ's chain A with its modified residues and 27 base pairs, the four stems
+// The tRNA views: PDB 1EHZ's chain A with its modified residues and 27 base pairs, the four stems
 // nested and the six tertiary pairs among them (four cross the stems' pairs); the pairs as arcs, split by crossing, as chords on a ring and as a dot
 // plot (the family's covariation, computed on 1EHZ's positions, above the diagonal, the structure's pairs below); the
 // seed row 1EHZ is placed on with its `SS_cons` pairs; the seed's rows with their logo; and the dot plot at 4,000 ×

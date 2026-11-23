@@ -15,7 +15,7 @@ import { PackageFolder } from '../node-assets.js';
 import { build as buildSchemes, rulerLabel } from '../antibody/schemes.js';
 import { resolveAddress } from '@molstar/core/repr/tree';
 
-// The Antibody's fixtures and rules against the data (examples.md, Antibody): the files are what the derived data and
+// The Antibody's fixtures and rules against the data: the files are what the derived data and
 // the generators say; the anchors of both schemes; IMGT's rule gives SAbDab's published labels on the wild type; the
 // Kabat labels derived from them are trastuzumab's known ones; the design's numberings by the same rules (EC-7).
 

@@ -13,7 +13,7 @@ import { CpgStretch } from './generate/methylation.js';
 import { DeletionExtent } from './generate/variants.js';
 import { assemblyA, type Files, fileSource, GenomesFiles } from './toys.js';
 
-// The Genomes dataset's views of toy A by region (examples.md, Genomes, The views): the signal of a bedGraph read by
+// The Genomes dataset's views of toy A by region: the signal of a bedGraph read by
 // region through its index (an open domain, a domain open at one end, a log scale), the samples' variants with their
 // genotype matrix (a long deletion solid), methylation by region and the gene-by-sample heatmap, the genes'
 // transcripts in three levels (a GFF3 by region and read whole, the GTF of the same model beside it), and a GFF3 read

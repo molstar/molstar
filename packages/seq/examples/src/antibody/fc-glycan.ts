@@ -8,7 +8,7 @@ import type { Patch } from '@molstar/core/repr/patch';
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec, identifiers } from '@molstar/seqx-core/lang';
 
-// The Antibody's Fc glycan (examples.md, Antibody; molecules.md): PDB 3AVE, a fucosylated human IgG1 Fc (IGHG1_HUMAN
+// The Antibody's Fc glycan: PDB 3AVE, a fucosylated human IgG1 Fc (IGHG1_HUMAN
 // P01857 108–330, author numbers 225–447), its two chains each with the N-glycan on Asn297: the branched molecule of
 // eight residues (`pdbx_entity_branch_list` in `num` order: NAG NAG BMA MAN NAG MAN NAG FUC, the biantennary G0F) with
 // its seven glycosidic links (`pdbx_entity_branch_link`, its own `links`), its WURCS. A complex of the entry's units:

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The services of the showcase (examples.md, Showcases: an application composing services): UniProt, PDBe (SIFTS and its
+// The services of the showcase: UniProt, PDBe (SIFTS and its
 // entry files) and AlphaFold DB, each by the location its service answers at, the hosts a live read may reach, the
 // licence its answers carry, and the recorded file that answers the same location in the fixture mode. A spec names the
 // service's own location (never a fixture's): the mode is the application's port, so the spec reads the live service

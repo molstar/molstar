@@ -11,7 +11,8 @@ import type { SeqSpecBuilder } from '@molstar/seqx-core/lang';
 // runtime through the transform below: `sequence.value` the letters, `features[]` the records, `location.start.value`
 // and `location.end.value` the ends (from 1, the last position named), `type` the category, `description` the label,
 // `featureId` the id; the ends' modifiers (`EXACT`, `OUTSIDE`, `UNSURE`) kept as fields. The exported spec holds the
-// transform written out and no service name: a showcase's switch to the service changes only `uri` (files.md).
+// transform written out and no service name: a showcase's switch to the service changes only `uri` (seqx-core _spec
+// "Data", Records).
 
 /** What `uniprotEntry` takes. */
 export interface UniprotOptions {

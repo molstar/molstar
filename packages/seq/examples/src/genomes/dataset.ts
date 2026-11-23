@@ -10,7 +10,7 @@ import * as compare from './compare.js';
 import * as tracks from './tracks.js';
 import { registry } from './toys.js';
 
-// The Genomes dataset's views (examples.md, Genomes, The views), in the design's cut order reversed: a cut drops the
+// The Genomes dataset's views, in the design's cut order reversed: a cut drops the
 // last (the liftover, then the contact map). The genome ring and both genomes on one ring are the ring extension's.
 
 const view = (id: string, title: string, summary: string, build: () => ReturnType<ExampleView['build']>) =>

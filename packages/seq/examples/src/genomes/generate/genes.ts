@@ -7,7 +7,7 @@
 import { NGap, type ToyAssembly } from './assemblies.js';
 import { between, Concern, stream } from './streams.js';
 
-// Step 3 of the Genomes generator (examples.md, Genomes; EC-227): 150 genes on toy A's chr1 to chr3 (none in chr1's run
+// Step 3 of the Genomes generator (EC-227): 150 genes on toy A's chr1 to chr3 (none in chr1's run
 // of N), three levels (gene, transcript, exon, and each transcript's CDS), both strands, named `TOY0001`…; a gene 3 to
 // 12 exons, 1 to 4 transcripts (the first every exon, each other one skipping an inner exon). One model written as GFF3
 // (`ID`, `Name`, `Parent`) and as GTF (`gene_id`, `transcript_id`, `gene_name`, `transcript_name`), each sorted by

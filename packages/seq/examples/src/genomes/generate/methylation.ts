@@ -10,7 +10,7 @@ import type { ToyAssembly } from './assemblies.js';
 import type { ToyGene } from './genes.js';
 import { Concern, stream } from './streams.js';
 
-// Step 6 of the Genomes generator (examples.md, Genomes; EC-220, EC-221): methylation of 20 samples at 250 CpGs of toy
+// Step 6 of the Genomes generator (EC-220, EC-221): methylation of 20 samples at 250 CpGs of toy
 // A's chr1 (A's own `CG`s in a 50 kb stretch, an island where they fall to near zero, 8 % of the values missing: NaN),
 // and the same layer over the 150 genes (a gene-by-sample heatmap: each gene's mean over its body, a group of samples
 // lower on a set of genes). Both in the `seq` format's matrix (the wide form): items at level 1, each bin's mean at

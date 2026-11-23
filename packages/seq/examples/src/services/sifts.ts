@@ -6,12 +6,12 @@
 
 import type { SeqSpecBuilder } from '@molstar/seqx-core/lang';
 
-// PDBe's SIFTS as an application-layer runtime (examples.md, Showcases): the mappings response of an entry
-// (`/pdbe/api/mappings/uniprot/<entry>`) read into chain mappings, and those into `structure` maps (maps.md: segments with
-// a `provenance` word, onto the entity of the structure a source describes) the way a host with its own SIFTS would write
-// them. The response is read as published: `unp_start` and `unp_end` are UniProt's numbers (from 1, the last included),
-// `start.residue_number` and `end.residue_number` the entity's positions (from 1, `label_seq_id`), and the author's
-// numbers beside them (`author_residue_number`, null where SIFTS has none).
+// PDBe's SIFTS as an application-layer runtime: the mappings response of an entry
+// (`/pdbe/api/mappings/uniprot/<entry>`) read into chain mappings, and those into `structure` maps (seqx-core _spec
+// "Resolve", Maps) the way a host with its own SIFTS would write them. The response is read as published: `unp_start`
+// and `unp_end` are UniProt's numbers (from 1, the last included), `start.residue_number` and `end.residue_number` the
+// entity's positions (from 1, `label_seq_id`), and the author's numbers beside them (`author_residue_number`, null
+// where SIFTS has none).
 
 /** One mapping of the response: a chain's segment of the entity onto a UniProt entry. */
 export interface SiftsMapping {

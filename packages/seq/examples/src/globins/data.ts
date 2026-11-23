@@ -10,7 +10,7 @@ import { cellsSource, delayedSource, type FormatRuntime } from '@molstar/seqx-co
 import { AlignmentFileRuntime, readStockholm } from '@molstar/seqx-core/data/alignment-readers';
 import { RecordsRuntime } from '@molstar/seqx-core/data/records';
 
-// The Globins dataset (examples.md, Globins): the Pfam PF00042 seed as published (Stockholm, cut to 60 rows by the
+// The Globins dataset: the Pfam PF00042 seed as published (Stockholm, cut to 60 rows by the
 // record script), its tree computed by neighbor joining (`tree.ts`) and written inline, UniProt's organisms of its rows
 // (a columns file joined by row key), PDB 4HHB as `seq` (`hemoglobin.ts`); and a scale variant of any size whose rows
 // are made on demand by index from the seed's per-column profile, lowercase inserts with an `RF`-like column every 25
