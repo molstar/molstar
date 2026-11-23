@@ -166,10 +166,6 @@ export class PluginContext {
   });
 
   /**
-   * A canvas set by a subclass itself (not `initViewer`'s, e.g. a headless one): told as initialized, so what waits for
-   * it (`behaviors.canvas3d.initialized`, `canvas3dInitialized`: a behavior following the camera) does
-   */
-  /**
    * What the canvas reports as failed, told the user (the log: a UI's notifications): GPU memory not got, a
    * representation the canvas updated itself (a new graphics context) failing, by the cell that owns it where one
    * does (not its cell's error: its update was not the state's)
@@ -192,6 +188,10 @@ export class PluginContext {
     );
   }
 
+  /**
+   * A canvas set by a subclass itself (not `initViewer`'s, e.g. a headless one): told as initialized, so what waits for
+   * it (`behaviors.canvas3d.initialized`, `canvas3dInitialized`: a behavior following the camera) does
+   */
   protected canvas3dReady() {
     this.logCanvas3dFailures();
     this.canvas3dInit.next(true);
