@@ -1093,9 +1093,11 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   keyboard cursor's cell on that section when in view, else the centre, by the context's `step` or
   `navigate.wheelZoomStep`.
 
-- `select` on a grid: a hit with a `ySystem` that is no rows axis and no element is a cell of two axes, and the same
-  commands and drag modes act on its rect (`selectCell`, the rect drag): click a one-cell rect, Shift+click the rect
-  from the anchor, Cmd/Ctrl+click toggles, a drag the rect, Cmd/Ctrl+drag adds, Alt+drag subtracts.
+- `select` on a grid: a hit with a `ySystem` that is no rows axis, no element and no extent is a cell of two axes, and
+  the same commands and drag modes act on its rect (`selectCell`, the rect drag): click a one-cell rect, Shift+click the
+  rect from the anchor, Cmd/Ctrl+click toggles, a drag the rect, Cmd/Ctrl+drag adds, Alt+drag subtracts. A matrix cell's
+  hit carries its item's extent (a bin's at a coarse level): its y is the states, no second axis, so a click selects the
+  item's range as a ranges click does.
 - **A rect over blocks** (`select` on a grid over a section of blocks, a grid over a complex): the drag is the
   behavior's own (`behaviors/blocks-rect.ts`, internal: not re-exported): each cell's display units on the hit strip's
   own blocks (`Hit.block`, `Hit.yBlock`: a copy split is told from its twin), the span between the two cells on each

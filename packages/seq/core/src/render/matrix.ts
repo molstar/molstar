@@ -16,6 +16,7 @@
 import type { Node, Value } from '@molstar/core/repr/tree';
 import { type MatrixSummary, type MatrixItems, type MatrixTable, tableRows } from '@molstar/seqx-core/data';
 import { theme as themeForm } from '@molstar/seqx-core/lang';
+import { rangesLocation } from '@molstar/seqx-core/query';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
 import type { Channel, ChannelName, Legend } from '@molstar/seqx-core/theme/index';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
@@ -102,6 +103,8 @@ export class MatrixLay {
   readonly images: ImageData[] = [];
   readonly ib: number[] = [];
   cache: ImageCache | undefined;
+  /** The layer's source (a hit's item is looked up on its data's system). */
+  src: LayerSource | undefined;
   /** The tables read (a hover's cell: `matrixCellAt`) and the states' names (inline, else the coverage's). */
   readonly tables: MatrixTable[] = [];
   names: readonly string[] = NoNames;
@@ -270,6 +273,44 @@ function buildBins(lay: MatrixLay, t: MatrixSummary, n: number): ImageData | und
   return img;
 }
 
+/**
+ * The data's positions `[start, end]` of the cell drawn at section position `i` on state `s`: at the finest level the
+ * item drawn last there (a short one over a long one, `layoutItems`'s order), at a coarser level the bin; undefined
+ * for none. A scan of the tables read: a hit is a pointer's event, not a frame's.
+ */
+function cellExtent(lay: MatrixLay, src: LayerSource, i: number, s: number): number[] | undefined {
+  let best: number[] | undefined;
+  let short = false;
+  const at = Math.floor(i);
+  for (const t of lay.tables) {
+    if (t.form === 'items') {
+      for (let k = 0; k < t.start.length; k++) {
+        const s0 = t.start[k];
+        const e0 = Math.max(t.end[k], s0 + 1);
+        const isShort = e0 - s0 <= 1;
+        if (short && !isShort) continue;
+        if (!covers(src, s0, e0, at) || cellColor(lay, t, k, s) === NoColor) continue;
+        best = [s0, e0];
+        short = isShort;
+      }
+      continue;
+    }
+    const n = tableRows(t);
+    for (let k = 0; k < n; k++) {
+      const s0 = t.start + k * lay.level;
+      const e0 = Math.min(s0 + lay.level, src.length ?? Number.MAX_SAFE_INTEGER);
+      if (covers(src, s0, e0, at) && cellColor(lay, t, k, s) !== NoColor) return [s0, e0];
+    }
+  }
+  return best;
+}
+
+function covers(src: LayerSource, s: number, e: number, at: number): boolean {
+  toSection(src, s, e, Pieces);
+  for (let p = 0; p + 1 < Pieces.length; p += 2) if (at >= Pieces[p] && at < Pieces[p + 1]) return true;
+  return false;
+}
+
 /** A state row's top in the strip's frame. */
 function rowY(lay: MatrixLay, s: number): number {
   return lay.box.y + s * lay.rowScale - lay.bandTop;
@@ -305,6 +346,7 @@ export const MatrixType: LayerType<MatrixPrep, MatrixLay> = {
       lay.cache = own;
     }
     const src = prep.src;
+    lay.src = src;
     if (!src) return lay;
     const color = prep.channels.get('color' as ChannelName, DefaultColor, ctx, ValueEnv);
     if (color !== lay.color) {
@@ -437,6 +479,10 @@ export const MatrixType: LayerType<MatrixPrep, MatrixLay> = {
     h.yPosition = s;
     h.target = 'cell';
     h.bin = lay.items || lay.level <= 1 ? undefined : lay.level;
+    // the item (or bin) under the point, its extent on the data's system: a click selects it as a ranges click does
+    // (a matrix's y is its states, no grid's second axis: _spec/README.md "Behaviors")
+    const e = lay.src ? cellExtent(lay, lay.src, i, s) : undefined;
+    h.extent = e ? rangesLocation(lay.src!.dataSystem, e) : undefined;
     return h;
   },
 
