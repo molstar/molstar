@@ -491,7 +491,10 @@ const PlaceSection: CardProviderEntry = {
       out.row(label, value);
       out.words.push(`${label} ${value}`);
     }
-    const items = w.itemsAt(at.section, position);
+    // the block the place is on: the hit's, else the one of its system (a ribbon's hit names no block, its place a system)
+    const blocks = at.section.section.blocks;
+    const block = p.block ?? blocks?.findIndex((b) => b.axis.system === system);
+    const items = w.itemsAt(at.section, position, undefined, block !== undefined && block >= 0 ? block : undefined);
     for (const it of items) out.row(it.label, it.extent, true);
     if (items.length) out.words.push(`items: ${items.map((i) => `${i.label}, ${i.extent}`).join('; ')}`);
   },

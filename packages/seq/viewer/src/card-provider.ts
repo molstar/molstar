@@ -45,8 +45,13 @@ export interface CardReads {
   places(system: string | undefined, start: number, end: number): string | undefined;
   /** A layer's items as drawn in the last frame. */
   itemsOf(l: LayerLayout): readonly ItemDescription[];
-  /** The items of a section's tracks under a position (each with its extent in words). */
-  itemsAt(section: SectionLayout, position: number, only?: LayerLayout): { label: string; extent: string }[];
+  /** The items of a section's tracks under a position (each with its extent in words); on a section of blocks, the block's own. */
+  itemsAt(
+    section: SectionLayout,
+    position: number,
+    only?: LayerLayout,
+    block?: number,
+  ): { label: string; extent: string }[];
   /** The letter a letters layer of the section shows at a position ('' while none is loaded). */
   letterAt(section: SectionLayout, position: number): string;
   /** A system's letter at a position ('' while none is loaded). */

@@ -5,6 +5,7 @@
  */
 
 import { DarkTokens, LightTokens } from '@molstar/seqx-core/render';
+import { describerFor } from '@molstar/seqx-viewer/describe';
 import { loadGenome } from '@molstar/seqx-core/resolve';
 import { ColorMode, describeRondo, Kind, type RondoLay } from '@molstar/seqx-ext-rondo';
 import { rondoViewer } from '@molstar/seqx-ext-rondo/viewer';
@@ -159,6 +160,45 @@ describe('Kinds of links, headless', () => {
     }
     expect(between(tx, 'chr22', 'chr9').stubs.length).toBeGreaterThan(0);
     await exported(v);
+  });
+
+  it('the card on a stem names the block, position and band under the pointer (a band once, never the first block’s)', async () => {
+    const v = await open('ring-kinds');
+    // the cytobands' rows land on real I/O (their pages inflate on a thread pool)
+    const landed = () =>
+      v
+        .frame!.layout.sections[0].lays.flat()
+        .some((l) => l.key.endsWith('/bands/bands') && (l.lay as { rows?: { n: number } }).rows!.n > 0);
+    for (let i = 0; i < 50 && !landed(); i++) {
+      await new Promise((r) => setImmediate(r));
+      await vi.advanceTimersByTimeAsync(200);
+      v.draw();
+    }
+    expect(landed()).toBe(true);
+    const [, tx] = kindsOf(v);
+    const d = describerFor({ ...v, layout: () => v.frame?.layout });
+    const seen = new Set<string>();
+    for (let s = 0; s < tx.ns; s++) {
+      const name = tx.names[tx.stemSystem[s]];
+      if (!tx.stemPlaced[s] || seen.has(name)) continue;
+      tx.frame.point((tx.stemT0[s] + tx.stemT1[s]) / 2, 2);
+      v.input.move(tx.frame.px, tx.frame.py);
+      v.draw();
+      const rows = d.describe(v.hover.current)!.rows;
+      const at = rows.find((r) => r.label === name);
+      if (!at) continue;
+      seen.add(name);
+      const position = Number(at.value.replace(/,/g, ''));
+      // the bands the card lists: one row, on this chromosome, holding the position
+      const bands = rows.filter((r) => r.item);
+      expect(bands.length, name).toBe(1);
+      const m = /^(\S+) ([\d,]+)–([\d,]+)$/.exec(bands[0].value)!;
+      expect(m[1], name).toBe(name);
+      expect(position, name).toBeGreaterThanOrEqual(Number(m[2].replace(/,/g, '')));
+      expect(position, name).toBeLessThanOrEqual(Number(m[3].replace(/,/g, '')));
+    }
+    // several blocks, each its own band
+    expect(seen.size).toBeGreaterThan(3);
   });
 
   it('each kind hidden in turn: the other alone, drawn as before', async () => {
