@@ -37,7 +37,7 @@ function stubLabels(lay: RondoLay, cfg: RondoConfig, ctx: LayoutContext, tipD: n
   let taken = 0;
   for (const s of order) {
     const partner = lay.stubPartner[s];
-    const text = `${lay.names[partner]} · ${Math.round(lay.stubCount[s]).toLocaleString('en-US')}`;
+    const text = `${lay.names[partner]} · ${Math.round(lay.stubLinks[s]).toLocaleString('en-US')}`;
     f.point((lay.stubT0[s] + lay.stubT1[s]) / 2, tipD + 4);
     const x = f.px;
     const y = f.py;

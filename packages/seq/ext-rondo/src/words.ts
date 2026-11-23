@@ -87,11 +87,11 @@ export function describeRondo(hit: LayerPlace, lay: RondoLay): readonly string[]
       const folded = foldedOf(lay, ref);
       return [
         `${rangeText(lay, s)} → other chromosomes`,
-        `Links: ${links(lay.stubCount[ref])} to ${folded.length} chromosomes, not shown`,
+        `Links: ${links(lay.stubLinks[ref])} to ${folded.length} chromosomes, not shown`,
         `Partners: ${folded.map((f) => `${lay.names[f.partner]} (${Math.round(f.count).toLocaleString('en-US')})`).join(', ')}`,
       ];
     }
-    return [`${rangeText(lay, s)} → ${lay.names[partner]}`, `Links: ${links(lay.stubCount[ref])}, not shown`];
+    return [`${rangeText(lay, s)} → ${lay.names[partner]}`, `Links: ${links(lay.stubLinks[ref])}, not shown`];
   }
   if (kind === Kind.trumpet || kind === Kind.fan) {
     const partners = new Set<number>();
@@ -104,12 +104,13 @@ export function describeRondo(hit: LayerPlace, lay: RondoLay): readonly string[]
     for (let e = 0; e < lay.nf; e++) if (lay.stubStem[lay.foldOwner[e]] === ref) partners.add(lay.foldPartner[e]);
     const lines = [
       rangeText(lay, ref),
-      `${lay.width === 'count' ? `Links: ${links(lay.stemCount[ref])}` : `Width: ${lay.width} ${valueText(lay.stemCount[ref])}`} to ${partners.size} chromosome${partners.size === 1 ? '' : 's'}`,
+      `Links: ${links(lay.stemLinks[ref])} to ${partners.size} chromosome${partners.size === 1 ? '' : 's'}`,
     ];
-    if (lay.stemWithin[ref] > 0) lines.push(`Within: ${links(lay.stemWithin[ref])}`);
+    if (lay.width !== 'count') lines.push(`Width: ${lay.width} ${valueText(lay.stemCount[ref])}`);
+    if (lay.withinLinks[ref] > 0) lines.push(`Within: ${links(lay.withinLinks[ref])}`);
     if (lay.stemFan[ref] > 0)
       lines.push(
-        `Fan: +${Math.round(lay.stemFan[ref]).toLocaleString('en-US')} weaker links to ${lay.stemFanTo[ref]} stems`,
+        `Fan: +${Math.round(lay.fanLinks[ref]).toLocaleString('en-US')} weaker links to ${lay.stemFanTo[ref]} stems`,
       );
     if (CardLines.perLayer)
       lines.push(...CardLines.perLayer(lay, lay.systems[lay.stemSystem[ref]], lay.stemStart[ref], lay.stemEnd[ref]));
@@ -140,5 +141,5 @@ export function summaryRondo(lay: RondoLay): string | undefined {
 export function announceRondo(lay: RondoLay, system: string, position: number): string | undefined {
   const s = stemAt(lay, system, position);
   if (s < 0 || lay.stemCount[s] <= 0) return undefined;
-  return `stem of ${links(lay.stemCount[s])}`;
+  return `stem of ${links(lay.stemLinks[s])}`;
 }

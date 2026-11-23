@@ -124,6 +124,13 @@ export class RondoLay {
   /** The pairs leaving it (ribbons, stubs, fan), within it, the partner systems it reaches. */
   stemCount = new Float64Array(64);
   stemWithin = new Float64Array(64);
+  /**
+   * Links, apart from the width measure (`stemCount`, `stubCount`, `stemWithin`, `stemFan`: a field's sum with `width`
+   * a field): what folding and the cards count.
+   */
+  stemLinks = new Float64Array(64);
+  withinLinks = new Float64Array(64);
+  fanLinks = new Float64Array(64);
   stemFan = new Float64Array(64);
   stemFanTo = new Int32Array(64);
   stemPartners = new Int32Array(64);
@@ -163,6 +170,7 @@ export class RondoLay {
   stubStem = new Int32Array(16);
   stubPartner = new Int32Array(16);
   stubCount = new Float64Array(16);
+  stubLinks = new Float64Array(16);
   stubDrawn = new Uint8Array(16);
   stubT0 = new Float64Array(16);
   stubT1 = new Float64Array(16);
@@ -181,6 +189,7 @@ export class RondoLay {
   foldOwner = new Int32Array(16);
   foldPartner = new Int32Array(16);
   foldCount = new Float64Array(16);
+  foldLinks = new Float64Array(16);
   /** The ring shows one chromosome or a pair: the stems drawn lighter (`rondo.focusStems`). */
   focus = false;
 
@@ -222,6 +231,9 @@ function stemOf(lay: RondoLay, sys: number, pos: number): number {
   lay.stemBin[s] = bin;
   lay.stemCount[s] = 0;
   lay.stemWithin[s] = 0;
+  lay.stemLinks[s] = 0;
+  lay.withinLinks[s] = 0;
+  lay.fanLinks[s] = 0;
   lay.stemFan[s] = 0;
   lay.stemFanTo[s] = 0;
   lay.stemPartners[s] = 0;
@@ -243,6 +255,9 @@ function growStems(lay: RondoLay, n: number) {
   lay.stemT1 = grow(lay.stemT1, n);
   lay.stemCount = grow(lay.stemCount, n);
   lay.stemWithin = grow(lay.stemWithin, n);
+  lay.stemLinks = grow(lay.stemLinks, n);
+  lay.withinLinks = grow(lay.withinLinks, n);
+  lay.fanLinks = grow(lay.fanLinks, n);
   lay.stemFan = grow(lay.stemFan, n);
   lay.stemFanTo = grow(lay.stemFanTo, n);
   lay.stemPartners = grow(lay.stemPartners, n);
@@ -273,6 +288,7 @@ function growStubs(lay: RondoLay, n: number) {
   lay.stubStem = grow(lay.stubStem, n);
   lay.stubPartner = grow(lay.stubPartner, n);
   lay.stubCount = grow(lay.stubCount, n);
+  lay.stubLinks = grow(lay.stubLinks, n);
   lay.stubDrawn = grow(lay.stubDrawn, n);
   lay.stubT0 = grow(lay.stubT0, n);
   lay.stubT1 = grow(lay.stubT1, n);
@@ -520,11 +536,13 @@ function aggregate(lay: RondoLay, read: PairsRead) {
     if (a < 0) continue;
     const b = RowB[k];
     const c = W[k];
+    const n = w ? w[k] : 1;
     const pa = lay.stemPlaced[a];
     const pb = lay.stemPlaced[b];
     if (!pa && !pb) continue;
     if (a === b) {
       lay.stemWithin[a] += c;
+      lay.withinLinks[a] += n;
       continue;
     }
     if (pa && pb) {
@@ -550,10 +568,12 @@ function aggregate(lay: RondoLay, read: PairsRead) {
         RibbonKeys.set(key, r);
       }
       lay.ribCount[r] += c;
-      lay.ribLinks[r] += w ? w[k] : 1;
+      lay.ribLinks[r] += n;
       lay.rowRib[k] = r;
       lay.stemCount[a] += c;
       lay.stemCount[b] += c;
+      lay.stemLinks[a] += n;
+      lay.stemLinks[b] += n;
       continue;
     }
     // a stub: the placed end's stem toward the partner's system
@@ -567,10 +587,13 @@ function aggregate(lay: RondoLay, read: PairsRead) {
       lay.stubStem[s] = near;
       lay.stubPartner[s] = partner;
       lay.stubCount[s] = 0;
+      lay.stubLinks[s] = 0;
       StubKeys.set(key, s);
     }
     lay.stubCount[s] += c;
+    lay.stubLinks[s] += n;
     lay.stemCount[near] += c;
+    lay.stemLinks[near] += n;
   }
 }
 
@@ -580,6 +603,7 @@ let FoldAt = new Int32Array(64);
 let TmpStem = new Int32Array(16);
 let TmpPartner = new Int32Array(16);
 let TmpCount = new Float64Array(16);
+let TmpLinks = new Float64Array(16);
 
 /**
  * Folds a stem's stubs of fewer than `min` links into one stub of partner −1 when it has two or more (its count their
@@ -594,12 +618,15 @@ function foldStubs(lay: RondoLay, min: number) {
   SmallN.fill(0, 0, lay.ns);
   FoldAt.fill(-1, 0, lay.ns);
   let folds = false;
-  for (let b = 0; b < n0; b++) if (lay.stubCount[b] < min && ++SmallN[lay.stubStem[b]] >= 2) folds = true;
+  // by links, never by a width's field (`q` sums are not counts)
+  for (let b = 0; b < n0; b++) if (lay.stubLinks[b] < min && ++SmallN[lay.stubStem[b]] >= 2) folds = true;
   if (!folds) return;
   TmpStem = grow(TmpStem, n0);
   TmpPartner = grow(TmpPartner, n0);
   TmpCount = grow(TmpCount, n0);
+  TmpLinks = grow(TmpLinks, n0);
   for (let b = 0; b < n0; b++) {
+    TmpLinks[b] = lay.stubLinks[b];
     TmpStem[b] = lay.stubStem[b];
     TmpPartner[b] = lay.stubPartner[b];
     TmpCount[b] = lay.stubCount[b];
@@ -607,29 +634,35 @@ function foldStubs(lay: RondoLay, min: number) {
   lay.foldOwner = grow(lay.foldOwner, n0);
   lay.foldPartner = grow(lay.foldPartner, n0);
   lay.foldCount = grow(lay.foldCount, n0);
+  lay.foldLinks = grow(lay.foldLinks, n0);
   lay.nb = 0;
   for (let b = 0; b < n0; b++) {
     const stem = TmpStem[b];
     const c = TmpCount[b];
-    if (c < min && SmallN[stem] >= 2) {
+    const n = TmpLinks[b];
+    if (n < min && SmallN[stem] >= 2) {
       let f = FoldAt[stem];
       if (f < 0) {
         f = FoldAt[stem] = lay.nb++;
         lay.stubStem[f] = stem;
         lay.stubPartner[f] = -1;
         lay.stubCount[f] = 0;
+        lay.stubLinks[f] = 0;
       }
       lay.stubCount[f] += c;
+      lay.stubLinks[f] += n;
       const e = lay.nf++;
       lay.foldOwner[e] = f;
       lay.foldPartner[e] = TmpPartner[b];
       lay.foldCount[e] = c;
+      lay.foldLinks[e] = n;
       continue;
     }
     const k = lay.nb++;
     lay.stubStem[k] = stem;
     lay.stubPartner[k] = TmpPartner[b];
     lay.stubCount[k] = c;
+    lay.stubLinks[k] = n;
   }
 }
 
@@ -637,7 +670,7 @@ function foldStubs(lay: RondoLay, min: number) {
 export function foldedOf(lay: RondoLay, stub: number): { partner: number; count: number }[] {
   const out: { partner: number; count: number }[] = [];
   for (let e = 0; e < lay.nf; e++)
-    if (lay.foldOwner[e] === stub) out.push({ partner: lay.foldPartner[e], count: lay.foldCount[e] });
+    if (lay.foldOwner[e] === stub) out.push({ partner: lay.foldPartner[e], count: lay.foldLinks[e] });
   return out.sort((a, b) => b.count - a.count || a.partner - b.partner);
 }
 
@@ -671,6 +704,8 @@ function widths(lay: RondoLay, cfg: RondoConfig, minPx: number) {
     }
     lay.stemFan[lay.ribA[r]] += lay.ribCount[r];
     lay.stemFan[lay.ribB[r]] += lay.ribCount[r];
+    lay.fanLinks[lay.ribA[r]] += lay.ribLinks[r];
+    lay.fanLinks[lay.ribB[r]] += lay.ribLinks[r];
     lay.stemFanTo[lay.ribA[r]]++;
     lay.stemFanTo[lay.ribB[r]]++;
   }
@@ -679,6 +714,7 @@ function widths(lay: RondoLay, cfg: RondoConfig, minPx: number) {
     lay.stubDrawn[s] = ok ? 1 : 0;
     if (!ok) {
       lay.stemFan[lay.stubStem[s]] += lay.stubCount[s];
+      lay.fanLinks[lay.stubStem[s]] += lay.stubLinks[s];
       lay.stemFanTo[lay.stubStem[s]]++;
     }
   }
