@@ -12,8 +12,17 @@ first (Decision, What it ships, stems, ribbons, stubs, colour, the ring zoom, th
 layouts, the fallback, the builder helper, the hole, Defaults, the matrix's cells, Configuration, Consequences), then
 [extension-openings](../../../design/extension-openings.md) and region-reads' pairs level as you need them.
 
+**Amended 2026-11-23** (RX's first run stopped at step 1 on two findings, both verified): **this lane is the language
+lane** while it runs: `section.center` (`title` | `none`; the design's Decided 9, GC2's brief named it, it never landed),
+with the language's version bump as its `_spec` rule says, the history line, catalogs, config-keys tests, the builder;
+no other lane writes in `lang/`. And **`PairsReader`** is this lane's, a Seq\* core refactor of
+`render/pairs-region.ts` and `render/pairs-assembly.ts`: one reader of bins at a level and items in a region for held
+and region pairs, the built-in `pairs` layer reading through it with its draw lists byte-equal before and after (a
+test), its allocation and timing cases unchanged. The `gate` argument to `pairsLevels` with it.
+
 **Task**, a green commit at each step:
 
+0. **`section.center`**, then **`PairsReader`**, as amended above, each its own commit.
 1. **The core's side** (Consequences, `seqx-core` and `seqx-viewer`): check each piece listed there exists
    (`section.include`, `section.center`, `navigator.switch`, the square bound to one section) and build what is missing
    and small: the `extension` entry's exports (`PairsReader`, the pairs bins' types, `pairsLevels`, `coarsenBins`,
