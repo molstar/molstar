@@ -195,9 +195,9 @@ waiting; its entries `StemMenu` in `viewer.ts`).
   "Show only chr4"; only these: the entries are `alone`, so the track's actions (Move up, Reverse, Hide track) stay in
   its header's menu. The entries find the stem in the lays of the viewer the menu is in (`HeaderFacts.viewer`: no state
   of their own, two viewers of one spec each their own). **Its route**: a secondary click on a stem opens it at the
-  pointer; on a ring's empty space (no hit) the browser's menu opens (the viewer's rule for rings); the menu key and
-  Shift+F10 with the keyboard cursor on a placed stem's range (the topmost layer's) open it at the stem's mouth
-  (`atCursor` on its first entry, `stemAtCursor`). Why: a menu a reader cannot reach is none.
+  pointer; on a ring's empty space (no hit) the browser's menu opens (the viewer's rule for rings whose hole a section
+  layer draws); the menu key and Shift+F10 with the keyboard cursor on a placed stem's range (the topmost layer's) open
+  it at the stem's mouth (`atCursor` on its first entry, `stemAtCursor`). Why: a menu a reader cannot reach is none.
 - **The keys**: `.` (`rondo:partner`) and `,` (`rondo:partner-back`), the commands' shortcuts on the canvas: the cursor
   to the next or the previous partner stem of its stem in the stem menu's order (its rows' pieces in turn: one list, two
   readers), said by the announcer (the command moved the cursor: "chr17, 40,000,000 · 140 links, reversed").
@@ -207,6 +207,11 @@ waiting; its entries `StemMenu` in `viewer.ts`).
   bins: zoom in to see them"; a stem "This stem: 24 links to chr9", its one partner chromosome by name, else "to 23
   chromosomes", then within and fan; a stub its partner, "not shown"), `summary` ("612 ribbons, 23 chromosomes;
   strongest chr1 ↔ chr17, 140"), `announce` ("stem of 312 links").
+- **The hole's words**: on a ring whose links are pending the hole says "Loading links…", muted (`msui-text-muted`) and
+  centred (the labels pass, measured at layout: the SVG too); on a failure the error its links' source raised replaces
+  it (the store's issue at the source's address, `HoleIssue`, read from the composed viewers; headless "Links failed").
+  Each is said once, politely (`viewer.notify` at a rest, again only after the hole had other words or none). Why: the
+  pending hole was empty and silent (novice 35). The square's pending state is the square's.
 
 ## What is the core's
 

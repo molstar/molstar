@@ -87,6 +87,8 @@ export class Announcer {
         // another command that moved the keyboard cursor says its own words (`rondo:partner`: where, and why there)
         else if (moved && cursor && message) this.say(message, 'cursor');
       }),
+      // a part's state (a ring's links loading), once, below everything else said
+      viewer.notice.listen(({ text }) => this.say(text, 'hover')),
       viewer.hover.version.listen(() => this.hovered()),
       viewer.selection.value.listen(() => this.selectionChanged()),
     );

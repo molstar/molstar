@@ -508,8 +508,9 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
     const s = section === undefined ? undefined : sectionLayout(layout, section);
     if (!s) return undefined;
     const p = s.placement;
-    // a ring's empty space (its hole, its corners) is no track's: the browser's menu there (a band by y is not a ring's)
-    if (!hit && p instanceof RingPlacement) return undefined;
+    // a ring whose hole a section layer draws (the genome ring's ribbons): its empty space is no track's, the browser's
+    // menu there; a ring of tracks alone (no header line) keeps its tracks' menu on the whole ring
+    if (!hit && p instanceof RingPlacement && s.sectionLays.length > 0) return undefined;
     const b = hit?.block ?? (p instanceof BlockPlacement && !p.stacked && s.section.blocks ? p.row.blockAt(x) : -1);
     if (b >= 0 && s.section.blocks) return { section: s.section.address, block: b };
     const t = s.tracks.find((t) => y >= t.box.y && y < t.box.y + t.box.height);

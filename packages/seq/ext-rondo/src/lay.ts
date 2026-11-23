@@ -76,6 +76,9 @@ export class RondoLay {
   read: PairsRead | undefined = undefined;
   /** Why nothing is drawn: `pending` (bins not landed), `layout` (text or grid), `none` (no pairs), `failed` (its source). */
   empty: '' | 'pending' | 'layout' | 'none' | 'failed' | 'shared' = '';
+  /** What the hole says while it is empty for a reason (`Loading links…`, a failure's issue), its measured width. */
+  holeText = '';
+  holeW = 0;
   /**
    * Its bins are read by region under a filter they cannot be read against (`rondo.ribbons.filter`); `shared`: another
    * layer over the same links draws them (the bins drawn once, never once a layer).
@@ -452,6 +455,7 @@ export function layoutRondo(lay: RondoLay, prep: RondoPrep, ctx: LayoutContext, 
   lay.hole = -1;
   lay.strongest = -1;
   lay.empty = '';
+  lay.holeText = '';
   lay.regionBins = false;
   const tokens = ctx.tokens;
   lay.fillOpacity = ctx.config.ribbons.fillOpacity;
@@ -480,6 +484,7 @@ export function layoutRondo(lay: RondoLay, prep: RondoPrep, ctx: LayoutContext, 
   if (!read || !d) {
     // none only once settled with no bins' tile awaited (a frame between a source's open and its tiles' wants is not)
     lay.empty = lay.reader.failed ? 'failed' : ctx.settled && !lay.reader.waiting ? 'none' : 'pending';
+    holeWords(lay, prep, ctx);
     return;
   }
   lay.systems = systemsOf(read);
@@ -523,6 +528,7 @@ export function layoutRondo(lay: RondoLay, prep: RondoPrep, ctx: LayoutContext, 
         : d.n === 0 && (!ctx.settled || lay.reader.waiting)
           ? 'pending'
           : 'none';
+    holeWords(lay, prep, ctx);
     return;
   }
   widths(lay, cfg, ctx.config.ribbons.minPx);
@@ -530,6 +536,27 @@ export function layoutRondo(lay: RondoLay, prep: RondoPrep, ctx: LayoutContext, 
   polygons(lay, prep, cfg, ctx);
   hitGrid(lay, cfg.hitCellPx);
 }
+
+/**
+ * What an empty hole says (_spec/README.md, Hits, emphasis, words: The hole's words): pending "Loading links…"; failed
+ * the issue its source's failure raised as the viewer holds it (`HoleIssue`), else "Links failed". On a ring only (a
+ * row's band has no hole); measured once at layout.
+ */
+function holeWords(lay: RondoLay, prep: RondoPrep, ctx: LayoutContext): void {
+  if (!lay.frame.polar || (lay.empty !== 'pending' && lay.empty !== 'failed')) return;
+  const source = prep.source.region?.src.source;
+  lay.holeText =
+    lay.empty === 'pending'
+      ? 'Loading links…'
+      : ((source !== undefined ? HoleIssue.of?.(source) : undefined) ?? 'Links failed');
+  lay.holeW = ctx.text.measure(lay.font, lay.holeText);
+}
+
+/**
+ * A source's failure as the viewer said it (its store's issue's message), when a viewer is composed with
+ * `rondoViewer` (it sets `of`); headless: none, the hole says "Links failed".
+ */
+export const HoleIssue: { of?: (source: string) => string | undefined } = {};
 
 /** Row ends into stems (each row once), counted: `rows` its stems by row. */
 let RowA = new Int32Array(256);

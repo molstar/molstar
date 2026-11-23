@@ -14,7 +14,7 @@ import {
   type ViewerCommand,
 } from '@molstar/seqx-viewer';
 import { rondo, RondoParams, RondoVersion } from './index.js';
-import { Kind, type RondoLay } from './lay.js';
+import { HoleIssue, Kind, type RondoLay } from './lay.js';
 import { laysOf, partnerChromosomes, partnersOf } from './partners.js';
 import { CardLines, links } from './words.js';
 
@@ -37,6 +37,13 @@ export function cardLanded(viewer: Pick<SeqViewer, 'behaviors'>): void {
 
 /** Every viewer composed with `rondoViewer`, until disposed: whose frame holds a lay a card names the bands of. */
 const Composed = new Set<SeqViewer>();
+
+// a links' source's failure in a ring's hole: the error its store raised, in the first composed viewer that holds one
+HoleIssue.of = (source) => {
+  for (const v of Composed)
+    for (const i of v.store.issues.value) if (i.severity === 'error' && i.address === source) return i.message;
+  return undefined;
+};
 
 /** A range's cytobands as the viewer whose last frame holds the lay draws them (a pair's card's ends). */
 function bandOfLay(lay: RondoLay, system: string, start: number, end: number): string | undefined {
@@ -232,11 +239,29 @@ function viewerParts() {
       },
     },
   ] as unknown as ViewerCommand[];
+  /** What the empty holes said, by layer (said once a state: "Loading links…" again only after it ended). */
+  const said = new Map<string, string>();
+  let stopSaying: (() => void) | undefined;
+  /** At each rest: an empty hole's words said once, politely (`viewer.notify`), a hole no longer empty forgotten. */
+  const sayHoles = () => {
+    const v = viewer;
+    if (!v) return;
+    const now = new Set<string>();
+    for (const lay of lays(v)) {
+      if (!lay.holeText) continue;
+      now.add(lay.key);
+      if (said.get(lay.key) === lay.holeText) continue;
+      said.set(lay.key, lay.holeText);
+      v.notify(lay.holeText);
+    }
+    for (const k of [...said.keys()]) if (!now.has(k)) said.delete(k);
+  };
   return {
     commands,
     composed(v: SeqViewer) {
       viewer = v;
       Composed.add(v);
+      stopSaying = v.rested.listen(sayHoles);
       // the stem menu's chunk, after the composition (its first chunk pays nothing for it); its card made again then
       if (!Menu) Viewers.add(v);
       void loadMenu()
@@ -245,6 +270,8 @@ function viewerParts() {
     },
     loaded: () => loadMenu().catch(() => undefined),
     dispose() {
+      stopSaying?.();
+      stopSaying = undefined;
       if (viewer) {
         Viewers.delete(viewer);
         Composed.delete(viewer);

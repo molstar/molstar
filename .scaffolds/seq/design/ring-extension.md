@@ -323,7 +323,8 @@ offered as a partner, and the track's actions in it (close-out, the novice quest
 
 - **The route**: a secondary click on a stem opens its element menu at the pointer (the viewer's, scoped to
   `rondo:ribbons`' stems). A point of a ring that hits nothing (its hole between ribbons, the corners outside it) is no
-  track's: the browser's menu opens there (a band by y is not a ring's). The menu key and Shift+F10 with the keyboard
+  track's: the browser's menu opens there. Only on a ring whose hole a section layer draws: a ring of tracks alone has
+  no header line, and its secondary click anywhere stays its tracks' menu (the track headers' design). The menu key and Shift+F10 with the keyboard
   cursor on a stem's range (a click on the stem puts it there) open the stem menu at the stem's mouth: the viewer asks
   an element entry for its element at the cursor (`HeaderEntry.atCursor`) before the cursor's header. Why: the menu
   existed only pre-opened in its story, and Shift+F10 opened the track's menu (item 29, checked on the code).
@@ -379,6 +380,12 @@ The ribbons fill the hole, where the ring draws its title (`rings.center: 'title
 built). Layouts' preset is **promoted to a section spec param `center`** (the same values; absent: the preset), written `none` by `rondoRing`, the
 assembly's name and length then in the section's label line. Why a spec param: the title over ribbons is the figure's
 choice, and a reader without the extension draws chords there too.
+
+**An empty hole says why** (close-out, the novice questions' G, the ring's part; decided by the author, 2026-11-23:
+"Agree as drafted"): while the links load the hole says "Loading links…", muted and centred, announced once, politely
+(the viewer's `notify`, at a rest); on a failure the issue's text (the error the links' source raised) replaces it. No
+links at all stays an empty hole ("no links" its ARIA). Why: the pending ring said nothing (novice 35). The square's
+pending state is the square's (another lane).
 
 ### Data for the showcase (no fetch in this lane)
 

@@ -14,7 +14,8 @@ import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { openExample } from '../../../examples/_test/draw-checks.js';
 import { describerFor } from '@molstar/seqx-viewer/describe';
-import { basesText, emphasisHeld, Kind, RibbonsType } from '@molstar/seqx-ext-rondo';
+import { basesText, emphasisHeld, Kind, RibbonsType, type RondoLay } from '@molstar/seqx-ext-rondo';
+import { Announcer } from '@molstar/seqx-viewer/announcer';
 import { hoverStrongestStem, ribbonsOf, ringStoryView, strongestStem } from '../views.js';
 import { bandsLanded } from './ring-helpers.js';
 
@@ -74,6 +75,18 @@ const errors = (v: SeqViewer) => [
   ...v.store.issues.value.filter((i) => i.severity === 'error'),
   ...v.layoutIssues.value.filter((i) => i.severity === 'error'),
 ];
+
+/** The texts the ribbons' labels pass draws at the hole's centre in their muted colour (its words, if any). */
+function holeTexts(l: RondoLay): string[] {
+  const lists = new DrawLists();
+  RibbonsType.draw(l, 'labels', lists.writer('labels') as PassWriter);
+  const t = lists.passes.labels.texts;
+  const out: string[] = [];
+  for (let i = 0; i < t.n; i++)
+    if (Math.abs(t.x[i] - l.frame.cx) < 1 && Math.abs(t.y[i] - l.frame.cy) < 8 && t.color[i] === l.muted)
+      out.push(lists.string(t.str[i]));
+  return out;
+}
 
 const descriptions = (v: SeqViewer) => layerAria(v.frame!.layout).map((a) => a.description);
 
@@ -176,6 +189,46 @@ describe('Genome ring stories, headless', () => {
       l,
     )!;
     expect(lines).toContain(`${basesText(l.level)} bins: zoom in to see them`);
+  });
+
+  it('9. links pending: the hole says “Loading links…”, muted and centred; said once, politely', async () => {
+    const v = await open(ringStoryView('ring-pending'), Rondo, 1000);
+    const l = ribbonsOf(v)!;
+    expect(l.empty).toBe('pending');
+    expect(l.holeText).toBe('Loading links…');
+    // the labels pass: one text at the hole's centre, in the muted text's colour
+    expect(holeTexts(l)).toEqual(['Loading links…']);
+    // said once (the viewer's notice, what the announcer says), however many rests pass while the links wait
+    expect(v.notice.value).toEqual({ n: 1, text: 'Loading links…' });
+    for (let i = 0; i < 4; i++) {
+      void v.execute('view.zoom-in', {});
+      await vi.advanceTimersByTimeAsync(1000);
+      v.draw();
+    }
+    expect(v.notice.value.n).toBe(1);
+    // the announcer says a notice in its one polite region
+    const announcer = new Announcer(v, { minGapMs: 0, restMs: 0 });
+    const said: string[] = [];
+    announcer.message.listen((m) => said.push(m.text));
+    v.notify('Loading links…');
+    expect(said).toEqual(['Loading links…']);
+    announcer.dispose();
+  });
+
+  it('9. links failed: the issue’s text replaces it in the hole, said once', async () => {
+    const v = await open(ringStoryView('ring-failed'), Rondo, 10_000);
+    const l = ribbonsOf(v)!;
+    expect(l.empty).toBe('failed');
+    const issue = v.store.issues.value.find((i) => i.severity === 'error')!;
+    expect(l.holeText).toBe(issue.message);
+    expect(holeTexts(l)).toEqual([issue.message]);
+    expect(v.notice.value.text).toBe(issue.message);
+    expect((await svgOf(v, false)).svg).toContain(issue.message.slice(0, 20));
+    // no words in a hole with links, nor with none at all
+    const ok = await open(ringStoryView('ring'));
+    expect(ribbonsOf(ok)!.holeText).toBe('');
+    const none = await open(ringStoryView('ring-no-links'));
+    expect(ribbonsOf(none)!.holeText).toBe('');
   });
 
   it('5. the square beside: the export with the navigators draws more than without', async () => {

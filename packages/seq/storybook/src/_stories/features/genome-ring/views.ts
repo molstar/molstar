@@ -157,7 +157,7 @@ export const RingStoryViews: readonly ExampleView[] = [
     id: 'ring-pending',
     title: 'The links pending',
     summary:
-      'The links’ answer never comes (an hour’s delay): the bands drawn, the hole empty with the pending hatch, no stems.',
+      'The links’ answer never comes (an hour’s delay): the bands drawn, the pending hatch, the hole saying “Loading links…” (announced once), no stems.',
     registry: (o = {}) => registry({ ...o, delayMs: 3_600_000 }),
   },
   {
@@ -165,7 +165,7 @@ export const RingStoryViews: readonly ExampleView[] = [
     id: 'ring-failed',
     title: 'The links failed',
     summary:
-      'The links’ file is not there: its issue said once; no ribbon, no hatch waiting (a source that never opened is failed), its ARIA “links failed”.',
+      'The links’ file is not there: its issue said once and its text in the hole; no ribbon, no hatch waiting (a source that never opened is failed), its ARIA “links failed”.',
     build: () => ringSpec({ failed: true, title: 'The links failed' }),
   },
   {

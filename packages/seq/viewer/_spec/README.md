@@ -1072,12 +1072,14 @@ binding table; per move one hit record and one modifiers record are reused.
   where it is each gap, not each key). A message is a token (a counter and its text), so equal words are said again: a
   cursor key that leaves the cursor in place (the end of its axis) is announced (`viewer.commandRan` moves after every
   command, with its message when it ran at once); another command that moved the keyboard cursor says its own message
-  (an extension's walk, `rondo:partner`'s: where, and why there). A message waiting its turn is replaced only by one of
-  the same or a higher priority (selection over cursor over hover), and the pointer leaving drops a waiting hover. While
-  a gesture is dragged the cursor and the hover say nothing and the selection says its end once, after the drag. Why one
-  region and a limit: a live region queues what it is given and a reader hears the queue after the cursor moved on. A
-  navigator slider's value is its own (`aria-valuetext`), never this region's. The highlight legend's Clear buttons and
-  the legend's entries are real buttons and options in the page's tab order, so they need nothing here.
+  (an extension's walk, `rondo:partner`'s: where, and why there); a part's state is said through `viewer.notify(text)`
+  (`viewer.notice`, a token too), at the hover's priority (a ring's "Loading links…", once: the part decides when). A
+  message waiting its turn is replaced only by one of the same or a higher priority (selection over cursor over hover),
+  and the pointer leaving drops a waiting hover. While a gesture is dragged the cursor and the hover say nothing and the
+  selection says its end once, after the drag. Why one region and a limit: a live region queues what it is given and a
+  reader hears the queue after the cursor moved on. A navigator slider's value is its own (`aria-valuetext`), never this
+  region's. The highlight legend's Clear buttons and the legend's entries are real buttons and options in the page's tab
+  order, so they need nothing here.
 - **Forced colors** (`forced-colors: active`, whatever the `theme.source`: the root's CSS tokens through
   `readCssTokens`, a configured theme's table through `forcedColorTokens` over `readSystemColors`; `css-tokens.ts`):
   `readCssTokens` reads the system colors (`Canvas`, `CanvasText`, `Highlight`, `GrayText`, resolved by a probe
@@ -1364,14 +1366,15 @@ rows' commands) reads the last frame's rows layers through the behavior context'
     applying entry is `alone` (a ring's stem: "Move up" is the track's, not the stem's); the element's facts carry its
     layer's type, `element.type`, so an extension's `on: 'element'` entries are scoped to its own type's hits: a section
     layer's hit, an extension's ribbons, is found on the track that holds it; `header`, the label column only; `none`,
-    the browser's); Shift+secondary click is always the browser's. On a ring a point that hits nothing (the hole between
-    ribbons, the corners) opens no menu: the browser's (a track's band by y is not a ring's). A long press (touch, the
-    `longPressMs` param, 500) opens it. The gestures are a lazy chunk loaded at the mount (`header-gestures.ts`). The
-    menu key and Shift+F10 (`headers.menu`, `view.keys`) and Enter on a header open it at the cursor's header (its
-    section's first track's on data), once per ask: the browser's secondary click that follows within a second is taken
-    and opens nothing (EC-156). Before the header, an `element` entry's `atCursor(viewer)` (`HeaderElementAt`: a target
-    with its element and a canvas point) names the element the cursor stands on (a ring's stem): its menu opens there. A
-    submenu's item may hold its own (`HeaderSubEntry.items`: a flyout of the flyout).
+    the browser's); Shift+secondary click is always the browser's. On a ring whose hole a section layer draws (the
+    genome ring's ribbons) a point that hits nothing (the hole between ribbons, the corners) opens no menu: the
+    browser's; a ring of tracks alone, which has no header line, keeps its tracks' menu anywhere on it. A long press
+    (touch, the `longPressMs` param, 500) opens it. The gestures are a lazy chunk loaded at the mount
+    (`header-gestures.ts`). The menu key and Shift+F10 (`headers.menu`, `view.keys`) and Enter on a header open it at
+    the cursor's header (its section's first track's on data), once per ask: the browser's secondary click that follows
+    within a second is taken and opens nothing (EC-156). Before the header, an `element` entry's `atCursor(viewer)`
+    (`HeaderElementAt`: a target with its element and a canvas point) names the element the cursor stands on (a ring's
+    stem): its menu opens there. A submenu's item may hold its own (`HeaderSubEntry.items`: a flyout of the flyout).
   - **The cursor off what was hidden**: a frame whose layout no longer has the cursor's track moves it to the next
     track's header, else the previous one's, else the section's line.
   - **Published on change** (by name from the frame, `framed()`: no listener; a frame that kept its layout reads one
