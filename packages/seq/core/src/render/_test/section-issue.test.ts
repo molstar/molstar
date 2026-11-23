@@ -11,7 +11,15 @@
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
-import { DefaultRenderConfig, recordDrawLists } from '../index.js';
+import { BuiltInLayerTypes, BuiltInLayouts } from '../built-ins.js';
+import {
+  bundledTextMetrics,
+  DefaultRenderConfig,
+  LightTokens,
+  recordDrawLists,
+  Renderer,
+  renderConfig,
+} from '../index.js';
 import { renderSvg } from '../render-svg.js';
 import { settle } from './helpers.js';
 
@@ -45,5 +53,26 @@ describe('a section placed nowhere with an issue', () => {
     const svg = (await renderSvg(spec(), { size: Size })).svg;
     expect(svg.split(`>${Issue}<`).length - 1).toBe(1);
     expect(svg).not.toContain('>Sites<');
+  });
+
+  it('only its placement issue collapses it: another issue at its address leaves the section as it was', async () => {
+    const st = await settle(spec());
+    const lost = st.view.sections[1];
+    const other = { ...st.view.issues[0], code: 'seq.view.block.unit', severity: 'warning' as const };
+    const view = { ...st.view, issues: [other] };
+    const renderer = new Renderer({
+      types: BuiltInLayerTypes,
+      layouts: BuiltInLayouts,
+      model: st.model,
+      view,
+      data: st.store,
+      tokens: LightTokens,
+      text: bundledTextMetrics(),
+      config: renderConfig({}),
+    });
+    const f = renderer.frame({ size: Size, settled: true });
+    expect(f.layout.sections[1].section.address).toBe(lost.address);
+    expect(f.layout.sections[1].note).toBeUndefined();
+    expect(f.layout.sections[1].tracks).toHaveLength(3);
   });
 });

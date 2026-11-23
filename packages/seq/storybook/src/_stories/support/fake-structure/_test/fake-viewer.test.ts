@@ -165,6 +165,19 @@ describe('the fake structure viewer’s "within 5 Å" on a whole chain', () => {
   });
 });
 
+describe('the fake structure viewer’s "within 5 Å" with no other chain', () => {
+  it('changes nothing on a chain selection and says so, never the selection again', () => {
+    const one: ChainTable = { ...table, chains: [table.chains[0]].map((c) => ({ ...c, operators: ['1_555'] })) };
+    const fake = new FakeStructureViewer(one);
+    fake.click({ row: 0, index: 2 });
+    fake.selectChain();
+    const chain = fake.selection.value;
+    fake.within();
+    expect(fake.selection.value).toBe(chain);
+    expect(fake.note.value).toBe('no other chain within 5 Å');
+  });
+});
+
 describe('the fake structure viewer’s camera frame', () => {
   it('is placed against its container, cell rectangles scrolled, so a cell of the third row is on the third row', () => {
     const cells = [

@@ -328,13 +328,14 @@ export class FakeStructureViewer {
           .filter((r) => r.polymer && !mine.has(`${r.asym} ${r.operator}`))
           .flatMap((r) => r.residues.flatMap((_, i) => (touches(i) ? [{ row: r.index, start: i, end: i + 1 }] : []))),
       );
-      if (near.length) {
-        const n = near.reduce((k, s) => k + s.end - s.start, 0);
-        const names = [...new Set(sel.map((s) => this.rows[s.row].asym))].join(', ');
-        this.setSpans(near);
-        this.note.set(`${n} ${n === 1 ? 'residue' : 'residues'} within 5 Å of chain ${names}`);
-        return;
-      }
+      const n = near.reduce((k, s) => k + s.end - s.start, 0);
+      const names = [...new Set(sel.map((s) => this.rows[s.row].asym))].join(', ');
+      // no other chain to take: the selection stays, and the note says so
+      if (near.length) this.setSpans(near);
+      this.note.set(
+        n ? `${n} ${n === 1 ? 'residue' : 'residues'} within 5 Å of chain ${names}` : 'no other chain within 5 Å',
+      );
+      return;
     }
     const grown: Span[] = sel.map((s) => ({
       row: s.row,

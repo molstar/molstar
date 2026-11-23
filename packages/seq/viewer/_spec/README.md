@@ -1341,7 +1341,10 @@ rows' commands) reads the last frame's rows layers through the behavior context'
     **`pressed`** (an action that is on now: the track the structure is colored by) makes its item `pressed` and a DOM
     part's `aria-pressed`; a pressed part is drawn where it is also when the other slots go with the hover, and the
     parts are made again after a run, so one at a time follows the source (its label says what it is: the tooltip). Why:
-    a host's state is told where the reader looks for the action, not in a line of its own.
+    a host's state is told where the reader looks for the action, not in a line of its own. The state is read when the
+    parts are made (a layout, a change of the hovered header, a run of a header entry): a host whose coloring changes
+    outside a command is not seen until the next of those, and no call asks the headers to refresh (a followup, not API
+    yet).
   - **Built-ins** (`BuiltInHeaderEntries`, in the default spec's registry; a host leaves one out to remove it):
     `seq:hide` (`eye-off`, `track.hide`), `seq:color` (menu only, "Color ▸": one place, never also a slot; the first
     shown layer with more than one fitting scheme: `layer.channel`'s choices a submenu, previewed while focused or

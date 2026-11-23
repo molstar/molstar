@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { isNode, type Node as SpecNode, parseAddress, resolveAddress } from '@molstar/core/repr/tree';
+import { isNode, type Node as SpecNode, parseAddress, printAddress, resolveAddress } from '@molstar/core/repr/tree';
 import {
   actionColumns,
   BlockPlacement,
@@ -176,11 +176,12 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
       // the one name every list of layers says (core's `layerName`: the legend's eye says it too)
       const label = layerName(l, track);
       // what its user filter leaves out, said by the chip's card
-      const data =
-        filtered > 0 && l.address
-          ? resolveAddress(root, l.address.split('/').filter(Boolean))?.params?.data
+      const written =
+        filtered > 0 && l.address ? resolveAddress(root, l.address.split('/').filter(Boolean))?.params : undefined;
+      const words =
+        filtered > 0
+          ? filterWords(typeof written?.data === 'string' ? written.data : undefined, written?.columns)
           : undefined;
-      const words = typeof data === 'string' ? filterWords(data) : undefined;
       layers.push({
         address,
         type: l.type,
@@ -640,14 +641,27 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
   };
 }
 
-/** A layer's user filter (its data's trailing `(except …)`) as words: "Species ≠ Human", "a ≠ x, y". */
-function filterWords(data: string): string | undefined {
-  const segs = parseAddress(data).pattern?.segments ?? [];
+const short = (t: string) => (t.length > 32 ? `${t.slice(0, 31)}…` : t);
+
+/**
+ * A layer's user filter (its data's trailing `(except …)`) as words, a column as the reader knows it (its `columns`
+ * title, else the key): "Species ≠ Human", "a ≠ x, y"; another form by its printed form, short; none readable: "a filter".
+ */
+function filterWords(data: string | undefined, columns: unknown): string {
+  const segs = data === undefined ? [] : (parseAddress(data).pattern?.segments ?? []);
   const i = segs.findIndex((s) => typeof s !== 'string');
-  const of = i < 0 ? undefined : splitDataForms(segs.slice(i)).filter?.params?.of;
-  if (!isNode(of) || of.kind !== 'item') return undefined;
-  const parts = Object.entries(of.params ?? {}).map(([k, v]) => `${k} ≠ ${(Array.isArray(v) ? v : [v]).join(', ')}`);
-  return parts.length ? parts.join('; ') : undefined;
+  const split = i < 0 ? undefined : splitDataForms(segs.slice(i));
+  const of = split?.filter?.params?.of;
+  if (isNode(of) && of.kind === 'item' && Object.keys(of.params ?? {}).length) {
+    const title = (k: string) => {
+      const c = Array.isArray(columns) ? columns.find((x) => x?.field === k) : undefined;
+      return typeof c?.title === 'string' ? c.title : k;
+    };
+    return Object.entries(of.params!)
+      .map(([k, v]) => `${title(k)} ≠ ${(Array.isArray(v) ? v : [v]).join(', ')}`)
+      .join('; ');
+  }
+  return i < 0 ? 'a filter' : short(printAddress(isNode(of) ? [of] : segs.slice(i)).slice(1));
 }
 
 /**

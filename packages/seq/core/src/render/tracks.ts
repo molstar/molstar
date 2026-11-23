@@ -478,7 +478,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     // naming it, never a blank well per track (_spec/README.md "Render", Empty tracks)
     const said =
       !axis && layout === TracksLayout
-        ? input.view.issues.find((i) => i.address === section.address && i.severity !== 'info')
+        ? input.view.issues.find((i) => i.address === section.address && PlacedNowhere.test(i.code))
         : undefined;
     if (said) shown.length = Math.min(shown.length, 1);
     const byType = layout.heights?.(config) ?? config.heights;
@@ -1072,6 +1072,9 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
 }
 
 const NoBreaks: readonly number[] = [];
+/** The view's issues that say a section is placed nowhere (an unrelated issue at its address changes nothing). */
+const PlacedNowhere = /^seq\.view\.section\.(system|complex)$/;
+
 const NoRows: readonly RailRow[] = [];
 
 /**
