@@ -91,8 +91,9 @@ export function contactMap(files: Files = GenomesFiles): Node {
       t.layer('contacts', {
         type: 'grid',
         data: contacts,
-        // counts on a log palette (a count of 1 to the peak's hundreds), an empty cell (0) no contact: left clear
-        color: theme.field('value', { type: 'log', palette: theme.continuous({ colors: 'magma' }) }),
+        // counts on a log palette (a count of 1 to the peak's hundreds), an empty cell (0) no contact: left clear; the
+        // theme's ramp, its low end near the background in either theme, so sparse counts fade into it
+        color: theme.field('value', { type: 'log', palette: theme.continuous({ colors: 'ramp' }) }),
       } as never),
     );
   });

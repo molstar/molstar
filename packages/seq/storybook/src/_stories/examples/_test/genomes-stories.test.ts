@@ -428,6 +428,12 @@ describe('Examples/Genomes, headless', () => {
     for (const img of g.images) for (let q = 3; q < img.data.length; q += 4) img.data[q] ? drawn++ : clear++;
     expect(clear).toBeGreaterThan(0);
     expect(drawn).toBeGreaterThan(clear);
+    // on the theme's ramp (light here): its low end near the background, no dark speck for a sparse count
+    let dark = 0;
+    for (const img of g.images)
+      for (let q = 0; q < img.data.length; q += 4)
+        if (img.data[q + 3] && img.data[q] + img.data[q + 1] + img.data[q + 2] < 200) dark++;
+    expect(dark).toBe(0);
     // every block pair's lay (chr1 to chr3 on each axis), by its systems' names
     const grids = v
       .frame!.layout.sections.flatMap((s) => s.lays.flat())
