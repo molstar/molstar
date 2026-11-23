@@ -185,7 +185,7 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
       `common/tabix`, `_spec/bgzf.md`), core's `ungzip` over multi-member streams, `seqx-core`'s io allowlist (hot:
       `biome.json`), `runtimes/internal/` (text, lines), `findNames`' types and `data/names.ts`. Stops at the surface
       genome-formats agreed.
-- [ ] Then beside each other, after BZ (and after GC1 for a new param):
+- [x] Then beside each other, after BZ (and after GC1 for a new param):
   - [x] **BE** (merged 2026-11-21, `98028d3f6`) (`briefs/be-bed.md`) the BED family: BED, bedGraph, BEDPE (read whole, indexed by both ends, held rows
         in a byte budget), chrom.sizes; whole and by region at level 1.
   - [x] **GG** (merged 2026-11-21, `9b8cf675b`) (`briefs/gg-gff.md`) GFF3 and GTF read whole: `assembleTranscripts`, `source.features`, `findNames`
@@ -210,7 +210,8 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
       that showcases it"; `briefs/bs-builder-showcase.md`; fast, storybook only, beside any lane) **the builder
       showcased**: `Features/Builder`, each story the builder code shown beside the view it builds; the builder stays
       in `seqx-core/lang` (no package of its own for now).
-- [ ] **GATE**, with `pnpm build` and `pnpm check:workspace` (`@molstar/io` changed); each runtime its own size row.
+- [x] **GATE**, with `pnpm build` and `pnpm check:workspace` (`@molstar/io` changed); each runtime its own size row.
+      Passed 2026-11-23 with stage 3's (below).
 
 ### Stage 3: by region and across sections (after GC1; RG alone in the store)
 
@@ -242,7 +243,10 @@ fix point with nothing open is skipped. A finding that needs a design is a drift
       Merged 2026-11-22 (`344ed99f1`).
 - [x] **TT** (`briefs/tt-tooltips.md`; strong, after HC; the language alone, 0.9.0) tooltips on drawn marks by data or
       a table, the card composed by providers in the viewer spec (tooltips.md, agreed 2026-11-22). Merged 2026-11-22 (`5b8a02f89`).
-- [ ] **GATE**.
+- [x] **GATE** (stages 2 and 3 together, passed 2026-11-23): build, workspace, `tsc -b`, the quick lane 15.2 s at load
+      2.7, medium 620, heavy 173 (after FX18: the chromosome pan over its bounds since FX9 and VL), both perf tiers,
+      sizes under the raised bounds, the `.seq` checks; the looks in a visible pane at each lane; the author's four
+      answers (ClinVar kept, genotype tokens, the harness's scaled control, `formatGenomic` in core).
 
 ### Stage 4: the dataset and the ring (beside each other)
 
