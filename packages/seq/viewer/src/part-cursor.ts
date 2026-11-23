@@ -17,6 +17,7 @@ export type PartCursor =
   | 'grab'
   | 'grabbing'
   | 'pointer'
+  | 'not-allowed'
   | 'default';
 
 /**

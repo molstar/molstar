@@ -402,6 +402,20 @@ describe('The square over a ring: any set', () => {
     expect(include(v)).toBeUndefined();
   });
 
+  it('a drag on a scattered set moves nothing and says so: the cursor not-allowed, the readout a hint', async () => {
+    const { v, n } = await make(['chr1', 'chr3']);
+    const at = cell(n, 2, 2);
+    expect(n.down(...at)).toBe(true);
+    n.move(at[0] + 15, at[1] + 15);
+    n.move(at[0] + 30, at[1] + 30);
+    expect(n.cursor).toBe('not-allowed');
+    expect(n.readout.value).toContain('Only a run');
+    n.up();
+    expect(n.click(at[0] + 30, at[1] + 30)).toBe(false);
+    await settle(v, n);
+    expect(include(v)).toEqual(['chr1', 'chr3']);
+  });
+
   it('the outline is only the cells the ring shows: no stray cell on chr1 × chr1, focused or not', async () => {
     const { v, n } = await make();
     // the part focused while the whole genome is shown (its keyboard's cell would be chr1 × chr1)

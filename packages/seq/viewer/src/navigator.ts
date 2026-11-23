@@ -104,6 +104,13 @@ export interface KeyModifiers extends ClickModifiers {
 /** No pointer state (a mouse): `move`'s default, one object (a move allocates nothing). */
 const NoPointer: NavigatorPointer = Object.freeze({});
 
+/** What a drag over a set that grips no box says: only a run's box drags (a scattered set changes by its cells). */
+const ScatteredHint: ReadoutParts = {
+  name: '',
+  value: 'Only a run’s box drags',
+  rest: ' · click cells, Cmd or Ctrl to add, Home for all',
+};
+
 export interface NavigatorPointer {
   readonly touch?: boolean;
 }
@@ -164,6 +171,8 @@ export class NavigatorModel extends ReactiveModel {
   private setHover: PartCursor = 'default';
   /** A key drove the square over a set since the last press or focus: its keyboard's cell is drawn. */
   private keyed = false;
+  /** The press over a set that grips no box said so (`ScatteredHint`). */
+  private hinted = false;
   /** The part has the keyboard focus (the host says: `setFocus`): a move made elsewhere then announces nothing. */
   private hasFocus = false;
   /** The view rested since the last draw; this part's own gesture or key moved it. */
@@ -522,7 +531,9 @@ export class NavigatorModel extends ReactiveModel {
 
   /** The cursor over the navigator, by the part and the gesture (`partCursor`), held through a drag. */
   get cursor(): PartCursor {
-    if (this.press?.set) return this.setGesture.dragging ? this.setGesture.cursor : 'pointer';
+    // a press over a set that grips no box (a scattered set's cell, a label) drags nothing: said, and the cursor says so
+    if (this.press?.set)
+      return this.setGesture.dragging ? this.setGesture.cursor : this.press.moved ? 'not-allowed' : 'pointer';
     if (this.press) return partCursor(this.press.hit.part, this.press.hit.axis, true);
     if (this.setSquare) return this.setHover;
     const l = this.lit;
@@ -547,6 +558,11 @@ export class NavigatorModel extends ReactiveModel {
         set.pointer[0] = x;
         set.pointer[1] = y;
         this.setGesture.drag(set);
+        if (!this.setGesture.dragging && !this.hinted) {
+          // once a press: a scattered set (or a label) has no box to drag
+          this.hinted = true;
+          this.say(ScatteredHint);
+        }
       } else if (d.moved) this.dragTo(d, x, y);
       this.changed();
       return;
@@ -660,7 +676,8 @@ export class NavigatorModel extends ReactiveModel {
       own = this.readParts;
     } else this.readParts = undefined;
     if (this.press?.moved) this.following = true;
-    const parts = this.following ? (own ?? this.hover) : (this.hover ?? own);
+    // a press that grips no box says its hint while it runs (no window moves)
+    const parts = this.press && this.hinted ? this.hover : this.following ? (own ?? this.hover) : (this.hover ?? own);
     const prev = this._readoutParts.value;
     if (parts === prev) return;
     if (prev && parts && prev.name === parts.name && prev.value === parts.value && prev.rest === parts.rest) return;
@@ -727,6 +744,7 @@ export class NavigatorModel extends ReactiveModel {
       const hit: NavigatorHit = h ?? { section: nav.of[0], part: 'outside', axis: 'positions' };
       this.setGesture.press(set, x, y, p.touch);
       this.keyed = false;
+      this.hinted = false;
       this.press = { x0: x, y0: y, hit, moved: false, positions: false, set: true };
       this.changed();
       return true;
