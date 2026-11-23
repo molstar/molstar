@@ -16,7 +16,7 @@ const { root: ROOT } = args();
 const POINTER = "packages/seq/AGENTS.md";
 /** Files that name the scaffold when the check was written (2026-11-23) and that a lane may not edit (the
  * orchestrator's hot files): the list only shrinks, a file leaves it when it is clean (the check then says so). */
-const PENDING = new Set(["packages/seq/TODO.md", "packages/seq/_measure/sizes.mjs"]);
+const PENDING = new Set<string>([]);
 const TEXT = /\.(ts|tsx|mts|mjs|js|json|md|mdx|css|scss|html|yml|yaml|txt)$/;
 
 const files = trackedFiles(ROOT).filter((f) => existsSync(join(ROOT, f)));

@@ -15,7 +15,7 @@
 ## In progress
 
 - 2026-11-23: stage 1 started. `.seq/_checks/designs-in-specs.ts` written (46 designs pending). Running: **S1A**
-  (strong, `briefs/s1a-specs.md`) and **S1B** (strong, `briefs/s1b-specs.md`, merged `81a82d453`); S1A merged (`936242251`); **S1D** (Sonnet, `briefs/s1d-specs.md`) started beside it; S1C merged; stage 1's gate passed (15 drift notes to the author). Running: **S1E** (Sonnet, `briefs/s1b2-citations.md`, stage 1b); S1F merged.
+  (strong, `briefs/s1a-specs.md`) and **S1B** (strong, `briefs/s1b-specs.md`, merged `81a82d453`); S1A merged (`936242251`); **S1D** (Sonnet, `briefs/s1d-specs.md`) started beside it; S1C merged; stage 1's gate passed (15 drift notes to the author). S1E and S1F merged; stage 1b done. Next: stage 2 (the rename), the orchestrator's.
 
 ## Findings by lane
 
@@ -26,3 +26,4 @@
 | S1D | 2026-11-23 | 7 designs, about 95 rows (ext-rondo, examples, core) | about 30 | 2 (ring-extension, packages-and-examples) | Sonnet | 7 of 7 out of PENDING; the examples spec written | review: the stubs row wrong (hit keys), draw order missing (added), lazy chunks and requires, unmarked drifts, five rows missing, the examples spec's io and entries; fixed; the orchestrator added ext-rondo and examples to packages/seq/AGENTS.md |
 | S1C | 2026-11-23 | 12 designs, about 350 rows (core, viewer) | about 50 | 5 (store-over-budget, region-reads, genome-formats, grids-and-rows, layouts) + blosum62-provenance | strong | 12 of 12; PENDING empty | review: the hover outline's 3:1 a missed rule (added), five pointers on the wrong section, int32 positions' rule, reasons missing, a provenance string contradicting the code (drift); fixed; the Tables' Bounds lead renamed (a test comment cites the old name: stage 1b) |
 | S1F | 2026-11-23 | 15 drift notes resolved, about 25 rows repointed | 7 code items to the close-out | 0 | Sonnet | 15 of 15 Resolved | review: stale text in ring-extension, examples, version-1, base-library; a garbled bullet; fixed |
+| S1E | 2026-11-23 | about 240 citations in seq, core repr, io: about 115 repointed, 125 dropped | — | 0 | Sonnet | the check passes; PENDING emptied by the orchestrator (TODO.md, sizes.mjs fixed) | review: EC-169 dropped (restored), the check's exemption too wide (narrowed, self-check), a missing heading cited, two io comments; fixed |
