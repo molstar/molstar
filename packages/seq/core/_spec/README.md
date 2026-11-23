@@ -535,6 +535,15 @@ layout per token table, held domains and the reader's substitution (`LayerChanne
   literal colors are the light table's; the dark table's are derived (lightness mapped into the dark band, Oklab L
   0.30–0.62, hue kept) unless it is safe as it is. The band is bounded by the ink: above about 0.62 neither ink reaches
   4.5:1. Provenance is `theme/provenance`'s (`schemeProvenance`), read by a picker, never by drawing.
+- **Column schemes** read the rows layer's measures (`share`, `identity`, `matches-reference`: Render, The rows layer):
+  `clustal-x` (`share`), `percent-identity` (`identity` above 0.8, 0.6, 0.4 in three blues), `blosum62` (by
+  `matches-reference`: a letter matching the reference row's; no substitution score yet), `espript` (EC-135: identical where every row of the column has the
+  letter, gaps counted against it, `gaps: count` by default; similar where the letter's group holds at least
+  `similarity`, 0.7, of the column; `mode: bw` black and grey, so it reads in print with no hue): rules forms over the
+  measures, stated as an approximation of ESPript's score by groups. A scheme that does not fit the layer (another
+  alphabet, a measure the layer does not register) draws the layer's default and says what it needs
+  (`seq.render.theme.scheme`). Why: a column's conservation is a measure of the alignment, so the schemes stay data and
+  the layer that holds the cells computes it once.
 - **Colors as spelled** (`theme/spelling`: `parseColor`, `isColorSpelling`, `resolveColor`) need no color space: the
   spec reader's checks import them alone.
 - **Legends** are data (`Legend`: swatches, a ramp with ticks placed by its scale (a log scale's decades, a center at

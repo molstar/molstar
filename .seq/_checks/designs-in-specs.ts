@@ -30,7 +30,7 @@ const SPECS: Record<string, string> = {
 const PENDING = new Set([
   "edge-cases", "examples",
   "packages",
-  "ring-extension", "sources", "testing", "themes",
+  "ring-extension", "sources", "testing",
 ]);
 
 const argv = process.argv.slice(2);
