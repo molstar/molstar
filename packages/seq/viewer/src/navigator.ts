@@ -1046,7 +1046,8 @@ export class NavigatorModel extends ReactiveModel {
     if (!nav || !section) return false;
     if (key === 'Escape') return this.cancel();
     const set = this.setSquare;
-    if (set && key !== 'Home' && !modifiers.altKey) {
+    // the set takes the arrows and Enter; PageDown, PageUp, End and the rest are the slider's (a block's step: `block.next`)
+    if (set && !modifiers.altKey && (key === 'Enter' || key.startsWith('Arrow'))) {
       const toggle = !!(modifiers.metaKey || modifiers.ctrlKey);
       const taken = this.setGesture.key(set, key, !!modifiers.shiftKey, toggle);
       if (taken && !this.keyed) {

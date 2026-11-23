@@ -303,11 +303,12 @@ grips: a press there is a click's. The keys on the focused square: arrows move t
 Shift+arrows grow or shrink its end; Cmd or Ctrl+arrows move the keyboard's cell (outlined in the accent, inset, while
 focused and a key drives it, a press hiding it; picked again on a cell of the set when the set changes under it; over a
 scattered set plain arrows), said as the readout (`chr3 × chr5`); Enter shows its pair, Cmd or Ctrl+Enter adds or
-removes it; Home shows all. The readout over a cell names its pair, over a name its block. **Switching blocks**
-(`blockSwitchRange`, `block-switch.ts`; the author, 2026-11-21, IGV's: a picked chromosome whole): from a view showing
-its block whole (within a pixel) the new block whole; zoomed inside a block, the same width centred at the same relative
-place in the new block, clamped to its ends; a width past the new block's length, the new block whole. One rule for a
-click on the navigator, `block.next` and `block.previous`, and the square's click.
+removes it; Home shows all; the other keys are the slider's (PageDown, PageUp: `block.next`, `block.previous`; End the
+view's end). The readout over a cell names its pair, over a name its block. **Switching blocks** (`blockSwitchRange`,
+`block-switch.ts`; the author, 2026-11-21, IGV's: a picked chromosome whole): from a view showing its block whole
+(within a pixel) the new block whole; zoomed inside a block, the same width centred at the same relative place in the
+new block, clamped to its ends; a width past the new block's length, the new block whole. One rule for a click on the
+navigator, `block.next` and `block.previous`, and the square's click.
 
 ### HoverModel
 

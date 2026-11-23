@@ -9,7 +9,7 @@ import { assembly, createSeqSpec, genome } from '@molstar/seqx-core/lang';
 import { Op } from '@molstar/seqx-core/render';
 import { SquareNavigator } from '@molstar/seqx-core/render/navigator-square';
 import { loadGenome } from '@molstar/seqx-core/resolve';
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
 import type { NavigatorModel } from '../navigator.js';
 import { type UiHistory, uiHistory } from '../ui-history.js';
@@ -268,6 +268,22 @@ describe('The square over a ring: its box a window', () => {
       await settle(v, n);
       expect(include(v)).toEqual(want);
     }
+  });
+
+  it('PageDown and PageUp over a set step a block (`block.next`, `block.previous`); End is the slider’s', async () => {
+    const { v, n } = await make(['chr3', 'chr4', 'chr5']);
+    n.setFocus(true);
+    const ran = vi.spyOn(v, 'execute');
+    // the ring zoomed in on chr4: a block's step has somewhere to go
+    v.view.jump(() => v.view.zoom(Ring, 3), true, 'zoom');
+    await settle(v, n);
+    n.key('PageDown');
+    n.key('PageUp');
+    expect(ran.mock.calls.map((c) => c[0])).toEqual(['block.next', 'block.previous']);
+    // End is the slider's (the view's end), never the set's: the set unchanged
+    n.key('End');
+    await settle(v, n);
+    expect(include(v)).toEqual(['chr3', 'chr4', 'chr5']);
   });
 
   it('a drag to every block writes no include; Home shows all', async () => {
