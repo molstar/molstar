@@ -28,7 +28,7 @@ const PENDING = new Set([
   "examples", "examples-and-stories", "extensibility", "extension-openings", "files", "format", "genome-coordinates",
   "genome-formats", "grids-and-rows", "immutable", "language-description", "layout-and-draw-lists", "layouts",
   "locations-and-queries", "maps", "merge", "molecules", "packages", "patches", "ports", "properties",
-  "protocol", "region-reads", "rendering", "ring-extension", "security", "seq-data-ports", "sources", "stories",
+  "protocol", "region-reads", "rendering", "ring-extension", "security", "sources", "stories",
   "testing", "themes", "tree-core",
 ]);
 

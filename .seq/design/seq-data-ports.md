@@ -181,6 +181,33 @@ Every other cell: no, because a data adapter carries no gesture.
 | reopen on `changes` | viewer source sync | on, coalesced a frame | the sequences follow the host | — (an adapter that should not reopen fires nothing) |
 | `StructureDescription` options | `structureNodes` options | as MC's (`assembly` absent: the deposited model; `water` off; `name: description`) | one reading for file and host | per adapter |
 
+## In the specs
+
+| Decision | Where |
+|---|---|
+| One path: a data adapter is a format runtime, a registry entry by format; the core's runtimes the defaults | core › A data adapter is a format runtime |
+| A host adapter wraps the default (`hostAdapter`) | design-only: a pattern, not a registry feature (the Storybook's helper) |
+| One adapter a format, or an error; `withAdapter` | core › Data adapters, one a format |
+| The spec names data in its own terms; `ref` beside or without a `uri` (`host_only`) | core › A source named by a host |
+| Inline data is never served by a host | core › A data adapter is a format runtime |
+| What crosses is the protocol's; a host's nodes checked as dynamic nodes; always asynchronous | core › A data adapter is a format runtime |
+| `OpenedSource.changes?` and `RegionRequest.field?`, every runtime unchanged | core › Two optional members |
+| `StructureDescription` (SoA, mmCIF's words) | core › `StructureDescription` |
+| `structureNodes`; keys from identifiers, never indices | core › Keys from identifiers |
+| The mmCIF runtime's converter shared through the description | core › Seq io |
+| The inverse of `structureFacts` (one vocabulary) | core › Facts |
+| What a source serves for a structure: nodes up front, values and ranges by region | core › Seq io |
+| A values channel by `field` | core › A values channel |
+| Host updates: `changes` reopens in place, coalesced a frame | viewer › Host updates |
+| The store's `reattach`: identity by key | core › Reattach |
+| What referred to what went | viewer › What referred to what went |
+| Annotations given back: `unitRows`, a pure function; no writer in Seq\* | core › Rows |
+| Layering: no package of its own; `io/structure` in `seqx-core`, `runtimes/mmcif` opt-in | core › Seq io |
+| A Mol\* adapter never in `seqx-core` | design-only: not built (a host's or a bridge package, later) |
+| The fake host's adapter and the proof of one path | design-only: the Storybook's test fixture |
+| Region-level invalidation on `changes` | design-only: a later refinement (Tensions) |
+| The code keeps the name `FormatRuntime` | core › A data adapter is a format runtime |
+
 ## Tensions
 
 - **A portable name against data with no file.** `uri` keeps specs portable; a host's edited model has none. `ref`
