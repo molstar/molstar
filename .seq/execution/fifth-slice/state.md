@@ -2,6 +2,8 @@
 
 ## Decided
 
+- The seventh slice removes `packages/sequences` and renames `@molstar/seqx-*` to `@molstar/seq-*` (the author,
+  2026-11-23); draft in `seventh-slice/plan.md`. The Prism swap's design drafted now (`sixth-slice/drafts/`).
 - The loop pauses after RX2 (the author, 2026-11-23: "let's pause the loop after RX2 is done"): RX2 checked, reviewed,
   looked at and merged, then the loop stops; RX3 and the use gate wait for the author.
 - Prism on the new Seq\* in the sixth slice (the author, 2026-11-23): planned in `sixth-slice/plan.md`.

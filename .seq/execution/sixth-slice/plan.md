@@ -85,8 +85,8 @@ A next scaffold starts as `.scaffolds/<name>/` from `_method/`, its manifest lis
   - **Lanes after the design**: Seq\* gaps first, then the swap in Prism (by Prism's own AGENTS.md and checks: its
     perf, heap and browser tiers, the axe sweep, its stories), then parity checks against today's behaviour (the
     sequence tests ported, a look at each sequence story beside the old one).
-  - **Then `packages/sequences`**: with no dependent left, its removal (and Seq\*'s `seqx` names becoming `seq`) is the
-    author's call, asked at the slice's gate.
+  - **Then `packages/sequences`** has no dependent left: its removal and the rename are the seventh slice
+    ([plan](../seventh-slice/plan.md)).
 - [ ] **Record** in `.scaffolds/seq/records/sixth-slice.md`.
 
 ## Questions for the author (stage 0)
