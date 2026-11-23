@@ -513,6 +513,15 @@ describe('a nested particle pack read by range', () => {
     const byTile = Particle.getBoundingSphere(loci, Sphere3D());
     expect(counter.reads).toBe(0);
     expect(deferred.getPage(0)).toBeUndefined();
+    // a particle of a stored level (a coarse copy's click): by its position there, its page not read
+    const stored = Particle.getStoredLevels(ParticleNesting.getTemplate(list, 0)!.particles)!;
+    const coarse = stored[0].keys.find((k) => k >> 13 === 1)!;
+    const inLevel = Particle.getBoundingSphere(ParticleNesting.ofInstance(list, 1, coarse), Sphere3D());
+    const inWhole = Particle.getBoundingSphere(ParticleNesting.ofInstance(whole, 1, coarse), Sphere3D());
+    expect(Vec3.distance(inLevel.center, inWhole.center)).toBeLessThan(1e-3);
+    expect(inLevel.radius).toBeCloseTo(inWhole.radius, 3);
+    expect(counter.reads).toBe(0);
+    expect(deferred.getPage(1)).toBeUndefined();
     // its page read (its positions and rotations: a read each), once while in flight, kept: by its position then
     const [p0, again] = await Promise.all([deferred.readPage(0), deferred.readPage(0)]);
     expect(again).toBe(p0);

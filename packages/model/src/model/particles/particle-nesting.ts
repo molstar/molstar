@@ -1108,10 +1108,76 @@ export namespace ParticleNesting {
   const _keptPosition = Vec3();
 
   /**
+   * a page not kept holding at most this many of a loci's particles: each looked for in its list's stored levels (a
+   * coarse copy's click), the rest by their tiles; more: by their tiles alone (a tile's box then about theirs)
+   */
+  const LevelLookupMax = 64;
+
+  /** A list's stored levels' particles by page (`Particle.getStoredLevels`): what a page not kept has in memory */
+  interface StoredLevelIndex {
+    /** per page its entries' first (`DeferredPageBits`), the entries' particle, level and index in it */
+    readonly offsets: Int32Array;
+    readonly keys: Int32Array;
+    readonly levels: Uint8Array;
+    readonly at: Int32Array;
+  }
+  const storedLevelIndices = new WeakMap<ParticleList, StoredLevelIndex | null>();
+
+  /** `list`'s stored levels' particles by page (made once a list, a pass over their keys), null where it has none */
+  function getStoredLevelIndex(list: ParticleList): StoredLevelIndex | null {
+    let index = storedLevelIndices.get(list);
+    if (index !== undefined) return index;
+    const stored = Particle.getStoredLevels(list);
+    if (!stored?.length) {
+      storedLevelIndices.set(list, null);
+      return null;
+    }
+    const pages = (list.count >> DeferredPageBits) + 1;
+    const offsets = new Int32Array(pages + 1);
+    let total = 0;
+    for (const level of stored) {
+      for (let i = 0; i < level.keys.length; ++i) offsets[(level.keys[i] >> DeferredPageBits) + 1] += 1;
+      total += level.keys.length;
+    }
+    for (let p = 0; p < pages; ++p) offsets[p + 1] += offsets[p];
+    const keys = new Int32Array(total);
+    const levels = new Uint8Array(total);
+    const at = new Int32Array(total);
+    const fill = offsets.slice(0, pages);
+    for (let l = 0; l < stored.length; ++l) {
+      const k = stored[l].keys;
+      for (let i = 0; i < k.length; ++i) {
+        const e = fill[k[i] >> DeferredPageBits]++;
+        keys[e] = k[i];
+        levels[e] = l;
+        at[e] = i;
+      }
+    }
+    index = { offsets, keys, levels, at };
+    storedLevelIndices.set(list, index);
+    return index;
+  }
+
+  /** A tile directory's tiles by their first particle (made once a directory) */
+  const tileOrders = new WeakMap<object, { readonly tiles: Int32Array; readonly firsts: Int32Array }>();
+  function getTileOrder(directory: { readonly ranges: Int32Array }) {
+    let order = tileOrders.get(directory);
+    if (order) return order;
+    const { ranges } = directory;
+    const all = Array.from({ length: ranges.length / 3 }, (_, t) => t).filter((t) => ranges[t * 3 + 2] > 0);
+    all.sort((a, b) => ranges[a * 3 + 1] - ranges[b * 3 + 1]);
+    const tiles = Int32Array.from(all);
+    order = { tiles, firsts: Int32Array.from(all, (t) => ranges[t * 3 + 1]) };
+    tileOrders.set(directory, order);
+    return order;
+  }
+
+  /**
    * The sphere bounding particles `indices` of `list` whose particles are not read (`Particle.DeferredParticles`, a
-   * pack opened by range): where their page is kept (`DeferredParticles.getPage`: its pack's cache) their positions
-   * and radii, else the boxes of their tiles (its tile directory: conservative), each grown by the largest radius among
-   * them; its boundary's where it has no directory. At once: no read begun (a page read later, tighter then)
+   * pack opened by range), at once (no read begun): a particle by its position and radius where it is in memory (its
+   * page kept, `DeferredParticles.getPage`: its pack's cache; or in its stored levels, `LevelLookupMax`: a coarse
+   * copy's click), else by the box of its tile (its tile directory: conservative) grown by the largest radius of those
+   * in it; its boundary's where it has no directory. Tighter once a page is read
    */
   export function getDeferredBoundingSphere(list: ParticleList, indices: OrderedSet<number>, out?: Sphere3D): Sphere3D {
     const helper = _deferredHelper;
@@ -1122,7 +1188,7 @@ export namespace ParticleNesting {
     return helper.getSphere(out);
   }
 
-  /** `getDeferredBoundingSphere`'s spheres: a kept page's particles each, a tile's box for those of a page not kept */
+  /** `getDeferredBoundingSphere`'s spheres: a particle in memory its own, the others' their tiles' boxes */
   function forEachDeferredSphere(
     list: ParticleList,
     indices: OrderedSet<number>,
@@ -1132,9 +1198,17 @@ export namespace ParticleNesting {
     if (size === 0) return;
     const deferred = Particle.getDeferred(list)!;
     const { radii } = list;
+    const radiusOf = (i: number) => (radii ? ParticleValues.get(radii, i) : 0);
     const grid = list.coordinates as GridPositions;
-    // per page holding some: kept, its particles by their positions; else noted for its tiles
-    const missing = new Set<number>();
+    const stored = Particle.getStoredLevels(list);
+    const levelIndex = stored ? getStoredLevelIndex(list) : null;
+    // the loci's particles not in memory: ranges of their places in `indices` (`[a, b)` pairs, ascending)
+    const missing: number[] = [];
+    const miss = (a: number, b: number) => {
+      const n = missing.length;
+      if (n > 0 && missing[n - 1] === a) missing[n - 1] = b;
+      else missing.push(a, b);
+    };
     for (let a = 0; a < size; ) {
       const page = OrderedSet.getAt(indices, a) >> DeferredPageBits;
       const lo = page << DeferredPageBits;
@@ -1145,14 +1219,29 @@ export namespace ParticleNesting {
         for (let k = a; k < b; ++k) {
           const i = OrderedSet.getAt(indices, k);
           GridPositions.get(view, i - lo, _keptPosition);
-          f(_keptPosition, radii ? ParticleValues.get(radii, i) : 0);
+          f(_keptPosition, radiusOf(i));
+        }
+      } else if (levelIndex && b - a <= LevelLookupMax) {
+        const { offsets, keys, levels, at } = levelIndex;
+        const e0 = offsets[page];
+        const e1 = offsets[page + 1];
+        for (let k = a; k < b; ++k) {
+          const i = OrderedSet.getAt(indices, k);
+          let e = e0;
+          while (e < e1 && keys[e] !== i) ++e;
+          if (e === e1) {
+            miss(k, k + 1);
+            continue;
+          }
+          GridPositions.get(stored![levels[e]].coordinates, at[e], _keptPosition);
+          f(_keptPosition, radiusOf(i));
         }
       } else {
-        missing.add(page);
+        miss(a, b);
       }
       a = b;
     }
-    if (missing.size === 0) return;
+    if (missing.length === 0) return;
     const directory = ParticleTiles.getDirectory(list);
     if (!directory) {
       const { sphere } = Particle.getBoundary(list);
@@ -1160,36 +1249,44 @@ export namespace ParticleNesting {
       return;
     }
     const { ranges, boxes } = directory;
-    const tiles = ranges.length / 3;
-    // per tile holding some in a page not kept: its box's center and half diagonal grown by their largest radius
-    for (let t = 0; t < tiles; ++t) {
-      const lo = ranges[t * 3 + 1];
-      const hi = lo + ranges[t * 3 + 2];
-      let any = false;
-      let reach = 0;
-      for (let page = lo >> DeferredPageBits; page << DeferredPageBits < hi; ++page) {
-        if (!missing.has(page)) continue;
-        const s = Math.max(lo, page << DeferredPageBits);
-        const e = Math.min(hi, (page + 1) << DeferredPageBits);
-        const a = OrderedSet.findPredecessorIndex(indices, s);
-        const b = OrderedSet.findPredecessorIndex(indices, e);
-        if (b <= a) continue;
-        any = true;
-        if (radii)
-          for (let k = a; k < b; ++k) reach = Math.max(reach, ParticleValues.get(radii, OrderedSet.getAt(indices, k)));
+    const { tiles, firsts } = getTileOrder(directory);
+    // per missing range, per tile it spans: the tile's box's center and half diagonal grown by their largest radius
+    for (let m = 0; m < missing.length; m += 2) {
+      const end = missing[m + 1];
+      for (let a = missing[m]; a < end; ) {
+        const i = OrderedSet.getAt(indices, a);
+        // the tile holding particle `i`: the last whose first is at most `i`
+        let lo = 0;
+        let hi = firsts.length;
+        while (hi - lo > 1) {
+          const mid = (lo + hi) >> 1;
+          if (firsts[mid] <= i) lo = mid;
+          else hi = mid;
+        }
+        const t = tiles[lo];
+        const tileEnd = ranges[t * 3 + 1] + ranges[t * 3 + 2];
+        if (firsts.length === 0 || firsts[lo] > i || i >= tileEnd) {
+          // in no tile: the list's boundary
+          const { sphere } = Particle.getBoundary(list);
+          f(sphere.center, sphere.radius);
+          return;
+        }
+        const b = Math.min(end, OrderedSet.findPredecessorIndex(indices, tileEnd));
+        let reach = 0;
+        if (radii) for (let k = a; k < b; ++k) reach = Math.max(reach, radiusOf(OrderedSet.getAt(indices, k)));
+        const o = t * 6;
+        const dx = boxes[o + 3] - boxes[o];
+        const dy = boxes[o + 4] - boxes[o + 1];
+        const dz = boxes[o + 5] - boxes[o + 2];
+        Vec3.set(
+          _tileCenter,
+          (boxes[o] + boxes[o + 3]) / 2,
+          (boxes[o + 1] + boxes[o + 4]) / 2,
+          (boxes[o + 2] + boxes[o + 5]) / 2,
+        );
+        f(_tileCenter, Math.sqrt(dx * dx + dy * dy + dz * dz) / 2 + reach);
+        a = b;
       }
-      if (!any) continue;
-      const o = t * 6;
-      const dx = boxes[o + 3] - boxes[o];
-      const dy = boxes[o + 4] - boxes[o + 1];
-      const dz = boxes[o + 5] - boxes[o + 2];
-      Vec3.set(
-        _tileCenter,
-        (boxes[o] + boxes[o + 3]) / 2,
-        (boxes[o + 1] + boxes[o + 4]) / 2,
-        (boxes[o + 2] + boxes[o + 5]) / 2,
-      );
-      f(_tileCenter, Math.sqrt(dx * dx + dy * dy + dz * dz) / 2 + reach);
     }
   }
 

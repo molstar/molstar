@@ -284,8 +284,11 @@ to gain (their template and levels 67 pages, 9 MB; 85-98% needed once a copy is 
          cache gone; a page's values a view of the read where its format is the pack's; its retry kept): two stores of a
          template read a page once. A loci's sphere by page: a kept page's particles by their positions and radii, the
          rest by their tiles' boxes; no read begun. The yeast nested 2x2, a particle of a copy: 44-66 Å once its page is
-         kept (the whole read's), 358-2,366 by its tiles, under 1 ms either way, nothing read. Not measured: the heap
-         with two representations. Not here: reads begun by a focus or a measurement (its sphere refined then), one
+         kept (the whole read's), 358-2,366 by its tiles, under 1 ms either way, nothing read. Then a particle of a
+         stored level by its position there where its page is not kept (a coarse copy's click: the pick's index the
+         template's; a page's loci of at most 64 looked for, `LevelLookupMax`): the yeast's levels 1 to 3 68, 76 and 44
+         Å (their pages read alike), the levels' index by page 61 ms at a template's first, 0.3 ms a focus then; one in
+         no level still its tile's (2,366). Not measured: the heap with two representations. Not here: reads begun by a focus or a measurement (its sphere refined then), one
          budget across packs. Tests: `particle-page-cache.test.ts`, `pack-stream.test.ts` (a page read once, a loci by
          its particles where kept, by its tiles past the cache's bytes), `page-store.test.ts` (a second store's page
          from the cache).
