@@ -232,6 +232,38 @@ nothing with tooltips but the language bump.
   texts joined by `" | "`**: per-layer or per-mark costs, data and presentation mixed, names and words mixed, fixed
   levels, copies; a row each reads, caps, wraps and links.
 
+## In the specs
+
+| Decision | Where |
+|---|---|
+| A tooltip answers only on rendered marks; no outline of its own | core › Tied to something rendered |
+| Two ways to attach (by data, by range from a table), one result | core › Two ways to attach |
+| The `tooltip` node and its params (`on`, `target`, `rows`, `source`, `schema`, `block`, `category`, `field`, `text`, `label`, `format`) | core › Tooltips |
+| MVS's forms mapped; a CIF category before the structure runtime reads one | core › MVS mapped |
+| Schema is said, never guessed | core › `schema` |
+| One mechanism with a `ranges` column; every table through the store as items | core › Tooltip tables |
+| A tooltip read from a `source` | design-only: not built (the core spec's TODO, `seq.resolve.tooltip.source`) |
+| Tables read with what they decorate; pending a `loading` row, failed an issue | core › Tooltip tables wanted with what they decorate |
+| Assemblies and names (aliases, `locus`, `block`) | core › By range |
+| Card providers: a `card-provider` registry entry, ordered as header entries | viewer › Providers |
+| The viewer's sections as built-in providers; `whole` the place's; the floor `seq:item` and `seq:place` | viewer › Providers |
+| What stays where: the caps and `hover.card` the viewer's | viewer › Configuration |
+| `seq:tooltips`: the mark's place, by data, by range, rows and the shared cap, stacking | viewer › Tooltips |
+| The place and rows in the core's terms | core › The place |
+| Inline Markdown on the template only; values escaped; cleaned after parsing | core › Texts |
+| Links act only through Seq\*'s link grammar | core › Texts |
+| Plain readers (`markdownInlineText`) and `rich` for an adapter | viewer › Tooltips |
+| Bounds: a template of 1,000 characters, `hover.tooltipLines` | core › Texts |
+| The enterable card (a card with a link takes the pointer, a grace) | viewer › Behaviors |
+| The cursor's card's links in its context menu | design-only: not built |
+| The SVG export's `<title>`s (`export.titles`, `card`) | core › A view's `export.titles` |
+| Export titles composed by the viewer's providers | viewer › Export titles |
+| The builder's `views.tooltip`; `check()` reports a missing field | core › `field`, `text`, `label`, `format` |
+| Performance: 0 B warm per hover step, the interval index, parses cached | viewer › Tooltips |
+| Performance targets (1,000,000 ranges, export cost) | design-only: measurement targets for the heavy lane, not rules |
+| Defaults: no `tooltip` node, the card as before | viewer › Providers |
+| The matrix's member labels (`member_labels`) | design-only: not built |
+
 ## Tensions
 
 - **An enterable card vs the next hover**: only a card with a link takes the pointer.

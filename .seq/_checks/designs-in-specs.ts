@@ -29,7 +29,7 @@ const PENDING = new Set([
   "genome-formats", "grids-and-rows", "immutable", "language-description", "layout-and-draw-lists", "layouts",
   "locations-and-queries", "maps", "merge", "molecules", "packages", "patches", "ports", "properties",
   "protocol", "region-reads", "rendering", "ring-extension", "security", "seq-data-ports", "sources", "stories",
-  "structure-syncing", "testing", "themes", "tooltips", "tree-core",
+  "structure-syncing", "testing", "themes", "tree-core",
 ]);
 
 const argv = process.argv.slice(2);
