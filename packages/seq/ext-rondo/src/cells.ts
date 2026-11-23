@@ -41,8 +41,7 @@ export class CellsLay {
   max = 0;
   /** No bins read yet, or a tile still awaited. */
   pending = true;
-  /** A tile of the read failed (its source never opened), and the source's address. */
-  failed = false;
+  /** The source's address (its failure's issue is found by it). */
   source: string | undefined;
 }
 
@@ -114,7 +113,6 @@ export const CellsType: LayerType<CellsPrep, CellsLay> = {
     const lay = prev ?? new CellsLay();
     lay.reader.read(prep.source, ctx, data, CellRead);
     countCells(lay, prep, ctx.settled);
-    lay.failed = lay.reader.failed;
     lay.source = prep.source.region?.src.source;
     return lay;
   },
@@ -144,8 +142,8 @@ export const CellsType: LayerType<CellsPrep, CellsLay> = {
     pending: (lay) => lay.pending,
     // links pending: the hatch and `Loading…`; failed: the issue the source raised (as the ring's hole says it)
     note: (lay) =>
-      lay.failed
-        ? ((lay.source !== undefined ? HoleIssue.bySource?.(lay.source) : undefined) ?? 'Links failed')
+      lay.reader.failed
+        ? (HoleIssue.of?.(undefined, lay.source ?? '') ?? 'Links failed')
         : lay.pending && !(lay.max > 0)
           ? 'Loading…'
           : undefined,

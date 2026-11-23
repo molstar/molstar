@@ -28,12 +28,15 @@ export interface RegionHover {
 /** A system's name as a card says it (the viewer's: a sequence's name, a chain's label). */
 export type SystemName = (system: string) => string;
 
+/** The unit a count of bases is said in: its divisor and name (`kb`, from a thousand; `Mb`, from a million). */
+const scaleOf = (n: number): readonly [number, string] => (n >= 1e6 ? [1e6, 'Mb'] : [1e3, 'kb']);
+
 /** A bin's width in positions as a card says it: `256 bp bins`, `5 kb bins`, `1 Mb bins`. */
 export function binsText(level: number): string {
-  const unit = (v: number, u: string) => `${Number(v.toFixed(v < 10 ? 1 : 0))} ${u} bins`;
-  if (level >= 1e6) return unit(level / 1e6, 'Mb');
-  if (level >= 1e3) return unit(level / 1e3, 'kb');
-  return `${level.toLocaleString('en-US')} bp bins`;
+  if (level < 1e3) return `${level.toLocaleString('en-US')} bp bins`;
+  const [k, u] = scaleOf(level);
+  const v = level / k;
+  return `${Number(v.toFixed(v < 10 ? 1 : 0))} ${u} bins`;
 }
 
 /**
@@ -43,18 +46,13 @@ export function binsText(level: number): string {
  */
 export function baseSpanText(start: number, end: number): string {
   if (end < 1e4) return spanText(start, end);
-  const [k, u] = end >= 1e6 ? [1e6, 'Mb'] : [1e3, 'kb'];
+  const [k, u] = scaleOf(end);
+  const [a, b] = [start / k, end / k];
+  // the fewest decimals that hold both ends (an integer over a power of ten is its decimal's nearest double)
   let d = 1;
-  while (
-    d < 3 &&
-    (Math.abs(start / k - +(start / k).toFixed(d)) > 1e-9 || Math.abs(end / k - +(end / k).toFixed(d)) > 1e-9)
-  )
-    d++;
-  return `${(start / k).toFixed(d)}–${(end / k).toFixed(d)} ${u}`;
+  while (d < 3 && (+a.toFixed(d) !== a || +b.toFixed(d) !== b)) d++;
+  return `${a.toFixed(d)}–${b.toFixed(d)} ${u}`;
 }
-
-/** A name with a range of bases (`chr1 88.5–89.0 Mb`, `chr1 9–12` in bases). */
-const placeText = (name: string, start: number, end: number) => `${name} ${baseSpanText(start, end)}`;
 
 /**
  * A genotype class as the legend names it (`no copy`, `some copies`, `every copy`, `partly called`, `uncalled`): what a
@@ -140,8 +138,8 @@ export function gridCellHover(lay: GridLay, i: number, j: number, name: SystemNa
   const x0 = Math.floor(i / L) * L;
   const y0 = Math.floor(j / L) * L;
   // in bases, never bin indices: `chr1 88.5–89.0 Mb`
-  const x = placeText(name(lay.system), x0, x0 + L);
-  const y = placeText(name(lay.ySystem), y0, y0 + L);
+  const x = `${name(lay.system)} ${baseSpanText(x0, x0 + L)}`;
+  const y = `${name(lay.ySystem)} ${baseSpanText(y0, y0 + L)}`;
   const v = regionCellAt(lay, i, j);
   const value = v === undefined ? 'loading' : Number.isNaN(v) ? 'no data' : numberText(v);
   const rows: (readonly [string, string])[] = [

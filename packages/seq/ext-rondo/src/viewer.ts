@@ -47,20 +47,14 @@ const errorAt = (v: SeqViewer, source: string) =>
 // resolved view's: two viewers of one source address each their own); an export resolves its own view, so its
 // section is matched by address among the viewers that show it (one spec in two viewers: the first's)
 HoleIssue.of = (section, source) => {
+  // no section: the first viewer holding the source's error
+  if (!section) return [...Composed].map((v) => errorAt(v, source)).find(Boolean);
   for (const v of Composed) if (v.view.resolved.value?.sections.includes(section)) return errorAt(v, source);
   for (const v of Composed)
     if (v.view.resolved.value?.sections.some((s) => s.address === section.address)) {
       const m = errorAt(v, source);
       if (m) return m;
     }
-  return undefined;
-};
-
-HoleIssue.bySource = (source) => {
-  for (const v of Composed) {
-    const m = errorAt(v, source);
-    if (m) return m;
-  }
   return undefined;
 };
 

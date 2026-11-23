@@ -100,7 +100,7 @@ export const RenderIssues = defineIssues('seq.render', {
     severity: 'info',
     description:
       'A layer’s wants together are past the store’s bound on a layer’s tiles or read cost, at its coarsest level: nothing is read, its band says to zoom in',
-    hint: 'Zoom in to read this track: ⌘/Ctrl+scroll, or +',
+    hint: 'Zoom in to read this track',
   },
   'seq.render.lift.run': {
     severity: 'info',

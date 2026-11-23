@@ -357,10 +357,6 @@ export const DefaultViewerConfig: ViewerConfig = {
       // each matches only its own `e.key`: typed alone on the common layouts, never a browser's zoom key (EC-155)
       'rows.zoom-in': [']'],
       'rows.zoom-out': ['['],
-      // the next and the previous feature on the focused track (the ring's own keys for a stem's partners: no fight, a
-      // command that cannot run lets the key through)
-      'cursor.next-feature': ['.'],
-      'cursor.prev-feature': [','],
       // a page of rows: the window moves by the rows it shows less one, the cursor shown on them with it (the rows'
       // own `rows.page-*` take no key: the cursor's scroll the rows when it is not shown)
       'cursor.page-down': ['PageDown'],
