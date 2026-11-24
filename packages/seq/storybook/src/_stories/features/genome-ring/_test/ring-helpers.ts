@@ -5,7 +5,8 @@
  */
 
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
-import { expect, vi } from 'vitest';
+import { expect } from 'vitest';
+import { turnUntil } from '../../../examples/_test/draw-checks.js';
 
 // What the genome ring's headless tests share.
 
@@ -18,10 +19,5 @@ export async function bandsLanded(v: SeqViewer) {
     v
       .frame!.layout.sections[0].lays.flat()
       .some((l) => l.key.endsWith('/bands/bands') && (l.lay as { rows?: { n: number } }).rows!.n > 0);
-  for (let i = 0; i < 50 && !rows(); i++) {
-    await new Promise((r) => setImmediate(r));
-    await vi.advanceTimersByTimeAsync(200);
-    v.draw();
-  }
-  expect(rows()).toBe(true);
+  expect(await turnUntil(rows, 200, () => v.draw())).toBe(true);
 }

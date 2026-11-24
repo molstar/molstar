@@ -8,7 +8,7 @@ import { type BlockPlacement, DarkTokens, hitView, LightTokens, recordDrawLists 
 import { loadGenome } from '@molstar/seqx-core/resolve';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { openExample } from '../../../examples/_test/draw-checks.js';
+import { openExample, turnUntil } from '../../../examples/_test/draw-checks.js';
 import { GenomeViews } from '../views.js';
 
 // Features/Genome Coordinates, data over an assembly, headless on a fake clock as the stories compose them (a viewer of
@@ -82,10 +82,7 @@ describe('Genome coordinates: data over an assembly, headless', () => {
   it('cytobands over the genome: a bands track on every chromosome and the ideogram over all, the file’s other contigs said once', async () => {
     const v = await open('cytobands');
     // the recorded file is read from the disk (real I/O, off the fake clock): moved until its names are listed
-    for (let i = 0; i < 100 && !v.view.model.value.issues.length; i++) {
-      await new Promise((r) => setImmediate(r));
-      await vi.advanceTimersByTimeAsync(200);
-    }
+    await turnUntil(() => v.view.model.value.issues.length > 0, 200);
     await vi.advanceTimersByTimeAsync(2000);
     v.draw();
     const p = v.frame!.layout.sections[0].placement as BlockPlacement;

@@ -12,7 +12,7 @@ import { ColorMode, describeRondo, Kind, type RondoLay } from '@molstar/seqx-ext
 import { rondoViewer } from '@molstar/seqx-ext-rondo/viewer';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { openExample } from '../../../examples/_test/draw-checks.js';
+import { openExample, turnUntil } from '../../../examples/_test/draw-checks.js';
 import { legendRows } from '@molstar/seqx-viewer/legends';
 import { hideKind, kindLayer, kindsOf, ringStoryView } from '../views.js';
 
@@ -269,11 +269,11 @@ describe('Kinds of links, headless', () => {
     // the bins land first, then each layer's items (a want of their own): the clock turned, each turn after a real one
     // (the reads are real I/O), until each layer shows an item
     const shown = (l: ReturnType<typeof kindsOf>[number]) => !!l.items && l.read!.shown.some((x) => x);
-    for (let i = 0; i < 100 && !kindsOf(v).every(shown); i++) {
-      await new Promise((r) => setImmediate(r));
-      await vi.advanceTimersByTimeAsync(100);
-      v.draw();
-    }
+    await turnUntil(
+      () => kindsOf(v).every(shown),
+      100,
+      () => v.draw(),
+    );
     expect(errors(v)).toEqual([]);
     const [contacts, tx] = kindsOf(v);
     for (const [l, type] of [
@@ -297,12 +297,7 @@ describe('Kinds of links, headless', () => {
       v
         .frame!.layout.sections[0].lays.flat()
         .some((l) => l.key.endsWith('/bands/bands') && (l.lay as { rows?: { n: number } }).rows!.n > 0);
-    for (let i = 0; i < 50 && !landed(); i++) {
-      await new Promise((r) => setImmediate(r));
-      await vi.advanceTimersByTimeAsync(200);
-      v.draw();
-    }
-    expect(landed()).toBe(true);
+    expect(await turnUntil(landed, 200, () => v.draw())).toBe(true);
     const [, tx] = kindsOf(v);
     const d = describerFor({ ...v, layout: () => v.frame?.layout });
     const seen = new Set<string>();

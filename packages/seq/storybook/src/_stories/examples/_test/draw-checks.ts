@@ -50,6 +50,28 @@ export interface OpenOptions {
   readonly extensions?: SeqViewerSpec['extensions'];
 }
 
+/**
+ * Turns the fake clock by `stepMs` after a real turn each step until `done` holds: a read from the disk, a gzip page
+ * inflated on the platform's thread pool and a chunk's import land on real turns, never the fake clock's. Bounded by
+ * the real clock (`process.hrtime`, which no fake replaces), never by a count of steps, which a slow machine outlasts.
+ * Returns whether `done` held.
+ */
+export async function turnUntil(
+  done: () => boolean,
+  stepMs: number,
+  each?: () => void,
+  realMs = 20_000,
+): Promise<boolean> {
+  const until = process.hrtime.bigint() + BigInt(realMs) * 1_000_000n;
+  while (!done()) {
+    if (process.hrtime.bigint() > until) return false;
+    await new Promise((r) => setImmediate(r));
+    await vi.advanceTimersByTimeAsync(stepMs);
+    each?.();
+  }
+  return true;
+}
+
 /** A viewer of an example view on a fake clock, composed as the stories compose it: loaded, the clock run, drawn. */
 export async function openExample(view: ExampleView, options: OpenOptions): Promise<SeqViewer> {
   const { gene = '', delayMs = 300, wait = 6000, realClock = false, history = false } = options;
