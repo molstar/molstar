@@ -299,6 +299,10 @@ export class TakenLabels {
   /** Settles the offered labels (see the class), tells each owner, and clears the lists. */
   settle() {
     const n = this.n;
+    if (n === 0) {
+      this.nt = 0;
+      return;
+    }
     const b = this.b;
     const order = this.order;
     order.length = n;
