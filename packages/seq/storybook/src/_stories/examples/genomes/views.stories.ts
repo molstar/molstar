@@ -67,7 +67,7 @@ export const ContactMap: StoryObj = { render: () => exampleStory(view('contact-m
 /**
  * A Manhattan-like plot: a toy association study's SNPs as dots at their height (-log10 p) over one 20 kb chromosome,
  * a dashed reference line at the genome-wide threshold (7.3) and a dotted one at the suggestive one (5), each labelled
- * at the right end. The strongest signal reaches about 6 and the domain is open, so the lines are part of it: the plot
+ * with its value ("genome-wide · 7.3") at the right end. The strongest signal reaches about 6 and the domain is open, so the lines are part of it: the plot
  * shows that none passed the threshold.
  */
 export const Manhattan: StoryObj = { render: () => exampleStory(view('manhattan')) };

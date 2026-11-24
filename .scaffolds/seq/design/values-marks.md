@@ -78,8 +78,9 @@ value there sits, so a dot at the threshold and its line coincide. On a log scal
 
 A label draws at the well's right end, above the line, 10 px in `msui-text-muted`, over a patch of the well's ground,
 only when the well is at least 40 CSS px tall and the line is not within one label height of the well's top (else
-below the line); two labels that would overlap, the later one dropped (its line stays). An unlabelled line draws no
-text. **What settles it**: the Genomes story at the default well height (the label legible and out of the dots' way),
+below the line); two labels that would overlap, the later one dropped (its line stays). The text is "label · value"
+("genome-wide · 7.3", the value as the legends write one); a line without a label draws the value alone (the author,
+2026-11-24, close-out B11: the plot has no y axis, the value is read at the line). The accessible text is unchanged. **What settles it**: the Genomes story at the default well height (the label legible and out of the dots' way),
 or the author preferring the label in the accessible text and the hover of the whole track only.
 
 ### 5. Marks, export, accessibility

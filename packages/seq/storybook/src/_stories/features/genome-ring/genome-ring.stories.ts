@@ -50,7 +50,9 @@ export const WithoutTheExtension: StoryObj = {
  */
 export const OneChromosome: StoryObj = { render: () => ring('ring-chromosome') };
 
-/** A pair (chr4 × chr7, the square's cell): two arcs, their links between them as ribbons, the rest stubs. */
+/**
+ * A pair (chr4 × chr7, the square's cell): two arcs, their links between them as ribbons, the rest stubs.
+ */
 export const APair: StoryObj = { render: () => ring('ring-pair') };
 
 /**
@@ -60,22 +62,30 @@ export const APair: StoryObj = { render: () => ring('ring-pair') };
  */
 export const TheSquareBeside: StoryObj = { render: () => ring('ring', { navigators: 'include' }) };
 
-/** The square's box dragged: the ring showed chr4 to chr6, its box moved three chromosomes on (chr7 to chr9). */
+/**
+ * The square's box dragged: the ring showed chr4 to chr6, its box moved three chromosomes on (chr7 to chr9).
+ */
 export const TheSquareDragged: StoryObj = {
   render: () => ring('ring', { navigators: 'include', opening: squareDragged }),
 };
 
-/** The square's box resized by its corner: chr4 and chr5 grown to chr4 to chr9. */
+/**
+ * The square's box resized by its corner: chr4 and chr5 grown to chr4 to chr9.
+ */
 export const TheSquareResized: StoryObj = {
   render: () => ring('ring', { navigators: 'include', opening: squareResized }),
 };
 
-/** One click on the cell chr4 × chr7: the pair at once, the window that cell's run. */
+/**
+ * One click on the cell chr4 × chr7: the pair at once, the window that cell's run.
+ */
 export const TheSquareClicked: StoryObj = {
   render: () => ring('ring', { navigators: 'include', opening: squareClicked }),
 };
 
-/** chr4, then Cmd+click on chr9's cell: a scattered set, outlined cell by cell (its diagonal and cross cells). Dark. */
+/**
+ * chr4, then Cmd+click on chr9's cell: a scattered set, outlined cell by cell (its diagonal and cross cells). Dark.
+ */
 export const TheSquareScatteredDark: StoryObj = {
   globals: { theme: 'dark' },
   render: () => ring('ring', { navigators: 'include', opening: squareScattered }),
@@ -87,14 +97,21 @@ export const TheSquareScatteredDark: StoryObj = {
  */
 export const TheStemMenu: StoryObj = { render: () => ring('ring', { opening: stemMenuOpen }) };
 
-/** The partner keys: the cursor on the strongest stem, then `.` twice (`,` back): on to its second partner, said. */
-export const ThePartnerKeys: StoryObj = { render: () => ring('ring', { opening: partnerKeys }) };
+/**
+ * The partner keys: the cursor on the strongest stem, then `.` twice (`,` back): on to its second partner, said.
+ */
+export const ThePartnerKeys: StoryObj = {
+  render: () => exampleStory(ringStoryView('ring', true), { stacked: true, extensions: Rondo, opening: partnerKeys }),
+};
 
-/** Hovering a stem (the strongest, once placed): its ribbons lit over the washed hole, the card with its counts. */
+/**
+ * Hovering a stem (the strongest, once placed): its ribbons lit over the washed hole, the card with its counts.
+ */
 export const HoveringAStem: StoryObj = { render: () => ring('ring', { opening: hoverStrongestStem }) };
 
 /**
- * Two assemblies on one ring (EC-210, peach and grape): a group gap between them, synteny ribbons from a peach stem to a
+ * Two assemblies on one ring (EC-210, peach and grape): a group gap between them, synteny ribbons from a peach stem to
+ * a
  * grape stem, an inverted run crossed.
  */
 export const TwoAssembliesOnOneRing: StoryObj = { render: () => ring('ring-two-assemblies') };
@@ -105,13 +122,20 @@ export const TwoAssembliesOnOneRing: StoryObj = { render: () => ring('ring-two-a
  */
 export const Crowded: StoryObj = { name: 'Crowded: 3,000 Contigs', render: () => ring('ring-crowded') };
 
-/** The links pending (their answer never comes): the bands drawn, the hole's pending hatch and "Loading links…", no stems. */
+/**
+ * The links pending (their answer never comes): the bands drawn, the hole's pending hatch and "Loading links…", no
+ * stems.
+ */
 export const LinksPending: StoryObj = { render: () => ring('ring-pending') };
 
-/** The links’ file missing: the issue said once and its text in the hole, no ribbon, no hatch waiting (“links failed”). */
+/**
+ * The links’ file missing: the issue said once and its text in the hole, no ribbon, no hatch waiting (“links failed”).
+ */
 export const LinksFailed: StoryObj = { render: () => ring('ring-failed', { sourceIssues: true }) };
 
-/** No links at all: an empty hole, its ARIA description "no links". */
+/**
+ * No links at all: an empty hole, its ARIA description "no links".
+ */
 export const NoLinks: StoryObj = { render: () => ring('ring-no-links') };
 
 /**
@@ -122,10 +146,14 @@ export const NoLinks: StoryObj = { render: () => ring('ring-no-links') };
  */
 export const KindsOfLinks: StoryObj = { render: () => ring('ring-kinds') };
 
-/** Kinds of links on chr9: its contacts as ribbons, its translocation to chr22 a stub in the accent. */
+/**
+ * Kinds of links on chr9: its contacts as ribbons, its translocation to chr22 a stub in the accent.
+ */
 export const KindsOfLinksOnOneChromosome: StoryObj = { render: () => ring('ring-kinds-chromosome') };
 
-/** Kinds of links on chr9 × chr22: the contacts between them, the made-up BCR-ABL1-like junction a ribbon over them. */
+/**
+ * Kinds of links on chr9 × chr22: the contacts between them, the made-up BCR-ABL1-like junction a ribbon over them.
+ */
 export const KindsOfLinksOnAPair: StoryObj = { render: () => ring('ring-kinds-pair') };
 
 /**
@@ -136,7 +164,9 @@ export const KindsOfLinksContactsHidden: StoryObj = {
   render: () => ring('ring-kinds', { opening: hideKind('contact') }),
 };
 
-/** The translocations hidden: the contacts alone, faint in the hues; the translocations' legend row dimmed in place. */
+/**
+ * The translocations hidden: the contacts alone, faint in the hues; the translocations' legend row dimmed in place.
+ */
 export const KindsOfLinksTranslocationsHidden: StoryObj = {
   render: () => ring('ring-kinds', { opening: hideKind('translocation') }),
 };
@@ -147,7 +177,9 @@ export const KindsOfLinksTranslocationsHidden: StoryObj = {
  */
 export const KindsOfLinksReadByRegion: StoryObj = { render: () => ring('ring-kinds-region') };
 
-/** Kinds of links, dark: the hues' derived dark, the accent the theme's. */
+/**
+ * Kinds of links, dark: the hues' derived dark, the accent the theme's.
+ */
 export const KindsOfLinksDark: StoryObj = { globals: { theme: 'dark' }, render: () => ring('ring-kinds') };
 
 /**

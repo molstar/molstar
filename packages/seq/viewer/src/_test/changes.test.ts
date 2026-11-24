@@ -230,6 +230,7 @@ const Cases: Record<string, { ctx: unknown; before?: (v: SeqViewer) => unknown }
   'track.hide': { ctx: { address: DomainsTrack } },
   'track.show': { ctx: { address: DomainsTrack }, before: (v) => run(v, 'track.hide', { address: DomainsTrack }) },
   'track.move': { ctx: { address: DomainsTrack, after: null } },
+  'track.height': { ctx: { address: DomainsTrack, height: 'content' } },
   'track.add': {
     ctx: {
       address: Protein,

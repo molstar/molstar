@@ -36,7 +36,9 @@ then its track's and its section's. Where a secondary click opens it is the comp
 it is always the browser's own menu. A submenu (Color, Layers, Show hidden) opens beside its row, never in the menu's
 place, when clicked or when the pointer rests on its row; the menu's clicks and hover never reach the view below it. The
 Layers submenu ends with a separator and Show all and Hide all (one edit each, disabled with their reason when they
-would change nothing); the legend's eye menu is the same menu.
+would change nothing); the legend's eye menu is the same menu. A track whose lanes scroll inside it (more than its cap
+holds) offers "Show every lane" (its `height` becomes `content`); a track at `content` offers "Cap the lanes" (the
+`height` removed): one edit and one undo step each, never on a ring's track.
 
 ## Stories
 

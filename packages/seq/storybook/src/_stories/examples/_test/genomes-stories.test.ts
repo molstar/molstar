@@ -584,7 +584,7 @@ describe('Examples/Genomes, headless', () => {
     expect(lay.ref.y[0]).toBeCloseTo(y(GenomeWide), 3);
     expect(lay.ref.y[1]).toBeCloseTo(y(Suggestive), 3);
     expect([...lay.ref.labelShown.slice(0, 2)]).toEqual([1, 1]);
-    expect(lay.ref.text.slice(0, 2)).toEqual(['genome-wide', 'suggestive']);
+    expect(lay.ref.text.slice(0, 2)).toEqual(['genome-wide · 7.3', 'suggestive · 5']);
     // the dots, then the lines (over the data), then the labels, all before the hover and the cursor
     const data = recordDrawLists(v.frame!.lists, ['data']).split('\n');
     const dashed = data.map((l, i) => (/dash/.test(l) ? i : -1)).filter((i) => i >= 0);

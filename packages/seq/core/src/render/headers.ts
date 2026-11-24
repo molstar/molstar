@@ -81,6 +81,8 @@ export interface HeaderInputFacts {
   readonly filtered: readonly { readonly layer: string; readonly count: number }[];
   readonly hiddenLayers: readonly string[];
   readonly hiddenTracks: readonly HiddenTrack[];
+  /** A track whose lanes scroll inside it (a ranges layer with lanes past its band: its content past its cap). */
+  readonly scrolls?: boolean | undefined;
 }
 
 /** A track the spec hides (`hidden: true`): left out of the view; the application lists it (`viewer.hiddenTracks`). */

@@ -23,6 +23,10 @@ const shows = (n: number, first: string | undefined) =>
     ? `The ring shows ${first}: wheel out over it to show every chromosome`
     : `The ring shows ${n} chromosomes: wheel out over one to show every chromosome`;
 
+/** How far outside a ring's rim a chromosome's label is looked for (`RingMetrics.labelRoom`, CSS px). */
+const LabelReach = 96;
+type BlockAt = NonNullable<NonNullable<ReturnType<SeqViewer['placementOf']>>['blockAt']>;
+
 export class RingCut {
   /** When the last wheel of the gesture came (ms); the gesture is over after a rest. */
   private _last = Number.NEGATIVE_INFINITY;
@@ -48,14 +52,11 @@ export class RingCut {
   ): boolean {
     const v = this.viewer;
     if (v.bindings.resolve(pinch ? 'pinch' : 'wheel', mods, target) !== 'zoom') return false;
-    const sections = v.view.resolved.value?.sections;
-    const s = sections?.find((x) => x.address === section);
-    const p = v.placementOf(section);
-    // a ring idle as the view model has it: following none and followed by none (a detached follower's window moves)
-    if (!s?.blocks || !p?.warpOf || !p.blockAt || s.follow || sections!.some((x) => x.follow?.leader === section))
-      return false;
+    const ring = this._idle(section);
+    if (!ring) return false;
+    const { s } = ring;
     // outside the ring's box (its margin) the zoom is the bindings' own
-    const block = p.blockAt(x, y);
+    const block = ring.p.blockAt(x, y);
     if (block === undefined) return false;
     const { cutNotch, cutRestMs } = v.config.navigate;
     const now = performance.now();
@@ -86,6 +87,62 @@ export class RingCut {
       else this._cut(section, to);
     }
     return true;
+  }
+
+  /**
+   * A double-click over a chromosome's label or arc opens it, as the zoom in does (the cut, one patch, one step of the
+   * history). True when it did, or said what the ring shows (an author's filter); false: the point is not over a block
+   * of an idle ring, or the ring shows one chromosome already (the double-click is the bindings').
+   */
+  open(section: string, x: number, y: number): boolean {
+    const ring = this._idle(section);
+    if (!ring) return false;
+    const block = this._blockNear(ring.p, x, y);
+    if (block < 0) return false;
+    if (includeOf(this.viewer, section) === 'filter') return this._say(Filtered);
+    const to = this.viewer.spec.model.value.systems.get(ring.s.blocks![block].axis.system)?.name;
+    if (!to || ring.s.blocks!.length === 1) return false;
+    this._cut(section, to);
+    return true;
+  }
+
+  /**
+   * The block a point is over, or the one its label belongs to: a chromosome's label sits outside the ring on the
+   * radius of its block, so a point outside the rim looks inward along its radius (`LabelReach` px, the ring's label
+   * room) to the first block. -1: none (the hole, the margin beyond a label).
+   */
+  private _blockNear(
+    p: NonNullable<ReturnType<SeqViewer['placementOf']>> & { blockAt: BlockAt },
+    x: number,
+    y: number,
+  ) {
+    const at = p.blockAt(x, y);
+    if (at !== undefined && at >= 0) return at;
+    const { box } = p;
+    const dx = box.x + box.width / 2 - x;
+    const dy = box.y + box.height / 2 - y;
+    const d = Math.hypot(dx, dy);
+    // inside the rim's half: the hole's, never a label's
+    if (d < Math.min(box.width, box.height) / 4) return -1;
+    for (let k = 3; k <= LabelReach; k += 3) {
+      const b = p.blockAt(x + (dx / d) * k, y + (dy / d) * k);
+      if (b !== undefined && b >= 0) return b;
+    }
+    return -1;
+  }
+
+  /** A ring idle as the view model has it: following none and followed by none (a detached follower's window moves). */
+  private _idle(section: string) {
+    const v = this.viewer;
+    const sections = v.view.resolved.value?.sections;
+    const s = sections?.find((x) => x.address === section);
+    const p = v.placementOf(section);
+    if (!s?.blocks || !p?.warpOf || !p.blockAt || s.follow || sections!.some((x) => x.follow?.leader === section))
+      return undefined;
+    return {
+      s: s as typeof s & { blocks: NonNullable<typeof s.blocks> },
+      p: p as typeof p & { blockAt: NonNullable<typeof p.blockAt> },
+    };
   }
 
   private _say(text: string): true {

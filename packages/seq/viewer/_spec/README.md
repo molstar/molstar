@@ -1144,6 +1144,12 @@ binding table; per move one hit record and one modifiers record are reused.
   ring at the fit moved a window the ring never draws (taken, nothing seen); the designs call opening a chromosome the
   ring's zoom, and the cut gives it the gesture; one cut a gesture because a wheel's notches come many; taken only where
   something happens or is said.
+- **A double-click on an idle ring's chromosome opens it** (`RingCut.open`): on a chromosome's label or arc (the
+  placement's `blockAt` over a block, not a pairs layer's or an extension's ribbons' hit) of a ring nobody follows, when
+  the double-click's binding is the focus or the fit (no modifier), the cut of the zoom: `section.include` of that
+  block, one patch and one step of the history; an author's filter is kept and said. Not taken (the bindings' own): over
+  the hole, on a ring that shows one chromosome already, a followed ring, a ribbon or a stem. Why: a double-click is
+  what a reader tries on a chromosome (the novice pass found nothing opened it).
 - **Double click**: the bound command with the section, what to focus (the element's hull on the section, its extent
   carried along the layer's path, else the position's cell, in offsets; a Shift+click's extend before it is given back,
   as a clear one is), the unit the placement has under the pointer (`at`) and the double-click's zoom factor (`step`,
@@ -1507,12 +1513,16 @@ rows' commands) reads the last frame's rows layers through the behavior context'
     hovered; its arrow at the row's end, the menu's), `seq:layers` (more than one addressable layer: a checked item a
     layer, `layer.hide` or `layer.show`, then a separator and "Show all" and "Hide all": `layer.hide` and `layer.show`
     take `addresses`, one patch; a `HeaderSubEntry`'s `disabled` is the reason an entry that changes nothing gives),
-    `seq:move-up`, `seq:move-down` (`track.move`, a sibling there), the states `seq:filtered` (its count the track's,
-    every thinned layer's rows; `layer.filter` clears every thinned layer's filter, one patch), `seq:hidden-layers`
-    (`layer.show` of every hidden layer, one patch; its list each; it `yields` to its label: a chip or a mark only where
-    the label stays whole) and the section's `seq:hidden-tracks` (menu only, "Show hidden ▸": a flyout of each hidden
-    track, then "Show all", `track.show` of every hidden track in one patch), the section's `seq:reverse` and
-    `seq:collapse`. `seq:pending` is not built (the TODO).
+    `seq:move-up`, `seq:move-down` (`track.move`, a sibling there), `seq:every-lane` (menu only, "Show every lane": a
+    track whose lanes scroll inside, its content past its cap, `HeaderFacts.lanes.scrolls` from the layout's
+    `HeaderInputFacts.scrolls`; `track.height` with `height: 'content'`) and `seq:cap-lanes` ("Cap the lanes": a track
+    at `height: 'content'`; `track.height` with `height: null`, the `height` removed); neither on a ring's track; one
+    patch each, one undo step), the states `seq:filtered` (its count the track's, every thinned layer's rows;
+    `layer.filter` clears every thinned layer's filter, one patch), `seq:hidden-layers` (`layer.show` of every hidden
+    layer, one patch; its list each; it `yields` to its label: a chip or a mark only where the label stays whole) and
+    the section's `seq:hidden-tracks` (menu only, "Show hidden ▸": a flyout of each hidden track, then "Show all",
+    `track.show` of every hidden track in one patch), the section's `seq:reverse` and `seq:collapse`. `seq:pending` is
+    not built (the TODO).
   - **`HeaderFacts`**: plain data from the resolved view, the spec and the last layout (the address, label, section,
     system, linear, the section's track ids, the track's layers with type, label, hidden, filtered rows, color and
     fitting schemes, the hidden tracks, the element, and the viewer whose header it is: an entry is one object shared by
@@ -1567,11 +1577,12 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   `layer.hide`, `layer.show` (the `hidden` key set or unset), `layer.color` (the layer's theme), `track.hide` and
   `track.show` (the track's own `hidden`: its layers keep theirs, so hide then show is a round trip; `layer.show` and
   `track.show` take `addresses` too, every one in one patch: a chip's "show all"), `track.move` (among its siblings,
-  `after`), `track.add` (a `node` inserted under the section `address`, after `after`, last without it; the id taken is
-  refused), `refs.remove`, `refs.label` (a bookmark's `label` param set, or removed with `''`); `step.enter` and
-  `step.leave` (navigation); `preview.cancel` (Esc). A gesture's preview is a method, never a command (it runs per
-  pointer move): `preview(patch)` replaces the last, `endPreview(label)` ends it in one step, `cancelPreview()` in
-  nothing. `when` says why one cannot run (no such node, no step shown, nothing to cancel).
+  `after`), `track.height` (the track's `height` set to `content` or removed: every lane, or the cap again), `track.add`
+  (a `node` inserted under the section `address`, after `after`, last without it; the id taken is refused),
+  `refs.remove`, `refs.label` (a bookmark's `label` param set, or removed with `''`); `step.enter` and `step.leave`
+  (navigation); `preview.cancel` (Esc). A gesture's preview is a method, never a command (it runs per pointer move):
+  `preview(patch)` replaces the last, `endPreview(label)` ends it in one step, `cancelPreview()` in nothing. `when` says
+  why one cannot run (no such node, no step shown, nothing to cancel).
 
 ### Molecules: the interaction matrix's cells
 
@@ -1803,11 +1814,14 @@ frame.
   layer it lists. An entry **has an action** (`LegendEntryRow.action`, `LegendModel.names`) when an address names its
   items (`addressable`, the behavior's) or items in its value are drawn at the last settled frame (`LegendModel.drawn`:
   the part redraws when it moves, a pan or a tile): only then is it a pointer target with a click, a hover and Enter; a
-  swatch alone keeps the default cursor. `names` is a lookup and `entryItems` is read once a settled frame (a hover
-  again makes nothing). Swept by the hover sweep: every entry a hovered item reads as has its action and lights every
-  item it names in view, over its positions; an entry without one lights nothing. `fittingSchemes(layer)` is what a menu
-  offers (the schemes whose subject and measures fit the layer); `preview(layer, channel, value)` shows one hovered (a
-  preview, ended by `layer.channel` or Esc).
+  swatch alone keeps the default cursor. A swatch's click keeps the highlight (the eye is what hides): an entry with an
+  action says so in its tooltip and its `aria-description`, "Click to highlight · the eye hides the layer" ("Click to
+  highlight" where the part has no eyes; a compact entry's tooltip is its name, a line, then this; a hidden layer's
+  entries carry none). `names` is a lookup and `entryItems` is read once a settled frame (a hover again makes nothing).
+  Swept by the hover sweep: every entry a hovered item reads as has its action and lights every item it names in view,
+  over its positions; an entry without one lights nothing. `fittingSchemes(layer)` is what a menu offers (the schemes
+  whose subject and measures fit the layer); `preview(layer, channel, value)` shows one hovered (a preview, ended by
+  `layer.channel` or Esc).
 - **The Legend part's groups run one a line** (a column, 12 px apart; each title muted, 600, 11 px: grouping is seen
   without reading) and **its channels row keeps its place**: the row is outside the listbox (a listbox holds options),
   one line (`nowrap`, the first two channels named, the rest a `+n` chip), and `channels: reserve` (the default) holds

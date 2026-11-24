@@ -18,6 +18,7 @@ import {
 } from './headers.js';
 import type { Box } from './layer-type.js';
 import { layerKey } from './tracks-columns.js';
+import type { RangesLay } from './ranges-lay.js';
 import type { LayerLayout, LayoutInput } from './tracks-types.js';
 
 // The tracks layout's headers (_spec/README.md "Render", Track headers): each header's facts read from the view and
@@ -86,6 +87,11 @@ export function trackHeaderOf(
     const count = l.type.filtered?.(l.lay) ?? 0;
     if (count) (filtered ??= []).push({ layer: l.key, count });
   }
+  let scrolls = false;
+  for (let i = 0; i < layers.length && !scrolls; i++) {
+    const l = layers[i];
+    scrolls = l.type.name === 'ranges' && (l.lay as RangesLay).scrolls && (l.lay as RangesLay).scrollMax > 0;
+  }
   for (let i = 0; i < sectionLays.length; i++) {
     const l = sectionLays[i];
     if (!track.layers.includes(l.layer)) continue;
@@ -98,6 +104,7 @@ export function trackHeaderOf(
     filtered: filtered ?? NoFiltered,
     hiddenLayers: hiddenLayersOf(track),
     hiddenTracks: hiddenTracksOf(input.model, section),
+    scrolls: scrolls || undefined,
     ...(group ? { group } : NoGroup),
   };
   // a rows track's label column is its tree and its rows' labels: its header waits for its title row (the package's

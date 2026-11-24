@@ -88,6 +88,11 @@ export interface HeaderFacts {
     readonly name: string;
     readonly reversed: boolean;
   };
+  /**
+   * A track on a tracks section (not a ring's): its `height` as written, and whether its lanes scroll inside it now
+   * (its content past its cap).
+   */
+  readonly lanes?: { readonly height: number | 'content' | undefined; readonly scrolls: boolean };
   /** The track has a rows layer with a tree (`order: 'tree'`): whether the reader opened it, and whether the frame lacks the room (the tree is collapsed to its toggle, or kept open past it). */
   readonly tree?: { readonly open: boolean; readonly lacks: boolean };
   /** A section of assemblies (its `include` can be set), and whether it has one. */
@@ -284,6 +289,8 @@ export const HeaderEntryNames = {
   layers: 'seq:layers',
   moveUp: 'seq:move-up',
   moveDown: 'seq:move-down',
+  everyLane: 'seq:every-lane',
+  capLanes: 'seq:cap-lanes',
   filtered: HeaderStateNames.filtered,
   hiddenLayers: HeaderStateNames.hiddenLayers,
   hiddenTracks: 'seq:hidden-tracks',
@@ -364,6 +371,28 @@ export const BuiltInHeaderEntries: readonly HeaderActionEntry[] = /* @__PURE__ *
       order: 5,
       when: (f) => moveAfter(f, 1) !== undefined,
       args: (f) => ({ address: f.address, after: moveAfter(f, 1) }),
+    },
+    {
+      // a track whose lanes scroll inside: every lane, the track's `height` `content` (one patch)
+      name: HeaderEntryNames.everyLane,
+      on: 'track',
+      label: 'Show every lane',
+      command: 'track.height',
+      slot: false,
+      order: 5.5,
+      when: (f) => f.lanes !== undefined && f.lanes.scrolls && f.lanes.height !== 'content',
+      args: (f) => ({ address: f.address, height: 'content' }),
+    },
+    {
+      // a track at `height: 'content'`: its cap again (the `height` removed)
+      name: HeaderEntryNames.capLanes,
+      on: 'track',
+      label: 'Cap the lanes',
+      command: 'track.height',
+      slot: false,
+      order: 5.6,
+      when: (f) => f.lanes?.height === 'content',
+      args: (f) => ({ address: f.address, height: null }),
     },
     {
       // a narrow frame's tree: shown whole from its toggle, folded back from the toggle or here (`rows.tree`, Shift+T)

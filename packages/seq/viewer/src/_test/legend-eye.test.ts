@@ -84,6 +84,12 @@ async function mounted(options: Parameters<typeof mountLegend>[2] = {}, root = s
   return { v, el };
 }
 
+/** The legend without eyes (`layers: false`): its entries' click is the highlight alone. */
+async function mountedBare() {
+  const { el } = await mounted({ layers: false });
+  return el;
+}
+
 /** A command's patch landed and the view settled again (its legends derived). */
 async function landed(v: SeqViewer, r?: unknown) {
   await r;
@@ -321,6 +327,31 @@ describe('a hidden layer’s rows', () => {
 });
 
 describe('the host’s option', () => {
+  it('a swatch’s click keeps the highlight, and its tooltip and description say so beside the eye', async () => {
+    const { el } = await mounted();
+    const options = [...group(el, 'Domains').querySelectorAll<HTMLElement>('[role="option"]')];
+    expect(options.length).toBeGreaterThan(0);
+    for (const o of options) {
+      expect(o.title).toBe('Click to highlight · the eye hides the layer');
+      expect(o.getAttribute('aria-description')).toBe('Click to highlight · the eye hides the layer');
+    }
+    const bare = await mountedBare();
+    for (const o of bare.querySelectorAll<HTMLElement>('[role="option"]')) {
+      expect(o.title).toBe('Click to highlight');
+      expect(o.getAttribute('aria-description')).toBe('Click to highlight');
+    }
+  });
+
+  it('a hidden layer’s entries claim no click', async () => {
+    const { v, el } = await mounted();
+    eye(el, 'Domains').click();
+    await landed(v);
+    for (const o of group(el, 'Domains').querySelectorAll<HTMLElement>('[role="option"]')) {
+      expect(o.getAttribute('aria-description')).toBeNull();
+      expect(o.title).toBe('');
+    }
+  });
+
   it('`layers: false` drops the eye; the rows and their entries as with it', async () => {
     const { el } = await mounted({ layers: false });
     expect(el.querySelectorAll('[data-legend-eye]')).toHaveLength(0);

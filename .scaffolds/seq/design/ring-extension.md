@@ -249,6 +249,11 @@ No node kind, no data shape, no format runtime (extension-openings, Part 1): RR'
   gesture says once "The ring shows the whole genome: open a chromosome from its label's menu or the square". A ring a
   section follows keeps the zoom of its window. Why: a wheel taken with nothing seen was the worst of the three answers
   (give it to the page, idle and said, the cut); the designs already named opening a chromosome the ring's zoom.
+  **A double-click** on a chromosome's label or arc (the hue ring, the cytobands) opens it the same way (decided, the
+  author, 2026-11-24, close-out C1 and C9): the cut, one undo step, as the label menu's "Show only"; over the hole, on a
+  ring that shows one chromosome, on a followed ring, or with a modifier it is the bindings' own, and on a ribbon or a
+  stem it keeps its meaning (the focus, or `opens`). Each ring story names the gestures: Cmd/Ctrl+wheel or a pinch over
+  a chromosome, the double-click, the label's "Show only", the square, and the partner keys `.` and `,`.
 - **In place by default** (Rondo's): one ring section; `rondoRing({ detail: 'below' })` writes a second ring section
   of the same assembly under it, its `include` the one patched, so the genome stays in view. Both are the writer's.
 - **A cut**: the ring is laid out again with its labels and stems (GA: a change of the block list is a cut; stories);
@@ -485,7 +490,7 @@ Cells this design fills; the others stand as layouts, GA, RR and LX give them.
 | **an element: a stem** | click: its range | Shift+click | Cmd/Ctrl+click | double-click: as a ribbon's, the stem's block with `opens` | as above | — | — | no | no |
 | **an element: a stem's menu** (right-click; Shift+F10 or the Menu key at the cursor's stem) | "Select the stem and its partners" (one selection) | — | — | "Show with a partner ▸": a partner chromosome or a piece shown with the stem's as a pair; "Within chr22" or "Show only chr22" alone (`section.include`, one undo step) | undo | — | — | no: the track's Hide track stays in its header's menu | no: Move up and Reverse are the track's |
 | **an element: a stub** | click: its key hit (`stub:`: the stem's range, the partner's hull) | Shift+click | Cmd/Ctrl+click | double-click with `opens`: the pair | as above | — | — | `stubs: none` by patch | no |
-| **a block** (a chromosome's arc or label) | click on its label: the whole block (GA) | Shift+click | Cmd/Ctrl+click | label menu: "Show only" (`section.include`) | undo | — | — | no: `include` | no |
+| **a block** (a chromosome's arc or label) | click on its label: the whole block (GA) | Shift+click | Cmd/Ctrl+click | double-click on its label or arc (the hue ring, the cytobands): opens it, the cut, one undo step (decided, the author, 2026-11-24, close-out C1: "Agree all four"); label menu: "Show only" (`section.include`) | undo | — | — | no: `include` | no |
 | **the selection** | — | — | `rondo:select-partners`: the far ends of its ribbons | Enter: as built | Alt+Left | — | — | — | as built |
 | **the keyboard cursor** on the ring | Enter: the stem under it | Shift+arrows: as built | — | `.` and `,`: `rondo:partner`, to the next partner in the stem menu's order, announced; Shift+F10 or the Menu key: the stem menu at the stem | Alt+Left | — | — | — | — |
 | **a track or layer** (`rondo:ribbons`) | — | — | — | — | — | — | — | `layer.hidden` | `width`, `stems`, `bundle`, `stubs`, `opens` by `layer.set` (one patch) |

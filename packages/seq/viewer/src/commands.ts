@@ -109,6 +109,7 @@ export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   'track.hide': 'patch',
   'track.show': 'patch',
   'track.move': 'patch',
+  'track.height': 'patch',
   'track.add': 'patch',
   'refs.remove': 'patch',
   'refs.label': 'patch',

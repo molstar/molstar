@@ -127,7 +127,8 @@ describe('the compact form', () => {
     const options = [...group.querySelectorAll<HTMLElement>('[role="option"]')];
     expect(options.map((o) => o.getAttribute('aria-label'))).toEqual(['Domains: kinase', 'Domains: linker']);
     // the label is on hover, never text beside the swatch
-    expect(options.map((o) => o.title)).toEqual(['Domains: kinase', 'Domains: linker']);
+    const tip = '\nClick to highlight · the eye hides the layer';
+    expect(options.map((o) => o.title)).toEqual([`Domains: kinase${tip}`, `Domains: linker${tip}`]);
     expect(options.map((o) => o.textContent)).toEqual(['', '']);
     options[1].click();
     expect(viewer!.selection.value.value.elements.keys.map((k) => k.key)).toEqual(['B']);
