@@ -73,6 +73,21 @@
   }
 }
 
+/* A row that starts a group of its own (`separated`): a hairline above it, the menu's padding either side of the line. */
+.row[data-separated] {
+  position: relative;
+  margin-top: calc(var(--msui-space-1) * 2 + 1px);
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset-inline: calc(-1 * var(--msui-surface-pad));
+    top: calc(-1 * var(--msui-space-1) - 1px);
+    height: 1px;
+    background: var(--msui-line);
+  }
+}
+
 /* The icon's slot (kept empty for an item without one): the labels share a column. */
 .slot {
   display: inline-flex;

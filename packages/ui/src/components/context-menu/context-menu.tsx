@@ -26,6 +26,8 @@ export interface ContextMenuItem {
    */
   checked?: boolean;
   run(): void;
+  /** It starts a group of its own: a separator above it (a menu's "Show all" and "Hide all" after its choices). */
+  separated?: boolean;
   /**
    * A submenu: a flyout beside this row (right of it, left of the menu where there is no room), the menu staying open
    * and the row `aria-expanded`. A click, →, Enter, Space or the pointer resting on the row (`restMs`) opens it; ← or
@@ -232,6 +234,7 @@ function openMenu(
               aria-expanded={item.items?.length ? 'false' : undefined}
               tabIndex={-1}
               class={classes.row}
+              data-separated={item.separated ? '' : undefined}
               aria-disabled={item.disabled ? 'true' : undefined}
               aria-description={item.disabled || undefined}
               data-tip={item.disabled}

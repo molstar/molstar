@@ -179,13 +179,20 @@ describe('the built-in entries: a slot, a menu item and the command alike', () =
   it('seq:layers: a checked item a layer, hidden and shown by layer.hide and layer.show; the chip shows all (one patch)', async () => {
     const v = await make();
     const layers = item(v, Domains, 'seq:layers').items!;
+    // the layers, then a separator and the two closing entries (legend-menu.test.ts)
     expect(layers.map((l) => [l.label, l.checked])).toEqual([
       ['d', true],
       ['e', true],
+      ['Show all', undefined],
+      ['Hide all', undefined],
     ]);
     await settled(headers(v).runItem(layers[1]));
     await settled(v.execute('layer.hide', { address: `${Domains}/d` }));
-    expect(item(v, Domains, 'seq:layers').items!.map((l) => l.checked)).toEqual([false, false]);
+    expect(
+      item(v, Domains, 'seq:layers')
+        .items!.slice(0, 2)
+        .map((l) => l.checked),
+    ).toEqual([false, false]);
     // the state chip "2 layers hidden": its click shows both in one patch
     expect(geo(v, Domains).states.map((s) => s.text)).toEqual(['2 layers hidden']);
     const steps = stack(v).steps.value.length;

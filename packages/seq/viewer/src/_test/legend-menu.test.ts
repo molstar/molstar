@@ -81,19 +81,15 @@ async function mounted() {
 async function headerLayers(v: SeqViewer, container: HTMLElement) {
   const port = contextMenuPort()(container);
   const menu = headerMenu(v, { section: Section, track: Pair })!;
-  port.show(
-    menu,
-    { x: 0, y: 0 },
-    {
-      preview() {},
-      cancelPreview() {},
-      closeMenu() {},
-      submenuRestMs: 0,
-      runItem: async (it: HeaderMenuItem) => {
-        if (it.command) await v.execute(it.command, it.args);
-      },
-    } as never,
-  );
+  port.show(menu, { x: 0, y: 0 }, {
+    preview() {},
+    cancelPreview() {},
+    closeMenu() {},
+    submenuRestMs: 0,
+    runItem: async (it: HeaderMenuItem) => {
+      if (it.command) await v.execute(it.command, it.args);
+    },
+  } as never);
   disposers.push(() => port.hide());
   const layers = [...container.querySelectorAll<HTMLElement>('[role="menuitem"]')].find((r) =>
     r.textContent?.startsWith('Layers'),
@@ -132,6 +128,119 @@ describe('the legend’s layers menu looks as the header’s', () => {
     expect(menu.className).toBe(flyout.className);
     const rows = [...menu.querySelectorAll<HTMLElement>('[role^="menuitem"]')];
     expect(rows[0].className).toBe(header[0].className);
-    expect(rows.map((r) => r.getAttribute('role'))).toEqual(header.map((r) => r.getAttribute('role')).slice(0, rows.length));
+    expect(rows.map((r) => r.getAttribute('role'))).toEqual(
+      header.map((r) => r.getAttribute('role')).slice(0, rows.length),
+    );
+  });
+});
+
+const stack = (v: SeqViewer) => (v.spec.history as UiHistory).stack;
+const hiddenOf = (v: SeqViewer) =>
+  ['a', 'b', 'c'].map((id) => {
+    let n = v.spec.root.value;
+    for (const k of `${Pair}/${id}`.split('/').filter(Boolean)) n = n.children!.find((c) => c.id === k)!;
+    return n.params?.hidden === true;
+  });
+const rowsOf = (menu: HTMLElement) => [...menu.querySelectorAll<HTMLElement>('[role^="menuitem"]')];
+const labelsOf = (menu: HTMLElement) => rowsOf(menu).map((r) => r.textContent?.trim());
+const row = (menu: HTMLElement, label: string) => rowsOf(menu).find((r) => r.textContent?.trim() === label)!;
+const settled = async (v: SeqViewer, r?: unknown) => {
+  await r;
+  await v.settle();
+  frames!.flush();
+};
+/** A menu closed: the next opens alone. */
+const closeAll = () => {
+  for (const m of document.querySelectorAll('[role="menu"]')) m.remove();
+};
+
+/** Both menus, the same tests: where each opens and how it is read. */
+const menus = {
+  legend: (el: HTMLElement) => legendMenu(el),
+  header: (el: HTMLElement, v: SeqViewer) => headerLayers(v, el),
+} as const;
+
+describe.each(Object.keys(menus) as (keyof typeof menus)[])('the %s’s layers menu: Show all and Hide all', (which) => {
+  const open = async (el: HTMLElement, v: SeqViewer) => {
+    closeAll();
+    return menus[which](el, v);
+  };
+
+  it('ends with a separator and the two entries, "Show all" disabled with its reason while every layer is shown', async () => {
+    const { v, el } = await mounted();
+    const menu = await open(el, v);
+    expect(labelsOf(menu)).toEqual(['a', 'b', 'c', 'Show all', 'Hide all']);
+    expect(rowsOf(menu).map((r) => r.hasAttribute('data-separated'))).toEqual([false, false, false, true, false]);
+    const show = row(menu, 'Show all');
+    expect(show.getAttribute('aria-disabled')).toBe('true');
+    expect(show.getAttribute('aria-description')).toBe('Every layer is shown');
+    expect(row(menu, 'Hide all').getAttribute('aria-disabled')).toBeNull();
+    // a disabled one runs nothing
+    show.click();
+    await settled(v);
+    expect(hiddenOf(v)).toEqual([false, false, false]);
+  });
+
+  it('Hide all hides every layer in one patch, one undo step; the row stays, dimmed; "Hide all" then says why not', async () => {
+    const { v, el } = await mounted();
+    const steps = stack(v).steps.value.length;
+    const menu = await open(el, v);
+    row(menu, 'Hide all').click();
+    await settled(v);
+    expect(hiddenOf(v)).toEqual([true, true, true]);
+    expect(stack(v).steps.value.length).toBe(steps + 1);
+    // the rule a single hide follows: the track's row stays in the legend, dimmed
+    const group = [...el.querySelectorAll<HTMLElement>('[role="group"]')].find(
+      (g) => g.getAttribute('aria-label') === 'Pair',
+    )!;
+    expect(group.dataset.hidden).toBe('true');
+    const again = await open(el, v);
+    expect(row(again, 'Hide all').getAttribute('aria-description')).toBe('Every layer is hidden');
+    expect(row(again, 'Show all').getAttribute('aria-disabled')).toBeNull();
+    await settled(v, stack(v).undo());
+    expect(hiddenOf(v)).toEqual([false, false, false]);
+    // undone: the step is on the redo side
+    expect(stack(v).steps.value.length).toBe(steps);
+  });
+
+  it('Show all shows the hidden ones alone, one patch, one undo step; Hide all leaves the hidden as they are', async () => {
+    const { v, el } = await mounted();
+    await settled(v, v.execute('layer.hide', { address: `${Pair}/b` }));
+    const steps = stack(v).steps.value.length;
+    const menu = await open(el, v);
+    expect(row(menu, 'Show all').getAttribute('aria-disabled')).toBeNull();
+    row(menu, 'Show all').click();
+    await settled(v);
+    expect(hiddenOf(v)).toEqual([false, false, false]);
+    expect(stack(v).steps.value.length).toBe(steps + 1);
+    await settled(v, stack(v).undo());
+    expect(hiddenOf(v)).toEqual([false, true, false]);
+    // Hide all from the same state: a and c, b as it was; one step
+    const next = await open(el, v);
+    row(next, 'Hide all').click();
+    await settled(v);
+    expect(hiddenOf(v)).toEqual([true, true, true]);
+    expect(stack(v).steps.value.length).toBe(steps + 1);
+    await settled(v, stack(v).undo());
+    expect(hiddenOf(v)).toEqual([false, true, false]);
+  });
+
+  it('the arrows reach every entry, the disabled one too (its reason read); Escape closes', async () => {
+    const { v, el } = await mounted();
+    const menu = await open(el, v);
+    const rows = rowsOf(menu);
+    const key = (k: string) =>
+      (document.activeElement as HTMLElement).dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true }));
+    rows[0].focus();
+    const reached = [document.activeElement];
+    for (let i = 1; i < rows.length; i++) {
+      key('ArrowDown');
+      reached.push(document.activeElement);
+    }
+    expect(reached).toEqual(rows);
+    expect(row(menu, 'Show all').getAttribute('aria-description')).toBe('Every layer is shown');
+    // the header's flyout closes alone on the first Escape (its row focused), the menu on the next
+    for (let i = 0; i < 2 && document.querySelector('[role="menu"]'); i++) key('Escape');
+    expect(document.querySelectorAll('[role="menu"]')).toHaveLength(0);
   });
 });

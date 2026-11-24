@@ -74,6 +74,20 @@ defineStyles('components/context-menu/context-menu.module.css', `@layer msui.com
   }
 }
 
+.msui-context-menu-row[data-separated] {
+  margin-top: calc(var(--msui-space-1) * 2 + 1px);
+  position: relative;
+
+  &:before {
+    content: "";
+    inset-inline: calc(-1 * var(--msui-surface-pad));
+    top: calc(-1 * var(--msui-space-1) - 1px);
+    background: var(--msui-line);
+    height: 1px;
+    position: absolute;
+  }
+}
+
 .msui-context-menu-slot {
   width: var(--msui-icon-slot);
   height: var(--msui-icon);

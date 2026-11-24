@@ -375,7 +375,7 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
   /** A submenu's item, with its own submenu (a partner chromosome's pieces): enabled when any of those runs. */
   const subItemOf = (name: string, s: HeaderSubEntry): HeaderMenuItem => {
     const items = s.items?.length ? s.items.map((x) => subItemOf(name, x)) : undefined;
-    const w = items ? undefined : whyNot(s.command, s.args);
+    const w = items ? undefined : (s.disabled ?? whyNot(s.command, s.args));
     return {
       name,
       kind: 'action',
@@ -383,6 +383,7 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
       enabled: w === undefined,
       ...(w !== undefined ? { why: w } : {}),
       ...(s.checked !== undefined ? { checked: s.checked } : {}),
+      ...(s.separated ? { separated: true } : {}),
       command: s.command,
       args: s.args,
       ...(items ? { items } : {}),

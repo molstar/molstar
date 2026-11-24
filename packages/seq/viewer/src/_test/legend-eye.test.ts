@@ -243,7 +243,7 @@ describe('a legend over several layers', () => {
     const layersMenu = headerMenu(v, { section: Section, track: Pair })!
       .groups.flat()
       .find((i) => i.name === 'seq:layers')!;
-    expect(layersMenu.items!.map((i) => i.label)).toEqual(['a', 'b']);
+    expect(layersMenu.items!.map((i) => i.label)).toEqual(['a', 'b', 'Show all', 'Hide all']);
     const b = eye(el, 'Pair');
     expect(group(el, 'Pair').querySelectorAll('[data-legend-eye]')).toHaveLength(1);
     expect(b.getAttribute('aria-label')).toBe('Layers of Pair');
@@ -258,6 +258,8 @@ describe('a legend over several layers', () => {
     expect(rows.map((r) => [r.textContent?.trim(), r.getAttribute('aria-checked')])).toEqual([
       ['a', 'true'],
       ['b', 'true'],
+      ['Show all', null],
+      ['Hide all', null],
     ]);
     rows[1].click();
     await landed(v);

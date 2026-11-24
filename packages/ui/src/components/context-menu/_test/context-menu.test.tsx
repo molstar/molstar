@@ -354,6 +354,20 @@ describe('a submenu (a flyout)', () => {
     }
   });
 
+  it('marks an item that starts a group of its own (`separated`), a row still reached by the arrows', () => {
+    const root = document.createElement('div');
+    document.body.append(root);
+    openContextMenu(root, { x: 0, y: 0 }, [
+      { id: 'a', label: 'A', run: () => {} },
+      { id: 'b', label: 'B', separated: true, run: () => {} },
+    ]);
+    const rows = [...root.querySelectorAll<HTMLElement>('[role="menuitem"]')];
+    expect(rows.map((r) => r.hasAttribute('data-separated'))).toEqual([false, true]);
+    rows[0].focus();
+    rows[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    expect(document.activeElement).toBe(rows[1]);
+  });
+
   it('opens when the pointer rests on the row', () => {
     vi.useFakeTimers();
     try {

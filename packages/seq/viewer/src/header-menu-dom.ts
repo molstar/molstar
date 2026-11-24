@@ -32,6 +32,7 @@ export function contextMenuPort(): HeaderMenuPortFactory {
           ...(it.enabled ? {} : { disabled: it.why ?? 'Not available' }),
           ...(it.key ? { shortcut: it.key } : {}),
           ...(it.checked !== undefined ? { checked: it.checked } : {}),
+          ...(it.separated ? { separated: true } : {}),
           ...(it.items ? { items: it.items.map(itemOf) } : {}),
           // a row focused or hovered previews its choice (a scheme), when its command has a preview
           onActive: () => {
