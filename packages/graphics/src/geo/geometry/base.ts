@@ -320,8 +320,12 @@ export namespace BaseGeometry {
     };
   }
 
-  /** The clip props each values were updated with last (`updateValues`) */
-  const clipProps = new WeakMap<BaseValues, Clip.Props>();
+  /**
+   * The clip props each values' clip cells were updated with last (`updateValues`), by their `clipObjects` cell: values
+   * that share the cells (a merged visual's records and their part's shared values) share the entry, so a write through
+   * either is seen by both
+   */
+  const clipProps = new WeakMap<object, Clip.Props>();
   /**
    * The clip of a clip props object, made once: the visuals of a representation share their props' clip (each target of
    * a particle list, each unit), so a moved clip object is computed once, not per visual. Read only.
@@ -361,8 +365,8 @@ export namespace BaseGeometry {
    * cells written by another, e.g. `createEmptyMergeMember` copying a member's)
    */
   export function updateClip(values: BaseValues, clip: Clip.Props, force = false) {
-    if (!force && clipProps.get(values) === clip) return;
-    clipProps.set(values, clip);
+    if (!force && clipProps.get(values.clipObjects) === clip) return;
+    clipProps.set(values.clipObjects, clip);
     const c = getSharedClip(clip);
     ValueCell.updateIfChanged(values.dClipObjects, c.objects.count > 0);
     ValueCell.updateIfChanged(values.dClipObjectCount, c.objects.count);

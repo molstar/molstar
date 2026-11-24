@@ -9,6 +9,8 @@ import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import type { Clip } from '@molstar/core/util/clip';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { BaseGeometry } from '../base.js';
+import { Spheres } from '../spheres/spheres.js';
+import { ColorNames } from '@molstar/core/util/color/names';
 
 function clipAt(x: number): Clip.Props {
   return {
@@ -40,5 +42,21 @@ describe('BaseGeometry.isClipChangeOnly', () => {
     // a prop dropped
     const { alpha: _, ...dropped } = { ...before, clip: clipAt(1) };
     expect(BaseGeometry.isClipChangeOnly(dropped as typeof before, before)).toBe(false);
+  });
+});
+
+describe('BaseGeometry.updateClip', () => {
+  it('writes a clip again where values sharing its cells were written another (a merged part and its records)', () => {
+    const spheres = Spheres.create(new Float32Array([0, 0, 0]), new Float32Array([0]), 1);
+    const shared = Spheres.Utils.createValuesSimple(spheres, PD.getDefaultValues(Spheres.Params), ColorNames.orange, 1);
+    // a record: the shared values' clip cells read through its prototype
+    const record = Object.create(shared) as typeof shared;
+    const a = clipAt(0);
+    BaseGeometry.updateClip(record, a);
+    const frameA = Array.from(shared.uClipObjectFrame.ref.value);
+    BaseGeometry.updateClip(shared, clipAt(1));
+    expect(Array.from(shared.uClipObjectFrame.ref.value)).not.toEqual(frameA);
+    BaseGeometry.updateClip(record, a);
+    expect(Array.from(shared.uClipObjectFrame.ref.value)).toEqual(frameA);
   });
 });

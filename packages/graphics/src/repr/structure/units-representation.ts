@@ -94,10 +94,15 @@ export function UnitsRepresentation<P extends StructureParams>(
   /**
    * The visual over all groups where they merge (`UnitsMergedVisual`): no per-group visuals then. Where it was found
    * not to merge (`unmergeableAt`) the per-group visuals, tried again only where their own values merge after an
-   * update (`mergesAgain`), not by a geometry made to find out, and not at the props and structure it failed at
+   * update (`mergesAgain`), not by a geometry made to find out, and not at the props, theme and structure it failed at
    */
   let mergedVisual: UnitsMergedVisual<P> | undefined;
-  let unmergeableAt: { props: PD.Values<P>; structure: Structure } | undefined;
+  let unmergeableAt: { props: PD.Values<P>; theme: Theme; structure: Structure } | undefined;
+  const failedAt = (structure: Structure) =>
+    !!unmergeableAt &&
+    unmergeableAt.props === _props &&
+    unmergeableAt.theme === _theme &&
+    unmergeableAt.structure === structure;
 
   function hasVisuals() {
     let has = false;
@@ -128,9 +133,7 @@ export function UnitsRepresentation<P extends StructureParams>(
     const renderMerged = (_props as { renderMerged?: RenderMergedValue }).renderMerged ?? false;
     if (!resolveRenderMerged(renderMerged, groups.length)) return;
     // found not to merge: the per-group visuals decide after their update (`mergesAgain`)
-    if (unmergeableAt && (hasVisuals() || (unmergeableAt.props === _props && unmergeableAt.structure === structure))) {
-      return;
-    }
+    if (unmergeableAt && (hasVisuals() || failedAt(structure))) return;
     const probe = createVisual(
       visualCtor,
       -1,
@@ -149,7 +152,7 @@ export function UnitsRepresentation<P extends StructureParams>(
    * do not, or where the merged one failed at these props and structure
    */
   function mergesAgain(structure: Structure, groups: ReadonlyArray<Unit.SymmetryGroup>) {
-    if (!unmergeableAt || (unmergeableAt.props === _props && unmergeableAt.structure === structure)) return;
+    if (!unmergeableAt || failedAt(structure)) return;
     if (groups.length < 2 || !choosesByProps(visualCtor)) return;
     const renderMerged = (_props as { renderMerged?: RenderMergedValue }).renderMerged ?? false;
     if (!resolveRenderMerged(renderMerged, groups.length)) return;
@@ -170,9 +173,10 @@ export function UnitsRepresentation<P extends StructureParams>(
         merges = false;
         return;
       }
-      // a group without an object (nothing drawn) none to check
+      // a group without an object (nothing drawn) none to check; the layers not: smoothed while not merged
+      // (`setLayers`), set again unsmoothed by the merged visual
       const ro = visual.renderObject;
-      if (ro && !canMergeValues(type, [ro.values as unknown as MergeableValues])) merges = false;
+      if (ro && !canMergeValues(type, [ro.values as unknown as MergeableValues], false)) merges = false;
     });
     return merges ? builder : undefined;
   }
@@ -196,21 +200,28 @@ export function UnitsRepresentation<P extends StructureParams>(
       mergedVisual = undefined;
     }
     const changed = !!mergedVisual && !!_structure && !Structure.areUnitIdsAndIndicesEqual(structure, _structure);
-    let mv = mergedVisual;
-    if (!mv) {
-      // the builder's props those of the representation's visuals (`P`), typed by its geometry's
-      mv = UnitsMergedVisual(builder as UnitsVisualGeometryBuilder<any, any>, materialId) as UnitsMergedVisual<P>;
-      mv.setState(_state, _state);
-      mergedVisual = mv;
+    // a new merged visual published (`mergedVisual`: picked and marked) once its first update merged, the per-group
+    // visuals drawn and asked till then; one that throws destroyed
+    const created = !mergedVisual;
+    // the builder's props those of the representation's visuals (`P`), typed by its geometry's
+    const mv =
+      mergedVisual ??
+      (UnitsMergedVisual(builder as UnitsVisualGeometryBuilder<any, any>, materialId) as UnitsMergedVisual<P>);
+    if (created) mv.setState(_state, _state);
+    try {
+      await mv.createOrUpdate(getVisualContext(runtime), _theme, _props, structure, groups);
+    } catch (e) {
+      if (created) mv.destroy();
+      throw e;
     }
-    await mv.createOrUpdate(getVisualContext(runtime), _theme, _props, structure, groups);
     if (!mv.mergeable) {
       // the per-group visuals kept (updated, not made again): the merged one ends at a part found not to merge
       mv.destroy();
       mergedVisual = undefined;
-      unmergeableAt = { props: _props, structure };
+      unmergeableAt = { props: _props, theme: _theme, structure };
       return false;
     }
+    mergedVisual = mv;
     unmergeableAt = undefined;
     if (hasVisuals()) destroyVisuals();
     // remove highlight, as the per-group visuals do on a new structure

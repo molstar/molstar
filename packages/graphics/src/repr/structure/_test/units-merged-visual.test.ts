@@ -347,6 +347,32 @@ describe('the merged units visual', async () => {
     repr.destroy();
   });
 
+  it('merges again after a theme change alone (the props the same)', async () => {
+    const base = splitBuilder();
+    const builder: UnitsVisualGeometryBuilder<ElementSphereParams, Spheres> = {
+      ...base,
+      // a palette's colors (not merging) under one theme
+      processValues: (values: any, geometry: Spheres, props, theme) => {
+        base.processValues!(values, geometry, props, theme);
+        ValueCell.updateIfChanged(
+          values.dUsePalette,
+          theme.color.factory === BuiltInColorThemes['element-symbol'].factory,
+        );
+      },
+    };
+    const theme = (name: string) =>
+      Theme.create(registries as any, { structure }, { colorTheme: { name }, sizeTheme: { name: 'physical' } });
+    const repr = await createRepr(structure, true, {}, builder);
+    repr.setTheme(theme('element-symbol'));
+    await repr.createOrUpdate().run();
+    expect(repr.renderObjects.some((o) => isMergedRenderObject(o))).toBe(false);
+    repr.setTheme(theme('uniform'));
+    await repr.createOrUpdate().run();
+    expect(repr.renderObjects.length).toBeGreaterThan(0);
+    expect(repr.renderObjects.every((o) => isMergedRenderObject(o))).toBe(true);
+    repr.destroy();
+  });
+
   /** `builder` counting the geometries it makes and disposes (by identity: one updated in place counted once) */
   function countingBuilder(builder: UnitsVisualGeometryBuilder<ElementSphereParams, Spheres>) {
     const made = new Set<Spheres>();

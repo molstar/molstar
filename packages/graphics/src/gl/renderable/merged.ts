@@ -90,7 +90,9 @@ import {
   type RenderableState,
   appendMdbDrawKey,
   createDrawVersion,
+  createDrawVersionCounter,
   createCullView,
+  type DrawKey,
   createSegmentedMdbList,
   type CullSegment,
   type LodLevelsValue,
@@ -560,7 +562,11 @@ function computeMergeKey(values: MergeableValues, defineKeys: readonly string[])
 const SupportedVertexTypes = ['uniform', 'object', 'instance', 'group', 'groupInstance', 'vertex', 'siteType'];
 const SupportedIgTypes = ['instance', 'groupInstance'];
 
-export function canMergeValues(type: string, members: readonly MergeableValues[]): boolean {
+/**
+ * Whether `members` merge into one object of `type`; `layers` false: their layers' types not checked (values whose
+ * layers the merged object sets again its own way, e.g. per-group visuals' smoothed layers, `UnitsRepresentation`)
+ */
+export function canMergeValues(type: string, members: readonly MergeableValues[], layers = true): boolean {
   if (!isMergeableType(type)) return false;
   // a single member merges as well (culled on the GPU): how many is the caller's (`canMergeRenderObjects`)
   if (members.length < 1) return false;
@@ -569,17 +575,22 @@ export function canMergeValues(type: string, members: readonly MergeableValues[]
   if (first.dUsePalette?.ref.value) return false;
   if (!SupportedVertexTypes.includes(first.colorType.ref.value)) return false;
   if (first.sizeType && !SupportedVertexTypes.includes(first.sizeType.ref.value)) return false;
+  if (layers && !canMergeLayers(first)) return false;
+
+  const key = getMergeKey(first);
+  for (let i = 1, il = members.length; i < il; ++i) {
+    if (getMergeKey(members[i]) !== key) return false;
+  }
+  return true;
+}
+
+function canMergeLayers(first: MergeableValues) {
   if (first.dOverpaint.ref.value && !SupportedIgTypes.includes(first.overpaintType.ref.value)) return false;
   if (first.dTransparency.ref.value && !SupportedIgTypes.includes(first.transparencyType.ref.value)) return false;
   if (first.dEmissive.ref.value && !SupportedIgTypes.includes(first.emissiveType.ref.value)) return false;
   if (first.dSubstance.ref.value && !SupportedIgTypes.includes(first.substanceType.ref.value)) return false;
   if (first.dClipping.ref.value && !SupportedIgTypes.includes(first.clippingType.ref.value)) return false;
   if (first.dWiggle.ref.value && !SupportedIgTypes.includes(first.wiggleType.ref.value)) return false;
-
-  const key = getMergeKey(first);
-  for (let i = 1, il = members.length; i < il; ++i) {
-    if (getMergeKey(members[i]) !== key) return false;
-  }
   return true;
 }
 
@@ -1262,14 +1273,19 @@ export function createMergedValues(
     ValueCell.update(cell, { array: SegmentedArray.create(ctor, parts, length), count });
   }
 
+  /** the members' spheres, those drawing nothing left out (as the scene leaves out such objects, `Scene`) */
   function unionSpheres(out: Sphere3D, sphere: (i: number) => Sphere3D) {
     boundaryHelper.reset();
     for (let i = 0; i < n; ++i) {
-      boundaryHelper.includeSphere(sphere(i));
+      if (!memberCells[i].drawCount.ref.value) continue;
+      const s = sphere(i);
+      if (s.radius) boundaryHelper.includeSphere(s);
     }
     boundaryHelper.finishedIncludeStep();
     for (let i = 0; i < n; ++i) {
-      boundaryHelper.radiusSphere(sphere(i));
+      if (!memberCells[i].drawCount.ref.value) continue;
+      const s = sphere(i);
+      if (s.radius) boundaryHelper.radiusSphere(s);
     }
     return boundaryHelper.getSphere(out);
   }
@@ -2628,19 +2644,30 @@ export function MergedRenderable(
     set.shiftedBase = culler.identityBase;
     return shiftLists(set.mdb.list, set.shiftedLists);
   }
+  /**
+   * per list its shifted one (`shiftLists`): the same object each call, its fields the list's now; a level's draw
+   * block is made once a level object (WebGPU's), a new one each call would leave one behind each call
+   */
+  const shiftedListOf = new WeakMap<MultiDrawBaseData, MultiDrawBaseData>();
   /** `lists` shifted to the identity region of the compacted attributes (`culler.identityBase`) into `out` */
   function shiftLists(lists: MultiDrawBaseData[], out: MultiDrawBaseData[]) {
     const base = culler!.identityBase;
     out.length = lists.length;
     for (let j = 0, jl = lists.length; j < jl; ++j) {
       const l = lists[j];
-      const previous = out[j];
+      let shifted = shiftedListOf.get(l);
       const baseInstances =
-        previous && previous.baseInstances.length >= l.count
-          ? previous.baseInstances
+        shifted && shifted.baseInstances.length >= l.count
+          ? shifted.baseInstances
           : new Uint32Array(l.baseInstances.length);
       for (let i = 0; i < l.count; ++i) baseInstances[i] = l.baseInstances[i] + base;
-      out[j] = { ...l, baseInstances };
+      if (shifted) {
+        Object.assign(shifted, l);
+        shifted.baseInstances = baseInstances;
+      } else {
+        shiftedListOf.set(l, (shifted = { ...l, baseInstances }));
+      }
+      out[j] = shifted;
     }
     return out;
   }
@@ -2987,9 +3014,13 @@ export function MergedRenderable(
     const v = renderValues as { dClipObjects?: ValueCell<boolean>; clipGhost?: ValueCell<boolean> };
     return !!v.dClipObjects?.ref.value && v.clipGhost?.ref.value !== false;
   };
-  const getDrawVersion = createDrawVersion((out) =>
-    appendMdbDrawKey(set.mode === 'gpu' ? gpuLists : set.mdb.list, out),
-  );
+  // a version a set (one key each: the visible and the ghost set culled in one frame would each advance a shared one
+  // every frame), from one counter (a set's version never another's with other lists)
+  const drawVersions = createDrawVersionCounter();
+  const appendDrawKey = (out: DrawKey) => appendMdbDrawKey(set.mode === 'gpu' ? gpuLists : set.mdb.list, out);
+  const getVisibleDrawVersion = createDrawVersion(appendDrawKey, drawVersions);
+  const getGhostDrawVersion = createDrawVersion(appendDrawKey, drawVersions);
+  const getDrawVersion = () => (set === ghostSet ? getGhostDrawVersion() : getVisibleDrawVersion());
   visibleSet.drawVersion = ghostSet.drawVersion = getDrawVersion();
   return {
     id,

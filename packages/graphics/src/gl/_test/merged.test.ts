@@ -11,7 +11,7 @@ import {
   createMergedRecordsRenderObject,
   canMergeRenderObjects,
 } from '../render-object.js';
-import { type MergeableValues, type MergeRecord, pickMergeRecord } from '../renderable/merged.js';
+import { canMergeValues, type MergeableValues, type MergeRecord, pickMergeRecord } from '../renderable/merged.js';
 import { Scene } from '../scene.js';
 import { SegmentedArray } from '../segmented-array.js';
 import { getGLContext, tryGetGLContext } from './gl.js';
@@ -74,6 +74,25 @@ function createMembers() {
 }
 
 describe('merged', () => {
+  it('bounds the members drawing something: an empty member not at its origin', () => {
+    const far = () => createSpheresRenderObject(new Float32Array([100, 0, 0, 101, 0, 0]), new Float32Array([0, 1]), 2);
+    const empty = createSpheresRenderObject(new Float32Array(0), new Float32Array(0), 0);
+    expect(empty.values.drawCount.ref.value).toBe(0);
+    const merged = createMergedRenderObject([far(), empty, far()]);
+    const sphere = merged.values.boundingSphere.ref.value;
+    expect(sphere.center[0]).toBeGreaterThan(99);
+    expect(sphere.radius).toBeLessThan(2);
+  });
+
+  it("checks the layers' types unless asked not to (layers the merged object sets again its own way)", () => {
+    const [a] = createMembers();
+    const v = a.values as unknown as MergeableValues;
+    ValueCell.update(v.dOverpaint, true);
+    ValueCell.update(v.overpaintType, 'volumeInstance');
+    expect(canMergeValues('spheres', [v])).toBe(false);
+    expect(canMergeValues('spheres', [v], false)).toBe(true);
+  });
+
   it('values', () => {
     const [a, b] = createMembers();
     expect(canMergeRenderObjects([a, b])).toBe(true);
