@@ -354,18 +354,63 @@ describe('a submenu (a flyout)', () => {
     }
   });
 
-  it('marks an item that starts a group of its own (`separated`), a row still reached by the arrows', () => {
+  it('draws a separator element above an item that starts a group (`separated`), never one above the first; the arrows skip it', () => {
     const root = document.createElement('div');
     document.body.append(root);
     openContextMenu(root, { x: 0, y: 0 }, [
-      { id: 'a', label: 'A', run: () => {} },
-      { id: 'b', label: 'B', separated: true, run: () => {} },
+      { id: 'a', label: 'A', separated: true, run: () => {} },
+      { id: 'b', label: 'B', run: () => {} },
+      { id: 'c', label: 'C', separated: true, run: () => {} },
     ]);
-    const rows = [...root.querySelectorAll<HTMLElement>('[role="menuitem"]')];
-    expect(rows.map((r) => r.hasAttribute('data-separated'))).toEqual([false, true]);
-    rows[0].focus();
-    rows[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
-    expect(document.activeElement).toBe(rows[1]);
+    const menu = root.querySelector('[role="menu"]')!;
+    expect([...menu.children].map((c) => c.getAttribute('role'))).toEqual([
+      'menuitem',
+      'menuitem',
+      'separator',
+      'menuitem',
+    ]);
+    const rows = [...menu.querySelectorAll<HTMLElement>('[role="menuitem"]')];
+    rows[1].focus();
+    rows[1].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    expect(document.activeElement).toBe(rows[2]);
+  });
+
+  it.each(['transform: translate(10px, 10px)', 'filter: blur(0px)', 'contain: paint', 'will-change: transform'])(
+    'inside an ancestor that would offset its fixed position (%s) it is put in the body, in a wrapper with the UI root’s class and theme',
+    (style) => {
+      const ui = document.createElement('div');
+      ui.className = 'msui-root';
+      ui.setAttribute('data-msui-theme', 'dark');
+      ui.style.setProperty('--msui-accent', 'red');
+      const skew = document.createElement('div');
+      skew.setAttribute('style', style);
+      const root = document.createElement('div');
+      skew.append(root);
+      ui.append(skew);
+      document.body.append(ui);
+      const close = openContextMenu(root, { x: 0, y: 0 }, [
+        { id: 'a', label: 'A', run: () => {} },
+        { id: 'b', label: 'B', run: () => {} },
+      ]);
+      const menu = document.querySelector<HTMLElement>('[role="menu"]')!;
+      expect(root.contains(menu)).toBe(false);
+      const wrap = menu.parentElement!;
+      expect(wrap.parentElement).toBe(document.body);
+      expect(wrap.classList.contains('msui-root')).toBe(true);
+      expect(wrap.getAttribute('data-msui-theme')).toBe('dark');
+      expect(wrap.style.getPropertyValue('--msui-accent')).toBe('red');
+      // no ancestor of the menu is the one that offsets it
+      for (let el: Element | null = menu; el; el = el.parentElement) expect(el.getAttribute('style')).not.toBe(style);
+      close();
+      expect(wrap.isConnected).toBe(false);
+    },
+  );
+
+  it('stays in its root where no ancestor offsets it', () => {
+    const root = document.createElement('div');
+    document.body.append(root);
+    openContextMenu(root, { x: 0, y: 0 }, [{ id: 'a', label: 'A', run: () => {} }]);
+    expect(root.querySelector('[role="menu"]')).not.toBeNull();
   });
 
   it('opens when the pointer rests on the row', () => {

@@ -136,6 +136,8 @@ function openMenu(
   let dispose = () => {};
   const restMs = options.restMs ?? DefaultRestMs;
   const restore = rememberFocus();
+  // where its levels go: `root`, or a wrapper outside the ancestor that would make its `fixed` offset (`mountFor`)
+  const { mount, unmount } = mountFor(root);
   // The open flyouts: `flyouts[d]` hangs from a row of level `d` (the menu is level 0).
   const flyouts: Flyout[] = [];
   let timer: unknown;
@@ -167,6 +169,7 @@ function openMenu(
     dispose();
     restore(hadFocus ? menu.ownerDocument.body : menu);
     menu.remove();
+    unmount();
     onClose?.();
   };
 
@@ -206,7 +209,7 @@ function openMenu(
         // off the level (into its flyout, whose own enter takes over, or away): no rest runs after
         onPointerLeave={stopTimer}
       >
-        {list.map((item) => {
+        {list.map((item, index) => {
           let row!: HTMLElement;
           const rest = () => {
             if (restMs <= 0) return;
@@ -234,7 +237,6 @@ function openMenu(
               aria-expanded={item.items?.length ? 'false' : undefined}
               tabIndex={-1}
               class={classes.row}
-              data-separated={item.separated ? '' : undefined}
               aria-disabled={item.disabled ? 'true' : undefined}
               aria-description={item.disabled || undefined}
               data-tip={item.disabled}
@@ -272,7 +274,15 @@ function openMenu(
             </button>
           ) as HTMLElement;
           rowOf.set(row, item);
-          return row;
+          // a separator is no row (the arrows skip it); none above the first item
+          return item.separated && index > 0 ? (
+            <>
+              <div class={classes.separator} role="separator" />
+              {row}
+            </>
+          ) : (
+            row
+          );
         })}
       </div>
     ) as HTMLElement;
@@ -309,7 +319,7 @@ function openMenu(
     // a long list scrolls inside the window
     el.style.maxHeight = `${window.innerHeight - 8}px`;
     el.style.overflowY = 'auto';
-    root.append(el);
+    mount.append(el);
     // the row names what it opens, the flyout what it came from (ARIA's menu button pattern)
     row.id ||= `msui-cm-row-${++flyoutIds}`;
     el.id = `msui-cm-sub-${flyoutIds}`;
@@ -348,7 +358,7 @@ function openMenu(
     on(window, 'resize', close);
     on(window, 'scroll', close, { capture: true });
   });
-  root.append(menu);
+  mount.append(menu);
   // Measured once, now: the flip at the window's edges.
   const w = menu.offsetWidth;
   const h = menu.offsetHeight;
@@ -367,6 +377,49 @@ function openMenu(
     preventScroll: true,
   });
   return close;
+}
+
+/** Whether `el` makes a containing block for a `position: fixed` descendant (it then places against `el`, not the viewport). */
+function containsFixed(el: Element): boolean {
+  const cs = el.ownerDocument.defaultView?.getComputedStyle(el);
+  const inline = (el as HTMLElement).style;
+  // the computed value, else the inline one (an environment that computes few properties)
+  const get = (name: string) => cs?.getPropertyValue(name) || inline?.getPropertyValue(name) || '';
+  const set = (v: string) => v !== '' && v !== 'none';
+  return (
+    set(get('transform')) ||
+    set(get('filter')) ||
+    set(get('perspective')) ||
+    set(get('backdrop-filter')) ||
+    /paint|layout|strict|content/.test(get('contain')) ||
+    /transform|filter|perspective|contain/.test(get('will-change'))
+  );
+}
+
+/**
+ * Where a menu's levels are put. A menu is `position: fixed` and placed in viewport coordinates, which is wrong inside
+ * an ancestor with a `transform`, `filter`, `contain` or `will-change` (that ancestor becomes its containing block): so
+ * then a wrapper takes it, in the document's body (the shadow root a UI root is in), carrying the nearest UI root's class,
+ * theme and inline tokens so its styles still apply. Otherwise it is put in `root` itself.
+ */
+function mountFor(root: HTMLElement): { mount: HTMLElement; unmount: () => void } {
+  let skewed = false;
+  for (let el: Element | null = root; el && !skewed; el = el.parentElement) skewed = containsFixed(el);
+  if (!skewed) return { mount: root, unmount() {} };
+  const doc = root.ownerDocument;
+  const wrap = doc.createElement('div');
+  wrap.style.display = 'contents';
+  const ui = root.closest<HTMLElement>('.msui-root');
+  const theme = root.closest<HTMLElement>('[data-msui-theme]');
+  if (ui) {
+    wrap.className = ui.className;
+    // the host's token overrides on the root (custom properties inherit to the menu)
+    if (ui.getAttribute('style')) wrap.style.cssText += ui.getAttribute('style');
+  } else wrap.classList.add('msui-root');
+  if (theme) wrap.setAttribute('data-msui-theme', theme.getAttribute('data-msui-theme') ?? '');
+  const node = root.getRootNode();
+  (typeof ShadowRoot !== 'undefined' && node instanceof ShadowRoot ? node : doc.body).append(wrap);
+  return { mount: wrap, unmount: () => wrap.remove() };
 }
 
 /**
