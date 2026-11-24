@@ -463,6 +463,8 @@ export class AddressModel extends ReactiveModel {
     const loc = located.location;
     const resolution = this._unknownOf(located.resolution);
     if (resolution.status === 'waiting') {
+      // another waiting jump replaces this one: what the first asked for is let go
+      if (this._pendingFocus?.address !== address) this._seek?.stop();
       this._pendingFocus = { address, reveal, ...(section !== undefined ? { section } : {}) };
       // the nodes it waits for are asked of their sources: a jump on one evicted, or never read, still arrives
       const nodes = (resolution.waitsFor ?? []).filter((n) => !this.store.store.getNode(n.source, n.key));
@@ -525,6 +527,11 @@ export class AddressModel extends ReactiveModel {
     );
   }
 
+  /** The regions a waiting focus reads now to bring the nodes it names (none while nothing waits for a node). */
+  seeking(): readonly Want[] {
+    return this._seek?.wants ?? [];
+  }
+
   /** Asks the sources for the nodes a waiting focus names, once `NodeSeek` is loaded, if the focus still waits. */
   private _seekNodes(address: string, nodes: readonly WaitedNode[]): void {
     if (this._seek) return this._seek.seek(nodes);
@@ -539,8 +546,12 @@ export class AddressModel extends ReactiveModel {
 
   private _retryFocus(): void {
     const p = this._pendingFocus;
-    if (!p || this.resolve(p.address).status === 'waiting') return;
-    this._move(p.address, p.reveal, p.section);
+    if (!p) return;
+    const r = this.resolve(p.address);
+    if (r.status !== 'waiting') return void this._move(p.address, p.reveal, p.section);
+    // still waiting: a node inside one that arrived is asked now (its source is that node)
+    const nodes = (r.waitsFor ?? []).filter((n) => !this.store.store.getNode(n.source, n.key));
+    if (nodes.length) this._seekNodes(p.address, nodes);
   }
 
   /**

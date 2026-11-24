@@ -183,3 +183,80 @@ describe('undoing a bookmark on a streamed transcript', () => {
     expect(statusOf(v, '/refs/iso2')).toBe('resolved');
   });
 });
+
+/** The regions a waiting jump reads now, by their starts (the seek's own wants). */
+const seeking = (v: SeqViewer) => v.addresses.seeking().map((w) => w.start);
+
+describe('a jump on a node nested in a streamed one', () => {
+  const nested = (key: string) => `/data/region/(node :key T2-domains)/(node :key ${key})`;
+
+  it('waits for the outer node, then the inner one, and runs when both have arrived', async () => {
+    const v = await make();
+    await evictGene(v);
+    const run = v.runLink(`!seq-focus=${nested('domains')}`);
+    expect(run?.outcomes.map((o) => o.message)).toEqual(['Waiting for T2-domains, domains']);
+    await vi.advanceTimersByTimeAsync(10 * DelayMs);
+    // the outer node's region read, its nested source opened, the domains held: the jump ran (on the protein's
+    // residues, which this view does not show) and let go of its reads
+    expect(v.addresses.resolve(nested('domains')).status).toBe('resolved');
+    expect(seeking(v)).toEqual([]);
+  });
+
+  it('lets go of its reads when the inner node cannot be asked for and does not arrive', async () => {
+    const v = await make();
+    await evictGene(v);
+    expect(v.runLink(`!seq-focus=${nested('nothing')}`)?.outcomes.map((o) => o.message)).toEqual([
+      'Waiting for T2-domains, nothing',
+    ]);
+    await vi.advanceTimersByTimeAsync(DelayMs + 100);
+    expect(seeking(v)).toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(10 * DelayMs);
+    // the outer node arrived; its nested source finds no names, so nothing more can be asked: its region is let go
+    expect(v.store.store.getNode('/data/region', 'T2-domains')).toBeDefined();
+    expect(v.addresses.resolve(nested('nothing')).status).toBe('waiting');
+    expect(seeking(v)).toEqual([]);
+  });
+});
+
+describe('a waiting jump replaced by another', () => {
+  it('lets go of the first jump’s reads', async () => {
+    const v = await make();
+    await evictGene(v);
+    expect(focusBookmark(v, '/refs/t2')).toBe('Waiting for T2');
+    await vi.advanceTimersByTimeAsync(DelayMs + 100);
+    expect(seeking(v)).toHaveLength(1);
+    // another waiting jump (on a key the source then says it has none of): T2's region is no longer read
+    expect(v.runLink('!seq-focus=/data/region/(node :key T9)')?.outcomes.map((o) => o.message)).toEqual([
+      'Waiting for T9',
+    ]);
+    expect(seeking(v)).toEqual([]);
+    await vi.advanceTimersByTimeAsync(4 * DelayMs);
+    expect(seeking(v)).toEqual([]);
+  });
+});
+
+describe('a bookmark on a transcript still held after the view moves on', () => {
+  it('stays resolved: its region is cached (not wanted, not evicted) though its track has gone', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date', 'performance'] });
+    const text = regionSeqText();
+    // the story's own cache (64 MB): nothing is evicted
+    const v = composeViewer(view, {
+      delayMs: DelayMs,
+      ports: {
+        assets: () => ({
+          reader: { readText: async () => text, readBytes: async () => new TextEncoder().encode(text) },
+        }),
+      },
+    });
+    viewer = v;
+    v.resize(720);
+    await v.load(view.build());
+    await vi.advanceTimersByTimeAsync(10 * DelayMs);
+    expect(focusBookmark(v, '/refs/t2')).toBe('Focused');
+    await vi.advanceTimersByTimeAsync(10 * DelayMs);
+    expect(focusBookmark(v, '/refs/wrap53')).toBe('Focused');
+    await vi.advanceTimersByTimeAsync(10 * DelayMs);
+    expect(v.store.store.getNode('/data/region', 'T2')).toBeDefined();
+    expect(statusOf(v, '/refs/t2')).toBe('resolved');
+  });
+});

@@ -20,6 +20,8 @@ export class NodeSeek {
   /** The nodes asked for the jump that waits now, by `<source>#<key>`. */
   private readonly _sought = new Set<string>();
   private _wants: Want[] = [];
+  /** Nothing more can be asked for this wait: its reads were let go, and it is not asked again until a new wait. */
+  private _done = false;
   /** The keys a source said it has no node of, with the reading that said it (a new reading is asked again). */
   private readonly _unknown = new Map<string, OpenedSource>();
 
@@ -32,6 +34,11 @@ export class NodeSeek {
   private _source(address: string): OpenedSource | undefined {
     for (const s of this.store.named()) if (s.address === address) return s.source;
     return undefined;
+  }
+
+  /** The regions read for the jump that waits now. */
+  get wants(): readonly Want[] {
+    return this._wants;
   }
 
   /** Whether the node's source, as attached now, said it has no node of its key. */
@@ -49,15 +56,23 @@ export class NodeSeek {
   }
 
   /**
-   * Asks for the first of `nodes` not held (one held inside it is asked once it arrives: its source is that node): its
-   * source finds where its key is, and that region is read. Each node is asked once a wait.
+   * Asks for the first of `nodes` not held: its source finds where its key is, and that region is read. The waiting
+   * focus asks again as nodes arrive, so one held inside an arrived node is asked then (its source is that node). Each
+   * node is asked once a wait; when the first not held cannot be asked (its source not attached, or finding no
+   * names), nothing more can be: the wait's reads are let go, and it waits for its data as any other.
    */
   seek(nodes: readonly WaitedNode[]): void {
+    if (this._done) return;
     const n = nodes.find((x) => !this.store.getNode(x.source, x.key));
     if (!n) return;
     const k = nodeKey(n.source, n.key);
+    if (this._sought.has(k)) return;
     const source = this._source(n.source);
-    if (this._sought.has(k) || !source?.findNames) return;
+    if (!source?.findNames) {
+      this._release();
+      this._done = true;
+      return;
+    }
     this._sought.add(k);
     this._abort ??= new AbortController();
     const signal = this._abort.signal;
@@ -83,9 +98,14 @@ export class NodeSeek {
 
   /** The wait ended (the jump ran, another replaced it, or it was dropped): what it asked for is let go. */
   stop(): void {
+    this._release();
+    this._sought.clear();
+    this._done = false;
+  }
+
+  private _release(): void {
     this._abort?.abort();
     this._abort = undefined;
-    this._sought.clear();
     if (this._wants.length) {
       this._wants = [];
       this._wanter?.want([]);
