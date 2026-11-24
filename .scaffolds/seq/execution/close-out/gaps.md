@@ -37,7 +37,7 @@ Decisions a gate asks for (the loop, Gates).
 
 ## Open
 
-- **The privacy plugin turned off** (the author, 2026-11-24, in `.claude.json`): CL6 resumes item 6; FX25 back from
+- **The privacy plugin turned off** (the author, 2026-11-24, in `.claude.json`, in effect after a restart at 08:45): CL6 resumes item 6; FX25 back from
   deferred on the author's word, after CL6's merge.
 
 - **FX25 deferred** (the author, 2026-11-24: "ok let's just defer the fixes", after a third refusal, of a

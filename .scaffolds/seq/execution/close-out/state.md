@@ -14,18 +14,24 @@ Stage 0 and GATE 0 are closed; waves 1 and 2 are merged and GATE 1 passed. Merge
 
 ## In progress
 
-- CL6 resumed 2026-11-24 (the plugin off): rebase on `packages-seq`, item 6, the perf fix, the header click.
-- CL5 reported: the orchestrator's checks, look and review.
-- FX25 back from deferred (the author, 2026-11-24: "maybe we can finish FX25 too then?"): items 1 and 2 committed
-  on its base now; the rebase and items 3–6 after CL6 merges (CL6 holds `ranges.ts`, `headers.ts`, `layer-type.ts`,
-  `tracks-types.ts`, the tracks layout).
+The `cc-plugin-privacy` plugin (it refused Bash calls reading Seq\* source files, whose headers carry the author's
+address) is off since the author's restart, 2026-11-24 08:45: the refused grep over `ranges.ts` runs.
+
+- **CL5 search** (`seq/cl5` at `a6a1b7a9e`, worktree `agent-aace09bb0cc70df65`, its core `package.json`'s `./search`
+  export a local edit): the orchestrator's checks green but the default size row (1,563.8 of 1,560: 1,565 at the
+  merge); reviewed (strong). Its fix round, [briefs/cl5-fix-round.md](briefs/cl5-fix-round.md), started 08:50.
+- **CL6 track groups** (`seq/cl6` at `e8922e04b`, a WIP last; worktree `agent-ae107bbc850a074e3`): resumed 08:50 to
+  split the WIP (the `tracks.ts` perf fix, core `test:perf` green), item 6 (`lanes: one`), the group header's click in
+  `input.ts`, every check.
+- **FX25** (`seq/fx25` at `37832382d`, worktree `agent-a98a4bf365b8a5323`): items 1 and 2 uncommitted (item 1 shown
+  failing on its parent by the author's run). After CL6 merges: commit items 1 and 2, item 2's parent check, rebase,
+  items 3–6.
 
 ## Next
 
-1. Each lane's report through the loop's step 5; the drafts deleted at the merge that lands each design.
-2. CL8 after CL6 merges (the tracks and the language).
-3. FX25 after CL6's merge: rebase, items 3–6.
-4. GATE 2 after CL5, CL6 and CL8; then the use gate, the novice pass, the measurements, the last gate.
+1. CL6's report, then its look and review and merge; CL5's after it (both touch `input.ts`).
+2. CL8 and FX25 after CL6 merges.
+3. GATE 2 after CL5, CL6, CL8 and FX25; then the use gate, the novice pass, the measurements, the last gate.
 
 ## Blockers and open questions
 
