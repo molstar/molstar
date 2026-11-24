@@ -21,7 +21,7 @@ viewer's label churn over its baseline is in `fixes.md`, outside the close-out's
 ## Next
 
 1. FX34 merged (`293155bb1`).
-2. **FX35** (`briefs/fx35-novice-gaps.md`): D1–D4 as the author agreed ("Agree all four"), after FX34's merge.
+2. **FX35** (`briefs/fx35-novice-gaps.md`): D1–D4 as the author agreed ("Agree all four"); running.
 3. The measurements, the last gate and FINALIZE.
 
 ## Blockers and open questions
