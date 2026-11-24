@@ -1238,19 +1238,21 @@ rows' commands) reads the last frame's rows layers through the behavior context'
 - **Groups** (`behaviors/groups.ts`, `GroupsProvider`, in the default spec): a section's track groups folded and opened,
   the clade folds' model. The commands are listed eagerly; their bodies (`groups-body.ts`) load the first time a spec
   holds a section with a group (core's `withViewKind`, as render's groups chunk); before that a groups command is
-  refused ("No group there"). Why: groups are rare. `groups.toggle { address }` (a group's) is a hand's move, no step,
-  its new state said by the announcer (`notify`: "group Variants, collapsed, 3 tracks"); `groups.collapseAll` and
-  `groups.expandAll` (`{ section? }`: the section's groups, else every section's) are one jump, so Alt+Left restores the
-  folds and the window together ("Already so" when nothing moves); `groups.keep { section }` writes the folds shown into
-  its groups' `collapsed` (one patch: `set` true, `unset` when open). A patch or an undo that changes a group's
-  `collapsed`, or adds a group with `collapsed: true`, resets its section's set to the spec's (an edit of the opening
-  state is meant to show), unless the set already is what the spec now opens with (`groups.keep`'s own patch: no session
-  change); a group removed leaves the set, and one renamed (one gone and one new in a section, one edit) keeps its fold;
-  other edits keep it. A folded group's summary mark is its member's item (hit, hover, selection), its card naming the
-  member ("R248Q, in ClinVar"). A click on a group's header (`group-header`) runs its bound command (`groups.toggle`),
-  never a selection's. `layer.lanes { address, lanes }` sets a ranges layer's `lanes` (`one`: `set`; `packed`: `unset`),
-  one patch: the figure's look is the spec's, the fold the session's. Why a behavior beside `headers`: the commands
-  stand without the headers' parts (a host's own header, a key).
+  refused ("No group there"); `layer.lanes`'s `when` is eager and its run loads them. What a reveal reads of the folded
+  groups (`models/view-folds-reveal.ts`) loads the same way (`models/groups-door.ts`). Why: groups are rare.
+  `groups.toggle { address }` (a group's) is a hand's move, no step, its new state said by the announcer (`notify`:
+  "group Variants, collapsed, 3 tracks"); `groups.collapseAll` and `groups.expandAll` (`{ section? }`: the section's
+  groups, else every section's) are one jump, so Alt+Left restores the folds and the window together ("Already so" when
+  nothing moves); `groups.keep { section }` writes the folds shown into its groups' `collapsed` (one patch: `set` true,
+  `unset` when open). A patch or an undo that changes a group's `collapsed`, or adds a group with `collapsed: true`,
+  resets its section's set to the spec's (an edit of the opening state is meant to show), unless the set already is what
+  the spec now opens with (`groups.keep`'s own patch: no session change); a group removed leaves the set, and one
+  renamed (one gone and one new in a section, one edit) keeps its fold; other edits keep it. A folded group's summary
+  mark is its member's item (hit, hover, selection), its card naming the member ("R248Q, in ClinVar"). A click on a
+  group's header (`group-header`) runs its bound command (`groups.toggle`), never a selection's.
+  `layer.lanes { address, lanes }` sets a ranges layer's `lanes` (`one`: `set`; `packed`: `unset`), one patch: the
+  figure's look is the spec's, the fold the session's. Why a behavior beside `headers`: the commands stand without the
+  headers' parts (a host's own header, a key).
 
 - **A section of blocks on several systems** (its axis on no system): a hit names its `block`, and its positions are
   read on that block's axis from its `offset`: a drag-select stays in the block it began on (clamped at its ends), a

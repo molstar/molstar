@@ -83,3 +83,10 @@ export function resolvedTrackGroups(
   }
   return out;
 }
+
+/** Whether a section holds a group of tracks (what the groups' lazy parts load for, `withViewKind`). */
+export function holdsGroup(section: Node): boolean {
+  const c = section.children;
+  if (c) for (let i = 0; i < c.length; i++) if (c[i].kind === 'group') return true;
+  return false;
+}

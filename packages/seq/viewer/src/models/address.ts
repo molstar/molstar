@@ -13,7 +13,8 @@
 import { derive, type ReadonlyState, ReactiveModel, State } from '@molstar/core/reactive';
 import { type Issue, issueOf, parseAddress, printAddress, type Segment } from '@molstar/core/repr/tree';
 import { hiddenTracksOf, onlyOnHiddenTracks } from './hidden-tracks.js';
-import { foldedHolding, groupIdOf } from './view-folds.js';
+import { GroupsView } from './groups-door.js';
+import { groupIdOf } from './view-folds.js';
 import { addRefPatch, RefsId, type RefInput, refAddresses } from '@molstar/seqx-core/lang';
 import {
   type AddressResolution,
@@ -429,7 +430,7 @@ export class AddressModel extends ReactiveModel {
     const sections = this.view.resolved.value?.sections;
     if (r?.type !== 'keys' || !r.keys.keys.length || !sections?.some((s) => s.trackGroups)) return [];
     const owners = new Set(r.keys.keys.map((k) => k.owner));
-    return foldedHolding(sections, (s) => this.view.foldedGroups(s), owners);
+    return GroupsView.foldedHolding?.(sections, (s) => this.view.foldedGroups(s), owners) ?? [];
   }
 
   /** Whether the last move found what it moved to wholly in a hidden stretch (and moved to its break). */

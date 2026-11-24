@@ -7,17 +7,17 @@
 // The `groups` behavior (_spec/README.md "Behaviors", Groups): a section's track groups folded as session state, the
 // clade folds' model. This is its door: the commands listed, their bodies (`groups-body.ts`) loaded the first time a
 // spec holds a section with a group, as render's groups chunk (core's `withViewKind`: the model waits for both). Why
-// lazy: groups are rare; a viewer that never shows one pays for little of them. `layer.lanes` is here whole: it acts
-// on a ranges layer, grouped or not.
+// lazy: groups are rare; a viewer that never shows one pays for little of them. `layer.lanes` acts on any ranges
+// layer, grouped or not: its `when` here, its patch in the body (loaded at its first run).
 
-import type { Op } from '@molstar/core/repr/patch';
 import type { Node } from '@molstar/core/repr/tree';
-import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
-import type { EditOutcome, SpecModel, ViewModel } from '@molstar/seqx-viewer/models';
+import type { CommandDefinition } from '@molstar/ui/commands/types';
+import type { SpecModel, ViewModel } from '@molstar/seqx-viewer/models';
 import type { EditOrigin } from '@molstar/seqx-viewer/ports';
 import type { BehaviorProvider } from '@molstar/seqx-viewer/viewer-spec';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { withViewKind } from '@molstar/seqx-core/resolve';
+import { holdsGroup } from '@molstar/seqx-core/view';
 
 /** What a groups command is given: a group's address (`toggle`), a section's (`collapseAll`, `expandAll`, `keep`). */
 export interface GroupsContext {
@@ -58,14 +58,7 @@ const loadBody = () =>
     },
   ));
 
-/** Whether a section holds a group of tracks. */
-function grouped(n: Node): boolean {
-  const c = n.children;
-  if (c) for (let i = 0; i < c.length; i++) if (c[i].kind === 'group') return true;
-  return false;
-}
-
-withViewKind('section', loadBody, grouped);
+withViewKind('section', loadBody, holdsGroup);
 
 const Commands: readonly (readonly [string, string, string])[] = [
   [GroupsCommandIds.toggle, 'Fold or open a group of tracks', 'No group there'],
@@ -83,12 +76,6 @@ export function groupsBehavior(spec: SpecModel, view: ViewModel): GroupsBehavior
   const live = () => (body ??= !disposed && Body ? Body.groupsBody(spec, view, say) : undefined);
   live();
   const stop = spec.model.listen(() => void live());
-  const said =
-    (done: string) =>
-    (o: EditOutcome): CommandResult =>
-      o.ok
-        ? { message: o.changed ? done : 'Already so', undoable: o.changed }
-        : { message: o.issues.find((i) => i.severity === 'error')?.message ?? 'Refused' };
   const of = (id: string) => live()?.commands.find((c) => c.id === id);
 
   const commands: CommandDefinition<GroupsContext>[] = Commands.map(
@@ -112,17 +99,12 @@ export function groupsBehavior(spec: SpecModel, view: ViewModel): GroupsBehavior
       for (const id of ctx.address.split('/').filter(Boolean)) n = n?.children?.find((c) => c.id === id);
       return n?.kind === 'layer' && n.params?.type === 'ranges' ? true : 'No ranges layer there';
     },
-    run: (_, ctx) => {
-      const at = ctx.address!.split('/').filter(Boolean);
-      const ops: Op[] = [
-        ctx.lanes === 'one' ? { op: 'set', at, key: 'lanes', value: 'one' } : { op: 'unset', at, key: 'lanes' },
-      ];
-      const o = spec.patch('Lanes', (_root, revision) => ({ base: revision, ops }), {
-        ...(ctx.origin ? { origin: ctx.origin } : {}),
-      });
-      const done = ctx.lanes === 'one' ? 'One lane' : 'Packed';
-      return o instanceof Promise ? o.then(said(done)) : said(done)(o);
-    },
+    // its patch in the body (loaded at its first run when no group loaded it before)
+    run: (args, ctx, signal) =>
+      loadBody().then(() => {
+        const c = of(GroupsCommandIds.lanes);
+        return c ? c.run(args, ctx, signal) : { message: 'The viewer is retired' };
+      }),
   });
 
   return {

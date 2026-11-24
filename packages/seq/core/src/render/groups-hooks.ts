@@ -9,8 +9,8 @@
 // section with a group, a model waiting for them as for the categorical axes (`withViewKind`), so a section with
 // groups is never drawn without them. Why lazy: groups are rare; a view without one pays nothing for them.
 
-import type { Node } from '@molstar/core/repr/tree';
 import { withViewKind } from '@molstar/seqx-core/resolve';
+import { holdsGroup } from '@molstar/seqx-core/view';
 
 /** The chevron's room before a group's label, px (here: the label column's measure reads it without the chunk). */
 export const ChevronPx = 14;
@@ -44,18 +44,11 @@ export function loadGroups(): Promise<void> {
   });
 }
 
-/** Whether a section holds a group of tracks. */
-function grouped(n: Node): boolean {
-  const c = n.children;
-  if (c) for (let i = 0; i < c.length; i++) if (c[i].kind === 'group') return true;
-  return false;
-}
-
 let registered = false;
 
 /** Registers the chunk with resolve (the tracks layout calls it): loaded when a spec holds a section with a group. */
 export function registerGroups(): void {
   if (registered) return;
   registered = true;
-  withViewKind('section', loadGroups, grouped);
+  withViewKind('section', loadGroups, holdsGroup);
 }

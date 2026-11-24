@@ -95,6 +95,24 @@ export function groupsBody(spec: SpecModel, view: ViewModel, say?: (text: string
       run: (_, ctx) => all(ctx, false, 'Groups opened'),
     },
     {
+      // a ranges layer in one lane (labels off) or packed: the figure's look, one patch (the layer's `lanes`); its
+      // `when` is the door's (`groups.ts`)
+      id: GroupsCommandIds.lanes,
+      title: 'Lay a ranges layer in one lane or packed',
+      category: 'Groups',
+      run: (_, ctx) => {
+        const at = ctx.address!.split('/').filter(Boolean);
+        const ops: Op[] = [
+          ctx.lanes === 'one' ? { op: 'set', at, key: 'lanes', value: 'one' } : { op: 'unset', at, key: 'lanes' },
+        ];
+        const o = spec.patch('Lanes', (_root, revision) => ({ base: revision, ops }), {
+          ...(ctx.origin ? { origin: ctx.origin } : {}),
+        });
+        const done = ctx.lanes === 'one' ? 'One lane' : 'Packed';
+        return o instanceof Promise ? o.then(said(done)) : said(done)(o);
+      },
+    },
+    {
       id: GroupsCommandIds.keep,
       title: 'Keep these folds as the opening state',
       category: 'Groups',

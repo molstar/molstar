@@ -72,33 +72,3 @@ export function foldsEqual(a: GroupFolds | undefined, b: GroupFolds | undefined)
   for (const [k, v] of x) if (y.get(k) !== v) return false;
   return true;
 }
-
-/**
- * The folded groups a reveal opens (_spec/README.md "ViewModel", Groups): the groups of the view's sections whose shown
- * tracks alone draw what the data owners make (an item's key: a layer's data, or a form over it); none when a track
- * not folded draws it (the reveal goes there) or nothing does.
- */
-export function foldedHolding(
-  sections: readonly ResolvedSection[],
-  folded: (section: string) => readonly string[],
-  owners: ReadonlySet<string>,
-): string[] {
-  const out: string[] = [];
-  for (const s of sections) {
-    const ids = folded(s.address);
-    for (const t of s.tracks) {
-      if (!t.layers.some((l) => l.data && owners.has(ownerOf(l.data.address)))) continue;
-      const g = t.group;
-      // an authored summary track stands for its folded group: drawn while folded
-      if (!g || t.summaryOf || !ids.includes(groupIdOf(g))) return [];
-      if (!out.includes(g)) out.push(g);
-    }
-  }
-  return out;
-}
-
-/** A data address's node part (`/data/x/(item …)` → `/data/x`). */
-const ownerOf = (address: string): string => {
-  const k = address.indexOf('/(');
-  return k < 0 ? address : address.slice(0, k);
-};
