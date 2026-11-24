@@ -575,7 +575,11 @@ export function layerName(
     text(layer.params.label) ??
     text(layer.params.title) ??
     // a letters layer says its kind wherever it is ("Sequence letters" with a second layer beside it too)
-    (layer.type === 'letters' && label !== undefined ? (/\bletters$/i.test(label.trim()) ? label : `${label} letters`) : owned) ??
+    (layer.type === 'letters' && label !== undefined
+      ? /\bletters$/i.test(label.trim())
+        ? label
+        : `${label} letters`
+      : owned) ??
     layer.address?.slice(layer.address.lastIndexOf('/') + 1) ??
     layer.type[0].toUpperCase() + layer.type.slice(1)
   );

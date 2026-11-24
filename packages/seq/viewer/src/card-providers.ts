@@ -493,7 +493,8 @@ const PlaceSection: CardProviderEntry = {
     else out.row(name, ordinal);
     // the 0-based index beside the ordinal: a protein's residue, never a nucleic base (a chromosome's or a DNA or RNA
     // sequence's position is its number; the index there is the same number less one, noise)
-    if (!onAssembly(at.model, system) && blockKindName(at.model, system) === 'Chain') out.row('index', String(position));
+    if (!onAssembly(at.model, system) && blockKindName(at.model, system) === 'Chain')
+      out.row('index', String(position));
     for (const [id, label] of declared) out.row(id, label);
     // a numbering with no label there is said as not numbering it (the ruler marks the same run), apart from the labels
     const labels = declared

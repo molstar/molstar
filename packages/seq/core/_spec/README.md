@@ -612,9 +612,11 @@ layout per token table, held domains and the reader's substitution (`LayerChanne
   legends back in their place, or a row of its name alone where it has none kept (the viewer's Legends: a layer's row
   keeps its place when hidden), the caller keeping `last` across settles. **A layer's name** (`layerName`, beside
   `hiddenTrackName`): its `label`, else its `title`, else its track's or bridge's label where it is the only layer there
-  (a letters layer says its kind wherever it is, beside others too: "<label> letters"), else its id (its type without
-  one); every list of layers says it (a track header's menus, a legend's eye and title, a hidden layer's row:
-  `viewLegends` and `keepHiddenLegends` both call it). Why one: two consumers naming one layer apart read as two layers.
+  (a letters layer says its kind wherever it is, beside others too: "<label> letters", never doubled when the label ends
+  with it), else its id (its type without one); a folded group's summary layer carries its member track's label (else
+  "<group label> <type>") as its `label`, so its row, eye and hidden row never say `<layer>#summary`; every list of
+  layers says it (a track header's menus, a legend's eye and title, a hidden layer's row: `viewLegends` and
+  `keepHiddenLegends` both call it). Why one: two consumers naming one layer apart read as two layers.
 - **Builder**: `theme.uniform|field|rules|scheme|letters|categorical|…` and `measure.*`; a layer's `field` form over an
   inline table's text column gets the column's values listed (the legend is the vocabulary); a `ranges` layer over a
   `category` column, a `variants` one over a `consequence` column and a `pairs` one over a `type` column default to a
@@ -4244,8 +4246,8 @@ the bands, never a warm frame's work).
   padded at its top to `header.groupPx`) holding every member layer whose form is `lane`, then a strip a `strip` member
   (`<group>#strip<k>`, `group.summary.stripPx` high, 1 px apart, at most `group.summary.maxStrips`, the rest counted:
   "+2 not shown"). A summary layer is its member's keyed `<layer>#summary`, its params with `lanes: 'one'` in the lane
-  form; it prepares as its member (the prep is shared, a toggle prepares nothing again), and a folded member's open form
-  is never laid (a fold makes a frame cheaper).
+  form and its `label` the member track's; it prepares as its member (the prep is shared, a toggle prepares nothing
+  again), and a folded member's open form is never laid (a fold makes a frame cheaper).
 - **Summary forms** (`LayerType.collapse`, `lane` | `strip` | `row`; absent, the built-ins': `ranges`, `secondary`,
   `variants`, `pairs` a lane, `values` a strip, `rows` a row; the rest left out). The `row` form (a rows track's
   consensus row) is not drawn yet: a rows member is left out of the summary. The lane form is the ranges layer's

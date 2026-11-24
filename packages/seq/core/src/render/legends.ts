@@ -114,7 +114,8 @@ export function keepHiddenLegends(
   for (const s of layout.sections) {
     if (!s.section.trackGroups?.length) continue;
     for (const t of s.tracks)
-      for (const l of t.layers) if (l.layer.address?.endsWith('#summary')) names.set(l.key, layerName(l.layer, t.track));
+      for (const l of t.layers)
+        if (l.layer.address?.endsWith('#summary')) names.set(l.key, layerName(l.layer, t.track));
   }
   for (const l of shown) for (const k of l.layers) last.set(k, [...(last.get(k) ?? []), l]);
   for (const k of [...last.keys()]) if (!place.has(k)) last.delete(k);
