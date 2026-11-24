@@ -6,6 +6,10 @@ Open items for the next fix point or a running lane's fix round (the loop, Each 
   `ext-rondo/src/card.ts`'s `legendRondo`, CL2's files). The entry has no swatch, and its label doubles ("Contacts: by
   chromosome"). Fix: drop `<name>: ` when it repeats the legend's title, and give "by chromosome" a hue swatch. Kind:
   look. To CL2's fix round.
+- **Fixed by the orchestrator.** **The Antibody and Complex index pages in a serif** (the author, 2026-11-24: "the index
+  pages feel weird being the only ones with serif font"): their root style read `--msui-*` tokens with no fallbacks,
+  undefined on an index page, so the whole `font` declaration was dropped; fallbacks added (system-ui, as the other
+  five). Kind: look.
 - **A legend row reads as one category and hides the whole track** (the author, 2026-11-24, Features › Structure link
   › Focus And Back, two screenshots: "there is a bug on the legend here, showing just the ATP, but also hiding
   everything"): the row "Sequence ⊙ ATP" lists one swatch while the track draws its letters and eight ligands; its eye

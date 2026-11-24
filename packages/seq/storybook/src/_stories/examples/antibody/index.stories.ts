@@ -51,7 +51,7 @@ export const Views: StoryObj = {
   render: () => {
     const root = document.createElement('div');
     root.style.cssText =
-      'font: var(--msui-text-sm) / 1.5 var(--msui-font-sans); padding: 24px; max-width: 80ch; color: var(--msui-text); background: var(--msui-bg); min-height: 100vh;';
+      'font: var(--msui-text-sm, 14px) / 1.5 var(--msui-font-sans, system-ui, sans-serif); padding: 24px; max-width: 80ch; color: var(--msui-text, inherit); background: var(--msui-bg, transparent); min-height: 100vh;';
     const el = (tag: 'h2' | 'h3' | 'p', text: string) => {
       const e = document.createElement(tag);
       e.textContent = text;
