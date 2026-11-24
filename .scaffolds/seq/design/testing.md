@@ -77,9 +77,7 @@ slowed the edit loop; here speed is a requirement with numbers:
   a test next to the story composes it as the story does (the viewer, its sources, a canvas and an export, two views),
   in Node on a fake clock. Why: what breaks between consumers (one releasing what the other reads, a signal one waits
   on that the other's change never fires) cannot be seen by each view's own tests; one such twin found three bugs.
-  **The canvas against its export after a move**: the export lays out afresh from the store, the canvas from what it kept, so
-  a pan and a zoom of every side, the canvas's ribbon count against the export's, finds a cache keyed too coarsely
-  (`across-moves.test.ts`, FX28: a read kept its rows of the window it was first built for).
+  **The canvas against its export after a move**: the export lays out afresh from the store, the canvas from what it kept, so a pan and a zoom of every side, the canvas's ribbon count against the export's (and some step drawing ribbons: equal zeros prove nothing), finds a cache kept past what it was cut by (`across-moves.test.ts`, FX28: a read kept its rows of the window it was first built for).
 - **Every asynchronous source has a synthetic twin with an injectable clock**: a source runtime lands with a synthetic
   source of the same protocol whose delays run on an injected clock, used by its stories and its tests
   ([sources.md](sources.md)). Why: with it every asynchronous bug reproduces in milliseconds with no real waiting, and a

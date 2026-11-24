@@ -4469,13 +4469,15 @@ pairs layer's prepared form and its region reader through the composition (`type
   whose near end does not start in `R` (a binary search a system). A side with nothing read (its tiles pending, failed
   or refused), or no block in view (never a read kept from before), takes no part: the other draws all it reads. **An
   assembly read's prepared rows are kept by its key**: the mode, the level, each entry's unit, tile and version, **and
-  the positions in view** (`gather` keeps only the rows with an end in view, so the same tiles under a moved window
-  build again; FX28: ribbons missing on the canvas after a pan or a zoom, the export, laid out afresh, drawing them).
-  Levels nested, so no far bin straddles `R`: property tests (every block over a whole far side drawn exactly once, by
-  its item or its bin; over two genomes at every pair of windows and levels). A side of blocks over no assembly: one
-  read, on the `a` side's window. **Pending** (EC-169): each side's bins' tiles not loaded (`RegionState.pending`) are
-  the pending hatch along its edge (4 px stripes every 8 px, `seq-pending`), so a bridge waiting is never an empty band.
-  Not built: the items gate per side after ownership (a side's bins are counted before it), an assembly side's hatch.
+  the positions in view**: the rows hold only those with an end in view (rows kept by the tiles alone, ownership cutting
+  them by the windows, let a side pending beside the loaded one draw rows out of view: `bridge-sides.test.ts`), so the
+  same tiles under a moved window build again, a pan's cost (FX28: rows kept past their window left ribbons missing on
+  the canvas, the export laying out afresh). Levels nested, so no far bin straddles `R`: property tests (every block
+  over a whole far side drawn exactly once, by its item or its bin; over two genomes at every pair of windows and
+  levels). A side of blocks over no assembly: one read, on the `a` side's window. **Pending** (EC-169): each side's
+  bins' tiles not loaded (`RegionState.pending`) are the pending hatch along its edge (4 px stripes every 8 px,
+  `seq-pending`), so a bridge waiting is never an empty band. Not built: the items gate per side after ownership (a
+  side's bins are counted before it), an assembly side's hatch.
 - **Export**: a bridge is an empty group (`data-bridge`, `data-a`, `data-b`, `data-y`, `data-height`, `data-count`)
   after the sections' (written by the chunk, `BridgesLayout.svg`); its ribbons are the passes' paths (two cubics joined
   by lines, closed).
