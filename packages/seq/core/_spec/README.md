@@ -3349,7 +3349,7 @@ in page coordinates: what crosses strips; `bridge`, internal, once a bridge with
   `domain`, or the scale node's both ends) is not drawn and said once a layer (`seq.render.reference.outside`: its index
   and value); an **open** end includes the lines (the union of EC-56 gains them), so a Manhattan track whose tallest SNP
   is 6.1 still shows its 7.3 line and a plot with no significant SNP is seen to have none (Provisional). The **label**
-  draws at the well's right end in the `labels` pass, above the line, `labelPx` (10) in `msui-text-muted` over a patch
+  draws at the well's right end with the data pass (before the hover and the cursor), above the line, `labelPx` (10) in `msui-text-muted` over a patch
   of the well's ground, only from `labelMinWellPx` (40) of well, below the line where it is within a label height of the
   well's top, cut with an ellipsis to the well's right third, the later of two overlapping labels dropped (its line
   stays) (Provisional); an unlabelled line draws no text. The layer's ARIA description (`summary`) says "reference line

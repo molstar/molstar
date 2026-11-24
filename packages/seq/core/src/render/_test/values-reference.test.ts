@@ -187,10 +187,10 @@ describe('the label', () => {
     expect(r.labelShown[0]).toBe(1);
     const [x, y, w, h] = [...r.patch.slice(0, 4)];
     expect(x + w).toBeCloseTo(lay.box.x + lay.box.width, 3);
-    expect(y + h).toBeCloseTo(r.y[0], 3);
+    expect(y + h).toBeCloseTo(r.top[0], 3);
     expect(h).toBe(12);
     expect(r.font).toBe('10px sans');
-    const patch = readRects(f.lists, 'labels').find((q) => Math.abs(q.x - x) < 0.01 && Math.abs(q.y - y) < 0.01);
+    const patch = readRects(f.lists, 'data').find((q) => Math.abs(q.x - x) < 0.01 && Math.abs(q.y - y) < 0.01);
     expect(patch?.fill).toBe(LightTokens.colors['seq-track']);
     expect(r.text[0]).toBe('genome-wide');
   });
@@ -199,7 +199,9 @@ describe('the label', () => {
     const { lay } = await frame(Positions, { domain: [0, 10], reference: [{ at: 10, label: 'top' }] });
     const r = lay.ref;
     expect(r.labelShown[0]).toBe(1);
-    expect(r.patch[1]).toBeCloseTo(r.y[0], 3);
+    // under the hairline's bottom edge, never over its lower half
+    expect(r.patch[1]).toBeCloseTo(r.top[0] + r.width, 3);
+    expect(r.patch[1]).toBeGreaterThanOrEqual(r.y[0] + r.width / 2 - 1e-6);
   });
 
   it('is not drawn in a well under 40 px, the line is', async () => {
@@ -207,7 +209,7 @@ describe('the label', () => {
     expect(short.lay.box.height).toBeLessThan(40);
     expect(short.lay.ref.labelShown[0]).toBe(0);
     expect(short.lay.ref.shown[0]).toBe(1);
-    expect(readRects(short.f.lists, 'labels').length).toBe(0);
+    expect(readRects(short.f.lists, 'data').filter((q) => q.fill === LightTokens.colors['seq-track']).length).toBe(0);
     const tall = await frame(Positions, { domain: [0, 10], reference: Many }, { height: 44 });
     expect(tall.lay.box.height).toBeGreaterThanOrEqual(40);
     expect(tall.lay.ref.labelShown[0]).toBe(1);
@@ -245,6 +247,26 @@ describe('the label', () => {
     const r = cut.lay.ref;
     expect(r.text[0].endsWith('…')).toBe(true);
     expect(r.patch[2]).toBeLessThanOrEqual(240 / 3 + 1e-6);
+  });
+});
+
+describe('the label and the hover', () => {
+  it('the label is drawn with the data pass, before the hover and the cursor: a hovered dot under it stays seen', async () => {
+    const { s, f, lay } = await frame(Positions, {
+      domain: [0, 10],
+      encoding: 'points',
+      reference: [{ at: 9, label: 'genome-wide' }],
+    });
+    const [x, y, w, h] = [...lay.ref.patch.slice(0, 4)];
+    expect(readRects(f.lists, 'labels')).toEqual([]);
+    expect(readRects(f.lists, 'data').some((q) => Math.abs(q.x - x) < 0.01 && Math.abs(q.y - y) < 0.01)).toBe(true);
+    // the dot at the right end, under the label's patch: hovering it draws its ring in the hover pass, after the patch
+    const dotX = lay.x1[9] - 1;
+    const hit = hitView(f.layout, dotX, y + h / 2);
+    expect(hit).toBeDefined();
+    expect(dotX).toBeGreaterThan(x);
+    expect(w).toBeGreaterThan(0);
+    expect(s).toBeDefined();
   });
 });
 

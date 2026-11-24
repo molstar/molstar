@@ -174,7 +174,8 @@ function layoutLabels(lay: ValuesLay, ctx: LayoutContext, muted: number) {
     const w = ctx.text.measure(r.font, text) + 2 * Pad;
     const y = r.y[i];
     // above the line, below it when the well's top is within a label height
-    const py = y - box.y >= h ? y - h : y;
+    // clear of the hairline's whole thickness: above its top edge, below its bottom edge
+    const py = y - box.y >= h ? r.top[i] - h : r.top[i] + r.width;
     if (py + h > box.y + box.height) continue;
     const px = box.x + box.width - w;
     let clash = false;

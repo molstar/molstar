@@ -323,6 +323,8 @@ function drawData(lay: ValuesLay, out: PassWriter) {
   else if (lay.encoding !== 'bars') drawLine(lay, out);
   else drawBars(lay, out);
   drawReference(lay, out);
+  // the labels with the data pass, before the hover and the cursor (a hover ring over a dot under a label stays seen)
+  drawReferenceLabels(lay, out);
 }
 
 /**
@@ -477,7 +479,6 @@ function drawBars(lay: ValuesLay, out: PassWriter) {
 const ValuesDraws = passDraws<ValuesLay, Emphasis | undefined>({
   data: drawData,
   hover: hoverValue,
-  labels: drawReferenceLabels,
 });
 
 /** A layout's placement state: one, reused (a layout runs to its end), so placing a value allocates nothing. */
