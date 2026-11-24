@@ -142,6 +142,14 @@ export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   'bridge.align': 'navigate',
   'bridge.selectAcross': 'session',
   'bridge.lock': 'patch',
+  // the `search` behavior's: a run and a clear are session state, and so is a step (the current hit is its channel; the
+  // reveal it runs is a jump of the view's history, as `clades.reveal`'s), a save one patch
+  'search.run': 'session',
+  'search.next': 'session',
+  'search.previous': 'session',
+  'search.go': 'session',
+  'search.clear': 'session',
+  'search.save': 'patch',
 };
 
 /** The viewer's own cursor commands that are session state (an extension's `cursor.x` declares its kind). */

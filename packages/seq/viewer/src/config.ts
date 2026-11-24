@@ -308,6 +308,28 @@ export interface ViewerConfig {
    * form (`patch`) and its chain (8).
    */
   readonly story: StoryConfig;
+  /**
+   * Search (_spec/README.md "Search"; the `search` behavior's): the matcher a run takes (`degenerate`, IUPAC; `exact`,
+   * `regex`, a registered `<id>:<name>`), its strands (`both`), and its bounds, each refused with its code before the
+   * work it sizes: a pattern's letters (1,000), a regular expression's characters and positions (256, 128), a regex
+   * hit's length (1,000), the letters a run reads (2^25), its word steps (2^28), the hits held (10,000: counted past
+   * it), a saved set's hits (1,000), the letters a batch reads (2^20); its channels (`search`, `search-current`).
+   */
+  readonly search: {
+    readonly matcher: string;
+    readonly strands: 'both' | 'forward';
+    readonly maxPattern: number;
+    readonly maxRegexChars: number;
+    readonly maxRegexPositions: number;
+    readonly maxHitLength: number;
+    readonly maxLetters: number;
+    readonly maxSteps: number;
+    readonly maxHits: number;
+    readonly maxSaved: number;
+    readonly chunkLetters: number;
+    readonly channel: string;
+    readonly currentChannel: string;
+  };
 }
 
 export const DefaultViewerConfig: ViewerConfig = {
@@ -317,7 +339,11 @@ export const DefaultViewerConfig: ViewerConfig = {
   store: { cacheBytes: 64 * 1024 * 1024, inFlight: 6, tileBins: 1024 },
   hover: { projectLinked: true, closeCodons: true, card: true, cardItems: 8, tooltipLines: 3 },
   selection: { holdNodes: true, extendScope: 'range', acrossBreaks: 'shown' },
-  highlight: { color: 'token:cat-5', colors: { 'link-hover': 'token:hover' } },
+  highlight: {
+    color: 'token:cat-5',
+    // the search's channels: apart from the links' (cat-5) and the accent (data and chrome never share a role)
+    colors: { 'link-hover': 'token:hover', search: 'token:cat-3', 'search-current': 'token:cat-3' },
+  },
   cursor: { keys: { prev: 'ArrowLeft', next: 'ArrowRight', up: 'ArrowUp', down: 'ArrowDown' } },
   reveal: { cursor: true, linked: 'text' },
   viewport: { maxPxPerPosition: 32, groupEqualAxes: true, onResize: 'keep-zoom' },
@@ -379,6 +405,9 @@ export const DefaultViewerConfig: ViewerConfig = {
       'help.keys': ['?'],
       // a track header's menu at the keyboard cursor (the `headers` behavior's; Enter on a header too)
       'headers.menu': ['ContextMenu', 'Shift+F10'],
+      // the platforms' find next and previous, in the canvas only (a host's box keeps its own; Mod+f stays the host's)
+      'search.next': ['Mod+g', 'F3'],
+      'search.previous': ['Mod+Shift+G', 'Shift+F3'],
     },
   },
   navigate: {
@@ -401,6 +430,21 @@ export const DefaultViewerConfig: ViewerConfig = {
   bounds: { ...DefaultSpecBounds, maxBlockValues: DefaultMaxBlockValues },
   copyLink: { prefer: ['ref', 'ids'], numbering: 'ordinal', action: 'focus' },
   story: DefaultStoryConfig,
+  search: {
+    matcher: 'degenerate',
+    strands: 'both',
+    maxPattern: 1000,
+    maxRegexChars: 256,
+    maxRegexPositions: 128,
+    maxHitLength: 1000,
+    maxLetters: 2 ** 25,
+    maxSteps: 2 ** 28,
+    maxHits: 10_000,
+    maxSaved: 1000,
+    chunkLetters: 2 ** 20,
+    channel: 'search',
+    currentChannel: 'search-current',
+  },
 };
 
 type DeepPartial<T> = {

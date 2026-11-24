@@ -301,6 +301,13 @@ const Cases: Record<string, { ctx: unknown; before?: (v: SeqViewer) => unknown }
   'rows.tree': { ctx: { track: RowsTrack }, before: (v) => v.view.setBand(RowsTrack, { tree: true }) },
   // the menu at a shown cursor: the reader's, nothing in the models
   'headers.menu': { ctx: {}, before: cursorAt(Protein) },
+  // the search's: a run, a step from the run's hits (shown: the reveal moves nothing), a clear, a save
+  'search.run': { ctx: { pattern: 'EP' } },
+  'search.next': { ctx: {}, before: (v) => run(v, 'search.run', { pattern: 'EP' }) },
+  'search.previous': { ctx: {}, before: (v) => run(v, 'search.run', { pattern: 'EP' }) },
+  'search.go': { ctx: { index: 0 }, before: (v) => run(v, 'search.run', { pattern: 'EP' }) },
+  'search.clear': { ctx: {}, before: (v) => run(v, 'search.run', { pattern: 'EP' }) },
+  'search.save': { ctx: {}, before: (v) => run(v, 'search.run', { pattern: 'EP' }) },
   'preview.cancel': {
     ctx: {},
     before: (v) =>
