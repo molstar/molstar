@@ -1,0 +1,76 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Grids and rows" />
+
+# Pairs, grids and rows
+
+Four things a user reads off a family or a molecule: **pairs** (a tRNA's base pairs, contacts across chains), **grids**
+(a value per pair of positions: a base-pair matrix, a PAE), an alignment's **rows**, and its **logo**. What is drawn
+depends on the pixels on screen, not the amount of data.
+
+## Pairs
+
+- A pair is two ranges, on one system or two, with a kind. Drawn as arcs over a track, chords through a ring's hole, or
+  dots on a grid, by the same layer.
+- Nested arcs nest; crossing pairs (pseudoknots) are drawn crossing, or the crossing set on the other side
+  (`crossing: split`). An end past the window is reached a quarter window past the edge, so arcs move smoothly.
+- On copies shown apart (four chains, four hemes), each contact joins the copies its data names: a heme to the chain it
+  sits in. A contact whose data names no copies is not guessed onto one; the view says so.
+- Hover or select a pair and both ends light, here and on linked sections. Past a few thousand arcs in view they are
+  binned by the screen, and the view says so.
+
+## Grids and dot plots
+
+- A grid is a section of its own with two axes, `x` and `y`, each able to follow another section: a PAE between two
+  chains has its x follow one chain's section and its y the other's.
+- **A grid over a complex** follows a section of blocks on both axes: the whole complex's PAE, chains side by side with
+  their boundaries drawn; a dragged box splits at the chains, and a library summary (mean, min, max) feeds an
+  application's readout. The chains' boundaries are the blocks' gap, as in the tracks, with no line in it.
+- **A plot's box is fixed**: zooming or panning never resizes it (cells become rectangles when the axes show different
+  spans). A double-click on a cell zooms a step about it; the wheel over the plot is the plot's (plain wheel pans,
+  Cmd/Ctrl+wheel and pinch zoom) and never scrolls the page.
+- Hover is a **crosshair**: both positions light on the grid and on every linked section. A drag selects a
+  **rectangle**: two ranges at once; Cmd/Ctrl+drag adds one, Alt+drag removes one.
+- Upper and lower triangles may hold different data (`triangle`); `mirror` draws a pair both ways.
+- Zoomed out, a grid draws from a reduction to the pixel, never empty while a tile is built.
+
+## Rows
+
+- An alignment's rows over its columns, ordered by data, by tree or by a field of the rows' table; filtered, hidden (a
+  "3 hidden" chip shows them again) and pinned to a band on top.
+- Each row's first and last residue numbers, beside it, are those of the residues in view: they follow a pan or zoom.
+- The rows scroll inside their band while the ruler and logo above stay put; `]` and `[` zoom the rows, `0` fits rows
+  and columns.
+- 10,000 rows are held and 10 million drawn lazily at the same frame time; a row not yet loaded shows as pending.
+- Clicking a row's header selects it, Shift and Cmd/Ctrl extend and toggle; a drag selects a block of rows × columns; a
+  click or drag on the ruler's upper part selects columns (its lower part is the ruler rail and pans).
+- The keyboard cursor steps columns and rows: ↑ ↓ a row (a folded clade one stop, rows never loaded stepped over), Page
+  Up and Page Down a page with the rows, Cmd/Ctrl+↑ ↓ the first and last row, ← onto a row's label and → back,
+  Shift+arrows a block; Space toggles a cell or folds the row's clade, Enter opens a folded clade.
+- **A narrow frame gives way in one order** (decided by the author, 2026-11-20): the vertical overview narrows (96 to 48
+  px) and hides, the label column shrinks to its floor, the tree collapses to its toggle glyph (a click or Shift+T opens
+  it again for the session), then the frame scrolls; a miniature before names, names before data.
+- **Row columns**: a row's annotations (species, description, length, identity to the reference, a field joined from a
+  file) as columns on the left of the alignment or on its right, as text, numbers, bars or chips; their titles above the
+  rows order the rows by them, and they give way to a narrow view before the labels do, a chip naming the ones hidden
+  (its card lists them). A value cut short shows whole only while the pointer is on it, never over the row's data from a
+  hover elsewhere on the row.
+
+## Clades
+
+- A click on a tree node folds or unfolds its clade into a **summary row**: "first +n" beside a wedge, its cells the
+  clade's per-column consensus. Hovering a node or a summary row lights the clade: its branches and its rows' band.
+- The tree's branches are one width; a folded clade's wedge is a light, outlined triangle reaching its deepest leaf.
+- A fold is **session state**, like the scroll: no undo step. `clades.keep` writes the folds shown into the spec as its
+  opening state, one edit. Collapse all, expand all, collapse to a depth or a distance cut are commands (a drag of the
+  cut line across the tree is planned).
+- Folding never changes the selection: a selection holding part of a clade shows as a partial mark on its summary row.
+- Focusing a row inside a folded clade, following a link to it or landing on it in a search always opens its clades;
+  back folds them again.
+- In a text figure every row shows on every line, unfolded.
+
+## The logo
+
+Each column's letters stacked by information content (bits) or probability, from the alignment's profile. A click
+selects the column. Its letters keep their scheme's hue, darkened or lightened to read on the page in either theme, and
+saturated: the scheme's pale cell colors are for cells, not glyphs.

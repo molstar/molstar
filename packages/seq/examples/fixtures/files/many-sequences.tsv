@@ -1,0 +1,8 @@
+target	id	label	start	end	category
+p53	TAD	Transactivation	1	61	activation
+cdk2	GRL	Gly-rich loop	12	19	loop
+p53	DBD	DNA-binding	94	292	binding
+cdk2	PSTAIRE	PSTAIRE helix	46	56	helix
+	NLS	Nuclear localization	319	360	signal
+cdk2	TLOOP	T-loop	145	172	loop
+p53	TET	Tetramerization	324	355	oligomer

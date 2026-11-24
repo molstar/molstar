@@ -1,0 +1,504 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+// Every change has a kind (_spec/README.md "Commands"): each command of the default viewer, run on a viewer with the
+// default spec's history, changes exactly what its declared kind says (the spec and one history step for a patch, the
+// preview, the session, what is shown without the spec, or nothing); and undo touches only spec patches.
+
+import { hashNode, type Node } from '@molstar/core/repr/tree';
+import { createSeqSpec } from '@molstar/seqx-core/lang';
+import { afterEach, describe, expect, it } from 'vitest';
+import type { EditingBehavior } from '../behaviors/editing.js';
+import { type ChangeKind, changeKindOf } from '../commands.js';
+import { viewerItem } from '../config.js';
+import { DefaultSeqViewerSpec } from '../default-spec.js';
+import { type UiHistory, uiHistory } from '../ui-history.js';
+import { createSeqViewer, type SeqViewer } from '../viewer.js';
+import { type Frames, installFrames } from './frames.js';
+
+const Protein = '/views/main/protein';
+const Text = '/views/main/text';
+const LettersLayer = `${Protein}/letters/l`;
+const DomainsTrack = `${Protein}/domains`;
+const RowsTrack = '/views/main/aln/rows';
+
+function spec(): Node {
+  const b = createSeqSpec({ title: 'changes' });
+  const p = b.data.sequence('p', { alphabet: 'protein', letters: 'MEEPQSDPSVEPPLSQETFSDLWKLLPENN' });
+  const domains = b.data.ranges('domains', {
+    target: p,
+    rows: { start: new Int32Array([0, 15]), end: new Int32Array([10, 25]), id: ['A', 'B'] },
+  });
+  b.refs.ref('b', { to: `${domains}/(item :id B)`, label: 'Domain B' });
+  b.views.scale('s');
+  b.views.view('main', (v) => {
+    const s = v.section('protein', { of: p });
+    s.track('letters').layer('l', { type: 'letters' });
+    s.track('domains').layer('d', { type: 'ranges', data: domains });
+    // a second section, so the cursor has one to move to; its tracks in a group, folded and opened
+    v.section('below', { of: p }).group('g', { label: 'Group' }).track('letters').layer('l', { type: 'letters' });
+    // a text of a group a line in a box of two lines: it scrolls, and a step up or down goes a line
+    v.section('text', { of: p, layout: 'text', max_width: 130, height: 90 })
+      .track('letters')
+      .layer('l', { type: 'letters' });
+    // an alignment's rows in tree order: folds, pins, hidden rows, the rows' zoom
+    const aln = b.data.alignment('aln', {
+      alphabet: 'protein',
+      rows: { label: ['a', 'b', 'c', 'd'], letters: ['MEEP', 'MEDP', 'MKEP', 'LEEP'] },
+    });
+    const tree = b.data.tree('tree', { of: aln, newick: '((a,b)ab,(c,d)cd);' });
+    v.section('aln', { of: aln })
+      .track('rows', { height: 60 })
+      .layer('r', {
+        type: 'rows',
+        data: aln,
+        tree,
+        order: 'tree',
+        columns: [{ field: 'label', side: 'right' }],
+      } as never);
+    // a block, so its form is switched
+    v.section('blocks', {}, (s) => {
+      s.block('b', { of: p });
+      s.block('b2', { of: p, range: [0, 10] } as never);
+    });
+  });
+  b.snapshots.snapshot('first', {
+    label: 'Domains taller',
+    patch: { ops: [{ op: 'set', at: ['views', 'main', 'protein', 'domains'], key: 'height', value: 40 }] },
+  });
+  return b.build();
+}
+
+let frames: Frames | undefined;
+const viewers: SeqViewer[] = [];
+
+afterEach(() => {
+  for (const v of viewers.splice(0)) v.retire();
+  frames?.restore();
+  frames = undefined;
+});
+
+/** The default viewer, headless but with the mounted viewer's history (`uiHistory`). */
+async function make() {
+  frames = installFrames();
+  const v = createSeqViewer({
+    ...DefaultSeqViewerSpec(),
+    ui: undefined,
+    history: uiHistory(),
+    config: [[viewerItem('viewport.maxPxPerPosition'), 1000]],
+  });
+  viewers.push(v);
+  await v.load(spec());
+  v.resize(600);
+  await v.settle();
+  frames.flush();
+  return v;
+}
+
+const stackOf = (v: SeqViewer) => (v.spec.history as UiHistory).stack;
+const editing = (v: SeqViewer) => v.behaviors.get('editing') as EditingBehavior;
+
+/** What a change can touch, read so that two reads compare. */
+function look(v: SeqViewer) {
+  const vp = v.view.get(Protein);
+  const text = v.view.get(Text);
+  return {
+    patch: `${v.spec.revision.value} ${stackOf(v).steps.value.length}`,
+    preview: v.spec.preview.value,
+    session: [
+      v.selection.value.value,
+      v.selection.cursor.value,
+      ...v.highlight.names.value.map((n) => v.highlight.get(n)),
+      // the reader's color-blind substitution
+      v.legends.cvdSafe.value,
+      // a rows band's folds (session state)
+      v.view.band(RowsTrack)?.folds,
+      // the folded track groups (session state)
+      v.view.groupFolds.value,
+      // a narrow frame's tree opened by the reader (session state)
+      v.view.band(RowsTrack)?.tree,
+    ],
+    navigate: `${vp?.start} ${vp?.end} ${text?.start} ${v.spec.step.value?.id} ${v.view.band(RowsTrack)?.rowScale} ${v.view.get('/views/main/blocks')?.start}`,
+    // the rows' scroll: a fold keeps the row at the top, so it moves with a session change; alone it is a navigation
+    scroll: v.view.band(RowsTrack)?.bandTop,
+  };
+}
+
+function changed(a: ReturnType<typeof look>, b: ReturnType<typeof look>): ChangeKind[] {
+  const out: ChangeKind[] = [];
+  if (a.patch !== b.patch) out.push('patch');
+  if (a.preview !== b.preview) out.push('preview');
+  const session = a.session.length !== b.session.length || a.session.some((x, i) => x !== b.session[i]);
+  if (session) out.push('session');
+  if (a.navigate !== b.navigate || (!session && a.scroll !== b.scroll)) out.push('navigate');
+  return out;
+}
+
+// a search run yields through the host's 0 ms timers: driven, as the real host turns
+const run = (v: SeqViewer, id: string, ctx: unknown) => frames!.timers.drive(v.execute(id, ctx));
+
+const cell = (position: number) => ({ section: Protein, hit: { layer: LettersLayer, system: '/data/p', position } });
+const cursorAt = (section: string) => (v: SeqViewer) =>
+  v.selection.setCursor({ section, system: '/data/p', position: 5 });
+
+/** The cursor shown on the alignment's rows, on data row `row`. */
+const cursorOnRow = (row: number) => (v: SeqViewer) =>
+  v.selection.setCursor({
+    section: '/views/main/aln',
+    system: '/data/aln',
+    position: 1,
+    ySystem: '/data/aln/(rows)',
+    yPosition: row,
+    keyboard: true,
+  });
+
+const cursorAtText = (position: number) => (v: SeqViewer) =>
+  v.selection.setCursor({ section: Text, system: '/data/p', position });
+
+/** The domains colored by their id: a legend whose entries select items. */
+const colorById = (v: SeqViewer) =>
+  run(v, 'layer.channel', { address: `${DomainsTrack}/d`, value: { kind: 'field', params: { name: 'id' } } });
+
+/** Each command's context, and what makes it change something first (a show needs a hide). */
+const Cases: Record<string, { ctx: unknown; before?: (v: SeqViewer) => unknown }> = {
+  'view.fit': { ctx: { section: Protein }, before: (v) => v.view.setRange(Protein, 5, 15) },
+  'view.focus': { ctx: { section: Protein, focus: { start: 2, end: 8 } } },
+  'view.back': {
+    ctx: { section: Protein },
+    before: (v) => run(v, 'view.focus', { section: Protein, focus: { start: 2, end: 8 } }),
+  },
+  'view.forward': {
+    ctx: { section: Protein },
+    before: async (v) => {
+      await run(v, 'view.focus', { section: Protein, focus: { start: 2, end: 8 } });
+      await run(v, 'view.back', { section: Protein });
+    },
+  },
+  'view.zoom-in': { ctx: { section: Protein } },
+  'view.zoom-out': { ctx: { section: Protein }, before: (v) => v.view.setRange(Protein, 5, 15) },
+  'view.pan-left': { ctx: { section: Protein }, before: (v) => v.view.setRange(Protein, 10, 20) },
+  'view.pan-right': { ctx: { section: Protein }, before: (v) => v.view.setRange(Protein, 10, 20) },
+  'view.pan-up': { ctx: { section: Text }, before: (v) => v.view.setRange(Text, 10, 30) },
+  'view.pan-down': { ctx: { section: Text } },
+  'window.pan-back': { ctx: { section: Protein }, before: (v) => v.view.setRange(Protein, 10, 20) },
+  'window.pan-on': { ctx: { section: Protein }, before: (v) => v.view.setRange(Protein, 10, 20) },
+  'window.grow': { ctx: { section: Protein }, before: (v) => v.view.setRange(Protein, 10, 20) },
+  'window.shrink': { ctx: { section: Protein }, before: (v) => v.view.setRange(Protein, 10, 20) },
+  'navigator.center': { ctx: { section: Protein, at: 30 }, before: (v) => v.view.setRange(Protein, 10, 20) },
+  'navigator.zoom-to': { ctx: { section: Protein, start: 30, end: 40 } },
+  'address.focus': { ctx: { address: '/refs/b' } },
+  'address.reveal': {
+    ctx: { address: '/data/p/(range :from 1 :to 5)' },
+    before: (v) => v.view.setRange(Protein, 15, 25),
+  },
+  'address.select': { ctx: { address: '/refs/b' } },
+  'address.highlight': { ctx: { address: '/refs/b', channel: 'paper' } },
+  'address.hover': { ctx: { address: '/refs/b' } },
+  'address.unhover': { ctx: {}, before: (v) => run(v, 'address.hover', { address: '/refs/b' }) },
+  'address.copy-link': { ctx: {}, before: (v) => run(v, 'address.select', { address: '/refs/b' }) },
+  'refs.add': { ctx: { ref: { id: 'here', to: '/data/p/(range :from 1 :to 5)' } } },
+  'refs.remove': { ctx: { address: '/refs/b' } },
+  'refs.label': { ctx: { address: '/refs/b', label: 'Second domain' } },
+  'selection.bookmark': { ctx: {}, before: (v) => run(v, 'address.select', { address: '/refs/b' }) },
+  'highlight.clear': {
+    ctx: {},
+    before: (v) => run(v, 'address.highlight', { address: '/refs/b', channel: 'paper' }),
+  },
+  'section.reverse': { ctx: { address: Protein } },
+  'section.collapse': { ctx: { address: Protein } },
+  'block.form': { ctx: { address: '/views/main/blocks/b', form: 'whole' } },
+  'block.reverse': { ctx: { address: '/views/main/blocks/b' } },
+  'block.next': { ctx: { section: '/views/main/blocks' }, before: (v) => v.view.setRange('/views/main/blocks', 0, 5) },
+  'block.previous': {
+    ctx: { section: '/views/main/blocks' },
+    before: (v) => v.view.setRange('/views/main/blocks', 32, 38),
+  },
+  'section.include': { ctx: { address: '/views/main/blocks', include: ['p'] } },
+  'layer.hide': { ctx: { address: LettersLayer } },
+  'layer.show': { ctx: { address: LettersLayer }, before: (v) => run(v, 'layer.hide', { address: LettersLayer }) },
+  'layer.color': { ctx: { address: `${DomainsTrack}/d`, color: '#d62728' } },
+  'layer.channel': { ctx: { address: `${DomainsTrack}/d`, channel: 'opacity', value: 0.5 } },
+  'scale.set': { ctx: { address: '/views/s', scale: { domain: [0, 1] } } },
+  'theme.value-color': { ctx: { address: `${DomainsTrack}/d`, entry: 'A', color: '#123456' } },
+  'legend.select': { ctx: { address: `${DomainsTrack}/d`, entry: 'B' }, before: colorById },
+  'legend.hover': { ctx: { address: `${DomainsTrack}/d`, entry: 'B' }, before: colorById },
+  'theme.cvd-safe': { ctx: { on: true } },
+  'layer.filter': { ctx: { address: `${DomainsTrack}/d`, entry: 'B' }, before: colorById },
+  'track.hide': { ctx: { address: DomainsTrack } },
+  'track.show': { ctx: { address: DomainsTrack }, before: (v) => run(v, 'track.hide', { address: DomainsTrack }) },
+  'track.move': { ctx: { address: DomainsTrack, after: null } },
+  'track.height': { ctx: { address: DomainsTrack, height: 'content' } },
+  'track.add': {
+    ctx: {
+      address: Protein,
+      after: 'domains',
+      node: { kind: 'track', id: 'domains-2', children: [{ kind: 'layer', id: 'd', params: { type: 'letters' } }] },
+    },
+  },
+  'step.enter': { ctx: { step: 'first' } },
+  'step.leave': { ctx: {}, before: (v) => run(v, 'step.enter', { step: 'first' }) },
+  'selection.set': { ctx: cell(3) },
+  'selection.extend': { ctx: cell(6), before: (v) => run(v, 'selection.set', cell(3)) },
+  'selection.toggle': { ctx: cell(3) },
+  'selection.add': { ctx: { range: { system: '/data/p', start: 8, end: 12 } } },
+  'selection.subtract': {
+    ctx: { address: '/data/p/(range :from 4 :to 6)' },
+    before: (v) => run(v, 'selection.add', { range: { system: '/data/p', start: 0, end: 10 } }),
+  },
+  'selection.clear': { ctx: {}, before: (v) => run(v, 'selection.set', cell(3)) },
+  'selection.copy-letters': { ctx: {}, before: (v) => run(v, 'selection.set', cell(3)) },
+  // the keys panel opens: the reader's, nothing in the models
+  'help.keys': { ctx: {} },
+  'cursor.prev': { ctx: { section: Protein }, before: cursorAt(Protein) },
+  'cursor.next': { ctx: { section: Protein }, before: cursorAt(Protein) },
+  'cursor.up': { ctx: { section: Protein }, before: cursorAt('/views/main/below') },
+  'cursor.down': { ctx: { section: Protein }, before: cursorAt(Protein) },
+  'cursor.extend-prev': { ctx: { section: Protein }, before: cursorAt(Protein) },
+  'cursor.extend-next': { ctx: { section: Protein }, before: cursorAt(Protein) },
+  'cursor.extend-up': { ctx: { section: Text }, before: cursorAtText(15) },
+  'cursor.extend-down': { ctx: { section: Text }, before: cursorAtText(5) },
+  'cursor.add-prev': { ctx: { section: Protein }, before: cursorAt(Protein) },
+  'cursor.add-next': { ctx: { section: Protein }, before: cursorAt(Protein) },
+  'cursor.add-up': { ctx: { section: Text }, before: cursorAtText(15) },
+  'cursor.add-down': { ctx: { section: Text }, before: cursorAtText(5) },
+  'cursor.next-feature': { ctx: { section: Protein }, before: cursorAt(Protein) },
+  'cursor.prev-feature': { ctx: { section: Protein }, before: cursorAt(Protein) },
+  'cursor.page-down': { ctx: {}, before: cursorOnRow(0) },
+  'cursor.page-up': { ctx: {}, before: cursorOnRow(3) },
+  // the rows band under the pointer (its layer): its end, then back to its start
+  'cursor.scroll-end': { ctx: { layer: `${RowsTrack}/r` } },
+  'cursor.scroll-start': {
+    ctx: { layer: `${RowsTrack}/r` },
+    before: (v) => run(v, 'cursor.scroll-end', { layer: `${RowsTrack}/r` }),
+  },
+  'cursor.first-row': { ctx: {}, before: cursorOnRow(3) },
+  'cursor.last-row': { ctx: {}, before: cursorOnRow(0) },
+  'cursor.toggle': { ctx: { section: Protein }, before: cursorAt(Protein) },
+  'cursor.focus': { ctx: { section: Protein }, before: cursorAt(Protein) },
+  'clades.toggle': { ctx: { track: RowsTrack, clade: 'ab' } },
+  'clades.collapseAll': { ctx: { track: RowsTrack } },
+  'clades.expandAll': { ctx: { track: RowsTrack }, before: (v) => run(v, 'clades.collapseAll', { track: RowsTrack }) },
+  'clades.collapseTo': { ctx: { track: RowsTrack, depth: 1 } },
+  'clades.reveal': {
+    ctx: { track: RowsTrack, rows: [0] },
+    before: (v) => run(v, 'clades.toggle', { track: RowsTrack, clade: 'ab' }),
+  },
+  'clades.keep': { ctx: { track: RowsTrack } },
+  'groups.toggle': { ctx: { address: '/views/main/below/g' } },
+  'layer.lanes': { ctx: { address: `${DomainsTrack}/d`, lanes: 'one' } },
+  'groups.collapseAll': { ctx: { section: '/views/main/below' } },
+  'groups.expandAll': {
+    ctx: { section: '/views/main/below' },
+    before: (v) => run(v, 'groups.collapseAll', { section: '/views/main/below' }),
+  },
+  'groups.keep': {
+    ctx: { section: '/views/main/below' },
+    before: (v) => run(v, 'groups.toggle', { address: '/views/main/below/g' }),
+  },
+  'rows.pin': { ctx: { track: RowsTrack, rows: [2] } },
+  'rows.hide': { ctx: { track: RowsTrack, rows: [1] } },
+  'rows.show': { ctx: { track: RowsTrack }, before: (v) => run(v, 'rows.hide', { track: RowsTrack, rows: [1] }) },
+  'rows.order': { ctx: { track: RowsTrack, order: 'data' } },
+  'rows.order-next': { ctx: { track: RowsTrack } },
+  'rows.unsort': {
+    ctx: { track: RowsTrack },
+    before: (v) => run(v, 'rows.order', { track: RowsTrack, order: { field: 'label', direction: 'ascending' } }),
+  },
+  'rows.zoom-in': { ctx: { track: RowsTrack } },
+  'rows.zoom-out': { ctx: { track: RowsTrack } },
+  'rows.page-down': { ctx: { track: RowsTrack } },
+  // from a page down (a page up at the top has nowhere to go)
+  'rows.page-up': { ctx: { track: RowsTrack }, before: (v) => v.runCommand('rows.page-down', { track: RowsTrack }) },
+  // opened in a wide frame by hand: the command folds it back to its toggle
+  'rows.tree': { ctx: { track: RowsTrack }, before: (v) => v.view.setBand(RowsTrack, { tree: true }) },
+  // the menu at a shown cursor: the reader's, nothing in the models
+  'headers.menu': { ctx: {}, before: cursorAt(Protein) },
+  // the search's: a run, a step from the run's hits (shown: the reveal moves nothing), a clear, a save
+  'search.run': { ctx: { pattern: 'EP' } },
+  'search.next': { ctx: {}, before: (v) => run(v, 'search.run', { pattern: 'EP' }) },
+  'search.previous': { ctx: {}, before: (v) => run(v, 'search.run', { pattern: 'EP' }) },
+  'search.go': { ctx: { index: 0 }, before: (v) => run(v, 'search.run', { pattern: 'EP' }) },
+  'search.clear': { ctx: {}, before: (v) => run(v, 'search.run', { pattern: 'EP' }) },
+  'search.save': { ctx: {}, before: (v) => run(v, 'search.run', { pattern: 'EP' }) },
+  'preview.cancel': {
+    ctx: {},
+    before: (v) =>
+      editing(v).preview({
+        ops: [{ op: 'set', at: ['views', 'main', 'protein', 'letters'], key: 'height', value: 30 }],
+      }),
+  },
+};
+
+describe('every change has a kind', () => {
+  /** Each of `ids` on a viewer of its own: the change it makes is its kind's. */
+  async function eachChangesWhatItsKindSays(ids: readonly string[]) {
+    for (const id of ids) {
+      const v = await make();
+      const c = Cases[id];
+      await c.before?.(v);
+      frames!.flush();
+      const before = look(v);
+      const message = await run(v, id, c.ctx);
+      frames!.flush();
+      const kind = changeKindOf(id);
+      expect(changed(before, look(v)), `${id}: ${message}`).toEqual(kind === 'none' ? [] : [kind]);
+      if (kind === 'patch') expect(stackOf(v).steps.value.length, id).toBe(Number(before.patch.split(' ')[1]) + 1);
+    }
+  }
+
+  it('every command of the default viewer has a case', async () => {
+    const ids = (await make()).commands.map((c) => c.id);
+    expect(Object.keys(Cases).sort()).toEqual([...ids].sort());
+  });
+
+  // the quick representative: the first command of each kind (the sweep over every command is the medium lane's)
+  it('a command of each kind changes exactly what its kind says', async () => {
+    const first = new Map<ChangeKind | undefined, string>();
+    for (const c of (await make()).commands) {
+      const kind = changeKindOf(c.id);
+      if (!first.has(kind)) first.set(kind, c.id);
+    }
+    await eachChangesWhatItsKindSays([...first.values()]);
+  });
+
+  it('each command of the default viewer changes exactly what its kind says', { tags: ['medium'] }, async () => {
+    await eachChangesWhatItsKindSays((await make()).commands.map((c) => c.id));
+  });
+
+  it('commands issued together, without waiting, each apply: one step each, in order', async () => {
+    const v = await make();
+    const runs = [
+      v.execute('layer.hide', { address: LettersLayer }),
+      v.execute('track.move', { address: DomainsTrack, after: null }),
+      v.execute('layer.color', { address: `${DomainsTrack}/d`, color: '#d62728' }),
+      v.execute('refs.add', { ref: { id: 'here', to: '/data/p/(range :from 1 :to 5)' } }),
+    ];
+    expect(await Promise.all(runs)).toEqual(['Hidden', 'Moved', 'Colored', 'Bookmarked']);
+    expect(stackOf(v).steps.value.map((s) => s.label)).toEqual([
+      'Add a bookmark',
+      'Color a layer',
+      'Move a track',
+      'Hide a layer',
+    ]);
+  });
+
+  it('a track hidden and shown: its own `hidden`, its row gone from the view and back, its layers untouched', async () => {
+    const v = await make();
+    await run(v, 'layer.hide', { address: `${DomainsTrack}/d` });
+    const root = v.spec.root.value;
+    expect(await run(v, 'track.hide', { address: DomainsTrack })).toBe('Hidden');
+    expect(v.view.resolved.value!.sections[0].tracks.map((t) => t.address)).toEqual([`${Protein}/letters`]);
+    expect(await run(v, 'track.show', { address: DomainsTrack })).toBe('Shown');
+    expect(v.spec.revision.value).toBe(hashNode(root));
+    expect(v.view.resolved.value!.sections[0].tracks.map((t) => t.address)).toEqual([
+      `${Protein}/letters`,
+      DomainsTrack,
+    ]);
+  });
+
+  it('undo touches only spec patches: the session, the viewports and the step shown stay', async () => {
+    const v = await make();
+    const root = v.spec.root.value;
+    await run(v, 'layer.hide', { address: LettersLayer });
+    await run(v, 'address.select', { address: '/refs/b' });
+    await run(v, 'address.highlight', { address: '/refs/b', channel: 'paper' });
+    v.view.setRange(Protein, 4, 14);
+    await run(v, 'step.enter', { step: 'first' });
+    const kept = look(v);
+    expect((await stackOf(v).undo()).ok).toBe(true);
+    expect(v.spec.root.value).toBe(root);
+    const after = look(v);
+    expect(after.session).toEqual(kept.session);
+    expect(after.navigate).toBe(kept.navigate);
+    expect(stackOf(v).steps.value).toEqual([]);
+  });
+
+  it('the selection bookmarked is one patch and one undo step: labeled by its address, undone and redone whole', async () => {
+    const v = await make();
+    const root = v.spec.root.value;
+    expect(await run(v, 'selection.bookmark', {})).toBe('Nothing selected');
+    await run(v, 'address.select', { address: '/data/p/(range :from 3 :to 8)' });
+    expect(await run(v, 'selection.bookmark', {})).toBe('Bookmarked');
+    const row = v.addresses.refs.value.find((r) => r.id === 'bookmark-1')!;
+    expect(row).toMatchObject({ label: '/data/p/(range :from 3 :to 8)', to: ['/data/p/(range :from 3 :to 8)'] });
+    // a second one takes the next id, a given label replaces the printed address
+    expect(await run(v, 'selection.bookmark', { label: 'Loop' })).toBe('Bookmarked');
+    expect(v.addresses.refs.value.find((r) => r.id === 'bookmark-2')?.label).toBe('Loop');
+    expect(stackOf(v).steps.value.length).toBe(2);
+    await stackOf(v).undo();
+    await stackOf(v).undo();
+    expect(v.spec.root.value).toBe(root);
+    await stackOf(v).redo();
+    expect(v.addresses.refs.value.map((r) => r.id)).toEqual(['b', 'bookmark-1']);
+    // followed as a link in the same viewer: the ref resolves to what was selected
+    expect(v.addresses.resolve('/refs/bookmark-1').status).toBe('resolved');
+  });
+
+  it('a bookmark is labeled by a patch and removed by one, each undone whole', async () => {
+    const v = await make();
+    const root = v.spec.root.value;
+    expect(await run(v, 'refs.label', { address: '/refs/b', label: 'Second domain' })).toBe('Labeled');
+    expect(v.addresses.refs.value[0].label).toBe('Second domain');
+    expect(await run(v, 'refs.label', { address: '/refs/b', label: '' })).toBe('Labeled');
+    expect(v.addresses.refs.value[0].label).toBe('b');
+    expect(await run(v, 'refs.remove', { address: '/refs/b' })).toBe('Removed');
+    expect(v.addresses.refs.value).toEqual([]);
+    await stackOf(v).undo();
+    expect(v.addresses.refs.value.map((r) => r.id)).toEqual(['b']);
+    await stackOf(v).undo();
+    await stackOf(v).undo();
+    expect(v.spec.root.value).toBe(root);
+    await stackOf(v).redo();
+    await stackOf(v).redo();
+    await stackOf(v).redo();
+    expect(v.addresses.refs.value).toEqual([]);
+    expect(await run(v, 'refs.remove', { address: '/refs/b' })).toBe('No ref there');
+  });
+
+  it('highlight.clear clears one channel, or all of them', async () => {
+    const v = await make();
+    await run(v, 'address.highlight', { address: '/refs/b', channel: 'paper' });
+    await run(v, 'address.highlight', { address: '/refs/b', channel: 'notes' });
+    expect(await run(v, 'highlight.clear', { channel: 'paper' })).toBe('Cleared');
+    expect(v.highlight.names.value).toEqual(['notes']);
+    expect(await run(v, 'highlight.clear', { channel: 'paper' })).toBe('Nothing highlighted');
+    await run(v, 'address.highlight', { address: '/refs/b', channel: 'paper' });
+    expect(await run(v, 'highlight.clear', {})).toBe('Cleared');
+    expect(v.highlight.names.value).toEqual([]);
+    expect(await run(v, 'highlight.clear', {})).toBe('Nothing highlighted');
+  });
+
+  it('track.add inserts a track after another in one patch and one undo step; a taken id is refused', async () => {
+    const v = await make();
+    const root = v.spec.root.value;
+    const node = Cases['track.add'].ctx as { node: Node };
+    expect(await run(v, 'track.add', Cases['track.add'].ctx)).toBe('Added');
+    expect(v.view.resolved.value!.sections[0].tracks.map((t) => t.address)).toEqual([
+      `${Protein}/letters`,
+      DomainsTrack,
+      `${Protein}/domains-2`,
+    ]);
+    expect(stackOf(v).steps.value.map((x) => x.label)).toEqual(['Add a track']);
+    expect(await run(v, 'track.add', { address: Protein, node: node.node })).not.toBe('Added');
+    expect(stackOf(v).steps.value.length).toBe(1);
+    await stackOf(v).undo();
+    expect(v.spec.root.value).toBe(root);
+    expect(await run(v, 'track.add', { address: DomainsTrack, node: node.node })).toBe('No section there');
+  });
+
+  it('the bookmark key is the viewer’s with or without a selection, a plain d is nobody’s', async () => {
+    const v = await make();
+    const mod = { ctrlKey: true, metaKey: true };
+    expect(v.config.view.keys['selection.bookmark']).toEqual(['Mod+d']);
+    expect(v.input.key({ key: 'd', ...mod })).toBe(true);
+    expect(v.addresses.refs.value.map((r) => r.id)).toEqual(['b']);
+    await run(v, 'address.select', { address: '/refs/b' });
+    expect(v.input.key({ key: 'd', ...mod })).toBe(true);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(v.addresses.refs.value.map((r) => r.id)).toEqual(['b', 'bookmark-1']);
+    expect(v.input.key({ key: 'd' })).toBe(false);
+  });
+});

@@ -1,0 +1,44 @@
+[
+  {
+    "id": "TAD",
+    "label": "Transactivation",
+    "start": 1,
+    "end": 61,
+    "category": "activation"
+  },
+  {
+    "id": "PRR",
+    "label": "Proline-rich",
+    "start": 64,
+    "end": 94,
+    "category": "linker"
+  },
+  {
+    "id": "DBD",
+    "label": "DNA-binding",
+    "start": 94,
+    "end": 292,
+    "category": "binding"
+  },
+  {
+    "id": "NLS",
+    "label": "Nuclear localization",
+    "start": 319,
+    "end": 360,
+    "category": "signal"
+  },
+  {
+    "id": "TET",
+    "label": "Tetramerization",
+    "start": 324,
+    "end": 355,
+    "category": "oligomer"
+  },
+  {
+    "id": "CTD",
+    "label": "C-terminal",
+    "start": 364,
+    "end": 393,
+    "category": "regulatory"
+  }
+]

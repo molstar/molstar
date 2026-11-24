@@ -1,0 +1,66 @@
+[
+  {
+    "file": "p53/P04637.json",
+    "entry": "UniProtKB P04637 (P53_HUMAN), REST entry",
+    "url": "https://rest.uniprot.org/uniprotkb/P04637.json",
+    "recorded": "2026-11-19",
+    "licence": [
+      "CC-BY-4.0"
+    ],
+    "attribution": "UniProt Consortium, UniProtKB P04637, CC BY 4.0",
+    "trimmed": "members kept: entryType, primaryAccession, uniProtkbId, organism, sequence, features; features without evidences, featureCrossReferences, ligand and without the Natural variant features (the variants file's)",
+    "derived": "none",
+    "bytesDownloaded": 848769,
+    "bytesFixture": 29012,
+    "sha256Download": "7951d14e182511ea11d2a0991fee9c2f6a6bbf9475d8b7a2aca5247e615e17cb",
+    "sha256Fixture": "4a85ff2fcc0e7e88b7f2e503ee2a951d76fccb1ceeeb9373575d8610a6d76f67"
+  },
+  {
+    "file": "p53/P04637-variation.json",
+    "entry": "Proteins API variation, P04637",
+    "url": "https://www.ebi.ac.uk/proteins/api/variation/P04637",
+    "recorded": "2026-11-19",
+    "licence": [
+      "CC-BY-4.0"
+    ],
+    "attribution": "UniProt Consortium, Proteins API, CC BY 4.0 (the variants are UniProt’s: sourceType uniprot or mixed); the xrefs to ClinVar are names only",
+    "trimmed": "single-residue changes of UniProt’s own (sourceType uniprot or mixed, not those only large-scale studies report) inside the canonical sequence (begin equal to end, from 1 to its length, with their wild type and mutated type) with an xref of UniProt or ClinVar, one xref a source by its name, of those two only; each significance by its type; members kept: begin, end, xrefs, consequenceType, wildType, mutatedType, sourceType, clinicalSignificances; records only large-scale studies report and every other source’s xrefs dropped",
+    "derived": "none",
+    "bytesDownloaded": 14003555,
+    "bytesFixture": 281420,
+    "sha256Download": "35fcead9b351fbc3888f73a4a5ea5178d0824f5b34252a3dbdee69903cb93cfb",
+    "sha256Fixture": "cd60139a10eb1947028caa3e25dc2760691e253643aec5c399451969f3961139"
+  },
+  {
+    "file": "p53/2OCJ.seq",
+    "entry": "PDB 2OCJ, the human p53 core domain, four chains (Wang, Rosengarth, Luecke 2007), mmCIF",
+    "url": "https://files.rcsb.org/download/2OCJ.cif.gz",
+    "recorded": "2026-11-20",
+    "licence": [
+      "CC0-1.0"
+    ],
+    "attribution": "wwPDB, PDB 2OCJ, CC0",
+    "trimmed": "the one polymer entity (P04637 94–312): its canonical letters (entity_poly) and chain A’s helices and strands (struct_conf, struct_sheet_range, label_seq_id) as ranges; coordinates, waters and zinc dropped",
+    "derived": "none",
+    "bytesDownloaded": 699868,
+    "bytesFixture": 1219,
+    "sha256Download": "e54e3321ca0c3e482d73d8d7637682bf0a3a210bf4091d1a34343e1e0bd29470",
+    "sha256Fixture": "ae1691435b7b6db3a7b71bc90ba96e08908fd997127cd0582dbfded2213077d6"
+  },
+  {
+    "file": "p53/2OCJ-chains.json",
+    "entry": "PDB 2OCJ, the human p53 core domain, four chains (Wang, Rosengarth, Luecke 2007), mmCIF",
+    "url": "https://files.rcsb.org/download/2OCJ.cif.gz",
+    "recorded": "2026-11-20",
+    "licence": [
+      "CC0-1.0"
+    ],
+    "attribution": "wwPDB, PDB 2OCJ, CC0",
+    "trimmed": "the fake structure viewer’s chain table: every chain instance but the waters (struct_asym), its residues’ label and author numbers, components and whether modeled (pdbx_poly_seq_scheme, pdbx_nonpoly_scheme, atom_site of model 1), each modeled residue’s mean heavy-atom B-factor, and the model beside them (entity, entity_poly, chem_comp, struct_conn, a non-polymer’s atoms); coordinates dropped",
+    "derived": "none",
+    "bytesDownloaded": 699868,
+    "bytesFixture": 36806,
+    "sha256Download": "e54e3321ca0c3e482d73d8d7637682bf0a3a210bf4091d1a34343e1e0bd29470",
+    "sha256Fixture": "aadd087ab3392828146a2e4caa752c779b32ba10efcccbe0ad8d72db0b748d6c"
+  }
+]

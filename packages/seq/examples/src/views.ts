@@ -1,0 +1,912 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import type { Node } from '@molstar/core/repr/tree';
+import type { SeqRegistryEntry } from '@molstar/seqx-core/context';
+import * as antibodyAdc from './antibody/adc.js';
+import * as antibodyAgainst from './antibody/against.js';
+import * as antibodyFc from './antibody/fc-glycan.js';
+import { registry as antibodyRegistry } from './antibody/data.js';
+import * as antibodySchemes from './antibody/schemes.js';
+import * as codingDna from './coordinates/coding-dna.js';
+import * as complexBlocks from './complex/blocks.js';
+import * as navigators from './navigators.js';
+import { GenomeFormatsViews } from './genomes/views.js';
+import { GenomesViews } from './genomes/dataset.js';
+import * as complexConfidence from './complex/confidence.js';
+import * as complexGrid from './complex/complex-grid.js';
+import * as complexLigands from './complex/ligands.js';
+import * as complexPae from './complex/pae.js';
+import * as complexPaeMonomer from './complex/pae-monomer.js';
+import * as complexText from './complex/text.js';
+import * as complexUnits from './complex/units.js';
+import * as molecules from './molecules/molecules.js';
+import * as trna from './trna/trna.js';
+import * as globinsColumns from './globins/columns.js';
+import { familyRegistry, generatedRegistry } from './globins/data.js';
+import * as globins from './globins/family.js';
+import * as hemoglobin from './globins/hemoglobin.js';
+import * as globinsQuery from './globins/query.js';
+import * as plasmidRing from './plasmid/ring.js';
+import * as addressing from './p53/addressing.js';
+import * as axis from './p53/axis.js';
+import * as bookmarks from './p53/bookmarks.js';
+import * as chromosome from './p53/chromosome.js';
+import * as geneByRegion from './p53/gene-by-region.js';
+import * as layers from './p53/layers.js';
+import * as proteinOnGene from './p53/protein-on-gene.js';
+import * as query from './p53/query.js';
+import * as signal from './p53/signal.js';
+import * as story from './p53/story.js';
+import * as p53Structure from './p53/structure.js';
+import * as p53Groups from './p53/groups.js';
+import * as p53Headers from './p53/headers.js';
+import * as themes from './p53/themes.js';
+import * as text from './p53/text.js';
+import * as tracks from './p53/tracks.js';
+import { AlignmentFileRuntime } from '@molstar/seqx-core/data/alignment-readers';
+import { RecordsRuntime } from '@molstar/seqx-core/data/records';
+import { type DomainFile, PlasmidGffFile } from './files/data.js';
+import * as p53Entry from './files/p53-entry.js';
+import * as plasmidGff from './files/plasmid-gff.js';
+import * as tables from './files/tables.js';
+
+// The examples' views by dataset: what a dataset's index lists and a test walks (the genome formats' in
+// `genomes/views.ts`).
+
+export { GenomeFormatsViews, GenomesViews };
+
+export interface ExampleView {
+  readonly dataset: string;
+  /** The module's name under the dataset (`tracks`). */
+  readonly id: string;
+  readonly title: string;
+  /** What the view shows, a sentence. */
+  readonly summary: string;
+  build(): Node;
+  /**
+   * What a viewer of the view needs besides the default registry (a runtime of a format its sources name); answers
+   * delayed by `delayMs` (the view's own pacing when absent; 0 in tests: no timer).
+   */
+  registry?(options?: { readonly delayMs?: number }): readonly SeqRegistryEntry[];
+}
+
+export const P53Views: readonly ExampleView[] = [
+  {
+    dataset: 'p53',
+    id: 'tracks',
+    title: 'Tracks',
+    summary: 'The protein’s letters, its domains in lanes and a conservation signal with two residues missing.',
+    build: tracks.build,
+  },
+  {
+    dataset: 'p53',
+    id: 'text',
+    title: 'Text',
+    summary:
+      'The protein as text: lines of whole groups of ten wrapped to the width, a number a line and a group, its secondary structure and domains as thin bands under the letters, each left out of a line it is empty on.',
+    build: text.build,
+  },
+  {
+    dataset: 'p53',
+    id: 'text-centered',
+    title: 'Text, centered',
+    summary:
+      'The text figure centered in at most 640 px, its group numbers inline in the gaps, a number at each end of a line.',
+    build: text.centered,
+  },
+  {
+    dataset: 'p53',
+    id: 'text-under-tracks',
+    title: 'Text under its tracks',
+    summary:
+      'A tracks overview of the domains and the protein as text under it, in one view: the text section’s own layout.',
+    build: text.underTracks,
+  },
+  {
+    dataset: 'p53',
+    id: 'protein-on-gene',
+    title: 'Protein on its gene',
+    summary:
+      'The gene’s section follows the protein’s through the codon map (minus strand, three exons), reading along it (`direction: follow`) on its coding pieces: each intron a hairline, three nucleotides a residue, both moving the same way.',
+    build: proteinOnGene.build,
+  },
+  {
+    dataset: 'p53',
+    id: 'one-axis',
+    title: 'Protein and gene on one axis',
+    summary:
+      'One gene section with the protein’s letters a codon wide, its domains and the gene’s letters: it reads along the protein (`{ along: p53 }`) on its coding pieces; a codon split by an intron is drawn in each part; R175H, the gene’s one variant, is marked as a conflict.',
+    build: axis.oneAxis,
+  },
+  {
+    dataset: 'p53',
+    id: 'genomic-follower',
+    title: 'Genomic follower',
+    summary:
+      'For contrast: the gene follows its protein in genomic order (`direction: genomic`, introns shown), so on the minus strand it moves against the protein.',
+    build: axis.genomicFollower,
+  },
+  {
+    dataset: 'p53',
+    id: 'reversed-gene',
+    title: 'Reversed gene',
+    summary:
+      'The gene alone, reversed: positions count down left to right, its letters read on the other strand (the complement), the domains through the codon map; Shift+C collapses its introns.',
+    build: axis.reversedGene,
+  },
+  {
+    dataset: 'p53',
+    id: 'gene-by-region',
+    title: 'Gene by region',
+    summary:
+      'The gene’s region read region by region: transcripts arrive as dynamic nodes, a track each, and TP53’s bring their domains, shown through each transcript’s codon map.',
+    build: geneByRegion.build,
+    registry: geneByRegion.registry,
+  },
+  {
+    dataset: 'p53',
+    id: 'signal-from-a-bigwig',
+    title: 'Signal from a bigWig',
+    summary:
+      'p53’s conservation over the gene’s region read from a bigWig, by region and zoom level as the view pans and zooms: coarse bins first, a value a base at the closest zoom, each answer delayed as a remote file’s; the last 200 bases lie past the file’s data.',
+    build: signal.build,
+    registry: signal.registry,
+  },
+  {
+    dataset: 'p53',
+    id: 'chromosome',
+    title: 'p53’s chromosome',
+    summary:
+      'Chromosome 17 at its GRCh38 length (83 Mb), generated region by region and never stored, opened fit to the whole: the genes (TP53 in its place, minus strand), a GC-like signal by levels, the letters when they fit, the ideogram above showing the window. Double-click TP53 to focus it, zoom on to its letters; hover a gene for its name, strand and span.',
+    build: chromosome.build,
+    registry: chromosome.registry,
+  },
+  {
+    dataset: 'p53',
+    id: 'gene-region-ideogram',
+    title: 'Gene region on chr17’s ideogram',
+    summary:
+      'The gene’s region with chromosome 17’s ideogram above it (GRCh38’s bands, the centromere two triangles): the region, a sliver of the chromosome, marked on it, and a zoom strip under it over the region alone, its window dragged and resized there. Hover a band for its name, the mark for the region.',
+    build: navigators.geneRegionIdeogram,
+    registry: geneByRegion.registry,
+  },
+  {
+    dataset: 'p53',
+    id: 'tracks-strip',
+    title: 'Tracks with a strip',
+    summary:
+      'p53’s tracks with a strip of them small above: drag the window to pan, its grips to zoom, click outside it to centre there, drag outside it to sweep a region; Alt+Left goes back.',
+    build: navigators.tracksStrip,
+  },
+  {
+    dataset: 'p53',
+    id: 'protein-gene-strip',
+    title: 'Protein strip with its gene’s window',
+    summary:
+      'The protein on its gene with a strip of the protein: its window and its gene follower’s, carried along the codon map; a drag on the gene’s window moves the protein, which leads.',
+    build: navigators.proteinGeneStrip,
+  },
+  {
+    dataset: 'p53',
+    id: 'themes',
+    title: 'Themes',
+    summary:
+      'The protein’s letters under each scheme that fits it; domains by category with their legend; a confidence as pLDDT’s four bands and as a ramp; two signals on one shared scale; variants by consequence, sized by a log-scaled frequency; secondary structure. Its export draws the legends below.',
+    build: themes.build,
+  },
+  {
+    dataset: 'p53',
+    id: 'story',
+    title: 'A story',
+    summary:
+      'The tracks as a story of four steps: the whole protein, its DNA-binding domain (the conservation taller), the R175H hotspot (marked by a track of its own, the domains recolored) and the tetramerization domain (the conservation gone); each a view and a patch over the spec.',
+    build: story.build,
+  },
+  {
+    dataset: 'p53',
+    id: 'structure',
+    title: 'Structure (2OCJ)',
+    summary:
+      'P04637 over PDB 2OCJ’s four copies of the DNA-binding domain, merged into one block ×4 with the zinc chip ×4: the ends unobserved gray, author numbers UniProt’s, each zinc’s four ligands as arcs. P04637 maps to the entity by SIFTS’s `structure` map (ranked first) and by an alignment’s `segments` map; hover R175 on P04637: it lights on the chains, and back; hover the zinc: its ligands light.',
+    build: () => p53Structure.build(),
+  },
+  {
+    dataset: 'p53',
+    id: 'structure-split',
+    title: 'Structure, copies split',
+    summary:
+      'The four chains of 2OCJ a block each, each zinc a chip; a hover carried through the alignment’s map (`via`), which agrees with SIFTS’s on this entry.',
+    build: () => p53Structure.build({ copies: 'each', via: 'aln' }),
+  },
+  {
+    dataset: 'p53',
+    id: 'structure-compare',
+    title: 'Structure, two maps of one pair',
+    summary:
+      'P04637 onto 2OCJ’s entity by SIFTS’s `structure` map (ranked first) and by an alignment’s `segments` map shifted by one residue; the first section of the complex follows the ranked map, the second goes `via` the alignment’s: one residue hovered on P04637 lights two neighbors.',
+    build: p53Structure.compare,
+  },
+];
+
+/** Views made for a feature's stories (`Features/…`), over the same datasets. */
+export const FeatureViews: readonly ExampleView[] = [
+  {
+    dataset: 'p53',
+    id: 'groups',
+    title: 'Track groups',
+    summary:
+      'p53’s tracks in three groups: Features open, Variants folded to its authored density track, Signals folded to a strip a signal. Click a group’s header (or Space on it at the header cursor) to fold or open it; the section’s menu folds or opens them all.',
+    build: () => p53Groups.build(),
+  },
+  {
+    dataset: 'p53',
+    id: 'groups-open',
+    title: 'Track groups, every group open',
+    summary:
+      'The same three groups, every one open: a header line above each, its tracks indented, a wider gap around it.',
+    build: p53Groups.open,
+  },
+  {
+    dataset: 'p53',
+    id: 'groups-folded',
+    title: 'Track groups, every group folded',
+    summary:
+      'The same three groups, every one folded to one row: Features to one lane of its domains and secondary structure, Variants to its density, Signals to three strips.',
+    build: p53Groups.folded,
+  },
+  {
+    dataset: 'p53',
+    id: 'headers',
+    title: 'Track headers',
+    summary:
+      'p53 with something to say in its headers: the domains track has a filter (an "n filtered" chip) and a hidden layer ("1 layer hidden"), and two tracks are hidden (nothing in the view says so: the toolbar’s list does). Point at a track’s label for its actions.',
+    build: p53Headers.build,
+  },
+  {
+    dataset: 'p53',
+    id: 'headers-hidden',
+    title: 'Track headers, a section with every track hidden',
+    summary:
+      'Two sections of p53: the first has every track hidden and shows nothing for them; the toolbar’s hidden tracks list brings them back.',
+    build: p53Headers.allHidden,
+  },
+  {
+    dataset: 'p53',
+    id: 'headers-short',
+    title: 'Track headers, short tracks',
+    summary:
+      'Tracks of 14 px beside a tall one: where a chip does not fit, the state is a small mark, its words in the track’s card.',
+    build: p53Headers.short,
+  },
+  {
+    dataset: 'p53',
+    id: 'addressing',
+    title: 'Addressing',
+    summary: 'The tracks view with refs naming its domains and hotspots, and a text whose links act on addresses.',
+    build: addressing.build,
+  },
+  {
+    dataset: 'p53',
+    id: 'bookmarks',
+    title: 'Bookmarks',
+    summary: 'Gene by region with bookmarks: refs on a range and on transcripts that arrive with their region.',
+    build: bookmarks.build,
+    registry: bookmarks.registry,
+  },
+  {
+    dataset: 'p53',
+    id: 'query',
+    title: 'Queried',
+    summary:
+      'The protein with its domains and conservation and the gene reading along it, for the query stories: an address typed or written, its result selected or highlighted in the view.',
+    build: query.build,
+  },
+  {
+    dataset: 'globins',
+    id: 'query-alignment',
+    title: 'Queried alignment',
+    summary:
+      'The whole Pfam globin seed read from its file above four of its rows inline, for the query stories: rows and columns addressed (a row form names the file’s rows once held), a result selected in the view.',
+    build: globinsQuery.build,
+    registry: familyRegistry,
+  },
+  {
+    dataset: 'p53',
+    id: 'themes-editing',
+    title: 'Editing themes',
+    summary:
+      'The themes view edited: a scheme previewed while hovered and picked in one patch; the shared scale’s domain set for both signals in one step and undone in one.',
+    build: themes.build,
+  },
+  {
+    dataset: 'globins',
+    id: 'columns',
+    title: 'Row columns',
+    summary:
+      'The Pfam globin seed with data columns beside its rows: its species as text and its class as a chip on the left (UniProt’s, from a file joined by row key), its identity to the reference row, its residues as a bar and its UniProt entry’s length on the right. Click a title to order the rows by it, again for the other direction; narrow the view and the right columns yield first, then the left, a chip counting those hidden.',
+    build: globinsColumns.build,
+    registry: globinsColumns.registry,
+  },
+  {
+    dataset: 'globins',
+    id: 'rows-rail',
+    title: 'Rows rail',
+    summary:
+      'The Pfam globin seed with no navigator declared: its rows get the rows rail, a slim slider at the right edge of their band, its window the rows in view; drag it to scroll them, a grip to zoom them.',
+    build: () => globins.build({ overview: false }),
+    registry: familyRegistry,
+  },
+];
+
+/** Views made for the small layers' stories (`Features/Layers`), over p53. */
+export const LayerViews: readonly ExampleView[] = [
+  {
+    dataset: 'p53',
+    id: 'ruler',
+    title: 'Ruler',
+    summary:
+      'The ruler on the protein and, reversed on its coding pieces, on its gene: the labels are steps of 1, 2 or 5 × 10ⁿ that never overlap, and the gene’s count down.',
+    build: layers.ruler,
+  },
+  {
+    dataset: 'p53',
+    id: 'secondary',
+    title: 'Secondary structure',
+    summary:
+      'Helices and strands as blocks, a turn thin; each strand ends in an arrowhead on the piece holding its C-terminal end, on the protein and through the codon map on the gene reading along it.',
+    build: layers.secondary,
+  },
+  {
+    dataset: 'p53',
+    id: 'variants',
+    title: 'Variants',
+    summary:
+      'A stem and a head a site, the heads of one site stacked (R248Q and R248W, R273H and R273C), on the protein and on the gene; zoom out and they become a count strip.',
+    build: layers.variants,
+  },
+  {
+    dataset: 'p53',
+    id: 'values-line',
+    title: 'Values as a line and an area',
+    summary:
+      'The conservation as bars, a line (held over half cells at its ends and at the two missing residues, broken there), an area under it and points; a confidence colored by pLDDT’s bands as a line and as points. Zoom in: from 6 px a residue a line and an area show a dot at each value.',
+    build: layers.valuesLine,
+  },
+  {
+    dataset: 'p53',
+    id: 'ranges-lines',
+    title: 'Ranges as lines and arrows',
+    summary:
+      'The domains in each line style (the dash and the wave run from each domain’s start, so they move with it as you pan) and with arrowheads on their ends.',
+    build: layers.rangesLines,
+  },
+  {
+    dataset: 'p53',
+    id: 'wells',
+    title: 'Tracks in their wells',
+    summary:
+      'Each track in its well, a squircle its data is clipped to; the letters padded on top, the domains top and bottom, the conservation not at all: the data sits inside the padding, the well’s top stays where it was.',
+    build: layers.wells,
+  },
+];
+
+/** The coordinate model's views beside the p53 ones (Features › Coordinates): one axis read through a map. */
+export const CoordinatesViews: readonly ExampleView[] = [
+  {
+    dataset: 'coordinates',
+    id: 'coding-dna',
+    title: 'A protein over its coding DNA',
+    summary:
+      'One gene section on the plus strand in genomic order, the whole fragment shown: the DNA, the protein’s letters a codon wide through a codon map, the exons, a domain cut at the intron and joined across it by a connector, and a phosphosite.',
+    build: codingDna.build,
+  },
+];
+
+/**
+ * The Plasmid: pUC19c (INSDC L09137.2), its features derived in code from the sequence and read as GFF3. The ring and
+ * the crossing run over the rotated variant, where bla and a primer site cross the origin; the rotated linear view
+ * over the published record; the scale view over a generated 200 kb construct.
+ */
+export const PlasmidViews: readonly ExampleView[] = [
+  {
+    dataset: 'plasmid',
+    id: 'ring',
+    title: 'Ring with a linear detail',
+    summary:
+      'pUC19c, its letters read from the recorded file, as rings (each strand’s features as arrows, the restriction sites over their recognition sequences, a ruler; labels outside, the name in the hole) and a linear detail following the ring’s window; bla and a primer site cross the origin, each one arc. Drag the window, or pan the detail: the other follows.',
+    build: () => plasmidRing.build(),
+    registry: () => records(),
+  },
+  {
+    dataset: 'plasmid',
+    id: 'crossing',
+    title: 'Features across the origin',
+    summary:
+      'The same, with bookmarks on bla and the primer site, the two features across the origin: click one and it is one item in two runs, on the ring and in the detail; focusing a bookmark moves the view to its shortest arc, over the origin; a Shift+drag selection across the origin is not yet checked to extend the short way.',
+    build: plasmidRing.crossing,
+    registry: () => records(),
+  },
+  {
+    dataset: 'plasmid',
+    id: 'rotated-linear',
+    title: 'Rotated linear view',
+    summary:
+      'The published record in tracks from inside bla over the origin to past lacZα: a `range` past the origin, two pieces meeting at the seam with no break; the range’s start is the one param to set.',
+    build: () => plasmidRing.rotatedLinear(),
+    registry: () => records(),
+  },
+  {
+    dataset: 'plasmid',
+    id: 'scale',
+    title: 'Ring at scale',
+    summary:
+      'A generated 200 kb construct with 2,000 features on both strands, a tenth across the origin. The features show in the linear detail (a density strip at this size); on the ring, past its lanes, each strand’s features are a density band round it.',
+    build: plasmidRing.scale,
+  },
+  {
+    dataset: 'plasmid',
+    id: 'detail-strip',
+    title: 'Linear detail with a strip',
+    summary:
+      'The ring and its linear detail with a strip of the whole construct over the detail: drag the ring’s window over the origin and the strip’s window wraps in two pieces.',
+    build: navigators.plasmidStrip,
+    registry: () => records(),
+  },
+];
+
+/** The Globins: the Pfam PF00042 seed, its tree, 4HHB, and the generated variants for scale. */
+export const GlobinsViews: readonly ExampleView[] = [
+  {
+    dataset: 'globins',
+    id: 'family',
+    title: 'Family, logo and tree',
+    summary:
+      'The Pfam globin seed’s 60 rows by their tree (neighbor joining on identity), its conservation logo above, each row’s species and its identity to the reference row (wild yak’s α) beside it: hover a cell and its column lights in every row; click a tree node to fold its clade (session state); Cmd/Ctrl+click a node selects its rows; the wheel scrolls the rows, `]` and `[` zoom them; the vertical overview at the right moves them.',
+    build: () => globins.build(),
+    registry: familyRegistry,
+  },
+  {
+    dataset: 'globins',
+    id: 'folded',
+    title: 'Folded clades',
+    summary:
+      'Two clades of the seed’s tree folded when the view opens (the layer’s `collapsed`): each one summary row, its consensus opaque by its share, labeled “first +n”, a wedge in the tree. Click a node to unfold it; `clades.keep` writes the folds shown back. The vertical overview at the right shows the folded rows.',
+    build: globins.folded,
+    registry: familyRegistry,
+  },
+  {
+    dataset: 'globins',
+    id: 'figure',
+    title: 'Alignment figure',
+    summary: 'The seed as an ESPript-style text figure: groups of ten, every row on every line, a ruler above.',
+    build: globins.figure,
+    registry: familyRegistry,
+  },
+  {
+    dataset: 'globins',
+    id: 'hemoglobin',
+    title: 'Hemoglobin, heme chips and copies',
+    summary:
+      'PDB 4HHB as a complex’s units in blocks: the α chains A and C and the β chains B and D merged into one block each labeled ×2, the four hemes as one chip ×4; the helices A to H from the entry, each heme’s contacting residues (within 4 Å, derived per pair of units) as arcs and as the heme pocket, bookmarked.',
+    build: () => hemoglobin.build(),
+  },
+  {
+    dataset: 'globins',
+    id: 'hemoglobin-split',
+    title: 'Hemoglobin, copies split',
+    summary:
+      'The same blocks with the copies split (`copies: each`): a block a chain, a chip a heme, each heme’s arcs to the chain it sits in.',
+    build: hemoglobin.split,
+  },
+  {
+    dataset: 'globins',
+    id: 'scale',
+    title: '10,000 rows',
+    summary:
+      'A generated variant of 10,000 rows × 300 columns sampled from the seed’s per-column profile, held, by a balanced tree: zoomed out the rows draw from the shared reduction as image tiles; `]` and `[` zoom the rows, the wheel scrolls them; the vertical overview at the right shows every row and moves them.',
+    build: () => globins.scale(),
+    registry: generatedRegistry,
+  },
+  {
+    dataset: 'globins',
+    id: 'scale-navigators',
+    title: '10,000 rows with an overview',
+    summary:
+      'The 10,000 rows with their vertical overview of every row at the right (summarized by the shared reduction) and a miniature of the columns and rows above: drag either window to move the rows.',
+    build: navigators.globinsNavigators,
+    registry: generatedRegistry,
+  },
+  {
+    dataset: 'globins',
+    id: 'lazy',
+    title: '10,000,000 rows, lazy',
+    summary:
+      'A generated variant of ten million rows in data order, sampled from the seed’s profile: only the rows in view are ever made, a row not yet read labeled by its number until its tile arrives.',
+    build: () => globins.lazy(),
+    registry: generatedRegistry,
+  },
+];
+
+/** What the views reading JSON need besides the default registry: the records runtime (the default viewer spec has it). */
+const records = (): SeqRegistryEntry[] => [{ kind: 'format-runtime', runtime: RecordsRuntime }];
+
+/**
+ * The Complex: CDK2 with cyclin A. 1FIN's chains as blocks (copies merged and split, stacked, on a ring), the contacts
+ * across them, its ligands, as text; the prediction's confidence and secondary structure, the PAE across the chains
+ * and over the whole complex (synthetic).
+ */
+export const ComplexViews: readonly ExampleView[] = [
+  {
+    dataset: 'complex',
+    id: 'blocks',
+    title: 'Chains as blocks',
+    summary:
+      'PDB 1FIN: CDK2 and cyclin A in a row of blocks, polymers first, then the two ATPs as one-position blocks; the two copies of the complex merged, each block labeled ×2. Features, the interface of both copies, the first copy’s secondary structure and the letters under them.',
+    build: () => complexBlocks.build(),
+  },
+  {
+    dataset: 'complex',
+    id: 'blocks-split',
+    title: 'Copies split',
+    summary: 'The same blocks with the copies split (`copies: each`): a block a chain and a ligand.',
+    build: complexBlocks.split,
+  },
+  {
+    dataset: 'complex',
+    id: 'blocks-stacked',
+    title: 'Chains stacked',
+    summary: 'A block a row of the tracks, aligned at their first residue, one zoom (`arrange: stack`).',
+    build: complexBlocks.stacked,
+  },
+  {
+    dataset: 'complex',
+    id: 'blocks-stacked-split',
+    title: 'Chains stacked, copies split',
+    summary:
+      'A row a chain (`arrange: stack`, `copies: each`), the two ATPs as chips sharing one row of their own, each its label’s width.',
+    build: complexBlocks.stackedSplit,
+  },
+  {
+    dataset: 'complex',
+    id: 'blocks-ring',
+    title: 'Chains on a ring',
+    summary: 'The blocks on a ring, a block an arc with a gap between, their labels outside with the features’.',
+    build: complexBlocks.ring,
+  },
+  {
+    dataset: 'complex',
+    id: 'contacts',
+    title: 'Contacts between the chains',
+    summary:
+      '1FIN’s contacts within 4 Å between heavy atoms of CDK2 and cyclin A, both copies, as arcs between the merged blocks, and each ATP’s with CDK2’s residues, as arcs from its chip (an optional `pairs` track, a layer for each kind): hover one, both ends light.',
+    build: complexBlocks.contacts,
+  },
+  {
+    dataset: 'complex',
+    id: 'pae',
+    title: 'PAE across the chains (synthetic)',
+    summary:
+      'A section a chain of the prediction (UniProt P24941, P20248) and a synthetic predicted aligned error between them as a grid (low across 1FIN’s interface, high where cyclin A2 is disordered): its x follows CDK2’s section, its y cyclin A’s; 1FIN’s contacts as dots on it. Hover a cell: both residues light in their sections.',
+    registry: records,
+    build: () => complexPae.build(),
+  },
+  {
+    dataset: 'complex',
+    id: 'pae-monomer',
+    title: 'CDK2’s PAE from AlphaFold DB',
+    summary:
+      'CDK2’s own predicted aligned error, real values as AlphaFold DB publishes them (AF-P24941-F1, v6), the whole chain, in the colors of AlphaFold DB’s plot (green, dark where confident) so it compares with its page side by side; the grid follows CDK2’s section on both axes.',
+    registry: records,
+    build: () => complexPaeMonomer.build(),
+  },
+  {
+    dataset: 'complex',
+    id: 'complex-grid',
+    title: 'PAE over the complex (synthetic)',
+    summary:
+      'The chains side by side as blocks with their confidence, and the synthetic PAE over the whole complex as a grid that follows the blocks on both axes: the chain boundaries the blocks’ gaps across it, a hover naming both residues with their chains, a dragged rectangle split at the boundaries.',
+    registry: records,
+    build: () => complexGrid.build(),
+  },
+  {
+    dataset: 'complex',
+    id: 'confidence',
+    title: 'Confidence and secondary structure',
+    summary:
+      'AlphaFold DB’s per-residue confidence of each chain in its four bins, UniProt’s secondary structure and 1FIN’s mapped onto UniProt’s numbering, and what 1FIN holds of each chain: a gray range where it holds no residue (cyclin A2’s first 172).',
+    registry: records,
+    build: () => complexConfidence.build(),
+  },
+  {
+    dataset: 'complex',
+    id: 'ligands',
+    title: 'Ligands',
+    summary:
+      'CDK2 and its ligands as blocks after it: 1FIN’s ATP, then the ligands of six CC0 entries of CDK2 by resolution, each a one-position chip with arcs to its contacting residues (≤ 4 Å); each ligand’s contacts a bookmark.',
+    build: () => complexLigands.build(),
+  },
+  {
+    dataset: 'complex',
+    id: 'ligands-atoms',
+    title: 'ATP per heavy atom',
+    summary:
+      'The ligands with ATP as its 31 heavy atoms, a block of its own, each atom’s contacts an arc (a second sequence, not mapped to the one-position ATP this slice).',
+    build: complexLigands.atoms,
+  },
+  {
+    dataset: 'complex',
+    id: 'text',
+    title: 'Text with a ligand chip',
+    summary: '1FIN’s first copy as text: CDK2, then cyclin A, then ATP as a chip flowing with the letters like a word.',
+    build: () => complexText.build(),
+  },
+  {
+    dataset: 'complex',
+    id: 'units',
+    title: '1FIN as a complex',
+    summary:
+      'PDB 1FIN as a complex of its units: CDK2 ×2 and cyclin A ×2 (author numbers: CDK2 from 1, the construct from 173), ATP ×2 a chip colored on its own, and six CC0 entries’ ligands standing for AlphaFill’s transplants, each its resolution as its score; the contacts per pair of units as arcs. The transplants and their contacts come from those other entries (computed against each entry’s CDK2, drawn on 1FIN’s chain A), as their cards and arcs say. Hover ATP: its CDK2 residues light; hover a contact: both ends. The editing view switches ATP between a chip and its 31 heavy atoms (one patch).',
+    build: () => complexUnits.build(),
+  },
+  {
+    dataset: 'complex',
+    id: 'units-atoms',
+    title: '1FIN, ATP by its atoms',
+    summary: 'The same complex with the first ATP by its heavy atoms, each labeled by its element.',
+    build: complexUnits.atoms,
+  },
+];
+
+/**
+ * The Antibody: trastuzumab's Fab (PDB 1N8Z) numbered by IMGT (SAbDab's) and Kabat (derived), its CDRs by both
+ * definitions; the design against it (generated).
+ */
+export const AntibodyViews: readonly ExampleView[] = [
+  {
+    dataset: 'antibody',
+    id: 'schemes',
+    title: 'Kabat and IMGT side by side',
+    summary:
+      'Trastuzumab’s light and heavy chains (PDB 1N8Z), each under a Kabat ruler and an IMGT ruler, its CDRs by both definitions below: the heavy chain’s Kabat insertions 52A, 82A–C and 100A–C, IMGT’s gaps where a CDR is shorter than its positions. The labels are read from files (SAbDab’s IMGT numbering, Kabat’s derived from it). Past the variable domain the rulers say “not numbered” (a muted dashed line, no ticks). Hover a residue: both labels.',
+    build: () => antibodySchemes.build(),
+    registry: antibodyRegistry,
+  },
+  {
+    dataset: 'antibody',
+    id: 'schemes-design',
+    title: 'The design’s numberings',
+    summary:
+      'The design (generated: two substitutions in CDR-H2, a substitution and a two-residue insertion in CDR-H3, a deletion in CDR-L1) under the same rulers: CDR-H3 gains Kabat’s 100D and 100E and IMGT’s 111.1 and 112.1, which come before 112 (out of index order); CDR-L1 loses Kabat’s 27 and IMGT’s 36 (this generator’s rule for a shorter CDR-L1, not yet checked against ANARCI).',
+    build: antibodySchemes.design,
+  },
+  {
+    dataset: 'antibody',
+    id: 'against',
+    title: 'Design against wild type',
+    summary:
+      'Each chain’s design and trastuzumab as the two rows of an alignment made by the edit list: a column pairs a residue the design kept with the wild type’s; CDR-H3’s two inserted residues are columns with a gap in the wild type, CDR-L1’s deleted one a gap in the design. The schemes relabel the residues around an indel, so paired residues may differ in label (the design’s F is IMGT 111.1, the wild type’s 112). Hover a column: both rows. Carets on the wild type wait for a map with indels between two sequences.',
+    build: () => antibodyAgainst.build(),
+  },
+  {
+    dataset: 'antibody',
+    id: 'cdrs',
+    title: 'CDR bookmarks',
+    summary:
+      'The wild type with both numberings, for bookmarking its CDRs: select one by its address in Kabat’s labels, bookmark the selection, rename it, recolor it, remove it; each one step, undone and redone.',
+    build: antibodySchemes.cdrs,
+    registry: antibodyRegistry,
+  },
+  {
+    dataset: 'antibody',
+    id: 'fc-glycan',
+    title: 'The Fc and its N297 glycan',
+    summary:
+      'A human IgG1 Fc (PDB 3AVE): its two chains merged into one block ×2, their N-glycans (eight residues, G0F) one chip ×2, the zinc a chip; the glycan on Asn297, the disulfides and the zinc’s histidines as arcs. Hover the glycan: N297 lights; hover N297: the glycan. The editing view switches the glycans between a chip and their residues (one patch).',
+    build: () => antibodyFc.build(),
+  },
+  {
+    dataset: 'antibody',
+    id: 'fc-glycan-residues',
+    title: 'The glycan’s residues',
+    summary:
+      'The same Fc with the glycans by their residues (NAG NAG BMA MAN NAG MAN NAG FUC, each by its code), their seven glycosidic links as arcs over them.',
+    build: antibodyFc.residues,
+  },
+  {
+    dataset: 'antibody',
+    id: 'adc',
+    title: 'T-DM1, an antibody–drug conjugate (generated)',
+    summary:
+      'Trastuzumab emtansine as a construct: trastuzumab’s Fab chains twice (the Fc not held) and the emtansine payload (SMCC–DM1, its CCD ids placeholders), linked to every lysine with occupancies summing to the average DAR of 3.5; the arcs colored by their occupancy. Hover the payload: every conjugation site lights.',
+    build: () => antibodyAdc.build(),
+  },
+];
+
+export const TrnaViews: readonly ExampleView[] = [
+  {
+    dataset: 'trna',
+    id: 'arcs',
+    title: 'Base pairs as arcs',
+    summary:
+      'tRNA-Phe (PDB 1EHZ, chain A): its 27 base pairs as arcs over the letters, the four stems nested, the six tertiary pairs (four of them crossing the stems’ pairs) over them; colored by kind (canonical, wobble, non-canonical); its 14 modified residues as their parent letters, each marked (its component on hover), their codes in a track above, found by the “Modified residues” bookmark (`(elements :modified true)`). Hover an arc: both ends lit; click: the pair selected.',
+    build: () => trna.build(),
+  },
+  {
+    dataset: 'trna',
+    id: 'split',
+    title: 'Crossing pairs below',
+    summary:
+      'The largest nested set of pairs above a middle line, the pairs that cross it below (`crossing: split`), over the letters.',
+    build: trna.split,
+  },
+  {
+    dataset: 'trna',
+    id: 'ring',
+    title: 'Pairs as chords',
+    summary: 'The tRNA on a ring, its pairs as chords through the hole (`side: below`).',
+    build: trna.ring,
+  },
+  {
+    dataset: 'trna',
+    id: 'dot-plot',
+    title: 'Base-pair dot plot',
+    summary:
+      'The arcs over the letters and the dot plot under them, its axes following their window: above the diagonal the family’s covariation on 1EHZ’s positions (mutual information over the Rfam seed’s columns, computed through 1EHZ’s place in the seed), below it the structure’s pairs mirrored. Hover a cell: a crosshair, both bases and the arcs ending there lit; drag a rectangle to select two ranges, Alt+drag to take a rectangle out.',
+    build: trna.dotPlot,
+  },
+  {
+    dataset: 'trna',
+    id: 'seed-row',
+    title: 'A seed row with its SS_cons pairs',
+    summary:
+      'The seed row 1EHZ is placed on (the row of highest identity, found by aligning 1EHZ’s parent letters to every row): its letters and the pairs of the seed’s `SS_cons` projected onto it, nested only.',
+    build: trna.seedRow,
+  },
+  {
+    dataset: 'trna',
+    id: 'seed',
+    title: 'Rfam RF00005 seed',
+    summary:
+      'The seed (954 rows of 118 columns, Stockholm as published): its `SS_cons` pairs as arcs over its columns (21, the four stems), its conservation logo, its rows. Hover a column: the arcs ending in it light.',
+    build: () => trna.seed(),
+    registry: () => [{ kind: 'format-runtime', runtime: AlignmentFileRuntime }],
+  },
+  {
+    dataset: 'trna',
+    id: 'seed-chain',
+    title: 'The seed and 1EHZ',
+    summary:
+      'The seed with its `SS_cons` arcs, and 1EHZ’s letters below, mapped onto the columns through the seed row of highest identity (a `segments` map, the stopgap of an alignment map). Hover an arc: its two 1EHZ residues light; hover a residue: its column.',
+    build: trna.seedWithChain,
+    registry: () => [{ kind: 'format-runtime', runtime: AlignmentFileRuntime }],
+  },
+];
+
+/**
+ * The dot plot at 4,000 × 4,000: a generated grid of 16M values, so a view of its own, kept out of the lists the quick
+ * tests walk (its bound is the heavy lane's).
+ */
+export const TrnaScaleView: ExampleView = {
+  dataset: 'trna',
+  id: 'dot-plot-scale',
+  title: 'Dot plot at 4,000 × 4,000',
+  summary:
+    'A generated 4,000 × 4,000 grid on a generated RNA, the plot alone under its ruler: the frame target’s scale.',
+  build: () => trna.scale(),
+};
+
+/** The table files, each drawing the same six domains: the file, its title and what is special about its form. */
+export const TableFiles: readonly (readonly [file: DomainFile, id: string, title: string, form: string])[] = [
+  ['domains.tsv', 'table-tsv', 'TSV', 'tab-separated text, a header row'],
+  ['domains.csv', 'table-csv', 'CSV', 'comma-separated text, a header row (RFC 4180)'],
+  ['domains-aos.json', 'table-json-aos', 'JSON, records', 'an array of objects, a row each'],
+  ['domains-soa.json', 'table-json-soa', 'JSON, columns', 'an object of columns, one array a field'],
+  ['domains-aos.msgpack', 'table-msgpack-aos', 'MessagePack, records', 'an array of maps, a row each'],
+  ['domains-soa.msgpack', 'table-msgpack-soa', 'MessagePack, columns', 'a map of columns, one array a field'],
+];
+
+/** Views made for the Files stories (`Features/Files`): sources read from files. */
+export const FilesViews: readonly ExampleView[] = [
+  {
+    dataset: 'files',
+    id: 'uniprot',
+    title: 'UniProt’s entry',
+    summary:
+      'p53 from UniProt’s own JSON (the REST entry of P04637, trimmed): the letters and the features read by the records runtime through the source’s transform, a track a feature type; R175, R248 and R273 lie inside the DNA-binding domain.',
+    build: () => p53Entry.build(),
+    registry: records,
+  },
+  ...TableFiles.map(
+    ([file, id, title, form]): ExampleView => ({
+      dataset: 'files',
+      id,
+      title: `Domains from ${title}`,
+      summary: `p53’s six domains from a table file: ${form}. Every form of the table draws the same.`,
+      build: () => tables.build(file),
+      registry: records,
+    }),
+  ),
+  {
+    dataset: 'files',
+    id: 'many-sequences',
+    title: 'Two sequences from one table',
+    summary:
+      'One TSV whose `target` column names each row’s sequence: p53’s domains and CDK2’s loops, a section each showing only its own rows; the one row with an empty target is on the source’s own system (p53).',
+    build: () => tables.buildMany(),
+    registry: records,
+  },
+  {
+    dataset: 'files',
+    id: 'plasmid-gff3',
+    title: 'Plasmid features from GFF3',
+    summary:
+      'The plasmid’s features as GFF3 (nine columns, a region row saying it is circular), as a ring and its detail: bla and a primer site end past the length in the file and are drawn as one item across the origin.',
+    build: () => plasmidGff.build(PlasmidGffFile),
+    registry: records,
+  },
+];
+
+/**
+ * Molecules drawn: a section of a complex (a block a unit, copies merged, the molecules as chips), the forms (whole,
+ * residues, atoms), a modified residue four ways, the complex as text, 200 copies with a glycan chip. Generated inline.
+ */
+export const MoleculeViews: readonly ExampleView[] = [
+  {
+    dataset: 'molecules',
+    id: 'molecules-complex',
+    title: 'A section of a complex',
+    summary:
+      'An Fc-like chain twice, merged into one block ×2, then its glycan, ATP and a sodium ion as chips (the water left out); the modified residues marked; the links as arcs: the glycan on N47, the disulfide C5–C71 across the copies, the sodium on D64 and ATP.',
+    build: molecules.complexView,
+  },
+  {
+    dataset: 'molecules',
+    id: 'molecules-forms',
+    title: 'Whole, residues, atoms',
+    summary:
+      'The molecules whole (a chip each), then the glycan by its residues (their codes) and ATP by its heavy atoms (their element symbols).',
+    build: molecules.formsView,
+  },
+  {
+    dataset: 'molecules',
+    id: 'molecules-modified',
+    title: 'Modified residues',
+    summary:
+      'A tRNA’s modified nucleotides four ways: a dot at the cell’s corner (the default), the code in place of the letter where it fits, the cell outlined, nothing; the Fc’s MSE, SEP and a CRO over three letters.',
+    build: molecules.modifiedView,
+  },
+  {
+    dataset: 'molecules',
+    id: 'molecules-text',
+    title: 'As text',
+    summary: 'The complex as text: each chain’s letters in lines, then the molecules’ chips flowing like words.',
+    build: molecules.textView,
+  },
+  {
+    dataset: 'molecules',
+    id: 'molecules-copies',
+    title: '200 copies',
+    summary: '200 copies of the chain merged into one block ×200, the glycan, ATP and the ion as chips after it.',
+    build: molecules.copiesView,
+  },
+];
+
+export const ExampleViews: readonly ExampleView[] = [
+  ...P53Views,
+  ...FilesViews,
+  ...FeatureViews,
+  ...CoordinatesViews,
+  ...LayerViews,
+  ...PlasmidViews,
+  ...ComplexViews,
+  ...AntibodyViews,
+  ...GlobinsViews,
+  ...TrnaViews,
+  ...MoleculeViews,
+  ...GenomeFormatsViews,
+  ...GenomesViews,
+];

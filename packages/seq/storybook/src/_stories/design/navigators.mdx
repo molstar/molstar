@@ -1,0 +1,78 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Navigators" />
+
+# Navigators
+
+A navigator answers two questions at a glance: where am I in the whole, and take me there. It is one part, set by the
+axes it covers, for any view whose whole does not fit: a chromosome region, a 10,000-row alignment, a long protein, a
+plasmid's linear detail.
+
+## Forms
+
+| Form              | Covers    | Shows                                                          |
+| ----------------- | --------- | -------------------------------------------------------------- |
+| the ruler rail    | positions | the window as a thicker segment just below the ruler's border  |
+| strip             | positions | the axis, or the section's tracks in miniature                 |
+| ideogram          | positions | a chromosome's Giemsa bands, the centromere as two triangles   |
+| vertical overview | both      | an alignment's rows in miniature, the rows and columns in view |
+| miniature         | both      | tracks and rows, both axes whole                               |
+
+- **A region far smaller than its chromosome** (a gene on chr17) shows on the ideogram as a mark with no grips, and a
+  zoom strip under it, joined by two lines, carries the working window over the region alone.
+- **The ruler rail is every linear section's navigator by default**, at no row's cost; a section without a ruler gets a
+  slim rail under its tracks, and an alignment's rows a vertical rail beside them. A declared navigator, or one a host
+  places, replaces it. A drag on a positions ruler pans. On an alignment's ruler only the lower 40% is the rail's, and a
+  drag above it selects columns.
+- **The rows rail** sits at the right edge of the rows, beside their last numbers: its window is the rows in view, a
+  drag scrolls them, a grip zooms them (`]` and `[` too), a click outside centres them there. It is idle while every row
+  shows. A declared vertical overview does not replace it (decided by the author, 2026-11-20): the overview sits right
+  of the rail, both drawn against one window. `navigator.rowsRail` is `always` (the default), `unlessOverview` (the
+  overview replaces it; one a narrow frame hides counts as hidden) or `none`. In a narrow frame the overview narrows
+  from 96 to 48 px and hides below a plot of `navigator.overview.minPlotPx` (160 px), the rail staying.
+- Other forms are nodes of the view in the spec, so they travel with it; the host places each part where it wants
+  (`mountNavigator`), and may also add one without touching the spec. A part sits beside the view at its form's size (a
+  strip across it, an overview 96 px wide, a miniature 160 × 96), never over the data or the toolbar.
+- A navigator draws from what the views already summarize, and colors by the view's domains, so a value has one color in
+  both.
+
+## The window
+
+The window is the bound section's viewport. Several leading sections on one navigator draw one window each.
+
+- **Drag the body** to pan, **drag a grip** to zoom with the other end held; the grips are tabs just outside the ends,
+  so a press in the middle always pans.
+- **The cursor says which**: a resize cursor along the navigator over a grip, a hand over the body, a pointer outside.
+- **Click outside** to centre the view there; **drag from outside** to sweep a region and zoom to it; double-click fits,
+  or zooms back in.
+- On a rows window (the rows rail, the vertical overview), its top and bottom grips zoom the rows and never scroll; a
+  double-click resets the rows' zoom.
+- A wheel over a navigator acts as over the view, zooming about the window's centre.
+- A window too small to see is drawn at least 16 px wide, centred on where it really is.
+- **Idle** when the view shows everything and cannot zoom in: drawn quiet (on the rail a hairline), not a target. Where
+  the view cannot be moved (a read-only story step) it is drawn the same way.
+- A window moved on a follower moves its leader. A reversed section's navigator runs in display order, so a drag right
+  moves the view right; collapsed introns show as notches.
+
+## History, keys and screen readers
+
+- A click, a sweep and a double-click are jumps: Alt+Left goes back. A drag is by hand and pushes a step only when it
+  travelled farther than a window's width.
+- The part is one tab stop; each window is a slider: arrows pan, Shift+arrows resize, Home and End go to the ends;
+  PageDown and PageUp move between the windows, and a press on a window focuses its slider. Its value is announced in
+  the section's labels ("positions 1,200–1,450 of 2,686") when the view comes to rest after the part's own move; a move
+  made elsewhere announces nothing.
+- A hover in a navigator shows its own readout (a position, a row, a band's name), never the view's hover.
+
+## Hidden, and in exports
+
+A host can turn the rails off (`navigator.form: none`), a declared navigator can be hidden by an edit, and the embedded
+layout has a corner button for the reader. Hiding the ruler falls back to the slim rail, so the way to move is never
+lost. An SVG export leaves navigators and rails out unless asked; when included, windows are outlines and rails plain
+segments, with no handles.
+
+## The window's look
+
+The window's look (amended 2026-11-22): over a genome always two rows (the control row and the context), a window at the
+fit one quiet frame that a drag sweeps, one 1 px stroke for every line (the window at full ink, the context, funnel and
+idle frames muted), and the readout in one fixed place above the navigator, right-aligned, shown at rest.

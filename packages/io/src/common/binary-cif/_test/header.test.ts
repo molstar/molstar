@@ -15,10 +15,10 @@ import { decodeMsgPack } from '../../msgpack/decode.js';
 import type { EncodedFile } from '../../binary-cif.js';
 import { CifWriter } from '@molstar/io/writer/cif';
 
-function createTestBcif() {
+function createTestBcif(block = 'TEST_BLOCK') {
   const rows = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
   const encoder = CifWriter.createEncoder({ binary: true, encoderName: 'test-encoder' });
-  encoder.startDataBlock('TEST_BLOCK');
+  encoder.startDataBlock(block);
   encoder.writeCategory({
     name: 'atom_site',
     instance: () =>
@@ -54,6 +54,12 @@ describe('binary-cif header', () => {
     expect(header.dataBlocks[0].categories.map((c) => c.name)).toEqual(['_atom_site', '_refln']);
     expect(header.dataBlocks[0].categories[0].rowCount).toBe(10);
     expect(header.dataBlocks[0].categories[0].columnNames).toEqual(['id', 'Cartn_x', 'type_symbol']);
+  });
+
+  it('keeps a leading U+FEFF of a block header, in the header and in a full decode', () => {
+    const bom = createTestBcif('\uFEFFBLOCK');
+    expect(decodeBinaryCifHeader(bom).dataBlocks[0].header).toBe('\uFEFFBLOCK');
+    expect((decodeMsgPack(bom) as EncodedFile).dataBlocks[0].header).toBe('\uFEFFBLOCK');
   });
 
   it('matches a full msgpack decode', () => {

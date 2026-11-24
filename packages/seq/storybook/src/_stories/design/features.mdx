@@ -1,0 +1,202 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Features" />
+
+# Features
+
+What this version contains and will contain. Each feature links its story here once it runs.
+
+## Built
+
+- **Editing**: every edit is a patch, and patches are the only undoable changes.
+  - patches on streamed things: a bookmark on a transcript read by region is a patch whether or not the transcript is
+    held, stays (waiting) when its region is evicted, undoes and redoes either way; a jump on it says what it waits for,
+    asks the source where the transcript is and runs when it arrives, and a key the source does not have is said once:
+    [Features › Addressing › Bookmarks](?path=/story/seq-next-features-addressing-bookmarks--bookmarks);
+  - patches through the viewer's commands (hide, show, move a track, color a layer, add a bookmark), each one step of a
+    host's undo stack that also holds the host's own state:
+    [Features › Editing](?path=/story/seq-next-features-editing--editing);
+  - undo and redo through the host, in order, the host's steps between the viewer's, and a track added as one patch, the
+    SVG export following: the same story;
+  - previews: a drag's transient change, each move replacing the last, ending in one patch on release or nothing on Esc:
+    the same two stories;
+  - rebase: a patch that lands mid-gesture leaves the preview over the new spec, and drops it when what it resizes is
+    gone: tested, not shown in a story.
+- **The small layers**: the ruler, secondary structure, variants, values as a line and an area, ranges as lines and with
+  arrowheads, each drawn by the canvas and by `renderSvg` from one spec and hit alike, on a reversed or collapsed axis
+  as on a plain one:
+  - the ruler: labels at steps of 1, 2 or 5 × 10ⁿ that never overlap, insertion labels (100A) as minor ticks where there
+    is room, the numbering a spec param (a built-in or a sequence's declared one: Kabat, IMGT), a reversed axis counting
+    down;
+  - secondary structure: helices and strands as blocks, the strand's arrowhead on the piece holding its C-terminal end
+    whatever the direction, the origin or the codon map, 200 copies drawn as one;
+  - variants: a stem and a head a site, the heads of one site stacked, a count strip where sites are under a pixel;
+  - values as a line (held over half cells at its ends and gaps, broken by missing values) and an area;
+  - ranges' line styles anchored to their content and arrowheads on the ends they point to:
+    [Features › Layers](?path=/story/seq-next-features-layers--ruler), one story a layer, in the light and the dark
+    theme;
+  - each track in its well, a squircle its data is clipped to, with a padding inside it (top, bottom or both), and every
+    emphasis a squircle:
+    [Features › Layers › Tracks in their wells](?path=/story/seq-next-features-layers--tracks-in-their-wells).
+- **The builder**: `createSeqSpec` shown as code beside the view it builds:
+  [Features › Builder](?path=/story/seq-next-features-builder--first-view).
+- **Region reads**: pairs, contact maps and matrices read by region, drawn coarse to fine:
+  [Features › Region reads](?path=/story/seq-next-features-region-reads-pairs--zoomed-out),
+  [the Design page](?path=/docs/seq-next-design-region-reads--docs).
+- **Across sections**: two genomes stacked with their alignment as ribbons in a band between them (a bridge), locked or
+  moved together over the band, aligned with Shift+A, three genomes chained, a liftover (an old assembly's genes drawn
+  on the new one through the chain read by region):
+  [Features › Across sections](?path=/story/seq-next-features-across-sections--two-genomes-at-the-fit),
+  [the Design page](?path=/docs/seq-next-design-across-sections--docs).
+- **Genotypes**: a VCF's samples as a matrix of genotype classes, each row named by its sample, read by region:
+  [Features › Genome formats › VCF › Genotypes](?path=/story/seq-next-features-genome-formats-vcf--genotypes).
+- **Addressing**: addresses as `path/(query :key value)`, resolved and printed back.
+  - refs and bookmarks, on dynamic nodes too (they wait until the node arrives, then resolve):
+    [Features › Addressing › Bookmarks](?path=/story/seq-next-features-addressing-bookmarks--bookmarks), with a short
+    text whose links move the view the same way;
+  - links in a text that focus, highlight and select; one residue in two numberings; copy link:
+    [Features › Addressing › Links](?path=/story/seq-next-features-addressing-links--links);
+  - the selection and the focus as addresses: the status lines of the Links and Selection stories.
+- **Selection**: the default gesture grammar.
+  - click, shift and toggle clicks, drag-select, several ranges (Cmd/Ctrl+drag adds, Alt/Option+drag removes, Shift
+    extends the anchor's range), Esc; the keyboard cursor with its arrows, Space and Enter:
+    [Features › Selection](?path=/story/seq-next-features-selection--tracks);
+  - projection: a selection on one section shown on another through the maps, lighter:
+    [Features › Selection › Protein on its gene](?path=/story/seq-next-features-selection--protein-on-its-gene): a drag
+    on the gene's letters, the protein showing the codons, in the canvas and in the SVG; a drag over nucleotides snaps
+    to whole codons at both ends;
+  - the selection drawn as one band a section (column) or a box a track (tracks): the shape toggle of those stories.
+- **Navigation**: pan and zoom by hand (drag, wheel, pinch), jumps that animate (focus, fit, reveal, step zooms; a cut
+  under reduced motion), and the view's history of jumps: a double-click on what is focused goes back,
+  Shift+double-click and `-` zoom out, `0` fits, Alt+Left, Backspace or the mouse's back button go back, Alt+Right
+  forward: [Features › Selection](?path=/story/seq-next-features-selection--tracks).
+- **Security bounds**: a spec comes from a URL, a link or an agent, so what it sizes is refused with a coded issue
+  before the work starts: its size (64 MB), depth (256), query depth (64), column length and block values (2^24); the
+  issues kept are bounded too (the first 10 of a code, at most 100 a node). The viewer holds them on its patches,
+  previews, story steps and whole roots (a load rejects with the issues), and its store on tables and nodes: tested, not
+  shown in a story.
+
+- **The axis**: a section's direction (`genomic`, `reversed`, following another), another system's letters on a section
+  (a protein a codon wide on its gene), collapsed introns of zero width on every layout:
+  [Features › Coordinates](?path=/story/seq-next-features-coordinates--protein-and-gene-on-one-axis).
+- **Themes and legends**: field palettes, rules, schemes (Clustal X, ESPript, `classes` and its safe substitute), shared
+  domains as `scale` nodes, size channels, a reader's color-blind substitution, legends a host places, each stating its
+  domain ("in view" over an open one), each with an eye hiding its layer (the row kept, dimmed):
+  [Features › Themes](?path=/story/seq-next-features-themes--themes),
+  [Features › Genome Ring › Kinds of links, contacts hidden](?path=/story/seq-next-features-genome-ring--kinds-of-links-contacts-hidden).
+- **Layouts**: tracks whose heights fit their content, text and alignment figures, blocks (a row, a stack, chips of one
+  position), rings with a window a linear detail follows, through one layout interface:
+  [Features › Text](?path=/story/seq-next-features-text--text),
+  [Examples › Complex › Blocks](?path=/story/seq-next-examples-complex-blocks--row),
+  [Examples › Plasmid › Ring](?path=/story/seq-next-examples-plasmid-ring--ring).
+- **Navigators**: the ruler rail on every linear section, strips, an ideogram, a vertical overview, a miniature, a zoom
+  strip: [Features › Navigators](?path=/story/seq-next-features-navigators--rail); a host's own picture, registered
+  (`<id>:<name>`): [a coverage strip](?path=/story/seq-next-features-navigators--coverage-strip); a navigator the host
+  draws itself through the viewer's navigator model:
+  [host-drawn](?path=/story/seq-next-features-navigators--host-drawn).
+- **Pairs, grids and dot plots**: arcs above and below, chords on a ring, crossing pairs split, a grid's own section
+  with its crosshair, rectangles and navigation, linked pairs lit from a hovered or selected range:
+  [Examples › tRNA](?path=/story/seq-next-examples-trna-views--arcs),
+  [Examples › Complex › PAE and contacts](?path=/story/seq-next-examples-complex-pae-and-contacts--pae).
+- **The logo and the rows layer**: a conservation logo, an alignment's rows beside their tree, clades folded to a
+  summary row, row columns (a row's fields, identity, length) ordered by a title's click, pinned rows, 10,000 rows held
+  and millions lazy: [Examples › Globins › Rows](?path=/story/seq-next-examples-globins-rows--family),
+  [Features › Rows](?path=/story/seq-next-features-rows--columns).
+- **Files and formats**: FASTA, aligned FASTA, Stockholm, Newick, and tables as TSV, CSV, JSON, MessagePack and GFF3,
+  one source over several sequences: [Features › Files](?path=/story/seq-next-features-files--uniprot-entry); queries
+  over them: [Features › Query](?path=/story/seq-next-features-query--query-box).
+- **Numbering schemes**: a sequence's declared numbering (Kabat, IMGT) read by queries, addresses, the ruler and the
+  hover, insertions labelled, the positions it does not number marked; a range written backwards in IMGT is an invalid
+  label, said with its hint: [Examples › Antibody](?path=/story/seq-next-examples-antibody-views--schemes),
+  [Design numberings](?path=/story/seq-next-examples-antibody-views--design-numberings).
+- **Language versions**: every built-in layer type declares its fallback (`none` or the simpler type a reader without it
+  draws); a spec of a newer minor version with a kind this reader lacks gets a warning, not an error, and is drawn as
+  far as it is known; every example view's spec round-trips through MessagePack.
+- **Interaction**: the keyboard cursor over an alignment's rows and a grid's y, crossing the gaps between blocks (tracks
+  of blocks, and a grid over two sections of blocks down its y too); the hover card and the keys panel (a port a host
+  can replace); overlapping highlight channels; copying the selection's letters as shown:
+  [Features › Hover card and keys](?path=/story/seq-next-features-hover-card-and-keys--hover-card),
+  [Features › Highlights](?path=/story/seq-next-features-highlights--overlapping-channels).
+- **Stories**: steps as full states or patches, a player on the application's clock, a step's view:
+  [Features › Story](?path=/story/seq-next-features-story--story).
+- **Export**: SVG and PNG, the same picture as the canvas, with an accessible structure; the `seqx-render` command line.
+- **The datasets**: p53 (its tracks, its gene, a text figure, its chromosome by region), Globins, Plasmid, tRNA, Complex
+  and Antibody, each with an index of its sources and licences:
+  [Examples › p53 › Chromosome](?path=/story/seq-next-examples-p53-chromosome--chromosome).
+- **The structure link**: hover, selection and focus both ways with a structure viewer (a fake here, its host's adapter
+  over `structureFacts`), chain maps by `priority` and `via`, a structure colored by a track:
+  [Features › Structure link](?path=/story/seq-next-features-structure-link--hover-both-ways).
+- **Host data**: a host serves its own data through a data adapter (`withAdapter`), no file read, and an edit reopens
+  the source in place: [Features › Host data](?path=/story/seq-next-features-host-data--served-by-the-fake); a section
+  of the host's own complex, a block a unit, reflowed when the host drops or restores a chain:
+  [Features › Host data › The host's complex](?path=/story/seq-next-features-host-data--the-hosts-complex).
+- **Track headers**: actions beside a track's label (drawn or as DOM parts), the state chips and marks, a host's entry
+  and widget: [Features › Track headers](?path=/story/seq-next-features-track-headers--built-ins).
+- **Legends placed by the host**: one legend part, compact or full, vertical or horizontal, a layer's `legend: none`:
+  [Features › Legends](?path=/story/seq-next-features-legends--legend-placements).
+- **A minimal viewer**: the layer types and layouts a spec lists, nothing else in its bundle.
+- **Extensions**: an extension's descriptor (its id the namespace of everything it ships), a layer type named
+  `<id>:<name>` with its fallback, its plain params and its keys on built-in nodes, a scheme, a command and a binding; a
+  reader without it draws the fallback and says which extension the figure needs; registered and taken away at run time:
+  [Features › Extensibility](?path=/story/seq-next-features-extensibility--toggled-at-run-time).
+
+- **Molecules**: complexes of units sharing molecules, copies addressed by unit, a section of a complex as blocks, whole
+  residues or atoms (`block.form`), modified residues marked, links drawn as arcs:
+  [Features › Molecules](?path=/story/seq-next-features-molecules--section-of-a-complex); the examples on the new kinds
+  (4HHB's hemes, 1EHZ's modified residues, 3AVE's Fc glycan, an antibody-drug conjugate):
+  [Examples › Globins › Hemoglobin](?path=/story/seq-next-examples-globins-hemoglobin--hemoglobin).
+- **Maps between structures and sequences**: numberings by `offset` and `segments`, `segments` and `structure` maps with
+  per-residue status, two maps of one pair chosen by `priority` or `via`, pairs, ranges and maps on an alignment's
+  columns: [Examples › p53 › Structure](?path=/story/seq-next-examples-p53-structure--structure); a protein over its
+  coding DNA, the codon connector:
+  [Features › Coordinates](?path=/story/seq-next-features-coordinates--protein-over-its-coding-dna).
+- **Queries by role**: elements and groups, a filter over typed properties, `expand` and `linked`, `merge`, `intersect`
+  and `except`: [Features › Query](?path=/story/seq-next-features-query--items-by-category).
+- **Services and structure files**: UniProt, PDBe SIFTS and AlphaFold DB from recorded fixtures, a structure file
+  dropped on the view, an opt-in mmCIF reader:
+  [Examples › Services](?path=/story/seq-next-examples-services--composing-services).
+- **Archives**: a spec with its data files saved and opened as a zip over the assets port, bounded:
+  [Features › Archives](?path=/story/seq-next-features-archives--plasmid-saved).
+- **Range reads and bigWig**: range reads of assets in `@molstar/core` and an opt-in bigWig reader:
+  [Examples › p53 › Signal from a bigWig](?path=/story/seq-next-examples-p53-signal-from-a-bigwig--signal-from-a-big-wig).
+- **A second consumer of the resolved view**: a test-only renderer from the resolved view and the store alone, and a
+  Nightingale showcase on it as a dev dependency:
+  [Showcases › Nightingale](?path=/story/seq-next-showcases-nightingale--sequence-and-features).
+- **Genomes**: assemblies and blocks on rows and rings, navigators over blocks and the square, data by region (pairs,
+  matrices, grids, rows), BED, GFF3, GTF, VCF and GenBank with BGZF and tabix, bridges across sections (synteny, the dot
+  plot, liftover), contact maps, points and log scales, variants by sample, names indexed; the genome ring as an
+  extension (`@molstar/seqx-ext-rondo`):
+  [Examples › Genomes › Views](?path=/story/seq-next-examples-genomes-views--synteny),
+  [Features › Genome Ring](?path=/story/seq-next-features-genome-ring--kinds-of-links).
+- **Search**: exact, IUPAC and regular expression patterns (an automaton, never backtracking) over every sequence the
+  view draws, both strands and across a circle's origin, bounded and counted past the cap; every hit lit, a count,
+  stepping with keys, the hits saved as a set; the box the application's (the stories' own):
+  [Examples › p53 › Search](?path=/story/seq-next-examples-p53-search--search),
+  [Examples › Plasmid › Search](?path=/story/seq-next-examples-plasmid-search--search-across-the-origin).
+
+## Planned
+
+Version 1's close-out builds these (the author, 2026-11-23).
+
+- **Layers and themes**: track groups, summaries and collapse; points, log scales and reference lines on values.
+
+## Deferred
+
+Each is deferred until the trigger named for it.
+
+- **A published JSON Schema**: until an outside reader or an agent tool needs one.
+- **Writers (FASTA, PDF)**: until the first writer extension.
+- **Agent tools**, with the language's docs and agent skill and an agent's editing story: until the language description
+  and addressing are built.
+- **A React adapter**: until a React host asks.
+- **Past version 1** (the author, 2026-11-23), each until a dataset, a host or a measurement needs it:
+  - keyed joins, and a command to keep a streamed region;
+  - the `pairwise` and `alignment` map kinds with the orthologs view, computed maps, reversed pairs rows;
+  - A3M and Clustal, 2bit, BigBed and PAF, a source's assembly, every dataset as an archive;
+  - values and ranges split by sample, two grids on one block pair, a MAF over a genome;
+  - approximate search (an application's matcher);
+  - the glyph atlas and band copy, bigWig's own levels;
+  - one typed configuration, presets, node kinds beyond layer types, the other registries;
+  - rects as addresses, refs in data params, query extension forms;
+  - the structure link on Mol\*'s new viewer, one href driving it, BinaryCIF, services live, AlphaFill's transplants;
+  - explicit migrations, until the first breaking change after 1.0.

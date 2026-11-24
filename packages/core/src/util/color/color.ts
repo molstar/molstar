@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import type { NumberArray } from '../type-helpers.js';
@@ -9,6 +10,7 @@ import type { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
 import { Hcl } from './spaces/hcl.js';
 import { Lab } from './spaces/lab.js';
 import { Hsl } from './spaces/hsl.js';
+import { Oklab } from './spaces/oklab.js';
 
 /** RGB color triplet expressed as a single number */
 export type Color = { readonly '@type': 'color' } & number;
@@ -128,6 +130,11 @@ export namespace Color {
     const hsl2 = Hsl.fromColor(_interpolateHsl2, c2);
     Hsl.interpolate(hsl1, hsl1, hsl2, t);
     return Hsl.toColor(hsl1);
+  }
+
+  /** Interpolation between two colors in Oklab (perceptual steps), the result clamped into the gamut. */
+  export function interpolateOklab(c1: Color, c2: Color, t: number): Color {
+    return Oklab.interpolateColors(c1, c2, t);
   }
 
   export function hasHue(c: Color): boolean {

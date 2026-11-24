@@ -1,0 +1,800 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import { parseJson, printJson, toJson } from '@molstar/core/repr/codecs/json';
+import { parseSexpr, printSexpr } from '@molstar/core/repr/codecs/sexpr';
+import { languageToMarkdown, normalize, validateAndNormalize } from '@molstar/core/repr/schema';
+import { hashNode, type Node } from '@molstar/core/repr/tree';
+import { describe, expect, it } from 'vitest';
+import { LanguageVersion } from '../../index.js';
+import { createSeqSpec } from '../builder.js';
+import { checkSeqLang, checkSeqSpec } from '../check.js';
+import { LangIssues } from '../issues.js';
+import { SeqLanguage, SeqLanguageVersion } from '../language.js';
+import { theme } from '../theme-builder.js';
+import { MoleculeMisuses } from './molecules.js';
+import { EXONS, P53_LETTERS, p53Spec } from './p53.js';
+
+describe('the language', () => {
+  it('is the package version, and documents every kind', () => {
+    expect(SeqLanguageVersion).toBe(LanguageVersion);
+    const md = languageToMarkdown(SeqLanguage);
+    for (const kind of Object.keys(SeqLanguage.kinds)) expect(md).toContain(kind);
+  });
+});
+
+describe('the p53 example', () => {
+  const spec = p53Spec();
+
+  it('is valid, with handles that are addresses', () => {
+    expect(checkSeqSpec(spec)).toEqual([]);
+    const b = createSeqSpec();
+    const p53 = b.data.sequence('p53', { alphabet: 'protein', letters: 'MEE' });
+    expect(p53).toBe('/data/p53');
+    const protein = b.views.view('main', (v) => {
+      expect(v.section('protein', { of: p53 }).address).toBe('/views/main/protein');
+    });
+    expect(protein).toBe('/views/main');
+  });
+
+  it('prints as the description shows it', () => {
+    const text = printSexpr(spec, { head: 64 });
+    expect(text).toContain(`(spec :version ${SeqLanguageVersion} :title p53`);
+    expect(text).toContain(`(sequence p53 :alphabet protein :letters ${P53_LETTERS}`);
+    expect(text).toContain('(map p53-on-gene');
+    expect(text).toContain(':follow /views/main/protein');
+    expect(text).toContain('(layer ranges :type ranges :data /data/domains)');
+  });
+
+  it('encodes as JSON both ways and back', () => {
+    // declared columns plain
+    const plain = printJson(spec, { language: SeqLanguage });
+    expect(JSON.parse(plain).children[0].children[0].params.letters).toBe(P53_LETTERS);
+    expect(plain).not.toContain('$column');
+    const a = parseJson(plain);
+    expect(a.issues).toEqual([]);
+    const read = validateAndNormalize(SeqLanguage, a.node as Node);
+    expect(read.issues).toEqual([]);
+    expect(hashNode(read.node as Node)).toBe(hashNode(spec));
+    // every column tagged
+    const tagged = printJson(spec);
+    expect(tagged).toContain('"$column":"int32"');
+    const b = parseJson(tagged);
+    expect(b.issues).toEqual([]);
+    expect(hashNode(normalize(SeqLanguage, b.node as Node))).toBe(hashNode(spec));
+    expect(toJson(spec, { language: SeqLanguage })).toEqual(JSON.parse(plain));
+  });
+
+  it('prints and reads back as S-expressions', () => {
+    const back = parseSexpr(printSexpr(spec, { head: 64 }));
+    expect(back.issues).toEqual([]);
+    expect(hashNode(normalize(SeqLanguage, back.node as Node))).toBe(hashNode(spec));
+  });
+
+  it('writes the declared columns as plain lists', () => {
+    const json = JSON.parse(printJson(spec, { language: SeqLanguage }));
+    expect(json.children[0].children[3].params.exons.start).toEqual(EXONS.start);
+  });
+});
+
+/** One spec for each code of the catalog: valid for the description, wrong in the language's own way. */
+/** A ranges layer whose channel holds `value` (inline rows with a text `category`). */
+function themed(value: unknown, channel = 'color', scale = false): Node {
+  const b = createSeqSpec();
+  const s = b.data.sequence('s', { alphabet: 'protein', letters: 'MEEP' });
+  const r = b.data.ranges('r', { target: s, rows: { start: [0], end: [2], category: ['a'] } });
+  if (scale) b.views.scale('sc');
+  b.views.view('v', (v) =>
+    v
+      .section('p', { of: s })
+      .track('t')
+      .layer('l', { type: 'ranges', data: r, [channel]: value as never }),
+  );
+  return b.build();
+}
+
+const Misuses: Record<keyof typeof LangIssues.codes, () => Node> = {
+  ...MoleculeMisuses,
+  'seq.lang.theme.form': () => themed(theme.continuous({ colors: 'viridis' })),
+  'seq.lang.theme.color': () => themed('reddish'),
+  'seq.lang.theme.channel': () => themed('#ff0000', 'size'),
+  'seq.lang.theme.type': () => themed(theme.rules([theme.rule([theme.eq('category', 3)], '#ff0000')])),
+  'seq.lang.theme.stops': () => themed(theme.field('start', { domain: [5, 1] })),
+  'seq.lang.theme.scale': () => themed(theme.field('start', { scale: '/views/none' }), 'color', true),
+  'seq.lang.theme.depth': () => {
+    let deep = theme.uniform('#ff0000');
+    for (let i = 0; i < 6; i++) deep = theme.rules([], deep);
+    return themed(deep);
+  },
+  'seq.lang.version.unsupported': () => createSeqSpec({ version: '1.0.0' }).build(),
+  'seq.lang.id.required': () => ({
+    kind: 'spec',
+    params: { version: SeqLanguageVersion },
+    children: [{ kind: 'data', id: 'data', children: [{ kind: 'ext:note' }] }],
+  }),
+  'seq.lang.container.id': () => ({
+    kind: 'spec',
+    params: { version: '0.0.0' },
+    children: [{ kind: 'data', id: 'stuff' }],
+  }),
+  'seq.lang.source.content': () => {
+    const b = createSeqSpec();
+    b.data.source('s', { format: 'fasta' });
+    return b.build();
+  },
+  'seq.lang.source.index': () => {
+    const b = createSeqSpec();
+    b.data.source('s', { format: 'json', value: [1], index: 'x.idx' });
+    return b.build();
+  },
+  'seq.lang.snapshot.content': () => {
+    const b = createSeqSpec();
+    b.snapshots.snapshot('neither', {});
+    return b.build();
+  },
+  'seq.lang.sequence.content': () => {
+    const b = createSeqSpec();
+    b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT', source: '/data/x' });
+    return b.build();
+  },
+  'seq.lang.alignment.content': () => {
+    const b = createSeqSpec();
+    b.data.alignment('a', { alphabet: 'protein' });
+    return b.build();
+  },
+  'seq.lang.alignment.width': () => {
+    const b = createSeqSpec();
+    b.data.alignment('a', { alphabet: 'protein', rows: { label: ['x', 'y'], letters: ['AC-D', 'ACD'] } });
+    return b.build();
+  },
+  'seq.lang.sequence.letters': () => {
+    const b = createSeqSpec();
+    b.data.sequence('s', { alphabet: 'dna', letters: 'ACGU' });
+    return b.build();
+  },
+  'seq.lang.ranges.content': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
+    b.data.ranges('r', { target: s });
+    return b.build();
+  },
+  'seq.lang.ranges.interval': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
+    b.data.ranges('r', { target: s, rows: { start: [3], end: [1] } });
+    return b.build();
+  },
+  'seq.lang.ranges.strand': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
+    b.data.ranges('r', { target: s, rows: { start: [0, 1], end: [1, 2], strand: ['+', 'x'] } });
+    return b.build();
+  },
+  'seq.lang.ranges.bounds': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
+    b.data.ranges('r', { target: s, rows: { start: [0], end: [5] } });
+    return b.build();
+  },
+  'seq.lang.pairs.interval': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'rna', letters: 'GCGGAUUU' });
+    b.data.pairs('p', { a: s, rows: { a_start: [2], a_end: [2], b_start: [5], b_end: [6] } });
+    return b.build();
+  },
+  'seq.lang.pairs.bounds': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'rna', letters: 'GCGGAUUU' });
+    b.data.pairs('p', { a: s, rows: { a_start: [0], a_end: [1], b_start: [7], b_end: [9] } });
+    return b.build();
+  },
+  'seq.lang.grid.length': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'rna', letters: 'GCG' });
+    b.data.grid('g', { x: s, values: [1, 2, 3] });
+    return b.build();
+  },
+  'seq.lang.version.kind': () => {
+    const b = createSeqSpec({ title: 'x' });
+    const s = b.data.sequence('s', { alphabet: 'protein', letters: 'MEEP' });
+    b.views.view('v', (v) =>
+      v
+        .section('p', { of: s })
+        .group('g', {})
+        .track('t', {}, (t) => t.layer('l', { type: 'letters' })),
+    );
+    const spec = b.build();
+    return { ...spec, params: { ...spec.params, version: '0.10.0' } };
+  },
+  'seq.lang.group.summary': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
+    b.views.view('v', (v) => {
+      const sec = v.section('sec', { of: s });
+      sec.track('outside', {}, (t) => t.layer('l', { type: 'letters' }));
+      sec.group('g', { summary: 'outside' }).track('t', {}, (t) => t.layer('l', { type: 'letters' }));
+    });
+    return b.build();
+  },
+  'seq.lang.values.content': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
+    b.data.values('v', { target: s });
+    return b.build();
+  },
+  'seq.lang.values.length': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
+    b.data.values('v', { target: s, values: [1, 2, 3] });
+    return b.build();
+  },
+  'seq.lang.numbering.content': () => {
+    const b = createSeqSpec();
+    b.data.sequence('s', { alphabet: 'protein', letters: 'MEEP' }, (s) => s.numbering('kabat', { method: 'labels' }));
+    return b.build();
+  },
+  'seq.lang.numbering.id': () => {
+    const b = createSeqSpec();
+    b.data.sequence('s', { alphabet: 'protein', letters: 'ME' }, (s) =>
+      s.numbering('ordinal', { method: 'labels', labels: ['1', '2'] }),
+    );
+    return b.build();
+  },
+  'seq.lang.numbering.length': () => {
+    const b = createSeqSpec();
+    b.data.sequence('s', { alphabet: 'protein', letters: 'MEEP' }, (s) =>
+      s.numbering('kabat', { method: 'labels', labels: ['1', '2', '3'] }),
+    );
+    return b.build();
+  },
+  'seq.lang.numbering.duplicate': () => {
+    const b = createSeqSpec();
+    b.data.sequence('s', { alphabet: 'protein', letters: 'MEE' }, (s) =>
+      s.numbering('kabat', { method: 'labels', labels: ['1', '2', '1'] }),
+    );
+    return b.build();
+  },
+  'seq.lang.map.params': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
+    b.data.map('m', { from: s, to: s, method: 'offset' });
+    return b.build();
+  },
+  'seq.lang.map.segments': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGTACGT' });
+    b.data.map('m', { from: s, to: s, method: 'segments', segments: { from: [0, 2], to: [4, 0], length: [3, 2] } });
+    return b.build();
+  },
+  'seq.lang.numbering.segments': () => {
+    const b = createSeqSpec();
+    b.data.sequence('s', { alphabet: 'protein', letters: 'MEEP' }, (s) =>
+      s.numbering('auth', { method: 'segments', segments: { start: [0, 1], end: [2, 4], first: [1, 10] } }),
+    );
+    return b.build();
+  },
+  'seq.lang.map.alphabet': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
+    b.data.map('m', { from: s, to: s, method: 'codon', exons: EXONS, strand: '+' });
+    return b.build();
+  },
+  'seq.lang.map.exons': () => {
+    const b = createSeqSpec();
+    const p = b.data.sequence('p', { alphabet: 'protein', letters: 'MEE' });
+    const g = b.data.sequence('g', { alphabet: 'dna', letters: 'ACGTACGTAC' });
+    b.data.map('m', { from: p, to: g, method: 'codon', exons: { start: [0, 3], end: [5, 8] }, strand: '+' });
+    return b.build();
+  },
+  'seq.lang.section.range': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
+    b.views.view('v', (v) => {
+      v.section('sec', { of: s, range: [3, 1] });
+    });
+    return b.build();
+  },
+  'seq.lang.ref.target': () => {
+    const b = createSeqSpec();
+    b.data.ranges('r', { target: '/data/missing', rows: { start: [0], end: [1] } });
+    return b.build();
+  },
+  'seq.lang.ref.unresolved': () => {
+    const b = createSeqSpec();
+    b.refs.ref('gone', { to: '/data/missing/(range :from 1 :to 9)' });
+    return b.build();
+  },
+  'seq.lang.ref.cycle': () => {
+    const b = createSeqSpec();
+    b.refs.ref('a', { to: '/refs/b' });
+    b.refs.ref('b', { to: '/refs/a' });
+    return b.build();
+  },
+  'seq.lang.layer.data': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
+    b.views.view('v', (v) => {
+      v.section('sec', { of: s }).track('t').layer('ranges', { type: 'ranges', data: s });
+    });
+    return b.build();
+  },
+  'seq.lang.layer.fallback': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
+    b.views.view('v', (v) => {
+      v.section('sec', { of: s }).track('t').layer('x', { type: 'demo:x' });
+    });
+    return b.build();
+  },
+  'seq.lang.section.follow': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
+    b.views.view('v', (v) => {
+      v.section('a', { of: s, follow: '/views/v/b' });
+      v.section('b', { of: s, follow: '/views/v/a' });
+    });
+    return b.build();
+  },
+  'seq.lang.assembly.content': () => {
+    const b = createSeqSpec();
+    b.data.assembly('g', { name: 'GRCh38' });
+    return b.build();
+  },
+  'seq.lang.sequence.alphabet': () => {
+    const b = createSeqSpec();
+    b.data.sequence('s', { letters: 'ACGT' });
+    return b.build();
+  },
+  'seq.lang.block.scale': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
+    b.views.view('v', (v) => v.section('sec', {}, (sec) => sec.block('b', { of: s, scale: 0 })));
+    return b.build();
+  },
+  'seq.lang.bridge.sides': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
+    b.views.view('v', (v) => {
+      const a = v.section('a', { of: s });
+      v.bridge('x', { a, b: a });
+    });
+    return b.build();
+  },
+  'seq.lang.section.include': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
+    b.views.view('v', (v) => v.section('a', { of: s, include: ['chr1'] }));
+    return b.build();
+  },
+  'seq.lang.include.pattern': () => {
+    const b = createSeqSpec();
+    b.data.assembly('g', { name: 'toy', sequences: { name: ['a'], length: [1] }, include: ['^(a+)+$'] });
+    return b.build();
+  },
+  'seq.lang.pairs.content': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
+    b.data.pairs('p', { a: s });
+    return b.build();
+  },
+  'seq.lang.grid.content': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
+    b.data.grid('g', { x: s, field: 'balanced' });
+    return b.build();
+  },
+  'seq.lang.matrix.content': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
+    b.data.matrix('m', { target: s, values: [0.5] });
+    return b.build();
+  },
+  'seq.lang.data.names': () => {
+    const b = createSeqSpec();
+    const g = b.data.assembly('g', { sequences: { name: ['chr1'], length: [100] } });
+    b.data.pairs('p', { a: g, rows: { a_start: [0], a_end: [1], b_start: [2], b_end: [3] } });
+    return b.build();
+  },
+  'seq.lang.navigator.bands': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
+    b.views.view('v', (v) => {
+      const a = v.section('a', { of: s });
+      v.navigator('n', { of: a, content: 'bands' });
+    });
+    return b.build();
+  },
+  // tooltips (EC-250 to EC-252, EC-256)
+  'seq.lang.tooltip.content': () =>
+    tooltipSpec((b, s) => ({ on: s, target: s, rows: { start: [0], end: [2], tooltip: ['x'] } })),
+  'seq.lang.tooltip.on': () => tooltipSpec(() => ({ on: '/data/gone/(range :from 1 :to 2)', text: 'a note' })),
+  'seq.lang.tooltip.field': () =>
+    tooltipSpec((_, s) => ({ target: s, rows: { start: [0], end: [2], note: ['x'] }, text: '{note}: {score}' })),
+  'seq.lang.tooltip.schema': () =>
+    tooltipSpec((_, s) => ({ target: s, schema: 'address', rows: { start: [0], end: [2], tooltip: ['x'] } })),
+  'seq.lang.tooltip.category': () =>
+    tooltipSpec((b, s) => ({
+      target: s,
+      source: b.data.source('cif', { format: 'mmcif', uri: 'x.cif' }),
+      schema: 'auth_residue',
+      category: 'my_notes',
+    })),
+  'seq.lang.tooltip.text': () =>
+    tooltipSpec((_, s) => ({ target: s, rows: { start: [0], end: [2], tooltip: ['x'] }, text: '{tooltip' })),
+};
+
+/** A sequence and one tooltip, its params made from the builder and the sequence's address. */
+function tooltipSpec(params: (b: ReturnType<typeof createSeqSpec>, s: string) => Record<string, unknown>): Node {
+  const b = createSeqSpec();
+  const s = b.data.sequence('s', { alphabet: 'protein', letters: 'MEEPQSDPSV' });
+  b.views.tooltip('t', params(b, s) as never);
+  return b.build();
+}
+
+const sequence = (b: ReturnType<typeof createSeqSpec>, cyclic: boolean) =>
+  b.data.sequence('s', { alphabet: 'dna', letters: 'ACGTACGT', cyclic });
+
+const spec = (...data: Node[]): Node => ({
+  kind: 'spec',
+  params: { version: '0.0.0' },
+  children: [{ kind: 'data', id: 'data', children: data }],
+});
+const dna: Node = { kind: 'sequence', id: 's', params: { alphabet: 'dna', letters: 'A' } };
+
+describe('the gates and the places', () => {
+  it('a newer major version is reported alone, whatever else the spec holds', () => {
+    const future: Node = {
+      kind: 'spec',
+      params: { version: '1.0.0' },
+      children: [{ kind: 'from-the-future', id: 'x' }],
+    };
+    expect(checkSeqSpec(future).map((i) => i.code)).toEqual(['seq.lang.version.unsupported']);
+    expect(checkSeqSpec({ ...future, params: { version: '0.11.0' } }).map((i) => i.code)).toEqual([
+      'repr.schema.kind.unknown',
+    ]);
+  });
+
+  it('a newer minor’s unknown kind is a warning (drawn as what is known); the reader’s own minor, an older one and a newer major refuse it', () => {
+    const at = (version: string): Node => ({
+      kind: 'spec',
+      params: { version },
+      children: [{ kind: 'from-the-future', id: 'x', children: [{ kind: 'also-new', id: 'y' }] }],
+    });
+    const newer = checkSeqSpec(at('0.12.0'));
+    expect(newer.map((i) => [i.code, i.severity])).toEqual([
+      ['repr.schema.kind.unknown', 'warning'],
+      ['repr.schema.kind.unknown', 'warning'],
+    ]);
+    expect(newer[0].hint).toContain('newer minor');
+    expect(newer[0].message).toBe(
+      `A spec of 0.12.0, this reader ${SeqLanguageVersion}: unknown kinds drawn by their fallback`,
+    );
+    // `0.12` and a pre-release are read as the same newer minor: their kinds are warnings; the grammar's
+    // `major.minor.patch` still refuses the version's own spelling, the one error
+    for (const v of ['0.12', '0.12.0-rc.1'])
+      expect(checkSeqSpec(at(v)).map((i) => [i.code, i.severity])).toEqual([
+        ['repr.schema.param.pattern', 'error'],
+        ['repr.schema.kind.unknown', 'warning'],
+        ['repr.schema.kind.unknown', 'warning'],
+      ]);
+    expect(checkSeqSpec(at('0.11.0')).map((i) => i.severity)).toEqual(['error', 'error']);
+    expect(checkSeqSpec(at('0.9.0')).map((i) => i.severity)).toEqual(['error', 'error']);
+    expect(checkSeqSpec(at('1.0.0')).map((i) => [i.code, i.severity])).toEqual([
+      ['seq.lang.version.unsupported', 'error'],
+    ]);
+    // the warning leaves the rest read: another error in the spec is still an error
+    const bad = at('0.12.0');
+    bad.children!.push({
+      kind: 'data',
+      id: 'd',
+      children: [{ kind: 'sequence', id: 's', params: { alphabet: 'dna' } }],
+    });
+    expect(checkSeqSpec(bad).some((i) => i.severity === 'error')).toBe(true);
+  });
+
+  it('a spec read from JSON is normalized first, so its columns are checked', () => {
+    const bad = Misuses['seq.lang.ranges.interval']();
+    const read = parseJson(printJson(bad, { language: SeqLanguage })).node as Node;
+    expect(checkSeqSpec(read).map((i) => i.code)).toEqual(['seq.lang.ranges.interval']);
+  });
+
+  it('row-level issues say which row', () => {
+    const [i] = checkSeqSpec(Misuses['seq.lang.ranges.strand']());
+    expect(i.path?.slice(-3)).toEqual(['rows', 'strand', 1]);
+    const [e] = checkSeqSpec(Misuses['seq.lang.map.exons']());
+    expect(e.path?.slice(-3)).toEqual(['exons', 'start', 1]);
+  });
+
+  it('a range that starts after it ends wraps a cyclic sequence, and is an error on any other', () => {
+    for (const cyclic of [true, false]) {
+      const b = createSeqSpec();
+      const s = sequence(b, cyclic);
+      b.data.ranges('r', { target: s, rows: { start: [6], end: [2] } });
+      b.views.view('v', (v) => {
+        v.section('sec', { of: s, range: [6, 2] });
+      });
+      const codes = b.check().map((i) => i.code);
+      expect(codes).toEqual(cyclic ? [] : ['seq.lang.ranges.interval', 'seq.lang.section.range']);
+    }
+  });
+
+  it('a coding sequence crosses a cyclic origin only in its last exon, and only on a cyclic gene (EC-11)', () => {
+    const run = (cyclic: boolean, start: number[], end: number[], table?: number) => {
+      const b = createSeqSpec();
+      const p = b.data.sequence('p', { alphabet: 'protein', letters: 'MK' });
+      const g = sequence(b, cyclic);
+      b.data.map('m', { from: p, to: g, method: 'codon', exons: { start, end }, strand: '+', table });
+      return b.check().map((i) => i.code);
+    };
+    expect(run(true, [6], [0])).toEqual([]);
+    expect(run(true, [3, 6], [5, 2])).toEqual([]);
+    expect(run(false, [6], [0])).toEqual(['seq.lang.map.exons']);
+    // past the first exon's start, or not the last exon
+    expect(run(true, [3, 6], [5, 4])).toEqual(['seq.lang.map.exons']);
+    expect(run(true, [6, 7], [2, 8])).toEqual(['seq.lang.map.exons']);
+    expect(run(true, [6], [0], 11)).toEqual([]);
+  });
+
+  it('a genetic code table is a codon map’s param; a sequence may name its record in its source', () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT', name: 'chr1' });
+    b.data.map('m', { from: s, to: s, method: 'offset', by: 1, table: 2 });
+    expect(b.check().map((i) => i.code)).toEqual(['seq.lang.map.params']);
+  });
+
+  it('a wrapped range still stays within the letters', () => {
+    const b = createSeqSpec();
+    b.data.ranges('r', { target: sequence(b, true), rows: { start: [6], end: [9] } });
+    expect(b.check().map((i) => i.code)).toEqual(['seq.lang.ranges.bounds']);
+  });
+
+  it('a layer whose data is of a kind its param does not take is reported once', () => {
+    const b = createSeqSpec();
+    const s = sequence(b, false);
+    const src = b.data.source('src', { format: 'fasta', uri: 'x.fa' });
+    b.views.view('v', (v) => {
+      v.section('sec', { of: s })
+        .track('t')
+        .layer('ranges', { type: 'ranges', data: src as never });
+    });
+    expect(b.check().map((i) => i.code)).toEqual(['seq.lang.ref.target']);
+  });
+
+  const generic: [string, Node][] = [
+    [
+      'repr.schema.parent.invalid',
+      { kind: 'spec', params: { version: '0.0.0' }, children: [{ kind: 'track', id: 't' }] },
+    ],
+    ['repr.schema.id.missing', spec({ kind: 'sequence', params: { alphabet: 'dna', letters: 'A' } })],
+    [
+      'repr.schema.column.type',
+      spec(dna, {
+        kind: 'ranges',
+        id: 'r',
+        params: { target: '/data/s', rows: { start: new Float32Array([0]), end: new Int32Array([1]) } },
+      }),
+    ],
+    [
+      'repr.schema.table.length',
+      spec(dna, { kind: 'ranges', id: 'r', params: { target: '/data/s', rows: { start: [0, 1], end: [1] } } }),
+    ],
+  ];
+  for (const [code, tree] of generic)
+    it(`${code} comes from the description, and stops the language's checks`, () => {
+      const codes = checkSeqSpec(tree).map((i) => i.code);
+      expect(codes).toContain(code);
+      expect(codes.every((c) => c.startsWith('repr.'))).toBe(true);
+    });
+
+  it('keeps NaN in values through JSON, plain and tagged', () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACG' });
+    b.data.values('v', { target: s, values: new Float32Array([1, Number.NaN, 3]) });
+    const built = b.build();
+    for (const language of [SeqLanguage, undefined]) {
+      const text = printJson(built, { language });
+      expect(text).toContain('null');
+      const read = validateAndNormalize(SeqLanguage, parseJson(text).node as Node);
+      expect(read.issues).toEqual([]);
+      expect(hashNode(read.node as Node)).toBe(hashNode(built));
+    }
+  });
+
+  it('keeps a column in custom data, tagged, through JSON', () => {
+    const built = p53Spec();
+    const data = built.children?.[0] as Node;
+    const withCustom: Node = {
+      ...built,
+      children: [{ ...data, custom: { depth: new Float32Array([1, 2.5]) } }, ...(built.children?.slice(1) ?? [])],
+    };
+    const text = printJson(withCustom, { language: SeqLanguage });
+    expect(text).toContain('"$column":"float32"');
+    const read = validateAndNormalize(SeqLanguage, parseJson(text).node as Node);
+    expect(read.issues).toEqual([]);
+    expect(hashNode(read.node as Node)).toBe(hashNode(withCustom));
+    expect(checkSeqSpec(withCustom)).toEqual([]);
+  });
+});
+
+describe('pairs, grids and a grid section', () => {
+  it('are valid: two systems, a pair across them, a grid x-major, y following a section', () => {
+    const b = createSeqSpec();
+    const x = b.data.sequence('x', { alphabet: 'protein', letters: 'MEEPQ' });
+    const y = b.data.sequence('y', { alphabet: 'protein', letters: 'MKL' });
+    const p = b.data.pairs('contacts', {
+      a: x,
+      b: y,
+      rows: { a_start: [0, 4], a_end: [1, 5], b_start: [2, 0], b_end: [3, 1], type: ['contact', 'contact'] },
+    });
+    const g = b.data.grid('pae', { x, y, values: new Array(15).fill(1) });
+    b.views.view('v', (v) => {
+      v.section('x', { of: x }).track('t').layer('l', { type: 'letters' });
+      v.section('y', { of: y }).track('t').layer('l', { type: 'letters' });
+      v.section('plot', {
+        layout: 'grid',
+        of: x,
+        of_y: y,
+        follow: '/views/v/x',
+        follow_y: '/views/v/y',
+        aspect: 1,
+      }).track('t', {}, (t) => {
+        t.layer('pae', { type: 'grid', data: g, aggregate: 'min', triangle: 'both' });
+        t.layer('dots', { type: 'pairs', data: p, mirror: false });
+      });
+    });
+    expect(b.check()).toEqual([]);
+  });
+});
+
+describe('inline data over an assembly', () => {
+  const build = (fill: (b: ReturnType<typeof createSeqSpec>) => void) => {
+    const b = createSeqSpec();
+    fill(b);
+    return checkSeqSpec(b.build()).map((i) => [i.code, i.message, i.path?.slice(-2)]);
+  };
+  const toy = (b: ReturnType<typeof createSeqSpec>) =>
+    b.data.assembly('g', { sequences: { name: ['chr1', 'chr2'], length: [100, 50] } });
+  const pair = { a_start: [0], a_end: [1], b_start: [2], b_end: [3] };
+
+  it('names each row’s sequence a side on an assembly: pairs, grid cells and matrix items', () => {
+    expect(
+      build((b) => {
+        const g = toy(b);
+        b.data.pairs('p', { a: g, rows: { ...pair, a_name: ['chr1'], b_name: ['2'] } });
+        b.data.grid('h', { x: g, values: [1, 2], x_name: ['chr1', 'chr1'], y_name: ['chr2', 'chr2'] });
+        b.data.matrix('m', { target: g, values: [1, 2, 3, 4], states: ['s1', 's2'], name: ['chr1', 'chr2'] });
+      }),
+    ).toEqual([]);
+  });
+
+  it('a side on a sequence names none; a column one a row (a grid’s values, a matrix’s items)', () => {
+    expect(
+      build((b) => {
+        const g = toy(b);
+        const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGTACGT' });
+        // b on a sequence: `b_name` refused, `a_name` required
+        b.data.pairs('p', { a: g, b: s, rows: { ...pair, b_name: ['chr1'] } });
+        b.data.grid('h', { x: g, values: [1, 2], x_name: ['chr1'], y_name: ['chr1', 'chr1'] });
+        b.data.matrix('m', { target: g, values: [1, 2, 3, 4], states: ['s1', 's2'], name: ['chr1'] });
+      }),
+    ).toEqual([
+      ['seq.lang.data.names', 'Rows over an assembly name their sequences: `a_name`', ['params', 'rows']],
+      ['seq.lang.data.names', '`b_name` names sequences of an assembly only', ['rows', 'b_name']],
+      ['seq.lang.data.names', '`x_name` has 1 names, not 2', ['params', 'x_name']],
+      ['seq.lang.data.names', '`name` has 1 names, not 2', ['params', 'name']],
+    ]);
+  });
+});
+
+describe('the misuses', () => {
+  it('cover the catalog', () => {
+    expect(Object.keys(Misuses).sort()).toEqual(Object.keys(LangIssues.codes).sort());
+  });
+
+  for (const [code, make] of Object.entries(Misuses)) {
+    it(`${code} is reported, with its severity and a place`, () => {
+      const issues = checkSeqSpec(make()).filter((i) => i.code === code);
+      expect(issues.length).toBeGreaterThan(0);
+      const [issue] = issues;
+      expect(issue.severity).toBe(LangIssues.codes[code as keyof typeof LangIssues.codes].severity);
+      expect(issue.path).toBeDefined();
+      expect(issue.hint).toBeDefined();
+    });
+  }
+
+  it('name the node by its address', () => {
+    const [issue] = checkSeqSpec(Misuses['seq.lang.sequence.letters']());
+    expect(issue.address).toBe('/data/s');
+    expect(issue.path).toEqual(['children', 0, 'children', 0, 'params', 'letters']);
+  });
+
+  it('leave a valid spec without issues, whatever the references', () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'protein', letters: 'MEEP' });
+    b.data.values('v', { target: s, values: [1, 2, Number.NaN, 4] });
+    expect(b.check()).toEqual([]);
+  });
+
+  it('refuse an override’s own letters under an assembly, never misread them against an alphabet', () => {
+    const b = createSeqSpec();
+    b.data.assembly('g', { name: 'toy', sequences: { name: ['chr1'], length: [4] } }, (a) =>
+      a.sequence('o', { name: 'chr1', letters: 'ACGT' }),
+    );
+    expect(b.check().map((i) => i.code)).toEqual(['seq.lang.sequence.content']);
+  });
+
+  it('give the description’s codes first, and the language’s on a valid tree only', () => {
+    const bad = createSeqSpec();
+    bad.data.sequence('s', { alphabet: 'cat' } as never);
+    expect(bad.check().map((i) => i.code)).toEqual(['repr.schema.param.enum']);
+    const missing = createSeqSpec();
+    missing.data.ranges('r', { rows: { start: [0], end: [1] } } as never);
+    expect(missing.check().map((i) => i.code)).toEqual(['repr.schema.param.missing']);
+  });
+
+  it('are refused where they are written, when the types do not reach', () => {
+    const b = createSeqSpec();
+    b.data.sequence('s', { alphabet: 'dna', letters: 'A' });
+    expect(() => b.data.sequence('s', { alphabet: 'dna', letters: 'A' })).toThrow(/twice/);
+    expect(() => b.data.sequence('a b', { alphabet: 'dna', letters: 'A' })).toThrow(/not an id/);
+  });
+
+  it('require an id on every child of the spec: a layer by the description, an extension’s kind by the language', () => {
+    const layer = (id?: string): Node => ({
+      kind: 'spec',
+      params: { version: SeqLanguageVersion },
+      children: [
+        {
+          kind: 'data',
+          id: 'data',
+          children: [{ kind: 'sequence', id: 's', params: { alphabet: 'dna', letters: 'A' } }],
+        },
+        {
+          kind: 'views',
+          id: 'views',
+          children: [
+            {
+              kind: 'view',
+              id: 'v',
+              children: [
+                {
+                  kind: 'section',
+                  id: 'sec',
+                  params: { of: '/data/s' },
+                  children: [
+                    {
+                      kind: 'track',
+                      id: 't',
+                      children: [{ kind: 'layer', ...(id ? { id } : {}), params: { type: 'letters' } }],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    expect(checkSeqSpec(layer('l'))).toEqual([]);
+    expect(checkSeqSpec(layer()).map((i) => [i.code, i.address])).toEqual([['repr.schema.id.missing', undefined]]);
+    // an extension's kind with an id passes, its children checked as the language's
+    const ext = Misuses['seq.lang.id.required']();
+    const withId: Node = { ...ext, children: [{ ...ext.children![0], children: [{ kind: 'ext:note', id: 'n' }] }] };
+    expect(checkSeqSpec(withId).map((i) => i.code)).toEqual(['repr.schema.kind.extension']);
+    expect(checkSeqSpec(ext).map((i) => [i.code, i.path])).toEqual([
+      ['repr.schema.kind.extension', ['children', 0, 'children', 0, 'kind']],
+      ['seq.lang.id.required', ['children', 0, 'children', 0]],
+    ]);
+    // the language's checks alone leave a kind of the description to it: no second issue for one missing id
+    expect(checkSeqLang(layer()).map((i) => i.code)).toEqual([]);
+    // a layer through the builder takes an id
+    const b = createSeqSpec();
+    b.views.view('v', (v) => {
+      // @ts-expect-error: a layer needs an id
+      expect(() => v.section('s', { of: '/data/s' }).track('t').layer({ type: 'letters' })).toThrow(/needs an id/);
+    });
+  });
+});

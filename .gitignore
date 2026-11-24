@@ -44,3 +44,4 @@ mise.local.toml
 
 # Large models for the benchmarks, not checked in (tests/src/benchmark)
 .benchmark/
+.scaffolds/seq/tmp/

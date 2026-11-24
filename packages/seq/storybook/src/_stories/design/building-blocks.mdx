@@ -1,0 +1,76 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Building blocks" />
+
+# Building blocks
+
+The nouns of the language. They are the first proposal: names may still change until the first examples run.
+
+## Data
+
+- **Spec**: the root. Data is defined once; views refer to it.
+- **Coordinate system**: where positions live. A system has a length (or is open, for a streamed genome), may be cyclic,
+  and has an alphabet when it carries letters. Positions are indices, 0-based; ranges are half-open. Labels (residue
+  numbers, insertion codes, chromosome names) are converted at the edge.
+- **Structure**: a chain instance of a structure is a system too. Its residues are keyed by the structure's numbering
+  and flagged observed or not. A structure runtime (Mol\*) binds it to atoms.
+- **Sequence**: a system with letters (a protein, a nucleic acid, a chromosome), shared by its **units** (chains,
+  copies, haplotypes). Units are grouped by a **complex**. A location on one unit never reaches another unit through the
+  sequence they share.
+- **Map**: a directed relation between two systems. Three questions are answered separately.
+  - **Kind**, what it means:
+    - `identity`;
+    - `offset`;
+    - `numbering` (Kabat, IMGT, labels);
+    - `segments`;
+    - `pairwise` (a CIGAR);
+    - `alignment` (a row onto columns);
+    - `codon` (exons and a strand);
+    - `structure` (a sequence onto a chain's residues, like SIFTS).
+  - **Sourcing**, where it comes from:
+    - inline, in the kind's compact form;
+    - a source, read by region;
+    - computed by a runtime the application provides. A codon map computed from a gene model is still a codon map.
+  - **Encoding**, how it is held, the cheapest that works:
+    - implicit (arithmetic);
+    - runs (a 400-residue protein on 5 exons is 5 runs);
+    - expanded per position, only for the region asked.
+
+  Direction (+1 or −1) is part of every run, so an inversion, a reverse-strand gene and a protein on its codons are one
+  mechanism.
+
+- **Path and projection**: maps compose into paths, and a location is carried along the shortest unambiguous path.
+- **Alignment**: rows, each with its map onto a columns system named by the alignment, so one file of many families says
+  whose columns each record is on.
+- **Annotation**: data on a system, in one of six shapes:
+  - `ranges`: intervals with fields;
+  - `values`: a number per position or bin;
+  - `pairs`: two locations, possibly on two systems;
+  - `matrix`: a value per row and position;
+  - `grid`: a value per pair of positions;
+  - `rows`: keyed records.
+
+  It reads from a **source**.
+
+- **Location**: a set of ranges on one system, or of rects over two axes (a dot plot's, an alignment block's). It is
+  what a query returns, what hover and selection hold, and what focus names.
+- **Query**: a small composable language whose result is a location. It has generators, modifiers (by label, expand,
+  onto another system), filters and combinators.
+
+## Views
+
+- **View**: sections laid out as tracks or as text, opening on a **focus**.
+- **Section**: one axis (a system, or a piece of one: a range, reversed, with gaps collapsed) and its **tracks**.
+- **Track**: a stack of **layers**.
+- **Layer**: one way of drawing one annotation, or the letters: `letters`, `ranges`, `values`, `pairs`, `matrix`,
+  `logo`, `ruler`, …. Each layer type declares its fallback, the simpler layer a reader without it draws instead.
+- **Theme**: how a channel (color, size) is computed. It can be uniform, from a field's values (a palette, binned or
+  continuous, over a domain that may be left open to the data in view), from threshold rules, or from a named scheme.
+  Themes are data, never code.
+- **Snapshot**: a named patch over the spec, such as a story's step or a bookmark.
+- **Issue**: `{ code, severity, path, message, hint }`, with a stable code, from every pass. Issues are reported, not
+  thrown.
+
+## How they fit
+
+The Composition page shows the levels these nouns live in, and the IRs a spec compiles to.

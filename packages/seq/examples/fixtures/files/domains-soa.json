@@ -1,0 +1,7 @@
+{
+  "id": ["TAD", "PRR", "DBD", "NLS", "TET", "CTD"],
+  "label": ["Transactivation", "Proline-rich", "DNA-binding", "Nuclear localization", "Tetramerization", "C-terminal"],
+  "start": [1, 64, 94, 319, 324, 364],
+  "end": [61, 94, 292, 360, 355, 393],
+  "category": ["activation", "linker", "binding", "signal", "oligomer", "regulatory"]
+}

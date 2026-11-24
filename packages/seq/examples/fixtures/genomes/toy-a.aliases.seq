@@ -1,0 +1,1 @@
+{"kind":"seq","params":{"coverage":{"systems":[{"name":"chr1","length":300000,"aliases":["1","NC_900001.1"]},{"name":"chr2","length":200000,"aliases":["2","NC_900002.1"]},{"name":"chr3","length":120000,"aliases":["3","NC_900003.1"]},{"name":"chrM","length":16569,"aliases":["NC_900004.1"]},{"name":"HLA-A*01:01:01:01","length":3503}],"shapes":[],"levels":[1]},"pairs":[]}}

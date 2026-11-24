@@ -1,0 +1,96 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Genome coordinates" />
+
+# Genome coordinates
+
+A genome is an **assembly**: its sequences, named, ordered, with their aliases. A section `of` an assembly shows its
+chromosomes as **blocks** end to end, in a row or on a ring; a section `of` a list of assemblies shows each as a
+**group**. A position is always a system's, whatever a block's direction or scale: nothing stored or exported is in
+display order or in display units.
+
+## A direction and a scale per block
+
+- **`block.direction`**: `section` (the default) or `reversed`, against the section's direction, so `section.reverse`
+  turns every block (the block order is kept). A reversed block's ruler counts down, its label carries the mark
+  (`chr4 ←`), its letters are complemented under `auto`, and on a ring it runs counterclockwise within its arc.
+- **`block.scale`**: its display units are its positions times its scale, so a region takes more of the row or the
+  circle. Its label says so (`chr17 ×10`) and its ruler counts its own positions at its own density.
+- **An inversion between genomes** is a block cut at its edges and reversed: B in A's order is explicit blocks (the
+  builder's `colinearBlocks`), exported as drawn. A direction per piece inside one block stays open.
+
+## Gaps at scale, and runs
+
+- **One rule for rows and rings**: the gaps in view share at most a quarter of the length, each at most the layout's gap
+  (12 px; 1° on a ring), so at 3,000 blocks a ring's gaps are 0.03° each and three quarters of the circle stays
+  positions. A gap between two assemblies is wider (3 block gaps; 4° on a ring), taken first.
+- **Small blocks run together**: consecutive blocks each narrower than 2 px are one band ("2,976 contigs"), no gaps
+  inside. Inside a run a block is still read and drawn while it is a device pixel wide; under that its stretch shows the
+  run's band alone. Runs are found again on a zoom, never on a pan.
+
+## Places and units
+
+Each section of blocks keeps an index of the blocks that show a system, so a position on a system has its **places**:
+every block that shows it (overlapping blocks: each). A viewport, a history step, a saved view and an export's viewport
+carry `{ system, position }` ends, never units. Two sections with equal block lists (a ring of the genome and its linear
+detail) follow each other by identity; unequal lists do not follow.
+
+## A hue per block
+
+Every mark on a block has the built-in fields `block` (its label) and `system` (its sequence's name). A categorical
+theme over them takes the section's blocks in order as its domain (over an assembly its names in its order, before any
+`include`), so a sequence has one hue on every section of its assembly.
+
+## Stories
+
+Toy assemblies generated in the story, each the canvas and the SVG of one view, light and dark by the toolbar's theme:
+
+- [One assembly in a row](?path=/story/seq-next-features-genome-coordinates--one-assembly-in-a-row)
+- [One assembly on a ring](?path=/story/seq-next-features-genome-coordinates--one-assembly-on-a-ring), its linear detail
+  following its window
+- [Two assemblies on one ring](?path=/story/seq-next-features-genome-coordinates--two-assemblies-on-one-ring)
+- [B in A's order](?path=/story/seq-next-features-genome-coordinates--b-in-as-order), an inverted block reversed and a
+  scaled block
+- [3,000 contigs](?path=/story/seq-next-features-genome-coordinates--three-thousand-contigs) in runs, on a ring and in a
+  row
+
+## Navigators and the viewer
+
+- **A navigator over blocks**: with no `system` over a section of blocks, or `system` an assembly, it draws the genome's
+  blocks; its window is the section's, carried by `{ system, position }` (one window over a gap). A click on a
+  chromosome is a jump there, a double-click fits it (again: the whole); zoomed in, the zoom strip shows the chromosome
+  holding the window. The readout and the slider name the block and the assembly
+  (`chr17: 7,668,402–7,687,550 of GRCh38`).
+- **`navigator.switch: include`**: a click on a chromosome shows it alone on the bound section (a ring of one chromosome
+  is the genome's ring with `include` patched: one undo step); Home shows every one again.
+- **The square**: a navigator on both axes over blocks × blocks, the chromosome pairs a lattice, the window one
+  rectangle. What its cells hold (pairs by block, a contact map's tiles by block pair) is region reads'.
+- **The square's way home**: a muted line under the square names its gestures ("Drag to move · drag an edge to resize ·
+  double-click for the whole genome"; `navigator.squareHint: false`, or `hint: false` on the mounted part, leaves it
+  out). A double-click anywhere on the square, and 0 on its focus, show the whole genome (every block, one history step,
+  nothing when all are shown); Back returns the window before. While the links load the square shows the pending hatch
+  with "Loading…", and on a failure the issue's text, as the ring's hole says it. A contact map's cell card reads in
+  bases (`chr1 88.5–89.0 Mb × chr1 86.5–87.0 Mb`, its value), never bin indices.
+- **The viewer**: `navigate.acrossBlocks` (`cross`, or `stop`: one chromosome at a time); `block.next`, `block.previous`
+  (Alt+PageDown, Alt+PageUp); `block.reverse` and `section.include` from a block's menu ("Reverse", "Show only", "Show
+  all"); the keyboard cursor crosses into the next block (EC-154, amended); a drag across blocks selects each block's
+  shown positions; the view's history keeps `{ system, position }`; a run's hover names its block ("one of 2,841"); the
+  locus box falls back to a source's gene names.
+
+- [A chromosome at a time](?path=/story/seq-next-features-genome-coordinates--a-chromosome-at-a-time)
+- [The square over blocks × blocks](?path=/story/seq-next-features-genome-coordinates--the-square)
+- [A ring that switches](?path=/story/seq-next-features-genome-coordinates--a-ring-that-switches)
+
+- [A BED over the assembly](?path=/story/seq-next-features-genome-coordinates--a-bed-over-the-assembly): one file over
+  every chromosome, its names mapped by the names rule, each block reading its own sequence
+- [Cytobands over the genome](?path=/story/seq-next-features-genome-coordinates--cytobands-over-the-genome): hg38's
+  bands on every chromosome and as the ideogram navigator
+- [Links written in the spec](?path=/story/seq-next-features-genome-coordinates--links-written-in-the-spec): a chord
+  ring, each row naming its two chromosomes (`a_name`, `b_name`)
+- [A matrix written in the spec](?path=/story/seq-next-features-genome-coordinates--a-matrix-written-in-the-spec): two
+  chromosomes' items, `name` each one's chromosome
+
+Data over an assembly is read by sequence: a block reads its own sequence's rows (inline rows split by their `target`,
+or by `a_name`/`b_name`, `x_name`/`y_name`, `name` for pairs, grids and matrices; a source by region under the names it
+lists). Not yet built: the square's cells (region reads) and its grips; a navigator over a list of assemblies; the
+whole-assembly level cut into block pairs.

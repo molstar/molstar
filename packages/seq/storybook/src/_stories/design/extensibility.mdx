@@ -1,0 +1,124 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Extensibility" />
+
+# Extensibility
+
+Seq\* is a library that applications compose: a structure viewer's sequence panel, a genome browser's tracks, a design
+tool, a figure. The rule is simple: **what can be configurable, is**, and every registry is open to extensions. The
+defaults should still be good on their own.
+
+## Configuration
+
+In this version, settings live in two places:
+
+- **The spec**: what is shown and how it looks as data (layers, themes, palettes, numbering, focus). It travels with the
+  view.
+- **The viewer configuration**: one typed set of config items, given when the application composes the viewer. It covers
+  the gesture bindings, behaviors and their params, the foundations' preset and numbers, limits, and defaults for what a
+  spec leaves unset.
+
+Later, user settings will layer over the configuration, any setting will report its effective value and where it came
+from, and a settings form will be generated from the config items' descriptions.
+
+Configurable does not mean inconsistent. One configuration applies to every view in a viewer, and the fixed rules (one
+grammar, the foundations) hold whatever the values.
+
+## Composing a viewer
+
+A viewer is made from an explicit spec, the way a Mol\* plugin is made from its `PluginSpec`:
+
+```ts
+const viewer = createSeqViewer(
+  {
+    ...DefaultSeqViewerSpec(),
+    registry: [...DefaultSeqViewerSpec().registry, BigWigFormat, MyLayer],
+    config: [[SeqConfig.Foundations.Preset, 'compact']],
+    ports: { assets: () => ({ manager: plugin.managers.asset, disposeWithViewer: false }) },
+  },
+  element,
+);
+```
+
+- **Registry entries** are pure data: node kinds, layer types, themes, formats, map runtimes, backends, numbering
+  schemes, query functions and commands. They register in order. Registration is atomic and counted, and it is undone
+  when the viewer retires.
+- **Behaviors** come with params. **Bindings** are the gesture grammar's preset plus overrides. **Config** items are
+  typed settings.
+- An analysis is a behavior a host lists: `linkedPairs` (in the default spec) lights the pairs with an end in a hovered
+  or selected range, through the public query and highlight API only; remove it to opt out.
+- **Ports** are factories with ownership. An unset port gets its default adapter, which the viewer disposes. A port the
+  host passes in, such as a Mol\* plugin's asset manager, stays the host's.
+- `DefaultSeqViewerSpec()` lists the defaults. Nothing registers itself on import, so what isn't listed isn't in the
+  bundle. The renderer's layer types and layouts, and the viewer's history, stories, navigators and rows, are listed too
+  (decided 2026-11-19: injected, opt in): a smaller spec ships less, and the default spec draws as before.
+- Without a target element the viewer is headless. `createSeqContext(spec)` renders to SVG with no viewer at all.
+- Configuration in this version is one typed set of config items. User settings layered over it, and a generated
+  settings form, come later.
+
+## Ports
+
+What is one per viewer and touches the outside is a port, bound in the viewer's spec with a default adapter. What is
+looked up by name (formats, map runtimes, backends) is a registry entry instead.
+
+| Port         | Default adapter                                                             |
+| ------------ | --------------------------------------------------------------------------- |
+| Assets       | Mol\*'s `AssetManager`; a host can pass its own, so downloads are shared    |
+| Text metrics | Mol\*'s `TextMeasure` with a canvas in the browser, a bundled table in Node |
+| Structure    | none in the core; the showcases bind Mol\*                                  |
+
+Time and frames come from the UI runtime's host. Archives are read and written over the assets port. A compute port
+(workers), and ports for storage, clipboard and links, come when a host needs them.
+
+## Layout and spacing
+
+Every number in the UX foundations is a setting: the spacing unit, row heights, gaps, the label column, letter sizes,
+density thresholds, radii and durations. They come in presets (compact, comfortable, figure, print). Layouts (tracks,
+text, rings, dot plots) share one internal interface, which opens as an extension point when an application needs one.
+Whatever the values, the foundations' rules hold: the grid, one label column, aligned columns, density steps that don't
+move content.
+
+## Extension points
+
+| Point                             | An extension adds                                                                                       |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Node kinds                        | new kinds anywhere in the spec, described like the built-ins, with a fallback                           |
+| Custom fields                     | namespaced fields on any node and extra columns on any table, kept by readers that don't own them       |
+| Formats                           | readers (a file format onto the one protocol) and writers (FASTA, SVG, PDF, a session for another tool) |
+| Data adapters                     | a host's own reader of a format, answering from memory (`withAdapter` replaces the default)             |
+| Layer types                       | a way to draw: params, layout, hit-testing, and a fallback                                              |
+| Themes, palettes, residue schemes | how a channel is computed                                                                               |
+| Map runtimes                      | a way to compute a map (align, SIFTS lookup, gene model to codons)                                      |
+| Numbering schemes, codon tables   | labels and translation                                                                                  |
+| Query functions                   | generators, modifiers and filters                                                                       |
+| Commands, behaviors, bindings     | what the viewer can do, and what gestures do                                                            |
+| Backends, text metrics            | where draw lists go                                                                                     |
+| Structure runtimes                | binding structures to a structure viewer such as Mol\*                                                  |
+| Chrome parts                      | track header actions, context menu items, hover card sections, panels                                   |
+
+## Data adapters
+
+A format has one reader, an adapter: the core's readers are the defaults, a host's replaces one. The host wraps the
+default (it answers for the entries it holds and hands the rest on), then lists its adapter with
+`withAdapter(registry, adapter)`, which takes the default's place for the adapter's formats and leaves every other entry
+as it was. Two adapters for one format are an error when the viewer is composed, never an order. The spec does not
+change: it names the data by its file, and a viewer composed with the default reads the file. An adapter may tell that
+its data changed (`changes`), and the source is read again in place, the nodes of what stayed kept by key. The
+Storybook's fake structure viewer is one: [Host data](?path=/story/seq-next-features-host-data--served-by-the-fake).
+
+## How an extension plugs in
+
+- An extension is **registry entries**: a namespaced record of what it contributes at each point.
+- The application **lists them in the viewer's spec**, or a behavior registers them at run time. Nothing registers
+  itself on import, and there is no global registry.
+- **Built-ins use the same points.** Every layer type, theme and runtime that ships with Seq\* is written the way an
+  extension would be.
+- In a spec, an extension's kinds are **namespaced** (`ext:kind`) and **declare a fallback** to a built-in. A reader
+  without the extension draws the fallback, or omits the node, and reports it. The rest of the spec still opens.
+- A **custom field** under a namespace a reader doesn't know is carried through unchanged: patches, diffs and printing
+  keep it. A host puts its own fields under its namespace, never as new top-level params.
+- **Conflicts are errors** when the viewer is composed: two contributions with one id, or one gesture bound twice.
+  Nothing depends on registration order.
+
+A worked example (a layer type, a theme, a command and its binding) will appear here once the first extension point is
+built.

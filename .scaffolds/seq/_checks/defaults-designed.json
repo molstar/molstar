@@ -1,0 +1,20 @@
+{
+  "why": "drawn: what Seq*'s designs add that is drawn. exempt: designs without a Defaults heading when the check was written (2026-11-21); only shrinks.",
+  "drawn": "\\b(layers?|layouts?|parts?)\\b",
+  "exempt": [
+    "axis",
+    "composition",
+    "edge-cases",
+    "extensibility",
+    "files",
+    "grids-and-rows",
+    "layout-and-draw-lists",
+    "layouts",
+    "molecules",
+    "navigators",
+    "seq-data-ports",
+    "testing",
+    "themes",
+    "track-header-parts"
+  ]
+}

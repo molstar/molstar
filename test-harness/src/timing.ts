@@ -19,6 +19,9 @@ export type Within = <T>(ms: number, f: () => T) => T;
 /** No clock: `f`'s result. */
 const unbounded: Within = (_, f) => f();
 
+/** Whether `within` checks its bounds (the heavy lane's) or reads no clock (the quick lane's): a test scales by it. */
+export const isBounded = (within: Within): boolean => within !== unbounded;
+
 /** `f` under `ms` milliseconds, its result kept. */
 const bounded: Within = (ms, f) => {
   const t0 = performance.now();
@@ -34,10 +37,65 @@ const bounded: Within = (ms, f) => {
 };
 
 /**
- * `it(name, body)` twice: in the quick lane with `within` running its function unbounded, and in the heavy lane with
- * the bounds checked (named `name` and its bounds). The body bounds only what it times: `within(1000, () => read(b))`.
+ * Runs of a bounded test: a bound held in any of them holds. One sample of a few milliseconds in a parallel heavy run
+ * can meet a collection or another worker's burst; the whole test runs again (its setup too, so a body that changes
+ * state is as repeatable as one that does not). A test whose point is one run's time passes `tries: 1`.
  */
-export function itWithin(name: string, body: (within: Within) => unknown, timeout?: number) {
+export const BoundedTries = 3;
+
+/**
+ * `it(name, body)` twice: in the quick lane with `within` running its function unbounded, and in the heavy lane with
+ * the bounds checked (named `name` and its bounds), the best of `tries` runs (`BoundedTries`). The body bounds only what
+ * it times: `within(1000, () => read(b))`.
+ */
+export function itWithin(
+  name: string,
+  body: (within: Within) => unknown,
+  timeout?: number,
+  options: { readonly tries?: number } = {},
+) {
   it(name, { timeout }, () => body(unbounded));
-  it(`${name}: within its time bounds`, { tags: ['heavy'], timeout }, () => body(bounded));
+  const retry = Math.max(0, (options.tries ?? BoundedTries) - 1);
+  it(`${name}: within its time bounds`, { tags: ['heavy'], timeout, retry }, () => body(bounded));
+}
+
+/**
+ * A ratio of two repeatable timings: `b` at most `ratio` × `a`, each the best of `rounds` runs taken in turn (a, b, a,
+ * b…), so a burst or a clock change meets both alike. Why in turn: two timings taken one after the other compare two
+ * moments of the machine, not the two functions. Unbounded (the quick lane), each runs once.
+ */
+export function ratioWithin(within: Within, ratio: number, a: () => unknown, b: () => unknown, rounds = 5): void {
+  if (within === unbounded) {
+    a();
+    b();
+    return;
+  }
+  let bestA = Number.POSITIVE_INFINITY;
+  let bestB = Number.POSITIVE_INFINITY;
+  for (let i = 0; i < rounds; i++) {
+    let t0 = performance.now();
+    a();
+    bestA = Math.min(bestA, performance.now() - t0);
+    t0 = performance.now();
+    b();
+    bestB = Math.min(bestB, performance.now() - t0);
+  }
+  expect(bestB, `best ${bestB.toFixed(3)} ms against ${ratio}× ${bestA.toFixed(3)} ms`).toBeLessThan(ratio * bestA);
+}
+
+/**
+ * A bound on a repeatable `f`, held when any of `tries` runs is under `ms`: one sample of a few milliseconds in a
+ * parallel heavy run can meet a collection or another worker's burst. Unbounded (the quick lane), `f` runs once.
+ */
+export function bestOf<T>(within: Within, ms: number, f: () => T, tries = 3): T {
+  if (within === unbounded) return f();
+  let last: unknown;
+  for (let i = 0; i < tries; i++) {
+    try {
+      return within(ms, f);
+    } catch (e) {
+      last = e;
+    }
+  }
+  throw last;
 }

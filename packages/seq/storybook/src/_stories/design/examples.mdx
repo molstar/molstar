@@ -1,0 +1,170 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Examples" />
+
+# Examples
+
+A few datasets, each rich enough for many views. A view is one spec over its dataset: one way of looking, or one editing
+experience. Views appear in this group as they are built.
+
+Examples show what a dataset looks like; how a feature works (themes, selection, editing, bookmarks and links, stories,
+navigators, text, coordinates) is shown under Features, on whichever dataset suits it, and linked from the dataset's
+index.
+
+Examples load their data from files (FASTA, Stockholm, Newick, annotation tables with the transforms they need), as a
+reader of Seq\* would; values are inlined only where they are few or the inline form is the point.
+
+## Built
+
+The p53 figures, under Examples › p53 (its index lists them and the features shown on its data):
+
+- [Tracks](?path=/story/seq-next-examples-p53-tracks--tracks),
+  [Protein on its gene](?path=/story/seq-next-examples-p53-protein-on-its-gene--protein-on-its-gene) and
+  [Gene by region](?path=/story/seq-next-examples-p53-gene-by-region--gene-by-region).
+
+The features, under Features, shown on p53:
+
+- [Editing](?path=/story/seq-next-features-editing--editing): on the tracks, add a track, hide one, set a theme; undo
+  and redo through a host's stack; drag a height to preview it (Esc cancels, release commits one step); the printed spec
+  and the SVG beside;
+- [Bookmarks](?path=/story/seq-next-features-addressing-bookmarks--bookmarks) and
+  [Links](?path=/story/seq-next-features-addressing-links--links): on the gene's region, a bookmark on a transcript that
+  arrives later waits, then resolves; a link in a short text moves the view; bookmark this view;
+- [Selection](?path=/story/seq-next-features-selection--protein-on-its-gene): on the protein on its gene, drag on the
+  gene; the protein shows the projection, in the canvas and in the SVG;
+- [Query](?path=/story/seq-next-features-query--query-box): a query box on p53 (an address typed is parsed, checked and
+  resolved as typed, its result selected or highlighted, its printed form and issues shown), then worked examples:
+  [items by category](?path=/story/seq-next-features-query--items-by-category),
+  [ranges and slices](?path=/story/seq-next-features-query--ranges-and-slices),
+  [a result on the gene](?path=/story/seq-next-features-query--result-on-the-gene),
+  [and, or, not](?path=/story/seq-next-features-query--and-or-not) and
+  [an alignment's rows and columns](?path=/story/seq-next-features-query--alignment-rows-and-columns);
+- [Themes](?path=/story/seq-next-features-themes--themes), with
+  [Editing themes](?path=/story/seq-next-features-themes--editing-themes) and the
+  [Schemes gallery](?path=/story/seq-next-features-themes--schemes-gallery);
+- [Story](?path=/story/seq-next-features-story--story);
+- [Text](?path=/story/seq-next-features-text--text), [Centered](?path=/story/seq-next-features-text--centered) and
+  [Under tracks](?path=/story/seq-next-features-text--under-tracks);
+- [Navigators](?path=/story/seq-next-features-navigators--rail): the rail, a strip, a strip with a follower and the
+  chr17 ideogram;
+- [Coordinates](?path=/story/seq-next-features-coordinates--protein-and-gene-on-one-axis): the protein and gene on one
+  axis, a genomic follower, the reversed gene.
+
+## Datasets
+
+| Dataset         | Holds                                                                                                                                                                                                                                             |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| p53             | the TP53 protein with features and variants, its gene on the minus strand with exons, the gene's region read by region with a conservation signal, structure chains with unobserved residues, orthologs                                           |
+| Globins         | a family alignment with its tree, hemoglobin (α2β2 with heme), and a generated 10,000-row alignment                                                                                                                                               |
+| Antibody        | a Fab numbered Kabat and IMGT, its CDRs, and a designed variant with indels against the wild type                                                                                                                                                 |
+| Plasmid         | a cyclic construct with features and a coding sequence across the origin, on both strands, and restriction sites                                                                                                                                  |
+| tRNA            | base pairs, nested and crossing, modified bases, and a covariance alignment                                                                                                                                                                       |
+| Complex         | CDK2 with cyclin A: a crystal structure with ATP (two copies of the complex), a predicted model with its confidence and PAE, the interface and its contacts, and the ligands AlphaFill transplants into CDK2's AlphaFold model, with their scores |
+| Genomes (fifth) | two small assemblies with an inversion and a translocation, genes, a signal track and a variant matrix, read by region                                                                                                                            |
+
+## The data
+
+Every dataset is real public data, small enough to commit, and read the way any data is read.
+
+- **Real entries, as published**: a file stays in its own format when the core reads it (FASTA, Stockholm, Newick; TSV,
+  CSV, JSON, MessagePack and GFF3, [Files and sources](?path=/docs/design-files-and-sources--docs); JSON trimmed, never
+  reshaped), else it is converted to the `seq` format when recorded (structures, GenBank records, AlphaFold DB's files).
+- **Recorded by hand, never in tests**: a script fetches each entry, trims it to what the views read and writes it with
+  its provenance. Tests never reach the network.
+- **Provenance is data**: each dataset lists every file's entry and version, URL, date, checksums, licence, attribution
+  and which parts are derived, and a test checks it. Licences: CC0 (PDB, Pfam, Rfam), CC BY 4.0 (UniProt, AlphaFold DB,
+  SAbDab), NCBI's public data (INSDC records, ClinVar), and what Seq\* generates. A CC BY dataset's attribution shows on
+  its index and travels with an exported spec.
+- **Small**: under 1 MB a file and 2 MB a dataset. Every large variant is generated in code from a fixed seed.
+- **Facts are tested**: each dataset states known facts of its entries (a length, a conserved residue, a pair), so a new
+  recording that changes the data fails a test, not a picture.
+- **Each view meets its edge case**: where a published entry does not carry the case a view claims, the view also runs
+  over a generated variant that does, and says so.
+
+| Dataset  | Entries                                                                                                                                                                      | Generated                                                                                                                                              |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| p53      | UniProt P04637; PDB 2OCJ (the core domain in four copies, author numbering, zinc); variants from UniProt and ClinVar; secondary structure from UniProt                       | the gene, its region and the conservation signal                                                                                                       |
+| Globins  | the Pfam PF00042 seed (Stockholm) and its tree; PDB 4HHB (deoxyhemoglobin: α and β chains, four hemes and their contacts)                                                    | the 10,000 × 300 alignment with insert columns and a tree                                                                                              |
+| Antibody | PDB 1N8Z (trastuzumab's Fab); its IMGT numbering from SAbDab, Kabat derived from IMGT                                                                                        | a design with substitutions and indels in the CDRs (ANARCI's numbering to check it, later)                                                             |
+| Plasmid  | pUC19c (INSDC L09137.2, 2,686 bp, circular)                                                                                                                                  | its features found in the sequence (bla, lacZα, the cloning site), restriction sites, a rotated record with features across the origin on both strands |
+| tRNA     | PDB 1EHZ (yeast tRNA-Phe, modified bases, its base pairs); the Rfam RF00005 seed                                                                                             | covariation on 1EHZ's positions, a 4,000 × 4,000 grid for scale                                                                                        |
+| Complex  | PDB 1FIN (CDK2–cyclin A–ATP, two copies); UniProt features; AlphaFold DB models with confidence and PAE; AlphaFill's transplants into CDK2's model (if their licence allows) | the PAE between the chains, from the crystal's interface and said to be synthetic; 200 copies                                                          |
+
+## Views
+
+Each dataset carries many views, for example:
+
+- **p53**:
+  - a text figure with feature underlines and variant marks;
+  - tracks with features, values and secondary structure;
+  - the protein on its gene through codons, introns collapsed, on the minus strand;
+  - structure chains linked, unobserved residues gray, copies merged and split;
+  - **its chromosome**: chromosome 17 by region (83 Mb, generated, TP53 in place), zoomed from the whole chromosome to
+    TP53 and down to its letters, with an overview navigator;
+  - the gene's region, region by region, with its conservation signal;
+  - the minus-strand gene's features in both directions;
+  - orthologs with hover across rows;
+  - search, results stepping and bookmarks;
+  - a story in snapshots.
+- **Globins**:
+  - the family with a conservation logo, rows ordered by the tree;
+  - collapsed clades with a summary;
+  - an ESPript-style figure;
+  - the hemoglobin complex with heme chips and copy groups;
+  - 10,000 rows, loaded lazily, with a keyboard cursor.
+- **Antibody**:
+  - Kabat and IMGT numbering side by side;
+  - the design against the wild type, with indel carets;
+  - editing CDR bookmarks, with undo.
+- **Plasmid**:
+  - a ring with a linear detail that follows its window;
+  - a feature across the origin, selected and focused by the shortest arc;
+  - the rotated linear view.
+- **tRNA**:
+  - arcs, nested and crossing;
+  - a base-pair dot plot with crosshair hover and rectangle selection;
+  - the covariance alignment with its pairs.
+- **Complex**:
+  - the chains with the interface residues, and the contacts as arcs across the chains;
+  - the PAE as a dot plot over the same window as the tracks: hover lights both residues, a dragged rectangle selects
+    two ranges;
+  - confidence and secondary structure tracks, unobserved residues gray;
+  - the ligands after the polymers: ATP as one position or per heavy atom, AlphaFill's transplants with their scores,
+    and the residues a chosen ligand contacts;
+  - a text figure with ligand chips that flow like words;
+  - the two copies merged into one block labeled ×2, and split again;
+  - the interface bookmarked, with undo.
+- **Genomes** (the fifth slice):
+  - a genome ring like Rondo's: chromosomes as blocks with cytobands, crosslinks bundled into ribbons wide by their
+    count, one chromosome as its own ring, built as an extension package;
+  - synteny ribbons with an inversion;
+  - a dot plot of one genome against the other;
+  - signals by region, many from one file;
+  - a Manhattan plot colored by LD;
+  - a variant matrix by sample, and methylation by region.
+
+Each view names what a user does in it, with a gesture or a mechanism behind each: hovering a heme's contact lights the
+heme and its residue; a click on a tree node folds its clade; the Plasmid's linear detail moves the ring's window; a
+rectangle on the tRNA's dot plot selects two ranges; Kabat and IMGT labels show side by side on hover.
+
+Editing is a view too: add a bookmark, hide or reorder a track, change a theme, record a snapshot. Each comes with undo
+and redo, a preview that ends in one change or a cancel, and the printed spec updating beside it.
+
+## Showcases
+
+Three pages compose what an application would, rather than a core feature:
+
+- **Services**: UniProt, PDBe and AlphaFold DB as sources, from recorded responses, with a switch to go live.
+- **Predictions onto a structure**: a lab's per-position values on a plain sequence, mapped onto a structure through its
+  numbering (an offset, insertion codes, unobserved loops, an expression tag), colored on the sequence and in a stand-in
+  3D viewer (the Mol\* view comes with the new mol viewer), with hover and selection both ways.
+- **Addressing**: a text whose links focus, highlight and select in the view and in the structure; copy link; one
+  location in several numberings; rectangles from a dot plot and an alignment; bookmarks as refs.
+
+## Every view, three ways
+
+- **Here**: drawn on a canvas and as SVG, side by side.
+- **In a test**: it validates, resolves, lays out and renders to SVG, and its printed spec is recorded.
+- **As files**: the JSON spec and its data files, which a reader without Seq\* code can open.
+
+The data is small and committed with the Storybook. Nothing here depends on the network.

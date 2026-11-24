@@ -1,0 +1,95 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import { BuiltInRenderRegistry } from '@molstar/seqx-core/context/default';
+import { BuiltInSearchRegistry } from '@molstar/seqx-core/search/entries';
+import { SeqRuntime } from '@molstar/seqx-core/data';
+import { RecordsRuntime } from '@molstar/seqx-core/data/records';
+import {
+  AddressingProvider,
+  CursorProvider,
+  EditingProvider,
+  HoverCardProvider,
+  HoverProvider,
+  KeysPanelProvider,
+  LegendProvider,
+  LinkedPairsProvider,
+  NavigateProvider,
+  NavigatorProvider,
+  SelectProvider,
+  RowsProvider,
+  SearchProvider,
+  WindowProvider,
+} from '@molstar/seqx-viewer/behaviors';
+import { GroupsProvider } from '@molstar/seqx-viewer/behaviors/groups';
+import { HeadersProvider } from '@molstar/seqx-viewer/behaviors/headers';
+import { defaultPorts } from '@molstar/seqx-viewer/ports';
+import { frameAnimation } from './animation.js';
+import { BuiltInCardProviders } from './card-providers.js';
+import { BuiltInHeaderEntries } from './header-entries.js';
+import { headerMenuOverlay } from './mount-header-menu.js';
+import { hoverCardOverlay } from './mount-hover-card.js';
+import { legendsMount } from './mount-legend.js';
+import { navigatorsMount } from './mount-navigator.js';
+import { NavigatorsPart } from './navigators.js';
+import { StoryPart } from './story.js';
+import { uiHistory } from './ui-history.js';
+import type { SeqViewerSpec } from './viewer-spec.js';
+
+// The default spec (_spec/README.md "Composition"): the built-in entries, behaviors, ports and UI, as data. An
+// application spreads it and changes what it needs, or writes a smaller spec; what is not listed is not in its bundle.
+// Each call makes a spec of its own (its ports are factories called once per viewer). The history is the UI's: a
+// mounted viewer gets a `@molstar/ui/history` stack of its own (`ui.history`), a host gives its stack (`history`,
+// `hostHistory`), and a headless spread (`ui: undefined`) has none. The clock is the page's frames (`frameAnimation`): a
+// host with a clock of its own, or a headless export, gives its adapter (`animation`).
+
+export function DefaultSeqViewerSpec(): SeqViewerSpec {
+  return {
+    registry: [
+      { kind: 'format-runtime', runtime: SeqRuntime },
+      { kind: 'format-runtime', runtime: RecordsRuntime },
+      // the core's layer types and layouts: what the canvas and the SVG draw
+      ...BuiltInRenderRegistry,
+      // the search's matchers (exact, IUPAC, regex): a lazy chunk, loaded by the first search
+      ...BuiltInSearchRegistry,
+      // the track headers' built-in entries (hide, color, layers, the chips): a host's sit beside them
+      ...BuiltInHeaderEntries,
+      // the hover card's providers (the viewer's own sections, the spec's tooltips): a host's sit beside them by order
+      ...BuiltInCardProviders,
+    ],
+    behaviors: [
+      { provider: HoverProvider },
+      { provider: NavigateProvider },
+      { provider: SelectProvider },
+      { provider: CursorProvider },
+      { provider: AddressingProvider },
+      { provider: EditingProvider },
+      { provider: LegendProvider },
+      { provider: WindowProvider },
+      { provider: NavigatorProvider },
+      { provider: RowsProvider },
+      // a section's track groups folded and opened (session state), the opening folds kept (a patch)
+      { provider: GroupsProvider },
+      // the card's port: `@molstar/ui`'s card over the canvas (a host with its own passes it here, and bundles none)
+      { provider: HoverCardProvider, params: { port: hoverCardOverlay() } },
+      { provider: KeysPanelProvider },
+      // the track headers: slots on hover, the chips' clicks, the menu (its port `@molstar/ui`'s context menu) and the
+      // secondary click everywhere (Shift+secondary click the browser's)
+      { provider: HeadersProvider, params: { menu: headerMenuOverlay(), contextClick: 'everywhere' } },
+      // a hovered or selected range lights the pairs with an end in it (an analysis a host lists, removed to opt out)
+      { provider: LinkedPairsProvider },
+      // the search: its model (`viewer.search`), its commands and keys; the box is the host's
+      { provider: SearchProvider },
+    ],
+    bindings: {},
+    config: [],
+    ports: defaultPorts(),
+    animation: frameAnimation(),
+    story: StoryPart,
+    navigators: NavigatorsPart,
+    ui: { canvas: true, history: uiHistory, legends: legendsMount, navigators: navigatorsMount },
+  };
+}

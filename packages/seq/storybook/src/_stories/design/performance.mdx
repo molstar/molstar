@@ -1,0 +1,99 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Performance" />
+
+# Performance
+
+Targets for time, memory and size, set before the code so the design is held to them. The numbers are measured on the
+first end-to-end slice and then confirmed; each confirmed target gets a test that holds it.
+
+## Cost follows pixels
+
+What is rendered depends on the pixels on screen, not on the amount of data. A frame of a 3-billion-base genome and a
+frame of a 300-residue protein cost the same; only the level of detail differs.
+
+- A frame draws at most one primitive per device column per lane, or one per cell once letters fit, and never one per
+  data item when items are thinner than a pixel.
+- Each layer reads from a multi-resolution structure, so a region at a resolution costs about log n plus what is shown:
+  - summary pyramids for values;
+  - interval indexes and count pyramids for ranges and variants;
+  - virtualized rows and pyramided column summaries for alignments;
+  - 2D pyramids for grids and dot plots;
+  - binary search over runs for maps.
+- A drag's work is bounded by the screen, not by what it selects: the selection is written at most once a frame and
+  resolved on release, nothing is hovered while it runs, and what derives from it costs what is shown. Holding the
+  pointer still costs nothing.
+- Data size costs only once, when summaries are built at load. Sources read by region don't cost it at all, and bigWig
+  brings its own zoom levels.
+- Tests check that ten times the data costs at most 1.2 times the frame time, and that twice the pixels cost at most
+  twice the time.
+
+## How they are measured
+
+- **Reference machine**: a mid-range 2024 laptop, Chrome at DPR 2, 1440 × 900. Headless numbers use Node 22.
+- **Scaling** is stated as ratios, which hold on any machine: four times the data costs at most four times as much.
+- **Hot loops** are checked for allocation, and retired viewers for heap growth.
+- **In a browser**, a frame counts the work queued after the draw (microtasks drained), and a drag is measured with
+  pointer capture working; a story's SVG twin exports after the frame, never inside an edit.
+- **Limits** below are settings, with these values as defaults.
+
+## Time
+
+| What                                              | Target                                  |
+| ------------------------------------------------- | --------------------------------------- |
+| Hover: hit-test, linked sections, overlay         | under 2 ms; the frame under 8 ms        |
+| Pan and zoom frame                                | under 8 ms; never over 16 ms            |
+| First zoom into new letters                       | under 8 ms a frame                      |
+| Selection drag, keyboard cursor step              | under 4 ms a step                       |
+| A drag-select's frame, every drag kind            | under 4 ms                              |
+| Validate and resolve a 1,000-node spec            | under 20 ms                             |
+| First paint of a dataset view                     | under 100 ms once the data is in memory |
+| An edit (patch, resolve, redraw), or its undo     | under 16 ms to drawn, its microtasks in |
+| Open a 10,000 × 300 alignment                     | under 300 ms                            |
+| Open a 3M-nucleotide sequence from a file         | under 1 s                               |
+| A region from a source, decoded to drawn          | the next frame                          |
+| bigWig region at the right zoom level, local file | under 50 ms                             |
+| Export a view to SVG                              | under 200 ms                            |
+| Render CLI, cold start                            | under 1 s                               |
+| Decode MessagePack                                | at least 200 MB/s                       |
+| A story's frame: `sample` of a 300-channel plan   | under 0.05 ms                           |
+
+## Memory
+
+| What                    | Target                                                    |
+| ----------------------- | --------------------------------------------------------- |
+| Draw and hover loops    | 0 bytes allocated per frame                               |
+| A drag held still       | 0 bytes allocated per frame                               |
+| A story's `sample`      | 0 bytes allocated per frame                               |
+| Resolved inline data    | at most 2× its MessagePack size                           |
+| Maps                    | never expanded past the region asked                      |
+| 10M lazy alignment rows | only the rows in view and the rows bound to maps are held |
+| Source cache            | 64 MB by default; what is in view is never evicted        |
+| Glyph atlas             | 16 MB of pages by default                                 |
+| A grid or matrix block  | at most 64 MB                                             |
+| A retired viewer        | releases everything                                       |
+
+## Size
+
+Bounds, checked at every gate (`packages/seq/_measure/sizes.mjs`): the third slice's sizes with about 10 % room, raised
+since with the tooltips and card providers (the soft-size rule). The default composition holds every built-in layer and
+layout; a smaller host composes the minimal viewer.
+
+| What                                       | Target (minified) |
+| ------------------------------------------ | ----------------- |
+| Reading a spec (decode, validate, resolve) | under 268 kB      |
+| Headless rendering to SVG                  | under 1,000 kB    |
+| The viewer, default configuration          | under 1,592 kB    |
+| The viewer, minimal                        | under 1,124 kB    |
+| A format runtime such as bigWig            | under 30 kB       |
+
+## At what scale
+
+Every target holds at these sizes:
+
+- a 35,000-residue sequence, and 3M nucleotides from a file;
+- a whole human genome, read by region;
+- alignments of 10,000 × 300 and 1,000 × 2,000, and 10M lazy rows;
+- 200 copies of one chain;
+- 100 tracks in one view;
+- a 4,000 × 4,000 grid.

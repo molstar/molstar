@@ -1,0 +1,85 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Themes and legends" />
+
+# Themes and legends
+
+A theme says why a mark has its color or size, as data in the spec, so the canvas, the SVG, a headless render and
+another viewer draw it the same way, and a legend can read it back to the reader.
+
+## The writer chooses the meaning; the reader how it looks
+
+- **In the spec**: each channel of a layer: which field, palette, scale, rules or scheme.
+- **The reader's**: light or dark, forced colors, a color-blind safe substitution (`theme.cvdSafe`), where the legend
+  goes. These change how a meaning is shown, never which, so a published figure still reads for its reader.
+- **A theme never hides a mark.** Hiding items by kind or score is a filter on the layer's data (`layer.filter`); the
+  track then shows an "n filtered" chip that clears it.
+
+## A slot per channel
+
+Each layer reads some channels: `color`, `ink` (the letters' color), `size`, `opacity`, `line` (seven styles), `arrow`
+and `shape`. A channel changes the mark, never its place or what a click finds. Each channel's value is one of five
+forms, printed as S-expressions:
+
+| Form      | Says                                                                              |
+| --------- | --------------------------------------------------------------------------------- |
+| `uniform` | one value (a plain string is this form, so every older spec stays valid)          |
+| `field`   | a field's value through a scale: `(field :name score :scale /views/conservation)` |
+| `rules`   | the first rule whose clauses all hold: thresholds, `one-of`, `in` a location      |
+| `scheme`  | a named scheme, with overrides: `(scheme :name clustal-x)`                        |
+| `letters` | a color by letter, with labeled groups                                            |
+
+## Palettes and scales
+
+- Palettes are categorical, direct (the field holds a color), binned or continuous, evaluated as Mol\*'s value palettes
+  so a value has one color in MolViewSpec and here.
+- A value a palette does not list takes the same color everywhere: a published hash of its text, which any reader can
+  reproduce.
+- A **scale** is a node with an address. Layers naming one scale share its domain and palette: one edit changes them
+  all, in one undo step, and they get one legend. An open end of a domain is the union of what is in view.
+- Missing is never zero: a missing value takes the neutral missing color, never a ramp's low end.
+
+## Schemes
+
+Residue and nucleotide schemes (Clustal X, Zappo, Taylor, hydrophobicity, ESPript and more), number ramps (viridis,
+cividis, the pLDDT bins), category palettes (Okabe–Ito, Tableau) and the Giemsa stains are named entries with their
+provenance, a dark variant, and whether they are color-blind safe. A scheme is offered only where it fits. The defaults
+come from the theme's tokens and pass a color-vision check in both themes. A scheme that is not safe declares a safe
+substitute, drawn under the reader's `theme.cvdSafe`: the protein schemes' is `classes-safe`, the residue classes on
+Okabe–Ito hues; `classes` stays the default. A layer's default theme belongs to the language, never the host, so one
+spec draws alike everywhere; a host recolors through `--seq-*` tokens.
+
+## Colors
+
+A color in a spec is a hex literal, a token (`token:range`) or `light-dark(a, b)` for a writer's color that must read in
+both themes. Ink on a colored mark follows its fill, and the hover outline holds 3:1 against the track it sits on (over
+a saturated fill it fails, a double outline, light and dark). In the dark theme a letter cell draws a hairline edge,
+since its dark fill sits close to the page.
+
+## Legends
+
+- A legend is derived from a channel, never written: a ramp, steps, swatches or sizes, merged when two say the same, and
+  honest about values it could not list. It states its domain: over an open domain a ramp says "in view", its ends the
+  values the view settled on; a categorical key says whether it lists the vocabulary or what was painted.
+- It is a part a host places: beside a track header (a compact one-line form), in a panel, in a band under the canvas
+  (legends stacked or in a row), or in a Mol\* plugin's own legend control. Seq\* never draws one over the data. The
+  host chooses which legends (`of`, `omit`); a figure marks a layer's key as not worth showing with `legend: none`,
+  which the part and the export both read. No command hides a legend.
+- A legend is acted on: click an entry to select its items, Cmd/Ctrl+click to toggle them, hover to highlight them. A
+  swatch's tooltip says "Click to highlight · the eye hides the layer": a click never hides. Hovering an item outlines
+  its entry. Every entry is reached from the keyboard. Changing a value's color, a ramp's domain or the scheme is the
+  application's to offer, through the library's commands (one edit each, previewed).
+- A legend's row has an eye after its title ("Hide Contacts"): it hides the layer (one edit, one undo step), never the
+  legend. A hidden layer's row stays where it was, dimmed, the eye-off showing it again, its entries inert (the pointer
+  says so); a legend over several layers has one eye opening the track header's Layers menu: the layers, then Show all
+  and Hide all (one edit each, disabled when they would change nothing). A host turns the eye off (`layers: false`)
+  where the legend is printed. See
+  [Kinds of links, contacts hidden](?path=/story/seq-next-features-genome-ring--kinds-of-links-contacts-hidden).
+- The active highlight channels show as a row under the legend, with a clear; the row keeps its height when empty, so a
+  highlight never moves the page (`channels: reserve`, the default; `collapse` for a host that wants the space).
+- An SVG export draws legends in a band outside the data only when asked (`legend: below` or `right`).
+
+## The small layers
+
+The ruler (numbering by any scheme, insertion labels as minor ticks), secondary structure, variants, values as bars,
+line or area, and ranges with line styles and arrowheads each read their channels from the same grammar.

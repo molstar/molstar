@@ -1,0 +1,91 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Layouts" />
+
+# Layouts
+
+A view stacks its sections, and each section has a layout: **tracks**, **text** or **rings**, with blocks in any of
+them. A ring and its linear detail are two sections of one view. The dot plot is a section of its own (see Grids and
+rows).
+
+## Strips and warps
+
+Every layout cuts its section into straight **strips** and places each on the page with a **warp**:
+
+| Layout | Strips                           | Warp                                |
+| ------ | -------------------------------- | ----------------------------------- |
+| tracks | one per block in view            | a translation                       |
+| text   | one per line (a chip per ligand) | a translation                       |
+| rings  | one per block, unrolled          | polar: x to an angle, y to a radius |
+
+Layer types draw one way, over a straight axis, in every layout; the layout never knows layer kinds. Hit-testing is
+placement's inverse, so every drawn mark is hit where it is drawn. A selection looks the same everywhere: a band on a
+line of text, a sector across every ring.
+
+A track without a `height` is as tall as its content needs (the lanes of its whole data), in steps of a lane, its marks
+centred; tracks of one kind in a section share one height, so they read as a set and never resize on a pan. The sizing
+is the section's `heights` param: `content` (this, the default), `uniform`, `fixed`, or an extension's.
+
+## Text
+
+- Positions in groups of ten (`group`), whole groups per line; inline labels take part in line breaking.
+- Each track is a band under the letters on every line; empty bands collapse per line.
+- Numbers per row (`numbers`: `start`, `end`, `both`, `none`) and group labels, on the ruler's label line, one label a
+  position; frames across tracks, open where a line breaks them.
+- Alignment figures in the ESPript style: each row's label on every line, its last residue's number at the end.
+- Zoom is the letter size; a resize reflows with the reader's line kept at the top. A text in a host page is capped at
+  `section.maxPx` (or its `height`) and scrolls inside, taking the wheel only while it overflows; a tracks section past
+  the cap scrolls its tracks below the ruler (Features › Layouts).
+- A selection made in a linked view scrolls a text to it (`reveal.linked`).
+- An export draws every line: a text is a figure.
+
+## Rings
+
+- Tracks of one kind share their mark lanes, each with its own label lane (decided by the author, 2026-11-20), so a
+  strand with no labels beside its marks reserves none. A ruler is unlabelled unless its spec names it; with more than
+  one ruler in a view, the name is the only sign whose numbers are which.
+- A ring group fans its labels up to `rings.cluster.fanMax` (12); a larger group stays one label and its hover card
+  lists every member (decided by the author, 2026-11-20).
+
+- Tracks become rings, the first outermost; the origin at `rotation` (the top by default), positions clockwise.
+- Labels inside their mark when they fit, else beside: outside the ring with a leader, or in a lane above a linear
+  track; one rule and one text style in both views, placed once when laid out; a label is hit as its item. A label that
+  fits neither whole is cut inside with an ellipsis, keeping at least `labels.minChars` letters (4), else dropped.
+- The ring's **window** is what a linear detail follows: drag it to move the detail, drag a grip to resize it; a pan of
+  the detail moves the window. Either section can lead.
+- A feature across the origin is one arc, selected as two runs, focused by its shortest arc.
+- The window shows only when something follows the ring, and an exported map leaves it out unless asked.
+
+## Blocks
+
+A block is a piece of a section on a system of its own: a chain, a ligand. Blocks sit side by side (`arrange: row`) or
+stacked; in text each starts a line. A one-position block (a ligand, a glycan, a drug) is a chip in every layout: a
+fixed slot its label's width, which zoom does not scale, so it reads at any zoom; in text it flows like a word. Where it
+binds is an optional contacts layer the application adds. Copies of one molecule merge into one block labeled ×N
+(`copies: merge`), hovered for every member, or split (`each`).
+
+## Gestures
+
+| Where          | Zoom                                                                                                                                  | Pan                                                        |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| tracks         | Cmd/Ctrl+wheel, pinch, `-`, `=` about the pointer                                                                                     | wheel, the ruler rail, Space+drag                          |
+| text           | the letter size, about the pointer's position; `0` the preset                                                                         | wheel (while it overflows), Space+drag: lines              |
+| rings          | the window narrows and widens about the pointer's angle; with no follower the zoom is the cut: in opens the chromosome, out shows all | wheel, Shift+Alt+arrows: the window round, past the origin |
+| stacked blocks | about the block under the pointer                                                                                                     | as tracks                                                  |
+
+A drag on data selects in every layout: in reading order across lines in text, along an arc on a ring.
+`selection.copyLetters` (Cmd/Ctrl+C) copies what is shown: in reading order, complemented as drawn, rows as FASTA lines.
+
+## One viewport record
+
+Each section has one viewport, read by its layout: a window in tracks, an anchor and a letter size in text, the window
+on a ring, plus a band's own scroll and row zoom for an alignment's rows and a grid's second axis. A saved session and
+the view's history keep positions, so back lands on the same place even after a layout changes.
+
+## Track sizing
+
+Track sizing (amended 2026-11-22): a ranges track grows to its lanes as they arrive (never a blank band), up to
+`track.maxPx` (240 px); past it its lanes scroll inside the track with a slim rail, header and labels fixed; an export
+draws every lane (to 4,000 px); a ring compacts instead of scrolling; the rows band takes the same rule with a 480 px
+cap. A track's `height: content` (a section's too) lifts the cap: every lane shown, no scrolling inside, for an author
+who wants an export-like page.

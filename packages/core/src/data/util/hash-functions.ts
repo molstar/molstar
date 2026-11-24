@@ -581,30 +581,70 @@ function murmur128(key: Uint8Array, length: number, seed: number): string {
   );
 }
 
+/** PCG32's multiplier, 6364136223846793005, as 32-bit halves and the low half's 16-bit halves (`PCG.step`). */
+const PCG_MUL_HI = 0x5851f42d;
+const PCG_MUL_LO = 0x4c957f2d;
+const PCG_MUL_LO_0 = PCG_MUL_LO & 0xffff;
+const PCG_MUL_LO_1 = PCG_MUL_LO >>> 16;
+/** The stream (`initseq`) every `PCG` draws from: pcg32-demo's 54, so `new PCG(42)` is its `pcg32_srandom(42, 54)`. */
+const PCG_STREAM = 54;
+
 /**
- * PCG pseudo-random number generator
- * See https://www.pcg-random.org/ and https://jcgt.org/published/0009/03/02/
+ * PCG32 pseudo-random number generator: 64 bits of state, the XSH RR output step, 32 bits a draw
+ * (`pcg32_random_r` of https://www.pcg-random.org/, see also https://jcgt.org/published/0009/03/02/).
+ * The 64-bit state is two 32-bit halves, without `BigInt`; the seed is the 32-bit `initstate` and the stream is fixed
+ * (`PCG_STREAM`), so a seed draws the reference's `pcg32_srandom(seed, 54)` sequence.
  */
 export class PCG {
-  private state: number;
+  private hi = 0;
+  private lo = 0;
+  private readonly incHi: number;
+  private readonly incLo: number;
 
   constructor(seed = 26699) {
-    this.state = seed >>> 0;
+    // inc = (initseq << 1) | 1, as two halves
+    this.incHi = (PCG_STREAM >>> 31) >>> 0;
+    this.incLo = ((PCG_STREAM << 1) | 1) >>> 0;
+    // pcg32_srandom_r: state = 0; step; state += initstate; step
+    this.step();
+    const lo = this.lo + (seed >>> 0);
+    this.lo = lo >>> 0;
+    this.hi = (this.hi + (lo > 0xffffffff ? 1 : 0)) >>> 0;
+    this.step();
+  }
+
+  /** state = state * PCG_MUL + inc (mod 2^64) on the two halves. */
+  private step() {
+    const hi = this.hi;
+    const lo = this.lo;
+    // the high 32 bits of lo * PCG_MUL_LO, by 16-bit halves (every partial product and sum is exact in a double)
+    const a0 = lo & 0xffff;
+    const a1 = lo >>> 16;
+    const p00 = a0 * PCG_MUL_LO_0;
+    const p01 = a0 * PCG_MUL_LO_1;
+    const p10 = a1 * PCG_MUL_LO_0;
+    const mid = (p00 >>> 16) + (p01 & 0xffff) + (p10 & 0xffff);
+    const carry = a1 * PCG_MUL_LO_1 + (p01 >>> 16) + (p10 >>> 16) + (mid >>> 16);
+    const mulLo = Math.imul(lo, PCG_MUL_LO) >>> 0;
+    const mulHi = carry + Math.imul(hi, PCG_MUL_LO) + Math.imul(lo, PCG_MUL_HI);
+    const nextLo = mulLo + this.incLo;
+    this.lo = nextLo >>> 0;
+    this.hi = (mulHi + this.incHi + (nextLo > 0xffffffff ? 1 : 0)) >>> 0;
   }
 
   /**
    * 32-bit unsigned integer
    */
   int(): number {
-    const oldstate = this.state;
-
-    this.state = Math.imul(this.state, 1664525) + 1013904223;
-    this.state = this.state >>> 0;
-
-    const xorshifted = ((oldstate >>> 18) ^ oldstate) >>> 5;
-    const rot = oldstate >>> 27;
-    const result = (xorshifted >>> rot) | (xorshifted << (32 - rot));
-    return result >>> 0;
+    const hi = this.hi;
+    const lo = this.lo;
+    this.step();
+    // xorshifted = (uint32)(((old >> 18) ^ old) >> 27); rot = old >> 59
+    const xHi = hi ^ (hi >>> 18);
+    const xLo = lo ^ ((lo >>> 18) | (hi << 14));
+    const xorshifted = (xLo >>> 27) | (xHi << 5);
+    const rot = hi >>> 27;
+    return ((xorshifted >>> rot) | (xorshifted << (-rot & 31))) >>> 0;
   }
 
   /**

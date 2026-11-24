@@ -1,0 +1,34 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Streaming and patches" />
+
+# Streaming and patches
+
+Two things change what a viewer shows: edits to the spec (patches) and data arriving (streams). Both are increments
+keyed by address and versioned. A patch changes spec nodes, so the resolved forms recompile what it reached. An arrival
+changes data store entries, so the draw lists rebuild what read them.
+
+## What each change is, and whether undo touches it
+
+| Change        | Example                                         | Lives in                 | Undo                         | Saved with the spec |
+| ------------- | ----------------------------------------------- | ------------------------ | ---------------------------- | ------------------- |
+| Spec patch    | add a track, hide a layer, add a bookmark       | the spec                 | yes, one step a batch        | yes                 |
+| Snapshot step | enter a story's step                            | the spec's snapshots     | no: leaving it is navigation | the snapshots are   |
+| Preview       | drag a track's height, hover a theme in a menu  | an overlay over the spec | cancel; ends in one patch    | no                  |
+| Session       | viewport, selection, hover, cursor, open panels | the viewer's models      | no                           | no                  |
+| Data arrival  | a region loaded, a transcript arriving          | the data store           | no                           | no (its source is)  |
+| Configuration | a binding, a preset                             | the viewer's config      | no                           | no                  |
+
+- **Undo is the spec's patch history only.** A gesture's preview ends in one step.
+- **Patches may name streamed things.** A bookmark on a transcript is a patch like any other. Undo works whether or not
+  the transcript is loaded, and the bookmark waits while it isn't. A jump on it says what it waits for ("Waiting for
+  T2") and asks the source where the transcript is, so it arrives even after its region was evicted; a key the source
+  does not have is said once, and the bookmark then names nothing.
+- **A streamed track lives while its data is in view.** A template's track per arriving node (a gene's exons) holds its
+  node only while the node's region meets the view (decided 2026-11-19); scrolled away, it goes with its node.
+- **Streams never become patches.** Arriving data never enters the spec. Keeping a region is a command that writes a
+  patch on purpose.
+- **Patches can stream too.** Edits from an agent or a host are applied in order through the history, each a step, and a
+  patch made against another revision is refused. Concurrent writers (collaboration) come later.
+- **Every command says its kind**: it edits the spec, changes the session, or only navigates. Menus can then show what
+  undo will undo, and agents can tell an edit from a look.

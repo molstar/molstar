@@ -5,7 +5,11 @@
  */
 
 // Extracts the inner markup of the Lucide icons used by the UI (styles §8) from `lucide-static` into
-// `src/components/icon/_generated/lucide.ts`. Only the used icons are copied; the package is a devDependency.
+// `src/components/icon/_generated/lucide/<name>.ts`, a module an icon (`lucide/eye-off.ts` exports `lucideEyeOff`), so a
+// consumer that needs a few imports only those modules and a bundler (splitting by module) carries no other; and
+// `src/components/icon/_generated/lucide.ts`, the map of them all by name (`LucideIcons`, what `Icon` reads), the same
+// markup inline (one module, not 133 imports: what `Icon` loads stays one module). Only the used icons are copied; the
+// package is a devDependency.
 //
 //   node scripts/icons.mjs            regenerate
 //   node scripts/icons.mjs --check    fail if the generated module is missing or stale
@@ -16,7 +20,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const output = path.join(packageRoot, 'src', 'components', 'icon', '_generated', 'lucide.ts');
+const outDir = path.join(packageRoot, 'src', 'components', 'icon', '_generated');
+const output = path.join(outDir, 'lucide.ts');
+const iconsDir = path.join(outDir, 'lucide');
 
 const HEADER = fs.readFileSync(fileURLToPath(import.meta.url), 'utf8').split('*/')[0] + '*/';
 
@@ -180,38 +186,58 @@ function innerMarkup(name, svg) {
     .replace(/\s{2,}/g, ' ');
 }
 
+/** An icon's export name: `lucide` and its name in camel case (`eye-off`: `lucideEyeOff`). */
+const exportName = (name) => `lucide${name.replace(/(^|-)(\w)/g, (_, __, c) => c.toUpperCase())}`;
+
 function generate() {
   const version = JSON.parse(fs.readFileSync(path.join(lucideRoot, 'package.json'), 'utf8')).version;
   if (version !== LUCIDE_VERSION) throw new Error(`lucide-static ${LUCIDE_VERSION} expected, found ${version}`);
   const names = [...new Set(ICONS)].sort();
-  const lines = [
-    HEADER,
-    '',
-    `// Generated from lucide-static ${LUCIDE_VERSION} (ISC License, Copyright (c) Lucide Contributors) by scripts/icons.mjs; do not edit.`,
-    '',
-    'export const LucideIcons = {',
-  ];
+  const generated = `// Generated from lucide-static ${LUCIDE_VERSION} (ISC License, Copyright (c) Lucide Contributors) by scripts/icons.mjs; do not edit.`;
+  const outputs = [];
+  const entries = [];
   for (const name of names) {
     const file = path.join(lucideRoot, 'icons', `${name}.svg`);
     if (!fs.existsSync(file)) throw new Error(`Unknown Lucide icon "${name}" (${file})`);
     const markup = innerMarkup(name, fs.readFileSync(file, 'utf8'));
     if (!markup) throw new Error(`${name}: empty icon`);
-    lines.push(`  '${name}': '${markup.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}',`);
+    const value = markup.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    outputs.push([
+      path.join(iconsDir, `${name}.ts`),
+      [HEADER, '', generated, '', `export const ${exportName(name)} = '${value}';`, ''].join('\n'),
+    ]);
+    entries.push(`  '${name}': '${value}',`);
   }
-  lines.push('} as const;', '');
-  return lines.join('\n');
+  const map = [HEADER, '', generated, '', 'export const LucideIcons = {', ...entries, '} as const;', ''];
+  outputs.push([output, map.join('\n')]);
+  return outputs;
 }
 
-const content = generate();
+const outputs = generate();
 if (process.argv.includes('--check')) {
-  const current = fs.existsSync(output) ? fs.readFileSync(output, 'utf8') : undefined;
-  if (current !== content) {
-    console.error(
-      `${path.relative(packageRoot, output)} is ${current === undefined ? 'missing' : 'stale'}; run "pnpm icons"`,
-    );
+  // no module of an icon no longer listed
+  const listed = new Set(outputs.map(([file]) => file));
+  const stray = fs.existsSync(iconsDir)
+    ? fs
+        .readdirSync(iconsDir)
+        .map((f) => path.join(iconsDir, f))
+        .filter((f) => !listed.has(f))
+    : [];
+  if (stray.length) {
+    console.error(`${stray.map((f) => path.relative(packageRoot, f)).join(', ')} not generated; run "pnpm icons"`);
     process.exit(1);
   }
+  for (const [file, content] of outputs) {
+    const current = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : undefined;
+    if (current !== content) {
+      console.error(
+        `${path.relative(packageRoot, file)} is ${current === undefined ? 'missing' : 'stale'}; run "pnpm icons"`,
+      );
+      process.exit(1);
+    }
+  }
 } else {
-  fs.mkdirSync(path.dirname(output), { recursive: true });
-  fs.writeFileSync(output, content);
+  fs.rmSync(iconsDir, { recursive: true, force: true });
+  fs.mkdirSync(iconsDir, { recursive: true });
+  for (const [file, content] of outputs) fs.writeFileSync(file, content);
 }

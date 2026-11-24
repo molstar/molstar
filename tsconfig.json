@@ -32,6 +32,7 @@
       "path": "./cli/mvs-render"
     },
     { "path": "./cli/particle-pack" },
+    { "path": "./cli/seqx-render" },
     {
       "path": "./packages/mvs/builder"
     },
@@ -250,6 +251,18 @@
     },
     {
       "path": "./packages/sequences/nightingale"
+    },
+    {
+      "path": "./packages/seq/core"
+    },
+    {
+      "path": "./packages/seq/viewer"
+    },
+    {
+      "path": "./packages/seq/examples"
+    },
+    {
+      "path": "./packages/seq/ext-rondo"
     }
   ]
 }

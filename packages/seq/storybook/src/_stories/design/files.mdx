@@ -1,0 +1,57 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Files and sources" />
+
+# Files and sources
+
+A file of records (a table of features, UniProt's entry, a column file) is read **whole, at open**, into the protocol's
+tables, once, at the edge. How to read it is written in the spec beside its location, as params of the `source` node:
+never code, and never on the node that reads it, so one file is one open, one parse and one set of store entries however
+many tracks read it.
+
+## Formats
+
+| Format                          | Read as                                                                                                          |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| TSV, CSV                        | RFC 4180 over UTF-8: the first row the header, quoted fields, a BOM skipped; cells are text, typed by their role |
+| JSON                            | a plain value: records found by a path, an array of records or an object of columns                              |
+| MessagePack                     | JSON's binary twin, read the same; a typed column kept without a copy                                            |
+| GFF3                            | a preset of the table reader: nine fixed columns, attributes as fields, base 1, ends inclusive                   |
+| FASTA, Stockholm, Newick, `seq` | their own readers, as before                                                                                     |
+
+An **array of records** and an **object of column arrays** answer the same tables: the layout is the writer's choice,
+never the reader's.
+
+## The transform
+
+| Param                    | What                                                                                                         | Default                                    |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------ |
+| `fields`                 | a role (`target`, `start`, `end`, `position`, `strand`, `id`, `value`) or field read from a column or a path | each role from the column of its name      |
+| `records`                | the path to the records                                                                                      | the root                                   |
+| `letters`                | the path to the source's own letters                                                                         | none                                       |
+| `system`                 | the name of the source's own system                                                                          | the source's id                            |
+| `base`                   | the first position: `1` or `0`                                                                               | `1` for a file, `0` inline                 |
+| `ends`                   | `inclusive` or `exclusive`                                                                                   | `inclusive` for a file, `exclusive` inline |
+| `types`                  | a non-role field's type                                                                                      | text a category, numbers `float64`         |
+| `attribution`, `licence` | carried with the data                                                                                        | none                                       |
+
+No expressions, no recoding, no computed columns: a file needing them gets a runtime of its own, converting at the edge.
+UniProt's secondary-structure words are read by the `secondary` layer's class table.
+
+## One track a feature type
+
+One `ranges` node over the entry's features; a layer a type, its `data` an address with a leading item form:
+`/data/features/(item :category Domain)`. The user's own filter is a trailing `(except …)`; what comes before it is the
+track.
+
+## Issues
+
+A column missing, a value not a number, a position past the end, a ragged row, a text not UTF-8: each said once, with
+its count, its places and a hint, under `seq.source.records.*`. Bounds (`limits.maxBytes`, `limits.maxRows`, a document
+too deep) are refused before the parse allocates.
+
+## Examples read files
+
+Every dataset's fixtures are files as published (FASTA, Stockholm, Newick, TSV, JSON, MessagePack, GFF3), trimmed but
+never reshaped, loaded through the assets port in the browser and the Node assets reader in the headless twins. Tests
+never reach the network; recording a fixture is a script run by hand.
