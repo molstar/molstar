@@ -1105,7 +1105,8 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
   `aSystem`, `bSystem` categories, both or neither; strands int8; `type`, `id` categories; `row`; `fields`) and `bins`
   (`aBin`, `bBin` int32, `count` float32; systems, `strand` int8 relative, `category`, `sum`); `grid` `dense` (`x`, `y`,
   `nx`, `ny`, `value` float32 x-major, NaN missing) and `sparse` (`xBin`, `yBin`, `value`, `fill`); `matrix` `items`
-  (`start`, `end`, `states`, `value` or `codes` item-major, `id`, `row`) and `summary` (`start`, `states`, `mean`,
+  (`start`, `end`, `states`, `value` or `codes` item-major, `id`, `label` and `category` (its source's name and its
+  kind, a VCF's record `ID` and allele category), `row`) and `summary` (`start`, `states`, `mean`,
   `min`, `max`, `count`, `classes` and `shares`: its own name, not `bins`); `rows` `keyed` (`start`, `key`, `fields`).
   Pairs share the 1D forms' names (`list`, `bins`), so a table's shape is told by its columns (`regionShapeOf`) and a
   table under another shape's key is refused.
@@ -4827,7 +4828,8 @@ label and value, the sentence), read on a hover from what the frame drew; a host
   read (a mirror's cell the served one's, a sparse tile's unlisted cell its `fill`), NaN `no data`, a tile not loaded
   `loading`; undefined for a held grid (the viewer's own words).
 - **A matrix cell** (`matrixCellHover`): its item (its `id` when the table keeps one, its extent; the shortest item
-  there, a SNP over a deletion) and its sample (inline `states`, else the coverage's), one `Sample` row
+  there, a SNP over a deletion), titled by its name (`label`, a VCF record's `ID`), else its kind at its extent
+  (`Deletion at chr1:20,001–20,601`), else the item: never an allele's id alone (`20001:601:f95ba8e6>C`) — and its sample (inline `states`, else the coverage's), one `Sample` row
   `S11 · 0|1 (heterozygous)`. A genotype cell with a recorded call (`MatrixItems.calls`, `callTexts`: the VCF's) says
   **the call as the file wrote it** with what it is (`callWords`): all alleles missing `no call`, some `partly called`;
   a haploid call `reference` or `alternate` (no zygosity); else `homozygous reference` or `homozygous alternate` when

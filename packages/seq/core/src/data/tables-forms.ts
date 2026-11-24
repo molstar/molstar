@@ -275,6 +275,8 @@ export const MatrixItemsForm: RowForm = {
     ['start', 'i32', 1],
     ['end', 'i32', 1],
     ['id', 'cat'],
+    ['label', 'cat'],
+    ['category', 'cat'],
     ['row', 'i32'],
   ],
   cells: [
