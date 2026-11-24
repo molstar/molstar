@@ -146,6 +146,33 @@ export function tileRequest(region: TileRegion, shapes: readonly Shape[]): Regio
   };
 }
 
+const Empties = new WeakMap<OpenedSource, Map<string, boolean>>();
+
+/**
+ * A want past `maxTilesPerWant` whose source knows from its index that nothing is stored over its whole span (a
+ * `readCost` of exactly 0): there is nothing there, so the want is no refusal (a layer says "no items", never "zoom in
+ * to read"). Undecided (false) without an index, for a 2D want, or when the cost is unknown. Kept by the span: an
+ * index is read once for it.
+ */
+export function knownEmpty(w: Want, t: Tiles, sources: StoreSources): boolean {
+  const opened = sources.get(w.source)?.opened;
+  if (!opened?.readCost || t.y) return false;
+  const start = Math.max(0, w.start);
+  const end = t.length === undefined ? w.end : Math.min(w.end, t.length);
+  if (!(end > start)) return false;
+  let kept = Empties.get(opened);
+  if (!kept) Empties.set(opened, (kept = new Map()));
+  const key = `${t.system}|${t.level}|${start}|${end}|${t.shapes.join()}`;
+  let empty = kept.get(key);
+  if (empty === undefined) {
+    if (kept.size > 64) kept.clear();
+    const region = { source: w.source, system: t.system, level: t.level, tile: t.first, start, end };
+    empty = opened.readCost(tileRequest(region as TileRegion, t.shapes)) === 0;
+    kept.set(key, empty);
+  }
+  return empty;
+}
+
 /** Why a want, or its layer's wants together, are not planned: past which bound, with its numbers. */
 export interface TooMany {
   readonly want: Want;
@@ -183,7 +210,8 @@ export function planWants(
     const t = wantTiles(w, sources, settings);
     if (!t || t.count === 0) continue;
     if (t.count > settings.maxTilesPerWant) {
-      tooMany({ want: w, bound: 'want', value: t.count, max: settings.maxTilesPerWant });
+      if (!knownEmpty(w, t, sources))
+        tooMany({ want: w, bound: 'want', value: t.count, max: settings.maxTilesPerWant });
       continue;
     }
     const tiles = eachTile(w, t);
@@ -237,7 +265,7 @@ export function layerLoad(
     const t = wantTiles(w, sources, settings);
     if (!t || t.count === 0) continue;
     if (t.count > settings.maxTilesPerWant) {
-      fits = false;
+      if (!knownEmpty(w, t, sources)) fits = false;
       continue;
     }
     const opened = sources.get(w.source)!.opened;
