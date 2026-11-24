@@ -448,10 +448,11 @@ export class ViewerInput {
       const speed = Math.sign(by) * Math.min(EdgeScrollMax, EdgeScrollRate * Math.abs(by));
       const before = this.viewer.view.get(g.section)?.start;
       this.viewer.view.panPx(g.section, 0, (speed * dt) / 1000);
-      // what the last frame placed under the held pointer joins the drag; the next step reads the frame this one asks
-      this._dragSelect(g.section, g.x, g.y);
-      if (this.viewer.view.get(g.section)?.start === before && dt > 0) return this._stopEdge();
+      // what comes under the held pointer joins the drag through the frame's one application (`applyDrag`): a move in
+      // the same frame writes nothing twice; the next step reads the frame this one asks
+      this._dragDue = true;
       this.viewer.schedule();
+      if (this.viewer.view.get(g.section)?.start === before && dt > 0) return this._stopEdge();
       e.frame = requestFrameCallback(step);
     };
     this._edge = { frame: requestFrameCallback(step), t: DomHost.now() };
@@ -460,6 +461,15 @@ export class ViewerInput {
   private _stopEdge(): void {
     if (this._edge) cancelFrameCallback(this._edge.frame);
     this._edge = undefined;
+  }
+
+  /**
+   * A drag-select ended (released or cancelled): the hover where the pointer rests again, and a frame (what follows the
+   * frame: a host's twin waiting for the release).
+   */
+  private _hoverBack(): void {
+    if (this.resting) this.hoverBehavior?.move(this._hoverable(this._hitAt(this._x, this._y)), this._mods);
+    this.viewer.schedule();
   }
 
   /** A drag-select's move not yet applied: the next frame applies the pointer's last place, once. */
@@ -795,10 +805,7 @@ export class ViewerInput {
     this._drag = undefined;
     // a drag-select that moved: the hover where the pointer rests again, and a frame (what follows the frame: a host's
     // twin waiting for the release)
-    if (d.select && d.moved) {
-      if (this.resting) this.hoverBehavior?.move(this._hoverable(this._hitAt(this._x, this._y)), this._mods);
-      this.viewer.schedule();
-    }
+    if (d.select && d.moved) this._hoverBack();
   }
 
   /**
@@ -1277,11 +1284,13 @@ export class ViewerInput {
       return true;
     }
     if (e.key === 'Escape' && this._drag?.select) {
+      const moved = this._drag.moved;
       this._dragDue = false;
       this._stopEdge();
       this.selectBehavior?.cancelDrag();
       this._drag = undefined;
       this._suppressClick = true;
+      if (moved) this._hoverBack();
       return true;
     }
     // a running drag's Esc is its cancel (above); then an open keys panel's: it closes, and does nothing else

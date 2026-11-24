@@ -515,6 +515,26 @@ describe('drag-select', () => {
     off();
   });
 
+  it('hovers nothing while it runs; the hover comes back where the pointer rests on release and on Esc', async () => {
+    const v = await make();
+    const [x0, y] = at(v, 0, 0, 1);
+    const [x4] = at(v, 0, 0, 4);
+    for (const end of ['up', 'escape'] as const) {
+      v.input.move(x0, y);
+      expect(v.hover.current.owner).toBeDefined();
+      v.input.down(x0, y);
+      v.input.move(x4, y);
+      frames!.flush();
+      expect(v.hover.current.owner).toBeUndefined();
+      if (end === 'up') v.input.up();
+      else expect(v.input.key({ key: 'Escape' })).toBe(true);
+      // the pointer still: the hover is back at once, on the position under it
+      expect(v.hover.current.owner).toBeDefined();
+      expect(Math.floor(v.hover.current.position)).toBe(4);
+      v.input.up();
+    }
+  });
+
   it('begun on an item, it snaps to whole items', async () => {
     const v = await make();
     const [x0, y] = at(v, 0, 1, 6);

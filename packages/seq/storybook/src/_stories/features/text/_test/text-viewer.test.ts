@@ -179,6 +179,34 @@ describe('a text section: the interaction matrix', () => {
   });
 });
 
+describe('a drag-select past the box’s edge, once a frame', () => {
+  it('the scroll’s step and the pointer’s moves in one frame are applied once (one hit, one write at most)', async () => {
+    const v = await open();
+    const box = placement(v).box;
+    const a = at(v, 5);
+    v.input.down(a.x, a.y);
+    v.input.move(a.x, box.y + box.height + 40);
+    await flush(v, 100);
+    const before = placement(v).anchor;
+    let writes = 0;
+    const off = v.selection.value.listen(() => writes++);
+    const hit = vi.spyOn(v, 'hit');
+    const frames = v.counts.frames;
+    // a move every 8 ms (a pointer's rate, faster than frames) while the box scrolls
+    for (let k = 0; k < 60; k++) {
+      v.input.move(a.x, box.y + box.height + 40 + (k % 2));
+      await vi.advanceTimersByTimeAsync(8);
+    }
+    off();
+    const drawn = v.counts.frames - frames;
+    expect(placement(v).anchor).toBeGreaterThan(before);
+    expect(hit.mock.calls.length).toBeGreaterThan(0);
+    expect(hit.mock.calls.length).toBeLessThanOrEqual(drawn);
+    expect(writes).toBeLessThanOrEqual(drawn);
+    v.input.up();
+  });
+});
+
 describe('a text section’s targets', () => {
   it('a line’s gutter hits as its band’s row (labels and numbers), a letter as its cell', async () => {
     const v = await open();
