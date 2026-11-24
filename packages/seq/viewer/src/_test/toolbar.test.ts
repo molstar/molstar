@@ -7,7 +7,8 @@
 
 import { uiHistory } from '../ui-history.js';
 import { KeyPlatform } from '@molstar/ui/commands/keys';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { loadLegendEyes } from '../mount-legend.js';
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RecordingContext } from '../canvas/_test/recording.js';
 import { viewerItem } from '../config.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
@@ -76,6 +77,9 @@ async function make(mounted = false) {
   frames.flush();
   return { target, viewer };
 }
+
+// The legend's eyes are a lazy chunk the first mount in a worker starts: the file waits for it, or it lands after the file ends.
+afterAll(() => loadLegendEyes());
 
 describe('the toolbar’s buttons, headless', () => {
   it('are disabled with a reason while their side of the history is empty, across back and forward', async () => {

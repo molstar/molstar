@@ -6,11 +6,11 @@
  */
 
 import { createSeqSpec, theme } from '@molstar/seqx-core/lang';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { viewerItem } from '../config.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
 import { legendRows } from '../legends.js';
-import { mountLegend } from '../mount-legend.js';
+import { loadLegendEyes, mountLegend } from '../mount-legend.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
 import { stubCanvasContext } from './canvas-stub.js';
 import { type Frames, installFrames } from './frames.js';
@@ -85,6 +85,9 @@ async function mounted(n: number, options: Parameters<typeof mountLegend>[2] = {
   document.body.append(el);
   return { el, dispose: mountLegend(el, viewer!, { of: Chromosomes, ...options }) };
 }
+
+// The legend's eyes are a lazy chunk the first mount in a worker starts: the file waits for it, or it lands after the file ends.
+afterAll(() => loadLegendEyes());
 
 describe('a legend’s "+n"', () => {
   it('is a button with a label and aria-expanded; open lists every entry, close returns to 12 and "+n"', async () => {

@@ -6,7 +6,8 @@
  */
 
 import { DomHost } from '@molstar/ui/dom';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { loadLegendEyes } from '@molstar/seqx-viewer/mount-legend';
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AllCells } from '../compose.js';
 import { Looks } from '../values-looks.stories.js';
 
@@ -57,6 +58,9 @@ afterEach(() => {
   mounted = undefined;
   vi.useRealTimers();
 });
+
+// The legend's eyes are a lazy chunk the first mount in a worker starts: the file waits for it, or it lands after the file ends.
+afterAll(() => loadLegendEyes());
 
 describe('the values look story in a DOM', () => {
   it('mounts every cell, light and dark, without a throw', async () => {

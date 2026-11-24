@@ -12,11 +12,11 @@
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { DarkTokens, recordDrawLists } from '@molstar/seqx-core/render';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { viewerItem } from '../config.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
 import { highlightColorOf } from '../legends.js';
-import { mountLegend } from '../mount-legend.js';
+import { loadLegendEyes, mountLegend } from '../mount-legend.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
 import { stubCanvasContext } from './canvas-stub.js';
 import { type Frames, installFrames } from './frames.js';
@@ -74,6 +74,9 @@ function rectsIn(v: SeqViewer, section: number) {
     .filter((p) => Number(p[2]) >= s.y - 4 && Number(p[2]) < s.y + s.height)
     .map((p) => ({ y: Number(p[2]), h: Number(p[4]), paint: p.slice(5).join(' ') }));
 }
+
+// The legend's eyes are a lazy chunk the first mount in a worker starts: the file waits for it, or it lands after the file ends.
+afterAll(() => loadLegendEyes());
 
 describe('a channel’s style', () => {
   it('is set with the channel, and carried onto the linked section with it', async () => {
