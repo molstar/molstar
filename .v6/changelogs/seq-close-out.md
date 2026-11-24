@@ -54,3 +54,4 @@
   draws, its eye says what it hides; hiding it keeps the track's label whole.
 - Seq\* (next): a track's or a section's `height` takes `'content'`: it is as tall as its content, never scrolling
   inside (a ring keeps its cap; language 0.11.0).
+- Seq\* (next): a bridge's ribbons no longer go missing on the canvas after panning or zooming one side.

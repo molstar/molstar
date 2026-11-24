@@ -16,7 +16,7 @@ Open items for the next fix point or a running lane's fix round (the loop, Each 
   › Focus And Back, two screenshots: "there is a bug on the legend here, showing just the ATP, but also hiding
   everything"): the row "Sequence ⊙ ATP" lists one swatch while the track draws its letters and eight ligands; its eye
   empties the track; the header truncates to "S…" with a stray square. Kind: bug (maybe a design gap). To FX29.
-- **A bridge's ribbons missing on the canvas after its side moves** (the author, 2026-11-24, Features › Across
+- **Fixed by FX28** (`d7857a8f0`). **A bridge's ribbons missing on the canvas after its side moves** (the author, 2026-11-24, Features › Across
   sections › One Side Zoomed In, a screenshot: "there is a draw error on the canvas version of this"): the canvas leaves
   ribbons out over part of the zoomed side (Pp01's at the whole genome; 1.55–1.58 Mb of Pp02 after a Ctrl+wheel, the
   orchestrator's reproduction without FX25 and CL8), the SVG twin draws them; it stays. Kind: bug. To FX28 (bisect,
