@@ -12,6 +12,17 @@
 import type { Node } from '@molstar/core/repr/tree';
 import { withViewKind } from '@molstar/seqx-core/resolve';
 
+/** The chevron's room before a group's label, px (here: the label column's measure reads it without the chunk). */
+export const ChevronPx = 14;
+/** The gap between a group's label and its count, px. */
+export const CountGapPx = 6;
+
+/** A folded group's quiet count: its tracks ("1 track", "3 tracks") and what its summary leaves out. */
+export function groupCount(tracks: number, left = 0): string {
+  const n = `${tracks} track${tracks === 1 ? '' : 's'}`;
+  return left ? `${n} · +${left} not shown` : n;
+}
+
 export const GroupsHooks: {
   /** The folding of a section's groups (`groups.ts`), once landed. */
   fold?: typeof import('./groups.js').foldGroups;

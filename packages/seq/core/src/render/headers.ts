@@ -15,6 +15,7 @@ import {
   tracksOf,
 } from '@molstar/seqx-core/view';
 import { fontSize, type RenderConfig } from './config.js';
+import { groupCount } from './groups-hooks.js';
 import type { Box, Hit } from './layer-type.js';
 import type { TextMetrics } from './text.js';
 
@@ -568,7 +569,10 @@ export function hiddenTracksOf(model: StaticModel, section: ResolvedSection): re
       if (group === g.address) continue;
       group = g.address;
       const label = g.node.params?.label;
-      (found ??= []).push({ address: g.address, label: typeof label === 'string' ? label : (g.node.id ?? '') });
+      // its tracks counted, as the host's list says it ("Variants (3 tracks)")
+      const n = (g.node.children ?? []).filter((x) => x.kind === 'track').length;
+      const name = typeof label === 'string' ? label : (g.node.id ?? '');
+      (found ??= []).push({ address: g.address, label: `${name} (${groupCount(n)})` });
       continue;
     }
     if (t.params?.hidden !== true) continue;

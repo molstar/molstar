@@ -6,6 +6,7 @@
 
 import type { ResolvedLayer, ResolvedTrack, ResolvedView } from '@molstar/seqx-core/view';
 import type { RenderConfig } from './config.js';
+import { ChevronPx, CountGapPx, groupCount } from './groups-hooks.js';
 import { elide, type TextMetrics } from './text.js';
 import { SlimRailPx } from './rail.js';
 import { columnsRoom, fitRowColumns, type RowColumn, rowColumnsOf } from './rows-model.js';
@@ -188,7 +189,9 @@ function measureColumn(view: ResolvedView, config: RenderConfig, text: TextMetri
   // a group's header: its chevron, label and folded count (_spec/README.md "Render", Track groups)
   for (const s of view.sections)
     for (const g of s.trackGroups ?? []) {
-      const m = 14 + text.measure(config.labelFont, `${g.label} ${g.count} tracks`) + 6;
+      // its count as drawn, at most what its strips leave out (every track a values strip past the cap)
+      const left = Math.max(0, g.count - config.group.summary.maxStrips);
+      const m = ChevronPx + text.measure(config.labelFont, `${g.label} ${groupCount(g.count, left)}`) + CountGapPx;
       if (m > w) w = m;
     }
   return Math.min(c.max, Math.max(c.min, Math.ceil(w)));

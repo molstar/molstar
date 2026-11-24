@@ -15,6 +15,7 @@ import { groupsSpec } from '../../view/_test/groups-spec.js';
 import { BuiltInLayerTypes, BuiltInLayouts } from '../built-ins.js';
 import { DefaultRenderConfig } from '../config.js';
 import { exportSvg } from '../export.js';
+import { hiddenTracksOf } from '../headers.js';
 import { bundledTextMetrics, LightTokens, layoutView, type ViewLayout } from '../index.js';
 import { lanesHeight } from '../sizing.js';
 import { settle } from './helpers.js';
@@ -220,6 +221,14 @@ describe('track groups in the tracks layout', () => {
     expect(sec.groups?.some((g) => g.group.address.endsWith('/features')) ?? false).toBe(false);
     const hit = sec.layout.hitChrome!(sec, features.box.x + 20, p.scrollY! + 2, undefined);
     expect(hit?.target).not.toBe('group-header');
+  });
+
+  it('a hidden group is one entry of the hidden tracks, its tracks counted', async () => {
+    const st = await settle(groupsSpec({ variants: { hidden: true } }));
+    expect(hiddenTracksOf(st.model, st.view.sections[0]).map((t) => t.label)).toEqual([
+      'Variants (3 tracks)',
+      'Signal c',
+    ]);
   });
 
   it('an export draws the folds it is given (`groups`), else each group’s `collapsed`', async () => {

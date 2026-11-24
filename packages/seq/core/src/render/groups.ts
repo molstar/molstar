@@ -9,6 +9,7 @@ import type { ResolvedLayer, ResolvedSection, ResolvedTrack, ResolvedTrackGroup 
 import type { RenderConfig } from './config.js';
 import { RenderIssues } from './issues.js';
 import type { Box, Hit, LayerType } from './layer-type.js';
+import { ChevronPx, CountGapPx, groupCount } from './groups-hooks.js';
 import { lanesHeight } from './sizing.js';
 
 // A section's track groups in the tracks layout (_spec/README.md "Render", Track groups): the bands a folded group
@@ -104,10 +105,21 @@ function summaryLayer(l: ResolvedLayer, form: CollapseForm): ResolvedLayer {
   return s;
 }
 
-/** The synthetic tracks of a folded group, kept a group and a shape so a frame's key holds. */
-const Bands = new Map<string, ResolvedTrack>();
-function band(address: string, label: string, height: number, layers: readonly ResolvedLayer[]): ResolvedTrack {
-  const k = Bands.get(address);
+/**
+ * The synthetic tracks of a folded group, kept a group and a shape so a frame's key holds: by the resolved group (one
+ * view's, so one viewer's: two viewers of one spec keep their own), then the band's address.
+ */
+const Bands = new WeakMap<ResolvedTrackGroup, Map<string, ResolvedTrack>>();
+function band(
+  group: ResolvedTrackGroup,
+  address: string,
+  label: string,
+  height: number,
+  layers: readonly ResolvedLayer[],
+): ResolvedTrack {
+  let own = Bands.get(group);
+  if (!own) Bands.set(group, (own = new Map()));
+  const k = own.get(address);
   if (
     k &&
     k.height === height &&
@@ -117,12 +129,9 @@ function band(address: string, label: string, height: number, layers: readonly R
   )
     return k;
   const t: ResolvedTrack = { address, label, height, layers };
-  if (Bands.size > 512) Bands.clear();
-  Bands.set(address, t);
+  own.set(address, t);
   return t;
 }
-
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
 /**
  * Folds a section's groups over its shown tracks (templates expanded): in `tracks`, a folded group's tracks give way
@@ -261,13 +270,13 @@ function fold(
     const start = out.shown.length;
     let pad = 0;
     const members = shown.filter((m) => m.group === g && !m.summaryOf);
-    let count = plural(members.length, 'track');
+    let count = groupCount(members.length);
     if (group.summary) {
       // the authored summary: that track, drawn as any track, only while folded (EC-103)
       const k = shown.findIndex((m) => m.address === group.summary);
       if (k >= 0) push(shown[k], trackOf[k], sourceOf[k], after);
     } else if (group.none) {
-      push(band(`${g}#header`, '', config.header.groupPx, []), -1, t, after);
+      push(band(group, `${g}#header`, '', config.header.groupPx, []), -1, t, after);
     } else {
       // the automatic summary: one lane of every lane-form layer, a strip a values member, at most `maxStrips`
       const lane: ResolvedLayer[] = [];
@@ -284,16 +293,16 @@ function fold(
           else if (strips.length < config.group.summary.maxStrips) strips.push(s);
           else left++;
         }
-      if (left) count += ` · +${left} not shown`;
+      if (left) count = groupCount(members.length, left);
       // one lane when a member draws in one (or nothing would be drawn: the empty lane), the strips under it; strips
       // alone stand with no lane above them, the row padded at its top to the header's line
       const laned = lane.length > 0 || strips.length === 0;
       const stripsPx = strips.length * (config.group.summary.stripPx + 1) - 1;
       pad = laned ? 0 : Math.max(0, config.header.groupPx - stripsPx);
-      if (laned) push(band(`${g}#summary`, '', lanesHeight(1, config), lane), -1, t, after);
+      if (laned) push(band(group, `${g}#summary`, '', lanesHeight(1, config), lane), -1, t, after);
       strips.forEach((s, k) =>
         push(
-          band(`${g}#strip${k}`, '', config.group.summary.stripPx, [s]),
+          band(group, `${g}#strip${k}`, '', config.group.summary.stripPx, [s]),
           -1,
           t,
           // a strip under the lane (or the one before): a 1 px gap
@@ -408,8 +417,3 @@ function headersOf(
   }
   return out;
 }
-
-/** The chevron's room before a group's label, px. */
-export const ChevronPx = 14;
-/** The gap between a group's label and its count, px. */
-export const CountGapPx = 6;

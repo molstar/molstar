@@ -6,7 +6,7 @@
 
 import { Anchor, type PassWriter } from './draw-lists.js';
 import type { Hit } from './layer-type.js';
-import { ChevronPx, CountGapPx } from './groups.js';
+import { ChevronPx, CountGapPx } from './groups-hooks.js';
 import type { SectionLayout } from './tracks-types.js';
 
 // A section's group headers in the label column (_spec/README.md "Render", Track groups): the chevron (▾ open, ▸
