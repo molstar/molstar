@@ -37,7 +37,7 @@ describe('the built-in layer types’ declared fallbacks', () => {
   });
 
   for (const [name, fallback] of Object.entries(Declared)) {
-    it(`${name} declares ${fallback}, a known type or none, and its chain ends`, () => {
+    it(`EC-74: ${name} declares ${fallback}, a known type or none, and its chain ends`, () => {
       expect(LayerTypes[name].fallback).toBe(fallback);
       if (fallback !== 'none') expect(LayerTypes[fallback]).toBeDefined();
       // the chain, as the resolved view walks it
