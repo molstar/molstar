@@ -5,7 +5,8 @@ went is in its record.
 
 ## Built
 
-- **`@molstar/seqx-core`** (`packages/seq/core`): SeqViewSpec, the language at `0.10.0`, with its builder, the checks
+- **`@molstar/seqx-core`** (`packages/seq/core`): SeqViewSpec, the language at `0.11.0` (the `group` node, the
+  `reference` line on values, `height: 'content'`), with its builder, the checks
   of a document and of a change, and the query language (by role, `filter`, `expand`, `linked`, set operations, Keys);
   the model (sections, axes with directions, numberings, collapsed introns and reversed pieces; units, molecules and
   atoms; assemblies, blocks and the genome axis) and resolve with its maps (offset, segments, structure, codon) and the liftover across sections;
@@ -30,9 +31,16 @@ went is in its record.
   options and range reads, standard components. MessagePack in `data/msgpack` and the tree's codec on it in `repr/codecs/msgpack`. **In `@molstar/io`**: BGZF and tabix
   (and the MessagePack paths re-exported).
   **In `@molstar/ui`**: the history adapters.
-- **Measured** at the fifth slice's close: every frame target met but the 200-copy split patch (median 16.2 ms) and one
-  Signal zoom frame (25.7 ms); sizes 260.2 / 974.3 / 1,539.7 / 1,086.9 kB min (reading, headless, default, minimal)
-  against 265 / 980 / 1,545 / 1,090 ([performance](design/performance.md), Size).
+- **Built by the close-out** (2026-11-24): search (matchers in the core, a registry for an application's, `viewer.search`
+  and its commands, two highlight channels, Mod+G and F3; the box and results list are the application's); track
+  groups (the `group` node, folds as session state, headers, summary rows, `lanes: one`); values marks (points, log
+  scale, reference lines with their values); the legend's rows with an eye per layer and a Layers menu with Show all
+  and Hide all; the ring's gestures (Cmd/Ctrl+wheel cut, a double-click on a chromosome's label or arc, the stem
+  menu); `track.height` and `height: 'content'`; patches on streamed nodes waiting, never dangling; drags, the
+  frame's allocation and the stories' twins at their bounds. Rows moved: [design/features.md](design/features.md).
+- **Measured** at the close-out's last gate: every frame target met but the 200-copy split patch and merge (carried,
+  below); sizes 265.0 / 995.2 / 1,590.8 / 1,120.9 kB min (reading, headless, default, minimal) against 268 / 1,000 /
+  1,592 / 1,124 ([performance](design/performance.md), Size).
 
 Which features are built: [design/features.md](design/features.md); which edge cases have an outcome:
 [design/edge-cases.md](design/edge-cases.md), Outcomes.
@@ -49,22 +57,26 @@ Slices, each closed with its record:
 
 ## Open
 
-1. **For the author, carried to the next plan**: the use gate and the novice passes' 14 design questions; the minimal
-   viewer's +150.7 kB (accept or trim); five feature rows out of `deferred`.
+1. **Carried**: the 200-copy split patch's first frame and task and the merge's task over their edit bound (the author,
+   2026-11-24: "Carry it"; sharing lays between identical copies is a design question, the microtask tails profiled
+   first); the split and merge bound is in the TODO. The old Seq\* viewer's label churn over its allocation baseline
+   (outside this package). A folded group's summary layer is named by its raw id ("ranges#summary") in its legend row.
 2. **Provisional**: the root nouns ([design/building-blocks.md](design/building-blocks.md)) and the UX foundations'
    numbers ([design/ux-foundations.md](design/ux-foundations.md)), confirmed by use where a story shows them.
-3. **Known gaps**: the close-out plan (`execution/close-out/plan.md`: the drag rule, the stage 1 novice decisions,
-   the `pairwise` and `alignment` maps, the query forms `search`, `onto`, `group`, track groups, the Manhattan family,
-   `split`) and [packages/seq/TODO.md](../../packages/seq/TODO.md) (M5's leftovers and the rest).
+3. **Known gaps**: [packages/seq/TODO.md](../../packages/seq/TODO.md), whose new lines are search's (rows and cells
+   not searched, a source not open skipped), a group's own menu, a values y axis, `rowsValue` over a lazy alignment,
+   a layer naming a dynamic node (refused), the tracks layout's allocation pass for the zoom strip; and past version 1
+   by decision: the `pairwise` and `alignment` maps, split (ranges, values), keyed tables, keeping a streamed region,
+   bigWig's own levels, the glyph atlas and band copy, the rest of the deferred rows with their triggers.
 4. **Defaults no story shows** (store sizes, bounds) are never confirmed by use: they stand as documented and tested.
 5. **To decide as the work reaches them**: worker boundaries, versioning under 0.x
    ([design/version-1.md](design/version-1.md), Open).
 
 ## Next
 
-Version 1's close-out (`execution/close-out/`: a plan and its checklist, drafts; its stage 0 the author's) (the planned rows no milestone took, the carried items, the use
-gate). Prism on the new Seq\*, then removing `packages/sequences` and renaming `seqx` to `seq`, are separate work (the
-author, 2026-11-23). Design before code ([AGENTS.md](AGENTS.md), How work happens here).
+The close-out's fold-back with the author and its record, then the next plan, not yet written. Prism on the new Seq\*,
+then removing `packages/sequences` and renaming `seqx` to `seq`, are separate work (the author, 2026-11-23). Design
+before code ([AGENTS.md](AGENTS.md), How work happens here).
 
 ## Which design to read
 
@@ -87,4 +99,4 @@ author, 2026-11-23). Design before code ([AGENTS.md](AGENTS.md), How work happen
 
 ## Language version
 
-`0.10.0`, unreleased: not yet versioned for readers outside this repository; no migration between the 0.x versions.
+`0.11.0`, unreleased: not yet versioned for readers outside this repository; no migration between the 0.x versions.
