@@ -266,8 +266,11 @@ describe('Kinds of links, headless', () => {
 
   it('read by region (BEDPE, `type` mapped): each kind’s layer its own links, at the item level', async () => {
     const v = await open('ring-kinds-region');
-    // the bins land first, then each layer's items (a want of their own): the clock turned until they have
-    for (let i = 0; i < 40 && !kindsOf(v).every((l) => l.items); i++) {
+    // the bins land first, then each layer's items (a want of their own): the clock turned, each turn after a real one
+    // (the reads are real I/O), until each layer shows an item
+    const shown = (l: ReturnType<typeof kindsOf>[number]) => !!l.items && l.read!.shown.some((x) => x);
+    for (let i = 0; i < 100 && !kindsOf(v).every(shown); i++) {
+      await new Promise((r) => setImmediate(r));
       await vi.advanceTimersByTimeAsync(100);
       v.draw();
     }
