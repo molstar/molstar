@@ -125,7 +125,7 @@ track.parents: ['section', 'group']            // was ['section']
   are jumps, so Alt+Left restores the set and the window together (the clades' rule).
 - **A toggle keeps the group's header line where it is on the page** (the section's `top` adjusted, clamped), so the
   pointer stays on what it clicked; heights animate as a clade toggle does (`view.motion`, `view.jumpMs`; a cut under
-  reduced motion).
+  reduced motion). **Not built** (CL6): the header is not kept in place (the bands below move) and the heights cut.
 
 ### 4. The header
 
@@ -162,8 +162,8 @@ in the group's order:
 
 | Kind | Form | Drawn |
 |---|---|---|
-| `ranges`, `secondary`, `variants` | `lane` | every item of every member in **one shared lane** (`lanes: one`, Decision 6), labels off; across members later over earlier, within a member shorter over longer; a device column holding more than one item takes the layer's density form (`ranges-density.ts`); variants as their ticks without heads |
-| `pairs` | `lane` | each pair's two ends as 2 px ticks in the shared lane, in the pair's colour (arcs need height a row does not have) |
+| `ranges`, `secondary`, `variants` | `lane` | every item of every member in **one shared lane** (`lanes: one`, Decision 6), labels off; across members later over earlier, within a member shorter over longer; a device column holding more than one item takes the layer's density form (`ranges-density.ts`); variants as their ticks without heads. **Not built** (CL6): every item is drawn in data order, a later item over an earlier one (not shorter over longer), and a column holding more than one item stays items (no density form) |
+| `pairs` | `lane` | each pair's two ends as 2 px ticks in the shared lane, in the pair's colour (arcs need height a row does not have). **Not built** (CL6): `pairs` has no `lanes: one`; its lane form lays its own lanes |
 | `values` | `strip` | a strip a member, `group.summary.stripPx` (4) each, below the lane, the values layer's thin look (its colour by value or its series tint; layouts.md "The values look"); at most `group.summary.maxStrips` (4), the rest counted in the header ("+2 not shown") |
 | `rows` | `row` | the alignment's consensus row: the rows layer's `summary` form (`consensus`, `logo`, `bar`) over every shown row, the root clade's summary row (grids-and-rows.md, "The summary row"), cached by (layer, entry version, theme) |
 | `letters`, `logo`, `ruler`, `matrix`, `grid`, `frame`, `bands`; an extension's type without `collapse` | none | left out, counted in the header's hover card ("Sequence: not in the summary") |
