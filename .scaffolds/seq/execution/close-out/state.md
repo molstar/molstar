@@ -17,9 +17,7 @@ Stage 0 and GATE 0 are closed; waves 1 and 2 are merged and GATE 1 passed. Merge
 The `cc-plugin-privacy` plugin (it refused Bash calls reading Seq\* source files, whose headers carry the author's
 address) is off since the author's restart, 2026-11-24 08:45: the refused grep over `ranges.ts` runs.
 
-- **CL5 search** (`seq/cl5` at `a6a1b7a9e`, worktree `agent-aace09bb0cc70df65`, its core `package.json`'s `./search`
-  export a local edit): the orchestrator's checks green but the default size row (1,563.8 of 1,560: 1,565 at the
-  merge); reviewed (strong). Its fix round, [briefs/cl5-fix-round.md](briefs/cl5-fix-round.md), started 08:50.
+- **CL5 search merged** (`a4668800a`), sizes raised: default 1,566.1/1,570, minimal 1,101.7/1,105.
 - **CL6 track groups** (`seq/cl6` at `e8922e04b`, a WIP last; worktree `agent-ae107bbc850a074e3`): resumed 08:50 to
   split the WIP (the `tracks.ts` perf fix, core `test:perf` green), item 6 (`lanes: one`), the group header's click in
   `input.ts`, every check.
@@ -29,7 +27,7 @@ address) is off since the author's restart, 2026-11-24 08:45: the refused grep o
 
 ## Next
 
-1. CL6's report, then its look and review and merge; CL5's after it (both touch `input.ts`).
+1. CL6's fix round (the review's findings and the groups code lazy), its look, its merge.
 2. CL8 and FX25 after CL6 merges.
 3. GATE 2 after CL5, CL6, CL8 and FX25; then the use gate, the novice pass, the measurements, the last gate.
 
