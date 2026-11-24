@@ -155,6 +155,33 @@ export type MergeRecord = Pick<BaseValues, (typeof MergeRecordKeys)[number]> & {
   readonly [key: string]: ValueCell<any> | undefined;
 };
 
+/**
+ * The cells of a segment its own beside its record's (`MergeRecordKeys`, `getMergeRecordKeys`): what differs by segment
+ * but the merged object does not read (it has its own, `createMergedValues`): its instance count's uniform, its
+ * invariant sphere's, its geometry's meta (meshes), its transform's (read back by the transform writers,
+ * `createUnitsTransform`, `Visual.setTransform`). A record's prototype is its part's shared values: a segment's writes
+ * of a cell not its own would land in them, the last segment's value then every segment's (a member view's,
+ * `getMergedMembers`: the geometry export)
+ */
+export const MergeSegmentKeys = [
+  'uInstanceCount',
+  'uInvariantBoundingSphere',
+  'meta',
+  'transform',
+  'extraTransform',
+  'hasExtraTransform',
+] as const;
+
+/**
+ * The keys a segment of a merged object of `type` owns (`MergeRecordKeys`, `MergeSegmentKeys`), of those `values` has;
+ * the rest its part's shared values'
+ */
+export function getMergeSegmentKeys(type: MergedType, values: MergeableValues): string[] {
+  const keys = getMergeRecordKeys(type, values);
+  for (const k of MergeSegmentKeys) if (values[k] !== undefined && !keys.includes(k)) keys.push(k);
+  return keys;
+}
+
 export const MergedTypes = ['spheres', 'mesh', 'cylinders', 'lines', 'points'] as const;
 
 /**
@@ -551,12 +578,29 @@ function computeMergeKey(values: MergeableValues, defineKeys: readonly string[])
   parts.push(`ig:${values.uInstanceGranularity.ref.value}`);
   parts.push(`ct:${values.colorType.ref.value}`);
   parts.push(`uLod:${(values.uLod.ref.value as Vec4).join(',')}`);
-  const lodLevels = values.lodLevels?.ref.value as LodLevelsValue | undefined;
-  parts.push(
-    `lod${lodLevels?.pixelSize ? `px${lodLevels.pixelSize}` : ''}:` +
-      (lodLevels ? lodLevels.map((l) => `${l[0]},${l[1]}`).join(';') : ''),
-  );
+  parts.push(getMergeLodKey(values.lodLevels));
   return parts.join('|');
+}
+
+/**
+ * The part of the merge key of `lodLevels`, a member's levels (`getMergeKey`): their ranges and pixel size, not their
+ * scales (per member, in the segment data)
+ */
+export function getMergeLodKey(lodLevels: ValueCell<unknown> | undefined) {
+  const levels = lodLevels?.ref.value as LodLevelsValue | undefined;
+  return (
+    `lod${levels?.pixelSize ? `px${levels.pixelSize}` : ''}:` +
+    (levels ? levels.map((l) => `${l[0]},${l[1]}`).join(';') : '')
+  );
+}
+
+/**
+ * `key` (`getMergeKey`) with the levels `lodLevels` in place of its own (its last part, `computeMergeKey`): the key of
+ * a member of the values `key` is of with levels of its own
+ */
+export function withMergeLodKey(key: string, lodLevels: ValueCell<unknown> | undefined) {
+  const i = key.lastIndexOf('|lod');
+  return `${i < 0 ? key : key.slice(0, i)}|${getMergeLodKey(lodLevels)}`;
 }
 
 const SupportedVertexTypes = ['uniform', 'object', 'instance', 'group', 'groupInstance', 'vertex', 'siteType'];

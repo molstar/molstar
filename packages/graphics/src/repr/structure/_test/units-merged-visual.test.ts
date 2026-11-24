@@ -6,7 +6,8 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { setDebugMode } from '@molstar/core/util/debug';
 import { Interval } from '@molstar/core/data/int';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import type { Clip } from '@molstar/core/util/clip';
@@ -16,7 +17,7 @@ import { ValueCell } from '@molstar/core/util/value-cell';
 import { CIF } from '@molstar/io/reader/cif';
 import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
 import { isEmptyLoci } from '@molstar/model/model/loci';
-import { Structure, StructureElement, type Unit } from '@molstar/model/model/structure';
+import { Structure, StructureElement, StructureSymmetry, type Unit } from '@molstar/model/model/structure';
 import {
   type GraphicsRenderObject,
   getMergedMembers,
@@ -257,7 +258,7 @@ describe('the merged units visual', async () => {
     for (const o of objects) expect(o.merged.recordsUnchanged!()).toBe(false);
     const sized = await createRepr(structure, true, { emissive: 0.4, sizeFactor: 2 });
     // the bounds of the geometry kept (its grid's too), padded by the new size factor: one made with it is bounded otherwise
-    const bounds = ['boundingSphere', 'invariantBoundingSphere', 'instanceGrid'];
+    const bounds = ['boundingSphere', 'invariantBoundingSphere', 'uInvariantBoundingSphere', 'instanceGrid'];
     expect(valuesOf(repr, bounds)).toEqual(valuesOf(sized, bounds));
     expect(repr.renderObjects).toEqual(objects);
     for (const r of [repr, emissive, sized]) r.destroy();
@@ -466,6 +467,100 @@ describe('the merged units visual', async () => {
     expect(merged.every((o) => isMergedRenderObject(o) && o.values.dOverpaint.ref.value)).toBe(true);
     expect(merged.reduce((n, o) => n + o.merged.records.length, 0)).toBe(structure.unitSymmetryGroups.length);
     repr.destroy();
+  });
+
+  const sizedTheme = (s: Structure, size: string) =>
+    Theme.create(registries as any, { structure: s }, { colorTheme: { name: 'uniform' }, sizeTheme: { name: size } });
+  /** each merged object's sizes as made: their type and the texels of each */
+  const sizesOf = (r: Awaited<ReturnType<typeof createRepr>>) =>
+    (r.renderObjects as MergedGraphicsRenderObject[])
+      .map((o) => `${(o.values as any).dSizeType.ref.value}:${(o.values as any).tSize.ref.value.count}`)
+      .sort();
+
+  it('follows a live segment where its part outlives its first: its sizes by a new size theme as made with it', async () => {
+    // the second group the first of its part (the protein a part of its own, `splitBuilder`), then gone
+    const subset = Structure.create(structure.units.filter((u) => u !== structure.unitSymmetryGroups[1].units[0]));
+    const repr = await createRepr(structure, true);
+    repr.setTheme(sizedTheme(structure, 'uniform'));
+    await repr.createOrUpdate({}, structure).run();
+    repr.setTheme(sizedTheme(subset, 'uniform'));
+    await repr.createOrUpdate({}, subset).run();
+    repr.setTheme(sizedTheme(subset, 'physical'));
+    await repr.createOrUpdate({}, subset).run();
+    const fresh = await createRepr(subset, true);
+    fresh.setTheme(sizedTheme(subset, 'physical'));
+    await fresh.createOrUpdate({}, subset).run();
+    expect(sizesOf(repr)).toEqual(sizesOf(fresh));
+    repr.destroy();
+    fresh.destroy();
+  });
+
+  it('moves a segment whose levels another size theme moves to the part of its key, as made with it', async () => {
+    // levels by each group's largest size (`lodRadius` 0) on screen: one part under a uniform size
+    const plain = ElementSphereImpostorVisual(-1).builder as UnitsVisualGeometryBuilder<ElementSphereParams, Spheres>;
+    const props = { lodPixelSize: 2, lodRadius: 0 } as Partial<PD.Values<ElementSphereParams>>;
+    const repr = await createRepr(structure, true, props, plain);
+    repr.setTheme(sizedTheme(structure, 'uniform'));
+    await repr.createOrUpdate({}, structure).run();
+    expect(repr.renderObjects.length).toBe(1);
+    repr.setTheme(sizedTheme(structure, 'physical'));
+    await repr.createOrUpdate({}, structure).run();
+    const fresh = await createRepr(structure, true, props, plain);
+    expect(fresh.renderObjects.length).toBeGreaterThan(1);
+    const recordsOf = (r: typeof repr) =>
+      (r.renderObjects as MergedGraphicsRenderObject[]).map((o) => o.merged.records.length).sort();
+    expect(recordsOf(repr)).toEqual(recordsOf(fresh));
+    repr.destroy();
+    fresh.destroy();
+  });
+
+  it('gives views of its members each with its own instance count (the geometry export)', async () => {
+    // groups of different instance counts: the first group's every copy, one of the others'
+    const range = await StructureSymmetry.buildSymmetryRange(
+      structure,
+      Vec3.create(-1, 0, 0),
+      Vec3.create(1, 0, 0),
+    ).run();
+    const firstGroup = range.unitSymmetryGroups[0];
+    const s = Structure.create(
+      range.unitSymmetryGroups.flatMap((g) => (g === firstGroup ? [...g.units] : [g.units[0]])),
+    );
+    // one part (not split by size, `splitBuilder`): groups of other instance counts in it
+    const plain = ElementSphereImpostorVisual(-1).builder as UnitsVisualGeometryBuilder<ElementSphereParams, Spheres>;
+    const repr = await createRepr(s, true, {}, plain);
+    // every segment's transform made again (another cell size, `createUnitsTransform`): written through its record
+    await repr.createOrUpdate({ cellSize: 13 } as any).run();
+    const counts = new Set<number>();
+    for (const o of repr.renderObjects as MergedGraphicsRenderObject[]) {
+      for (const m of getMergedMembers(o)) {
+        expect(m.values.uInstanceCount.ref.value).toBe(m.values.instanceCount.ref.value);
+        counts.add(m.values.instanceCount.ref.value);
+      }
+    }
+    expect(counts.size).toBeGreaterThan(1);
+    repr.destroy();
+  });
+
+  it('tells in debug mode a cell its segments write apart through their shared values', async () => {
+    const plain = ElementSphereImpostorVisual(-1).builder as UnitsVisualGeometryBuilder<ElementSphereParams, Spheres>;
+    // a cell of the shared values (not a segment's own) written by each segment as its own
+    const builder: UnitsVisualGeometryBuilder<ElementSphereParams, Spheres> = {
+      ...plain,
+      processValues: (values: any, geometry: Spheres) => {
+        ValueCell.updateIfChanged(values.uEmissive, geometry.sphereCount);
+      },
+    };
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    setDebugMode(true);
+    try {
+      const repr = await createRepr(structure, true, {}, builder);
+      await repr.createOrUpdate({ sizeFactor: 2 }).run();
+      expect(error.mock.calls.some(([m]) => String(m).includes("'uEmissive'"))).toBe(true);
+      repr.destroy();
+    } finally {
+      setDebugMode(false);
+      error.mockRestore();
+    }
   });
 
   it('marks as the per-group visuals do', async () => {

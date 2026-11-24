@@ -122,7 +122,8 @@ What the per-group objects give that a merged object needs, and where it comes f
      written through its record, the shared values its prototype (one view set per segment was most of a recolor):
      the record's cells change, the shared ones are written alike by every segment (`updateIfChanged`). A segment's
      values made new (`createValues`) are picked to its record (a fast object from a template, its prototype set once)
-     and dropped; the first segment's become the shared values. Who walks a record's keys reads its own alone
+     and dropped; the first segment's become the shared values, their segment-owned cells (`getMergeSegmentKeys`)
+     following the part's first live segment ([merged-units-core.md](merged-units-core.md)). Who walks a record's keys reads its own alone
      (`Object.keys`). The layers' known-clear state and the previous mark keyed
      by the segment, not a render object.
    - **Updates**: the props' and theme's part of the update state decided once (they are shared), a group's part

@@ -11,6 +11,7 @@ import { HashMap } from '@molstar/core/util/map';
 import { hash2 } from '@molstar/core/data/util';
 import { MarkerAction } from '@molstar/core/util/marker-action';
 import { ValueCell } from '@molstar/core/util/value-cell';
+import { isDebugMode } from '@molstar/core/util/debug';
 import { Bond, type Structure, StructureElement, Unit } from '@molstar/model/model/structure';
 import { EmptyLoci, isEveryLoci, type Loci } from '@molstar/model/model/loci';
 import type { Geometry } from '@molstar/graphics/geo/geometry/geometry';
@@ -31,7 +32,9 @@ import {
   canCullOnGpu,
   canMergeValues,
   getMergeKey,
-  getMergeRecordKeys,
+  withMergeLodKey,
+  createEmptyMergeMember,
+  getMergeSegmentKeys,
   isMergeableType,
   type MergeableValues,
   type MergeRecord,
@@ -57,22 +60,36 @@ import {
 } from './units-visual.js';
 
 /**
- * A segment's cells beside its record (`MergeRecord`): its transform's, which the transform writers read back
- * (`createUnitsTransform`, `Visual.setTransform`: `aTransform` computed of them), not the merged object. `transform`
- * its own; the extra transform the shared empty one until unit transforms are set (`ExtraTransformKeys`). The matrix
- * (the representation's transform) and the poses (none for units) the shared values'
+ * A segment's extra transform cells (of `MergeSegmentKeys`): its part's shared empty ones until unit transforms are set
+ * (`ownExtraTransforms`). The matrix (the representation's transform) and the poses (none for units) the shared values'
  */
-const SegmentTransformKeys = ['transform', 'extraTransform', 'hasExtraTransform'] as const;
 const ExtraTransformKeys = ['extraTransform', 'hasExtraTransform'] as const;
+
+/** A cell's value to compare writes of it by (`checkSharedWrites`): an array by its length and first entries */
+function writeFingerprint(v: unknown): unknown {
+  if (v === null || typeof v !== 'object' || !ArrayBuffer.isView(v) || v instanceof DataView) return v;
+  const a = v as unknown as ArrayLike<number>;
+  let s = `${a.length}:`;
+  for (let i = 0, il = Math.min(a.length, 16); i < il; ++i) s += `${a[i]},`;
+  return s;
+}
+/** the shared keys told written apart by segments (debug mode), once a key */
+const warnedSharedWrites = new Set<string>();
 
 /**
  * The segments of one merge key (`getMergeKey`) and their merged object: groups of the same props and theme differ in
  * it where their counts resolve the instance granularity apart (`auto`: a large unit of many copies by instance, a
- * small one by group and instance), or their geometry's defines. Its shared values those of its first segment made
+ * small one by group and instance), or their geometry's defines or levels. Its shared values those of the first
+ * segment made, its segments' own cells (`recordKeys`) those of its first segment now (`bindShared`): read through the
+ * shared values (`granularity`, `getMergeKey`) they follow a live segment, not one gone
  */
 type Part<G extends Geometry> = {
   readonly shared: MergeableValues;
+  /** the keys its segments own (`getMergeSegmentKeys`): their records' and their own beside */
   readonly recordKeys: readonly string[];
+  readonly recordKeySet: ReadonlySet<string>;
+  /** the segment whose own cells the shared values hold (`bindShared`) */
+  sharedFrom: Segment<G> | undefined;
   /**
    * a record of `recordKeys` as a fast object to copy (`JSON.parse`'s): a record built key by key is a dictionary
    * (some 40 keys), its properties 1.6 KB a segment
@@ -99,9 +116,10 @@ type Part<G extends Geometry> = {
 type Segment<G extends Geometry> = {
   group: Unit.SymmetryGroup;
   geometry: G;
-  readonly part: Part<G>;
+  /** its merge key's part (`regroupByKey`) */
+  part: Part<G>;
   /**
-   * its cells: the merged object's record of it, and its transform's (`SegmentTransformKeys`); its part's shared values
+   * its cells: the merged object's record of it, and its own beside (`MergeSegmentKeys`); its part's shared values
    * its prototype, so that the writers read and write it as a units visual's values (`UnitsMergedVisual`)
    */
   readonly record: MergeRecord;
@@ -266,11 +284,16 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
   function getPart(values: MergeableValues, props: PD.Values<P>): Part<G> {
     const key = getMergeKey(values);
     for (const part of parts) if (getMergeKey(part.shared) === key) return part;
-    const recordKeys = getMergeRecordKeys(type, values);
-    for (const k of SegmentTransformKeys) if (values[k] !== undefined) recordKeys.push(k);
+    return createPart(values, getMergeSegmentKeys(type, values), props);
+  }
+
+  /** A part of the shared values `shared`, its segments' own keys `recordKeys` */
+  function createPart(shared: MergeableValues, recordKeys: string[], props: PD.Values<P>): Part<G> {
     const part: Part<G> = {
-      shared: values,
+      shared,
       recordKeys,
+      recordKeySet: new Set(recordKeys),
+      sharedFrom: undefined,
       recordTemplate: JSON.parse(JSON.stringify(Object.fromEntries(recordKeys.map((k) => [k, null])))),
       sharedExtra: state.unitTransforms
         ? undefined
@@ -338,7 +361,91 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
       groupCount: locationIt.groupCount,
       instanceCount: locationIt.instanceCount,
     };
+    // the first segment of a new part: its own cells the shared values' (its values those)
+    part.sharedFrom ??= seg;
     return seg;
+  }
+
+  /**
+   * `part`'s shared values holding its first segment's own cells, where that is another than they hold (the one they
+   * held gone, or moved to another part): what is read of a segment through them (the granularity of a layer, the merge
+   * key's levels) a live segment's
+   */
+  function bindShared(part: Part<G>) {
+    const first = part.segments[0];
+    if (!first || first === part.sharedFrom) return;
+    const shared = part.shared as unknown as { [k: string]: unknown };
+    const record = first.record as { [k: string]: unknown };
+    for (const k of part.recordKeys) shared[k] = record[k];
+    part.sharedFrom = first;
+  }
+
+  /**
+   * Every segment in the part of its merge key, after an update that changed segments' levels (a size theme or a level
+   * setting: each segment's own, its key's levels, `withMergeLodKey`): a segment whose key left its part's moves to a
+   * part of its key, its record the same (its cells, markers and layers kept) over that part's shared values; parts of
+   * one key become one. A key of no part a new part, its shared values a copy of the segment's part's (their cells of
+   * their own, `createEmptyMergeMember`; its own cells its first segment's, `bindShared`)
+   */
+  function regroupByKey(props: PD.Values<P>) {
+    const byKey = new Map<string, Part<G>>();
+    const claimed = new Set<Part<G>>();
+    for (const seg of segments) {
+      const from = seg.part;
+      const key = withMergeLodKey(getMergeKey(from.shared), seg.record.lodLevels);
+      let to = byKey.get(key);
+      if (!to) {
+        if (!claimed.has(from)) {
+          to = from;
+        } else {
+          const shared = createEmptyMergeMember(type, from.shared);
+          to = createPart(shared, [...from.recordKeys], props);
+        }
+        byKey.set(key, to);
+        claimed.add(to);
+      }
+      if (to !== from) {
+        Object.setPrototypeOf(seg.record, to.shared);
+        seg.part = to;
+      }
+    }
+  }
+
+  /** the versions of `part`'s shared cells not its segments' own, before a segment's update (`checkSharedWrites`) */
+  function sharedVersions(part: Part<G>) {
+    const shared = part.shared as unknown as { [k: string]: ValueCell<unknown> | undefined };
+    const versions = new Map<string, number>();
+    for (const k of Object.keys(shared)) {
+      if (!part.recordKeySet.has(k)) versions.set(k, shared[k]?.ref?.version ?? -1);
+    }
+    return versions;
+  }
+
+  /**
+   * Debug mode: the shared cells `seg`'s update wrote (through its record's prototype) with another value than an
+   * earlier segment's of this update: a cell that differs by segment, not its own (`MergeSegmentKeys`), every segment
+   * reading the last one's
+   */
+  function checkSharedWrites(
+    seg: Segment<G>,
+    before: Map<string, number>,
+    written: Map<Part<G>, Map<string, unknown>>,
+  ) {
+    const shared = seg.part.shared as unknown as { [k: string]: ValueCell<unknown> | undefined };
+    let values = written.get(seg.part);
+    if (!values) written.set(seg.part, (values = new Map()));
+    for (const [k, version] of before) {
+      const cell = shared[k];
+      if (!cell?.ref || cell.ref.version === version) continue;
+      const fingerprint = writeFingerprint(cell.ref.value);
+      if (values.has(k) && values.get(k) !== fingerprint && !warnedSharedWrites.has(k)) {
+        warnedSharedWrites.add(k);
+        console.error(
+          `merged units visual: '${k}' written by its segments with different values through their part's shared values (a segment's own cell: MergeSegmentKeys)`,
+        );
+      }
+      values.set(k, fingerprint);
+    }
   }
 
   /** Updates `seg` to `structureGroup`, `props` and `theme` from what it was last; the geometry made again where needed */
@@ -625,7 +732,11 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
       // the visual as it was)
       const made: Segment<G>[] = [];
       const kept = new Set<Segment<G>>();
+      /** whether an update changed a segment's levels, its merge key's (`regroupByKey`) */
+      let levelsChanged = false;
       const partsBefore = new Set(parts);
+      /** debug mode: the shared cells written in this update, by part (`checkSharedWrites`) */
+      const sharedWrites = isDebugMode ? new Map<Part<G>, Map<string, unknown>>() : undefined;
       let completed = false;
       try {
         for (let i = 0, il = groups.length; i < il; ++i) {
@@ -639,8 +750,10 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
               if (probed) continue;
               if (probed === undefined) {
                 const versions = recordVersions(seg);
+                const before = sharedWrites && sharedVersions(seg.part);
                 const updating = updateSegment(ctx, seg, structureGroup, props, theme);
                 if (isPromiseLike(updating)) await updating;
+                if (before) checkSharedWrites(seg, before, sharedWrites!);
                 const clean = !hasRecordUpdates(updateState) && isSameVersions(versions, recordVersions(seg));
                 sharedOnly.set(seg.part, clean);
                 if (!clean) written = true;
@@ -653,8 +766,12 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
             }
             if (!unchanged || seg.group !== group) {
               written = true;
+              const lodVersion = seg.record.lodLevels?.ref.version ?? -1;
+              const before = sharedWrites && sharedVersions(seg.part);
               const updating = updateSegment(ctx, seg, structureGroup, props, theme);
               if (isPromiseLike(updating)) await updating;
+              if (before) checkSharedWrites(seg, before, sharedWrites!);
+              if ((seg.record.lodLevels?.ref.version ?? -1) !== lodVersion) levelsChanged = true;
             }
           } else {
             const geometry = createGeometry(ctx, structureGroup, props, theme);
@@ -695,11 +812,15 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
         });
         byGroup = next;
         segments = nextSegments;
+      }
+      if (levelsChanged) regroupByKey(props);
+      if (!sameGroups || levelsChanged) {
         byUnitId = undefined;
         for (const part of parts) part.segments = [];
         for (const seg of segments) seg.part.segments.push(seg);
         for (const part of parts) if (part.segments.length === 0) disposeObject(part);
         parts = parts.filter((part) => part.segments.length > 0);
+        for (const part of parts) bindShared(part);
       }
       currentGroups = groups;
 

@@ -75,13 +75,21 @@ The merged path grew beside the per-group one instead of under it. Five choices 
   `auto`'s threshold of 30 came from per-group merging, before records. The JS heap a scene retained is too noisy at
   these sizes to compare (0 to 6.5 MB for one scene).
   `unmergeableAt`, `mergesAgain`, the probe and `mergeRenderObjectsByType` for units go.
-- **One table of segment keys** a type (which keys a record owns, which its part shares, which only a plain part's
-  record owns), from which `MergeRecordKeys`, the fill keys, the member cells and the texture granularities are
-  derived. A writer's write of a record-owned key through the prototype is an error in debug mode. Why: the
-  per-segment state is then stated once and checked, not inferred from where writers happen to write.
-- **Parts own their shared values**: a values object of the part's (as `createEmptyMergeMember` makes for the paged
-  pool), not its first segment's. A segment whose merge key changes (its key cells' versions, read in `sync`) moves to
-  the part of its new key.
+- **One table of segment keys** a type (done, `getMergeSegmentKeys`): a segment owns its record's keys (what the merged
+  object reads, `MergeRecordKeys`) and `MergeSegmentKeys` (what differs by segment that the merged object has its own
+  of: `uInstanceCount`, `uInvariantBoundingSphere`, a mesh's `meta`, the transform cells), its part's shared values
+  the rest. Found by building per-group visuals of groups of other sizes and instance counts and comparing every
+  cell: no other cell differs by group for the merged types. Debug mode tells a shared cell its segments write with
+  different values in one update (`checkSharedWrites`, once a key): a cell missing from the table. Why: the
+  per-segment state stated once and checked, not inferred from where writers happen to write.
+- **Parts' shared values follow a live segment** (done): a part keeps the values its first segment was made with as
+  its shared values (no copy a part), their segment-owned cells re-pointed to its first segment where that is another
+  (`bindShared`: the one gone, or moved), so what is read of a segment through them (a layer's granularity,
+  `sizeType`, the merge key's levels) is a live one's and a gone segment's geometry is not held. An update that changes
+  segments' levels puts every segment in the part of its key (`regroupByKey`, `withMergeLodKey`): its record the same
+  (cells, markers, layers kept) over another part's shared values; parts of one key become one; a key of no part a new
+  part, its shared values a copy (`createEmptyMergeMember`). Measured: `repr/units-100k-spacefill` (WebGPU) 8.06 KB a
+  unit against 7.91 (the two cells a segment owns more), its build 4.04 s alike.
 - **Updates by the builders' update state**, decided once for the props and theme (shared) and per segment for its
   group, as `UnitsVisual` does: the fast paths become outcomes of that state (nothing to do, the clip alone, the shared
   values alone), not checks beside it; `isCompatible` checked per update. **Transactional**: an update builds what it
@@ -98,10 +106,10 @@ The merged path grew beside the per-group one instead of under it. Five choices 
 
 ## Steps
 
-1. **The key table** and parts owning their shared values; segments re-keyed by their key cells; member views from the
-   table. Tests: a part outliving its first segment keeps following the size theme; a segment's levels changed moves it;
-   the export of a part of groups with different unit counts. Measure: `repr/units-100k-spacefill` (heap a unit, build
-   time) no worse.
+1. **The key table** (done) and parts' shared values following a live segment; segments re-keyed by their levels;
+   member views of the segments' own cells. Tested: a part outliving its first segment follows a new size theme as one
+   made with it; a size theme's levels split and join parts as made; the member views of a part of groups with other
+   instance counts each with its own; debug mode's check of shared writes.
 2. **One merged object form**: the members' producer on records; the consumers of `members` moved to the views.
 3. **Updates by the update state, transactional**: the fast paths folded in; a failed or aborted update leaves records,
    versions and parts as they were (tests for a throw and an abort mid-update, a backend switch alone).
