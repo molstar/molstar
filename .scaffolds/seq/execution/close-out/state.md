@@ -19,8 +19,10 @@ regression). The old Seq\* viewer's label churn over its baseline is in `fixes.m
 
 ## Next
 
-1. The use gate (the author's): `use-gate.md` lists the stories and what to try; ticked by the author only.
-2. The novice pass, after the last lane that draws; then the measurements, the last gate and FINALIZE.
+1. The use gate: the author went through the Storybook (2026-11-24): done once FX32 lands ("then can consider the use
+   gate done"). **FX32** (`briefs/fx32-legend-menu.md`): the legend's layers menu as the header's, Show all and Hide
+   all.
+2. The novice pass, after FX32 (the author: "we can run the novice pass"); then the measurements, the last gate and FINALIZE.
 
 ## Blockers and open questions
 

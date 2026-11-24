@@ -2,6 +2,10 @@
 
 Open items for the next fix point or a running lane's fix round (the loop, Each step 7).
 
+- **The legend's layers menu styled unlike the header's** (the author, 2026-11-24, the use gate, a screenshot of a
+  merged row's eye menu, "cdk2" and "cyclin" as bordered pills: "one weird thing i notices is the styling on the
+  legend buttons. maybe tweak this to make it consistent (and perhaps add "hide/show all")"). Kind: look and a small
+  feature. To FX32.
 - **The old Seq\* viewer's label churn over its baseline** (the orchestrator, GATE 2, 2026-11-24: every package's perf
   tier on the shared harness, run for FX31): `packages/sequences/viewer` `_test/input.quick.ts`, the label churn over a
   position, an aligned cell and a column, 1,416 / 752 / 723 B a step against baselines 1,032 / 594 / 564, the same alone
