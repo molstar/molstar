@@ -1200,21 +1200,14 @@ export const SeqLanguage = defineLanguage({
           of: {
             type: 'record',
             fields: {
-              at: {
-                type: 'number',
-                required: true,
-                doc: 'The value, in the layer’s y scale’s values (a log scale reads it as a value).',
-              },
-              label: { type: 'string', doc: 'Its name for people (“genome-wide”): drawn at the line and read aloud.' },
-              color: {
-                type: 'string',
-                doc: 'A color, a token or `light-dark(a, b)` (never a theme form); `token:msui-text` when absent.',
-              },
+              at: { type: 'number', required: true, doc: 'The value, in the layer’s y values.' },
+              label: { type: 'string', doc: 'Its name, drawn at the line and read aloud.' },
+              color: { type: 'string', doc: 'A color, token or `light-dark(a, b)`; `token:msui-text` when absent.' },
               style: { type: 'string', enum: ['solid', 'dashed', 'dotted'], doc: '`dashed` when absent.' },
             },
           },
           'max-length': 4,
-          doc: 'For `values`: horizontal lines at values of the layer’s y (a threshold, a zero, a mean), drawn over the marks.',
+          doc: 'For `values`: horizontal lines at values of the layer’s y (a threshold, a zero), over the marks.',
         },
         style: {
           type: 'string',

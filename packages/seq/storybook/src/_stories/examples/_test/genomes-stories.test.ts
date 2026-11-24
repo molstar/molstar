@@ -572,13 +572,14 @@ describe('Examples/Genomes, headless', () => {
     expect(lay.ref.y[1]).toBeCloseTo(y(Suggestive), 3);
     expect([...lay.ref.labelShown.slice(0, 2)]).toEqual([1, 1]);
     expect(lay.ref.text.slice(0, 2)).toEqual(['genome-wide', 'suggestive']);
-    // the dots, then the lines (over the data), the labels in their own pass
+    // the dots, then the lines (over the data), then the labels, all before the hover and the cursor
     const data = recordDrawLists(v.frame!.lists, ['data']).split('\n');
     const dashed = data.map((l, i) => (/dash/.test(l) ? i : -1)).filter((i) => i >= 0);
     expect(dashed.length).toBe(2);
     expect(dashed[0]).toBeGreaterThan(5);
-    expect(data.slice(dashed[0]).filter((l) => l && l !== 'unclip' && !/dash/.test(l))).toEqual([]);
-    expect(recordDrawLists(v.frame!.lists, ['labels'])).toContain('genome-wide');
+    expect(data.findIndex((l) => l.includes('genome-wide'))).toBeGreaterThan(dashed[1]);
+    expect(data.join('\n')).toContain('genome-wide');
+    expect(recordDrawLists(v.frame!.lists, ['labels'])).not.toContain('genome-wide');
     // never hit: a point on the line hits the layer's position as anywhere on the well
     expect(v.hit(lay.box.x + 10, lay.ref.y[0])?.position).toBeDefined();
     await bothThemes(v);

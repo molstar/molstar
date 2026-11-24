@@ -4,16 +4,19 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { referenceExtent } from './values-reference.js';
+import { ReferenceHooks } from './values-reference-hooks.js';
+import type { Held } from './values-reference.js';
 import type { ValuesLay } from './values.js';
 
 // The values layer's open domain (_spec/README.md "Render", Layer types, `values`): over the values in view and its
 // reference lines.
 
+const NoLines = new Float64Array([Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY]);
+
 /** The values in view, min to max; `[0, 1]` when there are none, widened around a single value. */
 export function openDomain(lay: ValuesLay): [number, number] {
   // the lines are part of what an open end is computed from (a threshold's absence from a plot is the finding)
-  const seed = referenceExtent(lay);
+  const seed = lay.ref ? ReferenceHooks.chunk!.referenceExtent(lay as Held) : NoLines;
   let lo = seed[0];
   let hi = seed[1];
   let pos = seed[2];

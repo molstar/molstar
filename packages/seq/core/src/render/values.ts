@@ -34,16 +34,8 @@ import { drawFailed, drawSpans } from './marks.js';
 import { drawBaseline, drawDots, DotMinPx, drawPoints, baseOf, domainHi, domainLo, Fill, ys } from './values-marks.js';
 import { hoverValue } from './values-hover.js';
 import { openDomain } from './values-domain.js';
-import {
-  closedEnds,
-  drawReference,
-  drawReferenceLabels,
-  layoutReference,
-  readReference,
-  type ReferenceLine,
-  ReferenceState,
-  referenceWords,
-} from './values-reference.js';
+import { ReferenceHooks, registerReference } from './values-reference-hooks.js';
+import type { Held, ReferenceLine, ReferenceState } from './values-reference.js';
 import type { SeqTokens } from './tokens.js';
 import { sortArrayRange } from '@molstar/core/data/util/sort';
 import type { Channel } from '@molstar/seqx-core/theme/index';
@@ -107,7 +99,7 @@ export interface ValuesLay {
   cut: Uint8Array;
   domain: [number, number] | undefined;
   /** Its reference lines, resolved a layout. */
-  ref: ReferenceState;
+  ref: ReferenceState | undefined;
   /** The y scale is a log scale (its scale node's `type`): heights by the values' log10 (`ys`). */
   yLog: boolean;
   /** Bars: snapped x extents and the low and high value of each (equal for a position; NaN: missing). */
@@ -139,6 +131,8 @@ function nextBar(lay: ValuesLay): number {
   return j;
 }
 
+registerReference();
+
 export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
   name: 'values',
 
@@ -155,7 +149,7 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
       encoding: e === 'line' || e === 'area' || e === 'points' ? e : 'bars',
       ...(src ? { src } : {}),
       channels: channelForms(layer.theme),
-      reference: readReference(layer.params.reference),
+      reference: ReferenceHooks.chunk?.readReference(layer.params.reference) ?? [],
       ...(domain ? { domain } : {}),
       ...(scale ? { scale } : {}),
     };
@@ -180,7 +174,7 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
       extents: new Extents(),
       cut: new Uint8Array(0),
       domain: undefined,
-      ref: new ReferenceState(),
+      ref: undefined,
       yLog: false,
       n: 0,
       x0: new Float32Array(64),
@@ -212,7 +206,9 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
     lay.perBar = color.constant === undefined;
     lay.fill = typeof color.constant === 'number' ? color.constant : tokens.colors['seq-value'];
     lay.encoding = prep.encoding;
-    lay.ref.lines = prep.reference;
+    const chunk = ReferenceHooks.chunk;
+    if (prep.reference.length && chunk) (lay.ref ??= new chunk.ReferenceState()).lines = prep.reference;
+    else lay.ref = undefined;
     const src = prep.src;
     if (!src) return lay;
     const step = densityStep(axis.scale, axis.dpr, config);
@@ -283,7 +279,12 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
     if (lay.perBar) colorBars(lay, color, ctx);
     lay.yLog = !!prep.scale && ctx.theme.scale(prep.scale)?.type === 'log';
     lay.domain = yDomain(prep, ctx, lay);
-    layoutReference(lay, ctx, closedEnds(prep.domain, prep.scale ? ctx.theme.scale(prep.scale)?.domain : undefined));
+    if (lay.ref)
+      ReferenceHooks.chunk!.layoutReference(
+        lay as Held,
+        ctx,
+        ReferenceHooks.chunk!.closedEnds(prep.domain, prep.scale ? ctx.theme.scale(prep.scale)?.domain : undefined),
+      );
     orderLine(lay);
     return lay;
   },
@@ -311,7 +312,7 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
   },
 
   summary(lay) {
-    return referenceWords(lay);
+    return lay.ref ? ReferenceHooks.chunk!.referenceWords(lay as Held) : undefined;
   },
 };
 
@@ -322,9 +323,9 @@ function drawData(lay: ValuesLay, out: PassWriter) {
   if (lay.encoding === 'points') drawPoints(lay, out);
   else if (lay.encoding !== 'bars') drawLine(lay, out);
   else drawBars(lay, out);
-  drawReference(lay, out);
+  if (lay.ref) ReferenceHooks.chunk!.drawReference(lay as Held, out);
   // the labels with the data pass, before the hover and the cursor (a hover ring over a dot under a label stays seen)
-  drawReferenceLabels(lay, out);
+  if (lay.ref) ReferenceHooks.chunk!.drawReferenceLabels(lay as Held, out);
 }
 
 /**
@@ -776,7 +777,7 @@ function yDomain(prep: ValuesPrep, ctx: LayoutContext, lay: ValuesLay): [number,
   const own = ctx.settled || !lay.domain ? openDomain(lay) : lay.domain;
   if (!prep.scale) return own;
   // a layer with no value in view still gives its lines to the shared scale (two tracks on one scale agree)
-  if (lay.n || lay.ref.lines.length) ctx.theme.extent(prep.scale, own[0], own[1]);
+  if (lay.n || lay.ref?.lines.length) ctx.theme.extent(prep.scale, own[0], own[1]);
   const d = ctx.theme.scale(prep.scale)?.domain;
   const held = ctx.theme.domain(prep.scale) ?? own;
   const lo = typeof d?.[0] === 'number' ? d[0] : held[0];

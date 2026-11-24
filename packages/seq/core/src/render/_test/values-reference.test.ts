@@ -14,6 +14,7 @@ import { describe, expect, it } from 'vitest';
 import { DarkTokens, hitView, LightTokens, type ValuesLay } from '../index.js';
 import { renderSvg } from '../render-svg.js';
 import { ValuesType } from '../values.js';
+import { holdsReference, loadReference, ReferenceHooks } from '../values-reference-hooks.js';
 import { BigRuntime } from './fixtures.js';
 import { settle } from './helpers.js';
 import { layerLay, readPaths, readRects } from './small-helpers.js';
@@ -357,5 +358,20 @@ describe('a shared scale', () => {
     expect(a.n).toBe(0);
     expect(bLay.domain![1]).toBeGreaterThanOrEqual(500);
     expect(a.domain![1]).toBe(bLay.domain![1]);
+  });
+});
+
+describe('the lines’ chunk', () => {
+  it('is wanted by a section with a layer that has lines, not by one without; a model of one waits for it', async () => {
+    const section = (node: ReturnType<typeof spec>) =>
+      node.children!.find((c) => c.kind === 'views')!.children![0].children![0];
+    expect(holdsReference(section(spec(Positions, { reference: [{ at: 1 }] })))).toBe(true);
+    expect(holdsReference(section(spec(Positions, { reference: [] })))).toBe(false);
+    expect(holdsReference(section(spec(Positions)))).toBe(false);
+    await frame(Positions, { reference: [{ at: 1 }] });
+    // the model's open awaited it: the lines drawn at the first frame
+    expect(ReferenceHooks.chunk!.drawReference).toBeTypeOf('function');
+    await loadReference();
+    expect(ReferenceHooks.chunk!.layoutReference).toBeTypeOf('function');
   });
 });

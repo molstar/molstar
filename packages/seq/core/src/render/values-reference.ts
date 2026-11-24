@@ -26,6 +26,9 @@ export const MaxReferenceLines = 4;
 
 const Anchor_Start: number = Anchor.start;
 
+/** A layout holding its reference lines' state (the chunk landed). */
+export type Held = ValuesLay & { ref: ReferenceState };
+
 /** A line as the spec writes it: its style is 0 solid, 1 dashed, 2 dotted. */
 export interface ReferenceLine {
   readonly at: number;
@@ -83,7 +86,7 @@ const extent = new Float64Array(3);
  * What the lines add to an open domain, the seeds of its extent: the lowest and the highest line, and the lowest
  * positive (a log scale's low end; its lines at or under zero are not on it).
  */
-export function referenceExtent(lay: Pick<ValuesLay, 'ref' | 'yLog'>): Float64Array {
+export function referenceExtent(lay: Pick<Held, 'ref' | 'yLog'>): Float64Array {
   extent[0] = Number.POSITIVE_INFINITY;
   extent[1] = Number.NEGATIVE_INFINITY;
   extent[2] = Number.POSITIVE_INFINITY;
@@ -111,7 +114,7 @@ const Pad = 3;
  * Resolves the lines against the final domain: each one's y, color and dash, which are not drawn (outside the domain,
  * or at or under zero on a log scale), then the labels' places. Says once the first line outside a closed end.
  */
-export function layoutReference(lay: ValuesLay, ctx: LayoutContext, closed: number): void {
+export function layoutReference(lay: Held, ctx: LayoutContext, closed: number): void {
   const r = lay.ref;
   const lines = r.lines;
   r.shown.fill(0);
@@ -156,7 +159,7 @@ export function layoutReference(lay: ValuesLay, ctx: LayoutContext, closed: numb
   layoutLabels(lay, ctx, muted);
 }
 
-function layoutLabels(lay: ValuesLay, ctx: LayoutContext, muted: number) {
+function layoutLabels(lay: Held, ctx: LayoutContext, muted: number) {
   const r = lay.ref;
   const cfg = ctx.config.values.reference;
   const { box } = lay;
@@ -201,7 +204,7 @@ function layoutLabels(lay: ValuesLay, ctx: LayoutContext, muted: number) {
 const pts = new Float64Array(4);
 
 /** The lines, after the data: a solid one a rect, a dashed or dotted one a dashed path. */
-export function drawReference(lay: ValuesLay, out: PassWriter): void {
+export function drawReference(lay: Held, out: PassWriter): void {
   const r = lay.ref;
   const n = r.lines.length;
   if (!n) return;
@@ -235,7 +238,7 @@ export function drawReference(lay: ValuesLay, out: PassWriter): void {
 }
 
 /** The labels: a patch of the well's ground, then the text over it. */
-export function drawReferenceLabels(lay: ValuesLay, out: PassWriter): void {
+export function drawReferenceLabels(lay: Held, out: PassWriter): void {
   const r = lay.ref;
   const n = r.lines.length;
   const a = out.args;
@@ -261,7 +264,7 @@ export function drawReferenceLabels(lay: ValuesLay, out: PassWriter): void {
 }
 
 /** The layer's accessible words: "reference line at 7.3 (genome-wide)" a drawn line, in order. */
-export function referenceWords(lay: Pick<ValuesLay, 'ref'>): string | undefined {
+export function referenceWords(lay: Pick<Held, 'ref'>): string | undefined {
   const r = lay.ref;
   const words: string[] = [];
   for (let i = 0; i < r.lines.length; i++) {
