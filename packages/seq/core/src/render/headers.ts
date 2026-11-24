@@ -245,6 +245,8 @@ interface LineInput {
   figure: boolean;
   /** A track's line hit as `header-label` outside its parts (not a rows track's, not a section's). */
   labelHit: boolean;
+  /** The label's own width (its text and indent): the states beside it leave it whole; 0 where there is none. */
+  labelW: number;
 }
 
 /** The one input a layout's header lines are laid out from, set field by field (a header makes none). */
@@ -258,6 +260,7 @@ const At: LineInput = {
   ownLine: Number.NaN,
   figure: false,
   labelHit: false,
+  labelW: 0,
 };
 
 /**
@@ -322,17 +325,22 @@ function layoutLine(
     const chipsEnd = actions ? actions.x - ChipGap : end;
     // states `[from, to)` as marks, right to left from `right`, centred on `cy`: the leftmost's x; a mark with no room
     // left in the column is not laid out (its words are the card's)
-    const marks = (from: number, to: number, right: number, cy: number): number => {
+    const marks = (from: number, to: number, right: number, cy: number, floor = inset): number => {
       let x = right;
       for (let i = to - 1; i >= from; i--) {
-        if (x - MarkPx < inset) break;
+        if (x - MarkPx < floor) break;
         x -= MarkPx;
         out.push(stateBox(given[i], i, at, true, x, cy - MarkPx / 2, MarkPx, size));
         x -= MarkGap;
       }
       return x + MarkGap;
     };
-    if (at.short) labelEnd = marks(0, given.length, chipsEnd, at.cy) - ChipGap;
+    // beside the label the states leave it whole: a state appearing with a hide or a filter never cuts its label to an
+    // ellipsis (a chip with no room is a mark, a mark with none is the card's alone)
+    // (a label too long for its column is cut by the states as before: it is cut anyway)
+    const room = inset + at.labelW + ChipGap;
+    const keep = at.labelW > 0 && room + MarkPx <= chipsEnd ? room : inset;
+    if (at.short) labelEnd = marks(0, given.length, chipsEnd, at.cy, keep) - ChipGap;
     else if (!Number.isNaN(at.ownLine)) {
       // a line of their own under the label, from the column's start, under the action columns when clear of them;
       // all chips when every one fits, else all marks (a mix reads as two kinds of state: "a narrow column draws its
@@ -354,7 +362,7 @@ function layoutLine(
       let cut = 0;
       for (let i = given.length - 1; i >= 0; i--) {
         const w = text.measure(config.labelFont, given[i].text);
-        if (x - w < inset) {
+        if (x - w < keep) {
           cut = i + 1;
           break;
         }
@@ -362,7 +370,7 @@ function layoutLine(
         out.push(stateBox(given[i], i, at, false, x, at.cy + size * 0.35, w, size));
         x -= ChipGap;
       }
-      labelEnd = cut ? marks(0, cut, x, at.cy) - ChipGap : x;
+      labelEnd = cut ? marks(0, cut, x, at.cy, keep) - ChipGap : x;
     }
     // in the given order
     out.sort((a, b) => a.at - b.at);
@@ -435,6 +443,7 @@ export function trackHeaderLine(
   text: TextMetrics,
   figure: boolean,
   labelHit = true,
+  labelW = 0,
 ): { readonly header: HeaderLine; readonly labelY: number } {
   const size = labelSizeOf(config);
   const short = well.height < config.header.minHeightPx;
@@ -457,6 +466,7 @@ export function trackHeaderLine(
   at.ownLine = dy ? labelY + dy : Number.NaN;
   at.figure = figure;
   at.labelHit = labelHit;
+  at.labelW = labelW;
   const out = TrackLine;
   out.header = layoutLine(parts, at, config, text);
   out.labelY = labelY;
@@ -498,6 +508,7 @@ export function sectionHeaderLine(
   at.ownLine = Number.NaN;
   at.figure = figure;
   at.labelHit = false;
+  at.labelW = 0;
   const line = layoutLine(parts, at, config, text);
   return {
     ...line,

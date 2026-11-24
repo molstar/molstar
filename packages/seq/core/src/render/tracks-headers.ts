@@ -114,6 +114,11 @@ export function trackHeaderOf(
     input.text,
     input.figure === true,
     !rows,
+    // the label the states beside it leave whole (a folded group's row: the group's own, drawn elsewhere)
+    group || rows
+      ? 0
+      : input.text.measure(config.labelFont, track.label) +
+          (track.group && !track.summaryOf ? config.header.groupIndentPx : 0),
   );
   return group ? { header: { ...out.header, group: group.address }, labelY: out.labelY } : out;
 }

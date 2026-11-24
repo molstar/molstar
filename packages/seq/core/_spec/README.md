@@ -4170,9 +4170,13 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   accent squircles, their words the card's). States beside the label end before the line's own actions when it has any,
   else at the column's end, the last nearest; a state with no room left is a mark, so a slot never overlaps a state: **a
   narrow column draws its states as marks** (decided: an 80 px column with actions holds one slot, its chips marks), and
-  a mark with no room left in the column is left out (never left of it; its words the card's). On a track two lines high
-  the states take a line of their own under the label (the label whole, the two lines centred together; lower by the
-  slot's half when the header has actions, so the line clears them). The label fades before what is beside it
+  a mark with no room left in the column is left out (never left of it; its words the card's). **States beside the label
+  leave it whole** (FX29: a layer hidden made "Sequence" read "S…"): `trackHeaderLine`'s `labelW` (the measured label
+  and its indent) is the floor a chip or mark keeps right of the column's start, a chip with no room beside the whole
+  label is a mark, and a label already too long for the column (cut anyway) leaves the states as before; a mark, the
+  state's words the card's ("1 layer hidden"), is the one marker a hidden layer leaves on a track's line. On a track two
+  lines high the states take a line of their own under the label (the label whole, the two lines centred together; lower
+  by the slot's half when the header has actions, so the line clears them). The label fades before what is beside it
   (`HeaderLine.label`). **A rows track** draws no states and no slots and gives no label hit: its label column is its
   tree and row labels, hit as before; its header is its title row's (not built, the TODO).
 - **A collapsed section** (`collapsedSection`: no track left in the view, no blocks, no grid axis: every track hidden)
