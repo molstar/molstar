@@ -30,3 +30,5 @@
 - Seq\* viewer: a drag-select's work is bounded by the screen: the selection is written once a frame and resolved on
   release, nothing is hovered while it runs, and the projections are indexed; a sweep across 12 chromosomes of a
   3,000-contig genome drops from about 300 ms to about 1 ms a frame.
+- Seq\*: splitting many copies of a chain allocates about a quarter less: a ranges layer's layout object is built in one
+  piece, its scratch arrays made on first use.

@@ -35,3 +35,7 @@ Open items for the next fix point or a running lane's fix round (the loop, Each 
   before it lands. Kind: test flake (the class: a lazy chunk not awaited by the file that starts it). Await the chunk
   where a legend is mounted in tests (or the mount returns a promise the story helpers await); a shuffled run
   (`--sequence.shuffle.files`) as the proof.
+- **A ring nobody follows narrows a hidden window** (CL12's profile, Features › Genome Ring › The Genome At The Fit):
+  Cmd/Ctrl+wheel takes the zoom and moves the section's viewport (0–3.03 G to 568 M–2.99 G) while the ring draws the
+  whole genome, against `layouts.md` (Rings: "its zoom and pan are idle"). Kind: bug, in every option of
+  `drift/ring-cmd-wheel-at-fit.md`. To FX26; whether the idle wheel is taken is the drift's.

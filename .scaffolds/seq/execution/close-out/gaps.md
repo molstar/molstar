@@ -59,3 +59,10 @@ Each made as recommended while the author was away (2026-11-24 night), for the m
 - **A layer naming a dynamic node is refused** (`seq.view.layer.data`), not pending, against dynamic-nodes.md's
   "Naming before arrival" (CL7's check; track templates are the route that waits). Recommended: a TODO line past
   version 1.
+- **The ring's Cmd/Ctrl+wheel at the fit** ([drift/ring-cmd-wheel-at-fit.md](drift/ring-cmd-wheel-at-fit.md), CL12): today
+  it narrows a hidden window. Options: (a) idle, given to the page; (b) idle, taken, said once; (c) Cmd+wheel over a
+  chromosome opens it as a cut (`section.include`, one undo step), (b)'s words over the hole. Recommended: (c), and in
+  every case the hidden window no longer moves on a ring nobody follows. A gesture's behaviour: the author's.
+- **M5's browser numbers** (CL12): the split patch's click to drawn after the lay fix, and Signal's 25.7 ms zoom frame
+  (not reproduced headless), need the Browser pane at load under 3; the load stayed 5 to 12 overnight. Recommended:
+  measured at GATE 2 on a quiet machine, as M5 did.

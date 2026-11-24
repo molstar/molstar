@@ -31,7 +31,7 @@
 
 <!-- Wave 5 -->
 - [x] CL11 The drag rule: a drag's work bounded by the screen, a perf-tier bound (`cc4fab363`)
-- [ ] CL12 M5's leftovers: the split patch, the Signal zoom frame, Cmd+wheel on the ring at the fit
+- [x] CL12 M5's leftovers: the split patch, the Signal zoom frame, Cmd+wheel on the ring at the fit (`245c82baf`; items 1 and 2 not verified in a browser, item 3 a drift note)
 - [ ] GATE 2
 
 <!-- Last stage -->
