@@ -9,6 +9,7 @@ import type { Node } from '@molstar/core/repr/tree';
 import { type HiddenTrack, hiddenTrackName } from '@molstar/seqx-core/render';
 import { idRunOf } from '@molstar/seqx-core/lang/check';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
+import { tracksOf } from '@molstar/seqx-core/view';
 
 /** A track the spec hides, with the section it is in (`SeqViewer.hiddenTracks`). */
 export interface HiddenTrackEntry extends HiddenTrack {
@@ -35,14 +36,11 @@ export function hiddenTracksOf(root: Node): readonly HiddenTrackEntry[] {
       const at = [...path, c.id];
       if (c.kind === 'section') {
         const section = `/${at.join('/')}`;
-        for (const t of c.children ?? []) {
-          if (t.kind !== 'track' || t.id === undefined || t.params?.hidden !== true) continue;
-          (out ??= []).push({
-            address: `${section}/${t.id}`,
-            label: hiddenTrackName(t),
-            section,
-          });
+        for (const { node: t, address } of tracksOf(c, section)) {
+          if (t.params?.hidden !== true) continue;
+          (out ??= []).push({ address, label: hiddenTrackName(t), section });
         }
+        continue;
       }
       if (c.kind !== 'track') walk(c, at);
     }

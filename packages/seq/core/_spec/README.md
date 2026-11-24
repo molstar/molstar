@@ -2798,6 +2798,17 @@ Overlay, Opened sources), kept per model and view. No data, no dynamic node, no 
   kinds': the core's three past the axis; none when absent; the axis always drawn). Versions compare by major, a 0.x by
   its minor, ranked below every 1.x (`5` and `0.5` never match). Why in the resolved view: the same for every renderer,
   and the issue names the package a spec needs.
+- **Groups** (`groups.ts`): `ResolvedSection.tracks` stays the flat list in spec order, a group's tracks in place, so
+  every reader of it works unchanged; a track in a group names it (`ResolvedTrack.group`, its address), a group's
+  authored summary track says whose it is (`summaryOf`: drawn only while folded, EC-103). `ResolvedSection.trackGroups`
+  (absent when none; not `groups`, the blocks') lists the groups with a track shown, in order:
+  `{ address, label, collapsed, summary?, none?, count }` (`count` its tracks shown open, the summary track not
+  counted). A hidden group's tracks are left out as a hidden track is, and a group with none shown is not listed (it
+  draws nothing). **One walker**: `tracksOf(sectionNode, address)` gives a section's tracks in the spec through its
+  groups (hidden ones included, `specTrackShown` says which are drawn); the resolve, the hidden-tracks lists and the
+  navigators' pictures read a section's tracks through it. A child of a kind the language lacks (a newer minor's
+  container) is read through, its tracks the section's: what an older reader does with `group` (`FlattenedKinds`,
+  EC-244).
 - **Templates** (`templates.ts`): a template is `{ source, kind, depth, order, filter }` (`depth` 0, `order` `key` when
   absent); its layers without data are not placed (no issue). `templateNeeds(view)` is the depth each template source
   needs. `templateNodes` selects the overlay's nodes of the kind at the depth under the source whose params equal the

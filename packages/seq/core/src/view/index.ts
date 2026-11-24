@@ -42,6 +42,7 @@ export {
   type SystemPosition,
   unitOfPlace,
 } from './places.js';
+export { groupSummary, type ResolvedTrackGroup, type SpecTrack, specTrackShown, tracksOf } from './groups.js';
 export { ViewIssues } from './issues.js';
 export type { LiftData } from './lift.js';
 export { type MemberAxis, type MemberOrder, memberAxis, memberOrderOf } from './members.js';

@@ -113,7 +113,12 @@ export function pictureOf(
   const drawn = entry.picture(ctx) ?? AxisPicture.picture(ctx)!;
   const tracks = [...drawn.tracks];
   const rows: Picture['rows'] = drawn.rows
-    ? { view: `${bound.address}/${drawn.rows}`, picture: `${nav.address}/${PictureId}/${drawn.rows}` }
+    ? {
+        // a rows track in a group is `<section>/<group>/<id>` in the view, `<id>` in the picture's one section
+        view:
+          bound.tracks.find((t) => t.address.endsWith(`/${drawn.rows}`))?.address ?? `${bound.address}/${drawn.rows}`,
+        picture: `${nav.address}/${PictureId}/${drawn.rows}`,
+      }
     : undefined;
   // the rows fill what the other tracks leave of the navigator's height (an overview's whole column)
   const rowsAt = tracks.findIndex(hasRows);

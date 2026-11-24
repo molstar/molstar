@@ -49,6 +49,7 @@ import {
   systemRef,
 } from './blocks.js';
 import type { ResolvedBridge, StackEntry } from './bridges.js';
+import { groupSummary, type ResolvedTrackGroup, resolvedTrackGroups, tracksOf } from './groups.js';
 import { ViewIssues } from './issues.js';
 import { dataOf, layerData, liftedData } from './layer-data.js';
 import type { LiftData } from './lift.js';
@@ -238,6 +239,10 @@ export interface ResolvedTrack {
   /** Its layers; a template's layers without data are not placed here: each instance places them on its node. */
   readonly layers: readonly ResolvedLayer[];
   readonly template?: TrackTemplate;
+  /** The address of the group it sits in (_spec/README.md "Resolved view", Groups); absent for a section's own. */
+  readonly group?: string;
+  /** Its group's address when it is the group's authored `summary`: drawn only while the group is folded (EC-103). */
+  readonly summaryOf?: string;
 }
 
 export interface ResolvedSection {
@@ -279,6 +284,11 @@ export interface ResolvedSection {
    * what is projected onto it take `model.path(from, to, via)` (_spec/README.md "Resolved view", Via).
    */
   readonly via?: readonly string[];
+  /**
+   * Its groups of tracks with a track shown, in spec order (absent when none; not `groups`, the blocks'): each one's
+   * label, opening state, authored summary and count; its tracks stay in `tracks`, flat, each naming its group.
+   */
+  readonly trackGroups?: readonly ResolvedTrackGroup[];
 }
 
 /**
@@ -757,11 +767,18 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
     const tracks: ResolvedTrack[] = [];
     const ba = blocksOf.get(at);
     const blockLayers: ResolvedLayer[][][] = ba ? ba.blocks.map(() => []) : [];
-    for (const t of s.children ?? []) {
-      if (t.kind !== 'track' || t.id === undefined) continue;
-      // a hidden track is kept in the spec and left out of the view: its row collapses
-      if (param(t, 'hidden') === true) continue;
-      const ta = `${at}/${t.id}`;
+    const trackGroups = new Map<string, { node: Node; count: number; summary?: string }>();
+    for (const { node: t, address: ta, group } of tracksOf(s, at)) {
+      // a hidden track (or a hidden group's) is kept in the spec and left out of the view: its row collapses
+      if (param(t, 'hidden') === true || (group && param(group.node, 'hidden') === true)) continue;
+      // a group's authored summary track: drawn only while the group is folded (_spec/README.md "Resolved view", Groups)
+      const summaryOf = group && groupSummary(group.node) === t.id ? group.address : undefined;
+      if (group) {
+        const g = trackGroups.get(group.address) ?? { node: group.node, count: 0 };
+        if (summaryOf) g.summary = ta;
+        else g.count++;
+        trackGroups.set(group.address, g);
+      }
       const layers: ResolvedLayer[] = [];
       const template = templateOf(param(t, 'for_each'));
       const perBlock: ResolvedLayer[][] = blockLayers.map(() => []);
@@ -791,11 +808,13 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
       const padding = paddingOf(param(t, 'padding'));
       tracks.push({
         address: ta,
-        label: typeof label === 'string' ? label : t.id,
+        label: typeof label === 'string' ? label : (t.id ?? ''),
         ...(typeof height === 'number' ? { height } : {}),
         ...(padding ? { padding } : {}),
         layers,
         ...(template ? { template } : {}),
+        ...(group ? { group: group.address } : {}),
+        ...(summaryOf ? { summaryOf } : {}),
       });
     }
     const own = param(s, 'layout');
@@ -847,6 +866,7 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
       ...(y ? { y } : {}),
       ...(members ? { members } : {}),
       ...(via.length ? { via } : {}),
+      ...(trackGroups.size ? { trackGroups: resolvedTrackGroups(trackGroups) } : {}),
     });
   }
 

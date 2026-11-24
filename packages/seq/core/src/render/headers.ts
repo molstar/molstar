@@ -7,7 +7,7 @@
 import { type Node, resolveAddress } from '@molstar/core/repr/tree';
 import { idRunOf } from '@molstar/seqx-core/lang/check';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
-import type { ResolvedLayer, ResolvedSection, ResolvedTrack } from '@molstar/seqx-core/view';
+import { type ResolvedLayer, type ResolvedSection, type ResolvedTrack, tracksOf } from '@molstar/seqx-core/view';
 import { fontSize, type RenderConfig } from './config.js';
 import type { Box, Hit } from './layer-type.js';
 import type { TextMetrics } from './text.js';
@@ -548,9 +548,9 @@ export function hiddenTracksOf(model: StaticModel, section: ResolvedSection): re
   let out = Hidden.get(section);
   if (out) return out;
   let found: HiddenTrack[] | undefined;
-  for (const t of resolveAddress(model.spec, idRunOf(section.address))?.children ?? []) {
-    if (t.kind !== 'track' || t.id === undefined || t.params?.hidden !== true) continue;
-    (found ??= []).push({ address: `${section.address}/${t.id}`, label: hiddenTrackName(t) });
+  for (const { node: t, address } of tracksOf(resolveAddress(model.spec, idRunOf(section.address)), section.address)) {
+    if (t.params?.hidden !== true) continue;
+    (found ??= []).push({ address, label: hiddenTrackName(t) });
   }
   out = found ?? NoHidden;
   Hidden.set(section, out);

@@ -6,7 +6,13 @@
 
 import type { Node, Value } from '@molstar/core/repr/tree';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
-import type { ResolvedNavigator, ResolvedSection, ResolvedView } from '@molstar/seqx-core/view';
+import {
+  type ResolvedNavigator,
+  type ResolvedSection,
+  type ResolvedView,
+  specTrackShown,
+  tracksOf,
+} from '@molstar/seqx-core/view';
 import type { RenderConfig } from './config.js';
 
 // A navigator's picture (_spec/README.md "Render", Navigators, Pictures): a registry entry (`navigator-picture`) that
@@ -145,9 +151,9 @@ function sectionTracks(c: NavigatorPictureContext, rowsOnly: boolean): Navigator
   const nav = c.navigator;
   const tracks: Node[] = [];
   let rows: string | undefined;
-  for (const t of c.boundNode?.children ?? []) {
-    if (t.kind !== 'track' || t.id === undefined || t.params?.hidden === true) continue;
-    const address = `${c.bound.address}/${t.id}`;
+  for (const st of tracksOf(c.boundNode, c.bound.address)) {
+    if (!specTrackShown(st)) continue;
+    const { node: t, address } = st;
     if (c.left.has(address)) continue;
     const wanted = rowsOnly ? hasRows(t) && !rows : nav.tracks ? nav.tracks.includes(address) : !isRuler(t);
     if (!wanted) continue;
