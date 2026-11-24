@@ -33,4 +33,9 @@ Each made as recommended while the author was away (2026-11-24 night), for the m
   adjust the plugin for such commands, or say how FX25 goes on; the orchestrator does not run the refused commands.
 - **FX25's question**: an allele's card on the Sites track keeps its spec'd title (`pos:ref>alt`, "never its record's
   ID"), while a genotype cell's card now titles by the record's ID. Recommended: keep both (the spec's rule for alleles).
+- **`rowsValue` over a lazy alignment needs a data design** (CL13 item 4, stopped): a lazy source serves level 1 only
+  and no row summary, so one value a row needs a sampled one-row read per device row, or a source-side row summary
+  (tile budgets, `layerRefused`, the non-gap share only). A new data design is not decided overnight. Recommended:
+  carry it past version 1 (the TODO's Navigators line already holds it), the navigator still saying "a lazy alignment's
+  rows are left out".
 
