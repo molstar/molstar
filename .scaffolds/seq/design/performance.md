@@ -129,7 +129,7 @@ costs up to `f` times the pixels.
 | What | Target |
 |---|---|
 | Draw and hover loops, warm | 0 bytes allocated a frame (guarded) |
-| A drag-select's frame | 0 bytes while the pointer is held (no hit, no value made; the genome views' frame its own 48 B, not the drag's); a frame moving the drag's end its new value and projections, under 16 kB (`drags.quick.ts`, perf tier) |
+| A drag-select's frame | 0 bytes while the pointer is held (no hit, no value made); a frame moving the drag's end its new value and projections, under 16 kB (`drags.quick.ts`, perf tier) |
 | A hover through the structure link | at most 2 kB a lit unit (the target and its Location are new each hover; pooled if a large assembly shows it; the author, 2026-11-21) |
 | Layout, warm, at a fixed screen | bounded a frame, independent of the data's size (guarded); not zero |
 | Resolved model of inline data | at most 2× the data's MessagePack size, multi-resolution summaries included (a third of their base at most) |

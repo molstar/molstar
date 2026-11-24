@@ -39,8 +39,9 @@ export class ViewerViewports {
       const w = this.motion.shownViewport(s.address, eye);
       if (!w) return undefined;
       const out = this._windowOut;
-      out.start = w.start;
-      out.end = w.end;
+      // written only when moved: a store of a large fractional number into the record makes a box (a genome's units)
+      if (out.start !== w.start) out.start = w.start;
+      if (out.end !== w.end) out.end = w.end;
       return out;
     }
     return undefined;

@@ -29,12 +29,6 @@ beforeAll(async () => {
  */
 const MovingFrameBytes = 16 * 1024;
 
-/**
- * What a frame of the genome's views allocates whatever runs (48 B: two sections' totals of 3·10⁹ units returned boxed
- * by the rails' idle check, and the window's start): the frame's, not the drag's (the frame alone is measured beside).
- */
-const GenomeFrameBytes = 48;
-
 describe('a drag-select’s frame, bounded', () => {
   for (const kind of DragKinds)
     it(kind.name, async ({ task }) => {
@@ -69,9 +63,8 @@ describe('a drag-select’s frame, bounded', () => {
       console.info(
         `${kind.name}: a warm frame ${warm.bytesPerStep.toFixed(0)} B (${warm.note}); the frame alone ${still.bytesPerStep.toFixed(0)} B; a frame moving the end ${moving.bytesPerStep.toFixed(0)} B`,
       );
-      const residue = kind.view.dataset === 'genome' ? GenomeFrameBytes : 0;
-      expect(warm.bytesPerStep - residue, warm.note).toBeLessThanOrEqual(inject('perfThreshold'));
-      expect(still.bytesPerStep - residue, still.note).toBeLessThanOrEqual(inject('perfThreshold'));
+      expect(warm.bytesPerStep, warm.note).toBeLessThanOrEqual(inject('perfThreshold'));
+      expect(still.bytesPerStep, still.note).toBeLessThanOrEqual(inject('perfThreshold'));
       expect(moving.bytesPerStep, moving.note).toBeLessThanOrEqual(MovingFrameBytes);
     });
 });
