@@ -26,7 +26,7 @@ export interface EditingContext {
    * `section.*`: else the keyboard cursor's section, else the first leading one).
    */
   readonly address?: string;
-  /** `track.show`, `layer.show`: several at once, one patch (a header's chip shows every hidden one). */
+  /** `track.show`, `layer.show`, `layer.hide`: several at once, one patch (a header's chip shows every hidden one). */
   readonly addresses?: readonly string[];
   /** `track.show`: every hidden track (of the section `address` names, else of the spec), one patch, one undo step. */
   readonly all?: boolean;
@@ -316,9 +316,14 @@ export function editingBehavior(spec: SpecModel, axis?: AxisReaders): EditingBeh
       id: EditingCommandIds.hideLayer,
       title: 'Hide a layer',
       category: 'Edit',
-      when: needs('layer', 'layer'),
+      when: allNeed('layer', 'layer'),
       run: (_, ctx) =>
-        edit('Hide a layer', () => [{ op: 'set', at: ids(ctx.address!), key: 'hidden', value: true }], ctx, 'Hidden'),
+        edit(
+          'Hide a layer',
+          () => shownOf(ctx).map((a): Op => ({ op: 'set', at: ids(a), key: 'hidden', value: true })),
+          ctx,
+          'Hidden',
+        ),
     },
     {
       id: EditingCommandIds.showLayer,

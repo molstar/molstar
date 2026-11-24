@@ -14,6 +14,7 @@ import {
   highlightColorOf,
   legendRows,
 } from './legends.js';
+import { layerMenuAll } from './layers-menu.js';
 
 export type { LegendChannels };
 
@@ -121,16 +122,30 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
       // the menu's own chunk (`@molstar/ui`'s context menu), loaded the first time a legend over several layers opens it
       void import('@molstar/ui/components/context-menu/context-menu').then((m) => {
         if (!button.isConnected) return;
+        // in the part's own element, inside the host's `@molstar/ui` root as the header's menu is in the canvas's: on
+        // `doc.body` it was outside the root's reset and tokens, and its rows drew as the browser's buttons
         closeMenu = m.openContextMenu(
-          doc.body,
+          element,
           { x: r.left, y: r.bottom },
-          row.layers.map((l) => ({
-            id: l.address,
-            label: l.name,
-            icon: l.hidden ? 'eye-off' : 'eye',
-            checked: !l.hidden,
-            run: () => toggle(l),
-          })),
+          [
+            ...row.layers.map((l) => ({
+              id: l.address,
+              label: l.name,
+              icon: l.hidden ? ('eye-off' as const) : ('eye' as const),
+              checked: !l.hidden,
+              run: () => toggle(l),
+            })),
+            // as the track header's Layers menu ends: one patch each, over the layers listed. These are the row's layers,
+            // the track's own: the header's "Show every layer (n hidden)" chip also covers `:` sub-addresses (partner
+            // layers), so the two may differ
+            ...layerMenuAll(row.layers).map(({ label, command, args, disabled }, i) => ({
+              id: `all:${command}`,
+              label,
+              ...(disabled ? { disabled } : {}),
+              ...(i === 0 ? { separated: true } : {}),
+              run: () => void viewer.execute(command, args),
+            })),
+          ],
           () => {
             closeMenu = undefined;
           },

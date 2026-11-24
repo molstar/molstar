@@ -11,6 +11,7 @@ import type { IconName } from '@molstar/ui/components/icon/icon';
 import type { HeadersBehavior } from './behaviors/headers.js';
 import type { CardProviderEntry } from './card-provider.js';
 import { FilteredHeaderEntry } from './filter-chip.js';
+import { layerMenuAll } from './layers-menu.js';
 import type { SeqViewer } from './viewer.js';
 
 // A track's and a section's header entries (_spec/README.md "Behaviors", Headers): registry entries of kind
@@ -101,6 +102,10 @@ export interface HeaderSubEntry {
   readonly args: Readonly<Record<string, unknown>>;
   /** A checked item (a shown layer), or the chosen one of a choice. */
   readonly checked?: boolean;
+  /** Why it cannot run now (else its command's `when` says): a closing entry that would change nothing. */
+  readonly disabled?: string;
+  /** It starts a group of its own: a separator above it. */
+  readonly separated?: boolean;
   /** Its own submenu (a partner chromosome's pieces), a flyout of the flyout: its row opens it. */
   readonly items?: readonly HeaderSubEntry[];
 }
@@ -205,6 +210,8 @@ export interface HeaderMenuItem {
   readonly enabled: boolean;
   readonly why?: string;
   readonly checked?: boolean;
+  /** A separator above it (the Layers menu's "Show all" and "Hide all"). */
+  readonly separated?: boolean;
   /** Its entry's `pressed` now (absent: the entry has none). */
   readonly pressed?: boolean;
   /** Whether it is drawn in a slot (an action with an icon, in the first `header.slots`). */
@@ -318,15 +325,25 @@ export const BuiltInHeaderEntries: readonly HeaderActionEntry[] = /* @__PURE__ *
       order: 3,
       when: (f) => f.layers.filter((l) => !l.address.includes(':')).length > 1,
       args: (f) => ({ address: f.layers[0].address }),
-      items: (f) =>
-        f.layers
-          .filter((l) => !l.address.includes(':'))
-          .map((l) => ({
+      items: (f) => {
+        const own = f.layers.filter((l) => !l.address.includes(':'));
+        return [
+          ...own.map((l) => ({
             label: l.label,
             command: l.hidden ? 'layer.show' : 'layer.hide',
             args: { address: l.address },
             checked: !l.hidden,
           })),
+          // one patch each, over the layers listed (`layers-menu.ts`: the legend's menu ends the same). Only the track's
+          // own layers: the "Show every layer" chip (`seq:hidden-layers`) also covers `:` sub-addresses (partner layers),
+          // so the two may differ
+          ...layerMenuAll(own).map(({ disabled, ...all }, i) => ({
+            ...all,
+            ...(disabled ? { disabled } : {}),
+            ...(i === 0 ? { separated: true } : {}),
+          })),
+        ];
+      },
     },
     {
       name: HeaderEntryNames.moveUp,

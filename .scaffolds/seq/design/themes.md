@@ -364,6 +364,15 @@ and another viewer); a host recolors through `--seq-*` tokens.
   | Undo | the hide or show undone, one step |
   | Hover the eye | a tooltip with the button's name |
 
+  **The menu is the track header's Layers menu** (decided, the author, 2026-11-24, the use gate: "the styling on the
+  legend buttons ... consistent (and perhaps add hide/show all)"): the same component and rows, in light and dark. The
+  menu opens in the part's own element, inside the host's UI root whose reset and tokens style its rows, as the
+  header's does in the canvas's; on `document.body` it sat outside the root and its rows drew as the browser's buttons
+  (the cause). The eye is the same ghost icon button the header's parts are. A menu of several layers ends with a
+  separator and **Show all** and **Hide all**, each one patch over the layers it lists (one undo step), disabled with
+  its reason ("Every layer is shown", "Every layer is hidden") when it would change nothing; a track's last shown layer
+  hidden by Hide all follows the rule a single hide follows (the row stays, the header says so).
+
   "Hiding has two owners" stays: it is about hiding a **legend**; the eye hides a **layer**, and its legend stays.
 - **Every entry is reached from the keyboard** (ux-foundations section 8: every gesture has a keyboard way): the part
   is one tab stop, a list with a roving focus; arrows move between entries, Enter or Space selects (as a click),
