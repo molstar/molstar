@@ -4,13 +4,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The quick case's control scaled to the case: a step of kilobytes gets a control of a hundredth of it (4 KB at least)
+// The quick case's control scaled to the case: a step of kilobytes gets a control of 3% of it (4 KB at least)
 // and is checked at three quarters of that; a step that allocates nothing keeps `leak`'s 88 bytes (the rule, from given
 // readings: the unit project's windows are noisier than the perf tier's). One measured case, on a stand-in step.
 // @module-tag medium
 
 import { describe, expect, it } from 'vitest';
-import { LEAK_BYTES, leakingBytes, measureBytesPerStep, SCALED_MIN, scaledBytes } from '../quick.js';
+import { LEAK_BYTES, leakingBytes, measureBytesPerStep, SCALED_MIN, SCALED_SHARE, scaledBytes } from '../quick.js';
 
 const options = { warmSteps: 1_000, steps: 500, windows: 3, maxWarmSteps: 1_000 };
 const sink: unknown[] = [null];
@@ -31,10 +31,16 @@ describe('scaledBytes', () => {
     expect(scaledBytes(r(0, 6))).toBe(LEAK_BYTES);
   });
 
-  it('scales to a hundredth of a step above a kilobyte or spreading above 32 bytes, 4 KB at least', () => {
+  it('scales to 3% of a step above a kilobyte or spreading above 32 bytes, 4 KB at least', () => {
     expect(scaledBytes(r(1_025, 0))).toBe(SCALED_MIN);
     expect(scaledBytes(r(10, 33))).toBe(SCALED_MIN);
-    expect(scaledBytes(r(1_000_000, 50))).toBe(10_000);
+    expect(scaledBytes(r(1_000_000, 50))).toBe(30_000);
+  });
+
+  it('is 3% of the reversed pan, whose windows are 0.4 KB apart and whose control read 2.3 KB of 4 KB (2026-11-24)', () => {
+    expect(scaledBytes(r(389_722, 436))).toBe(Math.ceil(SCALED_SHARE * 389_722));
+    // the readings given: at 11.7 KB the offset of -2.3 KB leaves 9.4 KB, over three quarters (8.8 KB)
+    expect(11_692 - 2_374).toBeGreaterThan(0.75 * scaledBytes(r(389_722, 436)));
   });
 
   it('is eight spreads where that is more', () => {
