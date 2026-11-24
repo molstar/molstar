@@ -5,6 +5,7 @@
  */
 
 import { BuiltInRenderRegistry } from '@molstar/seqx-core/context/default';
+import { BuiltInSearchRegistry } from '@molstar/seqx-core/search/entries';
 import { SeqRuntime } from '@molstar/seqx-core/data';
 import { RecordsRuntime } from '@molstar/seqx-core/data/records';
 import {
@@ -20,6 +21,7 @@ import {
   NavigatorProvider,
   SelectProvider,
   RowsProvider,
+  SearchProvider,
   WindowProvider,
 } from '@molstar/seqx-viewer/behaviors';
 import { HeadersProvider } from '@molstar/seqx-viewer/behaviors/headers';
@@ -50,6 +52,8 @@ export function DefaultSeqViewerSpec(): SeqViewerSpec {
       { kind: 'format-runtime', runtime: RecordsRuntime },
       // the core's layer types and layouts: what the canvas and the SVG draw
       ...BuiltInRenderRegistry,
+      // the search's matchers (exact, IUPAC, regex): a lazy chunk, loaded by the first search
+      ...BuiltInSearchRegistry,
       // the track headers' built-in entries (hide, color, layers, the chips): a host's sit beside them
       ...BuiltInHeaderEntries,
       // the hover card's providers (the viewer's own sections, the spec's tooltips): a host's sit beside them by order
@@ -74,6 +78,8 @@ export function DefaultSeqViewerSpec(): SeqViewerSpec {
       { provider: HeadersProvider, params: { menu: headerMenuOverlay(), contextClick: 'everywhere' } },
       // a hovered or selected range lights the pairs with an end in it (an analysis a host lists, removed to opt out)
       { provider: LinkedPairsProvider },
+      // the search: its model (`viewer.search`), its commands and keys; the box is the host's
+      { provider: SearchProvider },
     ],
     bindings: {},
     config: [],

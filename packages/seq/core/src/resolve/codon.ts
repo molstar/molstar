@@ -107,7 +107,7 @@ export const DefaultGeneticCode = 1;
 const Standard = GeneticCodes[DefaultGeneticCode];
 
 /** IUPAC nucleotide codes as the bases they stand for (U as T). */
-const Iupac: Readonly<Record<string, string>> = {
+export const Iupac: Readonly<Record<string, string>> = {
   A: 'A',
   C: 'C',
   G: 'G',

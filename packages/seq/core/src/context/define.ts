@@ -62,8 +62,9 @@ export function defineExtension<E extends SeqExtension>(extension: E, viewer = f
   const kinds: Record<string, { shape: LayerShape; fallback?: string }> = {};
   const schemes: SchemeEntry[] = [];
   for (const r of extension.registry as any[]) {
-    // each entry's provider by its name (a format runtime's, a layer type's, a scheme's, a picture's; a query entry's own)
-    const p = r.runtime ?? r.layout ?? r.sizing ?? r.scheme ?? r.picture ?? (r.kind === 'layer-type' ? r.type : r);
+    // each entry's provider by its name (a format runtime's, a layer type's, a scheme's, a picture's, a search matcher's; a query entry's own)
+    const p =
+      r.runtime ?? r.layout ?? r.sizing ?? r.scheme ?? r.picture ?? r.matcher ?? (r.kind === 'layer-type' ? r.type : r);
     ns(p.name);
     if (r.kind === 'layer-type' && p.shape)
       kinds[p.name] = { shape: p.shape, ...(p.fallback ? { fallback: p.fallback } : {}) };

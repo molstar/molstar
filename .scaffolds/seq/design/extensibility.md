@@ -57,6 +57,7 @@ should be fixed when it can be a setting or an extension.
   | map runtimes | a way to compute a map of a given kind (align, SIFTS lookup, gene model to codons) ([maps.md](maps.md)) |
   | numbering schemes, codon tables | labels and translation |
   | query functions | generators, modifiers, filters in the query language |
+  | search matchers | a way to find a pattern (`search-matcher` entries, `<id>:<name>`: a kernel over the letters, or a run of its own, a worker's or a server's; the built-ins exact, IUPAC and regex) ([search.md](search.md)) |
   | commands, behaviors, bindings | what the viewer can do and what gestures do |
   | backends | where draw lists go ([rendering.md](rendering.md)) |
 

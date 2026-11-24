@@ -8,6 +8,7 @@ import { printSexpr } from '@molstar/core/repr/codecs/sexpr';
 import { SeqLanguage } from '@molstar/seqx-core/lang';
 import type { ExampleView } from '@molstar/seqx-examples';
 import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
+import { type SearchBoxOptions, toolbarWithSearch } from '../support/search-box.js';
 import { toolbarWithHiddenTracks } from '../support/toolbar.js';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import type { SeqViewerSpec } from '@molstar/seqx-viewer/viewer-spec';
@@ -49,6 +50,8 @@ type ExampleModel = ExampleView & {
   readonly behaviors?: SeqViewerSpec['behaviors'];
   /** The extensions the viewer is composed with (an extension's showcase: the genome ring's `rondoViewer`). */
   readonly extensions?: SeqViewerSpec['extensions'];
+  /** The stories' search box under the toolbar (`support/search-box.ts`), with a pattern searched at once. */
+  readonly search?: SearchBoxOptions;
 };
 
 const Title =
@@ -121,7 +124,7 @@ class ExampleRoot extends UiElement<ExampleModel> {
     const viewer = createSeqViewer(
       {
         ...base,
-        ui: { ...base.ui, toolbar: toolbarWithHiddenTracks },
+        ui: { ...base.ui, toolbar: view.search ? toolbarWithSearch(view.search) : toolbarWithHiddenTracks },
         registry: withViewRegistry(base.registry ?? [], extra),
         ...(view.config ? { config: [...(base.config ?? []), ...view.config] } : {}),
         ...(view.behaviors ? { behaviors: [...base.behaviors, ...view.behaviors] } : {}),
@@ -228,6 +231,7 @@ export function exampleStory(
     readonly config?: SeqViewerSpec['config'];
     readonly behaviors?: SeqViewerSpec['behaviors'];
     readonly extensions?: SeqViewerSpec['extensions'];
+    readonly search?: SearchBoxOptions;
   } = {},
 ): HTMLElement {
   const el = document.createElement(ExampleRoot.tag) as ExampleRoot;
@@ -241,7 +245,8 @@ export function exampleStory(
     options.summary ||
     options.config ||
     options.behaviors ||
-    options.extensions
+    options.extensions ||
+    options.search
       ? { ...view, ...options }
       : view;
   return el;

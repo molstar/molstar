@@ -49,6 +49,7 @@ import {
   ViewModel,
 } from '@molstar/seqx-viewer/models';
 import type { AddressingBehavior, LinkRun } from '@molstar/seqx-viewer/behaviors';
+import type { SearchModel } from './search.js';
 import type { SeqAnimationParticipant } from '@molstar/seqx-viewer/ports';
 import { cardTitles, composeCard, describerFor } from './describe.js';
 import { frameAnimation } from './animation.js';
@@ -476,6 +477,14 @@ export class SeqViewer extends ReactiveModel {
   behavior<H>(provider: BehaviorProvider<any, H> | string): H | undefined {
     // by name: what the input asks for names no provider object, so a viewer bundles only the behaviors it lists
     return behaviorOf<H>(this.behaviors, typeof provider === 'string' ? provider : provider.name, this._behaviorIssues);
+  }
+
+  /**
+   * The search (_spec/README.md "Search"): the `search` behavior's model (its query, hits, current hit, status), what a
+   * host's box and results list read; undefined when the viewer does not list the behavior.
+   */
+  get search(): SearchModel | undefined {
+    return (this.behaviors.get('search') as { model?: SearchModel } | undefined)?.model;
   }
 
   /**

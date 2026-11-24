@@ -35,3 +35,6 @@
 - Seq\* viewer: Cmd/Ctrl+wheel over a ring no section follows no longer narrows a hidden viewport.
 - Seq\* viewer: a genome ring no section follows takes Cmd/Ctrl+wheel and a pinch as its zoom: in over a chromosome
   opens it, out shows every chromosome again, one cut a wheel gesture; where nothing changes it says what the ring shows.
+- Seq\* (next): search: exact, IUPAC and regular-expression matchers (linear time, bounded) over a view's sequences,
+  both strands and across a circle's origin; `viewer.search`, the `search.*` commands and keys, hits on their own
+  highlight channels, saved as a ref; a `search-matcher` registry entry for an application's matchers.

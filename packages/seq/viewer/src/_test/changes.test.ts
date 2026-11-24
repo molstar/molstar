@@ -135,7 +135,8 @@ function changed(a: ReturnType<typeof look>, b: ReturnType<typeof look>): Change
   return out;
 }
 
-const run = (v: SeqViewer, id: string, ctx: unknown) => Promise.resolve(v.execute(id, ctx));
+// a search run yields through the host's 0 ms timers: driven, as the real host turns
+const run = (v: SeqViewer, id: string, ctx: unknown) => frames!.timers.drive(v.execute(id, ctx));
 
 const cell = (position: number) => ({ section: Protein, hit: { layer: LettersLayer, system: '/data/p', position } });
 const cursorAt = (section: string) => (v: SeqViewer) =>
@@ -301,6 +302,13 @@ const Cases: Record<string, { ctx: unknown; before?: (v: SeqViewer) => unknown }
   'rows.tree': { ctx: { track: RowsTrack }, before: (v) => v.view.setBand(RowsTrack, { tree: true }) },
   // the menu at a shown cursor: the reader's, nothing in the models
   'headers.menu': { ctx: {}, before: cursorAt(Protein) },
+  // the search's: a run, a step from the run's hits (shown: the reveal moves nothing), a clear, a save
+  'search.run': { ctx: { pattern: 'EP' } },
+  'search.next': { ctx: {}, before: (v) => run(v, 'search.run', { pattern: 'EP' }) },
+  'search.previous': { ctx: {}, before: (v) => run(v, 'search.run', { pattern: 'EP' }) },
+  'search.go': { ctx: { index: 0 }, before: (v) => run(v, 'search.run', { pattern: 'EP' }) },
+  'search.clear': { ctx: {}, before: (v) => run(v, 'search.run', { pattern: 'EP' }) },
+  'search.save': { ctx: {}, before: (v) => run(v, 'search.run', { pattern: 'EP' }) },
   'preview.cancel': {
     ctx: {},
     before: (v) =>

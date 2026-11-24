@@ -83,6 +83,7 @@ describe('createSeqViewer', () => {
       'keysPanel',
       'headers',
       'linkedPairs',
+      'search',
     ]);
     expect(viewer.bindings.issues).toEqual([]);
     expect(viewer.commands.map((c) => c.id)).toContain('view.fit');

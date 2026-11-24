@@ -75,7 +75,13 @@
       "types": "./lib/story/index.d.ts",
       "import": "./lib/story/index.js"
     },
+    "./search": {
+      "molstar-src": "./src/search/index.ts",
+      "types": "./lib/search/index.d.ts",
+      "import": "./lib/search/index.js"
+    },
     "./_test/*": null,
+    "./search/_test/*": null,
     "./lang/_test/*": null,
     "./query/_test/*": null,
     "./data/_test/*": null,

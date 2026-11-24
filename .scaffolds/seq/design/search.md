@@ -71,7 +71,7 @@ sets at once (the previous implementation): not built (one search a viewer, Prov
     readonly name: string;                 // 'exact' | 'degenerate' | 'regex' | '<ns>:<name>'
     readonly title: string;                // 'Exact', 'IUPAC', 'Regular expression'
     readonly alphabets?: readonly SequenceAlphabet[]; // the systems it reads; absent: any
-    /** Sync, bounded, no letters read: the pattern checked and compiled, or its issues (§2). */
+    /** Sync, bounded, no letters read: the pattern checked and compiled, or its issues (Decision 2). */
     compile(pattern: string, options: SearchOptions, bounds: SearchBounds): Compiled | readonly Issue[];
     /** Async and streamed: batches of hits in order; unsubscribing cancels. */
     run(compiled: Compiled, targets: readonly SearchTarget[], ctx: SearchRunContext): Observable<SearchBatch>;
@@ -81,7 +81,7 @@ sets at once (the previous implementation): not built (one search a viewer, Prov
     readonly alphabet: SequenceAlphabet;
     readonly length: number;
     readonly cyclic: boolean;
-    readonly within?: Int32Array;          // ranges to search in, from `within` (§5)
+    readonly within?: Int32Array;          // ranges to search in, from `within` (Decision 5)
     readonly letters: LetterReader;        // read(start, end, signal): Promise<Uint8Array>, by region
   }
   interface SearchBatch {
@@ -100,7 +100,7 @@ sets at once (the previous implementation): not built (one search a viewer, Prov
   strand, and emits one batch a chunk, sorted by start (a chunk's hits are few; a hit belongs to the chunk it starts
   in). The three built-ins are `kernelMatcher`s. Why: an application's in-process matcher (a PROSITE reader, a
   mismatch kernel) writes a kernel and nothing else; one running in a worker or a server writes `run`.
-- **Batches are a prefix of the final order**: targets in order (§4), chunks in order, each sorted, so the hits so far
+- **Batches are a prefix of the final order**: targets in order (Decision 4), chunks in order, each sorted, so the hits so far
   never reorder. Why: the count and stepping work while a long search runs.
 
 ### 2. What the built-in matchers take
@@ -113,7 +113,7 @@ U as T on nucleotides.
 |---|---|---|
 | `exact` | itself | it is the same letter |
 | `degenerate` (default) | its IUPAC set: nucleotides `R Y K M S W B D H V N`; proteins `X` any residue, `B` D or N, `Z` E or Q, `J` I or L | its own set is inside the pattern letter's set (`N` in the sequence matches only `N`; `R` matches `R`, `D`, `N`, never `A`) |
-| `regex` | a letter is itself; classes say sets (§3) | as the automaton reads it |
+| `regex` | a letter is itself; classes say sets (Decision 3) | as the automaton reads it |
 
 - **Degenerate is subset matching** (decided here): a sequence's ambiguity letter is a hit only where every base it may
   be is allowed. Why: a site reported on an `N` run is not a site; overlap matching floods a draft genome's gaps with
@@ -124,8 +124,8 @@ U as T on nucleotides.
   protein pattern under `degenerate`) is skipped with `seq.search.alphabet` (a warning naming the system), the others
   searched. The system's declared or detected alphabet decides (EC-37), never a guess from the pattern.
 - **Kernels**: `exact` Horspool (sublinear, any length to the bound); `degenerate` shift-and over a table of 256
-  masks, multiword past 32 letters; `regex` §3. Each pattern position costs a bit: work is letters × ⌈positions / 32⌉
-  word steps, the unit of the step budget (§6).
+  masks, multiword past 32 letters; `regex` Decision 3 (below). Each pattern position costs a bit: work is letters × ⌈positions / 32⌉
+  word steps, the unit of the step budget (Decision 6).
 
 ### 3. A regular expression's safety: an automaton, never backtracking
 
@@ -135,7 +135,9 @@ U as T on nucleotides.
   `\` before a character to take it literally.
 - **Refused with a reason** (`seq.search.pattern.unsupported`, error, its position in the pattern and the hint "a search
   runs in linear time: no backreferences or lookaround"): backreferences, lookaround, lazy and possessive quantifiers
-  (meaningless under §4's longest-per-start rule), `\b`, `\d`, `\w`, Unicode classes, flags.
+  (meaningless under Decision 4's longest-per-start rule), `\b`, `\d`, `\w`, Unicode classes, flags. A pattern that does
+  not read (an unclosed group, a stray `)`) is `seq.search.pattern.syntax`; one matching only the empty string
+  `seq.search.pattern.empty`.
 - **Compiled to a Glushkov automaton** (one state a letter position, no ε-moves), simulated bit-parallel (Navarro and
   Raffinot's tables), counted repeats expanded first. Bounds checked at compile, before any table is allocated: the
   pattern's characters (`maxRegexChars`, 256), the expanded positions (`maxRegexPositions`, 128: four words), nesting
@@ -159,7 +161,7 @@ U as T on nucleotides.
 - **Pieces are layout, not data** (EC-31): a reversed section, a rotated plasmid or collapsed introns change nothing a
   search reads or finds. A reversed section shows a forward hit drawn right to left; reversing never complements
   (EC-233): the minus strand is the `strands` option's, never a section's direction. A hit in a collapsed stretch is
-  kept; stepping to it says where it is (§5).
+  kept; stepping to it says where it is (Decision 5).
 - **A circle**: a hit may run across the origin, at most one lap (a pattern longer than the circle has none); held
   unrolled (`end` past the length), its Location two ranges (EC-9), one hit in the count.
 - **Blocks and assemblies**: each sequence is its own system and its own target; no hit spans two sequences or two
@@ -181,7 +183,7 @@ U as T on nucleotides.
 - **`SearchModel`** (`viewer.search`, DOM-free, `@molstar/core/reactive`; §frontend-state, the UI works headless):
   read-only states `query` (`{ pattern, matcher, strands, within } | undefined`), `status` (`idle`, `running`, `done`,
   `cancelled`, `failed`), `hits` (the columnar hits and their targets' addresses), `count` (hits found, past the held
-  ones: §6), `complete`, `current` (an index, `-1` for none), `issues`, `stale`. A hit's address and description on
+  ones: Decision 6), `complete`, `current` (an index, `-1` for none), `issues`, `stale`. A hit's address and description on
   demand (`addressOf(i)`, `describe(i)`), never stored a hit.
 - **What is searched**: every system a letters, rows or cells layer of the resolved view draws, whole (not only its
   window: IGV's, not JBrowse's), or what `within` names: an address, or `selection` (the selection's Location, its
@@ -193,10 +195,14 @@ U as T on nucleotides.
   | Command | Args | Kind | Does |
   |---|---|---|---|
   | `search.run` | `pattern`, `matcher` (`degenerate`), `strands` (`both`), `within` | `session` | compiles (a compile error is the result's message and issue: nothing changes), cancels a run in progress, runs; resolves when done, cancelled or failed |
-  | `search.next`, `search.previous` | `focus` (`false`) | `navigate` | the next or previous hit becomes current and is revealed (pans only, EC-159; `focus: true` zooms to it); round, the wrap said |
-  | `search.go` | `index` | `navigate` | that hit becomes current and is revealed; the current one again clears it (EC-161); an index outside the hits refused (EC-160) |
+  | `search.next`, `search.previous` | `focus` (`false`) | `session` | the next or previous hit becomes current and is revealed (pans only, EC-159; `focus: true` zooms to it); round, the wrap said |
+  | `search.go` | `index`, `focus` | `session` | that hit becomes current and is revealed; the current one again clears it (EC-161); an index outside the hits refused (EC-160) |
   | `search.clear` | | `session` | cancels a run, clears the query, the hits and both channels |
   | `search.save` | `id`, `label` | `patch` | the hits as a ref (below): one patch, one undo step (EC-162) |
+
+  The steps are `session`, not `navigate`: what a step changes is the current hit, a channel of the session; the reveal
+  it runs is a jump of the view's history of its own (as `clades.reveal`'s), so Alt+Left returns without the step being
+  a navigation twice.
 
   From no current hit, `next` takes the first hit at or after the start of the window of the first leading section
   showing hits, `previous` the last before its end; then they step in order. Why from the view: on a genome, "next"
@@ -212,7 +218,8 @@ U as T on nucleotides.
   left alone: the reader's selection is not the search's (Jalview's find selects; not taken). `address.select` on a
   hit's address selects it when a host wants that.
 - **Keys** (`view.keys`, a canvas scope, so typing in a host's box is never taken): `search.next` `Mod+g`, `F3`;
-  `search.previous` `Mod+Shift+g`, `Shift+F3`. No key for `search.run` (it needs text: the host's box, or the palette's
+  `search.previous` `Mod+Shift+G`, `Shift+F3` (the key Shift types). With no hits they are the page's (`Mod+g` the
+  browser's find next), as the history's keys are with no step. No key for `search.run` (it needs text: the host's box, or the palette's
   argument) and none for `Mod+f`, the browser's find, which a host binds to its own box. `Esc` keeps its meaning (a
   gesture, then the selection); the search is cleared by `search.clear`, the legend, or the host's box.
 - **What is said** (`viewer.notify`, the announcer's `notice`; the commands' messages are the same words): on done,
@@ -225,7 +232,8 @@ U as T on nucleotides.
   range with `from > to` on its cyclic system (EC-10), and `label` `Search: GAATTC (14)`. The strand is not in a
   Location, so not in the ref (said in its label when every hit is on one strand). Refused, never cut: past
   `search.maxSaved` (1,000) hits (`seq.search.save.limit`), an incomplete result (`seq.search.save.incomplete`: a
-  set must mean what it says). A saved ref is a ref like any: a layer's data, a link's target, `refs.remove` its inverse.
+  set must mean what it says), a stale one (`seq.search.save.stale`: new letters since the run, Decision 5's "may be
+  out of date" is no set to keep). A saved ref is a ref like any: a layer's data, a link's target, `refs.remove` its inverse.
 - **Results follow the spec, never re-run on their own**: a patch that removes a searched system drops its hits
   (`seq.address.missing`, as the session's other addresses); new letters for a searched system (a source reattached, a
   sequence's letters edited) mark the result `stale`, still drawn and said ("results may be out of date"), until the
@@ -236,7 +244,7 @@ U as T on nucleotides.
 
 ### 6. Bounds (security.md's "regular expressions in search", now built)
 
-Every bound is checked before the work it sizes, refused with a code (§bounded-work), and a setting (§7):
+Every bound is checked before the work it sizes, refused with a code (§bounded-work), and a setting (Decision 7):
 
 | Bound | Default | Past it |
 |---|---|---|
@@ -261,7 +269,7 @@ Every bound is checked before the work it sizes, refused with a code (§bounded-
   unregistered one is `seq.search.matcher.missing`, naming it, no fallback. An extension adds one as registry entries
   (`defineExtension`), never on import.
 - **What an application builds on**: `viewer.search` (states), the commands, `describe(i)` and `addressOf(i)` for a
-  results list, the registry for its matchers. Nothing else is needed for the Storybook box (§8), and a test holds it
+  results list, the registry for its matchers. Nothing else is needed for the Storybook box (Decision 8), and a test holds it
   (Consequences).
 
 ### 8. The Storybook box
@@ -271,15 +279,15 @@ Every bound is checked before the work it sizes, refused with a code (§bounded-
 nucleotides, the count ("2 of 14", "14+" while running, "No hits"), previous and next buttons, Save and Clear;
 Enter and Shift+Enter step, Esc in the box runs `search.clear`; the text runs `search.run` after it rests 200 ms, the
 previous run cancelled (the previous implementation's). Built from `@molstar/ui` components and tokens (ux-foundations
-§9) on the public surface only. Used by the p53 example's "search" story (features.md's "p53: search") and a plasmid
+section 9) on the public surface only. Used by the p53 example's "search" story (features.md's "p53: search") and a plasmid
 story (a site across the origin, both strands). It is the stories' box, not the library's: no package imports it.
 
 ## Defaults
 
 What a reader sees with no setting: the hits a tint of `highlight.colors.search` (`token:cat-3`, distinct from the
 links' `cat-5` and from the accent: data and chrome never share a role) under the data, at 0.3 as every channel; the
-current hit an outline of the same color at full strength, concentric with what it surrounds (ux-foundations §5);
-where the search and another channel light one position, the stripes rule (§6 there), the current hit's outline drawn
+current hit an outline of the same color at full strength, concentric with what it surrounds (ux-foundations section 5);
+where the search and another channel light one position, the stripes rule (section 6 there), the current hit's outline drawn
 over them, never a stripe of its own. Empty: nothing drawn, the legend's channels row as its mode says. Crowded (a 1 Mb
 genome zoomed out, thousands of hits): the union's tint at the density step's resolution, as any channel; no tick
 marks on the navigator (not built). Dark: the tokens' dark variant.
@@ -294,19 +302,19 @@ deleted by the merge that lands the built box. **Precedent**: SnapGene's find ba
 
 | Item | Default | Why | Alternatives |
 |---|---|---|---|
-| `search.matcher` | `degenerate` | IUPAC is what a nucleotide pattern means (SnapGene); an ACGT pattern is exact anyway | `exact`; a registered name (not built) |
-| `search.strands` | `both` | a site on the minus strand is a site (SnapGene, IGV, UGENE) | `forward` (not built) |
-| `search.maxPattern` | 1,000 | primers, guides and motifs are far shorter; a pasted gene fits | larger, raising the step cost (not built) |
-| `search.maxRegexChars`, `maxRegexPositions` | 256, 128 | four words a step; `include` patterns' 256 | more words (not built) |
-| `search.maxHitLength` | 1,000 | UGENE's regex result length | (not built) |
+| `search.matcher` | `degenerate` | IUPAC is what a nucleotide pattern means (SnapGene); an ACGT pattern is exact anyway | `exact`, `regex`, a registered `<id>:<name>` |
+| `search.strands` | `both` | a site on the minus strand is a site (SnapGene, IGV, UGENE) | `forward` |
+| `search.maxPattern` | 1,000 | primers, guides and motifs are far shorter; a pasted gene fits | larger, raising the step cost |
+| `search.maxRegexChars`, `maxRegexPositions`, `maxRegexDepth` | 256, 128, 64 | four words a step; `include` patterns' 256; the queries' nesting (EC-76) | more words, a step's cost growing with them |
+| `search.maxHitLength` | 1,000 | UGENE's regex result length | any |
 | `search.maxLetters` | 2^25 | a bacterial genome and a 10,000-row alignment fit; a human chromosome does not, and says to use `within` | larger, or a source's own search (not built) |
-| `search.maxSteps` | 2^28 | about a second of work at worst on a laptop, to measure (Provisional) | (not built) |
-| `search.maxHits` | `address.limit` (10,000) | what a channel and stepping hold; the count goes on | (not built) |
-| `search.maxSaved` | 1,000 | a ref's addresses stay readable and its patch small | (not built) |
-| `search.chunkLetters` | 2^20 | a batch a frame's work | (not built) |
-| `search.channel`, `search.currentChannel` | `search`, `search-current` | channels of their own (features 181) | (not built) |
-| `highlight.colors.search` | `token:cat-3` | apart from the links' channel and the accent | (not built) |
-| `view.keys['search.next']`, `['search.previous']` | `Mod+g`, `F3`; `Mod+Shift+g`, `Shift+F3` | the platforms' find next and previous, in the canvas only | (not built) |
+| `search.maxSteps` | 2^28 | about a second of work at worst on a laptop: the worst patterns over 2^20 `A`s end at it in 0.3 to 0.6 s (core's perf tier, the whole tier running); the CI runner's numbers to come (Provisional) | any |
+| `search.maxHits` | `address.limit` (10,000) | what a channel and stepping hold; the count goes on | any |
+| `search.maxSaved` | 1,000 | a ref's addresses stay readable and its patch small | any |
+| `search.chunkLetters` | 2^20 | a batch a frame's work | any |
+| `search.channel`, `search.currentChannel` | `search`, `search-current` | channels of their own (features 181) | a host's names |
+| `highlight.colors.search` | `token:cat-3` | apart from the links' channel and the accent | any color |
+| `view.keys['search.next']`, `['search.previous']` | `Mod+g`, `F3`; `Mod+Shift+G`, `Shift+F3` | the platforms' find next and previous, in the canvas only | a host's keys |
 
 ## Rejected alternatives
 
@@ -345,7 +353,7 @@ deleted by the merge that lands the built box. **Precedent**: SnapGene's find ba
 
   | | select | extend | add / remove | focus | back | zoom | pan | hide | edit |
   |---|---|---|---|---|---|---|---|---|---|
-  | **search hits** | no: the selection is the reader's (`address.select` on a hit) | — | no: a new run replaces | `search.next`, `search.previous` (`Mod+G`, `F3`; reveal), `search.go`; `focus: true` zooms | Alt+Left | — | — | `search.clear`, the legend's channel | `search.save` (one patch); `refs.remove` its inverse |
+  | **search hits** | no: the selection is the reader's (`address.select` on a hit) | — | no: a new run replaces | `search.next`, `search.previous` (`Mod+g`, `F3`; reveal), `search.go`; `focus: true` zooms | Alt+Left | — | — | `search.clear`, the legend's channel | `search.save` (one patch); `refs.remove` its inverse |
 
 - **Edge cases**, each a test by name: EC-161 (stepping "2 of 14", the current again clears, saved as a set), EC-9
   (a hit across the origin, two ranges, one hit), EC-10 (its saved address wraps on the cyclic system only), EC-12
@@ -396,7 +404,7 @@ deleted by the merge that lands the built box. **Precedent**: SnapGene's find ba
   over a whole genome is a different bound); trigger, a link or layer that must name hits live.
 - **One search a viewer**: the previous implementation held named result sets. Recommended: one; several when a host
   asks (trigger).
-- **From where `next` starts** (the window's start, §5) and **reveal over focus** by default: settled by the
+- **From where `next` starts** (the window's start, Decision 5) and **reveal over focus** by default: settled by the
   novice pass on the p53 and plasmid stories.
 - **The numbers**: `maxSteps`, `maxLetters` and the heavy bounds, settled by measuring the representatives on the CI
   runner.
@@ -415,7 +423,7 @@ deleted by the merge that lands the built box. **Precedent**: SnapGene's find ba
   protein through translation (said, an application's matcher); removing the channel in the legend clears the search
   (the model listens), not only the reverse. **The plural**: many hits (the cap, counted), many systems (the order),
   many searches (one, Provisional).
-- **Built or planned**: everything in §1 to §8 is this lane's; the rect save, the query form, translated and
+- **Built or planned**: everything in Decisions 1 to 8 is this lane's; the rect save, the query form, translated and
   approximate search, several result sets and a source's own search are carried above, each with its trigger.
 
 ## In the specs
@@ -441,7 +449,7 @@ deleted by the merge that lands the built box. **Precedent**: SnapGene's find ba
 | A saved set is a ref; refused past the bound or incomplete | viewer › Search |
 | Results follow the spec; stale on new letters | viewer › Search |
 | Letters through the store, pending never empty | viewer › Search |
-| The configuration items | core › Configuration; viewer › Configuration |
+| The configuration items (the bounds' defaults are core's Search › Bounds) | viewer › Configuration |
 | The Storybook box on the public surface | design-only: the stories' host composition, not a package's |
 | The representatives | core › Search › Performance |
 | Rejected alternatives | design-only: rejected alternatives |

@@ -13,8 +13,10 @@ import { vi } from 'vitest';
 export interface Timers {
   /** Timers set and neither fired nor cleared. */
   readonly live: number;
-  /** Runs the live timers. */
-  fire(): void;
+  /** Runs the live timers (those of at most `ms` when given: `fire(0)` is a turn of the event loop). */
+  fire(ms?: number): void;
+  /** Runs the 0 ms timers, a real turn between, until `p` settles (a search run's yields between batches). */
+  drive<T>(p: T | Promise<T>): Promise<T>;
 }
 
 export interface Frames {
@@ -32,13 +34,13 @@ export interface Frames {
 
 export function installFrames(): Frames {
   let queue: (() => void)[] = [];
-  const live = new Map<number, () => void>();
+  const live = new Map<number, { fn: () => void; ms: number }>();
   let id = 0;
   const raf = vi.spyOn(DomHost, 'requestAnimationFrame').mockImplementation((fn) => {
     queue.push(() => fn(DomHost.now()));
   });
-  const set = vi.spyOn(DomHost, 'setTimeout').mockImplementation((fn) => {
-    live.set(++id, fn);
+  const set = vi.spyOn(DomHost, 'setTimeout').mockImplementation((fn, ms) => {
+    live.set(++id, { fn, ms });
     return id;
   });
   const clear = vi.spyOn(DomHost, 'clearTimeout').mockImplementation((h) => {
@@ -48,11 +50,23 @@ export function installFrames(): Frames {
     get live() {
       return live.size;
     },
-    fire() {
-      for (const [k, fn] of [...live]) {
+    fire(ms = Infinity) {
+      for (const [k, t] of [...live]) {
+        if (t.ms > ms) continue;
         live.delete(k);
-        fn();
+        t.fn();
       }
+    },
+    async drive<T>(p: T | Promise<T>): Promise<T> {
+      let done = false;
+      const settled = Promise.resolve(p).finally(() => {
+        done = true;
+      });
+      while (!done) {
+        timers.fire(0);
+        await new Promise((r) => setImmediate(r));
+      }
+      return settled;
     },
   };
   return {

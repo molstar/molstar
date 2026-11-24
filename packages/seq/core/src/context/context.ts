@@ -40,6 +40,7 @@ import {
   refuseMuteTypes,
 } from '@molstar/seqx-core/render';
 import { type ResolveConfig, resolveSpec, type StaticModel } from '@molstar/seqx-core/resolve';
+import { checkMatcherNames, type SearchMatcherEntry } from '@molstar/seqx-core/search/entries';
 import type { SchemeEntry, SchemeRegistry } from '@molstar/seqx-core/theme';
 import {
   BuiltInLayerKinds,
@@ -60,7 +61,8 @@ import { checkExtensions, type ExtensionTables, type SeqExtension } from './exte
  * What a registry holds in this version (_spec/README.md "Context", Registry entries): a format runtime, read by the
  * sources whose `format` it names; a layer type, drawn for the layers of its name (the canvas and the SVG alike); a
  * section layout, placing the sections that name it; a scheme the themes name; a query form of a role and a query
- * property, namespaced (`<id>:<name>`), what every query of the composition reads (`SeqContext.query`).
+ * property, namespaced (`<id>:<name>`), what every query of the composition reads (`SeqContext.query`); a search matcher
+ * (_spec/README.md "Search", Matchers), the built-ins unnamespaced, an application's `<id>:<name>`.
  */
 export type SeqRegistryEntry =
   | { readonly kind: 'format-runtime'; readonly runtime: FormatRuntime }
@@ -69,6 +71,7 @@ export type SeqRegistryEntry =
   | { readonly kind: 'track-sizing'; readonly sizing: TrackSizing }
   | { readonly kind: 'scheme'; readonly scheme: SchemeEntry }
   | { readonly kind: 'navigator-picture'; readonly picture: NavigatorPicture }
+  | { readonly kind: 'search-matcher'; readonly matcher: SearchMatcherEntry }
   | QueryFormEntry
   | QueryOperatorEntry
   | QueryPropertyEntry;
@@ -258,7 +261,7 @@ export function settingOf<T>(config: Pick<RenderConfig, 'settings'>, item: SeqCo
 /** The registry's tables, composed from its entries and its extensions': what `_extend` swaps whole. */
 type Tables = Pick<
   SeqContext,
-  'runtimes' | 'types' | 'layouts' | 'sizings' | 'pictures' | 'query' | 'schemes' | 'kinds' | 'extensions'
+  'runtimes' | 'types' | 'layouts' | 'sizings' | 'pictures' | 'matchers' | 'query' | 'schemes' | 'kinds' | 'extensions'
 >;
 
 /**
@@ -271,12 +274,16 @@ function tablesOf(registry: readonly SeqRegistryEntry[], extensions: readonly Se
   for (const e of extensions) added = e.defined!.compose(added);
   // the registered navigator pictures by name, as `runtimesOf`
   const pictures = Object.fromEntries(byName(all, 'navigator-picture', 'navigator pictures', (e) => e.picture));
+  // the search matchers by name, as `runtimesOf`: an application's namespaced, so no built-in is shadowed
+  const matchers = byName(all, 'search-matcher', 'search matchers', (e) => e.matcher);
+  checkMatcherNames([...matchers.values()]);
   return {
     runtimes: runtimesOf(all),
     types: layerTypesOf(all),
     layouts: layoutsOf(all),
     sizings: sizingsOf(all),
     pictures,
+    matchers: Object.fromEntries(matchers),
     query: queryExtensionsOf(all),
     schemes: undefined,
     ...added,
@@ -296,6 +303,8 @@ export interface SeqContext {
   readonly sizings: Readonly<Record<string, TrackSizing>>;
   /** The registered navigator pictures by name (a `content` naming another is said, and drawn as the axis). */
   readonly pictures: Readonly<Record<string, NavigatorPicture>>;
+  /** The registered search matchers by name, in the registry's order (a search naming another is refused). */
+  readonly matchers: Readonly<Record<string, SearchMatcherEntry>>;
   /** The registered query forms and properties: what `evaluateQuery` is given as `extensions`. */
   readonly query: QueryExtensions;
   /** The schemes the themes read, when the registry adds any to the built-ins (undefined: the built-ins). */

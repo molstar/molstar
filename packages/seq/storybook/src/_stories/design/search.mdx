@@ -1,0 +1,52 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Search" />
+
+# Search
+
+A reader looks for a motif: a restriction site on a plasmid, a primer on a genome, a glycosylation motif in a protein, a
+pattern across the rows of an alignment. Every hit is lit in the view, a count says where the reader is ("2 of 14"),
+keys step through the hits, and the hits can be kept as a set to come back to.
+
+## The library's part and the application's
+
+Search is application-level work on a base built for it. The library runs the matchers and holds the result: the query,
+the hits, the current hit and the status, with commands to run, step, go to a hit, clear and save. The search box and a
+results list are the application's: these stories use a small box built only on the public surface, to show that the
+surface is enough.
+
+## Three matchers
+
+- **IUPAC** (the default): a pattern letter stands for its set (`R` is A or G, `N` any base; on proteins `X` any
+  residue, `B` D or N, `Z` E or Q, `J` I or L). A sequence's own ambiguity letter is a hit only where every base it may
+  be is allowed: a site reported on a run of `N` is not a site.
+- **Exact**: each letter itself.
+- **Regular expression**: letters, `.`, classes, groups, alternation and repeats, never backreferences or lookaround. It
+  runs in time linear in the letters whatever the pattern, so a pattern from a link can never hang the page.
+
+All three ignore case (a genome's lowercase is soft-masking), treat U as T on nucleotides, skip an alignment's gaps,
+search both strands of a nucleotide sequence (a site the same on both strands is one hit), and find a hit across a
+circle's origin.
+
+## What is searched, and what is shown
+
+The whole of every sequence the view draws, not only what is in view, or what the search is limited to (an address, or
+the selection). Hits are a highlight of their own (a tint) and the current hit an outline of the same color; they light
+linked sections as any highlight does (a protein's hits on its gene). Stepping reveals a hit, panning only; the view's
+Back returns. The selection stays the reader's.
+
+## Bounded and said
+
+Every bound is checked before the work it sizes: a pattern's length, a regular expression's size, the letters a run
+reads, the work it takes and the hits it holds. Past the hits it holds the count goes on, so "182,331 hits" tells the
+reader to narrow the pattern rather than showing a quiet 10,000.
+
+## Keys
+
+`Mod+G` and `F3` step to the next hit, with Shift to the previous one, while the view has the focus; `Mod+F` stays the
+browser's or the host's own box.
+
+## Stories
+
+The p53 example's "Search" story and a plasmid story (a site across the origin, on both strands), each driven by the
+stories' box.

@@ -88,7 +88,7 @@ bounded before it starts (§bounded-work).
 | Bounds on what a spec sizes: size, depth, query depth, a column's length, the issues kept | core › Language › Bounds |
 | Nested sources (depth 4) | core › Nested sources |
 | A block's values (2^24) and an answer's dynamic nodes | core › Data › Tables |
-| Regular expressions in search | design-only: not built (with search) |
+| Regular expressions in search | core › Search › Regular expressions |
 | `custom` counted in the size, never interpreted | core › Language › Bounds |
 | An archive's bounds | core › Archives |
 | Output escaped in the SVG; labels never markup | core › SVG |

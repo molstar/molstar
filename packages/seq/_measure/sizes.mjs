@@ -81,8 +81,8 @@ const Runtimes = [/seq\/core\/src\/runtimes\//, /seq\/core\/src\/structure\//];
 const AllCases = [
   { name: 'reading a spec', entry: 'spec-read.ts', target: 265_000 },
   { name: 'headless rendering', entry: 'headless.ts', target: 980_000 },
-  { name: 'the viewer, default', entry: 'viewer.ts', target: 1_560_000, unlisted: Runtimes },
-  { name: 'viewer, minimal', entry: 'viewer-minimal.ts', target: 1_100_000, unlisted: Unlisted },
+  { name: 'the viewer, default', entry: 'viewer.ts', target: 1_570_000, unlisted: Runtimes },
+  { name: 'viewer, minimal', entry: 'viewer-minimal.ts', target: 1_105_000, unlisted: Unlisted },
   { name: 'bigWig runtime', entry: 'bigwig.ts', target: 30_000, own: /seq\/core\/src\/runtimes\// },
   // the genome ring extension (ext-rondo _spec): its own code only, on the viewer's extension entry
   { name: 'genome ring (rondo)', entry: 'rondo.ts', target: 48_000, own: /seq\/ext-rondo\/src\// },

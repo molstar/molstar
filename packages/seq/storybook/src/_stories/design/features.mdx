@@ -168,14 +168,17 @@ What this version contains and will contain. Each feature links its story here o
   extension (`@molstar/seqx-ext-rondo`):
   [Examples › Genomes › Views](?path=/story/seq-next-examples-genomes-views--synteny),
   [Features › Genome Ring](?path=/story/seq-next-features-genome-ring--kinds-of-links).
+- **Search**: exact, IUPAC and regular expression patterns (an automaton, never backtracking) over every sequence the
+  view draws, both strands and across a circle's origin, bounded and counted past the cap; every hit lit, a count,
+  stepping with keys, the hits saved as a set; the box the application's (the stories' own):
+  [Examples › p53 › Search](?path=/story/seq-next-examples-p53-search--search),
+  [Examples › Plasmid › Search](?path=/story/seq-next-examples-plasmid-search--search-across-the-origin).
 
 ## Planned
 
 Version 1's close-out builds these (the author, 2026-11-23).
 
 - **Layers and themes**: track groups, summaries and collapse; points, log scales and reference lines on values.
-- **Interaction and editing**: search: matchers for exact, degenerate and regex patterns, stepping through the hits and
-  saving them as a set, with the search box and its results left to the application.
 
 ## Deferred
 

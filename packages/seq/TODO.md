@@ -184,8 +184,8 @@ extension kinds.
   outputs; an op that no longer applies has no issue in `repr/patch`, so Seq reports it on the step; a host's move can
   leave a step's later refs dangling in the step's own coordinates (refused unless `allowDangling`): watched for in the
   editing UI.
-- **Bounds**: regular expressions in search and archives get theirs with those features; nested-source breadth (a
-  fan-out of W^depth) and joins allocating before `checkAnswer` (at most the file's size) are recorded, not bounded.
+- **Bounds**: archives get theirs with that feature (search's are built, CL5); nested-source breadth (a fan-out of
+  W^depth) and joins allocating before `checkAnswer` (at most the file's size) are recorded, not bounded.
 - **Overlay and templates**: re-expand only the template an arrival touches, keep instance layers across overlay
   versions, key the overlay on what it reads of the model (a view-only edit rebuilds it); a static layer whose `data`
   names a dynamic node waits for it instead of reporting `seq.view.layer.data`; highlights hold their nodes (the
@@ -432,6 +432,11 @@ extension kinds.
   legend entry without a swatch, its label doubled; the scattered pick's grid lines in dark; the dot plot's white empty
   cells in dark and "chr1" against "1"; Liftover's overlapping labels, jargon and no bridge legend; the methylation
   matrix's missing cells as dark as low ones, samples called "State"; BED12 tracks unnamed.
+- **Search's followups** (CL5): rows and cells layers searched (letters layers only now); the alignment representative
+  and the heavy timing bounds; `seq.search.save.rects` unused; a source not open yet is skipped and said, not waited for
+  (the store signals no attach); the Design/Mocks/Search mock; feature 182 "building"; the box's strand switch shown for
+  a protein too (nucleotides only, the design); a plain regex covers about 8–16 Mb before `maxSteps`, under
+  `maxLetters`.
 - **The idle ring in one place** (FX27): `viewer/src/ring-cut.ts` repeats `ViewModel._idleRing`'s rule (no `follow`, no
   follower); expose it on `ViewModel` and use it from both.
 - **The tracks layout's allocation pass** (CL11's drift, `strip-layout-per-hull`): a section of many blocks lays a
