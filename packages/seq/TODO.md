@@ -508,3 +508,7 @@ extension kinds.
 - **The close-out's measurements, the lesser overs** (2026-11-24, `close-out/measurements.md`): settled frames 9 to 14
   ms on Signal and Manhattan, most of it the story's SVG twin following at rest; single 30 to 43 ms frames in tight
   synthetic loops (One Side Zoomed In, By Data), gone when frames yield, read as deferred GC, unproven.
+- **The 200-copy split and merge over their edit bound** (the close-out's measurements, after FX36; carried by the
+  author, 2026-11-24): the split's first frame 21.1 ms and its task 28.7 ms, the merge's task 17.5 ms (edit < 16). The
+  first frame's JavaScript 6 to 8 ms headless, the rest inferred canvas drawing of 200 copies; a design question: lays
+  shared between identical copies. Profile the remaining microtask tails (~7.6, ~12 ms) first.

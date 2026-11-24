@@ -129,3 +129,6 @@ attributed); the split's and merge's remaining microtask tails (~7.6 ms, ~12 ms)
 **Still over**: the split patch's first frame (21.1 ms) and its task (28.7 ms), the merge's task (17.5 ms median, 22.5
 max). FX36 found the first frame's JavaScript 6 to 8 ms headless, the rest inferred canvas drawing of 200 copies; a cut
 means sharing lays between identical copies (a design change).
+
+**Carried** (the author, 2026-11-24: "Carry it"): the split patch's first frame and task and the merge's task, to the
+next plan as a design question (sharing lays between identical copies; the remaining microtask tails profiled first).
