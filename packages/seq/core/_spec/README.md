@@ -4546,8 +4546,9 @@ cost to the minimal viewer is the names the chunk imports from it).
   channel gives no color takes the ranges' ink. The layer's data filter (`<pairs>/(except :of (item :type …))`) is read
   pair by pair at prepare (`id`, `type`, `label`, the strands and ends as fields), and on pairs read by region as their
   items land (`withData`: the base and the filter kept on the prep); bins read by region carry no fields, so neither is
-  read on them: a pair left out is not drawn, split or hit, counted on its track's "n filtered" (a `section` layer's
-  too); a form not read pair by pair is `seq.render.filter`.
+  read on them (every bin is drawn, said once: `seq.render.pairs.filter`, info); a pair left out is not drawn, split or
+  hit, counted on its track's "n filtered" (a `section` layer's too); a form not read pair by pair is
+  `seq.render.filter`.
 - **Split order**: at one place the others' closing ends, each self-pair's two ends, then opening ends; equal intervals
   nest: a self-pair, a duplicate and a shared end cross nothing (held against a brute force).
 - **Hit**: candidates by hull over the point's x, then distance to the curve (`pairs.hitPx`), and the carets by the
@@ -5105,14 +5106,14 @@ mark, as data; the viewer's `seq:tooltips` provider and an export's titles read 
 ### Issues
 
 - `seq.render.*` (`RenderIssues`): `rows.reduced` (info), `rows.clade` (info), `rows.text.unfolded` (info),
-  `logo.profile` (info), `rows.order` (info), `rows.lazy` (info), `pairs.limit` (info), `pairs.systems`, `grid.systems`,
-  `layer.axes`, `rows.layout`, `rows.second`, `view`, `color`, `theme.channel`, `theme.scheme`, `theme.measure`,
-  `theme.color`, `scale.log` (info), `legend.unlisted` (info), `filter`, `line-style` (info), `numbering`,
-  `numbering.fallback`, `numbering.limit`, `numbering.source`, `numbering.rows`, `layer.type`, `layout`,
-  `layer.letters`, `axis.pending` (info), `text.lines`, `follow.leader`, `follow.blocks`, `ring.image`, `follow.cycle`,
-  `source`, `template.limit`, `unsettled`, `navigator.of`, `navigator.path`, `navigator.rows` (info), `navigator.layer`
-  (info), `navigator.export`, `layer.hover` (refused at registration: Emphasis, The hover contract); a test checks the
-  catalog.
+  `logo.profile` (info), `rows.order` (info), `rows.lazy` (info), `pairs.limit` (info), `pairs.filter` (info),
+  `pairs.systems`, `grid.systems`, `layer.axes`, `rows.layout`, `rows.second`, `view`, `color`, `theme.channel`,
+  `theme.scheme`, `theme.measure`, `theme.color`, `scale.log` (info), `legend.unlisted` (info), `filter`, `line-style`
+  (info), `numbering`, `numbering.fallback`, `numbering.limit`, `numbering.source`, `numbering.rows`, `layer.type`,
+  `layout`, `layer.letters`, `axis.pending` (info), `text.lines`, `follow.leader`, `follow.blocks`, `ring.image`,
+  `follow.cycle`, `source`, `template.limit`, `unsettled`, `navigator.of`, `navigator.path`, `navigator.rows` (info),
+  `navigator.layer` (info), `navigator.export`, `layer.hover` (refused at registration: Emphasis, The hover contract); a
+  test checks the catalog.
 
 ## Stories
 

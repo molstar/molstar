@@ -120,6 +120,12 @@ export const RenderIssues = defineIssues('seq.render', {
       'More pairs are in view than `pairs.maxArcs`: one arc is drawn a bin of their ends’ device columns, the rest as a density strip of ends',
     hint: 'Zoom in to see every arc',
   },
+  'seq.render.pairs.filter': {
+    severity: 'info',
+    description:
+      'A pairs layer’s data filter is not applied to the bins a source serves by region (a bin has no fields to read): every bin is drawn until the view is zoomed in to the items',
+    hint: 'Zoom in to the items, or filter the source’s pairs before they are binned',
+  },
   'seq.render.rows.layout': {
     severity: 'warning',
     description: 'A rows layer draws in tracks and text sections only: in another layout it is not drawn',
