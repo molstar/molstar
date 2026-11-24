@@ -65,3 +65,5 @@
 - Seq\* (next): a double-click on a chromosome's label or arc opens it on the genome ring; a legend swatch says its
   click highlights; a track's menu offers "Show every lane" and "Cap the lanes" (`track.height`); a reference
   line's label shows its value ("genome-wide · 7.3").
+- Seq\* (next): a navigator part rewrites its readout only when it changes; the genome ring's square keeps its cells
+  when re-made over the same data.

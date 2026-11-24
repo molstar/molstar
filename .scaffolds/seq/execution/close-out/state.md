@@ -20,8 +20,7 @@ viewer's label churn over its baseline is in `fixes.md`, outside the close-out's
 
 ## Next
 
-1. **FX36** (`briefs/fx36-perf-overs.md`, the author: "Yes, one perf lane"): the measurements' four real overs (the
-   split patch, the square's release, search's steps, the stem hover); running.
+1. FX36 merged (`feaabd7b3`); its four cases re-measured in the pane (running).
 2. The last gate, then FINALIZE.
 
 ## Blockers and open questions
