@@ -878,7 +878,7 @@ registry entry, an option of a call, or fixed with its reason).
 | A source's reachable region read under the layer's bounds (`seq.render.reach`) | core › A source's reachable region |
 | The cut edge where lanes are cut | core › Past the cap, a track's lanes scroll inside it |
 | The values look; colour by value and points | core › Layer types |
-| History keeps a lanes band's scroll by its top item | viewer › Bands (built by the close-out's CL13: a lanes band's step keyed by its top lane's item, its `bandTop` kept when the item is gone) |
+| History keeps a lanes band's scroll by its top item (its `bandTop` kept when the item is gone; built by the close-out) | viewer › Bands |
 | A label with no room floats at the data's left edge | core › Past the cap, a track's lanes scroll inside it |
 | Export draws every lane (`export.lanes`, `export.maxTrackPx`) | core › Past the cap, a track's lanes scroll inside it |
 | The rows band to `rows.maxPx`; a ring compacts past `rings.trackMaxPx` | core › A track with no `height` fits its content |
