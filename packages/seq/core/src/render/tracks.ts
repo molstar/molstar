@@ -109,6 +109,8 @@ function directionMark(section: ResolvedSection, config: RenderConfig): string |
 }
 
 const NoLays: readonly LayerLayout[] = [];
+// what a record spreads where it adds nothing (a group's indent, its headers): one object, a layout allocates none for it
+const NoProps = Object.freeze({});
 const NoSectionLays: LayerLayout[] = [];
 
 /** Whether a band's box reaches a placement's scrolled area (always where it does not scroll). */
@@ -487,17 +489,20 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       }
     }
     // its groups folded (_spec/README.md "Render", Track groups): a folded group's tracks give way to its summary bands
-    const folding = foldGroups(
-      section,
-      shown,
-      trackOf,
-      sourceOf,
-      viewport?.groups ?? input.groups?.[section.address],
-      layout === TracksLayout,
-      config,
-      (l) => firstType(l, types),
-      sectionReport,
-    );
+    // (a section without groups calls nothing: its layout allocates nothing for them)
+    const folding = section.trackGroups
+      ? foldGroups(
+          section,
+          shown,
+          trackOf,
+          sourceOf,
+          viewport?.groups ?? input.groups?.[section.address],
+          layout === TracksLayout,
+          config,
+          (l) => firstType(l, types),
+          sectionReport,
+        )
+      : undefined;
     if (folding) {
       shown.splice(0, shown.length, ...folding.shown);
       trackOf.splice(0, trackOf.length, ...folding.trackOf);
@@ -872,7 +877,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         // centred on its well (its padding with it), not on its data
         labelY: head ? head.labelY : well.y + well.height / 2 + labelSize * 0.35,
         layers,
-        ...(indent ? { indent } : {}),
+        ...(indent ? { indent } : NoProps),
         // a header under the fixed head or past the box is neither drawn nor hit (its line wholly in the scrolled area)
         ...(head &&
         (!scrolls ||
@@ -1023,7 +1028,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         : undefined;
     const sectionLayout: SectionLayout = {
       section,
-      ...(groups ? { groups } : {}),
+      ...(groups ? { groups } : NoProps),
       id: sectionId(section),
       layout,
       placement,
