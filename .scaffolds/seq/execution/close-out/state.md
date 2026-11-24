@@ -20,12 +20,13 @@ address) is off since the author's restart, 2026-11-24 08:45: the refused grep o
 - **CL5 search merged** (`a4668800a`), sizes raised: default 1,566.1/1,570, minimal 1,101.7/1,105.
 - **CL6 track groups merged** (`a1097142a`), sizes raised: headless 986.4/990, default 1,578.9/1,582, minimal 1,112.3/1,115.
 - **FX25 merged** (`9040adc8d`): minimal 1,115.4/1,117, default 1,582.0/1,584.
-- **CL8** reported and reviewed, its fix round done (the line `msui-text`, the author's word); to merge next.
+- **CL8 merged** (`a95dbf373`): headless 992.1/995, default 1,584.7/1,588, minimal 1,117.1/1,120.
+- **FX29** a legend row hiding a whole track (Sonnet, `seq/fx29`), started 2026-11-24 11:12 (the author's screenshots).
 - **FX28** the bridge's canvas gap (Sonnet, `seq/fx28`), started 2026-11-24 11:00 (the author's screenshot).
 
 ## Next
 
-1. CL8 (values' reference lines, within 0.11.0) and FX25 (rebase, items 3–6), started after CL6's merge.
+1. FX28 and FX29's reports; then GATE 2.
 3. GATE 2 after CL5, CL6, CL8 and FX25; then the use gate, the novice pass, the measurements, the last gate.
 
 ## Blockers and open questions

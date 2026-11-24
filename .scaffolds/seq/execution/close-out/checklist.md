@@ -26,7 +26,7 @@
 
 <!-- Wave 4 -->
 - [x] CL7 Streamed patches: a bookmark or ref naming a dynamic node (`1e499c655`)
-- [ ] CL8 Values marks: points, log scale, reference lines
+- [x] CL8 Values marks: points, log scale, reference lines (`a95dbf373`)
 - [x] CL13 (`27470de3e`) Carried small items: the BLOSUM62 text, a folder-graph test, a lanes band's history by item, `rowsValue` over a lazy alignment, `seq.render.pairs.filter`
 
 <!-- Wave 5 -->
