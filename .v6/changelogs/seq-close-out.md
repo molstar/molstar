@@ -52,3 +52,5 @@
   includes them (language 0.11.0).
 - Seq\* (next): a letters layer's legend row is titled by its layer ("Sequence letters") and lists every colour it
   draws, its eye says what it hides; hiding it keeps the track's label whole.
+- Seq\* (next): a track's or a section's `height` takes `'content'`: it is as tall as its content, never scrolling
+  inside (a ring keeps its cap; language 0.11.0).

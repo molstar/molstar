@@ -1,6 +1,6 @@
 # State: close-out (updated 2026-11-24, by the orchestrator)
 
-Branch: `packages-seq` Head: `271ab74ed` (FX29 merged) and its records
+Branch: `packages-seq` Head: `60170c5b5` (FX30 merged) and its records
 
 ## Where it stands
 
@@ -9,7 +9,7 @@ written). Search, track groups and values marks are agreed (the drafts in `draft
 lane); the language bump to `0.11.0` is CL6's, with CL8's `reference` after it in the same unreleased version.
 
 Stage 0 and GATE 0 are closed; waves 1 and 2 are merged and GATE 1 passed. Merged since: CL13 (`27470de3e`), CL9
-(`19733d6c3`), CL7 (`1e499c655`), CL11 (`cc4fab363`), CL12 (`245c82baf`), FX26 (`08a6ffe44`), FX27 (`938396a33`), CL5 (`a4668800a`), CL6 (`a1097142a`), FX25 (`9040adc8d`), CL8 (`a95dbf373`), FX29 (`271ab74ed`). Sizes at the head: spec 264.3/265, headless 994.1/995, default 1,586.6/1,588, minimal 1,118.8/1,120, ring 45.0/48,
+(`19733d6c3`), CL7 (`1e499c655`), CL11 (`cc4fab363`), CL12 (`245c82baf`), FX26 (`08a6ffe44`), FX27 (`938396a33`), CL5 (`a4668800a`), CL6 (`a1097142a`), FX25 (`9040adc8d`), CL8 (`a95dbf373`), FX29 (`271ab74ed`), FX30 (`60170c5b5`). Sizes at the head: spec 265.0/268, headless 995.0/1,000, default 1,587.5/1,592, minimal 1,119.6/1,124, ring 45.0/48,
 bridge chunk 26.0/28.
 
 ## In progress
@@ -21,8 +21,8 @@ The `cc-plugin-privacy` plugin no longer refuses lanes since the author's restar
   its one fix round from the review is running: the read keyed by tile, not by view (a rebuild a frame), a perf case
   for an assembly pan, non-vacuous sweeps.
 - **FX29** merged (`271ab74ed`). The author to confirm `themes.md`'s legend-row rule; perf not rerun at the merge
-  (load 21–31): at GATE 2.
-- **FX30** `height: 'content'` (`seq/fx30`): its fix round is running.
+  (load 21–31): at GATE 2, with FX30's.
+- **FX30** merged (`60170c5b5`), the sizes raised with FX29's; perf at GATE 2.
 
 ## Next
 
@@ -32,9 +32,8 @@ The `cc-plugin-privacy` plugin no longer refuses lanes since the author's restar
 ## Blockers and open questions
 
 The author: confirm `themes.md`'s legend-row rule (FX29); a name for a folded group's summary layer (its raw id
-"ranges#summary" shows in its legend row and eye: TODO). Size headroom is under 1 kB on headless and minimal: FX30
-and FX28 may need raises, with their causes, under the author's leave. At the close: remove the locked, clean
-worktrees (CL4's, CL7's, CL9's, CL11's, CL12's, CL13's, FX26's, FX29's, the reviewers') and their branches.
+"ranges#summary" shows in its legend row and eye: TODO). Sizes raised at FX30's merge (headless 1,000). At the close: remove the locked, clean
+worktrees (CL4's, CL7's, CL9's, CL11's, CL12's, CL13's, FX26's, the reviewers') and their branches.
 
 ## Verify
 
