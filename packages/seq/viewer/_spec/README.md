@@ -470,8 +470,17 @@ then resolves.
   address's (`moved`, `pending`, `none`); every focus and reveal names its Location to the view's last jump (ViewModel,
   History).
 - **A focus that waits** (an address of a node not held, data not loaded) is kept and runs when the address resolves:
-  retried on the refs' state, the store's version and its node version; another focus replaces it. A focus whose section
-  is not placed yet (no width, no length) is kept as the view's intent and reported not done
+  retried on the refs' state, the store's version and its node version; another focus replaces it. One waiting on nodes
+  (`waitsFor`) says them (`Waiting for T2`) and asks the first not held of its source (`models/node-seek.ts`, a lazy
+  chunk loaded on the first such jump): a source that finds names (`findNames`) says where its key is, and that region
+  is read through one wanter of the view's priority until the wait ends (the focus runs, is replaced or dropped), so a
+  node evicted, or never read, still arrives; a source with no such key is said once a reading
+  (`seq.address.node.unknown` in `issues`), the focus dropped, and a ref or a focus on it is then `missing` with that
+  issue (`Its source has no T9`). The focus asks again as nodes arrive, so a node inside one that arrived (a nested
+  source's) is asked then; when the first node not held cannot be asked (its source not attached, or finding no names)
+  the wait's reads are let go and it waits for its data. Another waiting focus replaces it and its reads. `seeking()`
+  lists the regions a wait reads now. Nothing is asked while nothing jumps: a waiting ref holds no data. A focus whose
+  section is not placed yet (no width, no length) is kept as the view's intent and reported not done
   (`Kept until the view is placed`), never `Focused`; the address is the focus (`focusAddress()`) once the kept move
   lands. Before any spec is set (`SpecModel.loaded` false: the empty spec a viewer starts with) every address waits, so
   a link followed before the document arrives is kept and runs when it is set (retried with the refs' state). The record
@@ -481,11 +490,11 @@ then resolves.
   `beforeCommit`, so every commit's moves reach it), rewrites the session's addresses (selection, highlights, the
   waiting and the last focus) through moves and renames as the spec's refs are; on each new root they are resolved
   again, and one that names nothing is dropped with `seq.address.missing` in `issues`.
-- **Refs**: `refs`, the spec's refs with what each names now (status, label, color, targets), a new list only when an
-  entry changed; `addRef` adds one as one patch (`addRefPatch`, made against the revision just read) through
-  `SpecModel.patch`: one step of the history (a promise while the history runs it); a ref that would dangle is refused;
-  `bookmarkSelection({ id?, label? })` adds one for the selection (its id and label made from the root the edit runs on:
-  undefined with nothing selected).
+- **Refs**: `refs`, the spec's refs with what each names now (status, label, color, targets; a ref waiting on a node its
+  source said it has none of `missing`), a new list only when an entry changed; `addRef` adds one as one patch
+  (`addRefPatch`, made against the revision just read) through `SpecModel.patch`: one step of the history (a promise
+  while the history runs it); a ref that would dangle is refused; `bookmarkSelection({ id?, label? })` adds one for the
+  selection (its id and label made from the root the edit runs on: undefined with nothing selected).
 - **Links**: `link(action, address, channel?)`, `parseLink(text)` with the `links.*` settings; `copyLink()`, the link
   (`copyLink.action`) of the selection's address, else of what the pointer is over (its element, else its position).
 - **The session as addresses**: `selectionAddress()` (the address it was set from, else the shortest of what it holds),

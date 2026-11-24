@@ -9,6 +9,10 @@ What this version contains and will contain. Each feature links its story here o
 ## Built
 
 - **Editing**: every edit is a patch, and patches are the only undoable changes.
+  - patches on streamed things: a bookmark on a transcript read by region is a patch whether or not the transcript is
+    held, stays (waiting) when its region is evicted, undoes and redoes either way; a jump on it says what it waits for,
+    asks the source where the transcript is and runs when it arrives, and a key the source does not have is said once:
+    [Features › Addressing › Bookmarks](?path=/story/seq-next-features-addressing-bookmarks--bookmarks);
   - patches through the viewer's commands (hide, show, move a track, color a layer, add a bookmark), each one step of a
     host's undo stack that also holds the host's own state:
     [Features › Editing](?path=/story/seq-next-features-editing--editing);
@@ -169,7 +173,6 @@ What this version contains and will contain. Each feature links its story here o
 
 Version 1's close-out builds these (the author, 2026-11-23).
 
-- **Data and sources**: patches on streamed things.
 - **Layers and themes**: track groups, summaries and collapse; points, log scales and reference lines on values.
 - **Interaction and editing**: search: matchers for exact, degenerate and regex patterns, stepping through the hits and
   saving them as a set, with the search box and its results left to the application.

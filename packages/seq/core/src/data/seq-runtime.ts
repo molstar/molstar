@@ -13,6 +13,7 @@ import {
   isAbortError,
   type OpenContext,
   type OpenedSource,
+  SeqNodeKeyField,
   type RegionAnswer,
   type RegionRequest,
   type SourceEntry,
@@ -24,7 +25,8 @@ import { joinTables, sliceTable } from './tables.js';
 import { sourceNameOf } from './system-names.js';
 
 // The `seq` format's runtime (_spec/README.md "Data", The seq format): a source of request/answer pairs answers a
-// region by joining the pairs of its system and level that overlap it, each cut to its part of the region.
+// region by joining the pairs of its system and level that overlap it, each cut to its part of the region; its
+// dynamic nodes are found by key when its coverage says so.
 
 /** A source that could not be opened, with its issues. */
 export class SourceOpenError extends Error {
@@ -48,6 +50,18 @@ function malformed(why: string): RegionAnswer {
     kind: 'malformed',
     issue: issueOf(SourceIssues, 'seq.source.malformed', `The source's pairs do not join: ${why}`),
   };
+}
+
+/**
+ * A `seq` source's dynamic nodes found by key (_spec/README.md "Data", The seq format), when its coverage lists `key` in
+ * `names`: the index a lazy chunk (`seq-node-keys.ts`), loaded on the first find.
+ */
+function nodeKeys(data: SeqData): OpenedSource['findNames'] {
+  if (!data.coverage.names?.includes(SeqNodeKeyField)) return undefined;
+  return (text, options, signal) =>
+    signal.aborted
+      ? Promise.reject(abortError())
+      : import('./seq-node-keys.js').then((m) => m.findNodeKeys(data, text, options, signal));
 }
 
 /**
@@ -137,12 +151,14 @@ export function openSeq(data: SeqData): OpenedSource {
     const out = tables as Tables;
     return nodes.size ? { ok: true, tables: out, nodes: [...nodes.values()] } : { ok: true, tables: out };
   };
+  const findNames = nodeKeys(data);
   return {
     coverage: data.coverage,
     read(request, signal) {
       if (signal.aborted) return Promise.reject(abortError());
       return Promise.resolve(answer(request));
     },
+    ...(findNames ? { findNames } : {}),
     dispose() {},
   };
 }

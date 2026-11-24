@@ -477,6 +477,12 @@ export interface FormatRuntime {
   open(source: SourceEntry, ctx: OpenContext): Promise<OpenedSource>;
 }
 
+/**
+ * The name field under which a `seq` source finds its dynamic nodes by key, when its coverage lists it in `names`
+ * (_spec/README.md "Data", The seq format).
+ */
+export const SeqNodeKeyField = 'key';
+
 /** The rejection of an aborted read: never an error state. */
 export function abortError(): Error {
   const e = new Error('The read was aborted');

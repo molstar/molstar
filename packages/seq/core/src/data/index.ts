@@ -76,6 +76,7 @@ export {
   type RowsTable,
   type Shape,
   type ShapeInfo,
+  SeqNodeKeyField,
   Shapes,
   type SourceEntry,
   type SystemInfo,

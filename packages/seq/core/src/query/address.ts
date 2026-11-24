@@ -78,6 +78,32 @@ export interface AddressResolution {
   /** False when the result covers only what is loaded; `pending` is then what is not. */
   readonly complete: boolean;
   readonly pending: Location;
+  /**
+   * When `waiting` for nodes data makes: each `(node :key k)` of what it names, by the address of what holds it (a
+   * source) and its key, in order (an outer node before one it holds). Whoever resolves may ask a source for it.
+   */
+  readonly waitsFor?: readonly WaitedNode[];
+}
+
+/** A node data makes that an address names: its holder's address (a source) and its key. */
+export interface WaitedNode {
+  readonly source: string;
+  readonly key: string;
+}
+
+/** The `(node :key k)` forms of an address, each with the address before it (its holder). */
+function nodeForms(address: string): WaitedNode[] {
+  const pattern = parseAddress(address).pattern;
+  if (!pattern) return [];
+  const out: WaitedNode[] = [];
+  for (let i = 0; i < pattern.segments.length; i++) {
+    const s = pattern.segments[i];
+    if (typeof s === 'string' || s.kind !== 'node') continue;
+    const key = s.params?.key;
+    // a string key: a number never names a node
+    if (typeof key === 'string') out.push({ source: printAddress(pattern.segments.slice(0, i)), key });
+  }
+  return out;
 }
 
 const refusalCodes = {
@@ -245,13 +271,19 @@ export function resolveAddressIn(
   let complete = true;
   let pending = EmptyLocation;
   let notHeld = false;
+  const waits: WaitedNode[] = [];
   for (const t of targets) {
     const ev = evaluateQuery(root, model, t, { limit, maxDepth, signal: options.signal, deadline: options.deadline });
     if (hasErrors(ev.issues) || !ev.result) return done('failed', ev.issues, via);
+    let missing = false;
     for (const i of ev.issues) {
       // a node data makes and not held: the address waits for it (reported once, below)
-      if (i.code === 'seq.query.node.missing') notHeld = true;
+      if (i.code === 'seq.query.node.missing') missing = true;
       else issues.push(i);
+    }
+    if (missing) {
+      notHeld = true;
+      for (const n of nodeForms(t)) if (!waits.some((w) => w.source === n.source && w.key === n.key)) waits.push(n);
     }
     if (!ev.complete) {
       complete = false;
@@ -272,7 +304,11 @@ export function resolveAddressIn(
   if (isEmptyResult(result)) {
     if (notHeld || !complete) {
       const waiting = issueOf(AddressIssues, 'seq.address.waiting', 'The address waits for its data', { address });
-      return done('waiting', [...issues, places.length ? { ...waiting, places } : waiting], via, extra);
+      const nodes = waits.length ? { waitsFor: waits } : {};
+      return done('waiting', [...issues, places.length ? { ...waiting, places } : waiting], via, {
+        ...extra,
+        ...nodes,
+      });
     }
     const missing = issueOf(AddressIssues, 'seq.address.missing', 'The address names nothing', {
       address,

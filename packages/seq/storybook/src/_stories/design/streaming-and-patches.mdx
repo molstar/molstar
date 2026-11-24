@@ -21,7 +21,9 @@ changes data store entries, so the draw lists rebuild what read them.
 
 - **Undo is the spec's patch history only.** A gesture's preview ends in one step.
 - **Patches may name streamed things.** A bookmark on a transcript is a patch like any other. Undo works whether or not
-  the transcript is loaded, and the bookmark waits while it isn't.
+  the transcript is loaded, and the bookmark waits while it isn't. A jump on it says what it waits for ("Waiting for
+  T2") and asks the source where the transcript is, so it arrives even after its region was evicted; a key the source
+  does not have is said once, and the bookmark then names nothing.
 - **A streamed track lives while its data is in view.** A template's track per arriving node (a gene's exons) holds its
   node only while the node's region meets the view (decided 2026-11-19); scrolled away, it goes with its node.
 - **Streams never become patches.** Arriving data never enters the spec. Keeping a region is a command that writes a

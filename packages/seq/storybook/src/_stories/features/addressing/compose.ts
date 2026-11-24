@@ -12,6 +12,7 @@ import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import type { RefEntry } from '@molstar/seqx-viewer/models';
 import { mountToolbar } from '@molstar/seqx-viewer/mount-toolbar';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
+import type { SeqViewerSpec } from '@molstar/seqx-viewer/viewer-spec';
 
 // The addressing stories' composition, DOM-free: the story and its headless twin call these, so the twin composes the
 // viewer and acts on it as the story does. Every action goes through the viewer's commands or its address model (a
@@ -24,6 +25,10 @@ export interface ComposeOptions {
   readonly delayMs?: number;
   /** The ports: the twin's reads the fixtures from memory. */
   readonly ports?: SeqPorts;
+  /** Configuration items (a twin's smaller cache, so a region's tiles are evicted). */
+  readonly config?: SeqViewerSpec['config'];
+  /** The host's history port: bookmarks are then steps of its undo stack. */
+  readonly history?: SeqViewerSpec['history'];
 }
 
 /** A viewer of an example view, composed from the default spec with the view's registry. */
@@ -36,6 +41,8 @@ export function composeViewer(view: ExampleView, options: ComposeOptions = {}): 
       ui: options.target ? { ...base.ui, toolbar: mountToolbar } : undefined,
       registry: [...(base.registry ?? []), ...extra],
       ...(options.ports ? { ports: options.ports } : {}),
+      ...(options.config ? { config: [...(base.config ?? []), ...options.config] } : {}),
+      ...(options.history ? { history: options.history } : {}),
     },
     options.target,
   );

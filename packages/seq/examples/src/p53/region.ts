@@ -5,7 +5,7 @@
  */
 
 import { categoryColumn, type Node } from '@molstar/core/repr/tree';
-import { type DynamicNode, encodeSeq, type SeqData, seqToValue } from '@molstar/seqx-core/data';
+import { type DynamicNode, encodeSeq, type SeqData, SeqNodeKeyField, seqToValue } from '@molstar/seqx-core/data';
 import { itemAddress, nodeAddress } from '@molstar/seqx-core/resolve';
 import { Domains, GeneExons, GeneLength, geneLetters, seeded } from './data.js';
 
@@ -13,7 +13,8 @@ import { Domains, GeneExons, GeneLength, geneLetters, seeded } from './data.js';
 // `GeneOffset`) and a neighbor on the other strand, served in regions of `RegionSize` by a `seq` source. A region's
 // answer brings, as dynamic nodes, the transcripts whose coding exons it overlaps: each a coding ranges node on the
 // region (minus strand for TP53) and, for TP53's, a nested source of its domains on the transcript's residues. The
-// isoforms and the neighbor are made up; the domains are the protein's, cut to each isoform's length.
+// isoforms and the neighbor are made up; the domains are the protein's, cut to each isoform's length. Its transcripts
+// are found by key (its coverage's `names`), so a bookmark on one that is not held knows where to read it.
 
 /** Where the gene's letters start in the region. */
 export const GeneOffset = 2000;
@@ -149,6 +150,8 @@ export function regionData(format = RegionFormat): SeqData {
       systems: [{ name: RegionSystem, length: RegionLength, alphabet: 'dna' }],
       shapes: [{ system: RegionSystem, shape: 'letters' }],
       levels: [1],
+      // its transcripts found by key: a bookmark on one that is not held asks where to read it
+      names: [SeqNodeKeyField],
     },
     pairs,
   };
