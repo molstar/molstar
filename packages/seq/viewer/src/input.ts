@@ -49,6 +49,7 @@ import type {
 } from '@molstar/seqx-viewer/behaviors';
 import { isDragSelect } from '@molstar/seqx-viewer/behaviors/select';
 import { trackOfLayer } from '@molstar/seqx-viewer/behaviors/two-axes';
+import { RingCut } from './ring-cut.js';
 import { SectionRailGesture, SectionWheel, scrolledSection } from './section-scroll.js';
 import {
   type Anchor,
@@ -162,6 +163,11 @@ export class ViewerInput {
   private _sectionWheel: SectionWheel | undefined;
   // The two getters below make their objects in methods of their own: a closure in a getter makes V8 allocate the
   // getter's context (40 bytes) on every call, the fast path's too, once the slow path has run in optimized code.
+  /** The zoom of a ring nobody follows, a cut (ring-cut.ts). */
+  private _ringCut: RingCut | undefined;
+  private get ringCut(): RingCut {
+    return (this._ringCut ??= new RingCut(this.viewer));
+  }
   private get sectionWheel(): SectionWheel {
     return (this._sectionWheel ??= this._newSectionWheel());
   }
@@ -993,6 +999,7 @@ export class ViewerInput {
     const plot = this._overPlot(section, x, y);
     if (pinch) {
       // the pinch's own modifiers: none (the Ctrl is the gesture's, not a key held)
+      if (this.ringCut.zoom(section, NoModifiers, target, dy, x, y, true)) return true;
       const taken = this.viewer.bindings.resolve('pinch', NoModifiers, target) !== undefined;
       if (taken) nav.pinch(section, Math.exp(-dy * pointer.pinchSpeed), local, NoModifiers, target, at, atY);
       this.viewer.schedule();
@@ -1028,6 +1035,7 @@ export class ViewerInput {
     }
     if (textBox && !e.ctrlKey && !e.metaKey) return this._scrollBox(section, dy);
     if (overflowing && vertical) return this._scrollSection(section, dy);
+    if (this.ringCut.zoom(section, mods, target, dy, x, y)) return true;
     const taken = this.viewer.bindings.resolve('wheel', mods, target) !== undefined;
     if (taken) nav.wheel(section, dx, dy, local, mods, target, at, atY);
     // the frame asked for after the behavior's own, so a wheel's deltas apply in the frame that draws them

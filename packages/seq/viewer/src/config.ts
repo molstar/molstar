@@ -196,6 +196,10 @@ export interface ViewerConfig {
      * chromosome at a time; a jump to another block moves there).
      */
     readonly acrossBlocks: 'cross' | 'stop';
+    /** A ring nobody follows: the px of one wheel gesture's deltas that make its cut (50), the zoom being the cut. */
+    readonly cutNotch: number;
+    /** A wheel gesture over such a ring is over after this many ms without a wheel (250): the next cuts again. */
+    readonly cutRestMs: number;
   };
   readonly theme: {
     /**
@@ -383,6 +387,8 @@ export const DefaultViewerConfig: ViewerConfig = {
     keyPanFraction: 0.1,
     coalesceWheel: true,
     acrossBlocks: 'cross',
+    cutNotch: 50,
+    cutRestMs: 250,
   },
   theme: { source: 'root', cvdSafe: false },
   canvas: { height: 'content', maxHeight: 2048, dpr: 'device', settleMs: 150 },

@@ -72,6 +72,11 @@ export interface Placement {
   place(offset: number, out: PlacePoint): boolean;
   /** A polar strip's warp (`strips.warp` polar). */
   warpOf?(strip: number): PolarWarp;
+  /**
+   * A ring's block whose band is under a page point (its index in the section's blocks): -1 inside the placement's box
+   * with no block there (the hole, a label, a gap), undefined outside the box. Only a placement of blocks has it.
+   */
+  blockAt?(x: number, y: number): number | undefined;
   /** Whether its strips are clipped to its box (a section that scrolls inside it). */
   readonly clip?: boolean;
   /**

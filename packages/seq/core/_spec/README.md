@@ -1391,8 +1391,9 @@ times the median, at least 4,096) apart, so one chromosome-long feature never ma
 start; `eachMeeting` calls back on each interval meeting a region; `meetingInto` writes the first of them into a buffer
 and returns how many meet (no closure, no allocation: a hover's lookup, O(log n + k)), its search through a directory of
 every 64th start first (`blocks`: a small array a search keeps in cache, then one block of starts). A zero-length
-interval meets the position it is at. Bound (heavy): a hover's path of lookups over 1,000,000 ranges within 1.5× of
-10,000; random lookups over the large table read about 1.7×, the memory's, not the search's.
+interval meets the position it is at. Bound (heavy): a hover's path of lookups grows as the log of the table: each
+tenfold step of 10⁴ to 10⁷ ranges within 2×, the whole within 3.5× (measured 1.15-1.41× a step, 2.0-2.2× across, under
+load; a linear lookup is 10× a step); random lookups over the large table read more, the memory's, not the search's.
 
 ### Genome runtimes' internals
 
