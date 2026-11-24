@@ -6,32 +6,37 @@ Open items for the next fix point or a running lane's fix round (the loop, Each 
   `ext-rondo/src/card.ts`'s `legendRondo`, CL2's files). The entry has no swatch, and its label doubles ("Contacts: by
   chromosome"). Fix: drop `<name>: ` when it repeats the legend's title, and give "by chromosome" a hue swatch. Kind:
   look. To CL2's fix round.
+- **A bridge's ribbons missing on the canvas after its side moves** (the author, 2026-11-24, Features › Across
+  sections › One Side Zoomed In, a screenshot: "there is a draw error on the canvas version of this"): the canvas leaves
+  ribbons out over part of the zoomed side (Pp01's at the whole genome; 1.55–1.58 Mb of Pp02 after a Ctrl+wheel, the
+  orchestrator's reproduction without FX25 and CL8), the SVG twin draws them; it stays. Kind: bug. To FX28 (bisect,
+  the class fixed, a canvas-against-SVG sweep over the across-sections stories).
 - **Back from deferred** (the author, 2026-11-24, the plugin off: "maybe we can finish FX25 too then?"); was **Deferred** ("ok let's just defer the fixes"): FX25 stopped three times on the
   `cc-plugin-privacy` plugin's refusals (`gaps.md`). Its six items below (TP53-201's lane, the variant card's title, stub
   labels, F9's canvas pressed slot, the square's failure text, the zoom hatch) carry past this close-out, to the next
   plan's first fix lane. Its worktree (`.claude/worktrees/agent-a98a4bf365b8a5323`, `seq/fx25` at `37832382d`) keeps
   items 1 and 2 uncommitted and unreviewed: item 1's tests shown failing on the parent by the author's own run (4 failed,
   149 passed); item 2's not. Kept, never deleted without the author's word.
-- **TP53-201 is first only in the SVG** (the orchestrator's look at CL4, Features › Genome formats › GFF3 › Tp53): the
+- **Fixed by FX25** (`9040adc8d`). **TP53-201 is first only in the SVG** (the orchestrator's look at CL4, Features › Genome formats › GFF3 › Tp53): the
   canonical transcript is bold in both copies, but on the canvas it is the third lane (under TP53-203 and TP53-227) and
   first in the SVG. Answer F10 says first in its gene's stack. Likely the TODO's "the canvas and the SVG of one spec
   lay out differently". Kind: bug. To a fix lane, with a twin test comparing the two copies' lane order.
-- **A variant's card title is its raw id** ("20001:601:f95ba8e6>C"; the orchestrator's look, Examples › Genomes ›
+- **Fixed by FX25** (`9040adc8d`). **A variant's card title is its raw id** ("20001:601:f95ba8e6>C"; the orchestrator's look, Examples › Genomes ›
   Views › Samples): before CL4, not its change. The title names the variant (its kind and position, or its ID). Kind:
   look. To a fix lane.
-- **Stub labels drawn over each other** (the author, 2026-11-24, Features › Genome Ring › Kinds Of Links, the ring
+- **Fixed by FX25** (`9040adc8d`). **Stub labels drawn over each other** (the author, 2026-11-24, Features › Genome Ring › Kinds Of Links, the ring
   zoomed to chr2 from the square: "also a visual bug", a screenshot): two stubs at one angle draw their labels on the
   same spot ("chr11 · 335" and "chr1 · 3…" overprinted into one smear), and their wedges overlap. A stub's label needs
   the ring's label collision rule (stagger or drop the weaker with a "+n"), as the chromosome labels have. Kind: bug.
   Next fix point (a fix lane, with a test on the zoomed ring's label boxes not overlapping).
-- **F9's pressed slot is not drawn on canvas headers** (the orchestrator's look at CL10, Features › Structure link ›
+- **Fixed by FX25** (`9040adc8d`). **F9's pressed slot is not drawn on canvas headers** (the orchestrator's look at CL10, Features › Structure link ›
   Color By This Track; CL10's review): `pressed` reaches the DOM header parts (`aria-pressed`) but not the canvas
   header's slots (`headers-draw`), so the story the decision came from shows no pressed icon. Kind: bug. To a fix lane:
   the canvas slot drawn pressed at rest, one at a time, a test on the canvas draw list.
 - **The pressed state refreshes only on a header run** (CL10's report, in the viewer spec): a host whose colouring
   changes outside a command is not seen until the next layout, hover change or header run. Kind: followup (TODO at
   the close).
-- **The square's failure text found by its source alone** (CL3's size trim, `ext-rondo/src/viewer.ts` `HoleIssue.of`
+- **Fixed by FX25** (`9040adc8d`). **The square's failure text found by its source alone** (CL3's size trim, `ext-rondo/src/viewer.ts` `HoleIssue.of`
   with no section): the square passes no section, so two viewers with one source address and different failures show
   the first viewer's text on both squares (the class of CL2's fixed hole bug). Pass the square's own ring's section or
   viewer. Kind: bug. To FX25, with the two-rings test extended to their squares.
