@@ -14,6 +14,7 @@ import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { RuntimeContext } from '@molstar/core/task';
 import { DefaultAssetManager } from '@molstar/core/util/assets';
 import { Color } from '@molstar/core/util/color';
+import { Material } from '@molstar/core/util/material';
 import { MarkerAction } from '@molstar/core/util/marker-action';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { CIF } from '@molstar/io/reader/cif';
@@ -352,19 +353,68 @@ describe('layers on surfaces', async () => {
     repr.destroy();
   });
 
-  it('does not smooth members of a merged object, which keep one layer type', async () => {
+  it('smooths the layer on the merged segments it reaches, in a part of their own, joined again once cleared', async () => {
     const repr = await createRepr(GaussianSurfaceRepresentationProvider, model, props);
-    const merged = repr.renderObjects.find((o) => isMergedRenderObject(o));
-    if (!merged || !isMergedRenderObject(merged)) throw new Error('expected a merged render object');
+    const mergedOf = () => repr.renderObjects.filter((o) => isMergedRenderObject(o));
+    const before = mergedOf().length;
+    expect(before).toBeGreaterThan(0);
     repr.setState({ overpaint });
     const types = layerTypes(repr);
-    expect(types.filter((t) => t === 'groupInstance set')).toHaveLength(1);
-    expect(types.filter((t) => t !== 'groupInstance set').every((t) => t === 'groupInstance clear')).toBe(true);
-    expect(canMergeRenderObjects(getMergedMembers(merged) as GraphicsRenderObject[])).toBe(true);
-    // the merged copy shows the layer
-    merged.merged.sync();
-    expect(merged.values.overpaintType.ref.value).toBe('groupInstance');
-    expect(isZero(layerData(merged.values.tOverpaint.ref.value.array))).toBe(false);
+    expect(types.filter((t) => t === 'vertexInstance set')).toHaveLength(1);
+    expect(types.filter((t) => t !== 'vertexInstance set').every((t) => t === 'groupInstance clear')).toBe(true);
+    expect(mergedOf()).toHaveLength(before + 1);
+    // the smoothed part's object reads the layer per vertex and instance
+    const smoothed = mergedOf().find((o) => o.values.overpaintType.ref.value === 'vertexInstance');
+    if (!smoothed || !isMergedRenderObject(smoothed)) throw new Error('expected a smoothed merged object');
+    smoothed.merged.sync();
+    expect(isZero(layerData(smoothed.values.tOverpaint.ref.value.array))).toBe(false);
+    // smoothing off: the layer plain, one part again; on: split again
+    await repr.createOrUpdate({ smoothColors: { name: 'off', params: {} } } as any, model).run();
+    expect(mergedOf()).toHaveLength(before);
+    expect(layerTypes(repr).filter((t) => t === 'groupInstance set')).toHaveLength(1);
+    await repr.createOrUpdate(props as any, model).run();
+    expect(mergedOf()).toHaveLength(before + 1);
+    expect(layerTypes(repr).filter((t) => t === 'vertexInstance set')).toHaveLength(1);
+    repr.setState({ overpaint: Overpaint.Empty });
+    expect(mergedOf()).toHaveLength(before);
+    // off (its array reused, what lies beyond the cleared texels never read)
+    expect(members(repr).every((o) => o.values.overpaintType.ref.value === 'groupInstance')).toBe(true);
+    expect(members(repr).every((o) => !o.values.dOverpaint.ref.value)).toBe(true);
+    repr.destroy();
+  });
+
+  it('smooths the four layer kinds on the segments they reach, keeping markers and the other layers', async () => {
+    const repr = await createRepr(GaussianSurfaceRepresentationProvider, model, props);
+    const status = () =>
+      members(repr).map((o) => `${o.values.markerStatus.ref.value}/${o.values.markerAverage.ref.value}`);
+    // a clipping layer and a highlight before the split, kept by every segment through it
+    const all = Structure.toStructureElementLoci(model);
+    repr.setState({
+      clipping: Clipping(all.kind, [{ loci: all, groups: Clipping.Groups.create(Clipping.Groups.Flag.One) }]),
+    });
+    expect(repr.mark(chain, MarkerAction.Highlight)).toBe(true);
+    const marked = status();
+    const clipped = () => members(repr).map((o) => isZero(layerData(o.values.tClipping.ref.value.array)));
+    const clippedBefore = clipped();
+    repr.setState({
+      overpaint,
+      transparency: { kind: chain.kind, layers: [{ loci: chain, value: 0.5 }] },
+      emissive: { kind: chain.kind, layers: [{ loci: chain, value: 0.8 }] },
+      substance: { kind: chain.kind, layers: [{ loci: chain, material: Material({ metalness: 1 }), clear: false }] },
+    } as any);
+    const types = members(repr).map((o) =>
+      ['overpaintType', 'transparencyType', 'emissiveType', 'substanceType']
+        .map((k) => (o.values as any)[k].ref.value)
+        .join(','),
+    );
+    const smoothed = 'vertexInstance,vertexInstance,vertexInstance,vertexInstance';
+    expect(types.filter((t) => t === smoothed)).toHaveLength(1);
+    expect(
+      types.filter((t) => t !== smoothed).every((t) => t === 'groupInstance,groupInstance,groupInstance,groupInstance'),
+    ).toBe(true);
+    // the members in another order (by part): compared as sets
+    expect([...status()].sort()).toEqual([...marked].sort());
+    expect([...clipped()].sort()).toEqual([...clippedBefore].sort());
     repr.destroy();
   });
 
@@ -394,8 +444,8 @@ describe('layers on surfaces', async () => {
     await repr.createOrUpdate({}, model).run();
     expect(repr.renderObjects.some((o) => isMergedRenderObject(o))).toBe(true);
     const types = layerTypes(repr);
-    expect(types.filter((t) => t === 'groupInstance set')).toHaveLength(1);
-    expect(types.filter((t) => t !== 'groupInstance set').every((t) => t === 'groupInstance clear')).toBe(true);
+    expect(types.filter((t) => t === 'vertexInstance set')).toHaveLength(1);
+    expect(types.filter((t) => t !== 'vertexInstance set').every((t) => t === 'groupInstance clear')).toBe(true);
     repr.destroy();
   });
 });

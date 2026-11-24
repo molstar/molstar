@@ -15,7 +15,13 @@ import { isDebugMode } from '@molstar/core/util/debug';
 import { Bond, type Structure, StructureElement, Unit } from '@molstar/model/model/structure';
 import { EmptyLoci, isEveryLoci, type Loci } from '@molstar/model/model/loci';
 import type { Geometry } from '@molstar/graphics/geo/geometry/geometry';
-import { BaseGeometry, type GpuCullingValue, resolveInstanceGranularity } from '@molstar/graphics/geo/geometry/base';
+import {
+  BaseGeometry,
+  getColorSmoothingProps,
+  type GpuCullingValue,
+  hasColorSmoothingProp,
+  resolveInstanceGranularity,
+} from '@molstar/graphics/geo/geometry/base';
 import { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import {
   createMergedRecordsRenderObject,
@@ -70,6 +76,48 @@ function writeFingerprint(v: unknown): unknown {
 }
 /** the shared keys told written apart by segments (debug mode), once a key */
 const warnedSharedWrites = new Set<string>();
+
+/**
+ * The layers smoothed on surfaces (`Visual.setOverpaint` and the others with a smoothing context), each its type's define:
+ * a shared cell, in the merge key, so one type a part
+ */
+const SmoothedLayerKinds = ['overpaint', 'transparency', 'emissive', 'substance'] as const;
+type SmoothedLayerKind = (typeof SmoothedLayerKinds)[number];
+const SmoothedLayerDefines = {
+  overpaint: 'dOverpaintType',
+  transparency: 'dTransparencyType',
+  emissive: 'dEmissiveType',
+  substance: 'dSubstanceType',
+} as const;
+type LayersOf = { readonly layers: ReadonlyArray<{ readonly loci: Loci }> };
+type SmoothedLayers = { [K in SmoothedLayerKind]?: LayersOf };
+type LayerSetter = (
+  o: GraphicsRenderObject,
+  layers: LayersOf,
+  lociApply: Visual.LociApply,
+  clear: boolean,
+  smoothing?: Visual.SmoothingContext,
+) => void;
+const SmoothedLayerSetters = {
+  overpaint: Visual.setOverpaint,
+  transparency: Visual.setTransparency,
+  emissive: Visual.setEmissive,
+  substance: Visual.setSubstance,
+} as unknown as { [K in SmoothedLayerKind]: LayerSetter };
+
+/** Whether `a` and `b` smooth alike (`smoothColors`: its name and params) */
+function isSameSmoothing(a: PD.Values<any>, b: PD.Values<any>) {
+  const x = a.smoothColors;
+  const y = b.smoothColors;
+  return x === y || (x?.name === y?.name && JSON.stringify(x?.params) === JSON.stringify(y?.params));
+}
+
+/** The layers of `state` that smoothing may reach (with layers), by kind */
+function getSmoothedLayers(state: Partial<StructureRepresentationState>): SmoothedLayers {
+  const layers: { [K in SmoothedLayerKind]?: LayersOf } = {};
+  for (const kind of SmoothedLayerKinds) if (state[kind]?.layers.length) layers[kind] = state[kind];
+  return layers;
+}
 
 /**
  * The segments of one merge key (`getMergeKey`) and their merged object: groups of the same props and theme differ in
@@ -168,7 +216,10 @@ export interface UnitsMergedVisual<P extends StructureParams> {
   /** `loci` of the representation's structure (`UnitsRepresentation.mark` remaps it), or `EveryLoci` */
   mark(loci: Loci, action: MarkerAction): boolean;
   eachLocation(cb: LocationCallback): void;
-  /** the representation's state: kept, and applied to every segment made later */
+  /**
+   * the representation's state: kept, and applied to every segment made later; its layers may move segments to other
+   * parts (smoothed layers, `writeLayers`), `renderObjects` then another list
+   */
   setState(state: Partial<StructureRepresentationState>, current: StructureRepresentationState): void;
   destroy(): void;
 }
@@ -239,6 +290,8 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
   let rebuildNext = false;
   /** the segments an update wrote (`updateSegment`): the records then read again (`recordsWritten`) */
   let segmentWrites = 0;
+  /** the segments' geometries made again by updates (`updateSegment`): their smoothed layers then written again */
+  let geometriesRemade = 0;
   /** the groups of the segments' last update, in the segments' order */
   let currentGroups: ReadonlyArray<Unit.SymmetryGroup> | undefined;
   /** the structure and instance granularity the loci are applied with: the update's from its start */
@@ -351,7 +404,7 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
       groupCount: locationIt.groupCount,
       instanceCount: locationIt.instanceCount,
     };
-    applyStateTo({ values } as unknown as GraphicsRenderObject, place);
+    applyStateTo({ values } as unknown as GraphicsRenderObject, place, { geometry, props });
     const part = getPart(values, props);
     // the shared values its prototype: once a record, made as a fast object (a prototype set then, not keys added)
     const record: { [k: string]: unknown } = { ...part.recordTemplate };
@@ -401,11 +454,12 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
    * setting: each segment's own, its key's levels, `withMergeLodKey`): a segment whose key left its part's moves to a
    * part of its key, its record the same (its cells, markers and layers kept) over that part's shared values; parts of
    * one key become one. A key of no part a new part, its shared values a copy of the segment's part's (their cells of
-   * their own, `createEmptyMergeMember`; its own cells its first segment's, `bindShared`)
+   * their own, `createEmptyMergeMember`; its own cells its first segment's, `bindShared`). Whether a segment moved
    */
   function regroupByKey(props: PD.Values<P>) {
     const byKey = new Map<string, Part<G>>();
     const claimed = new Set<Part<G>>();
+    let moved = false;
     for (const seg of segments) {
       const from = seg.part;
       const key = withMergeLodKey(getMergeKey(from.shared), seg.record.lodLevels);
@@ -423,8 +477,113 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
       if (to !== from) {
         Object.setPrototypeOf(seg.record, to.shared);
         seg.part = to;
+        moved = true;
       }
     }
+    return moved;
+  }
+
+  /** The parts' segments again after segments moved: parts without segments gone, their shared values a live segment's */
+  function relistParts() {
+    byUnitId = undefined;
+    for (const part of parts) part.segments = [];
+    for (const seg of segments) seg.part.segments.push(seg);
+    for (const part of parts) if (part.segments.length === 0) disposeObject(part);
+    parts = parts.filter((part) => part.segments.length > 0);
+    for (const part of parts) bindShared(part);
+  }
+
+  /** The parts' merged objects, made where their records changed, as the visual's render objects */
+  function listObjects(props: PD.Values<P>, graphics: GraphicsContext | undefined) {
+    renderObjects = [];
+    for (const part of parts) {
+      updateObject(part, props, graphics);
+      if (part.object) renderObjects.push(part.object);
+    }
+  }
+
+  /**
+   * Whether `layers` smooth on `seg`: a mesh of a surface's resolution, `smoothColors` resolving on (`Visual.setOverpaint`
+   * and the others: per vertex and instance), by group (not instance) and reached; else they are its plain type
+   */
+  function smoothsOn(seg: Segment<G>, layers: LayersOf) {
+    if (layers.layers.length === 0 || seg.geometry.kind !== 'mesh') return false;
+    const props = seg.props as PD.Values<any>;
+    if (!hasColorSmoothingProp(props)) return false;
+    if ((seg.values as MergeableValues).uInstanceGranularity.ref.value) return false;
+    const resolution = (seg.geometry as { meta?: { resolution?: number } }).meta?.resolution;
+    if (!getColorSmoothingProps(props.smoothColors, true, resolution)) return false;
+    return Visual.reachesAny(layers.layers, lociApply(seg));
+  }
+
+  /**
+   * Writes `layers` (the kinds given; the others kept) into every segment, smoothed where they smooth on it
+   * (`smoothsOn`). The parts first: a part's layer types are its shared cells (in its merge key), so its segments of
+   * other smoothed layers move to parts of their own (the most stay), each part's segments then writing the same types;
+   * parts of one key after the writes joined (`regroupByKey`). Whether segments moved: the parts' objects then made again
+   */
+  function writeLayers(layers: SmoothedLayers): boolean {
+    const kinds = SmoothedLayerKinds.filter((k) => layers[k] !== undefined);
+    if (kinds.length === 0 || segments.length === 0) return false;
+    // smoothing per vertex: meshes alone (the surfaces merged on the CPU path)
+    const flags = type === 'mesh' ? new Int32Array(segments.length) : undefined;
+    let split = false;
+    if (flags) {
+      const byPart = new Map<Part<G>, Map<number, Segment<G>[]>>();
+      for (let i = 0, il = segments.length; i < il; ++i) {
+        const seg = segments[i];
+        let f = 0;
+        for (let k = 0; k < SmoothedLayerKinds.length; ++k) {
+          const kind = SmoothedLayerKinds[k];
+          const layer = layers[kind];
+          const smoothed = layer
+            ? smoothsOn(seg, layer)
+            : (seg.values as unknown as { [k: string]: ValueCell<string> })[SmoothedLayerDefines[kind]].ref.value ===
+              'vertexInstance';
+          if (smoothed) f |= 1 << k;
+        }
+        flags[i] = f;
+        let groups = byPart.get(seg.part);
+        if (!groups) byPart.set(seg.part, (groups = new Map()));
+        const group = groups.get(f);
+        if (group) group.push(seg);
+        else groups.set(f, [seg]);
+      }
+      for (const [part, groups] of byPart) {
+        if (groups.size < 2) continue;
+        split = true;
+        let keep = -1;
+        let most = -1;
+        for (const [f, segs] of groups) {
+          if (segs.length > most) {
+            most = segs.length;
+            keep = f;
+          }
+        }
+        for (const [f, segs] of groups) {
+          if (f === keep) continue;
+          const to = createPart(createEmptyMergeMember(type, part.shared), [...part.recordKeys], currentProps!);
+          for (const seg of segs) {
+            Object.setPrototypeOf(seg.record, to.shared);
+            seg.part = to;
+          }
+        }
+      }
+    }
+    for (const kind of kinds) {
+      const set = SmoothedLayerSetters[kind];
+      const layer = layers[kind]!;
+      const bit = 1 << SmoothedLayerKinds.indexOf(kind);
+      for (let i = 0, il = segments.length; i < il; ++i) {
+        const seg = segments[i];
+        const smoothing = flags && flags[i] & bit ? { geometry: seg.geometry, props: seg.props } : undefined;
+        set(asObject(seg), layer, lociApply(seg), true, smoothing);
+      }
+    }
+    if (!flags) return false;
+    const moved = regroupByKey(currentProps!);
+    if (split || moved) relistParts();
+    return split || moved;
   }
 
   /** the versions of `part`'s shared cells not its segments' own, before a segment's update (`checkSharedWrites`) */
@@ -543,6 +702,7 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
       if (newGeometry) {
         seg.geometry = newGeometry;
         geometryVersion += 1;
+        geometriesRemade += 1;
       }
       seg.groupCount = its.locationIt.groupCount;
       seg.instanceCount = its.locationIt.instanceCount;
@@ -611,14 +771,15 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
    * The kept state on `o`, the values of a segment of `seg` made just now (as a units visual's `setVisualState` on a
    * new one)
    */
-  function applyStateTo(o: GraphicsRenderObject, seg: SegmentPlace) {
+  function applyStateTo(o: GraphicsRenderObject, seg: SegmentPlace, smoothing: Visual.SmoothingContext) {
     const { overpaint, transparency, emissive, substance, clipping, wiggle, transform, unitTransforms } = state;
     if (transform && !Mat4.isIdentity(transform)) Visual.setTransform(o, transform);
     if (unitTransforms) Visual.setTransform(o, undefined, unitTransforms.getSymmetryGroupTransforms(seg.group));
-    if (overpaint?.layers.length) Visual.setOverpaint(o, overpaint, lociApply(seg), true);
-    if (transparency?.layers.length) Visual.setTransparency(o, transparency, lociApply(seg), true);
-    if (emissive?.layers.length) Visual.setEmissive(o, emissive, lociApply(seg), true);
-    if (substance?.layers.length) Visual.setSubstance(o, substance, lociApply(seg), true);
+    // its values its own: smoothed where reached, its part then of those types (`getPart`, `writeLayers`)
+    if (overpaint?.layers.length) Visual.setOverpaint(o, overpaint, lociApply(seg), true, smoothing);
+    if (transparency?.layers.length) Visual.setTransparency(o, transparency, lociApply(seg), true, smoothing);
+    if (emissive?.layers.length) Visual.setEmissive(o, emissive, lociApply(seg), true, smoothing);
+    if (substance?.layers.length) Visual.setSubstance(o, substance, lociApply(seg), true, smoothing);
     if (clipping?.layers.length) Visual.setClipping(o, clipping, lociApply(seg), true);
     if (wiggle?.layers.length) Visual.setWiggle(o, wiggle, lociApply(seg), true);
   }
@@ -734,6 +895,7 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
       const { graphics } = ctx;
       unmergeable = false;
       segmentWrites = 0;
+      const remadeBefore = geometriesRemade;
       // after a backend switch or restore: all made again, for the new context. A new instance granularity: the
       // segments' parts again (`auto` resolves by a group's counts). Made beside the current segments and parts, which
       // are disposed once the update ends (one that does not leaves them as they were)
@@ -910,30 +1072,32 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
         segments = nextSegments;
       }
       if (levelsChanged) regroupByKey(props);
-      if (!sameGroups || levelsChanged) {
-        byUnitId = undefined;
-        for (const part of parts) part.segments = [];
-        for (const seg of segments) seg.part.segments.push(seg);
-        for (const part of parts) if (part.segments.length === 0) disposeObject(part);
-        parts = parts.filter((part) => part.segments.length > 0);
-        for (const part of parts) bindShared(part);
-      }
+      if (!sameGroups || levelsChanged) relistParts();
       currentGroups = groups;
 
       for (const part of parts) {
         if (props !== currentProps) utils.updateRenderableState(part.renderableState, props);
         applyPartState(part);
       }
+      // smoothed layers written again where what they were smoothed by changed: a geometry made again (its vertex data
+      // the old one's), the smoothing props (on or off: the layers' types, and the segments' parts, with them)
+      const smoothedLayers = type === 'mesh' ? getSmoothedLayers(state) : undefined;
+      const resmooth =
+        !!smoothedLayers &&
+        Object.keys(smoothedLayers).length > 0 &&
+        (geometriesRemade !== remadeBefore ||
+          !currentProps ||
+          !isSameSmoothing(props as PD.Values<any>, currentProps as PD.Values<any>));
       currentProps = props;
       currentTheme = theme;
       currentStructure = structure;
       currentGraphics = graphics;
       consistent = true;
-      renderObjects = [];
-      for (const part of parts) {
-        updateObject(part, props, graphics);
-        if (part.object) renderObjects.push(part.object);
+      if (resmooth) {
+        writeLayers(smoothedLayers!);
+        recordsWritten();
       }
+      listObjects(props, graphics);
       if (keySplit) {
         // a part's segments of other keys: made again, each in the part of its own
         rebuildNext = true;
@@ -995,11 +1159,9 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
       if (pickable !== undefined) state.pickable = pickable;
       if (themeStrength !== undefined) state.themeStrength = themeStrength;
       for (const part of parts) applyPartState(part);
+      // the layers smoothed on surfaces: segments by their layers' types (`writeLayers`), their parts' objects then
+      const regrouped = writeLayers({ overpaint, transparency, emissive, substance });
       for (const [layer, set] of [
-        [overpaint, Visual.setOverpaint],
-        [transparency, Visual.setTransparency],
-        [emissive, Visual.setEmissive],
-        [substance, Visual.setSubstance],
         [clipping, Visual.setClipping],
         [wiggle, Visual.setWiggle],
       ] as const) {
@@ -1013,6 +1175,7 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
       ) {
         recordsWritten();
       }
+      if (regrouped) listObjects(currentProps!, currentGraphics);
       if (overpaint !== undefined) state.overpaint = overpaint;
       if (transparency !== undefined) state.transparency = transparency;
       if (emissive !== undefined) state.emissive = emissive;

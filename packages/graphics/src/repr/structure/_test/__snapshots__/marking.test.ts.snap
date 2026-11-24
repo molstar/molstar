@@ -677,9 +677,9 @@ exports[`representation marking and layers > applies layers on gaussian surface 
       "clear",
     ],
     "overpaint + other": [
-      "groupInstance:62af2b0b",
       "clear",
       "clear",
+      "vertexInstance:33de48bf",
     ],
     "overpaint cleared": [
       "off",
@@ -699,13 +699,13 @@ exports[`representation marking and layers > applies layers on gaussian surface 
   },
   "carbons": {
     "overpaint": [
-      "groupInstance:c2d260d5",
-      "groupInstance:d4f78585",
+      "vertexInstance:cd89e73",
+      "vertexInstance:5e9619a3",
       "clear",
     ],
     "overpaint + other": [
-      "groupInstance:caa0bf25",
-      "groupInstance:d4f78585",
+      "vertexInstance:349d31af",
+      "vertexInstance:5e9619a3",
       "clear",
     ],
     "overpaint cleared": [
@@ -714,8 +714,8 @@ exports[`representation marking and layers > applies layers on gaussian surface 
       "off",
     ],
     "transparency": [
-      "groupInstance:92ab229d 0.3136/0.4980",
-      "groupInstance:4a5a1f65 0.4528/0.4980",
+      "vertexInstance:22f4489a 0.3136/0.4980",
+      "vertexInstance:71cab385 0.4528/0.4980",
       "clear 0.0000/1.0000",
     ],
     "transparency cleared": [
@@ -731,9 +731,9 @@ exports[`representation marking and layers > applies layers on gaussian surface 
       "clear",
     ],
     "overpaint + other": [
-      "groupInstance:62af2b0b",
       "clear",
       "clear",
+      "vertexInstance:33de48bf",
     ],
     "overpaint cleared": [
       "off",
@@ -753,14 +753,14 @@ exports[`representation marking and layers > applies layers on gaussian surface 
   },
   "one chain": {
     "overpaint": [
-      "groupInstance:4f947cff",
       "clear",
       "clear",
+      "vertexInstance:2277c6bf",
     ],
     "overpaint + other": [
-      "groupInstance:1dbdea17",
       "clear",
       "clear",
+      "vertexInstance:2c7389c0",
     ],
     "overpaint cleared": [
       "off",
@@ -768,9 +768,9 @@ exports[`representation marking and layers > applies layers on gaussian surface 
       "off",
     ],
     "transparency": [
-      "groupInstance:3c00453c 0.0623/0.4980",
       "clear 0.0000/1.0000",
       "clear 0.0000/1.0000",
+      "vertexInstance:e795f65c 0.0623/0.4980",
     ],
     "transparency cleared": [
       "off 0.0000/1.0000",
@@ -780,14 +780,14 @@ exports[`representation marking and layers > applies layers on gaussian surface 
   },
   "scattered residues": {
     "overpaint": [
-      "groupInstance:66164c85",
-      "groupInstance:975afa65",
-      "groupInstance:a195ab85",
+      "vertexInstance:da118edb",
+      "vertexInstance:7edcdf85",
+      "vertexInstance:d48dcaa5",
     ],
     "overpaint + other": [
-      "groupInstance:8599024b",
-      "groupInstance:975afa65",
-      "groupInstance:a195ab85",
+      "vertexInstance:39d8577f",
+      "vertexInstance:7edcdf85",
+      "vertexInstance:d48dcaa5",
     ],
     "overpaint cleared": [
       "off",
@@ -795,9 +795,9 @@ exports[`representation marking and layers > applies layers on gaussian surface 
       "off",
     ],
     "transparency": [
-      "groupInstance:826753a5 0.0931/0.4980",
-      "groupInstance:a007ed5 0.4980/0.4980",
-      "groupInstance:8939d025 0.4980/0.4980",
+      "vertexInstance:eec9e1a9 0.0931/0.4980",
+      "vertexInstance:fbce0225 0.4980/0.4980",
+      "vertexInstance:19d9a975 0.4980/0.4980",
     ],
     "transparency cleared": [
       "off 0.0000/1.0000",
@@ -807,14 +807,14 @@ exports[`representation marking and layers > applies layers on gaussian surface 
   },
   "whole structure": {
     "overpaint": [
-      "groupInstance:ac22b895",
-      "groupInstance:975afa65",
-      "groupInstance:a195ab85",
+      "vertexInstance:23a99e85",
+      "vertexInstance:7edcdf85",
+      "vertexInstance:d48dcaa5",
     ],
     "overpaint + other": [
-      "groupInstance:940a33ad",
-      "groupInstance:975afa65",
-      "groupInstance:a195ab85",
+      "vertexInstance:8e4e842e",
+      "vertexInstance:7edcdf85",
+      "vertexInstance:d48dcaa5",
     ],
     "overpaint cleared": [
       "off",
@@ -822,9 +822,9 @@ exports[`representation marking and layers > applies layers on gaussian surface 
       "off",
     ],
     "transparency": [
-      "groupInstance:f75be88d 0.4980/0.4980",
-      "groupInstance:a007ed5 0.4980/0.4980",
-      "groupInstance:8939d025 0.4980/0.4980",
+      "vertexInstance:9192a3a5 0.4980/0.4980",
+      "vertexInstance:fbce0225 0.4980/0.4980",
+      "vertexInstance:19d9a975 0.4980/0.4980",
     ],
     "transparency cleared": [
       "off 0.0000/1.0000",
@@ -844,9 +844,9 @@ exports[`representation marking and layers > applies layers on gaussian surface 
       "clear",
     ],
     "overpaint + other": [
-      "groupInstance:da9b3c9b",
       "clear",
       "clear",
+      "vertexInstance:b3374423",
     ],
     "overpaint cleared": [
       "off",
@@ -866,13 +866,13 @@ exports[`representation marking and layers > applies layers on gaussian surface 
   },
   "carbons": {
     "overpaint": [
-      "groupInstance:f975c797",
-      "groupInstance:b7cf4ebd",
+      "vertexInstance:2924b2b9",
+      "vertexInstance:f16379e7",
       "clear",
     ],
     "overpaint + other": [
-      "groupInstance:a1795ee7",
-      "groupInstance:b7cf4ebd",
+      "vertexInstance:81a87ffb",
+      "vertexInstance:f16379e7",
       "clear",
     ],
     "overpaint cleared": [
@@ -881,8 +881,8 @@ exports[`representation marking and layers > applies layers on gaussian surface 
       "off",
     ],
     "transparency": [
-      "groupInstance:790e08c2 0.3136/0.4980",
-      "groupInstance:a6753c49 0.4528/0.4980",
+      "vertexInstance:10162521 0.3136/0.4980",
+      "vertexInstance:e06027de 0.4528/0.4980",
       "clear 0.0000/1.0000",
     ],
     "transparency cleared": [
@@ -898,9 +898,9 @@ exports[`representation marking and layers > applies layers on gaussian surface 
       "clear",
     ],
     "overpaint + other": [
-      "groupInstance:da9b3c9b",
       "clear",
       "clear",
+      "vertexInstance:b3374423",
     ],
     "overpaint cleared": [
       "off",
@@ -920,14 +920,14 @@ exports[`representation marking and layers > applies layers on gaussian surface 
   },
   "one chain": {
     "overpaint": [
-      "groupInstance:6ec8be4f",
       "clear",
       "clear",
+      "vertexInstance:f585529d",
     ],
     "overpaint + other": [
-      "groupInstance:90bb7be7",
       "clear",
       "clear",
+      "vertexInstance:2cb33851",
     ],
     "overpaint cleared": [
       "off",
@@ -935,9 +935,9 @@ exports[`representation marking and layers > applies layers on gaussian surface 
       "off",
     ],
     "transparency": [
-      "groupInstance:45067514 0.4980/0.4980",
       "clear 0.0000/1.0000",
       "clear 0.0000/1.0000",
+      "vertexInstance:950ea421 0.4980/0.4980",
     ],
     "transparency cleared": [
       "off 0.0000/1.0000",
@@ -947,14 +947,14 @@ exports[`representation marking and layers > applies layers on gaussian surface 
   },
   "scattered residues": {
     "overpaint": [
-      "groupInstance:846ecadd",
-      "groupInstance:43e24199",
-      "groupInstance:6ffff57d",
+      "vertexInstance:9eeb575b",
+      "vertexInstance:e228b475",
+      "vertexInstance:3455cb35",
     ],
     "overpaint + other": [
-      "groupInstance:8585ecc3",
-      "groupInstance:43e24199",
-      "groupInstance:6ffff57d",
+      "vertexInstance:9c7e4e5d",
+      "vertexInstance:e228b475",
+      "vertexInstance:3455cb35",
     ],
     "overpaint cleared": [
       "off",
@@ -962,9 +962,9 @@ exports[`representation marking and layers > applies layers on gaussian surface 
       "off",
     ],
     "transparency": [
-      "groupInstance:115e5de7 0.0931/0.4980",
-      "groupInstance:becf441f 0.4980/0.4980",
-      "groupInstance:6e34c3d1 0.4980/0.4980",
+      "vertexInstance:bcf1d1af 0.0931/0.4980",
+      "vertexInstance:35fbd2bd 0.4980/0.4980",
+      "vertexInstance:253d59d 0.4980/0.4980",
     ],
     "transparency cleared": [
       "off 0.0000/1.0000",
@@ -974,14 +974,14 @@ exports[`representation marking and layers > applies layers on gaussian surface 
   },
   "whole structure": {
     "overpaint": [
-      "groupInstance:6ec8be4f",
-      "groupInstance:43e24199",
-      "groupInstance:6ffff57d",
+      "vertexInstance:f585529d",
+      "vertexInstance:e228b475",
+      "vertexInstance:3455cb35",
     ],
     "overpaint + other": [
-      "groupInstance:90bb7be7",
-      "groupInstance:43e24199",
-      "groupInstance:6ffff57d",
+      "vertexInstance:2cb33851",
+      "vertexInstance:e228b475",
+      "vertexInstance:3455cb35",
     ],
     "overpaint cleared": [
       "off",
@@ -989,9 +989,9 @@ exports[`representation marking and layers > applies layers on gaussian surface 
       "off",
     ],
     "transparency": [
-      "groupInstance:45067514 0.4980/0.4980",
-      "groupInstance:becf441f 0.4980/0.4980",
-      "groupInstance:6e34c3d1 0.4980/0.4980",
+      "vertexInstance:950ea421 0.4980/0.4980",
+      "vertexInstance:35fbd2bd 0.4980/0.4980",
+      "vertexInstance:253d59d 0.4980/0.4980",
     ],
     "transparency cleared": [
       "off 0.0000/1.0000",

@@ -81,7 +81,11 @@ describe.skipIf(!WebGPU.module)('merged layers set before a scene adds the objec
         for (const o of repr.renderObjects) scene.add(o);
         scene.commit();
         if (order === 'scene then state') {
+          const before = [...repr.renderObjects];
           repr.setState(state);
+          // as Canvas3D's `update(repr)`: objects a smoothed layer split off added, those gone removed
+          for (const o of repr.renderObjects) if (!before.includes(o)) scene.add(o);
+          for (const o of before) if (!repr.renderObjects.includes(o)) scene.remove(o);
           scene.update(repr.renderObjects, false);
           scene.commit();
         }

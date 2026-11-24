@@ -74,7 +74,7 @@ The merged path grew beside the per-group one instead of under it. Five choices 
     (`merging/assembly-gaussian-smooth-*`, 60 copies of 7qpd colored by element-index, CPU meshes): frames alike or
     faster merged, the representation built in 87 against 55 ms (WebGL2) and 70 against 60 (WebGPU), its JS heap
     12.5 against 5.7 MB and 15.1 against 6.0 (the colors per vertex and copy). A grid atlas where that memory matters.
-  - **Smoothed layers** (planned, step 4b): a layer's type is its part's (`overpaintType`, `dOverpaintType` and the
+  - **Smoothed layers** (done): a layer's type is its part's (`overpaintType`, `dOverpaintType` and the
     others' are shared cells, `dOverpaintType` in the merge key), so a part's segments hold one type of each layer.
     Segments by their smoothed layers: a segment a smoothed layer touches (`smoothColors` on, a mesh's
     `meta.resolution`, `reachesAny` of its loci) is in a part of that layer's `vertexInstance` key, the others stay in
@@ -86,8 +86,13 @@ The merged path grew beside the per-group one instead of under it. Five choices 
     segment and smoothed layer, as the smoothed colors of a theme per instance), not every segment of a part; a part
     more per combination of smoothed layers (in practice one). Not all or none per part: a layer on one chain of a
     60-copy assembly would give every segment vertex data of zeros. Also: a segment made later or whose geometry is
-    made again (its vertex data the old geometry's) smoothed again as it is written; GPU surfaces (texture meshes) are
-    per-group visuals and keep their grids.
+    made again (its vertex data the old geometry's), or of other smoothing props, smoothed again as it is written; GPU
+    surfaces (texture meshes) are per-group visuals and keep their grids. Measured (60 copies of 7qpd as a root
+    structure: 7 groups of 60 instances, CPU meshes, WebGPU, the layer toggled each frame): on one unit 8.8 ms a frame;
+    on all 1.50 s against 1.03 s for the per-group grids, their layer data 35.5 against 35.0 MB (the grids' size: no
+    cap or atlas needed). The splatting is both paths' (about 1 s); the rest the per-vertex interpolation, 1.78 to 1.50
+    s once it read scalars (`getTrilinearlyInterpolated`). Images as the per-group grids' within the vertices'
+    sampling (a half-painted chain: 92 pixels apart against the plain layer's 264).
   - **A segment's update of another merge key** (done): of a builder that writes its values by the segment
     (`processValues`: smoothing by a surface's resolution), a part's key after each segment's update against its first
     segment's: another (segments wrote their own keys into the shared values) makes the visual again, each segment in
@@ -110,7 +115,7 @@ The merged path grew beside the per-group one instead of under it. Five choices 
   segment spheres; a new context keeps the merged objects unless they hold foreign resources, Canvas3D's image waiting
   on the representations' updates; records written before a scene adds the object (a layer by `setState`) synced as
   the renderable is made, else WebGPU's program lacks the layer. Left: a merged object of one instance through the near
-  plane never rasterized; layers on merged surfaces unsmoothed (above).
+  plane never rasterized.
 - **One table of segment keys** a type (done, `getMergeSegmentKeys`): a segment owns its record's keys (what the merged
   object reads, `MergeRecordKeys`) and `MergeSegmentKeys` (what differs by segment that the merged object has its own
   of: `uInstanceCount`, `uInvariantBoundingSphere`, a mesh's `meta`, the transform cells), its part's shared values
@@ -169,21 +174,19 @@ The merged path grew beside the per-group one instead of under it. Five choices 
    theme change that used to unmerge. Measure: the visual suite identical (`merging/*`, both backends), the small
    counts (`merging/units-{2,5,10,30}-*`) against unmerged, a smoothed surface's memory as vertex types against grids.
    The grid atlas only where that memory says.
-4b. **Smoothed layers on merged parts**: segments by their smoothed layers' keys as above, in `setState`, in
+4b. **Smoothed layers on merged parts** (done): segments by their smoothed layers' keys as above, in `setState`, in
     `applyStateTo` for a new segment and after a segment's geometry is made again. Tests: a layer on one chain of a
     two-chain Gaussian surface splits its part in two and draws as the per-group visuals' smoothed layers (the image
     within the smoothed colors' noise), clearing it joins the parts; markers, other layers and the records kept across
     the split; the four layer kinds at once; `marking.test.ts`'s surface snapshots back to `vertexInstance`; the visual
-    cases `geometry/mesh/gaussian-surface-cpu-smooth-layers` smoothed on both backends and a merged case against the
-    per-group grids (`geometry/merged/*-smooth-layers`). Measure: `setState` time and the JS heap of a layer on one
+    case `geometry/mesh/gaussian-surface-cpu-smooth-layers` smoothed on both backends; the image against the per-group
+    grids a headless WebGPU test (the visual suite compares backends, not paths). Measure: `setState` time and the JS heap of a layer on one
     chain and on all of a 60-copy assembly surface, merged against the per-group grids.
 5. **Culling without merging's coupling**: the CPU fallback for views not culled on the GPU, the side view's GPU state
    apart; then decide on one segmented renderable.
 
 ## Open questions
 
-- Whether a layer on most segments of a large assembly (vertex data per instance) needs a cap or the grid atlas: decided
-  by step 4b's measurement.
 
 - Whether WebGPU's GPU surfaces merge through the vertex arena (segments of its chunks), or stay plain objects as on
   WebGL.

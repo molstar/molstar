@@ -373,7 +373,7 @@ namespace Visual {
   }
 
   /** whether any of `layers` reaches a group, applying nothing */
-  function reachesAny(layers: ReadonlyArray<{ readonly loci: Loci }>, lociApply: LociApply) {
+  export function reachesAny(layers: ReadonlyArray<{ readonly loci: Loci }>, lociApply: LociApply) {
     let reached = false;
     const probe = () => {
       reached = true;
@@ -391,7 +391,8 @@ namespace Visual {
     substanceTexture?: Texture;
   };
 
-  type SmoothingContext = {
+  /** what a layer is smoothed by on a surface: its geometry and props; without a context per vertex on the CPU */
+  export type SmoothingContext = {
     geometry: Geometry;
     props: PD.Values<any>;
     graphics?: GraphicsContext;

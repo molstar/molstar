@@ -184,7 +184,7 @@ export function UnitsRepresentation<P extends StructureParams>(
         return;
       }
       // a group without an object (nothing drawn) none to check; the layers not: smoothed while not merged
-      // (`setLayers`), set again unsmoothed by the merged visual
+      // (`setLayers`, as grids), set again by the merged visual (smoothed per vertex)
       const ro = visual.renderObject;
       if (ro && !canMergeValues(type, [ro.values as unknown as MergeableValues], false)) merges = false;
     });
@@ -372,28 +372,32 @@ export function UnitsRepresentation<P extends StructureParams>(
         }
       }
 
-      // update list of renderObjects: the per-group visuals' (merged by type where they merge), the merged visuals'
-      const entries: { visual: UnitsVisual<P>; renderObject: GraphicsRenderObject }[] = [];
-      visuals.forEach(({ visual }) => {
-        if (visual.renderObject) {
-          entries.push({ visual, renderObject: visual.renderObject });
-          geometryState.add(visual.renderObject.id, visual.geometryVersion);
-        }
-      });
-      updateRenderObjectList(entries);
-      for (const mv of mergedByKind.values()) {
-        for (const ro of mv.renderObjects) {
-          renderObjects.push(ro);
-          geometryState.add(ro.id, mv.geometryVersion);
-          if (_state.previewTransform) Visual.setPreviewTransform(ro, _state.previewTransform);
-        }
-      }
-      geometryState.snapshot();
+      collectRenderObjects();
       _groups = groups;
       _structure = target;
       updated.next(version++);
     });
     return serialize(task);
+  }
+
+  /** The render objects drawn: the per-group visuals', then the merged visuals' */
+  function collectRenderObjects() {
+    const entries: { visual: UnitsVisual<P>; renderObject: GraphicsRenderObject }[] = [];
+    visuals.forEach(({ visual }) => {
+      if (visual.renderObject) {
+        entries.push({ visual, renderObject: visual.renderObject });
+        geometryState.add(visual.renderObject.id, visual.geometryVersion);
+      }
+    });
+    updateRenderObjectList(entries);
+    for (const mv of mergedByKind.values()) {
+      for (const ro of mv.renderObjects) {
+        renderObjects.push(ro);
+        geometryState.add(ro.id, mv.geometryVersion);
+        if (_state.previewTransform) Visual.setPreviewTransform(ro, _state.previewTransform);
+      }
+    }
+    geometryState.snapshot();
   }
 
   /**
@@ -593,7 +597,14 @@ export function UnitsRepresentation<P extends StructureParams>(
     if (markerActions !== undefined) newState.markerActions = markerActions;
 
     visuals.forEach(({ visual, group }) => setVisualState(visual, group, newState));
-    for (const mv of mergedByKind.values()) mv.setState(newState, _state);
+    // a merged visual's segments moved by their layers (smoothed ones): its objects another list, the drawn ones again
+    let relisted = false;
+    for (const mv of mergedByKind.values()) {
+      const before = mv.renderObjects;
+      mv.setState(newState, _state);
+      if (mv.renderObjects !== before) relisted = true;
+    }
+    if (relisted) collectRenderObjects();
     // on what is drawn: a merged object moves as one, its records' are not read
     const preview = newState.previewTransform;
     if (preview) for (const ro of renderObjects) Visual.setPreviewTransform(ro, preview);

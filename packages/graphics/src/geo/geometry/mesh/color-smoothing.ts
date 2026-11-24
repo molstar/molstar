@@ -637,49 +637,69 @@ export function getTrilinearlyInterpolated(input: ColorInterpolationInput): Data
 
   const [xn, yn, zn] = gridDim;
   const width = gridTexDim[0];
-  const min = Vec3.fromArray(Vec3(), gridTransform, 0);
+  const minX = gridTransform[0];
+  const minY = gridTransform[1];
+  const minZ = gridTransform[2];
   const scaleFactor = gridTransform[3];
 
   const zOff = getSliceOffsets(gridDim, width);
-  function getIndex(x: number, y: number, z: number) {
-    // vertices outside the grid (not expected) keep their former, layout-derived index
-    const zo =
-      z >= 0 && z < zn ? zOff[z] : Math.floor(((z * xn) % width) / xn) * xn + Math.floor((z * xn) / width) * yn * width;
-    return colorStride * (zo + y * width + x);
+  /** a slice's offset in the 2d layout: vertices outside the grid (not expected) keep their former, layout-derived one */
+  function sliceOffset(z: number) {
+    return z >= 0 && z < zn
+      ? zOff[z]
+      : Math.floor(((z * xn) % width) / xn) * xn + Math.floor((z * xn) / width) * yn * width;
   }
 
-  const v = Vec3();
-  const v0 = Vec3();
-  const v1 = Vec3();
-  const vd = Vec3();
-
+  // scalars, not `Vec3`s, in this loop over every vertex of every instance (array destructuring and calls per vertex:
+  // a smoothed layer on all 420 units of 60 copies of 7qpd 1.78 to 1.50 s a frame, WebGPU, its splatting the rest); the
+  // same double arithmetic in the same order as `Vec3.transformMat4Offset`, `sub` and `scale`, so the same bytes
   const { instances } = input;
   for (let i = 0; i < instanceCount; ++i) {
     if (instances && !instances[i]) continue;
+    const t = i * 16;
     for (let j = 0; j < vertexCount; ++j) {
-      Vec3.fromArray(v, positionBuffer, j * vertexStride);
-      if (isInstanceType) Vec3.transformMat4Offset(v, v, transformBuffer, 0, 0, i * 16);
-      Vec3.sub(v, v, min);
-      Vec3.scale(v, v, scaleFactor);
+      const p = j * vertexStride;
+      let x = positionBuffer[p];
+      let y = positionBuffer[p + 1];
+      let z = positionBuffer[p + 2];
+      if (isInstanceType) {
+        const m = transformBuffer;
+        const w = 1 / (m[3 + t] * x + m[7 + t] * y + m[11 + t] * z + m[15 + t] || 1.0);
+        const tx = (m[0 + t] * x + m[4 + t] * y + m[8 + t] * z + m[12 + t]) * w;
+        const ty = (m[1 + t] * x + m[5 + t] * y + m[9 + t] * z + m[13 + t]) * w;
+        const tz = (m[2 + t] * x + m[6 + t] * y + m[10 + t] * z + m[14 + t]) * w;
+        x = tx;
+        y = ty;
+        z = tz;
+      }
+      x = (x - minX) * scaleFactor;
+      y = (y - minY) * scaleFactor;
+      z = (z - minZ) * scaleFactor;
 
-      Vec3.floor(v0, v);
-      Vec3.ceil(v1, v);
+      const x0 = Math.floor(x);
+      const y0 = Math.floor(y);
+      const z0 = Math.floor(z);
+      const x1 = Math.ceil(x);
+      const y1 = Math.ceil(y);
+      const z1 = Math.ceil(z);
 
       // the cell is 1 wide, or 0 on a grid plane, where the weight is 0: not 0/0 (perf-audit-2 08/B3)
-      Vec3.sub(vd, v, v0);
+      const xd = x - x0;
+      const yd = y - y0;
+      const zd = z - z0;
 
-      const [x0, y0, z0] = v0;
-      const [x1, y1, z1] = v1;
-      const [xd, yd, zd] = vd;
-
-      const i000 = getIndex(x0, y0, z0) + itemOffset;
-      const i100 = getIndex(x1, y0, z0) + itemOffset;
-      const i001 = getIndex(x0, y0, z1) + itemOffset;
-      const i101 = getIndex(x1, y0, z1) + itemOffset;
-      const i010 = getIndex(x0, y1, z0) + itemOffset;
-      const i110 = getIndex(x1, y1, z0) + itemOffset;
-      const i011 = getIndex(x0, y1, z1) + itemOffset;
-      const i111 = getIndex(x1, y1, z1) + itemOffset;
+      const zo0 = sliceOffset(z0);
+      const zo1 = sliceOffset(z1);
+      const r00 = y0 * width;
+      const r10 = y1 * width;
+      const i000 = colorStride * (zo0 + r00 + x0) + itemOffset;
+      const i100 = colorStride * (zo0 + r00 + x1) + itemOffset;
+      const i001 = colorStride * (zo1 + r00 + x0) + itemOffset;
+      const i101 = colorStride * (zo1 + r00 + x1) + itemOffset;
+      const i010 = colorStride * (zo0 + r10 + x0) + itemOffset;
+      const i110 = colorStride * (zo0 + r10 + x1) + itemOffset;
+      const i011 = colorStride * (zo1 + r10 + x0) + itemOffset;
+      const i111 = colorStride * (zo1 + r10 + x1) + itemOffset;
 
       const o = (i * vertexCount + j) * outputStride;
 
