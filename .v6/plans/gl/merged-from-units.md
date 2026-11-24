@@ -2,10 +2,12 @@
 
 ## Status
 
-- **Proposed**: a units representation that merges builds its merged render object from the symmetry groups directly,
-  through one visual over all of them, not from a visual, geometry values and render object per group that
-  `createMergedValues` then joins. Follows [many-units.md](many-units.md): after its steps a member costs about 19.5 KB,
-  spread over its own objects; this removes most of them.
+- **Done** (steps 1 to 6): a units representation that merges builds its merged render object from the symmetry
+  groups directly, through one visual over all of them, not from a visual, geometry values and render object per group
+  that `createMergedValues` then joins. Follows [many-units.md](many-units.md): after its steps a member costs about
+  19.5 KB, spread over its own objects; this removes most of them. What it left (mergeability found by building, the
+  implicit per-segment keys, the merged visual's own update paths) continues in
+  [merged-units-core.md](merged-units-core.md).
 - **Step 2 done**: merged objects built from records and shared values; the particle pool on records (its first
   user).
 - **Steps 1, 3 to 6 done**: `UnitsMergedVisual` (`repr/structure/units-merged-visual.ts`) used by
@@ -144,7 +146,12 @@ What the per-group objects give that a merged object needs, and where it comes f
    shared). The groups of another merge key are a part of their own (`Part`: its shared values, records and merged
    object; one or a few a representation), not visuals of their own: `auto` instance granularity resolves by a
    group's counts, and the first group made, whose values are shared, may be the one apart. Before, any group of
-   another key left the whole representation unmerged. A new instance granularity makes the parts again.
+   another key left the whole representation unmerged. A new instance granularity makes the parts again. Whether the
+   groups merge is found by building, not decided up front: a probe visual gives the builder, the merged visual's update
+   ends at a part that does not merge (destroyed, the per-group visuals used), the failure kept by the props, theme and
+   structure (`unmergeableAt`), and merging tried again where the per-group visuals' values merge after an update
+   (`mergesAgain`, without their layers' types: smoothed there, not merged). Replaced by
+   [merged-units-core.md](merged-units-core.md) step 4.
 5. **The structure-level switch** (measured again after the frames' work, kept): representations still switch to
    their structure-level visuals above 10,000 unit groups (`getSpacefillParams`, `getBallAndStickParams`, …). At 100k
    units (`merging/units-*` at that count, WebGPU, by hand, a case a process), the structure-level spacefill against the

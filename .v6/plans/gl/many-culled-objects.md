@@ -249,7 +249,8 @@ objects and lost to merging; this merges at the level that won.
 targets, any merged object), and the explorer change then removes the many objects at their source; B is the more
 general fix and the larger graphics change. Proposed order: the visibility layer (A2) measured on one object, the
 explorer prototype on it (one representation for the non-membrane entities, color and visibility per entity),
-measured against the split; B only if apps other than the explorer need it.
+measured against the split; B only if apps other than the explorer need it, and after
+[merged-units-core.md](merged-units-core.md) step 2 (one merged object form: B would add a producer).
 
 ## Steps
 
