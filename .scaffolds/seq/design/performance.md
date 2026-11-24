@@ -84,6 +84,11 @@ review:
 - **A quick representative when the path is built**: the stage that builds a path runs one scenario of its target
   with one bound, before later stages build on it; the full target (every scale fixture, the medians, the ratios)
   stays in the heavy lane. Why: measured only at the end, a miss is found under everything built on it.
+- **A browser measurement counts the work after the draw**: `requestAnimationFrame` queued and flushed after each
+  input, then microtasks drained (`await null` repeated) and flushed again; drags with pointer capture stubbed (a
+  synthetic `setPointerCapture` throws, and the drag never engages). A story's SVG twin exports in a task after the
+  frame that draws the change, never inside an edit. Why: the close-out's measurements found 12 to 30 ms of
+  microtasks the older method missed, most of it the twin, and drags that measured no drag (its fold-back, B2).
 - **Limits are configurable** ([extensibility.md](extensibility.md)): every cap below is a setting with this default.
 
 ## Levels and a frame's cost

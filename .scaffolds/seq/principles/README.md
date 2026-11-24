@@ -61,7 +61,11 @@ applies them; the evidence behind each line is in the [records](../records/READM
 - **architecture**: `packages/{core,io,model,graphics}` and `packages/ui` play `lib/`; Seq\* is the product
   (`packages/seq/*`). The root package rules win where they differ.
 - **testing**: the tiers are the repository's three lanes (quick, medium, heavy; root `AGENTS.md`); allocation and heap
-  guards only on the draw and hover hot loops.
+  guards only on the draw and hover hot loops. A gesture or a DOM part is tested through its story's composition with
+  the browser's event order, and its mount checked, not only its classes {#gesture-tested-as-the-browser}; a test on a
+  fake clock waits on the viewer's `settle()` when a dynamic import or a read is on its path, never a fixed step
+  {#fake-clock-waits-settle}. Why: headless passes the browser disagreed with (FX32, FX34, FX35) and three flakes of a
+  fixed step over real I/O (FX33), the close-out's fold-back B1 and B4.
 - **The heavy lane runs alone, at two workers** {#heavy-lane-alone}: no other test run beside it, `maxWorkers: 2` in
   heavy mode (`vitest.config.ts`), and a bound under 50 ms runs alone in its worker and is never raised to pass under
   contention (§test-tiers). Why: bounds failed in the full heavy lane under load and passed alone.

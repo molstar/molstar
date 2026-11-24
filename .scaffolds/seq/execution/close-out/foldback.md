@@ -117,3 +117,13 @@ found the bugs no test or review saw: each was on a canvas or a page in a browse
 - B6: open the next plan with the trim pass, or keep raising under the standing leave?
 
 ## Decided by the author
+
+Decided by the author, 2026-11-24: merged in part: "A hidden pane … this only applies to claude code though. Bundle budgets … this one we can skip. apply the other"
+
+- B1: `loop.md`, Each step 5 (a gesture or a DOM part), and the instance's testing adaptation
+  (§gesture-tested-as-the-browser).
+- B2: `design/performance.md`, Rules (a browser measurement), and its Storybook page.
+- B4: the instance's testing adaptation (§fake-clock-waits-settle).
+- B5: `loop.md`, Each step 3 (the brief checked before its lane).
+- B3: not merged (Claude Code's pane, not the method's); kept as this close's evidence.
+- B6: not merged.

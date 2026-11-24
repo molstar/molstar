@@ -55,7 +55,8 @@ view, on the language, or on the viewer's input layer, never two heavy test runs
    never a new line per instance.
 3. **Brief**: every lane has its brief in `briefs/` ([brief.md](../../../_method/brief.md)), its base set to
    `packages-seq`'s head and the files it names checked to still exist. Its numbered items each name their proof (a test
-   title, an output); `features-planned.ts --plan plan.md` passes over them.
+   title, an output); `features-planned.ts --plan plan.md` passes over them, and `features-planned.ts --brief` passes
+   over the brief before its lane starts (the close-out's fold-back, B5).
 4. **Start the lane** as a subagent in its own git worktree (isolation: worktree), on `seq/<lane>` cut from
    `packages-seq`, the brief its whole instructions and the model it names. Its first step is
    `git reset --hard packages-seq` (a worktree can start on a stale base). It commits small green steps on its branch
@@ -67,6 +68,9 @@ view, on the language, or on the viewer's input layer, never two heavy test runs
    - **items landed, not reported**: tick each numbered item of the brief against a test or an output by name in the
      findings row; an unticked item goes back to the lane or into `fixes.md`. A design's "Built" note lists ticked items
      only.
+   - **a gesture or a DOM part** (the close-out's fold-back, B1): the lane tests it through the story's own composition
+     with the browser's event order (pointerdown, pointerup, click, then dblclick) and asserts where the element mounts
+     (its container, the UI root), not only its classes; its merge waits on the look below, never on the headless pass.
    - **look**, when something is drawn: the orchestrator looks itself, every time, in a **visible** pane, light and dark
      (a hidden pane is never evidence). The lane's Storybook runs from its worktree on a port of its own (a temporary
      `.claude/launch.json` entry, `<worktree>/storybook`, `./node_modules/.bin/storybook dev -p <port> --ci --no-open`,

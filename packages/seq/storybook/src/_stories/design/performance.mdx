@@ -33,6 +33,8 @@ frame of a 300-residue protein cost the same; only the level of detail differs.
 - **Reference machine**: a mid-range 2024 laptop, Chrome at DPR 2, 1440 × 900. Headless numbers use Node 22.
 - **Scaling** is stated as ratios, which hold on any machine: four times the data costs at most four times as much.
 - **Hot loops** are checked for allocation, and retired viewers for heap growth.
+- **In a browser**, a frame counts the work queued after the draw (microtasks drained), and a drag is measured with
+  pointer capture working; a story's SVG twin exports after the frame, never inside an edit.
 - **Limits** below are settings, with these values as defaults.
 
 ## Time
