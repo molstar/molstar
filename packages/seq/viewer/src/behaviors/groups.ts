@@ -5,17 +5,18 @@
  */
 
 // The `groups` behavior (_spec/README.md "Behaviors", Groups): a section's track groups folded as session state, the
-// clade folds' model. A toggle is a hand's move (no step); collapse all, expand all and a reveal are jumps (back restores
-// the folds with the window); `groups.keep` writes the folds shown into the groups' `collapsed` (one patch), and a
-// patch or an undo that changes a group's `collapsed` resets the section's folds to the spec's.
+// clade folds' model. This is its door: the commands listed, their bodies (`groups-body.ts`) loaded the first time a
+// spec holds a section with a group, as render's groups chunk (core's `withViewKind`: the model waits for both). Why
+// lazy: groups are rare; a viewer that never shows one pays for little of them. `layer.lanes` is here whole: it acts
+// on a ranges layer, grouped or not.
 
 import type { Op } from '@molstar/core/repr/patch';
-import type { Node, Value } from '@molstar/core/repr/tree';
+import type { Node } from '@molstar/core/repr/tree';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
 import type { EditOutcome, SpecModel, ViewModel } from '@molstar/seqx-viewer/models';
 import type { EditOrigin } from '@molstar/seqx-viewer/ports';
 import type { BehaviorProvider } from '@molstar/seqx-viewer/viewer-spec';
-import type { ResolvedSection } from '@molstar/seqx-core/view';
+import { withViewKind } from '@molstar/seqx-core/resolve';
 
 /** What a groups command is given: a group's address (`toggle`), a section's (`collapseAll`, `expandAll`, `keep`). */
 export interface GroupsContext {
@@ -41,184 +42,93 @@ export interface GroupsBehavior {
   dispose(): void;
 }
 
-const idOf = (address: string) => address.slice(address.lastIndexOf('/') + 1);
-const sectionOf = (address: string) => address.slice(0, address.lastIndexOf('/'));
+let Body: typeof import('./groups-body.js') | undefined;
+let loading: Promise<unknown> | undefined;
+/** Loads the commands' bodies. */
+const loadBody = () =>
+  (loading ??= import('./groups-body.js').then(
+    (m) => {
+      Body = m;
+    },
+    () => {
+      loading = undefined;
+    },
+  ));
+
+/** Whether a section holds a group of tracks. */
+function grouped(n: Node): boolean {
+  const c = n.children;
+  if (c) for (let i = 0; i < c.length; i++) if (c[i].kind === 'group') return true;
+  return false;
+}
+
+withViewKind('section', loadBody, grouped);
+
+const Commands: readonly (readonly [string, string, string])[] = [
+  [GroupsCommandIds.toggle, 'Fold or open a group of tracks', 'No group there'],
+  [GroupsCommandIds.collapseAll, 'Collapse all groups', 'No groups there'],
+  [GroupsCommandIds.expandAll, 'Expand all groups', 'No groups there'],
+  [GroupsCommandIds.keep, 'Keep these folds as the opening state', 'No groups there'],
+];
 
 export function groupsBehavior(spec: SpecModel, view: ViewModel): GroupsBehavior {
   let disposed = false;
-  const sections = (): readonly ResolvedSection[] => view.resolved.value?.sections ?? [];
-  const section = (address: string | undefined) => sections().find((s) => s.address === address);
-  const groupOf = (address: string | undefined) =>
-    address === undefined ? undefined : section(sectionOf(address))?.trackGroups?.find((g) => g.address === address);
-  /** The sections a bulk command acts on: the one named, else every section with groups. */
-  const bulk = (ctx: GroupsContext) =>
-    sections().filter((s) => s.trackGroups && (ctx.section === undefined || s.address === ctx.section));
-  /** A command's `when`: the viewer live, then what it needs (true, or why not). */
-  const when =
-    (needs: (ctx: GroupsContext) => boolean, why: string) =>
-    (ctx: GroupsContext): true | string =>
-      disposed ? 'The viewer is retired' : needs(ctx) ? true : why;
-
-  /** Every named section's folds set to all or none, as one jump (back restores them with the window). */
-  const all = (ctx: GroupsContext, fold: boolean, done: string): CommandResult => {
-    const o = view.jump(
-      () => {
-        let moved = false;
-        for (const s of bulk(ctx)) {
-          const now = view.foldedGroups(s.address);
-          const want = fold ? s.trackGroups!.map((g) => idOf(g.address)) : [];
-          if (want.length === now.length && want.every((id) => now.includes(id))) continue;
-          moved = view.setFoldedGroups(s.address, want) || moved;
-        }
-        return moved;
-      },
-      true,
-      'move',
-    );
-    return { message: o === 'moved' ? done : 'Already so' };
-  };
-
+  let body: GroupsBehavior | undefined;
+  // the body made once its chunk landed (the model that needed it is the next one): it reads the folds from then on
+  const live = () => (body ??= !disposed && Body ? Body.groupsBody(spec, view) : undefined);
+  live();
+  const stop = spec.model.listen(() => void live());
   const said =
     (done: string) =>
     (o: EditOutcome): CommandResult =>
       o.ok
         ? { message: o.changed ? done : 'Already so', undoable: o.changed }
         : { message: o.issues.find((i) => i.severity === 'error')?.message ?? 'Refused' };
+  const of = (id: string) => live()?.commands.find((c) => c.id === id);
 
-  const commands: CommandDefinition<GroupsContext>[] = [
-    {
-      id: GroupsCommandIds.toggle,
-      title: 'Fold or open a group of tracks',
+  const commands: CommandDefinition<GroupsContext>[] = Commands.map(
+    ([id, title, none]): CommandDefinition<GroupsContext> => ({
+      id,
+      title,
       category: 'Groups',
-      when: when((ctx) => !!groupOf(ctx.address), 'No group there'),
-      run: (_, ctx): CommandResult => {
-        const g = groupOf(ctx.address)!;
-        const s = sectionOf(g.address);
-        const now = view.foldedGroups(s);
-        const id = idOf(g.address);
-        const folded = now.includes(id);
-        // a hand's move: no step of the history (as a clade's toggle)
-        view.setFoldedGroups(s, folded ? now.filter((x) => x !== id) : [...now, id]);
-        return { message: folded ? `${g.label} opened` : `${g.label} folded` };
-      },
+      when: (ctx: GroupsContext) => (disposed ? 'The viewer is retired' : (of(id)?.when?.(ctx) ?? none)),
+      run: (args, ctx, signal) => of(id)!.run(args, ctx, signal),
+    }),
+  );
+  commands.push({
+    // a ranges layer in one lane (labels off) or packed: the figure's look, one patch (the layer's `lanes`)
+    id: GroupsCommandIds.lanes,
+    title: 'Lay a ranges layer in one lane or packed',
+    category: 'Groups',
+    when: (ctx) => {
+      if (disposed) return 'The viewer is retired';
+      if (ctx.address === undefined || (ctx.lanes !== 'one' && ctx.lanes !== 'packed')) return 'No ranges layer there';
+      let n: Node | undefined = spec.root.value;
+      for (const id of ctx.address.split('/').filter(Boolean)) n = n?.children?.find((c) => c.id === id);
+      return n?.kind === 'layer' && n.params?.type === 'ranges' ? true : 'No ranges layer there';
     },
-    {
-      id: GroupsCommandIds.collapseAll,
-      title: 'Collapse all groups',
-      category: 'Groups',
-      when: when((ctx) => bulk(ctx).length > 0, 'No groups there'),
-      run: (_, ctx) => all(ctx, true, 'Groups folded'),
+    run: (_, ctx) => {
+      const at = ctx.address!.split('/').filter(Boolean);
+      const ops: Op[] = [
+        ctx.lanes === 'one' ? { op: 'set', at, key: 'lanes', value: 'one' } : { op: 'unset', at, key: 'lanes' },
+      ];
+      const o = spec.patch('Lanes', (_root, revision) => ({ base: revision, ops }), {
+        ...(ctx.origin ? { origin: ctx.origin } : {}),
+      });
+      const done = ctx.lanes === 'one' ? 'One lane' : 'Packed';
+      return o instanceof Promise ? o.then(said(done)) : said(done)(o);
     },
-    {
-      id: GroupsCommandIds.expandAll,
-      title: 'Expand all groups',
-      category: 'Groups',
-      when: when((ctx) => bulk(ctx).length > 0, 'No groups there'),
-      run: (_, ctx) => all(ctx, false, 'Groups opened'),
-    },
-    {
-      // a ranges layer in one lane (labels off) or packed: the figure's look, one patch (the layer's `lanes`)
-      id: GroupsCommandIds.lanes,
-      title: 'Lay a ranges layer in one lane or packed',
-      category: 'Groups',
-      when: when((ctx) => {
-        if (ctx.address === undefined || (ctx.lanes !== 'one' && ctx.lanes !== 'packed')) return false;
-        let n: Node | undefined = spec.root.value;
-        for (const id of ctx.address.split('/').filter(Boolean)) n = n?.children?.find((c) => c.id === id);
-        return n?.kind === 'layer' && n.params?.type === 'ranges';
-      }, 'No ranges layer there'),
-      run: (_, ctx) => {
-        const at = ctx.address!.split('/').filter(Boolean);
-        const ops: Op[] = [
-          ctx.lanes === 'one' ? { op: 'set', at, key: 'lanes', value: 'one' } : { op: 'unset', at, key: 'lanes' },
-        ];
-        const o = spec.patch('Lanes', (_root, revision) => ({ base: revision, ops }), {
-          ...(ctx.origin ? { origin: ctx.origin } : {}),
-        });
-        const done = ctx.lanes === 'one' ? 'One lane' : 'Packed';
-        return o instanceof Promise ? o.then(said(done)) : said(done)(o);
-      },
-    },
-    {
-      id: GroupsCommandIds.keep,
-      title: 'Keep these folds as the opening state',
-      category: 'Groups',
-      when: when((ctx) => !!section(ctx.section)?.trackGroups, 'No groups there'),
-      run: (_, ctx) => {
-        const s = section(ctx.section)!;
-        const folded = view.foldedGroups(s.address);
-        const ops: Op[] = s.trackGroups!.map((g) => {
-          const at = g.address.split('/').filter(Boolean);
-          return folded.includes(idOf(g.address))
-            ? { op: 'set', at, key: 'collapsed', value: true }
-            : { op: 'unset', at, key: 'collapsed' };
-        });
-        const o = spec.patch('Keep the folds', (_root, revision) => ({ base: revision, ops }), {
-          ...(ctx.origin ? { origin: ctx.origin } : {}),
-        });
-        return o instanceof Promise ? o.then(said('Kept')) : said('Kept')(o);
-      },
-    },
-  ];
-
-  // a patch or an undo that changes a group's `collapsed` resets its section's folds to the spec's
-  const seen = new Map<string, Value | undefined>();
-  const scan = (root: Node, tell: boolean) => {
-    const reset = new Set<string>();
-    const walk = (n: Node, address: string) => {
-      for (const c of n.children ?? []) {
-        if (c.id === undefined || c.kind === 'track' || c.kind === 'data') continue;
-        const a = `${address}/${c.id}`;
-        if (c.kind === 'group') {
-          const now = c.params?.collapsed;
-          if (tell && seen.has(a) && seen.get(a) !== now) reset.add(address);
-          seen.set(a, now);
-        } else walk(c, a);
-      }
-    };
-    walk(root, '');
-    for (const s of reset) {
-      // the session's set already what the spec now opens with (`groups.keep`'s own patch): kept, nothing changes
-      const own = view.groupFolds.value.get(s);
-      const opening = collapsedIds(root, s);
-      if (own && own.length === opening.length && own.every((id) => opening.includes(id))) continue;
-      view.setFoldedGroups(s, undefined);
-    }
-  };
-  scan(spec.model.value.spec, false);
-  const stop = spec.model.listen((model) => scan(model.spec, true));
+  });
 
   return {
     commands,
-    open(tracks) {
-      let moved = false;
-      for (const t of tracks) {
-        const s = section(sectionOf(sectionOf(t)));
-        const g = s?.trackGroups?.find((x) => t.startsWith(`${x.address}/`));
-        if (!g || !view.isFolded(g.address)) continue;
-        const now = view.foldedGroups(s!.address);
-        moved =
-          view.setFoldedGroups(
-            s!.address,
-            now.filter((x) => x !== idOf(g.address)),
-          ) || moved;
-      }
-      return moved;
-    },
+    open: (tracks) => live()?.open(tracks) ?? false,
     dispose() {
       disposed = true;
       stop();
+      body?.dispose();
     },
   };
-}
-
-/** The ids of a section's groups the spec opens folded (`collapsed`), read from the spec itself. */
-function collapsedIds(root: Node, section: string): string[] {
-  let n: Node | undefined = root;
-  for (const id of section.split('/').filter(Boolean)) n = n?.children?.find((c) => c.id === id);
-  return (n?.children ?? []).flatMap((c) =>
-    c.kind === 'group' && c.params?.collapsed === true && c.id !== undefined ? [c.id] : [],
-  );
 }
 
 /** A section's track groups folded and opened (_spec/README.md "Behaviors", Groups). */

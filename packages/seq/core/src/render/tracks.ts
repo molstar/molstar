@@ -68,7 +68,7 @@ import { instanceInView, wantTemplate } from './tracks-templates.js';
 import { bandHeights, firstType, rowsFill, rulerTrack } from './tracks-heights.js';
 import { sectionHeaderOf, trackHeaderOf } from './tracks-headers.js';
 import { collapsedSection } from './headers.js';
-import { foldGroups, groupHeaders } from './groups.js';
+import { GroupsHooks, registerGroups } from './groups-hooks.js';
 import { BridgeHooks } from './bridge-hooks.js';
 import type { Members } from './members.js';
 import { MemberHooks } from './members-hooks.js';
@@ -107,6 +107,9 @@ function directionMark(section: ResolvedSection, config: RenderConfig): string |
   const along = section.axis.along;
   return along === undefined ? '← reversed' : `← along ${along.slice(along.lastIndexOf('/') + 1)}`;
 }
+
+// a section's track groups: their chunk loaded when a spec holds one (`groups-hooks.ts`)
+registerGroups();
 
 const NoLays: readonly LayerLayout[] = [];
 /** A prep in one lane (`lanes: one`): kept a prep, so a summary's lay key holds. */
@@ -498,8 +501,9 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     }
     // its groups folded (_spec/README.md "Render", Track groups): a folded group's tracks give way to its summary bands
     // (a section without groups calls nothing: its layout allocates nothing for them)
-    const folding = section.trackGroups
-      ? foldGroups(
+    const fold = section.trackGroups ? GroupsHooks.fold : undefined;
+    const folding = fold
+      ? fold(
           section,
           shown,
           trackOf,
@@ -1026,8 +1030,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         }
       }
     const groups =
-      folding?.groups && folding.groups.length
-        ? groupHeaders(
+      folding?.groups && folding.groups.length && GroupsHooks.headers
+        ? GroupsHooks.headers(
             folding.groups,
             tracks.map((t) => t.well),
             section,

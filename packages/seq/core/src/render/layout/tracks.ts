@@ -18,7 +18,7 @@ import type { SectionLayout, TrackLayout } from '../tracks.js';
 import { BlockPlacement, blockChrome, placeBlocks, rowPan, rowZoom } from './blocks.js';
 import { capScroll, headOf, StripPlacement } from './strips.js';
 import { drawSectionHeader, drawTrackHeader, hitHeaders } from '../headers-draw.js';
-import { drawGroupHeaders, hitGroupHeader } from '../groups-draw.js';
+import { GroupsHooks } from '../groups-hooks.js';
 import type { NavContext, PlaceContext, SectionLayoutType, SectionNav, StepDir } from './types.js';
 
 // the anchor a number read once: a draw reads no property of an imported object (_spec/README.md "Render", Draw lists)
@@ -189,7 +189,7 @@ export const TracksLayout: SectionLayoutType<StripPlacement> = {
     // the section's header line (_spec/README.md "Render", Track headers), once before its strips
     if (band < 0) {
       if (strip < 0 && (pass === 'labels' || pass === 'tip')) drawSectionHeader(out, s, pass, emphasis);
-      if (strip < 0 && pass === 'labels' && s.groups) drawGroupHeaders(out, s);
+      if (strip < 0 && pass === 'labels' && s.groups) GroupsHooks.draw?.(out, s);
       return;
     }
     if (pass !== 'labels' && pass !== 'tip') return;
@@ -209,7 +209,7 @@ export const TracksLayout: SectionLayoutType<StripPlacement> = {
     const h = hitHeaders(s, x, y, hover, touch);
     if (!s.groups || (h && h.target !== 'header-label')) return h;
     // a folded group's row: its label column is the group's header (a slot or a state there stays the row's)
-    return hitGroupHeader(s, x, y) ?? h;
+    return GroupsHooks.hit?.(s, x, y) ?? h;
   },
 };
 

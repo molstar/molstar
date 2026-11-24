@@ -4162,6 +4162,10 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
 `groups.ts`, `groups-draw.ts`: a section's groups of tracks in the tracks layout, folded once a layout (a fold changes
 the bands, never a warm frame's work).
 
+- **Lazy** (`groups-hooks.ts`): both load the first time a spec holds a section with a group, the model waiting for them
+  as for the categorical axes (`withViewKind`, registered by `tracks.ts`), so a section with groups is never drawn
+  without them. Why: groups are rare; a view without one pays for no folding, summary or header code.
+
 - **Folded or open**: the viewport's `groups` (the viewer's session set, by group id), else the export's `groups`
   (`renderSvg`'s option, by section), else each group's `collapsed`. Part of the section's key (`sameWindow`, by
   identity).
