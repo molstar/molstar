@@ -55,7 +55,8 @@ whether it is undoable, keeps that clear.
   (`findNames`, a `seq` source's node keys when its coverage lists `key`), reads that region and runs when the node
   arrives; a key the source does not have is said once (`seq.address.node.unknown`) and the ref is then `missing`.
   Not ticked: a layer naming a dynamic node by address is refused (`seq.view.layer.data`), not pending; a track
-  template is the route that waits (open).
+  template is the route that waits (open); a node a source brings only at a coarser level than its finest is asked at
+  the finest and does not arrive (a find's hit carries no level: a protocol change, open).
 - **Streams never become patches**: arriving data never enters the spec or its history (EC-175); "keep this region" is
   a command that writes a patch (an inline copy, a ref), on purpose.
 - **Patches can stream too, in version 1 from one writer at a time**: an agent's or a host's patches are applied
