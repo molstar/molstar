@@ -33,7 +33,7 @@ async function ring(n: number) {
   const ext = defineExtension({
     id: 'rondo',
     version: '0.1.0',
-    requires: '0.10',
+    requires: '0.11',
     registry: [
       { kind: 'layer-type', type: Captured },
       { kind: 'scheme', scheme: RondoHues },
@@ -66,7 +66,7 @@ async function twoKinds(n: number) {
   const ext = defineExtension({
     id: 'rondo',
     version: '0.1.0',
-    requires: '0.10',
+    requires: '0.11',
     registry: [{ kind: 'layer-type', type: Captured }],
   });
   const chroms = genomeChromosomes(23);

@@ -249,7 +249,7 @@ function behavior(): BehaviorProvider {
 export const rondoViewer: SeqViewerExtension = defineViewerExtension({
   id: 'rondo',
   version: RondoVersion,
-  requires: '0.10',
+  requires: '0.11',
   doc: rondo.doc,
   registry: rondo.registry,
   params: RondoParams as never,

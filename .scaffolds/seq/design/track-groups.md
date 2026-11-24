@@ -72,19 +72,19 @@ group: { parents: ['section'], ids: 'required',
   params: { label?: string,                    // its id when absent
             collapsed?: boolean = false,       // the opening state (the session's set overrides it)
             hidden?: boolean = false,          // the group and its tracks not drawn; its tracks keep their own `hidden`
-            summary?: 'auto' | 'none' | ref<track> = 'auto' } }   // what a folded group draws
+            summary?: 'auto' | 'none' | { ref, kinds: ['track'], in: 'group' } = 'auto' } }   // what a folded group draws
 track.parents: ['section', 'group']            // was ['section']
 ```
 
 - **One level**: a group's children are tracks only (templates included); a group in a group is a check error
-  (`seq.check.parent`, as any parent the description refuses). Why: no example needs nesting, and the header, cursor
+  (`repr.schema.parent.invalid`, as any parent the description refuses). Why: no example needs nesting, and the header, cursor
   and summary rules stay one level; `group.parents` gaining `'group'` later is additive.
 - **Its tracks are its children**, so a track in a group has the address `/views/v/<section>/<group>/<track>`. Why a
   tree over a membership ref: the order is the spec's order and the membership is where the track is, one place to
   read and to edit (Rejected 2). The cost: moving a track in or out of a group changes its address (a `move` patch,
   `repr/patch`'s op with a new parent); session state keyed by a track address (a band's scroll) starts fresh.
-- **`summary`** names one of its own tracks (checked: `seq.check.group.summary`, a ref to a track of another parent
-  is an error), shown only while the group is folded, never while open (EC-103); `auto` draws the automatic summary
+- **`summary`** names one of its own tracks by its id (a `ref` resolved `in: 'group'`; checked:
+  `seq.lang.group.summary`, a track of another parent or none is an error), shown only while the group is folded, never while open (EC-103); `auto` draws the automatic summary
   (Decision 5); `none` draws the header line alone.
 - **The version moves `0.10.0` → `0.11.0`**, pre-release, no migration (core `_spec` › Versions). A `0.10` spec reads
   unchanged. A reader without groups (EC-244, "collapsed groups and summaries" among what another renderer may lack)
@@ -93,6 +93,9 @@ track.parents: ['section', 'group']            // was ['section']
   is the previous implementation's word and ux-foundations' ("collapsing a group"), but the codebase already says
   scroll groups, block groups (`ResolvedSection.groups`, EC-210), copy groups, a text's groups of ten and the theme
   language's letter `group`; `track_group` reads longer and clashes with none. Settled by the author's pick.
+- **Codes and the ref's form, as built** (CL6, 2026-11-24): the codebase's own codes (`repr.schema.parent.invalid`
+  for any refused parent, `seq.lang.*` for the language's checks) and a ref by bare id in the group, not the draft's
+  `seq.check.*` and `ref<track>`. Why: one catalog of codes, and a bare id reads as `across` does.
 - **The builder**: `section.group(id, params)` returning a builder with `.track(...)`, as `section.track` does.
 
 ### 2. The resolved view: tracks stay flat, each names its group
