@@ -308,7 +308,7 @@ deleted by the merge that lands the built box. **Precedent**: SnapGene's find ba
 | `search.maxRegexChars`, `maxRegexPositions`, `maxRegexDepth` | 256, 128, 64 | four words a step; `include` patterns' 256; the queries' nesting (EC-76) | more words, a step's cost growing with them |
 | `search.maxHitLength` | 1,000 | UGENE's regex result length | any |
 | `search.maxLetters` | 2^25 | a bacterial genome and a 10,000-row alignment fit; a human chromosome does not, and says to use `within` | larger, or a source's own search (not built) |
-| `search.maxSteps` | 2^28 | about a second of work at worst on a laptop: the worst patterns over 2^20 `A`s end at it in 0.2 to 0.7 s (core's perf tier); the CI runner's numbers to come (Provisional) | any |
+| `search.maxSteps` | 2^28 | about a second of work at worst on a laptop: the worst patterns over 2^20 `A`s end at it in 0.3 to 0.6 s (core's perf tier, the whole tier running); the CI runner's numbers to come (Provisional) | any |
 | `search.maxHits` | `address.limit` (10,000) | what a channel and stepping hold; the count goes on | any |
 | `search.maxSaved` | 1,000 | a ref's addresses stay readable and its patch small | any |
 | `search.chunkLetters` | 2^20 | a batch a frame's work | any |

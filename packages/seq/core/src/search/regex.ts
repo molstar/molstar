@@ -430,7 +430,7 @@ export function regexTables(g: Glushkov): RegexTables {
 }
 
 /** A step's fixed cost past its words (the loop, the reads), in words: so steps track time on any pattern. */
-export const RegexStepOverhead = 4;
+export const RegexStepOverhead = 12;
 
 /**
  * The kernel of an automaton over one alphabet's codes (`accepts(set, code)`: whether a position's set takes a folded

@@ -5315,8 +5315,9 @@ viewer's `search.*` items set them), each with its code (`SearchIssues`):
   `GG.{2,8}CC` at 0 bytes a step warm (the allocation tier, `search/_test/search.quick.ts`). A catastrophic pattern
   costs what a plain one does in counted steps (the quick lane). The step budget's calibration (the same tier): the
   worst patterns (`.{1,126}.*`, `(.|A)*`, `[ACGT]*A`, `C` and 999 `A`) over 2^20 `A`s end at the default `maxSteps` in
-  0.2 to 0.7 s on a laptop, under 1.5 s asserted: 2^28 steps are about a second of work at worst. The timing bounds (1
-  Mb in tens of milliseconds, a 10,000-row alignment) are TODO, to measure on the CI runner.
+  0.3 to 0.6 s on a laptop with the whole tier running (a step's `RegexStepOverhead` 12: at 4 a loaded run took 4 s),
+  under 1.5 s asserted: 2^28 steps are about a second of work at worst. The timing bounds (1 Mb in tens of milliseconds,
+  a 10,000-row alignment) are TODO, to measure on the CI runner.
 
 ## Context
 
