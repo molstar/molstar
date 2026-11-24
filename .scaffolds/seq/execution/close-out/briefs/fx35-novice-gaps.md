@@ -22,9 +22,13 @@ decided by the author, 2026-11-24: "Agree all four".
   ("genome-wide · 7.3"), the value in the layer's number format; a line without a label draws the value alone. The
   accessible text unchanged ("reference line at 7.3 (genome-wide)"). The values y axis stays a TODO.
 
-**Items**, a commit at each: 1 D1, 2 D2, 3 D3, 4 D4; each with tests failing on its parent (a gesture through the
-viewer's model; the tooltip's text; the menu entries and one undo step; the label boxes and the SVG export), the
-stories updated (the ring stories' texts; Manhattan shows the values) and their twins.
+**Items**, a commit at each, each with tests failing on its parent and its stories and twins updated:
+
+1. **D1**: the double-click on a chromosome opens it (a gesture through the viewer's model; one undo step); the ring
+   stories' texts.
+2. **D2**: the swatch's tooltip and accessible description.
+3. **D3**: the menu entries, offered only where they apply, one undo step each.
+4. **D4**: the label boxes with the value, the SVG export; the Manhattan story shows the values.
 
 **How**: nothing per frame; host neutral; module size (new code lazy where the default viewer does without it).
 

@@ -6,7 +6,7 @@ packages-seq` first). Branch `seq/fx34`. No lane beside you.
 **Why**: [novice-findings.md](../novice-findings.md), the rows placed to FX34 (reproduced by the orchestrator where
 marked).
 
-**Measure first, then fix, each with a test failing on its parent; a commit each**:
+**Items** (measure first, then fix, each with a test failing on its parent; a commit each):
 
 1. **C5, a partner from the stem menu is no history step** (reproduced: Features › Genome Ring › The Stem Menu, "Show
    with a partner" › chr12 › its first piece: the pair opens, Back stays `aria-disabled`). `ring-extension.md`, The stem
