@@ -22,7 +22,8 @@ viewer's label churn over its baseline is in `fixes.md`, outside the close-out's
 
 1. FX36 merged (`feaabd7b3`), re-measured in the pane: three overs pass; the split and merge carried (the author:
    "Carry it"; `packages/seq/TODO.md`).
-2. The last gate (running), then FINALIZE.
+2. The last gate passed (`2b6aacc28`). FINALIZE: reconcile, `foldback.md` for the author, the gate once more, the
+   record, the next plan, the clean-up.
 
 ## Blockers and open questions
 

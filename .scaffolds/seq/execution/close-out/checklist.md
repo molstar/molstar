@@ -37,6 +37,6 @@
 <!-- Last stage -->
 - [x] The use gate: the author tries the genome views and the ring, each story against its agreed picture (the author, 2026-11-24: "i did go though the storybook ... then can consider the use gate done", after FX32 `608d87ac2`)
 - [x] The novice pass, after the last lane that draws (`novice-findings.md`: 43 findings, the bugs to FX34, D1–D4 to the author)
-- [ ] The measurements: the bundles against their budgets, the representatives at full size
-- [ ] GATE: last
+- [x] The measurements: the bundles against their budgets, the representatives at full size (`measurements.md`; four overs to FX36, three fixed, the split and merge carried by the author)
+- [x] GATE: last (`2b6aacc28`)
 - [ ] FINALIZE: the unticked items run, cut or carried; reconcile; `foldback.md` with the author's decision; the gate; the record; `state.md`'s closing line; the next plan
