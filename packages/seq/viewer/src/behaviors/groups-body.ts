@@ -20,7 +20,7 @@ const idOf = (address: string) => address.slice(address.lastIndexOf('/') + 1);
 const sectionOf = (address: string) => address.slice(0, address.lastIndexOf('/'));
 
 /** The commands, the reveal's opening and the reset of the folds on an edit of `collapsed`. */
-export function groupsBody(spec: SpecModel, view: ViewModel): GroupsBehavior {
+export function groupsBody(spec: SpecModel, view: ViewModel, say?: (text: string) => void): GroupsBehavior {
   let disposed = false;
   const sections = (): readonly ResolvedSection[] => view.resolved.value?.sections ?? [];
   const section = (address: string | undefined) => sections().find((s) => s.address === address);
@@ -75,6 +75,8 @@ export function groupsBody(spec: SpecModel, view: ViewModel): GroupsBehavior {
         const folded = now.includes(id);
         // a hand's move: no step of the history (as a clade's toggle)
         view.setFoldedGroups(s, folded ? now.filter((x) => x !== id) : [...now, id]);
+        // the announcer says the new state ("group Variants, collapsed, 3 tracks")
+        say?.(`group ${g.label}, ${folded ? 'expanded' : 'collapsed'}, ${g.count} track${g.count === 1 ? '' : 's'}`);
         return { message: folded ? `${g.label} opened` : `${g.label} folded` };
       },
     },

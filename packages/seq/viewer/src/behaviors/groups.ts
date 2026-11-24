@@ -16,6 +16,7 @@ import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/type
 import type { EditOutcome, SpecModel, ViewModel } from '@molstar/seqx-viewer/models';
 import type { EditOrigin } from '@molstar/seqx-viewer/ports';
 import type { BehaviorProvider } from '@molstar/seqx-viewer/viewer-spec';
+import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { withViewKind } from '@molstar/seqx-core/resolve';
 
 /** What a groups command is given: a group's address (`toggle`), a section's (`collapseAll`, `expandAll`, `keep`). */
@@ -37,6 +38,8 @@ export const GroupsCommandIds = {
 
 export interface GroupsBehavior {
   readonly commands: readonly CommandDefinition<GroupsContext>[];
+  /** The viewer composed: the announcer's notice for a fold. */
+  composed?(viewer: SeqViewer): void;
   /** Opens the folded groups holding these tracks (a reveal landing on an item only they draw): no step of its own. */
   open(tracks: readonly string[]): boolean;
   dispose(): void;
@@ -74,8 +77,10 @@ const Commands: readonly (readonly [string, string, string])[] = [
 export function groupsBehavior(spec: SpecModel, view: ViewModel): GroupsBehavior {
   let disposed = false;
   let body: GroupsBehavior | undefined;
+  let viewer: SeqViewer | undefined;
+  const say = (text: string) => viewer?.notify(text);
   // the body made once its chunk landed (the model that needed it is the next one): it reads the folds from then on
-  const live = () => (body ??= !disposed && Body ? Body.groupsBody(spec, view) : undefined);
+  const live = () => (body ??= !disposed && Body ? Body.groupsBody(spec, view, say) : undefined);
   live();
   const stop = spec.model.listen(() => void live());
   const said =
@@ -122,6 +127,9 @@ export function groupsBehavior(spec: SpecModel, view: ViewModel): GroupsBehavior
 
   return {
     commands,
+    composed(v) {
+      viewer = v;
+    },
     open: (tracks) => live()?.open(tracks) ?? false,
     dispose() {
       disposed = true;

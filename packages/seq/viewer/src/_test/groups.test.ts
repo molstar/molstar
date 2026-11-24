@@ -103,6 +103,9 @@ describe('track groups in the viewer', () => {
     expect(backSteps(v)).toBe(steps);
     expect(stackOf(v).steps.value.length).toBe(0);
     expect(await v.execute('groups.toggle', { address: `${GroupsSection}/none` })).toBe('No group there');
+    // the announcer's notice: the group's new state
+    await v.execute('groups.toggle', { address: `${GroupsSection}/variants` });
+    expect(v.notice.value.text).toBe('group Variants, collapsed, 2 tracks');
   });
 
   it('collapse all and expand all are jumps: back restores the folds; a fold keeps the selection', async () => {
