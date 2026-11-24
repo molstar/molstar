@@ -16,12 +16,14 @@ the head: spec 260.9/265, headless 978.5/980, default 1,554.6/1,560, minimal 1,0
 
 ## In progress
 
+- 2026-11-24 night: CL11, strong, the drag rule (`briefs/cl11-drag-rule.md`), `seq/cl11`; started at load 6.3, its
+  timings read only under load 3.
 - FX25 stopped on a permission refusal (`gaps.md`), its worktree kept with items 1 and 2 uncommitted; waits for the
   author.
 
 ## Next
 
-1. CL11 (the drag rule, `briefs/cl11-drag-rule.md`), alone on a quiet machine; then CL12 (its brief to write).
+1. On CL11's report: the loop's step 5. Then CL12 (its brief to write), alone.
 2. The legend's eye chunk flake (fixes.md) to the next fix lane.
 3. CL5, CL6 and CL8 wait for the author's word on their drafts (`drafts/search.md`, `track-groups.md`,
    `values-marks.md`); FX25 for the refusal. GATE 2 after wave 4.
