@@ -22,9 +22,13 @@ The `cc-plugin-privacy` plugin no longer refuses lanes since the author's restar
   (load 21–31): at GATE 2, with FX30's.
 - **FX30** merged (`60170c5b5`), the sizes raised with FX29's; perf at GATE 2.
 
+- **GATE 2** (at `a21bbaec0`): every check green but core `test:perf`: `frame.quick.ts`'s reversed 150,000-piece
+  pan, its planted-leak control reading 2.0–2.4 kB of 4 kB, three times (twice alone at load 2.2–2.6). To **FX31**
+  (`briefs/fx31-frame-control.md`): bisect the merges since GATE 1, fix the cause.
+
 ## Next
 
-1. GATE 2, with FX29's and FX30's perf runs (load 3); then the use gate, the novice pass, the measurements, the last gate.
+1. FX31, then GATE 2's perf rerun and its report; then the use gate, the novice pass, the measurements, the last gate.
 
 ## Blockers and open questions
 
