@@ -16,12 +16,15 @@ Stage 0 and GATE 0 are closed; waves 1 and 2 are merged and GATE 1 passed. Merge
 
 - CL6 resumed 2026-11-24 (the plugin off): rebase on `packages-seq`, item 6, the perf fix, the header click.
 - CL5 reported: the orchestrator's checks, look and review.
+- FX25 back from deferred (the author, 2026-11-24: "maybe we can finish FX25 too then?"): items 1 and 2 committed
+  on its base now; the rebase and items 3–6 after CL6 merges (CL6 holds `ranges.ts`, `headers.ts`, `layer-type.ts`,
+  `tracks-types.ts`, the tracks layout).
 
 ## Next
 
 1. Each lane's report through the loop's step 5; the drafts deleted at the merge that lands each design.
 2. CL8 after CL6 merges (the tracks and the language).
-3. FX25 deferred past the close-out (the author, 2026-11-24): its items in `fixes.md`, its worktree kept.
+3. FX25 after CL6's merge: rebase, items 3–6.
 4. GATE 2 after CL5, CL6 and CL8; then the use gate, the novice pass, the measurements, the last gate.
 
 ## Blockers and open questions

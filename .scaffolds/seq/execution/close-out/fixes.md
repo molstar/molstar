@@ -6,7 +6,7 @@ Open items for the next fix point or a running lane's fix round (the loop, Each 
   `ext-rondo/src/card.ts`'s `legendRondo`, CL2's files). The entry has no swatch, and its label doubles ("Contacts: by
   chromosome"). Fix: drop `<name>: ` when it repeats the legend's title, and give "by chromosome" a hue swatch. Kind:
   look. To CL2's fix round.
-- **Deferred** (the author, 2026-11-24: "ok let's just defer the fixes"): FX25 stopped three times on the
+- **Back from deferred** (the author, 2026-11-24, the plugin off: "maybe we can finish FX25 too then?"); was **Deferred** ("ok let's just defer the fixes"): FX25 stopped three times on the
   `cc-plugin-privacy` plugin's refusals (`gaps.md`). Its six items below (TP53-201's lane, the variant card's title, stub
   labels, F9's canvas pressed slot, the square's failure text, the zoom hatch) carry past this close-out, to the next
   plan's first fix lane. Its worktree (`.claude/worktrees/agent-a98a4bf365b8a5323`, `seq/fx25` at `37832382d`) keeps
