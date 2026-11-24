@@ -15,6 +15,7 @@ import type { RibbonsLay } from '../pairs-ribbons.js';
 import { SeqRuntime } from '@molstar/seqx-core/data';
 import { bridgeSpec, randomBridgePairs } from './bridge-fixtures.js';
 import { AlnLength, randomAlignments, regionBridgeSpec } from './bridge-region-fixtures.js';
+import { BottomSection, ChrLength, sideBlocks, sidesBridgeSpec, TopSection } from './bridge-sides-fixtures.js';
 import { settle } from './helpers.js';
 import { reusedHover } from './scenarios.js';
 
@@ -30,6 +31,13 @@ const HitBound = 32;
  * target (the sides' layouts and the reads' regions are most of it).
  */
 const RelayoutBound = 500_000;
+
+/**
+ * The same over two genomes' assembly source (a read a block in view; its prepared rows built again by each moved window,
+ * as they hold the rows with an end in view: 476 kB with rows kept by the tiles alone, which lets a pending side draw
+ * rows out of view, EC-169): measured 547 kB, held, not a target; FX28.
+ */
+const AssemblyRelayoutBound = 600_000;
 
 describe('a bridge draws and hovers with nothing allocated once warm', () => {
   it('4,096 ribbons: draw, a hover lighting a ribbon, a hit', async ({ task }) => {
@@ -98,5 +106,31 @@ describe('a bridge laid out again', () => {
     const r = quickCase(task, 'bridge relayout', step);
     console.info(`bridge relayout: ${r.r.bytesPerStep.toFixed(0)} bytes a layout (${r.r.note})`);
     expect(r.r.bytesPerStep, r.r.note).toBeLessThanOrEqual(RelayoutBound);
+  });
+});
+
+describe('a bridge over genomes', () => {
+  it('a pan of a side over an assembly source: its warm draw allocates nothing, its relayout a bounded size', async ({
+    task,
+  }) => {
+    const s = await settle(sidesBridgeSpec(sideBlocks(300, 5)), [SeqRuntime], { pairs: { maxArcs: 1024, binPx: 40 } });
+    // the top zoomed in on chr2 (the near side), the bottom at the fit: two windows inside the same tiles
+    const at = (x: number) => ({
+      ...input,
+      viewports: {
+        [TopSection]: { start: ChrLength + 400_000 + x, end: ChrLength + 450_000 + x },
+        [BottomSection]: { start: 0, end: 2 * ChrLength },
+      },
+    });
+    const frames = [at(0), at(37)];
+    for (const f of frames) await s.frame(f);
+    const f = await s.frame(frames[0]);
+    expect(f.layout.bridges!.list[0].count).toBeGreaterThan(0);
+    const d = quickCase(task, 'bridge assembly draw', () => drawView(f.layout, f.lists), {});
+    console.info(`bridge assembly draw: ${d.r.bytesPerStep.toFixed(0)} bytes a frame (${d.r.note})`);
+    expect(d.r.bytesPerStep, d.r.note).toBeLessThanOrEqual(inject('perfThreshold'));
+    const r = quickCase(task, 'bridge assembly relayout', (i) => void s.renderer.frame(frames[i & 1]));
+    console.info(`bridge assembly relayout: ${r.r.bytesPerStep.toFixed(0)} bytes a layout (${r.r.note})`);
+    expect(r.r.bytesPerStep, r.r.note).toBeLessThanOrEqual(AssemblyRelayoutBound);
   });
 });

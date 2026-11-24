@@ -366,19 +366,36 @@ function gather(
   return { count, ...(g ? { g } : {}), ua, ub };
 }
 
-/** Whether the data was built from this read (its mode, level, and each entry's block, tile and version). */
+/**
+ * Whether the data was built from this read: its mode, level, each entry's block, tile and version, and the positions
+ * in view (`view`: `gather` keeps the rows with an end in view, so a window moved within the same tiles builds again).
+ */
 function sameRead(
   r: readonly number[],
   mode: number,
   level: number,
   entries: readonly Loaded[],
   units: readonly number[],
+  view: readonly number[],
 ) {
-  if (r.length !== 2 + 3 * entries.length || r[0] !== mode || r[1] !== level) return false;
+  const at = 2 + 3 * entries.length;
+  if (r.length !== at + view.length || r[0] !== mode || r[1] !== level) return false;
   for (let k = 0; k < entries.length; k++)
     if (r[2 + 3 * k] !== units[k] || r[3 + 3 * k] !== entries[k].region.tile || r[4 + 3 * k] !== entries[k].version)
       return false;
+  for (let i = 0; i < view.length; i++) if (r[at + i] !== view[i]) return false;
   return true;
+}
+
+/** The positions in view by unit as one list (`-1` before each unit's ranges), reused: a read's key beside its tiles. */
+const View: number[] = [];
+function viewOf(st: AssemblyState): number[] {
+  View.length = 0;
+  for (const r of st.inView) {
+    View.push(-1);
+    for (let i = 0; i < r.length; i++) View.push(r[i]);
+  }
+  return View;
 }
 
 const Units: number[] = [];
@@ -471,7 +488,8 @@ function built(
   read: readonly Loaded[],
   units: readonly number[],
 ): PairsPrep {
-  if (sameRead(state.read, mode, level, read, units) && state.prep) return state.prep;
+  const view = viewOf(st);
+  if (sameRead(state.read, mode, level, read, units, view) && state.prep) return state.prep;
   const got = gather(over, st, read, units, level, mode === 0, true);
   const g = got.g!;
   const pairs = {
@@ -482,6 +500,7 @@ function built(
   state.read.length = 0;
   state.read.push(mode, level);
   for (let k = 0; k < read.length; k++) state.read.push(units[k], read[k].region.tile, read[k].version);
+  for (let i = 0; i < view.length; i++) state.read.push(view[i]);
   state.prep = {
     ...withData(prep, pairs, mode ? undefined : Float32Array.from(g.weight), mode ? undefined : level),
     endUnits: over.units,
