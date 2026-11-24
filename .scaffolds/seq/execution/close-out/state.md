@@ -22,10 +22,10 @@ regression). The old Seq\* viewer's label churn over its baseline is in `fixes.m
 
 ## Next
 
-1. Done: the use gate (the author went through the Storybook (2026-11-24): done once FX32 lands ("then can consider the use
-   gate done"). **FX32** (`briefs/fx32-legend-menu.md`): the legend's layers menu as the header's, Show all and Hide
-   all.
-2. The novice pass, after FX32 (the author: "we can run the novice pass"); then the measurements, the last gate and FINALIZE.
+1. The novice pass (`briefs/novice-pass.md`, the author: "we can run the novice pass"): group C reported (17 findings,
+   kept in the orchestrator's scratchpad until `novice-findings.md`), group B running, group A after it; each finding
+   reproduced in a visible pane and placed.
+2. The measurements, the last gate and FINALIZE.
 
 ## Blockers and open questions
 
