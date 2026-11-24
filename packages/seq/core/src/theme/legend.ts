@@ -245,6 +245,53 @@ export function mergeLegends(legends: readonly Legend[]): Legend[] {
   return out;
 }
 
+/**
+ * One layer's legends over several strips (a block's strip draws what its own cells hold), made one: the swatches of
+ * a layer's channel are the union of what every strip lists, in the order first met, each (label, color) once, so the
+ * key lists every category the layer draws in view, not those of its first strip; the rest as the first says them.
+ * `maxItems` lists the first of them and counts the rest (`more`). A legend of another kind, or alone, is as it is.
+ */
+export function unionLegends(legends: readonly Legend[], maxItems = 12): Legend[] {
+  type Item = { readonly label: string; readonly color: number; readonly value?: string };
+  const groups = new Map<string, { first: Legend; items: Map<string, Item>; notes: Set<LegendNote> }>();
+  const order: (Legend | string)[] = [];
+  const once = new Set<string>();
+  for (const l of legends) {
+    if (l.entries.kind !== 'swatches' || l.layers.length !== 1) {
+      // a legend of another kind, made again by each strip's lay: once
+      const id = `${l.layers.join()}|${l.key}`;
+      if (!once.has(id)) order.push(l);
+      once.add(id);
+      continue;
+    }
+    const id = `${l.layers[0]}|${l.channel}|${l.scale ?? ''}`;
+    let g = groups.get(id);
+    if (!g) {
+      groups.set(id, (g = { first: l, items: new Map(), notes: new Set() }));
+      order.push(id);
+    }
+    for (const i of l.entries.items)
+      if (!g.items.has(`${i.label}\u0000${i.color}`)) g.items.set(`${i.label}\u0000${i.color}`, i);
+    for (const n of l.notes) g.notes.add(n);
+  }
+  return order.map((o) => {
+    if (typeof o !== 'string') return o;
+    const { first, items, notes } = groups.get(o)!;
+    const all = [...items.values()];
+    // alone: as it is (its own `more` counts what its maxItems left out)
+    if (all.length === (first.entries as { items: readonly Item[] }).items.length && notes.size === first.notes.length)
+      return first;
+    const entries = { kind: 'swatches' as const, items: all.slice(0, maxItems) };
+    return {
+      ...first,
+      entries,
+      more: Math.max(first.more, all.length - maxItems),
+      notes: [...notes],
+      key: `${first.channel}|${first.scale ?? ''}|${hashString(JSON.stringify([entries, first.domain, first.open])) >>> 0}`,
+    };
+  });
+}
+
 /** A number as a legend writes it: up to 4 significant digits. */
 export function formatValue(v: number): string {
   return Number.isInteger(v) ? String(v) : String(Number(v.toPrecision(4)));

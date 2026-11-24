@@ -587,24 +587,30 @@ layout per token table, held domains and the reader's substitution (`LayerChanne
   where unlisted values are hashed: `seq.render.legend.unlisted`), merged when they say the same (two layers on one
   scale: one legend), and converted to Mol*'s legends. A letters form's swatches name their letters: a letters layer
   passes the letters it laid out (`painted`), so its key lists only those (an RNA's U, never its T; no gap swatch where
-  there is no gap), then a color once; before any is drawn, every letter. A view's legends (`viewLegends`) are its
-  tracks' layers' and its sections' own layers' (a pairs layer's arcs and dots), titled by the track holding the layer,
-  then its bridges' layers' (their ribbons), titled by the bridge's `label` and noting `width` (a ribbon's width is its
-  aligned length) where a drawn ribbon's width is (an item's, never a bin's or a `shape: line`'s); after the merge,
-  legends of one title but of different channels (a layer's colors and sizes) carry `qualifier` (the channel;
-  `legendTitle`: "Variants (size)"), `title` staying the track's (the Mol* converter has no title and drops sizes). **A
-  layer's `legend` param** (`auto`, the default; `none`) is the figure's say on its key: `viewLegends` skips a layer
-  that says `none` (a constant color that says nothing), so the viewer's legends, the export's band and the Mol* legends
-  follow; a legend two layers share stays while one of them keys it (the items of the `none` layer then no longer
-  outline that entry on hover: the entry is the keyed layers'). Why the layer's: what a figure keys is the figure's (a
-  spec's), where a key sits is the host's, and no session command hides one (language 0.5.0). `Legend.hidden` lists the
-  layers of `layers` the spec hides: never set by `viewLegends` (a hidden layer is not laid out, so it keys nothing
-  here); `keepHiddenLegends(layout, view, shown, last, names)` puts a hidden layer's last legends back in their place,
-  or a row of its name alone where it has none kept (the viewer's Legends: a layer's row keeps its place when hidden),
-  the caller keeping `last` across settles. **A layer's name** (`layerName`, beside `hiddenTrackName`): its `label`,
-  else its `title`, else its track's or bridge's label where it is the only layer there, else its id (its type without
-  one); every list of layers says it (a track header's menus, a legend's eye). Why one: two consumers naming one layer
-  apart read as two layers.
+  there is no gap), then a color once; before any is drawn, every letter. **A layer's swatches are what it draws in view
+  over all its strips** (`unionLegends`: a block's strip draws its own cells, a chain its letters and a chip its color,
+  so each strip's swatches join, each (label, color) once, never the first strip's alone); a rules form lists its rules,
+  then its `else`'s own letters (a scheme's groups, those drawn), and a molecule's chip no rule matched
+  (`LettersLay.plain`) lists `otherwise` in the color it is drawn in. A view's legends (`viewLegends`) are its tracks'
+  layers' and its sections' own layers' (a pairs layer's arcs and dots), titled by the track holding the layer (a
+  letters layer by its own `label` or `title`, else "<track> letters": its key is a scheme, and the track's name alone
+  reads as one category's), then its bridges' layers' (their ribbons), titled by the bridge's `label` and noting `width`
+  (a ribbon's width is its aligned length) where a drawn ribbon's width is (an item's, never a bin's or a
+  `shape: line`'s); after the merge, legends of one title but of different channels (a layer's colors and sizes) carry
+  `qualifier` (the channel; `legendTitle`: "Variants (size)"), `title` staying the track's (the Mol* converter has no
+  title and drops sizes). **A layer's `legend` param** (`auto`, the default; `none`) is the figure's say on its key:
+  `viewLegends` skips a layer that says `none` (a constant color that says nothing), so the viewer's legends, the
+  export's band and the Mol* legends follow; a legend two layers share stays while one of them keys it (the items of the
+  `none` layer then no longer outline that entry on hover: the entry is the keyed layers'). Why the layer's: what a
+  figure keys is the figure's (a spec's), where a key sits is the host's, and no session command hides one (language
+  0.5.0). `Legend.hidden` lists the layers of `layers` the spec hides: never set by `viewLegends` (a hidden layer is not
+  laid out, so it keys nothing here); `keepHiddenLegends(layout, view, shown, last, names)` puts a hidden layer's last
+  legends back in their place, or a row of its name alone where it has none kept (the viewer's Legends: a layer's row
+  keeps its place when hidden), the caller keeping `last` across settles. **A layer's name** (`layerName`, beside
+  `hiddenTrackName`): its `label`, else its `title`, else its track's or bridge's label where it is the only layer there
+  (a letters layer says its kind wherever it is, beside others too: "<label> letters"), else its id (its type without
+  one); every list of layers says it (a track header's menus, a legend's eye and title, a hidden layer's row:
+  `viewLegends` and `keepHiddenLegends` both call it). Why one: two consumers naming one layer apart read as two layers.
 - **Builder**: `theme.uniform|field|rules|scheme|letters|categorical|…` and `measure.*`; a layer's `field` form over an
   inline table's text column gets the column's values listed (the legend is the vocabulary); a `ranges` layer over a
   `category` column, a `variants` one over a `consequence` column and a `pairs` one over a `type` column default to a
@@ -4165,9 +4171,14 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   accent squircles, their words the card's). States beside the label end before the line's own actions when it has any,
   else at the column's end, the last nearest; a state with no room left is a mark, so a slot never overlaps a state: **a
   narrow column draws its states as marks** (decided: an 80 px column with actions holds one slot, its chips marks), and
-  a mark with no room left in the column is left out (never left of it; its words the card's). On a track two lines high
-  the states take a line of their own under the label (the label whole, the two lines centred together; lower by the
-  slot's half when the header has actions, so the line clears them). The label fades before what is beside it
+  a mark with no room left in the column is left out (never left of it; its words the card's). **States beside the
+  label** (FX29: a hide made "Sequence" read "S…" and a square): `trackHeaderLine`'s `labelW` (the measured label and
+  its indent) is the floor of a chip beside it (a chip with no room beside the whole label is a mark), and a state that
+  `yields` (`HeaderStatePart.yields`: "n layers hidden", which appears with a hide and is the legend's eye and the
+  menus' to say) has a chip or a mark only where the label stays whole, else none (the label then keeps its column); a
+  state that does not yield (a filter's) is a mark that may cut the label, as before. On a track two lines high the
+  states take a line of their own under the label (the label whole, the two lines centred together; lower by the slot's
+  half when the header has actions, so the line clears them). The label fades before what is beside it
   (`HeaderLine.label`). **A rows track** draws no states and no slots and gives no label hit: its label column is its
   tree and row labels, hit as before; its header is its title row's (not built, the TODO).
 - **A collapsed section** (`collapsedSection`: no track left in the view, no blocks, no grid axis: every track hidden)

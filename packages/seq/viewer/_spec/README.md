@@ -1507,10 +1507,10 @@ rows' commands) reads the last frame's rows layers through the behavior context'
     hovered; its arrow at the row's end, the menu's), `seq:layers` (more than one addressable layer: a checked item a
     layer, `layer.hide` or `layer.show`), `seq:move-up`, `seq:move-down` (`track.move`, a sibling there), the states
     `seq:filtered` (its count the track's, every thinned layer's rows; `layer.filter` clears every thinned layer's
-    filter, one patch), `seq:hidden-layers` (`layer.show` of every hidden layer, one patch; its list each) and the
-    section's `seq:hidden-tracks` (menu only, "Show hidden ▸": a flyout of each hidden track, then "Show all",
-    `track.show` of every hidden track in one patch), the section's `seq:reverse` and `seq:collapse`. `seq:pending` is
-    not built (the TODO).
+    filter, one patch), `seq:hidden-layers` (`layer.show` of every hidden layer, one patch; its list each; it `yields`
+    to its label: a chip or a mark only where the label stays whole) and the section's `seq:hidden-tracks` (menu only,
+    "Show hidden ▸": a flyout of each hidden track, then "Show all", `track.show` of every hidden track in one patch),
+    the section's `seq:reverse` and `seq:collapse`. `seq:pending` is not built (the TODO).
   - **`HeaderFacts`**: plain data from the resolved view, the spec and the last layout (the address, label, section,
     system, linear, the section's track ids, the track's layers with type, label, hidden, filtered rows, color and
     fitting schemes, the hidden tracks, the element, and the viewer whose header it is: an entry is one object shared by
@@ -1828,15 +1828,15 @@ frame.
   `layer.hide` or `layer.show` on the layer it keys: a patch, one undo step. A legend over several layers has one button
   ("Layers of <title>", `aria-haspopup`) opening `@molstar/ui`'s context menu of its layers, each checked while shown
   (the track header's Layers menu's shape), a choice the same command. A layer's name (`LegendModel.layerName`) is
-  core's `layerName`, the one the track header's Layers and "Hidden layers" menus say too; a layer of no id
-  (`<track>:<index>`) has no eye. The button is a native one in the part's tab order: Enter and Space click it, never
-  select an entry; the focus stays on it across the redraw a hide brings. The gestures: click the eye, hidden and the
-  row dimmed; click the eye-off, shown and the row as it was; a shown layer's entry unchanged (the click rule); a hidden
-  layer's entry nothing; undo one step. `layers: false` drops it (a figure's legend, printed, where the button is
-  chrome). Why in the part and never on the view: the part is what a host places, and the edit is the spec's existing
-  command, so the legend gains no owner. The button and its tooltip are a chunk of their own (`legend-eye-dom.ts`),
-  loaded the first time a part draws an eye, its room (20 px) held until it lands: the default viewer's first chunk
-  carries none of them (measured: 22.6 kB eager, 3.0 kB with the chunk).
+  core's `layerName` (a letters layer "Sequence letters", never the track's name alone), the one the track header's
+  Layers and "Hidden layers" menus say too; a layer of no id (`<track>:<index>`) has no eye. The button is a native one
+  in the part's tab order: Enter and Space click it, never select an entry; the focus stays on it across the redraw a
+  hide brings. The gestures: click the eye, hidden and the row dimmed; click the eye-off, shown and the row as it was; a
+  shown layer's entry unchanged (the click rule); a hidden layer's entry nothing; undo one step. `layers: false` drops
+  it (a figure's legend, printed, where the button is chrome). Why in the part and never on the view: the part is what a
+  host places, and the edit is the spec's existing command, so the legend gains no owner. The button and its tooltip are
+  a chunk of their own (`legend-eye-dom.ts`), loaded the first time a part draws an eye, its room (20 px) held until it
+  lands: the default viewer's first chunk carries none of them (measured: 22.6 kB eager, 3.0 kB with the chunk).
 - **A layer's row keeps its place when hidden**: a hidden layer draws nothing and derives no legend, so `LegendModel`
   keeps the legends each layer last had while shown and, at each settle, puts them back for a layer the spec hides
   (core's `keepHiddenLegends`; `Legend.hidden`, the hidden layers among `layers`): each joined to a shown legend of the

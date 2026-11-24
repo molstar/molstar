@@ -306,7 +306,12 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
         const text = e.text?.(f);
         if (text === undefined) continue;
         const count = Number.parseInt(text, 10);
-        (states ??= []).push({ name: e.name, text, ...(Number.isFinite(count) ? { count } : {}) });
+        (states ??= []).push({
+          name: e.name,
+          text,
+          ...(Number.isFinite(count) ? { count } : {}),
+          ...(e.yields ? { yields: true as const } : {}),
+        });
       } else if (n > 0 && slotted(e)) {
         n--;
         const command = commandOf(e.command);

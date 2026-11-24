@@ -388,20 +388,28 @@ export function compileChannel(
     }
   };
 
+  /** The swatches the letters form of a rules form's `else` lists (collected while it compiles; `rules`). */
+  let elseItems: { label: string; value: number | string; letters: string }[] | undefined;
   const rules = (b: ThemeNode, depth: number): Eval => {
     const list = (b.args ?? []).filter(isThemeNode).map((r) => ({
       when: ((param(r, 'when') as unknown[] | undefined) ?? []).map(clause),
       value: compile(param(r, 'value'), depth + 1, false),
       label: ruleLabel(r),
     }));
+    // the else's own letters (a scheme's groups) are what the rules' legend lists after the rules: they are drawn too
+    const before = elseItems;
+    elseItems = depth === 0 && kind === 'color' ? [] : undefined;
     const otherwise =
       param(b, 'else') !== undefined
         ? compile(param(b, 'else'), depth + 1, false)
         : compile(fallback, depth + 1, false);
+    const rest = elseItems;
+    elseItems = before;
     if (depth === 0 && kind === 'color') {
-      const items: { label: string; value: number | string }[] = [];
+      const items: { label: string; value: number | string; letters?: string }[] = [];
       for (const r of list) if (r.value.constant !== undefined) items.push({ label: r.label, value: r.value.constant });
       if (otherwise.constant !== undefined) items.push({ label: 'otherwise', value: otherwise.constant });
+      else if (rest) items.push(...rest);
       legend = { kind: 'swatches', items };
     }
     return {
@@ -475,6 +483,7 @@ export function compileChannel(
       dflt === undefined && param(b, 'default') === undefined ? compile(fallback, MaxDepth, false) : undefined;
     // every letter and group with its letters: the legend keeps those drawn, then one a color (`legendOf`)
     if (top && kind === 'color') legend = { kind: 'swatches', items };
+    else if (elseItems) elseItems.push(...items);
     return {
       at: (d) => {
         const code = d.letter.charCodeAt(0);

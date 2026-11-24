@@ -13,6 +13,7 @@ import {
   LutSize,
   mergeLegends,
   qualifyLegends,
+  unionLegends,
 } from '@molstar/seqx-core/theme/index';
 import { Anchor, type PassWriter } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
@@ -35,21 +36,35 @@ import type { LayerLayout, ViewLayout } from './tracks.js';
  */
 export function viewLegends(layout: ViewLayout, maxItems = 12): { legends: Legend[]; issues: Issue[] } {
   const all: Legend[] = [];
-  const add = (l: { type: LayerLayout['type']; lay: unknown; layer: LayerLayout['layer'] }, title: string) => {
+  const add = (
+    l: { type: LayerLayout['type']; lay: unknown; layer: LayerLayout['layer'] },
+    owner: { readonly label: string; readonly layers: readonly unknown[] },
+  ) => {
+    const title = owner.label;
     // the figure's own say: a layer's `legend: none` keys nothing (_spec/README.md "Themes", Legends)
     if (l.layer.params.legend === 'none') return;
-    const ls = l.type.legend?.(l.lay, { title, maxItems });
+    // a letters layer's key is its scheme: titled by `layerName`, the eye's and the menus' too ("Sequence letters"),
+    // never by its track's name alone; the others by their track's, merged, and by the layer's where the track has no
+    // label (a rows track's: a row never has no title)
+    const named = l.type.name === 'letters' || !title.trim() ? layerName(l.layer, owner) : title;
+    const ls = l.type.legend?.(l.lay, { title: named, maxItems });
     if (ls) all.push(...ls);
   };
   for (const s of layout.sections) {
-    for (const t of s.tracks) for (const l of t.layers) add(l, t.track.label);
+    for (const t of s.tracks) for (const l of t.layers) add(l, t.track);
+    // the other strips' lays of those layers (a block's strip draws what its own cells hold: a chip its colors, a chain
+    // its letters), so the key lists what the layer draws in view, not its first strip's alone
+    const nb = s.tracks.length;
+    for (let k = nb; nb && k < (s.lays?.length ?? 0); k++)
+      for (const l of s.lays[k] ?? []) add(l, s.tracks[k % nb].track);
     // a section's own layers (pairs' arcs and dots), titled by the track that holds them
-    for (const l of s.sectionLays) add(l, s.section.tracks.find((t) => t.layers.includes(l.layer))?.label ?? '');
+    for (const l of s.sectionLays)
+      add(l, s.section.tracks.find((t) => t.layers.includes(l.layer)) ?? { label: '', layers: [] });
   }
   // a bridge's layers (its ribbons), titled by the bridge's label, after the sections' (_spec/README.md "Render", Bridges)
-  for (const b of layout.bridges?.list ?? []) for (const l of b.lays) add(l, b.label);
+  for (const b of layout.bridges?.list ?? []) for (const l of b.lays) add(l, { label: b.label, layers: b.lays });
   // after the merge: legends of one title but of different channels say their channel (`Variants (size)`)
-  const legends = qualifyLegends(mergeLegends(all));
+  const legends = qualifyLegends(mergeLegends(unionLegends(all, maxItems)));
   const issues: Issue[] = [];
   for (const l of legends)
     if (l.notes.includes('unlisted'))

@@ -139,6 +139,8 @@ export interface HeaderEntry {
   readonly args?: (f: HeaderFacts) => Readonly<Record<string, unknown>>;
   /** A state's chip text ("12 filtered"); none: no chip. */
   readonly text?: (f: HeaderFacts) => string | undefined;
+  /** A state that never cuts its label (`HeaderStatePart.yields`): one that appears with a hide. */
+  readonly yields?: true;
   /**
    * An action that is on now (the track the structure is colored by): its slot is drawn pressed, `aria-pressed`, and
    * stays drawn when the actions are not shown (a host's DOM parts; the entry's label says what it is).
@@ -367,6 +369,7 @@ export const BuiltInHeaderEntries: readonly HeaderActionEntry[] = /* @__PURE__ *
       when: (f) => f.layers.some((l) => l.hidden),
       args: (f) => ({ addresses: f.layers.filter((l) => l.hidden).map((l) => l.address) }),
       text: (f) => `${count(f.layers.filter((l) => l.hidden).length, 'layer', 'layers')} hidden`,
+      yields: true,
       items: (f) =>
         f.layers
           .filter((l) => l.hidden)

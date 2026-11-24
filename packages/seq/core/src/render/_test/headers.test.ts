@@ -261,6 +261,55 @@ describe('the states of a two-line header', () => {
   });
 });
 
+describe('the states beside a label of one line', () => {
+  // a state that appears with a hide ("1 layer hidden", `yields`) never cuts its track's label to an ellipsis (FX29): a
+  // chip where it fits beside the whole label, else a mark where that fits, else none; a filter chip as before
+  it('a state that yields leaves the label whole across the label columns: a chip, a mark, or none', () => {
+    const states = [{ name: 'seq:hidden-layers', text: '1 layer hidden', count: 1, yields: true as const }];
+    const well = { x: 200, y: 40, width: 400, height: 20 };
+    const label = Text.measure(renderConfig({}).labelFont, 'Sequence letters');
+    const seen = new Set<string>();
+    for (let labelWidth = 60; labelWidth <= 260; labelWidth += 10) {
+      const config = renderConfig({ labelWidth });
+      const { header } = trackHeaderLine(
+        { slots: [{ name: 'seq:hide', label: 'Hide track', enabled: true }], states, menu: true },
+        '/v/s/t',
+        's',
+        well,
+        config,
+        Text,
+        false,
+        true,
+        label,
+      );
+      // the label has the room it needs wherever its column holds it
+      expect(header.label.width).toBeGreaterThanOrEqual(Math.min(label, config.labelWidth) - 1e-9);
+      seen.add(header.states.length ? (header.states[0].mark ? 'mark' : 'chip') : 'none');
+    }
+    expect([...seen].sort()).toEqual(['chip', 'mark', 'none']);
+  });
+
+  it('the state of a filter is a chip or a mark as before, never dropped', () => {
+    const states = [{ name: 'seq:filtered', text: '1 filtered', count: 1 }];
+    const well = { x: 200, y: 40, width: 400, height: 20 };
+    const label = Text.measure(renderConfig({}).labelFont, 'Sequence letters');
+    for (let labelWidth = 60; labelWidth <= 260; labelWidth += 20) {
+      const { header } = trackHeaderLine(
+        { states },
+        '/v/s/t',
+        's',
+        well,
+        renderConfig({ labelWidth }),
+        Text,
+        false,
+        true,
+        label,
+      );
+      expect(header.states).toHaveLength(1);
+    }
+  });
+});
+
 describe('the states', () => {
   it('beside the label on a track of one line, on a line of their own on a track of two, marks on a short one', async () => {
     const { f } = await frame([], Host);
@@ -641,8 +690,12 @@ describe('where a header draws no parts', () => {
     const f = await s.frame({ size: { width: 800, height: 600 }, settled: true, headers: bound });
     const sec = f.layout.sections[0];
     const labels = recordDrawLists(f.lists, ['labels']);
-    expect(labels.match(/^text "bound" /gm)).toHaveLength(sec.tracks.length);
+    // a chip where it fits beside the whole label (FX29), else a mark: one state a track either way
+    expect(labels.match(/^text "bound" /gm) ?? []).toHaveLength(
+      sec.tracks.filter((t) => t.header!.states.some((x) => !x.mark)).length,
+    );
     for (const t of sec.tracks) {
+      expect(t.header!.states).toHaveLength(1);
       const st = t.header!.states[0];
       expect(hitView(f.layout, st.box.x + 2, st.box.y + st.box.height / 2)).toMatchObject({
         target: 'header-state',

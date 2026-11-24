@@ -12,6 +12,7 @@
 // the cell outlined in `seq-modified`; `none`). No value changes a cell's width (compact by default).
 
 import { projectRanges, type ModifiedIndex, type StaticModel } from '@molstar/seqx-core/resolve';
+import type { Channel } from '@molstar/seqx-core/theme/index';
 import type { ResolvedLayer } from '@molstar/seqx-core/view';
 import type { AxisTransform } from './axis.js';
 import { letterSize, type RenderConfig } from './config.js';
@@ -115,10 +116,22 @@ function makeLabels(model: StaticModel, system: string): MoleculeLabels | undefi
   });
 }
 
+/** The color a molecule's cell is drawn in when no rule of its color channel is the color it has (rules' swatches list the rules'). */
+function ruleless(c: Channel | undefined, fill: number): number | undefined {
+  const l = c?.legend;
+  if (l?.kind !== 'swatches' || c?.constant !== undefined) return undefined;
+  return l.items.some((i) => i.letters === undefined && i.value === fill) ? undefined : fill;
+}
+
 /** What a letters layout keeps for molecules and modified positions. */
 export interface MoleculeLay {
   /** A molecule's labels by position (undefined on letters). */
   labels: readonly string[] | undefined;
+  /**
+   * The color a molecule's cell is drawn in where no rule of the theme matched it (the form's `else`: the scheme's
+   * color for a cell with no letter): the legend lists that category once (`otherwise`); undefined where a rule did.
+   */
+  plain: number | undefined;
   /** Modified positions in view: `x0, x1, row` triples (the row into `modComponents`). */
   mods: number[];
   modStyle: ModifiedStyle;
@@ -427,6 +440,7 @@ export const MoleculeLettersType: LayerType<LettersPrep, LettersLay> = {
       const own = c && c.constant === undefined ? c.at(prep.molecule.datum) : undefined;
       const fill =
         typeof c?.constant === 'number' ? c.constant : typeof own === 'number' ? own : tokens.colors['seq-sequence'];
+      lay.plain = ruleless(c, fill);
       lay.n = 0;
       lay.pending.length = 0;
       const vis = axis.visible([]);

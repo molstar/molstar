@@ -50,6 +50,11 @@ export interface HeaderStatePart {
   readonly count?: number;
   /** The layers it is about when not the header's own target (the filtered ones: what "n filtered" clears). */
   readonly addresses?: readonly string[];
+  /**
+   * A state beside the label that never cuts it (a state that appears only with a hide: "1 layer hidden"): a chip where
+   * it fits beside the whole label, else a mark where that fits, else none (its words are the legend's and the menus').
+   */
+  readonly yields?: true;
 }
 
 /**
@@ -119,6 +124,7 @@ export const builtInHeaderStates: HeaderPartsOf = (f) => {
         name: HeaderStateNames.hiddenLayers,
         text: n === 1 ? '1 layer hidden' : `${n} layers hidden`,
         count: n,
+        yields: true,
       });
   }
   return states ? { states } : undefined;
@@ -245,6 +251,8 @@ interface LineInput {
   figure: boolean;
   /** A track's line hit as `header-label` outside its parts (not a rows track's, not a section's). */
   labelHit: boolean;
+  /** The label's own width (its text and indent): the states beside it leave it whole; 0 where there is none. */
+  labelW: number;
 }
 
 /** The one input a layout's header lines are laid out from, set field by field (a header makes none). */
@@ -258,6 +266,7 @@ const At: LineInput = {
   ownLine: Number.NaN,
   figure: false,
   labelHit: false,
+  labelW: 0,
 };
 
 /**
@@ -322,17 +331,29 @@ function layoutLine(
     const chipsEnd = actions ? actions.x - ChipGap : end;
     // states `[from, to)` as marks, right to left from `right`, centred on `cy`: the leftmost's x; a mark with no room
     // left in the column is not laid out (its words are the card's)
-    const marks = (from: number, to: number, right: number, cy: number): number => {
+    const marks = (from: number, to: number, right: number, cy: number, floor = inset): number => {
       let x = right;
+      let left = 0;
       for (let i = to - 1; i >= from; i--) {
-        if (x - MarkPx < inset) break;
+        // a state that yields to the label has no mark where the label would be cut; the others cut it as before
+        if (x - MarkPx < (given[i].yields ? floor : inset)) {
+          if (given[i].yields) {
+            left++;
+            continue;
+          }
+          break;
+        }
         x -= MarkPx;
         out.push(stateBox(given[i], i, at, true, x, cy - MarkPx / 2, MarkPx, size));
         x -= MarkGap;
       }
-      return x + MarkGap;
+      // none placed and every one yielded: the label keeps the column
+      return x === right && left === to - from ? end + ChipGap : x + MarkGap;
     };
-    if (at.short) labelEnd = marks(0, given.length, chipsEnd, at.cy) - ChipGap;
+    // beside the label a chip keeps it whole (a chip with no room is a mark), and a state that yields to it appears only
+    // where it leaves it whole (`HeaderStatePart.yields`); the label's own room is its column, under the actions
+    const keep = at.labelW > 0 ? inset + at.labelW + ChipGap : inset;
+    if (at.short) labelEnd = marks(0, given.length, chipsEnd, at.cy, keep) - ChipGap;
     else if (!Number.isNaN(at.ownLine)) {
       // a line of their own under the label, from the column's start, under the action columns when clear of them;
       // all chips when every one fits, else all marks (a mix reads as two kinds of state: "a narrow column draws its
@@ -354,7 +375,7 @@ function layoutLine(
       let cut = 0;
       for (let i = given.length - 1; i >= 0; i--) {
         const w = text.measure(config.labelFont, given[i].text);
-        if (x - w < inset) {
+        if (x - w < keep) {
           cut = i + 1;
           break;
         }
@@ -362,7 +383,7 @@ function layoutLine(
         out.push(stateBox(given[i], i, at, false, x, at.cy + size * 0.35, w, size));
         x -= ChipGap;
       }
-      labelEnd = cut ? marks(0, cut, x, at.cy) - ChipGap : x;
+      labelEnd = cut ? marks(0, cut, x, at.cy, keep) - ChipGap : x;
     }
     // in the given order
     out.sort((a, b) => a.at - b.at);
@@ -435,6 +456,7 @@ export function trackHeaderLine(
   text: TextMetrics,
   figure: boolean,
   labelHit = true,
+  labelW = 0,
 ): { readonly header: HeaderLine; readonly labelY: number } {
   const size = labelSizeOf(config);
   const short = well.height < config.header.minHeightPx;
@@ -457,6 +479,7 @@ export function trackHeaderLine(
   at.ownLine = dy ? labelY + dy : Number.NaN;
   at.figure = figure;
   at.labelHit = labelHit;
+  at.labelW = labelW;
   const out = TrackLine;
   out.header = layoutLine(parts, at, config, text);
   out.labelY = labelY;
@@ -498,6 +521,7 @@ export function sectionHeaderLine(
   at.ownLine = Number.NaN;
   at.figure = figure;
   at.labelHit = false;
+  at.labelW = 0;
   const line = layoutLine(parts, at, config, text);
   return {
     ...line,
@@ -536,18 +560,22 @@ export function hiddenTrackName(track: Node): string {
 
 /**
  * A layer's name, the one every list of layers says (a track header's Layers and "Hidden layers" menus, a legend's eye):
- * its `label`, else its `title`, else its track's or bridge's label where it is the only layer there, else its id (its
- * type without one). Why one: two consumers naming one layer apart read as two layers.
+ * its `label`, else its `title`, else its track's or bridge's label where it is the only layer there (a letters layer
+ * says its kind: "Sequence letters", for its key is a scheme and the track's name alone reads as one category's), else
+ * its id (its type without one). Why one: two consumers naming one layer apart read as two layers.
  */
 export function layerName(
   layer: ResolvedLayer,
   owner?: { readonly label?: string; readonly layers: readonly unknown[] },
 ): string {
   const text = (v: unknown) => (typeof v === 'string' && v.trim() ? v : undefined);
+  const label = text(owner?.label);
+  const owned = owner?.layers.length === 1 ? label : undefined;
   return (
     text(layer.params.label) ??
     text(layer.params.title) ??
-    (owner?.layers.length === 1 ? text(owner.label) : undefined) ??
+    // a letters layer says its kind wherever it is ("Sequence letters" with a second layer beside it too)
+    (layer.type === 'letters' && label !== undefined ? `${label} letters` : owned) ??
     layer.address?.slice(layer.address.lastIndexOf('/') + 1) ??
     layer.type[0].toUpperCase() + layer.type.slice(1)
   );

@@ -65,6 +65,7 @@ export {
   mergeLegends,
   niceTicks,
   toMolLegend,
+  unionLegends,
 } from './legend.js';
 export {
   compilePalette,

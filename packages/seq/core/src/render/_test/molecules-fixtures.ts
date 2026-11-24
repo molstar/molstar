@@ -36,6 +36,8 @@ export interface MoleculesOptions {
   readonly within?: boolean;
   /** The section's letters layer's `color` (a theme form). */
   readonly color?: Node;
+  /** A second letters layer, `second`, on the same track (a track of two layers: FX29's layer names). */
+  readonly second?: Node;
 }
 
 /** The Fc chains' unit ids: `A`, `B`, … */
@@ -121,11 +123,13 @@ export function moleculesSpec(o: MoleculesOptions = {}): Node {
         if (o.atpForm)
           for (const id of [...ids, 'g', 'l', 'n'])
             s.block(id, { of: units[id] as never, ...(id === 'l' ? { form: o.atpForm } : {}) });
-        s.track('letters').layer('letters', {
+        const letters = s.track('letters');
+        letters.layer('letters', {
           type: 'letters',
           ...(o.modified ? { modified: o.modified } : {}),
           ...(o.color ? { color: o.color } : {}),
         });
+        if (o.second) letters.layer('second', { type: 'letters', color: o.second });
         if (o.sites) s.track('sites').layer('sites', { type: 'ranges', data: '/data/c/links' as never });
         if (within) s.track('within').layer('within', { type: 'pairs', data: within });
         if (o.layout !== 'text' && o.links !== false)
