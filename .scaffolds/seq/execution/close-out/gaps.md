@@ -38,4 +38,7 @@ Each made as recommended while the author was away (2026-11-24 night), for the m
   (tile budgets, `layerRefused`, the non-gap share only). A new data design is not decided overnight. Recommended:
   carry it past version 1 (the TODO's Navigators line already holds it), the navigator still saying "a lazy alignment's
   rows are left out".
+- **A drag's codon snap over a codon split by an intron** (CL9's review): decided overnight as recommended: the split
+  codon is selected as its pieces, never the intron's nucleotides (the design draws a split codon in each piece); the
+  code's "hull" changed to that. The author to confirm.
 
