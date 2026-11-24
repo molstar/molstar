@@ -312,8 +312,12 @@ and another viewer); a host recolors through `--seq-*` tokens.
 - **A row lists what its layer draws, and is titled by the layer** (decided, the author, 2026-11-24, Features › Structure
   link › Focus And Back: a "Sequence" row listing "ATP" alone, its eye hiding the whole track): over every strip the
   layer draws (a chain's letters, a chip), the entries are its rules' categories, the letters scheme's groups drawn
-  under a rules form's else, and "otherwise" for a chip no rule matched; a letters layer is titled "<track> letters"
-  (its eye "Hide Sequence letters"), so the row never reads as one category's switch.
+  under a rules form's else, and "otherwise" for a chip no rule matched. A letters layer gets its own row, never merged
+  under its track's title: it is titled by its name, else "<track> letters" (one rule, `layerName`, for the row, the
+  eye's "Hide Sequence letters" and the hidden row, on a track of several layers too), so the row never reads as one
+  category's switch. A merged row of several layers (the same key) is titled by what their labels share, and its eye
+  opens the menu of its layers. A hidden layer shows in its legend row (dimmed, in its place) and in the header's
+  "Hidden layers" menu; the header's "n layers hidden" mark yields to the label in narrow columns.
 - **Published on change only**: the viewer's `legends` state is derived when the view settles, a theme, scale or token
   table changes, or the hover moves onto another entry; never per frame, compared structurally.
 - **A part a host places** ([ux-foundations](ux-foundations.md) section 9: "Legends sit with their track or in one legend

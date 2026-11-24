@@ -43,4 +43,19 @@ describe('a letters layer’s legend row', () => {
     const k = [...names.keys()].find((x) => x.endsWith('/complex/letters/letters'))!;
     expect(names.get(k)).toBe(shown.find((x) => x.layers.includes(k))!.title);
   });
+
+  // one rule for the row's title, the eye's name and the hidden row's (`layerName`): a track of two layers too (FX29)
+  it('on a track of two layers, the title, the eye’s name and the hidden title agree', async () => {
+    const st = await settle(moleculesSpec({ color: atp, second: theme.uniform('#3366cc') }));
+    const f = await st.frame({ size: { width: 900, height: 400 }, dpr: 1, settled: true });
+    const shown = viewLegends(f.layout, Number.POSITIVE_INFINITY).legends;
+    const names = new Map<string, string>();
+    keepHiddenLegends(f.layout, undefined, shown, new Map(), names);
+    const k = [...names.keys()].find((x) => x.endsWith('/complex/letters/letters'))!;
+    const row = shown.find((x) => x.layers.includes(k))!;
+    const track = f.layout.sections[0].tracks.find((t) => t.layers.length === 2)!;
+    expect(track).toBeDefined();
+    expect(row.title).toBe(`${track.track.label} letters`);
+    expect(names.get(k)).toBe(row.title);
+  });
 });

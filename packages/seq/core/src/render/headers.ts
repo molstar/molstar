@@ -569,11 +569,13 @@ export function layerName(
   owner?: { readonly label?: string; readonly layers: readonly unknown[] },
 ): string {
   const text = (v: unknown) => (typeof v === 'string' && v.trim() ? v : undefined);
-  const owned = owner?.layers.length === 1 ? text(owner.label) : undefined;
+  const label = text(owner?.label);
+  const owned = owner?.layers.length === 1 ? label : undefined;
   return (
     text(layer.params.label) ??
     text(layer.params.title) ??
-    (owned !== undefined && layer.type === 'letters' ? `${owned} letters` : owned) ??
+    // a letters layer says its kind wherever it is ("Sequence letters" with a second layer beside it too)
+    (layer.type === 'letters' && label !== undefined ? `${label} letters` : owned) ??
     layer.address?.slice(layer.address.lastIndexOf('/') + 1) ??
     layer.type[0].toUpperCase() + layer.type.slice(1)
   );
