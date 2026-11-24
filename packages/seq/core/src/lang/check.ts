@@ -99,42 +99,38 @@ function flattenedBy(spec: Node, version: unknown): Issue[] {
   if (!at) return [];
   const out: Issue[] = [];
   const said = new Set<string>();
+  const older = (since: string) => {
+    const s = minorOf(since)!;
+    return at[0] < s[0] || (at[0] === s[0] && at[1] < s[1]);
+  };
   const walk = (n: Node, path: readonly string[], place: readonly (string | number)[]) => {
     const children = n.children ?? [];
     for (let k = 0; k < children.length; k++) {
       const c = children[k];
-      const since = minorOf(FlattenedKinds[c.kind]);
       const here = c.id === undefined ? path : [...path, c.id];
       const nodePath = [...place, 'children', k];
-      if (since && !said.has(c.kind) && (at[0] < since[0] || (at[0] === since[0] && at[1] < since[1]))) {
-        said.add(c.kind);
-        out.push(
-          issueOf(
-            LangIssues,
-            'seq.lang.version.kind',
-            `A \`${c.kind}\` came in ${FlattenedKinds[c.kind]}; a reader of ${String(version)} flattens it`,
-            { address: `/${here.join('/')}`, path: nodePath, hint: LangIssues.codes['seq.lang.version.kind'].hint },
-          ),
-        );
-      }
-      for (const f of FlattenedValues) {
-        const key = `${f.param}=${f.value}`;
-        const from = minorOf(f.since)!;
-        if (said.has(key) || !f.kinds.includes(c.kind) || c.params?.[f.param] !== f.value) continue;
-        if (at[0] > from[0] || (at[0] === from[0] && at[1] >= from[1])) continue;
+      const say = (key: string, since: string, what: string, to: string, at2: readonly (string | number)[]) => {
+        if (said.has(key) || !older(since)) return;
         said.add(key);
+        const message = `${what} came in ${since}; a reader of ${String(version)} ${to}`;
         out.push(
-          issueOf(
-            LangIssues,
-            'seq.lang.version.kind',
-            `\`${f.param}: ${f.value}\` came in ${f.since}; a reader of ${String(version)} reads the ${c.kind} as having no \`${f.param}\``,
-            {
-              address: `/${here.join('/')}`,
-              path: [...nodePath, 'params', f.param],
-              hint: LangIssues.codes['seq.lang.version.kind'].hint,
-            },
-          ),
+          issueOf(LangIssues, 'seq.lang.version.kind', message, {
+            address: `/${here.join('/')}`,
+            path: at2,
+            hint: LangIssues.codes['seq.lang.version.kind'].hint,
+          }),
         );
+      };
+      const kind = FlattenedKinds[c.kind];
+      if (kind) say(c.kind, kind, `A \`${c.kind}\``, 'flattens it', nodePath);
+      for (const param in FlattenedValues) {
+        const f = FlattenedValues[param];
+        if (f.kinds.includes(c.kind) && c.params?.[param] === f.value)
+          say(param, f.since, `\`${param}: ${f.value}\``, `reads the ${c.kind} without it`, [
+            ...nodePath,
+            'params',
+            param,
+          ]);
       }
       if (c.kind !== 'data') walk(c, here, nodePath);
     }

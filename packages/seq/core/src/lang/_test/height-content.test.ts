@@ -38,7 +38,7 @@ describe('height: content (language 0.11.0)', () => {
     const n = checkSeqSpec(spec('content', 'content', '0.10.0'));
     const w = n.filter((i) => i.code === 'seq.lang.version.kind');
     expect(w).toHaveLength(1);
-    expect(w[0].message).toContain('no `height`');
+    expect(w[0].message).toContain('without it');
     expect(checkSeqSpec(spec('content', 'content', '0.11.0')).map((i) => i.code)).toEqual([]);
     expect(codes(spec(200, 40, '0.10.0'))).toEqual([]);
   });
