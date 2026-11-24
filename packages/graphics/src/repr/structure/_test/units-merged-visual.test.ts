@@ -93,6 +93,14 @@ async function createRepr(
   return repr;
 }
 
+/** each values' color type before `setUnmergeable` first changed it */
+const colorTypes = new WeakMap<object, string>();
+/** `values` made not to merge (`canMergeValues`: a color type the merged object lacks, the grid's), or back */
+function setUnmergeable(values: any, on: boolean) {
+  if (!colorTypes.has(values)) colorTypes.set(values, values.colorType.ref.value);
+  ValueCell.updateIfChanged(values.colorType, on ? 'volume' : colorTypes.get(values)!);
+}
+
 /** the markers of each group's unit by unit id: its record's (merged) or its render object's (per group) */
 function markersByUnit(repr: Awaited<ReturnType<typeof createRepr>>) {
   const out: Record<number, string> = {};
@@ -303,10 +311,10 @@ describe('the merged units visual', async () => {
         made += 1;
         return base.createGeometry(...args);
       },
-      // a palette's colors do not merge (`canMergeValues`)
+      // a color type the merged object lacks does not merge (`canMergeValues`)
       processValues: (values: any, geometry: Spheres) => {
         base.processValues!(values, geometry, undefined as any, undefined as any);
-        ValueCell.updateIfChanged(values.dUsePalette, true);
+        setUnmergeable(values, true);
       },
     };
     const repr = await createRepr(structure, true, {}, builder);
@@ -329,18 +337,18 @@ describe('the merged units visual', async () => {
   });
 
   it('merges again where the per-group visuals’ values do after an update', async () => {
-    let palette = true;
+    let unmergeable = true;
     const base = splitBuilder();
     const builder: UnitsVisualGeometryBuilder<ElementSphereParams, Spheres> = {
       ...base,
       processValues: (values: any, geometry: Spheres) => {
         base.processValues!(values, geometry, undefined as any, undefined as any);
-        ValueCell.updateIfChanged(values.dUsePalette, palette);
+        setUnmergeable(values, unmergeable);
       },
     };
     const repr = await createRepr(structure, true, {}, builder);
     expect(repr.renderObjects.some((o) => isMergedRenderObject(o))).toBe(false);
-    palette = false;
+    unmergeable = false;
     await repr.createOrUpdate({ emissive: 0.2 }).run();
     expect(repr.renderObjects.length).toBeGreaterThan(0);
     expect(repr.renderObjects.every((o) => isMergedRenderObject(o))).toBe(true);
@@ -351,13 +359,10 @@ describe('the merged units visual', async () => {
     const base = splitBuilder();
     const builder: UnitsVisualGeometryBuilder<ElementSphereParams, Spheres> = {
       ...base,
-      // a palette's colors (not merging) under one theme
+      // a color type the merged object lacks under one theme
       processValues: (values: any, geometry: Spheres, props, theme) => {
         base.processValues!(values, geometry, props, theme);
-        ValueCell.updateIfChanged(
-          values.dUsePalette,
-          theme.color.factory === BuiltInColorThemes['element-symbol'].factory,
-        );
+        setUnmergeable(values, theme.color.factory === BuiltInColorThemes['element-symbol'].factory);
       },
     };
     const theme = (name: string) =>
@@ -398,7 +403,7 @@ describe('the merged units visual', async () => {
       ...base,
       processValues: (values: any, geometry: Spheres) => {
         base.processValues!(values, geometry, undefined as any, undefined as any);
-        ValueCell.updateIfChanged(values.dUsePalette, true);
+        setUnmergeable(values, true);
       },
     });
     const repr = await createRepr(structure, true, {}, builder);

@@ -84,6 +84,17 @@ describe('merged', () => {
     expect(sphere.radius).toBeLessThan(2);
   });
 
+  it("merges members colored by a palette, the palette the shared values'", () => {
+    const [a, b] = createMembers();
+    for (const o of [a, b]) ValueCell.update((o.values as unknown as MergeableValues).dUsePalette!, true);
+    expect(canMergeValues('spheres', [a.values as unknown as MergeableValues, b.values as any])).toBe(true);
+    const merged = createMergedRenderObject([a, b]);
+    const mv = merged.values as unknown as MergeableValues;
+    expect(mv.dUsePalette!.ref.value).toBe(true);
+    expect(mv.tPalette).toBe((a.values as unknown as MergeableValues).tPalette);
+    expect(mv.uPaletteDomain).toBe((a.values as unknown as MergeableValues).uPaletteDomain);
+  });
+
   it("checks the layers' types unless asked not to (layers the merged object sets again its own way)", () => {
     const [a] = createMembers();
     const v = a.values as unknown as MergeableValues;

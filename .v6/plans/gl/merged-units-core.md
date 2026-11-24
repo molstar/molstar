@@ -12,7 +12,9 @@
   write skipped by the clip cell, not by the values object (records and their shared values one entry); the shifted
   cull lists the same object per source list (WebGPU's draw blocks a list object); a draw version per cull set on one
   counter; a new merged visual published once its first update merged; the per-group visuals' retry of merging judged
-  without their layers' types and keyed by the theme too.
+  without their layers' types and keyed by the theme too; palettes merged (step 4's first item); a marking redraw
+  after a side view's GPU culling (a ray's pick) culls its frame's view again first (`Renderer.isGpuCullStale`); the
+  CPU culling's key holds the clip objects (a clip moved alone culls again where a culler culls for the raster alone).
 
 ## Why
 
@@ -50,9 +52,10 @@ The merged path grew beside the per-group one instead of under it. Five choices 
   (`selectVisual`: GPU or CPU surfaces by a unit's size) gives a part of each type, not visuals per group. Why: one
   place that holds geometry, theme data, markers and layers per group; no switch between visuals.
 - **Every part merged.** What `canMergeValues` rejects today, and what it takes:
-  - **Palettes** (`dUsePalette`): no built-in structure color theme sets one (only `volume-value`, a volume theme);
-    the palette, its domain and default color are the theme's, so shared by all segments, and the shaders look the
-    palette up after reading `tColor`, which the merged path already reads by segment. The rejection goes, with a test.
+  - **Palettes** (`dUsePalette`, done): no built-in structure color theme sets one (only `volume-value`, a volume
+    theme); the palette, its domain and default color are the theme's, so shared by all segments (the merged values
+    spread the shared ones), and the shaders look the palette up after reading `tColor`, which the merged path reads
+    by segment.
   - **`vertexInstance` colors and layers** (per vertex and instance): a segment-aware index, its first texel plus its
     local instance times its vertex count plus its local vertex (two values more a segment, as `aSegment` holds the
     group-instance offset), in GLSL and WGSL. The texture split per segment (`getTexelCount`) a vertex-instance count.
@@ -89,7 +92,8 @@ The merged path grew beside the per-group one instead of under it. Five choices 
   the debug helpers read through them.
 - **Culling not tied to merging** (last, larger): a view not culled on the GPU draws the CPU culling's lists of the
   identity region (as `merged-render-objects.md` describes the fallback) instead of nothing; the GPU state of a side
-  view (`prepareCullView`) kept apart from the frame's. Then the question whether one segmented renderable with the
+  view (`prepareCullView`) kept apart from the frame's, so a pass of the frame after it needs no culling again (now
+  `Renderer.isGpuCullStale` and a new `prepareCull`, the marking redraw's). Then the question whether one segmented renderable with the
   culler chosen in `createRenderable` replaces `MergedRenderable`.
 
 ## Steps

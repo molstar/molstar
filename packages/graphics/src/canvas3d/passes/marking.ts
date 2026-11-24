@@ -416,6 +416,14 @@ export class MarkingPass {
   redraw(ctx: RenderContext, props: Props, offsets: number[][], restart: boolean, samples: number): boolean {
     if (!this.base) return false;
 
+    // a view culled on the GPU since the last render (a ray's pick) left the objects culled there with its lists: this
+    // view's again, no pass open (the pyramid the last render's, set by the caller)
+    const { renderer, camera, scene, frame } = ctx;
+    if (!(camera instanceof StereoCamera) && renderer.isGpuCullStale(scene.primitives, frame)) {
+      renderer.update(camera, scene, frame);
+      renderer.prepareCull(scene.primitives, false, false);
+    }
+
     if (isTimingMode) this.graphics.timer.group('MarkingPass.redraw');
     this.present(this.renderBuilder, ctx, props, {
       base: this.base,

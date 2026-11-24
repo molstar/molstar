@@ -118,6 +118,11 @@ interface Renderer {
    * them (a warning once an object in debug mode)
    */
   prepareCullView: (scene: Scene.Group) => void;
+  /**
+   * Whether an object of `scene` culled on the GPU for `frame` holds another view's lists since (`prepareCullView`),
+   * so `frame` drawn again needs `update` and `prepareCull` first (`Renderable.isGpuCullStale`)
+   */
+  isGpuCullStale: (scene: Scene.Group, frame: Frame) => boolean;
   /** The objects whose second phase is to run after the last `prepareCull` with `twoPhase` (none: no second part) */
   readonly cullSecondPending: number;
   /**
@@ -1541,6 +1546,13 @@ namespace Renderer {
         if (scene.hasGaussianSplats) sortGaussianSplats(scene, camera);
       },
       prepareCullView: culling.prepareView,
+      isGpuCullStale: (scene: Scene.Group, frame: Frame) => {
+        const { renderables } = scene;
+        for (let i = 0, il = renderables.length; i < il; ++i) {
+          if (renderables[i].state.visible && renderables[i].isGpuCullStale?.(frame)) return true;
+        }
+        return false;
+      },
       prepareSphereRaster: culling.prepareRaster,
       get cullSecondPending() {
         return culling.secondPending;

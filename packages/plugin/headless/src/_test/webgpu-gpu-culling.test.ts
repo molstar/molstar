@@ -11,6 +11,7 @@ import { Mat4, Quat, Vec2, Vec3 } from '@molstar/core/math/linear-algebra';
 import { InstanceTransforms } from '@molstar/core/math/geometry/instance-transforms';
 import { now } from '@molstar/core/util/now';
 import { ValueCell } from '@molstar/core/util/value-cell';
+import type { Clip } from '@molstar/core/util/clip';
 import { Sphere3D } from '@molstar/core/math/geometry/primitives/sphere3d';
 import { Spheres } from '@molstar/graphics/geo/geometry/spheres/spheres';
 import {
@@ -456,6 +457,150 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
       renderable.update();
       draw(frame, false);
       expect(drawn![0].indirect).toBeUndefined();
+    } finally {
+      plugin.dispose();
+    }
+  }, 60_000);
+
+  it('culls again on the CPU for a clip moved alone, culled on the GPU for the sphere raster alone (off)', async () => {
+    const plugin = await HeadlessPluginContext.create(
+      { webgpu: WebGPU.module! },
+      DefaultPluginSpec(),
+      { width: Size, height: Size },
+      { backend: 'webgpu' },
+    );
+    try {
+      await plugin.init();
+      const graphics = plugin.canvas3d!.graphics;
+      // a plane through the grid at `y`, its upper part removed
+      const clipAt = (y: number): Clip.Props => ({
+        variant: 'pixel',
+        objects: [
+          {
+            type: 'plane',
+            invert: false,
+            position: Vec3.create(15, y, 0),
+            rotation: { axis: Vec3.create(0, 0, 1), angle: 20 },
+            scale: Vec3.create(1, 1, 1),
+            transform: Mat4.identity(),
+          },
+        ],
+      });
+      const member = createMember(Vec3.create(0, 0, 0), ColorNames.orange, { clip: clipAt(1000) });
+      const scene = Scene.create(graphics);
+      scene.add(createMergedRenderObject([member], { gpuCulling: true, rasterOnly: true }));
+      scene.commit();
+      const camera = new Camera();
+      Viewport.set(camera.viewport, 0, 0, Size, Size);
+      const { center, radius } = scene.boundingSphere;
+      camera.setState(camera.getFocus(center, radius), 0);
+      camera.update();
+      const renderer = Renderer.create(graphics, { sphereRaster: 'off' });
+      const target = graphics.createRenderTarget(Size, Size, 'depth-stencil');
+      await graphics.resources.preparePipelines(
+        renderer.collect({ name: 'opaque' }, scene, graphics.describeTarget(target)),
+      );
+      const renderable = scene.renderables[0];
+      let drawn: MultiDrawBaseData[] | undefined;
+      const render = renderable.renderItem.render;
+      renderable.renderItem.render = (variant, globals, list) => {
+        drawn = list;
+        render(variant, globals, list);
+      };
+      const instances = () => {
+        renderer.update(camera, scene, createFrame());
+        renderer.prepareCull(scene);
+        graphics.beginRenderPass(target);
+        renderer.clear(true);
+        renderer.setViewport(0, 0, Size, Size);
+        renderer.renderOpaque(scene, camera);
+        graphics.flush();
+        expect(drawn![0].indirect).toBeUndefined();
+        let n = 0;
+        for (const l of drawn!) for (let i = 0; i < l.count; ++i) n += l.instanceCounts[i];
+        return n;
+      };
+      const moveClip = (x: number) => {
+        BaseGeometry.updateClip(member.values, clipAt(x));
+        renderable.update();
+      };
+      const all = instances();
+      expect(all).toBeGreaterThan(0);
+      // the clip moved into the grid: some instances clipped whole
+      moveClip(14);
+      const clipped = instances();
+      expect(clipped).toBeLessThan(all);
+      // and away again: all of them back
+      moveClip(1000);
+      expect(instances()).toBe(all);
+    } finally {
+      plugin.dispose();
+    }
+  }, 60_000);
+
+  it("tells a frame culled on the GPU stale after a side view's culling (a ray's pick), current culled again", async () => {
+    const plugin = await HeadlessPluginContext.create(
+      { webgpu: WebGPU.module! },
+      DefaultPluginSpec(),
+      { width: Size, height: Size },
+      { backend: 'webgpu' },
+    );
+    try {
+      await plugin.init();
+      const graphics = plugin.canvas3d!.graphics;
+      const scene = Scene.create(graphics);
+      scene.add(
+        createMergedRenderObject([createMember(Vec3.create(0, 0, 0), ColorNames.orange)], { gpuCulling: true }),
+      );
+      scene.commit();
+      const camera = new Camera();
+      Viewport.set(camera.viewport, 0, 0, Size, Size);
+      const { center, radius } = scene.boundingSphere;
+      camera.setState(camera.getFocus(center, radius), 0);
+      camera.update();
+      const side = new Camera();
+      Viewport.set(side.viewport, 0, 0, Size, Size);
+      side.setState(side.getFocus(Vec3.add(Vec3(), center, Vec3.create(radius, 0, 0)), radius * 0.2), 0);
+      side.update();
+      const renderer = Renderer.create(graphics, { sphereRaster: 'off' });
+      const target = graphics.createRenderTarget(Size, Size, 'depth-stencil');
+      await graphics.resources.preparePipelines(
+        renderer.collect({ name: 'opaque' }, scene, graphics.describeTarget(target)),
+      );
+      const renderable = scene.renderables[0];
+      let drawn: MultiDrawBaseData[] | undefined;
+      const render = renderable.renderItem.render;
+      renderable.renderItem.render = (variant, globals, list) => {
+        drawn = list;
+        render(variant, globals, list);
+      };
+      const draw = (f: ReturnType<typeof createFrame>) => {
+        renderer.update(camera, scene, f);
+        renderer.prepareCull(scene);
+        graphics.beginRenderPass(target);
+        renderer.clear(true);
+        renderer.setViewport(0, 0, Size, Size);
+        renderer.renderOpaque(scene, camera);
+        graphics.flush();
+      };
+      let frame = createFrame();
+      for (let i = 0; i < 20 && !drawn?.[0].indirect; ++i) {
+        frame = createFrame();
+        draw(frame);
+        await graphics.resources.pending.whenReady();
+      }
+      expect(drawn![0].indirect).toBeDefined();
+      expect(renderer.isGpuCullStale(scene, frame)).toBe(false);
+
+      // a side view culled on the GPU (a ray's pick): the frame's lists that view's now
+      renderer.update(side, scene, createFrame());
+      renderer.prepareCullView(scene);
+      expect(renderer.isGpuCullStale(scene, frame)).toBe(true);
+
+      // the frame's view culled again (as a marking redraw does): current
+      renderer.update(camera, scene, frame);
+      renderer.prepareCull(scene);
+      expect(renderer.isGpuCullStale(scene, frame)).toBe(false);
     } finally {
       plugin.dispose();
     }

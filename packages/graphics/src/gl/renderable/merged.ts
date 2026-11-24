@@ -571,8 +571,8 @@ export function canMergeValues(type: string, members: readonly MergeableValues[]
   // a single member merges as well (culled on the GPU): how many is the caller's (`canMergeRenderObjects`)
   if (members.length < 1) return false;
 
+  // a palette the theme's (its texture, domain and default shared values), looked up after `tColor`, read by segment
   const first = members[0];
-  if (first.dUsePalette?.ref.value) return false;
   if (!SupportedVertexTypes.includes(first.colorType.ref.value)) return false;
   if (first.sizeType && !SupportedVertexTypes.includes(first.sizeType.ref.value)) return false;
   if (layers && !canMergeLayers(first)) return false;
@@ -2768,9 +2768,14 @@ export function MergedRenderable(
   /**
    * what the last CPU cull read: a still frame keeps its lists (`createCullView`); the members' cells by the version
    * `sync` advances where they changed, not each (with 100k members, recording them was most of a moving frame); the
-   * object's transient transform, which moves every member's cells
+   * object's transient transform, which moves every member's cells; its clip objects (the shared values', a clip moved
+   * alone syncs as a mark: neither of the others moves, nor are the modes reset where a culler culls on the GPU)
    */
-  const cullCells = [merged.cullVersion, merged.values.uObjectTransform];
+  const cullCells = [
+    merged.cullVersion,
+    merged.values.uObjectTransform,
+    (merged.values as { clipObjects?: ValueCell<unknown> }).clipObjects,
+  ];
 
   const segment: CullSegment = { first: 0, offset: 0, instanceBase: 0 };
   function setSegment(i: number) {
@@ -3087,6 +3092,9 @@ export function MergedRenderable(
           if (gpuFrame) setGpuView(cameraPlane, frustum);
           return !!gpuFrame;
         }
+      : undefined,
+    isGpuCullStale: culler
+      ? (frame: Frame) => visibleSet.lastCullFrame === frame && visibleSet.mode === 'gpu' && gpuFrame !== frame
       : undefined,
     get rasterSpheres() {
       return rasterOnly ? getRasterSpheres() : undefined;

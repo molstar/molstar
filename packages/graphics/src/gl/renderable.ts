@@ -249,6 +249,12 @@ export interface Renderable<T extends RenderableValues> {
    */
   prepareCullView?: (cameraPlane: Plane3D, frustum: Frustum3D, frame: Frame, lod: LodView) => boolean;
   /**
+   * Whether `frame` was culled on the GPU and another view (`prepareCullView`: a ray's pick) culled since: its GPU
+   * lists that view's, so a pass of `frame` drawn again without a new `prepareCull` (a marking redraw) would draw the
+   * other view (`Renderer.isGpuCullStale`)
+   */
+  isGpuCullStale?: (frame: Frame) => boolean;
+  /**
    * Culled on the GPU for the sphere raster only (`gpuCulling` 'auto' by its spheres, not its instances): its spheres;
    * `Renderer.prepareCull` leaves it to the CPU culling where the raster does not take it. Undefined for the others
    */

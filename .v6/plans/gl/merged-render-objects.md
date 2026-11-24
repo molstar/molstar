@@ -26,7 +26,7 @@ same with batching, 2.43 ms). Merging works on WebGL as well.
 - **When**: `renderMerged`: on, off, or `auto`, more than 30 units (`AutoRenderMergedThreshold`, 100 before step 1);
   members must share a
   merge key (`getMergeKey`: the defines, instance granularity, `uLod`, level distances) and supported data types
-  (`canMergeValues`: no palette; color and size per uniform, instance, group, group instance or vertex; the layers per
+  (`canMergeValues`: color and size per uniform, instance, group, group instance or vertex; the layers per
   instance or group instance).
 - **How** (`createMergedValues`): one render object whose vertex attributes, elements and theme layers are the
   members' arrays as parts (`SegmentedArray`: each at its vertex, element or texel base, indices biased by the vertex
