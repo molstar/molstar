@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The `group` kind (_spec/README.md, Language, Groups): named groups of a section's tracks, one level deep, folded by
+// The `group` kind (_spec/README.md, Language, Groups of tracks): named groups of a section's tracks, one level deep, folded by
 // the reader as session state from the opening `collapsed`. Its own file: `language.ts` is past the module bound.
 
 /** The kinds that hold a section's tracks: the section, and a group of it (one level: a group holds tracks only). */

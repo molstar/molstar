@@ -400,23 +400,23 @@ search hit inside a folded group opening it and Alt+Left folding it back. Whethe
 
 | Decision | Where |
 |---|---|
-| The `group` kind, its params, `track.parents`; one level | core › Language |
+| The `group` kind, its params, `track.parents`; one level | core › Groups of tracks |
 | `0.11.0`; a reader without groups draws them open | core › Versions |
-| The `group.summary` and nesting checks | core › Issues |
-| `ResolvedTrack.group`, `ResolvedSection.trackGroups`; the walker | core › Resolved view |
-| The header line, the folded row, indent and gaps, the hit target | core › Track headers |
-| The summary band, its forms by kind, its height and hit | core › Tracks layout |
-| `LayerType.collapse` | core › Layer types |
-| `lanes: one` | core › Layer types (ranges) |
-| Folded tracks share heights; the summary takes no part | core › Track heights |
-| Groups open in text and rings (`seq.render.groups.layout`) | core › Text layout, Rings layout |
-| `renderSvg`'s `groups` | core › Export |
-| The folded set in the section's viewport; `collapsed` the opening state; resets on its patch | viewer › ViewModel |
-| A toggle a hand's move; bulk and reveal jumps | viewer › ViewModel (history) |
-| The `groups.*` commands and their kinds; `layer.lanes` | viewer › Commands |
-| The header cursor's group stop, Space, Enter | viewer › Behaviors (Headers) |
-| The menu's `on: 'group'` entries | viewer › Header menu and Header parts |
-| Hidden groups in the host's list | viewer › Behaviors (Hidden tracks) |
-| The render config items | core › Configuration |
+| The `group.summary` and nesting checks | core › Groups of tracks |
+| `ResolvedTrack.group`, `ResolvedSection.trackGroups`; the walker | core › Resolved view › Groups |
+| The header line, the folded row, indent and gaps, the hit target | core › Render › Track groups |
+| The summary band, its forms by kind, its height and hit | core › Render › Track groups |
+| `LayerType.collapse` | core › Render › Track groups |
+| `lanes: one` | design-only: not built yet (the ranges layer's `ranges.ts`/`lanes.ts`, held in CL6 for FX25's parked work) |
+| Folded tracks share heights; the summary takes no part | design-only: not built yet (the sharing reads the bands shown: a fold can move another track's shared height) |
+| Groups open in text and rings (`seq.render.groups.layout`) | core › Render › Track groups |
+| `renderSvg`'s `groups` | core › Render › Track groups |
+| The folded set in the section's viewport; `collapsed` the opening state; resets on its patch | viewer › ViewModel › Groups |
+| A toggle a hand's move; bulk and reveal jumps | viewer › Behaviors › Groups |
+| The `groups.*` commands and their kinds; `layer.lanes` | viewer › Behaviors › Groups |
+| The header cursor's group stop, Space, Enter | viewer › Behaviors › Groups at the header cursor |
+| The menu's `on: 'group'` entries | design-only: not built yet (the section's Collapse all and Expand all groups are: viewer › Hidden groups) |
+| Hidden groups in the host's list | viewer › Hidden groups |
+| The render config items | core › Render › Configuration |
 | The matrix cells | design-only: ux-foundations.md's matrix is the instance's (§interaction-matrix) |
 | Grouping by attribute, nesting, moving between groups | design-only: not built (Rejected 1, 6; Decision 7) |
