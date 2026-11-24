@@ -197,6 +197,18 @@ const Misuses: Record<keyof typeof LangIssues.codes, () => Node> = {
     b.data.grid('g', { x: s, values: [1, 2, 3] });
     return b.build();
   },
+  'seq.lang.version.kind': () => {
+    const b = createSeqSpec({ title: 'x' });
+    const s = b.data.sequence('s', { alphabet: 'protein', letters: 'MEEP' });
+    b.views.view('v', (v) =>
+      v
+        .section('p', { of: s })
+        .group('g', {})
+        .track('t', {}, (t) => t.layer('l', { type: 'letters' })),
+    );
+    const spec = b.build();
+    return { ...spec, params: { ...spec.params, version: '0.10.0' } };
+  },
   'seq.lang.group.summary': () => {
     const b = createSeqSpec();
     const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });

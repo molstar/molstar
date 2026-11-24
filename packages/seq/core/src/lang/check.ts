@@ -36,6 +36,7 @@ import {
   unitLength,
 } from './check-molecules.js';
 import { checkMapSegments, checkNumberingSegments, mapParamsFit, numberingParamsFit } from './check-maps.js';
+import { FlattenedKinds } from './group-language.js';
 import { LangIssues } from './issues.js';
 import { isExtensionName, SectionOfKinds, SeqLanguage, SeqLanguageVersion, SeqValidateOptions } from './language.js';
 import { followRef, refAddresses } from './refs.js';
@@ -75,7 +76,51 @@ export function checkSeqSpec(spec: Node, bounds: SpecBounds = DefaultSpecBounds)
   // a newer minor's kinds this reader lacks are warnings: it draws what it knows, as for an extension's (EC-235)
   if (newerMinor(version)) issues = issues.map((i) => lenient(i, String(version)));
   if (hasErrors(issues)) return [...issues];
-  return [...issues, ...checkSeqLang(normalize(SeqLanguage, spec, SeqValidateOptions), bounds)];
+  return [
+    ...issues,
+    ...flattenedBy(spec, version),
+    ...checkSeqLang(normalize(SeqLanguage, spec, SeqValidateOptions), bounds),
+  ];
+}
+
+/** A `[major, minor]` of a version (`0.11`, `0.11.0`, `0.11.0-rc.1`), undefined when it is none. */
+function minorOf(version: unknown): readonly [number, number] | undefined {
+  const v = typeof version === 'string' ? /^(\d+)\.(\d+)(?:\.|-|$)/.exec(version) : null;
+  return v ? [Number(v[1]), Number(v[2])] : undefined;
+}
+
+/**
+ * The nodes of a kind newer than the spec's `version` (`FlattenedKinds`, EC-244): a reader of that version flattens
+ * them, so the writer hears it once a kind (a spec without a `version` is this reader's).
+ */
+function flattenedBy(spec: Node, version: unknown): Issue[] {
+  const at = minorOf(version);
+  if (!at) return [];
+  const out: Issue[] = [];
+  const said = new Set<string>();
+  const walk = (n: Node, path: readonly string[], place: readonly (string | number)[]) => {
+    const children = n.children ?? [];
+    for (let k = 0; k < children.length; k++) {
+      const c = children[k];
+      const since = minorOf(FlattenedKinds[c.kind]);
+      const here = c.id === undefined ? path : [...path, c.id];
+      const nodePath = [...place, 'children', k];
+      if (since && !said.has(c.kind) && (at[0] < since[0] || (at[0] === since[0] && at[1] < since[1]))) {
+        said.add(c.kind);
+        out.push(
+          issueOf(
+            LangIssues,
+            'seq.lang.version.kind',
+            `A \`${c.kind}\` came in ${FlattenedKinds[c.kind]}; a reader of ${String(version)} flattens it`,
+            { address: `/${here.join('/')}`, path: nodePath, hint: LangIssues.codes['seq.lang.version.kind'].hint },
+          ),
+        );
+      }
+      if (c.kind !== 'data') walk(c, here, nodePath);
+    }
+  };
+  walk(spec, [], []);
+  return out;
 }
 
 /**

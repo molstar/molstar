@@ -77,6 +77,12 @@ describe('the group kind (language 0.11.0)', () => {
 
   it('an older reader flattens `group` (EC-244); this reader keeps a newer minor’s container with a warning', () => {
     expect(FlattenedKinds).toEqual({ group: '0.11.0' });
+    // a spec of 0.10 holding a group: its writer told that a 0.10 reader flattens it (once a kind)
+    const older = grouped().b.build();
+    expect(codes({ ...older, params: { ...older.params, version: '0.10.0' } })).toEqual([
+      ['seq.lang.version.kind', 'warning'],
+    ]);
+    expect(codes(grouped().b.build())).toEqual([]);
     // a 0.12 container this reader lacks, holding a track: one warning (its children are read through it, Resolved view)
     const spec = grouped().b.build();
     const sec = spec.children![1].children![0].children![0];

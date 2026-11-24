@@ -55,12 +55,12 @@ is added in the change that builds what it describes.
   holds; the render config's `rings.center` the default when absent); `0.11.0`: the `group` kind under a section
   (`label`, `collapsed`, `hidden`, `summary`) and a `track` under a group (Language, Groups of tracks). A reader without
   groups (an older minor, another renderer; EC-244) draws a group's tracks as the section's, every group open, its
-  `summary` track left out: `FlattenedKinds` lists `group` with the version it came in. A spec in an earlier `0.x` reads
-  as one in this one, and is reported where it no longer fits: a `0.6.0` spec reads unchanged (every addition is
-  optional; inline pairs, grids or matrices over an assembly, never read in 0.6, now need their names:
-  `seq.lang.data.names`), with one change of behaviour: `a_name`/`b_name` columns on pairs over a sequence, a ride-along
-  field before, are refused (`seq.lang.data.names`), but an extension's `requires: '0.6'` no longer covers it (0.x: the
-  minor).
+  `summary` track left out: `FlattenedKinds` lists `group` with the version it came in, and a spec of an older `version`
+  holding one is told so (`seq.lang.version.kind`). A spec in an earlier `0.x` reads as one in this one, and is reported
+  where it no longer fits: a `0.6.0` spec reads unchanged (every addition is optional; inline pairs, grids or matrices
+  over an assembly, never read in 0.6, now need their names: `seq.lang.data.names`), with one change of behaviour:
+  `a_name`/`b_name` columns on pairs over a sequence, a ride-along field before, are refused (`seq.lang.data.names`),
+  but an extension's `requires: '0.6'` no longer covers it (0.x: the minor).
 
 ## Language
 
@@ -269,6 +269,8 @@ is, one place to read and edit; the price is that a track moved in or out of a g
   example needs nesting, and the header, cursor and summary rules stay one level; `group.parents` gaining `group` later
   is additive.
 - **`seq.lang.group.summary`** (error): a `summary` naming no track of the group (another parent's, or none).
+- **`seq.lang.version.kind`** (warning, once a kind): a group in a spec whose `version` is older than `0.11.0`: a reader
+  of that version flattens it (`FlattenedKinds`, EC-244).
 - **The builder**: `section.group(id, params, body)` gives a `GroupBuilder` whose `track(...)` is a section's.
 
 ### Molecules and complexes

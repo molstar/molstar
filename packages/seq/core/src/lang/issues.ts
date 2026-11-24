@@ -32,6 +32,12 @@ export const LangIssues = defineIssues('seq.lang', {
     description: 'A group’s `summary` names no track of the group (a track of another parent, or none)',
     hint: 'Name one of the group’s own tracks by its id, or write `auto` or `none`',
   },
+  'seq.lang.version.kind': {
+    severity: 'warning',
+    description:
+      'A node of a kind newer than the spec’s `version`: a reader of that version flattens it (a group’s tracks drawn as its section’s, every group open)',
+    hint: 'Raise the spec’s `version` to the one the kind came in, or keep the tracks in their section',
+  },
   'seq.lang.source.index': {
     severity: 'error',
     description: 'A source with an inline `value` has an `index`, which only a file read by region has',
