@@ -239,6 +239,14 @@ describe('the keys', () => {
     // no key runs a search: it needs text
     expect(v.commands.find((c) => c.id === 'search.run')?.shortcut).toBeUndefined();
   });
+  it('with no hits Mod+g, Mod+Shift+G and F3 are the page’s (the browser’s find next), as Back is with no step', async () => {
+    const v = await make();
+    expect(v.input.key({ key: 'g', ctrlKey: true, metaKey: true })).toBe(false);
+    expect(v.input.key({ key: 'G', ctrlKey: true, metaKey: true, shiftKey: true })).toBe(false);
+    expect(v.input.key({ key: 'F3', shiftKey: true })).toBe(false);
+    await v.execute('search.run', { pattern: 'EP' });
+    expect(v.input.key({ key: 'g', ctrlKey: true, metaKey: true })).toBe(true);
+  });
 });
 
 describe('what is said', () => {

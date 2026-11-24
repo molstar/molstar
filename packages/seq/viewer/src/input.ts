@@ -1339,13 +1339,16 @@ export class ViewerInput {
 
 /**
  * Commands whose keys and buttons are the page's when they cannot run: the view's history (the browser's Back), the
- * cursor's first and last row with no cursor on rows (Cmd+↑ ↓ scroll the page to its ends).
+ * cursor's first and last row with no cursor on rows (Cmd+↑ ↓ scroll the page to its ends), a search's steps with no
+ * hits (Mod+g is the browser's find next).
  */
 const YieldWhenIdle: ReadonlySet<string> = new Set([
   'view.back',
   'view.forward',
   'cursor.first-row',
   'cursor.last-row',
+  'search.next',
+  'search.previous',
 ]);
 
 /** Whether a key event is a command's shortcut exactly (its key and every modifier). */

@@ -1616,8 +1616,9 @@ The cells the molecules design names, each built or not and why (the core's "Res
   types it, so a `Shift+=` chord is the `+` of `view.zoom-in`'s (Shift as the common layouts type it).
 - **The search's keys** (`view.keys`, the canvas's scope, so typing in a host's box is never taken): `search.next` Mod+g
   and F3, `search.previous` Mod+Shift+G and Shift+F3 (EC-155). None for `search.run` (it needs text: the host's box, the
-  palette's argument) and none for Mod+f, the browser's find, which a host binds to its own box. Esc keeps its meaning
-  (a gesture, then the selection); the search is cleared by `search.clear`, the legend or the host's box.
+  palette's argument) and none for Mod+f, the browser's find, which a host binds to its own box. With no hits the steps'
+  keys are the page's (Mod+g is the browser's find next), as the history's are with no step. Esc keeps its meaning (a
+  gesture, then the selection); the search is cleared by `search.clear`, the legend or the host's box.
 
 ## Commands
 
