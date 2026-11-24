@@ -31,7 +31,8 @@ Stage 0 and GATE 0 are closed; waves 1 and 2 are merged and GATE 1 passed. Merge
 
 `gaps.md`: FX25's refusal and its allele-title question; the three drafts (two are language changes); `rowsValue` over
 a lazy alignment; the overnight decisions to confirm (the zoom hatch; a 0.x minor read as a newer minor). The headless
-and minimal bounds have 2.5 and 2.9 kB left.
+and minimal bounds have 2.5 and 2.9 kB left. At the close: remove the locked, clean worktrees (CL4's, CL9's, CL13's, the
+reviewers') and their branches.
 
 ## Verify
 
