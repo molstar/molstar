@@ -21,7 +21,7 @@
 
 <!-- Wave 3 -->
 - [x] CL5 Search: the matchers, the viewer's search state and commands, a matcher registry, a story's search box (`a4668800a`)
-- [ ] CL6 Track groups: groups, summaries and collapse; the Ranges' collapse
+- [x] CL6 Track groups: groups, summaries and collapse; the Ranges' collapse (`a1097142a`)
 - [x] CL9 Small items: codon snapping, the cursor across block gaps, the Antibody view's labels, built-in fallbacks with the version-aware validate, fixtures through MessagePack (`19733d6c3`)
 
 <!-- Wave 4 -->

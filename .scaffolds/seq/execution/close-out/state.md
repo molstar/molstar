@@ -18,17 +18,14 @@ The `cc-plugin-privacy` plugin (it refused Bash calls reading Seq\* source files
 address) is off since the author's restart, 2026-11-24 08:45: the refused grep over `ranges.ts` runs.
 
 - **CL5 search merged** (`a4668800a`), sizes raised: default 1,566.1/1,570, minimal 1,101.7/1,105.
-- **CL6 track groups** (`seq/cl6` at `e8922e04b`, a WIP last; worktree `agent-ae107bbc850a074e3`): resumed 08:50 to
-  split the WIP (the `tracks.ts` perf fix, core `test:perf` green), item 6 (`lanes: one`), the group header's click in
-  `input.ts`, every check.
+- **CL6 track groups merged** (`a1097142a`), sizes raised: headless 986.4/990, default 1,578.9/1,582, minimal 1,112.3/1,115.
 - **FX25** (`seq/fx25` at `37832382d`, worktree `agent-a98a4bf365b8a5323`): items 1 and 2 uncommitted (item 1 shown
   failing on its parent by the author's run). After CL6 merges: commit items 1 and 2, item 2's parent check, rebase,
   items 3–6.
 
 ## Next
 
-1. CL6's fix round (the review's findings and the groups code lazy), its look, its merge.
-2. CL8 and FX25 after CL6 merges.
+1. CL8 (values' reference lines, within 0.11.0) and FX25 (rebase, items 3–6), started after CL6's merge.
 3. GATE 2 after CL5, CL6, CL8 and FX25; then the use gate, the novice pass, the measurements, the last gate.
 
 ## Blockers and open questions
