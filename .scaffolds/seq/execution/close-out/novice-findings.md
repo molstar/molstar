@@ -22,10 +22,10 @@ against `search.md` (a step adds history only when it pans: by design); A6 is `p
 | A4 | Long Legend's track named "letters" titles its row "letters letters" | bug | FX34 |
 | B7, B10 | GFF3 Find By Name: the canvas's Transcripts track capped with an inner scroll while the SVG draws every lane (By Data's case before FX30); GTF's result line cut at the right | look | FX34 (the stories at `height: 'content'`; the line wraps) |
 | B12 | Manhattan's card "chr 11,984, index 11983": an index, one off the position, jargon to a reader | look | FX34 (the card's position only) |
-| C1, C9 | Nothing on the ring opens a chromosome by click or double-click; the stories never name the gestures (Cmd/Ctrl+wheel, the label's "Show only", the square) nor the partner keys | missing design | gap D1 |
-| A13 | A legend swatch's click highlights its colour; a reader expects it to hide that colour | missing design | gap D2 |
-| B8 | No way from the track's menu to lift its cap (every lane shown): `height: 'content'` is the spec's only | missing design | gap D3 |
-| B11 | Manhattan unreadable: pale small dots, no y axis, the lines' values (7.3, 5) only in the description | missing design | gap D4 |
+| C1, C9 | Nothing on the ring opens a chromosome by click or double-click; the stories never name the gestures (Cmd/Ctrl+wheel, the label's "Show only", the square) nor the partner keys | missing design | D1 (agreed) → FX35 |
+| A13 | A legend swatch's click highlights its colour; a reader expects it to hide that colour | missing design | D2 (agreed) → FX35 |
+| B8 | No way from the track's menu to lift its cap (every lane shown): `height: 'content'` is the spec's only | missing design | D3 (agreed) → FX35 |
+| B11 | Manhattan unreadable: pale small dots, no y axis, the lines' values (7.3, 5) only in the description | missing design | D4 (agreed) → FX35 |
 | C10 | A partner step barely shows on the ring (a tick, the card far off) and is said in the stem level's bins | missing design | TODO |
 | B2, B3 | Search: a residue number gives no word; IUPAC's nucleotide letters applied to a protein without a hint | missing design | TODO |
 | A3 | The Ligands story's seven ligand layers have no legend (no per-layer or row hide) | missing design | TODO (the story) |
@@ -35,7 +35,7 @@ against `search.md` (a step adds history only when it pans: by design); A6 is `p
 | C4 | A piece opens the whole pair (by design: "Each row and piece shows the pair") | — | none |
 | the rest | Looks: C6 a third level over the ring's labels; C7 the menus' fade; C8 the story's menu far from its stem; C11 the keys panel's close scrolled away; C12 a cell's hover and header in opposite orders; C13 the page scrolls after a view change; C14 translocations in the selection's brown; C15 a ribbon's card on a second move, repeated strand rows; C16 genome names absent from headers, a tooltip broken in a number; C17 dim links in dark; B5 a card over the track beneath; B6 an origin-spanning hit hard to see; B9 Back's view late, Forward lit early; B13 "–" for minus strand, a chromosome run into its number; A1 a hidden letters layer's row blank on Legend Placements, its label silent (As A Complex's label says "1 layer hidden"); A2 legend rows reorder under the pointer, "1 layer hidden" not marked clickable; A5 "+28" expands all three legends and scrolls the panel; A9 a folded group's strip overlaps its members' marks; A10 the focus residue not named, Back's animation zooming in first; A11 the hidden-tracks tip over the first row; A12 "Collapse or expand hidden stretches" is jargon | look | `packages/seq/TODO.md` (one line) |
 
-## Gaps for the author
+## Gaps for the author (decided 2026-11-24: "Agree all four")
 
 - **D1, opening a chromosome on the ring**: recommend a double-click on a chromosome's label or arc opens it (the cut,
   one undo step, as the label menu's "Show only"), the genome's own gesture (genome-coordinates.md: "double-click on its

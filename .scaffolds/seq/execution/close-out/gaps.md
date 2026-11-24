@@ -37,16 +37,15 @@ Decisions a gate asks for (the loop, Gates).
 
 ## Open
 
-The novice pass's design gaps ([novice-findings.md](novice-findings.md), Gaps for the author), each with its
-recommendation:
+None.
 
-- **D1, opening a chromosome on the ring**: a double-click on a chromosome's label or arc opens it (the cut, one undo
-  step, as the label menu's "Show only"); each ring story's text names the gestures.
-- **D2, a legend swatch's click**: keeps the highlight (CL1's answer A) and says so in its tip.
-- **D3, every lane from the track's menu**: "Show every lane" / "Cap the lanes" sets the track's `height` (one
-  patch, one undo step), on a track whose lanes scroll inside.
-- **D4, a reference line's value**: its label carries the value ("genome-wide · 7.3"); a values y axis is a design of
-  its own (TODO).
+## Decided by the author, 2026-11-24 ("Agree all four": the novice pass's gaps, as recommended; to FX35)
+
+- **D1**: a double-click on a chromosome's label or arc on the ring opens it (the cut, one undo step); each ring story's
+  text names the gestures.
+- **D2**: a legend swatch's click keeps the highlight; its tip says so.
+- **D3**: "Show every lane" / "Cap the lanes" in the track's menu sets its `height` (one patch, one undo step).
+- **D4**: a reference line's label carries its value ("genome-wide · 7.3"); a values y axis to the TODO.
 
 ## Resolved since
 
