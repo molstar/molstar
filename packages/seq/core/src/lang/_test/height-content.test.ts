@@ -34,6 +34,15 @@ describe('height: content (language 0.11.0)', () => {
     expect(codes(spec('auto', 'content')).length).toBeGreaterThan(0);
   });
 
+  it('warns a spec of an older version, once (EC-244: read as having no height)', () => {
+    const n = checkSeqSpec(spec('content', 'content', '0.10.0'));
+    const w = n.filter((i) => i.code === 'seq.lang.version.kind');
+    expect(w).toHaveLength(1);
+    expect(w[0].message).toContain('no `height`');
+    expect(checkSeqSpec(spec('content', 'content', '0.11.0')).map((i) => i.code)).toEqual([]);
+    expect(codes(spec(200, 40, '0.10.0'))).toEqual([]);
+  });
+
   it('leaves a 0.10.0 spec with a number height unchanged', () => {
     expect(codes(spec(200, 40, '0.10.0'))).toEqual([]);
   });

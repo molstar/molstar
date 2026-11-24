@@ -56,14 +56,16 @@ is added in the change that builds what it describes.
   (`label`, `collapsed`, `hidden`, `summary`) and a `track` under a group (Language, Groups of tracks), a `values`
   layer's `reference` (up to four lines `{ at, label, color, style }`; Render, Layer types, `values`), and
   `height: content` on a `track` and a `section` (no `track.maxPx`, `rows.maxPx` or `section.maxPx` cap; Render, Track
-  heights, Section scroll; an older reader reads the track as having no `height`: its default sizing, EC-244's lenient
-  rule). A reader without groups (an older minor, another renderer; EC-244) draws a group's tracks as the section's,
-  every group open, its `summary` track left out: `FlattenedKinds` lists `group` with the version it came in, and a spec
-  of an older `version` holding one is told so (`seq.lang.version.kind`). A spec in an earlier `0.x` reads as one in
-  this one, and is reported where it no longer fits: a `0.6.0` spec reads unchanged (every addition is optional; inline
-  pairs, grids or matrices over an assembly, never read in 0.6, now need their names: `seq.lang.data.names`), with one
-  change of behaviour: `a_name`/`b_name` columns on pairs over a sequence, a ride-along field before, are refused
-  (`seq.lang.data.names`), but an extension's `requires: '0.6'` no longer covers it (0.x: the minor).
+  heights, Section scroll; a rings section reads it as absent, a ring having no content height; an older reader reads
+  the track as having no `height`: its default sizing, EC-244's lenient rule). A reader without groups (an older minor,
+  another renderer; EC-244) draws a group's tracks as the section's, every group open, its `summary` track left out:
+  `FlattenedKinds` lists `group` with the version it came in (and `FlattenedValues` the param values,
+  `height: content`), and a spec of an older `version` holding one is told so (`seq.lang.version.kind`). A spec in an
+  earlier `0.x` reads as one in this one, and is reported where it no longer fits: a `0.6.0` spec reads unchanged (every
+  addition is optional; inline pairs, grids or matrices over an assembly, never read in 0.6, now need their names:
+  `seq.lang.data.names`), with one change of behaviour: `a_name`/`b_name` columns on pairs over a sequence, a ride-along
+  field before, are refused (`seq.lang.data.names`), but an extension's `requires: '0.6'` no longer covers it (0.x: the
+  minor).
 
 ## Language
 

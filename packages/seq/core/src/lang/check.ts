@@ -37,7 +37,7 @@ import {
   unitLength,
 } from './check-molecules.js';
 import { checkMapSegments, checkNumberingSegments, mapParamsFit, numberingParamsFit } from './check-maps.js';
-import { FlattenedKinds } from './group-language.js';
+import { FlattenedKinds, FlattenedValues } from './group-language.js';
 import { LangIssues } from './issues.js';
 import { isExtensionName, SectionOfKinds, SeqLanguage, SeqLanguageVersion, SeqValidateOptions } from './language.js';
 import { followRef, refAddresses } from './refs.js';
@@ -114,6 +114,25 @@ function flattenedBy(spec: Node, version: unknown): Issue[] {
             'seq.lang.version.kind',
             `A \`${c.kind}\` came in ${FlattenedKinds[c.kind]}; a reader of ${String(version)} flattens it`,
             { address: `/${here.join('/')}`, path: nodePath, hint: LangIssues.codes['seq.lang.version.kind'].hint },
+          ),
+        );
+      }
+      for (const f of FlattenedValues) {
+        const key = `${f.param}=${f.value}`;
+        const from = minorOf(f.since)!;
+        if (said.has(key) || !f.kinds.includes(c.kind) || c.params?.[f.param] !== f.value) continue;
+        if (at[0] > from[0] || (at[0] === from[0] && at[1] >= from[1])) continue;
+        said.add(key);
+        out.push(
+          issueOf(
+            LangIssues,
+            'seq.lang.version.kind',
+            `\`${f.param}: ${f.value}\` came in ${f.since}; a reader of ${String(version)} reads the ${c.kind} as having no \`${f.param}\``,
+            {
+              address: `/${here.join('/')}`,
+              path: [...nodePath, 'params', f.param],
+              hint: LangIssues.codes['seq.lang.version.kind'].hint,
+            },
           ),
         );
       }
