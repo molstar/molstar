@@ -135,7 +135,9 @@ U as T on nucleotides.
   `\` before a character to take it literally.
 - **Refused with a reason** (`seq.search.pattern.unsupported`, error, its position in the pattern and the hint "a search
   runs in linear time: no backreferences or lookaround"): backreferences, lookaround, lazy and possessive quantifiers
-  (meaningless under Decision 4's longest-per-start rule), `\b`, `\d`, `\w`, Unicode classes, flags.
+  (meaningless under Decision 4's longest-per-start rule), `\b`, `\d`, `\w`, Unicode classes, flags. A pattern that does
+  not read (an unclosed group, a stray `)`) is `seq.search.pattern.syntax`; one matching only the empty string
+  `seq.search.pattern.empty`.
 - **Compiled to a Glushkov automaton** (one state a letter position, no ε-moves), simulated bit-parallel (Navarro and
   Raffinot's tables), counted repeats expanded first. Bounds checked at compile, before any table is allocated: the
   pattern's characters (`maxRegexChars`, 256), the expanded positions (`maxRegexPositions`, 128: four words), nesting
@@ -193,10 +195,14 @@ U as T on nucleotides.
   | Command | Args | Kind | Does |
   |---|---|---|---|
   | `search.run` | `pattern`, `matcher` (`degenerate`), `strands` (`both`), `within` | `session` | compiles (a compile error is the result's message and issue: nothing changes), cancels a run in progress, runs; resolves when done, cancelled or failed |
-  | `search.next`, `search.previous` | `focus` (`false`) | `navigate` | the next or previous hit becomes current and is revealed (pans only, EC-159; `focus: true` zooms to it); round, the wrap said |
-  | `search.go` | `index` | `navigate` | that hit becomes current and is revealed; the current one again clears it (EC-161); an index outside the hits refused (EC-160) |
+  | `search.next`, `search.previous` | `focus` (`false`) | `session` | the next or previous hit becomes current and is revealed (pans only, EC-159; `focus: true` zooms to it); round, the wrap said |
+  | `search.go` | `index`, `focus` | `session` | that hit becomes current and is revealed; the current one again clears it (EC-161); an index outside the hits refused (EC-160) |
   | `search.clear` | | `session` | cancels a run, clears the query, the hits and both channels |
   | `search.save` | `id`, `label` | `patch` | the hits as a ref (below): one patch, one undo step (EC-162) |
+
+  The steps are `session`, not `navigate`: what a step changes is the current hit, a channel of the session; the reveal
+  it runs is a jump of the view's history of its own (as `clades.reveal`'s), so Alt+Left returns without the step being
+  a navigation twice.
 
   From no current hit, `next` takes the first hit at or after the start of the window of the first leading section
   showing hits, `previous` the last before its end; then they step in order. Why from the view: on a genome, "next"
@@ -212,7 +218,8 @@ U as T on nucleotides.
   left alone: the reader's selection is not the search's (Jalview's find selects; not taken). `address.select` on a
   hit's address selects it when a host wants that.
 - **Keys** (`view.keys`, a canvas scope, so typing in a host's box is never taken): `search.next` `Mod+g`, `F3`;
-  `search.previous` `Mod+Shift+g`, `Shift+F3`. No key for `search.run` (it needs text: the host's box, or the palette's
+  `search.previous` `Mod+Shift+G`, `Shift+F3` (the key Shift types). With no hits they are the page's (`Mod+g` the
+  browser's find next), as the history's keys are with no step. No key for `search.run` (it needs text: the host's box, or the palette's
   argument) and none for `Mod+f`, the browser's find, which a host binds to its own box. `Esc` keeps its meaning (a
   gesture, then the selection); the search is cleared by `search.clear`, the legend, or the host's box.
 - **What is said** (`viewer.notify`, the announcer's `notice`; the commands' messages are the same words): on done,
@@ -295,19 +302,19 @@ deleted by the merge that lands the built box. **Precedent**: SnapGene's find ba
 
 | Item | Default | Why | Alternatives |
 |---|---|---|---|
-| `search.matcher` | `degenerate` | IUPAC is what a nucleotide pattern means (SnapGene); an ACGT pattern is exact anyway | `exact`; a registered name (not built) |
-| `search.strands` | `both` | a site on the minus strand is a site (SnapGene, IGV, UGENE) | `forward` (not built) |
-| `search.maxPattern` | 1,000 | primers, guides and motifs are far shorter; a pasted gene fits | larger, raising the step cost (not built) |
-| `search.maxRegexChars`, `maxRegexPositions` | 256, 128 | four words a step; `include` patterns' 256 | more words (not built) |
-| `search.maxHitLength` | 1,000 | UGENE's regex result length | (not built) |
+| `search.matcher` | `degenerate` | IUPAC is what a nucleotide pattern means (SnapGene); an ACGT pattern is exact anyway | `exact`, `regex`, a registered `<id>:<name>` |
+| `search.strands` | `both` | a site on the minus strand is a site (SnapGene, IGV, UGENE) | `forward` |
+| `search.maxPattern` | 1,000 | primers, guides and motifs are far shorter; a pasted gene fits | larger, raising the step cost |
+| `search.maxRegexChars`, `maxRegexPositions`, `maxRegexDepth` | 256, 128, 64 | four words a step; `include` patterns' 256; the queries' nesting (EC-76) | more words, a step's cost growing with them |
+| `search.maxHitLength` | 1,000 | UGENE's regex result length | any |
 | `search.maxLetters` | 2^25 | a bacterial genome and a 10,000-row alignment fit; a human chromosome does not, and says to use `within` | larger, or a source's own search (not built) |
-| `search.maxSteps` | 2^28 | about a second of work at worst on a laptop, to measure (Provisional) | (not built) |
-| `search.maxHits` | `address.limit` (10,000) | what a channel and stepping hold; the count goes on | (not built) |
-| `search.maxSaved` | 1,000 | a ref's addresses stay readable and its patch small | (not built) |
-| `search.chunkLetters` | 2^20 | a batch a frame's work | (not built) |
-| `search.channel`, `search.currentChannel` | `search`, `search-current` | channels of their own (features 181) | (not built) |
-| `highlight.colors.search` | `token:cat-3` | apart from the links' channel and the accent | (not built) |
-| `view.keys['search.next']`, `['search.previous']` | `Mod+g`, `F3`; `Mod+Shift+g`, `Shift+F3` | the platforms' find next and previous, in the canvas only | (not built) |
+| `search.maxSteps` | 2^28 | about a second of work at worst on a laptop: the worst patterns over 2^20 `A`s end at it in 0.2 to 0.7 s (core's perf tier); the CI runner's numbers to come (Provisional) | any |
+| `search.maxHits` | `address.limit` (10,000) | what a channel and stepping hold; the count goes on | any |
+| `search.maxSaved` | 1,000 | a ref's addresses stay readable and its patch small | any |
+| `search.chunkLetters` | 2^20 | a batch a frame's work | any |
+| `search.channel`, `search.currentChannel` | `search`, `search-current` | channels of their own (features 181) | a host's names |
+| `highlight.colors.search` | `token:cat-3` | apart from the links' channel and the accent | any color |
+| `view.keys['search.next']`, `['search.previous']` | `Mod+g`, `F3`; `Mod+Shift+G`, `Shift+F3` | the platforms' find next and previous, in the canvas only | a host's keys |
 
 ## Rejected alternatives
 
@@ -346,7 +353,7 @@ deleted by the merge that lands the built box. **Precedent**: SnapGene's find ba
 
   | | select | extend | add / remove | focus | back | zoom | pan | hide | edit |
   |---|---|---|---|---|---|---|---|---|---|
-  | **search hits** | no: the selection is the reader's (`address.select` on a hit) | — | no: a new run replaces | `search.next`, `search.previous` (`Mod+G`, `F3`; reveal), `search.go`; `focus: true` zooms | Alt+Left | — | — | `search.clear`, the legend's channel | `search.save` (one patch); `refs.remove` its inverse |
+  | **search hits** | no: the selection is the reader's (`address.select` on a hit) | — | no: a new run replaces | `search.next`, `search.previous` (`Mod+g`, `F3`; reveal), `search.go`; `focus: true` zooms | Alt+Left | — | — | `search.clear`, the legend's channel | `search.save` (one patch); `refs.remove` its inverse |
 
 - **Edge cases**, each a test by name: EC-161 (stepping "2 of 14", the current again clears, saved as a set), EC-9
   (a hit across the origin, two ranges, one hit), EC-10 (its saved address wraps on the cyclic system only), EC-12
