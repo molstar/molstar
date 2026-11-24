@@ -32,3 +32,4 @@
   3,000-contig genome drops from about 300 ms to about 1 ms a frame.
 - Seq\*: splitting many copies of a chain allocates about a quarter less: a ranges layer's layout object is built in one
   piece, its scratch arrays made on first use.
+- Seq\* viewer: Cmd/Ctrl+wheel over a ring no section follows no longer narrows a hidden viewport.

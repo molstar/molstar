@@ -1,6 +1,6 @@
 # State: close-out (updated 2026-11-24, by the orchestrator)
 
-Branch: `packages-seq` Head: `245c82baf` (CL12 merged; its records after)
+Branch: `packages-seq` Head: `08a6ffe44` (FX26 merged; its records after)
 
 ## Where it stands
 
@@ -11,18 +11,18 @@ design and no language change is decided; the use gate is deferred. A look the p
 DOM and pixels and listed in `gaps.md` for the author's morning look.
 
 Stage 0 and GATE 0 are closed; waves 1 and 2 are merged and GATE 1 passed. Merged since: CL13 (`27470de3e`), CL9
-(`19733d6c3`, the default viewer's bound raised to 1,560 kB under the author's leave), CL7 (`1e499c655`), CL11 (`cc4fab363`, the minimal viewer's bound raised to 1,100 kB under the author's leave), CL12 (`245c82baf`).
-Sizes at the head: spec 260.9/265, headless 978.7/980, default 1,557.0/1,560, minimal 1,096.3/1,100, ring 45.0/48.
+(`19733d6c3`, the default viewer's bound raised to 1,560 kB under the author's leave), CL7 (`1e499c655`), CL11 (`cc4fab363`, the minimal viewer's bound raised to 1,100 kB under the author's leave), CL12 (`245c82baf`), FX26 (`08a6ffe44`).
+Sizes at the head: spec 260.9/265, headless 978.7/980, default 1,557.3/1,560, minimal 1,096.6/1,100, ring 45.0/48.
 
 ## In progress
 
-- 2026-11-24 night: FX26, Sonnet, two fixes found overnight (`briefs/fx26-fixes.md`), `seq/fx26`.
 - FX25 stopped on a permission refusal (`gaps.md`), its worktree kept with items 1 and 2 uncommitted; waits for the
   author.
 
 ## Next
 
-1. On FX26's report: the loop's step 5. Then GATE 2 waits for the author's word on CL5, CL6, CL8 and FX25.
+1. Nothing runs: every lane left waits on the author (gaps.md). M5's browser numbers when the load is under 3
+   (the orchestrator, in the pane). Then GATE 2 waits for the author's word on CL5, CL6, CL8 and FX25.
 2. The legend's eye chunk flake (fixes.md) to the next fix lane.
 3. CL5, CL6 and CL8 wait for the author's word on their drafts (`drafts/search.md`, `track-groups.md`,
    `values-marks.md`); FX25 for the refusal. GATE 2 after wave 4.
