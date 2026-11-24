@@ -36,7 +36,8 @@ same with batching, 2.43 ms). Merging works on WebGL as well.
   centers' origin and scale); `segments`
   holds per member its instance, vertex, draw and element ranges. Members are records over shared values
   ([merged-from-units.md](merged-from-units.md)) for units representations and the particle pool; the per-group
-  objects' merging keeps its members' render objects (not drawn).
+  objects' merging passes its members' values as their records (their render objects not drawn, not held by the
+  merged object; its entry keeps their ids for picking).
 - **Updates** (`sync`, on the merged renderable's `update`): every member's value versions compared, a changed
   member's geometry and layer parts advanced (the render item writes those parts only), level scales copied,
   aggregates and bounds recomputed; a change of the layout (any

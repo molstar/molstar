@@ -127,7 +127,6 @@ describe('the merged units visual', async () => {
     const merged = repr.renderObjects.filter((o) => isMergedRenderObject(o)) as MergedGraphicsRenderObject[];
     expect(repr.renderObjects.length).toBe(2);
     expect(merged.length).toBe(2);
-    expect(merged.every((o) => o.members.length === 0)).toBe(true);
     const lit = merged.map((o) => o.values.dIgnoreLight.ref.value).sort();
     expect(lit).toEqual([false, true]);
     expect(merged.reduce((n, o) => n + o.merged.records.length, 0)).toBe(structure.unitSymmetryGroups.length);

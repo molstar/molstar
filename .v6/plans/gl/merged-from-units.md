@@ -101,8 +101,9 @@ What the per-group objects give that a merged object needs, and where it comes f
      of no granularity), an argument of its own: the cull's clip and level of detail, the second color's type and the
      dual color factor read from them, not from each member.
    - **The calls**: `createMergedRenderObject(members)` passes the members' values as their records (no copies) and the
-     first's as the shared values; `createMergedRecordsRenderObject(type, shared, records, state, materialId)` has no
-     member render objects (`members` empty, `Merged.records` the records).
+     first's as the shared values; `createMergedRecordsRenderObject(type, shared, records, state, materialId)` takes
+     records. Either gives one form, `Merged.records` and `shared` (no `members`: views of the records,
+     `getMergedMembers`).
    - **A source's records** (`getSourceRecordFillKeys`, `fillMergeRecord`): what a fill writes its own cells
      (geometry, counts, bounds, levels, sites, aggregates, the layers of its own granularity), the rest the empty
      record's (what the source holds: instances, grid, markers; the layers of no granularity). A record's cells are

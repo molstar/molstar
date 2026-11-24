@@ -213,7 +213,7 @@ export function ParticleTargetRepresentation(
           // (`BaseGeometry.updateValues`) before they are merged again
           for (const ro of renderObjects) {
             if (ro === slots?.renderObject) continue;
-            const values = isMergedRenderObject(ro) ? ro.members[0].values : ro.values;
+            const values = isMergedRenderObject(ro) ? ro.shared : ro.values;
             BaseGeometry.updateClip(values as any, clip);
           }
           // the store's object: its uniforms and its cull's clip, no page written again

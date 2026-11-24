@@ -100,14 +100,15 @@ describe('particle targets, a clip object moved', () => {
     const list = particles();
     const repr = create();
     await repr.createOrUpdate({ renderMerged: true, gpuCulling: false, clip: clipOf(1) }, list).run();
-    const { members } = repr.renderObjects[0] as unknown as { members: { values: unknown }[] };
-    expect(members).toHaveLength(2);
+    // the members' values its records (merged of the targets' objects)
+    const { records } = (repr.renderObjects[0] as unknown as { merged: { records: readonly unknown[] } }).merged;
+    expect(records).toHaveLength(2);
     const clipX = (values: unknown) =>
       (values as { clipObjects: { ref: { value: Clip.Objects } } }).clipObjects.ref.value.position[0];
     await repr.createOrUpdate({ clip: clipOf(3) }).run();
     expect(drawnClip(repr)).toEqual([[3]]);
     // the second member not read while merged, not set
-    expect(clipX(members[1].values)).toBe(1);
+    expect(clipX(records[1])).toBe(1);
     // no longer merged: each drawn alone, with the clip as moved
     await repr.createOrUpdate({ renderMerged: false }).run();
     expect(drawnClip(repr)).toEqual([[3], [3]]);

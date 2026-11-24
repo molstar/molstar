@@ -95,9 +95,10 @@ The merged path grew beside the per-group one instead of under it. Five choices 
   values alone), not checks beside it; `isCompatible` checked per update. **Transactional**: an update builds what it
   changes beside the current segments and commits at its end (records, versions, `currentProps`, the parts), so a throw
   or an abort leaves the visual as it was.
-- **One merged object form**: records and shared values; `createMergedRenderObject(members)` makes records of its
-  members' values; member views are built from the key table (a record's own cells, the rest the part's). The export and
-  the debug helpers read through them.
+- **One merged object form** (done): records and shared values (`MergedGraphicsRenderObject.shared`, always), no
+  `members`; `createMergedRenderObject(members)` takes its members' values as its records, the first's as the shared
+  values. Member views (`getMergedMembers`: a record's own cells over the shared values; none of a source's) for the
+  export and the debug helpers; the per-group merging's entry keeps its members' ids for picking (`pickMergedLoci`).
 - **Culling not tied to merging** (last, larger): a view not culled on the GPU draws the CPU culling's lists of the
   identity region (as `merged-render-objects.md` describes the fallback) instead of nothing; the GPU state of a side
   view (`prepareCullView`) kept apart from the frame's, so a pass of the frame after it needs no culling again (now
@@ -110,7 +111,8 @@ The merged path grew beside the per-group one instead of under it. Five choices 
    member views of the segments' own cells. Tested: a part outliving its first segment follows a new size theme as one
    made with it; a size theme's levels split and join parts as made; the member views of a part of groups with other
    instance counts each with its own; debug mode's check of shared writes.
-2. **One merged object form**: the members' producer on records; the consumers of `members` moved to the views.
+2. **One merged object form** (done): the members' producer on records; the consumers of `members` moved to the views
+   and the records (the per-group picking to the entry's ids, the particle targets' clip to `shared`).
 3. **Updates by the update state, transactional**: the fast paths folded in; a failed or aborted update leaves records,
    versions and parts as they were (tests for a throw and an abort mid-update, a backend switch alone).
 4. **Every part merged**: palettes; the vertex-instance index (colors, sizes, layers); smoothing as the vertex types

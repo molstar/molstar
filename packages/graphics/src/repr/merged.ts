@@ -137,8 +137,11 @@ export function resolveMergedCulling(
 /** One visual and its renderObject, ready to be grouped/merged by `mergeRenderObjectsByType`. */
 export type MergeableEntry<V> = { visual: V; renderObject: GraphicsRenderObject };
 
-/** A currently-merged group of render objects, keyed by their shared geometry type. */
-export type MergedEntry<V> = { object: MergedGraphicsRenderObject; visuals: V[]; key: string };
+/**
+ * A currently-merged group of render objects, keyed by their shared geometry type: the visuals and their objects' ids,
+ * in the merged object's records' order
+ */
+export type MergedEntry<V> = { object: MergedGraphicsRenderObject; visuals: V[]; ids: number[]; key: string };
 
 /**
  * Groups `entries` by `renderObject.type` and merges each group of >= 2 mergeable
@@ -212,6 +215,7 @@ export function mergeRenderObjectsByType<V>(
               { gpuCulling: gpu, rasterOnly },
             ),
             visuals: group.map((e) => e.visual),
+            ids: group.map((e) => e.renderObject.id),
             key,
           };
       nextMerged.set(type, entry);
@@ -240,17 +244,18 @@ export function mergeRenderObjectsByType<V>(
 export function pickMergedLoci<V>(
   mergedByType: ReadonlyMap<string, MergedEntry<V>>,
   pickingId: PickingId,
-  resolve: (visual: V, index: number, localInstanceId: number, object: MergedGraphicsRenderObject) => Loci,
+  /** `objectId`: the visual's object's id, the member's */
+  resolve: (visual: V, index: number, localInstanceId: number, objectId: number) => Loci,
 ): Loci | undefined {
   let loci: Loci | undefined;
-  mergedByType.forEach(({ object, visuals }) => {
+  mergedByType.forEach(({ object, visuals, ids }) => {
     if (loci !== undefined || pickingId.objectId !== object.id) return;
     const { segments } = object.merged;
     const { instanceId } = pickingId;
     for (let i = 0, il = segments.count; i < il; ++i) {
       const base = segments.instanceBases[i];
       if (instanceId >= base && instanceId < base + segments.instanceCounts[i]) {
-        loci = resolve(visuals[i], i, instanceId - base, object);
+        loci = resolve(visuals[i], i, instanceId - base, ids[i]);
         return;
       }
     }

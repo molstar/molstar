@@ -234,7 +234,9 @@ describe('merged', () => {
     // a record its cells of what the merged object reads alone, not a member's values
     expect(Object.keys(records[0]).length).toBeLessThan(Object.keys(c.values).length / 3);
     const byRecords = createMergedRecordsRenderObject('spheres', c.values, records, c.state, -1);
-    expect(byRecords.members).toEqual([]);
+    // one form either way: the records and their shared values
+    expect(byRecords.shared).toBe(c.values);
+    expect(byMembers.shared).toBe(a.values);
     expect(byRecords.merged.records).toBe(records);
 
     const same = () => {

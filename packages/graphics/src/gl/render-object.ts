@@ -125,25 +125,21 @@ export function createRenderObject<T extends RenderObjectType>(
 //
 
 /**
- * A render object that shares a single render item between the values of
- * multiple member render objects to reduce draw calls. The members are
- * not meant to be added to a scene themselves.
+ * A render object that draws the values of many members with one render item, to reduce draw calls: its members'
+ * records (`Merged.records`, `MergeRecord`) and the values they share, one form whoever made it (member render objects,
+ * `createMergedRenderObject`; records, `createMergedRecordsRenderObject`). Its members, one by one: `getMergedMembers`
  */
 export interface MergedGraphicsRenderObject<T extends RenderObjectType = RenderObjectType>
   extends GraphicsRenderObject<T> {
-  readonly members: ReadonlyArray<GraphicsRenderObject<T>>;
   readonly merged: Merged;
-  /**
-   * the values its records share, where it is made of records (`createMergedRecordsRenderObject`) that hold its
-   * instances (no `MergedInstanceSource`): read through `getMergedMembers`
-   */
-  readonly shared?: RenderObjectValues<T>;
+  /** the values its records share (of its type and merge key: its defines, uniforms, props and clip) */
+  readonly shared: RenderObjectValues<T>;
 }
 
 export function isMergedRenderObject<T extends RenderObjectType>(
   o: GraphicsRenderObject<T>,
 ): o is MergedGraphicsRenderObject<T> {
-  return 'members' in o;
+  return 'merged' in o;
 }
 
 const mergedMemberViews = new WeakMap<
@@ -152,14 +148,14 @@ const mergedMemberViews = new WeakMap<
 >();
 
 /**
- * The members of `o` to read one by one (geometry export, debug helpers, benchmarks), in its records' order: its member
- * objects, or where it is made of records a view of each (its cells over the shared values, its state and material the
- * object's; the same views while its records are); none where its instances are kept elsewhere (`MergedInstanceSource`)
+ * The members of `o` to read one by one (geometry export, debug helpers, benchmarks), in its records' order: a view of
+ * each record (its cells over the shared values, its state and material the object's; the same views while its records
+ * are); none where its instances are kept elsewhere (`MergedInstanceSource`: its records hold none)
  */
 export function getMergedMembers<T extends RenderObjectType>(
   o: MergedGraphicsRenderObject<T>,
 ): ReadonlyArray<GraphicsRenderObject<T>> {
-  if (o.members.length > 0 || !o.shared) return o.members;
+  if (o.merged.source) return [];
   const { records } = o.merged;
   const cached = mergedMemberViews.get(o);
   if (cached?.records === records) return cached.members as GraphicsRenderObject<T>[];
@@ -197,8 +193,9 @@ export function canMergeRenderObjects(members: readonly GraphicsRenderObject[], 
 }
 
 /**
- * Creates a merged render object from member render objects, assumes
- * `canMergeRenderObjects(members)`. Shares the state of the first member.
+ * A merged render object of member render objects, assuming `canMergeRenderObjects(members)`: their values its records
+ * (their cells, no copies), the first's its shared values; the first member's state its state. The members are not
+ * added to a scene themselves
  */
 export function createMergedRenderObject<T extends RenderObjectType>(
   members: readonly GraphicsRenderObject<T>[],
@@ -224,15 +221,14 @@ export function createMergedRenderObject<T extends RenderObjectType>(
     values: merged.values as unknown as RenderObjectValues<T>,
     state: members[0].state,
     materialId: members[0].materialId,
-    members,
     merged,
+    shared: members[0].values,
   };
 }
 
 /**
  * A merged render object of `records` (`MergeRecord`) and the values they share `shared` (of `type`, their merge key:
- * the object's defines, uniforms, props and clip): no member render objects (`members` empty: `getMergedMembers` views
- * its records), its state its own
+ * the object's defines, uniforms, props and clip), its state its own
  */
 export function createMergedRecordsRenderObject<T extends RenderObjectType>(
   type: T,
@@ -264,9 +260,8 @@ export function createMergedRecordsRenderObject<T extends RenderObjectType>(
     values: merged.values as unknown as RenderObjectValues<T>,
     state,
     materialId,
-    members: [],
     merged,
-    shared: options?.source ? undefined : shared,
+    shared,
   };
 }
 

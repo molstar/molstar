@@ -25,6 +25,7 @@ import { StructureSymmetry } from '@molstar/model/model/structure/structure/symm
 import type { CustomProperty } from '@molstar/model/props/common/custom-property';
 import {
   canMergeRenderObjects,
+  getMergedMembers,
   isMergedRenderObject,
   type GraphicsRenderObject,
 } from '@molstar/graphics/gl/render-object';
@@ -155,9 +156,8 @@ function members(repr: Representation<Structure>): GraphicsRenderObject[] {
   for (const o of repr.renderObjects) {
     if (isMergedRenderObject(o)) {
       o.merged.sync();
-      if (o.members.length) out.push(...o.members);
-      // of records (a merged visual): a member its record's cells over the object's values (the shared types)
-      else for (const r of o.merged.records) out.push({ ...o, values: { ...o.values, ...r } } as GraphicsRenderObject);
+      // a member its record's cells over the shared values
+      out.push(...getMergedMembers(o));
     } else {
       out.push(o);
     }
@@ -343,7 +343,7 @@ describe('layers on surfaces', async () => {
     const types = layerTypes(repr);
     expect(types.filter((t) => t === 'groupInstance set')).toHaveLength(1);
     expect(types.filter((t) => t !== 'groupInstance set').every((t) => t === 'groupInstance clear')).toBe(true);
-    expect(canMergeRenderObjects(merged.members)).toBe(true);
+    expect(canMergeRenderObjects(getMergedMembers(merged) as GraphicsRenderObject[])).toBe(true);
     // the merged copy shows the layer
     merged.merged.sync();
     expect(merged.values.overpaintType.ref.value).toBe('groupInstance');

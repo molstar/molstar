@@ -456,8 +456,8 @@ export function UnitsRepresentation<P extends StructureParams>(
   }
 
   function getMergedLoci(pickingId: PickingId): Loci | undefined {
-    return pickMergedLoci(mergedByType, pickingId, (visual, index, localInstanceId, object) =>
-      visual.getLoci({ ...pickingId, objectId: object.members[index].id, instanceId: localInstanceId }),
+    return pickMergedLoci(mergedByType, pickingId, (visual, _index, localInstanceId, objectId) =>
+      visual.getLoci({ ...pickingId, objectId, instanceId: localInstanceId }),
     );
   }
 
