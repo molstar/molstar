@@ -15,6 +15,10 @@ import { tracksOf } from '@molstar/seqx-core/view';
 export interface HiddenTrackEntry extends HiddenTrack {
   /** The section's address. */
   readonly section: string;
+  /** A hidden group of tracks is one entry ("Variants (3 tracks)"): its `track.show` shows the group. */
+  readonly kind?: 'group';
+  /** The group a hidden track sits in (shown), its address and label. */
+  readonly group?: { readonly address: string; readonly label: string };
 }
 
 const None: readonly HiddenTrackEntry[] = [];
@@ -36,9 +40,28 @@ export function hiddenTracksOf(root: Node): readonly HiddenTrackEntry[] {
       const at = [...path, c.id];
       if (c.kind === 'section') {
         const section = `/${at.join('/')}`;
-        for (const { node: t, address } of tracksOf(c, section)) {
+        const groups = new Set<string>();
+        for (const { node: t, address, group } of tracksOf(c, section)) {
+          if (group && group.node.params?.hidden === true) {
+            // a hidden group: one entry, its tracks counted
+            if (groups.has(group.address)) continue;
+            groups.add(group.address);
+            const n = (group.node.children ?? []).filter((x) => x.kind === 'track').length;
+            const label = typeof group.node.params?.label === 'string' ? group.node.params.label : group.node.id!;
+            (out ??= []).push({
+              address: group.address,
+              label: `${label} (${n} track${n === 1 ? '' : 's'})`,
+              section,
+              kind: 'group',
+            });
+            continue;
+          }
           if (t.params?.hidden !== true) continue;
-          (out ??= []).push({ address, label: hiddenTrackName(t), section });
+          const g = group && {
+            address: group.address,
+            label: typeof group.node.params?.label === 'string' ? group.node.params.label : group.node.id!,
+          };
+          (out ??= []).push({ address, label: hiddenTrackName(t), section, ...(g ? { group: g } : {}) });
         }
         continue;
       }

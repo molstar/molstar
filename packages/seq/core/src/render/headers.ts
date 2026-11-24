@@ -548,7 +548,19 @@ export function hiddenTracksOf(model: StaticModel, section: ResolvedSection): re
   let out = Hidden.get(section);
   if (out) return out;
   let found: HiddenTrack[] | undefined;
-  for (const { node: t, address } of tracksOf(resolveAddress(model.spec, idRunOf(section.address)), section.address)) {
+  let group: string | undefined;
+  for (const { node: t, address, group: g } of tracksOf(
+    resolveAddress(model.spec, idRunOf(section.address)),
+    section.address,
+  )) {
+    // a hidden group: one entry, by its label (its `track.show` shows the group)
+    if (g && g.node.params?.hidden === true) {
+      if (group === g.address) continue;
+      group = g.address;
+      const label = g.node.params?.label;
+      (found ??= []).push({ address: g.address, label: typeof label === 'string' ? label : (g.node.id ?? '') });
+      continue;
+    }
     if (t.params?.hidden !== true) continue;
     (found ??= []).push({ address, label: hiddenTrackName(t) });
   }

@@ -127,6 +127,70 @@ describe('track groups in the viewer', () => {
     expect(folded(v)).toEqual(['features', 'variants', 'signals']);
   });
 
+  it('`track.hide` and `track.show` on a group’s address: one entry in the host’s list; `track.move` moves the group', async () => {
+    const v = await make();
+    const signals = `${GroupsSection}/signals`;
+    await v.execute('track.hide', { address: signals });
+    await v.settle();
+    frames!.flush();
+    expect(v.hiddenTracks.value).toEqual([
+      { address: signals, label: 'Signals (2 tracks)', section: GroupsSection, kind: 'group' },
+    ]);
+    expect(v.view.resolved.value!.sections[0].trackGroups!.map((g) => g.address)).not.toContain(signals);
+    await v.execute('track.show', { address: signals });
+    await v.settle();
+    expect(v.hiddenTracks.value).toEqual([]);
+    // a hidden track in a group names its group
+    await v.execute('track.hide', { address: `${signals}/a` });
+    await v.settle();
+    expect(v.hiddenTracks.value[0]).toMatchObject({
+      address: `${signals}/a`,
+      group: { address: signals, label: 'Signals' },
+    });
+    // a group moved among the section's children: after Signals
+    await v.execute('track.move', { address: `${GroupsSection}/features`, after: 'signals' });
+    await v.settle();
+    const children = v.spec.root.value.children![1].children![0].children![0].children!.map((c) => c.id);
+    expect(children).toEqual(['letters', 'variants', 'signals', 'features']);
+  });
+
+  it('the header cursor stops on a group’s header (a folded group one stop); Space folds and opens it there', async () => {
+    const v = await make();
+    frames!.flush();
+    v.selection.setCursor({
+      section: GroupsSection,
+      system: '/data/p53',
+      position: 0,
+      part: 'header',
+      track: `${GroupsSection}/letters`,
+      keyboard: true,
+    });
+    const key = (k: string) => v.input.key({ key: k });
+    const at = () => v.selection.cursor.value?.track;
+    key('ArrowDown');
+    expect(at()).toBe(`${GroupsSection}/features`);
+    key('ArrowDown');
+    expect(at()).toBe(`${GroupsSection}/features/domains`);
+    key('ArrowDown');
+    key('ArrowDown');
+    // Variants is folded: one stop, its tracks skipped
+    expect(at()).toBe(`${GroupsSection}/variants`);
+    key('ArrowDown');
+    expect(at()).toBe(`${GroupsSection}/signals`);
+    key(' ');
+    expect(folded(v)).toEqual(['variants', 'signals']);
+    frames!.flush();
+    key(' ');
+    expect(folded(v)).toEqual(['variants']);
+    frames!.flush();
+    // a track's header whose group folds: the cursor moves to the group's header
+    key('ArrowDown');
+    expect(at()).toBe(`${GroupsSection}/signals/a`);
+    await v.execute('groups.toggle', { address: `${GroupsSection}/signals` });
+    frames!.flush();
+    expect(at()).toBe(`${GroupsSection}/signals`);
+  });
+
   it('a reveal of an item only a folded group draws opens it in the same jump; back folds it again', async () => {
     const v = await make();
     const steps = backSteps(v);

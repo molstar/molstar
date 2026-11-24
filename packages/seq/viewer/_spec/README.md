@@ -1316,6 +1316,10 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   then on to the next section's; → back to the data where it left; Space and the extends do nothing there; Enter opens
   its menu. After a layout that hid the cursor's track the cursor goes to the next track's header, else the previous
   one's, else the section's line. A rows track has no header line: its rows' header is the rows' own.
+- **Groups at the header cursor** (`header-cursor.ts`): a group's header is a stop between the section's line and its
+  tracks' (`headersOf` reads the layout's `groups`; a folded group one stop, its bands skipped); Space there runs
+  `groups.toggle` (on a track's header it does nothing: no conflict); Enter opens the menu as on a track's header. A
+  cursor on a track's header whose group folds moves to the group's header.
 - `cursor`: the keyboard cursor's commands, on the cursor's section (else the context's, else the first; the first key
   places the cursor at the section's first position shown): `cursor.prev`, `cursor.next` (a cell in display order,
   whatever the direction, clamped to the axis, across breaks: a step over one says what it crossed, "crossed a break,
@@ -1856,6 +1860,13 @@ frame.
   listed by a name (`hiddenTrackName`): its label, its id without one, and for an empty label (a ruler's, the rows': the
   author's) its layer's `label` or `title`, else its type as a word ("Ruler", "Rows"); the list and the menu share it.
   Why: the list has no header to read a label from.
+- **Hidden groups**: `track.hide`, `track.show` and `track.move` take a group's address (`nodeOf`: a `group` where a
+  `track` is asked), its `hidden` and its place among the section's children; a hidden group is one entry of the host's
+  list (`HiddenTrackEntry.kind: 'group'`, "Signals (2 tracks)") and of the section menu's Show hidden, its `track.show`
+  showing the group; a hidden track in a group names it (`group: { address, label }`). A track's Move up and Move down
+  move it among its group's tracks (`HeaderFacts.tracks`: its siblings), a section's own tracks and groups among each
+  other. The section's menu gains Collapse all groups and Expand all groups (`seq:collapse-groups`, `seq:expand-groups`)
+  when it has groups (`HeaderFacts.groups`).
 - **The Legend part lists the active highlight channels** after the legends: a row a channel (`data-highlight`) with a
   swatch in the channel's color (`highlightColorOf`, beside the legend rows) shaped by its style, and a Clear, which
   runs `highlight.clear` with the channel's name. The rows are redrawn only when the channel names, a channel's style or
