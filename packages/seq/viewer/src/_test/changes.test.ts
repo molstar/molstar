@@ -135,7 +135,8 @@ function changed(a: ReturnType<typeof look>, b: ReturnType<typeof look>): Change
   return out;
 }
 
-const run = (v: SeqViewer, id: string, ctx: unknown) => Promise.resolve(v.execute(id, ctx));
+// a search run yields through the host's 0 ms timers: driven, as the real host turns
+const run = (v: SeqViewer, id: string, ctx: unknown) => frames!.timers.drive(v.execute(id, ctx));
 
 const cell = (position: number) => ({ section: Protein, hit: { layer: LettersLayer, system: '/data/p', position } });
 const cursorAt = (section: string) => (v: SeqViewer) =>

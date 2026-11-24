@@ -242,6 +242,43 @@ describe('cancellation', () => {
     expect(batches.length).toBe(3);
     expect(reads.length).toBe(3);
   });
+  it('a run cancelled while a read is pending ends with no error, emits nothing, and its reader sees the signal', async () => {
+    for (const reader of ['resolves late', 'rejects on abort'] as const) {
+      const ac = new AbortController();
+      let seen: AbortSignal | undefined;
+      let late: (() => void) | undefined;
+      const codes = Uint8Array.from('ACGT'.repeat(10), (c) => c.charCodeAt(0));
+      const target = {
+        ...textTarget('ACGT'.repeat(10)),
+        letters: {
+          read: (start: number, end: number, signal?: AbortSignal) =>
+            new Promise<Uint8Array>((resolve, reject) => {
+              seen = signal;
+              late = () => resolve(codes.slice(start, end));
+              if (reader === 'rejects on abort')
+                signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+            }),
+        },
+      };
+      const batches: SearchBatch[] = [];
+      const compiled = ExactMatcher.compile('ACG', {}, DefaultSearchBounds);
+      if (Array.isArray(compiled)) throw new Error('compile');
+      const done = new Promise<void>((resolve, reject) => {
+        ExactMatcher.run(compiled as Exclude<typeof compiled, readonly unknown[]>, [target], {
+          signal: ac.signal,
+          bounds: DefaultSearchBounds,
+        }).subscribe({ next: (b) => batches.push(b), error: reject, complete: resolve });
+      });
+      await Promise.resolve();
+      expect(seen, reader).toBeDefined();
+      ac.abort();
+      expect(seen!.aborted, reader).toBe(true);
+      late?.();
+      await done;
+      // no hits from the late letters, no `seq.search.letters.failed` for the cancel
+      expect(batches, reader).toEqual([]);
+    }
+  });
   it('unsubscribing cancels', async () => {
     const reads: number[][] = [];
     const target = textTarget('ACGT'.repeat(1000), { reads });

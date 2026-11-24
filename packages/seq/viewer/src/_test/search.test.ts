@@ -11,7 +11,8 @@
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { recordDrawLists } from '@molstar/seqx-core/render';
-import { afterEach, describe, expect, it } from 'vitest';
+import { DomHost } from '@molstar/ui/dom/host';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { changeKindOf } from '../commands.js';
 import { viewerItem } from '../config.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
@@ -66,6 +67,9 @@ async function make(options: { history?: boolean; config?: [unknown, unknown][] 
   return v;
 }
 
+/** A run to its end: its yields between batches are the host's 0 ms timers, turned as the real host would. */
+const drive = <T>(p: T | Promise<T>) => frames!.timers.drive(p);
+
 const said = (v: SeqViewer) => {
   const out: string[] = [];
   v.notice.listen(({ text }) => out.push(text));
@@ -85,7 +89,7 @@ describe('a search over what the view draws', () => {
   it('runs every system a letters layer draws, whole; the count, the words, the channel', async () => {
     const v = await make();
     const words = said(v);
-    const out = await v.execute('search.run', { pattern: 'GGATCC' });
+    const out = await drive(v.execute('search.run', { pattern: 'GGATCC' }));
     expect(out).toBe('1 hit for GGATCC on 3 sequences');
     expect(words.at(-1)).toBe(out);
     expect(hitsOf(v)).toEqual([['/data/c', 20, 26, 0]]);
@@ -98,7 +102,7 @@ describe('a search over what the view draws', () => {
 
   it('EC-9, EC-10: a site across the plasmid’s origin is one hit; its address wraps on the cyclic system', async () => {
     const v = await make();
-    await v.execute('search.run', { pattern: 'GAATTC' });
+    await drive(v.execute('search.run', { pattern: 'GAATTC' }));
     expect(hitsOf(v)).toEqual([['/data/c', 97, 103, 0]]);
     expect(v.search!.count.value).toBe(1);
     // two ranges in the channel, one hit in the count
@@ -109,18 +113,18 @@ describe('a search over what the view draws', () => {
 
   it('both strands: a minus-strand site is found and said so', async () => {
     const v = await make();
-    await v.execute('search.run', { pattern: 'CCTTAG' });
+    await drive(v.execute('search.run', { pattern: 'CCTTAG' }));
     expect(hitsOf(v)).toEqual([['/data/c', 56, 62, -1]]);
     expect(v.search!.describe(0)).toBe('c 57 to 62, minus strand');
-    await v.execute('search.run', { pattern: 'CCTTAG', strands: 'forward' });
+    await drive(v.execute('search.run', { pattern: 'CCTTAG', strands: 'forward' }));
     expect(hitsOf(v)).toEqual([]);
   });
 
   it('a compile error is the result’s message and issue: nothing changes', async () => {
     const v = await make();
-    await v.execute('search.run', { pattern: 'GGATCC' });
+    await drive(v.execute('search.run', { pattern: 'GGATCC' }));
     const before = v.search!.hits.value;
-    expect(await v.execute('search.run', { pattern: '(A)\\1', matcher: 'regex' })).toBe(
+    expect(await drive(v.execute('search.run', { pattern: '(A)\\1', matcher: 'regex' }))).toBe(
       'Backreferences are not searched',
     );
     expect(v.search!.hits.value).toBe(before);
@@ -129,21 +133,25 @@ describe('a search over what the view draws', () => {
 
   it('the regex bounds are the configuration’s: search.maxRegexDepth refuses a deeper nesting', async () => {
     const v = await make({ config: [[viewerItem('search.maxRegexDepth'), 2]] });
-    expect(await v.execute('search.run', { pattern: '((E))P', matcher: 'regex' })).toBe(
+    expect(await drive(v.execute('search.run', { pattern: '((E))P', matcher: 'regex' }))).toBe(
       '3 hits for ((E))P on 3 sequences',
     );
-    expect(await v.execute('search.run', { pattern: '(((E)))P', matcher: 'regex' })).toBe('Groups nest deeper than 2');
+    expect(await drive(v.execute('search.run', { pattern: '(((E)))P', matcher: 'regex' }))).toBe(
+      'Groups nest deeper than 2',
+    );
   });
 
   it('a matcher the composition does not register is refused, named, no fallback', async () => {
     const v = await make();
-    expect(await v.execute('search.run', { pattern: 'A', matcher: 'app:blast' })).toBe('No search matcher app:blast');
+    expect(await drive(v.execute('search.run', { pattern: 'A', matcher: 'app:blast' }))).toBe(
+      'No search matcher app:blast',
+    );
     expect(v.search!.query.value).toBeUndefined();
   });
 
   it('a protein pattern’s hits light the gene through the codon map (projected, not translated)', async () => {
     const v = await make();
-    await v.execute('search.run', { pattern: 'EP' });
+    await drive(v.execute('search.run', { pattern: 'EP' }));
     expect(hitsOf(v)).toEqual([
       ['/data/p', 2, 4, 0],
       ['/data/p', 6, 8, 0],
@@ -168,7 +176,7 @@ describe('stepping through the hits', () => {
   it('EC-161: "k of n"; the current again clears it', async () => {
     const v = await make();
     const words = said(v);
-    await v.execute('search.run', { pattern: 'EP' });
+    await drive(v.execute('search.run', { pattern: 'EP' }));
     await v.execute('search.go', { index: 1 });
     expect(v.search!.current.value).toBe(1);
     expect(words.at(-1)).toBe('Hit 2 of 3: p 7 to 8');
@@ -181,7 +189,7 @@ describe('stepping through the hits', () => {
 
   it('EC-160: an index outside the hits is refused, never clipped', async () => {
     const v = await make();
-    await v.execute('search.run', { pattern: 'EP' });
+    await drive(v.execute('search.run', { pattern: 'EP' }));
     expect(await v.execute('search.go', { index: 3 })).toBe('No hit 4: there are 3');
     expect(await v.execute('search.go', { index: -1 })).toBe('No hit 0: there are 3');
     expect(v.search!.current.value).toBe(-1);
@@ -190,7 +198,7 @@ describe('stepping through the hits', () => {
   it('EC-159: next reveals, panning only (the zoom kept), and wraps, said', async () => {
     const v = await make();
     const words = said(v);
-    await v.execute('search.run', { pattern: 'AAAA', strands: 'forward' });
+    await drive(v.execute('search.run', { pattern: 'AAAA', strands: 'forward' }));
     const section = '/views/main/plasmid';
     v.view.setRange(section, 30, 40);
     const zoom = () => {
@@ -198,10 +206,14 @@ describe('stepping through the hits', () => {
       return vp.end - vp.start;
     };
     const width = zoom();
-    // from no current hit: the first at or after the window's start
+    // from no current hit: the first at or after the window's start, in the view
     await v.execute('search.next', {});
     const first = v.search!.current.value;
-    expect(v.search!.hits.value.hits.start[first]).toBeGreaterThanOrEqual(30);
+    const { hits } = v.search!.hits.value;
+    expect(first).toBe(Array.from(hits.start.subarray(0, hits.length)).findIndex((s) => s >= 30));
+    const vp = v.view.get(section)!;
+    expect(hits.start[first]).toBeGreaterThanOrEqual(vp.start);
+    expect(hits.end[first]).toBeLessThanOrEqual(vp.end);
     expect(zoom()).toBeCloseTo(width, 6);
     // to the last, then round to the first, said
     const n = v.search!.hits.value.hits.length;
@@ -217,7 +229,7 @@ describe('stepping through the hits', () => {
 
   it('a step is one jump of the view’s history: Back returns', async () => {
     const v = await make();
-    await v.execute('search.run', { pattern: 'GAATTC' });
+    await drive(v.execute('search.run', { pattern: 'GAATTC' }));
     const section = '/views/main/plasmid';
     v.view.setRange(section, 30, 40);
     await v.execute('search.next', {});
@@ -231,7 +243,7 @@ describe('stepping through the hits', () => {
 describe('the keys', () => {
   it('EC-155: Mod+g and F3 step on, with Shift back, in the canvas’s scope; Mod+f is never taken', async () => {
     const v = await make();
-    await v.execute('search.run', { pattern: 'EP' });
+    await drive(v.execute('search.run', { pattern: 'EP' }));
     expect(v.input.key({ key: 'g', ctrlKey: true, metaKey: true })).toBe(true);
     expect(v.search!.current.value).toBe(0);
     expect(v.input.key({ key: 'F3' })).toBe(true);
@@ -252,7 +264,7 @@ describe('the keys', () => {
     expect(v.input.key({ key: 'g', ctrlKey: true, metaKey: true })).toBe(false);
     expect(v.input.key({ key: 'G', ctrlKey: true, metaKey: true, shiftKey: true })).toBe(false);
     expect(v.input.key({ key: 'F3', shiftKey: true })).toBe(false);
-    await v.execute('search.run', { pattern: 'EP' });
+    await drive(v.execute('search.run', { pattern: 'EP' }));
     expect(v.input.key({ key: 'g', ctrlKey: true, metaKey: true })).toBe(true);
   });
 });
@@ -261,19 +273,44 @@ describe('what is said', () => {
   it('a run’s end, a step and a wrap in words; no hits; a cancelled run says nothing', async () => {
     const v = await make();
     const words = said(v);
-    expect(await v.execute('search.run', { pattern: 'WWWWWW', matcher: 'exact' })).toBe('No hits for WWWWWW');
-    await v.execute('search.run', { pattern: 'EP' });
+    expect(await drive(v.execute('search.run', { pattern: 'WWWWWW', matcher: 'exact' }))).toBe('No hits for WWWWWW');
+    await drive(v.execute('search.run', { pattern: 'EP' }));
     expect(words.at(-1)).toBe('3 hits for EP on 3 sequences');
     await v.execute('search.go', { index: 2 });
     expect(words.at(-1)).toBe('Hit 3 of 3: p 11 to 12');
     await v.execute('search.next', {});
     expect(words.at(-1)).toBe('Hit 1 of 3: p 3 to 4, wrapped to the first hit');
     const n = words.length;
-    const first = v.execute('search.run', { pattern: 'AAAA' }) as Promise<string>;
+    const first = drive(v.execute('search.run', { pattern: 'AAAA' })) as Promise<string>;
     await v.execute('search.clear', {});
     expect(await first).toBe('');
     expect(words.length).toBe(n);
     expect(v.search!.status.value).toBe('idle');
+  });
+  it('two runs racing: the later one’s result stands, the earlier says nothing, at its load or mid-run', async () => {
+    const v = await make({ config: [[viewerItem('search.chunkLetters'), 8]] });
+    const words = said(v);
+    // the earlier still loading its matcher (the regex chunk) when the later starts
+    const a = drive(v.execute('search.run', { pattern: 'AAAA', matcher: 'regex' }));
+    const b = drive(v.execute('search.run', { pattern: 'EP' }));
+    expect(await a).toBe('');
+    expect(await b).toBe('3 hits for EP on 3 sequences');
+    expect(v.search!.query.value?.pattern).toBe('EP');
+    expect(v.search!.count.value).toBe(3);
+    // the earlier mid-run, batches in, when the later starts
+    const c = v.execute('search.run', { pattern: 'A' }) as Promise<string>;
+    while (v.search!.count.value === 0 || v.search!.query.value?.pattern !== 'A') {
+      frames!.timers.fire(0);
+      await new Promise((r) => setImmediate(r));
+    }
+    expect(v.search!.status.value).toBe('running');
+    const d = drive(v.execute('search.run', { pattern: 'GGATCC' }));
+    expect(await drive(c)).toBe('');
+    expect(await d).toBe('1 hit for GGATCC on 3 sequences');
+    expect(v.search!.query.value?.pattern).toBe('GGATCC');
+    expect(v.search!.count.value).toBe(1);
+    expect(v.search!.status.value).toBe('done');
+    expect(words.filter((w) => /AAAA|for A /.test(w))).toEqual([]);
   });
 });
 
@@ -281,7 +318,7 @@ describe('saving the hits', () => {
   it('EC-162: a saved set is one patch, one undo step: a ref of the hits’ addresses', async () => {
     const v = await make({ history: true });
     const stack = (v.spec.history as UiHistory).stack;
-    await v.execute('search.run', { pattern: 'EP' });
+    await drive(v.execute('search.run', { pattern: 'EP' }));
     const out = await v.execute('search.save', {});
     expect(out).toBe('Saved 3 hits as Search: EP (3)');
     expect(stack.steps.value.map((x) => x.label)).toEqual(['Save the search']);
@@ -293,10 +330,10 @@ describe('saving the hits', () => {
 
   it('is refused, never cut: past search.maxSaved, or incomplete', async () => {
     const v = await make({ config: [[viewerItem('search.maxSaved'), 2]] });
-    await v.execute('search.run', { pattern: 'EP' });
+    await drive(v.execute('search.run', { pattern: 'EP' }));
     expect(await v.execute('search.save', {})).toBe('3 hits: a saved set holds at most 2');
     const w = await make({ config: [[viewerItem('search.maxHits'), 2]] });
-    await w.execute('search.run', { pattern: 'EP' });
+    await drive(w.execute('search.run', { pattern: 'EP' }));
     expect(w.search!.count.value).toBe(3);
     expect(w.search!.hits.value.hits.length).toBe(2);
     expect(w.search!.complete.value).toBe(false);
@@ -307,13 +344,13 @@ describe('saving the hits', () => {
 describe('the channels and the legend', () => {
   it('EC-157: removing the search channel clears the search; clearing the search clears both channels', async () => {
     const v = await make();
-    await v.execute('search.run', { pattern: 'EP' });
+    await drive(v.execute('search.run', { pattern: 'EP' }));
     await v.execute('search.go', { index: 0 });
     // the legend's channel removal runs `highlight.clear` on it
     await v.execute('highlight.clear', { channel: 'search' });
     expect(v.search!.query.value).toBeUndefined();
     expect(v.highlight.get('search-current')).toBeUndefined();
-    await v.execute('search.run', { pattern: 'EP' });
+    await drive(v.execute('search.run', { pattern: 'EP' }));
     v.addresses.highlightAddress('/data/p/(range :from 1 :to 2)', 'other');
     await v.execute('search.clear', {});
     expect(v.highlight.names.value).toEqual(['other']);
@@ -334,7 +371,7 @@ describe('the channels and the legend', () => {
 describe('results follow the spec', () => {
   it('new letters for a searched system mark the result stale, still drawn, until the next run', async () => {
     const v = await make();
-    await v.execute('search.run', { pattern: 'EP' });
+    await drive(v.execute('search.run', { pattern: 'EP' }));
     const words = said(v);
     // the protein's letters edited: another entry for its system
     const next = JSON.parse(JSON.stringify(v.spec.shown.value)) as Node;
@@ -350,7 +387,7 @@ describe('results follow the spec', () => {
     const refused = await v.search!.save();
     expect(refused.issues.map((i) => i.code)).toEqual(['seq.search.save.stale']);
     expect(refused.message).toBe('The result may be out of date: not saved');
-    await v.execute('search.run', { pattern: 'EP' });
+    await drive(v.execute('search.run', { pattern: 'EP' }));
     expect(v.search!.stale.value).toBe(false);
     expect(v.search!.count.value).toBe(2);
     expect((await v.search!.save()).issues).toEqual([]);
@@ -361,11 +398,31 @@ describe('progress', () => {
   it('is said once, after a second, never per batch', async () => {
     const v = await make({ config: [[viewerItem('search.chunkLetters'), 8]] });
     const words = said(v);
+    const searching = () => words.filter((w) => w.startsWith('Searching'));
     const run = v.execute('search.run', { pattern: 'A' }) as Promise<string>;
-    // the fake clock's second passes while it runs
-    frames!.timers.fire();
-    await run;
-    expect(words.filter((w) => w.startsWith('Searching')).length).toBeLessThanOrEqual(1);
+    // batches pass, the second not yet: nothing said
+    const turn = async () => {
+      frames!.timers.fire(0);
+      await new Promise((r) => setImmediate(r));
+    };
+    while (v.search!.status.value !== 'running') await turn();
+    for (let i = 0; i < 4; i++) await turn();
+    expect(v.search!.status.value).toBe('running');
+    expect(searching()).toEqual([]);
+    // the fake clock's second passes while it runs: said once, how far it has read
+    frames!.timers.fire(1000);
+    expect(searching()).toHaveLength(1);
+    expect(searching()[0]).toMatch(/^Searching: \d+ % read$/);
+    await drive(run);
+    expect(searching()).toHaveLength(1);
     expect(words.at(-1)).toMatch(/hits for A on 3 sequences$/);
+  });
+  it('the batches yield through the viewer’s host (DomHost), a turn each, never a global timer', async () => {
+    const v = await make({ config: [[viewerItem('search.chunkLetters'), 8]] });
+    const zero = () => vi.mocked(DomHost.setTimeout).mock.calls.filter(([, ms]) => ms === 0).length;
+    const before = zero();
+    await drive(v.execute('search.run', { pattern: 'A' }));
+    // 100, 12 and 36 letters in chunks of 8: 13, 2 and 5 batches, a yield after each
+    expect(zero() - before).toBe(20);
   });
 });

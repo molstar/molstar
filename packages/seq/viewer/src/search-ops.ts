@@ -115,8 +115,8 @@ export async function runSearch(
       .run(compiled, targets, {
         signal: ac.signal,
         bounds,
-        // a run never holds a frame: a turn of the event loop between batches
-        yield: () => new Promise<void>((r) => setTimeout(r, 0)),
+        // a run never holds a frame: a turn of the event loop between batches, through the viewer's host
+        yield: () => new Promise<void>((r) => DomHost.setTimeout(r, 0)),
       })
       .subscribe({
         next: (b) => {

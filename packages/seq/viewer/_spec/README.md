@@ -609,7 +609,8 @@ built on them alone).
   own (as many tiles as the store asks for at once) and waited for until settled; a pending region is never read as
   empty (EC-169); a failed region, or a source not open, skips the target (`seq.search.letters.failed`).
 - **Progress** is said once, after a second (`DomHost`'s clock), never per batch; a run yields a turn of the event loop
-  between batches, so it never holds a frame.
+  between batches (a 0 ms `DomHost.setTimeout`, the host's like every timer: a test turns it), so it never holds a
+  frame.
 
 ## Composition
 
