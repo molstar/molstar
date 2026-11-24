@@ -153,6 +153,7 @@ export {
   type LayerContent,
   type SizedTrack,
   TakenLabels,
+  type TakenOwner,
   type TrackSizing,
   type TrackSizingHook,
 } from './sizing.js';

@@ -795,6 +795,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
           if (out === NoSectionLays) out = [];
           out.push(layOne(track, layer, type, `${key}@section`, ctx));
         }
+      // the labels the layers offered, the strongest kept (a stub's label clear of every wedge and label kept)
+      state.takenLabels.settle();
       return out;
     };
     // a block's band with no item (a stack's rows: `blocks.emptyTracks`): asked of a stack only

@@ -189,37 +189,71 @@ export const BuiltInSizings: Readonly<Record<string, TrackSizing>> = {
   fixed: FixedSizing,
 };
 
+/** What offers labels to `TakenLabels`: told once they are settled, whether each is kept. */
+export interface TakenOwner {
+  placed(id: number, kept: boolean): void;
+}
+
 /**
- * The labels a section's layers drew at points (a ring's stub labels): each a box and its tip, shared by the section's
- * layers in their order (_spec/README.md "Render", Section layouts), cleared before they are laid out. Kept by the
- * layout, its array grown: no allocation once warm.
+ * The labels a section's layers offer at points (a ring's stub labels), settled together once the section's layers are
+ * laid out (_spec/README.md "Render", Section layouts): the strongest first (`weight`, ties by offer order), each kept
+ * only where its box meets no label kept, no wedge (`block`: a triangle no label may cover, the layers' stubs) and its
+ * tip is the clearance from every tip kept; the others dropped. Kept by the layout, its arrays grown: no allocation once warm.
  * @internal
  */
 export class TakenLabels {
   n = 0;
-  private b = new Float64Array(96);
+  private b = new Float64Array(9 * 16);
+  private owners: (TakenOwner | undefined)[] = [];
+  private ids = new Int32Array(16);
+  private nt = 0;
+  private t = new Float64Array(6 * 16);
+  private order: number[] = [];
 
   reset() {
     this.n = 0;
+    this.nt = 0;
   }
 
-  /** A label with its box and its tip taken: clear of every box taken, its tip `tip` from every tip taken. */
-  free(x0: number, y0: number, x1: number, y1: number, x: number, y: number, tip: number): boolean {
-    for (let j = 0; j < this.n; j++) {
-      const o = 6 * j;
-      const b = this.b;
-      if (x0 < b[o + 2] && x1 > b[o] && y0 < b[o + 3] && y1 > b[o + 1]) return false;
-      if (Math.hypot(b[o + 4] - x, b[o + 5] - y) < tip) return false;
+  /** A wedge no label may cover (a triangle: three points). */
+  block(ax: number, ay: number, bx: number, by: number, cx: number, cy: number) {
+    const o = 6 * this.nt++;
+    if (this.t.length < o + 6) {
+      const g = new Float64Array(2 * this.t.length);
+      g.set(this.t);
+      this.t = g;
     }
-    return true;
+    const t = this.t;
+    t[o] = ax;
+    t[o + 1] = ay;
+    t[o + 2] = bx;
+    t[o + 3] = by;
+    t[o + 4] = cx;
+    t[o + 5] = cy;
   }
 
-  take(x0: number, y0: number, x1: number, y1: number, x: number, y: number) {
-    const o = 6 * this.n++;
-    if (this.b.length < o + 6) {
+  /** A label offered: its box, its tip and the clearance it keeps from the tips kept, its weight (the stronger is kept). */
+  offer(
+    owner: TakenOwner,
+    id: number,
+    x0: number,
+    y0: number,
+    x1: number,
+    y1: number,
+    x: number,
+    y: number,
+    weight: number,
+    tip: number,
+  ) {
+    const q = this.n++;
+    const o = 9 * q;
+    if (this.b.length < o + 9) {
       const g = new Float64Array(2 * this.b.length);
       g.set(this.b);
       this.b = g;
+      const ids = new Int32Array(2 * this.ids.length);
+      ids.set(this.ids);
+      this.ids = ids;
     }
     const b = this.b;
     b[o] = x0;
@@ -228,6 +262,78 @@ export class TakenLabels {
     b[o + 3] = y1;
     b[o + 4] = x;
     b[o + 5] = y;
+    b[o + 6] = weight;
+    b[o + 8] = tip;
+    this.owners[q] = owner;
+    this.ids[q] = id;
+  }
+
+  /** Whether a box meets triangle `k`. */
+  private hits(x0: number, y0: number, x1: number, y1: number, k: number): boolean {
+    const t = this.t;
+    const o = 6 * k;
+    const xs = [t[o], t[o + 2], t[o + 4]];
+    const ys = [t[o + 1], t[o + 3], t[o + 5]];
+    // the box's axes
+    if (Math.max(...xs) <= x0 || Math.min(...xs) >= x1 || Math.max(...ys) <= y0 || Math.min(...ys) >= y1) return false;
+    // the triangle's edge normals (separating axis: the box corners against the triangle's span)
+    for (let e = 0; e < 3; e++) {
+      const nx = ys[(e + 1) % 3] - ys[e];
+      const ny = xs[e] - xs[(e + 1) % 3];
+      let lo = Number.POSITIVE_INFINITY;
+      let hi = Number.NEGATIVE_INFINITY;
+      for (let i = 0; i < 3; i++) {
+        const d = nx * xs[i] + ny * ys[i];
+        if (d < lo) lo = d;
+        if (d > hi) hi = d;
+      }
+      let blo = Number.POSITIVE_INFINITY;
+      let bhi = Number.NEGATIVE_INFINITY;
+      for (let i = 0; i < 4; i++) {
+        const d = nx * (i & 1 ? x1 : x0) + ny * (i & 2 ? y1 : y0);
+        if (d < blo) blo = d;
+        if (d > bhi) bhi = d;
+      }
+      if (bhi <= lo || blo >= hi) return false;
+    }
+    return true;
+  }
+
+  /** Settles the offered labels (see the class), tells each owner, and clears the lists. */
+  settle() {
+    const n = this.n;
+    const b = this.b;
+    const order = this.order;
+    order.length = n;
+    for (let i = 0; i < n; i++) order[i] = i;
+    order.sort((p, q) => b[9 * q + 6] - b[9 * p + 6] || p - q);
+    const kept: number[] = [];
+    const out = new Uint8Array(n);
+    for (const i of order) {
+      const o = 9 * i;
+      let by = -1;
+      for (const j of kept) {
+        const k = 9 * j;
+        if (
+          (b[o] < b[k + 2] && b[o + 2] > b[k] && b[o + 1] < b[k + 3] && b[o + 3] > b[k + 1]) ||
+          Math.hypot(b[k + 4] - b[o + 4], b[k + 5] - b[o + 5]) < b[o + 8]
+        ) {
+          by = j;
+          break;
+        }
+      }
+      if (by >= 0) continue;
+      // the strongest label is always kept (a hub's wedges cover every place by it)
+      let covered = false;
+      for (let w = 0; w < this.nt && !covered && kept.length > 0; w++)
+        covered = this.hits(b[o], b[o + 1], b[o + 2], b[o + 3], w);
+      if (covered) continue;
+      kept.push(i);
+      out[i] = 1;
+    }
+    for (let i = 0; i < n; i++) this.owners[i]?.placed(this.ids[i], out[i] === 1);
+    this.n = 0;
+    this.nt = 0;
   }
 }
 

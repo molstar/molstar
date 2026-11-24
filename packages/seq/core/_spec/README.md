@@ -3528,10 +3528,14 @@ way, over a straight axis and a box, in every layout; a layout knows strips, ban
   `empty`. Held by property tests: every position in view placed once, `at` its cell's center gives it back, `offsetAt`
   monotone in reading order.
 - **Labels at points are the section's** (`LayoutContext.taken`, `TakenLabels`): the `section` layers of one section,
-  laid out once a section in their order, share a list of the label boxes and tips placed; a layer's label goes only
-  where its box meets none taken and its tip is its own clearance from every tip taken (the earlier layer's kept). Why:
-  two kinds of links over one ring each place their stub labels, and two stubs to one partner at one tip drew "chr22 ·
-  299" and "chr22 · 24" over each other. A layer laid out alone keeps its own list.
+  laid out once a section in their order, each offer their labels (a box, a tip, a weight) and the wedges no label may
+  cover (`block`); once all are laid out the section settles them (`settle`): the strongest first (ties by offer order),
+  a label kept only where its box meets no label kept and no wedge and its tip is its own clearance from every tip kept,
+  the strongest always (a hub's wedges cover every place by it); the rest dropped, told to their layer
+  (`TakenOwner.placed`). Why: two kinds of links over one ring each place their stub labels, and two stubs to one
+  partner at one tip drew "chr22 · 299" and "chr22 · 24" over each other; the layer first in order is not the layer with
+  the larger count. A layer laid out alone settles its own. A ring's chromosome labels are outside the ring, its stub
+  labels inside its stems: they never meet (held by the kinds stories' test), so they are not offered.
 - **The viewport record** (`Viewport`): `{ start, end, top?, scale?, bands?, y? }`, read by the layout: tracks `start`,
   `end` the window, `top` a vertical scroll, `bands` a band's own `bandTop` and `rowScale` (a grid's `y` its second
   axis). One record for every layout (the field's meaning is the layout's): the viewer's groups, follows and history
