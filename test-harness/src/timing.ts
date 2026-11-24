@@ -19,6 +19,9 @@ export type Within = <T>(ms: number, f: () => T) => T;
 /** No clock: `f`'s result. */
 const unbounded: Within = (_, f) => f();
 
+/** Whether `within` checks its bounds (the heavy lane's) or reads no clock (the quick lane's): a test scales by it. */
+export const isBounded = (within: Within): boolean => within !== unbounded;
+
 /** `f` under `ms` milliseconds, its result kept. */
 const bounded: Within = (ms, f) => {
   const t0 = performance.now();
