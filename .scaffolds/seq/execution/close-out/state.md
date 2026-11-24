@@ -1,6 +1,6 @@
 # State: close-out (updated 2026-11-24, by the orchestrator)
 
-Branch: `packages-seq` Head: `938396a33` (FX27 merged; its records after)
+Branch: `packages-seq` Head: `92317a6fa` and its records (the index pages fixed)
 
 ## Where it stands
 
@@ -14,21 +14,20 @@ Stage 0 and GATE 0 are closed; waves 1 and 2 are merged and GATE 1 passed. Merge
 
 ## In progress
 
-The `cc-plugin-privacy` plugin (it refused Bash calls reading Seq\* source files, whose headers carry the author's
-address) is off since the author's restart, 2026-11-24 08:45: the refused grep over `ranges.ts` runs.
+The `cc-plugin-privacy` plugin no longer refuses lanes since the author's restart (2026-11-24, `enabledPlugins` in
+`~/.claude/settings.json`): a fresh agent's `head -8` of `pairs-assembly.ts`, refused before, ran.
 
-- **CL5 search merged** (`a4668800a`), sizes raised: default 1,566.1/1,570, minimal 1,101.7/1,105.
-- **CL6 track groups merged** (`a1097142a`), sizes raised: headless 986.4/990, default 1,578.9/1,582, minimal 1,112.3/1,115.
-- **FX25 merged** (`9040adc8d`): minimal 1,115.4/1,117, default 1,582.0/1,584.
-- **CL8 merged** (`a95dbf373`): headless 992.1/995, default 1,584.7/1,588, minimal 1,117.1/1,120.
-- **FX30** `height: 'content'` (Sonnet, `seq/fx30`), started 2026-11-24 11:20 (the author's word).
-- **FX29** a legend row hiding a whole track (Sonnet, `seq/fx29`), started 2026-11-24 11:12 (the author's screenshots).
-- **FX28** the bridge's canvas gap (Sonnet, `seq/fx28`), started 2026-11-24 11:00 (the author's screenshot).
+- **FX28** the bridge's canvas gap (`seq/fx28` at `9de7ab56a`: one WIP of the fix, `pairs-assembly.ts`'s read keyed by
+  the in-view positions, and `across-moves.test.ts`): resumed in a fresh agent: split, the parent check, the sweep over
+  the across-sections stories (`across-bins`' hysteresis question), the records, the checks.
+- **FX29** a legend row (`seq/fx29` at `e4a335b58`: items 1–3 committed, then a WIP at the pause): resumed: item 4's
+  sweep, the checks.
+- **FX30** `height: 'content'` (`seq/fx30` at `0eecdbd49`, items 1–4 committed): resumed: the checks, the report.
 
 ## Next
 
-1. FX28 and FX29's reports; then GATE 2.
-3. GATE 2 after CL5, CL6, CL8 and FX25; then the use gate, the novice pass, the measurements, the last gate.
+1. The three lanes through the loop (checks, look, review, merge).
+2. GATE 2; then the use gate, the novice pass, the measurements, the last gate.
 
 ## Blockers and open questions
 
