@@ -151,7 +151,13 @@ export function groupsBehavior(spec: SpecModel, view: ViewModel): GroupsBehavior
       }
     };
     walk(root, '');
-    for (const s of reset) view.setFoldedGroups(s, undefined);
+    for (const s of reset) {
+      // the session's set already what the spec now opens with (`groups.keep`'s own patch): kept, nothing changes
+      const own = view.groupFolds.value.get(s);
+      const opening = collapsedIds(root, s);
+      if (own && own.length === opening.length && own.every((id) => opening.includes(id))) continue;
+      view.setFoldedGroups(s, undefined);
+    }
   };
   scan(spec.model.value.spec, false);
   const stop = spec.model.listen((model) => scan(model.spec, true));
@@ -178,6 +184,15 @@ export function groupsBehavior(spec: SpecModel, view: ViewModel): GroupsBehavior
       stop();
     },
   };
+}
+
+/** The ids of a section's groups the spec opens folded (`collapsed`), read from the spec itself. */
+function collapsedIds(root: Node, section: string): string[] {
+  let n: Node | undefined = root;
+  for (const id of section.split('/').filter(Boolean)) n = n?.children?.find((c) => c.id === id);
+  return (n?.children ?? []).flatMap((c) =>
+    c.kind === 'group' && c.params?.collapsed === true && c.id !== undefined ? [c.id] : [],
+  );
 }
 
 /** A section's track groups folded and opened (_spec/README.md "Behaviors", Groups). */

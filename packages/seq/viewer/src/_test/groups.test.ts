@@ -218,8 +218,7 @@ describe('track groups in the viewer', () => {
       ['variants', true],
       ['signals', true],
     ]);
-    // the opening state changed: the session's set is reset to it, shown the same
-    expect(v.view.get(GroupsSection)?.groups).toBeUndefined();
+    // the spec now opens with the set shown: the session's set kept, nothing moves (its own patch changes no session)
     expect(folded(v)).toEqual(['variants', 'signals']);
     // a toggle, then the undo of the kept folds: back to the spec's opening set
     await v.execute('groups.toggle', { address: `${GroupsSection}/features` });

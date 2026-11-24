@@ -116,6 +116,8 @@ function look(v: SeqViewer) {
       v.legends.cvdSafe.value,
       // a rows band's folds (session state)
       v.view.band(RowsTrack)?.folds,
+      // the folded track groups (session state)
+      v.view.groupFolds.value,
       // a narrow frame's tree opened by the reader (session state)
       v.view.band(RowsTrack)?.tree,
     ],
