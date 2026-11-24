@@ -416,7 +416,12 @@ ends; a width past the new block's length, the new block whole. One rule for a c
   hover up and the card hides (its readout of a grid's rect excepted: the selection's); on release the pointer's place
   is hit once more and hovered, and a frame is asked (what follows the frame, a host's SVG twin, follows the release).
   What derives from the selection is bounded by what is shown, never by the blocks the view holds (core's "Resolved
-  view", Projection: indexed by system).
+  view", Projection: indexed by system). **A held pointer costs nothing**: a frame whose pointer is where the last one
+  applied it, over the same layout, hits nothing again; an end the drag was last at (the model's `dragTo` by its
+  position, item, system and arc; `rectDragTo` by its cell; the `select` behavior's drags over blocks by their block and
+  position), its value still standing, makes and writes nothing. A frame moving the end allocates the new value and
+  what derives from it (bounded in the perf tier, a few kB; a frame of each drag kind within 4 ms in the heavy lane).
+  Why: a pointer held still sends moves, and a frame's warm path allocates nothing (the allocation tier).
 - **The anchor** is the range of the last element or cell set, toggled, added or dragged from, on its system (an item's
   extent there, else its cell); `set(value, anchor?)` replaces it; `clear()` drops it. With it the model keeps what an
   extend keeps: the selection less the anchor's range when the anchor was set (none after a click or a plain drag; all

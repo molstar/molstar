@@ -6,10 +6,10 @@
 
 // What a drag-select re-runs, a drag kind each (the viewer's _spec, "SelectionModel and HighlightModel", Drags), on the
 // views the author dragged on, composed as the stories compose them with the SVG twin beside: over many moves and a few
-// frames, the pointer is hit once a frame (never a move), the selection written at most once a frame, the hover neither
-// looked up nor changed, nothing laid out again, the SVG twin not exported; on release the last moves land once, the
-// hover comes back where the pointer rests and the twin is exported once, and the selection is the one a drag straight
-// to the last point makes.
+// frames, the pointer is hit once a frame (never a move; a frame with the pointer held where it was hit, not again),
+// the selection written at most once a frame, the hover neither looked up nor changed, nothing laid out again, the SVG
+// twin not exported; on release the last moves land once, the hover comes back where the pointer rests and the twin is
+// exported once, and the selection is the one a drag straight to the last point makes.
 
 // @module-tag medium
 
@@ -36,7 +36,7 @@ describe('a drag-select re-runs its work once a frame, bounded by the screen', (
       v.input.mac = false;
       const host = { innerHTML: '' } as HTMLElement;
       const twin = followSvg(v, host);
-      const path = kind.path(v, Frames * MovesAFrame + 2);
+      const path = kind.path(v, Frames * MovesAFrame + 3);
       const hit = vi.spyOn(v, 'hit');
       const svg = vi.spyOn(v, 'renderSvg');
       let writes = 0;
@@ -65,6 +65,10 @@ describe('a drag-select re-runs its work once a frame, bounded by the screen', (
       expect(v.hover.current.owner).toBeUndefined();
       expect(v.counts.layouts - layouts).toBe(0);
       expect(svg).not.toHaveBeenCalled();
+      // a frame with the pointer held where the last one applied it: nothing hit again
+      v.input.move(...path[path.length - 2]);
+      v.draw();
+      expect(hit).toHaveBeenCalledTimes(Frames);
       // the last moves, with no frame after them: the release applies them, then hovers where the pointer rests
       const last = path[path.length - 1];
       v.input.move(last[0] + 0.5, last[1] + 0.5);

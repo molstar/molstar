@@ -475,12 +475,22 @@ export class ViewerInput {
     this._dragDue = false;
     const d = this._drag;
     if (!d?.select || !d.moved || this.viewer.retired) return;
+    // the pointer where it was last applied, over the same picture: nothing to hit again (a held pointer's frames)
+    const a = this._applied;
+    if (d.x === a.x && d.y === a.y && this.viewer.frame?.layout === a.layout) return;
     this._dragSelect(d.section, d.x, d.y);
     this._edgeScroll();
   }
 
+  /** Where a drag-select was last applied: the pointer's place and the layout it was hit on. */
+  private readonly _applied: { x: number; y: number; layout: unknown } = { x: Number.NaN, y: 0, layout: undefined };
+
   /** A drag-select to the pointer: the position under it in reading order (the placement's nearest unit). */
   private _dragSelect(section: string, x: number, y: number): void {
+    const a = this._applied;
+    a.x = x;
+    a.y = y;
+    a.layout = this.viewer.frame?.layout;
     this.selectBehavior?.dragTo(section, x - this.viewer.dataX, this._hitAt(x, y), this.offsetAt(section, x, y));
   }
 
@@ -728,6 +738,8 @@ export class ViewerInput {
     const selecting = isDragSelect(action);
     const select = selecting && !!this.selectBehavior?.beginDrag(section, hit, mods, target);
     if (selecting && !select) return false;
+    // a new drag applies its first move whatever the last one did
+    this._applied.x = Number.NaN;
     if (this._space) this._spaceUsed = true;
     this._drag = { x, y, x0: x, y0: y, section, target, select, window: false, moved: false };
     return true;

@@ -295,14 +295,21 @@ function columnsOf(a: AxisTransform, ranges: Int32Array) {
 }
 
 /** A filled rect, no stroke (the fill's color and the squircle in `RR`), through `out.args`. */
-function fillBox(out: PassWriter, x: number, y: number, w: number, h: number, color: number, round: boolean) {
-  if (!(w > 0) || !(h > 0)) return;
+/**
+ * A box's x, y, width and height for `fillBox`: through a typed array, as its ink by index (`Ink`), since fractional
+ * numbers passed to a call that is not inlined are boxed (a frame of a drag's rect allocated 80 bytes so).
+ */
+const FillAt = new Float64Array(4);
+
+/** The box `FillAt` holds, filled with `Ink[ink]`. */
+function fillBox(out: PassWriter, ink: number, round: boolean) {
+  if (!(FillAt[2] > 0) || !(FillAt[3] > 0)) return;
   const g = out.args;
-  g[0] = x;
-  g[1] = y;
-  g[2] = w;
-  g[3] = h;
-  g[4] = color;
+  g[0] = FillAt[0];
+  g[1] = FillAt[1];
+  g[2] = FillAt[2];
+  g[3] = FillAt[3];
+  g[4] = Ink[ink];
   g[5] = NoColor;
   g[6] = 0;
   g[7] = round ? RR[0] : 0;
@@ -342,15 +349,37 @@ function drawPiece(lay: GridLay, out: PassWriter, cut: boolean, round: boolean) 
         const hi = Cols[2 * k + 1];
         if (hi <= x) continue;
         if (lo >= x1) break;
-        if (lo > x) fillBox(out, x, y0, lo - x, y1 - y0, Ink[0], false);
+        if (lo > x) {
+          FillAt[0] = x;
+          FillAt[1] = y0;
+          FillAt[2] = lo - x;
+          FillAt[3] = y1 - y0;
+          fillBox(out, 0, false);
+        }
         if (hi > x) x = hi;
       }
-      if (x < x1) fillBox(out, x, y0, x1 - x, y1 - y0, Ink[0], false);
-    } else fillBox(out, x0, y0, x1 - x0, y1 - y0, Ink[0], round);
+      if (x < x1) {
+        FillAt[0] = x;
+        FillAt[1] = y0;
+        FillAt[2] = x1 - x;
+        FillAt[3] = y1 - y0;
+        fillBox(out, 0, false);
+      }
+    } else {
+      FillAt[0] = x0;
+      FillAt[1] = y0;
+      FillAt[2] = x1 - x0;
+      FillAt[3] = y1 - y0;
+      fillBox(out, 0, round);
+    }
   }
   if (Ink[1] === NoColor || !(w > 0)) return;
   if (thin) {
-    fillBox(out, x0, y0, x1 - x0, y1 - y0, Ink[1], round);
+    FillAt[0] = x0;
+    FillAt[1] = y0;
+    FillAt[2] = x1 - x0;
+    FillAt[3] = y1 - y0;
+    fillBox(out, 1, round);
     return;
   }
   const g = out.args;

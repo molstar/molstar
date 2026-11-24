@@ -496,7 +496,14 @@ describe('drag-select', () => {
     // one write, at the pointer's last place (k = 19: position 3)
     expect(writes).toBe(1);
     expect(ranges(v)).toEqual([1, 4]);
-    // a frame without moves writes nothing
+    // a frame without moves writes nothing; nor one whose moves end where the last was applied, or on its position
+    frames!.flush();
+    expect(writes).toBe(1);
+    const [x3] = at(v, 0, 0, 3);
+    v.input.move(x3 + 3, y);
+    v.input.move(x3, y);
+    frames!.flush();
+    v.input.move(x3 + 0.2, y);
     frames!.flush();
     expect(writes).toBe(1);
     // moves with no frame after them: the release applies the last, once

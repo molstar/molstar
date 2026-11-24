@@ -4,17 +4,16 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// A drag-select's work a move and a frame, a drag kind each (the viewer's _spec, "SelectionModel and HighlightModel",
-// Drags; `drag-kinds.ts`): a rect on the 4,000 × 4,000 dot plot, a range on its ruler, a box on the PAE grid, a sweep
-// across 12 chromosomes on the 3,000-contig ring and on its row. Each reports the work a pointer move does (ms, bytes,
-// selection writes), a move and its frame, the layouts, and the SVG twin's export (what a story beside the canvas draws
-// again). By hand, never in CI: `pnpm -s -C packages/seq/storybook test:perf`.
+// A drag-select's frame, bounded, a drag kind each (the viewer's _spec, "SelectionModel and HighlightModel", Drags;
+// `drag-kinds.ts`; the profile is `drag-profile.quick.ts`): a drag's warm frame (the pointer held, its moves and frames
+// going on: the selection's end unchanged) allocates nothing, the move, its frame and the hit once a frame included; a
+// frame that moves the end allocates the new selection value and what derives from it, bounded. The wall-clock bounds
+// are `drag-time.test.ts`'s (heavy lane). By hand, never in CI: `pnpm -s -C packages/seq/storybook test:perf`.
 
 import { loadGenome } from '@molstar/seqx-core/resolve';
-import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
-import { measureBytesPerStep } from '@molstar/test-harness/quick';
-import { afterEach, beforeAll, describe, it, vi } from 'vitest';
-import { DragKinds, openDragView, type Point } from './drag-kinds.js';
+import { quickCase } from '@molstar/test-harness/quick';
+import { afterEach, beforeAll, describe, expect, inject, it, vi } from 'vitest';
+import { DragKinds, openDragView } from './drag-kinds.js';
 
 afterEach(() => {
   vi.useRealTimers();
@@ -24,53 +23,55 @@ beforeAll(async () => {
   await loadGenome();
 });
 
-/** The mean ms of `n` calls of `f`. */
-function msOf(f: (i: number) => void, n: number): number {
-  const t0 = performance.now();
-  for (let i = 0; i < n; i++) f(i);
-  return (performance.now() - t0) / n;
-}
+/**
+ * The bytes a frame moving the drag's end may allocate: the new value and its projections (measured 3.5 to 11.3 kB, the
+ * sweeps' twelve parts the most).
+ */
+const MovingFrameBytes = 16 * 1024;
 
 /**
- * A drag along `points` (its first the press): what a move does alone (several a frame, as a pointer sends them), and
- * a move with its frame; frames slower than 20 ms are timed only (their bytes would take minutes to read).
+ * What a frame of the genome's views allocates whatever runs (48 B: two sections' totals of 3·10⁹ units returned boxed
+ * by the rails' idle check, and the window's start): the frame's, not the drag's (the frame alone is measured beside).
  */
-async function profile(name: string, v: SeqViewer, points: readonly Point[]): Promise<void> {
-  let writes = 0;
-  const off = v.selection.value.listen(() => writes++);
-  const n = points.length;
-  v.input.down(...points[0]);
-  v.input.move(...points[1]);
-  v.draw();
-  const layouts = v.counts.layouts;
-  const w0 = writes;
-  const moveMs = msOf((i) => v.input.move(...points[i]), n);
-  const perMove = (writes - w0) / n;
-  const frame = (i: number) => {
-    v.input.move(...points[i % n]);
-    v.draw();
-  };
-  const frameMs = msOf(frame, n);
-  const moveBytes = measureBytesPerStep((i) => v.input.move(...points[i % n])).bytesPerStep;
-  const frameBytes = frameMs < 20 ? `${measureBytesPerStep(frame).bytesPerStep.toFixed(0)} B` : '(not read)';
-  const laid = v.counts.layouts - layouts;
-  v.input.up();
-  off();
-  const t = performance.now();
-  const svg = v.renderSvg({ idPrefix: 'd-' });
-  await vi.advanceTimersByTimeAsync(400);
-  await svg;
-  const svgMs = performance.now() - t;
-  console.info(
-    `${name}: a move ${moveMs.toFixed(3)} ms, ${moveBytes.toFixed(0)} B, ${perMove} selection writes; a move and its frame ${frameMs.toFixed(2)} ms, ${frameBytes}; ${laid} layouts; the SVG twin's export ${svgMs.toFixed(0)} ms`,
-  );
-}
+const GenomeFrameBytes = 48;
 
-describe('a drag-select’s work a move and a frame', () => {
+describe('a drag-select’s frame, bounded', () => {
   for (const kind of DragKinds)
-    it(kind.name, async () => {
-      const v = await openDragView(kind.view, true);
-      await profile(kind.name, v, kind.path(v, 64));
+    it(kind.name, async ({ task }) => {
+      const v = await openDragView(kind.view);
+      const path = kind.path(v, 64);
+      v.input.down(...path[0]);
+      v.input.move(...path[32]);
+      v.draw();
+      // the end unchanged: the pointer held where it is, its moves and frames going on (at these scales a pixel is
+      // more than a cell, 0.25 px a cell on the dot plot, 100 kb on the genome)
+      const [x, y] = path[32];
+      const e = {};
+      const warm = quickCase(task, `drag frame warm: ${kind.name}`, () => {
+        v.input.move(x, y, e);
+        v.draw();
+      }).r;
+      // the frame alone, no move (the emphasis of the selection drawn again: what any frame over it costs)
+      const still = quickCase(task, `drag frame still: ${kind.name}`, () => void v.draw()).r;
+      // across the path: each frame a new end
+      const moving = quickCase(
+        task,
+        `drag frame moving: ${kind.name}`,
+        (i) => {
+          const p = path[16 + (i % 32)];
+          v.input.move(p[0], p[1]);
+          v.draw();
+        },
+        { control: false },
+      ).r;
+      v.input.up();
       v.retire();
+      console.info(
+        `${kind.name}: a warm frame ${warm.bytesPerStep.toFixed(0)} B (${warm.note}); the frame alone ${still.bytesPerStep.toFixed(0)} B; a frame moving the end ${moving.bytesPerStep.toFixed(0)} B`,
+      );
+      const residue = kind.view.dataset === 'genome' ? GenomeFrameBytes : 0;
+      expect(warm.bytesPerStep - residue, warm.note).toBeLessThanOrEqual(inject('perfThreshold'));
+      expect(still.bytesPerStep - residue, still.note).toBeLessThanOrEqual(inject('perfThreshold'));
+      expect(moving.bytesPerStep, moving.note).toBeLessThanOrEqual(MovingFrameBytes);
     });
 });
