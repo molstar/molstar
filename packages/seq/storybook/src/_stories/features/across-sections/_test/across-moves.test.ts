@@ -65,6 +65,7 @@ async function sweep(id: string, steps: number, opening?: (v: SeqViewer) => unkn
   let state = seed;
   const rnd = () => (state = (state * 1664525 + 1013904223) >>> 0) / 2 ** 32;
   const wrong: string[] = [];
+  let drew = false;
   for (let i = 0; i < steps; i++) {
     const section = sides[rnd() < 0.7 ? 0 : 1];
     const w = v.view.get(section)!;
@@ -83,8 +84,11 @@ async function sweep(id: string, steps: number, opening?: (v: SeqViewer) => unkn
     await settle(v);
     const svg = await exported(v);
     const c = canvas(v);
+    if (c.some((n) => n > 0)) drew = true;
     if (JSON.stringify(c) !== JSON.stringify(svg)) wrong.push(`${i} ${name}: canvas ${c} svg ${svg}`);
   }
+  // equal counts are not vacuous: some step drew ribbons
+  if (!drew) wrong.push('no step drew a ribbon');
   return wrong;
 }
 
@@ -100,6 +104,7 @@ async function everySide(id: string, opening?: (v: SeqViewer) => unknown): Promi
   await opening?.(v);
   await settle(v);
   const wrong: string[] = [];
+  let drew = false;
   const sides = [...new Set(bridges(v).flatMap((b) => [b.a, b.b]))];
   for (const section of sides) {
     const moves: [string, () => void][] = [
@@ -115,9 +120,13 @@ async function everySide(id: string, opening?: (v: SeqViewer) => unknown): Promi
       await settle(v);
       const svg = await exported(v);
       const c = canvas(v);
+      if (c.some((n) => n > 0)) drew = true;
+      if (c.some((n) => n > 0)) drew = true;
       if (JSON.stringify(c) !== JSON.stringify(svg)) wrong.push(`${id} ${section} ${name}: canvas ${c} svg ${svg}`);
     }
   }
+  // equal counts are not vacuous: some step drew ribbons
+  if (!drew) wrong.push('no step drew a ribbon');
   return wrong;
 }
 
