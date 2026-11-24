@@ -68,6 +68,7 @@ export {
   type Placement,
   PlacePoint,
   PolarWarp,
+  TakenLabels,
   type SectionLayoutType,
   type StoreReader,
   sectionId,

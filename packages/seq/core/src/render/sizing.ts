@@ -190,6 +190,48 @@ export const BuiltInSizings: Readonly<Record<string, TrackSizing>> = {
 };
 
 /**
+ * The labels a section's layers drew at points (a ring's stub labels): each a box and its tip, shared by the section's
+ * layers in their order (_spec/README.md "Render", Section layouts), cleared before they are laid out. Kept by the
+ * layout, its array grown: no allocation once warm.
+ * @internal
+ */
+export class TakenLabels {
+  n = 0;
+  private b = new Float64Array(96);
+
+  reset() {
+    this.n = 0;
+  }
+
+  /** A label with its box and its tip taken: clear of every box taken, its tip `tip` from every tip taken. */
+  free(x0: number, y0: number, x1: number, y1: number, x: number, y: number, tip: number): boolean {
+    for (let j = 0; j < this.n; j++) {
+      const o = 6 * j;
+      const b = this.b;
+      if (x0 < b[o + 2] && x1 > b[o] && y0 < b[o + 3] && y1 > b[o + 1]) return false;
+      if (Math.hypot(b[o + 4] - x, b[o + 5] - y) < tip) return false;
+    }
+    return true;
+  }
+
+  take(x0: number, y0: number, x1: number, y1: number, x: number, y: number) {
+    const o = 6 * this.n++;
+    if (this.b.length < o + 6) {
+      const g = new Float64Array(2 * this.b.length);
+      g.set(this.b);
+      this.b = g;
+    }
+    const b = this.b;
+    b[o] = x0;
+    b[o + 1] = y0;
+    b[o + 2] = x1;
+    b[o + 3] = y1;
+    b[o + 4] = x;
+    b[o + 5] = y;
+  }
+}
+
+/**
  * A track's label lane (_spec/README.md "Render", Labels inside if they fit, else beside): the spans its layers' labels
  * took, shared by the layers of one band in their order (the layer's order is the first drop priority), cleared before
  * the band is laid out. Kept by the layout, its arrays grown: no allocation once warm.

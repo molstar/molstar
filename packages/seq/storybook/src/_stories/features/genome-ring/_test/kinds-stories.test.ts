@@ -170,6 +170,27 @@ describe('Kinds of links, headless', () => {
     await exported(v);
   });
 
+  it('on chr9: the layers’ stub labels never overprint (one section shares its labels), the first layer’s kept', async () => {
+    const v = await open('ring-kinds-chromosome');
+    const lays = kindsOf(v);
+    const boxes: [number, number, number, number, string][] = [];
+    for (const l of lays) {
+      const size = Number.parseFloat(l.font);
+      for (let s = 0; s < l.nb; s++) {
+        const t = l.stubLabel[s];
+        if (!t) continue;
+        const y = l.stubLabelY[s] + 4;
+        boxes.push([l.stubLabelX[s] - l.stubLabelW[s] / 2, y - size, l.stubLabelX[s] + l.stubLabelW[s] / 2, y + size * 0.3, t]);
+      }
+    }
+    expect(boxes.length).toBeGreaterThan(0);
+    for (let i = 0; i < boxes.length; i++)
+      for (let j = i + 1; j < boxes.length; j++) {
+        const [a, b] = [boxes[i], boxes[j]];
+        expect(a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1], `${a[4]} over ${b[4]}`).toBe(false);
+      }
+  });
+
   it('on chr9 × chr22: the contacts between them, the junction a ribbon over them', async () => {
     const v = await open('ring-kinds-pair');
     expect(errors(v)).toEqual([]);

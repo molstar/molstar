@@ -3523,6 +3523,11 @@ way, over a straight axis and a box, in every layout; a layout knows strips, ban
   labels and numbers), `window`, `gap` (between groups or lines: no position for a hover, the nearest for a drag),
   `empty`. Held by property tests: every position in view placed once, `at` its cell's center gives it back, `offsetAt`
   monotone in reading order.
+- **Labels at points are the section's** (`LayoutContext.taken`, `TakenLabels`): the `section` layers of one section,
+  laid out once a section in their order, share a list of the label boxes and tips placed; a layer's label goes only
+  where its box meets none taken and its tip is its own clearance from every tip taken (the earlier layer's kept).
+  Why: two kinds of links over one ring each place their stub labels, and two stubs to one partner at one tip drew
+  "chr22 · 299" and "chr22 · 24" over each other. A layer laid out alone keeps its own list.
 - **The viewport record** (`Viewport`): `{ start, end, top?, scale?, bands?, y? }`, read by the layout: tracks `start`,
   `end` the window, `top` a vertical scroll, `bands` a band's own `bandTop` and `rowScale` (a grid's `y` its second
   axis). One record for every layout (the field's meaning is the layout's): the viewer's groups, follows and history

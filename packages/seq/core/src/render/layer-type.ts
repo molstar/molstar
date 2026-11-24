@@ -16,7 +16,7 @@ import type { ThemeContext } from './channels.js';
 import type { RenderConfig } from './config.js';
 import type { PassName, PassWriter } from './draw-lists.js';
 import type { Placement, WindowPart } from './layout/types.js';
-import type { LabelLane, LayerContent } from './sizing.js';
+import type { LabelLane, LayerContent, TakenLabels } from './sizing.js';
 import type { RowsZoom } from './rail.js';
 import type { TextMetrics } from './text.js';
 import type { SeqTokens } from './tokens.js';
@@ -118,6 +118,13 @@ export interface LayoutContext {
    * @internal
    */
   readonly labelLane?: LabelLane;
+  /**
+   * The labels the section's layers placed at points before this one (a ring's stub labels), in their order: a layer's
+   * labels keep clear of them and add their own (_spec/README.md "Render", Section layouts). Absent where a layer is
+   * laid out alone: it keeps its own.
+   * @internal
+   */
+  readonly taken?: TakenLabels;
   /** Item labels drawn `inside` marks, or a sink a layout collects them into (rings: placed outside). */
   readonly labels?: 'inside' | LabelSink;
   /** A band's own scroll (display rows below its pinned band) and row zoom (px a row), when it scrolls its rows. */

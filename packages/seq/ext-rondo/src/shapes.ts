@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { LayoutContext } from '@molstar/seqx-core/extension';
+import { type LayoutContext, TakenLabels } from '@molstar/seqx-core/extension';
 import { ColorMode } from './colour.js';
 import type { RondoConfig } from './config.js';
 import { addArc, addCubic, grow, type RibbonFrame, ribbonCorners } from './geometry.js';
@@ -17,13 +17,14 @@ import type { RondoLay, RondoPrep } from './lay.js';
 /** A polygon's kind. */
 export const Kind = { trumpet: 0, ribbon: 1, stub: 2, fan: 3 } as const;
 
-/** The labels taken so far: their box and tip (x0, y0, x1, y1, x, y a label), reused. */
-let Boxes = new Float64Array(64);
+/** The labels taken when a layer is laid out alone (a section's layers share its own: `LayoutContext.taken`). */
+const Alone = new TakenLabels();
 let ByCount = new Int32Array(16);
 
 /**
  * The stubs' labels (`chr7 · 37` at the tip, centred): the strongest first, each only where its box (padded 2 px) meets
  * no label taken and its tip is `stubLabelPx` from every taken tip; the rest unlabelled (their partner in the card).
+ * The labels taken are the section's, across its layers (two kinds of links over one ring: their stubs at one tip).
  */
 function stubLabels(lay: RondoLay, cfg: RondoConfig, ctx: LayoutContext, tipD: number) {
   const f = lay.frame;
@@ -35,7 +36,8 @@ function stubLabels(lay: RondoLay, cfg: RondoConfig, ctx: LayoutContext, tipD: n
   // partners unfolded on hover
   for (let s = 0; s < lay.nb; s++) if (lay.stubPoly[s] >= 0 && lay.stubPartner[s] >= 0) ByCount[n++] = s;
   const order = ByCount.subarray(0, n).sort((a, b) => lay.stubCount[b] - lay.stubCount[a] || a - b);
-  let taken = 0;
+  const taken = ctx.taken ?? Alone;
+  if (!ctx.taken) taken.reset();
   for (const s of order) {
     const partner = lay.stubPartner[s];
     const text = `${lay.names[partner]} · ${Math.round(lay.stubLinks[s]).toLocaleString('en-US')}`;
@@ -48,22 +50,8 @@ function stubLabels(lay: RondoLay, cfg: RondoConfig, ctx: LayoutContext, tipD: n
     const x1 = x + w / 2 + 2;
     const y0 = y + 4 - size - 2;
     const y1 = y + 4 + size * 0.3 + 2;
-    let free = true;
-    for (let j = 0; j < taken && free; j++) {
-      const o = 6 * j;
-      const overlaps = x0 < Boxes[o + 2] && x1 > Boxes[o] && y0 < Boxes[o + 3] && y1 > Boxes[o + 1];
-      if (overlaps || Math.hypot(Boxes[o + 4] - x, Boxes[o + 5] - y) < cfg.stubLabelPx) free = false;
-    }
-    if (!free) continue;
-    if (Boxes.length < 6 * (taken + 1)) Boxes = grow(Boxes, 12 * (taken + 1));
-    const o = 6 * taken;
-    Boxes[o] = x0;
-    Boxes[o + 1] = y0;
-    Boxes[o + 2] = x1;
-    Boxes[o + 3] = y1;
-    Boxes[o + 4] = x;
-    Boxes[o + 5] = y;
-    taken++;
+    if (!taken.free(x0, y0, x1, y1, x, y, cfg.stubLabelPx)) continue;
+    taken.take(x0, y0, x1, y1, x, y);
     lay.stubLabel[s] = text;
     lay.stubLabelX[s] = x;
     lay.stubLabelY[s] = y;

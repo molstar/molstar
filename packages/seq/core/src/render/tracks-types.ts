@@ -15,7 +15,7 @@ import type { Box, Emphasis, Hit, LayerType, Overlay, StoreReader } from './laye
 import type { ThemeContext } from './channels.js';
 import type { TextMetrics } from './text.js';
 import type { SeqTokens } from './tokens.js';
-import { LabelLane, type LayerContent, type TrackSizing, type TrackSizingHook } from './sizing.js';
+import { LabelLane, type LayerContent, TakenLabels, type TrackSizing, type TrackSizingHook } from './sizing.js';
 import type { Placement, SectionLayoutType } from './layout/types.js';
 import { Rail, type RowsZoom } from './rail.js';
 import type { ImageCache } from './images.js';
@@ -310,6 +310,8 @@ export class LayoutState {
   readonly leadSizes = new Map<string, SizedHeights>();
   /** The bands' label lanes, by band index (one a band, reset before its layers are laid out). */
   readonly labelLanes: LabelLane[] = [];
+  /** The labels the section's layers placed at points (a ring's stubs), reset before its section layers are laid out. */
+  readonly takenLabels = new TakenLabels();
 }
 
 /** A section's tracks' heights with what they were sized for (`layoutView`'s `bandHeights`). */
