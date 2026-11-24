@@ -76,7 +76,7 @@ export const CardDigests: Readonly<Record<string, string>> = {
   'genomes/gff-tp53': '5c7b8535',
   'genomes/gtf-tp53': '8643f53b',
   'genomes/vcf-clinvar': '34a3c16b',
-  'genomes/vcf-genotypes': '8e6a70de',
+  'genomes/vcf-genotypes': '3e21ee7b',
   'genomes/vcf-long-deletion': 'b4ae142e',
   'genomes/vcf-misread': 'a2692ea2',
   'globins/columns': 'f6fa6847',
