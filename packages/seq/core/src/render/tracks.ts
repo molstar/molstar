@@ -837,7 +837,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         bands: shown,
         heights,
         ...(padded ? { pads } : {}),
-        ...(leads ? { leads } : {}),
+        ...(leads ? { leads } : NoProps),
         layStrip,
         bandEmpty,
         report: sectionReport,
@@ -905,14 +905,15 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         // centred on its well (its padding with it), not on its data
         labelY: head ? head.labelY : well.y + well.height / 2 + labelSize * 0.35,
         layers,
-        ...(indent ? { indent } : NoProps),
         // a header under the fixed head or past the box is neither drawn nor hit (its line wholly in the scrolled area)
         ...(head &&
         (!scrolls ||
           j < fixedBands ||
           (head.header.line.y >= scrollY && head.header.line.y + head.header.line.height <= scrollEnd))
           ? { header: head.header }
-          : {}),
+          : NoProps),
+        // last: a track outside a group builds its record as before groups
+        ...(indent ? { indent } : NoProps),
       });
     }
     y = top + placement.box.height;
@@ -1059,7 +1060,6 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         : undefined;
     const sectionLayout: SectionLayout = {
       section,
-      ...(groups ? { groups } : NoProps),
       id: sectionId(section),
       layout,
       placement,
@@ -1085,6 +1085,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       pageHeight: height,
       tokens: input.tokens,
       config,
+      // last: a section without groups builds its record as before them
+      ...(groups ? { groups } : NoProps),
     };
     sections.push(sectionLayout);
     cache.layout = sectionLayout;

@@ -288,6 +288,9 @@ interface ReusedFrame {
   wants: readonly Want[];
 }
 
+/** What a frame's input spreads without an export's `groups`: one object, none allocated a frame. */
+const NoGroups = Object.freeze({});
+
 export class Renderer {
   tokens: SeqTokens;
   readonly lists: DrawLists;
@@ -449,7 +452,7 @@ export class Renderer {
         ...(input.figure ? { figure: true } : {}),
         ...(input.windows ? { windows: true } : {}),
         ...(input.folds ? { folds: input.folds } : {}),
-        ...(input.groups ? { groups: input.groups } : {}),
+        ...(input.groups ? { groups: input.groups } : NoGroups),
         ...(input.rails ? { rails: input.rails } : {}),
         ...(input.rowsZoom ? { rowsZoom: input.rowsZoom } : {}),
         ...(input.headers ? { headers: input.headers } : {}),

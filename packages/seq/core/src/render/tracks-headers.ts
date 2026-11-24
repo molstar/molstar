@@ -59,6 +59,9 @@ export function sectionHeaderOf(
   return sectionHeaderLine(parts, section, id, top, config, input.text, input.figure === true);
 }
 
+/** What a facts record spreads for a track outside a folded group: one object, none allocated a header. */
+const NoGroup = Object.freeze({});
+
 /**
  * A track's header line over its well: its facts (its layers' filtered rows, then its `section` layers', the first
  * layer with some first; its hidden layers), its parts, its line; and its label's baseline.
@@ -95,7 +98,7 @@ export function trackHeaderOf(
     filtered: filtered ?? NoFiltered,
     hiddenLayers: hiddenLayersOf(track),
     hiddenTracks: hiddenTracksOf(input.model, section),
-    ...(group ? { group } : {}),
+    ...(group ? { group } : NoGroup),
   };
   // a rows track's label column is its tree and its rows' labels: its header waits for its title row (the package's
   // TODO): no parts and no label hit over them
