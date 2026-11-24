@@ -106,3 +106,26 @@ The raw logs stayed in the orchestrator's session scratch (not kept).
   the close-out.
 - **Decided by the author** (2026-11-24: "Yes, one perf lane"): the four real overs to FX36 before the last gate;
   the stories' settled frames and the inferred spikes to the TODO.
+
+## After FX36 (re-measured 2026-11-24, `packages-seq` at `b27b0a4e3`, the pane displayed, load 1.85 to 2.29)
+
+The same method; cells read old method | with microtasks, in ms.
+
+| Case | Frames | Median | p95 | Max | Target | Before FX36 (median, max) | Verdict |
+|---|---|---|---|---|---|---|---|
+| 200 copies split, click to drawn | 5 | 21.1 \| 28.7 | 22.2 \| 32.5 | 22.2 \| 32.5 | edit < 16 | 19.6 \| 49, 21.3 \| 50 | **first frame still over**; the task ~20 ms shorter, still over |
+| 200 copies merge | 5 | 5.6 \| 17.5 | 8.7 \| 22.5 | 8.7 \| 22.5 | edit < 16 | 8.3 \| 31, 8.5 \| 32 | first frame passes; the task **just over** |
+| ring: square release to drawn (16, each changing the chromosome) | 16 | 0.2 \| 10.7 | 0.4 \| 12.2 | 0.4 \| 13.0 | never > 16 | ~36, 40 | pass |
+| ring: drag moves | 96 | 0.0 \| 0.1 | 0.4 \| 3.2 | 0.6 \| 5.1 | < 8 | 0.8, 4.0 | pass |
+| p53 Search: Next / Previous | 12 each | 2.5 / 2.3 \| 3.8 / 3.9 | 3.4 / 2.8 \| 5.2 / 5.1 | 3.7 / 3.4 \| 6.5 / 5.4 | never > 16 | 16.0 / 15.2, 20.1 / 17.2 | pass |
+| ring: hover stems / ribbons (the item changing each frame) | 300 each | 0.1 / 0.0 \| 0.1 / 0.0 | 0.1 / 0.1 \| 0.2 / 0.1 | 0.3 / 0.3 \| 0.5 / 0.3 | < 2 | 0.0 \| 1.8, p95 0.2 \| 2.1 | pass |
+
+**Real vsync** (real rAF, pane in view, 16 releases): idle median 16.7, max 17.4, no interval over 33.4; the drag and
+release run median 16.7, max 34.0, one dropped frame in each of two releases (the frame after it), 14 releases clean.
+
+**Not measured**: search's typing to drawn (the box's rest timer does 0.3 ms; the run lands in a later task not
+attributed); the split's and merge's remaining microtask tails (~7.6 ms, ~12 ms) not profiled.
+
+**Still over**: the split patch's first frame (21.1 ms) and its task (28.7 ms), the merge's task (17.5 ms median, 22.5
+max). FX36 found the first frame's JavaScript 6 to 8 ms headless, the rest inferred canvas drawing of 200 copies; a cut
+means sharing lays between identical copies (a design change).
