@@ -61,6 +61,9 @@ export class ReferenceState {
   lines: readonly ReferenceLine[] = NoLines;
   readonly shown = new Uint8Array(MaxReferenceLines);
   readonly y = new Float64Array(MaxReferenceLines);
+  /** Each line's top edge, snapped to a device pixel, and the hairline's thickness (the draw reads numbers only). */
+  readonly top = new Float64Array(MaxReferenceLines);
+  width = 1;
   readonly color = new Uint32Array(MaxReferenceLines);
   /** The dash of a line (0: solid). */
   readonly dash = new Float64Array(MaxReferenceLines);
@@ -122,6 +125,7 @@ export function layoutReference(lay: ValuesLay, ctx: LayoutContext, closed: numb
   const eps = 1e-9 * (hi - lo || 1);
   const y1 = box.y + box.height;
   const muted = tokens.colors['msui-text-muted'];
+  r.width = Math.max(cfg.widthPx, 1 / lay.axis.dpr);
   let said = false;
   for (let i = 0; i < lines.length; i++) {
     const l = lines[i];
@@ -145,6 +149,7 @@ export function layoutReference(lay: ValuesLay, ctx: LayoutContext, closed: numb
     }
     r.shown[i] = 1;
     r.y[i] = y1 - ((v - lo) / span) * box.height;
+    r.top[i] = Math.round((r.y[i] - r.width / 2) * lay.axis.dpr) / lay.axis.dpr;
     r.color[i] = (l.color !== undefined ? resolveColor(l.color, tokens) : undefined) ?? muted;
     r.dash[i] = l.style === 0 ? 0 : l.style === 1 ? cfg.dashPx : cfg.dotPx;
   }
@@ -200,18 +205,14 @@ export function drawReference(lay: ValuesLay, out: PassWriter): void {
   const n = r.lines.length;
   if (!n) return;
   const { box } = lay;
-  const dpr = lay.axis.dpr;
-  const w = Math.max(lay.config.values.reference.widthPx, 1 / dpr);
   const a = out.args;
   for (let i = 0; i < n; i++) {
     if (!r.shown[i]) continue;
-    // a device pixel's top edge, so a hairline is never blurred over two
-    const top = Math.round((r.y[i] - w / 2) * dpr) / dpr;
     if (r.dash[i] === 0) {
       a[0] = box.x;
-      a[1] = top;
+      a[1] = r.top[i];
       a[2] = box.width;
-      a[3] = w;
+      a[3] = r.width;
       a[4] = r.color[i];
       a[5] = NoColor;
       a[6] = 0;
@@ -220,12 +221,12 @@ export function drawReference(lay: ValuesLay, out: PassWriter): void {
       out.rectArgs();
     } else {
       pts[0] = box.x;
-      pts[1] = top + w / 2;
+      pts[1] = r.top[i] + r.width / 2;
       pts[2] = box.x + box.width;
-      pts[3] = top + w / 2;
+      pts[3] = pts[1];
       a[4] = NoColor;
       a[5] = r.color[i];
-      a[6] = w;
+      a[6] = r.width;
       a[7] = r.dash[i];
       out.pathArgs(pts, 2, false);
     }

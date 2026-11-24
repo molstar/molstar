@@ -6,14 +6,14 @@ import { Meta } from '@storybook/addon-docs/blocks';
 
 A reader of a genome-wide association plot sees the SNPs as dots at their height (-log10 p) and a line at the
 genome-wide significance threshold (7.3, p = 5e-8): the dots over it are the finding. A reader of a signal track sees a
-zero line or the mean it is read against. A writer says where the line is, once, in the spec, and it stays right at every
-zoom, on a linear or a log scale, in light and dark.
+zero line or the mean it is read against. A writer says where the line is, once, in the spec, and it stays right at
+every zoom, on a linear or a log scale, in light and dark.
 
 ## A param of the layer
 
 A `values` layer takes `reference`: up to four lines, each `{ at, label?, color?, style? }` (language `0.11.0`). `at` is
-a value of the layer's y scale (on a log scale 5e-8 stays 5e-8); `label` names the line for people; `color` is a color or
-token (default the muted text ink); `style` is `solid`, `dashed` (the default) or `dotted`.
+a value of the layer's y scale (on a log scale 5e-8 stays 5e-8); `label` names the line for people; `color` is a color
+or token (default the muted text ink); `style` is `solid`, `dashed` (the default) or `dotted`.
 
 The line is a hairline across the well, drawn over the bars, the profile and the dots and under the hover. It is never
 hit and never hovered: its value is in the label and the accessible text.

@@ -36,20 +36,14 @@ for (const encoding of ['bars', 'line', 'area', 'points'])
   for (const [n, step] of [
     [60, 'dots'],
     [4000, 'columns'],
-  ] as const)
+  ] as const) {
     for (const color of ['uniform', 'by value'])
       Cases.push([
         `${encoding}, ${color}, ${step}`,
         n,
         { encoding, ...(color === 'by value' ? { color: theme.field('value', { domain: [0, 10] }) } : {}) },
       ]);
-
-// two reference lines (a dashed and a labelled, a solid one) beside each encoding: nothing allocated once warm
-for (const encoding of ['bars', 'line', 'area', 'points'])
-  for (const [n, step] of [
-    [60, 'dots'],
-    [4000, 'columns'],
-  ] as const)
+    // with two reference lines (a dashed and a labelled, a solid one): nothing allocated once warm
     Cases.push([
       `${encoding}, two reference lines, ${step}`,
       n,
@@ -61,12 +55,14 @@ for (const encoding of ['bars', 'line', 'area', 'points'])
         ],
       },
     ]);
+  }
 
 describe('a warm frame of the values layer allocates nothing', () => {
   for (const [name, n, layer] of Cases)
     it(name, async ({ task }) => {
       const s = await settle(spec(n, layer));
-      const input: FrameInput = { size: Size, dpr: 2 };
+      // settled: the open domain is the data's (a double), as a viewer's is; unsettled it is the first layout's [0, 1]
+      const input: FrameInput = { size: Size, dpr: 2, settled: true };
       for (let i = 0; i < 4; i++) await s.frame(input);
       const { r } = quickCase(task, `values ${name}`, () => void s.renderer.frame(input));
       console.info(`values ${name}: ${r.bytesPerStep.toFixed(0)} bytes a frame (${r.note})`);
