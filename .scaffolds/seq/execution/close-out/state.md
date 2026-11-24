@@ -1,6 +1,6 @@
 # State: close-out (updated 2026-11-24, by the orchestrator)
 
-Branch: `packages-seq` Head: `d7857a8f0` (FX28 merged) and its records
+Branch: `packages-seq` Head: `d9b53e580` (FX31 merged; GATE 2 passed) and its records
 
 ## Where it stands
 
@@ -9,26 +9,18 @@ written). Search, track groups and values marks are agreed (the drafts in `draft
 lane); the language bump to `0.11.0` is CL6's, with CL8's `reference` after it in the same unreleased version.
 
 Stage 0 and GATE 0 are closed; waves 1 and 2 are merged and GATE 1 passed. Merged since: CL13 (`27470de3e`), CL9
-(`19733d6c3`), CL7 (`1e499c655`), CL11 (`cc4fab363`), CL12 (`245c82baf`), FX26 (`08a6ffe44`), FX27 (`938396a33`), CL5 (`a4668800a`), CL6 (`a1097142a`), FX25 (`9040adc8d`), CL8 (`a95dbf373`), FX29 (`271ab74ed`), FX30 (`60170c5b5`), FX28 (`d7857a8f0`). Sizes at the head: spec 265.0/268, headless 995.0/1,000, default 1,587.5/1,592, minimal 1,119.6/1,124, ring 45.0/48,
+(`19733d6c3`), CL7 (`1e499c655`), CL11 (`cc4fab363`), CL12 (`245c82baf`), FX26 (`08a6ffe44`), FX27 (`938396a33`), CL5 (`a4668800a`), CL6 (`a1097142a`), FX25 (`9040adc8d`), CL8 (`a95dbf373`), FX29 (`271ab74ed`), FX30 (`60170c5b5`), FX28 (`d7857a8f0`), FX31 (`d9b53e580`). Sizes at the head: spec 265.0/268, headless 995.0/1,000, default 1,587.5/1,592, minimal 1,119.6/1,124, ring 45.0/48,
 bridge chunk 26.0/28.
 
 ## In progress
 
-The `cc-plugin-privacy` plugin no longer refuses lanes since the author's restart (2026-11-24, `enabledPlugins` in
-`~/.claude/settings.json`): a fresh agent's `head -8` of `pairs-assembly.ts`, refused before, ran.
-
-- **FX28** merged (`d7857a8f0`); the tile key the review proposed fails a pending side (TODO).
-- **FX29** merged (`271ab74ed`). The author confirmed `themes.md`'s legend-row rule; perf not rerun at the merge
-  (load 21–31): at GATE 2, with FX30's.
-- **FX30** merged (`60170c5b5`), the sizes raised with FX29's; perf at GATE 2.
-
-- **GATE 2** (at `a21bbaec0`): every check green but core `test:perf`: `frame.quick.ts`'s reversed 150,000-piece
-  pan, its planted-leak control reading 2.0–2.4 kB of 4 kB, three times (twice alone at load 2.2–2.6). To **FX31**
-  (`briefs/fx31-frame-control.md`): bisect the merges since GATE 1, fix the cause.
+GATE 2 passed (`d9b53e580`, its row in `findings.md`): every check green after FX31 (the reversed pan's leak control, no
+regression). The old Seq\* viewer's label churn over its baseline is in `fixes.md`, outside the close-out's packages.
 
 ## Next
 
-1. FX31, then GATE 2's perf rerun and its report; then the use gate, the novice pass, the measurements, the last gate.
+1. The use gate (the author's): the orchestrator prepares the stories and a list of what to try; never ticked by it.
+2. The novice pass, after the last lane that draws; then the measurements, the last gate and FINALIZE.
 
 ## Blockers and open questions
 

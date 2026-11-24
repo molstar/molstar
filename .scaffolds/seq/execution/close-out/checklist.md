@@ -32,7 +32,7 @@
 <!-- Wave 5 -->
 - [x] CL11 The drag rule: a drag's work bounded by the screen, a perf-tier bound (`cc4fab363`)
 - [x] CL12 M5's leftovers: the split patch, the Signal zoom frame, Cmd+wheel on the ring at the fit (`245c82baf`; items 1 and 2 not verified in a browser, item 3 a drift note)
-- [ ] GATE 2
+- [x] GATE 2 (`d9b53e580`)
 
 <!-- Last stage -->
 - [ ] The use gate: the author tries the genome views and the ring, each story against its agreed picture
