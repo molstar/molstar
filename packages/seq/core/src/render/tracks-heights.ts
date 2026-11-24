@@ -149,10 +149,12 @@ function sizeTracks(
     // its lanes' px to the cap (`track.maxPx`; a ring's radial width `rings.trackMaxPx`), past which they scroll inside
     // the track (or compact, on a ring) with the label lane above them kept
     const lanesPx =
-      lanes !== undefined ? Math.min(
+      lanes !== undefined
+        ? Math.min(
             Math.max(other, lanesHeight(lanes, config)),
             t.height === 'content' && !ring ? Infinity : Math.max(cap, other),
-          ) : 0;
+          )
+        : 0;
     const content =
       lanes !== undefined && rowsFill(t) === undefined ? lanesPx + (labels ? config.laneHeight : 0) : undefined;
     sized.push({

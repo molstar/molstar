@@ -549,7 +549,8 @@ export const TextLayout: SectionLayoutType<TextPlacement> = {
     // the box: the section's `height`, else its content's up to `section.maxPx`; an export shows every line
     const figure = ctx.figure === true;
     // its content's up to `section.maxPx` (a host sizing its canvas to the content reads it), or its `height`
-    const boxOf = () => (figure || params.heightContent ? content() : (params.height ?? Math.min(content(), config.section.maxPx)));
+    const boxOf = () =>
+      figure || params.heightContent ? content() : (params.height ?? Math.min(content(), config.section.maxPx));
     let boxH = boxOf();
     const from = figure ? 0 : first;
     let y = figure ? top : top - frac * p.heights[first];

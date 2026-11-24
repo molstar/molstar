@@ -965,7 +965,10 @@ export const SeqLanguage = defineLanguage({
         max_width: { type: 'number', min: 0, doc: 'Text: the most px a line takes; the whole width when absent.' },
         height: {
           type: 'union',
-          of: [{ type: 'number', min: 0 }, { type: 'string', enum: ['content'] }],
+          of: [
+            { type: 'number', min: 0 },
+            { type: 'string', enum: ['content'] },
+          ],
           doc: 'Text and tracks: the section’s height in px (past it its content scrolls inside, a tracks section’s ruler fixed), or `content` (its whole content, no `section.maxPx` cap: never scrolling inside); its content’s, up to the render config’s `section.maxPx`, when absent. Rings: the rings’ diameter in px; the width’s, up to `rings.maxDiameter`, when absent.',
         },
         heights: {
@@ -1039,7 +1042,10 @@ export const SeqLanguage = defineLanguage({
         label: { type: 'string', doc: 'The label of the track (its id when absent).' },
         height: {
           type: 'union',
-          of: [{ type: 'number', min: 0 }, { type: 'string', enum: ['content'] }],
+          of: [
+            { type: 'number', min: 0 },
+            { type: 'string', enum: ['content'] },
+          ],
           doc: 'The height of the track in px, or `content` (as tall as its content with no `track.maxPx` cap, a rows band with no `rows.maxPx`: its lanes never scroll inside it; a ring’s track keeps `rings.trackMaxPx`). Absent: its content up to the caps. `content` came in 0.11.0.',
         },
         padding: {

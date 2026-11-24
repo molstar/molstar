@@ -28,6 +28,17 @@ function withNodes(spec: Node, add: { readonly data?: readonly Node[]; readonly 
   };
 }
 
+/** A spec's section or track (by id) with params added: the story's own composition over an example's. */
+function withParams(spec: Node, kind: 'section' | 'track', id: string, params: Record<string, unknown>): Node {
+  const patch = (n: Node): Node =>
+    n.kind === kind && n.id === id
+      ? { ...n, params: { ...n.params, ...params } as never }
+      : n.children
+        ? { ...n, children: n.children.map(patch) }
+        : n;
+  return patch(spec);
+}
+
 const tooltip = (id: string, params: Record<string, unknown>): Node => ({
   kind: 'tooltip',
   id,
@@ -69,13 +80,18 @@ export const TooltipViews: readonly TooltipView[] = [
     id: 'by-data',
     title: 'By data: a GFF’s attributes',
     summary: 'TP53’s transcripts from Ensembl’s GFF3, each speaking its own attributes (`on` the transcripts).',
-    hint: 'Rest the pointer on a transcript: its card ends with a Transcript row, its name and its gene’s, from the file’s attributes (a tooltip `on` the data node). An empty lane says nothing.',
+    hint: 'Rest the pointer on a transcript (its track is `height: content`: every lane shown): its card ends with a Transcript row, its name and its gene’s, from the file’s attributes (a tooltip `on` the data node). An empty lane says nothing.',
     build: () =>
-      withNodes(gff.build(), {
-        views: [
-          tooltip('transcripts', { on: '/data/transcripts', label: 'Transcript', text: '{label} of *{gene_name}*' }),
-        ],
-      }),
+      withNodes(
+        withParams(withParams(gff.build(), 'track', 'transcripts', { height: 'content' }), 'section', 'chr17', {
+          height: 'content',
+        }),
+        {
+          views: [
+            tooltip('transcripts', { on: '/data/transcripts', label: 'Transcript', text: '{label} of *{gene_name}*' }),
+          ],
+        },
+      ),
     probe: { track: 2, position: 7_676_000, element: 'first', label: 'Transcript', value: / of TP53$/ },
   },
   {
