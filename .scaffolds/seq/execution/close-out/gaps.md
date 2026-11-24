@@ -41,4 +41,9 @@ Each made as recommended while the author was away (2026-11-24 night), for the m
 - **A drag's codon snap over a codon split by an intron** (CL9's review): decided overnight as recommended: the split
   codon is selected as its pieces, never the intron's nucleotides (the design draws a split codon in each piece); the
   code's "hull" changed to that. The author to confirm.
+- **Values marks (CL8) need a language change** (`drafts/values-marks.md`): points (with the min-to-max column) and
+  the log scale are built already (the fifth slice's VP, EC-215); what row 130 still lacks is reference lines: a
+  `reference` param on the values layer (up to 4 lines, `at`, `label`, `color`, `style`), a minor bump. Never decided
+  overnight. The two language changes (track groups' `group` node, values' `reference` param) would share one bump if
+  both are agreed: one language lane, in order. Recommended: agree both drafts, one language lane bumping to 0.11.0.
 
