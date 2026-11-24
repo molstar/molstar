@@ -116,6 +116,28 @@ describe('The stem menu', () => {
     expect(ringInclude(v)).toEqual([l.names[l.stemSystem[stem]]]);
   });
 
+  it('a partner (or “Show only”) from the menu is one history step: Back returns the ring as it was', async () => {
+    const { v, headers } = await open();
+    const l = ribbonsOf(v)!;
+    const { stem, x, y } = strongestStem(l);
+    const before = ringInclude(v);
+    expect(v.view.canBack).toBe(false);
+    expect(headers.context(x, y)).toBe(true);
+    const element = headers.menu.value!.menu.groups[0];
+    await headers.runItem(element[0].items![0]);
+    expect(ringInclude(v)).not.toEqual(before);
+    expect(v.view.canBack).toBe(true);
+    expect(v.view.back()).toBe(true);
+    await vi.waitFor(() => expect(ringInclude(v)).toEqual(before));
+    // one step, not two
+    expect(v.view.canBack).toBe(false);
+    // the stem's chromosome alone is one step too
+    expect(headers.context(x, y)).toBe(true);
+    await headers.runItem(headers.menu.value!.menu.groups[0][2]);
+    expect(ringInclude(v)).toEqual([l.names[l.stemSystem[stem]]]);
+    expect(v.view.canBack).toBe(true);
+  });
+
   it('elsewhere (a ribbon, a band) no stem entries', async () => {
     const { v, headers } = await open();
     const l = ribbonsOf(v)!;

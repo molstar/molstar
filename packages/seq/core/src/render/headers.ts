@@ -561,7 +561,7 @@ export function hiddenTrackName(track: Node): string {
 /**
  * A layer's name, the one every list of layers says (a track header's Layers and "Hidden layers" menus, a legend's eye):
  * its `label`, else its `title`, else its track's or bridge's label where it is the only layer there (a letters layer
- * says its kind: "Sequence letters", for its key is a scheme and the track's name alone reads as one category's), else
+ * says its kind: "Sequence letters", never doubled when the label ends with it ("letters"), for its key is a scheme and the track's name alone reads as one category's), else
  * its id (its type without one). Why one: two consumers naming one layer apart read as two layers.
  */
 export function layerName(
@@ -575,7 +575,11 @@ export function layerName(
     text(layer.params.label) ??
     text(layer.params.title) ??
     // a letters layer says its kind wherever it is ("Sequence letters" with a second layer beside it too)
-    (layer.type === 'letters' && label !== undefined ? `${label} letters` : owned) ??
+    (layer.type === 'letters' && label !== undefined
+      ? /\bletters$/i.test(label.trim())
+        ? label
+        : `${label} letters`
+      : owned) ??
     layer.address?.slice(layer.address.lastIndexOf('/') + 1) ??
     layer.type[0].toUpperCase() + layer.type.slice(1)
   );

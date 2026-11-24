@@ -441,7 +441,19 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
     const e = inner.entries().find((x) => x.name === name);
     const f = factsOf(target);
     if (!e || !f || e.command === undefined) return undefined;
-    return settled(viewer.execute(e.command, argsOf(e, f)));
+    return settled(execute(e.command, argsOf(e, f)));
+  };
+  /**
+   * A command a menu runs: a change of the blocks shown (`section.include`) is one step of the view's history, pushed
+   * once it landed (as a wheel cut's and a navigator's click), so Back shows the blocks it left.
+   */
+  const execute = (command: string, args: unknown): string | Promise<string> | undefined => {
+    const before = command === 'section.include' ? viewer.view.snapshot({ includes: true }) : undefined;
+    const done = viewer.execute(command, args);
+    if (!before) return done;
+    if (done instanceof Promise) void done.then(() => viewer.view.record(before));
+    else viewer.view.record(before);
+    return done;
   };
   /** A run's result once it settles: the parts are made again (a pressed part follows what the run changed). */
   const settled = <T extends string | Promise<string> | undefined>(out: T): T => {
@@ -453,7 +465,7 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
     if (item.command === undefined) return undefined;
     // a preview ends in the choice's patch (the command cancels it first), not in nothing
     inner.previewed = false;
-    return settled(viewer.execute(item.command, item.args ?? {}));
+    return settled(execute(item.command, item.args ?? {}));
   };
   // a choice hovered: its command's preview (`layer.channel`'s through the theming behavior), when it has one
   const preview = (item: HeaderMenuItem): boolean => {

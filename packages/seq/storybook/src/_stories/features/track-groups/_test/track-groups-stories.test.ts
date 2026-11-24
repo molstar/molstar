@@ -5,6 +5,7 @@
  */
 
 import { FeatureViews } from '@molstar/seqx-examples';
+import { legendRows } from '@molstar/seqx-viewer/legends';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { openExample } from '../../../examples/_test/draw-checks.js';
@@ -95,5 +96,19 @@ describe('Features › Track groups', () => {
     expect(svg).toContain('Signals');
     expect(svg).toContain('3 tracks');
     expect(svg).not.toContain('Conservation');
+  });
+
+  it('a folded group’s summary layers are named as the tracks they summarize, in the row, its eye and after a fold', async () => {
+    const v = await open('groups');
+    const rows = () => legendRows(v).map((r) => [r.title, r.layers.map((l) => l.name)]);
+    const unfolded = rows();
+    expect(unfolded.map((r) => r[0])).toEqual(['p53 letters', 'Domains', 'Secondary']);
+    await v.execute('groups.toggle', { address: `${Section}/features` });
+    v.draw();
+    await vi.advanceTimersByTimeAsync(1000);
+    v.draw();
+    // Features folded: its two members' layers in one lane, each named as its track was
+    expect(rows()).toEqual(unfolded);
+    for (const r of legendRows(v)) for (const l of r.layers) expect(l.name).not.toContain('#');
   });
 });

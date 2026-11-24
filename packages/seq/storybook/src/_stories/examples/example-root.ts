@@ -15,7 +15,7 @@ import type { SeqViewerSpec } from '@molstar/seqx-viewer/viewer-spec';
 import { defineElements, onCleanup } from '@molstar/ui/dom';
 import { UiElement } from '@molstar/ui/elements/ui-element';
 import { followSvg } from '../follow-svg.js';
-import { Box, PageGrid, pairGrid } from './example-layout.js';
+import { Box, FoundBlock, PageGrid, pairGrid } from './example-layout.js';
 import { statusIssues } from './status-issues.js';
 import { withViewRegistry } from './view-registry.js';
 import { filesOf, fileText, printSources } from '../features/files/file-head.js';
@@ -106,8 +106,7 @@ class ExampleRoot extends UiElement<ExampleModel> {
       button.textContent = 'Find';
       button.style.cssText =
         'font: inherit; padding: var(--msui-space-1) var(--msui-space-3); color: var(--msui-text); background: var(--msui-surface, transparent); border: 1px solid var(--msui-line); border-radius: 4px; cursor: pointer;';
-      found.style.cssText =
-        'margin: 0; padding: var(--msui-space-3); overflow: auto; font: var(--msui-text-xs) / var(--msui-leading-xs) var(--msui-font-mono); background: var(--msui-surface, transparent); border: 1px solid var(--msui-line);';
+      found.style.cssText = FoundBlock;
       found.textContent = 'Opening the file…';
       box.append(input, button);
       const wrap = document.createElement('div');

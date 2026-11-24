@@ -9,7 +9,7 @@
 // Globins rows stories at a wide and a narrow page).
 
 import { describe, expect, it } from 'vitest';
-import { Box, PageGrid, pairGrid } from '../example-layout.js';
+import { Box, FoundBlock, PageGrid, pairGrid } from '../example-layout.js';
 
 describe('the example story grids', () => {
   for (const [name, css] of [
@@ -26,5 +26,10 @@ describe('the example story grids', () => {
 
   it('the pair breaks to one column below 420 px, never wider than its box', () => {
     expect(pairGrid(false)).toContain('minmax(min(420px, 100%), 1fr)');
+  });
+
+  it('a find box’s result wraps its long lines (GTF’s first line was cut at the right)', () => {
+    expect(FoundBlock).toContain('white-space: pre-wrap');
+    expect(FoundBlock).toContain('overflow-wrap: anywhere');
   });
 });

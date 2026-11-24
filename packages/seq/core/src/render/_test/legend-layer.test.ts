@@ -6,7 +6,8 @@
 
 import { theme } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
-import { keepHiddenLegends, viewLegends } from '../index.js';
+import type { ResolvedLayer } from '@molstar/seqx-core/view';
+import { keepHiddenLegends, layerName, viewLegends } from '../index.js';
 import { settle } from './helpers.js';
 import { moleculesSpec } from './molecules-fixtures.js';
 
@@ -25,7 +26,8 @@ async function legends(color = atp) {
 describe('a letters layer’s legend row', () => {
   it('is titled by the layer, and lists the chains’ scheme and the chips’ otherwise beside the rule', async () => {
     const l = (await legends()).find((x) => x.layers.some((k) => k.endsWith('/complex/letters/letters')))!;
-    expect(l.title.endsWith(' letters')).toBe(true);
+    // its track's label is "letters": the layer's kind is not said twice
+    expect(l.title).toBe('letters');
     const labels = l.entries.kind === 'swatches' ? l.entries.items.map((i) => i.label) : [];
     expect(labels[0]).toBe('ATP');
     // the chains' letters in the scheme's groups, and the chips no rule matched (a glycan, an ion, a water)
@@ -55,7 +57,18 @@ describe('a letters layer’s legend row', () => {
     const row = shown.find((x) => x.layers.includes(k))!;
     const track = f.layout.sections[0].tracks.find((t) => t.layers.length === 2)!;
     expect(track).toBeDefined();
-    expect(row.title).toBe(`${track.track.label} letters`);
+    expect(row.title).toBe(track.track.label);
     expect(names.get(k)).toBe(row.title);
+  });
+});
+
+describe('layerName', () => {
+  const letters = { type: 'letters', params: {}, address: '/v/s/t/letters' } as unknown as ResolvedLayer;
+  it('a letters layer says its kind after the track’s label, never doubling it ("letters letters")', () => {
+    expect(layerName(letters, { label: 'Sequence', layers: [letters] })).toBe('Sequence letters');
+    expect(layerName(letters, { label: 'letters', layers: [letters] })).toBe('letters');
+    expect(layerName(letters, { label: 'Protein Letters ', layers: [letters, letters] })).toBe('Protein Letters ');
+    // a word that only ends so
+    expect(layerName(letters, { label: 'Bigletters', layers: [letters] })).toBe('Bigletters letters');
   });
 });

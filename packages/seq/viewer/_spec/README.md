@@ -1704,7 +1704,9 @@ step runs is a jump of the view's history of its own, as `clades.reveal`'s); `se
   `section.include` (a patch) sets a section's `include` (`include`: names, patterns, `{ min_length }`), or removes it
   (`include` absent or null: every block). Reached from a block's menu (a secondary click on a block's label or band,
   Shift+F10 at the cursor: "Reverse chr2", "Show only chr2" on a section of assemblies, "Show all" where an `include` is
-  set: built-in header entries `on: 'section'` reading `HeaderFacts.block`, `assemblies`, `included`).
+  set: built-in header entries `on: 'section'` reading `HeaderFacts.block`, `assemblies`, `included`). A menu's
+  `section.include` (these and the stem menu's partners) is one step of the view's history, pushed once it landed (as a
+  wheel cut's): Back shows the blocks it left.
 - **A locus** (`goToLocus(viewer, text, { section })`, `locus.ts`: what a host's locus box calls): the text as a locus
   first (`(locus :text …)` under the section, the first section of assemblies when none is named:
   `chr17:7,668,402- 7,687,550`, `17:7668402`, a name or an alias), its Location focused (a jump); a text no sequence is

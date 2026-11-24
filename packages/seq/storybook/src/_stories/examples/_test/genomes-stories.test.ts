@@ -598,6 +598,26 @@ describe('Examples/Genomes, headless', () => {
     await bothThemes(v);
   });
 
+  it('the Manhattan plot’s card says the SNP’s position and its value, never a 0-based index', async () => {
+    const v = await open('manhattan');
+    const lay = layer<ValuesLay>(v, '-log10 p')!;
+    const sec = v.frame!.layout.sections[0];
+    const at = ManhattanPeak.at;
+    v.input.move(sec.axis!.x(at + 0.5), lay.box.y + lay.box.height / 2);
+    await vi.advanceTimersByTimeAsync(300);
+    const card = new Describer({
+      spec: v.spec,
+      store: v.store,
+      addresses: v.addresses,
+      view: v.view,
+      layout: () => v.frame?.layout,
+    }).describe(v.hover.current);
+    expect(card?.title).toBe(`chr ${(at + 1).toLocaleString('en-US')}`);
+    expect(card?.rows.map((r) => r.label)).not.toContain('index');
+    expect(card?.rows.map((r) => r.label)).toContain('-log10 p');
+    expect(card?.text).not.toMatch(/index/);
+  });
+
   it('the liftover (EC-211, EC-212): A’s genes drawn on A′ through the map read by region, the duplicated stretch twice', async () => {
     const v = await open('liftover');
     const [b] = bridges(v);

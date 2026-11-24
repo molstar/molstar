@@ -9,7 +9,7 @@ import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 
 // The stories' SVG beside a canvas: the viewer's export of the spec it shows, drawn again when the view comes to rest,
 // the theme changes, the spec is edited (its revision: an edit or an undo, at once, not a rest later, so the twin is never seen a step
-// behind the canvas) or a story step is shown (a preview or an animation frame waits for the rest), a clade is folded or opened, the selection is set or cleared, or any state the story names moves. A later draw drops an earlier one still in flight; after
+// behind the canvas) or a story step is shown (a preview or an animation frame waits for the rest), a clade or a track group is folded or opened (by the reader, or restored by Back), the selection is set or cleared, a highlight channel (a search's hits) is set or cleared, or any state the story names moves. A later draw drops an earlier one still in flight; after
 // `dispose` none lands. A selection set during a drag is drawn at the first frame after its release, never per move: an
 // export is a whole picture (half a second on the 4,000 × 4,000 dot plot), and a drag's work is bounded by the screen
 // (the viewer's _spec, "SelectionModel and HighlightModel", Drags). SVG ids are prefixed per story instance, so SVGs in one page never share a clip or a mask.
@@ -80,6 +80,8 @@ export function followSvg(
     viewer.tokensVersion,
     viewer.spec.revision,
     viewer.spec.step,
+    viewer.highlight.version,
+    viewer.view.groupFolds,
     ...(options.also ?? []),
   ].map((state) => state.listen(() => void draw()));
   offs.push(
