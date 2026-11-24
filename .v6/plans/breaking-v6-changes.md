@@ -1579,3 +1579,11 @@ or transform data built by hand add both (0 for none).
 The scale line's `labelSize` (`ScaleLineParams`, `Canvas3D` `helper.scaleLine`) is the label's font size in CSS
 pixels, its default 14: it was the text's atlas line height (about 1.58 times the font size), its default 20. A value
 set by an app draws about 1.58 times as large as before: divide it by 1.58 for the old size (20 → 13).
+
+## `renderMerged` removed
+
+The geometry param `renderMerged` (`on`, `off`, `auto` above `AutoRenderMergedThreshold` units) is gone, with
+`RenderMergedValue`, `RenderMergedOptions`, `AutoRenderMergedThreshold` and `resolveRenderMerged`
+(`@molstar/graphics/geo/geometry/base`). Units representations always merge their groups into one render object per
+part; a value in saved props or snapshots is ignored. Code reading a units representation's render objects gets merged
+ones (`getMergedMembers` for per-group views) where it got one a group.

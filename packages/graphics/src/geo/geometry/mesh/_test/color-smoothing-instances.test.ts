@@ -48,6 +48,7 @@ import {
   calcMeshColorSmoothing,
 } from '../color-smoothing.js';
 import { Mesh } from '../mesh.js';
+import { getMergedMembers, isMergedRenderObject } from '@molstar/graphics/gl/render-object';
 
 // Layer smoothing on an instanced surface whose layer reaches only some instances (perf-audit 13/P1): the gaussian
 // surface of the 1cbs protein over two unit cells (8 instances, neighbours within the smoothing reach). The snapshot
@@ -89,11 +90,10 @@ async function surfaceGeometry(structure: Structure) {
   const repr = provider.factory({ ...registries }, provider.getParams) as Representation<Structure>;
   repr.setTheme(Theme.create(registries, { structure }, themeProps));
   const params = PD.getDefaultValues(provider.getParams(registries, structure));
-  await repr
-    .createOrUpdate({ ...params, renderMerged: false, smoothColors: { name: 'off', params: {} } }, structure)
-    .run();
+  await repr.createOrUpdate({ ...params, smoothColors: { name: 'off', params: {} } }, structure).run();
   let values: MeshValues | undefined;
-  for (const o of repr.renderObjects) {
+  // the units' objects: a merged object's members one by one
+  for (const o of repr.renderObjects.flatMap((r) => (isMergedRenderObject(r) ? [...getMergedMembers(r)] : [r]))) {
     const v = o.values as MeshValues;
     if (!values || v.uVertexCount.ref.value > values.uVertexCount.ref.value) values = v;
   }

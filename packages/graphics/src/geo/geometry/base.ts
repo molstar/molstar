@@ -158,27 +158,6 @@ export function resolveGpuCulling(
   return value;
 }
 
-export type RenderMergedValue = true | false | 'auto';
-export const RenderMergedOptions: [RenderMergedValue, string][] = [
-  [true, 'On'],
-  [false, 'Off'],
-  ['auto', 'Auto'],
-];
-
-/**
- * Threshold (in number of mergeable units) above which `renderMerged: 'auto'`
- * resolves to `true`.
- */
-export const AutoRenderMergedThreshold = 30;
-
-/**
- * Resolves the `renderMerged` param value to a boolean.
- */
-export function resolveRenderMerged(value: RenderMergedValue, unitCount: number): boolean {
-  if (value === 'auto') return unitCount > AutoRenderMergedThreshold;
-  return value;
-}
-
 //
 
 export namespace BaseGeometry {
@@ -234,10 +213,6 @@ export namespace BaseGeometry {
     instanceGranularity: PD.Select<InstanceGranularityValue>('auto', InstanceGranularityOptions, {
       description:
         'Use instance granularity for marker, transparency, clipping, overpaint, substance data to save memory. When set to `auto`, granularity is enabled if `groupCount * instanceCount` exceeds `AutoInstanceGranularityThreshold`.',
-    }),
-    renderMerged: PD.Select<RenderMergedValue>('auto', RenderMergedOptions, {
-      description:
-        'Render all units of the representation through a single shared render item per geometry kind to reduce draw calls. When set to `auto`, enabled if the number of mergeable units exceeds `AutoRenderMergedThreshold`. Supported for spheres, mesh, cylinders, lines, and points geometry.',
     }),
     gpuCulling: PD.Select<GpuCullingValue>('auto', GpuCullingOptions, {
       ...CullingLodCategory,

@@ -9,6 +9,8 @@ import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { GraphicsRenderable } from '@molstar/graphics/gl/renderable';
 import { Scene } from '@molstar/graphics/gl/scene';
 import { getDrawnBoundingSphere } from '@molstar/graphics/gl/renderable/util';
+import { SegmentTexels } from '@molstar/graphics/gl/renderable/schema';
+import { SegmentedArray } from '@molstar/graphics/gl/segmented-array';
 import type { Texture } from '@molstar/graphics/gl/texture';
 import { Camera, type ICamera } from '../camera.js';
 import { Viewport } from '../camera/util.js';
@@ -19,6 +21,7 @@ const MinNearFraction = 1e-3;
 const tmpCenter = Vec3();
 const tmpOrigin = Vec3();
 const tmpTransform = Mat4();
+const tmpInvariantCenter = Vec3();
 
 /** What the overlay camera's planes fit: the visible objects' bounds, screen-sized ones (`uScreenSize`) at its scale */
 export type OverlayObject = Pick<GraphicsRenderable, 'state' | 'values'>;
@@ -129,15 +132,33 @@ function getPlanes(
       const invariant = values.invariantBoundingSphere.ref.value;
       const transforms = values.aTransform.ref.value;
       const objectTransform = values.uObjectTransform?.ref.value;
+      // merged (`dSegmented`): an instance's transform of the segmented array, its sphere its segment's (`tSegment`)
+      const segmented = !!(values as { dSegmented?: { ref: { value: boolean } } }).dSegmented?.ref.value;
+      const segmentOf = segmented
+        ? (values as unknown as { aSegment: { ref: { value: Int32Array } } }).aSegment.ref.value
+        : undefined;
+      const segmentData = segmented
+        ? (values as unknown as { tSegment: { ref: { value: { array: Float32Array } } } }).tSegment.ref.value.array
+        : undefined;
       for (let j = 0, jl = values.instanceCount.ref.value; j < jl; ++j) {
-        Mat4.fromArray(tmpTransform, transforms, j * 16);
+        if (SegmentedArray.is(transforms))
+          Mat4.fromArray(tmpTransform, SegmentedArray.read(transforms, j * 16, j * 16 + 16), 0);
+        else Mat4.fromArray(tmpTransform, transforms, j * 16);
         // as drawn: the transient transform after the instance's
         if (objectTransform) Mat4.mul(tmpTransform, objectTransform, tmpTransform);
         Mat4.getTranslation(tmpOrigin, tmpTransform);
         const s = getScreenSizeScale(camera, tmpOrigin, screenSize, pixelRatio);
         const scale = s * Mat4.getMaxScaleOnAxis(tmpTransform);
-        const center = Vec3.transformMat4(tmpOrigin, Vec3.scale(tmpOrigin, invariant.center, s), tmpTransform);
-        addSphere(camera, center, invariant.radius * scale);
+        let radius = invariant.radius;
+        if (segmentOf && segmentData) {
+          const o = segmentOf[j * 4 + 3] * SegmentTexels * 4;
+          Vec3.set(tmpInvariantCenter, segmentData[o], segmentData[o + 1], segmentData[o + 2]);
+          radius = segmentData[o + 3];
+        } else {
+          Vec3.copy(tmpInvariantCenter, invariant.center);
+        }
+        const center = Vec3.transformMat4(tmpOrigin, Vec3.scale(tmpOrigin, tmpInvariantCenter, s), tmpTransform);
+        addSphere(camera, center, radius * scale);
       }
     } else {
       const sphere = getDrawnBoundingSphere(values);

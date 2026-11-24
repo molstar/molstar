@@ -15,12 +15,7 @@ import { isDebugMode } from '@molstar/core/util/debug';
 import { Bond, type Structure, StructureElement, Unit } from '@molstar/model/model/structure';
 import { EmptyLoci, isEveryLoci, type Loci } from '@molstar/model/model/loci';
 import type { Geometry } from '@molstar/graphics/geo/geometry/geometry';
-import {
-  BaseGeometry,
-  type GpuCullingValue,
-  type RenderMergedValue,
-  resolveInstanceGranularity,
-} from '@molstar/graphics/geo/geometry/base';
+import { BaseGeometry, type GpuCullingValue, resolveInstanceGranularity } from '@molstar/graphics/geo/geometry/base';
 import { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import {
   createMergedRecordsRenderObject,
@@ -656,25 +651,30 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
       disposeObject(part);
       return;
     }
-    const p = props as { renderMerged?: RenderMergedValue; gpuCulling?: GpuCullingValue };
-    // merged here whatever `renderMerged` says (the representation chose this visual by it): how it is culled
+    const p = props as { gpuCulling?: GpuCullingValue };
+    // merged here, also one record: how it is culled
     const { gpu, rasterOnly } = resolveMergedCulling(
       type,
       records,
-      true,
       p.gpuCulling ?? false,
       canCullOnGpu(graphics),
       graphics,
     );
     const key = `${gpu}|${rasterOnly}`;
     const { object, objectRecords } = part;
+    // another context alone keeps the object (the scene carries it over, as a plain one), unless it holds resources of
+    // the previous one; how the device culls is in the key
+    const foreign = !!object && !!graphics && graphics !== part.objectGraphics && hasForeignResources(object, graphics);
     const same =
       !!object &&
+      !foreign &&
       key === part.objectKey &&
-      graphics === part.objectGraphics &&
       records.length === objectRecords.length &&
       records.every((r, i) => r === objectRecords[i]);
-    if (same) return;
+    if (same) {
+      part.objectGraphics = graphics;
+      return;
+    }
     disposeObject(part);
     part.object = createMergedRecordsRenderObject(type, part.shared as any, records, part.renderableState, materialId, {
       gpuCulling: gpu,

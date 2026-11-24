@@ -40,7 +40,11 @@ async function addSpacefill(plugin: HeadlessPluginContext) {
   const trajectory = await plugin.builders.structure.parseTrajectory(data, 'mmcif');
   const model = await plugin.builders.structure.createModel(trajectory);
   const structure = await plugin.builders.structure.createStructure(model);
-  await plugin.builders.structure.representation.addRepresentation(structure, { type: 'spacefill' });
+  // the structure's spheres as one plain object, which the raster takes with 'on' (a merged one only culled on the GPU)
+  await plugin.builders.structure.representation.addRepresentation(structure, {
+    type: 'spacefill',
+    typeParams: { visuals: ['structure-element-sphere'] } as never,
+  });
 }
 
 /** The first frame after the objects were added: the pipelines it compiled, whether the raster drew */

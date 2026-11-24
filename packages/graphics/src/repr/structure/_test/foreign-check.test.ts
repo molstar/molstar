@@ -21,7 +21,7 @@ import { Theme } from '@molstar/graphics/theme/theme';
 import { CartoonRepresentationProvider } from '../representation/cartoon.js';
 import { SpacefillRepresentationProvider } from '../representation/spacefill.js';
 
-// counts the walks of the visuals' foreign-resource checks
+// counts the walks of the visuals' foreign-resource checks: a units visual's, a merged visual's (`hasForeignResources`)
 const checks = vi.hoisted(() => ({ count: 0 }));
 vi.mock('@molstar/graphics/gl/render-object', async (importOriginal) => {
   const original = await importOriginal<typeof import('@molstar/graphics/gl/render-object')>();
@@ -31,6 +31,7 @@ vi.mock('@molstar/graphics/gl/render-object', async (importOriginal) => {
       const check = original.createForeignResourcesCheck();
       return (o: any, graphics: any) => (checks.count++, check(o, graphics));
     },
+    hasForeignResources: (o: any, graphics: any) => (checks.count++, original.hasForeignResources(o, graphics)),
   };
 });
 

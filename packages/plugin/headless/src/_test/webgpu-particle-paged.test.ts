@@ -557,7 +557,8 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles as a page store o
           .build()
           .to(v.ref)
           .apply(ParticlesRepresentation3D, {
-            type: { name: 'target', params: { lodPixelSize: 0 } },
+            // culled on the GPU: the flat view's targets merged (two or more), split by the raster per instance
+            type: { name: 'target', params: { lodPixelSize: 0, gpuCulling: true } },
             colorTheme: { name: 'particle-index', params: {} },
           } as never)
           .commit();

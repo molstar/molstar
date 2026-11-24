@@ -63,7 +63,7 @@ describe('merging render objects', () => {
   it('merges an object alone to cull it on the GPU, where the device does and it pays', () => {
     const entries = [{ visual: 0, renderObject: spheres(AutoGpuCullingMinInstances) }];
     const out: GraphicsRenderObject[] = [];
-    const merged = mergeRenderObjectsByType(entries, 'auto', new Map(), out, 'auto', true);
+    const merged = mergeRenderObjectsByType(entries, new Map(), out, 'auto', true);
     expect(out.length).toBe(1);
     expect(isMergedRenderObject(out[0])).toBe(true);
     expect((out[0].values as { gpuCulling?: { ref: { value: boolean } } }).gpuCulling?.ref.value).toBe(true);
@@ -71,12 +71,12 @@ describe('merging render objects', () => {
 
     // without GPU culling on the device (WebGL) it stays as it is
     const plain: GraphicsRenderObject[] = [];
-    mergeRenderObjectsByType(entries, 'auto', new Map(), plain, 'auto', false);
+    mergeRenderObjectsByType(entries, new Map(), plain, 'auto', false);
     expect(plain).toEqual([entries[0].renderObject]);
     // nor with fewer instances
     const few: GraphicsRenderObject[] = [];
     const fewer = spheres(AutoGpuCullingMinInstances - 1);
-    mergeRenderObjectsByType([{ visual: 0, renderObject: fewer }], 'auto', new Map(), few, 'auto', true);
+    mergeRenderObjectsByType([{ visual: 0, renderObject: fewer }], new Map(), few, 'auto', true);
     expect(isMergedRenderObject(few[0])).toBe(false);
   });
 
@@ -88,29 +88,28 @@ describe('merging render objects', () => {
     const ro = spheres(instances);
     expect(instances * ro.values.uVertexCount.ref.value).toBeGreaterThanOrEqual(AutoGpuCullingMinRasterSpheres);
     const out: GraphicsRenderObject[] = [];
-    mergeRenderObjectsByType([{ visual: 0, renderObject: ro }], 'auto', new Map(), out, 'auto', true, graphics);
+    mergeRenderObjectsByType([{ visual: 0, renderObject: ro }], new Map(), out, 'auto', true, graphics);
     expect((out[0].values as { gpuCulling?: { ref: { value: boolean } } }).gpuCulling?.ref.value).toBe(true);
     expect(rasterOnly(out[0])).toBe(true);
     // by its instances: culled on the GPU whatever the raster takes
     const many: GraphicsRenderObject[] = [];
     const entries = [{ visual: 0, renderObject: spheres(AutoGpuCullingMinInstances) }];
-    mergeRenderObjectsByType(entries, 'auto', new Map(), many, 'auto', true, graphics);
+    mergeRenderObjectsByType(entries, new Map(), many, 'auto', true, graphics);
     expect(rasterOnly(many[0])).toBe(false);
     // asked for: not for the raster only
     const asked: GraphicsRenderObject[] = [];
-    mergeRenderObjectsByType([{ visual: 0, renderObject: ro }], 'auto', new Map(), asked, true, true, graphics);
+    mergeRenderObjectsByType([{ visual: 0, renderObject: ro }], new Map(), asked, true, true, graphics);
     expect(rasterOnly(asked[0])).toBe(false);
   });
 
-  it('merges by the number of units as before where GPU culling does not pay', () => {
-    const entries = Array.from({ length: 31 }, (_, i) => ({ visual: i, renderObject: spheres(1) }));
+  it('merges two or more where GPU culling does not pay, one alone not', () => {
+    const entries = Array.from({ length: 5 }, (_, i) => ({ visual: i, renderObject: spheres(1) }));
     const out: GraphicsRenderObject[] = [];
-    mergeRenderObjectsByType(entries, 'auto', new Map(), out, 'auto', true);
+    mergeRenderObjectsByType(entries, new Map(), out, 'auto', true);
     expect(out.length).toBe(1);
     expect((out[0].values as { gpuCulling?: { ref: { value: boolean } } }).gpuCulling?.ref.value).toBe(false);
-    // fewer units than `auto` merges: unmerged
-    const small: GraphicsRenderObject[] = [];
-    mergeRenderObjectsByType(entries.slice(0, 5), 'auto', new Map(), small, 'auto', true);
-    expect(small.length).toBe(5);
+    const one: GraphicsRenderObject[] = [];
+    mergeRenderObjectsByType(entries.slice(0, 1), new Map(), one, 'auto', true);
+    expect(one).toEqual([entries[0].renderObject]);
   });
 });

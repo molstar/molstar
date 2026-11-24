@@ -11,7 +11,7 @@
 - **Step 2 done**: merged objects built from records and shared values; the particle pool on records (its first
   user).
 - **Steps 1, 3 to 6 done**: `UnitsMergedVisual` (`repr/structure/units-merged-visual.ts`) used by
-  `UnitsRepresentation` wherever `renderMerged` merges two or more groups and the factory chooses by the props alone
+  `UnitsRepresentation` for every group of a kind that merges (`renderMerged` removed, merged-units-core.md)
   (the element spheres, the bonds' cylinders and lines, the meshes on the CPU path); a part a merge key (step 4);
   per-group visuals where it does not merge. `repr/units-100k-spacefill` (WebGPU): 5.4 to 3.6 s, 19.6 to 7.9 KB a unit
   (the heap read after a second collection, see step 6); the marking and layer snapshots and the visual suite's images
@@ -142,8 +142,8 @@ What the per-group objects give that a merged object needs, and where it comes f
      taken of the records: one function both call, `resolveMergedCulling`), per part; the merge check (`canMergeValues`)
      on each part's shared values, a segment in the part of its merge key (`getMergeKey` of its values made, step 4).
    - **Measured**: as step 6, against the per-group visuals merged (images identical, `merging/*`, both backends).
-4. **The representation chooses** (done): a units representation whose merging resolves on (`renderMerged`, `auto`
-   above `AutoRenderMergedThreshold` units, two groups or more) uses the merged visual where its factory makes one
+4. **The representation chooses** (done; now always merging, merged-units-core.md): a units representation whose
+   merging resolves on (`renderMerged`, `auto` above `AutoRenderMergedThreshold` units, two groups or more) uses the merged visual where its factory makes one
    visual for all groups (`choosesByProps`) of a type that merges, per-group visuals otherwise (unmerged, a factory
    choosing by the data, palettes and the other cases `canMergeValues` rejects: all parts alike, their props and theme
    shared). The groups of another merge key are a part of their own (`Part`: its shared values, records and merged

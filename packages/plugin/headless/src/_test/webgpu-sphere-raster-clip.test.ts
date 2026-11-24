@@ -75,7 +75,9 @@ async function render(sphereRaster: 'off' | 'only', typeParams: { [k: string]: u
     const structure = await plugin.builders.structure.createStructure(model);
     await plugin.builders.structure.representation.addRepresentation(structure, {
       type: 'spacefill',
-      typeParams: typeParams as never,
+      // the structure's spheres as one plain object (`structure-element-sphere`), split by the raster per sphere: a
+      // merged object is split per instance, its one instance here through the near plane (its impostors draw it)
+      typeParams: { visuals: ['structure-element-sphere'], ...typeParams } as never,
       color: 'element-index',
     });
     // the grid's front face toward the camera (its own view would be along a principal axis of either sign)

@@ -12,12 +12,7 @@ import {
   createMergedRenderObject,
   hasForeignResources,
 } from '@molstar/graphics/gl/render-object';
-import {
-  type GpuCullingValue,
-  type RenderMergedValue,
-  resolveGpuCulling,
-  resolveRenderMerged,
-} from '@molstar/graphics/geo/geometry/base';
+import { type GpuCullingValue, resolveGpuCulling } from '@molstar/graphics/geo/geometry/base';
 import type { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import type { MergeRecord } from '@molstar/graphics/gl/renderable/merged';
 import { type Loci, EmptyLoci } from '@molstar/model/model/loci';
@@ -106,7 +101,7 @@ function isMergeFingerprintUnchanged(ro: GraphicsRenderObject) {
 }
 
 /**
- * Whether members `records` of `type` merge (`renderMerged` for their count) and are culled on the GPU (`gpuCulling`:
+ * Whether members `records` of `type` merge (two or more) and are culled on the GPU (`gpuCulling`:
  * where many instances per draw, a segment and level; then merged for it, also one alone), and for the sphere raster
  * alone (`rasterOnly`: the renderer culls them on the CPU where the raster does not take them). `gpuSupported`: the
  * device culls on the GPU (`canCullOnGpu`)
@@ -114,7 +109,6 @@ function isMergeFingerprintUnchanged(ro: GraphicsRenderObject) {
 export function resolveMergedCulling(
   type: string,
   records: readonly MergeRecord[],
-  renderMerged: RenderMergedValue,
   gpuCulling: GpuCullingValue,
   gpuSupported: boolean,
   graphics?: GraphicsContext,
@@ -130,7 +124,7 @@ export function resolveMergedCulling(
   const byInstances = resolveGpuCulling(gpuCulling, instances, draws);
   const gpu = gpuSupported && (byInstances || resolveGpuCulling(gpuCulling, instances, draws, rasterSpheres));
   const rasterOnly = gpu && !byInstances;
-  const merge = gpu || (records.length >= 2 && resolveRenderMerged(renderMerged, records.length));
+  const merge = gpu || records.length >= 2;
   return { merge, gpu, rasterOnly };
 }
 
@@ -144,10 +138,9 @@ export type MergeableEntry<V> = { visual: V; renderObject: GraphicsRenderObject 
 export type MergedEntry<V> = { object: MergedGraphicsRenderObject; visuals: V[]; ids: number[]; key: string };
 
 /**
- * Groups `entries` by `renderObject.type` and merges each group of >= 2 mergeable
- * render objects into one shared render item, when `renderMerged` resolves to true
- * for the group's size. Reuses `prevMergedByType`'s entry for a group whose member
- * ids are unchanged, instead of rebuilding a merged render object every update.
+ * Groups `entries` by `renderObject.type` and merges each group of >= 2 mergeable render objects (or one culled on the
+ * GPU) into one shared render item. Reuses `prevMergedByType`'s entry for a group whose member ids are unchanged,
+ * instead of rebuilding a merged render object every update.
  *
  * Clears and refills `renderObjects` with the merged and any left-over unmerged
  * render objects. Returns the new by-type map, to pass as `prevMergedByType` next time.
@@ -157,7 +150,6 @@ export type MergedEntry<V> = { object: MergedGraphicsRenderObject; visuals: V[];
  */
 export function mergeRenderObjectsByType<V>(
   entries: readonly MergeableEntry<V>[],
-  renderMerged: RenderMergedValue,
   prevMergedByType: ReadonlyMap<string, MergedEntry<V>>,
   renderObjects: GraphicsRenderObject[],
   /** culled on the GPU (`BaseGeometry.Params.gpuCulling`): a merged object of the other kind is a new one */
@@ -173,56 +165,53 @@ export function mergeRenderObjectsByType<V>(
   const nextMerged = new Map<string, MergedEntry<V>>();
   const consumed = new Set<GraphicsRenderObject>();
 
-  if (renderMerged !== false) {
-    const byType = new Map<string, MergeableEntry<V>[]>();
-    for (const e of entries) {
-      const group = byType.get(e.renderObject.type);
-      if (group) group.push(e);
-      else byType.set(e.renderObject.type, [e]);
-    }
-    byType.forEach((group, type) => {
-      const { merge, gpu, rasterOnly } = resolveMergedCulling(
-        type,
-        group.map((e) => e.renderObject.values as unknown as MergeRecord),
-        renderMerged,
-        gpuCulling,
-        gpuSupported,
-        graphics,
-      );
-      if (!merge) return;
-
-      const key = `${group.map((e) => e.renderObject.id).join(',')}|${gpu}|${rasterOnly}`;
-      const prev = prevMergedByType.get(type);
-      const same = !!prev && prev.key === key && !(graphics && hasForeignResources(prev.object, graphics));
-      // the members checked again only where one of them changed what merging reads (the key: the same members, the
-      // same culling and so the same least count)
-      if (!same || !group.every((e) => isMergeFingerprintUnchanged(e.renderObject))) {
-        if (
-          !canMergeRenderObjects(
-            group.map((e) => e.renderObject),
-            gpu ? 1 : 2,
-          )
-        )
-          return;
-        for (const e of group) recordMergeFingerprint(e.renderObject);
-      }
-
-      const entry = same
-        ? prev!
-        : {
-            object: createMergedRenderObject(
-              group.map((e) => e.renderObject),
-              { gpuCulling: gpu, rasterOnly },
-            ),
-            visuals: group.map((e) => e.visual),
-            ids: group.map((e) => e.renderObject.id),
-            key,
-          };
-      nextMerged.set(type, entry);
-      renderObjects.push(entry.object);
-      for (const e of group) consumed.add(e.renderObject);
-    });
+  const byType = new Map<string, MergeableEntry<V>[]>();
+  for (const e of entries) {
+    const group = byType.get(e.renderObject.type);
+    if (group) group.push(e);
+    else byType.set(e.renderObject.type, [e]);
   }
+  byType.forEach((group, type) => {
+    const { merge, gpu, rasterOnly } = resolveMergedCulling(
+      type,
+      group.map((e) => e.renderObject.values as unknown as MergeRecord),
+      gpuCulling,
+      gpuSupported,
+      graphics,
+    );
+    if (!merge) return;
+
+    const key = `${group.map((e) => e.renderObject.id).join(',')}|${gpu}|${rasterOnly}`;
+    const prev = prevMergedByType.get(type);
+    const same = !!prev && prev.key === key && !(graphics && hasForeignResources(prev.object, graphics));
+    // the members checked again only where one of them changed what merging reads (the key: the same members, the
+    // same culling and so the same least count)
+    if (!same || !group.every((e) => isMergeFingerprintUnchanged(e.renderObject))) {
+      if (
+        !canMergeRenderObjects(
+          group.map((e) => e.renderObject),
+          gpu ? 1 : 2,
+        )
+      )
+        return;
+      for (const e of group) recordMergeFingerprint(e.renderObject);
+    }
+
+    const entry = same
+      ? prev!
+      : {
+          object: createMergedRenderObject(
+            group.map((e) => e.renderObject),
+            { gpuCulling: gpu, rasterOnly },
+          ),
+          visuals: group.map((e) => e.visual),
+          ids: group.map((e) => e.renderObject.id),
+          key,
+        };
+    nextMerged.set(type, entry);
+    renderObjects.push(entry.object);
+    for (const e of group) consumed.add(e.renderObject);
+  });
 
   for (const e of entries) {
     if (!consumed.has(e.renderObject)) renderObjects.push(e.renderObject);

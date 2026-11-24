@@ -72,9 +72,18 @@ function splitBuilder() {
   };
 }
 
+/**
+ * `visual` without its builder: a kind of visual that does not merge (as a GPU surface's texture mesh), drawn per
+ * group by the representation
+ */
+function perGroup<V extends object>(visual: V): V {
+  return new Proxy(visual, { get: (t, k) => (k === 'builder' ? undefined : Reflect.get(t, k)) });
+}
+
+/** `merged`: the representation's merged visual, else per-group visuals (`perGroup`) */
 async function createRepr(
   structure: Structure,
-  renderMerged: boolean,
+  merged: boolean,
   props: Partial<PD.Values<ElementSphereParams>> = {},
   builder: UnitsVisualGeometryBuilder<ElementSphereParams, Spheres> = splitBuilder(),
 ) {
@@ -84,7 +93,7 @@ async function createRepr(
     'split spheres',
     { graphics, ...registries } as any,
     () => ElementSphereParams,
-    (id) => UnitsVisual(builder, id),
+    (id) => (merged ? UnitsVisual(builder, id) : perGroup(UnitsVisual(builder, id))),
   );
   repr.setTheme(
     Theme.create(
@@ -93,7 +102,7 @@ async function createRepr(
       { colorTheme: { name: 'uniform' }, sizeTheme: { name: 'physical' } },
     ),
   );
-  await repr.createOrUpdate({ ...PD.getDefaultValues(ElementSphereParams), renderMerged, ...props }, structure).run();
+  await repr.createOrUpdate({ ...PD.getDefaultValues(ElementSphereParams), ...props }, structure).run();
   return repr;
 }
 
@@ -172,11 +181,20 @@ describe('the merged units visual', async () => {
     repr.destroy();
   });
 
-  it('makes its objects again for a new context, drawn: the old ones disposed alone', async () => {
+  it('keeps its objects for a new context, makes them again where they hold its resources: the old ones disposed alone', async () => {
+    const graphics = () => ({ capabilities: { fragDepth: true }, resources: { ownsTexture: () => true } }) as any;
     const repr = await createRepr(structure, true);
     const before = repr.renderObjects.slice();
-    // a backend switch or a restore: another context, the objects made again for it
-    repr.setGraphics({ capabilities: { fragDepth: true } } as any);
+    // a backend switch or a restore with nothing of the previous context: the objects kept (the scene carries them)
+    repr.setGraphics(graphics());
+    await repr.createOrUpdate().run();
+    expect(repr.renderObjects).toEqual(before);
+    for (const o of before) expect(o.state.disposed).toBe(false);
+
+    // a storage buffer of the previous context in their values: made again for the next
+    const buffer = { copyTo: () => {}, readAsync: async () => new ArrayBuffer(0) };
+    for (const o of before) (o.values as unknown as { [k: string]: unknown }).sForeign = ValueCell.create(buffer);
+    repr.setGraphics(graphics());
     await repr.createOrUpdate().run();
     expect(repr.renderObjects.length).toBe(before.length);
     for (const o of repr.renderObjects) {
@@ -685,7 +703,6 @@ describe('the merged units visual', async () => {
     );
     const props = {
       ...PD.getDefaultValues(MolecularSurfaceMeshParams),
-      renderMerged: true,
       resolution: 1,
       smoothColors: { name: 'on', params: { resolutionFactor: 2, sampleStride: 3 } },
     } as PD.Values<MolecularSurfaceMeshParams>;
@@ -705,7 +722,7 @@ describe('the merged units visual', async () => {
         merging: (id: number) => UnitsVisual(plain, id),
         alone: (id: number) => {
           const visual = UnitsVisual(plain, id);
-          return new Proxy(visual, { get: (t, k) => (k === 'builder' ? undefined : Reflect.get(t, k)) });
+          return perGroup(visual);
         },
       },
       ({ group }: StructureGroup) => (group.units[0].elements.length > 500 ? 'alone' : 'merging'),
@@ -725,7 +742,7 @@ describe('the merged units visual', async () => {
         { colorTheme: { name: 'uniform' }, sizeTheme: { name: 'physical' } },
       ),
     );
-    await repr.createOrUpdate({ ...PD.getDefaultValues(ElementSphereParams), renderMerged: true }, structure).run();
+    await repr.createOrUpdate(PD.getDefaultValues(ElementSphereParams), structure).run();
     const merged = repr.renderObjects.filter((o) => isMergedRenderObject(o)) as MergedGraphicsRenderObject[];
     const alone = repr.renderObjects.filter((o) => !isMergedRenderObject(o));
     const groups = structure.unitSymmetryGroups.length;

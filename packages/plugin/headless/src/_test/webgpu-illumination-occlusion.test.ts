@@ -79,7 +79,7 @@ describe.skipIf(!WebGPU.module)('illumination inputs culled by occlusion on WebG
       await plugin.builders.structure.representation.addRepresentation(structure, {
         type: 'spacefill',
         // a cell per copy and chain
-        typeParams: { renderMerged: true, gpuCulling: true, cellSize: 3, batchSize: 12 },
+        typeParams: { gpuCulling: true, cellSize: 3, batchSize: 12 },
       });
       const canvas = plugin.canvas3d!;
       canvas.setProps({

@@ -735,24 +735,10 @@ export const RenderCases: BenchmarkCase<any>[] = [
   renderCase('render/boxes-100', '100 boxes, each its own representation', async () => ({
     scene: () => boxes(100),
   })),
-  renderCase(
-    'render/units-1000-spacefill',
-    '1000 chains as spacefill: more than 100 units, merged into one render item (renderMerged auto)',
-    async () => {
-      const s = await chainGrid(1000);
-      return { scene: (g) => Promise.all([structureRepr(g, SpacefillRepresentationProvider, s, {})]) };
-    },
-  ),
-  renderCase(
-    'render/units-1000-spacefill-unmerged',
-    '1000 chains as spacefill, a render item per unit (renderMerged off), sharing the material',
-    async () => {
-      const s = await chainGrid(1000);
-      return {
-        scene: (g) => Promise.all([structureRepr(g, SpacefillRepresentationProvider, s, { renderMerged: false })]),
-      };
-    },
-  ),
+  renderCase('render/units-1000-spacefill', '1000 chains as spacefill, merged into one render item', async () => {
+    const s = await chainGrid(1000);
+    return { scene: (g) => Promise.all([structureRepr(g, SpacefillRepresentationProvider, s, {})]) };
+  }),
   renderCase(
     'render/viewer-7qpd-rotating',
     'PDB entry 7qpd as cartoon, ball-and-stick, molecular and Gaussian surface (a Viewer-like scene), rotating',
@@ -903,8 +889,7 @@ export const RenderBundleCases: BenchmarkCase<any>[] = [
     async () => {
       const s = await chainGrid(1356);
       return {
-        scene: (g) =>
-          Promise.all([structureRepr(g, GaussianSurfaceRepresentationProvider, s, { renderMerged: false })]),
+        scene: (g) => Promise.all([structureRepr(g, GaussianSurfaceRepresentationProvider, s, {})]),
         highlight: true,
         rotate: true,
       };
@@ -916,8 +901,7 @@ export const RenderBundleCases: BenchmarkCase<any>[] = [
     async () => {
       const s = await chainGrid(1356);
       return {
-        scene: (g) =>
-          Promise.all([structureRepr(g, GaussianSurfaceRepresentationProvider, s, { renderMerged: false })]),
+        scene: (g) => Promise.all([structureRepr(g, GaussianSurfaceRepresentationProvider, s, {})]),
         highlight: true,
         props: DrawLists,
         rotate: true,
@@ -930,8 +914,7 @@ export const RenderBundleCases: BenchmarkCase<any>[] = [
     async () => {
       const s = await chainGrid(1356);
       return {
-        scene: (g) =>
-          Promise.all([structureRepr(g, GaussianSurfaceRepresentationProvider, s, { renderMerged: false })]),
+        scene: (g) => Promise.all([structureRepr(g, GaussianSurfaceRepresentationProvider, s, {})]),
       };
     },
   ),
@@ -941,8 +924,7 @@ export const RenderBundleCases: BenchmarkCase<any>[] = [
     async () => {
       const s = await chainGrid(1356);
       return {
-        scene: (g) =>
-          Promise.all([structureRepr(g, GaussianSurfaceRepresentationProvider, s, { renderMerged: false })]),
+        scene: (g) => Promise.all([structureRepr(g, GaussianSurfaceRepresentationProvider, s, {})]),
         props: DrawLists,
       };
     },
@@ -953,8 +935,7 @@ export const RenderBundleCases: BenchmarkCase<any>[] = [
     async () => {
       const s = await chainGrid(1356);
       return {
-        scene: (g) =>
-          Promise.all([structureRepr(g, GaussianSurfaceRepresentationProvider, s, { renderMerged: false })]),
+        scene: (g) => Promise.all([structureRepr(g, GaussianSurfaceRepresentationProvider, s, {})]),
         rotate: true,
       };
     },
@@ -965,8 +946,7 @@ export const RenderBundleCases: BenchmarkCase<any>[] = [
     async () => {
       const s = await chainGrid(1356);
       return {
-        scene: (g) =>
-          Promise.all([structureRepr(g, GaussianSurfaceRepresentationProvider, s, { renderMerged: false })]),
+        scene: (g) => Promise.all([structureRepr(g, GaussianSurfaceRepresentationProvider, s, {})]),
         props: DrawLists,
         rotate: true,
       };
@@ -991,34 +971,12 @@ export const RenderBundleCases: BenchmarkCase<any>[] = [
     async () => ({ scene: () => boxes(1000), zoom: 0.3, rotate: true, props: DrawLists }),
   ),
   renderCase(
-    'render-bundles/units-1000-unmerged-drawlists',
-    '`render/units-1000-spacefill-unmerged` with draw lists',
-    async () => {
-      const s = await chainGrid(1000);
-      return {
-        scene: (g) => Promise.all([structureRepr(g, SpacefillRepresentationProvider, s, { renderMerged: false })]),
-        props: DrawLists,
-      };
-    },
-  ),
-  renderCase(
     'render-bundles/boxes-1000-record',
     '`render/boxes-1000`, the opaque pass recorded every frame',
     async () => ({
       scene: () => boxes(1000),
       bundles: { record: true },
     }),
-  ),
-  renderCase(
-    'render-bundles/units-1000-unmerged-record',
-    '`render/units-1000-spacefill-unmerged`, the opaque pass recorded every frame',
-    async () => {
-      const s = await chainGrid(1000);
-      return {
-        scene: (g) => Promise.all([structureRepr(g, SpacefillRepresentationProvider, s, { renderMerged: false })]),
-        bundles: { record: true },
-      };
-    },
   ),
   renderCase(
     'render-bundles/boxes-1000-rotating',
@@ -1108,20 +1066,20 @@ const MergingModes = [
 ] as const;
 
 /**
- * Merging (on demand): `count` chains of 10 atoms as the units of one representation,
- * merged into one render object or not (`renderMerged` on or off): frames still, with a hover per frame, or with a color
+ * Merging (on demand): `count` chains of 10 atoms as the units of one representation, merged into one render object:
+ * frames still, with a hover per frame, or with a color
  * theme change per frame (`update`); with the setup times and the GPU bytes
  */
 export const MergingCases: BenchmarkCase<RenderInput>[] = MergingCounts.flatMap((count) =>
   MergingKinds.flatMap((kind) =>
-    [true, false].flatMap((merged) =>
+    [true].flatMap((merged) =>
       MergingModes.map((mode) =>
         renderCase(
           `merging/units-${count}-${kind.name}-${merged ? 'merged' : 'unmerged'}${mode.suffix}`,
           `${count} chains as ${kind.name}, ${merged ? 'merged' : 'a render object per unit'}: ${mode.label}`,
           async () => {
             const s = await chainGrid(count);
-            const props = { renderMerged: merged };
+            const props = {};
             let update: RenderInput['update'];
             if (mode.suffix === '-hover') {
               update = (canvas3d, _reprs, i) => {
@@ -1185,7 +1143,7 @@ export const MergingCases: BenchmarkCase<RenderInput>[] = MergingCounts.flatMap(
  * surfaces, many vertices per unit (on WebGL2 without base instances, merged objects read their instance data per
  * vertex from a texture, `dInstanceData`)
  */
-const MergingAssemblyMeshCases: BenchmarkCase<RenderInput>[] = [true, false].flatMap((merged) =>
+const MergingAssemblyMeshCases: BenchmarkCase<RenderInput>[] = [true].flatMap((merged) =>
   [undefined, { width: 320, height: 180 }, LargeSize].map((size) =>
     renderCase(
       `merging/assembly-gaussian-${merged ? 'merged' : 'unmerged'}${size ? `-${size.width}` : ''}`,
@@ -1194,8 +1152,7 @@ const MergingAssemblyMeshCases: BenchmarkCase<RenderInput>[] = [true, false].fla
         const s = await getRootAssembly();
         return {
           size,
-          scene: (g) =>
-            Promise.all([structureRepr(g, GaussianSurfaceRepresentationProvider, s, { renderMerged: merged })]),
+          scene: (g) => Promise.all([structureRepr(g, GaussianSurfaceRepresentationProvider, s, {})]),
         };
       },
     ),
@@ -1206,14 +1163,13 @@ const MergingAssemblyMeshCases: BenchmarkCase<RenderInput>[] = [true, false].fla
  * The assembly's colors smoothed, per vertex and instance (element-index): merged on the CPU (data per vertex and
  * instance), unmerged a grid per unit on the GPU; CPU meshes on every backend (`tryUseGpu: false`)
  */
-const MergingSmoothCases: BenchmarkCase<RenderInput>[] = [true, false].map((merged) =>
+const MergingSmoothCases: BenchmarkCase<RenderInput>[] = [true].map((merged) =>
   renderCase(
     `merging/assembly-gaussian-smooth-${merged ? 'merged' : 'unmerged'}`,
     `60 copies of 7qpd (420 units) as Gaussian surfaces colored by element-index, smoothed, ${merged ? 'merged' : 'a render object per unit'}`,
     async () => {
       const s = await getRootAssembly();
       const props = {
-        renderMerged: merged,
         tryUseGpu: false,
         smoothColors: { name: 'on', params: { resolutionFactor: 2, sampleStride: 3 } },
       };
@@ -1267,7 +1223,7 @@ export const MergingUniqueMeshCases: BenchmarkCase<RenderInput>[] = [
   ['4v6x', 'a ribosome, about 89 chains'],
   ['3j3q', 'the HIV-1 capsid, 1356 chains'],
 ].flatMap(([id, about]) =>
-  [true, false].flatMap((merged) =>
+  [true].flatMap((merged) =>
     [undefined, { width: 320, height: 180 }, LargeSize].map((size) =>
       renderCase(
         `merging/${id}-gaussian-${merged ? 'merged' : 'unmerged'}${size ? `-${size.width}` : ''}`,
@@ -1279,9 +1235,7 @@ export const MergingUniqueMeshCases: BenchmarkCase<RenderInput>[] = [
             setupNotes: true,
             byteNotes: true,
             scene: (g) =>
-              Promise.all([
-                structureRepr(g, GaussianSurfaceRepresentationProvider, s, { renderMerged: merged, tryUseGpu: false }),
-              ]),
+              Promise.all([structureRepr(g, GaussianSurfaceRepresentationProvider, s, { tryUseGpu: false })]),
           };
         },
       ),
@@ -1317,7 +1271,7 @@ export const MergingMemoryCases: BenchmarkCase<RenderInput>[] = [
  * 4V6X's Gaussian surfaces (CPU meshes) with the near plane at half the scene's radius (`cameraRadius`): the
  * solid-interior caps of the near cut (on by default for Gaussian surfaces), merged or a render object per unit
  */
-export const MergingNearCapCases: BenchmarkCase<RenderInput>[] = [true, false].map((merged) =>
+export const MergingNearCapCases: BenchmarkCase<RenderInput>[] = [true].map((merged) =>
   renderCase(
     `merging/4v6x-gaussian-${merged ? 'merged' : 'unmerged'}-near`,
     `4v6x as Gaussian surfaces, ${merged ? 'merged' : 'a render object per unit'}, the near plane at half the scene's radius (caps)`,
@@ -1325,10 +1279,7 @@ export const MergingNearCapCases: BenchmarkCase<RenderInput>[] = [true, false].m
       const s = await getBenchmarkEntry('4v6x.bcif');
       return {
         cameraRadius: 0.5,
-        scene: (g) =>
-          Promise.all([
-            structureRepr(g, GaussianSurfaceRepresentationProvider, s, { renderMerged: merged, tryUseGpu: false }),
-          ]),
+        scene: (g) => Promise.all([structureRepr(g, GaussianSurfaceRepresentationProvider, s, { tryUseGpu: false })]),
       };
     },
   ),
@@ -1344,7 +1295,7 @@ const SetupProviders: [string, RepresentationProvider<any, any, any>][] = [
   ['ball-and-stick', BallAndStickRepresentationProvider],
 ];
 export const MergingSetupCases: BenchmarkCase<RenderInput>[] = SetupProviders.flatMap(([name, provider]) =>
-  [true, false].map((merged) =>
+  [true].map((merged) =>
     renderCase(
       `merging/4v6x-${name}-${merged ? 'merged' : 'unmerged'}`,
       `4v6x as ${name}, ${merged ? 'merged' : 'a render object per unit'}: the setup and first frame`,
@@ -1352,7 +1303,7 @@ export const MergingSetupCases: BenchmarkCase<RenderInput>[] = SetupProviders.fl
         const s = await getBenchmarkEntry('4v6x.bcif');
         return {
           setupNotes: true,
-          scene: (g) => Promise.all([structureRepr(g, provider, s, { renderMerged: merged })]),
+          scene: (g) => Promise.all([structureRepr(g, provider, s, {})]),
         };
       },
     ),
@@ -1363,7 +1314,7 @@ export const MergingSetupCases: BenchmarkCase<RenderInput>[] = SetupProviders.fl
  * Cylinders: the bonds of 4V6X's ball-and-stick (`4v6x.bcif` in `.benchmark/`), merged or not, with their CPU and
  * GPU bytes: the baseline of cylinders as per-item data
  */
-export const CylinderCases: BenchmarkCase<RenderInput>[] = [true, false].map((merged) =>
+export const CylinderCases: BenchmarkCase<RenderInput>[] = [true].map((merged) =>
   renderCase(
     `cylinders/4v6x-bonds-${merged ? 'merged' : 'unmerged'}`,
     `4v6x ball-and-stick bonds only (cylinder impostors), ${merged ? 'merged' : 'a render object per unit'}`,
@@ -1376,7 +1327,6 @@ export const CylinderCases: BenchmarkCase<RenderInput>[] = [true, false].map((me
           Promise.all([
             structureRepr(g, BallAndStickRepresentationProvider, s, {
               visuals: ['intra-bond', 'inter-bond'],
-              renderMerged: merged,
             }),
           ]),
       };
@@ -1385,7 +1335,7 @@ export const CylinderCases: BenchmarkCase<RenderInput>[] = [true, false].map((me
 );
 
 /** Lines: 4V6X as the line representation (bonds as lines), merged or not, with their CPU and GPU bytes */
-export const LineCases: BenchmarkCase<RenderInput>[] = [true, false].map((merged) =>
+export const LineCases: BenchmarkCase<RenderInput>[] = [true].map((merged) =>
   renderCase(
     `lines/4v6x-${merged ? 'merged' : 'unmerged'}`,
     `4v6x as lines (bonds), ${merged ? 'merged' : 'a render object per unit'}`,
@@ -1394,7 +1344,7 @@ export const LineCases: BenchmarkCase<RenderInput>[] = [true, false].map((merged
       return {
         setupNotes: true,
         byteNotes: true,
-        scene: (g) => Promise.all([structureRepr(g, LineRepresentationProvider, s, { renderMerged: merged })]),
+        scene: (g) => Promise.all([structureRepr(g, LineRepresentationProvider, s, {})]),
       };
     },
   ),
@@ -1419,14 +1369,14 @@ async function instancedChainGrid(units: number, copies: number) {
  * between, where culling on the GPU starts to pay (`AutoGpuCullingMinInstances`)
  */
 export const MergingInstanceCases: BenchmarkCase<RenderInput>[] = [100, 300, 500, 1000].flatMap((copies) =>
-  (['merged', 'merged-gpu', 'unmerged'] as const).flatMap((kind) =>
+  (['merged', 'merged-gpu'] as const).flatMap((kind) =>
     [true, false].map((rotate) =>
       renderCase(
         `merging/instances-${copies}-spacefill-${kind}${rotate ? '-rotating' : ''}`,
-        `100 chains of ${copies} copies each as spacefill, ${kind === 'unmerged' ? 'a render object per unit' : kind === 'merged' ? 'merged' : 'merged, culled on the GPU'}${rotate ? ', rotating' : ''}`,
+        `100 chains of ${copies} copies each as spacefill, ${kind === 'merged' ? 'merged' : 'merged, culled on the GPU'}${rotate ? ', rotating' : ''}`,
         async () => {
           const s = await instancedChainGrid(100, copies);
-          const props = { renderMerged: kind !== 'unmerged', gpuCulling: kind === 'merged-gpu' };
+          const props = { gpuCulling: kind === 'merged-gpu' };
           return {
             scene: (g) => Promise.all([structureRepr(g, SpacefillRepresentationProvider, s, props)]),
             setupNotes: true,
@@ -1452,7 +1402,7 @@ export const MergingInstanceCartoonCases: BenchmarkCase<RenderInput>[] = [100, 3
         `100 chains of ${copies} copies each as cartoon, merged${kind === 'merged-gpu' ? ', culled on the GPU' : ''}${rotate ? ', rotating' : ''}`,
         async () => {
           const s = await instancedChainGrid(100, copies);
-          const props = { renderMerged: true, gpuCulling: kind === 'merged-gpu' };
+          const props = { gpuCulling: kind === 'merged-gpu' };
           return {
             scene: (g) => Promise.all([structureRepr(g, CartoonRepresentationProvider, s, props)]),
             rotate,
@@ -1477,7 +1427,6 @@ export const MergingSegmentDataCases: BenchmarkCase<RenderInput>[] = (['merged',
         async () => {
           const s = await instancedChainGrid(100, 1000);
           const props = {
-            renderMerged: true,
             gpuCulling: kind === 'merged-gpu',
             ...(use === 'tumble'
               ? {
@@ -2381,7 +2330,7 @@ export const MarkingAssemblyCases: BenchmarkCase<RenderInput>[] = (['redraw', 'r
         ]);
       };
       return {
-        scene: (g) => Promise.all([structureRepr(g, SpacefillRepresentationProvider, s, { renderMerged: false })]),
+        scene: (g) => Promise.all([structureRepr(g, SpacefillRepresentationProvider, s, {})]),
         yieldFrames: true,
         unforced: mode === 'redraw',
         rotate: mode === 'rotating',
@@ -2510,7 +2459,7 @@ export const SphereRasterSceneCases: BenchmarkCase<RenderInput>[] = (
     ['globule-6k', () => globuleStructure(6000), {}],
     ['globule-300k', getGlobule, {}],
     ['assembly-60', getRootAssembly, {}],
-    ['assembly-60-merged', getRootAssembly, { renderMerged: true, gpuCulling: true }],
+    ['assembly-60-merged', getRootAssembly, { gpuCulling: true }],
   ] as const
 ).flatMap(([scene, structure, props]) =>
   [undefined, 0.3].flatMap((zoom) =>
@@ -2580,7 +2529,6 @@ export const SphereRasterIGpuCases: BenchmarkCase<RenderInput>[] = (
           scene: (g) =>
             Promise.all([
               structureRepr(g, SpacefillRepresentationProvider, s, {
-                renderMerged: true,
                 gpuCulling: true,
                 ...(clip && { clip }),
               }),
@@ -2772,7 +2720,7 @@ function elementIndexColor(i: number) {
  * texels, copied into the merged object. Frames still or with the palette changed per frame
  */
 export const MergingAssemblyCases: BenchmarkCase<RenderInput>[] = MergingKinds.flatMap((kind) =>
-  [true, false].flatMap((merged) =>
+  [true].flatMap((merged) =>
     ['', '-recolor'].map((suffix) =>
       renderCase(
         `merging/assembly-60-${kind.name}-${merged ? 'merged' : 'unmerged'}${suffix}`,
@@ -2794,8 +2742,7 @@ export const MergingAssemblyCases: BenchmarkCase<RenderInput>[] = MergingKinds.f
               }
             : undefined;
           return {
-            scene: (g) =>
-              Promise.all([structureRepr(g, kind.provider, s, { renderMerged: merged }, elementIndexColor(1))]),
+            scene: (g) => Promise.all([structureRepr(g, kind.provider, s, {}, elementIndexColor(1))]),
             setupNotes: true,
             byteNotes: true,
             update,
@@ -2915,7 +2862,7 @@ export const ClipMeshCases: BenchmarkCase<RenderInput>[] = (['cartoon', 'gaussia
   ([false, true] as const).map((merged) =>
     renderCase(
       `clip/assembly-60-${repr}-plane${merged ? '-merged' : ''}`,
-      `60 copies of 7qpd as ${repr === 'cartoon' ? 'cartoon' : 'Gaussian surfaces'}, zoomed to 0.5, cut through the center by a plane by pixel; ${merged ? 'merged, culled on the GPU' : 'instanced, culled on the CPU'}`,
+      `60 copies of 7qpd as ${repr === 'cartoon' ? 'cartoon' : 'Gaussian surfaces'}, zoomed to 0.5, cut through the center by a plane by pixel; ${merged ? 'merged, culled on the GPU' : 'merged, culled on the CPU'}`,
       async () => {
         const s = await getRootAssembly();
         const clip = {
@@ -2931,7 +2878,7 @@ export const ClipMeshCases: BenchmarkCase<RenderInput>[] = (['cartoon', 'gaussia
             },
           ],
         };
-        const props = { clip, ...(merged && { renderMerged: true, gpuCulling: true }) };
+        const props = { clip, ...(merged && { gpuCulling: true }) };
         return {
           zoom: 0.5,
           yieldFrames: true,

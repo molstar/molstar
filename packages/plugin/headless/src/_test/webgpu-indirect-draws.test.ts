@@ -75,12 +75,12 @@ describe.skipIf(!WebGPU.module)('indirect draw lists on WebGPU', () => {
       // colored by chain: a segment drawn with another one's instances (their segment data) shows
       await representation.addRepresentation(structure, {
         type: 'spacefill',
-        typeParams: { renderMerged: true },
+        typeParams: {},
         color: 'chain-id',
       });
       await representation.addRepresentation(structure, {
         type: 'ball-and-stick',
-        typeParams: { renderMerged: true, sizeFactor: 0.2, tryUseImpostor: false },
+        typeParams: { sizeFactor: 0.2, tryUseImpostor: false },
         color: 'chain-id',
       });
       plugin.canvas3d!.commit(true);

@@ -53,8 +53,8 @@ The merged path grew beside the per-group one instead of under it. Five choices 
   surface's texture mesh, a kind found not to merge, `unmergeableAt` and `mergesAgain` a kind each). A kind's groups the
   same array while they are (the merged visual's fast paths); the per-group visuals kept by group. Why: one place
   that holds geometry, theme data, markers and layers per group; a factory choosing by the data merged too (the
-  Gaussian surface's CPU meshes beside its GPU ones). Still per group: `renderMerged` off (the per-group objects merged
-  by type for GPU culling) and fewer than two groups, until both go (below).
+  Gaussian surface's CPU meshes beside its GPU ones). One group merged too (done): a kind's groups always in its
+  merged visual.
 - **Every part merged.** What `canMergeValues` rejects today, and what it takes:
   - **Palettes** (`dUsePalette`, done): no built-in structure color theme sets one (only `volume-value`, a volume
     theme); the palette, its domain and default color are the theme's, so shared by all segments (the merged values
@@ -84,13 +84,22 @@ The merged path grew beside the per-group one instead of under it. Five choices 
   - **GPU surfaces** (`texture-mesh`, `direct` colors): geometry and colors written on the GPU, per object textures
     on WebGL. On WebGPU the surfaces' vertices are chunks of one arena already (`gpu-surface-buffers.md`), which
     segments could address; on WebGL they stay plain objects, a render object a segment: the only plain kind left.
-- **`renderMerged` retired** for units representations: the small counts measured no worse merged
+- **`renderMerged` retired** (done, removed from the geometry params): units representations always merge; the
+  particle targets merge two or more objects of a type, or one culled on the GPU (`resolveMergedCulling`). The small
+  counts measured no worse merged
   (`merging/units-{2,5,10,30}-{spacefill,cartoon}-*`, WebGL2 and WebGPU, RTX 4070 Ti): frames still, hovered, rotating,
   recolored, clipped and with a prop changed within the noise (0.3 to 1.2 ms either way, a rerun's order flipping);
   updates at 30 units cheaper merged (a prop 0.10 against 0.44 ms, a clip 0.09 against 0.20); setup alike (2 to 13 ms).
   `auto`'s threshold of 30 came from per-group merging, before records. The JS heap a scene retained is too noisy at
   these sizes to compare (0 to 6.5 MB for one scene).
-  `unmergeableAt`, `mergesAgain`, the probe and `mergeRenderObjectsByType` for units go.
+  The representation no longer merges its per-group objects by type (`mergeRenderObjectsByType` the particle targets'
+  alone). What merging everything exposed, fixed with it: a merged object's instances split for the sphere raster by
+  their whole spheres, one through the near plane drawn as impostors, and `'only'` skips the impostors of the objects
+  it draws whole alone (`isDrawnWhole`); the overlay's screen-sized planes read a merged object's transforms and
+  segment spheres; a new context keeps the merged objects unless they hold foreign resources, Canvas3D's image waiting
+  on the representations' updates; records written before a scene adds the object (a layer by `setState`) synced as
+  the renderable is made, else WebGPU's program lacks the layer. Left: a merged object of one instance through the near
+  plane never rasterized; layers on merged surfaces unsmoothed (above).
 - **One table of segment keys** a type (done, `getMergeSegmentKeys`): a segment owns its record's keys (what the merged
   object reads, `MergeRecordKeys`) and `MergeSegmentKeys` (what differs by segment that the merged object has its own
   of: `uInstanceCount`, `uInvariantBoundingSphere`, a mesh's `meta`, the transform cells), its part's shared values
@@ -142,7 +151,7 @@ The merged path grew beside the per-group one instead of under it. Five choices 
    updatable from what it holds and a rebuild's current objects drawn. Tested: a throw mid-update, then the props it
    was made with again, drawn as made; a rebuild that throws keeps its objects; a backend switch alone checks each
    group against the new context; a builder's version moved with nothing else changed.
-4. **Every part merged**: palettes; the vertex-instance index (colors, sizes, layers); smoothing as the vertex types
+4. **Every part merged** (done but smoothed layers): palettes; the vertex-instance index (colors, sizes, layers); smoothing as the vertex types
    for merged parts; parts by geometry type (`selectVisual`), GPU surfaces as plain objects on WebGL; one group merged
    as well. Then the representation's switch, the probe, the retry and `renderMerged` for units removed. Tests: images
    as unmerged for each case lifted (palette, `vertexInstance`, smoothed colors and layers), markers kept through a

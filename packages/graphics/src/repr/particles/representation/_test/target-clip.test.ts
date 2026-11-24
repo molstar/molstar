@@ -80,7 +80,7 @@ describe('particle targets, a clip object moved', () => {
   it('sets the moved clip on what is drawn, the merged object kept', async () => {
     const list = particles();
     const repr = create();
-    await repr.createOrUpdate({ renderMerged: true, gpuCulling: false, clip: clipOf(1) }, list).run();
+    await repr.createOrUpdate({ gpuCulling: false, clip: clipOf(1) }, list).run();
     expect(repr.renderObjects).toHaveLength(1);
     const merged = repr.renderObjects[0];
     expect(drawnClip(repr)).toEqual([[1]]);
@@ -96,10 +96,10 @@ describe('particle targets, a clip object moved', () => {
     repr.destroy();
   });
 
-  it('sets it on a merged object alone, not its other members: one leaving the group takes it then', async () => {
+  it('sets it on a merged object alone, not its other members: a full update gives them it', async () => {
     const list = particles();
     const repr = create();
-    await repr.createOrUpdate({ renderMerged: true, gpuCulling: false, clip: clipOf(1) }, list).run();
+    await repr.createOrUpdate({ gpuCulling: false, clip: clipOf(1) }, list).run();
     // the members' values its records (merged of the targets' objects)
     const { records } = (repr.renderObjects[0] as unknown as { merged: { records: readonly unknown[] } }).merged;
     expect(records).toHaveLength(2);
@@ -109,9 +109,11 @@ describe('particle targets, a clip object moved', () => {
     expect(drawnClip(repr)).toEqual([[3]]);
     // the second member not read while merged, not set
     expect(clipX(records[1])).toBe(1);
-    // no longer merged: each drawn alone, with the clip as moved
-    await repr.createOrUpdate({ renderMerged: false }).run();
-    expect(drawnClip(repr)).toEqual([[3], [3]]);
+    // a full update (another prop): every member's clip as moved
+    await repr.createOrUpdate({ alpha: 0.9 }).run();
+    expect(drawnClip(repr)).toEqual([[3]]);
+    const after = (repr.renderObjects[0] as unknown as { merged: { records: readonly unknown[] } }).merged.records;
+    expect(after.map(clipX)).toEqual([3, 3]);
     repr.destroy();
   });
 
@@ -119,18 +121,23 @@ describe('particle targets, a clip object moved', () => {
     const list = particles();
     const repr = create();
     const built = clipOf(1);
-    await repr.createOrUpdate({ renderMerged: true, gpuCulling: false, clip: built }, list).run();
+    await repr.createOrUpdate({ gpuCulling: false, clip: built }, list).run();
     await repr.createOrUpdate({ clip: clipOf(3) }).run();
     expect(drawnClip(repr)).toEqual([[3]]);
-    await repr.createOrUpdate({ renderMerged: false, clip: built }).run();
-    expect(drawnClip(repr)).toEqual([[1], [1]]);
+    // the clip it was built with, with another prop (a full update): every member's that one
+    await repr.createOrUpdate({ alpha: 0.9, clip: built }).run();
+    expect(drawnClip(repr)).toEqual([[1]]);
+    const clipX = (values: unknown) =>
+      (values as { clipObjects: { ref: { value: Clip.Objects } } }).clipObjects.ref.value.position[0];
+    const { records } = (repr.renderObjects[0] as unknown as { merged: { records: readonly unknown[] } }).merged;
+    expect(records.map(clipX)).toEqual([1, 1]);
     repr.destroy();
   });
 
   it('updates the targets in full where the clip changes its defines or another prop changes with it', async () => {
     const list = particles();
     const repr = create();
-    await repr.createOrUpdate({ renderMerged: true, gpuCulling: false, clip: clipOf(1) }, list).run();
+    await repr.createOrUpdate({ gpuCulling: false, clip: clipOf(1) }, list).run();
 
     // a second clip object: another define, a full update
     const lod = lodVersion(repr);

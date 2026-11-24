@@ -293,7 +293,7 @@ export const RendererParams = {
   }),
   sphereRaster: PD.Select('auto', PD.arrayToOptions(['off', 'auto', 'on', 'only'] as const), {
     description:
-      'Draw small opaque spheres by compute kernels instead of impostor quads (WebGPU with 64-bit atomics, perspective views). "auto" draws those of objects culled on the GPU (merged, many instances: their instances split), where measured faster; "on" also those of unmerged objects (split per sphere, their quads drawn all the same: no faster); merged objects need GPU culling either way (`gpuCulling`); "only" (for testing) draws all spheres of the eligible objects by the kernels, whatever their size, and none as quads (spheres through the near plane are missing).',
+      'Draw small opaque spheres by compute kernels instead of impostor quads (WebGPU with 64-bit atomics, perspective views). "auto" draws those of objects culled on the GPU (merged, many instances: their instances split), where measured faster; "on" also those of unmerged objects (split per sphere, their quads drawn all the same: no faster); merged objects need GPU culling either way (`gpuCulling`); "only" (for testing) draws all spheres of the eligible objects by the kernels, whatever their size, and none as quads of the objects it draws whole (their spheres through the near plane are missing; an instance of a merged object through it drawn as quads).',
   }),
   sphereRasterRadius: PD.Numeric(
     24,

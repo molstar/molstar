@@ -88,12 +88,11 @@ describe('getTargetCellSize', () => {
   });
 });
 
-// the merge's rule ahead: only where the GPU can cull and the representation merges
+// the merge's rule ahead: only where the GPU can cull
 describe('isTargetCulledOnGpu', () => {
   const particles = { count: 10_000_000, targetInfo: new Map([[0, {}]]) } as unknown as ParticleList;
-  it('is false without a GPU culler or without merging', () => {
-    expect(isTargetCulledOnGpu(particles, { gpuCulling: true, renderMerged: 'auto' } as never, undefined)).toBe(false);
-    expect(isTargetCulledOnGpu(particles, { gpuCulling: true, renderMerged: false } as never, undefined)).toBe(false);
+  it('is false without a GPU culler', () => {
+    expect(isTargetCulledOnGpu(particles, { gpuCulling: true } as never, undefined)).toBe(false);
   });
 });
 

@@ -16,6 +16,7 @@ import { readChunkedVertices } from '@molstar/graphics/gl/compute/marching-cubes
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { WebGPU } from './webgpu-module.js';
+import { getMergedMembers, isMergedRenderObject } from '@molstar/graphics/gl/render-object';
 
 /** `count` carbon atoms on a grid in a ball at protein density (11 Å³ per atom), as PDB */
 function globulePdb(count: number) {
@@ -186,20 +187,21 @@ describe.skipIf(!WebGPU.module)('Gaussian surfaces on WebGPU: CPU or GPU', () =>
       const model = await plugin.builders.structure.createModel(trajectory);
       const structure = await plugin.builders.structure.createStructure(model);
       const canvas = plugin.canvas3d!;
+      // per unit: a merged object's members (`getMergedMembers`), merged said
       const types = async () => {
         canvas.commit(true);
         await canvas.graphics.resources.pending.whenReady();
         return canvas
           .getRenderObjects()
-          .map((o) => o.type)
+          .flatMap((o) => (isMergedRenderObject(o) ? getMergedMembers(o).map(() => `${o.type} merged`) : [o.type]))
           .sort();
       };
       const repr = await plugin.builders.structure.representation.addRepresentation(structure, {
         type: 'gaussian-surface',
         typeParams: { quality: 'custom', resolution: 1, tryUseGpu: true },
       });
-      // the large chain on the GPU, the small ones on the CPU
-      expect(await types()).toEqual(['mesh', 'mesh', 'texture-mesh']);
+      // the large chain on the GPU (its own object), the small ones on the CPU (merged)
+      expect(await types()).toEqual(['mesh merged', 'mesh merged', 'texture-mesh']);
       // on a fine grid the small chains are not small: recreated on the GPU
       await plugin
         .build()

@@ -46,6 +46,26 @@ const Points = [
 ];
 
 // the pick passes replayed from the renderer's draw lists find what they find drawn directly
+/**
+ * `pdb`'s atoms of each chain as a structure of its own, with a representation each: an object per chain (a
+ * representation's units merge into one)
+ */
+async function addPerChain(
+  plugin: HeadlessPluginContext,
+  pdb: string,
+  representation: { type: string; typeParams?: { [k: string]: unknown } },
+) {
+  const lines = pdb.split('\n').filter((l) => l.startsWith('ATOM'));
+  for (const chain of [...new Set(lines.map((l) => l[21]))]) {
+    const text = `${lines.filter((l) => l[21] === chain).join('\n')}\nEND\n`;
+    const data = await plugin.builders.data.rawData({ data: text, label: `chain ${chain}` });
+    const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
+    const model = await plugin.builders.structure.createModel(trajectory);
+    const structure = await plugin.builders.structure.createStructure(model);
+    await plugin.builders.structure.representation.addRepresentation(structure, representation as never);
+  }
+}
+
 describe.skipIf(!WebGPU.module)('draw lists on WebGPU', () => {
   it('pick as the direct passes do, replayed', async () => {
     const plugin = await HeadlessPluginContext.create(
@@ -337,11 +357,7 @@ describe.skipIf(!WebGPU.module)('draw lists on WebGPU', () => {
     );
     try {
       await plugin.init();
-      const data = await plugin.builders.data.rawData({ data: TwoChainsPdb, label: 'test' });
-      const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
-      const model = await plugin.builders.structure.createModel(trajectory);
-      const structure = await plugin.builders.structure.createStructure(model);
-      await plugin.builders.structure.representation.addRepresentation(structure, { type: 'spacefill' });
+      await addPerChain(plugin, TwoChainsPdb, { type: 'spacefill' });
       const canvas = plugin.canvas3d!;
       canvas.setProps({
         multiSample: { ...canvas.props.multiSample, mode: 'off' },
@@ -544,7 +560,7 @@ describe.skipIf(!WebGPU.module)('draw lists on WebGPU', () => {
       const structure = await plugin.builders.structure.createStructure(model);
       await plugin.builders.structure.representation.addRepresentation(structure, {
         type: 'spacefill',
-        typeParams: { renderMerged: true },
+        typeParams: {},
       });
       const canvas = plugin.canvas3d!;
       canvas.setProps({
@@ -666,12 +682,8 @@ describe.skipIf(!WebGPU.module)('draw lists on WebGPU', () => {
     );
     try {
       await plugin.init();
-      const data = await plugin.builders.data.rawData({ data: TwoChainsPdb, label: 'test' });
-      const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
-      const model = await plugin.builders.structure.createModel(trajectory);
-      const structure = await plugin.builders.structure.createStructure(model);
       // an object per chain, side by side (12 Å apart); drawn alike at every distance (no levels)
-      await plugin.builders.structure.representation.addRepresentation(structure, {
+      await addPerChain(plugin, TwoChainsPdb, {
         type: 'gaussian-surface',
         typeParams: { tryUseGpu: false },
       });
@@ -738,12 +750,8 @@ describe.skipIf(!WebGPU.module)('draw lists on WebGPU', () => {
     );
     try {
       await plugin.init();
-      const data = await plugin.builders.data.rawData({ data: TwoChainsPdb, label: 'test' });
-      const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
-      const model = await plugin.builders.structure.createModel(trajectory);
-      const structure = await plugin.builders.structure.createStructure(model);
       // solid interiors on by default for Gaussian surfaces; an object per chain
-      await plugin.builders.structure.representation.addRepresentation(structure, {
+      await addPerChain(plugin, TwoChainsPdb, {
         type: 'gaussian-surface',
         typeParams: { tryUseGpu: false },
       });

@@ -322,7 +322,9 @@ export function createGpuCulling(host: GpuCullingHost): GpuCulling {
     prepareRaster,
     isRasterAvailable,
     isRasterCandidate,
-    isRasterDrawn: (r) => sphereRasterOnly && !!sphereRasterPass?.isDrawn(r),
+    // a merged object split by its culler: its impostors draw the instances the raster does not (their lists without
+    // the raster's region)
+    isRasterDrawn: (r) => sphereRasterOnly && !!sphereRasterPass?.isDrawnWhole(r),
     resolveRaster: () => {
       if (!sphereRasterPass?.active) return;
       ctx.setRenderState(OpaqueState);

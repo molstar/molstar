@@ -628,7 +628,7 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
       const structure = await plugin.builders.structure.createStructure(model);
       await plugin.builders.structure.representation.addRepresentation(structure, {
         type: 'spacefill',
-        typeParams: { renderMerged: true, gpuCulling: true },
+        typeParams: { gpuCulling: true },
       });
       const canvas = plugin.canvas3d!;
       canvas.setProps({ renderer: { ...canvas.props.renderer, drawLists: true } });
@@ -695,7 +695,7 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
       const structure = await plugin.builders.structure.createStructure(model);
       await plugin.builders.structure.representation.addRepresentation(structure, {
         type: 'spacefill',
-        typeParams: { renderMerged: true, gpuCulling: true },
+        typeParams: { gpuCulling: true },
       });
       const canvas = plugin.canvas3d!;
       canvas.setProps({ renderer: { ...canvas.props.renderer, drawLists: true } });
@@ -753,7 +753,7 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
       await plugin.builders.structure.representation.addRepresentation(structure, {
         type: 'spacefill',
         // a cell per copy and chain
-        typeParams: { renderMerged: true, gpuCulling: true, cellSize: 3, batchSize: 12 },
+        typeParams: { gpuCulling: true, cellSize: 3, batchSize: 12 },
       });
       const canvas = plugin.canvas3d!;
       // the GPU's occlusion test alone (by default, `hiZ.gpu`; Hi-Z's CPU test off)
@@ -790,7 +790,7 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
       plugin.dispose();
     }
   }, 60_000);
-  it('merges one object alone to cull it on the GPU; by default (gpuCulling auto) not with few instances', async () => {
+  it('culls a merged object of one unit on the GPU; by default (gpuCulling auto) not with few instances', async () => {
     const plugin = await createPlugin();
     try {
       const structure = await copiesStructure(plugin);
@@ -800,8 +800,11 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
         return canvas.getRenderObjects().filter((o) => o.state.visible);
       };
       const repr = await plugin.builders.structure.representation.addRepresentation(structure, { type: 'spacefill' });
-      // 40 instances: fewer than `auto` culls on the GPU, the object stays as it is
-      expect(visible().map(isMergedRenderObject)).toEqual([false]);
+      const culledOnGpu = (o: GraphicsRenderObject) =>
+        (o.values as { gpuCulling?: { ref: { value: boolean } } }).gpuCulling?.ref.value;
+      // 40 instances: merged (a units representation's always), fewer than `auto` culls on the GPU
+      expect(visible().map(isMergedRenderObject)).toEqual([true]);
+      expect(visible().map(culledOnGpu)).toEqual([false]);
 
       await plugin.build().delete(repr).commit();
       await plugin.builders.structure.representation.addRepresentation(structure, {
@@ -1879,7 +1882,7 @@ async function createPlugin() {
   return plugin;
 }
 
-/** One chain of 16 atoms, 40 copies: one render object of 40 instances (fewer units than `renderMerged: auto` merges) */
+/** One chain of 16 atoms, 40 copies: one render object of 40 instances (fewer than `gpuCulling: auto` culls on the GPU) */
 async function copiesStructure(plugin: HeadlessPluginContext) {
   const f = (v: number) => v.toFixed(3).padStart(8);
   const atoms = Array.from({ length: 16 }, (_, i) => {

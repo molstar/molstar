@@ -23,8 +23,9 @@ same with batching, 2.43 ms). Merging works on WebGL as well.
 - **Where**: units representations (`units-representation.ts`) and particles, per geometry kind
   (`mergeRenderObjectsByType`): meshes, spheres, cylinders, lines, points (`MergedTypes`); not text, images, texture
   meshes, direct volumes.
-- **When**: `renderMerged`: on, off, or `auto`, more than 30 units (`AutoRenderMergedThreshold`, 100 before step 1);
-  members must share a
+- **When**: always for units representations (`renderMerged`, with `auto` from 30 units, removed:
+  [merged-units-core.md](merged-units-core.md)); the particle targets two or more objects of a type, or one culled on
+  the GPU; members must share a
   merge key (`getMergeKey`: the defines, instance granularity, `uLod`, level distances) and supported data types
   (`canMergeValues`: color and size per uniform, instance, group, group instance or vertex, color per vertex and
   instance too; the layers per instance or group instance, overpaint, transparency, emissive and substance per vertex

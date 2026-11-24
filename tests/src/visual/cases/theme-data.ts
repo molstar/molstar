@@ -205,9 +205,8 @@ export const ThemeDataCases: VisualTestCase[] = [
   bumpCase('spacefill-substance', SpacefillRepresentationProvider, {}, Impostor, true),
   animationCase('wiggle-impostor', { wiggleAmplitude: 1 }, {}, Impostor),
   animationCase('wiggle-mesh', { wiggleAmplitude: 1 }, { tryUseImpostor: false }),
-  // tumbled alike merged or not (the seed is the instance's bounding sphere center, not ids or indices)
-  animationCase('tumble-unmerged', { tumbleAmplitude: 10 }, { renderMerged: false }, Impostor),
-  animationCase('tumble-merged', { tumbleAmplitude: 10 }, { renderMerged: true }, Impostor),
+  // tumbled by the instance's bounding sphere center (the seed), not ids or indices: merged, as alone
+  animationCase('tumble-merged', { tumbleAmplitude: 10 }, {}, Impostor),
   paletteCase('isosurface', false),
   paletteCase('isosurface-gpu', true),
   wiggleCase('impostor', {}, Impostor),

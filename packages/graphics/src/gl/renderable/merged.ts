@@ -2567,6 +2567,9 @@ export function MergedRenderable(
 ): Renderable<MergeableValues & SegmentValues> {
   const descriptor = MergedTypeDescriptors[merged.type];
   const schema = getMergedRenderableSchema(merged.type);
+  // the records written since the last sync (a layer set before a scene adds the object): synced first, the program's
+  // defines and the shared data then theirs
+  if (merged.recordsUnchanged && !merged.recordsUnchanged()) merged.sync();
   const members = merged.records;
   const renderValues: MergeableValues & SegmentValues & InternalValues & GlobalDefineValues = {
     ...merged.values,

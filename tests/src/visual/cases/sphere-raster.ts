@@ -121,7 +121,7 @@ async function globuleGrid(ctx: SceneContext, props: { [k: string]: unknown } = 
     ctx.graphics,
     SpacefillRepresentationProvider,
     structure,
-    { renderMerged: merged, gpuCulling: merged, ...props } as any,
+    { gpuCulling: merged, ...props } as any,
     { name: 'element-index' },
   );
 }
@@ -253,7 +253,7 @@ export const SphereRasterCases: VisualTestCase[] = [
           ctx.graphics,
           SpacefillRepresentationProvider,
           builder.getStructure(),
-          { renderMerged: true, gpuCulling: true } as any,
+          { gpuCulling: true } as any,
           { name: 'element-index' },
         ),
       ];

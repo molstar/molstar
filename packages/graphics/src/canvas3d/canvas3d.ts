@@ -1742,9 +1742,10 @@ namespace Canvas3D {
       // representations continue with the new context and update: visuals create again what was rendered or computed
       // with the previous context and geometry relying on what the new one lacks (see `GeometryUtils.isCompatible`),
       // the others change nothing
+      // pending work (`resources.pending`) till each is done: an image waits for what they draw (`ImagePass`)
       for (const repr of reprs.keys()) {
         repr.setGraphics?.(graphics);
-        repr
+        const updating = repr
           .createOrUpdate()
           .run()
           .then(() => {
@@ -1754,6 +1755,7 @@ namespace Canvas3D {
             console.error('Updating a representation for the new graphics context failed', e);
             representationFailed.next({ repr, error: e, reason: 'context' });
           });
+        graphics.resources.pending.track(updating, 'representation update for the new context');
       }
 
       const unowned = dropped.filter((o) => reprs.isDropped(o) && !reprs.owns(o));

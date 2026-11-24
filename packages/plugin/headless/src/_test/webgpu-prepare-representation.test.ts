@@ -131,7 +131,7 @@ describe.skipIf(!WebGPU.module)('representations prepared while they build on We
       await representation.addRepresentation(protein, { type: 'cartoon', color: 'sequence-id' });
       const dna = await loadStructure(plugin, '1bna_confal_pyramids.cif');
       for (const type of ['cartoon', 'ball-and-stick'] as const) await representation.addRepresentation(dna, { type });
-      // 32 chains: 'auto' merging merges them (above `AutoRenderMergedThreshold`), which params alone take as unmerged
+      // 32 chains: merged (a units representation's always), as params alone take them
       const chains = await plugin.builders.data.rawData({ data: chainsPdb(32), label: 'chains' });
       const trajectory = await plugin.builders.structure.parseTrajectory(chains, 'pdb');
       const model = await plugin.builders.structure.createModel(trajectory);
@@ -149,7 +149,7 @@ describe.skipIf(!WebGPU.module)('representations prepared while they build on We
       const fromParams = getTreePrecompileList(plugin, plugin.state.data.tree).objects;
       const paramsKeys = new Set(fromParams.map(getSignatureKey));
       const missingFromParams = recorded.filter((r) => !paramsKeys.has(getSignatureKey(r)));
-      expect(missingFromParams.map((r) => `${r.type}${r.merged ? ' merged' : ''}`)).toEqual(['spheres merged']);
+      expect(missingFromParams.map((r) => `${r.type}${r.merged ? ' merged' : ''}`)).toEqual([]);
     } finally {
       plugin.dispose();
     }

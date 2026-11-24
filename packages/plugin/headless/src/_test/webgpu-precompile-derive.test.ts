@@ -93,8 +93,7 @@ async function addScene(plugin: HeadlessPluginContext) {
     await representation.addRepresentation(dna, { type });
   }
 
-  // merged (`renderMerged` on: 'auto' is derived as unmerged); one chain in 40 copies, merged alone to be culled
-  // on the GPU
+  // merged (a units representation's always); one chain in 40 copies, culled on the GPU
   const loadPdb = async (pdb: string, assembly: boolean) => {
     const data = await plugin.builders.data.rawData({ data: pdb, label: 'pdb' });
     const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
@@ -105,8 +104,8 @@ async function addScene(plugin: HeadlessPluginContext) {
     );
   };
   const chains = await loadPdb(chainsPdb(32, 0), false);
-  await representation.addRepresentation(chains, { type: 'spacefill', typeParams: { renderMerged: true } });
-  await representation.addRepresentation(chains, { type: 'ball-and-stick', typeParams: { renderMerged: true } });
+  await representation.addRepresentation(chains, { type: 'spacefill' });
+  await representation.addRepresentation(chains, { type: 'ball-and-stick' });
   const copies = await loadPdb(copiesPdb(40), true);
   await representation.addRepresentation(copies, { type: 'spacefill', typeParams: { gpuCulling: true } });
   plugin.canvas3d!.commit(true);

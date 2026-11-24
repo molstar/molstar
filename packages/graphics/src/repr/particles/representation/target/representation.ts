@@ -462,7 +462,6 @@ export function ParticleTargetRepresentation(
   function updateRenderObjectList(entries: { visual: TargetVisual; renderObject: GraphicsRenderObject }[]) {
     mergedByType = mergeRenderObjectsByType(
       entries,
-      _props.renderMerged,
       mergedByType,
       renderObjects,
       _props.gpuCulling,

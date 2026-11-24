@@ -18,6 +18,7 @@ import { BuiltInColorThemes } from '@molstar/graphics/theme/color/catalog';
 import { SizeTheme } from '@molstar/graphics/theme/size';
 import { BuiltInSizeThemes } from '@molstar/graphics/theme/size/catalog';
 import { Theme } from '@molstar/graphics/theme/theme';
+import { getMergedMembers, isMergedRenderObject } from '@molstar/graphics/gl/render-object';
 import { BallAndStickRepresentationProvider } from '../representation/ball-and-stick.js';
 
 const registries = (() => {
@@ -54,8 +55,10 @@ describe('units representation transform', () => {
     // a structure with more groups: visuals for the new groups are made now
     await repr.createOrUpdate(params, structure).runInContext(RuntimeContext.Synchronous);
 
-    expect(repr.renderObjects.length).toBeGreaterThan(2);
-    for (const ro of repr.renderObjects) {
+    // the units' objects: a merged object's members
+    const objects = repr.renderObjects.flatMap((o) => (isMergedRenderObject(o) ? [...getMergedMembers(o)] : [o]));
+    expect(objects.length).toBeGreaterThan(2);
+    for (const ro of objects) {
       expect(Mat4.areEqual(ro.values.matrix.ref.value as Mat4, transform, 1e-6)).toBe(true);
     }
   });

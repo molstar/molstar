@@ -25,13 +25,7 @@ import {
 import type { ColorTheme } from '@molstar/graphics/theme/color';
 import type { SizeTheme } from '@molstar/graphics/theme/size';
 import { getQualityProps } from './util.js';
-import {
-  type GpuCullingValue,
-  type RenderMergedValue,
-  resolveGpuCulling,
-  resolveRenderMerged,
-  type VisualQuality,
-} from '@molstar/graphics/geo/geometry/base';
+import { type GpuCullingValue, resolveGpuCulling, type VisualQuality } from '@molstar/graphics/geo/geometry/base';
 
 type DefineValue = string | number | boolean;
 
@@ -210,16 +204,17 @@ export function getGeometrySignatures<G extends Geometry>(
 }
 
 /**
- * `signatures` and their merged variants where `props` merge the objects: `renderMerged` on, or `gpuCulling` on (an
- * object alone merged to be culled on the GPU, `gpuCulled`); not with a palette (`canMergeValues`). 'auto' (either) is
- * taken as unmerged and culled on the CPU: by the objects' counts, large objects that compile while they build
+ * `signatures` and their merged variants where the objects merge: two or more (by `counts`), an object alone culled on
+ * the GPU (`gpuCulling` on, or 'auto' by `counts`: taken as culled on the CPU without them, large objects compiling
+ * while they build), or all of them (`all`: a units representation's, a merged visual of every kind that merges; its
+ * plain signatures those of the types that do not merge alone)
  */
 export function withMergedSignatures(
   signatures: readonly ObjectSignature[],
-  props: { readonly renderMerged?: unknown; readonly gpuCulling?: unknown },
+  props: { readonly gpuCulling?: unknown },
   /**
    * the objects' counts where the data is known (`mergeRenderObjectsByType`: per type, the objects and their
-   * instances): 'auto' resolved, unmerged only where they don't merge
+   * instances): 'auto' resolved
    */
   counts?: {
     readonly objects: number;
@@ -230,11 +225,13 @@ export function withMergedSignatures(
     readonly spheres?: number;
     readonly graphics?: GraphicsContext;
   },
+  all = false,
 ): ObjectSignature[] {
+  let gpu = props.gpuCulling === true;
+  let gpuSpheres = gpu;
+  let merge = all || gpu;
   if (counts) {
     const { objects, instances, levels, spheres, graphics } = counts;
-    const renderMerged = (props.renderMerged ?? 'auto') as RenderMergedValue;
-    if (renderMerged === false) return [...signatures];
     const resolve = (rasterSpheres: number) =>
       canCullOnGpu(graphics) &&
       resolveGpuCulling(
@@ -243,23 +240,16 @@ export function withMergedSignatures(
         objects * Math.max(1, levels),
         rasterSpheres,
       );
-    const gpu = resolve(0);
-    const gpuSpheres = graphics?.capabilities.atomicMinMax64 ? resolve(spheres ?? 0) : gpu;
-    const merge = gpu || gpuSpheres || (objects >= 2 && resolveRenderMerged(renderMerged, objects));
-    if (!merge) return [...signatures];
-    // both: the objects' values may not merge (`canMergeRenderObjects`, known once built), leaving them unmerged
-    const out = [...signatures];
-    for (const s of signatures) {
-      const merged = getMergedSignature(s, s.type === 'spheres' ? gpuSpheres : gpu);
-      if (merged) out.push(merged);
-    }
-    return out;
+    gpu = resolve(0);
+    gpuSpheres = graphics?.capabilities.atomicMinMax64 ? resolve(spheres ?? 0) : gpu;
+    merge = all || gpu || gpuSpheres || objects >= 2;
   }
-  const gpuCulled = props.gpuCulling === true;
-  if (props.renderMerged !== true && !gpuCulled) return [...signatures];
-  const out = [...signatures];
+  if (!merge) return [...signatures];
+  // both where not all: the objects' values may not merge (`canMergeRenderObjects`, known once built)
+  const out: ObjectSignature[] = [];
   for (const s of signatures) {
-    const merged = getMergedSignature(s, gpuCulled);
+    const merged = getMergedSignature(s, s.type === 'spheres' ? gpuSpheres : gpu);
+    if (!all || !merged) out.push(s);
     if (merged) out.push(merged);
   }
   return out;
@@ -267,7 +257,7 @@ export function withMergedSignatures(
 
 /** The signature of `s`'s objects merged, where their type merges and their values allow it (`canMergeValues`) */
 function getMergedSignature(s: ObjectSignature, gpuCulled: boolean): ObjectSignature | undefined {
-  if (!isMergeableType(s.type) || s.defines.dUsePalette) return;
+  if (!isMergeableType(s.type)) return;
   const source = getRenderableProgramSource({ type: s.type, merged: true });
   if (!source) return;
   const defines = { ...s.defines, dSegmented: true };

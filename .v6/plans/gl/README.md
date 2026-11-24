@@ -116,8 +116,8 @@ Follow-ups from the review of the WebGPU branch (correctness, memory, one decisi
 - [shared-draw-resources.md](shared-draw-resources.md): geometry sub-allocated in shared buffers, theme layers in
   storage pages updated by range, shared object groups done (WebGPU replay of 10k draws 37 to about 1 ms per frame
   measured); the CPU geometry store deferred (measured: little to gain).
-- [merged-render-objects.md](merged-render-objects.md): CPU-side merging (`renderMerged`) the main path for many units
-  of a representation: `auto` from 30 units, update costs, geometry and layers without copies, the costs per member, GPU
+- [merged-render-objects.md](merged-render-objects.md): CPU-side merging the main path for units representations
+  (always, `renderMerged` removed), update costs, geometry and layers without copies, the costs per member, GPU
   culling with occlusion (`gpuCulling: 'auto'`, from 20k instances) done; left: the visuals' own update work (the GPU
   culling's instance copy on weak GPUs measured, about 2% to gain, not taken up).
 - [shader-f16.md](shader-f16.md): paused after measuring: the impostor lighting in half precision 6-11% faster on an

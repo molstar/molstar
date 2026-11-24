@@ -46,7 +46,7 @@ async function chainRing(count: number): Promise<Structure> {
 const Units = 12;
 
 /**
- * The units of a representation merged into render items per geometry type (`renderMerged`), colored per atom: by
+ * The units of a representation merged into render items per geometry type, colored per atom: by
  * `chain-id` (group data, offset per segment), or by `element-index` (group-instance data); compared with WebGL
  */
 function mergedCase(
@@ -58,12 +58,12 @@ function mergedCase(
   const colorTheme = options.colorTheme ?? 'chain-id';
   return {
     id: `geometry/merged/${name}`,
-    description: `${Units} units as ${name}, merged into render items (renderMerged), colored by ${colorTheme}.`,
+    description: `${Units} units as ${name}, merged into render items, colored by ${colorTheme}.`,
     requires: options.requires,
     view: ObliqueView,
     scene: async ({ graphics }) => {
       const structure = await chainRing(Units);
-      const repr = await structureRepr(graphics, provider, structure, { ...props, renderMerged: true } as any, {
+      const repr = await structureRepr(graphics, provider, structure, props as any, {
         name: colorTheme,
       });
       // the case is about merged items (a representation can have several visuals per geometry type)
