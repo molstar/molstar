@@ -13,8 +13,14 @@ import {
   DegenerateMatcher,
   DefaultSearchBounds,
   ExactMatcher,
+  exactKernel,
+  glushkov,
   parseRegex,
+  type RegexParsed,
   RegexMatcher,
+  RegexStepOverhead,
+  regexKernel,
+  regexTables,
   type SearchBatch,
   searchBounds,
 } from '../index.js';
@@ -79,7 +85,9 @@ describe('the bounds, each with its code', () => {
     expect(compileCodes(RegexMatcher, 'A((){999999}){999999}')).toEqual([]);
     expect(compileCodes(RegexMatcher, '((){999}){999}')).toEqual(['seq.search.pattern.empty']);
     // copies of an optional group: within the positions, past the automaton's nodes
-    expect(compileCodes(RegexMatcher, `${'('.repeat(30)}A${')?'.repeat(30)}{100}`)).toEqual(['seq.search.pattern.size']);
+    expect(compileCodes(RegexMatcher, `${'('.repeat(30)}A${')?'.repeat(30)}{100}`)).toEqual([
+      'seq.search.pattern.size',
+    ]);
     expect(performance.now() - t0).toBeLessThan(2000);
   });
   it('a regex hit’s length: the longest match from a start stops at maxHitLength', async () => {
@@ -169,10 +177,36 @@ describe('never backtracking', () => {
     };
     const plain = await steps('AB');
     const catastrophic = await steps('(A|AA)*B');
-    expect(plain).toBe(100_000);
+    // a letter a step of 2 positions: one word, its mask and test, the step's own (`RegexStepOverhead`)
+    expect(plain).toBe(100_000 * (1 + 2 + RegexStepOverhead));
     expect(catastrophic).toBe(plain);
     // (A+)+B too
     expect(await steps('(A+)+B')).toBe(plain);
+  });
+  it('a step is charged the work it does: a regex step chunks × w, a Horspool check its comparisons', () => {
+    const n = 2000;
+    const polyA = new Uint8Array(n).fill(65);
+    const maxLength = 300;
+    // every start of poly-A runs on to its longest: min(maxLength, n − s) steps
+    let visits = 0;
+    for (let s = 0; s < n; s++) visits += Math.min(maxLength, n - s);
+    for (const pattern of ['.{1,126}.*', '(.|A)*', '[ACGT]*A']) {
+      const p = parseRegex(pattern, DefaultSearchBounds) as RegexParsed;
+      const g = glushkov(p);
+      const kernel = regexKernel(regexTables(g), p, maxLength, (set, c) => set[c] === 1);
+      const budget = { steps: 0, limit: 2 ** 40 };
+      expect(kernel.find(polyA, n, 0, n, 3, budget, () => {})).toBe(true);
+      // a step reads a table a byte of the state: `.{1,126}.*` 16 bytes of 4 words, 64 words a step
+      const stepWords = Math.ceil(g.positions / 8) * g.words + RegexStepOverhead;
+      expect(budget.steps, pattern).toBeGreaterThanOrEqual(visits * stepWords);
+    }
+    // C and 999 A over poly-A: every alignment compares 999 letters (O(n·m)), charged as compared
+    const kernel = exactKernel(Uint8Array.from(`C${'A'.repeat(999)}`, (c) => c.charCodeAt(0)));
+    const budget = { steps: 0, limit: 2 ** 40 };
+    kernel.find(polyA, n, 0, n, 3, budget, () => {});
+    expect(budget.steps).toBeGreaterThanOrEqual((n - 999) * 999);
+    // and a check past the budget ends the find
+    expect(kernel.find(polyA, n, 0, n, 3, { steps: 0, limit: 10_000 }, () => {})).toBe(false);
   });
   it('a pattern long at every start (A* over poly-A) ends at the budget, said, never a hang', async () => {
     const r = await runSearch(

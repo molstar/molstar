@@ -6,7 +6,9 @@
 
 // The search kernels' allocation (_spec/README.md "Search", Performance): over 100 kb of seeded letters, `degenerate`
 // GANTC, `exact` GAATTC and `regex` GG.{2,8}CC run warm with a visitor that counts, 0 bytes a hit (nothing allocated a
-// hit: hundreds of hits a step). By hand, never in CI: `pnpm -C packages/seq/core test:perf`.
+// hit: hundreds of hits a step). And the step budget's calibration: the worst patterns (`.{1,126}.*`, `(.|A)*`,
+// `[ACGT]*A`, Horspool's `C` and 999 `A`) over 2^20 `A`s end at the default `maxSteps` within about a second, the
+// design's measure of 2^28 steps. By hand, never in CI: `pnpm -C packages/seq/core test:perf`.
 
 import { quickCase } from '@molstar/test-harness/quick';
 import { describe, expect, inject, it } from 'vitest';
@@ -14,13 +16,16 @@ import {
   classKernel,
   classMasks,
   DefaultSearchBounds,
+  ExactMatcher,
   exactKernel,
   glushkov,
   parseRegex,
   type RegexParsed,
+  RegexMatcher,
   regexKernel,
   regexTables,
 } from '../index.js';
+import { runSearch, textTarget } from './run.js';
 
 const N = 100_000;
 const letters = (() => {
@@ -70,6 +75,26 @@ describe('the search kernels over 100 kb', () => {
       );
       console.info(`search ${name} over 100 kb: ${r.bytesPerStep.toFixed(0)} bytes a step (${r.note})`);
       expect(r.bytesPerStep, r.note).toBeLessThanOrEqual(inject('perfThreshold'));
+    });
+  }
+});
+
+describe('the step budget over 2^20 As: the worst patterns end at it within about a second', () => {
+  const polyA = textTarget('A'.repeat(2 ** 20));
+  const cases: [typeof RegexMatcher, string][] = [
+    [RegexMatcher, '.{1,126}.*'],
+    [RegexMatcher, '(.|A)*'],
+    [RegexMatcher, '[ACGT]*A'],
+    [ExactMatcher as unknown as typeof RegexMatcher, `C${'A'.repeat(999)}`],
+  ];
+  for (const [matcher, pattern] of cases) {
+    it(`${pattern.slice(0, 12)}: ends at the budget within 1.5 s`, async () => {
+      const t0 = performance.now();
+      const r = await runSearch(matcher, pattern, [polyA]);
+      const ms = performance.now() - t0;
+      console.info(`search ${pattern.slice(0, 12)} over 2^20 As: ${ms.toFixed(0)} ms to the step budget`);
+      expect(r.issues.map((i) => i.code)).toContain('seq.search.steps.limit');
+      expect(ms).toBeLessThan(1500);
     });
   }
 });

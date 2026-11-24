@@ -19,8 +19,10 @@ export function exactKernel(pattern: Uint8Array): SearchKernel {
   const last = pat[m - 1];
   return {
     maxLength: m,
-    words: Math.ceil(m / 32),
-    find(seq: Uint8Array, n: number, from: number, to: number, _edges: number, _budget: StepBudget, visit: HitVisitor) {
+    // a shift a letter at most, charged before; a check's comparisons (O(n·m) at worst: `C` and 999 `A` over poly-A)
+    // added as they are made
+    words: 1,
+    find(seq: Uint8Array, n: number, from: number, to: number, _edges: number, budget: StepBudget, visit: HitVisitor) {
       if (m === 0) return true;
       const end = Math.min(to, n - m + 1);
       for (let s = from; s < end; ) {
@@ -29,6 +31,8 @@ export function exactKernel(pattern: Uint8Array): SearchKernel {
           let k = m - 2;
           while (k >= 0 && seq[s + k] === pat[k]) k--;
           if (k < 0) visit(s, s + m);
+          budget.steps += m - 1 - k;
+          if (budget.steps > budget.limit) return false;
         }
         s += shift[c];
       }

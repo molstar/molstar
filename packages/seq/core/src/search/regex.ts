@@ -429,6 +429,9 @@ export function regexTables(g: Glushkov): RegexTables {
   return { g, forward: followTable(g, g.follow), backward: followTable(g, back) };
 }
 
+/** A step's fixed cost past its words (the loop, the reads), in words: so steps track time on any pattern. */
+export const RegexStepOverhead = 4;
+
 /**
  * The kernel of an automaton over one alphabet's codes (`accepts(set, code)`: whether a position's set takes a folded
  * sequence code). A hit a start, the longest match from it, at most `maxLength` long: a backward pass of the reversed
@@ -444,6 +447,8 @@ export function regexKernel(
   const { g, forward, backward } = tables;
   const w = g.words;
   const chunks = Math.ceil(g.positions / 8);
+  // a step's cost: a table lookup a byte of the state (`chunks × w` words), its mask and test, and the step's own
+  const cost = chunks * w + 2 * w + RegexStepOverhead;
   const masks = new Int32Array(256 * w);
   for (let c = 0; c < 256; c++)
     for (let p = 0; p < g.positions; p++) if (accepts(g.sets[p], c)) masks[c * w + (p >> 5)] |= 1 << (p & 31);
@@ -480,13 +485,13 @@ export function regexKernel(
         if (meets(d, g.last) && (!parsed.anchorEnd || (u + 1 === n && atEnd))) out = u + 1;
       }
     }
-    budget.steps += (u - s) * w;
+    budget.steps += (u - s) * cost;
     return out;
   };
 
   return {
     maxLength,
-    words: w,
+    words: cost,
     find(seq: Uint8Array, n: number, from: number, to: number, edges: number, budget: StepBudget, visit: HitVisitor) {
       const atStart = (edges & EdgeStart) !== 0;
       const atEnd = (edges & EdgeEnd) !== 0;

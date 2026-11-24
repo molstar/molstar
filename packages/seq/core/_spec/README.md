@@ -5208,7 +5208,10 @@ registry's built-in entries load it on first use.
   byte); `find(seq, n, from, to, edges, budget, visit)` calls `visit(start, end)` for every hit lying in `[0, n)` that
   starts in `[from, to)`, nothing allocated a hit. The visitor is the one callback of the surface, on purpose: a hit a
   call with no object made. Its letters are charged before it runs (`words` a letter); what it does past them (a regex's
-  forward passes) it adds to the budget, returning false when the budget ran out. Not reentrant.
+  forward passes, Horspool's comparisons) it adds to the budget, returning false when the budget ran out. Not reentrant.
+  **A step is charged the work it does**: a regex step `chunks × w` words (a table lookup a byte of the state) plus its
+  mask, test and `RegexStepOverhead`; Horspool a shift a letter and each check's comparisons (O(n·m) at worst, `C` and
+  999 `A` over poly-A). Why: the budget bounds time only if no pattern does more than it is charged.
 - `exactKernel` is Horspool (sublinear); `classKernel(masks, m)` shift-and over a table of 256 masks, a word every 32
   positions (`classMasks` builds the table from a test). Why bytes: an application's matcher (a PROSITE reader, a
   mismatch kernel) writes a kernel and nothing else.
@@ -5310,8 +5313,10 @@ viewer's `search.*` items set them), each with its code (`SearchIssues`):
 
 - The kernels allocate nothing a hit: over 100 kb of seeded letters, `degenerate` GANTC, `exact` GAATTC and `regex`
   `GG.{2,8}CC` at 0 bytes a step warm (the allocation tier, `search/_test/search.quick.ts`). A catastrophic pattern
-  costs what a plain one does in counted steps (the quick lane). The timing bounds (1 Mb in tens of milliseconds, a
-  10,000-row alignment) are TODO, to measure on the CI runner.
+  costs what a plain one does in counted steps (the quick lane). The step budget's calibration (the same tier): the
+  worst patterns (`.{1,126}.*`, `(.|A)*`, `[ACGT]*A`, `C` and 999 `A`) over 2^20 `A`s end at the default `maxSteps` in
+  0.2 to 0.7 s on a laptop, under 1.5 s asserted: 2^28 steps are about a second of work at worst. The timing bounds (1
+  Mb in tens of milliseconds, a 10,000-row alignment) are TODO, to measure on the CI runner.
 
 ## Context
 

@@ -20,7 +20,7 @@ export { IncompleteSearchCodes, SearchIssues } from './issues.js';
 export { type KernelMatcherSpec, kernelMatcher } from './kernel-matcher.js';
 export { classKernel, classMasks, exactKernel } from './kernels.js';
 export { BuiltInSearchMatchers, DegenerateMatcher, ExactMatcher, RegexMatcher } from './matchers.js';
-export { glushkov, parseRegex, type RegexParsed, regexKernel, regexTables } from './regex.js';
+export { glushkov, parseRegex, type RegexParsed, RegexStepOverhead, regexKernel, regexTables } from './regex.js';
 export {
   compileFailed,
   DefaultSearchBounds,
