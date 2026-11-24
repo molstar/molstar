@@ -3365,12 +3365,14 @@ in page coordinates: what crosses strips; `bridge`, internal, once a bridge with
   draws at the well's right end with the data pass (before the hover and the cursor), above the line, `labelPx` (10) in
   `msui-text-muted` over a patch of the well's ground, only from `labelMinWellPx` (40) of well, below the line where it
   is within a label height of the well's top, cut with an ellipsis to the well's right third, the later of two
-  overlapping labels dropped (its line stays) (Provisional); the text is "label · value" ("genome-wide · 7.3", the value as the legends write one), a line without a label draws the value alone (the reader reads a line's height without an axis). The layer's ARIA
-  description (`summary`) says "reference line at 7.3 (genome-wide)" a drawn line. With no `reference` nothing is drawn
-  and nothing of this is loaded: the lines' code (`values-reference.ts`) is a lazy chunk, loaded when a spec holds a
-  values layer with `reference`, a model waiting for it as for the bridge chunk (`values-reference-hooks.ts`). A warm
-  frame of each encoding with two lines allocates nothing. Why: a threshold is the genome-wide association plot's
-  finding, and a line from the layer's own scale stays right at every zoom, linear or log.
+  overlapping labels dropped (its line stays) (Provisional); the text is "label · value" ("genome-wide · 7.3", the value
+  as the legends write one), a line without a label draws the value alone (the reader reads a line's height without an
+  axis). The layer's ARIA description (`summary`) says "reference line at 7.3 (genome-wide)" a drawn line. With no
+  `reference` nothing is drawn and nothing of this is loaded: the lines' code (`values-reference.ts`) is a lazy chunk,
+  loaded when a spec holds a values layer with `reference`, a model waiting for it as for the bridge chunk
+  (`values-reference-hooks.ts`). A warm frame of each encoding with two lines allocates nothing. Why: a threshold is the
+  genome-wide association plot's finding, and a line from the layer's own scale stays right at every zoom, linear or
+  log.
 
 - `frame` (EC-100): an annotation's regions outlined across tracks of its section (`across`: the first and the last
   track's ids, the bands between them too; its own band when absent: `ctx.span`). A strip layer: on each strip a

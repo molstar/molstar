@@ -109,7 +109,10 @@ export class RingCut {
     const p = v.placementOf(section);
     if (!s?.blocks || !p?.warpOf || !p.blockAt || s.follow || sections!.some((x) => x.follow?.leader === section))
       return undefined;
-    return { s: s as typeof s & { blocks: NonNullable<typeof s.blocks> }, p: p as typeof p & { blockAt: NonNullable<typeof p.blockAt> } };
+    return {
+      s: s as typeof s & { blocks: NonNullable<typeof s.blocks> },
+      p: p as typeof p & { blockAt: NonNullable<typeof p.blockAt> },
+    };
   }
 
   private _say(text: string): true {

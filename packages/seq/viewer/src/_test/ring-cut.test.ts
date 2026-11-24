@@ -268,7 +268,8 @@ describe('the ring’s zoom is a cut', () => {
 });
 
 describe('a double-click on a chromosome opens it', () => {
-  const dbl = (v: SeqViewer, at: { x: number; y: number }, shiftKey = false) => v.input.doubleClick(at.x, at.y, { shiftKey });
+  const dbl = (v: SeqViewer, at: { x: number; y: number }, shiftKey = false) =>
+    v.input.doubleClick(at.x, at.y, { shiftKey });
 
   it('over a chromosome’s arc: the cut, one patch, one undo step, the event taken', async () => {
     const v = await make();
