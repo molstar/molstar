@@ -505,3 +505,6 @@ extension kinds.
   as the file lists them.
 - **The square's whole genome after a ring cut** (FX35's look, 2026-11-24): its double-click leaves the cut (chr2
   alone); it should lift `section.include` too, one step, as Cmd+Z does.
+- **The close-out's measurements, the lesser overs** (2026-11-24, `close-out/measurements.md`): settled frames 9 to 14
+  ms on Signal and Manhattan, most of it the story's SVG twin following at rest; single 30 to 43 ms frames in tight
+  synthetic loops (One Side Zoomed In, By Data), gone when frames yield, read as deferred GC, unproven.

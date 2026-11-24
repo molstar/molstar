@@ -104,4 +104,5 @@ Raw logs are in `/private/tmp/claude-501/-Users-davinci001-projects-molstar-mols
   frames yield; read as deferred GC.
 - **Sizes**: every bundle within 1.3 to 4.8 kB of its bound; the default viewer +51.0 kB and the minimal +34.0 kB over
   the close-out.
-- **Decided by the author**: see `state.md` (fix or carry).
+- **Decided by the author** (2026-11-24: "Yes, one perf lane"): the four real overs to FX36 before the last gate;
+  the stories' settled frames and the inferred spikes to the TODO.
