@@ -17,6 +17,10 @@ bridge chunk 26.0/28.
 GATE 2 passed (`d9b53e580`, its row in `findings.md`): every check green after FX31 (the reversed pan's leak control, no
 regression). The old Seq\* viewer's label churn over its baseline is in `fixes.md`, outside the close-out's packages.
 
+- **FX32** the legend's layers menu (`seq/fx32`): green, looked at in light and dark; its fix round from the review
+  (a separator's role, the fixed menu under a transformed ancestor, a first item's separator) is running.
+- **FX33** the Manhattan reference-line flake (`briefs/fx33-manhattan-flake.md`): three failures in full runs; running.
+
 ## Next
 
 1. The use gate: the author went through the Storybook (2026-11-24): done once FX32 lands ("then can consider the use
