@@ -1047,7 +1047,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       folding?.groups && folding.groups.length && GroupsHooks.headers
         ? GroupsHooks.headers(
             folding.groups,
-            tracks.map((t) => t.well),
+            tracks,
             section,
             config,
             (t) => input.text.measure(config.labelFont, t),

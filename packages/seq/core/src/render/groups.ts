@@ -141,6 +141,55 @@ export function foldGroups(
   typeOf: (layer: ResolvedLayer) => LayerType<any, any> | undefined,
   report: (issue: Issue) => void,
 ): FoldedBands | undefined {
+  if (!section.trackGroups) return undefined;
+  // a pan lays the section out again with the same tracks and folds: the folding kept (a layout allocates none for it)
+  const m = FoldMemos.get(section);
+  if (
+    tracksLayout &&
+    m &&
+    m.own === own &&
+    m.config === config &&
+    sameList(m.shown, shown) &&
+    sameList(m.trackOf, trackOf) &&
+    sameList(m.sourceOf, sourceOf)
+  )
+    return m.out;
+  const out = fold(section, shown, trackOf, sourceOf, own, tracksLayout, config, typeOf, report);
+  if (tracksLayout && out)
+    FoldMemos.set(section, { own, config, shown: [...shown], trackOf: [...trackOf], sourceOf: [...sourceOf], out });
+  return out;
+}
+
+/** A section's last folding, by the resolved section (a new view resolves new sections: none kept past it). */
+const FoldMemos = new WeakMap<
+  ResolvedSection,
+  {
+    readonly own: readonly string[] | undefined;
+    readonly config: RenderConfig;
+    readonly shown: readonly ResolvedTrack[];
+    readonly trackOf: readonly number[];
+    readonly sourceOf: readonly ResolvedTrack[];
+    readonly out: FoldedBands;
+  }
+>();
+
+function sameList<T>(a: readonly T[], b: readonly T[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+
+function fold(
+  section: ResolvedSection,
+  shown: readonly ResolvedTrack[],
+  trackOf: readonly number[],
+  sourceOf: readonly ResolvedTrack[],
+  own: readonly string[] | undefined,
+  tracksLayout: boolean,
+  config: RenderConfig,
+  typeOf: (layer: ResolvedLayer) => LayerType<any, any> | undefined,
+  report: (issue: Issue) => void,
+): FoldedBands | undefined {
   const groups = section.trackGroups;
   if (!groups) return undefined;
   const folded = foldedIds(section, own);
@@ -263,7 +312,7 @@ export function foldGroups(
  */
 export function groupHeaders(
   groups: NonNullable<FoldedBands['groups']>,
-  wells: readonly Box[],
+  tracks: readonly { readonly well: Box }[],
   section: ResolvedSection,
   config: RenderConfig,
   measure: (text: string) => number,
@@ -271,12 +320,63 @@ export function groupHeaders(
   scroll?: { readonly y: number; readonly end: number; readonly fixed: number },
   figure = false,
 ): GroupHeader[] {
+  // a pan with the same bands where they were: the headers kept (a layout allocates none for them)
+  const m = HeaderMemos.get(groups);
+  if (
+    m &&
+    m.config === config &&
+    m.figure === figure &&
+    m.scrollY === (scroll?.y ?? -1) &&
+    m.scrollEnd === (scroll?.end ?? -1) &&
+    sameWells(m.wells, tracks)
+  )
+    return m.out;
+  const out = headersOf(groups, tracks, section, config, measure, elide, scroll, figure);
+  const wells = new Float64Array(2 * tracks.length);
+  for (let i = 0; i < tracks.length; i++) {
+    wells[2 * i] = tracks[i].well.y;
+    wells[2 * i + 1] = tracks[i].well.height;
+  }
+  HeaderMemos.set(groups, { config, figure, scrollY: scroll?.y ?? -1, scrollEnd: scroll?.end ?? -1, wells, out });
+  return out;
+}
+
+/** The last headers of a folding (its `groups`, kept by `foldGroups`), with what they were laid out from. */
+const HeaderMemos = new WeakMap<
+  object,
+  {
+    readonly config: RenderConfig;
+    readonly figure: boolean;
+    readonly scrollY: number;
+    readonly scrollEnd: number;
+    readonly wells: Float64Array;
+    readonly out: GroupHeader[];
+  }
+>();
+
+function sameWells(wells: Float64Array, tracks: readonly { readonly well: Box }[]): boolean {
+  if (wells.length !== 2 * tracks.length) return false;
+  for (let i = 0; i < tracks.length; i++)
+    if (wells[2 * i] !== tracks[i].well.y || wells[2 * i + 1] !== tracks[i].well.height) return false;
+  return true;
+}
+
+function headersOf(
+  groups: NonNullable<FoldedBands['groups']>,
+  tracks: readonly { readonly well: Box }[],
+  section: ResolvedSection,
+  config: RenderConfig,
+  measure: (text: string) => number,
+  elide: (text: string, room: number) => string,
+  scroll: { readonly y: number; readonly end: number; readonly fixed: number } | undefined,
+  figure: boolean,
+): GroupHeader[] {
   const out: GroupHeader[] = [];
   const chevron = figure ? 0 : ChevronPx;
   const size = Number.parseFloat(config.labelFont) || 12;
   for (const g of groups) {
-    const first = wells[g.first];
-    const last = wells[g.last];
+    const first = tracks[g.first]?.well;
+    const last = tracks[g.last]?.well;
     if (!first || !last) continue;
     const x = config.inset;
     const width = config.labelWidth;

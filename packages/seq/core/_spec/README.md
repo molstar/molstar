@@ -4176,6 +4176,9 @@ the bands, never a warm frame's work).
   `groupGap` (8) before and after it. The room before a band is the layout's `leads` (`PlaceContext.leads`, px past
   `trackGap`), so the header line and the gaps never grow a track's well. An open group's authored summary track is left
   out (EC-103).
+- **Kept across layouts**: a section's folding (by its resolved section, its folds and its shown tracks) and its headers
+  (by the folding, the wells' places, the scroll) are kept, so a pan allocates nothing for them; held by
+  `_test/groups.quick.ts` (a warm frame and hover 0 B, a pan bounded).
 - **The chevron is chrome**: an export (a figure) draws none, the label at the column's start.
 - **Folded**: one row whose label column is the header (chevron ▸, label, a quiet count "3 tracks"; the label cut before
   the count, the count before the chevron); its bands: the authored `summary` track (drawn as any track), or with `none`
