@@ -448,10 +448,11 @@ export class ViewerInput {
       const speed = Math.sign(by) * Math.min(EdgeScrollMax, EdgeScrollRate * Math.abs(by));
       const before = this.viewer.view.get(g.section)?.start;
       this.viewer.view.panPx(g.section, 0, (speed * dt) / 1000);
-      // what the last frame placed under the held pointer joins the drag; the next step reads the frame this one asks
-      this._dragSelect(g.section, g.x, g.y);
-      if (this.viewer.view.get(g.section)?.start === before && dt > 0) return this._stopEdge();
+      // what comes under the held pointer joins the drag through the frame's one application (`applyDrag`): a move in
+      // the same frame writes nothing twice; the next step reads the frame this one asks
+      this._dragDue = true;
       this.viewer.schedule();
+      if (this.viewer.view.get(g.section)?.start === before && dt > 0) return this._stopEdge();
       e.frame = requestFrameCallback(step);
     };
     this._edge = { frame: requestFrameCallback(step), t: DomHost.now() };
@@ -462,8 +463,44 @@ export class ViewerInput {
     this._edge = undefined;
   }
 
+  /**
+   * A drag-select ended (released or cancelled): the hover where the pointer rests again, and a frame (what follows the
+   * frame: a host's twin waiting for the release).
+   */
+  private _hoverBack(): void {
+    if (this.resting) this.hoverBehavior?.move(this._hoverable(this._hitAt(this._x, this._y)), this._mods);
+    this.viewer.schedule();
+  }
+
+  /** A drag-select's move not yet applied: the next frame applies the pointer's last place, once. */
+  private _dragDue = false;
+
+  /**
+   * A drag-select's moves since the last frame, applied once (_spec/README.md "SelectionModel and HighlightModel",
+   * Drags): the hit under the pointer's last place, the selection written to it, the scroll past the box's edge. What
+   * the viewer's frame calls before it reads the emphasis, and what the release calls before it ends the drag.
+   */
+  applyDrag(): void {
+    if (!this._dragDue) return;
+    this._dragDue = false;
+    const d = this._drag;
+    if (!d?.select || !d.moved || this.viewer.retired) return;
+    // the pointer where it was last applied, over the same picture: nothing to hit again (a held pointer's frames)
+    const a = this._applied;
+    if (d.x === a.x && d.y === a.y && this.viewer.frame?.layout === a.layout) return;
+    this._dragSelect(d.section, d.x, d.y);
+    this._edgeScroll();
+  }
+
+  /** Where a drag-select was last applied: the pointer's place and the layout it was hit on. */
+  private readonly _applied: { x: number; y: number; layout: unknown } = { x: Number.NaN, y: 0, layout: undefined };
+
   /** A drag-select to the pointer: the position under it in reading order (the placement's nearest unit). */
   private _dragSelect(section: string, x: number, y: number): void {
+    const a = this._applied;
+    a.x = x;
+    a.y = y;
+    a.layout = this.viewer.frame?.layout;
     this.selectBehavior?.dragTo(section, x - this.viewer.dataX, this._hitAt(x, y), this.offsetAt(section, x, y));
   }
 
@@ -525,10 +562,18 @@ export class ViewerInput {
     this._touch = e.pointerType === 'touch';
     const mods = this._modifiers(e);
     const d = this._drag;
+    if (d && !d.moved && Math.max(Math.abs(x - d.x0), Math.abs(y - d.y0)) >= DragSlop) {
+      d.moved = true;
+      // a drag-select hovers nothing while it runs (its hover goes now, comes back on release)
+      if (d.select) this.hoverBehavior?.leave();
+    }
+    if (d?.select && d.moved) {
+      this._dragSelectMove(d, x, y);
+      return;
+    }
     const hit = this._hitAt(x, y);
     this._windowHover(this._renderHit);
     if (d) {
-      if (!d.moved && Math.max(Math.abs(x - d.x0), Math.abs(y - d.y0)) >= DragSlop) d.moved = true;
       if (d.rowsRail) {
         d.x = x;
         d.y = y;
@@ -545,13 +590,9 @@ export class ViewerInput {
         const at = this.offsetAt(d.section, x, y);
         if (d.moved && at !== undefined) this.windowBehavior?.dragTo(at);
       } else if (d.select) {
+        // under the slop: a click's still
         d.x = x;
         d.y = y;
-        // the range from where it began to the pointer, in reading order, read from the placement even past the data
-        if (d.moved) {
-          this.selectBehavior?.dragTo(d.section, x - this.viewer.dataX, hit, this.offsetAt(d.section, x, y));
-          this._edgeScroll();
-        }
       } else {
         const dx = x - d.x;
         const dy = y - d.y;
@@ -569,6 +610,24 @@ export class ViewerInput {
       this._pointerAt[0] = x;
       this._pointerAt[1] = y;
       card.pointer(this._pointerAt, d !== undefined && d.moved);
+    }
+  }
+
+  /**
+   * A drag-select's move (_spec/README.md "SelectionModel and HighlightModel", Drags): its place kept for the frame,
+   * which hits it once and writes the range from where it began to it (in reading order, read from the placement even
+   * past the data); no hit, no hover and no card here (the card is told a drag runs).
+   */
+  private _dragSelectMove(d: { x: number; y: number }, x: number, y: number): void {
+    d.x = x;
+    d.y = y;
+    this._dragDue = true;
+    this.viewer.schedule();
+    const card = this.cardBehavior;
+    if (card) {
+      this._pointerAt[0] = x;
+      this._pointerAt[1] = y;
+      card.pointer(this._pointerAt, true);
     }
   }
 
@@ -689,6 +748,8 @@ export class ViewerInput {
     const selecting = isDragSelect(action);
     const select = selecting && !!this.selectBehavior?.beginDrag(section, hit, mods, target);
     if (selecting && !select) return false;
+    // a new drag applies its first move whatever the last one did
+    this._applied.x = Number.NaN;
     if (this._space) this._spaceUsed = true;
     this._drag = { x, y, x0: x, y0: y, section, target, select, window: false, moved: false };
     return true;
@@ -737,9 +798,14 @@ export class ViewerInput {
       return;
     }
     if (d.window) this.windowBehavior?.end();
+    // the last moves land before the drag ends: the full selection resolved once, on release
+    this.applyDrag();
     if (d.select) this.selectBehavior?.endDrag();
     this._suppressClick = d.moved;
     this._drag = undefined;
+    // a drag-select that moved: the hover where the pointer rests again, and a frame (what follows the frame: a host's
+    // twin waiting for the release)
+    if (d.select && d.moved) this._hoverBack();
   }
 
   /**
@@ -1218,10 +1284,13 @@ export class ViewerInput {
       return true;
     }
     if (e.key === 'Escape' && this._drag?.select) {
+      const moved = this._drag.moved;
+      this._dragDue = false;
       this._stopEdge();
       this.selectBehavior?.cancelDrag();
       this._drag = undefined;
       this._suppressClick = true;
+      if (moved) this._hoverBack();
       return true;
     }
     // a running drag's Esc is its cancel (above); then an open keys panel's: it closes, and does nothing else

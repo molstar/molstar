@@ -93,6 +93,14 @@ export class ViewerFrame {
   draw(): Frame | undefined {
     const viewer = this.viewer;
     if (viewer.retired) return undefined;
+    // a drag-select's moves since the last frame, applied once, drawn by this frame: none asked for (_spec/README.md
+    // "SelectionModel and HighlightModel", Drags)
+    this.clock.applying = true;
+    try {
+      viewer.input?.applyDrag();
+    } finally {
+      this.clock.applying = false;
+    }
     // the model the view is resolved over (a source's complexes in it: core's _spec "Overlay", Opened sources)
     const model = viewer.view.model.value;
     const resolved = viewer.view.resolved.value;
@@ -206,9 +214,9 @@ export class ViewerFrame {
     // a resting pointer is hit again once a frame the view moves under it (EC-143)
     // (what that frame laid out is still to be drawn: `rebuilt` is the layout's, not the emphasis redraw's)
     if (rebuilt && config.pointer.rehit) {
-      this.clock.rehitting = true;
+      this.clock.applying = true;
       const changed = viewer.input.rehit();
-      this.clock.rehitting = false;
+      this.clock.applying = false;
       if (changed) {
         this.emphasis.update();
         frame = renderer.frame(input);

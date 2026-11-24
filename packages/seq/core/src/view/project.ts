@@ -63,7 +63,9 @@ export interface RegionProjector {
 /**
  * `loc` on the view's sections' systems: per system a section shows, the parts carried to it, a rect's two sides with
  * them (a grid's rectangle lights both ranges on the sections of its systems, and where they link). Empty when nothing
- * reaches a section.
+ * reaches a section. Its work is in the parts and the links from their systems, never in every system the view shows
+ * times every part (a genome of 3,000 blocks shows 3,000): the view's systems and links are indexed once a resolved
+ * view (`indexOf`).
  */
 export function projectOntoView(
   model: StaticModel,
@@ -72,58 +74,89 @@ export function projectOntoView(
   options: ProjectOptions = {},
 ): Location {
   if (!loc.parts.length && !loc.rects.length) return EmptyLocation;
-  const systems: string[] = [];
-  // a section of blocks shows its blocks' systems (its own axis is their units, on no system)
-  for (const s of view.sections)
-    for (const system of s.blocks ? s.blocks.map((b) => b.axis.system) : [s.axis.system])
-      if (!systems.includes(system)) systems.push(system);
+  const index = indexOf(view);
   const own = new Set(loc.parts.map((p) => p.system));
   // a rect's sides as positions, carried as the parts are; a side is no own part (its system's section shows it)
   const flat = loc.rects.length ? location({ parts: [...loc.parts, ...loc.rects.flatMap((r) => [r.a, r.b])] }) : loc;
-  const src = options.close ? model.close(flat, systems) : flat;
+  const src = options.close ? model.close(flat, index.systems) : flat;
+  // onto a system holding a part of `loc` only with `own`
+  const takes = (system: string) => !!options.own || !own.has(system);
+  // a map read by region carries nothing on a model without one (`RegionProjector.reads`)
+  const regions = options.regions?.reads(model) ? options.regions : undefined;
   const parts: { system: string; ranges: ArrayLike<number> }[] = [];
   const buffer: number[] = [];
-  for (const system of systems) {
-    if (!options.own && own.has(system)) continue;
-    for (const part of src.parts) {
-      if (part.system === system) {
-        parts.push(part);
-        // the item's other images on its own system, through a map read by region and back (EC-20)
-        buffer.length = 0;
-        if (options.linked !== false && options.regions?.project(model, system, part.ranges, system, buffer))
-          if (buffer.length) parts.push({ system, ranges: HalfOpenRanges.normalize(buffer) });
-        continue;
-      }
-      if (options.linked === false) continue;
-      const path = pathOf(model, view, part, system);
-      if (path) parts.push({ system, ranges: projectRanges(path, part.ranges, buffer).slice() });
-      else if (options.regions) {
-        // through a map read by region (a liftover): every image of the runs held now (EC-20)
-        buffer.length = 0;
-        if (options.regions.project(model, part.system, part.ranges, system, buffer) && buffer.length)
-          parts.push({ system, ranges: HalfOpenRanges.normalize(buffer) });
-      }
+  const carry = (part: LocationPart, system: string, path: Path | undefined) => {
+    if (path) parts.push({ system, ranges: projectRanges(path, part.ranges, buffer).slice() });
+    else if (regions) {
+      // through a map read by region (a liftover): every image of the runs held now (EC-20)
+      buffer.length = 0;
+      if (regions.project(model, part.system, part.ranges, system, buffer) && buffer.length)
+        parts.push({ system, ranges: HalfOpenRanges.normalize(buffer) });
+    }
+  };
+  for (const part of src.parts) {
+    const shown = index.shown.has(part.system);
+    if (shown && takes(part.system)) {
+      parts.push(part);
+      // the item's other images on its own system, through a map read by region and back (EC-20)
+      buffer.length = 0;
+      if (options.linked !== false && regions?.project(model, part.system, part.ranges, part.system, buffer))
+        if (buffer.length) parts.push({ system: part.system, ranges: HalfOpenRanges.normalize(buffer) });
+    }
+    if (options.linked === false) continue;
+    const links = index.links.get(part.system);
+    if (links || (shown && !regions)) {
+      // from a section showing the part's system: along the view's links (a section of blocks shows each block's);
+      // the other systems only through a map read by region
+      if (regions) {
+        for (const system of index.systems)
+          if (system !== part.system && takes(system)) carry(part, system, links?.get(system));
+      } else if (links)
+        for (const [system, path] of links) if (system !== part.system && takes(system)) carry(part, system, path);
+      continue;
+    }
+    // a system no section shows (a structure's chain, an item system): the model's static path to each system shown
+    for (const system of index.systems) {
+      if (system === part.system || !takes(system)) continue;
+      carry(part, system, shown ? undefined : staticPath(model, part.system, system));
     }
   }
   return parts.length ? location({ parts }) : EmptyLocation;
 }
 
-/**
- * The view's link from a section showing the part's system to one showing `system` (a section of blocks shows each
- * block's); else the model's static path (a system no section shows).
- */
-function pathOf(model: StaticModel, view: ResolvedView, part: LocationPart, system: string): Path | undefined {
-  let shown = false;
-  for (const l of view.links) {
-    if (l.fromSystem !== part.system) continue;
-    shown = true;
-    if (l.toSystem === system) return l.path;
-  }
-  if (shown || view.sections.some((s) => shows(s, part.system))) return undefined;
-  if (!model.systems.has(part.system) || !model.systems.has(system)) return undefined;
-  return model.path(part.system, system).path;
+/** The model's static path between two systems, when it has both. */
+function staticPath(model: StaticModel, from: string, to: string): Path | undefined {
+  if (!model.systems.has(from) || !model.systems.has(to)) return undefined;
+  return model.path(from, to).path;
 }
 
-/** Whether a section shows a system: its axis's, or one of its blocks'. */
-const shows = (s: ResolvedView['sections'][number], system: string) =>
-  s.blocks ? s.blocks.some((b) => b.axis.system === system) : s.axis.system === system;
+/**
+ * A resolved view's systems in its sections' order (a section of blocks shows its blocks'), as a list and a set, and
+ * its links by their systems, the first link from one system to another taken: made once a view (a view is immutable).
+ */
+interface ViewIndex {
+  readonly systems: readonly string[];
+  readonly shown: ReadonlySet<string>;
+  readonly links: ReadonlyMap<string, ReadonlyMap<string, Path>>;
+}
+
+const Indexes = new WeakMap<ResolvedView, ViewIndex>();
+
+function indexOf(view: ResolvedView): ViewIndex {
+  let index = Indexes.get(view);
+  if (index) return index;
+  const shown = new Set<string>();
+  for (const s of view.sections)
+    if (s.blocks) for (const b of s.blocks) shown.add(b.axis.system);
+    else shown.add(s.axis.system);
+  const links = new Map<string, Map<string, Path>>();
+  for (const l of view.links) {
+    let to = links.get(l.fromSystem);
+    if (!to) links.set(l.fromSystem, (to = new Map()));
+    // only onto a system a section shows (as the projection walks them), the first link kept
+    if (shown.has(l.toSystem) && !to.has(l.toSystem)) to.set(l.toSystem, l.path);
+  }
+  index = { systems: [...shown], shown, links };
+  Indexes.set(view, index);
+  return index;
+}

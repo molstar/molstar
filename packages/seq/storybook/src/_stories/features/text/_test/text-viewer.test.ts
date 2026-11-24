@@ -108,11 +108,14 @@ describe('a text section: the interaction matrix', () => {
     const b = at(v, 2 * n + 3);
     expect(v.input.down(a.x, a.y)).toBe(true);
     v.input.move(b.x, b.y);
+    // a drag's moves land on the next frame (the viewer's _spec, "SelectionModel and HighlightModel", Drags)
+    v.draw();
     expect(selected(v)).toEqual([5, 2 * n + 4]);
     // past the second line's end (its number gutter, the space after it): the line's last unit
     const s = placement(v).strips;
     const line = s.axes[1];
     v.input.move(line.x0 + line.width + 6, b.y - (b.y - a.y) / 2);
+    v.draw();
     expect(selected(v)).toEqual([5, 2 * n]);
     v.input.up();
   });
@@ -173,6 +176,34 @@ describe('a text section: the interaction matrix', () => {
     v.input.up();
     await flush(v, 250);
     expect(placement(v).anchor / upl(v)).toBeCloseTo(second, 6);
+  });
+});
+
+describe('a drag-select past the box’s edge, once a frame', () => {
+  it('the scroll’s step and the pointer’s moves in one frame are applied once (one hit, one write at most)', async () => {
+    const v = await open();
+    const box = placement(v).box;
+    const a = at(v, 5);
+    v.input.down(a.x, a.y);
+    v.input.move(a.x, box.y + box.height + 40);
+    await flush(v, 100);
+    const before = placement(v).anchor;
+    let writes = 0;
+    const off = v.selection.value.listen(() => writes++);
+    const hit = vi.spyOn(v, 'hit');
+    const frames = v.counts.frames;
+    // a move every 8 ms (a pointer's rate, faster than frames) while the box scrolls
+    for (let k = 0; k < 60; k++) {
+      v.input.move(a.x, box.y + box.height + 40 + (k % 2));
+      await vi.advanceTimersByTimeAsync(8);
+    }
+    off();
+    const drawn = v.counts.frames - frames;
+    expect(placement(v).anchor).toBeGreaterThan(before);
+    expect(hit.mock.calls.length).toBeGreaterThan(0);
+    expect(hit.mock.calls.length).toBeLessThanOrEqual(drawn);
+    expect(writes).toBeLessThanOrEqual(drawn);
+    v.input.up();
   });
 });
 

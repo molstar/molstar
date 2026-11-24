@@ -2719,7 +2719,12 @@ Overlay, Opened sources), kept per model and view. No data, no dynamic node, no 
   store) carries a part that no static link does through a map read by region (a liftover, EC-212), every image of the
   runs held now (EC-20); a part also carried onto its own system through it (an image's item's other images: symmetric,
   Render, A liftover), no further. Why keyed by system, not a function per section: the renderer reads a part per axis
-  with an indexed loop, nothing called or made per draw.
+  with an indexed loop, nothing called or made per draw. **Its work is in the parts and their links**: the view's
+  systems and links are indexed once a resolved view (kept by the view, which is immutable), so a part on a shown system
+  visits the links from its system alone, never every system the view shows (only a model with a map read by region,
+  `RegionProjector.reads`, asks each shown system; a part on a system no section shows walks them for its static paths).
+  Why: a genome of 3,000 blocks shows 3,000 systems, and a drag across 12 chromosomes projects 12 parts a frame (walked
+  over every system and every link, about 300 ms a frame).
 - **Bridges** (`bridges.ts`; `ResolvedView.bridges`, `ResolvedBridge`; `ResolvedView.stack`, the view's sections and
   bridges in the order written, `{ kind, index }` each, what the layout stacks): a bridge is its address, its sides `a`
   and `b` (section addresses), `label` (absent: "a to b" by the sides' ids), `height` as written (absent: the render

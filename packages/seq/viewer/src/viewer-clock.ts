@@ -15,8 +15,11 @@ import type { SeqViewer } from './viewer.js';
 
 export class FrameClock {
   private _frameId: number | undefined;
-  /** A re-hit runs (the frame's): its own hover change is drawn by the frame that made it, none asked for. */
-  rehitting = false;
+  /**
+   * The frame applies what it draws (a re-hit's hover change, a drag-select's moves): what that changes is drawn by the
+   * frame itself, none asked for.
+   */
+  applying = false;
   /** The view is still: a frame laid out now is settled. */
   quiet = true;
   /** The view came to rest: `rested` moves once the frame that lays it out settled is drawn. */
@@ -33,7 +36,7 @@ export class FrameClock {
    * V8 allocate this method's context (40 bytes) on every call, an early return's too, once optimized code had asked.
    */
   schedule(): void {
-    if (this._frameId !== undefined || this.viewer.retired || this.rehitting) return;
+    if (this._frameId !== undefined || this.viewer.retired || this.applying) return;
     this._frameId = requestFrameCallback(this._frame);
   }
 

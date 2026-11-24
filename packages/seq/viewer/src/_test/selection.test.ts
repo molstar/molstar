@@ -278,6 +278,8 @@ function dragOver(v: SeqViewer, from: number, to: number, e: Keys = {}) {
   v.input.move(x0, y, e);
   v.input.down(x0, y, e);
   for (let i = 1; i <= 4; i++) v.input.move(x0 + ((at(v, 0, 0, to)[0] - x0) * i) / 4, y, e);
+  // a drag's moves land on the next frame (_spec/README.md "SelectionModel and HighlightModel", Drags)
+  frames!.flush();
 }
 
 function dragged(v: SeqViewer, from: number, to: number, e: Keys = {}) {
@@ -426,6 +428,7 @@ describe('the review’s smaller points', () => {
     const [x0, y] = at(v, 0, 0, 1);
     v.input.down(x0, y);
     v.input.move(at(v, 0, 0, 4)[0], y);
+    frames!.flush();
     expect(ranges(v)).toEqual([1, 5]);
     expect(v.input.key({ key: 'Escape' })).toBe(true);
     expect(ranges(v)).toEqual([7, 8]);
@@ -457,14 +460,19 @@ describe('drag-select', () => {
     expect(v.input.down(x0, y)).toBe(true);
     // under the slop: nothing yet
     v.input.move(x0 + 2, y);
+    frames!.flush();
     expect(ranges(v)).toEqual([]);
+    // the moves land on the frame (_spec/README.md "SelectionModel and HighlightModel", Drags)
     v.input.move(at(v, 0, 0, 4)[0], y);
+    frames!.flush();
     expect(ranges(v)).toEqual([1, 5]);
     // back past its start
     v.input.move(at(v, 0, 0, 0)[0], y);
+    frames!.flush();
     expect(ranges(v)).toEqual([0, 2]);
     // past the data's right edge: the last position
     v.input.move(10_000, y);
+    frames!.flush();
     expect(ranges(v)).toEqual([1, 10]);
     v.input.up();
     expect(v.input.click(10_000, y)).toBe(false);
@@ -473,6 +481,58 @@ describe('drag-select', () => {
     // an extend from there starts at the drag's anchor
     click(v, at(v, 0, 0, 3), { shiftKey: true });
     expect(ranges(v)).toEqual([1, 4]);
+  });
+
+  it('moves are applied once a frame: many in one frame write the selection once, at the last; the release resolves the rest', async () => {
+    const v = await make();
+    const [x0, y] = at(v, 0, 0, 1);
+    let writes = 0;
+    const off = v.selection.value.listen(() => writes++);
+    expect(v.input.down(x0, y)).toBe(true);
+    // twenty moves in one frame: nothing written until the frame
+    for (let k = 0; k < 20; k++) v.input.move(at(v, 0, 0, 2 + (k % 6))[0], y);
+    expect(writes).toBe(0);
+    frames!.flushOnce();
+    // one write, at the pointer's last place (k = 19: position 3)
+    expect(writes).toBe(1);
+    expect(ranges(v)).toEqual([1, 4]);
+    // a frame without moves writes nothing; nor one whose moves end where the last was applied, or on its position
+    frames!.flush();
+    expect(writes).toBe(1);
+    const [x3] = at(v, 0, 0, 3);
+    v.input.move(x3 + 3, y);
+    v.input.move(x3, y);
+    frames!.flush();
+    v.input.move(x3 + 0.2, y);
+    frames!.flush();
+    expect(writes).toBe(1);
+    // moves with no frame after them: the release applies the last, once
+    for (let k = 0; k < 20; k++) v.input.move(at(v, 0, 0, 9 - (k % 3))[0], y);
+    v.input.up();
+    expect(writes).toBe(2);
+    // (k = 19: position 8)
+    expect(ranges(v)).toEqual([1, 9]);
+    off();
+  });
+
+  it('hovers nothing while it runs; the hover comes back where the pointer rests on release and on Esc', async () => {
+    const v = await make();
+    const [x0, y] = at(v, 0, 0, 1);
+    const [x4] = at(v, 0, 0, 4);
+    for (const end of ['up', 'escape'] as const) {
+      v.input.move(x0, y);
+      expect(v.hover.current.owner).toBeDefined();
+      v.input.down(x0, y);
+      v.input.move(x4, y);
+      frames!.flush();
+      expect(v.hover.current.owner).toBeUndefined();
+      if (end === 'up') v.input.up();
+      else expect(v.input.key({ key: 'Escape' })).toBe(true);
+      // the pointer still: the hover is back at once, on the position under it
+      expect(v.hover.current.owner).toBeDefined();
+      expect(Math.floor(v.hover.current.position)).toBe(4);
+      v.input.up();
+    }
   });
 
   it('begun on an item, it snaps to whole items', async () => {
@@ -492,12 +552,15 @@ describe('drag-select over nucleotides (EC-149)', () => {
     const [x0, y] = at(v, 1, 0, 15);
     v.input.down(x0, y);
     v.input.move(at(v, 1, 0, 21)[0], y);
+    frames!.flush();
     expect(ranges(v, G)).toEqual([14, 23]);
     // back over the anchor's codon: just that codon
     v.input.move(at(v, 1, 0, 16)[0], y);
+    frames!.flush();
     expect(ranges(v, G)).toEqual([14, 17]);
     // before the anchor: from the codon before it
     v.input.move(at(v, 1, 0, 9)[0], y);
+    frames!.flush();
     expect(ranges(v, G)).toEqual([8, 17]);
     v.input.up();
     expect(ranges(v, G)).toEqual([8, 17]);

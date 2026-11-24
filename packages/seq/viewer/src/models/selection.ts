@@ -299,11 +299,23 @@ export class SelectionModel extends ReactiveModel {
         before: Emphasized;
         beforeAnchor: Anchor | undefined;
         beforeRest: Rest;
+        /**
+         * The end last applied (its position, the item under it, its system, the arc read) and the value it wrote: a
+         * move to it while that value stands is none.
+         */
+        at: number;
+        item: unknown;
+        system: string | undefined;
+        arc: boolean;
+        wrote: Emphasized | undefined;
       }
     | undefined;
   /** Where a rect's extend starts (a grid's cell), and a rect drag's first cell and the selection when it began. */
   private _cellAnchor: GridCell | undefined;
-  private _rectDrag: { from: GridCell; mode: DragMode; before: Emphasized } | undefined;
+  /** A rect drag: its first cell, its mode, the selection as it began and the cell last applied. */
+  private _rectDrag:
+    | { from: GridCell; mode: DragMode; before: Emphasized; x: number; y: number; wrote: Emphasized | undefined }
+    | undefined;
   private readonly _scope: ExtendScope;
   private readonly _across: 'shown' | 'span';
   private readonly _snap: SelectionOptions['snap'];
@@ -493,6 +505,11 @@ export class SelectionModel extends ReactiveModel {
       before: this._value.value,
       beforeAnchor: this._anchor,
       beforeRest: this._rest,
+      at: Number.NaN,
+      item: undefined,
+      system: undefined,
+      arc: false,
+      wrote: undefined,
     };
     return true;
   }
@@ -502,12 +519,21 @@ export class SelectionModel extends ReactiveModel {
    * an item's extent when the drag began on items and the pointer is over one. The range between the two ends replaces
    * the selection, is added to or taken out of what it was when the drag began, or is the anchor's range (its mode).
    * The range's start is the anchor for a later extend (a subtraction keeps the anchor). True when the selection changed.
+   * The end it was last at (the same position, item, system and arc) is no move: nothing is made or written (a drag's
+   * warm frame, _spec/README.md "SelectionModel and HighlightModel", Drags).
    */
   dragTo(position: number, hit?: Hit, axis?: Axis, arc = false): boolean {
     const d = this._drag;
     if (!d || Number.isNaN(position)) return false;
     const a = d.anchor;
     const p = Math.floor(position);
+    const item = hit?.element;
+    const same = p === d.at && item === d.item && axis?.system === d.system && arc === d.arc;
+    if (same && this._value.value === d.wrote) return false;
+    d.at = p;
+    d.item = item;
+    d.system = axis?.system;
+    d.arc = arc;
     let cur: Anchor = { system: a.system, start: p, end: p + 1 };
     if (d.snap && hit?.element && hit.system === a.system) cur = hitRange(hit, axis, this._extentOfHit(hit)) ?? cur;
     this._holes = undefined;
@@ -543,6 +569,7 @@ export class SelectionModel extends ReactiveModel {
         this._value.set(this._extended(loc));
         break;
     }
+    d.wrote = this._value.value;
     return before !== this._value.value;
   }
 
@@ -617,17 +644,25 @@ export class SelectionModel extends ReactiveModel {
       from: extend ? a! : cell,
       mode: mode === 'extend' && !extend ? 'replace' : mode,
       before: this._value.value,
+      x: Number.NaN,
+      y: Number.NaN,
+      wrote: undefined,
     };
     if (!extend) this._cellAnchor = cell;
   }
 
   /**
    * The rect drag's other cell: the rect between the two replaces the selection, is added to or taken out of it as it
-   * was when the drag began (rects subtract: at most two rects, the cells exact). True when the selection changed.
+   * was when the drag began (rects subtract: at most two rects, the cells exact). True when the selection changed. The
+   * cell it was last at is no move (nothing made or written).
    */
   rectDragTo(position: number, yPosition: number): boolean {
     const d = this._rectDrag;
     if (!d || Number.isNaN(position) || Number.isNaN(yPosition)) return false;
+    const same = Math.floor(position) === d.x && Math.floor(yPosition) === d.y;
+    if (same && this._value.value === d.wrote) return false;
+    d.x = Math.floor(position);
+    d.y = Math.floor(yPosition);
     const before = this._value.value;
     const r = cellsRect(d.from, { ...d.from, position, yPosition });
     switch (d.mode) {
@@ -644,6 +679,7 @@ export class SelectionModel extends ReactiveModel {
     }
     this._anchor = undefined;
     this._rest = NoRest;
+    d.wrote = this._value.value;
     return before !== this._value.value;
   }
 

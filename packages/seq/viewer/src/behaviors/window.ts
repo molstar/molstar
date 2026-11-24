@@ -16,6 +16,7 @@ import type { WindowPart } from '@molstar/seqx-core/render';
 import { State, type ReadonlyState } from '@molstar/core/reactive';
 import type { CommandDefinition, CommandResult } from '@molstar/ui/commands/types';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
+import { pieceOffsets } from '@molstar/seqx-core/view';
 import { axisTotal, positionAt, type ViewModel } from '@molstar/seqx-viewer/models';
 
 /** The section a window command moves. */
@@ -242,15 +243,17 @@ export function windowIdle(view: ViewModel, section: string, config: ViewerConfi
   if (!v || v.pending || v.width <= 0 || !view.canMove(section)) return true;
   // (a loop, not `find`: a frame asks this per rail and allocates no closure)
   const sections = view.resolved.value?.sections;
-  let total: number | undefined;
+  // the total read here, not returned by a call: a genome's 3·10⁹ units come back boxed (16 bytes a frame a rail)
+  let ranges: readonly number[] | undefined;
   if (sections)
     for (let i = 0; i < sections.length; i++) {
       const s = sections[i];
       if (s.address !== section) continue;
-      total = s.axis && axisTotal(s.axis);
+      ranges = s.axis?.ranges;
       break;
     }
-  if (total === undefined) return true;
+  if (!ranges) return true;
+  const total = pieceOffsets(ranges)[ranges.length >> 1];
   const whole = v.start <= 0 && v.end >= total;
   return whole && total <= v.width / config.viewport.maxPxPerPosition;
 }

@@ -710,6 +710,8 @@ describe('the hover card’s place and its life', () => {
     v.input.down(...at(2, 2));
     v.input.move(...at(3, 3));
     v.input.move(...at(5, 4));
+    // a drag's moves land on the next frame (_spec/README.md "SelectionModel and HighlightModel", Drags)
+    frames.flush();
     frames.timers.fire();
     const shown = v.behavior(HoverCardProvider)!.shown.value;
     expect(v.selection.value.value.location.rects.length).toBeGreaterThan(0);

@@ -11,7 +11,7 @@ import { EmptyKeys } from '@molstar/seqx-core/query';
 import { loadGenome } from '@molstar/seqx-core/resolve';
 import { blockPositionAt, blockSpan, placeOfUnit, type ResolvedSection } from '@molstar/seqx-core/view';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { acrossBlocks } from '../behaviors/select.js';
+import { acrossBlocks, selectBehavior } from '../behaviors/select.js';
 import { viewerItem } from '../config.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
 import { BuiltInHeaderEntries, type HeaderFacts, HeaderEntryNames } from '../header-entries.js';
@@ -238,6 +238,34 @@ describe('a genome in the viewer', () => {
       checked++;
     }
     expect(checked).toBeGreaterThan(100);
+  });
+
+  it('a drag across blocks with the block list changed under it (a node streamed in): read on the blocks shown now', async () => {
+    const v = await make();
+    // the same view with chr1 turned: what a block list changed under the drag reads
+    const turned = await make();
+    await turned.execute('block.reverse', { address: sectionOf(turned, Genome).blocks![0].address });
+    await turned.settle();
+    // the behavior over the view, its resolved view swapped under the drag (the selection left as the drag wrote it)
+    const resolved = { value: v.view.resolved.value };
+    const view = new Proxy(v.view, {
+      get: (t, k) => (k === 'resolved' ? resolved : Reflect.get(t, k, t)),
+    });
+    const select = selectBehavior(v.selection, view as typeof v.view, v.bindings);
+    const blocks = sectionOf(v, Genome).blocks!;
+    const u3 = (blocks[2].offset ?? 0) + 100.5;
+    const hit = { system: name(1), position: 100, block: 0, layer: `${Genome}/ruler/ruler` };
+    expect(select.beginDrag(Genome, hit, {}, 'cell')).toBe(true);
+    expect(select.dragTo(Genome, 0, undefined, u3)).toBe(true);
+    const before = setOf(v.selection.value.value.location);
+    expect(before.get(name(1))?.has(399)).toBe(true);
+    resolved.value = turned.view.resolved.value;
+    // the same pointer: chr1's anchor cell is now at the block's other end
+    select.dragTo(Genome, 0, undefined, u3);
+    const after = setOf(v.selection.value.value.location);
+    expect(after.get(name(1))?.has(0)).toBe(true);
+    expect(after.get(name(1))?.has(399)).toBe(false);
+    select.endDrag();
   });
 
   it('switching blocks keeps the selection: its positions, what it shows, its address (property: next, previous, reverse, include)', async () => {
