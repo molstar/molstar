@@ -9,9 +9,9 @@ import { hashNode, nodesEqual } from '@molstar/core/repr/tree';
 import { describe, expect, it } from 'vitest';
 import { ExampleViews } from '../views.js';
 
-// The views' specs through MessagePack (_spec/README.md; format.md, Encodings): each example view's spec encodes to
-// bytes and decodes to an equal tree (the same hash), whichever columns it holds; a quick representative and the sweep
-// over every view.
+// The views' specs through MessagePack (the core codec, typed columns as extension types): each example view's spec
+// encodes to bytes and decodes to an equal tree (the same hash), whichever columns it holds; the sweep over every view,
+// quick (a few milliseconds each).
 
 const Representatives = ['p53/tracks', 'globins/family', 'antibody/schemes'];
 
