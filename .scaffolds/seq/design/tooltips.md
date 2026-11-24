@@ -172,7 +172,7 @@ A layer type's `describe` gives `seq:layer`'s lines (its first the title, the re
   bin's rows depend on the zoom the figure froze).
 - **Cost**: a provider call per exported item, once per export, never per frame; size about the rows' text per item
   (a 60-character note on 10,000 items, 0.6 MB). The viewer's export passes its composed providers; the core's
-  headless export passes `tooltipsAt` alone. The default is an open question.
+  headless export passes `tooltipsAt` alone. The viewer passes its composed providers, the default `name`.
 
 ### The builder
 

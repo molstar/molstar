@@ -287,6 +287,73 @@ Paths relative to `packages/seq/`.
 | 171 | not met: no zoom gate with "load anyway" over bigWig | none |
 | 204 | not met for the new legends: painted vs vocabulary is not said by `LegendSelection` | none |
 
+## Outcomes of the close-out
+
+Recorded at the close-out's reconcile (2026-11-24) for the items of built rows that no test names by number and that had
+no outcome yet (`ec-ids.ts --worklist`). Each was matched by behavior against the tests on `packages-seq`; a clause no
+test asserts is said in its row. Counts of the 56: kept 39 (11 of them in part: the clause named), changed 10, not met 7
+(EC-34, 52, 98, 104, 105, 158, and 168 in part). No test was written to cite a number. Paths relative to
+`packages/seq/`; the generic repr tests are in `packages/core/src/repr`.
+
+| EC | Outcome | Test |
+|---|---|---|
+| 31 | kept: a hidden stretch and a reversed block are layout (axis breaks with hidden ranges, a direction per block), two pieces of one unit are blocks over one system | `core/src/view/_test/axis.test.ts` "has its breaks with their hidden ranges"; `core/src/view/_test/genome-blocks.test.ts` "keeps a reversed copy apart from a forward one" |
+| 34 | not met: a block past 2^31−1 positions left out with a "use a range" message; only the numbering limit and the refusal of a contig past int32 at open exist | related: `core/src/runtimes/_test/vcf.test.ts` "a contig longer than 2^31 − 1 is refused by name" |
+| 42 | kept by the design, not tested for a row bound twice: paths search bound rows only; the generic ambiguity rule is tested | `core/src/resolve/_test/paths.test.ts` "two maps joining the same systems differently are ambiguous (EC-24)" |
+| 45 | kept in part: rows sharing a key are one item; "where rows overlap, the last covering row wins" has no test | `core/src/render/_test/source-wrap.test.ts` "is one item: both pieces answer to one key" |
+| 46 | kept: a zero-length item meets the position it is at and draws as a hairline when selected | `core/src/data/_test/intervals.test.ts` "a zero-length interval meets the position it is at"; `core/src/render/_test/emphasis.test.ts` "a selected item of zero length is a hairline at its place" |
+| 47 | kept: misfit rows left out, one issue a cause with its count and first places; a table with no rows is a valid empty source | `core/src/data/_test/records.test.ts` "row-level misfits: each left out, one issue a cause" |
+| 49 | kept: `fields` maps roles by column or path, text cells keep their text (`01` stays `01`); an explicit swap is not asserted | `core/src/data/_test/records.test.ts` "keeps text cells as written", "maps roles and fields by column or path" |
+| 52 | not met: no test for a comparison with a missing (NaN) value being false and its `not` true; NaN is kept as missing in values and aggregates | related: `core/src/lang/_test/lang.test.ts` "keeps NaN in values through JSON" |
+| 53 | kept in part: numbers exact through JSON, NaN and −0 preserved; the Float32 shortest-decimal comparison has no test | `core/src/data/_test/seq-format.test.ts` "round-trips through JSON: typed columns, NaN, -0" |
+| 54 | kept: a values node holds one array per target; a length that is not one per position is `seq.lang.values.length` | `core/src/lang/_test/lang.test.ts` "is reported, with its severity and a place" |
+| 55 | kept by the design, not tested: values draw at their value, the domain bounds the height (`themes.md`) | related: `core/src/render/_test/values-reference.test.ts` "a closed domain’s outside line is not drawn" |
+| 56 | changed: shared domains are a named `scale` node; an open domain is the union over the layers naming it at settle, a closed end does not move, a diverging scale is set by `mid` | `core/src/render/_test/themes.test.ts` "unions an open domain over the layers naming it at settle"; `core/src/theme/_test/scales.test.ts` "makes a numeric field’s default palette diverge" |
+| 58 | kept: a grid is x-major, a wrong-size grid is dropped saying the count expected, typed columns kept by identity | `core/src/view/_test/grid.test.ts` "drops a grid of the wrong size, saying the count it expected" |
+| 60 | kept in part: zoomed out a bin draws its majority at its share's alpha; the tie rule and a `maximum` density have no test | `core/src/render/_test/matrix.test.ts` "zoomed out, draws the bins as an image tile of bins × states" |
+| 61 | changed: a matrix has one states system per entry, so its items share one stride | `core/src/resolve/_test/region-plans.test.ts` "give a matrix a states system, pending until its source's coverage lists them" |
+| 68 | changed: a reference is an address, not the old ref syntax; an id is required on every child but the root | `core/src/lang/_test/lang.test.ts` "require an id on every child of the spec" |
+| 69 | kept: the kind a ref param takes is checked statically; a ref to no node is reported on resolve | `core/src/lang/_test/axis.test.ts` "check the kinds their references name"; `core/src/resolve/_test/model.test.ts` "a reference to no node is reported on an unchecked spec" |
+| 70 | kept: a ref cycle is a warning on each ref in it, the rest of the check runs | `core/src/lang/_test/refs.test.ts` "reports a ref naming nothing and a chain that comes back, as warnings" |
+| 71 | kept: dependencies are the typed ref params only | `core/src/lang/_test/axis.test.ts` "are followed by a change: a node `along` or `pieces` names, removed, is reported for the section" |
+| 72 | kept: a source no runtime reads is reported and stays unavailable; an extension a composition lacks is drawn as its fallback | `core/src/resolve/_test/model.test.ts` "reports a source no runtime reads, and keeps it unavailable"; `core/src/context/_test/extension.test.ts` "is drawn by a composition that has it, and as its fallback by one without it" |
+| 73 | kept: a newer minor's unknown kind is a warning drawn by fallback, a newer major is refused alone | `core/src/lang/_test/lang.test.ts` "a newer minor’s unknown kind is a warning", "a newer major version is reported alone" |
+| 79 | changed: no `first` or `last` anchors; a place is `{ after }` or `{ last }`, `set` and `unset` act on one key | `core/src/lang/_test/patches.test.ts` "hold the core's cases and Seq's own" |
+| 83 | kept by the spec, not tested for a duplicated id: `diff` falls back to a `replace` of the parent | `core/src/repr/patch/_test/patch.test.ts` "falls back to a replace" |
+| 88 | kept by the code, not tested: an unknown key and a bad value carry hints listing the keys and values; tests assert the code and path | `core/src/lang/_test/lang.test.ts` "give the description's codes first" (code only) |
+| 98 | not met: `align: center` and `max_width` are implemented, no test asserts that hits and margins move with them | none |
+| 104 | not met: split rows are deferred with Ranges' split (`track-groups.md`) | none |
+| 105 | not met: deferred together with EC-104 | none |
+| 120 | changed: no glyph atlas; letters are drawn as glyph runs through `fillText`, fonts and glyph strings cached | `viewer/src/canvas/_test/backend.test.ts` "keeps colors and glyph strings: drawing the same lists twice makes the same calls" |
+| 121 | changed: no atlas pages to upload; the font is set only when it changes, nothing re-measured by zooming | `viewer/src/canvas/_test/backend.test.ts` "measures in the CSS font the backend draws with, setting the font only when it changes" |
+| 122 | kept in part: a letter is centered in its whole cell, edge and wider-than-view cells included; per role, size and DPR is not asserted | `core/src/render/_test/letters-whole-cell.test.ts` "a cell wider than the view centres its letter off-screen" |
+| 123 | kept in part: the hit is the layout's own, a pixel hits the cell drawn on it; a glyph's overhang into a gap is not asserted | `viewer/src/_test/viewer.test.ts` "a hit under the pointer is the layout's: a letters cell with its position" |
+| 124 | kept: the SVG and PNG share the draw list and a bundled metrics table, the PNG writes valid CRCs | `core/src/render/_test/png.test.ts` "writes the signature, IHDR, one IDAT of stored rows and IEND, each with its CRC"; `core/src/render/_test/backends.test.ts` "measures with the bundled table" |
+| 133 | changed: the palette order is the section's domain, known up front, never the first occurrence by region | `core/src/theme/_test/theme.test.ts` "compiles over one domain known up front share its colors" |
+| 134 | kept: an unlisted value takes the list color at its FNV-1a hash over UTF-8; a dictionary scheme gives an unlisted letter the missing color | `core/src/theme/_test/theme.test.ts` "an unlisted value takes the color at its FNV-1a hash over UTF-8" |
+| 136 | kept in part: dark variants derived, only fitting schemes offered, the reader's substitution writes nothing into the spec; "a pick survives patches" is not tested | `core/src/theme/_test/theme.test.ts` "a scheme's literal colors take a derived dark variant"; `viewer/src/_test/legends.test.ts` "offers the schemes that fit a layer" |
+| 139 | kept in part: ink by the contrast rule, chip ink at 4.5:1 in both; the 0.179 threshold is not asserted | `core/src/theme/_test/ink.test.ts` "equals the contrast rule, first and memoized, for any pair of inks" |
+| 140 | changed: no band copy; a pan redraws from the lists and equals a fresh renderer's; hide and show equal to a fresh mount is not tested | `core/src/render/_test/pairs-pan.test.ts` "(3) a pan's frame equals a fresh renderer's" |
+| 142 | kept: a hover is an element in its own system, projected onto another section when asked, once per version | `viewer/src/_test/hover.test.ts` "is computed when asked, once per version; configurable" |
+| 147 | kept in part: the row band is drawn in the hover pass from the emphasis input; that it changes no state is not asserted | `core/src/render/_test/matrix-emphasis.test.ts` "the hover's tint is the config's" |
+| 150 | kept: a drag held past the box edge autoscrolls by the clock and stops at the release; growth with distance is not asserted | `storybook/src/_stories/features/text/_test/text-viewer.test.ts` "a drag-select held past the box's bottom scrolls it, by the clock, and extends" |
+| 151 | kept in part: a text drag selects in reading order across lines (a known flaw fixed: cross-block selection is no longer deferred); "never pans" is not asserted | `storybook/src/_stories/features/text/_test/text-viewer.test.ts` "a drag selects in reading order across lines" |
+| 152 | kept in part: a press always ends (release elsewhere, cancel, blur, lost capture); one pointer at a time and clamping are not asserted | `viewer/src/_test/drag-release.test.ts` "a second press after a lost release starts a new drag" |
+| 153 | kept: input is a binding table by gesture, modifiers and hit target; an unbound drag does nothing | `viewer/src/_test/bindings.test.ts` "the default preset resolves each gesture by the hit’s target" |
+| 158 | not met: no dwell or pointer guard on reveal-on-highlight; only the explicit reveal exists (panning only) | related: the search's "next reveals, panning only" |
+| 168 | not met in part: `show` switches views and gives the other view's sections viewports; "prefer a view that holds the extents directly" is not tested | `viewer/src/_test/follow.test.ts` "show switches views" |
+| 178 | kept: a changed overlay version changes the frame key only; the model and resolved view are reused | `core/src/render/_test/dynamic.test.ts` "the overlay’s version is part of the key; the model and the resolved view stay" |
+| 180 | changed: a codon is cells on the coding axis, one cell per part of a split codon, no `\|` label; a minus strand reads from the highest exon down | `core/src/render/_test/axis.test.ts` "a residue a codon wide on the gene’s coding axis"; `core/src/resolve/_test/encodings.test.ts` "minus strand: the coding sequence starts at the highest exon and reads downward" |
+| 192 | kept: `limits.maxBytes` refuses a file before it is read, `seq.source.too_large` | `core/src/runtimes/_test/genbank-bounds.test.ts` "its bytes (`limits.maxBytes`), before a line is read" |
+| 193 | kept: lane heights, fonts and row pixels are the render config's; a track asks for pixels by its own `height` | `core/src/render/_test/track-heights.test.ts` "a track’s own height overrides" |
+| 194 | kept: named schemes and token palettes have values in both light and dark tables | `core/src/theme/_test/conformance.test.ts` "colors in each table, ink at 4.5:1 on each, a provenance" |
+| 197 | kept by the format design, not tested as a stated 0-based code: a category column is a dictionary and int32 codes | related: `core/src/theme/_test/theme.test.ts` "a dictionary-coded value’s color is its value’s" |
+| 198 | kept by the code, not tested: a ranges item's label is its `label`, else its id | none |
+| 199 | kept: each type states its fallback; a ranges layer takes pairs as marks, a values layer does not | `core/src/lang/_test/molecules.test.ts` "a ranges layer takes pairs (each end a mark at its site); a values layer does not" |
+| 226 | changed: no sorted-input flag; lanes pack first-fit by start over the whole data whatever the file order (lane order itself not asserted) | `core/src/render/_test/ranges-reach.test.ts` "is as tall as the whole region’s lanes at the first settled frame" |
+| 234 | kept in part: leading ruler tracks are a fixed head; an absent or lower ruler is not tested | `core/src/render/_test/section-scroll.test.ts` "scrolls the tracks below the ruler by `top`, the ruler fixed" |
+| 236 | kept: `diff` writes an unset param back as a `set` and the patch round-trips; snapshots and metadata are not asserted separately | `core/src/lang/_test/molecules.test.ts` "unset on its node, and set again" |
+
 ## Notes for the close
 
 - `ec-ids.ts --worklist` still lists many earlier rows' items (most from before the coverage rule, in its baseline);

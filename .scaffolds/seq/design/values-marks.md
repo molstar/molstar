@@ -16,7 +16,7 @@ What row 130 says, and where each part stands:
 |---|---|---|
 | Points at a height (216) | **built** (the fifth slice's VP: `encoding: 'points'`, `render/values-marks.ts`, language `0.8.0`): a dot a value, a thin min-to-max mark a device column below a pixel a value; a coarse level keeps min and max (core spec, Data, summaries), so a zoomed-out bin never averages one significant SNP away | nothing |
 | Log scale (215) | **built** (`scale.type: 'log'` on y and on colors, `non_positive`, the log legend; EC-215 in themes.md, "Palettes and scales") | nothing |
-| Reference line (217) | **missing**: a values layer draws one baseline hairline (zero, else the domain's low) and nothing at a chosen value | this design |
+| Reference line (217) | **built** (CL8): `reference` draws a line at a chosen value; the baseline hairline stays | this design |
 | A scale's title and units (217) | **built** as `scale.label` and `scale.unit` for the legend; the values layer draws no y axis, and this design adds none | out of version 1 (Tensions) |
 | Split by sample (214), colour by chromosome (218), LD (219) | other rows | not here |
 
@@ -108,7 +108,7 @@ With no `reference` the layer is as built: no line. With a line, no other settin
  │        ▪        ▪   ▪       ▪        │     │        ▪        ▪   ▪       ▪        │
  │ ▪ ▪▪ ▪▪▪ ▪▪ ▪▪▪ ▪ ▪▪ ▪▪ ▪▪▪ ▪▪ ▪ ▪▪ ▪ │     │ ▪ ▪▪ ▪▪▪ ▪▪ ▪▪▪ ▪ ▪▪ ▪▪ ▪▪▪ ▪▪ ▪ ▪▪ ▪ │
  └──────────────────────────────────────┘     └──────────────────────────────────────┘
-   baseline hairline at 0 (seq-sequence)        line: msui-text, dashed 4 on 3 off, 1 px
+   baseline hairline at 0 (seq-sequence)        line: msui-text, dashed 4 on 4 off, 1 px
 ```
 
 - **Light and dark**: tokens only (`msui-text` for the line, `msui-text-muted` for the label, the well's ground behind the
@@ -170,8 +170,8 @@ canvas and SVG.
 - `lang/language.ts`: the layer's description gains `reference` (a `list` of `record`, `max-length` 4, fields `at`
   (number, required), `label` (string), `color` (string), `style` (enum `solid`, `dashed`, `dotted`)), its doc "For
   `values`: horizontal lines at values of the layer's y (a threshold, a zero, a mean), drawn over the marks."
-- `SeqLanguageVersion` takes the next minor. The track-groups draft names `0.11.0`; this one is `0.11.0` if it lands
-  first, `0.12.0` after it: the lanes' order settles it. Its history entry, the builder's types (`values`' options),
+- `SeqLanguageVersion` takes the next minor. Both landed in the same unreleased `0.11.0`, the track-groups bump first
+  and `reference` after it. Its history entry, the builder's types (`values`' options),
   the catalogs and `config-keys` tests.
 - `lang/check.ts`: a `reference` on another layer type is the existing "param for another type" warning; `at` a
   non-number, a colour that is not a color or token, a style outside the enum, a fifth line: the description's own
@@ -232,7 +232,7 @@ by a grep of `values-look` and the summary tests for a "max over a bin" case).
   gaps, bins). The layer param explains the one-track need and the shared-scale case by repeating the value (carried
   as the `scale.lines` alternative, Provisional).
 - **Its inverse**: a writer who wants no baseline: not built, not asked; the baseline hairline is the layer's.
-- **Built**: points (VP), log (EC-215), baseline. **Planned**: the line. **Carried**: Tensions above.
+- **Built**: points (VP), log (EC-215), baseline. the reference line (CL8). **Carried**: Tensions above.
 
 ## In the specs
 

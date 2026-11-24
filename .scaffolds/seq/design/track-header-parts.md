@@ -12,7 +12,7 @@ action is a host's registry entry, not built into Seq\* ([structure-syncing.md](
 DOM, the author: "can we support both?": the entries drawn on the canvas by default, or a host's DOM parts over the same
 geometry; and on the secondary click, "configurable behavior again so it's the composing app's decision".
 
-What is built today:
+What was built before this design (the baseline; the entries below are built since):
 - the commands `track.hide`, `track.show`, `layer.hide`, `layer.show` and `layer.filter`;
 - the "n filtered" chip, which is the header's only control. It is drawn in the label column and hit as
   `target: 'filter'`. A click on it clears the filter.
@@ -107,7 +107,7 @@ It does not cover:
 | adds its own menu item | JBrowse plugins, igv.js, the current Seq\* | built: a registry entry; "color by this track" is one |
 | a feature's own menu | JBrowse, IGV | built: `on: 'element'` entries in the menu opened on the element; the hover card shows none (Tensions) |
 | header hover lights the track's items | the current Seq\* (EC-146) | refused by default: Tensions |
-| collapses a group of tracks | ProtVista, the current Seq\* | no: the language has no track groups; a section is the group |
+| collapses a group of tracks | ProtVista, the current Seq\* | built (CL6): the `group` node, folds as session state, `seq:group`, `seq:collapse-groups`, `seq:expand-groups` |
 
 ## Decision
 

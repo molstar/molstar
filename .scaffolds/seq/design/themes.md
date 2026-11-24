@@ -43,7 +43,7 @@ render and another viewer all answer it the same way, and a legend can answer it
 | clicks a legend entry to select its items | Vega-Lite | **built**: the items of that value, by `(item :<field> v)` |
 | hovers a legend entry to see its items | plotting tools | **built**: a highlight channel over its items in view |
 | clicks a legend entry to hide its items | plotting tools | **built**: `layer.filter` (one patch on the layer's `layer.data` filter, the query sublanguage's), the track header showing an "n filtered" chip whose click clears it; a theme still never hides |
-| sees the active highlights in the legend and removes one | Vega-Lite's selections, some genome browsers | **planned** (the legend part's highlight rows) with `highlight.clear` |
+| sees the active highlights in the legend and removes one | Vega-Lite's selections, some genome browsers | built (the legend channels row) with `highlight.clear` |
 | sees the hovered item's value on the legend | some plotting tools | **built**: the hovered item's entry is outlined, its value ticked on a ramp |
 | colors the letters instead of the cells | Jalview ("colour text") | **built**: the letters layer's `ink` channel |
 | colors a selected region on a track | Jalview (groups) | **planned**: `theme.color-selection` adds a rule `(in <the selection>)` at the top of the layer's theme, one patch |
@@ -329,7 +329,7 @@ and another viewer); a host recolors through `--seq-*` tokens.
   mount is a `SeqViewerSpec.ui` entry (`ui.legends`, the same call), its gestures a `BehaviorProvider` (`legend`), as
   the navigators' are. Seq\* never draws a legend on its canvas.
 - **The legend follows the hover**: the hovered item's entry is outlined; on a ramp, its value is ticked.
-- **A legend states its domain** (features, "Settle and open domains"; planned for version 1, the author, 2026-11-23):
+- **A legend states its domain** (features, "Settle and open domains"; built, CL1):
   a continuous legend over an open domain says "in view" beside its title, in the part as in the export, its ends the
   values the view settled on; a closed one its own ends. A categorical legend says whether it is the vocabulary or
   what was painted ("values in view", EC-204).
@@ -422,7 +422,7 @@ and another viewer); a host recolors through `--seq-*` tokens.
 | `ruler` | tokens only (`seq-ruler` ticks, `msui-text-muted` labels); a color theme on it is `seq.render.theme.channel` | — | `numbering` (spec param: the numbering it labels by, the section's default numbering when unset; switching schemes, Kabat against IMGT, is a patch of it); insertion labels (100A, 111.1) as minor ticks, labeled only with room; tabular figures, steps of 1, 2, 5 × 10ⁿ, a label skipped when it does not fit (a gap of 48 px, a foundations number in the presets), never shrunk; above, below or absent is its track's place and existence (EC-234); fallback: omitted |
 | `secondary` | `color` (by the `kind` field), `size` (band) | `(scheme :name secondary)` | helices and strands as blocks (the layer's `style`: `blocks`; `cartoon` with the text figure, [layouts.md](layouts.md)); the strand's arrowhead on the piece holding its C-terminal end, whatever the direction or the origin (EC-130, fixed); cut ends square; 200 copies draw what one does (EC-67); fallback: `ranges`; the class table reads UniProt's words too (`Helix`, `Beta strand`, `Turn`, [files.md](files.md)) |
 | `variants` | `color`, `size` (radius), `opacity`, `shape` | `token:variant` (the builder writes `(field :name consequence)`) | a stem and a head a site; at `bars` and `density`, a count strip in the density tokens; fallback: `ranges` |
-| `values` | `color` (uniform, or a field over `value`), `size` (line thickness), `opacity` (area) | `token:value` | `encoding`: `bars` (built), `line`, `area`; a line changes color halfway between positions and holds over half cells at the ends and at gaps (EC-57); missing breaks the line; the area under the line at the `opacity` channel (0.35 by default); y through its scale |
+| `values` | `color` (uniform, or a field over `value`), `size` (line thickness), `opacity` (area) | `token:value` | `encoding`: `bars`, `line`, `area` and `points` (all built; `reference` draws a line at a value); a line changes color halfway between positions and holds over half cells at the ends and at gaps (EC-57); missing breaks the line; the area under the line at the `opacity` channel (0.35 by default); y through its scale |
 | `ranges` | `color`, `size` (band), `opacity`, `line`, `arrow` | `token:range` (the builder writes `(field :name category)` where it has the column) | a line style anchored to the content (the dash phase moves with the data, not the screen); an invalid style drawn solid and said once (`seq.render.line-style`); an arrowhead on the piece holding the end it points to, never on a cut end |
 | `letters` | `color` (cells), `ink` | `(scheme :name classes)` or `nucleotide-classes` by the system's declared alphabet | ink `auto` follows the fill |
 | `bands` (the navigators design) | `color` (by the `stain` field) | `(scheme :name giemsa)` | the `acen` pair as triangles; fallback: `ranges` |
