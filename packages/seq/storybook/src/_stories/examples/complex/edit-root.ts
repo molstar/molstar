@@ -122,7 +122,9 @@ class ComplexEditRoot extends UiElement<ComplexEditModel> {
 
     const svg = followSvg(s.viewer, svgHost, { prefix: 'cx' });
     onCleanup(() => svg.dispose());
-    const draw = () => {
+    // the history's rows on a step or a redo moved; the spec printed only when the spec shown did (an edit moves all
+    // three: printed once, not three times, 0.5 ms each on the 200 copies)
+    const drawHistory = () => {
       const rows = historyRows(s);
       history.textContent = [
         'Undo (newest first):',
@@ -130,11 +132,22 @@ class ComplexEditRoot extends UiElement<ComplexEditModel> {
         'Redo:',
         ...rows.redo.map((l) => `  ${l}`),
       ].join('\n');
-      printed.textContent = printedSpec(s.viewer.spec.shown.value);
       undo.disabled = rows.done.length === 0;
       redo.disabled = rows.redo.length === 0;
     };
-    for (const state of [s.stack.steps, s.stack.redoable, s.viewer.spec.shown]) onCleanup(state.listen(draw));
+    let printedRoot: unknown;
+    const printSpec = () => {
+      const root = s.viewer.spec.shown.value;
+      if (root === printedRoot) return;
+      printedRoot = root;
+      printed.textContent = printedSpec(root);
+    };
+    const draw = () => {
+      drawHistory();
+      printSpec();
+    };
+    for (const state of [s.stack.steps, s.stack.redoable]) onCleanup(state.listen(drawHistory));
+    onCleanup(s.viewer.spec.shown.listen(printSpec));
     onCleanup(
       s.stack.lastMove.listen(() => {
         status.textContent = lastMove(s);

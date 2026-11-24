@@ -7,8 +7,8 @@
 
 // The navigator part in a DOM (jsdom): `mountNavigator` into a host's element (its canvases, its slider's value set on
 // settle and never for a move made elsewhere, its events in the platform's order: a double-click one step), the
-// default placement by `place` around the canvas, the rail toggle, the canvas's cursor over a rail; everything taken
-// away on retire.
+// default placement by `place` around the canvas, the rail toggle, the canvas's cursor over a rail; a frame that changes
+// nothing it shows writes nothing; everything taken away on retire.
 
 import { createSeqSpec, overviewNavigator, stripNavigator } from '@molstar/seqx-core/lang';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -175,6 +175,36 @@ describe('the navigator part', () => {
     expect(name.style.textOverflow).toBe('ellipsis');
     expect(name.style.flex).toBe('0 1 auto');
     expect(value.style.flex).toMatch(/^(none|0 0 auto)$/);
+  });
+
+  it('a frame that changes nothing it shows writes nothing to its DOM (a hover’s frames: no layout dirtied a move)', async () => {
+    viewer = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined });
+    await viewer.load(spec());
+    viewer.resize(600);
+    await viewer.settle();
+    viewer.view.setRange('/views/v/protein', 0, 30);
+    viewer.draw();
+    const el = document.createElement('div');
+    document.body.append(el);
+    mountNavigator(el, viewer, 'strip');
+    frames.flush();
+    const part = el.querySelector<HTMLElement>('[data-navigator="strip"]')!;
+    expect(part.querySelector('.seqx-navigator-readout')!.textContent).toBe('p:1–30 of p');
+    const writes: string[] = [];
+    const observer = new MutationObserver((records) => {
+      for (const r of records)
+        writes.push(`${r.type} ${r.attributeName ?? ''} ${(r.target as Element).className ?? ''}`);
+    });
+    observer.observe(el, { subtree: true, childList: true, attributes: true, characterData: true });
+    // the viewer's frames, as a hover draws them (the emphasis passes only): the part draws over each, the same text
+    for (let i = 0; i < 10; i++) {
+      viewer.input.move(20 + 30 * i, 10);
+      viewer.draw();
+      frames.flush();
+    }
+    await Promise.resolve();
+    observer.disconnect();
+    expect(writes).toEqual([]);
   });
 
   it('its slider’s value is set on settle after its own gesture or key, never for a move made elsewhere', async () => {

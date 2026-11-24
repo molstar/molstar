@@ -363,6 +363,8 @@ export class NavigatorModel extends ReactiveModel {
             layouts: this.viewer.context.layouts,
             pictures: this.viewer.context.pictures,
             kinds: this.viewer.context.kinds,
+            // the square it replaces: its cells kept when made of the same (an edit elsewhere, the ring's `include`)
+            ...(isSquare(this.renderer) ? { previous: this.renderer } : {}),
           })
         : this.pictureRenderer(nav, model, view);
       this.rendererFor = [model, view, nav, viewRenderer];

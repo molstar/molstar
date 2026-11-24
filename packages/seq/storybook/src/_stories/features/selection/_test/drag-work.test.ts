@@ -9,7 +9,8 @@
 // frames, the pointer is hit once a frame (never a move; a frame with the pointer held where it was hit, not again),
 // the selection written at most once a frame, the hover neither looked up nor changed, nothing laid out again, the SVG
 // twin not exported; on release the last moves land once, the hover comes back where the pointer rests and the twin is
-// exported once, and the selection is the one a drag straight to the last point makes.
+// exported once (a task after the release's frame), and the selection is the one a drag straight to the last point
+// makes.
 
 // @module-tag medium
 
@@ -76,6 +77,9 @@ describe('a drag-select re-runs its work once a frame, bounded by the screen', (
       v.input.up();
       expect(hit).toHaveBeenCalledTimes(Frames + 2);
       v.draw();
+      // the twin's export a task after that frame (follow-svg.ts), once
+      expect(svg).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(0);
       expect(svg).toHaveBeenCalledTimes(1);
       const dragged = v.selection.value.value.location;
       off();

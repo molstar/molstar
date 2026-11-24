@@ -658,7 +658,9 @@ selection moves (`viewer-selection.ts`) and the frame (`viewer-frame.ts`).
   runs left; the value and `· row N` never; `readoutParts` is the model's split); the window's region at rest (the one
   last acted on; a rows-only overview the short form, `401–440 / 10,000`), the position and band under the pointer while
   it hovers, the window's region as drawn, every frame, while a window moves from any source until the pointer moves
-  again; a position as `name: 1,234`), its clicks with their count; its disposer takes it away. `ui.navigators`
+  again; a position as `name: 1,234`), its clicks with their count; its disposer takes it away. It draws over every
+  frame of the viewer's (a hover's too) and writes its text and box only when they change: a write a frame dirtied the
+  page's layout, which the canvas's next pointer move read back (its rect), a forced layout a move. `ui.navigators`
   (`navigatorsMount`, on in the default spec) places the view's shown navigators by `place` around the canvas (top
   before it, bottom after it, left and right beside it in a row) through the same call, again when they change; each
   side part's room is the row less the other side parts (`NavigatorModel.setRoom`: a vertical overview of its form's
