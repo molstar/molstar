@@ -18,7 +18,7 @@ The `cc-plugin-privacy` plugin no longer refuses lanes since the author's restar
 `~/.claude/settings.json`): a fresh agent's `head -8` of `pairs-assembly.ts`, refused before, ran.
 
 - **FX28** merged (`d7857a8f0`); the tile key the review proposed fails a pending side (TODO).
-- **FX29** merged (`271ab74ed`). The author to confirm `themes.md`'s legend-row rule; perf not rerun at the merge
+- **FX29** merged (`271ab74ed`). The author confirmed `themes.md`'s legend-row rule; perf not rerun at the merge
   (load 21–31): at GATE 2, with FX30's.
 - **FX30** merged (`60170c5b5`), the sizes raised with FX29's; perf at GATE 2.
 
@@ -28,7 +28,7 @@ The `cc-plugin-privacy` plugin no longer refuses lanes since the author's restar
 
 ## Blockers and open questions
 
-The author: confirm `themes.md`'s legend-row rule (FX29); a name for a folded group's summary layer (its raw id
+The author: a name for a folded group's summary layer (its raw id
 "ranges#summary" shows in its legend row and eye: TODO). Sizes raised at FX30's merge (headless 1,000). At the close: remove the locked, clean
 worktrees (CL4's, CL7's, CL9's, CL11's, CL12's, CL13's, FX26's, the reviewers') and their branches.
 
