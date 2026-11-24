@@ -50,3 +50,5 @@
 - Seq\* (next): a `values` layer takes `reference`: up to four lines at values of its y (`at`, `label`, `color`,
   `style`), drawn over the data and under the hover, read through the layer's scale (log included); an open domain
   includes them (language 0.11.0).
+- Seq\* (next): a letters layer's legend row is titled by its layer ("Sequence letters") and lists every colour it
+  draws, its eye says what it hides; hiding it keeps the track's label whole.

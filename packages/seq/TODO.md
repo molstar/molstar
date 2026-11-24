@@ -494,3 +494,5 @@ extension kinds.
   split them; bins read by region draw once and say so. A design question: bin by a declared field, or take the filter
   in the request.
 - **A later layer's widest stem is read as last laid out** with `scale: 'section'`: a growth shows one frame late.
+- **A folded group's summary layer is named by its raw id** (FX29, 2026-11-24): `layerName` gives "ranges#summary" in
+  its legend row's title and its eye. A design call: the group's label and "summary", or the summary's own kind.

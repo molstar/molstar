@@ -12,7 +12,7 @@ Open items for the next fix point or a running lane's fix round (the loop, Each 
   five). Kind: look. And the Genomes index threw since CL8 (its Manhattan view had no entry in the page's story map):
   the entry added; `index-pages.test.ts` renders every index page (sans-serif, every link a story), failing on both
   parents.
-- **A legend row reads as one category and hides the whole track** (the author, 2026-11-24, Features › Structure link
+- **Fixed by FX29** (`271ab74ed`). **A legend row reads as one category and hides the whole track** (the author, 2026-11-24, Features › Structure link
   › Focus And Back, two screenshots: "there is a bug on the legend here, showing just the ATP, but also hiding
   everything"): the row "Sequence ⊙ ATP" lists one swatch while the track draws its letters and eight ligands; its eye
   empties the track; the header truncates to "S…" with a stray square. Kind: bug (maybe a design gap). To FX29.
