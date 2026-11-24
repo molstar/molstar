@@ -590,6 +590,14 @@ more than a screen can give it, it scrolls inside itself with its name and the t
   `trackSizing` port (unchanged).
 - **A track's own `height` is its cap and its height**: under it, lanes past the height scroll (the TP53 story drops
   `height: 760` and gets content to the cap).
+- **`height: 'content'`, a track with no cap** (the author, 2026-11-24, Features › Tooltips › By Data, the canvas's
+  Transcripts track scrolling at 240 px while the SVG drew every lane: "maybe we should support 'auto' sizing for
+  rendered tracks on canvas too?"): a track's `height` is a px number or `'content'`: the track fits its content (the
+  lanes, steps and fixed heights above) with no `track.maxPx`, its lanes never scrolling inside it; a rows band too (no
+  `rows.maxPx`). A ring's track keeps `rings.trackMaxPx` (a ring has no page to grow). Absent `height` is unchanged.
+  Why: the cap protects a reader's page from a section's data, the host's default; a figure's author who wants every
+  lane shown (an export-like page, a story twin) says so in the spec. One value where `height` already is (language
+  0.11.0, no new bump).
 - **Tracks of one kind share their height** (as decided): the tallest content among them, capped; each scrolls on its
   own when its lanes exceed it.
 - **`track.overflow`** (a spec param of the track, its default in `RenderConfig`): `scroll` (the default, (3)),
@@ -623,7 +631,8 @@ more than a screen can give it, it scrolls inside itself with its name and the t
   with the one rail at its right edge, its ruler and navigators fixed above; lanes bands and rows bands inside it
   scroll first, then the section, then the page (the wheel's chain). The box: the section's `height` (spec param, px,
   every layout: text, tracks, rings' diameter as now), else its content up to `section.maxPx` (render config, default
-  600; `text.maxHeight` folds into it, one key); a host page sizing its canvas reads the box. An export shows every
+  600; `text.maxHeight` folds into it, one key; `'content'`: the section is its content with no cap, never scrolling
+  inside, the canvas's own `canvas.maxHeight` unchanged); a host page sizing its canvas reads the box. An export shows every
   track (the figure), as a text section shows every line. Why one cap: a reader's page should not grow by a
   section's data, and a host decides how much room a section takes, per view or per section.
 - **Loading: the labels stay in the band**: a pending track's placeholder lane clips its labels to the band; nothing
