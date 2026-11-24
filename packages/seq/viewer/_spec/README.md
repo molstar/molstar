@@ -186,6 +186,16 @@ nothing and tells nothing. Beside `models/view.ts` (the moves and the publish): 
   item the layer no longer holds leaves the band at its `bandTop`. Why keys: a step back after rows were hidden, folded
   or reordered, or lanes packed again, lands on the same rows and items. `rowsAxis(system)`: a rows system as an axis in
   its layer's display order (Shift+click extends along it).
+- **Groups** (`view-folds.ts`; `groupFolds`, `foldedGroups(section)`, `isFolded(group)`,
+  `setFoldedGroups(section, ids)`): each section's folded track groups by id, session state as a band's clade folds are
+  (one model of folding): absent, each group's `collapsed` (the opening state, `openingFolds`);
+  `setFoldedGroups(section, undefined)` drops the session's set. One map replaced on each change, a section's set
+  published in its viewport (`Viewport.groups`, compared by identity) and kept by a step of the history
+  (`Snapshot.folds`), so back after a bulk fold or a reveal restores the folds with the window. Why the section's and
+  not a band's: a group is a section's. A setter is a hand's move (no step); a bulk fold runs it inside `jump`. A focus
+  or a reveal of items only folded groups' tracks draw (`foldedHolding`: none drawn by a track open, an authored summary
+  track standing for its group) opens those groups inside its own jump; a selection or a highlight opens nothing (their
+  marks show in the summary).
 - **History** (`jump`, `back`, `forward`, `history`): a jump (a focus, a fit, a reveal, a bookmark's or a link's move,
   the cursor's Enter) runs through `jump(move)`, which pushes the viewports it left (every group's range, a detached
   follower's among them) when it moved the view, and drops the steps forward; `same` when the view already showed it,
@@ -1224,6 +1234,14 @@ binding table; per move one hit record and one modifiers record are reused.
 
 Small policies over the models (`behaviors/`), each reading the bindings. `rows` (an alignment's rows: Commands, the
 rows' commands) reads the last frame's rows layers through the behavior context's `layout()`.
+
+- **Groups** (`behaviors/groups.ts`, `GroupsProvider`, in the default spec): a section's track groups folded and opened,
+  the clade folds' model. `groups.toggle { address }` (a group's) is a hand's move, no step; `groups.collapseAll` and
+  `groups.expandAll` (`{ section? }`: the section's groups, else every section's) are one jump, so Alt+Left restores the
+  folds and the window together ("Already so" when nothing moves); `groups.keep { section }` writes the folds shown into
+  its groups' `collapsed` (one patch: `set` true, `unset` when open). A patch or an undo that changes a group's
+  `collapsed` resets its section's set to the spec's (an edit of the opening state is meant to show); other edits keep
+  it. Why a behavior beside `headers`: the commands stand without the headers' parts (a host's own header, a key).
 
 - **A section of blocks on several systems** (its axis on no system): a hit names its `block`, and its positions are
   read on that block's axis from its `offset`: a drag-select stays in the block it began on (clamped at its ends), a

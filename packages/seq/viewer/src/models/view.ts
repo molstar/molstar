@@ -41,6 +41,7 @@ import { axisTotal } from './axis.js';
 import { BridgeView } from './bridge-hooks.js';
 import type { SpecModel } from './spec.js';
 import { type BandRows, type Bands, ViewBands } from './view-bands.js';
+import { type GroupFolds, groupIdOf, openingFolds, ViewGroupFolds } from './view-folds.js';
 import {
   type FollowerRangeOut,
   followerRange,
@@ -92,6 +93,11 @@ export interface Viewport {
   readonly scale?: number;
   /** A grid's own y window (`follow_y: none`), offsets down its y axis; absent: the whole axis, or y follows. */
   readonly y?: { readonly start: number; readonly end: number };
+  /**
+   * Its folded track groups by id, the session's (_spec/README.md "ViewModel", Groups); absent: each group's
+   * `collapsed`. Compared by identity.
+   */
+  readonly groups?: readonly string[];
 }
 
 /**
@@ -133,6 +139,9 @@ export class ViewModel extends ReactiveModel {
   private readonly _bands = new ViewBands();
   /** Every band's own viewport by its track's address: a rows band's scroll, row zoom and folds. */
   readonly bands: ReadonlyState<Bands> = this._bands.bands;
+  private readonly _folds = new ViewGroupFolds();
+  /** Each section's folded track groups, the session's sets (_spec/README.md "ViewModel", Groups). */
+  readonly groupFolds: ReadonlyState<GroupFolds> = this._folds.folds;
   /** How many steps back and forward the view's history holds. */
   readonly history: ReadonlyState<ViewHistory> = this._steps.history;
   /** Moves on each jump, back and forward (and each step zoom): what a viewer animates; a move by hand does not. */
@@ -602,6 +611,29 @@ export class ViewModel extends ReactiveModel {
     return this._bands.of(section);
   }
 
+  /** A section's folded track groups by id: the session's set, else its groups' `collapsed` (the opening state). */
+  foldedGroups(section: string): readonly string[] {
+    const own = this._folds.get(section);
+    if (own) return own;
+    const s = this._sections.get(section)?.section;
+    return s ? openingFolds(s) : [];
+  }
+
+  /** Whether a group (its address) is folded now. */
+  isFolded(group: string): boolean {
+    return this.foldedGroups(group.slice(0, group.lastIndexOf('/'))).includes(groupIdOf(group));
+  }
+
+  /**
+   * Sets a section's folded groups (by id; undefined: back to its groups' `collapsed`): session state, no undo step. A
+   * hand's move, kept by the next jump's step (a bulk fold runs through `jump`). False when it already was so.
+   */
+  setFoldedGroups(section: string, ids: readonly string[] | undefined): boolean {
+    if (!this._folds.set(section, ids)) return false;
+    this._publish();
+    return true;
+  }
+
   /** Whether there is a step back or forward. */
   get canBack(): boolean {
     return this._steps.canBack;
@@ -646,7 +678,7 @@ export class ViewModel extends ReactiveModel {
       (t) => {
         location = t.location;
         const shown = t.includes && includesOf(this._sections, this._spec.root.value);
-        restoreInto(t, this._groups, this._sections, this._bands, own);
+        restoreInto(t, this._groups, this._sections, this._bands, own, this._folds);
         this._publish();
         // the blocks shown then, written again (the window above fits them once they are)
         if (t.includes && shown)
@@ -661,7 +693,7 @@ export class ViewModel extends ReactiveModel {
 
   /** Each group's range now, with its axis's signature, its centre as a position and its members. */
   private _snapshot(includes = false): Snapshot {
-    const s = snapshotOf(this._groups, this._sections, this._bands);
+    const s = snapshotOf(this._groups, this._sections, this._bands, this._folds);
     return includes ? { ...s, includes: includesOf(this._sections, this._spec.root.value) } : s;
   }
 
@@ -1030,9 +1062,11 @@ export class ViewModel extends ReactiveModel {
       p.leader === leader &&
       p.scale === scale &&
       p.y === s.y &&
+      p.groups === this._folds.get(address) &&
       piecesEqual(p.pieces, pieces)
     )
       return;
+    const groups = this._folds.get(address);
     this._viewports.set(address, {
       start,
       end,
@@ -1043,6 +1077,7 @@ export class ViewModel extends ReactiveModel {
       ...(pieces ? { pieces } : {}),
       ...(scale !== undefined ? { scale } : {}),
       ...(s.y ? { y: s.y } : {}),
+      ...(groups ? { groups } : {}),
     });
   }
 

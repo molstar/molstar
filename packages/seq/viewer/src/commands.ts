@@ -123,6 +123,12 @@ export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   'clades.collapseTo': 'session',
   'clades.reveal': 'session',
   'clades.keep': 'patch',
+  // a section's track groups: folds are session state (a toggle a hand's move, a bulk fold a jump), the kept folds a
+  // spec edit
+  'groups.toggle': 'session',
+  'groups.collapseAll': 'session',
+  'groups.expandAll': 'session',
+  'groups.keep': 'patch',
   'rows.pin': 'patch',
   'rows.hide': 'patch',
   'rows.show': 'patch',
