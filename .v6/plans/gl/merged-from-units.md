@@ -117,7 +117,8 @@ What the per-group objects give that a merged object needs, and where it comes f
    bonds (cylinders, lines), then the meshes (surfaces per unit merge only on the CPU path). The contract:
    - **The builder**: a units visual carries its builder and geometry utils (`UnitsVisual.builder`, a reference); a
      factory choosing by the props alone (`chooseVisual`) or not at all gives one for all groups. One choosing by the
-     data (`selectVisual`: GPU or CPU surfaces by a unit's size) stays per group, unmerged by this visual.
+     data (`selectVisual`: GPU or CPU surfaces by a unit's size) gives a merged visual for each kind it selects that
+     merges, per-group visuals for the others ([merged-units-core.md](merged-units-core.md)).
    - **The writers unchanged**: `createValues`, `createColors`, `createSizes`, `createMarkers`, `createUnitsTransform`,
      `updateValues` and `Visual.mark`, `setOverpaint` and the other layer setters write cells by name. A segment is
      written through its record, the shared values its prototype (one view set per segment was most of a recolor):

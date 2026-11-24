@@ -34,6 +34,8 @@ import { Theme } from '@molstar/graphics/theme/theme';
 import { Overpaint } from '@molstar/graphics/theme/overpaint';
 import { UnitsRepresentation } from '../units-representation.js';
 import { UnitsVisual, type UnitsVisualGeometryBuilder } from '../units-visual.js';
+import { selectVisual } from '../../visual-factory.js';
+import type { StructureGroup } from '../visual/util/common.js';
 import { ElementSphereImpostorVisual, ElementSphereParams } from '../visual/element-sphere.js';
 import { MolecularSurfaceMeshParams, MolecularSurfaceMeshVisual } from '../visual/molecular-surface-mesh.js';
 
@@ -692,6 +694,52 @@ describe('the merged units visual', async () => {
     expect(objects.length).toBeGreaterThan(0);
     expect(objects.every((o) => isMergedRenderObject(o))).toBe(true);
     expect(objects.some((o) => o.values.colorType.ref.value === 'vertex')).toBe(true);
+    repr.destroy();
+  });
+
+  it('merges the groups of a kind its factory selects per group, per-group visuals for a kind that does not merge', async () => {
+    const plain = ElementSphereImpostorVisual(-1).builder as UnitsVisualGeometryBuilder<ElementSphereParams, Spheres>;
+    // the protein a visual of no builder (as a GPU surface's texture mesh: not merged), the other groups spheres
+    const factory = selectVisual(
+      {
+        merging: (id: number) => UnitsVisual(plain, id),
+        alone: (id: number) => {
+          const visual = UnitsVisual(plain, id);
+          return new Proxy(visual, { get: (t, k) => (k === 'builder' ? undefined : Reflect.get(t, k)) });
+        },
+      },
+      ({ group }: StructureGroup) => (group.units[0].elements.length > 500 ? 'alone' : 'merging'),
+      () => ['merging', 'alone'],
+    );
+    const graphics = { capabilities: { fragDepth: true } } as any;
+    const repr = UnitsRepresentation(
+      'selected',
+      { graphics, ...registries } as any,
+      () => ElementSphereParams,
+      factory,
+    );
+    repr.setTheme(
+      Theme.create(
+        registries as any,
+        { structure },
+        { colorTheme: { name: 'uniform' }, sizeTheme: { name: 'physical' } },
+      ),
+    );
+    await repr.createOrUpdate({ ...PD.getDefaultValues(ElementSphereParams), renderMerged: true }, structure).run();
+    const merged = repr.renderObjects.filter((o) => isMergedRenderObject(o)) as MergedGraphicsRenderObject[];
+    const alone = repr.renderObjects.filter((o) => !isMergedRenderObject(o));
+    const groups = structure.unitSymmetryGroups.length;
+    expect(merged.reduce((n, o) => n + o.merged.records.length, 0)).toBe(groups - 1);
+    expect(alone.length).toBe(1);
+
+    // picked and marked either way
+    const proteinLoci = repr.getLoci({ objectId: alone[0].id, instanceId: 0, groupId: 0 } as any);
+    expect(StructureElement.Loci.is(proteinLoci) && proteinLoci.elements[0].unit === protein).toBe(true);
+    const other = merged[0].merged.segments;
+    const otherLoci = repr.getLoci({ objectId: merged[0].id, instanceId: other.instanceBases[0], groupId: 0 } as any);
+    expect(isEmptyLoci(otherLoci)).toBe(false);
+    expect(repr.mark(unitLoci(protein), MarkerAction.Highlight)).toBe(true);
+    expect(alone[0].values.markerAverage.ref.value).toBeGreaterThan(0);
     repr.destroy();
   });
 

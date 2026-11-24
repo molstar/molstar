@@ -47,10 +47,14 @@ The merged path grew beside the per-group one instead of under it. Five choices 
 
 ## Design
 
-- **One visual over the groups** (`UnitsMergedVisual` generalized: segments, parts, records) for every units visual
-  with a builder, whatever its group count; a part a geometry type and merge key, so a factory choosing by the data
-  (`selectVisual`: GPU or CPU surfaces by a unit's size) gives a part of each type, not visuals per group. Why: one
-  place that holds geometry, theme data, markers and layers per group; no switch between visuals.
+- **A merged visual a kind** (done for the kinds): a representation's groups by the kind of visual its factory
+  selects for each (`getVisualKind`, the factory's `select`; one kind for a factory choosing by the props alone), a
+  merged visual over a kind's groups where its builder's type merges, per-group visuals for the others (a GPU
+  surface's texture mesh, a kind found not to merge, `unmergeableAt` and `mergesAgain` a kind each). A kind's groups the
+  same array while they are (the merged visual's fast paths); the per-group visuals kept by group. Why: one place
+  that holds geometry, theme data, markers and layers per group; a factory choosing by the data merged too (the
+  Gaussian surface's CPU meshes beside its GPU ones). Still per group: `renderMerged` off (the per-group objects merged
+  by type for GPU culling) and fewer than two groups, until both go (below).
 - **Every part merged.** What `canMergeValues` rejects today, and what it takes:
   - **Palettes** (`dUsePalette`, done): no built-in structure color theme sets one (only `volume-value`, a volume
     theme); the palette, its domain and default color are the theme's, so shared by all segments (the merged values
