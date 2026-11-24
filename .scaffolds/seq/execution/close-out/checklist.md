@@ -27,7 +27,7 @@
 <!-- Wave 4 -->
 - [ ] CL7 Streamed patches: a bookmark or ref naming a dynamic node
 - [ ] CL8 Values marks: points, log scale, reference lines
-- [ ] CL13 Carried small items: the BLOSUM62 text, a folder-graph test, a lanes band's history by item, `rowsValue` over a lazy alignment, `seq.render.pairs.filter`
+- [x] CL13 (`27470de3e`) Carried small items: the BLOSUM62 text, a folder-graph test, a lanes band's history by item, `rowsValue` over a lazy alignment, `seq.render.pairs.filter`
 
 <!-- Wave 5 -->
 - [ ] CL11 The drag rule: a drag's work bounded by the screen, a perf-tier bound

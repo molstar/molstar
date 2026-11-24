@@ -19,3 +19,6 @@
 - Seq\* viewer: the square under the ring says its gestures; a double-click or 0 shows the whole genome, Back the
   window before; a Hi-C cell's card reads in kb or Mb; `.` and `,` step to the next and previous feature on a track
   (the ring's partners on a ring); the zoom-in hatch names the gesture; the square shows "Loading…" or the failure.
+- Seq\*: a lanes band's back and forward return to the same item after its lanes are laid again; the theme picker's
+  BLOSUM62 text says what the scheme does; a pairs layer's data filter that a source's bins do not apply is said
+  (`seq.render.pairs.filter`, info).

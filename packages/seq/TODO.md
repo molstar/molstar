@@ -127,8 +127,8 @@ extension kinds.
 - **Track sizing's follow-ups** (FX9, 2026-11-22; core _spec, Track heights): keys (cursor reveal, Page Up and Down),
   rail drag, drag autoscroll (EC-150), focus revealing its lane, the "lanes 1–16 of 47" announcement, rail ticks for
   hover and selection (EC-247); "+n items in density" and "+n lanes not drawn" in a header; `track.overflow` as a spec
-  param, `ranges.maxLanes` and `export.maxTrackPx` in `SpecBounds`; `bandTop` kept as the top lane's item key (history,
-  sessions); stacked blocks sized per block; settle batching as a store `settle`; the lanes of a reachable region;
+  param, `ranges.maxLanes` and `export.maxTrackPx` in `SpecBounds`; `bandTop` kept as the top lane's item key in
+  sessions (`story/state.ts`; history done by the close-out); stacked blocks sized per block; settle batching as a store `settle`; the lanes of a reachable region;
   `height` absent versus `fill`; a hand-heighted track exports cropped; `noteLanes` only grows (a new prep shrinks); the
   tree toggle's tooltip; the cut edge on `msui-line` (no `msui-border` token).
 - **The label column over a template's instances**: measured over the view's own track labels, so an instance's name

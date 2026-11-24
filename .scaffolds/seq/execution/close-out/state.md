@@ -1,6 +1,6 @@
 # State: close-out   (updated 2026-11-23, by the orchestrator)
 
-Branch: `packages-seq`   Head: `b6d652e27` (GATE 1 passed)
+Branch: `packages-seq`   Head: `27470de3e` (CL13 merged)
 
 ## Where it stands
 
@@ -20,7 +20,6 @@ to CL14, are written into `plan.md` (Lanes; Order and parallelism) and `checklis
 
 - FX25 stopped on a permission refusal (gaps.md), its worktree kept with items 1 and 2 uncommitted; waits for the author.
 - 2026-11-24 night: CL9, Sonnet, small items (`briefs/cl9-small-items.md`), `seq/cl9`.
-- 2026-11-24 night: CL13, Sonnet, carried items (`briefs/cl13-carried.md`), `seq/cl13`.
 
 
 
