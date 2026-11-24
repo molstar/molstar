@@ -86,7 +86,7 @@ async function make(
   const ext = defineViewerExtension({
     id: 'demo',
     version: '0.1.0',
-    requires: '0.10',
+    requires: '0.11',
     registry: [{ kind: 'layer-type', type: Bars }],
     commands: [open],
     bindings,

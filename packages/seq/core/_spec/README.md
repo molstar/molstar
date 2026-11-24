@@ -15,7 +15,7 @@ is added in the change that builds what it describes.
 
 ## Versions
 
-- The language has one version, `SeqLanguageVersion` (`0.10.0`). Why: one language, one description, one number for
+- The language has one version, `SeqLanguageVersion` (`0.11.0`). Why: one language, one description, one number for
   readers to check.
 - **Pre-release** (`0.x`): a change to the language moves the version with no migration (`0.1.0`: every child of the
   spec has an id, `layer` included; `0.2.0`: the `refs` container and the `ref` kind; `0.3.0`: the `snapshots` container
@@ -52,8 +52,11 @@ is added in the change that builds what it describes.
   `0.8.0`: the `values` encoding `points` (Render, Layer types, `values`); `0.9.0`: the `tooltip` kind under `views` and
   a `view` (`on`, `target`, `rows`, `source`, `schema`, `block`, `category`, `field`, `text`, `label`, `format`;
   Language, Tooltips) and a view's `export.titles`; `0.10.0`: a rings section's `center` (`title`, `none`: what the hole
-  holds; the render config's `rings.center` the default when absent). A spec in an earlier `0.x` reads as one in this
-  one, and is reported where it no longer fits: a `0.6.0` spec reads unchanged (every addition is optional; inline
+  holds; the render config's `rings.center` the default when absent); `0.11.0`: the `group` kind under a section
+  (`label`, `collapsed`, `hidden`, `summary`) and a `track` under a group (Language, Groups). A reader without groups
+  (an older minor, another renderer; EC-244) draws a group's tracks as the section's, every group open, its `summary`
+  track left out: `FlattenedKinds` lists `group` with the version it came in. A spec in an earlier `0.x` reads as one in
+  this one, and is reported where it no longer fits: a `0.6.0` spec reads unchanged (every addition is optional; inline
   pairs, grids or matrices over an assembly, never read in 0.6, now need their names: `seq.lang.data.names`), with one
   change of behaviour: `a_name`/`b_name` columns on pairs over a sequence, a ride-along field before, are refused
   (`seq.lang.data.names`), but an extension's `requires: '0.6'` no longer covers it (0.x: the minor).
@@ -248,6 +251,23 @@ checks it cannot express.
   the reading node: the conventions are the file's whoever reads it, the store keys entries by source, and several
   readers of one file share one open; an edit of the transform is a patch of the source, which reopens it in place (one
   undo step, no side-by-side preview).
+
+### Groups
+
+`lang/group-language.ts`: a `group` is a section's child holding tracks (`TrackParents`: a track's parent a section or a
+group), one level deep. Why a tree over a membership param: the order is the spec's and the membership where the track
+is, one place to read and edit; the price is that a track moved in or out of a group changes its address
+(`/views/v/<section>/<group>/<track>`).
+
+- **Params**: `label` (its id when absent), `collapsed` (false: the opening state; the viewer's folds are session state
+  after, viewer › ViewModel), `hidden` (false: it and its tracks not drawn; its tracks keep their own `hidden`),
+  `summary` (`auto` when absent: its tracks' layers in their summary forms; `none`: the header alone; or the id of one
+  of its tracks, a `ref` resolved `in` the group, drawn only while folded).
+- **One level**: a group in a group is `repr.schema.parent.invalid`, as any parent the description refuses. Why: no
+  example needs nesting, and the header, cursor and summary rules stay one level; `group.parents` gaining `group` later
+  is additive.
+- **`seq.lang.group.summary`** (error): a `summary` naming no track of the group (another parent's, or none).
+- **The builder**: `section.group(id, params, body)` gives a `GroupBuilder` whose `track(...)` is a section's.
 
 ### Molecules and complexes
 

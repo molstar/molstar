@@ -220,7 +220,7 @@ const DemoBehavior: BehaviorProvider = {
 export const DemoExtension: SeqViewerExtension = defineViewerExtension({
   id: 'demo',
   version: '0.1.0',
-  requires: '0.10',
+  requires: '0.11',
   doc: 'Lollipops, a warm scheme, and a command that zooms to the sites (Alt+double-click).',
   registry: [
     { kind: 'layer-type', type: LollipopsType },

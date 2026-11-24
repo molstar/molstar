@@ -194,6 +194,12 @@ export interface SectionBuilder extends Addressed<'section'> {
   track(id: string, params?: Params<'track'>, body?: (track: TrackBuilder) => void): TrackBuilder;
   /** A block: a piece of the section on a system of its own (a chain, a ligand), after the blocks before it. */
   block(id: string, params: Params<'block'>): Address<'block'>;
+  /** A group of tracks (one level): its tracks are its children, after the section's tracks and groups before it. */
+  group(id: string, params?: Params<'group'>, body?: (group: GroupBuilder) => void): GroupBuilder;
+}
+
+export interface GroupBuilder extends Addressed<'group'> {
+  track(id: string, params?: Params<'track'>, body?: (track: TrackBuilder) => void): TrackBuilder;
 }
 
 export interface TrackBuilder extends Addressed<'track'> {
@@ -413,6 +419,20 @@ export function createSeqSpec(options: SeqSpecOptions = {}): SeqSpecBuilder {
         return t;
       },
       block: (id, params) => add(rec, 'block', id, params).address as Address<'block'>,
+      group(id, params, body) {
+        const g = add(rec, 'group', id, params);
+        const group: GroupBuilder = {
+          address: g.address as Address<'group'>,
+          track(tid, tparams, tbody) {
+            const t = trackBuilder(add(g, 'track', tid, tparams));
+            tbody?.(t);
+            return t;
+          },
+          toString: () => g.address,
+        };
+        body?.(group);
+        return group;
+      },
       toString: () => rec.address,
     };
   }

@@ -197,6 +197,16 @@ const Misuses: Record<keyof typeof LangIssues.codes, () => Node> = {
     b.data.grid('g', { x: s, values: [1, 2, 3] });
     return b.build();
   },
+  'seq.lang.group.summary': () => {
+    const b = createSeqSpec();
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
+    b.views.view('v', (v) => {
+      const sec = v.section('sec', { of: s });
+      sec.track('outside', {}, (t) => t.layer('l', { type: 'letters' }));
+      sec.group('g', { summary: 'outside' }).track('t', {}, (t) => t.layer('l', { type: 'letters' }));
+    });
+    return b.build();
+  },
   'seq.lang.values.content': () => {
     const b = createSeqSpec();
     const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT' });
@@ -430,7 +440,7 @@ describe('the gates and the places', () => {
       children: [{ kind: 'from-the-future', id: 'x' }],
     };
     expect(checkSeqSpec(future).map((i) => i.code)).toEqual(['seq.lang.version.unsupported']);
-    expect(checkSeqSpec({ ...future, params: { version: '0.10.0' } }).map((i) => i.code)).toEqual([
+    expect(checkSeqSpec({ ...future, params: { version: '0.11.0' } }).map((i) => i.code)).toEqual([
       'repr.schema.kind.unknown',
     ]);
   });
@@ -441,30 +451,30 @@ describe('the gates and the places', () => {
       params: { version },
       children: [{ kind: 'from-the-future', id: 'x', children: [{ kind: 'also-new', id: 'y' }] }],
     });
-    const newer = checkSeqSpec(at('0.11.0'));
+    const newer = checkSeqSpec(at('0.12.0'));
     expect(newer.map((i) => [i.code, i.severity])).toEqual([
       ['repr.schema.kind.unknown', 'warning'],
       ['repr.schema.kind.unknown', 'warning'],
     ]);
     expect(newer[0].hint).toContain('newer minor');
     expect(newer[0].message).toBe(
-      `A spec of 0.11.0, this reader ${SeqLanguageVersion}: unknown kinds drawn by their fallback`,
+      `A spec of 0.12.0, this reader ${SeqLanguageVersion}: unknown kinds drawn by their fallback`,
     );
-    // `0.11` and a pre-release are read as the same newer minor: their kinds are warnings; the grammar's
+    // `0.12` and a pre-release are read as the same newer minor: their kinds are warnings; the grammar's
     // `major.minor.patch` still refuses the version's own spelling, the one error
-    for (const v of ['0.11', '0.11.0-rc.1'])
+    for (const v of ['0.12', '0.12.0-rc.1'])
       expect(checkSeqSpec(at(v)).map((i) => [i.code, i.severity])).toEqual([
         ['repr.schema.param.pattern', 'error'],
         ['repr.schema.kind.unknown', 'warning'],
         ['repr.schema.kind.unknown', 'warning'],
       ]);
-    expect(checkSeqSpec(at('0.10.0')).map((i) => i.severity)).toEqual(['error', 'error']);
+    expect(checkSeqSpec(at('0.11.0')).map((i) => i.severity)).toEqual(['error', 'error']);
     expect(checkSeqSpec(at('0.9.0')).map((i) => i.severity)).toEqual(['error', 'error']);
     expect(checkSeqSpec(at('1.0.0')).map((i) => [i.code, i.severity])).toEqual([
       ['seq.lang.version.unsupported', 'error'],
     ]);
     // the warning leaves the rest read: another error in the spec is still an error
-    const bad = at('0.11.0');
+    const bad = at('0.12.0');
     bad.children!.push({
       kind: 'data',
       id: 'd',

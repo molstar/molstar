@@ -243,6 +243,14 @@ export function checkPlaced(at: Placed, look: SeqLookup, report: Report): void {
         );
       break;
     }
+    case 'group': {
+      // a group's `summary` names one of its own tracks (_spec/README.md, Language, Groups)
+      const sum = p(n, 'summary');
+      if (typeof sum !== 'string' || sum === 'auto' || sum === 'none') break;
+      if (!n.children?.some((c) => c.kind === 'track' && c.id === sum))
+        say('seq.lang.group.summary', `The group's summary \`${sum}\` names no track of the group`, 'summary');
+      break;
+    }
     case 'snapshot':
       // a step is a full state or a patch, never both nor neither (_spec/README.md, Language, Story steps)
       if ((p(n, 'patch') === undefined) === (p(n, 'state') === undefined))

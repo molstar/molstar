@@ -27,6 +27,11 @@ export const LangIssues = defineIssues('seq.lang', {
       'A container (`data`, `views`, `refs`, `snapshots`, `navigators`, `compounds`) has an id other than its kind',
     hint: 'The containers have reserved ids',
   },
+  'seq.lang.group.summary': {
+    severity: 'error',
+    description: 'A group’s `summary` names no track of the group (a track of another parent, or none)',
+    hint: 'Name one of the group’s own tracks by its id, or write `auto` or `none`',
+  },
   'seq.lang.source.index': {
     severity: 'error',
     description: 'A source with an inline `value` has an `index`, which only a file read by region has',
