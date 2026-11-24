@@ -55,3 +55,7 @@
 - Seq\* (next): a track's or a section's `height` takes `'content'`: it is as tall as its content, never scrolling
   inside (a ring keeps its cap; language 0.11.0).
 - Seq\* (next): a bridge's ribbons no longer go missing on the canvas after panning or zooming one side.
+- Seq\* (next): a legend row's layers menu looks as the track header's Layers menu, and both end with Show all and
+  Hide all (one undo step each); `layer.hide` takes `addresses`.
+- UI: a context menu item takes `separated` (a separator row before it); a menu opened under a transformed, filtered
+  or contained ancestor mounts on the body in a wrapper carrying the UI root's class and theme.

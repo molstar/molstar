@@ -2,7 +2,7 @@
 
 Open items for the next fix point or a running lane's fix round (the loop, Each step 7).
 
-- **The legend's layers menu styled unlike the header's** (the author, 2026-11-24, the use gate, a screenshot of a
+- **Fixed by FX32** (`608d87ac2`). **The legend's layers menu styled unlike the header's** (the author, 2026-11-24, the use gate, a screenshot of a
   merged row's eye menu, "cdk2" and "cyclin" as bordered pills: "one weird thing i notices is the styling on the
   legend buttons. maybe tweak this to make it consistent (and perhaps add "hide/show all")"). Kind: look and a small
   feature. To FX32.

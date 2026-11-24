@@ -35,7 +35,7 @@
 - [x] GATE 2 (`d9b53e580`)
 
 <!-- Last stage -->
-- [ ] The use gate: the author tries the genome views and the ring, each story against its agreed picture
+- [x] The use gate: the author tries the genome views and the ring, each story against its agreed picture (the author, 2026-11-24: "i did go though the storybook ... then can consider the use gate done", after FX32 `608d87ac2`)
 - [ ] The novice pass, after the last lane that draws
 - [ ] The measurements: the bundles against their budgets, the representatives at full size
 - [ ] GATE: last
