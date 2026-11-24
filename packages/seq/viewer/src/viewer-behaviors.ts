@@ -6,7 +6,7 @@
 
 import type { State } from '@molstar/core/reactive';
 import { type Issue, issueOf } from '@molstar/core/repr/tree';
-import { CladeActions, SelectActions } from '@molstar/seqx-viewer/bindings';
+import { CladeActions, GroupActions, SelectActions } from '@molstar/seqx-viewer/bindings';
 import { ViewerIssues } from './issues.js';
 import type { ViewerCommand } from './viewer.js';
 import type { BehaviorContext, SeqViewerSpec } from './viewer-spec.js';
@@ -16,7 +16,11 @@ import type { BehaviorContext, SeqViewerSpec } from './viewer-spec.js';
 // whose behavior is missing or of another shape said once as an issue (`behaviorIssues`).
 
 /** The actions a behavior's bindings may name, by its name: bound only when it is listed. */
-const BehaviorActions: Readonly<Record<string, readonly string[]>> = { select: SelectActions, rows: CladeActions };
+const BehaviorActions: Readonly<Record<string, readonly string[]>> = {
+  select: SelectActions,
+  rows: CladeActions,
+  groups: GroupActions,
+};
 
 /**
  * The methods the viewer and its input call on a built-in behavior's handle, by the behavior's name: a handle listed

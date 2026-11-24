@@ -181,7 +181,14 @@ function measureColumn(view: ResolvedView, config: RenderConfig, text: TextMetri
       // an alignment's rows label themselves in the column: their names, not the tracks', are what it holds (the
       // column keeps its fixed width, its row labels their own ellipsis)
       for (const l of t.layers) if (l.type === 'rows') return config.labelWidth;
-      const m = text.measure(config.labelFont, t.label);
+      // a group's track: its indent with it
+      const m = text.measure(config.labelFont, t.label) + (t.group ? config.header.groupIndentPx : 0);
+      if (m > w) w = m;
+    }
+  // a group's header: its chevron, label and folded count (_spec/README.md "Render", Track groups)
+  for (const s of view.sections)
+    for (const g of s.trackGroups ?? []) {
+      const m = 14 + text.measure(config.labelFont, `${g.label} ${g.count} tracks`) + 6;
       if (m > w) w = m;
     }
   return Math.min(c.max, Math.max(c.min, Math.ceil(w)));

@@ -79,10 +79,12 @@ export function pendingPlacement(
   heights: readonly number[],
   pads: readonly number[],
   config: RenderConfig,
+  leads?: readonly number[],
 ): Placement {
   const p = new StripPlacement();
   let h = 0;
-  for (let j = 0; j < heights.length; j++) h += (j ? config.trackGap : 0) + pads[2 * j] + heights[j] + pads[2 * j + 1];
+  for (let j = 0; j < heights.length; j++)
+    h += (j ? config.trackGap : 0) + (leads?.[j] ?? 0) + pads[2 * j] + heights[j] + pads[2 * j + 1];
   p.strips.reset(heights.length);
   p.contentHeight = h;
   p.box = { x: config.inset, y: top, width: box.width, height: h };

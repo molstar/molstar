@@ -27,6 +27,8 @@ export interface Viewport {
   readonly scale?: number;
   readonly bands?: Readonly<Record<string, BandViewport>>;
   readonly y?: { readonly start: number; readonly end: number };
+  /** The section's folded track groups by id (the viewer's session set); absent: each group's `collapsed`. */
+  readonly groups?: readonly string[];
 }
 
 /** Which ends of a span the view or a piece's edge cut, on screen (they are drawn square). */

@@ -352,6 +352,11 @@ export interface RenderSvgOptions extends TitleOptions {
    * the layer's `collapsed` when absent.
    */
   readonly folds?: Readonly<Record<string, readonly string[]>>;
+  /**
+   * Each section's folded track groups by id, by the section's address (_spec/README.md "Render", Export: a viewer
+   * passes its own, in its viewports); its groups' `collapsed` when absent.
+   */
+  readonly groups?: Readonly<Record<string, readonly string[]>>;
   /** The schemes and measures the themes read (the built-ins by default). */
   readonly registry?: Partial<Pick<ThemeContext, 'schemes' | 'measures'>>;
   /**
@@ -613,6 +618,7 @@ export async function exportSvg(spec: Node, given: RenderSvgOptions): Promise<Re
       ...(options.emphasis ? { emphasis: options.emphasis } : {}),
       ...(options.cvdSafe ? { cvdSafe: true } : {}),
       ...(options.folds ? { folds: options.folds } : {}),
+      ...(options.groups ? { groups: options.groups } : {}),
       ...(rails ? { rails } : {}),
       ...(options.headers ? { headers: options.headers } : {}),
     };

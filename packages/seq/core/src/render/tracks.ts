@@ -68,6 +68,7 @@ import { instanceInView, wantTemplate } from './tracks-templates.js';
 import { bandHeights, firstType, rowsFill, rulerTrack } from './tracks-heights.js';
 import { sectionHeaderOf, trackHeaderOf } from './tracks-headers.js';
 import { collapsedSection } from './headers.js';
+import { foldGroups, groupHeaders } from './groups.js';
 import { BridgeHooks } from './bridge-hooks.js';
 import type { Members } from './members.js';
 import { MemberHooks } from './members-hooks.js';
@@ -485,6 +486,24 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         shown.push(t);
       }
     }
+    // its groups folded (_spec/README.md "Render", Track groups): a folded group's tracks give way to its summary bands
+    const folding = foldGroups(
+      section,
+      shown,
+      trackOf,
+      sourceOf,
+      viewport?.groups ?? input.groups?.[section.address],
+      layout === TracksLayout,
+      config,
+      (l) => firstType(l, types),
+      sectionReport,
+    );
+    if (folding) {
+      shown.splice(0, shown.length, ...folding.shown);
+      trackOf.splice(0, trackOf.length, ...folding.trackOf);
+      sourceOf.splice(0, sourceOf.length, ...folding.sourceOf);
+    }
+    const leads = folding?.leads;
     // a section that cannot be placed and says why (its issue, not a section still waiting for its source): one row
     // naming it, never a blank well per track (_spec/README.md "Render", Empty tracks)
     const said =
@@ -563,8 +582,10 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       cacheKey: string,
       ctx: LayoutContext,
     ): LayerLayout => {
-      let prep = state.preps.get(layer);
-      if (prep === undefined) state.preps.set(layer, (prep = type.prepare(layer, input.model)));
+      // a summary layer prepares as its member's (a toggle prepares nothing again)
+      const source = folding?.originals?.get(layer) ?? layer;
+      let prep = state.preps.get(source);
+      if (prep === undefined) state.preps.set(source, (prep = type.prepare(source, input.model)));
       const keptLay = state.lays.get(cacheKey);
       const lay = type.layout(prep, ctx, mine, overlay, keptLay?.type === type ? keptLay.lay : undefined);
       state.lays.set(cacheKey, { type, lay });
@@ -785,6 +806,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         bands: shown,
         heights,
         ...(padded ? { pads } : {}),
+        ...(leads ? { leads } : {}),
         layStrip,
         bandEmpty,
         report: sectionReport,
@@ -796,7 +818,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       if (layout.window) setWindow(layout, placement, section.address, viewport, followed, input, config);
       for (let i = 0; i < placement.strips.n; i++) stripBreaks.push(placement.strips.axes[i].breaks([]));
       sectionLays = laySection(placement, axis);
-    } else placement = pendingPlacement(top, sectionBox, heights, pads, config);
+    } else placement = pendingPlacement(top, sectionBox, heights, pads, config, leads);
     // a section that scrolls past its cap (_spec/README.md "Render", Section scroll): its scrolled area
     const scrolls = placement.clip === true && placement.contentHeight > placement.box.height + 0.5;
     const scrollY = placement.scrollY ?? placement.box.y;
@@ -808,6 +830,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     let by = top;
     for (let j = 0; j < nb; j++) {
       if (j) by += config.trackGap;
+      if (leads) by += leads[j];
       const track = shown[j];
       // a grid's track is its plot (over blocks: its cells together), its well the plot's grown by its padding
       const plot = layout.name === 'grid' && strips.n ? (placement as GridPlacement) : undefined;
@@ -833,9 +856,13 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         layout === TracksLayout
           ? trackHeaderOf(input, section, sectionId(section), track, layers, sectionLays, well, config)
           : undefined;
-      const room = head ? head.header.label.width : config.labelWidth;
+      // a track of an open group indented; a folded group's bands leave the column to its header
+      const indent = track.group && !track.summaryOf ? config.header.groupIndentPx : 0;
+      const inFolded = folding?.groups?.some((g) => g.folded && j >= g.first && j <= g.last) ?? false;
+      const room = (head ? head.header.label.width : config.labelWidth) - indent;
       // a layer naming its rows in the column (a matrix's states) leaves it to them: no track label over the names
-      const labelText = namesRows(layers) ? '' : elidedLabel(state, input.text, config.labelFont, track.label, room);
+      const labelText =
+        namesRows(layers) || inFolded ? '' : elidedLabel(state, input.text, config.labelFont, track.label, room);
       tracks.push({
         track,
         box,
@@ -845,6 +872,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         // centred on its well (its padding with it), not on its data
         labelY: head ? head.labelY : well.y + well.height / 2 + labelSize * 0.35,
         layers,
+        ...(indent ? { indent } : {}),
         // a header under the fixed head or past the box is neither drawn nor hit (its line wholly in the scrolled area)
         ...(head &&
         (!scrolls ||
@@ -982,8 +1010,20 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
           break;
         }
       }
+    const groups =
+      folding?.groups && folding.groups.length
+        ? groupHeaders(
+            folding.groups,
+            tracks.map((t) => t.well),
+            section,
+            config,
+            (t) => input.text.measure(config.labelFont, t),
+            (t, room) => elidedLabel(state, input.text, config.labelFont, t, room),
+          )
+        : undefined;
     const sectionLayout: SectionLayout = {
       section,
+      ...(groups ? { groups } : {}),
       id: sectionId(section),
       layout,
       placement,

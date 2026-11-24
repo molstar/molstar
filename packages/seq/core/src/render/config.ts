@@ -48,6 +48,13 @@ export interface RenderConfig {
   readonly labelColumn: { readonly measure: boolean; readonly min: number; readonly max: number };
   /** Gaps between the tracks of a section (a group) and between sections. */
   readonly trackGap: number;
+  /** The gap before and after a group of tracks (_spec/README.md "Render", Track groups), in place of `trackGap`. */
+  readonly groupGap: number;
+  /**
+   * A folded group's summary (_spec/README.md "Render", Track groups): a values member's strip `stripPx` high, at most
+   * `maxStrips` of them (the rest counted in the header).
+   */
+  readonly group: { readonly summary: { readonly stripPx: number; readonly maxStrips: number } };
   readonly sectionGap: number;
   /**
    * A track's padding when its spec gives none (_spec/README.md "Render", Configuration): px inside its well above and
@@ -192,6 +199,9 @@ export interface RenderConfig {
     readonly slotPx: number;
     readonly minHeightPx: number;
     readonly sectionPx: number;
+    /** A group's header line (open), and its tracks' labels' indent (_spec/README.md "Render", Track groups). */
+    readonly groupPx: number;
+    readonly groupIndentPx: number;
     readonly actions: { readonly show: 'hover' | 'always' | 'never' };
     readonly states: { readonly export: 'include' | 'none' };
   };
@@ -445,6 +455,8 @@ export const DefaultRenderConfig: RenderConfig = {
   labelGap: 8,
   labelColumn: { measure: true, min: 80, max: 160 },
   trackGap: 4,
+  groupGap: 8,
+  group: { summary: { stripPx: 4, maxStrips: 4 } },
   sectionGap: 20,
   trackPadding: { top: 0, bottom: 0 },
   trackShape: 'squircle',
@@ -498,6 +510,8 @@ export const DefaultRenderConfig: RenderConfig = {
     slotPx: 20,
     minHeightPx: 16,
     sectionPx: 20,
+    groupPx: 20,
+    groupIndentPx: 12,
     actions: { show: 'hover' },
     states: { export: 'include' },
   },

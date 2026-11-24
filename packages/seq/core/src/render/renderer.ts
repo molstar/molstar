@@ -96,6 +96,8 @@ export interface FrameInput {
    * the key by identity. A renderer keeps them for its life (an export's are one set).
    */
   readonly folds?: Readonly<Record<string, readonly string[]>>;
+  /** Each section's folded track groups, where its viewport gives none (an export's `groups`): part of the key. */
+  readonly groups?: Readonly<Record<string, readonly string[]>>;
   /**
    * The sections that draw a ruler rail, by address (_spec/README.md "Render", Navigators): part of the key by
    * identity (a caller keeps the record while it holds). Which of them can move (`railsActive`) is not: it is set on
@@ -154,6 +156,7 @@ class KeyParts {
   figure = false;
   windows = false;
   folds: FrameInput['folds'] = undefined;
+  groups: FrameInput['groups'] = undefined;
   rails: FrameInput['rails'] = undefined;
   rowsZoom: FrameInput['rowsZoom'] = undefined;
   headers: FrameInput['headers'] = undefined;
@@ -183,6 +186,7 @@ class KeyParts {
       this.figure === (input.figure ?? false) &&
       this.windows === (input.windows ?? false) &&
       this.folds === input.folds &&
+      this.groups === input.groups &&
       this.rails === input.rails &&
       this.rowsZoom === input.rowsZoom &&
       this.headers === input.headers &&
@@ -206,6 +210,7 @@ class KeyParts {
     this.settled = input.settled ?? false;
     this.cvdSafe = input.cvdSafe ?? false;
     this.folds = input.folds;
+    this.groups = input.groups;
     this.figure = input.figure ?? false;
     this.windows = input.windows ?? false;
     this.rails = input.rails;
@@ -444,6 +449,7 @@ export class Renderer {
         ...(input.figure ? { figure: true } : {}),
         ...(input.windows ? { windows: true } : {}),
         ...(input.folds ? { folds: input.folds } : {}),
+        ...(input.groups ? { groups: input.groups } : {}),
         ...(input.rails ? { rails: input.rails } : {}),
         ...(input.rowsZoom ? { rowsZoom: input.rowsZoom } : {}),
         ...(input.headers ? { headers: input.headers } : {}),

@@ -71,6 +71,7 @@ export class ViewerViewports {
         k.scale !== w.scale ||
         k.top !== (w.top || undefined) ||
         k.y !== y ||
+        k.groups !== this.view.get(s.address)?.groups ||
         k.bands !== this._bandsFor(s.address, w)
       )
         same = false;
@@ -85,6 +86,7 @@ export class ViewerViewports {
       const w = this.motion.shownViewport(s.address, eye);
       if (!w) continue;
       const bands = this._bandsFor(s.address, w);
+      const groups = this.view.get(s.address)?.groups;
       out[s.address] = {
         start: w.start,
         end: w.end,
@@ -94,6 +96,8 @@ export class ViewerViewports {
         // `bands`: the ViewModel's (scroll, row zoom, folds), a shown frame's `bandTop` and `rowScale` over them
         ...(bands ? { bands } : {}),
         ...(y ? { y } : {}),
+        // `groups`: the section's folded track groups, the session's set (absent: each group's `collapsed`)
+        ...(groups ? { groups } : {}),
       };
     }
     this._kept = out;

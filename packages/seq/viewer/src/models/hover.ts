@@ -33,6 +33,7 @@ export type HitTarget =
   | 'header-state'
   | 'header-label'
   | 'section-header'
+  | 'group-header'
   | 'window'
   | 'tree-node'
   | 'summary-row'

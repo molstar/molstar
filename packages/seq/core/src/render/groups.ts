@@ -1,0 +1,290 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import { type Issue, issueOf } from '@molstar/core/repr/tree';
+import type { ResolvedLayer, ResolvedSection, ResolvedTrack, ResolvedTrackGroup } from '@molstar/seqx-core/view';
+import type { RenderConfig } from './config.js';
+import { RenderIssues } from './issues.js';
+import type { Box, Hit, LayerType } from './layer-type.js';
+import { lanesHeight } from './sizing.js';
+
+// A section's track groups in the tracks layout (_spec/README.md "Render", Track groups): the bands a folded group
+// draws in place of its tracks (its summary: each member layer in its type's summary form, or its authored summary
+// track, or its header alone), the room a header line and a group's gaps take before a band, and the header lines.
+// Applied once a layout, never a frame's work: a fold changes the bands, a warm frame reuses them.
+
+/** A layer type's summary form (`LayerType.collapse`): one shared lane, a thin strip a member, or one row. */
+export type CollapseForm = 'lane' | 'strip' | 'row';
+
+/**
+ * The built-in types' summary forms (_spec/README.md "Render", Layer types: `collapse`), read where a type does not say
+ * its own: the ranges family and pairs one lane, values a strip, rows their consensus row; letters, logos, rulers,
+ * matrices, grids, frames and bands none (left out, counted).
+ */
+const BuiltInCollapse: Readonly<Record<string, CollapseForm>> = {
+  ranges: 'lane',
+  secondary: 'lane',
+  variants: 'lane',
+  pairs: 'lane',
+  values: 'strip',
+  rows: 'row',
+};
+
+/** A type's summary form, its own or the built-ins'; undefined: left out of a summary. */
+export function collapseOf(type: LayerType<any, any> | undefined): CollapseForm | undefined {
+  if (!type) return undefined;
+  return type.collapse ?? BuiltInCollapse[type.name];
+}
+
+/** A group's header as the layout places it: its line (open) or its folded row's label column, and its count. */
+export interface GroupHeader {
+  readonly group: ResolvedTrackGroup;
+  readonly folded: boolean;
+  /** The header's box in the label column: the line above an open group's first track, a folded row's column. */
+  readonly box: Box;
+  /** Its label as drawn (cut with an ellipsis before the count), measured, and the baseline of its line. */
+  readonly label: string;
+  readonly labelWidth: number;
+  readonly baseline: number;
+  /** The quiet count beside a folded group's label ("3 tracks"), and what its summary leaves out ("+2 not shown"). */
+  readonly count?: string;
+  readonly countWidth: number;
+  /** Its hit (`group-header`, the group's address in `layer`): made once a layout, a hover allocates nothing. */
+  readonly hit: Hit;
+  /** Its bands in the section's shown list, `[first, last]`. */
+  readonly first: number;
+  readonly last: number;
+}
+
+/** What folding a section's groups gives the layout: its bands, the room before each, the groups' bands. */
+export interface FoldedBands {
+  readonly shown: ResolvedTrack[];
+  readonly trackOf: number[];
+  readonly sourceOf: ResolvedTrack[];
+  /** Px before each band past the layout's `trackGap` (a header line, a group's wider gap; a strip's narrower one). */
+  readonly leads?: number[];
+  /** Each group drawn, with its bands (the header boxes are the layout's, `groupHeaderBoxes`). */
+  readonly groups?: readonly {
+    group: ResolvedTrackGroup;
+    folded: boolean;
+    first: number;
+    last: number;
+    count?: string;
+  }[];
+  /** A summary layer's original (its type's prep is the original's: a toggle prepares nothing again). */
+  readonly originals?: ReadonlyMap<ResolvedLayer, ResolvedLayer>;
+}
+
+const NoIds: readonly string[] = [];
+
+/** The groups folded now: the viewport's set (session state), else each group's `collapsed`. */
+export function foldedIds(section: ResolvedSection, own: readonly string[] | undefined): readonly string[] {
+  if (own) return own;
+  const out: string[] = [];
+  for (const g of section.trackGroups ?? []) if (g.collapsed) out.push(g.address.slice(g.address.lastIndexOf('/') + 1));
+  return out.length ? out : NoIds;
+}
+
+/** A summary layer: the member's layer keyed `<layer>#summary` and its params in the summary form (no labels). */
+const Summaries = new WeakMap<ResolvedLayer, ResolvedLayer>();
+function summaryLayer(l: ResolvedLayer, form: CollapseForm): ResolvedLayer {
+  let s = Summaries.get(l);
+  if (!s) {
+    const params = form === 'lane' ? { ...l.params, lanes: 'one' } : l.params;
+    s = { ...l, params, ...(l.address !== undefined ? { address: `${l.address}#summary` } : {}) };
+    Summaries.set(l, s);
+  }
+  return s;
+}
+
+/** The synthetic tracks of a folded group, kept a group and a shape so a frame's key holds. */
+const Bands = new Map<string, ResolvedTrack>();
+function band(address: string, label: string, height: number, layers: readonly ResolvedLayer[]): ResolvedTrack {
+  const k = Bands.get(address);
+  if (
+    k &&
+    k.height === height &&
+    k.layers.length === layers.length &&
+    k.layers.every((l, i) => l === layers[i]) &&
+    k.label === label
+  )
+    return k;
+  const t: ResolvedTrack = { address, label, height, layers };
+  if (Bands.size > 512) Bands.clear();
+  Bands.set(address, t);
+  return t;
+}
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+/**
+ * Folds a section's groups over its shown tracks (templates expanded): in `tracks`, a folded group's tracks give way
+ * to its summary bands and an open group's authored summary track is left out; elsewhere (`text`, `rings`, `grid`)
+ * every group open with no header and its summary track left out, said once when some are folded
+ * (`seq.render.groups.layout`). Undefined when the section has no groups (nothing to do).
+ */
+export function foldGroups(
+  section: ResolvedSection,
+  shown: readonly ResolvedTrack[],
+  trackOf: readonly number[],
+  sourceOf: readonly ResolvedTrack[],
+  own: readonly string[] | undefined,
+  tracksLayout: boolean,
+  config: RenderConfig,
+  typeOf: (layer: ResolvedLayer) => LayerType<any, any> | undefined,
+  report: (issue: Issue) => void,
+): FoldedBands | undefined {
+  const groups = section.trackGroups;
+  if (!groups) return undefined;
+  const folded = foldedIds(section, own);
+  const isFolded = (g: string) => folded.includes(g.slice(g.lastIndexOf('/') + 1));
+  const out: FoldedBands & {
+    shown: ResolvedTrack[];
+    trackOf: number[];
+    sourceOf: ResolvedTrack[];
+    leads: number[];
+    groups: { group: ResolvedTrackGroup; folded: boolean; first: number; last: number; count?: string }[];
+    originals: Map<ResolvedLayer, ResolvedLayer>;
+  } = { shown: [], trackOf: [], sourceOf: [], leads: [], groups: [], originals: new Map() };
+  if (!tracksLayout) {
+    if (folded.length)
+      report(
+        issueOf(RenderIssues, 'seq.render.groups.layout', `Groups are drawn open in a ${section.layout} section`, {
+          address: section.address,
+          hint: RenderIssues.codes['seq.render.groups.layout'].hint,
+        }),
+      );
+    for (let j = 0; j < shown.length; j++) {
+      if (shown[j].summaryOf) continue;
+      out.shown.push(shown[j]);
+      out.trackOf.push(trackOf[j]);
+      out.sourceOf.push(sourceOf[j]);
+    }
+    return { shown: out.shown, trackOf: out.trackOf, sourceOf: out.sourceOf };
+  }
+  const wider = config.groupGap - config.trackGap;
+  let prevGroup: string | undefined;
+  /** The next band's lead: past a group's end, its wider gap. */
+  const push = (t: ResolvedTrack, ti: number, source: ResolvedTrack, lead: number) => {
+    out.shown.push(t);
+    out.trackOf.push(ti);
+    out.sourceOf.push(source);
+    out.leads.push(lead);
+  };
+  const done = new Set<string>();
+  for (let j = 0; j < shown.length; j++) {
+    const t = shown[j];
+    const g = t.group;
+    const after = out.shown.length > 0 && prevGroup !== g ? wider : 0;
+    if (!g) {
+      push(t, trackOf[j], sourceOf[j], after);
+      prevGroup = undefined;
+      continue;
+    }
+    const group = groups.find((x) => x.address === g);
+    if (!group) continue;
+    if (!isFolded(g)) {
+      if (t.summaryOf) continue;
+      const first = prevGroup !== g;
+      push(t, trackOf[j], sourceOf[j], first ? after + config.header.groupPx : 0);
+      if (first) out.groups.push({ group, folded: false, first: out.shown.length - 1, last: out.shown.length - 1 });
+      else out.groups[out.groups.length - 1].last = out.shown.length - 1;
+      prevGroup = g;
+      continue;
+    }
+    prevGroup = g;
+    if (done.has(g)) continue;
+    done.add(g);
+    const start = out.shown.length;
+    const members = shown.filter((m) => m.group === g && !m.summaryOf);
+    let count = plural(members.length, 'track');
+    if (group.summary) {
+      // the authored summary: that track, drawn as any track, only while folded (EC-103)
+      const k = shown.findIndex((m) => m.address === group.summary);
+      if (k >= 0) push(shown[k], trackOf[k], sourceOf[k], after);
+    } else if (group.none) {
+      push(band(`${g}#header`, '', config.header.groupPx, []), -1, t, after);
+    } else {
+      // the automatic summary: one lane of every lane-form layer, a strip a values member, at most `maxStrips`
+      const lane: ResolvedLayer[] = [];
+      const strips: ResolvedLayer[] = [];
+      let left = 0;
+      for (const m of members)
+        for (const l of m.layers) {
+          if (!l.placed || l.params.hidden === true) continue;
+          const form = collapseOf(typeOf(l));
+          if (!form || form === 'row') continue;
+          const s = summaryLayer(l, form);
+          out.originals.set(s, l);
+          if (form === 'lane') lane.push(s);
+          else if (strips.length < config.group.summary.maxStrips) strips.push(s);
+          else left++;
+        }
+      if (left) count += ` · +${left} not shown`;
+      // at least one lane (an empty one when no member draws in one), the strips under it
+      push(band(`${g}#summary`, '', lanesHeight(1, config), lane), -1, t, after);
+      strips.forEach((s, k) =>
+        push(
+          band(`${g}#strip${k}`, '', config.group.summary.stripPx, [s]),
+          -1,
+          t,
+          // a strip under the lane: a 1 px gap
+          1 - config.trackGap,
+        ),
+      );
+    }
+    out.groups.push({ group, folded: true, first: start, last: out.shown.length - 1, count });
+  }
+  return out;
+}
+
+/**
+ * The group headers of a laid out section: each group's box (an open group's line above its first well, a folded
+ * group's rows in the label column), its label cut with an ellipsis before its count, measured once a layout.
+ */
+export function groupHeaders(
+  groups: NonNullable<FoldedBands['groups']>,
+  wells: readonly Box[],
+  section: ResolvedSection,
+  config: RenderConfig,
+  measure: (text: string) => number,
+  elide: (text: string, room: number) => string,
+): GroupHeader[] {
+  const out: GroupHeader[] = [];
+  const size = Number.parseFloat(config.labelFont) || 12;
+  for (const g of groups) {
+    const first = wells[g.first];
+    const last = wells[g.last];
+    if (!first || !last) continue;
+    const x = config.inset;
+    const width = config.labelWidth;
+    const box: Box = g.folded
+      ? { x, y: first.y, width, height: Math.max(1, last.y + last.height - first.y) }
+      : { x, y: first.y - config.header.groupPx, width, height: config.header.groupPx };
+    const line = g.folded ? Math.min(box.height, Math.max(config.header.groupPx, first.height)) : box.height;
+    const countWidth = g.count ? measure(g.count) : 0;
+    // the label cut before the count, the count before the chevron: the chevron never dropped
+    const fits = countWidth > 0 && ChevronPx + countWidth + 6 <= width;
+    const label = elide(g.group.label, Math.max(0, width - ChevronPx - (fits ? countWidth + 6 : 0)));
+    out.push({
+      group: g.group,
+      folded: g.folded,
+      box,
+      label,
+      labelWidth: measure(label),
+      baseline: box.y + line / 2 + size * 0.35,
+      ...(fits && g.count ? { count: g.count } : {}),
+      countWidth: fits ? countWidth : 0,
+      first: g.first,
+      last: g.last,
+      hit: { layer: g.group.address, section: section.address, system: section.axis.system, target: 'group-header' },
+    });
+  }
+  return out;
+}
+
+/** The chevron's room before a group's label, px. */
+export const ChevronPx = 14;
