@@ -71,9 +71,10 @@ The merged path grew beside the per-group one instead of under it. Five choices 
     CPU (`processValues` without a context) into data per vertex (`vertex`, or `vertexInstance` of a theme per
     instance), not a grid per object (`volume`/`volumeInstance`). Images as the unmerged grids' on the visual cases
     (`geometry/merged/molecular-surface-smooth*`: the diff noise, a pixel's largest an edge's). Measured
-    (`merging/assembly-gaussian-smooth-*`, 60 copies of 7qpd colored by element-index, CPU meshes): frames alike or
-    faster merged, the representation built in 87 against 55 ms (WebGL2) and 70 against 60 (WebGPU), its JS heap
-    12.5 against 5.7 MB and 15.1 against 6.0 (the colors per vertex and copy). A grid atlas where that memory matters.
+    (`merging/assembly-gaussian-smooth-merged`, 60 copies of 7qpd colored by element-index, CPU meshes at resolution
+    1: `auto` quality gives the assembly 3, which nothing smooths at; WebGPU): built in 2.66 against 2.43 s per group,
+    frames 1.97 against 1.78 ms, the CPU layer data 34.6 against 3.3 MB (the colors per vertex and copy against grids on
+    the GPU), the JS heap the scene retains 124 to 156 against 101 MB. A grid atlas where that memory matters.
   - **Smoothed layers** (done): a layer's type is its part's (`overpaintType`, `dOverpaintType` and the
     others' are shared cells, `dOverpaintType` in the merge key), so a part's segments hold one type of each layer.
     Segments by their smoothed layers: a segment a smoothed layer touches (`smoothColors` on, a mesh's
@@ -87,11 +88,12 @@ The merged path grew beside the per-group one instead of under it. Five choices 
     more per combination of smoothed layers (in practice one). Not all or none per part: a layer on one chain of a
     60-copy assembly would give every segment vertex data of zeros. Also: a segment made later or whose geometry is
     made again (its vertex data the old geometry's), or of other smoothing props, smoothed again as it is written; GPU
-    surfaces (texture meshes) are per-group visuals and keep their grids. Measured (60 copies of 7qpd as a root
-    structure: 7 groups of 60 instances, CPU meshes, WebGPU, the layer toggled each frame): on one unit 8.8 ms a frame;
-    on all 1.50 s against 1.03 s for the per-group grids, their layer data 35.5 against 35.0 MB (the grids' size: no
-    cap or atlas needed). The splatting is both paths' (about 1 s); the rest the per-vertex interpolation, 1.78 to 1.50
-    s once it read scalars (`getTrilinearlyInterpolated`). Images as the per-group grids' within the vertices'
+    surfaces (texture meshes) are per-group visuals and keep their grids. Measured
+    (`merging/assembly-gaussian-smooth-layer-{one,all}`: 60 copies of 7qpd as a root structure, 7 groups of 60
+    instances, CPU meshes at resolution 1, WebGPU, the layer set each frame): on one unit 18.8 against 12.9 ms a frame
+    for the per-group grids; on all 2.75 against 2.04 s, their layer data 35.5 against 35.0 MB (the grids' size: no cap
+    or atlas needed). The splatting is both paths' (about 2 s); the rest the per-vertex interpolation, 3.67 to 2.75 s
+    once it read scalars (`getTrilinearlyInterpolated`). Images as the per-group grids' within the vertices'
     sampling (a half-painted chain: 92 pixels apart against the plain layer's 264). The per-vertex sampling on the GPU:
     [merged-smoothed-layers-gpu.md](merged-smoothed-layers-gpu.md).
   - **A segment's update of another merge key** (done): of a builder that writes its values by the segment

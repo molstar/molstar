@@ -6,11 +6,11 @@ Status: planned. Follows [merged-units-core.md](merged-units-core.md) step 4b.
 
 A smoothed layer (overpaint, transparency, emissive, substance) on a merged surface is sampled per vertex and instance
 on the CPU, where per-group visuals sample their grid in the fragment shader. Measured (60 copies of 7qpd as a root
-structure: 7 groups of 60 instances, CPU meshes, WebGPU), the layer on all units: 1.50 s a frame merged against 1.03 s
-per group, the same 35 MB of layer data. These are medians of frames that set and cleared the layer in turn, so they
-understate the cost of setting it (step 1 measures again).
+structure: 7 groups of 60 instances, CPU meshes at resolution 1, WebGPU; `merging/assembly-gaussian-smooth-layer-*`,
+the layer set each frame): on all units 2.75 s a frame merged against 2.04 s per group, the same 35 MB of layer data; on
+one unit 18.8 against 12.9 ms.
 
-- **Shared by both paths**: the splat into the grid, on the CPU (about 1 s).
+- **Shared by both paths**: the splat into the grid, on the CPU (about 2 s).
 - **The merged path's own**: the trilinear sampling at every vertex of every reached instance (8.9 M samples), and the
   35 MB written to the CPU arrays and uploaded.
 
@@ -47,9 +47,9 @@ the group-instance data before smoothing.
 
 ## Steps
 
-1. **Baseline**: a benchmark case `merging/assembly-gaussian-smooth-layer-{one,all}` (merged) that sets one of two
-   layers in turn, so that every frame smooths; measured; the numbers in merged-units-core.md and the changelog entry
-   corrected.
+1. **Baseline** (done): `merging/assembly-gaussian-smooth-layer-{one,all}` (merged) set the layer in one of two colors
+   in turn, so that every frame smooths; measured above. They and `merging/assembly-gaussian-smooth-merged` pin
+   resolution 1: `auto` quality gives the assembly 3, which nothing smooths at.
 2. **The kernel**, dispatched for one segment into a plain buffer. Tested on WebGPU (headless) against
    `getTrilinearlyInterpolated`: the bytes within a small tolerance (the filter's precision against doubles).
 3. **Merged objects**: GPU-written ranges, skipped by the packer, dispatched again after layout changes. Tests: images

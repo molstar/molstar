@@ -5,5 +5,6 @@
   30; the particle targets merge two or more objects of a type, or one culled on the GPU.
 - Overpaint, transparency, emissive and substance layers on merged surfaces are color-smoothed where they reach (they
   were left unsmoothed on merged ones): the reached units drawn as a merged object of their own, smoothed per vertex on
-  the CPU. 60 copies of 7qpd (420 units), a layer on one unit 8.8 ms, on all 1.5 s against 1.0 s for per-unit grids
-  (WebGPU), the same memory (35 MB). Smoothing colors per vertex is faster: 1.78 to 1.50 s of that.
+  the CPU. 60 copies of 7qpd (420 units), a layer set on one unit 18.8 ms against 12.9 ms for per-unit grids, on all
+  2.75 s against 2.04 s (WebGPU), the same memory (35 MB). Smoothing colors per vertex is faster: 3.67 to 2.75 s of
+  that.

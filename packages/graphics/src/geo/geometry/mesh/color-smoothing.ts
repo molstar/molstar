@@ -651,7 +651,7 @@ export function getTrilinearlyInterpolated(input: ColorInterpolationInput): Data
   }
 
   // scalars, not `Vec3`s, in this loop over every vertex of every instance (array destructuring and calls per vertex:
-  // a smoothed layer on all 420 units of 60 copies of 7qpd 1.78 to 1.50 s a frame, WebGPU, its splatting the rest); the
+  // a smoothed layer set on all 420 units of 60 copies of 7qpd 3.67 to 2.75 s a frame, WebGPU, its splatting the rest); the
   // same double arithmetic in the same order as `Vec3.transformMat4Offset`, `sub` and `scale`, so the same bytes
   const { instances } = input;
   for (let i = 0; i < instanceCount; ++i) {

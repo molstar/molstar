@@ -1171,6 +1171,9 @@ const MergingSmoothCases: BenchmarkCase<RenderInput>[] = [true].map((merged) =>
       const s = await getRootAssembly();
       const props = {
         tryUseGpu: false,
+        // a fine grid: `auto` quality gives this assembly resolution 3, which no smoothing applies to (from below 3)
+        quality: 'custom',
+        resolution: 1,
         smoothColors: { name: 'on', params: { resolutionFactor: 2, sampleStride: 3 } },
       };
       return {
@@ -1185,7 +1188,48 @@ const MergingSmoothCases: BenchmarkCase<RenderInput>[] = [true].map((merged) =>
   ),
 );
 
-export const MergingMeshCases: BenchmarkCase<RenderInput>[] = [...MergingAssemblyMeshCases, ...MergingSmoothCases];
+/**
+ * A smoothed overpaint on the merged assembly's surfaces (CPU meshes), on one unit or on all: set each frame in one of
+ * two colors in turn, so that every frame smooths it (its time the update's: the splat, the per-vertex sampling and
+ * the upload)
+ */
+const MergingSmoothLayerCases: BenchmarkCase<RenderInput>[] = (['one', 'all'] as const).map((on) =>
+  renderCase(
+    `merging/assembly-gaussian-smooth-layer-${on}`,
+    `60 copies of 7qpd (420 units) as Gaussian surfaces, merged, a smoothed overpaint set each frame on ${on === 'one' ? 'one unit' : 'all units'}`,
+    async () => {
+      const s = await getRootAssembly();
+      const props = {
+        tryUseGpu: false,
+        // a fine grid: `auto` quality gives this assembly resolution 3, which no smoothing applies to (from below 3)
+        quality: 'custom',
+        resolution: 1,
+        smoothColors: { name: 'on', params: { resolutionFactor: 2, sampleStride: 3 } },
+      };
+      const unit = s.units[0];
+      const loci =
+        on === 'one'
+          ? StructureElement.Loci(s, [{ unit, indices: Interval.ofLength(unit.elements.length) }])
+          : Structure.toStructureElementLoci(s);
+      const colors = [Color(0xff2222), Color(0x2222ff)];
+      return {
+        setupNotes: true,
+        update: (canvas3d, reprs, i) => {
+          const color = colors[i % 2];
+          reprs[0].setState({ overpaint: { kind: 'element-loci', layers: [{ loci, color, clear: false }] } });
+          canvas3d.update(reprs[0]);
+        },
+        scene: (g) => Promise.all([structureRepr(g, GaussianSurfaceRepresentationProvider, s, props as any)]),
+      };
+    },
+  ),
+);
+
+export const MergingMeshCases: BenchmarkCase<RenderInput>[] = [
+  ...MergingAssemblyMeshCases,
+  ...MergingSmoothCases,
+  ...MergingSmoothLayerCases,
+];
 
 /** The folder of the large models some cases load (from the repository root; not checked in, `.gitignore`d) */
 export const BenchmarkDataDir = '.benchmark';
