@@ -108,4 +108,20 @@ describe('the zoom-in state', () => {
       expect(g.layout.issues.filter((i) => i.code === 'seq.render.zoom_in').length).toBe(1);
     }
   });
+
+  it('the index is asked once for a span of tiles: a pan over a refused want asks it nothing', async () => {
+    let asked = 0;
+    const empty = oneLevel('ranges', 83_000_000, () => {
+      asked++;
+      return 0;
+    });
+    const s = await settle(empty.spec, [empty.runtime]);
+    await s.frame({ size: Size, settled: true });
+    const once = asked;
+    expect(once).toBeGreaterThan(0);
+    // a pan of a few bases a frame, the view's tiles unchanged (the whole 83 Mb is some 5,000 of them)
+    for (let i = 1; i <= 20; i++)
+      await s.frame({ size: Size, settled: true, viewport: { start: i * 5, end: 83_000_000 } });
+    expect(asked).toBe(once);
+  });
 });
