@@ -15,6 +15,7 @@ import { rangesLocation } from '@molstar/seqx-core/query';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { viewerItem } from '../config.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
+import { describerFor } from '../describe.js';
 import { HiddenTrackMessage } from '../models/address.js';
 import { type UiHistory, uiHistory } from '../ui-history.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
@@ -207,7 +208,7 @@ describe('track groups in the viewer', () => {
     // an item an open track draws: nothing opened
     await v.execute('groups.collapseAll', { section: GroupsSection });
     await v.execute('groups.toggle', { address: `${GroupsSection}/features` });
-    v.addresses.reveal('/data/domains/(item :label domains10)');
+    expect(v.addresses.reveal('/data/domains/(item :label domains10)').done).toBe(true);
     expect(folded(v)).toEqual(['variants', 'signals']);
   });
 
@@ -224,6 +225,7 @@ describe('track groups in the viewer', () => {
     ]);
     // the spec now opens with the set shown: the session's set kept, nothing moves (its own patch changes no session)
     expect(folded(v)).toEqual(['variants', 'signals']);
+    expect(v.view.get(GroupsSection)?.groups).toBeDefined();
     // a toggle, then the undo of the kept folds: back to the spec's opening set
     await v.execute('groups.toggle', { address: `${GroupsSection}/features` });
     expect((await stackOf(v).undo()).ok).toBe(true);
@@ -299,6 +301,29 @@ describe('track groups in the viewer', () => {
     expect(v.hiddenTracks.value.map((t) => [t.address, t.kind])).toEqual([[`${GroupsSection}/features`, 'group']]);
   });
 
+  it('a summary mark hits, hovers and selects as its member’s item', async () => {
+    const v = await make();
+    await v.execute('groups.toggle', { address: `${GroupsSection}/features` });
+    await v.settle();
+    frames!.flush();
+    const sec = v.frame!.layout.sections[0];
+    const lane = sec.tracks.find((t) => t.track.address === `${GroupsSection}/features#summary`)!;
+    // domains10: positions 10 to 28, alone there in the lane (motifs20 is at 20 to 22)
+    const x = sec.axis!.xOfUnit(14.5);
+    const y = lane.box.y + lane.box.height / 2;
+    const hit = v.hit(x, y)!;
+    expect(hit.element?.key).toBeDefined();
+    v.input.move(x, y);
+    frames!.flush();
+    const card = describerFor({ ...v, layout: () => v.frame?.layout }).describe(v.hover.current!);
+    expect(card?.text).toContain('domains10');
+    // the member named: its track's label
+    expect(card?.text).toContain('Domains');
+    v.input.click(x, y);
+    expect(v.selection.value.value).toBeDefined();
+    expect(JSON.stringify(v.selection.value.value)).toContain('domains');
+  });
+
   it('a click on a group’s header folds and opens it (no selection, no step)', async () => {
     const v = await make();
     const steps = backSteps(v);
@@ -321,9 +346,12 @@ describe('track groups in the viewer', () => {
     const layer = `${GroupsSection}/features/domains/l`;
     const domains = () =>
       v.spec.root.value.children![1].children![0].children![0].children![1].children![0].children![0];
+    const before = stackOf(v).steps.value.length;
     await v.execute('layer.lanes', { address: layer, lanes: 'one' });
     await v.settle();
     expect(domains().params?.lanes).toBe('one');
+    // one patch: one undo step
+    expect(stackOf(v).steps.value.length).toBe(before + 1);
     await v.execute('layer.lanes', { address: layer, lanes: 'packed' });
     await v.settle();
     expect(domains().params?.lanes).toBeUndefined();
