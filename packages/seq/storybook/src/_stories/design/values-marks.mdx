@@ -1,0 +1,36 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Values marks" />
+
+# Values marks
+
+A reader of a genome-wide association plot sees the SNPs as dots at their height (-log10 p) and a line at the
+genome-wide significance threshold (7.3, p = 5e-8): the dots over it are the finding. A reader of a signal track sees a
+zero line or the mean it is read against. A writer says where the line is, once, in the spec, and it stays right at
+every zoom, on a linear or a log scale, in light and dark.
+
+## A param of the layer
+
+A `values` layer takes `reference`: up to four lines, each `{ at, label?, color?, style? }` (language `0.11.0`). `at` is
+a value of the layer's y scale (on a log scale 5e-8 stays 5e-8); `label` names the line for people; `color` is a color
+or token (default the muted text ink); `style` is `solid`, `dashed` (the default) or `dotted`.
+
+The line is a hairline across the well, drawn over the bars, the profile and the dots and under the hover. It is never
+hit and never hovered: its value is in the label and the accessible text.
+
+## Through the layer's scale
+
+A line sits where a value at it sits, headroom included, so a dot at the threshold and its line coincide. On a log scale
+`at <= 0` is not on the scale: no line. On a closed domain a line outside it is not drawn (said once), as clamping would
+claim a position it does not have. On an open end the lines are part of what the end is computed from, so a track whose
+tallest SNP is 6.1 still shows its 7.3 line, and a plot with no significant SNP is seen to have none.
+
+## The label
+
+A label draws at the right end, above the line, 10 px in the muted ink over a patch of the well's ground, only when the
+well is at least 40 px tall; near the top it goes below the line; of two overlapping labels the later is dropped and its
+line stays. An unlabelled line draws no text. The accessible text reads "reference line at 7.3 (genome-wide)".
+
+## Not here
+
+A band between two values, a line from a field, a baseline other than zero, a y axis with ticks.

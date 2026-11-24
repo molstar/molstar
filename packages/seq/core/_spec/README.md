@@ -53,7 +53,8 @@ is added in the change that builds what it describes.
   a `view` (`on`, `target`, `rows`, `source`, `schema`, `block`, `category`, `field`, `text`, `label`, `format`;
   Language, Tooltips) and a view's `export.titles`; `0.10.0`: a rings section's `center` (`title`, `none`: what the hole
   holds; the render config's `rings.center` the default when absent); `0.11.0`: the `group` kind under a section
-  (`label`, `collapsed`, `hidden`, `summary`) and a `track` under a group (Language, Groups of tracks). A reader without
+  (`label`, `collapsed`, `hidden`, `summary`) and a `track` under a group (Language, Groups of tracks), a `values`
+  layer's `reference` (up to four lines `{ at, label, color, style }`; Render, Layer types, `values`). A reader without
   groups (an older minor, another renderer; EC-244) draws a group's tracks as the section's, every group open, its
   `summary` track left out: `FlattenedKinds` lists `group` with the version it came in, and a spec of an older `version`
   holding one is told so (`seq.lang.version.kind`). A spec in an earlier `0.x` reads as one in this one, and is reported
@@ -97,19 +98,21 @@ checks it cannot express.
   `three`; absent: `auto`), read by `letters`; a layer's `numbering` (a numbering id; absent: the section's default,
   `ordinal`) and `units` (`none`, `bases`; absent: `none`), `unnumbered` (`mark`, `fallback`; absent: `mark`) and
   `fallbackNumbering` (a numbering id; absent: `ordinal`), read by `ruler`, `encoding` (`bars`, `line`, `area`,
-  `points`; absent: `bars`) by `values`, `style` (`blocks`) by `secondary`, `line` (`solid`, `dashed`, `dotted`, `wavy`,
-  `double`, `box`, `highlight`, `gene`; absent: blocks) and `arrow` (`none`, `end`, `start`, `both`; absent: `none`) by
-  `ranges`; a `ranges` layer's `connector` (`line`, the default, or `none`: the hairline joining an item's pieces across
-  shown positions) and `lanes` (`packed`, the default, or `one`: every item in one lane, labels off, a later item over
-  an earlier one, the track one lane high; a group's summary lane is one); a grid section's `of_y` (absent: `of`),
-  `follow_y` (`x`, `none` or a section; absent: `x`) and `aspect` (a number or `none`; absent: 1); by `pairs` its `side`
-  (`above`, `below`; absent: `above`), `reach` (absent: 0.25), `height` (`span`; absent: `span`), `crossing` (`same`,
-  `split`; absent: `same`), `across_lines` (absent: false) and `mirror` (absent: false: a pair drawn where its data puts
-  it, never read off whether the two axes are one system; the tRNA's builder sets it); by `grid` its `aggregate`
-  (`mean`, `max`, `min`; absent: `mean`); by both in a grid `triangle` (`both`, `upper`, `lower`; absent: `both`). Why:
-  the figure's form is the writer's, never the host's or the data's: one spec draws the same in the canvas, the SVG and
-  another viewer. The refs inside `direction` and `pieces` are checked by kind as top-level refs are, and a change's
-  check reaches them (its reverse index walks a union's record member). Why: the composition is the application's.
+  `points`; absent: `bars`) and `reference` (up to four lines `{ at, label, color, style }`, `style` `solid`, `dashed`
+  (absent) or `dotted`; absent: none) by `values`, `style` (`blocks`) by `secondary`, `line` (`solid`, `dashed`,
+  `dotted`, `wavy`, `double`, `box`, `highlight`, `gene`; absent: blocks) and `arrow` (`none`, `end`, `start`, `both`;
+  absent: `none`) by `ranges`; a `ranges` layer's `connector` (`line`, the default, or `none`: the hairline joining an
+  item's pieces across shown positions) and `lanes` (`packed`, the default, or `one`: every item in one lane, labels
+  off, a later item over an earlier one, the track one lane high; a group's summary lane is one); a grid section's
+  `of_y` (absent: `of`), `follow_y` (`x`, `none` or a section; absent: `x`) and `aspect` (a number or `none`; absent:
+  1); by `pairs` its `side` (`above`, `below`; absent: `above`), `reach` (absent: 0.25), `height` (`span`; absent:
+  `span`), `crossing` (`same`, `split`; absent: `same`), `across_lines` (absent: false) and `mirror` (absent: false: a
+  pair drawn where its data puts it, never read off whether the two axes are one system; the tRNA's builder sets it); by
+  `grid` its `aggregate` (`mean`, `max`, `min`; absent: `mean`); by both in a grid `triangle` (`both`, `upper`, `lower`;
+  absent: `both`). Why: the figure's form is the writer's, never the host's or the data's: one spec draws the same in
+  the canvas, the SVG and another viewer. The refs inside `direction` and `pieces` are checked by kind as top-level refs
+  are, and a change's check reaches them (its reverse index walks a union's record member). Why: the composition is the
+  application's.
 - **Numberings** (`<sequence>/<id>`, a `numbering` child of a sequence): a label a position of its sequence, its id the
   name the forms read (`:numbering kabat`, Queries, Numberings and labels). `method` is `labels`, `offset` (a position
   plus `by`: UniProt's from 1, an author numbering from 94) or `segments` (runs `start`, `end`, `first`: a position in
@@ -548,7 +551,8 @@ layout per token table, held domains and the reader's substitution (`LayerChanne
   high end before any is held: zero has no place on it); `non_positive` on `log`: `missing` (no color, before any bin or
   end color) or `clamp` (the domain's low end) (`seq.render.scale.log`). A center (`mid`) makes a number's default
   palette the diverging one. A `scale` node (`/views/<id>`) is shared: every layer and channel naming it reads one
-  domain, its open ends the union over them at settle (one relayout).
+  domain, its open ends the union over them at settle (one relayout); a values layer's reference lines are part of what
+  its open ends are computed from (Render, Layer types, `values`).
 - **Palettes are Mol\*'s value palettes**, evaluated by `@molstar/core/util/color/value-palette-eval` (scale, mid,
   unlisted hash; the module without Mol\*'s named lists, which `value-palette` re-exports with them), converted both
   ways with MolViewSpec's palettes, their scale with them (`toMvsPalette`; `fromMvsPalette` and `fromMvsScale`: type,
@@ -2913,6 +2917,8 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 | `values.aggregate`                                                                | `minmax`                                                                                                               | below a device pixel a position, each column's extent, so negative extremes show; `max`                                                                                                                                                                                                                                                                                                                                   |
 | `values.coarser`                                                                  | 1                                                                                                                      | the coarsest level whose bin is no wider than k device pixels' positions (below)                                                                                                                                                                                                                                                                                                                                          |
 | `values.direct`                                                                   | true                                                                                                                   | data on the section's own system placed with no mapping (below); false: the general mapping, the same lists                                                                                                                                                                                                                                                                                                               |
+| `values.reference.widthPx`, `.dashPx`, `.dotPx`                                   | 1, 4, 1.5 CSS px                                                                                                       | a reference line's weight, a dashed one's dash and a dotted one's (on, then as long off)                                                                                                                                                                                                                                                                                                                                  |
+| `values.reference.labelPx`, `.labelMinWellPx`                                     | 10, 40 CSS px                                                                                                          | a line's label size; under the well height, lines and no labels (text hides the data)                                                                                                                                                                                                                                                                                                                                     |
 | `ruler.labelGap`                                                                  | 48 px                                                                                                                  | the least between two ticks (the foundations' number); labels clear each other by an eighth of it                                                                                                                                                                                                                                                                                                                         |
 | `blocks.gapShare`, `blocks.groupGap`                                              | 0.25; 3 block gaps                                                                                                     | the gaps between blocks in view share at most a quarter of the row (positions keep three quarters at any count, each gap at most 12 px); a boundary between two assemblies reads wider (Circos), taken first, fixed                                                                                                                                                                                                       |
 | `blocks.emptyTracks`                                                              | `collapse`                                                                                                             | a stacked block's track with no items for that block is left out of its row (`keep`: its well); the first block too (a track's label and well sit in the first row that keeps it), a track of letters or any fixed height kept; a block with every track left out is its heading row alone; the chips share one row, left out where every chip is empty: Blocks                                                           |
@@ -3332,7 +3338,27 @@ in page coordinates: what crosses strips; `bridge`, internal, once a bridge with
   `points` has the headroom, the baseline hairline and the clip of the others; its hit is the position under the pointer
   (the line's), its hover a ring on the hovered dot (outside it by the hover offset; at the column steps the extent's
   outline). Why a polygon: the draw lists have no circle, and the squircle's corner is not one. A warm frame, draw and
-  hover of each encoding allocate nothing.
+  hover of each encoding allocate nothing. **Reference lines** (`reference`, `values-reference.ts`; EC-217; the language
+  `0.11.0`): up to four hairlines across the well, each at a value of the layer's y, `{ at, label?, color?, style? }`
+  (`color` a color, a token or `light-dark(a, b)`, never a theme form; absent: `msui-text`; `style` `solid`, `dashed`
+  (absent) or `dotted`). A line is where a value there is (`ys` and the headroom, so a dot at the threshold and its line
+  coincide; on a log scale `at <= 0` is not on it: no line). It is 1 CSS px (`values.reference.widthPx`, never thinner
+  than a device pixel) over the bars, the profile and the dots and under the hover, a solid one a rect and a dashed or
+  dotted one a path with a dash (`dashPx` 4, `dotPx` 1.5: on, then as long off: the draw lists' dash), so the SVG export
+  draws what the canvas does; it is never hit and never hovered (its value is in the label and the accessible text), and
+  the baseline hairline stays (a line at its value draws over it). A line outside a **closed** domain (the layer's
+  `domain`, or the scale node's both ends) is not drawn and said once a layer (`seq.render.reference.outside`: its index
+  and value); an **open** end includes the lines (the union of EC-56 gains them), so a Manhattan track whose tallest SNP
+  is 6.1 still shows its 7.3 line and a plot with no significant SNP is seen to have none (Provisional). The **label**
+  draws at the well's right end with the data pass (before the hover and the cursor), above the line, `labelPx` (10) in
+  `msui-text-muted` over a patch of the well's ground, only from `labelMinWellPx` (40) of well, below the line where it
+  is within a label height of the well's top, cut with an ellipsis to the well's right third, the later of two
+  overlapping labels dropped (its line stays) (Provisional); an unlabelled line draws no text. The layer's ARIA
+  description (`summary`) says "reference line at 7.3 (genome-wide)" a drawn line. With no `reference` nothing is drawn
+  and nothing of this is loaded: the lines' code (`values-reference.ts`) is a lazy chunk, loaded when a spec holds a
+  values layer with `reference`, a model waiting for it as for the bridge chunk (`values-reference-hooks.ts`). A warm
+  frame of each encoding with two lines allocates nothing. Why: a threshold is the genome-wide association plot's
+  finding, and a line from the layer's own scale stays right at every zoom, linear or log.
 
 - `frame` (EC-100): an annotation's regions outlined across tracks of its section (`across`: the first and the last
   track's ids, the bands between them too; its own band when absent: `ctx.span`). A strip layer: on each strip a
@@ -5138,7 +5164,8 @@ mark, as data; the viewer's `seq:tooltips` provider and an export's titles read 
   names. **Ids**: the default `idPrefix` is a hash of the spec, the title, the size, the token table, the view, the
   highlights and the selection, so exports that differ in them can share a page; two equal exports share their ids, and
   a host inlining both passes each its own `idPrefix`. The viewer's announcements use the same words (viewer `_spec`,
-  Announcements).
+  Announcements). A values layer's reference lines are said in its layer's ARIA description (`LayerType.summary`:
+  "reference line at 7.3 (genome-wide)" a drawn line, Layer types, `values`).
 - **PNG** (`renderPng`, `export-png.ts`): the SVG export rasterized, so a PNG is the SVG's picture (the same options,
   the same figure); the rasterizer is a port (`Rasterizer`: the SVG string and its size and `scale` × `dpr` to PNG
   bytes) so the core carries no native code, and the application composes one (the render CLI's, `cli/seqx-render`, over
@@ -5244,12 +5271,12 @@ mark, as data; the viewer's `seq:tooltips` provider and an export's titles read 
 - `seq.render.*` (`RenderIssues`): `rows.reduced` (info), `rows.clade` (info), `rows.text.unfolded` (info),
   `logo.profile` (info), `rows.order` (info), `rows.lazy` (info), `pairs.limit` (info), `pairs.filter` (info),
   `pairs.systems`, `grid.systems`, `layer.axes`, `rows.layout`, `rows.second`, `view`, `color`, `theme.channel`,
-  `theme.scheme`, `theme.measure`, `theme.color`, `scale.log` (info), `legend.unlisted` (info), `filter`, `line-style`
-  (info), `numbering`, `numbering.fallback`, `numbering.limit`, `numbering.source`, `numbering.rows`, `layer.type`,
-  `layout`, `layer.letters`, `axis.pending` (info), `text.lines`, `follow.leader`, `follow.blocks`, `ring.image`,
-  `follow.cycle`, `source`, `template.limit`, `unsettled`, `navigator.of`, `navigator.path`, `navigator.rows` (info),
-  `navigator.layer` (info), `navigator.export`, `layer.hover` (refused at registration: Emphasis, The hover contract); a
-  test checks the catalog.
+  `theme.scheme`, `theme.measure`, `theme.color`, `scale.log` (info), `reference.outside` (info), `legend.unlisted`
+  (info), `filter`, `line-style` (info), `numbering`, `numbering.fallback`, `numbering.limit`, `numbering.source`,
+  `numbering.rows`, `layer.type`, `layout`, `layer.letters`, `axis.pending` (info), `text.lines`, `follow.leader`,
+  `follow.blocks`, `ring.image`, `follow.cycle`, `source`, `template.limit`, `unsettled`, `navigator.of`,
+  `navigator.path`, `navigator.rows` (info), `navigator.layer` (info), `navigator.export`, `layer.hover` (refused at
+  registration: Emphasis, The hover contract); a test checks the catalog.
 
 ## Stories
 

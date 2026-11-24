@@ -1195,6 +1195,20 @@ export const SeqLanguage = defineLanguage({
           enum: ['bars', 'line', 'area', 'points'],
           doc: 'For `values`: `bars` (when absent), `line` (through the cells’ centers, held over half cells at its ends and gaps, broken by missing values), `area` (the line and the area under it) or `points` (a dot a value; a thin mark a device column below a pixel a value). A line and an area show a dot a value from about 6 px a value.',
         },
+        reference: {
+          type: 'list',
+          of: {
+            type: 'record',
+            fields: {
+              at: { type: 'number', required: true, doc: 'The value, in the layer’s y values.' },
+              label: { type: 'string', doc: 'Its name, drawn at the line and read aloud.' },
+              color: { type: 'string', doc: 'A color, token or `light-dark(a, b)`; `token:msui-text` when absent.' },
+              style: { type: 'string', enum: ['solid', 'dashed', 'dotted'], doc: '`dashed` when absent.' },
+            },
+          },
+          'max-length': 4,
+          doc: 'For `values`: horizontal lines at values of the layer’s y (a threshold, a zero), over the marks.',
+        },
         style: {
           type: 'string',
           enum: ['blocks'],

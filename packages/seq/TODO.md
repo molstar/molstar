@@ -432,6 +432,9 @@ extension kinds.
   legend entry without a swatch, its label doubled; the scattered pick's grid lines in dark; the dot plot's white empty
   cells in dark and "chr1" against "1"; Liftover's overlapping labels, jargon and no bridge legend; the methylation
   matrix's missing cells as dark as low ones, samples called "State"; BED12 tracks unnamed.
+- **Reference lines' followups** (CL8): in dark no single ink reaches 3:1 against both the ground and `seq-value`
+  (`msui-text` 1.75 against the series blue): a halo in the ground's colour would; EC-216's coarse bin keeping its one
+  significant SNP not checked; EC-214 (split by sample) with no outcome.
 - **FX25's followups**: unmarked items' sticky-versus-fresh lane order between the canvas and the SVG; a variant's rsID
   title without its kind; five twin views (by-name, names, liftover, bed-over-rows, across-liftover) compare no lanes
   until the export takes the canvas's window; `knownEmpty` for 2D wants.

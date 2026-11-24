@@ -47,3 +47,6 @@
   is titled by its ID or its kind and position; a ring's stub labels no longer overprint (the stronger kept, past its
   tip); a canvas header keeps its pressed action drawn; a square shows its own viewer's failure text; a track over a
   span with no data says "no items", not "zoom in to read".
+- Seq\* (next): a `values` layer takes `reference`: up to four lines at values of its y (`at`, `label`, `color`,
+  `style`), drawn over the data and under the hover, read through the layer's scale (log included); an open domain
+  includes them (language 0.11.0).

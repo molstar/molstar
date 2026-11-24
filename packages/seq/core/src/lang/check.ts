@@ -23,6 +23,7 @@ import {
   type Value,
 } from '@molstar/core/repr/tree';
 import { checkSpecBounds, DefaultSpecBounds, IssueCaps, type SpecBounds } from './bounds.js';
+import { isColorSpelling } from '@molstar/seqx-core/theme/spelling';
 import { checkTooltip } from './check-tooltips.js';
 import {
   checkBlockForm,
@@ -404,6 +405,14 @@ export function checkPlaced(at: Placed, look: SeqLookup, report: Report): void {
         },
         (code, message, ...tail) => report(code, message, at, ...tail),
       );
+      // a reference line's color is one color, never a theme form (_spec/README.md "Render", Layer types, `values`)
+      const lines = p(n, 'reference');
+      if (Array.isArray(lines))
+        lines.forEach((line, i) => {
+          const c = line && typeof line === 'object' ? (line as { color?: unknown }).color : undefined;
+          if (typeof c === 'string' && !isColorSpelling(c))
+            report('seq.lang.theme.color', `${JSON.stringify(c)} is no color`, at, 'reference', i, 'color');
+        });
       // an extension's type (`<id>:<name>`): what it draws is its own, so its data is checked by the resolved view's
       // shape (`seq.view.layer.shape`) through its fallback; a reader without it draws the fallback (`none` when absent)
       if (isExtensionName(String(type))) {

@@ -55,6 +55,17 @@ function polygon(x: number, y: number, r: number) {
   }
 }
 
+const scale = new Float64Array(3);
+
+/** The y scale's low end and high end (`ys` of the domain's) and its span with the headroom, to `into` (no return). */
+function yScale(lay: ValuesLay, into: Float64Array) {
+  const lo = ys(lay, domainLo(lay));
+  const hi = ys(lay, domainHi(lay));
+  into[0] = lo;
+  into[1] = (hi - lo || 1) / Fill;
+  into[2] = hi;
+}
+
 /** The hairline at the baseline (zero, else the domain's low), a device pixel thick. No number is passed to a call. */
 export function drawBaseline(lay: ValuesLay, out: PassWriter) {
   const { box } = lay;
@@ -116,9 +127,12 @@ export function drawPoints(lay: ValuesLay, out: PassWriter) {
     return;
   }
   const { box } = lay;
-  const lo = ys(lay, domainLo(lay));
-  const hi = ys(lay, domainHi(lay));
-  const span = (hi - lo || 1) / Fill;
+  // the scale's low end and span through an array, never a call's return (a settled domain's double, returned by a call
+  // that is not inlined here, is a heap number a frame)
+  yScale(lay, scale);
+  const lo = scale[0];
+  const span = scale[1];
+  const hi = scale[2];
   const y1 = box.y + box.height;
   const bh = box.height;
   const px = 1 / lay.axis.dpr;

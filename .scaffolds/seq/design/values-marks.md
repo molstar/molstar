@@ -48,7 +48,7 @@ A `values` layer takes `reference`: a list of up to four lines, each a record `{
   stays 5e-8).
 - `label` (string): its name for people ("genome-wide", "mean"), drawn at the line and read by the accessible text.
 - `color` (a color, a token or `light-dark(a, b)`; as a layer's `color`, never a theme form: a line is one colour).
-  Absent: `msui-text-muted`.
+  Absent: `msui-text` (the author, 2026-11-24: 3:1 against the ground and `seq-value`).
 - `style` (`solid`, `dashed`, `dotted`, the ranges' `line` words; absent: `dashed`).
 
 The line is a hairline across the whole well (1 CSS px, never thinner than a device pixel), drawn **over the bars, the
@@ -107,12 +107,13 @@ With no `reference` the layer is as built: no line. With a line, no other settin
  │        ▪        ▪   ▪       ▪        │     │        ▪        ▪   ▪       ▪        │
  │ ▪ ▪▪ ▪▪▪ ▪▪ ▪▪▪ ▪ ▪▪ ▪▪ ▪▪▪ ▪▪ ▪ ▪▪ ▪ │     │ ▪ ▪▪ ▪▪▪ ▪▪ ▪▪▪ ▪ ▪▪ ▪▪ ▪▪▪ ▪▪ ▪ ▪▪ ▪ │
  └──────────────────────────────────────┘     └──────────────────────────────────────┘
-   baseline hairline at 0 (seq-sequence)        line: msui-text-muted, dashed 4 on 3 off, 1 px
+   baseline hairline at 0 (seq-sequence)        line: msui-text, dashed 4 on 3 off, 1 px
 ```
 
-- **Light and dark**: tokens only (`msui-text-muted` for the line and the label, the well's ground behind the label);
-  the dashed line reads against the series colour in both themes (a test measures 3:1 against the well's ground and
-  against `seq-value`). A writer's own colour is theirs to check.
+- **Light and dark**: tokens only (`msui-text` for the line, `msui-text-muted` for the label, the well's ground behind the
+  label); the line reads against the well's ground at 3:1 in both themes and against `seq-value` at 3:1 in light (a test
+  measures them). In dark `seq-value` is a light blue: no ink is 3:1 against it and the near-black ground (1.75:1 for
+  `msui-text`): carried. A writer's own colour is theirs to check.
 - **A line outside the domain**: closed domain `[0, 6]`, line at 7.3: not drawn, one info. Open domain: the domain
   becomes `[0, 7.3]` plus headroom and the line is drawn (Decision 3).
 - **Two lines**: 7.3 ("genome-wide", dashed) and 5 ("suggestive", dotted, `color` set): two hairlines, two labels at
@@ -136,11 +137,11 @@ canvas and SVG.
 | a values layer's `reference` (spec) | absent: no line | a figure draws what its writer asks; a zero line is the baseline already | a scale node's `lines` (Rejected) |
 | a line's `at` (spec) | required | a threshold is a number the writer knows | a field's value (not built) |
 | a line's `label` (spec) | absent: none | a label is a claim | the track's title (the writer's) |
-| a line's `color` (spec) | `msui-text-muted` | the series colours (by chromosome, by value) are the data: the line must not borrow one | any color or token |
+| a line's `color` (spec) | `msui-text` | the series colours (by chromosome, by value) are the data: the line must not borrow one | any color or token |
 | a line's `style` (spec) | `dashed` | a threshold is conventionally dashed and apart from the baseline's solid | `solid`, `dotted` |
 | lines per layer (language bound) | 4 | a threshold, a suggestive one, a zero, a mean | any (not built) |
 | `values.reference.widthPx` (render config) | 1 | the baseline's and the hairlines' weight | any (not built) |
-| `values.reference.dashPx` (render config) | `[4, 3]` | reads as a threshold from 150 px of well | any (not built) |
+| `values.reference.dashPx`, `.dotPx` (render config) | 4, 1.5 | a dashed and a dotted line, on then as long off (the draw lists' dash is one number: 4 on 3 off was not built) | any (not built) |
 | `values.reference.labelPx` (render config) | 10 | the quiet weight of the axis labels | any (not built) |
 | `values.reference.labelMinWellPx` (render config) | 40 | under it, text hides the data | any (not built) |
 
@@ -179,9 +180,10 @@ canvas and SVG.
 
 **The render**:
 
-- `render/values-marks.ts` (159 lines: the lines go there, `values.ts` is at 775 of 800) gains `drawReference(lay, out)`
-  called after the data pass by each encoding; `ValuesLay` gains the resolved lines (value, `ys` once per prepare, color,
-  dash, label) in preallocated arrays; the domain pass includes their values for an open end (Decision 3).
+- `render/values-reference.ts` (new: `values.ts` was at 775 of 800) holds `drawReference(lay, out)`, called after the data
+  pass by each encoding, the labels' pass and the resolved lines (`ValuesLay.ref`: value, y once per layout, color, dash,
+  label, in preallocated arrays); `values-domain.ts` takes the open domain, which includes the lines for an open end
+  (Decision 3).
 - The SVG export and the PNG: through the draw lists, nothing of their own; the accessible text (`accessibility.ts`).
 - The legend and tooltip: unchanged.
 
@@ -235,11 +237,13 @@ by a grep of `values-look` and the summary tests for a "max over a bin" case).
 
 | Decision | Where |
 |---|---|
-| the `reference` param (the list, its fields, bound 4, absent: none) and its version | core › Language (layer params, version history) |
-| the line is drawn over the data and under the hover, a hairline, never hit, an outside line not drawn | core › Render › Layer types › `values` |
-| the line reads through the layer's scale (log included, `at <= 0` none); an open end includes the lines (Provisional) | core › Render › Layer types › `values`; core › Themes › Scales |
-| the label (right end, 10 px, 40 px well, dropped on overlap) (Provisional) | core › Render › Layer types › `values` |
-| `seq.render.reference.outside` | core › Diagnostics (the catalog) |
-| the render config keys `values.reference.*` | core › Configuration |
-| the accessible text | core › Render › Accessibility |
+| the `reference` param (the list, its fields, bound 4, absent: none; the layer params' list is in Language's prose) | core › Render › Layer types |
+| the `reference` param's version (`0.11.0`) | core › Versions |
+| the line is drawn over the data and under the hover, a hairline, never hit, an outside line not drawn | core › Render › Layer types |
+| the line reads through the layer's scale (log included, `at <= 0` none); an open end includes the lines (Provisional) | core › Render › Layer types |
+| an open end includes the lines (Provisional) | core › Themes |
+| the label (right end, 10 px, 40 px well, dropped on overlap) (Provisional) | core › Render › Layer types |
+| `seq.render.reference.outside` | core › Render › Issues |
+| the render config keys `values.reference.*` | core › Render › Configuration |
+| the accessible text | core › Render › Export |
 | the Manhattan story | design-only: an example, listed in `examples.md` |

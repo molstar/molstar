@@ -247,9 +247,22 @@ export interface RenderConfig {
    * Values: below a device pixel a position, each column's extent (`minmax`, negative extremes show) or its maximum;
    * how many times a device pixel's positions a level's bin may be (`coarser`, 1 by default: the coarsest bin no wider than a
    * pixel's positions, exact to a device pixel; 2, up to two pixels'); whether data on the section's own system is placed directly (`direct`;
-   * false: through the general mapping, the same lists, slower).
+   * false: through the general mapping, the same lists, slower). Reference lines (`reference`, "Render", Layer types,
+   * `values`): a hairline `widthPx` CSS px thick, a dashed one's dash and a dotted one's (on, then as long off), the
+   * label's size, and the least well height that shows labels.
    */
-  readonly values: { readonly aggregate: 'minmax' | 'max'; readonly coarser: number; readonly direct: boolean };
+  readonly values: {
+    readonly aggregate: 'minmax' | 'max';
+    readonly coarser: number;
+    readonly direct: boolean;
+    readonly reference: {
+      readonly widthPx: number;
+      readonly dashPx: number;
+      readonly dotPx: number;
+      readonly labelPx: number;
+      readonly labelMinWellPx: number;
+    };
+  };
   /**
    * The ruler: the least px between two ticks (`labelGap`, 48: the foundations' number; the step of 1, 2, 5 × 10ⁿ is the
    * least that reaches it). Labels also clear each other by an eighth of it; one that does not fit is skipped, never shrunk.
@@ -522,7 +535,12 @@ export const DefaultRenderConfig: RenderConfig = {
   maxNumberingPositions: 1 << 18,
   nodes: { holdShown: true },
   ranges: { overflow: 'extra-lanes', maxLanes: 1000, connector: { width: 1, ink: 'item', alpha: 0.6 } },
-  values: { aggregate: 'minmax', coarser: 1, direct: true },
+  values: {
+    aggregate: 'minmax',
+    coarser: 1,
+    direct: true,
+    reference: { widthPx: 1, dashPx: 4, dotPx: 1.5, labelPx: 10, labelMinWellPx: 40 },
+  },
   ruler: { labelGap: 48 },
   blocks: { gapShare: 0.25, runPx: 2, readPx: 1, groupGap: 3, emptyTracks: 'collapse' },
   rings: {
@@ -631,7 +649,11 @@ export function renderConfig(over: RenderConfigOverrides = {}): RenderConfig {
       maxPx: over.letters?.maxPx ?? DefaultRenderConfig.letters.maxPx,
       capRatio: over.letters?.capRatio ?? DefaultRenderConfig.letters.capRatio,
     },
-    values: { ...DefaultRenderConfig.values, ...over.values },
+    values: {
+      ...DefaultRenderConfig.values,
+      ...over.values,
+      reference: { ...DefaultRenderConfig.values.reference, ...over.values?.reference },
+    },
     ruler: { ...DefaultRenderConfig.ruler, ...over.ruler },
     blocks: { ...DefaultRenderConfig.blocks, ...over.blocks },
     rings: { ...DefaultRenderConfig.rings, ...over.rings },
