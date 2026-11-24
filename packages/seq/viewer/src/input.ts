@@ -542,10 +542,18 @@ export class ViewerInput {
     this._touch = e.pointerType === 'touch';
     const mods = this._modifiers(e);
     const d = this._drag;
+    if (d && !d.moved && Math.max(Math.abs(x - d.x0), Math.abs(y - d.y0)) >= DragSlop) {
+      d.moved = true;
+      // a drag-select hovers nothing while it runs (its hover goes now, comes back on release)
+      if (d.select) this.hoverBehavior?.leave();
+    }
+    if (d?.select && d.moved) {
+      this._dragSelectMove(d, x, y);
+      return;
+    }
     const hit = this._hitAt(x, y);
     this._windowHover(this._renderHit);
     if (d) {
-      if (!d.moved && Math.max(Math.abs(x - d.x0), Math.abs(y - d.y0)) >= DragSlop) d.moved = true;
       if (d.rowsRail) {
         d.x = x;
         d.y = y;
@@ -562,15 +570,9 @@ export class ViewerInput {
         const at = this.offsetAt(d.section, x, y);
         if (d.moved && at !== undefined) this.windowBehavior?.dragTo(at);
       } else if (d.select) {
+        // under the slop: a click's still
         d.x = x;
         d.y = y;
-        // the range from where it began to the pointer, in reading order, read from the placement even past the data:
-        // at most once a frame, at the pointer's last place (_spec/README.md "SelectionModel and HighlightModel",
-        // Drags)
-        if (d.moved) {
-          this._dragDue = true;
-          this.viewer.schedule();
-        }
       } else {
         const dx = x - d.x;
         const dy = y - d.y;
@@ -588,6 +590,24 @@ export class ViewerInput {
       this._pointerAt[0] = x;
       this._pointerAt[1] = y;
       card.pointer(this._pointerAt, d !== undefined && d.moved);
+    }
+  }
+
+  /**
+   * A drag-select's move (_spec/README.md "SelectionModel and HighlightModel", Drags): its place kept for the frame,
+   * which hits it once and writes the range from where it began to it (in reading order, read from the placement even
+   * past the data); no hit, no hover and no card here (the card is told a drag runs).
+   */
+  private _dragSelectMove(d: { x: number; y: number }, x: number, y: number): void {
+    d.x = x;
+    d.y = y;
+    this._dragDue = true;
+    this.viewer.schedule();
+    const card = this.cardBehavior;
+    if (card) {
+      this._pointerAt[0] = x;
+      this._pointerAt[1] = y;
+      card.pointer(this._pointerAt, true);
     }
   }
 
@@ -761,6 +781,12 @@ export class ViewerInput {
     if (d.select) this.selectBehavior?.endDrag();
     this._suppressClick = d.moved;
     this._drag = undefined;
+    // a drag-select that moved: the hover where the pointer rests again, and a frame (what follows the frame: a host's
+    // twin waiting for the release)
+    if (d.select && d.moved) {
+      if (this.resting) this.hoverBehavior?.move(this._hoverable(this._hitAt(this._x, this._y)), this._mods);
+      this.viewer.schedule();
+    }
   }
 
   /**
