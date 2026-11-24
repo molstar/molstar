@@ -79,9 +79,9 @@ CLI and skip without a build (`lib`). The Mol\* adapter's link guards (Prism's,
 
 - **Every hot path has a quick case; the deep guards run at checkpoints** (David, 2026-10-14). A new hot path gets its
   quick case first (`quickCase`, `test-harness/src/quick.ts`: the step, then its positive control `leaking(step)` on the
-  same state, built in, scaled to a case reading above 1 KB a step or spreading above 32 B (a hundredth of it, 4 KB at
-  least, checked at three quarters); `control: false` only with a `why`). Both tiers warm up by count, so neither
-  depends on the load: run them beside other work. If a deep guard fails, re-run it alone once before you diagnose it.
+  same state, built in, scaled to a case reading above 1 KB a step or spreading above 32 B (3% of it, 4 KB at least,
+  checked at three quarters); `control: false` only with a `why`). Both tiers warm up by count, so neither depends on
+  the load: run them beside other work. If a deep guard fails, re-run it alone once before you diagnose it.
 - **The quick tier's flags** (`PERF_FLAGS`, `test-harness/src/vitest.ts`): a 1 MB young generation (the measurement
   accounts every collection: Σ(heap before a collection − the previous after) + the final delta, the code and trusted
   spaces apart), `--single-threaded` (V8 compiles on the main thread: tier-up falls on the same step under any load) and

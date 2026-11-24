@@ -67,18 +67,25 @@ export const SCALED_ABOVE = 1_024;
 export const SPREAD_ABOVE = 32;
 /** A scaled control is at least this many bytes. */
 export const SCALED_MIN = 4_096;
+/**
+ * A scaled control is at least this share of the case's reading. The case and its control are two runs whose collections
+ * fall at different steps: they read up to 0.6% of a step apart whatever the windows' spread (the reversed pan, 390 KB a
+ * frame, windows 0.4 KB apart: the 4 KB control read +2.3 KB, and +2.8 KB over the 28 KB control at 420 KB, 2026-11-24).
+ * The check at three quarters of the control needs it above four of those offsets.
+ */
+export const SCALED_SHARE = 0.03;
 
 /**
  * The control's bytes a step for a measured case: `LEAK_BYTES` for one that allocates little and steadily; for one that
- * reads above `SCALED_ABOVE` or spreads above `SPREAD_ABOVE`, a hundredth of its reading, at least `SCALED_MIN`, and
+ * reads above `SCALED_ABOVE` or spreads above `SPREAD_ABOVE`, `SCALED_SHARE` of its reading, at least `SCALED_MIN`, and
  * eight times its windows' spread where that is more. Over a step of 100 to 500 KB the windows wander by 20 to 250 bytes
  * a step (300 to 1,200 collections a window): an 88-byte object read from -13 to 105 over the case there (the bridge's
- * relayout, the categorical grid's pan, 2OCJ's hover), a 4 KB array is well above it; over a megabyte a frame the windows
+ * relayout, the categorical grid's pan, 2OCJ's hover), a 4 KB array is well above it (the case-to-control offset, `SCALED_SHARE`, sets the rest); over a megabyte a frame the windows
  * are 25 KB apart (a layout's sweeping), and the control is eight times that.
  */
 export function scaledBytes(r: Pick<Alloc, 'bytesPerStep' | 'spread'>): number {
   if (r.bytesPerStep <= SCALED_ABOVE && r.spread <= SPREAD_ABOVE) return LEAK_BYTES;
-  return Math.max(SCALED_MIN, Math.ceil(0.01 * r.bytesPerStep), Math.ceil(8 * r.spread));
+  return Math.max(SCALED_MIN, Math.ceil(SCALED_SHARE * r.bytesPerStep), Math.ceil(8 * r.spread));
 }
 
 /** The array's header (`JSArray` and its `FixedArray`), in bytes, and a slot's. */
