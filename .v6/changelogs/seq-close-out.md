@@ -43,3 +43,7 @@
   a thin strip, or a named `summary` track); folding is session state (a click, Space, collapse or expand all),
   announced; `groups.keep` writes it into the spec; a spec of an older version holding a group warns.
 - Seq\* (next): a ranges layer's `lanes: one` lays every item in one lane with no labels; `layer.lanes` switches it.
+- Seq\* (next), fixed: the canonical transcript is first in its gene on the canvas too, as in the SVG; a variant's card
+  is titled by its ID or its kind and position; a ring's stub labels no longer overprint (the stronger kept, past its
+  tip); a canvas header keeps its pressed action drawn; a square shows its own viewer's failure text; a track over a
+  span with no data says "no items", not "zoom in to read".

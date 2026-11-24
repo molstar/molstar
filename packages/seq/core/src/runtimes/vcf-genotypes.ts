@@ -5,7 +5,13 @@
  */
 
 import { categoryColumn } from '@molstar/core/repr/tree';
-import type { MatrixItems, MatrixSummary, RegionAnswer, RegionRequest } from '../data/protocol.js';
+import {
+  type MatrixItems,
+  type MatrixSummary,
+  type RegionAnswer,
+  type RegionRequest,
+  VcfFixedFieldNames,
+} from '../data/protocol.js';
 import { failure } from './internal/answers.js';
 import { floatOf, type VcfRows } from './vcf-parse.js';
 import type { GenotypeSchema, MatrixBounds } from './vcf-samples.js';
@@ -22,6 +28,10 @@ const tab = 9;
 const colon = 58;
 const comma = 44;
 const dot = 46;
+
+/** The fixed fields' places among a row's values: the record's ID, the allele's category. */
+const Label = VcfFixedFieldNames.indexOf('label');
+const Category = VcfFixedFieldNames.indexOf('category');
 
 /** The longest call kept as text (`0|1|1|0`): a longer one is read as its class alone. */
 const MaxCallBytes = 16;
@@ -350,6 +360,9 @@ export function matrixAnswer(
       states: S,
       ...(codes ? { codes, calls: calls!, callTexts: genotypes.calls.texts } : { value: value! }),
       id: categoryColumn(data ? rows.map((r) => data.key[r]) : []),
+      // the record's ID and the allele's category (the fixed fields' first and last): the cell's title
+      label: categoryColumn(data ? rows.map((r) => data.values[Label][r] as string | null) : []),
+      category: categoryColumn(data ? rows.map((r) => data.values[Category][r] as string | null) : []),
     };
     return { ok: true, tables: { matrix: items } };
   }

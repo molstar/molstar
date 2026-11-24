@@ -389,6 +389,37 @@ describe('drawn alike, hit as laid out', () => {
     expect(tip.match(/^rect /gm)).toHaveLength(1 + 3);
   });
 
+  it('F9: a pressed slot is drawn at rest, the others hidden; one at a time; hit at rest; the hover draws all', async () => {
+    // the host's one pressed action: the second track's `seq:hide` (the track the structure is colored by)
+    const pressed: HeaderPartsOf = (f) => {
+      const parts = Host(f);
+      if (!parts?.slots || f.track?.label !== 'Domains') return parts;
+      return { ...parts, slots: parts.slots.map((p) => (p.name === 'seq:hide' ? { ...p, pressed: true } : p)) };
+    };
+    const { s, f, input } = await frame([], pressed);
+    const sec = f.layout.sections[0];
+    const dom = sec.tracks.find((t) => t.track.label === 'Domains')!;
+    const slot = dom.header!.slots.find((x) => x.part.name === 'seq:hide')!;
+    // at rest: exactly the pressed slot's ground (a long label is not overprinted), its icon and its underline in the
+    // accent; no actions' backdrop, no dots, no other slot
+    const rest = recordDrawLists(f.lists, ['tip']);
+    expect(rest.match(/^path /gm)).toHaveLength(1);
+    expect(rest.match(/^rect /gm)).toHaveLength(2);
+    // a finger hits at rest what is drawn: the pressed slot, not the "⋯"
+    const at = (x: { x: number; width: number; y: number; height: number }) =>
+      hitView(f.layout, x.x + x.width / 2, x.y + x.height / 2, true);
+    expect(at(slot)).toBe(slot.hit);
+    expect(at(dom.header!.menu!)).toBe(dom.header!.hit);
+    // a hover on its header: every slot drawn (the pressed one too, once)
+    const label = hitView(f.layout, f.layout.config.inset + 2, dom.labelY - 4)!;
+    const shown = recordDrawLists(s.renderer.frame({ ...input, emphasis: { hover: label } }).lists, ['tip']);
+    expect(shown.match(/^path /gm)).toHaveLength(1);
+    expect(shown.match(/^rect /gm)).toHaveLength(1 + 3 + 1);
+    // none pressed: nothing drawn at rest (as before)
+    const plain = await frame([], Host);
+    expect(recordDrawLists(plain.f.lists, ['tip'])).not.toMatch(/^(path|rect) /m);
+  });
+
   it('a hover on a track’s label line shows its actions, on its data not; the cursor on its header too; `always` and `never`', async () => {
     const { s, f, input } = await frame([], Host);
     const t = f.layout.sections[0].tracks[0];

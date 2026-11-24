@@ -47,6 +47,9 @@ class SectionReads implements StoreReader {
   tilesOf(w: Want) {
     return this.data.tilesOf?.(w) ?? [];
   }
+  get origin() {
+    return this.data.origin ?? this.data;
+  }
   /** A layer's refusal: a section is laid out again when any changes (`refusals`). */
   layerRefused(layer: string) {
     return this.data.layerRefused?.(layer);

@@ -8,7 +8,9 @@
 //
 // Sticky lanes: an item keeps its lane while it is in view, so items never jump when a neighboring region arrives; a
 // new item takes the first lane free over its extent; the lanes are repacked only when the view has settled and a
-// fresh packing needs fewer lanes than the kept ones (they became sparse).
+// fresh packing needs fewer lanes than the kept ones (they became sparse), or places an item packed first (a gene
+// line's canonical transcript) higher than its kept lane: one that arrived after its neighbours (a file read a page at
+// a time) takes the lane the packing order gives it, the one an export of the view lays out.
 
 type Key = string | number;
 
@@ -39,6 +41,17 @@ function insert(starts: number[], ends: number[], s: number, e: number) {
   ends[i] = e;
 }
 
+/** Whether a fresh packing places an item `first` marks higher than its kept lane (or in a lane where it had none). */
+function raised(order: ArrayLike<number>, first: ArrayLike<number>, kept: Int32Array, fresh: Int32Array): boolean {
+  // the marked items lead `order`: the scan stops at the first unmarked one
+  for (let k = 0; k < order.length; k++) {
+    const i = order[k];
+    if (!first[i]) return false;
+    if (fresh[i] >= 0 && (kept[i] < 0 || fresh[i] < kept[i])) return true;
+  }
+  return false;
+}
+
 export class StickyLanes {
   private kept = new Map<Key, number>();
   private readonly starts: number[][] = [];
@@ -60,8 +73,9 @@ export class StickyLanes {
 
   /**
    * Assigns a lane to each item (`order` lists the items by start), into `out`: −1 for one that does not fit in
-   * `maxLanes`. With `settled`, sparse lanes are repacked, and lanes that leave items out a fresh packing places.
-   * Returns the lanes used.
+   * `maxLanes`. With `settled`, sparse lanes are repacked, lanes that leave items out a fresh packing places, and an
+   * item `first` marks (packed first: `order` lists it before the rest) kept below its fresh lane is placed by a fresh
+   * packing too. Returns the lanes used.
    */
   assign(
     keys: readonly Key[],
@@ -71,13 +85,19 @@ export class StickyLanes {
     maxLanes: number,
     settled: boolean,
     out: Int32Array,
+    first?: ArrayLike<number>,
   ): number {
     const sticky = this.pack(keys, starts, ends, order, maxLanes, out, true);
     if (settled && this.kept.size > 0) {
       const fresh = new Int32Array(out.length);
       const packed = this.pack(keys, starts, ends, order, maxLanes, fresh, false);
-      // fewer lanes for no more left out, or fewer left out (a sticky lane that would overflow lanes enough for all)
-      if (packed.overflow < sticky.overflow || (packed.used < sticky.used && packed.overflow <= sticky.overflow)) {
+      // fewer lanes for no more left out, fewer left out (a sticky lane that would overflow lanes enough for all), or an
+      // item packed first kept below where the packing order puts it
+      if (
+        packed.overflow < sticky.overflow ||
+        (packed.used < sticky.used && packed.overflow <= sticky.overflow) ||
+        (first !== undefined && raised(order, first, out, fresh))
+      ) {
         out.set(fresh);
         return this.keep(keys, order, out, packed.used);
       }

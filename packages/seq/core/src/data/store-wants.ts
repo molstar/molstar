@@ -146,6 +146,37 @@ export function tileRequest(region: TileRegion, shapes: readonly Shape[]): Regio
   };
 }
 
+/** An index's verdicts by source, system, level and tile span (`first` and `last`, one number): nothing built a call. */
+const Empties = new WeakMap<OpenedSource, Map<string, Map<number, Map<number, boolean>>>>();
+
+/**
+ * A want past `maxTilesPerWant` whose source knows from its index that nothing is stored over its tiles' whole span (a
+ * `readCost` of exactly 0): there is nothing there, so the want is no refusal (a layer says "no items", never "zoom in
+ * to read"). Undecided (false) without an index, for a 2D want, or when the cost is unknown. Kept by the tile grid (the
+ * span of the tiles the want covers, so a pan within them asks the index nothing): an index is read once for it.
+ */
+export function knownEmpty(w: Want, t: Tiles, sources: StoreSources): boolean {
+  const opened = sources.get(w.source)?.opened;
+  if (!opened?.readCost || t.y) return false;
+  let bySystem = Empties.get(opened);
+  if (!bySystem) Empties.set(opened, (bySystem = new Map()));
+  let byLevel = bySystem.get(t.system);
+  if (!byLevel) bySystem.set(t.system, (byLevel = new Map()));
+  let spans = byLevel.get(t.level);
+  if (!spans) byLevel.set(t.level, (spans = new Map()));
+  const key = t.first * 1048576 + t.last;
+  let empty = spans.get(key);
+  if (empty === undefined) {
+    if (spans.size > 64) spans.clear();
+    const start = tileRegion(t.first, t.level, t.bins, t.length).start;
+    const end = tileRegion(t.last, t.level, t.bins, t.length).end;
+    const region = { source: w.source, system: t.system, level: t.level, tile: t.first, start, end };
+    empty = end > start && opened.readCost(tileRequest(region as TileRegion, t.shapes)) === 0;
+    spans.set(key, empty);
+  }
+  return empty;
+}
+
 /** Why a want, or its layer's wants together, are not planned: past which bound, with its numbers. */
 export interface TooMany {
   readonly want: Want;
@@ -183,7 +214,8 @@ export function planWants(
     const t = wantTiles(w, sources, settings);
     if (!t || t.count === 0) continue;
     if (t.count > settings.maxTilesPerWant) {
-      tooMany({ want: w, bound: 'want', value: t.count, max: settings.maxTilesPerWant });
+      if (!knownEmpty(w, t, sources))
+        tooMany({ want: w, bound: 'want', value: t.count, max: settings.maxTilesPerWant });
       continue;
     }
     const tiles = eachTile(w, t);
@@ -237,7 +269,7 @@ export function layerLoad(
     const t = wantTiles(w, sources, settings);
     if (!t || t.count === 0) continue;
     if (t.count > settings.maxTilesPerWant) {
-      fits = false;
+      if (!knownEmpty(w, t, sources)) fits = false;
       continue;
     }
     const opened = sources.get(w.source)!.opened;

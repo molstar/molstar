@@ -97,6 +97,16 @@ function holeTexts(l: RondoLay): string[] {
 
 const descriptions = (v: SeqViewer) => layerAria(v.frame!.layout).map((a) => a.description);
 
+/** The square's labels-pass texts, and whether its data pass drew the pending hatch (its stripes). */
+const squareWords = (v: SeqViewer) => {
+  const n = squareOf(v);
+  const lists = n.frame!.lists;
+  const t = lists.passes.labels.texts;
+  const texts: string[] = [];
+  for (let i = 0; i < t.n; i++) texts.push(lists.string(t.str[i]));
+  return texts;
+};
+
 describe('Genome ring stories, headless', () => {
   it('1. the genome at the fit: 23 chromosomes’ stems, ribbons wide by count; light and dark', async () => {
     const v = await open(ringStoryView('ring'));
@@ -246,6 +256,11 @@ describe('Genome ring stories, headless', () => {
       expect(ribbonsOf(other)!.holeText).toBe(otherIssue.message);
       first.draw();
       expect(ribbonsOf(first)!.holeText).toBe(issue.message);
+      // and their squares: each its own viewer's, never the first composed's
+      expect(squareWords(other)).toContain(otherIssue.message);
+      expect(squareWords(other)).not.toContain(issue.message);
+      expect(squareWords(first)).toContain(issue.message);
+      expect(squareWords(first)).not.toContain(otherIssue.message);
     } finally {
       first.retire();
     }
@@ -256,15 +271,6 @@ describe('Genome ring stories, headless', () => {
   });
 
   it('35. the square while the links load: the pending hatch and “Loading…”; on a failure, the issue’s text', async () => {
-    /** The square's labels-pass texts, and whether its data pass drew the pending hatch (its stripes). */
-    const squareWords = (v: SeqViewer) => {
-      const n = squareOf(v);
-      const lists = n.frame!.lists;
-      const t = lists.passes.labels.texts;
-      const texts: string[] = [];
-      for (let i = 0; i < t.n; i++) texts.push(lists.string(t.str[i]));
-      return texts;
-    };
     // pending: the answer never comes
     let v = await open(ringStoryView('ring-pending'), Rondo, 1000);
     expect(squareWords(v)).toContain('Loading…');

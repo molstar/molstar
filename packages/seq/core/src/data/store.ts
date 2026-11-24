@@ -40,6 +40,7 @@ import {
   eachTile,
   type LayerLoad,
   layerLoad,
+  knownEmpty,
   type PlannedTile,
   planWants,
   tileRequest,
@@ -389,7 +390,7 @@ export class DataStore extends ReactiveModel {
    */
   tooMany(want: Want): boolean {
     const t = this._tiles(want);
-    return t !== undefined && t.count > this.settings.maxTilesPerWant;
+    return t !== undefined && t.count > this.settings.maxTilesPerWant && !knownEmpty(want, t, this._sources);
   }
 
   // Requests

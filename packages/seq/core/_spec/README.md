@@ -1105,10 +1105,11 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
   `aSystem`, `bSystem` categories, both or neither; strands int8; `type`, `id` categories; `row`; `fields`) and `bins`
   (`aBin`, `bBin` int32, `count` float32; systems, `strand` int8 relative, `category`, `sum`); `grid` `dense` (`x`, `y`,
   `nx`, `ny`, `value` float32 x-major, NaN missing) and `sparse` (`xBin`, `yBin`, `value`, `fill`); `matrix` `items`
-  (`start`, `end`, `states`, `value` or `codes` item-major, `id`, `row`) and `summary` (`start`, `states`, `mean`,
-  `min`, `max`, `count`, `classes` and `shares`: its own name, not `bins`); `rows` `keyed` (`start`, `key`, `fields`).
-  Pairs share the 1D forms' names (`list`, `bins`), so a table's shape is told by its columns (`regionShapeOf`) and a
-  table under another shape's key is refused.
+  (`start`, `end`, `states`, `value` or `codes` item-major, `id`, `label` and `category` (its source's name and its
+  kind, a VCF's record `ID` and allele category), `row`) and `summary` (`start`, `states`, `mean`, `min`, `max`,
+  `count`, `classes` and `shares`: its own name, not `bins`); `rows` `keyed` (`start`, `key`, `fields`). Pairs share the
+  1D forms' names (`list`, `bins`), so a table's shape is told by its columns (`regionShapeOf`) and a table under
+  another shape's key is refused.
 - **The row forms are one schema** (`tables-forms.ts`, `RowForm`): a form whose rows are columns of one length (a ranges
   `list` and `density`, pairs `list` and `bins`, a matrix's `items`, a grid's `sparse` cells, `keyed` rows) is declared
   once, its columns' names and types, those that come in twos, its fields and its cells; its rows, bytes, checks,
@@ -3437,8 +3438,12 @@ in page coordinates: what crosses strips; `bridge`, internal, once a bridge with
   `maxTilesPerLayer` tiles or `maxBytesPerLayer` of read cost, `layerRefused`), or one of whose wants is past its own
   bound at the coarsest level there is (`maxTilesPerWant`: a VCF's one level over 83 Mb, a matrix of items only; the
   section's reads note it, `wantRefused`), draws its band hatched with "Zoom in to read: ⌘/Ctrl+scroll, or +"
-  (`ZoomInText`) and says `seq.render.zoom_in` (info); distinct from pending, which settles by itself. A change of
-  refusal lays the view out again (the renderer's and a section's reads keep it). Canvas and SVG draw the same list.
+  (`ZoomInText`) and says `seq.render.zoom_in` (info); distinct from pending, which settles by itself. **Only where data
+  exists**: a want past `maxTilesPerWant` whose source's index says nothing is stored over its whole span (`readCost`
+  exactly 0, `knownEmpty`) is no refusal: it is read as nothing there, and the track says "no items" in its quiet row.
+  Why: the hatch says "there is data this level cannot draw"; over a region with none it would say the wrong thing (a
+  tabix VCF's empty chromosome at 83 Mb). A change of refusal lays the view out again (the renderer's and a section's
+  reads keep it). Canvas and SVG draw the same list.
 - **An item's key** is its `id`, else its `row` (a null `id` falls back to `row`), else its tile and index; never its
   extent. A key seen in an earlier tile is that range again and is not drawn twice; within one tile a repeated key is
   another piece of one item (a wrapped row).
@@ -3522,6 +3527,15 @@ way, over a straight axis and a box, in every layout; a layout knows strips, ban
   labels and numbers), `window`, `gap` (between groups or lines: no position for a hover, the nearest for a drag),
   `empty`. Held by property tests: every position in view placed once, `at` its cell's center gives it back, `offsetAt`
   monotone in reading order.
+- **Labels at points are the section's** (`LayoutContext.taken`, `TakenLabels`): the `section` layers of one section,
+  laid out once a section in their order, each offer their labels (a box, a tip, a weight) and the wedges no label may
+  cover (`block`); once all are laid out the section settles them (`settle`): the strongest first (ties by offer order),
+  a label kept only where its box meets no label kept and no wedge and its tip is its own clearance from every tip kept,
+  the strongest always (a hub's wedges cover every place by it); the rest dropped, told to their layer
+  (`TakenOwner.placed`). Why: two kinds of links over one ring each place their stub labels, and two stubs to one
+  partner at one tip drew "chr22 · 299" and "chr22 · 24" over each other; the layer first in order is not the layer with
+  the larger count. A layer laid out alone settles its own. A ring's chromosome labels are outside the ring, its stub
+  labels inside its stems: they never meet (held by the kinds stories' test), so they are not offered.
 - **The viewport record** (`Viewport`): `{ start, end, top?, scale?, bands?, y? }`, read by the layout: tracks `start`,
   `end` the window, `top` a vertical scroll, `bands` a band's own `bandTop` and `rowScale` (a grid's `y` its second
   axis). One record for every layout (the field's meaning is the layout's): the viewer's groups, follows and history
@@ -4499,8 +4513,12 @@ cost to the minimal viewer is the names the chunk imports from it).
 ### Lanes and Hits
 
 - **Sticky lanes** (`StickyLanes`): an item keeps its lane while it is in view; a new item takes the first lane free
-  over its extent; repacked only when the view settled and a fresh packing needs fewer lanes. Why: items must not jump
-  when a neighboring region arrives.
+  over its extent; repacked only when the view settled and a fresh packing needs fewer lanes, or places an item packed
+  first (`assign`'s `first`: the gene line's `marked`, a canonical transcript) higher than its kept lane. Why: items
+  must not jump when a neighboring region arrives; but the packing order is the data's word (a canonical item first in
+  its gene's stack), so one that arrived after its neighbours (a file read a page at a time) takes its place once the
+  view rests, as an export of the view lays it out (the storybook's `lanes-twin.test.ts`: every story's settled canvas
+  and SVG, item by item).
 - **Hits go through the placement**: the section under the point, its layout's own marks (`hitChrome`), then the point
   placed (`at`, reading the page point from an array as a layer's `hit` does, and the strip-frame x through the axis's
   `inGapOf` and `unitInto`: a number passed to or returned from a call that is not inlined is boxed, so placing a point
@@ -4823,16 +4841,17 @@ label and value, the sentence), read on a hover from what the frame drew; a host
   read (a mirror's cell the served one's, a sparse tile's unlisted cell its `fill`), NaN `no data`, a tile not loaded
   `loading`; undefined for a held grid (the viewer's own words).
 - **A matrix cell** (`matrixCellHover`): its item (its `id` when the table keeps one, its extent; the shortest item
-  there, a SNP over a deletion) and its sample (inline `states`, else the coverage's), one `Sample` row
-  `S11 · 0|1 (heterozygous)`. A genotype cell with a recorded call (`MatrixItems.calls`, `callTexts`: the VCF's) says
-  **the call as the file wrote it** with what it is (`callWords`): all alleles missing `no call`, some `partly called`;
-  a haploid call `reference` or `alternate` (no zygosity); else `homozygous reference` or `homozygous alternate` when
-  the alleles agree, `heterozygous` when they differ (`1/2` too, on each ALT's column alike: a call is the sample's, not
-  the allele's). A cell with none (inline codes, a bin's majority) says its class (`genotypeWords`: `no copy`,
-  `some copies`, `every copy`, `partly called`, `uncalled`), never written as a call; a value its number, `no data` for
-  NaN. The sentence `Sample S11 · 0|1 (heterozygous)`; at a coarse level its bin, the sample with its mean or its
-  majority class and its share (`73% of the bin`), and its level. Never `State` or `Value`: a state is a sample to a
-  reader.
+  there, a SNP over a deletion), titled by its name (`label`, a VCF record's `ID`), else its kind at its extent
+  (`Deletion at chr1:20,001–20,601`), else the item: never an allele's id alone (`20001:601:f95ba8e6>C`) — and its
+  sample (inline `states`, else the coverage's), one `Sample` row `S11 · 0|1 (heterozygous)`. A genotype cell with a
+  recorded call (`MatrixItems.calls`, `callTexts`: the VCF's) says **the call as the file wrote it** with what it is
+  (`callWords`): all alleles missing `no call`, some `partly called`; a haploid call `reference` or `alternate` (no
+  zygosity); else `homozygous reference` or `homozygous alternate` when the alleles agree, `heterozygous` when they
+  differ (`1/2` too, on each ALT's column alike: a call is the sample's, not the allele's). A cell with none (inline
+  codes, a bin's majority) says its class (`genotypeWords`: `no copy`, `some copies`, `every copy`, `partly called`,
+  `uncalled`), never written as a call; a value its number, `no data` for NaN. The sentence
+  `Sample S11 · 0|1 (heterozygous)`; at a coarse level its bin, the sample with its mean or its majority class and its
+  share (`73% of the bin`), and its level. Never `State` or `Value`: a state is a sample to a reader.
 
 ### Tensions (pairs and grids)
 

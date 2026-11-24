@@ -16,7 +16,7 @@ import type { ThemeContext } from './channels.js';
 import type { RenderConfig } from './config.js';
 import type { PassName, PassWriter } from './draw-lists.js';
 import type { Placement, WindowPart } from './layout/types.js';
-import type { LabelLane, LayerContent } from './sizing.js';
+import type { LabelLane, LayerContent, TakenLabels } from './sizing.js';
 import type { RowsZoom } from './rail.js';
 import type { TextMetrics } from './text.js';
 import type { SeqTokens } from './tokens.js';
@@ -33,6 +33,8 @@ export interface StoreReader {
   /** Whether a want is past the store's bound on its tiles (\`keysOf\` then lists none), where the reader says it. */
   tooMany?(want: Want): boolean;
   get(key: string): DataEntry | undefined;
+  /** The store this reads through (a section's reads: the viewer's store): what tells a viewer by its store; absent on a store. */
+  readonly origin?: StoreReader;
   /** The store's tiling and its bound on a want's tiles (a layer picks a level within it), where it has them. */
   readonly settings?: { readonly tileBins: number; readonly maxTilesPerWant: number; readonly gridTileBins?: number };
   /** A 2D want's tiles (x-major), each its key, its served region and whether it is that one's mirror, where it has them. */
@@ -118,6 +120,13 @@ export interface LayoutContext {
    * @internal
    */
   readonly labelLane?: LabelLane;
+  /**
+   * The labels the section's layers placed at points before this one (a ring's stub labels), in their order: a layer's
+   * labels keep clear of them and add their own (_spec/README.md "Render", Section layouts). Absent where a layer is
+   * laid out alone: it keeps its own.
+   * @internal
+   */
+  readonly taken?: TakenLabels;
   /** Item labels drawn `inside` marks, or a sink a layout collects them into (rings: placed outside). */
   readonly labels?: 'inside' | LabelSink;
   /** A band's own scroll (display rows below its pinned band) and row zoom (px a row), when it scrolls its rows. */

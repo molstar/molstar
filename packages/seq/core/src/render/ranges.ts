@@ -298,7 +298,7 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
       const lanes = lay.lanes.subarray(0, n);
       const repOf = lay.gene.repOf;
       const assign = (cap: number, fresh: boolean) => {
-        lay.laneCount = lay.sticky.assign(lay.ids, starts, ends, order, cap, fresh, lanes);
+        lay.laneCount = lay.sticky.assign(lay.ids, starts, ends, order, cap, fresh, lanes, marked);
         // an item's other rows take its lane
         if (gene) for (let i = 0; i < n; i++) if (repOf[i] !== i) lanes[i] = lanes[repOf[i]];
         lay.overflow = 0;

@@ -274,7 +274,8 @@ function headersBehavior(context: BehaviorContext, params: HeadersParams = {}): 
     facts: (target) => extras?.factsOf(target),
     menuOf: (target) => extras?.menuOf(target),
     partsState: () => extras?.partsState() ?? { headers: [] },
-    // a pressed part follows what the run changed: the parts are made again at the next frame
+    // a pressed part follows what the run changed: the parts are made again once it settles (`header-extras.ts`'s
+    // `settled`: a new `partsOf`, so the layout of a canvas header reads each entry's `pressed` again)
     run: (name, target) => {
       showingKey = '';
       return extras?.run(name, target);

@@ -7,7 +7,7 @@
 // What a hover over data read by region says (_spec/README.md "Render", Hover texts by region): a pairs bin as its two
 // bin ranges, its count and its level, never as a pair; a region grid's cell as its bin on each axis and its value (a
 // sparse tile's unlisted cell its `fill`, a NaN "no data", a tile not loaded "loading"); a matrix cell as its item, its
-// sample (the state's name) with its value or genotype, `Sample S11 · 0/1 (heterozygous)`, at a coarse level its bin
+// sample (the state's name) with its value or genotype, titled by its name or its kind at its extent, `Sample S11 · 0/1 (heterozygous)`, at a coarse level its bin
 // and its mean or majority with its share. Texts only: a
 // host's card lays them out (the viewer's hover card), nothing is drawn. Read on a hover, from what the frame drew.
 
@@ -170,17 +170,20 @@ export function matrixCellHover(lay: MatrixLay, i: number, s: number, name: Syst
       const at = `${system}:${spanText(t.start[best], Math.max(t.end[best], t.start[best] + 1))}`;
       const id = t.id?.get(best);
       const item = id ? `${id} (${at})` : at;
+      // the title names the item: its source's name (a VCF record's ID), else its kind at its extent, else the item
+      const kind = t.category?.get(best);
+      const title = t.label?.get(best) || (kind ? `${kind[0].toUpperCase()}${kind.slice(1)} at ${at}` : item);
       const c = best * t.states + s;
       const call = t.calls?.[c] ? t.callTexts?.[t.calls[c]] : undefined;
       const value = t.codes ? (call ? callWords(call) : genotypeWords(t.codes[c])) : t.value ? valueOf(t.value[c]) : '';
       const sample = value ? `${state} · ${value}` : state;
       return hover(
-        item,
+        title,
         [
           ['Item', item],
           ['Sample', sample],
         ],
-        [item, `Sample ${sample}`],
+        title === item ? [item, `Sample ${sample}`] : [title, item, `Sample ${sample}`],
       );
     }
     const n = tableRows(t);

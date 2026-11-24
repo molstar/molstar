@@ -133,13 +133,28 @@ function drawSlot(out: PassWriter, s: HeaderSlotBox, hover: Hit | undefined, tok
   // the hovered slot (the hit as laid out, or a copy of it)
   const hovered =
     hover !== undefined && hover.target === 'header-slot' && hover.state === s.part.name && hover.layer === s.hit.layer;
-  const ink = hovered
-    ? tokens.colors['msui-accent']
-    : s.part.enabled
-      ? tokens.colors['msui-text-muted']
-      : tokens.colors['msui-line'];
+  const pressed = s.part.pressed === true;
+  const ink =
+    hovered || pressed
+      ? tokens.colors['msui-accent']
+      : s.part.enabled
+        ? tokens.colors['msui-text-muted']
+        : tokens.colors['msui-line'];
   const cx = s.x + s.width / 2;
   const cy = s.y + s.height / 2;
+  if (pressed) {
+    // pressed: an underline under the icon, as a rows layer's pressed toggle
+    g[0] = cx - IconPx / 2;
+    g[1] = s.y + s.height - 2;
+    g[2] = IconPx;
+    g[3] = 1.5;
+    g[4] = ink;
+    g[5] = NoColor;
+    g[6] = 0;
+    g[7] = 0;
+    g[8] = 0;
+    out.rectArgs();
+  }
   if (s.part === HeaderMenuPart) {
     // three dots across the slot's middle
     for (let k = -1; k <= 1; k++) {
@@ -215,8 +230,11 @@ export function drawTrackHeader(
   // a stack's later rows: their labels only, the states drawn and hit once (on its first)
   if (pass === 'labels') {
     if (dy === 0) drawStates(out, line, s.tokens, s.config, 0);
-  } else if (pass === 'tip' && dy === 0 && line.actions && actionsShown(t.track.address, s.id, emphasis, s.config))
-    drawActions(out, line, emphasis?.hover, s.tokens, s.config, t);
+  } else if (pass === 'tip' && dy === 0 && line.actions) {
+    if (actionsShown(t.track.address, s.id, emphasis, s.config))
+      drawActions(out, line, emphasis?.hover, s.tokens, s.config, t);
+    else drawPressed(out, line, s.tokens, s.config);
+  }
 }
 
 /** A section's header line: its states (labels pass) and its actions when they show (tip pass). */
@@ -224,8 +242,33 @@ export function drawSectionHeader(out: PassWriter, s: SectionLayout, pass: strin
   const line = s.header;
   if (!line || line.hosted) return;
   if (pass === 'labels') drawStates(out, line, s.tokens, s.config, 0);
-  else if (pass === 'tip' && line.actions && actionsShown(s.section.address, s.id, emphasis, s.config))
-    drawActions(out, line, emphasis?.hover, s.tokens, s.config);
+  else if (pass === 'tip' && line.actions) {
+    if (actionsShown(s.section.address, s.id, emphasis, s.config))
+      drawActions(out, line, emphasis?.hover, s.tokens, s.config);
+    else drawPressed(out, line, s.tokens, s.config);
+  }
+}
+
+/** A line's pressed slots at rest (the others hidden with the hover): where they are, as the DOM parts keep them. */
+function drawPressed(out: PassWriter, line: HeaderLine | SectionHeaderLine, tokens: SeqTokens, config: RenderConfig) {
+  const slots = line.slots;
+  const g = out.args;
+  for (let i = 0; i < slots.length; i++) {
+    const s = slots[i];
+    if (!s.part.pressed) continue;
+    // on the page's ground: a long label under the icon is not overprinted
+    g[0] = s.x;
+    g[1] = s.y;
+    g[2] = s.width;
+    g[3] = s.height;
+    g[4] = tokens.colors['msui-bg'];
+    g[5] = NoColor;
+    g[6] = 0;
+    g[7] = 0;
+    g[8] = 0;
+    out.rectArgs();
+    drawSlot(out, s, undefined, tokens, config);
+  }
 }
 
 /** Whether a section draws any header actions (the tip pass walks it). */
@@ -276,11 +319,11 @@ export function hitHeaders(
 }
 
 function hitLine(line: HeaderLine | SectionHeaderLine, x: number, y: number, shown: boolean): Hit | undefined {
-  if (shown) {
-    const slots = line.slots;
-    for (let i = 0; i < slots.length; i++) if (inBox(slots[i], x, y)) return slots[i].hit;
-    if (line.menu && inBox(line.menu, x, y)) return line.menu.hit;
-  }
+  const slots = line.slots;
+  // a pressed slot is drawn at rest, so it is hit there
+  for (let i = 0; i < slots.length; i++)
+    if ((shown || slots[i].part.pressed) && inBox(slots[i], x, y)) return slots[i].hit;
+  if (shown && line.menu && inBox(line.menu, x, y)) return line.menu.hit;
   const states = line.states;
   for (let i = 0; i < states.length; i++) if (inBox(states[i].box, x, y)) return states[i].hit;
   return undefined;

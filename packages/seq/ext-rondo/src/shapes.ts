@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { LayoutContext } from '@molstar/seqx-core/extension';
+import { type LayoutContext, TakenLabels } from '@molstar/seqx-core/extension';
 import { ColorMode } from './colour.js';
 import type { RondoConfig } from './config.js';
 import { addArc, addCubic, grow, type RibbonFrame, ribbonCorners } from './geometry.js';
@@ -17,58 +17,47 @@ import type { RondoLay, RondoPrep } from './lay.js';
 /** A polygon's kind. */
 export const Kind = { trumpet: 0, ribbon: 1, stub: 2, fan: 3 } as const;
 
-/** The labels taken so far: their box and tip (x0, y0, x1, y1, x, y a label), reused. */
-let Boxes = new Float64Array(64);
-let ByCount = new Int32Array(16);
+/** The labels taken when a layer is laid out alone (a section's layers share its own: `LayoutContext.taken`). */
+const Alone = new TakenLabels();
 
 /**
- * The stubs' labels (`chr7 · 37` at the tip, centred): the strongest first, each only where its box (padded 2 px) meets
- * no label taken and its tip is `stubLabelPx` from every taken tip; the rest unlabelled (their partner in the card).
+ * The stubs' labels (`chr7 · 37`, centred just past the tip along the stub's axis, so never over its own wedge): each
+ * offered to the section's labels (`LayoutContext.taken`), which keeps the strongest (the larger count) where boxes
+ * meet, tips are within `stubLabelPx` or a label would cover a wedge; the rest unlabelled (their partner in the card). The labels are the section's, across its
+ * layers (two kinds of links over one ring: their stubs at one tip); a layer laid out alone settles its own.
  */
 function stubLabels(lay: RondoLay, cfg: RondoConfig, ctx: LayoutContext, tipD: number) {
   const f = lay.frame;
   const font = lay.font;
   const size = Number.parseFloat(font) || 12;
-  if (ByCount.length < lay.nb) ByCount = new Int32Array(lay.nb);
-  let n = 0;
-  // a folded stub unlabelled (every stem has one: its text would repeat round the ring); its count in its card, its
-  // partners unfolded on hover
-  for (let s = 0; s < lay.nb; s++) if (lay.stubPoly[s] >= 0 && lay.stubPartner[s] >= 0) ByCount[n++] = s;
-  const order = ByCount.subarray(0, n).sort((a, b) => lay.stubCount[b] - lay.stubCount[a] || a - b);
-  let taken = 0;
-  for (const s of order) {
-    const partner = lay.stubPartner[s];
-    const text = `${lay.names[partner]} · ${Math.round(lay.stubLinks[s]).toLocaleString('en-US')}`;
-    f.point((lay.stubT0[s] + lay.stubT1[s]) / 2, tipD + 4);
-    const x = f.px;
-    const y = f.py;
+  const taken = ctx.taken ?? Alone;
+  for (let s = 0; s < lay.nb; s++) {
+    lay.stubLabel[s] = '';
+    if (!(lay.stubPoly[s] >= 0 && lay.stubPartner[s] >= 0)) continue;
+    const text = `${lay.names[lay.stubPartner[s]]} · ${Math.round(lay.stubLinks[s]).toLocaleString('en-US')}`;
+    const mid = (lay.stubT0[s] + lay.stubT1[s]) / 2;
+    f.point(mid, tipD);
+    const tx = f.px;
+    const ty = f.py;
+    f.point(mid, tipD + 4);
     const w = ctx.text.measure(font, text);
-    // the box about the baseline (`y + 4`): the cap height above, a descent below
-    const x0 = x - w / 2 - 2;
-    const x1 = x + w / 2 + 2;
-    const y0 = y + 4 - size - 2;
-    const y1 = y + 4 + size * 0.3 + 2;
-    let free = true;
-    for (let j = 0; j < taken && free; j++) {
-      const o = 6 * j;
-      const overlaps = x0 < Boxes[o + 2] && x1 > Boxes[o] && y0 < Boxes[o + 3] && y1 > Boxes[o + 1];
-      if (overlaps || Math.hypot(Boxes[o + 4] - x, Boxes[o + 5] - y) < cfg.stubLabelPx) free = false;
-    }
-    if (!free) continue;
-    if (Boxes.length < 6 * (taken + 1)) Boxes = grow(Boxes, 12 * (taken + 1));
-    const o = 6 * taken;
-    Boxes[o] = x0;
-    Boxes[o + 1] = y0;
-    Boxes[o + 2] = x1;
-    Boxes[o + 3] = y1;
-    Boxes[o + 4] = x;
-    Boxes[o + 5] = y;
-    taken++;
+    const hw = w / 2 + 2;
+    const hh = 0.65 * size + 2;
+    // along the stub's axis (outward from its tip) by what its box needs to clear the tip
+    const len = Math.hypot(f.px - tx, f.py - ty) || 1;
+    const ux = (f.px - tx) / len;
+    const uy = (f.py - ty) / len;
+    const d = Math.abs(ux) * hw + Math.abs(uy) * hh + 1.5;
+    const x = tx + ux * d;
+    const y = ty + uy * d;
     lay.stubLabel[s] = text;
     lay.stubLabelX[s] = x;
-    lay.stubLabelY[s] = y;
+    // drawn at `stubLabelY + 4` as the baseline: the box's middle a third of the text's height above it
+    lay.stubLabelY[s] = y + 0.35 * size - 4;
     lay.stubLabelW[s] = w;
+    taken.offer(lay, s, x - hw, y - hh, x + hw, y + hh, x, y, lay.stubCount[s], cfg.stubLabelPx);
   }
+  if (!ctx.taken) taken.settle();
 }
 
 /**
@@ -111,6 +100,8 @@ const C4 = new Float64Array(4);
 export function polygons(lay: RondoLay, prep: RondoPrep, cfg: RondoConfig, ctx: LayoutContext) {
   const f = lay.frame;
   const P = lay.polys;
+  // a layer laid out alone keeps its own labels and wedges
+  if (!ctx.taken) Alone.reset();
   const seg = Math.max(2, cfg.flatten);
   const dn = cfg.stemDepth * f.room;
   // a fixed colour (a kind over others) opaque, so it reads as one colour over any hue; else `ribbons.fillOpacity`
@@ -182,10 +173,16 @@ export function polygons(lay: RondoLay, prep: RondoPrep, cfg: RondoConfig, ctx: 
     P.begin();
     f.point(t0, dn);
     P.add(f.px, f.py);
+    const ax = f.px;
+    const ay = f.py;
     f.point(t1, dn);
     P.add(f.px, f.py);
+    const bx = f.px;
+    const by = f.py;
     f.point(mid, tipD);
     P.add(f.px, f.py);
+    // no label (of any layer of the section) covers the wedge
+    (ctx.taken ?? Alone).block(ax, ay, bx, by, f.px, f.py);
     // a folded stub (partner −1) in the muted text's colour (no one partner's hue), or the layer's one colour
     const hue = lay.stubPartner[s] < 0 ? (lay.one >= 0 ? lay.one : lay.muted) : hueOf(lay, lay.stubPartner[s]);
     lay.stubPoly[s] = made(lay, Kind.stub, s, alpha(hue, op));

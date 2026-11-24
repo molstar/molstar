@@ -765,6 +765,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     const laySection = (placement: Placement, a: AxisTransform): LayerLayout[] => {
       let out = NoSectionLays;
       if (layout.axesY) return out;
+      state.takenLabels.reset();
       for (let band = 0; band < shown.length; band++)
         for (const layer of shown[band].layers) {
           const track = shown[band];
@@ -789,10 +790,13 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
             place: placement,
             labels: 'inside',
             band,
+            taken: state.takenLabels,
           };
           if (out === NoSectionLays) out = [];
           out.push(layOne(track, layer, type, `${key}@section`, ctx));
         }
+      // the labels the layers offered, the strongest kept (a stub's label clear of every wedge and label kept)
+      state.takenLabels.settle();
       return out;
     };
     // a block's band with no item (a stack's rows: `blocks.emptyTracks`): asked of a stack only

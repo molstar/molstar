@@ -141,6 +141,28 @@ describe('sticky lanes', () => {
     expect(lanes.laneOf('y')).toBe(0);
   });
 
+  it('an item packed first (a canonical transcript) that arrived after its neighbour takes its lane once settled', () => {
+    const lanes = new StickyLanes();
+    // `x` arrives first and takes lane 0
+    const one = new Int32Array(1);
+    lanes.assign(['x'], [0], [10], [0], 3, false, one);
+    expect(one[0]).toBe(0);
+    // the canonical `c` over the same extent arrives: listed first, it takes lane 1 while the view moves (x keeps 0)
+    const out = new Int32Array(2);
+    const first = Uint8Array.of(1, 0);
+    expect(lanes.assign(['c', 'x'], [0, 0], [10, 10], [0, 1], 3, false, out, first)).toBe(2);
+    expect([...out]).toEqual([1, 0]);
+    // settled: the packing order's, c first; with nothing marked the kept lanes stay (two lanes either way)
+    const plain = new StickyLanes();
+    plain.assign(['x'], [0], [10], [0], 3, false, one);
+    plain.assign(['c', 'x'], [0, 0], [10, 10], [0, 1], 3, false, out);
+    plain.assign(['c', 'x'], [0, 0], [10, 10], [0, 1], 3, true, out);
+    expect([...out]).toEqual([1, 0]);
+    expect(lanes.assign(['c', 'x'], [0, 0], [10, 10], [0, 1], 3, true, out, first)).toBe(2);
+    expect([...out]).toEqual([0, 1]);
+    expect(lanes.laneOf('c')).toBe(0);
+  });
+
   it('an item that fits no lane overflows (−1)', () => {
     const lanes = new StickyLanes();
     const out = new Int32Array(3);

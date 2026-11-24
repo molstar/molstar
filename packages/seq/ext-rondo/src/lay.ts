@@ -16,6 +16,7 @@ import {
   type ResolvedSection,
   type StaticModel,
   type StoreReader,
+  type TakenOwner,
 } from '@molstar/seqx-core/extension';
 import { ColorMode, classOf, clearClasses, colorsOf, peersOf, rowWeights, weightsOf } from './colour.js';
 import { composedConfig, DefaultRondoConfig, type RondoConfig } from './config.js';
@@ -64,7 +65,7 @@ export { Kind } from './shapes.js';
 type Channel = ReturnType<PairsSource['channels']['get']>;
 
 /** The layer's layout: its stems, ribbons, stubs and fans, their polygons, its hit grid. */
-export class RondoLay {
+export class RondoLay implements TakenOwner {
   key = '';
   section = '';
   /** The section's id (a hit's `section`). */
@@ -209,6 +210,10 @@ export class RondoLay {
   /** A label's measured width, CSS px. */
   stubLabelW = new Float64Array(16);
   stubKey: string[] = [];
+  /** The section's labels settled (`TakenLabels`): a stub's label kept or dropped. */
+  placed(s: number, kept: boolean): void {
+    if (!kept) this.stubLabel[s] = '';
+  }
   /**
    * Folded stubs (`rondo.stubMin`): a stub of partner −1 is a stem's small stubs as one; its partners and counts are the
    * entries `e < nf` with `foldOwner[e]` the stub.

@@ -8,6 +8,7 @@
 // extents (a long deletion solid, drawn under the short items, EC-222), missing values transparent (EC-220), coarse bins
 // as image tiles, pending across the band before its tiles land (EC-169), a cell hit as its item and state.
 
+import { categoryColumn } from '@molstar/core/repr/tree';
 import { SeqRuntime } from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import {
@@ -123,6 +124,28 @@ describe('the matrix layer', () => {
     expect(matrixCellHover(lay, 550, 0, name)!.text).toBe('chr:501–1,500, Sample NA12878 · every copy');
     expect(matrixCellHover(lay, 550, 1, name)!.rows[1][1]).toMatch(/ · no copy$/);
     expect(matrixCellHover(lay, 0, 1, name)!.rows[1][1]).toMatch(/ · uncalled$/);
+    // a variant's card names it: its source's name (a VCF record's ID), else its kind at its extent, never its raw id
+    const named = (label: string | null, category: string | null) =>
+      ({
+        ...lay,
+        tables: lay.tables.map((t) =>
+          t.form === 'items'
+            ? {
+                ...t,
+                id: categoryColumn(Array.from(t.start, (s) => `${s + 1}:601:f95ba8e6>C`)),
+                label: categoryColumn(Array.from(t.start, () => label)),
+                category: categoryColumn(Array.from(t.start, () => category)),
+              }
+            : t,
+        ),
+      }) as MatrixLay;
+    const card = (l: MatrixLay) => matrixCellHover(l, 550, 0, name)!;
+    expect(card(named(null, 'deletion')).title).toBe('Deletion at chr:501–1,500');
+    expect(card(named(null, 'deletion')).text).toBe(
+      'Deletion at chr:501–1,500, 501:601:f95ba8e6>C (chr:501–1,500), Sample NA12878 · every copy',
+    );
+    expect(card(named('rs1042522', 'SNV')).title).toBe('rs1042522');
+    expect(card(named(null, null)).title).toBe('501:601:f95ba8e6>C (chr:501–1,500)');
   });
 
   it('zoomed out, draws the bins as an image tile of bins × states, a hit with its bin', async () => {

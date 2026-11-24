@@ -367,6 +367,8 @@ describe('Examples/Genomes, headless', () => {
     const deletion = `chr1:${spanText(ref[0], ref[1])}`;
     for (const c of DeletionCarriers) {
       expect(matrixCellHover(m, mid, c, sys)?.rows[0][1], `sample ${c}`).toContain(`(${deletion})`);
+      // titled by the record's ID, never the allele's id (`20001:601:f95ba8e6>C`)
+      expect(matrixCellHover(m, mid, c, sys)?.title, `sample ${c}`).toBe('del600');
       expect(allele(c), `sample ${c}`).toBe(c === DeletionCarriers[0] ? '1/1' : '0|1');
     }
     const other = Array.from({ length: SampleCount }, (_, i) => i).find((i) => !DeletionCarriers.includes(i))!;

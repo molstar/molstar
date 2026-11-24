@@ -314,7 +314,14 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
         // an action with a submenu opens it: enabled when any of its items runs
         const enabled = !!subsOf(e, f)?.length || whyNot(e.command, argsOf(e, f)) === undefined;
         const icon = iconOf?.(e.icon ?? command?.icon, e.iconMarkup);
-        (slots ??= []).push({ name: e.name, label, ...(icon ? { icon } : {}), enabled });
+        const pressed = e.pressed?.(f);
+        (slots ??= []).push({
+          name: e.name,
+          label,
+          ...(icon ? { icon } : {}),
+          enabled,
+          ...(pressed ? { pressed } : {}),
+        });
       }
       if ((e.kind ?? 'action') === 'action' || e.command !== undefined) menu = true;
     }
@@ -428,13 +435,19 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
     const e = inner.entries().find((x) => x.name === name);
     const f = factsOf(target);
     if (!e || !f || e.command === undefined) return undefined;
-    return viewer.execute(e.command, argsOf(e, f));
+    return settled(viewer.execute(e.command, argsOf(e, f)));
+  };
+  /** A run's result once it settles: the parts are made again (a pressed part follows what the run changed). */
+  const settled = <T extends string | Promise<string> | undefined>(out: T): T => {
+    if (out instanceof Promise) void out.then(inner.relayout, inner.relayout);
+    else inner.relayout();
+    return out;
   };
   const runItem = (item: HeaderMenuItem): string | Promise<string> | undefined => {
     if (item.command === undefined) return undefined;
     // a preview ends in the choice's patch (the command cancels it first), not in nothing
     inner.previewed = false;
-    return viewer.execute(item.command, item.args ?? {});
+    return settled(viewer.execute(item.command, item.args ?? {}));
   };
   // a choice hovered: its command's preview (`layer.channel`'s through the theming behavior), when it has one
   const preview = (item: HeaderMenuItem): boolean => {

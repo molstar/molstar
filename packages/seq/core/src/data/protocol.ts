@@ -260,6 +260,10 @@ export interface MatrixItems {
   readonly calls?: Uint8Array;
   readonly callTexts?: readonly string[];
   readonly id?: CategoryColumn;
+  /** What the item is named by its source (a VCF record's `ID`; null where it has none): its card's title. */
+  readonly label?: CategoryColumn;
+  /** The item's kind (a VCF allele's category: `SNV`, `deletion`): with its extent, the title of one with no label. */
+  readonly category?: CategoryColumn;
   readonly row?: Int32Array;
 }
 

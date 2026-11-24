@@ -12,7 +12,7 @@ Decisions a gate asks for (the loop, Gates).
 
 - **The zoom strip laid out per hull change of a drag** (CL11 item 3): left for version 1 (97 kB and 0.7 ms a frame,
   bounded by the screen); the tracks layout's allocation pass in `packages/seq/TODO.md`. Drift note resolved, deleted.
-- **The zoom hatch over a track that draws nothing** ([drift/zoom-hatch-empty.md](drift/zoom-hatch-empty.md)): the
+- **The zoom hatch over a track that draws nothing** (the drift note `zoom-hatch-empty`, built by FX25 and deleted): the
   hatch where data exists but this level does not draw it; the empty-well row where the region has none. To FX25's
   item (its brief); the note is deleted when it lands.
 - **Search (CL5)**: `drafts/search.md` agreed (its lane moves it to `design/` with the spec sections its "In the specs" names), with its public API (a matcher registry, `SearchModel`, `search.*`

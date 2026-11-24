@@ -170,6 +170,86 @@ describe('Kinds of links, headless', () => {
     await exported(v);
   });
 
+  /** The stub labels of the kinds' layers as boxes, and the wedges (triangles) of their stubs, in page px. */
+  function stubScene(v: SeqViewer) {
+    const labels: { box: number[]; text: string; own: number[]; ring: number }[] = [];
+    const wedges: number[][] = [];
+    for (const l of kindsOf(v)) {
+      const size = Number.parseFloat(l.font);
+      for (let s = 0; s < l.nb; s++) {
+        const p = l.stubPoly[s];
+        if (p < 0) continue;
+        const tri: number[] = [];
+        for (let k = 0; k < l.polys.len[p]; k++)
+          tri.push(l.polys.xy[2 * (l.polys.start[p] + k)], l.polys.xy[2 * (l.polys.start[p] + k) + 1]);
+        wedges.push(tri);
+        if (!l.stubLabel[s]) continue;
+        const y = l.stubLabelY[s] + 4 - 0.35 * size;
+        const hw = l.stubLabelW[s] / 2;
+        const x0 = l.stubLabelX[s] - hw;
+        const x1 = l.stubLabelX[s] + hw;
+        const y0 = y - 0.65 * size;
+        const y1 = y + 0.65 * size;
+        const far = Math.max(
+          ...[
+            [x0, y0],
+            [x1, y0],
+            [x0, y1],
+            [x1, y1],
+          ].map(([x, yy]) => Math.hypot(x - l.frame.cx, yy - l.frame.cy) - l.frame.r),
+        );
+        labels.push({ box: [x0, y0, x1, y1], text: l.stubLabel[s], own: tri, ring: far });
+      }
+    }
+    return { labels, wedges };
+  }
+
+  /** Whether a box and a triangle meet (separating axes). */
+  function meets(box: number[], t: number[]): boolean {
+    const [x0, y0, x1, y1] = box;
+    const xs = [t[0], t[2], t[4]];
+    const ys = [t[1], t[3], t[5]];
+    if (Math.max(...xs) <= x0 || Math.min(...xs) >= x1 || Math.max(...ys) <= y0 || Math.min(...ys) >= y1) return false;
+    for (let e = 0; e < 3; e++) {
+      const nx = ys[(e + 1) % 3] - ys[e];
+      const ny = xs[e] - xs[(e + 1) % 3];
+      const d = [0, 1, 2].map((i) => nx * xs[i] + ny * ys[i]);
+      const c = [nx * x0 + ny * y0, nx * x1 + ny * y0, nx * x0 + ny * y1, nx * x1 + ny * y1];
+      if (Math.max(...c) <= Math.min(...d) || Math.min(...c) >= Math.max(...d)) return false;
+    }
+    return true;
+  }
+
+  const scenes: [string, string, string[] | undefined][] = [
+    ['one chromosome (chr9)', 'ring-kinds-chromosome', undefined],
+    ['the author’s scene: Kinds Of Links zoomed to chr2 from the square', 'ring-kinds', ['chr2']],
+  ];
+  for (const [what, id, include] of scenes)
+    it(`stub labels, ${what}: none over another, none over a wedge, all inside the ring`, async () => {
+      const v = await open(id);
+      if (include) {
+        v.runCommand('section.include', { address: '/views/main/ring', include });
+        await vi.advanceTimersByTimeAsync(2000);
+        v.draw();
+      }
+      const { labels, wedges } = stubScene(v);
+      expect(labels.length).toBeGreaterThan(0);
+      for (let i = 0; i < labels.length; i++) {
+        const a = labels[i];
+        // inside the ring's stems: the chromosomes' own labels are outside it, never met
+        expect(a.ring, a.text).toBeLessThan(0);
+        // never over its own wedge
+        expect(meets(a.box, a.own), `${a.text} over its wedge`).toBe(false);
+        for (let j = i + 1; j < labels.length; j++) {
+          const b = labels[j];
+          const overlap = a.box[0] < b.box[2] && a.box[2] > b.box[0] && a.box[1] < b.box[3] && a.box[3] > b.box[1];
+          expect(overlap, `${a.text} over ${b.text}`).toBe(false);
+        }
+        // covering no wedge at all, but the strongest label's (it is kept whatever is under it)
+        if (i > 0) for (const w of wedges) expect(meets(a.box, w), `${a.text} over a wedge`).toBe(false);
+      }
+    });
+
   it('on chr9 × chr22: the contacts between them, the junction a ribbon over them', async () => {
     const v = await open('ring-kinds-pair');
     expect(errors(v)).toEqual([]);

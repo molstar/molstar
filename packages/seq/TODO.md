@@ -432,6 +432,9 @@ extension kinds.
   legend entry without a swatch, its label doubled; the scattered pick's grid lines in dark; the dot plot's white empty
   cells in dark and "chr1" against "1"; Liftover's overlapping labels, jargon and no bridge legend; the methylation
   matrix's missing cells as dark as low ones, samples called "State"; BED12 tracks unnamed.
+- **FX25's followups**: unmarked items' sticky-versus-fresh lane order between the canvas and the SVG; a variant's rsID
+  title without its kind; five twin views (by-name, names, liftover, bed-over-rows, across-liftover) compare no lanes
+  until the export takes the canvas's window; `knownEmpty` for 2D wants.
 - **Track groups' followups** (CL6): the `on: 'group'` header menu and its words (a folded row's menu says "Hide track"
   for the group); the `seq:lanes` menu entry; the rows' consensus summary (`row`); `lanes: one` for `secondary` and
   `variants`; height sharing over folded tracks; per-type `LayerType.collapse`; a state chip on a folded row with no

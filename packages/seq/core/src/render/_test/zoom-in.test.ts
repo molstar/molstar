@@ -13,6 +13,7 @@ import { SeqRuntime } from '@molstar/seqx-core/data';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
 import type { Frame } from '../index.js';
+import { EmptyNote } from '../layout/tracks.js';
 import { ZoomInText } from '../tracks-draw.js';
 import { BigRuntime, bigSpec } from './fixtures.js';
 import { settle } from './helpers.js';
@@ -47,13 +48,18 @@ describe('the zoom-in state', () => {
   });
 
   /** A one-level source over a long system (a VCF over chr17's 83 Mb, a matrix of items only): no coarser level. */
-  function oneLevel(shape: 'ranges' | 'matrix', length: number) {
+  function oneLevel(shape: 'ranges' | 'matrix', length: number, readCost?: () => number | undefined) {
     const coverage: Coverage = {
       systems: [{ name: 'chr', length }],
       shapes: [{ system: 'chr', shape, ...(shape === 'matrix' && { states: ['a', 'b'] }) }],
       levels: [1],
     };
-    const opened: OpenedSource = { coverage, read: async () => ({ ok: true, tables: {} }), dispose() {} };
+    const opened: OpenedSource = {
+      coverage,
+      read: async () => ({ ok: true, tables: {} }),
+      ...(readCost ? { readCost } : {}),
+      dispose() {},
+    };
     const runtime: FormatRuntime = { ...SeqRuntime, open: async () => opened };
     const b = createSeqSpec({ title: 'one level' });
     const src = b.data.source('src', { format: 'seq', value: 'x' as never });
@@ -82,4 +88,40 @@ describe('the zoom-in state', () => {
       const near = await s.frame({ size: Size, viewport: { start: 0, end: 20_000 } });
       expect(texts(near)).not.toContain(ZoomInText);
     });
+
+  // the hatch says "the source has data this level cannot draw"; where its index says nothing is stored over the whole
+  // span, the track says "no items" in its quiet row instead (never a hatch over data that is simply not there)
+  it('over a span an index knows is empty: the “no items” row, never the hatch; over one with data, the hatch', async () => {
+    const empty = oneLevel('ranges', 83_000_000, () => 0);
+    const s = await settle(empty.spec, [empty.runtime]);
+    const f = await s.frame({ size: Size, settled: true });
+    expect(texts(f)).toContain(EmptyNote);
+    expect(texts(f)).not.toContain(ZoomInText);
+    expect(f.layout.issues.some((i) => i.code === 'seq.render.zoom_in')).toBe(false);
+    // the same source with bytes stored in the span (or its cost unknown): the hatch, no note
+    for (const cost of [() => 4096, () => undefined]) {
+      const full = oneLevel('ranges', 83_000_000, cost);
+      const r = await settle(full.spec, [full.runtime]);
+      const g = await r.frame({ size: Size, settled: true });
+      expect(texts(g)).toContain(ZoomInText);
+      expect(texts(g)).not.toContain(EmptyNote);
+      expect(g.layout.issues.filter((i) => i.code === 'seq.render.zoom_in').length).toBe(1);
+    }
+  });
+
+  it('the index is asked once for a span of tiles: a pan over a refused want asks it nothing', async () => {
+    let asked = 0;
+    const empty = oneLevel('ranges', 83_000_000, () => {
+      asked++;
+      return 0;
+    });
+    const s = await settle(empty.spec, [empty.runtime]);
+    await s.frame({ size: Size, settled: true });
+    const once = asked;
+    expect(once).toBeGreaterThan(0);
+    // a pan of a few bases a frame, the view's tiles unchanged (the whole 83 Mb is some 5,000 of them)
+    for (let i = 1; i <= 20; i++)
+      await s.frame({ size: Size, settled: true, viewport: { start: i * 5, end: 83_000_000 } });
+    expect(asked).toBe(once);
+  });
 });
