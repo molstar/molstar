@@ -56,5 +56,14 @@ fn invariantBoundingSphere(in: VertexInput) -> vec4<f32> {
     fn segmentSites(in: VertexInput) -> vec4<f32> {
         return read_tSegment(i32(in.aSegment.w) * ${SegmentTexels} + 4);
     }
+
+    /**
+     * the index of data per vertex and instance of the merged \`instance\` and \`vertex\`: the segment's offset plus the
+     * instance times its vertex count (high and low 16 bits each, exact as floats) plus the vertex
+     */
+    fn segmentVertexInstanceIndex(in: VertexInput, instance: i32, vertex: i32) -> i32 {
+        let s = read_tSegment(i32(in.aSegment.w) * ${SegmentTexels} + 5);
+        return i32(s.x) * 65536 + i32(s.y) + instance * (i32(s.z) * 65536 + i32(s.w)) + vertex;
+    }
 #endif
 `;

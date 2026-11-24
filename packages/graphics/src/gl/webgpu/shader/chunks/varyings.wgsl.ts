@@ -201,7 +201,17 @@ export const assign_varyings_wgsl = /* wgsl */ `
         let groupInstanceIndex = i32(in.aInstance) * i32(uObject.uGroupCount) + i32(group);
         let groupIndex = i32(group);
     #endif
-    let vertexInstanceIndex = instanceIndex * uObject.uVertexCount + vertexId;
+    #if defined(dSegmented)
+        // by the segment's offset (a read of its data) where read: the layers of that type; a color of it reads its own
+        // (\`uColorIndexType\` 4); sizes of it do not merge (\`canMergeValues\`)
+        #if defined(dOverpaintType_vertexInstance) || defined(dTransparencyType_vertexInstance) || defined(dEmissiveType_vertexInstance) || defined(dSubstanceType_vertexInstance)
+            let vertexInstanceIndex = segmentVertexInstanceIndex(in, instanceIndex, vertexId);
+        #else
+            let vertexInstanceIndex = 0;
+        #endif
+    #else
+        let vertexInstanceIndex = instanceIndex * uObject.uVertexCount + vertexId;
+    #endif
 
     #if defined(dRenderVariant_pick)
         #if defined(dCulledPaged)
@@ -248,7 +258,11 @@ export const assign_varyings_wgsl = /* wgsl */ `
                 case 1: { colorIndex = groupIndex; }
                 case 2: { colorIndex = groupInstanceIndex; }
                 case 3: { colorIndex = vertexId; }
-                case 4: { colorIndex = vertexInstanceIndex; }
+                #if defined(dSegmented)
+                    case 4: { colorIndex = segmentVertexInstanceIndex(in, instanceIndex, vertexId); }
+                #else
+                    case 4: { colorIndex = vertexInstanceIndex; }
+                #endif
                 #if defined(dSegmented)
                     case 5: { colorIndex = i32(in.aSegment.w); }
                 #else

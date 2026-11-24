@@ -255,7 +255,7 @@ export function isMergeableType(type: string): type is MergedType {
 //
 
 /** `table`: a member's own entries packed after the members' before (spheres' `siteType` sizes, a table by type) */
-type Granularity = 'instance' | 'group' | 'groupInstance' | 'vertex' | 'item' | 'table' | 'none';
+type Granularity = 'instance' | 'group' | 'groupInstance' | 'vertex' | 'vertexInstance' | 'item' | 'table' | 'none';
 
 type MergedTexSpec = {
   tex: string;
@@ -300,6 +300,8 @@ function pickGranularity(type: string): Granularity {
       return 'groupInstance';
     case 'vertex':
       return 'vertex';
+    case 'vertexInstance':
+      return 'vertexInstance';
     case 'siteType':
     // a texel a member: packed in order, member i's at i (its segment, `ColorTypeIndex` 'object')
     case 'object':
@@ -603,8 +605,12 @@ export function withMergeLodKey(key: string, lodLevels: ValueCell<unknown> | und
   return `${i < 0 ? key : key.slice(0, i)}|${getMergeLodKey(lodLevels)}`;
 }
 
-const SupportedVertexTypes = ['uniform', 'object', 'instance', 'group', 'groupInstance', 'vertex', 'siteType'];
+const SupportedSizeTypes = ['uniform', 'object', 'instance', 'group', 'groupInstance', 'vertex', 'siteType'];
+/** the color types: the size types' and per vertex and instance (`SegmentTexels`' offset, the shaders' index) */
+const SupportedColorTypes = [...SupportedSizeTypes, 'vertexInstance'];
 const SupportedIgTypes = ['instance', 'groupInstance'];
+/** the layers that may be per vertex and instance (smoothed: overpaint, transparency, emissive, substance) */
+const SupportedVertexLayerTypes = [...SupportedIgTypes, 'vertexInstance'];
 
 /**
  * Whether `members` merge into one object of `type`; `layers` false: their layers' types not checked (values whose
@@ -617,8 +623,8 @@ export function canMergeValues(type: string, members: readonly MergeableValues[]
 
   // a palette the theme's (its texture, domain and default shared values), looked up after `tColor`, read by segment
   const first = members[0];
-  if (!SupportedVertexTypes.includes(first.colorType.ref.value)) return false;
-  if (first.sizeType && !SupportedVertexTypes.includes(first.sizeType.ref.value)) return false;
+  if (!SupportedColorTypes.includes(first.colorType.ref.value)) return false;
+  if (first.sizeType && !SupportedSizeTypes.includes(first.sizeType.ref.value)) return false;
   if (layers && !canMergeLayers(first)) return false;
 
   const key = getMergeKey(first);
@@ -629,10 +635,12 @@ export function canMergeValues(type: string, members: readonly MergeableValues[]
 }
 
 function canMergeLayers(first: MergeableValues) {
-  if (first.dOverpaint.ref.value && !SupportedIgTypes.includes(first.overpaintType.ref.value)) return false;
-  if (first.dTransparency.ref.value && !SupportedIgTypes.includes(first.transparencyType.ref.value)) return false;
-  if (first.dEmissive.ref.value && !SupportedIgTypes.includes(first.emissiveType.ref.value)) return false;
-  if (first.dSubstance.ref.value && !SupportedIgTypes.includes(first.substanceType.ref.value)) return false;
+  if (first.dOverpaint.ref.value && !SupportedVertexLayerTypes.includes(first.overpaintType.ref.value)) return false;
+  if (first.dTransparency.ref.value && !SupportedVertexLayerTypes.includes(first.transparencyType.ref.value)) {
+    return false;
+  }
+  if (first.dEmissive.ref.value && !SupportedVertexLayerTypes.includes(first.emissiveType.ref.value)) return false;
+  if (first.dSubstance.ref.value && !SupportedVertexLayerTypes.includes(first.substanceType.ref.value)) return false;
   if (first.dClipping.ref.value && !SupportedIgTypes.includes(first.clippingType.ref.value)) return false;
   if (first.dWiggle.ref.value && !SupportedIgTypes.includes(first.wiggleType.ref.value)) return false;
   return true;
@@ -969,6 +977,10 @@ export function createMergedValues(
   const n = members.length;
 
   const texSpecs = [...descriptor.extraTextures, ...BaseTexSpecs].filter((spec) => shared[spec.tex] !== undefined);
+  // a source's instances are elsewhere (on the GPU): no data per vertex and instance of them
+  if (source && texSpecs.some((spec) => spec.granularity(shared) === 'vertexInstance')) {
+    throw new Error('merged values of a source: no data per vertex and instance');
+  }
   /** the second color's type (`dSiteColor`): a define, the shared values' (read again: a define changed rebuilds) */
   const siteColorTypeOf = () => (shared as { dSiteColor?: ValueCell<string> }).dSiteColor?.ref.value;
 
@@ -1088,6 +1100,8 @@ export function createMergedValues(
       case 'vertex':
         // the data vertices (`Geometry.getVertexCount`)
         return v.uVertexCount.ref.value * factor;
+      case 'vertexInstance':
+        return memberInstanceCount(i) * v.uVertexCount.ref.value * factor;
       case 'item':
         return descriptor.itemTexels(v) * factor;
       case 'table':
@@ -1652,10 +1666,23 @@ export function createMergedValues(
     array[o + 13] = origin?.[1] ?? 0;
     array[o + 14] = origin?.[2] ?? 0;
     array[o + 15] = (member as { uSiteScale?: ValueCell<number> }).uSiteScale?.ref.value ?? 1;
+    // high and low 16 bits each, exact as floats (the offset may be negative: its high part floored)
+    const offset = vertexInstanceOffsets[i];
+    const vertexCount = source ? 0 : member.uVertexCount.ref.value;
+    array[o + 16] = Math.floor(offset / 65536);
+    array[o + 17] = offset - Math.floor(offset / 65536) * 65536;
+    array[o + 18] = Math.floor(vertexCount / 65536);
+    array[o + 19] = vertexCount % 65536;
   }
 
   /** per member its first entry of the merged size table (`siteType` sizes, `table` granularity), 0 otherwise */
   const sizeTableBases = new Array<number>(n).fill(0);
+  /**
+   * per member the index offset of its data per vertex and instance (`vertexInstance`): its first texel less its
+   * first instance times its vertex count and its first vertex (the shaders' index the offset plus the instance times
+   * the vertex count plus the vertex, of the merged instances and vertices)
+   */
+  const vertexInstanceOffsets = new Array<number>(n).fill(0);
   /** per member its first entry of the merged second color table (`dSiteColor` 'siteType'), 0 otherwise */
   const siteColorTableBases = new Array<number>(n).fill(0);
 
@@ -1971,10 +1998,14 @@ export function createMergedValues(
     let maxGroupCount = 0;
     let groupInstanceBase = 0;
     let groupBase = 0;
+    let vertexInstanceBase = 0;
     for (let i = 0; i < n; ++i) {
       const v = members[i];
       const instanceCount = memberInstanceCount(i);
       const groupCount = v.uGroupCount.ref.value;
+      const vertexCount = v.uVertexCount.ref.value;
+      vertexInstanceOffsets[i] = vertexInstanceBase - instanceTotal * vertexCount - vertexTotal;
+      vertexInstanceBase += instanceCount * vertexCount;
       segments.instanceBases[i] = instanceTotal;
       segments.instanceCounts[i] = instanceCount;
       segments.vertexBases[i] = vertexTotal;

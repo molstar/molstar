@@ -576,7 +576,9 @@ export const SegmentSchema = {
    * `aSegmentLod`, `aSegmentStride`, `aSegmentItem`): the invariant bounding sphere (xyz: center, w: radius); the
    * per-lod-level radius scales (see spheres' `lodLevels`); the per-lod-level strides (quad `p` draws item `p * stride`,
    * spheres' and points'); its first item in the merged items, high and low 16 bits (exact as floats); its quantized
-   * centers' origin (xyz) and scale (spheres' `dSites`)
+   * centers' origin (xyz) and scale (spheres' `dSites`); the index offset of its data per vertex and instance and its
+   * vertex count, high and low 16 bits each (`vertexInstance`: its first texel less its first instance times its
+   * vertex count and its first vertex)
    */
   tSegment: DataSpec('rgba32f', ['dSegmented']),
   /** index of the lod level currently being drawn, selects a component of the segment's level scales */
@@ -585,7 +587,7 @@ export const SegmentSchema = {
 } as const;
 export type SegmentSchema = typeof SegmentSchema;
 /** The elements of `tSegment` per segment (`SegmentSchema`) */
-export const SegmentTexels = 5;
+export const SegmentTexels = 6;
 export type SegmentValues = Values<SegmentSchema>;
 
 export const ColorSchema = {

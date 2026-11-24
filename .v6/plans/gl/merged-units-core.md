@@ -56,9 +56,13 @@ The merged path grew beside the per-group one instead of under it. Five choices 
     theme); the palette, its domain and default color are the theme's, so shared by all segments (the merged values
     spread the shared ones), and the shaders look the palette up after reading `tColor`, which the merged path reads
     by segment.
-  - **`vertexInstance` colors and layers** (per vertex and instance): a segment-aware index, its first texel plus its
-    local instance times its vertex count plus its local vertex (two values more a segment, as `aSegment` holds the
-    group-instance offset), in GLSL and WGSL. The texture split per segment (`getTexelCount`) a vertex-instance count.
+  - **`vertexInstance` colors and layers** (done): the index of data per vertex and instance the segment's offset (its
+    first texel less its first instance times its vertex count and its first vertex) plus the merged instance times
+    its vertex count plus the merged vertex: both in a sixth segment element (`SegmentTexels`, high and low 16 bits,
+    exact as floats), read where used (WGSL: a color of that type, the layers of it; GLSL: `vertexInstanceIndex`).
+    Sizes of it not (none made; the sphere raster's index not segment-aware), nor a source's (its instances on the
+    GPU). Tested on WebGPU: two meshes of other vertex and instance counts, colors and an overpaint layer of it, drawn
+    merged as alone.
   - **Smoothed colors and layers** (`smoothColors`, a theme's `preferSmoothing`; layers smoothed on surfaces): with a
     context `volume`/`volumeInstance` grid textures, a 3D grid in 2D tiles per object with its own transform and size;
     without one `vertex`/`vertexInstance`, interpolated on the CPU. Merged either as the vertex types (`vertex` merges
