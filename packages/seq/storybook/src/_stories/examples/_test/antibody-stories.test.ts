@@ -23,6 +23,7 @@ import {
   recolor,
   remove,
   rename,
+  selectBackwards,
   selectCdr,
   setRuler,
 } from '../antibody/compose.js';
@@ -302,6 +303,20 @@ describe('Antibody: the editing views', () => {
     expect(s.viewer.frame!.layout.issues).toEqual([]);
     await s.stack.undo();
     expect(layer('heavy')?.params?.numbering).toBe('kabat');
+  });
+
+  it('an invalid label is shown: a range written backwards in IMGT selects nothing and the status says the issue and its hint (EC-7)', async () => {
+    const s = await open('schemes-design');
+    selectCdr(s, 'heavy', 3);
+    const before = s.viewer.selection.value.value;
+    const said = selectBackwards(s);
+    expect(said).toBe(
+      'A range ends before it starts (seq.query.range.backwards): write :from at or before :to, in the numbering’s order of positions',
+    );
+    // what the invalid address names is not drawn: the selection stays as it was
+    expect(s.viewer.selection.value.value).toBe(before);
+    s.viewer.draw();
+    expect(s.viewer.frame!.layout.issues).toEqual([]);
   });
 
   it('a CDR bookmarked from the selection, renamed, recolored, removed; each a step, undone and redone', async () => {

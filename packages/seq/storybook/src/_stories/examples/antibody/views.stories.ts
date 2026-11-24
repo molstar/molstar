@@ -16,6 +16,7 @@ import {
   recolor,
   remove,
   rename,
+  selectBackwards,
   selectCdr,
   setRuler,
   toggleGlycanForm,
@@ -46,7 +47,8 @@ export const Schemes: StoryObj = {
 
 /**
  * The design under the same rulers: IMGT's 111.1 and 112.1 in CDR-H3, before 112 (EC-7); Kabat's 100D and 100E. The same
- * switch as Schemes: which scheme the top ruler shows.
+ * switch as Schemes: which scheme the top ruler shows. The last button writes a range backwards in IMGT (112 to 112.1):
+ * an invalid label order, so nothing is selected and the status says the issue with its hint (EC-7).
  */
 export const DesignNumberings: StoryObj = {
   render: () =>
@@ -57,6 +59,7 @@ export const DesignNumberings: StoryObj = {
         { label: 'Top rulers in IMGT', run: (s) => setRuler(s, 'imgt') },
         { label: 'Top rulers in Kabat', run: (s) => setRuler(s, 'kabat') },
         { label: 'Top rulers in ordinals', run: (s) => setRuler(s, 'ordinal') },
+        { label: 'Select 112 to 112.1 (backwards)', run: (s) => selectBackwards(s) },
       ],
     }),
 };
