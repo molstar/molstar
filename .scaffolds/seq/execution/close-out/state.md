@@ -16,7 +16,7 @@ to CL14, are written into `plan.md` (Lanes; Order and parallelism) and `checklis
 
 ## In progress
 
-- 2026-11-24 night: FX25, strong, the fix point (`briefs/fx25-fixes.md`), `seq/fx25`.
+- FX25 stopped on a permission refusal (gaps.md), its worktree kept with items 1 and 2 uncommitted; waits for the author.
 - 2026-11-24 night: CL9, Sonnet, small items (`briefs/cl9-small-items.md`), `seq/cl9`.
 - 2026-11-24 night: CL13, Sonnet, carried items (`briefs/cl13-carried.md`), `seq/cl13`.
 
