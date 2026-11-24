@@ -43,7 +43,7 @@ render and another viewer all answer it the same way, and a legend can answer it
 | clicks a legend entry to select its items | Vega-Lite | **built**: the items of that value, by `(item :<field> v)` |
 | hovers a legend entry to see its items | plotting tools | **built**: a highlight channel over its items in view |
 | clicks a legend entry to hide its items | plotting tools | **built**: `layer.filter` (one patch on the layer's `layer.data` filter, the query sublanguage's), the track header showing an "n filtered" chip whose click clears it; a theme still never hides |
-| sees the active highlights in the legend and removes one | Vega-Lite's selections, some genome browsers | **planned** (the legend part's highlight rows) with `highlight.clear` |
+| sees the active highlights in the legend and removes one | Vega-Lite's selections, some genome browsers | built (the legend channels row) with `highlight.clear` |
 | sees the hovered item's value on the legend | some plotting tools | **built**: the hovered item's entry is outlined, its value ticked on a ramp |
 | colors the letters instead of the cells | Jalview ("colour text") | **built**: the letters layer's `ink` channel |
 | colors a selected region on a track | Jalview (groups) | **planned**: `theme.color-selection` adds a rule `(in <the selection>)` at the top of the layer's theme, one patch |
@@ -329,7 +329,7 @@ and another viewer); a host recolors through `--seq-*` tokens.
   mount is a `SeqViewerSpec.ui` entry (`ui.legends`, the same call), its gestures a `BehaviorProvider` (`legend`), as
   the navigators' are. Seq\* never draws a legend on its canvas.
 - **The legend follows the hover**: the hovered item's entry is outlined; on a ramp, its value is ticked.
-- **A legend states its domain** (features, "Settle and open domains"; planned for version 1, the author, 2026-11-23):
+- **A legend states its domain** (features, "Settle and open domains"; built, CL1):
   a continuous legend over an open domain says "in view" beside its title, in the part as in the export, its ends the
   values the view settled on; a closed one its own ends. A categorical legend says whether it is the vocabulary or
   what was painted ("values in view", EC-204).

@@ -89,9 +89,9 @@ store, the placement and the theme through the `extension` entry.
 - **Imports only `@molstar/seqx-core/extension` and `@molstar/seqx-viewer`'s extension types**, checked by its
   `noRestrictedImports` (extension-openings, Decided 5). Why: the package exists to prove the contract; an import past
   it is a contract gap to bring to the core, never a reach into `src`.
-- **`requires`**: the language version GC1 lands (0.6 expected); `version` 0.1.0. A host lists it
+- **`requires`**: `0.11`; `version` 0.1.0. A host lists it
   (`spec.extensions: [rondoViewer]`) or registers it late (`viewer.extend`); never in the minimal or default viewer.
-- **Its own size row**: under 30 kB minified (GR's estimate: 650 to 950 lines), the minimal and default viewers not
+- **Its own size row**: 48 kB minified, its bound (performance.md, Size) (GR's estimate: 650 to 950 lines), the minimal and default viewers not
   grown. The viewer entry lazy-loads `menu.js` and `card.js` once composed, so the headless entry stays free of the card and
   the menu (amended 2026-11-23: the code's way, the author as recommended); the package is itself the opt-in.
 - **What it costs the core and the viewer** (the default viewer is a few hundred bytes under its bound): `section.include`
@@ -558,7 +558,7 @@ Cells this design fills; the others stand as layouts, GA, RR and LX give them.
 | The square's cells (`rondo:cells`, `rondo:square`) and without the picture the `axis` fallback | ext-rondo › What it ships |
 | Hover, selection, emphasis, the stem menu, the keys | ext-rondo › Hits, emphasis, words |
 | The hooks `describe`, `summary`, `announce` | ext-rondo › What is the core's |
-| Shift+F10 opening the stem's menu from the keyboard | design-only: not built (the spec says so) |
+| Shift+F10 opening the stem's menu from the keyboard | ext-rondo › Hits, emphasis, words |
 | Other layouts: a `tracks` row, text and grid refused | ext-rondo › What is the core's |
 | What a reader without the extension draws (EC-235) | ext-rondo › The fallback |
 | The builder helper `rondoRing`; the hole's `center: none` | ext-rondo › The builder helper |
@@ -680,7 +680,7 @@ cells (`LayerType.square`, `rondo:cells` by count on a square-root ramp), elemen
 `.` and `,` walking partners, `settingOf` (an extension's settings, recomposed on a late extend), a failed source read
 failed (the store's `unopened`), on one chromosome or a pair lighter stems (`focusStems` 0.35) and stubs under
 `rondo.stubMin` folded unlabelled, unfolding on hover. The square, its gestures, cells and lattice load as one lazy
-chunk. Not built: Shift+F10 at a stem; `rondo:cells` lazy (needs `withViewKind` on the extension entry).
+chunk. Not built: `rondo:cells` lazy (needs `withViewKind` on the extension entry).
 
 **Built by RX3** (merged 2026-11-23): kinds of links as layers (`rondoRing({ kinds })`, the `(item :type …)` base
 filter), a ribbons layer's colour (fixed, drawn opaque; or a field per link, exact per bin where held bins carry the

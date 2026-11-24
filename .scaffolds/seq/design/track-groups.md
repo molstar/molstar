@@ -162,7 +162,7 @@ in the group's order:
 
 | Kind | Form | Drawn |
 |---|---|---|
-| `ranges`, `secondary`, `variants` | `lane` | every item of every member in **one shared lane** (`lanes: one`, Decision 6), labels off; across members later over earlier, within a member shorter over longer; a device column holding more than one item takes the layer's density form (`ranges-density.ts`); variants as their ticks without heads. **Not built** (CL6): every item is drawn in data order, a later item over an earlier one (not shorter over longer), and a column holding more than one item stays items (no density form) |
+| `ranges`, `secondary`, `variants` | `lane` | every item of every member in **one shared lane** (`lanes: one`, Decision 6), labels off; across members later over earlier, within a member shorter over longer; a device column holding more than one item takes the layer's density form (`ranges-density.ts`); variants as their ticks without heads. **Not built** (CL6): every item is drawn in data order, a later item over an earlier one (not shorter over longer), and a column holding more than one item stays items (no density form). Only `ranges` folds to one lane: `secondary` and `variants` lay their own lanes (TODO) |
 | `pairs` | `lane` | each pair's two ends as 2 px ticks in the shared lane, in the pair's colour (arcs need height a row does not have). **Not built** (CL6): `pairs` has no `lanes: one`; its lane form lays its own lanes |
 | `values` | `strip` | a strip a member, `group.summary.stripPx` (4) each, below the lane, the values layer's thin look (its colour by value or its series tint; layouts.md "The values look"); at most `group.summary.maxStrips` (4), the rest counted in the header ("+2 not shown") |
 | `rows` | `row` | the alignment's consensus row: the rows layer's `summary` form (`consensus`, `logo`, `bar`) over every shown row, the root clade's summary row (grids-and-rows.md, "The summary row"), cached by (layer, entry version, theme) |
@@ -187,7 +187,7 @@ in the group's order:
   `one`: every item in one lane, labels off, shorter over longer, a column of several items its density form; the
   track one lane high (`lanesHeight(1)`, 22 px), so `track.overflow` never applies. A spec param (the author,
   grids-and-rows.md Decision 8: figure-meaning settings are spec params), set from the track's menu ("Lanes ▸ Packed,
-  One lane", `seq:lanes`, menu only; `layer.lanes`, one patch, one undo step).
+  One lane", `layer.lanes` the command only (no `seq:lanes` menu entry yet), one patch, one undo step).
 - **How it relates to a group's fold**: the same code path. A folded group's `lane` form is `lanes: one` over every
   member at once; `lanes: one` on a track is that form on one open track, its header and label kept. They are
   independent: a track's `lanes` survives its group folding and opening.
@@ -288,7 +288,7 @@ search hit inside a folded group opening it and Alt+Left folding it back. Whethe
 | Item | Default | Why | Alternatives |
 |---|---|---|---|
 | a group's `collapsed` (spec) | false | a figure opens showing its tracks; the writer folds on purpose | true |
-| a group's `summary` (spec) | `auto` | a folded group still shows where its data is | `none`, a track of the group (not built) |
+| a group's `summary` (spec) | `auto` | a folded group still shows where its data is | `none`, a track of the group |
 | a ranges layer's `lanes` (spec) | `packed` | today's lanes and labels | `one` |
 | `header.groupPx` (render config) | 20 | the section header's line (`header.sectionPx`) | any (not built) |
 | `header.groupIndentPx` (render config) | 12 | membership read from the label column alone | 0 (not built) |

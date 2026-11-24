@@ -61,7 +61,7 @@ where the interface must leave room for it.
 | Change the font size (Jalview), the line width follows the window | built: zoom is the letter size; a resize reflows |
 | The wrapped view scrolls to a selection made in a linked view (Jalview, from a structure) | built: a text section reveals the first line of a selection projected onto it from elsewhere (`reveal.linked`) |
 | Click a sequence's name to select the row (Jalview) | planned ([grids-and-rows.md](grids-and-rows.md): a row selection) |
-| Copy the selected sequence as text (SnapGene, Benchling, Jalview) | planned: `selection.copyLetters`, what is shown (decided, below) |
+| Copy the selected sequence as text (SnapGene, Benchling, Jalview) | built: `selection.copyLetters`, what is shown (decided, below) |
 | Hide and show annotation rows (Jalview) | built: `track.hide`, the band leaves every line |
 | Click a feature on the map, it is selected in every view (SnapGene, Benchling) | built: hit through the ring's inverse; selection is projected as everywhere |
 | Click or hover a feature's label outside the ring (SnapGene) | built: a label is hit as its item |
@@ -72,7 +72,7 @@ where the interface must leave room for it.
 | Rotate the map by dragging (none of the precedents makes it a gesture) | refused: a drag on data selects; rotation is a param, by patch |
 | Edit the sequence in the text or on the map (SnapGene, Jalview) | refused: data is not edited in the viewer |
 | Toggle restriction enzymes, primers (SnapGene) | not here: they are layers (hide a layer) |
-| Drag a selection past the edge to scroll (text editors, Jalview) | planned (text here, rows in [grids-and-rows.md](grids-and-rows.md)): clock-timed, faster further past |
+| Drag a selection past the edge to scroll (text editors, Jalview) | built (text here, rows in [grids-and-rows.md](grids-and-rows.md)): clock-timed, faster further past |
 | Scroll a text by touch, a scroll grip on its edge (mobile readers) | refused this slice: no touch gesture of its own (a standing tension); the wheel, keys and Space+drag scroll |
 
 ## Decision

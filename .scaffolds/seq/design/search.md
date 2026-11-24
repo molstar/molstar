@@ -185,7 +185,7 @@ U as T on nucleotides.
   `cancelled`, `failed`), `hits` (the columnar hits and their targets' addresses), `count` (hits found, past the held
   ones: Decision 6), `complete`, `current` (an index, `-1` for none), `issues`, `stale`. A hit's address and description on
   demand (`addressOf(i)`, `describe(i)`), never stored a hit.
-- **What is searched**: every system a letters, rows or cells layer of the resolved view draws, whole (not only its
+- **What is searched**: every system a letters layer (rows and cells layers are not searched yet) of the resolved view draws, whole (not only its
   window: IGV's, not JBrowse's), or what `within` names: an address, or `selection` (the selection's Location, its
   parts the targets and their ranges the windows; Jalview's and UGENE's region). A system no section shows is searched
   only when `within` names it.

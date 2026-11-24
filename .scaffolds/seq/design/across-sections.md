@@ -55,7 +55,7 @@ move together, a grid whose two axes are two different sections of blocks, and a
 |---|---|
 | hover a ribbon: both ends lit, a card (JBrowse) | built: the pair's element, its ends lit on both sides, the card (Decision, Hover) |
 | click a ribbon: select it, open its card (JBrowse) | built: the pair selected (both ends); its card is the hover card pinned by the host |
-| double-click a ribbon: go there | built: each side focuses its end, one jump |
+| double-click a ribbon: go there | not built (a ribbon double-click) |
 | pan or zoom one genome alone (JBrowse, default) | built: each side is a leading section of its own |
 | link views: pan and zoom both by one delta (JBrowse, HiGlass's locks) | built: the bridge's `lock: px` (patch), or a drag or wheel over the bridge (moves both, whatever the lock) |
 | bring the other genome to what this one shows ("square", "center on") | built: `bridge.align` (Shift+A at a side, the bridge's menu), a jump |

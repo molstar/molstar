@@ -16,7 +16,7 @@ What row 130 says, and where each part stands:
 |---|---|---|
 | Points at a height (216) | **built** (the fifth slice's VP: `encoding: 'points'`, `render/values-marks.ts`, language `0.8.0`): a dot a value, a thin min-to-max mark a device column below a pixel a value; a coarse level keeps min and max (core spec, Data, summaries), so a zoomed-out bin never averages one significant SNP away | nothing |
 | Log scale (215) | **built** (`scale.type: 'log'` on y and on colors, `non_positive`, the log legend; EC-215 in themes.md, "Palettes and scales") | nothing |
-| Reference line (217) | **missing**: a values layer draws one baseline hairline (zero, else the domain's low) and nothing at a chosen value | this design |
+| Reference line (217) | **built** (CL8): `reference` draws a line at a chosen value; the baseline hairline stays | this design |
 | A scale's title and units (217) | **built** as `scale.label` and `scale.unit` for the legend; the values layer draws no y axis, and this design adds none | out of version 1 (Tensions) |
 | Split by sample (214), colour by chromosome (218), LD (219) | other rows | not here |
 
@@ -108,7 +108,7 @@ With no `reference` the layer is as built: no line. With a line, no other settin
  │        ▪        ▪   ▪       ▪        │     │        ▪        ▪   ▪       ▪        │
  │ ▪ ▪▪ ▪▪▪ ▪▪ ▪▪▪ ▪ ▪▪ ▪▪ ▪▪▪ ▪▪ ▪ ▪▪ ▪ │     │ ▪ ▪▪ ▪▪▪ ▪▪ ▪▪▪ ▪ ▪▪ ▪▪ ▪▪▪ ▪▪ ▪ ▪▪ ▪ │
  └──────────────────────────────────────┘     └──────────────────────────────────────┘
-   baseline hairline at 0 (seq-sequence)        line: msui-text, dashed 4 on 3 off, 1 px
+   baseline hairline at 0 (seq-sequence)        line: msui-text, dashed 4 on 4 off, 1 px
 ```
 
 - **Light and dark**: tokens only (`msui-text` for the line, `msui-text-muted` for the label, the well's ground behind the
@@ -232,7 +232,7 @@ by a grep of `values-look` and the summary tests for a "max over a bin" case).
   gaps, bins). The layer param explains the one-track need and the shared-scale case by repeating the value (carried
   as the `scale.lines` alternative, Provisional).
 - **Its inverse**: a writer who wants no baseline: not built, not asked; the baseline hairline is the layer's.
-- **Built**: points (VP), log (EC-215), baseline. **Planned**: the line. **Carried**: Tensions above.
+- **Built**: points (VP), log (EC-215), baseline. the reference line (CL8). **Carried**: Tensions above.
 
 ## In the specs
 

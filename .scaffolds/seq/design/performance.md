@@ -30,7 +30,7 @@ structures should be chosen appropriately".
 
   | Data | Structure |
   |---|---|
-  | values | a summary pyramid (min, max, mean, count a bin, each level 4× coarser), the base the typed column; bigWig's own zoom levels when read from one |
+  | values | a summary pyramid (min, max, mean, count a bin, each level 16× coarser), the base the typed column; bigWig's own zoom levels when read from one |
   | ranges, variants, points | sorted by start with a running maximum of ends (an interval index over typed columns), plus count pyramids by category for density |
   | letters | read only for the cells in view; at coarser levels, a class or consensus pyramid |
   | alignments | rows virtualized (only rows in view are touched); column summaries (consensus, class, gap fraction, conservation) per tile, pyramided |
@@ -50,7 +50,7 @@ structures should be chosen appropriately".
   frames, and each value written re-ran everything derived from the selection; measured before, a sweep across 12
   chromosomes of the 3,000 contigs drew about 300 ms a frame (the projection's walk), the 4,000 × 4,000 dot plot's SVG
   twin exported 0.5 to 1 s a move.
-- **Summaries cost a fraction of the data**: a pyramid of 4× steps adds at most a third of its base; summaries are
+- **Summaries cost a fraction of the data**: a pyramid of 16× steps adds at most a fifteenth of its base; summaries are
   built once when a store entry is loaded (on the main thread in time slices until the compute port exists), or served
   by the source when its format has them; they belong to their store entry and are evicted with it.
 - **What is tested**: frame time is flat across the scale fixtures (ten times the data, at most 1.2 times the frame
