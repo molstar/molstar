@@ -345,6 +345,7 @@ export class ViewModel extends ReactiveModel {
       const m = Math.sign(d);
       return this._lead(lead, v.start + d, v.end + d, m, m, d);
     }
+    if (this._idleRing(section)) return false;
     const g = this._movable(section);
     if (!g) return false;
     g.start += delta;
@@ -380,6 +381,7 @@ export class ViewModel extends ReactiveModel {
   }
 
   private _panX(section: string, v: Viewport, dx: number, dy: number, x?: number): boolean {
+    if (!this._leading(section) && this._idleRing(section)) return false;
     const g = this._leading(section) ? undefined : this._movable(section);
     const c = g && this._navContext(section, g);
     if (!g || !c) return dx ? this.pan(section, (dx * (v.end - v.start)) / v.width) : this._canMove(section);
@@ -417,6 +419,7 @@ export class ViewModel extends ReactiveModel {
       const e = a + (v.end - a) / factor;
       return this._lead(lead, s, e, Math.sign(s - v.start), Math.sign(e - v.end));
     }
+    if (this._idleRing(section)) return false;
     const g = this._movable(section);
     if (!g) return false;
     const a = anchor ?? (g.start + g.end) / 2;
@@ -731,6 +734,18 @@ export class ViewModel extends ReactiveModel {
     if (v.scale !== undefined) g.scale = v.scale;
     else delete g.scale;
     g.fitted = false;
+  }
+
+  /**
+   * A ring nobody follows has no window: its zoom and pan are idle (_spec/README.md "ViewModel", Layouts), so the
+   * viewport it keeps never narrows out of sight. A loop over the order: a wheel allocates nothing.
+   */
+  private _idleRing(section: string): boolean {
+    const s = this._sections.get(section);
+    if (!s || s.section.follow || !this._layoutOf(s.section.layout).window) return false;
+    for (let i = 0; i < this._order.length; i++)
+      if (this._sections.get(this._order[i])?.section.follow?.leader === section) return false;
+    return true;
   }
 
   private _canMove(section: string, depth = 0): boolean {
