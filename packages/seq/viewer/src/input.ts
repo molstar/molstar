@@ -896,6 +896,12 @@ export class ViewerInput {
       }
       return true;
     }
+    // a group of tracks' header: its bound command (folds or opens the group by default), never a selection's
+    if (chip && t === 'group-header') {
+      const action = this.viewer.bindings.resolve('click', this._modifiers(e), 'group-header');
+      if (action !== undefined) void this.viewer.execute(action, { address: chip.layer });
+      return true;
+    }
     // a binding scoped to the hit's layer type (an extension's) wins there: run with the hit
     const section = this.sectionAt(y);
     if (section !== undefined && this._scoped('click', section, x, y, this._modifiers(e))) return true;

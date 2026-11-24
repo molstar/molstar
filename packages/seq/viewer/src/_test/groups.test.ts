@@ -227,4 +227,37 @@ describe('track groups in the viewer', () => {
     expect(v.view.get(GroupsSection)?.groups).toBeUndefined();
     expect(folded(v)).toEqual(['variants']);
   });
+
+  it('a click on a group’s header folds and opens it (no selection, no step)', async () => {
+    const v = await make();
+    const steps = backSteps(v);
+    const selected = v.selection.value.value;
+    const header = () => v.frame!.layout.sections[0].groups!.find((g) => g.group.address.endsWith('/features'))!.box;
+    let b = header();
+    v.input.click(b.x + 20, b.y + b.height / 2);
+    expect(folded(v)).toEqual(['variants', 'features']);
+    await v.settle();
+    frames!.flush();
+    b = header();
+    v.input.click(b.x + 20, b.y + b.height / 2);
+    expect(folded(v)).toEqual(['variants']);
+    expect(v.selection.value.value).toBe(selected);
+    expect(backSteps(v)).toBe(steps);
+  });
+
+  it('`layer.lanes` sets a ranges layer’s `lanes` (one undo step); `packed` unsets it; another layer is refused', async () => {
+    const v = await make();
+    const layer = `${GroupsSection}/features/domains/l`;
+    const domains = () =>
+      v.spec.root.value.children![1].children![0].children![0].children![1].children![0].children![0];
+    await v.execute('layer.lanes', { address: layer, lanes: 'one' });
+    await v.settle();
+    expect(domains().params?.lanes).toBe('one');
+    await v.execute('layer.lanes', { address: layer, lanes: 'packed' });
+    await v.settle();
+    expect(domains().params?.lanes).toBeUndefined();
+    expect(await v.execute('layer.lanes', { address: `${GroupsSection}/signals/a/l`, lanes: 'one' })).toBe(
+      'No ranges layer there',
+    );
+  });
 });
