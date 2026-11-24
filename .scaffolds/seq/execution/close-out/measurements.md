@@ -87,7 +87,7 @@ The bounds have moved since the fifth slice (265, 980, 1,545, 1,090, 45), and ev
 6. The fifth slice's drag and release numbers were likely taken without pointer capture working, so they are not comparable.
 7. No whole genome read by region, as before.
 
-Raw logs are in `/private/tmp/claude-501/-Users-davinci001-projects-molstar-molstar-v6/4a6ec687-17ab-4e02-9611-42250d4e989e/scratchpad/` (`heavy.log`, `coreperf.log`, `sbperf.log`).
+The raw logs stayed in the orchestrator's session scratch (not kept).
 
 ## The orchestrator's reading
 
