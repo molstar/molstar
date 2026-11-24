@@ -258,9 +258,13 @@ export function selectBehavior(
           unit: number;
           mode: DragMode;
           before: Emphasized;
-          /** The block and position last applied past the anchor's block, and the value written for them. */
+          /**
+           * The block and position last applied past the anchor's block, the resolved view they were read on (a block
+           * list changed under the drag reads them again) and the value written for them.
+           */
           block: number;
           at: number;
+          on: unknown;
           wrote: Emphasized | undefined;
         };
       }
@@ -274,12 +278,17 @@ export function selectBehavior(
   let over:
     | {
         section: string;
+        /** The blocks as the drag last read them. */
         blocks: readonly RectBlock[];
         from: BlocksCell;
         mode: string;
         before: Emphasized;
-        /** The cell last applied (its blocks and positions) and the value written for it: a move to it is none. */
+        /**
+         * The cell last applied (its blocks and positions), the resolved view it was read on and the value written for
+         * it: a move to it on that view is none.
+         */
         last: Float64Array;
+        on: unknown;
         wrote: Emphasized | undefined;
       }
     | undefined;
@@ -308,7 +317,7 @@ export function selectBehavior(
         const s = view.resolved.value?.sections.find((x) => x.address === section);
         const from = s?.layout === 'grid' && s.blocks ? blocksCell(hit) : undefined;
         if (s?.blocks && from) {
-          const blocks = s.blocks.map((b) => ({ system: b.axis.system, axis: b.axis, offset: b.offset ?? 0 }));
+          const blocks = rectBlocks(s.blocks);
           over = {
             section,
             blocks,
@@ -316,6 +325,7 @@ export function selectBehavior(
             mode: DragSelectModes[action],
             before: selection.value.value,
             last: new Float64Array(4).fill(Number.NaN),
+            on: undefined,
             wrote: undefined,
           };
           return true;
@@ -342,6 +352,7 @@ export function selectBehavior(
           before,
           block: -1,
           at: Number.NaN,
+          on: undefined,
           wrote: undefined,
         };
       return true;
@@ -357,9 +368,15 @@ export function selectBehavior(
           Math.floor(hit.position) === l[1] &&
           hit.yBlock === l[2] &&
           Math.floor(hit.yPosition) === l[3] &&
+          view.resolved.value === over.on &&
           selection.value.value === over.wrote
         )
           return false;
+        // a block list changed under the drag (a node streamed in): the rect is split at the blocks shown now
+        if (over.on !== undefined && view.resolved.value !== over.on) {
+          const now = sectionOf(section)?.blocks;
+          if (now) over.blocks = rectBlocks(now);
+        }
         const to = hit && over.section === section && cellOf(hit) ? blocksCell(hit) : undefined;
         const r = to && blocksRect(over.blocks, over.from, to);
         if (!r) return false;
@@ -374,6 +391,7 @@ export function selectBehavior(
         l[1] = Math.floor(to.position);
         l[2] = to.yBlock;
         l[3] = Math.floor(to.yPosition);
+        over.on = view.resolved.value;
         over.wrote = selection.value.value;
         return selection.value.value !== was;
       }
@@ -397,7 +415,9 @@ export function selectBehavior(
         // the block and position last applied, their value standing: no move (nothing made or written)
         const k = blockIndexOf(s.blocks, unit);
         const at = positionIn(s.blocks[k], unit);
-        if (k === across.block && at === across.at && selection.value.value === across.wrote) return false;
+        const on = view.resolved.value;
+        if (k === across.block && at === across.at && on === across.on && selection.value.value === across.wrote)
+          return false;
         const loc = acrossBlocks(s, across.index, across.unit, unit);
         if (loc) {
           const was = selection.value.value;
@@ -408,6 +428,7 @@ export function selectBehavior(
           } else selection.set({ elements: EmptyKeys, location: loc, shown: loc });
           across.block = k;
           across.at = at;
+          across.on = on;
           across.wrote = selection.value.value;
           return selection.value.value !== was;
         }
@@ -443,6 +464,11 @@ export function selectBehavior(
 }
 
 const NeverAborted = new AbortController().signal;
+
+/** A section's blocks as a rect over them reads them (`blocksRect`). */
+function rectBlocks(blocks: NonNullable<ResolvedSection['blocks']>): RectBlock[] {
+  return blocks.map((b) => ({ system: b.axis.system, axis: b.axis, offset: b.offset ?? 0 }));
+}
 
 /** The position a section unit is on in a block (clamped to its ends: what a drag's end there takes), else NaN. */
 function positionIn(b: NonNullable<ResolvedSection['blocks']>[number], u: number): number {
