@@ -87,6 +87,31 @@ describe('the built-in matchers against the naive oracle', () => {
   });
 });
 
+describe('the oracle at small chunks: no hit lost or added at a boundary, either strand', () => {
+  const rand = seeded(11);
+  // long runs of A and T, so matches cross the chunks on both strands
+  const texts = [0, 1, 2].map((k) => randomLetters(rand, 120 + k * 13, 'AAAAATTTCG'));
+  for (const chunkLetters of [5, 7, 11]) {
+    for (const [k, letters] of texts.entries()) {
+      for (const pattern of ['A+', 'A+C?', 'GA*', 'T(A|T)*G', 'C(AA|A)*G']) {
+        it(`regex ${pattern}, text ${k}, chunks of ${chunkLetters}`, async () => {
+          const r = await runSearch(RegexMatcher, pattern, [textTarget(letters)], {}, { chunkLetters });
+          expect(r.hits).toEqual(oracle(letters, regexAt(pattern, 1000)));
+        });
+      }
+      for (const cyclic of [false, true]) {
+        it(`exact AAT and degenerate WWAN, text ${k}, chunks of ${chunkLetters}${cyclic ? ', a circle' : ''}`, async () => {
+          const target = [textTarget(letters, { cyclic })];
+          const e = await runSearch(ExactMatcher, 'AAT', target, {}, { chunkLetters });
+          expect(e.hits).toEqual(oracle(letters, exactAt('AAT'), { cyclic }));
+          const d = await runSearch(DegenerateMatcher, 'WWAN', target, {}, { chunkLetters });
+          expect(d.hits).toEqual(oracle(letters, degenerateAt('WWAN'), { cyclic }));
+        });
+      }
+    }
+  }
+});
+
 describe('the hit rules', () => {
   it('a site the same on both strands is one hit, strand 0 (GAATTC)', async () => {
     const r = await runSearch(ExactMatcher, 'GAATTC', [textTarget('TTGAATTCAA')]);

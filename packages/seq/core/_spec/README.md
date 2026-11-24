@@ -5272,7 +5272,9 @@ registry's built-in entries load it on first use.
 - **Both strands on nucleotides** (`strands: 'both'`, the default; `forward`): the minus strand is the pattern run over
   the reverse complement of the letters (`complementCode`), its hits mapped back to forward positions; a site equal on
   both strands (`GAATTC`) is one hit, strand `0`. Proteins have one strand. Why the letters' complement: one kernel, one
-  compiled pattern, any matcher.
+  compiled pattern, any matcher. A minus hit is the longest match leftward from its end, so the minus buffer keeps the
+  previous chunk's last overlap of letters before the chunk's start (kept, not read again), and a minus hit is the
+  chunk's when it starts in it: no match cut at a chunk's start (the oracle at chunks of 5, 7 and 11 letters).
 - **A circle**: a hit may run across the origin, at most one lap (a pattern longer than the circle has none), held
   unrolled (`end` past the length): one hit, its Location two ranges (EC-9, EC-10).
 - **Pieces are layout, not data**: a reversed section, a rotated plasmid or collapsed introns change nothing a search

@@ -198,18 +198,32 @@ async function runKernels<C extends SearchCompiled>(
 
     regions: for (let r = 0; r < regions.length; r += 2) {
       const rs = Math.max(0, regions[r]);
+      let prevStarts = 0;
+      let prevAtStart = false;
       const re = Math.min(L, regions[r + 1]);
       for (let a = rs; a < re; ) {
         const b = Math.min(re, a + bounds.chunkLetters);
         if (signal.aborted) return;
-        // the chunk and its overlap, read on until the overlap holds `over` letters past its gaps (or the end)
+        // the chunk and its overlap, read on until the overlap holds `over` letters past its gaps (or the end); for the
+        // minus strand the overlap before the chunk too, so a leftward-longest match is not cut at the chunk's start
         const hardEnd = cyclic ? b + over : re;
         let read = a;
         let n = 0;
+        let lead = 0;
+        // whether the buffer's first letter is the sequence's first
+        let atStart = a === 0;
         let starts = 0;
         let after = 0;
         let want = Math.min(hardEnd, b + over);
         try {
+          if (minus && over > 0 && a > rs) {
+            // the previous chunk's last `over` letters before this one's start, kept: no letter read twice
+            const from = Math.max(0, prevStarts - over);
+            buf.letters.copyWithin(0, from, prevStarts);
+            buf.at.copyWithin(0, from, prevStarts);
+            n = lead = starts = prevStarts - from;
+            atStart = from === 0 && prevAtStart;
+          }
           while (read < want) {
             const raw = await readUnrolled(target, read, want, signal);
             if (signal.aborted) return;
@@ -250,7 +264,7 @@ async function runKernels<C extends SearchCompiled>(
         hits.clear();
         const map = buf.at;
         const edges = (a === 0 ? EdgeStart : 0) | (!cyclic && read >= L ? EdgeEnd : 0);
-        let within = kernel.find(buf.letters, n, 0, starts, edges, budget, (s, e) => {
+        let within = kernel.find(buf.letters, n, lead, starts, edges, budget, (s, e) => {
           const start = map[s];
           const end = map[e - 1] + 1;
           if (end - start <= L) hits.push(t, start, end, strand);
@@ -259,11 +273,12 @@ async function runKernels<C extends SearchCompiled>(
           const m = buf.minus;
           const l = buf.letters;
           for (let k = 0; k < n; k++) m[k] = complementCode(l[n - 1 - k]);
-          const back = ((edges & EdgeEnd) !== 0 ? EdgeStart : 0) | ((edges & EdgeStart) !== 0 ? EdgeEnd : 0);
-          within = kernel.find(m, n, 0, n, back, budget, (s, e) => {
+          const back = ((edges & EdgeEnd) !== 0 ? EdgeStart : 0) | (atStart ? EdgeEnd : 0);
+          // a minus hit is the chunk's when it starts in it (forward positions): the lead only extends matches leftward
+          within = kernel.find(m, n, 0, n - lead, back, budget, (s, e) => {
             const start = map[n - e];
             const end = map[n - s - 1] + 1;
-            if (start < b && end - start <= L) hits.push(t, start, end, -1);
+            if (start >= a && start < b && end - start <= L) hits.push(t, start, end, -1);
           });
         }
         const batch = new HitList(Math.min(hits.length, 1024) || 1);
@@ -296,6 +311,8 @@ async function runKernels<C extends SearchCompiled>(
             ),
           );
         }
+        prevStarts = starts;
+        prevAtStart = atStart;
         scanned += b - a;
         emit({ hits: batch.length ? batch.trimmed() : NoHits, counted, scanned, issues });
         if (!within) {
