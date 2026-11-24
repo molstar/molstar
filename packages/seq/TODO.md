@@ -503,3 +503,5 @@ extension kinds.
   Ligands story's layers without a legend (A3); a group's fold no history step (A7); a hint that a search step that pans
   nothing adds no Back (B1); a values y axis (D4's); and the looks C6–C8, C11–C17, B5, B6, B9, B13, A1, A2, A5, A9–A12
   as the file lists them.
+- **The square's whole genome after a ring cut** (FX35's look, 2026-11-24): its double-click leaves the cut (chr2
+  alone); it should lift `section.include` too, one step, as Cmd+Z does.

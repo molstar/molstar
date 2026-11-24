@@ -2,6 +2,10 @@
 
 Open items for the next fix point or a running lane's fix round (the loop, Each step 7).
 
+- **After a ring cut, the square's double-click does not return the whole genome** (the orchestrator's look at FX35,
+  2026-11-24, Features › Genome Ring › The Genome At The Fit: chr2 opened by a double-click on its label; the square's
+  "double-click for the whole genome" left the ring on chr2; Cmd+Z returned it). The square moves its window, the cut
+  is `section.include`: the square's whole genome should lift the cut too (one step). Kind: bug. Carried (TODO).
 - **Fixed by FX32** (`608d87ac2`). **The legend's layers menu styled unlike the header's** (the author, 2026-11-24, the use gate, a screenshot of a
   merged row's eye menu, "cdk2" and "cyclin" as bordered pills: "one weird thing i notices is the styling on the
   legend buttons. maybe tweak this to make it consistent (and perhaps add "hide/show all")"). Kind: look and a small

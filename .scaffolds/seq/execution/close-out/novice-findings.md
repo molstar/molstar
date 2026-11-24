@@ -22,10 +22,10 @@ against `search.md` (a step adds history only when it pans: by design); A6 is `p
 | A4 | Long Legend's track named "letters" titles its row "letters letters" | bug | FX34 (`293155bb1`) |
 | B7, B10 | GFF3 Find By Name: the canvas's Transcripts track capped with an inner scroll while the SVG draws every lane (By Data's case before FX30); GTF's result line cut at the right | look | FX34 (the stories at `height: 'content'`; the line wraps) |
 | B12 | Manhattan's card "chr 11,984, index 11983": an index, one off the position, jargon to a reader | look | FX34 (the card's position only) |
-| C1, C9 | Nothing on the ring opens a chromosome by click or double-click; the stories never name the gestures (Cmd/Ctrl+wheel, the label's "Show only", the square) nor the partner keys | missing design | D1 (agreed) → FX35 |
-| A13 | A legend swatch's click highlights its colour; a reader expects it to hide that colour | missing design | D2 (agreed) → FX35 |
-| B8 | No way from the track's menu to lift its cap (every lane shown): `height: 'content'` is the spec's only | missing design | D3 (agreed) → FX35 |
-| B11 | Manhattan unreadable: pale small dots, no y axis, the lines' values (7.3, 5) only in the description | missing design | D4 (agreed) → FX35 |
+| C1, C9 | Nothing on the ring opens a chromosome by click or double-click; the stories never name the gestures (Cmd/Ctrl+wheel, the label's "Show only", the square) nor the partner keys | missing design | D1 (agreed) → FX35 (`90cdfe934`) |
+| A13 | A legend swatch's click highlights its colour; a reader expects it to hide that colour | missing design | D2 (agreed) → FX35 (`90cdfe934`) |
+| B8 | No way from the track's menu to lift its cap (every lane shown): `height: 'content'` is the spec's only | missing design | D3 (agreed) → FX35 (`90cdfe934`) |
+| B11 | Manhattan unreadable: pale small dots, no y axis, the lines' values (7.3, 5) only in the description | missing design | D4 (agreed) → FX35 (`90cdfe934`) |
 | C10 | A partner step barely shows on the ring (a tick, the card far off) and is said in the stem level's bins | missing design | TODO |
 | B2, B3 | Search: a residue number gives no word; IUPAC's nucleotide letters applied to a protein without a hint | missing design | TODO |
 | A3 | The Ligands story's seven ligand layers have no legend (no per-layer or row hide) | missing design | TODO (the story) |

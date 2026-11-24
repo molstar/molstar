@@ -62,3 +62,6 @@
 - Seq\* (next): a partner or "Show only" from the ring's stem menu is one history step; the SVG twin in the stories
   follows search highlights and group folds; a folded group's summary layer is named as its track; a nucleic card no
   longer shows a 0-based index.
+- Seq\* (next): a double-click on a chromosome's label or arc opens it on the genome ring; a legend swatch says its
+  click highlights; a track's menu offers "Show every lane" and "Cap the lanes" (`track.height`); a reference
+  line's label shows its value ("genome-wide · 7.3").
