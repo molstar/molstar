@@ -86,7 +86,9 @@ waiting; its entries `StemMenu` in `viewer.ts`).
   the neck toward the centre `rondo.stubShare` (0.2) of the hole, in the partner's hue, `k ×` its count wide (a fan
   member under a device px), labelled at its tip ("chr7 · 37", centred), the strongest first, a label only where its box
   (padded 2 px) meets no label taken and its tip is `rondo.stubLabelPx` (24) from every labelled tip. Why: tips crowd at
-  a hub, and two labels over each other read as neither. The labels taken are the section's, across its layers (core's `LayoutContext.taken`): two kinds over one ring never overprint, the first layer's label kept. `stubs: none`: not drawn (their counts in the fan).
+  a hub, and two labels over each other read as neither. The labels taken are the section's, across its layers (core's
+  `LayoutContext.taken`): two kinds over one ring never overprint, the first layer's label kept. `stubs: none`: not
+  drawn (their counts in the fan).
 - **Small stubs fold**: a stem's stubs of fewer than `rondo.stubMin` (2) links, when it has two or more, are one stub of
   partner −1 (`foldStubs`; its count their sum, so the neck is still the sum of its parts), in the muted text's colour,
   unlabelled (every stem has one: the text would repeat round the ring; its count in its card), keyed
@@ -218,7 +220,9 @@ waiting; its entries `StemMenu` in `viewer.ts`).
   headless "Links failed"). Each is said once, politely (`viewer.notify` at a rest, a notice a hover never replaces,
   again only after the hole had other words or none). Why: the pending hole was empty and silent (novice 35). The
   square's pending state is the square's: the pending hatch over its lattice with "Loading…", on a failure the same
-  issue's text of the viewer whose store its layer reads through (`HoleIssue.of` with no section and the store, `StoreReader.origin`: the hidden section is no viewer's; two rings' squares each their own), via the cells' `note` (novice 35).
+  issue's text of the viewer whose store its layer reads through (`HoleIssue.of` with no section and the store,
+  `StoreReader.origin`: the hidden section is no viewer's; two rings' squares each their own), via the cells' `note`
+  (novice 35).
 
 ## What is the core's
 

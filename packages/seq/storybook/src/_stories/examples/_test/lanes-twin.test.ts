@@ -66,7 +66,13 @@ describe('the canvas and the SVG of a settled view: each item in one lane', () =
 
   for (const view of Views)
     it(`${view.dataset}/${view.id}`, { tags: ['medium'] }, async () => {
-      viewer = await openExample(view, { fixtures: true, gene: '', delayMs: 'staggered', wait: 5000, awaitOpens: 'opens' });
+      viewer = await openExample(view, {
+        fixtures: true,
+        gene: '',
+        delayMs: 'staggered',
+        wait: 5000,
+        awaitOpens: 'opens',
+      });
       const r = await lanesTwin(viewer, `${view.dataset}/${view.id}`);
       expect(r.wrong).toEqual([]);
     });

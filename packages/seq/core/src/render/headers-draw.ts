@@ -134,11 +134,12 @@ function drawSlot(out: PassWriter, s: HeaderSlotBox, hover: Hit | undefined, tok
   const hovered =
     hover !== undefined && hover.target === 'header-slot' && hover.state === s.part.name && hover.layer === s.hit.layer;
   const pressed = s.part.pressed === true;
-  const ink = hovered || pressed
-    ? tokens.colors['msui-accent']
-    : s.part.enabled
-      ? tokens.colors['msui-text-muted']
-      : tokens.colors['msui-line'];
+  const ink =
+    hovered || pressed
+      ? tokens.colors['msui-accent']
+      : s.part.enabled
+        ? tokens.colors['msui-text-muted']
+        : tokens.colors['msui-line'];
   const cx = s.x + s.width / 2;
   const cy = s.y + s.height / 2;
   if (pressed) {
@@ -304,7 +305,8 @@ export function hitHeaders(
 function hitLine(line: HeaderLine | SectionHeaderLine, x: number, y: number, shown: boolean): Hit | undefined {
   const slots = line.slots;
   // a pressed slot is drawn at rest, so it is hit there
-  for (let i = 0; i < slots.length; i++) if ((shown || slots[i].part.pressed) && inBox(slots[i], x, y)) return slots[i].hit;
+  for (let i = 0; i < slots.length; i++)
+    if ((shown || slots[i].part.pressed) && inBox(slots[i], x, y)) return slots[i].hit;
   if (shown && line.menu && inBox(line.menu, x, y)) return line.menu.hit;
   const states = line.states;
   for (let i = 0; i < states.length; i++) if (inBox(states[i].box, x, y)) return states[i].hit;

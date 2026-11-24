@@ -128,13 +128,15 @@ function watchOpens(
             open: (source, ctx) => {
               // each region read too (not with `opens`): a settled view has none in flight
               const p = e.runtime.open(source, ctx).then((o) =>
-                on === 'opens' ? o : Object.assign(Object.create(o) as OpenedSource, {
-                  read: (request: RegionRequest, signal: AbortSignal) => {
-                    const r = o.read(request, signal);
-                    opens.push(r);
-                    return r;
-                  },
-                }),
+                on === 'opens'
+                  ? o
+                  : Object.assign(Object.create(o) as OpenedSource, {
+                      read: (request: RegionRequest, signal: AbortSignal) => {
+                        const r = o.read(request, signal);
+                        opens.push(r);
+                        return r;
+                      },
+                    }),
               );
               opens.push(p);
               return p;

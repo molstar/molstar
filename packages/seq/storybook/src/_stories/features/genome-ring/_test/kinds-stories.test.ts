@@ -180,7 +180,13 @@ describe('Kinds of links, headless', () => {
         const t = l.stubLabel[s];
         if (!t) continue;
         const y = l.stubLabelY[s] + 4;
-        boxes.push([l.stubLabelX[s] - l.stubLabelW[s] / 2, y - size, l.stubLabelX[s] + l.stubLabelW[s] / 2, y + size * 0.3, t]);
+        boxes.push([
+          l.stubLabelX[s] - l.stubLabelW[s] / 2,
+          y - size,
+          l.stubLabelX[s] + l.stubLabelW[s] / 2,
+          y + size * 0.3,
+          t,
+        ]);
       }
     }
     expect(boxes.length).toBeGreaterThan(0);

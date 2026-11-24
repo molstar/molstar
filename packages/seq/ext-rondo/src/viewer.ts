@@ -48,8 +48,7 @@ const errorAt = (v: SeqViewer, source: string) =>
 // section is matched by address among the viewers that show it (one spec in two viewers: the first's)
 HoleIssue.of = (section, source, store) => {
   // no section (the square's hidden one): the viewer whose store it reads through, else the first viewer's
-  if (!section && store)
-    for (const v of Composed) if (v.store.store === store) return errorAt(v, source);
+  if (!section && store) for (const v of Composed) if (v.store.store === store) return errorAt(v, source);
   for (const v of Composed)
     if (!section || v.view.resolved.value?.sections.includes(section)) return errorAt(v, source);
   for (const v of Composed)

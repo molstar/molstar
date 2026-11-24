@@ -1494,7 +1494,8 @@ rows' commands) reads the last frame's rows layers through the behavior context'
     Why: the command owns its choices, so the menu, a palette and an agent offer the same. Why entries: one list for a
     slot, a menu item, a DOM part, a key and an agent; the registry's rules (atomic, undoable, namespaced) for free.
     **`pressed`** (an action that is on now: the track the structure is colored by) makes its item `pressed` and a DOM
-    part's `aria-pressed`; a pressed part is drawn where it is also when the other slots go with the hover (a canvas header's too: the part's `pressed`, its icon in the accent over an underline, hit at rest by a finger), and the
+    part's `aria-pressed`; a pressed part is drawn where it is also when the other slots go with the hover (a canvas
+    header's too: the part's `pressed`, its icon in the accent over an underline, hit at rest by a finger), and the
     parts are made again after a run, so one at a time follows the source (its label says what it is: the tooltip). Why:
     a host's state is told where the reader looks for the action, not in a line of its own. The state is read when the
     parts are made (a layout, a change of the hovered header, a run of a header entry): a host whose coloring changes
