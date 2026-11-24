@@ -121,8 +121,10 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
       // the menu's own chunk (`@molstar/ui`'s context menu), loaded the first time a legend over several layers opens it
       void import('@molstar/ui/components/context-menu/context-menu').then((m) => {
         if (!button.isConnected) return;
+        // in the part's own element, inside the host's `@molstar/ui` root as the header's menu is in the canvas's: on
+        // `doc.body` it was outside the root's reset and tokens, and its rows drew as the browser's buttons
         closeMenu = m.openContextMenu(
-          doc.body,
+          element,
           { x: r.left, y: r.bottom },
           row.layers.map((l) => ({
             id: l.address,
