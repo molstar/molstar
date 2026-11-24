@@ -7,6 +7,7 @@
 import type { ExampleView } from '../views.js';
 import { namesAliased } from './by-region.js';
 import * as compare from './compare.js';
+import { manhattan } from './manhattan.js';
 import * as tracks from './tracks.js';
 import { registry } from './toys.js';
 
@@ -70,6 +71,12 @@ export const GenomesViews: readonly ExampleView[] = [
     'Hi-C over toy A',
     'A symmetric contact map over toy A’s chr1 to chr3 read in tiles of two levels (the upper triangle served, the lower its mirror), on a log palette: domains along the diagonal, a hotspot between chr1 and chr3.',
     () => compare.contactMap(),
+  ),
+  view(
+    'manhattan',
+    'A Manhattan-like plot',
+    'The SNPs of a toy association study over one 20 kb chromosome as dots at their height (-log10 p), a dashed reference line at the genome-wide threshold (7.3) and a dotted one at the suggestive one (5), each labelled at the right end; the strongest signal reaches about 6, so the plot shows that none passed the threshold. The domain is open: the lines are part of it.',
+    () => manhattan(),
   ),
   view(
     'liftover',

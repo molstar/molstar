@@ -5,7 +5,7 @@
  */
 
 import { readFileSync } from 'node:fs';
-import type { GridLay, MatrixLay, RangesLay } from '@molstar/seqx-core/render';
+import type { GridLay, MatrixLay, RangesLay, ValuesLay } from '@molstar/seqx-core/render';
 import {
   DarkTokens,
   gridCellHover,
@@ -23,6 +23,7 @@ import { DotLevels, Inversion } from '@molstar/seqx-examples/genomes/generate/al
 import { NGap } from '@molstar/seqx-examples/genomes/generate/assemblies';
 import { Hotspot } from '@molstar/seqx-examples/genomes/generate/contacts';
 import { Duplicated } from '@molstar/seqx-examples/genomes/generate/liftover';
+import { GenomeWide, ManhattanPeak, Suggestive } from '@molstar/seqx-examples/genomes/manhattan';
 import { MethylationSamples } from '@molstar/seqx-examples/genomes/generate/methylation';
 import { DeletionCarriers, DeletionExtent, SampleCount } from '@molstar/seqx-examples/genomes/generate/variants';
 import { findGene, GenomeSection, geneRange, OpenedGene, SignalFloor } from '@molstar/seqx-examples/genomes/tracks';
@@ -553,6 +554,34 @@ describe('Examples/Genomes, headless', () => {
       expect(bottom).toBeGreaterThan(l.box.y + l.box.height - 1);
     }
     await bothThemes(v, ['seq.render.scale.log']);
+  });
+
+  it('a Manhattan-like plot (EC-216, EC-217): points at their height, two reference lines (7.3 dashed, 5 dotted) on an open domain the lines extend past data of about 6, drawn over the dots, labelled, light and dark', async () => {
+    const v = await open('manhattan');
+    const lay = layer<ValuesLay>(v, '-log10 p')!;
+    // the strongest SNP is about 6, under both thresholds' higher one: the domain is the line's, not the data's
+    const top = Math.max(...Array.from(lay.v.subarray(0, lay.n)).filter((x) => !Number.isNaN(x)));
+    expect(top).toBeGreaterThan(ManhattanPeak.height - 1);
+    expect(top).toBeLessThan(GenomeWide);
+    expect(lay.encoding).toBe('points');
+    expect(lay.domain).toEqual([0, GenomeWide]);
+    // both lines drawn, the dashed one at 7.3 (the domain's top, under the headroom) and the dotted at 5, each labelled
+    expect([...lay.ref.shown.slice(0, 2)]).toEqual([1, 1]);
+    const y = (at: number) => lay.box.y + lay.box.height - (at / GenomeWide) * 0.9 * lay.box.height;
+    expect(lay.ref.y[0]).toBeCloseTo(y(GenomeWide), 3);
+    expect(lay.ref.y[1]).toBeCloseTo(y(Suggestive), 3);
+    expect([...lay.ref.labelShown.slice(0, 2)]).toEqual([1, 1]);
+    expect(lay.ref.text.slice(0, 2)).toEqual(['genome-wide', 'suggestive']);
+    // the dots, then the lines (over the data), the labels in their own pass
+    const data = recordDrawLists(v.frame!.lists, ['data']).split('\n');
+    const dashed = data.map((l, i) => (/dash/.test(l) ? i : -1)).filter((i) => i >= 0);
+    expect(dashed.length).toBe(2);
+    expect(dashed[0]).toBeGreaterThan(5);
+    expect(data.slice(dashed[0]).filter((l) => l && l !== 'unclip' && !/dash/.test(l))).toEqual([]);
+    expect(recordDrawLists(v.frame!.lists, ['labels'])).toContain('genome-wide');
+    // never hit: a point on the line hits the layer's position as anywhere on the well
+    expect(v.hit(lay.box.x + 10, lay.ref.y[0])?.position).toBeDefined();
+    await bothThemes(v);
   });
 
   it('the liftover (EC-211, EC-212): A’s genes drawn on A′ through the map read by region, the duplicated stretch twice', async () => {

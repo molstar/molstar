@@ -448,9 +448,9 @@ Cut order (Gate 0, 1): contact maps, then the liftover (MAF is cut).
 | **Genome by region, names aliased** | letters of both toys from an in-memory adapter on the seed; lengths as `chrom-sizes`; one small FASTA (toy A's `chrM`, 16,569, and `HLA-A*01:01:01:01`, 3,503) for the built FASTA reader; an alias table (`1`, `chr1`, an `NC_`-style accession; `MT` against `chrM` refused) | the adapter (`withAdapter`), `runtimes/bed` (`chrom-sizes`), the built `fasta` | GA names rule, `match: chr`, `(block :name …)` quoted, `seq.resolve.assembly.lengths` | 186 to 189, 200 |
 | **A liftover** (cut last) | toy A's map to a revised toy A′ (an insertion, a deletion, a duplicated run), runs in the `seq` format, and positions with truths computed in code | the `seq` runtime (`map.source`, read by either side) | LX liftover (a bridge over the map, A's genes drawn on A′); GA projection by region | 211, 212 |
 
-**Deferred to the close-out slice** (the decisions of 2026-11-21): the **Manhattan family** (points at a height, a
-reference line, whole genome by chromosome, LD colouring, a coarse bin keeping its one significant SNP: EC-214, 216,
-217, 219), **many signals from one file** (`split` on values, EC-214), and **transcripts coloured by joined results**
+**Deferred to the close-out slice** (the decisions of 2026-11-21): the **Manhattan family** (whole genome by
+chromosome, LD colouring, a coarse bin keeping its one significant SNP: EC-214, 216, 219; points at a height and the
+reference lines are built: a Manhattan-like story over generated SNPs, CL8, in Genomes › Views), **many signals from one file** (`split` on values, EC-214), and **transcripts coloured by joined results**
 (the keyed join, EC-224; RR's `rows` shape is its data). Their generator steps go with them.
 
 **Built** (GX, merged 2026-11-23): all ten views (synteny, dot plot, signal, samples and the genotype matrix,

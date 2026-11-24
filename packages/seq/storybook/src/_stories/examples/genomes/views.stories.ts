@@ -64,5 +64,13 @@ export const NamesAliased: StoryObj = { render: () => exampleStory(view('names')
 /** A symmetric Hi-C over toy A's chr1 to chr3, two levels of tiles: domains, a hotspot between chr1 and chr3. */
 export const ContactMap: StoryObj = { render: () => exampleStory(view('contact-map')) };
 
+/**
+ * A Manhattan-like plot: a toy association study's SNPs as dots at their height (-log10 p) over one 20 kb chromosome,
+ * a dashed reference line at the genome-wide threshold (7.3) and a dotted one at the suggestive one (5), each labelled
+ * at the right end. The strongest signal reaches about 6 and the domain is open, so the lines are part of it: the plot
+ * shows that none passed the threshold.
+ */
+export const Manhattan: StoryObj = { render: () => exampleStory(view('manhattan')) };
+
 /** Toy A's genes lifted to A′ through the map between them (a duplication drawn twice, a deletion, an insertion). */
 export const Liftover: StoryObj = { render: () => exampleStory(view('liftover')) };
