@@ -49,6 +49,8 @@ export interface RangesPrep extends ItemsPrep {
   readonly known?: object;
   /** Its channels (`color`, `size`, `opacity`), compiled per layout's tokens. */
   readonly channels: LayerChannels;
+  /** `lanes: one` (a group's summary lane too): every item in one lane, no labels. */
+  readonly one?: true;
 }
 
 /**
@@ -165,6 +167,8 @@ export interface RangesLay extends ItemsBase {
    * every lane fits); `laneY` is shifted by it, `laneY0` the unshifted top of the lane block.
    */
   scrolls: boolean;
+  /** `lanes: one`: its items in one lane, no label drawn (inside or beside). */
+  one: boolean;
   room: number;
   top: number;
   scrollMax: number;
@@ -318,6 +322,7 @@ export function newLay(ctx: LayoutContext, prep: RangesPrep): RangesLay {
     order: NoI32,
     seen: 0,
     scrolls: false,
+    one: false,
     room: 0,
     top: 0,
     scrollMax: 0,

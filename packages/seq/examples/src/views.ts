@@ -42,6 +42,7 @@ import * as query from './p53/query.js';
 import * as signal from './p53/signal.js';
 import * as story from './p53/story.js';
 import * as p53Structure from './p53/structure.js';
+import * as p53Groups from './p53/groups.js';
 import * as p53Headers from './p53/headers.js';
 import * as themes from './p53/themes.js';
 import * as text from './p53/text.js';
@@ -233,6 +234,30 @@ export const P53Views: readonly ExampleView[] = [
 
 /** Views made for a feature's stories (`Features/…`), over the same datasets. */
 export const FeatureViews: readonly ExampleView[] = [
+  {
+    dataset: 'p53',
+    id: 'groups',
+    title: 'Track groups',
+    summary:
+      'p53’s tracks in three groups: Features open, Variants folded to its authored density track, Signals folded to a strip a signal. Click a group’s header (or Space on it at the header cursor) to fold or open it; the section’s menu folds or opens them all.',
+    build: () => p53Groups.build(),
+  },
+  {
+    dataset: 'p53',
+    id: 'groups-open',
+    title: 'Track groups, every group open',
+    summary:
+      'The same three groups, every one open: a header line above each, its tracks indented, a wider gap around it.',
+    build: p53Groups.open,
+  },
+  {
+    dataset: 'p53',
+    id: 'groups-folded',
+    title: 'Track groups, every group folded',
+    summary:
+      'The same three groups, every one folded to one row: Features to one lane of its domains and secondary structure, Variants to its density, Signals to three strips.',
+    build: p53Groups.folded,
+  },
   {
     dataset: 'p53',
     id: 'headers',

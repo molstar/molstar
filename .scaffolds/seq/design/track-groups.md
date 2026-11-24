@@ -72,20 +72,20 @@ group: { parents: ['section'], ids: 'required',
   params: { label?: string,                    // its id when absent
             collapsed?: boolean = false,       // the opening state (the session's set overrides it)
             hidden?: boolean = false,          // the group and its tracks not drawn; its tracks keep their own `hidden`
-            summary?: 'auto' | 'none' | ref<track> = 'auto' } }   // what a folded group draws
+            summary?: 'auto' | 'none' | { ref, kinds: ['track'], in: 'group' } = 'auto' } }   // what a folded group draws
 track.parents: ['section', 'group']            // was ['section']
 ```
 
 - **One level**: a group's children are tracks only (templates included); a group in a group is a check error
-  (`seq.check.parent`, as any parent the description refuses). Why: no example needs nesting, and the header, cursor
+  (`repr.schema.parent.invalid`, as any parent the description refuses). Why: no example needs nesting, and the header, cursor
   and summary rules stay one level; `group.parents` gaining `'group'` later is additive.
 - **Its tracks are its children**, so a track in a group has the address `/views/v/<section>/<group>/<track>`. Why a
   tree over a membership ref: the order is the spec's order and the membership is where the track is, one place to
   read and to edit (Rejected 2). The cost: moving a track in or out of a group changes its address (a `move` patch,
   `repr/patch`'s op with a new parent); session state keyed by a track address (a band's scroll) starts fresh.
-- **`summary`** names one of its own tracks (checked: `seq.check.group.summary`, a ref to a track of another parent
-  is an error), shown only while the group is folded, never while open (EC-103); `auto` draws the automatic summary
-  (5); `none` draws the header line alone.
+- **`summary`** names one of its own tracks by its id (a `ref` resolved `in: 'group'`; checked:
+  `seq.lang.group.summary`, a track of another parent or none is an error), shown only while the group is folded, never while open (EC-103); `auto` draws the automatic summary
+  (Decision 5); `none` draws the header line alone.
 - **The version moves `0.10.0` → `0.11.0`**, pre-release, no migration (core `_spec` › Versions). A `0.10` spec reads
   unchanged. A reader without groups (EC-244, "collapsed groups and summaries" among what another renderer may lack)
   draws a group's tracks as the section's, every group open, its `summary` track left out; the version-aware validate
@@ -93,6 +93,9 @@ track.parents: ['section', 'group']            // was ['section']
   is the previous implementation's word and ux-foundations' ("collapsing a group"), but the codebase already says
   scroll groups, block groups (`ResolvedSection.groups`, EC-210), copy groups, a text's groups of ten and the theme
   language's letter `group`; `track_group` reads longer and clashes with none. Settled by the author's pick.
+- **Codes and the ref's form, as built** (CL6, 2026-11-24): the codebase's own codes (`repr.schema.parent.invalid`
+  for any refused parent, `seq.lang.*` for the language's checks) and a ref by bare id in the group, not the draft's
+  `seq.check.*` and `ref<track>`. Why: one catalog of codes, and a bare id reads as `across` does.
 - **The builder**: `section.group(id, params)` returning a builder with `.track(...)`, as `section.track` does.
 
 ### 2. The resolved view: tracks stay flat, each names its group
@@ -122,7 +125,7 @@ track.parents: ['section', 'group']            // was ['section']
   are jumps, so Alt+Left restores the set and the window together (the clades' rule).
 - **A toggle keeps the group's header line where it is on the page** (the section's `top` adjusted, clamped), so the
   pointer stays on what it clicked; heights animate as a clade toggle does (`view.motion`, `view.jumpMs`; a cut under
-  reduced motion).
+  reduced motion). **Not built** (CL6): the header is not kept in place (the bands below move) and the heights cut.
 
 ### 4. The header
 
@@ -132,9 +135,9 @@ track.parents: ['section', 'group']            // was ['section']
   data in the header line. Gaps: `trackGap` (4) between a group's tracks, `groupGap` (8) before and after a group
   (ux-foundations section 3 already says "4px within a group, 8px between groups").
 - **Folded**: one row. Its label column is the header (chevron ▸, the label, a quiet count "4 tracks"; slots on
-  hover), its band the summary (5). With `summary: none`, the header line alone.
+  hover), its band the summary (Decision 5). With `summary: none`, the header line alone.
 - **Hit**: target `group-header` (the line, or a folded row's label column, outside its slots); its slots
-  `header-slot` as a track's. The summary band's marks hit as their own items (5).
+  `header-slot` as a track's. The summary band's marks hit as their own items (Decision 5).
 - **Gestures**: a click on the header (chevron or label) toggles (`groups.toggle`); the `seq:hide` slot hides the
   group (`track.hide` on the group's address: its `hidden`, one patch); a secondary click or "⋯" opens its menu.
 - **Its menu** (`headerMenu`, a new entry scope `on: 'group'` beside `track`, `section`, `element`): Collapse or
@@ -159,14 +162,14 @@ in the group's order:
 
 | Kind | Form | Drawn |
 |---|---|---|
-| `ranges`, `secondary`, `variants` | `lane` | every item of every member in **one shared lane** (`lanes: one`, 6), labels off; across members later over earlier, within a member shorter over longer; a device column holding more than one item takes the layer's density form (`ranges-density.ts`); variants as their ticks without heads |
-| `pairs` | `lane` | each pair's two ends as 2 px ticks in the shared lane, in the pair's colour (arcs need height a row does not have) |
+| `ranges`, `secondary`, `variants` | `lane` | every item of every member in **one shared lane** (`lanes: one`, Decision 6), labels off; across members later over earlier, within a member shorter over longer; a device column holding more than one item takes the layer's density form (`ranges-density.ts`); variants as their ticks without heads. **Not built** (CL6): every item is drawn in data order, a later item over an earlier one (not shorter over longer), and a column holding more than one item stays items (no density form) |
+| `pairs` | `lane` | each pair's two ends as 2 px ticks in the shared lane, in the pair's colour (arcs need height a row does not have). **Not built** (CL6): `pairs` has no `lanes: one`; its lane form lays its own lanes |
 | `values` | `strip` | a strip a member, `group.summary.stripPx` (4) each, below the lane, the values layer's thin look (its colour by value or its series tint; layouts.md "The values look"); at most `group.summary.maxStrips` (4), the rest counted in the header ("+2 not shown") |
 | `rows` | `row` | the alignment's consensus row: the rows layer's `summary` form (`consensus`, `logo`, `bar`) over every shown row, the root clade's summary row (grids-and-rows.md, "The summary row"), cached by (layer, entry version, theme) |
 | `letters`, `logo`, `ruler`, `matrix`, `grid`, `frame`, `bands`; an extension's type without `collapse` | none | left out, counted in the header's hover card ("Sequence: not in the summary") |
 
 - **Height**: the lane (one ranges lane, 22 px) when any member has a `lane` form, plus the strips, plus a row's
-  height; at least one lane. A summary with nothing to draw is the empty-well rule's note row ("no items",
+  height; strips alone stand with no lane above them (the row padded to the header's line). A summary with nothing to draw is the empty-well rule's note row ("no items",
   `track.emptyPx`); pending members draw the one-lane placeholder (EC-169).
 - **Hit and hover**: a summary mark hits as its own item (its layer's and track's address, so the hover card names
   the member: "R248Q, in ClinVar"), and is hovered, selected and highlighted as that item; where marks overlap the
@@ -214,14 +217,14 @@ in the group's order:
   A header hover lights nothing (track-header-parts.md's refusal of EC-146 by default, the same for a group).
 - **The keyboard cursor** on data is a position on the section's axis: a fold does not move it. On a rows track in a
   folded group it stands on the consensus row (the clades' rule, announced "in group Alignment"), back on its row when
-  the group opens. The header cursor: section 4.
+  the group opens. The header cursor: Decision 4.
 - **A reveal** (a focus, a link, a search step, a bookmark) landing on an item drawn only by a folded group's track
   opens the group, one jump; Alt+Left folds it again (the clades' rule, grids-and-rows.md Decision 3). A selection or
   a highlight does not open it (its marks show in the summary).
 - **Track heights**: the sharing of heights among tracks of one kind ("only when close", layouts.md) reads every
   track, folded or not, so a fold never resizes another track. The summary band takes no part in the sharing.
 - **Bridges** (`bridge` nodes naming a track) end on the summary band while the track's group is folded.
-- **Navigators** whose picture names a track in a group read it as before (the walker, 2).
+- **Navigators** whose picture names a track in a group read it as before (the walker, Decision 2).
 - **Layouts**: groups fold in `tracks` (stacked blocks included: the set is the section's, applied in every block).
   In `text` and `rings` every group is drawn open with no header line and the folded set is kept, not applied
   (`seq.render.groups.layout`, info, once, when some are folded), as text unfolds every clade. Why: text repeats its
@@ -286,7 +289,7 @@ search hit inside a folded group opening it and Alt+Left folding it back. Whethe
 |---|---|---|---|
 | a group's `collapsed` (spec) | false | a figure opens showing its tracks; the writer folds on purpose | true |
 | a group's `summary` (spec) | `auto` | a folded group still shows where its data is | `none`, a track of the group (not built) |
-| a ranges layer's `lanes` (spec) | `packed` | today's lanes and labels | `one` (not built) |
+| a ranges layer's `lanes` (spec) | `packed` | today's lanes and labels | `one` |
 | `header.groupPx` (render config) | 20 | the section header's line (`header.sectionPx`) | any (not built) |
 | `header.groupIndentPx` (render config) | 12 | membership read from the label column alone | 0 (not built) |
 | `groupGap` (render config) | 8 | ux-foundations section 3 ("8px between groups") | any (not built) |
@@ -387,7 +390,7 @@ search hit inside a folded group opening it and Alt+Left folding it back. Whethe
 - **Inverses**: fold and open (`groups.toggle`); collapse all and expand all; a reveal opens and Alt+Left folds;
   hide and show (`track.hide`, `track.show` on a group); `lanes: one` and `packed`. Built.
 - **Symmetric cases**: a track leaving its group (not built: the writer's, Decision 7); the cursor going into and out
-  of a folded group's headers (section 4: one stop, a track header's cursor moved to its group's); a hover from the
+  of a folded group's headers (Decision 4: one stop, a track header's cursor moved to its group's); a hover from the
   summary to another section and from another section into the summary (section 8). Built.
 - **Plurals**: every group of a section (bulk), of the view (`section?` absent); several hidden groups in the host's
   list (one entry each). Built.
@@ -397,23 +400,23 @@ search hit inside a folded group opening it and Alt+Left folding it back. Whethe
 
 | Decision | Where |
 |---|---|
-| The `group` kind, its params, `track.parents`; one level | core › Language |
+| The `group` kind, its params, `track.parents`; one level | core › Groups of tracks |
 | `0.11.0`; a reader without groups draws them open | core › Versions |
-| The `group.summary` and nesting checks | core › Issues |
-| `ResolvedTrack.group`, `ResolvedSection.trackGroups`; the walker | core › Resolved view |
-| The header line, the folded row, indent and gaps, the hit target | core › Track headers |
-| The summary band, its forms by kind, its height and hit | core › Tracks layout |
-| `LayerType.collapse` | core › Layer types |
-| `lanes: one` | core › Layer types (ranges) |
-| Folded tracks share heights; the summary takes no part | core › Track heights |
-| Groups open in text and rings (`seq.render.groups.layout`) | core › Text layout, Rings layout |
-| `renderSvg`'s `groups` | core › Export |
-| The folded set in the section's viewport; `collapsed` the opening state; resets on its patch | viewer › ViewModel |
-| A toggle a hand's move; bulk and reveal jumps | viewer › ViewModel (history) |
-| The `groups.*` commands and their kinds; `layer.lanes` | viewer › Commands |
-| The header cursor's group stop, Space, Enter | viewer › Behaviors (Headers) |
-| The menu's `on: 'group'` entries | viewer › Header menu and Header parts |
-| Hidden groups in the host's list | viewer › Behaviors (Hidden tracks) |
-| The render config items | core › Configuration |
+| The `group.summary` and nesting checks | core › Groups of tracks |
+| `ResolvedTrack.group`, `ResolvedSection.trackGroups`; the walker | core › Resolved view › Groups |
+| The header line, the folded row, indent and gaps, the hit target | core › Render › Track groups |
+| The summary band, its forms by kind, its height and hit | core › Render › Track groups |
+| `LayerType.collapse` | core › Render › Track groups |
+| `lanes: one` | core › Render › Track groups |
+| Folded tracks share heights; the summary takes no part | design-only: not built yet (the sharing reads the bands shown: a fold can move another track's shared height) |
+| Groups open in text and rings (`seq.render.groups.layout`) | core › Render › Track groups |
+| `renderSvg`'s `groups` | core › Render › Track groups |
+| The folded set in the section's viewport; `collapsed` the opening state; resets on its patch | viewer › ViewModel › Groups |
+| A toggle a hand's move; bulk and reveal jumps | viewer › Behaviors › Groups |
+| The `groups.*` commands and their kinds; `layer.lanes` | viewer › Behaviors › Groups |
+| The header cursor's group stop, Space, Enter | viewer › Behaviors › Groups at the header cursor |
+| The menu's `on: 'group'` entries | design-only: not built yet (the section's Collapse all and Expand all groups are: viewer › Hidden groups) |
+| Hidden groups in the host's list | viewer › Hidden groups |
+| The render config items | core › Render › Configuration |
 | The matrix cells | design-only: ux-foundations.md's matrix is the instance's (§interaction-matrix) |
 | Grouping by attribute, nesting, moving between groups | design-only: not built (Rejected 1, 6; Decision 7) |

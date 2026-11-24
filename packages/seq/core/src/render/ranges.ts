@@ -217,6 +217,7 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
       ...(src && layer.address !== undefined ? { known: blockKnown(model, layer.address) } : {}),
       owner: layer.data?.address ?? '',
       channels: channelForms(layer.theme),
+      ...(layer.params.lanes === 'one' ? { one: true as const } : {}),
     };
   },
 
@@ -235,6 +236,7 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     lay.overflow = 0;
     lay.laneCount = 0;
     startConnectors(lay, ctx, prep.connector);
+    lay.one = prep.one === true;
     const src = prep.src;
     if (!src) return lay;
 
@@ -302,9 +304,14 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
         lay.overflow = 0;
         for (let k = 0; k < count; k++) if (lanes[order[k]] < 0) lay.overflow++;
       };
-      assign(maxLanes, ctx.settled);
+      if (prep.one) {
+        // `lanes: one`: every item in the one lane, a later one drawn over an earlier one
+        lanes.fill(0);
+        lay.laneCount = n ? 1 : 0;
+        lay.overflow = 0;
+      } else assign(maxLanes, ctx.settled);
       // the whole data packs in its lanes: a sticky lane that leaves an item out is packed fresh before any overflow
-      if (lay.overflow && ctx.content && !ctx.content.partial && !ctx.settled) assign(maxLanes, true);
+      if (!prep.one && lay.overflow && ctx.content && !ctx.content.partial && !ctx.settled) assign(maxLanes, true);
       // past the lanes: the last lane becomes a density row of what does not fit; the rest stay items
       if (lay.overflow && config.ranges.overflow === 'extra-lanes' && maxLanes > 1) {
         assign(maxLanes - 1, ctx.settled);
@@ -437,7 +444,8 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     // else beside in the label lane (drawn in the labels pass)
     const sink = ctx.labels !== undefined && ctx.labels !== 'inside' ? ctx.labels : undefined;
     lay.ln = 0;
-    if (sink) sinkLabels(lay, src, sink, box.y);
+    // `lanes: one` lays no labels (hover names an item)
+    if (sink && !prep.one) sinkLabels(lay, src, sink, box.y);
     // a mark cut at both ends is square
     lay.gap = lay.laneHeight >= 6 ? 2 : 0;
     const h = lay.laneHeight - lay.gap;
@@ -474,7 +482,7 @@ export const RangesType: LayerType<RangesPrep, RangesLay> = {
     if (gene) {
       lay.gene.ln = 0;
       if (!sink) placeGeneLabels(lay, n, box.x, lay.fontSize);
-    } else if (!sink && lay.laneHeight >= 10) placeLabels(lay, ctx);
+    } else if (!sink && !prep.one && lay.laneHeight >= 10) placeLabels(lay, ctx);
     return lay;
   },
 

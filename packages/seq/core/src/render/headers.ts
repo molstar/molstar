@@ -7,8 +7,15 @@
 import { type Node, resolveAddress } from '@molstar/core/repr/tree';
 import { idRunOf } from '@molstar/seqx-core/lang/check';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
-import type { ResolvedLayer, ResolvedSection, ResolvedTrack } from '@molstar/seqx-core/view';
+import {
+  type ResolvedLayer,
+  type ResolvedSection,
+  type ResolvedTrack,
+  type ResolvedTrackGroup,
+  tracksOf,
+} from '@molstar/seqx-core/view';
 import { fontSize, type RenderConfig } from './config.js';
+import { groupCount } from './groups-hooks.js';
 import type { Box, Hit } from './layer-type.js';
 import type { TextMetrics } from './text.js';
 
@@ -62,6 +69,8 @@ export interface HeaderParts {
 export interface HeaderInputFacts {
   readonly section: ResolvedSection;
   readonly track?: ResolvedTrack;
+  /** A folded group's row (its first band): the header acts on the group, its line's address the group's. */
+  readonly group?: ResolvedTrackGroup;
   readonly filtered: readonly { readonly layer: string; readonly count: number }[];
   readonly hiddenLayers: readonly string[];
   readonly hiddenTracks: readonly HiddenTrack[];
@@ -146,6 +155,8 @@ export interface HeaderStateBox {
  * a menu, its states; `actions` the box the slots and the "⋯" take (their backdrop), absent when it draws none.
  */
 export interface HeaderLine {
+  /** A folded group's row: the group's address (its line acts on the group, not on the band it sits on). */
+  readonly group?: string;
   readonly line: Box;
   readonly label: Box;
   readonly slots: readonly HeaderSlotBox[];
@@ -548,9 +559,24 @@ export function hiddenTracksOf(model: StaticModel, section: ResolvedSection): re
   let out = Hidden.get(section);
   if (out) return out;
   let found: HiddenTrack[] | undefined;
-  for (const t of resolveAddress(model.spec, idRunOf(section.address))?.children ?? []) {
-    if (t.kind !== 'track' || t.id === undefined || t.params?.hidden !== true) continue;
-    (found ??= []).push({ address: `${section.address}/${t.id}`, label: hiddenTrackName(t) });
+  let group: string | undefined;
+  for (const { node: t, address, group: g } of tracksOf(
+    resolveAddress(model.spec, idRunOf(section.address)),
+    section.address,
+  )) {
+    // a hidden group: one entry, by its label (its `track.show` shows the group)
+    if (g && g.node.params?.hidden === true) {
+      if (group === g.address) continue;
+      group = g.address;
+      const label = g.node.params?.label;
+      // its tracks counted, as the host's list says it ("Variants (3 tracks)")
+      const n = (g.node.children ?? []).filter((x) => x.kind === 'track').length;
+      const name = typeof label === 'string' ? label : (g.node.id ?? '');
+      (found ??= []).push({ address: g.address, label: `${name} (${groupCount(n)})` });
+      continue;
+    }
+    if (t.params?.hidden !== true) continue;
+    (found ??= []).push({ address, label: hiddenTrackName(t) });
   }
   out = found ?? NoHidden;
   Hidden.set(section, out);

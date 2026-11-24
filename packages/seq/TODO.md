@@ -432,6 +432,11 @@ extension kinds.
   legend entry without a swatch, its label doubled; the scattered pick's grid lines in dark; the dot plot's white empty
   cells in dark and "chr1" against "1"; Liftover's overlapping labels, jargon and no bridge legend; the methylation
   matrix's missing cells as dark as low ones, samples called "State"; BED12 tracks unnamed.
+- **Track groups' followups** (CL6): the `on: 'group'` header menu and its words (a folded row's menu says "Hide track"
+  for the group); the `seq:lanes` menu entry; the rows' consensus summary (`row`); `lanes: one` for `secondary` and
+  `variants`; height sharing over folded tracks; per-type `LayerType.collapse`; a state chip on a folded row with no
+  `headers` behavior; the header kept in place on a toggle and the height animation; `pairs` in one lane; a column's
+  density form; draw order (later over earlier, the design's shorter over longer).
 - **Search's followups** (CL5): rows and cells layers searched (letters layers only now); the alignment representative
   and the heavy timing bounds; `seq.search.save.rects` unused; a source not open yet is skipped and said, not waited for
   (the store signals no attach); the Design/Mocks/Search mock; feature 182 "building"; the box's strand switch shown for

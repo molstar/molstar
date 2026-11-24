@@ -19,6 +19,7 @@ import {
   SectionClasses,
   SystemKinds,
 } from './molecule-language.js';
+import { GroupKinds, TrackParents } from './group-language.js';
 import { ScaleParamsDescription, ThemeLanguage, ThemeLanguageId } from './theme-language.js';
 import { TooltipKinds } from './tooltip-language.js';
 
@@ -26,7 +27,7 @@ import { TooltipKinds } from './tooltip-language.js';
  * The version of the language this description is (the package's `LanguageVersion` is the same). Pre-release (`0.x`):
  * a change moves it with no migration (_spec/README.md, Versions).
  */
-export const SeqLanguageVersion = '0.10.0';
+export const SeqLanguageVersion = '0.11.0';
 
 /**
  * What `pairs.a`/`b`, `ranges.target` and `map.to` take: a system, or an alignment by its columns system (its address;
@@ -1029,9 +1030,10 @@ export const SeqLanguage = defineLanguage({
         scale: { type: 'number', min: 0, doc: 'Its length’s factor on screen; 1 when absent.' },
       },
     },
+    ...GroupKinds,
     track: {
-      doc: 'A track of a section: a row of layers.',
-      parents: ['section'],
+      doc: 'A track of a section or of a group of it: a row of layers.',
+      parents: TrackParents,
       ids: 'required',
       params: {
         label: { type: 'string', doc: 'The label of the track (its id when absent).' },
@@ -1132,6 +1134,11 @@ export const SeqLanguage = defineLanguage({
         arrow: channel(
           '`ranges`: an arrowhead on the item’s end, start or both (`end`, `start`, `both`), on the piece holding that end, never on a cut one; `none` when absent.',
         ),
+        lanes: {
+          type: 'string',
+          enum: ['packed', 'one'],
+          doc: '`ranges`: its items in lanes (`packed`, when absent: an item a lane free under it, labels beside or inside) or `one` (every item in one lane, labels off, a later item over an earlier one; the track one lane high).',
+        },
         connector: {
           type: 'string',
           enum: ['line', 'none'],

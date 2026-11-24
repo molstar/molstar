@@ -13,6 +13,8 @@
 import { derive, type ReadonlyState, ReactiveModel, State } from '@molstar/core/reactive';
 import { type Issue, issueOf, parseAddress, printAddress, type Segment } from '@molstar/core/repr/tree';
 import { hiddenTracksOf, onlyOnHiddenTracks } from './hidden-tracks.js';
+import { GroupsView } from './groups-door.js';
+import { groupIdOf } from './view-folds.js';
 import { addRefPatch, RefsId, type RefInput, refAddresses } from '@molstar/seqx-core/lang';
 import {
   type AddressResolution,
@@ -422,6 +424,15 @@ export class AddressModel extends ReactiveModel {
     return { done, status: resolution.status, message, issues: resolution.issues };
   }
 
+  /** The folded groups whose tracks alone draw the items an address names (a focus or a reveal opens them). */
+  private _foldedOnly(resolution: AddressResolution): readonly string[] {
+    const r = resolution.result;
+    const sections = this.view.resolved.value?.sections;
+    if (r?.type !== 'keys' || !r.keys.keys.length || !sections?.some((s) => s.trackGroups)) return [];
+    const owners = new Set(r.keys.keys.map((k) => k.owner));
+    return GroupsView.foldedHolding?.(sections, (s) => this.view.foldedGroups(s), owners) ?? [];
+  }
+
   /** Whether the last move found what it moved to wholly in a hidden stretch (and moved to its break). */
   private _hidden = false;
 
@@ -481,7 +492,7 @@ export class AddressModel extends ReactiveModel {
     }
     this._pendingFocus = undefined;
     if (this._onHiddenTrack(resolution)) return this._outcome(resolution, false, HiddenTrackMessage);
-    const r = this._moveTo(loc, reveal, section);
+    const r = this._moveTo(loc, reveal, section, this._foldedOnly(resolution));
     // a section not placed yet (no width, an axis waiting for its length) keeps the move as its intent: not done yet
     if (r === 'pending') {
       this._keepUntilPlaced(address);
@@ -571,12 +582,29 @@ export class AddressModel extends ReactiveModel {
    * A focus or a reveal is a jump (_spec/README.md "ViewModel", History): the viewports it leaves are a step of the
    * view's history.
    */
-  private _moveTo(loc: Location, reveal: boolean, only?: string): 'moved' | 'pending' | 'none' {
+  private _moveTo(
+    loc: Location,
+    reveal: boolean,
+    only?: string,
+    opens: readonly string[] = [],
+  ): 'moved' | 'pending' | 'none' {
     let r: 'moved' | 'pending' | 'none' = 'none';
     this._landing?.stop();
     this.view.jump(
       () => {
+        // the folded groups alone drawing it open first, in the same jump: back folds them again
+        let opened = false;
+        for (const g of opens) {
+          const section = g.slice(0, g.lastIndexOf('/'));
+          const id = groupIdOf(g);
+          opened =
+            this.view.setFoldedGroups(
+              section,
+              this.view.foldedGroups(section).filter((x) => x !== id),
+            ) || opened;
+        }
         r = this._moveEach(loc, reveal, only);
+        if (r === 'none' && opened) r = 'moved';
         return r !== 'none';
       },
       true,

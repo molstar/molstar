@@ -15,7 +15,7 @@ is added in the change that builds what it describes.
 
 ## Versions
 
-- The language has one version, `SeqLanguageVersion` (`0.10.0`). Why: one language, one description, one number for
+- The language has one version, `SeqLanguageVersion` (`0.11.0`). Why: one language, one description, one number for
   readers to check.
 - **Pre-release** (`0.x`): a change to the language moves the version with no migration (`0.1.0`: every child of the
   spec has an id, `layer` included; `0.2.0`: the `refs` container and the `ref` kind; `0.3.0`: the `snapshots` container
@@ -52,11 +52,15 @@ is added in the change that builds what it describes.
   `0.8.0`: the `values` encoding `points` (Render, Layer types, `values`); `0.9.0`: the `tooltip` kind under `views` and
   a `view` (`on`, `target`, `rows`, `source`, `schema`, `block`, `category`, `field`, `text`, `label`, `format`;
   Language, Tooltips) and a view's `export.titles`; `0.10.0`: a rings section's `center` (`title`, `none`: what the hole
-  holds; the render config's `rings.center` the default when absent). A spec in an earlier `0.x` reads as one in this
-  one, and is reported where it no longer fits: a `0.6.0` spec reads unchanged (every addition is optional; inline
-  pairs, grids or matrices over an assembly, never read in 0.6, now need their names: `seq.lang.data.names`), with one
-  change of behaviour: `a_name`/`b_name` columns on pairs over a sequence, a ride-along field before, are refused
-  (`seq.lang.data.names`), but an extension's `requires: '0.6'` no longer covers it (0.x: the minor).
+  holds; the render config's `rings.center` the default when absent); `0.11.0`: the `group` kind under a section
+  (`label`, `collapsed`, `hidden`, `summary`) and a `track` under a group (Language, Groups of tracks). A reader without
+  groups (an older minor, another renderer; EC-244) draws a group's tracks as the section's, every group open, its
+  `summary` track left out: `FlattenedKinds` lists `group` with the version it came in, and a spec of an older `version`
+  holding one is told so (`seq.lang.version.kind`). A spec in an earlier `0.x` reads as one in this one, and is reported
+  where it no longer fits: a `0.6.0` spec reads unchanged (every addition is optional; inline pairs, grids or matrices
+  over an assembly, never read in 0.6, now need their names: `seq.lang.data.names`), with one change of behaviour:
+  `a_name`/`b_name` columns on pairs over a sequence, a ride-along field before, are refused (`seq.lang.data.names`),
+  but an extension's `requires: '0.6'` no longer covers it (0.x: the minor).
 
 ## Language
 
@@ -96,15 +100,16 @@ checks it cannot express.
   `points`; absent: `bars`) by `values`, `style` (`blocks`) by `secondary`, `line` (`solid`, `dashed`, `dotted`, `wavy`,
   `double`, `box`, `highlight`, `gene`; absent: blocks) and `arrow` (`none`, `end`, `start`, `both`; absent: `none`) by
   `ranges`; a `ranges` layer's `connector` (`line`, the default, or `none`: the hairline joining an item's pieces across
-  shown positions); a grid section's `of_y` (absent: `of`), `follow_y` (`x`, `none` or a section; absent: `x`) and
-  `aspect` (a number or `none`; absent: 1); by `pairs` its `side` (`above`, `below`; absent: `above`), `reach` (absent:
-  0.25), `height` (`span`; absent: `span`), `crossing` (`same`, `split`; absent: `same`), `across_lines` (absent: false)
-  and `mirror` (absent: false: a pair drawn where its data puts it, never read off whether the two axes are one system;
-  the tRNA's builder sets it); by `grid` its `aggregate` (`mean`, `max`, `min`; absent: `mean`); by both in a grid
-  `triangle` (`both`, `upper`, `lower`; absent: `both`). Why: the figure's form is the writer's, never the host's or the
-  data's: one spec draws the same in the canvas, the SVG and another viewer. The refs inside `direction` and `pieces`
-  are checked by kind as top-level refs are, and a change's check reaches them (its reverse index walks a union's record
-  member). Why: the composition is the application's.
+  shown positions) and `lanes` (`packed`, the default, or `one`: every item in one lane, labels off, a later item over
+  an earlier one, the track one lane high; a group's summary lane is one); a grid section's `of_y` (absent: `of`),
+  `follow_y` (`x`, `none` or a section; absent: `x`) and `aspect` (a number or `none`; absent: 1); by `pairs` its `side`
+  (`above`, `below`; absent: `above`), `reach` (absent: 0.25), `height` (`span`; absent: `span`), `crossing` (`same`,
+  `split`; absent: `same`), `across_lines` (absent: false) and `mirror` (absent: false: a pair drawn where its data puts
+  it, never read off whether the two axes are one system; the tRNA's builder sets it); by `grid` its `aggregate`
+  (`mean`, `max`, `min`; absent: `mean`); by both in a grid `triangle` (`both`, `upper`, `lower`; absent: `both`). Why:
+  the figure's form is the writer's, never the host's or the data's: one spec draws the same in the canvas, the SVG and
+  another viewer. The refs inside `direction` and `pieces` are checked by kind as top-level refs are, and a change's
+  check reaches them (its reverse index walks a union's record member). Why: the composition is the application's.
 - **Numberings** (`<sequence>/<id>`, a `numbering` child of a sequence): a label a position of its sequence, its id the
   name the forms read (`:numbering kabat`, Queries, Numberings and labels). `method` is `labels`, `offset` (a position
   plus `by`: UniProt's from 1, an author numbering from 94) or `segments` (runs `start`, `end`, `first`: a position in
@@ -248,6 +253,25 @@ checks it cannot express.
   the reading node: the conventions are the file's whoever reads it, the store keys entries by source, and several
   readers of one file share one open; an edit of the transform is a patch of the source, which reopens it in place (one
   undo step, no side-by-side preview).
+
+### Groups of tracks
+
+`lang/group-language.ts`: a `group` is a section's child holding tracks (`TrackParents`: a track's parent a section or a
+group), one level deep. Why a tree over a membership param: the order is the spec's and the membership where the track
+is, one place to read and edit; the price is that a track moved in or out of a group changes its address
+(`/views/v/<section>/<group>/<track>`).
+
+- **A group's params**: `label` (its id when absent), `collapsed` (false: the opening state; the viewer's folds are
+  session state after, viewer › ViewModel), `hidden` (false: it and its tracks not drawn; its tracks keep their own
+  `hidden`), `summary` (`auto` when absent: its tracks' layers in their summary forms; `none`: the header alone; or the
+  id of one of its tracks, a `ref` resolved `in` the group, drawn only while folded).
+- **One level**: a group in a group is `repr.schema.parent.invalid`, as any parent the description refuses. Why: no
+  example needs nesting, and the header, cursor and summary rules stay one level; `group.parents` gaining `group` later
+  is additive.
+- **`seq.lang.group.summary`** (error): a `summary` naming no track of the group (another parent's, or none).
+- **`seq.lang.version.kind`** (warning, once a kind): a group in a spec whose `version` is older than `0.11.0`: a reader
+  of that version flattens it (`FlattenedKinds`, EC-244).
+- **The builder**: `section.group(id, params, body)` gives a `GroupBuilder` whose `track(...)` is a section's.
 
 ### Molecules and complexes
 
@@ -2778,6 +2802,17 @@ Overlay, Opened sources), kept per model and view. No data, no dynamic node, no 
   kinds': the core's three past the axis; none when absent; the axis always drawn). Versions compare by major, a 0.x by
   its minor, ranked below every 1.x (`5` and `0.5` never match). Why in the resolved view: the same for every renderer,
   and the issue names the package a spec needs.
+- **Groups** (`groups.ts`): `ResolvedSection.tracks` stays the flat list in spec order, a group's tracks in place, so
+  every reader of it works unchanged; a track in a group names it (`ResolvedTrack.group`, its address), a group's
+  authored summary track says whose it is (`summaryOf`: drawn only while folded, EC-103). `ResolvedSection.trackGroups`
+  (absent when none; not `groups`, the blocks') lists the groups with a track shown, in order:
+  `{ address, label, collapsed, summary?, none?, count }` (`count` its tracks shown open, the summary track not
+  counted). A hidden group's tracks are left out as a hidden track is, and a group with none shown is not listed (it
+  draws nothing). **One walker**: `tracksOf(sectionNode, address)` gives a section's tracks in the spec through its
+  groups (hidden ones included, `specTrackShown` says which are drawn); the resolve, the hidden-tracks lists and the
+  navigators' pictures read a section's tracks through it. A child of a kind the language lacks (a newer minor's
+  container) is read through, its tracks the section's: what an older reader does with `group` (`FlattenedKinds`,
+  EC-244).
 - **Templates** (`templates.ts`): a template is `{ source, kind, depth, order, filter }` (`depth` 0, `order` `key` when
   absent); its layers without data are not placed (no issue). `templateNeeds(view)` is the depth each template source
   needs. `templateNodes` selects the overlay's nodes of the kind at the depth under the source whose params equal the
@@ -2827,6 +2862,8 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 | `inset`                                                                           | 8                                                                                                                      | the page's inset around everything                                                                                                                                                                                                                                                                                                                                                                                        |
 | `labelWidth`, `labelGap`, `labelColumn`                                           | 112, 8; measured, 80 to 160                                                                                            | one label column a view, so the data columns align; measured to the widest track label between `labelColumn.min` and `.max`, an ellipsis past it, never a hard clip (decided from the defaults audit: a fixed 112 clipped real names); a view with an alignment's rows, or `labelWidth` given alone, keeps `labelWidth`                                                                                                   |
 | `trackGap`, `sectionGap`                                                          | 4, 20                                                                                                                  | gaps between a section's tracks and between sections: a section is a unit, grouped by proximity (20, the audit; was 8)                                                                                                                                                                                                                                                                                                    |
+| `groupGap`                                                                        | 8                                                                                                                      | the gap before and after a group of tracks, in place of `trackGap` ("4px within a group, 8px between groups"; Track groups)                                                                                                                                                                                                                                                                                               |     |
+| `group.summary.stripPx`, `.maxStrips`                                             | 4 px, 4                                                                                                                | a folded group's values strip each (the values layer's thin look reads from 3 px), at most four (a folded row stays near one lane's height; the rest counted in its header)                                                                                                                                                                                                                                               |     |
 | `trackPadding`                                                                    | top 0, bottom 0                                                                                                        | a track's padding inside its well when its spec gives none (a host's default); never left or right: the horizontal is the axis                                                                                                                                                                                                                                                                                            |
 | `trackShape`                                                                      | `squircle`                                                                                                             | a track's well is a surface, so a squircle, its data clipped to it (the author's look); `square`, a box                                                                                                                                                                                                                                                                                                                   |
 | `heights`                                                                         | letters 20, ranges 36, values 32, ruler 22, secondary 16, variants 32, frame 16, rows 240, logo 48, pairs 64, grid 240 | a track's fixed height by its layers' types (the largest): what `heights: fixed` gives, and a lane-less track's (Track heights)                                                                                                                                                                                                                                                                                           |
@@ -2860,6 +2897,7 @@ the UX foundations' numbers, CSS px, settled by the foundation stories; where no
 | `emphasis.cursorInk`                                                              | `msui-text`                                                                                                            | the cursor neutral, never the selection's accent (the author's look)                                                                                                                                                                                                                                                                                                                                                      |
 | `axis.directionMark`                                                              | `label`                                                                                                                | a reversed axis says so in its first label (an arrow and "reversed", or "along" what it reads along), in the picture and the export; `none` for a host whose own chrome says it                                                                                                                                                                                                                                           |
 | `header.slots`, `.slotPx`, `.minHeightPx`, `.sectionPx`                           | 2, 20 px (an icon of 14), 16 px, 20 px                                                                                 | at most two; the measured column usually leaves one (the eye), the menu holds every entry; a target of 20 px on a 24 px row; below 16 px an icon overlaps the next track (its states then marks); a section's line a line of the label font (Track headers)                                                                                                                                                               |
+| `header.groupPx`, `.groupIndentPx`                                                | 20 px, 12 px                                                                                                           | a group's header line (a section's line's height), its tracks' labels indented so membership reads from the label column alone (Track groups)                                                                                                                                                                                                                                                                             |     |
 | `header.actions.show`                                                             | `hover`                                                                                                                | the track hovered (its header or its data), the cursor on its header, the header the viewer names: a figure at rest shows names and states, not buttons; `always`, `never` (the menu only)                                                                                                                                                                                                                                |
 | `header.states.export`                                                            | `include`                                                                                                              | the states are facts about the picture, exported as drawn; `none` leaves them out of a figure (the slots and the "⋯" never are)                                                                                                                                                                                                                                                                                           |
 | `section.header`                                                                  | `auto`                                                                                                                 | a section's header line when a section entry gives it a slot: no line that says nothing, and a hidden track adds none (the application lists it); `always`, `none`                                                                                                                                                                                                                                                        |
@@ -4120,6 +4158,51 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   (`count` its count), elsewhere on a track's line `header-label` (no `state`), on a section's line `section-header`;
   `state` the entry's name (`HeaderMenuName` the "⋯"), `layer` the track's address (a section's for its line), `section`
   its section. Each hit is laid out with its part (`hit`, a line's `HeaderLine.hit`): a hover makes no object.
+
+### Track groups
+
+`groups.ts`, `groups-draw.ts`: a section's groups of tracks in the tracks layout, folded once a layout (a fold changes
+the bands, never a warm frame's work).
+
+- **Lazy** (`groups-hooks.ts`): both load the first time a spec holds a section with a group, the model waiting for them
+  as for the categorical axes (`withViewKind`, registered by `tracks.ts`), so a section with groups is never drawn
+  without them. Why: groups are rare; a view without one pays for no folding, summary or header code.
+
+- **Folded or open**: the viewport's `groups` (the viewer's session set, by group id), else the export's `groups`
+  (`renderSvg`'s option, by section), else each group's `collapsed`. Part of the section's key (`sameWindow`, by
+  identity).
+- **Open**: a header line `header.groupPx` (20) above the group's first track, in the label column (a chevron ▾ and its
+  label; nothing across the data); its tracks' labels indented `header.groupIndentPx` (12); `trackGap` (4) within it and
+  `groupGap` (8) before and after it. The room before a band is the layout's `leads` (`PlaceContext.leads`, px past
+  `trackGap`), so the header line and the gaps never grow a track's well. An open group's authored summary track is left
+  out (EC-103).
+- **Kept across layouts**: a section's folding (by its resolved section, its folds and its shown tracks) and its headers
+  (by the folding, the wells' places, the scroll) are kept, so a pan allocates nothing for them; held by
+  `_test/groups.quick.ts` (a warm frame and hover 0 B, a pan bounded).
+- **The chevron is chrome**: an export (a figure) draws none, the label at the column's start.
+- **Folded**: one row whose label column is the header (chevron ▸, label, a quiet count "3 tracks"; the label cut before
+  the count, the count before the chevron); its bands: the authored `summary` track (drawn as any track), or with `none`
+  the header line alone (`<group>#header`), or with `auto` the summary: one lane (`<group>#summary`, `lanesHeight(1)`,
+  there when a member draws in one, or empty when nothing else would be drawn; strips alone stand with no lane, the row
+  padded at its top to `header.groupPx`) holding every member layer whose form is `lane`, then a strip a `strip` member
+  (`<group>#strip<k>`, `group.summary.stripPx` high, 1 px apart, at most `group.summary.maxStrips`, the rest counted:
+  "+2 not shown"). A summary layer is its member's keyed `<layer>#summary`, its params with `lanes: 'one'` in the lane
+  form; it prepares as its member (the prep is shared, a toggle prepares nothing again), and a folded member's open form
+  is never laid (a fold makes a frame cheaper).
+- **Summary forms** (`LayerType.collapse`, `lane` | `strip` | `row`; absent, the built-ins': `ranges`, `secondary`,
+  `variants`, `pairs` a lane, `values` a strip, `rows` a row; the rest left out). The `row` form (a rows track's
+  consensus row) is not drawn yet: a rows member is left out of the summary. The lane form is the ranges layer's
+  `lanes: one` (its items in one lane, no labels): the member's prep in one lane (`RangesPrep.one`), its data shared.
+  `secondary` and `variants` lay their own lanes as they do open (their one-lane form is the package's TODO).
+- **Hit**: a header's box (an open group's line, a folded row's label column) is `group-header`, its group's address in
+  `layer` (made once a layout: a hover allocates nothing), over the folded row's own label (its slots and states stay
+  the row's); a folded row has one header line, its first band's, whose address is the group's (`HeaderLine.group`, its
+  facts' `group`): its slots, states and menu act on the group (Decision 4), never on a band the spec lacks; a summary
+  mark hits as its member layer's item. In a scrolled section a header is drawn and hit only wholly in the scrolled area
+  (or in the fixed head), as a track's header line.
+- **Elsewhere**: `text` and `rings` draw every group open with no header line and leave the authored summary tracks out
+  (`seq.render.groups.layout`, info, once a section when some are folded; the folds kept, not applied); `grid` overlays
+  its tracks: groups are ignored there. The label column's measure counts a group's header and its tracks' indent.
 
 ### Track heights
 

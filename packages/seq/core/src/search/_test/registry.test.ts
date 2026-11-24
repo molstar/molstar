@@ -62,7 +62,7 @@ describe('the search-matcher entry', () => {
     const ok = defineExtension({
       id: 'app',
       version: '1.0.0',
-      requires: '0.10',
+      requires: '0.11',
       registry: [{ kind: 'search-matcher', matcher: Motif }],
     });
     expect(Object.keys(composeSeqContext({ extensions: [ok] }).matchers)).toEqual(['app:ecori']);
@@ -70,7 +70,7 @@ describe('the search-matcher entry', () => {
       defineExtension({
         id: 'other',
         version: '1.0.0',
-        requires: '0.10',
+        requires: '0.11',
         registry: [{ kind: 'search-matcher', matcher: Motif }],
       }),
     ).toThrow(/other: app:ecori/);

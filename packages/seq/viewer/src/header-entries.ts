@@ -68,6 +68,8 @@ export interface HeaderFacts {
   readonly layers: readonly HeaderLayerFacts[];
   /** The section's tracks the spec hides, in spec order. */
   readonly hiddenTracks: readonly HiddenTrack[];
+  /** The section has groups of tracks (its menu's Collapse all and Expand all groups). */
+  readonly groups?: boolean;
   /** The element a menu was opened on (`on: 'element'`): its layer and key. */
   readonly element?: HeaderElement;
   /**
@@ -282,6 +284,8 @@ export const HeaderEntryNames = {
   onlyBlock: 'seq:only-block',
   allBlocks: 'seq:all-blocks',
   tree: 'seq:tree',
+  collapseGroups: 'seq:collapse-groups',
+  expandGroups: 'seq:expand-groups',
 } as const;
 
 /**
@@ -404,6 +408,27 @@ export const BuiltInHeaderEntries: readonly HeaderActionEntry[] = /* @__PURE__ *
       when: (f) => f.linear,
     },
     // a block's (genome coordinates: its label's menu, Shift+F10 on it): turned over, shown alone, every block again
+    // a section with groups of tracks: every group folded or opened (`groups.*`, one jump each)
+    {
+      name: HeaderEntryNames.collapseGroups,
+      on: 'section',
+      order: 7.1,
+      label: 'Collapse all groups',
+      command: 'groups.collapseAll',
+      slot: false,
+      when: (f) => f.groups === true,
+      args: (f) => ({ section: f.section }),
+    },
+    {
+      name: HeaderEntryNames.expandGroups,
+      on: 'section',
+      order: 7.2,
+      label: 'Expand all groups',
+      command: 'groups.expandAll',
+      slot: false,
+      when: (f) => f.groups === true,
+      args: (f) => ({ section: f.section }),
+    },
     {
       name: HeaderEntryNames.reverseBlock,
       on: 'section',

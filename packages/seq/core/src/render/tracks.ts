@@ -68,6 +68,7 @@ import { instanceInView, wantTemplate } from './tracks-templates.js';
 import { bandHeights, firstType, rowsFill, rulerTrack } from './tracks-heights.js';
 import { sectionHeaderOf, trackHeaderOf } from './tracks-headers.js';
 import { collapsedSection } from './headers.js';
+import { GroupsHooks, registerGroups } from './groups-hooks.js';
 import { BridgeHooks } from './bridge-hooks.js';
 import type { Members } from './members.js';
 import { MemberHooks } from './members-hooks.js';
@@ -107,7 +108,32 @@ function directionMark(section: ResolvedSection, config: RenderConfig): string |
   return along === undefined ? '← reversed' : `← along ${along.slice(along.lastIndexOf('/') + 1)}`;
 }
 
+// a section's track groups: their chunk loaded when a spec holds one (`groups-hooks.ts`)
+registerGroups();
+
+/** The folded group whose bands hold band `j`, if any (a loop: no closure a band). */
+function foldedAt<G extends { readonly folded: boolean; readonly first: number; readonly last: number }>(
+  groups: readonly G[],
+  j: number,
+): G | undefined {
+  for (let i = 0; i < groups.length; i++) {
+    const g = groups[i];
+    if (g.folded && j >= g.first && j <= g.last) return g;
+  }
+  return undefined;
+}
+
 const NoLays: readonly LayerLayout[] = [];
+/** A prep in one lane (`lanes: one`): kept a prep, so a summary's lay key holds. */
+const OneLane = new WeakMap<object, object>();
+function oneLane(prep: unknown): unknown {
+  if (typeof prep !== 'object' || prep === null) return prep;
+  let p = OneLane.get(prep);
+  if (!p) OneLane.set(prep, (p = { ...prep, one: true }));
+  return p;
+}
+// what a record spreads where it adds nothing (a group's indent, its headers): one object, a layout allocates none for it
+const NoProps = Object.freeze({});
 const NoSectionLays: LayerLayout[] = [];
 
 /** Whether a band's box reaches a placement's scrolled area (always where it does not scroll). */
@@ -485,6 +511,28 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         shown.push(t);
       }
     }
+    // its groups folded (_spec/README.md "Render", Track groups): a folded group's tracks give way to its summary bands
+    // (a section without groups calls nothing: its layout allocates nothing for them)
+    const fold = section.trackGroups ? GroupsHooks.fold : undefined;
+    const folding = fold
+      ? fold(
+          section,
+          shown,
+          trackOf,
+          sourceOf,
+          viewport?.groups ?? input.groups?.[section.address],
+          layout === TracksLayout,
+          config,
+          (l) => firstType(l, types),
+          sectionReport,
+        )
+      : undefined;
+    if (folding) {
+      shown.splice(0, shown.length, ...folding.shown);
+      trackOf.splice(0, trackOf.length, ...folding.trackOf);
+      sourceOf.splice(0, sourceOf.length, ...folding.sourceOf);
+    }
+    const leads = folding?.leads;
     // a section that cannot be placed and says why (its issue, not a section still waiting for its source): one row
     // naming it, never a blank well per track (_spec/README.md "Render", Empty tracks)
     const said =
@@ -563,8 +611,12 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       cacheKey: string,
       ctx: LayoutContext,
     ): LayerLayout => {
-      let prep = state.preps.get(layer);
-      if (prep === undefined) state.preps.set(layer, (prep = type.prepare(layer, input.model)));
+      // a summary layer prepares as its member's (a toggle prepares nothing again)
+      const source = folding?.originals?.get(layer) ?? layer;
+      let prep = state.preps.get(source);
+      if (prep === undefined) state.preps.set(source, (prep = type.prepare(source, input.model)));
+      // a summary lane's: the member's prep in one lane (its data and extents shared)
+      if (source !== layer && layer.params.lanes === 'one') prep = oneLane(prep);
       const keptLay = state.lays.get(cacheKey);
       const lay = type.layout(prep, ctx, mine, overlay, keptLay?.type === type ? keptLay.lay : undefined);
       state.lays.set(cacheKey, { type, lay });
@@ -785,6 +837,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
         bands: shown,
         heights,
         ...(padded ? { pads } : {}),
+        ...(leads ? { leads } : NoProps),
         layStrip,
         bandEmpty,
         report: sectionReport,
@@ -796,7 +849,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       if (layout.window) setWindow(layout, placement, section.address, viewport, followed, input, config);
       for (let i = 0; i < placement.strips.n; i++) stripBreaks.push(placement.strips.axes[i].breaks([]));
       sectionLays = laySection(placement, axis);
-    } else placement = pendingPlacement(top, sectionBox, heights, pads, config);
+    } else placement = pendingPlacement(top, sectionBox, heights, pads, config, leads);
     // a section that scrolls past its cap (_spec/README.md "Render", Section scroll): its scrolled area
     const scrolls = placement.clip === true && placement.contentHeight > placement.box.height + 0.5;
     const scrollY = placement.scrollY ?? placement.box.y;
@@ -808,6 +861,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     let by = top;
     for (let j = 0; j < nb; j++) {
       if (j) by += config.trackGap;
+      if (leads) by += leads[j];
       const track = shown[j];
       // a grid's track is its plot (over blocks: its cells together), its well the plot's grown by its padding
       const plot = layout.name === 'grid' && strips.n ? (placement as GridPlacement) : undefined;
@@ -829,13 +883,19 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       const layers = lays[j] ?? NoLays;
       // its header's line: its states (the "n filtered" chip among them) and slots; the label's room what its states
       // beside it leave (states on a line of their own leave it whole)
+      // a folded group's bands: one header line, its first band's, acting on the group
+      const fg = folding?.groups ? foldedAt(folding.groups, j) : undefined;
+      const inFolded = fg !== undefined;
       const head =
-        layout === TracksLayout
-          ? trackHeaderOf(input, section, sectionId(section), track, layers, sectionLays, well, config)
+        layout === TracksLayout && (!fg || fg.first === j)
+          ? trackHeaderOf(input, section, sectionId(section), track, layers, sectionLays, well, config, fg?.group)
           : undefined;
-      const room = head ? head.header.label.width : config.labelWidth;
+      // a track of an open group indented; a folded group's bands leave the column to its header
+      const indent = track.group && !track.summaryOf ? config.header.groupIndentPx : 0;
+      const room = (head ? head.header.label.width : config.labelWidth) - indent;
       // a layer naming its rows in the column (a matrix's states) leaves it to them: no track label over the names
-      const labelText = namesRows(layers) ? '' : elidedLabel(state, input.text, config.labelFont, track.label, room);
+      const labelText =
+        namesRows(layers) || inFolded ? '' : elidedLabel(state, input.text, config.labelFont, track.label, room);
       tracks.push({
         track,
         box,
@@ -851,7 +911,9 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
           j < fixedBands ||
           (head.header.line.y >= scrollY && head.header.line.y + head.header.line.height <= scrollEnd))
           ? { header: head.header }
-          : {}),
+          : NoProps),
+        // last: a track outside a group builds its record as before groups
+        ...(indent ? { indent } : NoProps),
       });
     }
     y = top + placement.box.height;
@@ -982,6 +1044,20 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
           break;
         }
       }
+    const groups =
+      folding?.groups && folding.groups.length && GroupsHooks.headers
+        ? GroupsHooks.headers(
+            folding.groups,
+            tracks,
+            section,
+            config,
+            (t) => input.text.measure(config.labelFont, t),
+            (t, room) => elidedLabel(state, input.text, config.labelFont, t, room),
+            // a scrolled section's: a header under the fixed head or past the box is neither drawn nor hit
+            scrolls ? { y: scrollY, end: scrollEnd, fixed: fixedBands } : undefined,
+            input.figure === true,
+          )
+        : undefined;
     const sectionLayout: SectionLayout = {
       section,
       id: sectionId(section),
@@ -1009,6 +1085,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       pageHeight: height,
       tokens: input.tokens,
       config,
+      // last: a section without groups builds its record as before them
+      ...(groups ? { groups } : NoProps),
     };
     sections.push(sectionLayout);
     cache.layout = sectionLayout;

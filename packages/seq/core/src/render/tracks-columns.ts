@@ -6,6 +6,7 @@
 
 import type { ResolvedLayer, ResolvedTrack, ResolvedView } from '@molstar/seqx-core/view';
 import type { RenderConfig } from './config.js';
+import { ChevronPx, CountGapPx, groupCount } from './groups-hooks.js';
 import { elide, type TextMetrics } from './text.js';
 import { SlimRailPx } from './rail.js';
 import { columnsRoom, fitRowColumns, type RowColumn, rowColumnsOf } from './rows-model.js';
@@ -181,7 +182,16 @@ function measureColumn(view: ResolvedView, config: RenderConfig, text: TextMetri
       // an alignment's rows label themselves in the column: their names, not the tracks', are what it holds (the
       // column keeps its fixed width, its row labels their own ellipsis)
       for (const l of t.layers) if (l.type === 'rows') return config.labelWidth;
-      const m = text.measure(config.labelFont, t.label);
+      // a group's track: its indent with it
+      const m = text.measure(config.labelFont, t.label) + (t.group ? config.header.groupIndentPx : 0);
+      if (m > w) w = m;
+    }
+  // a group's header: its chevron, label and folded count (_spec/README.md "Render", Track groups)
+  for (const s of view.sections)
+    for (const g of s.trackGroups ?? []) {
+      // its count as drawn, at most what its strips leave out (every track a values strip past the cap)
+      const left = Math.max(0, g.count - config.group.summary.maxStrips);
+      const m = ChevronPx + text.measure(config.labelFont, `${g.label} ${groupCount(g.count, left)}`) + CountGapPx;
       if (m > w) w = m;
     }
   return Math.min(c.max, Math.max(c.min, Math.ceil(w)));

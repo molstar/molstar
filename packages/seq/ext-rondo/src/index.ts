@@ -60,7 +60,7 @@ export function rondoWith(over: Partial<RondoConfig> = {}): SeqExtension {
   return defineExtension({
     id: 'rondo',
     version: RondoVersion,
-    requires: '0.10',
+    requires: '0.11',
     doc: 'A genome ring like Rondo’s: ribbons wide by count between stems, stubs to blocks not shown, 24 hues.',
     registry: [
       { kind: 'layer-type', type: ribbonsType(rondoConfig(over)) },

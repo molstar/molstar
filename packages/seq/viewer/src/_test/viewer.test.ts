@@ -79,6 +79,7 @@ describe('createSeqViewer', () => {
       'window',
       'navigator',
       'rows',
+      'groups',
       'hoverCard',
       'keysPanel',
       'headers',

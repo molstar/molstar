@@ -186,6 +186,16 @@ nothing and tells nothing. Beside `models/view.ts` (the moves and the publish): 
   item the layer no longer holds leaves the band at its `bandTop`. Why keys: a step back after rows were hidden, folded
   or reordered, or lanes packed again, lands on the same rows and items. `rowsAxis(system)`: a rows system as an axis in
   its layer's display order (Shift+click extends along it).
+- **Groups** (`view-folds.ts`; `groupFolds`, `foldedGroups(section)`, `isFolded(group)`,
+  `setFoldedGroups(section, ids)`): each section's folded track groups by id, session state as a band's clade folds are
+  (one model of folding): absent, each group's `collapsed` (the opening state, `openingFolds`);
+  `setFoldedGroups(section, undefined)` drops the session's set. One map replaced on each change, a section's set
+  published in its viewport (`Viewport.groups`, compared by identity) and kept by a step of the history
+  (`Snapshot.folds`), so back after a bulk fold or a reveal restores the folds with the window. Why the section's and
+  not a band's: a group is a section's. A setter is a hand's move (no step); a bulk fold runs it inside `jump`. A focus
+  or a reveal of items only folded groups' tracks draw (`foldedHolding`: none drawn by a track open, an authored summary
+  track standing for its group) opens those groups inside its own jump; a selection or a highlight opens nothing (their
+  marks show in the summary).
 - **History** (`jump`, `back`, `forward`, `history`): a jump (a focus, a fit, a reveal, a bookmark's or a link's move,
   the cursor's Enter) runs through `jump(move)`, which pushes the viewports it left (every group's range, a detached
   follower's among them) when it moved the view, and drops the steps forward; `same` when the view already showed it,
@@ -1225,6 +1235,25 @@ binding table; per move one hit record and one modifiers record are reused.
 Small policies over the models (`behaviors/`), each reading the bindings. `rows` (an alignment's rows: Commands, the
 rows' commands) reads the last frame's rows layers through the behavior context's `layout()`.
 
+- **Groups** (`behaviors/groups.ts`, `GroupsProvider`, in the default spec): a section's track groups folded and opened,
+  the clade folds' model. The commands are listed eagerly; their bodies (`groups-body.ts`) load the first time a spec
+  holds a section with a group (core's `withViewKind`, as render's groups chunk); before that a groups command is
+  refused ("No group there"); `layer.lanes`'s `when` is eager and its run loads them. What a reveal reads of the folded
+  groups (`models/view-folds-reveal.ts`) loads the same way (`models/groups-door.ts`). Why: groups are rare.
+  `groups.toggle { address }` (a group's) is a hand's move, no step, its new state said by the announcer (`notify`:
+  "group Variants, collapsed, 3 tracks"); `groups.collapseAll` and `groups.expandAll` (`{ section? }`: the section's
+  groups, else every section's) are one jump, so Alt+Left restores the folds and the window together ("Already so" when
+  nothing moves); `groups.keep { section }` writes the folds shown into its groups' `collapsed` (one patch: `set` true,
+  `unset` when open). A patch or an undo that changes a group's `collapsed`, or adds a group with `collapsed: true`,
+  resets its section's set to the spec's (an edit of the opening state is meant to show), unless the set already is what
+  the spec now opens with (`groups.keep`'s own patch: no session change); a group removed leaves the set, and one
+  renamed (one gone and one new in a section, one edit) keeps its fold; other edits keep it. A folded group's summary
+  mark is its member's item (hit, hover, selection), its card naming the member ("R248Q, in ClinVar"). A click on a
+  group's header (`group-header`) runs its bound command (`groups.toggle`), never a selection's.
+  `layer.lanes { address, lanes }` sets a ranges layer's `lanes` (`one`: `set`; `packed`: `unset`), one patch: the
+  figure's look is the spec's, the fold the session's. Why a behavior beside `headers`: the commands stand without the
+  headers' parts (a host's own header, a key).
+
 - **A section of blocks on several systems** (its axis on no system): a hit names its `block`, and its positions are
   read on that block's axis from its `offset`: a drag-select stays in the block it began on (clamped at its ends), a
   double-click and a focus move to the block's offsets, a bookmark of the view names none. **The keyboard cursor crosses
@@ -1298,6 +1327,10 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   then on to the next section's; → back to the data where it left; Space and the extends do nothing there; Enter opens
   its menu. After a layout that hid the cursor's track the cursor goes to the next track's header, else the previous
   one's, else the section's line. A rows track has no header line: its rows' header is the rows' own.
+- **Groups at the header cursor** (`header-cursor.ts`): a group's header is a stop between the section's line and its
+  tracks' (`headersOf` reads the layout's `groups`; a folded group one stop, its bands skipped); Space there runs
+  `groups.toggle` (on a track's header it does nothing: no conflict); Enter opens the menu as on a track's header. A
+  cursor on a track's header whose group folds moves to the group's header.
 - `cursor`: the keyboard cursor's commands, on the cursor's section (else the context's, else the first; the first key
   places the cursor at the section's first position shown): `cursor.prev`, `cursor.next` (a cell in display order,
   whatever the direction, clamped to the axis, across breaks: a step over one says what it crossed, "crossed a break,
@@ -1838,6 +1871,13 @@ frame.
   listed by a name (`hiddenTrackName`): its label, its id without one, and for an empty label (a ruler's, the rows': the
   author's) its layer's `label` or `title`, else its type as a word ("Ruler", "Rows"); the list and the menu share it.
   Why: the list has no header to read a label from.
+- **Hidden groups**: `track.hide`, `track.show` and `track.move` take a group's address (`nodeOf`: a `group` where a
+  `track` is asked), its `hidden` and its place among the section's children; a hidden group is one entry of the host's
+  list (`HiddenTrackEntry.kind: 'group'`, "Signals (2 tracks)") and of the section menu's Show hidden, its `track.show`
+  showing the group; a hidden track in a group names it (`group: { address, label }`). A track's Move up and Move down
+  move it among its group's tracks (`HeaderFacts.tracks`: its siblings), a section's own tracks and groups among each
+  other. The section's menu gains Collapse all groups and Expand all groups (`seq:collapse-groups`, `seq:expand-groups`)
+  when it has groups (`HeaderFacts.groups`).
 - **The Legend part lists the active highlight channels** after the legends: a row a channel (`data-highlight`) with a
   swatch in the channel's color (`highlightColorOf`, beside the legend rows) shaped by its style, and a Clear, which
   runs `highlight.clear` with the channel's name. The rows are redrawn only when the channel names, a channel's style or

@@ -50,7 +50,7 @@ describe('exportSvg of a spec with an error', () => {
     const future = spec();
     const newer: Node = {
       ...future,
-      params: { ...future.params, version: '0.11.0' },
+      params: { ...future.params, version: '0.12.0' },
       children: [...future.children!, { kind: 'from-the-future', id: 'x' }],
     };
     const r = await renderSvg(newer, { size });

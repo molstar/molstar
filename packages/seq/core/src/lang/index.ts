@@ -15,6 +15,7 @@ export {
   type ComplexBuilder,
   createSeqSpec,
   type DataBuilder,
+  type GroupBuilder,
   identifiers,
   ideogramNavigator,
   type LinkParams,
@@ -66,6 +67,7 @@ export {
   genome,
   type Runs,
 } from './genome-builder.js';
+export { FlattenedKinds, TrackParents } from './group-language.js';
 export { BoundIssues, LangIssues } from './issues.js';
 export {
   isExtensionName,

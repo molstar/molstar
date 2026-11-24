@@ -18,6 +18,7 @@ import {
 } from '@molstar/seqx-core/view';
 import { axisKey, axisTotal, positionAt } from './axis.js';
 import type { ViewBands } from './view-bands.js';
+import { foldsEqual, type GroupFolds, type ViewGroupFolds } from './view-folds.js';
 import { centerOffset, DetachedPrefix, type Group, type SectionState } from './view-groups.js';
 
 // The view's history of jumps (_spec/README.md "ViewModel", History): a step is every group's range with its axis's
@@ -64,6 +65,8 @@ export interface Snapshot {
   readonly groups: ReadonlyMap<string, Kept>;
   readonly bands: ReadonlyMap<string, KeptBand>;
   readonly ys: ReadonlyMap<string, { readonly start: number; readonly end: number }>;
+  /** Each section's folded track groups (the session's sets; a bulk fold and a reveal are jumps, back restores them). */
+  readonly folds?: GroupFolds;
   /** The Location the jump that left the view here named, while no hand moved it since (`ViewModel.lastJump`). */
   readonly location?: Location;
   /**
@@ -135,6 +138,7 @@ export function snapshotsEqual(a: Snapshot, b: Snapshot): boolean {
       return false;
   }
   for (const [k, v] of a.bands) if (!sameBand(v, b.bands.get(k))) return false;
+  if (!foldsEqual(a.folds, b.folds)) return false;
   if (a.ys.size !== b.ys.size) return false;
   for (const [k, v] of a.ys) {
     const w = b.ys.get(k);
@@ -148,6 +152,7 @@ export function snapshotOf(
   groups: ReadonlyMap<string, Group>,
   sections: ReadonlyMap<string, SectionState>,
   bands: ViewBands,
+  folds?: ViewGroupFolds,
 ): Snapshot {
   const out = new Map<string, Kept>();
   for (const g of groups.values()) {
@@ -175,7 +180,7 @@ export function snapshotOf(
   // a grid's own y window (`follow_y: none`); a y that follows a section is kept by that section's group
   const ys = new Map<string, { start: number; end: number }>();
   for (const [address, s] of sections) if (s.y) ys.set(address, { ...s.y });
-  return { groups: out, bands: kept, ys };
+  return { groups: out, bands: kept, ys, ...(folds?.value.size ? { folds: folds.value } : {}) };
 }
 
 /**
@@ -241,7 +246,7 @@ export function restoredOf(
     if (key.startsWith(DetachedPrefix) && !out.has(key) && detachable(sections, key)) out.set(key, v);
   const ys = new Map<string, { start: number; end: number }>();
   for (const [address, y] of snap.ys) if (ownY(address)) ys.set(address, y);
-  return { groups: out, bands: snap.bands, ys };
+  return { groups: out, bands: snap.bands, ys, ...(snap.folds ? { folds: snap.folds } : {}) };
 }
 
 /**
@@ -255,7 +260,10 @@ export function restoreInto(
   sections: ReadonlyMap<string, SectionState>,
   bands: ViewBands,
   ownY: (section: string) => boolean,
+  folds?: ViewGroupFolds,
 ): void {
+  // the folded groups as kept (none kept: every section's groups' `collapsed`)
+  folds?.replace(snap.folds ?? new Map());
   // each band at its kept top row's place under its kept folds and zoom, clamped; a band it had none of has none
   const map = new Map<string, BandViewport>();
   for (const [track, k] of snap.bands) {

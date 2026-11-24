@@ -9,11 +9,16 @@ import type { Node } from '@molstar/core/repr/tree';
 import { type HiddenTrack, hiddenTrackName } from '@molstar/seqx-core/render';
 import { idRunOf } from '@molstar/seqx-core/lang/check';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
+import { tracksOf } from '@molstar/seqx-core/view';
 
 /** A track the spec hides, with the section it is in (`SeqViewer.hiddenTracks`). */
 export interface HiddenTrackEntry extends HiddenTrack {
   /** The section's address. */
   readonly section: string;
+  /** A hidden group of tracks is one entry ("Variants (3 tracks)"): its `track.show` shows the group. */
+  readonly kind?: 'group';
+  /** The group a hidden track sits in (shown), its address and label. */
+  readonly group?: { readonly address: string; readonly label: string };
 }
 
 const None: readonly HiddenTrackEntry[] = [];
@@ -35,14 +40,30 @@ export function hiddenTracksOf(root: Node): readonly HiddenTrackEntry[] {
       const at = [...path, c.id];
       if (c.kind === 'section') {
         const section = `/${at.join('/')}`;
-        for (const t of c.children ?? []) {
-          if (t.kind !== 'track' || t.id === undefined || t.params?.hidden !== true) continue;
-          (out ??= []).push({
-            address: `${section}/${t.id}`,
-            label: hiddenTrackName(t),
-            section,
-          });
+        const groups = new Set<string>();
+        for (const { node: t, address, group } of tracksOf(c, section)) {
+          if (group && group.node.params?.hidden === true) {
+            // a hidden group: one entry, its tracks counted
+            if (groups.has(group.address)) continue;
+            groups.add(group.address);
+            const n = (group.node.children ?? []).filter((x) => x.kind === 'track').length;
+            const label = typeof group.node.params?.label === 'string' ? group.node.params.label : group.node.id!;
+            (out ??= []).push({
+              address: group.address,
+              label: `${label} (${n} track${n === 1 ? '' : 's'})`,
+              section,
+              kind: 'group',
+            });
+            continue;
+          }
+          if (t.params?.hidden !== true) continue;
+          const g = group && {
+            address: group.address,
+            label: typeof group.node.params?.label === 'string' ? group.node.params.label : group.node.id!,
+          };
+          (out ??= []).push({ address, label: hiddenTrackName(t), section, ...(g ? { group: g } : {}) });
         }
+        continue;
       }
       if (c.kind !== 'track') walk(c, at);
     }
@@ -61,7 +82,7 @@ export function hiddenTracksState(model: ReadonlyState<StaticModel>): ReadonlySt
 
 /**
  * Whether what data owners make (an item's key) is drawn only on hidden tracks: every layer of the spec whose data is
- * (a form over) one of the owners lies on a hidden track, and there is at least one. A key also on a shown track is
+ * (a form over) one of the owners lies on a hidden track (or in a hidden group), and there is at least one. A key also on a shown track is
  * not (a jump goes there).
  */
 export function onlyOnHiddenTracks(root: Node, owners: ReadonlySet<string>): boolean {
@@ -75,7 +96,7 @@ export function onlyOnHiddenTracks(root: Node, owners: ReadonlySet<string>): boo
           if (inHidden) hidden++;
           else shown++;
         }
-      } else walk(c, inHidden || (c.kind === 'track' && c.params?.hidden === true));
+      } else walk(c, inHidden || ((c.kind === 'track' || c.kind === 'group') && c.params?.hidden === true));
     }
   };
   walk(root, false);

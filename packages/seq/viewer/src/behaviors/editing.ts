@@ -87,11 +87,14 @@ export interface EditingBehavior {
 
 const ids = (address: string) => address.split('/').filter(Boolean);
 
-/** The node at an address of ids, when it is of the kind. */
+/**
+ * The node at an address of ids, when it is of the kind; `track` takes a group of tracks too (`track.hide`, `.show`,
+ * `.move` on a group's address act on the group: _spec/README.md "Commands").
+ */
 function nodeOf(root: Node, address: string | undefined, kind: string): Node | undefined {
   if (address === undefined) return undefined;
   const n = resolveAddress(root, ids(address));
-  return n?.kind === kind ? n : undefined;
+  return n?.kind === kind || (kind === 'track' && n?.kind === 'group') ? n : undefined;
 }
 
 /** What the axis commands read: the resolved view (a direction resolved), the keyboard cursor's section. */

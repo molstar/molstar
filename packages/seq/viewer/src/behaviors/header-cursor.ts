@@ -13,18 +13,35 @@ import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 // takes the `cursor` behavior's moves over (so a viewer without it carries none of this). `cursor.prev` at a section's
 // first position goes onto its first track's header (`part: 'header'`, `track` its address; a section's line its
 // section's address), ↑ ↓ step between the section's headers and on to the next section's, → goes back to the data
-// where it left; Enter opens the header's menu; Space and the extends do nothing there.
+// where it left; Enter opens the header's menu; the extends do nothing there. A group's header is a stop between the
+// section's line and its tracks' (a folded group one stop, its bands skipped); Space there folds or opens it
+// (`groups.toggle`), elsewhere on a header it does nothing; a track's header whose group folds moves to the group's.
 
-/** A section's headers the cursor stands on, in display order: its line when drawn, then its tracks' label lines. */
+/**
+ * A section's headers the cursor stands on, in display order: its line when drawn, then its tracks' label lines, a
+ * group's header before its first track (a folded group's alone).
+ */
 function headersOf(viewer: SeqViewer, address: string): string[] {
   const s = viewer.frame?.layout.sections.find((x) => x.section.address === address);
   const out: string[] = [];
   if (!s) return out;
   if (s.header) out.push(address);
-  for (const t of s.tracks)
+  const groups = s.groups;
+  for (let j = 0; j < s.tracks.length; j++) {
+    const g = groups?.find((x) => j >= x.first && j <= x.last);
+    if (g && j === g.first) out.push(g.group.address);
+    if (g?.folded) continue;
+    const t = s.tracks[j];
     if (t.header?.hit?.target === 'header-label' && !out.includes(t.track.address)) out.push(t.track.address);
+  }
   return out;
 }
+
+/** The group a header address names, when it is one of the section's groups. */
+const groupAt = (viewer: SeqViewer, section: string, address: string) =>
+  viewer.view.resolved.value?.sections
+    .find((x) => x.address === section)
+    ?.trackGroups?.find((g) => g.address === address);
 
 /** ↑ ↓ on a header: the next header of its section, else the next section's first (last going up), else none. */
 function headerStep(viewer: SeqViewer, c: Cursor, delta: -1 | 1): Cursor | undefined {
@@ -94,7 +111,12 @@ export function headerCursor(viewer: SeqViewer, menu: () => CommandResult): () =
     over(`cursor.extend-${id}`, nothing);
     over(`cursor.add-${id}`, nothing);
   }
-  over('cursor.toggle', nothing);
+  // Space on a group's header folds or opens it (a track's header: nothing)
+  over('cursor.toggle', (c) =>
+    c.track !== undefined && groupAt(viewer, c.section, c.track)
+      ? { message: String(viewer.execute('groups.toggle', { address: c.track })) }
+      : nothing(),
+  );
   over('cursor.focus', menu);
 
   /** The headers' order the last layout drew, by section: where the cursor goes when its track is hidden. */
@@ -103,10 +125,20 @@ export function headerCursor(viewer: SeqViewer, menu: () => CommandResult): () =
   const relaid = (layout: ViewLayout | undefined) => {
     const c = selection.cursor.value;
     const s = c && viewer.view.resolved.value?.sections.find((x) => x.address === c.section);
-    if (c?.track !== undefined && c.track !== c.section && s && !s.tracks.some((t) => t.address === c.track)) {
+    // a track's header whose group folded: the group's header
+    const inGroup = c?.track !== undefined ? s?.tracks.find((t) => t.address === c.track)?.group : undefined;
+    if (c && inGroup && viewer.view.isFolded(inGroup)) selection.setCursor({ ...c, track: inGroup });
+    else if (
+      c?.track !== undefined &&
+      c.track !== c.section &&
+      s &&
+      !s.tracks.some((t) => t.address === c.track) &&
+      !s.trackGroups?.some((g) => g.address === c.track)
+    ) {
       const was = order.get(c.section) ?? [];
       const i = was.indexOf(c.track);
-      const there = (a: string) => a === c.section || s.tracks.some((t) => t.address === a);
+      const there = (a: string) =>
+        a === c.section || s.tracks.some((t) => t.address === a) || !!s.trackGroups?.some((g) => g.address === a);
       const next = was.slice(i + 1).find(there) ?? was.slice(0, Math.max(0, i)).reverse().find(there) ?? c.section;
       selection.setCursor({ ...c, track: next });
     }

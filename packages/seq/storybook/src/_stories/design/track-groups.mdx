@@ -1,0 +1,36 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Track groups" />
+
+# Track groups
+
+A writer puts a section's tracks under named groups ("Features", "Variants", "Signals"); a reader folds a group to one
+row that still shows what its tracks hold, and opens it again, as often as they scroll. A section of 30 tracks then
+reads as six rows.
+
+## A group is the writer's, its fold the reader's
+
+A `group` is a node of the spec (language `0.11.0`): a section's child holding tracks, one level deep, with a `label`,
+the opening state `collapsed`, `hidden`, and `summary` (`auto`, `none`, or one of its own tracks). Its tracks are its
+children, so a track in a group has the address `/views/v/<section>/<group>/<track>`.
+
+Folding is session state, as a tree's clades are: a click on the header folds or opens one group and is not an undo
+step; Collapse all and Expand all are jumps of the view's history, so Alt+Left brings the folds back with the window.
+"Keep these folds as the opening state" writes the folds shown into the groups' `collapsed`, one patch.
+
+## The header and the folded row
+
+An open group draws a header line above its first track: a chevron, its label, and on hover its slots and "⋯"; its
+tracks' labels are indented. A folded group is one row: its label column the header with a quiet count ("3 tracks"), its
+band the summary.
+
+The summary draws each of the group's tracks in its layer's summary form, in one band: ranges, secondary structure and
+variants in one shared lane without labels; pairs as the ticks of their ends; values as thin strips, at most four; an
+alignment as its consensus row. Letters, logos and rulers are left out. A writer may name one of the group's tracks as
+its summary instead: that track shows only while the group is folded.
+
+## Elsewhere
+
+Text and ring layouts draw every group open, with no header line. An exported figure draws the folds it is given. A
+ranges track can also be drawn in one lane with its labels off (`lanes: 'one'`), the form a folded group draws its
+ranges in.

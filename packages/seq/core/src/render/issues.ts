@@ -143,6 +143,12 @@ export const RenderIssues = defineIssues('seq.render', {
       'A field of a source joined to an alignment’s rows is not read: the alignment’s own field or a measure of that name shadows it, or another joined source has it first',
     hint: 'Rename the field in the source (its `fields`), or name the alignment’s own',
   },
+  'seq.render.groups.layout': {
+    severity: 'info',
+    description:
+      'A text or rings section draws its groups of tracks open, with no header line: its folds are kept, not applied',
+    hint: 'Fold groups in a tracks section; text repeats its bands every line and rings have no label column',
+  },
   'seq.render.rows.second': {
     severity: 'warning',
     description: 'A section draws one rows layer (the cursor has one row order): a second one is not drawn',

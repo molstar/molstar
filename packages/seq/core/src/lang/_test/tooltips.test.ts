@@ -49,8 +49,8 @@ function designSpec() {
 const codes = (b: ReturnType<typeof createSeqSpec>) => b.check().map((i) => i.code);
 
 describe('the tooltip kind', () => {
-  it('is the language 0.9.0’s (read at 0.10.0), under views and a view; the design’s lines check clean', () => {
-    expect(SeqLanguageVersion).toBe('0.10.0');
+  it('is the language 0.9.0’s (read at 0.11.0), under views and a view; the design’s lines check clean', () => {
+    expect(SeqLanguageVersion).toBe('0.11.0');
     const b = designSpec();
     expect(b.check()).toEqual([]);
     const spec = b.build();

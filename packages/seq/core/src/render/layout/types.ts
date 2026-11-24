@@ -120,6 +120,8 @@ export interface PlaceContext {
    * inset by them (`Strips.padT`, `padB`; _spec/README.md "Render", Tracks layout).
    */
   readonly pads?: readonly number[];
+  /** Px before each band past `trackGap` (a group's header line and wider gap; a summary strip's narrower one). */
+  readonly leads?: readonly number[];
   /**
    * Lays out the layers of a strip's bands (each in its box in the strip's frame) and records what each band used
    * (`strips.used`): what a layout that collapses empty bands reads before it fixes the strip's height. True when a

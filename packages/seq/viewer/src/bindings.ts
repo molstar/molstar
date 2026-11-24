@@ -198,11 +198,20 @@ export const CladeBindings: readonly GestureBinding[] = [
   { gesture: 'double-click', target: 'summary-row', action: 'clades.toggle' },
 ];
 
-/** The default grammar: the hover, navigation, the selection (a drag on data selects) and a tree's nodes. */
+/**
+ * A group of tracks' header (its line, a folded row's label column): a click folds or opens it, the chevron and the
+ * label one target, as a tree view's row (_spec/README.md "Bindings").
+ */
+export const GroupBindings: readonly GestureBinding[] = [
+  { gesture: 'click', target: 'group-header', action: 'groups.toggle' },
+];
+
+/** The default grammar: the hover, navigation, the selection (a drag on data selects), a tree's nodes and groups. */
 export const DefaultBindings: readonly GestureBinding[] = [
   ...NavigationBindings,
   ...SelectionBindings,
   ...CladeBindings,
+  ...GroupBindings,
 ];
 
 /** As genome browsers do: a drag on data pans; the selection's clicks are kept, its drags dropped. */
@@ -248,6 +257,9 @@ export const SelectActions: readonly string[] = [
 
 /** The `rows` behavior's actions: a tree node's click. */
 export const CladeActions: readonly string[] = ['clades.toggle'];
+
+/** The `groups` behavior's actions: a group header's click. */
+export const GroupActions: readonly string[] = ['groups.toggle'];
 
 export interface BindingTable {
   readonly bindings: readonly GestureBinding[];
@@ -360,7 +372,7 @@ export function bindingTable(
   overrides: readonly (readonly GestureBinding[])[] = [],
   options: BindingTableOptions = {},
 ): BindingTable {
-  const actions = new Set(options.actions ?? [...DefaultActions, ...SelectActions, ...CladeActions]);
+  const actions = new Set(options.actions ?? [...DefaultActions, ...SelectActions, ...CladeActions, ...GroupActions]);
   const issues: Issue[] = options.keys ? keyConflicts(options.keys) : [];
   const table = new Map<string, GestureBinding>();
   for (const layer of [preset, ...overrides]) {

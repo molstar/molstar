@@ -271,6 +271,7 @@ export type HitTarget =
   | 'header-state'
   | 'header-label'
   | 'section-header'
+  | 'group-header'
   | 'window'
   | 'row'
   | 'cell'
@@ -398,6 +399,12 @@ export interface ItemDescription {
 
 export interface LayerType<Prep = unknown, Lay = unknown> {
   readonly name: string;
+  /**
+   * Its form in a folded group's summary (_spec/README.md "Render", Track groups): `lane` (every item in one shared
+   * lane, no labels), `strip` (a thin strip a member) or `row` (one row); absent, the built-ins' (`groups.ts`), else
+   * left out of the summary.
+   */
+  readonly collapse?: 'lane' | 'strip' | 'row';
   /** The layer type a target without this one draws. */
   readonly fallback?: string;
   /**

@@ -38,8 +38,8 @@ function spec(): Node {
     const s = v.section('protein', { of: p });
     s.track('letters').layer('l', { type: 'letters' });
     s.track('domains').layer('d', { type: 'ranges', data: domains });
-    // a second section, so the cursor has one to move to
-    v.section('below', { of: p }).track('letters').layer('l', { type: 'letters' });
+    // a second section, so the cursor has one to move to; its tracks in a group, folded and opened
+    v.section('below', { of: p }).group('g', { label: 'Group' }).track('letters').layer('l', { type: 'letters' });
     // a text of a group a line in a box of two lines: it scrolls, and a step up or down goes a line
     v.section('text', { of: p, layout: 'text', max_width: 130, height: 90 })
       .track('letters')
@@ -116,6 +116,8 @@ function look(v: SeqViewer) {
       v.legends.cvdSafe.value,
       // a rows band's folds (session state)
       v.view.band(RowsTrack)?.folds,
+      // the folded track groups (session state)
+      v.view.groupFolds.value,
       // a narrow frame's tree opened by the reader (session state)
       v.view.band(RowsTrack)?.tree,
     ],
@@ -284,6 +286,17 @@ const Cases: Record<string, { ctx: unknown; before?: (v: SeqViewer) => unknown }
     before: (v) => run(v, 'clades.toggle', { track: RowsTrack, clade: 'ab' }),
   },
   'clades.keep': { ctx: { track: RowsTrack } },
+  'groups.toggle': { ctx: { address: '/views/main/below/g' } },
+  'layer.lanes': { ctx: { address: `${DomainsTrack}/d`, lanes: 'one' } },
+  'groups.collapseAll': { ctx: { section: '/views/main/below' } },
+  'groups.expandAll': {
+    ctx: { section: '/views/main/below' },
+    before: (v) => run(v, 'groups.collapseAll', { section: '/views/main/below' }),
+  },
+  'groups.keep': {
+    ctx: { section: '/views/main/below' },
+    before: (v) => run(v, 'groups.toggle', { address: '/views/main/below/g' }),
+  },
   'rows.pin': { ctx: { track: RowsTrack, rows: [2] } },
   'rows.hide': { ctx: { track: RowsTrack, rows: [1] } },
   'rows.show': { ctx: { track: RowsTrack }, before: (v) => run(v, 'rows.hide', { track: RowsTrack, rows: [1] }) },

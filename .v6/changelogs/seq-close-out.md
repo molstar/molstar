@@ -38,3 +38,8 @@
 - Seq\* (next): search: exact, IUPAC and regular-expression matchers (linear time, bounded) over a view's sequences,
   both strands and across a circle's origin; `viewer.search`, the `search.*` commands and keys, hits on their own
   highlight channels, saved as a ref; a `search-matcher` registry entry for an application's matchers.
+- Seq\* (next): track groups: a section's tracks can sit in named groups (`section.group`, language 0.11.0), each with a
+  header line and a fold; a folded group draws one summary row (ranges, variants and pairs in one shared lane, values as
+  a thin strip, or a named `summary` track); folding is session state (a click, Space, collapse or expand all),
+  announced; `groups.keep` writes it into the spec; a spec of an older version holding a group warns.
+- Seq\* (next): a ranges layer's `lanes: one` lays every item in one lane with no labels; `layer.lanes` switches it.

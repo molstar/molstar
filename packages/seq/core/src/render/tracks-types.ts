@@ -22,6 +22,7 @@ import type { ImageCache } from './images.js';
 import type { NarrowColumns } from './narrow.js';
 import type { SectionCache } from './tracks-cache.js';
 import type { HeaderLine, HeaderPartsOf, SectionHeaderLine } from './headers.js';
+import type { GroupHeader } from './groups.js';
 
 // The tracks layout's records (_spec/README.md "Render", Tracks layout): what it is given (`LayoutInput`), what it
 // gives (the view's, sections', tracks' and layers' layouts) and what it keeps between frames (`LayoutState`).
@@ -58,6 +59,8 @@ export interface TrackLayout {
    * filtered" chip among them, `seq:filtered`), the "⋯"; in a layout that draws a label column of track headers.
    */
   readonly header?: HeaderLine;
+  /** Px its label is indented (a track of a group: `header.groupIndentPx`). */
+  readonly indent?: number;
 }
 
 export interface SectionLayout {
@@ -75,6 +78,8 @@ export interface SectionLayout {
   readonly height: number;
   /** Its tracks as bands: on the page in tracks; in text, those of its first line. */
   readonly tracks: readonly TrackLayout[];
+  /** Its groups' headers (_spec/README.md "Render", Track groups): each open group's line, each folded group's row. */
+  readonly groups?: readonly GroupHeader[];
   /**
    * Each track with no items (`track.empty`): its one-line row, with a note (`note`) or without (`collapse`); undefined
    * for any other. The sizing's kept list (a layout makes none).
@@ -232,6 +237,8 @@ export interface LayoutInput {
   readonly windows?: boolean;
   /** The clades a rows layer folds by its track's address, where its band gives none (an export's `folds`). */
   readonly folds?: Readonly<Record<string, readonly string[]>>;
+  /** Each section's folded track groups by id, where its viewport gives none (an export's `groups`). */
+  readonly groups?: Readonly<Record<string, readonly string[]>>;
   /**
    * The track sizings a section's `heights` may name besides the built-ins (`content`, `uniform`, `fixed`): the
    * composition's `track-sizing` registry entries, by name (_spec/README.md "Render", Track heights).

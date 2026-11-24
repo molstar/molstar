@@ -187,6 +187,9 @@ class Words implements CardReads {
     const run = t === 'run' || place.count !== undefined;
     for (const p of this.providers) if (!run || p.name === CardProviderNames.block) this._run(p, at, out);
     if (!out.words.length) return undefined;
+    // a folded group's summary mark names its member ("R248Q, in ClinVar"): the summary layer's member track
+    const member = layer?.layer.address?.endsWith('#summary') ? memberOf(section, layer.layer.address) : undefined;
+    if (member) out.words.splice(1, 0, `in ${member}`);
     const card = { title: out.title || out.words[0], rows: out.rows, text: out.words.join(', ') };
     return out.moreCount ? { ...card, moreCount: out.moreCount } : card;
   }
@@ -561,6 +564,13 @@ export class Describer {
   text(place: Place | RectPlace | CursorPlace): string {
     return this.describe(place)?.text ?? '';
   }
+}
+
+/** The label of the track a summary layer (`<layer>#summary`) stands for. */
+function memberOf(section: SectionLayout, summary: string): string | undefined {
+  const layer = summary.slice(0, -'#summary'.length);
+  const track = layer.slice(0, layer.lastIndexOf('/'));
+  return section.section.tracks.find((t) => t.address === track)?.label;
 }
 
 const Describers = new WeakMap<SpecModel, Describer>();

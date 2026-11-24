@@ -18,6 +18,7 @@ import type { SectionLayout, TrackLayout } from '../tracks.js';
 import { BlockPlacement, blockChrome, placeBlocks, rowPan, rowZoom } from './blocks.js';
 import { capScroll, headOf, StripPlacement } from './strips.js';
 import { drawSectionHeader, drawTrackHeader, hitHeaders } from '../headers-draw.js';
+import { GroupsHooks } from '../groups-hooks.js';
 import type { NavContext, PlaceContext, SectionLayoutType, SectionNav, StepDir } from './types.js';
 
 // the anchor a number read once: a draw reads no property of an imported object (_spec/README.md "Render", Draw lists)
@@ -107,7 +108,13 @@ function rowOf(c: NavContext) {
 export function sameWindow(a: Viewport | undefined, b: Viewport | undefined): boolean {
   if (a === b) return true;
   if (!a || !b) return false;
-  return a.start === b.start && a.end === b.end && (a.top ?? 0) === (b.top ?? 0) && sameBands(a.bands, b.bands);
+  return (
+    a.start === b.start &&
+    a.end === b.end &&
+    (a.top ?? 0) === (b.top ?? 0) &&
+    a.groups === b.groups &&
+    sameBands(a.bands, b.bands)
+  );
 }
 
 /** Two viewports' bands alike: each band's scroll and row zoom. */
@@ -141,8 +148,10 @@ export const TracksLayout: SectionLayoutType<StripPlacement> = {
     let y = top;
     let bottom = top;
     const pads = ctx.pads;
+    const leads = ctx.leads;
     for (let j = 0; j < ctx.bands.length; j++) {
       if (j) y += config.trackGap;
+      if (leads) y += leads[j];
       const k = i * strips.bands + j;
       // a band inside its well: its padding above and below (_spec/README.md "Render", Tracks layout)
       const pt = pads ? pads[2 * j] : 0;
@@ -180,6 +189,7 @@ export const TracksLayout: SectionLayoutType<StripPlacement> = {
     // the section's header line (_spec/README.md "Render", Track headers), once before its strips
     if (band < 0) {
       if (strip < 0 && (pass === 'labels' || pass === 'tip')) drawSectionHeader(out, s, pass, emphasis);
+      if (strip < 0 && pass === 'labels' && s.groups) GroupsHooks.draw?.(out, s);
       return;
     }
     if (pass !== 'labels' && pass !== 'tip') return;
@@ -196,18 +206,23 @@ export const TracksLayout: SectionLayoutType<StripPlacement> = {
     drawTrackHeader(out, s, t, pass, emphasis, dy);
   },
   hitChrome(s, x, y, hover, touch) {
-    return hitHeaders(s, x, y, hover, touch);
+    const h = hitHeaders(s, x, y, hover, touch);
+    if (!s.groups || (h && h.target !== 'header-label')) return h;
+    // a folded group's row: its label column is the group's header (a slot or a state there stays the row's)
+    return GroupsHooks.hit?.(s, x, y) ?? h;
   },
 };
 
 /** A track's label in the label column, faded past it (`dy` below its first row: a stack's later blocks). */
 function drawLabel(out: PassWriter, t: TrackLayout, tokens: SeqTokens, config: RenderConfig, dy = 0) {
   const g = out.args;
-  g[0] = config.inset;
+  // a group's tracks' labels indented (_spec/README.md "Render", Track groups)
+  const indent = t.indent ?? 0;
+  g[0] = config.inset + indent;
   g[1] = t.labelY + dy;
   g[2] = t.labelWidth;
   // the label fades before the states beside it (states on a line of their own leave it whole)
-  g[3] = t.header ? t.header.label.width : config.labelWidth;
+  g[3] = (t.header ? t.header.label.width : config.labelWidth) - indent;
   g[4] = tokens.colors['msui-text-muted'];
   // an empty label (`label: ''`) draws no text
   if (t.labelText) out.textArgs(t.labelText, AnchorStart, config.labelFont);

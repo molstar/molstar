@@ -100,8 +100,14 @@ describe.each(ExampleViews.map((v) => [`${v.dataset}/${v.id}`, v] as const))('%s
           for (const t of s.tracks) expect(t.header).toBeUndefined();
           continue;
         }
-        for (const t of s.tracks) {
+        for (let i = 0; i < s.tracks.length; i++) {
+          const t = s.tracks[i];
           if (t.well.y >= layout.height) continue;
+          // a folded group's row: one header line, its first band's, the group's
+          if (s.groups?.some((g) => g.folded && i > g.first && i <= g.last)) {
+            expect(t.header).toBeUndefined();
+            continue;
+          }
           const h = t.header!;
           expect(h, t.track.address).toBeDefined();
           const rows = t.track.layers.some((l) => l.type === 'rows');
@@ -114,7 +120,7 @@ describe.each(ExampleViews.map((v) => [`${v.dataset}/${v.id}`, v] as const))('%s
             expect(hitView(layout, slot.x + slot.width / 2, slot.y + slot.height / 2)).toMatchObject({
               target: 'header-slot',
               state: slot.part.name,
-              layer: t.track.address,
+              layer: h.group ?? t.track.address,
             });
           }
           // a rows track draws no states (its header is its title row's, not built); the rest every state its entries
@@ -130,7 +136,7 @@ describe.each(ExampleViews.map((v) => [`${v.dataset}/${v.id}`, v] as const))('%s
             expect(hitView(layout, st.box.x + st.box.width / 2, st.box.y + st.box.height / 2)).toMatchObject({
               target: 'header-state',
               state: st.name,
-              layer: t.track.address,
+              layer: h.group ?? t.track.address,
             });
           }
         }

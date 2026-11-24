@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { ResolvedSection, ResolvedTrack } from '@molstar/seqx-core/view';
+import type { ResolvedSection, ResolvedTrack, ResolvedTrackGroup } from '@molstar/seqx-core/view';
 import type { RenderConfig } from './config.js';
 import {
   builtInHeaderStates,
@@ -59,6 +59,9 @@ export function sectionHeaderOf(
   return sectionHeaderLine(parts, section, id, top, config, input.text, input.figure === true);
 }
 
+/** What a facts record spreads for a track outside a folded group: one object, none allocated a header. */
+const NoGroup = Object.freeze({});
+
 /**
  * A track's header line over its well: its facts (its layers' filtered rows, then its `section` layers', the first
  * layer with some first; its hidden layers), its parts, its line; and its label's baseline.
@@ -72,6 +75,7 @@ export function trackHeaderOf(
   sectionLays: readonly LayerLayout[],
   well: Box,
   config: RenderConfig,
+  group?: ResolvedTrackGroup,
 ): { readonly header: HeaderLine; readonly labelY: number } | undefined {
   // a navigator's picture has no label lane
   if (input.picture) return undefined;
@@ -94,10 +98,22 @@ export function trackHeaderOf(
     filtered: filtered ?? NoFiltered,
     hiddenLayers: hiddenLayersOf(track),
     hiddenTracks: hiddenTracksOf(input.model, section),
+    ...(group ? { group } : NoGroup),
   };
   // a rows track's label column is its tree and its rows' labels: its header waits for its title row (the package's
   // TODO): no parts and no label hit over them
   const rows = track.layers.some((l) => l.type === 'rows');
   const parts = rows ? undefined : (input.headers ?? builtInHeaderStates)(facts);
-  return trackHeaderLine(parts, track.address, id, well, config, input.text, input.figure === true, !rows);
+  // a folded group's row: its line the group's (its slots and its menu act on the group, Decision 4 of the groups)
+  const out = trackHeaderLine(
+    parts,
+    group?.address ?? track.address,
+    id,
+    well,
+    config,
+    input.text,
+    input.figure === true,
+    !rows,
+  );
+  return group ? { header: { ...out.header, group: group.address }, labelY: out.labelY } : out;
 }
