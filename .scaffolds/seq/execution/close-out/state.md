@@ -1,40 +1,39 @@
 # State: close-out (updated 2026-11-24, by the orchestrator)
 
-Branch: `packages-seq` Head: `08a6ffe44` (FX26 merged; its records after)
+Branch: `packages-seq` Head: `72012efcf` (FX26 merged; its records after)
 
 ## Where it stands
 
-**Overnight run** (the author, 2026-11-24: "keep going with the loop, overnight run so we will reconcile things in
-the morning"): the loop's "Running while the author is away". A decision a gate asks for is made as recommended and
-listed in `gaps.md` under "Decided overnight"; the stop conditions still stop a lane; no public API change beyond a
-design and no language change is decided; the use gate is deferred. A look the pane cannot show visibly is done in the
-DOM and pixels and listed in `gaps.md` for the author's morning look.
+The overnight run is over; the author reconciled `gaps.md` on 2026-11-24 ("Agree all": every recommendation as
+written). Search, track groups and values marks are agreed (the drafts in `drafts/`, each moved to `design/` by its
+lane); the language bump to `0.11.0` is CL6's, with CL8's `reference` after it in the same unreleased version.
 
 Stage 0 and GATE 0 are closed; waves 1 and 2 are merged and GATE 1 passed. Merged since: CL13 (`27470de3e`), CL9
-(`19733d6c3`, the default viewer's bound raised to 1,560 kB under the author's leave), CL7 (`1e499c655`), CL11 (`cc4fab363`, the minimal viewer's bound raised to 1,100 kB under the author's leave), CL12 (`245c82baf`), FX26 (`08a6ffe44`).
-Sizes at the head: spec 260.9/265, headless 978.7/980, default 1,557.3/1,560, minimal 1,096.6/1,100, ring 45.0/48.
+(`19733d6c3`), CL7 (`1e499c655`), CL11 (`cc4fab363`), CL12 (`245c82baf`), FX26 (`08a6ffe44`). Sizes at the head: spec
+260.9/265, headless 978.7/980, default 1,557.3/1,560, minimal 1,096.6/1,100, ring 45.0/48.
 
 ## In progress
 
-- FX25 stopped on a permission refusal (`gaps.md`), its worktree kept with items 1 and 2 uncommitted; waits for the
-  author.
+- CL5 search (strong, `seq/cl5`), started 2026-11-24 07:45.
+- CL6 track groups (strong, `seq/cl6`), started 2026-11-24 07:45.
+- FX27 the ring's Cmd+wheel and the 1M lookup (Sonnet, `seq/fx27`), started 2026-11-24 07:45.
+- FX25 parked on a permission refusal (`gaps.md`, Open), its worktree kept with items 1 and 2 uncommitted; waits for
+  the author's word on the plugin.
 
 ## Next
 
-1. Nothing runs: every lane left waits on the author (gaps.md). M5's browser numbers measured (gaps.md: both under
-   budget). Then GATE 2 waits for the author's word on CL5, CL6, CL8 and FX25.
-2. The legend's eye chunk flake (fixes.md) to the next fix lane.
-3. CL5, CL6 and CL8 wait for the author's word on their drafts (`drafts/search.md`, `track-groups.md`,
-   `values-marks.md`); FX25 for the refusal. GATE 2 after wave 4.
+1. Each lane's report through the loop's step 5; the drafts deleted at the merge that lands each design.
+2. CL8 after CL6 merges (the tracks and the language).
+3. FX25 when the author settles the plugin; its zoom-hatch item stays its own.
+4. GATE 2 after CL5, CL6, CL8 and FX25; then the use gate, the novice pass, the measurements, the last gate.
 
 ## Blockers and open questions
 
-`gaps.md`: FX25's refusal and its allele-title question; the three drafts (two are language changes); `rowsValue` over
-a lazy alignment; the overnight decisions to confirm (the zoom hatch; a 0.x minor read as a newer minor; the strip's layout per hull, left for version 1); the ring's Cmd+wheel (a drift, the author's). The headless
-and default bounds have 1.0 and 2.8 kB left: CL12 keeps new code lazy, or the orchestrator trims or raises (the
-author's leave). At the close: remove the locked, clean worktrees (CL4's, CL9's, CL13's, the
-reviewers') and their branches.
+`gaps.md`, Open: FX25's refusal (the plugin is the author's to adjust). Size headroom is thin (headless 1.3 kB, default
+2.7 kB, minimal 3.4 kB): lanes keep new code lazy; a raise with its cause under the author's leave. At the close:
+remove the locked, clean worktrees (CL4's, CL7's, CL9's, CL11's, CL12's, CL13's, FX26's, the reviewers') and their
+branches.
 
 ## Verify
 
-The loop's Checks; the scaffold checks were last green at `245c82baf`.
+The loop's Checks; the scaffold checks green at the records commit after `72012efcf`.

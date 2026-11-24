@@ -1,6 +1,6 @@
 # Drift: Cmd/Ctrl+wheel over the genome ring at the fit
 
-**Level**: code-vs-design. **Proposed outcome**: undecided (the designs say "idle", not what the event does). **Found
+**Level**: code-vs-design. **Outcome**: (c), decided by the author (2026-11-24, "Agree all"); to FX27. FX26 already keeps the hidden window still on a ring nobody follows. **Found
 by**: CL12, 2026-11-24 (M5's gap 2; novice 4).
 
 **What**: `layouts.md` (Rings): "A ring nobody follows has no window: its zoom and pan are idle, as a navigator's

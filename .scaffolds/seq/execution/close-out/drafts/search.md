@@ -1,7 +1,7 @@
 # Search: matchers and commands in the library, the box the application's
 
-<!-- Draft for the author's agreement (close-out CL5; features 182, and the search parts of 180, 181, 207). Moves to
-     `.scaffolds/seq/design/search.md` once agreed. Sections marked **Provisional** say what would settle them. -->
+<!-- Agreed by the author, 2026-11-24 ("Agree all"): close-out CL5; features 182, and the search parts of 180, 181,
+     207. Sections marked **Provisional** say what would settle them. -->
 
 ## Intent
 

@@ -1,10 +1,7 @@
 # Values marks: reference lines on a values layer (points and the log scale are built)
 
-<!-- Draft for the author's agreement (close-out, lane "Values marks"; version-1-rows.md, the author 2026-11-23, row
-     130 "Values for genomics": "build points, log scale, reference lines; split by sample deferred"). Moves to
-     `.scaffolds/seq/design/` (a section of `layouts.md`, "The values look", or its own file: the author's call) once
-     agreed. **It needs a language change** (a layer param, a minor bump): its own lane, and the author's word before
-     it starts. Sections marked **Provisional** say what would settle them. -->
+<!-- Agreed by the author, 2026-11-24 ("Agree all"): close-out CL8; features 130 (reference lines). A layer param
+     within the `0.11.0` bump track-groups.md makes. Sections marked **Provisional** say what would settle them. -->
 
 ## Intent
 

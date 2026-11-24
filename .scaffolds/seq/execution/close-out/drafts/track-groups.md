@@ -1,10 +1,8 @@
 # Track groups: a `group` node over tracks, folded as session state to one summary row
 
-<!-- Draft for the author's agreement (close-out, lane "Track groups"; version-1-rows.md, the author 2026-11-23: "one
-     design closes four rows; a strong lane", and Ranges (128): "build collapse with the track groups; defer split").
-     It closes the parts not built of features.md rows 159 (groups and summaries), 70 and 141 (groups of tracks,
-     EC-103), 185 (collapse and groups) and 128 (collapse). **It needs a language change** (a new node kind, `0.10.0` →
-     `0.11.0`): its own lane, and the author's word before it starts. -->
+<!-- Agreed by the author, 2026-11-24 ("Agree all"): close-out CL6; features 159 (groups and summaries), 70 and 141
+     (groups of tracks, EC-103), 185 (collapse and groups) and 128 (collapse). A language change, `0.10.0` → `0.11.0`,
+     shared with values-marks.md's `reference` param: one bump, in the language lane. -->
 
 ## Intent
 

@@ -191,7 +191,9 @@ extension kinds.
   names a dynamic node waits for it instead of reporting `seq.view.layer.data`; highlights hold their nodes (the
   selection does, `selection.holdNodes`); the overlay's sync issues in the viewer's `layoutIssues`.
 - **Data**: `summaries` in `ViewerConfig`; summaries for systems of unknown length or past `maxLength`; byte dedupe
-  across tiles; `SourceEntry` carries only `address`, `format`, `uri`, `value`.
+  across tiles; `SourceEntry` carries only `address`, `format`, `uri`, `value`; a name find's hit carries no level
+  (`NameHit.level`, a source-protocol change), so a node a source brings only at a coarse level is asked at the finest
+  and never arrives (CL7; no built-in source does this; past version 1, the author 2026-11-24).
 - **Render**: a summary pyramid for inline values zoomed out (inline data is level 1 only, so a large one zoomed out
   hits the tile cap); a legend's place in the chrome; palette registry entries (layer types and schemes are an
   extension's, atomic and undoable at run time); `query` layers read the whole annotation (filtering comes with the
