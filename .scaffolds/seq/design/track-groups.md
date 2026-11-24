@@ -169,7 +169,7 @@ in the group's order:
 | `letters`, `logo`, `ruler`, `matrix`, `grid`, `frame`, `bands`; an extension's type without `collapse` | none | left out, counted in the header's hover card ("Sequence: not in the summary") |
 
 - **Height**: the lane (one ranges lane, 22 px) when any member has a `lane` form, plus the strips, plus a row's
-  height; at least one lane. A summary with nothing to draw is the empty-well rule's note row ("no items",
+  height; strips alone stand with no lane above them (the row padded to the header's line). A summary with nothing to draw is the empty-well rule's note row ("no items",
   `track.emptyPx`); pending members draw the one-lane placeholder (EC-169).
 - **Hit and hover**: a summary mark hits as its own item (its layer's and track's address, so the hover card names
   the member: "R248Q, in ClinVar"), and is hovered, selected and highlighted as that item; where marks overlap the

@@ -75,6 +75,8 @@ export interface FoldedBands {
     first: number;
     last: number;
     count?: string;
+    /** A folded row of strips alone: the px above its first strip, the header's line. */
+    pad?: number;
   }[];
   /** A summary layer's original (its type's prep is the original's: a toggle prepares nothing again). */
   readonly originals?: ReadonlyMap<ResolvedLayer, ResolvedLayer>;
@@ -148,7 +150,14 @@ export function foldGroups(
     trackOf: number[];
     sourceOf: ResolvedTrack[];
     leads: number[];
-    groups: { group: ResolvedTrackGroup; folded: boolean; first: number; last: number; count?: string }[];
+    groups: {
+      group: ResolvedTrackGroup;
+      folded: boolean;
+      first: number;
+      last: number;
+      count?: string;
+      pad?: number;
+    }[];
     originals: Map<ResolvedLayer, ResolvedLayer>;
   } = { shown: [], trackOf: [], sourceOf: [], leads: [], groups: [], originals: new Map() };
   if (!tracksLayout) {
@@ -201,6 +210,7 @@ export function foldGroups(
     if (done.has(g)) continue;
     done.add(g);
     const start = out.shown.length;
+    let pad = 0;
     const members = shown.filter((m) => m.group === g && !m.summaryOf);
     let count = plural(members.length, 'track');
     if (group.summary) {
@@ -226,19 +236,23 @@ export function foldGroups(
           else left++;
         }
       if (left) count += ` · +${left} not shown`;
-      // at least one lane (an empty one when no member draws in one), the strips under it
-      push(band(`${g}#summary`, '', lanesHeight(1, config), lane), -1, t, after);
+      // one lane when a member draws in one (or nothing would be drawn: the empty lane), the strips under it; strips
+      // alone stand with no lane above them, the row padded at its top to the header's line
+      const laned = lane.length > 0 || strips.length === 0;
+      const stripsPx = strips.length * (config.group.summary.stripPx + 1) - 1;
+      pad = laned ? 0 : Math.max(0, config.header.groupPx - stripsPx);
+      if (laned) push(band(`${g}#summary`, '', lanesHeight(1, config), lane), -1, t, after);
       strips.forEach((s, k) =>
         push(
           band(`${g}#strip${k}`, '', config.group.summary.stripPx, [s]),
           -1,
           t,
-          // a strip under the lane: a 1 px gap
-          1 - config.trackGap,
+          // a strip under the lane (or the one before): a 1 px gap
+          !laned && k === 0 ? after + pad : 1 - config.trackGap,
         ),
       );
     }
-    out.groups.push({ group, folded: true, first: start, last: out.shown.length - 1, count });
+    out.groups.push({ group, folded: true, first: start, last: out.shown.length - 1, count, ...(pad ? { pad } : {}) });
   }
   return out;
 }
@@ -266,8 +280,9 @@ export function groupHeaders(
     if (!first || !last) continue;
     const x = config.inset;
     const width = config.labelWidth;
+    const pad = g.pad ?? 0;
     const box: Box = g.folded
-      ? { x, y: first.y, width, height: Math.max(1, last.y + last.height - first.y) }
+      ? { x, y: first.y - pad, width, height: Math.max(1, last.y + last.height - first.y + pad) }
       : { x, y: first.y - config.header.groupPx, width, height: config.header.groupPx };
     // a scrolled section's header wholly in its scrolled area, as a track's header line (or in the fixed head)
     if (scroll && g.first >= scroll.fixed && (box.y < scroll.y || box.y + box.height > scroll.end)) continue;

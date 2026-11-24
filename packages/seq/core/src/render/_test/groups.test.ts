@@ -90,19 +90,19 @@ describe('track groups in the tracks layout', () => {
     expect(bands(folded)).not.toContain('variants/clinvar');
   });
 
-  it('`auto`: values as a strip a member under one lane; the ranges family in one shared lane; a folded member lays no open form', async () => {
+  it('`auto`: values as a strip a member (under the lane, none when no member draws in one); the ranges family in one shared lane; a folded member lays no open form', async () => {
     const l = await lay(groupsSpec({ variants: { summary: 'auto' } }), ['features', 'variants', 'signals']);
     expect(bands(l)).toEqual([
       'letters',
       'features#summary',
       'variants#summary',
       'variants#strip0',
-      'signals#summary',
+      // values alone: their strips with no empty lane above them
       'signals#strip0',
       'signals#strip1',
     ]);
     const s = l.sections[0];
-    const [, featuresLane, variantsLane, densityStrip, , a, b] = s.tracks;
+    const [, featuresLane, variantsLane, densityStrip, a, b] = s.tracks;
     // the lane: every lane-form layer of the group (domains and motifs), keyed `#summary`
     expect(featuresLane.track.layers.map((x) => x.address)).toEqual([
       '/views/v/p53/features/domains/l#summary',
@@ -115,9 +115,9 @@ describe('track groups in the tracks layout', () => {
     expect(s.groups!.map((g) => g.count)).toEqual(['2 tracks', '3 tracks', '2 tracks']);
     // no open form of a folded member laid
     expect(s.lays.flat().some((x) => x.key === '/views/v/p53/features/domains/l')).toBe(false);
-    // the folded row's header box spans its bands
+    // the folded row's header box spans its bands, padded at its top to the header's line (strips alone)
     const sig = s.groups![2];
-    expect(sig.box.y).toBe(s.tracks[4].well.y);
+    expect(sig.box.height).toBe(config.header.groupPx);
     expect(sig.box.y + sig.box.height).toBe(b.well.y + b.well.height);
   });
 

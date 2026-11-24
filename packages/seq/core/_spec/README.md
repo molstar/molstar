@@ -4178,11 +4178,12 @@ the bands, never a warm frame's work).
 - **Folded**: one row whose label column is the header (chevron ▸, label, a quiet count "3 tracks"; the label cut before
   the count, the count before the chevron); its bands: the authored `summary` track (drawn as any track), or with `none`
   the header line alone (`<group>#header`), or with `auto` the summary: one lane (`<group>#summary`, `lanesHeight(1)`,
-  always there, empty when no member draws in one) holding every member layer whose form is `lane`, then a strip a
-  `strip` member (`<group>#strip<k>`, `group.summary.stripPx` high, 1 px apart, at most `group.summary.maxStrips`, the
-  rest counted: "+2 not shown"). A summary layer is its member's keyed `<layer>#summary`, its params with `lanes: 'one'`
-  in the lane form; it prepares as its member (the prep is shared, a toggle prepares nothing again), and a folded
-  member's open form is never laid (a fold makes a frame cheaper).
+  there when a member draws in one, or empty when nothing else would be drawn; strips alone stand with no lane, the row
+  padded at its top to `header.groupPx`) holding every member layer whose form is `lane`, then a strip a `strip` member
+  (`<group>#strip<k>`, `group.summary.stripPx` high, 1 px apart, at most `group.summary.maxStrips`, the rest counted:
+  "+2 not shown"). A summary layer is its member's keyed `<layer>#summary`, its params with `lanes: 'one'` in the lane
+  form; it prepares as its member (the prep is shared, a toggle prepares nothing again), and a folded member's open form
+  is never laid (a fold makes a frame cheaper).
 - **Summary forms** (`LayerType.collapse`, `lane` | `strip` | `row`; absent, the built-ins': `ranges`, `secondary`,
   `variants`, `pairs` a lane, `values` a strip, `rows` a row; the rest left out). The `row` form (a rows track's
   consensus row) is not drawn yet: a rows member is left out of the summary. The lane form is the ranges layer's
