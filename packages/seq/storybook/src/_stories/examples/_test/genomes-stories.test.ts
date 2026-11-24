@@ -129,8 +129,19 @@ async function open(id: string) {
   });
   viewer = v;
   v.resize(900);
-  void v.load(view(id).build()).then(() => v.settle());
-  await vi.advanceTimersByTimeAsync(200);
+  // the viewer's own settle (its lazy chunks landed, its model resolved again with them): their imports are real I/O,
+  // so the fake clock is stepped, each step after a real turn, until it resolves (never a count of steps)
+  let landed = false;
+  void v
+    .load(view(id).build())
+    .then(() => v.settle())
+    .finally(() => {
+      landed = true;
+    });
+  while (!landed) {
+    await vi.advanceTimersByTimeAsync(50);
+    await new Promise((r) => setImmediate(r));
+  }
   for (let seen = -1; seen !== opens.length; ) {
     seen = opens.length;
     await Promise.allSettled(opens);
