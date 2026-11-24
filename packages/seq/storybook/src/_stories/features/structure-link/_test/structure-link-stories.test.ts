@@ -5,7 +5,7 @@
  */
 
 import { location, locationsEqual } from '@molstar/seqx-core/query';
-import { LightTokens } from '@molstar/seqx-core/render';
+import { LightTokens, recordDrawLists } from '@molstar/seqx-core/render';
 import { colorRuns } from '@molstar/seqx-core/structure';
 import { P53 } from '@molstar/seqx-examples/p53/data';
 import { P53Views } from '@molstar/seqx-examples';
@@ -356,7 +356,7 @@ describe('Color by this track', () => {
     colorLink = undefined;
   });
 
-  it('the track the structure is colored by has its icon pressed, one at a time; its tooltip names it (F9)', () => {
+  it('the track the structure is colored by has its icon pressed, one at a time; its tooltip names it (F9)', async () => {
     restore = fakeClock();
     colored.draw();
     colorLink = link = linkFake(colored, table, Complex);
@@ -370,14 +370,28 @@ describe('Color by this track', () => {
     const pressed = () => ['domains', 'letters'].map((id) => item(id).pressed);
     expect(pressed()).toEqual([false, false]);
     expect(item('letters').label).toBe('Color the structure by this track');
-    headers.run('fake-host:color-by', target('letters'));
-    expect(pressed()).toEqual([false, true]);
-    // the canvas header's slot is pressed too (drawn at rest by the chrome), the other track's not
+    // a click on the canvas header's slot (the story's own path: the click runs the entry, never `headers.run`)
+    const canvasLine = (id: string) =>
+      colored.frame!.layout.sections[0].tracks.find((t) => t.track.address === `${Section}/${id}`)!.header!;
+    const canvas = (id: string) => canvasLine(id).slots.find((x) => x.part.name === 'fake-host:color-by')?.part.pressed;
+    const slot = canvasLine('letters').slots.find((x) => x.part.name === 'fake-host:color-by')!;
+    headers.click(slot.x + slot.width / 2, slot.y + slot.height / 2, false);
+    await vi.advanceTimersByTimeAsync(50);
     colored.draw();
-    const canvas = (id: string) =>
-      colored
-        .frame!.layout.sections[0].tracks.find((t) => t.track.address === `${Section}/${id}`)!
-        .header!.slots.find((x) => x.part.name === 'fake-host:color-by')?.part.pressed;
+    expect(pressed()).toEqual([false, true]);
+    // the slot is pressed on the canvas too, the other track's not, and drawn at rest on the page's ground
+    expect([canvas('domains'), canvas('letters')]).toEqual([undefined, true]);
+    const tip = recordDrawLists(colored.frame!.lists, ['tip']);
+    expect(tip.match(/^path /gm)).toHaveLength(1);
+    expect(tip).toMatch(/^rect .*$/m);
+    // a menu's choice (`runItem`) moves it as well
+    headers.runItem(item('domains'));
+    await vi.advanceTimersByTimeAsync(50);
+    colored.draw();
+    expect([canvas('domains'), canvas('letters')]).toEqual([true, undefined]);
+    headers.runItem(item('letters'));
+    await vi.advanceTimersByTimeAsync(50);
+    colored.draw();
     expect([canvas('domains'), canvas('letters')]).toEqual([undefined, true]);
     expect(item('letters').label).toBe('The structure is colored by this track (click to restore)');
     // another track takes the color: the press moves, never two at once

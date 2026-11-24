@@ -400,10 +400,11 @@ describe('drawn alike, hit as laid out', () => {
     const sec = f.layout.sections[0];
     const dom = sec.tracks.find((t) => t.track.label === 'Domains')!;
     const slot = dom.header!.slots.find((x) => x.part.name === 'seq:hide')!;
-    // at rest: exactly the pressed slot's icon and its underline, in the accent; no backdrop, no dots, no other slot
+    // at rest: exactly the pressed slot's ground (a long label is not overprinted), its icon and its underline in the
+    // accent; no actions' backdrop, no dots, no other slot
     const rest = recordDrawLists(f.lists, ['tip']);
     expect(rest.match(/^path /gm)).toHaveLength(1);
-    expect(rest.match(/^rect /gm)).toHaveLength(1);
+    expect(rest.match(/^rect /gm)).toHaveLength(2);
     // a finger hits at rest what is drawn: the pressed slot, not the "⋯"
     const at = (x: { x: number; width: number; y: number; height: number }) =>
       hitView(f.layout, x.x + x.width / 2, x.y + x.height / 2, true);

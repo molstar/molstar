@@ -252,7 +252,23 @@ export function drawSectionHeader(out: PassWriter, s: SectionLayout, pass: strin
 /** A line's pressed slots at rest (the others hidden with the hover): where they are, as the DOM parts keep them. */
 function drawPressed(out: PassWriter, line: HeaderLine | SectionHeaderLine, tokens: SeqTokens, config: RenderConfig) {
   const slots = line.slots;
-  for (let i = 0; i < slots.length; i++) if (slots[i].part.pressed) drawSlot(out, slots[i], undefined, tokens, config);
+  const g = out.args;
+  for (let i = 0; i < slots.length; i++) {
+    const s = slots[i];
+    if (!s.part.pressed) continue;
+    // on the page's ground: a long label under the icon is not overprinted
+    g[0] = s.x;
+    g[1] = s.y;
+    g[2] = s.width;
+    g[3] = s.height;
+    g[4] = tokens.colors['msui-bg'];
+    g[5] = NoColor;
+    g[6] = 0;
+    g[7] = 0;
+    g[8] = 0;
+    out.rectArgs();
+    drawSlot(out, s, undefined, tokens, config);
+  }
 }
 
 /** Whether a section draws any header actions (the tip pass walks it). */
