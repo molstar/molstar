@@ -16,6 +16,8 @@ to CL14, are written into `plan.md` (Lanes; Order and parallelism) and `checklis
 
 ## In progress
 
+- 2026-11-24 night: the values marks design's draft (`drafts/values-marks.md`), Sonnet, no code.
+
 - 2026-11-24 night: CL7, strong, streamed patches (`briefs/cl7-streamed-patches.md`), `seq/cl7`.
 
 - FX25 stopped on a permission refusal (gaps.md), its worktree kept with items 1 and 2 uncommitted; waits for the author.
