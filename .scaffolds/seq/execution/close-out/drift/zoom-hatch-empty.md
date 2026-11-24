@@ -12,3 +12,5 @@ where data exists but this level does not draw it (the source's level is too coa
 region has no items, the track follows the empty-well rule (a one-line row naming it, "no items"), never the hatch and
 never a blank band. Both designs hold: G12 for the first case, "no placeholder" read as "no zoom placeholder" for the
 second. To the next fix lane.
+
+**Deferred with FX25** (the author, 2026-11-24): decided, not built; carried to the next plan's fix lane (`fixes.md`).

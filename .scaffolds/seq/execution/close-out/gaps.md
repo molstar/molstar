@@ -37,6 +37,13 @@ Decisions a gate asks for (the loop, Gates).
 
 ## Open
 
+- **FX25 deferred** (the author, 2026-11-24: "ok let's just defer the fixes", after a third refusal, of a
+  read-only `cmp` and `git diff`): its items carried past this close-out (`fixes.md`), its worktree kept. The plugin is
+  the author's; a later lane in these files may meet it again.
+
+History of the refusal:
+
+
 - **FX25 stopped on a permission refusal** (2026-11-24 night; the loop's stop condition, never worked around): the
   `cc-plugin-privacy` plugin refused two of the lane's Bash commands with "it, or a script it names, holds or reads the
   account's email address beside what looks like a client's identity, or puts the address in a URL". Neither command

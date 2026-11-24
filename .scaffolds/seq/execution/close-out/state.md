@@ -16,19 +16,17 @@ Stage 0 and GATE 0 are closed; waves 1 and 2 are merged and GATE 1 passed. Merge
 
 - CL5 search (strong, `seq/cl5`), started 2026-11-24 07:45.
 - CL6 track groups (strong, `seq/cl6`), started 2026-11-24 07:45.
-- FX25 resumed 2026-11-24 08:10 (the author: "you can run it"): the refused commands rerun once, a second refusal
-  stops it; items 1–2 committed, rebased on `packages-seq`, then 3–6.
 
 ## Next
 
 1. Each lane's report through the loop's step 5; the drafts deleted at the merge that lands each design.
 2. CL8 after CL6 merges (the tracks and the language).
-3. FX25 when the author settles the plugin; its zoom-hatch item stays its own.
-4. GATE 2 after CL5, CL6, CL8 and FX25; then the use gate, the novice pass, the measurements, the last gate.
+3. FX25 deferred past the close-out (the author, 2026-11-24): its items in `fixes.md`, its worktree kept.
+4. GATE 2 after CL5, CL6 and CL8; then the use gate, the novice pass, the measurements, the last gate.
 
 ## Blockers and open questions
 
-`gaps.md`, Open: FX25's refusal (the plugin is the author's to adjust). Size headroom is gone (headless 1.0 kB, default
+`gaps.md`, Open: FX25 deferred (the privacy plugin's refusals). Size headroom is gone (headless 1.0 kB, default
 0.5 kB, minimal 1.4 kB): CL5 and CL6 will need raises, with their causes, under the author's leave. At the close:
 remove the locked, clean worktrees (CL4's, CL7's, CL9's, CL11's, CL12's, CL13's, FX26's, the reviewers') and their
 branches.

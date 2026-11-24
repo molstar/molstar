@@ -6,6 +6,12 @@ Open items for the next fix point or a running lane's fix round (the loop, Each 
   `ext-rondo/src/card.ts`'s `legendRondo`, CL2's files). The entry has no swatch, and its label doubles ("Contacts: by
   chromosome"). Fix: drop `<name>: ` when it repeats the legend's title, and give "by chromosome" a hue swatch. Kind:
   look. To CL2's fix round.
+- **Deferred** (the author, 2026-11-24: "ok let's just defer the fixes"): FX25 stopped three times on the
+  `cc-plugin-privacy` plugin's refusals (`gaps.md`). Its six items below (TP53-201's lane, the variant card's title, stub
+  labels, F9's canvas pressed slot, the square's failure text, the zoom hatch) carry past this close-out, to the next
+  plan's first fix lane. Its worktree (`.claude/worktrees/agent-a98a4bf365b8a5323`, `seq/fx25` at `37832382d`) keeps
+  items 1 and 2 uncommitted and unreviewed: item 1's tests shown failing on the parent by the author's own run (4 failed,
+  149 passed); item 2's not. Kept, never deleted without the author's word.
 - **TP53-201 is first only in the SVG** (the orchestrator's look at CL4, Features › Genome formats › GFF3 › Tp53): the
   canonical transcript is bold in both copies, but on the canvas it is the third lane (under TP53-203 and TP53-227) and
   first in the SVG. Answer F10 says first in its gene's stack. Likely the TODO's "the canvas and the SVG of one spec
