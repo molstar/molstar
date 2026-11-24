@@ -4,16 +4,16 @@ import { Meta } from '@storybook/addon-docs/blocks';
 
 # Search
 
-A reader looks for a motif: a restriction site on a plasmid, a primer on a genome, a glycosylation motif in a protein,
-a pattern across the rows of an alignment. Every hit is lit in the view, a count says where the reader is ("2 of 14"),
+A reader looks for a motif: a restriction site on a plasmid, a primer on a genome, a glycosylation motif in a protein, a
+pattern across the rows of an alignment. Every hit is lit in the view, a count says where the reader is ("2 of 14"),
 keys step through the hits, and the hits can be kept as a set to come back to.
 
 ## The library's part and the application's
 
-Search is application-level work on a base built for it. The library runs the matchers and holds the result: the
-query, the hits, the current hit and the status, with commands to run, step, go to a hit, clear and save. The search
-box and a results list are the application's: these stories use a small box built only on the public surface, to show
-that the surface is enough.
+Search is application-level work on a base built for it. The library runs the matchers and holds the result: the query,
+the hits, the current hit and the status, with commands to run, step, go to a hit, clear and save. The search box and a
+results list are the application's: these stories use a small box built only on the public surface, to show that the
+surface is enough.
 
 ## Three matchers
 
@@ -21,8 +21,8 @@ that the surface is enough.
   residue, `B` D or N, `Z` E or Q, `J` I or L). A sequence's own ambiguity letter is a hit only where every base it may
   be is allowed: a site reported on a run of `N` is not a site.
 - **Exact**: each letter itself.
-- **Regular expression**: letters, `.`, classes, groups, alternation and repeats, never backreferences or lookaround.
-  It runs in time linear in the letters whatever the pattern, so a pattern from a link can never hang the page.
+- **Regular expression**: letters, `.`, classes, groups, alternation and repeats, never backreferences or lookaround. It
+  runs in time linear in the letters whatever the pattern, so a pattern from a link can never hang the page.
 
 All three ignore case (a genome's lowercase is soft-masking), treat U as T on nucleotides, skip an alignment's gaps,
 search both strands of a nucleotide sequence (a site the same on both strands is one hit), and find a hit across a
