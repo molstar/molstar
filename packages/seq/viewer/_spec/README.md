@@ -1803,11 +1803,14 @@ frame.
   layer it lists. An entry **has an action** (`LegendEntryRow.action`, `LegendModel.names`) when an address names its
   items (`addressable`, the behavior's) or items in its value are drawn at the last settled frame (`LegendModel.drawn`:
   the part redraws when it moves, a pan or a tile): only then is it a pointer target with a click, a hover and Enter; a
-  swatch alone keeps the default cursor. `names` is a lookup and `entryItems` is read once a settled frame (a hover
-  again makes nothing). Swept by the hover sweep: every entry a hovered item reads as has its action and lights every
-  item it names in view, over its positions; an entry without one lights nothing. `fittingSchemes(layer)` is what a menu
-  offers (the schemes whose subject and measures fit the layer); `preview(layer, channel, value)` shows one hovered (a
-  preview, ended by `layer.channel` or Esc).
+  swatch alone keeps the default cursor. A swatch's click keeps the highlight (the eye is what hides): an entry with an
+  action says so in its tooltip and its `aria-description`, "Click to highlight · the eye hides the layer" ("Click to
+  highlight" where the part has no eyes; a compact entry's tooltip is its name, a line, then this; a hidden layer's
+  entries carry none). `names` is a lookup and `entryItems` is read once a settled frame (a hover again makes nothing).
+  Swept by the hover sweep: every entry a hovered item reads as has its action and lights every item it names in view,
+  over its positions; an entry without one lights nothing. `fittingSchemes(layer)` is what a menu offers (the schemes
+  whose subject and measures fit the layer); `preview(layer, channel, value)` shows one hovered (a preview, ended by
+  `layer.channel` or Esc).
 - **The Legend part's groups run one a line** (a column, 12 px apart; each title muted, 600, 11 px: grouping is seen
   without reading) and **its channels row keeps its place**: the row is outside the listbox (a listbox holds options),
   one line (`nowrap`, the first two channels named, the rest a `+n` chip), and `channels: reserve` (the default) holds

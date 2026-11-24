@@ -59,6 +59,11 @@ let eyeLoading: Promise<EyeChunk> | undefined;
 export const loadLegendEyes = (): Promise<EyeChunk> =>
   (eyeLoading ??= import('./legend-eye-dom.js').then((m) => (eyeChunk = m)));
 
+/** What an entry's click does, said in its tooltip and its accessible description (themes design, Legends). */
+export function entryHint(eye: boolean): string {
+  return eye ? 'Click to highlight · the eye hides the layer' : 'Click to highlight';
+}
+
 /** A hidden layer's row: its title and swatches dimmed (_spec/README.md "Legends", a layer's row keeps its place). */
 const HiddenOpacity = '0.45';
 
@@ -231,7 +236,12 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
         // an entry with an action alone is a target (its items lit, selected): a swatch alone keeps the default cursor
         if (e.action && e.value !== undefined) item.dataset.value = e.value;
         // the compact form: the label on hover and in the name, never as text (a ramp's ends aside)
-        if (compact) item.title = e.name;
+        // an entry with an action says what its click does (the eye hides: the click highlights), as its tooltip and
+        // its accessible description; a compact entry's tooltip is its name first
+        const hint = e.action && e.value !== undefined && !row.hidden ? entryHint(eyes && row.layers.length > 0) : '';
+        if (hint) item.setAttribute('aria-description', hint);
+        if (compact) item.title = hint ? `${e.name}\n${hint}` : e.name;
+        else if (hint) item.title = hint;
         // a hidden layer's entries: no action, and the pointer says so
         item.style.cssText = `display: inline-flex; align-items: center; gap: 4px; cursor: ${row.hidden ? 'not-allowed' : e.action ? 'pointer' : 'default'}; border-radius: 3px; padding: 0 2px;${e.hovered ? ' outline: 2px solid var(--msui-accent, currentColor);' : ''}${dim}`;
         if (row.hidden) item.setAttribute('aria-disabled', 'true');

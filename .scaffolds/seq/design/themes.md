@@ -359,7 +359,7 @@ and another viewer); a host recolors through `--seq-*` tokens.
   | Click the eye | `layer.hide`; the row dims; the button reads "Show Contacts" |
   | Click the eye-off | `layer.show`; the row back as it was |
   | Tab to the button, Enter or Space | as a click |
-  | Click an entry of a shown layer | unchanged: selects its items (the click rule) |
+  | Click an entry of a shown layer | unchanged: selects its items (the click rule); its tooltip and accessible description say "Click to highlight · the eye hides the layer" (the author, 2026-11-24, close-out A13: "Agree all four") |
   | Click an entry of a hidden layer | nothing; the pointer says so (not-allowed) |
   | Undo | the hide or show undone, one step |
   | Hover the eye | a tooltip with the button's name |
