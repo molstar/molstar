@@ -36,9 +36,10 @@ export interface OpenOptions {
   readonly realClock?: boolean;
   /**
    * Await every runtime's open (a gzip file inflates on the platform's thread pool, by no clock) between turns of the
-   * fake clock: what a view of recorded genome files needs to settle.
+   * fake clock: what a view of recorded genome files needs to settle. `opens`: the opens alone, its region reads on the
+   * fake clock (an answer's delay is a timer: awaited, it would wait for the clock the loop runs).
    */
-  readonly awaitOpens?: true;
+  readonly awaitOpens?: true | 'opens';
   /** The host's history, for edits that are undone (the spec takes part in it). */
   readonly history?: boolean;
   /** The viewer's config items, as the story passes them (`exampleStory`'s `config`). */
@@ -67,7 +68,7 @@ export async function openExample(view: ExampleView, options: OpenOptions): Prom
     ...(options.extensions ? { extensions: [...(base.extensions ?? []), ...options.extensions] } : {}),
     registry: withViewRegistry(
       base.registry ?? [],
-      watchOpens(view.registry?.(delayMs === 'staggered' ? {} : { delayMs }) ?? [], opens, options.awaitOpens === true),
+      watchOpens(view.registry?.(delayMs === 'staggered' ? {} : { delayMs }) ?? [], opens, options.awaitOpens),
     ),
     ports: {
       assets: () => {
@@ -112,7 +113,11 @@ export async function openExample(view: ExampleView, options: OpenOptions): Prom
 }
 
 /** The registry's runtimes with their opens kept (`awaitOpens`), else as they are. */
-function watchOpens(entries: readonly SeqRegistryEntry[], opens: Promise<unknown>[], on: boolean): SeqRegistryEntry[] {
+function watchOpens(
+  entries: readonly SeqRegistryEntry[],
+  opens: Promise<unknown>[],
+  on: OpenOptions['awaitOpens'],
+): SeqRegistryEntry[] {
   if (!on) return [...entries];
   return entries.map((e) =>
     e.kind === 'format-runtime'
@@ -121,9 +126,9 @@ function watchOpens(entries: readonly SeqRegistryEntry[], opens: Promise<unknown
           runtime: {
             ...e.runtime,
             open: (source, ctx) => {
-              // each region read too: a settled view has none in flight
+              // each region read too (not with `opens`): a settled view has none in flight
               const p = e.runtime.open(source, ctx).then((o) =>
-                Object.assign(Object.create(o) as OpenedSource, {
+                on === 'opens' ? o : Object.assign(Object.create(o) as OpenedSource, {
                   read: (request: RegionRequest, signal: AbortSignal) => {
                     const r = o.read(request, signal);
                     opens.push(r);

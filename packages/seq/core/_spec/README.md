@@ -4499,8 +4499,12 @@ cost to the minimal viewer is the names the chunk imports from it).
 ### Lanes and Hits
 
 - **Sticky lanes** (`StickyLanes`): an item keeps its lane while it is in view; a new item takes the first lane free
-  over its extent; repacked only when the view settled and a fresh packing needs fewer lanes. Why: items must not jump
-  when a neighboring region arrives.
+  over its extent; repacked only when the view settled and a fresh packing needs fewer lanes, or places an item packed
+  first (`assign`'s `first`: the gene line's `marked`, a canonical transcript) higher than its kept lane. Why: items
+  must not jump when a neighboring region arrives; but the packing order is the data's word (a canonical item first in
+  its gene's stack), so one that arrived after its neighbours (a file read a page at a time) takes its place once the
+  view rests, as an export of the view lays it out (the storybook's `lanes-twin.test.ts`: every story's settled
+  canvas and SVG, item by item).
 - **Hits go through the placement**: the section under the point, its layout's own marks (`hitChrome`), then the point
   placed (`at`, reading the page point from an array as a layer's `hit` does, and the strip-frame x through the axis's
   `inGapOf` and `unitInto`: a number passed to or returned from a call that is not inlined is boxed, so placing a point
