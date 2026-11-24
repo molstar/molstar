@@ -39,6 +39,8 @@ export interface HeaderSlotPart {
   readonly label: string;
   readonly icon?: HeaderIcon;
   readonly enabled: boolean;
+  /** The action is on now (the track the structure is colored by): drawn pressed, also at rest. */
+  readonly pressed?: boolean;
 }
 
 /** A state entry's chip as given: its entry's name, its text ("12 filtered"), what it counts and what it is about. */

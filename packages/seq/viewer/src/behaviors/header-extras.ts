@@ -314,7 +314,14 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
         // an action with a submenu opens it: enabled when any of its items runs
         const enabled = !!subsOf(e, f)?.length || whyNot(e.command, argsOf(e, f)) === undefined;
         const icon = iconOf?.(e.icon ?? command?.icon, e.iconMarkup);
-        (slots ??= []).push({ name: e.name, label, ...(icon ? { icon } : {}), enabled });
+        const pressed = e.pressed?.(f);
+        (slots ??= []).push({
+          name: e.name,
+          label,
+          ...(icon ? { icon } : {}),
+          enabled,
+          ...(pressed ? { pressed } : {}),
+        });
       }
       if ((e.kind ?? 'action') === 'action' || e.command !== undefined) menu = true;
     }

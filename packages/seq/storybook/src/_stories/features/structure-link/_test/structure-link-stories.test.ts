@@ -372,6 +372,13 @@ describe('Color by this track', () => {
     expect(item('letters').label).toBe('Color the structure by this track');
     headers.run('fake-host:color-by', target('letters'));
     expect(pressed()).toEqual([false, true]);
+    // the canvas header's slot is pressed too (drawn at rest by the chrome), the other track's not
+    colored.draw();
+    const canvas = (id: string) =>
+      colored.frame!.layout.sections[0].tracks
+        .find((t) => t.track.address === `${Section}/${id}`)!
+        .header!.slots.find((x) => x.part.name === 'fake-host:color-by')?.part.pressed;
+    expect([canvas('domains'), canvas('letters')]).toEqual([undefined, true]);
     expect(item('letters').label).toBe('The structure is colored by this track (click to restore)');
     // another track takes the color: the press moves, never two at once
     headers.run('fake-host:color-by', target('domains'));
