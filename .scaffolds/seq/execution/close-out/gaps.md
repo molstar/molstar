@@ -11,6 +11,9 @@ Decisions a gate asks for (the loop, Gates).
 ## Decided overnight
 
 Each made as recommended while the author was away (2026-11-24 night), for the morning's reconcile.
+- **The zoom strip laid out per hull change of a drag** ([drift/strip-layout-per-hull.md](drift/strip-layout-per-hull.md),
+  CL11 item 3): (c), left for version 1 (97 kB and 0.7 ms a frame, bounded by the screen); (a), the tracks layout's
+  allocation pass, to the TODO. The author to confirm.
 - **The zoom hatch over a track that draws nothing** ([drift/zoom-hatch-empty.md](drift/zoom-hatch-empty.md)): the hatch where data exists but this level does not draw it; the empty-well row where the region has none. The author to confirm.
 - **Search (CL5) and track groups (CL6) have no design**: their lanes build a core and need one first. Overnight, two
   drafts are written (`drafts/search.md`, `drafts/track-groups.md`, no code) for the author's agreement in the morning;

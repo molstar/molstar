@@ -30,7 +30,7 @@
 - [x] CL13 (`27470de3e`) Carried small items: the BLOSUM62 text, a folder-graph test, a lanes band's history by item, `rowsValue` over a lazy alignment, `seq.render.pairs.filter`
 
 <!-- Wave 5 -->
-- [ ] CL11 The drag rule: a drag's work bounded by the screen, a perf-tier bound
+- [x] CL11 The drag rule: a drag's work bounded by the screen, a perf-tier bound (`cc4fab363`)
 - [ ] CL12 M5's leftovers: the split patch, the Signal zoom frame, Cmd+wheel on the ring at the fit
 - [ ] GATE 2
 

@@ -430,6 +430,10 @@ extension kinds.
   legend entry without a swatch, its label doubled; the scattered pick's grid lines in dark; the dot plot's white empty
   cells in dark and "chr1" against "1"; Liftover's overlapping labels, jargon and no bridge legend; the methylation
   matrix's missing cells as dark as low ones, samples called "State"; BED12 tracks unnamed.
+- **The tracks layout's allocation pass** (CL11's drift, `strip-layout-per-hull`): a section of many blocks lays a
+  `LayoutContext`, a box and a lays array a strip a layer, its rulers' tick arrays and label strings, on every layout;
+  pool them by strip index and layer type, labels by value and step. A navigator's strip dragged across 3,000 contigs
+  allocates 97 kB a frame (`navigator-blocks.quick.ts`, bounded at 256 kB), a genome row's pan the same.
 - **M5's leftovers** (2026-11-23):
   - The 200-copy split patch, from a click to drawn: median 16.2 ms, max 20.4 (edit < 16).
   - The Signal story's zoom had one frame of 25.7 ms.

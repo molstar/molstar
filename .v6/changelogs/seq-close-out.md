@@ -27,3 +27,6 @@
   fallback; a spec of a newer minor version with an unknown kind gives a warning naming both versions, not an error.
 - Seq\*: a bookmark on a streamed node (a transcript read by region) survives its region's eviction; jumping to it says
   "Waiting for T2", asks the source where the node is and runs when it arrives; a key the source lacks is said once.
+- Seq\* viewer: a drag-select's work is bounded by the screen: the selection is written once a frame and resolved on
+  release, nothing is hovered while it runs, and the projections are indexed; a sweep across 12 chromosomes of a
+  3,000-contig genome drops from about 300 ms to about 1 ms a frame.

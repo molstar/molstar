@@ -45,8 +45,7 @@ loop allows). Never a bare `git stash`. No network.
 
 **Checks**, green only on exit 0 with a non-zero test count: `pnpm test:unit packages/seq/ cli/seqx-render/`;
 `pnpm test:medium packages/seq/`; `pnpm -s -C packages/seq/core test:perf` and `pnpm -s -C packages/seq/storybook
-test:perf`; `pnpm -s -C packages/seq/core size` (every row; the minimal viewer has 0.3 kB left: new code lazy, or name
-the row); `npx tsc -b`; `pnpm lint`; `pnpm format:check`; the scaffold checks in `.scaffolds/seq/AGENTS.md` (stage
+test:perf`; `pnpm -s -C packages/seq/core size` (every row: headless 979.0 of 980, default 1,557.2 of 1,560, minimal 1,096.4 of 1,100: new code lazy, or name the row); `npx tsc -b`; `pnpm lint`; `pnpm format:check`; the scaffold checks in `.scaffolds/seq/AGENTS.md` (stage
 first).
 
 **Stop when** green, or a check red twice after a fix, or a step is refused by the permission system (report the

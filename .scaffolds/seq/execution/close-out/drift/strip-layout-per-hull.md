@@ -1,6 +1,7 @@
 # Drift: the zoom strip laid out again on every hull change of a drag
 
-**Level**: code-vs-design. **Proposed outcome**: undecided.
+**Level**: code-vs-design. **Proposed outcome**: (c), decided overnight as recommended (2026-11-24, the orchestrator; the author to confirm):
+(a) to `packages/seq/TODO.md`.
 
 **What**: `performance.md` (Cost follows pixels, the drag rule) bounds a drag's work by the screen, and the plan's CL11
 item 3 asks the navigator's zoom strip not to be laid out again per move. The design (core `_spec` "Render",
