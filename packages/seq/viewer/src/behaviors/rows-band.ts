@@ -77,3 +77,27 @@ export function pageLanes(l: RangesLay): number {
 export function lanesTop(l: RangesLay, top: number, by: number): number {
   return Math.max(0, Math.min(l.scrollMax, top + by));
 }
+
+/**
+ * The item at a lanes band's top and the fraction into its lane (the history keeps the band by it, `BandRows`): the
+ * first item of the lane at `top` in the band's last layout; undefined when the band does not scroll or its top lane
+ * holds no item in view.
+ */
+export function lanesKeyAt(l: RangesLay, top: number): { readonly key: string; readonly offset: number } | undefined {
+  if (!l.scrolls) return undefined;
+  const t = Math.max(0, Math.min(l.scrollMax, top));
+  const lane = Math.floor(t);
+  for (let i = 0; i < l.items; i++) if (l.lanes[i] === lane) return { key: l.ids[i], offset: t - lane };
+  return undefined;
+}
+
+/**
+ * The band's top (lanes) that puts the item `key` at its top, `offset` of a lane past it, clamped to the lanes; the
+ * lane is the one the layer holds the item in (its sticky lanes, in view or not). Undefined when the layer holds no
+ * lane for the item (it left the data or the view).
+ */
+export function lanesTopOf(l: RangesLay, key: string, offset: number): number | undefined {
+  const lane = l.sticky.laneOf(key);
+  if (lane === undefined || !l.scrolls) return undefined;
+  return Math.max(0, Math.min(l.scrollMax, lane + offset));
+}

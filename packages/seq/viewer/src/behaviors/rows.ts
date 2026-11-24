@@ -29,9 +29,8 @@ import { DefaultViewerConfig, type ViewerConfig, validRowsZoom } from '@molstar/
 import type { EditOutcome, SpecModel, ViewModel } from '@molstar/seqx-viewer/models';
 import type { EditOrigin } from '@molstar/seqx-viewer/ports';
 import { CladeActions } from '@molstar/seqx-viewer/bindings';
-import { bandFolds, pagedTop, setBandFolds } from './rows-band.js';
+import { bandFolds, lanesBand, lanesKeyAt, lanesTopOf, pagedTop, setBandFolds } from './rows-band.js';
 import { RowsRailGesture } from './rows-rail.js';
-import { lanesBand } from './rows-band.js';
 import { trackOfLayer } from './two-axes.js';
 
 export { trackOfLayer };
@@ -502,14 +501,22 @@ export function rowsBehavior(
   view.setBandRows({
     keyAt(track, band) {
       const l = lay(track);
-      if (!l) return undefined;
+      // a lanes band: the item at its top lane
+      if (!l) {
+        const b = lanesBand(layout(), track);
+        return b ? lanesKeyAt(b.lay, band.bandTop) : undefined;
+      }
       const rs = band.rowScale ?? l.rowScale;
       return l.keyAt(Math.min(band.bandTop, l.maxTop(rs, l.display.count)));
     },
     topOf(track, band, key, offset) {
       // a band with no folds of its own shows its layer's `collapsed`
       const l = lay(track);
-      return l?.topOf(key, offset, band.folds ?? l.collapsed, band.rowScale);
+      if (!l) {
+        const b = lanesBand(layout(), track);
+        return b ? lanesTopOf(b.lay, key, offset) : undefined;
+      }
+      return l.topOf(key, offset, band.folds ?? l.collapsed, band.rowScale);
     },
     axisOf(system) {
       for (const l of lays().values()) if (l.rowsSystem === system) return l.rowsAxis();
