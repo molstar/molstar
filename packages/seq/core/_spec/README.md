@@ -3339,23 +3339,23 @@ in page coordinates: what crosses strips; `bridge`, internal, once a bridge with
   outline). Why a polygon: the draw lists have no circle, and the squircle's corner is not one. A warm frame, draw and
   hover of each encoding allocate nothing. **Reference lines** (`reference`, `values-reference.ts`; EC-217; the language
   `0.11.0`): up to four hairlines across the well, each at a value of the layer's y, `{ at, label?, color?, style? }`
-  (`color` a color, a token or `light-dark(a, b)`, never a theme form; absent: `msui-text-muted`; `style` `solid`,
-  `dashed` (absent) or `dotted`). A line is where a value there is (`ys` and the headroom, so a dot at the threshold and
-  its line coincide; on a log scale `at <= 0` is not on it: no line). It is 1 CSS px (`values.reference.widthPx`, never
-  thinner than a device pixel) over the bars, the profile and the dots and under the hover, a solid one a rect and a
-  dashed or dotted one a path with a dash (`dashPx` 4, `dotPx` 1.5: on, then as long off: the draw lists' dash), so the
-  SVG export draws what the canvas does; it is never hit and never hovered (its value is in the label and the accessible
-  text), and the baseline hairline stays (a line at its value draws over it). A line outside a **closed** domain (the
-  layer's `domain`, or the scale node's both ends) is not drawn and said once a layer (`seq.render.reference.outside`:
-  its index and value); an **open** end includes the lines (the union of EC-56 gains them), so a Manhattan track whose
-  tallest SNP is 6.1 still shows its 7.3 line and a plot with no significant SNP is seen to have none (Provisional). The
-  **label** draws at the well's right end in the `labels` pass, above the line, `labelPx` (10) in `msui-text-muted` over
-  a patch of the well's ground, only from `labelMinWellPx` (40) of well, below the line where it is within a label
-  height of the well's top, cut with an ellipsis to the well's right third, the later of two overlapping labels dropped
-  (its line stays) (Provisional); an unlabelled line draws no text. The layer's ARIA description (`summary`) says
-  "reference line at 7.3 (genome-wide)" a drawn line. With no `reference` nothing is drawn. A warm frame of each
-  encoding with two lines allocates nothing. Why: a threshold is the genome-wide association plot's finding, and a line
-  from the layer's own scale stays right at every zoom, linear or log.
+  (`color` a color, a token or `light-dark(a, b)`, never a theme form; absent: `msui-text`; `style` `solid`, `dashed`
+  (absent) or `dotted`). A line is where a value there is (`ys` and the headroom, so a dot at the threshold and its line
+  coincide; on a log scale `at <= 0` is not on it: no line). It is 1 CSS px (`values.reference.widthPx`, never thinner
+  than a device pixel) over the bars, the profile and the dots and under the hover, a solid one a rect and a dashed or
+  dotted one a path with a dash (`dashPx` 4, `dotPx` 1.5: on, then as long off: the draw lists' dash), so the SVG export
+  draws what the canvas does; it is never hit and never hovered (its value is in the label and the accessible text), and
+  the baseline hairline stays (a line at its value draws over it). A line outside a **closed** domain (the layer's
+  `domain`, or the scale node's both ends) is not drawn and said once a layer (`seq.render.reference.outside`: its index
+  and value); an **open** end includes the lines (the union of EC-56 gains them), so a Manhattan track whose tallest SNP
+  is 6.1 still shows its 7.3 line and a plot with no significant SNP is seen to have none (Provisional). The **label**
+  draws at the well's right end in the `labels` pass, above the line, `labelPx` (10) in `msui-text-muted` over a patch
+  of the well's ground, only from `labelMinWellPx` (40) of well, below the line where it is within a label height of the
+  well's top, cut with an ellipsis to the well's right third, the later of two overlapping labels dropped (its line
+  stays) (Provisional); an unlabelled line draws no text. The layer's ARIA description (`summary`) says "reference line
+  at 7.3 (genome-wide)" a drawn line. With no `reference` nothing is drawn. A warm frame of each encoding with two lines
+  allocates nothing. Why: a threshold is the genome-wide association plot's finding, and a line from the layer's own
+  scale stays right at every zoom, linear or log.
 
 - `frame` (EC-100): an annotation's regions outlined across tracks of its section (`across`: the first and the last
   track's ids, the bands between them too; its own band when absent: `ctx.span`). A strip layer: on each strip a

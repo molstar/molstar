@@ -1208,7 +1208,7 @@ export const SeqLanguage = defineLanguage({
               label: { type: 'string', doc: 'Its name for people (“genome-wide”): drawn at the line and read aloud.' },
               color: {
                 type: 'string',
-                doc: 'A color, a token or `light-dark(a, b)` (never a theme form); `token:msui-text-muted` when absent.',
+                doc: 'A color, a token or `light-dark(a, b)` (never a theme form); `token:msui-text` when absent.',
               },
               style: { type: 'string', enum: ['solid', 'dashed', 'dotted'], doc: '`dashed` when absent.' },
             },

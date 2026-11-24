@@ -18,7 +18,7 @@ import { settle } from './helpers.js';
 import { layerLay, readPaths, readRects } from './small-helpers.js';
 
 const Size = { width: 400, height: 80 };
-const Muted = LightTokens.colors['msui-text-muted'];
+const LineInk = LightTokens.colors['msui-text'];
 
 type Line = { at: number; label?: string; color?: string; style?: string };
 
@@ -54,10 +54,10 @@ async function frame(
 /** The line a layer draws at `i`: its solid rect's middle, else its dashed path's y. */
 const lineYs = (f: Awaited<ReturnType<typeof frame>>['f']) => [
   ...readRects(f.lists)
-    .filter((r) => r.fill === Muted && r.w > 100)
+    .filter((r) => r.fill === LineInk && r.w > 100)
     .map((r) => r.y + r.h / 2),
   ...readPaths(f.lists)
-    .filter((p) => !p.closed && p.stroke === Muted && p.dash > 0)
+    .filter((p) => !p.closed && p.stroke === LineInk && p.dash > 0)
     .map((p) => p.xy[1]),
 ];
 
@@ -254,15 +254,15 @@ describe('marks, export, hit', () => {
       domain: [0, 10],
       reference: [{ at: 2, style: 'solid' }, { at: 5 }, { at: 8, style: 'dotted' }],
     });
-    const rects = readRects(f.lists).filter((r) => r.fill === Muted && r.w > 100);
+    const rects = readRects(f.lists).filter((r) => r.fill === LineInk && r.w > 100);
     expect(rects).toHaveLength(1);
     expect(rects[0].h).toBeCloseTo(1, 5);
-    const dashed = readPaths(f.lists).filter((p) => p.stroke === Muted && p.dash > 0);
+    const dashed = readPaths(f.lists).filter((p) => p.stroke === LineInk && p.dash > 0);
     expect(dashed.map((p) => p.dash)).toEqual([4, 1.5]);
     expect(dashed.every((p) => p.strokeWidth === 1 && p.xy.length === 4)).toBe(true);
     // after the bars: the last rect of the data pass before the line is a bar
     const all = readRects(f.lists);
-    expect(all.findIndex((r) => r.fill === Muted && r.w > 100)).toBeGreaterThan(
+    expect(all.findIndex((r) => r.fill === LineInk && r.w > 100)).toBeGreaterThan(
       all.findIndex((r) => (r.fill & 255) === 0x99),
     );
   });
@@ -300,10 +300,16 @@ describe('marks, export, hit', () => {
 });
 
 describe('light and dark', () => {
-  it('the default line (muted text) reads against the well’s ground, 3:1, in both themes', () => {
-    // against `seq-value` it does not (1.3:1 light, about 1.2:1 dark): the series is drawn at 60% over the ground, the
-    // line is a dash over it, and a writer’s own color is theirs to check; the drift is in the lane’s report
+  it('the default line (`msui-text`) reads against the well’s ground at 3:1 in both themes, and against `seq-value` in light', () => {
     for (const t of [LightTokens, DarkTokens])
-      expect(contrastRgba(t.colors['msui-text-muted'], t.colors['seq-track'])).toBeGreaterThanOrEqual(3);
+      expect(contrastRgba(t.colors['msui-text'], t.colors['seq-track'])).toBeGreaterThanOrEqual(3);
+    expect(contrastRgba(LightTokens.colors['msui-text'], LightTokens.colors['seq-value'])).toBeGreaterThanOrEqual(3);
+    // dark: no ink is 3:1 against both a near-black ground and the light series blue (1.75:1 for `msui-text`)
+  });
+
+  it('the line is drawn in `msui-text`, the label’s ink stays muted', async () => {
+    const { f, lay } = await frame(Positions, { domain: [0, 10], reference: [{ at: 7, label: 'x' }] });
+    expect(lineYs(f)).toHaveLength(1);
+    expect(lay.ref.ink).toBe(LightTokens.colors['msui-text-muted']);
   });
 });

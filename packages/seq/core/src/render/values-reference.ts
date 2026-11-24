@@ -150,7 +150,7 @@ export function layoutReference(lay: ValuesLay, ctx: LayoutContext, closed: numb
     r.shown[i] = 1;
     r.y[i] = y1 - ((v - lo) / span) * box.height;
     r.top[i] = Math.round((r.y[i] - r.width / 2) * lay.axis.dpr) / lay.axis.dpr;
-    r.color[i] = (l.color !== undefined ? resolveColor(l.color, tokens) : undefined) ?? muted;
+    r.color[i] = (l.color !== undefined ? resolveColor(l.color, tokens) : undefined) ?? tokens.colors['msui-text'];
     r.dash[i] = l.style === 0 ? 0 : l.style === 1 ? cfg.dashPx : cfg.dotPx;
   }
   layoutLabels(lay, ctx, muted);

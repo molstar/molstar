@@ -48,7 +48,7 @@ A `values` layer takes `reference`: a list of up to four lines, each a record `{
   stays 5e-8).
 - `label` (string): its name for people ("genome-wide", "mean"), drawn at the line and read by the accessible text.
 - `color` (a color, a token or `light-dark(a, b)`; as a layer's `color`, never a theme form: a line is one colour).
-  Absent: `msui-text-muted`.
+  Absent: `msui-text` (the author, 2026-11-24: 3:1 against the ground and `seq-value`).
 - `style` (`solid`, `dashed`, `dotted`, the ranges' `line` words; absent: `dashed`).
 
 The line is a hairline across the whole well (1 CSS px, never thinner than a device pixel), drawn **over the bars, the
@@ -107,13 +107,13 @@ With no `reference` the layer is as built: no line. With a line, no other settin
  │        ▪        ▪   ▪       ▪        │     │        ▪        ▪   ▪       ▪        │
  │ ▪ ▪▪ ▪▪▪ ▪▪ ▪▪▪ ▪ ▪▪ ▪▪ ▪▪▪ ▪▪ ▪ ▪▪ ▪ │     │ ▪ ▪▪ ▪▪▪ ▪▪ ▪▪▪ ▪ ▪▪ ▪▪ ▪▪▪ ▪▪ ▪ ▪▪ ▪ │
  └──────────────────────────────────────┘     └──────────────────────────────────────┘
-   baseline hairline at 0 (seq-sequence)        line: msui-text-muted, dashed 4 on 3 off, 1 px
+   baseline hairline at 0 (seq-sequence)        line: msui-text, dashed 4 on 3 off, 1 px
 ```
 
-- **Light and dark**: tokens only (`msui-text-muted` for the line and the label, the well's ground behind the label);
-  the line reads against the well's ground at 3:1 in both themes (a test measures it). Against `seq-value` it does not
-  (1.3:1 light, about 1.2:1 dark: `msui-text-muted` and the series blue are near in lightness, and 3:1 against both needs
-  `msui-text`): carried, the author's call. A writer's own colour is theirs to check.
+- **Light and dark**: tokens only (`msui-text` for the line, `msui-text-muted` for the label, the well's ground behind the
+  label); the line reads against the well's ground at 3:1 in both themes and against `seq-value` at 3:1 in light (a test
+  measures them). In dark `seq-value` is a light blue: no ink is 3:1 against it and the near-black ground (1.75:1 for
+  `msui-text`): carried. A writer's own colour is theirs to check.
 - **A line outside the domain**: closed domain `[0, 6]`, line at 7.3: not drawn, one info. Open domain: the domain
   becomes `[0, 7.3]` plus headroom and the line is drawn (Decision 3).
 - **Two lines**: 7.3 ("genome-wide", dashed) and 5 ("suggestive", dotted, `color` set): two hairlines, two labels at
@@ -137,7 +137,7 @@ canvas and SVG.
 | a values layer's `reference` (spec) | absent: no line | a figure draws what its writer asks; a zero line is the baseline already | a scale node's `lines` (Rejected) |
 | a line's `at` (spec) | required | a threshold is a number the writer knows | a field's value (not built) |
 | a line's `label` (spec) | absent: none | a label is a claim | the track's title (the writer's) |
-| a line's `color` (spec) | `msui-text-muted` | the series colours (by chromosome, by value) are the data: the line must not borrow one | any color or token |
+| a line's `color` (spec) | `msui-text` | the series colours (by chromosome, by value) are the data: the line must not borrow one | any color or token |
 | a line's `style` (spec) | `dashed` | a threshold is conventionally dashed and apart from the baseline's solid | `solid`, `dotted` |
 | lines per layer (language bound) | 4 | a threshold, a suggestive one, a zero, a mean | any (not built) |
 | `values.reference.widthPx` (render config) | 1 | the baseline's and the hairlines' weight | any (not built) |
