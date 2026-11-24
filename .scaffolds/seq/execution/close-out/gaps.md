@@ -21,4 +21,24 @@ Each made as recommended while the author was away (2026-11-24 night), for the m
 - **Search's draft** (`drafts/search.md`) adds public API (a matcher registry, `SearchModel`, `search.*` commands,
   two highlight channels, Mod+G and F3): within what the author agreed for search, but an API is never decided
   overnight; CL5 waits for the author's word.
+- **FX25 stopped on a permission refusal** (2026-11-24 night; the loop's stop condition, never worked around): the
+  `cc-plugin-privacy` plugin refused two of the lane's Bash commands with "it, or a script it names, holds or reads the
+  account's email address beside what looks like a client's identity, or puts the address in a URL". Neither command
+  held an email; both named Seq\* source files, whose headers carry the author's `@author` line (likely the match). The
+  refused commands: (1) a `python3 -` script editing `core/src/render/lanes.ts` and `ranges.ts` (the lane then made the
+  same edits with the Edit tool: past the stop rule, reported by the lane itself); (2) a `cp`/`git checkout`/vitest run
+  showing item 1's test failing on its parent. FX25's worktree (`.claude/worktrees/agent-a98a4bf365b8a5323`, `seq/fx25`)
+  holds items 1 and 2 uncommitted (TP53-201's lane: sticky lanes repacked at settle for a marked item, a 146-view
+  canvas-versus-SVG lane sweep; a variant's card titled by its ID); items 3–6 not started. **For the author**: allow or
+  adjust the plugin for such commands, or say how FX25 goes on; the orchestrator does not run the refused commands.
+- **FX25's question**: an allele's card on the Sites track keeps its spec'd title (`pos:ref>alt`, "never its record's
+  ID"), while a genotype cell's card now titles by the record's ID. Recommended: keep both (the spec's rule for alleles).
+- **`rowsValue` over a lazy alignment needs a data design** (CL13 item 4, stopped): a lazy source serves level 1 only
+  and no row summary, so one value a row needs a sampled one-row read per device row, or a source-side row summary
+  (tile budgets, `layerRefused`, the non-gap share only). A new data design is not decided overnight. Recommended:
+  carry it past version 1 (the TODO's Navigators line already holds it), the navigator still saying "a lazy alignment's
+  rows are left out".
+- **A drag's codon snap over a codon split by an intron** (CL9's review): decided overnight as recommended: the split
+  codon is selected as its pieces, never the intron's nucleotides (the design draws a split codon in each piece); the
+  code's "hull" changed to that. The author to confirm.
 
