@@ -90,11 +90,20 @@ The merged path grew beside the per-group one instead of under it. Five choices 
   (cells, markers, layers kept) over another part's shared values; parts of one key become one; a key of no part a new
   part, its shared values a copy (`createEmptyMergeMember`). Measured: `repr/units-100k-spacefill` (WebGPU) 8.06 KB a
   unit against 7.91 (the two cells a segment owns more), its build 4.04 s alike.
-- **Updates by the builders' update state**, decided once for the props and theme (shared) and per segment for its
-  group, as `UnitsVisual` does: the fast paths become outcomes of that state (nothing to do, the clip alone, the shared
-  values alone), not checks beside it; `isCompatible` checked per update. **Transactional**: an update builds what it
-  changes beside the current segments and commits at its end (records, versions, `currentProps`, the parts), so a throw
-  or an abort leaves the visual as it was.
+- **Updates by the builders' update state** (done): a segment's update from the props, theme and structure it was last
+  written with (its own: `Segment.props`, `theme`, `structure`), by its update state (`setUnitsUpdateState`: the
+  context's compatibility, the builder's versions a group), nothing written where the state is none and nothing it was
+  written with changed. The fast paths (nothing changed, the clip alone, the shared values alone) only where every
+  segment is at the last update's props (it ended), in the same context; a builder with versions a group
+  (`initUpdateState`: the cartoon's secondary structure, the interactions) reads each segment's update state on a
+  props change too, written where it says. Measured (`merging/units-1000-*-merged-*`, WebGPU): spacefill alike; the
+  cartoon's clip move and prop change 0.23 to 0.65 and 0.31 to 0.72 ms of update (the update state of 1000 segments,
+  their versions read), its frames alike.
+- **An update that does not end** (a throw, an abort; done): no record versioning lost (the records read again,
+  `recordsWritten`), the next update without the fast paths, each segment brought from its own; a rebuild (a backend
+  switch, another instance granularity) made beside the current segments and parts, which stay drawn and are disposed
+  once it ends; the loci's structure and granularity as before. Not a rollback of the segments it wrote: they keep the
+  new props, which the next update reads as theirs.
 - **One merged object form** (done): records and shared values (`MergedGraphicsRenderObject.shared`, always), no
   `members`; `createMergedRenderObject(members)` takes its members' values as its records, the first's as the shared
   values. Member views (`getMergedMembers`: a record's own cells over the shared values; none of a source's) for the
@@ -113,8 +122,10 @@ The merged path grew beside the per-group one instead of under it. Five choices 
    instance counts each with its own; debug mode's check of shared writes.
 2. **One merged object form** (done): the members' producer on records; the consumers of `members` moved to the views
    and the records (the per-group picking to the entry's ids, the particle targets' clip to `shared`).
-3. **Updates by the update state, transactional**: the fast paths folded in; a failed or aborted update leaves records,
-   versions and parts as they were (tests for a throw and an abort mid-update, a backend switch alone).
+3. **Updates by the update state** (done): the fast paths behind it; an update that does not end leaves every segment
+   updatable from what it holds and a rebuild's current objects drawn. Tested: a throw mid-update, then the props it
+   was made with again, drawn as made; a rebuild that throws keeps its objects; a backend switch alone checks each
+   group against the new context; a builder's version moved with nothing else changed.
 4. **Every part merged**: palettes; the vertex-instance index (colors, sizes, layers); smoothing as the vertex types
    for merged parts; parts by geometry type (`selectVisual`), GPU surfaces as plain objects on WebGL; one group merged
    as well. Then the representation's switch, the probe, the retry and `renderMerged` for units removed. Tests: images

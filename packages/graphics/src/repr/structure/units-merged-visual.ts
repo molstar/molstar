@@ -128,6 +128,13 @@ type Segment<G extends Geometry> = {
   /** of its location iterator at its last update */
   groupCount: number;
   instanceCount: number;
+  /**
+   * the props, theme and structure it was last written with: its update from these (`updateSegment`), so that one
+   * of an update that did not end (a throw, an abort) is brought from where it is
+   */
+  props: PD.Values<any>;
+  theme: Theme;
+  structure: Structure;
   previousMark?: Visual.PreviousMark;
   /**
    * its update state's info (`VisualUpdateState.info`: the versions its geometry was built of, the builder's
@@ -223,10 +230,18 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
     ValueCell.update(recordsVersion, recordsVersion.ref.value + 1);
   }
 
-  /** the props, theme and structure of the segments' last update */
+  /** the props, theme, structure and context of the segments' last update */
   let currentProps: PD.Values<P> | undefined;
   let currentTheme: Theme | undefined;
   let currentStructure: Structure | undefined;
+  let currentGraphics: GraphicsContext | undefined;
+  /**
+   * whether the last update ended (every segment written with its props, theme and structure): the fast paths of the
+   * next one (not a segment's update state each) only then; one that did not leaves segments of either
+   */
+  let consistent = true;
+  /** the segments an update wrote (`updateSegment`): the records then read again (`recordsWritten`) */
+  let segmentWrites = 0;
   /** the groups of the segments' last update, in the segments' order */
   let currentGroups: ReadonlyArray<Unit.SymmetryGroup> | undefined;
   /** the structure and instance granularity the loci are applied with: the update's from its start */
@@ -360,6 +375,9 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
       values: record as unknown as MergeableValues,
       groupCount: locationIt.groupCount,
       instanceCount: locationIt.instanceCount,
+      props,
+      theme,
+      structure: structureGroup.structure,
     };
     // the first segment of a new part: its own cells the shared values' (its values those)
     part.sharedFrom ??= seg;
@@ -448,15 +466,23 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
     }
   }
 
-  /** Updates `seg` to `structureGroup`, `props` and `theme` from what it was last; the geometry made again where needed */
+  /**
+   * Updates `seg` to `structureGroup`, `props` and `theme` from what it was last written with (its own), by its update
+   * state (`setUnitsUpdateState`, as a units visual's: its context's compatibility and its builder's versions too); the
+   * geometry made again where needed; nothing where the state is none and what it was written with the same, or
+   * another that writes the shared values alone (`sharedAlone`: its part's first segment's update wrote nothing of its
+   * own, `createOrUpdate`)
+   */
   function updateSegment(
     ctx: VisualContext,
     seg: Segment<G>,
     structureGroup: StructureGroup,
     props: PD.Values<P>,
     theme: Theme,
+    sharedAlone = false,
   ): Promise<void> | void {
-    const current: StructureGroup = { group: seg.group, structure: currentStructure! };
+    const current: StructureGroup = { group: seg.group, structure: seg.structure };
+    const currentProps = seg.props as PD.Values<P>;
     VisualUpdateState.reset(updateState);
     updateState.info = seg.info;
     const values = seg.record as any;
@@ -466,19 +492,32 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
       values,
       seg.geometry,
       props,
-      currentProps!,
+      currentProps,
       theme,
-      currentTheme!,
+      seg.theme,
       structureGroup,
       current,
       ctx.graphics,
       false,
     );
+    if (
+      (props === currentProps || sharedAlone) &&
+      theme === seg.theme &&
+      structureGroup.group === seg.group &&
+      structureGroup.structure === seg.structure &&
+      !hasRecordUpdates(updateState) &&
+      !updateState.createNew &&
+      !updateState.updateLocation
+    ) {
+      seg.props = props;
+      return;
+    }
+    segmentWrites += 1;
     const apply = (newGeometry?: G) => {
       // the position iterator made where a writer reads it (vertex colors and sizes; not a recolor of a uniform color)
       let positionIt: LocationIterator | undefined;
       const its: UnitsIterators = {
-        locationIt: builder.createLocationIterator(current, currentProps!),
+        locationIt: builder.createLocationIterator(current, currentProps),
         get positionIt() {
           return (positionIt ??= utils.createPositionIterator(seg.geometry, values));
         },
@@ -494,12 +533,15 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
         newGeometry,
         seg.geometry,
         props,
-        currentProps!,
+        currentProps,
         theme,
         structureGroup,
         current,
       );
       seg.group = structureGroup.group;
+      seg.props = props;
+      seg.theme = theme;
+      seg.structure = structureGroup.structure;
       if (newGeometry) {
         seg.geometry = newGeometry;
         geometryVersion += 1;
@@ -545,7 +587,9 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
     currentProps = undefined;
     currentTheme = undefined;
     currentStructure = undefined;
+    currentGraphics = undefined;
     currentGroups = undefined;
+    consistent = true;
     lociStructure = undefined;
   }
 
@@ -686,34 +730,43 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
     async createOrUpdate(ctx, theme, props, structure, groups) {
       const { graphics } = ctx;
       unmergeable = false;
+      segmentWrites = 0;
       // after a backend switch or restore: all made again, for the new context. A new instance granularity: the
-      // segments' parts again (`auto` resolves by a group's counts)
-      if (
-        (graphics &&
+      // segments' parts again (`auto` resolves by a group's counts). Made beside the current segments and parts, which
+      // are disposed once the update ends (one that does not leaves them as they were)
+      const rebuild =
+        (!!graphics &&
           parts.some((p) => p.object && graphics !== p.objectGraphics && hasForeignResources(p.object, graphics))) ||
-        (currentProps && props.instanceGranularity !== currentProps.instanceGranularity)
-      ) {
-        reset();
-      }
+        (!!currentProps && props.instanceGranularity !== currentProps.instanceGranularity);
+      const oldParts = parts;
+      const oldSegments = segments;
+      if (rebuild) parts = [];
+      const lociBefore = { structure: lociStructure, granularity: lociGranularity };
       lociStructure = structure;
       lociGranularity = props.instanceGranularity;
 
       // the same groups (a theme or props update): the segments in their order, not looked up by group
-      const sameGroups = groups === currentGroups && segments.length === groups.length;
-      const previous = byGroup;
+      const sameGroups = !rebuild && groups === currentGroups && segments.length === groups.length;
+      const previous = rebuild ? createSegmentMap<G>() : byGroup;
       const next = sameGroups ? byGroup : createSegmentMap<G>();
       const nextSegments: Segment<G>[] = sameGroups ? segments : [];
-      // the props, theme and structure as each segment was made or last updated; a clip moved alone (a drag, each
-      // frame): the parts' shared values' clip once, not each segment's values again (the clip cells shared, not a
-      // record's: 94k segments 3 s a move)
+      // the fast paths, not a segment's update state each, where the last update ended (its segments written with
+      // its props, theme and structure), in the same context, of a builder with no versions of its own a group
+      // (`initUpdateState`: e.g. the secondary structure, the interactions, read by its update state)
+      const ended = consistent && !rebuild && graphics === currentGraphics;
+      const fast = ended && !builder.initUpdateState;
+      // a clip moved alone (a drag, each frame): the parts' shared values' clip once, not each segment's values again
+      // (the clip cells shared, not a record's: 94k segments 3 s a move)
       const sameData = theme === currentTheme && structure === currentStructure;
-      const clipOnly = sameGroups && sameData && !!currentProps && BaseGeometry.isClipChangeOnly(props, currentProps);
+      const clipOnly =
+        fast && sameGroups && sameData && !!currentProps && BaseGeometry.isClipChangeOnly(props, currentProps);
       if (clipOnly) for (const part of parts) BaseGeometry.updateClip(part.shared as any, props.clip);
-      const unchanged = clipOnly || (props === currentProps && sameData);
+      const unchanged = clipOnly || (fast && props === currentProps && sameData);
       // the props changed alone: a part's first segment updated, and where that wrote its shared values alone (no
       // cell of its record, nothing made again nor recolored) the part's other segments not (their values the same
-      // shared ones: 94k segments seconds a change, e.g. a material's)
-      const propsOnly = !unchanged && sameGroups && sameData && !!currentProps;
+      // shared ones: 94k segments seconds a change, e.g. a material's); of a builder with versions a group, the others'
+      // update state each, written where it says
+      const propsOnly = ended && !unchanged && sameGroups && sameData && !!currentProps;
       /** by part, whether its first segment's update wrote its shared values alone (`propsOnly`) */
       const sharedOnly = new Map<Part<G>, boolean>();
       /**
@@ -747,7 +800,11 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
             if (!sameGroups) kept.add(seg);
             if (propsOnly && seg.group === group) {
               const probed = sharedOnly.get(seg.part);
-              if (probed) continue;
+              if (probed && !builder.initUpdateState) {
+                // written alike by its part's first segment: these props'
+                seg.props = props;
+                continue;
+              }
               if (probed === undefined) {
                 const versions = recordVersions(seg);
                 const before = sharedWrites && sharedVersions(seg.part);
@@ -764,12 +821,16 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
                 continue;
               }
             }
-            if (!unchanged || seg.group !== group) {
-              written = true;
+            if (unchanged && seg.group === group) {
+              seg.props = props;
+            } else {
               const lodVersion = seg.record.lodLevels?.ref.version ?? -1;
               const before = sharedWrites && sharedVersions(seg.part);
-              const updating = updateSegment(ctx, seg, structureGroup, props, theme);
+              const writes = segmentWrites;
+              const sharedAlone = propsOnly && seg.group === group && sharedOnly.get(seg.part) === true;
+              const updating = updateSegment(ctx, seg, structureGroup, props, theme, sharedAlone);
               if (isPromiseLike(updating)) await updating;
+              if (segmentWrites !== writes) written = true;
               if (before) checkSharedWrites(seg, before, sharedWrites!);
               if ((seg.record.lodLevels?.ref.version ?? -1) !== lodVersion) levelsChanged = true;
             }
@@ -801,11 +862,24 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
       } finally {
         if (!completed) {
           for (const seg of made) builder.dispose?.(seg.geometry);
-          // the parts made for them alone: no object yet (made with the render objects), dropped
-          parts = parts.filter((part) => partsBefore.has(part));
+          // the parts made for them alone: no object yet (made with the render objects), dropped; a rebuild's the
+          // current ones again
+          parts = rebuild ? oldParts : parts.filter((part) => partsBefore.has(part));
+          lociStructure = lociBefore.structure;
+          lociGranularity = lociBefore.granularity;
+          if (segmentWrites > 0) {
+            // segments written before it ended: the next update by each one's own (no fast path), the merged objects
+            // reading every record again (their layouts as written)
+            consistent = false;
+            recordsWritten();
+          }
         }
       }
       if (written) recordsWritten();
+      if (rebuild) {
+        for (const seg of oldSegments) builder.dispose?.(seg.geometry);
+        for (const part of oldParts) disposeObject(part);
+      }
       if (!sameGroups) {
         previous.forEach((seg) => {
           if (!kept.has(seg)) builder.dispose?.(seg.geometry);
@@ -831,6 +905,8 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
       currentProps = props;
       currentTheme = theme;
       currentStructure = structure;
+      currentGraphics = graphics;
+      consistent = true;
       renderObjects = [];
       for (const part of parts) {
         updateObject(part, props, graphics);

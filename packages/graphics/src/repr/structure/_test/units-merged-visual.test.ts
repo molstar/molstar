@@ -299,6 +299,13 @@ describe('the merged units visual', async () => {
     version = 1;
     await repr.createOrUpdate({ emissive: 0.3 }).run();
     expect(made.length).toBe(groups);
+
+    // moved with nothing else changed (the props, theme and structure the same objects: interactions computed again
+    // on the same structure): read by each group's update state too
+    made.length = 0;
+    version = 2;
+    await repr.createOrUpdate({}, structure).run();
+    expect(made.length).toBe(groups);
     repr.destroy();
   });
 
@@ -438,6 +445,75 @@ describe('the merged units visual', async () => {
     expect(repr.renderObjects.some((o) => isMergedRenderObject(o))).toBe(true);
     repr.destroy();
     expect(undisposed()).toBe(0);
+  });
+
+  it('brings each group from what it was written with after an update that failed: its props back drawn as made', async () => {
+    let fail = false;
+    let updates = 0;
+    const base = splitBuilder();
+    const builder: UnitsVisualGeometryBuilder<ElementSphereParams, Spheres> = {
+      ...base,
+      setUpdateState: (state, ...rest) => {
+        base.setUpdateState(state, ...rest);
+        // the third group's update throws: two written with the failing update's props
+        if (fail && ++updates === 3) throw new Error('aborted');
+      },
+    };
+    const drawCounts = (r: Awaited<ReturnType<typeof createRepr>>) =>
+      (r.renderObjects as MergedGraphicsRenderObject[]).map((o) => o.merged.records.map((v) => v.drawCount.ref.value));
+    const repr = await createRepr(structure, true, {}, builder);
+    const made = drawCounts(repr);
+    fail = true;
+    await expect(repr.createOrUpdate({ stride: 2 }).run()).rejects.toThrow('aborted');
+    fail = false;
+    // the props it was made with again: the groups written with the other ones made again too
+    await repr.createOrUpdate({ stride: 1 }).run();
+    expect(drawCounts(repr)).toEqual(made);
+    repr.destroy();
+  });
+
+  it('keeps what it draws through a rebuild that fails (another instance granularity): its objects not disposed', async () => {
+    let fail = false;
+    const base = splitBuilder();
+    const builder: UnitsVisualGeometryBuilder<ElementSphereParams, Spheres> = {
+      ...base,
+      createGeometry: (...args) => {
+        if (fail) throw new Error('aborted');
+        return base.createGeometry(...args);
+      },
+    };
+    const repr = await createRepr(structure, true, {}, builder);
+    const objects = repr.renderObjects.slice();
+    fail = true;
+    await expect(repr.createOrUpdate({ instanceGranularity: 'groupInstance' } as any).run()).rejects.toThrow('aborted');
+    fail = false;
+    expect(repr.renderObjects).toEqual(objects);
+    expect(objects.every((o) => !o.state.disposed)).toBe(true);
+    // and made again by the next update
+    await repr.createOrUpdate({ instanceGranularity: 'groupInstance' } as any).run();
+    expect(repr.renderObjects.every((o) => isMergedRenderObject(o) && !o.state.disposed)).toBe(true);
+    expect(objects.every((o) => o.state.disposed)).toBe(true);
+    repr.destroy();
+  });
+
+  it('checks each group against a new context alone (a backend switch, nothing else changed)', async () => {
+    let made = 0;
+    const base = splitBuilder();
+    const builder: UnitsVisualGeometryBuilder<ElementSphereParams, Spheres> = {
+      ...base,
+      createGeometry: (...args) => {
+        made += 1;
+        return base.createGeometry(...args);
+      },
+      // its geometry not drawn alike by another context (as a mesh's group ids on WebGL1)
+      geometryUtils: { ...base.geometryUtils, isCompatible: (_g, graphics) => !(graphics as any).other },
+    };
+    const repr = await createRepr(structure, true, {}, builder);
+    made = 0;
+    repr.setGraphics({ capabilities: { fragDepth: true }, other: true } as any);
+    await repr.createOrUpdate().run();
+    expect(made).toBe(structure.unitSymmetryGroups.length);
+    repr.destroy();
   });
 
   it("adjusts every group's levels to a new size factor, not its part's first group's alone", async () => {
