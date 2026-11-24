@@ -536,18 +536,20 @@ export function hiddenTrackName(track: Node): string {
 
 /**
  * A layer's name, the one every list of layers says (a track header's Layers and "Hidden layers" menus, a legend's eye):
- * its `label`, else its `title`, else its track's or bridge's label where it is the only layer there, else its id (its
- * type without one). Why one: two consumers naming one layer apart read as two layers.
+ * its `label`, else its `title`, else its track's or bridge's label where it is the only layer there (a letters layer
+ * says its kind: "Sequence letters", for its key is a scheme and the track's name alone reads as one category's), else
+ * its id (its type without one). Why one: two consumers naming one layer apart read as two layers.
  */
 export function layerName(
   layer: ResolvedLayer,
   owner?: { readonly label?: string; readonly layers: readonly unknown[] },
 ): string {
   const text = (v: unknown) => (typeof v === 'string' && v.trim() ? v : undefined);
+  const owned = owner?.layers.length === 1 ? text(owner.label) : undefined;
   return (
     text(layer.params.label) ??
     text(layer.params.title) ??
-    (owner?.layers.length === 1 ? text(owner.label) : undefined) ??
+    (owned !== undefined && layer.type === 'letters' ? `${owned} letters` : owned) ??
     layer.address?.slice(layer.address.lastIndexOf('/') + 1) ??
     layer.type[0].toUpperCase() + layer.type.slice(1)
   );

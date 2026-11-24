@@ -309,6 +309,11 @@ and another viewer); a host recolors through `--seq-*` tokens.
   their layers' labels share, else by the scale's label (EC-132).
   Legends of one title but different channels carry a qualifier (the channel: "Variants (size)") after the merge; the
   title stays the track's (the Mol\* converter's too). Size legends draw circles by ratio (the novice pass, F23).
+- **A row lists what its layer draws, and is titled by the layer** (decided, the author, 2026-11-24, Features › Structure
+  link › Focus And Back: a "Sequence" row listing "ATP" alone, its eye hiding the whole track): over every strip the
+  layer draws (a chain's letters, a chip), the entries are its rules' categories, the letters scheme's groups drawn
+  under a rules form's else, and "otherwise" for a chip no rule matched; a letters layer is titled "<track> letters"
+  (its eye "Hide Sequence letters"), so the row never reads as one category's switch.
 - **Published on change only**: the viewer's `legends` state is derived when the view settles, a theme, scale or token
   table changes, or the hover moves onto another entry; never per frame, compared structurally.
 - **A part a host places** ([ux-foundations](ux-foundations.md) section 9: "Legends sit with their track or in one legend

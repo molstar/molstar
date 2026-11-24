@@ -267,6 +267,7 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
       chipWidth: 0,
       chipInk: 0,
       labels: undefined,
+      plain: undefined,
       mods: [],
       modStyle: 'mark',
       modComponents: [],
@@ -302,6 +303,7 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     lay.conflicts.length = 0;
     lay.mods.length = 0;
     lay.labels = undefined;
+    lay.plain = undefined;
     const src = prep.src;
     if (!src) return lay;
     if (prep.through === 'refused') {
@@ -462,11 +464,27 @@ export const LettersType: LayerType<LettersPrep, LettersLay> = {
     // the letters drawn in view: the key lists only what the data holds (all of its letters before any is drawn)
     let painted = '';
     for (let c = 0; c < lay.seen.length; c++) if (lay.seen[c]) painted += String.fromCharCode(c);
-    return channelLegends([lay.color], {
+    // a molecule's cells carry no letters of a scheme: it lists the rules' categories alone, and `otherwise` where a
+    // cell took none of them (the sequence's own color)
+    const molecule = lay.labels !== undefined;
+    const ls = channelLegends([lay.color], {
       ...options,
       layer: lay.key,
-      ...(painted ? { painted: painted.toUpperCase() } : {}),
+      ...(molecule ? { painted: [] } : painted ? { painted: painted.toUpperCase() } : {}),
     });
+    if (molecule && lay.plain !== undefined)
+      return ls.map((l) =>
+        l.entries.kind === 'swatches'
+          ? {
+              ...l,
+              entries: {
+                kind: 'swatches' as const,
+                items: [...l.entries.items, { label: 'otherwise', color: lay.plain! }],
+              },
+            }
+          : l,
+      );
+    return ls;
   },
 
   hit(lay, at): Hit | undefined {
