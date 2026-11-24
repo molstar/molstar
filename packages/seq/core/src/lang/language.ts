@@ -1134,6 +1134,11 @@ export const SeqLanguage = defineLanguage({
         arrow: channel(
           '`ranges`: an arrowhead on the item’s end, start or both (`end`, `start`, `both`), on the piece holding that end, never on a cut one; `none` when absent.',
         ),
+        lanes: {
+          type: 'string',
+          enum: ['packed', 'one'],
+          doc: '`ranges`: its items in lanes (`packed`, when absent: an item a lane free under it, labels beside or inside) or `one` (every item in one lane, labels off, a later item over an earlier one; the track one lane high).',
+        },
         connector: {
           type: 'string',
           enum: ['line', 'none'],

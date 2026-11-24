@@ -281,7 +281,8 @@ function drawLabels(lay: RangesLay, out: PassWriter, _emphasis: Emphasis | undef
     out.clipArgs();
   }
   drawScroll(lay, out);
-  drawLabelsIn(lay, out);
+  // `lanes: one` draws no label (a summary never labels; hover names an item)
+  if (!lay.one) drawLabelsIn(lay, out);
   if (clip) out.unclip();
 }
 

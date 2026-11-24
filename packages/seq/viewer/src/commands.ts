@@ -129,6 +129,8 @@ export const CommandChangeKinds: Readonly<Record<string, ChangeKind>> = {
   'groups.collapseAll': 'session',
   'groups.expandAll': 'session',
   'groups.keep': 'patch',
+  // a ranges layer in one lane or packed: the figure's look (a spec param), one patch
+  'layer.lanes': 'patch',
   'rows.pin': 'patch',
   'rows.hide': 'patch',
   'rows.show': 'patch',

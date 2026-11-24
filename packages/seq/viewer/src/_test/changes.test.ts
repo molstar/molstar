@@ -287,6 +287,7 @@ const Cases: Record<string, { ctx: unknown; before?: (v: SeqViewer) => unknown }
   },
   'clades.keep': { ctx: { track: RowsTrack } },
   'groups.toggle': { ctx: { address: '/views/main/below/g' } },
+  'layer.lanes': { ctx: { address: `${DomainsTrack}/d`, lanes: 'one' } },
   'groups.collapseAll': { ctx: { section: '/views/main/below' } },
   'groups.expandAll': {
     ctx: { section: '/views/main/below' },

@@ -206,7 +206,10 @@ export const TracksLayout: SectionLayoutType<StripPlacement> = {
     drawTrackHeader(out, s, t, pass, emphasis, dy);
   },
   hitChrome(s, x, y, hover, touch) {
-    return hitHeaders(s, x, y, hover, touch) ?? (s.groups ? hitGroupHeader(s, x, y) : undefined);
+    const h = hitHeaders(s, x, y, hover, touch);
+    if (!s.groups || (h && h.target !== 'header-label')) return h;
+    // a folded group's row: its label column is the group's header (a slot or a state there stays the row's)
+    return hitGroupHeader(s, x, y) ?? h;
   },
 };
 

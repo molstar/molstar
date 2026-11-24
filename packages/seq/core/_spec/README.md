@@ -100,15 +100,16 @@ checks it cannot express.
   `points`; absent: `bars`) by `values`, `style` (`blocks`) by `secondary`, `line` (`solid`, `dashed`, `dotted`, `wavy`,
   `double`, `box`, `highlight`, `gene`; absent: blocks) and `arrow` (`none`, `end`, `start`, `both`; absent: `none`) by
   `ranges`; a `ranges` layer's `connector` (`line`, the default, or `none`: the hairline joining an item's pieces across
-  shown positions); a grid section's `of_y` (absent: `of`), `follow_y` (`x`, `none` or a section; absent: `x`) and
-  `aspect` (a number or `none`; absent: 1); by `pairs` its `side` (`above`, `below`; absent: `above`), `reach` (absent:
-  0.25), `height` (`span`; absent: `span`), `crossing` (`same`, `split`; absent: `same`), `across_lines` (absent: false)
-  and `mirror` (absent: false: a pair drawn where its data puts it, never read off whether the two axes are one system;
-  the tRNA's builder sets it); by `grid` its `aggregate` (`mean`, `max`, `min`; absent: `mean`); by both in a grid
-  `triangle` (`both`, `upper`, `lower`; absent: `both`). Why: the figure's form is the writer's, never the host's or the
-  data's: one spec draws the same in the canvas, the SVG and another viewer. The refs inside `direction` and `pieces`
-  are checked by kind as top-level refs are, and a change's check reaches them (its reverse index walks a union's record
-  member). Why: the composition is the application's.
+  shown positions) and `lanes` (`packed`, the default, or `one`: every item in one lane, labels off, a later item over
+  an earlier one, the track one lane high; a group's summary lane is one); a grid section's `of_y` (absent: `of`),
+  `follow_y` (`x`, `none` or a section; absent: `x`) and `aspect` (a number or `none`; absent: 1); by `pairs` its `side`
+  (`above`, `below`; absent: `above`), `reach` (absent: 0.25), `height` (`span`; absent: `span`), `crossing` (`same`,
+  `split`; absent: `same`), `across_lines` (absent: false) and `mirror` (absent: false: a pair drawn where its data puts
+  it, never read off whether the two axes are one system; the tRNA's builder sets it); by `grid` its `aggregate`
+  (`mean`, `max`, `min`; absent: `mean`); by both in a grid `triangle` (`both`, `upper`, `lower`; absent: `both`). Why:
+  the figure's form is the writer's, never the host's or the data's: one spec draws the same in the canvas, the SVG and
+  another viewer. The refs inside `direction` and `pieces` are checked by kind as top-level refs are, and a change's
+  check reaches them (its reverse index walks a union's record member). Why: the composition is the application's.
 - **Numberings** (`<sequence>/<id>`, a `numbering` child of a sequence): a label a position of its sequence, its id the
   name the forms read (`:numbering kabat`, Queries, Numberings and labels). `method` is `labels`, `offset` (a position
   plus `by`: UniProt's from 1, an author numbering from 94) or `segments` (runs `start`, `end`, `first`: a position in
@@ -4179,10 +4180,12 @@ the bands, never a warm frame's work).
   member's open form is never laid (a fold makes a frame cheaper).
 - **Summary forms** (`LayerType.collapse`, `lane` | `strip` | `row`; absent, the built-ins': `ranges`, `secondary`,
   `variants`, `pairs` a lane, `values` a strip, `rows` a row; the rest left out). The `row` form (a rows track's
-  consensus row) is not drawn yet: a rows member is left out of the summary. The lane form waits for the ranges layer's
-  `lanes: one` (its items then in one lane, no labels).
+  consensus row) is not drawn yet: a rows member is left out of the summary. The lane form is the ranges layer's
+  `lanes: one` (its items in one lane, no labels): the member's prep in one lane (`RangesPrep.one`), its data shared.
+  `secondary` and `variants` lay their own lanes as they do open (their one-lane form is the package's TODO).
 - **Hit**: a header's box (an open group's line, a folded row's label column) is `group-header`, its group's address in
-  `layer` (made once a layout: a hover allocates nothing); a summary mark hits as its member layer's item.
+  `layer` (made once a layout: a hover allocates nothing), over the folded row's own label (its slots and states stay
+  the row's); a summary mark hits as its member layer's item.
 - **Elsewhere**: `text` and `rings` draw every group open with no header line and leave the authored summary tracks out
   (`seq.render.groups.layout`, info, once a section when some are folded; the folds kept, not applied); `grid` overlays
   its tracks: groups are ignored there. The label column's measure counts a group's header and its tracks' indent.

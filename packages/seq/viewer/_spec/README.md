@@ -1241,8 +1241,11 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   folds and the window together ("Already so" when nothing moves); `groups.keep { section }` writes the folds shown into
   its groups' `collapsed` (one patch: `set` true, `unset` when open). A patch or an undo that changes a group's
   `collapsed` resets its section's set to the spec's (an edit of the opening state is meant to show), unless the set
-  already is what the spec now opens with (`groups.keep`'s own patch: no session change); other edits keep it. Why a
-  behavior beside `headers`: the commands stand without the headers' parts (a host's own header, a key).
+  already is what the spec now opens with (`groups.keep`'s own patch: no session change); other edits keep it. A click
+  on a group's header (`group-header`) runs its bound command (`groups.toggle`), never a selection's.
+  `layer.lanes { address, lanes }` sets a ranges layer's `lanes` (`one`: `set`; `packed`: `unset`), one patch: the
+  figure's look is the spec's, the fold the session's. Why a behavior beside `headers`: the commands stand without the
+  headers' parts (a host's own header, a key).
 
 - **A section of blocks on several systems** (its axis on no system): a hit names its `block`, and its positions are
   read on that block's axis from its `offset`: a drag-select stays in the block it began on (clamped at its ends), a

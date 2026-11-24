@@ -109,6 +109,14 @@ function directionMark(section: ResolvedSection, config: RenderConfig): string |
 }
 
 const NoLays: readonly LayerLayout[] = [];
+/** A prep in one lane (`lanes: one`): kept a prep, so a summary's lay key holds. */
+const OneLane = new WeakMap<object, object>();
+function oneLane(prep: unknown): unknown {
+  if (typeof prep !== 'object' || prep === null) return prep;
+  let p = OneLane.get(prep);
+  if (!p) OneLane.set(prep, (p = { ...prep, one: true }));
+  return p;
+}
 // what a record spreads where it adds nothing (a group's indent, its headers): one object, a layout allocates none for it
 const NoProps = Object.freeze({});
 const NoSectionLays: LayerLayout[] = [];
@@ -591,6 +599,8 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       const source = folding?.originals?.get(layer) ?? layer;
       let prep = state.preps.get(source);
       if (prep === undefined) state.preps.set(source, (prep = type.prepare(source, input.model)));
+      // a summary lane's: the member's prep in one lane (its data and extents shared)
+      if (source !== layer && layer.params.lanes === 'one') prep = oneLane(prep);
       const keptLay = state.lays.get(cacheKey);
       const lay = type.layout(prep, ctx, mine, overlay, keptLay?.type === type ? keptLay.lay : undefined);
       state.lays.set(cacheKey, { type, lay });

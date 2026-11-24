@@ -16,6 +16,7 @@ import { BuiltInLayerTypes, BuiltInLayouts } from '../built-ins.js';
 import { DefaultRenderConfig } from '../config.js';
 import { exportSvg } from '../export.js';
 import { bundledTextMetrics, LightTokens, layoutView, type ViewLayout } from '../index.js';
+import { lanesHeight } from '../sizing.js';
 import { settle } from './helpers.js';
 
 const Size = { width: 640, height: 600 };
@@ -23,6 +24,9 @@ const Section = '/views/v/p53';
 
 async function lay(spec: Node, groups?: readonly string[]): Promise<ViewLayout> {
   const s = await settle(spec);
+  const viewports = groups ? { [Section]: { start: 0, end: 53, groups } } : undefined;
+  // the rows loaded: a layout alone reads only what the store holds
+  await s.frame({ size: Size, ...(viewports ? { viewports } : {}) });
   return layoutView({
     model: s.model,
     view: s.view,
@@ -32,7 +36,7 @@ async function lay(spec: Node, groups?: readonly string[]): Promise<ViewLayout> 
     data: s.store,
     types: BuiltInLayerTypes,
     layouts: BuiltInLayouts,
-    ...(groups ? { viewports: { [Section]: { start: 0, end: 53, groups } } } : {}),
+    ...(viewports ? { viewports } : {}),
   });
 }
 
@@ -117,6 +121,43 @@ describe('track groups in the tracks layout', () => {
     expect(sig.box.y + sig.box.height).toBe(b.well.y + b.well.height);
   });
 
+  it('`lanes: one`: a ranges track in one lane with its labels off, folded (the summary lane) and open', async () => {
+    const lanesOf = (l: ViewLayout, track: string) => {
+      const t = l.sections[0].tracks.find((x) => x.track.address === `${Section}/${track}`)!;
+      return t.layers[0].lay as unknown as { laneCount: number; one: boolean; box: { height: number } };
+    };
+    // open, packed: its labels inside
+    const packed = await lay(groupsSpec(), []);
+    expect(lanesOf(packed, 'features/domains').one).toBe(false);
+    // open, `lanes: one` on the track: one lane, no labels, the track one lane high
+    const spec = groupsSpec();
+    const domains = spec.children![1].children![0].children![0].children![1].children![0].children![0];
+    domains.params = { ...domains.params, lanes: 'one' };
+    const one = await lay(spec, []);
+    const d = lanesOf(one, 'features/domains');
+    expect([d.laneCount, d.one]).toEqual([1, true]);
+    expect(one.sections[0].tracks[1].box.height).toBe(lanesHeight(1, config));
+    // its labels drawn packed, none in one lane
+    const svg = async (n: Node) =>
+      (
+        await exportSvg(n, {
+          size: { width: 640, height: 'auto' },
+          groups: { [Section]: [] },
+          types: BuiltInLayerTypes,
+          layouts: BuiltInLayouts,
+        })
+      ).svg;
+    expect(await svg(groupsSpec())).toContain('>PRD<');
+    expect(await svg(spec)).not.toContain('>PRD<');
+    // folded: the summary lane lays every member in one lane, no labels
+    const folded = await lay(groupsSpec(), ['features']);
+    const lane = folded.sections[0].tracks[1];
+    for (const l of lane.layers) {
+      const r = l.lay as unknown as { laneCount: number; one: boolean };
+      expect([r.laneCount, r.one]).toEqual([1, true]);
+    }
+  });
+
   it('`none`: a folded group draws its header line alone', async () => {
     const l = await lay(groupsSpec({ variants: { summary: 'none' } }), ['variants']);
     expect(bands(l)).toContain('variants#header');
@@ -132,6 +173,13 @@ describe('track groups in the tracks layout', () => {
     const hit = s.layout.hitChrome!(s, h.box.x + 20, h.box.y + h.box.height / 2, undefined);
     expect(hit).toMatchObject({ target: 'group-header', layer: `${Section}/features`, section: Section });
     expect(s.layout.hitChrome!(s, 400, h.box.y + 2, undefined)).toBeUndefined();
+    // folded: its row's label column is the group's header, not the summary row's label
+    const f = (await lay(groupsSpec(), ['features'])).sections[0];
+    const fh = f.groups![0];
+    expect(f.layout.hitChrome!(f, fh.box.x + 20, fh.box.y + fh.box.height / 2, undefined)).toMatchObject({
+      target: 'group-header',
+      layer: `${Section}/features`,
+    });
   });
 
   it('a text section draws every group open with no header line, said once when some are folded', async () => {

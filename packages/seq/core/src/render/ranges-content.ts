@@ -128,6 +128,8 @@ function labelsBeside(prep: RangesPrep, rows: readonly QueryItem[], ctx: Content
  * a label goes beside; undefined for data not known whole (a source's).
  */
 export function rangesContent(prep: RangesPrep, ctx: ContentContext): LayerContent | undefined {
+  // `lanes: one`: one lane, no label lane, whatever the data
+  if (prep.one) return lanesOnly(prep, 1);
   let lanes = Lanes.get(prep);
   let rows: QueryItem[] | undefined;
   if (lanes === undefined) {

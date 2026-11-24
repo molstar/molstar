@@ -22,6 +22,8 @@ export interface GroupsContext {
   readonly address?: string;
   readonly section?: string;
   readonly origin?: EditOrigin;
+  /** `layer.lanes`: a ranges layer's lanes, `packed` or `one` (its `address` the layer's). */
+  readonly lanes?: 'packed' | 'one';
 }
 
 export const GroupsCommandIds = {
@@ -29,6 +31,7 @@ export const GroupsCommandIds = {
   collapseAll: 'groups.collapseAll',
   expandAll: 'groups.expandAll',
   keep: 'groups.keep',
+  lanes: 'layer.lanes',
 } as const;
 
 export interface GroupsBehavior {
@@ -112,6 +115,29 @@ export function groupsBehavior(spec: SpecModel, view: ViewModel): GroupsBehavior
       category: 'Groups',
       when: when((ctx) => bulk(ctx).length > 0, 'No groups there'),
       run: (_, ctx) => all(ctx, false, 'Groups opened'),
+    },
+    {
+      // a ranges layer in one lane (labels off) or packed: the figure's look, one patch (the layer's `lanes`)
+      id: GroupsCommandIds.lanes,
+      title: 'Lay a ranges layer in one lane or packed',
+      category: 'Groups',
+      when: when((ctx) => {
+        if (ctx.address === undefined || (ctx.lanes !== 'one' && ctx.lanes !== 'packed')) return false;
+        let n: Node | undefined = spec.root.value;
+        for (const id of ctx.address.split('/').filter(Boolean)) n = n?.children?.find((c) => c.id === id);
+        return n?.kind === 'layer' && n.params?.type === 'ranges';
+      }, 'No ranges layer there'),
+      run: (_, ctx) => {
+        const at = ctx.address!.split('/').filter(Boolean);
+        const ops: Op[] = [
+          ctx.lanes === 'one' ? { op: 'set', at, key: 'lanes', value: 'one' } : { op: 'unset', at, key: 'lanes' },
+        ];
+        const o = spec.patch('Lanes', (_root, revision) => ({ base: revision, ops }), {
+          ...(ctx.origin ? { origin: ctx.origin } : {}),
+        });
+        const done = ctx.lanes === 'one' ? 'One lane' : 'Packed';
+        return o instanceof Promise ? o.then(said(done)) : said(done)(o);
+      },
     },
     {
       id: GroupsCommandIds.keep,
