@@ -11,7 +11,7 @@ import { HistoryParticipants, hostHistory } from '@molstar/seqx-viewer/ui-histor
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { DomHost } from '@molstar/ui/dom';
 import { HistoryModel } from '@molstar/ui/history/history-model';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { bookmarkRows, composeViewer, focusBookmark } from '../compose.js';
 
 // Patches on streamed things, in the Bookmarks story's viewer (headless, on a fake clock): the cache holds about one
@@ -27,6 +27,11 @@ const CacheBytes = 17_000;
 
 let viewer: SeqViewer | undefined;
 let stack: HistoryModel<Readonly<Record<string, unknown>>> | undefined;
+
+// the viewer loads its node seeking lazily, on the first jump that waits for a node: loaded here, off the fake clock
+beforeAll(async () => {
+  await import('@molstar/seqx-viewer/models/node-seek');
+});
 
 const raf = DomHost.requestAnimationFrame;
 beforeEach(() => {

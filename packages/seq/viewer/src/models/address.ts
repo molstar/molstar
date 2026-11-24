@@ -50,7 +50,7 @@ import type { Axis } from '@molstar/seqx-core/view';
 import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
 import { breakHolding, nearestOffsetOf, positionAt } from './axis.js';
 import type { HoverModel } from './hover.js';
-import { NodeSeek } from './node-seek.js';
+import type { NodeSeek } from './node-seek.js';
 import { type Emphasized, type HighlightModel, isNothing, type SelectionModel } from './selection.js';
 import type { EditOptions, EditOutcome, SpecModel } from './spec.js';
 import type { StoreModel } from './store.js';
@@ -139,7 +139,10 @@ export class AddressModel extends ReactiveModel {
   private readonly _numberingWants = new Map<string, Want>();
   private _numberingModel: unknown;
   /** The nodes a waiting focus names, asked of their sources (`NodeSeek`); moves when a source says it has none. */
-  private readonly _seek: NodeSeek;
+  private _seek: NodeSeek | undefined;
+  /** Loading `NodeSeek`: a lazy chunk, loaded on the first jump that waits for a node (most views never do). */
+  private _seeking: Promise<NodeSeek | undefined> | undefined;
+  private _retired = false;
   private readonly _refused = new State(0);
 
   constructor(
@@ -155,8 +158,11 @@ export class AddressModel extends ReactiveModel {
   ) {
     super();
     this.config = config;
-    this._seek = new NodeSeek(store.store, (n) => this._refuse(n));
-    this.registerPermanentDispose(() => this._seek.dispose());
+    this.registerPermanentDispose(() => {
+      this._retired = true;
+      this._seek?.dispose();
+      this._seek = undefined;
+    });
     this.refs = derive(
       [spec.model, store.store.nodeVersion, this._refused],
       () => this._refEntries(),
@@ -253,7 +259,7 @@ export class AddressModel extends ReactiveModel {
       }
     }
     if (this._pendingFocus && !check(this._pendingFocus.address)) this._pendingFocus = undefined;
-    if (!this._pendingFocus) this._seek.stop();
+    if (!this._pendingFocus) this._seek?.stop();
     if (this._focused && !check(this._focused.address)) this._focused = undefined;
     if (this._landing && !check(this._landing.address)) this._landing.stop();
     this._issues.set(dropped);
@@ -359,7 +365,7 @@ export class AddressModel extends ReactiveModel {
   /** A waiting resolution whose node its source said it has none of: `missing`, with the source's word. */
   private _unknownOf(r: AddressResolution): AddressResolution {
     if (r.status !== 'waiting') return r;
-    const node = r.waitsFor?.find((n) => this._seek.unknown(n));
+    const node = r.waitsFor?.find((n) => this._seek?.unknown(n));
     if (!node) return r;
     const issues = [...r.issues.filter((i) => i.code !== 'seq.address.waiting'), unknownNodeIssue(node, r.address)];
     return { ...r, status: 'missing', issues };
@@ -373,7 +379,7 @@ export class AddressModel extends ReactiveModel {
     const p = this._pendingFocus;
     if (p && this.resolve(p.address).waitsFor?.some((n) => n.source === node.source && n.key === node.key)) {
       this._pendingFocus = undefined;
-      this._seek.stop();
+      this._seek?.stop();
     }
     this._refused.set(this._refused.value + 1);
   }
@@ -467,11 +473,11 @@ export class AddressModel extends ReactiveModel {
       this._pendingFocus = { address, reveal, ...(section !== undefined ? { section } : {}) };
       // the nodes it waits for are asked of their sources: a jump on one evicted, or never read, still arrives
       const nodes = (resolution.waitsFor ?? []).filter((n) => !this.store.store.getNode(n.source, n.key));
-      this._seek.seek(nodes);
+      if (nodes.length) this._seekNodes(address, nodes);
       const keys = nodes.map((n) => n.key).join(', ');
       return this._outcome(resolution, false, keys ? `Waiting for ${keys}` : 'Waiting for its data');
     }
-    this._seek.stop();
+    this._seek?.stop();
     if (this._pendingFocus?.address !== address) this._pendingFocus = undefined;
     this._landing?.stop();
     if (resolution.status !== 'resolved') {
@@ -524,6 +530,18 @@ export class AddressModel extends ReactiveModel {
         if (n !== jumps) landing.stop();
       }),
     );
+  }
+
+  /** Asks the sources for the nodes a waiting focus names, once `NodeSeek` is loaded, if the focus still waits. */
+  private _seekNodes(address: string, nodes: readonly WaitedNode[]): void {
+    if (this._seek) return this._seek.seek(nodes);
+    this._seeking ??= import('./node-seek.js').then(({ NodeSeek }) => {
+      if (!this._retired) this._seek ??= new NodeSeek(this.store.store, (n) => this._refuse(n));
+      return this._seek;
+    });
+    void this._seeking.then((seek) => {
+      if (this._pendingFocus?.address === address) seek?.seek(nodes);
+    });
   }
 
   private _retryFocus(): void {
