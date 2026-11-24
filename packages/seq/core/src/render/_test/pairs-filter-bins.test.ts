@@ -14,6 +14,7 @@ import { describe, expect, it } from 'vitest';
 import type { PairsLay } from '../pairs.js';
 import { settle } from './helpers.js';
 import { LinksLength as Length, linksSource } from './region-render-fixtures.js';
+import { AlnLength, randomAlignments, regionBridgeSpec } from './bridge-region-fixtures.js';
 import { seqToValue } from '../../data/seq-format.js';
 
 const Size = { width: 720, height: 300 };
@@ -56,5 +57,28 @@ describe('a pairs layer’s data filter on bins', () => {
     const g = await t.frame({ size: Size, viewport: { start: 0, end: Length } });
     expect(layOf(g).prep!.level).toBeDefined();
     expect(g.layout.issues.map((i) => i.code)).not.toContain(Code);
+  });
+
+  it('is said once in every frame across a pan and repeated layouts, never twice in one', async () => {
+    const s = await settle(spec(true), [SeqRuntime]);
+    const said = async (start: number, end: number) =>
+      (await s.frame({ size: Size, viewport: { start, end } })).layout.issues.filter((i) => i.code === Code).length;
+    expect([await said(0, Length), await said(0, Length), await said(10_000, Length), await said(0, Length)]).toEqual([
+      1, 1, 1, 1,
+    ]);
+  });
+
+  it('ribbons over bins say it too (the shared reader)', async () => {
+    const alignments = randomAlignments(500, 3);
+    const s = await settle(regionBridgeSpec(alignments, { filter: '/(except :of (item :id nothing))' }), [SeqRuntime], {
+      pairs: { maxArcs: 1024, binPx: 40 },
+    });
+    // the zoomed side on items, the whole side on bins
+    const top = { start: 400_000, end: 450_000 };
+    const f = await s.frame({
+      size: { width: 720, height: 500 },
+      viewports: { '/views/v/top': top, '/views/v/bottom': { start: 0, end: AlnLength } },
+    });
+    expect(f.layout.issues.filter((i) => i.code === Code)).toHaveLength(1);
   });
 });

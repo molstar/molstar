@@ -136,4 +136,49 @@ describe('a lanes band in the view’s history', () => {
     redraw(v);
     expect(v.view.band(Tall)?.bandTop).toBe(10);
   });
+
+  it('a rows band and a lanes band in one view: back returns each to its own key', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'performance'] });
+    frames = installFrames();
+    const b = createSeqSpec({ title: 'two bands' });
+    const aln = b.data.alignment('aln', {
+      alphabet: 'protein',
+      rows: {
+        label: ['HBA', 'HBB', 'MYG', 'GLB', 'CYG', 'NGB'],
+        letters: ['MVLSPA', 'MVHLTP', 'MGLSDG', 'MKAVLG', 'MEKVPG', 'MERPEP'],
+      },
+    });
+    const sq = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT'.repeat(100) });
+    const tall = b.data.ranges('tall', { target: sq, rows: stacked(0, 40) });
+    b.views.view('v', (v) => {
+      v.section('a', { of: aln }).track('rows', { label: '', height: 60 }).layer('r', { type: 'rows', data: aln });
+      const sec = v.section('s', { of: sq, heights: 'fixed' } as never);
+      sec.track('tall', { height: 240 } as never).layer('l', { type: 'ranges', data: tall });
+    });
+    const v = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined, config: [[viewerItem('view.jumpMs'), 0]] });
+    viewer = v;
+    await v.load(b.build());
+    v.resize(480);
+    await v.settle();
+    frames.flush();
+    const Rows = '/views/v/a/rows';
+    v.view.setBand(Rows, { bandTop: 3 });
+    v.view.setBand(Tall, { bandTop: 10 });
+    redraw(v);
+    v.runCommand('view.focus', { section: Section, focus: { start: 20, end: 60 } });
+    redraw(v);
+    // lanes packed again (five items gone) and a row above the rows band's top hidden
+    const o = await v.spec.patch('Fewer lanes', {
+      ops: [{ op: 'set', at: ['data', 'tall'], key: 'rows', value: stacked(5, 35) }],
+    });
+    expect(o.ok && o.changed).toBe(true);
+    await v.execute('rows.hide', { track: Rows, rows: [0] });
+    await v.settle();
+    redraw(v);
+    expect(v.view.back()).toBe(true);
+    redraw(v);
+    expect(v.view.band(Tall)?.bandTop).toBe(5);
+    // GLB is the third row shown once HBA is hidden
+    expect(v.view.band(Rows)?.bandTop).toBe(2);
+  });
 });

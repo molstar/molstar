@@ -116,7 +116,7 @@ export function alignmentSource(alignments: readonly Alignment[]): SeqData {
  */
 export function regionBridgeSpec(
   alignments: readonly Alignment[],
-  options: { third?: boolean; pieces?: number; format?: string; mirror?: boolean } = {},
+  options: { third?: boolean; pieces?: number; format?: string; mirror?: boolean; filter?: string } = {},
 ) {
   const b = createSeqSpec({ title: 'alignments across' });
   // `format`: a source of a runtime of the test's (`uri` none), the alignments its to serve
@@ -143,7 +143,7 @@ export function regionBridgeSpec(
       .track('ruler')
       .layer('ruler', { type: 'ruler' });
     v.bridge('br', { a: '/views/v/top', b: '/views/v/bottom' } as never, (br) =>
-      br.layer('aln', { type: 'pairs', data: aln } as never),
+      br.layer('aln', { type: 'pairs', data: options.filter ? `${aln}${options.filter}` : aln } as never),
     );
     v.section('bottom', { of: B }).track('ruler').layer('ruler', { type: 'ruler' });
     if (options.third) v.section('third', { of: A }).track('ruler').layer('ruler', { type: 'ruler' });

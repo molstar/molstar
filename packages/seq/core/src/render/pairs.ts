@@ -85,17 +85,8 @@ export const PairsType: LayerType<PairsPrep, PairsLay> = {
     lay.colorChannel = undefined;
     // this frame's pairs through the reader (`pairs-reader.ts`): a source's bins, or its items once they fit; held
     // pairs past the gate binned at the level a source's are read at
-    const byRegion = prep.region !== undefined && !prep.data;
     const read = readPairs(prep, ctx, data, lay);
     if (!read) return lay;
-    // bins read by region carry no fields: a data filter is not applied to them (`withData`), said
-    if (byRegion && read.level !== undefined && (read.rowBase || read.rowFilter))
-      ctx.report(
-        issueOf(RenderIssues, 'seq.render.pairs.filter', 'The layer’s data filter is not applied to bins', {
-          address: ctx.key,
-          hint: RenderIssues.codes['seq.render.pairs.filter'].hint,
-        }),
-      );
     prep = read;
     lay.prep = prep;
     if (prep.unreadFilter)

@@ -4,6 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { issueOf } from '@molstar/core/repr/tree';
+import { RenderIssues } from './issues.js';
 import type { CategoryColumn } from '@molstar/core/repr/tree';
 import type { PairsList, Want } from '@molstar/seqx-core/data';
 import type { AccessPlan, PairsData } from '@molstar/seqx-core/resolve';
@@ -215,6 +217,28 @@ function inView(regions: readonly number[], s: number, e: number): boolean {
  * width and gate (the pairs config's when absent).
  */
 export function regionPairs(
+  prep: PairsPrep,
+  region: PairsRegion,
+  ctx: LayoutContext,
+  data: StoreReader,
+  owner: object,
+  over?: RegionOver,
+  side?: 'a' | 'b',
+  options?: PairsReadOptions,
+): PairsPrep | undefined {
+  const read = readRegion(prep, region, ctx, data, owner, over, side, options);
+  // bins carry no fields: the layer's data filter is not applied to them (`withData`), said (a layout dedupes)
+  if (read?.level !== undefined && (read.rowBase || read.rowFilter))
+    ctx.report(
+      issueOf(RenderIssues, 'seq.render.pairs.filter', 'The layer’s data filter is not applied to bins', {
+        address: ctx.key,
+        hint: RenderIssues.codes['seq.render.pairs.filter'].hint,
+      }),
+    );
+  return read;
+}
+
+function readRegion(
   prep: PairsPrep,
   region: PairsRegion,
   ctx: LayoutContext,
