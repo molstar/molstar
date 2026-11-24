@@ -13,6 +13,7 @@ import {
   isAbortError,
   type OpenContext,
   type OpenedSource,
+  SeqNodeKeyField,
   type RegionAnswer,
   type RegionRequest,
   type SourceEntry,
@@ -50,9 +51,6 @@ function malformed(why: string): RegionAnswer {
     issue: issueOf(SourceIssues, 'seq.source.malformed', `The source's pairs do not join: ${why}`),
   };
 }
-
-/** The name field under which a `seq` source finds its dynamic nodes by key, when its coverage lists it in `names`. */
-export const SeqNodeKeyField = 'key';
 
 /**
  * A `seq` source's dynamic nodes found by key (_spec/README.md "Data", The seq format), when its coverage lists `key` in

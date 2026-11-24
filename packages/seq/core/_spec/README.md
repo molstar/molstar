@@ -1128,11 +1128,15 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
   identity at both levels). Why: a layer zoomed out on a long system reads that one tile, never the system a tile at
   level 1 (81,307 at 83 Mb), and a small inline payload needs no level between. Ranges lists only: inline values get
   their coarse levels from the store's summaries, letters are read where they fit, and other shapes stay at level 1.
-- **Its nodes found by key**: when the coverage lists `key` in `names` (`SeqNodeKeyField`), `findNames` finds the
-  dynamic nodes its answers bring by key (exact, case-insensitive; by prefix when asked; the index a lazy chunk,
-  `seq-node-keys.ts`): a hit's extent is the pairs whose answers bring it (on the first system that does), its `id` and
-  `label` the key; a key no answer brings finds nothing, the source's word that it has none. Indexed on the first find.
-  Why: a ref to a node not held (evicted, or never read) asks where to read it, through the protocol's one find.
+- **Its nodes found by key**: when the coverage lists `key` in `names` (`SeqNodeKeyField`, the protocol's), `findNames`
+  finds the dynamic nodes its answers bring by key (the index a lazy chunk, `seq-node-keys.ts`, built on the first
+  find): the exact key first, then the keys equal to it case-insensitively (two keys that differ by case are two nodes),
+  then by prefix when asked. A hit is the first region whose answer brings it at the finest level that does, never the
+  span between far regions (reading one region brings the node: bounded work); its `id` and `label` the key. A key no
+  answer brings finds nothing, the source's word that it has none. Why: a ref to a node not held (evicted, or never
+  read) asks where to read it, through the protocol's one find. Open: a hit carries no level, so a node brought only at
+  a coarser level than the finest is asked at the finest and does not arrive (a `NameHit.level` is a protocol change,
+  not made).
 
 ### Asynchronous sources
 

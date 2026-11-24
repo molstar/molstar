@@ -76,6 +76,7 @@ export {
   type RowsTable,
   type Shape,
   type ShapeInfo,
+  SeqNodeKeyField,
   Shapes,
   type SourceEntry,
   type SystemInfo,
@@ -99,7 +100,7 @@ export {
   seqToNode,
   seqToValue,
 } from './seq-format.js';
-export { openSeq, SeqNodeKeyField, SeqRuntime, SourceOpenError } from './seq-runtime.js';
+export { openSeq, SeqRuntime, SourceOpenError } from './seq-runtime.js';
 export {
   type DataEntry,
   DataStore,
