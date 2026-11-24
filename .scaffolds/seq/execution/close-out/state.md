@@ -14,8 +14,8 @@ Stage 0 and GATE 0 are closed; waves 1 and 2 are merged and GATE 1 passed. Merge
 
 ## In progress
 
-- CL5 search (strong, `seq/cl5`), started 2026-11-24 07:45.
-- CL6 track groups (strong, `seq/cl6`), started 2026-11-24 07:45.
+- CL6 resumed 2026-11-24 (the plugin off): rebase on `packages-seq`, item 6, the perf fix, the header click.
+- CL5 reported: the orchestrator's checks, look and review.
 
 ## Next
 

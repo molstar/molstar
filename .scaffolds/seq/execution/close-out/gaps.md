@@ -37,6 +37,9 @@ Decisions a gate asks for (the loop, Gates).
 
 ## Open
 
+- **The privacy plugin turned off** (the author, 2026-11-24, in `.claude.json`): CL6 resumes item 6; FX25 waits for
+  the author's word to come back from deferred.
+
 - **FX25 deferred** (the author, 2026-11-24: "ok let's just defer the fixes", after a third refusal, of a
   read-only `cmp` and `git diff`): its items carried past this close-out (`fixes.md`), its worktree kept. The plugin is
   the author's; a later lane in these files may meet it again.
