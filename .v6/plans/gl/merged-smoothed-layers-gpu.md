@@ -50,8 +50,13 @@ the group-instance data before smoothing.
 1. **Baseline** (done): `merging/assembly-gaussian-smooth-layer-{one,all}` (merged) set the layer in one of two colors
    in turn, so that every frame smooths; measured above. They and `merging/assembly-gaussian-smooth-merged` pin
    resolution 1: `auto` quality gives the assembly 3, which nothing smooths at.
-2. **The kernel**, dispatched for one segment into a plain buffer. Tested on WebGPU (headless) against
-   `getTrilinearlyInterpolated`: the bytes within a small tolerance (the filter's precision against doubles).
+2. **The kernel** (done): `layer-sample-vertices` (`gl/compute/layer-sampling.ts`), dispatched for one mesh into a
+   plain buffer, from offsets in its positions, transforms and output. Kernels may sample a texture filtered: a linear
+   texture of a format every device filters gets a filterable binding and the kernel the sampler `sLinear` (as render
+   shaders). Tested on WebGPU (headless) against a CPU model of the mesh shaders' sampling (`texture3dFrom2dLinear`):
+   within 0.76 of a byte step for `rgba8` and `r8`, an `r8` range at an unaligned offset keeping its neighbors' bytes,
+   an unreached instance zero. Not against `getTrilinearlyInterpolated`: it samples at the cells (the splat's points),
+   the filter at the texels' centers, half a cell apart, as the per-group shader.
 3. **Merged objects**: GPU-written ranges, skipped by the packer, dispatched again after layout changes. Tests: images
    against the per-group visuals' (the same filter), a segment added and removed keeping the layer, a backend switch,
    the geometry export reading the drawn layer back.
