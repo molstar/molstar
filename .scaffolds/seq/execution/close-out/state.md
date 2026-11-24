@@ -19,7 +19,7 @@ regression). The old Seq\* viewer's label churn over its baseline is in `fixes.m
 
 ## Next
 
-1. The use gate (the author's): the orchestrator prepares the stories and a list of what to try; never ticked by it.
+1. The use gate (the author's): `use-gate.md` lists the stories and what to try; ticked by the author only.
 2. The novice pass, after the last lane that draws; then the measurements, the last gate and FINALIZE.
 
 ## Blockers and open questions
