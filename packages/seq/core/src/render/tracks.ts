@@ -116,6 +116,17 @@ function inScroll(p: Placement, b: Box): boolean {
   return b.y < (p.scrollEnd || p.box.y + p.box.height) && b.y + b.height > (p.scrollY ?? p.box.y);
 }
 
+/**
+ * Whether a layer of the track names its rows in the label column (`LayerType.rowNames`). A loop, not `some` with an
+ * arrow: `layoutView` runs on a warm pan, and a closure a track was an allocation a frame (the rows' allocation tier).
+ */
+function namesRows(
+  layers: readonly { readonly type: { rowNames?(lay: unknown): boolean }; readonly lay: unknown }[],
+): boolean {
+  for (let i = 0; i < layers.length; i++) if (layers[i].type.rowNames?.(layers[i].lay)) return true;
+  return false;
+}
+
 export function layoutView(input: LayoutInput, state = new LayoutState(), again = false): ViewLayout {
   const known = knownVersion(input.types);
   const header = rowsHeader(input.view, input.rails);
@@ -824,9 +835,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
           : undefined;
       const room = head ? head.header.label.width : config.labelWidth;
       // a layer naming its rows in the column (a matrix's states) leaves it to them: no track label over the names
-      const labelText = layers.some((l) => l.type.rowNames?.(l.lay))
-        ? ''
-        : elidedLabel(state, input.text, config.labelFont, track.label, room);
+      const labelText = namesRows(layers) ? '' : elidedLabel(state, input.text, config.labelFont, track.label, room);
       tracks.push({
         track,
         box,

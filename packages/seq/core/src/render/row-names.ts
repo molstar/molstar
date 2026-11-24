@@ -12,7 +12,7 @@ import type { TextMetrics } from './text.js';
 // items' font, the text ink, cut with an ellipsis past its room, a name a row from the label minimum on. The rows
 // layer's labels (an alignment's sequences) and the matrix layer's states (a VCF's samples, a methylation matrix's
 // samples) are one part: a layer lays the names of its visible rows with `addName` in its layout and draws them with
-// `drawNames` in the `labels` pass.
+// `drawNames` in the `labels` pass (the rows layer draws its own inline, a hot loop: `rows-draw.ts` says why).
 
 const AnchorStart: number = Anchor.start;
 
