@@ -124,6 +124,15 @@ function mountModel(
     { fonts: new FontCache(viewer.tokens.fonts), fade: viewer.context.renderConfig.fade },
   );
 
+  // the part's text and box written only when they change (an inline style and a text read back cost no layout): the
+  // part draws on every frame of the viewer's, a hover's too, and a write there dirtied the page's layout, which the
+  // canvas's next pointer move then read back (its `getBoundingClientRect`): a forced layout a move
+  const text = (el: HTMLElement, t: string) => {
+    if (el.textContent !== t) el.textContent = t;
+  };
+  const style = (el: HTMLElement, key: 'width' | 'height' | 'display' | 'cursor', v: string) => {
+    if (el.style[key] !== v) el.style[key] = v;
+  };
   let frame: number | undefined;
   const draw = () => {
     frame = undefined;
@@ -133,10 +142,10 @@ function mountModel(
     const dirty = backend.resize(model.width, model.height, viewer.dpr);
     backend.draw(f.lists, f.rebuilt || f.base || dirty);
     const parts = model.readoutParts.value;
-    readName.textContent = parts?.name ? `${parts.name}: ` : '';
-    readValue.textContent = parts ? `${parts.value}${parts.rest}` : '';
-    readout.style.display = parts && (parts.name || parts.value) ? 'flex' : 'none';
-    container.style.cursor = model.cursor;
+    text(readName, parts?.name ? `${parts.name}: ` : '');
+    text(readValue, parts ? `${parts.value}${parts.rest}` : '');
+    style(readout, 'display', parts && (parts.name || parts.value) ? 'flex' : 'none');
+    style(container, 'cursor', model.cursor);
   };
   const schedule = () => {
     if (frame === undefined) frame = requestFrameCallback(draw);
@@ -226,10 +235,10 @@ function mountModel(
     return !!nav && (nav.place === 'top' || nav.place === 'bottom') && nav.axes !== 'both';
   };
   const box = () => {
-    container.style.width = across() ? '' : `${model.width}px`;
+    style(container, 'width', across() ? '' : `${model.width}px`);
     // the picture's height; the readout's line is the container's padding above it
-    container.style.height = `${model.height || 0}px`;
-    hint.style.width = across() ? '' : `${model.width}px`;
+    style(container, 'height', `${model.height || 0}px`);
+    style(hint, 'width', across() ? '' : `${model.width}px`);
   };
   let observer: ResizeObserver | undefined;
   const measure = () => {
