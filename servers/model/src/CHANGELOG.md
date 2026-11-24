@@ -1,6 +1,30 @@
 # Unreleased
 
 - update documentation for transformation matrix format
+- fix the structure cache leaking every entry (molstar#1816): expired entries stayed in memory, each cache hit added a
+  duplicate, and the size limit undercounted until the heap ran out; entries are now freed on expiry, evicted until a
+  new one fits, and one larger than the cache is not cached
+- `cacheMaxSizeInBytes` counts approximate memory (about 2.5x the source size for BinaryCIF, 2.8x for text CIF, plus 2
+  MB an entry), not source bytes; the default is 2 GB (was 2 * 1014 MiB); a warning at start when it is over half the
+  heap limit
+- requests are processed at most `maxConcurrentJobs` at a time (new, default 2; every request that found the queue empty
+  ran at once before), and `maxQueueLength` (now a command-line option too) is enforced: more requests get 503 with
+  `Retry-After`
+- concurrent requests for an entry that is not cached share one read; a model's structure is built, and its custom
+  properties attached, once while the entry is cached (was on every request)
+- requests whose client is gone (disconnected or timed out) are skipped, or stopped between the entries of a query-many
+- remote sources (`sourceMapUrl`): `fetchTimeoutMs` (new, default 30 s) bounds each attempt including the body (was a
+  hard 500 ms to the first byte: many RCSB entries, 3J3Q and 7ARV among them, failed); network errors are retried (Node
+  reports them as the cause of `fetch failed`); a missing entry answers 404 and a failing source 502
+- status codes: invalid parameters and query-many specs answer 400 (were 500 or 404), unmapped sources 404 (was 500),
+  other failures 500 (were 404)
+- graceful shutdown on SIGTERM/SIGINT and on `shutdownTimeoutMinutes`: stops accepting requests, finishes and sends the
+  ones in flight, `health-check` answers 503 meanwhile
+- PDBe custom properties: the API responses are cached per entry (a new key per request never hit and grew the cached
+  entry)
+- `model-server-query` exits when done (the cache timers kept it alive) and reads an input once for all its jobs
+- `scripts/profile-memory.mjs` and `scripts/measure-retained.mjs`: memory profile of a running server, and the retained
+  size per source byte that calibrates the cache estimate
 
 # 0.9.13
 

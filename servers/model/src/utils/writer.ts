@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Sebastian Bittrich <sebastian.m.bittrich@gmail.com>
  */
 
 import * as express from 'express';
@@ -17,6 +18,24 @@ export interface ResultWriter {
   writeBinary(data: Uint8Array): boolean;
   writeString(data: string): boolean;
   end(): void;
+  /** True when nobody receives the result anymore (the client disconnected): the job is skipped or stopped. */
+  isCancelled?(): boolean;
+}
+
+/** Tracks whether the client left before the response was complete. */
+function trackCancellation(res: express.Response) {
+  let closed = false;
+  res.on('close', () => {
+    if (!res.writableFinished) closed = true;
+  });
+  return {
+    get cancelled() {
+      if (closed) return true;
+      // the client's hang-up is read (`readableEnded`) in the I/O phase, a turn or more before `close` is emitted
+      const socket = res.socket;
+      return !!socket && (socket.destroyed || socket.readableEnded);
+    },
+  };
 }
 
 export interface WebResutlWriter extends ResultWriter {
@@ -26,6 +45,11 @@ export interface WebResutlWriter extends ResultWriter {
 export class SimpleResponseResultWriter implements WebResutlWriter {
   private ended = false;
   private headerWritten = false;
+  private connection = trackCancellation(this.res);
+
+  isCancelled() {
+    return this.connection.cancelled;
+  }
 
   beginEntry(name: string) {
     throw new Error('Not supported');
@@ -56,12 +80,16 @@ export class SimpleResponseResultWriter implements WebResutlWriter {
     });
   }
 
+  // Written right away: what the client has not taken yet waits in the response's (or the compression's) buffers,
+  // as array buffers. Holding the encoder's string chunks until the client takes them was measured (35 entries, 8
+  // concurrent clients): array buffers -460 MB at the peak, but the heap +170 MB, and slow clients would add their
+  // whole responses to the heap, the memory `--max-old-space-size` limits.
   writeBinary(data: Uint8Array) {
     this.writeHeader();
     return this.res.write(Buffer.from(data.buffer, data.byteOffset, data.byteLength));
   }
 
-  writeString(this: any, data: string) {
+  writeString(data: string) {
     this.writeHeader();
     return this.res.write(data);
   }
@@ -85,6 +113,11 @@ export class TarballResponseResultWriter implements WebResutlWriter {
   private headerWritten = false;
   private stream = zlib.createGzip({ level: 6, memLevel: 9, chunkSize: 16 * 16384 });
   private entrySize = 0;
+  private connection = trackCancellation(this.res);
+
+  isCancelled() {
+    return this.connection.cancelled;
+  }
 
   beginEntry(name: string, size: number) {
     this.writeHeader();
@@ -110,7 +143,10 @@ export class TarballResponseResultWriter implements WebResutlWriter {
     if (this.headerWritten) return;
 
     this.stream.pipe(this.res, { end: true });
-    this.stream.on('end', () => this.res.end());
+    // gone clients leave the gzip stream unpiped and unfinished: free its native memory now, not at GC
+    this.res.on('close', () => {
+      if (!this.res.writableFinished) this.stream.destroy();
+    });
 
     this.headerWritten = true;
     this.res.writeHead(200, {

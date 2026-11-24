@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Sebastian Bittrich <sebastian.m.bittrich@gmail.com>
  */
 
 import { Mat4 } from '@molstar/core/math/linear-algebra';
@@ -72,8 +73,7 @@ export async function runLocal(input: LocalInput) {
       job.writer.end();
       ConsoleLogger.logId(job.id, 'Query', 'Written.');
 
-      if (job.entries.length > 0) StructureCache.expireAll();
-
+      // jobs are sorted by key: the entry is read once for all its jobs, and dropped when the key changes
       if (JobManager.hasNext()) {
         job = JobManager.getNext();
         if (key !== job.entries[0].key) StructureCache.expire(key);
