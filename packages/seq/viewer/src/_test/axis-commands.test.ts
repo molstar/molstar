@@ -199,12 +199,13 @@ describe('hits on a reversed collapsed axis with a residue row', () => {
       axis.cell(p);
       return (axis.sx0 + axis.sx1) / 2;
     };
-    // from 13 to 5 on screen: 13, 12, then across the break 6, 5
+    // from 13 to 5 on screen: 13, 12, then across the break 6, 5; each end snapped to its whole codon (EC-149), so the
+    // codons (13, 14, 15) and (12, 6, 5) are selected whole
     expect(v.input.down(at(13), box.y + 2)).toBe(true);
     v.input.move(at(5), box.y + 2);
     v.input.up();
     const parts = v.selection.value.value.location.parts.map((p) => [p.system, [...p.ranges]]);
-    expect(parts).toEqual([['/data/g', [5, 7, 12, 14]]]);
+    expect(parts).toEqual([['/data/g', [5, 7, 12, 16]]]);
   });
 
   it('a break is its own hit target near its notch; a focus into a hidden stretch moves to its break and says so', async () => {
