@@ -19,7 +19,7 @@ regression). The old Seq\* viewer's label churn over its baseline is in `fixes.m
 
 - **FX32** the legend's layers menu (`seq/fx32`): green, looked at in light and dark; its fix round from the review
   (a separator's role, the fixed menu under a transformed ancestor, a first item's separator) is running.
-- **FX33** the Manhattan reference-line flake (`briefs/fx33-manhattan-flake.md`): three failures in full runs; running.
+- **FX33** merged (`cd7058484`): two story tests waited a fixed fake-clock step for real I/O.
 
 ## Next
 

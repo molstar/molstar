@@ -11,7 +11,7 @@ Open items for the next fix point or a running lane's fix round (the loop, Each 
   position, an aligned cell and a column, 1,416 / 752 / 723 B a step against baselines 1,032 / 594 / 564, the same alone
   at load 2.4. Not FX31 (its change is the control's size, not the baseline check); GATE 1 did not run this tier.
   Outside the close-out's packages (the old Seq\*): its owner's, with the commit that grew it. Kind: perf.
-- **The Manhattan reference-line test once read [0, 5.78] for [0, 7.3]** (FX31's first quick run, 2026-11-24:
+- **Fixed by FX33** (`cd7058484`). **The Manhattan reference-line test once read [0, 5.78] for [0, 7.3]** (FX31's first quick run, 2026-11-24:
   `genomes-stories.test.ts`): alone and on a rerun green; likely the order in which CL8's lazy reference-lines chunk
   loads under the shared module registry. Kind: flake to watch; a second failure is a fix lane's.
 - **Fixed by CL2** (`a0397521c`). **Look 24, the Contacts legend entry** (the fifth slice's novice pass; CL1's brief, item 4, not landed: its code is in
