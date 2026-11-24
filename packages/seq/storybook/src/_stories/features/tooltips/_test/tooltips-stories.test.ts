@@ -11,6 +11,7 @@
 
 import { loadGenome, loadTooltips } from '@molstar/seqx-core/resolve';
 import { checkSeqSpec } from '@molstar/seqx-core/lang';
+import { DefaultRenderConfig, type RangesLay } from '@molstar/seqx-core/render';
 import { describerFor } from '@molstar/seqx-viewer/describe';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -96,5 +97,28 @@ describe('Tooltips stories, headless', () => {
     const named = viewer.renderSvg({ idPrefix: 'n-', titles: 'name' });
     await vi.advanceTimersByTimeAsync(400);
     expect((await named).svg).not.toContain('Domain: DNA-binding (DBD)');
+  });
+});
+
+describe('By data: the Transcripts track at height: content', () => {
+  it('the spec says so, and the canvas shows every lane (the SVG’s) with no scroll inside the track', async () => {
+    const view = TooltipViews.find((x) => x.id === 'by-data')!;
+    expect(JSON.stringify(view.build())).toContain('"height":"content"');
+    viewer = await openExample(view, { fixtures: true, gene: '', delayMs: 0, wait: 5000, awaitOpens: true });
+    await vi.advanceTimersByTimeAsync(500);
+    viewer.draw();
+    const t = viewer.frame!.layout.sections[0].tracks.find((x) => x.track.label === 'Transcripts')!;
+    const lay = t.layers[0].lay as RangesLay;
+    const lanes = Math.max(...Array.from(lay.lanes)) + 1;
+    const sec = viewer.frame!.layout.sections[0];
+    expect(sec.placement.box.height, 'the section does not scroll inside').toBe(sec.placement.contentHeight);
+    const c = DefaultRenderConfig;
+    expect(lanes * c.laneHeight).toBeGreaterThan(c.track.maxPx);
+    expect(t.box.height).toBeGreaterThanOrEqual(2 * c.lanePadding + lanes * c.laneHeight);
+    // the canvas is as tall as the SVG export of the same spec (every lane drawn in both)
+    const svg = viewer.renderSvg({ idPrefix: 'h-' });
+    await vi.advanceTimersByTimeAsync(400);
+    const h = Number(/<svg[^>]*\sheight="([\d.]+)"/.exec((await svg).svg)![1]);
+    expect(viewer.height, `canvas ${viewer.height} px, SVG ${h} px`).toBe(h);
   });
 });

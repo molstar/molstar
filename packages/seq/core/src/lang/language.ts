@@ -964,9 +964,12 @@ export const SeqLanguage = defineLanguage({
         },
         max_width: { type: 'number', min: 0, doc: 'Text: the most px a line takes; the whole width when absent.' },
         height: {
-          type: 'number',
-          min: 0,
-          doc: 'Text and tracks: the section’s height in px (past it its content scrolls inside, a tracks section’s ruler fixed); its content’s, up to the render config’s `section.maxPx`, when absent. Rings: the rings’ diameter in px; the width’s, up to `rings.maxDiameter`, when absent.',
+          type: 'union',
+          of: [
+            { type: 'number', min: 0 },
+            { type: 'string', enum: ['content'] },
+          ],
+          doc: 'Text and tracks: the section’s height in px (past it its content scrolls inside, a tracks section’s ruler fixed), or `content` (all its content, no `section.maxPx` cap); its content’s, up to the render config’s `section.maxPx`, when absent. Rings: the rings’ diameter in px; the width’s, up to `rings.maxDiameter`, when absent (`content`: as absent, a ring has no content height).',
         },
         heights: {
           type: 'union',
@@ -1037,7 +1040,14 @@ export const SeqLanguage = defineLanguage({
       ids: 'required',
       params: {
         label: { type: 'string', doc: 'The label of the track (its id when absent).' },
-        height: { type: 'number', min: 0, doc: 'The height of the track in px.' },
+        height: {
+          type: 'union',
+          of: [
+            { type: 'number', min: 0 },
+            { type: 'string', enum: ['content'] },
+          ],
+          doc: 'The height of the track in px, or `content` (all its content, no `track.maxPx` or `rows.maxPx` cap; a ring’s track keeps `rings.trackMaxPx`). Absent: its content up to the caps.',
+        },
         padding: {
           type: 'union',
           of: [

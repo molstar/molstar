@@ -107,7 +107,8 @@ function sizeTracks(
     known: knownVersion(types),
   };
   if (layout.heights || !tracks.length) return { ...base, heights: fixed, contents: [], empties: [] };
-  const cap = layout.name === 'rings' ? config.rings.trackMaxPx : config.track.maxPx;
+  const ring = layout.name === 'rings';
+  const cap = ring ? config.rings.trackMaxPx : config.track.maxPx;
   const cctx = { config, text: input.text, fit, labelLane: layout === TracksLayout && !input.picture };
   const sized: SizedTrack[] = [];
   const contents: (LayerContent | undefined)[] = [];
@@ -148,7 +149,12 @@ function sizeTracks(
     // its lanes' px to the cap (`track.maxPx`; a ring's radial width `rings.trackMaxPx`), past which they scroll inside
     // the track (or compact, on a ring) with the label lane above them kept
     const lanesPx =
-      lanes !== undefined ? Math.min(Math.max(other, lanesHeight(lanes, config)), Math.max(cap, other)) : 0;
+      lanes !== undefined
+        ? Math.min(
+            Math.max(other, lanesHeight(lanes, config)),
+            t.height === 'content' && !ring ? Infinity : Math.max(cap, other),
+          )
+        : 0;
     const content =
       lanes !== undefined && rowsFill(t) === undefined ? lanesPx + (labels ? config.laneHeight : 0) : undefined;
     sized.push({
@@ -157,7 +163,7 @@ function sizeTracks(
       fixed: fixed[j],
       // its label lane its own: what it adds over its lanes (a kind shares lanes, never a label lane)
       ...(content !== undefined ? { content, label: labels ? content - lanesPx : 0 } : {}),
-      ...(t.height !== undefined ? { height: t.height } : {}),
+      ...(typeof t.height === 'number' ? { height: t.height } : {}),
     });
   }
   const name = section.params.heights;
@@ -199,7 +205,7 @@ export function rowsFill(track: ResolvedTrack): 'fill' | number | undefined {
 }
 
 function trackHeight(track: ResolvedTrack, config: RenderConfig, heights: RenderConfig['heights']): number {
-  if (track.height !== undefined) return track.height;
+  if (typeof track.height === 'number') return track.height;
   const rows = rowsFill(track);
   if (typeof rows === 'number') return rows * RowHeight + titleRowOf(track, config);
   let h = 0;

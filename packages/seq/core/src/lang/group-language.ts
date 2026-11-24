@@ -16,6 +16,14 @@ export const TrackParents = ['section', 'group'] as const;
  */
 export const FlattenedKinds: Readonly<Record<string, string>> = { group: '0.11.0' };
 
+/**
+ * The param values a reader of an older minor lacks and reads through: the param as absent (EC-244's lenient rule: its
+ * default sizing), each with the kinds it is on and the version it came in.
+ */
+export const FlattenedValues: Readonly<Record<string, { value: string; kinds: readonly string[]; since: string }>> = {
+  height: { value: 'content', kinds: ['track', 'section'], since: '0.11.0' },
+};
+
 export const GroupKinds = {
   group: {
     doc: 'A named group of a section’s tracks (one level: its children are tracks): drawn under a header line, folded by the reader to one summary row.',

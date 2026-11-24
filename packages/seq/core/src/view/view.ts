@@ -233,7 +233,8 @@ export interface TrackTemplate {
 export interface ResolvedTrack {
   readonly address: string;
   readonly label: string;
-  readonly height?: number;
+  /** Its height as written: px, or `content` (its content with no `track.maxPx` cap; Track heights). */
+  readonly height?: number | 'content';
   /** Px inside its well above and below its data, as written (_spec/README.md "Render", Tracks layout). */
   readonly padding?: { readonly top: number; readonly bottom: number };
   /** Its layers; a template's layers without data are not placed here: each instance places them on its node. */
@@ -809,7 +810,7 @@ function build(model: StaticModel, view: Node, address: string, layerKinds: Laye
       tracks.push({
         address: ta,
         label: typeof label === 'string' ? label : (t.id ?? ''),
-        ...(typeof height === 'number' ? { height } : {}),
+        ...(typeof height === 'number' || height === 'content' ? { height } : {}),
         ...(padding ? { padding } : {}),
         layers,
         ...(template ? { template } : {}),

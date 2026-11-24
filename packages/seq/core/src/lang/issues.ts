@@ -35,8 +35,8 @@ export const LangIssues = defineIssues('seq.lang', {
   'seq.lang.version.kind': {
     severity: 'warning',
     description:
-      'A node of a kind newer than the spec’s `version`: a reader of that version flattens it (a group’s tracks drawn as its section’s, every group open)',
-    hint: 'Raise the spec’s `version` to the one the kind came in, or keep the tracks in their section',
+      'A kind or param value newer than the spec’s `version`: a reader of it flattens a group (its tracks drawn as its section’s, every group open) or reads the param as absent',
+    hint: 'Raise the spec’s `version` to the one it came in, or write it otherwise',
   },
   'seq.lang.source.index': {
     severity: 'error',

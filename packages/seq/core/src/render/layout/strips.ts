@@ -211,8 +211,8 @@ export function hiddenAt(p: Placement, y: number): boolean {
 }
 
 /**
- * A section's cap (_spec/README.md "Render", Section scroll): its box its `height` (`own`), else its content up to
- * `section.maxPx`; past it the bands from `fixed` on (below the head ending at `head`) scroll by the viewport's `top`,
+ * A section's cap (_spec/README.md "Render", Section scroll): its box its `height` (`own`: px, or `content`: all of its
+ * content), else its content up to `section.maxPx`; past it the bands from `fixed` on (below the head ending at `head`) scroll by the viewport's `top`,
  * clamped (a stack's rows, `stacked`, move whole). A head as tall as the box, or a figure, shows all and scrolls not.
  * Before the strips are laid out. Returns the box's height (of the tracks: a foot is the caller's).
  */
@@ -233,7 +233,7 @@ export function capScroll(
   p.scrollEnd = 0;
   p.top = 0;
   if (ctx.figure) return content;
-  const cap = typeof own === 'number' ? own : Math.min(content, ctx.config.section.maxPx);
+  const cap = typeof own === 'number' ? own : own === 'content' ? content : Math.min(content, ctx.config.section.maxPx);
   if (content <= cap + 0.5) return cap;
   // a head that leaves the box no scrolled area: all of it shown
   if (head >= top + cap - 0.5) return content;
