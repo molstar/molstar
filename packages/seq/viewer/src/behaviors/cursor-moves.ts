@@ -153,9 +153,9 @@ export function createCursor(
     // a grid over blocks: the first block's first position shown going down, the last block's last going up
     const down = sectionOf(c.section)?.y?.blocks;
     if (down?.length) {
-      const b = which === 'first' ? down[0] : down[down.length - 1];
-      const p = elementAt(b.axis, which === 'first' ? 0 : Math.max(0, (axisTotal(b.axis) ?? 1) - 1));
-      return p === undefined ? c : { ...c, ySystem: b.axis.system, yPosition: p };
+      const b = endBlock(down, which === 'first' ? -1 : 1);
+      const p = b && elementAt(b.axis, which === 'first' ? 0 : Math.max(0, (axisTotal(b.axis) ?? 1) - 1));
+      return b && p !== undefined ? { ...c, ySystem: b.axis.system, yPosition: p } : c;
     }
     const y = gridY(c.section);
     const total = y && axisTotal(y);
@@ -272,8 +272,8 @@ export function createCursor(
     if (r && c.ySystem === r.lay.rowsSystem) return atRow(c, r, end < 0 ? 0 : r.lay.display.count - 1);
     const yb = yBlocksOf(c);
     if (yb) {
-      const b = yb.blocks[end < 0 ? 0 : yb.blocks.length - 1];
-      const p = elementAt(b.axis, end < 0 ? 0 : (axisTotal(b.axis) ?? 1) - 1);
+      const b = endBlock(yb.blocks, end);
+      const p = b && elementAt(b.axis, end < 0 ? 0 : (axisTotal(b.axis) ?? 1) - 1);
       return p === undefined ? undefined : { ...c, ySystem: b.axis.system, yPosition: p };
     }
     const y = gridY(c.section);
@@ -870,6 +870,12 @@ export function createCursor(
   ];
 
   return { commands, dispose: stopClicks };
+}
+
+/** The first (`-1`) or last (`1`) block with positions (a block with none has no row to stand on). */
+function endBlock(blocks: NonNullable<ResolvedSection['blocks']>, end: -1 | 1) {
+  const list = end < 0 ? blocks : [...blocks].reverse();
+  return list.find((b) => blockSpan(b) > 0);
 }
 
 /**

@@ -447,6 +447,17 @@ describe('the gates and the places', () => {
       ['repr.schema.kind.unknown', 'warning'],
     ]);
     expect(newer[0].hint).toContain('newer minor');
+    expect(newer[0].message).toBe(
+      `A spec of 0.11.0, this reader ${SeqLanguageVersion}: unknown kinds drawn by their fallback`,
+    );
+    // `0.11` and a pre-release are read as the same newer minor: their kinds are warnings; the grammar's
+    // `major.minor.patch` still refuses the version's own spelling, the one error
+    for (const v of ['0.11', '0.11.0-rc.1'])
+      expect(checkSeqSpec(at(v)).map((i) => [i.code, i.severity])).toEqual([
+        ['repr.schema.param.pattern', 'error'],
+        ['repr.schema.kind.unknown', 'warning'],
+        ['repr.schema.kind.unknown', 'warning'],
+      ]);
     expect(checkSeqSpec(at('0.10.0')).map((i) => i.severity)).toEqual(['error', 'error']);
     expect(checkSeqSpec(at('0.9.0')).map((i) => i.severity)).toEqual(['error', 'error']);
     expect(checkSeqSpec(at('1.0.0')).map((i) => [i.code, i.severity])).toEqual([

@@ -251,6 +251,13 @@ export type DragMode = 'replace' | 'add' | 'subtract' | 'extend';
  */
 export type ExtendScope = 'range' | 'selection';
 
+/** A unit a position snaps to: its span and the holes inside it. */
+export interface Snap {
+  readonly start: number;
+  readonly end: number;
+  readonly holes?: readonly number[];
+}
+
 export interface SelectionOptions {
   /** `range` by default (`selection.extendScope`). */
   readonly extendScope?: ExtendScope;
@@ -258,10 +265,11 @@ export interface SelectionOptions {
   readonly acrossBreaks?: 'shown' | 'span';
   /**
    * The whole unit a position is part of when a drag begins or moves over positions (a nucleotide's codon through the
-   * codon maps, EC-149): its span on the system, or undefined when it is none (a position in no codon, a system with
-   * no codon map).
+   * codon maps, EC-149): its span on the system and the `holes` inside the span that are not the unit's (`[start, end,
+   * …]`: the intron a split codon spans, never selected), or undefined when it is none (a position in no codon, a
+   * system with no codon map). Called on every move: it allocates nothing once warm.
    */
-  readonly snap?: (system: string, position: number) => { readonly start: number; readonly end: number } | undefined;
+  readonly snap?: (system: string, position: number) => Snap | undefined;
 }
 
 /** What an extend keeps: the selection less the range the anchor is in, set when the anchor is. */
@@ -280,6 +288,9 @@ export class SelectionModel extends ReactiveModel {
   private _anchor: Anchor | undefined;
   /** What an extend from the anchor keeps (the other ranges and elements); none after a click sets the selection. */
   private _rest: Rest = NoRest;
+  /** The holes of the units the drag's anchor and its other end snapped to (a split codon's intron): never selected. */
+  private _holes: readonly number[] | undefined;
+  private _anchorHoles: readonly number[] | undefined;
   private _drag:
     | {
         anchor: Anchor;
@@ -470,7 +481,9 @@ export class SelectionModel extends ReactiveModel {
     let range = hit ? hitRange(hit, axis, this._extentOfHit(hit)) : undefined;
     if (!range) return false;
     // over nucleotides: whole codons (EC-149; an item snaps to its extent instead)
+    this._holes = undefined;
     if (!hit?.element) range = this._snapped(range);
+    this._anchorHoles = this._holes;
     const a = this._anchor;
     const extend = mode === 'extend' && !!a && a.system === range.system;
     this._drag = {
@@ -497,7 +510,8 @@ export class SelectionModel extends ReactiveModel {
     const p = Math.floor(position);
     let cur: Anchor = { system: a.system, start: p, end: p + 1 };
     if (d.snap && hit?.element && hit.system === a.system) cur = hitRange(hit, axis, this._extentOfHit(hit)) ?? cur;
-    else if (!d.snap && axis?.system !== undefined && axis.system === a.system) cur = this._snapped(cur);
+    this._holes = undefined;
+    if (!d.snap && axis?.system !== undefined && axis.system === a.system) cur = this._snapped(cur);
     if (axis && axis.system !== a.system) {
       // a drag begun on a residue of another system (a residue row): whole residues, from the one under the pointer
       const r = hit ? hitRange(hit, axis, this._extentOfHit(hit)) : undefined;
@@ -505,7 +519,9 @@ export class SelectionModel extends ReactiveModel {
       cur = r;
     }
     const before = this._value.value;
-    const loc = between(a.system, a, cur, axis, this._across, arc);
+    let loc = between(a.system, a, cur, axis, this._across, arc);
+    // a split codon's intron is no part of it: out of what the drag selects (allocates only on a split codon)
+    if (this._holes || this._anchorHoles) loc = this._withoutHoles(loc, a.system, this._anchorHoles, this._holes);
     switch (d.mode) {
       case 'replace':
         this._anchor = a;
@@ -534,7 +550,15 @@ export class SelectionModel extends ReactiveModel {
   private _snapped(r: Anchor): Anchor {
     if (!this._snap || r.end - r.start !== 1) return r;
     const u = this._snap(r.system, r.start);
-    return u ? { system: r.system, start: u.start, end: u.end } : r;
+    if (!u) return r;
+    this._holes = u.holes;
+    return { system: r.system, start: u.start, end: u.end };
+  }
+
+  private _withoutHoles(loc: Location, system: string, a?: readonly number[], b?: readonly number[]): Location {
+    let out = loc;
+    for (const h of [a, b]) if (h?.length) out = subtractLocations(out, rangesLocation(system, h));
+    return out;
   }
 
   /** Cancels a drag-select (Esc): the selection, the anchor and what an extend keeps, as the drag began. */

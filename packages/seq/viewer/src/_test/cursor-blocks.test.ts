@@ -26,13 +26,13 @@ afterEach(() => {
 const Plot = '/views/v/plot';
 
 /** Blocks `s0` (5) and `s1` (4) across, `t0` (3) and `t1` (4) down, one grid over each pair. */
-function spec() {
+function spec(ysizes: readonly number[] = [3, 4]) {
   const b = createSeqSpec({ title: 'cursor over blocks' });
   const xs = [5, 4].map((n, k) => b.data.sequence(`s${k}`, { alphabet: 'dna', letters: 'ACGT'.repeat(3).slice(0, n) }));
-  const ys = [3, 4].map((n, k) => b.data.sequence(`t${k}`, { alphabet: 'dna', letters: 'TGCA'.repeat(3).slice(0, n) }));
+  const ys = ysizes.map((n, k) => b.data.sequence(`t${k}`, { alphabet: 'dna', letters: 'TGCA'.repeat(3).slice(0, n) }));
   const grids: string[] = [];
   [5, 4].forEach((nx, x) =>
-    [3, 4].forEach((ny, y) =>
+    ysizes.forEach((ny, y) =>
       grids.push(b.data.grid(`g${x}${y}`, { x: xs[x], y: ys[y], values: new Float32Array(nx * ny) })),
     ),
   );
@@ -49,11 +49,11 @@ function spec() {
   return b.build();
 }
 
-async function make() {
+async function make(ysizes?: readonly number[]) {
   frames = installFrames();
   const viewer = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined });
   viewers.push(viewer);
-  await viewer.load(spec());
+  await viewer.load(spec(ysizes));
   viewer.resize(800, 800);
   await viewer.settle();
   frames.flush();
@@ -107,5 +107,36 @@ describe('the cursor on a grid over blocks', () => {
     expect(v.selection.cursor.value).toMatchObject({ section: Plot });
     expect(v.selection.cursor.value?.ySystem).toBe('/data/t0');
     expect(v.selection.cursor.value?.yPosition).toBe(0);
+  });
+
+  it('EC-154: ↑ from the first row with positions leaves for the section above, never into an empty block before it, and ↓ from the last row stays when an empty block follows', async () => {
+    const v = await make([0, 4]);
+    const first = { section: Plot, system: '/data/s0', position: 2, ySystem: '/data/t1', yPosition: 0 };
+    v.selection.setCursor(first);
+    v.runCommand('cursor.up', {});
+    // past the first row with positions: the section above, never a row of the empty block
+    expect(v.selection.cursor.value?.section).toBe('/views/v/b');
+    expect(v.selection.cursor.value?.ySystem).not.toBe('/data/t0');
+    // the other way: the cursor on the last row of a block before an empty one stays at the end
+    const w = await make([4, 0]);
+    w.selection.setCursor({ ...first, ySystem: '/data/t0', yPosition: 3 });
+    w.runCommand('cursor.down', {});
+    expect(w.selection.cursor.value).toMatchObject({ ySystem: '/data/t0', yPosition: 3 });
+  });
+
+  it('EC-154: Cmd/Ctrl+↑ ↓ go to the first and the last block’s end rows, over an empty block', async () => {
+    const v = await make([0, 3, 4]);
+    v.selection.setCursor({
+      section: Plot,
+      system: '/data/s0',
+      position: 2,
+      ySystem: '/data/t1',
+      yPosition: 1,
+      keyboard: true,
+    });
+    v.runCommand('cursor.last-row', {});
+    expect(v.selection.cursor.value).toMatchObject({ ySystem: '/data/t2', yPosition: 3 });
+    v.runCommand('cursor.first-row', {});
+    expect(v.selection.cursor.value).toMatchObject({ ySystem: '/data/t1', yPosition: 0 });
   });
 });

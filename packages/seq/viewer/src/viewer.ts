@@ -27,7 +27,7 @@ import {
   textMinScale,
 } from '@molstar/seqx-core/render';
 import { labelColumnWidth } from '@molstar/seqx-core/render/tracks';
-import { locationOfResult, partOf, rangesLocation } from '@molstar/seqx-core/query';
+import { locationOfResult } from '@molstar/seqx-core/query';
 import { EmptyOverlay, type Lengths, sourceLengths } from '@molstar/seqx-core/resolve';
 import { mapsEqual } from '@molstar/core/util/map';
 import type { SeqTokens } from '@molstar/seqx-core/render';
@@ -72,6 +72,7 @@ import type { NavigatorDef, NavigatorModel } from './navigator.js';
 import { behaviorOf, createBehaviors, listedActions } from './viewer-behaviors.js';
 import { FrameClock } from './viewer-clock.js';
 import { ViewerEmphasis } from './viewer-emphasis.js';
+import { snapOfCodons } from './models/snap-codons.js';
 import { ViewerFrame } from './viewer-frame.js';
 import { ViewerViewports } from './viewer-viewports.js';
 import { ViewerMotion } from './viewer-motion.js';
@@ -310,12 +311,7 @@ export class SeqViewer extends ReactiveModel {
         extendScope: config.selection.extendScope,
         acrossBreaks: config.selection.acrossBreaks,
         // a drag over nucleotides snaps to whole codons through the view's codon maps (EC-149)
-        snap: (system, position) => {
-          const systems = view.resolved.value?.sections.map((s) => s.axis.system) ?? [];
-          const closed = view.model.value.close(rangesLocation(system, [position, position + 1]), systems);
-          const r = partOf(closed, system)?.ranges;
-          return r?.length ? { start: r[0], end: r[r.length - 1] } : undefined;
-        },
+        snap: snapOfCodons(() => view),
       },
     ));
     const emphasis = (this._emphasis = new ViewerEmphasis(this));

@@ -73,22 +73,30 @@ export function checkSeqSpec(spec: Node, bounds: SpecBounds = DefaultSpecBounds)
   }
   let issues = validate(SeqLanguage, spec, SeqValidateOptions);
   // a newer minor's kinds this reader lacks are warnings: it draws what it knows, as for an extension's (EC-235)
-  if (newerMinor(version)) issues = issues.map(lenient);
+  if (newerMinor(version)) issues = issues.map((i) => lenient(i, String(version)));
   if (hasErrors(issues)) return [...issues];
   return [...issues, ...checkSeqLang(normalize(SeqLanguage, spec, SeqValidateOptions), bounds)];
 }
 
-/** Whether a version is a later minor of the major this reader reads (a newer major is refused before). */
+/**
+ * Whether a version is a later minor of the major this reader reads (a newer major is refused before): `0.11`, `0.11.0`
+ * and `0.11.0-rc.1` alike.
+ */
 function newerMinor(version: unknown): boolean {
-  const v = typeof version === 'string' ? /^(\d+)\.(\d+)\./.exec(version) : null;
+  const v = typeof version === 'string' ? /^(\d+)\.(\d+)(?:\.|-|$)/.exec(version) : null;
   const mine = /^(\d+)\.(\d+)\./.exec(SeqLanguageVersion)!;
   return !!v && v[1] === mine[1] && Number(v[2]) > Number(mine[2]);
 }
 
 /** An unknown kind of a newer minor as the warning it is there (the node is kept, its params skipped). */
-function lenient(i: Issue): Issue {
+function lenient(i: Issue, version: string): Issue {
   return i.code === 'repr.schema.kind.unknown'
-    ? { ...i, severity: 'warning', hint: 'A kind of a newer minor version of the language: it is kept and not drawn' }
+    ? {
+        ...i,
+        severity: 'warning',
+        message: `A spec of ${version}, this reader ${SeqLanguageVersion}: unknown kinds drawn by their fallback`,
+        hint: 'A kind of a newer minor version of the language: it is kept and not drawn',
+      }
     : i;
 }
 
