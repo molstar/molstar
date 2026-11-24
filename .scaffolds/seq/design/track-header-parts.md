@@ -160,6 +160,8 @@ It does not cover:
   | `seq:color` | track | action, menu only (amended 2026-11-23: the code's way, the author as recommended; `header.slots` stays 2, so a host's entry takes the second column) | `palette` | `layer.channel` (its scheme param a submenu, below) | a layer with a color channel and more than one fitting scheme |
   | `seq:layers` | track | action, menu only | — | `layer.hide` and `layer.show` as checked items, then a separator and "Show all", "Hide all" (each one patch over the layers listed, disabled with its reason when it would change nothing; the legend's layers menu is the same menu) | more than one layer |
   | `seq:move-up`, `seq:move-down` | track | action, menu only | — | `track.move` | a sibling there |
+  | `seq:every-lane` | track | action, menu only | — | `track.height` (`height: 'content'`; decided by the author, 2026-11-24, close-out B8: "Agree all four") | a track whose lanes scroll inside (its content past its cap), not on a ring's track |
+  | `seq:cap-lanes` | track | action, menu only | — | `track.height` (`height: null`: the track's `height` removed, one patch) | a track at `height: 'content'`, not on a ring's track |
   | `seq:filtered` | track | state | — (a text chip) | `layer.filter` (no value: cleared) | a layer with a user filter ("12 filtered", as today) |
   | `seq:hidden-layers` | track | state | — (a text chip) | `layer.show` (every hidden layer, one patch) | a hidden layer ("1 layer hidden") |
   | `seq:pending` | track | state, no command | `loader-circle` | — | data pending in view (no click; it says "loading") |

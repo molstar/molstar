@@ -34,6 +34,8 @@ export interface EditingContext {
   readonly after?: string | null;
   /** `track.add`: the track to insert (its id is its place among the section's tracks). */
   readonly node?: Node;
+  /** `track.height`: `content` (every lane, no cap), or null: the track's `height` removed (the cap again). */
+  readonly height?: 'content' | null;
   /** `layer.color`: the theme form or color the layer is drawn with. */
   readonly color?: Value;
   /** `refs.label`: the bookmark's label ('' removes it: its id is shown). */
@@ -61,6 +63,7 @@ export const EditingCommandIds = {
   hideTrack: 'track.hide',
   showTrack: 'track.show',
   moveTrack: 'track.move',
+  heightTrack: 'track.height',
   addTrack: 'track.add',
   removeRef: 'refs.remove',
   labelRef: 'refs.label',
@@ -369,6 +372,29 @@ export function editingBehavior(spec: SpecModel, axis?: AxisReaders): EditingBeh
               : 'No hidden tracks'
             : allNeed('track', 'track')(ctx),
       run: (_, ctx) => edit('Show a track', unhide(showTracks(ctx)), ctx, 'Shown'),
+    },
+    {
+      id: EditingCommandIds.heightTrack,
+      title: 'Show every lane of a track, or cap them',
+      category: 'Edit',
+      when: (ctx) => {
+        const can = needs('track', 'track')(ctx);
+        if (can !== true) return can;
+        if (ctx.height !== 'content' && ctx.height !== null) return 'No height given';
+        const has = nodeOf(spec.root.value, ctx.address, 'track')!.params?.height;
+        return (ctx.height === 'content') === (has === 'content') ? 'Already so' : true;
+      },
+      run: (_, ctx) =>
+        edit(
+          ctx.height === 'content' ? 'Show every lane' : 'Cap the lanes',
+          () => [
+            ctx.height === 'content'
+              ? { op: 'set', at: ids(ctx.address!), key: 'height', value: 'content' }
+              : { op: 'unset', at: ids(ctx.address!), key: 'height' },
+          ],
+          ctx,
+          ctx.height === 'content' ? 'Every lane shown' : 'Lanes capped',
+        ),
     },
     {
       id: EditingCommandIds.moveTrack,

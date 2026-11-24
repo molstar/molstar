@@ -1507,12 +1507,16 @@ rows' commands) reads the last frame's rows layers through the behavior context'
     hovered; its arrow at the row's end, the menu's), `seq:layers` (more than one addressable layer: a checked item a
     layer, `layer.hide` or `layer.show`, then a separator and "Show all" and "Hide all": `layer.hide` and `layer.show`
     take `addresses`, one patch; a `HeaderSubEntry`'s `disabled` is the reason an entry that changes nothing gives),
-    `seq:move-up`, `seq:move-down` (`track.move`, a sibling there), the states `seq:filtered` (its count the track's,
-    every thinned layer's rows; `layer.filter` clears every thinned layer's filter, one patch), `seq:hidden-layers`
-    (`layer.show` of every hidden layer, one patch; its list each; it `yields` to its label: a chip or a mark only where
-    the label stays whole) and the section's `seq:hidden-tracks` (menu only, "Show hidden ▸": a flyout of each hidden
-    track, then "Show all", `track.show` of every hidden track in one patch), the section's `seq:reverse` and
-    `seq:collapse`. `seq:pending` is not built (the TODO).
+    `seq:move-up`, `seq:move-down` (`track.move`, a sibling there), `seq:every-lane` (menu only, "Show every lane": a
+    track whose lanes scroll inside, its content past its cap, `HeaderFacts.lanes.scrolls` from the layout's
+    `HeaderInputFacts.scrolls`; `track.height` with `height: 'content'`) and `seq:cap-lanes` ("Cap the lanes": a track
+    at `height: 'content'`; `track.height` with `height: null`, the `height` removed); neither on a ring's track; one
+    patch each, one undo step), the states `seq:filtered` (its count the track's, every thinned layer's rows;
+    `layer.filter` clears every thinned layer's filter, one patch), `seq:hidden-layers` (`layer.show` of every hidden
+    layer, one patch; its list each; it `yields` to its label: a chip or a mark only where the label stays whole) and
+    the section's `seq:hidden-tracks` (menu only, "Show hidden ▸": a flyout of each hidden track, then "Show all",
+    `track.show` of every hidden track in one patch), the section's `seq:reverse` and `seq:collapse`. `seq:pending` is
+    not built (the TODO).
   - **`HeaderFacts`**: plain data from the resolved view, the spec and the last layout (the address, label, section,
     system, linear, the section's track ids, the track's layers with type, label, hidden, filtered rows, color and
     fitting schemes, the hidden tracks, the element, and the viewer whose header it is: an entry is one object shared by
@@ -1567,11 +1571,12 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   `layer.hide`, `layer.show` (the `hidden` key set or unset), `layer.color` (the layer's theme), `track.hide` and
   `track.show` (the track's own `hidden`: its layers keep theirs, so hide then show is a round trip; `layer.show` and
   `track.show` take `addresses` too, every one in one patch: a chip's "show all"), `track.move` (among its siblings,
-  `after`), `track.add` (a `node` inserted under the section `address`, after `after`, last without it; the id taken is
-  refused), `refs.remove`, `refs.label` (a bookmark's `label` param set, or removed with `''`); `step.enter` and
-  `step.leave` (navigation); `preview.cancel` (Esc). A gesture's preview is a method, never a command (it runs per
-  pointer move): `preview(patch)` replaces the last, `endPreview(label)` ends it in one step, `cancelPreview()` in
-  nothing. `when` says why one cannot run (no such node, no step shown, nothing to cancel).
+  `after`), `track.height` (the track's `height` set to `content` or removed: every lane, or the cap again), `track.add`
+  (a `node` inserted under the section `address`, after `after`, last without it; the id taken is refused),
+  `refs.remove`, `refs.label` (a bookmark's `label` param set, or removed with `''`); `step.enter` and `step.leave`
+  (navigation); `preview.cancel` (Esc). A gesture's preview is a method, never a command (it runs per pointer move):
+  `preview(patch)` replaces the last, `endPreview(label)` ends it in one step, `cancelPreview()` in nothing. `when` says
+  why one cannot run (no such node, no step shown, nothing to cancel).
 
 ### Molecules: the interaction matrix's cells
 

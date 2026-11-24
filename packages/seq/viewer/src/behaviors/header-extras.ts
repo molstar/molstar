@@ -223,6 +223,9 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
         (c.kind === 'track' || (c.kind === 'group' && !track?.group)) && c.id !== undefined ? [c.id] : [],
       ),
       ...(section.trackGroups ? { groups: true } : {}),
+      ...(track && section.layout !== 'rings'
+        ? { lanes: { height: track.height, scrolls: at?.scrolls === true } }
+        : {}),
       layers,
       hiddenTracks: at?.hiddenTracks ?? hiddenTracksOf(model, section),
       ...(track && layers.some((l) => l.tree)
