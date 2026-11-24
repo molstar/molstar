@@ -19,9 +19,9 @@ address) is off since the author's restart, 2026-11-24 08:45: the refused grep o
 
 - **CL5 search merged** (`a4668800a`), sizes raised: default 1,566.1/1,570, minimal 1,101.7/1,105.
 - **CL6 track groups merged** (`a1097142a`), sizes raised: headless 986.4/990, default 1,578.9/1,582, minimal 1,112.3/1,115.
-- **FX25** (`seq/fx25` at `37832382d`, worktree `agent-a98a4bf365b8a5323`): items 1 and 2 uncommitted (item 1 shown
-  failing on its parent by the author's run). After CL6 merges: commit items 1 and 2, item 2's parent check, rebase,
-  items 3–6.
+- **CL8 values marks** (Sonnet, `seq/cl8`), started 2026-11-24 10:05.
+- **FX25** (Sonnet, `seq/fx25` at `925471c82`, its items 1–2 a WIP the orchestrator committed; a fresh agent),
+  started 2026-11-24 10:05: split the WIP, item 2's parent check, rebase, items 3–6.
 
 ## Next
 
