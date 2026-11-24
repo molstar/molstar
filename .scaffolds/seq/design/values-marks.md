@@ -170,8 +170,8 @@ canvas and SVG.
 - `lang/language.ts`: the layer's description gains `reference` (a `list` of `record`, `max-length` 4, fields `at`
   (number, required), `label` (string), `color` (string), `style` (enum `solid`, `dashed`, `dotted`)), its doc "For
   `values`: horizontal lines at values of the layer's y (a threshold, a zero, a mean), drawn over the marks."
-- `SeqLanguageVersion` takes the next minor. The track-groups draft names `0.11.0`; this one is `0.11.0` if it lands
-  first, `0.12.0` after it: the lanes' order settles it. Its history entry, the builder's types (`values`' options),
+- `SeqLanguageVersion` takes the next minor. Both landed in the same unreleased `0.11.0`, the track-groups bump first
+  and `reference` after it. Its history entry, the builder's types (`values`' options),
   the catalogs and `config-keys` tests.
 - `lang/check.ts`: a `reference` on another layer type is the existing "param for another type" warning; `at` a
   non-number, a colour that is not a color or token, a style outside the enum, a fifth line: the description's own
