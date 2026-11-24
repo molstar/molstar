@@ -319,6 +319,12 @@ export class ViewerInput {
     return true;
   }
 
+  /** A layer that links places (a pairs layer, an extension's ribbons): its hits are not a chromosome's. */
+  private _isLink(section: string, layer: string): boolean {
+    const type = this._layerTypeOf(section, layer);
+    return type !== undefined && (type === 'pairs' || type.includes(':'));
+  }
+
   private _layerTypeOf(section: string, key: string): string | undefined {
     const s = this._sectionOf(section);
     if (!s) return undefined;
@@ -1099,6 +1105,14 @@ export class ViewerInput {
     if (hit && this._runScoped('double-click', section, hit, mods, target)) return true;
     const action = this.viewer.bindings.resolve('double-click', mods, target);
     if (action === undefined) return false;
+    // an idle ring's chromosome (its label, its arc) opens as its zoom in does; a ribbon or a stem (an extension's
+    // layer, a pairs layer) keeps its meaning, as a double-click bound to something but the focus or the fit does
+    if (
+      (action === 'view.focus' || action === 'view.fit') &&
+      !(hit?.layer !== undefined && this._isLink(section, hit.layer)) &&
+      this.ringCut.open(section, x, y)
+    )
+      return true;
     // a clade's command on a summary row (its element the clade): the clade it names
     if (hit?.target === 'summary-row' && hit.element && hit.layer !== undefined && CladeActions.includes(action)) {
       void this.viewer.execute(action, { track: trackOfLayer(hit.layer), clade: hit.element.key });

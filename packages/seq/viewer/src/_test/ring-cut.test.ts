@@ -266,3 +266,54 @@ describe('the ring’s zoom is a cut', () => {
     expect(after.end - after.start).toBeLessThan(before.end - before.start);
   });
 });
+
+describe('a double-click on a chromosome opens it', () => {
+  const dbl = (v: SeqViewer, at: { x: number; y: number }, shiftKey = false) => v.input.doubleClick(at.x, at.y, { shiftKey });
+
+  it('over a chromosome’s arc: the cut, one patch, one undo step, the event taken', async () => {
+    const v = await make();
+    const steps = (v.spec.history as UiHistory).stack.steps.value.length;
+    expect(dbl(v, over(v, 3))).toBe(true);
+    await rest(v);
+    expect(include(v)).toEqual(['chr4']);
+    expect(blocks(v).length).toBe(1);
+    expect((v.spec.history as UiHistory).stack.steps.value.length).toBe(steps + 1);
+    expect((await undo(v)).ok).toBe(true);
+    expect(include(v)).toBeUndefined();
+  });
+
+  it('over the hole it is not the cut’s; on a ring that shows one chromosome it is not either', async () => {
+    const v = await make();
+    dbl(v, hole(v));
+    await rest(v);
+    expect(include(v)).toBeUndefined();
+    const one = await make(false, ['chr2']);
+    dbl(one, over(one, 0));
+    await rest(one);
+    expect(include(one)).toEqual(['chr2']);
+  });
+
+  it('a Shift+double-click is the bindings’ own (zoom out), not the cut', async () => {
+    const v = await make();
+    dbl(v, over(v, 1), true);
+    await rest(v);
+    expect(include(v)).toBeUndefined();
+  });
+
+  it('an author’s filter is kept and said', async () => {
+    const v = await make(false, { min_length: 1 });
+    const said: string[] = [];
+    v.notice.listen(({ text }) => said.push(text));
+    expect(dbl(v, over(v, 1))).toBe(true);
+    await rest(v);
+    expect(include(v)).toEqual({ min_length: 1 });
+    expect(said).toEqual([Filtered]);
+  });
+
+  it('a followed ring keeps its window’s double-click', async () => {
+    const v = await make(true);
+    dbl(v, over(v, 2));
+    await rest(v);
+    expect(include(v)).toBeUndefined();
+  });
+});

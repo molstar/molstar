@@ -1144,6 +1144,12 @@ binding table; per move one hit record and one modifiers record are reused.
   ring at the fit moved a window the ring never draws (taken, nothing seen); the designs call opening a chromosome the
   ring's zoom, and the cut gives it the gesture; one cut a gesture because a wheel's notches come many; taken only where
   something happens or is said.
+- **A double-click on an idle ring's chromosome opens it** (`RingCut.open`): on a chromosome's label or arc (the
+  placement's `blockAt` over a block, not a pairs layer's or an extension's ribbons' hit) of a ring nobody follows, when
+  the double-click's binding is the focus or the fit (no modifier), the cut of the zoom: `section.include` of that
+  block, one patch and one step of the history; an author's filter is kept and said. Not taken (the bindings' own): over
+  the hole, on a ring that shows one chromosome already, a followed ring, a ribbon or a stem. Why: a double-click is
+  what a reader tries on a chromosome (the novice pass found nothing opened it).
 - **Double click**: the bound command with the section, what to focus (the element's hull on the section, its extent
   carried along the layer's path, else the position's cell, in offsets; a Shift+click's extend before it is given back,
   as a clear one is), the unit the placement has under the pointer (`at`) and the double-click's zoom factor (`step`,

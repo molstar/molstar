@@ -48,14 +48,11 @@ export class RingCut {
   ): boolean {
     const v = this.viewer;
     if (v.bindings.resolve(pinch ? 'pinch' : 'wheel', mods, target) !== 'zoom') return false;
-    const sections = v.view.resolved.value?.sections;
-    const s = sections?.find((x) => x.address === section);
-    const p = v.placementOf(section);
-    // a ring idle as the view model has it: following none and followed by none (a detached follower's window moves)
-    if (!s?.blocks || !p?.warpOf || !p.blockAt || s.follow || sections!.some((x) => x.follow?.leader === section))
-      return false;
+    const ring = this._idle(section);
+    if (!ring) return false;
+    const { s } = ring;
     // outside the ring's box (its margin) the zoom is the bindings' own
-    const block = p.blockAt(x, y);
+    const block = ring.p.blockAt(x, y);
     if (block === undefined) return false;
     const { cutNotch, cutRestMs } = v.config.navigate;
     const now = performance.now();
@@ -86,6 +83,33 @@ export class RingCut {
       else this._cut(section, to);
     }
     return true;
+  }
+
+  /**
+   * A double-click over a chromosome's label or arc opens it, as the zoom in does (the cut, one patch, one step of the
+   * history). True when it did, or said what the ring shows (an author's filter); false: the point is not over a block
+   * of an idle ring, or the ring shows one chromosome already (the double-click is the bindings').
+   */
+  open(section: string, x: number, y: number): boolean {
+    const ring = this._idle(section);
+    const block = ring?.p.blockAt(x, y);
+    if (!ring || block === undefined || block < 0) return false;
+    if (includeOf(this.viewer, section) === 'filter') return this._say(Filtered);
+    const to = this.viewer.spec.model.value.systems.get(ring.s.blocks![block].axis.system)?.name;
+    if (!to || ring.s.blocks!.length === 1) return false;
+    this._cut(section, to);
+    return true;
+  }
+
+  /** A ring idle as the view model has it: following none and followed by none (a detached follower's window moves). */
+  private _idle(section: string) {
+    const v = this.viewer;
+    const sections = v.view.resolved.value?.sections;
+    const s = sections?.find((x) => x.address === section);
+    const p = v.placementOf(section);
+    if (!s?.blocks || !p?.warpOf || !p.blockAt || s.follow || sections!.some((x) => x.follow?.leader === section))
+      return undefined;
+    return { s: s as typeof s & { blocks: NonNullable<typeof s.blocks> }, p: p as typeof p & { blockAt: NonNullable<typeof p.blockAt> } };
   }
 
   private _say(text: string): true {
