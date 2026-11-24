@@ -23,7 +23,7 @@ type Graph = Map<string, Set<string>>;
 
 function sources(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
-    e.name === '_test'
+    e.name === '_test' || e.name === 'node_modules'
       ? []
       : e.isDirectory()
         ? sources(join(dir, e.name))
@@ -86,7 +86,7 @@ function findCycle(graph: Graph): string[] | undefined {
 describe('the core package’s folders', () => {
   const files = sources(Src);
   const folders = readdirSync(Src, { withFileTypes: true })
-    .filter((e) => e.isDirectory() && e.name !== '_test')
+    .filter((e) => e.isDirectory() && e.name !== '_test' && e.name !== 'node_modules')
     .map((e) => e.name);
 
   it('is each an entry', () => {
