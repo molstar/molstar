@@ -68,7 +68,7 @@ describe('Bookmarks: the text’s links, headless', () => {
   it('a link on a transcript that arrives later waits, then moves the view; "bookmark this view" adds a ref', async () => {
     const v = await make();
     const run = followLink(v, hrefOf('T2'));
-    expect(describeRun(run)).toBe('Waiting for its data');
+    expect(describeRun(run)).toBe('Waiting for T2');
     expect(bookmarkRows(v).find((r) => r.address === '/refs/t2')?.status).toBe('waiting');
     await vi.advanceTimersByTimeAsync(4 * DelayMs);
     expect(bookmarkRows(v).find((r) => r.address === '/refs/t2')?.status).toBe('resolved');
@@ -87,7 +87,7 @@ describe('Bookmarks: the text’s links, headless', () => {
     const v = await make();
     const said: string[] = [];
     const links = new LinkStatus(v, (m) => said.push(m));
-    expect(links.follow(hrefOf('T2'))).toBe('Waiting for its data');
+    expect(links.follow(hrefOf('T2'))).toBe('Waiting for T2');
     expect(said).toEqual([]);
     await vi.advanceTimersByTimeAsync(4 * DelayMs + 64);
     expect(said).toEqual(['Focused']);

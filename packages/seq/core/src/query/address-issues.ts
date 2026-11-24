@@ -20,6 +20,12 @@ export const AddressIssues = defineIssues('seq.address', {
     severity: 'info',
     description: 'An address names a node data makes that is not held yet: it resolves when the data arrives',
   },
+  'seq.address.node.unknown': {
+    severity: 'warning',
+    description:
+      'An address names a node data makes whose source, asked where its key is, has none: it will not arrive from this reading',
+    hint: 'Check the key; an address is never re-bound to something else',
+  },
   'seq.address.ref.cycle': {
     severity: 'error',
     description: 'A ref leads back to itself through other refs',

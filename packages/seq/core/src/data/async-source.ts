@@ -4,7 +4,14 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { abortError, type FormatRuntime, type OpenedSource, type RegionRequest } from './protocol.js';
+import {
+  abortError,
+  type FindNamesOptions,
+  type FormatRuntime,
+  type NameHit,
+  type OpenedSource,
+  type RegionRequest,
+} from './protocol.js';
 import type { SeqData } from './seq-format.js';
 import { openSeq } from './seq-runtime.js';
 import { RealClock, type StoreClock } from './store.js';
@@ -43,6 +50,25 @@ export function delayedSource(inner: OpenedSource, options: DelayOptions = {}): 
         signal.addEventListener('abort', onAbort, { once: true });
       });
     },
+    // a find answers after the delay too (a number's; by request, none), so a twin finds as a remote source does
+    ...(inner.findNames && {
+      findNames(text: string, opts: FindNamesOptions, signal: AbortSignal) {
+        if (signal.aborted) return Promise.reject(abortError());
+        const delay = typeof delayOf === 'number' ? delayOf : 0;
+        if (delay <= 0) return inner.findNames!(text, opts, signal);
+        return new Promise<readonly NameHit[]>((resolve, reject) => {
+          const onAbort = () => {
+            clock.clearTimeout(timer);
+            reject(abortError());
+          };
+          const timer = clock.setTimeout(() => {
+            signal.removeEventListener('abort', onAbort);
+            inner.findNames!(text, opts, signal).then(resolve, reject);
+          }, delay);
+          signal.addEventListener('abort', onAbort, { once: true });
+        });
+      },
+    }),
     dispose() {
       inner.dispose();
     },

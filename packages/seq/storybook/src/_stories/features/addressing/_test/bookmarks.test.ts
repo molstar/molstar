@@ -82,7 +82,7 @@ describe('Bookmarks, headless', () => {
   it('runs a waiting focus on an address that is no ref, once its node arrives', async () => {
     const v = await make(P53Views.find((x) => x.id === 'gene-by-region')!);
     const run = followLink(v, '!seq-focus=/data/region/(node :key T3)');
-    expect(run?.outcomes.map((o) => o.message)).toEqual(['Waiting for its data']);
+    expect(run?.outcomes.map((o) => o.message)).toEqual(['Waiting for T3']);
     await vi.advanceTimersByTimeAsync(4 * DelayMs);
     expect(v.addresses.resolve('/data/region/(node :key T3)').status).toBe('resolved');
     await vi.advanceTimersByTimeAsync(64);
@@ -98,7 +98,7 @@ describe('Bookmarks, headless', () => {
       ['/refs/wrap53', 'waiting'],
     ]);
     // the focus is asked before the transcript is held: it waits
-    expect(focusBookmark(v, '/refs/t2')).toBe('Waiting for its data');
+    expect(focusBookmark(v, '/refs/t2')).toBe('Waiting for T2');
 
     // the region answers: the transcripts are held, the bookmarks resolve and the waiting focus runs
     await vi.advanceTimersByTimeAsync(4 * DelayMs);

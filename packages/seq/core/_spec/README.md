@@ -903,6 +903,15 @@ links that carry addresses. Forms and addresses are one language, so this sits w
   data is not loaded (`seq.address.waiting`, info: it resolves when they arrive); `missing` when it is empty otherwise
   (`seq.address.missing`, warning); `failed` on an error. An issue's `address` is the address asked, its `places` the
   refs passed and what they led to: an address that no longer resolves is reported with what it named, never re-bound.
+- **Waiting for nodes** (`waitsFor`): a resolution waiting on nodes not held lists each `(node :key k)` of what it names
+  (a string key), by its holder's address (a source, or a held source node) and key, outer first, so whoever resolves
+  may ask the source for it; a source that, asked, has no such key is said by the asker as `seq.address.node.unknown`
+  (`unknownNodeIssue`: the address asked, the source its place). Why: a node not held may be evicted, or never read, and
+  only its source knows where it is; a waiting address holds no data.
+- **Streamed things in patches**: a ref (a bookmark) naming a dynamic node is a patch like any other, whether or not its
+  node is held: the patch's dangling check reads its leading ids alone (the source), so it is never dangling while its
+  source is in the spec, and evicting the node's region leaves it waiting, the spec untouched (EC-175); undo restores
+  roots, never the store. Why: a bookmark on a transcript read by region must survive the region's eviction.
 - **Bounded**: `limit` (10,000 nodes or elements; more is `repr.tree.address.limit_exceeded`, never a truncation),
   `maxDepth` (64), `refDepth` (8); a signal and a deadline as a selection takes them.
 - **As positions** (`locationOfResult`): a Location itself; elements by their items' extents; a system's node whole; an
@@ -957,8 +966,9 @@ The viewer's `address.*`, `copyLink.*` and `links.*` items; `DefaultAddressBound
 
 ### Issues
 
-`seq.address.*` (`AddressIssues`): `missing`, `waiting` (info), `ref.cycle`, `ref.depth`, `ref.set`, `ref.empty`,
-`type`, `link.syntax`, `link.action` (warning), `link.limit`; a test checks the catalog against the sources.
+`seq.address.*` (`AddressIssues`): `missing`, `waiting` (info), `node.unknown` (warning), `ref.cycle`, `ref.depth`,
+`ref.set`, `ref.empty`, `type`, `link.syntax`, `link.action` (warning), `link.limit`; a test checks the catalog against
+the sources.
 
 ### Performance
 
@@ -1118,6 +1128,11 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
   identity at both levels). Why: a layer zoomed out on a long system reads that one tile, never the system a tile at
   level 1 (81,307 at 83 Mb), and a small inline payload needs no level between. Ranges lists only: inline values get
   their coarse levels from the store's summaries, letters are read where they fit, and other shapes stay at level 1.
+- **Its nodes found by key**: when the coverage lists `key` in `names` (`SeqNodeKeyField`), `findNames` finds the
+  dynamic nodes its answers bring by key (exact, case-insensitive; by prefix when asked): a hit's extent is the pairs
+  whose answers bring it (on the first system that does), its `id` and `label` the key; a key no answer brings finds
+  nothing, the source's word that it has none. Indexed on the first find. Why: a ref to a node not held (evicted, or
+  never read) asks where to read it, through the protocol's one find.
 
 ### Asynchronous sources
 
@@ -1129,8 +1144,9 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
 - `delayedSource(inner, { clock, delayMs })` answers as `inner` does, each answer after a delay (a number, or by the
   request) on a `StoreClock`; an abort rejects at once and clears the timer; 0 is no timer. `asyncSeqSource(data)` is
   the synthetic by-region source (`seq` data answered so); `delayedRuntime(runtime, { formats })` gives it a format of
-  its own (`seq-async`). Why: the store's states (pending, cancelled, evicted, failed) are driven by a fake clock in
-  tests and seen in a story with the real one, through one source.
+  its own (`seq-async`). A find (`findNames`) is passed through after the delay when it is a number, at once when it is
+  by request. Why: the store's states (pending, cancelled, evicted, failed) are driven by a fake clock in tests and seen
+  in a story with the real one, through one source.
 
 ### Summaries
 

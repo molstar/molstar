@@ -22,6 +22,8 @@ export {
   type ResolveAddressOptions,
   refResults,
   resolveAddressIn,
+  unknownNodeIssue,
+  type WaitedNode,
 } from './address.js';
 export { AddressIssues } from './address-issues.js';
 export {

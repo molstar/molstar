@@ -9,9 +9,11 @@ import { SourceIssues } from './issues.js';
 import {
   abortError,
   type DynamicNode,
+  type FindNamesOptions,
   type FormatRuntime,
   isAbortError,
   type OpenContext,
+  type NameHit,
   type OpenedSource,
   type RegionAnswer,
   type RegionRequest,
@@ -24,7 +26,8 @@ import { joinTables, sliceTable } from './tables.js';
 import { sourceNameOf } from './system-names.js';
 
 // The `seq` format's runtime (_spec/README.md "Data", The seq format): a source of request/answer pairs answers a
-// region by joining the pairs of its system and level that overlap it, each cut to its part of the region.
+// region by joining the pairs of its system and level that overlap it, each cut to its part of the region; its
+// dynamic nodes are found by key when its coverage says so.
 
 /** A source that could not be opened, with its issues. */
 export class SourceOpenError extends Error {
@@ -47,6 +50,48 @@ function malformed(why: string): RegionAnswer {
     ok: false,
     kind: 'malformed',
     issue: issueOf(SourceIssues, 'seq.source.malformed', `The source's pairs do not join: ${why}`),
+  };
+}
+
+/** The name field under which a `seq` source finds its dynamic nodes by key, when its coverage lists it in `names`. */
+export const SeqNodeKeyField = 'key';
+
+/**
+ * A `seq` source's dynamic nodes found by key (_spec/README.md "Data", The seq format): when its coverage lists `key`
+ * in `names`, a node's key is a name, its hit the extent of the pairs whose answers bring it (on the first system that
+ * does), its `id` the key. Indexed once, on the first find. Why: a ref to a node that is not held asks where to read it.
+ */
+function nodeKeys(data: SeqData): OpenedSource['findNames'] {
+  if (!data.coverage.names?.includes(SeqNodeKeyField)) return undefined;
+  let index: Map<string, NameHit> | undefined;
+  const build = () => {
+    const m = new Map<string, NameHit>();
+    for (const { request: r, answer } of data.pairs) {
+      if (!answer.ok) continue;
+      for (const n of answer.nodes ?? []) {
+        const k = n.key.toLowerCase();
+        const h = m.get(k);
+        if (!h)
+          m.set(k, { system: r.system, start: r.start, end: r.end, id: n.key, label: n.key, field: SeqNodeKeyField });
+        else if (h.system === r.system)
+          m.set(k, { ...h, start: Math.min(h.start, r.start), end: Math.max(h.end, r.end) });
+      }
+    }
+    return m;
+  };
+  return (text: string, options: FindNamesOptions, signal: AbortSignal) => {
+    if (signal.aborted) return Promise.reject(abortError());
+    index ??= build();
+    const q = text.trim().toLowerCase();
+    const max = options.max ?? 20;
+    const exact = index.get(q);
+    const out: NameHit[] = exact ? [exact] : [];
+    if (options.prefix)
+      for (const [k, h] of index) {
+        if (out.length >= max) break;
+        if (k !== q && k.startsWith(q)) out.push(h);
+      }
+    return Promise.resolve(out.slice(0, max));
   };
 }
 
@@ -137,12 +182,14 @@ export function openSeq(data: SeqData): OpenedSource {
     const out = tables as Tables;
     return nodes.size ? { ok: true, tables: out, nodes: [...nodes.values()] } : { ok: true, tables: out };
   };
+  const findNames = nodeKeys(data);
   return {
     coverage: data.coverage,
     read(request, signal) {
       if (signal.aborted) return Promise.reject(abortError());
       return Promise.resolve(answer(request));
     },
+    ...(findNames ? { findNames } : {}),
     dispose() {},
   };
 }

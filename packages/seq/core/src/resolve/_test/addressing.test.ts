@@ -54,12 +54,15 @@ describe('a ref to a dynamic node', () => {
     const before = resolveAddressIn(root, overlayQueryModel(model, EmptyOverlay), '/refs/t1');
     expect(before.status).toBe('waiting');
     expect(before.issues.map((i) => i.code)).toEqual(['seq.address.waiting']);
+    // what it waits for, so whoever resolves may ask the source for it
+    expect(before.waitsFor).toEqual([{ source: S, key: 'T1' }]);
 
     const overlay = buildOverlay(model, reader([[S, 'T1', transcript]]));
     const q = overlayQueryModel(model, overlay);
     expect(overlayQueryModel(model, overlay)).toBe(q);
     const after = resolveAddressIn(root, q, '/refs/t1');
     expect(after.status).toBe('resolved');
+    expect(after.waitsFor).toBeUndefined();
     expect(locationOfResult(root, q, after.result!).location).toEqual(
       rangesLocation('/data/gene', [100, 400, 960, 1422]),
     );
