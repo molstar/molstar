@@ -108,6 +108,18 @@ async function legendMenu(el: HTMLElement) {
 }
 
 describe('the legend’s layers menu looks as the header’s', () => {
+  it('in an ancestor that would offset its fixed position, it is in the body, in a wrapper carrying the UI root’s class', async () => {
+    const { el } = await mounted();
+    const skew = document.createElement('div');
+    skew.setAttribute('style', 'transform: translate(5px, 5px)');
+    el.replaceWith(skew);
+    skew.append(el);
+    const menu = await legendMenu(el);
+    expect(skew.contains(menu)).toBe(false);
+    expect(menu.parentElement!.parentElement).toBe(document.body);
+    expect(menu.parentElement!.classList.contains('msui-root')).toBe(true);
+  });
+
   it('opens in the part’s element (inside the UI root), never on document.body', async () => {
     const { el } = await mounted();
     const menu = await legendMenu(el);
@@ -170,7 +182,15 @@ describe.each(Object.keys(menus) as (keyof typeof menus)[])('the %s’s layers m
     const { v, el } = await mounted();
     const menu = await open(el, v);
     expect(labelsOf(menu)).toEqual(['a', 'b', 'c', 'Show all', 'Hide all']);
-    expect(rowsOf(menu).map((r) => r.hasAttribute('data-separated'))).toEqual([false, false, false, true, false]);
+    // one real separator, before "Show all"
+    expect([...menu.children].map((c) => c.getAttribute('role'))).toEqual([
+      'menuitemradio',
+      'menuitemradio',
+      'menuitemradio',
+      'separator',
+      'menuitem',
+      'menuitem',
+    ]);
     const show = row(menu, 'Show all');
     expect(show.getAttribute('aria-disabled')).toBe('true');
     expect(show.getAttribute('aria-description')).toBe('Every layer is shown');

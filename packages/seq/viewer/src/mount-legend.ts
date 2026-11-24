@@ -14,12 +14,12 @@ import {
   highlightColorOf,
   legendRows,
 } from './legends.js';
+import { layerMenuAll } from './layers-menu.js';
 
 export type { LegendChannels };
 
 /** The channels the row names before "+n": it is one line, so its height holds whatever the channels or the text size. */
 const MaxChannelsShown = 2;
-import { layerMenuAll } from './layers-menu.js';
 import type { SeqViewer } from './viewer.js';
 
 // The `Legend` part (_spec/README.md "Legends"): a part the host places (beside a track header, in a panel, in a Mol*
@@ -135,7 +135,9 @@ export function mountLegend(element: HTMLElement, viewer: SeqViewer, options: Le
               checked: !l.hidden,
               run: () => toggle(l),
             })),
-            // as the track header's Layers menu ends: one patch each, over the layers listed
+            // as the track header's Layers menu ends: one patch each, over the layers listed. These are the row's layers,
+            // the track's own: the header's "Show every layer (n hidden)" chip also covers `:` sub-addresses (partner
+            // layers), so the two may differ
             ...layerMenuAll(row.layers).map(({ label, command, args, disabled }, i) => ({
               id: `all:${command}`,
               label,

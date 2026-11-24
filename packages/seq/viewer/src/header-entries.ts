@@ -334,7 +334,9 @@ export const BuiltInHeaderEntries: readonly HeaderActionEntry[] = /* @__PURE__ *
             args: { address: l.address },
             checked: !l.hidden,
           })),
-          // one patch each, over the layers listed (`layers-menu.ts`: the legend's menu ends the same)
+          // one patch each, over the layers listed (`layers-menu.ts`: the legend's menu ends the same). Only the track's
+          // own layers: the "Show every layer" chip (`seq:hidden-layers`) also covers `:` sub-addresses (partner layers),
+          // so the two may differ
           ...layerMenuAll(own).map(({ disabled, ...all }, i) => ({
             ...all,
             ...(disabled ? { disabled } : {}),
