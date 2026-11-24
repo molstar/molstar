@@ -219,9 +219,9 @@
     "trimmed": "none",
     "derived": "genes of 3 to 12 exons and 1 to 4 transcripts, both strands, named TOY0001 to TOY0150 (src/genomes/generate/, seeded on core’s PCG and hash3, a stream per seed, concern and index)",
     "bytesDownloaded": 0,
-    "bytesFixture": 34286,
+    "bytesFixture": 35518,
     "sha256Download": "",
-    "sha256Fixture": "99627356f7294567030294b7ccb734699e23788b79f8194ccde9ef0427a9c8c5"
+    "sha256Fixture": "5fc2c31f6a17ef1f3627a27a37e4546e57f1b979969cbd813fd6f244dc64299a"
   },
   {
     "file": "genomes/toy-a.genes.gff3.gz.tbi",
@@ -235,9 +235,9 @@
     "trimmed": "none",
     "derived": "written as tabix writes it over the bgzipped GFF3 (src/genomes/generate/, seeded on core’s PCG and hash3, a stream per seed, concern and index)",
     "bytesDownloaded": 0,
-    "bytesFixture": 807,
+    "bytesFixture": 812,
     "sha256Download": "",
-    "sha256Fixture": "b0496b413d9d6ed99a14cf886f4a8974f79d2b4dda5bcee5731ebc62e913039e"
+    "sha256Fixture": "878914cf16d46466b382c1ff04e508fa8c0cf961341bba9d0960f5b0cab0f20e"
   },
   {
     "file": "genomes/toy-a.genes.gtf.gz",
@@ -251,9 +251,9 @@
     "trimmed": "none",
     "derived": "the GFF3’s model written as GTF (src/genomes/generate/, seeded on core’s PCG and hash3, a stream per seed, concern and index)",
     "bytesDownloaded": 0,
-    "bytesFixture": 37463,
+    "bytesFixture": 38726,
     "sha256Download": "",
-    "sha256Fixture": "c91a3d235e81cceef721f2955a7d0b5cc1d0acefd5db9e9cb38412dd6a777f21"
+    "sha256Fixture": "a02754848fa6e3a95691a5af44ab42e55cab4d548f7b781455b04215091c6a99"
   },
   {
     "file": "genomes/toy-a.genes.gtf.gz.tbi",
@@ -267,9 +267,9 @@
     "trimmed": "none",
     "derived": "written as tabix writes it over the bgzipped GTF (src/genomes/generate/, seeded on core’s PCG and hash3, a stream per seed, concern and index)",
     "bytesDownloaded": 0,
-    "bytesFixture": 805,
+    "bytesFixture": 814,
     "sha256Download": "",
-    "sha256Fixture": "713238ecc6cc275ddd769fc9830359a19000b5cddfa4394f6debfece6ee970a2"
+    "sha256Fixture": "8c2ca0c73ef652090d66467e4bee4bdef9c171e48e25795237233641eeb4740b"
   },
   {
     "file": "genomes/toy-a.signal.bedgraph.gz",
@@ -283,9 +283,9 @@
     "trimmed": "none",
     "derived": "waves in log space and noise, no line over chr1’s run of N and 10 kb of chr2 (missing values) (src/genomes/generate/, seeded on core’s PCG and hash3, a stream per seed, concern and index)",
     "bytesDownloaded": 0,
-    "bytesFixture": 39301,
+    "bytesFixture": 40555,
     "sha256Download": "",
-    "sha256Fixture": "c03de951787fef074f9917a4a5165e74222ecc553d08084051eab0caf0771dea"
+    "sha256Fixture": "43376c10edf7e492467b9e961ea0a9293a52ecd6fe030609962ec8ab7e5c4f30"
   },
   {
     "file": "genomes/toy-a.signal.bedgraph.gz.tbi",
@@ -299,9 +299,9 @@
     "trimmed": "none",
     "derived": "written as tabix writes it over the bgzipped bedGraph (src/genomes/generate/, seeded on core’s PCG and hash3, a stream per seed, concern and index)",
     "bytesDownloaded": 0,
-    "bytesFixture": 729,
+    "bytesFixture": 738,
     "sha256Download": "",
-    "sha256Fixture": "48578898b17c65128b1ae0785390e0cd3a4dd0472b654950ff213327e99fbd23"
+    "sha256Fixture": "158a22069e788bb087665dc09e72d647e7079d2751afd5224d44dff7be033346"
   },
   {
     "file": "genomes/toy-a.variants.vcf.gz",
@@ -315,9 +315,9 @@
     "trimmed": "none",
     "derived": "SNVs at toy A’s letters, chrM’s calls haploid, phased and unphased lines, partial and no-calls, a 600-base deletion over 12 SNVs carried by six samples (src/genomes/generate/, seeded on core’s PCG and hash3, a stream per seed, concern and index)",
     "bytesDownloaded": 0,
-    "bytesFixture": 57152,
+    "bytesFixture": 59229,
     "sha256Download": "",
-    "sha256Fixture": "1b0b84ba13452f1759666d1510e0f53532630eafa0c743341daec7be363e9f3a"
+    "sha256Fixture": "b09980712aa6822683b55b2ab4c8398e12c6393613396cb0d70d2660a1f7fc47"
   },
   {
     "file": "genomes/toy-a.variants.vcf.gz.tbi",
@@ -331,9 +331,9 @@
     "trimmed": "none",
     "derived": "written as tabix writes it over the bgzipped VCF (src/genomes/generate/, seeded on core’s PCG and hash3, a stream per seed, concern and index)",
     "bytesDownloaded": 0,
-    "bytesFixture": 537,
+    "bytesFixture": 532,
     "sha256Download": "",
-    "sha256Fixture": "880fbf6a9bcebf91f4a248effc70b5c9d14f2db81a9e618a507a2b705062ca17"
+    "sha256Fixture": "a9b7ed088c5855ff3e592f9432f024b40b5192891f02fe81dbe76329eb03a0a3"
   },
   {
     "file": "genomes/toy-a.methylation.seq.msgpack",

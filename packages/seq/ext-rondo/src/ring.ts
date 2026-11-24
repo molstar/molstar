@@ -68,7 +68,8 @@ export interface RondoRing {
 }
 
 /** The ribbons' colour: a hue per chromosome, its `a` end's system, in the assembly's order (taken before `include`). */
-export function ribbonsColor(hues: boolean) {
+// typed by `theme`'s own return (the declaration emit names no internal path of `@molstar/core`)
+export function ribbonsColor(hues: boolean): ReturnType<typeof theme.scheme> {
   return hues
     ? theme.scheme('rondo:hues', { field: 'system' })
     : theme.field('system', { palette: theme.categorical({ colors: 'categories', repeat: true }) });

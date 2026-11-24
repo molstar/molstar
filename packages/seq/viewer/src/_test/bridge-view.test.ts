@@ -157,6 +157,8 @@ describe('a bridge in the viewer: its pointer, its lock, its commands (EC-206, E
     const box = band(v);
     const x = box.x + box.width / 4;
     const before = { top: range(v, Top), bottom: range(v, Bottom) };
+    // Cmd is `mod` on macOS alone (`navigator.platform`): the platform pinned, the test is the same on every OS
+    v.input.mac = true;
     v.input.wheel(x, box.y + 10, { deltaX: 0, deltaY: -100, deltaMode: 0, metaKey: true, ctrlKey: false });
     redraw(v);
     for (const [s, total] of [

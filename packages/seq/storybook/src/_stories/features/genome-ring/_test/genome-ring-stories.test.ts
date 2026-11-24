@@ -39,12 +39,15 @@ afterEach(() => {
 
 const Rondo = [rondoViewer] as const;
 
-async function open(view: ExampleView, extensions: typeof Rondo | 'none' = Rondo, wait = 3000) {
+/** `settled`: every runtime's open awaited between the clock's turns (a gzip file inflates on the platform's thread
+ * pool, by no clock: a fixed run of the fake clock alone is outrun by a slow machine's open); not for a pending state. */
+async function open(view: ExampleView, extensions: typeof Rondo | 'none' = Rondo, wait = 3000, settled = false) {
   viewer?.retire();
   viewer = await openExample(view, {
     delayMs: 0,
     wait,
     fixtures: true,
+    ...(settled ? { awaitOpens: true as const } : {}),
     ...(extensions !== 'none' ? { extensions } : {}),
   });
   viewer.draw();
@@ -109,7 +112,7 @@ const squareWords = (v: SeqViewer) => {
 
 describe('Genome ring stories, headless', () => {
   it('1. the genome at the fit: 23 chromosomes’ stems, ribbons wide by count; light and dark', async () => {
-    const v = await open(ringStoryView('ring'));
+    const v = await open(ringStoryView('ring'), Rondo, 3000, true);
     const l = ribbonsOf(v)!;
     expect(errors(v)).toEqual([]);
     expect(l.items).toBe(false);

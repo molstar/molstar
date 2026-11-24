@@ -9,11 +9,11 @@ import { crc } from '@molstar/core/util/zip/checksum';
 import { deflate } from '@molstar/core/util/zip/zip';
 
 // BGZF and tabix as bgzip and `tabix` write them, for the Genomes dataset's generated files (a VCF, a bedGraph, a GFF3
-// and a GTF, each with its `.tbi`): blocks of 65,280 bytes deflated by core's deflate (pure JavaScript, so the bytes are
-// the same on every platform and Node version: what a byte-identity test needs), the EOF block last; the TBI index of
-// htslib (bins with their chunks, the linear index of 16 kb windows, the metadata pseudo-bin), itself bgzipped. Why
-// not the test harness's writer: it deflates with Node's zlib, whose output may change with Node's version, and the
-// examples' sources do not depend on the harness.
+// and a GTF, each with its `.tbi`): blocks of 65,280 bytes deflated by core's deflate with `native: false` (its pure
+// JavaScript, so the bytes are the same on every platform and Node version: what a byte-identity test needs), the EOF
+// block last; the TBI index of htslib (bins with their chunks, the linear index of 16 kb windows, the metadata
+// pseudo-bin), itself bgzipped. Why not the test harness's writer: it deflates with Node's zlib, whose output may
+// change with Node's version, and the examples' sources do not depend on the harness.
 
 /** The 28-byte EOF block bgzip writes last. */
 const EofBlock = new Uint8Array([
@@ -31,7 +31,8 @@ export interface Bgzipped {
 
 /** One BGZF block of `chunk`: a gzip member with the `BC` extra field, deflated raw (core's zlib stream unwrapped). */
 async function block(chunk: Uint8Array): Promise<Uint8Array> {
-  const zlib = await deflate(SyncRuntimeContext, chunk as Uint8Array<ArrayBuffer>, { level: 6 });
+  // core's own deflate, never the platform's (`native: false`): the platform's bytes change with its zlib
+  const zlib = await deflate(SyncRuntimeContext, chunk as Uint8Array<ArrayBuffer>, { level: 6, native: false });
   // a zlib stream: a 2-byte header, the raw deflate, a 4-byte Adler-32
   const raw = zlib.subarray(2, zlib.length - 4);
   const out = new Uint8Array(18 + raw.length + 8);

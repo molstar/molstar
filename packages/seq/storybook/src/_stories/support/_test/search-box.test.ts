@@ -88,14 +88,16 @@ async function make(initial?: string) {
     input.value = text;
     input.dispatchEvent(new Event('input', { bubbles: true }));
   };
-  /** The clock run while a run's chunks land (their imports are real I/O, never the fake clock's) until it ends. */
+  /** The clock run while a run's chunks land (their imports are real I/O, never the fake clock's) until it ends: bounded
+   * by the real clock (`Date` is not faked here), never by a count of turns, which a slow machine's import outlasts. */
   const ran = async () => {
-    for (let i = 0; i < 2000; i++) {
+    for (const until = Date.now() + 20_000; Date.now() < until; ) {
       await vi.advanceTimersByTimeAsync(16);
       await new Promise((r) => setImmediate(r));
       const s = v.search!;
       if (s.status.value === 'done' || s.status.value === 'failed') return;
     }
+    throw new Error(`the search did not end: ${v.search!.status.value}`);
   };
   const key = (k: string, shiftKey = false) =>
     input.dispatchEvent(new KeyboardEvent('keydown', { key: k, shiftKey, bubbles: true }));

@@ -366,7 +366,8 @@ async function ungzipMembers(runtime: RuntimeContext, file: Uint8Array<ArrayBuff
 export async function deflate(
   runtime: RuntimeContext,
   data: Uint8Array<ArrayBuffer>,
-  opts?: { level: number } /* , buf, off*/,
+  /** `native: false`: the same bytes on every runtime (no platform `CompressionStream`; `_deflateRaw`) */
+  opts?: { level: number; native?: boolean } /* , buf, off*/,
 ) {
   if (opts === undefined) opts = { level: 6 };
   let off = 0;
@@ -374,7 +375,7 @@ export async function deflate(
   buf[off] = 120;
   buf[off + 1] = 156;
   off += 2;
-  off = await _deflateRaw(runtime, data, buf, off, opts.level);
+  off = await _deflateRaw(runtime, data, buf, off, opts.level, opts.native ?? true);
   const crcValue = adler(data, 0, data.length);
   buf[off + 0] = (crcValue >>> 24) & 255;
   buf[off + 1] = (crcValue >>> 16) & 255;

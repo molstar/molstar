@@ -79,6 +79,19 @@ function patch(bytes: Uint8Array, name: string, change: { usize?: number; csize?
   throw new Error(`no entry ${name}`);
 }
 
+/** Where an entry's stored bytes start and how many there are, from its local header (they may be deflated: never
+ * look for the entry's text in the archive's bytes, which holds only under one platform's deflate). */
+function dataOf(bytes: Uint8Array, name: string) {
+  const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  for (let i = 0; i + 30 < bytes.length; i++) {
+    if (v.getUint32(i, true) !== 0x04034b50) continue;
+    const nl = v.getUint16(i + 26, true);
+    if (dec.decode(bytes.subarray(i + 30, i + 30 + nl)) !== name) continue;
+    return { at: i + 30 + nl + v.getUint16(i + 28, true), size: v.getUint32(i + 18, true) };
+  }
+  throw new Error(`no entry ${name}`);
+}
+
 const codes = (r: { issues: readonly { code: string }[] }) => r.issues.map((i) => i.code);
 
 describe('writing an archive', () => {
@@ -381,9 +394,10 @@ describe('reading an archive: the index and the spec', () => {
 
   it('refuses an entry whose bytes fail the CRC-32, and reads a view of a larger buffer', async () => {
     const z = await valid(['a.png']);
-    const at = dec.decode(z).indexOf('file a.png');
+    const { at, size } = dataOf(z, 'a.png');
+    expect(size).toBeGreaterThan(0);
     const flipped = z.slice();
-    flipped[at] ^= 1;
+    flipped[at + (size >> 1)] ^= 1;
     expect(codes(await readArchive(flipped))).toEqual(['seq.archive.unreadable']);
     const wide = new Uint8Array(z.length + 20);
     wide.set(z, 10);
