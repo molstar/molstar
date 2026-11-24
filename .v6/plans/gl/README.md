@@ -116,6 +116,8 @@ Follow-ups from the review of the WebGPU branch (correctness, memory, one decisi
 - [shared-draw-resources.md](shared-draw-resources.md): geometry sub-allocated in shared buffers, theme layers in
   storage pages updated by range, shared object groups done (WebGPU replay of 10k draws 37 to about 1 ms per frame
   measured); the CPU geometry store deferred (measured: little to gain).
+- [merged-smoothed-layers-gpu.md](merged-smoothed-layers-gpu.md): planned: smoothed layers on merged surfaces sampled
+  per vertex by a compute kernel on WebGPU, written into the layer's storage pages (today on the CPU).
 - [merged-render-objects.md](merged-render-objects.md): CPU-side merging the main path for units representations
   (always, `renderMerged` removed), update costs, geometry and layers without copies, the costs per member, GPU
   culling with occlusion (`gpuCulling: 'auto'`, from 20k instances) done; left: the visuals' own update work (the GPU
