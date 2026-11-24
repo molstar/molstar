@@ -8,7 +8,7 @@
 // what a method needs, what a reference names. `checkSeqSpec` is the gates in order: the version, the description's
 // validation with normalization, then these checks on the normalized tree.
 
-import { validateAndNormalize } from '@molstar/core/repr/schema';
+import { normalize, validate } from '@molstar/core/repr/schema';
 import {
   CategoryColumn,
   exactAddress,
@@ -71,9 +71,25 @@ export function checkSeqSpec(spec: Node, bounds: SpecBounds = DefaultSpecBounds)
       }),
     ];
   }
-  const read = validateAndNormalize(SeqLanguage, spec, SeqValidateOptions);
-  if (hasErrors(read.issues) || !read.node) return [...read.issues];
-  return [...read.issues, ...checkSeqLang(read.node, bounds)];
+  let issues = validate(SeqLanguage, spec, SeqValidateOptions);
+  // a newer minor's kinds this reader lacks are warnings: it draws what it knows, as for an extension's (EC-235)
+  if (newerMinor(version)) issues = issues.map(lenient);
+  if (hasErrors(issues)) return [...issues];
+  return [...issues, ...checkSeqLang(normalize(SeqLanguage, spec, SeqValidateOptions), bounds)];
+}
+
+/** Whether a version is a later minor of the major this reader reads (a newer major is refused before). */
+function newerMinor(version: unknown): boolean {
+  const v = typeof version === 'string' ? /^(\d+)\.(\d+)\./.exec(version) : null;
+  const mine = /^(\d+)\.(\d+)\./.exec(SeqLanguageVersion)!;
+  return !!v && v[1] === mine[1] && Number(v[2]) > Number(mine[2]);
+}
+
+/** An unknown kind of a newer minor as the warning it is there (the node is kept, its params skipped). */
+function lenient(i: Issue): Issue {
+  return i.code === 'repr.schema.kind.unknown'
+    ? { ...i, severity: 'warning', hint: 'A kind of a newer minor version of the language: it is kept and not drawn' }
+    : i;
 }
 
 /**

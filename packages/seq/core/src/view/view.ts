@@ -66,26 +66,27 @@ export interface LayerType {
 }
 
 /**
- * The layer types: `secondary` and `variants` draw `ranges` where a reader lacks them; the `ruler` has none (omitted)
- * and, like `letters`, reads a sequence (the section's own when it names none).
+ * The layer types, each declaring its fallback (`none` ends a chain): `secondary`, `variants`, `bands` and `pairs` draw
+ * `ranges` where a reader lacks them, `matrix` draws `values`; the others have none. The `ruler`, like `letters`, reads
+ * a sequence (the section's own when it names none).
  */
-export const LayerTypes: Readonly<Record<string, LayerType>> = {
-  letters: { shape: 'letters' },
-  ruler: { shape: 'letters' },
-  ranges: { shape: 'ranges' },
-  values: { shape: 'values' },
+export const LayerTypes: Readonly<Record<string, LayerType & { readonly fallback: string }>> = {
+  letters: { shape: 'letters', fallback: 'none' },
+  ruler: { shape: 'letters', fallback: 'none' },
+  ranges: { shape: 'ranges', fallback: 'none' },
+  values: { shape: 'values', fallback: 'none' },
   secondary: { shape: 'ranges', fallback: 'ranges' },
   variants: { shape: 'ranges', fallback: 'ranges' },
   // regions outlined across tracks: a reader without frames draws none (an outline drawn as bars would read as data)
-  frame: { shape: 'ranges' },
+  frame: { shape: 'ranges', fallback: 'none' },
   // an alignment's rows and its logo: no fallback (a reader without them draws none)
-  rows: { shape: 'cells' },
-  logo: { shape: 'cells' },
+  rows: { shape: 'cells', fallback: 'none' },
+  logo: { shape: 'cells', fallback: 'none' },
   // a chromosome's stained bands (an ideogram): a reader without them draws the ranges
   bands: { shape: 'ranges', fallback: 'ranges' },
   // pairs drawn as their ends where a reader lacks arcs; a grid has none (a reader without it draws none)
   pairs: { shape: 'pairs', fallback: 'ranges' },
-  grid: { shape: 'grid' },
+  grid: { shape: 'grid', fallback: 'none' },
   // samples × positions: a reader without it draws the states' mean as values
   matrix: { shape: 'matrix', fallback: 'values' },
 };

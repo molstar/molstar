@@ -67,7 +67,12 @@ describe('the cursor on a grid over blocks', () => {
     const c = { section: Plot, system: '/data/s0', position: 4, ySystem: '/data/t0', yPosition: 1 };
     v.selection.setCursor(c);
     v.runCommand('cursor.next', {});
-    expect(v.selection.cursor.value).toMatchObject({ system: '/data/s1', position: 0, ySystem: '/data/t0', yPosition: 1 });
+    expect(v.selection.cursor.value).toMatchObject({
+      system: '/data/s1',
+      position: 0,
+      ySystem: '/data/t0',
+      yPosition: 1,
+    });
     v.runCommand('cursor.prev', {});
     expect(v.selection.cursor.value).toMatchObject({ system: '/data/s0', position: 4 });
     v.selection.setCursor({ ...c, system: '/data/s1', position: 3 });
@@ -80,7 +85,12 @@ describe('the cursor on a grid over blocks', () => {
     const c = { section: Plot, system: '/data/s0', position: 2, ySystem: '/data/t0', yPosition: 2 };
     v.selection.setCursor(c);
     v.runCommand('cursor.down', {});
-    expect(v.selection.cursor.value).toMatchObject({ system: '/data/s0', position: 2, ySystem: '/data/t1', yPosition: 0 });
+    expect(v.selection.cursor.value).toMatchObject({
+      system: '/data/s0',
+      position: 2,
+      ySystem: '/data/t1',
+      yPosition: 0,
+    });
     v.runCommand('cursor.up', {});
     expect(v.selection.cursor.value).toMatchObject({ ySystem: '/data/t0', yPosition: 2 });
     v.selection.setCursor({ ...c, ySystem: '/data/t1', yPosition: 3 });
