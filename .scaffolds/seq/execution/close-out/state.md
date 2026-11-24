@@ -14,23 +14,19 @@ bridge chunk 26.0/28.
 
 ## In progress
 
-GATE 2 passed (`d9b53e580`); the use gate ticked (the author, after FX32 `608d87ac2`); the novice pass ran (three
-groups, `novice-findings.md`: 43 findings, 7 reproduced or read against the designs before placing). The old Seq\*
-viewer's label churn over its baseline is in `fixes.md`, outside the close-out's packages.
+None. Version 1's close-out is finished: every lane merged, the gates passed, the use gate ticked by the author,
+the novice pass placed, the measurements' overs fixed or carried, the fold-back merged in part, the reconcile merged.
 
 ## Next
 
-1. FX36 merged (`feaabd7b3`), re-measured in the pane: three overs pass; the split and merge carried (the author:
-   "Carry it"; `packages/seq/TODO.md`).
-2. The last gate passed (`2b6aacc28`). FINALIZE: reconcile, `foldback.md` for the author, the gate once more, the
-   record, the next plan, the clean-up.
+The next plan, written outside this folder (Finalize, step 5), then the clean-up of merged lanes' worktrees.
 
 ## Blockers and open questions
 
-The author: a name for a folded group's summary layer (its raw id
-"ranges#summary" shows in its legend row and eye: TODO). Sizes raised at FX30's merge (headless 1,000). At the close: remove the locked, clean
-worktrees (CL4's, CL7's, CL9's, CL11's, CL12's, CL13's, FX26's, the reviewers') and their branches.
+None. Carried items are in `packages/seq/TODO.md` and the record's Left open.
 
 ## Verify
 
 The loop's Checks; the scaffold checks green at the records commit after `72012efcf`.
+
+Closed 2026-11-24: records/close-out/2026-11-24-close-out.md

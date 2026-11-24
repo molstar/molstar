@@ -39,4 +39,4 @@
 - [x] The novice pass, after the last lane that draws (`novice-findings.md`: 43 findings, the bugs to FX34, D1–D4 to the author)
 - [x] The measurements: the bundles against their budgets, the representatives at full size (`measurements.md`; four overs to FX36, three fixed, the split and merge carried by the author)
 - [x] GATE: last (`2b6aacc28`)
-- [ ] FINALIZE: the unticked items run, cut or carried; reconcile; `foldback.md` with the author's decision; the gate; the record; `state.md`'s closing line; the next plan
+- [x] FINALIZE (`records/close-out/2026-11-24-close-out.md`): the unticked items run, cut or carried; reconcile; `foldback.md` with the author's decision; the gate; the record; `state.md`'s closing line; the next plan
