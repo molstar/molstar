@@ -16,10 +16,10 @@ against `search.md` (a step adds history only when it pans: by design); A6 is `p
 
 | # | What | Kind | Placed |
 |---|---|---|---|
-| C5 | A partner or a piece opened from the stem menu is no history step: Back stays disabled (`ring-extension.md`, The stem menu: "shows the pair, one history step") | bug | FX34 |
-| B4, A8 | The stories' SVG twin misses state changes: search's Clear leaves its tints; a group folded on the canvas stays open in the twin after an undo | bug | FX34 |
-| A6 | A folded group's summary layer titled by its raw id ("ranges#summary", "secondary#summary") in its legend row and eye, right after a fold its own name | bug | FX34 (from the TODO) |
-| A4 | Long Legend's track named "letters" titles its row "letters letters" | bug | FX34 |
+| C5 | A partner or a piece opened from the stem menu is no history step: Back stays disabled (`ring-extension.md`, The stem menu: "shows the pair, one history step") | bug | FX34 (`293155bb1`) |
+| B4, A8 | The stories' SVG twin misses state changes: search's Clear leaves its tints; a group folded on the canvas stays open in the twin after an undo | bug | FX34 (`293155bb1`) |
+| A6 | A folded group's summary layer titled by its raw id ("ranges#summary", "secondary#summary") in its legend row and eye, right after a fold its own name | bug | FX34 (`293155bb1`, from the TODO) |
+| A4 | Long Legend's track named "letters" titles its row "letters letters" | bug | FX34 (`293155bb1`) |
 | B7, B10 | GFF3 Find By Name: the canvas's Transcripts track capped with an inner scroll while the SVG draws every lane (By Data's case before FX30); GTF's result line cut at the right | look | FX34 (the stories at `height: 'content'`; the line wraps) |
 | B12 | Manhattan's card "chr 11,984, index 11983": an index, one off the position, jargon to a reader | look | FX34 (the card's position only) |
 | C1, C9 | Nothing on the ring opens a chromosome by click or double-click; the stories never name the gestures (Cmd/Ctrl+wheel, the label's "Show only", the square) nor the partner keys | missing design | D1 (agreed) → FX35 |

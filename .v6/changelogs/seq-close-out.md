@@ -59,3 +59,6 @@
   Hide all (one undo step each); `layer.hide` takes `addresses`.
 - UI: a context menu item takes `separated` (a separator row before it); a menu opened under a transformed, filtered
   or contained ancestor mounts on the body in a wrapper carrying the UI root's class and theme.
+- Seq\* (next): a partner or "Show only" from the ring's stem menu is one history step; the SVG twin in the stories
+  follows search highlights and group folds; a folded group's summary layer is named as its track; a nucleic card no
+  longer shows a 0-based index.

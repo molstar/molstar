@@ -494,8 +494,6 @@ extension kinds.
   split them; bins read by region draw once and say so. A design question: bin by a declared field, or take the filter
   in the request.
 - **A later layer's widest stem is read as last laid out** with `scale: 'section'`: a growth shows one frame late.
-- **A folded group's summary layer is named by its raw id** (FX29, 2026-11-24): `layerName` gives "ranges#summary" in
-  its legend row's title and its eye. A design call: the group's label and "summary", or the summary's own kind.
 - **A bridge's assembly read rebuilds per moving frame** (FX28, 2026-11-24): its prep is keyed by the positions in view,
   since with a side pending nothing cuts rows by window (`bridge-sides.test.ts`); a cut there would let the prep be
   keyed by its tiles (a pan's relayout 547 kB, 476 kB so). The across sweeps compare counts: the export carries only

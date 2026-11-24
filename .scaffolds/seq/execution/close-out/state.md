@@ -20,7 +20,7 @@ viewer's label churn over its baseline is in `fixes.md`, outside the close-out's
 
 ## Next
 
-1. **FX34** (`briefs/fx34-novice-bugs.md`): the novice pass's bugs (C5, B4 and A8, A6, A4, B7 and B10, B12).
+1. FX34 merged (`293155bb1`).
 2. **FX35** (`briefs/fx35-novice-gaps.md`): D1–D4 as the author agreed ("Agree all four"), after FX34's merge.
 3. The measurements, the last gate and FINALIZE.
 
