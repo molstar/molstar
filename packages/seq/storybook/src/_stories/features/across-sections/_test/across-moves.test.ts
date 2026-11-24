@@ -11,7 +11,7 @@ import { AcrossViews } from '@molstar/seqx-examples/across/views';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { openExample } from '../../../examples/_test/draw-checks.js';
-import { openZoomed } from '../openings.js';
+import { openZoomed, openZoomedGrape } from '../openings.js';
 import { bridges } from './across-checks.js';
 
 // Features/Across sections after a side moves (FX28): a bridge's ribbons on the canvas against the SVG export's. The
@@ -54,12 +54,7 @@ async function settle(v: SeqViewer) {
  * A deterministic run of pans and zooms of the bridge's two sides (`panPx`, the wheel's `zoom` about an offset), the
  * canvas's ribbon count against the export's after each; the steps that differ.
  */
-async function sweep(
-  id: string,
-  steps: number,
-  opening?: (v: SeqViewer) => unknown,
-  seed = 7,
-): Promise<string[]> {
+async function sweep(id: string, steps: number, opening?: (v: SeqViewer) => unknown, seed = 7): Promise<string[]> {
   viewer = await openExample(AcrossViews.find((x) => x.id === id)!, { delayMs: 300, wait: 30_000 });
   const v = viewer;
   v.draw();
@@ -93,8 +88,68 @@ async function sweep(
   return wrong;
 }
 
+/** Every side of every bridge in turn: a pan, a zoom in, a zoom out past where it began, a pan back; the steps that differ. */
+async function everySide(id: string, opening?: (v: SeqViewer) => unknown): Promise<string[]> {
+  viewer = await openExample(AcrossViews.find((x) => x.id === id)!, {
+    delayMs: 300,
+    wait: id === 'across-pending' ? 400 : 30_000,
+  });
+  const v = viewer;
+  await vi.advanceTimersByTimeAsync(30_000);
+  v.draw();
+  await opening?.(v);
+  await settle(v);
+  const wrong: string[] = [];
+  const sides = [...new Set(bridges(v).flatMap((b) => [b.a, b.b]))];
+  for (const section of sides) {
+    const moves: [string, () => void][] = [
+      ['panPx 300', () => v.view.panPx(section, 300)],
+      ['zoom 3', () => v.view.zoom(section, 3, mid(v, section))],
+      ['zoom 1/6', () => v.view.zoom(section, 1 / 6, mid(v, section))],
+      ['panPx -300', () => v.view.panPx(section, -300)],
+      ['zoom out to the whole', () => v.view.zoom(section, 1e-3, mid(v, section))],
+    ];
+    for (const [name, move] of moves) {
+      move();
+      await settle(v);
+      await settle(v);
+      const svg = await exported(v);
+      const c = canvas(v);
+      if (JSON.stringify(c) !== JSON.stringify(svg)) wrong.push(`${id} ${section} ${name}: canvas ${c} svg ${svg}`);
+    }
+  }
+  return wrong;
+}
+
+const mid = (v: SeqViewer, section: string) => {
+  const w = v.view.get(section)!;
+  return (w.start + w.end) / 2;
+};
+
 describe('Features/Across sections after a side moves (FX28)', () => {
   it('one side zoomed in: a zoom out and a pan leave the ribbons the export draws', async () => {
     expect(await sweep('across-zoomed', 3, openZoomed)).toEqual([]);
+  });
+
+  for (const id of [
+    'across-fit',
+    'across-zoomed',
+    'across-bins',
+    'across-stub',
+    'across-pending',
+    'across-self',
+    'across-chain',
+  ])
+    it(`${id}: every side panned and zoomed, the canvas's ribbons the export's`, { tags: ['medium'] }, async () => {
+      expect(await everySide(id)).toEqual([]);
+    });
+
+  // the zoomed openings: a side zoomed in, then zoomed out past the fit (the gate's other state)
+  it('across-zoomed opened zoomed: every side moved', { tags: ['medium'] }, async () => {
+    expect(await everySide('across-zoomed', openZoomed)).toEqual([]);
+  });
+
+  it('across-bins opened on grape zoomed: every side moved', { tags: ['medium'] }, async () => {
+    expect(await everySide('across-bins', openZoomedGrape)).toEqual([]);
   });
 });

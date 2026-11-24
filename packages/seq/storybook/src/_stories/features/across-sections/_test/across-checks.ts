@@ -58,4 +58,3 @@ export function expectDrawnOnce(v: SeqViewer, bl: Blocks) {
   }
   expect(wrong.slice(0, 5)).toEqual([]);
 }
-
