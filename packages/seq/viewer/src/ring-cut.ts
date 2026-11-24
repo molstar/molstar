@@ -23,6 +23,10 @@ const shows = (n: number, first: string | undefined) =>
     ? `The ring shows ${first}: wheel out over it to show every chromosome`
     : `The ring shows ${n} chromosomes: wheel out over one to show every chromosome`;
 
+/** How far outside a ring's rim a chromosome's label is looked for (`RingMetrics.labelRoom`, CSS px). */
+const LabelReach = 96;
+type BlockAt = NonNullable<NonNullable<ReturnType<SeqViewer['placementOf']>>['blockAt']>;
+
 export class RingCut {
   /** When the last wheel of the gesture came (ms); the gesture is over after a rest. */
   private _last = Number.NEGATIVE_INFINITY;
@@ -92,13 +96,39 @@ export class RingCut {
    */
   open(section: string, x: number, y: number): boolean {
     const ring = this._idle(section);
-    const block = ring?.p.blockAt(x, y);
-    if (!ring || block === undefined || block < 0) return false;
+    if (!ring) return false;
+    const block = this._blockNear(ring.p, x, y);
+    if (block < 0) return false;
     if (includeOf(this.viewer, section) === 'filter') return this._say(Filtered);
     const to = this.viewer.spec.model.value.systems.get(ring.s.blocks![block].axis.system)?.name;
     if (!to || ring.s.blocks!.length === 1) return false;
     this._cut(section, to);
     return true;
+  }
+
+  /**
+   * The block a point is over, or the one its label belongs to: a chromosome's label sits outside the ring on the
+   * radius of its block, so a point outside the rim looks inward along its radius (`LabelReach` px, the ring's label
+   * room) to the first block. -1: none (the hole, the margin beyond a label).
+   */
+  private _blockNear(
+    p: NonNullable<ReturnType<SeqViewer['placementOf']>> & { blockAt: BlockAt },
+    x: number,
+    y: number,
+  ) {
+    const at = p.blockAt(x, y);
+    if (at !== undefined && at >= 0) return at;
+    const { box } = p;
+    const dx = box.x + box.width / 2 - x;
+    const dy = box.y + box.height / 2 - y;
+    const d = Math.hypot(dx, dy);
+    // inside the rim's half: the hole's, never a label's
+    if (d < Math.min(box.width, box.height) / 4) return -1;
+    for (let k = 3; k <= LabelReach; k += 3) {
+      const b = p.blockAt(x + (dx / d) * k, y + (dy / d) * k);
+      if (b !== undefined && b >= 0) return b;
+    }
+    return -1;
   }
 
   /** A ring idle as the view model has it: following none and followed by none (a detached follower's window moves). */

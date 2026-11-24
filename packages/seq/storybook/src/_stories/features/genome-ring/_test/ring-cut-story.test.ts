@@ -97,3 +97,59 @@ describe('The Genome At The Fit: the ring’s Cmd+wheel', () => {
     expect(v.view.resolved.value!.sections.find((s) => s.address === address(v))!.blocks!.length).toBe(n);
   });
 });
+
+describe('The Genome At The Fit: a double-click on a chromosome', () => {
+  /** A page point in band `band` at the middle of block `k`. */
+  function inBand(v: SeqViewer, k: number, band: number) {
+    const p = placement(v);
+    const b = v.view.resolved.value!.sections.find((s) => s.address === address(v))!.blocks![k];
+    const s = p.strips;
+    p.warp.map(p.frameX((b.offset ?? 0) + 1000), s.bandY[band] + s.bandH[band] / 2);
+    return { x: p.warp.px, y: p.warp.py };
+  }
+
+  it('opens the chromosome from every band of its arc (the hue ring, the cytobands), one cut', async () => {
+    const v = await open();
+    const bands = placement(v).strips.bandY.length;
+    expect(bands).toBeGreaterThan(0);
+    for (let band = 0; band < Math.min(bands, 6); band++) {
+      const at = inBand(v, 1, band);
+      // as a browser sends them: the pointer moves there, two clicks (the second `detail` 2), then `dblclick`
+      v.input.move(at.x, at.y);
+      for (const detail of [1, 2]) {
+        v.input.down(at.x, at.y, {} as never);
+        v.input.up();
+        v.input.click(at.x, at.y, { detail } as never);
+      }
+      expect(v.input.doubleClick(at.x, at.y, {}), `band ${band}`).toBe(true);
+      await rest(v);
+      expect(included(v), `band ${band}`).toEqual(['chr2']);
+      v.runCommand('section.include', { address: address(v) });
+      await rest(v);
+      expect(included(v)).toBeUndefined();
+    }
+  });
+
+  it('opens the chromosome from its label, outside the rim on its radius; the hole and the far margin keep nothing', async () => {
+    const v = await open();
+    const { box } = placement(v);
+    const cx = box.x + box.width / 2;
+    const cy = box.y + box.height / 2;
+    const rim = inBand(v, 1, 0);
+    const d = Math.hypot(rim.x - cx, rim.y - cy);
+    const out = (k: number) => ({ x: cx + ((rim.x - cx) / d) * (d + k), y: cy + ((rim.y - cy) / d) * (d + k) });
+    const label = out(60);
+    expect(placement(v).blockAt(label.x, label.y) ?? -1).toBeLessThan(0);
+    v.input.move(label.x, label.y);
+    expect(v.input.doubleClick(label.x, label.y, {})).toBe(true);
+    await rest(v);
+    expect(included(v)).toEqual(['chr2']);
+    v.runCommand('section.include', { address: address(v) });
+    await rest(v);
+    const far = out(400);
+    v.input.doubleClick(far.x, far.y, {});
+    v.input.doubleClick(cx, cy, {});
+    await rest(v);
+    expect(included(v)).toBeUndefined();
+  });
+});
