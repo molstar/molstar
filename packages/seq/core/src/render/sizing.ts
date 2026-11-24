@@ -268,31 +268,28 @@ export class TakenLabels {
     this.ids[q] = id;
   }
 
-  /** Whether a box meets triangle `k`. */
+  /** Whether a box meets triangle `k` (separating axes: the box's two and the triangle's three edge normals). */
   private hits(x0: number, y0: number, x1: number, y1: number, k: number): boolean {
     const t = this.t;
     const o = 6 * k;
-    const xs = [t[o], t[o + 2], t[o + 4]];
-    const ys = [t[o + 1], t[o + 3], t[o + 5]];
-    // the box's axes
-    if (Math.max(...xs) <= x0 || Math.min(...xs) >= x1 || Math.max(...ys) <= y0 || Math.min(...ys) >= y1) return false;
-    // the triangle's edge normals (separating axis: the box corners against the triangle's span)
-    for (let e = 0; e < 3; e++) {
-      const nx = ys[(e + 1) % 3] - ys[e];
-      const ny = xs[e] - xs[(e + 1) % 3];
+    for (let e = 0; e < 5; e++) {
+      const i = o + 2 * (e - 2);
+      const j = e < 4 ? i + 2 : o;
+      const nx = e < 2 ? 1 - e : t[j + 1] - t[i + 1];
+      const ny = e < 2 ? e : t[i] - t[j];
       let lo = Number.POSITIVE_INFINITY;
       let hi = Number.NEGATIVE_INFINITY;
-      for (let i = 0; i < 3; i++) {
-        const d = nx * xs[i] + ny * ys[i];
-        if (d < lo) lo = d;
-        if (d > hi) hi = d;
-      }
-      let blo = Number.POSITIVE_INFINITY;
-      let bhi = Number.NEGATIVE_INFINITY;
-      for (let i = 0; i < 4; i++) {
-        const d = nx * (i & 1 ? x1 : x0) + ny * (i & 2 ? y1 : y0);
-        if (d < blo) blo = d;
-        if (d > bhi) bhi = d;
+      let blo = lo;
+      let bhi = hi;
+      for (let q = 0; q < 4; q++) {
+        const d = nx * (q & 1 ? x1 : x0) + ny * (q & 2 ? y1 : y0);
+        blo = Math.min(blo, d);
+        bhi = Math.max(bhi, d);
+        if (q < 3) {
+          const p = nx * t[o + 2 * q] + ny * t[o + 2 * q + 1];
+          lo = Math.min(lo, p);
+          hi = Math.max(hi, p);
+        }
       }
       if (bhi <= lo || blo >= hi) return false;
     }
