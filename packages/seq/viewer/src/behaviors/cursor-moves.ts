@@ -274,7 +274,7 @@ export function createCursor(
     if (yb) {
       const b = endBlock(yb.blocks, end);
       const p = b && elementAt(b.axis, end < 0 ? 0 : (axisTotal(b.axis) ?? 1) - 1);
-      return p === undefined ? undefined : { ...c, ySystem: b.axis.system, yPosition: p };
+      return b && p !== undefined ? { ...c, ySystem: b.axis.system, yPosition: p } : undefined;
     }
     const y = gridY(c.section);
     const total = y && axisTotal(y);
