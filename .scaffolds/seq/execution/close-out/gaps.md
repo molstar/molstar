@@ -37,6 +37,23 @@ Decisions a gate asks for (the loop, Gates).
 
 ## Open
 
+The novice pass's design gaps ([novice-findings.md](novice-findings.md), Gaps for the author), each with its
+recommendation:
+
+- **D1, opening a chromosome on the ring**: a double-click on a chromosome's label or arc opens it (the cut, one undo
+  step, as the label menu's "Show only"); each ring story's text names the gestures.
+- **D2, a legend swatch's click**: keeps the highlight (CL1's answer A) and says so in its tip.
+- **D3, every lane from the track's menu**: "Show every lane" / "Cap the lanes" sets the track's `height` (one
+  patch, one undo step), on a track whose lanes scroll inside.
+- **D4, a reference line's value**: its label carries the value ("genome-wide · 7.3"); a values y axis is a design of
+  its own (TODO).
+
+## Resolved since
+
+`height: 'content'` (FX30, `60170c5b5`); the privacy plugin off and FX25 merged (`9040adc8d`). The history of FX25's
+refusals:
+
+
 - **`height: 'content'`** (the author, 2026-11-24: "maybe we should support 'auto' sizing for rendered tracks on canvas
   too?", then "Add a spec param"): a track's or section's `height` takes `'content'`, no `track.maxPx` or
   `section.maxPx` cap, in the unreleased 0.11.0; to FX30.

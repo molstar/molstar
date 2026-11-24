@@ -14,18 +14,15 @@ bridge chunk 26.0/28.
 
 ## In progress
 
-GATE 2 passed (`d9b53e580`, its row in `findings.md`): every check green after FX31 (the reversed pan's leak control, no
-regression). The old Seq\* viewer's label churn over its baseline is in `fixes.md`, outside the close-out's packages.
-
-- **FX32** merged (`608d87ac2`); the use gate ticked on the author's word.
-- **FX33** merged (`cd7058484`): two story tests waited a fixed fake-clock step for real I/O.
+GATE 2 passed (`d9b53e580`); the use gate ticked (the author, after FX32 `608d87ac2`); the novice pass ran (three
+groups, `novice-findings.md`: 43 findings, 7 reproduced or read against the designs before placing). The old Seq\*
+viewer's label churn over its baseline is in `fixes.md`, outside the close-out's packages.
 
 ## Next
 
-1. The novice pass (`briefs/novice-pass.md`, the author: "we can run the novice pass"): group C reported (17 findings,
-   kept in the orchestrator's scratchpad until `novice-findings.md`), group B running, group A after it; each finding
-   reproduced in a visible pane and placed.
-2. The measurements, the last gate and FINALIZE.
+1. **FX34** (`briefs/fx34-novice-bugs.md`): the novice pass's bugs (C5, B4 and A8, A6, A4, B7 and B10, B12).
+2. The author: D1–D4 in `gaps.md` (the novice pass's design gaps).
+3. The measurements, the last gate and FINALIZE.
 
 ## Blockers and open questions
 

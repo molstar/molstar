@@ -500,3 +500,8 @@ extension kinds.
   since with a side pending nothing cuts rows by window (`bridge-sides.test.ts`); a cut there would let the prep be
   keyed by its tiles (a pan's relayout 547 kB, 476 kB so). The across sweeps compare counts: the export carries only
   `data-count`.
+- **The close-out's novice pass, its looks and small gaps** (2026-11-24, `close-out/novice-findings.md`): a partner step
+  barely shown on the ring and said in bins (C10); search's input (a residue number, IUPAC on a protein: B2, B3); the
+  Ligands story's layers without a legend (A3); a group's fold no history step (A7); a hint that a search step that pans
+  nothing adds no Back (B1); a values y axis (D4's); and the looks C6–C8, C11–C17, B5, B6, B9, B13, A1, A2, A5, A9–A12
+  as the file lists them.
