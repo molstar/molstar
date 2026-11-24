@@ -391,7 +391,9 @@ ends; a width past the new block's length, the new block whole. One rule for a c
   anchor's range reaches to it; with no anchor on its system, a replace); a cancel gives back the selection, the anchor
   and what an extend keeps. The range between two ends is taken in display offsets on the hit's axis, piece by piece in
   its direction: across a collapsed break, the positions shown between the ends (`selection.acrossBreaks`: `shown`;
-  `span` adds the hidden stretches, the hull). Why methods: a binding, a key and a test act alike, and a drag step is a
+  `span` adds the hidden stretches, the hull). A drag over positions of no element snaps each end to the whole unit its
+  position is part of (`SelectionOptions.snap`: a nucleotide's codon through the view's codon maps, a codon split by an
+  intron its hull, EC-149); a position in no codon stays its own cell. Why methods: a binding, a key and a test act alike, and a drag step is a
   call, not a command.
 - **A cell of two axes** (a grid cell: `GridCell`, its x and y systems and positions) selects a rect
   (`(rect :a <x range> :b <y range>)`, core's Location): `selectCell(cell, mode)` sets a one-cell rect (`replace`; a

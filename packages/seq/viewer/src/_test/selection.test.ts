@@ -485,6 +485,31 @@ describe('drag-select', () => {
   });
 });
 
+describe('drag-select over nucleotides (EC-149)', () => {
+  it('EC-149: a drag on the gene snaps both ends to whole codons, forward and back', async () => {
+    const v = await make();
+    // nucleotide 15 is in residue 3's codon [14, 17); 21 in residue 5's [20, 23)
+    const [x0, y] = at(v, 1, 0, 15);
+    v.input.down(x0, y);
+    v.input.move(at(v, 1, 0, 21)[0], y);
+    expect(ranges(v, G)).toEqual([14, 23]);
+    // back over the anchor's codon: just that codon
+    v.input.move(at(v, 1, 0, 16)[0], y);
+    expect(ranges(v, G)).toEqual([14, 17]);
+    // before the anchor: from the codon before it
+    v.input.move(at(v, 1, 0, 9)[0], y);
+    expect(ranges(v, G)).toEqual([8, 17]);
+    v.input.up();
+    expect(ranges(v, G)).toEqual([8, 17]);
+  });
+
+  it('EC-149: a drag on the protein is as before (residues are whole already)', async () => {
+    const v = await make();
+    dragged(v, 1, 3);
+    expect(ranges(v)).toEqual([1, 4]);
+  });
+});
+
 describe('the keyboard cursor', () => {
   const key = (v: SeqViewer, k: string, e: { shiftKey?: boolean } = {}) => v.input.key({ key: k, ...e });
 

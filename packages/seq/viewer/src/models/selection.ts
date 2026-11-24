@@ -256,6 +256,12 @@ export interface SelectionOptions {
   readonly extendScope?: ExtendScope;
   /** What a drag or an extend across a break selects: the positions shown (`shown`, the default) or the span. */
   readonly acrossBreaks?: 'shown' | 'span';
+  /**
+   * The whole unit a position is part of when a drag begins or moves over positions (a nucleotide's codon through the
+   * codon maps, EC-149): its span on the system, or undefined when it is none (a position in no codon, a system with
+   * no codon map).
+   */
+  readonly snap?: (system: string, position: number) => { readonly start: number; readonly end: number } | undefined;
 }
 
 /** What an extend keeps: the selection less the range the anchor is in, set when the anchor is. */
@@ -289,6 +295,7 @@ export class SelectionModel extends ReactiveModel {
   private _rectDrag: { from: GridCell; mode: DragMode; before: Emphasized } | undefined;
   private readonly _scope: ExtendScope;
   private readonly _across: 'shown' | 'span';
+  private readonly _snap: SelectionOptions['snap'];
   /** The selection: an equal value tells nothing. */
   readonly value: ReadonlyState<Emphasized> = this._value.asReadonly;
   /** The keyboard cursor; an equal one tells nothing. */
@@ -305,6 +312,7 @@ export class SelectionModel extends ReactiveModel {
     super();
     this._scope = options.extendScope ?? 'range';
     this._across = options.acrossBreaks ?? 'shown';
+    this._snap = options.snap;
   }
 
   /** Where an extend starts: the last element or cell set, toggled or begun from (none after a clear). */
@@ -459,8 +467,10 @@ export class SelectionModel extends ReactiveModel {
    * nothing selectable was hit.
    */
   beginDrag(hit: Hit | undefined, axis?: Axis, mode: DragMode = 'replace'): boolean {
-    const range = hit ? hitRange(hit, axis, this._extentOfHit(hit)) : undefined;
+    let range = hit ? hitRange(hit, axis, this._extentOfHit(hit)) : undefined;
     if (!range) return false;
+    // over nucleotides: whole codons (EC-149; an item snaps to its extent instead)
+    if (!hit?.element) range = this._snapped(range);
     const a = this._anchor;
     const extend = mode === 'extend' && !!a && a.system === range.system;
     this._drag = {
@@ -487,6 +497,7 @@ export class SelectionModel extends ReactiveModel {
     const p = Math.floor(position);
     let cur: Anchor = { system: a.system, start: p, end: p + 1 };
     if (d.snap && hit?.element && hit.system === a.system) cur = hitRange(hit, axis, this._extentOfHit(hit)) ?? cur;
+    else if (!d.snap && axis?.system !== undefined && axis.system === a.system) cur = this._snapped(cur);
     if (axis && axis.system !== a.system) {
       // a drag begun on a residue of another system (a residue row): whole residues, from the one under the pointer
       const r = hit ? hitRange(hit, axis, this._extentOfHit(hit)) : undefined;
@@ -517,6 +528,13 @@ export class SelectionModel extends ReactiveModel {
         break;
     }
     return before !== this._value.value;
+  }
+
+  /** A one-position range as the whole unit it is part of (`snap`); any other range as it is. */
+  private _snapped(r: Anchor): Anchor {
+    if (!this._snap || r.end - r.start !== 1) return r;
+    const u = this._snap(r.system, r.start);
+    return u ? { system: r.system, start: u.start, end: u.end } : r;
   }
 
   /** Cancels a drag-select (Esc): the selection, the anchor and what an extend keeps, as the drag began. */

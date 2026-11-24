@@ -27,7 +27,7 @@ import {
   textMinScale,
 } from '@molstar/seqx-core/render';
 import { labelColumnWidth } from '@molstar/seqx-core/render/tracks';
-import { locationOfResult } from '@molstar/seqx-core/query';
+import { locationOfResult, partOf, rangesLocation } from '@molstar/seqx-core/query';
 import { EmptyOverlay, type Lengths, sourceLengths } from '@molstar/seqx-core/resolve';
 import { mapsEqual } from '@molstar/core/util/map';
 import type { SeqTokens } from '@molstar/seqx-core/render';
@@ -306,7 +306,17 @@ export class SeqViewer extends ReactiveModel {
     // an element selected by an address and then toggled is drawn by its extent, resolved over what is shown
     const selection = (this.selection = new SelectionModel(
       (els) => locationOfResult(spec.shown.value, this.addresses.queryModel(), { type: 'keys', keys: els }).location,
-      { extendScope: config.selection.extendScope, acrossBreaks: config.selection.acrossBreaks },
+      {
+        extendScope: config.selection.extendScope,
+        acrossBreaks: config.selection.acrossBreaks,
+        // a drag over nucleotides snaps to whole codons through the view's codon maps (EC-149)
+        snap: (system, position) => {
+          const systems = view.resolved.value?.sections.map((s) => s.axis.system) ?? [];
+          const closed = view.model.value.close(rangesLocation(system, [position, position + 1]), systems);
+          const r = partOf(closed, system)?.ranges;
+          return r?.length ? { start: r[0], end: r[r.length - 1] } : undefined;
+        },
+      },
     ));
     const emphasis = (this._emphasis = new ViewerEmphasis(this));
     const highlight = (this.highlight = new HighlightModel());
