@@ -33,6 +33,17 @@ import {
 import { drawFailed, drawSpans } from './marks.js';
 import { drawBaseline, drawDots, DotMinPx, drawPoints, baseOf, domainHi, domainLo, Fill, ys } from './values-marks.js';
 import { hoverValue } from './values-hover.js';
+import { openDomain } from './values-domain.js';
+import {
+  closedEnds,
+  drawReference,
+  drawReferenceLabels,
+  layoutReference,
+  readReference,
+  type ReferenceLine,
+  ReferenceState,
+  referenceWords,
+} from './values-reference.js';
 import type { SeqTokens } from './tokens.js';
 import { sortArrayRange } from '@molstar/core/data/util/sort';
 import type { Channel } from '@molstar/seqx-core/theme/index';
@@ -70,6 +81,8 @@ export interface ValuesPrep {
   readonly domain?: readonly [number, number];
   /** The scale node its y reads, by address. */
   readonly scale?: string;
+  /** Its reference lines (`values-reference.ts`). */
+  readonly reference: readonly ReferenceLine[];
 }
 
 export interface ValuesLay {
@@ -93,6 +106,8 @@ export interface ValuesLay {
   /** Bars followed on the screen by a break of the axis (a line does not cross it: it is held, as at a gap). */
   cut: Uint8Array;
   domain: [number, number] | undefined;
+  /** Its reference lines, resolved a layout. */
+  ref: ReferenceState;
   /** The y scale is a log scale (its scale node's `type`): heights by the values' log10 (`ys`). */
   yLog: boolean;
   /** Bars: snapped x extents and the low and high value of each (equal for a position; NaN: missing). */
@@ -140,6 +155,7 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
       encoding: e === 'line' || e === 'area' || e === 'points' ? e : 'bars',
       ...(src ? { src } : {}),
       channels: channelForms(layer.theme),
+      reference: readReference(layer.params.reference),
       ...(domain ? { domain } : {}),
       ...(scale ? { scale } : {}),
     };
@@ -164,6 +180,7 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
       extents: new Extents(),
       cut: new Uint8Array(0),
       domain: undefined,
+      ref: new ReferenceState(),
       yLog: false,
       n: 0,
       x0: new Float32Array(64),
@@ -195,6 +212,7 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
     lay.perBar = color.constant === undefined;
     lay.fill = typeof color.constant === 'number' ? color.constant : tokens.colors['seq-value'];
     lay.encoding = prep.encoding;
+    lay.ref.lines = prep.reference;
     const src = prep.src;
     if (!src) return lay;
     const step = densityStep(axis.scale, axis.dpr, config);
@@ -265,6 +283,7 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
     if (lay.perBar) colorBars(lay, color, ctx);
     lay.yLog = !!prep.scale && ctx.theme.scale(prep.scale)?.type === 'log';
     lay.domain = yDomain(prep, ctx, lay);
+    layoutReference(lay, ctx, closedEnds(prep.domain, prep.scale ? ctx.theme.scale(prep.scale)?.domain : undefined));
     orderLine(lay);
     return lay;
   },
@@ -290,6 +309,10 @@ export const ValuesType: LayerType<ValuesPrep, ValuesLay> = {
   domain(lay) {
     return lay.domain;
   },
+
+  summary(lay) {
+    return referenceWords(lay);
+  },
 };
 
 // Each pass draws in a function of its own, called through a table (`drawPass`: nothing allocated once warm).
@@ -299,6 +322,7 @@ function drawData(lay: ValuesLay, out: PassWriter) {
   if (lay.encoding === 'points') drawPoints(lay, out);
   else if (lay.encoding !== 'bars') drawLine(lay, out);
   else drawBars(lay, out);
+  drawReference(lay, out);
 }
 
 /**
@@ -450,7 +474,11 @@ function drawBars(lay: ValuesLay, out: PassWriter) {
   }
 }
 
-const ValuesDraws = passDraws<ValuesLay, Emphasis | undefined>({ data: drawData, hover: hoverValue });
+const ValuesDraws = passDraws<ValuesLay, Emphasis | undefined>({
+  data: drawData,
+  hover: hoverValue,
+  labels: drawReferenceLabels,
+});
 
 /** A layout's placement state: one, reused (a layout runs to its end), so placing a value allocates nothing. */
 interface Placer {
@@ -546,26 +574,6 @@ function mark(pl: Placer, axis: AxisTransform) {
 function overlapsRegions(regions: readonly number[], a: number, b: number): boolean {
   for (let i = 0; i + 1 < regions.length; i += 2) if (a < regions[i + 1] && b > regions[i]) return true;
   return false;
-}
-
-/** The values in view, min to max; `[0, 1]` when there are none, widened around a single value. */
-function openDomain(lay: ValuesLay): [number, number] {
-  let lo = Number.POSITIVE_INFINITY;
-  let hi = Number.NEGATIVE_INFINITY;
-  let pos = Number.POSITIVE_INFINITY;
-  for (let j = 0; j < lay.n; j++) {
-    const v = lay.v[j];
-    if (Number.isNaN(v)) continue;
-    if (lay.lo[j] < lo) lo = lay.lo[j];
-    if (v > hi) hi = v;
-    const p = lay.lo[j] > 0 ? lay.lo[j] : v;
-    if (p > 0 && p < pos) pos = p;
-  }
-  // a log scale's open low end: the smallest positive value in view (a tenth of its top when there is one alone)
-  if (lay.yLog) return hi > 0 ? [pos < hi ? pos : hi / 10, hi] : [1, 10];
-  if (lo > hi) return [0, 1];
-  if (lo === hi) return lo >= 0 ? [0, hi || 1] : [lo, 0];
-  return [Math.min(lo, 0), hi];
 }
 
 /** A line's scratch points (x, y pairs), kept and grown at layout. */

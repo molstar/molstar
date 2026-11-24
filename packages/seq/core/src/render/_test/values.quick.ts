@@ -44,6 +44,24 @@ for (const encoding of ['bars', 'line', 'area', 'points'])
         { encoding, ...(color === 'by value' ? { color: theme.field('value', { domain: [0, 10] }) } : {}) },
       ]);
 
+// two reference lines (a dashed and a labelled, a solid one) beside each encoding: nothing allocated once warm
+for (const encoding of ['bars', 'line', 'area', 'points'])
+  for (const [n, step] of [
+    [60, 'dots'],
+    [4000, 'columns'],
+  ] as const)
+    Cases.push([
+      `${encoding}, two reference lines, ${step}`,
+      n,
+      {
+        encoding,
+        reference: [
+          { at: 7.3, label: 'genome-wide' },
+          { at: 5, style: 'solid', color: '#d62728' },
+        ],
+      },
+    ]);
+
 describe('a warm frame of the values layer allocates nothing', () => {
   for (const [name, n, layer] of Cases)
     it(name, async ({ task }) => {

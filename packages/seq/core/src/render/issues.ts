@@ -187,6 +187,12 @@ export const RenderIssues = defineIssues('seq.render', {
     description: 'A value at or below zero on a log scale: drawn as missing (or clamped, with `non_positive: clamp`)',
     hint: 'Set the scale’s `non_positive` to `clamp` to draw them at the low end',
   },
+  'seq.render.reference.outside': {
+    severity: 'info',
+    description:
+      'A reference line at a value outside its layer’s closed domain: not drawn (a line clamped to the well’s edge would claim a position it does not have)',
+    hint: 'Widen the layer’s `domain` (or the scale’s), or leave an end open: an open end includes the lines',
+  },
   'seq.render.legend.unlisted': {
     severity: 'info',
     description:
