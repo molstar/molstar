@@ -491,9 +491,9 @@ const PlaceSection: CardProviderEntry = {
     // the title says the system and the ordinal when nothing else named the place; else a row does
     if (!out.title) out.title = `${name} ${ordinal}`;
     else out.row(name, ordinal);
-    // the 0-based index beside the ordinal: a protein's residue, never a genome's base (a chromosome's position is its
-    // number; the index there is the same number less one, noise)
-    if (!onAssembly(at.model, system)) out.row('index', String(position));
+    // the 0-based index beside the ordinal: a protein's residue, never a nucleic base (a chromosome's or a DNA or RNA
+    // sequence's position is its number; the index there is the same number less one, noise)
+    if (!onAssembly(at.model, system) && blockKindName(at.model, system) === 'Chain') out.row('index', String(position));
     for (const [id, label] of declared) out.row(id, label);
     // a numbering with no label there is said as not numbering it (the ruler marks the same run), apart from the labels
     const labels = declared
