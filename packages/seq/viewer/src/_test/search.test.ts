@@ -127,6 +127,14 @@ describe('a search over what the view draws', () => {
     expect(v.search!.query.value?.pattern).toBe('GGATCC');
   });
 
+  it('the regex bounds are the configuration’s: search.maxRegexDepth refuses a deeper nesting', async () => {
+    const v = await make({ config: [[viewerItem('search.maxRegexDepth'), 2]] });
+    expect(await v.execute('search.run', { pattern: '((E))P', matcher: 'regex' })).toBe(
+      '3 hits for ((E))P on 3 sequences',
+    );
+    expect(await v.execute('search.run', { pattern: '(((E)))P', matcher: 'regex' })).toBe('Groups nest deeper than 2');
+  });
+
   it('a matcher the composition does not register is refused, named, no fallback', async () => {
     const v = await make();
     expect(await v.execute('search.run', { pattern: 'A', matcher: 'app:blast' })).toBe('No search matcher app:blast');

@@ -179,6 +179,7 @@ function boundsOf(m: SearchModel) {
     maxPattern: s.maxPattern,
     maxRegexChars: s.maxRegexChars,
     maxRegexPositions: s.maxRegexPositions,
+    maxRegexDepth: s.maxRegexDepth,
     maxHitLength: s.maxHitLength,
     maxLetters: s.maxLetters,
     maxSteps: s.maxSteps,

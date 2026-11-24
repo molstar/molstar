@@ -311,7 +311,7 @@ export interface ViewerConfig {
   /**
    * Search (_spec/README.md "Search"; the `search` behavior's): the matcher a run takes (`degenerate`, IUPAC; `exact`,
    * `regex`, a registered `<id>:<name>`), its strands (`both`), and its bounds, each refused with its code before the
-   * work it sizes: a pattern's letters (1,000), a regular expression's characters and positions (256, 128), a regex
+   * work it sizes: a pattern's letters (1,000), a regular expression's characters, positions and nesting (256, 128, 64), a regex
    * hit's length (1,000), the letters a run reads (2^25), its word steps (2^28), the hits held (10,000: counted past
    * it), a saved set's hits (1,000), the letters a batch reads (2^20); its channels (`search`, `search-current`).
    */
@@ -321,6 +321,7 @@ export interface ViewerConfig {
     readonly maxPattern: number;
     readonly maxRegexChars: number;
     readonly maxRegexPositions: number;
+    readonly maxRegexDepth: number;
     readonly maxHitLength: number;
     readonly maxLetters: number;
     readonly maxSteps: number;
@@ -436,6 +437,7 @@ export const DefaultViewerConfig: ViewerConfig = {
     maxPattern: 1000,
     maxRegexChars: 256,
     maxRegexPositions: 128,
+    maxRegexDepth: 64,
     maxHitLength: 1000,
     maxLetters: 2 ** 25,
     maxSteps: 2 ** 28,
