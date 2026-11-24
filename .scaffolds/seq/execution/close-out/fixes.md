@@ -29,3 +29,9 @@ Open items for the next fix point or a running lane's fix round (the loop, Each 
   with no section): the square passes no section, so two viewers with one source address and different failures show
   the first viewer's text on both squares (the class of CL2's fixed hole bug). Pass the square's own ring's section or
   viewer. Kind: bug. To FX25, with the two-rings test extended to their squares.
+- **The legend's eye chunk lands after a test file ends** (the orchestrator, CL7's merge: the quick lane exit 1 on 12
+  `EnvironmentTeardownError`s, every test passing, green on rerun; CL7's lane saw it once in themes-stories): the eye's
+  chunk is loaded on a legend's first mount, cached per worker, so whichever story test mounts a legend first may end
+  before it lands. Kind: test flake (the class: a lazy chunk not awaited by the file that starts it). Await the chunk
+  where a legend is mounted in tests (or the mount returns a promise the story helpers await); a shuffled run
+  (`--sequence.shuffle.files`) as the proof.

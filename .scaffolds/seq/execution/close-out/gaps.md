@@ -50,3 +50,9 @@ Each made as recommended while the author was away (2026-11-24 night), for the m
 - **A 0.x version's minor read as a newer minor** (CL9, the version-aware validate): a 0.11.0 spec's unknown kind is a
   warning to a 0.10.0 reader, as the brief decided, though 0.x versions usually break on a minor. Recommended: keep it
   (the language is ours, and an older reader drawing what it knows is the point); revisit at 1.0.
+- **A node brought only at a coarse level** (CL7): a name find's hit carries no level, so such a node is asked at the
+  finest level and never arrives; fixing it needs `NameHit.level`, a source-protocol change, not decided overnight.
+  Recommended: carry it past version 1 (no built-in source brings a node at a coarse level only).
+- **A layer naming a dynamic node is refused** (`seq.view.layer.data`), not pending, against dynamic-nodes.md's
+  "Naming before arrival" (CL7's check; track templates are the route that waits). Recommended: a TODO line past
+  version 1.

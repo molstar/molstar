@@ -2,8 +2,8 @@
 
 **Model**: strong (a class: every drag kind's work per move, across the selection, emphasis, hover, the SVG twin and
 linked panels). **Base**: `packages-seq` at the orchestrator's head (`git reset --hard packages-seq` first). Branch
-`seq/cl11`. Beside you: CL7 (patches on streamed things: `core/src/{resolve,lang,data}/` refs and the viewer's
-`models/{address,spec}.ts`). Never edit its files; if you must, stop and report.
+`seq/cl11`. Beside you: nothing running (CL7 merged). FX25's worktree holds uncommitted work in `core/src/render/` ranges and lanes,
+the variant card: avoid those files; if you must, stop and report.
 
 **Why**: the fifth slice's open class, carried to this plan (`plan.md`, "The drag rule"): a drag's work is bounded by
 the selection, not the screen. The author, 2026-11-21: selecting a rect on the tRNA dot plot "is really laggy", a range
@@ -41,14 +41,13 @@ spec's Selection, Input and History; the code in `packages/seq/viewer/src/{selec
 viewer's frame and the store's version; nothing per frame; module size (§module-size); the behavior on release
 unchanged (tests that pin a drag's final selection stay green unchanged; a changed expectation says why).
 
-**Where**: a worktree on `seq/cl11`. Out of scope: CL7's files. Headers per the root `AGENTS.md`. Hot files never
+**Where**: a worktree on `seq/cl11`. Out of scope: FX25's files (above). Headers per the root `AGENTS.md`. Hot files never
 staged: `package.json`s, `tsconfig*.json`, the lockfile, `biome.json`, `.v6/changelogs/`, `storybook/packages.ts`,
 `packages/seq/TODO.md`, `packages/seq/_measure/sizes.mjs`, the work folder. Never a bare `git stash`. No network.
 
 **Checks**, green only on exit 0 with a non-zero test count: `pnpm test:unit packages/seq/ cli/seqx-render/`; `pnpm
 test:medium packages/seq/`; `pnpm -s -C packages/seq/core test:perf` and `pnpm -s -C packages/seq/storybook test:perf`;
-the heavy cases you add, alone; `pnpm -s -C packages/seq/core size` (every row: the default viewer at 1,551.7 of
-1,560, the minimal at 1,092.1 of 1,095); `npx tsc -b`; `pnpm lint`; `pnpm format:check`; the scaffold checks in
+the heavy cases you add, alone; `pnpm -s -C packages/seq/core size` (every row: the default viewer at 1,554.6 of 1,560, the minimal at 1,094.7 of 1,095: keep new code in lazy chunks; name a row that needs a raise); `npx tsc -b`; `pnpm lint`; `pnpm format:check`; the scaffold checks in
 `.scaffolds/seq/AGENTS.md` (stage first). Read timings only with the machine quiet; say the load.
 
 **Stop when** green, or a check red twice after a fix, or a step is refused by the permission system (report the

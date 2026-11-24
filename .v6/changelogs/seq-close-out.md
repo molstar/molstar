@@ -25,3 +25,5 @@
 - Seq\*: a drag over a gene's nucleotides snaps to whole codons, a codon split by an intron to its pieces; the keyboard
   cursor crosses the gaps between blocks, along a section and down a grid's y; every built-in layer type declares its
   fallback; a spec of a newer minor version with an unknown kind gives a warning naming both versions, not an error.
+- Seq\*: a bookmark on a streamed node (a transcript read by region) survives its region's eviction; jumping to it says
+  "Waiting for T2", asks the source where the node is and runs when it arrives; a key the source lacks is said once.
