@@ -18,7 +18,7 @@ const Seq: Readonly<Record<string, string>> = {
   'clustal-x': `${ResidueSchemes['clustal-x'].provenance}; ${ColumnMeasureNote}`,
   hydrophobicity: 'Wimley and White 1996 (doi:10.1038/nsb1096-842), Mol*’s `ResidueHydrophobicity`, red to blue',
   'percent-identity': `Jalview’s percentage identity, blue shades by the column’s identity; ${ColumnMeasureNote}`,
-  blosum62: `Jalview’s BLOSUM62 score against the column’s consensus; ${ColumnMeasureNote}`,
+  blosum62: `Jalview’s BLOSUM62 colors: each letter compared with the reference row’s (the same letter, then a similar one); ${ColumnMeasureNote}`,
   espript: `ESPript (Robert and Gouet 2014): identical columns filled, similar residues by groups (an approximation of its score); ${ColumnMeasureNote}`,
   'nucleotide-classes': 'Seq*’s nucleotide tokens (`seq-nt-*`)',
   ramp: 'Seq*’s ramp tokens (`seq-ramp-*`), monotone in lightness',

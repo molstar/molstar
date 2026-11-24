@@ -179,9 +179,11 @@ nothing and tells nothing. Beside `models/view.ts` (the moves and the publish): 
   the history keeps each band by its top row's key (`KeptBand`: the key and the fraction past it, with its zoom and
   folds), the snapshot's own field beside the groups, restored under its folds and zoom and clamped (a folded key at its
   summary row, a hidden one at the nearest row shown) through `BandRows`, what names the rows (the `rows` behavior gives
-  it, `setBandRows`); with none, a band is kept as its `bandTop`. Why keys: a step back after rows were hidden, folded
-  or reordered lands on the same rows. `rowsAxis(system)`: a rows system as an axis in its layer's display order
-  (Shift+click extends along it).
+  it, `setBandRows`); with none, a band is kept as its `bandTop`. A lanes band is kept by the item at its top lane (its
+  id and the fraction into the lane), restored at the lane the layer holds the item in now, clamped to its lanes; an
+  item the layer no longer holds leaves the band at its `bandTop`. Why keys: a step back after rows were hidden, folded
+  or reordered, or lanes packed again, lands on the same rows and items. `rowsAxis(system)`: a rows system as an axis in
+  its layer's display order (Shift+click extends along it).
 - **History** (`jump`, `back`, `forward`, `history`): a jump (a focus, a fit, a reveal, a bookmark's or a link's move,
   the cursor's Enter) runs through `jump(move)`, which pushes the viewports it left (every group's range, a detached
   follower's among them) when it moved the view, and drops the steps forward; `same` when the view already showed it,
