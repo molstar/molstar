@@ -353,7 +353,9 @@ export class RingPlacement implements Placement {
     const fx = this.warp.px;
     // in a gap between blocks: the nearer block's edge
     const i = s.atX(fx);
-    return s.offsetIn(i < 0 ? s.nearestX(fx) : i, fx);
+    const k = i < 0 ? s.nearestX(fx) : i;
+    // the exact centre has no angle: no unit
+    return k < 0 ? -1 : s.offsetIn(k, fx);
   }
 
   place(offset: number, out: PlacePoint): boolean {
