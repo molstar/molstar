@@ -234,7 +234,7 @@ checks it cannot express.
   subtree is walked for depth, not counted. Why: one rule for the two consumers, and the cost of the incremental check
   stays the change's. The table's other rows: nested sources are `maxNestedDepth` (Resolve), a column's length and a
   block's values the data's (Data, Tables) and an archive's the archive's (Data, Archives); regular expressions in
-  search wait for the feature that reads them (TODO).
+  search are the search's (Search, Regular expressions; Search, Bounds).
 - **The theme slots** are the `seq.theme` sublanguage ("Themes"); a query in a layer's `data` waits for its sublanguage
   (TODO).
 - **A source's transform** (its params besides `format`, `uri`, `index`, `value`, `assembly`): what the file's columns
@@ -5195,6 +5195,119 @@ DOM-free; Seq* runs no clock (the viewer's animation port is the application's).
   start holds kept to the end); the end's root itself once every channel is done, the start's before any began. Why the
   end's own root: `sample(plan, 1)` shows the `to` state exactly, and a frame never makes a revision.
 
+## Search matchers
+
+`@molstar/seqx-core/search`: matchers over a system's stored letters, bounded, giving hits; the viewer's search model
+runs them (its _spec, Search). The library ships exact, IUPAC and regex matchers and a registry entry; approximate
+search, a server's BLAST and translated search are an application's matchers. The matchers are a lazy chunk: the
+registry's built-in entries load it on first use.
+
+### Kernels
+
+- **A kernel** (`SearchKernel`) is the hot loop: synchronous, over a byte array, no alphabet knowledge (a code is a
+  byte); `find(seq, n, from, to, edges, budget, visit)` calls `visit(start, end)` for every hit lying in `[0, n)` that
+  starts in `[from, to)`, nothing allocated a hit. The visitor is the one callback of the surface, on purpose: a hit a
+  call with no object made. Its letters are charged before it runs (`words` a letter); what it does past them (a regex's
+  forward passes) it adds to the budget, returning false when the budget ran out. Not reentrant.
+- `exactKernel` is Horspool (sublinear); `classKernel(masks, m)` shift-and over a table of 256 masks, a word every 32
+  positions (`classMasks` builds the table from a test). Why bytes: an application's matcher (a PROSITE reader, a
+  mismatch kernel) writes a kernel and nothing else.
+
+### Matchers
+
+- **The port** (`SearchMatcher`, what a `search-matcher` entry holds): `name`, `title`, `alphabets`;
+  `compile(pattern, options, bounds)` synchronous, bounded, reading no letters, the compiled pattern or its issues
+  (`compileFailed`); `run(compiled, targets, ctx)` an `Observable` of batches (`SearchBatch`: the hits since the last
+  one, `counted` past the held bound, `scanned` letters, `issues`). Unsubscribing, or the context's signal, cancels; a
+  cancelled run ends with no error. A target (`SearchTarget`) is a system's address, alphabet, length, cyclic flag,
+  `within` ranges and a `LetterReader` (`read(start, end, signal)`, by region). A server's matcher ignores `letters`:
+  the network is the matcher's, never the library's. Why an observable: many values over time is a stream, and the hits
+  so far are stepped through while a long run goes on.
+- **`kernelMatcher(spec)`** makes a matcher of kernels (`kernelOf(compiled, target)`, a kernel or an issue that skips
+  the target): each target's letters read in chunks of `chunkLetters` through its reader, overlapping by the longest hit
+  less one (read on past gaps until the overlap holds that many letters), folded (upper case, U as T on nucleotides; `-`
+  and `.` left out, a hit mapped back to the columns it spans), the kernel run on each strand, one batch a chunk,
+  sorted. **Batches are a prefix of the final order**: targets in order, chunks in order, a hit in the chunk it starts
+  in; the hits so far never reorder. The run yields after each batch (`ctx.yield`, the viewer's turn of the event loop)
+  and reads its signal before each chunk. A lazy entry (`LazySearchMatcher`, `load()`) is a matcher whose code is a
+  chunk: `loadMatcher(entry)`.
+
+### Built-in matchers
+
+- `exact` (each letter itself), `degenerate` (the default: IUPAC) and `regex`, unnamespaced. All three are
+  case-insensitive (a genome's lowercase is soft-masking, never meaning), read a system's **stored** letters (the
+  parent's letter of a modified residue, never a theme's), and take U as T on nucleotides.
+- **Degenerate is subset matching**: a pattern letter is its IUPAC set (nucleotides `R Y K M S W B D H V N` from
+  `resolve/codon.ts`'s `Iupac`; proteins `X` any residue, `B` D or N, `Z` E or Q, `J` I or L), and a sequence letter
+  matches when its own set lies inside it: a sequence `N` matches only `N`, `R` matches `R`, `D`, `N`, never `A`. Why: a
+  site reported over a run of `N` is not a site; overlap matching floods a draft genome's gaps.
+- **Gaps are not letters**: an alignment row is searched over its residues, a hit's extent from its first residue's
+  column to its last's.
+- **The alphabet check**: a target whose alphabet cannot hold the pattern's letters (an `E` in a DNA pattern, a `U` in a
+  protein pattern under `degenerate`) is skipped, `seq.search.alphabet` (a warning naming it), the others searched. The
+  system's declared or detected alphabet decides, never a guess from the pattern (EC-37).
+
+### Regular expressions
+
+- **The language** (`parseRegex`, a subset of POSIX ERE): letters, `.`, classes `[…]` and `[^…]`, groups `(…)` and
+  `(?:…)` (nothing captured), alternation, `?`, `*`, `+`, counted `{m}`, `{m,}`, `{m,n}`, `^` and `$` at the pattern's
+  ends (a system's ends; a cyclic system has none: `seq.search.pattern.anchor`, its target skipped), `\` before a
+  character to take it literally.
+- **Refused with a reason** (`seq.search.pattern.unsupported`, its offset, the hint "a search runs in linear time: no
+  backreferences or lookaround"): backreferences, lookaround, named groups, lazy and possessive repeats, `\b`, `\d`,
+  `\w` and any `\` before a letter or digit, flags, an anchor inside. A pattern that does not read is
+  `seq.search.pattern.syntax`; one that matches only the empty string `seq.search.pattern.empty`.
+- **A Glushkov automaton** (`glushkov`: one state a letter position, no ε-moves, counted repeats copied out), simulated
+  bit-parallel with a table a byte of the state (`regexTables`). Every bound (characters, positions, nesting) is checked
+  before a table is allocated. Why: the cost is the letters times the words whatever the pattern (`(A|AA)*B` over a
+  million `A`s costs what `AB` does); a `RegExp` backtracks, and a spec's or a link's pattern is untrusted.
+- **A hit a start, the longest** (`regexKernel`): a backward pass of the reversed automaton marks where a match starts,
+  then a bounded forward pass from each start finds its longest end, at most `maxHitLength` long, counted against the
+  budget (a pattern long at every start ends at the budget, said, never a hang). An empty match is no hit.
+
+### Hits
+
+- **Columnar** (`SearchHits`, `HitList`): `target`, `start`, `end` as `Int32Array`s grown by doubling, `strand` an
+  `Int8Array`; no object a hit. `strand` is `1`, `-1`, or `0` (a protein, or a site the same on both strands).
+- **Both strands on nucleotides** (`strands: 'both'`, the default; `forward`): the minus strand is the pattern run over
+  the reverse complement of the letters (`complementCode`), its hits mapped back to forward positions; a site equal on
+  both strands (`GAATTC`) is one hit, strand `0`. Proteins have one strand. Why the letters' complement: one kernel, one
+  compiled pattern, any matcher.
+- **A circle**: a hit may run across the origin, at most one lap (a pattern longer than the circle has none), held
+  unrolled (`end` past the length): one hit, its Location two ranges (EC-9, EC-10).
+- **Pieces are layout, not data**: a reversed section, a rotated plasmid or collapsed introns change nothing a search
+  reads or finds; the minus strand is the `strands` option's, never a section's direction (EC-31, EC-233). Each sequence
+  is its own target: no hit spans two systems or two blocks.
+- **Overlaps are all kept** (`AA` in `AAA` is two hits). **The order**: targets in order, then start, end, strand (`1`,
+  `0`, `-1`).
+
+### Bounds
+
+Every bound is checked before the work it sizes (`SearchBounds`, `DefaultSearchBounds`, `searchBounds(over)`; the
+viewer's `search.*` items set them), each with its code (`SearchIssues`):
+
+| Bound                                                 | Default      | Past it                                                                               |
+| ----------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------- |
+| `maxPattern`: an exact or IUPAC pattern's letters     | 1,000        | `seq.search.pattern.size` (error)                                                     |
+| `maxRegexChars`, `maxRegexPositions`, `maxRegexDepth` | 256, 128, 64 | `seq.search.pattern.size` (error)                                                     |
+| `maxHitLength`: a regex hit                           | 1,000        | the longest match from a start stops there                                            |
+| `maxLetters`: letters a run reads                     | 2^25         | the target that would pass it is skipped, `seq.search.letters.limit` (hint: `within`) |
+| `maxSteps`: word steps a run takes                    | 2^28         | the run ends, incomplete, `seq.search.steps.limit`                                    |
+| `maxHits`: hits held                                  | 10,000       | counting goes on (`counted`), holding stops, `seq.search.hits.limit`                  |
+| `chunkLetters`: letters a batch reads                 | 2^20         | (the chunk's size)                                                                    |
+
+- **Counted past the cap, never silently cut**: the count is exact within the step budget, the held hits are the first
+  in order, and both are said; `IncompleteSearchCodes` are the codes that leave a result incomplete. A failed read skips
+  its target (`seq.search.letters.failed`).
+- **No clock in the core**: the budget is steps, not time; the viewer yields between batches.
+
+### Performance
+
+- The kernels allocate nothing a hit: over 100 kb of seeded letters, `degenerate` GANTC, `exact` GAATTC and `regex`
+  `GG.{2,8}CC` at 0 bytes a step warm (the allocation tier, `search/_test/search.quick.ts`). A catastrophic pattern
+  costs what a plain one does in counted steps (the quick lane). The timing bounds (1 Mb in tens of milliseconds, a
+  10,000-row alignment) are TODO, to measure on the CI runner.
+
 ## Context
 
 `@molstar/seqx-core/context`: the headless composition. One place lists what a render needs; the viewer composes the
@@ -5217,9 +5330,12 @@ same pieces. Nothing registers on import and there is no global registry.
   (`seq.resolve.source.runtime`). Why: extensibility's "never resolved by order".
 - **Registry entries** are data: `{ kind: 'format-runtime', runtime }`, `{ kind: 'layer-type', type }`,
   `{ kind: 'layout', layout }`, `{ kind: 'track-sizing', sizing }` (a `<id>:<name>` sizing a section's `heights` names:
-  Render, Track heights) and `{ kind: 'navigator-picture', picture }` (a navigator's picture, `SeqContext.pictures`:
-  Render, Navigators, Pictures), each keyed by its provider's `name` (a format runtime by its formats, above); and the
-  query language's `{ kind: 'query-form', … }` and `{ kind: 'query-property', … }` (Queries, Extensions), composed into
+  Render, Track heights), `{ kind: 'navigator-picture', picture }` (a navigator's picture, `SeqContext.pictures`:
+  Render, Navigators, Pictures) and `{ kind: 'search-matcher', matcher }` (a search matcher, `SeqContext.matchers`:
+  Search, Matchers; the built-ins unnamespaced, `BuiltInSearchRegistry`, lazy entries whose code loads on first use and
+  which `createSeqContext` and the default viewer list; an application's `<id>:<name>`, so none shadows a built-in),
+  each keyed by its provider's `name` (a format runtime by its formats, above); and the query language's
+  `{ kind: 'query-form', … }` and `{ kind: 'query-property', … }` (Queries, Extensions), composed into
   `SeqContext.query` (`queryExtensionsOf`), what a host passes `evaluateQuery` as `extensions` (the viewer's address
   model does not yet: a followup). The same object again is no change; another under one name is an error listing every
   conflict (nothing registered), so a host's own type of a built-in's name goes in `composeSeqContext`. The canvas and

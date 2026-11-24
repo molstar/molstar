@@ -82,7 +82,7 @@ gives; an element with nothing to give yields nothing, never a failure of the wh
 | `(merge :of [ … ])`, `(intersect :of [ … ])`, `(except :of [ … ])` | the type of their arguments | combinators over one type (renamed from `or`, `and`, `not`; `except` with one operand the complement within the prefix) |
 | `(elements …)`, `(groups …)`, `(filter :test …)`, `(expand …)`, `(linked …)` | Location, Keys, the prefix's, Location, Location | [The language](#the-language-forms-by-role) |
 
-Later, with the examples that need them: `onto` (projection as a query), `search` (motifs).
+Later, with the examples that need them: `onto` (projection as a query), `search` (motifs: a live form a link or a layer names; the search itself is built as matchers and commands, [search.md](search.md), and the form waits for a link or layer that must name hits live).
 
 ### The language: forms by role
 

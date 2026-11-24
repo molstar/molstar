@@ -441,7 +441,7 @@ deleted by the merge that lands the built box. **Precedent**: SnapGene's find ba
 | A saved set is a ref; refused past the bound or incomplete | viewer › Search |
 | Results follow the spec; stale on new letters | viewer › Search |
 | Letters through the store, pending never empty | viewer › Search |
-| The configuration items | core › Configuration; viewer › Configuration |
+| The configuration items (the bounds' defaults are core's Search › Bounds) | viewer › Configuration |
 | The Storybook box on the public surface | design-only: the stories' host composition, not a package's |
 | The representatives | core › Search › Performance |
 | Rejected alternatives | design-only: rejected alternatives |
