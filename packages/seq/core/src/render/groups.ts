@@ -43,6 +43,8 @@ export function collapseOf(type: LayerType<any, any> | undefined): CollapseForm 
 export interface GroupHeader {
   readonly group: ResolvedTrackGroup;
   readonly folded: boolean;
+  /** Its chevron drawn (chrome: an export's figure draws none, its label at the column's start). */
+  readonly chevron: boolean;
   /** The header's box in the label column: the line above an open group's first track, a folded row's column. */
   readonly box: Box;
   /** Its label as drawn (cut with an ellipsis before the count), measured, and the baseline of its line. */
@@ -253,8 +255,10 @@ export function groupHeaders(
   measure: (text: string) => number,
   elide: (text: string, room: number) => string,
   scroll?: { readonly y: number; readonly end: number; readonly fixed: number },
+  figure = false,
 ): GroupHeader[] {
   const out: GroupHeader[] = [];
+  const chevron = figure ? 0 : ChevronPx;
   const size = Number.parseFloat(config.labelFont) || 12;
   for (const g of groups) {
     const first = wells[g.first];
@@ -270,11 +274,12 @@ export function groupHeaders(
     const line = g.folded ? Math.min(box.height, Math.max(config.header.groupPx, first.height)) : box.height;
     const countWidth = g.count ? measure(g.count) : 0;
     // the label cut before the count, the count before the chevron: the chevron never dropped
-    const fits = countWidth > 0 && ChevronPx + countWidth + 6 <= width;
-    const label = elide(g.group.label, Math.max(0, width - ChevronPx - (fits ? countWidth + 6 : 0)));
+    const fits = countWidth > 0 && chevron + countWidth + CountGapPx <= width;
+    const label = elide(g.group.label, Math.max(0, width - chevron - (fits ? countWidth + CountGapPx : 0)));
     out.push({
       group: g.group,
       folded: g.folded,
+      chevron: !figure,
       box,
       label,
       labelWidth: measure(label),
@@ -291,3 +296,5 @@ export function groupHeaders(
 
 /** The chevron's room before a group's label, px. */
 export const ChevronPx = 14;
+/** The gap between a group's label and its count, px. */
+export const CountGapPx = 6;

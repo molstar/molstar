@@ -6,7 +6,7 @@
 
 import { Anchor, type PassWriter } from './draw-lists.js';
 import type { Hit } from './layer-type.js';
-import { ChevronPx } from './groups.js';
+import { ChevronPx, CountGapPx } from './groups.js';
 import type { SectionLayout } from './tracks-types.js';
 
 // A section's group headers in the label column (_spec/README.md "Render", Track groups): the chevron (▾ open, ▸
@@ -25,20 +25,24 @@ export function drawGroupHeaders(out: PassWriter, s: SectionLayout): void {
     const h = headers[i];
     if (h.box.y >= s.pageHeight) continue;
     const ink = tokens.colors['msui-text-muted'];
-    g[0] = h.box.x;
-    g[1] = h.baseline;
-    g[2] = ChevronPx;
-    g[3] = ChevronPx;
-    g[4] = ink;
-    out.textArgs(h.folded ? '▸' : '▾', AnchorStart, config.labelFont);
-    g[0] = h.box.x + ChevronPx;
+    // the chevron is chrome: a figure draws none, its label at the column's start
+    const x = h.chevron ? h.box.x + ChevronPx : h.box.x;
+    if (h.chevron) {
+      g[0] = h.box.x;
+      g[1] = h.baseline;
+      g[2] = ChevronPx;
+      g[3] = ChevronPx;
+      g[4] = ink;
+      out.textArgs(h.folded ? '▸' : '▾', AnchorStart, config.labelFont);
+    }
+    g[0] = x;
     g[1] = h.baseline;
     g[2] = h.labelWidth;
     g[3] = h.labelWidth;
     g[4] = tokens.colors['msui-text'];
     if (h.label) out.textArgs(h.label, AnchorStart, config.labelFont);
     if (!h.count || !h.countWidth) continue;
-    g[0] = h.box.x + ChevronPx + h.labelWidth + 6;
+    g[0] = x + h.labelWidth + CountGapPx;
     g[1] = h.baseline;
     g[2] = h.countWidth;
     g[3] = h.countWidth;

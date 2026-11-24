@@ -230,5 +230,8 @@ describe('track groups in the tracks layout', () => {
     expect(open.svg).toContain('ClinVar');
     expect(opening.svg).not.toContain('ClinVar');
     expect(opening.svg).toContain('Variants');
+    // the chevron is chrome: a figure draws none (the canvas does)
+    expect(opening.svg).not.toMatch(/[▸▾]/);
+    expect((await lay(groupsSpec(), [])).sections[0].groups!.every((g) => g.chevron)).toBe(true);
   });
 });

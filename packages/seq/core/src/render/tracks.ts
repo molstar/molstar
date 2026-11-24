@@ -1054,6 +1054,7 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
             (t, room) => elidedLabel(state, input.text, config.labelFont, t, room),
             // a scrolled section's: a header under the fixed head or past the box is neither drawn nor hit
             scrolls ? { y: scrollY, end: scrollEnd, fixed: fixedBands } : undefined,
+            input.figure === true,
           )
         : undefined;
     const sectionLayout: SectionLayout = {
