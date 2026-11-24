@@ -136,7 +136,9 @@ nothing and tells nothing. Beside `models/view.ts` (the moves and the publish): 
   focus (a text brings the range's first line to the top, its size kept). Before a width or a length a move is the
   intent, a window of offsets. Why the layout's: the viewer's own arithmetic was the tracks layout's, wrong in text and
   on rings. A leader's window passes a cyclic origin only where its layout `wraps` (draws a window there: a ring's;
-  `NavContext.cyclic`); tracks and text keep it within the axis (their transform ends at the total).
+  `NavContext.cyclic`); tracks and text keep it within the axis (their transform ends at the total). A ring no section
+  follows has no window: `zoom` and `pan` on it are idle (false, the viewport kept), whether the wheel is taken staying
+  the binding table's (`_idleRing`).
 - **Scroll groups** (EC-113): sections on equal axes (system, length, pieces, direction) of one layout share one range;
   each keeps its own `top` and width (`viewport.groupEqualAxes`, true). Why one layout: a range is read its layout's way
   (a window, an anchor); across layouts, follow. An axis whose length is pending has no pieces: its group key holds the

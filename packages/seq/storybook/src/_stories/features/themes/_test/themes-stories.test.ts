@@ -11,7 +11,8 @@ import { FeatureViews, P53Views } from '@molstar/seqx-examples';
 import { BuiltInSchemes } from '@molstar/seqx-core/theme/index';
 import { LetterSchemes } from '@molstar/seqx-examples/p53/themes';
 import { DomHost } from '@molstar/ui/dom';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { loadLegendEyes } from '@molstar/seqx-viewer/mount-legend';
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { EditingSession } from '../../editing/compose.js';
 import { EditingThemes, SchemesGallery, Themes } from '../themes.stories.js';
 import { SchemesGalleryRoot, type ThemesEditingRoot } from '../themes-roots.js';
@@ -99,6 +100,9 @@ const lettersColor = (s: EditingSession) => {
   const c = layer?.params?.color;
   return c === undefined ? '' : printSexpr(c as Node);
 };
+
+// The legend's eyes are a lazy chunk the first mount in a worker starts: the file waits for it, or it lands after the file ends.
+afterAll(() => loadLegendEyes());
 
 describe('p53 Themes, headless', () => {
   it('both views are listed, the same spec', () => {

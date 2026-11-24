@@ -19,7 +19,8 @@ import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import { mountToolbar } from '@molstar/seqx-viewer/mount-toolbar';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { DomHost } from '@molstar/ui/dom';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { loadLegendEyes } from '@molstar/seqx-viewer/mount-legend';
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /** A canvas's 2D context that takes every call and records the fills of `fillRect` (their `fillStyle`). */
 interface Recorded {
@@ -116,6 +117,9 @@ function painted(id: string): string[] {
   const canvas = part.querySelector('canvas')!;
   return ((canvas.getContext('2d') as unknown as Recorded).fills ?? []).slice();
 }
+
+// The legend's eyes are a lazy chunk the first mount in a worker starts: the file waits for it, or it lands after the file ends.
+afterAll(() => loadLegendEyes());
 
 describe('the navigators’ stories, mounted', () => {
   it('chr17’s ideogram paints its bands, at a device pixel ratio of 2 in a wide pane too', async () => {

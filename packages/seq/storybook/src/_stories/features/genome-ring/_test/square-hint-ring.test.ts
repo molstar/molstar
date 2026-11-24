@@ -13,7 +13,8 @@ import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
 import { type UiHistory, uiHistory } from '@molstar/seqx-viewer/ui-history';
 import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { DomHost } from '@molstar/ui/dom';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { loadLegendEyes } from '@molstar/seqx-viewer/mount-legend';
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // The square's hint beside the ring as the default UI places it (Features/Genome Ring, The Square Beside): one muted
 // line under the square, its words wrapped to the square's width.
@@ -133,6 +134,9 @@ async function mounted() {
   }
   return v;
 }
+
+// The legend's eyes are a lazy chunk the first mount in a worker starts: the file waits for it, or it lands after the file ends.
+afterAll(() => loadLegendEyes());
 
 describe('the square beside the ring', () => {
   it('the default placement draws the square with its hint under it', async () => {

@@ -442,9 +442,11 @@ describe('The square over a ring: any set', () => {
   it('EC-110: a ring’s view zoomed (its window idle unless followed): the square’s window stays its set', async () => {
     const { v, n } = await make(['chr2', 'chr3']);
     expect(outline(n)).toEqual(cellsOf(n, [1, 2]));
-    v.view.jump(() => v.view.zoom(Ring, 4), true, 'zoom');
+    const whole = { ...v.view.get(Ring)! };
+    expect(v.view.jump(() => v.view.zoom(Ring, 4), true, 'zoom')).toBe('none');
     await settle(v, n);
-    expect(v.view.get(Ring)!.end - v.view.get(Ring)!.start).toBeLessThan(2_000_000);
+    // idle: the ring's viewport never narrows out of sight
+    expect(v.view.get(Ring)).toEqual(whole);
     // the ring draws its set whole: the outline is the set, the run's grips kept
     expect(outline(n)).toEqual(cellsOf(n, [1, 2]));
     n.move(...cell(n, 1, 2));

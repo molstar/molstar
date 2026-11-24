@@ -10,11 +10,11 @@
 // and nothing left behind when it is taken away.
 
 import { createSeqSpec } from '@molstar/seqx-core/lang';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { viewerItem } from '../config.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
 import { channelsRow } from '../legends.js';
-import { mountLegend } from '../mount-legend.js';
+import { loadLegendEyes, mountLegend } from '../mount-legend.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
 import { stubCanvasContext } from './canvas-stub.js';
 import { type Frames, installFrames } from './frames.js';
@@ -43,6 +43,9 @@ function spec() {
   });
   return b.build();
 }
+
+// The legend's eyes are a lazy chunk the first mount in a worker starts: the file waits for it, or it lands after the file ends.
+afterAll(() => loadLegendEyes());
 
 describe('the Legend part', () => {
   it('shows one track’s legend, selects by click, hovers by keyboard, clears a highlight, and goes away whole', async () => {
