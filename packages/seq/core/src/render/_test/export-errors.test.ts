@@ -46,6 +46,22 @@ describe('exportSvg of a spec with an error', () => {
     expect(withIssues(accessible, [])).toBe(accessible);
   });
 
+  it('a newer minor’s unknown kind is a warning: drawn as what is known, no error in the description (EC-235)', async () => {
+    const future = spec();
+    const newer: Node = {
+      ...future,
+      params: { ...future.params, version: '0.11.0' },
+      children: [...future.children!, { kind: 'from-the-future', id: 'x' }],
+    };
+    const r = await renderSvg(newer, { size });
+    expect(r.issues.map((i) => [i.code, i.severity])).toEqual([['repr.schema.kind.unknown', 'warning']]);
+    expect(r.lists.height).toBeGreaterThan(0);
+    expect(descOf(r.svg)).not.toContain('The spec has an error');
+    // at the reader's own minor the same kind is an error
+    const own = await renderSvg({ ...newer, params: { ...newer.params, version: SeqLanguageVersion } }, { size });
+    expect(own.issues.map((i) => i.severity)).toEqual(['error']);
+  });
+
   it('escapes what an issue says (`<`, `&`, `]]>`) in the description', () => {
     const lists = new DrawLists();
     lists.width = 10;

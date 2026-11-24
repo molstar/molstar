@@ -84,6 +84,20 @@ export function selectCdr(s: EditingSession, chain: Chain, cdr: 1 | 2 | 3): stri
   return s.viewer.addresses.select(cdrAddress(chain, cdr, 'kabat', wildType()[chain].kabat)).message;
 }
 
+/**
+ * The design's CDR-H3 insertions as IMGT labels, written backwards (EC-7: `112` comes after `112.1`): the address is
+ * invalid, so nothing is selected, and the status says the issue with its hint, as the validation design has an invalid
+ * label say it (a code, a message, the hint that teaches the fix).
+ */
+export const BackwardsAddress = '/data/heavy/(range :from 112 :to "112.1" :numbering imgt)';
+
+export function selectBackwards(s: EditingSession): string {
+  const out = s.viewer.addresses.select(BackwardsAddress);
+  const issue = out.issues.find((i) => i.code === 'seq.query.range.backwards') ?? out.issues[0];
+  if (!issue) return out.message;
+  return `${issue.message} (${issue.code})${issue.hint ? `: ${issue.hint}` : ''}`;
+}
+
 /** Bookmarks the selection (the selection's bookmark command): one step. */
 export const bookmark = (s: EditingSession, id: string, label: string) =>
   Promise.resolve(s.viewer.execute('selection.bookmark', { id, label }));

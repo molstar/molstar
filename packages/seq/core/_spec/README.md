@@ -177,6 +177,10 @@ checks it cannot express.
   version's description says nothing of a newer spec; (2) the description's validation with normalization (`repr.*`,
   columns typed, so a spec read from JSON is checked as one built); (3) the language's checks (`seq.lang.*`), only when
   step 2 found no error, so they read a valid, normalized tree. Why: each gate assumes what the one before settled.
+  **Version-aware**: a spec of a newer minor of this major reads an unknown kind (`repr.schema.kind.unknown`) as a
+  warning, the node kept and not drawn, the rest of the spec read as usual (an older reader draws what it knows, as for
+  an extension's kind, EC-235); at this version's own minor or an older one it stays an error, and a newer major is
+  refused before. Why: a newer minor only adds, so what it adds is not a mistake of the writer.
 - **What the checks cover**: one of two params (`letters` or `source`, `rows` or `source`, `values` or `source`, `uri`
   or `value`), an `index` only for a file, letters of the alphabet (protein `A`–`Z` and `a`–`z`, `*`, `-`; DNA the IUPAC
   codes and `-`, either case; RNA the same with `U` for `T`: a letter outside is an error, since every reader of letters
@@ -370,6 +374,10 @@ never chemistry: a component code, a SMILES, a GlyTouCan id are strings it match
   built-ins keep bare names. `layer.type` is a word, a built-in's or an extension's (not an enum: a type this reader
   lacks, an extension's or a newer built-in's, is drawn as its fallback and said by the resolved view, never refused);
   `section.layout`, `view.layout`, `section.heights` and `navigator.content` take a built-in's name or `<id>:<name>`.
+- **Built-in types declare their fallbacks** (`LayerTypes`, each entry a `fallback`): `secondary`, `variants`, `bands`
+  and `pairs` `ranges`, `matrix` `values`, every other `none` (a reader without it draws none: an outline or a rows
+  layer drawn as another type would read as data); the table is the one declaration, the renderer's built-ins are its
+  names.
 - **A layer's `fallback`**: the built-in type a reader without its type draws (its chain after it), or `none`. An
   extension's type without one is `seq.lang.layer.fallback` (warning) and read as `none`. Why the writer's and not the
   descriptor's: a reader without the extension knows nothing of it.

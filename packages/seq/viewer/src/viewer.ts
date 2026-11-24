@@ -72,6 +72,7 @@ import type { NavigatorDef, NavigatorModel } from './navigator.js';
 import { behaviorOf, createBehaviors, listedActions } from './viewer-behaviors.js';
 import { FrameClock } from './viewer-clock.js';
 import { ViewerEmphasis } from './viewer-emphasis.js';
+import { snapOfCodons } from './models/snap-codons.js';
 import { ViewerFrame } from './viewer-frame.js';
 import { ViewerViewports } from './viewer-viewports.js';
 import { ViewerMotion } from './viewer-motion.js';
@@ -306,7 +307,12 @@ export class SeqViewer extends ReactiveModel {
     // an element selected by an address and then toggled is drawn by its extent, resolved over what is shown
     const selection = (this.selection = new SelectionModel(
       (els) => locationOfResult(spec.shown.value, this.addresses.queryModel(), { type: 'keys', keys: els }).location,
-      { extendScope: config.selection.extendScope, acrossBreaks: config.selection.acrossBreaks },
+      {
+        extendScope: config.selection.extendScope,
+        acrossBreaks: config.selection.acrossBreaks,
+        // a drag over nucleotides snaps to whole codons through the view's codon maps (EC-149)
+        snap: snapOfCodons(() => view),
+      },
     ));
     const emphasis = (this._emphasis = new ViewerEmphasis(this));
     const highlight = (this.highlight = new HighlightModel());

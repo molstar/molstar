@@ -435,6 +435,44 @@ describe('the gates and the places', () => {
     ]);
   });
 
+  it('a newer minor’s unknown kind is a warning (drawn as what is known); the reader’s own minor, an older one and a newer major refuse it', () => {
+    const at = (version: string): Node => ({
+      kind: 'spec',
+      params: { version },
+      children: [{ kind: 'from-the-future', id: 'x', children: [{ kind: 'also-new', id: 'y' }] }],
+    });
+    const newer = checkSeqSpec(at('0.11.0'));
+    expect(newer.map((i) => [i.code, i.severity])).toEqual([
+      ['repr.schema.kind.unknown', 'warning'],
+      ['repr.schema.kind.unknown', 'warning'],
+    ]);
+    expect(newer[0].hint).toContain('newer minor');
+    expect(newer[0].message).toBe(
+      `A spec of 0.11.0, this reader ${SeqLanguageVersion}: unknown kinds drawn by their fallback`,
+    );
+    // `0.11` and a pre-release are read as the same newer minor: their kinds are warnings; the grammar's
+    // `major.minor.patch` still refuses the version's own spelling, the one error
+    for (const v of ['0.11', '0.11.0-rc.1'])
+      expect(checkSeqSpec(at(v)).map((i) => [i.code, i.severity])).toEqual([
+        ['repr.schema.param.pattern', 'error'],
+        ['repr.schema.kind.unknown', 'warning'],
+        ['repr.schema.kind.unknown', 'warning'],
+      ]);
+    expect(checkSeqSpec(at('0.10.0')).map((i) => i.severity)).toEqual(['error', 'error']);
+    expect(checkSeqSpec(at('0.9.0')).map((i) => i.severity)).toEqual(['error', 'error']);
+    expect(checkSeqSpec(at('1.0.0')).map((i) => [i.code, i.severity])).toEqual([
+      ['seq.lang.version.unsupported', 'error'],
+    ]);
+    // the warning leaves the rest read: another error in the spec is still an error
+    const bad = at('0.11.0');
+    bad.children!.push({
+      kind: 'data',
+      id: 'd',
+      children: [{ kind: 'sequence', id: 's', params: { alphabet: 'dna' } }],
+    });
+    expect(checkSeqSpec(bad).some((i) => i.severity === 'error')).toBe(true);
+  });
+
   it('a spec read from JSON is normalized first, so its columns are checked', () => {
     const bad = Misuses['seq.lang.ranges.interval']();
     const read = parseJson(printJson(bad, { language: SeqLanguage })).node as Node;

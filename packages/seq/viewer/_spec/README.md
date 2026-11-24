@@ -393,8 +393,11 @@ ends; a width past the new block's length, the new block whole. One rule for a c
   anchor's range reaches to it; with no anchor on its system, a replace); a cancel gives back the selection, the anchor
   and what an extend keeps. The range between two ends is taken in display offsets on the hit's axis, piece by piece in
   its direction: across a collapsed break, the positions shown between the ends (`selection.acrossBreaks`: `shown`;
-  `span` adds the hidden stretches, the hull). Why methods: a binding, a key and a test act alike, and a drag step is a
-  call, not a command.
+  `span` adds the hidden stretches, the hull). A drag over positions of no element snaps each end to the whole unit its
+  position is part of (`SelectionOptions.snap`: a nucleotide's codon through the view's codon maps, a codon split by an
+  intron its pieces: the intron's positions are never selected by the snap, EC-149; kept per position by `snapOfCodons`,
+  so a warm move allocates nothing); a position in no codon stays its own cell. Why methods: a binding, a key and a test
+  act alike, and a drag step is a call, not a command.
 - **A cell of two axes** (a grid cell: `GridCell`, its x and y systems and positions) selects a rect
   (`(rect :a <x range> :b <y range>)`, core's Location): `selectCell(cell, mode)` sets a one-cell rect (`replace`; a
   click on exactly that rect clears it), the rect from the cell anchor (`extend`), or toggles the cell's rect (`toggle`:
@@ -1128,7 +1131,10 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   cursor stays on the copy it is on (a position two blocks show: the block a step left it on, kept by the cursor), its
   next step, reveal and message too. A run of small blocks hits as `run` (its band with no strip: the block under the
   point, the run's count; under the ruler rail the rail's place carries its `count` and `state`), its card
-  "chrUn_KI270302v1 · Run: one of 2,841 · not read at this zoom".
+  "chrUn_KI270302v1 · Run: one of 2,841 · not read at this zoom". A grid over two sections of blocks steps its y the
+  same way (↑ ↓ cross from a block's last row onto the next block's first, Cmd/Ctrl+↑ ↓ the first and last blocks' ends,
+  entering from a section above or below the first or last block's row); rows and lazy rows are one system's positions,
+  with no gap to cross.
 - **`navigate.acrossBlocks`** (`ViewModel`, a row of blocks): `cross` (the default) one viewport over the blocks end to
   end; `stop` keeps the window in one block: after each move it is clamped to the block it was kept in (its width at
   most the block's), a range set (a jump, a story step, a click on the navigator) moves to the block holding its centre,

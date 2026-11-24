@@ -59,7 +59,8 @@ What this version contains and will contain. Each feature links its story here o
     [Features › Selection](?path=/story/seq-next-features-selection--tracks);
   - projection: a selection on one section shown on another through the maps, lighter:
     [Features › Selection › Protein on its gene](?path=/story/seq-next-features-selection--protein-on-its-gene): a drag
-    on the gene's letters, the protein showing the codons, in the canvas and in the SVG;
+    on the gene's letters, the protein showing the codons, in the canvas and in the SVG; a drag over nucleotides snaps
+    to whole codons at both ends;
   - the selection drawn as one band a section (column) or a box a track (tracks): the shape toggle of those stories.
 - **Navigation**: pan and zoom by hand (drag, wheel, pinch), jumps that animate (focus, fit, reveal, step zooms; a cut
   under reduced motion), and the view's history of jumps: a double-click on what is focused goes back,
@@ -101,10 +102,15 @@ What this version contains and will contain. Each feature links its story here o
   one source over several sequences: [Features › Files](?path=/story/seq-next-features-files--uniprot-entry); queries
   over them: [Features › Query](?path=/story/seq-next-features-query--query-box).
 - **Numbering schemes**: a sequence's declared numbering (Kabat, IMGT) read by queries, addresses, the ruler and the
-  hover, insertions labelled, the positions it does not number marked:
-  [Examples › Antibody](?path=/story/seq-next-examples-antibody-views--schemes).
-- **Interaction**: the keyboard cursor over an alignment's rows and a grid's y; the hover card and the keys panel (a
-  port a host can replace); overlapping highlight channels; copying the selection's letters as shown:
+  hover, insertions labelled, the positions it does not number marked; a range written backwards in IMGT is an invalid
+  label, said with its hint: [Examples › Antibody](?path=/story/seq-next-examples-antibody-views--schemes),
+  [Design numberings](?path=/story/seq-next-examples-antibody-views--design-numberings).
+- **Language versions**: every built-in layer type declares its fallback (`none` or the simpler type a reader without it
+  draws); a spec of a newer minor version with a kind this reader lacks gets a warning, not an error, and is drawn as
+  far as it is known; every example view's spec round-trips through MessagePack.
+- **Interaction**: the keyboard cursor over an alignment's rows and a grid's y, crossing the gaps between blocks (tracks
+  of blocks, and a grid over two sections of blocks down its y too); the hover card and the keys panel (a port a host
+  can replace); overlapping highlight channels; copying the selection's letters as shown:
   [Features › Hover card and keys](?path=/story/seq-next-features-hover-card-and-keys--hover-card),
   [Features › Highlights](?path=/story/seq-next-features-highlights--overlapping-channels).
 - **Stories**: steps as full states or patches, a player on the application's clock, a step's view:
@@ -163,13 +169,10 @@ What this version contains and will contain. Each feature links its story here o
 
 Version 1's close-out builds these (the author, 2026-11-23).
 
-- **Language**: validation shown on the Antibody view's invalid labels; a newer minor's unknown kinds read as a warning;
-  the built-in layer types' declared fallbacks.
 - **Data and sources**: patches on streamed things.
 - **Layers and themes**: track groups, summaries and collapse; points, log scales and reference lines on values.
 - **Interaction and editing**: search: matchers for exact, degenerate and regex patterns, stepping through the hits and
-  saving them as a set, with the search box and its results left to the application; drags snapped to whole codons; the
-  cursor across block gaps.
+  saving them as a set, with the search box and its results left to the application.
 
 ## Deferred
 
