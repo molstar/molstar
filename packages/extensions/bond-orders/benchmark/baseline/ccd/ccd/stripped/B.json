@@ -1,0 +1,12 @@
+{
+  "dataset": "ccd",
+  "tier": "B",
+  "connectivity": "ccd",
+  "hydrogens": "stripped",
+  "components": 52190,
+  "counts": {
+    "pass": 42747,
+    "fail": 7284,
+    "excluded": 2159
+  }
+}

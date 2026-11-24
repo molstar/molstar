@@ -1384,9 +1384,18 @@ importers:
 
   examples/bond-providers:
     dependencies:
+      '@molstar/bond-orders-extension':
+        specifier: workspace:*
+        version: link:../../packages/extensions/bond-orders
       '@molstar/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@molstar/graphics':
+        specifier: workspace:*
+        version: link:../../packages/graphics
+      '@molstar/io':
+        specifier: workspace:*
+        version: link:../../packages/io
       '@molstar/model':
         specifier: workspace:*
         version: link:../../packages/model
@@ -2134,6 +2143,31 @@ importers:
       '@types/webxr':
         specifier: 'catalog:'
         version: 0.5.24
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  packages/extensions/bond-orders:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@molstar/model':
+        specifier: workspace:*
+        version: link:../../model
+      '@molstar/plugin':
+        specifier: workspace:*
+        version: link:../../plugin/core
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@molstar/io':
+        specifier: workspace:*
+        version: link:../../io
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
       typescript:
         specifier: 'catalog:'
         version: 7.0.2

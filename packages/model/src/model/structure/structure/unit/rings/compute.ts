@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
 import { Segmentation, SortedArray } from '@molstar/core/data/int';
@@ -29,6 +30,21 @@ export function computeRings(unit: Unit.Atomic, bonds: IntraUnitBonds = unit.bon
     processResidue(state, seg.start, seg.end);
   }
 
+  return state.rings;
+}
+
+/**
+ * The rings of one residue of `unit` (unit indices `start` to `end`) over `bonds`: those `computeRings` gives for it,
+ * as rings never leave a residue. For a bond provider that needs the rings of a few residues, not of the whole unit.
+ */
+export function computeResidueRings(
+  unit: Unit.Atomic,
+  start: StructureElement.UnitIndex,
+  end: StructureElement.UnitIndex,
+  bonds: IntraUnitBonds = unit.bonds,
+) {
+  const state = State(unit, end - start, bonds);
+  processResidue(state, start, end);
   return state.rings;
 }
 

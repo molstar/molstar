@@ -235,6 +235,12 @@
       "private": false
     },
     {
+      "name": "@molstar/bond-orders-extension",
+      "path": "packages/extensions/bond-orders",
+      "kind": "extension",
+      "private": false
+    },
+    {
       "name": "@molstar/debug-helpers-extension",
       "path": "packages/extensions/debug-helpers",
       "kind": "extension",

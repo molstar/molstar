@@ -1,0 +1,25 @@
+{
+  "dataset": "labute2005",
+  "tier": "C",
+  "connectivity": "ccd",
+  "hydrogens": "stripped",
+  "components": 189,
+  "counts": {
+    "known": 8,
+    "pass": 179,
+    "fail": 1,
+    "excluded": 1
+  },
+  "rows": {
+    "1AAQ_PSI": "known",
+    "1AQB_RTL": "known",
+    "1CPS_CPM": "fail",
+    "1DIH_NDP": "known",
+    "1DR1_HBI": "known",
+    "2R04_W71": "known",
+    "3DFR_NDP": "known",
+    "5TLN_BAN": "excluded",
+    "7CAT_NDP": "known",
+    "8XIA_XLS": "known"
+  }
+}

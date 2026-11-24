@@ -6,7 +6,7 @@ import { builtinModules } from 'node:module';
 import ts from '@typescript/typescript6';
 import { expandExports, exportTargets, tsxBehindTsWildcard, tsxExportMessage } from './exports.mjs';
 import { importsFrom } from './imports.mjs';
-import { checkImportGraph } from './import-graph.mjs';
+import { checkImportGraph, isOtherWorkspace } from './import-graph.mjs';
 import { checkMigrationRecords } from './migration-records.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -39,6 +39,7 @@ function packageManifestPaths(dir, results = []) {
     )
       continue;
     const abs = path.join(dir, ent.name);
+    if (ent.isDirectory() && isOtherWorkspace(abs)) continue;
     if (ent.isDirectory()) packageManifestPaths(abs, results);
     else if (ent.isFile() && ent.name === 'package.json' && abs !== path.join(root, 'package.json'))
       results.push(path.relative(root, path.dirname(abs)).split(path.sep).join('/'));
