@@ -5299,6 +5299,9 @@ viewer's `search.*` items set them), each with its code (`SearchIssues`):
 - **Counted past the cap, never silently cut**: the count is exact within the step budget, the held hits are the first
   in order, and both are said; `IncompleteSearchCodes` are the codes that leave a result incomplete. A failed read skips
   its target (`seq.search.letters.failed`).
+- **A compile is bounded too**: a repeat of what holds no letter folds to the empty match (no copies), and the
+  automaton's nodes once repeats are copied out stay within 16 a position (`seq.search.pattern.size`): no pattern of 256
+  characters builds 10^12 nodes.
 - **No clock in the core**: the budget is steps, not time; the viewer yields between batches.
 
 ### Performance

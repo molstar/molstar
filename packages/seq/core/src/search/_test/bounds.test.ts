@@ -73,6 +73,15 @@ describe('the bounds, each with its code', () => {
     expect(compileCodes(RegexMatcher, `${'('.repeat(65)}A${')'.repeat(65)}`)).toEqual(['seq.search.pattern.size']);
     expect(compileCodes(RegexMatcher, `${'('.repeat(64)}A${')'.repeat(64)}`)).toEqual([]);
   });
+  it('a compile never hangs: a counted repeat of an empty body is nothing to copy, the automaton bounded in nodes', () => {
+    const t0 = performance.now();
+    // 21 characters that copied out are about 10^12 empty groups
+    expect(compileCodes(RegexMatcher, 'A((){999999}){999999}')).toEqual([]);
+    expect(compileCodes(RegexMatcher, '((){999}){999}')).toEqual(['seq.search.pattern.empty']);
+    // copies of an optional group: within the positions, past the automaton's nodes
+    expect(compileCodes(RegexMatcher, `${'('.repeat(30)}A${')?'.repeat(30)}{100}`)).toEqual(['seq.search.pattern.size']);
+    expect(performance.now() - t0).toBeLessThan(2000);
+  });
   it('a regex hit’s length: the longest match from a start stops at maxHitLength', async () => {
     const r = await runSearch(
       RegexMatcher,

@@ -168,7 +168,8 @@ export function parseRegex(pattern: string, bounds: SearchBounds): RegexParsed |
       if (!q) break;
       if (i < end && (pattern[i] === '?' || pattern[i] === '+'))
         fail(Unsupported, 'Lazy and possessive repeats are not searched: a hit is the longest match from its start');
-      x = { t: 'rep', x, min: q.min, max: q.max };
+      // a repeat of what holds no letter matches only the empty string: nothing to copy out (never 10^12 copies)
+      x = positionsOf(x, bounds.maxRegexPositions + 1) === 0 ? Eps : { t: 'rep', x, min: q.min, max: q.max };
     }
     return x;
   };
@@ -202,6 +203,15 @@ export function parseRegex(pattern: string, bounds: SearchBounds): RegexParsed |
           `The pattern takes more than ${bounds.maxRegexPositions} letter positions once its repeats are counted out`,
         ),
       ];
+    // the automaton's nodes once its repeats are copied out, bounded before it is built
+    if (nodesOf(ast, MaxNodesPerPosition * bounds.maxRegexPositions) > MaxNodesPerPosition * bounds.maxRegexPositions)
+      return [
+        issueOf(
+          SearchIssues,
+          'seq.search.pattern.size',
+          `The pattern's automaton takes more than ${MaxNodesPerPosition * bounds.maxRegexPositions} nodes once its repeats are counted out`,
+        ),
+      ];
     if (positions === 0 || maxMatchOf(ast) === 0)
       return [issueOf(SearchIssues, 'seq.search.pattern.empty', 'The pattern matches only the empty string')];
     return { ast, anchorStart, anchorEnd: end < pattern.length, letters, positions, maxMatch: maxMatchOf(ast) };
@@ -228,6 +238,31 @@ function positionsOf(a: Ast, cap: number): number {
       const one = positionsOf(a.x, cap);
       const copies = a.max === -1 ? Math.max(a.min, 1) : a.max;
       return Math.min(one * copies, cap + 1);
+    }
+  }
+}
+
+const Eps: Ast = { t: 'eps' };
+
+/** The nodes a regex's automaton builds, a node a copy, per letter position allowed. */
+export const MaxNodesPerPosition = 16;
+
+/** The nodes `glushkov` builds once repeats are copied out, stopping past `cap`. */
+function nodesOf(a: Ast, cap: number): number {
+  switch (a.t) {
+    case 'set':
+    case 'eps':
+      return 1;
+    case 'cat':
+    case 'alt': {
+      let n = 1;
+      for (const x of a.xs) if ((n += nodesOf(x, cap)) > cap) return n;
+      return n;
+    }
+    case 'rep': {
+      const one = nodesOf(a.x, cap);
+      const copies = a.max === -1 ? Math.max(a.min, 1) : a.max;
+      return Math.min(1 + one * copies, cap + 1);
     }
   }
 }
