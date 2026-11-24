@@ -289,7 +289,7 @@ search hit inside a folded group opening it and Alt+Left folding it back. Whethe
 |---|---|---|---|
 | a group's `collapsed` (spec) | false | a figure opens showing its tracks; the writer folds on purpose | true |
 | a group's `summary` (spec) | `auto` | a folded group still shows where its data is | `none`, a track of the group (not built) |
-| a ranges layer's `lanes` (spec) | `packed` | today's lanes and labels | `one` (not built) |
+| a ranges layer's `lanes` (spec) | `packed` | today's lanes and labels | `one` |
 | `header.groupPx` (render config) | 20 | the section header's line (`header.sectionPx`) | any (not built) |
 | `header.groupIndentPx` (render config) | 12 | membership read from the label column alone | 0 (not built) |
 | `groupGap` (render config) | 8 | ux-foundations section 3 ("8px between groups") | any (not built) |
@@ -407,7 +407,7 @@ search hit inside a folded group opening it and Alt+Left folding it back. Whethe
 | The header line, the folded row, indent and gaps, the hit target | core › Render › Track groups |
 | The summary band, its forms by kind, its height and hit | core › Render › Track groups |
 | `LayerType.collapse` | core › Render › Track groups |
-| `lanes: one` | design-only: not built yet (the ranges layer's `ranges.ts`/`lanes.ts`, held in CL6 for FX25's parked work) |
+| `lanes: one` | core › Render › Track groups |
 | Folded tracks share heights; the summary takes no part | design-only: not built yet (the sharing reads the bands shown: a fold can move another track's shared height) |
 | Groups open in text and rings (`seq.render.groups.layout`) | core › Render › Track groups |
 | `renderSvg`'s `groups` | core › Render › Track groups |
