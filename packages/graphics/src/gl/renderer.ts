@@ -6,6 +6,9 @@
  */
 
 import type { OcclusionPyramid } from './compute/cell-cull.js';
+import { type SplatOrderGpu, updateSplatOrder } from './renderable/gaussian-splats-order.js';
+import { createSplatSorter, isSplatSortSupported, SplatSortKernels } from './compute/splat-sort.js';
+import type { GaussianSplatsValues } from './renderable/gaussian-splats.js';
 import { Viewport } from '@molstar/core/util/viewport';
 import type { RenderCamera } from './camera.js';
 import type { Scene } from './scene.js';
@@ -103,9 +106,14 @@ interface Renderer {
   /** `clipGhost`: the ghost pass draws this frame (`renderClipGhost`), its lists culled on the GPU too */
   prepareCull: (scene: Scene.Group, twoPhase?: boolean, clipGhost?: boolean) => void;
   /**
+   * The gaussian splats of `scene` back to front for `camera` (their order, `tSplatOrder` or on the GPU `sSplatOrder`),
+   * sorted again where the view turned: outside of passes (compute), before the passes of the view that draw them
+   */
+  prepareGaussianSplats: (scene: Scene, camera: RenderCamera) => void;
+  /**
    * Culls on the GPU for a view of its own (a frame of its own: the thickness pass, a ray's pick) with the planes of the
-   * last `update`, no pass open: the objects that draw nothing without (`Renderable.prepareCullView`, a page store's);
-   * the others draw the CPU culling's lists there. Not tested against a pyramid
+   * last `update`, no pass open: the objects culled on the GPU (`Renderable.prepareCullView`); the others draw the CPU
+   * culling's lists there. Not tested against a pyramid
    */
   prepareCullView: (scene: Scene.Group) => void;
   /** The objects whose second phase is to run after the last `prepareCull` with `twoPhase` (none: no second part) */
@@ -167,6 +175,11 @@ interface Renderer {
   renderOverlay: (group: Scene.Group, camera: RenderCamera, occluder: Renderer.Occluder | null) => void;
   renderOpaque: (group: Scene.Group, camera: RenderCamera) => void;
   renderBlendedTransparent: (group: Scene.Group, camera: RenderCamera) => void;
+  /**
+   * Gaussian splats, blended over what is drawn (after the other transparency's composite), tested against the
+   * attached opaque depth, not writing it
+   */
+  renderGaussianSplats: (group: Scene.Group, camera: RenderCamera) => void;
   renderVolume: (group: Scene.Group, camera: RenderCamera, depthTexture: Texture) => void;
   renderWboitTransparent: (group: Scene.Group, camera: RenderCamera, depthTexture: Texture) => void;
   renderDpoitTransparent: (
@@ -1037,6 +1050,37 @@ namespace Renderer {
       }
     };
 
+    const splatModelView = Mat4();
+    /**
+     * The gaussian splats back to front for `camera`, before any pass: a draw's order (`tSplatOrder`), sorted again where
+     * the view turned (the model's uniform scale changes no order)
+     */
+    /** the GPU's sort where compute shaders run (WebGPU), once its kernels compiled (in the background) */
+    let splatSorter: SplatOrderGpu | undefined;
+    let splatKernelsPreparing = false;
+    const getSplatSorter = () => {
+      const { compute } = ctx;
+      if (splatSorter || !compute || !isSplatSortSupported(compute)) return splatSorter;
+      if (compute.hasKernels(SplatSortKernels)) {
+        splatSorter = { compute, sorter: createSplatSorter(compute) };
+      } else if (!splatKernelsPreparing) {
+        splatKernelsPreparing = true;
+        compute.prepareKernels(SplatSortKernels).finally(() => (splatKernelsPreparing = false));
+      }
+      return splatSorter;
+    };
+
+    const sortGaussianSplats = (scene: Scene, camera: RenderCamera) => {
+      Mat4.mul(splatModelView, camera.view, scene.primitives.view);
+      const gpu = getSplatSorter();
+      const { renderables } = scene.primitives;
+      for (let i = 0, il = renderables.length; i < il; ++i) {
+        const r = renderables[i];
+        if (r.state.disposed || !r.state.visible || r.values.dGeometryType.ref.value !== 'gaussianSplats') continue;
+        if (updateSplatOrder(r.values as unknown as GaussianSplatsValues, splatModelView, gpu)) r.update();
+      }
+    };
+
     const updateInternal = (
       group: Scene.Group,
       camera: RenderCamera,
@@ -1394,6 +1438,9 @@ namespace Renderer {
       if (scene.opacityAverage < 1) {
         renderBlendedTransparent(scene, camera);
       }
+      if (scene.hasGaussianSplats) {
+        renderGaussianSplats(scene, camera);
+      }
     };
 
     const renderOverlay = (group: Scene.Group, camera: RenderCamera, occluder: Renderer.Occluder | null) => {
@@ -1436,6 +1483,11 @@ namespace Renderer {
     const renderBlendedTransparent = (group: Scene.Group, camera: RenderCamera) => {
       updateInternal(group, camera, null, null, Mask.Transparent, false);
       drawPass(transparentBackground ? PassDraws.blendedTransparentBackground : PassDraws.blendedTransparent, group);
+    };
+
+    const renderGaussianSplats = (group: Scene.Group, camera: RenderCamera) => {
+      updateInternal(group, camera, null, null, Mask.Transparent, false);
+      drawPass(transparentBackground ? PassDraws.gaussianSplatsBackground : PassDraws.gaussianSplats, group);
     };
 
     const renderVolume = (group: Scene.Group, camera: RenderCamera, depthTexture: Texture) => {
@@ -1483,6 +1535,9 @@ namespace Renderer {
       },
       update,
       prepareCull: culling.prepare,
+      prepareGaussianSplats: (scene: Scene, camera: RenderCamera) => {
+        if (scene.hasGaussianSplats) sortGaussianSplats(scene, camera);
+      },
       prepareCullView: culling.prepareView,
       prepareSphereRaster: culling.prepareRaster,
       get cullSecondPending() {
@@ -1510,6 +1565,7 @@ namespace Renderer {
       renderOverlay,
       renderOpaque,
       renderBlendedTransparent,
+      renderGaussianSplats,
       renderVolume,
       renderWboitTransparent,
       renderDpoitTransparent,
@@ -1674,6 +1730,7 @@ namespace Renderer {
       },
       dispose: () => {
         culling.destroy();
+        splatSorter?.sorter.destroy();
         globals.destroy();
         if (emptyDepthTexture !== emptyDepthAlphaTexture) emptyDepthTexture.destroy();
         emptyDepthAlphaTexture.destroy();

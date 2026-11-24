@@ -110,7 +110,7 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
 
     var mvPosition = uGlobal.uModelView * position4;
     out.vViewPosition = mvPosition.xyz;
-    ${assign_site_color_wgsl('segmentSiteColorBase(in)')}
+    ${assign_site_color_wgsl('segmentSiteColorBase(in)', 'length(aTransform[0].xyz)')}
 
     // through the near plane with none of it beyond
     var nearNone = false;
@@ -255,6 +255,8 @@ fn resolveSphere(position: vec4<f32>) -> Resolved {
     // the instance as the vertex stage reads it: the group offsets the chunk holds
     var in: VertexInput;
     in.aInstance = instance.x;
+    // its slot (a page store's pose's: its copy, \`culledCopy\`)
+    in.instanceIndex = e.x;
     #if defined(dSegmented)
         // and the segment (an object color its texel)
         in.aSegment = vec4<i32>(0, i32(instance.y), i32(instance.z), rasterSegment(e.x).w);
@@ -278,7 +280,7 @@ fn resolveSphere(position: vec4<f32>) -> Resolved {
     }
     let mvPosition = uGlobal.uModelView * placed;
     out.vViewPosition = mvPosition.xyz;
-    ${assign_site_color_wgsl('i32(rasterSegmentSiteColorBase(siteSegment))')}
+    ${assign_site_color_wgsl('i32(rasterSegmentSiteColorBase(siteSegment))', 'length(vec3<f32>(rows[0].x, rows[1].x, rows[2].x))')}
     out.vSphere = vec4<f32>(-mvPosition.xyz / mvPosition.w, radius);
     // the view ray through the pixel's center as the raster casts it (\`sphere-raster.wgsl.ts\`), as the quad's point:
     // perspective a point on its ray from the eye, orthographic the pixel's point at the sphere's depth (the quad's)

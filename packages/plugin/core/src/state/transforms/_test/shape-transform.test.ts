@@ -14,6 +14,7 @@ import { MeshBuilder } from '@molstar/graphics/geo/geometry/mesh/mesh-builder';
 import { Box } from '@molstar/graphics/geo/primitive/box';
 import * as Shape from '@molstar/graphics/geo/shape/shape';
 import type { ShapeProvider } from '@molstar/graphics/geo/shape/provider';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import {
   getShapeProviderCenter,
   getShapeProviderTransform,
@@ -122,5 +123,28 @@ describe('shape transform', () => {
     expect(isSameShapeProviderTransform(moved, transformShapeProvider(boxProvider(Vec3.unit), move))).toBe(true);
     const other = transformShapeProvider(provider, Mat4.fromTranslation(Mat4(), Vec3.create(0, 10, 0)));
     expect(isSameShapeProviderTransform(moved, other)).toBe(false);
+  });
+
+  // geometry made on the context (SOG's textures) is the representation's: the moved getter is called as the original
+  it("passes the representation's shape and context on to the provider's getter, and its dispose", async () => {
+    const provider = boxProvider(Vec3.unit);
+    const calls: unknown[][] = [];
+    const getShape = provider.getShape;
+    const dispose = () => {};
+    const tracked: ShapeProvider<undefined, Mesh, Mesh.Params> = {
+      ...provider,
+      getShape: (...args) => {
+        calls.push(args.slice(3));
+        return getShape(...args);
+      },
+      dispose,
+    };
+    const moved = transformShapeProvider(tracked, Mat4.fromTranslation(Mat4(), Vec3.create(1, 0, 0)));
+    const props = PD.getDefaultValues(provider.params);
+    const shape = await moved.getShape(SyncRuntimeContext, undefined, props);
+    const graphics = {} as GraphicsContext;
+    await moved.getShape(SyncRuntimeContext, undefined, props, shape, graphics);
+    expect(calls[1]).toEqual([shape, graphics]);
+    expect(moved.dispose).toBe(dispose);
   });
 });

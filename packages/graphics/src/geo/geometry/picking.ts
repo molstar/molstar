@@ -8,6 +8,11 @@ export interface PickingId {
   objectId: number;
   instanceId: number;
   groupId: number;
+  /**
+   * a page store's object's copy of a template whose instance was picked (`paged-pick.ts`: gathered from the composed
+   * pose the pick drew), its `instanceId` the template particle's store index; none where not a copy's instance
+   */
+  copyId?: number;
 }
 
 export namespace PickingId {
@@ -18,6 +23,8 @@ export namespace PickingId {
   export const Null = 4294967294 as const;
 
   export function areSame(a: PickingId, b: PickingId) {
-    return a.objectId === b.objectId && a.instanceId === b.instanceId && a.groupId === b.groupId;
+    return (
+      a.objectId === b.objectId && a.instanceId === b.instanceId && a.groupId === b.groupId && a.copyId === b.copyId
+    );
   }
 }

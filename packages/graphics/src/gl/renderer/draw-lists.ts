@@ -384,8 +384,10 @@ export function createRendererDrawLists(host: DrawListHost): RendererDrawLists {
     changedAt: number;
     /** how it was drawn last (`drawChunk`) */
     outcome: ChunkOutcome;
+    /** the draw calls it issued when last drawn directly or recorded (`FewChunkDraws`) */
+    draws: number;
   };
-  type ChunkOutcome = 'unplanned' | 'replayed' | 'flushed' | 'empty' | 'recorded' | 'direct';
+  type ChunkOutcome = 'unplanned' | 'replayed' | 'flushed' | 'empty' | 'recorded' | 'rebound' | 'direct';
   /**
    * The recordings of a pass in chunks of `ChunkSize` objects of the table's order, then one of the caps drawn after
    * all objects: a change of what the pass draws (an object marked, hidden, entering the view) records the chunks it
@@ -409,6 +411,22 @@ export function createRendererDrawLists(host: DrawListHost): RendererDrawLists {
    * every frame (a hover sweeping across separate objects, a rotation) are flushed and replayed, cheaper than drawn
    */
   const FewChunkRows = 4;
+  /**
+   * Draw calls of a chunk of few rows drawn directly as cheaply as walked and flushed: a row of more (a page store's
+   * records, thousands of indirect draws) is walked and replayed, its draws' encoding by the driver's process each frame
+   * otherwise (the yeast nested hover's 3,559: 5.8 ms a frame in Dawn, its GPU passes 0.6)
+   */
+  const FewChunkDraws = 64;
+  const getDrawCalls = () => {
+    const { calls } = ctx.stats;
+    return calls.drawInstanced + calls.drawInstancedBase + calls.multiDrawInstancedBase;
+  };
+  /** `part` of `pass` drawn by `draw` (directly or recorded), its draw calls counted into `chunk` */
+  const drawCounted = (chunk: Chunk, draw: () => void) => {
+    const before = getDrawCalls();
+    draw();
+    chunk.draws = getDrawCalls() - before;
+  };
   /** The caps drawn after all objects, a chunk of their own */
   const CapsPart: PassPart = { begin: 0, end: Infinity, objects: false, caps: true };
   let groupDrawLists = new WeakMap<Scene.Group, Map<PassDraws, PassDrawLists>>();
@@ -440,6 +458,7 @@ export function createRendererDrawLists(host: DrawListHost): RendererDrawLists {
     viewDependent: true,
     changedAt: -Infinity,
     outcome: 'empty',
+    draws: 0,
   });
   /**
    * Whether the draws of a row (`facts`) follow the view besides whether it is visible: instances culled
@@ -522,8 +541,9 @@ export function createRendererDrawLists(host: DrawListHost): RendererDrawLists {
 
   /**
    * Draws `part` of `pass` from `chunk`: 'unplanned' replayed without walking (nothing the walk read changed),
-   * 'replayed' or 'flushed' (its data written first) after walking, 'empty' drawing nothing, 'recorded', 'direct'
-   * drawn without its recording while its inputs change in consecutive submissions (`StableSubmissions`)
+   * 'replayed' or 'flushed' (its data written first) after walking, 'empty' drawing nothing, 'recorded', 'rebound'
+   * recorded again with the same draws (its recording of other globals or another target), 'direct' drawn without its
+   * recording while its inputs change in consecutive submissions (`StableSubmissions`)
    */
   const drawChunk = (pass: PassDraws, table: DrawTable, chunk: Chunk): ChunkOutcome => {
     const outcome = drawChunkOnce(pass, table, chunk);
@@ -532,10 +552,12 @@ export function createRendererDrawLists(host: DrawListHost): RendererDrawLists {
   };
   /**
    * Whether `chunk`, changed again in the submission after its last change, is drawn directly: where its recording
-   * was made again (draws changing every frame, a recolor), or it was drawn directly, or it has few rows
+   * was made again (draws changing every frame, a recolor), or it was drawn directly, or it has few rows of few draws
    */
   const isDrawnDirectly = (chunk: Chunk) =>
-    chunk.outcome === 'recorded' || chunk.outcome === 'direct' || chunk.rowCount <= FewChunkRows;
+    chunk.outcome === 'recorded' ||
+    chunk.outcome === 'direct' ||
+    (chunk.rowCount <= FewChunkRows && chunk.draws <= FewChunkDraws);
   /**
    * Whether `part` holds an object culled on the GPU while it moves: the records its lists hold change from frame to
    * frame (a recording per frame would cost more than it saves), and multi-draw indirect, where the device has it, is
@@ -554,7 +576,7 @@ export function createRendererDrawLists(host: DrawListHost): RendererDrawLists {
     const { snapshot, list, part } = chunk;
     const inlineCaps = !!pass.caps?.inline;
     if (part.objects && isMultiDrawn(table, part)) {
-      renderPassRows(pass, table, part);
+      drawCounted(chunk, () => renderPassRows(pass, table, part));
       if (snapshot.valid) list.reset();
       snapshot.valid = false;
       setChunkInputs(chunk, table, inlineCaps);
@@ -573,7 +595,7 @@ export function createRendererDrawLists(host: DrawListHost): RendererDrawLists {
       ) {
         // changing every frame, or not stable for long enough since: drawn as without draw lists
         if (!current) chunk.changedAt = submit;
-        renderPassRows(pass, table, part);
+        drawCounted(chunk, () => renderPassRows(pass, table, part));
         // its recording no longer of the draws, released once
         if (snapshot.valid) list.reset();
         snapshot.valid = false;
@@ -590,7 +612,8 @@ export function createRendererDrawLists(host: DrawListHost): RendererDrawLists {
     // walk finds
     const bound = snapshot.drawResources === (ctx.drawLists?.resourcesVersion ?? 0);
     const match = snapshot.valid && bound ? walkPass(pass, table, snapshot, false, part) : 'different';
-    if (match === 'same' || (match === 'data' && flushDataChanges(snapshot, table, pass.variant))) {
+    const same = match === 'same' || (match === 'data' && flushDataChanges(snapshot, table, pass.variant));
+    if (same) {
       if (isEmptySnapshot(snapshot)) {
         setChunkInputs(chunk, table, inlineCaps);
         return 'empty';
@@ -604,7 +627,7 @@ export function createRendererDrawLists(host: DrawListHost): RendererDrawLists {
       list.reset();
     }
     // as drawn directly, the caps (and their clears) included
-    list.record(globals, () => renderPassRows(pass, table, part));
+    drawCounted(chunk, () => list.record(globals, () => renderPassRows(pass, table, part)));
     // drawing may change values (e.g. what culling writes): the snapshot after it is the recorded one
     walkPass(pass, table, snapshot, true, part);
     if (ctx.drawLists) {
@@ -614,7 +637,8 @@ export function createRendererDrawLists(host: DrawListHost): RendererDrawLists {
     snapshot.valid = true;
     // a chunk drawing nothing keeps no recording
     if (isEmptySnapshot(snapshot)) list.reset();
-    return 'recorded';
+    // the same draws, not replayable for the globals or the target: not a change of the draws (`isDrawnDirectly`)
+    return same ? 'rebound' : 'recorded';
   };
 
   /**
@@ -678,7 +702,7 @@ export function createRendererDrawLists(host: DrawListHost): RendererDrawLists {
     let unplanned = true;
     let flushed = false;
     const count = (result: ReturnType<typeof drawChunk>) => {
-      if (result === 'recorded') recorded += 1;
+      if (result === 'recorded' || result === 'rebound') recorded += 1;
       if (result === 'direct') direct += 1;
       if (result !== 'unplanned' && result !== 'empty') unplanned = false;
       if (result === 'flushed') flushed = true;

@@ -9,10 +9,25 @@ import { GridPositions } from '@molstar/core/math/geometry/grid-positions';
 import { Box3D } from '@molstar/core/math/geometry/primitives/box3d';
 import { Quat, Vec3 } from '@molstar/core/math/linear-algebra';
 import { CustomProperties } from '@molstar/model/model/custom-property';
-import { type ParticleList, ParticleValues } from '@molstar/model/model/particles/particle-list';
 import {
+  Particle,
+  type ParticleList,
+  ParticleRotations,
+  type ParticleTarget,
+  ParticleValues,
+} from '@molstar/model/model/particles/particle-list';
+import { ParticleNesting } from '@molstar/model/model/particles/particle-nesting';
+import { ParticlePageCache } from '@molstar/model/model/particles/particle-page-cache';
+import { ParticleTiles } from '@molstar/model/model/particles/particle-tiles';
+import {
+  CopyPoseFloats,
+  getStoreFormatOf,
   ExtraWords,
+  PageFlagsWord,
+  TemplatePage,
+  writeCopyPose,
   NoMember,
+  PageReadRetryMs,
   PageRecordWords,
   ParticlePageStore,
   PerParticleMembers,
@@ -83,7 +98,8 @@ function expected(list: ParticleList, start: number) {
     const r = list.rotations as Float32Array;
     const q = Quat.create(r[i * 4], r[i * 4 + 1], r[i * 4 + 2], r[i * 4 + 3]);
     const scale =
-      (placement.scaleByRadius?.(target) && list.radii ? ParticleValues.get(list.radii, i) : 1) * (list.scale ?? 1);
+      (placement.scaleByRadius?.(target) && list.radii ? ParticleValues.get(list.radii, i) : 1) *
+      (list.scales ? ParticleValues.get(list.scales, i) : (list.scale ?? 1));
     Vec3.transformQuat(rc, placement.centerOf(target), q);
     Vec3.scaleAndAdd(p, p, rc, -scale);
     out.set(start + i, { target, pose: Float32Array.of(p[0], p[1], p[2], scale, q[0], q[1], q[2], q[3]) });
@@ -142,6 +158,18 @@ describe('particle page store', () => {
       pages.add(2, b, 200, placement);
       expect(pages.maxScale).toBe(4);
       expectInstances(pages, [1, 2], new Map([...expected(a, 100), ...expected(b, 200)]));
+    }
+  });
+
+  it("draws a list's particles larger by their runs' scales (a node by target), in place of its scale", () => {
+    for (const radii of ['particle', 'runs', undefined] as const) {
+      const pages = new ParticlePageStore();
+      const scales = ParticleValues.ofRuns(Int32Array.of(0, 10, 30, 40), Float32Array.of(1.5, 3, 2));
+      const a = { ...createList(40, (i) => (i < 10 ? 1 : i < 30 ? 2 : 3), radii), scale: 4, scales };
+      pages.add(1, a, 100, placement);
+      // the largest run's, not the list's
+      expect(pages.maxScale).toBe(3);
+      expectInstances(pages, [1], expected(a, 100));
     }
   });
 
@@ -313,5 +341,262 @@ describe('particle page store', () => {
     const o = b.pages[0] * PageRecordWords;
     expect(f[o + 8]).toBeCloseTo(0, 2);
     expect(f[o + 12]).toBeCloseTo((StorePageSize - 1) * 0.5, 2);
+  });
+});
+
+describe('particle page store of a nested list', () => {
+  /** three copies of a template of ten particles (targets 1 and 3), one turned, and a leaf (target 2) */
+  function createNested() {
+    const template = createList(10, (i) => (i < 6 ? 1 : 3));
+    const top = createList(4, (i) => (i === 2 ? 2 : 0));
+    const turn = Quat.setAxisAngle(Quat(), Vec3.create(0, 0, 1), Math.PI / 2);
+    (top.rotations as Float32Array).set([0, 0, 0, 1, ...turn, 0, 0, 0, 1, 0, 0, 0, 1]);
+    (top.targetInfo as Map<number, object>).set(0, { name: 'copy' }).set(2, { name: 'leaf' });
+    top.targetMapping = new Map<number, ParticleTarget>([
+      [0, { kind: 'particles', particles: template, center: Vec3.create(1, 2, 3) }],
+      [2, { kind: 'shape', shape: { name: 'leaf' } as never }],
+    ]);
+    return { template, top };
+  }
+
+  it("holds a template's particles once, its pages its copies' alone, its copies' poses its instances' composed", () => {
+    const { template, top } = createNested();
+    const ids = ParticleNesting.getIdSpace(top);
+    const base = ids.moves.get(template)!.target;
+    // the leaf's target 2, the template's past the top list's ids: 3 + 1 and 3 + 3
+    expect(base).toBe(3);
+    const flatCenters = new Map<number, Vec3>([
+      [2, Vec3.create(0, 0, 0)],
+      [base + 1, Vec3.create(1, 0, 0)],
+      [base + 3, Vec3.create(0, 0, -1)],
+    ]);
+    const flatPlacement: StorePlacement = { centerOf: (t) => flatCenters.get(t)!, accepts: (t) => flatCenters.has(t) };
+    const store = new ParticlePageStore();
+    store.add(0, top, 0, flatPlacement);
+    const leaves = ParticleNesting.getLeafList(top, template);
+    const block = store.add(-1, leaves, 0, flatPlacement, undefined, true);
+    expect(block.template).toBe(true);
+    // the top list's page not a template's, the template's one
+    expect(store.records[store.getBlock(0)!.pages[0] * PageRecordWords + PageFlagsWord]).toBe(0);
+    expect(store.records[block.pages[0] * PageRecordWords + PageFlagsWord]).toBe(TemplatePage);
+    const tops = Int32Array.from(ParticleNesting.getCopiesOf(top, template));
+    expect(Array.from(tops)).toEqual([0, 1, 3]);
+    const poses = new Float32Array(tops.length * CopyPoseFloats);
+    const p = Vec3();
+    const q = Quat();
+    for (let c = 0; c < tops.length; ++c) {
+      GridPositions.get(top.coordinates, tops[c], p);
+      ParticleRotations.get(top.rotations, tops[c], q);
+      writeCopyPose(poses, c * CopyPoseFloats, p, q, Vec3.create(1, 2, 3));
+    }
+    // the template's members counted once as added, then once a copy
+    const m1 = store.pool.get(base + 1);
+    const m3 = store.pool.get(base + 3);
+    expect([store.pool.counts[m1], store.pool.counts[m3]]).toEqual([6, 4]);
+    store.setCopies(-1, { tops, poses });
+    expect([store.pool.counts[m1], store.pool.counts[m3]]).toEqual([18, 12]);
+    expect(store.getCopyFactor(-1)).toBe(3);
+    expect(store.takeChanges().copies).toEqual([-1]);
+    // every copy's instance of a template particle at the flattened list's position and rotation
+    const flat = ParticleNesting.flatten(top);
+    const composed = store.composeCopies(-1);
+    expect(composed.tops.length).toBe(3 * 10);
+    const r = Quat();
+    const at = Vec3();
+    for (let k = 0; k < composed.tops.length; ++k) {
+      const i = ParticleNesting.getExpandedIndex(top, composed.tops[k], composed.slots[k]);
+      expect(ParticleValues.get(flat.targets, i)).toBe(store.pool.targets[composed.members[k]]);
+      // the pose places its member's center at the instance: t + s R c
+      const o = k * 8;
+      const m = composed.members[k];
+      const c = Vec3.create(store.pool.centers[m * 3], store.pool.centers[m * 3 + 1], store.pool.centers[m * 3 + 2]);
+      Quat.set(r, composed.poses[o + 4], composed.poses[o + 5], composed.poses[o + 6], composed.poses[o + 7]);
+      Vec3.add(
+        at,
+        Vec3.create(composed.poses[o], composed.poses[o + 1], composed.poses[o + 2]),
+        Vec3.scale(c, Vec3.transformQuat(c, c, r), composed.poses[o + 3]),
+      );
+      expect(Vec3.distance(at, GridPositions.get(flat.coordinates, i, Vec3()))).toBeLessThan(1e-4);
+      expect(Math.abs(Quat.dot(r, ParticleRotations.get(flat.rotations, i, Quat())))).toBeCloseTo(1, 5);
+    }
+    // the copies let go with their template
+    store.remove(-1);
+    expect(store.getCopies(-1)).toBeUndefined();
+    const changes = store.takeChanges();
+    expect(changes.copies).toEqual([-1]);
+    // its members' every instance gone: freed
+    expect(changes.freed.sort()).toEqual([m1, m3].sort());
+    expect(store.pool.get(base + 1)).toBe(-1);
+  });
+
+  it("takes the format of all its lists: a top list without rotations before a template's of them", () => {
+    const top = { ...createList(4, () => 2), rotations: undefined };
+    const template = createList(40, () => 1);
+    const grid = { ...template, coordinates: GridPositions.fromFloat(template.coordinates as Float32Array) };
+    const format = getStoreFormatOf([top, grid]);
+    // the largest's positions, the rotated one's rotations
+    expect(format).toEqual({ positions: 'grid', rotations: 'float32' });
+    const store = new ParticlePageStore();
+    store.format = format;
+    store.add(0, top, 0, { centerOf: () => Vec3() });
+    store.add(-1, grid, 0, { centerOf: () => Vec3() }, undefined, true);
+    // the top list's identities
+    expect(Array.from(store.values[store.getBlock(0)!.pages[0]]!.rotations!.subarray(0, 4))).toEqual([0, 0, 0, 1]);
+    // its own format (the first list's) refuses the template's rotations
+    const first = new ParticlePageStore();
+    first.add(0, top, 0, { centerOf: () => Vec3() });
+    expect(() => first.add(-1, grid, 0, { centerOf: () => Vec3() }, undefined, true)).toThrow(/rotations/);
+    // the failed add's counts (its member 1's) not left for the next store's: its two members' instances all counted
+    const two = createList(40, (i) => (i < 20 ? 3 : 4));
+    const next = new ParticlePageStore();
+    next.add(0, two, 0, { centerOf: () => Vec3() });
+    expect(next.pool.count).toBe(2);
+    expect([next.pool.counts[0], next.pool.counts[1]]).toEqual([20, 20]);
+  });
+
+  it('refuses copies of a block not a template, a pose missing', () => {
+    const { top } = createNested();
+    const store = new ParticlePageStore();
+    store.add(0, top, 0, { centerOf: () => Vec3(), accepts: (t) => t === 2 });
+    expect(() => store.setCopies(0, { tops: Int32Array.of(0), poses: new Float32Array(8) })).toThrow(/template/);
+    store.add(
+      -1,
+      createList(4, () => 1),
+      0,
+      { centerOf: () => Vec3() },
+      undefined,
+      true,
+    );
+    expect(() => store.setCopies(-1, { tops: Int32Array.of(0, 1), poses: new Float32Array(8) })).toThrow(/a copy pose/);
+    expect(() => store.setCopies(-1, { tops: new Int32Array(0), poses: new Float32Array(0) })).toThrow(/no copies/);
+  });
+
+  it("reads a deferred list's page when asked through its cache: once for every store, again past its bytes", async () => {
+    // three pages of particles on a grid, no rotations, deferred: read by range (counted), a tile a page
+    const n = 3 * StorePageSize;
+    const xyz = new Float32Array(n * 3);
+    for (let i = 0; i < n; ++i) xyz.set([Math.floor(i / StorePageSize) * 100 + (i % 50), i % 7, i % 11], i * 3);
+    const full = GridPositions.fromFloat(xyz);
+    const list = {
+      ...createList(n, () => 1),
+      coordinates: { ...full, data: new Uint32Array(0) },
+      rotations: undefined,
+    };
+    const reads: number[] = [];
+    const pageBytes = StorePageSize * 8;
+    const cache = new ParticlePageCache(pageBytes);
+    Particle.setDeferred(
+      list,
+      cache.deferred(list, async (first, count) => {
+        reads.push(first);
+        return { positions: full.data.slice(first * 2, (first + count) * 2) };
+      }),
+    );
+    ParticleTiles.setDirectory(list, {
+      min: Vec3.create(0, 0, 0),
+      max: Vec3.create(300, 10, 10),
+      dimensions: 4,
+      // a tile's cell, first particle, count; its box
+      ranges: Int32Array.of(0, 0, StorePageSize, 1, StorePageSize, StorePageSize, 2, 2 * StorePageSize, StorePageSize),
+      boxes: Float32Array.of(0, 0, 0, 49, 6, 10, 100, 0, 0, 149, 6, 10, 200, 0, 0, 249, 6, 10),
+    });
+    const store = new ParticlePageStore();
+    const { pages } = store.add(1, list, 0, placement);
+    expect(pages.length).toBe(3);
+    expect([...pages].map((p) => store.values[p])).toEqual([undefined, undefined, undefined]);
+    // a page's box its tile's
+    const f = store.recordFloats;
+    const o = pages[1] * PageRecordWords;
+    expect([f[o + 8], f[o + 12]]).toEqual([100, 149]);
+
+    // read once while in flight, its values the grid's words
+    const [a, b] = [pages[0], pages[1]];
+    const reading = store.requestValues(a);
+    expect(store.requestValues(a)).toBe(reading);
+    await reading;
+    expect(store.values[a]!.positions).toEqual(full.data.subarray(0, StorePageSize * 2));
+    expect(store.requestValues(a)).toBeUndefined();
+    await store.requestValues(b);
+    expect(reads).toEqual([0, StorePageSize]);
+    expect(cache.readBytes).toBe(2 * pageBytes);
+    // the cache a page's bytes: the last read kept
+    expect(cache.bytes).toBe(pageBytes);
+
+    // given up: the cache's kept, set again at once (no read); a page let go by it read again
+    store.releaseValues(b);
+    expect(store.values[b]).toBeUndefined();
+    expect(store.requestValues(b)).toBeDefined();
+    expect(store.values[b]).toBeDefined();
+    expect(reads.length).toBe(2);
+    store.releaseValues(a);
+    await store.requestValues(a);
+    expect(reads).toEqual([0, StorePageSize, 0]);
+
+    // a second store of the list reads through the same cache: its kept page not read again
+    const second = new ParticlePageStore();
+    const [a2] = second.add(1, list, 0, placement).pages;
+    second.requestValues(a2);
+    expect(second.values[a2]!.positions).toEqual(full.data.subarray(0, StorePageSize * 2));
+    expect(reads.length).toBe(3);
+
+    // a list's values not deferred not given up
+    const other = new ParticlePageStore();
+    const [q] = other.add(
+      2,
+      createList(10, () => 1),
+      0,
+      placement,
+    ).pages;
+    other.releaseValues(q);
+    expect(other.values[q]).toBeDefined();
+  });
+
+  it('waits to read a deferred page whose read failed, longer each failure, told once a list', async () => {
+    const n = StorePageSize;
+    const xyz = new Float32Array(n * 3);
+    const full = GridPositions.fromFloat(xyz);
+    const list = {
+      ...createList(n, () => 1),
+      coordinates: { ...full, data: new Uint32Array(0) },
+      rotations: undefined,
+    };
+    let fail = true;
+    let reads = 0;
+    Particle.setDeferred(
+      list,
+      new ParticlePageCache().deferred(list, async (first, count) => {
+        reads += 1;
+        if (fail) throw new Error('offline');
+        return { positions: full.data.slice(first * 2, (first + count) * 2) };
+      }),
+    );
+    ParticleTiles.setDirectory(list, {
+      min: Vec3.create(0, 0, 0),
+      max: Vec3.create(1, 1, 1),
+      dimensions: 1,
+      ranges: Int32Array.of(0, 0, n),
+      boxes: Float32Array.of(0, 0, 0, 1, 1, 1),
+    });
+    let time = 0;
+    const errors: unknown[] = [];
+    const store = new ParticlePageStore({ now: () => time, onReadError: (_, e) => errors.push(e) });
+    const [p] = store.add(1, list, 0, placement).pages;
+    await store.requestValues(p);
+    expect(reads).toBe(1);
+    expect(errors.length).toBe(1);
+    // not read again within the wait (a frame's want each), then read; the next wait twice as long, not told again
+    time = PageReadRetryMs - 1;
+    expect(store.requestValues(p)).toBeUndefined();
+    time = PageReadRetryMs;
+    await store.requestValues(p);
+    expect(reads).toBe(2);
+    time += 2 * PageReadRetryMs - 1;
+    expect(store.requestValues(p)).toBeUndefined();
+    time += 1;
+    fail = false;
+    await store.requestValues(p);
+    expect(reads).toBe(3);
+    expect(errors.length).toBe(1);
+    expect(store.values[p]).toBeDefined();
   });
 });

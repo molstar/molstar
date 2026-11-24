@@ -91,6 +91,9 @@ export class PickHelper {
 
   private render(camera: Camera | StereoCamera, frame?: Frame) {
     this.plan(this.renderBuilder, camera, frame);
+    // a page store's picks resolved before they are read (their slots' identity: `PickPass.resolvePaged`); its kernel
+    // compiling, the pick incomplete (drawn again once work settled)
+    if (!this.pickPass.resolvePaged(this.scene)) this.incomplete = true;
   }
 
   /** What `identify` draws before reading, see `PassBuilder` */

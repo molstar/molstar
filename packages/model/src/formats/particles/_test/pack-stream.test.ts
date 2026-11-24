@@ -6,6 +6,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import { Column } from '@molstar/core/data/db';
+import { Sphere3D } from '@molstar/core/math/geometry/primitives/sphere3d';
 import { GridPositions } from '@molstar/core/math/geometry/grid-positions';
 import { Task } from '@molstar/core/task';
 import { CustomProperties } from '../../../model/custom-property.js';
@@ -20,10 +21,14 @@ import { ParticleTileCatalog, ParticleTiles } from '../../../model/particles/par
 import { createParticleListFromPack, readParticlePack, writeParticlePack } from '../pack.js';
 import {
   createParticleTileSetFromPack,
+  isParticlePackListStreamable,
   isParticlePackStreamable,
+  openParticleListFromPackStream,
   openParticlePackStream,
   ParticlePackSource,
 } from '../pack-stream.js';
+import { ParticleNesting } from '../../../model/particles/particle-nesting.js';
+import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
 
 /** 300 particles over a box, three targets of sites in an alternating order, entities, compartments, an attribute */
 function createList(): ParticleList {
@@ -211,20 +216,43 @@ describe('particle pack read by range', () => {
       const d = 4 >> level;
       for (let cell = 0; cell < d * d * d; ++cell) {
         const id = levels.getNode(level, cell);
-        // its tiles: those in its cell of the level's grid
+        // its tiles: those in its cell of the level's grid; their particles by target
         let n = 0;
-        for (const t of base.tiles.values()) if (ParticleTiles.getLevelCell(4, t.id, level) === cell) n += t.count;
+        const byTarget = new Map<number, number>();
+        for (const t of base.tiles.values()) {
+          if (ParticleTiles.getLevelCell(4, t.id, level) !== cell) continue;
+          n += t.count;
+          for (let i = t.base; i < t.base + t.count; ++i) {
+            const target = ParticleValues.get(whole.targets, i);
+            byTarget.set(target, (byTarget.get(target) ?? 0) + 1);
+          }
+        }
         if (n === 0) {
           expect(id).toBeUndefined();
           continue;
         }
         const node = set.tiles.get(id!)!;
-        // every 8^level-th of their particles, its slots after the particles'
-        expect(node.count).toBe(Math.ceil(n / 8 ** level));
+        // of each target every 8^level-th of its particles there (at least one), its slots after the particles'
+        let kept = 0;
+        for (const c of byTarget.values()) kept += Math.ceil(c / 8 ** level);
+        expect(node.count).toBe(kept);
         expect(node.base).toBeGreaterThanOrEqual(base.count);
         const nodeList = await resolve(set.provider.getTile(id!, 0));
         expect(nodeList.count).toBe(node.count);
-        expect(nodeList.scale).toBe(2 ** level);
+        // each target's sample drawn larger by its own scale: its volume kept (its particles over those kept, cubed)
+        expect(nodeList.scale).toBeUndefined();
+        const keptOf = new Map<number, number>();
+        for (let i = 0; i < nodeList.count; ++i) {
+          const target = ParticleValues.get(nodeList.targets, i);
+          keptOf.set(target, (keptOf.get(target) ?? 0) + 1);
+        }
+        for (let i = 0; i < nodeList.count; ++i) {
+          const target = ParticleValues.get(nodeList.targets, i);
+          expect(ParticleValues.get(nodeList.scales!, i)).toBeCloseTo(
+            Math.cbrt(byTarget.get(target)! / keptOf.get(target)!),
+            5,
+          );
+        }
         const targets = new Set<number>();
         for (let i = 0; i < nodeList.count; ++i) {
           // a copy of a particle of its tiles: its key that particle's index
@@ -365,5 +393,155 @@ describe('ParticlePackSource.batched', () => {
     expect(signals[0].aborted).toBe(true);
     const settled = await Promise.allSettled(reads);
     expect(settled.map((s) => s.status)).toEqual(['rejected', 'rejected']);
+  });
+});
+
+describe('a nested particle pack read by range', () => {
+  /** a template of 40,000 particles (two tiles an axis), placed by two copies */
+  function createNestedList(): ParticleList {
+    let seed = 5;
+    const random = () => ((seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31) * 200 - 100;
+    const n = 40_000;
+    const template: ParticleList = {
+      label: 'spread',
+      count: n,
+      coordinates: Float32Array.from({ length: n * 3 }, random),
+      rotations: Float32Array.from({ length: n * 4 }, (_, k) => (k % 4 === 3 ? 1 : 0)),
+      targets: Int32Array.from({ length: n }, (_, i) => i % 3),
+      targetInfo: new Map([
+        [0, { name: 'a' }],
+        [1, { name: 'b' }],
+        [2, { name: 'c' }],
+      ]),
+      getParticleLabel: (i) => `${i}`,
+      sourceData: { kind: 'test', name: 'test', data: undefined },
+      customProperties: new CustomProperties(),
+      _propertyData: Object.create(null),
+    };
+    return {
+      label: 'nested',
+      count: 2,
+      coordinates: Float32Array.of(0, 0, 0, 300, 0, 0),
+      targets: new Int32Array(2),
+      targetInfo: new Map([[0, { name: 'copy' }]]),
+      targetMapping: new Map<number, ParticleTarget>([[0, { kind: 'particles', particles: template }]]),
+      getParticleLabel: (i) => `${i}`,
+      sourceData: { kind: 'test', name: 'test', data: undefined },
+      customProperties: new CustomProperties(),
+      _propertyData: Object.create(null),
+    };
+  }
+
+  it("reads its templates' runs, directories and levels, their particles by range when asked", async () => {
+    const bytes = writeParticlePack(createNestedList());
+    const whole = createParticleListFromPack(readParticlePack(bytes));
+    const stream = await openParticlePackStream(ParticlePackSource.fromBytes(bytes));
+    expect(isParticlePackListStreamable(stream.document)).toBe(true);
+    const list = await openParticleListFromPackStream(stream);
+    const [tw, ts] = [whole, list].map((l) => ParticleNesting.getTemplate(l, 0)!.particles);
+    // the template deferred: its arrays empty (their kinds), its counts and runs as read whole
+    const deferred = Particle.getDeferred(ts)!;
+    expect(deferred).toBeDefined();
+    expect(Particle.getDeferred(tw)).toBeUndefined();
+    expect(ts.count).toBe(tw.count);
+    expect(GridPositions.is(ts.coordinates) && GridPositions.count(ts.coordinates)).toBe(0);
+    expect(ts.targets).toEqual(tw.targets);
+    expect(ParticleTiles.getDirectory(ts)).toBeDefined();
+    // its levels stored, as the whole read's
+    const [lw, ls] = [whole, list].map((l, i) => ParticleNesting.getTemplateLevels(l, [tw, ts][i]));
+    expect(ls.map((l) => Array.from(l.indices))).toEqual(lw.map((l) => Array.from(l.indices)));
+    // a range of its particles read: as the whole read's
+    const first = 8192;
+    const count = 8192;
+    const read = await deferred.read(first, count);
+    expect(Array.from(read.positions)).toEqual(
+      Array.from((tw.coordinates as GridPositions).data.subarray(first * 2, (first + count) * 2)),
+    );
+    expect(Array.from(read.rotations!)).toEqual(Array.from(tw.rotations!.subarray(first * 4, (first + count) * 4)));
+    // what reads its particles refuses it (a subset gathered)
+    expect(() => Particle.subset(ts, Int32Array.of(0, 1))).toThrow(/read by range/);
+    expect(() => ParticleNesting.flatten(list)).toThrow(/read by range/);
+    expect(() => writeParticlePack(list)).toThrow(/read by range/);
+    expect(Vec3.distance(Particle.getBoundary(ts).sphere.center, Particle.getBoundary(tw).sphere.center)).toBe(0);
+  });
+
+  it("bounds a loci of its copies held in part by its template's tiles, not its particles", async () => {
+    const bytes = writeParticlePack(createNestedList());
+    const whole = createParticleListFromPack(readParticlePack(bytes));
+    const list = await openParticleListFromPackStream(
+      await openParticlePackStream(ParticlePackSource.fromBytes(bytes)),
+    );
+    const [tw, ts] = [whole, list].map((l) => ParticleNesting.getTemplate(l, 0)!.particles);
+    /** the spheres of `loci` of the whole read and the read by range: the latter holds the former */
+    const spheres = (of: (l: ParticleList, t: ParticleList) => Particle.Loci) => {
+      const [w, s] = [whole, list].map((l, i) => Particle.getBoundingSphere(of(l, [tw, ts][i]), Sphere3D()));
+      expect(Vec3.distance(w.center, s.center) + w.radius).toBeLessThanOrEqual(s.radius + 1e-3);
+      return [w, s];
+    };
+    // a page's particles in both copies, a particle of one copy (a set too small to bound by its own sphere)
+    const [w, s] = spheres((l, t) => ParticleNesting.selectInTemplate(l, t, (j) => j < 8192));
+    expect(s.radius).toBeLessThan(w.radius * 1.5);
+    spheres((l) => ParticleNesting.ofInstance(l, 1, 5));
+    // a copy whole: its template's boundary, as read whole
+    const [cw, cs] = spheres((l) => ParticleNesting.ofCopy(l, 0));
+    expect(cs.radius).toBeCloseTo(cw.radius, 3);
+  });
+
+  it("keeps its templates' pages read in one cache: a page read once, a loci bounded by its particles where kept", async () => {
+    const bytes = writeParticlePack(createNestedList());
+    const whole = createParticleListFromPack(readParticlePack(bytes));
+    const tw = ParticleNesting.getTemplate(whole, 0)!.particles;
+    /** the list read by range from a source counting its reads, its cache of `pageCacheBytes` */
+    const open = async (pageCacheBytes?: number) => {
+      const inner = ParticlePackSource.fromBytes(bytes);
+      const counter = { reads: 0 };
+      const source = {
+        byteLength: inner.byteLength,
+        read: (offset: number, length: number) => {
+          counter.reads += 1;
+          return inner.read(offset, length);
+        },
+      };
+      const list = await openParticleListFromPackStream(await openParticlePackStream(source), { pageCacheBytes });
+      counter.reads = 0;
+      return { list, counter, deferred: Particle.getDeferred(ParticleNesting.getTemplate(list, 0)!.particles)! };
+    };
+    const { list, counter, deferred } = await open();
+    // a particle of the second copy: by its tile's box, no read begun
+    const loci = ParticleNesting.ofInstance(list, 1, 5);
+    const exact = Particle.getBoundingSphere(ParticleNesting.ofInstance(whole, 1, 5), Sphere3D());
+    const byTile = Particle.getBoundingSphere(loci, Sphere3D());
+    expect(counter.reads).toBe(0);
+    expect(deferred.getPage(0)).toBeUndefined();
+    // a particle of a stored level (a coarse copy's click): by its position there, its page not read
+    const stored = Particle.getStoredLevels(ParticleNesting.getTemplate(list, 0)!.particles)!;
+    const coarse = stored[0].keys.find((k) => k >> 13 === 1)!;
+    const inLevel = Particle.getBoundingSphere(ParticleNesting.ofInstance(list, 1, coarse), Sphere3D());
+    const inWhole = Particle.getBoundingSphere(ParticleNesting.ofInstance(whole, 1, coarse), Sphere3D());
+    expect(Vec3.distance(inLevel.center, inWhole.center)).toBeLessThan(1e-3);
+    expect(inLevel.radius).toBeCloseTo(inWhole.radius, 3);
+    expect(counter.reads).toBe(0);
+    expect(deferred.getPage(1)).toBeUndefined();
+    // its page read (its positions and rotations: a read each), once while in flight, kept: by its position then
+    const [p0, again] = await Promise.all([deferred.readPage(0), deferred.readPage(0)]);
+    expect(again).toBe(p0);
+    expect(counter.reads).toBe(2);
+    expect(Array.from(p0.positions)).toEqual(Array.from((tw.coordinates as GridPositions).data.subarray(0, 8192 * 2)));
+    expect(deferred.getPage(0)).toBe(p0);
+    await deferred.readPage(0);
+    expect(counter.reads).toBe(2);
+    const byPosition = Particle.getBoundingSphere(loci, Sphere3D());
+    expect(Vec3.distance(byPosition.center, exact.center)).toBeLessThan(1e-3);
+    expect(byPosition.radius).toBeCloseTo(exact.radius, 3);
+    expect(byPosition.radius).toBeLessThan(byTile.radius / 10);
+
+    // a cache of a page's bytes: the next page read lets the first go, its loci by its tile again
+    const small = await open(p0.positions.byteLength + (p0.rotations?.byteLength ?? 0));
+    await small.deferred.readPage(0);
+    await small.deferred.readPage(1);
+    expect(small.deferred.getPage(0)).toBeUndefined();
+    expect(small.deferred.getPage(1)).toBeDefined();
+    const later = Particle.getBoundingSphere(ParticleNesting.ofInstance(small.list, 1, 5), Sphere3D());
+    expect(later.radius).toBeCloseTo(byTile.radius, 3);
   });
 });

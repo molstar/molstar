@@ -31,7 +31,10 @@ export function createClipping(count: number, type: ClippingType, clippingData?:
     Math.max(1, count),
     1,
     Uint8Array,
-    clippingData && clippingData.tClipping.ref.value.array,
+    // its array reused, not the empty one: shared by every object (one's layer another's)
+    clippingData && clippingData.tClipping.ref.value !== emptyClippingTexture
+      ? clippingData.tClipping.ref.value.array
+      : undefined,
   );
   if (clippingData) {
     ValueCell.update(clippingData.tClipping, clipping);

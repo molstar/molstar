@@ -8,7 +8,14 @@ import { CustomProperties } from '../custom-property.js';
 import type { ModelFormat } from '../../formats/format.js';
 import type { Cell } from '@molstar/core/math/geometry/spacegroup/cell';
 import type { Sphere3D } from '@molstar/core/math/geometry/primitives/sphere3d';
-import { concatAttributes, concatPositions, concatRotations, concatValues, type Segment } from './particle-concat.js';
+import {
+  concatAttributes,
+  concatPositions,
+  concatRotations,
+  concatScales,
+  concatValues,
+  type Segment,
+} from './particle-concat.js';
 import {
   Particle,
   type ParticleCompartmentInfo,
@@ -267,6 +274,8 @@ export namespace ParticleSlots {
       coordinates: concatPositions(segments, count),
       rotations: concatRotations(segments, count),
       radii: all((l) => l.radii) ? concatValues(segments, count, (l) => l.radii!, Float32Array) : undefined,
+      // its pages' coarse nodes drawn larger (`ParticleList.scale`, `scales`), as the page store draws them
+      scales: concatScales(segments, count),
       attributes: concatAttributes(segments, count),
       getParticleLabel: (index) => {
         let p = 0;

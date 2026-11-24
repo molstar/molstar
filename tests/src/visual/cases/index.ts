@@ -11,6 +11,7 @@ import { GeometryCases } from './geometry.js';
 import { GpuPathCases } from './gpu-paths.js';
 import { MergedCases } from './merged.js';
 import { OverlayCases } from './overlay.js';
+import { ParticleCases } from './particles.js';
 import { PostprocessingCases } from './postprocessing.js';
 import { RendererCases } from './renderer.js';
 import { ShaderVariantCases } from './shader-variants.js';
@@ -30,6 +31,7 @@ export const AllCases: VisualTestCase[] = [
   ...GpuPathCases,
   ...OverlayCases,
   ...SphereRasterCases,
+  ...ParticleCases,
 ];
 
 const ids = new Set<string>();

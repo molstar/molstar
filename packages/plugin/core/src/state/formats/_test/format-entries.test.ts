@@ -44,6 +44,7 @@ import { Xsc } from '../coordinates/xsc.js';
 import { Ply } from '../shape/ply.js';
 import { Obj } from '../shape/obj.js';
 import { Vtp } from '../shape/vtp.js';
+import { Sog, Splat, Spz } from '../shape/gaussian-splat.js';
 import { ParticleListFromRelionStar, RelionStarParticles } from '../particles/star.js';
 import { DynamoTblParticles, ParticleListFromDynamoTbl } from '../particles/tbl.js';
 import { CryoEtDataPortalNdjsonParticles, ParticleListFromCryoEtDataPortalNdjson } from '../particles/ndjson.js';
@@ -101,6 +102,9 @@ const Shape: Spec[] = [
   { entry: Ply, provider: BuiltInShapeFormats[0] },
   { entry: Obj, provider: BuiltInShapeFormats[1] },
   { entry: Vtp, provider: BuiltInShapeFormats[2] },
+  { entry: Splat, provider: BuiltInShapeFormats[3] },
+  { entry: Spz, provider: BuiltInShapeFormats[4] },
+  { entry: Sog, provider: BuiltInShapeFormats[5] },
 ];
 const Particles: Spec[] = [
   {

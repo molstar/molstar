@@ -17,6 +17,7 @@ import { Camera } from '../camera.js';
 import { cameraUnproject } from '../camera/util.js';
 import { Viewport } from '../camera/util.js';
 import type { Helper } from './helper.js';
+import { prepareLayerCulls } from '../passes/overlay.js';
 import {
   type AsyncPickData,
   createAsyncPickData,
@@ -72,12 +73,16 @@ export class RayHelper {
     // never-reused frame token, so it can never share/collide with the main draw's frame
     // the overlay is not tested against the scene depth of the last draw: this camera is not the drawn one
     const frame = createFrame();
-    // no pass open yet: GPU culling for this camera of the objects that draw nothing without (a page store's)
+    // no pass open yet: GPU culling for this camera of the objects culled on the GPU
     if (this.renderBuilder.drawing) {
       renderer.update(camera, scene, frame);
       renderer.prepareCullView(scene.primitives);
+      // and the overlay's and the screen layer's for their cameras of it
+      prepareLayerCulls(renderer, camera, helper, frame);
     }
     this.pickPass.render(this.renderBuilder, renderer, camera, scene, helper, frame, false);
+    // a page store's picks resolved before they are read (`PickPass.resolvePaged`); its kernel compiling, none picked
+    this.unresolved = this.renderBuilder.drawing && !this.pickPass.resolvePaged(scene);
 
     if (isTimingMode) this.graphics.timer.groupEnd('RayHelper.render');
   }
@@ -118,7 +123,11 @@ export class RayHelper {
     Mat4.copy(this.camera.viewEye, cam.view);
   }
 
+  /** the last render's page store picks not resolved (its kernel compiling): nothing picked */
+  private unresolved = false;
+
   private getPickData(): PickData | undefined {
+    if (this.unresolved) return;
     const c = this.pickPadding;
     for (const d of this.spiral) {
       const pickData = this.identifyInternal(c + d[0], c + d[1]);

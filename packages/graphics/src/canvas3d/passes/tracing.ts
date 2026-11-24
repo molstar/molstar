@@ -189,7 +189,11 @@ export class TracingPass {
     // (`setOcclusionPyramid`) and, with `occlusion`, in a second phase against that of its depth so far (as `DrawPass`'s
     // opaque pass); with `clipGhost`, the ghost pass's lists too (drawn when the illuminated image is composed)
     const skippedDraws = this.graphics.stats.skippedDraws;
-    if (b.drawing) renderer.prepareCull(scene.primitives, !!occlusion, clipGhost);
+    if (b.drawing) {
+      renderer.prepareCull(scene.primitives, !!occlusion, clipGhost);
+      // the gaussian splats' order, for the transparent block of the illuminated image
+      renderer.prepareGaussianSplats(scene, camera);
+    }
     this.inputTarget.depth = this.drawPass.depthTextureOpaque;
     b.begin(this.inputTarget, { label: 'tracing input' });
     if (b.drawing) renderer.clear(true);
@@ -206,11 +210,11 @@ export class TracingPass {
 
     if (props.thicknessMode === 'auto') {
       // the farthest back faces of everything in view, also of what the front hides whole: never culled by the front's
-      // occlusion (its pyramid or lists); a frame of its own, so the merged objects draw the CPU culling's lists
-      // (frustum and levels of detail, the occlusion test is off in illumination)
+      // occlusion (its pyramid or lists); a frame of its own, so the merged objects culled on the GPU are culled for it
+      // there, the others on the CPU (frustum and levels of detail, the occlusion test is off in illumination)
       if (b.drawing) {
         renderer.update(camera, scene, createFrame(), true);
-        // the objects that draw nothing without culled on the GPU for it (a page store's; no pass open)
+        // no pass open
         renderer.prepareCullView(scene.primitives);
       }
       b.begin(this.thicknessPass, {

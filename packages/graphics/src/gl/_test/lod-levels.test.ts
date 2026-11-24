@@ -12,6 +12,8 @@ import { ValueCell } from '@molstar/core/util/value-cell';
 import { Vec4 } from '@molstar/core/math/linear-algebra/3d/vec4';
 import { getLodPixelLevels, getLodPixelLevelsValue } from '@molstar/graphics/geo/geometry/lod-levels';
 import { Spheres } from '@molstar/graphics/geo/geometry/spheres/spheres';
+import { SpheresBuilder } from '@molstar/graphics/geo/geometry/spheres/spheres-builder';
+import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
 import { ParticleTargetRepresentationParams } from '@molstar/graphics/repr/particles/representation/target/common';
 import { createSegmentedMdbList, LodView, type LodLevelsValue } from '../renderable.js';
 
@@ -142,6 +144,29 @@ describe('levels of detail by size on screen', () => {
     const on = values.lodLevels.ref.value as LodLevelsValue & { base?: number };
     expect(on.base).toBe(10);
     expect(on.map((l) => l[4])).toEqual(getLodPixelLevelsValue(count, 3, 1, undefined, 10).map((l) => l[4]));
+  });
+
+  it("draws coarse spheres not quantized (a builder's, WebGL1) as their base's levels, as quantized sites of that stride", () => {
+    const count = 100;
+    const lod = { lodPixelSize: 3, sizeFactor: 1 };
+    const quantized = Spheres.fromSites(
+      { data: new Int16Array(count * 4), origin: Vec3.create(0, 0, 0), scale: 1, stride: 10 },
+      count,
+    );
+    quantized.shaderData.update(lod);
+    const builder = SpheresBuilder.create(count);
+    for (let i = 0; i < count; ++i) builder.add(i, 0, 0, i);
+    const built = builder.getSpheres(10);
+    built.shaderData.update(lod);
+    const levels = (s: Spheres) => s.shaderData.lodLevels.ref.value as LodLevelsValue & { base?: number };
+    expect(levels(built).base).toBe(10);
+    expect(Array.from(levels(built), (l) => [...l])).toEqual(Array.from(levels(quantized), (l) => [...l]));
+    // built again in place: its base the new one's (here none)
+    const again = SpheresBuilder.create(count, count, built);
+    for (let i = 0; i < count; ++i) again.add(i, 0, 0, i);
+    const whole = again.getSpheres();
+    expect(whole).toBe(built);
+    expect(levels(whole).base).toBeUndefined();
   });
 
   it('coarse items (every 10th of a whole): each level drawn as its stride of the whole, the finer ones as the first', () => {

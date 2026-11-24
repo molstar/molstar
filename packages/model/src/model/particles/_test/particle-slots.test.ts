@@ -107,6 +107,26 @@ describe('particle slots', () => {
       expect(ParticleValues.get(flat.entities!, i)).toBe(ParticleValues.get(s.list.entities!, s.index));
       expect(flat.getParticleLabel(i)).toBe(s.list.getParticleLabel(s.index));
     }
+    expect(flat.scales).toBeUndefined();
+
+    // pages of coarse nodes (a scale for all, or by runs): their scales by slot, a plain page's 1
+    const scaled = (page: ParticlePage, scale: Partial<ParticleList>): ParticlePage => ({
+      ...page,
+      list: { ...page.list, ...scale },
+    });
+    const half = ParticleValues.ofRuns(Int32Array.of(0, 5, 15), Float32Array.of(1.5, 3));
+    const coarse = ParticleSlots.flatten(
+      ParticleSlots.create(list, 200, [
+        scaled(pageOf(100, 10, 15), { scale: 2 }),
+        pageOf(0, 0, 10),
+        scaled(pageOf(40, 15, 30), { scales: half }),
+      ]),
+    );
+    for (let i = 0; i < coarse.count; ++i) {
+      const slot = coarse.keys![i];
+      const expected = slot >= 100 ? 2 : slot >= 40 ? (slot - 40 < 5 ? 1.5 : 3) : 1;
+      expect(ParticleValues.get(coarse.scales!, i), `slot ${slot}`).toBe(expected);
+    }
   });
 
   it('adds and removes pages, the others and their slots kept, the changes said', () => {

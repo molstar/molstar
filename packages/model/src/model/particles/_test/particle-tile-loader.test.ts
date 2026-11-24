@@ -265,6 +265,44 @@ describe('particle tile loader', () => {
     loader.dispose();
   });
 
+  it('loads a failed tile again as its wait ends where still wanted, not wanted again (a camera still)', async () => {
+    const { set, fail, calls } = delayed(base);
+    const loader = createParticleTileLoader(set);
+    const key = `${ids[3]}@0`;
+    const loads = () => calls.tiles.filter((t) => t === key).length;
+    fail.add(key);
+    // wanted once, as a view whose pick does not change
+    loader.setWanted([{ id: ids[3], frame: 0 }]);
+    await step();
+    expect(loader.getState(ids[3], 0)).toBe('failed');
+    // the first wait over: loaded again, failing again
+    await step(ParticleTileRetryDelaysMs[0]);
+    expect(loads()).toBe(2);
+    await step();
+    expect(loader.getState(ids[3], 0)).toBe('failed');
+    // the request no longer dropped: the second wait over, loaded
+    fail.clear();
+    await step(ParticleTileRetryDelaysMs[1]);
+    expect(loads()).toBe(3);
+    await step();
+    expect(loader.getState(ids[3], 0)).toBe('ready');
+
+    // a tile no longer wanted as its wait ends: failed still, loaded again once wanted again
+    const other = `${ids[4]}@0`;
+    fail.add(other);
+    loader.setWanted([{ id: ids[4], frame: 0 }]);
+    await step();
+    loader.setWanted([]);
+    await step(ParticleTileRetryDelaysMs[0]);
+    expect(calls.tiles.filter((t) => t === other).length).toBe(1);
+    expect(loader.getState(ids[4], 0)).toBe('failed');
+    fail.clear();
+    loader.setWanted([{ id: ids[4], frame: 0 }]);
+    await step();
+    expect(loader.getState(ids[4], 0)).toBe('ready');
+    loader.dispose();
+  });
+
   it('loads a trajectory frame wanted ahead, the frames apart', async () => {
     const frames = [createList(), createList()];
     const trajectory = { frameCount: 2, representative: frames[0], getFrameAtIndex: (i: number) => frames[i] };

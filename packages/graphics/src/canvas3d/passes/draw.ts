@@ -476,6 +476,7 @@ export class DrawPass {
       // evaluate dpoit
       b.begin(this.pass(target, 'none'), { label: 'dpoit evaluate' });
       this.dpoit.render(b);
+      this.renderGaussianSplats(b, renderer, camera, scene, target);
     }
 
     if (PostprocessingPass.isEnabled(scene, postprocessingProps)) {
@@ -541,6 +542,7 @@ export class DrawPass {
       // evaluate wboit
       b.begin(this.pass(target, depth), { label: 'wboit evaluate' });
       this.wboit.render(b);
+      this.renderGaussianSplats(b, renderer, camera, scene, target);
     }
 
     if (PostprocessingPass.isEnabled(scene, postprocessingProps)) {
@@ -644,6 +646,12 @@ export class DrawPass {
         b.renderer({ name: 'blendedTransparent' }, scene.primitives, () =>
           renderer.renderBlendedTransparent(scene.primitives, camera),
         );
+        // in the same pass, on the opaque depth
+        if (scene.hasGaussianSplats) {
+          b.renderer({ name: 'gaussianSplats' }, scene.primitives, () =>
+            renderer.renderGaussianSplats(scene.primitives, camera),
+          );
+        }
       }
 
       if (isPostprocessingEnabled) {
@@ -659,7 +667,30 @@ export class DrawPass {
       b.renderer({ name: 'blendedTransparent' }, scene.primitives, () =>
         renderer.renderBlendedTransparent(scene.primitives, camera),
       );
+      if (scene.hasGaussianSplats) {
+        b.renderer({ name: 'gaussianSplats' }, scene.primitives, () =>
+          renderer.renderGaussianSplats(scene.primitives, camera),
+        );
+      }
     }
+  }
+
+  /**
+   * Gaussian splats over the composite of the other transparency on `target` (OIT), tested against the opaque depth:
+   * blended back to front, which the OIT modes can't do
+   */
+  private renderGaussianSplats(
+    b: PassBuilder,
+    renderer: Renderer,
+    camera: ICamera,
+    scene: Scene,
+    target: RenderTarget,
+  ) {
+    if (!scene.hasGaussianSplats) return;
+    b.begin(this.pass(target, 'opaque-texture'), { label: 'gaussian splats' });
+    b.renderer({ name: 'gaussianSplats' }, scene.primitives, () =>
+      renderer.renderGaussianSplats(scene.primitives, camera),
+    );
   }
 
   private planEye(
@@ -723,6 +754,8 @@ export class DrawPass {
       renderer.update(camera, scene, frame);
       // no pass open yet: GPU culling for the frame's passes with this camera (others draw the CPU culling's lists)
       renderer.prepareCull(scene.primitives, !!this.occlusion, clipGhostEnabled);
+      // and the gaussian splats' order for this view (compute on WebGPU)
+      renderer.prepareGaussianSplats(scene, camera);
       // and the sphere raster of this view, resolved in its opaque pass
       renderer.prepareSphereRaster(scene.primitives, camera);
     }

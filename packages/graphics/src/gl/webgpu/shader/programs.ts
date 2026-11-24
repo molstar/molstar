@@ -18,6 +18,7 @@ import { lines_wgsl } from './lines.wgsl.js';
 import { mesh_wgsl } from './mesh.wgsl.js';
 import { multi_sample_compose_wgsl } from './multi-sample.wgsl.js';
 import { points_wgsl } from './points.wgsl.js';
+import { gaussian_splats_wgsl } from './gaussian-splats.wgsl.js';
 import { background_wgsl } from './background.wgsl.js';
 import { cas_wgsl } from './cas.wgsl.js';
 import { direct_volume_wgsl } from './direct-volume.wgsl.js';
@@ -63,7 +64,8 @@ const GridTypes = new Set(['volume', 'volumeInstance']);
 function getUnsupported(
   geometryTypes: string | string[],
   defines: DefineValues,
-  options: { solidInterior?: boolean; grid?: boolean } = {},
+  /** `direct`: the geometry's own colors, read by its shader (SOG's splats) */
+  options: { solidInterior?: boolean; grid?: boolean; direct?: boolean } = {},
 ) {
   const variant = value(defines, 'dRenderVariant');
   if (!PortedVariants.includes(variant as string)) {
@@ -73,7 +75,9 @@ function getUnsupported(
   if (!([] as string[]).concat(geometryTypes).includes(geometryType)) return `geometry type '${geometryType}'`;
   const isSupported = (t: string) => InstanceTypes.has(t) || (!!options.grid && GridTypes.has(t));
   const color = value(defines, 'dColorType') as string;
-  if (!ColorTypes.has(color) && !(options.grid && color === GridColorType)) return `color type '${color}'`;
+  if (!ColorTypes.has(color) && !(options.grid && color === GridColorType) && !(options.direct && color === 'direct')) {
+    return `color type '${color}'`;
+  }
   for (const type of ['dOverpaintType', 'dTransparencyType', 'dEmissiveType', 'dSubstanceType']) {
     const v = value(defines, type) as string | undefined;
     if (v !== undefined && !isSupported(v)) return `${type} '${v}'`;
@@ -175,6 +179,11 @@ const Programs: { [name: string]: WgslProgram } = {
     source: points_wgsl,
     variants: ['color', 'pick', 'depth', 'marking', 'emissive', 'tracing'],
     getUnsupported: (d) => getUnsupported('points', d),
+  },
+  'gaussian-splats': {
+    source: gaussian_splats_wgsl,
+    variants: ['color', 'pick', 'depth', 'marking', 'emissive', 'tracing'],
+    getUnsupported: (d) => getUnsupported('gaussianSplats', d, { direct: true }),
   },
 };
 registerBuiltInWgslPrograms(Programs);

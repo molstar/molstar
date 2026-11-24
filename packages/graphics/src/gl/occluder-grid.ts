@@ -18,6 +18,13 @@ export interface OccluderGrid {
   readonly max: Vec3;
   readonly dimensions: readonly [number, number, number];
   readonly density: Float32Array;
+  /** its state of `density` where the array is written in place (a new version each time) */
+  readonly version?: number;
+  /**
+   * what changed from version `from` (the same `density`): the boxes of cells written, `[x0, y0, z0, x1, y1, z1)` six a
+   * box: its upload those cells' alone where the last uploaded is that version
+   */
+  readonly update?: { readonly from: number; readonly boxes: Int32Array };
 }
 
 /** per object's state (its render object's and renderable's, the same object: a merged object's values copied) its grid */

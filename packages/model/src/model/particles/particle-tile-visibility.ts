@@ -41,7 +41,7 @@ export interface ParticleTileVisibilityOptions {
   readonly minPixels?: number;
   /** whether tiles hide those behind them, true by default */
   readonly occlusion?: boolean;
-  /** the optical depth a ray gathers to be stopped: 7 by default (under 0.1% passes) */
+  /** the optical depth a ray gathers to be stopped: 3 by default (under 5% passes) */
   readonly opticalDepth?: number;
   /** the depth buffer's pixels a side, 64 by default */
   readonly resolution?: number;
@@ -73,6 +73,44 @@ export interface ParticleTileDrawing {
 /** a block cut by a clip surface split in eight at most this many times (a part a 512th of the block at 3) */
 const ClipSplitDepth = 3;
 
+/** a pick's candidates by slot (`ParticleTileVisibility.get`): arrays grown to the largest set seen, reused */
+interface CandidateScratch {
+  readonly index: Int32Array;
+  readonly size: Float64Array;
+  readonly distance: Float64Array;
+  readonly scale: Float64Array;
+  readonly exposure: Float64Array;
+  readonly depth: Float64Array;
+  readonly kept: Uint32Array;
+  /** slots `0..count-1` in order, in an array of its own of the scratch (two at once: the candidates, their order) */
+  slots(count: number): Uint32Array;
+}
+
+let candidateScratch: (CandidateScratch & { readonly capacity: number }) | undefined;
+function getCandidateScratch(n: number): CandidateScratch {
+  if (candidateScratch && candidateScratch.capacity >= n) return candidateScratch;
+  const capacity = Math.max(n, 1024);
+  const lists = [new Uint32Array(capacity), new Uint32Array(capacity)];
+  let next = 0;
+  candidateScratch = {
+    capacity,
+    index: new Int32Array(capacity),
+    size: new Float64Array(capacity),
+    distance: new Float64Array(capacity),
+    scale: new Float64Array(capacity),
+    exposure: new Float64Array(capacity),
+    depth: new Float64Array(capacity),
+    kept: new Uint32Array(capacity),
+    slots(count: number) {
+      const out = lists[next].subarray(0, count);
+      next = 1 - next;
+      for (let i = 0; i < count; ++i) out[i] = i;
+      return out;
+    },
+  };
+  return candidateScratch;
+}
+
 /** A tile that would show something */
 export interface ParticleTileVisible {
   readonly id: number;
@@ -80,6 +118,11 @@ export interface ParticleTileVisible {
   readonly size: number;
   /** the camera's distance to its reach (0 inside) */
   readonly distance: number;
+  /**
+   * the pixels an Å makes at its box (the camera's distance to its cell, not its reach: the same for tiles alike far
+   * whatever they hold), Infinity within it
+   */
+  readonly scale: number;
   /**
    * how much of it is seen: the light through the tiles in front of it to its pixels, the mean of exp(-their optical
    * depth), 1 with nothing in front (or without occlusion)
@@ -105,6 +148,7 @@ export interface ParticleTileVisibility {
 const _block = Box3D();
 const _sphere = Sphere3D();
 const _cell = Box3D();
+const _reach = Box3D();
 const NoDrawings: readonly ParticleTileDrawing[] = [];
 const NoBits: readonly number[] = [];
 const _clip = new Float64Array(4);
@@ -132,28 +176,37 @@ export namespace ParticleTileVisibility {
     Frustum3D.fromProjectionMatrix(_frustum, camera.viewProjection);
     const culled = { frustum: 0, clipped: 0, size: 0, occluded: 0 };
 
-    // in view and on screen, by the reach: the box grown by the largest radius of the tile's targets
-    const candidates: { tile: ParticleTile; reach: Box3D; size: number; distance: number; exposure: number }[] = [];
-    const radii = getTileRadii(set);
-    for (const tile of set.tiles.values()) {
-      const radius = radii.get(tile.id);
-      const grow = radius ?? 0;
-      const reach = Box3D.create(
-        Vec3.create(tile.box.min[0] - grow, tile.box.min[1] - grow, tile.box.min[2] - grow),
-        Vec3.create(tile.box.max[0] + grow, tile.box.max[1] + grow, tile.box.max[2] + grow),
-      );
+    // in view and on screen, by the reach: the box grown by the largest radius of the tile's targets. The candidates by
+    // their index in the set's tiles, their values in arrays reused across calls, their reach read again where tested:
+    // no object nor box made a tile (thousands in view, a pick every few frames while moving)
+    const { tiles: tileList, reaches, radii: tileRadius } = getTileReaches(set);
+    const scratch = getCandidateScratch(tileList.length);
+    const { index, size: sizes, distance: distances, scale: scales, exposure: exposures, depth: depths } = scratch;
+    const loadReach = (k: number, out: Box3D) => {
+      const b = k * 6;
+      Vec3.set(out.min, reaches[b], reaches[b + 1], reaches[b + 2]);
+      Vec3.set(out.max, reaches[b + 3], reaches[b + 4], reaches[b + 5]);
+      return out;
+    };
+    // a reach clipped whole only where every drawing clips
+    const allClip = drawings.every((d) => !!d.clip);
+    let count = 0;
+    for (let k = 0; k < tileList.length; ++k) {
+      const tile = tileList[k];
+      const radius = tileRadius[k];
+      const reach = loadReach(k, _reach);
       if (!Frustum3D.intersectsBox3D(_frustum, reach)) {
         culled.frustum += 1;
         continue;
       }
       // all of its reach clipped by every drawing: nothing of it shows
-      if (drawings.every((d) => d.clip && clipsWhole(d.clip, reach, 0))) {
+      if (allClip && drawings.every((d) => clipsWhole(d.clip!, reach, 0))) {
         culled.clipped += 1;
         continue;
       }
       const distance = distanceToBox(reach, eye);
       let size = Infinity;
-      if (radius !== undefined) {
+      if (!Number.isNaN(radius)) {
         if (camera.orthographic) size = radius * pixelScale;
         else if (distance > 0) size = (radius * pixelScale) / distance;
       }
@@ -161,42 +214,74 @@ export namespace ParticleTileVisibility {
         culled.size += 1;
         continue;
       }
-      candidates.push({ tile, reach, size, distance, exposure: 1 });
+      const boxDistance = camera.orthographic ? 1 : distanceToBox(tile.box, eye);
+      index[count] = k;
+      sizes[count] = size;
+      distances[count] = distance;
+      scales[count] = camera.orthographic ? pixelScale : boxDistance > 0 ? pixelScale / boxDistance : Infinity;
+      exposures[count] = 1;
+      count += 1;
     }
 
-    let visible = candidates;
-    if (occlusion && candidates.some((c) => c.tile.opacity)) {
-      const buffer = new OpticalBuffer(options.resolution ?? 64, camera, options.opticalDepth ?? 7);
+    // the visible candidates (their slots), in their order
+    let visible: ArrayLike<number> = scratch.slots(count);
+    let opaqueSome = false;
+    for (let c = 0; c < count && !opaqueSome; ++c) if (tileList[index[c]].opacity) opaqueSome = true;
+    if (occlusion && opaqueSome) {
+      const buffer = OpticalBuffer.get(options.resolution ?? 64, camera, options.opticalDepth ?? 3);
       const blocks = getTileBlocks(set);
       // front to back: each tile tested against what is in front of it, then its blocks added where it is kept
-      const order = candidates
-        .map((c) => ({ c, depth: nearestDepth(c.reach, eye, dir) }))
-        .sort((a, b) => a.depth - b.depth || a.c.distance - b.c.distance);
-      visible = [];
-      for (const { c } of order) {
-        if (buffer.hides(c.reach)) {
+      const order = scratch.slots(count);
+      for (let c = 0; c < count; ++c) depths[c] = nearestDepth(loadReach(index[c], _reach), eye, dir);
+      order.sort((x, y) => depths[x] - depths[y] || distances[x] - distances[y] || x - y);
+      const kept = scratch.kept;
+      let keptCount = 0;
+      for (let o = 0; o < count; ++o) {
+        const c = order[o];
+        const tile = tileList[index[c]];
+        const reach = loadReach(index[c], _reach);
+        // its pixels once for its tests (the buffer unchanged between them)
+        const r = buffer.rect(reach);
+        if (buffer.hidesRect(r, depths[c])) {
           culled.occluded += 1;
           continue;
         }
-        c.exposure = buffer.exposure(c.reach);
-        visible.push(c);
-        const tileBlocks = blocks.get(c.tile.id);
-        if (!tileBlocks || (options.isOpaque && !options.isOpaque(c.tile))) continue;
+        exposures[c] = buffer.exposureRect(r);
+        kept[keptCount++] = c;
+        const tileBlocks = blocks.get(tile.id);
+        if (!tileBlocks || (options.isOpaque && !options.isOpaque(tile))) continue;
         // nothing to add where every ray through it is opaque already
-        if (buffer.isOpaque(c.reach)) continue;
+        if (r && buffer.isOpaqueRect(r)) continue;
         // its cell against the shapes first: kept whole or clipped away whole by them, its blocks not tested one by one
         // (a shape about a whole cell, thousands of tiles in view)
-        const tileClass = classifyBox(shaped, shapedPlaneBits, ParticleTileGrid.getBox(set.grid, c.tile.id, _cell));
+        const tileClass = classifyBox(shaped, shapedPlaneBits, ParticleTileGrid.getBox(set.grid, tile.id, _cell));
         if (tileClass === Clip.SphereClass.All) continue;
+        // no clip object cutting it: its blocks by the rays' walk through its cell (a block's own of a uniform one)
+        const opacity = tile.opacity;
+        if (planes.length === 0 && tileClass === Clip.SphereClass.None && tileBlocks.length > 1 && opacity) {
+          buffer.addGrid(_cell, opacity.dimensions, opacity.density);
+          continue;
+        }
         const byBlock = tileClass === Clip.SphereClass.Some ? shaped : NoDrawings;
         const byBlockBits = tileClass === Clip.SphereClass.Some ? shapedPlaneBits : NoBits;
         for (const { box, density } of tileBlocks) {
           if (clipBox(box, planes, _block)) addKept(buffer, _block, density, byBlock, byBlockBits, splitDepth, 0);
         }
       }
+      visible = kept.subarray(0, keptCount);
     }
 
-    const tiles = visible.map(({ tile, size, distance, exposure }) => ({ id: tile.id, size, distance, exposure }));
+    const tiles: ParticleTileVisible[] = new Array(visible.length);
+    for (let v = 0; v < visible.length; ++v) {
+      const c = visible[v];
+      tiles[v] = {
+        id: tileList[index[c]].id,
+        size: sizes[c],
+        distance: distances[c],
+        scale: scales[c],
+        exposure: exposures[c],
+      };
+    }
     const tenths = (e: number) => Math.round(e * 10);
     tiles.sort(
       (a, b) => tenths(b.exposure) - tenths(a.exposure) || b.size - a.size || a.distance - b.distance || a.id - b.id,
@@ -366,6 +451,18 @@ function getClipPlanes(clip: Clip.Objects): Plane3D[] {
   return out;
 }
 
+/**
+ * the largest radius of `set`'s targets (those known; undefined where none is): what a set's detail is by, the same
+ * for all its tiles (a tile's own largest would make tiles alike far differ in coarseness by what they hold)
+ */
+export function getParticleTileSetRadius(set: ParticleTileSet): number | undefined {
+  let radius: number | undefined;
+  for (const r of getTileRadii(set).values()) {
+    if (r !== undefined && (radius === undefined || r > radius)) radius = r;
+  }
+  return radius;
+}
+
 /** per tile set (its tiles and catalog) its tiles' largest target radius, undefined where one is unknown */
 
 const tileRadii = new WeakMap<ParticleTileSet['tiles'], Map<number, number | undefined>>();
@@ -387,6 +484,36 @@ function getTileRadii(set: ParticleTileSet) {
   }
   tileRadii.set(set.tiles, radii);
   return radii;
+}
+
+/**
+ * per tile set its tiles in an array, their reach boxes (a tile's box grown by its targets' largest radius, six a
+ * tile) and radii (`getTileRadii`, NaN: none known)
+ */
+const tileReaches = new WeakMap<
+  ParticleTileSet['tiles'],
+  { tiles: ParticleTile[]; reaches: Float64Array; radii: Float64Array }
+>();
+function getTileReaches(set: ParticleTileSet) {
+  let r = tileReaches.get(set.tiles);
+  if (r) return r;
+  const radii = getTileRadii(set);
+  const tiles = [...set.tiles.values()];
+  const reaches = new Float64Array(tiles.length * 6);
+  const radius = new Float64Array(tiles.length);
+  for (let k = 0; k < tiles.length; ++k) {
+    const { id, box } = tiles[k];
+    const value = radii.get(id);
+    radius[k] = value ?? Number.NaN;
+    const grow = value ?? 0;
+    for (let a = 0; a < 3; ++a) {
+      reaches[k * 6 + a] = box.min[a] - grow;
+      reaches[k * 6 + 3 + a] = box.max[a] + grow;
+    }
+  }
+  r = { tiles, reaches, radii: radius };
+  tileReaches.set(set.tiles, r);
+  return r;
 }
 
 interface Block {
@@ -476,16 +603,28 @@ class OpticalBuffer {
   private readonly back: Float64Array;
   private readonly opaque: Float64Array;
 
+  /** the last buffer of a resolution: its arrays reset for the next pick (`get`), not made again a pick */
+  private static last: OpticalBuffer | undefined;
+
+  /** a buffer of `n` pixels a side for `camera`: the last one's arrays where of `n`, reset */
+  static get(n: number, camera: ParticleTileCamera, opticalDepth: number) {
+    const last = OpticalBuffer.last;
+    const buffer = new OpticalBuffer(n, camera, opticalDepth, last && last.n === n ? last : undefined);
+    OpticalBuffer.last = buffer;
+    return buffer;
+  }
+
   constructor(
     readonly n: number,
     readonly camera: ParticleTileCamera,
     readonly opticalDepth: number,
+    reuse?: OpticalBuffer,
   ) {
     const m = n + 1;
-    this.rays = new Float64Array(m * m * RayStride);
-    this.sum = new Float64Array(m * m);
-    this.back = new Float64Array(m * m).fill(-Infinity);
-    this.opaque = new Float64Array(m * m).fill(Infinity);
+    this.rays = reuse ? reuse.rays : new Float64Array(m * m * RayStride);
+    this.sum = reuse ? reuse.sum.fill(0) : new Float64Array(m * m);
+    this.back = (reuse ? reuse.back : new Float64Array(m * m)).fill(-Infinity);
+    this.opaque = (reuse ? reuse.opaque : new Float64Array(m * m)).fill(Infinity);
     const { position: eye, direction: dir, orthographic } = camera;
     Mat4.invert(_invVP, camera.viewProjection);
     const r = this.rays;
@@ -563,7 +702,12 @@ class OpticalBuffer {
     const { position: eye, direction: dir } = this.camera;
     const nearest = nearestDepth(box, eye, dir);
     if (nearest <= (this.camera.near ?? 0)) return false;
-    const r = this.rect(box);
+    return this.hidesRect(this.rect(box), nearest);
+  }
+
+  /** `hides` of a box of pixels `r` (its `rect`) and nearest depth `nearest` */
+  hidesRect(r: Int32Array | undefined, nearest: number) {
+    if (nearest <= (this.camera.near ?? 0)) return false;
     if (!r) return false;
     const [x0, y0, x1, y1] = r;
     const { n, opaque } = this;
@@ -583,7 +727,11 @@ class OpticalBuffer {
    * rays of its pixels of exp(-their optical depth so far); 1 where none of it is on screen
    */
   exposure(box: Box3D) {
-    const r = this.rect(box);
+    return this.exposureRect(this.rect(box));
+  }
+
+  /** `exposure` of a box of pixels `r` (its `rect`) */
+  exposureRect(r: Int32Array | undefined) {
     if (!r) return 1;
     const [x0, y0, x1, y1] = r;
     if (x0 > x1 || y0 > y1) return 1;
@@ -615,6 +763,100 @@ class OpticalBuffer {
       }
     }
     return true;
+  }
+
+  /**
+   * A tile's blocks (`dims` an axis over `cell`, `density` x fastest, 0: none) added to the rays through its cell: per
+   * ray one slab test of the cell, then its blocks front to back (a 3D DDA), not a block's rectangle and slabs each. A
+   * ray opaque from the deepest back of the blocks of some density it crossed, where its sum reaches the threshold after
+   * the tile's (as `add` per block, never nearer)
+   */
+  addGrid(cell: Box3D, dims: readonly [number, number, number], density: Float32Array) {
+    const { n, rays, sum, back, opaque, opticalDepth } = this;
+    const m = n + 1;
+    const r = this.rect(cell);
+    const [x0, y0, x1, y1] = r ? [r[0], r[1], r[2], r[3]] : [0, 0, n - 1, n - 1];
+    if (x0 > x1 || y0 > y1) return;
+    const near = this.camera.near ?? 0;
+    const [bx, by, bz] = dims;
+    const sx = (cell.max[0] - cell.min[0]) / bx;
+    const sy = (cell.max[1] - cell.min[1]) / by;
+    const sz = (cell.max[2] - cell.min[2]) / bz;
+    for (let j = y0; j <= y1 + 1; ++j) {
+      for (let i = x0; i <= x1 + 1; ++i) {
+        const c = j * m + i;
+        if (opaque[c] !== Infinity) continue;
+        const o = c * RayStride;
+        let tn = Math.max(0, (near - rays[o + 6]) / rays[o + 7]);
+        let tf = Infinity;
+        for (let a = 0; a < 3; ++a) {
+          const origin = rays[o + a];
+          const d = rays[o + 3 + a];
+          if (d === 0) {
+            if (origin < cell.min[a] || origin > cell.max[a]) tf = -Infinity;
+            continue;
+          }
+          const t1 = (cell.min[a] - origin) / d;
+          const t2 = (cell.max[a] - origin) / d;
+          tn = Math.max(tn, Math.min(t1, t2));
+          tf = Math.min(tf, Math.max(t1, t2));
+        }
+        if (!(tf > tn)) continue;
+        const ox = rays[o];
+        const oy = rays[o + 1];
+        const oz = rays[o + 2];
+        const dx = rays[o + 3];
+        const dy = rays[o + 4];
+        const dz = rays[o + 5];
+        // the block of the entry (its middle's, clear of the faces), the parameters of the next faces per axis
+        const tm = tn + (tf - tn) * 1e-6;
+        let ix = Math.min(bx - 1, Math.max(0, Math.floor((ox + dx * tm - cell.min[0]) / sx)));
+        let iy = Math.min(by - 1, Math.max(0, Math.floor((oy + dy * tm - cell.min[1]) / sy)));
+        let iz = Math.min(bz - 1, Math.max(0, Math.floor((oz + dz * tm - cell.min[2]) / sz)));
+        const stepX = dx > 0 ? 1 : -1;
+        const stepY = dy > 0 ? 1 : -1;
+        const stepZ = dz > 0 ? 1 : -1;
+        const nextX = dx === 0 ? Infinity : (cell.min[0] + (ix + (dx > 0 ? 1 : 0)) * sx - ox) / dx;
+        const nextY = dy === 0 ? Infinity : (cell.min[1] + (iy + (dy > 0 ? 1 : 0)) * sy - oy) / dy;
+        const nextZ = dz === 0 ? Infinity : (cell.min[2] + (iz + (dz > 0 ? 1 : 0)) * sz - oz) / dz;
+        const deltaX = dx === 0 ? Infinity : sx / Math.abs(dx);
+        const deltaY = dy === 0 ? Infinity : sy / Math.abs(dy);
+        const deltaZ = dz === 0 ? Infinity : sz / Math.abs(dz);
+        let tx = nextX;
+        let ty = nextY;
+        let tz = nextZ;
+        let t = tn;
+        let added = 0;
+        let exit = -Infinity;
+        while (t < tf) {
+          const end = Math.min(tx, ty, tz, tf);
+          const value = density[ix + iy * bx + iz * bx * by];
+          if (value > 0 && end > t) {
+            added += value * (end - t);
+            exit = end;
+          }
+          if (end >= tf) break;
+          t = end;
+          if (tx <= ty && tx <= tz) {
+            ix += stepX;
+            tx += deltaX;
+            if (ix < 0 || ix >= bx) break;
+          } else if (ty <= tz) {
+            iy += stepY;
+            ty += deltaY;
+            if (iy < 0 || iy >= by) break;
+          } else {
+            iz += stepZ;
+            tz += deltaZ;
+            if (iz < 0 || iz >= bz) break;
+          }
+        }
+        if (added === 0) continue;
+        sum[c] += added * rays[o + 8];
+        back[c] = Math.max(back[c], rays[o + 6] + exit * rays[o + 7]);
+        if (sum[c] >= opticalDepth) opaque[c] = back[c];
+      }
+    }
   }
 
   /** `box` of `density` (1/Å) added to the rays through it (`rect` its pixels where known, `rect(box)`'s) */

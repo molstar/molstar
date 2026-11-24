@@ -10,7 +10,7 @@
 - **Step 2 done**: `particle-tile-loader.ts` (`createParticleTileLoader`): `setWanted` by priority (a load no longer
   wanted cancelled: its task aborted at its next update, its result dropped), at most `concurrency` at once (4), a
   tile's targets with it and once each for all tiles and frames; ready kept until `release`, `releaseTargets` only of
-  the unused (`getUnusedTargets`), a failed tile told (`onError`) and loaded again where wanted again
+  the unused (`getUnusedTargets`), a failed tile told (`onError`) and loaded again where still wanted (or wanted again)
   after a wait (`ParticleTileLoadAttempts`, `ParticleTileRetryDelaysMs`: 1 s, 3 s), then failed until released; `getLoaded` (tiles, particles, targets,
   bytes), `subscribe`, `whenIdle`, `dispose`. Tests: `particle-tile-loader.test.ts` (timeouts faked, the tasks'
   scheduler immediates real).
@@ -179,7 +179,7 @@
   - **8h and 8i done, opacities in the pack, an occlusion threshold**: a tile-ordered pack's tiles' opacities written
     with it (`tile.opacity`, 4³ blocks a tile; `opacityBlocks` 0: none), read onto the directory's tiles, a coarser
     set's tile its cells' blocks side by side; `ParticleTileSetFromList`'s `opacity` computing only where the tiles
-    have none. The camera view's `opticalDepth` (7 by default; its pick's key). Measured (16³, Chrome, the
+    have none. The camera view's `opticalDepth` (7 by default then, 3 since 10f4; its pick's key). Measured (16³, Chrome, the
     tile-ordered pack, occlusion on by default now that it has opacities): the fill 9.1 -> 4.0 s (2,636 -> 1,262
     tiles, 31.5 M -> 13.4 M particles); `opticalDepth` 3: 3.6 s (1,082 tiles, 10.7 M), the cell from outside alike.
     The pack written in 9.9 s (the opacities 2.8 s), 731.5 MB. Tests: `pack.test.ts` (the read opacities the
@@ -255,7 +255,7 @@
   - **8k measured again** (a restart: the GPU's memory short before, the figures of 8k 2-4× high): the yeast by
     target drawn whole, a frame's GPU orbiting 13.9 -> 10.2 ms with the grid, zooming 15.0 -> 10.6 ms.
   - **8k done, the priming's threshold and the grid computed in a task**: the depth pyramid's pass's
-    `occluderOpticalDepth` (`HiZProps`, 1-20, 7 by default: the canvas's, not the tiles' `opticalDepth`). Measured (the
+    `occluderOpticalDepth` (`HiZProps`, 1-20, 7 by default then, 5 since 10f4: the canvas's, not the tiles' `opticalDepth`). Measured (the
     yeast by target drawn whole, Chrome): a frame's GPU orbiting at 3 / 7 / 12 34.7 / 40.2 / 48.4 ms, zooming 26.3 /
     30.0 / 34.7 ms; at 3 a few holes inside the cell (733 pixels of 926k), at 7 and 12 none. A list's grid computed in
     the representation's task (`ParticleDensityGrid.computeTask`: its box, then its molecules, 2^18 particles a chunk
@@ -354,11 +354,11 @@
     (a pool member a target of the catalog, about 8 KB; a target's own about 16 KB). Tests: `particle-list.test.ts`
     (`coarsen`), `pack-stream.test.ts` (a target every stride-th), `lod-levels.test.ts` (coarse levels).
   - **Coarse levels**: a tile-ordered pack's octree (formats.md: `tiles.levels`, its nodes copies of a sample of their
-    tiles' particles), read as tiles of the set (`ParticleTileLevels`, a node's particles drawn `2^L` larger: the page
-    store's runs by `ParticleList.scale`, the sphere raster's radii by the pose's scale). A camera view picks a cut of
-    the octree (`pickNodes`): a visible tile its coarsest node all of whose visible tiles want it (`detailPixels`, 4:
-    a tile's largest molecule's radius on screen from which it is all drawn, the sample `(size / detailPixels)³`
-    below); under `maxParticles` the detail lowered by bisection, at most 4 times (`MaxDetailRaise`: molecules drawn
+    tiles' particles), read as tiles of the set (`ParticleTileLevels`, a node's particles drawn larger: since 10f5 by
+    target, `node.scales`, the page store's runs by `ParticleList.scales`; before `2^L`, `ParticleList.scale`; the
+    sphere raster's radii by the pose's scale). A camera view picks a cut of the octree (`pickNodes`): a visible tile
+    its coarsest node all of whose visible tiles want it (`detailPixels`, 24 since 10f5: the set's largest molecule's
+    radius on screen at the tile from which it is all drawn, the sample `(size / detailPixels)³` below); under `maxParticles` the detail lowered by bisection, at most 4 times (`MaxDetailRaise`: molecules drawn
     larger near the camera filled a phone's screen many layers deep), then the least important left out. Tried first:
     levels a tile each, not a region's: a page store page (8,192 slots) a level of a tile however few its particles,
     the yeast at 300k 1,271 tiles, 309 MB of storage. Measured (the yeast, 1600×900, still, the steady state): uncapped
@@ -588,8 +588,8 @@
      coarser set's tile its cells' blocks (8 of b³: one of (2b)³), so the set made from the directory has them, no
      pass (`ParticleTileSetFromList`'s `opacity` computed only where the pack has none). Tests: the read opacities the
      computed ones; a coarser set's its cells'.
-   - 8i. **An occlusion threshold**: the view's `opticalDepth` (`ParticleTileVisibilityOptions`, 7 by default: under
-     0.1% of light passes) a parameter of the camera tiles (e.g. 1-10, labeled by what passes: 37% at 1, 5% at 3,
+   - 8i. **An occlusion threshold**: the view's `opticalDepth` (`ParticleTileVisibilityOptions`, 3 by default since
+     10f4: under 5% of light passes) a parameter of the camera tiles (e.g. 1-10, labeled by what passes: 37% at 1, 5% at 3,
      0.1% at 7): lower leaves out more tiles behind thin content (faster, sometimes a gap), higher only behind dense.
      Its key in the pick's cache. Tests: a tile behind a thin one kept at 7, left out at 1.
    - 8j. **The fill's frames** (about 90 ms at p90 while the whole cell fills, 17.5 ms after): the GPU's time by pass
@@ -635,26 +635,54 @@
    - 9b. **A phone's defaults**: `siteStride` and `maxParticles` chosen for the device, not by hand (Safari gives no
      `deviceMemory`: by a touch screen's size, a setting, or the memory a view takes measured as it grows); the render
      targets at a phone's pixel ratio (3: about 2.8 times a 1200×900 canvas's pixels) in its budget.
-   - 9c. **The representation's members**: a pool member a target of the catalog made up front (the yeast's 5,640: 45-80
-     MB of heap, `createEmptyMergeMember`'s cells) and a target's own member (about 16 KB): lighter empty members (cells
-     shared until filled), or a pool of the targets in view with headroom (made again past it).
-   - 9d. **Targets let go**: a capped view's loader keeps its targets (a target read again a new object, the
-     representation's members all made again, `isSameTargets`): a target's identity kept across reads (its id), so its
-     sites can go with the tiles that used them.
-   - 9e. **The coarse levels' look**: a coarse region lighter on screen than its neighbours (the volume kept, `2^L`, not
-     the coverage); a level's scale by eye (an exponent, or its coverage measured), screenshots at each level.
-   - 9f. **Levels on the desktop**: the pick's size a tile's largest molecule (rarely under 4 px at desktop sizes: the
-     yeast whole uncapped all its tiles), so levels change nothing there; a typical molecule's size (a tile's median
-     reach), so far regions draw coarse and faster where the eye cannot tell.
-   - 9g. **A region replaced while it loads**: a step keeps the view only where none of its pick is ready; a node
-     replacing its tiles (or tiles their node) partly ready leaves the rest of the region blank until it is. The shown
-     kept per region until what replaces it is ready.
-   - 9h. **The other paths**: levels only from a pack written with them (a list in memory, `ParticleTileSetFromList`,
-     has none: its nodes sampled in memory, its far view reading every tile); `ParticleList.scale` drawn by the page
-     store alone (the paged WebGPU path: a tile set's views elsewhere draw nodes unscaled); coarse sites drawn as a
-     level only from quantized sites (`Spheres.fromSites`: WebGL1's builder path draws them sparse).
-   - 9i. **What levels read up front**: the nodes' directory and runs read at once with the tiles' (not measured; the
-     yeast's node runs about 1.3 M); a node's runs read with it instead, its targets from its directory entry.
+   - 9c. **The representation's members** (done, by [merged-from-units.md](gl/merged-from-units.md) step 2): a pool
+     member a target of the catalog made up front (the yeast's 5,641) a record (`MergeRecord`: 17 cells its own, the
+     others the empty record's), no render object a member, the shared values once: 2.1 KB a member against 24 KB, the
+     yeast's JS heap at the tiles benchmark's end 225.8 to 172-174 MiB, its images and frames as before. A target's
+     own member (about 16 KB) kept. Its CPU measured (the tiles benchmark, timing mode's `store: reset`,
+     `store: fill member`): no store made again while moving, a member filled once a target (3,531 as the first tiles
+     load, then 1-23 a 4 s segment, about 0.02 ms each): its cost the heap's, not a moving frame's.
+   - 9d. **Targets let go** (measured, deferred with the phone's items): a capped view's loader keeps its targets
+     (`trimLoader`: a target read again a new object, the representation's members all made again, `isSameTargets`).
+     Measured (the tiles benchmark's end, its targets report, `--max-particles`): uncapped every target loaded is used
+     (5,636 of 5,639; their sites about 155 MiB, the tiles 293 MiB); capped, every target is loaded still (the coarse
+     levels sample them all) and few are unused: at 2 M particles 1,336 (29.6 MiB of 155; the tiles 24 MiB), at 500k
+     1,677 (37.9 MiB; the tiles 12 MiB). Letting them go (the loader trimming targets with tiles, the representation's
+     members by target id so one read again keeps its member, the pool's records of the targets let go emptied) saves
+     30-40 MiB and their members' copies under a cap alone. The larger part under a cap is the used targets' sites: a
+     target only coarse tiles use read with fewer sites (a level of a target's sites), a phone's item too.
+   - 9e. **The coarse levels' look** (in part, 10f5): a node's volume kept by target (`node.scales`); a coarse region
+     lighter on screen than its neighbours where its molecules are sheets (a membrane: the coverage falls by level,
+     whatever the scale). A level of detail for sheets out of scope.
+   - 9f. **Levels on the desktop** (done, 10f5): the pick's size the set's largest molecule at a tile, `detailPixels`
+     24: far regions coarse on a desktop too, tiles alike far alike coarse.
+   - 9g. **A region replaced while it loads** (done): a region switched (`getSwitchGroups`: the shown tiles leaving it
+     and the picked tiles over it, joined where their regions share a base cell) steps whole, its picked tiles in once
+     all have arrived (ready or failed), what they replace out in the same step, kept until then; a step's budget by
+     regions (the first at least). Why: no region blank while it loads, none drawn twice (a node's sample over its
+     tiles: more particles, two looks at once), none kept forever for a tile that failed. A view behind where its step
+     (unbounded) changes what it shows. Measured (the yeast, 2 runs): the views' particles the same (outside 9.30 M,
+     inside 394 k), the load done at 2.7-2.8 s, the dolly's display frames missed 1-2. Tests: `tiles.test.ts` (a
+     region shown once, by itself or its node; a region in whole when its last tile is ready; the budget by region; a
+     failed tile's region switching).
+   - 9h. **The other paths** (done): levels only from a pack written with them (a list in memory,
+     `ParticleTileSetFromList`, has none, its far view reading every tile): not taken. Measured (the yeast's list in
+     memory, 31.5 M particles, Node): the set from it 0.24 s; the writer's sampling (`writeLevels`) 5.3 s more and 0.42 GB
+     at the peak (12.9 -> 18.2 s, 3.42 -> 3.85 GB), a Morton code and a sort a particle and lists by node and target. A
+     list too large to draw whole is packed with its levels (`particle-pack --tiles --levels`), once. Done: coarse sites
+     (`ParticleSites.stride`) drawn as their stride's level of detail without quantized sites too (WebGL1: the builder's
+     spheres their base, `Spheres.fromPositionGroup`'s `base`, the same levels as `fromSites`'), a mesh's spheres larger
+     by the stride's cube root (no levels of detail: the volume kept); tests `lod-levels.test.ts`,
+     `target-structure.test.ts`. A node's scales drawn elsewhere too (`ParticleList.scale`, `scales`: a tile view's and a
+     slot list flattened carry their tiles' by particle, `concatScales`; the instances' transforms, matrices and poses,
+     scaled by them, `getInstanceScales`, one array a list its targets' poses share). Tests: `target-common.test.ts`,
+     `particle-tile-view.test.ts`, `particle-slots.test.ts`.
+   - 9i. **What levels read up front** (measured, not taken): the nodes' directory and runs read at once with the
+     tiles'. Measured (the yeast's pack by target, by range from a file, Node, 2 runs): without levels 21.3 MB in 6
+     reads, the set in 184-205 ms; with them 32.4 MB in 10 reads, 279-287 ms (the reads under 15 ms, the rest the 490
+     nodes' entries). A node's runs read with it would save at most 11 MB and 0.1 s of the open, a read a node more and
+     the format changed: not worth it. The benchmark's "opened in" (1.6 s) is to the scene's first bounds: the first
+     tiles and their targets read, not the directory.
    - 9j. **The occluder grid and the clip objects** (done): the pyramid primed from a density grid (8k,
      `occluder-grid.ts`) marches each texel's ray through it, a sample the grid's object's clip objects remove adding
      nothing (`hi_z_occluder_wgsl`, `clip_storage_wgsl` on the object's packed clip objects, `HiZPass.setOccluder`'s
@@ -688,12 +716,227 @@
      inside): the sphere raster draws perspective views only, so no record is left out for it; with the Viewer's
      perspective camera 11,002 inside and 26 outside, as Chrome, but 18 ms of CPU inside (its calls about 1.5 µs).
 
+10. **A step's CPU below its upload** (planned). A following view's pass is a pick and a step; the step's work is to
+    upload the tiles it adds, so its CPU besides `writeBuffer` should be a fraction of `writeBuffer`'s, and the pick a
+    few ms. Profiled (Chrome, the prism viewer, `yeast_cell_atoms.tiles16.levels.mspk`, the camera moving), a pass:
+    the pick 21.6 ms in the animation frame (`ParticleTileVisibility.get`: `OpticalBuffer.add` 10.5 ms self, `rect` 3.5),
+    the step about 25 ms in microtasks: the store's `add` 9.4 ms and `remove` 3.5, `writeBuffer` 7.0 (a write a page
+    and buffer: records, positions, rotations; runs and extras by range), the paged culler's `growBoxes`,
+    `markAffected` and `add` about 6, `setMemberCount` 1.5, the render item's `update` 3.4. Why it is CPU and not
+    bytes: every pick walks every base tile (4,096) and adds every kept tile's opacity blocks to the rays; a tile added
+    makes its page layout again from its runs (the store's run pass, the culler's page members from runs and extras), a
+    tile added again the same work; the upload is a call a page. Each step below measured against 10a's baseline.
+    - 10a. **Measure** (first; the baseline into this item): a Node benchmark on the pack above (`.benchmark/`) over a
+      camera path (an orbit outside, a dolly into the cell through the level switches, an orbit inside): per pick its
+      time and parts (the tile loop, the sort, the occlusion: blocks added, rays tested); per step by stage (the view's
+      slots and changes, the store's add and remove, the representation's update, the culler's sync), its uploads by a
+      recording buffer (writes, bytes). The same path in Chrome (Playwright, the prism viewer) with user-timing marks
+      around the stages (debug mode only) for `writeBuffer`'s real cost a byte and a call. A quick-lane test on the 4³
+      levels lattice of the counts that should stay small (writes a tile, allocations a pick) so they do not grow back.
+      Target: the pick at most 2 ms anywhere on the path, a step's CPU besides `writeBuffer` at most a quarter of it.
+      Done in Chrome (`scripts/benchmark-particle-tiles.mjs`: the pack as a dropped file, 4 s segments, the stages
+      `UserTiming.span`'s in timing mode). Baseline (RTX 4070 Ti, 1920 × 1080): moving, the pick nearly every frame
+      (orbit outside 157 picks in 158 frames, 13.9 ms each, 2.18 s of 4; the dolly 143, 11.8 ms; inside 90, 14.7 ms),
+      frames p50 20-26 ms; a step's stages 0.2-1.8 ms each (`cull: sync` 1.1-1.8 ms, `store: members` 0.3-0.75,
+      `tiles: view` 0.35); `writeBuffer` 167-620 ms a segment (254-512 MiB, 5,500-17,400 calls), more than the steps'
+      CPU already. Long tasks 1.2 s orbiting inside outside the stages measured (not yet profiled). Why a pick a frame:
+      a pass woken by a tile loaded or by a step's next (`schedule` after a step) picks again for the camera where it is
+      now, not only the camera's passes (throttled to `intervalMs`).
+    - 10a2. **A pick by the camera's passes only** (done): passes woken by a tile loaded or a step's next reuse the
+      set's latest pick for the same params (`pickTiles`' `latest`, not the camera's), the camera's passes (at most
+      every `intervalMs`, the trailing one where it stops), a cut's and a set's or view's made pick again; a following
+      view's step the same. Measured (the same path): picks 157 → 37 orbiting outside, 143 → 35 on the dolly, 90 → 35
+      inside (12-15 ms each still: 10e); frames p50 26 → 9.3 ms outside, 26 → 14 ms on the dolly, 20 → 16 ms inside, the
+      steps about twice as many. `writeBuffer` now the largest cost moving inside (963 ms on the dolly, 1.45 s orbiting
+      inside, against the pick's 0.4-0.5 s), but at 5.7 ms a MiB inside against 0.5 outside: why not known (to profile
+      with 10b).
+    - 10a3. **The bookkeeping's uploads** (done; found by the uploads by buffer, `benchmark-particle-tiles.mjs`): most
+      bytes were not the tiles' but whole arrays written again: the draw records' template (0.86 MiB) to the second
+      phase's buffer every second phase (a frame while moving) and to the first's every step, the occluder grid's atlas
+      (1 MiB, `r32float`) every step. Now the second phase's only where the template changed, both only the changed
+      members' span of each block, the atlas only the rows of the cells an update wrote (`ParticleDensityGrid.update`:
+      its version and boxes; `HiZPass` with `Texture.loadRows`). Measured: the records 300 MiB a segment to 1 MiB, the
+      atlas' upload 90-330 ms a segment to under 6 ms; uploads orbiting outside 440 → 158 ms a 4 s segment. Left:
+      inside, while the camera moves, every write 8-40 times slower than outside (a write of up to 1 MiB 4.7 ms against
+      0.11, up to 64 KiB 0.36 ms against 0.012, up to 4 KiB 10 µs against 1.3), as fast as outside with the camera
+      still there; the GPU idle (timestamp queries: 3.5 ms a frame) and no garbage collection (a CPU profile: native
+      `writeBuffer` 1.45 s of 4, the draws' encoding 0.94 s, the pick's `add` 0.4 s). Found later: the benchmark's
+      frames uncapped (no vsync) kept the GPU's queue full; paced by the display (`--vsync`) the writes inside are as
+      fast as outside (up to 1 MiB 115 µs; uploads 40 ms of an orbit inside), frames at 60 Hz: what follows was the
+      guess before that. So the writes wait on Chrome's GPU
+      process, busy with the frames' draws (about 11,000 indirect records a frame inside, 9l, the bundles recorded
+      again): 9l's draws cost the uploads too, not the main thread alone (not confirmed by the GPU process' own
+      profile). Fewer draws while moving (9l's instances by chunks: [chunked-impostor-draws.md](gl/chunked-impostor-draws.md))
+      is then what makes the uploads cheap inside, and
+      fewer writes a step (10b) less to wait on.
+    - 10a4. **A step's passes over the whole view** (done): a step's CPU profiled at a display's pace (60 Hz, orbiting
+      outside, its slow frames' stages): the occluder grid updated by the tiles added and let go alone (its count of
+      tiles with opacities kept, `ParticleDensityGrid.tileCount`), the colors by member asked of the targets new since
+      the last step alone, the culler's chunk capacity and members' rows kept by the members that changed, the
+      hierarchy theme's structure made once a catalog, a camera's pick and the step it brings in two frames. Measured (a
+      4 s orbit outside, about 180 steps): under the representation's update 1,056 → 689 ms, the culler's sync 332 → 284
+      ms; its slow frames 44 → about 20 of 230 (p95 25 → 22 ms). Then a paged source's members' counts in its copies
+      alone (`MergedSourceCounts.instanceCounts`), not their cells: the merged object reads them (`memberInstanceCount`:
+      its layout, segments, aggregates, texel counts; the renderable by its segments' counts), its CPU cull by cells of
+      its own set from them as it begins (`syncCullCounts`): under the update 689 → 544 ms, slow frames about 11 of 230
+      (p95 19.9 ms). Left in a step: the store's `add` (10c), the culler's page bookkeeping (10d), `writeBuffer`; the
+      members' boxes made again whole where enough went stale (`cull: spheres again`: 9 times on the dolly, 2.3 ms,
+      up to 7). Steps by time (`stepMs` 4 or 8, the benchmark's `--step-ms`) worse at a display's pace: a step a frame,
+      each with its fixed cost (orbiting outside 45 and 37 slow frames of 230 against 13): kept off. That fixed cost
+      profiled: not the state's machinery (no clone nor event of weight) but passes over the whole view or every
+      member a step; the slot view's target mapping kept where the loader's targets are as they were
+      (`ParticleTileLoader.targetsVersion`: not copied a step, the representation's check by identity), the chunk
+      capacity by the records' changed span too: under the state's update 648 → 467 ms a 4 s orbit outside. A source's
+      object's bounds unioned again only where a member's sphere changed (a paged store's members' NaN spheres compared
+      as themselves: they read as changed every step), `unionSpheresBox` gone. Frames at a display's pace: orbiting
+      outside 8-11 slow frames of 231 (p95 19.6-20.0 ms), the dolly 5-7 (p95 19.3-19.4 ms), inside none to speak of.
+      Left of weight: `ParticleSlots.create`, the culler's page members and boxes (10d), the segment data's rows
+      (`getCulledSegmentData`: its instance offsets move with any count), each 15-30 ms a segment.
+    - 10b. **An upload a tile** (data structure): a tile's store pages contiguous (the page allocator a range
+      allocator, as the runs' already), so its positions and rotations one write each straight from the tile's arrays
+      (the pack's grid words are the store's format: no staging), its records one range; the sync's other writes (runs,
+      extras, released records) merged into ranges, by page order. Expected: the calls from a page each to a few a tile.
+    - 10c. **A tile's layout made once** (preprocessing): per tile its store layout (its runs split at the page ends,
+      per page its runs or per-particle extras, counts, box) from the directory alone (the runs and boxes are read up
+      front, the particles not), when the set is made, held by the set; the store's add then allocates its pages and
+      copies the layout with a target's member put in (a table of the tile's few targets), its positions by reference.
+      No pass over runs a step, none again for a tile added again. Written into the pack instead (a block of layouts,
+      a pack version) only where making it at the set's creation costs too much (measured on the yeast: its runs, 2.29 M
+      whole).
+    - 10d. **The culler's bookkeeping by tile** (data structure): a page's members from 10c's layout (a tile's members
+      its targets, per page known), not read back from its runs and extras (`getPageMembers`); a member's box grown by
+      its tiles' boxes (a tile's pages share its box) once a tile, not a page; `markAffected` a tile's members once.
+    - 10e0. **The occlusion's rays walked through a tile** (done): a tile of blocks of several densities added by its
+      rays crossing its cell once and its blocks front to back (`OpticalBuffer.addGrid`, a 3D DDA), not a block's
+      rectangle and slab tests each (`add` was 65 % of a pick, `rect` 13 %); a ray opaque from the tile's deepest
+      block of some density it crossed, once its sum reaches the threshold after the tile (never nearer than block by
+      block: as conservative, a few more tiles shown, 60 against 55 inside); clip objects cutting a tile still block by
+      block. The reach boxes made once a set (`getTileReaches`). Measured, a pick: Node (`.benchmark`'s
+      tiles16.levels, 1080p) 15.0 → 4.9 ms outside, 14.1 → 4.5 on the dolly, 12.7 → 2.5 inside; Chrome 13.9 → 4.6,
+      11.8 → 4.0, 14.7 → 2.7. A moving segment's picks 80-174 ms against its uploads' 246-1,476 ms.
+    - 10e1. **The camera's moving picks coarser** (done): while the canvas' camera changed within
+      `ParticleTileDrawings.SettleMs` (`setParticleTilesCameraChanged`, the follow behavior's at every change) its picks
+      with 32² rays (as a cut's drag), a pass once it settled picking again in full. Chrome, a pick moving: 4.6 → 3.2 ms
+      outside, 4.0 → 2.0 on the dolly, 2.7 → 1.0 inside. Left: outside above 2 ms (its 1,300 tiles in view each
+      walked); the settled pick's other tiles stepped in after the camera stops, their writes slow there too (the still
+      segment inside: uploads 1.2 s, the steps' frames drawn).
+    - 10e. **The pick on preprocessed data** (data structures, preprocessing): the set's tiles as flat arrays made once
+      (reach boxes, radii, cells, the opacity blocks as one array, a block's box from its tile's cell and index): no
+      allocation a tile. With levels, by the octree: a node's frustum, size and occlusion first, its tiles visited only
+      where the cut may pick finer (far regions a node, not 512 tiles). The occlusion by coarse data: a node's opacity
+      (its tiles' blocks pooled, at the set's creation or written by the pack's writer) added where its tiles are not
+      visited; the rays with their inverse directions precomputed; 32² rays while the camera moves (as the cut's moving
+      pick, 9k), 64² once it settles. A camera moved less than a pixel's worth at the tiles' size keeps its pick.
+    - 10f. **Off the frame** (where 10e is not enough): the pick and the step within a time budget a frame, going on
+      the next (the view already steps), or the pick in a worker (10e's flat arrays transferable). Decided by 10a's
+      numbers after 10b-10e.
+    - 10f2. **A pack file read off the main thread** (planned in [workers.md](workers.md), the project's first worker): as the first tiles load (the benchmark's still segment
+      outside, at a display's pace) about 45 of 210 frames run past it (about 29 ms), long tasks 140-280 ms in 4 s,
+      the steps' stages about 8 ms of such a frame; neither a smaller budget (250k, 500k) nor fewer promises changes
+      that. The rest is the file's reading on the main thread: `Blob.arrayBuffer` 190 ms, the batched source's copies
+      of a merged read's parts (`slice`, 125 ms: a part copied so it keeps no merged read of up to 16 MB alive, and
+      aligned for its typed arrays), the garbage of both about 100 ms; a tile's decoding is views over its bytes,
+      nothing. The design: a dropped file's source a worker's (`ParticlePackSource` read through messages): the worker
+      holds the `File` (passed by reference), merges the pending ranges as `batched` does, reads them
+      (`blob.slice().arrayBuffer()` on its thread) and copies each range out, its buffer transferred back (no copy on
+      the main thread); an abort a message. The worker's code self-contained (no imports), started from a `Blob` URL:
+      no bundler entry for apps or a library's users; where a worker cannot start (Node, a page's CSP without
+      `worker-src blob:`) the source as now. The merging and the cutting a pure function shared by both, tested in Node;
+      the worker measured by the benchmark (the load's slow frames and long tasks). A URL's range reads the same way
+      after (`fetch` in the worker), where their bodies' reading shows in a load from a server. Measured since: the
+      `slice` is the file's `Blob.slice` (`fromBlob`, a call's cost), not the parts' copies: a merged read's aligned
+      parts kept as views changed nothing measurable (the tiles' arrays 343 MiB keeping 355 MiB, not taken); a file's
+      reads merged wider (4 MB apart, up to 64 MB) cut `arrayBuffer` 190 → 122 ms and `slice` 118 → 81 ms but not
+      the frames (p95 31.6 ms) and kept twice the memory (334 MiB of arrays, 644 MiB of buffers): not taken. So the
+      load's reads stay the main thread's until a worker reads them.
+    - 10f3. **The load within a frame** (planned): the load's frames measured after the fill path's passes over every
+      member went (the aggregates, the layout, the segments: about 220 ms of 4 s) and the worker tried: still 35-50 of
+      220 frames past a display's (about 28 ms each), a Chrome trace (`--trace`) the page's main thread busy 3.7 s of 4
+      (inside 0.47 s): its JS calls 1.95 s (frames and steps), promise continuations 0.65 s (reads, the loader, the
+      tiles' decoding), the reads' IPC 0.45 s, GC 0.1 s; Chrome's GPU process 2.0 s (not the limit). No function of
+      weight left: the load is about 3 s of main-thread work in 4, each tile's work done as its bytes arrive (the
+      worker's freed time went to the next tiles sooner, not to idle frames). Steps are one a frame already, their
+      particles capped (`budget`); by time (`stepMs`) worse (a step a frame, each with its fixed cost: 10a4). So a
+      frame's whole work bounded, not a step's alone:
+      - a. **A slow frame's parts** (done): the trace's tasks by frame (the benchmark's `--trace`: a frame's main
+        thread by kind) and the load's time until its last step (`load: steps until`, the steps after the segment
+        counted). A slow frame (about 32 ms): animation frames 22-24 ms (the step's update in them: the store's add, the
+        members of new targets made, the culler's sync and its writes; against 8-10 ms in the others), the reads' IPC
+        and continuations about 5 ms in every frame alike. Found by the load's time: a view stepping without end with
+        the camera still (one tile in and out every 350 ms, one run in two): a step's scene change restarted the
+        temporal samples, whose jitter (`setJitter`, `clearJitter`) told the camera changed (twice a frame), read as
+        a move (the quicker pick, then the settled one 260 ms after, differing on a tile). Now a jitter's update is
+        silent (`Camera.update(true)`), and the follow behavior takes a camera's depth range changed alone (the
+        scene's bounds) as no move either. Measured (3 runs): the load done at 3.6-3.9 s each (was 3.7 s, or never),
+        its slow frames 22-28 of 215-224 (was 32-50), p95 23-29 ms; still inside 0-1 slow frames (was 2-14).
+      - b. **Work on arrival deferred to the step**: a tile's continuations on arrival only its bytes kept and the
+        loader told (once a frame), its decoding and target loads when a step takes it; so a frame's reads cost their
+        IPC alone.
+      - c. **The step's particles by the frame left** (tried, not taken): a step's time the display's interval less
+        the frame's time before it (the render, tasks run past the frame's start: an animation frame's timestamp to
+        its callback) and a reserve grown by late frames, its particles by the set's rate; skipped where under 2 ms
+        is left or the last frame was late, a step anyway after 8 skipped. The display's frames missed in the load (3
+        runs) 9, 14, 14 against 8, 15, 17: a step's time is not its particles' (one given 13 ms took 23, the same
+        particles), and most steps are under the budget already (the tiles ready, not the cap, their size). The
+        missed frames: the load's first 350 ms (the first steps at the budget, no rate known yet: 56-81 ms; tasks of
+        20-55 ms between frames), then single frames where a step ran over. The benchmark counts the display's
+        frames missed now (by the animation frames' timestamps; its "slow frames" those whose callbacks came more
+        than 20 ms apart: more than were missed).
+      - c2. **A view's first steps small** (tried, not taken): a view from nothing its first step 125k particles,
+        doubling a step up to the budget. The display's frames missed in the still segment outside (3 runs) 17-20
+        against 16-31 (5), its longest frame 120-150 ms against 115-163: within the runs' spread. The long frames
+        (the benchmark's `--timeline`: a segment's frames of 33 ms or more, their stages and the shader modules
+        created in them) are not the steps': at about 90 ms the first frame drawn (93 ms, its stages 25: the spheres'
+        shader compiled at its first draw, the first targets' members, the first render bundles); at 260-500 ms the
+        canvas' warm-up (`scheduleWarmUp`, an idle callback whose 1 s timeout fires in a load) creating all the
+        scene's 24 shader modules in one frame (mesh, lines, text, spheres, the sphere raster's, hi-Z: 35 ms of
+        script), the frame after 120-170 ms (each `createShaderModule` compiled in the GPU process, DXC 65 ms, the
+        frame's submit waiting); at about 500 ms 75-115 ms (new targets' members, `createTargetMember` 49 ms). Then
+        single frames of 40-60 ms. Left (good enough for now): the warm-up spread (a few modules an idle slice, the
+        graphics' `prepare`), the particles' programs warmed before the first tiles, new targets a step capped.
+      - d. **Fewer reads in flight while frames are late** (where b and c are not enough): the loader's concurrent
+        reads lowered while the last frames ran past the display's, raised again as they fit; the load longer, its
+        frames on time.
+      - Measured by the benchmark at a display's pace: the load's slow frames (target: under 5 of 220) against its
+        time until done (now to be measured, a); a phone's (`--phone`) the same. Tests (quick): c's step size a pure
+        function of the frames' times and the rate; d's limit by the frames' lateness; b's tiles the same particles
+        as now (the views' particles equal).
+    - 10f4. **The views' defaults measured again** (the yeast, desktop at a display's pace, 2 runs each; the
+      benchmark's `--shots` the canvas where the camera rests, its views' particles counted): `budget` 250k, 500k,
+      1M alike (the display's frames missed in the load 4-17, done at 3.9 s), 2M and 5M the load longer (4.0-5.0
+      s): 1M kept. The loader's `concurrency` 2 the load 5 s, 8 as 4: 4 kept. `opticalDepth` 3 (was 7): the
+      particles from outside 13.3 M -> 10.5 M, inside 1.08 M -> 0.39 M, the load 4.3 -> 3.8 s, the pictures the same
+      (outside no pixel differing, inside 10 of 1.66 M): 3 by default. The canvas's `occluderOpticalDepth` (the Hi-Z's,
+      by pixel): 3 holes (the background through the gaps behind thin content: inside 1,070 pixels), 5 none (65
+      pixels), the GPU's time a frame 7 -> 5 orbit-outside 4.97 -> 4.75 ms, dolly-in 4.08 -> 3.75, orbit-inside
+      3.25 -> 2.91 (3: 4.47, 3.45, 2.75): 5 by default. A phone's load (`--phone`, the CPU 4 times
+      slower) 68 s: about the desktop's members in 910 steps (185 on the desktop), a few tiles ready a step, each
+      with a step's fixed cost; a budget no help (250k the same). Its steps spaced by their own cost (fewer, larger)
+      the next thing for a phone.
+    - 10f5. **The coarse levels' detail and volume**: `detailPixels` 4 no help on a desktop (the cut all fine), 16
+      neither (10.49 M particles from outside, as 4), 24 9.23 M (the GPU's orbit-outside 4.75 -> 4.1 ms): 24 by
+      default. A tile's detail by the set's largest molecule at its box (`getParticleTileSetRadius` by the tile's
+      `scale`), not its own largest: tiles alike far alike coarse, whatever they hold. A node's sample by target
+      (every `8^L`-th of each, at least one; a run's scale the cube root of its particles over those kept,
+      `node.scales`): each target's volume kept, its rare ones too (the yeast's pack 825 -> 845 MB). The silhouette
+      at 24 ragged still (7,382 pixels differing from 4's, 7,524 by count alone): a membrane a sheet, its sample's
+      cover falling by level whatever its scale. Left: a level of detail other than a sample drawn larger for sheets
+      (a coverage scale by their shape not taken: the sample's mechanism the limit).
+    - Order: 10a, then 10b (the smallest change, the upload's own cost known after it), 10c and 10d together (one
+      layout), 10e, 10f. Tests: each change's results equal the current ones (the views' particles, the store's pages,
+      the culls' and picks' tiles), the counts of 10a's quick test.
+
 ## Open questions (the spec's)
 
-- **The occlusion's time where many tiles are in view** (the yeast whole at 16³: 15 ms a call): a tile's blocks
-  marched by each ray (one slab test a tile, not a block), fewer rays (32²), or the call throttled to the camera's
-  rest. Also a tile's reach by its own particles (their spheres' box at tiling time) instead of its largest target's
-  (650 Å in nearly every yeast tile).
+- **The occlusion's time where many tiles are in view** (the yeast whole at 16³: 15 ms a call then; a tile's blocks
+  one slab test a ray since). Measured again (the yeast's pack by target, Node, 1600 × 900, 40 cameras each): from
+  outside (2.6 radii) 3.6 ms a call, 1,176 tiles kept; inside 1.8 ms. Its parts outside: the pass over the tiles 1.1
+  ms, the rays' walk through the kept tiles' blocks 1.0, the candidates' pixel tests 1.1, the buffer made 0.2. Done:
+  the candidates in typed arrays reused across calls (no object nor box a tile), a candidate's pixels once for its
+  tests, the buffer's arrays reused: 3.0 ms outside, 1.6 inside, the same tiles. Not taken: fewer rays (48²: 2.5 ms,
+  3% more particles from outside; 32²: 2.8 ms, 11% more, none inside), a tile's reach by its own particles (the
+  yeast's cells 2,693 Å, the largest reach in most tiles 186-349 Å: the reaches 1.7 times the cells' volume, the
+  particles' own 1.2; the median tile's own 0.74 of its reach).
 - **The opacities in the spec**: a tile's blocks' densities given, or computed by its reader (from the catalog's
   volumes: the particles' positions alone).
 - **The targets' radii in the catalog**: given by the spec (proposed: each target's bounding radius around where a

@@ -17,7 +17,16 @@ import { scan_add_wgsl, scan_block_wgsl } from './prefix-sum.wgsl.js';
 import { cell_cull_wgsl, cull_args_wgsl, instance_copy_wgsl } from './cell-cull.wgsl.js';
 import { scene_cell_bin_wgsl, scene_cell_spheres_wgsl } from './scene-cells.wgsl.js';
 import { culled_poses_wgsl } from './culled-poses.wgsl.js';
-import { paged_cull_args_wgsl, paged_cull_compose_wgsl, paged_cull_wgsl } from './paged-cull.wgsl.js';
+import {
+  paged_cull_args_wgsl,
+  paged_cull_compose_wgsl,
+  paged_cull_select_args_wgsl,
+  paged_cull_groups_wgsl,
+  paged_cull_select_wgsl,
+  paged_cull_wants_wgsl,
+  paged_cull_wgsl,
+} from './paged-cull.wgsl.js';
+import { paged_pick_wgsl } from './paged-pick.wgsl.js';
 import { u32_runs_wgsl } from './u32-runs.wgsl.js';
 import { denoise_wgsl } from './denoise.wgsl.js';
 import {
@@ -29,12 +38,16 @@ import {
   sphere_raster_wgsl,
 } from './sphere-raster.wgsl.js';
 import { SphereRasterChunksPerWorkgroup, SphereRasterWideChunksPerWorkgroup } from '../../compute/sphere-raster.js';
+import { splat_centers_wgsl, splat_keys_wgsl, splat_scatter_wgsl } from './splat-sort.wgsl.js';
 import { registerWgslKernel } from './kernel-registry.js';
 
 /** WGSL compute kernels by the name of their `KernelCode`, like `programs.ts` for render programs */
 const BuiltInKernels: [name: string, source: string][] = [
   ['scan-block', scan_block_wgsl],
   ['scan-add', scan_add_wgsl],
+  ['splat-keys', splat_keys_wgsl],
+  ['splat-scatter', splat_scatter_wgsl],
+  ['splat-centers', splat_centers_wgsl],
   ['mc-chunk-count', mc_chunk_count_wgsl],
   ['mc-chunk-allocate', mc_chunk_allocate_wgsl],
   ['mc-chunk-emit', mc_chunk_emit_wgsl],
@@ -52,8 +65,13 @@ const BuiltInKernels: [name: string, source: string][] = [
   ['scene-cell-spheres', scene_cell_spheres_wgsl],
   ['culled-poses', culled_poses_wgsl],
   ['paged-cull-compose', paged_cull_compose_wgsl],
+  ['paged-cull-select', paged_cull_select_wgsl],
+  ['paged-cull-groups', paged_cull_groups_wgsl],
+  ['paged-cull-select-args', paged_cull_select_args_wgsl],
+  ['paged-cull-wants', paged_cull_wants_wgsl],
   ['paged-cull', paged_cull_wgsl],
   ['paged-cull-args', paged_cull_args_wgsl],
+  ['paged-pick', paged_pick_wgsl],
   ['u32-runs', u32_runs_wgsl],
   ['illumination-denoise', denoise_wgsl],
   ['sphere-raster-cull', sphere_raster_cull_wgsl],

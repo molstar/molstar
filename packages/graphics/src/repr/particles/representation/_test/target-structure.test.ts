@@ -22,6 +22,7 @@ import { BoundaryHelper } from '@molstar/core/math/geometry/boundary-helper';
 import { OrderedSet } from '@molstar/core/data/int';
 import type { Mesh } from '@molstar/graphics/geo/geometry/mesh/mesh';
 import type { Spheres } from '@molstar/graphics/geo/geometry/spheres/spheres';
+import type { LodLevelsValue } from '@molstar/graphics/gl/renderable';
 import { ElementIterator } from '../../../structure/visual/util/element.js';
 import { DefaultBlobDensityProps } from '../../../structure/visual/util/blob-surface.js';
 import { createStructureTargetGeometry, createStructureTargetSizes } from '../target/structure.js';
@@ -200,6 +201,33 @@ describe('sites targets', () => {
     const expected = Sphere3D.expand(Sphere3D(), helper.getSphere(), 1.5 * 1.2 + 0.05);
     expect(Array.from(sphere.center)).toEqual(Array.from(expected.center));
     expect(sphere.radius).toBe(expected.radius);
+  });
+
+  it("draws coarse sites (every stride-th) as their stride's: levels from it without quantized ones, meshes larger", () => {
+    const n = 40;
+    const data = new Int16Array(n * 4);
+    for (let i = 0; i < n; ++i) data.set([i * 10, (i * 7) % 50, 0, 0], i * 4);
+    const quantized = { data, origin: Vec3(), scale: 0.1, typeRadii: Float32Array.of(1.5) };
+    const whole = ParticleSites.ofQuantized(n, quantized);
+    const coarse: ParticleSites = { ...whole, stride: 4 };
+    const lod = { lodPixelSize: 3, sizeFactor: 1.2 };
+    const levelsOf = (s: Spheres | Mesh) => {
+      const spheres = s as Spheres;
+      spheres.shaderData.update(lod);
+      return spheres.shaderData.lodLevels.ref.value as LodLevelsValue & { base?: number };
+    };
+    // quantized (WebGL2, WebGPU) and built (WebGL1): the same levels, of the stride's base
+    const sites = levelsOf(createSitesTargetGeometry(coarse, theme(1), props(true), graphics));
+    const webgl1 = { capabilities: { fragDepth: true, backend: 'webgl' } } as any;
+    const built = createSitesTargetGeometry(coarse, theme(1), props(true), webgl1) as Spheres;
+    expect(built.sites).toBeUndefined();
+    const levels = levelsOf(built);
+    expect(levels.base).toBe(4);
+    expect(Array.from(levels, (l) => [...l])).toEqual(Array.from(sites, (l) => [...l]));
+    // a mesh (no levels): its spheres larger by the stride's cube root, its bounds with them
+    const radiusOf = (s: ParticleSites) =>
+      createSitesTargetGeometry(s, theme(1), props(false), graphics).boundingSphere.radius;
+    expect(radiusOf(coarse) - radiusOf(whole)).toBeCloseTo(1.5 * 1.2 * (Math.cbrt(4) - 1), 4);
   });
 
   it('declares the defines its impostors take from its data, for the precompile', () => {

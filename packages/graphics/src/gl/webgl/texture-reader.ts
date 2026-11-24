@@ -53,6 +53,8 @@ export function createWebGLTextureReader<F extends TextureReadFormat = 'rgba8'>(
   /** the size of the rectangle of the started read */
   let readWidth = 0;
   let readHeight = 0;
+  /** the textures the last `start` read: `check` fills as many of its arrays (a caller's may be more) */
+  let readCount = 0;
   /** values per texel of the result arrays */
   const texelLength = isFloat ? 1 : 4;
 
@@ -110,6 +112,7 @@ export function createWebGLTextureReader<F extends TextureReadFormat = 'rgba8'>(
       byteCount = 0;
       readWidth = width;
       readHeight = height;
+      readCount = textures.length;
       for (let i = 0; i < textures.length; ++i) {
         bind(textures[i]);
         if (!buffers[i]) {
@@ -132,7 +135,7 @@ export function createWebGLTextureReader<F extends TextureReadFormat = 'rgba8'>(
         return 'failed';
       }
       if (res === gl.TIMEOUT_EXPIRED) return 'pending';
-      for (let i = 0; i < arrays.length; ++i) {
+      for (let i = 0, il = Math.min(arrays.length, readCount); i < il; ++i) {
         if (isFloat && !readsRed) {
           const count = arrays[i].length;
           const rgba = getRgbaFloats(count);

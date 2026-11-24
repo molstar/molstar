@@ -46,7 +46,7 @@ function getSegmentList(o: GraphicsRenderObject): MultiDrawBaseData {
   };
   for (let i = 0; i < n; ++i) {
     list.firsts[i] = hasElements ? 0 : segments.drawBases[i];
-    list.counts[i] = o.members[i].values.drawCount.ref.value;
+    list.counts[i] = o.merged.records[i].drawCount.ref.value;
     list.offsets[i] = segments.elementOffsets[i];
     list.instanceCounts[i] = segments.instanceCounts[i];
     list.baseInstances[i] = segments.instanceBases[i];

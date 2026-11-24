@@ -188,7 +188,11 @@ export namespace ParticleTileCatalog {
       return radius;
     }
     const sphere =
-      target.kind === 'structure' ? target.structure.boundary.sphere : Grid.getBoundingSphere(target.volume.grid);
+      target.kind === 'structure'
+        ? target.structure.boundary.sphere
+        : target.kind === 'particles'
+          ? Particle.getBoundary(target.particles).sphere
+          : Grid.getBoundingSphere(target.volume.grid);
     return Vec3.distance(sphere.center, center) + sphere.radius;
   }
 
@@ -204,7 +208,7 @@ export namespace ParticleTileCatalog {
    * a volume
    */
   export function getTargetVolume(target: ParticleTarget): number | undefined {
-    if (target.kind === 'shape' || target.kind === 'volume') return undefined;
+    if (target.kind === 'shape' || target.kind === 'volume' || target.kind === 'particles') return undefined;
     let mass = 0;
     let heavy = 0;
     let hydrogens = 0;

@@ -55,8 +55,9 @@ export function transformShapeProvider(
   const { getShape } = provider;
   const moved: ShapeProvider<any, any, any> = {
     ...provider,
-    getShape: async (ctx, data, props, shape) => {
-      const made = await getShape(ctx, data, props, shape);
+    // the context passed on: geometry made on it (SOG's textures) is the representation's
+    getShape: async (ctx, data, props, shape, graphics) => {
+      const made = await getShape(ctx, data, props, shape, graphics);
       return { ...made, transforms: made.transforms.map((t) => Mat4.mul(Mat4(), transform, t)) };
     },
   };

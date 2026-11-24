@@ -20,6 +20,7 @@ import { Theme } from '@molstar/graphics/theme/theme';
 import { ParticleSizeThemeProvider } from '@molstar/graphics/theme/size/particle-size';
 import { getThemeRegistries } from '../visual/scenes/structure.js';
 import type { Representation, RepresentationProvider } from '@molstar/graphics/repr/representation';
+import { Visual } from '@molstar/graphics/repr/visual';
 import { BallAndStickRepresentationProvider } from '@molstar/graphics/repr/structure/representation/ball-and-stick';
 import { LineRepresentationProvider } from '@molstar/graphics/repr/structure/representation/line';
 import { CartoonRepresentationProvider } from '@molstar/graphics/repr/structure/representation/cartoon';
@@ -33,7 +34,7 @@ import { Sphere3D } from '@molstar/core/math/geometry/primitives/sphere3d';
 import type { ValueCell } from '@molstar/core/util/value-cell';
 import { Renderer } from '@molstar/graphics/gl/renderer';
 import { isWebGPUContext } from '@molstar/graphics/gl/contexts/webgpu';
-import { type GraphicsRenderObject, isMergedRenderObject } from '@molstar/graphics/gl/render-object';
+import { type GraphicsRenderObject, getMergedMembers, isMergedRenderObject } from '@molstar/graphics/gl/render-object';
 import { MarkerAction } from '@molstar/core/util/marker-action';
 import { now } from '@molstar/core/util/now';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -49,7 +50,8 @@ import { mergeUnitsWithSameOperator } from '@molstar/model/model/structure/struc
 import { Task } from '@molstar/core/task';
 import { createParticleListFromMmcifAssembly, getAssemblyIdsFromMmcif } from '@molstar/model/formats/particles/mmcif';
 import { createParticleListFromPack, readParticlePack } from '@molstar/model/formats/particles/pack';
-import { Particle, type ParticleList } from '@molstar/model/model/particles/particle-list';
+import { Particle, type ParticleList, ParticleValues } from '@molstar/model/model/particles/particle-list';
+import { ParticleNesting } from '@molstar/model/model/particles/particle-nesting';
 import { EveryLoci } from '@molstar/model/model/loci';
 import { OrderedSet } from '@molstar/core/data/int';
 import { ParticleTargetRepresentationProvider } from '@molstar/graphics/repr/particles/representation/target/representation';
@@ -93,6 +95,11 @@ export type RenderInput = {
   readonly yieldFrames?: boolean;
   /** drawing buffer, `Size` by default (larger for full-screen passes, so that their GPU times stand out of the noise) */
   readonly size?: { readonly width: number; readonly height: number };
+  /**
+   * the camera fit to this sphere after the reset, not the scene's: cases of one scene in other forms (their bounds
+   * computed otherwise) seen alike
+   */
+  readonly focus?: { readonly center: Vec3; readonly radius: number };
   /** moves the camera towards the target, to this fraction of its distance, after the reset */
   readonly zoom?: number;
   /**
@@ -219,7 +226,11 @@ function getCpuBytes(reprs: readonly Representation.Any[]): CpuBytes {
   const add = (o: GraphicsRenderObject, into: ByteKinds) => {
     const values = o.values as { [k: string]: { ref?: { value: unknown } } | undefined };
     for (const k of Object.keys(values)) {
-      const v = values[k]?.ref?.value as { array?: unknown } | undefined;
+      // a value made where first read (a getter: a page store's `aSegment`, not read by its draws) not made here: what
+      // the scene holds, not what a count would make
+      const ref = values[k]?.ref;
+      if (ref && Object.getOwnPropertyDescriptor(ref, 'value')?.get) continue;
+      const v = ref?.value as { array?: unknown } | undefined;
       const array = ArrayBuffer.isView(v) ? v : ArrayBuffer.isView(v?.array) ? v.array : undefined;
       const view = ViewKeys.test(k);
       if (!array || seen.has(view ? array : array.buffer)) continue;
@@ -231,7 +242,7 @@ function getCpuBytes(reprs: readonly Representation.Any[]): CpuBytes {
   };
   for (const r of reprs) {
     for (const o of r.renderObjects) {
-      if (isMergedRenderObject(o)) for (const m of o.members) add(m, objects);
+      if (isMergedRenderObject(o)) for (const m of getMergedMembers(o)) add(m, objects);
     }
   }
   for (const r of reprs) {
@@ -292,6 +303,10 @@ export async function getScene(id: string, graphics: GraphicsContext, input: Ren
   canvas3d.requestCameraReset({ durationMs: 0 });
   canvas3d.tick(now(), { isSynchronous: true });
   const setup: SceneSetup = { reprsMs: t1 - t0, commitMs: t2 - t1, heapBefore };
+  if (input.focus) {
+    canvas3d.camera.setState(canvas3d.camera.getFocus(input.focus.center, input.focus.radius), 0);
+    canvas3d.tick(now(), { isSynchronous: true });
+  }
   if (input.zoom) {
     const { position, target } = canvas3d.camera.getSnapshot();
     const offset = Vec3.scale(Vec3(), Vec3.sub(Vec3(), position, target), input.zoom);
@@ -446,6 +461,9 @@ export async function renderFrames(id: string, graphics: GraphicsContext, input:
     notes.push(
       `GPU bytes: attributes ${mb(b.attribute)} MB, elements ${mb(b.elements)} MB, textures ${mb(b.texture)} MB, uniforms ${mb(b.uniform)} MB, storage ${mb(b.storageBuffer ?? 0)} MB`,
     );
+    // after the runs: what grew as the frames were drawn (a page store's frame slots, by what its culls needed)
+    const after = graphics.resources.getByteCounts();
+    notes.push(`GPU storage after the runs: ${mb(after.storageBuffer ?? 0)} MB`);
     const c = current.setup.cpuBytes;
     if (c) {
       const kinds = (k: ByteKinds) =>
@@ -572,7 +590,7 @@ function getRasterSplitNotes(canvas3d: Canvas3D, reprs: readonly Representation.
   for (const repr of reprs) {
     for (const o of repr.renderObjects) {
       if (!isMergedRenderObject(o) || o.type !== 'spheres') continue;
-      for (const m of o.members) {
+      for (const m of getMergedMembers(o)) {
         const v = m.values as unknown as {
           invariantBoundingSphere: ValueCell<Sphere3D>;
           padding: ValueCell<number>;
@@ -1085,6 +1103,8 @@ const MergingModes = [
   { suffix: '-hover', label: 'a unit highlighted per frame (the one before not)' },
   { suffix: '-recolor', label: "a uniform color per frame, through the representation's update" },
   { suffix: '-rotating', label: 'the camera rotating (culled per frame)' },
+  { suffix: '-clip', label: "a clip plane moved per frame, through the representation's update" },
+  { suffix: '-props', label: "the emissive prop changed per frame, through the representation's update" },
 ] as const;
 
 /**
@@ -1107,6 +1127,22 @@ export const MergingCases: BenchmarkCase<RenderInput>[] = MergingCounts.flatMap(
               update = (canvas3d, _reprs, i) => {
                 if (i > 0) canvas3d.mark({ loci: unitLoci(s, (i - 1) * 7919) }, MarkerAction.RemoveHighlight);
                 canvas3d.mark({ loci: unitLoci(s, i * 7919) }, MarkerAction.Highlight);
+              };
+            } else if (mode.suffix === '-props') {
+              update = async (_canvas3d, reprs, i) => {
+                await reprs[0].createOrUpdate({ emissive: i % 2 ? 0.2 : 0 } as any, s).run();
+              };
+            } else if (mode.suffix === '-clip') {
+              update = async (_canvas3d, reprs, i) => {
+                const plane = {
+                  type: 'plane' as const,
+                  invert: false,
+                  position: Vec3.create(i % 20, 0, 0),
+                  rotation: { axis: Vec3.create(0, 0, 1), angle: 30 },
+                  scale: Vec3.create(1, 1, 1),
+                  transform: Mat4.identity(),
+                };
+                await reprs[0].createOrUpdate({ clip: { variant: 'pixel', objects: [plane] } } as any, s).run();
               };
             } else if (mode.suffix === '-recolor') {
               update = async (canvas3d, reprs, i) => {
@@ -1624,7 +1660,8 @@ export async function postsynRepr(
   repr.setTheme(
     Theme.create(
       registries,
-      { particles: list },
+      // a list with templates by its leaves by level (no copy expanded), as the plugin themes it
+      { particles: ParticleNesting.hasTemplates(list) ? ParticleNesting.getThemeList(list) : list },
       { colorTheme: { name: 'particle-entity', params: {} }, sizeTheme: { name: sizeTheme, params: {} } },
     ),
   );
@@ -1937,6 +1974,170 @@ export const MergingYeastPackCases: BenchmarkCase<RenderInput>[] = (['uniform', 
         byteNotes: true,
       };
     },
+  ),
+);
+
+/**
+ * The isg cell and its grids from their particle packs (`isg_mature.mspk`, `isg_mature_grid-<n>.mspk` in `.benchmark/`:
+ * 460k particles a cell, every copy stored; on demand: `--filter 'merging/isg-pack*'`), whole at 720p as the Viewer
+ * shows them, still and rotating: what their scene holds (`--byte-notes`) and their frames, the flat lists a nested one
+ * is measured against
+ */
+export const MergingIsgPackCases: BenchmarkCase<RenderInput>[] = ['', '-2x2x2', '-3x3x3', '-4x4x4'].flatMap((grid) =>
+  [false, true].map((rotate) =>
+    renderCase(
+      `merging/isg-pack${grid || '-1x1x1'}${rotate ? '-rotating' : ''}`,
+      `the isg cell${grid ? ` on a ${grid.slice(1)} grid` : ''} from its particle pack as spacefill (mesoscale settings), culled on the GPU, levels by size on screen (3 px)${rotate ? ', rotating' : ''}`,
+      async () => {
+        const file = `isg_mature${grid ? `_grid${grid}` : ''}.mspk`;
+        const list = createParticleListFromPack(readParticlePack(await fetchBenchmarkFile(file)));
+        return {
+          scene: (g) => Promise.all([postsynRepr(g, list, true, undefined, 3, undefined, 'uniform')]),
+          setupNotes: true,
+          byteNotes: true,
+          rotate,
+        };
+      },
+    ),
+  ),
+);
+
+/**
+ * The isg cell's grids written by the grid script (`scripts/particle-grid-pack.mjs`: `isg_mature_<form>-<n>x<n>x<n>.mspk`
+ * in `.benchmark/`, on demand: `--filter 'merging/isg-grid*'`), flat (every copy's particles written: culled by the
+ * merged culler), tiled (the same tile-ordered, `--tiles 16`: drawn by the page store's cull, as a slot list of its
+ * tiles) and nested (the cell a template, a particle a copy: by the page store's cull, its copies composed on the GPU),
+ * whole at 720p, still and rotating: what their scenes hold (`--byte-notes`) and their frames, one form against the
+ * others (tiled the nested one's cull without the copies); the nested at 8, 12 and 16 a side too
+ */
+export const MergingIsgGridCases: BenchmarkCase<RenderInput>[] = (['flat', 'tiled', 'nested'] as const).flatMap(
+  (form) =>
+    // the nested form larger too (8: 236 M particles drawn, 12: 795 M, 16: 1.9 G; its copies alone written, flat and
+    // tiled none)
+    (form === 'nested' ? [2, 3, 4, 8, 12, 16] : [2, 3, 4]).flatMap((n) =>
+      // the nested form's layers too: still with a copy and a template particle range overpainted, and another copy
+      // overpainted per frame (a state's change: its update)
+      (form === 'nested'
+        ? (['still', 'rotating', 'near-rotating', 'hover', 'layers', 'layers-update', 'drag'] as const)
+        : (['still', 'rotating', 'hover'] as const)
+      ).map((mode: 'still' | 'rotating' | 'near-rotating' | 'hover' | 'layers' | 'layers-update' | 'drag') =>
+        renderCase(
+          `merging/isg-grid-${form}-${n}x${n}x${n}${mode === 'still' ? '' : `-${mode}`}`,
+          `the isg cell on a ${n}x${n}x${n} grid, ${form === 'nested' ? 'a template placed by its copies' : `every copy written out${form === 'tiled' ? ', tile-ordered' : ''}`}, as spacefill (mesoscale settings), culled on the GPU, levels by size on screen (3 px)${mode === 'rotating' ? ', rotating' : mode === 'near-rotating' ? ', near (0.35 of the distance, 1280x1130: the Viewer outside, a little zoomed in), turning half a degree a frame' : mode === 'hover' ? ', a hover (per frame another instance highlighted, the one before not) redrawn over the last image' : mode === 'layers' ? ', a copy and a thousand template particles in every copy overpainted' : mode === 'layers-update' ? ', per frame another copy overpainted (the state set, the canvas updated)' : mode === 'drag' ? ', moved per frame (a drag: another preview transform)' : ''}`,
+          async () => {
+            const file = `isg_mature_${form}-${n}x${n}x${n}.mspk`;
+            const list = createParticleListFromPack(readParticlePack(await fetchBenchmarkFile(file)));
+            // every form seen alike: the nested list's sphere (its bounds by its copies, the others' by their particles)
+            const nested =
+              form === 'nested'
+                ? list
+                : createParticleListFromPack(
+                    readParticlePack(await fetchBenchmarkFile(`isg_mature_nested-${n}x${n}x${n}.mspk`)),
+                  );
+            const { center, radius } = Particle.getBoundary(nested).sphere;
+            // an instance of the expanded list (a nested one's by its path: a template particle of one copy)
+            const count = ParticleNesting.getExpandedCount(list);
+            let layersSet = false;
+            const instance = (i: number) =>
+              ParticleNesting.fromFlatIndices(list, OrderedSet.ofSingleton((i * 7919 * 104729) % count));
+            return {
+              scene: (g) => Promise.all([postsynRepr(g, list, true, undefined, 3, undefined, 'uniform')]),
+              setupNotes: true,
+              byteNotes: true,
+              rotate: mode === 'rotating' || mode === 'near-rotating',
+              focus: { center: Vec3.clone(center), radius },
+              // near: the copies at their finer levels, most of them hidden (the cull's work, not the draws')
+              ...(mode === 'near-rotating' && { zoom: 0.35, rotateDegrees: 0.5, size: { width: 1280, height: 1130 } }),
+              ...(mode === 'hover' && {
+                yieldFrames: true,
+                unforced: true,
+                update: (canvas3d: Canvas3D, _: readonly Representation.Any[], i: number) => {
+                  canvas3d.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
+                  canvas3d.mark({ loci: instance(i + 1) }, MarkerAction.Highlight);
+                },
+              }),
+              ...(mode === 'layers' && {
+                // set once (the first update, before the runs): the frames' cost with the layers alone
+                update: (canvas3d: Canvas3D, reprs: readonly Representation.Any[]) => {
+                  if (layersSet) return;
+                  layersSet = true;
+                  reprs[0].setState({ overpaint: isgLayers(list, 0, true) });
+                  canvas3d.update(reprs[0]);
+                  canvas3d.commit(true);
+                },
+              }),
+              ...(mode === 'drag' && {
+                // per frame another preview transform (a drag before its release): every object moved
+                update: (_: Canvas3D, reprs: readonly Representation.Any[], i: number) => {
+                  const m = Mat4.fromTranslation(Mat4(), Vec3.create(radius * 0.01 * (i % 20), 0, 0));
+                  for (const ro of reprs[0].renderObjects) Visual.setPreviewTransform(ro, m);
+                },
+              }),
+              ...(mode === 'layers-update' && {
+                update: (canvas3d: Canvas3D, reprs: readonly Representation.Any[], i: number) => {
+                  reprs[0].setState({ overpaint: isgLayers(list, (i * 7919) % list.count, false) });
+                  canvas3d.update(reprs[0]);
+                },
+              }),
+            };
+          },
+        ),
+      ),
+    ),
+);
+
+/** a nested list's overpaint: its copy `copy` red, with `wide` its template's first thousand particles in every copy */
+function isgLayers(list: ParticleList, copy: number, wide: boolean) {
+  const layers: { loci: Particle.Loci; color: Color; clear: boolean }[] = [
+    { loci: ParticleNesting.ofCopy(list, copy), color: Color(0xee2211), clear: false },
+  ];
+  const template = ParticleNesting.getTemplate(list, ParticleValues.get(list.targets, 0))?.particles;
+  if (wide && template) {
+    const locals = OrderedSet.ofBounds(0, Math.min(1000, template.count));
+    layers.push({
+      loci: ParticleNesting.ofTemplateParticles(list, template, locals),
+      color: Color(0x22cc33),
+      clear: false,
+    });
+  }
+  return { kind: 'particle-loci' as const, layers };
+}
+
+/**
+ * The yeast cell on a 2x2 grid (`scripts/particle-grid-pack.mjs` from `yeast_cell_atoms.mspk`, in `.benchmark/`, on
+ * demand: `--filter 'merging/yeast-grid*'`): flat (every copy's particles written, tile-ordered with coarse levels:
+ * `yeast_cell_atoms_grid-2x2.tiles32.levels.mspk`, 126 M particles, 2.8 GB) and nested (the cell a template, four
+ * copies: `yeast_cell_atoms_nested-2x2.mspk`, 714 MB), whole at 720p, still, rotating and with a hover: what their
+ * scenes hold (`--byte-notes`) and their frames
+ */
+export const MergingYeastGridCases: BenchmarkCase<RenderInput>[] = (['flat', 'nested'] as const).flatMap((form) =>
+  (['still', 'rotating', 'hover'] as const).map((mode) =>
+    renderCase(
+      `merging/yeast-grid-${form}-2x2${mode === 'still' ? '' : `-${mode}`}`,
+      `the yeast cell on a 2x2 grid, ${form === 'nested' ? 'a template placed by its copies' : 'every copy written out, tile-ordered with coarse levels'}, as spacefill (mesoscale settings), culled on the GPU, levels by size on screen (3 px)${mode === 'rotating' ? ', rotating' : mode === 'hover' ? ', a hover (per frame another instance highlighted, the one before not) redrawn over the last image' : ''}`,
+      async () => {
+        const file =
+          form === 'nested' ? 'yeast_cell_atoms_nested-2x2.mspk' : 'yeast_cell_atoms_grid-2x2.tiles32.levels.mspk';
+        const list = createParticleListFromPack(readParticlePack(await fetchBenchmarkFile(file)));
+        const count = ParticleNesting.getExpandedCount(list);
+        const instance = (i: number) =>
+          ParticleNesting.fromFlatIndices(list, OrderedSet.ofSingleton((i * 7919 * 104729) % count));
+        return {
+          scene: (g) => Promise.all([postsynRepr(g, list, true, undefined, 3, undefined, 'uniform')]),
+          setupNotes: true,
+          byteNotes: true,
+          rotate: mode === 'rotating',
+          ...(mode === 'hover' && {
+            yieldFrames: true,
+            unforced: true,
+            update: (canvas3d: Canvas3D, _: readonly Representation.Any[], i: number) => {
+              canvas3d.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
+              canvas3d.mark({ loci: instance(i + 1) }, MarkerAction.Highlight);
+            },
+          }),
+        };
+      },
+    ),
   ),
 );
 

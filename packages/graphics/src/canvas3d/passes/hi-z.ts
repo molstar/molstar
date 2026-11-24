@@ -81,6 +81,20 @@ function orthographicDepthToViewZ(depth: number, near: number, far: number) {
   return depth * (far - near) - far;
 }
 
+/** `rows` (`[start, end)` pairs, in any order) sorted, those that overlap or touch merged */
+function mergeRows(rows: readonly number[]) {
+  const pairs: [number, number][] = [];
+  for (let k = 0; k < rows.length; k += 2) pairs.push([rows[k], rows[k + 1]]);
+  pairs.sort((a, b) => a[0] - b[0]);
+  const merged: number[] = [];
+  for (const [start, end] of pairs) {
+    const n = merged.length;
+    if (n > 0 && start <= merged[n - 1]) merged[n - 1] = Math.max(merged[n - 1], end);
+    else merged.push(start, end);
+  }
+  return merged;
+}
+
 function depthToViewZ(depth: number, near: number, far: number, projection: Mat4) {
   return projection[11] === -1 ? perspectiveDepthToViewZ(depth, near, far) : orthographicDepthToViewZ(depth, near, far);
 }
@@ -112,7 +126,7 @@ export const HiZParams = {
       "GPU occlusion culling catching up within the frame: what the previous frame's depth left out is tested against the frame's depth so far and drawn where visible. Exact while the camera moves; off, what comes into view shows a frame late, or not until the next draw.",
   }),
   occluderOpticalDepth: PD.Numeric(
-    7,
+    5,
     { min: 1, max: 20, step: 1 },
     {
       label: 'Occluder Optical Depth',
@@ -169,6 +183,14 @@ export class HiZPass {
   private buffer = new Float32Array(0);
   private frameLag = 0;
   private ready = false;
+  /** the camera of the last frame culled by the CPU test (`noteCulled`): its view, projection scale, near and far */
+  private readonly culledView = Mat4();
+  private readonly culledLens = Vec4();
+  /** that frame culled against levels of another view: what came into view hidden by them (`noteCulled`) */
+  private culledStale = false;
+  /** a frame of that camera drawn again once (`takeCatchUp`): not again until the camera moves */
+  private caughtUp = false;
+  private catchUp = false;
 
   readonly props: HiZProps;
 
@@ -233,6 +255,8 @@ export class HiZPass {
   private occluder?: OccluderGrid;
   private occluderTexture?: Texture;
   private occluderUploaded?: OccluderGrid;
+  /** the rows of the atlas an update wrote (`[start, end)` pairs), a scratch */
+  private occluderRows: number[] = [];
   /** the slices' atlas of the last grid uploaded: of the next where the same size */
   private occluderAtlas?: Float32Array;
 
@@ -266,6 +290,47 @@ export class HiZPass {
       this.occluderTexture = this.graphics.resources.texture('image-float32', 'r', 'float', 'nearest');
     if (this.occluderUploaded !== grid) {
       // the slices along z side by side, `columns` a row
+      const rows = Math.ceil(nz / columns);
+      const width = columns * nx;
+      const height = rows * ny;
+      // an update of the grid uploaded last (its array written in place): its cells' rows alone (a view's step: a few
+      // tiles' of millions of cells), not the atlas again
+      const last = this.occluderUploaded;
+      const atlas0 = this.occluderAtlas;
+      if (
+        grid.update &&
+        last?.density === grid.density &&
+        last.version === grid.update.from &&
+        atlas0?.length === width * height &&
+        this.occluderTexture.loadRows
+      ) {
+        const boxes = grid.update.boxes;
+        const written = this.occluderRows;
+        written.length = 0;
+        for (let k = 0; k < boxes.length; k += 6) {
+          const [x0, y0, z0, x1, y1, z1] = [
+            boxes[k],
+            boxes[k + 1],
+            boxes[k + 2],
+            boxes[k + 3],
+            boxes[k + 4],
+            boxes[k + 5],
+          ];
+          for (let z = z0; z < z1; ++z) {
+            const ox = (z % columns) * nx;
+            const oy = Math.floor(z / columns) * ny;
+            for (let y = y0; y < y1; ++y) {
+              const from = (z * ny + y) * nx;
+              atlas0.set(grid.density.subarray(from + x0, from + x1), (oy + y) * width + ox + x0);
+            }
+            written.push(oy + y0, oy + y1);
+          }
+        }
+        this.occluderTexture.loadRows({ array: atlas0, width, height }, mergeRows(written));
+        this.occluderUploaded = grid;
+      }
+    }
+    if (this.occluderUploaded !== grid) {
       const rows = Math.ceil(nz / columns);
       const width = columns * nx;
       const height = rows * ny;
@@ -561,7 +626,50 @@ export class HiZPass {
       this.far = this.nextFar;
       Mat4.copy(this.view, this.nextView);
       Mat4.copy(this.projection, this.nextProjection);
+      // the last frame culled against older levels (a camera stopped after moving): drawn again with these, once
+      if (this.culledStale) {
+        this.culledStale = false;
+        this.caughtUp = true;
+        this.catchUp = true;
+      }
     }
+  }
+
+  /**
+   * After a frame culled by the CPU test (`occlusionTest`) with `camera`: whether its levels were of another view. The
+   * test lags behind (levels read back a frame or more later, no second phase), so what came into view is missing in
+   * that frame; with the camera stopped no frame draws it, so the next levels to arrive draw one (`takeCatchUp`), once
+   * a camera pose. The view compared by its matrix and the projection's scale (not a multi-sample's jitter)
+   */
+  noteCulled(camera: Camera) {
+    if (!this.supported || !this.props.enabled) return;
+    const { view, projection, near, far } = camera;
+    const moved =
+      !Mat4.areEqual(this.culledView, view, 0) ||
+      this.culledLens[0] !== projection[0] ||
+      this.culledLens[1] !== projection[5] ||
+      this.culledLens[2] !== near ||
+      this.culledLens[3] !== far;
+    if (moved) {
+      Mat4.copy(this.culledView, view);
+      Vec4.set(this.culledLens, projection[0], projection[5], near, far);
+      this.caughtUp = false;
+    }
+    const stale =
+      this.ready &&
+      (!Mat4.areEqual(this.view, view, 0) ||
+        this.projection[0] !== projection[0] ||
+        this.projection[5] !== projection[5] ||
+        this.near !== near ||
+        this.far !== far);
+    this.culledStale = stale && !this.caughtUp;
+  }
+
+  /** whether a frame is to be drawn again with the levels that arrived (`noteCulled`); taken once */
+  takeCatchUp() {
+    const value = this.catchUp;
+    this.catchUp = false;
+    return value;
   }
 
   private transform(s: Sphere3D) {

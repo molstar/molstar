@@ -233,6 +233,45 @@ function collectHierarchy(
   catalog: ParticleList,
 ): HierarchyStructure {
   const { compartmentInfo, entityInfo } = catalog;
+  const fromInfo =
+    !!compartmentInfo && compartmentInfo.size > 0 && [...compartmentInfo.values()].every((c) => !!c.entities);
+  if (!fromInfo) return makeHierarchy(lists, by, catalog, false);
+  // of the catalog alone: made once a catalog (a following view's step creates the theme again: thousands of
+  // entities sorted a step otherwise), again where its info is another or grew
+  let byInfo = hierarchyStructureCache.get(compartmentInfo);
+  if (!byInfo) hierarchyStructureCache.set(compartmentInfo, (byInfo = new Map()));
+  const entityInfoSize = entityInfo?.size ?? 0;
+  const compartmentInfoSize = compartmentInfo.size;
+  const cached = byInfo.get(by);
+  if (
+    cached &&
+    cached.entityInfo === entityInfo &&
+    cached.entityInfoSize === entityInfoSize &&
+    cached.compartmentInfoSize === compartmentInfoSize
+  ) {
+    return cached.structure;
+  }
+  const structure = makeHierarchy(lists, by, catalog, true);
+  byInfo.set(by, { entityInfo, entityInfoSize, compartmentInfoSize, structure });
+  return structure;
+}
+
+/** `collectHierarchy`'s of a catalog's info (its compartments holding their entities), by its `compartmentInfo` */
+const hierarchyStructureCache = new WeakMap<
+  object,
+  Map<
+    Props['by'],
+    { entityInfo: unknown; entityInfoSize: number; compartmentInfoSize: number; structure: HierarchyStructure }
+  >
+>();
+
+function makeHierarchy(
+  lists: readonly HierarchicalParticleList[],
+  by: Props['by'],
+  catalog: ParticleList,
+  fromInfo: boolean,
+): HierarchyStructure {
+  const { compartmentInfo, entityInfo } = catalog;
   /** per compartment (raw) its groups and whether it has particles without one, as met */
   const met = new Map<number, { groups: Set<number>; noEntity: boolean }>();
   const metOf = (c: number) => {
@@ -240,8 +279,6 @@ function collectHierarchy(
     if (!m) met.set(c, (m = { groups: new Set(), noEntity: false }));
     return m;
   };
-  const fromInfo =
-    !!compartmentInfo && compartmentInfo.size > 0 && [...compartmentInfo.values()].every((c) => !!c.entities);
   if (fromInfo) {
     const toGroup = by === 'function' ? getFunctionGroups(entityInfo).entityToGroup : undefined;
     for (const [c, info] of compartmentInfo!) {

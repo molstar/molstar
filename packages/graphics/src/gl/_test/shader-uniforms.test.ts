@@ -38,6 +38,7 @@ import { ComputeShaders, getComputeDefineVariants } from './compute-shaders.js';
 import { GraphicsShaders, getProgramDefines, resolveGeometryType } from './graphics-shaders.js';
 import { getGlslProgram, registerGlslProgram } from '../webgl/programs.js';
 import { getInstanceDataSchema } from '../webgl/render-item.js';
+import { InstanceExpansionSchema } from '../instance-expansion.js';
 
 function getIdentifiers(source: string, prefix: 'u' | 't' | 'a') {
   const code = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
@@ -66,7 +67,8 @@ describe('shader identifiers', () => {
   // all identifiers referenced in any preprocessor branch of the shader code must be in the schema,
   // uniform declarations are generated from it (textures and attributes will be too)
   for (const [name, shaderCode, renderableSchema, geometryType] of GraphicsShaders) {
-    // with what the WebGL backend adds for merged render items (`dInstanceData`)
+    // with what the WebGL backend adds for merged render items (`dInstanceData`) and expanded ones
+    // (`dInstanceExpansion`)
     const schema = getInstanceDataSchema({
       ...GlobalUniformSchema,
       ...GlobalTextureSchema,
@@ -74,6 +76,7 @@ describe('shader identifiers', () => {
       ...InternalSchema,
       ...renderableSchema,
       ...SegmentSchema,
+      ...InstanceExpansionSchema,
     });
     const vert = resolveGeometryType(getGlslProgram(shaderCode.name).vert, geometryType);
     const frag = resolveGeometryType(getGlslProgram(shaderCode.name).frag, geometryType);

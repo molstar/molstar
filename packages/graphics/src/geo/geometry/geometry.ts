@@ -26,6 +26,7 @@ import type { RenderObjectValues } from '@molstar/graphics/gl/render-object';
 import { TextureMesh } from './texture-mesh/texture-mesh.js';
 import { Image } from './image/image.js';
 import { CylinderStride, Cylinders } from './cylinders/cylinders.js';
+import { GaussianSplats } from './gaussian-splats/gaussian-splats.js';
 import { arrayMaxPackedIntToRGBA } from '@molstar/core/util/number-packing';
 
 export type GeometryKind =
@@ -37,7 +38,8 @@ export type GeometryKind =
   | 'lines'
   | 'direct-volume'
   | 'image'
-  | 'texture-mesh';
+  | 'texture-mesh'
+  | 'gaussian-splats';
 
 export type Geometry<T extends GeometryKind = GeometryKind> = T extends 'mesh'
   ? Mesh
@@ -57,7 +59,9 @@ export type Geometry<T extends GeometryKind = GeometryKind> = T extends 'mesh'
                 ? Image
                 : T extends 'texture-mesh'
                   ? TextureMesh
-                  : never;
+                  : T extends 'gaussian-splats'
+                    ? GaussianSplats
+                    : never;
 
 type GeometryParams<T extends GeometryKind> = T extends 'mesh'
   ? Mesh.Params
@@ -77,7 +81,9 @@ type GeometryParams<T extends GeometryKind> = T extends 'mesh'
                 ? Image.Params
                 : T extends 'texture-mesh'
                   ? TextureMesh.Params
-                  : never;
+                  : T extends 'gaussian-splats'
+                    ? GaussianSplats.Params
+                    : never;
 
 export interface GeometryUtils<
   G extends Geometry,
@@ -143,12 +149,14 @@ export namespace Geometry {
         return 2 * 3;
       case 'texture-mesh':
         return geometry.vertexCount;
+      case 'gaussian-splats':
+        return geometry.splatCount * 2 * 3;
     }
   }
 
   /**
    * The data vertices: the values of 'vertex' and 'vertexInstance' color, size and layers per instance (the shaders'
-   * `uVertexCount`), not the drawn vertices; one per sphere, point and text item, a start and an end per cylinder and
+   * `uVertexCount`), not the drawn vertices; one per sphere, point, splat and text item, a start and an end per cylinder and
    * line
    */
   export function getVertexCount(geometry: Geometry): number {
@@ -172,6 +180,8 @@ export namespace Geometry {
         return 4;
       case 'texture-mesh':
         return geometry.vertexCount;
+      case 'gaussian-splats':
+        return geometry.splatCount;
     }
   }
 
@@ -197,6 +207,8 @@ export namespace Geometry {
         return arrayMaxPackedIntToRGBA(geometry.groupTexture.ref.value.array, 4) + 1;
       case 'texture-mesh':
         return geometry.groupCount;
+      case 'gaussian-splats':
+        return getPositionGroupGroupCount(geometry.positionGroup.ref.value, geometry.splatCount);
     }
   }
 
@@ -221,6 +233,8 @@ export namespace Geometry {
         return Image.Utils as any;
       case 'texture-mesh':
         return TextureMesh.Utils as any;
+      case 'gaussian-splats':
+        return GaussianSplats.Utils as any;
     }
   }
 

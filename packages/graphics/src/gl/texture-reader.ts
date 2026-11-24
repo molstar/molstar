@@ -26,7 +26,10 @@ export interface TextureReader<A extends Uint8Array | Float32Array = Uint8Array>
   read(textures: readonly Texture[], x: number, y: number, width: number, height: number, arrays: A[]): void;
   /** starts reading (only where `asynchronous`), see `check` */
   start(textures: readonly Texture[], x: number, y: number, width: number, height: number): void;
-  /** the state of the read started last, its data copied into `arrays` once resolved; a read is resolved only once */
+  /**
+   * the state of the read started last, its data copied into `arrays` once resolved (as many as it read textures; a
+   * caller's further arrays untouched); a read is resolved only once
+   */
   check(arrays: A[]): TextureReadStatus;
   /** drops a started read (e.g. one pending for too long) */
   reset(): void;

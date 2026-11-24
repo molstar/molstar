@@ -11,6 +11,7 @@ import { ImageSchema } from '../renderable/image.js';
 import { LinesSchema } from '../renderable/lines.js';
 import { MeshSchema } from '../renderable/mesh.js';
 import { PointsSchema } from '../renderable/points.js';
+import { GaussianSplatsSchema } from '../renderable/gaussian-splats.js';
 import type { RenderableSchema } from '../renderable/schema.js';
 import { SpheresSchema } from '../renderable/spheres.js';
 import { TextSchema } from '../renderable/text.js';
@@ -19,6 +20,7 @@ import {
   CylindersShaderCode,
   type DefineType,
   DirectVolumeShaderCode,
+  GaussianSplatsShaderCode,
   ImageShaderCode,
   LinesShaderCode,
   MeshShaderCode,
@@ -42,6 +44,7 @@ export const GraphicsShaders: [name: string, shaderCode: ShaderCode, schema: Ren
     ['text', TextShaderCode, TextSchema, 'text'],
     ['image', ImageShaderCode, ImageSchema, 'image'],
     ['direct-volume', DirectVolumeShaderCode, DirectVolumeSchema, 'directVolume'],
+    ['gaussian-splats', GaussianSplatsShaderCode, GaussianSplatsSchema, 'gaussianSplats'],
   ];
 
 /**

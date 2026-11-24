@@ -365,8 +365,9 @@ export function getTextureDimension(spec: TextureSpec<TextureKind>, defines?: De
  * Elements of a data array by index (`DataSpec`): `rgba8` four bytes, `r8` one, `rgba32f` four floats, `rgb32f-i32` four
  * floats but an item's group (items of `DataSpec.itemTexels` elements, the first's fourth: an int32 as its bits, exact
  * past 2^24; a `Float32Array`, the group written by `int32ToFloatBits`), `rgba16i` four int16 (8 bytes: quantized
- * positions, the fourth a uint16 as its bits; WebGL2 and WebGPU only); read as `vec4` (`r8` in `.r`, `rgba16i` the
- * integers as floats, the fourth unsigned) by the generated accessors `read_<name>(i)`, `rgb32f-i32` the group by
+ * positions, splat shapes; the fourth a uint16 as its bits; WebGL1 floats, converted where written); read as `vec4`
+ * (`r8` in `.r`, `rgba16i` the integers as floats, the fourth unsigned) by the generated accessors `read_<name>(i)`,
+ * `rgb32f-i32` the group by
  * `readGroup_<name>(i)` (an integer; the backends read the words as integers: integer bits read as a float are a
  * denormal, which GPUs flush; WebGL1 floats, the groups converted where written, exact to 2^24)
  */
@@ -746,6 +747,7 @@ export const BaseSchema = {
   dGeometryType: DefineSpec('string', [
     'cylinders',
     'directVolume',
+    'gaussianSplats',
     'image',
     'lines',
     'mesh',

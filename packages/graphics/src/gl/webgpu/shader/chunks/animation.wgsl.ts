@@ -4,6 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { PagedCopyShift } from '../../../culled-data.js';
+
 /**
  * Wiggle (per position or group) and tumble (per instance) animations; expects `fbm`. Their noise only where an object
  * animates (`dWiggleAnimation`, the wiggle layer `dWiggle`, `dTumbleAnimation`): inlined, it was about half of a
@@ -107,7 +109,17 @@ export const assign_wiggle_wgsl = /* wgsl */ `
             let wiggleGroupInstance = i32(in.aInstance) * i32(uObject.uGroupCount) + i32(group);
         #endif
         let wiggleIndex = select(wiggleGroupInstance, i32(in.aInstance), uObject.uInstanceGranularity != 0u);
-        let wiggle = read_tWiggle(wiggleIndex).r * uMaterial.uWiggleStrength;
+        var wiggleOwn = read_tWiggle(wiggleIndex).r;
+        #if defined(dCopyLayers)
+            // a page store's copy's instance: its copy's own, where it has one (\`copyLayerOr\`)
+            #if defined(dSphereResolve)
+                let wiggleWords = rasterPagedWords(in.instanceIndex);
+            #else
+                let wiggleWords = culledPagedWords(in.instanceIndex);
+            #endif
+            wiggleOwn = copyLayerOr(5u, 1u, wiggleWords.w >> ${PagedCopyShift}u, wiggleWords.z, vec4<f32>(wiggleOwn)).r;
+        #endif
+        let wiggle = wiggleOwn * uMaterial.uWiggleStrength;
     #else
         let wiggle = 0.0;
     #endif

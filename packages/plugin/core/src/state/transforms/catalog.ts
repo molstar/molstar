@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 // Registers every built-in transformer id (for snapshot restore and tools such as state-docs), except the particle
@@ -14,6 +15,7 @@ import '@molstar/plugin/state/formats/coordinates/lammps';
 import '@molstar/plugin/state/formats/coordinates/nctraj';
 import '@molstar/plugin/state/formats/coordinates/trr';
 import '@molstar/plugin/state/formats/coordinates/xtc';
+import '@molstar/plugin/state/formats/shape/gaussian-splat';
 import '@molstar/plugin/state/formats/shape/obj';
 import '@molstar/plugin/state/formats/shape/ply';
 import '@molstar/plugin/state/formats/shape/vtp';

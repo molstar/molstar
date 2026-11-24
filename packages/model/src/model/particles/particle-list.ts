@@ -7,6 +7,7 @@
  */
 
 import { OrderedSet } from '@molstar/core/data/int';
+import { radixSortIndices } from '@molstar/core/data/util/sort';
 import { Column } from '@molstar/core/data/db';
 import { Mat4, Quat, Vec3 } from '@molstar/core/math/linear-algebra';
 import { Box3D, Sphere3D } from '@molstar/core/math/geometry';
@@ -21,6 +22,8 @@ import { fillIdentityTransform } from '@molstar/core/math/linear-algebra/3d/tran
 import { GridPositions, type Positions } from '@molstar/core/math/geometry/grid-positions';
 import type { Cell } from '@molstar/core/math/geometry/spacegroup/cell';
 import { type ParticlePages, type ParticlePagesChange, type ParticleSlot, ParticleSlots } from './particle-slots.js';
+import { ParticleNesting } from './particle-nesting.js';
+import type { DeferredPage, DeferredRead } from './particle-page-cache.js';
 
 /**
  * A single named per-particle scalar attribute (e.g. `'cc'`, `'class'`, `'score'`).
@@ -434,6 +437,11 @@ export interface ParticleList {
    * particles drawn larger so they fill about the space all fill
    */
   readonly scale?: number;
+  /**
+   * its particles' scales (`ParticleValues`, runs), in place of `scale` where given: a coarse level's node of a pack
+   * written by target (`node.scales`: each target's sample drawn larger by its own, so its volume kept)
+   */
+  readonly scales?: ParticleValues<Float32Array>;
 
   customProperties: CustomProperties;
   _propertyData: { [name: string]: any };
@@ -462,7 +470,17 @@ export type ParticleTarget =
       readonly center?: Vec3;
     }
   | { readonly kind: 'shape'; readonly shape: import('../shape/shape.js').Shape }
-  | { readonly kind: 'volume'; readonly volume: import('../volume/volume.js').Volume };
+  | { readonly kind: 'volume'; readonly volume: import('../volume/volume.js').Volume }
+  | {
+      /**
+       * a list of particles (a template, `ParticleNesting`): a particle of this target places all of them, its pose
+       * composed with each one's; their own targets are what is drawn (leaves: a template places no template)
+       */
+      readonly kind: 'particles';
+      readonly particles: ParticleList;
+      /** as a structure target's: the point placed at a particle's coordinates, the list's boundary center by default */
+      readonly center?: Vec3;
+    };
 
 /**
  * The sites of a target (`ParticleTarget` kind `sites`): positions and radii, a site's index its group in the target's
@@ -728,6 +746,8 @@ export namespace ParticleTarget {
         return target.shape;
       case 'volume':
         return target.volume;
+      case 'particles':
+        return target.particles;
     }
   }
 
@@ -737,12 +757,14 @@ export namespace ParticleTarget {
   /**
    * The point of the target placed at a particle's coordinates: a structure's centroid (`center` when given, cached
    * per structure otherwise); a volume's box center (voxel N/2, the subtomogram formats' convention), not its
-   * isosurface's, which moves with the iso value; none for shapes, placed by their geometry's bounding sphere center
+   * isosurface's, which moves with the iso value; none for shapes, placed by their geometry's bounding sphere center;
+   * a list of particles' its boundary's center (`center` when given)
    */
   export function getCenter(target: ParticleTarget): Vec3 | undefined {
     if (target.kind === 'shape') return undefined;
     if (target.kind === 'volume') return Grid.getBoundingSphere(target.volume.grid).center;
     if (target.center) return target.center;
+    if (target.kind === 'particles') return Particle.getBoundary(target.particles).sphere.center;
     if (target.kind === 'sites') {
       const { sites } = target;
       let center = centroids.get(sites);
@@ -778,15 +800,21 @@ const ParticleSpacingDescriptor = CustomPropertyDescriptor({ name: 'particle-spa
 /** How many particles the spacing is measured over (evenly spread): the median settles well before */
 const SpacingSamples = 2000;
 
-/**
- * A radius for particles that carry none (picks, oriented points): half the median distance from a particle to its
- * nearest neighbor, so neighbors about touch, as cryo-ET picks of one kind do. Measured on up to 2,000 particles,
- * cached on the list; 1 for fewer than two particles or all at one point.
- */
 /** A position read (`GridPositions.get`) by the functions here */
 const _position = Vec3();
 
+/**
+ * A radius for particles that carry none (picks, oriented points): half the median distance from a particle to its
+ * nearest neighbor, so neighbors about touch, as cryo-ET picks of one kind do. Measured on up to 2,000 particles,
+ * cached on the list; 1 for fewer than two particles or all at one point. A slot list's its largest page's (its own
+ * arrays empty: its particles its pages')
+ */
 export function getParticleSpacingRadius(data: ParticleList): number {
+  if (data.pages) {
+    let largest: ParticleList | undefined;
+    for (const page of data.pages.pages) if (!largest || page.list.count > largest.count) largest = page.list;
+    return largest ? getParticleSpacingRadius(largest) : 1;
+  }
   const cached = data._propertyData[ParticleSpacingDescriptor.name] as number | undefined;
   if (cached !== undefined) return cached;
   const { count, coordinates } = data;
@@ -1140,26 +1168,49 @@ export namespace Particle {
     return s ? GridPositions.get(s.list.coordinates, s.index, out) : Vec3.set(out, 0, 0, 0);
   }
 
-  /** A loci over one or more particles in a `ParticleList`. */
+  /**
+   * A list with templates' copies held in part (`Loci.partial`): by top particle, ascending, none of `Loci.indices`;
+   * of each its template's particles held (neither none nor all: `ParticleNesting.createLoci` keeps it so)
+   */
+  export interface PartialCopies {
+    readonly tops: Int32Array;
+    readonly locals: readonly OrderedSet<number>[];
+  }
+
+  /**
+   * A loci over one or more particles in a `ParticleList`: `indices` the particles held whole (a copy of a template:
+   * its every instance), `partial` the copies held in part (a list with templates; `ParticleNesting`'s path sets: one
+   * instance, a whole copy, a template particle in every copy)
+   */
   export interface Loci {
     readonly kind: 'particle-loci';
     readonly particles: ParticleList;
     readonly indices: OrderedSet<number>;
+    readonly partial?: PartialCopies;
   }
-  export function Loci(particles: ParticleList, indices: OrderedSet<number>): Loci {
-    return { kind: 'particle-loci', particles, indices };
+  export function Loci(particles: ParticleList, indices: OrderedSet<number>, partial?: PartialCopies): Loci {
+    return partial && partial.tops.length > 0
+      ? { kind: 'particle-loci', particles, indices, partial }
+      : { kind: 'particle-loci', particles, indices };
   }
   export function isLoci(x: any): x is Loci {
     return !!x && x.kind === 'particle-loci';
   }
   export function areLociEqual(a: Loci, b: Loci) {
-    return a.particles === b.particles && OrderedSet.areEqual(a.indices, b.indices);
+    return (
+      a.particles === b.particles &&
+      OrderedSet.areEqual(a.indices, b.indices) &&
+      ParticleNesting.arePartialEqual(a.partial, b.partial)
+    );
   }
   export function isLociEmpty(loci: Loci) {
-    return OrderedSet.isEmpty(loci.indices);
+    return OrderedSet.isEmpty(loci.indices) && !loci.partial;
   }
+  /** its instances: a list with templates' expanded (a copy held whole its template's count) */
   export function lociSize(loci: Loci) {
-    return OrderedSet.size(loci.indices);
+    return ParticleNesting.hasTemplates(loci.particles)
+      ? ParticleNesting.getLociSize(loci)
+      : OrderedSet.size(loci.indices);
   }
   /**
    * Remap a loci to a new `ParticleList`; indices outside the new range are dropped (a slot list's gaps too: a
@@ -1167,6 +1218,7 @@ export namespace Particle {
    */
   export function remapLoci(loci: Loci, particles: ParticleList): Loci {
     if (loci.particles === particles) return loci;
+    if (loci.partial || ParticleNesting.hasTemplates(particles)) return ParticleNesting.remapLoci(loci, particles);
     const { count } = particles;
     if (count === 0) return Loci(particles, OrderedSet.Empty);
     const filtered: number[] = [];
@@ -1189,6 +1241,8 @@ export namespace Particle {
     const { coordinates, radii } = particles;
     if (isLociEmpty(loci)) {
       return boundingSphere ? Sphere3D.setZero(boundingSphere) : Sphere3D();
+    } else if (ParticleNesting.hasTemplates(particles)) {
+      return ParticleNesting.getLociBoundingSphere(loci, boundingSphere);
     } else if (lociSize(loci) === ParticleSlots.getLiveCount(particles)) {
       // all of them: the cached boundary (a slot list's of its pages', each cached on its list)
       const sphere = getBoundary(particles).sphere;
@@ -1225,6 +1279,9 @@ export namespace Particle {
     } else if (lociSize(loci) === particles.count) {
       const sphere = getBoundary(particles).sphere;
       return boundingSphere ? Sphere3D.copy(boundingSphere, sphere) : sphere;
+    } else if (getDeferred(particles)) {
+      // its particles not read (a pack opened by range): by its tiles' boxes
+      return ParticleNesting.getDeferredBoundingSphere(particles, indices, boundingSphere);
     }
     const boundaryHelper = getBoundaryHelper(OrderedSet.size(indices));
     boundaryHelper.reset();
@@ -1253,6 +1310,7 @@ export namespace Particle {
   }
 
   export function getLabel(loci: Loci): string {
+    if (ParticleNesting.hasTemplates(loci.particles)) return ParticleNesting.getLociLabel(loci);
     const size = OrderedSet.size(loci.indices);
     if (size === 0) return 'None';
     if (size === 1) {
@@ -1409,9 +1467,25 @@ export namespace Particle {
   export function subset(
     particles: ParticleList,
     indices: Int32Array,
-    options: { readonly label?: string; readonly keys?: Int32Array } = {},
+    options: {
+      readonly label?: string;
+      readonly keys?: Int32Array;
+      /**
+       * values known of the subset (not gathered): a sample's by its runs (`sampleByTarget`), a stored level's positions
+       * and rotations (`levelOfRuns`: a pack's)
+       */
+      readonly given?: {
+        readonly targets?: ParticleValues<Int32Array>;
+        readonly entities?: ParticleValues<Int32Array>;
+        readonly compartments?: ParticleValues<Int32Array>;
+        readonly radii?: ParticleValues<Float32Array>;
+        readonly coordinates?: ParticleList['coordinates'];
+        readonly rotations?: ParticleRotations;
+      };
+    } = {},
   ): ParticleList {
     const n = indices.length;
+    const given = options.given ?? {};
     let attributes: Map<string, ParticleAttribute> | undefined;
     if (particles.attributes) {
       attributes = new Map();
@@ -1427,22 +1501,384 @@ export namespace Particle {
       count: n,
       cell: particles.cell,
       keys: options.keys,
-      targets: gatherValues(particles.targets, indices, Int32Array),
+      targets: given.targets ?? gatherValues(particles.targets, indices, Int32Array),
       targetInfo: particles.targetInfo,
       targetMapping: particles.targetMapping,
-      compartments: particles.compartments && gatherValues(particles.compartments, indices, Int32Array),
+      compartments:
+        particles.compartments && (given.compartments ?? gatherValues(particles.compartments, indices, Int32Array)),
       compartmentInfo: particles.compartmentInfo,
-      entities: particles.entities && gatherValues(particles.entities, indices, Int32Array),
+      entities: particles.entities && (given.entities ?? gatherValues(particles.entities, indices, Int32Array)),
       entityInfo: particles.entityInfo,
-      coordinates: gatherPositions(particles.coordinates, indices),
-      rotations: particles.rotations && gatherRotations(particles.rotations, indices),
-      radii: particles.radii && gatherValues(particles.radii, indices, Float32Array),
+      coordinates:
+        given.coordinates ?? (assertRead(particles, 'a subset'), gatherPositions(particles.coordinates, indices)),
+      rotations: particles.rotations && (given.rotations ?? gatherRotations(particles.rotations, indices)),
+      radii: particles.radii && (given.radii ?? gatherValues(particles.radii, indices, Float32Array)),
       attributes,
       getParticleLabel: (index) => particles.getParticleLabel(indices[index]),
       sourceData: particles.sourceData,
       customProperties: new CustomProperties(),
       _propertyData: Object.create(null),
     };
+  }
+
+  /** A coarse level's sample (`sampleByTarget`): its particles (a run a target, drawn larger), each one's index */
+  export interface SampleLevel {
+    readonly list: ParticleList;
+    readonly indices: Int32Array;
+  }
+
+  /** a fine grid's cells an axis over a list's box (`sampleByTarget`): its Morton codes 27 bits */
+  const SampleCells = 512;
+
+  /**
+   * `v`'s ten bits spread to every third bit (`mortonOrder3d`'s interleave, x the highest of three): inlined in the
+   * sample order's loop on purpose, a bit loop of 21 a coordinate a particle there (half its 109 ms for the isg cell)
+   */
+  function spreadBits3(v: number) {
+    v = (v | (v << 16)) & 0x030000ff;
+    v = (v | (v << 8)) & 0x0300f00f;
+    v = (v | (v << 4)) & 0x030c30c3;
+    return (v | (v << 2)) & 0x09249249;
+  }
+
+  /**
+   * A coarse level of `particles` (`level` from 1): of each target every `8^level`-th of its particles (at least one)
+   * in Morton order of a fine grid over their box (`SampleCells` an axis: a sample spread over it, not a corner of it),
+   * a run a target (targets by their first particle in that order), its scale the square root of the target's
+   * particles over those kept (`ParticleList.scales`: drawn larger, the area it covers kept) times the list's `scale`;
+   * `indices` a kept particle's in `particles`. A template's far copies (`ParticleNesting.getTemplateLevels`). Not the
+   * cube root of a tile set's coarse nodes (a pack's `node.*` blocks: their volume kept): a layer one particle thick (a
+   * membrane, a capsid) holed by it, the isg cell's outer layer on a grid of copies its interior seen through.
+   * Undefined for a list of scales by run of its own. `order` its particles in that order (`getSampleOrder`: one for
+   * all its levels); `finer` the level before's sample in that order (`level` - 1 from 1): this one every eighth of
+   * each of its runs (a target's kept particles in order: every `8^level`-th of the target's), not a pass over all
+   * the particles
+   */
+  export function sampleByTarget(
+    particles: ParticleList,
+    level: number,
+    order = getSampleOrder(particles),
+    finer?: SampleLevel,
+  ): SampleLevel | undefined {
+    if (particles.scales) return undefined;
+    const stride = 8 ** level;
+    const finerRuns = finer?.list.scales;
+    const known = sampleTargets.get(order);
+    let picked: { seen: Int32Array; runCount: number; offsets: Int32Array; indices: Int32Array };
+    if (
+      known?.list === particles &&
+      finerRuns &&
+      ParticleValues.isRuns(finerRuns) &&
+      finerRuns.offsets.length === known.runCount + 1
+    ) {
+      // every eighth of each of the finer level's runs (a target's kept particles in order)
+      const { seen, runCount } = known;
+      const from = finerRuns.offsets;
+      const offsets = new Int32Array(runCount + 1);
+      for (let d = 0; d < runCount; ++d) offsets[d + 1] = offsets[d] + Math.ceil(seen[d] / stride);
+      const indices = new Int32Array(offsets[runCount]);
+      for (let d = 0; d < runCount; ++d) {
+        for (let j = 0, k = offsets[d]; k < offsets[d + 1]; ++j, ++k) indices[k] = finer!.indices[from[d] + 8 * j];
+      }
+      picked = { seen, runCount, offsets, indices };
+    } else {
+      picked = pickByTarget(particles, order, stride);
+      sampleTargets.set(order, { list: particles, seen: picked.seen, runCount: picked.runCount });
+    }
+    const { seen, runCount, offsets, indices } = picked;
+    const scales = new Float32Array(runCount);
+    const listScale = particles.scale !== undefined && particles.scale > 0 ? particles.scale : 1;
+    for (let d = 0; d < runCount; ++d) scales[d] = Math.sqrt(seen[d] / (offsets[d + 1] - offsets[d])) * listScale;
+    return levelOfRuns(particles, indices, offsets, scales);
+  }
+
+  /**
+   * A coarse level of `particles` from its runs (`sampleByTarget`'s, a stored level's: `StoredLevel`): its particles
+   * `indices` (in `particles`), a run a target (`offsets`, `given.targets` its target, else its first particle's),
+   * `scales` a run's; its entities, compartments and radii by run where a target's particles have one each, its
+   * positions and rotations given (a stored level's) or gathered
+   */
+  export function levelOfRuns(
+    particles: ParticleList,
+    indices: Int32Array,
+    offsets: Int32Array,
+    scales: Float32Array,
+    stored: {
+      readonly targets?: Int32Array;
+      readonly coordinates?: ParticleList['coordinates'];
+      readonly rotations?: ParticleRotations;
+    } = {},
+  ): SampleLevel {
+    const runCount = offsets.length - 1;
+    // a run a target: its targets by run, its entities, compartments and radii too where they are a target's each (a
+    // pack's), not gathered a particle. Why: a tile-ordered template's 2.3 M runs, its levels' 4.5 M particles gathered
+    // (0.39 s)
+    let runTargets = stored.targets;
+    if (!runTargets) {
+      runTargets = new Int32Array(runCount);
+      for (let d = 0; d < runCount; ++d) runTargets[d] = ParticleValues.get(particles.targets, indices[offsets[d]]);
+    }
+    const byRun = <A extends Int32Array | Float32Array>(key: PerTargetKey, ctor: { new (n: number): A }) => {
+      const of = getPerTarget(particles, key);
+      if (!of) return undefined;
+      const values = new ctor(runCount);
+      for (let d = 0; d < runCount; ++d) values[d] = of[runTargets![d] + 1];
+      return ParticleValues.ofRuns(offsets, values);
+    };
+    const given = {
+      targets: ParticleValues.ofRuns(offsets, runTargets),
+      entities: byRun('entities', Int32Array),
+      compartments: byRun('compartments', Int32Array),
+      radii: byRun('radii', Float32Array),
+      coordinates: stored.coordinates,
+      rotations: stored.rotations,
+    };
+    const list: ParticleList = {
+      ...subset(particles, indices, { given }),
+      scale: undefined,
+      scales: ParticleValues.ofRuns(offsets, scales),
+    };
+    return { list, indices };
+  }
+
+  type PerTargetKey = 'entities' | 'compartments' | 'radii';
+  const perTargetCache = new WeakMap<ParticleList, Map<PerTargetKey, Float64Array | null>>();
+  /**
+   * `particles`' values of `key` by target where a target's particles have one each, a table by target id from -1
+   * (cached; undefined where not, or none): a pass over the merged runs of its targets and those values
+   */
+  function getPerTarget(particles: ParticleList, key: PerTargetKey) {
+    const values = particles[key];
+    if (!values) return undefined;
+    let byKey = perTargetCache.get(particles);
+    if (!byKey) perTargetCache.set(particles, (byKey = new Map()));
+    const known = byKey.get(key);
+    if (known !== undefined) return known ?? undefined;
+    const { targets } = particles;
+    let maxId = -1;
+    ParticleValues.forEachRun(targets, particles.count, (_s, _e, t) => {
+      if (t > maxId) maxId = t;
+    });
+    const of = new Float64Array(maxId + 2).fill(Number.NaN);
+    let uniform = true;
+    const check = (t: number, v: number) => {
+      const had = of[t + 1];
+      if (Number.isNaN(had)) of[t + 1] = v;
+      else if (had !== v) uniform = false;
+    };
+    if (ParticleValues.isRuns(targets) && ParticleValues.isRuns(values)) {
+      // both runs: their ends walked together (no arrays made: a tile-ordered template's runs are millions)
+      const a = targets.offsets;
+      const b = values.offsets;
+      let i = 0;
+      let j = 0;
+      while (uniform && i < a.length - 1 && j < b.length - 1) {
+        const end = Math.min(a[i + 1], b[j + 1]);
+        if (end > Math.max(a[i], b[j])) check(targets.values[i], values.values[j]);
+        if (a[i + 1] === end) ++i;
+        if (b[j + 1] === end) ++j;
+      }
+    } else {
+      ParticleValues.forEachRun2(targets, values, particles.count, (_s, _e, t, v) => {
+        if (uniform) check(t, v);
+      });
+    }
+    byKey.set(key, uniform ? of : null);
+    return uniform ? of : undefined;
+  }
+
+  /** per sample order (`sampleByTarget`'s) its targets' particles' counts, targets as first seen in it: its levels' */
+  const sampleTargets = new WeakMap<Int32Array, { list: ParticleList; seen: Int32Array; runCount: number }>();
+
+  /**
+   * Of each target of `particles` every `stride`-th of its particles in `order` (the first kept), a run a target
+   * (targets as first seen in it); `seen` a target's particles' count. One pass over `order` (a particle's target read
+   * out of order), picking where it reads, into runs by target id (their sizes by a pass over the targets in their
+   * order), the runs put in order after: not a target a particle written in that order and read again (the yeast
+   * cell's 31.5 M, 126 MB)
+   */
+  function pickByTarget(particles: ParticleList, order: Int32Array, stride: number) {
+    if (storedOrders.has(order)) {
+      const picked = pickByRuns(particles.targets, stride);
+      if (picked) return picked;
+    }
+    const n = particles.count;
+    const targets = ParticleValues.toArray(particles.targets, n, Int32Array);
+    // by a table over the targets' ids, -1 none (the table's first)
+    let maxId = -1;
+    for (let i = 0; i < n; ++i) if (targets[i] > maxId) maxId = targets[i];
+    const ids = maxId + 2;
+    const countOf = new Int32Array(ids);
+    for (let i = 0; i < n; ++i) countOf[targets[i] + 1] += 1;
+    const startOf = new Int32Array(ids + 1);
+    for (let t = 0; t < ids; ++t) startOf[t + 1] = startOf[t] + Math.ceil(countOf[t] / stride);
+    const byId = new Int32Array(startOf[ids]);
+    const cursor = new Int32Array(ids);
+    const denseOf = new Int32Array(ids).fill(-1);
+    const idOf: number[] = [];
+    for (let s = 0; s < n; ++s) {
+      const i = order[s];
+      const t = targets[i] + 1;
+      if (denseOf[t] < 0) {
+        denseOf[t] = idOf.length;
+        idOf.push(t);
+      }
+      const c = cursor[t]++;
+      if (c % stride === 0) byId[startOf[t] + c / stride] = i;
+    }
+    const runCount = idOf.length;
+    const seen = new Int32Array(runCount);
+    const offsets = new Int32Array(runCount + 1);
+    for (let d = 0; d < runCount; ++d) {
+      const t = idOf[d];
+      seen[d] = countOf[t];
+      offsets[d + 1] = offsets[d] + (startOf[t + 1] - startOf[t]);
+    }
+    const indices = new Int32Array(offsets[runCount]);
+    for (let d = 0; d < runCount; ++d) {
+      const t = idOf[d];
+      indices.set(byId.subarray(startOf[t], startOf[t + 1]), offsets[d]);
+    }
+    return { seen, runCount, offsets, indices };
+  }
+
+  /**
+   * `pickByTarget` in a list's stored order (`storedOrders`) where its targets are runs: of each target every
+   * `stride`-th of its particles across its runs in order (the targets as first seen), not a pass over the particles.
+   * Why: the pass read 31.5 M targets for the yeast cell's 3.9 M picks (0.4 s); a tile-ordered template's target a run
+   * a tile it holds
+   */
+  function pickByRuns(targets: ParticleValues<Int32Array>, stride: number) {
+    if (!ParticleValues.isRuns(targets)) return undefined;
+    const { offsets: runs, values } = targets;
+    // the targets as first seen (dense, by a table over their ids from -1: no map a run), their particles' counts
+    let maxId = -1;
+    for (let r = 0; r < values.length; ++r) if (values[r] > maxId) maxId = values[r];
+    const denseOf = new Int32Array(maxId + 2).fill(-1);
+    const counts: number[] = [];
+    for (let r = 0; r < values.length; ++r) {
+      const size = runs[r + 1] - runs[r];
+      if (size === 0) continue;
+      let d = denseOf[values[r] + 1];
+      if (d < 0) {
+        d = denseOf[values[r] + 1] = counts.length;
+        counts.push(0);
+      }
+      counts[d] += size;
+    }
+    const runCount = counts.length;
+    const seen = Int32Array.from(counts);
+    const offsets = new Int32Array(runCount + 1);
+    for (let d = 0; d < runCount; ++d) offsets[d + 1] = offsets[d] + Math.ceil(counts[d] / stride);
+    const indices = new Int32Array(offsets[runCount]);
+    // per target its particles passed and its next pick's place
+    const passed = new Int32Array(runCount);
+    const at = offsets.slice(0, runCount);
+    for (let r = 0; r < values.length; ++r) {
+      const start = runs[r];
+      const size = runs[r + 1] - start;
+      if (size === 0) continue;
+      const d = denseOf[values[r] + 1];
+      // the first of the run at a multiple of the stride in the target's particles
+      for (let j = (stride - (passed[d] % stride)) % stride; j < size; j += stride) indices[at[d]++] = start + j;
+      passed[d] += size;
+    }
+    return { seen, runCount, offsets, indices };
+  }
+
+  /** the orders `getSampleOrder` gave as a list's own (`setSampleOrdered`): `pickByTarget` by its runs */
+  const storedOrders = new WeakSet<Int32Array>();
+
+  const SampleOrderedDescriptor: CustomPropertyDescriptor<true> = CustomPropertyDescriptor({
+    name: 'particle-sample-ordered',
+  });
+  /**
+   * Marks `particles` as stored by target in sample order (a pack's template, `writeParticlePack`: each target's
+   * particles in `getSampleOrder`'s order): its sample order their own, no sort (`getSampleOrder`)
+   */
+  export function setSampleOrdered(particles: ParticleList): void {
+    particles.customProperties.add(SampleOrderedDescriptor);
+    particles._propertyData[SampleOrderedDescriptor.name] = true;
+  }
+  export function isSampleOrdered(particles: ParticleList): boolean {
+    return particles._propertyData[SampleOrderedDescriptor.name] === true;
+  }
+
+  /**
+   * `particles` in Morton order of a fine grid over their box (`SampleCells` an axis): `sampleByTarget`'s order; a
+   * list stored by target in that order (`setSampleOrdered`) its own (a target's particles the same picks, the targets
+   * in their order). Why: the yeast cell's 31.5 M sorted 1.2 s of its load, picked in that order 0.7 more (a
+   * particle's target read out of order)
+   */
+  export function getSampleOrder(particles: ParticleList): Int32Array {
+    const n = particles.count;
+    if (isSampleOrdered(particles)) {
+      const order = new Int32Array(n);
+      for (let i = 0; i < n; ++i) order[i] = i;
+      storedOrders.add(order);
+      return order;
+    }
+    assertRead(particles, 'a sample order');
+    const { coordinates } = particles;
+    // two passes over the positions, the box then the codes, a grid's decoded inline where read (float32 as stored
+    // or `GridPositions.get` into a float32 copy gave): no copy of them (the yeast cell's 31.5 M: 378 MB, its
+    // decode by `get` 0.3 s)
+    const grid = GridPositions.is(coordinates) ? coordinates : undefined;
+    const data = grid ? grid.data : undefined;
+    const xyz = grid ? undefined : (coordinates as Float32Array);
+    const [ox, oy, oz] = grid ? grid.origin : [0, 0, 0];
+    const step = grid ? grid.step : 0;
+    let minX = Infinity;
+    let minY = Infinity;
+    let minZ = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    let maxZ = -Infinity;
+    for (let i = 0; i < n; ++i) {
+      let x: number, y: number, z: number;
+      if (data) {
+        const lo = data[i * 2];
+        const hi = data[i * 2 + 1];
+        x = Math.fround(ox + step * (lo & 0x1fffff));
+        y = Math.fround(oy + step * ((lo >>> 21) | ((hi & 0x3ff) << 11)));
+        z = Math.fround(oz + step * ((hi >>> 10) & 0x1fffff));
+      } else {
+        x = xyz![i * 3];
+        y = xyz![i * 3 + 1];
+        z = xyz![i * 3 + 2];
+      }
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+      if (z < minZ) minZ = z;
+      if (z > maxZ) maxZ = z;
+    }
+    const f = SampleCells;
+    const sx = f / Math.max(1e-6, maxX - minX);
+    const sy = f / Math.max(1e-6, maxY - minY);
+    const sz = f / Math.max(1e-6, maxZ - minZ);
+    const last = f - 1;
+    const codes = new Uint32Array(n);
+    for (let i = 0; i < n; ++i) {
+      let x: number, y: number, z: number;
+      if (data) {
+        const lo = data[i * 2];
+        const hi = data[i * 2 + 1];
+        x = Math.fround(ox + step * (lo & 0x1fffff));
+        y = Math.fround(oy + step * ((lo >>> 21) | ((hi & 0x3ff) << 11)));
+        z = Math.fround(oz + step * ((hi >>> 10) & 0x1fffff));
+      } else {
+        x = xyz![i * 3];
+        y = xyz![i * 3 + 1];
+        z = xyz![i * 3 + 2];
+      }
+      const cx = Math.max(0, Math.min(last, Math.floor((x - minX) * sx)));
+      const cy = Math.max(0, Math.min(last, Math.floor((y - minY) * sy)));
+      const cz = Math.max(0, Math.min(last, Math.floor((z - minZ) * sz)));
+      codes[i] = (spreadBits3(cx) << 2) | (spreadBits3(cy) << 1) | spreadBits3(cz);
+    }
+    return radixSortIndices(codes, f * f * f - 1);
   }
 
   /**
@@ -1529,6 +1965,29 @@ export namespace Particle {
     return out;
   }
 
+  /** particles a block of `getRunBlocks` (its index of a run each, 64 particles) */
+  const RunBlockBits = 6;
+  const runBlocks = new WeakMap<ParticleRuns<Int32Array | Float32Array>, Int32Array>();
+  /**
+   * the run of `runs` at each block of 64 particles' first (cached): a particle's run a few steps from its block's, not
+   * a binary search of all. Why: a tile-ordered template's targets 2.3 M runs, its levels' 4.5 M particles gathered by a
+   * search each (0.75 s)
+   */
+  function getRunBlocks(runs: ParticleRuns<Int32Array | Float32Array>) {
+    let blocks = runBlocks.get(runs);
+    if (blocks) return blocks;
+    const { offsets } = runs;
+    const n = offsets[offsets.length - 1];
+    blocks = new Int32Array((n >> RunBlockBits) + 1);
+    for (let b = 0, r = 0; b < blocks.length; ++b) {
+      const i = b << RunBlockBits;
+      while (r < offsets.length - 2 && offsets[r + 1] <= i) ++r;
+      blocks[b] = r;
+    }
+    runBlocks.set(runs, blocks);
+    return blocks;
+  }
+
   /** `values` of `indices`, in their order: as runs where they are fewer than half the values, else an array */
   function gatherValues<A extends Int32Array | Float32Array>(
     values: ParticleValues<A>,
@@ -1540,8 +1999,13 @@ export namespace Particle {
     if (ParticleValues.isRuns(values)) {
       const offsets: number[] = [];
       const runValues: number[] = [];
+      const blocks = getRunBlocks(values);
+      const { offsets: from, values: of } = values;
       for (let i = 0; i < n; ++i) {
-        const v = ParticleValues.get(values, indices[i]);
+        const j = indices[i];
+        let r = blocks[j >> RunBlockBits];
+        while (from[r + 1] <= j) ++r;
+        const v = of[r];
         if (i === 0 || v !== runValues[runValues.length - 1]) {
           offsets.push(i);
           runValues.push(v);
@@ -1551,21 +2015,57 @@ export namespace Particle {
         offsets.push(n);
         return ParticleValues.ofRuns(Int32Array.from(offsets), copyInto(new ctor(runValues.length), runValues));
       }
+      // more runs than half the values: an array, its runs' values spread (no search again)
+      const array = new ctor(n);
+      for (let k = 0; k < runValues.length; ++k) array.fill(runValues[k], offsets[k], offsets[k + 1] ?? n);
+      return ParticleValues.compact(array);
     }
     const array = new ctor(n);
     for (let i = 0; i < n; ++i) array[i] = ParticleValues.get(values, indices[i]);
     return ParticleValues.compact(array);
   }
 
+  /** what other modules cache of a list's particles alone, by name: its tiles (`ParticleTiles.setDirectory`) */
+  const KeptByTargetsNames = ['particle-tile-directory'];
+
   /**
    * Return a copy of `particles` with the given per-target reference objects attached; of the same line of moves
-   * (`movedFrom`: the coordinates the same), so a list moved under it gives its move
+   * (`movedFrom`: the coordinates the same), so a list moved under it gives its move. What is cached on it of its
+   * particles alone is kept (their groups by target, transforms, bounds, order, stored levels, deferred reads, tiles;
+   * its boundary where neither targets have templates), what is of its targets not (a list with
+   * templates' id space, flattened list and theme list; the targets' measures and densities): computed again
    */
   export function withTargets(
     particles: ParticleList,
     targetMapping: ReadonlyMap<number, ParticleTarget>,
   ): ParticleList {
-    return { ...particles, targetMapping, movedFrom: particles.movedFrom ?? { particles, transform: Mat4.identity() } };
+    const kept = new Set<string>(KeptByTargetsNames);
+    for (const d of [
+      ...keptByMove,
+      ParticleTransformsDescriptor,
+      TargetBoundsDescriptor,
+      SampleOrderedDescriptor,
+      StoredLevelsDescriptor,
+      DeferredDescriptor,
+    ]) {
+      kept.add(d.name);
+    }
+    const next = { ...particles, targetMapping };
+    if (!hasTemplateTargets(particles) && !hasTemplateTargets(next)) kept.add(BoundaryDescriptor.name);
+    const customProperties = new CustomProperties();
+    const propertyData = Object.create(null);
+    for (const descriptor of particles.customProperties.all) {
+      const value = particles._propertyData[descriptor.name];
+      if (value === undefined || !kept.has(descriptor.name)) continue;
+      customProperties.add(descriptor);
+      propertyData[descriptor.name] = value;
+    }
+    return {
+      ...next,
+      movedFrom: particles.movedFrom ?? { particles, transform: Mat4.identity() },
+      customProperties,
+      _propertyData: propertyData,
+    };
   }
 
   /**
@@ -1788,9 +2288,176 @@ export namespace Particle {
   export const BoundaryDescriptor: CustomPropertyDescriptor<Boundary> = CustomPropertyDescriptor({
     name: 'particle-boundary',
   });
+  function hasTemplateTargets(particles: ParticleList) {
+    if (!particles.targetMapping) return false;
+    for (const target of particles.targetMapping.values()) if (target.kind === 'particles') return true;
+    return false;
+  }
+
+  /**
+   * A template's sphere bounds its copies where its radius is below this share of its box's half diagonal (a round
+   * template's about 0.58: the box's corners √3 as far as its surface), else its box's corners (a box-like template's
+   * sphere about the half diagonal: spheres would bound a grid of copies loosely, the camera's fit a seventh farther)
+   */
+  const NestedSphereShare = 0.9;
+
+  /**
+   * The boundary of a list with templates (`ParticleNesting`): a template's particle its template placed by its pose
+   * (`q (x - c) + t`), by the template's sphere (its center placed, its radius) or by the eight corners of its box
+   * (`NestedSphereShare`: whichever is tighter; both hold its every particle at any turn), a leaf its position and
+   * radius; the box of each copy's the tighter of the two per axis. The templates' boundaries computed first (a
+   * template's own computing resets the helpers this one shares)
+   */
+  function getNestedBoundary(particles: ParticleList): Boundary {
+    const { count, coordinates, rotations, radii, targets, targetMapping } = particles;
+    const boxes = new Map<number, { box: Box3D; center: Vec3; sphere: Sphere3D; bySphere: boolean }>();
+    for (const [id, target] of targetMapping!) {
+      if (target.kind !== 'particles') continue;
+      const { box, sphere } = getBoundary(target.particles);
+      const halfDiagonal = Vec3.distance(box.min, box.max) / 2;
+      const bySphere = sphere.radius < NestedSphereShare * halfDiagonal;
+      boxes.set(id, { box, center: ParticleTarget.getCenter(target)!, sphere, bySphere });
+    }
+    // per particle its points (a leaf one, a copy one by its sphere or eight by its box's corners) and their radii
+    let points = 0;
+    ParticleValues.forEachRun(targets, count, (start, end, id) => {
+      const b = boxes.get(id);
+      points += (end - start) * (b ? (b.bySphere ? 1 : 8) : 1);
+    });
+    const copyMin = Vec3();
+    const copyMax = Vec3();
+    const centers = new Float32Array(points * 3);
+    const pointRadii = new Float32Array(points);
+    const q = Quat();
+    const box = Box3D.setEmpty(Box3D());
+    const corner = Vec3();
+    let o = 0;
+    ParticleValues.forEachRun(targets, count, (start, end, id) => {
+      const b = boxes.get(id);
+      for (let i = start; i < end; ++i) {
+        GridPositions.get(coordinates, i, _tmpPos);
+        if (!b) {
+          const r = radii ? ParticleValues.get(radii, i) : 0;
+          Vec3.toArray(_tmpPos, centers, o * 3);
+          pointRadii[o++] = r;
+          Box3D.add(box, Vec3.set(corner, _tmpPos[0] - r, _tmpPos[1] - r, _tmpPos[2] - r));
+          Box3D.add(box, Vec3.set(corner, _tmpPos[0] + r, _tmpPos[1] + r, _tmpPos[2] + r));
+          continue;
+        }
+        ParticleRotations.get(rotations, i, q);
+        // the copy's box: its corners' and its sphere's, the tighter per axis
+        Vec3.set(copyMin, Infinity, Infinity, Infinity);
+        Vec3.set(copyMax, -Infinity, -Infinity, -Infinity);
+        for (let k = 0; k < 8; ++k) {
+          Vec3.set(
+            corner,
+            k & 1 ? b.box.max[0] : b.box.min[0],
+            k & 2 ? b.box.max[1] : b.box.min[1],
+            k & 4 ? b.box.max[2] : b.box.min[2],
+          );
+          Vec3.transformQuat(corner, Vec3.sub(corner, corner, b.center), q);
+          Vec3.add(corner, corner, _tmpPos);
+          Vec3.min(copyMin, copyMin, corner);
+          Vec3.max(copyMax, copyMax, corner);
+          if (b.bySphere) continue;
+          Vec3.toArray(corner, centers, o * 3);
+          pointRadii[o++] = 0;
+        }
+        // its sphere's center placed, its radius kept
+        Vec3.transformQuat(corner, Vec3.sub(corner, b.sphere.center, b.center), q);
+        Vec3.add(corner, corner, _tmpPos);
+        const r = b.sphere.radius;
+        if (b.bySphere) {
+          Vec3.toArray(corner, centers, o * 3);
+          pointRadii[o++] = r;
+        }
+        for (let a = 0; a < 3; ++a) {
+          copyMin[a] = Math.max(copyMin[a], corner[a] - r);
+          copyMax[a] = Math.min(copyMax[a], corner[a] + r);
+        }
+        Box3D.add(box, copyMin);
+        Box3D.add(box, copyMax);
+      }
+    });
+    const helper = getBoundaryHelper(points);
+    helper.reset();
+    for (let i = 0; i < points; ++i)
+      helper.includePositionRadius(Vec3.fromArray(_tmpPos, centers, i * 3), pointRadii[i]);
+    helper.finishedIncludeStep();
+    for (let i = 0; i < points; ++i)
+      helper.radiusPositionRadius(Vec3.fromArray(_tmpPos, centers, i * 3), pointRadii[i]);
+    return { box, sphere: helper.getSphere() };
+  }
+
+  /**
+   * A list's particles not read yet (a pack opened by range: `openParticleListFromPackStream`): its positions and
+   * rotations read by range when asked (`read`: `[first, first + count)`, as stored: a grid's words, snorm16 or
+   * float32), its `coordinates` and `rotations` empty meanwhile (of the right kinds: a grid of its origin and step);
+   * its counts, runs, boundary, density grid and stored levels the list's as read. Read by page
+   * (`DeferredPageSize`) through its pack's cache (`ParticlePageCache.deferred`): `readPage` read once and kept,
+   * `getPage` a kept page at once. What a page store of a template reads its pages by, a page when the cull wants it,
+   * and a loci's sphere by where kept; what reads all of a list's particles refuses one (`assertRead`)
+   */
+  export interface DeferredParticles {
+    readonly read: DeferredRead;
+    /** page `page`'s particles where kept, at once (no read begun): undefined where not */
+    readonly getPage: (page: number) => DeferredPage | undefined;
+    /** page `page`'s particles: kept, or read (once while in flight) and kept */
+    readonly readPage: (page: number) => Promise<DeferredPage>;
+  }
+  export const DeferredDescriptor: CustomPropertyDescriptor<DeferredParticles> = CustomPropertyDescriptor({
+    name: 'particle-deferred',
+  });
+  export function setDeferred(particles: ParticleList, deferred: DeferredParticles): void {
+    particles.customProperties.add(DeferredDescriptor);
+    particles._propertyData[DeferredDescriptor.name] = deferred;
+  }
+  /** `particles`' deferred particles (`setDeferred`), undefined where read */
+  export function getDeferred(particles: ParticleList): DeferredParticles | undefined {
+    return particles._propertyData?.[DeferredDescriptor.name] as DeferredParticles | undefined;
+  }
+  /** an error where `particles`' particles are not read (`DeferredParticles`): `what` needs all of them */
+  export function assertRead(particles: ParticleList, what: string) {
+    if (getDeferred(particles)) {
+      throw new Error(`particle list '${particles.label}': ${what} needs its particles, read by range when drawn`);
+    }
+  }
+
+  /**
+   * A coarse level stored with a list (a template pack's: `ParticlePackDocument.templateLevels`): of each target every
+   * `8^level`-th particle (at least one), a run a target (`offsets` from 0, its target `targets` in the list's ids,
+   * `scales` the square root of its target's particles over those kept), its particles' indices in the list (`keys`),
+   * positions and rotations as stored. What a template's levels are read from, not sampled at load
+   * (`ParticleNesting.getTemplateLevels`): the samples `sampleByTarget` takes in a stored order
+   */
+  export interface StoredLevel {
+    readonly level: number;
+    readonly keys: Int32Array;
+    readonly offsets: Int32Array;
+    readonly targets: Int32Array;
+    readonly scales: Float32Array;
+    readonly coordinates: ParticleList['coordinates'];
+    readonly rotations?: ParticleRotations;
+  }
+  export const StoredLevelsDescriptor: CustomPropertyDescriptor<readonly StoredLevel[]> = CustomPropertyDescriptor({
+    name: 'particle-stored-levels',
+  });
+  export function setStoredLevels(particles: ParticleList, levels: readonly StoredLevel[]): void {
+    particles.customProperties.add(StoredLevelsDescriptor);
+    particles._propertyData[StoredLevelsDescriptor.name] = levels;
+  }
+  /** `particles`' stored levels (`setStoredLevels`), finest first; undefined where none */
+  export function getStoredLevels(particles: ParticleList): readonly StoredLevel[] | undefined {
+    return particles._propertyData[StoredLevelsDescriptor.name] as readonly StoredLevel[] | undefined;
+  }
+
   export function setBoundary(particles: ParticleList, boundary: Boundary): void {
     particles.customProperties.add(BoundaryDescriptor);
     particles._propertyData[BoundaryDescriptor.name] = boundary;
+  }
+  /** Whether `particles` has its boundary (set or computed): `getBoundary` without a pass over them */
+  export function hasBoundary(particles: ParticleList): boolean {
+    return !!particles._propertyData[BoundaryDescriptor.name];
   }
   export function getBoundary(particles: ParticleList): Boundary {
     if (!particles._propertyData[BoundaryDescriptor.name] && particles.pages) {
@@ -1810,7 +2477,11 @@ export namespace Particle {
 
       setBoundary(particles, { box, sphere: helper.getSphere() });
     }
+    if (!particles._propertyData[BoundaryDescriptor.name] && hasTemplateTargets(particles)) {
+      setBoundary(particles, getNestedBoundary(particles));
+    }
     if (!particles._propertyData[BoundaryDescriptor.name]) {
+      assertRead(particles, 'its boundary (none stored)');
       // Compute boundary from particle positions and radii, and store it in the particle list for later retrieval.
       // loop over positions and radii to compute the boundary
       const { count, coordinates, radii } = particles;

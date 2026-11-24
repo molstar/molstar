@@ -43,15 +43,16 @@ export function getPagedPainting(painterOf: (page: ParticleList) => ParticlePain
 }
 
 /**
- * Whether a slot list's pages hold the particles' `key` values: its first page's; where it has none yet (a view of no
- * tiles: the camera seeing none of them, or before the first loads) by the catalog's info of them, what its pages will
- * hold. Why: a representation's params are normalized against its first list (`State`), a theme not applicable then
- * dropped for good
+ * Whether a slot list's pages hold the particles' `key` values: some page's (a tile view's all or none; a nested
+ * list's theme list's first page its top particles, placing copies, without them where its templates' leaves have
+ * them: `ParticleNesting.getThemeList`); where it has none yet (a view of no tiles: the camera seeing none of them, or
+ * before the first loads) by the catalog's info of them, what its pages will hold. Why: a representation's params are
+ * normalized against its first list (`State`), a theme not applicable then dropped for good
  */
 export function slotPagesHave(particles: ParticleList, key: 'compartments' | 'entities'): boolean {
   const pages = particles.pages?.pages;
   if (!pages) return false;
-  if (pages.length > 0) return pages[0].list[key] !== undefined;
+  if (pages.length > 0) return pages.some((page) => page.list[key] !== undefined);
   return (key === 'compartments' ? particles.compartmentInfo : particles.entityInfo) !== undefined;
 }
 

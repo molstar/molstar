@@ -45,7 +45,6 @@ import type { BufferCopy, BufferRange } from './buffer-pages.js';
 import { SegmentedArray } from '../segmented-array.js';
 import {
   type DataLayer,
-  DataLayerNames,
   DataLayerElementBytes,
   DataLayers,
   DataLayerPagesName,
@@ -53,6 +52,7 @@ import {
   getDataLayerPages,
   getDataLayerSchema,
   getDataOffsetName,
+  getSchemaDataLayers,
   MaxDataPages,
 } from './data-layers.js';
 import { TextureChanges } from '../renderable/texture-changes.js';
@@ -450,8 +450,9 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
    * (`ctx.dataBindingSize`) in up to `MaxDataPages` ranges, each within it, bound as pages of their own
    * (`DataPageNames`, the layout in `layerPages`)
    */
-  const layers: DataLayer[] =
-    schema === renderableSchema ? [] : DataLayerNames.filter((n) => dataValues[n] !== undefined);
+  // the schema's layers in their order (the bits of `DataLayerPagesName`), those with values
+  const schemaLayers = schema === renderableSchema ? [] : getSchemaDataLayers(schema);
+  const layers: DataLayer[] = schemaLayers.filter((n) => dataValues[n] !== undefined);
   const layerOffsets = layers.map((l) => ValueCell.create(0));
   for (let i = 0; i < layers.length; ++i) objectEntries.push([getDataOffsetName(layers[i]), layerOffsets[i]]);
   const layerVersions = layers.map(() => -1);
@@ -572,7 +573,7 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
       return;
     }
     layersFit = true;
-    const pages = getDataLayerPages(layers, pageOf);
+    const pages = getDataLayerPages(schemaLayers, layers, pageOf);
     if (pages !== layerPages.ref.value) {
       ValueCell.update(layerPages, pages);
       if (pages === 0) delete defineValues[DataLayerPagesName];

@@ -32,6 +32,9 @@
 //   --images <dir>   writes the canvas after the last run of each render case (<dir>/<backend>/<case id>.png)
 //   --profile <dir>  records a V8 CPU profile of each backend's page (<dir>/<backend>.cpuprofile, open in the DevTools
 //                    Performance panel); profile a single case (--filter) for readable results
+//   --trace <dir>    records a Chrome trace of each backend's page with the GPU process's and Dawn's events
+//                    (<dir>/<backend>.json, open in Perfetto): what the GPU process does a frame, not timed by the
+//                    timestamp queries (validation, encoding, submits); trace a single case (--filter)
 //   --heap-profile <dir>  records a V8 sampling heap profile of each backend's page with the objects garbage collected
 //                    since (<dir>/<backend>.heapprofile, open in the DevTools Memory panel): what is allocated, not only
 //                    what stays
@@ -62,6 +65,7 @@ const compareFile = value('--compare');
 const channel = value('--channel', 'chrome');
 const profileDir = value('--profile');
 const heapProfileDir = value('--heap-profile');
+const traceDir = value('--trace');
 const heapSnapshotDir = value('--heap-snapshot');
 const imagesDir = value('--images');
 const strictMath = value('--strict-math', 'on');
@@ -218,8 +222,26 @@ async function main() {
           includeObjectsCollectedByMinorGC: true,
         });
       }
+      if (traceDir) {
+        fs.mkdirSync(traceDir, { recursive: true });
+        await browser.startTracing(page, {
+          path: path.join(traceDir, `${backend}.json`),
+          categories: [
+            'toplevel',
+            'gpu',
+            'gpu.dawn',
+            'disabled-by-default-gpu.dawn',
+            'disabled-by-default-gpu.service',
+            'gpu.service',
+            'viz',
+            'blink',
+            'v8.execute',
+          ],
+        });
+      }
       await page.goto(`${origin}/tests/build/benchmark/index.html?${q}`);
       await page.waitForFunction(() => window.__benchmark?.done, null, { timeout: 60 * 60 * 1000, polling: 1000 });
+      if (traceDir) await browser.stopTracing();
       if (cdp && profileDir) {
         const { profile } = await cdp.send('Profiler.stop');
         fs.mkdirSync(profileDir, { recursive: true });

@@ -201,8 +201,16 @@ describe('particle tile opacity', () => {
     expect(both).not.toBe(one);
     expect(both.density).toBe(one.density);
     expect(Array.from(both.density)).toEqual(Array.from(grid.density));
+    // each update a version of its own, from the last's, with the cells it wrote: the second tile added (x 2-4)
+    expect(both.update).toEqual({ from: one.version, boxes: Int32Array.of(2, 0, 0, 4, 2, 2) });
+    expect(both.version).toBeGreaterThan(one.version!);
+    // the tiles with opacities it holds, kept by the changes
+    expect([one.tileCount, both.tileCount]).toEqual([1, 2]);
     const second = ParticleTileOpaque.updateDensityGrid(set, [1], { grid: both, tiles: [0, 1] })!;
     expect(Array.from(second.density)).toEqual(Array.from(ParticleTileOpaque.getDensityGrid(set, [1])!.density));
+    // the first let go: its cells cleared (x 0-2)
+    expect(second.update).toEqual({ from: both.version, boxes: Int32Array.of(0, 0, 0, 2, 2, 2) });
+    expect(second.tileCount).toBe(1);
     expect(ParticleTileOpaque.updateDensityGrid(set, [], { grid: second, tiles: [1] })).toBeUndefined();
   });
 

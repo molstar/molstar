@@ -36,7 +36,9 @@
 - **Two pyramids a moving frame**: the one within the frame, and the one after it of the complete depth, which is the
   next frame's first phase and the CPU test's (`planFrame` starts no read).
 - **Still frames**: no dispatch, no second phase, recordings replay as before. No pyramid in the first phase: it left out
-  nothing occluded, no second.
+  nothing occluded, no second. The raster, dispatched each frame from the first's records, takes the last dispatch's
+  second records after them where the frame has no second phase (`SphereRaster.draw` without `twoPhase`): what the
+  second found in its regions was left out of every still frame otherwise, until the camera moved (a zoom stopped).
 - **Multi-sampling**: both phases in the first sample's pass; later samples draw the sum.
 
 ## No occlusion

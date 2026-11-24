@@ -42,6 +42,11 @@ export type LodLevelsValue = [min: number, max: number, count: number, scale: nu
   readonly radius?: number;
   /** the items every `base`-th of a whole's (`getLodLevelsValue`), 1 without */
   readonly base?: number;
+  /**
+   * the size factor its strides are adjusted for (`getLodLevelsValue`): what a member's levels are compared to, not the
+   * size factor uniform (a merged units visual's shared values: written by its first segment's update)
+   */
+  readonly sizeFactor?: number;
 };
 
 /** A carbon's van der Waals radius: the nominal sphere radius levels by size on screen are chosen for (atoms) */
@@ -90,7 +95,7 @@ export function getLodLevelsValue(
       stride,
     ];
   });
-  const extra = base > 1 ? { base } : {};
+  const extra = base > 1 ? { base, sizeFactor } : { sizeFactor };
   return pixel ? Object.assign(value, { pixelSize, radius }, extra) : Object.assign(value, extra);
 }
 

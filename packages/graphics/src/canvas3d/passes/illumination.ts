@@ -285,6 +285,14 @@ export class IlluminationPass {
         );
       }
 
+      // over the other transparency's composite, on the opaque depth: blended back to front
+      if (scene.hasGaussianSplats) {
+        b.begin(this.transparentWithDepth, { label: 'gaussian splats' });
+        b.renderer({ name: 'gaussianSplats' }, scene.primitives, () =>
+          renderer.renderGaussianSplats(scene.primitives, camera),
+        );
+      }
+
       if (outlineEnabled || dofEnabled || ssaoEnabled || bloomEnabled || overlayOcclusion) {
         b.begin(this.drawPass.depthTargetTransparent, { label: 'transparent depth' });
         if (scene.opacityAverage < 1) {
