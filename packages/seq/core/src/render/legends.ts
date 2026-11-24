@@ -44,8 +44,9 @@ export function viewLegends(layout: ViewLayout, maxItems = 12): { legends: Legen
     // the figure's own say: a layer's `legend: none` keys nothing (_spec/README.md "Themes", Legends)
     if (l.layer.params.legend === 'none') return;
     // a letters layer's key is its scheme: titled by `layerName`, the eye's and the menus' too ("Sequence letters"),
-    // never by its track's name alone; the others by their track's, merged
-    const named = l.type.name === 'letters' ? layerName(l.layer, owner) : title;
+    // never by its track's name alone; the others by their track's, merged, and by the layer's where the track has no
+    // label (a rows track's: a row never has no title)
+    const named = l.type.name === 'letters' || !title.trim() ? layerName(l.layer, owner) : title;
     const ls = l.type.legend?.(l.lay, { title: named, maxItems });
     if (ls) all.push(...ls);
   };
@@ -57,7 +58,8 @@ export function viewLegends(layout: ViewLayout, maxItems = 12): { legends: Legen
     for (let k = nb; nb && k < (s.lays?.length ?? 0); k++)
       for (const l of s.lays[k] ?? []) add(l, s.tracks[k % nb].track);
     // a section's own layers (pairs' arcs and dots), titled by the track that holds them
-    for (const l of s.sectionLays) add(l, s.section.tracks.find((t) => t.layers.includes(l.layer)) ?? { label: '', layers: [] });
+    for (const l of s.sectionLays)
+      add(l, s.section.tracks.find((t) => t.layers.includes(l.layer)) ?? { label: '', layers: [] });
   }
   // a bridge's layers (its ribbons), titled by the bridge's label, after the sections' (_spec/README.md "Render", Bridges)
   for (const b of layout.bridges?.list ?? []) for (const l of b.lays) add(l, { label: b.label, layers: b.lays });

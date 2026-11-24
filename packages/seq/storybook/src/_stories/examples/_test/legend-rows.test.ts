@@ -58,22 +58,26 @@ function problems(v: SeqViewer): { rows: number; lines: string[] } {
           lines.push(`${l.key}: titled by its track alone, "${row.title}"`);
         const colors = new Set(row.entries.map((e) => e.color));
         const lay = l.lay as LettersLay;
-        // a molecule's cell of a layer with no theme of its own is drawn in the sequence's neutral: no category to key
+        // Two exemptions, each measured needed (removing either fails 12 views): a molecule's cell of a layer with no theme
+        // of its own is drawn in the sequence's neutral (no category to key), and a row noting 'values in view' (hashed
+        // values painted) keys the scale, not each color
         const neutral = lay.labels !== undefined && l.layer.theme.color === undefined;
         const fills = new Set<number>();
         for (let j = 0; j < lay.n; j++) fills.add(lay.fill[j]);
         for (const c of fills)
-          if (
-            c !== missing &&
-            !(neutral && c === sequence) &&
-            !colors.has(c) &&
-            row.more === 0 &&
-            !row.note?.includes('values in view')
-          )
+          if (c !== missing && !(neutral && c === sequence) && !colors.has(c) && !row.note?.includes('values in view'))
             lines.push(
               `${l.key}: a cell drawn in #${c.toString(16)} is no swatch of "${row.title}" (${row.entries.map((e) => `${e.label} #${e.color?.toString(16)}`).join(', ')}; ${lay.labels ? 'molecule' : 'letters'}, plain ${lay.plain?.toString(16)})`,
             );
       }
+  // every row of every kind (ramps, sizes, categories, rows too): it has a title, and each of its layers a name its eye
+  // says ("Hide <name>"; a row of several layers: "Layers of <title>"). A letters row's title is its layer's name (above);
+  // another row is titled by its track's label or its scale's (themes.md, Legends: "Dot plot", "PAE"), so its eye's name
+  // is the layer's own and the two may differ; what never differs is a row with no title or a layer with no name.
+  for (const r of rows) {
+    if (!r.title.trim()) lines.push(`a row of ${r.layers.length} layer(s) with no title (${r.layer})`);
+    for (const l of r.layers) if (!l.name.trim()) lines.push(`row "${r.title}": layer ${l.address} has no name`);
+  }
   return { rows: rows.length, lines };
 }
 

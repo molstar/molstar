@@ -608,8 +608,9 @@ layout per token table, held domains and the reader's substitution (`LayerChanne
   legends back in their place, or a row of its name alone where it has none kept (the viewer's Legends: a layer's row
   keeps its place when hidden), the caller keeping `last` across settles. **A layer's name** (`layerName`, beside
   `hiddenTrackName`): its `label`, else its `title`, else its track's or bridge's label where it is the only layer there
-  (a letters layer says its kind wherever it is, beside others too: "<label> letters"), else its id (its type without one); every list of layers says it (a track
-  header's menus, a legend's eye and title, a hidden layer's row: `viewLegends` and `keepHiddenLegends` both call it). Why one: two consumers naming one layer apart read as two layers.
+  (a letters layer says its kind wherever it is, beside others too: "<label> letters"), else its id (its type without
+  one); every list of layers says it (a track header's menus, a legend's eye and title, a hidden layer's row:
+  `viewLegends` and `keepHiddenLegends` both call it). Why one: two consumers naming one layer apart read as two layers.
 - **Builder**: `theme.uniform|field|rules|scheme|letters|categorical|…` and `measure.*`; a layer's `field` form over an
   inline table's text column gets the column's values listed (the legend is the vocabulary); a `ranges` layer over a
   `category` column, a `variants` one over a `consequence` column and a `pairs` one over a `type` column default to a
