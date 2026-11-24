@@ -347,6 +347,7 @@ export class Renderer {
     this.configKey = (hashString(JSON.stringify(this.config)) >>> 0).toString(16);
     const data = options.data;
     this.reader = {
+      origin: data.origin ?? data,
       ...(data.settings ? { settings: data.settings } : {}),
       coverage: (s) => {
         const c = data.coverage(s);

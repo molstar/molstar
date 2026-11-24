@@ -218,7 +218,7 @@ waiting; its entries `StemMenu` in `viewer.ts`).
   headless "Links failed"). Each is said once, politely (`viewer.notify` at a rest, a notice a hover never replaces,
   again only after the hole had other words or none). Why: the pending hole was empty and silent (novice 35). The
   square's pending state is the square's: the pending hatch over its lattice with "Loading…", on a failure the same
-  issue's text (`HoleIssue.of` with no section), via the cells' `note` (novice 35).
+  issue's text of the viewer whose store its layer reads through (`HoleIssue.of` with no section and the store, `StoreReader.origin`: the hidden section is no viewer's; two rings' squares each their own), via the cells' `note` (novice 35).
 
 ## What is the core's
 

@@ -33,6 +33,8 @@ export interface StoreReader {
   /** Whether a want is past the store's bound on its tiles (\`keysOf\` then lists none), where the reader says it. */
   tooMany?(want: Want): boolean;
   get(key: string): DataEntry | undefined;
+  /** The store this reads through (a section's reads: the viewer's store): what tells a viewer by its store; absent on a store. */
+  readonly origin?: StoreReader;
   /** The store's tiling and its bound on a want's tiles (a layer picks a level within it), where it has them. */
   readonly settings?: { readonly tileBins: number; readonly maxTilesPerWant: number; readonly gridTileBins?: number };
   /** A 2D want's tiles (x-major), each its key, its served region and whether it is that one's mirror, where it has them. */

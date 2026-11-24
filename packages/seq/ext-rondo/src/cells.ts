@@ -41,8 +41,9 @@ export class CellsLay {
   max = 0;
   /** No bins read yet, or a tile still awaited. */
   pending = true;
-  /** The source's address (its failure's issue is found by it). */
+  /** The source's address (its failure's issue is found by it), and the store read through (the viewer's it is). */
   source: string | undefined;
+  store: object | undefined;
 }
 
 function countCells(lay: CellsLay, prep: CellsPrep, settled: boolean): void {
@@ -114,6 +115,7 @@ export const CellsType: LayerType<CellsPrep, CellsLay> = {
     lay.reader.read(prep.source, ctx, data, CellRead);
     countCells(lay, prep, ctx.settled);
     lay.source = prep.source.region?.src.source;
+    lay.store = data.origin ?? data;
     return lay;
   },
   // nothing on a strip: its cells are the square's
@@ -143,7 +145,7 @@ export const CellsType: LayerType<CellsPrep, CellsLay> = {
     // links pending: the hatch and `Loading…`; failed: the issue the source raised (as the ring's hole says it)
     note: (lay) =>
       lay.reader.failed
-        ? (HoleIssue.of?.(undefined, lay.source ?? '') ?? 'Links failed')
+        ? (HoleIssue.of?.(undefined, lay.source ?? '', lay.store) ?? 'Links failed')
         : lay.pending && !lay.max
           ? 'Loading…'
           : undefined,
