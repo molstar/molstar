@@ -11,7 +11,8 @@
 // jump waiting for its data, as before. Nothing is held while nothing waits: a waiting ref holds no data.
 
 import { type DataStore, nodeKey, type OpenedSource, type Want, type Wanter } from '@molstar/seqx-core/data';
-import type { WaitedNode } from '@molstar/seqx-core/query';
+import { type Issue, parseAddress, printAddress } from '@molstar/core/repr/tree';
+import { type AddressResolution, unknownNodeIssue, type WaitedNode } from '@molstar/seqx-core/query';
 
 export class NodeSeek {
   private _wanter: Wanter | undefined;
@@ -24,8 +25,8 @@ export class NodeSeek {
 
   constructor(
     private readonly store: DataStore,
-    /** Told once a reading when a source says it has no node of a key. */
-    private readonly refused: (node: WaitedNode) => void,
+    /** Told once a reading when a source says it has no node of a key, with the issue that says it. */
+    private readonly refused: (node: WaitedNode, issue: Issue) => void,
   ) {}
 
   private _source(address: string): OpenedSource | undefined {
@@ -37,6 +38,14 @@ export class NodeSeek {
   unknown(node: WaitedNode): boolean {
     const by = this._unknown.get(nodeKey(node.source, node.key));
     return by !== undefined && by === this._source(node.source);
+  }
+
+  /** A waiting resolution whose node its source said it has none of: `missing`, with the source's word. */
+  unknownOf(r: AddressResolution): AddressResolution {
+    const node = r.waitsFor?.find((n) => this.unknown(n));
+    if (!node) return r;
+    const issues = [...r.issues.filter((i) => i.code !== 'seq.address.waiting'), unknownNodeIssue(node, r.address)];
+    return { ...r, status: 'missing', issues };
   }
 
   /**
@@ -58,7 +67,8 @@ export class NodeSeek {
         const hit = hits.find((h) => h.id === n.key);
         if (!hit) {
           this._unknown.set(k, source);
-          this.refused(n);
+          const at = parseAddress(n.source).pattern?.segments ?? [];
+          this.refused(n, unknownNodeIssue(n, printAddress([...at, { kind: 'node', params: { key: n.key } }])));
           return;
         }
         // the finest level: a region's answer brings its nodes there

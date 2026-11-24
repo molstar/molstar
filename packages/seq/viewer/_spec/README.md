@@ -466,18 +466,18 @@ then resolves.
   History).
 - **A focus that waits** (an address of a node not held, data not loaded) is kept and runs when the address resolves:
   retried on the refs' state, the store's version and its node version; another focus replaces it. One waiting on nodes
-  (`waitsFor`) says them (`Waiting for T2`) and asks the first not held of its source (`models/node-seek.ts`): a source
-  that finds names (`findNames`) says where its key is, and that region is read through one wanter of the view's
-  priority until the wait ends (the focus runs, is replaced or dropped), so a node evicted, or never read, still
-  arrives; a source with no such key is said once a reading (`seq.address.node.unknown` in `issues`), the focus dropped,
-  and a ref or a focus on it is then `missing` with that issue (`Its source has no T9`); a source that finds no names
-  leaves the focus waiting for its data. Nothing is asked while nothing jumps: a waiting ref holds no data. A focus
-  whose section is not placed yet (no width, no length) is kept as the view's intent and reported not done
-  (`Kept until the view is placed`), never `Focused`; the address is the focus (`focusAddress()`) once the kept move
-  lands. Before any spec is set (`SpecModel.loaded` false: the empty spec a viewer starts with) every address waits, so
-  a link followed before the document arrives is kept and runs when it is set (retried with the refs' state). The record
-  waits on the sections the move moved alone, and ends at another jump (a focus, back, forward) or when a new spec
-  leaves the address naming nothing (`seq.address.missing`).
+  (`waitsFor`) says them (`Waiting for T2`) and asks the first not held of its source (`models/node-seek.ts`, a lazy
+  chunk loaded on the first such jump): a source that finds names (`findNames`) says where its key is, and that region
+  is read through one wanter of the view's priority until the wait ends (the focus runs, is replaced or dropped), so a
+  node evicted, or never read, still arrives; a source with no such key is said once a reading
+  (`seq.address.node.unknown` in `issues`), the focus dropped, and a ref or a focus on it is then `missing` with that
+  issue (`Its source has no T9`); a source that finds no names leaves the focus waiting for its data. Nothing is asked
+  while nothing jumps: a waiting ref holds no data. A focus whose section is not placed yet (no width, no length) is
+  kept as the view's intent and reported not done (`Kept until the view is placed`), never `Focused`; the address is the
+  focus (`focusAddress()`) once the kept move lands. Before any spec is set (`SpecModel.loaded` false: the empty spec a
+  viewer starts with) every address waits, so a link followed before the document arrives is kept and runs when it is
+  set (retried with the refs' state). The record waits on the sections the move moved alone, and ends at another jump (a
+  focus, back, forward) or when a new spec leaves the address naming nothing (`seq.address.missing`).
 - **The session follows the spec**: `followMoves(changes.moved)`, called before a patch's root is set (the spec model's
   `beforeCommit`, so every commit's moves reach it), rewrites the session's addresses (selection, highlights, the
   waiting and the last focus) through moves and renames as the spec's refs are; on each new root they are resolved

@@ -5,7 +5,8 @@
  */
 
 import { FeatureViews } from '@molstar/seqx-examples';
-import { regionSeqText } from '@molstar/seqx-examples/p53/region';
+import { regionData, regionSeqText } from '@molstar/seqx-examples/p53/region';
+import { openSeq } from '@molstar/seqx-core/data';
 import { viewerItem } from '@molstar/seqx-viewer/config';
 import { HistoryParticipants, hostHistory } from '@molstar/seqx-viewer/ui-history';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
@@ -28,9 +29,11 @@ const CacheBytes = 17_000;
 let viewer: SeqViewer | undefined;
 let stack: HistoryModel<Readonly<Record<string, unknown>>> | undefined;
 
-// the viewer loads its node seeking lazily, on the first jump that waits for a node: loaded here, off the fake clock
+// the viewer's node seeking and the source's key index are lazy chunks, loaded on first use: loaded here, off the fake
+// clock (a chunk's load is no timer the clock can run)
 beforeAll(async () => {
   await import('@molstar/seqx-viewer/models/node-seek');
+  await openSeq(regionData('seq')).findNames?.('T1', {}, new AbortController().signal);
 });
 
 const raf = DomHost.requestAnimationFrame;

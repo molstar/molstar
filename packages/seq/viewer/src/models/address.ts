@@ -34,7 +34,6 @@ import {
   rangesLocation,
   resolveAddressIn,
   unionLocations,
-  unknownNodeIssue,
   type WaitedNode,
 } from '@molstar/seqx-core/query';
 import type { Want, Wanter } from '@molstar/seqx-core/data';
@@ -362,20 +361,14 @@ export class AddressModel extends ReactiveModel {
     return out;
   }
 
-  /** A waiting resolution whose node its source said it has none of: `missing`, with the source's word. */
+  /** A waiting resolution whose node its source said it has none of: `missing` (`NodeSeek.unknownOf`). */
   private _unknownOf(r: AddressResolution): AddressResolution {
-    if (r.status !== 'waiting') return r;
-    const node = r.waitsFor?.find((n) => this._seek?.unknown(n));
-    if (!node) return r;
-    const issues = [...r.issues.filter((i) => i.code !== 'seq.address.waiting'), unknownNodeIssue(node, r.address)];
-    return { ...r, status: 'missing', issues };
+    return this._seek && r.status === 'waiting' ? this._seek.unknownOf(r) : r;
   }
 
   /** A source said it has no node of a key: said once (`issues`), and a focus waiting for it dropped. */
-  private _refuse(node: WaitedNode): void {
-    const at = parseAddress(node.source).pattern?.segments ?? [];
-    const address = printAddress([...at, { kind: 'node', params: { key: node.key } }]);
-    this._issues.set([...this._issues.value, unknownNodeIssue(node, address)]);
+  private _refuse(node: WaitedNode, issue: Issue): void {
+    this._issues.set([...this._issues.value, issue]);
     const p = this._pendingFocus;
     if (p && this.resolve(p.address).waitsFor?.some((n) => n.source === node.source && n.key === node.key)) {
       this._pendingFocus = undefined;
@@ -536,7 +529,7 @@ export class AddressModel extends ReactiveModel {
   private _seekNodes(address: string, nodes: readonly WaitedNode[]): void {
     if (this._seek) return this._seek.seek(nodes);
     this._seeking ??= import('./node-seek.js').then(({ NodeSeek }) => {
-      if (!this._retired) this._seek ??= new NodeSeek(this.store.store, (n) => this._refuse(n));
+      if (!this._retired) this._seek ??= new NodeSeek(this.store.store, (n, i) => this._refuse(n, i));
       return this._seek;
     });
     void this._seeking.then((seek) => {

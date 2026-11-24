@@ -1129,10 +1129,10 @@ over 20 runs; the heavy lane bounds one sample at 40 ms (`resolve/_test/addressi
   level 1 (81,307 at 83 Mb), and a small inline payload needs no level between. Ranges lists only: inline values get
   their coarse levels from the store's summaries, letters are read where they fit, and other shapes stay at level 1.
 - **Its nodes found by key**: when the coverage lists `key` in `names` (`SeqNodeKeyField`), `findNames` finds the
-  dynamic nodes its answers bring by key (exact, case-insensitive; by prefix when asked): a hit's extent is the pairs
-  whose answers bring it (on the first system that does), its `id` and `label` the key; a key no answer brings finds
-  nothing, the source's word that it has none. Indexed on the first find. Why: a ref to a node not held (evicted, or
-  never read) asks where to read it, through the protocol's one find.
+  dynamic nodes its answers bring by key (exact, case-insensitive; by prefix when asked; the index a lazy chunk,
+  `seq-node-keys.ts`): a hit's extent is the pairs whose answers bring it (on the first system that does), its `id` and
+  `label` the key; a key no answer brings finds nothing, the source's word that it has none. Indexed on the first find.
+  Why: a ref to a node not held (evicted, or never read) asks where to read it, through the protocol's one find.
 
 ### Asynchronous sources
 

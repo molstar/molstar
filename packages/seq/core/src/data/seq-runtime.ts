@@ -9,11 +9,9 @@ import { SourceIssues } from './issues.js';
 import {
   abortError,
   type DynamicNode,
-  type FindNamesOptions,
   type FormatRuntime,
   isAbortError,
   type OpenContext,
-  type NameHit,
   type OpenedSource,
   type RegionAnswer,
   type RegionRequest,
@@ -57,42 +55,15 @@ function malformed(why: string): RegionAnswer {
 export const SeqNodeKeyField = 'key';
 
 /**
- * A `seq` source's dynamic nodes found by key (_spec/README.md "Data", The seq format): when its coverage lists `key`
- * in `names`, a node's key is a name, its hit the extent of the pairs whose answers bring it (on the first system that
- * does), its `id` the key. Indexed once, on the first find. Why: a ref to a node that is not held asks where to read it.
+ * A `seq` source's dynamic nodes found by key (_spec/README.md "Data", The seq format), when its coverage lists `key` in
+ * `names`: the index a lazy chunk (`seq-node-keys.ts`), loaded on the first find.
  */
 function nodeKeys(data: SeqData): OpenedSource['findNames'] {
   if (!data.coverage.names?.includes(SeqNodeKeyField)) return undefined;
-  let index: Map<string, NameHit> | undefined;
-  const build = () => {
-    const m = new Map<string, NameHit>();
-    for (const { request: r, answer } of data.pairs) {
-      if (!answer.ok) continue;
-      for (const n of answer.nodes ?? []) {
-        const k = n.key.toLowerCase();
-        const h = m.get(k);
-        if (!h)
-          m.set(k, { system: r.system, start: r.start, end: r.end, id: n.key, label: n.key, field: SeqNodeKeyField });
-        else if (h.system === r.system)
-          m.set(k, { ...h, start: Math.min(h.start, r.start), end: Math.max(h.end, r.end) });
-      }
-    }
-    return m;
-  };
-  return (text: string, options: FindNamesOptions, signal: AbortSignal) => {
-    if (signal.aborted) return Promise.reject(abortError());
-    index ??= build();
-    const q = text.trim().toLowerCase();
-    const max = options.max ?? 20;
-    const exact = index.get(q);
-    const out: NameHit[] = exact ? [exact] : [];
-    if (options.prefix)
-      for (const [k, h] of index) {
-        if (out.length >= max) break;
-        if (k !== q && k.startsWith(q)) out.push(h);
-      }
-    return Promise.resolve(out.slice(0, max));
-  };
+  return (text, options, signal) =>
+    signal.aborted
+      ? Promise.reject(abortError())
+      : import('./seq-node-keys.js').then((m) => m.findNodeKeys(data, text, options, signal));
 }
 
 /**

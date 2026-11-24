@@ -91,18 +91,6 @@ export interface WaitedNode {
   readonly key: string;
 }
 
-/**
- * A node an address waits for whose source, asked where its key is, has none (`seq.address.node.unknown`): the address
- * asked, and the source as its place. Whoever asked the source says it.
- */
-export function unknownNodeIssue(node: WaitedNode, address: string): Issue {
-  const issue = issueOf(AddressIssues, 'seq.address.node.unknown', `Its source has no ${node.key}`, {
-    address,
-    hint: AddressIssues.codes['seq.address.node.unknown'].hint,
-  });
-  return { ...issue, places: [{ address: node.source }] };
-}
-
 /** The `(node :key k)` forms of an address, each with the address before it (its holder). */
 function nodeForms(address: string): WaitedNode[] {
   const pattern = parseAddress(address).pattern;
