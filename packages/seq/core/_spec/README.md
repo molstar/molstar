@@ -53,7 +53,8 @@ is added in the change that builds what it describes.
   a `view` (`on`, `target`, `rows`, `source`, `schema`, `block`, `category`, `field`, `text`, `label`, `format`;
   Language, Tooltips) and a view's `export.titles`; `0.10.0`: a rings section's `center` (`title`, `none`: what the hole
   holds; the render config's `rings.center` the default when absent); `0.11.0`: the `group` kind under a section
-  (`label`, `collapsed`, `hidden`, `summary`) and a `track` under a group (Language, Groups of tracks). A reader without
+  (`label`, `collapsed`, `hidden`, `summary`) and a `track` under a group (Language, Groups of tracks), a `values` layer's `reference` (up to four lines `{ at, label,
+  color, style }`; Render, Layer types, `values`). A reader without
   groups (an older minor, another renderer; EC-244) draws a group's tracks as the section's, every group open, its
   `summary` track left out: `FlattenedKinds` lists `group` with the version it came in, and a spec of an older `version`
   holding one is told so (`seq.lang.version.kind`). A spec in an earlier `0.x` reads as one in this one, and is reported
