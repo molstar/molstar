@@ -50,6 +50,11 @@ export interface HeaderStatePart {
   readonly count?: number;
   /** The layers it is about when not the header's own target (the filtered ones: what "n filtered" clears). */
   readonly addresses?: readonly string[];
+  /**
+   * A state beside the label that never cuts it (a state that appears only with a hide: "1 layer hidden"): a chip where
+   * it fits beside the whole label, else a mark where that fits, else none (its words are the legend's and the menus').
+   */
+  readonly yields?: true;
 }
 
 /**
@@ -119,6 +124,7 @@ export const builtInHeaderStates: HeaderPartsOf = (f) => {
         name: HeaderStateNames.hiddenLayers,
         text: n === 1 ? '1 layer hidden' : `${n} layers hidden`,
         count: n,
+        yields: true,
       });
   }
   return states ? { states } : undefined;
@@ -327,19 +333,26 @@ function layoutLine(
     // left in the column is not laid out (its words are the card's)
     const marks = (from: number, to: number, right: number, cy: number, floor = inset): number => {
       let x = right;
+      let left = 0;
       for (let i = to - 1; i >= from; i--) {
-        if (x - MarkPx < floor) break;
+        // a state that yields to the label has no mark where the label would be cut; the others cut it as before
+        if (x - MarkPx < (given[i].yields ? floor : inset)) {
+          if (given[i].yields) {
+            left++;
+            continue;
+          }
+          break;
+        }
         x -= MarkPx;
         out.push(stateBox(given[i], i, at, true, x, cy - MarkPx / 2, MarkPx, size));
         x -= MarkGap;
       }
-      return x + MarkGap;
+      // none placed and every one yielded: the label keeps the column
+      return x === right && left === to - from ? end + ChipGap : x + MarkGap;
     };
-    // beside the label the states leave it whole: a state appearing with a hide or a filter never cuts its label to an
-    // ellipsis (a chip with no room is a mark, a mark with none is the card's alone)
-    // (a label too long for its column is cut by the states as before: it is cut anyway)
-    const room = inset + at.labelW + ChipGap;
-    const keep = at.labelW > 0 && room + MarkPx <= chipsEnd ? room : inset;
+    // beside the label a chip keeps it whole (a chip with no room is a mark), and a state that yields to it appears only
+    // where it leaves it whole (`HeaderStatePart.yields`); the label's own room is its column, under the actions
+    const keep = at.labelW > 0 ? inset + at.labelW + ChipGap : inset;
     if (at.short) labelEnd = marks(0, given.length, chipsEnd, at.cy, keep) - ChipGap;
     else if (!Number.isNaN(at.ownLine)) {
       // a line of their own under the label, from the column's start, under the action columns when clear of them;

@@ -1507,10 +1507,10 @@ rows' commands) reads the last frame's rows layers through the behavior context'
     hovered; its arrow at the row's end, the menu's), `seq:layers` (more than one addressable layer: a checked item a
     layer, `layer.hide` or `layer.show`), `seq:move-up`, `seq:move-down` (`track.move`, a sibling there), the states
     `seq:filtered` (its count the track's, every thinned layer's rows; `layer.filter` clears every thinned layer's
-    filter, one patch), `seq:hidden-layers` (`layer.show` of every hidden layer, one patch; its list each) and the
-    section's `seq:hidden-tracks` (menu only, "Show hidden ▸": a flyout of each hidden track, then "Show all",
-    `track.show` of every hidden track in one patch), the section's `seq:reverse` and `seq:collapse`. `seq:pending` is
-    not built (the TODO).
+    filter, one patch), `seq:hidden-layers` (`layer.show` of every hidden layer, one patch; its list each; it `yields`
+    to its label: a chip or a mark only where the label stays whole) and the section's `seq:hidden-tracks` (menu only,
+    "Show hidden ▸": a flyout of each hidden track, then "Show all", `track.show` of every hidden track in one patch),
+    the section's `seq:reverse` and `seq:collapse`. `seq:pending` is not built (the TODO).
   - **`HeaderFacts`**: plain data from the resolved view, the spec and the last layout (the address, label, section,
     system, linear, the section's track ids, the track's layers with type, label, hidden, filtered rows, color and
     fitting schemes, the hidden tracks, the element, and the viewer whose header it is: an entry is one object shared by
