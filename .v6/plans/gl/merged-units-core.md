@@ -1,9 +1,10 @@
-# Plan: One segment core for merged and unmerged units
+# Plan: Every units representation merged, on one segment core
 
 ## Status
 
 - **Proposed**: units representations keep one set of segments (a record per symmetry group, its part's shared values)
-  whether or not their groups merge; merging decides how the parts are drawn, not which visuals exist. Follows
+  and draw every part merged: what does not merge today gains the segment data it lacks, so mergeability stops being a
+  question an update answers. Follows
   [merged-from-units.md](merged-from-units.md) (the merged visual over records) and the review of the merged path that
   found the issues below.
 - **Fixed already, kept as they are**: a merged object's bounds leave out members that draw nothing; unit transforms
@@ -44,15 +45,33 @@ The merged path grew beside the per-group one instead of under it. Five choices 
 
 ## Design
 
-- **One visual over the groups** (`UnitsMergedVisual` generalized: segments, parts, records) for every factory that
-  chooses by the props alone (`choosesByProps`) with a builder; per-group `UnitsVisual`s only for factories choosing by
-  the data (`selectVisual`) or without a builder. Why: one place that holds geometry, theme data, markers and layers per
-  group, so mergeability can change without a visual changing.
-- **A part drawn merged or plain.** A part whose values merge (`canMergeValues` on its shared values) is one merged
-  object; one that does not is one plain render object a segment, its values the segment's record over the part's
-  shared values with the cells that must then differ by segment (smoothed layers, palettes) the record's own. A flip
-  re-packages the part: the same records, geometry and markers; no visual made or destroyed, no geometry built to find
-  out. `unmergeableAt`, `mergesAgain` and the probe go.
+- **One visual over the groups** (`UnitsMergedVisual` generalized: segments, parts, records) for every units visual
+  with a builder, whatever its group count; a part a geometry type and merge key, so a factory choosing by the data
+  (`selectVisual`: GPU or CPU surfaces by a unit's size) gives a part of each type, not visuals per group. Why: one
+  place that holds geometry, theme data, markers and layers per group; no switch between visuals.
+- **Every part merged.** What `canMergeValues` rejects today, and what it takes:
+  - **Palettes** (`dUsePalette`): no built-in structure color theme sets one (only `volume-value`, a volume theme);
+    the palette, its domain and default color are the theme's, so shared by all segments, and the shaders look the
+    palette up after reading `tColor`, which the merged path already reads by segment. The rejection goes, with a test.
+  - **`vertexInstance` colors and layers** (per vertex and instance): a segment-aware index, its first texel plus its
+    local instance times its vertex count plus its local vertex (two values more a segment, as `aSegment` holds the
+    group-instance offset), in GLSL and WGSL. The texture split per segment (`getTexelCount`) a vertex-instance count.
+  - **Smoothed colors and layers** (`smoothColors`, a theme's `preferSmoothing`; layers smoothed on surfaces): with a
+    context `volume`/`volumeInstance` grid textures, a 3D grid in 2D tiles per object with its own transform and size;
+    without one `vertex`/`vertexInstance`, interpolated on the CPU. Merged either as the vertex types (`vertex` merges
+    today; CPU work and four bytes a vertex and instance, against the grid's smaller texture) or as an atlas of the
+    segments' grids with each segment's grid offset, size and transform in its segment data. The vertex types first
+    (they need only the index above), the atlas where their memory matters (many instances of large surfaces).
+  - **GPU surfaces** (`texture-mesh`, `direct` colors): geometry and colors written on the GPU, per object textures
+    on WebGL. On WebGPU the surfaces' vertices are chunks of one arena already (`gpu-surface-buffers.md`), which
+    segments could address; on WebGL they stay plain objects, a render object a segment: the only plain kind left.
+- **`renderMerged` retired** for units representations: the small counts measured no worse merged
+  (`merging/units-{2,5,10,30}-{spacefill,cartoon}-*`, WebGL2 and WebGPU, RTX 4070 Ti): frames still, hovered, rotating,
+  recolored, clipped and with a prop changed within the noise (0.3 to 1.2 ms either way, a rerun's order flipping);
+  updates at 30 units cheaper merged (a prop 0.10 against 0.44 ms, a clip 0.09 against 0.20); setup alike (2 to 13 ms).
+  `auto`'s threshold of 30 came from per-group merging, before records. The JS heap a scene retained is too noisy at
+  these sizes to compare (0 to 6.5 MB for one scene).
+  `unmergeableAt`, `mergesAgain`, the probe and `mergeRenderObjectsByType` for units go.
 - **One table of segment keys** a type (which keys a record owns, which its part shares, which only a plain part's
   record owns), from which `MergeRecordKeys`, the fill keys, the member cells and the texture granularities are
   derived. A writer's write of a record-owned key through the prototype is an error in debug mode. Why: the
@@ -82,16 +101,19 @@ The merged path grew beside the per-group one instead of under it. Five choices 
 2. **One merged object form**: the members' producer on records; the consumers of `members` moved to the views.
 3. **Updates by the update state, transactional**: the fast paths folded in; a failed or aborted update leaves records,
    versions and parts as they were (tests for a throw and an abort mid-update, a backend switch alone).
-4. **Plain parts**: a part that does not merge drawn as plain objects of its records; the representation's switch, the
-   probe and the retry removed; the per-group visuals kept for `selectVisual` factories. Tests: markers kept through a
-   flip both ways; a smoothed layer, a palette and a theme change alone flip without a rebuild of geometry. Measure: the
-   visual suite identical (`merging/*`, both backends), a flip's time against a rebuild's.
+4. **Every part merged**: palettes; the vertex-instance index (colors, sizes, layers); smoothing as the vertex types
+   for merged parts; parts by geometry type (`selectVisual`), GPU surfaces as plain objects on WebGL; one group merged
+   as well. Then the representation's switch, the probe, the retry and `renderMerged` for units removed. Tests: images
+   as unmerged for each case lifted (palette, `vertexInstance`, smoothed colors and layers), markers kept through a
+   theme change that used to unmerge. Measure: the visual suite identical (`merging/*`, both backends), the small
+   counts (`merging/units-{2,5,10,30}-*`) against unmerged, a smoothed surface's memory as vertex types against grids.
+   The grid atlas only where that memory says.
 5. **Culling without merging's coupling**: the CPU fallback for views not culled on the GPU, the side view's GPU state
    apart; then decide on one segmented renderable.
 
 ## Open questions
 
-- Whether a plain part's objects are worth keeping at all where the merged object could draw a part whose values do
-  not merge (per-segment palettes and smoothed layers as segment data): fewer object kinds, more segment data.
-- Direction B of [many-culled-objects.md](many-culled-objects.md) (merging across representations) would add a producer
-  of merged objects: after step 2, on the one form.
+- Whether WebGPU's GPU surfaces merge through the vertex arena (segments of its chunks), or stay plain objects as on
+  WebGL.
+- Per-unit visibility (`setVisualState`): a segment left out of the draws (culling skips segments already), needed
+  once no unit has an object of its own.

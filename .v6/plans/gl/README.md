@@ -198,10 +198,10 @@ Follow-ups from the review of the WebGPU branch (correctness, memory, one decisi
   instance, hashed merge keys).
 - [merged-from-units.md](merged-from-units.md): done: merged objects built from the symmetry groups by one visual,
   without a visual, render values and render object per member (7.9 KB a unit at 100k units).
-- [merged-units-core.md](merged-units-core.md): proposed: one segment core for merged and unmerged units (merging
-  decides how parts are drawn, not which visuals exist), one table of a segment's keys, parts owning their shared
-  values, updates by the builders' update state and transactional, one merged object form, culling not tied to
-  merging.
+- [merged-units-core.md](merged-units-core.md): proposed: every units representation merged on one segment core (what
+  does not merge today given the segment data it lacks; GPU surfaces on WebGL the only plain objects), one table of a
+  segment's keys, parts owning their shared values, updates by the builders' update state and transactional, one
+  merged object form, culling not tied to merging.
 - [merged-segment-draws.md](merged-segment-draws.md): merged objects of many single-instance segments: the cull view
   by one version done (70 → 50 ms a moving frame of the NPC capsid); item-range draws (GPU 1.31 → 0.23 ms) and
   flattening rejected (complexity, clipping by the original unit); culling by batches open.

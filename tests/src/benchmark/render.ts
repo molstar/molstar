@@ -1097,7 +1097,7 @@ const MergingKinds: { name: string; provider: RepresentationProvider<Structure, 
   { name: 'spacefill', provider: SpacefillRepresentationProvider },
   { name: 'cartoon', provider: CartoonRepresentationProvider },
 ];
-const MergingCounts = [10, 30, 100, 300, 1000];
+const MergingCounts = [2, 5, 10, 30, 100, 300, 1000];
 const MergingModes = [
   { suffix: '', label: 'still' },
   { suffix: '-hover', label: 'a unit highlighted per frame (the one before not)' },
