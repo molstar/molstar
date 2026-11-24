@@ -27,6 +27,8 @@ export interface ComposeOptions {
   readonly ports?: SeqPorts;
   /** Configuration items (a twin's smaller cache, so a region's tiles are evicted). */
   readonly config?: SeqViewerSpec['config'];
+  /** The host's history port: bookmarks are then steps of its undo stack. */
+  readonly history?: SeqViewerSpec['history'];
 }
 
 /** A viewer of an example view, composed from the default spec with the view's registry. */
@@ -40,6 +42,7 @@ export function composeViewer(view: ExampleView, options: ComposeOptions = {}): 
       registry: [...(base.registry ?? []), ...extra],
       ...(options.ports ? { ports: options.ports } : {}),
       ...(options.config ? { config: [...(base.config ?? []), ...options.config] } : {}),
+      ...(options.history ? { history: options.history } : {}),
     },
     options.target,
   );

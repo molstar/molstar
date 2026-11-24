@@ -7,8 +7,10 @@
 import { FeatureViews } from '@molstar/seqx-examples';
 import { regionSeqText } from '@molstar/seqx-examples/p53/region';
 import { viewerItem } from '@molstar/seqx-viewer/config';
+import { HistoryParticipants, hostHistory } from '@molstar/seqx-viewer/ui-history';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { DomHost } from '@molstar/ui/dom';
+import { HistoryModel } from '@molstar/ui/history/history-model';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { bookmarkRows, composeViewer, focusBookmark } from '../compose.js';
 
@@ -24,6 +26,7 @@ const view = FeatureViews.find((v) => v.id === 'bookmarks')!;
 const CacheBytes = 17_000;
 
 let viewer: SeqViewer | undefined;
+let stack: HistoryModel<Readonly<Record<string, unknown>>> | undefined;
 
 const raf = DomHost.requestAnimationFrame;
 beforeEach(() => {
@@ -37,14 +40,20 @@ afterEach(() => {
   DomHost.requestAnimationFrame = raf;
   viewer?.retire();
   viewer = undefined;
+  stack?.dispose();
+  stack = undefined;
   vi.useRealTimers();
 });
 
-async function make(): Promise<SeqViewer> {
+/** The story's viewer on a small cache; with `history`, a host's undo stack it runs its edits through. */
+async function make(history = false): Promise<SeqViewer> {
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date', 'performance'] });
   const text = regionSeqText();
+  const participants = new HistoryParticipants();
+  if (history) stack = new HistoryModel<Readonly<Record<string, unknown>>>(participants);
   const v = composeViewer(view, {
     delayMs: DelayMs,
+    ...(stack ? { history: hostHistory(stack, participants) } : {}),
     config: [
       [viewerItem('store.cacheBytes'), CacheBytes],
       [viewerItem('store.tileBins'), 256],
@@ -122,5 +131,47 @@ describe('a bookmark on a key the source does not have', () => {
     expect(focusBookmark(v, '/refs/t9')).toBe('Its source has no T9');
     await vi.advanceTimersByTimeAsync(4 * DelayMs);
     expect(v.addresses.issues.value).toHaveLength(1);
+  });
+});
+
+describe('undoing a bookmark on a streamed transcript', () => {
+  const bookmarked = (v: SeqViewer) => bookmarkRows(v).some((r) => r.address === '/refs/iso2');
+
+  it('undoes and redoes a bookmark whose transcript was evicted after it was added (EC-162, EC-175)', async () => {
+    const v = await make(true);
+    expect(await v.addresses.addRef({ id: 'iso2', to: '/data/region/(node :key T2)', label: 'T2' })).toBe(true);
+    expect(statusOf(v, '/refs/iso2')).toBe('resolved');
+    await evictGene(v);
+    expect(statusOf(v, '/refs/iso2')).toBe('waiting');
+    // undo and redo move the spec's root alone: nothing is read, nothing is dropped from the store
+    const bytes = v.store.store.bytes;
+    await stack!.undo();
+    expect(bookmarked(v)).toBe(false);
+    await stack!.redo();
+    expect(statusOf(v, '/refs/iso2')).toBe('waiting');
+    await vi.advanceTimersByTimeAsync(4 * DelayMs);
+    expect(v.store.store.bytes).toBe(bytes);
+    // and the bookmark redone still brings its transcript when jumped to
+    expect(focusBookmark(v, '/refs/iso2')).toBe('Waiting for T2');
+    await vi.advanceTimersByTimeAsync(4 * DelayMs);
+    expect(statusOf(v, '/refs/iso2')).toBe('resolved');
+  });
+
+  it('undoes and redoes a bookmark added while its transcript was not held', async () => {
+    const v = await make(true);
+    await evictGene(v);
+    expect(await v.addresses.addRef({ id: 'iso2', to: '/data/region/(node :key T2)', label: 'T2' })).toBe(true);
+    expect(stack!.steps.value.map((s) => s.label)).toEqual(['Add a bookmark']);
+    expect(statusOf(v, '/refs/iso2')).toBe('waiting');
+    await stack!.undo();
+    expect(bookmarked(v)).toBe(false);
+    expect(stack!.redoable.value.map((s) => s.label)).toEqual(['Add a bookmark']);
+    await stack!.redo();
+    expect(statusOf(v, '/refs/iso2')).toBe('waiting');
+    // its transcript's region read again (the view back on the gene): the bookmark resolves
+    const section = v.view.resolved.value!.sections[0].address;
+    v.view.setViewport(section, { start: 2000, end: 3200 });
+    await vi.advanceTimersByTimeAsync(10 * DelayMs);
+    expect(statusOf(v, '/refs/iso2')).toBe('resolved');
   });
 });
