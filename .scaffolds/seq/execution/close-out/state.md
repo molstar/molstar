@@ -1,6 +1,6 @@
 # State: close-out (updated 2026-11-24, by the orchestrator)
 
-Branch: `packages-seq` Head: `72012efcf` (FX26 merged; its records after)
+Branch: `packages-seq` Head: `938396a33` (FX27 merged; its records after)
 
 ## Where it stands
 
@@ -9,14 +9,13 @@ written). Search, track groups and values marks are agreed (the drafts in `draft
 lane); the language bump to `0.11.0` is CL6's, with CL8's `reference` after it in the same unreleased version.
 
 Stage 0 and GATE 0 are closed; waves 1 and 2 are merged and GATE 1 passed. Merged since: CL13 (`27470de3e`), CL9
-(`19733d6c3`), CL7 (`1e499c655`), CL11 (`cc4fab363`), CL12 (`245c82baf`), FX26 (`08a6ffe44`). Sizes at the head: spec
-260.9/265, headless 978.7/980, default 1,557.3/1,560, minimal 1,096.6/1,100, ring 45.0/48.
+(`19733d6c3`), CL7 (`1e499c655`), CL11 (`cc4fab363`), CL12 (`245c82baf`), FX26 (`08a6ffe44`), FX27 (`938396a33`). Sizes at the head: spec
+260.9/265, headless 979.0/980, default 1,559.5/1,560, minimal 1,098.6/1,100, ring 45.0/48.
 
 ## In progress
 
 - CL5 search (strong, `seq/cl5`), started 2026-11-24 07:45.
 - CL6 track groups (strong, `seq/cl6`), started 2026-11-24 07:45.
-- FX27 the ring's Cmd+wheel and the 1M lookup (Sonnet, `seq/fx27`), started 2026-11-24 07:45.
 - FX25 parked on a permission refusal (`gaps.md`, Open), its worktree kept with items 1 and 2 uncommitted; waits for
   the author's word on the plugin.
 
@@ -29,8 +28,8 @@ Stage 0 and GATE 0 are closed; waves 1 and 2 are merged and GATE 1 passed. Merge
 
 ## Blockers and open questions
 
-`gaps.md`, Open: FX25's refusal (the plugin is the author's to adjust). Size headroom is thin (headless 1.3 kB, default
-2.7 kB, minimal 3.4 kB): lanes keep new code lazy; a raise with its cause under the author's leave. At the close:
+`gaps.md`, Open: FX25's refusal (the plugin is the author's to adjust). Size headroom is gone (headless 1.0 kB, default
+0.5 kB, minimal 1.4 kB): CL5 and CL6 will need raises, with their causes, under the author's leave. At the close:
 remove the locked, clean worktrees (CL4's, CL7's, CL9's, CL11's, CL12's, CL13's, FX26's, the reviewers') and their
 branches.
 

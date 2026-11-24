@@ -28,9 +28,9 @@ Decisions a gate asks for (the loop, Gates).
 - **A 0.x version's minor read as a newer minor**: a newer minor's unknown kind is a warning; revisit at 1.0.
 - **A node brought only at a coarse level** (needs `NameHit.level`, a protocol change): past version 1, a TODO line.
 - **A layer naming a dynamic node is refused**, not pending: past version 1, a TODO line.
-- **The ring's Cmd/Ctrl+wheel at the fit** ([drift/ring-cmd-wheel-at-fit.md](drift/ring-cmd-wheel-at-fit.md)): (c),
+- **The ring's Cmd/Ctrl+wheel at the fit** (the drift note `ring-cmd-wheel-at-fit`, resolved by FX27, `938396a33`, and deleted): (c),
   Cmd+wheel in over a chromosome opens it as a cut (`section.include`, one undo step), out on an opened chromosome
-  shows all, one cut a wheel gesture; (b)'s words over the hole. To FX27; the note is deleted when it lands.
+  shows all, one cut a wheel gesture; (b)'s words over the hole. Built by FX27.
 - **M5's two browser items closed**: the 200-copy split, click to drawn, median 5.9 ms over 7 (M5: 16.2); Signal's
   Ctrl+wheel zoom, 600 frames, median 0.2 ms, max 1.1 (load 1.9, the M4 method, at `77c2d3e98`). About 17 ms more in
   other tasks after the split's frame (likely the story's SVG twin) is not traced.

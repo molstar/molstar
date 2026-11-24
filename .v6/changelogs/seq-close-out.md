@@ -33,3 +33,5 @@
 - Seq\*: splitting many copies of a chain allocates about a quarter less: a ranges layer's layout object is built in one
   piece, its scratch arrays made on first use.
 - Seq\* viewer: Cmd/Ctrl+wheel over a ring no section follows no longer narrows a hidden viewport.
+- Seq\* viewer: a genome ring no section follows takes Cmd/Ctrl+wheel and a pinch as its zoom: in over a chromosome
+  opens it, out shows every chromosome again, one cut a wheel gesture; where nothing changes it says what the ring shows.

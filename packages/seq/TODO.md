@@ -432,15 +432,16 @@ extension kinds.
   legend entry without a swatch, its label doubled; the scattered pick's grid lines in dark; the dot plot's white empty
   cells in dark and "chr1" against "1"; Liftover's overlapping labels, jargon and no bridge legend; the methylation
   matrix's missing cells as dark as low ones, samples called "State"; BED12 tracks unnamed.
+- **The idle ring in one place** (FX27): `viewer/src/ring-cut.ts` repeats `ViewModel._idleRing`'s rule (no `follow`, no
+  follower); expose it on `ViewModel` and use it from both.
 - **The tracks layout's allocation pass** (CL11's drift, `strip-layout-per-hull`): a section of many blocks lays a
   `LayoutContext`, a box and a lays array a strip a layer, its rulers' tick arrays and label strings, on every layout;
   pool them by strip index and layer type, labels by value and step. A navigator's strip dragged across 3,000 contigs
   allocates 97 kB a frame (`navigator-blocks.quick.ts`, bounded at 256 kB), a genome row's pan the same.
 - **M5's leftovers** (2026-11-23):
   - The heavy lane's bounds of at most 50 ms run alone, one file at a time after the rest (CL14, `vitest.config.ts`'s
-    `Alone`). Left: the 1M-range lookup's ratio (1.5× of 10,000, about 0.5 ms) failed about 2 in 6 alone under a loaded
-    machine and 3 in 3 on a quiet one (load 2.2, 2026-11-24: 1.51×, 1.77×, 1.76×): measure it at a larger scale rather
-    than raise it (fixes.md). `bed-time.test.ts` (300 ms) flaked once under load: watch it.
+    `Alone`); the interval lookup is bounded by its growth across 10⁴ to 10⁷ ranges (FX27). `bed-time.test.ts`
+    (300 ms) flaked once under load: watch it.
   - A collapsed gene draws only its canonical transcript: a new display mode, not in version 1 (the close-out's answer
     F10, the author, 2026-11-23).
   - `vitest.config.ts`'s `seq` constant names `packages/sequences/` (the previous implementation), so `packages/seq`'s
