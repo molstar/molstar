@@ -66,21 +66,27 @@ export function boldOf(font: string): string {
   return b;
 }
 
+// Shared and never written (a length of 0): the gene line grows each array before it writes it, so a lay of another
+// style makes none.
+const NoF64 = new Float64Array(0);
+const NoI32 = new Int32Array(0);
+const NoU8 = new Uint8Array(0);
+
 export function newGeneScratch(): GeneScratch {
   return {
-    repOf: new Int32Array(64),
-    gStart: new Float64Array(64),
-    gEnd: new Float64Array(64),
-    packStart: new Float64Array(64),
-    labelW: new Float64Array(64),
-    marked: new Uint8Array(64),
+    repOf: NoI32,
+    gStart: NoF64,
+    gEnd: NoF64,
+    packStart: NoF64,
+    labelW: NoF64,
+    marked: NoU8,
     ln: 0,
-    lx: new Float64Array(16),
-    ly: new Float64Array(16),
-    lw: new Float64Array(16),
-    litem: new Int32Array(16),
-    lfloat: new Uint8Array(16),
-    lbold: new Uint8Array(16),
+    lx: NoF64,
+    ly: NoF64,
+    lw: NoF64,
+    litem: NoI32,
+    lfloat: NoU8,
+    lbold: NoU8,
     groups: new Map(),
     fields: undefined,
     ts: undefined,
