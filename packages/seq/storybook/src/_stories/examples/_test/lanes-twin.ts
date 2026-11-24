@@ -37,6 +37,9 @@ function laneMap(lay: LanesLay): Map<string, number> {
 export interface LanesTwin {
   readonly wrong: string[];
   readonly compared: number;
+  /** The canvas's layers with an item in a lane, and those of them with no item in the SVG's lanes (nothing compared). */
+  readonly laid: number;
+  readonly uncompared: string[];
 }
 
 /** The settled viewer's lanes against its SVG export's (the export run on the fake clock). */
@@ -65,6 +68,8 @@ export async function lanesTwin(v: SeqViewer, id: string): Promise<LanesTwin> {
   await svg;
   const wrong: string[] = [];
   let compared = 0;
+  let laid = 0;
+  const uncompared: string[] = [];
   for (const s of v.frame?.layout.sections ?? [])
     for (const t of s.tracks)
       for (const l of t.layers) {
@@ -72,6 +77,7 @@ export async function lanesTwin(v: SeqViewer, id: string): Promise<LanesTwin> {
         const svg = lanesOf(svgLays.get(l.key));
         if (!canvas || !svg) continue;
         const a = laneMap(canvas);
+        const before = compared;
         const b = laneMap(svg);
         for (const [item, lane] of a) {
           const other = b.get(item);
@@ -79,7 +85,16 @@ export async function lanesTwin(v: SeqViewer, id: string): Promise<LanesTwin> {
           compared++;
           if (other !== lane) wrong.push(`${id} ${l.key} ${item}: lane ${lane} on the canvas, ${other} in the SVG`);
         }
+        if (a.size > 0) {
+          laid++;
+          if (compared === before) uncompared.push(l.key);
+        }
       }
   // a row each: the first few and a count say enough
-  return { wrong: wrong.length > 8 ? [...wrong.slice(0, 8), `and ${wrong.length - 8} more`] : wrong, compared };
+  return {
+    wrong: wrong.length > 8 ? [...wrong.slice(0, 8), `and ${wrong.length - 8} more`] : wrong,
+    compared,
+    laid,
+    uncompared,
+  };
 }

@@ -32,6 +32,13 @@ const Skipped: ReadonlyMap<string, string> = new Map([
   ['vcf-zoom-in', 'its variants come after a zoom in (the story’s point): until then its band says so, no lane'],
 ]);
 
+/** The views whose export lays out another window of a layer's section than the canvas shows, each with why. */
+const Vacuous: ReadonlyMap<string, string> = new Map(
+  ['genomes/by-name', 'genomes/names', 'genomes/liftover', 'genome/bed-over-rows', 'across/across-liftover'].map(
+    (id) => [id, 'the export shows another window of the section than the canvas: no item in both (a followup)'],
+  ),
+);
+
 const Views: readonly ExampleView[] = [...ExampleViews, ...GenomeViews, ...RegionReadsViews, ...AcrossViews].filter(
   (v) => !Skipped.has(v.id),
 );
@@ -75,5 +82,10 @@ describe('the canvas and the SVG of a settled view: each item in one lane', () =
       });
       const r = await lanesTwin(viewer, `${view.dataset}/${view.id}`);
       expect(r.wrong).toEqual([]);
+      // every layer with its items in lanes had them compared: a view that loses its lanes fails; the listed ones'
+      // export shows another window of the section than the canvas (no item in both), so nothing is compared there
+      const vacuous = Vacuous.get(`${view.dataset}/${view.id}`);
+      if (vacuous) expect(r.uncompared, vacuous).not.toEqual([]);
+      else expect(r.uncompared, 'layers with their items in lanes, none compared').toEqual([]);
     });
 });
