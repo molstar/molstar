@@ -93,12 +93,18 @@ export function foldedIds(section: ResolvedSection, own: readonly string[] | und
   return out.length ? out : NoIds;
 }
 
-/** A summary layer: the member's layer keyed `<layer>#summary` and its params in the summary form (no labels). */
+/**
+ * A summary layer: the member's layer keyed `<layer>#summary` and its params in the summary form (no labels), named as
+ * the track it summarizes (its label, else its kind and the group's label), so a legend's row, its eye and the hidden
+ * row say what the unfolded group's did, never the key.
+ */
 const Summaries = new WeakMap<ResolvedLayer, ResolvedLayer>();
-function summaryLayer(l: ResolvedLayer, form: CollapseForm): ResolvedLayer {
+function summaryLayer(l: ResolvedLayer, form: CollapseForm, member: ResolvedTrack, group: ResolvedTrackGroup) {
   let s = Summaries.get(l);
   if (!s) {
-    const params = form === 'lane' ? { ...l.params, lanes: 'one' } : l.params;
+    const own = member.label.trim();
+    const label = own || `${group.label.trim() ? `${group.label.trim()} ` : ''}${l.type}`;
+    const params = { ...l.params, ...(form === 'lane' ? { lanes: 'one' } : {}), label };
     s = { ...l, params, ...(l.address !== undefined ? { address: `${l.address}#summary` } : {}) };
     Summaries.set(l, s);
   }
@@ -287,7 +293,7 @@ function fold(
           if (!l.placed || l.params.hidden === true) continue;
           const form = collapseOf(typeOf(l));
           if (!form || form === 'row') continue;
-          const s = summaryLayer(l, form);
+          const s = summaryLayer(l, form, m, group);
           out.originals.set(s, l);
           if (form === 'lane') lane.push(s);
           else if (strips.length < config.group.summary.maxStrips) strips.push(s);
