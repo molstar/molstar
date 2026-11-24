@@ -19,9 +19,11 @@ import { type Frames, installFrames } from './frames.js';
 
 const Ring = '/views/main/ring';
 const Names = Array.from({ length: 6 }, (_, i) => `chr${i + 1}`);
-const Hole = 'The ring shows the whole genome: open a chromosome from its label’s menu or the square';
+const Whole = 'The ring shows the whole genome: open a chromosome from its label’s menu or the square';
+const Alone = (name: string) => `The ring shows ${name}: wheel out over it to show every chromosome`;
+const Filtered = 'The ring shows the chromosomes its view selects: open one from its label’s menu or the square';
 
-function spec(followed = false, include?: readonly string[]): Node {
+function spec(followed = false, include?: unknown): Node {
   const b = createSeqSpec({ title: 'the ring cut' });
   const g = b.data.assembly(
     'g',
@@ -48,10 +50,14 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-async function make(followed = false, include?: readonly string[]) {
+async function make(followed = false, include?: unknown) {
   vi.useFakeTimers({ toFake: ['Date', 'performance'] });
   frames = installFrames();
-  const v = createSeqViewer({ ...DefaultSeqViewerSpec(), ui: undefined, history: uiHistory() });
+  const v = createSeqViewer({
+    ...DefaultSeqViewerSpec(),
+    ui: undefined,
+    history: uiHistory(),
+  });
   viewer = v;
   await v.load(spec(followed, include));
   v.resize(600, 600);
@@ -118,18 +124,65 @@ describe('the ring’s zoom is a cut', () => {
     expect(include(v)).toEqual(['chr2']);
   });
 
-  it('out on the whole genome and in on what is shown alone change nothing, and are taken', async () => {
+  /** What a zoom says, once the gesture is over. */
+  const saying = (v: SeqViewer) => {
+    const said: string[] = [];
+    v.notice.listen(({ text }) => said.push(text));
+    return said;
+  };
+
+  it('out on the whole genome changes nothing and says what the ring shows, once a gesture', async () => {
     const v = await make();
+    const said = saying(v);
+    expect(zoom(v, over(v, 1), 100)).toBe(true);
     expect(zoom(v, over(v, 1), 100)).toBe(true);
     await rest(v);
     expect(include(v)).toBeUndefined();
+    expect(said).toEqual([Whole]);
   });
 
-  it('in on a chromosome shown alone changes nothing, and is taken', async () => {
+  it('in on a chromosome shown alone changes nothing and says which, wheel out to show every one', async () => {
     const v = await make(false, ['chr4']);
+    const said = saying(v);
     expect(zoom(v, over(v, 0), -100)).toBe(true);
     await rest(v);
     expect(include(v)).toEqual(['chr4']);
+    expect(said).toEqual([Alone('chr4')]);
+  });
+
+  it('out over the hole of an opened ring changes nothing and says which chromosome it shows', async () => {
+    const v = await make(false, ['chr4']);
+    const said = saying(v);
+    const c = hole(v);
+    expect(zoom(v, { x: c.x + 12, y: c.y + 7 }, 100)).toBe(true);
+    await rest(v);
+    expect(include(v)).toEqual(['chr4']);
+    expect(said).toEqual([Alone('chr4')]);
+  });
+
+  it('outside the ring’s box the zoom is not taken and nothing is said', async () => {
+    const v = await make();
+    const said = saying(v);
+    const { box } = placement(v);
+    // the margin beside the ring, inside the section's height
+    expect(box.x).toBeGreaterThan(2);
+    // the bindings' own zoom of the window (taken, as any zoom is), never the cut
+    zoom(v, { x: box.x - 2, y: box.y + box.height / 2 }, -100);
+    zoom(v, { x: box.x - 2, y: box.y + box.height / 2 }, 100);
+    await rest(v);
+    expect(include(v)).toBeUndefined();
+    expect(said).toEqual([]);
+  });
+
+  it('an author’s filter is never cleared: a zoom over a ring whose include is a filter says so and keeps it', async () => {
+    const v = await make(false, { min_length: 1 });
+    const said = saying(v);
+    expect(zoom(v, over(v, 0), 100)).toBe(true);
+    await rest(v);
+    expect(zoom(v, over(v, 1), -100)).toBe(true);
+    await rest(v);
+    expect(include(v)).toEqual({ min_length: 1 });
+    expect(said).toEqual([Filtered, Filtered]);
   });
 
   it('one cut a gesture: more deltas wait for the wheel to rest', async () => {
@@ -164,11 +217,11 @@ describe('the ring’s zoom is a cut', () => {
     expect(zoom(v, at, -100)).toBe(true);
     await v.settle();
     expect(include(v)).toBeUndefined();
-    expect(said).toEqual([Hole]);
+    expect(said).toEqual([Whole]);
     // a new gesture says it again
     await rest(v);
     expect(zoom(v, at, -100)).toBe(true);
-    expect(said).toEqual([Hole, Hole]);
+    expect(said).toEqual([Whole, Whole]);
   });
 
   it('off the exact centre the hole is the hole too, and a pinch cuts as a wheel does', async () => {
@@ -178,13 +231,28 @@ describe('the ring’s zoom is a cut', () => {
     v.notice.listen(({ text }) => said.push(text));
     expect(zoom(v, { x: c.x + 15, y: c.y + 9 }, -100)).toBe(true);
     expect(include(v)).toBeUndefined();
-    expect(said).toEqual([Hole]);
+    expect(said).toEqual([Whole]);
     await rest(v);
     // a trackpad's pinch (Ctrl, small pixel deltas): in
     const at = over(v, 4);
     expect(v.input.wheel(at.x, at.y, { deltaX: 0, deltaY: -60, deltaMode: 0, ctrlKey: true })).toBe(true);
     await rest(v);
     expect(include(v)).toEqual(['chr5']);
+  });
+
+  it('a detached follower ring keeps the zoom of its window (the resolved section follows, the view model does not)', async () => {
+    // a section of blocks resolves no follow in this spec (a genome's blocks have no one system a path joins), so the
+    // detached state is made as the view model has it: `follow` on the resolved section, the view's own group detached
+    const v = await make();
+    const s = v.view.resolved.value!.sections.find((x) => x.address === Ring)! as { follow?: unknown };
+    s.follow = { leader: '/views/main/other' };
+    expect(v.view.isFollowing(Ring)).toBe(false);
+    const said: string[] = [];
+    v.notice.listen(({ text }) => said.push(text));
+    zoom(v, over(v, 1), -100);
+    await rest(v);
+    expect(include(v)).toBeUndefined();
+    expect(said).toEqual([]);
   });
 
   it('a ring a section follows keeps the zoom of its window', async () => {

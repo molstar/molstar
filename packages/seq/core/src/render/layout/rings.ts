@@ -347,6 +347,16 @@ export class RingPlacement implements Placement {
     return true;
   }
 
+  private readonly _probe = new Float64Array(2);
+  private readonly _probed = new PlacePoint();
+
+  blockAt(x: number, y: number): number | undefined {
+    this._probe[0] = x;
+    this._probe[1] = y;
+    if (!this.at(this._probe, this._probed)) return undefined;
+    return this._probed.kind === 'data' ? this.strips.block[this._probed.strip] : -1;
+  }
+
   offsetAt(x: number, y: number): number {
     const s = this.strips;
     if (!s.n || !this.warp.unmap(x, y)) return -1;

@@ -1064,16 +1064,22 @@ binding table; per move one hit record and one modifiers record are reused.
   extent, the blocks' gaps included, and the well's height; not the label column nor the y blocks' labels in it) it is
   always true, so the page never scrolls from inside the plot, even where a pan stops at an axis's end; outside it, as
   anywhere. Why: a plot whose wheel fell through at an end moved the page under the pointer.
-- **The ring's zoom is a cut** (`ring-cut.ts`, `RingCut`): a zoom (wheel with the zoom modifier, or a pinch) over a ring
-  nobody follows (a polar placement, blocks, no follower) is not its window's (idle: `ViewModel`, Layouts) but
-  `section.include`, run as the stem menu's "Show only" runs it, one patch and one step of the history. In over a
-  chromosome's block opens it; out over an opened one shows every block again; one cut a gesture (`navigate.cutNotch` px
-  of deltas, then nothing until `navigate.cutRestMs` without a wheel); a cut that changes nothing is none. Over the hole
-  or a gap (no block under the pointer) nothing changes, and while the ring shows every block the first such zoom of a
-  gesture says once in the live region "The ring shows the whole genome: open a chromosome from its label’s menu or the
-  square". Always taken (the page never scrolls from it). A ring a section follows keeps the zoom of its window. Why:
-  the wheel over a ring at the fit moved a window the ring never draws (taken, nothing seen); the designs call opening a
-  chromosome the ring's zoom, and the cut gives it the gesture; one cut a gesture because a wheel's notches come many.
+- **The ring's zoom is a cut** (`ring-cut.ts`, `RingCut`; the block under the pointer is the placement's `blockAt`): a
+  zoom (wheel with the zoom modifier, or a pinch) inside the box of a ring nobody follows (a polar placement, blocks; no
+  follow on its resolved section, as `ViewModel`'s idle ring reads it, and no section following it) is not its window's
+  but `section.include`, run as the stem menu's "Show only" runs it, one patch and one step of the history. In over a
+  chromosome's block opens it; out over an opened one (an `include` of chromosome names) shows every block again; one
+  cut a gesture (`navigate.cutNotch` px of deltas, then nothing until `navigate.cutRestMs` without a wheel). A zoom that
+  changes nothing says so once a gesture in the live region, and is taken: the whole genome (out anywhere, in over the
+  hole) "The ring shows the whole genome: open a chromosome from its label's menu or the square"; an opened ring (in
+  over what is shown alone, out over the hole) "The ring shows chr4: wheel out over it to show every chromosome" (n
+  chromosomes: "The ring shows 3 chromosomes: wheel out over one …"); an `include` that is an author's filter (a
+  pattern, `{ min_length }`) is never cleared or replaced: "The ring shows the chromosomes its view selects: open one
+  from its label's menu or the square". Outside the ring's box (the margin) the cut is none: the bindings' zoom of the
+  window stands. A ring a section follows, or a detached follower, keeps the zoom of its window. Why: the wheel over a
+  ring at the fit moved a window the ring never draws (taken, nothing seen); the designs call opening a chromosome the
+  ring's zoom, and the cut gives it the gesture; one cut a gesture because a wheel's notches come many; taken only where
+  something happens or is said.
 - **Double click**: the bound command with the section, what to focus (the element's hull on the section, its extent
   carried along the layer's path, else the position's cell, in offsets; a Shift+click's extend before it is given back,
   as a clear one is), the unit the placement has under the pointer (`at`) and the double-click's zoom factor (`step`,
