@@ -107,13 +107,13 @@ costs up to `f` times the pixels.
 
 | What | Target |
 |---|---|
-| Hover: hit-test, projection onto linked sections, overlay redraw | under 2 ms; the frame under 8 ms |
+| Hover: hit-test, projection onto linked sections, overlay redraw | under 2 ms; the frame under 8 ms; a hover's frame writes nothing to the page's DOM (a write dirties its layout, which the next pointer move reads back: `mount-navigator.test.ts`) |
 | Pan and zoom frame (letters, tracks, at the scale sizes below) | under 8 ms (120 Hz with headroom); never over 16 ms |
 | First zoom into new letters (glyph atlas filling) | under 8 ms a frame |
 | Selection drag, keyboard cursor step | under 4 ms a step; a drag-select's frame (its moves and the frame applying them) under 4 ms for each drag kind: a rect on the 4,000 × 4,000 dot plot, a range on its ruler, a box on the PAE grid, a sweep across 12 chromosomes of the 3,000 contigs on the ring and the row (`drag-time.test.ts`, heavy) |
 | Validate and resolve a spec of 1,000 nodes (inline data aside) | under 20 ms |
 | First paint of a dataset view (p53, globins family) | under 100 ms after the data is in memory |
-| An edit: apply a patch, resolve again, redraw | under 16 ms; undo the same |
+| An edit: apply a patch, resolve again, redraw | under 16 ms to drawn, the microtasks after its frame included; undo the same. A second consumer of the edit (a story's SVG twin, an export) runs in a task of its own after that frame: the 200 copies split and merged under 16 ms with the twin following (`twin-after-frame.test.ts`, heavy; 20 to 25 ms while the twin exported in the edit's microtasks, 2026-11-24) |
 | Pan and zoom frame at every scale fixture | the same targets: frame time does not grow with the data |
 | Open a 10,000 × 300 alignment (summaries built) | under 300 ms to the first frame |
 | Open a table of 100,000 records from a file (TSV, JSON or MessagePack, the transform applied) | under 300 ms to its tables ([files.md](files.md)); 10,000 rows the quick representative |
