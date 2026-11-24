@@ -39,3 +39,8 @@ Open items for the next fix point or a running lane's fix round (the loop, Each 
   Cmd/Ctrl+wheel takes the zoom and moves the section's viewport (0–3.03 G to 568 M–2.99 G) while the ring draws the
   whole genome, against `layouts.md` (Rings: "its zoom and pan are idle"). Kind: bug, in every option of
   `drift/ring-cmd-wheel-at-fit.md`. To FX26; whether the idle wheel is taken is the drift's.
+- **The 1M-range lookup's ratio fails on a quiet machine too** (the orchestrator, 2026-11-24 05:38, load 2.2, `pnpm
+  test:heavy packages/seq/` alone at `77c2d3e98`: every other heavy file green): `core/src/data/_test/intervals.test.ts`
+  "the lookup over 1,000,000 ranges within 1.5× of 10,000", best 0.555, 0.708, 0.677 ms against 0.368, 0.400, 0.385 (1.51×,
+  1.77×, 1.76×). Kind: a bound, not a regression (it was marginal under load since GATE 1). The TODO's rule: measure it at
+  a larger scale (a lookup's growth from 10⁴ to 10⁶ to 10⁷, log-like or not) rather than raise it. To the next fix lane.

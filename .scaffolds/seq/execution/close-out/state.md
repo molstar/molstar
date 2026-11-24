@@ -21,8 +21,8 @@ Sizes at the head: spec 260.9/265, headless 978.7/980, default 1,557.3/1,560, mi
 
 ## Next
 
-1. Nothing runs: every lane left waits on the author (gaps.md). M5's browser numbers when the load is under 3
-   (the orchestrator, in the pane). Then GATE 2 waits for the author's word on CL5, CL6, CL8 and FX25.
+1. Nothing runs: every lane left waits on the author (gaps.md). M5's browser numbers measured (gaps.md: both under
+   budget). Then GATE 2 waits for the author's word on CL5, CL6, CL8 and FX25.
 2. The legend's eye chunk flake (fixes.md) to the next fix lane.
 3. CL5, CL6 and CL8 wait for the author's word on their drafts (`drafts/search.md`, `track-groups.md`,
    `values-marks.md`); FX25 for the refusal. GATE 2 after wave 4.
@@ -30,8 +30,7 @@ Sizes at the head: spec 260.9/265, headless 978.7/980, default 1,557.3/1,560, mi
 ## Blockers and open questions
 
 `gaps.md`: FX25's refusal and its allele-title question; the three drafts (two are language changes); `rowsValue` over
-a lazy alignment; the overnight decisions to confirm (the zoom hatch; a 0.x minor read as a newer minor; the strip's layout per hull, left for version 1); the ring's Cmd+wheel (a drift, the author's); M5's browser
-numbers at a quiet GATE 2. The headless
+a lazy alignment; the overnight decisions to confirm (the zoom hatch; a 0.x minor read as a newer minor; the strip's layout per hull, left for version 1); the ring's Cmd+wheel (a drift, the author's). The headless
 and default bounds have 1.0 and 2.8 kB left: CL12 keeps new code lazy, or the orchestrator trims or raises (the
 author's leave). At the close: remove the locked, clean worktrees (CL4's, CL9's, CL13's, the
 reviewers') and their branches.

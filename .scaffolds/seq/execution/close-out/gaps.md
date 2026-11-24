@@ -63,6 +63,9 @@ Each made as recommended while the author was away (2026-11-24 night), for the m
   it narrows a hidden window. Options: (a) idle, given to the page; (b) idle, taken, said once; (c) Cmd+wheel over a
   chromosome opens it as a cut (`section.include`, one undo step), (b)'s words over the hole. Recommended: (c), and in
   every case the hidden window no longer moves on a ring nobody follows. A gesture's behaviour: the author's.
-- **M5's browser numbers** (CL12): the split patch's click to drawn after the lay fix, and Signal's 25.7 ms zoom frame
-  (not reproduced headless), need the Browser pane at load under 3; the load stayed 5 to 12 overnight. Recommended:
-  measured at GATE 2 on a quiet machine, as M5 did.
+- **Measured: M5's browser numbers** (the orchestrator, 2026-11-24 05:40, load 1.9, the Browser pane at 1440 × 900, dpr 2,
+  M4's method at `77c2d3e98`): the 200-copy split, click to the canvas drawn, median 5.9 ms over 7 (the click 1.2, its
+  one frame 4.4, after 0.3; M5: 16.2), under the 16 ms edit target; about 17 ms more runs in other tasks before the next
+  macrotask (likely the story's SVG twin, not the viewer: not traced). Signal's Ctrl+wheel zoom, 600 frames in and out,
+  median 0.2 ms, max 1.1, none over 16: M5's 25.7 ms frame did not recur (its cause unknown; CL11's projection index or
+  CL12's lay may have removed it, or it was a one-off). Recommended: both M5 items closed.

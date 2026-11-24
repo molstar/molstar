@@ -435,12 +435,10 @@ extension kinds.
   pool them by strip index and layer type, labels by value and step. A navigator's strip dragged across 3,000 contigs
   allocates 97 kB a frame (`navigator-blocks.quick.ts`, bounded at 256 kB), a genome row's pan the same.
 - **M5's leftovers** (2026-11-23):
-  - The 200-copy split patch, from a click to drawn: median 16.2 ms, max 20.4 (edit < 16).
-  - The Signal story's zoom had one frame of 25.7 ms.
   - The heavy lane's bounds of at most 50 ms run alone, one file at a time after the rest (CL14, `vitest.config.ts`'s
     `Alone`). Left: the 1M-range lookup's ratio (1.5× of 10,000, about 0.5 ms) failed about 2 in 6 alone under a loaded
-    machine; read it at a quiet gate, and if it still fails, measure it at a larger scale rather than raise it.
-    `bed-time.test.ts` (300 ms) flaked once under load: watch it.
+    machine and 3 in 3 on a quiet one (load 2.2, 2026-11-24: 1.51×, 1.77×, 1.76×): measure it at a larger scale rather
+    than raise it (fixes.md). `bed-time.test.ts` (300 ms) flaked once under load: watch it.
   - A collapsed gene draws only its canonical transcript: a new display mode, not in version 1 (the close-out's answer
     F10, the author, 2026-11-23).
   - `vitest.config.ts`'s `seq` constant names `packages/sequences/` (the previous implementation), so `packages/seq`'s
