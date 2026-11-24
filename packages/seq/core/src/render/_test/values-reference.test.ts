@@ -14,6 +14,7 @@ import { describe, expect, it } from 'vitest';
 import { DarkTokens, hitView, LightTokens, type ValuesLay } from '../index.js';
 import { renderSvg } from '../render-svg.js';
 import { ValuesType } from '../values.js';
+import { BigRuntime } from './fixtures.js';
 import { settle } from './helpers.js';
 import { layerLay, readPaths, readRects } from './small-helpers.js';
 
@@ -333,5 +334,28 @@ describe('light and dark', () => {
     const { f, lay } = await frame(Positions, { domain: [0, 10], reference: [{ at: 7, label: 'x' }] });
     expect(lineYs(f)).toHaveLength(1);
     expect(lay.ref.ink).toBe(LightTokens.colors['msui-text-muted']);
+  });
+});
+
+describe('a shared scale', () => {
+  it('takes the lines of a layer with no value in view: two tracks on one open scale agree', async () => {
+    const b = createSeqSpec({ title: 'shared' });
+    const src = b.data.source('synthetic', { format: 'synthetic', uri: 'synthetic:chr' });
+    const chr = b.data.sequence('chr', { alphabet: 'dna', source: src });
+    const v = b.data.values('signal', { target: chr, source: src });
+    const scale = b.views.scale('shared', { type: 'linear' } as never);
+    b.views.view('main', (view) => {
+      const s = view.section('chr', { of: chr });
+      s.track('a').layer('a', { type: 'values', data: v, scale } as never);
+      s.track('b').layer('b', { type: 'values', data: v, scale, reference: [{ at: 500 }] } as never);
+    });
+    const s = await settle(b.build(), [BigRuntime]);
+    // the first frames: nothing read yet (no value in view), the lines the only extent
+    const input = { size: { width: 400, height: 120 }, viewport: { start: 0, end: 50 }, settled: true } as const;
+    const f = s.renderer.frame(input);
+    const [a, bLay] = [layerLay<ValuesLay>(f, 0), layerLay<ValuesLay>(f, 1)];
+    expect(a.n).toBe(0);
+    expect(bLay.domain![1]).toBeGreaterThanOrEqual(500);
+    expect(a.domain![1]).toBe(bLay.domain![1]);
   });
 });

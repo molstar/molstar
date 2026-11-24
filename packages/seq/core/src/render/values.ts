@@ -775,7 +775,8 @@ function yDomain(prep: ValuesPrep, ctx: LayoutContext, lay: ValuesLay): [number,
   if (prep.domain) return [prep.domain[0], prep.domain[1]];
   const own = ctx.settled || !lay.domain ? openDomain(lay) : lay.domain;
   if (!prep.scale) return own;
-  if (lay.n) ctx.theme.extent(prep.scale, own[0], own[1]);
+  // a layer with no value in view still gives its lines to the shared scale (two tracks on one scale agree)
+  if (lay.n || lay.ref.lines.length) ctx.theme.extent(prep.scale, own[0], own[1]);
   const d = ctx.theme.scale(prep.scale)?.domain;
   const held = ctx.theme.domain(prep.scale) ?? own;
   const lo = typeof d?.[0] === 'number' ? d[0] : held[0];
