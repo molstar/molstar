@@ -7,7 +7,13 @@
 import { type Node, resolveAddress } from '@molstar/core/repr/tree';
 import { idRunOf } from '@molstar/seqx-core/lang/check';
 import type { StaticModel } from '@molstar/seqx-core/resolve';
-import { type ResolvedLayer, type ResolvedSection, type ResolvedTrack, tracksOf } from '@molstar/seqx-core/view';
+import {
+  type ResolvedLayer,
+  type ResolvedSection,
+  type ResolvedTrack,
+  type ResolvedTrackGroup,
+  tracksOf,
+} from '@molstar/seqx-core/view';
 import { fontSize, type RenderConfig } from './config.js';
 import type { Box, Hit } from './layer-type.js';
 import type { TextMetrics } from './text.js';
@@ -62,6 +68,8 @@ export interface HeaderParts {
 export interface HeaderInputFacts {
   readonly section: ResolvedSection;
   readonly track?: ResolvedTrack;
+  /** A folded group's row (its first band): the header acts on the group, its line's address the group's. */
+  readonly group?: ResolvedTrackGroup;
   readonly filtered: readonly { readonly layer: string; readonly count: number }[];
   readonly hiddenLayers: readonly string[];
   readonly hiddenTracks: readonly HiddenTrack[];
@@ -146,6 +154,8 @@ export interface HeaderStateBox {
  * a menu, its states; `actions` the box the slots and the "⋯" take (their backdrop), absent when it draws none.
  */
 export interface HeaderLine {
+  /** A folded group's row: the group's address (its line acts on the group, not on the band it sits on). */
+  readonly group?: string;
   readonly line: Box;
   readonly label: Box;
   readonly slots: readonly HeaderSlotBox[];

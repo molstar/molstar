@@ -111,6 +111,18 @@ function directionMark(section: ResolvedSection, config: RenderConfig): string |
 // a section's track groups: their chunk loaded when a spec holds one (`groups-hooks.ts`)
 registerGroups();
 
+/** The folded group whose bands hold band `j`, if any (a loop: no closure a band). */
+function foldedAt<G extends { readonly folded: boolean; readonly first: number; readonly last: number }>(
+  groups: readonly G[],
+  j: number,
+): G | undefined {
+  for (let i = 0; i < groups.length; i++) {
+    const g = groups[i];
+    if (g.folded && j >= g.first && j <= g.last) return g;
+  }
+  return undefined;
+}
+
 const NoLays: readonly LayerLayout[] = [];
 /** A prep in one lane (`lanes: one`): kept a prep, so a summary's lay key holds. */
 const OneLane = new WeakMap<object, object>();
@@ -871,13 +883,15 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       const layers = lays[j] ?? NoLays;
       // its header's line: its states (the "n filtered" chip among them) and slots; the label's room what its states
       // beside it leave (states on a line of their own leave it whole)
+      // a folded group's bands: one header line, its first band's, acting on the group
+      const fg = folding?.groups ? foldedAt(folding.groups, j) : undefined;
+      const inFolded = fg !== undefined;
       const head =
-        layout === TracksLayout
-          ? trackHeaderOf(input, section, sectionId(section), track, layers, sectionLays, well, config)
+        layout === TracksLayout && (!fg || fg.first === j)
+          ? trackHeaderOf(input, section, sectionId(section), track, layers, sectionLays, well, config, fg?.group)
           : undefined;
       // a track of an open group indented; a folded group's bands leave the column to its header
       const indent = track.group && !track.summaryOf ? config.header.groupIndentPx : 0;
-      const inFolded = folding?.groups?.some((g) => g.folded && j >= g.first && j <= g.last) ?? false;
       const room = (head ? head.header.label.width : config.labelWidth) - indent;
       // a layer naming its rows in the column (a matrix's states) leaves it to them: no track label over the names
       const labelText =

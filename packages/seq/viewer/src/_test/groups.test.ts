@@ -276,6 +276,26 @@ describe('track groups in the viewer', () => {
     expect([r.done, r.message]).toEqual([false, HiddenTrackMessage]);
   });
 
+  it('a folded row’s header slots act on the group: its hide slot hides the group', async () => {
+    const v = await make();
+    await v.execute('groups.toggle', { address: `${GroupsSection}/features` });
+    await (v.behaviors.get('headers') as { loaded(): Promise<void> }).loaded();
+    await v.settle();
+    frames!.flush();
+    const geo = () => v.headers!.value.find((g) => g.target.track === `${GroupsSection}/features`);
+    // the row's line is the group's: no line on its summary band
+    expect(v.headers!.value.some((g) => g.target.track?.includes('#'))).toBe(false);
+    const g = geo()!;
+    v.input.move(g.label.x + 2, g.label.y + g.label.height / 2);
+    frames!.flush();
+    const slot = geo()!.slots.find((s) => s.name === 'seq:hide')!;
+    v.input.move(slot.box.x + slot.box.width / 2, slot.box.y + slot.box.height / 2);
+    frames!.flush();
+    v.input.click(slot.box.x + slot.box.width / 2, slot.box.y + slot.box.height / 2);
+    await v.settle();
+    expect(v.hiddenTracks.value.map((t) => [t.address, t.kind])).toEqual([[`${GroupsSection}/features`, 'group']]);
+  });
+
   it('a click on a group’s header folds and opens it (no selection, no step)', async () => {
     const v = await make();
     const steps = backSteps(v);

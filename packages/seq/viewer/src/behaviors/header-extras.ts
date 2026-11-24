@@ -100,6 +100,9 @@ export function headerTarget(hit: RenderHit, layout: ViewLayout | undefined): He
     if (s.section.address === hit.layer) return { section: s.section.address };
     for (const t of s.tracks)
       if (t.track.address === hit.layer) return { section: s.section.address, track: t.track.address };
+    // a folded group's row: its header the group's
+    if (s.section.trackGroups?.some((g) => g.address === hit.layer))
+      return { section: s.section.address, track: hit.layer };
   }
   return undefined;
 }
@@ -163,7 +166,9 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
     const section = sectionOfAddress(target.section);
     if (!section) return undefined;
     const track = trackOf(section, target.track);
-    if (target.track !== undefined && !track) return undefined;
+    // a folded group's row: its header acts on the group (no layers of its own)
+    const group = track ? undefined : section.trackGroups?.find((g) => g.address === target.track);
+    if (target.track !== undefined && !track && !group) return undefined;
     const model = inner.context.spec.model.value;
     const at = input ?? lastInput.get(target.track ?? target.section);
     const legend = viewer.behaviors.get('legend') as ThemingBehavior | undefined;
@@ -196,12 +201,14 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
     }
     const label = track
       ? track.label
-      : typeof section.params.label === 'string'
-        ? section.params.label
-        : section.address.split('/').pop()!;
+      : group
+        ? group.label
+        : typeof section.params.label === 'string'
+          ? section.params.label
+          : section.address.split('/').pop()!;
     return {
-      on: target.element ? 'element' : track ? 'track' : 'section',
-      address: track?.address ?? section.address,
+      on: target.element ? 'element' : track || group ? 'track' : 'section',
+      address: track?.address ?? group?.address ?? section.address,
       label,
       section: section.address,
       system: section.axis.system,
@@ -277,11 +284,9 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
    * whether it has a menu; `hosted` once a host's DOM parts draw them.
    */
   const layoutParts = (input: HeaderInputFacts): HeaderParts | undefined => {
-    const target: HeaderTarget = {
-      section: input.section.address,
-      ...(input.track ? { track: input.track.address } : {}),
-    };
-    lastInput.set(input.track?.address ?? input.section.address, input);
+    const own = input.group?.address ?? input.track?.address;
+    const target: HeaderTarget = { section: input.section.address, ...(own ? { track: own } : {}) };
+    lastInput.set(own ?? input.section.address, input);
     const f = factsOf(target, input);
     if (!f) return undefined;
     const all = applying(f, input.track ? 'track' : 'section');
@@ -455,14 +460,11 @@ export function headerExtras(inner: HeaderShared): HeaderExtras {
       if (s.header) lines.push([s.header, { section: s.section.address }, undefined, undefined]);
       const seen = new Set<string>();
       for (const t of s.tracks) {
-        if (!t.header || seen.has(t.track.address)) continue;
-        seen.add(t.track.address);
-        lines.push([
-          t.header,
-          { section: s.section.address, track: t.track.address },
-          t.well,
-          s.config.inset + t.labelWidth,
-        ]);
+        // a folded group's row: its line the group's
+        const own = t.header?.group ?? t.track.address;
+        if (!t.header || seen.has(own)) continue;
+        seen.add(own);
+        lines.push([t.header, { section: s.section.address, track: own }, t.well, s.config.inset + t.labelWidth]);
       }
       for (const [line, target, well, labelEnd] of lines) {
         const b = line.line;
