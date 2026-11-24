@@ -114,28 +114,49 @@ export function groupsBody(spec: SpecModel, view: ViewModel): GroupsBehavior {
     },
   ];
 
-  // a patch or an undo that changes a group's `collapsed` resets its section's folds to the spec's
-  const seen = new Map<string, Value | undefined>();
+  // a patch or an undo that changes a group's `collapsed` (or adds a group with `collapsed: true`) resets its section's
+  // folds to the spec's; a group gone leaves the session's set, and one renamed (one gone, one new) keeps its fold
+  const seen = new Map<string, Map<string, Value | undefined>>();
   const scan = (root: Node, tell: boolean) => {
-    const reset = new Set<string>();
+    const now = new Map<string, Map<string, Value | undefined>>();
     const walk = (n: Node, address: string) => {
       for (const c of n.children ?? []) {
         if (c.id === undefined || c.kind === 'track' || c.kind === 'data') continue;
-        const a = `${address}/${c.id}`;
         if (c.kind === 'group') {
-          const now = c.params?.collapsed;
-          if (tell && seen.has(a) && seen.get(a) !== now) reset.add(address);
-          seen.set(a, now);
-        } else walk(c, a);
+          let m = now.get(address);
+          if (!m) now.set(address, (m = new Map()));
+          m.set(c.id, c.params?.collapsed);
+        } else walk(c, `${address}/${c.id}`);
       }
     };
     walk(root, '');
-    for (const s of reset) {
-      // the session's set already what the spec now opens with (`groups.keep`'s own patch): kept, nothing changes
-      const own = view.groupFolds.value.get(s);
-      const opening = collapsedIds(root, s);
-      if (own && own.length === opening.length && own.every((id) => opening.includes(id))) continue;
-      view.setFoldedGroups(s, undefined);
+    const before = new Map(seen);
+    seen.clear();
+    for (const [k, v] of now) seen.set(k, v);
+    if (!tell) return;
+    for (const [s, own] of view.groupFolds.value) {
+      const was = before.get(s) ?? new Map<string, Value | undefined>();
+      const is = now.get(s) ?? new Map<string, Value | undefined>();
+      let reset = false;
+      const appeared: string[] = [];
+      for (const [id, c] of is) {
+        if (!was.has(id)) {
+          appeared.push(id);
+          if (c === true) reset = true;
+        } else if (was.get(id) !== c) reset = true;
+      }
+      if (reset) {
+        // the session's set already what the spec now opens with (`groups.keep`'s own patch): kept, nothing changes
+        const opening = collapsedIds(root, s);
+        if (own.length === opening.length && own.every((id) => opening.includes(id))) continue;
+        view.setFoldedGroups(s, undefined);
+        continue;
+      }
+      const gone = [...was.keys()].filter((id) => !is.has(id));
+      if (!gone.length) continue;
+      const kept = own.filter((id) => is.has(id));
+      if (gone.length === 1 && appeared.length === 1 && own.includes(gone[0])) kept.push(appeared[0]);
+      view.setFoldedGroups(s, kept);
     }
   };
   scan(spec.model.value.spec, false);

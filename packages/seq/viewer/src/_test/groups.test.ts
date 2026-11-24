@@ -228,6 +228,45 @@ describe('track groups in the viewer', () => {
     expect(folded(v)).toEqual(['variants']);
   });
 
+  it('a group a patch adds with `collapsed: true` opens folded; a renamed folded group stays folded, its old id gone', async () => {
+    const v = await make();
+    await v.execute('groups.toggle', { address: `${GroupsSection}/signals` });
+    expect(folded(v)).toEqual(['variants', 'signals']);
+    // renamed: its fold carried to the new id
+    const at = ['views', 'v', 'p53'];
+    let o = await v.spec.patch('Rename', {
+      ops: [{ op: 'move', at: [...at, 'signals'], parent: at, place: { last: true }, rename: 'sig' }],
+    });
+    expect(o.ok && o.changed).toBe(true);
+    await v.settle();
+    expect(v.view.get(GroupsSection)?.groups).toEqual(['variants', 'sig']);
+    // added folded: the section opens with the spec's folds, the new group among them
+    o = await v.spec.patch('Add', {
+      ops: [
+        {
+          op: 'insert',
+          parent: at,
+          place: { last: true },
+          node: {
+            kind: 'group',
+            id: 'extra',
+            params: { label: 'Extra', collapsed: true },
+            children: [
+              {
+                kind: 'track',
+                id: 't',
+                children: [{ kind: 'layer', id: 'l', params: { type: 'values', data: '/data/a' } }],
+              },
+            ],
+          },
+        },
+      ],
+    });
+    expect(o.ok && o.changed).toBe(true);
+    await v.settle();
+    expect(folded(v)).toContain('extra');
+  });
+
   it('a click on a group’s header folds and opens it (no selection, no step)', async () => {
     const v = await make();
     const steps = backSteps(v);
