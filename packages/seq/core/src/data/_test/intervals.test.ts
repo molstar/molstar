@@ -43,9 +43,9 @@ describe('the interval index', () => {
   });
 
   // a tooltip's lookup under a hover: O(log n + k), so the cost of a lookup grows as the log of the table does. Measured
-  // (best of five turns, load 8-10 on an M-series laptop, three runs): a tenfold step 1.15-1.41×, 10⁴ to 10⁷ 2.0-2.2×
+  // (best of 15 interleaved turns, load 8-10 on an M-series laptop, three runs): a tenfold step 1.15-1.41×, 10⁴ to 10⁷ 2.0-2.2×
   // (log n alone gives 1.2× a step and 1.75× across; the rest is the caches). A step is bounded at 2× and the whole at
-  // 3.5×, about 1.4× above the worst measured: a linear lookup is 10× a step, a square root's 3.2×.
+  // 3.5×, about 1.4× above the worst measured (the test itself reads the best of five interleaved turns): a linear lookup is 10× a step, a square root's 3.2×.
   const Fixtures = new Map<number, { s: Int32Array; e: Int32Array; ix: ReturnType<typeof intervalIndex> }>();
   /** A table of `n` ranges, built once a file (the heavy sizes are large). */
   const table = (n: number) => {
