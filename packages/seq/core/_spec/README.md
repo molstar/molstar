@@ -4189,7 +4189,8 @@ the bands, never a warm frame's work).
   `secondary` and `variants` lay their own lanes as they do open (their one-lane form is the package's TODO).
 - **Hit**: a header's box (an open group's line, a folded row's label column) is `group-header`, its group's address in
   `layer` (made once a layout: a hover allocates nothing), over the folded row's own label (its slots and states stay
-  the row's); a summary mark hits as its member layer's item.
+  the row's); a summary mark hits as its member layer's item. In a scrolled section a header is drawn and hit only
+  wholly in the scrolled area (or in the fixed head), as a track's header line.
 - **Elsewhere**: `text` and `rings` draw every group open with no header line and leave the authored summary tracks out
   (`seq.render.groups.layout`, info, once a section when some are folded; the folds kept, not applied); `grid` overlays
   its tracks: groups are ignored there. The label column's measure counts a group's header and its tracks' indent.

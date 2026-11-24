@@ -202,6 +202,26 @@ describe('track groups in the tracks layout', () => {
     expect(l.issues.map((i) => i.code)).toContain('seq.render.groups.layout');
   });
 
+  it('a scrolled section: a group header outside its scrolled area is neither drawn nor hit', async () => {
+    const s = await settle(groupsSpec(), [], { section: { maxPx: 120 } });
+    const frame = (top: number) =>
+      s.frame({ size: Size, settled: true, viewports: { [Section]: { start: 0, end: 53, top, groups: [] } } });
+    const at0 = (await frame(0)).layout.sections[0];
+    const features = at0.groups!.find((g) => g.group.address.endsWith('/features'))!;
+    expect(at0.placement.clip).toBe(true);
+    const f = await frame(200);
+    const sec = f.layout.sections[0];
+    const p = sec.placement;
+    // every header left is wholly in the scrolled area; Features' scrolled above it is gone
+    for (const g of sec.groups ?? []) {
+      expect(g.box.y).toBeGreaterThanOrEqual(p.scrollY!);
+      expect(g.box.y + g.box.height).toBeLessThanOrEqual(p.scrollEnd || p.box.y + p.box.height);
+    }
+    expect(sec.groups?.some((g) => g.group.address.endsWith('/features')) ?? false).toBe(false);
+    const hit = sec.layout.hitChrome!(sec, features.box.x + 20, p.scrollY! + 2, undefined);
+    expect(hit?.target).not.toBe('group-header');
+  });
+
   it('an export draws the folds it is given (`groups`), else each group’s `collapsed`', async () => {
     const svg = (groups?: Record<string, readonly string[]>) =>
       exportSvg(groupsSpec(), { size: { width: 640, height: 'auto' }, ...(groups ? { groups } : {}) });

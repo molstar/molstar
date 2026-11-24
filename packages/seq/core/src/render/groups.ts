@@ -252,6 +252,7 @@ export function groupHeaders(
   config: RenderConfig,
   measure: (text: string) => number,
   elide: (text: string, room: number) => string,
+  scroll?: { readonly y: number; readonly end: number; readonly fixed: number },
 ): GroupHeader[] {
   const out: GroupHeader[] = [];
   const size = Number.parseFloat(config.labelFont) || 12;
@@ -264,6 +265,8 @@ export function groupHeaders(
     const box: Box = g.folded
       ? { x, y: first.y, width, height: Math.max(1, last.y + last.height - first.y) }
       : { x, y: first.y - config.header.groupPx, width, height: config.header.groupPx };
+    // a scrolled section's header wholly in its scrolled area, as a track's header line (or in the fixed head)
+    if (scroll && g.first >= scroll.fixed && (box.y < scroll.y || box.y + box.height > scroll.end)) continue;
     const line = g.folded ? Math.min(box.height, Math.max(config.header.groupPx, first.height)) : box.height;
     const countWidth = g.count ? measure(g.count) : 0;
     // the label cut before the count, the count before the chevron: the chevron never dropped
