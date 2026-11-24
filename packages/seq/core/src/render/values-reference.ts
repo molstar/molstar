@@ -5,6 +5,7 @@
  */
 
 import { issueOf } from '@molstar/core/repr/tree';
+import { formatValue } from '@molstar/seqx-core/theme/index';
 import { Anchor, NoColor, type PassWriter } from './draw-lists.js';
 import { RenderIssues } from './issues.js';
 import type { LayoutContext } from './layer-type.js';
@@ -16,7 +17,7 @@ import type { ValuesLay } from './values.js';
 // The values layer's reference lines (_spec/README.md "Render", Layer types, `values`): up to four hairlines across the
 // well, each at a value of the layer's y scale (a threshold, a zero, a mean), through the same `ys` and headroom as a
 // value, so a dot at the threshold and its line coincide. Drawn after the data and under the hover, never hit. A line
-// outside a closed domain is not drawn (said once); an open end of the domain includes the lines. A label draws at the
+// outside a closed domain is not drawn (said once); an open end of the domain includes the lines. A label ("label · value", the value alone without a label) draws at the
 // well's right end in the `labels` pass (a patch of the well's ground under the text): above the line, below it near
 // the well's top, only from `labelMinWellPx` of well, the later of two overlapping ones dropped. Resolved once a layout
 // into preallocated arrays: a draw reads numbers only (nothing allocated once warm).
@@ -159,6 +160,12 @@ export function layoutReference(lay: Held, ctx: LayoutContext, closed: number): 
   layoutLabels(lay, ctx, muted);
 }
 
+/** A line's drawn text: "label · value" (the value as the legends write one), the value alone when it has no label. */
+export function labelText(l: ReferenceLine): string {
+  const v = formatValue(l.at);
+  return l.label ? `${l.label} · ${v}` : v;
+}
+
 function layoutLabels(lay: Held, ctx: LayoutContext, muted: number) {
   const r = lay.ref;
   const cfg = ctx.config.values.reference;
@@ -170,9 +177,8 @@ function layoutLabels(lay: Held, ctx: LayoutContext, muted: number) {
   r.ground = lay.tokens.colors['seq-track'];
   const maxText = box.width / 3 - 2 * Pad;
   for (let i = 0; i < r.lines.length; i++) {
-    const label = r.lines[i].label;
-    if (!r.shown[i] || !label || maxText <= 0) continue;
-    const text = elide(ctx.text, r.font, label, maxText);
+    if (!r.shown[i] || maxText <= 0) continue;
+    const text = elide(ctx.text, r.font, labelText(r.lines[i]), maxText);
     if (!text) continue;
     const w = ctx.text.measure(r.font, text) + 2 * Pad;
     const y = r.y[i];

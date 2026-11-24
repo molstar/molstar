@@ -28,6 +28,7 @@ function spec(
   values: readonly number[],
   layer: Record<string, unknown> = {},
   log?: readonly [number | null, number | null],
+  track: Record<string, unknown> = {},
 ) {
   const b = createSeqSpec({ title: 'reference' });
   const s = b.data.sequence('s', { alphabet: 'dna', letters: 'A'.repeat(values.length) });
@@ -36,7 +37,7 @@ function spec(
   b.views.view('main', (view) =>
     view
       .section('s', { of: s })
-      .track('v')
+      .track('v', track as never)
       .layer('values', { type: 'values', data: v, ...(scale ? { scale } : {}), ...layer } as never),
   );
   return b.build();
@@ -194,7 +195,7 @@ describe('the label', () => {
     expect(r.font).toBe('10px sans');
     const patch = readRects(f.lists, 'data').find((q) => Math.abs(q.x - x) < 0.01 && Math.abs(q.y - y) < 0.01);
     expect(patch?.fill).toBe(LightTokens.colors['seq-track']);
-    expect(r.text[0]).toBe('genome-wide');
+    expect(r.text[0]).toBe('genome-wide · 7.3');
   });
 
   it('goes below the line when the line is within a label height of the well’s top', async () => {
@@ -238,9 +239,20 @@ describe('the label', () => {
     expect([...apart.lay.ref.labelShown.slice(0, 2)]).toEqual([1, 1]);
   });
 
-  it('an unlabelled line has no text; a long label is cut to the well’s right third with an ellipsis', async () => {
-    const plain = await frame(Positions, { domain: [0, 10], reference: [{ at: 5 }] });
-    expect(plain.lay.ref.labelShown[0]).toBe(0);
+  it('a line without a label draws its value alone, the value as the legends write one', async () => {
+    const plain = await frame(Positions, { domain: [0, 10], reference: [{ at: 5 }, { at: 8.123456 }] });
+    expect([...plain.lay.ref.labelShown.slice(0, 2)]).toEqual([1, 1]);
+    expect(plain.lay.ref.text.slice(0, 2)).toEqual(['5', '8.123']);
+  });
+
+  it('the SVG export draws the same text', async () => {
+    const r = await renderSvg(spec(Positions, { domain: [0, 10], reference: Many }, undefined, { height: 60 }), {
+      size: Size,
+    });
+    expect(r.svg).toContain('genome-wide · 7.3');
+  });
+
+  it('a long label is cut to the well’s right third with an ellipsis', async () => {
     const cut = await frame(
       Positions,
       { domain: [0, 10], reference: [{ at: 5, label: 'a very long threshold label that cannot fit' }] },
