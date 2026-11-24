@@ -225,7 +225,8 @@ U as T on nucleotides.
   range with `from > to` on its cyclic system (EC-10), and `label` `Search: GAATTC (14)`. The strand is not in a
   Location, so not in the ref (said in its label when every hit is on one strand). Refused, never cut: past
   `search.maxSaved` (1,000) hits (`seq.search.save.limit`), an incomplete result (`seq.search.save.incomplete`: a
-  set must mean what it says). A saved ref is a ref like any: a layer's data, a link's target, `refs.remove` its inverse.
+  set must mean what it says), a stale one (`seq.search.save.stale`: new letters since the run, Decision 5's "may be
+  out of date" is no set to keep). A saved ref is a ref like any: a layer's data, a link's target, `refs.remove` its inverse.
 - **Results follow the spec, never re-run on their own**: a patch that removes a searched system drops its hits
   (`seq.address.missing`, as the session's other addresses); new letters for a searched system (a source reattached, a
   sequence's letters edited) mark the result `stale`, still drawn and said ("results may be out of date"), until the

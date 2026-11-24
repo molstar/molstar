@@ -599,7 +599,8 @@ built on them alone).
 - **A saved set is a ref** (`save({ id, label })`): `refs.add`'s patch with `to` the hits' addresses (a wrapped hit one
   range with `from > to` on its cyclic system, EC-10), `label` `Search: GAATTC (14)` (the strand said when every hit is
   on one: a Location holds none), id the next free `search-<n>`: one patch, one undo step (EC-162). Refused, never cut:
-  past `search.maxSaved` hits (`seq.search.save.limit`), an incomplete result (`seq.search.save.incomplete`).
+  past `search.maxSaved` hits (`seq.search.save.limit`), an incomplete result (`seq.search.save.incomplete`), a stale
+  one (`seq.search.save.stale`: new letters since the run, the hits may have moved).
 - **Results follow the spec, never re-run on their own**: a model that removes a searched system drops its hits
   (`seq.address.missing`); another entry for a searched system (its letters edited, a source reattached) marks the
   result `stale`, still drawn and said ("Search results may be out of date"), until the next run. Why: a search that

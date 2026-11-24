@@ -338,9 +338,14 @@ describe('results follow the spec', () => {
     expect(v.search!.stale.value).toBe(true);
     expect(words).toContain('Search results may be out of date');
     expect(v.highlight.get('search')).toBeDefined();
+    // a stale result is not saved: a saved set must mean what it says
+    const refused = await v.search!.save();
+    expect(refused.issues.map((i) => i.code)).toEqual(['seq.search.save.stale']);
+    expect(refused.message).toBe('The result may be out of date: not saved');
     await v.execute('search.run', { pattern: 'EP' });
     expect(v.search!.stale.value).toBe(false);
     expect(v.search!.count.value).toBe(2);
+    expect((await v.search!.save()).issues).toEqual([]);
   });
 });
 

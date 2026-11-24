@@ -71,6 +71,11 @@ export const SearchIssues = defineIssues('seq.search', {
     description:
       'A result is incomplete (a bound reached, a system skipped, cancelled): a saved set must mean what it says',
   },
+  'seq.search.save.stale': {
+    severity: 'error',
+    description: 'A result is out of date (new letters for a searched system): a saved set must mean what it says',
+    hint: 'Run the search again',
+  },
   'seq.search.save.rects': {
     severity: 'error',
     description: 'A result on an alignment’s rows is rectangles, which a saved set cannot name yet',

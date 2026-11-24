@@ -332,6 +332,13 @@ export async function save(
     const issue = issueOf(SearchIssues, 'seq.search.save.incomplete', 'The result is incomplete: not saved');
     return { message: issue.message, issues: [issue] };
   }
+  // new letters since the run: the hits may not be where they were (design Decision 5, "results may be out of date")
+  if (m._stale.value) {
+    const issue = issueOf(SearchIssues, 'seq.search.save.stale', 'The result may be out of date: not saved', {
+      hint: SearchIssues.codes['seq.search.save.stale'].hint!,
+    });
+    return { message: issue.message, issues: [issue] };
+  }
   const max = m.deps.config.search.maxSaved;
   if (m._count.value > max) {
     const issue = issueOf(
