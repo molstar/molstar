@@ -15,6 +15,7 @@ import { rangesLocation } from '@molstar/seqx-core/query';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { viewerItem } from '../config.js';
 import { DefaultSeqViewerSpec } from '../default-spec.js';
+import { HiddenTrackMessage } from '../models/address.js';
 import { type UiHistory, uiHistory } from '../ui-history.js';
 import { createSeqViewer, type SeqViewer } from '../viewer.js';
 import { type Frames, installFrames } from './frames.js';
@@ -265,6 +266,14 @@ describe('track groups in the viewer', () => {
     expect(o.ok && o.changed).toBe(true);
     await v.settle();
     expect(folded(v)).toContain('extra');
+  });
+
+  it('a reveal of an item only a hidden group draws says it is on a hidden track', async () => {
+    const v = await make();
+    await v.execute('track.hide', { address: `${GroupsSection}/variants` });
+    await v.settle();
+    const r = v.addresses.reveal('/data/clinvar/(item :label clinvar17)');
+    expect([r.done, r.message]).toEqual([false, HiddenTrackMessage]);
   });
 
   it('a click on a group’s header folds and opens it (no selection, no step)', async () => {

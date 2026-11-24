@@ -82,7 +82,7 @@ export function hiddenTracksState(model: ReadonlyState<StaticModel>): ReadonlySt
 
 /**
  * Whether what data owners make (an item's key) is drawn only on hidden tracks: every layer of the spec whose data is
- * (a form over) one of the owners lies on a hidden track, and there is at least one. A key also on a shown track is
+ * (a form over) one of the owners lies on a hidden track (or in a hidden group), and there is at least one. A key also on a shown track is
  * not (a jump goes there).
  */
 export function onlyOnHiddenTracks(root: Node, owners: ReadonlySet<string>): boolean {
@@ -96,7 +96,7 @@ export function onlyOnHiddenTracks(root: Node, owners: ReadonlySet<string>): boo
           if (inHidden) hidden++;
           else shown++;
         }
-      } else walk(c, inHidden || (c.kind === 'track' && c.params?.hidden === true));
+      } else walk(c, inHidden || ((c.kind === 'track' || c.kind === 'group') && c.params?.hidden === true));
     }
   };
   walk(root, false);
