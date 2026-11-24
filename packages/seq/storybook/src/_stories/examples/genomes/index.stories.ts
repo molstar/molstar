@@ -22,6 +22,7 @@ const GenomesExports: Readonly<Record<string, string>> = {
   'by-name': 'ByName',
   names: 'NamesAliased',
   'contact-map': 'ContactMap',
+  manhattan: 'Manhattan',
   liftover: 'Liftover',
 };
 
