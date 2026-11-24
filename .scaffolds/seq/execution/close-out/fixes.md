@@ -14,7 +14,8 @@ Open items for the next fix point or a running lane's fix round (the loop, Each 
   tier on the shared harness, run for FX31): `packages/sequences/viewer` `_test/input.quick.ts`, the label churn over a
   position, an aligned cell and a column, 1,416 / 752 / 723 B a step against baselines 1,032 / 594 / 564, the same alone
   at load 2.4. Not FX31 (its change is the control's size, not the baseline check); GATE 1 did not run this tier.
-  Outside the close-out's packages (the old Seq\*): its owner's, with the commit that grew it. Kind: perf.
+  Outside the close-out's packages (the old Seq\*): its owner's, with the commit that grew it. Kind: perf. Placed:
+  carried to the next plan (the record names it), outside Seq\* (next).
 - **Fixed by FX33** (`cd7058484`). **The Manhattan reference-line test once read [0, 5.78] for [0, 7.3]** (FX31's first quick run, 2026-11-24:
   `genomes-stories.test.ts`): alone and on a rerun green; likely the order in which CL8's lazy reference-lines chunk
   loads under the shared module registry. Kind: flake to watch; a second failure is a fix lane's.
@@ -37,7 +38,7 @@ Open items for the next fix point or a running lane's fix round (the loop, Each 
   ribbons out over part of the zoomed side (Pp01's at the whole genome; 1.55–1.58 Mb of Pp02 after a Ctrl+wheel, the
   orchestrator's reproduction without FX25 and CL8), the SVG twin draws them; it stays. Kind: bug. To FX28 (bisect,
   the class fixed, a canvas-against-SVG sweep over the across-sections stories).
-- **Back from deferred** (the author, 2026-11-24, the plugin off: "maybe we can finish FX25 too then?"); was **Deferred** ("ok let's just defer the fixes"): FX25 stopped three times on the
+- **Resolved: FX25 merged** (`9040adc8d`, every item below fixed by it; its worktree removed). **Back from deferred** (the author, 2026-11-24, the plugin off: "maybe we can finish FX25 too then?"); was **Deferred** ("ok let's just defer the fixes"): FX25 stopped three times on the
   `cc-plugin-privacy` plugin's refusals (`gaps.md`). Its six items below (TP53-201's lane, the variant card's title, stub
   labels, F9's canvas pressed slot, the square's failure text, the zoom hatch) carry past this close-out, to the next
   plan's first fix lane. Its worktree (`.claude/worktrees/agent-a98a4bf365b8a5323`, `seq/fx25` at `37832382d`) keeps
@@ -60,8 +61,7 @@ Open items for the next fix point or a running lane's fix round (the loop, Each 
   header's slots (`headers-draw`), so the story the decision came from shows no pressed icon. Kind: bug. To a fix lane:
   the canvas slot drawn pressed at rest, one at a time, a test on the canvas draw list.
 - **The pressed state refreshes only on a header run** (CL10's report, in the viewer spec): a host whose colouring
-  changes outside a command is not seen until the next layout, hover change or header run. Kind: followup (TODO at
-  the close).
+  changes outside a command is not seen until the next layout, hover change or header run. Kind: followup. Placed: `packages/seq/TODO.md` (the close).
 - **Fixed by FX25** (`9040adc8d`). **The square's failure text found by its source alone** (CL3's size trim, `ext-rondo/src/viewer.ts` `HoleIssue.of`
   with no section): the square passes no section, so two viewers with one source address and different failures show
   the first viewer's text on both squares (the class of CL2's fixed hole bug). Pass the square's own ring's section or

@@ -512,3 +512,5 @@ extension kinds.
   author, 2026-11-24): the split's first frame 21.1 ms and its task 28.7 ms, the merge's task 17.5 ms (edit < 16). The
   first frame's JavaScript 6 to 8 ms headless, the rest inferred canvas drawing of 200 copies; a design question: lays
   shared between identical copies. Profile the remaining microtask tails (~7.6, ~12 ms) first.
+- **A header's pressed state refreshes only on a header run** (CL10's report, the viewer spec): a host whose colouring
+  changes outside a command is not seen until the next layout, hover change or header run.
