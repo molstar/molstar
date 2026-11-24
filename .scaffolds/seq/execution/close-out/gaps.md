@@ -37,6 +37,10 @@ Decisions a gate asks for (the loop, Gates).
 
 ## Open
 
+- **`height: 'content'`** (the author, 2026-11-24: "maybe we should support 'auto' sizing for rendered tracks on canvas
+  too?", then "Add a spec param"): a track's or section's `height` takes `'content'`, no `track.maxPx` or
+  `section.maxPx` cap, in the unreleased 0.11.0; to FX30.
+
 - **The privacy plugin turned off** (the author, 2026-11-24, in `.claude.json`, in effect after a restart at 08:45): CL6 resumes item 6; FX25 back from
   deferred on the author's word, after CL6's merge.
 

@@ -21,6 +21,7 @@ address) is off since the author's restart, 2026-11-24 08:45: the refused grep o
 - **CL6 track groups merged** (`a1097142a`), sizes raised: headless 986.4/990, default 1,578.9/1,582, minimal 1,112.3/1,115.
 - **FX25 merged** (`9040adc8d`): minimal 1,115.4/1,117, default 1,582.0/1,584.
 - **CL8 merged** (`a95dbf373`): headless 992.1/995, default 1,584.7/1,588, minimal 1,117.1/1,120.
+- **FX30** `height: 'content'` (Sonnet, `seq/fx30`), started 2026-11-24 11:20 (the author's word).
 - **FX29** a legend row hiding a whole track (Sonnet, `seq/fx29`), started 2026-11-24 11:12 (the author's screenshots).
 - **FX28** the bridge's canvas gap (Sonnet, `seq/fx28`), started 2026-11-24 11:00 (the author's screenshot).
 
