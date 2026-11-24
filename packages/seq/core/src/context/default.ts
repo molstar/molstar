@@ -8,6 +8,7 @@ import { BuiltInLayerTypes, BuiltInLayouts } from '@molstar/seqx-core/render/bui
 import { MoleculeLettersType } from '@molstar/seqx-core/render/letters-molecule';
 import { NavigatorSvgExport } from '@molstar/seqx-core/render/navigator-export';
 import { BuiltInNavigatorPictures } from '@molstar/seqx-core/render/navigator-picture';
+import { BuiltInSearchRegistry } from '@molstar/seqx-core/search/entries';
 import { composeSeqContext, type SeqContext, type SeqContextSpec, type SeqRegistryEntry } from './context.js';
 
 // The default headless composition (_spec/README.md "Context"): the core's layer types and layouts listed before the
@@ -27,12 +28,15 @@ export const BuiltInRenderRegistry: readonly SeqRegistryEntry[] = [
 ];
 
 /**
- * The headless context of the default composition: `composeSeqContext` with the built-in layer types and layouts
- * registered before the spec's own entries (the same object again counts, another under a built-in's name is an error)
- * and the built-in navigators drawn in its exports.
+ * The headless context of the default composition: `composeSeqContext` with the built-in layer types and layouts, and
+ * the built-in search matchers (a lazy chunk), registered before the spec's own entries (the same object again counts,
+ * another under a built-in's name is an error) and the built-in navigators drawn in its exports.
  */
 export function createSeqContext(spec: SeqContextSpec = {}): SeqContext {
-  const context = composeSeqContext({ ...spec, registry: [...BuiltInRenderRegistry, ...(spec.registry ?? [])] });
+  const context = composeSeqContext({
+    ...spec,
+    registry: [...BuiltInRenderRegistry, ...BuiltInSearchRegistry, ...(spec.registry ?? [])],
+  });
   // in place: the context's tables are getters (`extend` swaps them), which a spread would freeze
   const render = context.renderSvg;
   return Object.assign(context, {

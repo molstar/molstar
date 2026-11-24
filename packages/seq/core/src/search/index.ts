@@ -7,6 +7,14 @@
 // @molstar/seqx-core/search (_spec/README.md "Search"): the matcher port, the kernels and `kernelMatcher`, the built-in
 // matchers, the bounds and the codes. Named re-exports only.
 
+export {
+  BuiltInMatcherNames,
+  BuiltInSearchRegistry,
+  checkMatcherNames,
+  type LazySearchMatcher,
+  loadMatcher,
+  type SearchMatcherEntry,
+} from './entries.js';
 export { HitList, NoHits } from './hits.js';
 export { IncompleteSearchCodes, SearchIssues } from './issues.js';
 export { type KernelMatcherSpec, kernelMatcher } from './kernel-matcher.js';
