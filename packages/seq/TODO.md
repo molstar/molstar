@@ -65,11 +65,10 @@ extension kinds.
   bounds to keep the gain.
 
 - **`repr`**: `checkRefs` (the resolve pass), `descriptors`, issue dedupe, the catalog docs generation, a
-  version-migration hook, `fallback` handling, a read-side `ParamValue` with typed columns only; a version-aware
-  validate (an unknown kind in a newer minor version is a warning); staged `pending` unioned across a chain of resolved
-  segments (only the last resolver's survives); union normalization re-validates slot subtrees (O(depth × size));
-  spelling checks of kinds and ids on trees built in code; integer columns with missing values (a `{ values, valid }`
-  shape or a sentinel per type; refused until a column needs one).
+  version-migration hook, a read-side `ParamValue` with typed columns only; staged `pending` unioned across a chain of
+  resolved segments (only the last resolver's survives); union normalization re-validates slot subtrees (O(depth ×
+  size)); spelling checks of kinds and ids on trees built in code; integer columns with missing values (a
+  `{ values, valid }` shape or a sentinel per type; refused until a column needs one).
 - **`data/int` half-open ranges**: `combine` as a linear two-pointer merge into a presized array (it sorts the cuts and
   builds number arrays today); tests for `Empty`, non-integers and `overlaps` without a length.
 - **`repr/patch`**:

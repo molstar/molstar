@@ -118,8 +118,8 @@ in `packages/seq` as above, plus `storybook/src/_stories/{features,examples}/**/
 **Not met yet** (open, in `packages/seq/TODO.md`):
 
 - EC-85 (a step's view): steps carry no view yet (stories.md: language fields). (Met in the third slice: below.)
-- EC-149: drag snapping to whole codons over nucleotides (items snap).
-- EC-154: the cursor through the codon map only; block gaps and lazy rows wait for those layouts. (Lazy rows met in the third slice; block gaps not: below.)
+- EC-149: drag snapping to whole codons over nucleotides (items snap). (Met in the close-out's CL9: `viewer/src/_test/snap-codons`.)
+- EC-154: the cursor through the codon map only; block gaps and lazy rows wait for those layouts. (Lazy rows met in the third slice; block gaps in the close-out's CL9: `viewer/src/_test/cursor-blocks`.)
 - EC-178 as above.
 
 ## Outcomes of the third slice
@@ -216,12 +216,15 @@ against the tests, completed by ET's (EC-63, 99, 115, 116, 138, 195), CF's (EC-1
 - EC-59: two grids on one block pair merged, later over earlier, and a size cap per pair: not built.
 - EC-103: track groups and summaries: not built.
 - EC-138's double outline over a saturated data fill the hover outline fails: above.
-- EC-149: drag snapping to whole codons over nucleotides (as in the second slice).
+- EC-149: drag snapping to whole codons over nucleotides (as in the second slice). Met in the close-out's CL9: a split
+  codon snaps to its pieces, the intron left out (`viewer/src/_test/snap-codons`).
 - EC-154: the keyboard cursor steps a million lazy rows by index, and hidden and folded rows by the nearest shown
   (`viewer/src/_test/cursor-rows` "steps by index over rows never read: …", "a fold puts the cursor on the summary row;
   a hidden row's on the nearest shown: …"), through reversed and collapsed axes (`viewer/src/_test/axis-commands`
   "through each reader: …"); it does not cross a gap between blocks of different systems
-  (`viewer/src/_test/blocks` "the cursor does not step another system's positions along the section's units").
+  (`viewer/src/_test/blocks` "the cursor does not step another system's positions along the section's units"). Met in
+  the close-out's CL9: the cursor crosses to the next block's first position, along x and down a grid's y, skipping
+  empty blocks (`viewer/src/_test/cursor-blocks`).
 - EC-178: as in the first slice.
 - EC-209: the dot plot's y on another section is built; ribbons between sections are the Genomes milestone's (layers
   across sections, deferred).

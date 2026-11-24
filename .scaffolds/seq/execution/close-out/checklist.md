@@ -22,7 +22,7 @@
 <!-- Wave 3 -->
 - [ ] CL5 Search: the matchers, the viewer's search state and commands, a matcher registry, a story's search box
 - [ ] CL6 Track groups: groups, summaries and collapse; the Ranges' collapse
-- [ ] CL9 Small items: codon snapping, the cursor across block gaps, the Antibody view's labels, built-in fallbacks with the version-aware validate, fixtures through MessagePack
+- [x] CL9 Small items: codon snapping, the cursor across block gaps, the Antibody view's labels, built-in fallbacks with the version-aware validate, fixtures through MessagePack (`19733d6c3`)
 
 <!-- Wave 4 -->
 - [ ] CL7 Streamed patches: a bookmark or ref naming a dynamic node

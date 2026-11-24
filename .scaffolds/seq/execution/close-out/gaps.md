@@ -47,3 +47,6 @@ Each made as recommended while the author was away (2026-11-24 night), for the m
   overnight. The two language changes (track groups' `group` node, values' `reference` param) would share one bump if
   both are agreed: one language lane, in order. Recommended: agree both drafts, one language lane bumping to 0.11.0.
 
+- **A 0.x version's minor read as a newer minor** (CL9, the version-aware validate): a 0.11.0 spec's unknown kind is a
+  warning to a 0.10.0 reader, as the brief decided, though 0.x versions usually break on a minor. Recommended: keep it
+  (the language is ours, and an older reader drawing what it knows is the point); revisit at 1.0.

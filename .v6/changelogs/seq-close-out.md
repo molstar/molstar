@@ -22,3 +22,6 @@
 - Seq\*: a lanes band's back and forward return to the same item after its lanes are laid again; the theme picker's
   BLOSUM62 text says what the scheme does; a pairs layer's data filter that a source's bins do not apply is said
   (`seq.render.pairs.filter`, info).
+- Seq\*: a drag over a gene's nucleotides snaps to whole codons, a codon split by an intron to its pieces; the keyboard
+  cursor crosses the gaps between blocks, along a section and down a grid's y; every built-in layer type declares its
+  fallback; a spec of a newer minor version with an unknown kind gives a warning naming both versions, not an error.
