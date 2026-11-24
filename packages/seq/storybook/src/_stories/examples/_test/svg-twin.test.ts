@@ -106,4 +106,59 @@ describe('the example root’s twin', () => {
     expect(strip(host.innerHTML)).toBe(none);
     expect(strip(host.innerHTML)).toBe(await fresh());
   });
+
+  it('p53: a search cleared (its channels gone) is gone from the twin as from the canvas', async () => {
+    const { openExample } = await import('./draw-checks.js');
+    const { P53Views } = await import('@molstar/seqx-examples');
+    const v = (opened = await openExample(P53Views.find((x) => x.id === 'protein-on-gene')!, { fixtures: true }));
+    const host = { innerHTML: '' } as unknown as HTMLElement;
+    const svg = (followed = followSvg(v, host, { prefix: 't' }));
+    await svg.draw();
+    const fresh = async () =>
+      strip((await Promise.all([v.renderSvg({ idPrefix: 't1-' }), vi.advanceTimersByTimeAsync(400)]))[0].svg);
+    const none = strip(host.innerHTML);
+    void v.execute('search.run', { pattern: 'PXXP' });
+    // the run's chunks are real I/O: the clock runs while they land
+    for (let i = 0; i < 4000 && v.search!.status.value !== 'done'; i++) {
+      await vi.advanceTimersByTimeAsync(16);
+      await new Promise((r) => setImmediate(r));
+    }
+    await vi.advanceTimersByTimeAsync(v.config.canvas.settleMs * 2);
+    const found = strip(host.innerHTML);
+    expect(found).not.toBe(none);
+    expect(found).toBe(await fresh());
+    await v.execute('search.clear', {});
+    // the twin is a draw behind the canvas by at most a rest
+    await vi.advanceTimersByTimeAsync(v.config.canvas.settleMs / 2);
+    expect(strip(host.innerHTML)).toBe(await fresh());
+    expect(strip(host.innerHTML)).toBe(none);
+  });
+
+  it('Track groups: a header’s fold, then Back, are the twin’s as the canvas’s', async () => {
+    const { openExample } = await import('./draw-checks.js');
+    const { FeatureViews } = await import('@molstar/seqx-examples');
+    const v = (opened = await openExample(FeatureViews.find((x) => x.id === 'groups')!, { delayMs: 0 }));
+    v.resize(900);
+    await vi.advanceTimersByTimeAsync(100);
+    v.draw();
+    const host = { innerHTML: '' } as unknown as HTMLElement;
+    const svg = (followed = followSvg(v, host, { prefix: 't' }));
+    await svg.draw();
+    const fresh = async () =>
+      strip((await Promise.all([v.renderSvg({ idPrefix: 't1-' }), vi.advanceTimersByTimeAsync(400)]))[0].svg);
+    // the export is a draw's work: landed within a frame's wait, well before the view's rest
+    const landed = () => vi.advanceTimersByTimeAsync(450);
+    const opening = strip(host.innerHTML);
+    // a fold of a header's click (session state, no step), then a jump (Collapse all) whose Back restores it
+    await v.execute('groups.toggle', { address: '/views/main/protein/features' });
+    await landed();
+    expect(strip(host.innerHTML)).not.toBe(opening);
+    expect(strip(host.innerHTML)).toBe(await fresh());
+    await v.execute('groups.expandAll', { section: '/views/main/protein' });
+    await landed();
+    expect(strip(host.innerHTML)).toBe(await fresh());
+    expect(v.view.back()).toBe(true);
+    await landed();
+    expect(strip(host.innerHTML)).toBe(await fresh());
+  });
 });
