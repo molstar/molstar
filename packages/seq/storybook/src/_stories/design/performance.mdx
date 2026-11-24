@@ -20,6 +20,9 @@ frame of a 300-residue protein cost the same; only the level of detail differs.
   - virtualized rows and pyramided column summaries for alignments;
   - 2D pyramids for grids and dot plots;
   - binary search over runs for maps.
+- A drag's work is bounded by the screen, not by what it selects: the selection is written at most once a frame and
+  resolved on release, nothing is hovered while it runs, and what derives from it costs what is shown. Holding the
+  pointer still costs nothing.
 - Data size costs only once, when summaries are built at load. Sources read by region don't cost it at all, and bigWig
   brings its own zoom levels.
 - Tests check that ten times the data costs at most 1.2 times the frame time, and that twice the pixels cost at most
@@ -40,6 +43,7 @@ frame of a 300-residue protein cost the same; only the level of detail differs.
 | Pan and zoom frame                                | under 8 ms; never over 16 ms            |
 | First zoom into new letters                       | under 8 ms a frame                      |
 | Selection drag, keyboard cursor step              | under 4 ms a step                       |
+| A drag-select's frame, every drag kind            | under 4 ms                              |
 | Validate and resolve a 1,000-node spec            | under 20 ms                             |
 | First paint of a dataset view                     | under 100 ms once the data is in memory |
 | An edit (patch, resolve, redraw), or its undo     | under 16 ms                             |
@@ -57,6 +61,7 @@ frame of a 300-residue protein cost the same; only the level of detail differs.
 | What                    | Target                                                    |
 | ----------------------- | --------------------------------------------------------- |
 | Draw and hover loops    | 0 bytes allocated per frame                               |
+| A drag held still       | 0 bytes allocated per frame                               |
 | A story's `sample`      | 0 bytes allocated per frame                               |
 | Resolved inline data    | at most 2× its MessagePack size                           |
 | Maps                    | never expanded past the region asked                      |

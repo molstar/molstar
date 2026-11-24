@@ -40,6 +40,16 @@ structures should be chosen appropriately".
   | maps | runs searched by binary search; paths precomposed at compile; projection O(log runs) |
   | text layout | lines laid out lazily, only the lines in view, with their offsets kept for scrolling |
 
+- **A drag's work is bounded by the screen, not by the selection** (the author, 2026-11-21: selecting a rect on the
+  tRNA dot plot "is really laggy", "similar lag to selecting on the genome ring with the contigs"; the close-out's
+  CL11): a drag-select writes the selection at most once a frame (its moves coalesced to the viewer's frame, the full
+  selection resolved on release, one history step), hovers nothing while it runs (no hit, no hover lookup, no card),
+  derives its emphasis and projections in proportion to what is shown (a projection walks a part's links, never every
+  system of a 3,000-block genome), costs nothing while the pointer is held (no hit, no value made), and leaves what
+  follows the selection outside the frame (a story's SVG twin) to the release. Why: a pointer sends moves faster than
+  frames, and each value written re-ran everything derived from the selection; measured before, a sweep across 12
+  chromosomes of the 3,000 contigs drew about 300 ms a frame (the projection's walk), the 4,000 × 4,000 dot plot's SVG
+  twin exported 0.5 to 1 s a move.
 - **Summaries cost a fraction of the data**: a pyramid of 4× steps adds at most a third of its base; summaries are
   built once when a store entry is loaded (on the main thread in time slices until the compute port exists), or served
   by the source when its format has them; they belong to their store entry and are evicted with it.
@@ -100,7 +110,7 @@ costs up to `f` times the pixels.
 | Hover: hit-test, projection onto linked sections, overlay redraw | under 2 ms; the frame under 8 ms |
 | Pan and zoom frame (letters, tracks, at the scale sizes below) | under 8 ms (120 Hz with headroom); never over 16 ms |
 | First zoom into new letters (glyph atlas filling) | under 8 ms a frame |
-| Selection drag, keyboard cursor step | under 4 ms a step |
+| Selection drag, keyboard cursor step | under 4 ms a step; a drag-select's frame (its moves and the frame applying them) under 4 ms for each drag kind: a rect on the 4,000 × 4,000 dot plot, a range on its ruler, a box on the PAE grid, a sweep across 12 chromosomes of the 3,000 contigs on the ring and the row (`drag-time.test.ts`, heavy) |
 | Validate and resolve a spec of 1,000 nodes (inline data aside) | under 20 ms |
 | First paint of a dataset view (p53, globins family) | under 100 ms after the data is in memory |
 | An edit: apply a patch, resolve again, redraw | under 16 ms; undo the same |
@@ -119,6 +129,7 @@ costs up to `f` times the pixels.
 | What | Target |
 |---|---|
 | Draw and hover loops, warm | 0 bytes allocated a frame (guarded) |
+| A drag-select's frame | 0 bytes while the pointer is held (no hit, no value made; the genome views' frame its own 48 B, not the drag's); a frame moving the drag's end its new value and projections, under 16 kB (`drags.quick.ts`, perf tier) |
 | A hover through the structure link | at most 2 kB a lit unit (the target and its Location are new each hover; pooled if a large assembly shows it; the author, 2026-11-21) |
 | Layout, warm, at a fixed screen | bounded a frame, independent of the data's size (guarded); not zero |
 | Resolved model of inline data | at most 2× the data's MessagePack size, multi-resolution summaries included (a third of their base at most) |

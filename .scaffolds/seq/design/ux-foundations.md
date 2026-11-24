@@ -154,7 +154,7 @@ smallest letter size needs, so cells never show without letters.
   every level of detail, answers a hover with (1) a hit naming what is under the pointer (the item, else the bin's items
   or stretch, else the position), (2) an emphasis in the hovered view and every linked view, reaching every layer the
   covered positions reach (the view draws a position box where a layer draws none), and (3) a card with the hit's
-  fields. A layer type without a hit is refused at registration (`seq.render.layer.hover`). A drag suspends the card. A
+  fields. A layer type without a hit is refused at registration (`seq.render.layer.hover`). A drag suspends the card; a drag-select hovers nothing while it runs (no hover lookup, no crosshair), its own readout what shows (a grid's rect summary), and the hover comes back where the pointer rests on release. A
   rail's hover is its own (no card). A medium-lane sweep over every story holds it. Legends work both ways: an entry
   that names items lights them in view; an entry with no action shows the default cursor.
 

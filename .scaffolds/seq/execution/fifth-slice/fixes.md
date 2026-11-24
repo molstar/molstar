@@ -6,7 +6,7 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
 
 ## Open (placed at the close, 2026-11-23)
 
-- **A drag's work is bounded by the screen, not by the selection** **Carried to the next plan** (the close, 2026-11-23: still open, the selection written on every move; a strong lane with the PAE drag and the 3,000 contigs). (FX8, 2026-11-22: a drag across 3,000 contigs relays out the navigator's strip, about 110 kB a frame, bounded at 256 kB in `navigator-blocks.quick.ts`; its 2 ms bound fails under load: move it to the heavy lane under `itWithin`) (moved by FX12) (the author, 2026-11-21, tRNA › Views › Dot plot
+- **A drag's work is bounded by the screen, not by the selection** **Closed by the close-out's CL11** (2026-11-24: the rule in `design/performance.md`, Cost follows pixels; the viewer's `_spec`, SelectionModel and HighlightModel, Drags; the strip's layout per hull, FX8's, still open there) **Carried to the next plan** (the close, 2026-11-23: still open, the selection written on every move; a strong lane with the PAE drag and the 3,000 contigs). (FX8, 2026-11-22: a drag across 3,000 contigs relays out the navigator's strip, about 110 kB a frame, bounded at 256 kB in `navigator-blocks.quick.ts`; its 2 ms bound fails under load: move it to the heavy lane under `itWithin`) (moved by FX12) (the author, 2026-11-21, tRNA › Views › Dot plot
   scale: "selecting a rect on the dotplot here is really laggy. both as a rect on the plot, and a range on the nav.
   are we doing too much work here? maybe related to the other perf issue? and similar lag to selecting on the genome
   ring with the contigs"). One class with the PAE drag and the 3,000-contig drag-select below. What I read (not yet
@@ -61,7 +61,7 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   one line.
 
 
-- **The hover card follows a drag on the grid and makes it laggy** **Partly fixed** (the card hides during drags); **carried with the drag rule** (the close, 2026-11-23). (the drag part an instance of the drag rule above; the author, 2026-11-21, Examples › Complex › PAE
+- **The hover card follows a drag on the grid and makes it laggy** **Closed by the close-out's CL11** (2026-11-24: a drag-select hovers nothing while it runs, the PAE box's frame bounded in the perf tier and the heavy lane) **Partly fixed** (the card hides during drags); **carried with the drag rule** (the close, 2026-11-23). (the drag part an instance of the drag rule above; the author, 2026-11-21, Examples › Complex › PAE
   and contacts › CDK2 monomer: "showing the hover when dragging on the PAE plot makes the view feel really laggy"):
   while a drag sweeps a box on the PAE grid, the hover card (x, y, value) and the crosshair are re-resolved and redrawn
   on every move, on top of the selection box and its mirror on the section above. During any drag (a grid's box, a
@@ -98,7 +98,7 @@ open items at each fix point (plan, Fix points); a finding that needs a design b
   host configures optional behaviour) and grids-and-rows.md's zoom rows updated with it. Parts (1) and the host's limits built by FX16 (`8c07380aa`): a lazy source without row levels stops at a device pixel a row (keys, grips, a stored `rowScale` clamped), `rows.zoom` (`minPx`, `maxPx`, `enabled`) in `ViewerConfig`, validated. Open: part (2), the coarse row levels (a design), and a band's own override in the spec (a language change).
 
 
-- **The 3,000-contig story could be faster** **Carried with the drag rule** (the close, 2026-11-23; M5 measured only the square's drag). (the drag part an instance of the drag rule above; the author, 2026-11-21, on packages-seq's build: "better perf ... although
+- **The 3,000-contig story could be faster** **The drag-select across chromosomes closed by the close-out's CL11** (2026-11-24: about 300 ms a frame to about 1 ms, the projection indexed; hover and pan not profiled there) **Carried with the drag rule** (the close, 2026-11-23; M5 measured only the square's drag). (the drag part an instance of the drag rule above; the author, 2026-11-21, on packages-seq's build: "better perf ... although
   still could be faster"): my measure, 40 hover steps along the row each drawn within two frames (about 33 ms, no
   drops). Take it at M5: profile hover and pan on three-thousand-contigs (ring and row), find the per-frame cost, and
   set a bound in the perf tier. **A drag-select across many chromosomes is slow** (the author, 2026-11-21: chr11 to

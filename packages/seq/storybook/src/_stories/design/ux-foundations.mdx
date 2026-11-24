@@ -105,10 +105,11 @@ command and from the keyboard.
 - **The hover card** says in words what the pointer rests on: the position in every numbering
   (`heavy 97 · Kabat 93 · IMGT 105`), the letter, the item and its extent, a value, a grid cell's two positions and
   value, a dragged rectangle's mean. Its words are the screen reader's, so the two never differ. It sits beside the
-  pointer, never over what it describes, and leaves when a drag pans or zooms. The viewer works out the card as data and
-  its place; a port draws it, `@molstar/ui`'s card by default or an app's own components and styles. It is compact (a
-  line a row, the value beside its label, an item's track named) and capped: past eight items it shows the first and "+k
-  more"; the screen reader still hears every one.
+  pointer, never over what it describes, and leaves when a drag pans or zooms. A drag that selects hovers nothing while
+  it runs (a dragged rectangle's summary is its own readout); the hover comes back where the pointer rests. The viewer
+  works out the card as data and its place; a port draws it, `@molstar/ui`'s card by default or an app's own components
+  and styles. It is compact (a line a row, the value beside its label, an item's track named) and capped: past eight
+  items it shows the first and "+k more"; the screen reader still hears every one.
 - **The keys panel** (`?`) lists what the view answers to, generated from its keys and gestures.
 - **Next and previous in the focused part**: `.` and `,` mean next and previous **in the focused part**
   (`cursor.next-feature`, `cursor.prev-feature`, the commands' own shortcuts): on a track of items the cursor steps to

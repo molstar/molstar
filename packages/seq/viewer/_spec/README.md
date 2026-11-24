@@ -419,9 +419,9 @@ ends; a width past the new block's length, the new block whole. One rule for a c
   view", Projection: indexed by system). **A held pointer costs nothing**: a frame whose pointer is where the last one
   applied it, over the same layout, hits nothing again; an end the drag was last at (the model's `dragTo` by its
   position, item, system and arc; `rectDragTo` by its cell; the `select` behavior's drags over blocks by their block and
-  position), its value still standing, makes and writes nothing. A frame moving the end allocates the new value and
-  what derives from it (bounded in the perf tier, a few kB; a frame of each drag kind within 4 ms in the heavy lane).
-  Why: a pointer held still sends moves, and a frame's warm path allocates nothing (the allocation tier).
+  position), its value still standing, makes and writes nothing. A frame moving the end allocates the new value and what
+  derives from it (bounded in the perf tier, a few kB; a frame of each drag kind within 4 ms in the heavy lane). Why: a
+  pointer held still sends moves, and a frame's warm path allocates nothing (the allocation tier).
 - **The anchor** is the range of the last element or cell set, toggled, added or dragged from, on its system (an item's
   extent there, else its cell); `set(value, anchor?)` replaces it; `clear()` drops it. With it the model keeps what an
   extend keeps: the selection less the anchor's range when the anchor was set (none after a click or a plain drag; all
@@ -1034,12 +1034,12 @@ binding table; per move one hit record and one modifiers record are reused.
   origin, two runs); a double-click focuses an item by the arc its pieces cover (the circle less their widest gap; its
   whole extent from `selection.extentOfHit`, a layer's hit being the piece hit). Only these read two ends as an arc: a
   range set (`setRange`, a grip, a step back) is kept as given, wider than half the ring too.
-- **Pointer**: a move drags when a drag is begun (`down` on a target whose `drag` binding exists) and hovers through
-  the hover behavior (but during a drag-select past the slop: SelectionModel and HighlightModel, Drags). `leave` clears what this pointer owns. A drag bound to a drag-select (`drag-select`,
-  `drag-add`, `drag-subtract`, `drag-extend`) begins on what was hit (nothing selectable: no drag) and selects once the
-  pointer moved 3 px (either way); its range reaches the unit the placement has under the pointer (`offsetAt`: in a
-  text's reading order across lines, the nearest between lines, a line's last past its end), past the data too, once
-  a frame (SelectionModel and HighlightModel, Drags). A
+- **Pointer**: a move drags when a drag is begun (`down` on a target whose `drag` binding exists) and hovers through the
+  hover behavior (but during a drag-select past the slop: SelectionModel and HighlightModel, Drags). `leave` clears what
+  this pointer owns. A drag bound to a drag-select (`drag-select`, `drag-add`, `drag-subtract`, `drag-extend`) begins on
+  what was hit (nothing selectable: no drag) and selects once the pointer moved 3 px (either way); its range reaches the
+  unit the placement has under the pointer (`offsetAt`: in a text's reading order across lines, the nearest between
+  lines, a line's last past its end), past the data too, once a frame (SelectionModel and HighlightModel, Drags). A
   drag-select held past a scrolling box's top or bottom (a text that overflows) scrolls it toward the pointer, 8 px a
   second for each px past (to 1,200), timed by the clock, never by frames, the selection extending to what comes under
   the held pointer; it stops when the pointer comes back, the content ends or the drag ends. A window's part (the hit's
