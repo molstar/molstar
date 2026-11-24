@@ -969,7 +969,7 @@ export const SeqLanguage = defineLanguage({
             { type: 'number', min: 0 },
             { type: 'string', enum: ['content'] },
           ],
-          doc: 'Text and tracks: the section’s height in px (past it its content scrolls inside, a tracks section’s ruler fixed), or `content` (its whole content, no `section.maxPx` cap: never scrolling inside); its content’s, up to the render config’s `section.maxPx`, when absent. Rings: the rings’ diameter in px; the width’s, up to `rings.maxDiameter`, when absent.',
+          doc: 'Text and tracks: the section’s height in px (past it its content scrolls inside, a tracks section’s ruler fixed), or `content` (its whole content, no `section.maxPx` cap: never scrolling inside); its content’s, up to the render config’s `section.maxPx`, when absent. Rings: the rings’ diameter in px; the width’s, up to `rings.maxDiameter`, when absent (`content` is read as absent: a ring has no content height).',
         },
         heights: {
           type: 'union',
