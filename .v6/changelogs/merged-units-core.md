@@ -11,3 +11,7 @@
 - On WebGPU the smoothed layers of merged surfaces are sampled per vertex by a compute kernel into the storage they are
   drawn from, as the per-unit grids sample them, with no CPU copy: 60 copies of 7qpd, a layer set on all 420 units
   2.75 to 2.13 s (per-unit grids 2.04), on one unit 18.8 to 11.3 ms. The geometry export reads them back as drawn.
+- Smoothed colors and layers (overpaint, transparency, emissive, substance) of surfaces are sampled at their grid's
+  cell corners, where the smoothing puts the values: they were drawn half a cell off in x and y (WebGL and WebGPU).
+- The kernel sampling the smoothed layers of merged surfaces is compiled in the background once a surface smooths, and
+  by `Canvas3D.precompile` for lists with merged meshes, not at the first layer.

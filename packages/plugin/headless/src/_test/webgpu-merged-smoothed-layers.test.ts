@@ -19,6 +19,7 @@ import { type DataArray, readGpuDataArrays } from '@molstar/graphics/gl/renderab
 import { SegmentedArray } from '@molstar/graphics/gl/segmented-array';
 import type { WebGPUContext } from '@molstar/graphics/gl/contexts/webgpu';
 import { KernelCode, type StorageBuffer, StorageBufferSpec } from '@molstar/graphics/gl/compute';
+import { LayerSamplingKernels } from '@molstar/graphics/gl/compute/layer-sampling';
 import { UniformSpec } from '@molstar/graphics/gl/renderable/schema';
 import { ValueCell } from '@molstar/core/util';
 import { Scene } from '@molstar/graphics/gl/scene';
@@ -103,7 +104,7 @@ describe.skipIf(!WebGPU.module)('smoothed layers on merged surfaces (WebGPU)', (
       expect(merged.objects).toBe(2);
       expect(written).toBe(1);
       // the plain layer's hard edge apart from the grids' soft one; merged, sampled by the same filter per vertex, near
-      // them (measured 35 against 264 pixels: the vertices' interpolation of it, not the fragments')
+      // them (measured 35 against 288 pixels: the vertices' interpolation of it, not the fragments')
       expect(plainToPerGroup).toBeGreaterThan(150);
       expect(toPerGroup).toBeLessThan(plainToPerGroup / 4);
       expect(graphics.takeErrors?.() ?? []).toEqual([]);
@@ -160,6 +161,9 @@ describe.skipIf(!WebGPU.module)('smoothed layers on merged surfaces (WebGPU)', (
         typeParams: { resolution: 0.5, tryUseGpu: false, smoothColors: Smooth } as never,
       });
       const repr = cell!.obj!.data.repr;
+      // the sampling's kernels compiled ahead of the layer, the surface smoothing
+      await plugin.canvas3d!.graphics.resources.pending.whenReady();
+      expect(plugin.canvas3d!.graphics.compute!.hasKernels(LayerSamplingKernels)).toBe(true);
       repr.setState({ overpaint });
       plugin.canvas3d!.update(repr);
       const before = (await plugin.getImageRaw({ width: Size, height: Size })).data;
@@ -180,6 +184,33 @@ describe.skipIf(!WebGPU.module)('smoothed layers on merged surfaces (WebGPU)', (
       expect((member.values.tOverpaint.ref.value as DataArray<Uint8Array>).gpu!.compute).toBe(next.compute);
     } finally {
       plugin.dispose();
+    }
+  }, 60_000);
+
+  it('prepares the sampling kernels by a precompile list naming a merged surface, in another context', async () => {
+    const a = await createPlugin();
+    const b = await createPlugin();
+    try {
+      const { structureCell, overpaint } = await setup(a);
+      const cell = await a.builders.structure.representation.addRepresentation(structureCell, {
+        type: 'gaussian-surface',
+        typeParams: { resolution: 0.5, tryUseGpu: false, smoothColors: Smooth } as never,
+      });
+      const repr = cell!.obj!.data.repr;
+      repr.setState({ overpaint });
+      a.canvas3d!.update(repr);
+      await a.getImageRaw({ width: Size, height: Size });
+      const list = a.canvas3d!.getPrecompileList();
+      expect(list.objects.some((s) => s.merged && s.defines.dOverpaintType === 'vertexInstance')).toBe(true);
+
+      // another context, nothing in its scene
+      const other = b.canvas3d!.graphics.compute!;
+      expect(other.hasKernels(LayerSamplingKernels)).toBe(false);
+      await b.canvas3d!.precompile(list);
+      expect(other.hasKernels(LayerSamplingKernels)).toBe(true);
+    } finally {
+      a.dispose();
+      b.dispose();
     }
   }, 60_000);
 });

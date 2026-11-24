@@ -118,7 +118,8 @@ Follow-ups from the review of the WebGPU branch (correctness, memory, one decisi
   measured); the CPU geometry store deferred (measured: little to gain).
 - [merged-smoothed-layers-gpu.md](merged-smoothed-layers-gpu.md): smoothed layers on merged surfaces sampled per
   vertex by a compute kernel on WebGPU into the layer's storage pages, done (all 420 units of 60 copies of 7qpd 2.75 to
-  2.13 s a frame); left: the splat on the GPU, the grid sampling's half-cell shift.
+  2.13 s a frame), the grids sampled at their cells' corners in every shader (the half-cell shift); left: the splat on
+  the GPU, with the positions it and the sampling read.
 - [merged-render-objects.md](merged-render-objects.md): CPU-side merging the main path for units representations
   (always, `renderMerged` removed), update costs, geometry and layers without copies, the costs per member, GPU
   culling with occlusion (`gpuCulling: 'auto'`, from 20k instances) done; left: the visuals' own update work (the GPU

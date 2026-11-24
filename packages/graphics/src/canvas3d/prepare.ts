@@ -8,6 +8,7 @@
 // those of objects not yet built (`precompile`, `prepareObjects`), and the pass targets no frame draws released
 
 import { getDenoiseKernels, isComputeDenoiseSupported } from '@molstar/graphics/gl/compute/denoise';
+import { prepareLayerSampling } from '@molstar/graphics/gl/compute/layer-sampling';
 import { SphereRasterKernels } from '@molstar/graphics/gl/compute/sphere-raster';
 import { isSplatSortSupported, SplatSortKernels } from '@molstar/graphics/gl/compute/splat-sort';
 import { Object3D } from '@molstar/graphics/gl/object3d';
@@ -271,6 +272,16 @@ export function createCanvas3DPreparer(parts: Canvas3DParts): Canvas3DPreparer {
     return compute.prepareKernels(SplatSortKernels);
   }
 
+  /**
+   * the per-vertex sampling's kernels where `list` has merged meshes, which may smooth a layer per vertex and instance
+   * on the GPU where compute shaders run (their visual compiles them once it smooths; whether it does is not in the
+   * signature), else compiled once such a visual is made
+   */
+  function prepareLayerSamplingOf(list: PrecompileList) {
+    const merged = list.objects.some((s) => s.type === 'mesh' && s.merged);
+    return merged ? prepareLayerSampling(parts.graphics) : undefined;
+  }
+
   function precompile(list: PrecompileList, propsList: readonly Canvas3DPrecompileProps[] = [{}]): Promise<void> {
     if (parts.contextLost) return Promise.resolve();
     const { graphics, passes } = parts;
@@ -295,7 +306,15 @@ export function createCanvas3DPreparer(parts: Canvas3DParts): Canvas3DPreparer {
         ? graphics.compute.prepareKernels(getDenoiseKernels())
         : undefined;
     const splatSort = prepareSplatSort(list);
-    return Promise.all([graphics.resources.pending.whenReady(), kernels, raster, denoise, splatSort]).then(() => {});
+    const layerSampling = prepareLayerSamplingOf(list);
+    return Promise.all([
+      graphics.resources.pending.whenReady(),
+      kernels,
+      raster,
+      denoise,
+      splatSort,
+      layerSampling,
+    ]).then(() => {});
   }
 
   /**
@@ -353,6 +372,7 @@ export function createCanvas3DPreparer(parts: Canvas3DParts): Canvas3DPreparer {
     if (graphics.compute && gpuCulled) graphics.compute.prepareKernels(MergedCullKernels);
     if (hasSphereRaster({ objects })) graphics.compute!.prepareKernels(SphereRasterKernels);
     prepareSplatSort({ objects });
+    prepareLayerSamplingOf({ objects });
     // the items this request uses too move to it: with an earlier one's they could go before its owners are added
     for (const entry of preparedObjects) for (const key of items.keys()) entry.items.delete(key);
     preparedObjects.push({ owners: new Set(requests.keys()), added: new Set(), items, time: now() });

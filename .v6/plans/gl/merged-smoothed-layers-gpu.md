@@ -1,6 +1,6 @@
 # Smoothed layers sampled on the GPU (merged surfaces)
 
-Status: steps 1 to 3 done; step 4 and the follow-ups open. Follows [merged-units-core.md](merged-units-core.md) step
+Status: steps 1 to 3 and the follow-ups done; step 4 open. Follows [merged-units-core.md](merged-units-core.md) step
 4b.
 
 ## Why
@@ -25,7 +25,8 @@ one unit 18.8 against 12.9 ms.
 - **A kernel samples the vertices** (`layer-sample-vertices`, `gl/compute/layer-sampling.ts`), per reached instance
   and vertex: the segment's positions and transforms (uploaded once a layer, 12 bytes a vertex), the grid sampled by
   the texture's linear filter as the mesh shaders sample it (`texture3dFrom2dLinear`), the result written into the
-  storage the layer is drawn from. `r8` layers pack four elements a `u32`: a thread a word, the words at the range's
+  storage the layer is drawn from, at the cells' corners as the splat puts them (as the shaders since the half-cell
+  fix). `r8` layers pack four elements a `u32`: a thread a word, the words at the range's
   ends read and their other bytes kept.
 - **The GPU owns those ranges.** The segment's layer is a `DataArray` with a writer (`DataArray.gpu`, a
   `GpuDataWriter`), its array zeros shared by all such arrays (`getSharedZeros`: never written, never reused by
@@ -53,17 +54,24 @@ one unit 18.8 against 12.9 ms.
 3. **Merged objects** (done): as the design above. Tested on WebGPU (headless): the image against the per-group
    visuals' 35 pixels apart where the plain layer is 264 (the CPU path was 92: the filter's half cell, and the vertices'
    interpolation of it), the export's read back equal to the bytes drawn, a geometry made again (its segments laid out
-   again) sampled again, a device loss drawing the same image on the new device. Measured against step 1: on all units
+   again) sampled again, a device loss drawing the same image on the new device (since the half-cell fix the plain layer
+   288 pixels apart, merged still 35). Measured against step 1: on all units
    2.75 to 2.13 s a frame (per group 2.04), on one unit 18.8 to 11.3 ms (per group 12.9); the splat the rest.
 4. **Then decide on splatting on the GPU** too: the accumulate kernel (`color-smoothing-accumulate`, today on the
-   texture meshes' vertex arena) reading merged vertex buffers. Per-group CPU meshes would gain from it as well.
+   texture meshes' vertex arena) reading merged vertex buffers. Per-group CPU meshes would gain from it as well. With
+   it the sampling kernel reads the same positions and transforms on the GPU, not uploaded a layer (12 bytes a vertex,
+   64 an instance). Not the render item's as they are: the geometry pages are `VERTEX | INDEX`, not `STORAGE`
+   (bindable by a kernel only with the usage on every page, and in bindings of `maxStorageBufferBindingSize`), a
+   slot's attributes may be interleaved, the vertex buffers are written at the first draw (after the layer's write)
+   and the transforms are a vertex buffer or instance storage by context.
 
 ## Follow-ups
 
-- **The half-cell shift**: the mesh shaders (`texture3dFrom2dLinear`) sample a grid half a cell from where the splat
-  put its values: the splat writes a cell's value at its corner (`p = i`), the filter reads texel `i` at its center
-  (`p = i + 0.5`). Per-group smoothed layers and colors have it, and so the GPU sampling (the CPU path sampled at the
-  corners). Check WebGL's `texture3dFrom2dLinear` too; fix in the shaders (and the kernel) by sampling at `p + 0.5`.
-- **The kernel's pipeline** is compiled on first use (`createKernel`, synchronously): in no precompile list.
-- **Positions and transforms** uploaded a layer (12 bytes a vertex beside the vertex buffer): the kernel could read the
-  merged object's vertex buffer and instance data instead.
+- **The half-cell shift** (done): the splats (CPU and GPU) put a cell's value at its corner (`p = i`), the filter reads
+  texel `i` at its center (`p = i + 0.5`); the mesh shaders, WebGL (`texture3dFrom2dLinearCorners`) and WebGPU
+  (`texture3dFrom2dLinear_<texture>`), and the kernel sampled half a cell off in x and y (z mixed from the corners
+  already). Now at `p + 0.5`: the GPU sampling equal to the CPU path's (`getTrilinearlyInterpolated`) within the
+  rounding, tested. The direct volume adds the half itself (its grids are of cell centers).
+- **The kernel's pipeline** (done): compiled in the background once a merged surface smooths
+  (`prepareLayerSampling`), and by a precompile list with a merged mesh (`Canvas3DPreparer.precompile`,
+  `prepareObjects`: whether it smooths is not in its signature); else synchronously at the first layer.

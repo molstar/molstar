@@ -10,6 +10,8 @@ here.
 
 ## [Unreleased]
 
+- Fix smoothed colors and layers (overpaint, transparency, emissive, substance) of surfaces being sampled half a grid
+  cell off in x and y
 - Fix atom-set `count-query` counting matches in the entire input instead of the current atom set
 - Fix the transparency, clipping, emissive and wiggle layers of an object of one instance (instance granularity), and
   the sizes of an object of one instance, group or size type, being written into the array every object's empty one

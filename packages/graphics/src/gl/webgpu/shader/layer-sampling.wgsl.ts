@@ -6,7 +6,7 @@
 
 /**
  * A smoothed layer's value per vertex and instance of a mesh (`vertexInstance`), sampled from its grid as the mesh
- * shaders sample a grid (`texture3dFrom2dLinear`, the texture's linear filter), written into `outData` from element
+ * shaders sample a grid (`texture3dFrom2dLinear`, the texture's linear filter at the cells' corners), written into `outData` from element
  * `uOutOffset`: element `instance * uVertexCount + vertex`, instances not reached (`reached`) zero. `rgba8` one `u32`
  * an element (`dItemSize_4`); `r8` four elements a `u32` (low byte first), a thread a word, the bytes of the words at
  * the range's ends outside it kept
@@ -16,7 +16,8 @@ fn sampleGrid(pos: vec3<f32>) -> vec4<f32> {
     let gridDim = uParams.uGridDim;
     let texDim = uParams.uGridTexDim;
     let zSlice0 = floor(pos.z * gridDim.z);
-    // the tile of a slice in integers, as \`texture3dFrom2dLinear\`
+    // the tile of a slice in integers, as \`texture3dFrom2dLinear\`; the values at the cells' corners, a texel read at
+    // its center half a cell on in x and y
     let width = i32(texDim.x);
     let start0 = i32(zSlice0) * i32(gridDim.x);
     let start1 = start0 + i32(gridDim.x);
@@ -24,7 +25,7 @@ fn sampleGrid(pos: vec3<f32>) -> vec4<f32> {
     let row0 = f32(start0 / width);
     let column1 = f32(start1 % width);
     let row1 = f32(start1 / width);
-    let offset = pos.xy * gridDim.xy;
+    let offset = pos.xy * gridDim.xy + 0.5;
     let color0 = textureSampleLevel(tGrid, sLinear, (vec2<f32>(column0, row0 * gridDim.y) + offset) / texDim, 0.0);
     let color1 = textureSampleLevel(tGrid, sLinear, (vec2<f32>(column1, row1 * gridDim.y) + offset) / texDim, 0.0);
     return mix(color0, color1, abs(pos.z * gridDim.z - zSlice0));

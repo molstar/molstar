@@ -43,6 +43,7 @@ import {
 } from '@molstar/graphics/gl/renderable/merged';
 import { RenderableState } from '@molstar/graphics/gl/renderable';
 import { type DataArray, releaseGpuData } from '@molstar/graphics/gl/renderable/util';
+import { prepareLayerSampling } from '@molstar/graphics/gl/compute/layer-sampling';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { Theme } from '@molstar/graphics/theme/theme';
 import type { LocationIterator } from '@molstar/graphics/geo/util/location-iterator';
@@ -1115,6 +1116,10 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
       currentStructure = structure;
       currentGraphics = graphics;
       consistent = true;
+      // the per-vertex sampling's kernels ahead of a smoothed layer (`perVertexOnGpu`), not at its first
+      if (type === 'mesh' && graphics && hasColorSmoothingProp(props) && props.smoothColors.name !== 'off') {
+        prepareLayerSampling(graphics);
+      }
       if (resmooth) {
         writeLayers(smoothedLayers!);
         recordsWritten();

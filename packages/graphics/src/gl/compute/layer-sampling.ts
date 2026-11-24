@@ -57,6 +57,21 @@ export function getLayerSamplingKernels(itemSize: 1 | 4): KernelRequest[] {
   return [{ code: LayerSampleKernel, schema: LayerSampleSchema, defines: { dItemSize: `${itemSize}` } }];
 }
 
+/** The kernels of both item sizes */
+export const LayerSamplingKernels: readonly KernelRequest[] = [
+  ...getLayerSamplingKernels(1),
+  ...getLayerSamplingKernels(4),
+];
+
+/**
+ * Compiles the kernels of `computeLayerSampling` in the background where they run and are not ready (else the first
+ * smoothed layer compiles them synchronously, blocking the queue); `undefined` where there is nothing to wait for
+ */
+export function prepareLayerSampling(graphics: GraphicsContext): Promise<void> | undefined {
+  if (!isComputeLayerSamplingSupported(graphics) || graphics.compute.hasKernels(LayerSamplingKernels)) return;
+  return graphics.compute.prepareKernels(LayerSamplingKernels);
+}
+
 export function isComputeLayerSamplingSupported(
   graphics: GraphicsContext,
 ): graphics is GraphicsContext & { compute: ComputeContext } {

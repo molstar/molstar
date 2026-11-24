@@ -6,6 +6,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { Mat4, Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
+import { getTrilinearlyInterpolated } from '@molstar/graphics/geo/geometry/mesh/color-smoothing';
 import { computeLayerSampling, isComputeLayerSamplingSupported } from '@molstar/graphics/gl/compute/layer-sampling';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
@@ -54,7 +55,10 @@ function filter(grid: Uint8Array, x: number, y: number, c: number) {
   return a * (1 - ty) + b * ty;
 }
 
-/** channel `c` at model position `p`, as the mesh shaders sample a layer's grid (`texture3dFrom2dLinear`), 0 to 255 */
+/**
+ * channel `c` at model position `p`, as the mesh shaders sample a layer's grid (`texture3dFrom2dLinear`, its values at
+ * the cells' corners: half a texel on in x and y), 0 to 255
+ */
 function sampleReference(grid: Uint8Array, p: Vec3, c: number) {
   const s = GridTransform[3];
   const pos = [
@@ -65,8 +69,8 @@ function sampleReference(grid: Uint8Array, p: Vec3, c: number) {
   const zSlice0 = Math.floor(pos[2] * GridDim[2]);
   const start0 = zSlice0 * GridDim[0];
   const start1 = start0 + GridDim[0];
-  const ox = pos[0] * GridDim[0];
-  const oy = pos[1] * GridDim[1];
+  const ox = pos[0] * GridDim[0] + 0.5;
+  const oy = pos[1] * GridDim[1] + 0.5;
   const c0 = filter(grid, (start0 % TexWidth) + ox, Math.floor(start0 / TexWidth) * GridDim[1] + oy, c);
   const c1 = filter(grid, (start1 % TexWidth) + ox, Math.floor(start1 / TexWidth) * GridDim[1] + oy, c);
   const t = Math.abs(pos[2] * GridDim[2] - zSlice0);
@@ -121,14 +125,38 @@ function setup(graphics: GraphicsContext & { compute: NonNullable<GraphicsContex
     gridTexDim: Vec2.create(TexWidth, TexHeight),
     gridTransform: GridTransform,
   };
-  const reference = (element: number, c: number) => {
+  const position = (element: number) => {
     const instance = Math.floor(element / VertexCount);
-    if (instance === 1) return 0;
-    const v = element % VertexCount;
-    const p = Vec3.add(Vec3(), Vec3.fromArray(Vec3(), local, v * 3), Translations[instance]);
-    return sampleReference(grid, p, c);
+    return Vec3.add(Vec3(), Vec3.fromArray(Vec3(), local, (element % VertexCount) * 3), Translations[instance]);
   };
-  return { input, reference, destroy: () => [positions, transforms, reached].forEach((b) => b.destroy()) };
+  const reference = (element: number, c: number) =>
+    Math.floor(element / VertexCount) === 1 ? 0 : sampleReference(grid, position(element), c);
+  /**
+   * before the grid's last cell in each axis, where the CPU path reads the same texels (the filter clamps at the atlas'
+   * edge, the CPU path reads past it)
+   */
+  const inTile = (element: number) => {
+    const p = position(element);
+    return [0, 1, 2].every((k) => (p[k] - GridMin[k]) * GridTransform[3] < GridDim[k] - 1);
+  };
+  // the CPU path's trilinear interpolation between the cells' corners (`getTrilinearlyInterpolated`)
+  const transformBuffer = new Float32Array(matrices.subarray(16));
+  const cpu = getTrilinearlyInterpolated({
+    vertexCount: VertexCount,
+    instanceCount: InstanceCount,
+    transformBuffer,
+    positionBuffer: local,
+    colorType: 'volumeInstance',
+    grid,
+    gridDim: GridDim,
+    gridTexDim: Vec2.create(TexWidth, TexHeight),
+    gridTransform: GridTransform,
+    vertexStride: 3,
+    colorStride: 4,
+    outputStride: 4,
+    instances: new Uint8Array([1, 0, 1]),
+  }).array;
+  return { input, reference, cpu, inTile, destroy: () => [positions, transforms, reached].forEach((b) => b.destroy()) };
 }
 
 /** the largest difference to the reference: the filter's weights of the hardware's precision, the bytes rounded */
@@ -147,7 +175,7 @@ describe.skipIf(!WebGPU.module)('layer sampling per vertex and instance (WebGPU 
       const graphics = plugin.canvas3d!.graphics;
       if (!isComputeLayerSamplingSupported(graphics)) throw new Error('expected layer sampling support');
       const { compute } = graphics;
-      const { input, reference, destroy } = setup(graphics);
+      const { input, reference, cpu, inTile, destroy } = setup(graphics);
       const count = VertexCount * InstanceCount;
 
       // rgba8 from element 3: an element a word
@@ -161,6 +189,18 @@ describe.skipIf(!WebGPU.module)('layer sampling per vertex and instance (WebGPU 
         }
       }
       expect(rgbaMax).toBeLessThanOrEqual(Tolerance);
+      // as the CPU path samples the grid (the filter between the same corners)
+      let cpuMax = 0;
+      let compared = 0;
+      for (let e = 0; e < count; ++e) {
+        if (!inTile(e)) continue;
+        compared++;
+        for (let c = 0; c < 4; ++c) {
+          cpuMax = Math.max(cpuMax, Math.abs(rgbaBytes[(e + 3) * 4 + c] - cpu[e * 4 + c]));
+        }
+      }
+      expect(compared).toBeGreaterThan(count / 2);
+      expect(cpuMax).toBeLessThanOrEqual(Tolerance);
 
       // r8 from element 2: four elements a word, the bytes before and after the range kept
       const words = Math.ceil((count + 2 + 4) / 4);
