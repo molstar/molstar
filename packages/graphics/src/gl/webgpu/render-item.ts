@@ -505,6 +505,33 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
       write(0, array.length);
     }
   }
+  /**
+   * The parts of `array` written on the GPU (`SegmentedArray.Part.gpu`) written there again, after the writes of
+   * `ranges` (all: undefined) from the CPU: those whose bytes or the words around them were written (zeros on the CPU)
+   */
+  function writeGpuParts(
+    range: BufferRange,
+    array: SegmentedArray,
+    ranges: readonly number[] | undefined,
+    offset: number,
+  ) {
+    const bpe = array.BYTES_PER_ELEMENT;
+    for (const p of array.parts) {
+      if (!p.gpu || p.count === 0) continue;
+      const start = p.offset * bpe;
+      const end = (p.offset + p.count) * bpe;
+      if (ranges) {
+        let written = false;
+        for (let k = 0; k < ranges.length && !written; k += 2) {
+          const s = Math.floor((ranges[k] * bpe) / 4) * 4;
+          const e = Math.ceil((ranges[k + 1] * bpe) / 4) * 4;
+          written = s < end && e > start;
+        }
+        if (!written) continue;
+      }
+      p.gpu.write(getStorageBufferView(range.buffer), range.offset + offset + start);
+    }
+  }
   const layerImage = (layer: DataLayer) => dataValues[layer].ref.value as DataArray<Uint8Array>;
   /** the bytes of the elements of `layer` (its array may be longer) */
   const layerBytes = (layer: DataLayer) => layerImage(layer).count * DataLayerElementBytes[DataLayers[layer]];
@@ -647,6 +674,7 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
           const ranges = moved ? undefined : SegmentedArray.changedRanges(array, layerParts[i]);
           if (!ranges) layerParts[i] = SegmentedArray.uploaded(array);
           writeSegmentedLayer(range, array, ranges, offset);
+          writeGpuParts(range, array, ranges, offset);
           layerVersions[i] = cell.ref.version;
         }
       } else if (moved || cell.ref.version !== layerVersions[i]) {

@@ -4,6 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import type { GpuDataWriter } from './renderable/util.js';
+
 /**
  * The typed arrays a segmented array is made of: vertex attributes (`Float32Array`, encoded normals `Int16Array`),
  * elements (`Uint32Array`) and data images (`Uint8Array`, `Float32Array`)
@@ -45,6 +47,11 @@ export namespace SegmentedArray {
     readonly bias: number;
     /** advanced where the part's data changed */
     version: number;
+    /**
+     * what writes the part's data on the GPU (a member's `DataArray.gpu`): `array` zeros, the uploader writing the part
+     * by it where it wrote its range or the words around it
+     */
+    gpu?: GpuDataWriter;
   }
 
   export function is(x: unknown): x is SegmentedArray {

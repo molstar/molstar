@@ -8,3 +8,6 @@
   the CPU. 60 copies of 7qpd (420 units), a layer set on one unit 18.8 ms against 12.9 ms for per-unit grids, on all
   2.75 s against 2.04 s (WebGPU), the same memory (35 MB). Smoothing colors per vertex is faster: 3.67 to 2.75 s of
   that.
+- On WebGPU the smoothed layers of merged surfaces are sampled per vertex by a compute kernel into the storage they are
+  drawn from, as the per-unit grids sample them, with no CPU copy: 60 copies of 7qpd, a layer set on all 420 units
+  2.75 to 2.13 s (per-unit grids 2.04), on one unit 18.8 to 11.3 ms. The geometry export reads them back as drawn.

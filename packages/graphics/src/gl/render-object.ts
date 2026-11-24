@@ -325,6 +325,9 @@ function hasForeignBuffers(o: GraphicsRenderObject, graphics: GraphicsContext): 
   forEachCell(o, (cell) => {
     const buffer = getStorageBuffer(cell.ref.value);
     if (buffer && !graphics.compute?.ownsBuffer(buffer)) foreign = true;
+    // a data array written on the GPU (`DataArray.gpu`) by another context's kernels
+    const gpu = (cell.ref.value as { gpu?: { compute: unknown } } | undefined)?.gpu;
+    if (gpu && gpu.compute !== graphics.compute) foreign = true;
   });
   return foreign;
 }

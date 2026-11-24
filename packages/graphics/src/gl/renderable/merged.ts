@@ -1296,7 +1296,9 @@ export function createMergedValues(
   /** member i's part of the layer of `spec` read again from the member (its array may be another one) */
   function updateTexPart(spec: MergedTexSpec, i: number) {
     const part = layerArray(spec).parts[source && isAllocTexture(spec) ? liveAlloc[i] : i] as SegmentedArray.Part;
-    part.array = (members[i][spec.tex]!.ref.value as DataArray<any>).array;
+    const data = members[i][spec.tex]!.ref.value as DataArray<any>;
+    part.array = data.array;
+    part.gpu = data.gpu;
     part.version += 1;
   }
 
@@ -1321,8 +1323,8 @@ export function createMergedValues(
     for (let i = 0; i < n; ++i) {
       bases[i] = total;
       const texels = getTexelCount(i, spec);
-      const { array } = members[i][spec.tex]!.ref.value as DataArray<any>;
-      parts.push({ array, offset: total * spec.itemSize, count: texels * spec.itemSize, bias: 0, version: 0 });
+      const { array, gpu } = members[i][spec.tex]!.ref.value as DataArray<any>;
+      parts.push({ array, offset: total * spec.itemSize, count: texels * spec.itemSize, bias: 0, version: 0, gpu });
       total += texels;
     }
     // whole words, as `createDataArray`

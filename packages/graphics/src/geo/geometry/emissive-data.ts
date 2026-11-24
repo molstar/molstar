@@ -6,7 +6,7 @@
 
 import { ValueCell } from '@molstar/core/util/value-cell';
 import { Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
-import { type DataArray, createDataArray } from '@molstar/graphics/gl/renderable/util';
+import { type DataArray, createDataArray, releaseGpuData } from '@molstar/graphics/gl/renderable/util';
 import type { Texture } from '@molstar/graphics/gl/texture';
 import { getLayerTypeDefine, type LayerType, NoLayerGrid } from './layer-type.js';
 
@@ -68,6 +68,8 @@ export function createEmissive(count: number, type: EmissiveType, emissiveData?:
       : undefined,
   );
   if (emissiveData) {
+    // what wrote its elements on the GPU (`DataArray.gpu`) released
+    releaseGpuData(emissiveData.tEmissive.ref.value);
     ValueCell.update(emissiveData.tEmissive, emissive);
     ValueCell.updateIfChanged(emissiveData.dEmissive, count > 0);
     ValueCell.updateIfChanged(emissiveData.emissiveAverage, getEmissiveAverage(emissive.array, count));
@@ -93,6 +95,8 @@ export function createEmissive(count: number, type: EmissiveType, emissiveData?:
 const emptyEmissiveTexture = { array: new Uint8Array(4), count: 1 };
 export function createEmptyEmissive(emissiveData?: EmissiveData): EmissiveData {
   if (emissiveData) {
+    // what wrote its elements on the GPU (`DataArray.gpu`) released
+    releaseGpuData(emissiveData.tEmissive.ref.value);
     ValueCell.update(emissiveData.tEmissive, emptyEmissiveTexture);
     return emissiveData;
   } else {

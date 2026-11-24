@@ -396,6 +396,11 @@ namespace Visual {
     geometry: Geometry;
     props: PD.Values<any>;
     graphics?: GraphicsContext;
+    /**
+     * meshes: per vertex and instance (`vertexInstance`), not a grid an object: sampled on the GPU where `graphics`
+     * computes (the merged visual's segments: a grid an object does not merge)
+     */
+    perVertexOnGpu?: boolean;
   };
 
   export function setOverpaint(
@@ -465,7 +470,13 @@ namespace Visual {
         const { resolution, overpaintTexture } = geometry.meta as SurfaceMeta;
         const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
         if (csp) {
-          applyMeshOverpaintSmoothing(renderObject.values as any, csp, graphics, overpaintTexture);
+          applyMeshOverpaintSmoothing(
+            renderObject.values as any,
+            csp,
+            graphics,
+            overpaintTexture,
+            smoothing.perVertexOnGpu,
+          );
           (geometry.meta as SurfaceMeta).overpaintTexture = renderObject.values.tOverpaintGrid.ref.value;
         }
       } else if (graphics && geometry.kind === 'texture-mesh') {
@@ -557,7 +568,13 @@ namespace Visual {
         const { resolution, transparencyTexture } = geometry.meta as SurfaceMeta;
         const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
         if (csp) {
-          applyMeshTransparencySmoothing(renderObject.values as any, csp, graphics, transparencyTexture);
+          applyMeshTransparencySmoothing(
+            renderObject.values as any,
+            csp,
+            graphics,
+            transparencyTexture,
+            smoothing.perVertexOnGpu,
+          );
           (geometry.meta as SurfaceMeta).transparencyTexture = renderObject.values.tTransparencyGrid.ref.value;
         }
       } else if (graphics && geometry.kind === 'texture-mesh') {
@@ -640,7 +657,13 @@ namespace Visual {
         const { resolution, emissiveTexture } = geometry.meta as SurfaceMeta;
         const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
         if (csp) {
-          applyMeshEmissiveSmoothing(renderObject.values as any, csp, graphics, emissiveTexture);
+          applyMeshEmissiveSmoothing(
+            renderObject.values as any,
+            csp,
+            graphics,
+            emissiveTexture,
+            smoothing.perVertexOnGpu,
+          );
           (geometry.meta as SurfaceMeta).emissiveTexture = renderObject.values.tEmissiveGrid.ref.value;
         }
       } else if (graphics && geometry.kind === 'texture-mesh') {
@@ -721,7 +744,13 @@ namespace Visual {
         const { resolution, substanceTexture } = geometry.meta as SurfaceMeta;
         const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
         if (csp) {
-          applyMeshSubstanceSmoothing(renderObject.values as any, csp, graphics, substanceTexture);
+          applyMeshSubstanceSmoothing(
+            renderObject.values as any,
+            csp,
+            graphics,
+            substanceTexture,
+            smoothing.perVertexOnGpu,
+          );
           (geometry.meta as SurfaceMeta).substanceTexture = renderObject.values.tSubstanceGrid.ref.value;
         }
       } else if (graphics && geometry.kind === 'texture-mesh') {

@@ -94,7 +94,7 @@ The merged path grew beside the per-group one instead of under it. Five choices 
     for the per-group grids; on all 2.75 against 2.04 s, their layer data 35.5 against 35.0 MB (the grids' size: no cap
     or atlas needed). The splatting is both paths' (about 2 s); the rest the per-vertex interpolation, 3.67 to 2.75 s
     once it read scalars (`getTrilinearlyInterpolated`). Images as the per-group grids' within the vertices'
-    sampling (a half-painted chain: 92 pixels apart against the plain layer's 264). The per-vertex sampling on the GPU:
+    sampling (a half-painted chain: 92 pixels apart against the plain layer's 264). On WebGPU the per-vertex sampling runs on the GPU:
     [merged-smoothed-layers-gpu.md](merged-smoothed-layers-gpu.md).
   - **A segment's update of another merge key** (done): of a builder that writes its values by the segment
     (`processValues`: smoothing by a surface's resolution), a part's key after each segment's update against its first

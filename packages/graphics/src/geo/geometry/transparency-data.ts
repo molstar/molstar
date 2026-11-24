@@ -6,7 +6,7 @@
 
 import { ValueCell } from '@molstar/core/util/value-cell';
 import { Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
-import { type DataArray, createDataArray } from '@molstar/graphics/gl/renderable/util';
+import { type DataArray, createDataArray, releaseGpuData } from '@molstar/graphics/gl/renderable/util';
 import type { Texture } from '@molstar/graphics/gl/texture';
 import { getLayerTypeDefine, type LayerType, NoLayerGrid } from './layer-type.js';
 
@@ -83,6 +83,8 @@ export function createTransparency(
       : undefined,
   );
   if (transparencyData) {
+    // what wrote its elements on the GPU (`DataArray.gpu`) released
+    releaseGpuData(transparencyData.tTransparency.ref.value);
     ValueCell.update(transparencyData.tTransparency, transparency);
     ValueCell.updateIfChanged(transparencyData.dTransparency, count > 0);
     ValueCell.updateIfChanged(transparencyData.transparencyAverage, getTransparencyAverage(transparency.array, count));
@@ -110,6 +112,8 @@ export function createTransparency(
 const emptyTransparencyTexture = { array: new Uint8Array(4), count: 1 };
 export function createEmptyTransparency(transparencyData?: TransparencyData): TransparencyData {
   if (transparencyData) {
+    // what wrote its elements on the GPU (`DataArray.gpu`) released
+    releaseGpuData(transparencyData.tTransparency.ref.value);
     ValueCell.update(transparencyData.tTransparency, emptyTransparencyTexture);
     return transparencyData;
   } else {

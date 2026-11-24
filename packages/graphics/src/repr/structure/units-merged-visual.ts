@@ -42,6 +42,7 @@ import {
   type MergedType,
 } from '@molstar/graphics/gl/renderable/merged';
 import { RenderableState } from '@molstar/graphics/gl/renderable';
+import { type DataArray, releaseGpuData } from '@molstar/graphics/gl/renderable/util';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { Theme } from '@molstar/graphics/theme/theme';
 import type { LocationIterator } from '@molstar/graphics/geo/util/location-iterator';
@@ -88,6 +89,12 @@ const SmoothedLayerDefines = {
   transparency: 'dTransparencyType',
   emissive: 'dEmissiveType',
   substance: 'dSubstanceType',
+} as const;
+const SmoothedLayerTextures = {
+  overpaint: 'tOverpaint',
+  transparency: 'tTransparency',
+  emissive: 'tEmissive',
+  substance: 'tSubstance',
 } as const;
 type LayersOf = { readonly layers: ReadonlyArray<{ readonly loci: Loci }> };
 type SmoothedLayers = { [K in SmoothedLayerKind]?: LayersOf };
@@ -301,6 +308,13 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
   /** the representation's state, applied to segments made later (`setState`) */
   const state: Partial<StructureRepresentationState> = {};
 
+  /** `seg` dropped: its geometry, and what writes its layers on the GPU (`DataArray.gpu`) */
+  function disposeSegment(seg: Segment<G>) {
+    builder.dispose?.(seg.geometry);
+    const values = seg.values as unknown as { [k: string]: ValueCell<DataArray<any>> | undefined };
+    for (const kind of SmoothedLayerKinds) releaseGpuData(values[SmoothedLayerTextures[kind]]?.ref.value);
+  }
+
   /** `seg` as the render object the writers take (`Visual.mark`, the layer setters): its values its record */
   function asObject(seg: Segment<G>) {
     return seg as unknown as GraphicsRenderObject;
@@ -404,7 +418,12 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
       groupCount: locationIt.groupCount,
       instanceCount: locationIt.instanceCount,
     };
-    applyStateTo({ values } as unknown as GraphicsRenderObject, place, { geometry, props });
+    applyStateTo({ values } as unknown as GraphicsRenderObject, place, {
+      geometry,
+      props,
+      graphics: ctx.graphics,
+      perVertexOnGpu: true,
+    });
     const part = getPart(values, props);
     // the shared values its prototype: once a record, made as a fast object (a prototype set then, not keys added)
     const record: { [k: string]: unknown } = { ...part.recordTemplate };
@@ -576,7 +595,10 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
       const bit = 1 << SmoothedLayerKinds.indexOf(kind);
       for (let i = 0, il = segments.length; i < il; ++i) {
         const seg = segments[i];
-        const smoothing = flags && flags[i] & bit ? { geometry: seg.geometry, props: seg.props } : undefined;
+        const smoothing =
+          flags && flags[i] & bit
+            ? { geometry: seg.geometry, props: seg.props, graphics: currentGraphics, perVertexOnGpu: true }
+            : undefined;
         set(asObject(seg), layer, lociApply(seg), true, smoothing);
       }
     }
@@ -735,7 +757,7 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
   }
 
   function reset() {
-    for (const seg of segments) builder.dispose?.(seg.geometry);
+    for (const seg of segments) disposeSegment(seg);
     segments = [];
     byGroup = createSegmentMap<G>();
     byUnitId = undefined;
@@ -1045,7 +1067,7 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
         completed = true;
       } finally {
         if (!completed) {
-          for (const seg of made) builder.dispose?.(seg.geometry);
+          for (const seg of made) disposeSegment(seg);
           // the parts made for them alone: no object yet (made with the render objects), dropped; a rebuild's the
           // current ones again
           parts = rebuild ? oldParts : parts.filter((part) => partsBefore.has(part));
@@ -1061,12 +1083,12 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
       }
       if (written) recordsWritten();
       if (rebuild) {
-        for (const seg of oldSegments) builder.dispose?.(seg.geometry);
+        for (const seg of oldSegments) disposeSegment(seg);
         for (const part of oldParts) disposeObject(part);
       }
       if (!sameGroups) {
         previous.forEach((seg) => {
-          if (!kept.has(seg)) builder.dispose?.(seg.geometry);
+          if (!kept.has(seg)) disposeSegment(seg);
         });
         byGroup = next;
         segments = nextSegments;
