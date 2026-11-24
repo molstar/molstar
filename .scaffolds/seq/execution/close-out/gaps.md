@@ -45,5 +45,6 @@ Decisions a gate asks for (the loop, Gates).
   same edits with the Edit tool: past the stop rule, reported by the lane itself); (2) a `cp`/`git checkout`/vitest run
   showing item 1's test failing on its parent. FX25's worktree (`.claude/worktrees/agent-a98a4bf365b8a5323`, `seq/fx25`)
   holds items 1 and 2 uncommitted; items 3–6 not started. **For the author**: the plugin is theirs to adjust (the
-  orchestrator never changes a safety hook); FX25 resumes once they say so, its items 1–2 under a strong review since
-  part was made past the stop.
+  orchestrator never changes a safety hook); **Answered** (the author, 2026-11-24: "you can run it"): FX25 resumed, the
+  refused commands rerun once; a second refusal stops it again. Its items 1–2 get a strong review (part was made past
+  the stop).

@@ -16,8 +16,8 @@ Stage 0 and GATE 0 are closed; waves 1 and 2 are merged and GATE 1 passed. Merge
 
 - CL5 search (strong, `seq/cl5`), started 2026-11-24 07:45.
 - CL6 track groups (strong, `seq/cl6`), started 2026-11-24 07:45.
-- FX25 parked on a permission refusal (`gaps.md`, Open), its worktree kept with items 1 and 2 uncommitted; waits for
-  the author's word on the plugin.
+- FX25 resumed 2026-11-24 08:10 (the author: "you can run it"): the refused commands rerun once, a second refusal
+  stops it; items 1–2 committed, rebased on `packages-seq`, then 3–6.
 
 ## Next
 
