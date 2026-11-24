@@ -21,7 +21,8 @@ viewer's label churn over its baseline is in `fixes.md`, outside the close-out's
 ## Next
 
 1. FX34 (`293155bb1`) and FX35 (`90cdfe934`) merged: the novice pass's bugs and its four gaps.
-2. The measurements (the bundles against their budgets, the representatives at full size), the last gate, FINALIZE.
+2. The measurements (`briefs/measurements.md`, one strong agent alone in the pane): running. Then the last gate and
+   FINALIZE.
 
 ## Blockers and open questions
 
