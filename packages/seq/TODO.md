@@ -440,8 +440,8 @@ extension kinds.
   allocates 97 kB a frame (`navigator-blocks.quick.ts`, bounded at 256 kB), a genome row's pan the same.
 - **M5's leftovers** (2026-11-23):
   - The heavy lane's bounds of at most 50 ms run alone, one file at a time after the rest (CL14, `vitest.config.ts`'s
-    `Alone`); the interval lookup is bounded by its growth across 10⁴ to 10⁷ ranges (FX27). `bed-time.test.ts`
-    (300 ms) flaked once under load: watch it.
+    `Alone`); the interval lookup is bounded by its growth across 10⁴ to 10⁷ ranges (FX27). `bed-time.test.ts` (300 ms)
+    flaked once under load: watch it.
   - A collapsed gene draws only its canonical transcript: a new display mode, not in version 1 (the close-out's answer
     F10, the author, 2026-11-23).
   - `vitest.config.ts`'s `seq` constant names `packages/sequences/` (the previous implementation), so `packages/seq`'s
