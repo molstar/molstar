@@ -16,12 +16,14 @@ Sizes at the head: spec 260.9/265, headless 979.0/980, default 1,557.2/1,560, mi
 
 ## In progress
 
+- 2026-11-24 night: CL12, strong, M5's leftovers (`briefs/cl12-m5-leftovers.md`), `seq/cl12`; started at load
+  8.7, its browser numbers read only under load 3.
 - FX25 stopped on a permission refusal (`gaps.md`), its worktree kept with items 1 and 2 uncommitted; waits for the
   author.
 
 ## Next
 
-1. CL12 (`briefs/cl12-m5-leftovers.md`), alone; then GATE 2 waits for the author's word on CL5, CL6, CL8 and FX25.
+1. On CL12's report: the loop's step 5. Then GATE 2 waits for the author's word on CL5, CL6, CL8 and FX25.
 2. The legend's eye chunk flake (fixes.md) to the next fix lane.
 3. CL5, CL6 and CL8 wait for the author's word on their drafts (`drafts/search.md`, `track-groups.md`,
    `values-marks.md`); FX25 for the refusal. GATE 2 after wave 4.
