@@ -13,6 +13,10 @@ const Column = 'grid-template-columns: minmax(0, 1fr);';
 /** A titled section's box. */
 export const Box = `display: grid; ${Column} gap: var(--msui-space-2); min-width: 0; align-content: start;`;
 
+/** A find box's result block: lines kept as said, a long one wrapped inside the box (never cut at its right edge). */
+export const FoundBlock =
+  'margin: 0; padding: var(--msui-space-3); overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: var(--msui-text-xs) / var(--msui-leading-xs) var(--msui-font-mono); background: var(--msui-surface, transparent); border: 1px solid var(--msui-line);';
+
 /** The page: its one column the page's width. */
 export const PageGrid = `display: grid; ${Column} gap: var(--msui-space-5); padding: var(--msui-space-5); min-height: 100vh; min-width: 0;`;
 

@@ -7,7 +7,7 @@
 import { GenomeFormatsViews } from '@molstar/seqx-examples';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { exampleStory } from '../../examples/example-root.js';
-import { findAndFocus } from './names.js';
+import { everyLane, findAndFocus } from './names.js';
 
 const view = GenomeFormatsViews.find((v) => v.id === 'gtf-tp53')!;
 
@@ -28,7 +28,7 @@ export const Tp53: StoryObj = { render: () => exampleStory(view, { files: true }
  */
 export const FindByName: StoryObj = {
   render: () =>
-    exampleStory(view, {
+    exampleStory(everyLane(view), {
       summary:
         'A name typed in the find box above the view is looked up in the GTF’s name index (`gene_name`, `gene_id`, `transcript_name`, `transcript_id`, case-insensitive): the first hit’s extent is focused, and what was searched, what was found and where the view went are printed under the box. Type another name (TP53, WRAP53-201, ENST00000269305) and press Find.',
       find: { title: 'Find a name', initial: 'tp53-201', run: (v, text) => findAndFocus(v, 'gtf', text) },

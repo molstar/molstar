@@ -24,6 +24,7 @@ import type { RangesLay } from '@molstar/seqx-core/render';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { GenomeViews } from '../../features/genome/views.js';
+import { everyLane } from '../../features/genome-formats/names.js';
 import { openExample } from './draw-checks.js';
 import { lanesTwin } from './lanes-twin.js';
 
@@ -70,6 +71,21 @@ describe('the canvas and the SVG of a settled view: each item in one lane', () =
     // the first lane: the canonical transcript is packed first (the gene line's `marked`)
     expect(tx.lanes[at]).toBe(0);
   });
+
+  // the Find By Name stories (their names lead to a transcript among the lanes): every lane drawn, none in an inner scroll
+  for (const id of ['gff-tp53', 'gtf-tp53'])
+    it(`${id}: the Find By Name story shows every lane, the canvas as its SVG twin`, async () => {
+      const view = everyLane(GenomeFormatsViews.find((v) => v.id === id)!);
+      viewer = await openExample(view, { fixtures: true, delayMs: 150, wait: 5000, awaitOpens: 'opens' });
+      const r = await lanesTwin(viewer, id);
+      expect(r.wrong).toEqual([]);
+      expect(r.compared).toBeGreaterThan(20);
+      const t = viewer.frame!.layout.sections[0].tracks.find((x) => x.track.label === 'Transcripts')!;
+      const lay = t.layers[0].lay as RangesLay;
+      // the band holds every lane its transcripts take
+      expect(t.box.height).toBeGreaterThanOrEqual(lay.laneCount * lay.laneHeight);
+      expect(lay.laneCount).toBeGreaterThan(3);
+    });
 
   for (const view of Views)
     it(`${view.dataset}/${view.id}`, { tags: ['medium'] }, async () => {

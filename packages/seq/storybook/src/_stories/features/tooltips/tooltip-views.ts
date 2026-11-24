@@ -7,6 +7,7 @@
 import type { Node } from '@molstar/core/repr/tree';
 import { assembly, createSeqSpec, genome } from '@molstar/seqx-core/lang';
 import { type ExampleView, GenomeFormatsViews, P53Views } from '@molstar/seqx-examples';
+import { withParams } from '../../with-params.js';
 import { toyKaryotype } from '../genome/views.js';
 
 // The Tooltips stories' views, DOM-free (the stories and their headless twin read them): the spec's words on rendered
@@ -26,17 +27,6 @@ function withNodes(spec: Node, add: { readonly data?: readonly Node[]; readonly 
           : c,
     ),
   };
-}
-
-/** A spec's section or track (by id) with params added: the story's own composition over an example's. */
-function withParams(spec: Node, kind: 'section' | 'track', id: string, params: Record<string, unknown>): Node {
-  const patch = (n: Node): Node =>
-    n.kind === kind && n.id === id
-      ? { ...n, params: { ...n.params, ...params } as never }
-      : n.children
-        ? { ...n, children: n.children.map(patch) }
-        : n;
-  return patch(spec);
 }
 
 const tooltip = (id: string, params: Record<string, unknown>): Node => ({

@@ -7,8 +7,10 @@
 import type { AssetReader, NameHit } from '@molstar/seqx-core/data';
 import { findTp53, hitAddress, hitRange, Tp53Section } from '@molstar/seqx-examples/genomes/gff';
 import { Tp53Region } from '@molstar/seqx-examples/genomes/files';
+import type { ExampleView } from '@molstar/seqx-examples';
 import type { SeqViewer } from '@molstar/seqx-viewer/viewer';
 import { DomHost } from '@molstar/ui/dom';
+import { withParams } from '../../with-params.js';
 
 // A name found in a GFF3 or GTF (EC-228), as the stories show it: the file's `findNames` (the GFF runtime's index, exact
 // names first, then by prefix), the first hit's extent focused (`address.focus` of its range, which the hit carries: no
@@ -73,4 +75,19 @@ export async function findAndFocus(
     'Every hit:',
     ...hits.map(hitLine),
   ].join('\n');
+}
+
+/**
+ * A TP53 view with every transcript lane shown (its Transcripts track and its section at `height: 'content'`, as the
+ * Tooltips' By data does): the canvas and its SVG twin draw the same lanes, no inner scroll on the canvas to find the
+ * transcript a name leads to.
+ */
+export function everyLane(view: ExampleView): ExampleView {
+  return {
+    ...view,
+    build: () =>
+      withParams(withParams(view.build(), 'track', 'transcripts', { height: 'content' }), 'section', 'chr17', {
+        height: 'content',
+      }),
+  };
 }
