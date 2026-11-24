@@ -197,7 +197,7 @@ describe }` in the registry.
 - **Parses cached by text** (64 entries): a cold card parses and allocates; a warm one does not. The card's
   allocation per step, 2,168 B, is the allocation tier's reading of the card show (the viewer's card case); the tooltip lane measures a cold and a warm card show with tooltips in the same tier,
   records both in its report, and holds the warm one at today's figure.
-- **Targets**: the lookup over 1,000,000 ranges within 1.5× of 10,000 (heavy, `itWithin`); a hover step at 0 B warm
+- **Targets**: the lookup's growth over 10⁴ to 10⁷ ranges: each tenfold step within 2×, the whole within 3.5× (heavy, `itWithin`); a hover step at 0 B warm
   with a 10,000-row inline table and a 1,000,000-range source; an export with `card` titles over 10,000 items within
   1.2× of `name` (heavy).
 

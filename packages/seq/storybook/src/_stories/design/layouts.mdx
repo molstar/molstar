@@ -66,12 +66,12 @@ binds is an optional contacts layer the application adds. Copies of one molecule
 
 ## Gestures
 
-| Where          | Zoom                                                          | Pan                                                        |
-| -------------- | ------------------------------------------------------------- | ---------------------------------------------------------- |
-| tracks         | Cmd/Ctrl+wheel, pinch, `-`, `=` about the pointer             | wheel, the ruler rail, Space+drag                          |
-| text           | the letter size, about the pointer's position; `0` the preset | wheel (while it overflows), Space+drag: lines              |
-| rings          | the window narrows and widens about the pointer's angle       | wheel, Shift+Alt+arrows: the window round, past the origin |
-| stacked blocks | about the block under the pointer                             | as tracks                                                  |
+| Where          | Zoom                                                                                                                                  | Pan                                                        |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| tracks         | Cmd/Ctrl+wheel, pinch, `-`, `=` about the pointer                                                                                     | wheel, the ruler rail, Space+drag                          |
+| text           | the letter size, about the pointer's position; `0` the preset                                                                         | wheel (while it overflows), Space+drag: lines              |
+| rings          | the window narrows and widens about the pointer's angle; with no follower the zoom is the cut: in opens the chromosome, out shows all | wheel, Shift+Alt+arrows: the window round, past the origin |
+| stacked blocks | about the block under the pointer                                                                                                     | as tracks                                                  |
 
 A drag on data selects in every layout: in reading order across lines in text, along an arc on a ring.
 `selection.copyLetters` (Cmd/Ctrl+C) copies what is shown: in reading order, complemented as drawn, rows as FASTA lines.

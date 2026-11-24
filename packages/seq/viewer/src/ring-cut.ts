@@ -10,8 +10,7 @@ import type { ModifierState } from '@molstar/seqx-viewer/bindings';
 import type { HitTarget } from '@molstar/seqx-viewer/models';
 import type { SeqViewer } from './viewer.js';
 
-// The zoom of a ring nobody follows is a cut (_spec/README.md "Input", The ring's zoom; ring-extension.md, The ring
-// zoom: a cut): a ring shows its whole axis, so its window is idle; the zoom gesture opens the chromosome under the
+// The zoom of a ring nobody follows is a cut (_spec/README.md "Input", The ring's zoom is a cut): a ring shows its whole axis, so its window is idle; the zoom gesture opens the chromosome under the
 // pointer (`section.include` of its block: in) or shows every block again (out), one cut a wheel gesture (the deltas
 // past `navigate.cutNotch` px, then nothing until the wheel rests `navigate.cutRestMs`). Over the hole the ring says
 // once a gesture what it shows. A ring a section follows keeps the zoom of its window. A cut is the command the stem

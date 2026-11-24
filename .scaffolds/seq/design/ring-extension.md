@@ -242,6 +242,13 @@ No node kind, no data shape, no format runtime (extension-openings, Part 1): RR'
   `['chr4', 'chr7']`, "show all" removes it. Why a section param and not new `block` nodes: one param to patch and to
   undo, the same grammar as the assembly's, the hue domain and `order` untouched; and it gives GA's standing
   "switching on a section of one chromosome" its answer for rows too (UCSC's one chromosome at a time).
+- **The gesture** (FX27, the author's decision 2026-11-24): a ring nobody follows has no window, so Cmd/Ctrl+wheel (and a
+  pinch) over it is the cut: in over a chromosome's block opens it (`section.include` of that block, the stem menu's
+  "Show only"), out over an opened chromosome shows all again; one cut a wheel gesture (the deltas past a notch, then
+  nothing until the wheel rests), over the hole (no block under the pointer) nothing changes and the first such wheel of a
+  gesture says once "The ring shows the whole genome: open a chromosome from its label's menu or the square". A ring a
+  section follows keeps the zoom of its window. Why: a wheel taken with nothing seen was the worst of the three answers
+  (give it to the page, idle and said, the cut); the designs already named opening a chromosome the ring's zoom.
 - **In place by default** (Rondo's): one ring section; `rondoRing({ detail: 'below' })` writes a second ring section
   of the same assembly under it, its `include` the one patched, so the genome stays in view. Both are the writer's.
 - **A cut**: the ring is laid out again with its labels and stems (GA: a change of the block list is a cut; stories);
@@ -473,7 +480,7 @@ Cells this design fills; the others stand as layouts, GA, RR and LX give them.
 
 | | select | extend | add / remove | focus | back | zoom | pan | hide | edit |
 |---|---|---|---|---|---|---|---|---|---|
-| **a section: the genome ring** | no (its blocks or a range) | — | — | 0 fits; the label menu's "Show only" | undo returns the blocks shown | no: a ring shows its whole axis; opening a chromosome is `section.include` | no; `rotation` by patch | no: `include` by patch | `include` (patch, one undo step), `center`, `rotation` |
+| **a section: the genome ring** | no (its blocks or a range) | — | — | 0 fits; the label menu's "Show only" | undo returns the blocks shown | a cut, not a window: Cmd/Ctrl+wheel or pinch in over a chromosome opens it (`section.include`, one undo step), out over an opened one shows all; one cut a wheel gesture, over the hole it says what the ring shows | no; `rotation` by patch | no: `include` by patch | `include` (patch, one undo step), `center`, `rotation` |
 | **an element: a ribbon** | click: its key hit (`ribbon:`), both ends lit | Shift+click: from the anchor end | Cmd/Ctrl+click | double-click: core's focus (the ring's window, idle unless followed); with `opens`, the pair shown there (Decided, 7) | Alt+Left; undo | — | — | no: a data filter (`count`, `type`) | no: data |
 | **an element: a stem** | click: its range | Shift+click | Cmd/Ctrl+click | double-click: as a ribbon's, the stem's block with `opens` | as above | — | — | no | no |
 | **an element: a stem's menu** (right-click; Shift+F10 or the Menu key at the cursor's stem) | "Select the stem and its partners" (one selection) | — | — | "Show with a partner ▸": a partner chromosome or a piece shown with the stem's as a pair; "Within chr22" or "Show only chr22" alone (`section.include`, one undo step) | undo | — | — | no: the track's Hide track stays in its header's menu | no: Move up and Reverse are the track's |
