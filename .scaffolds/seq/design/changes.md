@@ -49,6 +49,13 @@ whether it is undoable, keeps that clear.
   state history later, none headless.
 - **Patches may name streamed things**: a bookmark on a dynamic node (`/data/genes/(node :key T1)`) is a patch like any
   other; undoing it works whether or not the node is held; the ref waits while it is not ([addressing.md](addressing.md)).
+  Built (CL7, 2026-11-24): ticked: a patch whether or not the node is held, never dangling while its source is in the
+  spec (the dangling check reads the leading ids); evicting its region leaves the ref waiting, the spec untouched;
+  undo and redo either way; a jump on it says what it waits for (`Waiting for T2`) and asks the source where the key is
+  (`findNames`, a `seq` source's node keys when its coverage lists `key`), reads that region and runs when the node
+  arrives; a key the source does not have is said once (`seq.address.node.unknown`) and the ref is then `missing`.
+  Not ticked: a layer naming a dynamic node by address is refused (`seq.view.layer.data`), not pending; a track
+  template is the route that waits (open).
 - **Streams never become patches**: arriving data never enters the spec or its history (EC-175); "keep this region" is
   a command that writes a patch (an inline copy, a ref), on purpose.
 - **Patches can stream too, in version 1 from one writer at a time**: an agent's or a host's patches are applied
@@ -101,6 +108,8 @@ whether it is undoable, keeps that clear.
 | Configuration and registration as change kinds | design-only: not command kinds; a registration's undo is viewer › Extensions |
 | Seq\* owns no undo stack; the history port's two faces; adapters | viewer › Ports › History |
 | Patches may name streamed things; the ref waits | core › Resolving |
+| A jump on a node not held asks its source; a key it has not said once | viewer › AddressModel |
+| A layer naming a dynamic node by address pending, not refused | design-only: open (refused today; templates wait) |
 | Streams never become patches (EC-175) | core › Arrivals never touch the spec |
 | Patches stream from one writer at a time; stale refused; an agent's turn one step | viewer › SpecModel › The history |
 | A host's rebase through `merge3` | viewer › A stale patch |
