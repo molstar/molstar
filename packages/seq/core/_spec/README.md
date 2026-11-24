@@ -3779,9 +3779,14 @@ made as a view, `navigatorBox`, `NavigatorWindow`, `windowText`: split by what c
   `edge(k, horizontal)` and the tokens) its cells are drawn in the base pass under the wash and the lines, never bounded
   by `maxCells`; `cellText(i, j)` is its words. The hidden section is laid out again only when the base is (a size, the
   tokens), the store's settled state moves, or its cells still wait (`pending`): a window's move or a gesture's preview
-  lays out nothing. Its wants are the navigator's (a frame whose cells changed is `rebuilt`). Without a picture with
-  cells (the `axis`, a reader without the extension) the lattice alone. The base's key is numbers (its size, pixel ratio
-  and tokens), never a string a frame.
+  lays out nothing. Its wants are the navigator's (a frame whose cells changed is `rebuilt`). A square made again over a
+  new view or model (`previous`: the one it replaces; an edit elsewhere, the ring's `include` on a release of the
+  square's box) keeps the previous one's cells when they are made of the same: the hidden section's node (its hash), the
+  spec's `data` (by identity) resolved the same (the models' systems, maps, sources, annotations and assemblies: the
+  resolver's entries, by identity), the store, the text metrics, the types, layouts, kinds and config; made again they
+  were read and counted anew (12k pairs a release on the ring). Without a picture with cells (the `axis`, a reader
+  without the extension) the lattice alone. The base's key is numbers (its size, pixel ratio and tokens), never a string
+  a frame.
 - **The window stays the navigator's**, whatever the picture: its geometry, floor, parts, gestures, keys, idle rule,
   zoom strip and announcements. A host that draws its own navigator keeps them through the viewer's `NavigatorModel`.
 - **The picture**: a navigator lays its system whole out (the fit window, in the bound section's display order;

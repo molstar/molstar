@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Node, Value } from '@molstar/core/repr/tree';
+import { hashNode, type Node, type Value } from '@molstar/core/repr/tree';
 import type { Want } from '@molstar/seqx-core/data';
 import type { Overlay, StaticModel } from '@molstar/seqx-core/resolve';
 import { type LayerKinds, type ResolvedNavigator, type ResolvedView, resolveViewNode } from '@molstar/seqx-core/view';
@@ -37,6 +37,25 @@ const HiddenSection = 'cells';
 /** The hidden section's height, CSS px: its layer draws nothing there, so any. */
 const HiddenHeight = 32;
 
+/** The spec's data (its `data` child): what the hidden section's layers read, kept by identity across edits elsewhere. */
+const dataOf = (spec: Node): Node | undefined => spec.children?.find((c) => c.kind === 'data');
+
+/** Whether two maps hold the same entries (by identity): a resolver keeps an entry whose nodes and lengths are the same. */
+function sameEntries(a: ReadonlyMap<string, unknown>, b: ReadonlyMap<string, unknown>): boolean {
+  if (a === b) return true;
+  if (a.size !== b.size) return false;
+  for (const [k, v] of a) if (b.get(k) !== v) return false;
+  return true;
+}
+
+/** Whether two models resolved the data the same (their systems, maps, sources, annotations and assemblies). */
+const sameData = (a: StaticModel, b: StaticModel): boolean =>
+  sameEntries(a.systems, b.systems) &&
+  sameEntries(a.maps, b.maps) &&
+  sameEntries(a.sources, b.sources) &&
+  sameEntries(a.annotations, b.annotations) &&
+  sameEntries(a.assemblies, b.assemblies);
+
 /** A square's picture: its hidden renderer and the cells' layer type, laid out when the square asks. */
 export class SquarePictureCells {
   private readonly renderer: Renderer;
@@ -56,6 +75,9 @@ export class SquarePictureCells {
   private constructor(
     renderer: Renderer,
     private readonly type: LayerType<any, any>,
+    /** What the cells were made of (a square made again keeps them when these match): the model, the parts. */
+    private readonly model: StaticModel,
+    private readonly made: readonly unknown[],
   ) {
     this.renderer = renderer;
     this.cells = type.square!;
@@ -73,6 +95,7 @@ export class SquarePictureCells {
     tokens: SeqTokens,
     config: RenderConfig,
     o: SquarePictureOptions,
+    previous?: SquarePictureCells,
   ): SquarePictureCells | undefined {
     const entry = nav.content ? o.pictures?.[nav.content] : undefined;
     if (!entry || !o.data || !o.text || !o.types || !o.layouts) return undefined;
@@ -100,6 +123,15 @@ export class SquarePictureCells {
       params: { layout: 'tracks' },
       children: [{ kind: 'section', id: HiddenSection, params: { of }, children: tracks as Node[] }],
     };
+    // a square made again over the same cells (a spec edited elsewhere: the ring's `include` on a release of the
+    // square's box) keeps the previous one's: the same hidden section over the same data resolved the same, through the
+    // same store and composition, lays out the same cells; made again, they were read and counted anew (12k pairs,
+    // about 4 ms a release on the ring at the fit, 2026-11-24)
+    const made = [hashNode(node), dataOf(model.spec), o.data, o.text, o.types, o.layouts, o.kinds, config];
+    if (previous && made.every((x, i) => x === previous.made[i]) && sameData(previous.model, model)) {
+      previous.setTokens(tokens);
+      return previous;
+    }
     const hidden = resolveViewNode(model, node, nav.address, o.kinds);
     const layer = hidden.sections[0]?.tracks[0]?.layers[0];
     const type = layer ? o.types[layer.type] : undefined;
@@ -115,7 +147,7 @@ export class SquarePictureCells {
       layouts: o.layouts,
       picture: true,
     });
-    return new SquarePictureCells(renderer, type);
+    return new SquarePictureCells(renderer, type, model, made);
   }
 
   setTokens(tokens: SeqTokens): void {

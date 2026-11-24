@@ -53,6 +53,8 @@ export interface SquareNavigatorOptions extends SquarePictureOptions {
   readonly navigator: ResolvedNavigator;
   readonly tokens: SeqTokens;
   readonly config?: RenderConfig;
+  /** The square this one replaces (a new view or model): its picture's cells kept when they are made of the same. */
+  readonly previous?: SquareNavigator;
 }
 
 /** No wants (a square without a picture): one array, never one a frame. */
@@ -173,7 +175,16 @@ export class SquareNavigator {
     const of = this.lattice ? latticeAssembly(options.model, options.view, options.navigator) : undefined;
     this.cells =
       of !== undefined
-        ? SquarePictureCells.of(options.model, options.view, this.navigator, of, this.tokens, this.config, options)
+        ? SquarePictureCells.of(
+            options.model,
+            options.view,
+            this.navigator,
+            of,
+            this.tokens,
+            this.config,
+            options,
+            options.previous?.cells,
+          )
         : undefined;
     const self = this;
     this.latticeView = {
