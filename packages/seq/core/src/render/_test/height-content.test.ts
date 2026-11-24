@@ -10,7 +10,8 @@
 import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 import { describe, expect, it } from 'vitest';
-import { DefaultRenderConfig } from '../index.js';
+import { DefaultRenderConfig, type RangesLay } from '../index.js';
+import { RowHeight } from '../rows-model.js';
 import { renderSvg } from '../render-svg.js';
 import { lanesHeight } from '../sizing.js';
 import { settle } from './helpers.js';
@@ -67,21 +68,106 @@ describe('a track at height: content', () => {
 });
 
 describe('a section at height: content', () => {
-  const sectionOf = (n: number, height?: 'content') => {
-    const node = geneTracks(n);
-    return height === undefined
-      ? node
-      : (JSON.parse(JSON.stringify(node).replace('"of":', `"height":"content","of":`)) as Node);
-  };
-
   it('past 600 px it is its content, never scrolling inside; absent, it scrolls at the cap', async () => {
-    const capped = await layoutOf(sectionOf(30));
+    const capped = await layoutOf(geneTracks(30));
     expect(capped.placement.contentHeight).toBeGreaterThan(600);
     expect(capped.placement.box.height).toBe(600);
     expect(capped.placement.clip).toBe(true);
-    const content = await layoutOf(sectionOf(30, 'content'));
+    const content = await layoutOf(geneTracks(30, 'content'));
     expect(content.placement.box.height).toBe(content.placement.contentHeight);
     expect(content.placement.clip).toBe(false);
     expect(content.sectionRail).toBeUndefined();
+  });
+
+  it('a text section at content shows every line, past section.maxPx; absent, it stops at the cap', async () => {
+    const textSpec = (height?: 'content') => {
+      const b = createSeqSpec({ title: 'text' });
+      const p = b.data.sequence('p', { alphabet: 'protein', letters: 'ACDEFGHIKLMNPQRSTVWY'.repeat(300) });
+      b.views.view('main', { layout: 'text' }, (v) => {
+        v.section('p', { of: p, ...(height ? { height } : {}) } as never)
+          .track('letters')
+          .layer('letters', { type: 'letters' });
+      });
+      return b.build();
+    };
+    const capped = await layoutOf(textSpec());
+    expect(capped.placement.box.height).toBe(DefaultRenderConfig.section.maxPx);
+    const content = await layoutOf(textSpec('content'));
+    expect(content.placement.box.height).toBeGreaterThan(DefaultRenderConfig.section.maxPx);
+    expect(content.placement.box.height).toBe(content.placement.contentHeight);
+  });
+});
+
+describe('a rows band at height: content', () => {
+  const alignment = (height?: 'content') => {
+    const b = createSeqSpec({ title: 'rows' });
+    const a = b.data.alignment('a', {
+      rows: {
+        label: Array.from({ length: 60 }, (_, k) => `R${k}`),
+        letters: Array.from({ length: 60 }, () => 'ACGTACGTACGTACGTACGT'),
+      },
+      alphabet: 'dna',
+    } as never);
+    b.views.view('main', (v) => {
+      v.section('s', { of: a } as never)
+        .track('rows', height ? { height } : {})
+        .layer('r', { type: 'rows', data: a } as never);
+    });
+    return b.build();
+  };
+  const rowsBox = async (spec: Node, size: { width: number; height: number }) => {
+    const s = await settle(spec);
+    const f = await s.frame({ size, settled: true });
+    return f.layout.sections[0].tracks.at(-1)!.box.height;
+  };
+
+  it('is every row, past rows.maxPx, in a tall frame and in a short one; absent, it stops at the cap', async () => {
+    const all = 60 * RowHeight;
+    expect(all).toBeGreaterThan(DefaultRenderConfig.rows.maxPx);
+    expect(await rowsBox(alignment(), { width: 800, height: 1400 })).toBeLessThanOrEqual(
+      DefaultRenderConfig.rows.maxPx,
+    );
+    expect(await rowsBox(alignment('content'), { width: 800, height: 1400 })).toBeGreaterThanOrEqual(all);
+    expect(await rowsBox(alignment('content'), { width: 800, height: 300 })).toBeGreaterThanOrEqual(all);
+  });
+});
+
+describe('a rows band at height: content with its rows not counted', () => {
+  it('keeps the band’s own height, never the room (no rows.maxPx rule applies either)', async () => {
+    const b = createSeqSpec({ title: 'pending' });
+    // rows not counted: the alignment names no inline letters (as a source still pending)
+    const a = b.data.alignment('a', { rows: { label: ['R0'] }, alphabet: 'dna' } as never);
+    b.views.view('main', (v) => {
+      v.section('s', { of: a } as never)
+        .track('rows', { height: 'content' } as never)
+        .layer('r', { type: 'rows', data: a } as never);
+    });
+    const s = await settle(b.build());
+    const f = await s.frame({ size: { width: 800, height: 1400 }, settled: true });
+    expect(f.layout.sections[0].tracks.at(-1)!.box.height).toBe(DefaultRenderConfig.heights.rows);
+  });
+});
+
+describe('a ring’s track at height: content', () => {
+  it('keeps rings.trackMaxPx: a ring has no page to grow', async () => {
+    const b = createSeqSpec({ title: 'ring' });
+    const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT'.repeat(100) });
+    const r = b.data.ranges('r', {
+      target: s,
+      rows: {
+        start: Array.from({ length: 20 }, (_, i) => i),
+        end: Array.from({ length: 20 }, () => 150),
+        id: Array.from({ length: 20 }, (_, i) => `r${i}`),
+      },
+    });
+    b.views.view('main', (v) => {
+      v.section('s', { of: s, layout: 'rings' } as never)
+        .track('t', { height: 'content' } as never)
+        .layer('l', { type: 'ranges', data: r });
+    });
+    const st = await settle(b.build());
+    const f = await st.frame({ size: { width: 700, height: 700 }, settled: true });
+    const lay = f.layout.sections[0].tracks[0].layers[0].lay as RangesLay;
+    expect(lay.box.height).toBeLessThanOrEqual(DefaultRenderConfig.rings.trackMaxPx);
   });
 });

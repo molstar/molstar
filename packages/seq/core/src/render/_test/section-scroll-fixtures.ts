@@ -10,7 +10,7 @@ import type { Node } from '@molstar/core/repr/tree';
 import { createSeqSpec } from '@molstar/seqx-core/lang';
 
 /** A ruler and `n` gene tracks of one feature each; `height` the section's own. */
-export function geneTracks(n = 30, height?: number): Node {
+export function geneTracks(n = 30, height?: number | 'content'): Node {
   const b = createSeqSpec({ title: 'tracks past the cap' });
   const s = b.data.sequence('s', { alphabet: 'dna', letters: 'ACGT'.repeat(100) });
   b.views.view('main', (v) => {
