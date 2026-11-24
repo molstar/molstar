@@ -595,11 +595,11 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       let explicit = false;
       const fl = shown[fill].layers;
       for (let q = 0; q < fl.length; q++) if (fl[q].type === 'rows' && fl[q].params.height === 'fill') explicit = true;
-      // `height: 'content'` on the track: every row, no cap, whatever room is left (Track heights)
+      // `height: 'content'` on the track: every row, no cap (Track heights); its rows pending, the band's own height, never the room
       heights[fill] =
         shown[fill].height === 'content'
           ? n === undefined
-            ? filled
+            ? heights[fill]
             : Math.max(heights[fill], n * RowHeight + titleRowOf(shown[fill], config))
           : explicit
             ? filled
