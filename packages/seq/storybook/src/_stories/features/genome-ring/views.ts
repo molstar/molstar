@@ -234,5 +234,21 @@ export function kindsOf(viewer: SeqViewer): RondoLay[] {
   return out;
 }
 
-export const ringStoryView = (id: string): ExampleView =>
-  RingStoryViews.find((v) => v.id === id) ?? KindsViews.find((v) => v.id === id)!;
+/** The gestures that open a chromosome, said in each ring story's rendered text (a double-click, the zoom, the menu). */
+export const OpenGesture =
+  'Open a chromosome with Cmd or Ctrl+wheel (or a pinch) over it, a double-click on its label or arc, its label’s menu “Show only”, or the square.';
+/** On a ring that shows one chromosome or a pair: the way back. */
+export const BackGesture = 'Cmd or Ctrl+wheel out (or a pinch) over it shows every chromosome again.';
+/** The partner keys' story names the keys. */
+export const PartnerKeys = 'The keys `.` and `,` walk a stem’s partners.';
+
+const OneOrTwo = new Set(['ring-chromosome', 'ring-pair', 'ring-kinds-chromosome', 'ring-kinds-pair']);
+
+/** A ring story's view, its summary (the page text the story renders) naming the gestures. */
+export const ringStoryView = (id: string, keys = false): ExampleView => {
+  const view = RingStoryViews.find((v) => v.id === id) ?? KindsViews.find((v) => v.id === id)!;
+  return {
+    ...view,
+    summary: `${view.summary} ${OneOrTwo.has(id) ? BackGesture : OpenGesture}${keys ? ` ${PartnerKeys}` : ''}`,
+  };
+};
