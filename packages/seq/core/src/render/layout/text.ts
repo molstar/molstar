@@ -41,6 +41,8 @@ export interface TextParams {
   readonly align: 'start' | 'center';
   readonly maxWidth?: number;
   readonly height?: number;
+  /** `height: content`: the whole content, no `section.maxPx` cap. */
+  readonly heightContent?: boolean;
 }
 
 export function textParams(params: Readonly<Record<string, Value>>): TextParams {
@@ -56,6 +58,7 @@ export function textParams(params: Readonly<Record<string, Value>>): TextParams 
     align: str('align', ['start', 'center'], 'start'),
     ...(maxWidth !== undefined ? { maxWidth } : {}),
     ...(height !== undefined ? { height } : {}),
+    ...(params.height === 'content' ? { heightContent: true } : {}),
   };
 }
 
@@ -546,7 +549,7 @@ export const TextLayout: SectionLayoutType<TextPlacement> = {
     // the box: the section's `height`, else its content's up to `section.maxPx`; an export shows every line
     const figure = ctx.figure === true;
     // its content's up to `section.maxPx` (a host sizing its canvas to the content reads it), or its `height`
-    const boxOf = () => (figure ? content() : (params.height ?? Math.min(content(), config.section.maxPx)));
+    const boxOf = () => (figure || params.heightContent ? content() : (params.height ?? Math.min(content(), config.section.maxPx)));
     let boxH = boxOf();
     const from = figure ? 0 : first;
     let y = figure ? top : top - frac * p.heights[first];
@@ -679,7 +682,9 @@ export const TextLayout: SectionLayoutType<TextPlacement> = {
       ctx.pads,
     );
     const pitch = g.lineHeight + g.lineGap;
-    const boxH = params.height ?? Math.min(g.laid * pitch, ctx.config.section.maxPx);
+    const boxH = params.heightContent
+      ? g.laid * pitch
+      : (params.height ?? Math.min(g.laid * pitch, ctx.config.section.maxPx));
     lineFrac(g, Math.max(0, Math.min(viewport?.start ?? 0, g.total)), LineFrac);
     const first = LineFrac.line;
     const lines = Math.max(1, Math.ceil(boxH / pitch + LineFrac.frac));

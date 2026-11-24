@@ -41,6 +41,7 @@ import {
 } from './rail.js';
 import type { RowsLay } from './rows.js';
 import { rowsCount, rowsFillHeight, rowsShown } from './rows-fill.js';
+import { RowHeight } from './rows-model.js';
 import {
   type LayerLayout,
   type LayoutInput,
@@ -575,13 +576,13 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
     // a band of every row in a layout whose bands do not scroll (text: an alignment figure's lines repeat its rows)
     if (layout !== TracksLayout)
       for (let j = 0; j < shown.length; j++) {
-        if (shown[j].height !== undefined || rowsFill(shown[j]) === undefined) continue;
+        if (typeof shown[j].height === 'number' || rowsFill(shown[j]) === undefined) continue;
         const rows = rowsCount(shown[j], input.model);
         if (rows === undefined) continue;
         if (heights === sizedBands.heights) heights = heights.slice();
         heights[j] = rows * byType.rows + titleRowOf(shown[j], config);
       }
-    const fill = shown.findIndex((t) => t.height === undefined && rowsFill(t) === 'fill');
+    const fill = shown.findIndex((t) => typeof t.height !== 'number' && rowsFill(t) === 'fill');
     if (fill >= 0 && !input.figure && layout === TracksLayout) {
       let used = 0;
       for (let j = 0; j < heights.length; j++)
@@ -594,7 +595,15 @@ export function layoutView(input: LayoutInput, state = new LayoutState(), again 
       let explicit = false;
       const fl = shown[fill].layers;
       for (let q = 0; q < fl.length; q++) if (fl[q].type === 'rows' && fl[q].params.height === 'fill') explicit = true;
-      heights[fill] = explicit ? filled : Math.min(filled, config.rows.maxPx);
+      // `height: 'content'` on the track: every row, no cap, whatever room is left (Track heights)
+      heights[fill] =
+        shown[fill].height === 'content'
+          ? n === undefined
+            ? filled
+            : Math.max(heights[fill], n * RowHeight + titleRowOf(shown[fill], config))
+          : explicit
+            ? filled
+            : Math.min(filled, config.rows.maxPx);
     }
     if (said) {
       heights = [config.track.emptyPx];
