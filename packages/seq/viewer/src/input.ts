@@ -462,6 +462,23 @@ export class ViewerInput {
     this._edge = undefined;
   }
 
+  /** A drag-select's move not yet applied: the next frame applies the pointer's last place, once. */
+  private _dragDue = false;
+
+  /**
+   * A drag-select's moves since the last frame, applied once (_spec/README.md "SelectionModel and HighlightModel",
+   * Drags): the hit under the pointer's last place, the selection written to it, the scroll past the box's edge. What
+   * the viewer's frame calls before it reads the emphasis, and what the release calls before it ends the drag.
+   */
+  applyDrag(): void {
+    if (!this._dragDue) return;
+    this._dragDue = false;
+    const d = this._drag;
+    if (!d?.select || !d.moved || this.viewer.retired) return;
+    this._dragSelect(d.section, d.x, d.y);
+    this._edgeScroll();
+  }
+
   /** A drag-select to the pointer: the position under it in reading order (the placement's nearest unit). */
   private _dragSelect(section: string, x: number, y: number): void {
     this.selectBehavior?.dragTo(section, x - this.viewer.dataX, this._hitAt(x, y), this.offsetAt(section, x, y));
@@ -547,10 +564,12 @@ export class ViewerInput {
       } else if (d.select) {
         d.x = x;
         d.y = y;
-        // the range from where it began to the pointer, in reading order, read from the placement even past the data
+        // the range from where it began to the pointer, in reading order, read from the placement even past the data:
+        // at most once a frame, at the pointer's last place (_spec/README.md "SelectionModel and HighlightModel",
+        // Drags)
         if (d.moved) {
-          this.selectBehavior?.dragTo(d.section, x - this.viewer.dataX, hit, this.offsetAt(d.section, x, y));
-          this._edgeScroll();
+          this._dragDue = true;
+          this.viewer.schedule();
         }
       } else {
         const dx = x - d.x;
@@ -737,6 +756,8 @@ export class ViewerInput {
       return;
     }
     if (d.window) this.windowBehavior?.end();
+    // the last moves land before the drag ends: the full selection resolved once, on release
+    this.applyDrag();
     if (d.select) this.selectBehavior?.endDrag();
     this._suppressClick = d.moved;
     this._drag = undefined;
@@ -1218,6 +1239,7 @@ export class ViewerInput {
       return true;
     }
     if (e.key === 'Escape' && this._drag?.select) {
+      this._dragDue = false;
       this._stopEdge();
       this.selectBehavior?.cancelDrag();
       this._drag = undefined;

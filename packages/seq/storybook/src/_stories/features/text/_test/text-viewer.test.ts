@@ -108,11 +108,14 @@ describe('a text section: the interaction matrix', () => {
     const b = at(v, 2 * n + 3);
     expect(v.input.down(a.x, a.y)).toBe(true);
     v.input.move(b.x, b.y);
+    // a drag's moves land on the next frame (the viewer's _spec, "SelectionModel and HighlightModel", Drags)
+    v.draw();
     expect(selected(v)).toEqual([5, 2 * n + 4]);
     // past the second line's end (its number gutter, the space after it): the line's last unit
     const s = placement(v).strips;
     const line = s.axes[1];
     v.input.move(line.x0 + line.width + 6, b.y - (b.y - a.y) / 2);
+    v.draw();
     expect(selected(v)).toEqual([5, 2 * n]);
     v.input.up();
   });

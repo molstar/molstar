@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// A drag-select's work a move and a frame, a drag kind each (the viewer's spec, Selection, Drags): a rect on the 4,000 ×
-// 4,000 dot plot, a range on its ruler, a box on the PAE grid, a sweep across 12 chromosomes on the 3,000-contig ring
+// A drag-select's work a move and a frame, a drag kind each (the viewer's _spec, "SelectionModel and HighlightModel",
+// Drags): a rect on the 4,000 × 4,000 dot plot, a range on its ruler, a box on the PAE grid, a sweep across 12 chromosomes on the 3,000-contig ring
 // and on its row. Each reports the work a pointer move does (ms, bytes, selection writes), a move and its frame, the
 // layouts, and the SVG twin's export (what a story beside the canvas draws again). By hand, never in CI:
 // `pnpm -s -C packages/seq/storybook test:perf`.

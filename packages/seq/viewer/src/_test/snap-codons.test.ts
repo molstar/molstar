@@ -51,9 +51,12 @@ describe('a drag over a split codon', () => {
     v.input.down(x, y);
     // alone: the codon (5 6 12), its pieces
     v.input.move(at(v, 5)[0], y);
+    // a drag's moves land on the next frame (_spec/README.md "SelectionModel and HighlightModel", Drags)
+    frames!.flush();
     expect(gene(v)).toEqual([5, 7, 12, 13]);
     // over the next codon (13 14 15): the pieces and it whole, the intron out
     v.input.move(at(v, 14)[0], y);
+    frames!.flush();
     expect(gene(v)).toEqual([5, 7, 12, 16]);
     v.input.up();
     expect(gene(v)).toEqual([5, 7, 12, 16]);

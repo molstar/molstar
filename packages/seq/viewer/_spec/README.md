@@ -405,6 +405,13 @@ ends; a width past the new block's length, the new block whole. One rule for a c
   `endRectDrag(cancel?)` drag a rect in `replace`, `add`, `subtract` (rects subtract exactly: core's Location) or
   `extend` (from the cell anchor); a cancel gives back the selection. Why rects, not two ranges: a range of each axis is
   every row and column, not the block between them.
+- **Drags**: a drag's work is bounded by the screen, never by what it selects. A drag-select's pointer moves are
+  coalesced to the viewer's frame (`ViewerInput.applyDrag`, called by the frame before it reads the emphasis): the
+  pointer's last place is hit once and the selection written once a frame, however many moves the platform sent; the
+  release applies the last moves before the drag ends (one value, one history step). The frame is the viewer's draw
+  scheduling (`schedule`), never a global one the host can't stop; what the applied move changes is drawn by that frame
+  (no second frame asked for). Why: a pointer sends moves faster than frames, and each written value re-runs everything
+  derived from the selection (its emphasis and projections, the linked sections, a host's panels).
 - **The anchor** is the range of the last element or cell set, toggled, added or dragged from, on its system (an item's
   extent there, else its cell); `set(value, anchor?)` replaces it; `clear()` drops it. With it the model keeps what an
   extend keeps: the selection less the anchor's range when the anchor was set (none after a click or a plain drag; all
@@ -1021,7 +1028,8 @@ binding table; per move one hit record and one modifiers record are reused.
   through the hover behavior. `leave` clears what this pointer owns. A drag bound to a drag-select (`drag-select`,
   `drag-add`, `drag-subtract`, `drag-extend`) begins on what was hit (nothing selectable: no drag) and selects once the
   pointer moved 3 px (either way); its range reaches the unit the placement has under the pointer (`offsetAt`: in a
-  text's reading order across lines, the nearest between lines, a line's last past its end), past the data too. A
+  text's reading order across lines, the nearest between lines, a line's last past its end), past the data too, once
+  a frame (SelectionModel and HighlightModel, Drags). A
   drag-select held past a scrolling box's top or bottom (a text that overflows) scrolls it toward the pointer, 8 px a
   second for each px past (to 1,200), timed by the clock, never by frames, the selection extending to what comes under
   the held pointer; it stops when the pointer comes back, the content ends or the drag ends. A window's part (the hit's
