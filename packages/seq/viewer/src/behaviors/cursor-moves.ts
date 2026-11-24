@@ -150,6 +150,13 @@ export function createCursor(
       const i = which === 'first' && r.lay.display.pinned ? 0 : shownRow(r, which);
       return atRow(c, r, i) ?? c;
     }
+    // a grid over blocks: the first block's first position shown going down, the last block's last going up
+    const down = sectionOf(c.section)?.y?.blocks;
+    if (down?.length) {
+      const b = which === 'first' ? down[0] : down[down.length - 1];
+      const p = elementAt(b.axis, which === 'first' ? 0 : Math.max(0, (axisTotal(b.axis) ?? 1) - 1));
+      return p === undefined ? c : { ...c, ySystem: b.axis.system, yPosition: p };
+    }
     const y = gridY(c.section);
     const total = y && axisTotal(y);
     if (!y || !total) return c;
@@ -250,6 +257,7 @@ export function createCursor(
       if (delta === 1 && i === d.pinned - 1 && d.pinned < d.count) j = shownRow(r, 'first');
       return atRow(c, r, clamp ? Math.max(0, Math.min(d.count - 1, j)) : j);
     }
+    if (yBlocksOf(c)) return yBlockStepped(c, delta, clamp);
     const y = gridY(c.section);
     const total = y && axisTotal(y);
     const o = y && c.yPosition !== undefined && c.ySystem === y.system ? cellOffset(y, c.yPosition) : undefined;
@@ -262,6 +270,12 @@ export function createCursor(
   const rowEnd = (c: Cursor, end: -1 | 1): Cursor | undefined => {
     const r = rowsOf(c.section);
     if (r && c.ySystem === r.lay.rowsSystem) return atRow(c, r, end < 0 ? 0 : r.lay.display.count - 1);
+    const yb = yBlocksOf(c);
+    if (yb) {
+      const b = yb.blocks[end < 0 ? 0 : yb.blocks.length - 1];
+      const p = elementAt(b.axis, end < 0 ? 0 : (axisTotal(b.axis) ?? 1) - 1);
+      return p === undefined ? undefined : { ...c, ySystem: b.axis.system, yPosition: p };
+    }
     const y = gridY(c.section);
     const total = y && axisTotal(y);
     if (!y || !total || c.ySystem !== y.system) return undefined;
@@ -272,7 +286,7 @@ export function createCursor(
   const onRows = (c: Cursor | undefined): boolean => {
     if (!c || c.ySystem === undefined || c.yPosition === undefined) return false;
     const r = rowsOf(c.section);
-    return r ? c.ySystem === r.lay.rowsSystem : c.ySystem === gridY(c.section)?.system;
+    return r ? c.ySystem === r.lay.rowsSystem : c.ySystem === gridY(c.section)?.system || !!yBlocksOf(c);
   };
   /**
    * ↑ ↓: a row on rows (past the ends: the section above or below); from a section's other tracks (no row yet) ↓ onto
@@ -310,24 +324,28 @@ export function createCursor(
     const blocks = sectionOf(c.section)?.blocks;
     const at = blocks && placeOf(sectionOf(c.section)!, c);
     if (!blocks || !at) return undefined;
-    let b = at.block;
-    const o = cellOffset(blocks[b].axis, c.position);
-    const n = axisTotal(blocks[b].axis);
-    if (o === undefined || n === undefined) return undefined;
-    let next = o + delta;
-    while (next < 0 || next >= (axisTotal(blocks[b].axis) ?? 0)) {
-      const nb = next < 0 ? b - 1 : b + 1;
-      if (nb < 0 || nb >= blocks.length) return { ...c };
-      // what is left of the step past this block's end goes on in the next one
-      next = next < 0 ? next + (axisTotal(blocks[nb].axis) ?? 0) : next - (axisTotal(blocks[b].axis) ?? 0);
-      b = nb;
-      if (!(blockSpan(blocks[b]) > 0)) next = delta < 0 ? -1 : 0;
-    }
-    const p = elementAt(blocks[b].axis, next);
-    if (p === undefined) return undefined;
-    const out = { ...c, system: blocks[b].axis.system, position: p };
-    onBlock.set(out, b);
+    const to = stepBlocks(blocks, at.block, c.position, delta);
+    if (!to) return { ...c };
+    const out = { ...c, system: blocks[to.block].axis.system, position: to.position };
+    onBlock.set(out, to.block);
     return out;
+  };
+  /**
+   * The blocks down a grid over two sections of blocks (`follow_y` naming one) and the block its y cursor is on (the
+   * first on its system); none for any other section.
+   */
+  const yBlocksOf = (c: Cursor): { blocks: NonNullable<ResolvedSection['blocks']>; block: number } | undefined => {
+    const blocks = sectionOf(c.section)?.y?.blocks;
+    const block = blocks?.findIndex((b) => b.axis.system === c.ySystem) ?? -1;
+    return blocks && block >= 0 && c.yPosition !== undefined ? { blocks, block } : undefined;
+  };
+  /** A step of a grid-over-blocks cursor down or up its y: across the gap onto the next block (EC-154, amended). */
+  const yBlockStepped = (c: Cursor, delta: number, clamp: boolean): Cursor | undefined => {
+    const y = yBlocksOf(c);
+    if (!y) return undefined;
+    const to = stepBlocks(y.blocks, y.block, c.yPosition!, delta);
+    if (!to) return clamp ? { ...c } : undefined;
+    return { ...c, ySystem: y.blocks[to.block].axis.system, yPosition: to.position };
   };
 
   /** ← on rows: from the first column onto the row's header (a step back elsewhere); on the header it stays. */
@@ -852,4 +870,30 @@ export function createCursor(
   ];
 
   return { commands, dispose: stopClicks };
+}
+
+/**
+ * A step of `delta` display positions from `position` of block `k`, over the gaps between blocks: what is left of a
+ * step past a block's end goes on in the next block (a block with no positions skipped); undefined past the first or
+ * the last block (EC-154, amended).
+ */
+function stepBlocks(
+  blocks: NonNullable<ResolvedSection['blocks']>,
+  k: number,
+  position: number,
+  delta: number,
+): { block: number; position: number } | undefined {
+  const o = cellOffset(blocks[k].axis, position);
+  if (o === undefined || axisTotal(blocks[k].axis) === undefined) return undefined;
+  let b = k;
+  let next = o + delta;
+  while (next < 0 || next >= (axisTotal(blocks[b].axis) ?? 0)) {
+    const nb = next < 0 ? b - 1 : b + 1;
+    if (nb < 0 || nb >= blocks.length) return undefined;
+    next = next < 0 ? next + (axisTotal(blocks[nb].axis) ?? 0) : next - (axisTotal(blocks[b].axis) ?? 0);
+    b = nb;
+    if (!(blockSpan(blocks[b]) > 0)) next = delta < 0 ? -1 : 0;
+  }
+  const p = elementAt(blocks[b].axis, next);
+  return p === undefined ? undefined : { block: b, position: p };
 }

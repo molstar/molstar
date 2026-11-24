@@ -1129,6 +1129,9 @@ rows' commands) reads the last frame's rows layers through the behavior context'
   next step, reveal and message too. A run of small blocks hits as `run` (its band with no strip: the block under the
   point, the run's count; under the ruler rail the rail's place carries its `count` and `state`), its card
   "chrUn_KI270302v1 · Run: one of 2,841 · not read at this zoom".
+  A grid over two sections of blocks steps its y the same way (↑ ↓ cross from a block's last row onto the next block's
+  first, Cmd/Ctrl+↑ ↓ the first and last blocks' ends, entering from a section above or below the first or last
+  block's row); rows and lazy rows are one system's positions, with no gap to cross.
 - **`navigate.acrossBlocks`** (`ViewModel`, a row of blocks): `cross` (the default) one viewport over the blocks end to
   end; `stop` keeps the window in one block: after each move it is clamped to the block it was kept in (its width at
   most the block's), a range set (a jump, a story step, a click on the navigator) moves to the block holding its centre,
