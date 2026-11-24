@@ -240,6 +240,8 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
    * next one (not a segment's update state each) only then; one that did not leaves segments of either
    */
   let consistent = true;
+  /** the next update a rebuild (a part's segments found of other merge keys, `keySplit`) */
+  let rebuildNext = false;
   /** the segments an update wrote (`updateSegment`): the records then read again (`recordsWritten`) */
   let segmentWrites = 0;
   /** the groups of the segments' last update, in the segments' order */
@@ -345,7 +347,8 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
       props.batchSize,
     );
     const values = utils.createValues(geometry, transform, locationIt, theme, props) as unknown as MergeableValues;
-    builder.processValues?.(values as any, geometry, props, theme, ctx.graphics);
+    // no context: smoothing per vertex, merged (`UnitsVisualGeometryBuilder.processValues`)
+    builder.processValues?.(values as any, geometry, props, theme, undefined);
     // the kept state on its values before its part is picked: their layers' defines as its part's (one made with them),
     // its merge key that of the segments made before it
     const place: SegmentPlace = {
@@ -548,7 +551,7 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
       }
       seg.groupCount = its.locationIt.groupCount;
       seg.instanceCount = its.locationIt.instanceCount;
-      builder.processValues?.(values, seg.geometry, props, theme, ctx.graphics);
+      builder.processValues?.(values, seg.geometry, props, theme, undefined);
     };
     if (updateState.createGeometry) {
       const geometry = createGeometry(ctx, structureGroup, props, theme, seg.geometry);
@@ -711,7 +714,7 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
     return segments;
   }
 
-  return {
+  const visual: UnitsMergedVisual<P> = {
     builder,
     get renderObjects() {
       return renderObjects;
@@ -735,9 +738,11 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
       // segments' parts again (`auto` resolves by a group's counts). Made beside the current segments and parts, which
       // are disposed once the update ends (one that does not leaves them as they were)
       const rebuild =
+        rebuildNext ||
         (!!graphics &&
           parts.some((p) => p.object && graphics !== p.objectGraphics && hasForeignResources(p.object, graphics))) ||
         (!!currentProps && props.instanceGranularity !== currentProps.instanceGranularity);
+      rebuildNext = false;
       const oldParts = parts;
       const oldSegments = segments;
       if (rebuild) parts = [];
@@ -788,6 +793,19 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
       /** whether an update changed a segment's levels, its merge key's (`regroupByKey`) */
       let levelsChanged = false;
       const partsBefore = new Set(parts);
+      /**
+       * of a builder that writes its values by the segment (`processValues`: smoothing by a surface's resolution), each
+       * part's merge key after its first segment's update: a later segment's another wrote its own key into the shared
+       * values (`keySplit`), the visual then made again (each segment in the part of its key)
+       */
+      const firstKeys = builder.processValues ? new Map<Part<G>, string>() : undefined;
+      let keySplit = false;
+      const checkKey = (seg: Segment<G>) => {
+        const key = getMergeKey(seg.part.shared);
+        const first = firstKeys!.get(seg.part);
+        if (first === undefined) firstKeys!.set(seg.part, key);
+        else if (key !== first) keySplit = true;
+      };
       /** debug mode: the shared cells written in this update, by part (`checkSharedWrites`) */
       const sharedWrites = isDebugMode ? new Map<Part<G>, Map<string, unknown>>() : undefined;
       let completed = false;
@@ -811,6 +829,7 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
                 const updating = updateSegment(ctx, seg, structureGroup, props, theme);
                 if (isPromiseLike(updating)) await updating;
                 if (before) checkSharedWrites(seg, before, sharedWrites!);
+                if (firstKeys) checkKey(seg);
                 const clean = !hasRecordUpdates(updateState) && isSameVersions(versions, recordVersions(seg));
                 sharedOnly.set(seg.part, clean);
                 if (!clean) written = true;
@@ -830,7 +849,10 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
               const sharedAlone = propsOnly && seg.group === group && sharedOnly.get(seg.part) === true;
               const updating = updateSegment(ctx, seg, structureGroup, props, theme, sharedAlone);
               if (isPromiseLike(updating)) await updating;
-              if (segmentWrites !== writes) written = true;
+              if (segmentWrites !== writes) {
+                written = true;
+                if (firstKeys) checkKey(seg);
+              }
               if (before) checkSharedWrites(seg, before, sharedWrites!);
               if ((seg.record.lodLevels?.ref.version ?? -1) !== lodVersion) levelsChanged = true;
             }
@@ -911,6 +933,11 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
       for (const part of parts) {
         updateObject(part, props, graphics);
         if (part.object) renderObjects.push(part.object);
+      }
+      if (keySplit) {
+        // a part's segments of other keys: made again, each in the part of its own
+        rebuildNext = true;
+        await visual.createOrUpdate(ctx, theme, props, structure, groups);
       }
     },
     getLoci(pickingId) {
@@ -1013,4 +1040,5 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
       reset();
     },
   };
+  return visual;
 }

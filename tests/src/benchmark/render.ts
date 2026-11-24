@@ -1185,7 +1185,7 @@ export const MergingCases: BenchmarkCase<RenderInput>[] = MergingCounts.flatMap(
  * surfaces, many vertices per unit (on WebGL2 without base instances, merged objects read their instance data per
  * vertex from a texture, `dInstanceData`)
  */
-export const MergingMeshCases: BenchmarkCase<RenderInput>[] = [true, false].flatMap((merged) =>
+const MergingAssemblyMeshCases: BenchmarkCase<RenderInput>[] = [true, false].flatMap((merged) =>
   [undefined, { width: 320, height: 180 }, LargeSize].map((size) =>
     renderCase(
       `merging/assembly-gaussian-${merged ? 'merged' : 'unmerged'}${size ? `-${size.width}` : ''}`,
@@ -1201,6 +1201,35 @@ export const MergingMeshCases: BenchmarkCase<RenderInput>[] = [true, false].flat
     ),
   ),
 );
+
+/**
+ * The assembly's colors smoothed, per vertex and instance (element-index): merged on the CPU (data per vertex and
+ * instance), unmerged a grid per unit on the GPU; CPU meshes on every backend (`tryUseGpu: false`)
+ */
+const MergingSmoothCases: BenchmarkCase<RenderInput>[] = [true, false].map((merged) =>
+  renderCase(
+    `merging/assembly-gaussian-smooth-${merged ? 'merged' : 'unmerged'}`,
+    `60 copies of 7qpd (420 units) as Gaussian surfaces colored by element-index, smoothed, ${merged ? 'merged' : 'a render object per unit'}`,
+    async () => {
+      const s = await getRootAssembly();
+      const props = {
+        renderMerged: merged,
+        tryUseGpu: false,
+        smoothColors: { name: 'on', params: { resolutionFactor: 2, sampleStride: 3 } },
+      };
+      return {
+        setupNotes: true,
+        byteNotes: true,
+        scene: (g) =>
+          Promise.all([
+            structureRepr(g, GaussianSurfaceRepresentationProvider, s, props as any, { name: 'element-index' }),
+          ]),
+      };
+    },
+  ),
+);
+
+export const MergingMeshCases: BenchmarkCase<RenderInput>[] = [...MergingAssemblyMeshCases, ...MergingSmoothCases];
 
 /** The folder of the large models some cases load (from the repository root; not checked in, `.gitignore`d) */
 export const BenchmarkDataDir = '.benchmark';

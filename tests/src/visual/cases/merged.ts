@@ -7,6 +7,7 @@
 import { BackboneRepresentationProvider } from '@molstar/graphics/repr/structure/representation/backbone';
 import { GaussianSurfaceRepresentationProvider } from '@molstar/graphics/repr/structure/representation/gaussian-surface';
 import { LineRepresentationProvider } from '@molstar/graphics/repr/structure/representation/line';
+import { MolecularSurfaceRepresentationProvider } from '@molstar/graphics/repr/structure/representation/molecular-surface';
 import { PointRepresentationProvider } from '@molstar/graphics/repr/structure/representation/point';
 import { SpacefillRepresentationProvider } from '@molstar/graphics/repr/structure/representation/spacefill';
 import type { RepresentationProvider } from '@molstar/graphics/repr/representation';
@@ -74,6 +75,12 @@ function mergedCase(
   };
 }
 
+/** a molecular surface's colors smoothed (`smoothColors` on): finer than its 1 Å grid */
+const SmoothSurface = {
+  resolution: 1,
+  smoothColors: { name: 'on', params: { resolutionFactor: 2, sampleStride: 3 } },
+};
+
 export const MergedCases: VisualTestCase[] = [
   mergedCase('spacefill', SpacefillRepresentationProvider, {}, { requires: Impostor }),
   mergedCase(
@@ -94,6 +101,12 @@ export const MergedCases: VisualTestCase[] = [
     lodPixelSize: 75,
   }),
   mergedCase('line', LineRepresentationProvider, {}),
+  // colors smoothed merged: per vertex (chain-id, group data) and per vertex and instance (element-index), on the CPU
+  // (a grid an object does not merge); its segments' data by their offsets
+  mergedCase('molecular-surface-smooth', MolecularSurfaceRepresentationProvider, SmoothSurface),
+  mergedCase('molecular-surface-smooth-instance', MolecularSurfaceRepresentationProvider, SmoothSurface, {
+    colorTheme: 'element-index',
+  }),
   {
     // near cuts the units in front (a camera radius below the scene's), which get their caps (`solidInterior`, on for
     // Gaussian surfaces): decided per unit, not by the merged item's sphere

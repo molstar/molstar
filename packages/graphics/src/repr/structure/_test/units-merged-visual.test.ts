@@ -35,6 +35,7 @@ import { Overpaint } from '@molstar/graphics/theme/overpaint';
 import { UnitsRepresentation } from '../units-representation.js';
 import { UnitsVisual, type UnitsVisualGeometryBuilder } from '../units-visual.js';
 import { ElementSphereImpostorVisual, ElementSphereParams } from '../visual/element-sphere.js';
+import { MolecularSurfaceMeshParams, MolecularSurfaceMeshVisual } from '../visual/molecular-surface-mesh.js';
 
 // The merged units visual's parts: groups of another merge key (here a define their geometry decides, as a group's
 // counts decide the instance granularity) merged into objects of their own, picked and marked as per-group visuals
@@ -636,6 +637,62 @@ describe('the merged units visual', async () => {
       setDebugMode(false);
       error.mockRestore();
     }
+  });
+
+  it('makes its parts again where an update gives segments of one part other keys (by its builder, per segment)', async () => {
+    // lit apart by size under one theme alone: a part's segments of two keys after a theme change
+    const plain = ElementSphereImpostorVisual(-1).builder as UnitsVisualGeometryBuilder<ElementSphereParams, Spheres>;
+    const builder: UnitsVisualGeometryBuilder<ElementSphereParams, Spheres> = {
+      ...plain,
+      processValues: (values: any, geometry: Spheres, _props, theme) => {
+        const split = theme.color.factory === BuiltInColorThemes['element-symbol'].factory;
+        ValueCell.updateIfChanged(values.dIgnoreLight, split && geometry.sphereCount > 500);
+      },
+    };
+    const theme = (name: string) =>
+      Theme.create(registries as any, { structure }, { colorTheme: { name }, sizeTheme: { name: 'physical' } });
+    const lit = (r: Awaited<ReturnType<typeof createRepr>>) =>
+      (r.renderObjects as MergedGraphicsRenderObject[]).map((o) => o.values.dIgnoreLight.ref.value).sort();
+    const repr = await createRepr(structure, true, {}, builder);
+    expect(lit(repr)).toEqual([false]);
+    repr.setTheme(theme('element-symbol'));
+    await repr.createOrUpdate({}, structure).run();
+    const fresh = await createRepr(structure, true, {}, builder);
+    fresh.setTheme(theme('element-symbol'));
+    await fresh.createOrUpdate({}, structure).run();
+    expect(lit(fresh)).toEqual([false, true]);
+    expect(lit(repr)).toEqual(lit(fresh));
+    repr.destroy();
+    fresh.destroy();
+  });
+
+  it('merges a molecular surface whose colors are smoothed: per vertex (no grid an object)', async () => {
+    const graphics = { capabilities: { fragDepth: true } } as any;
+    const repr = UnitsRepresentation(
+      'surface',
+      { graphics, ...registries } as any,
+      () => MolecularSurfaceMeshParams,
+      (id) => MolecularSurfaceMeshVisual(id),
+    );
+    repr.setTheme(
+      Theme.create(
+        registries as any,
+        { structure },
+        { colorTheme: { name: 'chain-id' }, sizeTheme: { name: 'physical' } },
+      ),
+    );
+    const props = {
+      ...PD.getDefaultValues(MolecularSurfaceMeshParams),
+      renderMerged: true,
+      resolution: 1,
+      smoothColors: { name: 'on', params: { resolutionFactor: 2, sampleStride: 3 } },
+    } as PD.Values<MolecularSurfaceMeshParams>;
+    await repr.createOrUpdate(props, structure).run();
+    const objects = repr.renderObjects;
+    expect(objects.length).toBeGreaterThan(0);
+    expect(objects.every((o) => isMergedRenderObject(o))).toBe(true);
+    expect(objects.some((o) => o.values.colorType.ref.value === 'vertex')).toBe(true);
+    repr.destroy();
   });
 
   it('marks as the per-group visuals do', async () => {

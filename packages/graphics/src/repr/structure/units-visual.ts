@@ -127,6 +127,10 @@ interface UnitsVisualBuilder<P extends StructureParams, G extends Geometry> {
     newStructureGroup: StructureGroup,
   ) => void;
   mustRecreate?: (structureGroup: StructureGroup, props: PD.Values<P>) => boolean;
+  /**
+   * The values after they are written (color smoothing); `graphics` none in a merged visual (`UnitsMergedVisual`):
+   * smoothing on the CPU into data per vertex (a grid per object does not merge)
+   */
   processValues?: (
     values: RenderObjectValues<G['kind']>,
     geometry: G,

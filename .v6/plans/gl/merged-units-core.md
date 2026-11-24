@@ -63,12 +63,20 @@ The merged path grew beside the per-group one instead of under it. Five choices 
     Sizes of it not (none made; the sphere raster's index not segment-aware), nor a source's (its instances on the
     GPU). Tested on WebGPU: two meshes of other vertex and instance counts, colors and an overpaint layer of it, drawn
     merged as alone.
-  - **Smoothed colors and layers** (`smoothColors`, a theme's `preferSmoothing`; layers smoothed on surfaces): with a
-    context `volume`/`volumeInstance` grid textures, a 3D grid in 2D tiles per object with its own transform and size;
-    without one `vertex`/`vertexInstance`, interpolated on the CPU. Merged either as the vertex types (`vertex` merges
-    today; CPU work and four bytes a vertex and instance, against the grid's smaller texture) or as an atlas of the
-    segments' grids with each segment's grid offset, size and transform in its segment data. The vertex types first
-    (they need only the index above), the atlas where their memory matters (many instances of large surfaces).
+  - **Smoothed colors** (`smoothColors`, a theme's `preferSmoothing`; done): a merged visual's segments smooth on the
+    CPU (`processValues` without a context) into data per vertex (`vertex`, or `vertexInstance` of a theme per
+    instance), not a grid per object (`volume`/`volumeInstance`). Images as the unmerged grids' on the visual cases
+    (`geometry/merged/molecular-surface-smooth*`: the diff noise, a pixel's largest an edge's). Measured
+    (`merging/assembly-gaussian-smooth-*`, 60 copies of 7qpd colored by element-index, CPU meshes): frames alike or
+    faster merged, the representation built in 87 against 55 ms (WebGL2) and 70 against 60 (WebGPU), its JS heap
+    12.5 against 5.7 MB and 15.1 against 6.0 (the colors per vertex and copy). A grid atlas where that memory matters.
+  - **Smoothed layers** (not done): a layer smoothed where it touches a segment alone, the others its plain type: a
+    part's segments of two layer types. Merged layers stay unsmoothed (as before), until a part's layers are smoothed
+    all or none.
+  - **A segment's update of another merge key** (done): of a builder that writes its values by the segment
+    (`processValues`: smoothing by a surface's resolution), a part's key after each segment's update against its first
+    segment's: another (segments wrote their own keys into the shared values) makes the visual again, each segment in
+    the part of its key.
   - **GPU surfaces** (`texture-mesh`, `direct` colors): geometry and colors written on the GPU, per object textures
     on WebGL. On WebGPU the surfaces' vertices are chunks of one arena already (`gpu-surface-buffers.md`), which
     segments could address; on WebGL they stay plain objects, a render object a segment: the only plain kind left.
