@@ -1,0 +1,394 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/*
+ * The foundations of `@molstar/ui` (styles §1–7): design tokens (`--msui-*`) and the alignment primitives. A theme sets
+ * a few base colors; every shade derives from them where the theme applies, so a subtree with its own
+ * `data-msui-theme` gets consistent shades. Hosts override any token on any element.
+ */
+/* The durations (§7) are times, registered: what reads one back (a closing played by script, styles/transitions.ts) gets
+   it resolved ("0.2s"), whether a theme wrote it as a time, a calc() or another var(). */
+@property --msui-motion-fast {
+  syntax: "<time>";
+  inherits: true;
+  initial-value: 100ms;
+}
+
+@property --msui-motion-base {
+  syntax: "<time>";
+  inherits: true;
+  initial-value: 200ms;
+}
+
+@property --msui-motion-slow {
+  syntax: "<time>";
+  inherits: true;
+  initial-value: 360ms;
+}
+
+@layer msui.foundations {
+  /* §1 Color: the base colors of each theme. */
+  :root,
+  :host,
+  [data-msui-theme="light"] {
+    color-scheme: light;
+    --msui-bg: #f1efea;
+    --msui-fg: #2d271e;
+    --msui-accent: #8f4c06;
+    --msui-danger: #b8101f;
+    --msui-success: #12703a;
+    --msui-warning: #7a5806;
+    --msui-info: #5b3a72;
+    --msui-on-accent: #fff;
+    /* Shades go toward this color: darker on a light base, lighter on a dark one. */
+    --msui-shade: #000;
+    /* How far a step goes from the base (a dark base needs larger steps to read the same). */
+    --msui-step-1: 3%;
+    --msui-step-2: 6%;
+    --msui-step-3: 9%;
+    --msui-step-4: 13%;
+    /* How far muted and subtle text go toward the background, keeping 4.5:1 on a surface. */
+    --msui-mix-muted: 25%;
+    --msui-mix-subtle: 32%;
+  }
+
+  [data-msui-theme="dark"] {
+    color-scheme: dark;
+    --msui-bg: #121419;
+    --msui-fg: #cfd6e1;
+    --msui-accent: #5aa6f8;
+    --msui-danger: #fb4a5c;
+    --msui-success: #25c768;
+    --msui-warning: #f2c43c;
+    --msui-info: #b590c9;
+    --msui-on-accent: #121419;
+    --msui-shade: #fff;
+    --msui-step-1: 4%;
+    --msui-step-2: 9%;
+    --msui-step-3: 14%;
+    --msui-step-4: 19%;
+    --msui-mix-muted: 26%;
+    --msui-mix-subtle: 36%;
+  }
+
+  [data-msui-theme="blue"] {
+    color-scheme: dark;
+    --msui-bg: #2c3d4f;
+    --msui-fg: #edf1f3;
+    --msui-accent: #7cb9e6;
+    --msui-danger: #ff9a8e;
+    --msui-success: #3fd987;
+    --msui-warning: #f6cf52;
+    --msui-info: #c8aad6;
+    --msui-on-accent: #15212d;
+    --msui-shade: #fff;
+    --msui-step-1: 4%;
+    --msui-step-2: 9%;
+    --msui-step-3: 14%;
+    --msui-step-4: 19%;
+    /* A mid-tone base leaves less room: muted text stays nearer the text. */
+    --msui-mix-muted: 18%;
+    --msui-mix-subtle: 30%;
+  }
+
+  [data-msui-theme="contrast"] {
+    color-scheme: dark;
+    --msui-bg: #000;
+    --msui-fg: #fff;
+    --msui-accent: #ffd60a;
+    --msui-danger: #ff6b6b;
+    --msui-success: #3ddc84;
+    --msui-warning: #ffd60a;
+    --msui-info: #d0a8ff;
+    --msui-on-accent: #000;
+    --msui-shade: #fff;
+    --msui-step-1: 8%;
+    --msui-step-2: 16%;
+    --msui-step-3: 24%;
+    --msui-step-4: 32%;
+    --msui-mix-muted: 12%;
+    --msui-mix-subtle: 22%;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    [data-msui-theme="auto"] {
+      color-scheme: dark;
+      --msui-bg: #121419;
+      --msui-fg: #cfd6e1;
+      --msui-accent: #5aa6f8;
+      --msui-danger: #fb4a5c;
+      --msui-success: #25c768;
+      --msui-warning: #f2c43c;
+      --msui-info: #b590c9;
+      --msui-on-accent: #121419;
+      --msui-shade: #fff;
+      --msui-step-1: 4%;
+      --msui-step-2: 9%;
+      --msui-step-3: 14%;
+      --msui-step-4: 19%;
+      --msui-mix-muted: 26%;
+      --msui-mix-subtle: 36%;
+    }
+  }
+
+  /* Derived: recomputed wherever a theme is set. */
+  :root,
+  :host,
+  [data-msui-theme] {
+    /* Surfaces, from the deepest: sunken (a well inside a surface) is the base itself, a step the other way. */
+    --msui-surface-sunken: var(--msui-bg);
+    --msui-surface: color-mix(in oklab, var(--msui-bg), var(--msui-shade) var(--msui-step-1));
+    --msui-surface-raised: color-mix(in oklab, var(--msui-bg), var(--msui-shade) var(--msui-step-2));
+    /* Controls take the raised step; hover and active a step each above. */
+    --msui-control: var(--msui-surface-raised);
+    --msui-control-hover: color-mix(in oklab, var(--msui-bg), var(--msui-shade) var(--msui-step-3));
+    --msui-control-active: color-mix(in oklab, var(--msui-bg), var(--msui-shade) var(--msui-step-4));
+    /* Text. */
+    --msui-text: var(--msui-fg);
+    --msui-text-muted: color-mix(in oklab, var(--msui-fg), var(--msui-bg) var(--msui-mix-muted));
+    --msui-text-subtle: color-mix(in oklab, var(--msui-fg), var(--msui-bg) var(--msui-mix-subtle));
+    /* Lines: hairlines (1px) only; most separation is by surface, not by line. */
+    --msui-line: color-mix(in oklab, var(--msui-bg), var(--msui-shade) 14%);
+    --msui-line-strong: color-mix(in oklab, var(--msui-bg), var(--msui-shade) 28%);
+    --msui-accent-muted: color-mix(in oklab, var(--msui-accent), var(--msui-bg) 80%);
+    /* The Mol* logo's colors, left to right (the wordmark's gradient, its glass): lighter on a dark theme (by the
+       theme's color scheme); a host may set them. */
+    --msui-logo-1: light-dark(#7a4f2f, #d29a68);
+    --msui-logo-2: light-dark(#e0ae2c, #f5d36b);
+    --msui-logo-3: light-dark(#6f9a80, #a8d8bc);
+    --msui-logo-4: light-dark(#3f86ad, #79bfe6);
+    /* The accent pressed or hovered on an accent fill. */
+    --msui-accent-strong: color-mix(in oklab, var(--msui-accent), var(--msui-shade) 12%);
+    --msui-focus: var(--msui-accent);
+    /* Behind what covers the page (a dialog). */
+    --msui-scrim: rgb(0 0 0 / 0.35);
+    /* A field's edge and a selected control's: none where the fill marks them, a line where contrast matters. */
+    --msui-field-edge: transparent;
+    --msui-selected-edge: transparent;
+
+    /* §2 Type: each size with its line height, both on the 4px grid, so text in neighboring columns shares baselines. */
+    --msui-font-sans: "Helvetica Neue", "Segoe UI", Helvetica, "Source Sans Pro", Arial, sans-serif;
+    --msui-font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --msui-text-xs: 11px;
+    --msui-leading-xs: 16px;
+    --msui-text-sm: 12px;
+    --msui-leading-sm: 16px;
+    --msui-text-md: 14px;
+    --msui-leading-md: 20px;
+    --msui-text-lg: 16px;
+    --msui-leading-lg: 24px;
+    --msui-weight-regular: 400;
+    --msui-weight-strong: 600;
+
+    /* §3 Spacing: one unit, and a scale of its multiples. Every padding, margin, gap and size is on the 4px grid; only
+       hairlines (1px) are off it. */
+    --msui-unit: 4px;
+    --msui-space-1: calc(1 * var(--msui-unit)); /* 4: inside a row (icon to text); a label to its hint */
+    --msui-space-2: calc(2 * var(--msui-unit)); /* 8: between controls in a group; a control's text inset */
+    --msui-space-3: calc(3 * var(--msui-unit)); /* 12: the inset; between groups of a form */
+    --msui-space-4: calc(4 * var(--msui-unit)); /* 16: a card's padding; between sections */
+    --msui-space-5: calc(6 * var(--msui-unit)); /* 24: between blocks of a page */
+    --msui-space-6: calc(8 * var(--msui-unit)); /* 32: empty states, large separations */
+
+    /* §4 Sizes. A form row is a list row, so a list beside a form lines up row by row; a control sits in its row a unit
+       shorter, centered, so stacked controls keep a gap and their text sits where a row's text does. */
+    --msui-row: calc(6 * var(--msui-unit)); /* 24 */
+    --msui-control-height: calc(var(--msui-row) - var(--msui-unit)); /* 20 */
+    --msui-header: calc(8 * var(--msui-unit)); /* 32: a panel's header */
+    /* Icons (styles §4.1): paired with the text and the box they sit in. An icon takes `--msui-icon-size` from its
+       context (a button, a slot, a header sets it), else --msui-icon. */
+    --msui-icon-sm: calc(3 * var(--msui-unit)); /* 12: with small text (xs), in a tiny control */
+    --msui-icon: calc(4 * var(--msui-unit)); /* 16: in rows, controls, buttons, headers */
+    --msui-icon-lg: calc(5 * var(--msui-unit)); /* 20: with large text, empty states */
+
+    /* §5 Alignment: the columns everything lines up on (see the primitives below). */
+    /* Where text starts from a surface's edge: a header's, a row's and a form's text share this column. */
+    --msui-inset: var(--msui-space-3);
+    /* A surface's own side padding: what is in it (a hovered row) keeps off its edge. Its children pad the rest of the
+       inset (`--msui-inner`), so their text still starts at the inset. */
+    --msui-surface-pad: var(--msui-space-1);
+    --msui-inner: calc(var(--msui-inset) - var(--msui-surface-pad));
+    /* An icon's slot, kept even when empty, so text after it starts in the same column with or without an icon. */
+    --msui-icon-slot: var(--msui-icon);
+    --msui-icon-gap: var(--msui-space-1);
+    /* One level of nesting: exactly an icon slot and its gap, so a child's text sits under its parent's text. */
+    --msui-indent: calc(var(--msui-icon-slot) + var(--msui-icon-gap));
+    /* One level of a form (a group, a choice's settings): its labels have no icon to align under, so a level is a
+       step of the scale, not a slot. */
+    --msui-form-indent: var(--msui-space-3);
+    /* Where a control's text starts inside it; a plain value (text in a form) starts there too. */
+    --msui-control-inset: var(--msui-space-2);
+    /* A form's label column: one width for every form, so values line up across forms and sections. */
+    --msui-label: calc(28 * var(--msui-unit)); /* 112 */
+
+    /* §6 Shape: radii by role, elevation for what floats, layers. */
+    /* Corners: round, or a squircle where the browser draws one (below); the shape is set once for every element in a
+       root (reset.css), so a subtree switches it with this token. */
+    --msui-corner-shape: round;
+    --msui-radius-sm: 2px; /* inline marks: code, chips in text */
+    --msui-radius-lg: 8px; /* surfaces: panels, cards, popovers */
+    /* Controls and rows inside a surface: concentric with it, a surface's padding in, so their corners share its
+       centers (styles §6, nested corners). */
+    --msui-radius-md: max(0px, calc(var(--msui-radius-lg) - var(--msui-surface-pad)));
+    --msui-edge: 0 0 0 1px var(--msui-line);
+    /* A surface's edge: none where its step from the base shows; a line where contrast matters (below). */
+    --msui-surface-edge: none;
+    --msui-shadow-float: 0 2px 8px rgb(0 0 0 / 0.16);
+    --msui-shadow-overlay: 0 8px 28px rgb(0 0 0 / 0.26);
+    --msui-z-overlay: 10;
+    --msui-z-dialog: 20;
+    --msui-z-toast: 30;
+    --msui-z-tooltip: 40;
+
+    /* §7 Motion: state changes fast, content that opens at base, fades slow; one easing curve each. */
+    --msui-motion-fast: 100ms;
+    --msui-motion-base: 200ms;
+    --msui-motion-slow: 360ms;
+    --msui-ease: cubic-bezier(0.2, 0, 0, 1);
+    --msui-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+    --msui-ease-in: cubic-bezier(0.4, 0, 1, 1);
+    /* §7.1 Transitions: what enters takes base and eases out (it arrives and settles); what leaves takes fast and
+       eases in (it gets out of the way). A float rises from its anchor by --msui-rise. */
+    --msui-enter: var(--msui-motion-base) var(--msui-ease);
+    --msui-exit: var(--msui-motion-fast) var(--msui-ease-in);
+    --msui-rise: var(--msui-space-1);
+  }
+
+  /* Squircles where the browser draws them: a superellipse reads tighter than a circle at the same radius, so the radii
+     grow by half (the nested ones follow: they derive from the surface's). */
+  @supports (corner-shape: squircle) {
+    :root,
+    :host,
+    [data-msui-theme] {
+      --msui-corner-shape: squircle;
+      --msui-radius-sm: 3px;
+      --msui-radius-lg: 12px;
+    }
+  }
+
+  /* High contrast: muted text and lines keep their contrast (the theme, and any theme the system asks it of). */
+  [data-msui-theme="contrast"] {
+    --msui-line: color-mix(in oklab, var(--msui-bg), var(--msui-shade) 45%);
+    --msui-line-strong: color-mix(in oklab, var(--msui-bg), var(--msui-shade) 70%);
+    --msui-surface-edge: inset 0 0 0 1px var(--msui-line-strong);
+    --msui-field-edge: var(--msui-line-strong);
+    --msui-selected-edge: var(--msui-accent);
+  }
+
+  @media (prefers-contrast: more) {
+    [data-msui-theme] {
+      --msui-text-muted: color-mix(in oklab, var(--msui-fg), var(--msui-bg) 15%);
+      --msui-text-subtle: color-mix(in oklab, var(--msui-fg), var(--msui-bg) 25%);
+      --msui-line: color-mix(in oklab, var(--msui-bg), var(--msui-shade) 40%);
+      --msui-line-strong: color-mix(in oklab, var(--msui-bg), var(--msui-shade) 60%);
+      --msui-surface-edge: inset 0 0 0 1px var(--msui-line-strong);
+      --msui-field-edge: var(--msui-line-strong);
+      --msui-selected-edge: var(--msui-accent);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :root,
+    :host,
+    [data-msui-theme] {
+      --msui-motion-fast: 0ms;
+      --msui-motion-base: 0ms;
+      --msui-motion-slow: 0ms;
+    }
+  }
+}
+
+/*
+ * The alignment primitives (styles §5): the columns of the tokens above, as classes. A surface pads its sides by
+ * `--msui-surface-pad`; what is in it (a header, a row, a form) pads the rest of the inset, so all of its text starts at
+ * the inset from the surface's edge: one column.
+ */
+@layer msui.primitives {
+  .msui-surface {
+    display: grid;
+    align-content: start;
+    padding: var(--msui-space-1) var(--msui-surface-pad);
+    border-radius: var(--msui-radius-lg);
+    background: var(--msui-surface);
+    box-shadow: var(--msui-surface-edge);
+    color: var(--msui-text);
+    font: var(--msui-text-sm) / var(--msui-leading-sm) var(--msui-font-sans);
+  }
+
+  .msui-header {
+    display: flex;
+    align-items: center;
+    gap: var(--msui-icon-gap);
+    --msui-icon-size: var(--msui-icon);
+    height: var(--msui-header);
+    padding-inline: var(--msui-inner);
+    font-weight: var(--msui-weight-strong);
+  }
+
+  /* A row: an icon slot (kept when empty), the text, what trails (a count, an action). `--msui-level` indents it. */
+  .msui-row {
+    display: grid;
+    grid-template-columns: var(--msui-icon-slot) minmax(0, 1fr) auto;
+    column-gap: var(--msui-icon-gap);
+    align-items: center;
+    height: var(--msui-row);
+    padding-inline-start: calc(var(--msui-inner) + var(--msui-level, 0) * var(--msui-indent));
+    padding-inline-end: var(--msui-inner);
+    border-radius: var(--msui-radius-md);
+  }
+
+  /* A row in a list without icons: its text at the inset. */
+  .msui-row-plain {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .msui-slot {
+    --msui-icon-size: var(--msui-icon);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--msui-icon-slot);
+    height: var(--msui-icon);
+    color: var(--msui-text-muted);
+  }
+
+  /* A form: the label column, then the values; every row a list row's height (a control sits in it). */
+  .msui-form {
+    display: grid;
+    grid-template-columns: var(--msui-label) minmax(0, 1fr);
+    column-gap: var(--msui-space-3);
+    grid-auto-rows: minmax(var(--msui-row), auto);
+    align-items: center;
+    padding-inline: var(--msui-inner);
+  }
+
+  .msui-label {
+    color: var(--msui-text-muted);
+  }
+
+  /* A plain value: its text where a control's text starts. */
+  .msui-value {
+    padding-inline-start: var(--msui-control-inset);
+  }
+
+  .msui-control {
+    display: flex;
+    align-items: center;
+    height: var(--msui-control-height);
+    padding-inline: var(--msui-control-inset);
+    border-radius: var(--msui-radius-md);
+    background: var(--msui-control);
+    color: var(--msui-text);
+    font: inherit;
+    border: 0;
+  }
+
+  /* Numbers: tabular figures, right-aligned, so digits stack by place. */
+  .msui-num {
+    font-variant-numeric: tabular-nums;
+    text-align: end;
+  }
+}

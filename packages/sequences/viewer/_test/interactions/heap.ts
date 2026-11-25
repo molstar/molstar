@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The Node heap guards' measurement is one for every package: core/_test/model/heap.ts.
+// The Node heap guards' measurement is one for every package: test-harness/src/heap.ts.
 export {
   describeScaling,
   heapGrowth,
@@ -15,4 +15,4 @@ export {
   LIMIT,
   SCALED_LIMIT,
   type Scaling,
-} from '../../../core/_test/model/heap.js';
+} from '@molstar/test-harness/heap';

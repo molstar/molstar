@@ -11,6 +11,9 @@ import type { PluginOption } from 'vite';
 import { cssModulesPlugin, cssPackage } from '../packages/prism/ui/scripts/css.mjs';
 import { preactFolderPlugin } from './.storybook/preact-folder.js';
 import { seqstarFixtureFs } from '../packages/sequences/storybook/vite.js';
+import { seqExampleFixtures } from '../packages/seq/storybook/vite.js';
+// The UI's CSS generator, run as a Vite plugin (the package's `styles` script runs the same file).
+import { cssModulesPlugin as uiCssModulesPlugin, cssPackage as uiCssPackage } from '../packages/ui/scripts/css.mjs';
 
 export const monorepoRoot = fileURLToPath(new URL('..', import.meta.url));
 
@@ -35,6 +38,14 @@ export interface StoryPackage {
 
 /** The packages Storybook collects stories from; register a package here to show its stories. */
 export const StoryPackages: StoryPackage[] = [
+  // Mol* UI (`@molstar/ui`): the foundations (tokens, alignment) and the runtime. Its preview module loads the
+  // foundations' stylesheet and sets the toolbar's theme as `data-msui-theme`.
+  {
+    dir: 'packages/ui',
+    group: 'UI',
+    plugins: (root) => [uiCssModulesPlugin([uiCssPackage(root)])],
+    preview: 'src/_stories/preview.ts',
+  },
   {
     dir: 'packages/prism/ui',
     group: 'Prism',
@@ -63,6 +74,15 @@ export const StoryPackages: StoryPackage[] = [
     dir: 'packages/sequences/storybook',
     plugins: () => [seqstarFixtureFs()],
     preview: 'src/preview.ts',
+  },
+  // Seq* (next), the new implementation in packages/seq: its docs pages and examples, on @molstar/ui (the same theme
+  // decorator as the UI group). Temporary group name until it replaces Seq*.
+  {
+    dir: 'packages/seq/storybook',
+    group: 'Seq* (next)',
+    // Serves packages/seq/examples/fixtures at /fixtures/, as the views' specs name them.
+    plugins: () => [seqExampleFixtures()],
+    preview: 'src/_stories/preview.ts',
   },
 ];
 

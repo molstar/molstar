@@ -80,4 +80,48 @@ describe('segmented array', () => {
     expect(SegmentedArray.changedRanges(s, uploaded)).toEqual([]);
     expect(SegmentedArray.changedRanges(create(), uploaded)).toBeUndefined();
   });
+
+  it('writes the parts an extension added alone, also of a line of them; another array all', () => {
+    const s = create();
+    const writes: [number[], number][] = [];
+    const write = (data: Uint32Array, offset: number) => writes.push([Array.from(data), offset]);
+    let uploaded = SegmentedArray.writeChanged(s, undefined, write);
+    expect(writes).toHaveLength(2);
+    writes.length = 0;
+    // a part after the others, within the length: the same parts first, the same length
+    const c = { array: new Uint32Array([7]), offset: 6, count: 1, bias: 0, version: 0 };
+    const e1 = SegmentedArray.extend(s, [c]);
+    expect(e1.length).toBe(s.length);
+    expect(e1.parts.slice(0, 2)).toEqual(s.parts);
+    expect(e1.from).toBe(s);
+    expect(Array.from(SegmentedArray.flatten(e1))).toEqual([1, 2, 3, 0, 14, 15, 7, 0]);
+    uploaded = SegmentedArray.writeChanged(e1, uploaded, write);
+    expect(writes).toEqual([[[7], 6]]);
+    writes.length = 0;
+    // two extensions since the last upload: both parts
+    const e3 = SegmentedArray.extend(SegmentedArray.extend(e1, [{ ...c, offset: 7 }]), []);
+    expect(SegmentedArray.changedRanges(e3, { array: e1, versions: [0, 0, 0] })).toEqual([7, 8]);
+    // not after the others, or past the length: refused
+    expect(() => SegmentedArray.extend(s, [{ ...c, offset: 5 }])).toThrow();
+    expect(() => SegmentedArray.extend(s, [{ ...c, offset: 8 }])).toThrow();
+    // longer: room after the parts, which stay where they were
+    const longer = SegmentedArray.extend(e1, [{ ...c, offset: 9 }], 12);
+    expect(longer.length).toBe(12);
+    expect(longer.byteLength).toBe(48);
+    expect(longer.from).toBe(e1);
+    expect(Array.from(SegmentedArray.flatten(longer))).toEqual([1, 2, 3, 0, 14, 15, 7, 0, 0, 7, 0, 0]);
+    expect(SegmentedArray.changedRanges(longer, { array: e1, versions: [0, 0, 0] })).toEqual([9, 10]);
+    expect(() => SegmentedArray.extend(e1, [], 4)).toThrow();
+    // a long line: cut behind its last extensions, an uploader one behind still writes the added part alone
+    let line: SegmentedArray = s;
+    for (let k = 0; k < 40; ++k) line = SegmentedArray.extend(line, []);
+    let depth = 0;
+    for (let x = line.from; x; x = x.from) depth += 1;
+    expect(depth).toBeLessThanOrEqual(16);
+    const next = SegmentedArray.extend(line, [c]);
+    expect(SegmentedArray.changedRanges(next, { array: line, versions: [0, 0] })).toEqual([6, 7]);
+    // another array: all
+    uploaded = SegmentedArray.writeChanged(create(), uploaded, write);
+    expect(writes).toHaveLength(2);
+  });
 });

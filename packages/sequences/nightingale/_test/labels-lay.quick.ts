@@ -10,7 +10,7 @@
 // (labels-heap-fixture.ts `laying`), with its positive control.
 
 import { expect, it } from 'vitest';
-import { quickCase } from '../../core/_test/model/quick.js';
+import { quickCase } from '@molstar/test-harness/quick';
 import { laying } from './labels-heap-fixture.js';
 
 it('layLabels at an unchanged view: laid, compared, nothing written', ({ task }) => {

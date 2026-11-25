@@ -1,0 +1,98 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import { DomHost, pendingFrameCallbacks } from '@molstar/ui/dom';
+import { vi } from 'vitest';
+
+// A fake frame host: `DomHost`'s frames are collected and run by `flush`, its timers are counted and run by `fire`, so a
+// test drives a viewer frame by frame and can tell what a retired viewer left behind.
+
+export interface Timers {
+  /** Timers set and neither fired nor cleared. */
+  readonly live: number;
+  /** Runs the live timers (those of at most `ms` when given: `fire(0)` is a turn of the event loop). */
+  fire(ms?: number): void;
+  /** Runs the 0 ms timers, a real turn between, until `p` settles (a search run's yields between batches). */
+  drive<T>(p: T | Promise<T>): Promise<T>;
+}
+
+export interface Frames {
+  readonly timers: Timers;
+  /** Frames asked of the host and not yet run (a cancelled callback leaves its tick queued: see `callbacks`). */
+  readonly pending: number;
+  /** Frame callbacks (what a viewer asks) asked for and neither run nor cancelled. */
+  readonly callbacks: number;
+  /** Runs the frames asked for so far, once (those they ask for wait). */
+  flushOnce(): void;
+  /** Runs the asked frames, and those they ask for, until none is left. */
+  flush(): void;
+  restore(): void;
+}
+
+export function installFrames(): Frames {
+  let queue: (() => void)[] = [];
+  const live = new Map<number, { fn: () => void; ms: number }>();
+  let id = 0;
+  const raf = vi.spyOn(DomHost, 'requestAnimationFrame').mockImplementation((fn) => {
+    queue.push(() => fn(DomHost.now()));
+  });
+  const set = vi.spyOn(DomHost, 'setTimeout').mockImplementation((fn, ms) => {
+    live.set(++id, { fn, ms });
+    return id;
+  });
+  const clear = vi.spyOn(DomHost, 'clearTimeout').mockImplementation((h) => {
+    live.delete(h as number);
+  });
+  const timers: Timers = {
+    get live() {
+      return live.size;
+    },
+    fire(ms = Infinity) {
+      for (const [k, t] of [...live]) {
+        if (t.ms > ms) continue;
+        live.delete(k);
+        t.fn();
+      }
+    },
+    async drive<T>(p: T | Promise<T>): Promise<T> {
+      let done = false;
+      const settled = Promise.resolve(p).finally(() => {
+        done = true;
+      });
+      while (!done) {
+        timers.fire(0);
+        await new Promise((r) => setImmediate(r));
+      }
+      return settled;
+    },
+  };
+  return {
+    timers,
+    get pending() {
+      return queue.length;
+    },
+    get callbacks() {
+      return pendingFrameCallbacks();
+    },
+    flushOnce() {
+      const run = queue;
+      queue = [];
+      for (const f of run) f();
+    },
+    flush() {
+      for (let i = 0; i < 20 && queue.length; i++) {
+        const run = queue;
+        queue = [];
+        for (const f of run) f();
+      }
+    },
+    restore() {
+      raf.mockRestore();
+      set.mockRestore();
+      clear.mockRestore();
+    },
+  };
+}

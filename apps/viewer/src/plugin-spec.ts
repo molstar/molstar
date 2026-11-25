@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { AssemblySymmetryConfig } from '@molstar/assembly-symmetry-extension';
@@ -13,6 +14,7 @@ import { getGraphicsBackends } from '@molstar/plugin/util/graphics-backends';
 import { ExtensionMap } from '@molstar/viewer/extensions';
 import { DefaultViewerOptions, type ViewerOptions } from '@molstar/viewer/options';
 import { NoPrimaryFocusLociBindings } from '@molstar/plugin/behavior/dynamic/camera';
+import { ParticleTilesFollowCamera } from '@molstar/plugin/behavior/dynamic/particle-tiles';
 import { PluginSpec } from '@molstar/plugin/spec';
 import { createViewerRegistry } from '@molstar/viewer/registry';
 import { ViewerAutoPreset } from '@molstar/viewer/presets';
@@ -56,7 +58,12 @@ export function createViewerSpec(options: Partial<ViewerOptions> = {}): PluginUI
       ...defaultSpec.canvas3d,
     },
     registry: createViewerRegistry(o.customFormats),
-    behaviors: [...baseBehaviors, ...o.extensions.filter((e) => !disabledExtension.has(e)).map((e) => ExtensionMap[e])],
+    // particle tile views by the camera following it (the Viewer reads particles: `ParticlesRegistry`)
+    behaviors: [
+      ...baseBehaviors,
+      PluginSpec.Behavior(ParticleTilesFollowCamera),
+      ...o.extensions.filter((e) => !disabledExtension.has(e)).map((e) => ExtensionMap[e]),
+    ],
     customParamEditors: defaultSpec.customParamEditors,
     layout: {
       initial: {

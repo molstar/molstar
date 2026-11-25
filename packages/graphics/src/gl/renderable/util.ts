@@ -8,13 +8,16 @@
 import { Sphere3D } from '@molstar/core/math/geometry';
 import { Vec3, Mat4 } from '@molstar/core/math/linear-algebra';
 import { BoundaryHelper } from '@molstar/core/math/geometry/boundary-helper';
+import { InstanceTransforms } from '@molstar/core/math/geometry/instance-transforms';
+import type { InstanceCenters } from '@molstar/core/math/geometry/instance-grid';
 import type { TextureFilter } from '../texture.js';
 import { arrayMinMax } from '@molstar/core/util/array';
 import { SegmentedArray } from '../segmented-array.js';
+import { getObjectTransforms, type TransformValues } from '../transform-parts.js';
+import { ValueCell } from '@molstar/core/util/value-cell';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3fromArray = Vec3.fromArray;
-const v3transformMat4Offset = Vec3.transformMat4Offset;
 
 export function calculateTextureInfo(n: number, itemSize: number) {
   n = Math.max(n, 2); // observed issues with 1 pixel textures
@@ -33,7 +36,7 @@ export interface TextureImage<T extends Uint8Array | Float32Array | Int32Array> 
   readonly filter?: TextureFilter;
   /**
    * Incremented by whoever writes `array` in place (the font atlas appending a glyph): a shared texture
-   * (`TextureSpecOptions.shared`) uploads the image again only when it changed, see `.v6/plans/gl/shared-textures.md` §3
+   * (`TextureSpecOptions.shared`) uploads the image again only when it changed
    */
   version?: number;
 }
@@ -60,7 +63,7 @@ export function createTextureImage<T extends Uint8Array | Float32Array>(
  * The value of a `DataSpec`: `count` elements by index in `array`, which may be longer (reused by producers, rounded
  * up to whole words); no 2D layout, backends lay it out (WebGL data textures, WebGPU storage pages)
  */
-export interface DataArray<T extends Uint8Array | Float32Array> {
+export interface DataArray<T extends Uint8Array | Float32Array | Int16Array> {
   readonly array: T;
   readonly count: number;
 }
@@ -69,7 +72,7 @@ export interface DataArray<T extends Uint8Array | Float32Array> {
  * `count` elements of `itemSize` components, in `array` where long enough (its contents kept), else a new one of whole
  * words
  */
-export function createDataArray<T extends Uint8Array | Float32Array>(
+export function createDataArray<T extends Uint8Array | Float32Array | Int16Array>(
   count: number,
   itemSize: number,
   arrayCtor: new (length: number) => T,
@@ -266,16 +269,215 @@ export function calculateInvariantBoundingSphere(
 
 const _mat4 = Mat4();
 
+/**
+ * The sphere around the box of the transformed centers with the largest distance from its center, plus the invariant
+ * radius: encloses, two passes over the transforms, many times cheaper than the helper's. For many instances as tight
+ * or tighter: the helper's center is the extrema's centroid, pulled off where they pile up unevenly (a crystal lattice
+ * 8% wider, 3PQR; a capsid 1%, 1M4X)
+ */
+function calculateBoxTransformBoundingSphere(invariantBoundingSphere: Sphere3D, t: InstanceTransforms): Sphere3D {
+  const { center, radius } = invariantBoundingSphere;
+  InstanceTransforms.writePoints(t, center, undefined, undefined, undefined, boxMin, boxMax);
+  const c = Vec3.create((boxMin[0] + boxMax[0]) / 2, (boxMin[1] + boxMax[1]) / 2, (boxMin[2] + boxMax[2]) / 2);
+  return Sphere3D.create(c, Math.sqrt(InstanceTransforms.getMaxDistanceSq(t, center, c)) + radius);
+}
+const boxMin = Vec3();
+const boxMax = Vec3();
+
+/** `calculateBoxTransformBoundingSphere`'s center and largest distance per transforms' cell, by their versions */
+const boxSpheres = new WeakMap<
+  object,
+  { transforms: number; poses: number; count: number; invariant: Vec3; center: Vec3; distance: number }
+>();
+
+/**
+ * Seeds `calculateTransformDataBoundingSphere` with the instances' centers' sphere of `data` as it is (its grid's
+ * pass over them, `InstanceCenters`): the first bounding sphere then without a pass of its own (many instances only)
+ */
+export function setTransformDataCenters(data: TransformValues, centers: InstanceCenters) {
+  const count = data.instanceCount.ref.value;
+  if (count < BoxTransformBoundingSphereMinCount && !data.instanceSphereFast?.ref.value) return;
+  boxSpheres.set(data.aTransform, {
+    transforms: data.aTransform.ref.version,
+    poses: data.instancePoses?.ref.version ?? -1,
+    count,
+    invariant: Vec3.clone(centers.invariantCenter),
+    center: Vec3.clone(centers.center),
+    distance: centers.distance,
+  });
+}
+
+/**
+ * `calculateInstancesBoundingSphere` of the instances of `data` (its poses or matrices, `getObjectTransforms`), the
+ * many instances' box sphere's center and largest distance kept per transforms' version and `invariantBoundingSphere`'s
+ * center: a radius changed alone (a size's padding) adds to the distance, no pass over the instances again
+ */
+export function calculateTransformDataBoundingSphere(
+  invariantBoundingSphere: Sphere3D,
+  data: TransformValues,
+): Sphere3D {
+  const t = getObjectTransforms(data);
+  // a few instances' the boundary helper's, unless the object asks for the box sphere (`instanceSphereFast`)
+  if (t.count < BoxTransformBoundingSphereMinCount && !data.instanceSphereFast?.ref.value)
+    return getFewInstancesBoundingSphere(invariantBoundingSphere, data, t);
+  const { center, radius } = invariantBoundingSphere;
+  const transforms = data.aTransform.ref.version;
+  const poses = data.instancePoses?.ref.version ?? -1;
+  const e = boxSpheres.get(data.aTransform);
+  if (
+    e &&
+    e.transforms === transforms &&
+    e.poses === poses &&
+    e.count === t.count &&
+    Vec3.exactEquals(e.invariant, center)
+  ) {
+    return Sphere3D.create(Vec3.clone(e.center), e.distance + radius);
+  }
+  InstanceTransforms.writePoints(t, center, undefined, undefined, undefined, boxMin, boxMax);
+  const c = Vec3.create((boxMin[0] + boxMax[0]) / 2, (boxMin[1] + boxMax[1]) / 2, (boxMin[2] + boxMax[2]) / 2);
+  const distance = Math.sqrt(InstanceTransforms.getMaxDistanceSq(t, center, c));
+  boxSpheres.set(data.aTransform, {
+    transforms,
+    poses,
+    count: t.count,
+    invariant: Vec3.clone(center),
+    center: Vec3.clone(c),
+    distance,
+  });
+  return Sphere3D.create(c, distance + radius);
+}
+
+/** `calculateInstancesBoundingSphere`'s sphere of few instances, per transforms' cell by its versions and the invariant sphere */
+const fewSpheres = new WeakMap<
+  object,
+  { transforms: number; poses: number; count: number; invariant: Sphere3D; sphere: Sphere3D }
+>();
+
+/**
+ * The sphere of a few instances (`calculateInstancesBoundingSphere`: the boundary helper's, tighter than the box sphere,
+ * not additive in the radius) kept per transforms' version and the whole invariant sphere: an object's values and its
+ * bounds' update computing it for the same transforms (a pack's targets: thousands of small ones) read it once
+ */
+/** the same center, radius and extrema (a few instances' sphere reads them) */
+function isSameSphere(a: Sphere3D, b: Sphere3D) {
+  if (!Sphere3D.exactEquals(a, b)) return false;
+  const ea = a.extrema;
+  const eb = b.extrema;
+  if (!ea || !eb) return ea === eb;
+  return ea.length === eb.length && ea.every((v, i) => Vec3.exactEquals(v, eb[i]));
+}
+
+function getFewInstancesBoundingSphere(invariant: Sphere3D, data: TransformValues, t: InstanceTransforms): Sphere3D {
+  const transforms = data.aTransform.ref.version;
+  const poses = data.instancePoses?.ref.version ?? -1;
+  const e = fewSpheres.get(data.aTransform);
+  if (
+    e &&
+    e.transforms === transforms &&
+    e.poses === poses &&
+    e.count === t.count &&
+    isSameSphere(e.invariant, invariant)
+  ) {
+    return Sphere3D.clone(e.sphere);
+  }
+  const sphere = calculateInstancesBoundingSphere(invariant, t);
+  fewSpheres.set(data.aTransform, {
+    transforms,
+    poses,
+    count: t.count,
+    invariant: Sphere3D.clone(invariant),
+    sphere: Sphere3D.clone(sphere),
+  });
+  return sphere;
+}
+
+/** Sets whether the instances' bounding sphere of `data` is the box sphere at any count (`instanceSphereFast`) */
+export function setInstanceSphereFast(data: { instanceSphereFast?: ValueCell<boolean> }, fast: boolean) {
+  if (data.instanceSphereFast) ValueCell.updateIfChanged(data.instanceSphereFast, fast);
+  else data.instanceSphereFast = ValueCell.create(fast);
+}
+
+/** The values `getDrawnBoundingSphere` reads */
+export interface DrawnBoundsValues {
+  readonly boundingSphere: ValueCell<Sphere3D>;
+  /** the identity where missing */
+  readonly uObjectTransform?: ValueCell<Mat4>;
+}
+
+const drawnBounds = new WeakMap<DrawnBoundsValues, { bounds: number; transform: number; sphere: Sphere3D }>();
+
+/**
+ * The bounds of an object as drawn: `boundingSphere` (its instances as placed) with its transient transform
+ * (`uObjectTransform`) applied, `boundingSphere` itself at rest. What culls and bounds the scene while drawing reads
+ * this; what fits the camera to the data reads `boundingSphere`
+ */
+export function getDrawnBoundingSphere(values: DrawnBoundsValues): Sphere3D {
+  const cell = values.uObjectTransform;
+  if (!cell || Mat4.isIdentity(cell.ref.value)) return values.boundingSphere.ref.value;
+  const transform = cell.ref.value;
+  let e = drawnBounds.get(values);
+  const bounds = values.boundingSphere.ref.version;
+  const version = cell.ref.version;
+  if (e && e.bounds === bounds && e.transform === version) return e.sphere;
+  if (!e) {
+    e = { bounds, transform: version, sphere: Sphere3D() };
+    drawnBounds.set(values, e);
+  }
+  e.bounds = bounds;
+  e.transform = version;
+  // center and radius only: the extrema transformed are allocations per call, and every union of them (the scene's
+  // bounds, a merged object's) costs per point; a transient view's bounds need not be tight
+  const s = values.boundingSphere.ref.value;
+  Vec3.transformMat4(e.sphere.center, s.center, transform);
+  e.sphere.radius = s.radius * Mat4.getMaxScaleOnAxis(transform);
+  return e.sphere;
+}
+
+/**
+ * Sphere `i` of `spheres` (center and radius, four floats each: an instance grid's cells and batches) into `out`,
+ * transformed by `transform` whose largest scale is `scale` (`Mat4.getMaxScaleOnAxis`)
+ */
+export function transformSphereAt(out: Sphere3D, spheres: Float32Array, i: number, transform: Mat4, scale: number) {
+  const o = i * 4;
+  const x = spheres[o],
+    y = spheres[o + 1],
+    z = spheres[o + 2];
+  out.center[0] = transform[0] * x + transform[4] * y + transform[8] * z + transform[12];
+  out.center[1] = transform[1] * x + transform[5] * y + transform[9] * z + transform[13];
+  out.center[2] = transform[2] * x + transform[6] * y + transform[10] * z + transform[14];
+  out.radius = spheres[o + 3] * scale;
+  return out;
+}
+
+/**
+ * From how many instances the sphere is the box's (`calculateBoxTransformBoundingSphere`): few instances spread wide (a
+ * dozen particles over a cell's surface) put the box's center far off and the sphere 1.5x too wide (MG_1184's scene);
+ * the helper's is cheap for them
+ */
+const BoxTransformBoundingSphereMinCount = 1000;
+
 export function calculateTransformBoundingSphere(
   invariantBoundingSphere: Sphere3D,
   transform: Float32Array,
   transformCount: number,
   transformOffset: number,
 ): Sphere3D {
+  return calculateInstancesBoundingSphere(
+    invariantBoundingSphere,
+    InstanceTransforms.ofMatrices(transform, transformCount, transformOffset),
+  );
+}
+
+/** The sphere around the instances `t` (matrices or poses, `InstanceTransforms`) of `invariantBoundingSphere` */
+export function calculateInstancesBoundingSphere(invariantBoundingSphere: Sphere3D, t: InstanceTransforms): Sphere3D {
+  const transformCount = t.count;
   if (transformCount === 1) {
-    Mat4.fromArray(_mat4, transform, transformOffset);
+    InstanceTransforms.getMatrix(t, 0, _mat4);
     const s = Sphere3D.clone(invariantBoundingSphere);
     return Mat4.isIdentity(_mat4) ? s : Sphere3D.transform(s, s, _mat4);
+  }
+  if (transformCount >= BoxTransformBoundingSphereMinCount) {
+    return calculateBoxTransformBoundingSphere(invariantBoundingSphere, t);
   }
 
   const boundaryHelper = getHelper(transformCount);
@@ -289,14 +491,14 @@ export function calculateTransformBoundingSphere(
   if (extrema && transformCount <= 14) {
     for (let i = 0, _i = transformCount; i < _i; ++i) {
       for (const e of extrema) {
-        v3transformMat4Offset(v, e, transform, 0, 0, i * 16 + transformOffset);
+        InstanceTransforms.getPoint(t, i, e, v);
         boundaryHelper.includePositionRadius(v, extremaRadius);
       }
     }
     boundaryHelper.finishedIncludeStep();
     for (let i = 0, _i = transformCount; i < _i; ++i) {
       for (const e of extrema) {
-        v3transformMat4Offset(v, e, transform, 0, 0, i * 16 + transformOffset);
+        InstanceTransforms.getPoint(t, i, e, v);
         boundaryHelper.radiusPositionRadius(v, extremaRadius);
       }
     }
@@ -307,7 +509,7 @@ export function calculateTransformBoundingSphere(
       for (let i = 0, _i = transformCount; i < _i; ++i) {
         for (const e of extrema) {
           const p = Vec3();
-          v3transformMat4Offset(p, e, transform, 0, 0, i * 16 + transformOffset);
+          InstanceTransforms.getPoint(t, i, e, p);
           points.push(p);
         }
       }
@@ -315,12 +517,12 @@ export function calculateTransformBoundingSphere(
     }
   } else {
     for (let i = 0, _i = transformCount; i < _i; ++i) {
-      v3transformMat4Offset(v, center, transform, 0, 0, i * 16 + transformOffset);
+      InstanceTransforms.getPoint(t, i, center, v);
       boundaryHelper.includePositionRadius(v, radius);
     }
     boundaryHelper.finishedIncludeStep();
     for (let i = 0, _i = transformCount; i < _i; ++i) {
-      v3transformMat4Offset(v, center, transform, 0, 0, i * 16 + transformOffset);
+      InstanceTransforms.getPoint(t, i, center, v);
       boundaryHelper.radiusPositionRadius(v, radius);
     }
   }

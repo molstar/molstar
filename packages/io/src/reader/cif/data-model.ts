@@ -75,6 +75,17 @@ export interface CifCategory {
   readonly name: string;
   readonly fieldNames: ReadonlyArray<string>;
   getField(name: string): CifField | undefined;
+  /**
+   * The field without keeping its decoded values in the category (a binary field is decoded again for each): for a
+   * reader of a large column once, whose copy would otherwise stay with the file (a particle list's millions of
+   * operators). Where absent, `getField`
+   */
+  readField?(name: string): CifField | undefined;
+}
+
+/** `category`'s field `name` read once (`CifCategory.readField`), not kept decoded where the category can avoid it */
+export function readCifField(category: CifCategory, name: string): CifField | undefined {
+  return category.readField ? category.readField(name) : category.getField(name);
 }
 
 export function CifCategory(

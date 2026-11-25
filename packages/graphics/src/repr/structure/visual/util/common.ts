@@ -373,7 +373,7 @@ export function getStructureConformationAndRadius(
     }
     (xs = _xs), (ys = _ys), (zs = _zs), (rs = _rs);
     id = _id;
-    indices = OrderedSet.ofRange(0, id.length);
+    indices = OrderedSet.ofBounds(0, id.length);
   } else {
     const { elementCount } = structure;
     const _xs = new Float32Array(elementCount);
@@ -412,7 +412,7 @@ export function getStructureConformationAndRadius(
     }
     (xs = _xs), (ys = _ys), (zs = _zs), (rs = _rs);
     id = fillSerial(new Uint32Array(elementCount));
-    indices = OrderedSet.ofRange(0, id.length);
+    indices = OrderedSet.ofBounds(0, id.length);
   }
 
   const position = { indices, x: xs, y: ys, z: zs, id };

@@ -1,0 +1,46 @@
+{
+  "name": "@molstar/particle-pack-cli",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "Mol* particle-pack-cli: mmCIF particle assemblies to particle packs and back",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "exports": {
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
+    },
+    "./_test/*": null
+  },
+  "files": [
+    "bin",
+    "lib",
+    "src",
+    "!**/_test/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "argparse": "catalog:",
+    "tslib": "catalog:",
+    "@types/argparse": "catalog:",
+    "@molstar/core": "workspace:*",
+    "@molstar/io": "workspace:*",
+    "@molstar/model": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  },
+  "bin": {
+    "particle-pack": "./bin/particle-pack.mjs"
+  }
+}

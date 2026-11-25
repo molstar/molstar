@@ -1,0 +1,133 @@
+size 640 184
+pass background
+rect 0 0 640 184 #f1efeaff
+rect 131 8 501 20 #e9e6e0ff squircle 6.67
+rect 131 32 501 50 #e9e6e0ff squircle 8
+rect 131 102 501 20 #e9e6e0ff squircle 6.67
+rect 131 126 501 50 #e9e6e0ff squircle 8
+pass data
+clip 131 8 501 20 squircle 6.67
+rect 131 8 50 20 #efe8b8ff
+rect 181 8 50 20 #efe8b8ff
+rect 231 8 50 20 #efe8b8ff
+rect 281 8 50 20 #efe8b8ff
+rect 331 8 51 20 #cdebd6ff
+rect 382 8 50 20 #f5cfcfff
+rect 432 8 50 20 #cfe0f5ff
+rect 482 8 50 20 #f5cfcfff
+rect 532 8 50 20 #cfe0f5ff
+rect 582 8 50 20 #cfe0f5ff
+glyphs "12px mono" 22.2 per P 156 #2d271eff, P 206 #2d271eff, P 256 #2d271eff, G 306 #2d271eff, T 356.5 #2d271eff, R 407 #2d271eff, V 457 #2d271eff, R 507 #2d271eff, A 557 #2d271eff, M 607 #2d271eff
+unclip
+clip 131 32 501 50 squircle 8
+rect 131 65 501 12 #18a67fff
+unclip
+clip 131 102 501 20 squircle 6.67
+rect 626 102 6 20 #cdebd6ff
+rect 621 102 5 20 #f6e2b6ff
+rect 615 102 6 20 #f6e2b6ff
+rect 610 102 5 20 #cdebd6ff
+rect 604 102 6 20 #cdebd6ff
+rect 599 102 5 20 #f6e2b6ff
+rect 593 102 6 20 #cfe0f5ff
+rect 587 102 6 20 #cdebd6ff
+rect 582 102 5 20 #f6e2b6ff
+rect 576 102 6 20 #cfe0f5ff
+rect 571 102 5 20 #f5cfcfff
+rect 565 102 6 20 #f5cfcfff
+rect 560 102 5 20 #f5cfcfff
+rect 554 102 6 20 #f6e2b6ff
+rect 549 102 5 20 #f5cfcfff
+rect 543 102 6 20 #f6e2b6ff
+rect 537 102 6 20 #cfe0f5ff
+rect 532 102 5 20 #cfe0f5ff
+rect 526 102 6 20 #f6e2b6ff
+rect 521 102 5 20 #cdebd6ff
+rect 515 102 6 20 #f5cfcfff
+rect 510 102 5 20 #f6e2b6ff
+rect 504 102 6 20 #f6e2b6ff
+rect 498 102 6 20 #cdebd6ff
+rect 493 102 5 20 #cfe0f5ff
+rect 487 102 6 20 #cdebd6ff
+rect 482 102 5 20 #f5cfcfff
+rect 476 102 6 20 #f5cfcfff
+rect 471 102 5 20 #cdebd6ff
+rect 465 102 6 20 #cdebd6ff
+rect 459 102 6 20 #cfe0f5ff
+rect 454 102 5 20 #cfe0f5ff
+rect 448 102 6 20 #cfe0f5ff
+rect 443 102 5 20 #cfe0f5ff
+rect 437 102 6 20 #cfe0f5ff
+rect 432 102 5 20 #f5cfcfff
+rect 426 102 6 20 #cfe0f5ff
+rect 420 102 6 20 #cfe0f5ff
+rect 415 102 5 20 #f6e2b6ff
+rect 409 102 6 20 #f5cfcfff
+rect 404 102 5 20 #cdebd6ff
+rect 398 102 6 20 #cdebd6ff
+rect 393 102 5 20 #cfe0f5ff
+rect 387 102 6 20 #f5cfcfff
+rect 382 102 5 20 #cdebd6ff
+rect 376 102 6 20 #cdebd6ff
+rect 370 102 6 20 #f5cfcfff
+rect 365 102 5 20 #cfe0f5ff
+rect 359 102 6 20 #f5cfcfff
+rect 354 102 5 20 #f6e2b6ff
+rect 348 102 6 20 #cfe0f5ff
+rect 343 102 5 20 #cfe0f5ff
+rect 337 102 6 20 #f5cfcfff
+rect 331 102 6 20 #cfe0f5ff
+rect 326 102 5 20 #f5cfcfff
+rect 320 102 6 20 #f6e2b6ff
+rect 315 102 5 20 #cfe0f5ff
+rect 309 102 6 20 #cdebd6ff
+rect 304 102 5 20 #f5cfcfff
+rect 298 102 6 20 #cfe0f5ff
+rect 292 102 6 20 #cfe0f5ff
+rect 287 102 5 20 #cdebd6ff
+rect 281 102 6 20 #f6e2b6ff
+rect 276 102 5 20 #cfe0f5ff
+rect 270 102 6 20 #cfe0f5ff
+rect 265 102 5 20 #cdebd6ff
+rect 259 102 6 20 #cfe0f5ff
+rect 253 102 6 20 #f5cfcfff
+rect 248 102 5 20 #f5cfcfff
+rect 242 102 6 20 #cfe0f5ff
+rect 237 102 5 20 #cdebd6ff
+rect 231 102 6 20 #cdebd6ff
+rect 226 102 5 20 #cfe0f5ff
+rect 220 102 6 20 #cdebd6ff
+rect 215 102 5 20 #f6e2b6ff
+rect 209 102 6 20 #cdebd6ff
+rect 203 102 6 20 #cdebd6ff
+rect 198 102 5 20 #cfe0f5ff
+rect 192 102 6 20 #cdebd6ff
+rect 187 102 5 20 #cdebd6ff
+rect 181 102 6 20 #cdebd6ff
+rect 176 102 5 20 #cfe0f5ff
+rect 170 102 6 20 #cdebd6ff
+rect 164 102 6 20 #f5cfcfff
+rect 159 102 5 20 #cdebd6ff
+rect 153 102 6 20 #f5cfcfff
+rect 148 102 5 20 #cfe0f5ff
+rect 142 102 6 20 #f6e2b6ff
+rect 137 102 5 20 #f5cfcfff
+rect 131 102 6 20 #cdebd6ff
+unclip
+clip 131 126 501 50 squircle 8
+rect 131 159 67 12 #18a67fff
+rect 532 159 100 12 #18a67fff
+unclip
+pass window
+pass highlight
+pass selection
+pass hover
+pass cursor
+pass labels
+text "p53" 8 22.2 start "12px sans" #6b655cff width 20.02 max 115
+text "Domains" 8 61.2 start "12px sans" #6b655cff width 47.34 max 115
+text "DNA-binding" 134 74.5 start "10px sans" #2d271eff width 56.68 max 56.68
+text "TP53" 8 116.2 start "12px sans" #6b655cff width 28.68 max 115
+text "← reversed" 42.68 116.2 start "12px sans" #6b655cff width 56.69 max 80.32
+text "Domains on the gene" 8 155.2 start "12px sans" #6b655cff width 114.06 max 115
+text "DNA-binding" 134 168.5 start "10px sans" #2d271eff width 56.68 max 56.68

@@ -1,0 +1,12 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+.icon {
+  /* Sized by its context (styles §4.1): a button, a slot or a header sets --msui-icon-size. */
+  width: var(--msui-icon-size, var(--msui-icon));
+  height: var(--msui-icon-size, var(--msui-icon));
+  flex-shrink: 0;
+}

@@ -13,7 +13,7 @@
 // in the shorter run).
 
 import { describe, expect, it } from 'vitest';
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from '../../core/_test/model/heap.js';
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from '@molstar/test-harness/heap';
 import { kept, N } from './kept-cases.js';
 
 describe("a section's highlights kept under a host's", () => {

@@ -232,6 +232,8 @@ export class FontAtlas {
   private scratchContext: CanvasRenderingContext2D;
 
   readonly lineHeight: number;
+  /** The font's size (px) the glyphs are drawn at: a label `lineHeight / fontSize` its font size tall */
+  readonly fontSize: number;
 
   /** The widest glyph cell: an em dash, a wide emoji, with the buffer on both sides. */
   private readonly maxWidth: number;
@@ -245,6 +247,7 @@ export class FontAtlas {
 
     // create measurements
     const fontSize = fontAtlasFontSize(p.fontQuality);
+    this.fontSize = fontSize;
     this.buffer = fontSize / 8;
     this.radius = fontSize / 3;
     this.lineHeight = Math.round(fontSize + 2 * this.buffer + this.radius);
@@ -321,7 +324,7 @@ export class FontAtlas {
       }
 
       this.currentX += this.scratchW;
-      // written in place: shared textures of the atlas upload these rows again (`.v6/plans/gl/shared-textures.md` §3)
+      // written in place: shared textures of the atlas upload these rows again
       TextureChanges.writeRows(this.texture, this.currentY, this.currentY + this.scratchH);
     }
 

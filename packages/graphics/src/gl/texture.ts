@@ -7,7 +7,6 @@
 import { ValueCell } from '@molstar/core/util';
 import { idFactory } from '@molstar/core/util/id-factory';
 import type { ValueOf } from '@molstar/core/util/type-helpers';
-import type { Framebuffer } from './framebuffer.js';
 import type { GraphicsContext } from './context.js';
 import type { DataArray, TextureImage, TextureVolume } from './renderable/util.js';
 
@@ -66,9 +65,11 @@ export interface Texture {
   define: (width: number, height: number, depth?: number) => void;
   /**
    * The `sub` option requires an existing allocation on the GPU, that is, either
-   * `define` or `load` without `sub` must have been called before.
+   * `define` or `load` without `sub` must have been called before. Images (`rgba` `ubyte` textures) are uploaded as
+   * decoded, not premultiplied nor color converted; an `ImageBitmap` is not kept as the source (`getSource`): its owner
+   * may close it once uploaded.
    */
-  load: (image: TextureImage<any> | TextureVolume<any> | HTMLImageElement, sub?: boolean) => void;
+  load: (image: TextureImage<any> | TextureVolume<any> | HTMLImageElement | ImageBitmap, sub?: boolean) => void;
   /**
    * Writes the data array `data` (`DataSpec`) at element `offset` of the texture of `width` × `height` texels (allocated
    * at that size where it is another), an element per texel row by row: its element `ranges` (`[start, end)` pairs, see
@@ -83,16 +84,12 @@ export interface Texture {
   loadRows?: (image: TextureImage<any>, rows: readonly number[]) => void;
   /** no-op where unsupported (non-power-of-two sizes on WebGL1) */
   mipmap: () => void;
-  /** Use `layer` to attach a z-slice of a 3D texture */
-  attachFramebuffer: (framebuffer: Framebuffer, attachment: TextureAttachment, layer?: number) => void;
-  detachFramebuffer: (framebuffer: Framebuffer, attachment: TextureAttachment) => void;
   /**
-   * Copies a region of the first color attachment of `framebuffer` to `dstX`, `dstY` of this 2D texture (rectangles
-   * with a top-left origin), both must have the same format (a blit on WebGL2), not affected by scissor, write masks
-   * or blending
+   * Copies a region of the 2D texture `source` to `dstX`, `dstY` of this 2D texture (rectangles with a top-left
+   * origin), both of the same format (a blit on WebGL2), not affected by scissor, write masks or blending
    */
-  copyFromFramebuffer: (
-    framebuffer: Framebuffer,
+  copyFromTexture: (
+    source: Texture,
     x: number,
     y: number,
     width: number,
@@ -203,13 +200,7 @@ export function createNullTexture(): Texture {
     define: () => {},
     load: () => {},
     mipmap: () => {},
-    attachFramebuffer: () => {
-      throw new Error('cannot attach null-texture to a framebuffer');
-    },
-    detachFramebuffer: () => {
-      throw new Error('cannot detach null-texture from a framebuffer');
-    },
-    copyFromFramebuffer: () => {
+    copyFromTexture: () => {
       throw new Error('cannot copy to null-texture');
     },
 

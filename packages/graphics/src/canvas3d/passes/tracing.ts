@@ -24,18 +24,23 @@ import type { Camera, ICamera } from '../camera.js';
 import type { Scene } from '@molstar/graphics/gl/scene';
 import type { RenderTarget } from '@molstar/graphics/gl/render-target';
 import { ShaderCode } from '@molstar/graphics/gl/shader-code';
-import { type ComputeRenderable, createComputeRenderable } from '@molstar/graphics/gl/renderable';
+import {
+  type ComputeRenderable,
+  createComputeRenderable,
+  type Frame,
+  createFrame,
+} from '@molstar/graphics/gl/renderable';
 import { Vec2 } from '@molstar/core/math/linear-algebra/3d/vec2';
 import { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
 import { Vec4 } from '@molstar/core/math/linear-algebra/3d/vec4';
 import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Color } from '@molstar/core/util/color/color';
-import type { Framebuffer } from '@molstar/graphics/gl/framebuffer';
 import { now } from '@molstar/core/util/now';
 import { clamp } from '@molstar/core/math/interpolate';
 import type { DrawPass } from './draw.js';
 import type { RenderContext } from '../util.js';
+import { createRenderPassAttachments, type RenderPassAttachments } from '@molstar/graphics/gl/render-pass-attachments';
 
 export const TracingParams = {
   rendersPerFrame: PD.Interval(
@@ -78,7 +83,10 @@ export const TracingParams = {
 export type TracingProps = PD.Values<typeof TracingParams>;
 
 export class TracingPass {
-  private readonly framebuffer: Framebuffer;
+  /** the tracing input: shaded, normal and color, with the draw pass's opaque depth */
+  private readonly inputTarget: RenderPassAttachments;
+  /** the thickness, with the transparency passes' depth-stencil */
+  private readonly thicknessPass: RenderPassAttachments;
 
   readonly colorTextureOpaque: Texture;
   readonly normalTextureOpaque: Texture;
@@ -126,17 +134,20 @@ export class TracingPass {
       this.colorTextureOpaque.define(width, height);
     }
 
-    this.framebuffer = graphics.resources.framebuffer();
-    this.framebuffer.setDrawBuffers(3);
-
-    this.shadedTextureOpaque.attachFramebuffer(this.framebuffer, 'color0');
-    this.normalTextureOpaque.attachFramebuffer(this.framebuffer, 'color1');
-    this.colorTextureOpaque.attachFramebuffer(this.framebuffer, 'color2');
+    this.inputTarget = createRenderPassAttachments(
+      graphics.resources,
+      [this.shadedTextureOpaque, this.normalTextureOpaque, this.colorTextureOpaque],
+      drawPass.depthTextureOpaque,
+    );
 
     // the farthest back faces, drawn with the transparency passes' depth-stencil buffer (depth cleared by the pass,
     // stencil per solid interior cap, not read after): the trace reads the packed depth only
     this.thicknessTarget = targets.createRenderTarget(width, height, 'none', 'uint8', 'nearest');
-    drawPass.depthTargetTransparent.depthRenderbuffer!.attachFramebuffer(this.thicknessTarget.framebuffer);
+    this.thicknessPass = createRenderPassAttachments(
+      graphics.resources,
+      [this.thicknessTarget.texture],
+      drawPass.depthTargetTransparent.depthRenderbuffer!,
+    );
     this.accumulateTarget = targets.createRenderTarget(width, height, 'none', 'float32');
     this.composeTarget = targets.createRenderTarget(width, height, 'none', 'uint8', 'linear');
 
@@ -161,19 +172,52 @@ export class TracingPass {
     );
   }
 
-  private renderInput(b: PassBuilder, renderer: Renderer, camera: ICamera, scene: Scene, props: TracingProps) {
+  private renderInput(
+    b: PassBuilder,
+    renderer: Renderer,
+    camera: ICamera,
+    scene: Scene,
+    props: TracingProps,
+    frame: Frame,
+    occlusion: RenderContext['occlusion'],
+    clipGhost: boolean,
+  ) {
     const timing = isTimingMode && b.drawing;
     if (timing) this.graphics.timer.group('TracePass.renderInput');
 
-    this.drawPass.depthTextureOpaque.attachFramebuffer(this.framebuffer, 'depth');
-    b.begin(this.framebuffer, { label: 'tracing input' });
+    // no pass open yet: GPU culling for the tracing input, against the pyramid of an earlier frame
+    // (`setOcclusionPyramid`) and, with `occlusion`, in a second phase against that of its depth so far (as `DrawPass`'s
+    // opaque pass); with `clipGhost`, the ghost pass's lists too (drawn when the illuminated image is composed)
+    const skippedDraws = this.graphics.stats.skippedDraws;
+    if (b.drawing) {
+      renderer.prepareCull(scene.primitives, !!occlusion, clipGhost);
+      // the gaussian splats' order, for the transparent block of the illuminated image
+      renderer.prepareGaussianSplats(scene, camera);
+    }
+    this.inputTarget.depth = this.drawPass.depthTextureOpaque;
+    b.begin(this.inputTarget, { label: 'tracing input' });
     if (b.drawing) renderer.clear(true);
     b.renderer({ name: 'tracing' }, scene.primitives, () => renderer.renderTracing(scene.primitives, camera));
+    if (occlusion && b.drawing && renderer.cullSecondPending > 0) {
+      // a pyramid of a depth lacking skipped draws (pipelines compiling) would hide what they hide
+      const pyramid = occlusion(b, camera, this.graphics.stats.skippedDraws === skippedDraws);
+      renderer.prepareCullSecond(scene.primitives, pyramid);
+      b.begin(this.inputTarget, { label: 'tracing input second' });
+      renderer.renderTracingSecond(scene.primitives, camera);
+    }
 
     //
 
     if (props.thicknessMode === 'auto') {
-      b.begin(this.thicknessTarget, {
+      // the farthest back faces of everything in view, also of what the front hides whole: never culled by the front's
+      // occlusion (its pyramid or lists); a frame of its own, so the merged objects culled on the GPU are culled for it
+      // there, the others on the CPU (frustum and levels of detail, the occlusion test is off in illumination)
+      if (b.drawing) {
+        renderer.update(camera, scene, createFrame(), true);
+        // no pass open
+        renderer.prepareCullView(scene.primitives);
+      }
+      b.begin(this.thicknessPass, {
         label: 'thickness',
         // the farthest back faces (`renderDepthOpaqueBack`), depth reversed: cleared to the near plane (packed as ones)
         clear: { color: [1, 1, 1, 1], depth: 1 },
@@ -181,6 +225,8 @@ export class TracingPass {
       b.renderer({ name: 'depthOpaqueBack' }, scene.primitives, () =>
         renderer.renderDepthOpaqueBack(scene.primitives, camera),
       );
+      // the passes after draw the frame's GPU culling
+      if (b.drawing) renderer.update(camera, scene, frame);
     }
     if (timing) this.graphics.timer.groupEnd('TracePass.renderInput');
   }
@@ -296,6 +342,7 @@ export class TracingPass {
     props: TracingProps,
     iteration: number,
     forceRenderInput: boolean,
+    clipGhost = false,
   ) {
     const { values } = this.traceRenderable;
     const { rendersPerFrame, refineSteps, steps } = b.drawing
@@ -324,7 +371,7 @@ export class TracingPass {
         renderer.setViewport(x, y, width, height);
         renderer.update(camera, scene, frame);
       }
-      this.renderInput(b, renderer, camera, scene, props);
+      this.renderInput(b, renderer, camera, scene, props, frame, ctx.occlusion, clipGhost);
     }
 
     if (b.drawing) {

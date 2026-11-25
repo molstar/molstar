@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { getParticleSpacingRadius, Particle } from '@molstar/model/model/particles/particle-list';
+import { getParticleSpacingRadius, Particle, ParticleValues } from '@molstar/model/model/particles/particle-list';
 import type { Location } from '@molstar/model/model/location';
 import type { SizeTheme } from '../size.js';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -41,7 +41,7 @@ export function ParticleSizeTheme(
   function size(location: Location): number {
     if (Particle.isLocation(location)) {
       const { particles, index } = location;
-      return (particles.radii?.[index] ?? fallbackSize()) * props.scale;
+      return (particles.radii ? ParticleValues.get(particles.radii, index) : fallbackSize()) * props.scale;
     }
     return fallbackSize() * props.scale;
   }

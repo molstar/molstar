@@ -403,7 +403,7 @@ export namespace ParamDefinition {
         type: 'object-list',
         element: element as any as Params,
         getLabel,
-        ctor: _defaultObjectListCtor,
+        ctor: (info?.ctor as (() => Normalize<T>) | undefined) ?? _defaultObjectListCtor,
         defaultValue: info?.defaultValue || [],
       },
       info,

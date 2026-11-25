@@ -1,0 +1,61 @@
+id	OS	class	uniprot_length
+GLB2_LUMTE/31-141	Lumbricus terrestris (Common earthworm)	Clitellata	145
+GLB4_LUMTE/36-146	Lumbricus terrestris (Common earthworm)	Clitellata	151
+GLB3_TYLHE/33-143	Tylorrhynchus heterochetus (Japanese palolo worm) (Nereis heterochaeta)	Polychaeta	148
+MYG_CYPCA/23-136	Cyprinus carpio (Common carp)	Actinopteri	147
+MYG_ALLMI/27-143	Alligator mississippiensis (American alligator)		154
+MYG_GALGA/23-138	Galeorhinus galeus (Tope shark) (Galeorhinus australis)	Chondrichthyes	149
+MYG_HETPO/23-138	Heterodontus portusjacksoni (Port Jackson shark)	Chondrichthyes	149
+HBAM_AQUCT/26-129	Aquarana catesbeiana (American bullfrog) (Rana catesbeiana)	Amphibia	132
+HBA3_PLEWA/27-137	Pleurodeles waltl (Iberian ribbed newt)	Amphibia	142
+HBAZ_CAPHI/27-137	Capra hircus (Goat)	Mammalia	142
+HBB_HETPO/25-136	Heterodontus portusjacksoni (Port Jackson shark)	Chondrichthyes	141
+HBB_SQUAC/25-137	Squalus acanthias (Spiny dogfish)	Chondrichthyes	142
+HBB2_XENLA/26-142	Xenopus laevis (African clawed frog)	Amphibia	147
+HBB1_CYGMA/26-142	Cygnodraco mawsoni (Antarctic dragonfish)	Actinopteri	147
+HBB_LEPPA/25-142	Lepidosiren paradoxus (South American lungfish)		147
+HBB_ALLMI/25-141	Alligator mississippiensis (American alligator)		146
+HBB0_MOUSE/26-142	Mus musculus (Mouse)	Mammalia	147
+HBBN_AMMLE/20-136	Ammotragus lervia (Barbary sheep) (Antilope lervia)	Mammalia	141
+HBB_AQUCT/19-135	Aquarana catesbeiana (American bullfrog) (Rana catesbeiana)	Amphibia	140
+HBB1_XENBO/25-141	Xenopus borealis (Kenyan clawed frog)	Amphibia	146
+HBA_LEPPA/26-138	Lepidosiren paradoxus (South American lungfish)		143
+HBA1_TORMA/26-136	Torpedo marmorata (Marbled electric ray)	Chondrichthyes	141
+HBA_HETPO/33-143	Heterodontus portusjacksoni (Port Jackson shark)	Chondrichthyes	148
+HBA_SQUAC/26-136	Squalus acanthias (Spiny dogfish)	Chondrichthyes	141
+HBAD_ERYML/26-136	Erythrolamprus miliaris (South American water snake) (Liophis miliaris)	Lepidosauria	141
+HBAD_PASMO/26-136	Passer montanus (Eurasian tree sparrow)	Aves	141
+HBA_PANCK/26-137	Pantosteus clarkii (Desert sucker) (Catostomus clarkii)	Actinopteri	142
+HBA1_IGUIG/26-136	Iguana iguana (Common iguana)	Lepidosauria	141
+HBAT_HORSE/27-137	Equus caballus (Horse)	Mammalia	142
+HBA1_BOSGR/26-136	Bos grunniens (Wild yak) (Bos mutus grunniens)	Mammalia	141
+HBA1_XENBO/27-137	Xenopus borealis (Kenyan clawed frog)	Amphibia	142
+HBA1_PLEWA/27-137	Pleurodeles waltl (Iberian ribbed newt)	Amphibia	142
+HBP2_CASGL/33-152	Casuarina glauca (Swamp oak)	Magnoliopsida	160
+HBP1_CASGL/27-146	Casuarina glauca (Swamp oak)	Magnoliopsida	152
+LGB1_MEDSA/27-142	Medicago sativa (Alfalfa)	Magnoliopsida	147
+LGB1_LUPLU/28-146	Lupinus luteus (European yellow lupine)	Magnoliopsida	154
+A0ABY4E6T8_VITST/26-133	Vitreoscilla stercoraria	Betaproteobacteria	146
+HMP_ECOLI/26-131	Escherichia coli (strain K12)	Gammaproteobacteria	396
+GLB1_GLYDI/28-141	Glycera dibranchiata (Bloodworm)	Polychaeta	147
+GLBP1_GLYDI/29-141	Glycera dibranchiata (Bloodworm)	Polychaeta	147
+GLB_PAREP/30-144	Paramphistomum epiclitum	Trematoda	148
+GLB8_CHITH/25-143	Chironomus thummi thummi (Midge)	Insecta	151
+GLB1_CHITH/37-154	Chironomus thummi thummi (Midge)	Insecta	158
+GLB3_CHITH/36-147	Chironomus thummi thummi (Midge)	Insecta	151
+GLB2_CHITH/38-156	Chironomus thummi thummi (Midge)	Insecta	160
+GLB73_CHITH/39-157	Chironomus thummi thummi (Midge)	Insecta	161
+GLBT_CHITH/29-142	Chironomus thummi thummi (Midge)	Insecta	151
+HBF1_URECA/28-141	Urechis caupo (Innkeeper worm) (Spoonworm)	Polychaeta	142
+GLB1B_ANATR/37-152	Anadara trapezia (Sydney cockle) (Arca trapezia)	Bivalvia	152
+GLB_APLJU/26-139	Aplysia juliana (Walking sea hare) (Juliana's sea hare)	Gastropoda	144
+GLB_CERRH/29-142	Cerithidea rhizophorarum (Water snail) (Horn shell)	Gastropoda	151
+GLB_BUSCA/29-147	Busycotypus canaliculatus (Channeled whelk) (Busycon canaliculatum)	Gastropoda	147
+GLB2_PHRSO/26-129	Phreagena soyoae (Deep-sea cold-seep clam) (Calyptogena soyoae)	Bivalvia	136
+GLB1_PHRSO/26-136	Phreagena soyoae (Deep-sea cold-seep clam) (Calyptogena soyoae)	Bivalvia	144
+GLBH_CAEEL/32-147	Caenorhabditis elegans	Chromadorea	159
+GLB_ASCSU/45-162	Ascaris suum (Pig roundworm) (Ascaris lumbricoides)	Chromadorea	338
+GLB_PSEDC/45-162	Pseudoterranova decipiens (Sealworm)	Chromadorea	333
+GLBH_TRICO/45-161	Trichostrongylus colubriformis (Black scour worm)	Chromadorea	173
+A0A3P7CCD7_NIPBR/27-142	Nippostrongylus brasiliensis (Rat hookworm)	Chromadorea	154
+GLBC_NIPBR/44-161	Nippostrongylus brasiliensis (Rat hookworm)	Chromadorea	173

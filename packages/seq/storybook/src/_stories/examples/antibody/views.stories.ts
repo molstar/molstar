@@ -1,0 +1,118 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import { AntibodyViews } from '@molstar/seqx-examples';
+import type { Meta, StoryObj } from '@storybook/web-components-vite';
+import { complexEditStory } from '../complex/edit-root.js';
+import { exampleStory } from '../example-root.js';
+import { LinksHoverProvider } from '@molstar/seqx-viewer/behaviors';
+import {
+  bookmark,
+  bookmarkLines,
+  readoutLines,
+  recolor,
+  remove,
+  rename,
+  selectBackwards,
+  selectCdr,
+  setRuler,
+  toggleGlycanForm,
+} from './compose.js';
+
+const view = (id: string) => AntibodyViews.find((v) => v.id === id)!;
+
+const meta: Meta = { title: 'Examples/Antibody/Views' };
+export default meta;
+
+/**
+ * Trastuzumab's light and heavy chains (PDB 1N8Z), a Kabat ruler and an IMGT ruler over each, the CDRs by both
+ * definitions below: the heavy chain's Kabat insertions 52A, 82A–C and 100A–C. Hover a residue: the viewer's card says
+ * its label in both numberings (the panel, once the hover's readout, names the selection alone). Editing: switch which scheme the top ruler shows (a patch of its layer's `numbering`).
+ */
+export const Schemes: StoryObj = {
+  render: () =>
+    complexEditStory({
+      view: view('schemes'),
+      lines: readoutLines,
+      edits: [
+        { label: 'Top rulers in IMGT', run: (s) => setRuler(s, 'imgt') },
+        { label: 'Top rulers in Kabat', run: (s) => setRuler(s, 'kabat') },
+        { label: 'Top rulers in ordinals', run: (s) => setRuler(s, 'ordinal') },
+      ],
+    }),
+};
+
+/**
+ * The design under the same rulers: IMGT's 111.1 and 112.1 in CDR-H3, before 112 (EC-7); Kabat's 100D and 100E. The same
+ * switch as Schemes: which scheme the top ruler shows. The last button writes a range backwards in IMGT (112 to 112.1):
+ * an invalid label order, so nothing is selected and the status says the issue with its hint (EC-7).
+ */
+export const DesignNumberings: StoryObj = {
+  render: () =>
+    complexEditStory({
+      view: view('schemes-design'),
+      lines: readoutLines,
+      edits: [
+        { label: 'Top rulers in IMGT', run: (s) => setRuler(s, 'imgt') },
+        { label: 'Top rulers in Kabat', run: (s) => setRuler(s, 'kabat') },
+        { label: 'Top rulers in ordinals', run: (s) => setRuler(s, 'ordinal') },
+        { label: 'Select 112 to 112.1 (backwards)', run: (s) => selectBackwards(s) },
+      ],
+    }),
+};
+
+/** Each chain's design and wild type as two rows by their IMGT positions: the insertions and the deletion as gaps. */
+export const DesignAgainstWildType: StoryObj = { render: () => exampleStory(view('against')) };
+
+/**
+ * The CDR bookmarks: select CDR-H3 (or L1) by its Kabat address, bookmark the selection, rename it, recolor it, remove
+ * it; each one step, Undo and Redo walk them. The panel lists the bookmarks.
+ */
+export const CdrBookmarks: StoryObj = {
+  render: () =>
+    complexEditStory({
+      view: view('cdrs'),
+      lines: bookmarkLines,
+      edits: [
+        { label: 'Select CDR-H3', run: (s) => selectCdr(s, 'heavy', 3) },
+        { label: 'Select CDR-L1', run: (s) => selectCdr(s, 'light', 1) },
+        { label: 'Bookmark the selection', run: (s) => bookmark(s, 'cdr', 'CDR') },
+        { label: 'Rename it', run: (s) => rename(s, 'cdr', 'The CDR, renamed') },
+        { label: 'Recolor it', run: (s) => recolor(s, 'cdr', '#d62728') },
+        { label: 'Remove it', run: (s) => remove(s, 'cdr') },
+      ],
+    }),
+};
+
+/** The host's choice the Fc stories show on (off in the default viewer): a glycan lights its Asn, the Asn its glycan. */
+const LinksHoverOn = [{ provider: LinksHoverProvider, params: undefined }] as const;
+
+/**
+ * A human IgG1 Fc (PDB 3AVE): its two chains merged into one block ×2, their N-glycans (G0F: NAG NAG BMA MAN NAG MAN
+ * NAG FUC) one chip ×2 and the zinc a chip after them; the glycan on Asn297, the two disulfides of each chain and the
+ * zinc's histidines as arcs. Hover the glycan's chip: N297 lights; hover N297: the glycan (`links.hover`, on here).
+ * Editing: the glycans as chips or by their residues (one patch each way, undone and redone).
+ */
+export const FcGlycan: StoryObj = {
+  render: () =>
+    complexEditStory({
+      view: view('fc-glycan'),
+      edits: [{ label: 'Glycans: chips/residues', run: (s) => toggleGlycanForm(s) }],
+      behaviors: LinksHoverOn,
+    }),
+};
+
+/** The glycans by their residues, each by its code, their seven glycosidic links as arcs over them. */
+export const GlycanResidues: StoryObj = {
+  render: () => exampleStory(view('fc-glycan-residues'), { behaviors: LinksHoverOn }),
+};
+
+/**
+ * T-DM1 (trastuzumab emtansine), generated: trastuzumab's Fab chains twice and the emtansine payload as a chip (its CCD
+ * ids placeholders until named), linked to every lysine with occupancies summing to the average DAR of 3.5, each arc
+ * colored by its occupancy. Hover the payload: every conjugation site lights (`links.hover`, on here).
+ */
+export const Adc: StoryObj = { render: () => exampleStory(view('adc'), { behaviors: LinksHoverOn }) };

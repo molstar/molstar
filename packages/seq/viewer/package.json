@@ -1,0 +1,68 @@
+{
+  "name": "@molstar/seqx-viewer",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "description": "Seq* (next): the sequence viewer: DOM-free models, the Canvas2D and SVG backends, the default UI on @molstar/ui",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "exports": {
+    ".": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./models": {
+      "molstar-src": "./src/models/index.ts",
+      "types": "./lib/models/index.d.ts",
+      "import": "./lib/models/index.js"
+    },
+    "./behaviors": {
+      "molstar-src": "./src/behaviors/index.ts",
+      "types": "./lib/behaviors/index.d.ts",
+      "import": "./lib/behaviors/index.js"
+    },
+    "./canvas": {
+      "molstar-src": "./src/canvas/index.ts",
+      "types": "./lib/canvas/index.d.ts",
+      "import": "./lib/canvas/index.js"
+    },
+    "./ports": {
+      "molstar-src": "./src/ports/index.ts",
+      "types": "./lib/ports/index.d.ts",
+      "import": "./lib/ports/index.js"
+    },
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
+    },
+    "./_test/*": null,
+    "./canvas/_test/*": null
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "typecheck:test": "tsc -p tsconfig.test.json"
+  },
+  "dependencies": {
+    "@molstar/core": "workspace:*",
+    "@molstar/seqx-core": "workspace:*",
+    "@molstar/ui": "workspace:*",
+    "tslib": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

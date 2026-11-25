@@ -31,7 +31,9 @@ same with batching, 2.43 ms). Merging works on WebGL as well.
 - **How** (`createMergedValues`): one render object whose vertex attributes, elements and theme layers are the
   members' arrays as parts (`SegmentedArray`: each at its vertex, element or texel base, indices biased by the vertex
   base at upload; a layer's image sized as a copy would be), instances concatenated with per-instance segment
-  data (`aSegment`: group and data offsets; `aSegmentSphere`; `aSegmentLod`: the members' level scales); `segments`
+  data (`aSegment`: group and data offsets; `aSegmentSphere`; `aSegmentLod`: the members' level scales; `aSegmentStride`,
+  `aSegmentItem`: their level strides and first item, spheres' and points'; `aSegmentSites`: spheres' quantized
+  centers' origin and scale); `segments`
   holds per member its instance, vertex, draw and element ranges. Members keep their own render objects (not drawn).
 - **Updates** (`sync`, on the merged renderable's `update`): every member's value versions compared, a changed
   member's geometry and layer parts advanced (the render item writes those parts only), level scales copied,
@@ -80,19 +82,21 @@ culled on the GPU as a merged object of one member (`mergeRenderObjectsByType`).
   its sphere against the frustum and the object's distance range and picks its levels, as `cullSegment` does per cell;
   finer cells cost threads, not draws. The copy (below) tests each instance of a drawn cell the same way (GPU
   occlusion step 9). Testing each instance on its own, read per vertex, cost more than it saved.
-- **Compaction by copy**: a thread per instance of a drawn cell copies its instanced attributes (transform, instance
-  id, segment data, about 112 bytes) into compacted buffers, a slot per level in its segment's region (`atomicAdd` on a
-  counter per level and segment); the compacted buffers are the render item's instanced vertex buffers. The programs
-  stay the same: no storage reads per vertex. Reading the instance data from storage through compacted indices instead
-  (4 bytes per slot) costs every vertex an index and seven vec4 reads (measured: the opaque pass 12% slower for sphere
-  impostors, worse for meshes).
+- **Compaction by index** (`culled-instance-indices.md`): a thread per instance of a drawn cell writes its index into a
+  slot per level in its segment's region (`atomicAdd` on a counter per level and segment); the culled programs
+  (`dCulled`) read the index at `instance_index` and the instance's data (transform rows, segment data, instance id,
+  68 bytes, stored once) from storage, by a generated reader, the program sources unchanged. Why: copying the
+  instanced attributes into each region (the render item's instanced vertex buffers, no storage reads per vertex) took
+  68 bytes per slot and passed 2 GiB a buffer at about 4.5 M instances. Its cost per vertex was measured with seven
+  vec4 reads (the opaque pass 12% slower for sphere impostors, worse for meshes); with the three rows, to be measured
+  again.
 - **Draws**: one indirect record per level and segment (`drawIndirect` or `drawIndexedIndirect`), its instance count
   written per frame, the other words once per layout. Not a record per cell: indirect draws replay whether they draw or
   not, and without multi-draw indirect with a count (not in WebGPU) the GPU can't merge the visible cells' ranges as the
   CPU culling does (measured: 51k cells, 21 ms per frame against 1.2 ms).
-- **Fallback**: the compacted buffers end with all instances in their own order (the identity region); views not culled
-  on the GPU (another view of the frame, a scaled model, the kernels compiling) draw the CPU culling's lists shifted to
-  it, with the same programs and buffers.
+- **Fallback**: the indices end with all instances in their own order (the identity region); views not culled on the
+  GPU (another view of the frame, a scaled model, the kernels compiling) draw the CPU culling's lists shifted to it, with
+  the same programs and buffers.
 - **When**: before the passes (`Renderer.prepareCull`, called by the draw pass after its `update`; passes update the
   renderer with their render pass open, a compute pass would end it), once per frame for its first view.
 - **Draw lists**: the draw key of indirect lists is their buffers (the GPU writes the counts): recordings stay valid
@@ -100,8 +104,12 @@ culled on the GPU as a merged object of one member (`mergeRenderObjectsByType`).
 - **Cost**: levels times segments indirect draws every frame, about 0.28 µs each (as the CPU culling's draws per
   segment); the copy about 112 bytes per drawn instance; memory about 112 bytes per instance per level plus one.
 - **Occlusion**: per cell against the previous frame's Hi-Z levels (GPU textures, `textureLoad`, r32f), below.
-- **When on** (`auto`, the default): from `AutoGpuCullingMinInstances` (20k) instances and `AutoGpuCullingThreshold`
-  (30) per draw (segment and level). A GPU-culled object costs about 0.1 ms per frame of its own (its dispatches and
+- **When on** (`auto`, the default): from `AutoGpuCullingMinInstances` (50k, 20k before draw lists replayed while the
+  view moves) instances and `AutoGpuCullingThreshold` (30) per draw (segment and level). Re-measured
+  (`merging/instances-*`, 100 chains, RTX, frame CPU / GPU culled, still and rotating): spacefill 10k instances 0.38 /
+  0.56 and 0.45 / 0.78 ms, 30k 0.37 / 0.52 and 0.52 / 0.78, 50k 0.42 / 0.53 and 0.75 / 0.75, 100k 0.62 / 0.60 and 1.40
+  / 0.84; cartoon (`-cartoon-`, no sphere raster) the CPU ahead up to 100k (1.07 / 1.17 and 1.25 / 1.32); spacefill
+  goes to the GPU by its spheres anyway (`AutoGpuCullingMinRasterSpheres`). A GPU-culled object costs about 0.1 ms per frame of its own (its dispatches and
   the Hi-Z levels it asks for), the CPU's culling about 10 ns per instance in frames whose view changed (less where a
   batch is emitted whole). Measured (WebGPU, RTX, rotating, CPU submit, CPU / GPU culling): one unit of 100, 1000 and
   10k copies 0.17 / 0.33, 0.15 / 0.25, 0.11 / 0.23 ms; 100 units of 100 copies 0.24 / 0.29; of 1000 copies 1.12 /
@@ -219,6 +227,12 @@ Steps:
    0.94 / 0.76 ms, zoomed 6.14 / 5.17, zoomed rotating 6.56 / 5.64; storage, heap and setup unchanged; 8 a side no
    better (5.11 zoomed, 5.81 rotating, add and commit 50 ms more). No pixel differs from no occlusion still; rotating 4
    and 76 pixels of 921,600 (whole, zoomed). `webgpu-gpu-culling` now expects at most the CPU culling's instances.
+   Since replaced by one grid over all instances ([particle-pack.md](../particle-pack.md) step 7; built on the GPU,
+   `scene-cells.ts`, [load-time.md](load-time.md) step 4):
+   with each instance tested in the copy (9), a cell's size decides only the instance tests skipped, not what is
+   drawn, and the split per member made about a cell an instance of sparse members (the yeast cell: 24.7 M cells,
+   471 MB). MG_1184 (WebGPU, `sphere-raster-mg/*-off`): the opaque pass and the frames unchanged (whole 0.62 / 0.62
+   ms, zoomed 4.47 / 4.45, zoomed at 2560×1440 16.1 / 16.2), the culling ±0.03 ms, storage 188.6 to 170.8 MB.
 9. **Each instance tested in the copy** (done): the copy kernel's thread per instance of a drawn cell tests the
    instance's sphere as the cell's (`sphereLevels`, shared: the frustum, the distance ranges, the pyramid) and copies it
    at the levels of both. Its sphere computed in the kernel from its transform's rows and its segment's invariant
@@ -327,7 +341,11 @@ Steps:
    instance data (transforms, instance ids, segment data: 7 texels an instance) from a texture at the draw's first
    instance (`uInstanceBase`, set per draw as `uDrawId`) plus `gl_InstanceID` (`dInstanceData`, macros in
    `common-vert-params` in place of the attributes, which stay declared and unread; programs offset only the
-   attributes they read), filled by the WebGL render item from the instance values (`getInstanceDataSchema`). At 1000
+   attributes they read), filled by the WebGL render item from the instance values (`getInstanceDataSchema`). Now 4
+   texels an instance (the transform's rows; the instance and its segment's index, the segment's groups in a table after
+   the instances), in pages of 2^22 instances (256 MiB), a texture each bound per draw, a draw across pages split: the
+   yeast cell's 31.5 M instances at 80 B were 2.5 GB, and ANGLE's D3D11 allocates no texture above about 1.2 GB (an
+   RGBA32F 16384 × 4800 does, × 5200 not); it drew nothing. At 1000
    units (WebGL 2): spacefill still 1.59 to 0.47 ms, hover 4.39 to 1.49; cartoon still 1.59 to 0.71, hover 4.40 to
    1.89, recolor 4.82 to 3.85. WebGL1 keeps the offsets. Profiled zoomed (`merging/postsyn-lod-pixel3-zoom-nohiz`,
    WebGL2 on D3D11, no base instances: 11.6k draws, CPU 3.7 ms): culling 61% (`cullSegment`, `emit`, the frustum
@@ -374,8 +392,8 @@ Steps:
       segments (first instances other than 0) draw what the same direct lists and their own draws draw; the test fails
       with the first instances left out or the byte offset ignored.
    3. GPU culling of merged objects (done): `gpuCulling` (off by default at first; a merged object of the other kind
-      is a new one). The culler (`merged-culler.ts`) writes the cells, each instance's cell and segment, the instance data
-      (`packInstanceData`), the records and the identity region when the layout or the instances change; per frame
+      is a new one). The culler (`merged-culler.ts`) writes the cells, each instance's cell and segment, the records and
+      the instances' data (`CulledData`, what `instance-copy` reads them from) when the layout or the instances change; per frame
       `cell-cull`, `instance-copy` and `cull-args` (`gl/compute/cell-cull.ts`) after zeroing the counters. Storage
       buffers can be vertex buffers (the render item binds a storage buffer of an attribute as it is). Checked on Dawn
       (`webgpu-gpu-culling`): merged spheres with cells of a few instances, GPU-culled, draw the instances the CPU

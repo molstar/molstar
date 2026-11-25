@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Sebastian Bittrich <sebastian.m.bittrich@gmail.com>
  */
 
 import * as fs from 'fs';
@@ -12,7 +13,6 @@ import {
   StructureQualityReport,
 } from '@molstar/pdbe-extension/structure-quality-report/prop';
 import { fetchRetry } from '@molstar/model-server/utils/fetch-retry';
-import { UUID } from '@molstar/core/util';
 import { PDBePreferredAssembly } from '@molstar/pdbe-extension/preferred-assembly';
 import { PDBeStructRefDomain } from '@molstar/pdbe-extension/struct-ref-domain';
 import type { AttachModelProperty } from '@molstar/model-server/property-provider';
@@ -82,13 +82,18 @@ function useFileSource(params: any) {
 }
 
 function apiQueryProvider(urlPrefix: string, cache: any) {
-  const cacheKey = UUID.create22();
+  // key per API: `cache` belongs to the structure wrapper and lives as long as it is cached
+  const cacheKey = `PDBe-API:${urlPrefix}`;
   return async (model: Model) => {
     try {
       if (cache[cacheKey]) return cache[cacheKey];
-      const rawData = await fetchRetry(`${urlPrefix}/${model.entryId.toLowerCase()}`, 1500, 5);
+      // timeout covers the body as well
+      const rawData = await fetchRetry(`${urlPrefix}/${model.entryId.toLowerCase()}`, 3000, 5);
       // TODO: is this ok?
-      if (rawData.status !== 200) return {};
+      if (rawData.status !== 200) {
+        void rawData.body?.cancel().catch(() => {});
+        return {};
+      }
       const json = ((await rawData.json()) as any)[model.entryId.toLowerCase()] || {};
       cache[cacheKey] = json;
       return json;

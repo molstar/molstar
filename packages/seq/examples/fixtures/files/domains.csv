@@ -1,0 +1,7 @@
+id,label,start,end,category
+TAD,Transactivation,1,61,activation
+PRR,Proline-rich,64,94,linker
+DBD,DNA-binding,94,292,binding
+NLS,Nuclear localization,319,360,signal
+TET,Tetramerization,324,355,oligomer
+CTD,C-terminal,364,393,regulatory

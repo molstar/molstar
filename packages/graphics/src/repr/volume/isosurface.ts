@@ -31,7 +31,6 @@ import {
   createWrappedTensor,
   createWrappedVolume,
   eachVolumeLoci,
-  getVolumeTexture2dLayout,
   getVolumeGpuFallbackReason,
 } from './util.js';
 import { TextureMesh } from '@molstar/graphics/geo/geometry/texture-mesh/texture-mesh';
@@ -48,8 +47,9 @@ import { ValueCell } from '@molstar/core/util/value-cell';
 import { Interval } from '@molstar/core/data/int/interval';
 import { OrderedSet } from '@molstar/core/data/int/ordered-set';
 import { type VolumeKey, VolumeVisual } from './visual.js';
-import { estimateIsosurfaceVertexCount } from '@molstar/graphics/geo/util/marching-cubes/estimate';
+import { estimateIsosurfaceVertexCount } from '@molstar/core/math/geometry/marching-cubes/estimate';
 import { selectVisual } from '../visual-factory.js';
+import { getVolumeTexture2dLayout } from '@molstar/graphics/geo/util';
 
 export const VolumeIsosurfaceParams = {
   isoValue: Volume.IsoValueParam,

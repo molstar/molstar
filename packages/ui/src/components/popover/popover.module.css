@@ -1,0 +1,42 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* A panel of controls over the layout: a raised surface (styles §6: the surface radius, the overlay's shadow); its
+   sides pad by the surface's pad, its content the rest of the inset (§5). Taller than the window, it scrolls. As wide
+   as its column (the panel it opens from: `Floating`'s `column`), never wider; with none, as its content needs, at most
+   340px. */
+.popover {
+  display: grid;
+  align-content: start;
+  width: max-content;
+  max-width: min(340px, calc(100vw - 16px));
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  padding: var(--msui-space-1) var(--msui-surface-pad) var(--msui-space-2);
+  border-radius: var(--msui-radius-lg);
+  background: var(--msui-surface-raised);
+  box-shadow:
+    inset 0 0 0 1px var(--msui-line),
+    var(--msui-shadow-overlay);
+  color: var(--msui-text);
+  font-size: var(--msui-text-sm);
+  line-height: var(--msui-leading-sm);
+
+  [data-column] > & {
+    width: auto;
+    max-width: none;
+  }
+}
+
+/* A header (styles §4): its text at the inset. */
+.title {
+  display: flex;
+  align-items: center;
+  height: var(--msui-header);
+  padding-inline: var(--msui-inner);
+  font-weight: var(--msui-weight-strong);
+  color: var(--msui-text);
+}

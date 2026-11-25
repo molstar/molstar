@@ -6,8 +6,8 @@
   so PDB entries never got the raster (3J3Q: about 1,400 units). It also turns on from 100,000 spheres where the device has
   the raster (`AutoGpuCullingMinRasterSpheres`). Default against culled and raster, ms, RTX 4070 Ti: crambin 0.51, 0.63;
   6k atoms 0.90, 0.88; 300k 4.39, 3.47; 4V6X 0.56, 0.63; 3J3Q 1.48, 0.63. AMD iGPU: 300k 290, 210; 4V6X 22.4, 7.29; 3J3Q
-  61.9, 11.5. Decided when objects merge, where `sphereRaster` and the camera mode are not known: with the raster off or an
-  orthographic camera such objects stay culled on the GPU without it (a little slower on what was measured by hand).
+  61.9, 11.5. Decided when objects merge, where `sphereRaster` is not known: with the raster off such objects stay
+  culled on the GPU without it (a little slower on what was measured by hand).
 - **Current**: steps 1 (the prototype, the gate passed) and 2 (shared chunks) done, step 3 done, step 4 done (the resolve and the split per instance through the renderer, draw lists, visual cases, instance clipping, prepared ahead), step 5 (occlusion) and step 6 (`auto`: objects culled on the GPU) done:
   with occlusion as the impostors have it (one phase, per instance) the raster takes 9-30 % of their opaque pass zoomed
   into PetWorld and mostly 39-57 % whole, at the default levels and at higher detail (Step 1: results, Levels by size
@@ -56,7 +56,7 @@
 - **Compute** (`gl/compute.ts`, `gl/webgpu/compute.ts`): kernels from schemas with storage buffers (`atomic<u32>`),
   storage textures and indirect dispatch; the GPU culler (`cell-cull`, `instance-copy`, `cull-args`) compacts merged
   objects' instances per frame. Kernels cannot bind the render data pages (`tPositionGroup`, size and theme layers) or
-  the object blocks; the culler packs its own instance copy (`packInstanceData`).
+  the object blocks; the culler reads the instances from their data (`CulledData`), which its regions index.
 - **Limits of WebGPU**: no texture atomics, depth formats not storage-writable (`StorageFormats`,
   `gl/webgpu/texture.ts`). Gaussian density resolves "nearest wins" in two passes with 32-bit atomics
   (`gaussian-density.wgsl.ts`: `atomicMax` of the nearness, then `atomicMax` of the atom where it matches).
@@ -120,7 +120,9 @@
      plane's normal through the eye). Objects without an instance grid are not culled and draw their spheres whole
      with the object's `uLod` (`createRenderable`), merged members without one at each level they overlap (the
      culler's records): the raster follows each.
-   - **The raster kernel**: a workgroup per chunk, a thread per sphere: center by the instance transform, size by
+   - **The raster kernel**: a workgroup per 4 chunks, or 16 where they hold 16 spheres or fewer on average
+     ([sphere-raster-workgroups.md](sphere-raster-workgroups.md) item 2), a thread per sphere: center by the instance
+     transform, size by
      `assign_size` and the level's scale; the pixels whose centers it can cover from its exact perspective bounds (the
      tangents from the eye; step 1: 3× fewer pixels tested than its radius +1, where most spheres are under a pixel),
      per pixel the ray's front hit, `atomicStoreMax`. No workgroup tile (step 1: slower). Spheres through the near
@@ -139,15 +141,18 @@
    - **A dispatch set per object** (`gl/compute/sphere-raster.ts`): its chunk pass, arguments and raster with its
      values as their uniforms and its pages bound, one after another in a compute pass, a counter and indirect
      arguments per object. The raster kernel is the same for both kinds of object (6 storage buffers: positions,
-     sizes, transforms as affine rows, counter, chunks, the visibility buffer). Perspective only: orthographic views
-     draw impostors.
+     sizes, transforms as affine rows, counter, chunks, the visibility buffer). Perspective and orthographic
+     views: an orthographic one casts parallel rays (from each pixel on the camera plane), and splits by the size on
+     screen alone (no distance: `isRasterSize`).
 4. **Input: the frame's objects and their chunks** (`SphereRasterTable`): per object a region of the frame's chunks,
    an id maps back to (object, instance slot, item, level) by its chunk (few regions: merged objects make about one
    per representation).
-   - Merged objects culled on the GPU: the culler's compacted instances (`MergedRasterInput`,
-     `Renderable.getRasterInput` once `prepareCull` dispatched): a thread per slot finds its region (level and segment)
-     in the indirect records, appends the record's spheres if within its count, at the segment's scale of the level
-     (`tSegment`). The culler's frustum and levels are then the raster's. A merged object's members share one material
+   - Merged objects culled on the GPU: the culler's regions of instance indices (`MergedRasterInput`,
+     `Renderable.getRasterInput` once `prepareCull` dispatched): a workgroup a block of 64 of a raster record's
+     instances (`sphere-raster-blocks`: a record's blocks, their firsts a prefix sum, the dispatch indirect from their
+     total), its record by a search of the firsts, its slots' spheres appended at the segment's scale of the level
+     (`tSegment`). Not a thread a slot of every level's regions: the yeast's 126 M threads 2.7 ms a phase for none, the
+     raster pass 3.5 -> 0.85 ms. The culler's frustum and levels are then the raster's. A merged object's members share one material
      (one `uSizeFactor`). Others: their instances as stored.
    - **The data pages directly, the object's values packed**: the kernels bind the pages of `tPositionGroup` and
      `tSize` (`RenderItem.getDataLayer`: the page as a read-only storage buffer, the layer's first word), so the spheres
@@ -155,8 +160,8 @@
      `uSizeFactor`, the model scale, the levels' ranges and counts, the instance and group counts) go into the table's
      record per object, written from the item's values when they change. Not the object blocks: their pages are
      uniform-only, their layout is generated per program variant, and a block moves to a ring slot when it changes
-     after a draw read it. Transforms: the culler's compacted instances for merged objects (storage buffers), a packed
-     copy for the others (their instanced attributes are in vertex-only geometry pages).
+     after a draw read it. Transforms: the culler's instance data for merged objects (`CulledData`; a chunk's slot is the
+     instance's index there), the same layout packed for the others (their instanced attributes are in vertex-only geometry pages).
 5. **The resolve**: per drawn object, one triangle covering the viewport in the opaque pass, before the other opaque
    objects, with the object's own bindings: the color program built with `dSphereResolve`
    (`RenderItem.renderFullscreen`, WebGPU; its program cached per variant and define).
@@ -428,7 +433,8 @@
      large on screen near the camera, impostors whatever the split, fragment-bound; leaving out spheres in the vertex
      stage does not touch it, the mixed spheres added to the raster's work.
    - **Large spheres by the workgroup** (done, the original option in its simplest form): a sphere covering more than
-     `SphereRasterLargePixels` (64) pixels is queued in the chunk's workgroup memory and drawn by all 64 threads, its
+     `SphereRasterLargePixels` (64; since [sphere-raster-workgroups.md](sphere-raster-workgroups.md) item 4 all of more
+     than one pixel, their pixels in a row) is queued in the chunk's workgroup memory and drawn by all 64 threads, its
      pixels strided over them, after a barrier (no second kernel, no buffer: a chunk's spheres fit the queue; the
      per-thread early returns a `valid` flag, the per-pixel work `rasterPixel`). Dawn: the raster test against the CPU
      reference with no limit passes as before. `only`, every sphere by the raster, ms (impostors / before / after):

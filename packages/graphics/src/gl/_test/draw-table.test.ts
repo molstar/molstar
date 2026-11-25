@@ -13,10 +13,13 @@ import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
 import { Vec4 } from '@molstar/core/math/linear-algebra/3d/vec4';
 import { Mesh } from '@molstar/graphics/geo/geometry/mesh/mesh';
 import { Points } from '@molstar/graphics/geo/geometry/points/points';
+import { GaussianSplats } from '@molstar/graphics/geo/geometry/gaussian-splats/gaussian-splats';
+import { Spheres } from '@molstar/graphics/geo/geometry/spheres/spheres';
 import { createRenderObject } from '../render-object.js';
 import { RenderableState, type GraphicsRenderable } from '../renderable.js';
 import { createDrawTable, DrawFact, DrawRow, DrawState, getDrawFacts } from '../draw-table.js';
 import { createMergedValues, type MergeableValues } from '../renderable/merged.js';
+import { PassDraws } from '../renderer/pass-draws.js';
 
 /** A render object standing in for its renderable: the table reads only the values and the state */
 function meshObject(props: Partial<PD.Values<Mesh.Params>> = {}) {
@@ -33,6 +36,17 @@ function pointsObject() {
     'points',
     values,
     Points.Utils.createRenderableState(p),
+    -1,
+  ) as unknown as GraphicsRenderable;
+}
+
+function splatsObject() {
+  const p = PD.getDefaultValues(GaussianSplats.Params);
+  const values = GaussianSplats.Utils.createValuesSimple(GaussianSplats.createEmpty(), p, ColorNames.orange, 1);
+  return createRenderObject(
+    'gaussian-splats',
+    values,
+    GaussianSplats.Utils.createRenderableState(p),
     -1,
   ) as unknown as GraphicsRenderable;
 }
@@ -108,6 +122,16 @@ describe('draw table', () => {
     ValueCell.update(a.values.uMetalness, 0.3);
     table.refresh();
     expect(table.rowVersions[slot]).toBe(rowVersion + 1);
+  });
+
+  it('has levels of detail only where the geometry has levels, not their empty default', () => {
+    const p = PD.getDefaultValues(Spheres.Params);
+    const values = Spheres.Utils.createValuesSimple(Spheres.createEmpty(), p, ColorNames.orange, 1);
+    // spheres default to no levels: an empty list, culled and replayed as any object
+    expect(values.lodLevels.ref.value.length).toBe(0);
+    expect(getDrawFacts(values) & DrawFact.LodLevels).toBe(0);
+    ValueCell.update(values.lodLevels, Object.assign([[0, 100, 6, 1]], { pixelSize: 0 }) as never);
+    expect(getDrawFacts(values) & DrawFact.LodLevels).toBeTruthy();
   });
 
   it('advances the values versions with any value, at once; volatile cells on refresh', () => {
@@ -286,6 +310,41 @@ describe('draw table', () => {
     expect(row(table, a).facts & DrawFact.Animated).toBeTruthy();
   });
 
+  it('draws gaussian splats by their own pass only, half transparent and never opaque', () => {
+    const renderables: GraphicsRenderable[] = [];
+    const table = createDrawTable(renderables);
+    const s = splatsObject();
+    renderables.push(s);
+    table.add(s);
+    table.refresh();
+    const { facts, state } = row(table, s);
+    expect(facts & DrawFact.GaussianSplats).toBeTruthy();
+    expect(table.contributions.opacity[table.getSlot(s)]).toBeCloseTo(0.5);
+    expect(table.contributions.opaque[table.getSlot(s)]).toBe(0);
+    expect(state & DrawState.Opaque).toBe(0);
+    expect(PassDraws.gaussianSplats.check(facts, state)).toBe(true);
+    expect(PassDraws.gaussianSplatsBackground.check(facts, state)).toBe(true);
+    for (const pass of [
+      PassDraws.opaque,
+      PassDraws.depthOpaque,
+      PassDraws.tracing,
+      PassDraws.blendedTransparent,
+      PassDraws.wboitTransparent,
+      PassDraws.dpoitTransparent,
+      PassDraws.depthTransparent,
+    ]) {
+      expect(pass.check(facts, state)).toBe(false);
+    }
+    // picked, as other objects
+    expect(PassDraws.pick.check(facts, state)).toBe(true);
+    // not drawn at alpha 0; other objects not by the splats' pass
+    ValueCell.update(s.values.uAlpha, 0);
+    table.refresh();
+    expect(PassDraws.gaussianSplats.check(row(table, s).facts, row(table, s).state)).toBe(false);
+    const m = meshObject({ alpha: 0.5 });
+    expect(PassDraws.gaussianSplats.select!(getDrawFacts(m.values), 0)).toBe(false);
+  });
+
   it('lists the slots whose values changed, each once', () => {
     const renderables: GraphicsRenderable[] = [];
     const table = createDrawTable(renderables);
@@ -307,6 +366,7 @@ describe('draw table', () => {
     const members = [meshObject(), meshObject()];
     const merged = createMergedValues(
       'mesh',
+      members[0].values as unknown as MergeableValues,
       members.map((m) => m.values as unknown as MergeableValues),
     );
     const r = {
@@ -319,6 +379,33 @@ describe('draw table', () => {
     table.takeChanged();
     ValueCell.update(members[1].values.markerStatus, -1);
     expect(table.takeChanged()).toEqual([table.getSlot(r)]);
+  });
+
+  it("follows a merged object's members' aggregates, back to the defaults", () => {
+    const members = [meshObject(), meshObject()];
+    const merged = createMergedValues(
+      'mesh',
+      members[0].values as unknown as MergeableValues,
+      members.map((m) => m.values as unknown as MergeableValues),
+    );
+    const v = merged.values as unknown as MergeableValues;
+    expect(v.transparencyAverage.ref.value).toBe(0);
+    expect(v.transparencyMin.ref.value).toBe(1);
+    ValueCell.update(members[1].values.transparencyAverage, 0.5);
+    ValueCell.update(members[1].values.transparencyMin, 0.2);
+    merged.sync();
+    expect(v.transparencyAverage.ref.value).toBeGreaterThan(0);
+    expect(v.transparencyMin.ref.value).toBeCloseTo(0.2);
+    ValueCell.update(members[1].values.transparencyAverage, 0);
+    ValueCell.update(members[1].values.transparencyMin, 1);
+    ValueCell.update(members[0].values.emissiveAverage, 0.3);
+    merged.sync();
+    expect(v.transparencyAverage.ref.value).toBe(0);
+    expect(v.transparencyMin.ref.value).toBe(1);
+    expect(v.emissiveAverage.ref.value).toBeGreaterThan(0);
+    ValueCell.update(members[0].values.emissiveAverage, 0);
+    merged.sync();
+    expect(v.emissiveAverage.ref.value).toBe(0);
   });
 
   it('drops a changed slot until its values change again', () => {

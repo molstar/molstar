@@ -68,7 +68,7 @@ command menu, the tools, the run log and the docs.
 | `measure`                      | `managers.structure.measurement`                                    | `measurements`                |
 | `superpose`                    | the superposition algorithms                                        | `superposition` (lazy)        |
 | `snapshot`, `animation`        | `managers.snapshot` (its list only), `managers.animation`           | `snapshots`; `animation`      |
-| `camera`, `canvas`             | `managers.camera`, `canvas3d` props, illumination, XR               | core; `canvas-settings`       |
+| `camera`, `canvas`             | `managers.camera`, `canvas3d` props, illumination, XR, the backend  | core; `canvas-settings`       |
 | `export`                       | `helpers.viewportScreenshot`; extensions' exports                   | `export-image`; extensions    |
 | `sequence`                     | the Seq\* viewer ([sequence.md](sequence.md))                       | core (with a sequence viewer) |
 | `state`                        | `state.data` (the tree, applicable actions), by `node`              | `state-tree` (lazy)           |

@@ -13,17 +13,21 @@ vec3 quaternionTransform(const in vec4 q, const in vec3 v) {
 }
 
 // signed distance of \`t\` (in the shape's frame) to a shape of half size \`size\` (1 plane, 2 sphere, 3 cube, 4 cylinder,
-// 5 infinite cone)
+// 5 infinite cone); the ellipsoid's and the elliptic cylinder's across their axes scaled by the smallest half axis
+// (at most the true one, exact where round)
 float localSD(const in int type, const in vec3 t, const in vec3 size) {
     if (type == 1) {
         return -t.y;
     } else if (type == 2) {
-        return (length(t / size) - 1.0) * min(min(size.x, size.y), size.z);
+        // half axes of 0 (a point, a disc) at a tiny size: finite, not 0 / 0
+        vec3 s = max(size, vec3(1e-6));
+        return (length(t / s) - 1.0) * min(min(s.x, s.y), s.z);
     } else if (type == 3) {
         vec3 d = abs(t) - size;
         return min(max(d.x, max(d.y, d.z)), 0.0) + length(max(d, 0.0));
     } else if (type == 4) {
-        vec2 d = abs(vec2(length(t.xz), t.y)) - size.xy;
+        vec2 s = max(size.xz, vec2(1e-6));
+        vec2 d = vec2((length(t.xz / s) - 1.0) * min(s.x, s.y), abs(t.y) - size.y);
         return min(max(d.x, d.y), 0.0) + length(max(d, 0.0));
     } else if (type == 5) {
         return dot(size.xy, vec2(length(t.xy), t.z));
@@ -120,8 +124,8 @@ float clipObjectSD(const in vec3 center, const in mat4 frame, const in vec4 shap
 
     // the sphere at \`center\` (the clip objects' space) of radius \`radius\` against the clip objects, from the signed
     // distance of its center: 0 no point clipped, 2 every point (by one object), 1 per fragment; the distances are at
-    // most the true ones once divided by their largest slope (1, the cone's \`|size.xy|\`, the ellipsoid's scaled by
-    // its smallest axis), the radius scaled by the frame's largest scale
+    // most the true ones once divided by their largest slope (1, the cone's \`|size.xy|\`, the ellipsoid's and the
+    // elliptic cylinder's scaled by their smallest axis), the radius scaled by the frame's largest scale
     int clipSphereClass(const in vec3 center, const in float radius) {
         #if defined(dClipping)
             int flag = int(floor(vClipping * 255.0 + 0.5));
@@ -208,8 +212,8 @@ float clipObjectSD(const in vec3 center, const in mat4 frame, const in vec4 shap
             vec2 x = clipSlab(qF.x, qB.x, size.x), y = clipSlab(qF.y, qB.y, size.y), z = clipSlab(qF.z, qB.z, size.z);
             return vec2(max(x.x, max(y.x, z.x)), min(x.y, min(y.y, z.y)));
         } else if (type == 4) {
-            vec2 o = qF.xz, d = (qB - qF).xz;
-            vec2 body = clipQuadratic(dot(d, d), dot(o, d), dot(o, o) - size.x * size.x);
+            vec2 o = qF.xz / size.xz, d = (qB - qF).xz / size.xz;
+            vec2 body = clipQuadratic(dot(d, d), dot(o, d), dot(o, o) - 1.0);
             vec2 slab = clipSlab(qF.y, qB.y, size.y);
             return vec2(max(body.x, slab.x), min(body.y, slab.y));
         } else if (type == 5) {

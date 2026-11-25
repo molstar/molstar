@@ -21,6 +21,8 @@ import type {
 } from '../texture.js';
 import type { Sphere3D } from '@molstar/core/math/geometry';
 import type { InstanceGrid } from '@molstar/core/math/geometry/instance-grid';
+import type { InstancePoses } from '@molstar/core/math/geometry/instance-transforms';
+import type { InstancePosesValue, TransformValues } from '../transform-parts.js';
 import { Clip } from '@molstar/core/util/clip';
 import type { DrawIndirect, StorageBuffer, StorageBufferSpec } from '../compute.js';
 import { convertDepthRange, type DepthRangeConversion, type DepthRangeTag } from '../depth-range.js';
@@ -43,6 +45,10 @@ export type ValueKindType = {
   uint32: Uint32Array;
   sphere: Sphere3D;
   instanceGrid: InstanceGrid;
+  /** an object's base poses (`TransformData.poses`) */
+  poses: InstancePoses | undefined;
+  /** an object's poses as drawn, or a merged object's parts (`transform-parts.ts`) */
+  instancePoses: InstancePosesValue;
   drawIndirect: DrawIndirect | undefined;
   clipObjects: Clip.Objects;
   /** storage buffers of render schemas (`StorageBufferSpec`), unset on backends without them */
@@ -55,6 +61,7 @@ export type ValueKind = keyof ValueKindType;
 export type DataKindValue = {
   'data-uint8': DataArray<Uint8Array>;
   'data-float32': DataArray<Float32Array>;
+  'data-int16': DataArray<Int16Array>;
 };
 export type DataKind = keyof DataKindValue;
 export type DataValues = { [k: string]: ValueCell<DataArray<any>> };
@@ -90,7 +97,7 @@ export function splitValues(schema: RenderableSchema, values: RenderableValues, 
     if (spec.type === 'attribute') {
       attributeValues[k] =
         spec.itemSize === AffineRowsItemSize
-          ? affineRowsCell(values[k])
+          ? affineRowsCell(values[k], values as unknown as TransformValues)
           : spec.kind === 'oct16'
             ? octNormalsCell(values[k])
             : values[k];
@@ -132,8 +139,8 @@ function convertUniforms(schema: RenderableSchema, values: UniformValues, conver
 /**
  * Condition for a texture or attribute to be used by a program: any of the given flattened
  * define names (as tested in shader code, e.g. 'dUsePalette', 'dColorType_grid',
- * 'emulateVertexId') is defined, a '!' prefix negates a name.
- * Must cover all uses in the shader code, a superset is fine.
+ * 'emulateVertexId') is defined, a '!' prefix negates a name; names joined by '&' all of them
+ * (e.g. '!dCulled&!dInstanceStorage'). Must cover all uses in the shader code, a superset is fine.
  */
 export type UsedIf = readonly string[];
 
@@ -165,11 +172,17 @@ export function getDefineValuesLookup(defineValues: DefineValues): DefineLookup 
 export function isUsed(spec: { readonly usedIf?: UsedIf }, defines: DefineLookup): boolean {
   if (!spec.usedIf) return true;
   for (const condition of spec.usedIf) {
-    const negate = condition.startsWith('!');
-    const defined = defines(negate ? condition.slice(1) : condition);
-    if (defined === undefined || defined !== negate) return true;
+    if (condition.includes('&') ? condition.split('&').every((c) => mayHold(c, defines)) : mayHold(condition, defines))
+      return true;
   }
   return false;
+}
+
+/** Whether `name` (a '!' prefix negating it) is defined, or not known yet */
+function mayHold(name: string, defines: DefineLookup) {
+  const negate = name.startsWith('!');
+  const defined = defines(negate ? name.slice(1) : name);
+  return defined === undefined || defined !== negate;
 }
 
 /** `kind`, `itemSize` and `divisor` are the complete logical description, backends decide the transport */
@@ -300,8 +313,7 @@ export type TextureSpecOptions = {
   usedIf?: UsedIf;
   /**
    * Render items of a context share one texture per image object (`TextureImage`, `TextureVolume`), for images shared
-   * by many objects (the font atlas); not for kind 'texture' (owned outside the items), see
-   * `.v6/plans/gl/shared-textures.md`
+   * by many objects (the font atlas); not for kind 'texture' (owned outside the items)
    */
   shared?: boolean;
 };
@@ -350,25 +362,54 @@ export function getTextureDimension(spec: TextureSpec<TextureKind>, defines?: De
 }
 
 /**
- * Elements of a data array by index (`DataSpec`): `rgba8` four bytes, `r8` one, `rgba32f` four floats; read as `vec4`
- * (`r8` in `.r`) by the generated accessors `read_<name>(i)`
+ * Elements of a data array by index (`DataSpec`): `rgba8` four bytes, `r8` one, `rgba32f` four floats, `rgb32f-i32` four
+ * floats but an item's group (items of `DataSpec.itemTexels` elements, the first's fourth: an int32 as its bits, exact
+ * past 2^24; a `Float32Array`, the group written by `int32ToFloatBits`), `rgba16i` four int16 (8 bytes: quantized
+ * positions, splat shapes; the fourth a uint16 as its bits; WebGL1 floats, converted where written); read as `vec4`
+ * (`r8` in `.r`, `rgba16i` the integers as floats, the fourth unsigned) by the generated accessors `read_<name>(i)`,
+ * `rgb32f-i32` the group by
+ * `readGroup_<name>(i)` (an integer; the backends read the words as integers: integer bits read as a float are a
+ * denormal, which GPUs flush; WebGL1 floats, the groups converted where written, exact to 2^24)
  */
-export type DataFormat = 'rgba8' | 'r8' | 'rgba32f';
-export const DataFormatItemSize: { readonly [F in DataFormat]: number } = { rgba8: 4, r8: 1, rgba32f: 4 };
+export type DataFormat = 'rgba8' | 'r8' | 'rgba32f' | 'rgb32f-i32' | 'rgba16i';
+export const DataFormatItemSize: { readonly [F in DataFormat]: number } = {
+  rgba8: 4,
+  r8: 1,
+  rgba32f: 4,
+  'rgb32f-i32': 4,
+  rgba16i: 4,
+};
+type DataFormatKind<F extends DataFormat> = F extends 'rgba32f' | 'rgb32f-i32'
+  ? 'data-float32'
+  : F extends 'rgba16i'
+    ? 'data-int16'
+    : 'data-uint8';
+const DataFormatKinds: { readonly [F in DataFormat]: DataFormatKind<F> } = {
+  rgba8: 'data-uint8',
+  r8: 'data-uint8',
+  rgba32f: 'data-float32',
+  'rgb32f-i32': 'data-float32',
+  rgba16i: 'data-int16',
+};
 /**
  * Data read by element index (group, instance or vertex), a flat array without a 2D layout (`DataArray`): the backends
  * lay it out, WebGL as a data texture (its size uniform its own), WebGPU in storage pages; shaders read it with the
  * accessor `read_<name>(i)`
  */
-export type DataSpec<K extends DataKind = DataKind> = { type: 'data'; kind: K; format: DataFormat; usedIf?: UsedIf };
+export type DataSpec<K extends DataKind = DataKind> = {
+  type: 'data';
+  kind: K;
+  format: DataFormat;
+  usedIf?: UsedIf;
+  /** `rgb32f-i32`: elements per item, the first's fourth the group (1 where every element's is) */
+  itemTexels?: number;
+};
 export function DataSpec<F extends DataFormat>(
   format: F,
   usedIf?: UsedIf,
-): DataSpec<F extends 'rgba32f' ? 'data-float32' : 'data-uint8'> {
-  const kind = (format === 'rgba32f' ? 'data-float32' : 'data-uint8') as F extends 'rgba32f'
-    ? 'data-float32'
-    : 'data-uint8';
-  return { type: 'data', kind, format, usedIf };
+  itemTexels?: number,
+): DataSpec<DataFormatKind<F>> {
+  return { type: 'data', kind: DataFormatKinds[format] as DataFormatKind<F>, format, usedIf, itemTexels };
 }
 
 export type ElementsSpec<K extends ElementsKind> = { type: 'elements'; kind: K };
@@ -427,6 +468,11 @@ export const GlobalUniformSchema = {
   uViewOffset: GlobalUniformSpec('v2'),
   uModelScale: GlobalUniformSpec('f'),
   uDrawingBufferSize: GlobalUniformSpec('v2'),
+  /**
+   * the camera viewport's height in CSS pixels (not a pass target's): screen-sized objects (`uScreenSize`) are the same
+   * size in every pass of a frame (the pick at its scale)
+   */
+  uCssHeight: GlobalUniformSpec('f'),
 
   uCameraPosition: GlobalUniformSpec('v3'),
   uCameraDir: GlobalUniformSpec('v3'),
@@ -456,12 +502,20 @@ export const GlobalUniformSchema = {
   uMarkerAverage: GlobalUniformSpec('f'),
 
   uXrayEdgeFalloff: GlobalUniformSpec('f'),
+  /** the near and far planes of the scene's opaque depth (`tDepth`), for the overlay's occlusion (`dOverlay`) */
+  uOccluderNear: GlobalUniformSpec('f'),
+  uOccluderFar: GlobalUniformSpec('f'),
   uCelSteps: GlobalUniformSpec('f'),
   uExposure: GlobalUniformSpec('f'),
 
   uRenderMask: GlobalUniformSpec('i'),
   uMarkingDepthTest: GlobalUniformSpec('b'),
   uDepthBack: GlobalUniformSpec('b'),
+  /**
+   * the ghost pass (`Renderer.renderClipGhost`): what the clip objects remove is kept and the rest discarded; a
+   * primitive drawn whole by its center (spheres, cylinders, lines, points), a mesh by fragment
+   */
+  uClipGhost: GlobalUniformSpec('b'),
   uMarkingType: GlobalUniformSpec('i'),
   uPickType: GlobalUniformSpec('i'),
   uSolidInteriorPass: DrawUniformSpec('i'),
@@ -476,9 +530,12 @@ export type GlobalUniformValues = Values<GlobalUniformSchema>;
 export const GlobalTextureSchema = {
   /** opaque scene depth: a depth texture where supported (`depthTextureSupport`), packed `rgba` otherwise */
   tDepth: TextureSpec('texture', 'depth', 'ushort', 'nearest'),
-  /** depth with alpha packed into `rgba` (`packDepthWithAlphaToRGBA`): front transparent depth, marking depth */
+  /**
+   * depth with alpha packed into `rgba` (`packDepthWithAlphaToRGBA`): front transparent depth (the overlay's occlusion
+   * too), marking depth
+   */
   tDepthAlpha: TextureSpec('texture', 'rgba', 'ubyte', 'nearest', undefined, {
-    usedIf: ['dRenderVariant_emissive', 'dRenderVariant_marking'],
+    usedIf: ['dRenderVariant_emissive', 'dRenderVariant_marking', 'dOverlay'],
   }),
 
   // dpoit
@@ -513,10 +570,13 @@ export const SegmentSchema = {
    * per instance its segment's (member's) x: groupCount, y: groupInstance offset (base - instanceBase * groupCount),
    * z: group offset, read by every color, marker and layer index; w: the segment's index, its elements of `tSegment`
    */
-  aSegment: AttributeSpec('float32', 4, 1, ['dSegmented']),
+  aSegment: AttributeSpec('int32', 4, 1, ['dSegmented']),
   /**
-   * per segment two elements, read by `aSegment.w` where needed (the shaders' `aSegmentSphere`, `aSegmentLod`): the
-   * invariant bounding sphere (xyz: center, w: radius); the per-lod-level radius scales (see spheres' `lodLevels`)
+   * per segment `SegmentTexels` elements, read by `aSegment.w` where needed (the shaders' `aSegmentSphere`,
+   * `aSegmentLod`, `aSegmentStride`, `aSegmentItem`): the invariant bounding sphere (xyz: center, w: radius); the
+   * per-lod-level radius scales (see spheres' `lodLevels`); the per-lod-level strides (quad `p` draws item `p * stride`,
+   * spheres' and points'); its first item in the merged items, high and low 16 bits (exact as floats); its quantized
+   * centers' origin (xyz) and scale (spheres' `dSites`)
    */
   tSegment: DataSpec('rgba32f', ['dSegmented']),
   /** index of the lod level currently being drawn, selects a component of the segment's level scales */
@@ -524,6 +584,8 @@ export const SegmentSchema = {
   dSegmented: DefineSpec('boolean'),
 } as const;
 export type SegmentSchema = typeof SegmentSchema;
+/** The elements of `tSegment` per segment (`SegmentSchema`) */
+export const SegmentTexels = 5;
 export type SegmentValues = Values<SegmentSchema>;
 
 export const ColorSchema = {
@@ -574,6 +636,10 @@ export const MarkerSchema = {
   markerStatus: ValueSpec('number'),
   /** the marker type (`MarkerType`); `uInstanceGranularity` selects the index */
   markerType: ValueSpec('string'),
+  /** per instance, how many of its entries are marked (`MarkerData.markerInstanceCounts`) */
+  markerInstanceCounts: ValueSpec('uint32'),
+  /** the instances with a marked entry */
+  markedInstanceCount: ValueSpec('number'),
 } as const;
 export type MarkerSchema = typeof MarkerSchema;
 export type MarkerValues = Values<MarkerSchema>;
@@ -681,6 +747,7 @@ export const BaseSchema = {
   dGeometryType: DefineSpec('string', [
     'cylinders',
     'directVolume',
+    'gaussianSplats',
     'image',
     'lines',
     'mesh',
@@ -715,8 +782,11 @@ export const BaseSchema = {
   uClipObjectFrame: MaterialUniformSpec('m4[]', Clip.MaxObjectCount, 'uClipObjectCount'),
   /** per clip object its half size, the type in `w`, negative where inverted (`Clip.Objects.shape`) */
   uClipObjectShape: MaterialUniformSpec('v4[]', Clip.MaxObjectCount, 'uClipObjectCount'),
+  /** what the clip objects remove drawn by the ghost pass (`Renderer.renderClipGhost`); false: opted out */
+  clipGhost: ValueSpec('boolean'),
 
-  aInstance: AttributeSpec('float32', 1, 1),
+  /** the instance's id (its index into the instance data and layers): an integer, exact past 2^24 */
+  aInstance: AttributeSpec('uint32', 1, 1),
   /**
    * final per-instance transform calculated for instance `i` as
    * `aTransform[i] = matrix * transform[i] * extraTransform[i]`; a `Mat4` per instance on the CPU, its first three rows
@@ -728,6 +798,18 @@ export const BaseSchema = {
 
   /** final alpha, the base alpha clamped to [0, 1] (set with it) */
   uAlpha: MaterialUniformSpec('f'),
+  /**
+   * the least alpha picking takes the object to have (`uPickingAlphaThreshold`): 0, or 1 where it is picked at any
+   * opacity (`pickAtAnyAlpha`: widgets); a floor, so that what sets `uAlpha` need not set it too
+   */
+  uPickingAlphaMin: MaterialUniformSpec('f'),
+  /**
+   * in the overlay layer (set by the canvas): fragments behind the scene's opaque depth (`tDepth`, its planes
+   * `uOccluderNear`, `uOccluderFar`) have their alpha multiplied by `uOccludedAlpha` (1 on top, 0 hidden, between
+   * x-ray)
+   */
+  dOverlay: DefineSpec('boolean'),
+  uOccludedAlpha: MaterialUniformSpec('f'),
   uMetalness: MaterialUniformSpec('f'),
   uRoughness: MaterialUniformSpec('f'),
   uBumpiness: MaterialUniformSpec('f'),
@@ -758,12 +840,28 @@ export const BaseSchema = {
 
   /** global transform, see aTransform */
   matrix: ValueSpec('m4'),
+  /**
+   * transient transform of an object shown moved (a drag before its release), after `aTransform`: applied by the vertex
+   * stages and the culling, not baked; the identity at rest, see `TransformData`. A merged object's is its own, the
+   * whole object's: its members' are not read (a merged object moves as one)
+   */
+  uObjectTransform: ObjectUniformSpec('m4'),
   /** base per-instance transform, see aTransform */
   transform: ValueSpec('float32'),
   /** additional per-instance transform, see aTransform; empty until set */
   extraTransform: ValueSpec('float32'),
   /** whether extraTransform is used, see aTransform */
   hasExtraTransform: ValueSpec('boolean'),
+  /**
+   * the instances as poses in place of `transform` (a particle target's): in their order, the
+   * moves composed into their matrix; none with matrices
+   */
+  poses: ValueSpec('poses'),
+  /**
+   * the instances as drawn as poses in place of `aTransform` (empty then): the grid's order, `matrix` applied; a merged
+   * object's members' parts where one has poses (`transform-parts.ts`); read through `getTransformParts`
+   */
+  instancePoses: ValueSpec('instancePoses'),
   /** denotes reflection in transform */
   hasReflection: ValueSpec('boolean'),
   /**
@@ -778,6 +876,9 @@ export const BaseSchema = {
   invariantBoundingSphere: ValueSpec('sphere'),
 
   instanceGrid: ValueSpec('instanceGrid'),
+  /** the instances' cell and batch sizes (`hasInstanceCells`): what their grid is built with */
+  instanceCellSize: ValueSpec('number'),
+  instanceBatchSize: ValueSpec('number'),
 } as const;
 export type BaseSchema = typeof BaseSchema;
 export type BaseValues = Values<BaseSchema>;

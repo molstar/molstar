@@ -1,0 +1,340 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import { hashString } from '@molstar/core/data/util/hash-functions';
+import { Color } from '@molstar/core/util/color/color';
+import { type Legend as MolLegend, ScaleLegend, TableLegend } from '@molstar/core/util/legend';
+import { toRgb } from './colors.js';
+import type { Channel } from './compile.js';
+import type { ChannelName } from './forms.js';
+import { normalize } from './palettes.js';
+
+// Legends (_spec/README.md "Themes", Legends): derived from a layer's resolved channel, never written; merged when they
+// say the same; converted to Mol*'s `TableLegend` and `ScaleLegend` for a Mol* host's legend control.
+
+export type LegendEntries =
+  | {
+      readonly kind: 'ramp';
+      /** RGBA colors at 0..1 of the domain. */
+      readonly stops: readonly { readonly color: number; readonly at: number }[];
+      readonly ticks: readonly number[];
+      /** Each tick's place on the ramp, 0..1 through the scale (and its center at 0.5 with `mid`). */
+      readonly tickAt: readonly number[];
+      readonly scale: 'linear' | 'log' | 'sqrt';
+      readonly mid?: number;
+    }
+  | { readonly kind: 'steps'; readonly edges: readonly number[]; readonly colors: readonly number[] }
+  | {
+      readonly kind: 'swatches';
+      readonly items: readonly { readonly label: string; readonly color: number; readonly value?: string }[];
+    }
+  | { readonly kind: 'sizes'; readonly items: readonly { readonly value: number; readonly size: number }[] };
+
+/** What a legend says once (`Legend.notes`). */
+export type LegendNote = 'unlisted' | 'substituted' | 'width';
+
+export interface Legend {
+  /** What two legends that say the same share: they merge into one. */
+  readonly key: string;
+  readonly title: string;
+  readonly channel: ChannelName;
+  /** The scale's address when the channel names a scale node. */
+  readonly scale?: string;
+  /** The field the channel reads. */
+  readonly field?: string;
+  readonly entries: LegendEntries;
+  /** The domain as resolved; `open`: an end follows the data in view ("in view"). */
+  readonly domain?: readonly [number, number];
+  readonly open: boolean;
+  /** `vocabulary`: every listed value; `painted`: what was drawn (EC-204). */
+  readonly source: 'vocabulary' | 'painted';
+  /** Entries past `maxItems`. */
+  readonly more: number;
+  /**
+   * `unlisted`: values the palette does not list take hashed colors, listed only once painted. `substituted`: a reader's
+   * color-blind substitution. `width`: a mark's width is its item's length (a bridge's ribbons: their aligned length).
+   */
+  readonly notes: readonly LegendNote[];
+  /** The layers (keys) it keys. */
+  readonly layers: readonly string[];
+  /**
+   * The layers of `layers` the spec hides (`hidden: true`): a viewer keeps a hidden layer's legend in its place, its
+   * entries with no action (the viewer's legends); absent when none is.
+   */
+  readonly hidden?: readonly string[];
+  /**
+   * The channel that tells it from another legend of the same title (a layer's colors and sizes, `Variants` twice): set
+   * after the merge, only where one title has legends of more than one channel. `title` itself stays the track's.
+   */
+  readonly qualifier?: string;
+}
+
+/** The title a legend is shown under: its `title`, then its channel in brackets where it has a `qualifier`. */
+export const legendTitle = (l: Pick<Legend, 'title' | 'qualifier'>): string =>
+  l.qualifier ? `${l.title} (${l.qualifier})` : l.title;
+
+/** Legends after their merge: those that share a title with a legend of another channel say their channel. */
+export function qualifyLegends(legends: readonly Legend[]): Legend[] {
+  return legends.map((l) =>
+    legends.some((o) => o.title === l.title && o.channel !== l.channel) ? { ...l, qualifier: l.channel } : l,
+  );
+}
+
+export interface LegendOptions {
+  /** The legend's title: the layer's label (its track's). */
+  readonly title: string;
+  readonly layer: string;
+  /** The values drawn (categories painted in view), in order. */
+  readonly painted?: Iterable<string>;
+  /** Entries listed before `more` counts the rest: the part's prop (12). */
+  readonly maxItems?: number;
+}
+
+/** A log scale's ticks: its decades inside the domain (the ends when none is). */
+export function logTicks(lo: number, hi: number): number[] {
+  if (!(lo > 0) || !(hi > lo)) return niceTicks(lo, hi);
+  const out: number[] = [];
+  for (let e = Math.ceil(Math.log10(lo)); e <= Math.floor(Math.log10(hi)); e++) out.push(10 ** e);
+  return out.length ? out : [lo, hi];
+}
+
+/** Nice ticks over a domain: steps of 1, 2, 5 × 10ⁿ, at most about five. */
+export function niceTicks(lo: number, hi: number, count = 5): number[] {
+  if (!(hi > lo)) return [lo];
+  const raw = (hi - lo) / count;
+  const p = 10 ** Math.floor(Math.log10(raw));
+  const step = [1, 2, 5, 10].map((m) => m * p).find((s) => s >= raw) ?? 10 * p;
+  const out: number[] = [];
+  for (let t = Math.ceil(lo / step) * step; t <= hi + step * 1e-9; t += step) out.push(Number(t.toPrecision(12)));
+  return out;
+}
+
+/** A channel's legend, or undefined (a uniform channel says nothing a key would). */
+export function legendOf(channel: Channel, options: LegendOptions): Legend | undefined {
+  const src = channel.legend;
+  if (!src) return undefined;
+  const maxItems = options.maxItems ?? 12;
+  const notes: LegendNote[] = channel.scheme?.substituted ? ['substituted'] : [];
+  let entries: LegendEntries;
+  let source: Legend['source'] = 'vocabulary';
+  let domain: [number, number] | undefined;
+  let open = false;
+  let more = 0;
+  let scale: string | undefined;
+  let field: string | undefined;
+  if (src.kind === 'swatches') {
+    // a letters form's swatches: the letters drawn (`painted`) when given (an RNA's U, never its T; a gap only where
+    // there are gaps), then a color once (a group's label, not its letters again)
+    const drawn = options.painted ? new Set(options.painted) : undefined;
+    const seen = new Set<number | string>();
+    const items = src.items.filter((i) => {
+      if (typeof i.value !== 'number') return false;
+      if (drawn && i.letters !== undefined && ![...i.letters].some((l) => drawn.has(l) || drawn.has(l.toUpperCase())))
+        return false;
+      if (seen.has(i.value)) return false;
+      seen.add(i.value);
+      return true;
+    });
+    more = Math.max(0, items.length - maxItems);
+    entries = {
+      kind: 'swatches',
+      items: items.slice(0, maxItems).map((i) => ({ label: i.label, color: i.value as number })),
+    };
+  } else if (src.kind === 'sizes') {
+    const [lo, hi] = src.domain;
+    // the size channel's own scale (a radius by `sqrt`): one `normalize` for the marks and their key
+    const at = (v: number) => {
+      const t = normalize(v, src.type, lo, hi, undefined);
+      return src.range[0] + (src.range[1] - src.range[0]) * (Number.isNaN(t) ? 0 : Math.max(0, Math.min(1, t)));
+    };
+    entries = { kind: 'sizes', items: [lo, (lo + hi) / 2, hi].map((v) => ({ value: v, size: at(v) })) };
+    domain = [lo, hi];
+    field = src.field;
+    scale = src.scale;
+  } else {
+    const p = src.palette;
+    field = src.field;
+    scale = src.scale;
+    open = src.open;
+    if (p.kind === 'direct') return undefined;
+    if (p.kind === 'categorical') {
+      const listed = p.values ?? [];
+      const values: string[] = [...listed];
+      const seen = new Set(values);
+      for (const v of options.painted ?? [])
+        if (!seen.has(v)) {
+          seen.add(v);
+          values.push(v);
+        }
+      source = listed.length ? 'vocabulary' : 'painted';
+      // hashed values cannot be listed before they are painted: said once where some are (EC-204)
+      if (p.hashed && (!listed.length || values.length > listed.length)) notes.push('unlisted');
+      more = Math.max(0, values.length - maxItems);
+      entries = {
+        kind: 'swatches',
+        items: values.slice(0, maxItems).flatMap((v) => {
+          const c = p.color(v);
+          return c === undefined ? [] : [{ label: v, color: c, value: v }];
+        }),
+      };
+    } else if (p.kind === 'binned') {
+      entries = { kind: 'steps', edges: p.edges ?? [], colors: p.colors };
+      domain = p.domain ? [p.domain[0], p.domain[1]] : undefined;
+    } else {
+      const [lo, hi] = p.domain ?? [0, 1];
+      domain = [lo, hi];
+      const at = p.at ?? [];
+      const ticks = p.scale === 'log' ? logTicks(lo, hi) : niceTicks(lo, hi);
+      if (p.mid !== undefined && !ticks.includes(p.mid)) {
+        ticks.push(p.mid);
+        ticks.sort((a, b) => a - b);
+      }
+      entries = {
+        kind: 'ramp',
+        stops: p.colors.map((color, i) => ({ color, at: at[i] ?? 0 })),
+        ticks,
+        tickAt: ticks.map((t) => normalize(t, p.scale, lo, hi, p.mid)),
+        scale: p.scale,
+        ...(p.mid !== undefined ? { mid: p.mid } : {}),
+      };
+    }
+  }
+  const title = (src.kind === 'palette' && src.label) || options.title;
+  const key = `${channel.name}|${scale ?? ''}|${hashString(JSON.stringify([entries, domain, open])) >>> 0}`;
+  return {
+    key,
+    title,
+    channel: channel.name,
+    ...(scale ? { scale } : {}),
+    ...(field ? { field } : {}),
+    entries,
+    ...(domain ? { domain } : {}),
+    open,
+    source,
+    more,
+    notes,
+    layers: [options.layer],
+  };
+}
+
+/**
+ * Legends with the same key merged into one (EC-132): its layers all of theirs, titled by what their titles share (the
+ * words they start with alike), else by the first; in the order first met.
+ */
+export function mergeLegends(legends: readonly Legend[]): Legend[] {
+  const byKey = new Map<string, Legend[]>();
+  for (const l of legends) {
+    const g = byKey.get(l.key);
+    if (g) g.push(l);
+    else byKey.set(l.key, [l]);
+  }
+  const out: Legend[] = [];
+  for (const g of byKey.values()) {
+    if (g.length === 1) {
+      out.push(g[0]);
+      continue;
+    }
+    const words = g.map((l) => l.title.split(/\s+/));
+    let n = 0;
+    while (words.every((t) => t[n] !== undefined && t[n] === words[0][n])) n++;
+    out.push({ ...g[0], title: words[0].slice(0, n).join(' ') || g[0].title, layers: g.flatMap((l) => l.layers) });
+  }
+  return out;
+}
+
+/**
+ * One layer's legends over several strips (a block's strip draws what its own cells hold), made one: the swatches of
+ * a layer's channel are the union of what every strip lists, in the order first met, each (label, color) once, so the
+ * key lists every category the layer draws in view, not those of its first strip; the rest as the first says them.
+ * `maxItems` lists the first of them and counts the rest (`more`). A legend of another kind, or alone, is as it is.
+ */
+export function unionLegends(legends: readonly Legend[], maxItems = 12): Legend[] {
+  type Item = { readonly label: string; readonly color: number; readonly value?: string };
+  const groups = new Map<string, { first: Legend; items: Map<string, Item>; notes: Set<LegendNote> }>();
+  const order: (Legend | string)[] = [];
+  const once = new Set<string>();
+  for (const l of legends) {
+    if (l.entries.kind !== 'swatches' || l.layers.length !== 1) {
+      // a legend of another kind, made again by each strip's lay: once
+      const id = `${l.layers.join()}|${l.key}`;
+      if (!once.has(id)) order.push(l);
+      once.add(id);
+      continue;
+    }
+    const id = `${l.layers[0]}|${l.channel}|${l.scale ?? ''}`;
+    let g = groups.get(id);
+    if (!g) {
+      groups.set(id, (g = { first: l, items: new Map(), notes: new Set() }));
+      order.push(id);
+    }
+    for (const i of l.entries.items)
+      if (!g.items.has(`${i.label}\u0000${i.color}`)) g.items.set(`${i.label}\u0000${i.color}`, i);
+    for (const n of l.notes) g.notes.add(n);
+  }
+  return order.map((o) => {
+    if (typeof o !== 'string') return o;
+    const { first, items, notes } = groups.get(o)!;
+    const all = [...items.values()];
+    // alone: as it is (its own `more` counts what its maxItems left out)
+    if (all.length === (first.entries as { items: readonly Item[] }).items.length && notes.size === first.notes.length)
+      return first;
+    const entries = { kind: 'swatches' as const, items: all.slice(0, maxItems) };
+    return {
+      ...first,
+      entries,
+      more: Math.max(first.more, all.length - maxItems),
+      notes: [...notes],
+      key: `${first.channel}|${first.scale ?? ''}|${hashString(JSON.stringify([entries, first.domain, first.open])) >>> 0}`,
+    };
+  });
+}
+
+/** A number as a legend writes it: up to 4 significant digits. */
+export function formatValue(v: number): string {
+  return Number.isInteger(v) ? String(v) : String(Number(v.toPrecision(4)));
+}
+
+/**
+ * The legend as Mol*'s: a ramp as a `ScaleLegend`, steps and swatches as a `TableLegend`; sizes have none. A Mol*
+ * legend has no title: the host titles it with the legend's `title`, the track's, never the channel-qualified one (the
+ * size legend it drops is not there to tell it from).
+ */
+export function toMolLegend(legend: Legend): MolLegend | undefined {
+  const e = legend.entries;
+  if (e.kind === 'ramp') {
+    const [lo, hi] = legend.domain ?? [0, 1];
+    return ScaleLegend(
+      formatValue(lo),
+      formatValue(hi),
+      e.stops.map((s) => [Color(toRgb(s.color)), s.at] as [Color, number]),
+    );
+  }
+  if (e.kind === 'steps')
+    return TableLegend(
+      e.colors.map(
+        (c, i) => [`${formatValue(e.edges[i])}–${formatValue(e.edges[i + 1])}`, toRgb(c)] as [string, Color],
+      ),
+    );
+  if (e.kind === 'swatches') return TableLegend(e.items.map((i) => [i.label, toRgb(i.color)] as [string, Color]));
+  return undefined;
+}
+
+/** Two legend lists equal in what they show: the viewer publishes legends on change only. */
+export function legendsEqual(a: readonly Legend[], b: readonly Legend[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++)
+    if (
+      a[i].key !== b[i].key ||
+      a[i].title !== b[i].title ||
+      a[i].qualifier !== b[i].qualifier ||
+      a[i].more !== b[i].more ||
+      a[i].layers.join() !== b[i].layers.join() ||
+      (a[i].hidden ?? []).join() !== (b[i].hidden ?? []).join() ||
+      a[i].notes.join() !== b[i].notes.join()
+    )
+      return false;
+  return true;
+}

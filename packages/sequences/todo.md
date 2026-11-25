@@ -153,6 +153,21 @@ shows the wild type's letter. Case 15 colors the cell under uncolored letters in
 
 ## Follow-ups
 
+**Heavy lane on Windows: two failures** (2026-11-14). `viewer/_test/svg/cli.test.ts`'s confined-root case makes a
+symlink (`symlinkSync`), which Windows refuses without elevated rights or developer mode (EPERM): skip it there, or a
+junction for a directory. `viewer/_test/exports.test.ts`'s "unused-exports listing" expects `zzNobodyMentionsThis`
+listed and gets nothing: the listing's program (`scripts/exports.js`, `unused`) over a written folder of packages,
+likely a path or a module resolution of Windows'. Seen in a run of `pnpm test:heavy` while working on particle tiles;
+not looked into.
+
+**Bug: a mark's loci past the link's chains** (2026-11-07). `StructureLink.fromLoci`
+(`packages/prism/viewer/src/sequence/molstar/link.ts`) throws "Cannot read properties of undefined (reading 'system')":
+`chainMember[c]` gives a slot past `chains`, so `this.chains[m]` is undefined. Called from the marks' subscription
+(`viewer/src/sequence/link-views.ts`, `coordsOf`). Likely: the link's maps (`chainAt`, `elementAt`) are keyed by unit
+id, which repeats across structures and their versions, so a mark of another structure (or of a rebuilt one) reads maps
+of other chains. Fix: skip loci whose structure is not the link's, or check the chain slot; with a test of a mark from
+another structure. Seen in Prism before the clip ghost work. _Trigger:_ next work on the link, or the error seen again.
+
 **Dot plots, the rest** (2026-10-13). The keyboard cursor on a plot moves across only (no partner); a square plot taller
 than its box's room (a wide screen) is capped there (so it shows whole once scrolled to), its cells flatter than square;
 the axes are blocks only (an alignment's columns are not drawn on a plot); a pair's reversed end draws its segment

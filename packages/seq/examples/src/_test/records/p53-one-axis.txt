@@ -1,0 +1,79 @@
+size 640 116
+pass background
+rect 0 0 640 116 #f1efeaff
+rect 96 8 536 20 #e9e6e0ff squircle 6.67
+rect 96 32 536 50 #e9e6e0ff squircle 8
+rect 96 86 536 20 #e9e6e0ff squircle 6.67
+pass data
+clip 96 8 536 20 squircle 6.67
+rect 96 8 54 20 #cdebd6ff
+rect 150 8 53 20 #efe8b8ff
+rect 203 8 54 20 #efe8b8ff
+rect 257 8 53 20 #efe8b8ff
+rect 310 8 54 20 #efe8b8ff
+rect 364 8 54 20 #cdebd6ff
+rect 418 8 53 20 #f5cfcfff
+rect 471 8 54 20 #cfe0f5ff
+rect 525 8 53 20 #f5cfcfff
+rect 578 8 54 20 #cfe0f5ff
+text "Thr" 123 22.2 middle "12px mono" #2d271eff width 0 max 54
+text "Pro" 176.5 22.2 middle "12px mono" #2d271eff width 0 max 53
+text "Pro" 230 22.2 middle "12px mono" #2d271eff width 0 max 54
+text "Pro" 283.5 22.2 middle "12px mono" #2d271eff width 0 max 53
+text "Gly" 337 22.2 middle "12px mono" #2d271eff width 0 max 54
+text "Thr" 391 22.2 middle "12px mono" #2d271eff width 0 max 54
+text "Arg" 444.5 22.2 middle "12px mono" #2d271eff width 0 max 53
+text "Val" 498 22.2 middle "12px mono" #2d271eff width 0 max 54
+text "Arg" 551.5 22.2 middle "12px mono" #2d271eff width 0 max 53
+text "Ala" 605 22.2 middle "12px mono" #2d271eff width 0 max 54
+unclip
+clip 96 32 536 50 squircle 8
+rect 96 65 268 12 #18a67fff
+rect 364 65 268 12 #18a67fff
+unclip
+clip 96 86 536 20 squircle 6.67
+rect 346 86 18 20 #cfe0f5ff
+rect 328 86 18 20 #f6e2b6ff
+rect 310 86 18 20 #f6e2b6ff
+rect 293 86 17 20 #cfe0f5ff
+rect 275 86 18 20 #cfe0f5ff
+rect 257 86 18 20 #cfe0f5ff
+rect 239 86 18 20 #cfe0f5ff
+rect 221 86 18 20 #cfe0f5ff
+rect 203 86 18 20 #cfe0f5ff
+rect 185 86 18 20 #cfe0f5ff
+rect 167 86 18 20 #cfe0f5ff
+rect 150 86 17 20 #cfe0f5ff
+rect 132 86 18 20 #cfe0f5ff
+rect 114 86 18 20 #cfe0f5ff
+rect 96 86 18 20 #cdebd6ff
+rect 614 86 18 20 #cfe0f5ff
+rect 596 86 18 20 #cfe0f5ff
+rect 578 86 18 20 #f6e2b6ff
+rect 561 86 17 20 #f6e2b6ff
+rect 543 86 18 20 #f6e2b6ff
+rect 525 86 18 20 #cfe0f5ff
+rect 507 86 18 20 #f6e2b6ff
+rect 489 86 18 20 #f5cfcfff
+rect 471 86 18 20 #f6e2b6ff
+rect 453 86 18 20 #f6e2b6ff
+rect 435 86 18 20 #f6e2b6ff
+rect 418 86 17 20 #cfe0f5ff
+rect 400 86 18 20 #cfe0f5ff
+rect 382 86 18 20 #cfe0f5ff
+rect 364 86 18 20 #cdebd6ff
+glyphs "12px mono" 100.2 per C 355 #2d271eff, G 337 #2d271eff, G 319 #2d271eff, C 301.5 #2d271eff, C 284 #2d271eff, C 266 #2d271eff, C 248 #2d271eff, C 230 #2d271eff, C 212 #2d271eff, C 194 #2d271eff, C 176 #2d271eff, C 158.5 #2d271eff, C 141 #2d271eff, C 123 #2d271eff, A 105 #2d271eff, C 623 #2d271eff, C 605 #2d271eff, G 587 #2d271eff, G 569.5 #2d271eff, G 552 #2d271eff, C 534 #2d271eff, G 516 #2d271eff, T 498 #2d271eff, G 480 #2d271eff, G 462 #2d271eff, G 444 #2d271eff, C 426.5 #2d271eff, C 409 #2d271eff, C 391 #2d271eff, A 373 #2d271eff
+unclip
+rect 363.5 8 1 98 #8a847aff
+rect 361.5 5 5 3 #8a847aff
+pass window
+pass highlight
+pass selection
+pass hover
+pass cursor
+pass labels
+text "p53" 8 22.2 start "12px sans" #6b655cff width 20.02 max 80
+text "← along p53" 34.02 22.2 start "12px sans" #6b655cff width 62.71 max 53.98
+text "Domains" 8 61.2 start "12px sans" #6b655cff width 47.34 max 80
+text "DNA-binding" 99 74.5 start "10px sans" #2d271eff width 56.68 max 56.68
+text "TP53" 8 100.2 start "12px sans" #6b655cff width 28.68 max 80

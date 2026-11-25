@@ -4,13 +4,13 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import type { ProgramVariant } from '../../render-item.js';
+import { registerBuiltInWgslPrograms, type WgslProgram } from './program-registry.js';
 import type { DefineValues } from '../../shader-code.js';
-import type { DefineLookup } from '../../renderable/schema.js';
 import { getWgslDefineLookup, getWgslDefines } from '../program.js';
 import { copy_wgsl } from './copy.wgsl.js';
 import { cylinders_wgsl } from './cylinders.wgsl.js';
-import { dim_wgsl, overlay_wgsl } from './marking.wgsl.js';
+import { dim_wgsl, marking_depth_wgsl, overlay_wgsl } from './marking.wgsl.js';
+import { clip_ghost_wgsl } from './clip-ghost.wgsl.js';
 import { evaluate_wboit_wgsl } from './wboit.wgsl.js';
 import { blend_back_dpoit_wgsl, evaluate_dpoit_wgsl } from './dpoit.wgsl.js';
 import { bloom_blur_wgsl, bloom_composite_wgsl, bloom_luminosity_wgsl } from './bloom.wgsl.js';
@@ -18,12 +18,13 @@ import { lines_wgsl } from './lines.wgsl.js';
 import { mesh_wgsl } from './mesh.wgsl.js';
 import { multi_sample_compose_wgsl } from './multi-sample.wgsl.js';
 import { points_wgsl } from './points.wgsl.js';
+import { gaussian_splats_wgsl } from './gaussian-splats.wgsl.js';
 import { background_wgsl } from './background.wgsl.js';
 import { cas_wgsl } from './cas.wgsl.js';
 import { direct_volume_wgsl } from './direct-volume.wgsl.js';
 import { dof_wgsl } from './dof.wgsl.js';
 import { illumination_compose_wgsl, trace_wgsl } from './illumination.wgsl.js';
-import { hi_z_wgsl } from './hi-z.wgsl.js';
+import { hi_z_occluder_wgsl, hi_z_wgsl } from './hi-z.wgsl.js';
 import { volume_composite_wgsl } from './volume-composite.wgsl.js';
 import { image_wgsl } from './image.wgsl.js';
 import { fxaa_wgsl } from './fxaa.wgsl.js';
@@ -35,19 +36,6 @@ import { smaa_blend_wgsl, smaa_edges_wgsl, smaa_weights_wgsl } from './smaa.wgsl
 import { ssao_wgsl } from './ssao.wgsl.js';
 import { spheres_wgsl } from './spheres.wgsl.js';
 import { text_wgsl } from './text.wgsl.js';
-
-/**
- * A WGSL program, by the name of the `ShaderCode` it replaces. `source` may depend on the variant's defines (a lookup
- * of the flattened names, `dX` and `dX_value`): what a variant turns off (a feature's helpers, the reads of its
- * textures) is left out of the source, so that it is not bound; defines inside the source are for small branches
- */
-export interface WgslProgram {
-  readonly source: string | ((defines: DefineLookup) => string);
-  /** render variants the source implements */
-  readonly variants: readonly ProgramVariant[];
-  /** the first feature selected by `defines` that the source doesn't implement */
-  readonly getUnsupported?: (defines: DefineValues) => string | undefined;
-}
 
 /** The source of a program (`WgslProgram.source`) for the variant of `defineValues` */
 export function resolveWgslSource(source: WgslProgram['source'], defineValues: DefineValues) {
@@ -76,7 +64,8 @@ const GridTypes = new Set(['volume', 'volumeInstance']);
 function getUnsupported(
   geometryTypes: string | string[],
   defines: DefineValues,
-  options: { solidInterior?: boolean; grid?: boolean } = {},
+  /** `direct`: the geometry's own colors, read by its shader (SOG's splats) */
+  options: { solidInterior?: boolean; grid?: boolean; direct?: boolean } = {},
 ) {
   const variant = value(defines, 'dRenderVariant');
   if (!PortedVariants.includes(variant as string)) {
@@ -86,7 +75,9 @@ function getUnsupported(
   if (!([] as string[]).concat(geometryTypes).includes(geometryType)) return `geometry type '${geometryType}'`;
   const isSupported = (t: string) => InstanceTypes.has(t) || (!!options.grid && GridTypes.has(t));
   const color = value(defines, 'dColorType') as string;
-  if (!ColorTypes.has(color) && !(options.grid && color === GridColorType)) return `color type '${color}'`;
+  if (!ColorTypes.has(color) && !(options.grid && color === GridColorType) && !(options.direct && color === 'direct')) {
+    return `color type '${color}'`;
+  }
   for (const type of ['dOverpaintType', 'dTransparencyType', 'dEmissiveType', 'dSubstanceType']) {
     const v = value(defines, type) as string | undefined;
     if (v !== undefined && !isSupported(v)) return `${type} '${v}'`;
@@ -137,6 +128,7 @@ const Programs: { [name: string]: WgslProgram } = {
   },
   ssao: { source: ssao_wgsl, variants: ['compute'] },
   'hi-z': { source: hi_z_wgsl, variants: ['compute'] },
+  'hi-z-occluder': { source: hi_z_occluder_wgsl, variants: ['compute'] },
   'volume-composite': { source: volume_composite_wgsl, variants: ['compute'] },
   'evaluate-wboit': { source: evaluate_wboit_wgsl, variants: ['compute'] },
   'Bloom Luminosity': { source: bloom_luminosity_wgsl, variants: ['compute'] },
@@ -152,6 +144,8 @@ const Programs: { [name: string]: WgslProgram } = {
   'smaa-weights': { source: smaa_weights_wgsl, variants: ['compute'] },
   'smaa-blend': { source: smaa_blend_wgsl, variants: ['compute'] },
   dim: { source: dim_wgsl, variants: ['compute'] },
+  'marking-depth': { source: marking_depth_wgsl, variants: ['compute'] },
+  'clip-ghost': { source: clip_ghost_wgsl, variants: ['compute'] },
   overlay: { source: overlay_wgsl, variants: ['compute'] },
   ssao_blur: { source: ssao_blur_wgsl, variants: ['compute'] },
   postprocessing: { source: postprocessing_wgsl, variants: ['compute'] },
@@ -186,13 +180,19 @@ const Programs: { [name: string]: WgslProgram } = {
     variants: ['color', 'pick', 'depth', 'marking', 'emissive', 'tracing'],
     getUnsupported: (d) => getUnsupported('points', d),
   },
+  'gaussian-splats': {
+    source: gaussian_splats_wgsl,
+    variants: ['color', 'pick', 'depth', 'marking', 'emissive', 'tracing'],
+    getUnsupported: (d) => getUnsupported('gaussianSplats', d, { direct: true }),
+  },
 };
+registerBuiltInWgslPrograms(Programs);
 
-export function getWgslProgram(name: string): WgslProgram | undefined {
-  return Programs[name];
-}
-
-/** The names of the registered programs (e.g. for a check that every one compiles) */
-export function getWgslProgramNames(): string[] {
-  return Object.keys(Programs);
-}
+export {
+  getWgslProgram,
+  getWgslProgramNames,
+  hasWgslProgram,
+  registerWgslProgram,
+  unregisterWgslProgram,
+  type WgslProgram,
+} from './program-registry.js';

@@ -55,7 +55,10 @@ export function createOverpaint(count: number, type: OverpaintType, overpaintDat
     Math.max(1, count),
     4,
     Uint8Array,
-    overpaintData && overpaintData.tOverpaint.ref.value.array,
+    // its array reused, not the empty one: shared by every object (one's layer another's)
+    overpaintData && overpaintData.tOverpaint.ref.value !== emptyOverpaintTexture
+      ? overpaintData.tOverpaint.ref.value.array
+      : undefined,
   );
   if (overpaintData) {
     ValueCell.update(overpaintData.tOverpaint, overpaint);

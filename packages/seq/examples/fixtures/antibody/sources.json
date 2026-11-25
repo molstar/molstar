@@ -1,0 +1,86 @@
+[
+  {
+    "file": "antibody/1N8Z.fasta",
+    "entry": "PDB 1N8Z, trastuzumab (Herceptin) Fab with the HER2 extracellular domain (Cho et al. 2003), chains A and B",
+    "url": "https://files.rcsb.org/download/1N8Z.cif",
+    "recorded": "2026-11-19",
+    "licence": [
+      "CC0-1.0"
+    ],
+    "attribution": "wwPDB, PDB 1N8Z, CC0 1.0, as served by RCSB PDB",
+    "trimmed": "chains A (light) and B (heavy) only, HER2 (chain C) not taken: each entity’s canonical letters (`_entity_poly`) and description (`_entity`) as a FASTA record named by entry and chain; coordinates and everything else dropped",
+    "derived": "none",
+    "bytesDownloaded": 845613,
+    "bytesFixture": 530,
+    "sha256Download": "9f22f02b6e514de56dab8a48bc31a16302a51397779e64c398ad3a7f05cb19a2",
+    "sha256Fixture": "c532cc406b9336a304b7c475fe7d10558e7666e8b3bf44e64fcf279583eda41e"
+  },
+  {
+    "url": "https://sabdab.opig.stats.ox.ac.uk/api/numerable-segment/890 https://sabdab.opig.stats.ox.ac.uk/api/numerable-segment/889",
+    "recorded": "2026-11-19",
+    "licence": [
+      "CC-BY-4.0"
+    ],
+    "attribution": "SAbDab (Dunbar et al. 2014; Schneider et al. 2022), Oxford Protein Informatics Group, CC BY 4.0; numbered segments 890 (light) and 889 (heavy) of pdb_00001n8z-B-A",
+    "bytesDownloaded": 12195,
+    "sha256Download": "ba3206664633d8be418a28fb8a167f8ebb3d7a04d6cf272c99733a915d088106",
+    "licenceEvidence": {
+      "url": "https://sabdab.opig.stats.ox.ac.uk/api/openapi.json",
+      "quoted": "{\"name\":\"Creative Commons Attribution 4.0 International (CC BY 4.0)\",\"url\":\"https://creativecommons.org/licenses/by/4.0/\"}",
+      "checked": "2026-11-19"
+    },
+    "selectedBy": {
+      "url": "https://sabdab.opig.stats.ox.ac.uk/api/pdb/pdb_00001n8z",
+      "bytes": 5107,
+      "sha256": "b9630b3583cae28bed989aef22bc0bd946e50deafd0083973e7d571dbfe23c51"
+    },
+    "file": "antibody/1N8Z-imgt.seq",
+    "entry": "SAbDab, IMGT numbering of 1N8Z’s variable domains (light chain A, heavy chain B)",
+    "trimmed": "each segment’s numbering only (its IMGT positions with a residue; the `-` positions and every other member dropped), placed on its chain of the FASTA file (the domain found in the chain’s letters, each residue checked), converted to seq: a range a position of the chain, its IMGT label, none outside the variable domain",
+    "derived": "none",
+    "bytesFixture": 6458,
+    "sha256Fixture": "b7431d065844e145ac4f5ed2aa1b10d4ffb60524f87e0cd5975f841a6a7e05c7"
+  },
+  {
+    "url": "https://sabdab.opig.stats.ox.ac.uk/api/numerable-segment/890 https://sabdab.opig.stats.ox.ac.uk/api/numerable-segment/889",
+    "recorded": "2026-11-19",
+    "licence": [
+      "CC-BY-4.0"
+    ],
+    "attribution": "SAbDab (Dunbar et al. 2014; Schneider et al. 2022), Oxford Protein Informatics Group, CC BY 4.0; numbered segments 890 (light) and 889 (heavy) of pdb_00001n8z-B-A",
+    "bytesDownloaded": 12195,
+    "sha256Download": "ba3206664633d8be418a28fb8a167f8ebb3d7a04d6cf272c99733a915d088106",
+    "licenceEvidence": {
+      "url": "https://sabdab.opig.stats.ox.ac.uk/api/openapi.json",
+      "quoted": "{\"name\":\"Creative Commons Attribution 4.0 International (CC BY 4.0)\",\"url\":\"https://creativecommons.org/licenses/by/4.0/\"}",
+      "checked": "2026-11-19"
+    },
+    "selectedBy": {
+      "url": "https://sabdab.opig.stats.ox.ac.uk/api/pdb/pdb_00001n8z",
+      "bytes": 5107,
+      "sha256": "b9630b3583cae28bed989aef22bc0bd946e50deafd0083973e7d571dbfe23c51"
+    },
+    "file": "antibody/1N8Z-kabat.seq",
+    "entry": "Kabat numbering of 1N8Z’s variable domains, derived from SAbDab’s IMGT numbering",
+    "trimmed": "as the IMGT file",
+    "derived": "Kabat’s labels computed from the IMGT labels by src/antibody/numbering.ts (counted between the anchors IMGT 23, 41, 104 and 118; insertions lettered after L27, L95, H35, H52 and H100); SAbDab2 serves IMGT’s numbering alone, so they are not derived from Chothia’s",
+    "bytesFixture": 6437,
+    "sha256Fixture": "a887ffc63647e99368868d054dda7788388c81ab4bcbb871de24a2c5641872ee"
+  },
+  {
+    "file": "antibody/3AVE.seq",
+    "entry": "PDB 3AVE, a fucosylated human IgG1 Fc with its N297 glycans (Matsumiya et al. 2007), mmCIF",
+    "url": "https://files.rcsb.org/download/3AVE.cif.gz",
+    "recorded": "2026-11-20",
+    "licence": [
+      "CC0-1.0"
+    ],
+    "attribution": "wwPDB, PDB 3AVE, CC0",
+    "trimmed": "the Fc entity (IGHG1_HUMAN P01857 108–330): its canonical letters (entity_poly) and chain A’s helices and strands (struct_conf, struct_sheet_range, label_seq_id) as ranges; coordinates, glycans, zinc and waters dropped (the glycans, links and units are code, checked against the entry by the tests)",
+    "derived": "none",
+    "bytesDownloaded": 757920,
+    "bytesFixture": 1507,
+    "sha256Download": "a018f215035632cdfa429548cda561c608b464774ba91238e2f5ec791a0bc07b",
+    "sha256Fixture": "43ae16d4ce4e41de5cdb668804f6075cc505d12d95e6efe3111bf1f54d9ff514"
+  }
+]

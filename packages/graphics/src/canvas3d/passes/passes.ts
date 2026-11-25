@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -31,6 +31,14 @@ export class Passes {
     this.pick = new PickPass(graphics, drs.width, drs.height, attribs.pickScale || 0.25);
     this.multiSample = new MultiSamplePass(graphics, this.draw);
     this.illumination = new IlluminationPass(graphics, this.draw);
+  }
+
+  /**
+   * What the passes hold beyond the context's lifetime: the background's assets (a skybox's, an image's) in the asset
+   * manager; their GPU resources go with the context
+   */
+  dispose() {
+    this.draw.postprocessing.background.dispose();
   }
 
   getByteCount() {

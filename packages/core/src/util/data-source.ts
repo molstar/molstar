@@ -14,6 +14,7 @@ import { type RuntimeContext, Task } from '@molstar/core/task';
 import { Asset, AssetManager } from './assets.js';
 import { RUNNING_IN_NODEJS } from './nodejs-shims.js';
 import { ungzip, unzip } from './zip/zip.js';
+import { getFS, setFS } from './internal/fs.js';
 
 export enum DataCompressionMethod {
   None,
@@ -46,6 +47,27 @@ export interface FetchDataParams<T extends DataType = 'string'> {
    * between chunks) cannot; the task then rejects as aborted, with the signal's reason
    */
   signal?: AbortSignal;
+  /** Whether cookies and HTTP authentication go with the request: `fetch`'s `credentials` (its default when absent). */
+  credentials?: RequestCredentials;
+  /** What a redirect does: `'follow'` it, or fail (`'error'`): `fetch`'s `redirect` (`'follow'` when absent). */
+  redirect?: 'follow' | 'error';
+  /**
+   * The largest body, in bytes as received (after the transfer's content decoding), enforced while the body streams:
+   * a larger one fails with `SizeLimitExceeded`, a declared `Content-Length` over it before the body is read.
+   */
+  maxBytes?: number;
+}
+
+/** A body or file is larger than `maxBytes` (`FetchDataParams`). */
+export class SizeLimitExceeded extends Error {
+  constructor(
+    readonly limit: number,
+    /** The URL of the download, or the name of the file. */
+    readonly source?: string,
+  ) {
+    super(`${source ?? 'The data'} is larger than the limit of ${limit} bytes`);
+    this.name = 'SizeLimitExceeded';
+  }
 }
 
 export function readStringFromFile(file: File) {
@@ -75,6 +97,7 @@ export function fetchData<T extends DataType>(params: FetchDataParams<T> | strin
     params.body,
     params.headers,
     params.signal,
+    params,
   );
 }
 
@@ -255,11 +278,14 @@ function fetchDataInternal<T extends DataType>(
   body?: string,
   headers?: Record<string, string>,
   signal?: AbortSignal,
+  limits?: Pick<FetchDataParams, 'credentials' | 'redirect' | 'maxBytes'>,
 ): Task<DataResponse<T>> {
   // Node.js's `fetch` has no `file:` scheme
-  if (RUNNING_IN_NODEJS && url.startsWith('file://')) return fetchDataInternal_file_NodeJS(title, url, type);
+  if (RUNNING_IN_NODEJS && url.startsWith('file://'))
+    return fetchDataInternal_file_NodeJS(title, url, type, signal, limits?.maxBytes);
 
   return Task.create(title ? title : 'Download', async (ctx) => {
+    checkMaxBytes(limits?.maxBytes);
     // the task runtime sees an abort only in `ctx.update` and `ctx.shouldUpdate`, between chunks as with XHR; the
     // abort error leaves through the `finally` below, which cancels the request (no `onAbort`: it runs after `f` throws)
     const aborter = new AbortController();
@@ -271,7 +297,15 @@ function fetchDataInternal<T extends DataType>(
       await ctx.update({ message: 'Waiting for server...', canAbort: true });
       let response: Response;
       try {
-        response = await fetch(url, { signal: aborter.signal, method: body ? 'POST' : 'GET', body, headers });
+        response = await fetch(url, {
+          signal: aborter.signal,
+          method: body ? 'POST' : 'GET',
+          body,
+          headers,
+          // only what is asked for: an option left out is `fetch`'s own default
+          ...(limits?.credentials !== undefined ? { credentials: limits.credentials } : {}),
+          ...(limits?.redirect !== undefined ? { redirect: limits.redirect } : {}),
+        });
       } catch (e) {
         throw downloadError(e, signal);
       }
@@ -279,7 +313,7 @@ function fetchDataInternal<T extends DataType>(
       if (!(response.status >= 200 && response.status < 400)) {
         throw new Error(`Download failed with status code ${response.status}`);
       }
-      const data = await readResponseBody(ctx, 'Downloading...', response, signal);
+      const data = await readResponseBody(ctx, 'Downloading...', response, signal, limits?.maxBytes, url);
 
       await ctx.update({ message: 'Parsing response...', canAbort: false });
       let result: DataResponse<T>;
@@ -298,6 +332,12 @@ function fetchDataInternal<T extends DataType>(
       aborter.abort();
     }
   });
+}
+
+/** A bound that is not a number of bytes (`NaN`, negative) refuses the read: it cannot be honored. */
+export function checkMaxBytes(maxBytes: number | undefined) {
+  if (maxBytes !== undefined && !(maxBytes >= 0))
+    throw new Error(`maxBytes must be a number of bytes, not ${maxBytes}`);
 }
 
 /**
@@ -324,9 +364,16 @@ async function readResponseBody(
   action: string,
   response: Response,
   signal: AbortSignal | undefined,
+  maxBytes?: number,
+  url?: string,
 ): Promise<ArrayBuffer> {
   const encoding = response.headers.get('Content-Encoding');
   const length = encoding && encoding !== 'identity' ? -1 : contentLength(response);
+  if (maxBytes !== undefined && length > maxBytes) {
+    // a declared length over the bound is refused before any of the body is read
+    await response.body?.cancel().catch(() => {});
+    throw new SizeLimitExceeded(maxBytes, url);
+  }
   // a known length reads into one buffer, without a copy at the end
   let buffer = length >= 0 ? tryAllocate(length) : void 0;
   const chunks: Uint8Array[] = [];
@@ -343,6 +390,10 @@ async function readResponseBody(
     if (next.done) break;
 
     const chunk = next.value;
+    if (maxBytes !== undefined && loaded + chunk.length > maxBytes) {
+      await reader.cancel().catch(() => {});
+      throw new SizeLimitExceeded(maxBytes, url);
+    }
     if (buffer && loaded + chunk.length <= buffer.length) {
       buffer.set(chunk, loaded);
     } else {
@@ -384,19 +435,18 @@ function contentLength(response: Response) {
   return Number.isSafeInteger(length) && length >= 0 ? length : -1;
 }
 
-// NOTE: a workaround for using this in Node.js
-let _fs: typeof import('fs') | undefined = undefined;
-function getFS() {
-  if (!_fs) {
-    throw new Error(
-      "When running in Node.js and reading from files, call mol-util/data-source's setFSModule function first.",
-    );
-  }
-  return _fs;
+// NOTE: a workaround for using this in Node.js; the module is held in `internal/fs.ts`, read by range reads too
+export function setFSModule(fs: typeof import('fs')) {
+  setFS(fs);
 }
 
-export function setFSModule(fs: typeof import('fs')) {
-  _fs = fs;
+function statAsync(filename: string): Promise<{ size: number }> {
+  return new Promise((resolve, reject) => {
+    getFS().stat(filename, (err, stats) => {
+      if (err) reject(err);
+      else resolve(stats);
+    });
+  });
 }
 
 function readFileAsync(filename: string): Promise<NonSharedBuffer> {
@@ -413,14 +463,25 @@ function fetchDataInternal_file_NodeJS<T extends DataType>(
   title: string | undefined,
   url: string,
   type: T,
+  signal?: AbortSignal,
+  maxBytes?: number,
 ): Task<DataResponse<T>> {
   if (!RUNNING_IN_NODEJS) throw new Error('This function should only be used when running in Node.js');
   if (!url.startsWith('file://')) throw new Error('This function is only for URLs with protocol file://');
 
   return Task.create(title ?? 'Download', async (ctx) => {
     const filename = url.substring('file://'.length);
+    checkMaxBytes(maxBytes);
+    if (signal?.aborted) throw signalAborted(signal);
+    // `credentials` and `redirect` mean nothing for a file; the bound is checked before it is read
+    if (maxBytes !== undefined) {
+      const { size } = await statAsync(filename);
+      if (size > maxBytes) throw new SizeLimitExceeded(maxBytes, filename);
+    }
     await ctx.update({ message: 'Loading file...', canAbort: false });
     const data = await readFileAsync(filename);
+    if (signal?.aborted) throw signalAborted(signal);
+    if (maxBytes !== undefined && data.length > maxBytes) throw new SizeLimitExceeded(maxBytes, filename);
 
     await ctx.update({ message: 'Parsing response...', canAbort: false });
     const result = await processFile(ctx, data.buffer, type, DataCompressionMethod.None);

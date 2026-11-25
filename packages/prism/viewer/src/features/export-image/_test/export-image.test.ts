@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { BehaviorSubject } from 'rxjs';
@@ -40,6 +41,7 @@ function standIn() {
       transparent: false,
       format: { name: 'png', params: {} },
       axes: { name: 'off', params: {} },
+      scale: { name: 'off', params: {} },
       resolution: { name: 'viewport', params: {} },
       illumination: { extraIterations: 1, targetIterationTimeMs: 300 },
     }),
@@ -167,7 +169,7 @@ describe('export image', () => {
   it('renders a data URI at the size asked, cropped, and leaves the helper as it was', async () => {
     const { v, calls, helper } = await track(withHelper());
     const steps = v.managers.history.steps.value.length;
-    const r = await v.api.export!.image({ size: { name: 'hd' }, transparent: true, axes: true });
+    const r = await v.api.export!.image({ size: { name: 'hd' }, transparent: true, axes: true, scale: true });
     expectOk(r);
     // The automatic crop (found on a preview) is what is cut: 0.5 x 0.4 of 1280 x 720.
     expect(r.value).toMatchObject({ filename: '1CBS.png', width: 640, height: 288 });
@@ -179,6 +181,7 @@ describe('export image', () => {
       resolution: { name: 'hd' },
       transparent: true,
       axes: { name: 'on' },
+      scale: { name: 'on' },
       format: { name: 'png' },
     });
     expect(calls[1].crop).toEqual(Crop);
@@ -187,6 +190,7 @@ describe('export image', () => {
       resolution: { name: 'viewport' },
       transparent: false,
       axes: { name: 'off' },
+      scale: { name: 'off' },
     });
     expect(helper.cropParams.auto).toBe(true);
     expect(helper.relativeCrop).toEqual({ x: 0, y: 0, width: 1, height: 1 });

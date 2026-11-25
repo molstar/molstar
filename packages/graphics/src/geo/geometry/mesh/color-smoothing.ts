@@ -17,17 +17,18 @@ import type { Texture } from '@molstar/graphics/gl/texture';
 import { Box3D, type Sphere3D } from '@molstar/core/math/geometry';
 import { lerp } from '@molstar/core/math/interpolate';
 import { Mat4, Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
-import { getVolumeTexture2dLayout } from '@molstar/graphics/repr/volume/util';
+import { getVolumeTexture2dLayout } from '@molstar/graphics/geo/util';
 import { ValueCell } from '@molstar/core/util';
+import { getInstanceMatrices } from '../transform-data.js';
 
 interface ColorSmoothingInput {
   vertexCount: number;
   instanceCount: number;
   groupCount: number;
   transformBuffer: Float32Array;
-  instanceBuffer: Float32Array;
+  instanceBuffer: Uint32Array;
   positionBuffer: Float32Array;
-  groupBuffer: Float32Array;
+  groupBuffer: Uint32Array;
   colorData: DataArray<Uint8Array>;
   colorType: 'group' | 'groupInstance';
   boundingSphere: Sphere3D;
@@ -160,7 +161,7 @@ function getInstanceCells(
 }
 
 /** Whether a vertex of a group in `groupBuffer` reads past the colors of its instance */
-function hasGroupOutOfRange(groupBuffer: Float32Array, vertexCount: number, groupCount: number) {
+function hasGroupOutOfRange(groupBuffer: Uint32Array, vertexCount: number, groupCount: number) {
   for (let j = 0; j < vertexCount; ++j) {
     const g = groupBuffer[j];
     if (!(g >= 0 && g < groupCount)) return true;
@@ -309,7 +310,7 @@ export function getSplatInstances(
 interface SplatContext {
   positionBuffer: Float32Array;
   transformBuffer: Float32Array;
-  groupBuffer: Float32Array;
+  groupBuffer: Uint32Array;
   colors: Uint8Array;
   isInstanceType: boolean;
   groupCount: number;
@@ -727,7 +728,7 @@ export function applyMeshColorSmoothing(
       vertexCount: values.uVertexCount.ref.value,
       instanceCount: values.uInstanceCount.ref.value,
       groupCount: values.uGroupCount.ref.value,
-      transformBuffer: values.aTransform.ref.value,
+      transformBuffer: getInstanceMatrices(values),
       instanceBuffer: values.aInstance.ref.value,
       positionBuffer: values.aPosition.ref.value,
       groupBuffer: values.aGroup.ref.value,
@@ -771,7 +772,7 @@ export function applyMeshOverpaintSmoothing(
       vertexCount: values.uVertexCount.ref.value,
       instanceCount: values.uInstanceCount.ref.value,
       groupCount: values.uGroupCount.ref.value,
-      transformBuffer: values.aTransform.ref.value,
+      transformBuffer: getInstanceMatrices(values),
       instanceBuffer: values.aInstance.ref.value,
       positionBuffer: values.aPosition.ref.value,
       groupBuffer: values.aGroup.ref.value,
@@ -814,7 +815,7 @@ export function applyMeshTransparencySmoothing(
       vertexCount: values.uVertexCount.ref.value,
       instanceCount: values.uInstanceCount.ref.value,
       groupCount: values.uGroupCount.ref.value,
-      transformBuffer: values.aTransform.ref.value,
+      transformBuffer: getInstanceMatrices(values),
       instanceBuffer: values.aInstance.ref.value,
       positionBuffer: values.aPosition.ref.value,
       groupBuffer: values.aGroup.ref.value,
@@ -857,7 +858,7 @@ export function applyMeshEmissiveSmoothing(
       vertexCount: values.uVertexCount.ref.value,
       instanceCount: values.uInstanceCount.ref.value,
       groupCount: values.uGroupCount.ref.value,
-      transformBuffer: values.aTransform.ref.value,
+      transformBuffer: getInstanceMatrices(values),
       instanceBuffer: values.aInstance.ref.value,
       positionBuffer: values.aPosition.ref.value,
       groupBuffer: values.aGroup.ref.value,
@@ -900,7 +901,7 @@ export function applyMeshSubstanceSmoothing(
       vertexCount: values.uVertexCount.ref.value,
       instanceCount: values.uInstanceCount.ref.value,
       groupCount: values.uGroupCount.ref.value,
-      transformBuffer: values.aTransform.ref.value,
+      transformBuffer: getInstanceMatrices(values),
       instanceBuffer: values.aInstance.ref.value,
       positionBuffer: values.aPosition.ref.value,
       groupBuffer: values.aGroup.ref.value,

@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
@@ -88,7 +89,8 @@ export interface VolumeTransferModel {
   /**
    * Color stops at the curve's peaks, at each one's ends (a peak is one color, the colors blend between peaks): a
    * palette's colors (by id), or with none the theme's own colors in order (not its whites and greys), then distinct
-   * ones; on another theme, the volume-value theme with them.
+   * ones; on another theme, the volume-value theme with them. A curve of one peak (a ramp) takes a sequential palette
+   * as a gradient along it.
    */
   colorsAtPeaks(palette?: string): void;
   /**

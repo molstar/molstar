@@ -1,0 +1,11 @@
+# Lane EX: extension descriptor and namespaced layer kinds
+
+**Task**: build part 1 of [extension-openings](../../../design/extension-openings.md) (Decision; Consequences `seqx-core`, `seqx-viewer`, Storybook): `SeqExtension`, `spec.extensions` (optional, written by the builder), namespace and version checks, namespaced layer types `<id>:<name>` (`ext:` is a placeholder; plain `params` on an extension's own type, `<id>:<name>` keys in `params` of others' nodes; no `custom.<id>`), the language union for `type`, `layout`, `heights`, `content` and the `fallback` and `extensions` params (through the 0.5.0 bump's owner), `seq.lang.layer.fallback`, resolve reading the composition's layer kinds instead of the static `LayerTypes`, `ResolvedLayer` carrying an extension type's params, `seq.view.layer.extension`, the `@molstar/seqx-core/extension` entry (the only import an extension needs), `viewer.extend` with its undo, redraw on the type table's version; a namespaced type without `fallback` a warning read as `none`. No extension loading in the CLI (decided). `Features/Extensibility` with an example extension (a small layer type, a namespaced key on a built-in section, a scheme, a command, a binding) toggled at run time to show the fallback. The minimal viewer is not grown.
+
+**Output**: the code, tests the design lists (its fallback without it, canvas and SVG alike; registration atomic over two extensions; a spec with an extension prints, patches and diffs identically with and without it), the story and page; `_spec` Context, Language, Render (Layer types). List the public surface for acceptance.
+
+**Model**: strong (opus).
+
+**Where**: A worktree on a branch `seq/ex-lane` from the base the orchestrator names (after the third slice's close). Hot files (plan.md) are the orchestrator's: list the changes you need in the report. Every modified file's header updated; a quick-lane test beside the code, failing on the parent for a fix; the look in a visible pane, light and dark, before the report.
+
+**Report**: Under 300 words: commits; checks run and their result; tests shown failing on the parent; the public surface added (names, for the author's acceptance where the brief says so); drift notes; what you saw; the `.v6/changelogs/` entry's text.

@@ -142,14 +142,17 @@ export function createStructureElementPoint(
 
   const oldBoundingSphere = points?.hasBoundingSphere() ? Sphere3D.clone(points.boundingSphere) : undefined;
 
-  const { getSerialIndex } = structure.serialMapping;
   const structureElementCount = structure.elementCount;
   const builder = PointsBuilder.create(structureElementCount, structureElementCount / 2, points);
 
   const center = Vec3();
   let count = 0;
+  // the serial index of a unit's element i (`getSerialIndex`): the elements of the units before it, plus i
+  let serialBase = 0;
 
   for (const unit of structure.units) {
+    const base = serialBase;
+    serialBase += unit.elements.length;
     const childUnit = child?.unitMap.get(unit.id);
     if (child && !childUnit) return Points.createEmpty(points);
 
@@ -166,7 +169,7 @@ export function createStructureElementPoint(
         if (ignore && ignore(eI)) continue;
 
         c.position(eI, v);
-        builder.add(v[0], v[1], v[2], getSerialIndex(unit, eI));
+        builder.add(v[0], v[1], v[2], base + i);
         v3add(center, center, v);
         count += 1;
       }
@@ -174,7 +177,7 @@ export function createStructureElementPoint(
       for (let i = 0; i < elementCount; i++) {
         const eI = elements[i];
         c.position(eI, v);
-        builder.add(v[0], v[1], v[2], getSerialIndex(unit, eI));
+        builder.add(v[0], v[1], v[2], base + i);
         v3add(center, center, v);
       }
       count += elementCount;

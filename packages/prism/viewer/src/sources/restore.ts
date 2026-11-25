@@ -4,10 +4,12 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import type { PluginContext } from '@molstar/plugin/context';
 import type { PluginState } from '@molstar/plugin/state';
+import type { StateObjectCell } from '@molstar/core/state';
 import type { HistoryManager } from '@molstar/prism-ui/core';
 import type { ExtensionNeed } from '../api/area.js';
 import { transformersOf } from '../api/state-open.js';
@@ -25,6 +27,15 @@ import type { SourceScope } from './state.js';
 const RestoreKey = 'restore';
 /** Data cells that hold their bytes (a file, data given by value): such a scene does not come back by itself. */
 const HeldData = /(?:^|\.)(?:read-file|raw-data|import-string|import-json)$/;
+/** Cells that read a file they hold by range (a tile-ordered particle pack opened from a file): held data too. */
+const HeldSource = /(?:^|\.)particle-tile-set-from-pack$/;
+
+/** Whether `cell` holds its data (a file, data given by value), not reading it again from an address */
+function holdsData(cell: StateObjectCell) {
+  const id = cell.transform.transformer.id;
+  if (HeldData.test(id)) return true;
+  return HeldSource.test(id) && (cell.transform.params as { source?: { name?: string } })?.source?.name === 'file';
+}
 
 const RestoreParams: PluginState.SnapshotParams = {
   data: true,
@@ -80,7 +91,7 @@ export function createLightRestore(
       store.remove(RestoreKey);
       return;
     }
-    if (cells.some((c) => HeldData.test(c.transform.transformer.id))) {
+    if (cells.some(holdsData)) {
       store.remove(RestoreKey);
       if (!told) o.notify?.('Local files are not kept across a reload; save a session to keep them.');
       told = true;

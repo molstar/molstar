@@ -39,7 +39,7 @@ the draw block's slot, its data textures and storage buffers) and its vertex and
   `setIndexBuffer(page, format, offset, size)`): no change to the shaders, the index data or the draw calls. A page is
   one buffer with vertex, index (and later storage) usage: offsets aligned to 4 bytes (256 for storage bindings).
 - Updates write into the range (`writeBuffer`); a grown attribute gets a new range and frees the old one. A recording
-  binding the old range differs in what it binds (`GraphicsContext.captureDraws` records buffers with offsets) and
+  binding the old range differs in what it binds (`DrawLists.capture` records buffers with offsets) and
   records again.
 - Instanced attributes (transforms, instance ids) the same. Buffers produced on the GPU (texture meshes in the chunked
   vertex arena, indirect draws, storage-pulled geometry) stay as they are.
@@ -158,8 +158,9 @@ texture (`ValueCell.update`), also a hover changing a few markers of a large str
    2. (done) **Updates by range**: producers log the element ranges an update changed together with the update
       (`TextureChanges.update`, a log of 8 updates per image by the version each produced; an update without it, a
       replaced image or a cleared layer upload all); consumers merge the ranges since their last upload (`get`: gaps
-      under 256 elements merged, more than 8 ranges or half the layer upload all, so every other group changed is one
-      write), WebGPU writing them (whole words) into the layer's range, WebGL the rows they touch (`Texture.loadData`).
+      under 256 elements merged, more than 64 ranges merged across their smallest gaps, half the layer uploads all, so
+      every other group changed is one write; a page store's update, its tiles' pages scattered over its layer, a write
+      a page and not its 268 MB of colors), WebGPU writing them (whole words) into the layer's range, WebGL the rows they touch (`Texture.loadData`).
       Logged by the marker (hover) and by overpaint, transparency, emissive, substance and clipping applied without
       clearing. A change of the image without an update of its cell (the marker while a status uniform stands for it)
       is pending (`defer`), part of the next update's ranges: else a mark cleared to an all-clear status stayed in the

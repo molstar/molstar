@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -12,7 +12,7 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { isProductionMode } from '@molstar/core/util/debug';
 import type { Shape } from '@molstar/model/model/shape';
 import type { CustomProperty } from '@molstar/model/props/common/custom-property';
-import type { ColorType } from '@molstar/graphics/geo/geometry/color-data';
+import type { ColorType } from './color.js';
 import type { Location } from '@molstar/model/model/location';
 import type { ParticleList } from '@molstar/model/model/particles/particle-list';
 

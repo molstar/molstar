@@ -35,7 +35,6 @@ import {
   type TextureDimension,
 } from '../renderable/schema.js';
 import { isDebugMode } from '@molstar/core/util/debug';
-import { arrayEqual } from '@molstar/core/util/array';
 import { type GLRenderingContext, isWebGL2 } from './compat.js';
 import type { ShaderType, Shader } from './shader.js';
 import type { WebGLParameters } from './context.js';
@@ -60,6 +59,8 @@ export interface Program extends GraphicsProgram {
   bindTextures: (textures: Textures) => void;
   /** Binds no texture at the units of the samplers `names` the program reads */
   unbindTextures: (names: readonly string[]) => void;
+  /** Binds `texture` at the unit of the sampler `name`, if the program reads it (one texture of several drawn with) */
+  bindTexture: (name: string, texture: Texture) => void;
 
   destroy: () => void;
 }
@@ -316,6 +317,13 @@ function checkProgram(gl: GLRenderingContext, program: WebGLProgram) {
   }
 }
 
+/** An array uniform's value as float64s, compared with its last upload (`setUniform`); grown to the largest */
+let uniformScratch = new Float64Array(16);
+function isScratchEqual(last: Float64Array, n: number) {
+  for (let i = 0; i < n; ++i) if (last[i] !== uniformScratch[i]) return false;
+  return true;
+}
+
 /** `undefined` (unlike an inactive `null`) location: not in schema or backed by a uniform buffer */
 function throwMissingLocation(name: string): never {
   throw new Error(`uniform '${name}' has no location, it is either not in the schema or a uniform block member`);
@@ -447,8 +455,17 @@ export function createProgram(
   function setUniform(k: string, l: number, v: UniformType) {
     const prev = uploaded[k];
     if (typeof v === 'object') {
-      if (prev !== undefined && arrayEqual(prev as ArrayLike<number>, v as ArrayLike<number>)) return;
-      uploaded[k] = (v as unknown as { slice(): unknown }).slice();
+      // compared as float64s: the values come as plain and typed arrays of several kinds, and a comparison reading them
+      // all (`arrayEqual`) is megamorphic, boxing each float it reads (2,000 a frame of 8 objects on WebGL1); `set`
+      // converts natively, and the arrays compared and copied are only ever `Float64Array`s
+      const n = (v as ArrayLike<number>).length;
+      if (uniformScratch.length < n) uniformScratch = new Float64Array(n);
+      uniformScratch.set(v as ArrayLike<number>);
+      let last = prev as Float64Array | undefined;
+      if (last !== undefined && last.length === n && isScratchEqual(last, n)) return;
+      // copied into the last upload's array, not a new one per change: objects sharing a program alternate their values
+      if (last === undefined || last.length !== n) uploaded[k] = last = new Float64Array(n);
+      for (let i = 0; i < n; ++i) last[i] = uniformScratch[i];
     } else {
       if (prev === v) return;
       uploaded[k] = v;
@@ -486,9 +503,6 @@ export function createProgram(
       for (const [name, location] of getAttributeLocationNames(entry)) gl.bindAttribLocation(program, location, name);
     }
     gl.linkProgram(program);
-    if (isDebugMode) {
-      checkProgram(gl, program);
-    }
     linked = true;
   }
   if (variant === 'compute') link();
@@ -505,6 +519,12 @@ export function createProgram(
   }
 
   function finalize() {
+    // checked once linked: queried right after `linkProgram`, they wait for it (no parallel compile)
+    if (isDebugMode) {
+      vertShader!.check();
+      fragShader!.check();
+      checkProgram(gl, program);
+    }
     locations = getLocations(gl, program, schema, useBlocks);
     activeAttributes = new Set();
     for (const entry of attributeLayout.entries) {
@@ -614,6 +634,12 @@ export function createProgram(
         gl.activeTexture(gl.TEXTURE0 + unit);
         gl.bindTexture(gl.TEXTURE_2D, null);
       }
+    },
+    bindTexture: (k: string, texture: Texture) => {
+      const unit = textureUnits[k];
+      if (unit === undefined) return;
+      state.boundTextures[unit] = undefined;
+      asGLTexture(texture).bind(unit);
     },
     bindTextures: (textures: Textures) => {
       let b = textureBindings.get(textures);

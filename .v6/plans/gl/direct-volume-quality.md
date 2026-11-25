@@ -13,7 +13,9 @@
 - **What the shading is now** (`direct-volume.wgsl.ts`, the GLSL alike): per sample, the transfer function's color and
   opacity, and `applyLight` with the gradient as the normal (central differences of the values; WebGL1's 2d grids store
   unit normals); front to back, jittered starts (temporal multi-sampling averages the jitter). No
-  shadows, no occlusion: a dense volume reads flat, its depth only from the lighting and fog.
+  shadows, no occlusion: a dense volume reads flat, its depth only from the lighting and fog. `renderMode: 'maximum'`
+  instead keeps the brightest sample per ray, unlit, as bright as the transfer function makes its value (a maximum
+  intensity projection); `attenuated` dims each sample by the density in front of it, `additive` sums them.
 - **Constraints**:
   - the lights are in view space (`uLightDirection`, camera relative, `getTransformedLightDirection` for XR), up to
     `MaxLightCount`: lighting precomputed in the volume is stale when the camera turns; only what doesn't depend on the

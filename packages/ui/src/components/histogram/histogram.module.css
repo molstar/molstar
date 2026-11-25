@@ -1,0 +1,128 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* A control over a value histogram (an iso level, a transfer function) in a surface: it pads the rest of the inset
+   (styles §5), so its header's text and its plot's edges lie on the inset. */
+.control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  padding-inline: var(--msui-inner);
+  font-size: var(--msui-text-sm);
+  line-height: var(--msui-leading-sm);
+}
+
+/* A row (styles §4): the title on the inset, the tools at the plot's right edge, controls centered in it. */
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--msui-space-2);
+  height: var(--msui-row);
+}
+
+/* A section's heading: small, muted, strong; the UI's own label, never cut. */
+.title {
+  color: var(--msui-text-muted);
+  font-size: var(--msui-text-xs);
+  line-height: var(--msui-leading-xs);
+  font-weight: var(--msui-weight-strong);
+  white-space: nowrap;
+}
+
+.tools {
+  display: flex;
+  align-items: center;
+  gap: var(--msui-space-1);
+}
+
+/* σ or map units: two xs controls (20px), the one in use pressed, as a pressed button reads. */
+.units {
+  display: flex;
+  gap: var(--msui-space-1);
+}
+
+.unit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--msui-control-height);
+  height: var(--msui-control-height);
+  padding: 0 var(--msui-space-1);
+  border-radius: var(--msui-radius-md);
+  color: var(--msui-text-muted);
+  font-size: var(--msui-text-xs);
+  line-height: var(--msui-leading-xs);
+  white-space: nowrap;
+  transition:
+    background var(--msui-motion-fast) var(--msui-ease),
+    color var(--msui-motion-fast) var(--msui-ease);
+
+  &:hover {
+    background: var(--msui-control-hover);
+    color: var(--msui-text);
+  }
+
+  &[aria-checked="true"] {
+    background: var(--msui-control-active);
+    color: var(--msui-text);
+    box-shadow: inset 0 0 0 1px var(--msui-selected-edge);
+  }
+
+  &:focus-visible {
+    outline: 1px solid var(--msui-focus);
+  }
+}
+
+/* The values' well: a sunken fill (inset by the inset from the surface's edge, more than its radius: the small radius,
+   styles §6), the histogram as an area in a muted tone, what the control draws over it. */
+.plot {
+  position: relative;
+  height: var(--msui-plot-height, 48px);
+  overflow: hidden;
+  border-radius: var(--msui-radius-sm);
+  background: var(--msui-surface-sunken);
+  touch-action: none;
+  contain: strict;
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.bars {
+  fill: color-mix(in oklab, var(--msui-text-muted), transparent 70%);
+}
+
+/* The mean: a dashed hairline, what σ is counted from. Its track spans the plot, moved with transform. */
+.mean {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    border-left: 1px dashed color-mix(in oklab, var(--msui-text-subtle), transparent 30%);
+  }
+}
+
+/* The ends of the axis, in the unit: xs, subtle, tabular; the first at the plot's left edge, the last at its right. */
+.axis {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--msui-space-2);
+  color: var(--msui-text-subtle);
+  font-size: var(--msui-text-xs);
+  line-height: var(--msui-leading-xs);
+  font-variant-numeric: tabular-nums;
+}

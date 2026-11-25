@@ -38,6 +38,29 @@ export function negatedVolume(volume: Volume): Volume {
   );
 }
 
+/**
+ * `discVolume`'s grid: 256 × 256 × 258, the voxels of its last two slices with indices from 2^24 (256 × 256²) on
+ */
+export const DiscVolumeDims = [256, 256, 258] as const;
+
+/**
+ * A disc of radius 80 voxels (a soft edge) in the last slice of a grid of more than 2^24 voxels (`DiscVolumeDims`),
+ * the other slices empty: an isosurface whose vertices lie between the last two slices, its groups (the indices of
+ * the voxels there) past 2^24. The surface faces the empty slices (-z): seen from there
+ */
+export function discVolume(): Volume {
+  const [nx, ny, nz] = DiscVolumeDims;
+  const space = Tensor.Space([nx, ny, nz], [2, 1, 0], Float32Array);
+  const data = new Float32Array(nx * ny * nz);
+  for (let j = 0; j < ny; ++j) {
+    for (let i = 0; i < nx; ++i) {
+      const d = Math.hypot(i - nx / 2, j - ny / 2);
+      data[space.dataOffset(i, j, nz - 1)] = 1 / (1 + Math.exp((d - 80) / 3));
+    }
+  }
+  return createVolume('disc', space, data);
+}
+
 /** Sum of three Gaussian blobs on an n^3 grid with unit spacing */
 export function blobVolume(n: number): Volume {
   const space = Tensor.Space([n, n, n], [2, 1, 0], Float32Array);

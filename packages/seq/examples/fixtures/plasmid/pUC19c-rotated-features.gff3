@@ -1,0 +1,21 @@
+##gff-version 3
+##sequence-region pUC19c 1 2686
+pUC19c	seqx	region	1	2686	.	+	.	ID=region-pUC19c;Name=pUC19c;Is_circular=true
+pUC19c	seqx	CDS	832	1155	.	-	.	ID=lacZa;Name=lacZα
+pUC19c	seqx	misc_feature	1082	1138	.	+	.	ID=mcs;Name=MCS
+pUC19c	seqx	rep_origin	1553	2141	.	-	.	ID=ori;Name=ori
+pUC19c	seqx	CDS	2312	3172	.	-	.	ID=bla;Name=bla (AmpR)
+pUC19c	seqx	primer_bind	2657	2711	.	+	.	ID=primer;Name=primer site;note=generated, across the origin
+pUC19c	seqx	restriction_enzyme_recognition_site	177	182	.	+	.	ID=ScaI;Name=ScaI
+pUC19c	seqx	restriction_enzyme_recognition_site	617	622	.	+	.	ID=AatII;Name=AatII
+pUC19c	seqx	restriction_enzyme_recognition_site	869	874	.	+	.	ID=NdeI;Name=NdeI
+pUC19c	seqx	restriction_enzyme_recognition_site	1082	1087	.	+	.	ID=EcoRI;Name=EcoRI
+pUC19c	seqx	restriction_enzyme_recognition_site	1088	1093	.	+	.	ID=SacI;Name=SacI
+pUC19c	seqx	restriction_enzyme_recognition_site	1094	1099	.	+	.	ID=KpnI;Name=KpnI
+pUC19c	seqx	restriction_enzyme_recognition_site	1098	1103	.	+	.	ID=SmaI;Name=SmaI
+pUC19c	seqx	restriction_enzyme_recognition_site	1103	1108	.	+	.	ID=BamHI;Name=BamHI
+pUC19c	seqx	restriction_enzyme_recognition_site	1109	1114	.	+	.	ID=XbaI;Name=XbaI
+pUC19c	seqx	restriction_enzyme_recognition_site	1115	1120	.	+	.	ID=SalI;Name=SalI
+pUC19c	seqx	restriction_enzyme_recognition_site	1121	1126	.	+	.	ID=PstI;Name=PstI
+pUC19c	seqx	restriction_enzyme_recognition_site	1127	1132	.	+	.	ID=SphI;Name=SphI
+pUC19c	seqx	restriction_enzyme_recognition_site	1133	1138	.	+	.	ID=HindIII;Name=HindIII

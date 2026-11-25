@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -22,6 +22,17 @@ export function createPoints() {
 }
 
 describe('points', () => {
+  it('a ring point takes its ring width from the props, a uniform (no variant per width)', () => {
+    const props = { ...PD.getDefaultValues(Points.Params), pointStyle: 'ring' as const, pointRingWidth: 0.3 };
+    const values = Points.Utils.createValuesSimple(Points.createEmpty(), props, ColorNames.orange, 1);
+    expect(values.dPointStyle.ref.value).toBe('ring');
+    expect(values.uPointRingWidth.ref.value).toBe(0.3);
+    const defines = values.dPointStyle.ref.version;
+    Points.Utils.updateValues(values, { ...props, pointRingWidth: 0.6 });
+    expect(values.uPointRingWidth.ref.value).toBe(0.6);
+    expect(values.dPointStyle.ref.version).toBe(defines);
+  });
+
   const ctx = tryGetGLContext(32, 32);
 
   (ctx ? it : it.skip)('basic', { tags: ['medium'] }, async () => {

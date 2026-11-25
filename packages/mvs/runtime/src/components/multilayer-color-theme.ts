@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import type { ColorTypeLocation } from '@molstar/graphics/geo/geometry/color-data';
+import type { ColorTypeLocation } from '@molstar/graphics/theme/color';
 import type { Location } from '@molstar/model/model/location';
 import { Bond, Structure, StructureElement } from '@molstar/model/model/structure';
 import { ColorTheme, type LocationColor } from '@molstar/graphics/theme/color';
@@ -127,6 +127,8 @@ const GRAN_INSTANCE = 1,
 
 const granularityFlagsFromName = {
   uniform: 0,
+  // one color for the object (a texel): as uniform, varying with nothing
+  object: 0,
   instance: GRAN_INSTANCE,
   group: GRAN_GROUP,
   groupInstance: GRAN_GROUP | GRAN_INSTANCE,

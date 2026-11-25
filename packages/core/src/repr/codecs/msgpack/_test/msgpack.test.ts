@@ -1,0 +1,329 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import { checkCodec, ConformanceLanguage } from '../../../codec/index.js';
+import { JsonCodec } from '../../json/index.js';
+import { normalize } from '../../../schema/normalize.js';
+import { CategoryColumn, categoryColumn, hashNode, type Node, pathToPointer } from '../../../tree/index.js';
+import { describe, expect, it } from 'vitest';
+import { decodeMsgPack } from '../../../../data/msgpack/decode.js';
+import { encodeMsgPack } from '../../../../data/msgpack/encode.js';
+import { MsgPackCodec, MsgPackExt, msgPackColumnDecoder, swapBytes } from '../index.js';
+
+/** A spec of the shape a viewer's spec has: a sequence, ranges with columns, a track of values, custom data. */
+function spec(): Node {
+  return {
+    kind: 'spec',
+    params: { title: 'p53', version: '1.0.0' },
+    children: [
+      {
+        kind: 'data',
+        children: [
+          {
+            kind: 'sequence',
+            id: 'p53',
+            params: { alphabet: 'protein', letters: 'MEEPQSDPSVEPPLSQETFSDLWKLLPENN' },
+          },
+          {
+            kind: 'ranges',
+            id: 'domains',
+            params: {
+              target: '/data/p53',
+              start: new Int32Array([0, 17]),
+              end: new Int32Array([14, 30]),
+              label: categoryColumn(['Disordered', 'TAD']),
+            },
+          },
+          {
+            kind: 'values',
+            id: 'conservation',
+            params: { target: '/data/p53', values: new Float32Array([0.5, Number.NaN, 1, Number.NEGATIVE_INFINITY]) },
+            custom: { note: 'ä α ☃', big: 12345678901234567890n, zero: -0, flags: [true, false, null] },
+          },
+        ],
+      },
+    ],
+  };
+}
+
+/** Bytes of `{ kind: 'x', params: { a: <an extension> } }`, the extension written by hand. */
+function withExtension(type: number, data: number[]): Uint8Array {
+  const head = [0x82, 0xa4, ...Buffer.from('kind'), 0xa1, 0x78, 0xa6, ...Buffer.from('params'), 0x81, 0xa1, 0x61];
+  const body = data.length === 1 ? [0xd4, type, ...data] : [0xc7, data.length, type, ...data];
+  return Uint8Array.from([...head, ...body]);
+}
+
+describe('repr/codecs/msgpack', () => {
+  it('conforms to the codec interface', () => {
+    expect(checkCodec(MsgPackCodec)).toEqual([]);
+  });
+
+  it('round-trips a spec through MessagePack and JSON by hash (json(msgpack(x)) is json(x))', () => {
+    const node = spec();
+    const bytes = MsgPackCodec.encode(node);
+    const viaMsgPack = MsgPackCodec.decode(bytes).node!;
+    expect(hashNode(viaMsgPack)).toBe(hashNode(node));
+    const text = JsonCodec.encode(viaMsgPack);
+    const viaJson = JsonCodec.decode(text).node!;
+    expect(hashNode(viaJson)).toBe(hashNode(node));
+    expect(JsonCodec.encode(MsgPackCodec.decode(MsgPackCodec.encode(viaJson)).node!)).toBe(text);
+    // the first byte tells the encodings apart: a map, never `{`
+    expect(bytes[0] >> 4).toBe(0x8);
+  });
+
+  it('gives every column type back typed, and the atoms JSON lacks', () => {
+    const node: Node = {
+      kind: 'x',
+      params: {
+        i8: new Int8Array([-1, 2]),
+        u16: new Uint16Array([65535]),
+        f64: new Float64Array([Number.NaN, -0, 0.1]),
+        c: categoryColumn(['a', null, 'a', 'b']),
+        n: Number.NaN,
+        nz: -0,
+        inf: Number.POSITIVE_INFINITY,
+        b: -7n,
+      },
+    };
+    const back = MsgPackCodec.decode(MsgPackCodec.encode(node)).node!;
+    expect(back.params?.i8).toEqual(new Int8Array([-1, 2]));
+    expect(back.params?.u16).toBeInstanceOf(Uint16Array);
+    expect(Object.is((back.params?.f64 as Float64Array)[1], -0)).toBe(true);
+    expect(back.params?.c).toBeInstanceOf(CategoryColumn);
+    expect(back.params?.n).toBeNaN();
+    expect(Object.is(back.params?.nz, -0)).toBe(true);
+    expect(back.params?.inf).toBe(Number.POSITIVE_INFINITY);
+    expect(back.params?.b).toBe(-7n);
+  });
+
+  it('writes the typed columns as extensions 0x11-0x18, little-endian', () => {
+    const bytes = MsgPackCodec.encode({ kind: 'x', params: { c: new Uint16Array([0x0102]) } });
+    // fixext 2, type 0x14, then 02 01
+    const at = bytes.findIndex((b, i) => b === 0xd5 && bytes[i + 1] === MsgPackExt.uint16);
+    expect([...bytes.subarray(at, at + 4)]).toEqual([0xd5, 0x14, 0x02, 0x01]);
+  });
+
+  it('decodes a column in place where it is aligned, with one copy where it is not', () => {
+    const column = new Float64Array(100).map((_, i) => i + 0.5);
+    const encoded = MsgPackCodec.encode({ kind: 'x', params: { c: column } });
+    // the payload ends the document: shifting the document by (8 - offset mod 8) aligns it
+    const payload = encoded.length - column.byteLength;
+    const pad = (8 - (payload % 8)) % 8;
+    for (const [shift, aligned] of [
+      [pad, true],
+      [pad + 1, false],
+    ] as const) {
+      const host = new Uint8Array(encoded.length + 16);
+      host.set(encoded, shift);
+      const input = host.subarray(shift, shift + encoded.length);
+      const out = MsgPackCodec.decode(input).node!.params!.c as Float64Array;
+      expect([...out]).toEqual([...column]);
+      expect(out.buffer === host.buffer, `in place at shift ${shift}`).toBe(aligned);
+      expect(out.byteOffset % 8).toBe(0);
+    }
+  });
+
+  it('never writes into its input: a float column with a NaN payload is copied, aligned or not', () => {
+    for (const [type, size, make] of [
+      ['float32', 4, () => new Float32Array([1, Number.NaN, 2])],
+      ['float64', 8, () => new Float64Array([1, Number.NaN, 2])],
+    ] as const) {
+      const column = make();
+      const encoded = MsgPackCodec.encode({ kind: 'x', params: { c: column } });
+      const payload = encoded.length - column.byteLength;
+      // the NaN's last byte gets a payload bit, as a foreign encoder may write it
+      encoded[payload + size] = 0x01;
+      const pad = (size - (payload % size)) % size;
+      for (const shift of [pad, pad + 1]) {
+        const host = new Uint8Array(encoded.length + 16);
+        host.set(encoded, shift);
+        const input = host.subarray(shift, shift + encoded.length);
+        const before = host.slice();
+        const node = MsgPackCodec.decode(input).node!;
+        hashNode(node);
+        expect(host, `${type} at shift ${shift}`).toEqual(before);
+        const out = node.params!.c as Float32Array | Float64Array;
+        expect([out[0], out[2]]).toEqual([1, 2]);
+        expect(out[1]).toBeNaN();
+        expect(out.buffer).not.toBe(host.buffer);
+      }
+    }
+    // a column with no NaN is still read in place
+    const plain = new Float32Array([1, 2, 3]);
+    const bytes = MsgPackCodec.encode({ kind: 'x', params: { c: plain } });
+    const pad = (4 - ((bytes.length - 12) % 4)) % 4;
+    const host = new Uint8Array(bytes.length + 8);
+    host.set(bytes, pad);
+    const out = MsgPackCodec.decode(host.subarray(pad, pad + bytes.length)).node!.params!.c as Float32Array;
+    expect(out.buffer).toBe(host.buffer);
+  });
+
+  it('swaps the bytes of a column between the wire (little-endian) and a big-endian host', () => {
+    const bytes = Uint8Array.of(1, 2, 3, 4, 5, 6, 7, 8);
+    expect([...swapBytes(bytes, 1)]).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    expect([...swapBytes(bytes, 2)]).toEqual([2, 1, 4, 3, 6, 5, 8, 7]);
+    expect([...swapBytes(bytes, 4)]).toEqual([4, 3, 2, 1, 8, 7, 6, 5]);
+    expect([...swapBytes(bytes, 8)]).toEqual([8, 7, 6, 5, 4, 3, 2, 1]);
+    expect([...bytes]).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+  });
+
+  it('refuses what is not a tree, with issues and never a throw', () => {
+    const issue = (bytes: Uint8Array) => MsgPackCodec.decode(bytes).issues.map((i) => i.code);
+    expect(issue(new Uint8Array([0xc1]))).toEqual(['repr.codec.msgpack.syntax']);
+    expect(issue(new Uint8Array([]))).toEqual(['repr.codec.msgpack.syntax']);
+    const good = MsgPackCodec.encode({ kind: 'x' });
+    expect(issue(good.subarray(0, good.length - 1))).toEqual(['repr.codec.msgpack.syntax']);
+    expect(issue(Uint8Array.of(...good, 0))).toEqual(['repr.codec.msgpack.syntax']);
+    // not a node, a bin taken for a column, a reserved key, a bad kind, a key a node lacks
+    expect(issue(encodeMsgPack(5))).toEqual(['repr.tree.node.shape']);
+    expect(issue(encodeMsgPack({ kind: 'x', params: { a: new Uint8Array([1]) } }))).toEqual(['repr.tree.value.shape']);
+    expect(issue(encodeMsgPack({ kind: 'x', params: { $a: 1 } }))).toEqual(['repr.tree.value.reserved_key']);
+    expect(issue(encodeMsgPack({ kind: 'X' }))).toEqual(['repr.tree.node.kind']);
+    expect(issue(encodeMsgPack({ kind: 'x', other: 1 }))).toEqual(['repr.tree.node.shape']);
+  });
+
+  it('reports a key given twice and a key that is not a string, with offset and path', () => {
+    const str = (t: string) => [0xa0 | t.length, ...Buffer.from(t)];
+    const doc = (...body: number[]) => Uint8Array.from(body);
+    const seen = (bytes: Uint8Array) =>
+      MsgPackCodec.decode(bytes).issues.map((i) => [i.code, i.offset, pathToPointer(i.path ?? [])]);
+    // {kind:'x', kind:'y'}
+    expect(seen(doc(0x82, ...str('kind'), ...str('x'), ...str('kind'), ...str('y')))).toEqual([
+      ['repr.codec.msgpack.duplicate_key', 8, ''],
+    ]);
+    // {kind:'x', params:{a:1, b:[{c:1, c:2}], a:3}}: both, each with its path
+    const inner = [0x82, ...str('c'), 1, ...str('c'), 2];
+    const params = [0x83, ...str('a'), 1, ...str('b'), 0x91, ...inner, ...str('a'), 3];
+    const nested = seen(doc(0x82, ...str('kind'), ...str('x'), ...str('params'), ...params));
+    expect(nested.map((n) => [n[0], n[2]])).toEqual([
+      ['repr.codec.msgpack.duplicate_key', '/params/b/0'],
+      ['repr.codec.msgpack.duplicate_key', '/params'],
+    ]);
+    // {kind:'x', params:{1: 2}}: an integer key
+    expect(seen(doc(0x82, ...str('kind'), ...str('x'), ...str('params'), 0x81, 1, 2))).toEqual([
+      ['repr.codec.msgpack.key_type', 16, '/params'],
+    ]);
+    // keys of the same text in different maps are fine
+    expect(
+      MsgPackCodec.decode(MsgPackCodec.encode({ kind: 'x', params: { kind2: { a: 1 }, b: { a: 1 } } })).issues,
+    ).toEqual([]);
+  });
+
+  it('reports a malformed extension with its path', () => {
+    const where = [['repr.tree.value.tag', '/params/a']];
+    const bad = (type: number, data: number[]) =>
+      MsgPackCodec.decode(withExtension(type, data)).issues.map((i) => [i.code, pathToPointer(i.path ?? [])]);
+    expect(bad(MsgPackExt.number, [9])).toEqual(where);
+    expect(bad(MsgPackExt.int32, [1, 2, 3])).toEqual(where);
+    expect(bad(MsgPackExt.category, [0, 0, 0])).toEqual(where);
+    // a code out of its dictionary
+    expect(bad(MsgPackExt.category, [0, 0, 0, 0, 1, 0, 0, 0])).toEqual(where);
+    expect(bad(MsgPackExt.bigint, [0x78])).toEqual(where);
+    expect(bad(0x42, [1])).toEqual(where);
+    // and one that reads
+    expect(MsgPackCodec.decode(withExtension(MsgPackExt.number, [3])).node?.params?.a).toBe(-0);
+  });
+
+  it('keeps a leading U+FEFF of a string, a key and a category entry', () => {
+    const node: Node = {
+      kind: 'x',
+      params: { '\uFEFFkey': '\uFEFFvalue', c: categoryColumn(['\uFEFFa', null, 'b']) },
+      custom: { list: ['\uFEFF', '\uFEFFx'] },
+    };
+    const back = MsgPackCodec.decode(MsgPackCodec.encode(node)).node!;
+    expect(back.params?.['\uFEFFkey']).toBe('\uFEFFvalue');
+    expect(hashNode(back)).toBe(hashNode(node));
+  });
+
+  it('refuses invalid UTF-8 in a category entry and in bigint digits, as a malformed extension', () => {
+    const where = [['repr.tree.value.tag', '/params/a']];
+    const bad = (type: number, data: number[]) =>
+      MsgPackCodec.decode(withExtension(type, data)).issues.map((i) => [i.code, pathToPointer(i.path ?? [])]);
+    // one entry of one byte, 0xff, and no codes
+    expect(bad(MsgPackExt.category, [1, 0, 0, 0, 1, 0, 0, 0, 0xff])).toEqual(where);
+    expect(bad(MsgPackExt.bigint, [0xff])).toEqual(where);
+    // the same entry as a valid byte reads
+    expect(MsgPackCodec.decode(withExtension(MsgPackExt.category, [1, 0, 0, 0, 1, 0, 0, 0, 0x61])).issues).toEqual([]);
+  });
+
+  it('refuses to encode a lone surrogate (UTF-8 cannot hold it), in a value, a key and a category entry', () => {
+    const lone = 'a\uD800b';
+    expect(() => MsgPackCodec.encode({ kind: 'x', params: { a: lone } })).toThrow(/surrogate/);
+    expect(() => MsgPackCodec.encode({ kind: 'x', params: { [lone]: 1 } })).toThrow(/surrogate/);
+    expect(() => MsgPackCodec.encode({ kind: 'x', args: [[lone]] })).toThrow(/surrogate/);
+    expect(() => MsgPackCodec.encode({ kind: 'x', params: { c: categoryColumn([lone]) } })).toThrow(/surrogate/);
+    // a pair is a character
+    const back = MsgPackCodec.decode(MsgPackCodec.encode({ kind: 'x', params: { a: '🧬' } })).node!;
+    expect(back.params?.a).toBe('🧬');
+  });
+
+  it('reports truncated bytes as syntax issues with an offset, and only a stack overflow as depth', () => {
+    for (const bytes of [[0xcb, 1], [0xc9, 0], [0xde], [0x81, 0xa1, 0x6b], [0xc1]]) {
+      const { issues } = MsgPackCodec.decode(Uint8Array.from(bytes));
+      expect(
+        issues.map((i) => [i.code, typeof i.offset]),
+        `${bytes}`,
+      ).toEqual([['repr.codec.msgpack.syntax', 'number']]);
+    }
+    // 100,000 nested one-element arrays overflow the parser's stack
+    const deep = new Uint8Array(100_001).fill(0x91);
+    deep[100_000] = 0xc0;
+    expect(MsgPackCodec.decode(deep).issues.map((i) => i.code)).toEqual(['repr.tree.depth_exceeded']);
+    // the trailing bytes are placed where the document ends
+    const good = MsgPackCodec.encode({ kind: 'x' });
+    expect(MsgPackCodec.decode(Uint8Array.of(...good, 0)).issues[0].offset).toBe(good.length);
+  });
+
+  it('bounds the depth', () => {
+    let node: Node = { kind: 'x' };
+    for (let i = 0; i < 600; i++) node = { kind: 'x', children: [node] };
+    const codes = MsgPackCodec.decode(MsgPackCodec.encode(node)).issues.map((i) => i.code);
+    expect(codes).toEqual(['repr.tree.depth_exceeded']);
+  });
+
+  it('is typed by the language like any other codec', () => {
+    const node: Node = { kind: 'item', params: { i8: new Int8Array([1]), cat: categoryColumn(['a', null]) } };
+    const back = normalize(ConformanceLanguage, MsgPackCodec.decode(MsgPackCodec.encode(node)).node!);
+    expect(hashNode(back)).toBe(hashNode(node));
+  });
+});
+
+describe('msgPackColumnDecoder', () => {
+  it('reads the column extensions into a plain value: maps stay maps, `kind` too', () => {
+    const bytes = MsgPackCodec.encode({
+      kind: 'x',
+      params: {
+        start: new Int32Array([1, 2, 3]),
+        label: categoryColumn(['a', null, 'b']),
+        v: new Float32Array([0.5]),
+        nan: Number.NaN,
+        rec: { kind: 'y' },
+      },
+    });
+    const plain = decodeMsgPack(bytes, msgPackColumnDecoder) as {
+      kind: string;
+      params: { start: Int32Array; label: CategoryColumn; v: Float32Array; nan: number; rec: { kind: string } };
+    };
+    expect(plain.kind).toBe('x');
+    expect(plain.params.start).toBeInstanceOf(Int32Array);
+    expect(Array.from(plain.params.start)).toEqual([1, 2, 3]);
+    expect(plain.params.label).toBeInstanceOf(CategoryColumn);
+    expect(plain.params.label.get(2)).toBe('b');
+    expect(plain.params.v).toBeInstanceOf(Float32Array);
+    expect(plain.params.nan).toBeNaN();
+    expect(plain.params.rec).toEqual({ kind: 'y' });
+  });
+
+  it('throws on a malformed payload and leaves another type to the decoder', () => {
+    // `{ a: <ext> }`: an int32 column of 3 bytes, then a bigint (not a column extension)
+    const bad = Uint8Array.from([0x81, 0xa1, 0x61, 0xc7, 3, MsgPackExt.int32, 1, 2, 3]);
+    expect(() => decodeMsgPack(bad, msgPackColumnDecoder)).toThrow(/malformed extension/);
+    const other = Uint8Array.from([0x81, 0xa1, 0x61, 0xd4, MsgPackExt.bigint, 0x31]);
+    const decoded = decodeMsgPack(other, msgPackColumnDecoder) as { a: { type: number; data: Uint8Array } };
+    expect(decoded.a.type).toBe(MsgPackExt.bigint);
+    expect(Array.from(decoded.a.data)).toEqual([0x31]);
+  });
+});

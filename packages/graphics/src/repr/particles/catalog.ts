@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { namedCatalog } from '@molstar/graphics/util/named-catalog';
+import { namedCatalog } from '@molstar/core/util/named-catalog';
 import { OrientationParticlesRepresentationProvider } from './representation/orientation.js';
 import { SpacefillParticlesRepresentationProvider } from './representation/spacefill.js';
 import { FibersRepresentationProvider } from './representation/fibers.js';

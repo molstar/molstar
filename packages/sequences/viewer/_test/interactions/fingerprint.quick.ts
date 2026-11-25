@@ -11,7 +11,7 @@
 // ../kit-cases.ts `frameIds`), and a hit a step over every row and stripe of three scenes (`HIT` counts).
 
 import { describe, expect, it } from 'vitest';
-import type { AllocOptions } from '../../../core/_test/model/alloc.js';
+import type { AllocOptions } from '@molstar/test-harness/alloc';
 import { quickCase } from '../heap.js';
 import { frameIds, KIT } from '../kit-cases.js';
 import { fingerprintKit, HIT_SCENES, hitSweep, SCENES } from './fingerprint-cases.js';

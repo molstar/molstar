@@ -1,0 +1,107 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* What loads (styles §5): placeholder shapes where the content will be, on its columns and lines, so nothing moves
+   when it arrives. A shape is a tint of the text color (it reads on any surface and theme); the shapes pulse together
+   (opacity only, styles §7: no paint per frame), from when the region shows. */
+.loading {
+  display: grid;
+  min-width: 0;
+  /* Shown after a moment: a load quicker than that never flashes a placeholder. */
+  animation: in var(--msui-motion-base) var(--msui-ease) var(--msui-skeleton-delay, 300ms) backwards;
+}
+
+@keyframes in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* What assistive technology reads: the region's words, not drawn (the shapes are hidden from it). */
+.label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Content and its placeholder in one place (`Loaded`): both in the one grid cell, so one fades out over the other. */
+.swap {
+  display: grid;
+  min-width: 0;
+
+  & > * {
+    grid-area: 1 / 1;
+    min-width: 0;
+  }
+}
+
+.layer {
+  display: grid;
+  min-width: 0;
+}
+
+/* A shape pulses after the region's delay, so every shape of a region is in phase and none runs while unseen. */
+.shape {
+  display: block;
+  min-width: 0;
+  border-radius: var(--msui-radius-sm);
+  background: color-mix(in oklab, currentColor, transparent 90%);
+  animation: pulse 1600ms var(--msui-ease-in-out) var(--msui-skeleton-delay, 300ms) infinite;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shape {
+    animation: none;
+  }
+}
+
+/* A line of text: the line's box (its leading), a bar half its height centered in it, as a line of words. */
+.line {
+  display: flex;
+  align-items: center;
+  height: var(--msui-leading-sm);
+
+  & > .shape {
+    height: var(--msui-space-2);
+  }
+
+  &[data-size="xs"] {
+    height: var(--msui-leading-xs);
+  }
+
+  &[data-size="md"] {
+    height: var(--msui-leading-md);
+
+    & > .shape {
+      height: var(--msui-space-3);
+    }
+  }
+}
+
+/* A row (styles §5): the row primitive's columns; the icon a square of the icon size in its slot, the text a bar on
+   the text column. */
+.icon {
+  width: var(--msui-icon);
+  height: var(--msui-icon);
+  border-radius: var(--msui-radius-sm);
+}
+
+.text {
+  height: var(--msui-space-2);
+}
+
+.round {
+  border-radius: 50%;
+}

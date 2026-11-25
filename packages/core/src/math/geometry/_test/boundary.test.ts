@@ -66,6 +66,19 @@ describe('boundary extrema', () => {
     expect(keys.size).toBe(extrema.length);
   });
 
+  it('keeps equal points once, -0 as 0, in their first order', () => {
+    const helper = new BoundaryHelper('98');
+    helper.reset();
+    const ps = [Vec3.create(1, 2, 3), Vec3.create(-0, 0, 0), Vec3.create(0, -0, 0), Vec3.create(1, 2, 3)];
+    for (const p of ps) helper.includePosition(p);
+    helper.finishedIncludeStep();
+    for (const p of ps) helper.radiusPosition(p);
+    const extrema = helper.getSphere().extrema!;
+    expect(extrema.length).toBe(2);
+    const keys = extrema.map((e) => `${e[0] + 0},${e[1] + 0},${e[2] + 0}`).sort();
+    expect(keys).toEqual(['0,0,0', '1,2,3']);
+  });
+
   it('a union of spheres of few points with radii covers their balls', () => {
     const a = points(6);
     const b = points(5, 30);

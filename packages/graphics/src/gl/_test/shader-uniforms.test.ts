@@ -35,76 +35,40 @@ import {
   WgslUniformBlockInstance,
 } from '../webgpu/uniform-declarations.js';
 import { ComputeShaders, getComputeDefineVariants } from './compute-shaders.js';
-import { GraphicsShaders, getProgramDefines } from './graphics-shaders.js';
+import { GraphicsShaders, getProgramDefines, resolveGeometryType } from './graphics-shaders.js';
 import { getGlslProgram, registerGlslProgram } from '../webgl/programs.js';
 import { getInstanceDataSchema } from '../webgl/render-item.js';
-
-/**
- * Removes inactive branches of conditionals that only test `dGeometryType_*`,
- * all branches of other conditionals are kept.
- */
-function resolveGeometryType(source: string, geometryType: string) {
-  const evaluate = (condition: string): boolean | undefined => {
-    const m = condition
-      .trim()
-      .match(/^(!?)\s*(?:defined\s*\(\s*(dGeometryType_\w+)\s*\)|defined\s+(dGeometryType_\w+))$/);
-    if (!m) return undefined;
-    return ((m[2] ?? m[3]) === `dGeometryType_${geometryType}`) !== (m[1] === '!');
-  };
-  // `active` of the current branch, `taken` if any branch of a resolved conditional was active
-  const stack: { resolved: boolean; active: boolean; taken: boolean }[] = [];
-  const lines: string[] = [];
-  for (const line of source.split('\n')) {
-    const d = line.trim().match(/^#\s*(ifdef|ifndef|if|elif|else|endif)\b(.*)$/);
-    if (!d) {
-      if (stack.every((f) => f.active)) lines.push(line);
-      continue;
-    }
-    const [, directive, rest] = d;
-    const top = stack[stack.length - 1];
-    if (directive === 'ifdef' || directive === 'ifndef' || directive === 'if') {
-      const condition = directive === 'if' ? rest : `${directive === 'ifndef' ? '!' : ''}defined(${rest.trim()})`;
-      const value = evaluate(condition);
-      stack.push(
-        value === undefined
-          ? { resolved: false, active: true, taken: false }
-          : { resolved: true, active: value, taken: value },
-      );
-    } else if (directive === 'elif') {
-      if (top.resolved) {
-        const value = evaluate(rest) ?? true;
-        top.active = !top.taken && value;
-        top.taken ||= top.active;
-      }
-    } else if (directive === 'else') {
-      if (top.resolved) top.active = !top.taken;
-    } else {
-      stack.pop();
-    }
-  }
-  return lines.join('\n');
-}
+import { InstanceExpansionSchema } from '../instance-expansion.js';
 
 function getIdentifiers(source: string, prefix: 'u' | 't' | 'a') {
   const code = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
   return new Set(code.match(new RegExp(`\\b${prefix}[A-Z]\\w*`, 'g')) ?? []);
 }
 
-/** referenced in a shared chunk only in `dBump` (or `dSubstance`) branches, defined by the schemas of geometries with these uniforms */
-const ConditionalUniforms = new Set(['uBumpFrequency', 'uBumpAmplitude']);
+/**
+ * referenced in a shared chunk only in `dBump` (or `dSubstance`) and `dSites` (the quad chunk of spheres and points)
+ * branches, defined by the schemas of geometries with these uniforms
+ */
+const ConditionalUniforms = new Set(['uBumpFrequency', 'uBumpAmplitude', 'uSiteOrigin', 'uSiteScale']);
 
 const Guards: [string, 'u' | 't' | 'a', RenderableSchema['k']['type'], Set<string>][] = [
   ['uniforms', 'u', 'uniform', ConditionalUniforms],
   ['textures', 't', 'texture', new Set()],
   // the segment data of merged items, read from `tSegment` by macros of the segment's index (`common-vert-params`)
-  ['attributes', 'a', 'attribute', new Set(['aSegmentSphere', 'aSegmentLod'])],
+  [
+    'attributes',
+    'a',
+    'attribute',
+    new Set(['aSegmentSphere', 'aSegmentLod', 'aSegmentStride', 'aSegmentItem', 'aSegmentSites']),
+  ],
 ];
 
 describe('shader identifiers', () => {
   // all identifiers referenced in any preprocessor branch of the shader code must be in the schema,
   // uniform declarations are generated from it (textures and attributes will be too)
   for (const [name, shaderCode, renderableSchema, geometryType] of GraphicsShaders) {
-    // with what the WebGL backend adds for merged render items (`dInstanceData`)
+    // with what the WebGL backend adds for merged render items (`dInstanceData`) and expanded ones
+    // (`dInstanceExpansion`)
     const schema = getInstanceDataSchema({
       ...GlobalUniformSchema,
       ...GlobalTextureSchema,
@@ -112,6 +76,7 @@ describe('shader identifiers', () => {
       ...InternalSchema,
       ...renderableSchema,
       ...SegmentSchema,
+      ...InstanceExpansionSchema,
     });
     const vert = resolveGeometryType(getGlslProgram(shaderCode.name).vert, geometryType);
     const frag = resolveGeometryType(getGlslProgram(shaderCode.name).frag, geometryType);

@@ -11,6 +11,7 @@ import { Mesh } from '@molstar/graphics/geo/geometry/mesh/mesh';
 import { MeshBuilder } from '@molstar/graphics/geo/geometry/mesh/mesh-builder';
 import { addTube } from '@molstar/graphics/geo/geometry/mesh/builder/tube';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
+import { GridPositions } from '@molstar/core/math/geometry/grid-positions';
 import { LocationIterator } from '@molstar/graphics/geo/util/location-iterator';
 import { getFiberParticleMask, Particle, type ParticleList } from '@molstar/model/model/particles/particle-list';
 import type { PickingId } from '@molstar/graphics/geo/geometry/picking';
@@ -149,7 +150,7 @@ function buildFiberCurvePoints(
   const positions: Vec3[] = new Array(n);
   for (let k = 0; k < n; ++k) {
     const pIdx = fibers!.indices[fStart + k];
-    positions[k] = Vec3.fromArray(Vec3(), coordinates, pIdx * 3);
+    positions[k] = GridPositions.get(coordinates, pIdx, Vec3());
   }
 
   let outIdx = offset;
@@ -475,5 +476,6 @@ export const FibersRepresentationProvider = ParticleRepresentationProvider({
   defaultValues: PD.getDefaultValues(FibersParams),
   defaultColorTheme: { name: 'uniform' },
   defaultSizeTheme: { name: 'uniform' },
-  isApplicable: (data: ParticleList) => data.count > 0 && !!data.fibers && data.fibers.count > 0,
+  // a slot list (its pages: `ParticleSlots`) not yet read here
+  isApplicable: (data: ParticleList) => data.count > 0 && !data.pages && !!data.fibers && data.fibers.count > 0,
 });

@@ -1,0 +1,47 @@
+{
+  "name": "@molstar/seqx-ext-rondo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "description": "Seq* (next): a genome ring like Rondo's, as an extension: bundled ribbons, stems, stubs, the square navigator's cells, hues (headless `.`, the viewer's commands and binding at `./viewer`)",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "exports": {
+    ".": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./viewer": {
+      "molstar-src": "./src/viewer.ts",
+      "types": "./lib/viewer.d.ts",
+      "import": "./lib/viewer.js"
+    },
+    "./_test/*": null
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "typecheck:test": "tsc -p tsconfig.test.json"
+  },
+  "dependencies": {
+    "@molstar/seqx-core": "workspace:*",
+    "@molstar/seqx-viewer": "workspace:*",
+    "tslib": "catalog:"
+  },
+  "devDependencies": {
+    "@molstar/test-harness": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

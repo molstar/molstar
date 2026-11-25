@@ -63,9 +63,15 @@ function getDataTextureSpec(spec: DataSpec) {
   const texture =
     spec.format === 'rgba32f'
       ? TextureSpec('image-float32', 'rgba', 'float', 'nearest', undefined, { usedIf: spec.usedIf })
-      : TextureSpec('image-uint8', spec.format === 'r8' ? 'r' : 'rgba', 'ubyte', 'nearest', undefined, {
-          usedIf: spec.usedIf,
-        });
+      : spec.format === 'rgba16i'
+        ? // int16 x 4 as one `RG32I` texel (WebGL2: the accessor unpacks it; WebGL1's pages `RGBA32F`, converted)
+          TextureSpec('image-int32', 'rg', 'int', 'nearest', undefined, { usedIf: spec.usedIf })
+        : spec.format === 'rgb32f-i32'
+          ? // the words as one `RGBA32I` texel (WebGL2; WebGL1's pages `RGBA32F`, the fourth converted, `data-pages.ts`)
+            TextureSpec('image-int32', 'rgba', 'int', 'nearest', undefined, { usedIf: spec.usedIf })
+          : TextureSpec('image-uint8', spec.format === 'r8' ? 'r' : 'rgba', 'ubyte', 'nearest', undefined, {
+              usedIf: spec.usedIf,
+            });
   texture.data = spec.format;
   return texture;
 }
@@ -91,6 +97,59 @@ export function getDataTextureAccessors(schema: RenderableSchema, isWebGL2: bool
     const dim = getDataTextureDimName(name);
     const offset = getDataTextureOffsetName(name);
     const fn = `read_${name}`;
+    const format = (schema[name] as { data?: DataFormat }).data;
+    if (format === 'rgb32f-i32') {
+      const group = `readGroup_${name}`;
+      if (isWebGL2) {
+        // the words of an `RGBA32I` texel: the floats by `intBitsToFloat`, the group an integer
+        const words = `readWords_${name}`;
+        lines.push(
+          `ivec4 ${words}(const in int i) {`,
+          `    int width = int(${dim}.x);`,
+          `    int j = ${offset} + i;`,
+          '    int y = j / width;',
+          `    return texelFetch(${name}, ivec2(j - y * width, y), 0);`,
+          '}',
+          `vec4 ${fn}(const in int i) { return intBitsToFloat(${words}(i)); }`,
+          `vec4 ${fn}(const in float i) { return ${fn}(int(i)); }`,
+          `void ${fn}2(const in int i, out vec4 a, out vec4 b) {`,
+          `    a = ${fn}(i);`,
+          `    b = ${fn}(i + 1);`,
+          '}',
+          `void ${fn}3(const in int i, out vec4 a, out vec4 b, out vec4 c) {`,
+          `    a = ${fn}(i);`,
+          `    b = ${fn}(i + 1);`,
+          `    c = ${fn}(i + 2);`,
+          '}',
+          `int ${group}(const in int i) { return ${words}(i).w; }`,
+          `int ${group}(const in float i) { return ${group}(int(i)); }`,
+        );
+        continue;
+      }
+      // WebGL1: float pages, the group converted where written (exact to 2^24); the float accessors below
+      lines.push(
+        `vec4 ${fn}(const in float i);`,
+        `float ${group}(const in float i) { return ${fn}(i).w; }`,
+        `float ${group}(const in int i) { return ${fn}(float(i)).w; }`,
+      );
+    }
+    if (format === 'rgba16i') {
+      // int16 x 4 in an `RG32I` texel, little-endian: x and y in the first int, z and the uint16 in the second; WebGL1:
+      // float pages, the integers converted where written (`convertInt16ToFloat`), the float accessors below
+      if (isWebGL2) {
+        lines.push(
+          `vec4 ${fn}(const in int i) {`,
+          `    int width = int(${dim}.x);`,
+          `    int j = ${offset} + i;`,
+          '    int y = j / width;',
+          `    ivec2 v = texelFetch(${name}, ivec2(j - y * width, y), 0).xy;`,
+          '    return vec4(float((v.x << 16) >> 16), float(v.x >> 16), float((v.y << 16) >> 16), float((v.y >> 16) & 0xffff));',
+          '}',
+          `vec4 ${fn}(const in float i) { return ${fn}(int(i)); }`,
+        );
+        continue;
+      }
+    }
     if (isWebGL2) {
       lines.push(
         `vec4 ${fn}(const in int i) {`,

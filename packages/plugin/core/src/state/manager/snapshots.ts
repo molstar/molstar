@@ -6,8 +6,9 @@
  */
 
 import { List } from 'immutable';
-import { UUID } from '@molstar/core/util';
+import { formatBytes, UUID } from '@molstar/core/util';
 import { PluginState } from '@molstar/plugin/state';
+import { PluginConfig } from '@molstar/plugin/config';
 import { precompileSnapshots } from '@molstar/plugin/state/precompile';
 import { StatefulPluginComponent } from '../component.js';
 import type { PluginContext } from '@molstar/plugin/context';
@@ -23,6 +24,9 @@ import { StringLike } from '@molstar/core/util/string-like';
 import { SingleTaskQueue } from '@molstar/core/util/single-task-queue';
 
 export { PluginStateSnapshotManager };
+
+/** held files (by name) that compress little: stored in a session's zip as they are */
+const StoredExtensions = /\.(mspk|gz|zip|png|jpe?g|webp|mp4|webm)$/i;
 
 interface StateManagerState {
   current?: UUID;
@@ -412,7 +416,30 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
      * state (`.molj`). `open` hands them back.
      */
     extra?: PluginStateSnapshotManager.Extra;
+    /** A session's held files at most this many bytes together (`PluginConfig.State.MaxSessionAssetBytes` by default) */
+    maxAssetBytes?: number;
   }) {
+    // a session (a zip) holds every held file: one past what it can hold fails the save before anything is read, not a
+    // session that would open without it (the zip is made in memory, one buffer, no entries of 4 GiB)
+    if (options?.type === 'zip' || options?.type === 'molx') {
+      const max =
+        options.maxAssetBytes ??
+        this.plugin.config.get(PluginConfig.State.MaxSessionAssetBytes) ??
+        PluginConfig.State.MaxSessionAssetBytes.defaultValue!;
+      const files = this.plugin.managers.asset.assets.map((a) => a.file);
+      const total = files.reduce((n, f) => n + f.size, 0);
+      if (total > max) {
+        const largest = files
+          .filter((f) => f.size > 0)
+          .sort((a, b) => b.size - a.size)
+          .slice(0, 3);
+        const named = largest.map((f) => `${f.name} (${formatBytes(f.size)})`).join(', ');
+        throw new Error(
+          `The session's files are too large to save in it: ${formatBytes(total)}, at most ${formatBytes(max)} ` +
+            `(${named}). Save a state (.molj) instead: it names its data without holding it.`,
+        );
+      }
+    }
     const snapshot = await this.getStateSnapshot({ params: options?.params, keepList: options?.keepList });
     const isJson = !options?.type || options.type === 'json' || options.type === 'molj';
     const json = JSON.stringify(
@@ -432,11 +459,15 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
       };
 
       const assets: [UUID, Asset][] = [];
+      // files that compress little (a particle pack, compressed data, images, video) stored as they are
+      const stored = new Set<string>();
 
       // TODO: there can be duplicate entries: check for this?
       for (const { asset, file } of this.plugin.managers.asset.assets) {
         assets.push([asset.id, asset]);
-        zipDataObj[`assets/${asset.id}`] = new Uint8Array(await file.arrayBuffer());
+        const name = `assets/${asset.id}`;
+        zipDataObj[name] = new Uint8Array(await file.arrayBuffer());
+        if (StoredExtensions.test(file.name)) stored.add(name);
       }
 
       if (assets.length > 0) {
@@ -451,7 +482,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
         zipDataObj[name] = data as Uint8Array<ArrayBuffer>;
       }
 
-      const zipFile = await this.plugin.runTask(Zip(zipDataObj));
+      const zipFile = await this.plugin.runTask(Zip(zipDataObj, stored));
       return new Blob([zipFile], { type: 'application/zip' });
     }
   }
@@ -610,6 +641,7 @@ namespace PluginStateSnapshotManager {
   export type DescriptionFormat = 'markdown' | 'plaintext';
 
   /** What a host keeps in a state or session file beside the state (`serialize`'s `extra`, `open`'s result). */
+
   export interface Extra {
     /** Files in a session's zip, beside `state.json` (not `assets/`). */
     files?: { [name: string]: Uint8Array };

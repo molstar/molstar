@@ -190,11 +190,17 @@ export class BackgroundPass {
     }
     if (!this.skybox || !tf || !areSkyboxTexturePropsEqual(props.faces, this.skybox.props.faces)) {
       this.clearSkybox();
+      // the load's own entry, not the current one: a load superseded meanwhile marks nothing (a callback before the
+      // entry exists, an asset already loaded, is kept for it)
+      let entry: NonNullable<typeof this.skybox> | undefined;
+      let loadedEarly: boolean | undefined;
       const { texture, assets } = getSkyboxTexture(this.graphics, this.assetManager, props.faces, (errored) => {
-        if (this.skybox) this.skybox.loaded = !errored;
+        if (entry) entry.loaded = !errored;
+        else loadedEarly = !errored;
         onload?.(true);
       });
-      this.skybox = { texture, props: { ...props }, assets, loaded: false };
+      entry = { texture, props: { ...props }, assets, loaded: loadedEarly ?? false };
+      this.skybox = entry;
       ValueCell.update(this.renderable.values.tSkybox, texture);
       this.renderable.update();
     } else {
@@ -258,11 +264,16 @@ export class BackgroundPass {
       !areImageTexturePropsEqual(props.source, this.image.props.source)
     ) {
       this.clearImage();
+      // as the skybox's: the load's own entry
+      let entry: NonNullable<typeof this.image> | undefined;
+      let loadedEarly: boolean | undefined;
       const { texture, asset } = getImageTexture(this.graphics, this.assetManager, props.source, (errored) => {
-        if (this.image) this.image.loaded = !errored;
+        if (entry) entry.loaded = !errored;
+        else loadedEarly = !errored;
         onload?.(true);
       });
-      this.image = { texture, props: { ...props }, asset, loaded: false };
+      entry = { texture, props: { ...props }, asset, loaded: loadedEarly ?? false };
+      this.image = entry;
       ValueCell.update(this.renderable.values.tImage, texture);
       this.renderable.update();
     } else {

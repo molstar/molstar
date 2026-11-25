@@ -19,7 +19,7 @@ import { Renderer } from '@molstar/graphics/gl/renderer';
 import { Scene } from '@molstar/graphics/gl/scene';
 import { Camera } from '@molstar/graphics/canvas3d/camera';
 import { Viewport } from '@molstar/graphics/canvas3d/camera/util';
-import type { WebGPUContext } from '@molstar/graphics/gl/webgpu/context';
+import type { WebGPUContext } from '@molstar/graphics/gl/contexts/webgpu';
 import { asWebGPUTexture } from '@molstar/graphics/gl/webgpu/texture';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
@@ -91,7 +91,7 @@ async function readR8(graphics: WebGPUContext, texture: GPUTexture, width: numbe
   return data;
 }
 
-// the texts of one font share its atlas (`.v6/plans/gl/shared-textures.md`): one texture, new glyphs uploaded as the
+// the texts of one font share its atlas: one texture, new glyphs uploaded as the
 // rows written, replayed draws of the other texts still bound to it
 describe.skipIf(!WebGPU.module)('shared textures on WebGPU', () => {
   it('two label representations share the atlas, new glyphs uploaded as rows', async () => {
@@ -133,7 +133,7 @@ describe.skipIf(!WebGPU.module)('shared textures on WebGPU', () => {
       const held = graphics.sharedTextures.acquire(TextSchema.tFont, atlas);
       const texture = asWebGPUTexture(held.texture).getGPUTexture()!;
       held.release();
-      const resources = graphics.drawResourcesVersion;
+      const resources = graphics.drawLists!.resourcesVersion;
 
       // the chains' labels: another text of the same atlas, its new glyphs written in later rows
       const writes: { y: number; rows: number }[] = [];
@@ -163,7 +163,7 @@ describe.skipIf(!WebGPU.module)('shared textures on WebGPU', () => {
       expect(writes.some(({ y }) => y > 0)).toBe(true);
       // the atlas kept its storage: the first text's recorded draws replay
       expect(asWebGPUTexture(held.texture).getGPUTexture()).toBe(texture);
-      expect(graphics.drawResourcesVersion).toBe(resources);
+      expect(graphics.drawLists!.resourcesVersion).toBe(resources);
       // what the GPU holds is the atlas
       const uploaded = await readR8(graphics, texture, atlas.width, atlas.height);
       expect(uploaded.length).toBe(atlas.array.length);
@@ -240,7 +240,7 @@ describe.skipIf(!WebGPU.module)('shared textures on WebGPU', () => {
       expect(graphics.takeErrors?.() ?? []).toEqual([]);
 
       // the atlas grown in place and one text's cell updated: the upload replaces the storage all texts bind
-      const resources = graphics.drawResourcesVersion;
+      const resources = graphics.drawLists!.resourcesVersion;
       const grown = new Uint8Array(atlas.array.length * 2);
       grown.set(atlas.array);
       const resized = atlas as { array: Uint8Array; height: number; version?: number };
@@ -252,7 +252,7 @@ describe.skipIf(!WebGPU.module)('shared textures on WebGPU', () => {
       const before = { ...stats.drawLists };
       await frame();
       await frame();
-      expect(graphics.drawResourcesVersion).toBeGreaterThan(resources);
+      expect(graphics.drawLists!.resourcesVersion).toBeGreaterThan(resources);
       // nothing replayed what was recorded with the old storage
       expect(stats.drawLists.chunksRecorded + stats.drawLists.chunksDirect).toBeGreaterThan(
         before.chunksRecorded + before.chunksDirect + 1,

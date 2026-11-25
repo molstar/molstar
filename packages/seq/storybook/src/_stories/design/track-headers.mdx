@@ -1,0 +1,47 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Track headers" />
+
+# Track headers
+
+A track's header is its line in the label column: its name, its states and its actions. A section's header is a line
+above its first track, drawn only when a section entry gives it a slot. Hidden tracks are the application's: the view
+draws nothing for them.
+
+## Actions are entries
+
+Every action (hide, color, layers, move) is a registry entry that names a command, the built-ins included. A host adds
+its own (such as "color by this track" for a structure viewer) or leaves a built-in out. Actions show in fixed slots
+while the pointer or the keyboard cursor is on the track, with the "⋯" at the column's end and the slots left of it; on
+touch, a tap on the label shows them and a tap on a slot runs it. Every entry is also in the track's menu.
+
+## States are chips
+
+What is not shown is a count chip: "12 filtered", "1 layer hidden". On a short track or in a narrow column they become
+small marks, all of them or none, their words in the mark's card. A click undoes one in one step (the "n filtered" chip
+even in a viewer without the header actions); its menu brings back one thing at a time. A hidden track leaves no chip
+and no line (hiding never moves the view): the application lists the hidden tracks and restores them (the toolbar's eye
+button, `mountHiddenTracks`), and the menu's "Show hidden" does too.
+
+## Drawn or the host's own
+
+By default the slots and chips are drawn on the canvas, so they scroll and export with the picture. A host may instead
+place its own DOM parts over the same header geometry, which the viewer publishes; Seq\* ships a reference set built on
+`@molstar/ui`. Exported figures look the same either way.
+
+## The menu
+
+The "⋯" slot, the menu key or a secondary click open the menu for what is under the pointer: an item's entries first,
+then its track's and its section's. Where a secondary click opens it is the composing application's choice; with Shift
+it is always the browser's own menu. A submenu (Color, Layers, Show hidden) opens beside its row, never in the menu's
+place, when clicked or when the pointer rests on its row; the menu's clicks and hover never reach the view below it. The
+Layers submenu ends with a separator and Show all and Hide all (one edit each, disabled with their reason when they
+would change nothing); the legend's eye menu is the same menu. A track whose lanes scroll inside it (more than its cap
+holds) offers "Show every lane" (its `height` becomes `content`); a track at `content` offers "Cap the lanes" (the
+`height` removed): one edit and one undo step each, never on a ring's track.
+
+## Stories
+
+See them under Features / Track headers: the built-ins drawn and as DOM parts, a host's entry beside a built-in left
+out, the hidden tracks' list, short tracks, a ring through its menu, a host's own widget placed from the published
+geometry, and "Color by this track" with the fake structure viewer (shared with Features / Structure link).

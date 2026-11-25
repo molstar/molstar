@@ -1,0 +1,43 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* The empty stage (stage §4): the word in the middle of what the band leaves; only the word takes the pointer. It fades
+   in slowly (it only fades: styles §7) and out at the model's `markFadeOutMs` (`--msui-stage-mark-out`, written by the
+   view; 250ms by default, faster than it came). */
+.empty {
+  position: absolute;
+  inset: var(--msui-stage-top-inset, 0px) 0 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity var(--msui-motion-slow) var(--msui-ease);
+
+  @starting-style {
+    opacity: 0;
+  }
+
+  & > * {
+    pointer-events: auto;
+  }
+
+  &[data-phase="out"] {
+    opacity: 0;
+    transition: opacity var(--msui-stage-mark-out, 250ms) var(--msui-ease-in);
+
+    & > * {
+      pointer-events: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &[data-phase="out"] {
+      transition: none;
+    }
+  }
+}

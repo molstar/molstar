@@ -70,7 +70,13 @@ export const PluginConfig = {
     DefaultServer: item('plugin-state.server', 'https://webchem.ncbr.muni.cz/molstar-state'),
     CurrentServer: item('plugin-state.server', 'https://webchem.ncbr.muni.cz/molstar-state'),
     HistoryCapacity: item('history-capacity.server', 5),
+    /**
+     * The held files a session (`.molx`) holds at most, together, in bytes: its zip made in memory (each file read
+     * whole, then deflated into a buffer of its size), a save past it fails (`PluginStateSnapshotManager.serialize`)
+     */
+    MaxSessionAssetBytes: item('plugin-state.max-session-asset-bytes', 1024 * 1024 * 1024),
   },
+
   VolumeStreaming: {
     Enabled: item('volume-streaming.enabled', true),
     DefaultServer: item('volume-streaming.server', 'https://ds.litemol.org'),

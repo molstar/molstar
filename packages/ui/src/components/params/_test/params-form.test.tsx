@@ -1,0 +1,330 @@
+/** @vitest-environment jsdom */
+/** @jsxImportSource @molstar/ui/dom */
+
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import { derive, type ReadonlyState } from '@molstar/core/reactive';
+import { describe, expect, it } from 'vitest';
+import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import { render } from '../../../dom/index.js';
+import { ParamsFormModel } from '../../../forms/params-form.js';
+import { fieldNamed } from './named.js';
+import { state } from '../../../state.js';
+import { ParamsForm, searchParams } from '../params-form.js';
+import { presetIndex } from '../presets.js';
+import { classes as helpClasses } from '../_generated/help.module.css.js';
+
+/** A form's search over a text, as a host derives it. */
+const searchOf = (form: ParamsFormModel<any>, text: ReadonlyState<string>) =>
+  derive([text, form.values], (t, values) => searchParams(form.params, t, { values }));
+
+const flush = () => new Promise((r) => setTimeout(r, 0));
+
+function mount(form: ParamsFormModel<any>) {
+  const container = document.createElement('div');
+  document.body.append(container);
+  render(() => <ParamsForm form={form} />, container);
+  return container;
+}
+
+describe('ParamsForm', () => {
+  it("applies a group's preset from its header, names the matching one, and a flat group's from its row", async () => {
+    const material = PD.Group(
+      { metalness: PD.Numeric(0), roughness: PD.Numeric(1) },
+      {
+        presets: [
+          [{ metalness: 0, roughness: 1 }, 'Matte'],
+          [{ metalness: 1, roughness: 0.6 }, 'Metallic'],
+        ],
+      },
+    );
+    const size = PD.Group(
+      { width: PD.Numeric(1920), height: PD.Numeric(1080) },
+      {
+        isFlat: true,
+        presets: [
+          [{ width: 1920, height: 1080 }, 'Full HD'],
+          [{ width: 3840, height: 2160 }, '4K'],
+        ],
+      },
+    );
+    const form = new ParamsFormModel({ material, size });
+    const container = mount(form);
+    const button = (label: string) => container.querySelector(`button[aria-label="${label}"]`) as HTMLButtonElement;
+    const option = (label: string) =>
+      [...container.querySelectorAll('[role=listbox] button')].find((b) => b.textContent?.trim() === label) as
+        | HTMLButtonElement
+        | undefined;
+
+    expect(container.textContent).toContain('Matte');
+    button('Material presets').click();
+    await flush();
+    option('Metallic')!.click();
+    await flush();
+    expect((form.values.value as any).material).toEqual({ metalness: 1, roughness: 0.6 });
+    expect(container.textContent).toContain('Metallic');
+    expect(container.querySelector('[role=listbox]')).toBeNull();
+
+    expect(button('Size presets').textContent).toContain('Full HD');
+    button('Size presets').click();
+    await flush();
+    option('4K')!.click();
+    await flush();
+    expect((form.values.value as any).size).toEqual({ width: 3840, height: 2160 });
+    expect(button('Size presets').textContent).toContain('4K');
+  });
+
+  it('finds the preset a value matches: all of it, or the fields a group preset sets', () => {
+    const presets: PD.SelectOption<any>[] = [
+      [{ a: 1 }, 'One'],
+      [{ a: 2, b: 3 }, 'Two'],
+    ];
+    expect(presetIndex(presets, { a: 1, c: 9 }, true)).toBe(0);
+    expect(presetIndex(presets, { a: 1, c: 9 })).toBeUndefined();
+    expect(presetIndex(presets, { a: 2, b: 3 })).toBe(1);
+    expect(presetIndex(presets, { a: 5 }, true)).toBeUndefined();
+  });
+
+  it('takes dropped files into a file list, names them, clears', async () => {
+    const form = new ParamsFormModel({ files: PD.FileList({ multiple: true }) });
+    const container = mount(form);
+    const pick = container.querySelector('button') as HTMLButtonElement;
+    expect(pick.textContent).toContain('Select files…');
+
+    const files = [new File(['a'], '1tqn.cif'), new File(['b'], 'emd_2984.map')];
+    const drop = new Event('drop', { bubbles: true, cancelable: true });
+    Object.defineProperty(drop, 'dataTransfer', { value: { files } });
+    pick.dispatchEvent(drop);
+    await flush();
+    expect((form.values.value as any).files.map((f: any) => f.name)).toEqual(['1tqn.cif', 'emd_2984.map']);
+    expect(pick.textContent).toContain('2 files · 1tqn.cif, emd_2984.map');
+
+    (container.querySelector('button[aria-label=Clear]') as HTMLButtonElement).click();
+    await flush();
+    expect((form.values.value as any).files).toBeNull();
+    expect(pick.textContent).toContain('Select files…');
+  });
+
+  it('shows an on/off mapped param as a switch; on, its settings open behind the sliders button', async () => {
+    const form = new ParamsFormModel({
+      outline: PD.MappedStatic('off', {
+        on: PD.Group({ scale: PD.Numeric(1, { min: 0, max: 5, step: 1 }) }),
+        off: PD.Group({}),
+      }),
+    });
+    const container = mount(form);
+    const toggle = container.querySelector('[role=switch]') as HTMLButtonElement;
+    expect(toggle.getAttribute('aria-checked')).toBe('false');
+    expect(container.querySelector('[aria-label="Outline settings"]')).toBeNull();
+
+    toggle.click();
+    await flush();
+    expect((form.values.value as any).outline.name).toBe('on');
+    expect(toggle.getAttribute('aria-checked')).toBe('true');
+    const settings = container.querySelector('[aria-label="Outline settings"]') as HTMLButtonElement;
+    expect(settings).not.toBeNull();
+    expect(container.querySelector('input[type=range]')).toBeNull();
+    settings.click();
+    await flush();
+    expect(container.querySelector('input[type=range]')).not.toBeNull();
+  });
+
+  it("a case's params start at the case's default (a group's customDefault), from the switch and from the choice", async () => {
+    const custom = { samples: 64, radius: 2 };
+    const form = new ParamsFormModel({
+      occlusion: PD.MappedStatic('off', {
+        on: PD.Group({ samples: PD.Numeric(32), radius: PD.Numeric(1) }, { customDefault: custom }),
+        off: PD.Group({}),
+      }),
+      kind: PD.MappedStatic('a', {
+        a: PD.Group({}),
+        b: PD.Group({ size: PD.Numeric(1) }, { customDefault: { size: 3 } }),
+      }),
+    });
+    const container = mount(form);
+    (container.querySelector('[role=switch]') as HTMLButtonElement).click();
+    await flush();
+    expect((form.values.value as any).occlusion).toEqual({ name: 'on', params: custom });
+    fieldNamed(container, 'Kind')!.click();
+    await flush();
+    [...container.querySelectorAll<HTMLButtonElement>('[role=listbox] button')]
+      .find((b) => b.textContent?.trim() === 'B')!
+      .click();
+    await flush();
+    expect((form.values.value as any).kind).toEqual({ name: 'b', params: { size: 3 } });
+  });
+
+  it('filters rows by a search: matches show (groups open), a group whose name matches shows all its rows', async () => {
+    const params = {
+      pickPadding: PD.Numeric(3, { min: 0, max: 10, step: 1 }),
+      trackball: PD.Group({ rotateSpeed: PD.Numeric(5), zoomSpeed: PD.Numeric(7) }),
+      tooltips: PD.Boolean(true),
+    };
+    const form = new ParamsFormModel(params);
+    const filter = state('');
+    const container = document.createElement('div');
+    document.body.append(container);
+    render(() => <ParamsForm form={form} search={searchOf(form, filter)} />, container);
+    // The visible rows' labels (a group's header is not a row).
+    const shown = () =>
+      [...container.querySelectorAll(`.${helpClasses.text}`)]
+        .filter((el) => !el.closest('[hidden]'))
+        .map((el) => el.textContent);
+
+    filter.set('zoom');
+    await flush();
+    expect(shown()).toEqual(['Zoom Speed']);
+
+    filter.set('trackball');
+    await flush();
+    expect(shown()).toEqual(['Rotate Speed', 'Zoom Speed']);
+
+    // Words across levels: the group's name takes one, a row's the other.
+    filter.set('track  ZOOM');
+    await flush();
+    expect(shown()).toEqual(['Zoom Speed']);
+    filter.set('track pick');
+    await flush();
+    expect(shown()).toEqual([]);
+
+    filter.set('');
+    await flush();
+    expect(shown()).toEqual(['Pick Padding', 'Tooltips']);
+
+    expect(!!searchParams(params, 'zoom')?.any).toBe(true);
+    expect(!!searchParams(params, 'nothing')?.any).toBe(false);
+    expect(!!searchParams(params, 'trackball speed')?.any).toBe(true);
+    expect(!!searchParams(params, 'trackball tooltips')?.any).toBe(false);
+  });
+
+  it('searches only rows that can show: not hidden params, plain values, hideIf on the values, other cases', () => {
+    const params = {
+      secret: PD.Numeric(1, {}, { isHidden: true, label: 'Secret' }),
+      carried: PD.Value({ a: 1 }, { label: 'Carried' }),
+      mode: PD.Select('simple', [
+        ['simple', 'Simple'],
+        ['expert', 'Expert'],
+      ]),
+      tuning: PD.Numeric(1, {}, { label: 'Tuning', hideIf: (v: any) => v.mode !== 'expert' }),
+      inner: PD.Group({
+        flag: PD.Boolean(false, { label: 'Flag' }),
+        depth: PD.Numeric(1, {}, { label: 'Depth', hideIf: (v: any) => !v.flag }),
+      }),
+      shape: PD.MappedStatic(
+        'ball',
+        {
+          ball: PD.Group({ radius: PD.Numeric(1, {}, { label: 'Radius' }) }),
+          box: PD.Group({ width: PD.Numeric(1, {}, { label: 'Width' }) }),
+        },
+        {
+          options: [
+            ['ball', 'Sphere'],
+            ['box', 'Cuboid'],
+          ],
+        },
+      ),
+    };
+    const values = PD.getDefaultValues(params) as any;
+    expect(searchParams(params, 'secret', { values })!.any).toBe(false);
+    expect(searchParams(params, 'carried', { values })!.any).toBe(false);
+    expect(searchParams(params, 'tuning', { values })!.any).toBe(false);
+    expect(searchParams(params, 'tuning', { values: { ...values, mode: 'expert' } })!.rows.get('/tuning')).toBe(true);
+    // A group whose only match is hidden by its hideIf does not show.
+    const depth = searchParams(params, 'depth', { values })!;
+    expect(depth.rows.get('/inner')).toBe(false);
+    expect(
+      searchParams(params, 'depth', { values: { ...values, inner: { flag: true, depth: 1 } } })!.rows.get(
+        '/inner/depth',
+      ),
+    ).toBe(true);
+    // The chosen case's rows only; an option's label (not just its id) shows the choice.
+    expect(searchParams(params, 'width', { values })!.any).toBe(false);
+    expect(searchParams(params, 'radius', { values })!.rows.get('/shape:ball/radius')).toBe(true);
+    expect(searchParams(params, 'cuboid', { values })!.rows.get('/shape')).toBe(true);
+    expect(searchParams(params, 'box', { values })!.rows.get('/shape')).toBe(true);
+    // Without values (any case, no hideIf), as before.
+    expect(!!searchParams(params, 'width')?.any).toBe(true);
+  });
+
+  it('maps a choice’s cases once each, not once per keystroke', () => {
+    let calls = 0;
+    const cases: Record<string, PD.Any> = {
+      a: PD.Group({ alpha: PD.Numeric(1) }),
+      b: PD.Group({ beta: PD.Numeric(1) }),
+    };
+    const params = {
+      choice: PD.Mapped(
+        'a',
+        [
+          ['a', 'A'],
+          ['b', 'B'],
+        ],
+        (name) => {
+          calls++;
+          return cases[name];
+        },
+      ),
+    };
+    calls = 0;
+    for (const q of ['b', 'be', 'bet', 'beta', 'x']) searchParams(params, q);
+    expect(calls).toBe(2);
+  });
+
+  it('hides a group whose only match its hideIf hides, and shows it when the values change', async () => {
+    const params = {
+      mode: PD.Select('simple', [
+        ['simple', 'Simple'],
+        ['expert', 'Expert'],
+      ]),
+      expert: PD.Group(
+        { tuning: PD.Numeric(1, {}, { label: 'Tuning' }) },
+        { label: 'Expert things', hideIf: (v: any) => v.mode !== 'expert', isExpanded: true },
+      ),
+    };
+    const form = new ParamsFormModel(params);
+    const filter = state('tuning');
+    const container = document.createElement('div');
+    document.body.append(container);
+    const dispose = render(() => <ParamsForm form={form} search={searchOf(form, filter)} />, container);
+    await flush();
+    const rowOf = (text: string) =>
+      [...container.querySelectorAll(`.${helpClasses.text}`)].find((el) => el.textContent === text);
+    expect(rowOf('Tuning')?.closest('[hidden]')).not.toBeNull();
+    form.set('mode', 'expert');
+    await flush();
+    expect(rowOf('Tuning')?.closest('[hidden]')).toBeNull();
+    dispose();
+  });
+
+  it('marks a label with help (dotted underline); its text and the ? after it open the help; a long label wraps, its ? after it', async () => {
+    const form = new ParamsFormModel({
+      backgroundOcclusionRadiusScale: PD.Numeric(
+        0.5,
+        { min: 0, max: 2 },
+        { description: 'How far occlusion samples.' },
+      ),
+      plain: PD.Boolean(true),
+    });
+    const container = mount(form);
+    await flush();
+    const [helped, plain] = [...container.querySelectorAll<HTMLElement>(`.${helpClasses.text}`)];
+    expect(helped.hasAttribute('data-help')).toBe(true);
+    expect(plain.hasAttribute('data-help')).toBe(false);
+    // The ? is the text's sibling (after its last word).
+    const toggle = helped.nextElementSibling as HTMLButtonElement;
+    expect(toggle.getAttribute('aria-label')).toBe('About Background Occlusion Radius Scale');
+    const help = () => container.textContent?.includes('How far occlusion samples.');
+    expect(help()).toBe(false);
+    helped.click();
+    await flush();
+    expect(help()).toBe(true);
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    toggle.click();
+    await flush();
+    expect(help()).toBe(false);
+  });
+});

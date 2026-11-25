@@ -12,6 +12,7 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { ThemeDataContext } from '../theme.js';
 import type { ScaleLegend, TableLegend } from '@molstar/core/util/legend';
 import { ColorThemeCategory } from './categories.js';
+import { fillByLocation, getPagedPainting, setParticleRgba } from './particle-pages.js';
 import { Particle, type ParticleList } from '@molstar/model/model/particles/particle-list';
 
 const DefaultColor = Color(0xcccccc);
@@ -20,6 +21,11 @@ const Description = 'Colors particles by a per-particle scalar attribute (e.g. s
 function getParticleList(ctx: ThemeDataContext): ParticleList | undefined {
   if (ctx.particles) return ctx.particles;
   return undefined;
+}
+
+/** A list's attributes: a slot list's its first page's (a tile set's pages have the same, the whole's ranges) */
+function getAttributes(particles: ParticleList | undefined) {
+  return particles?.attributes ?? particles?.pages?.pages[0]?.list.attributes;
 }
 
 export const ParticleAttributeColorThemeParams = {
@@ -35,9 +41,10 @@ export type ParticleAttributeColorThemeParams = typeof ParticleAttributeColorThe
 export function getParticleAttributeColorThemeParams(ctx: ThemeDataContext) {
   const params = PD.clone(ParticleAttributeColorThemeParams);
   const particles = getParticleList(ctx);
-  if (particles?.attributes && particles.attributes.size > 0) {
+  const attributes = getAttributes(particles);
+  if (attributes && attributes.size > 0) {
     const options: [string, string][] = [];
-    particles.attributes.forEach((attr, key) => {
+    attributes.forEach((attr, key) => {
       if (['int', 'float'].includes(attr.column.schema.valueType)) {
         options.push([key, attr.label]);
       }
@@ -55,10 +62,12 @@ export function ParticleAttributeColorTheme(
 ): ColorTheme<ParticleAttributeColorThemeParams> {
   let color: LocationColor;
   let legend: ScaleLegend | TableLegend | undefined;
+  let fillParticleColors: ColorTheme<ParticleAttributeColorThemeParams>['fillParticleColors'];
 
   const particles = getParticleList(ctx);
-  if (particles?.attributes) {
-    const attr = particles.attributes.get(props.attribute);
+  const attributes = getAttributes(particles);
+  if (attributes) {
+    const attr = attributes.get(props.attribute);
 
     if (attr) {
       const domain: [number, number] =
@@ -76,12 +85,33 @@ export function ParticleAttributeColorTheme(
         return scale.color(attr.column.value(index));
       };
 
-      color = (location: Location): Color => {
-        if (Particle.isLocation(location)) {
-          return pick(location.index);
-        }
-        return DefaultColor;
-      };
+      if (particles!.pages) {
+        // a slot list: a page's own attribute
+        const painting = getPagedPainting((page) => {
+          const column = page.attributes?.get(props.attribute)?.column;
+          const at = (i: number) =>
+            !column || i < 0 || i >= column.rowCount ? DefaultColor : scale.color(column.value(i));
+          return {
+            color: at,
+            fill: (out, offset) => {
+              for (let i = 0; i < page.count; ++i) setParticleRgba(out, offset + i * 4, at(i));
+            },
+          };
+        }, DefaultColor);
+        color = painting.color;
+        fillParticleColors = painting.fill;
+      } else {
+        color = (location: Location): Color => {
+          if (Particle.isLocation(location)) {
+            return pick(location.index);
+          }
+          return DefaultColor;
+        };
+        fillParticleColors = (list, out, offset) => {
+          if (list !== particles) return fillByLocation(color, list, out, offset);
+          for (let i = 0; i < list.count; ++i) setParticleRgba(out, offset + i * 4, pick(i));
+        };
+      }
     } else {
       color = () => DefaultColor;
     }
@@ -96,6 +126,7 @@ export function ParticleAttributeColorTheme(
     props,
     description: Description,
     legend,
+    fillParticleColors,
   };
 }
 
@@ -110,7 +141,7 @@ export const ParticleAttributeColorThemeProvider: ColorTheme.Provider<
   getParams: getParticleAttributeColorThemeParams,
   defaultValues: PD.getDefaultValues(ParticleAttributeColorThemeParams),
   isApplicable: (ctx: ThemeDataContext) => {
-    const p = getParticleList(ctx);
-    return !!p?.attributes && p.attributes.size > 0;
+    const attributes = getAttributes(getParticleList(ctx));
+    return !!attributes && attributes.size > 0;
   },
 };

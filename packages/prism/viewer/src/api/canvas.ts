@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Color } from '@molstar/core/util/color';
@@ -71,6 +72,7 @@ export class CanvasApi extends ApiArea {
         camera: { mode: p.camera.mode, fov: p.camera.fov },
         clipping: { clip: p.cameraClipping.radius, far: p.cameraClipping.far },
         xr: !!ctx.plugin.canvas3d?.xr?.isPresenting.value,
+        backend: canvas.backend,
       };
       const lit = (Object.keys(value.lighting) as (keyof typeof value.lighting)[]).filter((k) => value.lighting[k]);
       return ApiResult.ok(

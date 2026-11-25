@@ -31,6 +31,8 @@
     {
       "path": "./cli/mvs-render"
     },
+    { "path": "./cli/particle-pack" },
+    { "path": "./cli/seqx-render" },
     {
       "path": "./packages/mvs/builder"
     },
@@ -108,6 +110,9 @@
     },
     {
       "path": "./packages/extensions/backgrounds"
+    },
+    {
+      "path": "./packages/extensions/bond-orders"
     },
     {
       "path": "./packages/extensions/debug-helpers"
@@ -212,6 +217,9 @@
       "path": "./perf-tests"
     },
     {
+      "path": "./test-harness"
+    },
+    {
       "path": "./servers/common"
     },
     {
@@ -236,6 +244,9 @@
       "path": "./packages/query-language"
     },
     {
+      "path": "./packages/ui"
+    },
+    {
       "path": "./packages/sequences/core"
     },
     {
@@ -243,6 +254,18 @@
     },
     {
       "path": "./packages/sequences/nightingale"
+    },
+    {
+      "path": "./packages/seq/core"
+    },
+    {
+      "path": "./packages/seq/viewer"
+    },
+    {
+      "path": "./packages/seq/examples"
+    },
+    {
+      "path": "./packages/seq/ext-rondo"
     }
   ]
 }

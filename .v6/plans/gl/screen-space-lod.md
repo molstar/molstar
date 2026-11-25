@@ -5,7 +5,8 @@
 - **Current**: done. Step 1 measured: `D` 3 looks as `quality` at 720p for half the opaque pass zoomed; with strides
   growing by 10 (1, 10, 100, 1000) the whole view as well, a third of its opaque pass. Decided: `D` in CSS pixels, the
   coarser chain with the pixel presets. Steps 2 (pixel mode, `lodPixelSize`) and 3 (presets, the mesoscale preset, the
-  Mesoscale Explorer, the particle representations' default) done.
+  Mesoscale Explorer, the particle representations' default) done. Step 4: the levels by distance removed
+  (`lodLevels`), `lodPixelSize` the only knob, the strides nested.
 
 ## Why
 
@@ -27,7 +28,7 @@
 - **The cost is the spheres drawn**: about 0.45 ns a sphere, whole (11–12 M) and zoomed (44 M: levels 0 to 3 4.1,
   16.8, 20.3 and 2.9 M), about 48 spheres a pixel zoomed. Shading is about 2 ms of the 20, the vertex stage alone
   13.4 ms (`sphere-impostors.md` has the per-sphere costs).
-- **The levels are chosen by distance in Å** (`Spheres.LodLevelsPresets`: level `j` from `minDistance` to
+- **The levels were chosen by distance in Å** (the `lodLevels` presets: level `j` from `minDistance` to
   `maxDistance`), the same at any resolution, field of view and zoom. What a sphere costs and how it looks depends on
   its size on screen: at 720p and 45° a pixel covers `d * 0.00115` Å at distance `d`, so `quality`'s level 0 ends where
   an atom (radius 1.7 Å) is 3 px, its levels 1 and 2 where their spheres (scaled by `stride^(1 / scaleBias)`) are 1.6
@@ -54,21 +55,35 @@
   culling tests one range per cell.
 - **Into the existing machinery as distances**: the boundaries in Å per pixel, divided by `k = 2 tan(fov / 2) / H`
   once per frame where `k` changed, are the distance ranges the three tests already use: the cells on the CPU
-  (`cullSegment`), the cells on the GPU (`cell-cull`, `uLevels`), the spheres in the vertex stage and the dithered fade
+  (`cullSegment`), the cells on the GPU (`cell-cull`, `uLevels`), the spheres in the vertex stage
   (`uLod` per level). Orthographic: one level for all, its range `[0, ∞)`, the others empty. Why: no new test, no new
   uniform per sphere; the cost is a few numbers per frame, and the draw lists' keys change only with `k`.
 - **`k` from the canvas**, not the pass: the pick pass draws at a lower resolution and must draw the spheres the color
   pass draws; XR views take their own projection's.
-- **The fade** between levels (`overlap`) in Å per pixel, converted as the boundaries: adjacent levels fade over the
-  same range (the presets have none).
+- **No fade between levels**: a level's range ends where the next begins (no `overlap`; `uLod`'s third component 0
+  for levels, kept for the object's own `lod` param). Why: no level chain needed one; a param nothing set.
 - **At most 4 levels** (`MaxCullLevels`, `aSegmentLod` a vec4), the coarsest open-ended. With a scale bias of 3 a level
   of stride 8 times the finer one covers a doubling of the pixel size; four cover 8x, beyond it the coarsest draws
   spheres smaller than `D` (they shrink with the distance, as now). Measured (step 1): strides growing by 10 (scale
   biases 1, 3, 2.7, 2.3) reach the whole view of the PetWorld model at `D` 3; no more levels needed for it.
-- **Params**: `lodPixelSize` (`D`, CSS pixels), 0 for the levels' Å distances (v5 states and apps unchanged); above 0
-  the levels' distances are ignored. The level value carries it (`LodLevelsValue.pixel`, boundaries in Å per pixel),
-  so merging (its key), the culling and the shaders see one value. The presets get pixel variants (strides and scale
-  biases, a `D` each); the mesoscale preset and the Mesoscale Explorer's graphics modes use them.
+- **Params**: `lodPixelSize` (`D`, CSS pixels) alone, 0 for no levels; the chain of strides 1, 10, 100, 1000 (scale
+  biases 1, 3, 2.7, 2.3) fixed (`getLodPixelLevels`). Why: one knob with a visible meaning; levels by distance look
+  different at every resolution and zoom, and a custom chain was never needed. The level value carries it
+  (`LodLevelsValue.pixelSize`, boundaries in Å per pixel), so merging (its key), the culling and the shaders see one
+  value; the renderable still takes ranges by distance (a value without `pixelSize`), which tests set directly. The
+  presets are pixel sizes (`LodPixelPresets`); the mesoscale preset and the Mesoscale Explorer's graphics modes use
+  them.
+- **Nested strides, items in their order**: the strides adjusted for the size factor are rounded to multiples of the
+  finer (`getNestedStrides`), so each level is a subset of the finer. Level `j` draws `ceil(n / s_j)` quads, quad `p`
+  item `p s_j` (the stride the level tuple's fifth value): unmerged by the level list's `uLodStride`, merged by the
+  member's strides and first item in its segment data (`tSegment`, the level by `uLodLevel`; a gridless member, drawn
+  whole, stride 1); the raster's chunks hold their first item and stride (`SphereRasterChunkWords`). Why: no reordered
+  copy of the items, so they can be drawn from data that is not the geometry's own (a particle pack's sites, views of
+  the file); data per item (vertex granularity) indexed by item.
+- **Coarse items** (`getLodLevelsValue`'s `base`, `SphereSites.stride`): items every `base`-th of a whole's (a
+  pack's sites read coarse, `ParticleSites.coarsen`), each level drawn as its stride of the whole is, a level finer than
+  `base` as the first that is not (its scale, every item). The ranges the whole's. Why: a coarse member merges with
+  whole ones (the merge key compares the ranges alone), its counts, scales and strides its own.
 - **Particles by size on screen**: the particle representations (`ParticleTargetCommonParams`) default to
   `LodPixelPresets.quality` (`lodPixelSize` 3), although particles shipped in v5.11 (a saved state without
   `lodPixelSize` changes look a little, the `quality` look kept). The sphere geometry's default stays 0.
@@ -108,7 +123,7 @@
 2. **Pixel mode** (done): `lodPixelSize` (`Spheres.LodPixelSizeParam`, also the particles' common params); the level
    value in Å per pixel with `pixelSize` (`getLodLevelsValue`, `getLodPixelBoundary`; the preset's distances kept in the
    tuple for the props); `LodView` from the renderer's `update` (the projection, the camera's viewport height over
-   `pixelRatio`) to `cull`, `uncull`, `cullSimple` and `prepareCull`; `SegmentedMdbList.prepare` converts the ranges
+   `pixelRatio`) to `cull`, `uncull` and `prepareCull`; `SegmentedMdbList.prepare` converts the ranges
    (`LodView.getRange`) into the `uLod` uniforms and the ranges the cell tests use, again where the view changed; the
    GPU culler converts per dispatch (`uLevels`, part of what a still frame compares). Tested by `lod-levels`. Measured
    (`merging/postsyn-lod-pixel3*`, the chain of strides 1, 10, 100, 1000 at 3 px, 720p, opaque pass, WebGPU / WebGL2):
@@ -116,8 +131,12 @@
    distances computed in the benchmark; orthographic one level for the view (1.33 and 9.04 ms on WebGPU). At 2560x1440
    with a pixel ratio of 1 (twice the CSS pixels) zoomed 35.8 ms.
 3. **Presets and apps** (done): `Spheres.LodPixelPresets` per graphics mode, the chain of strides 1, 10, 100, 1000 at
-   `D` 6 (`performance`), 4 (`balanced`), 3 (`quality`) and 1.5 (`ultra`), their distances those of the boundaries at
-   1280x720 and 45° (for `lodPixelSize` 0); the mesoscale preset (`MesoscalePreset`) and the Mesoscale Explorer's
+   `D` 6 (`performance`), 4 (`balanced`), 3 (`quality`) and 1.5 (`ultra`); the mesoscale preset (`MesoscalePreset`) and the Mesoscale Explorer's
    graphics modes, presets and LOD controls on them (`lodPixelSize` in `LodParams`). `D` from the chain at 720p, zoomed
    (`merging/postsyn-lod-pixel*`, WebGPU, opaque pass): 1.5 25.9 ms, 2 15.3, 3 7.2, 4 4.7, 6 3.6 (molecules as visible
    blobs); the whole view 1.37 ms at every `D` (all of it at the coarsest level).
+4. **Pixel size only** (done): the levels by distance removed (`lodLevels`, `LodLevelsPresets`, `getLodLevelsParam`;
+   `breaking-v6-changes.md`), `LodPixelPresets` pixel sizes, the strides nested. The benchmark's cases of distance
+   levels and other chains (`merging/postsyn-lod-{quality,px*}`, `merging/postsyn-lod-chain-*`) removed: step 1 has
+   their numbers; the cases of the `quality` distances (`merging/postsyn-*`, `sphere-raster/postsyn*`) now at `D` 3.
+   The levels' fade removed (`overlap`, from `LodLevels` and `LodLevelsValue`).

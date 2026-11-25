@@ -4,8 +4,14 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { describe, expect, it } from 'vitest';
-import { createRenderObject, createMergedRenderObject, canMergeRenderObjects } from '../render-object.js';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  createRenderObject,
+  createMergedRenderObject,
+  createMergedRecordsRenderObject,
+  canMergeRenderObjects,
+} from '../render-object.js';
+import { type MergeableValues, type MergeRecord, pickMergeRecord } from '../renderable/merged.js';
 import { Scene } from '../scene.js';
 import { SegmentedArray } from '../segmented-array.js';
 import { getGLContext, tryGetGLContext } from './gl.js';
@@ -17,10 +23,23 @@ import { Mesh } from '@molstar/graphics/geo/geometry/mesh/mesh';
 import { Points } from '@molstar/graphics/geo/geometry/points/points';
 import { ValueCell } from '@molstar/core/util';
 import { Color } from '@molstar/core/util/color/color';
+import { createObjectColor, createTextureColor } from '../../geo/geometry/color-data.js';
+import { createDataArray } from '../renderable/util.js';
 import { NullLocation } from '@molstar/model/model/location';
 import { BaseGeometry } from '@molstar/graphics/geo/geometry/base';
 import { Cylinders, CylinderStride } from '@molstar/graphics/geo/geometry/cylinders/cylinders';
 import { LocationIterator } from '@molstar/graphics/geo/util/location-iterator';
+import { getDrawnBoundingSphere } from '../renderable/util.js';
+import { SegmentTexels } from '../renderable/schema.js';
+import { Mat4 } from '@molstar/core/math/linear-algebra';
+import { Sphere3D } from '@molstar/core/math/geometry';
+import { getDataWords } from '../../geo/geometry/center-group.js';
+
+/** `count` items of a position group's array: xyz and the group (an int32 as its bits) */
+function items(array: Float32Array, count: number) {
+  const words = getDataWords(array);
+  return Array.from({ length: count * 4 }, (_, i) => (i % 4 === 3 ? words[i] : array[i]));
+}
 
 function createSpheresRenderObject(centers: Float32Array, groups: Float32Array, count: number) {
   const spheres = Spheres.create(centers, groups, count);
@@ -78,19 +97,81 @@ describe('merged', () => {
 
     const g0 = a.values.uGroupCount.ref.value;
     const g1 = b.values.uGroupCount.ref.value;
-    // per instance its segment's group count and offsets and the segment's index; per segment its sphere, level scales
+    // per instance its segment's group count and offsets and the segment's index; per segment its sphere, level scales,
+    // strides and first item (`SegmentTexels` elements)
     const aSegment = (mv as any).aSegment.ref.value as Float32Array;
     expect(Array.from(aSegment.subarray(0, 8))).toEqual([g0, 0, 0, 0, g1, 1 * g0 - 1 * g1, g0, 1]);
     const segment = (mv as any).tSegment.ref.value.array as Float32Array;
     const sphere = b.values.invariantBoundingSphere.ref.value;
-    expect(Array.from(segment.subarray(8, 12))).toEqual(Array.from(Float32Array.of(...sphere.center, sphere.radius)));
+    const o = SegmentTexels * 4;
+    expect(Array.from(segment.subarray(o, o + 4))).toEqual(
+      Array.from(Float32Array.of(...sphere.center, sphere.radius)),
+    );
+    // no levels: every item (stride 1); the second member's first item 3 (its high and low 16 bits)
+    expect(Array.from(segment.subarray(o + 8, o + 16))).toEqual([1, 1, 1, 1, 0, 3, 0, 0]);
 
     // second member's positions start at texel 3 in the merged position texture
     const pg = SegmentedArray.flatten(mv.tPositionGroup.ref.value.array as unknown as SegmentedArray<Float32Array>);
-    expect(Array.from(pg.subarray(3 * 4, 3 * 4 + 4))).toEqual([2, 0, 0, 0]);
-    expect(Array.from(pg.subarray(4 * 4, 4 * 4 + 4))).toEqual([0, 2, 0, 1]);
+    expect(items(pg.subarray(3 * 4, 3 * 4 + 4), 1)).toEqual([2, 0, 0, 0]);
+    expect(items(pg.subarray(4 * 4, 4 * 4 + 4), 1)).toEqual([0, 2, 0, 1]);
 
     expect((mv as any).dSegmented.ref.value).toBe(true);
+  });
+
+  it("keeps its members' object colors: a texel each, read by the segment; not merged with colors per instance", () => {
+    const [a, b] = createMembers();
+    createObjectColor(Color(0xff0000), a.values as any);
+    createObjectColor(Color(0x00ff00), b.values as any);
+    expect(canMergeRenderObjects([a, b])).toBe(true);
+    const merged = createMergedRenderObject([a, b]);
+    const mv = merged.values as any;
+    expect(mv.colorType.ref.value).toBe('object');
+    expect(mv.dColorType.ref.value).toBe('texture');
+    // the segment's texel (`ColorTypeIndex`)
+    expect(mv.uColorIndexType.ref.value).toBe(5);
+    expect(mv.tColor.ref.value.count).toBe(2);
+    expect(Array.from(SegmentedArray.flatten(mv.tColor.ref.value.array).subarray(0, 8))).toEqual([
+      255, 0, 0, 255, 0, 255, 0, 255,
+    ]);
+    // a member's color changed: its texel
+    createObjectColor(Color(0x0000ff), b.values as any);
+    merged.merged.sync();
+    expect(Array.from(SegmentedArray.flatten(mv.tColor.ref.value.array).subarray(4, 8))).toEqual([0, 0, 255, 255]);
+    // colors per instance: the same define, another granularity
+    const [c] = createMembers();
+    createTextureColor(createDataArray(1, 4, Uint8Array), 'instance', c.values as any);
+    expect(canMergeRenderObjects([a, c])).toBe(false);
+  });
+
+  it("packs the members' second color tables by site type, a member's first entry in its segment data", () => {
+    const [a, b] = createMembers();
+    const table = (count: number, first: number) => {
+      const array = new Uint8Array(count * 4).map((_, i) => first + i);
+      return { array, count };
+    };
+    for (const [m, t] of [
+      [a, table(2, 10)],
+      [b, table(3, 50)],
+    ] as const) {
+      const v = m.values as any;
+      ValueCell.update(v.dSiteColor, 'siteType');
+      ValueCell.update(v.tSiteColor, t);
+    }
+    expect(canMergeRenderObjects([a, b])).toBe(true);
+    const mv = createMergedRenderObject([a, b]).values as any;
+    const packed = mv.tSiteColor.ref.value;
+    expect(packed.count).toBe(5);
+    expect(Array.from(SegmentedArray.flatten(packed.array).subarray(0, 20))).toEqual([
+      ...Array.from({ length: 8 }, (_, i) => 10 + i),
+      ...Array.from({ length: 12 }, (_, i) => 50 + i),
+    ]);
+    // the size table's first entry, then the second color's (none, and the first member's 2)
+    const segment = mv.tSegment.ref.value.array as Float32Array;
+    expect(segment[(0 * SegmentTexels + 1) * 4 + 11]).toBe(0);
+    expect(segment[(1 * SegmentTexels + 1) * 4 + 11]).toBe(2);
+    // a member without the second color does not merge with them
+    const [c] = createMembers();
+    expect(canMergeRenderObjects([a, c])).toBe(false);
   });
 
   it('sync', () => {
@@ -113,6 +194,98 @@ describe('merged', () => {
     expect(SegmentedArray.changedRanges(segmented, { array: segmented, versions: before })).toEqual([3 * 4, 5 * 4]);
     const pg = SegmentedArray.flatten(segmented);
     expect(Array.from(pg.subarray(3 * 4, 3 * 4 + 4))).toEqual([3, 0, 0, 0]);
+  });
+
+  it('builds a merged object of records alone as of its members, their changes followed', () => {
+    const [a, b] = createMembers();
+    const [c, d] = createMembers();
+    const byMembers = createMergedRenderObject([a, b]);
+    const records = [c, d].map((m) => pickMergeRecord('spheres', m.values as unknown as MergeableValues));
+    // a record its cells of what the merged object reads alone, not a member's values
+    expect(Object.keys(records[0]).length).toBeLessThan(Object.keys(c.values).length / 3);
+    const byRecords = createMergedRecordsRenderObject('spheres', c.values, records, c.state, -1);
+    expect(byRecords.members).toEqual([]);
+    expect(byRecords.merged.records).toBe(records);
+
+    const same = () => {
+      const x = byMembers.values as any;
+      const y = byRecords.values as any;
+      expect(byRecords.merged.segments).toEqual(byMembers.merged.segments);
+      for (const k of ['drawCount', 'uVertexCount', 'instanceCount', 'uGroupCount', 'boundingSphere']) {
+        expect(y[k].ref.value).toEqual(x[k].ref.value);
+      }
+      for (const k of ['aInstance', 'aSegment']) expect(Array.from(y[k].ref.value)).toEqual(Array.from(x[k].ref.value));
+      expect(Array.from(y.tSegment.ref.value.array)).toEqual(Array.from(x.tSegment.ref.value.array));
+      for (const k of ['tPositionGroup', 'tColor']) {
+        const flat = (v: any) => Array.from(SegmentedArray.flatten(v[k].ref.value.array as SegmentedArray));
+        expect(flat(y)).toEqual(flat(x));
+      }
+    };
+    same();
+
+    // a record's cell changed as a member's: read by the next sync alike
+    for (const m of [b, d]) {
+      const pg = m.values.tPositionGroup.ref.value;
+      pg.array.set([3, 0, 0, 0], 0);
+      ValueCell.update(m.values.tPositionGroup, pg);
+    }
+    byMembers.merged.sync();
+    byRecords.merged.sync();
+    same();
+  });
+
+  it("keeps its records' writes to a full read: a sync of the observed cells between a write and its update", () => {
+    const [c, d] = createMembers();
+    const records = [c, d].map((m) => pickMergeRecord('spheres', m.values as unknown as MergeableValues));
+    const recordsVersion = ValueCell.create(0);
+    const { merged, values } = createMergedRecordsRenderObject('spheres', c.values, records, c.state, -1, {
+      recordsVersion,
+    });
+    // as the merged object's update reads it (`MergedRenderable.update`)
+    const update = (observedOnly = false) => merged.sync(observedOnly || !!merged.recordsUnchanged!());
+    update();
+    expect(merged.recordsUnchanged!()).toBe(true);
+
+    // a record written (its owner's version advanced), then a mark's sync of the observed cells alone
+    const pg = d.values.tPositionGroup.ref.value;
+    pg.array.set([3, 0, 0, 0], 0);
+    ValueCell.update(d.values.tPositionGroup, pg);
+    ValueCell.update(recordsVersion, 1);
+    update(true);
+    expect(merged.recordsUnchanged!()).toBe(false);
+
+    // the update after: the write read
+    update();
+    expect(merged.recordsUnchanged!()).toBe(true);
+    const flat = SegmentedArray.flatten(
+      values.tPositionGroup.ref.value.array as unknown as SegmentedArray<Float32Array>,
+    );
+    expect(Array.from(flat.subarray(3 * 4, 3 * 4 + 3))).toEqual([3, 0, 0]);
+  });
+
+  it("a merged object moves as one: its own transient transform drawn, its members' not read", () => {
+    const [a, b] = createMembers();
+    const { values, merged } = createMergedRenderObject([a, b]);
+    const versions = () =>
+      ['aTransform', 'tSegment', 'boundingSphere'].map((k) => (values as any)[k].ref.version as number);
+    const before = versions();
+    const cullVersion = merged.cullVersion.ref.version;
+    const placed = Sphere3D.clone(values.boundingSphere.ref.value);
+
+    // a member's own: nothing of the merged object follows it
+    ValueCell.update(b.values.uObjectTransform, Mat4.fromTranslation(Mat4(), [100, 0, 0]));
+    expect(merged.sync()).toBe(false);
+    expect(versions()).toEqual(before);
+    expect(merged.cullVersion.ref.version).toBe(cullVersion);
+
+    // the object's: the drawn bounds move, the instances, segments and placed bounds stay
+    ValueCell.update(values.uObjectTransform, Mat4.fromTranslation(Mat4(), [0, 50, 0]));
+    merged.sync();
+    expect(versions()).toEqual(before);
+    const drawn = getDrawnBoundingSphere(values);
+    expect(drawn.center[1]).toBeCloseTo(placed.center[1] + 50, 4);
+    expect(drawn.radius).toBeCloseTo(placed.radius, 4);
+    expect(values.boundingSphere.ref.value.center[1]).toBeCloseTo(placed.center[1], 4);
   });
 
   it('sync advances the cull version where what culling reads of the members changed', () => {
@@ -162,8 +335,8 @@ describe('merged', () => {
     expect(merged.merged.segments.drawBases).toEqual([0, 3 * 6]);
 
     const pg = SegmentedArray.flatten(mv.tPositionGroup.ref.value.array as unknown as SegmentedArray<Float32Array>);
-    expect(Array.from(pg.subarray(3 * 4, 3 * 4 + 4))).toEqual([2, 0, 0, 0]);
-    expect(Array.from(pg.subarray(4 * 4, 4 * 4 + 4))).toEqual([0, 2, 0, 1]);
+    expect(items(pg.subarray(3 * 4, 3 * 4 + 4), 1)).toEqual([2, 0, 0, 0]);
+    expect(items(pg.subarray(4 * 4, 4 * 4 + 4), 1)).toEqual([0, 2, 0, 1]);
   });
 
   it('cylinders colored per vertex', () => {
@@ -246,7 +419,82 @@ describe('merged', () => {
     expect(SegmentedArray.flatten(segmentedPositions)[6 * 3]).toBe(200);
   });
 
+  it('syncs the members whose observed cells changed alone, as a full sync does', () => {
+    const create = () => {
+      const members = Array.from({ length: 6 }, (_, i) =>
+        createSpheresRenderObject(new Float32Array([i, 0, 0, i, 1, 0]), new Float32Array([0, 1]), 2),
+      );
+      const records = members.map((m) => pickMergeRecord('spheres', m.values as unknown as MergeableValues));
+      return createMergedRecordsRenderObject('spheres', members[0].values, records, members[0].state, -1);
+    };
+    const observed = create();
+    const full = create();
+    const markers = (o: ReturnType<typeof create>) => {
+      const v = o.values as any;
+      const array = v.tMarker.ref.value.array;
+      return {
+        layer: Array.from(SegmentedArray.is(array) ? SegmentedArray.flatten(array) : array),
+        average: v.markerAverage.ref.value,
+        status: v.markerStatus.ref.value,
+        marked: o.merged.getMarkedMembers!(),
+      };
+    };
+    // as `Visual.mark` writes a member's markers: its layer, its average and status; a uniform status's layer not
+    // marked changed (its uniform draws it)
+    const mark = (i: number, layer: number[], average: number, status: number) => {
+      for (const o of [observed, full]) {
+        const r = o.merged.records[i] as MergeRecord;
+        const marker = r.tMarker!.ref.value as { array: Uint8Array };
+        marker.array.set(layer);
+        if (status === -1) ValueCell.update(r.tMarker!, marker);
+        ValueCell.update(r.markerAverage, average);
+        ValueCell.update(r.markerStatus, status);
+      }
+      observed.merged.sync(true);
+      full.merged.sync();
+      expect(markers(observed)).toEqual(markers(full));
+    };
+
+    mark(2, [1, 1], 1, 1);
+    mark(4, [1, 0], 0.5, -1);
+    expect(markers(observed).marked).toEqual([2, 4]);
+    expect(markers(observed).status).toBe(-1);
+    mark(2, [0, 0], 0, 0);
+    expect(markers(observed).marked).toEqual([4]);
+    // none marked: the average 0, whatever the updates' rounding
+    mark(4, [0, 0], 0, 0);
+    expect(markers(observed)).toMatchObject({ average: 0, status: 0, marked: [] });
+  });
+
   const ctx = tryGetGLContext(32, 32, { fragDepth: true });
+
+  (ctx ? it : it.skip)(
+    'updates a merged object by its observed cells alone where only they changed',
+    { tags: ['medium'] },
+    () => {
+      const ctx = getGLContext(32, 32);
+      const scene = Scene.create(ctx);
+      const [a, b] = createMembers();
+      const merged = createMergedRenderObject([a, b]);
+      scene.add(merged);
+      scene.commit();
+      scene.updateChanged(false);
+      const renderable = scene.get(merged)!;
+      const update = vi.spyOn(renderable, 'update');
+
+      // a mark: the members' observed cells alone
+      ValueCell.update(b.values.markerStatus, 1);
+      scene.updateChanged(false);
+      expect(update).toHaveBeenCalledExactlyOnceWith(true);
+      expect(merged.values.markerStatus.ref.value).toBe(-1);
+
+      // a representation's update: all of it read
+      update.mockClear();
+      scene.update([merged], false);
+      expect(update).toHaveBeenCalledExactlyOnceWith();
+      ctx.destroy();
+    },
+  );
 
   (ctx ? it : it.skip)('scene', { tags: ['medium'] }, async () => {
     const ctx = getGLContext(32, 32);

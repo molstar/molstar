@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2020-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  *
  * ported from https://github.com/photopea/UZIP.js/blob/master/UZIP.js
  * MIT License, Copyright (c) 2018 Photopea
@@ -127,8 +128,11 @@ export async function _deflateRaw(
   out: Uint8Array,
   opos: number,
   lvl: number,
+  /** The platform's `CompressionStream` where there is one (true, the default); false: this file's deflate, whose
+   * bytes are the same on every runtime (the platform's change with its zlib, e.g. between Node versions). */
+  native = true,
 ): Promise<number> {
-  if (checkCompressionStreamSupport('deflate-raw')) {
+  if (native && checkCompressionStreamSupport('deflate-raw')) {
     const cs = new CompressionStream('deflate-raw');
     const blob = new Blob([data]);
     const compressedStream = blob.stream().pipeThrough(cs);

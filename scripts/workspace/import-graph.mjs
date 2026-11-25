@@ -1,4 +1,6 @@
 /**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
  * Value-import graph check for the plugin composition work (.v6/designs/plugin-composition.md §8, §9).
  *
  * Classification comes from `catalogs.json` (catalog modules, default-composition modules, base entry points, the
@@ -11,7 +13,7 @@
  *   c. Base entry points must not reach any catalog module by value (transitively). The search does not continue past a
  *      catalog or default-composition module: the first one on each path is reported (default-composition modules by b).
  *   d. A type-only import must not point to a higher package (manifest `layers` order).
- *   e. The slim example entry (`slim-exclusions.json`, plan step 4) must not reach an excluded module by value
+ *   e. The slim example entry (`slim-exclusions.json`) must not reach an excluded module by value
  *      (transitively), except for the known leaks listed there. The first excluded module on each path is reported
  *      with its import chain.
  *   f. The boundary modules of `slim-exclusions.json` (external color themes and structure queries, spec §5.4) must not
@@ -19,6 +21,9 @@
  *
  * Known violations live in the manifest allowlist with a reason and the plan step that removes them. The check fails
  * on any violation that is not allowlisted and on allowlist entries that no longer match a violation.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -32,6 +37,11 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../
 const APP_ROOTS = ['apps/', 'examples/', 'cli/', 'servers/', 'smoke/'];
 const SCAN_ROOTS = ['packages/', ...APP_ROOTS];
 const SKIP_DIRS = new Set(['node_modules', 'lib', '_test', '.claude', 'dist', 'build', '.git']);
+/**
+ * A folder with a pnpm-workspace.yaml of its own is another workspace (pnpm takes the nearest one): not in the
+ * inventory, never scanned (e.g. a benchmark that installs its own dependencies).
+ */
+export const isOtherWorkspace = (dir) => fs.existsSync(path.join(dir, 'pnpm-workspace.yaml'));
 const SOURCE_EXTENSIONS = ['.ts', '.tsx'];
 
 export function loadManifest(root = repoRoot) {
@@ -45,7 +55,8 @@ function walk(dir, files = []) {
   if (!fs.existsSync(dir)) return files;
   for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
     if (ent.isDirectory()) {
-      if (!SKIP_DIRS.has(ent.name)) walk(path.join(dir, ent.name), files);
+      const sub = path.join(dir, ent.name);
+      if (!SKIP_DIRS.has(ent.name) && !isOtherWorkspace(sub)) walk(sub, files);
     } else if (ent.isFile() && isSource(ent.name)) files.push(path.join(dir, ent.name));
   }
   return files;

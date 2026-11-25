@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -35,8 +35,16 @@ export function getAtomicDerivedData(
 
   const atomicNumber = new Uint8Array(atomCount);
 
-  for (let i = 0; i < atomCount; ++i) {
-    atomicNumber[i] = AtomNumber(type_symbol.value(i));
+  // a dictionary column (the element symbols of a BinaryCIF model): a number per value, not a lookup per atom
+  const s = type_symbol.storage?.();
+  if (s?.kind === 'dictionary' && (atomCount === 0 || type_symbol.value(0) === s.values[s.indices[0]])) {
+    const { indices, values } = s;
+    const numbers = Uint8Array.from(values as ArrayLike<ElementSymbol>, (v) => AtomNumber(v));
+    for (let i = 0; i < atomCount; ++i) atomicNumber[i] = numbers[indices[i]];
+  } else {
+    for (let i = 0; i < atomCount; ++i) {
+      atomicNumber[i] = AtomNumber(type_symbol.value(i));
+    }
   }
 
   const traceElementIndex = new Int32Array(residueCount);

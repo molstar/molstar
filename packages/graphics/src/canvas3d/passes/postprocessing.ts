@@ -438,7 +438,10 @@ export class PostprocessingPass {
   }
 
   private occlusionOffset: [x: number, y: number] = [0, 0];
-  /** shift in uv (top-left origin) of the occlusion rendered without jitter to the jittered image */
+  /**
+   * shift in uv (top-left origin) of the occlusion rendered without jitter to the jittered image: an image jittered by
+   * `j` pixels (`setJitter`) is the unjittered one read `j` pixels away
+   */
   setOcclusionOffset(x: number, y: number) {
     this.occlusionOffset[0] = x;
     this.occlusionOffset[1] = y;

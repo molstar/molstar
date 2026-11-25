@@ -1,0 +1,98 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Across sections" />
+
+# Across sections
+
+A **bridge** joins two neighbouring sections of a view: a band between them whose `pairs` layers draw each pair as a
+**ribbon** from its extent on the upper section to its extent on the lower. Two genomes stacked with their alignment
+between them is synteny; three stacked with two bridges is a chain. A bridge has no axis of its own: it is drawn from
+its sides, and moving it moves them.
+
+## What a bridge is
+
+- **`bridge`** under a view: `a` and `b` its two sections (neighbours in the stack, each a row of tracks: a ring, a text
+  or a grid is no side), `label` (else "a to b"), `height` (96 px), `lock` (`none` or `px`), `hidden` (kept in the spec,
+  its room collapsed). Its children are `pairs` layers: their data's `a` end on the bridge's `a` side, `b` on `b`, by
+  the systems each side shows (both ways with `mirror`, one genome against itself).
+- **A ribbon** is a pair: its two ends at their true x on each side (a reversed block gives its first position the
+  larger x), its sides cubics with vertical tangents, crossed when its corresponding positions run opposite ways (the
+  strand by geometry, so reversing a block untwists it), at least a device pixel wide, filled at 0.35 in the colour of
+  its upper end's chromosome. An end whose position no block shows is a **stub**: a quarter-height taper.
+- **Its colour and legend**: a ribbon's colour is its layer's channel, by default its upper end's chromosome; by
+  `orientation` (same, inverted) an inversion reads apart from a translocation. The bridge's legend keys it under the
+  bridge's label, saying that a ribbon's width is its aligned length: see
+  [Synteny](?path=/story/seq-next-examples-genomes-views--synteny).
+- **What is read**: each side its own window at its own level; past 4,096 ribbons in view, bin pairs (their opacity by
+  the bases aligned), each drawn once; a side whose tiles are pending hatches its edge.
+- **Lazy**: the bridge's layout, its ribbons and the viewer's bridge parts load the first time a spec holds a bridge; a
+  view without one pays nothing.
+
+## Moving two sections joined by a bridge
+
+- **Each side moves alone** by default, as JBrowse's linear synteny view does.
+- **`lock: px`**: a pan of either side by some px pans the other by the same px; a zoom zooms the other by the same
+  factor about the same page x. Each section is moved once a gesture, by the first relation reaching it (follow, scroll
+  group, lock), so a lock a follow already carries moves nothing more.
+- **A drag or a wheel over the band** moves both sides, whatever the lock; it selects nothing.
+- **`bridge.align`** (Shift+A at a side): the other side jumps to the hull of what the ribbons in view reach, the far
+  chromosome holding the most aligned bases; a middle genome brings both neighbours in one step; back undoes it.
+
+## Hover, selection and the keyboard
+
+- **Hover a ribbon**: its card names both ends ("peach Pp02:1,200,001–1,450,000 ↔ grape chr2:…"), its strand and its
+  aligned length.
+- **`bridge.selectAcross`**: the far ends of the ribbons with an end in the selection join it, one change.
+- **The keyboard cursor** crosses a band with ↓ and ↑, landing on the image of its position through the topmost ribbon
+  covering it.
+- **The lock toggle** (`bridge.lock`) is an edit: one undo step.
+
+## Grids across sections
+
+- **A grid over two sections of blocks**: a grid section that `follow`s a section of blocks takes its blocks across, and
+  with `follow_y` naming a second section of blocks takes that section's blocks down. Each pair of blocks is a cell,
+  clipped at both blocks' edges, with the blocks' labels on both axes; a reversed block flips its side. A `pairs` layer
+  there is a dot plot: a block a diagonal, against the diagonal where its strand is reversed, bins past the gate as
+  rects shaded by count. Each axis moves with its own section.
+- **Categorical axes**: a grid's `of` or `of_y` an alignment's rows or a matrix's states, a position a named member, in
+  the order `member_order` (`member_order_y` down) gives: `data`, `tree`, or a field. No ruler; the members' labels down
+  the side and at 45° along the top, thinned to a label every 8 px; a click on a label selects the member, which lights
+  its row wherever that rows system is drawn. A reorder rebuilds the grid's tiles once.
+
+## A liftover
+
+- **The figure** is made of what is above, nothing of its own: the old assembly's section, a bridge whose `pairs` layer
+  draws the alignment's map, and the new assembly's section with the old assembly's annotations on it. The map names a
+  pairs source (`map.source`) instead of its runs: a run a row of equal-length ends, side `a` the old assembly, so one
+  source serves the ribbons and the liftover.
+- **Read by the new side**: a layer on the new assembly asks for the runs landing in its window (`RegionRequest.side`
+  `b`), carries its window back along them onto the old assembly, reads the annotations there and carries each forward:
+  a part that maps nowhere is not drawn (a deletion), a part in two places is drawn in both (a duplication).
+- **Hover and selection** cross the map both ways: an old gene lights each image, an image lights the old gene; the card
+  of an item with two or more images lists them ("2 places").
+- **Not yet**: a share of the location mapped for a host's readout, and a builder's `liftover(old, map, new)`.
+
+## Stories
+
+Generated toy genomes (peach, grape made from peach by an inversion, a translocation and a gap, plum made from grape),
+each the canvas and the SVG of one view, light and dark by the toolbar's theme:
+
+- [Two genomes at the fit](?path=/story/seq-next-features-across-sections--two-genomes-at-the-fit)
+- [Zoomed out: bins](?path=/story/seq-next-features-across-sections--zoomed-out-bins)
+- [One side zoomed in](?path=/story/seq-next-features-across-sections--one-side-zoomed-in)
+- [A stub](?path=/story/seq-next-features-across-sections--a-stub)
+- [Pending, a side at a time](?path=/story/seq-next-features-across-sections--pending-a-side-at-a-time)
+- [A reader without bridges](?path=/story/seq-next-features-across-sections--a-reader-without-bridges)
+- [One genome against itself](?path=/story/seq-next-features-across-sections--one-genome-against-itself), `mirror`
+- [Three genomes chained](?path=/story/seq-next-features-across-sections--three-genomes-chained)
+- [Two genomes as a dot plot](?path=/story/seq-next-features-across-sections--two-genomes-as-a-dot-plot), a grid over
+  two sections of blocks
+- [Contacts between two chromosomes](?path=/story/seq-next-features-across-sections--contacts-between-two-chromosomes)
+- [Kinship beside the genotypes](?path=/story/seq-next-features-across-sections--kinship-beside-the-genotypes),
+  categorical axes
+- [Liftover](?path=/story/seq-next-features-across-sections--liftover), a liftover over a generated chain
+
+## Not yet
+
+The band's resize grip, bridge menus, an assembly side's pending hatch and the items gate per side after ownership, a
+ribbon's double-click focusing both sides.

@@ -48,7 +48,7 @@
 7. **Draw lists** (WebGPU render bundles): a recording binds the texture's storage. An upload that replaces it (an image
    of another size) leaves the other holders' recordings bound to the old one, while their values did not change. So
    the cache counts storage replacements of held textures (`SharedTextures.version`, from the backend's storage
-   identity: `WebGPUTexture.version`), and `GraphicsContext.drawResourcesVersion` adds it: recordings made before do
+   identity: `WebGPUTexture.version`), and `DrawLists.resourcesVersion` adds it: recordings made before do
    not replay, also those of chunks whose rows did not change (the chunk check compares it before its view fallback,
    `isChunkInputsCurrent`). The font atlas keeps its size (a full atlas gives the placeholder glyph), so labels never replace it.
 
@@ -69,7 +69,7 @@ glyphs uploads nothing (it uploaded the atlas once per text object).
 
 - WebGPU render items are covered by native tests (`plugin/headless/src/_test/webgpu-shared-textures.test.ts`, the
   Dawn lane): two label texts sharing the atlas, new glyphs uploaded as rows, the GPU atlas read back and compared,
-  storage and `drawResourcesVersion` kept; 65 texts (two chunks of a draw list) with the atlas grown under one of them,
+  storage and `DrawLists.resourcesVersion` kept; 65 texts (two chunks of a draw list) with the atlas grown under one of them,
   recorded again with no WebGPU error; a text given another atlas (its texture acquired, the old one freed with its
   last holder) and the byte shares. `Texture.loadRows` is checked on every profile (`gpu-paths/load-rows`, visual
   suite).

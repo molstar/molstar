@@ -92,6 +92,8 @@ const UniformSize = 32;
 export interface ClearDraw {
   draw: (pass: GPURenderPassEncoder, target: PassTarget, values: ClearValues) => void;
   drawInBundle: (bundle: GPURenderBundleEncoder, target: PassTarget, values: ClearValues) => boolean;
+  /** makes the pipelines a clear of `values` on `target` draws with (in a pass and in a bundle): ahead, not at the clear */
+  prepare: (target: WebGPUTargetDescriptor, values: ClearValues) => void;
 }
 
 export function createClearDraw(device: GPUDevice, ring: UniformRing): ClearDraw {
@@ -120,7 +122,7 @@ export function createClearDraw(device: GPUDevice, ring: UniformRing): ClearDraw
     return module;
   }
 
-  function getPipeline(target: PassTarget, values: ClearValues, zeroStencil = false) {
+  function getPipeline(target: WebGPUTargetDescriptor, values: ClearValues, zeroStencil = false) {
     const hasColor = values.color !== undefined;
     const hasDepth = values.depth !== undefined && !!target.depthFormat;
     const hasStencil = values.stencil !== undefined && target.hasStencil;
@@ -229,5 +231,11 @@ export function createClearDraw(device: GPUDevice, ring: UniformRing): ClearDraw
     pass.draw(3);
   };
 
-  return { draw, drawInBundle };
+  const prepare = (target: WebGPUTargetDescriptor, values: ClearValues) => {
+    getPipeline(target, values);
+    // a stencil cleared to 0 in a bundle (`drawInBundle`)
+    if (values.stencil === undefined || values.stencil === 0) getPipeline(target, values, true);
+  };
+
+  return { draw, drawInBundle, prepare };
 }

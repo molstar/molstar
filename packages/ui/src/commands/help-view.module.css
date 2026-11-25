@@ -1,0 +1,137 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* Help (commands §6.6): groups of rows on the view's columns (styles §8: a row's text on the inset, keys ending on the
+   trailing column). */
+.help {
+  min-width: 0;
+}
+
+.group {
+  display: grid;
+  gap: var(--msui-space-1);
+  min-width: 0;
+}
+
+.list {
+  display: grid;
+  margin: 0;
+}
+
+/* What it does, then the input at the row's end; a row may grow when its input wraps (a narrow view). */
+.row {
+  height: auto;
+  min-height: var(--msui-row);
+  column-gap: var(--msui-space-3);
+
+  &:hover {
+    background: var(--msui-control-hover);
+  }
+}
+
+.action {
+  min-width: 0;
+}
+
+.input {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--msui-space-1) var(--msui-space-2);
+  margin: 0;
+}
+
+.keys {
+  display: inline-flex;
+  gap: var(--msui-space-1);
+  font: inherit;
+}
+
+/* A key cap: xs text on the control color, a control's radius. */
+.key {
+  min-width: var(--msui-icon);
+  padding: 0 var(--msui-space-1);
+  border-radius: var(--msui-radius-sm);
+  background: var(--msui-control);
+  color: var(--msui-text);
+  font: inherit;
+  font-size: var(--msui-text-xs);
+  line-height: var(--msui-leading-xs);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.or {
+  color: var(--msui-text-subtle);
+  font-size: var(--msui-text-xs);
+}
+
+/* Two commands on one key: said first, in the warning color, at the inset. */
+.conflicts {
+  --msui-icon-size: var(--msui-icon-sm);
+
+  display: flex;
+  align-items: flex-start;
+  gap: var(--msui-space-2);
+  padding: var(--msui-space-2) var(--msui-inner);
+  border-radius: var(--msui-radius-md);
+  background: color-mix(in oklab, var(--msui-warning), transparent 85%);
+  color: var(--msui-text);
+
+  & > svg {
+    flex: none;
+    margin-top: var(--msui-space-1);
+    color: var(--msui-warning);
+  }
+}
+
+.conflict {
+  margin: 0;
+}
+
+/* Commands' heading with Change keys at its end, on the trailing column. */
+.headingRow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--msui-space-2);
+  padding-inline-end: var(--msui-inner);
+}
+
+/* While changing keys: a row's Change, Clear and Reset, after its keys. */
+.edit {
+  display: inline-flex;
+  gap: var(--msui-space-1);
+}
+
+/* Waiting for the new keys: a key-shaped well in the accent, focused. */
+.recorder {
+  padding: 0 var(--msui-space-2);
+  border-radius: var(--msui-radius-sm);
+  outline: 1px solid var(--msui-accent);
+  color: var(--msui-accent);
+  font-size: var(--msui-text-xs);
+  line-height: var(--msui-leading-xs);
+  white-space: nowrap;
+}
+
+.editBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--msui-space-2);
+  padding: var(--msui-space-1) var(--msui-inner) 0;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

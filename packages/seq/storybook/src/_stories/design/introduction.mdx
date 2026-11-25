@@ -1,0 +1,64 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Introduction" />
+
+# Seq\* (next)
+
+Seq\* is **SeqViewSpec**, a language for sequence views, and a viewer for it. A **spec** is a tree, stored as JSON by
+default, that says what data there is and how to show it. Every position lives in a **coordinate system**, and **maps**
+connect systems:
+
+- a protein onto its gene's codons, across introns;
+- an alignment's rows onto its columns;
+- a design onto its wild type;
+- a chain onto its structure;
+- one genome onto another, inversions included.
+
+Data placed on one system shows on every system it maps to, and hover, selection and focus follow it there.
+
+This is a new implementation, under way. These pages say how it will work; the examples come to life as the pieces are
+built.
+
+## Three readers
+
+- **People**, writing specs by hand or with a typed builder, and reading them printed as compact S-expressions.
+- **Agents**, writing and patching specs: the language is small, its docs and skill are generated from its own
+  description, and validation reports every issue with a stable code and a hint.
+- **Other viewers**: the JSON is documented by the language reference, the resolved view is public, and data comes
+  through one protocol, so a reader needs no Seq\* code to open a spec.
+
+## The packages
+
+| Package                | What                                                                                                                             |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `@molstar/seqx-core`   | the language, the coordinate model, the source protocol and data store, queries, the resolve passes, draw lists, the SVG backend |
+| `@molstar/seqx-viewer` | DOM-free models on `@molstar/core/reactive`, the Canvas2D backend, the default UI on `@molstar/ui`                               |
+
+`seqx` is a working name; the packages become `@molstar/seq-*` when they replace the current ones.
+
+## Read next
+
+- **Building blocks**: the nouns of the language.
+- **Composition**: the spec's levels and the forms a spec compiles to.
+- **Format**: one tree, JSON by default, its printing, the language as data, versions and patches.
+- **Sources**: one protocol, and formats converted onto it.
+- **Streaming and patches**: how state changes, and what undo touches.
+- **Stories**: a sequence of states, the transitions between them, and an animation the application drives.
+- **Rendering**: the forms other renderers attach to, and the backends.
+- **UX foundations**: how the data looks, and one configurable grammar for gestures.
+- **The axis**: a section's direction, another system's letters on it, and collapsed introns.
+- **Themes and legends**: what colors and sizes a mark, and the key that reads it back.
+- **Layouts**: tracks, text, rings and blocks, through one layout interface.
+- **Grids and rows**: pairs as arcs and dots, the dot plot, an alignment's rows and clades, the logo.
+- **Navigators**: the ruler rail and the other navigators, and the window that moves the view.
+- **Structure syncing**: a sequence view and a structure viewer through one port, and which map a residue goes through.
+- **Track headers**: actions in a header's slots, chips that bring hidden tracks back, the menu, and a host's own parts.
+- **Track groups**: a section's tracks under named groups, folded by the reader to one summary row.
+- **Seq data ports**: an application's in-memory data and Seq\*'s own file reading on one path.
+- **Extension openings**: what an outside package may add, how a spec names it, and what a reader without it draws.
+- **Properties**: the typed values a query's predicates read, built in or added by an extension.
+- **Extensibility**: configuration in layers, and the extension points.
+- **Addressing**: how anything in a view is named, and what acts on the names.
+- **Performance**: time, memory and size targets.
+- **Features**: what this version will contain, and what is deferred.
+- **Examples**: the datasets, their exact data, and what a user does in each view.

@@ -13,25 +13,20 @@ import type {
 } from '@molstar/graphics/gl/context';
 import type { Renderbuffer, RenderbufferAttachment, RenderbufferFormat } from '@molstar/graphics/gl/renderbuffer';
 import type { RenderTarget } from '@molstar/graphics/gl/render-target';
+import { forEachRenderPassAttachment } from '@molstar/graphics/gl/render-pass-attachments';
 import type { Texture, TextureFilter, TextureFormat, TextureKind, TextureType } from '@molstar/graphics/gl/texture';
 import { createRenderBuilder, type PassBuilder } from './pass-builder.js';
 
 /** Time without changes or renders before targets are released, see `PassTargets.scheduleRelease` */
 export const ReleaseDelayMs = 1000;
 
-function textureKey(id: number) {
-  return `texture:${id}`;
-}
+/** A texture or renderbuffer of the targets */
+type TargetResource = Texture | Renderbuffer;
 
-function renderbufferKey(id: number) {
-  return `renderbuffer:${id}`;
-}
-
-/** The keys of the textures and renderbuffers `target` draws into */
-function getTargetKeys(target: RenderPassTarget): string[] {
-  if (target === 'drawing-buffer') return [];
-  const framebuffer = 'framebuffer' in target ? target.framebuffer : target;
-  return framebuffer.getAttachments().map((r) => `${r.kind}:${r.id}`);
+/** Calls `add` with the textures and renderbuffers `target` draws into (no allocation: begun every pass) */
+function forEachTargetResource(target: RenderPassTarget, add: (resource: TargetResource) => void) {
+  if (target === 'drawing-buffer') return;
+  forEachRenderPassAttachment('kind' in target ? target : target.attachments, add);
 }
 
 /**
@@ -41,31 +36,30 @@ function getTargetKeys(target: RenderPassTarget): string[] {
  * a transparency mode or an effect turned off. Data textures (images, lookup tables) are not created through it.
  */
 export class PassTargets {
-  private readonly textures = new Map<string, Texture>();
-  private readonly renderbuffers = new Map<string, Renderbuffer>();
+  private readonly textures = new Set<Texture>();
+  private readonly renderbuffers = new Set<Renderbuffer>();
   /** the targets render passes began since the last `scheduleRelease` (frames of the current props and scene) */
-  private readonly drawn = new Set<string>();
+  private readonly drawn = new Set<TargetResource>();
+  private readonly addDrawn = (resource: TargetResource) => this.drawn.add(resource);
   private releaseTimer: ReturnType<typeof setTimeout> | undefined;
 
   constructor(readonly graphics: GraphicsContext) {}
 
   private addTexture(texture: Texture) {
-    const key = textureKey(texture.id);
-    this.textures.set(key, texture);
+    this.textures.add(texture);
     const destroy = texture.destroy;
     texture.destroy = () => {
-      this.textures.delete(key);
+      this.textures.delete(texture);
       destroy();
     };
     return texture;
   }
 
   private addRenderbuffer(renderbuffer: Renderbuffer) {
-    const key = renderbufferKey(renderbuffer.id);
-    this.renderbuffers.set(key, renderbuffer);
+    this.renderbuffers.add(renderbuffer);
     const destroy = renderbuffer.destroy;
     renderbuffer.destroy = () => {
-      this.renderbuffers.delete(key);
+      this.renderbuffers.delete(renderbuffer);
       destroy();
     };
     return renderbuffer;
@@ -107,22 +101,22 @@ export class PassTargets {
     return {
       ...builder,
       begin: (target, options) => {
-        for (const key of getTargetKeys(target)) this.drawn.add(key);
+        forEachTargetResource(target, this.addDrawn);
         builder.begin(target, options);
       },
     };
   }
 
   /**
-   * Frees the storage of the targets neither in `used` (the keys `createTargetCollector` records) nor drawn into
-   * since the last `scheduleRelease`; they are allocated again when drawn into
+   * Frees the storage of the targets neither in `used` (what `createTargetCollector` records) nor drawn into since
+   * the last `scheduleRelease`; they are allocated again when drawn into
    */
-  releaseUnused(used: ReadonlySet<string>) {
-    for (const [key, texture] of this.textures) {
-      if (!used.has(key) && !this.drawn.has(key)) texture.releaseStorage();
+  releaseUnused(used: ReadonlySet<TargetResource>) {
+    for (const texture of this.textures) {
+      if (!used.has(texture) && !this.drawn.has(texture)) texture.releaseStorage();
     }
-    for (const [key, renderbuffer] of this.renderbuffers) {
-      if (!used.has(key) && !this.drawn.has(key)) renderbuffer.releaseStorage();
+    for (const renderbuffer of this.renderbuffers) {
+      if (!used.has(renderbuffer) && !this.drawn.has(renderbuffer)) renderbuffer.releaseStorage();
     }
     this.drawn.clear();
   }
@@ -167,15 +161,17 @@ export class PassTargets {
  * Records the targets a plan begins (as `PassTargets.releaseUnused` takes them), without drawing or preparing
  * anything
  */
-export function createTargetCollector(): PassBuilder & { readonly used: Set<string> } {
-  const used = new Set<string>();
+export function createTargetCollector(): PassBuilder & { readonly used: Set<TargetResource> } {
+  const used = new Set<TargetResource>();
+  const add = (resource: TargetResource) => used.add(resource);
   return {
     drawing: false,
     used,
     begin: (target) => {
-      for (const key of getTargetKeys(target)) used.add(key);
+      forEachTargetResource(target, add);
     },
     renderer: () => {},
+    clear: () => {},
     quad: () => {},
   };
 }

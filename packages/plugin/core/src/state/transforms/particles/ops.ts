@@ -139,6 +139,8 @@ const ParticleListWithTargets = PluginStateTransform.BuiltIn({
   to: SO.Particle.List,
   params: ParticleListWithTargetsParams,
 })({
+  // a slot list (its pages) not yet given targets here: a tile set's are its catalog's
+  isApplicable: (a) => !a.data.pages,
   apply({ a, params, cache }, plugin: PluginContext) {
     return Task.create('Particle List with Targets', async (ctx) => {
       const transformCache = cache as ParticleListWithTargetsCache;

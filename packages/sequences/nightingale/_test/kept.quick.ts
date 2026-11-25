@@ -10,7 +10,7 @@
 // highlight runs, the guard's case (kept-cases.ts), with its positive control.
 
 import { expect, it } from 'vitest';
-import { quickCase } from '../../core/_test/model/quick.js';
+import { quickCase } from '@molstar/test-harness/quick';
 import { kept } from './kept-cases.js';
 
 it("a section's highlights kept under a host's", async ({ task }) => {

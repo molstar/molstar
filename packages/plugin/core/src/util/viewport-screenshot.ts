@@ -98,6 +98,7 @@ export class ViewportScreenshotHelper extends PluginComponent {
       ),
       transparent: PD.Boolean(false),
       axes: CameraHelperParams.axes,
+      scale: { ...CameraHelperParams.scale, label: 'Scale Line' },
       illumination: PD.Group({
         extraIterations: PD.Numeric(1, { min: 0, max: 5, step: 1 }),
         targetIterationTimeMs: PD.Numeric(300, { min: 100, max: 3000, step: 10 }),
@@ -115,6 +116,7 @@ export class ViewportScreenshotHelper extends PluginComponent {
       transparent: this.params.transparent.defaultValue,
       format: { name: 'png', params: {} },
       axes: { name: 'off', params: {} },
+      scale: { name: 'off', params: {} },
       resolution: this.params.resolution.defaultValue,
       illumination: this.params.illumination.defaultValue,
     }),
@@ -205,7 +207,7 @@ export class ViewportScreenshotHelper extends PluginComponent {
     const { floatRenderTarget } = c.graphics.capabilities;
     return c.getImagePass({
       transparentBackground: this.values.transparent,
-      cameraHelper: { axes: this.values.axes },
+      cameraHelper: { axes: this.values.axes, scale: this.values.scale },
       multiSample: {
         ...c.props.multiSample,
         mode: isPreview ? 'off' : 'on',
@@ -214,6 +216,10 @@ export class ViewportScreenshotHelper extends PluginComponent {
       },
       postprocessing: this.getPostprocessingProps(),
       marking: { ...c.props.marking },
+      clipGhost: c.props.clipGhost,
+      // the canvas's transparency and volume quality: the image as the canvas draws it
+      dpoitIterations: c.props.dpoitIterations,
+      volumeResolutionScale: c.props.volumeResolutionScale,
       illumination: this.getIlluminationProps(isPreview),
     });
   }
@@ -228,10 +234,15 @@ export class ViewportScreenshotHelper extends PluginComponent {
     if (this._imagePass) {
       const c = this.plugin.canvas3d!;
       this._imagePass.setProps({
-        cameraHelper: { axes: this.values.axes },
+        cameraHelper: { axes: this.values.axes, scale: this.values.scale },
         transparentBackground: this.values.transparent,
         postprocessing: this.getPostprocessingProps(),
         marking: { ...c.props.marking },
+        // the canvas's ghost of what clip objects remove, as its marking: the image as the canvas shows it
+        clipGhost: c.props.clipGhost,
+        // the canvas's transparency and volume quality: the image as the canvas draws it
+        dpoitIterations: c.props.dpoitIterations,
+        volumeResolutionScale: c.props.volumeResolutionScale,
         illumination: this.getIlluminationProps(false),
       });
       return this._imagePass;
@@ -365,11 +376,15 @@ export class ViewportScreenshotHelper extends PluginComponent {
 
     const canvasProps = this.plugin.canvas3d!.props;
     this.previewPass.setProps({
-      cameraHelper: { axes: this.values.axes },
+      cameraHelper: { axes: this.values.axes, scale: this.values.scale },
       transparentBackground: this.values.transparent,
       postprocessing: canvasProps.postprocessing,
       marking: canvasProps.marking,
+      clipGhost: canvasProps.clipGhost,
+      dpoitIterations: canvasProps.dpoitIterations,
+      volumeResolutionScale: canvasProps.volumeResolutionScale,
     });
+
     const imageData = await this.previewPass.getImageData(ctx, w, h);
     const canvas = this.previewCanvas;
     canvas.width = imageData.width;

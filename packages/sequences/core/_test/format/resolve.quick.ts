@@ -10,7 +10,7 @@
 // with its positive control.
 
 import { beforeAll, describe, expect, it } from 'vitest';
-import { quickCase } from '../model/quick.js';
+import { quickCase } from '@molstar/test-harness/quick';
 import { type ResolveCases, resolveCases } from './resolve-cases.js';
 
 let cases: ResolveCases;

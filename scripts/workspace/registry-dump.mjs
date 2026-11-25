@@ -3,12 +3,15 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * Records what the default plugin spec and the Viewer register, as a baseline for the plugin-composition refactor
- * (.v6/plans/plugin-composition.md, step 0 and the acceptance comparison).
+ * and its acceptance comparison (`registry-compare.mjs`).
  *
  * Usage: node scripts/workspace/registry-dump.mjs [--out <dir>]
  *
  * Requires compiled library output (`pnpm build:lib`). Each target runs in its own process so the global transformer
  * registry only contains what that target imports.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { execFileSync, execSync } from 'node:child_process';

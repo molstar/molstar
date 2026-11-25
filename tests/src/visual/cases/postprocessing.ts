@@ -114,6 +114,13 @@ export const PostprocessingCases: VisualTestCase[] = [
   pp('dof/sphere', { dof: { name: 'on', params: { ...dof, mode: 'sphere' } } }),
   // every sample on the pixel: those in focus have no weight
   pp('dof/no-spread', { dof: { name: 'on', params: { ...dof, blurSpread: 0 } } }),
+  // straight to the drawing buffer, by a draw pass never resized (its texture size from its creation)
+  pp('dof/canvas', { dof: { name: 'on', params: { ...dof, mode: 'plane' } } }, primitivesScene, { capture: 'canvas' }),
+  // with antialiasing, which runs after DOF
+  pp('dof/antialiasing', {
+    dof: { name: 'on', params: { ...dof, mode: 'plane' } },
+    antialiasing: { name: 'fxaa', params: PD.getDefaultValues(FxaaParams) },
+  }),
   pp('antialiasing/fxaa', { antialiasing: { name: 'fxaa', params: PD.getDefaultValues(FxaaParams) } }),
   pp('antialiasing/smaa', { antialiasing: { name: 'smaa', params: PD.getDefaultValues(SmaaParams) } }),
   pp('sharpening/cas', { sharpening: { name: 'on', params: PD.getDefaultValues(CasParams) } }),

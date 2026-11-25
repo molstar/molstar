@@ -24,6 +24,7 @@ import {
   isMergedRenderObject,
   type GraphicsRenderObject,
 } from '@molstar/graphics/gl/render-object';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { mergeRenderObjectsByType } from '../merged.js';
 
 /** A spheres render object of `instances` instances (translated copies of a few spheres) */
@@ -77,6 +78,28 @@ describe('merging render objects', () => {
     const fewer = spheres(AutoGpuCullingMinInstances - 1);
     mergeRenderObjectsByType([{ visual: 0, renderObject: fewer }], 'auto', new Map(), few, 'auto', true);
     expect(isMergedRenderObject(few[0])).toBe(false);
+  });
+
+  it('marks an object culled on the GPU for the raster only, by its spheres and not its instances', () => {
+    const graphics = { capabilities: { atomicMinMax64: true } } as GraphicsContext;
+    const rasterOnly = (o: GraphicsRenderObject) =>
+      (o.values as { gpuCullingRasterOnly?: { ref: { value: boolean } } }).gpuCullingRasterOnly?.ref.value;
+    const instances = 30_000;
+    const ro = spheres(instances);
+    expect(instances * ro.values.uVertexCount.ref.value).toBeGreaterThanOrEqual(AutoGpuCullingMinRasterSpheres);
+    const out: GraphicsRenderObject[] = [];
+    mergeRenderObjectsByType([{ visual: 0, renderObject: ro }], 'auto', new Map(), out, 'auto', true, graphics);
+    expect((out[0].values as { gpuCulling?: { ref: { value: boolean } } }).gpuCulling?.ref.value).toBe(true);
+    expect(rasterOnly(out[0])).toBe(true);
+    // by its instances: culled on the GPU whatever the raster takes
+    const many: GraphicsRenderObject[] = [];
+    const entries = [{ visual: 0, renderObject: spheres(AutoGpuCullingMinInstances) }];
+    mergeRenderObjectsByType(entries, 'auto', new Map(), many, 'auto', true, graphics);
+    expect(rasterOnly(many[0])).toBe(false);
+    // asked for: not for the raster only
+    const asked: GraphicsRenderObject[] = [];
+    mergeRenderObjectsByType([{ visual: 0, renderObject: ro }], 'auto', new Map(), asked, true, true, graphics);
+    expect(rasterOnly(asked[0])).toBe(false);
   });
 
   it('merges by the number of units as before where GPU culling does not pay', () => {

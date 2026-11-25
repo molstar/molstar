@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { operationCommand } from '../../commands/operations.js';
@@ -66,6 +67,18 @@ export const ShapesFeature: ViewerExtension = {
         icon: 'trash-2',
         alias: ['delete shape', 'remove mesh'],
         action: 'Remove',
+      }),
+      operationCommand(api, x.transform, {
+        category,
+        icon: 'move-3d',
+        alias: ['move shape', 'rotate shape', 'translate shape', 'transform shape', 'move mesh'],
+        action: 'Move',
+      }),
+      operationCommand(api, x.transformReset, {
+        category,
+        icon: 'rotate-ccw',
+        alias: ['reset shape transform', 'reset shape position', 'reset mesh position'],
+        action: 'Reset',
       }),
     ];
   },

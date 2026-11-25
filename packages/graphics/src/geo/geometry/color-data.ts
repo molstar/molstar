@@ -12,14 +12,9 @@ import { Color } from '@molstar/core/util/color';
 import { Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import type { LocationIterator } from '../util/location-iterator.js';
 import { NullLocation } from '@molstar/model/model/location';
-import type { LocationColor, ColorTheme, ColorVolume } from '@molstar/graphics/theme/color';
+import type { LocationColor, ColorTheme, ColorType, ColorVolume } from '@molstar/graphics/theme/color';
 import type { Texture } from '@molstar/graphics/gl/texture';
 import { NoLayerGrid } from './layer-type.js';
-
-export type ColorTypeLocation = 'uniform' | 'instance' | 'group' | 'groupInstance' | 'vertex' | 'vertexInstance';
-export type ColorTypeGrid = 'volume' | 'volumeInstance';
-export type ColorTypeDirect = 'direct';
-export type ColorType = ColorTypeLocation | ColorTypeGrid | ColorTypeDirect;
 
 export type ColorData = {
   uColor: ValueCell<Vec3>;
@@ -49,12 +44,15 @@ export const ColorTypeIndex: { readonly [T in ColorType]?: number } = {
   groupInstance: 2,
   vertex: 3,
   vertexInstance: 4,
+  // the segment's texel where merged (`aSegment.w`), else the first
+  object: 5,
   volume: 0,
   volumeInstance: 1,
 };
 
 const ColorTypeDefines: { readonly [T in ColorType]: string } = {
   uniform: 'uniform',
+  object: 'texture',
   instance: 'texture',
   group: 'texture',
   groupInstance: 'texture',
@@ -128,6 +126,11 @@ function _createColors(
   switch (colorTheme.granularity) {
     case 'uniform':
       return createUniformColor(locationIt, colorTheme.color, colorData);
+    case 'object': {
+      locationIt.reset();
+      const loc = locationIt.hasNext ? locationIt.move() : { location: NullLocation, isSecondary: false };
+      return createObjectColor(colorTheme.color(loc.location, loc.isSecondary), colorData);
+    }
     case 'instance':
       return locationIt.nonInstanceable
         ? createGroupColor(locationIt, colorTheme.color, colorData)
@@ -241,6 +244,17 @@ export function createTextureColor(colors: DataArray<Uint8Array>, type: ColorTyp
 function setColor(array: Uint8Array, offset: number, color: Color) {
   Color.toArray(color, array, offset);
   array[offset + 3] = 255;
+}
+
+/**
+ * One color for the object as a texel (`object`): a theme's color constant over its instances (`ColorTheme.particleRuns`)
+ * evaluated once, not an instance; a texture's, not a uniform: merged objects keep each member's (a texel a member,
+ * read by the segment), and a texture's color blends with others in the vertex stage (spheres' `dSiteColor`)
+ */
+export function createObjectColor(color: Color, colorData?: ColorData): ColorData {
+  const colors = createDataArray(1, 4, Uint8Array, colorData && colorData.tColor.ref.value.array);
+  setColor(colors.array, 0, color);
+  return createTextureColor(colors, 'object', colorData);
 }
 
 /** Creates color texture with color for each instance */

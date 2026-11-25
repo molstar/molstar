@@ -6,13 +6,15 @@
  */
 
 import { sort, arraySwap } from '@molstar/core/data/util';
-import { type GraphicsRenderObject, isMergedRenderObject } from '@molstar/graphics/gl/render-object';
+import { type GraphicsRenderObject, getMergedMembers, isMergedRenderObject } from '@molstar/graphics/gl/render-object';
 import type { MeshValues } from '@molstar/graphics/gl/renderable/mesh';
 import type { LinesValues } from '@molstar/graphics/gl/renderable/lines';
 import type { PointsValues } from '@molstar/graphics/gl/renderable/points';
 import type { SpheresValues } from '@molstar/graphics/gl/renderable/spheres';
+import { Spheres } from '@molstar/graphics/geo/geometry/spheres/spheres';
 import type { CylindersValues } from '@molstar/graphics/gl/renderable/cylinders';
 import { CylinderStride } from '@molstar/graphics/geo/geometry/cylinders/cylinders';
+import { floatBitsToInt32, getDataWords } from '@molstar/graphics/geo/geometry/center-group';
 import { LineStride } from '@molstar/graphics/geo/geometry/lines/lines';
 import type { TextureMeshValues } from '@molstar/graphics/gl/renderable/texture-mesh';
 import type { BaseValues, SizeValues } from '@molstar/graphics/gl/renderable/schema';
@@ -41,6 +43,7 @@ import { ColorTheme } from '@molstar/graphics/theme/color';
 import { computeFrenetFrames } from '@molstar/core/math/linear-algebra/3d/frenet-frames';
 import { addTube } from '@molstar/graphics/geo/geometry/mesh/builder/tube';
 import { arrayCopyOffset } from '@molstar/core/util/array';
+import { getInstanceMatricesById } from '@molstar/graphics/geo/geometry/transform-data';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3fromArray = Vec3.fromArray;
@@ -63,7 +66,7 @@ export interface AddMeshInput {
         vertices: Float32Array;
         normals: Float32Array | undefined;
         indices: Uint32Array | undefined;
-        groups: Float32Array | Uint8Array;
+        groups: Float32Array | Uint32Array | Uint8Array;
         vertexCount: number;
         drawCount: number;
         vertexMapping?: number[];
@@ -72,7 +75,7 @@ export interface AddMeshInput {
   meshes: Mesh[] | undefined;
   values: BaseValues & {
     readonly uDoubleSided?: ValueCell<boolean>;
-    readonly aGroup?: ValueCell<Float32Array>;
+    readonly aGroup?: ValueCell<Float32Array | Uint32Array>;
     readonly tPositionGroup?: ValueCell<DataArray<Float32Array>>;
     readonly tCylinder?: ValueCell<DataArray<Float32Array>>;
     readonly tLine?: ValueCell<DataArray<Float32Array>>;
@@ -86,12 +89,12 @@ export interface AddMeshInput {
 
 export type MeshGeoData = {
   values: BaseValues & {
-    readonly aGroup?: ValueCell<Float32Array>;
+    readonly aGroup?: ValueCell<Float32Array | Uint32Array>;
     readonly tPositionGroup?: ValueCell<DataArray<Float32Array>>;
     readonly tCylinder?: ValueCell<DataArray<Float32Array>>;
     readonly tLine?: ValueCell<DataArray<Float32Array>>;
   };
-  groups?: Float32Array | Uint8Array;
+  groups?: Float32Array | Uint32Array | Uint8Array;
   vertexCount: number;
   instanceIndex: number;
   isGeoTexture: boolean;
@@ -110,12 +113,15 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
   private static getVertexGroup(values: MeshGeoData['values'], vertexIndex: number): number {
     switch (values.dGeometryType.ref.value) {
       case 'spheres':
+        // quantized centers (`dSites`): sphere `i` of group `i`
+        if ((values as unknown as SpheresValues).dSites?.ref.value) return vertexIndex;
+        return floatBitsToInt32(values.tPositionGroup!.ref.value.array[vertexIndex * 4 + 3]);
       case 'points':
-        return values.tPositionGroup!.ref.value.array[vertexIndex * 4 + 3];
+        return floatBitsToInt32(values.tPositionGroup!.ref.value.array[vertexIndex * 4 + 3]);
       case 'cylinders':
-        return values.tCylinder!.ref.value.array[(vertexIndex >> 1) * CylinderStride + 3];
+        return floatBitsToInt32(values.tCylinder!.ref.value.array[(vertexIndex >> 1) * CylinderStride + 3]);
       case 'lines':
-        return values.tLine!.ref.value.array[(vertexIndex >> 1) * LineStride + 3];
+        return floatBitsToInt32(values.tLine!.ref.value.array[(vertexIndex >> 1) * LineStride + 3]);
       default:
         return values.aGroup!.ref.value[vertexIndex];
     }
@@ -157,6 +163,12 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         const vertexCount = values.uVertexCount.ref.value;
         size = MeshExporter.getSizeFromTexture(tSize, instanceIndex * vertexCount + vertexIndex);
         break;
+      case 'siteType': {
+        // quantized sphere centers: the size table by the site's type (the uint16 of its `tSite` element)
+        const site = (values as unknown as SpheresValues).tSite.ref.value.array;
+        size = MeshExporter.getSizeFromTexture(tSize, site[vertexIndex * 4 + 3] & 0xffff);
+        break;
+      }
     }
     return size * values.uSizeFactor.ref.value;
   }
@@ -166,10 +178,12 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     const r = groups[i4];
     const g = groups[i4 + 1];
     const b = groups[i4 + 2];
+    // the top byte in alpha (`packPickId`: groups past 2^24)
+    const a = groups[i4 + 3];
     if (groups instanceof Float32Array) {
-      return unpackRGBToInt(r * 255 + 0.5, g * 255 + 0.5, b * 255 + 0.5);
+      return unpackRGBToInt(r * 255 + 0.5, g * 255 + 0.5, b * 255 + 0.5) + Math.floor(a * 255 + 0.5) * 16777216;
     }
-    return unpackRGBToInt(r, g, b);
+    return unpackRGBToInt(r, g, b) + a * 16777216;
   }
 
   protected static async getInterpolatedColors(
@@ -186,7 +200,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     const colorGridTransform = values.uColorGridTransform.ref.value;
     const colorGridDim = values.uColorGridDim.ref.value;
     const colorTexDim = values.uColorGridTexDim.ref.value;
-    const aTransform = values.aTransform.ref.value;
+    const aTransform = getInstanceMatricesById(values);
     const instanceCount = values.uInstanceCount.ref.value;
 
     const colorGrid = await readTextureBytes(graphics, values.tColorGrid.ref.value);
@@ -221,7 +235,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     const overpaintGridTransform = values.uOverpaintGridTransform.ref.value;
     const overpaintGridDim = values.uOverpaintGridDim.ref.value;
     const overpaintTexDim = values.uOverpaintGridTexDim.ref.value;
-    const aTransform = values.aTransform.ref.value;
+    const aTransform = getInstanceMatricesById(values);
     const instanceCount = values.uInstanceCount.ref.value;
 
     const overpaintGrid = await readTextureBytes(graphics, values.tOverpaintGrid.ref.value);
@@ -256,7 +270,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     const transparencyGridTransform = values.uTransparencyGridTransform.ref.value;
     const transparencyGridDim = values.uTransparencyGridDim.ref.value;
     const transparencyTexDim = values.uTransparencyGridTexDim.ref.value;
-    const aTransform = values.aTransform.ref.value;
+    const aTransform = getInstanceMatricesById(values);
     const instanceCount = values.uInstanceCount.ref.value;
 
     const transparencyGrid = await readTextureBytes(graphics, values.tTransparencyGrid.ref.value);
@@ -384,13 +398,17 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     }
 
     const group = isGeoTexture
-      ? MeshExporter.getGroup(groups!, vertexIndex)
+      ? MeshExporter.getGroup(groups as Float32Array | Uint8Array, vertexIndex)
       : MeshExporter.getVertexGroup(values, vertexIndex);
 
     let color: Color;
     switch (colorType) {
       case 'uniform':
         color = Color.fromNormalizedArray(uColor, 0);
+        break;
+      // one color, the object's texel
+      case 'object':
+        color = Color.fromArray(tColor, 0);
         break;
       case 'instance':
         color = Color.fromArray(tColor, instanceIndex * 4);
@@ -491,7 +509,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     }
 
     const group = isGeoTexture
-      ? MeshExporter.getGroup(groups!, vertexIndex)
+      ? MeshExporter.getGroup(groups as Float32Array | Uint8Array, vertexIndex)
       : MeshExporter.getVertexGroup(values, vertexIndex);
 
     let transparency: number = 0;
@@ -588,7 +606,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
           const curveOrigIndices: number[] = [];
           const widthValues = new Float32Array(nPoints);
           const heightValues = new Float32Array(nPoints);
-          const group = data[first * LineStride + 3];
+          const group = floatBitsToInt32(data[first * LineStride + 3]);
 
           arrayCopyOffset(curvePoints, data, 0, first * LineStride, 3);
           curveOrigIndices.push(first * 2);
@@ -600,7 +618,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
             const j = k - first + 1;
             arrayCopyOffset(curvePoints, data, j * 3, k * LineStride + 4, 3);
             curveOrigIndices.push(k * 2 + 1);
-            const lineGroup = data[k * LineStride + 3];
+            const lineGroup = floatBitsToInt32(data[k * LineStride + 3]);
             const radius = MeshExporter.getSize(values, instanceIndex, lineGroup, k * 2 + 1) * 0.03;
             widthValues[j] = radius;
             heightValues[j] = radius;
@@ -715,11 +733,11 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
       // two vertices per line, its data vertices (start and end)
       const vertexCount = lineCount * 2;
       const vertices = new Float32Array(vertexCount * 3);
-      const groups = new Float32Array(vertexCount);
+      const groups = new Uint32Array(vertexCount);
       for (let k = 0; k < lineCount; ++k) {
         arrayCopyOffset(vertices, data, k * 6, k * LineStride, 3);
         arrayCopyOffset(vertices, data, k * 6 + 3, k * LineStride + 4, 3);
-        groups[k * 2] = groups[k * 2 + 1] = data[k * LineStride + 3];
+        groups[k * 2] = groups[k * 2 + 1] = floatBitsToInt32(data[k * LineStride + 3]);
       }
 
       await this.addMeshWithColors({
@@ -750,6 +768,8 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
   private async addPoints(values: PointsValues, graphics: GraphicsContext, ctx: RuntimeContext) {
     // center xyz and group per point; one vertex per point (drawn as quads of 6 vertices)
     const positionGroup = values.tPositionGroup.ref.value.array;
+    // the groups an int32 as its bits
+    const words = getDataWords(positionGroup);
     const vertexCount = values.uVertexCount.ref.value;
     const drawCount = vertexCount;
 
@@ -768,7 +788,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         for (let i = 0; i < vertexCount; ++i) {
           v3fromArray(center, positionGroup, i * 4);
 
-          const group = positionGroup[i * 4 + 3];
+          const group = words[i * 4 + 3];
           const radius = MeshExporter.getSize(values, instanceIndex, group, i) * 0.03;
           const vertexOffset = state.vertices.elementCount;
           addSphere(state, center, radius, detail);
@@ -796,12 +816,12 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     } else {
       // the writers take separate positions and groups
       const aPosition = new Float32Array(vertexCount * 3);
-      const aGroup = new Float32Array(vertexCount);
+      const aGroup = new Uint32Array(vertexCount);
       for (let i = 0; i < vertexCount; ++i) {
         aPosition[i * 3] = positionGroup[i * 4];
         aPosition[i * 3 + 1] = positionGroup[i * 4 + 1];
         aPosition[i * 3 + 2] = positionGroup[i * 4 + 2];
-        aGroup[i] = positionGroup[i * 4 + 3];
+        aGroup[i] = words[i * 4 + 3];
       }
       await this.addMeshWithColors({
         mesh: { vertices: aPosition, normals: undefined, indices: undefined, groups: aGroup, vertexCount, drawCount },
@@ -818,8 +838,10 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
   private async addSpheres(values: SpheresValues, graphics: GraphicsContext, ctx: RuntimeContext) {
     const center = Vec3();
 
-    // center xyz and group per sphere
-    const positionGroup = values.tPositionGroup.ref.value.array;
+    // center xyz and group per sphere (quantized centers decoded)
+    const positionGroup = Spheres.getPositionGroupArray(values);
+    // the groups an int32 as its bits
+    const sphereWords = getDataWords(positionGroup);
     const instanceCount = values.instanceCount.ref.value;
     const vertexCount = values.uVertexCount.ref.value;
     const meshes: Mesh[] = [];
@@ -855,7 +877,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
       for (let i = 0; i < count; ++i) {
         v3fromArray(center, positionGroup, i * 4);
 
-        const group = positionGroup[i * 4 + 3];
+        const group = sphereWords[i * 4 + 3];
         const radius = MeshExporter.getSize(values, instanceIndex, group, i);
         const vertexOffset = state.vertices.elementCount;
         addSphere(state, center, radius, detail);
@@ -926,7 +948,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         v3fromArray(end, data, o + 4);
         v3sub(dir, end, start);
 
-        const group = data[o + 3];
+        const group = floatBitsToInt32(data[o + 3]);
         const radius = MeshExporter.getSize(values, instanceIndex, group, i) * data[o + 7];
         const cap = data[o + 8];
         let topCap = cap === 1 || cap === 3;
@@ -1020,7 +1042,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     // a merged object's values are its members' in segments (group and layer offsets per member): its members are
     // exported, each with its own values
     if (isMergedRenderObject(renderObject)) {
-      for (const member of renderObject.members) await this.add(member, graphics, ctx);
+      for (const member of getMergedMembers(renderObject)) await this.add(member, graphics, ctx);
       return;
     }
     if (renderObject.values.drawCount.ref.value === 0) return;

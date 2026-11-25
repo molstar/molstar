@@ -1,0 +1,26 @@
+{
+  "name": "bond-orders-benchmark",
+  "private": true,
+  "type": "module",
+  "description": "Bond-order perception benchmark over the CCD: perceived orders compared by InChI with RDKit. Not a workspace package, never published (../plans/benchmark.md)",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "packageManager": "pnpm@12.15.0",
+  "scripts": {
+    "bench": "node src/run.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@molstar/bond-orders-extension": "link:..",
+    "@molstar/core": "link:../../../core",
+    "@molstar/io": "link:../../../io",
+    "@molstar/model": "link:../../../model",
+    "rdkit-esm": "0.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.1",
+    "typescript": "7.0.2"
+  }
+}

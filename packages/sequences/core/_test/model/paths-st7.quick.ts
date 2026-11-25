@@ -11,7 +11,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { down, read, sums, up } from './paths-st7-cases.js';
-import { quickCase } from './quick.js';
+import { quickCase } from '@molstar/test-harness/quick';
 
 describe("ST7: a sparse path's reads, quick", () => {
   it('Paths.at, spanAt, forEachFrom and forEachTo over a 79-exon path through 200 Mb', async ({ task }) => {

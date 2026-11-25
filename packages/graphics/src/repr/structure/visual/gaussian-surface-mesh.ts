@@ -73,6 +73,10 @@ import { isTimingMode } from '@molstar/core/util/debug';
 import { ValueCell } from '@molstar/core/util/value-cell';
 import { getSurfaceSignatureDefines } from '@molstar/graphics/repr/signatures';
 import { selectVisual } from '../../visual-factory.js';
+import { createScratch } from '@molstar/graphics/gl/scratch';
+
+/** the density textures the surfaces share, per context (`gl/scratch.ts`) */
+const ScratchTextures = createScratch<Texture>('gaussian-surface-mesh textures');
 
 const SharedParams = {
   ...GaussianDensityParams,
@@ -229,11 +233,26 @@ function useGpu(target: Structure | Unit, props: PD.Values<SharedParams>, graphi
  * coordinates, and defining it to each unit's grid recreated it per unit
  */
 function getComputeDensityTexture(graphics: GraphicsContext) {
-  const name = 'gaussian-surface-3d';
-  if (!graphics.namedTextures[name]) {
-    graphics.namedTextures[name] = graphics.resources.texture('volume-float16', 'rgba', 'fp16', 'linear');
-  }
-  return graphics.namedTextures[name];
+  return ScratchTextures.getOrCreate(
+    graphics,
+    () => graphics.resources.texture('volume-float16', 'rgba', 'fp16', 'linear'),
+    'gaussian-surface-3d',
+  );
+}
+
+/** The 2d density texture of the fragment-shader path, shared by the surfaces */
+function getDensityTexture2d(graphics: GraphicsContext) {
+  const { resources, capabilities } = graphics;
+  return ScratchTextures.getOrCreate(
+    graphics,
+    () =>
+      capabilities.halfFloatRenderTarget
+        ? resources.texture('image-float16', 'rgba', 'fp16', 'linear')
+        : capabilities.floatBlend
+          ? resources.texture('image-float32', 'rgba', 'float', 'linear')
+          : resources.texture('image-uint8', 'rgba', 'ubyte', 'linear'),
+    GaussianSurfaceName,
+  );
 }
 
 /** Upper limit of the estimate, about 224 MB of vertex textures; larger surfaces are extracted again */
@@ -567,18 +586,7 @@ function createGaussianSurfaceTextureMesh(
     throw new Error('compute kernels or fragment-shader marching cubes required to create a gaussian surface');
   }
 
-  const {
-    namedTextures,
-    resources,
-    capabilities: { floatBlend, halfFloatRenderTarget },
-  } = graphics;
-  if (!namedTextures[GaussianSurfaceName]) {
-    namedTextures[GaussianSurfaceName] = halfFloatRenderTarget
-      ? resources.texture('image-float16', 'rgba', 'fp16', 'linear')
-      : floatBlend
-        ? resources.texture('image-float32', 'rgba', 'float', 'linear')
-        : resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
-  }
+  const densityTexture = getDensityTexture2d(graphics);
 
   const axisOrder = Vec3.create(0, 1, 2);
   const groupCount = unit.elements.length;
@@ -592,7 +600,7 @@ function createGaussianSurfaceTextureMesh(
       true,
       props,
       graphics,
-      namedTextures[GaussianSurfaceName],
+      densityTexture,
     );
     const isoLevel = Math.exp(-props.smoothness) / densityTextureData.radiusFactor;
 
@@ -731,18 +739,7 @@ function createStructureGaussianSurfaceTextureMesh(
     throw new Error('compute kernels or fragment-shader marching cubes required to create a gaussian surface');
   }
 
-  const {
-    namedTextures,
-    resources,
-    capabilities: { floatBlend, halfFloatRenderTarget },
-  } = graphics;
-  if (!namedTextures[GaussianSurfaceName]) {
-    namedTextures[GaussianSurfaceName] = halfFloatRenderTarget
-      ? resources.texture('image-float16', 'rgba', 'fp16', 'linear')
-      : floatBlend
-        ? resources.texture('image-float32', 'rgba', 'float', 'linear')
-        : resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
-  }
+  const densityTexture = getDensityTexture2d(graphics);
 
   const axisOrder = Vec3.create(0, 1, 2);
   const groupCount = structure.elementCount;
@@ -755,7 +752,7 @@ function createStructureGaussianSurfaceTextureMesh(
       true,
       props,
       graphics,
-      namedTextures[GaussianSurfaceName],
+      densityTexture,
     );
     const isoLevel = Math.exp(-props.smoothness) / densityTextureData.radiusFactor;
 

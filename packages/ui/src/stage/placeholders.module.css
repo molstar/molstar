@@ -1,0 +1,86 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* The stand-ins (stage §6): a canvas filling its host, a band of residue boxes. */
+.canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.structure {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* The band: as tall as its rows, scrolling across when wider than the stage; padded on the stage's edge. */
+.band {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: var(--msui-space-1) var(--msui-space-2) 0;
+  scrollbar-width: thin;
+}
+
+.residues {
+  display: block;
+  font-family: var(--msui-font-mono);
+  font-size: var(--msui-text-xs);
+}
+
+.ruler {
+  fill: var(--msui-text-subtle);
+  stroke: var(--msui-line-strong);
+  text-anchor: middle;
+
+  & text {
+    stroke: none;
+  }
+}
+
+/* A residue's box, by kind: quiet tints of the states, so the letters stay readable on them. */
+.boxes rect {
+  fill: color-mix(in oklab, var(--msui-text) 8%, transparent);
+
+  &[data-kind="hydrophobic"] {
+    fill: color-mix(in oklab, var(--msui-warning) 22%, transparent);
+  }
+
+  &[data-kind="positive"] {
+    fill: color-mix(in oklab, var(--msui-info) 26%, transparent);
+  }
+
+  &[data-kind="negative"] {
+    fill: color-mix(in oklab, var(--msui-danger) 24%, transparent);
+  }
+
+  &[data-kind="polar"] {
+    fill: color-mix(in oklab, var(--msui-success) 22%, transparent);
+  }
+}
+
+.letters {
+  fill: var(--msui-text);
+  dominant-baseline: central;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.selection {
+  fill: none;
+  stroke: var(--msui-accent);
+  stroke-width: 2;
+}
+
+/* The hovered column: placed by one transform a frame. */
+.column {
+  fill: color-mix(in oklab, var(--msui-text) 12%, transparent);
+  pointer-events: none;
+  visibility: hidden;
+
+  &[data-shown] {
+    visibility: visible;
+  }
+}

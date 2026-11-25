@@ -8,6 +8,7 @@ node_modules/
 .pnpm-store/
 debug.log
 npm-debug.log
+debug-storybook.log
 tsconfig.tsbuildinfo
 tsconfig.commonjs.tsbuildinfo
 
@@ -40,3 +41,7 @@ mise.local.toml
 
 # Local environment
 .env.local
+
+# Large models for the benchmarks, not checked in (tests/src/benchmark)
+.benchmark/
+.scaffolds/seq/tmp/

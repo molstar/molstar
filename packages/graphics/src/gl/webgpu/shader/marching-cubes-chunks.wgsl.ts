@@ -84,6 +84,13 @@ fn main(
     @builtin(workgroup_id) wid: vec3<u32>,
     @builtin(num_workgroups) workgroups: vec3<u32>,
 ) {
+    // reset here, not left to the zero-initialization of workgroup memory, which a device may skip (SwiftShader: the
+    // memory of the previous dispatch)
+    if (local == 0u) {
+        atomicStore(&wgVertices, 0u);
+        atomicStore(&wgTriangles, 0u);
+    }
+    workgroupBarrier();
     let dim = vec3<u32>(uParams.uGridDim);
     let isPoint = all(id < dim);
     let p = vec3<i32>(id);
@@ -213,13 +220,13 @@ ${mc_chunk_edges_wgsl}
 
 var<workgroup> wgOffset: atomic<u32>;
 
-/** rgb (as \`packGroup\`) as the integer of its bytes */
+/** rgb (a volume's packed group, \`dPackedGroup\`: 24 bits) as the integer of its bytes */
 fn rgbBits(rgb: vec3<f32>) -> u32 {
     let v = vec3<u32>(floor(rgb * 255.0 + 0.5));
     return (v.r << 16u) | (v.g << 8u) | v.b;
 }
 
-/** the unit vector \`n\` octahedral, 12 bits per axis: x, then y in the upper 12 bits; +z for no direction */
+/** the unit vector \`n\` octahedral, 8 bits per axis: x, then y in the upper 8 bits; +z for no direction */
 fn octEncode(n: vec3<f32>) -> u32 {
     let l1 = abs(n.x) + abs(n.y) + abs(n.z);
     var p = vec2<f32>(0.0);
@@ -229,19 +236,19 @@ fn octEncode(n: vec3<f32>) -> u32 {
             p = (1.0 - abs(p.yx)) * select(vec2<f32>(-1.0), vec2<f32>(1.0), p >= vec2<f32>(0.0));
         }
     }
-    let o = vec2<u32>(round((p * 0.5 + 0.5) * 4095.0));
-    return o.x | (o.y << 12u);
+    let o = vec2<u32>(round((p * 0.5 + 0.5) * 255.0));
+    return o.x | (o.y << 8u);
 }
 
-/** the packed group of grid point \`p\`, 0 for none */
+/** the group of grid point \`p\` plus 1 (its index: 32 bits, past 2^24), 0 for none */
 fn pointGroup(p: vec3<i32>) -> u32 {
     #if defined(dInput_buffer)
         let d = uParams.uDataDim;
-        return rgbBits(packGroup(u32(dot(select(p, p - d, p >= d), uParams.uStrides))));
+        return u32(dot(select(p, p - d, p >= d), uParams.uStrides)) + 1u;
     #elif defined(dPackedGroup)
         return rgbBits(textureLoad(tVolume, p, 0).rgb);
     #else
-        return rgbBits(packGroup(pointIndex(p)));
+        return pointIndex(p) + 1u;
     #endif
 }
 
@@ -291,8 +298,8 @@ fn emitVertex(p: vec3<i32>, axis: u32, index: u32) {
     let q = vec3<u32>(round(box));
     let oct = octEncode(normal);
     vertices[slot * 3u] = q.x | (q.y << 16u);
-    vertices[slot * 3u + 1u] = q.z | ((oct & 0xffffu) << 16u);
-    vertices[slot * 3u + 2u] = group | ((oct >> 16u) << 24u);
+    vertices[slot * 3u + 1u] = q.z | (oct << 16u);
+    vertices[slot * 3u + 2u] = group;
 }
 
 /** the index of the vertex on edge \`e\` (of \`EdgeCorners\`) of the cell at \`c\`: of the edge's lower point */
@@ -310,9 +317,15 @@ fn edgeVertex(c: vec3<i32>, e: u32) -> u32 {
 @compute @workgroup_size(WorkgroupSizeX, WorkgroupSizeY, WorkgroupSizeZ)
 fn main(
     @builtin(global_invocation_id) id: vec3<u32>,
+    @builtin(local_invocation_index) local: u32,
     @builtin(workgroup_id) wid: vec3<u32>,
     @builtin(num_workgroups) workgroups: vec3<u32>,
 ) {
+    // as the count kernel's: reset here, before any invocation returns (the barrier in uniform control flow)
+    if (local == 0u) {
+        atomicStore(&wgOffset, 0u);
+    }
+    workgroupBarrier();
     let dim = vec3<u32>(uParams.uGridDim);
     if (any(id >= dim)) {
         return;
@@ -400,10 +413,10 @@ fn main() {
 
 /**
  * The vertices of the arena (see `computeChunkedIsosurface`) through the page table `table`, from the `u32` words
- * of `vertices`, 3 a vertex: `x | y << 16`, `z | n << 16` and `group | (n >> 16) << 24`, the position quantized
- * to 16 bits per axis in the surface's box (`TableBox` of the table), `n` the normal octahedral in 24 bits
- * (`octEncode`), the group packed as rgb (24 bits, as `packGroup`). `isoSlot` takes the `i`th vertex drawn (3 per
- * triangle, unindexed) through its triangle's indices; `isoDrawn` is the drawn count.
+ * of `vertices`, 3 a vertex: `x | y << 16`, `z | n << 16` and `group`, the position quantized to 16 bits per axis in
+ * the surface's box (`TableBox` of the table), `n` the normal octahedral in 16 bits (`octEncode`), the group plus 1
+ * in 32 bits (0 for none; past 2^24: its byte the normal's 24-bit encoding had). `isoSlot` takes the
+ * `i`th vertex drawn (3 per triangle, unindexed) through its triangle's indices; `isoDrawn` is the drawn count.
  */
 export function iso_vertex_wgsl(table: string, vertices: string) {
   return /* wgsl */ `
@@ -430,8 +443,8 @@ fn isoPosition(slot: u32) -> vec3<f32> {
 
 /** of unit length */
 fn isoNormal(slot: u32) -> vec3<f32> {
-    let n = (${vertices}[slot * 3u + 1u] >> 16u) | ((${vertices}[slot * 3u + 2u] >> 24u) << 16u);
-    let e = vec2<f32>(f32(n & 0xfffu), f32(n >> 12u)) / 4095.0 * 2.0 - 1.0;
+    let n = ${vertices}[slot * 3u + 1u] >> 16u;
+    let e = vec2<f32>(f32(n & 0xffu), f32(n >> 8u)) / 255.0 * 2.0 - 1.0;
     var v = vec3<f32>(e, 1.0 - abs(e.x) - abs(e.y));
     let t = max(-v.z, 0.0);
     v.x += select(t, -t, v.x >= 0.0);
@@ -439,9 +452,9 @@ fn isoNormal(slot: u32) -> vec3<f32> {
     return normalize(v);
 }
 
-/** the group packed as rgb, the integer of its bytes: the group plus 1 (as \`unpackRGBToInt\` reads it) */
+/** the group plus 1 (0 for none), 32 bits */
 fn isoPackedGroup(slot: u32) -> u32 {
-    return ${vertices}[slot * 3u + 2u] & 0xffffffu;
+    return ${vertices}[slot * 3u + 2u];
 }
 `;
 }

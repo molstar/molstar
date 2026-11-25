@@ -36,14 +36,17 @@
 - **Two pyramids a moving frame**: the one within the frame, and the one after it of the complete depth, which is the
   next frame's first phase and the CPU test's (`planFrame` starts no read).
 - **Still frames**: no dispatch, no second phase, recordings replay as before. No pyramid in the first phase: it left out
-  nothing occluded, no second.
+  nothing occluded, no second. The raster, dispatched each frame from the first's records, takes the last dispatch's
+  second records after them where the frame has no second phase (`SphereRaster.draw` without `twoPhase`): what the
+  second found in its regions was left out of every still frame otherwise, until the camera moved (a zoom stopped).
 - **Multi-sampling**: both phases in the first sample's pass; later samples draw the sum.
 
 ## No occlusion
 
-- **Stereo and XR**: the pyramid is the whole viewport's with the main camera, not an eye's: tested against it, 102,172 of
-  921,600 pixels differed on a still camera, for good. So the eyes test nothing and build no levels (their depth would hide what the next mono frame sees): exact, at no occlusion's cost (zoomed
-  8.46 ms, 4.13 with the wrong test, 8.61 without occlusion). A pyramid per eye would bring it back.
+- **Stereo and XR**: the main camera's pyramid is not an eye's: tested against it, 102,172 of 921,600 pixels differed on
+  a still camera, for good. The eyes test one pyramid of both instead, built of their depth side by side
+  ([stereo-gpu-culling.md](stereo-gpu-culling.md) step 3), in one phase: what comes into view shows a frame late, a
+  frame drawn after the eyes move catching up; mono frames test no stereo pyramid, nor stereo frames a mono one.
 
 ## Still one phase
 

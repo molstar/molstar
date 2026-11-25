@@ -3,17 +3,22 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Ludovic Autin <ludovic.autin@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { RepresentationClip } from '@molstar/plugin/state/helpers/representation-clip';
+import type { Canvas3DProps } from '@molstar/graphics/canvas3d/canvas3d';
+import { ClipGhostParams } from '@molstar/graphics/canvas3d/passes/clip-ghost';
+import { Color } from '@molstar/core/util/color';
+import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { DefaultPrismViewerSpec } from '../../../default-spec.js';
 import { createPrismViewerHeadless } from '../../../headless.js';
 import type { PrismViewer } from '../../../viewer.js';
 import { cbs } from '../../../_test/harness.js';
 import { mapFile } from '../../../api/_test/volume-fixtures.js';
 import { afterEach, describe, expect, it } from 'vitest';
-import { type Cut, findCuts } from '../../../sources/clipping/cuts.js';
+import { type Cut, type CutObject, findCuts, LocalUp, rotated, twistOf } from '../../../sources/clipping/cuts.js';
 
 // The `clipping` area over a headless viewer: cuts written into the representations' params and read back from them.
 
@@ -275,6 +280,10 @@ describe('the clipping area', () => {
     expect(drawing.transform.tags).toContain(`clip-volume-${cut.object.tag}`);
     expect(drawing.transform.parent).toBe(cut.targets[0].ref);
     expect(drawing.obj).toBeDefined();
+    // its walls in front of the solid-interior caps they lie on, in depth only
+    const drawnRepr = [...state.cells.values()].find((c) => c.transform.parent === drawn.drawing)!;
+    const reprProps = (drawnRepr.obj!.data as { repr: { props: { depthOffset: number } } }).repr.props;
+    expect(reprProps.depthOffset).toBeGreaterThan(0);
     // once a cut, and never itself something to cut
     expect(await clipping.show({ cut: 1, on: true })).toMatchObject({ ok: true, unchanged: true });
     expect(clipping.candidates(findCuts(v.plugin)[0]).some((t) => t.label.includes('Cut'))).toBe(false);
@@ -377,6 +386,39 @@ describe('the clipping area', () => {
     [0, 1, 2].forEach((i) => expect(side[i]).toBeCloseTo(twisted[i], 5));
   });
 
+  it('twists a box or an ellipsoid about its up, and keeps the twist when the up changes', async () => {
+    const v = await create(cbs());
+    const { clipping } = v.api;
+    ok(await clipping.add({ shape: 'sphere', target: 'A:10-20' }));
+    ok(await clipping.update({ cut: 1, scale: [4, 8, 12], twist: 40 }));
+    const twisted = ok<Cut[]>(await clipping.list())[0].object;
+    expect([...twisted.scale]).toEqual([4, 8, 12]);
+    expect(twistOf(twisted)).toBeCloseTo(40, 4);
+    ok(await clipping.update({ cut: 1, normal: [0, 0, 1] }));
+    const turned = ok<Cut[]>(await clipping.list())[0].object;
+    [0, 0, 1].forEach((x, i) => expect(rotated(turned.rotation, LocalUp)[i]).toBeCloseTo(x, 5));
+    expect(twistOf(turned)).toBeCloseTo(40, 4);
+    expect(await clipping.update({ cut: 1, twist: Number.NaN })).toMatchObject({ ok: false });
+  });
+
+  it("turns a box's direction pointing almost down by the shortest turn: its other axes move little", async () => {
+    const v = await create(cbs());
+    const { clipping } = v.api;
+    ok(await clipping.add({ shape: 'cube', target: 'A:10-20' }));
+    // near straight down, where a twist measured about the up flips
+    ok(await clipping.update({ cut: 1, normal: [0, -1, 0.05] }));
+    const side = (o: CutObject) => rotated(o.rotation, Vec3.create(1, 0, 0));
+    const before = side(ok<Cut[]>(await clipping.list())[0].object);
+    ok(await clipping.update({ cut: 1, normal: [0.05, -1, 0] }));
+    const after = ok<Cut[]>(await clipping.list())[0].object;
+    const up = rotated(after.rotation, LocalUp);
+    const down = Vec3.normalize(Vec3(), Vec3.create(0.05, -1, 0));
+    [0, 1, 2].forEach((i) => expect(up[i]).toBeCloseTo(down[i], 5));
+    // the up turned about 4°: the side by no more (keeping the twist turned it 90° about the up)
+    const degrees = (Math.acos(Math.min(1, Vec3.dot(before, side(after)))) * 180) / Math.PI;
+    expect(degrees).toBeLessThan(5);
+  });
+
   it('keeps nothing whole for a node selector, and says so', async () => {
     const v = await create(cbs());
     const surface = [...v.plugin.state.data.cells.values()].find((c) => RepresentationClip.isClippable(c))!.transform
@@ -437,7 +479,16 @@ describe('clipping.settings', () => {
     expect(r.ok && r.did).toBe('Cuts leave out whole copies.');
     expect(clipOf(v, ligand).variant).toBe('instance');
     expect(v.plugin.managers.structure.component.state.options.clipObjects.variant).toBe('instance');
-    expect(clipping.cutSettings.value).toEqual({ variant: 'instance', solidSurface: true });
+    expect(clipping.cutSettings.value).toEqual({
+      variant: 'instance',
+      solidSurface: true,
+      fadeNormal: false,
+      ghost: false,
+      ghostColor: ClipGhostParams.color.defaultValue,
+      ghostOpacity: ClipGhostParams.alpha.defaultValue,
+      ghostEdgeOpacity: ClipGhostParams.edgeAlpha.defaultValue,
+      ghostResolution: ClipGhostParams.resolution.defaultValue,
+    });
     expect(await clipping.settings({ variant: 'instance' })).toMatchObject({ ok: true, unchanged: true });
 
     // a cut added now, on the mesh (not the component manager's), cuts so too
@@ -447,5 +498,94 @@ describe('clipping.settings', () => {
     ok(await clipping.settings({ solidSurface: false }));
     expect(v.plugin.managers.structure.component.state.options.solidSurface).toBe(false);
     expect(clipping.cutSettings.value.solidSurface).toBe(false);
+
+    // the gizmo's arrow, always drawn by default: the session's choice
+    expect((await clipping.settings({ fadeNormal: true })).ok).toBe(true);
+    expect(clipping.cutSettings.value.fadeNormal).toBe(true);
+    expect(await clipping.settings({ fadeNormal: true })).toMatchObject({ ok: true, unchanged: true });
+
+    // the ghost of what the cuts remove is the canvas's (`clipGhost`): this host has none
+    expect(await clipping.settings({ ghost: true })).toMatchObject({ ok: false, code: 'unavailable' });
+    expect(await clipping.settings({ ghostOpacity: 0.3 })).toMatchObject({ ok: false, code: 'unavailable' });
+    expect(clipping.cutSettings.value.ghost).toBe(false);
+  });
+
+  it('sets the ghost and its look on the canvas, keeping the look while it is off', async () => {
+    const v = await create(cbs());
+    // a canvas's props alone: what the ghost reads and sets (and the background, which the views read on a change)
+    const props: Pick<Canvas3DProps, 'clipGhost'> & { renderer: { backgroundColor: Color } } = {
+      clipGhost: { name: 'off', params: {} },
+      renderer: { backgroundColor: Color(0xffffff) },
+    };
+    // a copy as the canvas's (a checkpoint holds what it read)
+    const canvas = {
+      get props() {
+        return { ...props };
+      },
+      setProps: (p: Partial<typeof props>) => Object.assign(props, p),
+      dispose() {},
+    };
+    Object.defineProperty(v.plugin, 'canvas3d', { value: canvas, configurable: true });
+    const clipping = v.api.clipping;
+    const defaults = PD.getDefaultValues(ClipGhostParams);
+    expect(clipping.cutSettings.value).toMatchObject({ ghost: false, ghostOpacity: defaults.alpha });
+
+    // the look set while off: kept, the canvas's ghost still off
+    const off = await clipping.settings({ ghostOpacity: 0.3, ghostColor: Color(0xffffff) });
+    expect(off).toMatchObject({ ok: true, did: expect.stringContaining('shown when it is on') });
+    expect(props.clipGhost.name).toBe('off');
+    expect(clipping.cutSettings.value).toMatchObject({ ghostOpacity: 0.3, ghostColor: Color(0xffffff) });
+    expect(await clipping.settings({ ghostOpacity: 0.3 })).toMatchObject({ ok: true, unchanged: true });
+
+    // turned on: with that look
+    expect((await clipping.settings({ ghost: true })).ok).toBe(true);
+    expect(props.clipGhost).toEqual({ name: 'on', params: { ...defaults, alpha: 0.3, color: Color(0xffffff) } });
+
+    // the look set while on: the canvas's
+    expect((await clipping.settings({ ghostResolution: 1 })).ok).toBe(true);
+    expect(props.clipGhost).toMatchObject({ name: 'on', params: { alpha: 0.3, resolution: 1 } });
+
+    // off and on again: the look kept
+    expect((await clipping.settings({ ghost: false })).ok).toBe(true);
+    expect(props.clipGhost.name).toBe('off');
+    expect(clipping.cutSettings.value).toMatchObject({ ghost: false, ghostOpacity: 0.3, ghostResolution: 1 });
+    expect((await clipping.settings({ ghost: true })).ok).toBe(true);
+    expect(props.clipGhost).toMatchObject({ name: 'on', params: { alpha: 0.3, resolution: 1 } });
+
+    // off by Undo (of the turn on): the look kept as it was when off
+    ok(await v.api.history.undo());
+    expect(props.clipGhost.name).toBe('off');
+    expect(clipping.cutSettings.value).toMatchObject({ ghost: false, ghostOpacity: 0.3, ghostResolution: 1 });
+  });
+
+  it("undoes the settings neither the canvas nor the options hold: the arrow's fade, the ghost's look while off", async () => {
+    const v = await create(cbs());
+    const props: Pick<Canvas3DProps, 'clipGhost'> & { renderer: { backgroundColor: Color } } = {
+      clipGhost: { name: 'off', params: {} },
+      renderer: { backgroundColor: Color(0xffffff) },
+    };
+    // a copy as the canvas's (a checkpoint holds what it read)
+    const canvas = {
+      get props() {
+        return { ...props };
+      },
+      setProps: (p: Partial<typeof props>) => Object.assign(props, p),
+      dispose() {},
+    };
+    Object.defineProperty(v.plugin, 'canvas3d', { value: canvas, configurable: true });
+    const clipping = v.api.clipping;
+    const defaults = PD.getDefaultValues(ClipGhostParams);
+
+    ok(await clipping.settings({ fadeNormal: true }));
+    expect(clipping.cutSettings.value.fadeNormal).toBe(true);
+    ok(await v.api.history.undo());
+    expect(clipping.cutSettings.value.fadeNormal).toBe(false);
+    ok(await v.api.history.redo());
+    expect(clipping.cutSettings.value.fadeNormal).toBe(true);
+
+    ok(await clipping.settings({ ghostOpacity: 0.3 }));
+    expect(clipping.cutSettings.value.ghostOpacity).toBe(0.3);
+    ok(await v.api.history.undo());
+    expect(clipping.cutSettings.value).toMatchObject({ ghost: false, ghostOpacity: defaults.alpha });
   });
 });

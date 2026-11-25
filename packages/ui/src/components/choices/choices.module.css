@@ -1,0 +1,121 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* Never wider than what holds it: the choices share the width and their labels give way. */
+.choices {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}
+
+/* With a label: the form's columns (styles §5), the label in the label column, the choices where values start. */
+.choices[data-labelled] {
+  grid-template-columns: var(--msui-label) minmax(0, 1fr);
+  column-gap: var(--msui-space-3);
+}
+
+/* In a form: on the form's own columns (a subgrid), so its label and choices line up with the other rows exactly; one
+   without a label sits in the values' column. */
+:global(.msui-form) > .choices {
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+
+  &:not([data-labelled]) > .row {
+    grid-column: 2;
+  }
+}
+
+/* A form label: on the first row of choices (a row's height, its text centered), muted; cut off, it fades. */
+.label {
+  display: flex;
+  align-items: center;
+  align-self: start;
+  min-width: 0;
+  height: var(--msui-row);
+  overflow: hidden;
+  color: var(--msui-text-muted);
+  white-space: nowrap;
+}
+
+/* Equal columns, as many as fit (or `columns`), each at least as wide as the widest choice (the script measures it:
+   a UI label is never cut, styles §2), sharing the width; each line of them a row (styles §4): the choices at control
+   height, centered, so wrapped lines stay on the row grid and keep a unit apart. */
+.row {
+  /* Until measured. */
+  --msui-choices-min: 64px;
+
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(var(--msui-choices-min), 100%), 1fr));
+  grid-auto-rows: var(--msui-row);
+  align-items: center;
+  column-gap: var(--msui-space-1);
+  min-width: 0;
+
+  &[data-icons] {
+    /* A square control and a unit either side. */
+    --msui-choices-min: calc(var(--msui-control-height) + 2 * var(--msui-space-1));
+  }
+
+  /* Set columns: the caller knows its labels fit them. */
+  &[data-columns] {
+    grid-template-columns: repeat(var(--msui-choices-columns), minmax(0, 1fr));
+  }
+}
+
+/* A control (styles §4): Button's look, its content centered; the checked one in the accent's wash. */
+.choice {
+  /* A 20px control: its icon at the small size (styles §4.1), as a sm button's. */
+  --msui-icon-size: var(--msui-icon-sm);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  height: var(--msui-control-height);
+  padding: 0 var(--msui-control-inset);
+  border-radius: var(--msui-radius-md);
+  background: var(--msui-control);
+  color: var(--msui-text);
+  font-size: var(--msui-text-sm);
+  line-height: var(--msui-leading-sm);
+  white-space: nowrap;
+
+  &:hover:not([aria-disabled="true"]) {
+    background: var(--msui-control-hover);
+  }
+
+  &:active:not([aria-disabled="true"]) {
+    background: var(--msui-control-active);
+  }
+
+  &[aria-checked="true"] {
+    background: color-mix(in oklab, var(--msui-accent), transparent 84%);
+    color: var(--msui-accent-strong);
+    /* Marked by more than a shade where contrast matters (foundations, --msui-selected-edge). */
+    box-shadow: inset 0 0 0 1px var(--msui-selected-edge);
+
+    &:hover {
+      background: color-mix(in oklab, var(--msui-accent), transparent 76%);
+    }
+  }
+
+  &[aria-disabled="true"] {
+    color: var(--msui-text-subtle);
+    cursor: default;
+  }
+
+  [data-icons] > & {
+    padding: 0;
+  }
+}
+
+/* The icon and the label at their own width, whole (a UI label never fades, styles §2). */
+.content {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--msui-icon-gap);
+}

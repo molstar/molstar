@@ -7,6 +7,15 @@ section); an entry leaves when it is done (its spec section says so then). The s
 
 ## Decisions open
 
+- **A test changed to wait for its condition, its cause not understood** (Alexander). The axe shell's "shows the canvas'
+  full trajectory bar unless the trajectory's row is on screen" (`viewer/src/ui/_test/accessibility.test.tsx`) began
+  failing in the whole quick lane with a graphics refactor, `Canvas3D.create`'s representations moved to
+  `graphics/src/canvas3d/representations.ts` (no behavior change found reading it line by line): 5 of 7 full-lane runs
+  failed from that commit, none of 5 before; alone and in its folder it always passed. The bar was `none`, not `full`,
+  after `setExpanded(true)`: its update came after `quiet()` (80 ms of an unchanged DOM) returned, the trajectory source
+  reading once per animation frame. Each step now waits for the bar it expects (`vi.waitFor`), so the test no longer
+  races; why the refactor moved the lane's timing (module load order of the moved imports, a hunch) is open, and so is
+  whether another test waiting on `quiet()` races the same way.
 - **One schema vocabulary; reconsider zod** (David). The workspace describes and checks data three ways: Mol\*'s
   `ParamDefinition` (operations, options, Settings: `viewer/src/options.ts`, the API areas), io-ts in MolViewSpec
   (`mvs/builder/src/tree/generic/field-schema.ts`, the builder and the runtime) and zod in `@molstar/ai` (the agent's
@@ -152,22 +161,15 @@ section); an entry leaves when it is done (its spec section says so then). The s
   `canvas3d.setProps` path emitting; running tasks as a behavior with one id space
   (`plugin/core/src/util/task-manager.ts`); stable string ids beside `PluginCommands`.
 - **Clipping** ([clipping.md](viewer/_spec/clipping.md)), still open:
-  - tests of the gizmo controller (the active cut following renumbering, the cancel paths: Esc, a change under a drag, a
-    failed commit), and a session saved and opened with drawings;
+  - a test of `ClipGizmos` over a canvas (shown, hidden and shown again keeping the active cut, its clicks claimed and
+    released; needs Dawn): what it follows and a drag's ends on the binding are tested without one;
   - the component manager taking global clip objects away shifts the later ones (`replaceOwned`): their keep-whole
     layers are not remapped then;
   - stories for a volume cut and a clip set from code; a mesoscale structure's long Cuts through list measured;
   - an untagged cut from code is tagged when drawn, so code that set it no longer finds it by its values.
-- **Gizmo handles behind what is drawn cannot be grabbed** (`@molstar/graphics/util/gizmo`): picking takes the nearest
-  object, so a ring or an arrow inside a structure is hidden from the pointer by it; 3D tools draw handles on top. Do it
-  as render layers, not an "on top" flag: a representation's layer (its state), the layers drawn in order, each with its
-  own depth (cleared, or kept), picked from the top layer down. Handles are one layer above the scene; the same takes
-  later effects (an overlay, a highlight layer, a layer with its own post-processing). Canvas3D's helper scenes (the
-  corner axes, `helper.handle`) are the model. A first layer can grow out of `HandleHelper`'s scene
-  (`canvas3d/helper/handle-helper.ts`: drawn after the scene's depth is detached, picked after the scene, its own loci):
-  any number of render objects in it instead of its one built-in handle, `VisualSet` adding gizmos there, and the pick
-  pass's depth cleared before it if a handle behind a structure still loses the pick. A renderer change: Alex, after the
-  WebGPU backend lands.
+- A flaky quick test: `load.svs` "shows a SeqViewSpec over the loaded structure it names, as one step, and Undo takes it
+  back" (`viewer/src/features/loaders/_test/svs.test.ts`) failed once in a parallel run of the Prism packages, passing
+  alone and in its folder: a wait on timing or on module state another file leaves, not found yet.
 
 ## Missing: prism-ui
 

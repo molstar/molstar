@@ -1,0 +1,59 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Structure syncing" />
+
+# Structure syncing
+
+A sequence view beside a structure viewer: hover, selection and focus cross both ways, and a track's colors can be
+painted onto the structure. Syncing is not part of the viewer: the viewer publishes its events and takes commands as it
+does for any application, and Seq\* adds a small library on top. Neither viewer imports the other.
+
+## Translation
+
+Pure functions carry Seq\*'s locations onto the **units** of a complex (a chain instance, a ligand) and back, through
+the maps. They give the application the facts it needs to speak its viewer's language (MolViewSpec selectors, Mol\*'s
+loci): chain, operator, observed residues and author numbering. Unobserved residues are never sent, and a selection too
+large to send residue by residue becomes whole units. They run without a viewer, in Node too.
+
+## Wiring
+
+One helper, `linkStructure(viewer, side)`, connects a viewer to the application's few callbacks (highlight, select,
+focus, and the structure viewer's own events) and returns a function that disconnects them. It keeps the two sides from
+echoing each other, sends a dragged selection at most once a frame, and clears both when either goes away.
+
+- **Hover** lights the same residues in both views. Hovering one copy in 3D lights that chain and its reference
+  sequence, never the sibling copies.
+- **Selection** made in 3D replaces the sequence selection and pans to it, keeping the zoom.
+- **Focus**: a double-click moves the camera, and back and forward bring it along, on one clock.
+- **Color by this track** is an action the application adds to a track's header: Seq\* returns the track's colors as
+  runs on the units, and the application builds its viewer's state from them.
+
+## Two maps of one chain
+
+A reference sequence can reach a chain through SIFTS and through an alignment at once; a map onto one chain a data
+source describes waits for that description, then joins. Each map may carry a **priority**: the higher-ranked one is
+taken everywhere. A section may name the map it goes **via**, so a figure can compare both side by side. A path is
+ranked by its maps' priorities, weakest first, so a map both paths share never hides the rivals. Equal priorities stay
+ambiguous and are reported, never chosen silently; a `via` that names a map off every path the section takes (its
+layers', and what its hover, selection and focus project) is a warning, so a structure section with no layers of its own
+still uses its `via`.
+
+## In the Storybook
+
+The structure viewer here is a small fake: each chain instance a row of residue cells (the dashed gaps are residues the
+entry has no atoms for, a ligand a chip, copies their own rows), a grammar of its own (hover; click selects;
+Cmd/Ctrl+click toggles; Esc clears; double-click focuses; "Select chain" and "Within 5 Å" select what no sequence did),
+a camera frame that a focus moves over the time it was given, and an optional latency on what it tells. Its structure is
+its own recorded chain table, read from the mmCIF apart from anything of Seq\*, and its state is MolViewSpec, validated
+before it is taken. Its adapter, the host's, is the one place that knows both vocabularies: it joins `structureFacts`
+against the table once and gives `linkStructure` its side. A real 3D viewer will use the same library and the same
+tests.
+
+The stories, each with a headless twin on a fake clock:
+[Hover both ways](?path=/story/seq-next-features-structure-link--hover-both-ways) (and
+[with latency](?path=/story/seq-next-features-structure-link--hover-with-latency): a late message never takes the hover
+from the pointer), [Selection both ways](?path=/story/seq-next-features-structure-link--selection-both-ways),
+[Focus and back](?path=/story/seq-next-features-structure-link--focus-and-back) on 1FIN,
+[Chain maps](?path=/story/seq-next-features-structure-link--chain-maps) (SIFTS against a shifted alignment, by
+`priority` and `via`) and [Color by this track](?path=/story/seq-next-features-structure-link--color-by-this-track) (a
+host's header entry).

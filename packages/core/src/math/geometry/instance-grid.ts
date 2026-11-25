@@ -8,12 +8,13 @@ import { OrderedSet } from '@molstar/core/data/int/ordered-set';
 import { fillSerial } from '@molstar/core/util/array';
 import { Box3D } from './primitives/box3d.js';
 import { Vec3 } from '../linear-algebra/3d/vec3.js';
+import { Mat4 } from '../linear-algebra/3d/mat4.js';
 import type { PositionData } from './common.js';
 import { GridLookup3D } from './lookup3d/grid.js';
 import { Sphere3D } from './primitives/sphere3d.js';
+import { InstanceTransforms, type InstancePoses } from './instance-transforms.js';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
-const v3transformMat4Offset = Vec3.transformMat4Offset;
 const v3fromArray = Vec3.fromArray;
 const b3add = Box3D.add;
 
@@ -25,23 +26,60 @@ type TopGrid = {
   readonly batchCell: Uint32Array;
 };
 
+/**
+ * The instances' centers (the invariant sphere's center, `invariantCenter`, transformed by each) as a sphere about
+ * their box's center: `center` and the largest `distance` from it, before the invariant radius (the instances' bounding
+ * sphere of many instances, `calculateBoxTransformBoundingSphere`), from the grid's pass over them
+ */
+export type InstanceCenters = { readonly invariantCenter: Vec3; readonly center: Vec3; readonly distance: number };
+
 type BottomGrid = {
   readonly cellSize: number;
   readonly cellCount: number;
   readonly cellOffsets: Uint32Array;
   readonly cellSpheres: Float32Array;
   readonly cellTransform: Float32Array;
-  readonly cellInstance: Float32Array;
+  readonly cellInstance: Uint32Array;
+  /** of a built grid, not a moved one (`moveInstanceGrid`) */
+  readonly centers?: InstanceCenters;
 };
 
-export type InstanceGrid = BottomGrid & TopGrid;
+export type InstanceGrid = BottomGrid &
+  TopGrid & {
+    /**
+     * the grid this one was moved from (`moveInstanceGrid`), the first built of a line of moves: the same cells, the
+     * same instance order (`cellOffsets`, `cellInstance`, the batches' cells), what was split by it still splits this
+     * one; none on a built grid
+     */
+    readonly layout?: InstanceGrid;
+    /** the move from `layout` to this grid */
+    readonly placement?: Mat4;
+    /**
+     * a grid not built yet (`createPendingInstanceGrid`): no cells, its instances in their own order; built where a
+     * cull needs its cells (`calcPendingInstanceGrid`) from the instances as they are and this sphere (the cells'
+     * invariant sphere, a scale's inflated). Where a reader draws the instances by index (the GPU culler's identity
+     * region) the built grid's order goes there, the data's stays
+     */
+    readonly pending?: { readonly invariantBoundingSphere: Sphere3D };
+  };
 
 export type InstanceData = {
   instanceCount: number;
-  instance: Float32Array;
+  instance: Uint32Array;
+  /** the instances' matrices (16 floats each), in their order; empty with `poses` */
   transform: Float32Array;
+  /**
+   * the instances' poses in their order (no `order` of their own), in place of `transform`: the centers from them,
+   * no `cellTransform` copied (empty), the grid's order `cellInstance` (the poses' `order` as drawn)
+   */
+  poses?: InstancePoses;
   invariantBoundingSphere: Sphere3D;
 };
+
+/** The instances of `instanceData` by their encoding */
+function transformsOf(instanceData: InstanceData): InstanceTransforms {
+  return instanceData.poses ?? InstanceTransforms.ofMatrices(instanceData.transform, instanceData.instanceCount);
+}
 
 export function createEmptyInstanceGrid(): InstanceGrid {
   return {
@@ -50,7 +88,7 @@ export function createEmptyInstanceGrid(): InstanceGrid {
     cellOffsets: new Uint32Array(),
     cellSpheres: new Float32Array(),
     cellTransform: new Float32Array(),
-    cellInstance: new Float32Array(),
+    cellInstance: new Uint32Array(),
 
     batchSize: 0,
     batchCount: 0,
@@ -58,6 +96,31 @@ export function createEmptyInstanceGrid(): InstanceGrid {
     batchSpheres: new Float32Array(),
     batchCell: new Uint32Array(),
   };
+}
+
+/** A grid not built yet (`InstanceGrid.pending`), of `cellSize` and `batchSize`, its cells' invariant sphere */
+export function createPendingInstanceGrid(
+  cellSize: number,
+  batchSize: number,
+  invariantBoundingSphere: Sphere3D,
+): InstanceGrid {
+  return { ...createEmptyInstanceGrid(), cellSize, batchSize, pending: { invariantBoundingSphere } };
+}
+
+/**
+ * The grid `grid` (pending, `InstanceGrid.pending`) stands for, built from `instanceData`'s instances as they are (its
+ * `invariantBoundingSphere` the pending one's); their data not reordered: the caller applies its order where needed
+ */
+export function calcPendingInstanceGrid(
+  grid: InstanceGrid,
+  instanceData: Omit<InstanceData, 'invariantBoundingSphere'>,
+) {
+  if (!grid.pending) throw new Error('not a pending grid');
+  return calcInstanceGrid(
+    { ...instanceData, invariantBoundingSphere: grid.pending.invariantBoundingSphere },
+    grid.cellSize,
+    grid.batchSize,
+  );
 }
 
 /** The offsets of one cell or batch of one instance, and the cell of one batch: read only, shared by all */
@@ -70,9 +133,9 @@ const SingleBatchCell = new Uint32Array([0]);
  * many (a unit each)
  */
 function calcSingleInstanceGrid(instanceData: InstanceData, cellSize: number, batchSize: number): InstanceGrid {
-  const { instance, transform, invariantBoundingSphere } = instanceData;
+  const { instance, transform, poses, invariantBoundingSphere } = instanceData;
   const spheres = new Float32Array(4);
-  const v = v3transformMat4Offset(Vec3(), invariantBoundingSphere.center, transform, 0, 0, 0);
+  const v = InstanceTransforms.getPoint(transformsOf(instanceData), 0, invariantBoundingSphere.center, Vec3());
   spheres[0] = v[0];
   spheres[1] = v[1];
   spheres[2] = v[2];
@@ -82,8 +145,8 @@ function calcSingleInstanceGrid(instanceData: InstanceData, cellSize: number, ba
     cellCount: 1,
     cellOffsets: SingleOffsets,
     cellSpheres: spheres,
-    cellTransform: transform.slice(0, 16),
-    cellInstance: new Float32Array([instance[0]]),
+    cellTransform: poses ? new Float32Array(0) : transform.slice(0, 16),
+    cellInstance: new Uint32Array([instance[0]]),
 
     batchSize,
     batchCount: 1,
@@ -91,6 +154,65 @@ function calcSingleInstanceGrid(instanceData: InstanceData, cellSize: number, ba
     batchSpheres: spheres,
     batchCell: SingleBatchCell,
   };
+}
+
+/**
+ * `grid` moved by `transform` (a rigid move, or with a scale: the radii by its largest): its cells' and batches' spheres
+ * and its instances' transforms (`cellTransform`) moved, its offsets and instance order shared. O(cells + instances), no
+ * lookup built: what a placement moved as a whole costs instead of `calcInstanceGrid`
+ */
+export function moveInstanceGrid(grid: InstanceGrid, transform: Mat4): InstanceGrid {
+  const scale = Mat4.getMaxScaleOnAxis(transform);
+  const cellSpheres = moveSpheres(grid.cellSpheres, grid.cellCount, transform, scale);
+  // a single instance's grid has one array for both
+  const batchSpheres =
+    grid.batchSpheres === grid.cellSpheres
+      ? cellSpheres
+      : moveSpheres(grid.batchSpheres, grid.batchCount, transform, scale);
+  const layout = grid.layout ?? grid;
+  const placement = Mat4.mul(Mat4(), transform, grid.placement ?? Mat4.identity());
+  return {
+    ...grid,
+    cellSpheres,
+    cellTransform: moveTransforms(grid.cellTransform, transform),
+    batchSpheres,
+    layout,
+    placement,
+    // the instances moved: their centers' sphere not the grid's any more
+    centers: undefined,
+  };
+}
+
+function moveSpheres(spheres: Float32Array, count: number, m: Mat4, scale: number) {
+  const out = new Float32Array(spheres.length);
+  for (let i = 0, o = 0; i < count; ++i, o += 4) {
+    const x = spheres[o],
+      y = spheres[o + 1],
+      z = spheres[o + 2];
+    out[o] = m[0] * x + m[4] * y + m[8] * z + m[12];
+    out[o + 1] = m[1] * x + m[5] * y + m[9] * z + m[13];
+    out[o + 2] = m[2] * x + m[6] * y + m[10] * z + m[14];
+    out[o + 3] = spheres[o + 3] * scale;
+  }
+  return out;
+}
+
+/** `m` times each affine transform of `transforms` (column-major, 16 floats each), inlined: millions of instances */
+function moveTransforms(transforms: Float32Array, m: Mat4) {
+  const out = new Float32Array(transforms.length);
+  const [a00, a01, a02, , a10, a11, a12, , a20, a21, a22, , a30, a31, a32] = m;
+  // a column at a time (the last row of an affine transform is kept)
+  for (let k = 0, kl = transforms.length; k < kl; k += 4) {
+    const x = transforms[k],
+      y = transforms[k + 1],
+      z = transforms[k + 2],
+      w = transforms[k + 3];
+    out[k] = a00 * x + a10 * y + a20 * z + a30 * w;
+    out[k + 1] = a01 * x + a11 * y + a21 * z + a31 * w;
+    out[k + 2] = a02 * x + a12 * y + a22 * z + a32 * w;
+    out[k + 3] = w;
+  }
+  return out;
 }
 
 export function calcInstanceGrid(instanceData: InstanceData, cellSize: number, batchSize: number): InstanceGrid {
@@ -104,13 +226,13 @@ export function calcInstanceGrid(instanceData: InstanceData, cellSize: number, b
   // console.time('calcInstanceGrid reorder');
   const cellOffsets = new Uint32Array(bottomGrid.cellOffsets.length);
   const cellSpheres = new Float32Array(bottomGrid.cellSpheres.length);
-  const cellInstance = new Float32Array(bottomGrid.cellInstance.length);
+  const cellInstance = new Uint32Array(bottomGrid.cellInstance.length);
 
   // gather transforms as float64 pairs when 8-byte aligned to halve the copy work;
   // bit-exact unless a float32 pair aliases a double NaN, which requires Inf/NaN input
-  const { transform } = instanceData;
+  const { transform, poses } = instanceData;
   const { cellTransform } = bottomGrid;
-  const use64 = transform.byteOffset % 8 === 0 && cellTransform.byteOffset % 8 === 0;
+  const use64 = !poses && transform.byteOffset % 8 === 0 && cellTransform.byteOffset % 8 === 0;
   const src64 = use64 ? new Float64Array(transform.buffer, transform.byteOffset, transform.length >> 1) : undefined;
   const dst64 = use64
     ? new Float64Array(cellTransform.buffer, cellTransform.byteOffset, cellTransform.length >> 1)
@@ -132,7 +254,9 @@ export function calcInstanceGrid(instanceData: InstanceData, cellSize: number, b
       const idx = start + j;
       // assumes instanceData.instance is strictly serially ordered
       const id = bottomGrid.cellInstance[idx] | 0;
-      if (src64 && dst64) {
+      if (poses) {
+        // the poses read by `cellInstance`: nothing copied
+      } else if (src64 && dst64) {
         const so = id * 8,
           dof = offset * 8;
         for (let k = 0; k < 8; ++k) {
@@ -152,6 +276,7 @@ export function calcInstanceGrid(instanceData: InstanceData, cellSize: number, b
   // console.timeEnd('calcInstanceGrid reorder');
 
   const instanceGrid = {
+    centers: bottomGrid.centers,
     cellSize: bottomGrid.cellSize,
     cellCount: bottomGrid.cellCount,
     cellOffsets,
@@ -171,26 +296,39 @@ export function calcInstanceGrid(instanceData: InstanceData, cellSize: number, b
 }
 
 function calcBottomGrid(instanceData: InstanceData, cellSize: number): BottomGrid {
-  const { instanceCount, instance, transform, invariantBoundingSphere } = instanceData;
+  const { instanceCount, instance, poses, invariantBoundingSphere } = instanceData;
   // console.time('calcBottomGrid grid');
   const x = new Float32Array(instanceCount);
   const y = new Float32Array(instanceCount);
   const z = new Float32Array(instanceCount);
   const indices = OrderedSet.ofBounds(0, instanceCount);
 
-  const box = Box3D.setEmpty(Box3D());
-
   const { center, radius } = invariantBoundingSphere;
   const rv = Vec3.create(radius, radius, radius);
 
-  const v = Vec3();
+  // the centers and their box (`InstanceTransforms.writePoints`, by the encoding): millions of instances (mesoscale
+  // particles)
+  const min = Vec3();
+  const max = Vec3();
+  InstanceTransforms.writePoints(transformsOf(instanceData), center, x, y, z, min, max);
+  // their sphere about the box's center (`InstanceCenters`): a pass over the centers written, not the transforms
+  const cx = (min[0] + max[0]) / 2,
+    cy = (min[1] + max[1]) / 2,
+    cz = (min[2] + max[2]) / 2;
+  let maxDistanceSq = 0;
   for (let i = 0; i < instanceCount; ++i) {
-    v3transformMat4Offset(v, center, transform, 0, 0, i * 16);
-    x[i] = v[0];
-    y[i] = v[1];
-    z[i] = v[2];
-    b3add(box, v);
+    const dx = x[i] - cx,
+      dy = y[i] - cy,
+      dz = z[i] - cz;
+    const d = dx * dx + dy * dy + dz * dz;
+    if (d > maxDistanceSq) maxDistanceSq = d;
   }
+  const centers: InstanceCenters = {
+    invariantCenter: Vec3.clone(center),
+    center: Vec3.create(cx, cy, cz),
+    distance: Math.sqrt(maxDistanceSq),
+  };
+  const box = Box3D.create(min, max);
   Box3D.expand(box, box, rv);
 
   const positionData: PositionData = { x, y, z, indices };
@@ -204,11 +342,8 @@ function calcBottomGrid(instanceData: InstanceData, cellSize: number): BottomGri
   const cellOffsets = new Uint32Array(cellCount + 1);
   const cellSpheres = new Float32Array(cellCount * 4);
   // only allocated here; fully populated by the reorder in calcInstanceGrid
-  const cellTransform = new Float32Array(instanceCount * 16);
-  const cellInstance = new Float32Array(instanceCount);
-
-  const b = Box3D();
-  const s = Sphere3D();
+  const cellTransform = new Float32Array(poses ? 0 : instanceCount * 16);
+  const cellInstance = new Uint32Array(instanceCount);
 
   let k = 0;
   for (let i = 0; i < cellCount; ++i) {
@@ -227,15 +362,32 @@ function calcBottomGrid(instanceData: InstanceData, cellSize: number): BottomGri
       cellSpheres[i * 4 + 2] = z[idx];
       cellSpheres[i * 4 + 3] = radius;
     } else {
-      Box3D.setEmpty(b);
+      // the box of the cell's centers expanded by the radius, its sphere (`Sphere3D.fromBox3D`), inlined
+      let bMinX = Infinity,
+        bMinY = Infinity,
+        bMinZ = Infinity;
+      let bMaxX = -Infinity,
+        bMaxY = -Infinity,
+        bMaxZ = -Infinity;
       for (let j = start, jl = start + size; j < jl; ++j) {
         const idx = array[j];
-        Vec3.set(v, x[idx], y[idx], z[idx]);
-        b3add(b, v);
+        const px = x[idx],
+          py = y[idx],
+          pz = z[idx];
+        if (px < bMinX) bMinX = px;
+        if (py < bMinY) bMinY = py;
+        if (pz < bMinZ) bMinZ = pz;
+        if (px > bMaxX) bMaxX = px;
+        if (py > bMaxY) bMaxY = py;
+        if (pz > bMaxZ) bMaxZ = pz;
       }
-      Box3D.expand(b, b, rv);
-      Sphere3D.fromBox3D(s, b);
-      Sphere3D.toArray(s, cellSpheres, i * 4);
+      const hx = (bMaxX - bMinX) / 2 + radius;
+      const hy = (bMaxY - bMinY) / 2 + radius;
+      const hz = (bMaxZ - bMinZ) / 2 + radius;
+      cellSpheres[i * 4] = (bMinX + bMaxX) / 2;
+      cellSpheres[i * 4 + 1] = (bMinY + bMaxY) / 2;
+      cellSpheres[i * 4 + 2] = (bMinZ + bMaxZ) / 2;
+      cellSpheres[i * 4 + 3] = Math.sqrt(hx * hx + hy * hy + hz * hz);
     }
   }
   cellOffsets[cellCount] = offset[cellCount - 1] + count[cellCount - 1];
@@ -247,6 +399,7 @@ function calcBottomGrid(instanceData: InstanceData, cellSize: number): BottomGri
     cellSpheres,
     cellTransform,
     cellInstance,
+    centers,
   };
 }
 

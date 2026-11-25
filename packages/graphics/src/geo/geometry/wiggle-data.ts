@@ -39,7 +39,13 @@ export function clearWiggle(array: Uint8Array, start: number, end: number) {
 }
 
 export function createWiggle(count: number, type: WiggleType, wiggleData?: WiggleData): WiggleData {
-  const wiggle = createDataArray(Math.max(1, count), 1, Uint8Array, wiggleData && wiggleData.tWiggle.ref.value.array);
+  // its array reused, not the empty one: shared by every object (one's layer another's)
+  const wiggle = createDataArray(
+    Math.max(1, count),
+    1,
+    Uint8Array,
+    wiggleData && wiggleData.tWiggle.ref.value !== emptyWiggleTexture ? wiggleData.tWiggle.ref.value.array : undefined,
+  );
   if (wiggleData) {
     ValueCell.update(wiggleData.tWiggle, wiggle);
     ValueCell.updateIfChanged(wiggleData.dWiggle, count > 0);

@@ -6,6 +6,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
 import { Button, ColorPicker, colorToHex, Floating, PresetsButton, PresetsList } from '@molstar/prism-ui';
@@ -33,8 +34,9 @@ import { formatIn, histogramPath } from './volume-levels.js';
 // opacity as a curve through its points (a log scale: opacities per step are small) with the area under it in the
 // colors the renderer paints there, and under it the color strip with the theme's stops. Points: drag, click to add,
 // double-click to remove, arrow keys and Delete when focused. Stops: the same on the strip; a picked stop opens its
-// color; dragged near a point, a stop snaps to it, and a stop on a point moves with it. Colors at peaks (a popover of
-// palettes, or the theme's own colors) puts stops at the ends of each of the curve's peaks; a preset moves them with it.
+// color (that stop's alone); dragged near a point, a stop snaps to it, and a stop on a point moves with it. Colors at
+// peaks (a popover of palettes, or the theme's own colors) puts stops at the ends of each of the curve's peaks (a
+// sequential palette along a lone peak); a preset moves them with it.
 
 /** Samples of the colors for the strip and the area's gradient. */
 const Samples = 64;
@@ -318,16 +320,9 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
   const setStopColor = (i: number, color: number) => {
     const colors = model.colors.value;
     if (colors.kind !== 'value' || !colors.stops[i]) return;
+    // The picked stop only: the stops of a peak can differ (a gradient along it); Colors at peaks colors a peak whole.
     const list = [...colors.stops];
-    // A peak's color: the stops of the same color within the peak the stop is on (Colors at peaks puts one at each end).
-    const at = list[i];
-    const peak = transferPeaks(points.value).find((p) => at.x >= p.from - LinkEps && at.x <= p.to + LinkEps);
-    for (let k = 0; k < list.length; k++) {
-      const same =
-        k === i ||
-        (peak && list[k].color === at.color && list[k].x >= peak.from - LinkEps && list[k].x <= peak.to + LinkEps);
-      if (same) list[k] = { ...list[k], color };
-    }
+    list[i] = { ...list[i], color };
     model.change({ stops: list });
   };
 

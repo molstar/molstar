@@ -12,7 +12,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { prepare, QUERIES } from './query-cases.js';
-import { quickCase } from './quick.js';
+import { quickCase } from '@molstar/test-harness/quick';
 
 /**
  * A run of several milliseconds, in bytes: 3 to 40 KB a run (the result's wrappers, the selection). Its control is off:

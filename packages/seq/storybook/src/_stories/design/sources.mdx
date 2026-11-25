@@ -1,0 +1,48 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Sources" />
+
+# Sources
+
+A spec says what its data is, so it opens anywhere. The viewer reads one thing.
+
+## A source names its data in the data's own terms
+
+- its **format**: `fasta`, `bigwig`, `2bit`, `vcf`, …, or `seq` for data already in the protocol's shape;
+- **where** it is: a `uri`, plus an `index` when the format has one, or an inline `value`;
+- **what the format does not say**: the assembly's identifiers, which column is which field.
+
+The spec is complete without host code.
+
+## One protocol
+
+An opened source answers two questions:
+
+1. **What do you cover?** Its sequences and their lengths, or the region it can serve.
+2. **Give me this region at this level of detail.** The answer comes as typed tables in the model's own shapes:
+   sequences, ranges, values, pairs, matrix, grid, rows.
+
+Small inline data goes through the same protocol, so there is one path.
+
+## A runtime per format
+
+A **runtime** turns one format into the protocol. The application provides the runtimes it wants.
+
+- The core ships the protocol, the `seq` format and the small text formats (FASTA, alignments, tables, Newick).
+- Indexed and binary genome formats are runtimes an application adds.
+- A source whose format has no runtime is unavailable, with an issue; the rest of the spec still opens.
+
+```
+ spec: source { format: "bigwig", uri, … }
+                 │
+                 ▼
+ application: runtime for bigwig ──▶ one protocol ──▶ model ──▶ view
+```
+
+## Nothing depends on knowing all the data
+
+- A value domain left open means **the data in view**.
+- A category the theme does not list takes a color from a stable hash of its value.
+- Lengths come from the source's answer about what it covers.
+
+So a reader that fetches by region draws the same picture as one that loaded everything.

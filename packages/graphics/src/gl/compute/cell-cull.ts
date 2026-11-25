@@ -13,7 +13,7 @@ import { TextureSpec, UniformSpec } from '../renderable/schema.js';
 import type { Texture } from '../texture.js';
 
 /**
- * GPU culling of merged render objects by the cells of their instance grids (`merged-render-objects.md` GPU culling):
+ * GPU culling of merged render objects by the cells of their instance grids:
  * `cell-cull` tests each cell (a thread per cell) and writes the levels it is drawn at; `instance-copy` tests each
  * instance of a drawn cell (a thread per instance) the same way and copies it at the levels of both into the
  * compacted instance buffers, a slot per level in its
@@ -46,10 +46,24 @@ export interface OcclusionPyramid {
   readonly near: number;
   readonly far: number;
   /**
+   * a second view drawn beside the first (stereo's right eye): the first's levels from 0 to `split` of the width, the
+   * second's from `split` to 1 (`view`, `projection` the first's); a sphere occluded only where occluded in both.
+   * Texels of coarse levels straddling the split hold the farther depth of both: conservative
+   */
+  readonly second?: OcclusionSecondView;
+  /**
    * advances with each build: a pyramid served again (not built in a frame, e.g. while work is pending) is the same
    * version, of the frame it was built in
    */
   readonly version: number;
+}
+
+/** The second view of a pyramid (`OcclusionPyramid.second`) */
+export interface OcclusionSecondView {
+  readonly view: Mat4;
+  readonly projection: Mat4;
+  /** where its levels begin, in [0, 1] of the pyramid's width */
+  readonly split: number;
 }
 
 /** Occlusion against a pyramid (`OcclusionPyramid`, `hiz_occlusion_wgsl`): its camera and layout */
@@ -57,6 +71,10 @@ export const HiZSchema = {
   uHiZ: UniformSpec('b'),
   uHiZView: UniformSpec('m4'),
   uHiZProjection: UniformSpec('m4'),
+  /** the second view's (`OcclusionPyramid.second`); `uHiZSplit` 1 without it */
+  uHiZSecondView: UniformSpec('m4'),
+  uHiZSecondProjection: UniformSpec('m4'),
+  uHiZSplit: UniformSpec('f'),
   /** near, far */
   uHiZDepthRange: UniformSpec('v2'),
   uHiZViewport: UniformSpec('v2'),
@@ -81,6 +99,15 @@ export function setHiZValues(values: HiZValues, pyramid: OcclusionPyramid | unde
   if (pyramid) {
     ValueCell.update(values.uHiZView, Mat4.copy(values.uHiZView.ref.value, pyramid.view));
     ValueCell.update(values.uHiZProjection, Mat4.copy(values.uHiZProjection.ref.value, pyramid.projection));
+    const { second } = pyramid;
+    ValueCell.updateIfChanged(values.uHiZSplit, second ? second.split : 1);
+    if (second) {
+      ValueCell.update(values.uHiZSecondView, Mat4.copy(values.uHiZSecondView.ref.value, second.view));
+      ValueCell.update(
+        values.uHiZSecondProjection,
+        Mat4.copy(values.uHiZSecondProjection.ref.value, second.projection),
+      );
+    }
     ValueCell.update(values.uHiZDepthRange, Vec2.set(values.uHiZDepthRange.ref.value, pyramid.near, pyramid.far));
     ValueCell.update(values.uHiZViewport, Vec2.set(values.uHiZViewport.ref.value, pyramid.width, pyramid.height));
     ValueCell.updateIfChanged(values.uHiZLevelCount, pyramid.levelCount);
@@ -95,6 +122,9 @@ export function createHiZValues(empty: Texture): HiZValues {
     uHiZ: ValueCell.create(false),
     uHiZView: ValueCell.create(Mat4()),
     uHiZProjection: ValueCell.create(Mat4()),
+    uHiZSecondView: ValueCell.create(Mat4()),
+    uHiZSecondProjection: ValueCell.create(Mat4()),
+    uHiZSplit: ValueCell.create(1),
     uHiZDepthRange: ValueCell.create(Vec2()),
     uHiZViewport: ValueCell.create(Vec2()),
     uHiZLevelCount: ValueCell.create(0),
@@ -122,10 +152,21 @@ const SphereTestSchema = {
   ...HiZSchema,
   /**
    * the clip objects of an object without a clipping layer (`getCullClipCount`), in `segmentData` from vec4
-   * `uClipBase` (`clip_storage_wgsl`): spheres they clip whole culled (`clipSphereClass`, `clip-culling.md`)
+   * `uClipBase` (`clip_storage_wgsl`): spheres they clip whole culled (`clipSphereClass`)
    */
   uClipObjectCount: UniformSpec('i'),
   uClipBase: UniformSpec('i'),
+  /**
+   * the object's transient transform (`uObjectTransform`) and its largest scale: every sphere tested (a cell's, an
+   * instance's) moved by it first, as the draws move the object
+   */
+  uObjectTransform: UniformSpec('m4'),
+  uObjectScale: UniformSpec('f'),
+  /**
+   * the region of the ghost of what the clip objects remove (`Renderer.renderClipGhost`), 0 for none: the cells and
+   * instances in view the clip objects reach copied into it too, at one level (the coarsest), in the first phase
+   */
+  uGhostRegion: UniformSpec('i'),
   /**
    * per segment three vec4s: its invariant sphere (an instance's sphere by its transform: tested as its cell's, drawn
    * at the levels of both); its first instance (the bits of a u32 in x) and its largest sphere's radius (y); its level
@@ -155,6 +196,8 @@ export const InstanceCopySchema = {
   uRasterRadius: UniformSpec('f'),
   uRasterScale: UniformSpec('f'),
   uRasterNear: UniformSpec('f'),
+  /** 1 orthographic: a sphere's size on screen the same at every distance (`MergedRasterParams.ortho`) */
+  uRasterOrtho: UniformSpec('f'),
   uRasterLevels: UniformSpec('i'),
   /** instance clipping (`getInstanceClipCount`): the instances' centers tested against the clip objects too */
   uClipInstance: UniformSpec('i'),
@@ -163,17 +206,15 @@ export const InstanceCopySchema = {
    * after its (the counters go on)
    */
   uPhase: UniformSpec('i'),
-  /** the instances' data (`packInstanceData`) */
-  instanceData: StorageBufferSpec('vec4<f32>', 'read'),
   /** per instance its cell, the top bit whether the first phase drew it, and segment */
   instanceCells: StorageBufferSpec('vec2<u32>', 'read-write'),
   cellLevels: StorageBufferSpec('u32', 'read'),
   /** per (level, segment) the instances drawn, zeroed before */
   counters: StorageBufferSpec('atomic<u32>', 'read-write'),
-  /** the compacted instanced attributes: `aTransform` (3 vec4, rows), `aInstance`, `aSegment` (groups and index) */
-  transforms: StorageBufferSpec('vec4<f32>', 'read-write'),
-  instances: StorageBufferSpec('f32', 'read-write'),
-  segments: StorageBufferSpec('vec4<f32>', 'read-write'),
+  /** the regions' instance indices, written (`sCulledIndices`; its identity region written once per layout) */
+  indices: StorageBufferSpec('u32', 'read-write'),
+  /** the instances' data, read by index (`CulledData`: the transforms' rows first) */
+  data: StorageBufferSpec('vec4<f32>', 'read'),
 };
 
 export const CullArgsSchema = {

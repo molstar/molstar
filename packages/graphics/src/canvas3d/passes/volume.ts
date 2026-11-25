@@ -6,7 +6,7 @@
 
 import { ValueCell } from '@molstar/core/util';
 import { Vec2 } from '@molstar/core/math/linear-algebra';
-import type { GraphicsContext } from '@molstar/graphics/gl/context';
+import type { GraphicsContext, RenderPassTarget } from '@molstar/graphics/gl/context';
 import { QuadSchema, QuadValues } from '@molstar/graphics/gl/compute/util';
 import { type ComputeRenderable, createComputeRenderable } from '@molstar/graphics/gl/renderable';
 import { TextureSpec, UniformSpec, type Values } from '@molstar/graphics/gl/renderable/schema';
@@ -106,6 +106,8 @@ export class VolumePass {
     out: RenderTarget,
     scale: number,
     transparency: TransparencyMode,
+    /** what the composite begins: `out`, or attachments naming its texture with another depth */
+    outPass: RenderPassTarget = out,
   ) {
     const width = out.getWidth();
     const height = out.getHeight();
@@ -145,7 +147,7 @@ export class VolumePass {
     ValueCell.updateIfChanged(values.uIsOrtho, camera.state.mode === 'orthographic' ? 1 : 0);
     this.composite.update();
 
-    b.begin(out, { label: 'volume composite' });
+    b.begin(outPass, { label: 'volume composite' });
     if (b.drawing) {
       renderer.setDrawingBufferSize(width, height);
       renderer.setViewport(x, y, vw, vh);

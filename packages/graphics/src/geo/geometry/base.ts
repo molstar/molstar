@@ -120,20 +120,24 @@ export const GpuCullingOptions: [GpuCullingValue, string][] = [
 /**
  * Instances per draw (a segment and level) from which `gpuCulling: 'auto'` culls on the GPU: it replays a draw per
  * segment and level every frame (about 0.28 µs each), the CPU culling costs about 10 ns per instance in frames whose
- * view changed (`merged-render-objects.md`, step 6)
+ * view changed
  */
 export const AutoGpuCullingThreshold = 30;
 
 /**
- * Instances from which `gpuCulling: 'auto'` culls on the GPU: a GPU-culled object costs about 0.1 ms per frame of its
- * own (its dispatches, the Hi-Z levels it asks for), the CPU's 10 ns per instance (`merging/instances-*`)
+ * Instances from which `gpuCulling: 'auto'` culls on the GPU: a GPU-culled object costs about 0.1-0.3 ms per frame of
+ * its own (its dispatches, the Hi-Z levels it asks for, a draw per segment and level), the CPU's 10 ns per instance in
+ * frames whose view changed. 100 chains as spacefill rotating, CPU / GPU: 30k instances 0.52 / 0.78 ms, 50k 0.75 /
+ * 0.75, 100k 1.40 / 0.84; as cartoon the CPU ahead up to 100k (1.25 / 1.32) (`merging/instances-*`)
  */
-export const AutoGpuCullingMinInstances = 20000;
+export const AutoGpuCullingMinInstances = 50000;
 
 /**
  * Spheres from which `gpuCulling: 'auto'` culls on the GPU where the device has the sphere raster, which takes merged
  * objects culled there only: faster at 300k spheres and up on both GPUs measured (3J3Q 1.48 -> 0.63 ms, 61.9 -> 11.5 ms on
- * an integrated GPU), about 0.1 ms slower at a few hundred (`sphere-compute-raster.md`)
+ * an integrated GPU), about 0.1 ms slower at a few hundred. Such an object is merged for
+ * it, the renderer culling it on the GPU only where the raster takes it (`Renderable.rasterSpheres`,
+ * `sphereRasterObjects`), else on the CPU
  */
 export const AutoGpuCullingMinRasterSpheres = 100_000;
 
@@ -218,6 +222,9 @@ export namespace BaseGeometry {
     }),
     material: Material.getParam(),
     clip: PD.Group(Clip.Params),
+    clipGhost: PD.Boolean(true, {
+      description: 'What the clip objects remove drawn as a ghost, where the canvas draws ghosts (`clipGhost`).',
+    }),
     emissive: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }),
     density: PD.Numeric(
       0.2,
@@ -235,7 +242,7 @@ export namespace BaseGeometry {
     gpuCulling: PD.Select<GpuCullingValue>('auto', GpuCullingOptions, {
       ...CullingLodCategory,
       description:
-        'Cull and choose the level of detail per cell of instances on the GPU where the device supports it (WebGPU with compute and indirect draws by first instance), merging the render objects for it. When set to `auto`, enabled with many instances (`AutoGpuCullingMinInstances`), and many per draw (`AutoGpuCullingThreshold`), or with many spheres where the device has the sphere raster, which takes such objects only (`AutoGpuCullingMinRasterSpheres`).',
+        "Cull and choose the level of detail per cell of instances on the GPU where the device supports it (WebGPU with compute and indirect draws by first instance), merging the render objects for it. When set to `auto`, enabled with many instances (`AutoGpuCullingMinInstances`), and many per draw (`AutoGpuCullingThreshold`), or with many spheres where the device has the sphere raster, which takes such objects only (`AutoGpuCullingMinRasterSpheres`): those culled on the GPU only where the raster takes them (the renderer's `sphereRaster` and `sphereRasterObjects`), else on the CPU.",
     }),
     lod: PD.Vec3(Vec3(), undefined, {
       ...CullingLodCategory,
@@ -275,10 +282,15 @@ export namespace BaseGeometry {
   }
 
   export function createValues(props: PD.Values<Params>, counts: Counts) {
-    const clip = Clip.getClip(props.clip);
+    const clip = getSharedClip(props.clip);
     return {
       alpha: ValueCell.create(props.alpha),
       uAlpha: ValueCell.create(clamp(props.alpha, 0, 1)),
+      // set by the canvas from the representation's state (`occludedAlpha`, `pickAtAnyAlpha`)
+      uPickingAlphaMin: ValueCell.create(0),
+      // set by the canvas for its overlay layer
+      dOverlay: ValueCell.create(false),
+      uOccludedAlpha: ValueCell.create(1),
       uVertexCount: ValueCell.create(counts.vertexCount),
       // filled by the render item when used, see `BaseSchema.aVertex`
       aVertex: ValueCell.create(new Float32Array(0)),
@@ -298,6 +310,7 @@ export namespace BaseGeometry {
       clipObjects: ValueCell.create(clip.objects),
       uClipObjectFrame: ValueCell.create(clip.objects.frame),
       uClipObjectShape: ValueCell.create(clip.objects.shape),
+      clipGhost: ValueCell.create(props.clipGhost),
 
       uInstanceGranularity: ValueCell.create(
         resolveInstanceGranularity(props.instanceGranularity, counts.groupCount, counts.instanceCount),
@@ -309,6 +322,56 @@ export namespace BaseGeometry {
 
   /** The clip props each values were updated with last (`updateValues`) */
   const clipProps = new WeakMap<BaseValues, Clip.Props>();
+  /**
+   * The clip of a clip props object, made once: the visuals of a representation share their props' clip (each target of
+   * a particle list, each unit), so a moved clip object is computed once, not per visual. Read only.
+   */
+  const clips = new WeakMap<Clip.Props, Clip>();
+  function getSharedClip(props: Clip.Props) {
+    let clip = clips.get(props);
+    if (!clip) {
+      clip = Clip.getClip(props);
+      clips.set(props, clip);
+    }
+    return clip;
+  }
+
+  /** Whether `a` and `b` set the same clip defines (`dClipObjects`, `dClipObjectCount`, `dClipVariant`) */
+  export function isSameClipDefines(a: Clip.Props, b: Clip.Props) {
+    const count = (p: Clip.Props) => Math.min(p.objects.length, Clip.MaxObjectCount);
+    return a.variant === b.variant && count(a) === count(b);
+  }
+
+  /**
+   * Whether `props` differ from `before` by their clip alone (a clip object moved, a clipping gizmo's drag): the other
+   * props compared by reference, as the representations keep a prop's value while it is unchanged
+   */
+  export function isClipChangeOnly(props: { readonly clip: Clip.Props }, before: { readonly clip: Clip.Props }) {
+    if (props === before || props.clip === before.clip) return false;
+    const p = props as { readonly [k: string]: unknown };
+    const b = before as { readonly [k: string]: unknown };
+    for (const k in p) if (k !== 'clip' && p[k] !== b[k]) return false;
+    for (const k in b) if (!(k in p)) return false;
+    return true;
+  }
+
+  /** The clip values of `values` for `clip` (as `updateValues` sets them), nothing else */
+  /**
+   * `clip` into `values`, not again where it is what they were updated with last; `force`: whatever they were (their
+   * cells written by another, e.g. `createEmptyMergeMember` copying a member's)
+   */
+  export function updateClip(values: BaseValues, clip: Clip.Props, force = false) {
+    if (!force && clipProps.get(values) === clip) return;
+    clipProps.set(values, clip);
+    const c = getSharedClip(clip);
+    ValueCell.updateIfChanged(values.dClipObjects, c.objects.count > 0);
+    ValueCell.updateIfChanged(values.dClipObjectCount, c.objects.count);
+    ValueCell.updateIfChanged(values.uClipObjectCount, c.objects.count);
+    ValueCell.updateIfChanged(values.dClipVariant, c.variant);
+    ValueCell.update(values.clipObjects, c.objects);
+    ValueCell.update(values.uClipObjectFrame, c.objects.frame);
+    ValueCell.update(values.uClipObjectShape, c.objects.shape);
+  }
 
   export function updateValues(values: BaseValues, props: PD.Values<Params>) {
     ValueCell.updateIfChanged(values.alpha, props.alpha);
@@ -318,19 +381,10 @@ export namespace BaseGeometry {
     ValueCell.updateIfChanged(values.uBumpiness, props.material.bumpiness);
     ValueCell.updateIfChanged(values.uEmissive, props.emissive);
     ValueCell.updateIfChanged(values.uDensity, props.density);
+    ValueCell.updateIfChanged(values.clipGhost, props.clipGhost);
 
     // the clip of the props applied last: updates keep the props' clip unless it changed (e.g. a recolor of many units)
-    if (clipProps.get(values) !== props.clip) {
-      clipProps.set(values, props.clip);
-      const clip = Clip.getClip(props.clip);
-      ValueCell.updateIfChanged(values.dClipObjects, clip.objects.count > 0);
-      ValueCell.updateIfChanged(values.dClipObjectCount, clip.objects.count);
-      ValueCell.updateIfChanged(values.uClipObjectCount, clip.objects.count);
-      ValueCell.updateIfChanged(values.dClipVariant, clip.variant);
-      ValueCell.update(values.clipObjects, clip.objects);
-      ValueCell.update(values.uClipObjectFrame, clip.objects.frame);
-      ValueCell.update(values.uClipObjectShape, clip.objects.shape);
-    }
+    updateClip(values, props.clip);
 
     ValueCell.updateIfChanged(
       values.uInstanceGranularity,

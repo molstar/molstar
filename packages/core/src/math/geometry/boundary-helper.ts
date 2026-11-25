@@ -9,6 +9,7 @@ import { CentroidHelper } from './centroid-helper.js';
 import { Sphere3D } from './primitives/sphere3d.js';
 import { Box3D } from './primitives/box3d.js';
 import { memoize1 } from '@molstar/core/util/memoize';
+import { hash3 } from '@molstar/core/data/util/hash-functions';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3dot = Vec3.dot;
@@ -175,21 +176,43 @@ export class BoundaryHelper {
  * so that a sphere keeps no more extrema than the points it bounds
  */
 function getDistinct(points: Vec3[]): Vec3[] {
+  // one pass over an open-addressed table (reused) keyed by the coordinates' bits: called for every sphere a helper
+  // returns (a particle list's thousands of targets, 98 extrema each), where a sort by x cost ~20 us a call
   const n = points.length;
-  // by x (a stable sort: equal points in their order), equal points are among the neighbors of equal x
-  const order = points.map((_, i) => i).sort((i, j) => points[i][0] - points[j][0]);
-  const keep = new Uint8Array(n).fill(1);
+  let size = 16;
+  while (size < n * 2) size *= 2;
+  if (distinctTable.length < size) distinctTable = new Int32Array(size);
+  const table = distinctTable;
+  const mask = size - 1;
+  table.fill(-1, 0, size);
+  const out: Vec3[] = [];
   for (let i = 0; i < n; ++i) {
-    const a = points[order[i]];
-    for (let j = i + 1; j < n; ++j) {
-      const b = points[order[j]];
-      if (b[0] !== a[0]) break;
-      if (keep[order[j]] && b[1] === a[1] && b[2] === a[2]) keep[order[j]] = 0;
+    const p = points[i];
+    // +0: -0 the same bits as 0, as `===` has them equal
+    let h = hash3(coordBits(p[0] + 0), coordBits(p[1] + 0), coordBits(p[2] + 0)) & mask;
+    let distinct = true;
+    while (table[h] >= 0) {
+      const q = out[table[h]];
+      if (q[0] === p[0] && q[1] === p[1] && q[2] === p[2]) {
+        distinct = false;
+        break;
+      }
+      h = (h + 1) & mask;
+    }
+    if (distinct) {
+      table[h] = out.length;
+      out.push(p);
     }
   }
-  const out: Vec3[] = [];
-  for (let i = 0; i < n; ++i) if (keep[i]) out.push(points[i]);
   return out;
+}
+
+let distinctTable = new Int32Array(256);
+const bitsFloat = new Float64Array(1);
+const bitsInt = new Int32Array(bitsFloat.buffer);
+function coordBits(v: number) {
+  bitsFloat[0] = v;
+  return bitsInt[0] ^ bitsInt[1];
 }
 
 type EposQuality = '6' | '14' | '26' | '98';

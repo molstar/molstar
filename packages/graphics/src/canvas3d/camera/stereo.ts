@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -8,7 +8,10 @@
  */
 
 import type { Ray3D } from '@molstar/core/math/geometry/primitives/ray3d';
+import { Frustum3D } from '@molstar/core/math/geometry/primitives/frustum3d';
+import { Plane3D } from '@molstar/core/math/geometry/primitives/plane3d';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
+import type { CullView } from '../../gl/camera.js';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Camera, type ICamera } from '../camera.js';
 import { cameraUnproject, Viewport } from './util.js';
@@ -30,6 +33,8 @@ export { StereoCamera };
 class StereoCamera {
   readonly left = new EyeCamera();
   readonly right = new EyeCamera();
+  /** the eyes' culling, shared (`RenderCamera.cullView`) */
+  private readonly cullView: CullView = { frustum: Frustum3D(), cameraPlane: Plane3D() };
 
   get viewport() {
     return this.parent.viewport;
@@ -46,20 +51,26 @@ class StereoCamera {
     props: Partial<StereoCameraProps> = {},
   ) {
     this.props = { ...DefaultStereoCameraProps, ...props };
+    this.left.cullView = this.cullView;
+    this.right.cullView = this.cullView;
   }
 
   setProps(props: Partial<StereoCameraProps>) {
     Object.assign(this.props, props);
   }
 
-  /** the eyes from the stereo props, or from the views of an XR pose (rendered by `graphics`) */
-  update(xr?: { pose: XRViewerPose; graphics: GraphicsXR }) {
-    this.parent.update();
+  /**
+   * the eyes from the stereo props, or from the views of an XR pose (rendered by `graphics`); `silent`: the parent's
+   * `changed` not told (`Camera.update`)
+   */
+  update(xr?: { pose: XRViewerPose; graphics: GraphicsXR }, silent = false) {
+    this.parent.update(silent);
     if (xr) {
       xrUpdate(this.parent, this.left, this.right, xr);
     } else {
       update(this.parent, this.props, this.left, this.right);
     }
+    updateCullView(this.cullView, this.left, this.right);
   }
 }
 
@@ -91,6 +102,8 @@ class EyeCamera implements ICamera {
   minTargetDistance: number = 0;
 
   disabled = false;
+  /** the eyes' culling, shared (`RenderCamera.cullView`) */
+  cullView?: CullView;
 
   getRay(out: Ray3D, x: number, y: number) {
     Mat4.getTranslation(out.origin, Mat4.invert(Mat4(), this.view));
@@ -119,6 +132,40 @@ function copyStates(parent: Camera, eye: EyeCamera) {
   eye.forceFull = parent.forceFull;
   eye.scale = parent.scale;
   eye.minTargetDistance = parent.minTargetDistance;
+}
+
+/** the corners of a GL clip volume */
+const ClipCorners = [-1, 1].flatMap((x) => [-1, 1].flatMap((y) => [-1, 1].map((z) => Vec3.create(x, y, z))));
+const tmpCorner = Vec3();
+const tmpPosition = Vec3();
+const tmpMid = Vec3();
+const tmpInverse = Mat4();
+
+/**
+ * The culling of the enabled eyes as one view: the first eye's frustum, each plane moved out over every eye's corners
+ * (conservative: a little more drawn at the sides), so that both draw the same culling's lists (the GPU's one a frame);
+ * the camera plane the first eye's near plane through the eyes' midpoint, both eyes' levels by
+ * it
+ */
+function updateCullView(out: CullView, left: EyeCamera, right: EyeCamera) {
+  const eyes = left.disabled ? [right] : right.disabled ? [left] : [left, right];
+  const { frustum, cameraPlane } = out;
+  Frustum3D.fromProjectionMatrix(frustum, eyes[0].projectionView);
+  Vec3.set(tmpMid, 0, 0, 0);
+  for (const eye of eyes) {
+    Vec3.add(tmpMid, tmpMid, Mat4.getTranslation(tmpPosition, Mat4.invert(tmpInverse, eye.view)));
+    for (const c of ClipCorners) {
+      Vec3.transformMat4(tmpCorner, c, eye.inverseProjectionView);
+      for (let i = 0; i < 6; ++i) {
+        const plane = frustum[i as Frustum3D.PlaneIndex];
+        const d = Plane3D.distanceToPoint(plane, tmpCorner);
+        if (d < 0) plane.constant -= d;
+      }
+    }
+  }
+  Vec3.scale(tmpMid, tmpMid, 1 / eyes.length);
+  Plane3D.copy(cameraPlane, frustum[Frustum3D.PlaneIndex.Near]);
+  cameraPlane.constant -= Plane3D.distanceToPoint(cameraPlane, tmpMid);
 }
 
 //

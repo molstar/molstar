@@ -14,7 +14,7 @@
 // twin (paths-st7.quick.ts).
 
 import { describe, expect, it } from 'vitest';
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from './heap.js';
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from '@molstar/test-harness/heap';
 import { down, read, sums, up } from './paths-st7-cases.js';
 
 const N = 250_000;

@@ -5,7 +5,7 @@
  */
 
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
-import { createWebGPUContext, isWebGPUContext, requestWebGPUDevice } from '@molstar/graphics/gl/webgpu/context';
+import { createWebGPUContext, isWebGPUContext, requestWebGPUDevice } from '@molstar/graphics/gl/contexts/webgpu';
 import { getWgslProgram } from '@molstar/graphics/gl/webgpu/shader/programs';
 import type { Representation } from '@molstar/graphics/repr/representation';
 import { GaussianSurfaceRepresentationProvider } from '@molstar/graphics/repr/structure/representation/gaussian-surface';
@@ -36,6 +36,7 @@ import { SegmentRepresentationProvider } from '@molstar/graphics/repr/volume/seg
 import type { Camera } from '@molstar/graphics/canvas3d/camera';
 import type { DrawPass } from '@molstar/graphics/canvas3d/passes/draw';
 import { HiZPass } from '@molstar/graphics/canvas3d/passes/hi-z';
+import { createRenderPassAttachments } from '@molstar/graphics/gl/render-pass-attachments';
 
 /**
  * The context as the backend reports support without strict mode: the strict WebGPU backend of the visual tests
@@ -335,8 +336,7 @@ async function checkViewportCropping(graphics: GraphicsContext) {
   white.load({ array: new Uint8Array(size * size * 4).fill(255), width: size, height: size });
   const target = graphics.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
   target.define(size, size);
-  const framebuffer = graphics.resources.framebuffer();
-  target.attachFramebuffer(framebuffer, 'color0');
+  const attachments = createRenderPassAttachments(graphics.resources, [target]);
   // a copy with a quad scale of its own (`QuadValues.uQuadScale` is shared by the quads of all passes)
   const values: Values<typeof CopySchema> = {
     ...QuadValues,
@@ -358,7 +358,7 @@ async function checkViewportCropping(graphics: GraphicsContext) {
   const errors: string[] = [];
   const draw = (viewport: readonly number[]) => {
     graphics.disableScissor();
-    graphics.beginRenderPass(framebuffer, { label: 'viewport cropping', clear: { color: [0, 0, 0, 1] } });
+    graphics.beginRenderPass(attachments, { label: 'viewport cropping', clear: { color: [0, 0, 0, 1] } });
     graphics.setRenderState(RenderState.Default);
     graphics.setViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
     copy.render();
@@ -383,7 +383,7 @@ async function checkViewportCropping(graphics: GraphicsContext) {
     if (red(c.empty) !== 0) errors.push(`${c.name}: pixel ${c.empty} drawn (viewport squashed into the target)`);
   }
   copy.dispose();
-  framebuffer.destroy();
+  attachments.destroy();
   target.destroy();
   white.destroy();
   return errors;
@@ -469,9 +469,8 @@ async function checkHiZOcclusion(graphics: GraphicsContext) {
 
   const depth = graphics.resources.texture('image-float32', 'r', 'float', 'nearest');
   depth.define(width, height);
-  const framebuffer = graphics.resources.framebuffer();
-  depth.attachFramebuffer(framebuffer, 'color0');
-  graphics.beginRenderPass(framebuffer, { label: 'hi-z depth' });
+  const attachments = createRenderPassAttachments(graphics.resources, [depth]);
+  graphics.beginRenderPass(attachments, { label: 'hi-z depth' });
   graphics.setViewport(0, 0, width, height);
   // clears cover the scissor, which earlier work may have left set (e.g. the GPU Gaussian density)
   graphics.disableScissor();
@@ -512,7 +511,7 @@ async function checkHiZOcclusion(graphics: GraphicsContext) {
   if (hiZ.isOccluded(right)) errors.push('a sphere right of the near quadrant is occluded');
 
   hiZ.dispose();
-  framebuffer.destroy();
+  attachments.destroy();
   depth.destroy();
   return errors;
 }

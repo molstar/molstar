@@ -1,0 +1,104 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* The heading over the well, a unit apart. The sizes are set here, read by the well and its segments. */
+.segmented {
+  /* md: segments a row high, in a well a header high (the surface pad around them), 16px icons (they name an object,
+     styles §4.1); the well a surface's radius, its segments concentric with it (styles §6: `--msui-radius-md`). */
+  --msui-segmented-height: var(--msui-row);
+  --msui-segmented-pad: var(--msui-surface-pad);
+  --msui-segmented-radius: var(--msui-radius-lg);
+  --msui-segmented-icon: var(--msui-icon);
+
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--msui-space-1);
+  min-width: 0;
+  font-size: var(--msui-text-sm);
+  line-height: var(--msui-leading-sm);
+
+  /* sm: segments a control high, in a well a row high (a form row, styles §4), 12px icons as a control's; the well a
+     control's radius. */
+  &[data-size="sm"] {
+    --msui-segmented-height: var(--msui-control-height);
+    --msui-segmented-pad: 2px; /* off-grid: a 20px control centered in a 24px row */
+    --msui-segmented-radius: var(--msui-radius-md);
+    --msui-segmented-icon: var(--msui-icon-sm);
+  }
+}
+
+/* The name of what is picked, muted, then the chosen option's name; on one line while they fit, else the value wraps
+   under it whole (neither is cut, styles §2). */
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--msui-space-2);
+  min-width: 0;
+}
+
+.label {
+  color: var(--msui-text-muted);
+  white-space: nowrap;
+}
+
+.value {
+  color: var(--msui-text);
+  white-space: nowrap;
+}
+
+/* The well: equal columns sharing the width, each at least its segment's content (a label is never cut). */
+.well {
+  display: grid;
+  grid-auto-columns: minmax(max-content, 1fr);
+  grid-auto-flow: column;
+  padding: var(--msui-segmented-pad);
+  border-radius: var(--msui-segmented-radius);
+  background: var(--msui-surface-sunken);
+  /* An edge where a surface's step does not show (the contrast theme, styles §1). */
+  box-shadow: var(--msui-surface-edge);
+}
+
+.segment {
+  --msui-icon-size: var(--msui-segmented-icon);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--msui-icon-gap);
+  min-width: var(--msui-segmented-height);
+  height: var(--msui-segmented-height);
+  padding: 0 var(--msui-control-inset);
+  /* Concentric with the well (styles §6). */
+  border-radius: max(0px, calc(var(--msui-segmented-radius) - var(--msui-segmented-pad)));
+  color: var(--msui-text-muted);
+  white-space: nowrap;
+
+  /* Icons only: square at least, the icon centered. */
+  [data-icons] > & {
+    padding: 0;
+  }
+
+  &:hover:not([aria-disabled="true"]) {
+    color: var(--msui-text);
+  }
+
+  /* The chosen one raised in the well: a raised surface with a hairline, in the accent. */
+  &[aria-checked="true"] {
+    background: var(--msui-surface-raised);
+    /* The hairline, and a line where contrast matters (foundations, --msui-selected-edge). */
+    box-shadow:
+      0 0 0 1px var(--msui-line),
+      inset 0 0 0 1px var(--msui-selected-edge);
+    color: var(--msui-accent-strong);
+  }
+
+  /* Fainter than subtle: the others are already muted, so a step to subtle would not tell it apart (a disabled control
+     is exempt from the text contrast). */
+  &[aria-disabled="true"] {
+    color: color-mix(in oklab, var(--msui-text-subtle), transparent 50%);
+    cursor: default;
+  }
+}

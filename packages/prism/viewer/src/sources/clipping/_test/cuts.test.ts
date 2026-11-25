@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Ludovic Autin <ludovic.autin@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Sphere3D } from '@molstar/core/math/geometry';
@@ -18,6 +19,8 @@ import {
   placeCut,
   rotated,
   rotationTo,
+  twisted,
+  twistOf,
 } from '../cuts.js';
 import { applyToCut } from '../gizmo/binding.js';
 
@@ -31,6 +34,23 @@ describe('cuts', () => {
     for (const to of [Vec3.create(1, 0, 0), Vec3.create(0, 0, -1), Vec3.create(0, -1, 0), Vec3.create(0, 1, 0)]) {
       close(rotated(rotationTo(LocalUp, to), LocalUp), [...to]);
     }
+  });
+
+  it('reads a twist back as set, about any axis', () => {
+    const across = Vec3.create(1, 0, 0);
+    for (const axis of [Vec3.create(0, 1, 0), Vec3.create(1, 0, 0), Vec3.create(0, -1, 0), Vec3.create(1, 2, -3)]) {
+      for (const twist of [0, 30, -120, 179]) {
+        const rotation = twisted('cube', axis, twist);
+        close(rotated(rotation, LocalUp), [...Vec3.normalize(Vec3(), axis)]);
+        expect(twistOf({ type: 'cube', rotation })).toBeCloseTo(twist, 4);
+      }
+    }
+    // a cone's axis is its opening (local -Z), its twist measured on local +X as well
+    const cone = twisted('infiniteCone', Vec3.create(0, 1, 0), 45);
+    close(rotated(cone, Vec3.create(0, 0, -1)), [0, 1, 0]);
+    expect(twistOf({ type: 'infiniteCone', rotation: cone })).toBeCloseTo(45, 4);
+    // none: its local +X where the shortest turn onto the axis puts it
+    close(rotated(twisted('cube', Vec3.create(0, 1, 0), 0), across), [1, 0, 0]);
   });
 
   it("keeps a cone's half-angle through its scale", () => {
@@ -88,5 +108,26 @@ describe('cuts', () => {
     const box = reshape({ ...cylinder, type: 'sphere', scale: Vec3.create(9, 9, 9) }, 'cube', 16);
     close(box.scale, [9, 9, 9]);
     expect(reshape(box, 'cube', 16)).toBe(box);
+  });
+
+  it("carries a box's sizes and twist to an ellipsoid and back, and to an elliptic cylinder", () => {
+    const box = {
+      ...placeCut('cube', Sphere3D.create(Vec3(), 20), Vec3.create(0, 0, 1)),
+      rotation: twisted('cube', Vec3.create(1, 0, 0), 30),
+      scale: Vec3.create(4, 8, 12),
+    };
+    const ellipsoid = reshape(box, 'sphere', 16);
+    close(ellipsoid.scale, [4, 8, 12]);
+    close(rotated(ellipsoid.rotation, LocalUp), [1, 0, 0]);
+    expect(twistOf(ellipsoid)).toBeCloseTo(30, 4);
+    const back = reshape(ellipsoid, 'cube', 16);
+    close(back.scale, [4, 8, 12]);
+    expect(twistOf(back)).toBeCloseTo(30, 4);
+    // an elliptic cylinder: its diameters across its axis, its height the axis's
+    close(reshape(ellipsoid, 'cylinder', 16).scale, [4, 8, 12]);
+    expect(twistOf(reshape(ellipsoid, 'cylinder', 16))).toBeCloseTo(30, 4);
+    close(reshape({ ...ellipsoid, type: 'cylinder', scale: Vec3.create(6, 20, 6) }, 'sphere', 16).scale, [6, 20, 6]);
+    // a plane has no size: a round one of the given one
+    close(reshape({ ...ellipsoid, type: 'plane' }, 'sphere', 16).scale, [16, 16, 16]);
   });
 });

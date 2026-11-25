@@ -1,0 +1,59 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Addressing" />
+
+# Addressing
+
+Everything in a view has an address, so a paper, a notebook, a chat with an agent or another viewer can point at it.
+
+## Ids and addresses
+
+Ids are local: an id only has to be unique among its siblings. A node's address is the path of ids from the root, the
+way an IPv6 address is a path of groups: `/data/p53/features`. `/data/p53/*` names a whole subtree. What data makes (a
+structure's chains, an alignment's rows, items) is reached by forms, such as `/data/1tup/(chain :id A)`.
+
+A segment can also be a query form, `(kind :key value)`, which selects among what the path so far names. Forms compose
+as MolQL's: each maps over every element the path so far yields and concatenates the results (`(elements :atom C1)` over
+a glycan's three residues gives three atoms; an element with none gives nothing). It is the same grammar meso\* uses:
+
+| Address                                                                                                            | Names                                           |
+| ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------- |
+| `/data/p53/(range :from 120 :to 130 :numbering uniprot)`                                                           | residues 120 to 130 in UniProt numbering        |
+| `/data/1tup/(chain :id A)/(at :label 94A :numbering auth)`                                                         | one residue by author number and insertion code |
+| `/data/p53/features/(item :type domain)`                                                                           | every domain                                    |
+| `/data/1fin/(elements :chain A :beg 10 :end 20 :atom CA)`                                                          | eleven Cα atoms of CDK2's glycine loop          |
+| `/data/1fin/(elements :chain A :atom CA)/(filter :test (> (prop b-factor) 60))`                                    | the mobile ones among them                      |
+| `/data/globins/(rect :rows (rows :from "HBA_HUMAN/1-141" :to "HBB_HUMAN/1-146") :columns (range :from 30 :to 60))` | a block of an alignment                         |
+| `/data/trna/pairs/(rect :a (range :from 10 :to 25) :b (range :from 40 :to 55))`                                    | a rectangle of a dot plot                       |
+
+Forms have roles, as MolQL's: generators (`elements`, a structure's schema selection; `groups`, one key per residue or
+atom), a filter over a predicate, modifiers (`expand`, `linked`), and combinators (`merge`, `intersect`, `except`).
+Inside a predicate, operators take their operands in order (`(> (prop b-factor) 60)`); everywhere else, params are
+named. A predicate reads properties: a chain, a residue's number or component, an atom's name or element, a value from
+an annotation, or one an extension adds.
+
+A schema selection is the record a structure viewer speaks: its fields have short names (`:chain`, `:auth-seq`) and
+MolViewSpec's long ones (`:label_asym_id`, `:auth_seq_id`), both read, the short one printed. Several items can be
+written as records (`:items [(fields :chain A :seq 33) (fields :chain B :seq 145)]`) or as columns
+(`:chain [A B] :seq [33 145]`), which mean the same.
+
+Rects (two ranges over two axes) can be selected, highlighted, focused and linked just like ranges.
+
+## Your own refs
+
+A `refs` container holds names you define, each pointing at an address: `/refs/dbd` for the DNA-binding domain, say. A
+ref works anywhere an address does: in layers, focus, commands, links and other refs. Bookmarks and location sets are
+refs. When a node moves or is renamed, everything that names it is rewritten. A ref whose target is gone is reported,
+and the rest of the spec still opens.
+
+## What acts on addresses
+
+- **Commands**: focus, reveal, select, highlight, hover, step a snapshot. Every command with a target takes an address,
+  so a link, a menu, a key, an agent and a test all drive the view the same way.
+- **Links**: an action plus an address, in Mol\*'s link grammar, for example `!seq-focus=/refs/dbd`. One link can carry
+  both Mol\*'s and Seq\*'s keys, and each viewer runs the keys it knows.
+- **Copy link**: the view gives back the address of whatever is under the pointer or selected, in its shortest stable
+  form: a ref if one names it, otherwise ids and forms.
+
+The showcases to come: a text whose links drive a view and a structure; copy link from the view back into text; and one
+location addressed in several numberings.

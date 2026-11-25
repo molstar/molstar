@@ -22,20 +22,25 @@ export interface PassState {
   setStencilReference: (reference: number) => void;
   /** forgets the state, after commands recorded into `encoder` directly */
   invalidate: () => void;
+  /** the state of `encoder`, a new pass's: one object for a context's passes, not one a pass */
+  rebind: (encoder: GPURenderPassEncoder | GPURenderBundleEncoder) => void;
 }
 
 const NoOffsets: readonly number[] = [];
 
 /**
- * An encoder that only lists what the commands bind, as text (`GraphicsContext.captureDraws`): pipelines, bind groups
+ * An encoder that only lists what the commands bind, as text (`DrawLists.capture`): pipelines, bind groups
  * with offsets, buffers and draw arguments, objects by an id per object; viewport, scissor and stencil reference are the
- * pass's (not of a recording) and left out
+ * pass's (not of a recording) and left out, and so is the global bind group's (group 0): a replay compares the globals
+ * itself (`DrawList.replay`), their offset the submission's (a frame's mask pass and a marking redraw's differ)
  */
 export function createCaptureEncoder(tokens: string[], getId: (o: object) => number): GPURenderPassEncoder {
   const encoder = {
     setPipeline: (p: GPURenderPipeline) => tokens.push(`p${getId(p)}`),
-    setBindGroup: (index: number, group: GPUBindGroup | null, offsets?: Iterable<number>) =>
-      tokens.push(`g${index}:${group ? getId(group) : -1}:${offsets ? Array.from(offsets).join(',') : ''}`),
+    setBindGroup: (index: number, group: GPUBindGroup | null, offsets?: Iterable<number>) => {
+      if (index === 0) return;
+      tokens.push(`g${index}:${group ? getId(group) : -1}:${offsets ? Array.from(offsets).join(',') : ''}`);
+    },
     setVertexBuffer: (slot: number, buffer: GPUBuffer | null, offset = 0, size?: number) =>
       tokens.push(`v${slot}:${buffer ? getId(buffer) : -1}:${offset}:${size ?? ''}`),
     setIndexBuffer: (buffer: GPUBuffer, format: GPUIndexFormat, offset = 0, size?: number) =>
@@ -117,8 +122,10 @@ export function createPassState(encoder: GPURenderPassEncoder | GPURenderBundleE
     rect[3] = height;
   };
 
-  return {
-    encoder,
+  const state: PassState = {
+    get encoder() {
+      return encoder;
+    },
     setPipeline: (p) => {
       if (p === pipeline) return;
       pipeline = p;
@@ -182,5 +189,10 @@ export function createPassState(encoder: GPURenderPassEncoder | GPURenderBundleE
       setRect(scissor, NaN, NaN, NaN, NaN);
       stencilReference = NaN;
     },
+    rebind: (e) => {
+      encoder = e;
+      state.invalidate();
+    },
   };
+  return state;
 }

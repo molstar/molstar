@@ -4,10 +4,11 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { DefaultPrismViewerSpec } from '@molstar/prism-viewer/default-spec';
-import { StructureMoveFeature } from '@molstar/prism-viewer/features/structure-move';
+import { MoveFeature } from '@molstar/prism-viewer/features/move';
 import type { PrismViewerSpec } from '@molstar/prism-viewer/spec';
 import { MolstarViewerExtensions } from './extensions.js';
 
@@ -18,5 +19,5 @@ import { MolstarViewerExtensions } from './extensions.js';
  */
 export function FullPrismViewerSpec(): PrismViewerSpec {
   const base = DefaultPrismViewerSpec();
-  return { ...base, extensions: [...(base.extensions ?? []), StructureMoveFeature, ...MolstarViewerExtensions] };
+  return { ...base, extensions: [...(base.extensions ?? []), MoveFeature, ...MolstarViewerExtensions] };
 }

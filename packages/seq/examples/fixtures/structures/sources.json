@@ -1,0 +1,92 @@
+[
+  {
+    "file": "structures/1EHZ.cif.gz",
+    "entry": "PDB 1EHZ, yeast tRNA-Phe (Shi, Moore 2000), mmCIF",
+    "url": "https://files.rcsb.org/download/1EHZ.cif.gz",
+    "recorded": "2026-11-20",
+    "licence": [
+      "CC0-1.0"
+    ],
+    "attribution": "wwPDB, PDB 1EHZ, CC0",
+    "trimmed": "none: the file as served, gzipped",
+    "bytesFixture": 59064,
+    "bytesInflated": 254359,
+    "sha256Fixture": "0ad5fc52452739f3d09726915314453a0d3de84d9a0f9a866da8da6fecd3e293",
+    "sha256Inflated": "3021dd2b6461f850bb66d6748d3c22a5e1bb6cc891c625c15d793f38215b28ab"
+  },
+  {
+    "file": "structures/1FIN.cif.gz",
+    "entry": "PDB 1FIN, CDK2 and cyclin A with ATP (Jeffrey et al. 1995), mmCIF",
+    "url": "https://files.rcsb.org/download/1FIN.cif.gz",
+    "recorded": "2026-11-20",
+    "licence": [
+      "CC0-1.0"
+    ],
+    "attribution": "wwPDB, PDB 1FIN, CC0",
+    "trimmed": "none: the file as served, gzipped",
+    "bytesFixture": 245012,
+    "bytesInflated": 999052,
+    "sha256Fixture": "ad0e2187b30adf61f791eb096d26d81914049b92e11152cddf2fa2ab37d674ad",
+    "sha256Inflated": "dfe5da37b2e28d3d74eefa0edee97d57ea127538beead9e68a8a42a5c363a1ac"
+  },
+  {
+    "file": "structures/4HHB.cif.gz",
+    "entry": "PDB 4HHB, human deoxyhaemoglobin (Fermi, Perutz, Shaanan, Fourme 1984), mmCIF",
+    "url": "https://files.rcsb.org/download/4HHB.cif.gz",
+    "recorded": "2026-11-20",
+    "licence": [
+      "CC0-1.0"
+    ],
+    "attribution": "wwPDB, PDB 4HHB, CC0",
+    "trimmed": "none: the file as served, gzipped",
+    "bytesFixture": 188755,
+    "bytesInflated": 772198,
+    "sha256Fixture": "6f41c480c041388976352af8212da8c6fb6fad0c406fa2b84db12118892eb19b",
+    "sha256Inflated": "2d3ca1bf21ddff35af2e2bc5d331720f7bfc46a16c4829ea3ec1b41062d5f5a6"
+  },
+  {
+    "file": "structures/3SGJ.cif.gz",
+    "entry": "PDB 3SGJ, a human IgG1 Fc with its N-glycans (Ferrara et al. 2011), mmCIF",
+    "url": "https://files.rcsb.org/download/3SGJ.cif.gz",
+    "recorded": "2026-11-20",
+    "licence": [
+      "CC0-1.0"
+    ],
+    "attribution": "wwPDB, PDB 3SGJ, CC0",
+    "trimmed": "none: the file as served, gzipped",
+    "bytesFixture": 273358,
+    "bytesInflated": 1031215,
+    "sha256Fixture": "387112c22285dbafc8d3994d97d7055a3f85df7d47a239b38af5a15e2a5bffcf",
+    "sha256Inflated": "85d71e4bf08205b2ad7fc19925420e1515ef680e37e93e38f11574d189b3dcbc"
+  },
+  {
+    "file": "structures/2OCJ.cif.gz",
+    "entry": "PDB 2OCJ, the human p53 core domain, four chains (Wang, Rosengarth, Luecke 2007), mmCIF",
+    "url": "https://files.rcsb.org/download/2OCJ.cif.gz",
+    "recorded": "2026-11-20",
+    "licence": [
+      "CC0-1.0"
+    ],
+    "attribution": "wwPDB, PDB 2OCJ, CC0",
+    "trimmed": "none: the file as served, gzipped",
+    "bytesFixture": 174304,
+    "bytesInflated": 699868,
+    "sha256Fixture": "3c67d3b7e16af7a0c480a9eaaf88f231f30abdcf30e89b8d53cfd5e62baca669",
+    "sha256Inflated": "e54e3321ca0c3e482d73d8d7637682bf0a3a210bf4091d1a34343e1e0bd29470"
+  },
+  {
+    "file": "structures/3AVE.cif.gz",
+    "entry": "PDB 3AVE, a fucosylated human IgG1 Fc with its N297 glycans (Matsumiya et al. 2007), mmCIF",
+    "url": "https://files.rcsb.org/download/3AVE.cif.gz",
+    "recorded": "2026-11-20",
+    "licence": [
+      "CC0-1.0"
+    ],
+    "attribution": "wwPDB, PDB 3AVE, CC0",
+    "trimmed": "none: the file as served, gzipped",
+    "bytesFixture": 194820,
+    "bytesInflated": 757920,
+    "sha256Fixture": "3017f70349244ab11467f2aa6ae7eb494798fb0162c68c67d4738aa6f0795659",
+    "sha256Inflated": "a018f215035632cdfa429548cda561c608b464774ba91238e2f5ec791a0bc07b"
+  }
+]

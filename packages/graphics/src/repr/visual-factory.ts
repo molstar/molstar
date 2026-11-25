@@ -24,6 +24,13 @@ export interface SelectingVisualFactory<D, P extends PD.Params> {
   (materialId: number, data: D, props: PD.Values<P>, graphics?: GraphicsContext): Visual<D, P>;
   /** the visuals `props` and `graphics` allow, before any data; with `data`, those it selects */
   readonly signatureVisuals: (props: PD.Values<P>, graphics?: GraphicsContext, data?: readonly D[]) => Visual<D, P>[];
+  /** whether it chooses by the props and context alone (`chooseVisual`): one visual of its choice for any data */
+  readonly byProps?: boolean;
+}
+
+/** Whether `factory` creates its visuals whatever the data: a plain factory, or one choosing by the props alone */
+export function choosesByProps<D, P extends PD.Params>(factory: VisualFactory<D, P>) {
+  return !('signatureVisuals' in factory) || !!factory.byProps;
 }
 
 /** The visual `factory` creates for `data` */
@@ -68,11 +75,12 @@ export function chooseVisual<D, P extends PD.Params, K extends string>(
   variants: { readonly [k in K]: (materialId: number) => Visual<D, P> },
   choose: (props: PD.Values<P>, graphics?: GraphicsContext) => K,
 ): SelectingVisualFactory<D, P> {
-  return selectVisual(
+  const factory = selectVisual(
     variants,
     (_data, props, graphics) => choose(props, graphics),
     (props, graphics) => [choose(props, graphics)],
   );
+  return Object.assign(factory, { byProps: true });
 }
 
 /**

@@ -32,7 +32,7 @@ stage reads it).
 1. **CPU** (done, `@molstar/core` `util/clip.ts`): `Clip.classifySphere(objects, sphere, flag?)` → `SphereClass` none /
    some / all over the objects (one clipping every point decides), `classifySphereObject` per object,
    `getSignedDistance` the shaders' `localSD` on `frame` and `shape`; `canIntersectSphere` on it (some), its callers
-   (the caps) unchanged: tighter than its inner and outer radii (exact for planes, cubes, cylinders, round spheres),
+   (the caps) unchanged: tighter than its inner and outer radii (exact for planes, cubes, round cylinders and spheres),
    and bounded for ellipsoids and cones (it was always true). `clip-classify.test.ts`: per shape (an ellipsoid and a
    wide cone among them), inverted or not, with a rotated frame and a translated and a scaled transform, 900 random
    spheres each, points within and on them sampled against the shaders' test: all and none agree, and at least 60 % of

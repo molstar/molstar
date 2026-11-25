@@ -6,6 +6,7 @@
 
 import { ValueCell } from '@molstar/core/util/value-cell';
 import { type GraphicsRenderable, RenderableState } from './renderable.js';
+import { getDrawnBoundingSphere } from './renderable/util.js';
 
 /**
  * What the renderer reads from an object's values, as bits of a row (`DrawRow.Facts`); `getDrawFacts` derives them,
@@ -48,7 +49,7 @@ export enum DrawFact {
   InstanceGrid = 1 << 16,
   /** `uInstanceCount` > 1 */
   MultipleInstances = 1 << 17,
-  /** `lodLevels` */
+  /** `lodLevels` with levels */
   LodLevels = 1 << 18,
   /** `uAlpha` < 1 */
   AlphaBelowOne = 1 << 19,
@@ -60,11 +61,21 @@ export enum DrawFact {
   SingleSided = 1 << 22,
   /** wiggling (`uWiggleAmplitude` or `wiggleAverage`, with speed and frequency) or tumbling: drawn anew per frame */
   Animated = 1 << 23,
+  /** `dOverlay` with `uOccludedAlpha` < 1: its parts behind the scene are transparent */
+  Occludable = 1 << 24,
+  /**
+   * `uScreenSize` > 0 (constant on screen): its bounds in the world depend on the camera (not culled by them)
+   */
+  CameraBounds = 1 << 25,
   /**
    * clip objects (`dClipObjects`) without a clipping layer (`dClipping`, its flags exempt groups): the object culled
    * where they clip its bounding sphere whole (`Clip.classifySphere`)
    */
-  ClipCull = 1 << 24,
+  ClipCull = 1 << 26,
+  /** clip objects (`dClipObjects`) and not opted out of the ghost (`clipGhost`): drawn by the ghost pass */
+  ClipGhost = 1 << 27,
+  /** `dGeometryType` 'gaussianSplats': blended back to front by a pass of their own, after the other transparency */
+  GaussianSplats = 1 << 28,
 }
 
 /** The cells `getDrawFacts` and the row's bounds read: a change of any refreshes the row */
@@ -84,13 +95,17 @@ export const DrawFactCells = [
   'hasReflection',
   'dSolidInterior',
   'instanceGrid',
+  'instanceCellSize',
   'uInstanceCount',
   'lodLevels',
   'boundingSphere',
+  // the bounds as drawn (`getDrawnBoundingSphere`)
+  'uObjectTransform',
   'uLod',
   'dClipObjects',
   'dClipping',
   'clipObjects',
+  'clipGhost',
   // the scene's averages (`DrawTable.contributions`)
   'wiggleAverage',
   'transparencyMin',
@@ -100,6 +115,9 @@ export const DrawFactCells = [
   'uTumbleAmplitude',
   'uTumbleSpeed',
   'uTumbleFrequency',
+  'dOverlay',
+  'uOccludedAlpha',
+  'uScreenSize',
 ] as const;
 
 type Values = GraphicsRenderable['values'];
@@ -142,11 +160,11 @@ function writeContributions(c: DrawContributions, slot: number, values: Values, 
   c.emissive[slot] = values.emissiveAverage.ref.value + values.uEmissive.ref.value;
   c.wiggle[slot] = (getValue(values, 'wiggleAverage') as number | undefined) ?? 0;
   const alpha = values.uAlpha.ref.value;
-  // x-ray shaded, fuzzy points, text and images are half transparent
-  const half = (facts & (DrawFact.Xray | DrawFact.FuzzyPoints | DrawFact.TextOrImage)) !== 0;
+  // x-ray shaded, fuzzy points, text, images and gaussian splats are half transparent
+  const half = (facts & (DrawFact.Xray | DrawFact.FuzzyPoints | DrawFact.TextOrImage | DrawFact.GaussianSplats)) !== 0;
   const xray = (facts & DrawFact.Xray) !== 0 ? 0.5 : 1;
   const fuzzy = (facts & DrawFact.FuzzyPoints) !== 0 ? 0.5 : 1;
-  const textOrImage = (facts & DrawFact.TextOrImage) !== 0 ? 0.5 : 1;
+  const textOrImage = (facts & (DrawFact.TextOrImage | DrawFact.GaussianSplats)) !== 0 ? 0.5 : 1;
   c.opacity[slot] = (1 - values.transparencyAverage.ref.value) * alpha * xray * fuzzy * textOrImage;
   let min = 1;
   if (alpha < 1) min = Math.min(min, 1 - alpha);
@@ -155,7 +173,15 @@ function writeContributions(c: DrawContributions, slot: number, values: Values, 
   if (transparencyMin > 0) min = Math.min(min, transparencyMin);
   c.transparencyMin[slot] = min;
   c.opaque[slot] =
-    (alpha === 1 && values.transparencyAverage.ref.value !== 1) || (facts & DrawFact.BackfacesOpaque) !== 0 ? 1 : 0;
+    (facts & DrawFact.GaussianSplats) === 0 &&
+    ((alpha === 1 && values.transparencyAverage.ref.value !== 1) || (facts & DrawFact.BackfacesOpaque) !== 0)
+      ? 1
+      : 0;
+}
+
+/** Whether `values` are of an object whose world bounds depend on the camera: constant on screen (`uScreenSize`) */
+export function hasCameraBounds(values: Values) {
+  return ((getValue(values, 'uScreenSize') as number | undefined) ?? 0) > 0;
 }
 
 /**
@@ -164,9 +190,11 @@ function writeContributions(c: DrawContributions, slot: number, values: Values, 
 export function getCullFacts(values: Values): number {
   let f = 0;
   if (values.drawCount.ref.value) f |= DrawFact.DrawCount;
-  if (values.instanceGrid.ref.value.cellSize > 0) f |= DrawFact.InstanceGrid;
+  if (hasCameraBounds(values)) f |= DrawFact.CameraBounds;
+  if (values.instanceCellSize.ref.value > 0) f |= DrawFact.InstanceGrid;
   if (values.uInstanceCount.ref.value > 1) f |= DrawFact.MultipleInstances;
-  if (getValue(values, 'lodLevels')) f |= DrawFact.LodLevels;
+  // empty (no levels) where the geometry has none set, as spheres by default
+  if ((getValue(values, 'lodLevels') as ArrayLike<unknown> | undefined)?.length) f |= DrawFact.LodLevels;
   if (getValue(values, 'dClipObjects') && !getValue(values, 'dClipping')) f |= DrawFact.ClipCull;
   return f;
 }
@@ -192,12 +220,15 @@ export function getCheckFacts(values: Values): number {
   const geometryType = values.dGeometryType.ref.value;
   if (geometryType === 'directVolume') f |= DrawFact.DirectVolume;
   if (geometryType === 'text' || geometryType === 'image') f |= DrawFact.TextOrImage;
+  if (geometryType === 'gaussianSplats') f |= DrawFact.GaussianSplats;
   if (getValue(values, 'dPointStyle') === 'fuzzy') f |= DrawFact.FuzzyPoints;
   const xray = getValue(values, 'dXrayShaded');
   if (xray === 'on' || xray === 'inverted') f |= DrawFact.Xray;
   const backfaces = getValue(values, 'dTransparentBackfaces');
   if (backfaces === 'opaque') f |= DrawFact.BackfacesOpaque;
   if (backfaces === 'off') f |= DrawFact.BackfacesOff;
+  // the ghost pass's (`Renderer.renderClipGhost`)
+  if (getValue(values, 'dClipObjects') && getValue(values, 'clipGhost') !== false) f |= DrawFact.ClipGhost;
   const doubleSided = getValue(values, 'uDoubleSided');
   if (doubleSided) f |= DrawFact.DoubleSided;
   else if (doubleSided !== undefined) f |= DrawFact.SingleSided;
@@ -206,6 +237,7 @@ export function getCheckFacts(values: Values): number {
   if ((geometryType === 'mesh' || geometryType === 'textureMesh') && getValue(values, 'dSolidInterior')) {
     f |= DrawFact.SolidInterior;
   }
+  if (getValue(values, 'dOverlay') && (getValue(values, 'uOccludedAlpha') as number) < 1) f |= DrawFact.Occludable;
   return f;
 }
 
@@ -217,6 +249,7 @@ export enum DrawState {
   ColorOnly = 1 << 3,
   Opaque = 1 << 4,
   WriteDepth = 1 << 5,
+  PickOnly = 1 << 6,
 }
 
 export function getDrawState(state: RenderableState): number {
@@ -226,7 +259,8 @@ export function getDrawState(state: RenderableState): number {
     (state.pickable ? DrawState.Pickable : 0) |
     (state.colorOnly ? DrawState.ColorOnly : 0) |
     (state.opaque ? DrawState.Opaque : 0) |
-    (state.writeDepth ? DrawState.WriteDepth : 0)
+    (state.writeDepth ? DrawState.WriteDepth : 0) |
+    (state.pickOnly ? DrawState.PickOnly : 0)
   );
 }
 
@@ -450,7 +484,7 @@ export function createDrawTable(renderables: ReadonlyArray<GraphicsRenderable>):
     const wasVisible = isVisibleState(bits[o + DrawRow.State]);
     if (r) {
       const { values } = r;
-      const { center, radius } = values.boundingSphere.ref.value;
+      const { center, radius } = getDrawnBoundingSphere(values);
       floats[o + DrawRow.CenterX] = center[0];
       floats[o + DrawRow.CenterY] = center[1];
       floats[o + DrawRow.CenterZ] = center[2];

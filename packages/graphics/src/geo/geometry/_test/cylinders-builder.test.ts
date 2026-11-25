@@ -5,6 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { getDataWords } from '../center-group.js';
 import { describe, expect, it } from 'vitest';
 import { CylindersBuilder } from '../cylinders/cylinders-builder.js';
 import { CylinderStride } from '../cylinders/cylinders.js';
@@ -22,7 +23,9 @@ function expectCylinders(cylinders: ReturnType<typeof build>, count: number) {
   expect(data.count).toBe(count * 3);
   for (let i = 0; i < count; i++) {
     const o = i * CylinderStride;
-    expect(Array.from(data.array.subarray(o, o + 4))).toEqual([i, 0, 0, 100 + i]);
+    expect(Array.from(data.array.subarray(o, o + 3))).toEqual([i, 0, 0]);
+    // the group an int32 as its bits
+    expect(getDataWords(data.array)[o + 3]).toBe(100 + i);
     expect(Array.from(data.array.subarray(o + 4, o + 8))).toEqual([i, 1, 0, Math.fround(i / 10)]);
     expect(data.array[o + 8]).toBe((i & 1 ? 1 : 0) + (i & 2 ? 2 : 0));
     expect(data.array[o + 9]).toBe(i % 3);

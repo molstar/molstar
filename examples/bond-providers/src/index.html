@@ -23,15 +23,51 @@
         padding: 8px 12px;
         border-bottom: 1px solid #ccc;
       }
-      header input[type='text'] {
-        width: 8em;
+      header form,
+      header label {
+        display: flex;
+        gap: 6px;
+        align-items: center;
       }
-      header span {
+      header input[type='text'] {
+        width: 7em;
+        text-transform: uppercase;
+      }
+      header .group {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        padding-left: 12px;
+        border-left: 1px solid #ccc;
+      }
+      #status {
         flex: 1;
         min-width: 12em;
         color: #666;
       }
-      #app {
+      /* two viewers side by side (src/load.ts) */
+      .panes {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+      }
+      .panes section {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-width: 0;
+        border-left: 1px solid #ccc;
+      }
+      .panes section:first-child {
+        border-left: none;
+      }
+      .panes h2 {
+        margin: 0;
+        padding: 6px 12px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .viewer {
         position: relative;
         flex: 1;
       }
@@ -40,20 +76,33 @@
   <body>
     <header>
       <form id="load">
-        <input id="source" type="text" value="1HSG" aria-label="PDB ID" />
+        <input id="code" type="text" aria-label="PDB ID or CCD code" placeholder="PDB / CCD" />
+        <select id="kind" aria-label="Code kind" title="4 characters starting with a digit read as a PDB ID">
+          <option value="auto">Auto</option>
+          <option value="pdb">PDB</option>
+          <option value="ccd">CCD</option>
+        </select>
+        <select id="coords" aria-label="CCD coordinates">
+          <option value="ideal">Ideal coordinates</option>
+          <option value="model">Model coordinates</option>
+        </select>
         <button type="submit">Load</button>
       </form>
-      <strong>Bonds:</strong>
-      <button data-bonds="default">Default</button>
-      <button data-bonds="none">None (format only)</button>
-      <button data-bonds="naive-distance">Naive distance</button>
-      <button data-bonds="naive-orders">Naive orders</button>
-      <button data-bonds="random">Random</button>
-      <button data-bonds="per-unit">By unit (ligands: naive orders)</button>
-      <button id="toggle">Unregister naive orders</button>
+      <div class="group">
+        <label>Bonds <select id="provider"></select></label>
+        <select id="mode" aria-label="Perception mode">
+          <option value="forceCompute">force compute</option>
+          <option value="auto">auto</option>
+        </select>
+        <label><input id="removeH" type="checkbox" /> Remove H</label>
+        <label><input id="removeCharges" type="checkbox" /> Remove charges</label>
+      </div>
       <span id="status"></span>
     </header>
-    <div id="app"></div>
+    <div class="panes">
+      <section><h2>As served: built-in bonds</h2><div class="viewer" id="served"></div></section>
+      <section><h2>Bond provider under test</h2><div class="viewer" id="tested"></div></section>
+    </div>
     <script type="module" src="./index.js"></script>
   </body>
 </html>

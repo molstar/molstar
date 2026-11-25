@@ -17,8 +17,9 @@ import {
 } from '@molstar/graphics/gl/compute/marching-cubes/chunks';
 import { createIsosurfaceBuffers } from '@molstar/graphics/gl/webgl/compute/marching-cubes/isosurface';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
-import { isWebGLContext } from '@molstar/graphics/gl/webgl/context';
-import { createVolumeTexture2d, getVolumeTexture2dLayout } from '@molstar/graphics/repr/volume/util';
+import { isWebGLContext } from '@molstar/graphics/gl/contexts/webgl';
+import { getVolumeTexture2dLayout } from '@molstar/graphics/geo/util';
+import { createVolumeTexture2d } from '@molstar/graphics/repr/volume/util';
 import { Grid, type Volume } from '@molstar/model/model/volume';
 import { blobVolume, createVolume } from '../visual/scenes/volume.js';
 import { type BenchmarkCase, type PathRun, StageTimer, withGpuPasses } from './framework.js';

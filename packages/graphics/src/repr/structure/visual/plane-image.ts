@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2025-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -20,7 +20,7 @@ import { PositionLocation } from '@molstar/graphics/geo/util/location-iterator';
 import { Color } from '@molstar/core/util/color/color';
 import { clamp } from '@molstar/core/math/interpolate';
 import { ColorTheme } from '@molstar/graphics/theme/color';
-import { packIntToRGBArray } from '@molstar/core/util/number-packing';
+import { packIntToRGBAArray } from '@molstar/core/util/number-packing';
 import { SizeTheme } from '@molstar/graphics/theme/size';
 import { Plane3D } from '@molstar/core/math/geometry/primitives/plane3d';
 import { degToRad } from '@molstar/core/math/misc';
@@ -412,7 +412,12 @@ export function createPlaneImage(
                 distArray[k] = distSq;
               } else {
                 if (cutout) {
-                  if (groupArray[k4] !== 0 || groupArray[k4 + 1] !== 0 || groupArray[k4 + 2] !== 0) {
+                  if (
+                    groupArray[k4] !== 0 ||
+                    groupArray[k4 + 1] !== 0 ||
+                    groupArray[k4 + 2] !== 0 ||
+                    groupArray[k4 + 3] !== 0
+                  ) {
                     f = 1;
                   }
                 }
@@ -424,7 +429,12 @@ export function createPlaneImage(
               } else {
                 if (cutout) {
                   Color.toArray(col, imageArray, k4);
-                  if (groupArray[k4] !== 0 || groupArray[k4 + 1] !== 0 || groupArray[k4 + 2] !== 0) {
+                  if (
+                    groupArray[k4] !== 0 ||
+                    groupArray[k4 + 1] !== 0 ||
+                    groupArray[k4 + 2] !== 0 ||
+                    groupArray[k4 + 3] !== 0
+                  ) {
                     f = 1;
                   }
                 } else {
@@ -432,8 +442,8 @@ export function createPlaneImage(
                 }
               }
             }
-            packIntToRGBArray(idx, groupArray, k4);
-            groupArray[k4 + 3] = antialias ? Math.round(255 * f) : 255;
+            // the group in four bytes, the top in alpha (the coverage is the image's alpha)
+            packIntToRGBAArray(idx, groupArray, k4);
 
             if (cutout) {
               imageArray[k * 4 + 3] = antialias ? Math.round(255 * f) : 255;

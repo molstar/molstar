@@ -212,7 +212,7 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
     }
 
     // they order the items, which what is computed per vertex follows
-    const levels = (p: Partial<PD.Values<P>>) => (p as { lodLevels?: unknown }).lodLevels;
+    const levels = (p: Partial<PD.Values<P>>) => (p as { lodPixelSize?: unknown }).lodPixelSize;
     if (levels(newProps) !== levels(currentProps)) {
       updateState.updateColor = true;
       updateState.updateSize = true;

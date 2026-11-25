@@ -6,7 +6,8 @@
 
 export const clip_pixel = `
 #if defined(dClipVariant_pixel) && defined(dClipObjects)
-    if (clipTest(vModelPosition / uModelScale))
+    // the ghost pass (\`uClipGhost\`) keeps what the clip objects remove
+    if (clipTest(vModelPosition / uModelScale) != uClipGhost)
         discard;
 #endif
 `;

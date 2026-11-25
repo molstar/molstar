@@ -23,11 +23,31 @@ import { Frustum3D } from '@molstar/core/math/geometry/primitives/frustum3d';
 import { Plane3D } from '@molstar/core/math/geometry/primitives/plane3d';
 import { Sphere3D } from '@molstar/core/math/geometry/primitives/sphere3d';
 import { Vec4 } from '@molstar/core/math/linear-algebra/3d/vec4';
-import type { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
+import { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
 import type { GraphicsStats } from './stats.js';
+import { getDrawnBoundingSphere, transformSphereAt } from './renderable/util.js';
 import { isTimingMode } from '@molstar/core/util/debug';
 import type { InstanceGrid } from '@molstar/core/math/geometry/instance-grid';
+import { InstanceTransforms } from '@molstar/core/math/geometry/instance-transforms';
+import {
+  applyPendingGrid,
+  getObjectTransforms,
+  hasInstanceCells,
+  type InstanceGridValues,
+  type TransformValues,
+} from './transform-parts.js';
+import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
 import { Clip } from '@molstar/core/util/clip';
+import {
+  getCopyBuckets,
+  getCopyOrderImage,
+  getCopyRange,
+  getCopyReach,
+  type InstanceExpansion,
+  isExpanded,
+  writeCopyOrder,
+} from './instance-expansion.js';
+import type { TextureImage } from './renderable/util.js';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const p3distanceToPoint = Plane3D.distanceToPoint;
@@ -50,11 +70,23 @@ export function createFrame(): Frame {
   return {} as Frame;
 }
 
+/**
+ * The GPU culling of several objects recorded together (`Renderable.prepareCull`): their buffer clears, then their
+ * dispatches in one compute pass (a pass and its begin and end per object cost more than the dispatches of a small
+ * object; a clear is not allowed inside a compute pass). Each object's dispatches keep their order
+ */
+export interface CullBatch {
+  readonly clears: (() => void)[];
+  readonly dispatches: (() => void)[];
+}
+
 export type RenderableState = {
   disposed: boolean;
   visible: boolean;
   pickable: boolean;
   colorOnly: boolean;
+  /** Drawn in the pick passes only (a hit area larger than what is drawn); false when not given */
+  pickOnly?: boolean;
   opaque: boolean;
   writeDepth: boolean;
 };
@@ -66,6 +98,7 @@ class ObservableRenderableState implements RenderableState {
   private _visible: boolean;
   private _pickable: boolean;
   private _colorOnly: boolean;
+  private _pickOnly: boolean;
   private _opaque: boolean;
   private _writeDepth: boolean;
 
@@ -74,6 +107,7 @@ class ObservableRenderableState implements RenderableState {
     this._visible = state.visible;
     this._pickable = state.pickable;
     this._colorOnly = state.colorOnly;
+    this._pickOnly = state.pickOnly ?? false;
     this._opaque = state.opaque;
     this._writeDepth = state.writeDepth;
   }
@@ -113,6 +147,14 @@ class ObservableRenderableState implements RenderableState {
   set colorOnly(v: boolean) {
     if (v === this._colorOnly) return;
     this._colorOnly = v;
+    this.notify();
+  }
+  get pickOnly() {
+    return this._pickOnly;
+  }
+  set pickOnly(v: boolean) {
+    if (v === this._pickOnly) return;
+    this._pickOnly = v;
     this.notify();
   }
   get opaque() {
@@ -165,6 +207,7 @@ export interface Renderable<T extends RenderableValues> {
   readonly values: T;
   readonly state: RenderableState;
 
+  /** `clipGhost`: the lists of the ghost pass, of what the clip objects remove (`cullSegment`) */
   cull: (
     cameraPlane: Plane3D,
     frustum: Frustum3D,
@@ -172,13 +215,14 @@ export interface Renderable<T extends RenderableValues> {
     stats: GraphicsStats,
     frame: Frame,
     lod: LodView,
+    clipGhost?: boolean,
   ) => void;
-  uncull: (lod: LodView) => void;
-  cullSimple: (d: number, radius: number, scale: number, lod: LodView) => void;
+  /** `clipGhost`: of the ghost pass's lists, as `cull`'s */
+  uncull: (lod: LodView, clipGhost?: boolean) => void;
   /**
    * Culls on the GPU, where the renderable does (merged render objects, see `merged-culler.ts`): called by
    * `Renderer.prepareCull` before the passes of `frame` (no pass open), its `cull` with the same planes then draws the
-   * result
+   * result; with `batch` its clears and dispatches recorded there, run with those of the other objects
    */
   prepareCull?: (
     cameraPlane: Plane3D,
@@ -187,11 +231,32 @@ export interface Renderable<T extends RenderableValues> {
     lod: LodView,
     pyramid?: OcclusionPyramid,
     raster?: MergedRasterParams,
+    batch?: CullBatch,
+    /** the ghost pass's lists too (`Renderer.renderClipGhost`), where the object has a ghost */
+    clipGhost?: boolean,
+    /**
+     * the view culled in two phases (Hi-Z on): a pyramid to come where `pyramid` is none yet (an app's first frames),
+     * what a cull without one needs not what the view will (a page store's frame slots sized by it)
+     */
+    twoPhase?: boolean,
   ) => boolean;
+  /**
+   * Culls on the GPU for a view of its own (`Renderer.prepareCullView`: the thickness pass, a ray's pick; no pass
+   * open), not tested against a pyramid: every renderable culled on the GPU (a page store's draws nothing without, it
+   * has no CPU culling; the others no CPU culling for it, no grids built); its `cull` of the same view then draws the
+   * result, the frame's passes after it too. The view's culling replaces the last one: the next `prepareCull` culls the
+   * frame's view again
+   */
+  prepareCullView?: (cameraPlane: Plane3D, frustum: Frustum3D, frame: Frame, lod: LodView) => boolean;
+  /**
+   * Culled on the GPU for the sphere raster only (`gpuCulling` 'auto' by its spheres, not its instances): its spheres;
+   * `Renderer.prepareCull` leaves it to the CPU culling where the raster does not take it. Undefined for the others
+   */
+  readonly rasterSpheres?: number;
   /** Whether the second phase of the GPU culling of `frame` is to run (`MergedCuller.dispatchSecond`) */
   needsCullSecond?: (frame: Frame) => boolean;
-  /** That second phase against `pyramid` (no pass open); none: left out */
-  prepareCullSecond?: (frame: Frame, pyramid: OcclusionPyramid | undefined) => boolean;
+  /** That second phase against `pyramid` (no pass open); none: left out; `batch` as `prepareCull`'s */
+  prepareCullSecond?: (frame: Frame, pyramid: OcclusionPyramid | undefined, batch?: CullBatch) => boolean;
   /**
    * The instances culled on the GPU for the view of `frame` with these planes, for kernels drawing them (the sphere
    * raster): where the view draws the GPU culling's lists (`cull` decides alike); undefined where it draws the CPU
@@ -204,6 +269,17 @@ export interface Renderable<T extends RenderableValues> {
    */
   rasterDrawn?: boolean;
   render: (variant: GraphicsRenderVariant, globals: GlobalBindings) => void;
+  /**
+   * Draws the marked instances alone (the marking mask, `getMarkedLists`) where they are few against all, else as
+   * `render`; after the frame's `cull`. `markedDrawVersion` is its `drawVersion`
+   */
+  renderMarked?: (variant: GraphicsRenderVariant, globals: GlobalBindings) => void;
+  /**
+   * The view of the marked lists, in place of `cull` (unscaled): true where `renderMarked` draws them, the object then
+   * needs no `cull` for it (on WebGL, a cull with occlusion is redone every redraw)
+   */
+  prepareMarked?: (cameraPlane: Plane3D, frustum: Frustum3D, lod: LodView) => boolean;
+  readonly markedDrawVersion?: number;
   /** Draws the instances the second phase found (`prepareCullSecond`), nothing where it did not run */
   renderSecond?: (variant: GraphicsRenderVariant, globals: GlobalBindings) => void;
   /** Cached clip info, `undefined` if there are no clip objects */
@@ -228,7 +304,7 @@ export interface Renderable<T extends RenderableValues> {
   readonly programVersion: number;
   /**
    * Advances when what decides the draw calls besides the values and the program changes: the ranges of the instances
-   * and levels of detail drawn (`cull`, `uncull`, `cullSimple`), the level uniforms; equal versions mean the same calls
+   * and levels of detail drawn (`cull`, `uncull`), the level uniforms; equal versions mean the same calls
    * (what a recorded pass replays). Compared by those writing the ranges, a number to read
    */
   /**
@@ -239,7 +315,11 @@ export interface Renderable<T extends RenderableValues> {
   /** culled on the GPU: advances where the records its lists draw changed, without its `drawVersion` until it culls */
   readonly recordsVersion?: number;
   readonly drawVersion: number;
-  update: () => void;
+  /**
+   * the renderable's values read again; `observedOnly`: only its observed cells changed (`Scene.updateChanged`), a
+   * merged object's members read where their observed cells changed (`memberCells`)
+   */
+  update: (observedOnly?: boolean) => void;
   dispose: () => void;
 }
 
@@ -340,37 +420,61 @@ export function appendMdbDrawKey(list: readonly MultiDrawBaseData[], out: DrawKe
   }
 }
 
-function getMdbData(cellCount: number, mdbData?: MultiDrawBaseData): MultiDrawBaseData {
-  if (mdbData && mdbData.instanceCounts.length >= cellCount) {
+/**
+ * The entries a list starts with: lists grow as culling emits draws (`growMdbData`), so they hold what was drawn, not
+ * a draw a cell of every cell (a merged object's members' cells: tens of millions of a large scene's instances); a
+ * list culled on the GPU emits none
+ */
+const InitialMdbCapacity = 1024;
+
+function getMdbData(capacity: number, mdbData?: MultiDrawBaseData): MultiDrawBaseData {
+  const length = Math.min(capacity, InitialMdbCapacity);
+  if (mdbData && mdbData.instanceCounts.length >= length) {
     return mdbData;
   } else {
     return {
-      firsts: new Int32Array(cellCount),
-      counts: new Int32Array(cellCount),
-      offsets: new Int32Array(cellCount),
-      instanceCounts: new Int32Array(cellCount),
-      baseVertices: new Int32Array(cellCount),
-      baseInstances: new Uint32Array(cellCount),
+      firsts: new Int32Array(length),
+      counts: new Int32Array(length),
+      offsets: new Int32Array(length),
+      instanceCounts: new Int32Array(length),
+      baseVertices: new Int32Array(length),
+      baseInstances: new Uint32Array(length),
       count: 0,
       uniforms: [],
     };
   }
 }
 
+/** `l`'s arrays grown to hold at least `min` entries (by half again: amortized), its entries kept */
+function growMdbData(l: MultiDrawBaseData, min: number) {
+  const length = Math.max(min, Math.ceil(l.firsts.length * 1.5), 64);
+  const grow = <A extends Int32Array | Uint32Array>(a: A, out: A) => {
+    out.set(a.subarray(0, l.count));
+    return out;
+  };
+  l.firsts = grow(l.firsts, new Int32Array(length));
+  l.counts = grow(l.counts, new Int32Array(length));
+  l.offsets = grow(l.offsets, new Int32Array(length));
+  l.instanceCounts = grow(l.instanceCounts, new Int32Array(length));
+  l.baseVertices = grow(l.baseVertices, new Int32Array(length));
+  l.baseInstances = grow(l.baseInstances, new Uint32Array(length));
+}
+
 //
 
 /**
- * Levels of detail: per level its range and fade (`overlap`), the vertices it draws and its spheres' scale. The range
+ * Levels of detail: per level its range, the vertices it draws and its spheres' scale. The range
  * in Å of distance from the camera plane, or with `pixelSize` above 0 (the smallest sphere drawn, in CSS pixels) in Å a
  * CSS pixel covers (the last level's maximum `Infinity`),
- * converted to distances per view (`LodView`, `screen-space-lod.md`)
+ * converted to distances per view (`LodView`)
  */
 export type LodLevelsValue = [
   minDistance: number,
   maxDistance: number,
-  overlap: number,
   count: number,
   scale: number,
+  /** the level's stride: it draws every stride-th item (`getLodItem`) */
+  stride: number,
 ][] & {
   readonly pixelSize?: number;
 };
@@ -381,7 +485,6 @@ const MaxLodDistance = 1e9;
 /**
  * What converts levels by size on screen (`LodLevelsValue.pixelSize`) into distances: the Å a CSS pixel covers per Å of
  * view depth (perspective), or everywhere (orthographic), from the projection and the viewport's height in CSS pixels
- * (`screen-space-lod.md`)
  */
 export interface LodView {
   /** Å per CSS pixel per Å of view depth, 0 for orthographic */
@@ -409,26 +512,23 @@ export namespace LodView {
   }
 
   /**
-   * Level `j`'s range and fade in distances, into `out` (min, max, overlap): as they are without `pixelSize`; with it the
+   * Level `j`'s range in distances, into `out` (min, max): as they are without `pixelSize`; with it the
    * pixel sizes divided by the depth scale, or (orthographic, or no view yet) all distances for the level of the view's
    * pixel size and none for the others
    */
   export function getRange(levels: LodLevelsValue, j: number, view: LodView, out: number[]) {
-    const [min, max, overlap] = levels[j];
+    const [min, max] = levels[j];
     if (!((levels.pixelSize ?? 0) > 0)) {
       out[0] = min;
       out[1] = max;
-      out[2] = overlap;
     } else if (view.depthScale > 0) {
       const k = view.depthScale;
       out[0] = min / k;
       out[1] = Math.min(max / k, MaxLodDistance);
-      out[2] = overlap / k;
     } else {
       const drawn = min <= view.pixelSize && view.pixelSize < max;
       out[0] = drawn ? 0 : -2;
       out[1] = drawn ? MaxLodDistance : -1;
-      out[2] = 0;
     }
     return out;
   }
@@ -440,16 +540,65 @@ export type CullValues = {
   readonly instanceCount: ValueCell<number>;
   readonly uLod: ValueCell<Vec4>;
   readonly instanceGrid: ValueCell<InstanceGrid>;
+  /** culled and decimated by cells (`hasInstanceCells`) */
+  readonly instanceCellSize: ValueCell<number>;
   readonly boundingSphere: ValueCell<Sphere3D>;
   readonly lodLevels?: ValueCell<unknown>;
-  /** clip objects without a clipping layer cull what they clip whole (`getCullClipObjects`, `clip-culling.md`) */
+  /** clip objects without a clipping layer cull what they clip whole (`getCullClipObjects`) */
   readonly dClipObjects?: ValueCell<boolean>;
   readonly dClipping?: ValueCell<boolean>;
   readonly clipObjects?: ValueCell<Clip.Objects>;
   /** instance clipping tests an instance's center: the grid's spheres shrunk to the centers (`getCullClipShrink`) */
   readonly dClipVariant?: ValueCell<string>;
   readonly invariantBoundingSphere?: ValueCell<Sphere3D>;
+  /** the transient transform of an object shown moved (`TransformData.uObjectTransform`): the grid moved by it */
+  readonly uObjectTransform?: ValueCell<Mat4>;
 };
+
+/** The moved copies of instance grids (`getCullGrid`), by the grid's cell */
+const movedGrids = new WeakMap<
+  ValueCell<InstanceGrid>,
+  { grid: number; transform: number; value: InstanceGrid; cells: Float32Array; batches: Float32Array }
+>();
+const movedSphere = Sphere3D();
+
+/**
+ * The instance grid culling tests: the object's, or with a transient transform (`uObjectTransform`) a copy with its cell
+ * and batch spheres moved by it (as many as the cells, not the instances; a new object per transform, so what is cached
+ * by the grid, the clip classes, is classified again)
+ */
+export function getCullGrid(values: CullValues): InstanceGrid {
+  const grid = values.instanceGrid.ref.value;
+  const cell = values.uObjectTransform;
+  if (!cell || Mat4.isIdentity(cell.ref.value)) return grid;
+  let e = movedGrids.get(values.instanceGrid);
+  if (e && e.grid === values.instanceGrid.ref.version && e.transform === cell.ref.version) return e.value;
+  const transform = cell.ref.value;
+  const scale = Mat4.getMaxScaleOnAxis(transform);
+  const cells = e && e.cells.length === grid.cellSpheres.length ? e.cells : new Float32Array(grid.cellSpheres.length);
+  const batches =
+    e && e.batches.length === grid.batchSpheres.length ? e.batches : new Float32Array(grid.batchSpheres.length);
+  for (let i = 0, il = grid.cellSpheres.length / 4; i < il; ++i) {
+    Sphere3D.toArray(transformSphereAt(movedSphere, grid.cellSpheres, i, transform, scale), cells, i * 4);
+  }
+  for (let i = 0, il = grid.batchSpheres.length / 4; i < il; ++i) {
+    Sphere3D.toArray(transformSphereAt(movedSphere, grid.batchSpheres, i, transform, scale), batches, i * 4);
+  }
+  e = {
+    grid: values.instanceGrid.ref.version,
+    transform: cell.ref.version,
+    value: { ...grid, cellSpheres: cells, batchSpheres: batches },
+    cells,
+    batches,
+  };
+  movedGrids.set(values.instanceGrid, e);
+  return e.value;
+}
+
+/** The bounds culling tests an object without a grid by: as drawn (`getDrawnBoundingSphere`) */
+function getCullBoundingSphere(values: CullValues): Sphere3D {
+  return getDrawnBoundingSphere(values);
+}
 
 /**
  * The clip objects `values` cull by: those of an object without a clipping layer (its flags exempt groups), undefined
@@ -528,12 +677,16 @@ export const ZeroCullSegment: CullSegment = { first: 0, offset: 0, instanceBase:
  */
 export interface SegmentedMdbList {
   readonly list: MultiDrawBaseData[];
-  /** resize and reset the list and refresh the per-level uLod (and, if segmented, uLodLevel) uniforms */
+  /**
+   * resize and reset the list and refresh the per-level uLod (and, if segmented, uLodLevel) uniforms; `expanded` gives
+   * each level its first pose (`uCopyBase`, `expandedSegment`)
+   */
   prepare: (
     lodCell: ValueCell<unknown> | undefined,
     capacity: number,
     segmented: boolean,
     lod: LodView,
+    expanded?: boolean,
   ) => LodLevelsValue | undefined;
   /** append a draw entry, extending the previous entry when contiguous */
   append: (
@@ -560,19 +713,60 @@ export interface SegmentedMdbList {
     isOccluded: ((s: Sphere3D) => boolean) | null,
     stats: GraphicsStats,
     wholeSegmentFallback: boolean,
+    clipGhost?: boolean,
   ) => boolean;
   /** append draw entries for the whole segment without culling */
   fullSegment: (values: CullValues, segment: CullSegment, lodLevels: LodLevelsValue | undefined) => void;
-  /** append the draw entry for the lod level matching the given distance (the ranges of the last `prepare`) */
-  cullSimpleSegment: (
+  /**
+   * An expanded object's draws (`instance-expansion.ts`, the lists of a `prepare` with `expanded`): its poses culled by
+   * their spheres (moved by the object transform) as a gridless object, a draw a level of its instances times the
+   * poses whose sphere reaches the level's distances (the vertex stage drops an instance outside them); `order` the
+   * poses seen, a level's after the one before (its `uCopyBase`), returned with their count; all of them without a
+   * view (`frustum` undefined: uncull); a copy drawn by the object of its template's coarse level by the view
+   * (`getCopyLevels`; without a view the template whole)
+   */
+  expandedSegment: (
+    values: CullValues,
+    lodLevels: LodLevelsValue | undefined,
+    expansion: InstanceExpansion,
+    lod: LodView,
+    cameraPlane: Plane3D | undefined,
+    frustum: Frustum3D | undefined,
+    isOccluded: ((s: Sphere3D) => boolean) | null,
+    stats: GraphicsStats | undefined,
+    clipGhost: boolean,
+    order: Uint32Array,
+  ) => ExpandedPoses;
+  /**
+   * append draw entries for the instances with a count above 0 (`counts` by instance id, `MarkerData.markerInstanceCounts`)
+   * in the frustum, each at the levels its sphere reaches (`positions` the draw position of each id, as the grid
+   * reordered them: `createInstancePositions`; `transforms` in draw order, either encoding, `sphere` their invariant one), as
+   * `cullSegment` a cell; no occlusion: the hidden ones are drawn too (their ghost edges)
+   */
+  markedSegment: (
     values: CullValues,
     segment: CullSegment,
-    lodLevels: LodLevelsValue,
-    d: number,
-    radius: number,
-    scale: number,
+    lodLevels: LodLevelsValue | undefined,
+    counts: Uint32Array,
+    positions: Uint32Array,
+    transforms: InstanceTransforms,
+    sphere: Sphere3D,
+    cameraPlane: Plane3D,
+    frustum: Frustum3D,
   ) => void;
 }
+
+/**
+ * The poses an expanded object's draws read (`SegmentedMdbList.expandedSegment`): its own, `order`'s `count` of them;
+ * or its template's (`shared`, `getCopyOrderImage`: a level's draws from their slice, `sharedCount` of the order
+ * read), its own then not written
+ */
+export type ExpandedPoses = {
+  order: Uint32Array;
+  count: number;
+  shared: TextureImage<Float32Array> | undefined;
+  sharedCount: number;
+};
 
 /**
  * The frustum's planes and the camera plane as coefficients (`[nx, ny, nz, constant]` each, the camera plane last), set
@@ -628,11 +822,11 @@ export function createSegmentedMdbList(): SegmentedMdbList {
   const range: number[] = [0, 0, 0];
 
   const s = Sphere3D();
+  const markedCenter = Vec3();
 
   // flattened lod tuples, avoids nested array loads in the hot cell loop; the ranges in distances (`prepare`)
   const lodMin: number[] = [];
   const lodMax: number[] = [];
-  const lodOverlap: number[] = [];
   const lodCount: number[] = [];
 
   function prepare(
@@ -640,44 +834,60 @@ export function createSegmentedMdbList(): SegmentedMdbList {
     capacity: number,
     segmented: boolean,
     lod: LodView,
+    expanded = false,
   ): LodLevelsValue | undefined {
     const lodLevels = lodCell?.ref.value as LodLevelsValue | undefined;
     const hasLodLevels = !!lodLevels && lodLevels.length > 0;
     const levelCount = hasLodLevels ? lodLevels.length : 1;
-    // segmented (merged) items also carry their segments' level scales (`tSegment`, up to 4 levels) - members' scales
-    // can differ, unlike min/max/overlap
-    const uniformCount = segmented ? 2 : 1;
+    // segmented (merged) items also carry their segments' level scales and strides (`tSegment`, up to 4 levels, the
+    // level by `uLodLevel`) - members' can differ, unlike min/max; unmerged ones the level's stride (`uLodStride`: quad
+    // `p` draws item `p * stride`); an expanded object's its first pose after them
+    const lodUniforms = hasLodLevels ? 2 : 0;
+    const uniformCount = lodUniforms + (expanded ? 1 : 0);
 
     list.length = levelCount;
     const viewChanged =
       (lodLevels?.pixelSize ?? 0) > 0 && (lod.depthScale !== lodDepthScale || lod.pixelSize !== lodPixelSize);
     const uniformsNeedUpdate = hasLodLevels && (lodCell!.ref.version !== lodLevelsVersion || viewChanged);
+    const levelUniform = segmented ? 'uLodLevel' : 'uLodStride';
     for (let j = 0; j < levelCount; ++j) {
-      list[j] = getMdbData(capacity, list[j]);
-      list[j].count = 0;
+      let l = getMdbData(capacity, list[j]);
+      // a level's uniforms are those of its draw block (WebGPU's, made at the level's first draw, by the level): a
+      // level of other uniforms (lod levels on or off) is another object, not the same one's emptied or filled
+      const layoutChanged =
+        l.uniforms.length !== uniformCount ||
+        (hasLodLevels && l.uniforms[1][0] !== levelUniform) ||
+        (expanded && l.uniforms[lodUniforms][0] !== 'uCopyBase');
+      if (l === list[j] && layoutChanged) l = getMdbData(capacity);
+      list[j] = l;
+      l.count = 0;
+      if (expanded && l.uniforms.length !== uniformCount) {
+        l.uniforms.length = uniformCount;
+        l.uniforms[lodUniforms] = ['uCopyBase', ValueCell.create(0)];
+      }
       if (hasLodLevels) {
         LodView.getRange(lodLevels, j, lod, range);
         lodMin[j] = range[0];
         lodMax[j] = range[1];
-        lodOverlap[j] = range[2];
-        const l = list[j];
         let created = false;
-        if (l.uniforms.length !== uniformCount) {
+        if (l.uniforms[0]?.[0] !== 'uLod') {
           l.uniforms.length = uniformCount;
           l.uniforms[0] = ['uLod', ValueCell.create(Vec4())];
-          if (segmented) l.uniforms[1] = ['uLodLevel', ValueCell.create(Math.min(j, 3))];
+          l.uniforms[1] = segmented
+            ? ['uLodLevel', ValueCell.create(Math.min(j, 3))]
+            : ['uLodStride', ValueCell.create(lodLevels[j][4] ?? 1)];
           created = true;
         }
         if (uniformsNeedUpdate || created) {
           ValueCell.update(
             l.uniforms[0][1],
-            Vec4.set(l.uniforms[0][1].ref.value as Vec4, lodMin[j], lodMax[j], lodOverlap[j], lodLevels[j][4]),
+            Vec4.set(l.uniforms[0][1].ref.value as Vec4, lodMin[j], lodMax[j], 0, lodLevels[j][3]),
           );
+          if (!segmented) ValueCell.updateIfChanged(l.uniforms[1][1], lodLevels[j][4] ?? 1);
         }
-      } else {
-        list[j].uniforms.length = 0;
       }
     }
+
     if (uniformsNeedUpdate) {
       lodLevelsVersion = lodCell!.ref.version;
       lodDepthScale = lod.depthScale;
@@ -705,6 +915,7 @@ export function createSegmentedMdbList(): SegmentedMdbList {
     ) {
       l.instanceCounts[o - 1] += instanceCount;
     } else {
+      if (o >= l.firsts.length) growMdbData(l, o + 1);
       l.firsts[o] = first;
       l.offsets[o] = offset;
       l.counts[o] = count;
@@ -723,6 +934,7 @@ export function createSegmentedMdbList(): SegmentedMdbList {
     isOccluded: ((s: Sphere3D) => boolean) | null,
     stats: GraphicsStats,
     wholeSegmentFallback: boolean,
+    clipGhost = false,
   ): boolean {
     const drawCount = values.drawCount.ref.value;
     const instanceCount = values.instanceCount.ref.value;
@@ -731,17 +943,16 @@ export function createSegmentedMdbList(): SegmentedMdbList {
     const { first, offset, instanceBase } = segment;
     const [minDistance, maxDistance] = values.uLod.ref.value;
     const hasLod = minDistance !== 0 || maxDistance !== 0;
-    const grid = values.instanceGrid.ref.value;
 
     const levelCount = lodLevels ? lodLevels.length : 0;
-    for (let j = 0; j < levelCount; ++j) lodCount[j] = lodLevels![j][3];
+    for (let j = 0; j < levelCount; ++j) lodCount[j] = lodLevels![j][2];
     const clip = getCullClipObjects(values);
 
-    if (grid.cellSize <= 1) {
+    if (!hasInstanceCells(values)) {
       if (!wholeSegmentFallback) return false;
 
       // no instance grid for this segment, cull it as a whole
-      const b = values.boundingSphere.ref.value;
+      const b = getCullBoundingSphere(values);
       const d = p3distanceToPoint(cameraPlane, b.center);
       if (hasLod && (d + b.radius < minDistance || d - b.radius > maxDistance)) {
         if (isTimingMode) stats.culled.lod += instanceCount;
@@ -751,16 +962,19 @@ export function createSegmentedMdbList(): SegmentedMdbList {
         if (isTimingMode) stats.culled.frustum += instanceCount;
         return true;
       }
-      if (clip && Clip.classifySphere(clip, b) === Clip.SphereClass.All) return true;
+      // clipped whole; the ghost pass's (\`clipGhost\`) what the clip objects reach
+      if (clip && Clip.classifySphere(clip, b) === (clipGhost ? Clip.SphereClass.None : Clip.SphereClass.All)) {
+        return true;
+      }
       if (isOccluded !== null && isOccluded(b)) {
         if (isTimingMode) stats.culled.occlusion += instanceCount;
         return true;
       }
       if (lodLevels) {
         // no per-cell distance to decimate by here, so draw full detail for
-        // whichever level(s) match (keeps the level's uLod min/max/overlap
-        // fade correct, matches the plain render path's full-detail draw for
-        // ungridded objects, see the `cellSize <= 1` bail in createRenderable's cull)
+        // whichever level(s) match (keeps the level's uLod min/max
+        // correct, matches the plain render path's full-detail draw for
+        // ungridded objects, see the `hasInstanceCells` bail in createRenderable's cull)
         for (let j = 0, jl = lodLevels.length; j < jl; ++j) {
           if (d + b.radius < lodMin[j] || d - b.radius > lodMax[j]) continue;
           emit(list[j], first, offset, drawCount, instanceCount, instanceBase);
@@ -771,10 +985,12 @@ export function createSegmentedMdbList(): SegmentedMdbList {
       return true;
     }
 
-    const { cellOffsets, cellSpheres, batchOffsets, batchSpheres, batchCount, batchSize } = grid;
+    // the grid as drawn: moved by a transient transform
+    const cullGrid = getCullGrid(values);
+    const { cellOffsets, cellSpheres, batchOffsets, batchSpheres, batchCount, batchSize } = cullGrid;
     const checkCellOccludedDistance = 2 * batchSize;
     const clipClasses = clip
-      ? getGridClipClasses(grid, clip, values.clipObjects!.ref.version, getCullClipShrink(values))
+      ? getGridClipClasses(cullGrid, clip, values.clipObjects!.ref.version, getCullClipShrink(values))
       : undefined;
     setCullPlanes(frustum, cameraPlane);
 
@@ -808,11 +1024,12 @@ export function createSegmentedMdbList(): SegmentedMdbList {
         }
         continue;
       }
-      // clipped whole; its cells tested only where the batch reaches a clip object's surface
+      // clipped whole; its cells tested only where the batch reaches a clip object's surface. The ghost pass
+      // (\`clipGhost\`): what the clip objects reach, clipped whole or cut
       let clipCells = false;
       if (clipClasses) {
         const c = clipClasses.batches[k];
-        if (c === Clip.SphereClass.All) continue;
+        if (c === (clipGhost ? Clip.SphereClass.None : Clip.SphereClass.All)) continue;
         clipCells = c === Clip.SphereClass.Some;
       }
 
@@ -889,7 +1106,7 @@ export function createSegmentedMdbList(): SegmentedMdbList {
           if (isTimingMode) stats.culled.frustum += count;
           continue;
         }
-        if (clipCells && clipClasses!.cells[c] === Clip.SphereClass.All) continue;
+        if (clipCells && clipClasses!.cells[c] === (clipGhost ? Clip.SphereClass.None : Clip.SphereClass.All)) continue;
         if (
           isOccluded !== null &&
           d - r < checkCellOccludedDistance &&
@@ -921,39 +1138,323 @@ export function createSegmentedMdbList(): SegmentedMdbList {
 
     if (lodLevels) {
       for (let j = 0, jl = lodLevels.length; j < jl; ++j) {
-        emit(list[j], segment.first, segment.offset, lodLevels[j][3], instanceCount, segment.instanceBase);
+        emit(list[j], segment.first, segment.offset, lodLevels[j][2], instanceCount, segment.instanceBase);
       }
     } else {
       emit(list[0], segment.first, segment.offset, drawCount, instanceCount, segment.instanceBase);
     }
   }
 
-  function cullSimpleSegment(
+  function markedSegment(
     values: CullValues,
     segment: CullSegment,
-    lodLevels: LodLevelsValue,
-    d: number,
-    radius: number,
-    scale: number,
+    lodLevels: LodLevelsValue | undefined,
+    counts: Uint32Array,
+    positions: Uint32Array,
+    transforms: InstanceTransforms,
+    sphere: Sphere3D,
+    cameraPlane: Plane3D,
+    frustum: Frustum3D,
   ) {
-    if (values.drawCount.ref.value === 0 || values.instanceCount.ref.value === 0) return;
+    const drawCount = values.drawCount.ref.value;
+    const instanceCount = values.instanceCount.ref.value;
+    if (drawCount === 0 || instanceCount === 0) return;
 
-    for (let j = 0, jl = lodLevels.length; j < jl; ++j) {
-      if (d + radius < lodMax[j] * scale) {
-        emit(
-          list[j],
-          segment.first,
-          segment.offset,
-          lodLevels[j][3],
-          values.instanceCount.ref.value,
-          segment.instanceBase,
-        );
-        break;
+    const { first, offset, instanceBase } = segment;
+    const [minDistance, maxDistance] = values.uLod.ref.value;
+    const hasLod = minDistance !== 0 || maxDistance !== 0;
+    // gridless segments are drawn at full detail at their levels (`cullSegment`)
+    const gridless = !hasInstanceCells(values);
+    const levelCount = lodLevels ? lodLevels.length : 0;
+    setCullPlanes(frustum, cameraPlane);
+    // as drawn: the transient transform after the instances'
+    const o = values.uObjectTransform?.ref.value;
+    const moved = !!o && !Mat4.isIdentity(o);
+    const objectScale = moved ? Mat4.getMaxScaleOnAxis(o) : 1;
+    // by id: a scan of the counts, the marked ones looked up
+    for (let id = 0, il = Math.min(instanceCount, counts.length); id < il; ++id) {
+      if (counts[id] === 0) continue;
+      const k = positions[id];
+      // the marked instances alone, so one at a time by the encoding
+      InstanceTransforms.getPoint(transforms, k, sphere.center, markedCenter);
+      let x = markedCenter[0];
+      let y = markedCenter[1];
+      let z = markedCenter[2];
+      if (moved) {
+        const ox = o[0] * x + o[4] * y + o[8] * z + o[12];
+        const oy = o[1] * x + o[5] * y + o[9] * z + o[13];
+        z = o[2] * x + o[6] * y + o[10] * z + o[14];
+        x = ox;
+        y = oy;
+      }
+      const r = sphere.radius * InstanceTransforms.getMaxScale(transforms, k) * objectScale;
+      if (!intersectsCullFrustum(x, y, z, r)) continue;
+      const d = cullCameraDistance(x, y, z);
+      if (hasLod && (d + r < minDistance || d - r > maxDistance)) continue;
+      if (lodLevels) {
+        for (let j = 0; j < levelCount; ++j) {
+          if (d + r < lodMin[j] || d - r > lodMax[j]) continue;
+          emit(list[j], first, offset, gridless ? drawCount : lodLevels[j][2], 1, instanceBase + k);
+        }
+      } else {
+        emit(list[0], first, offset, drawCount, 1, instanceBase + k);
       }
     }
   }
 
-  return { list, prepare, append: emit, cullSegment, fullSegment, cullSimpleSegment };
+  // an expanded object's poses (`expandedSegment`): the levels each is drawn at (a bit a level), the poses a level
+  let poseLevels = new Uint8Array(0);
+  /** the poses seen (`poseLevels` theirs) */
+  let poseIds = new Uint32Array(0);
+  const levelPoses: number[] = [];
+  const levelCursors: number[] = [];
+  const pose = Sphere3D();
+  const poseTransform = Mat4();
+  const copyRange: [number, number] = [0, 0];
+  const levelFrom: number[] = [];
+  const levelTo: number[] = [];
+
+  function expandedSegment(
+    values: CullValues,
+    lodLevels: LodLevelsValue | undefined,
+    expansion: InstanceExpansion,
+    lod: LodView,
+    cameraPlane: Plane3D | undefined,
+    frustum: Frustum3D | undefined,
+    isOccluded: ((s: Sphere3D) => boolean) | null,
+    stats: GraphicsStats | undefined,
+    clipGhost: boolean,
+    order: Uint32Array,
+  ) {
+    const drawCount = values.drawCount.ref.value;
+    const n = values.instanceCount.ref.value;
+    const { count, spheres } = expansion;
+    const levelCount = lodLevels ? lodLevels.length : 1;
+    for (let j = 0; j < levelCount; ++j) levelPoses[j] = 0;
+    if (lodLevels) for (let j = 0; j < levelCount; ++j) lodCount[j] = lodLevels[j][2];
+    // without a view the template whole: its coarse levels' objects none
+    if (drawCount === 0 || n === 0 || count === 0 || (!frustum && expansion.level !== 0)) {
+      return { order, count: 0, shared: undefined, sharedCount: 0 };
+    }
+    if (poseLevels.length < count) {
+      poseLevels = new Uint8Array(count);
+      poseIds = new Uint32Array(count);
+    }
+
+    const [minDistance, maxDistance] = values.uLod.ref.value;
+    const hasLod = minDistance !== 0 || maxDistance !== 0;
+    const clip = frustum ? getCullClipObjects(values) : undefined;
+    const shrink = clip ? getCullClipShrink(values) : 0;
+    const objectTransform = values.uObjectTransform?.ref.value;
+    const moved = !!objectTransform && !Mat4.isIdentity(objectTransform);
+    if (moved) Mat4.copy(poseTransform, objectTransform);
+    const scale = moved ? Mat4.getMaxScaleOnAxis(poseTransform) : 1;
+    if (frustum) setCullPlanes(frustum, cameraPlane!);
+    const all = lodLevels ? (1 << levelCount) - 1 : 1;
+    // the copies in the view by their template's sphere, by coarse level: shared by the template's objects, an object
+    // tests those at its level alone
+    const buckets = frustum
+      ? getCopyBuckets(expansion.copies, cameraPlane!, frustum, lod, moved ? poseTransform : undefined)
+      : undefined;
+    const level = expansion.level;
+    const first = buckets ? buckets.offsets[level] : 0;
+    const last = buckets ? buckets.offsets[level + 1] : count;
+
+    // neither clipped nor occluded: a level's copies a slice of its bucket (by distance), those within the object's
+    // reach of the level's distances, not a pass over the copies an object (a template's objects each over its
+    // copies: targets times copies); a superset of its spheres' (the vertex stage drops an instance outside them)
+    if (buckets && !clip && isOccluded === null) {
+      const reach = getCopyReach(expansion) * scale;
+      const { distances, order: sorted } = buckets;
+      const min = hasLod ? minDistance : -Infinity;
+      const max = hasLod ? maxDistance : Infinity;
+      let total = 0;
+      for (let j = 0; j < levelCount; ++j) {
+        const lo = lodLevels ? Math.max(min, lodMin[j]) : min;
+        const hi = lodLevels ? Math.min(max, lodMax[j]) : max;
+        getCopyRange(distances, first, last, lo, hi, reach, copyRange);
+        levelFrom[j] = copyRange[0];
+        levelTo[j] = copyRange[1];
+        total += copyRange[1] - copyRange[0];
+      }
+      // by a view of a version: the template's order (`getCopyOrderImage`, by the view and the transform: a moved
+      // representation's objects moved alike) a level's draws read from its slice, not a copy of them an object (a
+      // texture's upload each a frame: hundreds of objects a template)
+      if (lod.version > 0) {
+        for (let j = 0; j < levelCount; ++j) {
+          const l = list[j];
+          ValueCell.updateIfChanged(l.uniforms[l.uniforms.length - 1][1] as ValueCell<number>, levelFrom[j]);
+          const seen = levelTo[j] - levelFrom[j];
+          if (seen > 0) emit(l, 0, 0, lodLevels ? lodCount[j] : drawCount, n * seen, 0);
+        }
+        const shared = getCopyOrderImage(expansion.copies);
+        return { order, count: total, shared, sharedCount: last };
+      }
+      if (order.length < total) order = new Uint32Array(Math.max(total, (total * 3) >> 1));
+      let cursor = 0;
+      for (let j = 0; j < levelCount; ++j) {
+        const l = list[j];
+        ValueCell.updateIfChanged(l.uniforms[l.uniforms.length - 1][1] as ValueCell<number>, cursor);
+        const seen = levelTo[j] - levelFrom[j];
+        if (seen > 0) {
+          emit(l, 0, 0, lodLevels ? lodCount[j] : drawCount, n * seen, 0);
+          order.set(sorted.subarray(levelFrom[j], levelTo[j]), cursor);
+        }
+        cursor += seen;
+      }
+      return { order, count: total, shared: undefined, sharedCount: 0 };
+    }
+
+    let seenCount = 0;
+    for (let b = first; b < last; ++b) {
+      const i = buckets ? buckets.order[b] : b;
+      if (!frustum) {
+        poseIds[seenCount] = i;
+        poseLevels[seenCount++] = all;
+        for (let j = 0; j < levelCount; ++j) levelPoses[j] += 1;
+        continue;
+      }
+      // read from the array (thousands of copies a target a frame); its frustum test its template's sphere's
+      // (`getCopyBuckets`), a superset of the object's
+      let x: number, y: number, z: number, r: number;
+      if (moved) {
+        transformSphereAt(pose, spheres, i, poseTransform, scale);
+        x = pose.center[0];
+        y = pose.center[1];
+        z = pose.center[2];
+        r = pose.radius;
+      } else {
+        const o = i * 4;
+        x = spheres[o];
+        y = spheres[o + 1];
+        z = spheres[o + 2];
+        r = spheres[o + 3];
+      }
+      const d = cullCameraDistance(x, y, z);
+      if (hasLod && (d + r < minDistance || d - r > maxDistance)) {
+        if (isTimingMode && stats) stats.culled.lod += n;
+        continue;
+      }
+      if (clip || isOccluded !== null) {
+        if (!moved) s3fromArray(pose, spheres, i * 4);
+        if (clip) {
+          pose.radius = Math.max(0, r - shrink);
+          const c = Clip.classifySphere(clip, pose);
+          pose.radius = r;
+          if (c === (clipGhost ? Clip.SphereClass.None : Clip.SphereClass.All)) continue;
+        }
+        if (isOccluded !== null && isOccluded(pose)) {
+          if (isTimingMode && stats) stats.culled.occlusion += n;
+          continue;
+        }
+      }
+      let levels = 0;
+      if (lodLevels) {
+        for (let j = 0; j < levelCount; ++j) {
+          if (d + r < lodMin[j] || d - r > lodMax[j]) continue;
+          levels |= 1 << j;
+          levelPoses[j] += 1;
+        }
+      } else {
+        levels = 1;
+        levelPoses[0] += 1;
+      }
+      if (levels === 0) continue;
+      poseIds[seenCount] = i;
+      poseLevels[seenCount++] = levels;
+    }
+
+    let total = 0;
+    for (let j = 0; j < levelCount; ++j) {
+      const l = list[j];
+      ValueCell.updateIfChanged(l.uniforms[l.uniforms.length - 1][1] as ValueCell<number>, total);
+      levelCursors[j] = total;
+      const seen = levelPoses[j];
+      if (seen > 0) emit(l, 0, 0, lodLevels ? lodCount[j] : drawCount, n * seen, 0);
+      total += seen;
+    }
+    if (order.length < total) order = new Uint32Array(Math.max(total, (total * 3) >> 1));
+    for (let k = 0; k < seenCount; ++k) {
+      const levels = poseLevels[k];
+      for (let j = 0; j < levelCount; ++j) if (levels & (1 << j)) order[levelCursors[j]++] = poseIds[k];
+    }
+    return { order, count: total, shared: undefined, sharedCount: 0 };
+  }
+
+  return { list, prepare, append: emit, cullSegment, fullSegment, markedSegment, expandedSegment };
+}
+
+/**
+ * At most one marked instance per this many instances (times the levels, each drawn at all) for the marked instances
+ * to be drawn alone (`Renderable.renderMarked`): unculled, they are to be fewer than what culling leaves
+ */
+export const MarkedInstanceShare = 4;
+
+/**
+ * Whether `marked` instances drawn at `levelCount` levels each are few against `instanceCount`
+ * (`MarkedInstanceShare`)
+ */
+export function isMarkedFew(marked: number, levelCount: number, instanceCount: number) {
+  return marked * Math.max(1, levelCount) * MarkedInstanceShare <= instanceCount;
+}
+
+/**
+ * The draw version of the marking mask (`Renderable.markedDrawVersion`): the marked lists' (`marked`) odd, the main
+ * lists' (`drawVersion`) even, so that a switch between them is a change
+ */
+export function getMarkedDrawVersion(marked: boolean, markedVersion: number, drawVersion: number) {
+  return marked ? markedVersion * 2 + 1 : drawVersion * 2;
+}
+
+/**
+ * The draw position of each instance id (the inverse of `aInstance`, whose ids the instance grid reorders), kept while
+ * the cell's value and version stay
+ */
+export function createInstancePositions() {
+  let array: Uint32Array | undefined;
+  let version = -1;
+  let positions = new Uint32Array(0);
+  return (instances: ValueCell<Uint32Array>, count: number) => {
+    const a = instances.ref.value;
+    if (a !== array || instances.ref.version !== version || positions.length < count) {
+      if (positions.length < count) positions = new Uint32Array(count);
+      for (let k = 0; k < count; ++k) positions[a[k]] = k;
+      array = a;
+      version = instances.ref.version;
+    }
+    return positions;
+  };
+}
+
+/**
+ * What the marked lists were built from (`Renderable.renderMarked`): cell versions and the view (`LodView.version`, 0:
+ * unknown, built anew), compared in place
+ */
+export function createMarkedKey() {
+  const versions: number[] = [];
+  let index = 0;
+  let same = false;
+  return {
+    begin(lod: LodView) {
+      index = 0;
+      same = lod.version !== 0 && versions.length > 0;
+      this.add(lod.version);
+    },
+    add(version: number) {
+      if (versions[index] !== version) {
+        versions[index] = version;
+        same = false;
+      }
+      index += 1;
+    },
+    isSame() {
+      return same;
+    },
+    /** nothing built: the next `begin` builds anew */
+    reset() {
+      versions.length = 0;
+    },
+  };
 }
 
 type GraphicsRenderableValues = RenderableValues & BaseValues;
@@ -962,7 +1463,7 @@ type GraphicsRenderableValues = RenderableValues & BaseValues;
  * What a cull read, to skip the next with the same (still frames redo every object's culling otherwise): the view's
  * version (`LodView.version`, the renderer compares the view once per update) and the versions of the culled values'
  * cells. Not for an occlusion test (its levels change between frames) nor in timing mode (the culled counts are per
- * frame); `invalidate` where the lists changed otherwise (`uncull`, `cullSimple`)
+ * frame); `invalidate` where the lists changed otherwise (`uncull`)
  */
 export function createCullView() {
   let viewVersion = 0;
@@ -988,6 +1489,31 @@ export function createCullView() {
   };
 }
 
+/**
+ * A renderable's culled lists, their levels' uniforms and caches: of the visible passes, or of the ghost pass
+ * (`clipGhost`), so that neither rewrites the other's every frame
+ */
+export function createCullListSet() {
+  return {
+    mdb: createSegmentedMdbList(),
+    cullView: createCullView(),
+    cullEnabled: false,
+    lastCullFrame: undefined as Frame | undefined,
+    drawVersion: 0,
+    /**
+     * an expanded object's poses seen by the last cull, by level (`expandedSegment`): its own, or its template's
+     * (`shared`, at the image's version `sharedVersion`)
+     */
+    poses: {
+      order: new Uint32Array(0) as Uint32Array,
+      count: 0,
+      version: 0,
+      shared: undefined as TextureImage<Float32Array> | undefined,
+      sharedVersion: -1,
+    },
+  };
+}
+
 /** The cells of `values` culling reads (`createCullView`) */
 export function getCullCells(values: CullValues): (ValueCell<unknown> | undefined)[] {
   return [
@@ -1002,6 +1528,7 @@ export function getCullCells(values: CullValues): (ValueCell<unknown> | undefine
     values.clipObjects,
     values.dClipVariant,
     values.invariantBoundingSphere,
+    values.uObjectTransform,
   ];
 }
 
@@ -1009,19 +1536,24 @@ export function createRenderable<T extends GraphicsRenderableValues>(
   renderItem: GraphicsRenderItem,
   values: T,
   state: RenderableState,
+  /** the instances' data in storage (`instance-storage.ts`): synced on updates, destroyed with the renderable */
+  storage?: { sync(): void; destroy(): void },
 ): Renderable<T> {
   const id = getNextRenderableId();
 
-  const mdb = createSegmentedMdbList();
   const clipInfo = createClipInfoCache(values);
-  let cullEnabled = false;
-  let lastCullFrame: Frame | undefined;
   let programVersion = 0;
+  // the lists of the visible passes and of the ghost pass (`clipGhost`): each with its own levels' uniforms, so that
+  // neither rewrites the other's every frame; drawn from the set of the last cull
+  const visibleSet = createCullListSet();
+  const ghostSet = createCullListSet();
+  let set = visibleSet;
+  const getSet = (clipGhost: boolean | undefined) => (clipGhost ? ghostSet : visibleSet);
   const getDrawVersion = createDrawVersion((out) => {
-    DrawKey.add(out, cullEnabled ? 1 : 0);
-    if (cullEnabled) appendMdbDrawKey(mdb.list, out);
+    DrawKey.add(out, set.cullEnabled ? 1 : 0);
+    if (set.cullEnabled) appendMdbDrawKey(set.mdb.list, out);
   });
-  let drawVersion = getDrawVersion();
+  visibleSet.drawVersion = ghostSet.drawVersion = getDrawVersion();
   // the cells culling reads every frame, resolved once: values objects have too many keys for fast named reads (the
   // cells stay, updates replace their values)
   const cullValues: CullValues = {
@@ -1029,6 +1561,7 @@ export function createRenderable<T extends GraphicsRenderableValues>(
     instanceCount: values.instanceCount,
     uLod: values.uLod,
     instanceGrid: values.instanceGrid,
+    instanceCellSize: values.instanceCellSize,
     boundingSphere: values.boundingSphere,
     lodLevels: values.lodLevels,
     dClipObjects: values.dClipObjects,
@@ -1036,10 +1569,77 @@ export function createRenderable<T extends GraphicsRenderableValues>(
     clipObjects: values.clipObjects,
     dClipVariant: values.dClipVariant,
     invariantBoundingSphere: values.invariantBoundingSphere,
+    uObjectTransform: values.uObjectTransform,
   };
 
-  const cullView = createCullView();
+  // drawn by the poses of a list culled here (`instance-expansion.ts`): the view's draws a level each, the poses seen
+  // written into `tCopyOrder` where drawn
+  const expanded = isExpanded(values) ? values : undefined;
   const cullCells = getCullCells(cullValues);
+  if (expanded) cullCells.push(expanded.instanceExpansion);
+
+  /** the poses `set`'s lists draw: culled by its view (all of them without one, `frustum` undefined) */
+  function expand(
+    lod: LodView,
+    cameraPlane: Plane3D | undefined,
+    frustum: Frustum3D | undefined,
+    isOccluded: ((s: Sphere3D) => boolean) | null,
+    stats: GraphicsStats | undefined,
+    clipGhost: boolean,
+  ) {
+    const expansion = expanded!.instanceExpansion.ref.value;
+    const lodLevels = set.mdb.prepare(cullValues.lodLevels, 1, false, lod, true);
+    const { poses } = set;
+    const seen = set.mdb.expandedSegment(
+      cullValues,
+      lodLevels,
+      expansion,
+      lod,
+      cameraPlane,
+      frustum,
+      isOccluded,
+      stats,
+      clipGhost,
+      poses.order,
+    );
+    poses.order = seen.order;
+    poses.count = seen.count;
+    poses.shared = seen.shared;
+    poses.sharedVersion = seen.shared?.version ?? -1;
+    poses.version += 1;
+    // what a pick of the visible passes' draws tells its pose by (kept until the next cull)
+    if (set === visibleSet) {
+      expansion.seen.order = seen.shared ? seen.shared.array : poses.order;
+      expansion.seen.count = seen.shared ? seen.sharedCount : poses.count;
+    }
+    set.cullEnabled = true;
+  }
+  /** the copies of `set`'s lists in `tCopyOrder` (the visible and the ghost passes' differ) */
+  let posesLoaded: { set: unknown; version: number } = { set: undefined, version: -1 };
+  /** the object's own order's image (`tCopyOrder` the template's where its lists read that) */
+  let ownOrder = expanded?.tCopyOrder.ref.value;
+  /**
+   * Whether `from`'s lists can be drawn: their poses in `tCopyOrder`; not where they read their template's order of a
+   * view since rewritten for another (`getCopyOrderImage`), then culled again by the next frame
+   */
+  function loadPoses(from: typeof set) {
+    if (!expanded) return true;
+    const { poses } = from;
+    if (poses.shared && poses.shared.version !== poses.sharedVersion) {
+      from.cullView.invalidate();
+      from.lastCullFrame = undefined;
+      return false;
+    }
+    if (posesLoaded.set === from && posesLoaded.version === poses.version) return true;
+    if (poses.shared) {
+      if (expanded.tCopyOrder.ref.value !== poses.shared) ValueCell.update(expanded.tCopyOrder, poses.shared);
+    } else {
+      ownOrder = writeCopyOrder(ownOrder, poses.order, poses.count);
+      ValueCell.update(expanded.tCopyOrder, ownOrder);
+    }
+    posesLoaded = { set: from, version: poses.version };
+    return true;
+  }
 
   const cull = (
     cameraPlane: Plane3D,
@@ -1048,37 +1648,101 @@ export function createRenderable<T extends GraphicsRenderableValues>(
     stats: GraphicsStats,
     frame: Frame,
     lod: LodView,
+    clipGhost: boolean,
   ) => {
-    cullEnabled = false;
-    cullView.set(lod, cullCells);
+    set.cullEnabled = false;
+    set.cullView.set(lod, cullCells);
+
+    if (expanded) {
+      expand(lod, cameraPlane, frustum, isOccluded, stats, clipGhost);
+      if (!clipGhost) setMarkedView(cameraPlane, frustum, lod);
+      set.lastCullFrame = frame;
+      return;
+    }
 
     if (cullValues.drawCount.ref.value === 0) return;
     if (cullValues.instanceCount.ref.value === 0) return;
     const grid = cullValues.instanceGrid.ref.value;
-    if (grid.cellSize <= 1) return;
+    if (!hasInstanceCells(cullValues)) return;
 
-    const lodLevels = mdb.prepare(cullValues.lodLevels, grid.cellCount, false, lod);
-    mdb.cullSegment(cullValues, ZeroCullSegment, lodLevels, cameraPlane, frustum, isOccluded, stats, false);
-
-    cullEnabled = true;
-    lastCullFrame = frame;
-  };
-
-  const cullSimple = (d: number, radius: number, scale: number, lod: LodView) => {
-    cullEnabled = false;
-
-    const lodLevels = mdb.prepare(
-      cullValues.lodLevels,
-      Math.max(1, cullValues.instanceGrid.ref.value.cellCount),
+    const lodLevels = set.mdb.prepare(cullValues.lodLevels, grid.cellCount, false, lod);
+    set.mdb.cullSegment(
+      cullValues,
+      ZeroCullSegment,
+      lodLevels,
+      cameraPlane,
+      frustum,
+      isOccluded,
+      stats,
       false,
-      lod,
+      clipGhost,
     );
-    if (!lodLevels) return;
 
-    mdb.cullSimpleSegment(cullValues, ZeroCullSegment, lodLevels, d, radius, scale);
-
-    cullEnabled = true;
+    set.cullEnabled = true;
+    if (!clipGhost) setMarkedView(cameraPlane, frustum, lod);
+    set.lastCullFrame = frame;
   };
+
+  // the marked instances alone (`renderMarked`), at the levels of the view of the last `cull`
+  const markedMdb = createSegmentedMdbList();
+  let markedLod: LodView | undefined;
+  const markedPlane = Plane3D();
+  const markedFrustum = Frustum3D();
+  function setMarkedView(cameraPlane: Plane3D, frustum: Frustum3D, lod: LodView) {
+    markedLod = lod;
+    Plane3D.copy(markedPlane, cameraPlane);
+    Frustum3D.copy(markedFrustum, frustum);
+  }
+  let markedUsed = false;
+  const markedKey = createMarkedKey();
+  const markedPositions = createInstancePositions();
+  const getMarkedVersion = createDrawVersion((out) => appendMdbDrawKey(markedMdb.list, out));
+  let markedVersion = 0;
+  /** the marked lists for the markers and the view, where they are few (`isMarkedFew`) */
+  function updateMarked() {
+    const counts = values.markerInstanceCounts;
+    const lod = markedLod;
+    // as `cull` draws its lists: with a grid
+    const culled =
+      hasInstanceCells(cullValues) && cullValues.drawCount.ref.value > 0 && cullValues.instanceCount.ref.value > 0;
+    // an expanded object's marked instances drawn by its view's lists (a marker an instance of every pose)
+    if (!culled || !lod || !counts || expanded) {
+      markedUsed = false;
+      markedKey.reset();
+      return;
+    }
+    markedKey.begin(lod);
+    markedKey.add(values.tMarker.ref.version);
+    markedKey.add(values.markerStatus.ref.version);
+    markedKey.add(values.markedInstanceCount.ref.version);
+    markedKey.add(counts.ref.version);
+    markedKey.add(values.instanceCount.ref.version);
+    markedKey.add(values.lodLevels?.ref.version ?? -1);
+    // what the lists are built from: the draw count, the grid, the frustum test (moved by the object transform) and
+    // the instances' positions
+    for (let i = 0, il = cullCells.length; i < il; ++i) markedKey.add(cullCells[i]?.ref.version ?? -1);
+    markedKey.add(values.aInstance.ref.version);
+    markedKey.add(values.aTransform.ref.version);
+    if (markedKey.isSame()) return;
+
+    const lodLevels = cullValues.lodLevels?.ref.value as LodLevelsValue | undefined;
+    const instanceCount = cullValues.instanceCount.ref.value;
+    markedUsed = isMarkedFew(values.markedInstanceCount.ref.value, lodLevels?.length ?? 0, instanceCount);
+    if (!markedUsed) return;
+    const levels = markedMdb.prepare(cullValues.lodLevels, values.markedInstanceCount.ref.value, false, lod);
+    markedMdb.markedSegment(
+      cullValues,
+      ZeroCullSegment,
+      levels,
+      counts.ref.value,
+      markedPositions(values.aInstance, cullValues.instanceCount.ref.value),
+      getObjectTransforms(values as unknown as TransformValues),
+      values.invariantBoundingSphere.ref.value,
+      markedPlane,
+      markedFrustum,
+    );
+    markedVersion = getMarkedVersion();
+  }
 
   return {
     id,
@@ -1094,34 +1758,59 @@ export function createRenderable<T extends GraphicsRenderableValues>(
       stats: GraphicsStats,
       frame: Frame,
       lod: LodView,
+      clipGhost = false,
     ) => {
+      set = getSet(clipGhost);
       // skip recomputation if this renderable was already culled for the current frame, or for the same view and data
-      if (frame === lastCullFrame) {
+      if (frame === set.lastCullFrame) {
         stats.cacheHits.cull++;
         return;
       }
-      if (cullView.isSame(lod, isOccluded, cullCells)) {
-        lastCullFrame = frame;
+      if (set.cullView.isSame(lod, isOccluded, cullCells)) {
+        set.lastCullFrame = frame;
         stats.cacheHits.cull++;
         return;
       }
-      cull(cameraPlane, frustum, isOccluded, stats, frame, lod);
-      drawVersion = getDrawVersion();
+      cull(cameraPlane, frustum, isOccluded, stats, frame, lod, clipGhost);
+      set.drawVersion = getDrawVersion();
     },
-    uncull: () => {
-      lastCullFrame = undefined;
-      cullView.invalidate();
-      if (!cullEnabled) return;
-      cullEnabled = false;
-      drawVersion = getDrawVersion();
-    },
-    cullSimple: (d: number, radius: number, scale: number, lod: LodView) => {
-      cullView.invalidate();
-      cullSimple(d, radius, scale, lod);
-      drawVersion = getDrawVersion();
+    uncull: (lod: LodView, clipGhost = false) => {
+      set = getSet(clipGhost);
+      set.lastCullFrame = undefined;
+      set.cullView.invalidate();
+      if (!clipGhost) markedLod = undefined;
+      if (expanded) {
+        // drawn by its every pose (its lists alone draw it expanded)
+        expand(lod, undefined, undefined, null, undefined, clipGhost);
+        set.drawVersion = getDrawVersion();
+        return;
+      }
+      if (!set.cullEnabled) return;
+      set.cullEnabled = false;
+      set.drawVersion = getDrawVersion();
     },
     render: (variant: GraphicsRenderVariant, globals: GlobalBindings) => {
-      renderItem.render(variant, globals, cullEnabled ? mdb.list : undefined);
+      // an expanded object not culled yet: none drawn (its lists alone draw it expanded)
+      if (expanded && !set.cullEnabled) return;
+      if (!loadPoses(set)) return;
+      renderItem.render(variant, globals, set.cullEnabled ? set.mdb.list : undefined);
+    },
+    renderMarked: (variant: GraphicsRenderVariant, globals: GlobalBindings) => {
+      updateMarked();
+      const lists = visibleSet.cullEnabled ? visibleSet.mdb.list : undefined;
+      if (expanded) {
+        if (!lists || !loadPoses(visibleSet)) return;
+      }
+      renderItem.render(variant, globals, markedUsed ? markedMdb.list : lists);
+    },
+    prepareMarked: (cameraPlane: Plane3D, frustum: Frustum3D, lod: LodView) => {
+      setMarkedView(cameraPlane, frustum, lod);
+      updateMarked();
+      return markedUsed;
+    },
+    get markedDrawVersion() {
+      updateMarked();
+      return getMarkedDrawVersion(markedUsed, markedVersion, visibleSet.drawVersion);
     },
     getClipInfo: clipInfo.get,
     getByteCount: () => renderItem.getByteCount(),
@@ -1133,14 +1822,23 @@ export function createRenderable<T extends GraphicsRenderableValues>(
     get programVersion() {
       return programVersion;
     },
+    // of the visible passes' lists: draw lists record those
     get drawVersion() {
-      return drawVersion;
+      return visibleSet.drawVersion;
     },
     update: () => {
+      // never drawn from a pending grid: built and applied (`render-object.ts` `createRenderable`)
+      if (values.instanceGrid) applyPendingGrid(values as unknown as InstanceGridValues);
+      storage?.sync();
       renderItem.update();
-      lastCullFrame = undefined;
+      visibleSet.lastCullFrame = undefined;
+      ghostSet.lastCullFrame = undefined;
+      markedKey.reset();
     },
-    dispose: () => renderItem.destroy(),
+    dispose: () => {
+      renderItem.destroy();
+      storage?.destroy();
+    },
   };
 }
 
@@ -1169,7 +1867,7 @@ function updateClipInfo(info: ClipInfo, values: BaseValues) {
   capIndices.length = 0;
   if (values.dClipVariant.ref.value !== 'pixel') return;
 
-  const boundingSphere = values.boundingSphere.ref.value;
+  const boundingSphere = getDrawnBoundingSphere(values);
   for (let i = 0; i < objects.count; ++i) {
     if (objects.type[i] === Clip.Type.plane) Clip.getPlane((planes[i] ??= Plane3D()), objects, i);
     if (Clip.canIntersectSphere(objects, i, boundingSphere)) capIndices.push(i);
@@ -1181,6 +1879,7 @@ export function createClipInfoCache(values: BaseValues): ClipInfoCache {
     values.uClipObjectCount,
     values.dClipVariant,
     values.boundingSphere,
+    values.uObjectTransform,
     values.clipObjects,
   ];
   const versions = cells.map(() => -1);

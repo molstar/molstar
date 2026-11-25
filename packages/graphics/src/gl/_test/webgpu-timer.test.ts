@@ -80,9 +80,10 @@ describe('webgpu timer source', () => {
     source.beforeSubmit(encoder)!();
     await flush();
 
+    // where they ran: a pass's first encoder's begin to its last's end
     expect([...source.poll()]).toEqual([
-      [a, 15],
-      [b, 7],
+      [a, 15, { start: 100, end: 110 }],
+      [b, 7, { start: 200, end: 207 }],
     ]);
   });
 

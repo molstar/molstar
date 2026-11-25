@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 // The single-file viewer (app.md §2): one ES module, every lazy part inlined, CSS included (Prism's CSS is in its JS
@@ -12,7 +13,7 @@
 //   const viewer = await createPrismViewer({ target, spec: FullPrismViewerSpec() });
 // Importing it also defines `<prism-viewer>` (app.md §3), with `FullPrismViewerSpec()` while its `spec` is not set:
 //   <prism-viewer pdb="1cbs" theme="dark" style="height: 480px"></prism-viewer>
-// v5's `molstar.Viewer.create` script global is not carried over (parity.md §9, breaking-v6-changes.md).
+// v5's `molstar.Viewer.create` script global is not carried over (parity.md §9).
 
 import { definePrismViewerElement } from '@molstar/prism-viewer/element';
 import { FullPrismViewerSpec } from './full-spec.js';

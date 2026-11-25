@@ -1,0 +1,369 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+// The hover's model (_spec/README.md "HoverModel"): a method, never a command, run per pointer move. `set` copies the
+// hit into one reused record and moves a version, allocating nothing; one owner at a time, a stale owner's clear does
+// nothing (EC-141). The hover's Location and its projection onto each linked section are computed lazily, when a
+// section is drawn, once per version: closed first (a nucleotide lights its whole codon and its residue, EC-30,
+// EC-144), then carried along the view's links (paths found under the copy rule, EC-25).
+
+import { type ReadonlyState, ReactiveModel, State } from '@molstar/core/reactive';
+import type { Hit as RenderHit } from '@molstar/seqx-core/render';
+import { EmptyLocation, isEmptyLocation, type Key, type Location, location } from '@molstar/seqx-core/query';
+import { projectRanges, type Path } from '@molstar/seqx-core/resolve';
+import { projectOntoView, type RegionProjector } from '@molstar/seqx-core/view';
+import { DefaultViewerConfig, type ViewerConfig } from '@molstar/seqx-viewer/config';
+import { moleculeOfSystem, type PlaceMolecule } from '@molstar/seqx-viewer/describe-molecules';
+import type { ViewModel } from './view.js';
+
+/** What a hit's target is, for the gesture bindings (_spec/README.md "Bindings"): the granularity comes from the hit. */
+export type HitTarget =
+  | 'cell'
+  | 'item'
+  | 'row'
+  | 'column'
+  | 'track'
+  | 'empty'
+  | 'axis'
+  | 'break'
+  | 'header-slot'
+  | 'header-state'
+  | 'header-label'
+  | 'section-header'
+  | 'group-header'
+  | 'window'
+  | 'tree-node'
+  | 'summary-row'
+  | 'column-title'
+  | 'columns-hidden'
+  | 'tree-toggle'
+  | 'group'
+  | 'run';
+
+/**
+ * What the pointer is over, as the layout's hit test gives it: the layer, an element key and its extent, or a
+ * position, on a system. `section` and `target` may be given; otherwise they are read from the layer's address and
+ * from what was hit (an element: an item; a position: a cell; neither: empty space).
+ */
+export interface Hit
+  extends Omit<RenderHit, 'layer' | 'section' | 'target'>,
+    Partial<Pick<RenderHit, 'layer' | 'section'>> {
+  readonly target?: HitTarget;
+}
+
+/** The kind of target a hit is. */
+export function hitTarget(hit: Hit | undefined): HitTarget {
+  if (!hit) return 'empty';
+  if (hit.target) return hit.target;
+  if (hit.element) return 'item';
+  if (hit.position !== undefined) return 'cell';
+  return 'empty';
+}
+
+/** The hover, as one record reused for every move: read it, never keep it (copy what you need). */
+export interface HoverRecord {
+  readonly owner: unknown;
+  readonly layer: string | undefined;
+  readonly section: string | undefined;
+  readonly system: string | undefined;
+  /** NaN when the hover is no position. */
+  readonly position: number;
+  readonly element: Key | undefined;
+  readonly extent: Location | undefined;
+  /** The position on a second axis (a rows cell's row, a grid's y) and its system: NaN and undefined when none. */
+  readonly ySystem: string | undefined;
+  readonly yPosition: number;
+  /** What the hit was (a tree node, a summary row: the clade's hover), as the hit said; undefined when it said nothing. */
+  readonly target: HitTarget | undefined;
+  /** The block (its index in the section) and a grid cell's y block, in a section of blocks; undefined elsewhere. */
+  readonly block: number | undefined;
+  readonly yBlock: number | undefined;
+  /** What a layer named within the position (a rows column cell: `title: value`), as the hit said. */
+  readonly state: string | undefined;
+  /** A ranges layer's merged run of mixed categories (the legend's order), as the hit said. */
+  readonly categories: string | undefined;
+  /** A `group` hit's members (a ring's grouped label): the hits it stands for. */
+  readonly members: readonly RenderHit[] | undefined;
+  /** A `run` hit's count (the run's blocks), a break's hidden items; undefined when none. */
+  readonly count: number | undefined;
+}
+
+type MutableRecord = { -readonly [K in keyof HoverRecord]: HoverRecord[K] };
+
+const keysEqual = (a: Key | undefined, b: Key | undefined) =>
+  a === b || (!!a && !!b && a.owner === b.owner && a.key === b.key);
+
+export class HoverModel extends ReactiveModel {
+  private readonly _version = new State(0);
+  private readonly _record: MutableRecord = {
+    owner: undefined,
+    layer: undefined,
+    section: undefined,
+    system: undefined,
+    position: Number.NaN,
+    element: undefined,
+    extent: undefined,
+    ySystem: undefined,
+    yPosition: Number.NaN,
+    target: undefined,
+    block: undefined,
+    yBlock: undefined,
+    state: undefined,
+    categories: undefined,
+    members: undefined,
+    count: undefined,
+  };
+  /** The version, the view, the model and the runs held (a liftover's) the caches are for. */
+  private _cacheKey: [number, unknown, unknown, number] = [-1, undefined, undefined, -1];
+  private _location: Location | undefined;
+  private _closed: Location | undefined;
+  private _all: Location | undefined;
+  /** The hovered molecule: null for none, undefined until asked. */
+  private _molecule: PlaceMolecule | null | undefined;
+  private readonly _projected = new Map<string, Location>();
+  private readonly _buffer: number[] = [];
+  private readonly _view: ViewModel;
+  readonly config: ViewerConfig;
+  /** Moves on every change of the hover: what draws it listens to this. */
+  readonly version: ReadonlyState<number> = this._version.asReadonly;
+  /** The current hover, one reused record. */
+  readonly current: HoverRecord = this._record;
+
+  /** The spec's model is read through the view's (`ViewModel.model`: a source's complexes in it once held). */
+  constructor(
+    view: ViewModel,
+    config: ViewerConfig = DefaultViewerConfig,
+    /** What carries the hover through a map read by region (a liftover): the store's runs held now. */
+    private readonly regions?: RegionProjector,
+  ) {
+    super();
+    this._view = view;
+    this.config = config;
+  }
+
+  get owner(): unknown {
+    return this._record.owner;
+  }
+
+  /** Whether anything is hovered. */
+  get active(): boolean {
+    return this._record.owner !== undefined;
+  }
+
+  /**
+   * Hovers what `hit` names for `owner`, taking the hover from any other owner; no hit clears it if `owner` holds it.
+   * Copies the hit (no object is kept or made); false when nothing changed. An element is the same hover by its key
+   * (a layer may make its extent again on each move); an undefined owner is refused (it could never clear it).
+   */
+  set(hit: Hit | undefined, owner: unknown): boolean {
+    if (owner === undefined) return false;
+    if (!hit) return this.clear(owner);
+    const r = this._record;
+    const position = hit.position ?? Number.NaN;
+    const yPosition = hit.yPosition ?? Number.NaN;
+    const section = hit.section ?? this._sectionOf(hit.layer);
+    if (
+      r.owner === owner &&
+      r.system === hit.system &&
+      r.layer === hit.layer &&
+      r.section === section &&
+      (r.position === position || (Number.isNaN(r.position) && Number.isNaN(position))) &&
+      r.ySystem === hit.ySystem &&
+      r.target === hit.target &&
+      r.block === hit.block &&
+      r.yBlock === hit.yBlock &&
+      r.state === hit.state &&
+      r.categories === hit.categories &&
+      r.members === hit.members &&
+      r.count === hit.count &&
+      (r.yPosition === yPosition || (Number.isNaN(r.yPosition) && Number.isNaN(yPosition))) &&
+      keysEqual(r.element, hit.element) &&
+      (hit.element !== undefined || r.extent === hit.extent)
+    )
+      return false;
+    r.owner = owner;
+    r.layer = hit.layer;
+    r.section = section;
+    r.system = hit.system;
+    r.position = position;
+    r.element = hit.element;
+    r.extent = hit.extent;
+    r.ySystem = hit.ySystem;
+    r.yPosition = yPosition;
+    r.target = hit.target;
+    r.block = hit.block;
+    r.yBlock = hit.yBlock;
+    r.state = hit.state;
+    r.categories = hit.categories;
+    r.members = hit.members;
+    r.count = hit.count;
+    this._version.set(this._version.value + 1);
+    return true;
+  }
+
+  /**
+   * Hovers a Location with no hit for `owner` (_spec/README.md "HoverModel", A Location): drawn as a projected hover
+   * on every section it reaches, with no card and no words (no layer, no system); cleared only by its owner, so a
+   * pointer taking the hover takes it and a late clear of the Location's owner does nothing (EC-141). An empty
+   * Location clears it. False when nothing changed (the same Location object, the same owner).
+   */
+  setLocation(loc: Location, owner: unknown): boolean {
+    // a hit of the extent alone: no layer, section, system or position
+    return isEmptyLocation(loc) ? this.clear(owner) : this.set({ extent: loc } as Hit, owner);
+  }
+
+  /** Clears the hover when `owner` holds it; a stale owner's clear (a late leave) does nothing (EC-141). */
+  clear(owner: unknown): boolean {
+    const r = this._record;
+    if (r.owner === undefined || r.owner !== owner) return false;
+    r.owner = r.layer = r.section = r.system = r.element = r.extent = r.ySystem = r.target = undefined;
+    r.block = r.yBlock = r.state = r.categories = r.members = r.count = undefined;
+    r.position = r.yPosition = Number.NaN;
+    this._version.set(this._version.value + 1);
+    return true;
+  }
+
+  /**
+   * The hover's own Location: the element's extent, else its position, and its position on a second axis (a grid's
+   * cell lights both: the crosshair's two positions on their sections); undefined when nothing is hovered.
+   */
+  location(): Location | undefined {
+    this._fresh();
+    if (this._location === undefined && this._record.owner !== undefined) {
+      const r = this._record;
+      if (r.extent) this._location = r.extent;
+      else {
+        const parts: { system: string; ranges: number[] }[] = [];
+        if (!Number.isNaN(r.position) && r.system !== undefined)
+          parts.push({ system: r.system, ranges: [Math.floor(r.position), Math.floor(r.position) + 1] });
+        if (!Number.isNaN(r.yPosition) && r.ySystem !== undefined)
+          parts.push({ system: r.ySystem, ranges: [Math.floor(r.yPosition), Math.floor(r.yPosition) + 1] });
+        this._location = parts.length ? location({ parts }) : EmptyLocation;
+      }
+    }
+    return this._location;
+  }
+
+  /**
+   * The molecule the hover is on (_spec/README.md "HoverModel", Molecules): a molecule's residue or atom, a unit of one,
+   * a chip; its address, name, class and identifiers (what a host's card draws a structure from: a SMILES, a CCD
+   * code). Undefined on a sequence or when nothing is hovered; computed when asked and kept for the version.
+   */
+  molecule(): PlaceMolecule | undefined {
+    this._fresh();
+    const system = this._record.system;
+    if (this._molecule === null) return undefined;
+    if (this._molecule === undefined) {
+      const m = system === undefined ? undefined : moleculeOfSystem(this._view.model.value, system);
+      this._molecule = m ?? null;
+    }
+    return this._molecule ?? undefined;
+  }
+
+  /**
+   * The hover as a section draws it, computed when asked and kept for this version: the closed Location's parts on the
+   * section's system, and the others carried along the view's links (when `hover.projectLinked`). Empty when the
+   * section is not linked; undefined when nothing is hovered.
+   */
+  projected(section: string): Location | undefined {
+    const own = this.location();
+    if (!own) return undefined;
+    const hit = this._projected.get(section);
+    if (hit) return hit;
+    const view = this._view.resolved.value;
+    const target = view?.sections.find((s) => s.address === section);
+    if (!view || !target) return EmptyLocation;
+    const system = target.axis.system;
+    const closed = this._closedOf(own);
+    const parts: { system: string; ranges: ArrayLike<number> }[] = [];
+    for (const part of closed.parts) {
+      if (part.system === system) parts.push({ system, ranges: part.ranges });
+      else if (this.config.hover.projectLinked) {
+        const path = this._pathOf(part.system, section);
+        if (path) parts.push({ system, ranges: projectRanges(path, part.ranges, this._buffer).slice() });
+      }
+    }
+    const out = parts.length ? location({ parts }) : EmptyLocation;
+    this._projected.set(section, out);
+    return out;
+  }
+
+  /**
+   * The hover as every section draws it (`Emphasis.projected.hover`): the closed Location carried onto the view's
+   * sections' systems, one Location keyed by system, computed when asked and kept for this version; undefined when
+   * nothing is hovered or no view is shown.
+   */
+  projectedAll(): Location | undefined {
+    const own = this.location();
+    if (!own) return undefined;
+    if (this._all) return this._all;
+    const view = this._view.resolved.value;
+    if (!view) return undefined;
+    this._all = projectOntoView(this._view.model.value, view, own, {
+      own: true,
+      ...(this.regions ? { regions: this.regions } : {}),
+      close: this.config.hover.closeCodons,
+      linked: this.config.hover.projectLinked,
+    });
+    return this._all;
+  }
+
+  // ---- internals ----
+
+  /** Drops what was computed for an older hover, view or model. */
+  private _fresh(): void {
+    const k = this._cacheKey;
+    const v = this._version.value;
+    const view = this._view.resolved.value;
+    const model = this._view.model.value;
+    const held = this.regions?.reads(model) ? this.regions.version.value : -1;
+    if (k[0] === v && k[1] === view && k[2] === model && k[3] === held) return;
+    k[0] = v;
+    k[1] = view;
+    k[2] = model;
+    k[3] = held;
+    this._location = undefined;
+    this._closed = undefined;
+    this._all = undefined;
+    this._molecule = undefined;
+    this._projected.clear();
+  }
+
+  /** The hover closed among the view's systems: once per version. */
+  private _closedOf(own: Location): Location {
+    if (this._closed) return this._closed;
+    const systems = this._view.resolved.value?.sections.map((s) => s.axis.system) ?? [];
+    this._closed = this.config.hover.closeCodons ? this._view.model.value.close(own, systems) : own;
+    return this._closed;
+  }
+
+  /** The view's link from a section on `system` to `section`; else the model's static path (a data system). */
+  private _pathOf(system: string, section: string): Path | undefined {
+    const view = this._view.resolved.value;
+    if (view)
+      for (const l of view.links) {
+        if (l.to !== section) continue;
+        const from = view.sections.find((s) => s.address === l.from);
+        if (from?.axis.system === system) return l.path;
+      }
+    const to = view?.sections.find((s) => s.address === section);
+    if (!to || view?.sections.some((s) => s.axis.system === system)) return undefined;
+    // what is projected onto a section takes its `via`
+    return this._view.model.value.path(system, to.axis.system, to.via).path;
+  }
+
+  /** The section a layer is in: the view's section whose address starts its address. */
+  private _sectionOf(layer: string | undefined): string | undefined {
+    if (layer === undefined) return undefined;
+    for (const s of this._view.resolved.value?.sections ?? [])
+      if (
+        layer.startsWith(s.address) &&
+        (layer.length === s.address.length || layer.charCodeAt(s.address.length) === 47) // '/'
+      )
+        return s.address;
+    return undefined;
+  }
+}

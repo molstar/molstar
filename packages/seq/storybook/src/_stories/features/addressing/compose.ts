@@ -1,0 +1,175 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import type { SeqPorts } from '@molstar/seqx-core/context';
+import { printLink } from '@molstar/seqx-core/query';
+import type { ExampleView } from '@molstar/seqx-examples';
+import type { LinkRun } from '@molstar/seqx-viewer/behaviors';
+import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
+import type { RefEntry } from '@molstar/seqx-viewer/models';
+import { mountToolbar } from '@molstar/seqx-viewer/mount-toolbar';
+import { createSeqViewer, type SeqViewer } from '@molstar/seqx-viewer/viewer';
+import type { SeqViewerSpec } from '@molstar/seqx-viewer/viewer-spec';
+
+// The addressing stories' composition, DOM-free: the story and its headless twin call these, so the twin composes the
+// viewer and acts on it as the story does. Every action goes through the viewer's commands or its address model (a
+// link through `runLink`), never around them.
+
+export interface ComposeOptions {
+  /** Where the canvas mounts: none in the headless twin. */
+  readonly target?: HTMLElement;
+  /** The delay of the view's delayed sources (the view's own pacing when absent). */
+  readonly delayMs?: number;
+  /** The ports: the twin's reads the fixtures from memory. */
+  readonly ports?: SeqPorts;
+  /** Configuration items (a twin's smaller cache, so a region's tiles are evicted). */
+  readonly config?: SeqViewerSpec['config'];
+  /** The host's history port: bookmarks are then steps of its undo stack. */
+  readonly history?: SeqViewerSpec['history'];
+}
+
+/** A viewer of an example view, composed from the default spec with the view's registry. */
+export function composeViewer(view: ExampleView, options: ComposeOptions = {}): SeqViewer {
+  const base = DefaultSeqViewerSpec();
+  const extra = view.registry?.(options.delayMs !== undefined ? { delayMs: options.delayMs } : {}) ?? [];
+  return createSeqViewer(
+    {
+      ...base,
+      ui: options.target ? { ...base.ui, toolbar: mountToolbar } : undefined,
+      registry: [...(base.registry ?? []), ...extra],
+      ...(options.ports ? { ports: options.ports } : {}),
+      ...(options.config ? { config: [...(base.config ?? []), ...options.config] } : {}),
+      ...(options.history ? { history: options.history } : {}),
+    },
+    options.target,
+  );
+}
+
+/** A bookmark as the list shows it: its label, what it names, and whether it resolves now. */
+export interface BookmarkRow {
+  readonly address: string;
+  readonly label: string;
+  readonly color?: string;
+  readonly to: string;
+  readonly status: RefEntry['status'];
+}
+
+export function bookmarkRows(viewer: SeqViewer): BookmarkRow[] {
+  return viewer.addresses.refs.value.map((r) => ({
+    address: r.address,
+    label: r.label,
+    ...(r.color !== undefined ? { color: r.color } : {}),
+    to: r.to.join(' '),
+    status: r.status,
+  }));
+}
+
+/** Focuses a bookmark through the `address.focus` command: its message (a waiting one focuses when it resolves). */
+export function focusBookmark(viewer: SeqViewer, address: string): string {
+  return viewer.runCommand('address.focus', { address });
+}
+
+/**
+ * Bookmarks what the view shows now (the region drawn, as an address: never another ref, so bookmarks never chain)
+ * through `refs.add`: one patch, one step of the history. The id is the next free `view-<n>`; the result is the command's
+ * message.
+ */
+export function bookmarkView(viewer: SeqViewer): string | Promise<string> {
+  const to = viewer.addresses.shownAddress();
+  if (to === undefined) return 'Nothing shown';
+  const taken = new Set(viewer.addresses.refs.value.map((r) => r.id));
+  let n = 1;
+  while (taken.has(`view-${n}`)) n++;
+  // through the history when the viewer has one: then it runs in turn
+  return viewer.execute('refs.add', { ref: { id: `view-${n}`, to, label: `View ${n}` } });
+}
+
+/** Runs a link's actions: what a click on a link in the text does. */
+export function followLink(viewer: SeqViewer, href: string): LinkRun | undefined {
+  return viewer.runLink(href);
+}
+
+/** A link's hover: each address it names highlighted on the links' hover channel (EC-182); `leave` ends it. */
+export function hoverLink(viewer: SeqViewer, href: string): void {
+  const parsed = viewer.addresses.parseLink(href);
+  for (const a of parsed?.link?.actions ?? []) viewer.runCommand('address.hover', { address: a.address });
+}
+
+export function leaveLink(viewer: SeqViewer): void {
+  viewer.runCommand('address.unhover', {});
+}
+
+/**
+ * What the status line says of a run, one message a link: its outcomes' messages, and the issues' only when no outcome
+ * waits (a wait says it once), each message once.
+ */
+export function describeRun(run: LinkRun | undefined): string {
+  if (!run) return 'Not a link';
+  const said = run.outcomes.map((o) => o.message).filter(Boolean);
+  const waiting = run.outcomes.some((o) => o.status === 'waiting');
+  const more = waiting ? [] : run.issues.map((i) => i.message);
+  return [...new Set([...said, ...more])].join('; ');
+}
+
+/**
+ * A link's status line that follows a wait: a link on an address that arrives later (a node, or the spec itself, not
+ * loaded yet) says it waits, and `Focused` once it has arrived and the view has moved to it. A later link, or
+ * `dispose`, ends the watch. The viewer keeps the waiting link (`AddressModel`): nothing here holds it.
+ */
+export class LinkStatus {
+  private _off: (() => void) | undefined;
+
+  constructor(
+    private readonly viewer: SeqViewer,
+    private readonly say: (message: string) => void,
+  ) {}
+
+  /** Runs the link: the message now, and the later one through `say`. */
+  follow(href: string): string {
+    this._stop();
+    const run = followLink(this.viewer, href);
+    if (run?.outcomes.some((o) => o.status === 'waiting')) {
+      const address = this.viewer.addresses.parseLink(href)?.link?.actions[0]?.address;
+      if (address !== undefined) {
+        this._off = this.viewer.rested.listen(() => {
+          if (this.viewer.addresses.resolve(address).status !== 'resolved') return;
+          if (this.viewer.addresses.focusAddress() !== address) return;
+          this._stop();
+          this.say('Focused');
+        });
+      }
+    }
+    return describeRun(run);
+  }
+
+  dispose(): void {
+    this._stop();
+  }
+
+  private _stop(): void {
+    this._off?.();
+    this._off = undefined;
+  }
+}
+
+/** A run of the short text: plain, or a link (its text and its `!seq-…` href). */
+export type Run = string | { readonly text: string; readonly href: string };
+
+const link = (text: string, address: string): Run => ({
+  text,
+  href: printLink({ actions: [{ action: 'focus', address }] }),
+});
+
+/** The text beside the gene's region: each link moves the view; a transcript's arrives later, and its focus waits. */
+export const RegionText: readonly Run[] = [
+  'TP53 sits at ',
+  link('the gene', '/refs/gene'),
+  ' of this region. Its second transcript, ',
+  link('T2', '/refs/t2'),
+  ', is read with its part of the region, so a focus on it waits until it arrives; so does one on a neighbor, ',
+  link('WRAP53', '/refs/wrap53'),
+  '.',
+];

@@ -10,7 +10,7 @@
 // twice, the guard's cases (hover-cases.ts), each with its positive control.
 
 import { describe, expect, it } from 'vitest';
-import { quickCase } from '../../core/_test/model/quick.js';
+import { quickCase } from '@molstar/test-harness/quick';
 import { type Case, codon, containing, direct, fragments, linked, pointer, twice } from './hover-cases.js';
 
 describe('the highlight path, quick', () => {

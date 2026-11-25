@@ -13,11 +13,14 @@ import type { TimerResult } from '@molstar/graphics/gl/timer';
 import type { ResourceByteCounts } from '@molstar/graphics/gl/stats';
 import { Interval } from '@molstar/core/data/int/interval';
 import { Color } from '@molstar/core/util/color';
+import { getDistinctBaseColors } from '@molstar/core/util/color/distinct';
+import { AutoGpuCullingMinInstances } from '@molstar/graphics/geo/geometry/base';
 import { StructureElement } from '@molstar/model/model/structure';
 import { Theme } from '@molstar/graphics/theme/theme';
 import { ParticleSizeThemeProvider } from '@molstar/graphics/theme/size/particle-size';
 import { getThemeRegistries } from '../visual/scenes/structure.js';
 import type { Representation, RepresentationProvider } from '@molstar/graphics/repr/representation';
+import { Visual } from '@molstar/graphics/repr/visual';
 import { BallAndStickRepresentationProvider } from '@molstar/graphics/repr/structure/representation/ball-and-stick';
 import { LineRepresentationProvider } from '@molstar/graphics/repr/structure/representation/line';
 import { CartoonRepresentationProvider } from '@molstar/graphics/repr/structure/representation/cartoon';
@@ -25,24 +28,32 @@ import { GaussianSurfaceRepresentationProvider } from '@molstar/graphics/repr/st
 import { MolecularSurfaceRepresentationProvider } from '@molstar/graphics/repr/structure/representation/molecular-surface';
 import { SpacefillRepresentationProvider } from '@molstar/graphics/repr/structure/representation/spacefill';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
+import { GridPositions } from '@molstar/core/math/geometry/grid-positions';
 import { Frustum3D } from '@molstar/core/math/geometry/primitives/frustum3d';
 import { Sphere3D } from '@molstar/core/math/geometry/primitives/sphere3d';
 import type { ValueCell } from '@molstar/core/util/value-cell';
 import { Renderer } from '@molstar/graphics/gl/renderer';
-import { isWebGPUContext } from '@molstar/graphics/gl/webgpu/context';
-import { type GraphicsRenderObject, isMergedRenderObject } from '@molstar/graphics/gl/render-object';
+import { isWebGPUContext } from '@molstar/graphics/gl/contexts/webgpu';
+import { type GraphicsRenderObject, getMergedMembers, isMergedRenderObject } from '@molstar/graphics/gl/render-object';
 import { MarkerAction } from '@molstar/core/util/marker-action';
 import { now } from '@molstar/core/util/now';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { OutlineParams } from '@molstar/graphics/canvas3d/passes/outline';
 import { SsaoParams } from '@molstar/graphics/canvas3d/passes/ssao';
 import { HiZParams } from '@molstar/graphics/canvas3d/passes/hi-z';
-import { Structure } from '@molstar/model/model/structure';
+import { ClipGhostParams } from '@molstar/graphics/canvas3d/passes/clip-ghost';
+import { Structure, Unit } from '@molstar/model/model/structure';
 import { CIF } from '@molstar/io/reader/cif';
-import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
+import { MmcifFormat, trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
+import { getMatrices, operatorGroupsProvider } from '@molstar/model/formats/structure/property/assembly';
+import { mergeUnitsWithSameOperator } from '@molstar/model/model/structure/structure/util/unit-merging';
 import { Task } from '@molstar/core/task';
 import { createParticleListFromMmcifAssembly, getAssemblyIdsFromMmcif } from '@molstar/model/formats/particles/mmcif';
-import type { ParticleList } from '@molstar/model/model/particles/particle-list';
+import { createParticleListFromPack, readParticlePack } from '@molstar/model/formats/particles/pack';
+import { Particle, type ParticleList, ParticleValues } from '@molstar/model/model/particles/particle-list';
+import { ParticleNesting } from '@molstar/model/model/particles/particle-nesting';
+import { EveryLoci } from '@molstar/model/model/loci';
+import { OrderedSet } from '@molstar/core/data/int';
 import { ParticleTargetRepresentationProvider } from '@molstar/graphics/repr/particles/representation/target/representation';
 import { ParticleTargetRepresentationParams } from '@molstar/graphics/repr/particles/representation/target/common';
 import { Spheres } from '@molstar/graphics/geo/geometry/spheres/spheres';
@@ -65,9 +76,10 @@ export type RenderInput = {
   readonly props?: Partial<Canvas3DProps>;
   /**
    * multi-sampling `on` (every sample a frame, the samples views of the same culled frame), off by default: progressive
-   * multi-sampling would make frames differ
+   * multi-sampling would make frames differ; `temporal`: each forced frame its first (unjittered) one, as while the
+   * camera moves
    */
-  readonly multiSample?: boolean;
+  readonly multiSample?: boolean | 'temporal';
   /** the context's transparency mode (`Canvas3DContext.Props`), the default restored with the scene's disposal */
   readonly transparency?: Canvas3DContext.Props['transparency'];
   /** rotates the camera by `RotationStep` per frame, as an interactive rotation (culling and globals change) */
@@ -83,6 +95,11 @@ export type RenderInput = {
   readonly yieldFrames?: boolean;
   /** drawing buffer, `Size` by default (larger for full-screen passes, so that their GPU times stand out of the noise) */
   readonly size?: { readonly width: number; readonly height: number };
+  /**
+   * the camera fit to this sphere after the reset, not the scene's: cases of one scene in other forms (their bounds
+   * computed otherwise) seen alike
+   */
+  readonly focus?: { readonly center: Vec3; readonly radius: number };
   /** moves the camera towards the target, to this fraction of its distance, after the reset */
   readonly zoom?: number;
   /**
@@ -96,6 +113,16 @@ export type RenderInput = {
   readonly highlight?: boolean;
   /** a hover sweeping across the objects: per frame another representation highlighted whole, the last one not */
   readonly sweep?: boolean;
+  /**
+   * frames not forced (`requestDraw`): drawn by what changed before them, a marking change alone redrawn over the last
+   * image as a hover is (`MarkingPass.redraw`)
+   */
+  readonly unforced?: boolean;
+  /**
+   * a pause before each frame, ms, left out of its time: the GPU's clocks fall as between a user's hovers (a redraw after
+   * one runs slower than back to back)
+   */
+  readonly idleMs?: number;
   /** the time the scene took to set up (`SceneSetup`) among the notes */
   readonly setupNotes?: boolean;
   /** the GPU bytes of the scene (`getByteCounts` after its setup) among the notes */
@@ -184,7 +211,9 @@ type CpuBytes = { objects: ByteKinds; merged: ByteKinds };
 
 const InstanceKeys = /^(aTransform|aInstance|aSegment|instanceGrid)/;
 /** the items' data of spheres, points, cylinders, lines and text: geometry, though data arrays (`t…`) */
-const ItemGeometryKeys = /^(tPositionGroup|tCylinder|tLine|tText)$/;
+const ItemGeometryKeys = /^(tPositionGroup|tCylinder|tLine|tText|tSite)$/;
+/** views of other data (spheres' quantized centers: a particle pack's bytes, the download): counted by their own bytes */
+const ViewKeys = /^tSite$/;
 
 /**
  * The CPU bytes of render objects' values, each `ArrayBuffer` counted once: theme layers (`t*`, data texture images),
@@ -193,22 +222,27 @@ const ItemGeometryKeys = /^(tPositionGroup|tCylinder|tLine|tText)$/;
 function getCpuBytes(reprs: readonly Representation.Any[]): CpuBytes {
   const objects: ByteKinds = { geometry: 0, instances: 0, layers: 0 };
   const merged: ByteKinds = { geometry: 0, instances: 0, layers: 0 };
-  const seen = new Set<ArrayBufferLike>();
+  const seen = new Set<ArrayBufferLike | ArrayBufferView>();
   const add = (o: GraphicsRenderObject, into: ByteKinds) => {
     const values = o.values as { [k: string]: { ref?: { value: unknown } } | undefined };
     for (const k of Object.keys(values)) {
-      const v = values[k]?.ref?.value as { array?: unknown } | undefined;
+      // a value made where first read (a getter: a page store's `aSegment`, not read by its draws) not made here: what
+      // the scene holds, not what a count would make
+      const ref = values[k]?.ref;
+      if (ref && Object.getOwnPropertyDescriptor(ref, 'value')?.get) continue;
+      const v = ref?.value as { array?: unknown } | undefined;
       const array = ArrayBuffer.isView(v) ? v : ArrayBuffer.isView(v?.array) ? v.array : undefined;
-      if (!array || seen.has(array.buffer)) continue;
-      seen.add(array.buffer);
+      const view = ViewKeys.test(k);
+      if (!array || seen.has(view ? array : array.buffer)) continue;
+      seen.add(view ? array : array.buffer);
       const kind =
         k.startsWith('t') && !ItemGeometryKeys.test(k) ? 'layers' : InstanceKeys.test(k) ? 'instances' : 'geometry';
-      into[kind] += array.buffer.byteLength;
+      into[kind] += view ? array.byteLength : array.buffer.byteLength;
     }
   };
   for (const r of reprs) {
     for (const o of r.renderObjects) {
-      if (isMergedRenderObject(o)) for (const m of o.members) add(m, objects);
+      if (isMergedRenderObject(o)) for (const m of getMergedMembers(o)) add(m, objects);
     }
   }
   for (const r of reprs) {
@@ -243,7 +277,10 @@ export async function getScene(id: string, graphics: GraphicsContext, input: Ren
         ...(BenchmarkEnv.drawLists !== undefined
           ? { renderer: { ...(input.props?.renderer ?? DrawLists.renderer!), drawLists: BenchmarkEnv.drawLists } }
           : {}),
-        multiSample: { ...PD.getDefaultValues(Canvas3DParams).multiSample, mode: input.multiSample ? 'on' : 'off' },
+        multiSample: {
+          ...PD.getDefaultValues(Canvas3DParams).multiSample,
+          mode: input.multiSample === 'temporal' ? 'temporal' : input.multiSample ? 'on' : 'off',
+        },
       },
       { warmUp: false },
     );
@@ -266,6 +303,10 @@ export async function getScene(id: string, graphics: GraphicsContext, input: Ren
   canvas3d.requestCameraReset({ durationMs: 0 });
   canvas3d.tick(now(), { isSynchronous: true });
   const setup: SceneSetup = { reprsMs: t1 - t0, commitMs: t2 - t1, heapBefore };
+  if (input.focus) {
+    canvas3d.camera.setState(canvas3d.camera.getFocus(input.focus.center, input.focus.radius), 0);
+    canvas3d.tick(now(), { isSynchronous: true });
+  }
   if (input.zoom) {
     const { position, target } = canvas3d.camera.getSnapshot();
     const offset = Vec3.scale(Vec3(), Vec3.sub(Vec3(), position, target), input.zoom);
@@ -363,9 +404,18 @@ export async function renderFrames(id: string, graphics: GraphicsContext, input:
   const intersects = Frustum3D.intersectsSphere3D;
   if (input.bundles?.noCulling) Frustum3D.intersectsSphere3D = () => true;
   const skippedBefore = graphics.stats.skippedDraws;
+  let idle = 0;
   const start = performance.now();
   try {
     for (let i = 0; i < Frames; ++i) {
+      if (input.idleMs) {
+        // after the last frame's GPU work, so that the pause is idle; only the pause left out (the wait is the
+        // frame's)
+        await waitForGpu(graphics);
+        const ti = performance.now();
+        await new Promise((resolve) => setTimeout(resolve, input.idleMs));
+        idle += performance.now() - ti;
+      }
       if (input.rotate) rotateCamera(canvas3d, input.rotateDegrees);
       if (input.dolly) dollyCamera(canvas3d, input.dolly, i);
       if (input.sweep && current) sweepHighlight(canvas3d, current.reprs, i);
@@ -379,7 +429,7 @@ export async function renderFrames(id: string, graphics: GraphicsContext, input:
       }
       resetDrawCalls(graphics);
       const t0 = performance.now();
-      canvas3d.requestDraw();
+      if (!input.unforced) canvas3d.requestDraw();
       canvas3d.tick(now(), { isSynchronous: true });
       submit += performance.now() - t0;
       calls = drawCalls(graphics);
@@ -396,7 +446,7 @@ export async function renderFrames(id: string, graphics: GraphicsContext, input:
     Frustum3D.intersectsSphere3D = intersects;
   }
   await waitForGpu(graphics);
-  const total = performance.now() - start;
+  const total = performance.now() - start - idle;
   sub.unsubscribe();
   const notes: string[] = [];
   if (input.setupNotes && current) {
@@ -411,6 +461,9 @@ export async function renderFrames(id: string, graphics: GraphicsContext, input:
     notes.push(
       `GPU bytes: attributes ${mb(b.attribute)} MB, elements ${mb(b.elements)} MB, textures ${mb(b.texture)} MB, uniforms ${mb(b.uniform)} MB, storage ${mb(b.storageBuffer ?? 0)} MB`,
     );
+    // after the runs: what grew as the frames were drawn (a page store's frame slots, by what its culls needed)
+    const after = graphics.resources.getByteCounts();
+    notes.push(`GPU storage after the runs: ${mb(after.storageBuffer ?? 0)} MB`);
     const c = current.setup.cpuBytes;
     if (c) {
       const kinds = (k: ByteKinds) =>
@@ -537,7 +590,7 @@ function getRasterSplitNotes(canvas3d: Canvas3D, reprs: readonly Representation.
   for (const repr of reprs) {
     for (const o of repr.renderObjects) {
       if (!isMergedRenderObject(o) || o.type !== 'spheres') continue;
-      for (const m of o.members) {
+      for (const m of getMergedMembers(o)) {
         const v = m.values as unknown as {
           invariantBoundingSphere: ValueCell<Sphere3D>;
           padding: ValueCell<number>;
@@ -1050,10 +1103,12 @@ const MergingModes = [
   { suffix: '-hover', label: 'a unit highlighted per frame (the one before not)' },
   { suffix: '-recolor', label: "a uniform color per frame, through the representation's update" },
   { suffix: '-rotating', label: 'the camera rotating (culled per frame)' },
+  { suffix: '-clip', label: "a clip plane moved per frame, through the representation's update" },
+  { suffix: '-props', label: "the emissive prop changed per frame, through the representation's update" },
 ] as const;
 
 /**
- * Merging (`merged-render-objects.md`, on demand): `count` chains of 10 atoms as the units of one representation,
+ * Merging (on demand): `count` chains of 10 atoms as the units of one representation,
  * merged into one render object or not (`renderMerged` on or off): frames still, with a hover per frame, or with a color
  * theme change per frame (`update`); with the setup times and the GPU bytes
  */
@@ -1072,6 +1127,22 @@ export const MergingCases: BenchmarkCase<RenderInput>[] = MergingCounts.flatMap(
               update = (canvas3d, _reprs, i) => {
                 if (i > 0) canvas3d.mark({ loci: unitLoci(s, (i - 1) * 7919) }, MarkerAction.RemoveHighlight);
                 canvas3d.mark({ loci: unitLoci(s, i * 7919) }, MarkerAction.Highlight);
+              };
+            } else if (mode.suffix === '-props') {
+              update = async (_canvas3d, reprs, i) => {
+                await reprs[0].createOrUpdate({ emissive: i % 2 ? 0.2 : 0 } as any, s).run();
+              };
+            } else if (mode.suffix === '-clip') {
+              update = async (_canvas3d, reprs, i) => {
+                const plane = {
+                  type: 'plane' as const,
+                  invert: false,
+                  position: Vec3.create(i % 20, 0, 0),
+                  rotation: { axis: Vec3.create(0, 0, 1), angle: 30 },
+                  scale: Vec3.create(1, 1, 1),
+                  transform: Mat4.identity(),
+                };
+                await reprs[0].createOrUpdate({ clip: { variant: 'pixel', objects: [plane] } } as any, s).run();
               };
             } else if (mode.suffix === '-recolor') {
               update = async (canvas3d, reprs, i) => {
@@ -1131,20 +1202,28 @@ export const MergingMeshCases: BenchmarkCase<RenderInput>[] = [true, false].flat
   ),
 );
 
-const rootEntries = new Map<string, Promise<Structure>>();
-/** A binary CIF file from the repository root (not checked in), its first model */
-export const getRootEntry = (file: string) => {
-  let entry = rootEntries.get(file);
+/** The folder of the large models some cases load (from the repository root; not checked in, `.gitignore`d) */
+export const BenchmarkDataDir = '.benchmark';
+
+/** A file of `BenchmarkDataDir`, from the benchmark's server */
+export async function fetchBenchmarkFile(file: string) {
+  const response = await fetch(`/${BenchmarkDataDir}/${file}`);
+  if (!response.ok) throw new Error(`${file} not found in ${BenchmarkDataDir}/ (${response.status})`);
+  return new Uint8Array(await response.arrayBuffer());
+}
+
+const benchmarkEntries = new Map<string, Promise<Structure>>();
+/** A binary CIF file of `BenchmarkDataDir`, its first model */
+export const getBenchmarkEntry = (file: string) => {
+  let entry = benchmarkEntries.get(file);
   if (!entry) {
     entry = (async () => {
-      const response = await fetch(`/${file}`);
-      if (!response.ok) throw new Error(`${file} not found in the repository root (${response.status})`);
-      const parsed = await CIF.parseBinary(new Uint8Array(await response.arrayBuffer())).run();
+      const parsed = await CIF.parseBinary(await fetchBenchmarkFile(file)).run();
       if (parsed.isError) throw new Error(parsed.message);
       const trajectory = await trajectoryFromMmCIF(parsed.result.blocks[0]).run();
       return Structure.ofModel(trajectory.representative);
     })();
-    rootEntries.set(file, entry);
+    benchmarkEntries.set(file, entry);
   }
   return entry;
 };
@@ -1153,7 +1232,7 @@ export const getRootEntry = (file: string) => {
  * Unique meshes merged or not, no two units sharing a symmetry group (unmerged, a render object per unit): 4V6X, a
  * ribosome (about 89 chains, `4v6x.bcif`), and 3j3q, the HIV-1 capsid (1356 chains, `3j3q.bcif`), as Gaussian surfaces;
  * CPU meshes on every backend (`tryUseGpu: false`: WebGPU builds compute surfaces, texture meshes, never merged); the
- * files go in the repository root (from models.rcsb.org)
+ * files go in `.benchmark/` (from models.rcsb.org)
  */
 export const MergingUniqueMeshCases: BenchmarkCase<RenderInput>[] = [
   ['4v6x', 'a ribosome, about 89 chains'],
@@ -1165,7 +1244,7 @@ export const MergingUniqueMeshCases: BenchmarkCase<RenderInput>[] = [
         `merging/${id}-gaussian-${merged ? 'merged' : 'unmerged'}${size ? `-${size.width}` : ''}`,
         `${id} (${about}, unique geometry each) as Gaussian surfaces, ${merged ? 'merged' : 'a render object per unit'}`,
         async () => {
-          const s = await getRootEntry(`${id}.bcif`);
+          const s = await getBenchmarkEntry(`${id}.bcif`);
           return {
             size,
             setupNotes: true,
@@ -1182,13 +1261,13 @@ export const MergingUniqueMeshCases: BenchmarkCase<RenderInput>[] = [
 );
 
 /**
- * The memory of large scenes, with `--byte-notes` and `--heap-snapshot` (the files in the repository root): 3j3q, the
+ * The memory of large scenes, with `--byte-notes` and `--heap-snapshot` (the files in `.benchmark/`): 3j3q, the
  * HIV-1 capsid, as Gaussian surfaces with the defaults (texture meshes, the small units merged CPU meshes) and as
  * cartoon at medium quality
  */
 export const MergingMemoryCases: BenchmarkCase<RenderInput>[] = [
   renderCase('merging/3j3q-gaussian-defaults', '3j3q as Gaussian surfaces, the defaults', async () => {
-    const s = await getRootEntry('3j3q.bcif');
+    const s = await getBenchmarkEntry('3j3q.bcif');
     return {
       setupNotes: true,
       byteNotes: true,
@@ -1196,7 +1275,7 @@ export const MergingMemoryCases: BenchmarkCase<RenderInput>[] = [
     };
   }),
   renderCase('merging/3j3q-cartoon-medium', '3j3q as cartoon, medium quality', async () => {
-    const s = await getRootEntry('3j3q.bcif');
+    const s = await getBenchmarkEntry('3j3q.bcif');
     return {
       setupNotes: true,
       byteNotes: true,
@@ -1214,7 +1293,7 @@ export const MergingNearCapCases: BenchmarkCase<RenderInput>[] = [true, false].m
     `merging/4v6x-gaussian-${merged ? 'merged' : 'unmerged'}-near`,
     `4v6x as Gaussian surfaces, ${merged ? 'merged' : 'a render object per unit'}, the near plane at half the scene's radius (caps)`,
     async () => {
-      const s = await getRootEntry('4v6x.bcif');
+      const s = await getBenchmarkEntry('4v6x.bcif');
       return {
         cameraRadius: 0.5,
         scene: (g) =>
@@ -1241,7 +1320,7 @@ export const MergingSetupCases: BenchmarkCase<RenderInput>[] = SetupProviders.fl
       `merging/4v6x-${name}-${merged ? 'merged' : 'unmerged'}`,
       `4v6x as ${name}, ${merged ? 'merged' : 'a render object per unit'}: the setup and first frame`,
       async () => {
-        const s = await getRootEntry('4v6x.bcif');
+        const s = await getBenchmarkEntry('4v6x.bcif');
         return {
           setupNotes: true,
           scene: (g) => Promise.all([structureRepr(g, provider, s, { renderMerged: merged })]),
@@ -1252,7 +1331,7 @@ export const MergingSetupCases: BenchmarkCase<RenderInput>[] = SetupProviders.fl
 );
 
 /**
- * Cylinders: the bonds of 4V6X's ball-and-stick (`4v6x.bcif` in the repository root), merged or not, with their CPU and
+ * Cylinders: the bonds of 4V6X's ball-and-stick (`4v6x.bcif` in `.benchmark/`), merged or not, with their CPU and
  * GPU bytes: the baseline of cylinders as per-item data
  */
 export const CylinderCases: BenchmarkCase<RenderInput>[] = [true, false].map((merged) =>
@@ -1260,7 +1339,7 @@ export const CylinderCases: BenchmarkCase<RenderInput>[] = [true, false].map((me
     `cylinders/4v6x-bonds-${merged ? 'merged' : 'unmerged'}`,
     `4v6x ball-and-stick bonds only (cylinder impostors), ${merged ? 'merged' : 'a render object per unit'}`,
     async () => {
-      const s = await getRootEntry('4v6x.bcif');
+      const s = await getBenchmarkEntry('4v6x.bcif');
       return {
         setupNotes: true,
         byteNotes: true,
@@ -1282,7 +1361,7 @@ export const LineCases: BenchmarkCase<RenderInput>[] = [true, false].map((merged
     `lines/4v6x-${merged ? 'merged' : 'unmerged'}`,
     `4v6x as lines (bonds), ${merged ? 'merged' : 'a render object per unit'}`,
     async () => {
-      const s = await getRootEntry('4v6x.bcif');
+      const s = await getBenchmarkEntry('4v6x.bcif');
       return {
         setupNotes: true,
         byteNotes: true,
@@ -1306,10 +1385,11 @@ async function instancedChainGrid(units: number, copies: number) {
 }
 
 /**
- * Merging with many instances (`merged-render-objects.md` step 6, on demand): 100 units of `copies` instances each as
- * spacefill, the camera rotating: the CPU culls every unit's instances per frame (instance grids)
+ * Merging with many instances (on demand): 100 units of `copies` instances each as
+ * spacefill, the camera rotating: the CPU culls every unit's instances per frame (instance grids); 300 and 500 copies
+ * between, where culling on the GPU starts to pay (`AutoGpuCullingMinInstances`)
  */
-export const MergingInstanceCases: BenchmarkCase<RenderInput>[] = [100, 1000].flatMap((copies) =>
+export const MergingInstanceCases: BenchmarkCase<RenderInput>[] = [100, 300, 500, 1000].flatMap((copies) =>
   (['merged', 'merged-gpu', 'unmerged'] as const).flatMap((kind) =>
     [true, false].map((rotate) =>
       renderCase(
@@ -1322,6 +1402,30 @@ export const MergingInstanceCases: BenchmarkCase<RenderInput>[] = [100, 1000].fl
             scene: (g) => Promise.all([structureRepr(g, SpacefillRepresentationProvider, s, props)]),
             setupNotes: true,
             byteNotes: true,
+            rotate,
+          };
+        },
+      ),
+    ),
+  ),
+);
+
+/**
+ * As `MergingInstanceCases` as cartoon, merged and culled on the CPU or the GPU: the instance threshold of
+ * `gpuCulling: 'auto'` (`AutoGpuCullingMinInstances`) without the sphere raster's (spacefill takes merged objects with
+ * many spheres to the GPU anyway, `AutoGpuCullingMinRasterSpheres`)
+ */
+export const MergingInstanceCartoonCases: BenchmarkCase<RenderInput>[] = [100, 300, 500, 1000].flatMap((copies) =>
+  (['merged', 'merged-gpu'] as const).flatMap((kind) =>
+    [true, false].map((rotate) =>
+      renderCase(
+        `merging/instances-${copies}-cartoon-${kind}${rotate ? '-rotating' : ''}`,
+        `100 chains of ${copies} copies each as cartoon, merged${kind === 'merged-gpu' ? ', culled on the GPU' : ''}${rotate ? ', rotating' : ''}`,
+        async () => {
+          const s = await instancedChainGrid(100, copies);
+          const props = { renderMerged: true, gpuCulling: kind === 'merged-gpu' };
+          return {
+            scene: (g) => Promise.all([structureRepr(g, CartoonRepresentationProvider, s, props)]),
             rotate,
           };
         },
@@ -1405,19 +1509,123 @@ export const MergingSingleInstanceCases: BenchmarkCase<RenderInput>[] = [100, 10
   ),
 );
 
+let postsynModels: Promise<Structure[]> | undefined;
+/**
+ * `postsynstubby_2-no_bonds.bcif` from `.benchmark/` as the mesoscale explorer builds it (`StructureFromPetworld`): a
+ * structure per model, the model's units merged into one, instanced by the operators of the model's group in the first
+ * assembly (the explorer splits a model's membrane entities into a structure of their own, left out here)
+ */
+const getPostsynModels = () =>
+  (postsynModels ??= (async () => {
+    const parsed = await CIF.parseBinary(await fetchBenchmarkFile('postsynstubby_2-no_bonds.bcif')).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const trajectory = await trajectoryFromMmCIF(parsed.result.blocks[0]).run();
+    const first = trajectory.representative;
+    if (!MmcifFormat.is(first.sourceData)) throw new Error('not mmCIF');
+    const { db } = first.sourceData.data;
+    const gen = db.pdbx_struct_assembly_gen;
+    const assemblyId = db.pdbx_struct_assembly.id.value(0);
+    const generators = [];
+    for (let i = 0; i < gen._rowCount; ++i) {
+      if (gen.assembly_id.value(i) !== assemblyId) continue;
+      generators.push({ assemblyId, expression: gen.oper_expression.value(i), asymIds: gen.asym_id_list.value(i) });
+    }
+    const groups = operatorGroupsProvider(generators, getMatrices(db.pdbx_struct_oper_list))();
+    const structures: Structure[] = [];
+    for (let i = 0; i < trajectory.frameCount; ++i) {
+      const model = await Task.resolveInContext(trajectory.getFrameAtIndex(i));
+      const unit = mergeUnitsWithSameOperator(Structure.ofModel(model).units, 0);
+      const builder = Structure.Builder();
+      for (const oper of groups[i].operators) {
+        builder.addUnit(
+          unit.kind,
+          unit.model,
+          oper,
+          unit.elements,
+          unit.traits | Unit.Trait.FastBoundary,
+          unit.invariantId,
+        );
+      }
+      structures.push(builder.getStructure());
+    }
+    return structures;
+  })());
+
+/**
+ * PetWorld as the mesoscale explorer draws it: a spacefill representation per model (`getPostsynModels`, an object
+ * each, merged and culled on the GPU), the explorer's `quality` parameters (levels by size on screen, instance clipping,
+ * no light), a uniform color each, Hi-Z on; whole and zoomed to 0.3, still and rotating. `auto`: as on a device with
+ * `atomicMinMax64` (`gpuCulling: 'auto'` marks objects of many spheres for the raster, the sphere raster `auto`: the
+ * `sphereRasterObjects` largest culled on the GPU and drawn by it); `auto-objectsN`: `auto` with N of them (`all`: 256);
+ * `off`: the same objects, the raster off (those for the raster culled on the CPU); `noraster`: as on a device without
+ * (the raster off, culled on the GPU what `auto` culls there: 50k instances and more); on demand
+ */
+export const MesoscaleSplitCases: BenchmarkCase<RenderInput>[] = [1, 0.3].flatMap((zoom) =>
+  [false, true].flatMap((rotate) =>
+    (['noraster', 'off', 'auto', 'auto-objects0', 'auto-objects4', 'auto-objects16', 'auto-objectsall'] as const).map(
+      (variant) =>
+        renderCase(
+          `mesoscale-split/postsyn-${zoom === 1 ? 'whole' : `zoom${zoom}`}${rotate ? '-rotating' : ''}-${variant}`,
+          `postsynstubby_2 as the mesoscale explorer draws it (a representation per model), ${zoom === 1 ? 'whole' : `zoomed to ${zoom} of the distance`}${rotate ? ', rotating' : ''}; ${variant === 'noraster' ? 'as without atomicMinMax64' : `sphere raster ${variant}`}`,
+          async () => {
+            const structures = await getPostsynModels();
+            const lod = Spheres.LodPixelPresets.quality;
+            const props = {
+              ...SpacefillRepresentationProvider.defaultValues,
+              ignoreHydrogens: true,
+              instanceGranularity: true,
+              ignoreLight: true,
+              lodPixelSize: lod,
+              quality: 'lowest',
+              clip: { variant: 'instance', objects: [] },
+              clipPrimitive: true,
+              approximate: false,
+              alphaThickness: 12,
+            };
+            return {
+              rotate,
+              zoom: zoom === 1 ? undefined : zoom,
+              yieldFrames: true,
+              setupNotes: true,
+              scene: (g) => {
+                const colors = getDistinctBaseColors(structures.length, 0);
+                return Promise.all(
+                  structures.map((s, i) => {
+                    // without the raster `auto` culls on the GPU from many instances only (a unit an instance here)
+                    const gpuCulling = variant === 'noraster' ? s.units.length >= AutoGpuCullingMinInstances : 'auto';
+                    return structureRepr(g, SpacefillRepresentationProvider, s, { ...props, gpuCulling } as never, {
+                      name: 'uniform',
+                      params: { value: colors[i] },
+                    });
+                  }),
+                );
+              },
+              props: {
+                hiZ: { ...PD.getDefaultValues(HiZParams), enabled: true },
+                renderer: {
+                  ...PD.getDefaultValues(Canvas3DParams).renderer,
+                  sphereRaster: variant.startsWith('auto') ? 'auto' : 'off',
+                  ...(variant.startsWith('auto-objects') && {
+                    sphereRasterObjects: variant === 'auto-objectsall' ? 256 : Number(variant.slice(12)),
+                  }),
+                },
+              },
+            };
+          },
+        ),
+    ),
+  ),
+);
+
 let postsyn: Promise<ParticleList> | undefined;
 /**
- * `postsynstubby_2-no_bonds.bcif` from the repository root (not checked in: a PetWorld model, 3.68M atoms, 517k
+ * `postsynstubby_2-no_bonds.bcif` from `.benchmark/` (not checked in: a PetWorld model, 3.68M atoms, 517k
  * operators) as the particle list the viewer loads (`mmcif_particles`): the molecule types the targets, instanced at
  * their particles
  */
 export const getPostsyn = () =>
   (postsyn ??= (async () => {
-    const response = await fetch('/postsynstubby_2-no_bonds.bcif');
-    if (!response.ok) {
-      throw new Error(`postsynstubby_2-no_bonds.bcif not found in the repository root (${response.status})`);
-    }
-    const parsed = await CIF.parseBinary(new Uint8Array(await response.arrayBuffer())).run();
+    const parsed = await CIF.parseBinary(await fetchBenchmarkFile('postsynstubby_2-no_bonds.bcif')).run();
     if (parsed.isError) throw new Error(parsed.message);
     const cif = parsed.result;
     const assemblyId = getAssemblyIdsFromMmcif(cif)[0];
@@ -1426,17 +1634,25 @@ export const getPostsyn = () =>
     ).run();
   })());
 
-/** The particle targets as the viewer shows them, with the mesoscale preset's sphere settings */
-type LodLevels = (typeof Spheres.LodLevelsPresets)['quality'];
+let postsynPack: Promise<ParticleList> | undefined;
+/**
+ * PetWorld from its particle pack (`postsynstubby_2-no_bonds.mspk` in `.benchmark/`, written by `particle-pack`): its
+ * targets' sites quantized, the impostors drawing them from the pack's bytes (`Spheres.fromSites`)
+ */
+export const getPostsynPack = () =>
+  (postsynPack ??= (async () =>
+    createParticleListFromPack(readParticlePack(await fetchBenchmarkFile('postsynstubby_2-no_bonds.mspk'))))());
 
+/** The particle targets as the viewer shows them, with the mesoscale preset's sphere settings */
 export async function postsynRepr(
   graphics: GraphicsContext,
   list: ParticleList,
   gpuCulling: boolean,
   cellSize?: number,
-  lod?: keyof typeof Spheres.LodLevelsPresets | LodLevels,
+  lod: Spheres.LodPixelPreset | number = 'quality',
   structure?: { readonly ignoreLight?: boolean; readonly approximate?: boolean },
-  lodPixelSize?: number,
+  /** the size theme: `uniform` (the targets' default), else the targets' physical radii by it */
+  sizeTheme: 'uniform' | 'physical' = 'uniform',
 ) {
   const registries = getThemeRegistries();
   const provider = ParticleTargetRepresentationProvider;
@@ -1444,8 +1660,9 @@ export async function postsynRepr(
   repr.setTheme(
     Theme.create(
       registries,
-      { particles: list },
-      { colorTheme: { name: 'particle-entity', params: {} }, sizeTheme: { name: 'uniform', params: {} } },
+      // a list with templates by its leaves by level (no copy expanded), as the plugin themes it
+      { particles: ParticleNesting.hasTemplates(list) ? ParticleNesting.getThemeList(list) : list },
+      { colorTheme: { name: 'particle-entity', params: {} }, sizeTheme: { name: sizeTheme, params: {} } },
     ),
   );
   const defaults = PD.getDefaultValues(ParticleTargetRepresentationParams);
@@ -1453,10 +1670,8 @@ export async function postsynRepr(
     ...defaults,
     gpuCulling,
     ...(cellSize ? { cellSize } : {}),
-    // the distances of the `quality` preset unless asked otherwise (the particles' default is by size on screen), as
-    // the cases measured them first
-    lodLevels: typeof lod === 'string' ? Spheres.LodLevelsPresets[lod] : (lod ?? Spheres.LodLevelsPresets.quality),
-    lodPixelSize: lodPixelSize ?? 0,
+    // levels by size on screen: a preset's pixel size or the one given
+    lodPixelSize: typeof lod === 'string' ? Spheres.LodPixelPresets[lod] : lod,
     structure: { ...defaults.structure, approximate: false, alphaThickness: 12, clipPrimitive: true, ...structure },
   };
   await repr.createOrUpdate(props, list).run();
@@ -1490,14 +1705,14 @@ async function postsynViewerRepr(graphics: GraphicsContext, list: ParticleList, 
 }
 
 /**
- * GPU culling on a large PetWorld model (on demand, needs `postsynstubby_2-no_bonds.bcif` in the repository root):
+ * GPU culling on a large PetWorld model (on demand, needs `postsynstubby_2-no_bonds.bcif` in `.benchmark/`):
  * its particle targets as spacefill (merged by `auto`), culled on the CPU or the GPU, still or rotating
  */
 /**
- * What the one-phase occlusion test of GPU culling misses while the camera moves (`two-phase-culling.md`): PetWorld
+ * What the one-phase occlusion test of GPU culling misses while the camera moves: PetWorld
  * whole and zoomed, rotating 2, 10, 30 and 90 (a jump) degrees a frame, with the GPU's occlusion and without, the
  * impostors and with the sphere raster on (`-raster`, `sphereRaster` 'on' at 6 px: its instances those of the same
- * culling, `sphere-compute-raster.md` step 5); with `--images` the last frame drawn after one more step, the images of
+ * culling); with `--images` the last frame drawn after one more step, the images of
  * `-occlusion` and `-none` differ where it popped
  */
 export const OcclusionLagCases: BenchmarkCase<RenderInput>[] = [2, 10, 30, 90].flatMap((degrees) =>
@@ -1660,7 +1875,7 @@ export const MergingPostsynSizeCases: BenchmarkCase<RenderInput>[] = (
     label: string;
     note: string;
     size?: { width: number; height: number };
-    lod?: keyof typeof Spheres.LodLevelsPresets;
+    lod?: Spheres.LodPixelPreset;
     structure?: { ignoreLight?: boolean; approximate?: boolean };
   }) =>
     renderCase(
@@ -1681,106 +1896,8 @@ export const MergingPostsynSizeCases: BenchmarkCase<RenderInput>[] = (
 );
 
 /**
- * The `quality` preset's levels with distances from their size on screen (screen-space LOD, step 1): level `j` where a
- * pixel covers from `2 r s_(j-1)^(1 / b_(j-1)) / D` to `2 r s_j^(1 / b_j) / D` Å (its spheres at least `D` pixels
- * across, those of the finer level not), as distances for a perspective camera of field of view `fov` and `height`
- * pixels; `r` 1.7 Å
- */
-function pixelLodLevels(
-  pixelSize: number,
-  fov: number,
-  height: number,
-  levels: LodLevels = Spheres.LodLevelsPresets.quality,
-): LodLevels {
-  const k = (2 * Math.tan(fov / 2)) / height;
-  let minDistance = levels[0].minDistance;
-  return levels.map((l, j) => {
-    const scale = Math.pow(l.stride, 1 / l.scaleBias);
-    const maxDistance = j === levels.length - 1 ? l.maxDistance : (2 * 1.7 * scale) / pixelSize / k;
-    const level = { ...l, minDistance, maxDistance };
-    minDistance = maxDistance;
-    return level;
-  });
-}
-
-/**
- * The postsyn views (whole and zoomed, at 1280x720 and 2560x1440) with levels chosen by their size on screen at a
- * smallest sphere of `D` pixels, against the `quality` preset (`-quality`): times and, with `--images`, the pictures
- */
-export const MergingPostsynPixelCases: BenchmarkCase<RenderInput>[] = ([undefined, 1.5, 2, 3, 4] as const).flatMap(
-  (pixelSize) =>
-    [undefined, 0.3].flatMap((zoom) =>
-      [Size, LargeSize].map((size) =>
-        renderCase(
-          `merging/postsyn-lod-${pixelSize ? `px${pixelSize}` : 'quality'}${zoom ? '-zoom' : ''}${size === LargeSize ? '-large' : ''}`,
-          `postsynstubby_2 particles as spacefill (mesoscale settings), culled on the GPU with Hi-Z, ${zoom ? `zoomed to ${zoom} of the distance, ` : ''}at ${size.width}×${size.height}, ${pixelSize ? `levels for spheres of at least ${pixelSize} px` : 'LOD preset quality'}`,
-          async () => {
-            const list = await getPostsyn();
-            const fov = (PD.getDefaultValues(Canvas3DParams).camera.fov * Math.PI) / 180;
-            const lod = pixelSize ? pixelLodLevels(pixelSize, fov, size.height) : undefined;
-            return {
-              size,
-              scene: (g) => Promise.all([postsynRepr(g, list, true, undefined, lod)]),
-              zoom,
-              props: { hiZ: { ...PD.getDefaultValues(HiZParams), enabled: true } },
-            };
-          },
-        ),
-      ),
-    ),
-);
-
-/** Coarser chains of 4 levels (strides, scale biases) for the pixel rule: what reaches the whole view */
-const CoarseChains: { [name: string]: [stride: number, scaleBias: number][] } = {
-  'x10-b2.3': [
-    [1, 1],
-    [10, 3],
-    [100, 2.7],
-    [1000, 2.3],
-  ],
-  'x10-b2': [
-    [1, 1],
-    [10, 2.5],
-    [100, 2.2],
-    [1000, 2],
-  ],
-  'x20-b2': [
-    [1, 1],
-    [20, 2.5],
-    [400, 2.2],
-    [8000, 2],
-  ],
-};
-
-/** The postsyn views at 1280x720 with coarser chains at `D` 3 (`merging/postsyn-lod-px3[-zoom]` the `quality` chain) */
-export const MergingPostsynChainCases: BenchmarkCase<RenderInput>[] = Object.entries(CoarseChains).flatMap(
-  ([name, chain]) =>
-    [undefined, 0.3].map((zoom) =>
-      renderCase(
-        `merging/postsyn-lod-chain-${name}${zoom ? '-zoom' : ''}`,
-        `postsynstubby_2 particles as spacefill (mesoscale settings), culled on the GPU with Hi-Z, ${zoom ? `zoomed to ${zoom} of the distance, ` : ''}levels of strides ${chain.map((c) => c[0]).join(', ')} for spheres of at least 3 px`,
-        async () => {
-          const list = await getPostsyn();
-          const fov = (PD.getDefaultValues(Canvas3DParams).camera.fov * Math.PI) / 180;
-          const base = Spheres.LodLevelsPresets.quality.map((l, j) => ({
-            ...l,
-            stride: chain[j][0],
-            scaleBias: chain[j][1],
-          }));
-          const lod = pixelLodLevels(3, fov, Size.height, base);
-          return {
-            scene: (g) => Promise.all([postsynRepr(g, list, true, undefined, lod)]),
-            zoom,
-            props: { hiZ: { ...PD.getDefaultValues(HiZParams), enabled: true } },
-          };
-        },
-      ),
-    ),
-);
-
-/**
- * Levels by size on screen in the renderer (`lodPixelSize` 3) with the first coarser chain, whole and zoomed, at 720p and
- * 1440p: as `merging/postsyn-lod-chain-x10-b2.3[-zoom]` (distances computed in the benchmark) at 720p
+ * Levels by size on screen in the renderer (`lodPixelSize`, strides 1, 10, 100, 1000), whole and zoomed, at 720p and
+ * 1440p
  */
 type PixelModeCase = {
   size: typeof Size;
@@ -1820,16 +1937,10 @@ export const MergingPostsynPixelModeCases: BenchmarkCase<RenderInput>[] = [undef
       `postsynstubby_2 particles as spacefill (mesoscale settings), culled on the ${cpuCulling ? 'CPU' : 'GPU'}${cpuCulling || noOcclusion ? '' : noHiZ ? ' with its occlusion test' : ' with Hi-Z'}, ${zoom ? `zoomed to ${zoom} of the distance, ` : ''}at ${size.width}×${size.height}${ortho ? ', orthographic' : ''}${rotate ? ', rotating' : ''}, levels of strides 1, 10, 100, 1000 by size on screen (${pixelSize} px)`,
       async () => {
         const list = await getPostsyn();
-        const chain = CoarseChains['x10-b2.3'];
-        const lod = Spheres.LodLevelsPresets.quality.map((l, j) => ({
-          ...l,
-          stride: chain[j][0],
-          scaleBias: chain[j][1],
-        }));
         const camera = PD.getDefaultValues(Canvas3DParams).camera;
         return {
           size,
-          scene: (g) => Promise.all([postsynRepr(g, list, !cpuCulling, undefined, lod, undefined, pixelSize)]),
+          scene: (g) => Promise.all([postsynRepr(g, list, !cpuCulling, undefined, pixelSize)]),
           setupNotes: true,
           byteNotes: true,
           zoom,
@@ -1847,7 +1958,219 @@ export const MergingPostsynPixelModeCases: BenchmarkCase<RenderInput>[] = [undef
 );
 
 /**
- * The sphere raster (`sphere-compute-raster.md`) through the renderer (`sphereRaster`) on the PetWorld particles as
+ * The yeast cell from its particle pack (`yeast_cell_atoms.mspk` in `.benchmark/`, 31.5 M particles, 20.3 M sites, about
+ * 1.1 GB; on demand: `--filter 'merging/yeast-pack'`), whole at 720p as the Viewer shows it: what its scene holds
+ * (`--byte-notes`) and its frame
+ */
+export const MergingYeastPackCases: BenchmarkCase<RenderInput>[] = (['uniform', 'physical'] as const).map((size) =>
+  renderCase(
+    `merging/yeast-pack${size === 'physical' ? '-physical' : ''}`,
+    `the yeast cell from its particle pack (quantized sites) as spacefill (mesoscale settings), culled on the GPU, levels by size on screen (3 px), ${size === 'physical' ? 'its sites by their radii' : 'a uniform size (the default)'}`,
+    async () => {
+      const list = createParticleListFromPack(readParticlePack(await fetchBenchmarkFile('yeast_cell_atoms.mspk')));
+      return {
+        scene: (g) => Promise.all([postsynRepr(g, list, true, undefined, 3, undefined, size)]),
+        setupNotes: true,
+        byteNotes: true,
+      };
+    },
+  ),
+);
+
+/**
+ * The isg cell and its grids from their particle packs (`isg_mature.mspk`, `isg_mature_grid-<n>.mspk` in `.benchmark/`:
+ * 460k particles a cell, every copy stored; on demand: `--filter 'merging/isg-pack*'`), whole at 720p as the Viewer
+ * shows them, still and rotating: what their scene holds (`--byte-notes`) and their frames, the flat lists a nested one
+ * is measured against
+ */
+export const MergingIsgPackCases: BenchmarkCase<RenderInput>[] = ['', '-2x2x2', '-3x3x3', '-4x4x4'].flatMap((grid) =>
+  [false, true].map((rotate) =>
+    renderCase(
+      `merging/isg-pack${grid || '-1x1x1'}${rotate ? '-rotating' : ''}`,
+      `the isg cell${grid ? ` on a ${grid.slice(1)} grid` : ''} from its particle pack as spacefill (mesoscale settings), culled on the GPU, levels by size on screen (3 px)${rotate ? ', rotating' : ''}`,
+      async () => {
+        const file = `isg_mature${grid ? `_grid${grid}` : ''}.mspk`;
+        const list = createParticleListFromPack(readParticlePack(await fetchBenchmarkFile(file)));
+        return {
+          scene: (g) => Promise.all([postsynRepr(g, list, true, undefined, 3, undefined, 'uniform')]),
+          setupNotes: true,
+          byteNotes: true,
+          rotate,
+        };
+      },
+    ),
+  ),
+);
+
+/**
+ * The isg cell's grids written by the grid script (`scripts/particle-grid-pack.mjs`: `isg_mature_<form>-<n>x<n>x<n>.mspk`
+ * in `.benchmark/`, on demand: `--filter 'merging/isg-grid*'`), flat (every copy's particles written: culled by the
+ * merged culler), tiled (the same tile-ordered, `--tiles 16`: drawn by the page store's cull, as a slot list of its
+ * tiles) and nested (the cell a template, a particle a copy: by the page store's cull, its copies composed on the GPU),
+ * whole at 720p, still and rotating: what their scenes hold (`--byte-notes`) and their frames, one form against the
+ * others (tiled the nested one's cull without the copies); the nested at 8, 12 and 16 a side too
+ */
+export const MergingIsgGridCases: BenchmarkCase<RenderInput>[] = (['flat', 'tiled', 'nested'] as const).flatMap(
+  (form) =>
+    // the nested form larger too (8: 236 M particles drawn, 12: 795 M, 16: 1.9 G; its copies alone written, flat and
+    // tiled none)
+    (form === 'nested' ? [2, 3, 4, 8, 12, 16] : [2, 3, 4]).flatMap((n) =>
+      // the nested form's layers too: still with a copy and a template particle range overpainted, and another copy
+      // overpainted per frame (a state's change: its update)
+      (form === 'nested'
+        ? (['still', 'rotating', 'near-rotating', 'hover', 'layers', 'layers-update', 'drag'] as const)
+        : (['still', 'rotating', 'hover'] as const)
+      ).map((mode: 'still' | 'rotating' | 'near-rotating' | 'hover' | 'layers' | 'layers-update' | 'drag') =>
+        renderCase(
+          `merging/isg-grid-${form}-${n}x${n}x${n}${mode === 'still' ? '' : `-${mode}`}`,
+          `the isg cell on a ${n}x${n}x${n} grid, ${form === 'nested' ? 'a template placed by its copies' : `every copy written out${form === 'tiled' ? ', tile-ordered' : ''}`}, as spacefill (mesoscale settings), culled on the GPU, levels by size on screen (3 px)${mode === 'rotating' ? ', rotating' : mode === 'near-rotating' ? ', near (0.35 of the distance, 1280x1130: the Viewer outside, a little zoomed in), turning half a degree a frame' : mode === 'hover' ? ', a hover (per frame another instance highlighted, the one before not) redrawn over the last image' : mode === 'layers' ? ', a copy and a thousand template particles in every copy overpainted' : mode === 'layers-update' ? ', per frame another copy overpainted (the state set, the canvas updated)' : mode === 'drag' ? ', moved per frame (a drag: another preview transform)' : ''}`,
+          async () => {
+            const file = `isg_mature_${form}-${n}x${n}x${n}.mspk`;
+            const list = createParticleListFromPack(readParticlePack(await fetchBenchmarkFile(file)));
+            // every form seen alike: the nested list's sphere (its bounds by its copies, the others' by their particles)
+            const nested =
+              form === 'nested'
+                ? list
+                : createParticleListFromPack(
+                    readParticlePack(await fetchBenchmarkFile(`isg_mature_nested-${n}x${n}x${n}.mspk`)),
+                  );
+            const { center, radius } = Particle.getBoundary(nested).sphere;
+            // an instance of the expanded list (a nested one's by its path: a template particle of one copy)
+            const count = ParticleNesting.getExpandedCount(list);
+            let layersSet = false;
+            const instance = (i: number) =>
+              ParticleNesting.fromFlatIndices(list, OrderedSet.ofSingleton((i * 7919 * 104729) % count));
+            return {
+              scene: (g) => Promise.all([postsynRepr(g, list, true, undefined, 3, undefined, 'uniform')]),
+              setupNotes: true,
+              byteNotes: true,
+              rotate: mode === 'rotating' || mode === 'near-rotating',
+              focus: { center: Vec3.clone(center), radius },
+              // near: the copies at their finer levels, most of them hidden (the cull's work, not the draws')
+              ...(mode === 'near-rotating' && { zoom: 0.35, rotateDegrees: 0.5, size: { width: 1280, height: 1130 } }),
+              ...(mode === 'hover' && {
+                yieldFrames: true,
+                unforced: true,
+                update: (canvas3d: Canvas3D, _: readonly Representation.Any[], i: number) => {
+                  canvas3d.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
+                  canvas3d.mark({ loci: instance(i + 1) }, MarkerAction.Highlight);
+                },
+              }),
+              ...(mode === 'layers' && {
+                // set once (the first update, before the runs): the frames' cost with the layers alone
+                update: (canvas3d: Canvas3D, reprs: readonly Representation.Any[]) => {
+                  if (layersSet) return;
+                  layersSet = true;
+                  reprs[0].setState({ overpaint: isgLayers(list, 0, true) });
+                  canvas3d.update(reprs[0]);
+                  canvas3d.commit(true);
+                },
+              }),
+              ...(mode === 'drag' && {
+                // per frame another preview transform (a drag before its release): every object moved
+                update: (_: Canvas3D, reprs: readonly Representation.Any[], i: number) => {
+                  const m = Mat4.fromTranslation(Mat4(), Vec3.create(radius * 0.01 * (i % 20), 0, 0));
+                  for (const ro of reprs[0].renderObjects) Visual.setPreviewTransform(ro, m);
+                },
+              }),
+              ...(mode === 'layers-update' && {
+                update: (canvas3d: Canvas3D, reprs: readonly Representation.Any[], i: number) => {
+                  reprs[0].setState({ overpaint: isgLayers(list, (i * 7919) % list.count, false) });
+                  canvas3d.update(reprs[0]);
+                },
+              }),
+            };
+          },
+        ),
+      ),
+    ),
+);
+
+/** a nested list's overpaint: its copy `copy` red, with `wide` its template's first thousand particles in every copy */
+function isgLayers(list: ParticleList, copy: number, wide: boolean) {
+  const layers: { loci: Particle.Loci; color: Color; clear: boolean }[] = [
+    { loci: ParticleNesting.ofCopy(list, copy), color: Color(0xee2211), clear: false },
+  ];
+  const template = ParticleNesting.getTemplate(list, ParticleValues.get(list.targets, 0))?.particles;
+  if (wide && template) {
+    const locals = OrderedSet.ofBounds(0, Math.min(1000, template.count));
+    layers.push({
+      loci: ParticleNesting.ofTemplateParticles(list, template, locals),
+      color: Color(0x22cc33),
+      clear: false,
+    });
+  }
+  return { kind: 'particle-loci' as const, layers };
+}
+
+/**
+ * The yeast cell on a 2x2 grid (`scripts/particle-grid-pack.mjs` from `yeast_cell_atoms.mspk`, in `.benchmark/`, on
+ * demand: `--filter 'merging/yeast-grid*'`): flat (every copy's particles written, tile-ordered with coarse levels:
+ * `yeast_cell_atoms_grid-2x2.tiles32.levels.mspk`, 126 M particles, 2.8 GB) and nested (the cell a template, four
+ * copies: `yeast_cell_atoms_nested-2x2.mspk`, 714 MB), whole at 720p, still, rotating and with a hover: what their
+ * scenes hold (`--byte-notes`) and their frames
+ */
+export const MergingYeastGridCases: BenchmarkCase<RenderInput>[] = (['flat', 'nested'] as const).flatMap((form) =>
+  (['still', 'rotating', 'hover'] as const).map((mode) =>
+    renderCase(
+      `merging/yeast-grid-${form}-2x2${mode === 'still' ? '' : `-${mode}`}`,
+      `the yeast cell on a 2x2 grid, ${form === 'nested' ? 'a template placed by its copies' : 'every copy written out, tile-ordered with coarse levels'}, as spacefill (mesoscale settings), culled on the GPU, levels by size on screen (3 px)${mode === 'rotating' ? ', rotating' : mode === 'hover' ? ', a hover (per frame another instance highlighted, the one before not) redrawn over the last image' : ''}`,
+      async () => {
+        const file =
+          form === 'nested' ? 'yeast_cell_atoms_nested-2x2.mspk' : 'yeast_cell_atoms_grid-2x2.tiles32.levels.mspk';
+        const list = createParticleListFromPack(readParticlePack(await fetchBenchmarkFile(file)));
+        const count = ParticleNesting.getExpandedCount(list);
+        const instance = (i: number) =>
+          ParticleNesting.fromFlatIndices(list, OrderedSet.ofSingleton((i * 7919 * 104729) % count));
+        return {
+          scene: (g) => Promise.all([postsynRepr(g, list, true, undefined, 3, undefined, 'uniform')]),
+          setupNotes: true,
+          byteNotes: true,
+          rotate: mode === 'rotating',
+          ...(mode === 'hover' && {
+            yieldFrames: true,
+            unforced: true,
+            update: (canvas3d: Canvas3D, _: readonly Representation.Any[], i: number) => {
+              canvas3d.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
+              canvas3d.mark({ loci: instance(i + 1) }, MarkerAction.Highlight);
+            },
+          }),
+        };
+      },
+    ),
+  ),
+);
+
+/**
+ * PetWorld from its particle pack (`getPostsynPack`: sites targets, their quantized centers drawn as they are) as
+ * `merging/postsyn-lod-pixel3[-zoom]` draws the BinaryCIF's (structure targets): whole and zoomed at 720p
+ */
+export const MergingPostsynPackCases: BenchmarkCase<RenderInput>[] = (
+  [
+    [undefined, 'uniform'],
+    [0.3, 'uniform'],
+    [undefined, 'physical'],
+  ] as const
+).map(([zoom, size]) =>
+  renderCase(
+    `merging/postsyn-pack-lod-pixel3${zoom ? '-zoom' : ''}${size === 'physical' ? '-physical' : ''}`,
+    `postsynstubby_2 particles from its particle pack (quantized sites) as spacefill (mesoscale settings), culled on the GPU with Hi-Z, ${zoom ? `zoomed to ${zoom} of the distance, ` : ''}levels of strides 1, 10, 100, 1000 by size on screen (3 px)${size === 'physical' ? ', its sites by their radii' : ''}`,
+    async () => {
+      const list = await getPostsynPack();
+      return {
+        scene: (g) => Promise.all([postsynRepr(g, list, true, undefined, 3, undefined, size)]),
+        setupNotes: true,
+        byteNotes: true,
+        zoom,
+        yieldFrames: true,
+        props: { hiZ: { ...PD.getDefaultValues(HiZParams), enabled: true, gpu: true } },
+      };
+    },
+  ),
+);
+
+/**
+ * The sphere raster through the renderer (`sphereRaster`) on the PetWorld particles as
  * `merging/postsyn-lod-pixel1` draws them (levels by size on screen at 1 px: more spheres, and larger, than at the
  * default 3), whole and zoomed, at 1280×720 and 2560×1440, and multi-sampled (`-ms`: four samples a frame, views of
  * a frame culled already, as temporal multi-sampling draws them at rest): off (the impostors), on at
@@ -1872,20 +2195,11 @@ export const SphereRasterRendererCases: BenchmarkCase<RenderInput>[] = [undefine
         `postsynstubby_2 particles as spacefill (mesoscale settings), culled on the GPU with Hi-Z, ${zoom ? `zoomed to ${zoom} of the distance, ` : ''}at ${size.width}×${size.height}${variant === 'multi-sample' ? ', multi-sampled (4 samples a frame)' : ''}, levels by size on screen (1 px); sphere raster ${sphereRaster}${sphereRaster === 'on' ? ` up to ${radius} px` : ''}`,
         async () => {
           const list = await getPostsyn();
-          const chain = CoarseChains['x10-b2.3'];
-          const lod = Spheres.LodLevelsPresets.quality.map((l, j) => ({
-            ...l,
-            stride: chain[j][0],
-            scaleBias: chain[j][1],
-          }));
           // the particles' defaults as the viewer draws them (`viewer`): their levels by size on screen at 3 px
           const viewer = variant === 'viewer';
           return {
             size,
-            scene: (g) =>
-              Promise.all([
-                viewer ? postsynViewerRepr(g, list) : postsynRepr(g, list, true, undefined, lod, undefined, 1),
-              ]),
+            scene: (g) => Promise.all([viewer ? postsynViewerRepr(g, list) : postsynRepr(g, list, true, undefined, 1)]),
             setupNotes: true,
             zoom,
             yieldFrames: true,
@@ -1906,8 +2220,8 @@ export const SphereRasterRendererCases: BenchmarkCase<RenderInput>[] = [undefine
 );
 
 /**
- * What still goes to the impostors as spheres grow past the raster's limit (`sphere-compute-raster.md` option A, tiles
- * for larger spheres): PetWorld as the viewer draws it, whole and zoomed to 0.3, 0.1 and 0.03 of the distance; `off`,
+ * What still goes to the impostors as spheres grow past the raster's limit (tiles for
+ * larger spheres): PetWorld as the viewer draws it, whole and zoomed to 0.3, 0.1 and 0.03 of the distance; `off`,
  * `auto` with the limit at 6, 24, 64 and 256 px (larger spheres to the raster, the large ones by its workgroups),
  * `only` (every sphere); on demand
  */
@@ -1938,15 +2252,124 @@ export const SphereRasterZoomCases: BenchmarkCase<RenderInput>[] = [1, 0.3, 0.1,
   ),
 );
 
+type MarkingVariant = {
+  readonly marking: 'none' | 'particle' | 'hover' | 'all';
+  /** forced frames by default; `redraw`: the camera still, the marking redrawn over the last image; `rotating`: the
+   * camera rotating, the scene and marking drawn per frame */
+  readonly mode?: 'redraw' | 'rotating';
+  /** a pause of 300 ms before each frame (`RenderInput.idleMs`): the GPU's clocks fall as between hovers */
+  readonly idle?: boolean;
+  /** dimming on; an unmarked transparent box (alpha 0.5) in the model's middle; multi-sampling */
+  readonly extra?: 'dim' | 'transparent' | 'multi-sample';
+};
+
+const MarkingVariants: readonly MarkingVariant[] = [
+  { marking: 'none' },
+  { marking: 'particle' },
+  { marking: 'hover' },
+  { marking: 'all' },
+  { marking: 'hover', mode: 'redraw' },
+  { marking: 'hover', mode: 'redraw', idle: true },
+  { marking: 'none', mode: 'rotating' },
+  { marking: 'hover', mode: 'rotating' },
+];
+
+const MarkingExtraVariants: readonly MarkingVariant[] = (['dim', 'transparent', 'multi-sample'] as const).flatMap(
+  (extra) => [
+    { marking: 'hover', mode: 'redraw', extra },
+    { marking: 'none', mode: 'rotating', extra },
+    { marking: 'hover', mode: 'rotating', extra },
+  ],
+);
+
+/**
+ * Marking on postsynstubby_2 as the viewer draws it, whole and zoomed to 0.3: nothing marked, one particle highlighted,
+ * a hover (per frame another particle highlighted, the one before not) and everything highlighted, in forced frames;
+ * the hover as a still camera draws it (`-redraw`: the marking alone, redrawn over the last image; `-redraw-idle`: 300
+ * ms apart, at the GPU's idle clocks) and as a moving one does (`-rotating`, against nothing marked rotating); zoomed,
+ * those also with dimming, an unmarked transparent box and multi-sampling; on demand
+ */
+export const MarkingPostsynCases: BenchmarkCase<RenderInput>[] = [undefined, 0.3].flatMap((zoom) =>
+  [...MarkingVariants, ...(zoom ? MarkingExtraVariants : [])].map(({ marking, mode, idle, extra }) =>
+    renderCase(
+      `marking/postsyn-${zoom ? 'zoom' : 'whole'}-${marking}${mode ? `-${mode}` : ''}${idle ? '-idle' : ''}${extra ? `-${extra}` : ''}`,
+      `postsynstubby_2 as the viewer draws it${zoom ? `, zoomed to ${zoom} of the distance` : ''}; marked: ${marking}${mode === 'redraw' ? ', redrawn over the last image' : mode === 'rotating' ? ', rotating' : ''}${idle ? ', 300 ms apart' : ''}${extra ? `, ${extra}` : ''}`,
+      async () => {
+        const list = await getPostsyn();
+        const particle = (i: number) => Particle.Loci(list, OrderedSet.ofSingleton((i * 7919) % list.count));
+        const { center, radius } = Particle.getBoundary(list).sphere;
+        const box = () =>
+          shapeRepr('transparent-box', meshBox(radius * 0.6), {
+            transforms: [Mat4.fromTranslation(Mat4(), center)],
+            props: { alpha: 0.5 },
+          });
+        const { renderer } = PD.getDefaultValues(Canvas3DParams);
+        return {
+          scene: async (g) => [await postsynViewerRepr(g, list), ...(extra === 'transparent' ? [await box()] : [])],
+          zoom,
+          yieldFrames: true,
+          unforced: mode === 'redraw',
+          idleMs: idle ? 300 : undefined,
+          rotate: mode === 'rotating',
+          multiSample: extra === 'multi-sample',
+          highlight: marking === 'all',
+          update:
+            marking === 'particle'
+              ? (canvas3d, _, i) => {
+                  if (i === 0) canvas3d.mark({ loci: particle(0) }, MarkerAction.Highlight);
+                }
+              : marking === 'hover'
+                ? (canvas3d, _, i) => {
+                    canvas3d.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
+                    canvas3d.mark({ loci: particle(i + 1) }, MarkerAction.Highlight);
+                  }
+                : undefined,
+          props: {
+            hiZ: { ...PD.getDefaultValues(HiZParams), enabled: true },
+            ...(extra === 'dim' && { renderer: { ...renderer, dimStrength: 0.5 } }),
+          },
+        };
+      },
+    ),
+  ),
+);
+
+/**
+ * Marking on 60 instanced copies of 7qpd as spacefill, a render object per unit (not merged: instanced, each culled by
+ * its instance grid): a hover over the chains of the copies (per frame another copy's chain highlighted, the one before
+ * not), redrawn over the last image and rotating
+ */
+export const MarkingAssemblyCases: BenchmarkCase<RenderInput>[] = (['redraw', 'rotating'] as const).map((mode) =>
+  renderCase(
+    `marking/assembly-60-hover-${mode}`,
+    `60 instanced copies of 7qpd as spacefill, unmerged; a chain of a copy hovered, ${mode === 'redraw' ? 'redrawn over the last image' : 'rotating'}`,
+    async () => {
+      const s = await getAssembly();
+      const unit = (i: number) => {
+        const u = s.units[(i * 7) % s.units.length];
+        return StructureElement.Loci(s, [
+          { unit: u, indices: OrderedSet.ofBounds(0, u.elements.length) as StructureElement.UnitIndex[] & never },
+        ]);
+      };
+      return {
+        scene: (g) => Promise.all([structureRepr(g, SpacefillRepresentationProvider, s, { renderMerged: false })]),
+        yieldFrames: true,
+        unforced: mode === 'redraw',
+        rotate: mode === 'rotating',
+        update: (canvas3d, _, i) => {
+          canvas3d.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
+          canvas3d.mark({ loci: unit(i + 1) }, MarkerAction.Highlight);
+        },
+      };
+    },
+  ),
+);
+
 let mg: Promise<ParticleList> | undefined;
-/** `MG_1184_cellpack_atom_instances.bcif` in the repository root as the particle list the viewer loads */
+/** `MG_1184_cellpack_atom_instances.bcif` in `.benchmark/` as the particle list the viewer loads */
 const getMg = () =>
   (mg ??= (async () => {
-    const response = await fetch('/MG_1184_cellpack_atom_instances.bcif');
-    if (!response.ok) {
-      throw new Error(`MG_1184_cellpack_atom_instances.bcif not found in the repository root (${response.status})`);
-    }
-    const parsed = await CIF.parseBinary(new Uint8Array(await response.arrayBuffer())).run();
+    const parsed = await CIF.parseBinary(await fetchBenchmarkFile('MG_1184_cellpack_atom_instances.bcif')).run();
     if (parsed.isError) throw new Error(parsed.message);
     const cif = parsed.result;
     const assemblyId = getAssemblyIdsFromMmcif(cif)[0];
@@ -1997,7 +2420,56 @@ export const SphereRasterMgCases: BenchmarkCase<RenderInput>[] = (
 );
 
 /**
- * The sphere raster's prop on scenes other than PetWorld (`sphere-compute-raster.md` step 6, what `auto` decides from):
+ * Illumination on the mesoscale models as the viewer draws them (PetWorld, MG_1184; Hi-Z and the sphere raster at their
+ * defaults, the ray distance of the mesoscale explorer): rotating, the first tracing iteration per frame, its input
+ * (tracing and the back depth) drawn each frame; `still`, the camera still and the frames not forced, the iterations
+ * going on (no last one) at the quality adapted up to the props' maximum, the input drawn once; whole and zoomed to 0.3,
+ * 1280×720 and 2560×1440; the thickness by the back depth (`auto`, the default) or fixed (no back depth) at 4 Å (the
+ * default, `-fixed`), 16, 64 and 256 Å (`-fixed16` …); on demand (`--gpu-timing`: the trace and its inputs apart)
+ */
+export const IlluminationMesoscaleCases: BenchmarkCase<RenderInput>[] = (
+  [
+    ['postsyn', () => getPostsyn()],
+    ['mg', () => getMg()],
+  ] as const
+).flatMap(([name, list]) =>
+  [1, 0.3].flatMap((zoom) =>
+    [false, true].flatMap((large) =>
+      [false, true].flatMap((still) =>
+        ([undefined, 4, 16, 64, 256] as const).map((thickness) =>
+          renderCase(
+            `illumination-mesoscale/${name}-${zoom === 1 ? 'whole' : `zoom${zoom}`}${large ? '-large' : ''}${still ? '-still' : ''}${thickness === undefined ? '' : thickness === 4 ? '-fixed' : `-fixed${thickness}`}`,
+            `${name === 'postsyn' ? 'postsynstubby_2' : 'MG_1184'} as the viewer draws it with illumination, ${zoom === 1 ? 'whole' : `zoomed to ${zoom} of the distance`}, ${still ? 'still' : 'rotating'}${large ? ', 2560×1440' : ''}, thickness ${thickness === undefined ? 'auto' : `fixed at ${thickness} Å`}`,
+            async () => {
+              const l = await list();
+              const illumination = {
+                ...PD.getDefaultValues(IlluminationParams),
+                enabled: true,
+                rayDistance: 1024,
+                ...(thickness === undefined ? {} : { thicknessMode: 'fixed' as const, thickness }),
+              };
+              return {
+                size: large ? LargeSize : Size,
+                rotate: !still,
+                unforced: still,
+                zoom: zoom === 1 ? undefined : zoom,
+                yieldFrames: true,
+                scene: (g) => Promise.all([postsynViewerRepr(g, l)]),
+                props: {
+                  hiZ: { ...PD.getDefaultValues(HiZParams), enabled: true },
+                  illumination: still ? { ...illumination, maxIterations: 16 } : illumination,
+                },
+              };
+            },
+          ),
+        ),
+      ),
+    ),
+  ),
+);
+
+/**
+ * The sphere raster's prop on scenes other than PetWorld (what `auto` decides from):
  * spacefill with the default props, Hi-Z on, of a crambin (327 atoms), a globule of 6k and one of 300k atoms (an
  * unmerged object each: the raster's split per sphere), 60 copies of 7qpd as an object per unit (instanced, unmerged)
  * and merged and culled on the GPU (the split per instance); whole and zoomed, at 1280×720 and 2560×1440; `off`,
@@ -2039,7 +2511,7 @@ export const SphereRasterSceneCases: BenchmarkCase<RenderInput>[] = (
 
 /**
  * The sphere raster's prop where PetWorld is too large (an integrated GPU: `--browser-arg --force_low_power_gpu`):
- * 3j3q, the HIV-1 capsid (`3j3q.bcif` in the repository root, about 2.4 M atoms, 1356 chains), as spacefill merged and
+ * 3j3q, the HIV-1 capsid (`3j3q.bcif` in `.benchmark/`, about 2.4 M atoms, 1356 chains), as spacefill merged and
  * culled on the GPU (what `auto` draws), Hi-Z on, the default limit; whole and zoomed at 1280×720, whole at 2560×1440,
  * and zoomed cut through its center by a plane by pixel; `off`, `auto` and `only`
  */
@@ -2056,7 +2528,7 @@ export const SphereRasterIGpuCases: BenchmarkCase<RenderInput>[] = (
       `sphere-raster-igpu/3j3q-${label}-${sphereRaster}`,
       `3j3q as spacefill, merged and culled on the GPU${zoom ? `, zoomed to ${zoom} of the distance` : ''}${plane ? ', cut through its center by a plane' : ''}, at ${size.width}×${size.height}; sphere raster ${sphereRaster}`,
       async () => {
-        const s = await getRootEntry('3j3q.bcif');
+        const s = await getBenchmarkEntry('3j3q.bcif');
         const clip = plane
           ? {
               variant: 'pixel' as const,
@@ -2104,15 +2576,9 @@ export const MergingPostsynUpdateCases: BenchmarkCase<RenderInput>[] = (['unifor
     `postsynstubby_2 particles as spacefill (mesoscale settings, levels by size on screen), recolored every frame (${theme === 'entity' ? 'entity colors by name and by function' : 'a uniform color'})`,
     async () => {
       const list = await getPostsyn();
-      const chain = CoarseChains['x10-b2.3'];
-      const lod = Spheres.LodLevelsPresets.quality.map((l, j) => ({
-        ...l,
-        stride: chain[j][0],
-        scaleBias: chain[j][1],
-      }));
       const registries = getThemeRegistries();
       return {
-        scene: (g) => Promise.all([postsynRepr(g, list, true, undefined, lod, undefined, 3)]),
+        scene: (g) => Promise.all([postsynRepr(g, list, true, undefined, 3)]),
         update: async (_canvas3d, reprs, i) => {
           const repr = reprs[0];
           repr.setTheme(
@@ -2129,6 +2595,84 @@ export const MergingPostsynUpdateCases: BenchmarkCase<RenderInput>[] = (['unifor
             ),
           );
           await repr.createOrUpdate({}, list).run();
+        },
+      };
+    },
+  ),
+);
+
+/**
+ * The PetWorld particles from its pack (`merging/postsyn-pack-lod-pixel3`'s scene) given a new list every frame with
+ * some particles moved (a trajectory's frame, a drag): every particle (`all`) or a tenth of them (`part`), each a
+ * small oscillation; what a pose change costs today, through the representation's update
+ */
+export const ParticleFrameCases: BenchmarkCase<RenderInput>[] = (['all', 'part'] as const).map((moved) =>
+  renderCase(
+    `particles/pose-frames-${moved}`,
+    `postsynstubby_2 particles from its pack, culled on the GPU, a new list a frame with ${moved === 'all' ? 'every particle' : 'a tenth of the particles'} moved`,
+    async () => {
+      const list = await getPostsynPack();
+      const base = GridPositions.toFloat(list.coordinates);
+      const n = list.count;
+      const coordinates = new Float32Array(base);
+      return {
+        scene: (g) => Promise.all([postsynRepr(g, list, true, undefined, 3)]),
+        update: async (_canvas3d, reprs, i) => {
+          const d = Math.sin(i * 0.5) * 2;
+          const step = moved === 'all' ? 1 : 10;
+          for (let p = 0; p < n; p += step) coordinates[p * 3] = base[p * 3] + d;
+          // the same particles posed otherwise (`Particle.withPoses`), as a trajectory's frame or a drag gives them
+          await reprs[0].createOrUpdate({}, Particle.withPoses(list, new Float32Array(coordinates))).run();
+        },
+      };
+    },
+  ),
+);
+
+/**
+ * A clip plane dragged through the particles (as the viewer adds them), its preview every frame: the representation
+ * updated with the moved clip object only, as a clipping gizmo's drag updates it (`ClipBinding.preview`). PetWorld,
+ * and the yeast cell from its pack (`yeast_cell_atoms.mspk` in `.benchmark/`; on demand: `--filter 'clip/yeast*'`):
+ * its 5,639 targets each a visual
+ */
+export const ClipDragCases: BenchmarkCase<RenderInput>[] = (
+  [
+    ['postsyn', 'postsynstubby_2 particles', getPostsyn],
+    [
+      'yeast',
+      'the yeast cell from its particle pack',
+      async () => createParticleListFromPack(readParticlePack(await fetchBenchmarkFile('yeast_cell_atoms.mspk'))),
+    ],
+  ] as const
+).map(([name, label, getList]) =>
+  renderCase(
+    `clip/${name}-drag`,
+    `${label} (viewer defaults, culled on the GPU), a clip plane moved through them every frame`,
+    async () => {
+      const list = await getList();
+      const { center, radius } = Particle.getBoundary(list).sphere;
+      const clipAt = (i: number) => ({
+        variant: 'pixel' as const,
+        objects: [
+          {
+            type: 'plane' as const,
+            invert: false,
+            position: Vec3.create(center[0] + radius * (0.5 * Math.sin(i * 0.1)), center[1], center[2]),
+            rotation: { axis: Vec3.create(0, 0, 1), angle: 90 },
+            scale: Vec3.create(1, 1, 1),
+            transform: Mat4.identity(),
+          },
+        ],
+      });
+      return {
+        scene: async (g) => {
+          const repr = await postsynViewerRepr(g, list);
+          // the cut made before the drag: its defines set, the drag moving it only
+          await repr.createOrUpdate({ clip: clipAt(0) }, list).run();
+          return [repr];
+        },
+        update: async (_canvas3d, reprs, i) => {
+          await reprs[0].createOrUpdate({ clip: clipAt(i + 1) }, list).run();
         },
       };
     },
@@ -2170,12 +2714,10 @@ export const UnindexedQuadCases: BenchmarkCase<RenderInput>[] = [
       async () => {
         const list = await getPostsyn();
 
-        const lod = Spheres.LodPixelPresets.quality.lodLevels;
-
         return {
           quadIndexing: false,
 
-          scene: (g) => Promise.all([postsynRepr(g, list, true, undefined, lod, undefined, 3)]),
+          scene: (g) => Promise.all([postsynRepr(g, list, true, undefined, 3)]),
 
           zoom,
 
@@ -2196,7 +2738,7 @@ function elementIndexColor(i: number) {
 }
 
 /**
- * Merging with instances (`merged-render-objects.md`, on demand): the 60 copies of 7qpd (its chains the units, 60
+ * Merging with instances (on demand): the 60 copies of 7qpd (its chains the units, 60
  * instances each) colored by `element-index`, per group and instance: the color layers have groups times instances
  * texels, copied into the merged object. Frames still or with the palette changed per frame
  */
@@ -2269,9 +2811,9 @@ export const ClipCases: BenchmarkCase<RenderInput>[] = [1, 3].flatMap((count) =>
 /**
  * PetWorld as the viewer draws it, zoomed, cut through its center by pixel (the caps of the cut spheres' solid
  * interiors) by a plane, an ellipsoid (the inside removed) or an infinite cone: the impostors (`off`, culled on the GPU;
- * `cpu`, on the CPU, `clip-culling.md`; `cpu-instance`, clipped by instance, culled on the CPU) and the raster
- * (`auto`; its spheres classified against the clip objects by distance bounds, per pixel only where they reach a
- * surface), on demand
+ * `cpu`, on the CPU; `cpu-instance`, clipped by instance, culled on the CPU) and the raster (`auto`; its spheres
+ * classified against the clip objects by distance bounds, per pixel only where they reach a surface); `-ghost`: with
+ * the ghost of what the clip object removes (`clipGhost`), on demand
  */
 const ClipPostsynObjects = {
   plane: { type: 'plane' as const, scale: Vec3.create(1, 1, 1) },
@@ -2280,10 +2822,12 @@ const ClipPostsynObjects = {
 };
 export const ClipPostsynCases: BenchmarkCase<RenderInput>[] = (['plane', 'ellipsoid', 'cone'] as const).flatMap(
   (shape) =>
-    (['off', 'auto', 'cpu', 'cpu-instance'] as const).map((variant) =>
-      renderCase(
-        `clip/postsyn-zoom-${shape}-${variant}`,
-        `postsynstubby_2 as the viewer draws it, zoomed to 0.3 of the distance, cut by ${shape === 'ellipsoid' ? 'an' : 'a'} ${shape} ${variant === 'cpu-instance' ? 'by instance' : 'by pixel'}; ${variant === 'cpu' || variant === 'cpu-instance' ? 'culled on the CPU, the impostors' : `sphere raster ${variant}`}`,
+    (['off', 'auto', 'cpu', 'cpu-instance', 'off-ghost', 'auto-ghost', 'cpu-ghost'] as const).map((name) => {
+      const ghost = name.endsWith('-ghost');
+      const variant = ghost ? (name.slice(0, -'-ghost'.length) as 'off' | 'auto' | 'cpu') : name;
+      return renderCase(
+        `clip/postsyn-zoom-${shape}-${name}`,
+        `postsynstubby_2 as the viewer draws it, zoomed to 0.3 of the distance, cut by ${shape === 'ellipsoid' ? 'an' : 'a'} ${shape} ${variant === 'cpu-instance' ? 'by instance' : 'by pixel'}; ${variant === 'cpu' || variant === 'cpu-instance' ? 'culled on the CPU, the impostors' : `sphere raster ${variant}`}${ghost ? ', with the ghost of what it removes' : ''}`,
         async () => {
           const list = await getPostsyn();
           const { type, scale } = ClipPostsynObjects[shape];
@@ -2291,7 +2835,7 @@ export const ClipPostsynCases: BenchmarkCase<RenderInput>[] = (['plane', 'ellips
           const min = Vec3.create(Infinity, Infinity, Infinity);
           const max = Vec3.create(-Infinity, -Infinity, -Infinity);
           for (let i = 0; i < list.count; ++i) {
-            const p = Vec3.fromArray(Vec3(), list.coordinates, i * 3);
+            const p = GridPositions.get(list.coordinates, i, Vec3());
             Vec3.min(min, min, p);
             Vec3.max(max, max, p);
           }
@@ -2325,17 +2869,18 @@ export const ClipPostsynCases: BenchmarkCase<RenderInput>[] = (['plane', 'ellips
                 ...PD.getDefaultValues(Canvas3DParams).renderer,
                 sphereRaster: variant === 'auto' ? 'auto' : 'off',
               },
+              ...(ghost && { clipGhost: { name: 'on' as const, params: PD.getDefaultValues(ClipGhostParams) } }),
             },
           };
         },
-      ),
-    ),
+      );
+    }),
 );
 
 /**
  * 60 copies of 7qpd as cartoon and as Gaussian surfaces (meshes), zoomed to 0.5 and cut through the center by a plane
  * by pixel: instanced, culled on the CPU, and merged, culled on the GPU; the culling of what the plane clips whole on
- * geometry other than spheres (`clip-culling.md`), on demand
+ * geometry other than spheres, on demand
  */
 export const ClipMeshCases: BenchmarkCase<RenderInput>[] = (['cartoon', 'gaussian'] as const).flatMap((repr) =>
   ([false, true] as const).map((merged) =>

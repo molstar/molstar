@@ -8,6 +8,7 @@ import {
   createRenderObject,
   type GraphicsRenderObject,
   getNextMaterialId,
+  getMergedMembers,
   isMergedRenderObject,
 } from '@molstar/graphics/gl/render-object';
 import { MeshBuilder } from '@molstar/graphics/geo/geometry/mesh/mesh-builder';
@@ -86,7 +87,7 @@ export class BoundingSphereHelper implements DebugHelper<BoundingSphereHelperPro
       live.add(ro);
       if (isMergedRenderObject(ro)) {
         // one instance-spheres entry per merged segment
-        for (const member of ro.members) {
+        for (const member of getMergedMembers(ro)) {
           this.updateInstancesData(member);
           live.add(member);
         }
@@ -123,14 +124,20 @@ export class BoundingSphereHelper implements DebugHelper<BoundingSphereHelperPro
       {
         aTransform: ro.values.aTransform,
         matrix: ro.values.matrix,
+        uObjectTransform: ro.values.uObjectTransform,
         transform: ro.values.transform,
         extraTransform: ro.values.extraTransform,
         hasExtraTransform: ro.values.hasExtraTransform,
+        // a particle target's poses (`TransformData.poses`), none on objects without them
+        poses: ro.values.poses ?? ValueCell.create(undefined),
+        instancePoses: ro.values.instancePoses ?? ValueCell.create(undefined),
         uInstanceCount: ro.values.uInstanceCount,
         instanceCount: ro.values.instanceCount,
         aInstance: ro.values.aInstance,
         hasReflection: ro.values.hasReflection,
         instanceGrid: ro.values.instanceGrid,
+        instanceCellSize: ro.values.instanceCellSize,
+        instanceBatchSize: ro.values.instanceBatchSize,
       },
     );
     if (newInstanceData) this.instancesData.set(ro, newInstanceData);
@@ -150,7 +157,7 @@ export class BoundingSphereHelper implements DebugHelper<BoundingSphereHelperPro
       if (objectData) objectData.renderObject.state.visible = ro.state.visible && this._props.objectBoundingSpheres;
 
       if (isMergedRenderObject(ro)) {
-        for (const member of ro.members) {
+        for (const member of getMergedMembers(ro)) {
           const instanceData = this.instancesData.get(member);
           if (instanceData)
             instanceData.renderObject.state.visible = ro.state.visible && this._props.instanceBoundingSpheres;

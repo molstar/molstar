@@ -1,0 +1,30 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Introduction" />
+
+# Mol\* UI
+
+`@molstar/ui` is the user interface layer of Mol\* v6: a small JSX DOM runtime on core's reactive states
+(`@molstar/ui/dom`), and the foundations every view is built on (`@molstar/ui/styles/foundations.css`).
+
+## The runtime
+
+Components run once and build real DOM; states (`@molstar/core/reactive`) update the nodes they bind. No virtual DOM: a
+`watch` re-renders what changed in a microtask, regions (`Show`, `For`) own the structure that comes and goes, and
+hidden UI pauses. Its rules are in `packages/ui/src/dom/_spec/README.md`.
+
+## The foundations
+
+Tokens (`--msui-*`) and a few layout primitives (`.msui-*`), in one stylesheet:
+
+- **Color**: a theme sets a few base colors (`data-msui-theme`: light, dark, blue, contrast, auto); every shade is mixed
+  from them, so a subtree with its own theme gets consistent shades.
+- **Type**: four sizes, each with a line height on the 4px grid; two weights; tabular figures for numbers.
+- **Spacing**: one 4px unit and a scale of its multiples; a control sits in a row, so lists and forms line up.
+- **Shape**: radii by role, elevation only for what floats.
+- **Motion**: three durations and two curves; nothing under reduced motion.
+- **Alignment**: what shares a column, and why. One inset for every text start in a surface, icon slots kept when empty,
+  a level of nesting that is exactly a slot, one label column for every form, values that start where controls write,
+  numbers by place.
+
+Switch themes in the toolbar; every foundation story follows it.

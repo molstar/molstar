@@ -17,6 +17,7 @@ import { Camera } from '../camera.js';
 import { cameraUnproject } from '../camera/util.js';
 import { Viewport } from '../camera/util.js';
 import type { Helper } from './helper.js';
+import { prepareLayerCulls } from '../passes/overlay.js';
 import {
   type AsyncPickData,
   createAsyncPickData,
@@ -70,7 +71,18 @@ export class RayHelper {
     renderer.setViewport(0, 0, this.size, this.size);
     // this camera is synthetic (ray-aligned), never the main camera - always a fresh,
     // never-reused frame token, so it can never share/collide with the main draw's frame
-    this.pickPass.render(this.renderBuilder, renderer, camera, scene, helper, createFrame());
+    // the overlay is not tested against the scene depth of the last draw: this camera is not the drawn one
+    const frame = createFrame();
+    // no pass open yet: GPU culling for this camera of the objects culled on the GPU
+    if (this.renderBuilder.drawing) {
+      renderer.update(camera, scene, frame);
+      renderer.prepareCullView(scene.primitives);
+      // and the overlay's and the screen layer's for their cameras of it
+      prepareLayerCulls(renderer, camera, helper, frame);
+    }
+    this.pickPass.render(this.renderBuilder, renderer, camera, scene, helper, frame, false);
+    // a page store's picks resolved before they are read (`PickPass.resolvePaged`); its kernel compiling, none picked
+    this.unresolved = this.renderBuilder.drawing && !this.pickPass.resolvePaged(scene);
 
     if (isTimingMode) this.graphics.timer.groupEnd('RayHelper.render');
   }
@@ -85,7 +97,11 @@ export class RayHelper {
 
     const z = this.buffers.getDepth(x, y);
     const position = Vec3.create(x, y, z);
-    cameraUnproject(position, position, viewport, this.camera.inverseProjectionView);
+    // the overlay's depth is of its own near and far planes (`OverlayCamera`)
+    const { overlay } = this.helper;
+    const camera =
+      overlay.isEnabled && overlay.hasObject(pickingId.objectId) ? overlay.getCamera(this.camera) : this.camera;
+    cameraUnproject(position, position, viewport, camera.inverseProjectionView);
 
     return { id: pickingId, position };
   }
@@ -107,7 +123,11 @@ export class RayHelper {
     Mat4.copy(this.camera.viewEye, cam.view);
   }
 
+  /** the last render's page store picks not resolved (its kernel compiling): nothing picked */
+  private unresolved = false;
+
   private getPickData(): PickData | undefined {
+    if (this.unresolved) return;
     const c = this.pickPadding;
     for (const d of this.spiral) {
       const pickData = this.identifyInternal(c + d[0], c + d[1]);
@@ -118,7 +138,13 @@ export class RayHelper {
   sphere = Sphere3D();
 
   private intersectsScene(ray: Ray3D, scale: number): boolean {
-    Sphere3D.scaleNX(this.sphere, this.scene.boundingSphereVisible, scale);
+    if (this.intersectsSphere(ray, this.scene.boundingSphereVisible, scale)) return true;
+    const { overlay } = this.helper;
+    return overlay.isEnabled && this.intersectsSphere(ray, overlay.scene.boundingSphereVisible, scale);
+  }
+
+  private intersectsSphere(ray: Ray3D, sphere: Sphere3D, scale: number): boolean {
+    Sphere3D.scaleNX(this.sphere, sphere, scale);
     return Ray3D.isInsideSphere3D(ray, this.sphere) || Ray3D.isIntersectingSphere3D(ray, this.sphere);
   }
 

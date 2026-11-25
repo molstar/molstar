@@ -11,8 +11,10 @@ import type { WebGLContext } from './context.js';
 import type { DataArray, TextureImage, TextureVolume } from '../renderable/util.js';
 import type { RenderableSchema } from '../renderable/schema.js';
 import type { SharedTexture, SharedTextureImage } from '../shared-texture.js';
-import type { Framebuffer } from '../framebuffer.js';
+import type { AttachmentRef, Framebuffer } from './framebuffer.js';
 import {
+  isAttached,
+  setAttached,
   bindForAttachment,
   getFramebufferHeight,
   setAttachmentStorage,
@@ -40,6 +42,7 @@ import {
   type TextureType,
   type TextureValues,
 } from '../texture.js';
+import { createFramebuffer } from './framebuffer.js';
 
 export function getTarget(gl: GLRenderingContext, kind: TextureKind): number {
   switch (kind) {
@@ -224,8 +227,14 @@ export function getAttachment(
   throw new Error('unknown texture attachment');
 }
 
-function isImage(x: TextureImage<any> | TextureVolume<any> | HTMLImageElement): x is HTMLImageElement {
-  return typeof HTMLImageElement !== 'undefined' && x instanceof HTMLImageElement;
+function isBitmap(x: TextureImage<any> | TextureVolume<any> | HTMLImageElement | ImageBitmap): x is ImageBitmap {
+  return typeof ImageBitmap !== 'undefined' && x instanceof ImageBitmap;
+}
+
+function isImage(
+  x: TextureImage<any> | TextureVolume<any> | HTMLImageElement | ImageBitmap,
+): x is HTMLImageElement | ImageBitmap {
+  return (typeof HTMLImageElement !== 'undefined' && x instanceof HTMLImageElement) || isBitmap(x);
 }
 
 /** Bytes of rows composed per upload of a segmented data array */
@@ -257,6 +266,21 @@ export interface GLTexture extends Texture {
 
   bind: (id: TextureId) => void;
   unbind: (id: TextureId) => void;
+  /** Attaches it to a framebuffer of the backend (render pass attachments, the WebGL compute); `layer`: a z-slice of a 3D texture */
+  attachFramebuffer: (framebuffer: Framebuffer, attachment: TextureAttachment, layer?: number) => void;
+  detachFramebuffer: (framebuffer: Framebuffer, attachment: TextureAttachment) => void;
+  /** a framebuffer of its own with it attached at color 0, to copy from */
+  getReadFramebuffer: () => Framebuffer;
+  /** Copies a region of the first color attachment of `framebuffer`, as `copyFromTexture` does from a texture */
+  copyFromFramebuffer: (
+    framebuffer: Framebuffer,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    dstX: number,
+    dstY: number,
+  ) => void;
 }
 
 export type TextureId = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15;
@@ -358,6 +382,8 @@ export function createTexture(
   let destroyed = false;
   /** draw framebuffer with this texture attached, for `copyFromFramebuffer` on WebGL2 */
   let blitFramebuffer: WebGLFramebuffer | null = null;
+  /** the framebuffer copies read from this texture with (`copyFromTexture` of another), attached at color 0 */
+  let readFramebuffer: Framebuffer | undefined;
 
   /** the size of the GL image (the storage), the defined size once allocated, see `ensureStorage` */
   let storedWidth = 0,
@@ -407,8 +433,11 @@ export function createTexture(
     if (storedWidth !== width || storedHeight !== height || storedDepth !== depth) specify(width, height, depth);
   }
 
-  /** components per texel of a data array: a data element per texel */
-  const dataItemSize = _format === 'r' ? 1 : 4;
+  /**
+   * bytes per texel of a data array, a data element per texel: an array of another type is read by the texel's bytes
+   * (`rgba16i` data, int16 x 4, as one `RG32I` texel: its array an `Int16Array`, uploaded as an `Int32Array` view)
+   */
+  const dataTexelBytes = (_format === 'r' ? 1 : _format === 'rg' ? 2 : 4) * (_type === 'ubyte' ? 1 : 4);
 
   /**
    * Writes `data` (`DataSpec`) at element `offset` of the texture of `w` × `h` texels (allocated at that size where it is
@@ -417,6 +446,9 @@ export function createTexture(
    * parts where segmented, a few rows at a time)
    */
   function loadData(data: DataArray<any>, w: number, h: number, offset = 0, ranges?: readonly number[]) {
+    // a destroyed texture uploads nothing (e.g. data or an image arriving after it was replaced): binding its deleted
+    // object fails and the upload would go to whatever texture is bound
+    if (destroyed) return;
     const array = data.array as (ArrayBufferView & ArrayLike<number>) | SegmentedArray;
     const count = data.count;
     invalidateBindings();
@@ -428,13 +460,17 @@ export function createTexture(
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
     const segmented = SegmentedArray.is(array);
-    const read = (start: number, end: number) =>
-      segmented
+    const dataItemSize = dataTexelBytes / (array as { BYTES_PER_ELEMENT: number }).BYTES_PER_ELEMENT;
+    const read = (start: number, end: number) => {
+      const view = segmented
         ? SegmentedArray.read(array, start * dataItemSize, end * dataItemSize)
         : (array as unknown as Uint8Array).subarray(start * dataItemSize, end * dataItemSize);
-    const chunkRows = segmented
-      ? Math.max(1, Math.floor(SegmentedChunkBytes / (w * dataItemSize * array.BYTES_PER_ELEMENT)))
-      : h;
+      // integer texels of 32-bit components from an array of another type (4-byte aligned: a texel 8 bytes)
+      return _type === 'int' && !(view instanceof Int32Array)
+        ? new Int32Array(view.buffer, view.byteOffset, view.byteLength / 4)
+        : view;
+    };
+    const chunkRows = segmented ? Math.max(1, Math.floor(SegmentedChunkBytes / (w * dataTexelBytes))) : h;
     const upload = (start: number, end: number) => {
       end = Math.min(end, count);
       let s = start;
@@ -459,7 +495,9 @@ export function createTexture(
     sourceData = undefined;
   }
 
-  function load(data: TextureImage<any> | TextureVolume<any> | HTMLImageElement, sub = false) {
+  function load(data: TextureImage<any> | TextureVolume<any> | HTMLImageElement | ImageBitmap, sub = false) {
+    // as `loadData`: an image decoded after the texture was destroyed (a background changed meanwhile)
+    if (destroyed) return;
     if (
       data.width === 0 ||
       data.height === 0 ||
@@ -507,11 +545,13 @@ export function createTexture(
       throw new Error('unknown texture target');
     }
     gl.bindTexture(target, null);
-    sourceData = sub ? undefined : data;
+    // a bitmap not kept: its owner may close it
+    sourceData = sub || isBitmap(data) ? undefined : data;
   }
 
   /** `Texture.loadRows`: the rows from views of the array, as `loadData` writes */
   function loadRows(image: TextureImage<any>, rows: readonly number[]) {
+    if (destroyed) return;
     if (target !== gl.TEXTURE_2D || image.flipY || storedWidth !== image.width || storedHeight !== image.height) {
       load(image);
       return;
@@ -534,6 +574,7 @@ export function createTexture(
   }
 
   function mipmap() {
+    if (destroyed) return;
     if (target !== gl.TEXTURE_2D) {
       throw new Error('mipmap only supported for 2d textures');
     }
@@ -553,11 +594,23 @@ export function createTexture(
     return _format === 'depth-stencil' && attachment === 'depth' ? 'depth-stencil' : attachment;
   }
 
+  /** the height of the attachments of framebuffers it is attached to (`setFramebufferHeight`), made once */
+  const getHeight = () => height;
+  /** what it is as an attachment (`Framebuffer.getAttachments`), made once */
+  const ref: AttachmentRef = { kind: 'texture', id };
+
   function attachFramebuffer(framebuffer: Framebuffer, attachment: TextureAttachment, layer?: number) {
     const att = resolveAttachment(attachment);
+    const point = getAttachment(gl, extensions, att);
+    // attached already (passes attach their targets every frame): nothing changes
+    if (isAttached(framebuffer, point, texture, layer ?? 0)) {
+      setFramebufferHeight(framebuffer, getHeight);
+      return;
+    }
     endRenderPass(state);
     bindForAttachment(gl, framebuffer);
-    setAttachmentStorage(gl, framebuffer, getAttachment(gl, extensions, att), { kind: 'texture', id }, ensureStorage);
+    setAttachmentStorage(gl, framebuffer, point, ref, ensureStorage);
+    setAttached(gl, framebuffer, point, texture, layer ?? 0);
     if (att === 'depth-stencil') {
       gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, null);
     }
@@ -570,7 +623,7 @@ export function createTexture(
       throw new Error('unknown/unsupported texture target');
     }
     if (att === 0 || att === 'color0') setIntegerColorAttachment(gl, _type === 'int');
-    setFramebufferHeight(framebuffer, () => height);
+    setFramebufferHeight(framebuffer, getHeight);
   }
 
   return {
@@ -608,6 +661,7 @@ export function createTexture(
       endRenderPass(state);
       bindForAttachment(gl, framebuffer);
       setAttachmentStorage(gl, framebuffer, getAttachment(gl, extensions, att), undefined);
+      setAttached(gl, framebuffer, getAttachment(gl, extensions, att), undefined);
       if (target === gl.TEXTURE_2D) {
         gl.framebufferTexture2D(gl.FRAMEBUFFER, getAttachment(gl, extensions, att), gl.TEXTURE_2D, null, 0);
       } else if (isWebGL2(gl) && target === gl.TEXTURE_3D) {
@@ -616,6 +670,17 @@ export function createTexture(
         throw new Error('unknown texture target');
       }
       if (att === 0 || att === 'color0') setIntegerColorAttachment(gl, false);
+    },
+    copyFromTexture(source: Texture, x: number, y: number, w: number, h: number, dstX: number, dstY: number) {
+      this.copyFromFramebuffer(asGLTexture(source).getReadFramebuffer(), x, y, w, h, dstX, dstY);
+    },
+    getReadFramebuffer: () => {
+      if (!readFramebuffer) {
+        readFramebuffer = createFramebuffer(gl, extensions, state);
+        // once: the attachment stays through a redefine (the GL texture object is the same)
+        attachFramebuffer(readFramebuffer, 0);
+      }
+      return readFramebuffer;
     },
     copyFromFramebuffer: (
       framebuffer: Framebuffer,
@@ -668,12 +733,13 @@ export function createTexture(
       if (destroyed) return;
       gl.deleteTexture(texture);
       if (blitFramebuffer) gl.deleteFramebuffer(blitFramebuffer);
+      readFramebuffer?.destroy();
       destroyed = true;
     },
   };
 }
 
-/** `shared` receives the textures of specs with `shared`, by name (`.v6/plans/gl/shared-textures.md` §4) */
+/** `shared` receives the textures of specs with `shared`, by name */
 export function createTextures(
   ctx: WebGLContext,
   schema: RenderableSchema,
@@ -745,28 +811,44 @@ export function createCubeTexture(
   function load(cubeTarget: number, level: number, image: HTMLImageElement, isReset: boolean) {
     if (size === 0) size = image.width;
 
-    gl.bindTexture(target, texture);
-    gl.texImage2D(cubeTarget, level, internalFormat, size, size, 0, format, type, null);
-    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
-    gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
-    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-    gl.bindTexture(target, texture);
-    gl.texImage2D(cubeTarget, level, internalFormat, format, type, image);
+    // a face decoded after the texture was destroyed: counted, not uploaded (its deleted object can't be bound)
+    if (!destroyed) {
+      gl.bindTexture(target, texture);
+      gl.texImage2D(cubeTarget, level, internalFormat, size, size, 0, format, type, null);
+      gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
+      gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+      gl.bindTexture(target, texture);
+      gl.texImage2D(cubeTarget, level, internalFormat, format, type, image);
+    }
 
     loadedCount += 1;
     if (loadedCount === 6) {
       if (!destroyed) {
-        if (mipmaps) {
+        // WebGL1 has mipmaps of power-of-two sizes only (else an incomplete cube map, sampled black), as `mipmap`
+        if (mipmaps && (isWebGL2(gl) || isPowerOfTwo(size))) {
           gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
           gl.generateMipmap(target);
+          mipmapped = true;
         } else {
           gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, filter);
         }
         gl.texParameteri(target, gl.TEXTURE_MAG_FILTER, filter);
       }
-      if (!isReset) onload?.(destroyed);
+      if (!isReset) report(destroyed);
     }
+  }
+
+  /** whether the faces have mipmaps (asked for, and possible: not of a size WebGL1 can't mipmap) */
+  let mipmapped = false;
+
+  /** `onload` once: the six faces loaded, or the first that failed (pending work waiting for the faces settles) */
+  let reported = false;
+  function report(errored: boolean) {
+    if (reported) return;
+    reported = true;
+    onload?.(errored);
   }
 
   const facesData: { cubeTarget: number; level: number; image: HTMLImageElement }[] = [];
@@ -779,12 +861,21 @@ export function createCubeTexture(
     const cubeTarget = getCubeTarget(gl, side as CubeSide);
 
     const image = new Image();
+    // an object URL made here, revoked once the image is decoded or failed
+    let objectUrl: string | undefined;
+    const setSource = (blob: Blob) => {
+      objectUrl = URL.createObjectURL(blob);
+      image.src = objectUrl;
+    };
+    const revoke = () => {
+      if (objectUrl !== undefined) URL.revokeObjectURL(objectUrl);
+      objectUrl = undefined;
+    };
     if (source instanceof File) {
-      image.src = URL.createObjectURL(source);
+      setSource(source);
     } else if (isPromiseLike(source)) {
-      source.then((blob) => {
-        image.src = URL.createObjectURL(blob);
-      });
+      // a source that fails (an asset not found) fails the face, as an image that fails to decode
+      source.then(setSource, () => report(true));
     } else {
       image.src = source;
     }
@@ -792,10 +883,12 @@ export function createCubeTexture(
     facesData.push({ cubeTarget, level, image });
 
     image.addEventListener('load', () => {
+      revoke();
       load(cubeTarget, level, image, false);
     });
     image.addEventListener('error', () => {
-      onload?.(true);
+      revoke();
+      report(true);
     });
   });
 
@@ -813,7 +906,7 @@ export function createCubeTexture(
     getHeight: () => size,
     getDepth: () => 0,
     getByteCount: () => {
-      return getByteCount('rgba', 'ubyte', size, size, 0) * 6 * (mipmaps ? 2 : 1);
+      return getByteCount('rgba', 'ubyte', size, size, 0) * 6 * (mipmapped ? 2 : 1);
     },
 
     define: () => {},
@@ -829,6 +922,12 @@ export function createCubeTexture(
     },
     attachFramebuffer: () => {},
     detachFramebuffer: () => {},
+    copyFromTexture: () => {
+      throw new Error('copy not supported for cube textures');
+    },
+    getReadFramebuffer: () => {
+      throw new Error('copy not supported for cube textures');
+    },
     copyFromFramebuffer: () => {
       throw new Error('copy not supported for cube textures');
     },

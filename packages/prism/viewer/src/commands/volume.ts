@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import type { CommandDefinition } from '@molstar/prism-ui/core';
@@ -46,6 +47,18 @@ export function volumeCommands(api: ViewerApi): CommandDefinition<ViewerCommandC
       icon: 'volume',
       alias: ['density', 'stream density', 'volume streaming', 'electron density', 'em map', 'download map'],
       action: 'Set',
+    }),
+    operationCommand(api, api.volume.transform, {
+      category,
+      icon: 'move-3d',
+      alias: ['move volume', 'rotate volume', 'translate volume', 'transform volume', 'move map'],
+      action: 'Move',
+    }),
+    operationCommand(api, api.volume.transformReset, {
+      category,
+      icon: 'rotate-ccw',
+      alias: ['reset volume transform', 'reset volume position', 'reset map position'],
+      action: 'Reset',
     }),
   ];
 }

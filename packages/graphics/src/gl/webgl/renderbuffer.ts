@@ -1,13 +1,19 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { idFactory } from '@molstar/core/util/id-factory';
 import { type GLRenderingContext, isWebGL2 } from './compat.js';
-import { bindForAttachment, setAttachmentStorage, setFramebufferHeight } from './framebuffer.js';
-import type { Framebuffer } from '../framebuffer.js';
+import {
+  bindForAttachment,
+  isAttached,
+  setAttached,
+  setAttachmentStorage,
+  setFramebufferHeight,
+} from './framebuffer.js';
+import type { AttachmentRef, Framebuffer } from './framebuffer.js';
 import type { Renderbuffer, RenderbufferAttachment, RenderbufferFormat } from '../renderbuffer.js';
 import { endRenderPass } from './render-pass.js';
 import type { WebGLState } from './state.js';
@@ -95,6 +101,19 @@ function getSupportedFormat(gl: GLRenderingContext, format: RenderbufferFormat):
   return format;
 }
 
+/** A renderbuffer of the WebGL backend, attached to its framebuffers internally */
+export interface GLRenderbuffer extends Renderbuffer {
+  attachFramebuffer: (framebuffer: Framebuffer) => void;
+  detachFramebuffer: (framebuffer: Framebuffer) => void;
+}
+
+export function asGLRenderbuffer(renderbuffer: Renderbuffer): GLRenderbuffer {
+  if (typeof (renderbuffer as Partial<GLRenderbuffer>).attachFramebuffer !== 'function') {
+    throw new Error('expected a WebGL renderbuffer');
+  }
+  return renderbuffer as GLRenderbuffer;
+}
+
 export function createRenderbuffer(
   gl: GLRenderingContext,
   format: RenderbufferFormat,
@@ -102,7 +121,7 @@ export function createRenderbuffer(
   _width: number,
   _height: number,
   state: WebGLState,
-): Renderbuffer {
+): GLRenderbuffer {
   const _renderbuffer = getRenderbuffer(gl);
   format = getSupportedFormat(gl, format);
 
@@ -129,6 +148,10 @@ export function createRenderbuffer(
   }
 
   const id = getNextRenderbufferId();
+  /** the height of the attachments of framebuffers it is attached to (`setFramebufferHeight`), made once */
+  const getHeight = () => _height;
+  /** what it is as an attachment (`Framebuffer.getAttachments`), made once */
+  const ref: AttachmentRef = { kind: 'renderbuffer', id };
   return {
     id,
 
@@ -136,17 +159,24 @@ export function createRenderbuffer(
 
     bind,
     attachFramebuffer: (framebuffer: Framebuffer) => {
+      // attached already (passes attach their targets every frame): nothing changes
+      if (isAttached(framebuffer, _attachment, _renderbuffer)) {
+        setFramebufferHeight(framebuffer, getHeight);
+        return;
+      }
       endRenderPass(state);
       bindForAttachment(gl, framebuffer);
-      setAttachmentStorage(gl, framebuffer, _attachment, { kind: 'renderbuffer', id }, ensureStorage);
+      setAttachmentStorage(gl, framebuffer, _attachment, ref, ensureStorage);
+      setAttached(gl, framebuffer, _attachment, _renderbuffer);
       bind();
       gl.framebufferRenderbuffer(gl.FRAMEBUFFER, _attachment, gl.RENDERBUFFER, _renderbuffer);
-      setFramebufferHeight(framebuffer, () => _height);
+      setFramebufferHeight(framebuffer, getHeight);
     },
     detachFramebuffer: (framebuffer: Framebuffer) => {
       endRenderPass(state);
       bindForAttachment(gl, framebuffer);
       setAttachmentStorage(gl, framebuffer, _attachment, undefined);
+      setAttached(gl, framebuffer, _attachment, undefined);
       bind();
       gl.framebufferRenderbuffer(gl.FRAMEBUFFER, _attachment, gl.RENDERBUFFER, null);
     },
