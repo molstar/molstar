@@ -137,8 +137,8 @@ async function image(graphics: GraphicsContext, repr: ReturnType<typeof UnitsRep
   for (let i = 0; i < 2; ++i) {
     renderer.update(camera, scene, createFrame());
     graphics.beginRenderPass(target);
-    renderer.clear(true);
     renderer.setViewport(0, 0, Size, Size);
+    renderer.clear(true);
     renderer.renderOpaque(scene, camera);
     graphics.flush();
     await graphics.resources.pending.whenReady();

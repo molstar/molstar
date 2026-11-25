@@ -141,8 +141,8 @@ describe.skipIf(!WebGPU.module)('merged objects of data per vertex and instance'
           renderer.update(camera, s, createFrame());
           renderer.prepareCull(s);
           graphics.beginRenderPass(target);
-          renderer.clear(true);
           renderer.setViewport(0, 0, Size, Size);
+          renderer.clear(true);
           renderer.renderOpaque(s, camera);
           graphics.flush();
           const pixels = Array.from(await graphics.readRenderTarget(target, 0, 0, Size, Size));

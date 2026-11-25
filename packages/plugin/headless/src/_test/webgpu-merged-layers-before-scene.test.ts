@@ -103,8 +103,8 @@ describe.skipIf(!WebGPU.module)('merged layers set before a scene adds the objec
         for (let i = 0; i < 3; ++i) {
           renderer.update(camera, scene, createFrame());
           graphics.beginRenderPass(target);
-          renderer.clear(true);
           renderer.setViewport(0, 0, Size, Size);
+          renderer.clear(true);
           renderer.renderOpaque(scene, camera);
           graphics.flush();
           await graphics.resources.pending.whenReady();

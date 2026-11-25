@@ -159,8 +159,8 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
       renderer.update(camera, scene, createFrame());
       if (cullOnGpu) renderer.prepareCull(scene);
       graphics.beginRenderPass(target);
-      renderer.clear(true);
       renderer.setViewport(0, 0, Size, Size);
+      renderer.clear(true);
       renderer.renderOpaque(scene, camera);
       graphics.flush();
       const pixels = Array.from(await graphics.readRenderTarget(target, 0, 0, Size, Size));
@@ -324,8 +324,8 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
         renderer.update(camera, scene, createFrame());
         if (scene === gpuScene) renderer.prepareCull(scene);
         graphics.beginRenderPass(target);
-        renderer.clear(true);
         renderer.setViewport(0, 0, Size, Size);
+        renderer.clear(true);
         renderer.renderOpaque(scene, camera);
         graphics.flush();
         const pixels = Array.from(await graphics.readRenderTarget(target, 0, 0, Size, Size));
@@ -396,8 +396,8 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
       renderer.update(camera, scene, f);
       if (cullOnGpu) renderer.prepareCull(scene);
       graphics.beginRenderPass(target);
-      renderer.clear(true);
       renderer.setViewport(0, 0, Size, Size);
+      renderer.clear(true);
       renderer.renderOpaque(scene, camera);
       graphics.flush();
     };
@@ -467,8 +467,8 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
       renderer.update(camera, scene, createFrame());
       renderer.prepareCull(scene);
       graphics.beginRenderPass(target);
-      renderer.clear(true);
       renderer.setViewport(0, 0, Size, Size);
+      renderer.clear(true);
       renderer.renderOpaque(scene, camera);
       graphics.flush();
       expect(drawn![0].indirect).toBeUndefined();
@@ -522,8 +522,8 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
       renderer.update(camera, scene, f);
       renderer.prepareCull(scene);
       graphics.beginRenderPass(target);
-      renderer.clear(true);
       renderer.setViewport(0, 0, Size, Size);
+      renderer.clear(true);
       renderer.renderOpaque(scene, camera);
       graphics.flush();
     };
@@ -825,8 +825,8 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
       renderer.update(camera, s, createFrame());
       renderer.prepareCull(s);
       graphics.beginRenderPass(target);
-      renderer.clear(true);
       renderer.setViewport(0, 0, Size, Size);
+      renderer.clear(true);
       renderer.renderOpaque(s, camera);
       graphics.flush();
       const pixels = await graphics.readRenderTarget(target, 0, 0, Size, Size);
@@ -902,8 +902,8 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
       renderer.update(camera, s, createFrame());
       renderer.prepareCull(s);
       graphics.beginRenderPass(target);
-      renderer.clear(true);
       renderer.setViewport(0, 0, Size, Size);
+      renderer.clear(true);
       renderer.renderOpaque(s, camera);
       graphics.flush();
       const pixels = await graphics.readRenderTarget(target, 0, 0, Size, Size);
@@ -1004,8 +1004,8 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
       renderer.update(camera, s, createFrame());
       renderer.prepareCull(s);
       graphics.beginRenderPass(target);
-      renderer.clear(true);
       renderer.setViewport(0, 0, Size, Size);
+      renderer.clear(true);
       renderer.renderOpaque(s, camera);
       graphics.flush();
       const pixels = Array.from(await graphics.readRenderTarget(target, 0, 0, Size, Size));
@@ -1099,8 +1099,8 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
       renderer.update(camera, s, createFrame());
       renderer.prepareCull(s, false, true);
       graphics.beginRenderPass(target);
-      renderer.clear(true);
       renderer.setViewport(0, 0, Size, Size);
+      renderer.clear(true);
       renderer.renderOpaque(s, camera);
       graphics.beginRenderPass(ghostTarget);
       renderer.clearDepth(true);
@@ -1183,8 +1183,8 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
       renderer.update(camera, s, createFrame());
       if (cullOnGpu) renderer.prepareCull(s);
       graphics.beginRenderPass(target);
-      renderer.clear(true);
       renderer.setViewport(0, 0, Size, Size);
+      renderer.clear(true);
       renderer.renderOpaque(s, camera);
       graphics.flush();
       const pixels = Array.from(await graphics.readRenderTarget(target, 0, 0, Size, Size));
@@ -1283,8 +1283,8 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
         if (prepare === 'frame') renderer.prepareCull(scene);
         else if (prepare === 'view') renderer.prepareCullView(scene);
         graphics.beginRenderPass(target);
-        renderer.clear(true);
         renderer.setViewport(0, 0, Size, Size);
+        renderer.clear(true);
         renderer.renderOpaque(scene, camera);
         graphics.flush();
         const pixels = Array.from(await graphics.readRenderTarget(target, 0, 0, Size, Size));
@@ -1380,8 +1380,8 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
       renderer.update(camera, s, createFrame());
       renderer.prepareCull(s);
       graphics.beginRenderPass(target);
-      renderer.clear(true);
       renderer.setViewport(0, 0, Size, Size);
+      renderer.clear(true);
       renderer.renderOpaque(s, camera);
       graphics.flush();
       const pixels = Array.from(await graphics.readRenderTarget(target, 0, 0, Size, Size));
@@ -1460,8 +1460,8 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
       renderer.update(camera, scene, createFrame());
       renderer.prepareCull(scene);
       graphics.beginRenderPass(target);
-      renderer.clear(true);
       renderer.setViewport(0, 0, Size, Size);
+      renderer.clear(true);
       renderer.renderOpaque(scene, camera);
       graphics.flush();
       const pixels = Array.from(await graphics.readRenderTarget(target, 0, 0, Size, Size));
@@ -1543,86 +1543,83 @@ describe.skipIf(!WebGPU.module)('instances of poses on WebGPU', () => {
   it('draws objects of poses culled on the CPU from their instance data, as objects of the same matrices', {
     tags: ['medium'],
   }, async () => {
-    // a context of its own: one that drew unmerged objects of poses by the sphere raster draws them amiss after
-    const plugin = await createPlugin();
-    try {
-      const graphics = plugin.canvas3d!.graphics;
-      const { poses, matrices, poseTransforms, matrixTransforms } = createPosedMembers();
-      const createScene = (objects: GraphicsRenderObject[]) => {
-        const scene = Scene.create(graphics);
-        for (const o of objects) scene.add(o);
-        scene.commit();
-        return scene;
-      };
-      // unmerged, and merged culled on the CPU
-      const scenes = [
-        createScene(poses),
-        createScene(matrices),
-        createScene([createMergedRenderObject(poses)]),
-        createScene([createMergedRenderObject(matrices)]),
-      ];
-      // the instances read from storage by index (`dInstanceStorage`), not packed as rows into vertex buffers
-      for (const scene of [scenes[0], scenes[2]]) {
-        for (const r of scene.renderables) expect(r.values.dInstanceStorage?.ref.value).toBe(true);
-      }
-      for (const scene of [scenes[1], scenes[3]]) {
-        for (const r of scene.renderables) expect(r.values.dInstanceStorage?.ref.value).toBeFalsy();
-      }
-
-      const camera = new Camera();
-      Viewport.set(camera.viewport, 0, 0, Size, Size);
-      const { center, radius } = scenes[1].boundingSphere;
-      camera.setState(camera.getFocus(Vec3.add(Vec3(), center, Vec3.create(radius * 0.2, 0, 0)), radius * 0.5), 0);
-      camera.update();
-      const renderer = Renderer.create(graphics, { sphereRaster: 'off' });
-      const target = graphics.createRenderTarget(Size, Size, 'depth-stencil');
-      const draw = async (scene: Scene) => {
-        await graphics.resources.preparePipelines(
-          renderer.collect({ name: 'opaque' }, scene, graphics.describeTarget(target)),
-        );
-        renderer.update(camera, scene, createFrame());
-        graphics.beginRenderPass(target);
-        renderer.clear(true);
-        renderer.setViewport(0, 0, Size, Size);
-        renderer.renderOpaque(scene, camera);
-        graphics.flush();
-        const pixels = Array.from(await graphics.readRenderTarget(target, 0, 0, Size, Size));
-        await graphics.resources.pending.whenReady();
-        return pixels;
-      };
-      // drawn again where the frame started work (a pipeline the preparation did not cover compiles at the first draw
-      // of this context, for matrices as for poses)
-      const frame = async (scene: Scene) => {
-        for (let i = 0; i < 5; ++i) {
-          const tracked = graphics.resources.pending.trackedCount;
-          const pixels = await draw(scene);
-          if (graphics.resources.pending.trackedCount === tracked) return pixels;
-        }
-        throw new Error('the frame keeps starting work');
-      };
-      const compare = async () => {
-        const images = [];
-        for (const scene of scenes) images.push(await frame(scene));
-        expect(new Set(images[1]).size).toBeGreaterThan(2);
-        expect(countDifferentPixels(images[0], images[1])).toBeLessThanOrEqual(Size * Size * 0.002);
-        expect(countDifferentPixels(images[2], images[3])).toBeLessThanOrEqual(Size * Size * 0.002);
-        return images[1];
-      };
-      const before = await compare();
-
-      // moved: the poses' matrix (no instance touched), the matrices: the instance data written again on the update
-      const move = Mat4.fromTranslation(Mat4(), Vec3.create(4, -3, 0));
-      for (const t of [poseTransforms[0], matrixTransforms[0]]) expect(moveTransformData(t, move)).toBe(true);
-      for (const scene of scenes) {
-        scene.update(undefined, false);
-        scene.commit();
-      }
-      expect(countDifferentPixels(await compare(), before)).toBeGreaterThan(0);
-      target.destroy();
-      expect(graphics.takeErrors?.() ?? []).toEqual([]);
-    } finally {
-      plugin.dispose();
+    const plugin = await sharedPlugin();
+    const graphics = plugin.canvas3d!.graphics;
+    const { poses, matrices, poseTransforms, matrixTransforms } = createPosedMembers();
+    const createScene = (objects: GraphicsRenderObject[]) => {
+      const scene = Scene.create(graphics);
+      for (const o of objects) scene.add(o);
+      scene.commit();
+      return scene;
+    };
+    // unmerged, and merged culled on the CPU
+    const scenes = [
+      createScene(poses),
+      createScene(matrices),
+      createScene([createMergedRenderObject(poses)]),
+      createScene([createMergedRenderObject(matrices)]),
+    ];
+    // the instances read from storage by index (`dInstanceStorage`), not packed as rows into vertex buffers
+    for (const scene of [scenes[0], scenes[2]]) {
+      for (const r of scene.renderables) expect(r.values.dInstanceStorage?.ref.value).toBe(true);
     }
+    for (const scene of [scenes[1], scenes[3]]) {
+      for (const r of scene.renderables) expect(r.values.dInstanceStorage?.ref.value).toBeFalsy();
+    }
+
+    const camera = new Camera();
+    Viewport.set(camera.viewport, 0, 0, Size, Size);
+    const { center, radius } = scenes[1].boundingSphere;
+    camera.setState(camera.getFocus(Vec3.add(Vec3(), center, Vec3.create(radius * 0.2, 0, 0)), radius * 0.5), 0);
+    camera.update();
+    const renderer = Renderer.create(graphics, { sphereRaster: 'off' });
+    const target = graphics.createRenderTarget(Size, Size, 'depth-stencil');
+    const draw = async (scene: Scene) => {
+      await graphics.resources.preparePipelines(
+        renderer.collect({ name: 'opaque' }, scene, graphics.describeTarget(target)),
+      );
+      // the viewport first: the clear's scissor and the impostors' rays read it (a new renderer's first frame else not
+      // cleared, its spheres unshaded)
+      renderer.setViewport(0, 0, Size, Size);
+      renderer.update(camera, scene, createFrame());
+      graphics.beginRenderPass(target);
+      renderer.clear(true);
+      renderer.renderOpaque(scene, camera);
+      graphics.flush();
+      const pixels = Array.from(await graphics.readRenderTarget(target, 0, 0, Size, Size));
+      await graphics.resources.pending.whenReady();
+      return pixels;
+    };
+    // drawn again where the frame started work (a pipeline the preparation did not cover compiles at the first draw
+    // of this context, for matrices as for poses)
+    const frame = async (scene: Scene) => {
+      for (let i = 0; i < 5; ++i) {
+        const tracked = graphics.resources.pending.trackedCount;
+        const pixels = await draw(scene);
+        if (graphics.resources.pending.trackedCount === tracked) return pixels;
+      }
+      throw new Error('the frame keeps starting work');
+    };
+    const compare = async () => {
+      const images = [];
+      for (const scene of scenes) images.push(await frame(scene));
+      expect(new Set(images[1]).size).toBeGreaterThan(2);
+      expect(countDifferentPixels(images[0], images[1])).toBeLessThanOrEqual(Size * Size * 0.002);
+      expect(countDifferentPixels(images[2], images[3])).toBeLessThanOrEqual(Size * Size * 0.002);
+      return images[1];
+    };
+    const before = await compare();
+
+    // moved: the poses' matrix (no instance touched), the matrices: the instance data written again on the update
+    const move = Mat4.fromTranslation(Mat4(), Vec3.create(4, -3, 0));
+    for (const t of [poseTransforms[0], matrixTransforms[0]]) expect(moveTransformData(t, move)).toBe(true);
+    for (const scene of scenes) {
+      scene.update(undefined, false);
+      scene.commit();
+    }
+    expect(countDifferentPixels(await compare(), before)).toBeGreaterThan(0);
+    target.destroy();
+    expect(graphics.takeErrors?.() ?? []).toEqual([]);
   });
 });
 
