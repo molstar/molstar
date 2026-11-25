@@ -112,4 +112,33 @@ describe('lazy placeholders', () => {
     expect(load).toHaveBeenCalledTimes(1);
     remove();
   });
+
+  it('shows a lazy tab once it loaded while it is open, not after the person opened another tab', async () => {
+    for (const movedOn of [false, true]) {
+      const shell = new ShellModel();
+      const port = extensionUIPort(shell, {} as never, {} as ViewerUIContext);
+      const removeOther = shell.registerTabs([{ id: 'other', title: 'Other', render: { mount() {} } as never }]);
+      const stub = { parts: [{ id: 'x.tab.a', kind: 'tab' as const, title: 'A' }] };
+      let resolve!: (ok: boolean) => void;
+      const load = vi.fn(() => new Promise<boolean>((r) => (resolve = r)));
+      const remove = port.registerStub('x', stub, load);
+      shell.show('x.tab.a');
+      const tab = shell.dock('right').tabs.value.find((t) => t.id === 'x.tab.a')!;
+      tab.render.mount(document.body.appendChild(document.createElement('div')), {} as never, new Scope());
+      await flush();
+      expect(load).toHaveBeenCalledTimes(1);
+      // another tab opened before the load ends (the placeholder's body not paused: the navigation decides)
+      if (movedOn) shell.show('other');
+      const showSpy = vi.spyOn(shell, 'show');
+      resolve(true);
+      await flush();
+      expect(
+        showSpy.mock.calls.some(([id]) => id === 'x.tab.a'),
+        `moved on: ${movedOn}`,
+      ).toBe(!movedOn);
+      expect(shell.navigation.state.value.docks.right.active).toBe(movedOn ? 'other' : 'x.tab.a');
+      remove();
+      removeOther();
+    }
+  });
 });

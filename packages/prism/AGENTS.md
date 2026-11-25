@@ -97,9 +97,11 @@ The repository's lanes hold Prism's unit tests (quick, medium, heavy: the root
 
 **Run what you touched.** In the edit loop, run the folders you changed
 (`pnpm test:unit packages/prism/viewer/src/features/particles`, a test file), not the whole Prism suite, and the guards
-only where their row says. The whole suite is for checkpoints. Its timing-sensitive checks (the waste audit, a drag's
-lost releases) can fail when every file runs in parallel on a loaded machine: rerun the failing file alone, and only a
-failure there is yours. Never raise a budget to quiet a run that passes alone.
+only where their row says. The whole suite is for checkpoints. Its timing-sensitive checks (a drag's lost releases) can
+fail when every file runs in parallel on a loaded machine: rerun the failing file alone, and only a failure there is
+yours. Never raise a budget to quiet a run that passes alone. A waste audit over its budget only under load has been a
+bug so far (a lazy tab's late load taking the panel back from the tab opened since): find what came late, its stack from
+a listener on the source over budget, before calling it noise.
 
 The guards run on the shared harness (`test-harness/`, `@molstar/test-harness/*`; prism-ui's `src/_test/perf.ts`); a
 `*.heap.ts` has its quick twin `*.quick.ts`, the two sharing their cases (`*-cases.ts`). CI runs the quick and medium

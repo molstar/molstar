@@ -26,6 +26,11 @@ import { derive } from '@molstar/prism-ui/reactive/state';
 // cards, pages over the app, rows in the scene tree, and canvas toolbar items. A lazy extension's declared views stand in as placeholders: opening one loads the
 // extension, whose real views take their places (same ids).
 
+/** Whether tab `id` is the open tab of an expanded dock */
+function isOpenTab(shell: ShellModel, id: string) {
+  return Object.values(shell.navigation.state.value.docks).some((d) => d.active === id && !d.collapsed);
+}
+
 export function extensionUIPort(
   shell: ShellModel,
   commands: CommandManager<ViewerCommandContext>,
@@ -207,8 +212,10 @@ export function extensionUIPort(
               icon: t.icon ?? 'hourglass',
               ...(t.order !== undefined ? { order: t.order } : {}),
               ...(t.place ? { place: t.place } : {}),
-              // Opening it loads the extension; its real tab replaces this one, and is shown (it was asked for).
-              render: domView(() => placeholder(owner, load, () => shell.show(t.id))),
+              // Opening it loads the extension; its real tab replaces this one, and is shown (it was asked for) while it
+              // is still the open tab: a person who opened another meanwhile is not taken back (the navigation decides:
+              // the placeholder's body may not be paused yet)
+              render: domView(() => placeholder(owner, load, () => isOpenTab(shell, t.id) && shell.show(t.id))),
             })),
           ),
         );

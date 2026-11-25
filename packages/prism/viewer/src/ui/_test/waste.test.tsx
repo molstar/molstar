@@ -6,6 +6,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import * as fs from 'node:fs';
@@ -119,7 +120,7 @@ function bySourceFile(a: Audit): Record<string, Budget> {
 describe('the waste audit', () => {
   it("a person's session wastes no more than its budget, per source", async () => {
     audit.start();
-    await personSession(core, mounted);
+    await personSession(core, mounted, () => audit.quiet(50, 3000));
     audit.stop();
     if (process.env.WASTE_REPORT) console.log(report(audit, 200));
     expect(audit.sources().length).toBeGreaterThan(0);

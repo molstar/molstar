@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { globSync, readFileSync } from 'node:fs';
@@ -77,6 +78,9 @@ const Isolated = new Set([
   'packages/graphics/src/repr/structure/visual/util/polymer/_test/cartoon-geometry.test.ts',
   // registers a stand-in encoder in Mediabunny's registry, which has no unregister
   'packages/ai/src/narration/_test/mediabunny-containers.test.ts',
+  // asserts a viewer reads only its spec's languages: other files register languages page-wide (the seed of every
+  // viewer), which has no unregister
+  'packages/prism/viewer/src/api/_test/language-param.test.ts',
 ]);
 const isolated = (f: (typeof files)[number]) => f.mocks || Isolated.has(f.path);
 const setupFiles = [`${import.meta.dirname}/vitest.setup.ts`];
