@@ -32,20 +32,40 @@ describe('Structure.instances', () => {
 
     const ids = instances.units.map((u) => u.id);
     expect(new Set(ids).size).toBe(s.units.length * transforms.length);
-    expect(ids).toEqual(ids.map((_, i) => i));
-    // per unit its copies in the transforms' order, of its invariant (instances of one group), placed by them
-    for (let i = 0; i < s.units.length; ++i) {
-      const u = s.units[i];
+    // per unit a copy for each transform, of its invariant (instances of one group), placed by it; at the identity the
+    // unit itself, its id kept
+    expect(new Set(s.units.map((u) => u.invariantId)).size).toBe(s.units.length);
+    for (const u of s.units) {
       const p = u.conformation.position(u.elements[0], Vec3());
-      for (let t = 0; t < transforms.length; ++t) {
-        const copy = instances.units[i * transforms.length + t];
-        expect(copy.invariantId).toBe(u.invariantId);
-        const q = copy.conformation.position(copy.elements[0], Vec3());
-        expect(Vec3.distance(q, Vec3.transformMat4(Vec3(), p, transforms[t]))).toBeLessThan(1e-4);
-        expect(instances.unitMap.get(copy.id)).toBe(copy);
+      const copies = instances.units.filter((c) => c.invariantId === u.invariantId);
+      expect(copies.length).toBe(transforms.length);
+      for (const transform of transforms) {
+        const at = Vec3.transformMat4(Vec3(), p, transform);
+        const copy = copies.find((c) => Vec3.distance(c.conformation.position(c.elements[0], Vec3()), at) < 1e-4);
+        expect(copy).toBeDefined();
+        expect(instances.unitMap.get(copy!.id)).toBe(copy);
+        if (Mat4.isIdentity(transform)) expect(copy).toBe(u);
       }
     }
-    // a copy at the identity of a unit whose id is the next: the unit itself
+    // without the identity: numbered from 0
+    const shifted = Structure.instances(s, [shift(40), shift(80)]).units.map((u) => u.id);
+    expect(shifted).toEqual(shifted.map((_, i) => i));
     expect(Structure.instances(s, [Mat4.identity()]).units).toEqual(s.units);
+  });
+
+  it("keeps the ids of a component's units at the identity, by which its loci are remapped to the root", async () => {
+    const s = await structure();
+    // a component of the second unit alone (as of its ligand): its id not 0
+    const component = Structure.create([s.units[1]], { parent: s });
+    const [unit] = component.units;
+    expect(unit.id).not.toBe(0);
+    const instances = Structure.instances(component, [
+      Mat4.identity(),
+      Mat4.fromTranslation(Mat4(), Vec3.create(40, 0, 0)),
+    ]);
+    expect(instances.units[0]).toBe(unit);
+    expect(instances.units[1].id).toBe(unit.id + 1);
+    // the root's unit of that id is the identity copy's
+    expect(s.unitMap.get(instances.units[0].id)).toBe(s.units[1]);
   });
 });

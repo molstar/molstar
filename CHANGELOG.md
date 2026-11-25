@@ -10,8 +10,11 @@ here.
 
 ## [Unreleased]
 
+- Fix unit transforms (Unwind Assembly, Explode) not moving the representations whose symmetry groups are not the
+  structure's own (e.g. with `includeParent`): their units' transforms are now found by unit
 - Fix `Structure.instances` (the structure-instances transform) giving units of one id where a transform is the
-  identity: that copy kept its unit's id, which the numbering of the other copies repeated
+  identity: that copy kept its unit's id, which the numbering of the other copies repeated (now numbered above the
+  units' ids)
 - Fix smoothed colors and layers (overpaint, transparency, emissive, substance) of surfaces being sampled half a grid
   cell off in x and y
 - Fix atom-set `count-query` counting matches in the entire input instead of the current atom set

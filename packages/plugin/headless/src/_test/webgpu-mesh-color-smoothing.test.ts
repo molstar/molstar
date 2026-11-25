@@ -47,7 +47,12 @@ async function setup(plugin: HeadlessPluginContext) {
     colorThemeRegistry: plugin.representation.structure.themes.colorThemeRegistry,
     sizeThemeRegistry: plugin.representation.structure.themes.sizeThemeRegistry,
   };
-  const unit = structure.units[1];
+  // the first chain's middle copy, by its place (the units in the order of their ids: the identity's copies first)
+  const x = (u: (typeof structure.units)[number]) => u.conformation.x(u.elements[0]);
+  const copies = structure.units
+    .filter((u) => u.invariantId === structure.units[0].invariantId)
+    .sort((a, b) => x(a) - x(b));
+  const unit = copies[1];
   const n = unit.elements.length;
   const loci = StructureElement.Loci(structure, [{ unit, indices: Interval.ofBounds(n / 2, n) }]);
   return { structure, registries, loci };
@@ -187,7 +192,7 @@ describe.skipIf(!WebGPU.module)('mesh color smoothing on the GPU (WebGPU)', () =
       const smooth = { name: 'on', params: { resolutionFactor: 2, sampleStride: 3 } };
       const { repr, values, created } = await meshValues(graphics, registries, structure, loci, smooth);
       expect(values).toBeDefined();
-      // its positions and groups on the GPU (16 bytes a vertex), kept by its values
+      // its positions and groups on the GPU (16 bytes a vertex), kept by its position cell
       const vertexBytes = values.uVertexCount.ref.value * 16;
       expect(compute.getStorageBufferByteCount() - created).toBeGreaterThanOrEqual(vertexBytes);
       const { array } = await graphics.readTextureData(values.tOverpaintGrid.ref.value);

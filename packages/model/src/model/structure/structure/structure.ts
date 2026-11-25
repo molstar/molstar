@@ -1002,16 +1002,19 @@ namespace Structure {
       }
     }
 
-    const units: Unit[] = [];
+    // a copy at the identity is the unit itself, its id kept (a unit keeps its id from the root to every child: loci
+    // are remapped by it); the other copies numbered from 0, or above every unit's id where the identity is among the
+    // transforms (from 0 they could take a kept one's: two units of one id)
     let id = 0;
+    if (transforms.some((t) => Mat4.isIdentity(t))) {
+      for (const u of s.units) if (u.id >= id) id = u.id + 1;
+    }
+    const units: Unit[] = [];
     for (const u of s.units) {
       const old = u.conformation.operator;
       for (const transform of transforms) {
         if (Mat4.isIdentity(transform)) {
-          // the unit itself, renumbered where its id is not the next: every copy's id the next (its own kept, it could
-          // be another copy's, two units of one id)
-          units.push(u.id === id ? u : u.applyOperator(id, old, true));
-          id += 1;
+          units.push(u);
           continue;
         }
         const op = SymmetryOperator.create(old.name, transform, old);
