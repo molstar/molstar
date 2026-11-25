@@ -125,8 +125,10 @@ can hold its tests.
   guides.
 - **Files share their worker's module registry** (`isolate: false`: importing the libraries again per file was about a
   third of the run's CPU). So a file restores the module state it changes (a registry, a config default);
-  `vitest.setup.ts` restores spies, stubbed globals and env and real timers after every file. No `export *` inside an
-  import cycle (`pnpm lint`, `scripts/workspace/export-star-cycles.mjs`): under Vite's module runner the names it
-  re-exports depend on which file imported the cycle first. A file that mocks or resets modules (`vi.mock`,
-  `vi.resetModules`) runs isolated, found by reading it; one that needs a fresh registry otherwise goes in
-  `vitest.config.ts`'s `Isolated`, with why.
+  `vitest.setup.ts` restores spies, stubbed globals and env and real timers after every file, and disposes the root
+  scopes of the DOM runtimes a file left mounted (a view left listening on the document wakes up in a later file;
+  jsdom's document emptied; `MOLSTAR_REPORT_ROOTS=1` lists where they were made). No `export *` inside an import cycle
+  (`pnpm lint`, `scripts/workspace/export-star-cycles.mjs`): under Vite's module runner the names it re-exports depend
+  on which file imported the cycle first. A file that mocks or resets modules (`vi.mock`, `vi.resetModules`) runs
+  isolated, found by reading it; one that needs a fresh registry otherwise goes in `vitest.config.ts`'s `Isolated`, with
+  why.
