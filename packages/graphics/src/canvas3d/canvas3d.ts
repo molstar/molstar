@@ -2068,7 +2068,11 @@ namespace Canvas3D {
         if (attribs.warmUp !== undefined) a.warmUp = attribs.warmUp;
       },
       getImagePass: (props: Partial<ImageProps> = {}) => {
-        const pass = new ImagePass(graphics, assetManager, renderer, scene, camera, helper, props);
+        const pass = new ImagePass(graphics, assetManager, renderer, scene, camera, helper, props, () => {
+          if (!scene.needsCommit && !helper.overlay.scene.needsCommit) return false;
+          commit(true);
+          return true;
+        });
         imagePasses.add(new WeakRef(pass));
         return pass;
       },
