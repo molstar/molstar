@@ -378,7 +378,7 @@ describe('mesh layer smoothing on reordered and clipped instances, odd groups', 
   const quarter = (g: number) => g >= spread.groupCount / 4 && g < spread.groupCount / 2;
 
   const Cases: [string, Layer, Geometry, (instance: number, group: number) => boolean][] = [
-    // the GPU path reads the rows of `aInstance`, the CPU path the serial rows
+    // reordered rows: both paths by instance (`aInstance`), as the shaders read the output
     ['reordered, a lone instance', 'overpaint', { ...spread, permutation: [3, 5, 0, 4, 1, 2] }, (i) => i === 4],
     ['reordered, a pair', 'transparency', { ...spread, permutation: [3, 5, 0, 4, 1, 2] }, (i) => i === 0],
     ['clipped sphere, a pair', 'overpaint', { ...spread, sphereScale: 0.5 }, (i) => i === 0],
@@ -439,7 +439,7 @@ describe('mesh layer smoothing splats the reached instances and their neighbours
     // two reached instances far apart: their neighbours, not every instance between them
     expect(splatCounts(spread, [0, 4])).toEqual([3, 3]);
     expect(splatCounts(spread, [0, 1, 2, 3, 4, 5])).toEqual([6, 6]);
-    // with a graphics context, rows are those of `aInstance`: instance 4 is drawn at index 3
-    expect(splatCounts({ ...spread, permutation: [3, 5, 0, 4, 1, 2] }, [4])).toEqual([2, 1]);
+    // reordered rows (`aInstance`): by instance, with a graphics context or without (instance 4 alone, at row 3)
+    expect(splatCounts({ ...spread, permutation: [3, 5, 0, 4, 1, 2] }, [4])).toEqual([1, 1]);
   });
 });

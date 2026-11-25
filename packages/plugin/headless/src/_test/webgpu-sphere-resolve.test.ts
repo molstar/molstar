@@ -120,7 +120,8 @@ describe.skipIf(!WebGPU.module)('sphere raster resolve on WebGPU', () => {
       if (!impostors) return;
       expect(shaders.some((c) => c.includes('fn resolveSphere'))).toBe(false);
       expect(new Set(impostors).size).toBeGreaterThan(2);
-      // `auto` leaves objects not culled on the GPU (this one, unmerged) to the impostors
+      // `auto` leaves objects of few spheres to the impostors (this one, merged and culled on the GPU for the raster
+      // alone where the device has it: by `on` and `only`)
       expect(await render(plugin, 'auto')).toEqual(impostors);
       expect(shaders.some((c) => c.includes('fn resolveSphere'))).toBe(false);
       // the raster's spheres with the larger ones as impostors, and all by the raster (`only`, no impostor drawn)

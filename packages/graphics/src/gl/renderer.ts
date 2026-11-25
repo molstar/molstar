@@ -1242,8 +1242,8 @@ namespace Renderer {
      */
     const signatureStandIns = new WeakMap<ProgramItem, Map<string, GraphicsRenderable[]>>();
     const getSignatureStandIns = (signature: ObjectSignature, item: ProgramItem) => {
-      const { opaque, transparent, emissive, gpuCulled } = signature;
-      const flags = `${opaque}|${transparent}|${emissive}|${gpuCulled}`;
+      const { opaque, transparent, emissive, gpuCulled, rasterSpheres } = signature;
+      const flags = `${opaque}|${transparent}|${emissive}|${gpuCulled}|${rasterSpheres}`;
       let cache = signatureStandIns.get(item);
       if (!cache) signatureStandIns.set(item, (cache = new Map()));
       let standIns = cache.get(flags);
@@ -1278,6 +1278,7 @@ namespace Renderer {
             state: { disposed: false, colorOnly: false },
             // whether the sphere raster's `auto` may draw it (`isSphereRasterCandidate`)
             gpuCulled,
+            rasterSpheres,
           } as unknown as GraphicsRenderable;
         });
         cache.set(flags, standIns);

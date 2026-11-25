@@ -404,6 +404,16 @@ type MergedTypeDescriptor = {
   readonly vertexAttributes: VertexAttribute[];
 };
 
+/**
+ * Spheres from which `gpuCulling: 'auto'` culls on the GPU where the device has the sphere raster, which takes merged
+ * objects culled there only: faster at 300k spheres and up on both GPUs measured (3J3Q 1.48 -> 0.63 ms, 61.9 -> 11.5 ms on
+ * an integrated GPU), about 0.1 ms slower at a few hundred. Such an object is merged for
+ * it (merged spheres at any count, `resolveMergedCulling`), the renderer culling it on the GPU only where the raster
+ * takes it (`'auto'` from this count) (`Renderable.rasterSpheres`,
+ * `sphereRasterObjects`), else on the CPU
+ */
+export const AutoGpuCullingMinRasterSpheres = 100_000;
+
 /** Whether merged objects can be culled on the GPU (`gpuCulling`): compute and indirect draws by first instance */
 export function canCullOnGpu(ctx: GraphicsContext | undefined) {
   const compute = ctx?.compute;
@@ -616,14 +626,22 @@ const SupportedVertexLayerTypes = [...SupportedIgTypes, 'vertexInstance'];
  * Whether `members` merge into one object of `type`; `layers` false: their layers' types not checked (values whose
  * layers the merged object sets again its own way, e.g. per-group visuals' smoothed layers, `UnitsRepresentation`)
  */
-export function canMergeValues(type: string, members: readonly MergeableValues[], layers = true): boolean {
+export function canMergeValues(
+  type: string,
+  members: readonly MergeableValues[],
+  layers = true,
+  /** colors smoothed into a grid merge too: a per-group mesh's, which a merged visual smooths per vertex instead */
+  gridColors = false,
+): boolean {
   if (!isMergeableType(type)) return false;
   // a single member merges as well (culled on the GPU): how many is the caller's (`canMergeRenderObjects`)
   if (members.length < 1) return false;
 
   // a palette the theme's (its texture, domain and default shared values), looked up after `tColor`, read by segment
   const first = members[0];
-  if (!SupportedColorTypes.includes(first.colorType.ref.value)) return false;
+  const colorType = first.colorType.ref.value;
+  const smoothed = gridColors && (colorType === 'volume' || colorType === 'volumeInstance');
+  if (!smoothed && !SupportedColorTypes.includes(colorType)) return false;
   if (first.sizeType && !SupportedSizeTypes.includes(first.sizeType.ref.value)) return false;
   if (layers && !canMergeLayers(first)) return false;
 
@@ -3173,9 +3191,9 @@ export function MergedRenderable(
           return !!gpuFrame;
         }
       : undefined,
-    isGpuCullStale: culler
-      ? (frame: Frame) => visibleSet.lastCullFrame === frame && visibleSet.mode === 'gpu' && gpuFrame !== frame
-      : undefined,
+    // its lists the GPU's of another view than `frame`'s: a view culled since (a ray's pick, whose pass culls with its own
+    // frame first: the last cull then of that frame, not of `frame`)
+    isGpuCullStale: culler ? (frame: Frame) => visibleSet.mode === 'gpu' && gpuFrame !== frame : undefined,
     get rasterSpheres() {
       return rasterOnly ? getRasterSpheres() : undefined;
     },

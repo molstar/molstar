@@ -51,11 +51,11 @@ export function getGpuMeshVertices(values: MeshValues, compute: ComputeContext):
   const vertexCount = values.uVertexCount.ref.value;
   const positionVersion = values.aPosition.ref.version;
   const groupVersion = values.aGroup.ref.version;
-  const key = values.aPosition;
+  const key = keyOf(values)!;
   let current = Vertices.get(key);
   // of another context (a restore, a backend switch): its buffers released with it
   if (current && current.compute !== compute) {
-    releaseGpuMeshVertices(values);
+    release(key);
     current = undefined;
   }
   const sameCount = current?.vertexCount === vertexCount;
@@ -83,8 +83,12 @@ export function getGpuMeshVertices(values: MeshValues, compute: ComputeContext):
 /** Releases the vertices of the mesh of `values` on the GPU, if any */
 export function releaseGpuMeshVertices(values: object) {
   const key = keyOf(values);
-  const vertices = key && Vertices.get(key);
-  if (!key || !vertices) return;
+  if (key) release(key);
+}
+
+function release(key: object) {
+  const vertices = Vertices.get(key);
+  if (!vertices) return;
   vertices.positions.destroy();
   vertices.groups.destroy();
   Vertices.delete(key);

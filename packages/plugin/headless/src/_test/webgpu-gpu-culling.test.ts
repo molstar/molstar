@@ -545,6 +545,20 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
     renderer.update(camera, scene, frame);
     renderer.prepareCull(scene);
     expect(renderer.isGpuCullStale(scene, frame)).toBe(false);
+
+    // a ray's pick: its view culled on the GPU, then its pass culls with a frame of its own (the object's last cull
+    // that frame's, not `frame`'s): stale for `frame` as well
+    const ray = createFrame();
+    renderer.update(side, scene, ray);
+    renderer.prepareCullView(scene);
+    graphics.beginRenderPass(target);
+    renderer.setViewport(0, 0, Size, Size);
+    renderer.renderOpaque(scene, side);
+    graphics.flush();
+    expect(renderer.isGpuCullStale(scene, frame)).toBe(true);
+    renderer.update(camera, scene, frame);
+    renderer.prepareCull(scene);
+    expect(renderer.isGpuCullStale(scene, frame)).toBe(false);
   }, 60_000);
 
   it('draws and picks in a canvas with draw lists (passes that update the renderer inside their render pass)', {
@@ -670,7 +684,7 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
       plugin.dispose();
     }
   });
-  it('culls a merged object of one unit on the GPU; by default (gpuCulling auto) not with few instances', {
+  it('culls a merged object of one unit on the GPU; by default (gpuCulling auto) not with few instances but for the raster', {
     tags: ['medium'],
     timeout: 60_000,
   }, async () => {
@@ -685,9 +699,15 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
       const repr = await plugin.builders.structure.representation.addRepresentation(structure, { type: 'spacefill' });
       const culledOnGpu = (o: GraphicsRenderObject) =>
         (o.values as { gpuCulling?: { ref: { value: boolean } } }).gpuCulling?.ref.value;
-      // 40 instances: merged (a units representation's always), fewer than `auto` culls on the GPU
+      const rasterOnly = (o: GraphicsRenderObject) =>
+        (o.values as { gpuCullingRasterOnly?: { ref: { value: boolean } } }).gpuCullingRasterOnly?.ref.value;
+      // 40 instances: merged (a units representation's always), fewer than `auto` culls on the GPU by; spheres where the
+      // device has the sphere raster culled there for it alone (the renderer culls them on the CPU where it does not draw
+      // them), as the raster takes merged objects culled on the GPU only
+      const raster = !!canvas.graphics.capabilities.atomicMinMax64;
       expect(visible().map(isMergedRenderObject)).toEqual([true]);
-      expect(visible().map(culledOnGpu)).toEqual([false]);
+      expect(visible().map(culledOnGpu)).toEqual([raster]);
+      if (raster) expect(visible().map(rasterOnly)).toEqual([true]);
 
       await plugin.build().delete(repr).commit();
       await plugin.builders.structure.representation.addRepresentation(structure, {

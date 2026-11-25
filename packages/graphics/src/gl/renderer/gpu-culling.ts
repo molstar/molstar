@@ -25,6 +25,7 @@ import { projectSphere } from '../project-sphere.js';
 import type { GlobalBindings } from '../render-item.js';
 import { type CullBatch, type Frame, type GraphicsRenderable, LodView } from '../renderable.js';
 import type { MergedRasterParams } from '../renderable/merged-culler.js';
+import { AutoGpuCullingMinRasterSpheres } from '../renderable/merged.js';
 import type { GlobalUniformValues } from '../renderable/schema.js';
 import type { SpheresValues } from '../renderable/spheres.js';
 import { getDrawnBoundingSphere } from '../renderable/util.js';
@@ -126,13 +127,18 @@ export function createGpuCulling(host: GpuCullingHost): GpuCulling {
   /**
    * The spheres from which an object culled on the GPU for the raster only (`Renderable.rasterSpheres`) is culled there
    * this frame: none where the raster does not draw the view (`'off'` too); `'auto'` the `sphereRasterObjects`
-   * largest visible ones (each object costs its own dispatches, whatever its size); `'on'` and `'only'` all of them
+   * largest visible ones (each object costs its own dispatches, whatever its size) of `AutoGpuCullingMinRasterSpheres`
+   * and more (merged spheres are culled for the raster at any count, `resolveMergedCulling`: below it the GPU's culling
+   * measured slower); `'on'` and `'only'` all of them
    */
   const getRasterSpheresMin = (renderables: ReadonlyArray<GraphicsRenderable>) => {
     if (!cullRaster) return Infinity;
     if (p.sphereRaster !== 'auto') return 0;
     const budget = p.sphereRasterObjects;
     if (budget <= 0) return Infinity;
+    return Math.max(AutoGpuCullingMinRasterSpheres, getBudgetMin(renderables, budget));
+  };
+  const getBudgetMin = (renderables: ReadonlyArray<GraphicsRenderable>, budget: number) => {
     rasterSpheresOf.length = 0;
     for (let i = 0, il = renderables.length; i < il; ++i) {
       const r = renderables[i];
@@ -211,12 +217,20 @@ export function createGpuCulling(host: GpuCullingHost): GpuCulling {
   const isRasterCandidate = (r: GraphicsRenderable) => {
     const values = r.values as { [k: string]: ValueCell<any> | undefined };
     if ('dSphereResolve' in values) {
-      // `auto`: objects that can be culled on the GPU only
-      if (p.sphereRaster === 'auto' && !r.getRasterInput) return false;
+      // `auto`: objects that can be culled on the GPU only, those culled for the raster alone from the count it takes
+      // them at (`getRasterSpheresMin`)
+      if (p.sphereRaster === 'auto') {
+        if (!r.getRasterInput) return false;
+        if (r.rasterSpheres !== undefined && r.rasterSpheres < AutoGpuCullingMinRasterSpheres) return false;
+      }
       return isSphereRasterEligible(r.values as SpheresValues);
     }
-    // `auto`: of objects culled on the GPU (unmerged ones never are, their signatures without the flag)
-    if (p.sphereRaster === 'auto' && (r as { gpuCulled?: boolean }).gpuCulled !== true) return false;
+    // `auto`: of objects culled on the GPU (unmerged ones never are, their signatures without the flag), those culled for
+    // the raster alone from the count it takes them at
+    if (p.sphereRaster === 'auto') {
+      if ((r as { gpuCulled?: boolean }).gpuCulled !== true) return false;
+      if (r.rasterSpheres !== undefined && r.rasterSpheres < AutoGpuCullingMinRasterSpheres) return false;
+    }
     return values.dGeometryType?.ref.value === 'spheres' && values.uAlpha?.ref.value === 1;
   };
   /**

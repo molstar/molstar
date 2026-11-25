@@ -101,10 +101,13 @@ function isMergeFingerprintUnchanged(ro: GraphicsRenderObject) {
 }
 
 /**
- * Whether members `records` of `type` merge (two or more) and are culled on the GPU (`gpuCulling`:
- * where many instances per draw, a segment and level; then merged for it, also one alone), and for the sphere raster
- * alone (`rasterOnly`: the renderer culls them on the CPU where the raster does not take them). `gpuSupported`: the
- * device culls on the GPU (`canCullOnGpu`)
+ * Whether members `records` of `type` merge (two or more, or `merged`: the caller merges them whatever, a units
+ * visual's) and are culled on the GPU (`gpuCulling`: where many instances per draw, a segment and level; then merged
+ * for it, also one alone), and for the sphere raster alone (`rasterOnly`: the renderer culls them on the CPU where the
+ * raster does not take them). Spheres merged anyway, with `auto`, are culled for the raster alone at any count where the
+ * device has it: the raster takes merged objects culled on the GPU only, and `'on'` and `'only'` take all of them
+ * (`'auto'` from `AutoGpuCullingMinRasterSpheres`, `getRasterSpheresMin`), as it does an object not merged. `gpuSupported`:
+ * the device culls on the GPU (`canCullOnGpu`)
  */
 export function resolveMergedCulling(
   type: string,
@@ -112,6 +115,7 @@ export function resolveMergedCulling(
   gpuCulling: GpuCullingValue,
   gpuSupported: boolean,
   graphics?: GraphicsContext,
+  merged = false,
 ) {
   let instances = 0;
   for (const r of records) instances += r.instanceCount.ref.value;
@@ -122,7 +126,10 @@ export function resolveMergedCulling(
     for (const r of records) rasterSpheres += r.instanceCount.ref.value * r.uVertexCount.ref.value;
   }
   const byInstances = resolveGpuCulling(gpuCulling, instances, draws);
-  const gpu = gpuSupported && (byInstances || resolveGpuCulling(gpuCulling, instances, draws, rasterSpheres));
+  const byRaster =
+    resolveGpuCulling(gpuCulling, instances, draws, rasterSpheres) ||
+    ((merged || records.length >= 2) && gpuCulling === 'auto' && rasterSpheres > 0);
+  const gpu = gpuSupported && (byInstances || byRaster);
   const rasterOnly = gpu && !byInstances;
   const merge = gpu || records.length >= 2;
   return { merge, gpu, rasterOnly };

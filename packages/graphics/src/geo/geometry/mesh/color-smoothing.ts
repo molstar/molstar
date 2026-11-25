@@ -27,7 +27,7 @@ import { lerp } from '@molstar/core/math/interpolate';
 import { Mat4, Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import { getVolumeTexture2dLayout } from '@molstar/graphics/geo/util';
 import { ValueCell } from '@molstar/core/util';
-import { getInstanceMatrices } from '../transform-data.js';
+import { getInstanceMatrices, getInstanceMatricesById } from '../transform-data.js';
 import { type GpuMeshVertices, getGpuMeshVertices } from './gpu-vertices.js';
 import {
   computeMeshColorSmoothing,
@@ -436,6 +436,24 @@ function splatVertex(ctx: SplatContext, i: number, instanceIndex: number, j: num
   }
 }
 
+/**
+ * `transforms` (a row per instance, in `instances`' order: row `i` instance `instances[i]`'s) by instance: `transforms`
+ * itself where they are in that order (no instance grid, or one cell)
+ */
+function getTransformsByInstance(transforms: Float32Array, instances: Uint32Array, count: number) {
+  let identity = true;
+  for (let i = 0; i < count; ++i) {
+    if (instances[i] !== i) {
+      identity = false;
+      break;
+    }
+  }
+  if (identity) return transforms;
+  const out = new Float32Array(count * 16);
+  for (let i = 0; i < count; ++i) out.set(transforms.subarray(i * 16, i * 16 + 16), instances[i] * 16);
+  return out;
+}
+
 export function calcMeshColorSmoothing(
   input: ColorSmoothingInput,
   options: ColorSmoothingOptions,
@@ -444,12 +462,17 @@ export function calcMeshColorSmoothing(
 ) {
   // a texture of another context (e.g. before a backend switch) is not reused
   if (texture && graphics && !graphics.resources.ownsTexture(texture)) texture = undefined;
-  const { colorType, vertexCount, groupCount, positionBuffer, instanceBuffer, transformBuffer, groupBuffer, itemSize } =
-    input;
+  const { colorType, vertexCount, groupCount, positionBuffer, instanceBuffer, groupBuffer, itemSize } = input;
   const { stride } = options;
 
   const isInstanceType = colorType.endsWith('Instance');
   const instanceCount = isInstanceType ? input.instanceCount : 1;
+  // the transforms by instance (matrix `i` instance `i`'s), not in their rows' order (the instance grid's cells): the
+  // colors, the reached flags and the per-vertex output are by instance, as the shaders and the exports read them
+  // (`aInstance`); the splat's sums are of no order
+  const transformBuffer = isInstanceType
+    ? getTransformsByInstance(input.transformBuffer, instanceBuffer, instanceCount)
+    : input.transformBuffer;
   const sphereBox = Box3D.fromSphere3D(Box3D(), isInstanceType ? input.boundingSphere : input.invariantBoundingSphere);
   const vertexBox = vertexCount > 0 ? Box3D.fromPositionArray(Box3D(), positionBuffer, vertexCount) : undefined;
   const box = getVertexBox(input, vertexBox, instanceCount, isInstanceType, sphereBox);
@@ -473,9 +496,8 @@ export function calcMeshColorSmoothing(
 
   const zOff = getSliceOffsets(gridDim, width);
 
-  // - use reordered index for access from GPU
-  // - use serial index for access from CPU
-  const instanceRow = (i: number) => (graphics && isInstanceType ? instanceBuffer[i] : i);
+  // the transforms by instance: a row is its instance (`getTransformsByInstance`)
+  const instanceRow = (i: number) => i;
   const allReached = hasGroupOutOfRange(groupBuffer, vertexCount, groupCount);
   const isRowReached = getRowReachedTest(colors, groupCount, itemSize);
   const instances = vertexBox
@@ -488,7 +510,9 @@ export function calcMeshColorSmoothing(
         gridDim,
         min,
         scaleFactor,
-        !graphics,
+        // the instances read: the CPU's sampling per vertex, and with a context the GPU's (`reached`: the others
+        // written as zeros without sampling)
+        true,
       )
     : undefined;
 
@@ -855,14 +879,18 @@ function createGpuLayerData(
   const vertexCount = values.uVertexCount.ref.value;
   const instanceCount = values.uInstanceCount.ref.value;
   const count = vertexCount * instanceCount;
-  const matrices = getInstanceMatrices(values).subarray(0, instanceCount * 16);
+  // by instance, as the reached flags (`calcMeshColorSmoothing`) and the data read by `aInstance`
+  const matrices = getInstanceMatricesById(values).subarray(0, instanceCount * 16);
   const transforms = compute.createBuffer(Math.max(64, matrices.byteLength), 'layer sampling transforms');
   transforms.write(matrices);
   const flags = new Uint32Array(Math.max(1, instanceCount));
   for (let i = 0; i < instanceCount; ++i) flags[i] = !smoothing.reached || smoothing.reached[i] ? 1 : 0;
   const reached = compute.createBuffer(flags.byteLength, 'layer sampling reached');
   reached.write(flags);
-  const vertices = () => getGpuMeshVertices(values, compute).positions;
+  // its mesh's cells, kept as they are now: `values` may be another's later (the values a merged segment was made with
+  // are its part's shared values when it founds the part, which hold the part's first segment's cells, `bindShared`)
+  const mesh = { aPosition: values.aPosition, aGroup: values.aGroup, uVertexCount: values.uVertexCount } as MeshValues;
+  const vertices = () => getGpuMeshVertices(mesh, compute).positions;
   const input = {
     vertexCount,
     instanceCount,
@@ -878,23 +906,32 @@ function createGpuLayerData(
     itemSize,
   };
   const byteLength = count * itemSize;
+  // disposed (its segment dropped, e.g. while an export reads its members one by one): it writes nothing and reads as
+  // its zeros, its grid and buffers gone
+  let disposed = false;
   const writer: GpuDataWriter = {
     compute,
     elementBytes: itemSize,
     write: (buffer, byteOffset) => {
+      if (disposed) return;
       input.positions = vertices();
       computeLayerSampling(compute, input, buffer, byteOffset / itemSize);
     },
     read: async () => {
+      if (disposed) return new Uint8Array(byteLength);
       // written into a buffer of its own: where the render item holds it may have moved since
       const out = compute.createBuffer(Math.max(4, Math.ceil(byteLength / 4) * 4), 'layer sampling read');
-      input.positions = vertices();
-      computeLayerSampling(compute, input, out, 0);
-      const bytes = new Uint8Array(await out.readAsync(), 0, byteLength).slice();
-      out.destroy();
-      return bytes;
+      try {
+        input.positions = vertices();
+        computeLayerSampling(compute, input, out, 0);
+        return new Uint8Array(await out.readAsync(), 0, byteLength).slice();
+      } finally {
+        out.destroy();
+      }
     },
     dispose: () => {
+      if (disposed) return;
+      disposed = true;
       transforms.destroy();
       reached.destroy();
       smoothing.texture.destroy();

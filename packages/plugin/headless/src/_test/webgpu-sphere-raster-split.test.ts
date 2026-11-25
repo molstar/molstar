@@ -12,7 +12,7 @@ import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { Sphere3D } from '@molstar/core/math/geometry/primitives/sphere3d';
 import { Spheres } from '@molstar/graphics/geo/geometry/spheres/spheres';
 import { createTransform } from '@molstar/graphics/geo/geometry/transform-data';
-import { BaseGeometry } from '@molstar/graphics/geo/geometry/base';
+import { AutoGpuCullingMinRasterSpheres, BaseGeometry } from '@molstar/graphics/geo/geometry/base';
 import { setLodLevelsByDistance } from './lod-levels-by-distance.js';
 import { Renderer, type RendererProps } from '@molstar/graphics/gl/renderer';
 import { createFrame } from '@molstar/graphics/gl/renderable';
@@ -389,6 +389,13 @@ describe.skipIf(!WebGPU.module)('sphere raster split per instance on WebGPU', ()
     const renderables = objects.map((o) => scene.get(o)!);
     expect(renderables.map((r) => r.rasterSpheres! > 0)).toEqual([true, true, true, false]);
     expect(renderables[3].rasterSpheres).toBeUndefined();
+    // as objects of many spheres, in the same order: `auto` culls those of fewer than the threshold on the CPU
+    const counts = [3, 2, 1].map((k) => k * AutoGpuCullingMinRasterSpheres);
+    const setSpheres = (spheres: number[]) =>
+      spheres.forEach((n, i) =>
+        Object.defineProperty(renderables[i], 'rasterSpheres', { value: n, configurable: true }),
+      );
+    setSpheres(counts);
     // the objects the renderer culls on the GPU, of the last frame
     let called = renderables.map(() => false);
     renderables.forEach((r, i) => {
@@ -447,6 +454,12 @@ describe.skipIf(!WebGPU.module)('sphere raster split per instance on WebGPU', ()
     renderables[0].state.visible = true;
     const none = await render({ sphereRaster: 'auto', sphereRasterObjects: 0 });
     expect(none.culled).toEqual([false, false, false, true]);
+    // the smallest under the threshold (merged spheres are culled for the raster at any count): `on` takes it, `auto`
+    // not even within its budget
+    setSpheres([counts[0], counts[1], AutoGpuCullingMinRasterSpheres - 1]);
+    expect((await render({ sphereRaster: 'auto', sphereRasterObjects: 8 })).culled).toEqual([true, true, false, true]);
+    expect((await render({ sphereRaster: 'on' })).culled).toEqual([true, true, true, true]);
+    setSpheres(counts);
 
     // the same image, but where the raster's and the fragment stage's arithmetic decide an edge differently
     for (const { pixels } of [on, auto]) {

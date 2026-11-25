@@ -20,6 +20,7 @@ import { now } from '@molstar/core/util/now';
 import type { TransparencyMode } from '@molstar/graphics/canvas3d/passes/draw';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { getColorSmoothingKernels } from '@molstar/graphics/gl/compute/color-smoothing';
+import { LayerSamplingKernels, MeshSmoothingKernels } from '@molstar/graphics/gl/compute/layer-sampling';
 import { GaussianDensityKernels } from '@molstar/graphics/gl/compute/gaussian-density';
 import { getIsosurfaceKernels } from '@molstar/graphics/gl/compute/marching-cubes/compute';
 import { PrefixSumKernels } from '@molstar/graphics/gl/compute/prefix-sum';
@@ -667,6 +668,8 @@ export async function prepareAllKernels(graphics: GraphicsContext) {
     ...GaussianDensityKernels,
     ...getColorSmoothingKernels('group'),
     ...getColorSmoothingKernels('groupInstance'),
+    ...MeshSmoothingKernels,
+    ...LayerSamplingKernels,
     ...getIsosurfaceKernels({ kind: 'buffer' }),
     ...(['red', 'alpha'] as const).flatMap((channel) =>
       [false, true].flatMap((packedGroup) => getIsosurfaceKernels({ kind: 'texture', channel, packedGroup })),

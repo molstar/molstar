@@ -51,6 +51,12 @@ export interface ObjectSignature extends RenderableKind {
    */
   readonly gpuCulled?: boolean;
   /**
+   * Of spheres culled on the GPU for the sphere raster alone (`Renderable.rasterSpheres`): their count, which the
+   * raster's `auto` takes them by (`AutoGpuCullingMinRasterSpheres`); not part of the key. Unset where not known (a
+   * list derived without the data)
+   */
+  readonly rasterSpheres?: number;
+  /**
    * Holds poses (`instancePoses`): its programs read the instances from storage where the context does
    * (`dInstanceStorage`, `instance-storage.ts`) and it is not culled on the GPU; part of the key. Unset in lists
    * derived from params
@@ -73,13 +79,27 @@ function getDrawFlags(values: { [k: string]: ValueCell<unknown> | undefined }) {
 
 /** `a` with the draw flags of `b` added (signatures of the same key) */
 export function mergeSignatures(a: ObjectSignature, b: ObjectSignature): ObjectSignature {
-  if ((a.opaque || !b.opaque) && (a.transparent || !b.transparent) && (a.emissive || !b.emissive)) return a;
+  const rasterSpheres = maxRasterSpheres(a.rasterSpheres, b.rasterSpheres);
+  if (
+    (a.opaque || !b.opaque) &&
+    (a.transparent || !b.transparent) &&
+    (a.emissive || !b.emissive) &&
+    rasterSpheres === a.rasterSpheres
+  ) {
+    return a;
+  }
   return {
     ...a,
     opaque: a.opaque || b.opaque,
     transparent: a.transparent || b.transparent,
     emissive: a.emissive || b.emissive,
+    rasterSpheres,
   };
+}
+
+/** the larger count, unknown where either is (it may be any) */
+function maxRasterSpheres(a: number | undefined, b: number | undefined) {
+  return a === undefined || b === undefined ? undefined : Math.max(a, b);
 }
 
 /**
@@ -103,6 +123,7 @@ export function getObjectSignature(renderable: GraphicsRenderable): ObjectSignat
     hasReflection: !!renderable.values.hasReflection?.ref.value,
     ...getDrawFlags(renderable.values as { [k: string]: ValueCell<unknown> | undefined }),
     gpuCulled: !!renderable.values.gpuCulling?.ref.value,
+    ...(renderable.rasterSpheres !== undefined ? { rasterSpheres: renderable.rasterSpheres } : {}),
     instancePoses: hasInstancePoses(renderable.values),
   };
 }

@@ -512,7 +512,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
     if (updateState.createNew) {
       locationIt = createLocationIterator(newStructureGroup, newProps);
       if (newGeometry) {
-        // the old object's mesh vertices on the GPU (the smoothing's splat), kept by its values
+        // the old object's mesh vertices on the GPU (the smoothing's splat), kept by its position cell
         if (renderObject) releaseGpuMeshVertices(renderObject.values);
         renderObject = createUnitsRenderObject(
           newStructureGroup,

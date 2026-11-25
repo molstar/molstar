@@ -383,6 +383,63 @@ describe('the merged units visual', async () => {
     repr.destroy();
   });
 
+  it('merges a surface again whose per-group visuals smooth their colors into grids', async () => {
+    let unmergeable = true;
+    const base = MolecularSurfaceMeshVisual(-1).builder as UnitsVisualGeometryBuilder<MolecularSurfaceMeshParams, any>;
+    const builder: UnitsVisualGeometryBuilder<MolecularSurfaceMeshParams, any> = {
+      ...base,
+      processValues: (values: any, ...rest: any[]) => {
+        (base.processValues as any)(values, ...rest);
+        // a color type no merged object has, the first time
+        if (unmergeable) ValueCell.updateIfChanged(values.colorType, 'direct');
+      },
+    };
+    // the parts of a context the per-group visuals' smoothing reads (grids as textures)
+    const graphics = {
+      capabilities: { fragDepth: true, texture: true },
+      resources: {
+        limits: { maxTextureSize: 16384, max3dTextureSize: 2048 },
+        texture: () => new Proxy({} as any, { get: (t, k) => (k === 'then' ? undefined : k in t ? t[k] : () => {}) }),
+        ownsTexture: () => true,
+      },
+    } as any;
+    const repr = UnitsRepresentation(
+      'surface',
+      { graphics, ...registries } as any,
+      () => MolecularSurfaceMeshParams,
+      (id) => UnitsVisual(builder, id),
+    );
+    repr.setTheme(
+      Theme.create(
+        registries as any,
+        { structure },
+        { colorTheme: { name: 'chain-id' }, sizeTheme: { name: 'physical' } },
+      ),
+    );
+    const props = {
+      ...PD.getDefaultValues(MolecularSurfaceMeshParams),
+      resolution: 1,
+      smoothColors: { name: 'on', params: { resolutionFactor: 2, sampleStride: 3 } },
+    } as PD.Values<MolecularSurfaceMeshParams>;
+    await repr.createOrUpdate(props, structure).run();
+    expect(repr.renderObjects.some((o) => isMergedRenderObject(o))).toBe(false);
+    unmergeable = false;
+    // the colors made again (another theme), smoothed by the per-group visuals into grids
+    repr.setTheme(
+      Theme.create(
+        registries as any,
+        { structure },
+        { colorTheme: { name: 'element-symbol' }, sizeTheme: { name: 'physical' } },
+      ),
+    );
+    await repr.createOrUpdate(props, structure).run();
+    // the per-group visuals' colors as grids: merged all the same, smoothed per vertex
+    expect(repr.renderObjects.length).toBeGreaterThan(0);
+    expect(repr.renderObjects.every((o) => isMergedRenderObject(o))).toBe(true);
+    expect(repr.renderObjects.some((o) => o.values.colorType.ref.value === 'vertex')).toBe(true);
+    repr.destroy();
+  });
+
   it('merges again after a theme change alone (the props the same)', async () => {
     const base = splitBuilder();
     const builder: UnitsVisualGeometryBuilder<ElementSphereParams, Spheres> = {
@@ -515,6 +572,155 @@ describe('the merged units visual', async () => {
     expect(repr.renderObjects.every((o) => isMergedRenderObject(o) && !o.state.disposed)).toBe(true);
     expect(objects.every((o) => o.state.disposed)).toBe(true);
     repr.destroy();
+  });
+
+  /** the records of `repr`'s merged objects */
+  const recordCount = (repr: { renderObjects: readonly GraphicsRenderObject[] }) =>
+    repr.renderObjects.reduce(
+      (n, o) => n + (isMergedRenderObject(o) ? (o as MergedGraphicsRenderObject).merged.records.length : 0),
+      0,
+    );
+
+  it('keeps the state set while a new merged visual builds (not reached by setState till then)', async () => {
+    let repr!: Awaited<ReturnType<typeof createRepr>>;
+    let made = 0;
+    const base = splitBuilder();
+    const builder: UnitsVisualGeometryBuilder<ElementSphereParams, Spheres> = {
+      ...base,
+      createGeometry: (...args) => {
+        // hidden while its second group is made (a Components eye button, outside the state queue)
+        if (++made === 2) repr.setState({ visible: false, pickable: false });
+        return base.createGeometry(...args);
+      },
+    };
+    const graphics = { capabilities: { fragDepth: true } } as any;
+    repr = UnitsRepresentation(
+      'split spheres',
+      { graphics, ...registries } as any,
+      () => ElementSphereParams,
+      (id) => UnitsVisual(builder, id),
+    ) as any;
+    repr.setTheme(
+      Theme.create(
+        registries as any,
+        { structure },
+        { colorTheme: { name: 'uniform' }, sizeTheme: { name: 'physical' } },
+      ),
+    );
+    await repr.createOrUpdate(PD.getDefaultValues(ElementSphereParams), structure).run();
+    expect(made).toBeGreaterThan(1);
+    expect(repr.renderObjects.length).toBeGreaterThan(0);
+    expect(repr.renderObjects.every((o) => isMergedRenderObject(o) && !o.state.visible && !o.state.pickable)).toBe(
+      true,
+    );
+    repr.destroy();
+  });
+
+  it('applies a smoothed layer set during a rebuild once it ends, on every group it made', async () => {
+    let during: (() => void) | undefined;
+    let made = 0;
+    const base = MolecularSurfaceMeshVisual(-1).builder as UnitsVisualGeometryBuilder<MolecularSurfaceMeshParams, any>;
+    const builder: UnitsVisualGeometryBuilder<MolecularSurfaceMeshParams, any> = {
+      ...base,
+      createGeometry: (...args) => {
+        // the second group's: the first's segment made by then
+        if (during && ++made === 2) {
+          const set = during;
+          during = undefined;
+          set();
+        }
+        return base.createGeometry(...args);
+      },
+    };
+    const graphics = { capabilities: { fragDepth: true } } as any;
+    const repr = UnitsRepresentation(
+      'surface',
+      { graphics, ...registries } as any,
+      () => MolecularSurfaceMeshParams,
+      (id) => UnitsVisual(builder, id),
+    );
+    repr.setTheme(
+      Theme.create(
+        registries as any,
+        { structure },
+        { colorTheme: { name: 'uniform' }, sizeTheme: { name: 'physical' } },
+      ),
+    );
+    const props = {
+      ...PD.getDefaultValues(MolecularSurfaceMeshParams),
+      resolution: 1,
+      smoothColors: { name: 'on', params: { resolutionFactor: 2, sampleStride: 3 } },
+    } as PD.Values<MolecularSurfaceMeshParams>;
+    await repr.createOrUpdate(props, structure).run();
+    const records = recordCount(repr);
+    expect(records).toBeGreaterThan(1);
+    const loci = unitLoci(protein);
+    // painted while a rebuild (another instance granularity) makes its segments: a smoothed layer's segments a part
+    // of their own (`writeLayers`), which would regroup the parts the rebuild is making
+    during = () => repr.setState({ overpaint: Overpaint(loci.kind, [{ loci, color: Color(0xff0000), clear: false }]) });
+    await repr.createOrUpdate({ instanceGranularity: true } as any).run();
+    expect(during).toBeUndefined();
+    // every group drawn, the layer on the protein's part
+    expect(recordCount(repr)).toBe(records);
+    expect(repr.renderObjects.some((o) => o.values.dOverpaint.ref.value)).toBe(true);
+    repr.destroy();
+  });
+
+  it('keeps its geometry version through a layer regrouping its parts (no layer node applied again for it)', async () => {
+    const graphics = { capabilities: { fragDepth: true } } as any;
+    const repr = UnitsRepresentation(
+      'surface',
+      { graphics, ...registries } as any,
+      () => MolecularSurfaceMeshParams,
+      (id) => MolecularSurfaceMeshVisual(id),
+    );
+    repr.setTheme(
+      Theme.create(
+        registries as any,
+        { structure },
+        { colorTheme: { name: 'uniform' }, sizeTheme: { name: 'physical' } },
+      ),
+    );
+    const props = {
+      ...PD.getDefaultValues(MolecularSurfaceMeshParams),
+      resolution: 1,
+      smoothColors: { name: 'on', params: { resolutionFactor: 2, sampleStride: 3 } },
+    } as PD.Values<MolecularSurfaceMeshParams>;
+    await repr.createOrUpdate(props, structure).run();
+    const version = repr.geometryVersion;
+    const objects = repr.renderObjects.slice();
+    const loci = unitLoci(protein);
+    // the protein's segment a part of its own (its layer smoothed): other objects, the same geometry
+    repr.setState({ overpaint: Overpaint(loci.kind, [{ loci, color: Color(0xff0000), clear: false }]) });
+    expect(repr.renderObjects).not.toEqual(objects);
+    expect(repr.geometryVersion).toBe(version);
+    // another geometry: another version
+    await repr.createOrUpdate({ ...props, resolution: 1.2 }, structure).run();
+    expect(repr.geometryVersion).not.toBe(version);
+    repr.destroy();
+  });
+
+  it('keeps the per-group visuals an update did not reach, where it ends early: destroyed with the representation', async () => {
+    let fail = false;
+    let updates = 0;
+    const base = splitBuilder();
+    const { builder, undisposed } = countingBuilder({
+      ...base,
+      setUpdateState: (state, ...rest) => {
+        base.setUpdateState(state, ...rest);
+        if (fail && ++updates === 2) throw new Error('aborted');
+      },
+    });
+    const repr = await createRepr(structure, false, {}, builder);
+    const objects = repr.renderObjects.length;
+    expect(objects).toBeGreaterThan(1);
+    fail = true;
+    await expect(repr.createOrUpdate({ emissive: 0.2 }).run()).rejects.toThrow('aborted');
+    fail = false;
+    // the visuals not reached listed, as drawn
+    expect(repr.renderObjects.length).toBe(objects);
+    repr.destroy();
+    expect(undisposed()).toBe(0);
   });
 
   it('checks each group against a new context alone (a backend switch, nothing else changed)', async () => {
@@ -684,6 +890,40 @@ describe('the merged units visual', async () => {
     expect(lit(repr)).toEqual(lit(fresh));
     repr.destroy();
     fresh.destroy();
+  });
+
+  it('makes its parts again at the next update where that rebuild failed', async () => {
+    let fail = false;
+    const plain = ElementSphereImpostorVisual(-1).builder as UnitsVisualGeometryBuilder<ElementSphereParams, Spheres>;
+    const builder: UnitsVisualGeometryBuilder<ElementSphereParams, Spheres> = {
+      ...plain,
+      // the rebuild makes the geometries again (a theme change alone does not)
+      createGeometry: (...args) => {
+        if (fail) throw new Error('aborted');
+        return plain.createGeometry(...args);
+      },
+      processValues: (values: any, geometry: Spheres, _props, theme) => {
+        const split = theme.color.factory === BuiltInColorThemes['element-symbol'].factory;
+        ValueCell.updateIfChanged(values.dIgnoreLight, split && geometry.sphereCount > 500);
+      },
+    };
+    const lit = (r: Awaited<ReturnType<typeof createRepr>>) =>
+      (r.renderObjects as MergedGraphicsRenderObject[]).map((o) => o.values.dIgnoreLight.ref.value).sort();
+    const repr = await createRepr(structure, true, {}, builder);
+    repr.setTheme(
+      Theme.create(
+        registries as any,
+        { structure },
+        { colorTheme: { name: 'element-symbol' }, sizeTheme: { name: 'physical' } },
+      ),
+    );
+    fail = true;
+    await expect(repr.createOrUpdate({}, structure).run()).rejects.toThrow('aborted');
+    fail = false;
+    // nothing changed since: the parts made again all the same
+    await repr.createOrUpdate({}, structure).run();
+    expect(lit(repr)).toEqual([false, true]);
+    repr.destroy();
   });
 
   it('merges a molecular surface whose colors are smoothed: per vertex (no grid an object)', async () => {

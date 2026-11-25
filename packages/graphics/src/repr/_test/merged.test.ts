@@ -25,7 +25,7 @@ import {
   type GraphicsRenderObject,
 } from '@molstar/graphics/gl/render-object';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
-import { mergeRenderObjectsByType } from '../merged.js';
+import { mergeRenderObjectsByType, resolveMergedCulling } from '../merged.js';
 
 /** A spheres render object of `instances` instances (translated copies of a few spheres) */
 function spheres(instances: number): GraphicsRenderObject {
@@ -58,6 +58,32 @@ describe('merging render objects', () => {
     expect(resolveGpuCulling('auto', 100, 100, min)).toBe(true);
     expect(resolveGpuCulling('auto', 100, 100, min - 1)).toBe(false);
     expect(resolveGpuCulling(false, 100, 100, min)).toBe(false);
+  });
+
+  it('culls spheres merged anyway for the raster at any count, where the device has it', () => {
+    const graphics = { capabilities: { atomicMinMax64: true } } as GraphicsContext;
+    const records = (n: number) => Array.from({ length: n }, () => spheres(2).values as never);
+    // a units visual's one record (merged whatever), and two objects merged: for the raster only
+    expect(resolveMergedCulling('spheres', records(1), 'auto', true, graphics, true)).toEqual({
+      merge: true,
+      gpu: true,
+      rasterOnly: true,
+    });
+    expect(resolveMergedCulling('spheres', records(2), 'auto', true, graphics)).toMatchObject({
+      gpu: true,
+      rasterOnly: true,
+    });
+    // one object not merged otherwise: not merged for it
+    expect(resolveMergedCulling('spheres', records(1), 'auto', true, graphics)).toMatchObject({
+      merge: false,
+      gpu: false,
+    });
+    // nor without the raster, without GPU culling, with it off, or of another type
+    const plain = { capabilities: { atomicMinMax64: false } } as GraphicsContext;
+    expect(resolveMergedCulling('spheres', records(2), 'auto', true, plain).gpu).toBe(false);
+    expect(resolveMergedCulling('spheres', records(2), 'auto', false, graphics).gpu).toBe(false);
+    expect(resolveMergedCulling('spheres', records(2), false, true, graphics).gpu).toBe(false);
+    expect(resolveMergedCulling('mesh', records(2), 'auto', true, graphics).gpu).toBe(false);
   });
 
   it('merges an object alone to cull it on the GPU, where the device does and it pays', () => {

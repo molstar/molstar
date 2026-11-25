@@ -78,6 +78,13 @@ async function addScene(plugin: HeadlessPluginContext) {
     color: 'uniform',
   });
   await representation.addRepresentation(protein, { type: 'cartoon', color: 'sequence-id' });
+  // a merged surface's smoothed colors and layer: drawn per vertex (not the per-group visuals' grids)
+  const smoothed = await representation.addRepresentation(protein, {
+    type: 'molecular-surface',
+    typeParams: { smoothColors: { name: 'on', params: { resolutionFactor: 2, sampleStride: 3 } } } as any,
+    color: 'chain-id',
+  });
+  await plugin.build().to(smoothed).apply(TransparencyStructureRepresentation3DFromScript).commit();
   const spacefill = await representation.addRepresentation(protein, { type: 'spacefill', color: 'chain-id' });
   await plugin
     .build()

@@ -268,13 +268,13 @@ exports[`mesh layer smoothing on reordered and clipped instances, odd groups > s
     "gridZero": false,
   },
   "reordered, a lone instance": {
-    "cpu": "vertexInstance 0 0 a1ce2b0d 0 2729a613 0",
+    "cpu": "vertexInstance 0 0 0 0 5f6d7f10 0",
     "cpuZero": false,
     "gpu": "volumeInstance 97x120x128 2037x840 -14.2410,-1.2740,-91.7240,0.8333 grid:fcc7f89c",
     "gridZero": false,
   },
   "reordered, a pair": {
-    "cpu": "vertexInstance fb1e501c 0 0 0 0 66310e0c",
+    "cpu": "vertexInstance e5be5b43 f02e803d 0 0 0 0",
     "cpuZero": false,
     "gpu": "volumeInstance 97x120x128 2037x840 -14.2410,-1.2740,-91.7240,0.8333 grid:2c0e9c4a",
     "gridZero": false,

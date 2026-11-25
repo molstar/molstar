@@ -16,6 +16,7 @@ import {
 import type { GraphicsContext } from '../context.js';
 import { DefineSpec, TextureSpec, UniformSpec } from '../renderable/schema.js';
 import type { Texture } from '../texture.js';
+import { getMeshColorSmoothingKernels, isComputeMeshColorSmoothingSupported } from './color-smoothing.js';
 import { getDispatchSize } from './prefix-sum.js';
 
 /**
@@ -63,13 +64,27 @@ export const LayerSamplingKernels: readonly KernelRequest[] = [
   ...getLayerSamplingKernels(4),
 ];
 
+/** The splat's kernels of a CPU mesh's smoothed colors and layers on the GPU, of both color types */
+export const MeshSmoothingKernels: readonly KernelRequest[] = [
+  ...getMeshColorSmoothingKernels('group'),
+  ...getMeshColorSmoothingKernels('groupInstance'),
+];
+
 /**
- * Compiles the kernels of `computeLayerSampling` in the background where they run and are not ready (else the first
- * smoothed layer compiles them synchronously, blocking the queue); `undefined` where there is nothing to wait for
+ * Compiles the kernels of a smoothed layer on a CPU mesh in the background where they run and are not ready: the
+ * sampling's (`computeLayerSampling`) and the splat's (`computeMeshColorSmoothing`); else the first smoothed layer
+ * compiles them synchronously, blocking the queue. `undefined` where there is nothing to wait for
  */
 export function prepareLayerSampling(graphics: GraphicsContext): Promise<void> | undefined {
-  if (!isComputeLayerSamplingSupported(graphics) || graphics.compute.hasKernels(LayerSamplingKernels)) return;
-  return graphics.compute.prepareKernels(LayerSamplingKernels);
+  const requests: KernelRequest[] = [];
+  if (isComputeLayerSamplingSupported(graphics) && !graphics.compute.hasKernels(LayerSamplingKernels)) {
+    requests.push(...LayerSamplingKernels);
+  }
+  if (isComputeMeshColorSmoothingSupported(graphics) && !graphics.compute.hasKernels(MeshSmoothingKernels)) {
+    requests.push(...MeshSmoothingKernels);
+  }
+  if (requests.length === 0) return;
+  return graphics.compute!.prepareKernels(requests);
 }
 
 export function isComputeLayerSamplingSupported(

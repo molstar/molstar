@@ -243,7 +243,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
     if (updateState.createNew) {
       locationIt = createLocationIterator(newStructure, newProps);
       if (newGeometry) {
-        // the old object's mesh vertices on the GPU (the smoothing's splat), kept by its values
+        // the old object's mesh vertices on the GPU (the smoothing's splat), kept by its position cell
         if (renderObject) releaseGpuMeshVertices(renderObject.values);
         renderObject = createComplexRenderObject(newStructure, newGeometry, locationIt, newTheme, newProps, materialId);
         if (geometry === undefined || geometryGraphics === newGraphics)

@@ -595,7 +595,10 @@ describe('marks through the index of Canvas3D', async () => {
       ),
     ).toEqual([a]);
     expect(mark(EveryLoci, MarkerAction.Deselect)).toEqual([a]);
-    expect(a.renderObjects.every((o) => o.values.markerStatus.ref.value === 0)).toBe(true);
+    // each group's status (a merged object's records', its own is not written)
+    const statuses = members(a).map((o) => o.values.markerStatus.ref.value);
+    expect(statuses.length).toBeGreaterThan(0);
+    expect(statuses.every((v) => v === 0)).toBe(true);
     // the one left out: nothing to deselect
     expect(b.mark(EveryLoci, MarkerAction.Deselect)).toBe(false);
     for (const r of [a, b]) r.destroy();

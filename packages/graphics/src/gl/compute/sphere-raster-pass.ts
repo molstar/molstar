@@ -280,6 +280,9 @@ export function createSphereRasterPass(compute: ComputeContext, resources: Graph
         if (!r.renderItem.renderFullscreen!('color', 'dSphereResolve', globals)) {
           release(r);
           drawn.splice(i, 1);
+          // nor drawn whole by it: its impostors draw it (`isDrawnWhole`, 'only' skips them for what is)
+          const whole = drawnWhole.indexOf(r);
+          if (whole >= 0) drawnWhole.splice(whole, 1);
           if (isDebugMode) console.log(`sphere raster #${r.renderItem.id}: resolve not ready`);
         } else {
           resolved += 1;

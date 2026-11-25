@@ -73,10 +73,13 @@ atlas), from the isosurface's vertex arena; CPU meshes have no vertices on the G
   no position texture for the point-sprite accumulation (one uploaded a geometry would do), decided after 4e's
   numbers.
 - **The vertices on the GPU once a geometry** (`GpuMeshVertices`, `geo/geometry/mesh/gpu-vertices.ts`: positions as
-  `f32` xyz, groups as `u32` with 4c, storage buffers of the context): kept by the mesh's values (a segment's), uploaded
+  `f32` xyz, groups as `u32` with 4c, storage buffers of the context): kept by the mesh's `aPosition` cell, not a values
+  object (the values a merged segment is made with and its record share the cell: one upload, one release), uploaded
   at the first GPU smoothing and again for a new version of the position cell (a geometry made again, possibly into
-  the same arrays) or another context (the old one's released then), released with the values (`disposeSegment`; the
-  per-group visuals' with 4d). The writers resolve them at each write, not at their creation. The splat and the sampling read them, so a
+  the same arrays) or another context (the old one's released then), released with the values that hold the cell
+  (`disposeSegment`; the per-group visuals' with 4d). A layer's writer keeps its mesh's cells as it was made (the
+  values it was made with may later hold another segment's, `bindShared`) and looks the vertices up at each write.
+  The splat and the sampling read them, so a
   layer uploads only its transforms (64 bytes an instance), reached flags and colors. Not the render item's vertex
   buffers: the geometry pages are `VERTEX | INDEX`, not `STORAGE` (the usage on every page, and bindings of
   `maxStorageBufferBindingSize`), a slot's attributes may be interleaved, the vertex buffers are written at the first

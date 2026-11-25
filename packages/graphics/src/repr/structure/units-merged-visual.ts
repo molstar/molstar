@@ -206,7 +206,10 @@ export interface UnitsMergedVisual<P extends StructureParams> {
   readonly builder: UnitsVisualGeometryBuilder<P, any>;
   /** its parts' merged objects */
   readonly renderObjects: readonly GraphicsRenderObject[];
-  /** advanced where a segment's geometry was made again or a merged object is another */
+  /**
+   * advanced where a segment's geometry was made again (the layers' nodes smooth again by it), not where a merged object
+   * is another over the same segments (a layer regrouping them)
+   */
   readonly geometryVersion: number;
   readonly groupCount: number;
   /**
@@ -277,6 +280,15 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
   /** its last update found a part not to merge and ended there (`mergeable`) */
   let unmergeable = false;
   /**
+   * the updates running (`createOrUpdate`, suspended at its awaits): a `setState` meanwhile sets what its parts read
+   * (`visible`, `pickable`, `themeStrength`) and keeps the rest (`pendingState`, `pendingCurrent`) for when they end;
+   * written meanwhile, its layers would regroup the parts an update is making (`writeLayers`, `relistParts`) and miss the
+   * segments it has yet to make
+   */
+  let updateDepth = 0;
+  let pendingState: Partial<StructureRepresentationState> | undefined;
+  let pendingCurrent: StructureRepresentationState | undefined;
+  /**
    * advanced where the records' cells are written but the observed ones (a mark's): the merged objects then read all
    * of their members at their next sync, else those of changed observed cells (`Merged.recordsUnchanged`)
    */
@@ -313,7 +325,7 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
   /** `seg` dropped: its geometry, and what writes its layers on the GPU (`DataArray.gpu`) */
   function disposeSegment(seg: Segment<G>) {
     builder.dispose?.(seg.geometry);
-    // its mesh's vertices on the GPU (the smoothed layers' sampling), kept by its values across layers
+    // its mesh's vertices on the GPU (the smoothed layers' sampling), kept by its position cell across layers
     releaseGpuMeshVertices(seg.values);
     const values = seg.values as unknown as { [k: string]: ValueCell<DataArray<any>> | undefined };
     for (const kind of SmoothedLayerKinds) releaseGpuData(values[SmoothedLayerTextures[kind]]?.ref.value);
@@ -846,6 +858,7 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
       p.gpuCulling ?? false,
       canCullOnGpu(graphics),
       graphics,
+      true,
     );
     const key = `${gpu}|${rasterOnly}`;
     const { object, objectRecords } = part;
@@ -871,7 +884,7 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
     part.objectRecords = records;
     part.objectKey = key;
     part.objectGraphics = graphics;
-    geometryVersion += 1;
+    // not a new geometry (`geometryVersion`): the segments' own, made again where they are
   }
 
   /** the segments a loci reaches: by its units where it has fewer than there are segments, else all */
@@ -901,6 +914,234 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
     return segments;
   }
 
+  /** `createOrUpdate`'s update (`updateDepth` counts it, a key split's nested one too) */
+  async function update(
+    ctx: VisualContext,
+    theme: Theme,
+    props: PD.Values<P>,
+    structure: Structure,
+    groups: ReadonlyArray<Unit.SymmetryGroup>,
+  ) {
+    const { graphics } = ctx;
+    unmergeable = false;
+    segmentWrites = 0;
+    const remadeBefore = geometriesRemade;
+    // after a backend switch or restore: all made again, for the new context. A new instance granularity: the
+    // segments' parts again (`auto` resolves by a group's counts). Made beside the current segments and parts, which
+    // are disposed once the update ends (one that does not leaves them as they were)
+    const rebuild =
+      rebuildNext ||
+      (!!graphics &&
+        parts.some((p) => p.object && graphics !== p.objectGraphics && hasForeignResources(p.object, graphics))) ||
+      (!!currentProps && props.instanceGranularity !== currentProps.instanceGranularity);
+    // asked for by a key split (`keySplit`): asked again where this update ends early (the others' causes remain)
+    const rebuildAsked = rebuildNext;
+    rebuildNext = false;
+    const oldParts = parts;
+    const oldSegments = segments;
+    if (rebuild) parts = [];
+    const lociBefore = { structure: lociStructure, granularity: lociGranularity };
+    lociStructure = structure;
+    lociGranularity = props.instanceGranularity;
+
+    // the same groups (a theme or props update): the segments in their order, not looked up by group
+    const sameGroups = !rebuild && groups === currentGroups && segments.length === groups.length;
+    const previous = rebuild ? createSegmentMap<G>() : byGroup;
+    const next = sameGroups ? byGroup : createSegmentMap<G>();
+    const nextSegments: Segment<G>[] = sameGroups ? segments : [];
+    // the fast paths, not a segment's update state each, where the last update ended (its segments written with
+    // its props, theme and structure), in the same context, of a builder with no versions of its own a group
+    // (`initUpdateState`: e.g. the secondary structure, the interactions, read by its update state)
+    const ended = consistent && !rebuild && graphics === currentGraphics;
+    const fast = ended && !builder.initUpdateState;
+    // a clip moved alone (a drag, each frame): the parts' shared values' clip once, not each segment's values again
+    // (the clip cells shared, not a record's: 94k segments 3 s a move)
+    const sameData = theme === currentTheme && structure === currentStructure;
+    const clipOnly =
+      fast && sameGroups && sameData && !!currentProps && BaseGeometry.isClipChangeOnly(props, currentProps);
+    if (clipOnly) for (const part of parts) BaseGeometry.updateClip(part.shared as any, props.clip);
+    const unchanged = clipOnly || (fast && props === currentProps && sameData);
+    // the props changed alone: a part's first segment updated, and where that wrote its shared values alone (no
+    // cell of its record, nothing made again nor recolored) the part's other segments not (their values the same
+    // shared ones: 94k segments seconds a change, e.g. a material's); of a builder with versions a group, the others'
+    // update state each, written where it says
+    const propsOnly = ended && !unchanged && sameGroups && sameData && !!currentProps;
+    /** by part, whether its first segment's update wrote its shared values alone (`propsOnly`) */
+    const sharedOnly = new Map<Part<G>, boolean>();
+    /**
+     * the parts checked to merge in this update, once each after its first segment's update: one that does not ends
+     * the update there (the visual left to be destroyed, `mergeable` false), not every group's geometry made first
+     */
+    const checked = new Set<Part<G>>();
+    const merges = (seg: Segment<G>) => {
+      if (checked.has(seg.part)) return true;
+      checked.add(seg.part);
+      return canMergeValues(type, [seg.part.shared]);
+    };
+    let written = !sameGroups;
+    // what this update made and which of the previous segments it kept: the visual's own map and segments untouched
+    // till it ends (one that does not, by a part not to merge, a throw or an abort, disposes what it made and leaves
+    // the visual as it was)
+    const made: Segment<G>[] = [];
+    const kept = new Set<Segment<G>>();
+    /** whether an update changed a segment's levels, its merge key's (`regroupByKey`) */
+    let levelsChanged = false;
+    const partsBefore = new Set(parts);
+    /**
+     * of a builder that writes its values by the segment (`processValues`: smoothing by a surface's resolution), each
+     * part's merge key after its first segment's update: a later segment's another wrote its own key into the shared
+     * values (`keySplit`), the visual then made again (each segment in the part of its key)
+     */
+    const firstKeys = builder.processValues ? new Map<Part<G>, string>() : undefined;
+    let keySplit = false;
+    const checkKey = (seg: Segment<G>) => {
+      const key = getMergeKey(seg.part.shared);
+      const first = firstKeys!.get(seg.part);
+      if (first === undefined) firstKeys!.set(seg.part, key);
+      else if (key !== first) keySplit = true;
+    };
+    /** debug mode: the shared cells written in this update, by part (`checkSharedWrites`) */
+    const sharedWrites = isDebugMode ? new Map<Part<G>, Map<string, unknown>>() : undefined;
+    let completed = false;
+    try {
+      for (let i = 0, il = groups.length; i < il; ++i) {
+        const group = groups[i];
+        const structureGroup: StructureGroup = { group, structure };
+        let seg = sameGroups ? segments[i] : previous.get(group);
+        if (seg) {
+          if (!sameGroups) kept.add(seg);
+          if (propsOnly && seg.group === group) {
+            const probed = sharedOnly.get(seg.part);
+            if (probed && !builder.initUpdateState) {
+              // written alike by its part's first segment: these props'
+              seg.props = props;
+              continue;
+            }
+            if (probed === undefined) {
+              const versions = recordVersions(seg);
+              const before = sharedWrites && sharedVersions(seg.part);
+              const updating = updateSegment(ctx, seg, structureGroup, props, theme);
+              if (isPromiseLike(updating)) await updating;
+              if (before) checkSharedWrites(seg, before, sharedWrites!);
+              if (firstKeys) checkKey(seg);
+              const clean = !hasRecordUpdates(updateState) && isSameVersions(versions, recordVersions(seg));
+              sharedOnly.set(seg.part, clean);
+              if (!clean) written = true;
+              if (!merges(seg)) {
+                unmergeable = true;
+                return;
+              }
+              continue;
+            }
+          }
+          if (unchanged && seg.group === group) {
+            seg.props = props;
+          } else {
+            const lodVersion = seg.record.lodLevels?.ref.version ?? -1;
+            const before = sharedWrites && sharedVersions(seg.part);
+            const writes = segmentWrites;
+            const sharedAlone = propsOnly && seg.group === group && sharedOnly.get(seg.part) === true;
+            const updating = updateSegment(ctx, seg, structureGroup, props, theme, sharedAlone);
+            if (isPromiseLike(updating)) await updating;
+            if (segmentWrites !== writes) {
+              written = true;
+              if (firstKeys) checkKey(seg);
+            }
+            if (before) checkSharedWrites(seg, before, sharedWrites!);
+            if ((seg.record.lodLevels?.ref.version ?? -1) !== lodVersion) levelsChanged = true;
+          }
+        } else {
+          const geometry = createGeometry(ctx, structureGroup, props, theme);
+          let segment: Segment<G> | undefined;
+          const preparing = Visual.withPreparedGeometry(geometry, utils, theme, graphics, (g) => {
+            segment = createSegment(ctx, structureGroup, g, props, theme);
+          });
+          if (isPromiseLike(preparing)) await preparing;
+          seg = segment!;
+          made.push(seg);
+          geometryVersion += 1;
+          // a new segment of a marked representation: its markers as made, clear (as a new units visual's)
+        }
+        if (!merges(seg)) {
+          unmergeable = true;
+          return;
+        }
+        if (!sameGroups) {
+          next.set(group, seg);
+          nextSegments.push(seg);
+        }
+        if (ctx.runtime.shouldUpdate) {
+          await ctx.runtime.update({ message: 'Creating or updating merged units visual', current: i, max: il });
+        }
+      }
+      completed = true;
+    } finally {
+      if (!completed) {
+        if (rebuildAsked) rebuildNext = true;
+        for (const seg of made) disposeSegment(seg);
+        // the parts made for them alone: no object yet (made with the render objects), dropped; a rebuild's the
+        // current ones again
+        parts = rebuild ? oldParts : parts.filter((part) => partsBefore.has(part));
+        lociStructure = lociBefore.structure;
+        lociGranularity = lociBefore.granularity;
+        if (segmentWrites > 0) {
+          // segments written before it ended: the next update by each one's own (no fast path), the merged objects
+          // reading every record again (their layouts as written)
+          consistent = false;
+          recordsWritten();
+        }
+      }
+    }
+    if (written) recordsWritten();
+    if (rebuild) {
+      for (const seg of oldSegments) disposeSegment(seg);
+      for (const part of oldParts) disposeObject(part);
+    }
+    if (!sameGroups) {
+      previous.forEach((seg) => {
+        if (!kept.has(seg)) disposeSegment(seg);
+      });
+      byGroup = next;
+      segments = nextSegments;
+    }
+    if (levelsChanged) regroupByKey(props);
+    if (!sameGroups || levelsChanged) relistParts();
+    currentGroups = groups;
+
+    for (const part of parts) {
+      if (props !== currentProps) utils.updateRenderableState(part.renderableState, props);
+      applyPartState(part);
+    }
+    // smoothed layers written again where what they were smoothed by changed: a geometry made again (its vertex data
+    // the old one's), the smoothing props (on or off: the layers' types, and the segments' parts, with them)
+    const smoothedLayers = type === 'mesh' ? getSmoothedLayers(state) : undefined;
+    const resmooth =
+      !!smoothedLayers &&
+      Object.keys(smoothedLayers).length > 0 &&
+      // not at the first update: its segments made with the layers (`createSegment`)
+      !!currentProps &&
+      (geometriesRemade !== remadeBefore || !isSameSmoothing(props as PD.Values<any>, currentProps as PD.Values<any>));
+    currentProps = props;
+    currentTheme = theme;
+    currentStructure = structure;
+    currentGraphics = graphics;
+    consistent = true;
+    // the per-vertex sampling's kernels ahead of a smoothed layer (`perVertexOnGpu`), not at its first
+    if (type === 'mesh' && graphics && hasColorSmoothingProp(props) && props.smoothColors.name !== 'off') {
+      prepareLayerSampling(graphics);
+    }
+    if (resmooth) {
+      writeLayers(smoothedLayers!);
+      recordsWritten();
+    }
+    listObjects(props, graphics);
+    if (keySplit) {
+      // a part's segments of other keys: made again, each in the part of its own
+      rebuildNext = true;
+      await visual.createOrUpdate(ctx, theme, props, structure, groups);
+    }
+  }
+
   const visual: UnitsMergedVisual<P> = {
     builder,
     get renderObjects() {
@@ -918,220 +1159,17 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
       return !unmergeable && parts.length > 0 && parts.every((part) => canMergeValues(type, [part.shared]));
     },
     async createOrUpdate(ctx, theme, props, structure, groups) {
-      const { graphics } = ctx;
-      unmergeable = false;
-      segmentWrites = 0;
-      const remadeBefore = geometriesRemade;
-      // after a backend switch or restore: all made again, for the new context. A new instance granularity: the
-      // segments' parts again (`auto` resolves by a group's counts). Made beside the current segments and parts, which
-      // are disposed once the update ends (one that does not leaves them as they were)
-      const rebuild =
-        rebuildNext ||
-        (!!graphics &&
-          parts.some((p) => p.object && graphics !== p.objectGraphics && hasForeignResources(p.object, graphics))) ||
-        (!!currentProps && props.instanceGranularity !== currentProps.instanceGranularity);
-      rebuildNext = false;
-      const oldParts = parts;
-      const oldSegments = segments;
-      if (rebuild) parts = [];
-      const lociBefore = { structure: lociStructure, granularity: lociGranularity };
-      lociStructure = structure;
-      lociGranularity = props.instanceGranularity;
-
-      // the same groups (a theme or props update): the segments in their order, not looked up by group
-      const sameGroups = !rebuild && groups === currentGroups && segments.length === groups.length;
-      const previous = rebuild ? createSegmentMap<G>() : byGroup;
-      const next = sameGroups ? byGroup : createSegmentMap<G>();
-      const nextSegments: Segment<G>[] = sameGroups ? segments : [];
-      // the fast paths, not a segment's update state each, where the last update ended (its segments written with
-      // its props, theme and structure), in the same context, of a builder with no versions of its own a group
-      // (`initUpdateState`: e.g. the secondary structure, the interactions, read by its update state)
-      const ended = consistent && !rebuild && graphics === currentGraphics;
-      const fast = ended && !builder.initUpdateState;
-      // a clip moved alone (a drag, each frame): the parts' shared values' clip once, not each segment's values again
-      // (the clip cells shared, not a record's: 94k segments 3 s a move)
-      const sameData = theme === currentTheme && structure === currentStructure;
-      const clipOnly =
-        fast && sameGroups && sameData && !!currentProps && BaseGeometry.isClipChangeOnly(props, currentProps);
-      if (clipOnly) for (const part of parts) BaseGeometry.updateClip(part.shared as any, props.clip);
-      const unchanged = clipOnly || (fast && props === currentProps && sameData);
-      // the props changed alone: a part's first segment updated, and where that wrote its shared values alone (no
-      // cell of its record, nothing made again nor recolored) the part's other segments not (their values the same
-      // shared ones: 94k segments seconds a change, e.g. a material's); of a builder with versions a group, the others'
-      // update state each, written where it says
-      const propsOnly = ended && !unchanged && sameGroups && sameData && !!currentProps;
-      /** by part, whether its first segment's update wrote its shared values alone (`propsOnly`) */
-      const sharedOnly = new Map<Part<G>, boolean>();
-      /**
-       * the parts checked to merge in this update, once each after its first segment's update: one that does not ends
-       * the update there (the visual left to be destroyed, `mergeable` false), not every group's geometry made first
-       */
-      const checked = new Set<Part<G>>();
-      const merges = (seg: Segment<G>) => {
-        if (checked.has(seg.part)) return true;
-        checked.add(seg.part);
-        return canMergeValues(type, [seg.part.shared]);
-      };
-      let written = !sameGroups;
-      // what this update made and which of the previous segments it kept: the visual's own map and segments untouched
-      // till it ends (one that does not, by a part not to merge, a throw or an abort, disposes what it made and leaves
-      // the visual as it was)
-      const made: Segment<G>[] = [];
-      const kept = new Set<Segment<G>>();
-      /** whether an update changed a segment's levels, its merge key's (`regroupByKey`) */
-      let levelsChanged = false;
-      const partsBefore = new Set(parts);
-      /**
-       * of a builder that writes its values by the segment (`processValues`: smoothing by a surface's resolution), each
-       * part's merge key after its first segment's update: a later segment's another wrote its own key into the shared
-       * values (`keySplit`), the visual then made again (each segment in the part of its key)
-       */
-      const firstKeys = builder.processValues ? new Map<Part<G>, string>() : undefined;
-      let keySplit = false;
-      const checkKey = (seg: Segment<G>) => {
-        const key = getMergeKey(seg.part.shared);
-        const first = firstKeys!.get(seg.part);
-        if (first === undefined) firstKeys!.set(seg.part, key);
-        else if (key !== first) keySplit = true;
-      };
-      /** debug mode: the shared cells written in this update, by part (`checkSharedWrites`) */
-      const sharedWrites = isDebugMode ? new Map<Part<G>, Map<string, unknown>>() : undefined;
-      let completed = false;
+      updateDepth += 1;
       try {
-        for (let i = 0, il = groups.length; i < il; ++i) {
-          const group = groups[i];
-          const structureGroup: StructureGroup = { group, structure };
-          let seg = sameGroups ? segments[i] : previous.get(group);
-          if (seg) {
-            if (!sameGroups) kept.add(seg);
-            if (propsOnly && seg.group === group) {
-              const probed = sharedOnly.get(seg.part);
-              if (probed && !builder.initUpdateState) {
-                // written alike by its part's first segment: these props'
-                seg.props = props;
-                continue;
-              }
-              if (probed === undefined) {
-                const versions = recordVersions(seg);
-                const before = sharedWrites && sharedVersions(seg.part);
-                const updating = updateSegment(ctx, seg, structureGroup, props, theme);
-                if (isPromiseLike(updating)) await updating;
-                if (before) checkSharedWrites(seg, before, sharedWrites!);
-                if (firstKeys) checkKey(seg);
-                const clean = !hasRecordUpdates(updateState) && isSameVersions(versions, recordVersions(seg));
-                sharedOnly.set(seg.part, clean);
-                if (!clean) written = true;
-                if (!merges(seg)) {
-                  unmergeable = true;
-                  return;
-                }
-                continue;
-              }
-            }
-            if (unchanged && seg.group === group) {
-              seg.props = props;
-            } else {
-              const lodVersion = seg.record.lodLevels?.ref.version ?? -1;
-              const before = sharedWrites && sharedVersions(seg.part);
-              const writes = segmentWrites;
-              const sharedAlone = propsOnly && seg.group === group && sharedOnly.get(seg.part) === true;
-              const updating = updateSegment(ctx, seg, structureGroup, props, theme, sharedAlone);
-              if (isPromiseLike(updating)) await updating;
-              if (segmentWrites !== writes) {
-                written = true;
-                if (firstKeys) checkKey(seg);
-              }
-              if (before) checkSharedWrites(seg, before, sharedWrites!);
-              if ((seg.record.lodLevels?.ref.version ?? -1) !== lodVersion) levelsChanged = true;
-            }
-          } else {
-            const geometry = createGeometry(ctx, structureGroup, props, theme);
-            let segment: Segment<G> | undefined;
-            const preparing = Visual.withPreparedGeometry(geometry, utils, theme, graphics, (g) => {
-              segment = createSegment(ctx, structureGroup, g, props, theme);
-            });
-            if (isPromiseLike(preparing)) await preparing;
-            seg = segment!;
-            made.push(seg);
-            geometryVersion += 1;
-            // a new segment of a marked representation: its markers as made, clear (as a new units visual's)
-          }
-          if (!merges(seg)) {
-            unmergeable = true;
-            return;
-          }
-          if (!sameGroups) {
-            next.set(group, seg);
-            nextSegments.push(seg);
-          }
-          if (ctx.runtime.shouldUpdate) {
-            await ctx.runtime.update({ message: 'Creating or updating merged units visual', current: i, max: il });
-          }
-        }
-        completed = true;
+        await update(ctx, theme, props, structure, groups);
       } finally {
-        if (!completed) {
-          for (const seg of made) disposeSegment(seg);
-          // the parts made for them alone: no object yet (made with the render objects), dropped; a rebuild's the
-          // current ones again
-          parts = rebuild ? oldParts : parts.filter((part) => partsBefore.has(part));
-          lociStructure = lociBefore.structure;
-          lociGranularity = lociBefore.granularity;
-          if (segmentWrites > 0) {
-            // segments written before it ended: the next update by each one's own (no fast path), the merged objects
-            // reading every record again (their layouts as written)
-            consistent = false;
-            recordsWritten();
-          }
+        updateDepth -= 1;
+        // the state set while it updated, on what it made (or kept, where it ended early)
+        if (updateDepth === 0 && pendingState) {
+          const next = pendingState;
+          pendingState = undefined;
+          visual.setState(next, pendingCurrent!);
         }
-      }
-      if (written) recordsWritten();
-      if (rebuild) {
-        for (const seg of oldSegments) disposeSegment(seg);
-        for (const part of oldParts) disposeObject(part);
-      }
-      if (!sameGroups) {
-        previous.forEach((seg) => {
-          if (!kept.has(seg)) disposeSegment(seg);
-        });
-        byGroup = next;
-        segments = nextSegments;
-      }
-      if (levelsChanged) regroupByKey(props);
-      if (!sameGroups || levelsChanged) relistParts();
-      currentGroups = groups;
-
-      for (const part of parts) {
-        if (props !== currentProps) utils.updateRenderableState(part.renderableState, props);
-        applyPartState(part);
-      }
-      // smoothed layers written again where what they were smoothed by changed: a geometry made again (its vertex data
-      // the old one's), the smoothing props (on or off: the layers' types, and the segments' parts, with them)
-      const smoothedLayers = type === 'mesh' ? getSmoothedLayers(state) : undefined;
-      const resmooth =
-        !!smoothedLayers &&
-        Object.keys(smoothedLayers).length > 0 &&
-        (geometriesRemade !== remadeBefore ||
-          !currentProps ||
-          !isSameSmoothing(props as PD.Values<any>, currentProps as PD.Values<any>));
-      currentProps = props;
-      currentTheme = theme;
-      currentStructure = structure;
-      currentGraphics = graphics;
-      consistent = true;
-      // the per-vertex sampling's kernels ahead of a smoothed layer (`perVertexOnGpu`), not at its first
-      if (type === 'mesh' && graphics && hasColorSmoothingProp(props) && props.smoothColors.name !== 'off') {
-        prepareLayerSampling(graphics);
-      }
-      if (resmooth) {
-        writeLayers(smoothedLayers!);
-        recordsWritten();
-      }
-      listObjects(props, graphics);
-      if (keySplit) {
-        // a part's segments of other keys: made again, each in the part of its own
-        rebuildNext = true;
-        await visual.createOrUpdate(ctx, theme, props, structure, groups);
       }
     },
     getLoci(pickingId) {
@@ -1189,6 +1227,14 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
       if (pickable !== undefined) state.pickable = pickable;
       if (themeStrength !== undefined) state.themeStrength = themeStrength;
       for (const part of parts) applyPartState(part);
+      if (updateDepth > 0) {
+        const { visible: _v, pickable: _p, themeStrength: _t, ...rest } = next;
+        if (Object.keys(rest).length > 0) {
+          pendingState = { ...pendingState, ...rest };
+          pendingCurrent = current;
+        }
+        return;
+      }
       // the layers smoothed on surfaces: segments by their layers' types (`writeLayers`), their parts' objects then
       const regrouped = writeLayers({ overpaint, transparency, emissive, substance });
       for (const [layer, set] of [

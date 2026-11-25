@@ -9,6 +9,7 @@ import { ValueCell } from '@molstar/core/util';
 import { clamp } from '@molstar/core/math/interpolate';
 import type { BaseValues } from '@molstar/graphics/gl/renderable/schema';
 import type { DrawIndirect } from '@molstar/graphics/gl/compute';
+import { AutoGpuCullingMinRasterSpheres } from '@molstar/graphics/gl/renderable/merged';
 import { LocationIterator } from '../util/location-iterator.js';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { type TransformData, createIdentityTransform } from './transform-data.js';
@@ -132,14 +133,8 @@ export const AutoGpuCullingThreshold = 30;
  */
 export const AutoGpuCullingMinInstances = 50000;
 
-/**
- * Spheres from which `gpuCulling: 'auto'` culls on the GPU where the device has the sphere raster, which takes merged
- * objects culled there only: faster at 300k spheres and up on both GPUs measured (3J3Q 1.48 -> 0.63 ms, 61.9 -> 11.5 ms on
- * an integrated GPU), about 0.1 ms slower at a few hundred. Such an object is merged for
- * it, the renderer culling it on the GPU only where the raster takes it (`Renderable.rasterSpheres`,
- * `sphereRasterObjects`), else on the CPU
- */
-export const AutoGpuCullingMinRasterSpheres = 100_000;
+// defined with the renderer's culling of merged objects, which reads it too (`gl/renderable/merged.ts`)
+export { AutoGpuCullingMinRasterSpheres };
 
 /**
  * Resolves the `gpuCulling` param value for `instanceCount` instances drawn by `drawCount` segments times levels;
